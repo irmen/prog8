@@ -1,0 +1,140 @@
+; floating point tests
+
+output prg, sys
+
+import "c64lib"
+
+~ main_testing {
+start
+        var     .float          myfloat1        = 1234.56789
+        var     .float          myfloat2        = 9876.54321
+        var     .float          myfloatneg1     = -555.666
+        var     .float          myfloat_large1  = 987654.1111
+        var     .float          myfloat_large2  = -123456.2222
+        var     .text           myfloatstr   = "1234.998877"
+        var     .float          myfloatzero     = 0
+        var     .float          myfloatsmall1     = 1.234
+        var     .float          myfloatsmall2     = 2.6677
+
+        c64.MOVFM!(#myfloatsmall1)
+        c64.FCOMP!(#myfloatsmall1)
+        [$0400]=A
+        c64.MOVFM!(#myfloatsmall1)
+        c64.FCOMP!(#myfloatsmall2)
+        [$0401]=A
+        c64.MOVFM!(#myfloatsmall2)
+        c64.FCOMP!(#myfloatsmall1)
+        [$0402]=A
+
+        c64util.FREADS32()
+
+        return
+}
+
+
+~ main {
+
+        var .float flt_pi		 = 3.141592653589793
+        var .float flt_minus32768	 = -32768
+        var .float flt_1		 = 1
+        var .float flt_half_sqr2	 = 0.7071067811865476
+        var .float flt_sqr2		 = 1.4142135623730951
+        var .float flt_minus_half  	 = -.5
+        var .float flt_log_2		 = 0.6931471805599453
+        var .float flt_10		 = 10
+        var .float flt_1e9		 = 1000000000
+        var .float flt_half        	 = .5
+        var .float flt_one_over_log_2	 = 1.4426950408889634
+        var .float flt_half_pi		 = 1.5707963267948966
+        var .float flt_double_pi	 = 6.283185307179586
+        var .float flt_point25		 = .25
+        memory .word  some_address       = $ccdd
+        memory .byte  some_addressb      = $ccee
+
+
+start
+        AY = #flt_pi
+        [some_address] = # flt_pi
+        [some_address] = # flt_pi
+        [some_address] = # flt_pi
+        [some_address] = 4123.2342342222
+        [some_address] = 4123.2342342222
+        [some_address] = 4123.2342342222
+        [some_address.word] = #flt_pi
+        [some_address.word] = #flt_pi
+        [some_address.word] = #flt_pi
+        [$c000.word] = # flt_pi
+
+        c64.MOVFM!(#flt_pi)
+        c64.FPRINTLN!()
+        c64.MOVFM!(#c64.FL_PIVAL)
+        c64.FPRINTLN !()
+
+        c64.MOVFM!(#flt_minus32768)
+        c64.FPRINTLN!()
+        c64.MOVFM!(#c64.FL_N32768)
+        c64.FPRINTLN!()
+
+        c64.MOVFM!(#flt_1)
+        c64.FPRINTLN!()
+        c64.MOVFM!(#c64.FL_FONE)
+        c64.FPRINTLN!()
+
+        c64.MOVFM!(#flt_half_sqr2)
+        c64.FPRINTLN!()
+        c64.MOVFM!( #  c64.FL_SQRHLF)
+        c64.FPRINTLN!()
+
+        c64.MOVFM!(#flt_sqr2)
+        c64.FPRINTLN!()
+        c64.MOVFM!(#c64.FL_SQRTWO)
+        c64.FPRINTLN!()
+
+        c64.MOVFM!(#flt_minus_half)
+        c64.FPRINTLN!()
+        c64.MOVFM!(#c64.FL_NEGHLF)
+        c64.FPRINTLN!()
+
+        c64.MOVFM!(#flt_log_2)
+        c64.FPRINTLN!()
+        c64.MOVFM!(#c64.FL_LOG2)
+        c64.FPRINTLN!()
+
+        c64.MOVFM!(#flt_10)
+        c64.FPRINTLN!()
+        c64.MOVFM!(#c64.FL_TENC)
+        c64.FPRINTLN!()
+
+        c64.MOVFM!(#flt_1e9)
+        c64.FPRINTLN!()
+        c64.MOVFM!(#c64.FL_NZMIL)
+        c64.FPRINTLN!()
+
+        c64.MOVFM!(#flt_half)
+        c64.FPRINTLN!()
+        c64.MOVFM!(#c64.FL_FHALF)
+        c64.FPRINTLN!()
+
+        c64.MOVFM!(#flt_one_over_log_2)
+        c64.FPRINTLN!()
+        c64.MOVFM!(#c64.FL_LOGEB2)
+        c64.FPRINTLN!()
+
+        c64.MOVFM!(#flt_half_pi)
+        c64.FPRINTLN!()
+        c64.MOVFM!(#c64.FL_PIHALF)
+        c64.FPRINTLN!()
+
+        c64.MOVFM!(#flt_double_pi)
+        c64.FPRINTLN!()
+        c64.MOVFM!(#c64.FL_TWOPI)
+        c64.FPRINTLN!()
+
+        c64.MOVFM!(# flt_point25)
+        c64.FPRINTLN!()
+        c64.MOVFM!(#c64.FL_FR4)
+        c64.FPRINTLN!()
+
+        return
+
+}

@@ -1,0 +1,242 @@
+; var defintions and immediate primitive data type tests
+
+output raw
+clobberzp
+
+~ ZP {
+	; ZeroPage block definition:
+	; base address is set to $04 (because $00 and $01 are used by the hardware, and $02/$03 are scratch)
+	; everything here ends up in the zeropage, as long as there is space.
+	; you can NOT put subroutines in here (yet).
+}
+
+~ ZP $0004 {
+	var    zpvar1
+	memory zpmem1   = $f0
+	const  zpconst  = 1.234
+}
+
+~ ZP {
+	; will be merged with other ZP blocks!
+	var zpvar1b      =   $88
+}
+
+
+~ foo {
+        var    foovar1
+	memory foomem1   = $f0f0
+	const  fooconst  = 1.234
+}
+
+
+~ main {
+	; variables
+	var			uninitbyte1
+	var	.byte		uninitbyte2
+	var     		initbyte1	=  $12
+	var                     initbyte1b      = true
+	var  .byte              initbyte2       = $12
+	var  .byte              initbyte2b      = false
+	var  .byte              initbyte3       = 99.876
+	var                     initchar1       = '@'
+	var  .byte              initchar2       = '@'
+	var  .word              uninitword
+	var  .word              initword1       = $1234
+	var  .word              initword1b      = true
+	var  .word              initword2       = false
+	var  .word              initword3       = 9876.554321
+	var  .word              initword4       = initword3
+	var  .word              initword5       = 20
+	var  .float             uninitfloat
+	var  .float             initfloat1      = 0
+	var  .float             initfloat1b     = true
+	var  .float             initfloat2      = -1.234e-14
+	var  .float             initfloat3      = 9.87e+14
+	var  .float             initfloat4      = 1.70141183e+38
+	var  .float             initfloat5      = -1.70141183e+38
+	var  .float             initfloat6      = 1.234
+	var  .array( 10)        uninit_bytearray
+	var  .array(10 )        init_bytearray          =$12
+	var  .array(10 )        init_bytearrayb         =true
+	var  .array(10 )        init_bytearrayc         ='@'
+	var  .wordarray( 10 )   uninit_wordarray
+	var  .wordarray(10)     init_wordarray          =  $1234
+	var  .wordarray(10)     init_wordarrayb         =  true
+
+	var  .text              text    = "hello"+"-null"
+	var  .ptext             ptext   = 'hello-pascal'
+	var  .stext             stext   = 'screencodes-null'
+	var  .pstext            pstext  = "screencodes-pascal"
+
+	var  .matrix( 10, 20 ) uninitmatrix
+	var  .matrix(10, 20)   initmatrix1      = $12
+	var  .matrix(10, 20)   initmatrix1b     = true
+	var  .matrix(10, 20)   initmatrix1c     = '@'
+	var  .matrix(10, 20)   initmatrix1d     = 123.456
+
+	; memory-mapped variables
+	memory                          membyte1        = $cf01
+	memory  .byte                   membyte2        = $c2
+	memory  .byte                   membyte3        = initbyte2
+	memory  .word                   memword1        = $cf03
+	memory  .float                  memfloat        = $cf04
+	memory  .array(10 )             membytes        = $cf05
+	memory  .wordarray( 10)         memwords        = $cf06
+	memory  .matrix( 10, 20 )       memmatrix       = $cf07
+
+	; constants   (= names for constant values, can never occur as lvalue)
+	const                   cbyte1          = 1
+	const                   cbyte1b         = false
+	const  .byte            cbyte2          = 1
+	const  .byte            cbyte3          = '@'
+	const  .byte            cbyte4          = true
+	const  .word            cbyte6          = false
+	const  .word            cword2          = $1234
+	const  .word            cword5          = 9876.5432
+	const                   cfloat1         = 1.2345
+	const  .float           cfloat2         = 2.3456
+	const  .float           cfloat2b        = cfloat2*3.44
+	const  .float           cfloat3         = true
+	const  .text            ctext3   	= "constant-text"
+	const  .ptext           ctext4   	= "constant-ptext"
+	const  .stext           ctext5   	= "constant-stext"
+	const  .pstext          ctext6   	= "constant-pstext"
+
+        ; taking the address of various things:
+	var .word        vmemaddr1              = #membyte1
+	var .word        vmemaddr2              = #memword1
+	var .word        vmemaddr3              = #memfloat
+	var .word        vmemaddr4              = #membytes
+	var .word        vmemaddr5              = #memwords
+	var .word        vmemaddr6              = #memmatrix
+	var .word        vmemaddr7              = vmemaddr1
+	var .word        vmemaddr8              = 100*sin(cbyte1)
+	var .word        vmemaddr9              = cword2+$5432
+	var .word        vmemaddr10             = cfloat2b
+	; taking the address of things from the ZP will work even when it is a var
+	; because zp-vars get assigned a specific address (from a pool). Also, it's a byte.
+	var .word        initword0a             = #ZP.zpmem1
+	var .word	 initword0              = #ZP.zpvar1
+	var              initbytea0             = #ZP.zpmem1
+	var	.word	 initworda1             = #ZP.zpvar1
+
+
+        ; (constant) expressions
+	var                     expr_byte1b     =  -1-2-3-4-$22+0x80+ZP.zpconst
+	var     .byte           expr_fault2     =  1 + (8/3)+sin(33) + max(1,2,3)
+
+
+sin
+        return
+
+max
+        return
+
+
+start
+
+; --- immediate primitive value assignments ----
+
+	A = 0
+	A = '@'
+	A = 1.2345
+	A = true
+	A = false
+	A = 255
+	A = X
+	A = [$c020]
+	A = [membyte2]
+	;A = [membyte2.byte]     ; @todo ok
+	;A = [membyte2.word]     ; @todo type error
+	;A = [membyte2.float]     ; @todo type error
+	; A = #expr_byte1b        ; @todo cannot assign address to byte
+
+	XY = 0
+	XY = '@'
+	XY = 1.2345
+	XY = 456.66
+	XY = 65535
+	XY = true
+	XY = false
+	XY = text
+	XY = "text-immediate"
+	AY = "text-immediate"
+	AX = #"text-immediate"          ; equivalent to simply assigning the string directly
+	AX = # "text-immediate"         ; equivalent to simply assigning the string directly
+	AX = ""
+	AX = XY
+	AX = Y
+
+	[$c000] = 255
+	[$c000] = '@'
+	[$c000] = 1.2345
+	[$c000] = true
+	[$c000] = false
+	[$c000.word] = 65535
+	[$c000.word] = 456.66
+	[$c000.word] = "text"
+	[$c000.word] = ""
+	[$c000.float] = 65535
+	[$c000.float] = 456.66
+	[$c000.float] = 1.70141183e+38
+	;[$c000.byte] = AX     ; @todo out of range
+	[$c000.word] = AX
+	[$c001] = [$c002]
+	;[$c001.word] = [$c002]          ;@todo okay (pad)
+        ;[$c001.word] = [$c002.byte]     ;@todo okay (pad)
+	[$c001.word] = [$c002.word]
+	;[$c001.word] = [$c002.float]    ;@todo parse error
+	;[$c001.float] = [$c002.byte]    ;@todo ok
+	;[$c001.float] = [$c002.word]    ;@todo support this
+	;[$c001.float] = [$c002.float]    ;@todo support this
+
+
+	SC = 0
+	SC = 1
+	SC = false
+
+	uninitbyte1 = 99
+	uninitbyte1 = 1.234
+	uninitbyte1 = '@'
+	initbyte1 = 99
+	initbyte1 = 1.234
+	initbyte1 = '@'
+	initbyte1 = A
+	uninitword = 99
+	uninitword = 5.6778
+	uninitword = "test"
+	uninitword = '@'
+	uninitword = A
+	uninitword = XY
+	initfloat1 = 99
+	initfloat1 = 9.8765
+	initfloat1 = '@'
+	uninitfloat = 99
+	uninitfloat = 9.8765
+	uninitfloat = '@'
+	;uninitfloat = A         ; @todo support this
+	; uninitfloat = XY        ; @todo support this
+
+        membyte1 = 22
+        memword1 = 2233
+        memfloat = 3.4567
+
+        membyte1 = A
+        memword1 = A
+        memword1 = XY
+        ;memfloat = A            ; @todo support this
+        ;memfloat = XY           ; @todo support this
+
+	return
+}
+
+~ footer {
+        XY = "text-immediate"   ; reuses existing
+        AY = "text-immediate"   ; reuses existing
+        AX = "another"
+        AX = ""
+        [$c000.word] = "another"               ; reuse
+        [$c100.word] = "text-immediate"        ; reuse
+        [$c200.word] = ""        ; reuse
+}
+

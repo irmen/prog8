@@ -1,0 +1,63 @@
+; call tests
+
+;output
+
+
+~ foo {
+
+        var     .word   var1    = 99
+        memory  .word   mem1    = $cff0
+
+        var     .byte   varb1    = 99
+        memory  .byte   memb1    = $cff0
+
+bar
+	go [AX]         ; @todo check indrection jmp (AX)
+	go [var1]       ; @todo check indirection jmp (var1)
+	go [#mem1]      ; @todo check indirection jmp ($cff0)
+	; go mem1      ; @todo support this, should jmp $cff0
+	go [$c2]
+	go [$c2dd]
+	go $c000
+	go $c2
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+	fcall [XY]
+	fcall [var1]
+	fcall [#mem1]
+	;fcall mem1  ; @todo support this, should jsr $cff0
+	fcall [$c2]
+	fcall [$c2dd]
+	fcall $c000
+	fcall $c2
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+	call [AX]
+	call [var1]
+	call [#mem1]
+	;call mem1  ; @todo support this, should jsr $cff0
+	call [$c2]
+	call [$c2dd]
+	call $c000
+	call $c2
+}
+
+
+~ main {
+
+start
+        call foo.bar
+	return
+}

@@ -1,0 +1,85 @@
+output prg,sys  ; create a c-64 program with basic SYS call to launch it
+
+	import "c64lib.ill"
+
+ ~ main
+{
+	var .text greeting = "hello world!\r12345678 is a big number.\r"
+	var .ptext p_greeting = "hello world!\r12345678 is a big number.\r"
+	const .word BORDER = $d020
+
+start
+	fcall c64util.print_pimmediate          ; this prints the pstring immediately following it
+	asm {
+		.ptext "hello-pimmediate!{cr}"
+	}
+
+	A = 19
+	fcall c64util.print_byte_decimal0
+	A = 13
+	fcall c64.CHROUT
+	A = 19
+	fcall c64util.print_byte_decimal
+	A = 13
+	fcall c64.CHROUT
+
+
+	X = $01
+	Y = $02
+	fcall c64util.print_word_decimal0
+	A = 13
+	fcall c64.CHROUT
+	X = $01
+	Y = $02
+	fcall c64util.print_word_decimal
+	A = 13
+	fcall c64.CHROUT
+	return
+
+start2
+	call global2.make_screen_black
+	call c64.CLEARSCR
+	XY = greeting
+	call c64util.print_string
+	XY = p_greeting
+	call c64util.print_pstring
+	A = 0
+	call c64util.print_byte_decimal
+	A = 0
+	call c64util.print_byte_hex
+	A = 13
+	call c64.CHROUT
+	call c64util.print_byte_decimal
+	A = 13
+	call c64util.print_byte_hex
+	A = 13
+	call c64.CHROUT
+	A = 255
+	call c64util.print_byte_decimal
+	A = 254
+	call c64util.print_byte_hex
+	A = 129
+	call c64util.print_byte_hex
+	A = 13
+	call c64.CHROUT
+
+	A = 13
+	call c64.CHROUT
+	X = 1
+	Y = 0
+	call c64util.print_word_decimal
+	A = 13
+	call c64.CHROUT
+	return
+
+
+}
+
+~ global2 {
+
+make_screen_black
+		c64.EXTCOL = c64.BGCOL0 = 0
+		c64.COLOR = 3
+		return
+
+}

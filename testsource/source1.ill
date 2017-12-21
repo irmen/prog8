@@ -1,0 +1,158 @@
+; source IL file
+; these are comments
+
+output prg,sys  ; create a c-64 program with basic SYS call to launch it
+;clobberzp restore  ; clobber over the zp memory normally used by basic/kernel rom, frees up more zp
+
+
+
+~main $0a00
+{
+	memory screen = $d021
+	memory border = $d020
+	memory cursor = 646
+	const cyan = 3
+	const .word redw = $2002
+	var 			uninitbyte1
+	var .byte		uninitbyte2
+	var .word		uninitword1
+	var .byte		initbyte33     = 33
+	var .word		initword9876   = $9876
+	var .array(10)		bytes2   = $44
+	var .wordarray(10)	words2   = $bbcc
+
+
+start   ;foo
+	X = 55
+	Y = $77
+	Y = X
+	Y = X
+	X = 66
+	screen = 0
+	screen = border =  cursor = X = Y = A = X = Y = A = border = cursor = border = cursor = 66  ; multi-assign!
+	border = false
+	border = true
+	border = 0
+	border = 0
+	[$d020] = 0
+	screen = X
+	cursor = Y
+	[646] = Y
+	uninitbyte1 = 123
+	uninitword1 = 12345
+	uninitword1 = A
+	initbyte33 = 133
+	initword9876 = 9999
+	initword9876 = 1
+	initword9876 = Y
+
+	initbyte33 ++
+	initword9876 ++
+
+	Y = 0
+	Y = 1
+	Y = 2
+	Y = true
+	Y = false
+	A = Y = X = 0		; multi assign!
+
+	; [646,Y] = [$d020,X]
+
+
+_loop   A ++
+	X ++
+	Y ++
+	[$d020] ++
+	A --
+	X --
+	Y--
+	[$d020]--
+	call fidget.subroutine
+	go _loop
+	return 155,2,%00000101	; will end up in A, X, Y
+}
+
+~ block2 {
+somelabel1222
+	return
+
+	var zp1
+	var zp2
+	var .word zpw1
+	var .word zpw2
+	var .array(100)  some_array1    = $aa  ; initialized with $aa bytes
+	const white  = 1
+	const red = 2
+	const .word border2 = $d020
+	const .word screen2 = $d021
+}
+
+~ block3 {
+somelabel1
+	asm {
+		nop
+		nop
+		nop
+	}
+
+        go somelabel1
+        go block2.somelabel1222
+	A=X=Y=A=X=Y=A=X=Y=99
+	[$d020]=[$d021]=[$d020]=[$d021]=55
+
+	A=1
+	X=1
+	[$d020]=1
+	[$aa]=1
+	[$bb]=1
+	Y=1
+	X=1
+	A=1
+	[$d021]=1
+	A=2
+	[$cc]=1
+	[$cd]=1
+	[$ce]=1
+	[$cf]=1
+	[$cf00]=1
+	[$cf01]=2
+	[$cf02]=1
+	Y=2
+	A=2
+	X=1
+
+	return
+}
+
+~ block4 {
+	A=1
+	A=2
+	A=3
+	A=4
+	A=5
+	X=8
+	X=9
+	Y=10
+	[$cc]=1
+	[$cc]=2
+	[$cc]=3
+	[$cc]=4
+	[$dd]=A
+	[$dd]=X
+	[$dd]=Y
+	return
+}
+
+
+~  fidget $1000
+{
+
+subroutine
+; subroutine (A, X, Y)
+	;[border2] = red
+	;[screen2] = white
+	return $99
+	return ,$99
+	return ,,$99
+
+}
