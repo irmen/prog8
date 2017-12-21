@@ -39,7 +39,7 @@ class ParseResult:
         _unnamed_block_labels = {}  # type: Dict[ParseResult.Block, str]
 
         def __init__(self, name: str, sourceref: SourceRef, parent_scope: SymbolTable) -> None:
-            self.sourceref = sourceref
+            self.sourceref = sourceref.copy()
             self.address = 0
             self.name = name
             self.statements = []    # type: List[ParseResult._AstNode]
@@ -80,10 +80,11 @@ class ParseResult:
             self.statements = statements
 
     class Value:
-        def __init__(self, datatype: DataType, name: str=None, constant: bool=False) -> None:
+        def __init__(self, datatype: DataType, name: str=None, constant: bool=False, indirect: bool=False) -> None:
             self.datatype = datatype
             self.name = name
             self.constant = constant
+            self.indirect = indirect    # is the value accessed as [value], "take the contents of the memory address it points to"  @todo
 
         def assignable_from(self, other: 'ParseResult.Value') -> Tuple[bool, str]:
             if self.constant:
@@ -278,6 +279,10 @@ class ParseResult:
     class _AstNode:     # @todo merge Value with this?
         pass
 
+    class Comment(_AstNode):
+        def __init__(self, text: str) -> None:
+            self.text = text
+
     class Label(_AstNode):
         def __init__(self, name: str, lineno: int) -> None:
             self.name = name
@@ -365,7 +370,14 @@ class ParseResult:
             self.blocks.append(block)
 
     def merge(self, parsed: 'ParseResult') -> None:
-        self.blocks.extend(parsed.blocks)
+        existing_blocknames = set(block.name for block in self.blocks)
+        other_blocknames = set(block.name for block in parsed.blocks)
+        overlap = existing_blocknames & other_blocknames
+        if overlap != {"<header>"}:
+            raise SymbolError("double block names: {}".format(overlap))
+        for block in parsed.blocks:
+            if block.name != "<header>":
+                self.blocks.append(block)
 
 
 class Parser:
@@ -388,13 +400,17 @@ class Parser:
     def load_source(self, filename: str) -> List[Tuple[int, str]]:
         with open(filename, "rU") as source:
             sourcelines = source.readlines()
-        # store all lines that are not empty or a comment, and strip any other comments
+        # store all lines that aren't empty
+        # comments are kept (end-of-line comments are put on a separate line)
         lines = []
         for num, line in enumerate(sourcelines, start=1):
             line2 = line.strip()
-            if not line2 or line2.startswith(";"):
-                continue
-            lines.append((num, line.partition(";")[0].rstrip()))
+            if line2:
+                line, sep, comment = line.partition(";")
+                if comment:
+                    lines.append((num, "; " + comment.strip()))
+                if line.rstrip():
+                    lines.append((num, line.rstrip()))
         return lines
 
     def parse(self) -> Optional[ParseResult]:
@@ -402,8 +418,9 @@ class Parser:
         try:
             return self.parse_file()
         except ParseError as x:
-            if x.text:
-                print("\tsource text: '{:s}'".format(x.text))
+            print()
+            if x.sourcetext:
+                print("\tsource text: '{:s}'".format(x.sourcetext))
                 if x.sourceref.column:
                     print("\t" + ' '*x.sourceref.column + '             ^')
             if self.parsing_import:
@@ -412,7 +429,7 @@ class Parser:
                 print("Error:", str(x))
             raise   # XXX temporary solution to get stack trace info in the event of parse errors
         except Exception as x:
-            print("ERROR: internal parser error: ", x)
+            print("\nERROR: internal parser error: ", x)
             print("    file:", self.sourceref.file, "block:", self.cur_block.name, "line:", self.sourceref.line)
             raise   # XXX temporary solution to get stack trace info in the event of parse errors
 
@@ -425,16 +442,28 @@ class Parser:
     def print_warning(self, text: str) -> None:
         print(text)
 
+    def _parse_comments(self) -> None:
+        while True:
+            line = self.next_line().lstrip()
+            if line.startswith(';'):
+                self.cur_block.statements.append(ParseResult.Comment(line))
+                continue
+            self.prev_line()
+            break
+
     def _parse_1(self) -> None:
+        self.cur_block = ParseResult.Block("<header>", self.sourceref, self.root_scope)
+        self.result.add_block(self.cur_block)
         self.parse_header()
         zeropage.configure(self.result.clobberzp)
         while True:
-            next_line = self.peek_next_line()
-            if next_line.lstrip().startswith("~"):
+            self._parse_comments()
+            next_line = self.peek_next_line().lstrip()
+            if next_line.startswith("~"):
                 block = self.parse_block()
                 if block:
                     self.result.add_block(block)
-            elif next_line.lstrip().startswith("import"):
+            elif next_line.startswith("import"):
                 self.parse_import()
             else:
                 break
@@ -544,6 +573,7 @@ class Parser:
         self.result.format = ProgramFormat.RAW
         output_specified = False
         while True:
+            self._parse_comments()
             line = self.next_line()
             if line.startswith("output"):
                 if output_specified:
@@ -627,8 +657,11 @@ class Parser:
                 print("\ncontinuing", self.sourceref.file)
                 if result:
                     # merge the symbol table of the imported file into our own
-                    self.root_scope.merge_roots(parser.root_scope)
-                    self.result.merge(result)
+                    try:
+                        self.root_scope.merge_roots(parser.root_scope)
+                        self.result.merge(result)
+                    except SymbolError as x:
+                        raise self.PError(str(x))
                     return
                 else:
                     raise self.PError("Error while parsing imported file")
@@ -639,13 +672,15 @@ class Parser:
 
     def parse_block(self) -> ParseResult.Block:
         # first line contains block header "~ [name] [addr]" followed by a '{'
+        self._parse_comments()
         line = self.next_line()
+        block_def_lineno = self.sourceref.line
         line = line.lstrip()
         if not line.startswith("~"):
             raise self.PError("expected '~' (block)")
         block_args = line[1:].split()
         arg = ""
-        self.cur_block = ParseResult.Block("", self.sourceref, self.root_scope)
+        self.cur_block = ParseResult.Block("", self.sourceref.copy(), self.root_scope)
         is_zp_block = False
         while block_args:
             arg = block_args.pop(0)
@@ -659,9 +694,9 @@ class Parser:
                         raise self.PError("duplicate block name '{:s}', original definition at {}".format(arg, orig.sourceref))
                     self.cur_block = orig  # zero page block occurrences are merged
                 else:
-                    self.cur_block = ParseResult.Block(arg, self.sourceref, self.root_scope)
+                    self.cur_block = ParseResult.Block(arg, self.sourceref.copy(), self.root_scope)
                     try:
-                        self.root_scope.define_scope(self.cur_block.symbols, self.sourceref)
+                        self.root_scope.define_scope(self.cur_block.symbols, self.cur_block.sourceref)
                     except SymbolError as x:
                         raise self.PError(str(x))
             elif arg == "{":
@@ -695,6 +730,7 @@ class Parser:
             else:
                 print("  parsing block '{:s}'".format(self.cur_block.name))
         while True:
+            self._parse_comments()
             line = self.next_line()
             unstripped_line = line
             line = line.strip()
@@ -909,7 +945,7 @@ class Parser:
                 if isinstance(target, VariableDef):
                     # checks
                     if target.address is not None:
-                        raise self.PError("invalid call target (should be label or address)")
+                        raise self.PError("can only call a constant expression (label, address, const)")
                     if target.type != DataType.WORD:
                         raise self.PError("invalid call target (should be 16-bit address)")
         else:
@@ -1014,6 +1050,7 @@ class Parser:
 
     def parse_asm(self) -> ParseResult.InlineAsm:
         line = self.next_line()
+        lineno = self.sourceref.line
         aline = line.split()
         if not len(aline) == 2 or aline[0] != "asm" or aline[1] != "{":
             raise self.PError("invalid asm start")
@@ -1021,7 +1058,7 @@ class Parser:
         while True:
             line = self.next_line()
             if line.strip() == "}":
-                return ParseResult.InlineAsm(self.sourceref.line, asmlines)
+                return ParseResult.InlineAsm(lineno, asmlines)
             asmlines.append(line)
 
     def parse_asminclude(self, line: str) -> ParseResult.InlineAsm:
@@ -1131,7 +1168,9 @@ class Parser:
         elif text.startswith('[') and text.endswith(']'):
             num_or_name = text[1:-1].strip()
             word_type = float_type = False
-            if num_or_name.endswith(".word"):
+            if num_or_name.endswith(".byte"):
+                num_or_name = num_or_name[:-5]
+            elif num_or_name.endswith(".word"):
                 word_type = True
                 num_or_name = num_or_name[:-5]
             elif num_or_name.endswith(".float"):
@@ -1150,12 +1189,12 @@ class Parser:
                         raise TypeError("integer required")
                 elif isinstance(sym, VariableDef):
                     if sym.type == DataType.BYTE and (word_type or float_type):
-                        raise self.PError("byte value required")
+                        raise self.PError("invalid type modifier, byte expected")
                     elif sym.type == DataType.WORD and float_type:
-                        raise self.PError("word value required")
+                        raise self.PError("invalid type modifier, word expected")
                     return ParseResult.MemMappedValue(sym.address, sym.type, sym.length, sym.name)
                 else:
-                    raise self.PError("invalid symbol type used as lvalue of assignment (3)")
+                    raise self.PError("invalid symbol type used as lvalue of assignment")
             else:
                 addr = parse_expr_as_int(num_or_name, self.cur_block.symbols, self.ppsymbols, self.sourceref)
                 if word_type:

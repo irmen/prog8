@@ -17,10 +17,9 @@
 
 
 bar
-	go [AX]         ; @todo check indrection jmp (AX)
-	go [var1]       ; @todo check indirection jmp (var1)
-	go [#mem1]      ; @todo check indirection jmp ($cff0)
-	; go mem1      ; @todo support this, should jmp $cff0
+	go [AX]
+	go [var1]
+	go [#mem1]
 	go [$c2]
 	go [$c2dd]
 	go $c000
@@ -36,7 +35,6 @@ bar
 	fcall [XY]
 	fcall [var1]
 	fcall [#mem1]
-	;fcall mem1  ; @todo support this, should jsr $cff0
 	fcall [$c2]
 	fcall [$c2dd]
 	fcall $c000
@@ -52,12 +50,18 @@ bar
 	call [AX]
 	call [var1]
 	call [#mem1]
-	;call mem1  ; @todo support this, should jsr $cff0
 	call [$c2]
 	call [$c2dd]
 	call $c000
 	call $c2
 
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
 
 	call  constw
 	call  sub1

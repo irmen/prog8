@@ -19,6 +19,7 @@ def main() -> None:
     description = "Compiler for IL65 language, code name 'Sick'"
     ap = argparse.ArgumentParser(description=description)
     ap.add_argument("-o", "--output", help="output directory")
+    ap.add_argument("--noopt", action="store_true", help="do not optimize the parse tree")
     ap.add_argument("sourcefile", help="the source .ill/.il65 file to compile")
     args = ap.parse_args()
     assembly_filename = os.path.splitext(args.sourcefile)[0] + ".asm"
@@ -37,8 +38,11 @@ def main() -> None:
     p = Parser(args.sourcefile, args.output, sourcelines, ppsymbols=symbols)
     parsed = p.parse()
     if parsed:
-        opt = Optimizer(parsed)
-        parsed = opt.optimize()
+        if args.noopt:
+            print("not optimizing the parse tree!")
+        else:
+            opt = Optimizer(parsed)
+            parsed = opt.optimize()
         cg = CodeGenerator(parsed)
         cg.generate()
         cg.optimize()

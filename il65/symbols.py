@@ -95,7 +95,7 @@ class SymbolDefinition:
     def __init__(self, blockname: str, name: str, sourceref: SourceRef, allocate: bool) -> None:
         self.blockname = blockname
         self.name = name
-        self.sourceref = sourceref
+        self.sourceref = sourceref.copy()
         self.allocate = allocate     # set to false if the variable is memory mapped (or a constant) instead of allocated
         global _identifier_seq_nr
         self.seq_nr = _identifier_seq_nr
@@ -314,6 +314,8 @@ class SymbolTable:
         if identifier:
             if isinstance(identifier, SymbolDefinition):
                 raise SymbolError("identifier was already defined at " + str(identifier.sourceref))
+            elif isinstance(identifier, SymbolTable):
+                raise SymbolError("identifier already defined as block at " + str(identifier.owning_block.sourceref))
             raise SymbolError("identifier already defined as " + str(type(identifier)))
         if name in MATH_SYMBOLS:
             print("warning: {}: identifier shadows a name from the math module".format(sourceref))
@@ -402,7 +404,11 @@ class SymbolTable:
     def merge_roots(self, other_root: 'SymbolTable') -> None:
         for name, thing in other_root.symbols.items():
             if isinstance(thing, SymbolTable):
-                self.define_scope(thing, thing.owning_block.sourceref)
+                try:
+                    self.define_scope(thing, thing.owning_block.sourceref)
+                except SymbolError as x:
+                    raise SymbolError("problematic symbol '{:s}' from {}; {:s}"
+                                      .format(thing.name, thing.owning_block.sourceref, str(x))) from None
 
     def print_table(self, summary_only: bool=False) -> None:
         if summary_only:

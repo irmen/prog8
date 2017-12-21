@@ -1,4 +1,4 @@
-; var defintions and immediate primitive data type tests
+; var definitions and immediate primitive data type tests
 
 output raw
 clobberzp
@@ -145,11 +145,17 @@ start
 	A = 255
 	A = X
 	A = [$c020]
-	A = [membyte2]
-	;A = [membyte2.byte]     ; @todo ok
-	;A = [membyte2.word]     ; @todo type error
-	;A = [membyte2.float]     ; @todo type error
-	; A = #expr_byte1b        ; @todo cannot assign address to byte
+	A = [#membyte2]
+	A = membyte2
+	A = [membyte2]          ; @todo error, invalid rvalue, use membyte without indirect?
+	A = [membyte2.byte]     ; @todo error,  "
+        A = expr_byte1b         ; @todo ok
+        ;A = #expr_byte1b        ; @todo cannot assign address to byte, correct error
+        ;A = cbyte3              ; @todo fix assignment to lda #cybte3
+        ;A = [cbyte3]            ; @todo error invalid rvalue
+        A = initbytea0
+        A = [initbytea0]        ; @todo error, invalid rvalue, use initbytea0 without indirect?
+
 
 	XY = 0
 	XY = '@'
@@ -166,6 +172,14 @@ start
 	AX = ""
 	AX = XY
 	AX = Y
+	;XY = [membyte2]         ; @todo ok pad
+	;XY = [membyte2.byte]    ; @todo ok pad
+	;XY = membyte2           ; @todo ok pad
+	;XY = #membyte2          ; @todo ok
+	;XY = [memword1]         ; @todo ok
+	;XY = [memword1.byte]    ; @todo ok pad
+	;XY = [memword1.word]    ; @todo ok
+
 
 	[$c000] = 255
 	[$c000] = '@'
@@ -179,16 +193,11 @@ start
 	[$c000.float] = 65535
 	[$c000.float] = 456.66
 	[$c000.float] = 1.70141183e+38
-	;[$c000.byte] = AX     ; @todo out of range
 	[$c000.word] = AX
 	[$c001] = [$c002]
-	;[$c001.word] = [$c002]          ;@todo okay (pad)
-        ;[$c001.word] = [$c002.byte]     ;@todo okay (pad)
-	[$c001.word] = [$c002.word]
-	;[$c001.word] = [$c002.float]    ;@todo parse error
-	;[$c001.float] = [$c002.byte]    ;@todo ok
-	;[$c001.float] = [$c002.word]    ;@todo support this
-	;[$c001.float] = [$c002.float]    ;@todo support this
+	[$c111.word] = [$c222]
+        [$c112.word] = [$c223.byte]
+	[$c222.word] = [$c333.word]
 
 
 	SC = 0
@@ -220,6 +229,10 @@ start
         membyte1 = 22
         memword1 = 2233
         memfloat = 3.4567
+        ;[membyte1] = 33         ; @todo error, invalid lvalue, use without []
+        [memword1] = 4444
+        ;[memword1] = [AX]       ; @todo error, only address allowed in []
+        [memfloat] = 5.5566
 
         membyte1 = A
         memword1 = A
@@ -239,4 +252,3 @@ start
         [$c100.word] = "text-immediate"        ; reuse
         [$c200.word] = ""        ; reuse
 }
-

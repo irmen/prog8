@@ -49,8 +49,9 @@ class CodeGenerator:
         for zpblock in [b for b in self.parsed.blocks if b.name == "ZP"]:
             if zpblock.label_names:
                 raise CodeError("ZP block cannot contain labels")
-            if zpblock.statements:
-                raise CodeError("ZP block cannot contain code statements")
+            # can only contain code comments, or nothing at all
+            if not all(isinstance(s, ParseResult.Comment) for s in zpblock.statements):
+                raise CodeError("ZP block cannot contain code statements, only definitions and comments")
 
     def optimize(self) -> None:
         # optimize the generated assembly code
@@ -182,11 +183,24 @@ class CodeGenerator:
             self.p("\t\tjmp  {:s}.start\t\t; call user code".format(main_block_label))
 
     def blocks(self) -> None:
-        # if there's a Zeropage block, it always goes first
+        # if there's a <header> block, it always goes second
+        for block in [b for b in self.parsed.blocks if b.name == "<header>"]:
+            self.cur_block = block
+            for s in block.statements:
+                if isinstance(s, ParseResult.Comment):
+                    self.p(s.text)
+                else:
+                    raise CodeError("header block cannot contain any other statements beside comments")
+            self.p("\n")
+        # if there's a Zeropage block, it always goes second
         for zpblock in [b for b in self.parsed.blocks if b.name == "ZP"]:
-            assert not zpblock.statements
             self.cur_block = zpblock
             self.p("\n; ---- zero page block: '{:s}' ----\t\t; src l. {:d}\n".format(zpblock.sourceref.file, zpblock.sourceref.line))
+            for s in zpblock.statements:
+                if isinstance(s, ParseResult.Comment):
+                    self.p(s.text)
+                else:
+                    raise CodeError("zp cannot contain any other statements beside comments")
             self.p("{:s}\t.proc\n".format(zpblock.label))
             self.generate_block_vars(zpblock)
             self.p("\t.pend\n")
@@ -205,8 +219,8 @@ class CodeGenerator:
                 block.statements = statements
         # generate
         for block in sorted(self.parsed.blocks, key=lambda b: b.address):
-            if block.name == "ZP":
-                continue    # zeropage block is already processed
+            if block.name in ("ZP", "<header>"):
+                continue    # these blocks are already processed
             self.cur_block = block
             self.p("\n; ---- next block: '{:s}' ----\t\t; src l. {:d}\n".format(block.sourceref.file, block.sourceref.line))
             if block.address:
@@ -387,7 +401,9 @@ class CodeGenerator:
                     with self.preserving_registers(preserve_regs):
                         if stmt.target in REGISTER_WORDS:
                             if stmt.preserve_regs:
-                                # cannot use zp scratch
+                                # cannot use zp scratch. This is very inefficient code!
+                                print("warning: {:s}:{:d}: indirect register pair call, this is very inefficient"
+                                      .format(self.cur_block.sourceref.file, stmt.lineno))
                                 self.p("\t\tst{:s}  ++".format(stmt.target[0].lower()))
                                 self.p("\t\tst{:s}  +++".format(stmt.target[1].lower()))
                                 self.p("\t\tjsr  +")
@@ -409,15 +425,16 @@ class CodeGenerator:
                             self.p("+\t\tjmp  ({:s})".format(stmt.target))
                             self.p("+")
             else:
-                preserve_regs = {'A', 'X', 'Y'} if stmt.preserve_regs else set()
+                preserve_regs = {'A', 'X', 'Y'} if not stmt.is_goto and stmt.preserve_regs else set()
                 with self.preserving_registers(preserve_regs):
                     self.p("\t\tjsr  " + stmt.target)
-
         elif isinstance(stmt, ParseResult.InlineAsm):
             self.p("\t\t; inline asm, src l. {:d}".format(stmt.lineno))
             for line in stmt.asmlines:
                 self.p(line)
             self.p("\t\t; end inline asm, src l. {:d}".format(stmt.lineno))
+        elif isinstance(stmt, ParseResult.Comment):
+            self.p(stmt.text)
         else:
             raise CodeError("unknown statement " + repr(stmt))
         self.previous_stmt_was_assignment = isinstance(stmt, ParseResult.AssignmentStmt)
@@ -640,7 +657,7 @@ class CodeGenerator:
         else:
             if rvalue.datatype != DataType.WORD:
                 raise CodeError("can only assign a word to a register pair")
-            raise NotImplementedError    # @todo other mmapped types
+            raise NotImplementedError("some mmap type assignment")    # @todo other mmapped types
 
     def generate_assign_mem_to_mem(self, lv: ParseResult.MemMappedValue, rvalue: ParseResult.MemMappedValue) -> None:
         r_str = rvalue.name if rvalue.name else "${:x}".format(rvalue.address)
@@ -652,7 +669,6 @@ class CodeGenerator:
                 self.p("\t\tsta  " + (lv.name or Parser.to_hex(lv.address)))
         elif lv.datatype == DataType.WORD:
             if rvalue.datatype == DataType.BYTE:
-                raise NotImplementedError   # XXX
                 with self.preserving_registers({'A'}):
                     l_str = lv.name or Parser.to_hex(lv.address)
                     self.p("\t\tlda  #0")
@@ -667,10 +683,10 @@ class CodeGenerator:
                     self.p("\t\tlda  {:s}+1".format(r_str))
                     self.p("\t\tsta  {:s}+1".format(l_str))
             else:
-                # @todo other mmapped types
                 raise CodeError("can only assign a byte or word to a word")
         else:
-            raise CodeError("can only assign to a memory mapped byte or word value for now")   # @todo
+            raise CodeError("can only assign to a memory mapped byte or word value for now "
+                            "(if you need other types, can't you use a var?)")
 
     def generate_assign_char_to_memory(self, lv: ParseResult.MemMappedValue, char_str: str) -> None:
         # Memory = Character

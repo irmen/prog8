@@ -12,10 +12,10 @@ from .symbols import FLOAT_MAX_POSITIVE, FLOAT_MAX_NEGATIVE, SourceRef, SymbolTa
 
 
 class ParseError(Exception):
-    def __init__(self, message: str, text: str, sourceref: SourceRef) -> None:
+    def __init__(self, message: str, sourcetext: str, sourceref: SourceRef) -> None:
         self.sourceref = sourceref
         self.msg = message
-        self.text = text
+        self.sourcetext = sourcetext
 
     def __str__(self):
         return "{} {:s}".format(self.sourceref, self.msg)

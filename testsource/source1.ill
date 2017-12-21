@@ -1,5 +1,8 @@
 ; source IL file
 ; these are comments
+; line 2 comment
+; line 3 comment
+
 
 output prg,sys  ; create a c-64 program with basic SYS call to launch it
 ;clobberzp restore  ; clobber over the zp memory normally used by basic/kernel rom, frees up more zp
@@ -8,6 +11,8 @@ output prg,sys  ; create a c-64 program with basic SYS call to launch it
 
 ~main $0a00
 {
+        ; this is the main block with the start routine.
+
 	memory screen = $d021
 	memory border = $d020
 	memory cursor = 646
@@ -126,6 +131,8 @@ somelabel1
 	return
 }
 
+; comments before block 4
+
 ~ block4 {
 	A=1
 	A=2
@@ -158,3 +165,7 @@ subroutine
 	return ,,$99
 
 }
+
+
+; comment at end
+; another one
