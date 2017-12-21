@@ -10,6 +10,11 @@
 
         var     .byte   varb1    = 99
         memory  .byte   memb1    = $cff0
+        const   .word   constw   = $2355
+        const   .byte   constb   = $23
+
+        subx    sub1    () -> ()  = $ffdd
+
 
 bar
 	go [AX]         ; @todo check indrection jmp (AX)
@@ -52,6 +57,13 @@ bar
 	call [$c2dd]
 	call $c000
 	call $c2
+
+
+	call  constw
+	call  sub1
+	call main.start
+	call main.start
+
 }
 
 

@@ -59,7 +59,8 @@ start   ;foo
 	; [646,Y] = [$d020,X]
 
 
-_loop   A ++
+_loop   block2.zpw1 ++
+        A ++
 	X ++
 	Y ++
 	[$d020] ++
@@ -67,6 +68,7 @@ _loop   A ++
 	X --
 	Y--
 	[$d020]--
+	[block2.zpw2] = 99
 	call fidget.subroutine
 	go _loop
 	return 155,2,%00000101	; will end up in A, X, Y

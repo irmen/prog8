@@ -1,25 +1,20 @@
-#! /usr/bin/env python3
-
 """
 Intermediate Language for 6502/6510 microprocessors, codename 'Sick'
-This is the main program and assembly code generator (from the parse tree)
+This is the assembly code generator (from the parse tree)
 
 Written by Irmen de Jong (irmen@razorvine.net)
 License: GNU GPL 3.0, see LICENSE
 """
 
-import os
 import io
 import math
 import datetime
 import subprocess
 import contextlib
-import argparse
 from functools import partial
 from typing import TextIO, Set, Union
-from .preprocess import PreprocessingParser
-from .parse import ProgramFormat, Parser, ParseResult, Optimizer
-from .symbols import Zeropage, DataType, VariableDef, REGISTER_WORDS, FLOAT_MAX_NEGATIVE, FLOAT_MAX_POSITIVE
+from .parse import ProgramFormat, ParseResult, Parser
+from .symbols import Zeropage, DataType, VariableDef, SubroutineDef, REGISTER_WORDS, FLOAT_MAX_NEGATIVE, FLOAT_MAX_POSITIVE
 
 
 class CodeError(Exception):
@@ -35,6 +30,7 @@ class CodeGenerator:
         self.cur_block = None    # type: ParseResult.Block
 
     def generate(self) -> None:
+        print("\ngenerating assembly code")
         self.sanitycheck()
         self.header()
         self.initialize_variables()
@@ -75,7 +71,7 @@ class CodeGenerator:
         if self.parsed.format == ProgramFormat.PRG:
             if self.parsed.with_sys:
                 self.p("; ---- basic program with sys call ----")
-                self.p("* = " + self.to_hex(self.parsed.start_address))
+                self.p("* = " + Parser.to_hex(self.parsed.start_address))
                 year = datetime.datetime.now().year
                 self.p("\t\t.word  (+), {:d}".format(year))
                 self.p("\t\t.null  $9e, format(' %d ', _il65_sysaddr), $3a, $8f, ' il65 by idj'")
@@ -83,20 +79,10 @@ class CodeGenerator:
                 self.p("_il65_sysaddr\t\t; assembly code starts here\n")
             else:
                 self.p("; ---- program without sys call ----")
-                self.p("* = " + self.to_hex(self.parsed.start_address) + "\n")
+                self.p("* = " + Parser.to_hex(self.parsed.start_address) + "\n")
         if self.parsed.format == ProgramFormat.RAW:
             self.p("; ---- raw assembler program ----")
-            self.p("* = " + self.to_hex(self.parsed.start_address) + "\n")
-
-    @staticmethod
-    def to_hex(number: int) -> str:
-        # 0..255 -> "$00".."$ff"
-        # 256..65536 -> "$0100".."$ffff"
-        if 0 <= number < 0x100:
-            return "${:02x}".format(number)
-        if number < 0x10000:
-            return "${:04x}".format(number)
-        raise OverflowError(number)
+            self.p("* = " + Parser.to_hex(self.parsed.start_address) + "\n")
 
     @staticmethod
     def to_mflpt5(number: float) -> bytearray:
@@ -232,7 +218,7 @@ class CodeGenerator:
             if subroutines:
                 self.p("\n; external subroutines")
                 for subdef in subroutines:
-                    self.p("\t\t{:s} = {:s}".format(subdef.name, self.to_hex(subdef.address)))
+                    self.p("\t\t{:s} = {:s}".format(subdef.name, Parser.to_hex(subdef.address)))
                 self.p("; end external subroutines")
             for stmt in block.statements:
                 self.generate_statement(stmt)
@@ -245,14 +231,14 @@ class CodeGenerator:
             for vardef in mem_vars:
                 # create a definition for variables at a specific place in memory (memory-mapped)
                 if vardef.type in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
-                    self.p("\t\t{:s} = {:s}\t; {:s}".format(vardef.name, self.to_hex(vardef.address), vardef.type.name.lower()))
+                    self.p("\t\t{:s} = {:s}\t; {:s}".format(vardef.name, Parser.to_hex(vardef.address), vardef.type.name.lower()))
                 elif vardef.type == DataType.BYTEARRAY:
-                    self.p("\t\t{:s} = {:s}\t; array of {:d} bytes".format(vardef.name, self.to_hex(vardef.address), vardef.length))
+                    self.p("\t\t{:s} = {:s}\t; array of {:d} bytes".format(vardef.name, Parser.to_hex(vardef.address), vardef.length))
                 elif vardef.type == DataType.WORDARRAY:
-                    self.p("\t\t{:s} = {:s}\t; array of {:d} words".format(vardef.name, self.to_hex(vardef.address), vardef.length))
+                    self.p("\t\t{:s} = {:s}\t; array of {:d} words".format(vardef.name, Parser.to_hex(vardef.address), vardef.length))
                 elif vardef.type == DataType.MATRIX:
                     self.p("\t\t{:s} = {:s}\t; matrix {:d} by {:d} = {:d} bytes"
-                           .format(vardef.name, self.to_hex(vardef.address), vardef.matrixsize[0], vardef.matrixsize[1], vardef.length))
+                           .format(vardef.name, Parser.to_hex(vardef.address), vardef.matrixsize[0], vardef.matrixsize[1], vardef.length))
                 else:
                     raise ValueError("invalid var type")
         non_mem_vars = [vi for vi in block.symbols.iter_variables() if vi.allocate]
@@ -263,12 +249,12 @@ class CodeGenerator:
                 if vardef.type in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
                     if vardef.address:
                         assert block.name == "ZP", "only ZP-variables can be put on an address"
-                        self.p("\t\t{:s} = {:s}".format(vardef.name, self.to_hex(vardef.address)))
+                        self.p("\t\t{:s} = {:s}".format(vardef.name, Parser.to_hex(vardef.address)))
                     else:
                         if vardef.type == DataType.BYTE:
-                            self.p("{:s}\t\t.byte  {:s}".format(vardef.name, self.to_hex(int(vardef.value))))
+                            self.p("{:s}\t\t.byte  {:s}".format(vardef.name, Parser.to_hex(int(vardef.value))))
                         elif vardef.type == DataType.WORD:
-                            self.p("{:s}\t\t.word  {:s}".format(vardef.name, self.to_hex(int(vardef.value))))
+                            self.p("{:s}\t\t.word  {:s}".format(vardef.name, Parser.to_hex(int(vardef.value))))
                         elif vardef.type == DataType.FLOAT:
                             self.p("{:s}\t\t.byte  ${:02x}, ${:02x}, ${:02x}, ${:02x}, ${:02x}"
                                    .format(vardef.name, *self.to_mflpt5(float(vardef.value))))
@@ -312,7 +298,7 @@ class CodeGenerator:
                 else:
                     raise CodeError("unknown variable type " + str(vardef.type))
 
-    def generate_statement(self, stmt: ParseResult._Stmt) -> None:
+    def generate_statement(self, stmt: ParseResult._AstNode) -> None:
         if isinstance(stmt, ParseResult.ReturnStmt):
             if stmt.a:
                 if isinstance(stmt.a, ParseResult.IntegerValue):
@@ -348,7 +334,7 @@ class CodeGenerator:
                         else:
                             self.p("\t\tde{:s}".format(stmt.what.register.lower()))
                 elif isinstance(stmt.what, ParseResult.MemMappedValue):
-                    r_str = stmt.what.name or self.to_hex(stmt.what.address)
+                    r_str = stmt.what.name or Parser.to_hex(stmt.what.address)
                     if stmt.what.datatype == DataType.BYTE:
                         if stmt.howmuch == 1:
                             self.p("\t\tinc  " + r_str)
@@ -375,51 +361,35 @@ class CodeGenerator:
             elif stmt.howmuch < 0:
                 raise NotImplementedError("decr by > 1")  # XXX
         elif isinstance(stmt, ParseResult.CallStmt):
-            is_indirect = False
-            if stmt.call_label:
-                call_target = stmt.call_label
-                if stmt.call_module:
-                    call_target = stmt.call_module + "." + stmt.call_label
-            elif stmt.address is not None:
-                call_target = self.to_hex(stmt.address)
-            else:
-                assert stmt.indirect_pointer is not None
-                if isinstance(stmt.indirect_pointer, int):
-                    call_target = self.to_hex(stmt.indirect_pointer)
-                else:
-                    call_target = stmt.indirect_pointer
-                is_indirect = True
-            if stmt.subroutine:
-                assert not is_indirect
-                if stmt.subroutine.clobbered_registers:
+            # the argument assignments have already been generated via separate assignment statements.
+            if isinstance(stmt.targetdef, SubroutineDef):
+                assert not stmt.is_indirect
+                clobbered = set()   # type: Set[str]
+                if stmt.targetdef.clobbered_registers:
                     if stmt.preserve_regs:      # @todo make this work with the separate assignment statements for the parameters.. :(
-                        clobbered = stmt.subroutine.clobbered_registers
+                        clobbered = stmt.targetdef.clobbered_registers
+                with self.preserving_registers(clobbered):
+                    self.p("\t\tjsr  " + stmt.target)
+                if stmt.is_goto:
+                    self.p("\t\trts")
+                return
+            if stmt.is_indirect:
+                if stmt.is_goto:
+                    # no need to preserve registers for a goto
+                    if stmt.target in REGISTER_WORDS:
+                        self.p("\t\tst{:s}  {:s}".format(stmt.target[0].lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                        self.p("\t\tst{:s}  {:s}".format(stmt.target[1].lower(), Parser.to_hex(Zeropage.SCRATCH_B2)))
+                        self.p("\t\tjmp  ({:s})".format(Parser.to_hex(Zeropage.SCRATCH_B1)))
                     else:
-                        clobbered = set()
-                    with self.preserving_registers(clobbered):
-                        self.p("\t\tjsr  " + call_target)
-                    if stmt.is_goto:
-                        self.p("\t\trts")
-                    return
-            if stmt.is_goto:
-                if is_indirect:
-                    if call_target in REGISTER_WORDS:
-                        self.p("\t\tst{:s}  {:s}".format(call_target[0].lower(), self.to_hex(Zeropage.SCRATCH_B1)))
-                        self.p("\t\tst{:s}  {:s}".format(call_target[1].lower(), self.to_hex(Zeropage.SCRATCH_B2)))
-                        self.p("\t\tjmp  ({:s})".format(self.to_hex(Zeropage.SCRATCH_B1)))
-                    else:
-                        self.p("\t\tjmp  ({:s})".format(call_target))
+                        self.p("\t\tjmp  ({:s})".format(stmt.target))
                 else:
-                    self.p("\t\tjmp  " + call_target)
-            else:
-                preserve_regs = {'A', 'X', 'Y'} if stmt.preserve_regs else set()
-                with self.preserving_registers(preserve_regs):
-                    if is_indirect:
-                        if call_target in REGISTER_WORDS:
+                    preserve_regs = {'A', 'X', 'Y'} if stmt.preserve_regs else set()
+                    with self.preserving_registers(preserve_regs):
+                        if stmt.target in REGISTER_WORDS:
                             if stmt.preserve_regs:
                                 # cannot use zp scratch
-                                self.p("\t\tst{:s}  ++".format(call_target[0].lower()))
-                                self.p("\t\tst{:s}  +++".format(call_target[1].lower()))
+                                self.p("\t\tst{:s}  ++".format(stmt.target[0].lower()))
+                                self.p("\t\tst{:s}  +++".format(stmt.target[1].lower()))
                                 self.p("\t\tjsr  +")
                                 self.p("\t\tjmp  ++++")
                                 self.p("+\t\tjmp  (+)")
@@ -427,19 +397,22 @@ class CodeGenerator:
                                 self.p("+\t\t.byte  0\t; hi")
                                 self.p("+")
                             else:
-                                self.p("\t\tst{:s}  {:s}".format(call_target[0].lower(), self.to_hex(Zeropage.SCRATCH_B1)))
-                                self.p("\t\tst{:s}  {:s}".format(call_target[1].lower(), self.to_hex(Zeropage.SCRATCH_B2)))
+                                self.p("\t\tst{:s}  {:s}".format(stmt.target[0].lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                                self.p("\t\tst{:s}  {:s}".format(stmt.target[1].lower(), Parser.to_hex(Zeropage.SCRATCH_B2)))
                                 self.p("\t\tjsr  +")
                                 self.p("\t\tjmp  ++")
-                                self.p("+\t\tjmp  ({:s})".format(self.to_hex(Zeropage.SCRATCH_B1)))
+                                self.p("+\t\tjmp  ({:s})".format(Parser.to_hex(Zeropage.SCRATCH_B1)))
                                 self.p("+")
                         else:
                             self.p("\t\tjsr  +")
                             self.p("\t\tjmp  ++")
-                            self.p("+\t\tjmp  ({:s})".format(call_target))
+                            self.p("+\t\tjmp  ({:s})".format(stmt.target))
                             self.p("+")
-                    else:
-                        self.p("\t\tjsr  " + call_target)
+            else:
+                preserve_regs = {'A', 'X', 'Y'} if stmt.preserve_regs else set()
+                with self.preserving_registers(preserve_regs):
+                    self.p("\t\tjsr  " + stmt.target)
+
         elif isinstance(stmt, ParseResult.InlineAsm):
             self.p("\t\t; inline asm, src l. {:d}".format(stmt.lineno))
             for line in stmt.asmlines:
@@ -502,7 +475,7 @@ class CodeGenerator:
 
     def generate_store_immediate_float(self, mmv: ParseResult.MemMappedValue, floatvalue: float,
                                        mflpt: bytearray, emit_pha: bool=True) -> None:
-        target = mmv.name or self.to_hex(mmv.address)
+        target = mmv.name or Parser.to_hex(mmv.address)
         if emit_pha:
             self.p("\t\tpha\t\t\t; {:s} = {}".format(target, floatvalue))
         else:
@@ -515,7 +488,7 @@ class CodeGenerator:
 
     def generate_assign_reg_to_memory(self, lv: ParseResult.MemMappedValue, r_register: str) -> None:
         # Memory = Register
-        lv_string = lv.name or self.to_hex(lv.address)
+        lv_string = lv.name or Parser.to_hex(lv.address)
         if lv.datatype == DataType.BYTE:
             if len(r_register) > 1:
                 raise CodeError("cannot assign register pair to single byte memory")
@@ -633,7 +606,7 @@ class CodeGenerator:
             assign_target = symblock.label + "." + sym.name if symblock is not self.cur_block else lv.name
             lvdatatype = sym.type
         else:
-            assign_target = self.to_hex(lv.address)
+            assign_target = Parser.to_hex(lv.address)
             lvdatatype = lv.datatype
         r_str = rvalue.name if rvalue.name else "${:x}".format(rvalue.value)
         if lvdatatype == DataType.BYTE:
@@ -676,19 +649,19 @@ class CodeGenerator:
                 raise CodeError("can only assign a byte to a byte")
             with self.preserving_registers({'A'}):
                 self.p("\t\tlda  " + r_str)
-                self.p("\t\tsta  " + (lv.name or self.to_hex(lv.address)))
+                self.p("\t\tsta  " + (lv.name or Parser.to_hex(lv.address)))
         elif lv.datatype == DataType.WORD:
             if rvalue.datatype == DataType.BYTE:
                 raise NotImplementedError   # XXX
                 with self.preserving_registers({'A'}):
-                    l_str = lv.name or self.to_hex(lv.address)
+                    l_str = lv.name or Parser.to_hex(lv.address)
                     self.p("\t\tlda  #0")
                     self.p("\t\tsta  " + l_str)
                     self.p("\t\tlda  " + r_str)
                     self.p("\t\tsta  {:s}+1".format(l_str))
             elif rvalue.datatype == DataType.WORD:
                 with self.preserving_registers({'A'}):
-                    l_str = lv.name or self.to_hex(lv.address)
+                    l_str = lv.name or Parser.to_hex(lv.address)
                     self.p("\t\tlda  {:s}".format(r_str))
                     self.p("\t\tsta  {:s}".format(l_str))
                     self.p("\t\tlda  {:s}+1".format(r_str))
@@ -704,7 +677,7 @@ class CodeGenerator:
         with self.preserving_registers({'A'}):
             self.p("\t\tlda  #" + char_str)
             if not lv.name:
-                self.p("\t\tsta  " + self.to_hex(lv.address))
+                self.p("\t\tsta  " + Parser.to_hex(lv.address))
                 return
             # assign char value to a memory location by symbol name
             symblock, sym = self.cur_block.lookup(lv.name)
@@ -758,7 +731,7 @@ class CodeGenerator:
         if lv.datatype != DataType.WORD:
             raise CodeError("need word memory type for string address assignment")
         if rvalue.name:
-            assign_target = lv.name if lv.name else self.to_hex(lv.address)
+            assign_target = lv.name if lv.name else Parser.to_hex(lv.address)
             self.p("\t\tlda  #<{:s}".format(rvalue.name))
             self.p("\t\tsta  " + assign_target)
             self.p("\t\tlda  #>{:s}".format(rvalue.name))
@@ -821,38 +794,3 @@ class Assembler64Tass:
             subprocess.check_call(args)
         except subprocess.CalledProcessError as x:
             print("assembler failed with returncode", x.returncode)
-
-
-def main() -> None:
-    description = "Compiler for IL65 language, code name 'Sick'"
-    ap = argparse.ArgumentParser(description=description)
-    ap.add_argument("-o", "--output", help="output directory")
-    ap.add_argument("sourcefile", help="the source .ill/.il65 file to compile")
-    args = ap.parse_args()
-    assembly_filename = os.path.splitext(args.sourcefile)[0] + ".asm"
-    program_filename = os.path.splitext(args.sourcefile)[0] + ".prg"
-    if args.output:
-        os.makedirs(args.output, mode=0o700, exist_ok=True)
-        assembly_filename = os.path.join(args.output, os.path.split(assembly_filename)[1])
-        program_filename = os.path.join(args.output, os.path.split(program_filename)[1])
-
-    print("\n" + description)
-
-    pp = PreprocessingParser(args.sourcefile)
-    sourcelines, symbols = pp.preprocess()
-    symbols.print_table(True)
-
-    p = Parser(args.sourcefile, args.output, sourcelines, ppsymbols=symbols)
-    parsed = p.parse()
-    if parsed:
-        opt = Optimizer(parsed)
-        parsed = opt.optimize()
-        cg = CodeGenerator(parsed)
-        cg.generate()
-        cg.optimize()
-        with open(assembly_filename, "wt") as out:
-            cg.write_assembly(out)
-        assembler = Assembler64Tass(parsed.format)
-        assembler.assemble(assembly_filename, program_filename)
-        print("Output file:      ", program_filename)
-        print()

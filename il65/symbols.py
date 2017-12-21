@@ -288,10 +288,10 @@ class SymbolTable:
             raise SymbolError("can only take address of memory mapped variables")
         return symbol.address
 
-    def as_eval_dict(self) -> Dict[str, Any]:
+    def as_eval_dict(self, ppsymbols: 'SymbolTable') -> Dict[str, Any]:
         # return a dictionary suitable to be passed as locals or globals to eval()
         if self.eval_dict is None:
-            d = Eval_symbol_dict(self)
+            d = EvalSymbolDict(self, ppsymbols)
             self.eval_dict = d      # type: ignore
         return self.eval_dict
 
@@ -438,11 +438,12 @@ class SymbolTable:
             print()
 
 
-class Eval_symbol_dict(dict):
-    def __init__(self, symboltable: SymbolTable, constants: bool=True) -> None:
+class EvalSymbolDict(dict):
+    def __init__(self, symboltable: SymbolTable, ppsymbols: SymbolTable, constants: bool=True) -> None:
         super().__init__()
         self._symboltable = symboltable
         self._constants = constants
+        self._ppsymbols = ppsymbols
 
     def __getattr__(self, name):
         return self.__getitem__(name)
@@ -457,7 +458,13 @@ class Eval_symbol_dict(dict):
             global_scope = self._symboltable
             while global_scope.parent:
                 global_scope = global_scope.parent
-            scope, symbol = global_scope.lookup(name, True)
+            try:
+                scope, symbol = global_scope.lookup(name, True)
+            except (LookupError, SymbolError):
+                # try the ppsymbols
+                if self._ppsymbols:
+                    return self._ppsymbols.as_eval_dict(None)[name]
+                raise SymbolError("undefined symbol '{:s}'".format(name)) from None
         if self._constants:
             if isinstance(symbol, ConstantDef):
                 return symbol.value
@@ -466,9 +473,11 @@ class Eval_symbol_dict(dict):
             elif inspect.isbuiltin(symbol):
                 return symbol
             elif isinstance(symbol, SymbolTable):
-                return symbol.as_eval_dict()
+                return symbol.as_eval_dict(self._ppsymbols)
+            elif isinstance(symbol, LabelDef):
+                raise SymbolError("can't reference a label here")
             else:
-                raise SymbolError("invalid datatype referenced" + repr(symbol))
+                raise SymbolError("invalid symbol type referenced " + repr(symbol))
         else:
             raise SymbolError("no support for non-constant expression evaluation yet")
 

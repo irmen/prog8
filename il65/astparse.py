@@ -61,33 +61,33 @@ class SourceLine:
         return text
 
 
-def parse_expr_as_int(text: str, context: Optional[SymbolTable], sourceref: SourceRef, *,
+def parse_expr_as_int(text: str, context: Optional[SymbolTable], ppcontext: Optional[SymbolTable], sourceref: SourceRef, *,
                       minimum: int=0, maximum: int=0xffff) -> int:
-    result = parse_expr_as_primitive(text, context, sourceref, minimum=minimum, maximum=maximum)
+    result = parse_expr_as_primitive(text, context, ppcontext, sourceref, minimum=minimum, maximum=maximum)
     if isinstance(result, int):
         return result
     src = SourceLine(text, sourceref)
     raise src.to_error("int expected, not " + type(result).__name__)
 
 
-def parse_expr_as_number(text: str, context: Optional[SymbolTable], sourceref: SourceRef, *,
+def parse_expr_as_number(text: str, context: Optional[SymbolTable], ppcontext: Optional[SymbolTable], sourceref: SourceRef, *,
                          minimum: float=FLOAT_MAX_NEGATIVE, maximum: float=FLOAT_MAX_POSITIVE) -> Union[int, float]:
-    result = parse_expr_as_primitive(text, context, sourceref, minimum=minimum, maximum=maximum)
+    result = parse_expr_as_primitive(text, context, ppcontext, sourceref, minimum=minimum, maximum=maximum)
     if isinstance(result, (int, float)):
         return result
     src = SourceLine(text, sourceref)
     raise src.to_error("int or float expected, not " + type(result).__name__)
 
 
-def parse_expr_as_string(text: str, context: Optional[SymbolTable], sourceref: SourceRef) -> str:
-    result = parse_expr_as_primitive(text, context, sourceref)
+def parse_expr_as_string(text: str, context: Optional[SymbolTable], ppcontext: Optional[SymbolTable], sourceref: SourceRef) -> str:
+    result = parse_expr_as_primitive(text, context, ppcontext, sourceref)
     if isinstance(result, str):
         return result
     src = SourceLine(text, sourceref)
     raise src.to_error("string expected, not " + type(result).__name__)
 
 
-def parse_expr_as_primitive(text: str, context: Optional[SymbolTable], sourceref: SourceRef, *,
+def parse_expr_as_primitive(text: str, context: Optional[SymbolTable], ppcontext: Optional[SymbolTable], sourceref: SourceRef, *,
                             minimum: float = FLOAT_MAX_NEGATIVE, maximum: float = FLOAT_MAX_POSITIVE) -> PrimitiveType:
     src = SourceLine(text, sourceref)
     text = src.preprocess()
@@ -96,7 +96,7 @@ def parse_expr_as_primitive(text: str, context: Optional[SymbolTable], sourceref
     except SyntaxError as x:
         raise src.to_error(str(x))
     if isinstance(node, ast.Expression):
-        result = ExpressionTransformer(src, context).evaluate(node)
+        result = ExpressionTransformer(src, context, ppcontext).evaluate(node)
     else:
         raise TypeError("ast.Expression expected")
     if isinstance(result, bool):
@@ -118,10 +118,11 @@ def parse_statement(text: str, sourceref: SourceRef) -> int:    # @todo in progr
 
 
 class EvaluatingTransformer(ast.NodeTransformer):
-    def __init__(self, src: SourceLine, context: SymbolTable) -> None:
+    def __init__(self, src: SourceLine, context: SymbolTable, ppcontext: SymbolTable) -> None:
         super().__init__()
         self.src = src
         self.context = context
+        self.ppcontext = ppcontext
 
     def error(self, message: str, column: int=0) -> ParseError:
         if column:
@@ -136,14 +137,14 @@ class EvaluatingTransformer(ast.NodeTransformer):
         code = compile(node, self.src.sourceref.file, mode="eval")
         if self.context:
             globals = None
-            locals = self.context.as_eval_dict()
+            locals = self.context.as_eval_dict(self.ppcontext)
         else:
             globals = {"__builtins__": {}}
             locals = None
         try:
             result = eval(code, globals, locals)
         except Exception as x:
-            raise self.src.to_error(str(x))
+            raise self.src.to_error(str(x)) from x
         else:
             if type(result) is bool:
                 return int(result)
@@ -202,5 +203,5 @@ class ExpressionTransformer(EvaluatingTransformer):
 if __name__ == "__main__":
     symbols = SymbolTable("<root>", None, None)
     symbols.define_variable("derp", SourceRef("<source>", 1), DataType.BYTE, address=2345)
-    result = parse_expr_as_primitive("2+#derp",  symbols, SourceRef("<source>", 1))
+    result = parse_expr_as_primitive("2+#derp",  symbols, None, SourceRef("<source>", 1))
     print("EXPRESSION RESULT:", result)
