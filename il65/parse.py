@@ -6,6 +6,7 @@ Written by Irmen de Jong (irmen@razorvine.net)
 License: GNU GPL 3.0, see LICENSE
 """
 
+import math
 import re
 import os
 import shutil
@@ -14,8 +15,8 @@ from typing import Set, List, Tuple, Optional, Any, Dict, Union
 from .astparse import ParseError, parse_expr_as_int, parse_expr_as_number, parse_expr_as_primitive,\
     parse_expr_as_string
 from .symbols import SourceRef, SymbolTable, DataType, SymbolDefinition, SubroutineDef, LabelDef, \
-    zeropage, check_value_in_range, coerce_value, char_to_bytevalue, \
-    VariableDef, ConstantDef, SymbolError, STRING_DATATYPES, \
+    zeropage, check_value_in_range, char_to_bytevalue, \
+    PrimitiveType, VariableDef, ConstantDef, SymbolError, STRING_DATATYPES, \
     REGISTER_SYMBOLS, REGISTER_WORDS, REGISTER_BYTES, RESERVED_NAMES
 
 
@@ -343,7 +344,8 @@ class ParseResult:
             else:
                 cur_block = parser.cur_block
                 stringvar_name = "il65_str_{:d}".format(id(self))
-                cur_block.symbols.define_variable(stringvar_name, cur_block.sourceref, DataType.STRING, value=self.right.value)
+                value = self.right.value
+                cur_block.symbols.define_variable(stringvar_name, cur_block.sourceref, DataType.STRING, value=value)
                 self.right.name = stringvar_name
                 self._immediate_string_vars[self.right.value] = (cur_block.name, stringvar_name)
 
@@ -467,6 +469,7 @@ class Parser:
         self.cur_block = None  # type: ParseResult.Block
         self.root_scope = SymbolTable("<root>", None, None)
         self.ppsymbols = ppsymbols  # symboltable from preprocess phase  # @todo use this
+        self.print_block_parsing = True
 
     def load_source(self, filename: str) -> List[Tuple[int, str]]:
         with open(filename, "rU") as source:
@@ -506,6 +509,9 @@ class Parser:
         self._parse_2()
         return self.result
 
+    def print_warning(self, text: str) -> None:
+        print(text)
+
     def _parse_1(self) -> None:
         self.parse_header()
         zeropage.configure(self.result.clobberzp)
@@ -531,7 +537,7 @@ class Parser:
                         self.sourceref.column = 0
                         raise self.PError("The 'main' block should contain the program entry point 'start'")
                     if not any(s for s in block.statements if isinstance(s, ParseResult.ReturnStmt)):
-                        print("warning: {}: The 'main' block is lacking a return statement.".format(block.sourceref))
+                        self.print_warning("warning: {}: The 'main' block is lacking a return statement.".format(block.sourceref))
                     break
             else:
                 raise self.PError("A block named 'main' should be defined for the program's entry point 'start'")
@@ -748,10 +754,11 @@ class Parser:
                 raise self.PError("expected '{' after block")
             else:
                 self.next_line()
-        if self.cur_block.address:
-            print("  parsing block '{:s}' at ${:04x}".format(self.cur_block.name, self.cur_block.address))
-        else:
-            print("  parsing block '{:s}'".format(self.cur_block.name))
+        if self.print_block_parsing:
+            if self.cur_block.address:
+                print("  parsing block '{:s}' at ${:04x}".format(self.cur_block.name, self.cur_block.address))
+            else:
+                print("  parsing block '{:s}'".format(self.cur_block.name))
         while True:
             line = self.next_line()
             unstripped_line = line
@@ -760,7 +767,7 @@ class Parser:
                 if is_zp_block and any(b.name == "ZP" for b in self.result.blocks):
                     return None     # we already have the ZP block
                 if not self.cur_block.name and not self.cur_block.address:
-                    print("warning: {}: Ignoring block without name and address.".format(self.cur_block.sourceref))
+                    self.print_warning("warning: {}: Ignoring block without name and address.".format(self.cur_block.sourceref))
                     return None
                 return self.cur_block
             if line.startswith("var"):
@@ -827,7 +834,7 @@ class Parser:
         if dimensions:
             raise self.PError("cannot declare a constant matrix")
         value = parse_expr_as_primitive(valuetext, self.cur_block.symbols, self.sourceref)
-        _, value = coerce_value(self.sourceref, datatype, value)
+        _, value = self.coerce_value(self.sourceref, datatype, value)
         try:
             self.cur_block.symbols.define_constant(varname, self.sourceref, datatype, length=length, value=value)
         except (ValueError, SymbolError) as x:
@@ -889,7 +896,7 @@ class Parser:
     def parse_var_def(self, line: str) -> None:
         varname, datatype, length, dimensions, valuetext = self.parse_def_common(line, "var", False)
         value = parse_expr_as_primitive(valuetext, self.cur_block.symbols, self.sourceref)
-        _, value = coerce_value(self.sourceref, datatype, value)
+        _, value = self.coerce_value(self.sourceref, datatype, value)
         try:
             self.cur_block.symbols.define_variable(varname, self.sourceref, datatype,
                                                    length=length, value=value, matrixsize=dimensions)
@@ -1040,7 +1047,7 @@ class Parser:
                 raise self.PError("cannot assign {0} to {1}; {2}".format(r_value, lv, reason))
             if lv.datatype in (DataType.BYTE, DataType.WORD, DataType.MATRIX):
                 if isinstance(r_value, ParseResult.FloatValue):
-                    truncated, value = coerce_value(self.sourceref, lv.datatype, r_value.value)
+                    truncated, value = self.coerce_value(self.sourceref, lv.datatype, r_value.value)
                     if truncated:
                         r_value = ParseResult.IntegerValue(int(value), datatype=lv.datatype, name=r_value.name)
         return ParseResult.AssignmentStmt(l_values, r_value, self.sourceref.line)
@@ -1248,6 +1255,19 @@ class Parser:
             raise self.PError("invalid matrix dimensions")
         return (parse_expr_as_int(xs, self.cur_block.symbols, self.sourceref),
                 parse_expr_as_int(ys, self.cur_block.symbols, self.sourceref))
+
+    def coerce_value(self, sourceref: SourceRef, datatype: DataType, value: PrimitiveType) -> Tuple[bool, PrimitiveType]:
+        # if we're a BYTE type, and the value is a single character, convert it to the numeric value
+        if datatype in (DataType.BYTE, DataType.BYTEARRAY, DataType.MATRIX) and isinstance(value, str):
+            if len(value) == 1:
+                return True, char_to_bytevalue(value)
+        # if we're an integer value and the passed value is float, truncate it (and give a warning)
+        if datatype in (DataType.BYTE, DataType.WORD, DataType.MATRIX) and type(value) is float:
+            frac = math.modf(value)  # type:ignore
+            if frac != 0:
+                self.print_warning("warning: {}: Float value truncated.".format(sourceref))
+                return True, int(value)
+        return False, value
 
     def psplit(self, sentence: str, separators: str=" \t", lparen: str="(", rparen: str=")") -> List[str]:
         """split a sentence but not on separators within parenthesis"""

@@ -13,6 +13,7 @@ from .parse import Parser, ParseResult, SymbolTable, SymbolDefinition
 class PreprocessingParser(Parser):
     def __init__(self, filename: str) -> None:
         super().__init__(filename, "", parsing_import=True)
+        self.print_block_parsing = False
 
     def preprocess(self) -> Tuple[List[Tuple[int, str]], SymbolTable]:
         def cleanup_table(symbols: SymbolTable):
@@ -25,6 +26,9 @@ class PreprocessingParser(Parser):
         self.parse()
         cleanup_table(self.root_scope)
         return self.lines, self.root_scope
+
+    def print_warning(self, text: str) -> None:
+        pass
 
     def load_source(self, filename: str) -> List[Tuple[int, str]]:
         lines = super().load_source(filename)

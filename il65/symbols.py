@@ -329,8 +329,6 @@ class SymbolTable:
         range_error = check_value_in_range(datatype, register, length, value)
         if range_error:
             raise ValueError(range_error)
-        if type(value) in (int, float):
-            _, value = coerce_value(sourceref, datatype, value)   # type: ignore
         allocate = address is None
         if datatype == DataType.BYTE:
             if allocate and self.name == "ZP":
@@ -389,8 +387,6 @@ class SymbolTable:
         # this defines a new constant and also checks if the value is allowed for the data type.
         assert value is not None
         self.check_identifier_valid(name, sourceref)
-        if type(value) in (int, float):
-            _, value = coerce_value(sourceref, datatype, value)   # type: ignore
         range_error = check_value_in_range(datatype, "", length, value)
         if range_error:
             raise ValueError(range_error)
@@ -475,20 +471,6 @@ class Eval_symbol_dict(dict):
                 raise SymbolError("invalid datatype referenced" + repr(symbol))
         else:
             raise SymbolError("no support for non-constant expression evaluation yet")
-
-
-def coerce_value(sourceref: SourceRef, datatype: DataType, value: PrimitiveType) -> Tuple[bool, PrimitiveType]:
-    # if we're a BYTE type, and the value is a single character, convert it to the numeric value
-    if datatype in (DataType.BYTE, DataType.BYTEARRAY, DataType.MATRIX) and isinstance(value, str):
-        if len(value) == 1:
-            return True, char_to_bytevalue(value)
-    # if we're an integer value and the passed value is float, truncate it (and give a warning)
-    if datatype in (DataType.BYTE, DataType.WORD, DataType.MATRIX) and type(value) is float:
-        frac = math.modf(value)   # type:ignore
-        if frac != 0:
-            print("warning: {}: Float value truncated.".format(sourceref))
-            return True, int(value)
-    return False, value
 
 
 def check_value_in_range(datatype: DataType, register: str, length: int, value: PrimitiveType) -> Optional[str]:
