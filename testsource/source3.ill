@@ -28,7 +28,7 @@ import "c64lib"               ; searched in several locations and with .ill file
 	var .text hello2 = "@@\f\b\n\r\t@@"
 
 start
-	call global2.make_screen_black
+	global2.make_screen_black()
 
 	A='?'
 	[$d020] = '?'
@@ -46,9 +46,7 @@ start
 	X=A
 	A='\xf2'
 	X=A
-	A='A'
-	call c64.CHROUT ;(A)
-	call c64.CHROUT ;(char=66)
+	c64.CHROUT('A')
 	A='\f'
 	X=A
 	A='\b'
@@ -58,18 +56,13 @@ start
 	A='\r'
 	X=A
 	A='\t'
-	X=A
-	call c64.CHROUT ;(foo=A)
 	A='0'
-	call c64.CHROUT ;('0')
-	A='1'
-	call c64.CHROUT ;(49)
-	A='2'
-	call c64.CHROUT
+	c64.CHROUT('0')
+	c64.CHROUT('1')
+	c64.CHROUT('2')
 	XY = hello
-	call c64util.print_string
-	A='!'
-	go c64.CHROUT
+	c64util.print_string()
+	goto c64.CHROUT('!')
 
 
 	return

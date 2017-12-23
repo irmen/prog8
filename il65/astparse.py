@@ -110,13 +110,6 @@ def parse_expr_as_primitive(text: str, context: Optional[SymbolTable], ppcontext
     raise src.to_error("int or float or string expected, not " + type(result).__name__)
 
 
-def parse_statement(text: str, sourceref: SourceRef) -> int:    # @todo in progress...
-    src = SourceLine(text, sourceref)
-    text = src.preprocess()
-    node = ast.parse(text, sourceref.file, mode="single")
-    return node
-
-
 class EvaluatingTransformer(ast.NodeTransformer):
     def __init__(self, src: SourceLine, context: SymbolTable, ppcontext: SymbolTable) -> None:
         super().__init__()

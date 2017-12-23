@@ -1,4 +1,4 @@
-output prg,sys  ; create a c-64 program with basic SYS call to launch it
+output prg,sys  ; create a c-64 program with basic SYS to() launch it
 
 	import "c64lib.ill"
 
@@ -9,67 +9,58 @@ output prg,sys  ; create a c-64 program with basic SYS call to launch it
 	const .word BORDER = $d020
 
 start
-	fcall c64util.print_pimmediate          ; this prints the pstring immediately following it
+	c64util.print_pimmediate ! ()          ; this prints the pstring immediately following it
 	asm {
 		.ptext "hello-pimmediate!{cr}"
 	}
 
 	A = 19
-	fcall c64util.print_byte_decimal0
-	A = 13
-	fcall c64.CHROUT
+	c64util.print_byte_decimal0 ! ()
+	c64.CHROUT ! (13)
 	A = 19
-	fcall c64util.print_byte_decimal
-	A = 13
-	fcall c64.CHROUT
+	c64util.print_byte_decimal ! ()
+	c64.CHROUT ! (13)
 
 
 	X = $01
 	Y = $02
-	fcall c64util.print_word_decimal0
-	A = 13
-	fcall c64.CHROUT
+	c64util.print_word_decimal0 ! ()
+	c64.CHROUT ! (13)
 	X = $01
 	Y = $02
-	fcall c64util.print_word_decimal
-	A = 13
-	fcall c64.CHROUT
+	c64util.print_word_decimal ! ()
+	c64.CHROUT ! (13)
 	return
 
 start2
-	call global2.make_screen_black
-	call c64.CLEARSCR
+	global2.make_screen_black()
+	c64.CLEARSCR()
 	XY = greeting
-	call c64util.print_string
+	c64util.print_string()
 	XY = p_greeting
-	call c64util.print_pstring
+	c64util.print_pstring()
 	A = 0
-	call c64util.print_byte_decimal
+	c64util.print_byte_decimal()
 	A = 0
-	call c64util.print_byte_hex
+	c64util.print_byte_hex()
+	c64.CHROUT(13)
+	c64util.print_byte_decimal()
 	A = 13
-	call c64.CHROUT
-	call c64util.print_byte_decimal
-	A = 13
-	call c64util.print_byte_hex
-	A = 13
-	call c64.CHROUT
+	c64util.print_byte_hex()
+	c64.CHROUT(13)
 	A = 255
-	call c64util.print_byte_decimal
+	c64util.print_byte_decimal()
 	A = 254
-	call c64util.print_byte_hex
+	c64util.print_byte_hex()
 	A = 129
-	call c64util.print_byte_hex
-	A = 13
-	call c64.CHROUT
+	c64util.print_byte_hex()
+	c64.CHROUT(13)
 
-	A = 13
-	call c64.CHROUT
+	c64.CHROUT(13)
 	X = 1
 	Y = 0
-	call c64util.print_word_decimal
-	A = 13
-	call c64.CHROUT
+	c64util.print_word_decimal()
+	c64.CHROUT(13)
 	return
 
 

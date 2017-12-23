@@ -53,6 +53,7 @@ start
 
 
 start
+        ; assign some float values to the memory
         AY = #flt_pi
         [some_address] = # flt_pi
         [some_address] = # flt_pi
@@ -64,6 +65,8 @@ start
         [some_address.word] = #flt_pi
         [some_address.word] = #flt_pi
         [$c000.word] = # flt_pi
+
+        ; print some floating points from source and compare them with ROM
 
         c64.MOVFM!(#flt_pi)
         c64.FPRINTLN!()

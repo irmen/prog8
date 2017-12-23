@@ -74,8 +74,8 @@ _loop   block2.zpw1 ++
 	Y--
 	[$d020]--
 	[block2.zpw2] = 99
-	call fidget.subroutine
-	go _loop
+	fidget.subroutine()
+	goto _loop
 	return 155,2,%00000101	; will end up in A, X, Y
 }
 
@@ -102,8 +102,8 @@ somelabel1
 		nop
 	}
 
-        go somelabel1
-        go block2.somelabel1222
+        goto somelabel1
+        goto block2.somelabel1222
 	A=X=Y=A=X=Y=A=X=Y=99
 	[$d020]=[$d021]=[$d020]=[$d021]=55
 

@@ -16,19 +16,27 @@
         const   .text   constt   = "derp"
 
         subx    sub1    () -> (X?)  = $ffdd
+        subx    sub2    (A) -> (Y?)  = $eecc
 
 
 bar
-        go sub1
-        go bar
-	go [AX]
-	go [var1]
-	go [mem1]
-	go [#mem1]      ; @todo error: indirection of address-of makes no sense,  should have outputted jmp mem1 instead of jmp(mem1)
-	go [$c2.word]
-	go [$c2dd.word]
-	go $c000
-	go $c2
+        goto sub1
+        goto sub2 (1  )
+        goto bar  ()
+	goto [AX]
+	goto [AX]  ()
+	goto [var1]
+	goto [var1]   ()    ; comment
+	goto   [mem1]    ; comment
+	goto [mem1] ()
+	goto [$c2.word]
+	goto [$c2.word]  ()
+	goto [$c2dd.word]
+	goto [$c2dd.word] (  )
+	goto $c000
+	goto $c000        ( )
+	goto $c2
+	goto $c2()
 
         asm {
                 nop
@@ -37,16 +45,16 @@ bar
                 nop
         }
 
-        fcall sub1
-        fcall bar
-	fcall [XY]
-	fcall [var1]
-	fcall [mem1]
-	fcall [#mem1]      ; @todo error: indirection of address-of makes no sense
-	fcall [$c2.word]
-	fcall [$c2dd.word]
-	fcall $c000
-	fcall $c2
+        sub1!()
+        sub2!(11)
+        bar!()
+	[XY] ! ()
+	[var1] !()
+	[mem1]!()
+	[$c2.word]!()
+	[$c2dd.word]!()
+	$c000!()
+	$c2!()
 
         asm {
                 nop
@@ -55,16 +63,16 @@ bar
                 nop
         }
 
-        call sub1
-        call bar
-	call [AX]
-	call [var1]
-	call [mem1]
-	call [#mem1]      ; @todo error: indirection of address-of makes no sense
-	call [$c2.word]
-	call [$c2dd.word]
-	call $c000
-	call $c2
+        sub1()
+        sub2(11)
+        bar ()
+	[AX]()
+	[var1] (  )
+	[mem1]    ()
+	[$c2.word]()
+	[$c2dd.word]()
+	$c000()
+	$c2()
 
 
         asm {
@@ -74,16 +82,15 @@ bar
                 nop
         }
 
-	call  constw
-	call  sub1
-	call main.start
-
+	constw()
+	sub1()
+	main.start()
 }
 
 
 ~ main {
 
 start
-        call foo.bar
+        foo.bar()
 	return
 }

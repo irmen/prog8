@@ -158,7 +158,8 @@ The syntax "[address]" means: the contents of the memory at address.
 By default, if not otherwise known, a single byte is assumed. You can add the ".byte" or ".word" or ".float" suffix
 to make it clear what data type the address points to.
 
-Everything after a semicolon ';' is a comment and is ignored, however the comment is copied into the resulting assembly source code.
+Everything after a semicolon ';' is a comment and is ignored, however the comment (if it is the only thing
+on the line) is copied into the resulting assembly source code.
 
     
 FLOW CONTROL
@@ -349,28 +350,20 @@ ISOLATION (register preservation when calling subroutines):  @todo isolation
 SUBROUTINE CALLS
 ----------------
 
-CALL and FCALL:
-        They are just inserting a call to the specified location or subroutine.
-        [F]CALL: calls subroutine and continue afterwards ('gosub'):
-                [f]call <subroutine> / <label> / <address> / `[`indirect-pointer`]`  [arguments...]
+You call a subroutine like this:
+        subroutinename[!] ( [arguments...] )
 
-        A 'call' preserves all registers when doing the procedure call and restores them afterwards.
-        'fcall' (fast call) doesn't preserve registers, so generates code that is a lot faster.
-        It's basically one jmp or jsr instruction. It can clobber register values because of this.
-        If you provide arguments (not required) these will be matched to the subroutine's parameters.
-        If you don't provide arguments, it is assumed you have prepared the correct registers etc yourself.
+Normally, the registers are preserved when calling the subroutine and restored on return.
+If you add a '!' after the name, no register preserving is done and the call essentially
+is just a single JSR instruction.
+Arguments should match the subroutine definition. You are allowed to omit the parameter names.
+If no definition is available (because you're directly calling memory or a label or something else),
+you can freely add arguments (but in this case they all have to be named).
 
+To jump to a subroutine (without returning), prefix the subroutine call with the word 'goto'.
+Unlike gotos in other languages, here it take arguments as well, because it
+essentially is the same as calling a subroutine and only doing something different when it's finished.
 
-The following contemporary syntax to call a subroutine is also available:
-        subroutine `(` [arguments...] `)`
-        subroutine! `(` [arguments...] `)`
-        These are understood as:  "call subroutine arguments" and "fcall subroutine arguments" respectively.
-        You can only call a subroutine or label this way. This syntax cannot be used
-        to call a memory address or variable, you have to use the call statement for that.
-
-GO:
-        'go' continues execution with the specified routine or address and doesn't retuurn (it is a 'goto'):
-                go <subroutine> / <label> / <address> / [indirect-pointer]
 
 
 @todo support call non-register args (variable parameter passing)

@@ -92,8 +92,7 @@ class ParseResult:
 
     class IndirectValue(Value):
         def __init__(self, value: 'ParseResult.Value', type_modifier: DataType) -> None:
-            if not type_modifier:
-                type_modifier = value.datatype
+            assert type_modifier
             super().__init__(type_modifier, value.name, False)
             self.value = value
 
@@ -103,7 +102,19 @@ class ParseResult:
         def assignable_from(self, other: 'ParseResult.Value') -> Tuple[bool, str]:
             if self.constant:
                 return False, "cannot assign to a constant"
-            if other.datatype in {DataType.BYTE, DataType.WORD, DataType.FLOAT} | STRING_DATATYPES:
+            if self.datatype == DataType.BYTE:
+                if other.datatype == DataType.BYTE:
+                    return True, ""
+            if self.datatype == DataType.WORD:
+                if other.datatype in {DataType.BYTE, DataType.WORD} | STRING_DATATYPES:
+                    return True, ""
+            if self.datatype == DataType.FLOAT:
+                if other.datatype in {DataType.BYTE, DataType.WORD, DataType.FLOAT}:
+                    return True, ""
+            if isinstance(other, (ParseResult.IntegerValue, ParseResult.FloatValue, ParseResult.StringValue)):
+                rangefault = check_value_in_range(self.datatype, "", 1, other.value)
+                if rangefault:
+                    return False, rangefault
                 return True, ""
             return False, "incompatible value for indirect assignment (need byte, word, float or string)"
 
@@ -209,10 +220,15 @@ class ParseResult:
 
         def assignable_from(self, other: 'ParseResult.Value') -> Tuple[bool, str]:
             if isinstance(other, ParseResult.IndirectValue):
-                other = other.value
-                if other.datatype in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
-                    return True, ""
-                return False, "incompatible value for register assignment"
+                if self.datatype == DataType.BYTE:
+                    if other.datatype == DataType.BYTE:
+                        return True, ""
+                    return False, "(unsigned) byte required"
+                if self.datatype == DataType.WORD:
+                    if other.datatype in (DataType.BYTE, DataType.WORD):
+                        return True, ""
+                    return False, "(unsigned) byte required"
+                return False, "incompatible indirect value for register assignment"
             if self.register == "SC":
                 if isinstance(other, ParseResult.IntegerValue) and other.value in (0, 1):
                     return True, ""
@@ -223,7 +239,16 @@ class ParseResult:
                 return False, "register size mismatch"
             if isinstance(other, ParseResult.StringValue) and self.register in REGISTER_BYTES:
                 return False, "string address requires 16 bits combined register"
-            if isinstance(other, (ParseResult.IntegerValue, ParseResult.FloatValue)):
+            if isinstance(other, ParseResult.IntegerValue):
+                if other.value is not None:
+                    range_error = check_value_in_range(self.datatype, self.register, 1, other.value)
+                    if range_error:
+                        return False, range_error
+                    return True, ""
+                if self.datatype == DataType.WORD:
+                    return True, ""
+                return False, "cannot assign address to single register"
+            if isinstance(other, ParseResult.FloatValue):
                 range_error = check_value_in_range(self.datatype, self.register, 1, other.value)
                 if range_error:
                     return False, range_error
@@ -369,7 +394,7 @@ class ParseResult:
                 return [self]
             statements = []     # type: List[ParseResult._AstNode]
             for name, value in self.arguments:
-                assert name is not None, "call argument should have a parameter name assigned"
+                assert name is not None, "all call arguments should have a name or be matched on a named parameter"
                 assignment = parser.parse_assignment("{:s}={:s}".format(name, value))
                 assignment.lineno = self.lineno
                 statements.append(assignment)
@@ -419,16 +444,18 @@ class Parser:
         with open(filename, "rU") as source:
             sourcelines = source.readlines()
         # store all lines that aren't empty
-        # comments are kept (end-of-line comments are put on a separate line)
+        # comments are kept (end-of-line comments are stripped though)
         lines = []
         for num, line in enumerate(sourcelines, start=1):
-            line2 = line.strip()
-            if line2:
-                line, sep, comment = line.partition(";")
-                if comment:
-                    lines.append((num, "; " + comment.strip()))
-                if line.rstrip():
-                    lines.append((num, line.rstrip()))
+            line = line.rstrip()
+            if line.lstrip().startswith(';'):
+                lines.append((num, line.lstrip()))
+            else:
+                line2, sep, comment = line.rpartition(';')
+                if sep:
+                    line = line2.rstrip()
+                if line:
+                    lines.append((num, line))
         return lines
 
     def parse(self) -> Optional[ParseResult]:
@@ -759,21 +786,21 @@ class Parser:
                     self.print_warning("warning: {}: Ignoring block without name and address.".format(self.cur_block.sourceref))
                     return None
                 return self.cur_block
-            if line.startswith("var"):
+            if line.startswith(("var ", "var\t")):
                 self.parse_var_def(line)
-            elif line.startswith("const"):
+            elif line.startswith(("const ", "const\t")):
                 self.parse_const_def(line)
-            elif line.startswith("memory"):
+            elif line.startswith(("memory ", "memory\t")):
                 self.parse_memory_def(line, is_zp_block)
-            elif line.startswith("subx"):
+            elif line.startswith(("subx ", "subx\t")):
                 if is_zp_block:
                     raise self.PError("ZP block cannot contain subroutines")
                 self.parse_subx_def(line)
-            elif line.startswith(("asminclude", "asmbinary")):
+            elif line.startswith(("asminclude ", "asminclude\t", "asmbinary ", "asmbinary\t")):
                 if is_zp_block:
                     raise self.PError("ZP block cannot contain assembler directives")
                 self.cur_block.statements.append(self.parse_asminclude(line))
-            elif line.startswith("asm"):
+            elif line.startswith(("asm ", "asm\t")):
                 if is_zp_block:
                     raise self.PError("ZP block cannot contain code statements")
                 self.prev_line()
@@ -896,15 +923,18 @@ class Parser:
         return varname, datatype, length, matrix_dimensions, valuetext
 
     def parse_statement(self, line: str) -> ParseResult._AstNode:
-        # check if we have a subroutine call using () syntax
-        match = re.match(r"^(?P<subname>[\w\.]+)\s*(?P<fcall>[!]?)\s*\((?P<params>.*)\)\s*$", line)
+        match = re.match(r"(?P<goto>goto\s+)?(?P<subname>[\S]+?)\s*(?P<fcall>[!]?)\s*(\((?P<arguments>.*)\))?\s*$", line)
         if match:
+            # subroutine or goto call
+            is_goto = bool(match.group("goto"))
+            preserve = not bool(match.group("fcall"))
             subname = match.group("subname")
-            fcall = "f" if match.group("fcall") else ""
-            param_str = match.group("params")
-            # turn this into "[f]call subname parameters" so it will be parsed below
-            line = "{:s}call {:s} {:s}".format(fcall, subname, param_str)
-        if line.startswith("return"):
+            arguments = match.group("arguments")
+            if is_goto:
+                return self.parse_call_or_goto(subname, arguments, preserve, True)
+            elif arguments or match.group(4):
+                return self.parse_call_or_goto(subname, arguments, preserve, False)
+        if line == "return" or line.startswith(("return ", "return\t")):
             return self.parse_return(line)
         elif line.endswith(("++", "--")):
             incr = line.endswith("++")
@@ -912,12 +942,6 @@ class Parser:
             if isinstance(what, ParseResult.IntegerValue):
                 raise self.PError("cannot in/decrement a constant value")
             return ParseResult.IncrDecrStmt(what, 1 if incr else -1)
-        elif line.startswith("call"):
-            return self.parse_call_or_go(line, "call")
-        elif line.startswith("fcall"):
-            return self.parse_call_or_go(line, "fcall")
-        elif line.startswith("go"):
-            return self.parse_call_or_go(line, "go")
         else:
             # perhaps it is an assignment statment
             lhs, sep, rhs = line.partition("=")
@@ -925,13 +949,10 @@ class Parser:
                 return self.parse_assignment(line)
             raise self.PError("invalid statement")
 
-    def parse_call_or_go(self, line: str, what: str) -> ParseResult.CallStmt:
-        args = line.split(maxsplit=2)
+    def parse_call_or_goto(self, targetstr: str, argumentstr: str, preserve_regs=True, is_goto=False) -> ParseResult.CallStmt:
+        argumentstr = argumentstr.strip() if argumentstr else ""
         arguments = None
-        if len(args) == 2:
-            targetstr, argumentstr, = args[1], ""
-        elif len(args) == 3:
-            targetstr, argumentstr = args[1], args[2]
+        if argumentstr:
             arguments = []
             for part in argumentstr.split(','):
                 pname, sep, pvalue = part.partition('=')
@@ -941,8 +962,6 @@ class Parser:
                     arguments.append((pname, pvalue))
                 else:
                     arguments.append((None, pname))
-        else:
-            raise self.PError("invalid call/go arguments")
         target = None  # type: ParseResult.Value
         if targetstr[0] == '[' and targetstr[-1] == ']':
             # indirect call to address in register pair or memory location
@@ -961,9 +980,9 @@ class Parser:
         _, symbol = self.cur_block.lookup(targetstr)
         if isinstance(symbol, SubroutineDef):
             # verify subroutine arguments
-            if arguments is not None and len(arguments) != len(symbol.parameters):
+            if len(arguments or []) != len(symbol.parameters):
                 raise self.PError("invalid number of arguments ({:d}, expected {:d})"
-                                  .format(len(arguments), len(symbol.parameters)))
+                                  .format(len(arguments or []), len(symbol.parameters)))
             args_with_pnames = []
             for i, (argname, value) in enumerate(arguments or []):
                 pname, preg = symbol.parameters[i]
@@ -974,15 +993,18 @@ class Parser:
                     argname = preg
                 args_with_pnames.append((argname, value))
             arguments = args_with_pnames
+        else:
+            if arguments:
+                raise self.PError("call cannot take any arguments here, use a subroutine for that")
+        if arguments:
+            # verify that all arguments have gotten a name
+            if any(not a[0] for a in arguments):
+                raise self.PError("all call arguments should have a name or be matched on a named parameter")
         if isinstance(target, (type(None), ParseResult.Value)):
-            if what == "go":
-                return ParseResult.CallStmt(self.sourceref.line, target, address=address, is_goto=True)
-            elif what == "call":
-                return ParseResult.CallStmt(self.sourceref.line, target, address=address, arguments=arguments)
-            elif what == "fcall":
-                return ParseResult.CallStmt(self.sourceref.line, target, address=address, arguments=arguments, preserve_regs=False)
+            if is_goto:
+                return ParseResult.CallStmt(self.sourceref.line, target, address=address, arguments=arguments, is_goto=True)
             else:
-                raise ValueError("invalid what")
+                return ParseResult.CallStmt(self.sourceref.line, target, address=address, arguments=arguments, preserve_regs=preserve_regs)
         else:
             raise TypeError("target should be a Value", target)
 
@@ -1085,12 +1107,15 @@ class Parser:
         else:
             raise self.PError("invalid statement")
 
-    def parse_expression(self, text: str) -> ParseResult.Value:
+    def parse_expression(self, text: str, is_indirect=False) -> ParseResult.Value:
         # parse an expression into whatever it is (primitive value, register, memory, register, etc)
+        # @todo only numeric expressions supported for now
         text = text.strip()
         if not text:
             raise self.PError("value expected")
         if text[0] == '#':
+            if is_indirect:
+                raise self.PError("using the address-of something in an indirect value makes no sense")
             # take the pointer (memory address) from the thing that follows this
             expression = self.parse_expression(text[1:])
             if isinstance(expression, ParseResult.StringValue):
@@ -1175,11 +1200,16 @@ class Parser:
             if typestr in ("byte", "word", "float"):
                 type_modifier, type_len, _ = self.get_datatype(sep + typestr)
                 indirect = indirect2
-        expr = self.parse_expression(indirect)
+        expr = self.parse_expression(indirect, True)
         if not isinstance(expr, (ParseResult.IntegerValue, ParseResult.MemMappedValue, ParseResult.RegisterValue)):
             raise self.PError("only integers, memmapped vars, and registers can be used in an indirect value")
+        if type_modifier is None:
+            if isinstance(expr, (ParseResult.RegisterValue, ParseResult.MemMappedValue)):
+                type_modifier = expr.datatype
+            else:
+                type_modifier = DataType.BYTE
         if isinstance(expr, ParseResult.IntegerValue):
-            if type_modifier not in (None, DataType.BYTE, DataType.WORD, DataType.FLOAT):
+            if type_modifier not in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
                 raise self.PError("invalid type modifier for the value's datatype")
         elif isinstance(expr, ParseResult.MemMappedValue):
             if type_modifier and expr.datatype != type_modifier:

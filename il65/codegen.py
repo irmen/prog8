@@ -14,7 +14,7 @@ import contextlib
 from functools import partial
 from typing import TextIO, Set, Union
 from .parse import ProgramFormat, ParseResult, Parser
-from .symbols import Zeropage, DataType, VariableDef, SubroutineDef, \
+from .symbols import Zeropage, DataType, ConstantDef, VariableDef, SubroutineDef, \
     STRING_DATATYPES, REGISTER_WORDS, FLOAT_MAX_NEGATIVE, FLOAT_MAX_POSITIVE
 
 
@@ -246,10 +246,11 @@ class CodeGenerator:
             for constdef in consts:
                 if constdef.type == DataType.FLOAT:
                     self.p("\t\t{:s} = {}".format(constdef.name, constdef.value))
-                elif constdef.type in STRING_DATATYPES:
-                    print("warning: {}: const string not defined in output yet".format(constdef.sourceref))  # XXX
                 elif constdef.type in (DataType.BYTE, DataType.WORD):
                     self.p("\t\t{:s} = {:s}".format(constdef.name, Parser.to_hex(constdef.value)))     # type: ignore
+                elif constdef.type in STRING_DATATYPES:
+                    # a const string is just a string variable in the generated assembly
+                    self._generate_string_var(constdef)
                 else:
                     raise CodeError("invalid const type", constdef)
         mem_vars = [vi for vi in block.symbols.iter_variables() if not vi.allocate and not vi.register]
@@ -306,24 +307,28 @@ class CodeGenerator:
                                    vardef.matrixsize[0] * vardef.matrixsize[1],
                                    vardef.value or 0,
                                    vardef.matrixsize[0], vardef.matrixsize[1]))
-                elif vardef.type == DataType.STRING:
-                    # 0-terminated string
-                    self.p("{:s}\n\t\t.null  {:s}".format(vardef.name, self.output_string(str(vardef.value))))
-                elif vardef.type == DataType.STRING_P:
-                    # pascal string
-                    self.p("{:s}\n\t\t.ptext  {:s}".format(vardef.name, self.output_string(str(vardef.value))))
-                elif vardef.type == DataType.STRING_S:
-                    # 0-terminated string in screencode encoding
-                    self.p(".enc  'screen'")
-                    self.p("{:s}\n\t\t.null  {:s}".format(vardef.name, self.output_string(str(vardef.value), True)))
-                    self.p(".enc  'none'")
-                elif vardef.type == DataType.STRING_PS:
-                    # 0-terminated pascal string in screencode encoding
-                    self.p(".enc  'screen'")
-                    self.p("{:s}\n\t\t.ptext  {:s}".format(vardef.name, self.output_string(str(vardef.value), True)))
-                    self.p(".enc  'none'")
+                elif vardef.type in STRING_DATATYPES:
+                    self._generate_string_var(vardef)
                 else:
                     raise CodeError("unknown variable type " + str(vardef.type))
+
+    def _generate_string_var(self, vardef: Union[ConstantDef, VariableDef]) -> None:
+        if vardef.type == DataType.STRING:
+            # 0-terminated string
+            self.p("{:s}\n\t\t.null  {:s}".format(vardef.name, self.output_string(str(vardef.value))))
+        elif vardef.type == DataType.STRING_P:
+            # pascal string
+            self.p("{:s}\n\t\t.ptext  {:s}".format(vardef.name, self.output_string(str(vardef.value))))
+        elif vardef.type == DataType.STRING_S:
+            # 0-terminated string in screencode encoding
+            self.p(".enc  'screen'")
+            self.p("{:s}\n\t\t.null  {:s}".format(vardef.name, self.output_string(str(vardef.value), True)))
+            self.p(".enc  'none'")
+        elif vardef.type == DataType.STRING_PS:
+            # 0-terminated pascal string in screencode encoding
+            self.p(".enc  'screen'")
+            self.p("{:s}\n\t\t.ptext  {:s}".format(vardef.name, self.output_string(str(vardef.value), True)))
+            self.p(".enc  'none'")
 
     def generate_statement(self, stmt: ParseResult._AstNode) -> None:
         if isinstance(stmt, ParseResult.ReturnStmt):
@@ -566,30 +571,31 @@ class CodeGenerator:
                 else:
                     raise CodeError("invalid assignment target (4)", str(stmt))
         elif isinstance(rvalue, ParseResult.FloatValue):
-            mflpt = self.to_mflpt5(rvalue.value)
             for lv in stmt.leftvalues:
                 if isinstance(lv, ParseResult.MemMappedValue) and lv.datatype == DataType.FLOAT:
-                    self.generate_store_immediate_float(lv, rvalue.value, mflpt)
+                    self.generate_assign_float_to_mem(lv, rvalue)
                 elif isinstance(lv, ParseResult.IndirectValue):
                     lv = unwrap_indirect(lv)
                     assert lv.datatype == DataType.FLOAT
-                    self.generate_store_immediate_float(lv, rvalue.value, mflpt)
+                    self.generate_assign_float_to_mem(lv, rvalue)
                 else:
                     raise CodeError("cannot assign float to ", str(lv))
         else:
             raise CodeError("invalid assignment value type", str(stmt))
 
-    def generate_store_immediate_float(self, mmv: ParseResult.MemMappedValue, floatvalue: float,
-                                       mflpt: bytearray, emit_pha: bool=True) -> None:
+    def generate_assign_float_to_mem(self, mmv: ParseResult.MemMappedValue,
+                                     rvalue: Union[ParseResult.FloatValue, ParseResult.IntegerValue], save_reg: bool=True) -> None:
+        floatvalue = float(rvalue.value)
+        mflpt = self.to_mflpt5(floatvalue)
         target = mmv.name or Parser.to_hex(mmv.address)
-        if emit_pha:
-            self.p("\t\tpha\t\t\t; {:s} = {}".format(target, floatvalue))
+        if save_reg:
+            self.p("\t\tpha\t\t\t; {:s} = {}".format(target, rvalue.name or floatvalue))
         else:
-            self.p("\t\t\t\t\t; {:s} = {}".format(target, floatvalue))
+            self.p("\t\t\t\t\t; {:s} = {}".format(target, rvalue.name or floatvalue))
         for num in range(5):
             self.p("\t\tlda  #${:02x}".format(mflpt[num]))
             self.p("\t\tsta  {:s}+{:d}".format(target, num))
-        if emit_pha:
+        if save_reg:
             self.p("\t\tpla")
 
     def generate_assign_reg_to_memory(self, lv: ParseResult.MemMappedValue, r_register: str) -> None:
@@ -732,8 +738,7 @@ class CodeGenerator:
         elif lvdatatype == DataType.FLOAT:
             if rvalue.value is not None and not DataType.FLOAT.assignable_from_value(rvalue.value):
                 raise ValueError("value cannot be assigned to a float")
-            floatvalue = float(rvalue.value)
-            self.generate_store_immediate_float(lv, floatvalue, self.to_mflpt5(floatvalue), False)
+            self.generate_assign_float_to_mem(lv, rvalue, False)
         else:
             raise TypeError("invalid lvalue type " + str(lvdatatype))
 
@@ -744,15 +749,20 @@ class CodeGenerator:
                 raise CodeError("can only assign a byte to a register")
             self.p("\t\tld{:s}  {:s}".format(l_register.lower(), r_str))
         else:
-            if rvalue.datatype != DataType.WORD:
-                raise CodeError("can only assign a word to a register pair")
-            raise NotImplementedError("some mmap type assignment")    # @todo other mmapped types
+            if rvalue.datatype == DataType.BYTE:
+                self.p("\t\tld{:s}  {:s}".format(l_register[0].lower(), r_str))
+                self.p("\t\tld{:s}  #0".format(l_register[1].lower()))
+            elif rvalue.datatype == DataType.WORD:
+                self.p("\t\tld{:s}  {:s}".format(l_register[0].lower(), r_str))
+                self.p("\t\tld{:s}  {:s}+1".format(l_register[1].lower(), r_str))
+            else:
+                raise CodeError("can only assign a byte or word to a register pair")
 
     def generate_assign_mem_to_mem(self, lv: ParseResult.MemMappedValue, rvalue: ParseResult.MemMappedValue) -> None:
         r_str = rvalue.name if rvalue.name else "${:x}".format(rvalue.address)
         if lv.datatype == DataType.BYTE:
             if rvalue.datatype != DataType.BYTE:
-                raise CodeError("can only assign a byte to a byte")
+                raise CodeError("can only assign a byte to a byte", str(rvalue))
             with self.preserving_registers({'A'}):
                 self.p("\t\tlda  " + r_str)
                 self.p("\t\tsta  " + (lv.name or Parser.to_hex(lv.address)))
@@ -760,9 +770,9 @@ class CodeGenerator:
             if rvalue.datatype == DataType.BYTE:
                 with self.preserving_registers({'A'}):
                     l_str = lv.name or Parser.to_hex(lv.address)
-                    self.p("\t\tlda  #0")
-                    self.p("\t\tsta  " + l_str)
                     self.p("\t\tlda  " + r_str)
+                    self.p("\t\tsta  " + l_str)
+                    self.p("\t\tlda  #0")
                     self.p("\t\tsta  {:s}+1".format(l_str))
             elif rvalue.datatype == DataType.WORD:
                 with self.preserving_registers({'A'}):
@@ -772,10 +782,10 @@ class CodeGenerator:
                     self.p("\t\tlda  {:s}+1".format(r_str))
                     self.p("\t\tsta  {:s}+1".format(l_str))
             else:
-                raise CodeError("can only assign a byte or word to a word")
+                raise CodeError("can only assign a byte or word to a word", str(rvalue))
         else:
-            raise CodeError("can only assign to a memory mapped byte or word value for now "
-                            "(if you need other types, can't you use a var?)")
+            raise CodeError("can only assign memory to a memory mapped byte or word value for now "
+                            "(if you need other types, can't you use a var?)", str(rvalue))
 
     def generate_assign_char_to_memory(self, lv: ParseResult.MemMappedValue, char_str: str) -> None:
         # Memory = Character

@@ -45,7 +45,6 @@ clobberzp
 	var  .word              initword1b      = true
 	var  .word              initword2       = false
 	var  .word              initword3       = 9876.554321
-	var  .word              initword4       = initword3
 	var  .word              initword5       = 20
 	var  .float             uninitfloat
 	var  .float             initfloat1      = 0
@@ -76,8 +75,7 @@ clobberzp
 
 	; memory-mapped variables
 	memory                          membyte1        = $cf01
-	memory  .byte                   membyte2        = $c2
-	memory  .byte                   membyte3        = initbyte2
+	memory  .byte                   membyte2        = $c222
 	memory  .word                   memword1        = $cf03
 	memory  .float                  memfloat        = $cf04
 	memory  .array(10 )             membytes        = $cf05
@@ -109,7 +107,6 @@ clobberzp
 	var .word        vmemaddr4              = #membytes
 	var .word        vmemaddr5              = #memwords
 	var .word        vmemaddr6              = #memmatrix
-	var .word        vmemaddr7              = vmemaddr1
 	var .word        vmemaddr8              = 100*sin(cbyte1)
 	var .word        vmemaddr9              = cword2+$5432
 	var .word        vmemaddr10             = cfloat2b
@@ -144,17 +141,16 @@ start
 	A = false
 	A = 255
 	A = X
+	A = [$99]
+	A = [$c020.byte]
 	A = [$c020]
-	A = [#membyte2]
+        A = cbyte3
 	A = membyte2
-	A = [membyte2]          ; @todo error, invalid rvalue, use membyte without indirect?
-	A = [membyte2.byte]     ; @todo error,  "
-        A = expr_byte1b         ; @todo ok
-        ;A = #expr_byte1b        ; @todo cannot assign address to byte, correct error
-        ;A = cbyte3              ; @todo fix assignment to lda #cybte3
+        A = uninitbyte1
+	;A = [membyte2]          ; @todo error, invalid rvalue, use membyte without indirect?
+	;A = [membyte2.byte]     ; @todo error,  "
         ;A = [cbyte3]            ; @todo error invalid rvalue
-        A = initbytea0
-        A = [initbytea0]        ; @todo error, invalid rvalue, use initbytea0 without indirect?
+        ;A = [initbytea0]        ; @todo error, invalid rvalue, use initbytea0 without indirect?
 
 
 	XY = 0
@@ -165,43 +161,67 @@ start
 	XY = true
 	XY = false
 	XY = text
+	XY = cbyte3
+	XY = cword2
+	XY = uninitbyte1
 	XY = "text-immediate"
 	AY = "text-immediate"
 	AX = #"text-immediate"          ; equivalent to simply assigning the string directly
 	AX = # "text-immediate"         ; equivalent to simply assigning the string directly
+	AX = ctext3
 	AX = ""
 	AX = XY
 	AX = Y
-	;XY = [membyte2]         ; @todo ok pad
-	;XY = [membyte2.byte]    ; @todo ok pad
-	;XY = membyte2           ; @todo ok pad
-	;XY = #membyte2          ; @todo ok
-	;XY = [memword1]         ; @todo ok
-	;XY = [memword1.byte]    ; @todo ok pad
-	;XY = [memword1.word]    ; @todo ok
-	XY = sin                 ; @todo ok
+	XY = [membyte2]         ; @todo indirection error?
+	XY = [membyte2.byte]    ; @todo indirection error?
+	XY = membyte2
+	XY = #membyte2
+	XY = [memword1]         ; @todo indirection error?
+	XY = [memword1.word]    ; @todo indirection error?
+	XY = memword1
+	XY = sin
+	XY = #sin
 
 
+	[$c000] = A
 	[$c000] = 255
 	[$c000] = '@'
-	[$c000] = 1.2345
 	[$c000] = true
 	[$c000] = false
+	[$c000] = cbyte3
+	[$c000] = uninitbyte1
+	[$c000] = [membyte2]         ; @todo indirection error?
+	[$c000] = [membyte2.byte]    ; @todo indirection error?
+	[$c000] = membyte2
+
+	[$c000.word] = A
+	[$c000.word] = AX
+	[$c000.word] = cbyte3
+	[$c000.word] = cword2
+	[$c000.word] = ctext3
 	[$c000.word] = 65535
-	[$c000.word] = 456.66
 	[$c000.word] = "text"
 	[$c000.word] = ""
+	[$c000.word] = uninitbyte1
+	[$c000.word] = [membyte2]         ; @todo indirection error?
+	[$c000.word] = [membyte2.byte]    ; @todo indirection error?
+	[$c000.word] = membyte2
+	[$c000.word] = #membyte2
+	[$c000.word] = [memword1]         ; @todo indirection error?
+	[$c000.word] = [memword1.word]    ; @todo indirection error?
+	[$c000.word] = memword1
 	[$c000.float] = 65535
 	[$c000.float] = 456.66
 	[$c000.float] = 1.70141183e+38
-	[$c000.word] = AX
+	[$c000.float] = cbyte3
+	[$c000.float] = cword2
+
 	[$c001] = [$c002]
 	[$c111.word] = [$c222]
         [$c112.word] = [$c223.byte]
 	[$c222.word] = [$c333.word]
-	[$c333] = sin           ; @todo error byte required
-	[$c333.word] = sin           ; @todo ok
-
+	[$c333.word] = sin
+	[$c333.word] = #sin
 
 
 	SC = 0
@@ -215,36 +235,59 @@ start
 	initbyte1 = 1.234
 	initbyte1 = '@'
 	initbyte1 = A
+	initbyte1 = cbyte3
 	uninitword = 99
 	uninitword = 5.6778
 	uninitword = "test"
 	uninitword = '@'
 	uninitword = A
 	uninitword = XY
+	uninitword = ctext3
+	initword1 = cbyte3
+	initword1 = cword2
 	initfloat1 = 99
 	initfloat1 = 9.8765
 	initfloat1 = '@'
+	initfloat1 = cbyte3
+	initfloat1 = cword2
 	uninitfloat = 99
 	uninitfloat = 9.8765
 	uninitfloat = '@'
-	;uninitfloat = A         ; @todo support this
-	; uninitfloat = XY        ; @todo support this
-	initword1 = sin           ; @todo ok
+	initword1 = sin
+	initword1 = #sin
+
+        membyte1 = A
+        membyte1 = cbyte3
+        memword1 = A
+        memword1 = AX
+        memword1 = cbyte3
+        memword1 = cword2
+        memword1 = ctext3
+
 
         membyte1 = 22
         memword1 = 2233
         memfloat = 3.4567
         ;[membyte1] = 33         ; @todo error, invalid lvalue, use without []
-        [memword1] = 4444
+        ;[memword1] = 4444        ; @todo error  ^
         ;[memword1] = [AX]       ; @todo error, only address allowed in []
-        [memfloat] = 5.5566
-	memword1 = sin           ; @todo ok
+        ;[memfloat] = 5.5566     ; @todo error ^
+	memword1 = sin
+	memword1 = #sin
 
         membyte1 = A
         memword1 = A
         memword1 = XY
-        ;memfloat = A            ; @todo support this
-        ;memfloat = XY           ; @todo support this
+        memfloat = cbyte3
+        memfloat = cword2
+
+        ; @todo float assignments that require ROM functions:
+        ; memfloat = Y
+        ; memfloat = XY
+	; uninitfloat = Y
+	; uninitfloat = XY
+        ; initfloat2 = Y
+        ; initfloat2 = XY
 
 	return
 }

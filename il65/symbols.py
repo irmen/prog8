@@ -262,7 +262,7 @@ class SymbolTable:
                         return self, getattr(math, nameparts[0])
                     elif nameparts[0] in BUILTIN_SYMBOLS:
                         return self, getattr(builtins, nameparts[0])
-                raise SymbolError("undefined symbol '{:s}'".format(nameparts[0]))
+                raise SymbolError("undefined symbol '{:s}'".format(nameparts[0])) from None
         # start from toplevel namespace:
         scope = self
         while scope.parent:
@@ -272,7 +272,7 @@ class SymbolTable:
                 scope = scope.symbols[namepart]     # type: ignore
                 assert scope.name == namepart
             except LookupError:
-                raise SymbolError("undefined block '{:s}'".format(namepart))
+                raise SymbolError("undefined block '{:s}'".format(namepart)) from None
         if isinstance(scope, SymbolTable):
             return scope.lookup(nameparts[-1])
         else:
@@ -445,11 +445,11 @@ class SymbolTable:
 
 
 class EvalSymbolDict(dict):
-    def __init__(self, symboltable: SymbolTable, ppsymbols: SymbolTable, constants: bool=True) -> None:
+    def __init__(self, symboltable: SymbolTable, ppsymbols: SymbolTable, constant: bool=True) -> None:
         super().__init__()
         self._symboltable = symboltable
-        self._constants = constants
         self._ppsymbols = ppsymbols
+        self._is_constant = constant
 
     def __getattr__(self, name):
         return self.__getitem__(name)
@@ -471,17 +471,17 @@ class EvalSymbolDict(dict):
                 if self._ppsymbols:
                     return self._ppsymbols.as_eval_dict(None)[name]
                 raise SymbolError("undefined symbol '{:s}'".format(name)) from None
-        if self._constants:
+        if self._is_constant:
             if isinstance(symbol, ConstantDef):
                 return symbol.value
             elif isinstance(symbol, VariableDef):
-                return symbol.value
+                raise SymbolError("can't reference a variable inside a (constant) expression")
             elif inspect.isbuiltin(symbol):
                 return symbol
             elif isinstance(symbol, SymbolTable):
                 return symbol.as_eval_dict(self._ppsymbols)
-            elif isinstance(symbol, LabelDef):
-                raise SymbolError("can't reference a label here")
+            elif isinstance(symbol, (LabelDef, SubroutineDef)):
+                raise SymbolError("can't reference a label or subroutine inside a (constant) expression")
             else:
                 raise SymbolError("invalid symbol type referenced " + repr(symbol))
         else:
