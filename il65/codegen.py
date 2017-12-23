@@ -422,14 +422,15 @@ class CodeGenerator:
                 targetstr = stmt.target.name or Parser.to_hex(stmt.address)
             else:
                 raise TypeError("call sub target should be mmapped")
+            if stmt.is_goto:
+                self.p("\t\tjmp  " + targetstr)
+                return
             clobbered = set()  # type: Set[str]
             if targetdef.clobbered_registers:
                 if stmt.preserve_regs:  # @todo make this work with the separate assignment statements for the parameters.. :(
                     clobbered = targetdef.clobbered_registers
             with self.preserving_registers(clobbered):
                 self.p("\t\tjsr  " + targetstr)
-            if stmt.is_goto:
-                self.p("\t\trts")
             return
         if isinstance(stmt.target, ParseResult.IndirectValue):
             if stmt.target.name:

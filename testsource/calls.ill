@@ -15,7 +15,7 @@
         const   .float  constf   = 3.4556677
         const   .text   constt   = "derp"
 
-        subx    sub1    () -> ()  = $ffdd
+        subx    sub1    () -> (X?)  = $ffdd
 
 
 bar
@@ -24,7 +24,7 @@ bar
 	go [AX]
 	go [var1]
 	go [mem1]
-	go [#mem1]      ; @todo error: indirection of address-of makes no sense
+	go [#mem1]      ; @todo error: indirection of address-of makes no sense,  should have outputted jmp mem1 instead of jmp(mem1)
 	go [$c2.word]
 	go [$c2dd.word]
 	go $c000
