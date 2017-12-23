@@ -805,12 +805,10 @@ class Parser:
                     raise self.PError("ZP block cannot contain code statements")
                 self.prev_line()
                 self.cur_block.statements.append(self.parse_asm())
-                continue
             elif unstripped_line.startswith((" ", "\t")):
                 if is_zp_block:
                     raise self.PError("ZP block cannot contain code statements")
                 self.cur_block.statements.append(self.parse_statement(line))
-                continue
             elif line:
                 if is_zp_block:
                     raise self.PError("ZP block cannot contain code labels")
@@ -861,9 +859,10 @@ class Parser:
                          r"\((?P<parameters>[\w\s:,]*)\)"
                          r"\s*->\s*"
                          r"\((?P<results>[\w\s?,]*)\)\s*"
-                         r"\s+=\s+(?P<address>\S*)\s*$", line)
+                         r"(?P<decltype>\s+=\s+(?P<address>\S*)|{)\s*$", line)
         if not match:
             raise self.PError("invalid subx declaration")
+        code_decl = match.group("decltype") == "{"
         name, parameterlist, resultlist, address_str = \
             match.group("name"), match.group("parameters"), match.group("results"), match.group("address")
         parameters = [(match.group("name"), match.group("target"))
@@ -875,12 +874,41 @@ class Parser:
         if len(all_paramnames) != len(set(all_paramnames)):
             raise self.PError("duplicates in parameter names")
         results = {match.group("name") for match in re.finditer(r"\s*(?P<name>(?:\w+)\??)\s*(?:,|$)", resultlist)}
+        subroutine_block = None
+        if code_decl:
+            address = None
+            # parse the subroutine code lines (until the closing '}')
+            subroutine_block = ParseResult.Block(name, self.sourceref, self.cur_block.symbols)
+            current_block = self.cur_block
+            self.cur_block = subroutine_block
+            while True:
+                self._parse_comments()
+                line = self.next_line()
+                unstripped_line = line
+                line = line.strip()
+                if line == "}":
+                    # subroutine end
+                    break
+                if line.startswith(("subx ", "subx\t")):
+                    raise self.PError("cannot nest subroutines")
+                elif line.startswith(("asm ", "asm\t")):
+                    self.prev_line()
+                    subroutine_block.statements.append(self.parse_asm())
+                elif unstripped_line.startswith((" ", "\t")):
+                    subroutine_block.statements.append(self.parse_statement(line))
+                elif line:
+                    self.parse_label(line)
+                else:
+                    raise self.PError("missing } to close subroutine from line " + str(subroutine_block.sourceref.line))
+            self.cur_block = current_block
+            self.cur_block.sourceref = subroutine_block.sourceref
+        else:
+            try:
+                address = parse_expr_as_int(address_str, self.cur_block.symbols, self.ppsymbols, self.sourceref)
+            except ParseError:
+                raise self.PError("invalid subroutine address")
         try:
-            address = parse_expr_as_int(address_str, self.cur_block.symbols, self.ppsymbols, self.sourceref)
-        except ParseError:
-            raise self.PError("invalid subroutine address")
-        try:
-            self.cur_block.symbols.define_sub(name, self.sourceref, parameters, results, address)
+            self.cur_block.symbols.define_sub(name, self.sourceref, parameters, results, address, subroutine_block)
         except SymbolError as x:
             raise self.PError(str(x)) from x
 

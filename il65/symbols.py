@@ -167,9 +167,11 @@ class ConstantDef(SymbolDefinition):
 
 class SubroutineDef(SymbolDefinition):
     def __init__(self, blockname: str, name: str, sourceref: SourceRef,
-                 parameters: Sequence[Tuple[str, str]], returnvalues: Set[str], address: Optional[int]=None) -> None:
+                 parameters: Sequence[Tuple[str, str]], returnvalues: Set[str],
+                 address: Optional[int]=None, sub_block: Any=None) -> None:
         super().__init__(blockname, name, sourceref, False)
         self.address = address
+        self.sub_block = sub_block
         self.parameters = parameters
         self.input_registers = set()        # type: Set[str]
         self.return_registers = set()       # type: Set[str]
@@ -372,9 +374,10 @@ class SymbolTable:
         self.eval_dict = None
 
     def define_sub(self, name: str, sourceref: SourceRef,
-                   parameters: Sequence[Tuple[str, str]], returnvalues: Set[str], address: Optional[int]) -> None:
+                   parameters: Sequence[Tuple[str, str]], returnvalues: Set[str],
+                   address: Optional[int], sub_block: Any) -> None:
         self.check_identifier_valid(name, sourceref)
-        self.symbols[name] = SubroutineDef(self.name, name, sourceref, parameters, returnvalues, address)
+        self.symbols[name] = SubroutineDef(self.name, name, sourceref, parameters, returnvalues, address, sub_block)
 
     def define_label(self, name: str, sourceref: SourceRef) -> None:
         self.check_identifier_valid(name, sourceref)

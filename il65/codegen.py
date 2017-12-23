@@ -229,14 +229,33 @@ class CodeGenerator:
                 self.p("* = ${:04x}".format(block.address))
             self.p("{:s}\t.proc\n".format(block.label))
             self.generate_block_vars(block)
-            subroutines = list(block.symbols.iter_subroutines())
+            subroutines = list(sub for sub in block.symbols.iter_subroutines() if sub.address is not None)
             if subroutines:
                 self.p("\n; external subroutines")
                 for subdef in subroutines:
+                    assert subdef.sub_block is None
                     self.p("\t\t{:s} = {:s}".format(subdef.name, Parser.to_hex(subdef.address)))
                 self.p("; end external subroutines")
             for stmt in block.statements:
                 self.generate_statement(stmt)
+            subroutines = list(sub for sub in block.symbols.iter_subroutines() if sub.address is None)
+            if subroutines:
+                self.p("\n; block subroutines")
+                for subdef in subroutines:
+                    assert subdef.sub_block is not None
+                    self.p("{:s}\t\t; src l. {:d}".format(subdef.name, subdef.sourceref.line))
+                    params = ", ".join("{:s} -> {:s}".format(p[0] or "<unnamed>", p[1]) for p in subdef.parameters)
+                    returns = ",".join(sorted(subdef.return_registers))
+                    clobbers = ",".join(sorted(subdef.clobbered_registers))
+                    self.p("\t\t; params: {}\n\t\t; returns: {}   clobbers: {}"
+                           .format(params or "-", returns or "-", clobbers or "-"))
+                    cur_block = self.cur_block
+                    self.cur_block = subdef.sub_block
+                    for stmt in subdef.sub_block.statements:
+                        self.generate_statement(stmt)
+                    self.cur_block = cur_block
+                    self.p("")
+                self.p("; end external subroutines")
             self.p("\t.pend\n")
 
     def generate_block_vars(self, block: ParseResult.Block) -> None:

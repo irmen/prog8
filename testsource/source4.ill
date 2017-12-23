@@ -14,52 +14,36 @@ start
 		.ptext "hello-pimmediate!{cr}"
 	}
 
-	A = 19
-	c64util.print_byte_decimal0 ! ()
+	c64util.print_byte_decimal0 ! (19)
 	c64.CHROUT ! (13)
-	A = 19
-	c64util.print_byte_decimal ! ()
+	c64util.print_byte_decimal ! (19)
 	c64.CHROUT ! (13)
 
 
-	X = $01
-	Y = $02
-	c64util.print_word_decimal0 ! ()
+	c64util.print_word_decimal0 ! ($0102)
 	c64.CHROUT ! (13)
-	X = $01
-	Y = $02
-	c64util.print_word_decimal ! ()
+	c64util.print_word_decimal ! ($0102)
 	c64.CHROUT ! (13)
 	return
 
 start2
 	global2.make_screen_black()
 	c64.CLEARSCR()
-	XY = greeting
-	c64util.print_string()
-	XY = p_greeting
-	c64util.print_pstring()
-	A = 0
-	c64util.print_byte_decimal()
-	A = 0
-	c64util.print_byte_hex()
+	c64util.print_string(greeting)
+	c64util.print_pstring(p_greeting)
+	c64util.print_byte_decimal(0)
+	c64util.print_byte_hex(0)
 	c64.CHROUT(13)
-	c64util.print_byte_decimal()
-	A = 13
-	c64util.print_byte_hex()
+	c64util.print_byte_decimal(13)
+	c64util.print_byte_hex(13)
 	c64.CHROUT(13)
-	A = 255
-	c64util.print_byte_decimal()
-	A = 254
-	c64util.print_byte_hex()
-	A = 129
-	c64util.print_byte_hex()
+	c64util.print_byte_decimal(255)
+	c64util.print_byte_hex(254)
+	c64util.print_byte_hex(129)
 	c64.CHROUT(13)
 
 	c64.CHROUT(13)
-	X = 1
-	Y = 0
-	c64util.print_word_decimal()
+	c64util.print_word_decimal($0100)
 	c64.CHROUT(13)
 	return
 

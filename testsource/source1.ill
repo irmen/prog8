@@ -79,8 +79,33 @@ _loop   block2.zpw1 ++
 	return 155,2,%00000101	; will end up in A, X, Y
 }
 
+
+
 ~ block2 {
+
+        return
+
+subx  memsub () -> ()  = $fff2
+
+subx  customsub (Y)->()  {
+
+        asm {
+                nop
+                nop
+                lda #99
+                nop
+                nop
+            }
+
+        A=2
+        X=33
+        goto fidget.subroutine()
+
+}
+
+
 somelabel1222
+        customsub(2)
 	return
 
 	var zp1

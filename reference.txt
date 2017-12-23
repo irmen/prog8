@@ -336,15 +336,13 @@ proc_results = sequence of <register> names that specify in which register(s) th
 example:  "subx   CLOSE    (logical: A) -> (A?, X?, Y?)       $FFC3"
 
 
-ISOLATION (register preservation when calling subroutines):  @todo isolation
+REGISTER PRESERVATION BLOCK:  @todo (no)preserve
 
- isolate [regs] { .... }       that adds register preservation around the containing code default = all 3 regs, or specify which.
- fcall          ->      fastcall, doesn't do register preservations
- call           ->      as before, alsways does it, even when already in isolate block
-
+        preserve [regs] { .... }     adds register preservation around the containing code default = all 3 regs, or specify which.
+        nopreserve [regs] { .... }     removes register preservation on all statements in the block that would otherwise have it.
 
 
-@todo user defined subroutines
+@todo document user defined subroutines
 
 
 SUBROUTINE CALLS
