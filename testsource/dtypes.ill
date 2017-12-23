@@ -179,6 +179,7 @@ start
 	;XY = [memword1]         ; @todo ok
 	;XY = [memword1.byte]    ; @todo ok pad
 	;XY = [memword1.word]    ; @todo ok
+	XY = sin                 ; @todo ok
 
 
 	[$c000] = 255
@@ -198,6 +199,9 @@ start
 	[$c111.word] = [$c222]
         [$c112.word] = [$c223.byte]
 	[$c222.word] = [$c333.word]
+	[$c333] = sin           ; @todo error byte required
+	[$c333.word] = sin           ; @todo ok
+
 
 
 	SC = 0
@@ -225,6 +229,7 @@ start
 	uninitfloat = '@'
 	;uninitfloat = A         ; @todo support this
 	; uninitfloat = XY        ; @todo support this
+	initword1 = sin           ; @todo ok
 
         membyte1 = 22
         memword1 = 2233
@@ -233,6 +238,7 @@ start
         [memword1] = 4444
         ;[memword1] = [AX]       ; @todo error, only address allowed in []
         [memfloat] = 5.5566
+	memword1 = sin           ; @todo ok
 
         membyte1 = A
         memword1 = A

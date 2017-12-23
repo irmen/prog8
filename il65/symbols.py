@@ -25,7 +25,7 @@ REGISTER_WORDS = {"AX", "AY", "XY"}
 FLOAT_MAX_POSITIVE = 1.7014118345e+38
 FLOAT_MAX_NEGATIVE = -1.7014118345e+38
 
-RESERVED_NAMES = {'true', 'false', 'var', 'memory', 'const', 'asm'}
+RESERVED_NAMES = {'true', 'false', 'var', 'memory', 'const', 'asm', 'byte', 'word', 'float'}
 RESERVED_NAMES |= REGISTER_SYMBOLS
 
 MATH_SYMBOLS = {name for name in dir(math) if name[0].islower()}

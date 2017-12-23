@@ -14,7 +14,8 @@ import contextlib
 from functools import partial
 from typing import TextIO, Set, Union
 from .parse import ProgramFormat, ParseResult, Parser
-from .symbols import Zeropage, DataType, VariableDef, SubroutineDef, REGISTER_WORDS, FLOAT_MAX_NEGATIVE, FLOAT_MAX_POSITIVE
+from .symbols import Zeropage, DataType, VariableDef, SubroutineDef, \
+    STRING_DATATYPES, REGISTER_WORDS, FLOAT_MAX_NEGATIVE, FLOAT_MAX_POSITIVE
 
 
 class CodeError(Exception):
@@ -144,7 +145,7 @@ class CodeGenerator:
                 self.p("; init zp vars")
                 self.p("\t\tlda  #0\n\t\tldx  #0")
                 for variable in vars_to_init:
-                    vname = zpblock.label + "." + variable.name
+                    vname = zpblock.label + '.' + variable.name
                     vvalue = variable.value
                     if variable.type == DataType.BYTE:
                         if vvalue != prev_value:
@@ -239,6 +240,18 @@ class CodeGenerator:
             self.p("\t.pend\n")
 
     def generate_block_vars(self, block: ParseResult.Block) -> None:
+        consts = [c for c in block.symbols.iter_constants()]
+        if consts:
+            self.p("; constants")
+            for constdef in consts:
+                if constdef.type == DataType.FLOAT:
+                    self.p("\t\t{:s} = {}".format(constdef.name, constdef.value))
+                elif constdef.type in STRING_DATATYPES:
+                    print("warning: {}: const string not defined in output yet".format(constdef.sourceref))  # XXX
+                elif constdef.type in (DataType.BYTE, DataType.WORD):
+                    self.p("\t\t{:s} = {:s}".format(constdef.name, Parser.to_hex(constdef.value)))     # type: ignore
+                else:
+                    raise CodeError("invalid const type", constdef)
         mem_vars = [vi for vi in block.symbols.iter_variables() if not vi.allocate and not vi.register]
         if mem_vars:
             self.p("; memory mapped variables")
@@ -335,99 +348,9 @@ class CodeGenerator:
         elif isinstance(stmt, ParseResult.Label):
             self.p("\n{:s}\t\t\t\t; src l. {:d}".format(stmt.name, stmt.lineno))
         elif isinstance(stmt, ParseResult.IncrDecrStmt):
-            if stmt.howmuch in (-1, 1):
-                if isinstance(stmt.what, ParseResult.RegisterValue):
-                    if stmt.howmuch == 1:
-                        if stmt.what.register == 'A':
-                            self.p("\t\tadc  #1")
-                        else:
-                            self.p("\t\tin{:s}".format(stmt.what.register.lower()))
-                    else:
-                        if stmt.what.register == 'A':
-                            self.p("\t\tsbc  #1")
-                        else:
-                            self.p("\t\tde{:s}".format(stmt.what.register.lower()))
-                elif isinstance(stmt.what, ParseResult.MemMappedValue):
-                    r_str = stmt.what.name or Parser.to_hex(stmt.what.address)
-                    if stmt.what.datatype == DataType.BYTE:
-                        if stmt.howmuch == 1:
-                            self.p("\t\tinc  " + r_str)
-                        else:
-                            self.p("\t\tdec  " + r_str)
-                    elif stmt.what.datatype == DataType.WORD:
-                        # @todo verify this asm code
-                        if stmt.howmuch == 1:
-                            self.p("\t\tinc  " + r_str)
-                            self.p("\t\tbne  +")
-                            self.p("\t\tinc  {:s}+1".format(r_str))
-                            self.p("+")
-                        else:
-                            self.p("\t\tdec  " + r_str)
-                            self.p("\t\tbne  +")
-                            self.p("\t\tdec  {:s}+1".format(r_str))
-                            self.p("+")
-                    else:
-                        raise CodeError("cannot in/decrement memory of type " + str(stmt.what.datatype))
-                else:
-                    raise CodeError("cannot in/decrement " + str(stmt.what))
-            elif stmt.howmuch > 0:
-                raise NotImplementedError("incr by > 1")  # XXX
-            elif stmt.howmuch < 0:
-                raise NotImplementedError("decr by > 1")  # XXX
+            self.generate_incrdecr(stmt)
         elif isinstance(stmt, ParseResult.CallStmt):
-            # the argument assignments have already been generated via separate assignment statements.
-            if isinstance(stmt.targetdef, SubroutineDef):
-                assert not stmt.is_indirect
-                clobbered = set()   # type: Set[str]
-                if stmt.targetdef.clobbered_registers:
-                    if stmt.preserve_regs:      # @todo make this work with the separate assignment statements for the parameters.. :(
-                        clobbered = stmt.targetdef.clobbered_registers
-                with self.preserving_registers(clobbered):
-                    self.p("\t\tjsr  " + stmt.target)
-                if stmt.is_goto:
-                    self.p("\t\trts")
-                return
-            if stmt.is_indirect:
-                if stmt.is_goto:
-                    # no need to preserve registers for a goto
-                    if stmt.target in REGISTER_WORDS:
-                        self.p("\t\tst{:s}  {:s}".format(stmt.target[0].lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
-                        self.p("\t\tst{:s}  {:s}".format(stmt.target[1].lower(), Parser.to_hex(Zeropage.SCRATCH_B2)))
-                        self.p("\t\tjmp  ({:s})".format(Parser.to_hex(Zeropage.SCRATCH_B1)))
-                    else:
-                        self.p("\t\tjmp  ({:s})".format(stmt.target))
-                else:
-                    preserve_regs = {'A', 'X', 'Y'} if stmt.preserve_regs else set()
-                    with self.preserving_registers(preserve_regs):
-                        if stmt.target in REGISTER_WORDS:
-                            if stmt.preserve_regs:
-                                # cannot use zp scratch. This is very inefficient code!
-                                print("warning: {:s}:{:d}: indirect register pair call, this is very inefficient"
-                                      .format(self.cur_block.sourceref.file, stmt.lineno))
-                                self.p("\t\tst{:s}  ++".format(stmt.target[0].lower()))
-                                self.p("\t\tst{:s}  +++".format(stmt.target[1].lower()))
-                                self.p("\t\tjsr  +")
-                                self.p("\t\tjmp  ++++")
-                                self.p("+\t\tjmp  (+)")
-                                self.p("+\t\t.byte  0\t; lo")
-                                self.p("+\t\t.byte  0\t; hi")
-                                self.p("+")
-                            else:
-                                self.p("\t\tst{:s}  {:s}".format(stmt.target[0].lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
-                                self.p("\t\tst{:s}  {:s}".format(stmt.target[1].lower(), Parser.to_hex(Zeropage.SCRATCH_B2)))
-                                self.p("\t\tjsr  +")
-                                self.p("\t\tjmp  ++")
-                                self.p("+\t\tjmp  ({:s})".format(Parser.to_hex(Zeropage.SCRATCH_B1)))
-                                self.p("+")
-                        else:
-                            self.p("\t\tjsr  +")
-                            self.p("\t\tjmp  ++")
-                            self.p("+\t\tjmp  ({:s})".format(stmt.target))
-                            self.p("+")
-            else:
-                preserve_regs = {'A', 'X', 'Y'} if not stmt.is_goto and stmt.preserve_regs else set()
-                with self.preserving_registers(preserve_regs):
-                    self.p("\t\tjsr  " + stmt.target)
+            self.generate_call(stmt)
         elif isinstance(stmt, ParseResult.InlineAsm):
             self.p("\t\t; inline asm, src l. {:d}".format(stmt.lineno))
             for line in stmt.asmlines:
@@ -439,52 +362,217 @@ class CodeGenerator:
             raise CodeError("unknown statement " + repr(stmt))
         self.previous_stmt_was_assignment = isinstance(stmt, ParseResult.AssignmentStmt)
 
+    def generate_incrdecr(self, stmt: ParseResult.IncrDecrStmt) -> None:
+        if stmt.howmuch in (-1, 1):
+            if isinstance(stmt.what, ParseResult.RegisterValue):
+                if stmt.howmuch == 1:
+                    if stmt.what.register == 'A':
+                        self.p("\t\tadc  #1")
+                    else:
+                        self.p("\t\tin{:s}".format(stmt.what.register.lower()))
+                else:
+                    if stmt.what.register == 'A':
+                        self.p("\t\tsbc  #1")
+                    else:
+                        self.p("\t\tde{:s}".format(stmt.what.register.lower()))
+            elif isinstance(stmt.what, (ParseResult.MemMappedValue, ParseResult.IndirectValue)):
+                what = stmt.what
+                if isinstance(what, ParseResult.IndirectValue):
+                    if isinstance(what.value, ParseResult.IntegerValue):
+                        r_str = what.value.name or Parser.to_hex(what.value.value)
+                    else:
+                        raise CodeError("invalid incr indirect type", what.value)
+                else:
+                    r_str = what.name or Parser.to_hex(what.address)
+                if what.datatype == DataType.BYTE:
+                    if stmt.howmuch == 1:
+                        self.p("\t\tinc  " + r_str)
+                    else:
+                        self.p("\t\tdec  " + r_str)
+                elif what.datatype == DataType.WORD:
+                    # @todo verify this asm code
+                    if stmt.howmuch == 1:
+                        self.p("\t\tinc  " + r_str)
+                        self.p("\t\tbne  +")
+                        self.p("\t\tinc  {:s}+1".format(r_str))
+                        self.p("+")
+                    else:
+                        self.p("\t\tdec  " + r_str)
+                        self.p("\t\tbne  +")
+                        self.p("\t\tdec  {:s}+1".format(r_str))
+                        self.p("+")
+                else:
+                    raise CodeError("cannot in/decrement memory of type " + str(what.datatype))
+            else:
+                raise CodeError("cannot in/decrement " + str(stmt.what))
+        elif stmt.howmuch > 0:
+            raise NotImplementedError("incr by > 1")  # XXX
+        elif stmt.howmuch < 0:
+            raise NotImplementedError("decr by > 1")  # XXX
+
+    def generate_call(self, stmt: ParseResult.CallStmt) -> None:
+        # the argument assignments have already been generated via separate assignment statements.
+        if stmt.target.name:
+            symblock, targetdef = self.cur_block.lookup(stmt.target.name)
+        else:
+            symblock = None
+            targetdef = None
+        if isinstance(targetdef, SubroutineDef):
+            if isinstance(stmt.target, ParseResult.MemMappedValue):
+                targetstr = stmt.target.name or Parser.to_hex(stmt.address)
+            else:
+                raise TypeError("call sub target should be mmapped")
+            clobbered = set()  # type: Set[str]
+            if targetdef.clobbered_registers:
+                if stmt.preserve_regs:  # @todo make this work with the separate assignment statements for the parameters.. :(
+                    clobbered = targetdef.clobbered_registers
+            with self.preserving_registers(clobbered):
+                self.p("\t\tjsr  " + targetstr)
+            if stmt.is_goto:
+                self.p("\t\trts")
+            return
+        if isinstance(stmt.target, ParseResult.IndirectValue):
+            if stmt.target.name:
+                targetstr = stmt.target.name
+            elif stmt.address is not None:
+                targetstr = Parser.to_hex(stmt.address)
+            elif stmt.target.value.name:
+                targetstr = stmt.target.value.name
+            elif isinstance(stmt.target.value, ParseResult.RegisterValue):
+                targetstr = stmt.target.value.register
+            elif isinstance(stmt.target.value, ParseResult.IntegerValue):
+                targetstr = stmt.target.value.name or Parser.to_hex(stmt.target.value.value)
+            else:
+                raise CodeError("missing name", stmt.target.value)
+            if stmt.is_goto:
+                # no need to preserve registers for a goto
+                if targetstr in REGISTER_WORDS:
+                    self.p("\t\tst{:s}  {:s}".format(targetstr[0].lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                    self.p("\t\tst{:s}  {:s}".format(targetstr[1].lower(), Parser.to_hex(Zeropage.SCRATCH_B2)))
+                    self.p("\t\tjmp  ({:s})".format(Parser.to_hex(Zeropage.SCRATCH_B1)))
+                else:
+                    self.p("\t\tjmp  ({:s})".format(targetstr))
+            else:
+                preserve_regs = {'A', 'X', 'Y'} if stmt.preserve_regs else set()
+                with self.preserving_registers(preserve_regs):
+                    if targetstr in REGISTER_WORDS:
+                        if stmt.preserve_regs:
+                            # cannot use zp scratch. This is very inefficient code!
+                            print("warning: {:s}:{:d}: indirect register pair call, this is very inefficient"
+                                  .format(self.cur_block.sourceref.file, stmt.lineno))
+                            self.p("\t\tst{:s}  ++".format(targetstr[0].lower()))
+                            self.p("\t\tst{:s}  +++".format(targetstr[1].lower()))
+                            self.p("\t\tjsr  +")
+                            self.p("\t\tjmp  ++++")
+                            self.p("+\t\tjmp  (+)")
+                            self.p("+\t\t.byte  0\t; lo")
+                            self.p("+\t\t.byte  0\t; hi")
+                            self.p("+")
+                        else:
+                            self.p("\t\tst{:s}  {:s}".format(targetstr[0].lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                            self.p("\t\tst{:s}  {:s}".format(targetstr[1].lower(), Parser.to_hex(Zeropage.SCRATCH_B2)))
+                            self.p("\t\tjsr  +")
+                            self.p("\t\tjmp  ++")
+                            self.p("+\t\tjmp  ({:s})".format(Parser.to_hex(Zeropage.SCRATCH_B1)))
+                            self.p("+")
+                    else:
+                        self.p("\t\tjsr  +")
+                        self.p("\t\tjmp  ++")
+                        self.p("+\t\tjmp  ({:s})".format(targetstr))
+                        self.p("+")
+        else:
+            if stmt.target.name:
+                targetstr = stmt.target.name
+            elif stmt.address is not None:
+                targetstr = Parser.to_hex(stmt.address)
+            elif isinstance(stmt.target, ParseResult.IntegerValue):
+                targetstr = stmt.target.name or Parser.to_hex(stmt.target.value)
+            else:
+                raise CodeError("missing name", stmt.target)
+            if stmt.is_goto:
+                self.p("\t\tjmp  " + targetstr)
+            else:
+                preserve_regs = {'A', 'X', 'Y'} if stmt.preserve_regs else set()
+                with self.preserving_registers(preserve_regs):
+                    self.p("\t\tjsr  " + targetstr)
+
     def generate_assignment(self, stmt: ParseResult.AssignmentStmt) -> None:
+        rvalue = stmt.right
+
+        def unwrap_indirect(iv: ParseResult.IndirectValue) -> ParseResult.MemMappedValue:
+            if isinstance(iv.value, ParseResult.MemMappedValue):
+                return iv.value
+            elif iv.value.constant and isinstance(iv.value, ParseResult.IntegerValue):
+                return ParseResult.MemMappedValue(iv.value.value, iv.datatype, 1, iv.name)
+            else:
+                raise CodeError("cannot yet generate code for assignment: non-constant and non-memmapped indirect")  # XXX
+
+        if isinstance(rvalue, ParseResult.IndirectValue):
+            rvalue = unwrap_indirect(rvalue)
         self.p("\t\t\t\t\t; src l. {:d}".format(stmt.lineno))
-        if isinstance(stmt.right, ParseResult.IntegerValue):
+        if isinstance(rvalue, ParseResult.IntegerValue):
             for lv in stmt.leftvalues:
                 if isinstance(lv, ParseResult.RegisterValue):
-                    self.generate_assign_integer_to_reg(lv.register, stmt.right)
+                    self.generate_assign_integer_to_reg(lv.register, rvalue)
                 elif isinstance(lv, ParseResult.MemMappedValue):
-                    self.generate_assign_integer_to_mem(lv, stmt.right)
+                    self.generate_assign_integer_to_mem(lv, rvalue)
+                elif isinstance(lv, ParseResult.IndirectValue):
+                    lv = unwrap_indirect(lv)
+                    self.generate_assign_integer_to_mem(lv, rvalue)
                 else:
                     raise CodeError("invalid assignment target (1)", str(stmt))
-        elif isinstance(stmt.right, ParseResult.RegisterValue):
+        elif isinstance(rvalue, ParseResult.RegisterValue):
             for lv in stmt.leftvalues:
                 if isinstance(lv, ParseResult.RegisterValue):
-                    self.generate_assign_reg_to_reg(lv, stmt.right.register)
+                    self.generate_assign_reg_to_reg(lv, rvalue.register)
                 elif isinstance(lv, ParseResult.MemMappedValue):
-                    self.generate_assign_reg_to_memory(lv, stmt.right.register)
+                    self.generate_assign_reg_to_memory(lv, rvalue.register)
+                elif isinstance(lv, ParseResult.IndirectValue):
+                    lv = unwrap_indirect(lv)
+                    self.generate_assign_reg_to_memory(lv, rvalue.register)
                 else:
                     raise CodeError("invalid assignment target (2)", str(stmt))
-        elif isinstance(stmt.right, ParseResult.StringValue):
-            r_str = self.output_string(stmt.right.value, True)
+        elif isinstance(rvalue, ParseResult.StringValue):
+            r_str = self.output_string(rvalue.value, True)
             for lv in stmt.leftvalues:
                 if isinstance(lv, ParseResult.RegisterValue):
-                    if len(stmt.right.value) == 1:
+                    if len(rvalue.value) == 1:
                         self.generate_assign_char_to_reg(lv, r_str)
                     else:
-                        self.generate_assign_string_to_reg(lv, stmt.right)
+                        self.generate_assign_string_to_reg(lv, rvalue)
                 elif isinstance(lv, ParseResult.MemMappedValue):
-                    if len(stmt.right.value) == 1:
+                    if len(rvalue.value) == 1:
                         self.generate_assign_char_to_memory(lv, r_str)
                     else:
-                        self.generate_assign_string_to_memory(lv, stmt.right)
+                        self.generate_assign_string_to_memory(lv, rvalue)
+                elif isinstance(lv, ParseResult.IndirectValue):
+                    lv = unwrap_indirect(lv)
+                    if len(rvalue.value) == 1:
+                        self.generate_assign_char_to_memory(lv, r_str)
+                    else:
+                        self.generate_assign_string_to_memory(lv, rvalue)
                 else:
                     raise CodeError("invalid assignment target (2)", str(stmt))
-        elif isinstance(stmt.right, ParseResult.MemMappedValue):
+        elif isinstance(rvalue, ParseResult.MemMappedValue):
             for lv in stmt.leftvalues:
                 if isinstance(lv, ParseResult.RegisterValue):
-                    self.generate_assign_mem_to_reg(lv.register, stmt.right)
+                    self.generate_assign_mem_to_reg(lv.register, rvalue)
                 elif isinstance(lv, ParseResult.MemMappedValue):
-                    self.generate_assign_mem_to_mem(lv, stmt.right)
+                    self.generate_assign_mem_to_mem(lv, rvalue)
+                elif isinstance(lv, ParseResult.IndirectValue):
+                    lv = unwrap_indirect(lv)
+                    self.generate_assign_mem_to_mem(lv, rvalue)
                 else:
                     raise CodeError("invalid assignment target (4)", str(stmt))
-        elif isinstance(stmt.right, ParseResult.FloatValue):
-            mflpt = self.to_mflpt5(stmt.right.value)
+        elif isinstance(rvalue, ParseResult.FloatValue):
+            mflpt = self.to_mflpt5(rvalue.value)
             for lv in stmt.leftvalues:
                 if isinstance(lv, ParseResult.MemMappedValue) and lv.datatype == DataType.FLOAT:
-                    self.generate_store_immediate_float(lv, stmt.right.value, mflpt)
+                    self.generate_store_immediate_float(lv, rvalue.value, mflpt)
+                elif isinstance(lv, ParseResult.IndirectValue):
+                    lv = unwrap_indirect(lv)
+                    assert lv.datatype == DataType.FLOAT
+                    self.generate_store_immediate_float(lv, rvalue.value, mflpt)
                 else:
                     raise CodeError("cannot assign float to ", str(lv))
         else:
@@ -620,7 +708,7 @@ class CodeGenerator:
             symblock, sym = self.cur_block.lookup(lv.name)
             if not isinstance(sym, VariableDef):
                 raise TypeError("invalid lvalue type " + str(sym))
-            assign_target = symblock.label + "." + sym.name if symblock is not self.cur_block else lv.name
+            assign_target = symblock.label + '.' + sym.name if symblock is not self.cur_block else lv.name
             lvdatatype = sym.type
         else:
             assign_target = Parser.to_hex(lv.address)
@@ -700,7 +788,7 @@ class CodeGenerator:
             if isinstance(sym, VariableDef):
                 assign_target = lv.name
                 if symblock is not self.cur_block:
-                    assign_target = symblock.label + "." + sym.name
+                    assign_target = symblock.label + '.' + sym.name
                 if sym.type == DataType.BYTE:
                     self.p("\t\tsta  " + assign_target)
                 elif sym.type == DataType.WORD:

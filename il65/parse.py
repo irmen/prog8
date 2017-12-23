@@ -80,16 +80,32 @@ class ParseResult:
             self.statements = statements
 
     class Value:
-        def __init__(self, datatype: DataType, name: str=None, constant: bool=False, indirect: bool=False) -> None:
+        def __init__(self, datatype: DataType, name: str=None, constant: bool=False) -> None:
             self.datatype = datatype
             self.name = name
             self.constant = constant
-            self.indirect = indirect    # is the value accessed as [value], "take the contents of the memory address it points to"  @todo
 
         def assignable_from(self, other: 'ParseResult.Value') -> Tuple[bool, str]:
             if self.constant:
                 return False, "cannot assign to a constant"
             return False, "incompatible value for assignment"
+
+    class IndirectValue(Value):
+        def __init__(self, value: 'ParseResult.Value', type_modifier: DataType) -> None:
+            if not type_modifier:
+                type_modifier = value.datatype
+            super().__init__(type_modifier, value.name, False)
+            self.value = value
+
+        def __str__(self):
+            return "<IndirectValue {} itype={} name={}>".format(self.value, self.datatype, self.name)
+
+        def assignable_from(self, other: 'ParseResult.Value') -> Tuple[bool, str]:
+            if self.constant:
+                return False, "cannot assign to a constant"
+            if other.datatype in {DataType.BYTE, DataType.WORD, DataType.FLOAT} | STRING_DATATYPES:
+                return True, ""
+            return False, "incompatible value for indirect assignment (need byte, word, float or string)"
 
     class IntegerValue(Value):
         def __init__(self, value: Optional[int], *, datatype: DataType=None, name: str=None) -> None:
@@ -192,6 +208,11 @@ class ParseResult:
             return "<RegisterValue {:s} type {:s} name={}>".format(self.register, self.datatype, self.name)
 
         def assignable_from(self, other: 'ParseResult.Value') -> Tuple[bool, str]:
+            if isinstance(other, ParseResult.IndirectValue):
+                other = other.value
+                if other.datatype in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
+                    return True, ""
+                return False, "incompatible value for register assignment"
             if self.register == "SC":
                 if isinstance(other, ParseResult.IntegerValue) and other.value in (0, 1):
                     return True, ""
@@ -215,13 +236,14 @@ class ParseResult:
                 if other.datatype in (DataType.BYTE, DataType.WORD) or other.datatype in STRING_DATATYPES:
                     return True, ""
                 return False, "(unsigned) byte, word or string required"
-            return False, "incompatible value for assignment"
+            return False, "incompatible value for register assignment"
 
     class MemMappedValue(Value):
         def __init__(self, address: Optional[int], datatype: DataType, length: int, name: str=None, constant: bool=False) -> None:
             super().__init__(datatype, name, constant)
             self.address = address
             self.length = length
+            assert address is None or type(address) is int
 
         def __hash__(self):
             return hash((self.datatype, self.address, self.length, self.name))
@@ -243,6 +265,8 @@ class ParseResult:
         def assignable_from(self, other: 'ParseResult.Value') -> Tuple[bool, str]:
             if self.constant:
                 return False, "cannot assign to a constant"
+            if isinstance(other, ParseResult.IndirectValue):
+                return False, "can not yet assign memory mapped value from indirect value"  # @todo indirect v assign
             if self.datatype == DataType.BYTE:
                 if isinstance(other, (ParseResult.IntegerValue, ParseResult.RegisterValue, ParseResult.MemMappedValue)):
                     if other.datatype == DataType.BYTE:
@@ -305,7 +329,7 @@ class ParseResult:
             if self.right.value in self._immediate_string_vars:
                 blockname, stringvar_name = self._immediate_string_vars[self.right.value]
                 if blockname:
-                    self.right.name = blockname + "." + stringvar_name
+                    self.right.name = blockname + '.' + stringvar_name
                 else:
                     self.right.name = stringvar_name
             else:
@@ -330,21 +354,15 @@ class ParseResult:
             self.howmuch = howmuch
 
     class CallStmt(_AstNode):
-        def __init__(self, lineno: int, target: str, targetdef: Optional[SymbolDefinition]=None, *,
+        def __init__(self, lineno: int, target: Optional['ParseResult.Value']=None, *,
                      address: Optional[int]=None, arguments: List[Tuple[str, Any]]=None,
-                     is_goto: bool=False, is_indirect: bool=False, preserve_regs: bool=True) -> None:
+                     is_goto: bool=False, preserve_regs: bool=True) -> None:
             self.lineno = lineno
-            self._target = target
-            self.targetdef = targetdef
+            self.target = target
             self.address = address
             self.arguments = arguments
             self.is_goto = is_goto
-            self.is_indirect = is_indirect
             self.preserve_regs = preserve_regs
-
-        @property
-        def target(self) -> str:
-            return self._target if self._target else Parser.to_hex(self.address)
 
         def desugar_call_arguments(self, parser: 'Parser') -> List['ParseResult._AstNode']:
             if not self.arguments:
@@ -909,9 +927,9 @@ class Parser:
 
     def parse_call_or_go(self, line: str, what: str) -> ParseResult.CallStmt:
         args = line.split(maxsplit=2)
+        arguments = None
         if len(args) == 2:
             targetstr, argumentstr, = args[1], ""
-            arguments = None
         elif len(args) == 3:
             targetstr, argumentstr = args[1], args[2]
             arguments = []
@@ -925,81 +943,48 @@ class Parser:
                     arguments.append((None, pname))
         else:
             raise self.PError("invalid call/go arguments")
-        address = None
-        target = None
+        target = None  # type: ParseResult.Value
         if targetstr[0] == '[' and targetstr[-1] == ']':
             # indirect call to address in register pair or memory location
-            indirect = True
-            targetstr = targetstr[1:-1].strip()
-            if targetstr[0] == '#':
-                _, target = self.cur_block.lookup(targetstr[1:])
-                assert isinstance(target, SymbolDefinition)
-                targetstr = targetstr[1:]
-                symboltype = getattr(target, "type", None)
-                if symboltype and symboltype != DataType.WORD:
-                    raise self.PError("invalid call target (should contain 16-bit)")
-                address = self.cur_block.symbols.get_address(targetstr)
-            else:
-                # the pointer should be a number or a label
-                _, target = self.cur_block.lookup(targetstr)
-                if isinstance(target, VariableDef):
-                    # checks
-                    if target.address is not None:
-                        raise self.PError("can only call a constant expression (label, address, const)")
-                    if target.type != DataType.WORD:
-                        raise self.PError("invalid call target (should be 16-bit address)")
+            targetstr, target = self.parse_indirect_value(targetstr)
+            if target.datatype != DataType.WORD:
+                raise self.PError("invalid call target (should contain 16-bit)")
         else:
-            indirect = False
-            # subname can be a label, or an immediate address (but not #symbol - use subx for that)
-            if targetstr[0] == '#':
-                raise self.PError("to call a subroutine, use a subx definition instead")
-            try:
-                address = self.parse_integer(targetstr)
-                targetstr = None
-            except ValueError:
-                symblock, target = self.lookup(targetstr)
-                same_block = symblock and symblock.name == self.cur_block.name
-                if isinstance(target, LabelDef):
-                    targetstr = target.name if same_block else target.blockname + '.' + target.name
-                elif isinstance(target, ConstantDef):
-                    if target.type == DataType.WORD:
-                        address = target.value      # type: ignore
-                        targetstr = None
-                    else:
-                        raise self.PError("call requires word constant")
-                elif isinstance(target, VariableDef):
-                    raise self.PError("can only call a constant expression (label, address, const)")    # @todo dynamic
-                elif isinstance(target, SubroutineDef):
-                    # verify subroutine arguments
-                    if arguments is not None and len(arguments) != len(target.parameters):
-                        raise self.PError("invalid number of arguments ({:d}, expected {:d})"
-                                          .format(len(arguments), len(target.parameters)))
-                    args_with_pnames = []
-                    for i, (argname, value) in enumerate(arguments or []):
-                        pname, preg = target.parameters[i]
-                        if argname:
-                            if argname != preg:
-                                raise self.PError("parameter mismatch ({:s}, expected {:s})".format(argname, preg))
-                        else:
-                            argname = preg
-                        args_with_pnames.append((argname, value))
-                    arguments = args_with_pnames
+            target = self.parse_expression(targetstr)
+        if not isinstance(target, (ParseResult.IntegerValue, ParseResult.RegisterValue,
+                                   ParseResult.MemMappedValue, ParseResult.IndirectValue)):
+            raise self.PError("cannot call that type of symbol")
+        if isinstance(target, ParseResult.IndirectValue) \
+                and not isinstance(target.value, (ParseResult.IntegerValue, ParseResult.RegisterValue, ParseResult.MemMappedValue)):
+            raise self.PError("cannot call that type of indirect symbol")
+        address = target.address if isinstance(target, ParseResult.MemMappedValue) else None
+        _, symbol = self.cur_block.lookup(targetstr)
+        if isinstance(symbol, SubroutineDef):
+            # verify subroutine arguments
+            if arguments is not None and len(arguments) != len(symbol.parameters):
+                raise self.PError("invalid number of arguments ({:d}, expected {:d})"
+                                  .format(len(arguments), len(symbol.parameters)))
+            args_with_pnames = []
+            for i, (argname, value) in enumerate(arguments or []):
+                pname, preg = symbol.parameters[i]
+                if argname:
+                    if argname != preg:
+                        raise self.PError("parameter mismatch ({:s}, expected {:s})".format(argname, preg))
                 else:
-                    raise TypeError("invalid target type")
-        if isinstance(target, (type(None), SymbolDefinition)):
+                    argname = preg
+                args_with_pnames.append((argname, value))
+            arguments = args_with_pnames
+        if isinstance(target, (type(None), ParseResult.Value)):
             if what == "go":
-                return ParseResult.CallStmt(self.sourceref.line, targetstr, target, address=address,
-                                            is_goto=True, is_indirect=indirect)
+                return ParseResult.CallStmt(self.sourceref.line, target, address=address, is_goto=True)
             elif what == "call":
-                return ParseResult.CallStmt(self.sourceref.line, targetstr, target, address=address,
-                                            arguments=arguments, is_indirect=indirect)
+                return ParseResult.CallStmt(self.sourceref.line, target, address=address, arguments=arguments)
             elif what == "fcall":
-                return ParseResult.CallStmt(self.sourceref.line, targetstr, target, address=address,
-                                            arguments=arguments, is_indirect=indirect, preserve_regs=False)
+                return ParseResult.CallStmt(self.sourceref.line, target, address=address, arguments=arguments, preserve_regs=False)
             else:
                 raise ValueError("invalid what")
         else:
-            raise TypeError("target should be a symboldef")
+            raise TypeError("target should be a Value", target)
 
     def parse_integer(self, text: str) -> int:
         text = text.strip()
@@ -1151,10 +1136,16 @@ class Parser:
                     return ParseResult.RegisterValue(sym.register, sym.type, name=symbolname)
                 elif sym.type in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
                     if isinstance(sym, ConstantDef):
-                        symbolvalue = sym.value
+                        if sym.type == DataType.FLOAT:
+                            return ParseResult.FloatValue(sym.value, sym.name)   # type: ignore
+                        elif sym.type in (DataType.BYTE, DataType.WORD):
+                            return ParseResult.IntegerValue(sym.value, datatype=sym.type, name=sym.name)  # type: ignore
+                        elif sym.type in STRING_DATATYPES:
+                            return ParseResult.StringValue(sym.value, sym.name, True)   # type: ignore
+                        else:
+                            raise TypeError("invalid const type", sym.type)
                     else:
-                        symbolvalue = sym.address
-                    return ParseResult.MemMappedValue(symbolvalue, sym.type, sym.length, name=symbolname, constant=constant)  # type:ignore
+                        return ParseResult.MemMappedValue(sym.address, sym.type, sym.length, name=symbolname, constant=constant)
                 elif sym.type in STRING_DATATYPES:
                     return ParseResult.StringValue(sym.value, name=symbolname, constant=constant)      # type: ignore
                 elif sym.type == DataType.MATRIX:
@@ -1162,49 +1153,38 @@ class Parser:
                 elif sym.type == DataType.BYTEARRAY or sym.type == DataType.WORDARRAY:
                     raise self.PError("cannot manipulate array directly, use one of the array procedures")
                 else:
-                    raise self.PError("invalid symbol type (1)")
+                    raise self.PError("invalid symbol type")
+            elif isinstance(sym, LabelDef):
+                name = sym.name if symblock is self.cur_block else sym.blockname + '.' + sym.name
+                return ParseResult.MemMappedValue(None, DataType.WORD, 1, name, True)
+            elif isinstance(sym, SubroutineDef):
+                name = sym.name if symblock is self.cur_block else sym.blockname + '.' + sym.name
+                return ParseResult.MemMappedValue(sym.address, DataType.WORD, 1, name, True)
             else:
-                raise self.PError("invalid symbol type (2)")
+                raise self.PError("invalid symbol type")
         elif text.startswith('[') and text.endswith(']'):
-            num_or_name = text[1:-1].strip()
-            word_type = float_type = False
-            if num_or_name.endswith(".byte"):
-                num_or_name = num_or_name[:-5]
-            elif num_or_name.endswith(".word"):
-                word_type = True
-                num_or_name = num_or_name[:-5]
-            elif num_or_name.endswith(".float"):
-                float_type = True
-                num_or_name = num_or_name[:-6]
-            if num_or_name.isidentifier():
-                _, sym = self.lookup(num_or_name)
-                if isinstance(sym, ConstantDef):
-                    if sym.type == DataType.BYTE and (word_type or float_type):
-                        raise self.PError("byte value required")
-                    elif sym.type == DataType.WORD and float_type:
-                        raise self.PError("word value required")
-                    if type(sym.value) is int:
-                        return ParseResult.MemMappedValue(int(sym.value), sym.type, sym.length, sym.name)
-                    else:
-                        raise TypeError("integer required")
-                elif isinstance(sym, VariableDef):
-                    if sym.type == DataType.BYTE and (word_type or float_type):
-                        raise self.PError("invalid type modifier, byte expected")
-                    elif sym.type == DataType.WORD and float_type:
-                        raise self.PError("invalid type modifier, word expected")
-                    return ParseResult.MemMappedValue(sym.address, sym.type, sym.length, sym.name)
-                else:
-                    raise self.PError("invalid symbol type used as lvalue of assignment")
-            else:
-                addr = parse_expr_as_int(num_or_name, self.cur_block.symbols, self.ppsymbols, self.sourceref)
-                if word_type:
-                    return ParseResult.MemMappedValue(addr, DataType.WORD, length=1)
-                elif float_type:
-                    return ParseResult.MemMappedValue(addr, DataType.FLOAT, length=1)
-                else:
-                    return ParseResult.MemMappedValue(addr, DataType.BYTE, length=1)
+            return self.parse_indirect_value(text)[1]
         else:
             raise self.PError("invalid value '" + text + "'")
+
+    def parse_indirect_value(self, text: str) -> Tuple[str, ParseResult.IndirectValue]:
+        indirect = text[1:-1].strip()
+        indirect2, sep, typestr = indirect.rpartition('.')
+        type_modifier = None
+        if sep:
+            if typestr in ("byte", "word", "float"):
+                type_modifier, type_len, _ = self.get_datatype(sep + typestr)
+                indirect = indirect2
+        expr = self.parse_expression(indirect)
+        if not isinstance(expr, (ParseResult.IntegerValue, ParseResult.MemMappedValue, ParseResult.RegisterValue)):
+            raise self.PError("only integers, memmapped vars, and registers can be used in an indirect value")
+        if isinstance(expr, ParseResult.IntegerValue):
+            if type_modifier not in (None, DataType.BYTE, DataType.WORD, DataType.FLOAT):
+                raise self.PError("invalid type modifier for the value's datatype")
+        elif isinstance(expr, ParseResult.MemMappedValue):
+            if type_modifier and expr.datatype != type_modifier:
+                raise self.PError("invalid type modifier for the value's datatype, must be " + expr.datatype.name)
+        return indirect, ParseResult.IndirectValue(expr, type_modifier)
 
     def is_identifier(self, name: str) -> bool:
         if name.isidentifier():

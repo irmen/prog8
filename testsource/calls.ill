@@ -12,16 +12,21 @@
         memory  .byte   memb1    = $cff0
         const   .word   constw   = $2355
         const   .byte   constb   = $23
+        const   .float  constf   = 3.4556677
+        const   .text   constt   = "derp"
 
         subx    sub1    () -> ()  = $ffdd
 
 
 bar
+        go sub1
+        go bar
 	go [AX]
 	go [var1]
-	go [#mem1]
-	go [$c2]
-	go [$c2dd]
+	go [mem1]
+	go [#mem1]      ; @todo error: indirection of address-of makes no sense
+	go [$c2.word]
+	go [$c2dd.word]
 	go $c000
 	go $c2
 
@@ -32,11 +37,14 @@ bar
                 nop
         }
 
+        fcall sub1
+        fcall bar
 	fcall [XY]
 	fcall [var1]
-	fcall [#mem1]
-	fcall [$c2]
-	fcall [$c2dd]
+	fcall [mem1]
+	fcall [#mem1]      ; @todo error: indirection of address-of makes no sense
+	fcall [$c2.word]
+	fcall [$c2dd.word]
 	fcall $c000
 	fcall $c2
 
@@ -47,11 +55,14 @@ bar
                 nop
         }
 
+        call sub1
+        call bar
 	call [AX]
 	call [var1]
-	call [#mem1]
-	call [$c2]
-	call [$c2dd]
+	call [mem1]
+	call [#mem1]      ; @todo error: indirection of address-of makes no sense
+	call [$c2.word]
+	call [$c2dd.word]
 	call $c000
 	call $c2
 
@@ -65,7 +76,6 @@ bar
 
 	call  constw
 	call  sub1
-	call main.start
 	call main.start
 
 }
