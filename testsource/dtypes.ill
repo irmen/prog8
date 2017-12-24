@@ -88,7 +88,7 @@ clobberzp
 	const  .byte            cbyte2          = 1
 	const  .byte            cbyte3          = '@'
 	const  .byte            cbyte4          = true
-	const  .word            cbyte6          = false
+	const  .word            cword1          = false
 	const  .word            cword2          = $1234
 	const  .word            cword5          = 9876.5432
 	const                   cfloat1         = 1.2345
@@ -134,6 +134,10 @@ start
 
 ; --- immediate primitive value assignments ----
 
+	A = [$99]
+	A = [$aabb]
+	A = $99
+        A = [cbyte3]
 	A = 0
 	A = '@'
 	A = 1.2345
@@ -147,10 +151,6 @@ start
         A = cbyte3
 	A = membyte2
         A = uninitbyte1
-	;A = [membyte2]          ; @todo error, invalid rvalue, use membyte without indirect?
-	;A = [membyte2.byte]     ; @todo error,  "
-        ;A = [cbyte3]            ; @todo error invalid rvalue
-        ;A = [initbytea0]        ; @todo error, invalid rvalue, use initbytea0 without indirect?
 
 
 	XY = 0
@@ -162,7 +162,8 @@ start
 	XY = false
 	XY = text
 	XY = cbyte3
-	XY = cword2
+	XY = [cbyte3]
+	XY = [cword2]
 	XY = uninitbyte1
 	XY = "text-immediate"
 	AY = "text-immediate"
@@ -172,12 +173,8 @@ start
 	AX = ""
 	AX = XY
 	AX = Y
-	XY = [membyte2]         ; @todo indirection error?
-	XY = [membyte2.byte]    ; @todo indirection error?
 	XY = membyte2
 	XY = #membyte2
-	XY = [memword1]         ; @todo indirection error?
-	XY = [memword1.word]    ; @todo indirection error?
 	XY = memword1
 	XY = sin
 	XY = #sin
@@ -190,9 +187,9 @@ start
 	[$c000] = false
 	[$c000] = cbyte3
 	[$c000] = uninitbyte1
-	[$c000] = [membyte2]         ; @todo indirection error?
-	[$c000] = [membyte2.byte]    ; @todo indirection error?
 	[$c000] = membyte2
+	[$c000] = cbyte2
+	[$c000] = [cword2]
 
 	[$c000.word] = A
 	[$c000.word] = AX
@@ -203,12 +200,9 @@ start
 	[$c000.word] = "text"
 	[$c000.word] = ""
 	[$c000.word] = uninitbyte1
-	[$c000.word] = [membyte2]         ; @todo indirection error?
-	[$c000.word] = [membyte2.byte]    ; @todo indirection error?
 	[$c000.word] = membyte2
 	[$c000.word] = #membyte2
-	[$c000.word] = [memword1]         ; @todo indirection error?
-	[$c000.word] = [memword1.word]    ; @todo indirection error?
+	[$c000.word] = [cword2]
 	[$c000.word] = memword1
 	[$c000.float] = 65535
 	[$c000.float] = 456.66
@@ -268,10 +262,6 @@ start
         membyte1 = 22
         memword1 = 2233
         memfloat = 3.4567
-        ;[membyte1] = 33         ; @todo error, invalid lvalue, use without []
-        ;[memword1] = 4444        ; @todo error  ^
-        ;[memword1] = [AX]       ; @todo error, only address allowed in []
-        ;[memfloat] = 5.5566     ; @todo error ^
 	memword1 = sin
 	memword1 = #sin
 
@@ -281,13 +271,17 @@ start
         memfloat = cbyte3
         memfloat = cword2
 
-        ; @todo float assignments that require ROM functions:
+        ; @todo float assignments that require ROM functions or shims:
         ; memfloat = Y
         ; memfloat = XY
 	; uninitfloat = Y
 	; uninitfloat = XY
         ; initfloat2 = Y
         ; initfloat2 = XY
+        ; initfloat2 = initbyte2
+        ; initfloat2 = initword2
+	; initfloat1 = uninitfloat
+	; initfloat1 = initfloat2
 
 	return
 }

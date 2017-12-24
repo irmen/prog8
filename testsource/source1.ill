@@ -73,7 +73,7 @@ _loop   block2.zpw1 ++
 	X --
 	Y--
 	[$d020]--
-	[block2.zpw2] = 99
+	block2.zpw2 = 99
 	fidget.subroutine()
 	goto _loop
 	return 155,2,%00000101	; will end up in A, X, Y
@@ -85,9 +85,9 @@ _loop   block2.zpw1 ++
 
         return
 
-subx  memsub () -> ()  = $fff2
+sub  memsub () -> ()  = $fff2
 
-subx  customsub (Y)->()  {
+sub  customsub (Y)->()  {
 
         asm {
                 nop

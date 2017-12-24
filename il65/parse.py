@@ -99,6 +99,20 @@ class ParseResult:
         def __str__(self):
             return "<IndirectValue {} itype={} name={}>".format(self.value, self.datatype, self.name)
 
+        def __hash__(self):
+            return hash((self.datatype, self.name, self.value))
+
+        def __eq__(self, other: Any) -> bool:
+            if not isinstance(other, ParseResult.IndirectValue):
+                return NotImplemented
+            elif self is other:
+                return True
+            else:
+                vvo = getattr(other.value, "value", getattr(other.value, "address", None))
+                vvs = getattr(self.value, "value", getattr(self.value, "address", None))
+                return (other.datatype, other.name, other.value.name, other.value.datatype, other.value.constant, vvo) ==\
+                       (self.datatype, self.name, self.value.name, self.value.datatype, self.value.constant, vvs)
+
         def assignable_from(self, other: 'ParseResult.Value') -> Tuple[bool, str]:
             if self.constant:
                 return False, "cannot assign to a constant"
@@ -151,7 +165,7 @@ class ParseResult:
             elif self is other:
                 return True
             else:
-                return other.datatype == self.datatype and other.value == self.value and other.name == self.name
+                return (other.datatype, other.value, other.name) == (self.datatype, self.value, self.name)
 
         def __str__(self):
             return "<IntegerValue {} name={}>".format(self.value, self.name)
@@ -173,7 +187,7 @@ class ParseResult:
             elif self is other:
                 return True
             else:
-                return other.datatype == self.datatype and other.value == self.value and other.name == self.name
+                return (other.datatype, other.value, other.name) == (self.datatype, self.value, self.name)
 
         def __str__(self):
             return "<FloatValue {} name={}>".format(self.value, self.name)
@@ -184,7 +198,7 @@ class ParseResult:
             self.value = value
 
         def __hash__(self):
-            return hash((self.datatype, self.value, self.name))
+            return hash((self.datatype, self.value, self.name, self.constant))
 
         def __eq__(self, other: Any) -> bool:
             if not isinstance(other, ParseResult.StringValue):
@@ -192,7 +206,7 @@ class ParseResult:
             elif self is other:
                 return True
             else:
-                return other.datatype == self.datatype and other.value == self.value and other.name == self.name
+                return (other.datatype, other.value, other.name, other.constant) == (self.datatype, self.value, self.name, self.constant)
 
         def __str__(self):
             return "<StringValue {!r:s} name={} constant={}>".format(self.value, self.name, self.constant)
@@ -213,7 +227,7 @@ class ParseResult:
             elif self is other:
                 return True
             else:
-                return other.datatype == self.datatype and other.register == self.register and other.name == self.name
+                return (other.datatype, other.register, other.name) == (self.datatype, self.register, self.name)
 
         def __str__(self):
             return "<RegisterValue {:s} type {:s} name={}>".format(self.register, self.datatype, self.name)
@@ -271,7 +285,7 @@ class ParseResult:
             assert address is None or type(address) is int
 
         def __hash__(self):
-            return hash((self.datatype, self.address, self.length, self.name))
+            return hash((self.datatype, self.address, self.length, self.name, self.constant))
 
         def __eq__(self, other: Any) -> bool:
             if not isinstance(other, ParseResult.MemMappedValue):
@@ -279,8 +293,8 @@ class ParseResult:
             elif self is other:
                 return True
             else:
-                return other.datatype == self.datatype and other.address == self.address and \
-                       other.length == self.length and other.name == self.name
+                return (other.datatype, other.address, other.length, other.name, other.constant) ==\
+                       (self.datatype, self.address, self.length, self.name, self.constant)
 
         def __str__(self):
             addr = "" if self.address is None else "${:04x}".format(self.address)
@@ -364,6 +378,10 @@ class ParseResult:
                 cur_block.symbols.define_variable(stringvar_name, cur_block.sourceref, DataType.STRING, value=value)
                 self.right.name = stringvar_name
                 self._immediate_string_vars[self.right.value] = (cur_block.name, stringvar_name)
+
+        def remove_identity_assigns(self) -> None:
+            remaining_leftvalues = [lv for lv in self.leftvalues if lv != self.right]
+            self.leftvalues = remaining_leftvalues
 
     class ReturnStmt(_AstNode):
         def __init__(self, a: Optional['ParseResult.Value']=None,
@@ -530,12 +548,24 @@ class Parser:
                 raise self.PError("A block named 'main' should be defined for the program's entry point 'start'")
 
     def _parse_2(self) -> None:
-        # parsing pass 2
+        # parsing pass 2 (not done during preprocessing!)
         self.cur_block = None
         self.sourceref.line = -1
         self.sourceref.column = 0
         for block in self.result.blocks:
             self.cur_block = block
+            # remove identity assignments
+            have_removed_stmts = False
+            for index, stmt in enumerate(list(block.statements)):
+                if isinstance(stmt, ParseResult.AssignmentStmt):
+                    stmt.remove_identity_assigns()
+                    if not stmt.leftvalues:
+                        print("warning: {:s}:{:d}: removed identity assignment".format(self.sourceref.file, stmt.lineno))
+                        have_removed_stmts = True
+                        block.statements[index] = None
+            if have_removed_stmts:
+                # remove the Nones
+                block.statements = [s for s in block.statements if s is not None]
             # create parameter loads for calls
             for index, stmt in enumerate(list(block.statements)):
                 if isinstance(stmt, ParseResult.CallStmt):
@@ -719,7 +749,6 @@ class Parser:
         # first line contains block header "~ [name] [addr]" followed by a '{'
         self._parse_comments()
         line = self.next_line()
-        block_def_lineno = self.sourceref.line
         line = line.lstrip()
         if not line.startswith("~"):
             raise self.PError("expected '~' (block)")
@@ -792,7 +821,7 @@ class Parser:
                 self.parse_const_def(line)
             elif line.startswith(("memory ", "memory\t")):
                 self.parse_memory_def(line, is_zp_block)
-            elif line.startswith(("subx ", "subx\t")):
+            elif line.startswith(("sub ", "sub\t")):
                 if is_zp_block:
                     raise self.PError("ZP block cannot contain subroutines")
                 self.parse_subx_def(line)
@@ -814,7 +843,7 @@ class Parser:
                     raise self.PError("ZP block cannot contain code labels")
                 self.parse_label(line)
             else:
-                raise self.PError("missing } to close block from line " + str(self.cur_block.sourceref.line))
+                raise self.PError("invalid statement in block")
 
     def parse_label(self, line: str) -> None:
         label_line = line.split(maxsplit=1)
@@ -855,13 +884,13 @@ class Parser:
             raise self.PError(str(x)) from x
 
     def parse_subx_def(self, line: str) -> None:
-        match = re.match(r"^subx\s+(?P<name>\w+)\s+"
+        match = re.match(r"^sub\s+(?P<name>\w+)\s+"
                          r"\((?P<parameters>[\w\s:,]*)\)"
                          r"\s*->\s*"
                          r"\((?P<results>[\w\s?,]*)\)\s*"
                          r"(?P<decltype>\s+=\s+(?P<address>\S*)|{)\s*$", line)
         if not match:
-            raise self.PError("invalid subx declaration")
+            raise self.PError("invalid sub declaration")
         code_decl = match.group("decltype") == "{"
         name, parameterlist, resultlist, address_str = \
             match.group("name"), match.group("parameters"), match.group("results"), match.group("address")
@@ -889,7 +918,7 @@ class Parser:
                 if line == "}":
                     # subroutine end
                     break
-                if line.startswith(("subx ", "subx\t")):
+                if line.startswith(("sub ", "sub\t")):
                     raise self.PError("cannot nest subroutines")
                 elif line.startswith(("asm ", "asm\t")):
                     self.prev_line()
@@ -899,7 +928,7 @@ class Parser:
                 elif line:
                     self.parse_label(line)
                 else:
-                    raise self.PError("missing } to close subroutine from line " + str(subroutine_block.sourceref.line))
+                    raise self.PError("invalid statement in subroutine")
             self.cur_block = current_block
             self.cur_block.sourceref = subroutine_block.sourceref
         else:
@@ -993,7 +1022,7 @@ class Parser:
         target = None  # type: ParseResult.Value
         if targetstr[0] == '[' and targetstr[-1] == ']':
             # indirect call to address in register pair or memory location
-            targetstr, target = self.parse_indirect_value(targetstr)
+            targetstr, target = self.parse_indirect_value(targetstr, True)
             if target.datatype != DataType.WORD:
                 raise self.PError("invalid call target (should contain 16-bit)")
         else:
@@ -1005,7 +1034,7 @@ class Parser:
                 and not isinstance(target.value, (ParseResult.IntegerValue, ParseResult.RegisterValue, ParseResult.MemMappedValue)):
             raise self.PError("cannot call that type of indirect symbol")
         address = target.address if isinstance(target, ParseResult.MemMappedValue) else None
-        _, symbol = self.cur_block.lookup(targetstr)
+        _, symbol = self.lookup(targetstr)
         if isinstance(symbol, SubroutineDef):
             # verify subroutine arguments
             if len(arguments or []) != len(symbol.parameters):
@@ -1050,7 +1079,7 @@ class Parser:
         rhs = parts.pop()
         l_values = [self.parse_expression(part) for part in parts]
         if any(isinstance(lv, ParseResult.IntegerValue) for lv in l_values):
-            raise self.PError("can't have a constant as assignment target, did you mean [name] instead?")
+            raise self.PError("can't have a constant as assignment target, perhaps you wanted indirection [...] instead?")
         r_value = self.parse_expression(rhs)
         for lv in l_values:
             assignable, reason = lv.assignable_from(r_value)
@@ -1220,7 +1249,7 @@ class Parser:
         else:
             raise self.PError("invalid value '" + text + "'")
 
-    def parse_indirect_value(self, text: str) -> Tuple[str, ParseResult.IndirectValue]:
+    def parse_indirect_value(self, text: str, allow_mmapped_for_call: bool=False) -> Tuple[str, ParseResult.IndirectValue]:
         indirect = text[1:-1].strip()
         indirect2, sep, typestr = indirect.rpartition('.')
         type_modifier = None
@@ -1240,8 +1269,11 @@ class Parser:
             if type_modifier not in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
                 raise self.PError("invalid type modifier for the value's datatype")
         elif isinstance(expr, ParseResult.MemMappedValue):
-            if type_modifier and expr.datatype != type_modifier:
-                raise self.PError("invalid type modifier for the value's datatype, must be " + expr.datatype.name)
+            if allow_mmapped_for_call:
+                if type_modifier and expr.datatype != type_modifier:
+                    raise self.PError("invalid type modifier for the value's datatype, must be " + expr.datatype.name)
+            else:
+                raise self.PError("use variable directly instead of using indirect addressing")
         return indirect, ParseResult.IndirectValue(expr, type_modifier)
 
     def is_identifier(self, name: str) -> bool:
@@ -1367,10 +1399,10 @@ class Optimizer:
                 if len(lvalues) != len(stmt.leftvalues):
                     print("{:s}:{:d}: removed duplicate assignment targets".format(block.sourceref.file, stmt.lineno))
                 # change order: first registers, then zp addresses, then non-zp addresses, then the rest (if any)
-                stmt.leftvalues = list(sorted(lvalues, key=value_sortkey))
+                stmt.leftvalues = list(sorted(lvalues, key=_value_sortkey))
 
 
-def value_sortkey(value: ParseResult.Value) -> int:
+def _value_sortkey(value: ParseResult.Value) -> int:
     if isinstance(value, ParseResult.RegisterValue):
         num = 0
         for char in value.register:
@@ -1378,18 +1410,11 @@ def value_sortkey(value: ParseResult.Value) -> int:
             num += ord(char)
         return num
     elif isinstance(value, ParseResult.MemMappedValue):
+        if value.address is None:
+            return 99999999
         if value.address < 0x100:
             return 10000 + value.address
         else:
             return 20000 + value.address
     else:
         return 99999999
-
-
-if __name__ == "__main__":
-    p = Parser("readme.txt", outputdir="output")
-    p.cur_block = ParseResult.Block("test", SourceRef("testfile", 1), None)
-    p.parse_subx_def("subx  SUBNAME   (A, test2:XY, X) -> (A?, X) = $c000")
-    sub = list(p.cur_block.symbols.iter_subroutines())[0]
-    import pprint
-    pprint.pprint(vars(sub))

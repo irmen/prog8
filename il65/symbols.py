@@ -405,6 +405,7 @@ class SymbolTable:
         self.eval_dict = None
 
     def merge_roots(self, other_root: 'SymbolTable') -> None:
+        assert self.parent is None and other_root.parent is None
         for name, thing in other_root.symbols.items():
             if isinstance(thing, SymbolTable):
                 try:
@@ -428,7 +429,7 @@ class SymbolTable:
             def print_symbols(symbols: 'SymbolTable', level: int) -> None:
                 indent = '\t' * level
                 print("\n" + indent + "BLOCK:", symbols.name)
-                for name, s in sorted(symbols.symbols.items(), key=lambda x: getattr(x[1], "sourceref", ("", 0))):
+                for name, s in sorted(symbols.symbols.items(), key=lambda x: str(getattr(x[1], "sourceref", ""))):
                     if isinstance(s, SymbolTable):
                         print_symbols(s, level + 1)
                     elif isinstance(s, SubroutineDef):

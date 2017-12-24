@@ -48,22 +48,19 @@ start
         var .float flt_half_pi		 = 1.5707963267948966
         var .float flt_double_pi	 = 6.283185307179586
         var .float flt_point25		 = .25
+        var .float my_float
         memory .word  some_address       = $ccdd
         memory .byte  some_addressb      = $ccee
+        var .byte  bytevar = $cc
+        var .word  wordvar = $cdef
+
 
 
 start
         ; assign some float values to the memory
         AY = #flt_pi
-        [some_address] = # flt_pi
-        [some_address] = # flt_pi
-        [some_address] = # flt_pi
-        [some_address] = 4123.2342342222
-        [some_address] = 4123.2342342222
-        [some_address] = 4123.2342342222
-        [some_address.word] = #flt_pi
-        [some_address.word] = #flt_pi
-        [some_address.word] = #flt_pi
+        some_address = # flt_pi
+        some_address = 4123.2342342222
         [$c000.word] = # flt_pi
 
         ; print some floating points from source and compare them with ROM
@@ -139,5 +136,4 @@ start
         c64.FPRINTLN!()
 
         return
-
 }

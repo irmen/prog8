@@ -634,7 +634,31 @@ class CodeGenerator:
                 self.p("\t\tst{:s}  {}".format(r_register[0].lower(), lv_string))
                 self.p("\t\tst{:s}  {}+1".format(r_register[1].lower(), lv_string))
         elif lv.datatype == DataType.FLOAT:
-            raise CodeError("assigning register to float not yet supported")     # @todo support float=reg
+            # assigning a register to a float requires ROM routines
+            if r_register in REGISTER_WORDS:
+                raise CodeError("cannot yet assign register pair to float", r_register)   # XXX reg pair -> float
+            elif r_register in "AXY":
+
+                def do_rom_calls():
+                    self.p("\t\tjsr  c64.FREADUY")  # ubyte Y -> fac1
+                    self.p("\t\tldx  #<" + lv_string)
+                    self.p("\t\tldy  #>" + lv_string)
+                    self.p("\t\tjsr  c64.FTOMEMXY")  # fac1 -> memory XY
+
+                if r_register == "A":
+                    with self.preserving_registers({'A', 'X', 'Y'}):
+                        self.p("\t\ttay")
+                        do_rom_calls()
+                elif r_register == "X":
+                    with self.preserving_registers({'A', 'X', 'Y'}):
+                        self.p("\t\ttxa")
+                        self.p("\t\ttay")
+                        do_rom_calls()
+                elif r_register == "Y":
+                    with self.preserving_registers({'A', 'X', 'Y'}):
+                        do_rom_calls()
+            else:
+                raise CodeError("invalid register to assign to float", r_register)
         else:
             raise CodeError("invalid lvalue type", lv.datatype)
 
@@ -803,7 +827,7 @@ class CodeGenerator:
             else:
                 raise CodeError("can only assign a byte or word to a word", str(rvalue))
         else:
-            raise CodeError("can only assign memory to a memory mapped byte or word value for now "
+            raise CodeError("can only assign memory to a memory mapped value for now "
                             "(if you need other types, can't you use a var?)", str(rvalue))
 
     def generate_assign_char_to_memory(self, lv: ParseResult.MemMappedValue, char_str: str) -> None:

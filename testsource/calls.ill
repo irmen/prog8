@@ -15,8 +15,8 @@
         const   .float  constf   = 3.4556677
         const   .text   constt   = "derp"
 
-        subx    sub1    () -> (X?)  = $ffdd
-        subx    sub2    (A) -> (Y?)  = $eecc
+        sub    sub1    () -> (X?)  = $ffdd
+        sub    sub2    (A) -> (Y?)  = $eecc
 
 
 bar

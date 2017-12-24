@@ -154,9 +154,12 @@ Expressions can contain function calls to the math library (sin, cos, etc) and y
 all builtin functions (max, avg, min, sum etc). They can also reference idendifiers defined elsewhere in your code,
 if this makes sense.
 
-The syntax "[address]" means: the contents of the memory at address.
+The syntax "[address]" means: the contents of the memory at address, or "indirect addressing".
 By default, if not otherwise known, a single byte is assumed. You can add the ".byte" or ".word" or ".float" suffix
 to make it clear what data type the address points to.
+This addressing mode is only supported for constant (integer) addresses and not for variable types,
+unless it is part of a subroutine call statement. For an indirect goto call, the 6502 CPU has a special opcode
+(JMP indirect) and an indirect subroutine call (JSR indirect) is synthesized using a couple of instructions.
 
 Everything after a semicolon ';' is a comment and is ignored, however the comment (if it is the only thing
 on the line) is copied into the resulting assembly source code.
@@ -316,40 +319,44 @@ MEMORY BLOCK OPERATIONS:
 
 - strings: identical operations as on lists.
 
-
-these call (or emit inline) optimized pieces of assembly code, so they run as fast as possible
+these should call (or emit inline) optimized pieces of assembly code, so they run as fast as possible
 
 
 
 SUBROUTINES DEFINITIONS
 -----------------------
 
-External subroutines for instance defined in ROM, can be defined using the 'subx' statement.
+Subroutines are parts of the code that can be repeatedly invoked using a subroutine call from elsewhere.
+Their definition, using the sub statement, includes the specification of the required input- and output parameters.
+For now, only register based parameters are supported (A, X, Y and paired registers, and the carry status bit SC as a special).
+The syntax is:
 
-subx   <identifier>    ([proc_parameters]) -> ([proc_results])    <address>
+        sub   <identifier>  ([proc_parameters]) -> ([proc_results])  {
+                ... statements ...
+        }
 
-proc_parameters = sequence of "<parametername>:<register>" pairs that specify what the input parameters are
-proc_results = sequence of <register> names that specify in which register(s) the output is returned
-               if the name ends with a '?', that means the register doesn't contain a real return value but
-               is clobbered in the process so the original value it had before calling the sub is no longer valid.
-
-example:  "subx   CLOSE    (logical: A) -> (A?, X?, Y?)       $FFC3"
-
-
-REGISTER PRESERVATION BLOCK:  @todo (no)preserve
-
-        preserve [regs] { .... }     adds register preservation around the containing code default = all 3 regs, or specify which.
-        nopreserve [regs] { .... }     removes register preservation on all statements in the block that would otherwise have it.
+        proc_parameters = comma separated list of "<parametername>:<register>" pairs specifying the input parameters
+        proc_results = comma separated list of <register> names specifying in which register(s) the output is returned.
+                       If the register name ends with a '?', that means the register doesn't contain a real return value but
+                       is clobbered in the process so the original value it had before calling the sub is no longer valid.
+                       This is not immediately useful for your own code, but the compiler needs this information to
+                       emit the correct assembly code to preserve the cpu registers if needed when the call is made.
 
 
-@todo document user defined subroutines
+Subroutines that are pre-defined on a specific memory location (usually routines from ROM),
+can also be defined using the 'sub' statement. But in this case you don't supply a block with statements,
+but instead assign a memory address to it:
+
+        sub  <identifier>  ([proc_parameters]) -> ([proc_results])  = <address>
+
+        example:  "sub  CLOSE  (logical: A) -> (A?, X?, Y?)  = $FFC3"
 
 
 SUBROUTINE CALLS
 ----------------
 
 You call a subroutine like this:
-        subroutinename[!] ( [arguments...] )
+        subroutinename_or_address [!]  ( [arguments...] )
 
 Normally, the registers are preserved when calling the subroutine and restored on return.
 If you add a '!' after the name, no register preserving is done and the call essentially
@@ -363,9 +370,16 @@ Unlike gotos in other languages, here it take arguments as well, because it
 essentially is the same as calling a subroutine and only doing something different when it's finished.
 
 
-
 @todo support call non-register args (variable parameter passing)
-@todo support call return values (so that you can assign these to other variables, and allows the line to be a full expression)
+@todo support assigning call return values (so that you can assign these to other variables, and allows the subroutine call be an actual expression)
+
+
+REGISTER PRESERVATION BLOCK:  @todo (no)preserve
+----------------------------
+
+        preserve [regs] { .... }     adds register preservation around the containing code default = all 3 regs, or specify which.
+        nopreserve [regs] { .... }     removes register preservation on all statements in the block that would otherwise have it.
+
 
 
 @todo BITMAP DEFINITIONS:

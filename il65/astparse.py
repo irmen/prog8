@@ -8,7 +8,7 @@ License: GNU GPL 3.0, see LICENSE
 
 import ast
 from typing import Union, Optional
-from .symbols import FLOAT_MAX_POSITIVE, FLOAT_MAX_NEGATIVE, SourceRef, SymbolTable, SymbolError, DataType, PrimitiveType
+from .symbols import FLOAT_MAX_POSITIVE, FLOAT_MAX_NEGATIVE, SourceRef, SymbolTable, SymbolError, PrimitiveType
 
 
 class ParseError(Exception):
@@ -191,10 +191,3 @@ class ExpressionTransformer(EvaluatingTransformer):
             else:
                 raise self.error("invalid MatMult/Pointer node in AST")
         return node
-
-
-if __name__ == "__main__":
-    symbols = SymbolTable("<root>", None, None)
-    symbols.define_variable("derp", SourceRef("<source>", 1), DataType.BYTE, address=2345)
-    result = parse_expr_as_primitive("2+#derp",  symbols, None, SourceRef("<source>", 1))
-    print("EXPRESSION RESULT:", result)
