@@ -12,9 +12,9 @@ import os
 import shutil
 import enum
 from collections import defaultdict
-from typing import Set, List, Tuple, Optional, Any, Dict, Union, Set
+from typing import Set, List, Tuple, Optional, Any, Dict, Union
 from .astparse import ParseError, parse_expr_as_int, parse_expr_as_number, parse_expr_as_primitive,\
-    parse_expr_as_string
+    parse_expr_as_string, parse_arguments
 from .symbols import SourceRef, SymbolTable, DataType, SymbolDefinition, SubroutineDef, LabelDef, \
     zeropage, check_value_in_range, char_to_bytevalue, \
     PrimitiveType, VariableDef, ConstantDef, SymbolError, STRING_DATATYPES, \
@@ -62,6 +62,8 @@ class ParseResult:
             return label
 
         def lookup(self, dottedname: str) -> Tuple[Optional['ParseResult.Block'], Optional[Union[SymbolDefinition, SymbolTable]]]:
+            # Searches a name in the current block or globally, if the name is scoped (=contains a '.').
+            # Does NOT utilize a symbol table from a preprocessing parse phase, only looks in the current.
             try:
                 scope, result = self.symbols.lookup(dottedname)
                 return scope.owning_block, result
@@ -1044,15 +1046,7 @@ class Parser:
         argumentstr = argumentstr.strip() if argumentstr else ""
         arguments = None
         if argumentstr:
-            arguments = []
-            for part in argumentstr.split(','):
-                pname, sep, pvalue = part.partition('=')
-                pname = pname.strip()
-                pvalue = pvalue.strip()
-                if sep:
-                    arguments.append((pname, pvalue))
-                else:
-                    arguments.append((None, pname))
+            arguments = parse_arguments(argumentstr, self.sourceref)
         target = None  # type: ParseResult.Value
         if targetstr[0] == '[' and targetstr[-1] == ']':
             # indirect call to address in register pair or memory location
@@ -1069,7 +1063,7 @@ class Parser:
             raise self.PError("cannot call that type of indirect symbol")
         address = target.address if isinstance(target, ParseResult.MemMappedValue) else None
         try:
-            _, symbol = self.lookup(targetstr)
+            _, symbol = self.lookup_with_ppsymbols(targetstr)
         except ParseError:
             symbol = None   # it's probably a number or a register then
         if isinstance(symbol, SubroutineDef):
@@ -1080,11 +1074,10 @@ class Parser:
             args_with_pnames = []
             for i, (argname, value) in enumerate(arguments or []):
                 pname, preg = symbol.parameters[i]
-                if argname:
-                    if argname != preg:
-                        raise self.PError("parameter mismatch ({:s}, expected {:s})".format(argname, preg))
-                else:
-                    argname = preg
+                required_name = pname or preg
+                if argname and argname != required_name:
+                    raise self.PError("parameter mismatch ('{:s}', expected '{:s}')".format(argname, required_name))
+                argname = preg
                 args_with_pnames.append((argname, value))
             arguments = args_with_pnames
             self.result.sub_used_by(symbol, self.sourceref)
@@ -1111,14 +1104,17 @@ class Parser:
             return int(text[1:], 2)
         return int(text)
 
-    def parse_assignment(self, line: str) -> ParseResult.AssignmentStmt:
+    def parse_assignment(self, line: str, parsed_rvalue: ParseResult.Value = None) -> ParseResult.AssignmentStmt:
         # parses assigning a value to one or more targets
         parts = line.split("=")
-        rhs = parts.pop()
+        if parsed_rvalue:
+            r_value = parsed_rvalue
+        else:
+            rhs = parts.pop()
+            r_value = self.parse_expression(rhs)
         l_values = [self.parse_expression(part) for part in parts]
         if any(isinstance(lv, ParseResult.IntegerValue) for lv in l_values):
             raise self.PError("can't have a constant as assignment target, perhaps you wanted indirection [...] instead?")
-        r_value = self.parse_expression(rhs)
         for lv in l_values:
             assignable, reason = lv.assignable_from(r_value)
             if not assignable:
@@ -1162,22 +1158,21 @@ class Parser:
             if line.strip() == "}":
                 return ParseResult.InlineAsm(lineno, asmlines)
             # asm can refer to other symbols as well, track subroutine usage
-            if line.startswith((" ", "\t")):
-                splits = line.split(maxsplit=2)
-                if len(splits) == 2:
-                    for match in re.finditer(r"(?P<symbol>[a-zA-Z_$][a-zA-Z0-9_\.]+)", splits[1]):
-                        name = match.group("symbol")
-                        if name[0] == '$':
-                            continue
-                        try:
-                            if '.' not in name:
-                                name = self.cur_block.symbols.parent.name + '.' + name
-                            _, symbol = self.lookup(name)
-                        except ParseError:
-                            pass
-                        else:
-                            if isinstance(symbol, SubroutineDef):
-                                self.result.sub_used_by(symbol, self.sourceref)
+            splits = line.split(maxsplit=1)
+            if len(splits) == 2:
+                for match in re.finditer(r"(?P<symbol>[a-zA-Z_$][a-zA-Z0-9_\.]+)", splits[1]):
+                    name = match.group("symbol")
+                    if name[0] == '$':
+                        continue
+                    try:
+                        if '.' not in name:
+                            name = self.cur_block.symbols.parent.name + '.' + name
+                        _, symbol = self.lookup_with_ppsymbols(name)
+                    except ParseError:
+                        pass
+                    else:
+                        if isinstance(symbol, SubroutineDef):
+                            self.result.sub_used_by(symbol, self.sourceref)
             asmlines.append(line)
 
     def parse_asminclude(self, line: str) -> ParseResult.InlineAsm:
@@ -1262,7 +1257,7 @@ class Parser:
         elif text == "false":
             return ParseResult.IntegerValue(0)
         elif self.is_identifier(text):
-            symblock, sym = self.lookup(text)
+            symblock, sym = self.lookup_with_ppsymbols(text)
             if isinstance(sym, (VariableDef, ConstantDef)):
                 constant = isinstance(sym, ConstantDef)
                 if self.cur_block is symblock:
@@ -1340,17 +1335,17 @@ class Parser:
             return blockname.isidentifier() and name.isidentifier()
         return False
 
-    def lookup(self, dottedname: str) -> Tuple[ParseResult.Block, Union[SymbolDefinition, SymbolTable]]:
+    def lookup_with_ppsymbols(self, dottedname: str) -> Tuple[ParseResult.Block, Union[SymbolDefinition, SymbolTable]]:
+        # Tries to find a symbol, if it cannot be located, the symbol table from the preprocess parse phase is consulted as well
         symblock, sym = self.cur_block.lookup(dottedname)
-        if sym is None:
-            # symbol is not (yet) known in current block, see if the ppsymbols know about it
+        if sym is None and self.ppsymbols:
+            # symbol is not (yet) known, see if the symbols from the preprocess parse phase know about it
             if '.' not in dottedname:
                 dottedname = self.cur_block.name + '.' + dottedname
             try:
-                if self.ppsymbols:
-                    symtable, sym = self.ppsymbols.lookup(dottedname)
-                    assert dottedname.startswith(symtable.name)
-                    symblock = None   # the block might not have been parsed yet, so just return this instead
+                symtable, sym = self.ppsymbols.lookup(dottedname)
+                assert dottedname.startswith(symtable.name)
+                symblock = None   # the block might not have been parsed yet, so just return this instead
             except (LookupError, SymbolError) as x:
                 raise self.PError(str(x))
         return symblock, sym

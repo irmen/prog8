@@ -7,7 +7,7 @@ License: GNU GPL 3.0, see LICENSE
 """
 
 import ast
-from typing import Union, Optional
+from typing import Union, Optional, List, Tuple, Any
 from .symbols import FLOAT_MAX_POSITIVE, FLOAT_MAX_NEGATIVE, SourceRef, SymbolTable, SymbolError, PrimitiveType
 
 
@@ -59,6 +59,45 @@ class SourceLine:
                     continue
             text += c
         return text
+
+
+def parse_arguments(text: str, sourceref: SourceRef) -> List[Tuple[str, PrimitiveType]]:
+    src = SourceLine(text, sourceref)
+    text = src.preprocess()
+    try:
+        nodes = ast.parse("__func({:s})".format(text), sourceref.file, "eval")
+    except SyntaxError as x:
+        raise src.to_error(str(x))
+
+    def astnode_to_repr(node: ast.AST) -> str:
+        if isinstance(node, ast.Name):
+            return node.id
+        if isinstance(node, ast.Num):
+            return repr(node.n)
+        if isinstance(node, ast.Str):
+            return repr(node.s)
+        if isinstance(node, ast.BinOp):
+            if node.left.id == "__ptr" and isinstance(node.op, ast.MatMult):
+                return '#' + astnode_to_repr(node.right)
+            else:
+                print("error", ast.dump(node))
+                raise TypeError("invalid arg ast node type", node)
+        if isinstance(node, ast.Attribute):
+            return astnode_to_repr(node.value) + "." + node.attr
+        print("error", ast.dump(node))
+        raise TypeError("invalid arg ast node type", node)
+
+    args = []   # type: List[Tuple[str, Any]]
+    if isinstance(nodes, ast.Expression):
+        for arg in nodes.body.args:
+            reprvalue = astnode_to_repr(arg)
+            args.append((None, reprvalue))
+        for kwarg in nodes.body.keywords:
+            reprvalue = astnode_to_repr(kwarg.value)
+            args.append((kwarg.arg, reprvalue))
+        return args
+    else:
+        raise TypeError("ast.Expression expected")
 
 
 def parse_expr_as_int(text: str, context: Optional[SymbolTable], ppcontext: Optional[SymbolTable], sourceref: SourceRef, *,

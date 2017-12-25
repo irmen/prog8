@@ -10,8 +10,8 @@ output raw
 		memory SCRATCH_ZP1	= $02		; scratch register #1 in ZP 
 		memory SCRATCH_ZP2	= $03		; scratch register #2 in ZP
 
-		memory COLOR		= $0286		; cursor color
-		memory CINV		= $0314		; IRQ vector
+		memory .byte COLOR	= $0286		; cursor color
+		memory .word CINV	= $0314		; IRQ vector
 
 ; ---- VIC-II registers ----
 

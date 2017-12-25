@@ -7,17 +7,21 @@ import "c64lib"
         var  .text  name        = "?"*80
 
 start
+        XY = c64.CINV
         SI = 1
-        [$0314.word] = #irq_handler
+        c64.CINV = #irq_handler
         SI = 0
 
         c64util.print_string("enter your name: ")
         c64util.input_chars(name)
         c64.CHROUT('\n')
-        ; c64util.print_string("thank you, ")             ; @todo fix param parsing /splitting
-        c64util.print_string("thank you ")
+        c64util.print_string("thank you, mr or mrs: ")
         c64util.print_string(name)
         c64.CHROUT('\n')
+
+        SI = 1
+        c64.CINV = XY
+        SI = 0
 
         return
 

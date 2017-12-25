@@ -179,9 +179,12 @@ class SubroutineDef(SymbolDefinition):
         for _, param in parameters:
             if param in REGISTER_BYTES:
                 self.input_registers.add(param)
+                self.clobbered_registers.add(param)
             elif param in REGISTER_WORDS:
                 self.input_registers.add(param[0])
                 self.input_registers.add(param[1])
+                self.clobbered_registers.add(param[0])
+                self.clobbered_registers.add(param[1])
             else:
                 raise SymbolError("invalid parameter spec: " + param)
         for register in returnvalues:
@@ -254,6 +257,10 @@ class SymbolTable:
         return symbolname in self.symbols
 
     def lookup(self, dottedname: str, include_builtin_names: bool=False) -> Tuple['SymbolTable', Union[SymbolDefinition, 'SymbolTable']]:
+        # Tries to find the dottedname in the current symbol table (if it is not scoped),
+        # or globally if it is scoped (=contains a '.'). If required, math and builtin symbols
+        # such as 'sin' or 'max' are also resolved.
+        # Does NOT utilize a symbol table from a preprocessing parse phase, only looks in the current.
         nameparts = dottedname.split('.')
         if len(nameparts) == 1:
             try:
@@ -265,7 +272,7 @@ class SymbolTable:
                     elif nameparts[0] in BUILTIN_SYMBOLS:
                         return self, getattr(builtins, nameparts[0])
                 raise SymbolError("undefined symbol '{:s}'".format(nameparts[0])) from None
-        # start from toplevel namespace:
+        # restart from global namespace:
         scope = self
         while scope.parent:
             scope = scope.parent
@@ -278,7 +285,7 @@ class SymbolTable:
         if isinstance(scope, SymbolTable):
             return scope.lookup(nameparts[-1])
         elif isinstance(scope, SubroutineDef):
-            return scope.sub_block.symbols.lookup(nameparts[-1])
+            return scope.sub_block.symbols.lookup_with_ppsymbols(nameparts[-1])
         else:
             raise SymbolError("invalid block name '{:s}' in dotted name".format(namepart))
 

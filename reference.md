@@ -251,7 +251,11 @@ The syntax is:
                 ... statements ...
         }
 
-        proc_parameters = comma separated list of "<parametername>:<register>" pairs specifying the input parameters
+        proc_parameters = comma separated list of "<parametername>:<register>" pairs specifying the input parameters.
+                          You can omit the parameter names as long as the arguments "line up".
+                          (actually, the Python parameter passing rules apply, so you can also mix positional
+                          and keyword arguments, as long as the keyword arguments come last)
+
         proc_results = comma separated list of <register> names specifying in which register(s) the output is returned.
                        If the register name ends with a '?', that means the register doesn't contain a real return value but
                        is clobbered in the process so the original value it had before calling the sub is no longer valid.

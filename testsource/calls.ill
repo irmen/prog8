@@ -17,11 +17,20 @@
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
+        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
 
 
 bar
         goto sub1
         goto sub2 (1  )
+        goto sub3 (3)
+        goto sub3 (XY="hello")
+        goto sub3 ("hello, there")
+        goto sub4 (string="hello, there", other = 42)
+        goto sub4 ("hello",  42)
+        goto sub4 ("hello", other= 42)
+        goto sub4 (string="hello", other = 42)
         goto bar  ()
 	goto [AX]
 	goto [AX]  ()
@@ -47,6 +56,13 @@ bar
 
         sub1!()
         sub2!(11)
+        sub3 !(3)
+        sub3! (XY="hello")
+        sub3! ("hello, there")
+        sub4! ("hello",  42)
+        sub4! ("hello",  other=42)
+        sub4! (string="hello", other = 42)
+        sub4! (string="hello, there", other = 42)
         bar!()
 	[XY] ! ()
 	[var1] !()
@@ -65,6 +81,13 @@ bar
 
         sub1()
         sub2(11)
+        sub3 (3)
+        sub3 (XY="hello")
+        sub3 ("hello, there")
+        sub4 ("hello",  42)
+        sub4 ("hello", other=  42)
+        sub4 (string="hello", other = 42)
+        sub4 (string="hello, there", other = 42)
         bar ()
 	[AX]()
 	[var1] (  )
