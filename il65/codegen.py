@@ -239,7 +239,7 @@ class CodeGenerator:
                 self.p("; end external subroutines")
             for stmt in block.statements:
                 self.generate_statement(stmt)
-            subroutines = list(sub for sub in block.symbols.iter_subroutines() if sub.address is None)
+            subroutines = list(sub for sub in block.symbols.iter_subroutines(True))
             if subroutines:
                 self.p("\n; block subroutines")
                 for subdef in subroutines:
@@ -532,8 +532,6 @@ class CodeGenerator:
                     self.p("\t\tjsr  " + targetstr)
 
     def generate_assignment(self, stmt: ParseResult.AssignmentStmt) -> None:
-        rvalue = stmt.right
-
         def unwrap_indirect(iv: ParseResult.IndirectValue) -> ParseResult.MemMappedValue:
             if isinstance(iv.value, ParseResult.MemMappedValue):
                 return iv.value
@@ -542,6 +540,7 @@ class CodeGenerator:
             else:
                 raise CodeError("cannot yet generate code for assignment: non-constant and non-memmapped indirect")  # XXX
 
+        rvalue = stmt.right
         if isinstance(rvalue, ParseResult.IndirectValue):
             rvalue = unwrap_indirect(rvalue)
         self.p("\t\t\t\t\t; src l. {:d}".format(stmt.lineno))

@@ -303,8 +303,12 @@ class SymbolTable:
     def iter_constants(self) -> Iterable[ConstantDef]:
         yield from sorted((v for v in self.symbols.values() if isinstance(v, ConstantDef)))
 
-    def iter_subroutines(self) -> Iterable[SubroutineDef]:
-        yield from sorted((v for v in self.symbols.values() if isinstance(v, SubroutineDef)))
+    def iter_subroutines(self, userdefined_only: bool=False) -> Iterable[SubroutineDef]:
+        if userdefined_only:
+            yield from sorted((sub for sub in self.symbols.values()
+                               if isinstance(sub, SubroutineDef) and sub.address is None and sub.sub_block is not None))
+        else:
+            yield from sorted((sub for sub in self.symbols.values() if isinstance(sub, SubroutineDef)))
 
     def iter_labels(self) -> Iterable[LabelDef]:
         yield from sorted((v for v in self.symbols.values() if isinstance(v, LabelDef)))
