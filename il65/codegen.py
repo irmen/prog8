@@ -928,6 +928,12 @@ class CodeGenerator:
                 self.p("\t\tsec")
             else:
                 self.p("\t\tclc")
+        elif l_register == "SI":
+            # interrupt disable bit
+            if rvalue.value:
+                self.p("\t\tsei")
+            else:
+                self.p("\t\tcli")
         else:
             raise CodeError("invalid register in immediate integer assignment", l_register, rvalue.value)
 

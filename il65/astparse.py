@@ -135,7 +135,7 @@ class EvaluatingTransformer(ast.NodeTransformer):
             globals = {"__builtins__": {}}
             locals = None
         try:
-            result = eval(code, globals, locals)
+            result = eval(code, globals, locals)        # XXX unsafe...
         except Exception as x:
             raise self.src.to_error(str(x)) from x
         else:

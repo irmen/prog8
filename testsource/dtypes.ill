@@ -223,6 +223,9 @@ start
 	SC = 0
 	SC = 1
 	SC = false
+	SI = 1
+	SI = 0
+	SI = false
 
 	uninitbyte1 = 99
 	uninitbyte1 = 1.234

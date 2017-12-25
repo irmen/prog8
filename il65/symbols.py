@@ -16,9 +16,9 @@ from typing import Optional, Set, Union, Tuple, Dict, Iterable, Sequence, Any, L
 PrimitiveType = Union[int, float, str]
 
 
-REGISTER_SYMBOLS = {"A", "X", "Y", "AX", "AY", "XY", "SC"}
+REGISTER_SYMBOLS = {"A", "X", "Y", "AX", "AY", "XY", "SC", "SI"}
 REGISTER_SYMBOLS_RETURNVALUES = REGISTER_SYMBOLS | {"SZ"}
-REGISTER_BYTES = {"A", "X", "Y", "SC"}
+REGISTER_BYTES = {"A", "X", "Y", "SC", "SI"}
 REGISTER_WORDS = {"AX", "AY", "XY"}
 
 # 5-byte cbm MFLPT format limitations:

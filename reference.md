@@ -73,6 +73,7 @@ The following 6502 hardware registers are directly accessible in your code (and 
 - ``A``, ``X``, ``Y``
 - ``AX``, ``AY``, ``XY`` (surrogate registers: 16-bit combined register pairs in LSB byte order lo/hi)
 - ``SC``  (status register's Carry flag)
+- ``SI``  (status register's Interrupt Disable flag)
 
 
 ### Zero Page ("ZP")
@@ -240,7 +241,10 @@ if this makes sense.
 
 Subroutines are parts of the code that can be repeatedly invoked using a subroutine call from elsewhere.
 Their definition, using the sub statement, includes the specification of the required input- and output parameters.
-For now, only register based parameters are supported (A, X, Y and paired registers, and the carry status bit SC as a special).
+For now, only register based parameters are supported (A, X, Y and paired registers, 
+the carry status bit SC and the interrupt disable bit SI as specials).
+For subroutine return values, the special SZ register is also available, it means the zero status bit.
+
 The syntax is:
 
         sub   <identifier>  ([proc_parameters]) -> ([proc_results])  {

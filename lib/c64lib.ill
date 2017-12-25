@@ -10,7 +10,8 @@ output raw
 		memory SCRATCH_ZP1	= $02		; scratch register #1 in ZP 
 		memory SCRATCH_ZP2	= $03		; scratch register #2 in ZP
 
-		memory COLOR		= $286		; cursor color
+		memory COLOR		= $0286		; cursor color
+		memory CINV		= $0314		; IRQ vector
 
 ; ---- VIC-II registers ----
 
@@ -163,6 +164,8 @@ sub	HOMECRSR	() -> (A?, X?, Y?) 		= $E566		; cursor to top left of screen
 
 ; ---- C64 kernal routines ----
 
+sub     IRQDFRT  () -> (A?, X?, Y?)			= $EA31		; default IRQ routine
+sub     IRQDFEND () -> (A?, X?, Y?)			= $EA81		; default IRQ end/cleanup
 sub	CINT     () -> (A?, X?, Y?)                     = $FF81		; (alias: SCINIT) initialize screen editor and video chip
 sub	IOINIT   () -> (A?, X?)                         = $FF84		; initialize I/O devices
 sub	RAMTAS   () -> (A?, X?, Y?)                     = $FF87		; initialize RAM, tape buffer, screen
@@ -189,7 +192,7 @@ sub	CLOSE    (logical: A) -> (A?, X?, Y?)           = $FFC3		; (via 796 ($31C)) 
 sub	CHKIN    (logical: X) -> (A?, X?)               = $FFC6		; (via 798 ($31E)) define an input channel
 sub	CHKOUT   (logical: X) -> (A?, X?)               = $FFC9		; (via 800 ($320)) define an output channel
 sub	CLRCHN   () -> (A?, X?)                         = $FFCC		; (via 802 ($322)) restore default devices
-sub	CHRIN    () -> (A, Y?)                          = $FFCF		; (via 804 ($324)) input a character
+sub	CHRIN    () -> (A, Y?)                          = $FFCF		; (via 804 ($324)) input a character (for keyboard, read a whole line from the screen) A=byte read.
 sub	CHROUT   (char: A) -> ()                        = $FFD2		; (via 806 ($326)) output a character
 sub	LOAD     (verify: A, address: XY) -> (SC, A, X, Y) = $FFD5	; (via 816 ($330)) load from device
 sub	SAVE     (zp_startaddr: A, endaddr: XY) -> (SC, A) = $FFD8	; (via 818 ($332)) save to a device
@@ -205,9 +208,9 @@ sub	IOBASE   () -> (X, Y)                           = $FFF3		; read base address
 
 ; ---- end of C64 kernal routines ----
 
-		memory .word NMI_VEC   	= $FFFA
-		memory .word RESET_VEC 	= $FFFC
-		memory .word IRQ_VEC   	= $FFFE
+		memory .word NMI_VEC   	= $FFFA		; nmi vector, set by the kernal if banked in
+		memory .word RESET_VEC 	= $FFFC		; reset vector, set by the kernal if banked in
+		memory .word IRQ_VEC   	= $FFFE		; interrupt vector, set by the kernal if banked in
 
 }
 
@@ -558,6 +561,28 @@ _pr_decimal
 		cpy  #5
 		bcc  _pr_decimal
 		rts
+	}
+}
+
+
+sub  input_chars  (buffer: AX) -> (A?, Y)  {
+	; ---- Input a string (max. 80 chars) from the keyboard.
+	;      It assumes the keyboard is selected as I/O channel!!
+
+	asm {
+		sta  c64.SCRATCH_ZP1
+		stx  c64.SCRATCH_ZP2
+		ldy  #0		; char counter = 0
+-		jsr  c64.CHRIN
+		cmp  #$0d	; return (ascii 13) pressed?
+		beq  +		; yes, end.
+		sta  (c64.SCRATCH_ZP1),y  ; else store char in buffer
+		iny
+		bne  -
++		lda  #0
+		sta  (c64.SCRATCH_ZP1),y  ; finish string with 0 byte
+		rts
+
 	}
 }
 

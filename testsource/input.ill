@@ -1,0 +1,34 @@
+output prg,sys
+
+import "c64lib"
+
+~ main {
+
+        var  .text  name        = "?"*80
+
+start
+        SI = 1
+        [$0314.word] = #irq_handler
+        SI = 0
+
+        c64util.print_string("enter your name: ")
+        c64util.input_chars(name)
+        c64.CHROUT('\n')
+        ; c64util.print_string("thank you, ")             ; @todo fix param parsing /splitting
+        c64util.print_string("thank you ")
+        c64util.print_string(name)
+        c64.CHROUT('\n')
+
+        return
+
+irq_handler
+        asm {
+                lda  $cb
+                cmp  #$40
+                beq  +
+                inc  c64.EXTCOL
++               jmp  c64.IRQDFRT
+        }
+
+
+}

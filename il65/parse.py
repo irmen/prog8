@@ -245,10 +245,10 @@ class ParseResult:
                         return True, ""
                     return False, "(unsigned) byte required"
                 return False, "incompatible indirect value for register assignment"
-            if self.register == "SC":
+            if self.register in ("SC", "SI"):
                 if isinstance(other, ParseResult.IntegerValue) and other.value in (0, 1):
                     return True, ""
-                return False, "can only assign an integer constant value of 0 or 1 to SC"
+                return False, "can only assign an integer constant value of 0 or 1 to SC and SI"
             if self.constant:
                 return False, "cannot assign to a constant"
             if isinstance(other, ParseResult.RegisterValue) and len(self.register) < len(other.register):
