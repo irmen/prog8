@@ -1,5 +1,5 @@
 """
-Intermediate Language for 6502/6510 microprocessors
+Programming Language for 6502/6510 microprocessors
 This is the preprocessing parser of the IL65 code, that only generates a symbol table.
 
 Written by Irmen de Jong (irmen@razorvine.net)

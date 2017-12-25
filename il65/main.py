@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
 """
-Intermediate Language for 6502/6510 microprocessors, codename 'Sick'
+Programming Language for 6502/6510 microprocessors, codename 'Sick'
 This is the main program that drives the rest.
 
 Written by Irmen de Jong (irmen@razorvine.net)

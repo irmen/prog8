@@ -1,5 +1,5 @@
 """
-Intermediate Language for 6502/6510 microprocessors
+Programming Language for 6502/6510 microprocessors
 This is the parser of the IL65 code, that generates a parse tree.
 
 Written by Irmen de Jong (irmen@razorvine.net)

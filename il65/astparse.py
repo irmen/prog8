@@ -1,5 +1,5 @@
 """
-Intermediate Language for 6502/6510 microprocessors
+Programming Language for 6502/6510 microprocessors
 This is the expression parser/evaluator.
 
 Written by Irmen de Jong (irmen@razorvine.net)

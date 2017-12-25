@@ -1,5 +1,5 @@
 """
-Intermediate Language for 6502/6510 microprocessors
+Programming Language for 6502/6510 microprocessors
 Here are the symbol (name) operations such as lookups, datatype definitions.
 
 Written by Irmen de Jong (irmen@razorvine.net)
