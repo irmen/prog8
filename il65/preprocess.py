@@ -58,8 +58,8 @@ class PreprocessingParser(Parser):
     def parse_label(self, line: str) -> None:
         super().parse_label(line)
 
-    def parse_subx_def(self, line: str) -> None:
-        super().parse_subx_def(line)
+    def parse_subroutine_def(self, line: str) -> None:
+        super().parse_subroutine_def(line)
 
     def create_import_parser(self, filename: str, outputdir: str) -> 'Parser':
         return PreprocessingParser(filename)

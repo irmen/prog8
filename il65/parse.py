@@ -11,7 +11,8 @@ import re
 import os
 import shutil
 import enum
-from typing import Set, List, Tuple, Optional, Any, Dict, Union
+from collections import defaultdict
+from typing import Set, List, Tuple, Optional, Any, Dict, Union, Set
 from .astparse import ParseError, parse_expr_as_int, parse_expr_as_number, parse_expr_as_primitive,\
     parse_expr_as_string
 from .symbols import SourceRef, SymbolTable, DataType, SymbolDefinition, SubroutineDef, LabelDef, \
@@ -34,6 +35,7 @@ class ParseResult:
         self.restorezp = False
         self.start_address = 0
         self.blocks = []          # type: List['ParseResult.Block']
+        self.subroutine_usage = defaultdict(set)    # type: Dict[Tuple[str, str], Set[str]]
 
     class Block:
         _unnamed_block_labels = {}  # type: Dict[ParseResult.Block, str]
@@ -445,11 +447,23 @@ class ParseResult:
             if block.name != "<header>":
                 self.blocks.append(block)
 
+    def find_block(self, name: str) -> Block:
+        for block in self.blocks:
+            if block.name == name:
+                return block
+        raise KeyError("block not found: " + name)
+
+    def sub_used_by(self, sub: SubroutineDef, sourceref: SourceRef) -> None:
+        self.subroutine_usage[(sub.blockname, sub.name)].add(str(sourceref))
+
 
 class Parser:
-    def __init__(self, filename: str, outputdir: str, sourcelines: List[Tuple[int, str]]=None,
-                 parsing_import: bool=False, ppsymbols: SymbolTable=None) -> None:
+    def __init__(self, filename: str, outputdir: str, sourcelines: List[Tuple[int, str]] = None, parsing_import: bool = False,
+                 ppsymbols: SymbolTable = None, sub_usage: Dict=None) -> None:
         self.result = ParseResult(filename)
+        if sub_usage is not None:
+            # re-use the (global) subroutine usage tracking
+            self.result.subroutine_usage = sub_usage
         self.sourceref = SourceRef(filename, -1, 0)
         if sourcelines:
             self.lines = sourcelines
@@ -763,7 +777,7 @@ class Parser:
         raise self.PError("imported file not found")
 
     def create_import_parser(self, filename: str, outputdir: str) -> 'Parser':
-        return Parser(filename, outputdir, parsing_import=True)
+        return Parser(filename, outputdir, parsing_import=True, ppsymbols=self.ppsymbols, sub_usage=self.result.subroutine_usage)
 
     def parse_block(self) -> ParseResult.Block:
         # first line contains block header "~ [name] [addr]" followed by a '{'
@@ -844,7 +858,7 @@ class Parser:
             elif line.startswith(("sub ", "sub\t")):
                 if is_zp_block:
                     raise self.PError("ZP block cannot contain subroutines")
-                self.parse_subx_def(line)
+                self.parse_subroutine_def(line)
             elif line.startswith(("asminclude ", "asminclude\t", "asmbinary ", "asmbinary\t")):
                 if is_zp_block:
                     raise self.PError("ZP block cannot contain assembler directives")
@@ -903,7 +917,7 @@ class Parser:
         except (ValueError, SymbolError) as x:
             raise self.PError(str(x)) from x
 
-    def parse_subx_def(self, line: str) -> None:
+    def parse_subroutine_def(self, line: str) -> None:
         match = re.match(r"^sub\s+(?P<name>\w+)\s+"
                          r"\((?P<parameters>[\w\s:,]*)\)"
                          r"\s*->\s*"
@@ -927,7 +941,7 @@ class Parser:
         if code_decl:
             address = None
             # parse the subroutine code lines (until the closing '}')
-            subroutine_block = ParseResult.Block(name, self.sourceref, self.cur_block.symbols)
+            subroutine_block = ParseResult.Block(self.cur_block.name + "." + name, self.sourceref, self.cur_block.symbols)
             current_block = self.cur_block
             self.cur_block = subroutine_block
             while True:
@@ -1073,6 +1087,7 @@ class Parser:
                     argname = preg
                 args_with_pnames.append((argname, value))
             arguments = args_with_pnames
+            self.result.sub_used_by(symbol, self.sourceref)
         else:
             if arguments:
                 raise self.PError("call cannot take any arguments here, use a subroutine for that")
@@ -1146,6 +1161,23 @@ class Parser:
             line = self.next_line()
             if line.strip() == "}":
                 return ParseResult.InlineAsm(lineno, asmlines)
+            # asm can refer to other symbols as well, track subroutine usage
+            if line.startswith((" ", "\t")):
+                splits = line.split(maxsplit=2)
+                if len(splits) == 2:
+                    for match in re.finditer(r"(?P<symbol>[a-zA-Z_$][a-zA-Z0-9_\.]+)", splits[1]):
+                        name = match.group("symbol")
+                        if name[0] == '$':
+                            continue
+                        try:
+                            if '.' not in name:
+                                name = self.cur_block.symbols.parent.name + '.' + name
+                            _, symbol = self.lookup(name)
+                        except ParseError:
+                            pass
+                        else:
+                            if symbol:
+                                self.result.sub_used_by(symbol, self.sourceref)
             asmlines.append(line)
 
     def parse_asminclude(self, line: str) -> ParseResult.InlineAsm:
@@ -1263,6 +1295,7 @@ class Parser:
                 name = sym.name if symblock is self.cur_block else sym.blockname + '.' + sym.name
                 return ParseResult.MemMappedValue(None, DataType.WORD, 1, name, True)
             elif isinstance(sym, SubroutineDef):
+                self.result.sub_used_by(sym, self.sourceref)
                 name = sym.name if symblock is self.cur_block else sym.blockname + '.' + sym.name
                 return ParseResult.MemMappedValue(sym.address, DataType.WORD, 1, name, True)
             else:
@@ -1314,9 +1347,10 @@ class Parser:
             if '.' not in dottedname:
                 dottedname = self.cur_block.name + '.' + dottedname
             try:
-                symtable, sym = self.ppsymbols.lookup(dottedname)
-                assert dottedname.startswith(symtable.name)
-                symblock = None   # the block might not have been parsed yet, so just return this instead
+                if self.ppsymbols:
+                    symtable, sym = self.ppsymbols.lookup(dottedname)
+                    assert dottedname.startswith(symtable.name)
+                    symblock = None   # the block might not have been parsed yet, so just return this instead
             except (LookupError, SymbolError) as x:
                 raise self.PError(str(x))
         return symblock, sym
@@ -1390,6 +1424,7 @@ class Optimizer:
             self.remove_identity_assigns(block)
             self.combine_assignments_into_multi(block)
             self.optimize_multiassigns(block)
+            self.remove_unused_subroutines(block)
             for sub in block.symbols.iter_subroutines(True):
                 self.remove_identity_assigns(sub.sub_block)
                 self.combine_assignments_into_multi(sub.sub_block)
@@ -1441,6 +1476,20 @@ class Optimizer:
         if have_removed_stmts:
             # remove the Nones
             block.statements = [s for s in block.statements if s is not None]
+
+    def remove_unused_subroutines(self, block: ParseResult.Block) -> None:
+        # some symbols are used by the emitted assembly code from the code generator,
+        # and should never be removed or the assembler will fail
+        never_remove = {"c64util.GIVUAYF", "c64.FREADUY", "c64.FTOMEMXY"}
+        discarded = []
+        for sub in list(block.symbols.iter_subroutines()):
+            usages = self.parsed.subroutine_usage[(sub.blockname, sub.name)]
+            if not usages and sub.blockname + '.' + sub.name not in never_remove:
+                block.symbols.discard_sub(sub.name)
+                discarded.append(sub.name)
+        if discarded:
+            print("{}: discarded unused subroutines from block '{:s}':  ".format(block.sourceref, block.name), end="")
+            print(",  ".join(discarded))
 
 
 def _value_sortkey(value: ParseResult.Value) -> int:

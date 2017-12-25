@@ -207,18 +207,17 @@ class CodeGenerator:
             self.generate_block_vars(zpblock)
             self.p("\t.pend\n")
         # make sure the main.start routine clears the decimal and carry flags as first steps
-        for block in self.parsed.blocks:
-            if block.name == "main":
-                statements = list(block.statements)
-                for index, stmt in enumerate(statements):
-                    if isinstance(stmt, ParseResult.Label) and stmt.name == "start":
-                        asmlines = [
-                            "\t\tcld\t\t\t; clear decimal flag",
-                            "\t\tclc\t\t\t; clear carry flag"
-                        ]
-                        statements.insert(index+1, ParseResult.InlineAsm(0, asmlines))
-                        break
-                block.statements = statements
+        block = self.parsed.find_block("main")
+        statements = list(block.statements)
+        for index, stmt in enumerate(statements):
+            if isinstance(stmt, ParseResult.Label) and stmt.name == "start":
+                asmlines = [
+                    "\t\tcld\t\t\t; clear decimal flag",
+                    "\t\tclc\t\t\t; clear carry flag"
+                ]
+                statements.insert(index+1, ParseResult.InlineAsm(0, asmlines))
+                break
+        block.statements = statements
         # generate
         for block in sorted(self.parsed.blocks, key=lambda b: b.address):
             if block.name in ("ZP", "<header>"):

@@ -93,4 +93,12 @@ bar
 start
         foo.bar()
 	return
+
+sub unused_sub ()->() {
+        A=X
+        X=Y
+        Y=A
+        return
+}
+
 }

@@ -3,6 +3,7 @@
 output raw
 clobberzp
 
+import "c64lib"
 
 ~ ZP {
 	; ZeroPage block definition:

@@ -171,7 +171,7 @@ class SubroutineDef(SymbolDefinition):
                  address: Optional[int]=None, sub_block: Any=None) -> None:
         super().__init__(blockname, name, sourceref, False)
         self.address = address
-        self.sub_block = sub_block
+        self.sub_block = sub_block      # this is a ParseResult.Block
         self.parameters = parameters
         self.input_registers = set()        # type: Set[str]
         self.return_registers = set()       # type: Set[str]
@@ -277,6 +277,8 @@ class SymbolTable:
                 raise SymbolError("undefined block '{:s}'".format(namepart)) from None
         if isinstance(scope, SymbolTable):
             return scope.lookup(nameparts[-1])
+        elif isinstance(scope, SubroutineDef):
+            return scope.sub_block.symbols.lookup(nameparts[-1])
         else:
             raise SymbolError("invalid block name '{:s}' in dotted name".format(namepart))
 
@@ -382,6 +384,13 @@ class SymbolTable:
                    address: Optional[int], sub_block: Any) -> None:
         self.check_identifier_valid(name, sourceref)
         self.symbols[name] = SubroutineDef(self.name, name, sourceref, parameters, returnvalues, address, sub_block)
+
+    def discard_sub(self, name: str) -> None:
+        sub = self.symbols[name]
+        if isinstance(sub, SubroutineDef):
+            del self.symbols[name]
+        else:
+            raise TypeError("not a subroutine")
 
     def define_label(self, name: str, sourceref: SourceRef) -> None:
         self.check_identifier_valid(name, sourceref)

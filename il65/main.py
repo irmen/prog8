@@ -33,11 +33,11 @@ def main() -> None:
     print("\n" + description)
 
     start = time.perf_counter()
-    pp = PreprocessingParser(args.sourcefile)
+    pp = PreprocessingParser(args.sourcefile, )
     sourcelines, symbols = pp.preprocess()
     symbols.print_table(True)
 
-    p = Parser(args.sourcefile, args.output, sourcelines, ppsymbols=symbols)
+    p = Parser(args.sourcefile, args.output, sourcelines, ppsymbols=symbols, sub_usage=pp.result.subroutine_usage)
     parsed = p.parse()
     if parsed:
         if args.noopt:
