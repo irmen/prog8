@@ -6,6 +6,7 @@ Written by Irmen de Jong (irmen@razorvine.net)
 License: GNU GPL 3.0, see LICENSE
 """
 
+import sys
 import io
 import math
 import datetime
@@ -435,7 +436,9 @@ class CodeGenerator:
             raise NotImplementedError("decr by > 1")  # XXX
 
     def generate_call(self, stmt: ParseResult.CallStmt) -> None:
-        # the argument assignments have already been generated via separate assignment statements.
+        def generate_param_assignments():
+            for assign_stmt in stmt.desugared_call_arguments:
+                self.generate_assignment(assign_stmt)
         if stmt.target.name:
             symblock, targetdef = self.cur_block.lookup(stmt.target.name)
         else:
@@ -451,9 +454,10 @@ class CodeGenerator:
                 return
             clobbered = set()  # type: Set[str]
             if targetdef.clobbered_registers:
-                if stmt.preserve_regs:  # @todo make this work with the separate assignment statements for the parameters.. :(
+                if stmt.preserve_regs:
                     clobbered = targetdef.clobbered_registers
             with self.preserving_registers(clobbered):
+                generate_param_assignments()
                 self.p("\t\tjsr  " + targetstr)
             return
         if isinstance(stmt.target, ParseResult.IndirectValue):
@@ -471,6 +475,7 @@ class CodeGenerator:
                 raise CodeError("missing name", stmt.target.value)
             if stmt.is_goto:
                 # no need to preserve registers for a goto
+                generate_param_assignments()
                 if targetstr in REGISTER_WORDS:
                     self.p("\t\tst{:s}  {:s}".format(targetstr[0].lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
                     self.p("\t\tst{:s}  {:s}".format(targetstr[1].lower(), Parser.to_hex(Zeropage.SCRATCH_B2)))
@@ -480,6 +485,7 @@ class CodeGenerator:
             else:
                 preserve_regs = {'A', 'X', 'Y'} if stmt.preserve_regs else set()
                 with self.preserving_registers(preserve_regs):
+                    generate_param_assignments()
                     if targetstr in REGISTER_WORDS:
                         if stmt.preserve_regs:
                             # cannot use zp scratch. This is very inefficient code!
@@ -515,10 +521,13 @@ class CodeGenerator:
             else:
                 raise CodeError("missing name", stmt.target)
             if stmt.is_goto:
+                # no need to preserve registers for a goto
+                generate_param_assignments()
                 self.p("\t\tjmp  " + targetstr)
             else:
                 preserve_regs = {'A', 'X', 'Y'} if stmt.preserve_regs else set()
                 with self.preserving_registers(preserve_regs):
+                    generate_param_assignments()
                     self.p("\t\tjsr  " + targetstr)
 
     def generate_assignment(self, stmt: ParseResult.AssignmentStmt) -> None:
@@ -949,6 +958,9 @@ class Assembler64Tass:
                 print("\ncreating C-64 .prg")
             elif self.format == ProgramFormat.RAW:
                 print("\ncreating raw binary")
-            subprocess.check_call(args)
+            try:
+                subprocess.check_call(args)
+            except FileNotFoundError as x:
+                raise SystemExit("ERROR: cannot run assembler program: "+str(x))
         except subprocess.CalledProcessError as x:
             print("assembler failed with returncode", x.returncode)

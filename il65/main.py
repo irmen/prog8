@@ -8,6 +8,7 @@ Written by Irmen de Jong (irmen@razorvine.net)
 License: GNU GPL 3.0, see LICENSE
 """
 
+import time
 import os
 import argparse
 from .parse import Parser, Optimizer
@@ -31,6 +32,7 @@ def main() -> None:
 
     print("\n" + description)
 
+    start = time.perf_counter()
     pp = PreprocessingParser(args.sourcefile)
     sourcelines, symbols = pp.preprocess()
     symbols.print_table(True)
@@ -50,5 +52,7 @@ def main() -> None:
             cg.write_assembly(out)
         assembler = Assembler64Tass(parsed.format)
         assembler.assemble(assembly_filename, program_filename)
+        duration_total = time.perf_counter() - start
+        print("Compile duration:  {:.2f} seconds".format(duration_total))
         print("Output file:      ", program_filename)
         print()

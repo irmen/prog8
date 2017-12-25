@@ -406,18 +406,16 @@ class ParseResult:
             self.arguments = arguments
             self.is_goto = is_goto
             self.preserve_regs = preserve_regs
+            self.desugared_call_arguments = []  # type: List[ParseResult.AssignmentStmt]
 
-        def desugar_call_arguments(self, parser: 'Parser') -> List['ParseResult._AstNode']:
-            if not self.arguments:
-                return [self]
-            statements = []     # type: List[ParseResult._AstNode]
-            for name, value in self.arguments:
-                assert name is not None, "all call arguments should have a name or be matched on a named parameter"
-                assignment = parser.parse_assignment("{:s}={:s}".format(name, value))
-                assignment.lineno = self.lineno
-                statements.append(assignment)
-            statements.append(self)
-            return statements
+        def desugar_call_arguments(self, parser: 'Parser') -> None:
+            if self.arguments:
+                self.desugared_call_arguments.clear()
+                for name, value in self.arguments:
+                    assert name is not None, "all call arguments should have a name or be matched on a named parameter"
+                    assignment = parser.parse_assignment("{:s}={:s}".format(name, value))
+                    assignment.lineno = self.lineno
+                    self.desugared_call_arguments.append(assignment)
 
     class InlineAsm(_AstNode):
         def __init__(self, lineno: int, asmlines: List[str]) -> None:
@@ -571,11 +569,7 @@ class Parser:
                 if isinstance(stmt, ParseResult.CallStmt):
                     self.sourceref.line = stmt.lineno
                     self.sourceref.column = 0
-                    statements = stmt.desugar_call_arguments(self)
-                    if len(statements) == 1:
-                        block.statements[index] = statements[0]
-                    else:
-                        block.statements[index] = statements    # type: ignore
+                    stmt.desugar_call_arguments(self)
             block.flatten_statement_list()
             # desugar immediate string value assignments
             for index, stmt in enumerate(list(block.statements)):
@@ -1034,7 +1028,10 @@ class Parser:
                 and not isinstance(target.value, (ParseResult.IntegerValue, ParseResult.RegisterValue, ParseResult.MemMappedValue)):
             raise self.PError("cannot call that type of indirect symbol")
         address = target.address if isinstance(target, ParseResult.MemMappedValue) else None
-        _, symbol = self.lookup(targetstr)
+        try:
+            _, symbol = self.lookup(targetstr)
+        except ParseError:
+            symbol = None   # it's probably a number or a register then
         if isinstance(symbol, SubroutineDef):
             # verify subroutine arguments
             if len(arguments or []) != len(symbol.parameters):
