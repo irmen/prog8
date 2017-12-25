@@ -753,6 +753,7 @@ class CodeGenerator:
 
     @contextlib.contextmanager
     def preserving_registers(self, registers: Set[str]):
+        # @todo option to avoid the sta $03/lda$03 when a is loaded anyway
         # this clobbers a ZP scratch register and is therefore safe to use in interrupts
         # see http://6502.org/tutorials/register_preservation.html
         if registers == {'A'}:
@@ -827,33 +828,61 @@ class CodeGenerator:
                 raise CodeError("can only assign a byte or word to a register pair")
 
     def generate_assign_mem_to_mem(self, lv: ParseResult.MemMappedValue, rvalue: ParseResult.MemMappedValue) -> None:
-        r_str = rvalue.name if rvalue.name else "${:x}".format(rvalue.address)
+        r_str = rvalue.name or Parser.to_hex(rvalue.address)
+        l_str = lv.name or Parser.to_hex(lv.address)
         if lv.datatype == DataType.BYTE:
             if rvalue.datatype != DataType.BYTE:
                 raise CodeError("can only assign a byte to a byte", str(rvalue))
             with self.preserving_registers({'A'}):
                 self.p("\t\tlda  " + r_str)
-                self.p("\t\tsta  " + (lv.name or Parser.to_hex(lv.address)))
+                self.p("\t\tsta  " + l_str)
         elif lv.datatype == DataType.WORD:
             if rvalue.datatype == DataType.BYTE:
                 with self.preserving_registers({'A'}):
-                    l_str = lv.name or Parser.to_hex(lv.address)
                     self.p("\t\tlda  " + r_str)
                     self.p("\t\tsta  " + l_str)
                     self.p("\t\tlda  #0")
                     self.p("\t\tsta  {:s}+1".format(l_str))
             elif rvalue.datatype == DataType.WORD:
                 with self.preserving_registers({'A'}):
-                    l_str = lv.name or Parser.to_hex(lv.address)
                     self.p("\t\tlda  {:s}".format(r_str))
                     self.p("\t\tsta  {:s}".format(l_str))
                     self.p("\t\tlda  {:s}+1".format(r_str))
                     self.p("\t\tsta  {:s}+1".format(l_str))
             else:
                 raise CodeError("can only assign a byte or word to a word", str(rvalue))
+        elif lv.datatype == DataType.FLOAT:
+            if rvalue.datatype == DataType.FLOAT:
+                with self.preserving_registers({'A'}):
+                    self.p("\t\tlda  " + r_str)
+                    self.p("\t\tsta  " + l_str)
+                    self.p("\t\tlda  {:s}+1".format(r_str))
+                    self.p("\t\tsta  {:s}+1".format(l_str))
+                    self.p("\t\tlda  {:s}+2".format(r_str))
+                    self.p("\t\tsta  {:s}+2".format(l_str))
+                    self.p("\t\tlda  {:s}+3".format(r_str))
+                    self.p("\t\tsta  {:s}+3".format(l_str))
+                    self.p("\t\tlda  {:s}+4".format(r_str))
+                    self.p("\t\tsta  {:s}+4".format(l_str))
+            elif rvalue.datatype == DataType.BYTE:
+                with self.preserving_registers({'A', 'X', 'Y'}):
+                    self.p("\t\tldy  " + r_str)
+                    self.p("\t\tjsr  c64.FREADUY")  # ubyte Y -> fac1
+                    self.p("\t\tldx  #<" + l_str)
+                    self.p("\t\tldy  #>" + l_str)
+                    self.p("\t\tjsr  c64.FTOMEMXY")  # fac1 -> memory XY
+            elif rvalue.datatype == DataType.WORD:
+                with self.preserving_registers({'A', 'X', 'Y'}):
+                    self.p("\t\tlda  " + r_str)
+                    self.p("\t\tldy  {:s}+1".format(r_str))
+                    self.p("\t\tjsr  c64util.GIVUAYF")  # uword AY -> fac1
+                    self.p("\t\tldx  #<" + l_str)
+                    self.p("\t\tldy  #>" + l_str)
+                    self.p("\t\tjsr  c64.FTOMEMXY")  # fac1 -> memory XY
+            else:
+                raise CodeError("unsupported rvalue to memfloat", str(rvalue))
         else:
-            raise CodeError("can only assign memory to a memory mapped value for now "
-                            "(if you need other types, can't you use a var?)", str(rvalue))
+            raise CodeError("invalid lvalue memmapped datatype", str(lv))
 
     def generate_assign_char_to_memory(self, lv: ParseResult.MemMappedValue, char_str: str) -> None:
         # Memory = Character

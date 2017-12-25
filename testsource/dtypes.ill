@@ -3,6 +3,7 @@
 output raw
 clobberzp
 
+
 ~ ZP {
 	; ZeroPage block definition:
 	; base address is set to $04 (because $00 and $01 are used by the hardware, and $02/$03 are scratch)
@@ -271,17 +272,17 @@ start
         memfloat = cbyte3
         memfloat = cword2
 
-        ; @todo float assignments that require ROM functions or shims:
+        ; float assignments that require ROM functions from c64lib:
         memfloat = Y
         memfloat = XY
 	uninitfloat = Y
 	uninitfloat = XY
         initfloat2 = Y
         initfloat2 = XY
-        ;initfloat2 = initbyte2         ; @todo support
-        ;initfloat2 = initword2          ; @todo support
-	;initfloat1 = uninitfloat        ; @todo support
-	;initfloat1 = initfloat2         ; @todo support
+        initfloat2 = initbyte2
+        initfloat2 = initword2
+	initfloat1 = uninitfloat
+	initfloat1 = initfloat2
 
 	return
 }

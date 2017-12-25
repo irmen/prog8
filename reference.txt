@@ -11,7 +11,7 @@ It uses the 64tass macro cross assembler to assemble it into binary files.
 
 
 
-Memory Model
+MEMORY MODEL
 ------------
 
 Zero page:      $00 - $ff
@@ -56,8 +56,8 @@ Free zero page addresses on the C-64:
 
 
 
-IL program parsing structure:
------------------------------
+PROGRAM STRUCTURE
+-----------------
 
 
 OUTPUT MODES:
@@ -132,14 +132,16 @@ asmbinary "filename.bin" [, <offset>[, <length>]]
 
 
 
-MACROS
-------
+ASSIGNMENTS
+-----------
+Assignment statements assign a single value to one or more variables or memory locations.
+If you know that you have to assign the same value to more than one thing at once, it is more
+efficient to write it as a multi-assign instead of several separate assignments. The compiler
+tries to detect this situation however and optimize it itself if it finds the case.
 
-@todo macros are meta-code (written in Python syntax) that actually runs in a preprecessing step
-during the compilation, and produces output value that is then replaced on that point in the input source.
-Allows us to create pre calculated sine tables and such. Something like:
+        target = value-expression
+        target1 = target2 = target3 [,...] = value-expression
 
-        var .array sinetable ``[sin(x) * 10 for x in range(100)]``
 
 
 
@@ -164,7 +166,60 @@ unless it is part of a subroutine call statement. For an indirect goto call, the
 Everything after a semicolon ';' is a comment and is ignored, however the comment (if it is the only thing
 on the line) is copied into the resulting assembly source code.
 
-    
+
+
+SUBROUTINES DEFINITIONS
+-----------------------
+
+Subroutines are parts of the code that can be repeatedly invoked using a subroutine call from elsewhere.
+Their definition, using the sub statement, includes the specification of the required input- and output parameters.
+For now, only register based parameters are supported (A, X, Y and paired registers, and the carry status bit SC as a special).
+The syntax is:
+
+        sub   <identifier>  ([proc_parameters]) -> ([proc_results])  {
+                ... statements ...
+        }
+
+        proc_parameters = comma separated list of "<parametername>:<register>" pairs specifying the input parameters
+        proc_results = comma separated list of <register> names specifying in which register(s) the output is returned.
+                       If the register name ends with a '?', that means the register doesn't contain a real return value but
+                       is clobbered in the process so the original value it had before calling the sub is no longer valid.
+                       This is not immediately useful for your own code, but the compiler needs this information to
+                       emit the correct assembly code to preserve the cpu registers if needed when the call is made.
+
+
+Subroutines that are pre-defined on a specific memory location (usually routines from ROM),
+can also be defined using the 'sub' statement. But in this case you don't supply a block with statements,
+but instead assign a memory address to it:
+
+        sub  <identifier>  ([proc_parameters]) -> ([proc_results])  = <address>
+
+        example:  "sub  CLOSE  (logical: A) -> (A?, X?, Y?)  = $FFC3"
+
+
+SUBROUTINE CALLS
+----------------
+
+You call a subroutine like this:
+        subroutinename_or_address [!]  ( [arguments...] )
+
+Normally, the registers are preserved when calling the subroutine and restored on return.
+If you add a '!' after the name, no register preserving is done and the call essentially
+is just a single JSR instruction.
+Arguments should match the subroutine definition. You are allowed to omit the parameter names.
+If no definition is available (because you're directly calling memory or a label or something else),
+you can freely add arguments (but in this case they all have to be named).
+
+To jump to a subroutine (without returning), prefix the subroutine call with the word 'goto'.
+Unlike gotos in other languages, here it take arguments as well, because it
+essentially is the same as calling a subroutine and only doing something different when it's finished.
+
+
+@todo support call non-register args (variable parameter passing)
+@todo support assigning call return values (so that you can assign these to other variables, and allows the subroutine call be an actual expression)
+
+
+
 FLOW CONTROL
 ------------
 
@@ -302,7 +357,18 @@ il65_for_999_end        ; code continues after this
 
 
 
-MEMORY BLOCK OPERATIONS:
+MACROS
+------
+
+@todo macros are meta-code (written in Python syntax) that actually runs in a preprecessing step
+during the compilation, and produces output value that is then replaced on that point in the input source.
+Allows us to create pre calculated sine tables and such. Something like:
+
+        var .array sinetable ``[sin(x) * 10 for x in range(100)]``
+
+
+MEMORY BLOCK OPERATIONS
+-----------------------
 
 @todo matrix,list,string memory block operations:
 - matrix type operations (whole matrix, per row, per column, individual row/column)
@@ -321,57 +387,6 @@ MEMORY BLOCK OPERATIONS:
 
 these should call (or emit inline) optimized pieces of assembly code, so they run as fast as possible
 
-
-
-SUBROUTINES DEFINITIONS
------------------------
-
-Subroutines are parts of the code that can be repeatedly invoked using a subroutine call from elsewhere.
-Their definition, using the sub statement, includes the specification of the required input- and output parameters.
-For now, only register based parameters are supported (A, X, Y and paired registers, and the carry status bit SC as a special).
-The syntax is:
-
-        sub   <identifier>  ([proc_parameters]) -> ([proc_results])  {
-                ... statements ...
-        }
-
-        proc_parameters = comma separated list of "<parametername>:<register>" pairs specifying the input parameters
-        proc_results = comma separated list of <register> names specifying in which register(s) the output is returned.
-                       If the register name ends with a '?', that means the register doesn't contain a real return value but
-                       is clobbered in the process so the original value it had before calling the sub is no longer valid.
-                       This is not immediately useful for your own code, but the compiler needs this information to
-                       emit the correct assembly code to preserve the cpu registers if needed when the call is made.
-
-
-Subroutines that are pre-defined on a specific memory location (usually routines from ROM),
-can also be defined using the 'sub' statement. But in this case you don't supply a block with statements,
-but instead assign a memory address to it:
-
-        sub  <identifier>  ([proc_parameters]) -> ([proc_results])  = <address>
-
-        example:  "sub  CLOSE  (logical: A) -> (A?, X?, Y?)  = $FFC3"
-
-
-SUBROUTINE CALLS
-----------------
-
-You call a subroutine like this:
-        subroutinename_or_address [!]  ( [arguments...] )
-
-Normally, the registers are preserved when calling the subroutine and restored on return.
-If you add a '!' after the name, no register preserving is done and the call essentially
-is just a single JSR instruction.
-Arguments should match the subroutine definition. You are allowed to omit the parameter names.
-If no definition is available (because you're directly calling memory or a label or something else),
-you can freely add arguments (but in this case they all have to be named).
-
-To jump to a subroutine (without returning), prefix the subroutine call with the word 'goto'.
-Unlike gotos in other languages, here it take arguments as well, because it
-essentially is the same as calling a subroutine and only doing something different when it's finished.
-
-
-@todo support call non-register args (variable parameter passing)
-@todo support assigning call return values (so that you can assign these to other variables, and allows the subroutine call be an actual expression)
 
 
 REGISTER PRESERVATION BLOCK:  @todo (no)preserve
