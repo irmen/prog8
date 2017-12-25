@@ -16,18 +16,6 @@ start
         var     .float          myfloatsmall1     = 1.234
         var     .float          myfloatsmall2     = 2.6677
 
-        c64.MOVFM!(#myfloatsmall1)
-        c64.FCOMP!(#myfloatsmall1)
-        [$0400]=A
-        c64.MOVFM!(#myfloatsmall1)
-        c64.FCOMP!(#myfloatsmall2)
-        [$0401]=A
-        c64.MOVFM!(#myfloatsmall2)
-        c64.FCOMP!(#myfloatsmall1)
-        [$0402]=A
-
-        c64util.FREADS32()
-
         return
 }
 
@@ -55,6 +43,14 @@ start
         var .word  wordvar = $cdef
 
 
+sub  printflt (float: AY) -> (A?, X?, Y?) {
+        c64.MOVFM!(AY)
+        goto c64.FPRINTLN!()
+        ; c64.FOUT!()
+        ; c64util.print_string!(AY)
+        ;goto c64.CHROUT!('\n')
+}
+
 
 start
         ; assign some float values to the memory
@@ -65,75 +61,47 @@ start
 
         ; print some floating points from source and compare them with ROM
 
-        c64.MOVFM!(#flt_pi)
-        c64.FPRINTLN!()
-        c64.MOVFM!(#c64.FL_PIVAL)
-        c64.FPRINTLN !()
+        printflt(#flt_pi)
+        printflt(#c64.FL_PIVAL)
 
-        c64.MOVFM!(#flt_minus32768)
-        c64.FPRINTLN!()
-        c64.MOVFM!(#c64.FL_N32768)
-        c64.FPRINTLN!()
+        printflt(#flt_minus32768)
+        printflt(#c64.FL_N32768)
 
-        c64.MOVFM!(#flt_1)
-        c64.FPRINTLN!()
-        c64.MOVFM!(#c64.FL_FONE)
-        c64.FPRINTLN!()
+        printflt(#flt_1)
+        printflt(#c64.FL_FONE)
 
-        c64.MOVFM!(#flt_half_sqr2)
-        c64.FPRINTLN!()
-        c64.MOVFM!( #  c64.FL_SQRHLF)
-        c64.FPRINTLN!()
+        printflt(#flt_half_sqr2)
+        printflt( #  c64.FL_SQRHLF)
 
-        c64.MOVFM!(#flt_sqr2)
-        c64.FPRINTLN!()
-        c64.MOVFM!(#c64.FL_SQRTWO)
-        c64.FPRINTLN!()
+        printflt(#flt_sqr2)
+        printflt(#c64.FL_SQRTWO)
 
-        c64.MOVFM!(#flt_minus_half)
-        c64.FPRINTLN!()
-        c64.MOVFM!(#c64.FL_NEGHLF)
-        c64.FPRINTLN!()
+        printflt(#flt_minus_half)
+        printflt(#c64.FL_NEGHLF)
 
-        c64.MOVFM!(#flt_log_2)
-        c64.FPRINTLN!()
-        c64.MOVFM!(#c64.FL_LOG2)
-        c64.FPRINTLN!()
+        printflt(#flt_log_2)
+        printflt(#c64.FL_LOG2)
 
-        c64.MOVFM!(#flt_10)
-        c64.FPRINTLN!()
-        c64.MOVFM!(#c64.FL_TENC)
-        c64.FPRINTLN!()
+        printflt(#flt_10)
+        printflt(#c64.FL_TENC)
 
-        c64.MOVFM!(#flt_1e9)
-        c64.FPRINTLN!()
-        c64.MOVFM!(#c64.FL_NZMIL)
-        c64.FPRINTLN!()
+        printflt(#flt_1e9)
+        printflt(#c64.FL_NZMIL)
 
-        c64.MOVFM!(#flt_half)
-        c64.FPRINTLN!()
-        c64.MOVFM!(#c64.FL_FHALF)
-        c64.FPRINTLN!()
+        printflt(#flt_half)
+        printflt(#c64.FL_FHALF)
 
-        c64.MOVFM!(#flt_one_over_log_2)
-        c64.FPRINTLN!()
-        c64.MOVFM!(#c64.FL_LOGEB2)
-        c64.FPRINTLN!()
+        printflt(#flt_one_over_log_2)
+        printflt(#c64.FL_LOGEB2)
 
-        c64.MOVFM!(#flt_half_pi)
-        c64.FPRINTLN!()
-        c64.MOVFM!(#c64.FL_PIHALF)
-        c64.FPRINTLN!()
+        printflt(#flt_half_pi)
+        printflt(#c64.FL_PIHALF)
 
-        c64.MOVFM!(#flt_double_pi)
-        c64.FPRINTLN!()
-        c64.MOVFM!(#c64.FL_TWOPI)
-        c64.FPRINTLN!()
+        printflt(#flt_double_pi)
+        printflt(#c64.FL_TWOPI)
 
-        c64.MOVFM!(# flt_point25)
-        c64.FPRINTLN!()
-        c64.MOVFM!(#c64.FL_FR4)
-        c64.FPRINTLN!()
+        printflt(# flt_point25)
+        printflt(#c64.FL_FR4)
 
 reg_to_float
         c64.CHROUT!('\n')
@@ -143,31 +111,25 @@ reg_to_float
         Y=55
 
         my_float = A
-        c64.MOVFM(#my_float)
-        c64.FPRINTLN()
+        printflt(#my_float)
 
         my_float = X
-        c64.MOVFM(#my_float)
-        c64.FPRINTLN()
+        printflt(#my_float)
 
         my_float = Y
-        c64.MOVFM(#my_float)
-        c64.FPRINTLN()
+        printflt(#my_float)
 
         XY = 11122
         my_float = XY
-        c64.MOVFM(#my_float)
-        c64.FPRINTLN()
+        printflt(#my_float)
 
         AX = 33344
         my_float = AX
-        c64.MOVFM(#my_float)
-        c64.FPRINTLN()
+        printflt(#my_float)
 
         AY = 55566
         my_float = AY
-        c64.MOVFM(#my_float)
-        c64.FPRINTLN()
+        printflt(#my_float)
 
         return
 }

@@ -380,6 +380,9 @@ class ParseResult:
                 self._immediate_string_vars[self.right.value] = (cur_block.name, stringvar_name)
 
         def remove_identity_assigns(self) -> None:
+            for lv in self.leftvalues:
+                if lv == self.right:
+                    print("warning: {:d}: removed identity assignment".format(self.lineno))
             remaining_leftvalues = [lv for lv in self.leftvalues if lv != self.right]
             self.leftvalues = remaining_leftvalues
 
@@ -558,7 +561,7 @@ class Parser:
                 if isinstance(stmt, ParseResult.AssignmentStmt):
                     stmt.remove_identity_assigns()
                     if not stmt.leftvalues:
-                        print("warning: {:s}:{:d}: removed identity assignment".format(self.sourceref.file, stmt.lineno))
+                        print("warning: {:s}:{:d}: removed identity assignment statement".format(self.sourceref.file, stmt.lineno))
                         have_removed_stmts = True
                         block.statements[index] = None
             if have_removed_stmts:
@@ -570,9 +573,21 @@ class Parser:
                     self.sourceref.line = stmt.lineno
                     self.sourceref.column = 0
                     stmt.desugar_call_arguments(self)
+            for sub in block.symbols.iter_subroutines():
+                if sub.address is None and sub.sub_block:
+                    for stmt in sub.sub_block.statements:
+                        if isinstance(stmt, ParseResult.CallStmt):
+                            self.sourceref.line = stmt.lineno
+                            self.sourceref.column = 0
+                            stmt.desugar_call_arguments(self)
             block.flatten_statement_list()
             # desugar immediate string value assignments
             for index, stmt in enumerate(list(block.statements)):
+                if isinstance(stmt, ParseResult.CallStmt):
+                    for stmt in stmt.desugared_call_arguments:
+                        self.sourceref.line = stmt.lineno
+                        self.sourceref.column = 0
+                        stmt.desugar_immediate_string(self)
                 if isinstance(stmt, ParseResult.AssignmentStmt):
                     self.sourceref.line = stmt.lineno
                     self.sourceref.column = 0
@@ -610,6 +625,7 @@ class Parser:
             self.cur_lineidx = min(self.cur_lineidx, len(self.lines) - 1)
             if self.cur_lineidx:
                 sourceline = self.lines[self.cur_lineidx][1].strip()
+        # XXX source line is wrong when dealing with errors in sub call
         return ParseError(message, sourceline, SourceRef(self.sourceref.file, lineno, column))
 
     def get_datatype(self, typestr: str) -> Tuple[DataType, int, Optional[Tuple[int, int]]]:

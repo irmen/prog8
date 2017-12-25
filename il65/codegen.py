@@ -450,6 +450,7 @@ class CodeGenerator:
             else:
                 raise TypeError("call sub target should be mmapped")
             if stmt.is_goto:
+                generate_param_assignments()
                 self.p("\t\tjmp  " + targetstr)
                 return
             clobbered = set()  # type: Set[str]
