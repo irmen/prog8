@@ -136,11 +136,11 @@ start
         c64.FPRINTLN!()
 
 reg_to_float
-        c64.CHROUT!(13)
+        c64.CHROUT!('\n')
 
-        A=34
-        X=99
-        Y=121
+        A=33
+        X=44
+        Y=55
 
         my_float = A
         c64.MOVFM(#my_float)
@@ -154,13 +154,18 @@ reg_to_float
         c64.MOVFM(#my_float)
         c64.FPRINTLN()
 
-        XY = 56789
-        ;my_float = XY  ; @todo support
+        XY = 11122
+        my_float = XY
         c64.MOVFM(#my_float)
         c64.FPRINTLN()
 
-        AX = 33221
-        ;my_float = AX  ; @todo support
+        AX = 33344
+        my_float = AX
+        c64.MOVFM(#my_float)
+        c64.FPRINTLN()
+
+        AY = 55566
+        my_float = AY
         c64.MOVFM(#my_float)
         c64.FPRINTLN()
 

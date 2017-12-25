@@ -643,9 +643,24 @@ class CodeGenerator:
                 self.p("\t\tst{:s}  {}".format(r_register[0].lower(), lv_string))
                 self.p("\t\tst{:s}  {}+1".format(r_register[1].lower(), lv_string))
         elif lv.datatype == DataType.FLOAT:
-            # assigning a register to a float requires ROM routines
+            # assigning a register to a float requires c64 ROM routines
             if r_register in REGISTER_WORDS:
-                raise CodeError("cannot yet assign register pair to float", r_register)   # XXX reg pair -> float
+                def do_rom_calls():
+                    self.p("\t\tjsr  c64util.GIVUAYF")  # uword AY -> fac1
+                    self.p("\t\tldx  #<" + lv_string)
+                    self.p("\t\tldy  #>" + lv_string)
+                    self.p("\t\tjsr  c64.FTOMEMXY")  # fac1 -> memory XY
+                if r_register == "AY":
+                    with self.preserving_registers({'A', 'X', 'Y'}):
+                        do_rom_calls()
+                elif r_register == "AX":
+                    with self.preserving_registers({'A', 'X', 'Y'}):
+                        self.p("\t\tpha\n\t\ttxa\n\t\ttay\n\t\tpla")    # X->Y (so we have AY now)
+                        do_rom_calls()
+                else:  # XY
+                    with self.preserving_registers({'A', 'X', 'Y'}):
+                        self.p("\t\ttxa")    # X->A (so we have AY now)
+                        do_rom_calls()
             elif r_register in "AXY":
 
                 def do_rom_calls():
