@@ -1176,7 +1176,7 @@ class Parser:
                         except ParseError:
                             pass
                         else:
-                            if symbol:
+                            if isinstance(symbol, SubroutineDef):
                                 self.result.sub_used_by(symbol, self.sourceref)
             asmlines.append(line)
 
