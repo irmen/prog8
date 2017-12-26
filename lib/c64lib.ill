@@ -3,90 +3,93 @@
 ;
 ; Written by Irmen de Jong (irmen@razorvine.net)
 ; License: GNU GPL 3.0, see LICENSE
+;
+; indent format: TABS, size=8
+
 
 output raw
 
 ~ c64 {
-		memory SCRATCH_ZP1	= $02		; scratch register #1 in ZP 
-		memory SCRATCH_ZP2	= $03		; scratch register #2 in ZP
+		memory  SCRATCH_ZP1	= $02		; scratch register #1 in ZP 
+		memory  SCRATCH_ZP2	= $03		; scratch register #2 in ZP
 
-		memory .byte COLOR	= $0286		; cursor color
-		memory .word CINV	= $0314		; IRQ vector
+		memory  .byte COLOR	= $0286		; cursor color
+		memory  .word CINV	= $0314		; IRQ vector
 
 ; ---- VIC-II registers ----
 
-		memory SP0X		= $d000
-		memory SP0Y		= $d001
-		memory SP1X		= $d002
-		memory SP1Y		= $d003
-		memory SP2X		= $d004
-		memory SP2Y		= $d005
-		memory SP3X		= $d006
-		memory SP3Y		= $d007
-		memory SP4X		= $d008
-		memory SP4Y		= $d009
-		memory SP5X		= $d00a
-		memory SP5Y		= $d00b
-		memory SP6X		= $d00c
-		memory SP6Y		= $d00d
-		memory SP7X		= $d00e
-		memory SP7Y		= $d00f
+		memory  SP0X		= $d000
+		memory  SP0Y		= $d001
+		memory  SP1X		= $d002
+		memory  SP1Y		= $d003
+		memory  SP2X		= $d004
+		memory  SP2Y		= $d005
+		memory  SP3X		= $d006
+		memory  SP3Y		= $d007
+		memory  SP4X		= $d008
+		memory  SP4Y		= $d009
+		memory  SP5X		= $d00a
+		memory  SP5Y		= $d00b
+		memory  SP6X		= $d00c
+		memory  SP6Y		= $d00d
+		memory  SP7X		= $d00e
+		memory  SP7Y		= $d00f
 
-		memory MSIGX		= $d010
-		memory SCROLY		= $d011
-		memory RASTER		= $d012
-		memory LPENX		= $d013
-		memory LPENY		= $d014
-		memory SPENA		= $d015
-		memory SCROLX		= $d016
-		memory YXPAND		= $d017
-		memory VMCSB		= $d018
-		memory VICIRQ		= $d019
-		memory IREQMASK		= $d01a
-		memory SPBGPR		= $d01b
-		memory SPMC		= $d01c
-		memory XXPAND		= $d01d
-		memory SPSPCL		= $d01e
-		memory SPBGCL		= $d01f
+		memory  MSIGX		= $d010
+		memory  SCROLY		= $d011
+		memory  RASTER		= $d012
+		memory  LPENX		= $d013
+		memory  LPENY		= $d014
+		memory  SPENA		= $d015
+		memory  SCROLX		= $d016
+		memory  YXPAND		= $d017
+		memory  VMCSB		= $d018
+		memory  VICIRQ		= $d019
+		memory  IREQMASK	= $d01a
+		memory  SPBGPR		= $d01b
+		memory  SPMC		= $d01c
+		memory  XXPAND		= $d01d
+		memory  SPSPCL		= $d01e
+		memory  SPBGCL		= $d01f
 
-		memory EXTCOL		= $d020		; border color
-		memory BGCOL0		= $d021		; screen color
-		memory BGCOL1		= $d022
-		memory BGCOL2		= $d023
-		memory BGCOL4		= $d024
-		memory SPMC0		= $d025
-		memory SPMC1		= $d026
-		memory SP0COL		= $d027
-		memory SP1COL		= $d028
-		memory SP2COL		= $d029
-		memory SP3COL		= $d02a
-		memory SP4COL		= $d02b
-		memory SP5COL		= $d02c
-		memory SP6COL		= $d02d
-		memory SP7COL		= $d02e
+		memory  EXTCOL		= $d020		; border color
+		memory  BGCOL0		= $d021		; screen color
+		memory  BGCOL1		= $d022
+		memory  BGCOL2		= $d023
+		memory  BGCOL4		= $d024
+		memory  SPMC0		= $d025
+		memory  SPMC1		= $d026
+		memory  SP0COL		= $d027
+		memory  SP1COL		= $d028
+		memory  SP2COL		= $d029
+		memory  SP3COL		= $d02a
+		memory  SP4COL		= $d02b
+		memory  SP5COL		= $d02c
+		memory  SP6COL		= $d02d
+		memory  SP7COL		= $d02e
 
 ; ---- end of VIC-II registers ----
 
 ; ---- C64 basic and kernal ROM float constants and functions ----
 
 		; note: the fac1 and fac2 are working registers and take 6 bytes each,
-		; floats in memory (and rom) are stored in 5-byte MFLPT packed format.
+		; floats in memory  (and rom) are stored in 5-byte MFLPT packed format.
 
 		; constants in five-byte "mflpt" format in the BASIC ROM
-		memory  .float  FL_PIVAL	= $aea8  ; 3.1415926...
-		memory  .float  FL_N32768	= $b1a5  ; -32768
-		memory  .float  FL_FONE		= $b9bc  ; 1
-		memory  .float  FL_SQRHLF	= $b9d6  ; SQR(2) / 2
-		memory  .float  FL_SQRTWO	= $b9db  ; SQR(2)
-		memory  .float  FL_NEGHLF	= $b9e0  ; -.5
-		memory  .float  FL_LOG2		= $b9e5  ; LOG(2)
-		memory  .float  FL_TENC		= $baf9  ; 10
-		memory  .float  FL_NZMIL	= $bdbd  ; 1e9 (1 billion)
-		memory  .float  FL_FHALF	= $bf11  ; .5
-		memory  .float  FL_LOGEB2	= $bfbf  ; 1 / LOG(2)
-		memory  .float  FL_PIHALF	= $e2e0  ; PI / 2
-		memory  .float  FL_TWOPI	= $e2e5  ; 2 * PI
-		memory  .float  FL_FR4		= $e2ea  ; .25
+		memory  .float	FL_PIVAL	= $aea8  ; 3.1415926...
+		memory  .float	FL_N32768	= $b1a5  ; -32768
+		memory  .float	FL_FONE		= $b9bc  ; 1
+		memory  .float	FL_SQRHLF	= $b9d6  ; SQR(2) / 2
+		memory  .float	FL_SQRTWO	= $b9db  ; SQR(2)
+		memory  .float	FL_NEGHLF	= $b9e0  ; -.5
+		memory  .float	FL_LOG2		= $b9e5  ; LOG(2)
+		memory  .float	FL_TENC		= $baf9  ; 10
+		memory  .float	FL_NZMIL	= $bdbd  ; 1e9 (1 billion)
+		memory  .float	FL_FHALF	= $bf11  ; .5
+		memory  .float	FL_LOGEB2	= $bfbf  ; 1 / LOG(2)
+		memory  .float	FL_PIHALF	= $e2e0  ; PI / 2
+		memory  .float	FL_TWOPI	= $e2e5  ; 2 * PI
+		memory  .float	FL_FR4		= $e2ea  ; .25
 
 
 ; @todo verify clobbered registers?
@@ -94,14 +97,14 @@ output raw
 ; note: for subtraction and division, the left operand is in fac2, the right operand in fac1.
 
 ; checked functions below:
-sub	MOVFM		(mflpt: AY) -> (A?, Y?)		= $bba2		; load mflpt value from memory in A/Y into fac1
-sub	FREADMEM	() -> (A?, Y?)			= $bba6		; load mflpt value from memory in $22/$23 into fac1
-sub	CONUPK		(mflpt: AY) -> (A?, Y?)		= $ba8c		; load mflpt value from memory in A/Y into fac2
-sub	FAREADMEM	() -> (A?, Y?)			= $ba90		; load mflpt value from memory in $22/$23 into fac2
+sub	MOVFM		(mflpt: AY) -> (A?, Y?)		= $bba2		; load mflpt value from memory  in A/Y into fac1
+sub	FREADMEM	() -> (A?, Y?)			= $bba6		; load mflpt value from memory  in $22/$23 into fac1
+sub	CONUPK		(mflpt: AY) -> (A?, Y?)		= $ba8c		; load mflpt value from memory  in A/Y into fac2
+sub	FAREADMEM	() -> (A?, Y?)			= $ba90		; load mflpt value from memory  in $22/$23 into fac2
 sub	MOVFA		() -> (A?, X?)			= $bbfc		; copy fac2 to fac1
 sub	MOVAF		() -> (A?, X?)			= $bc0c		; copy fac1 to fac2  (rounded)
 sub	MOVEF		() -> (A?, X?)			= $bc0f		; copy fac1 to fac2
-sub	FTOMEMXY	(mflpt: XY) -> (A?, Y?)		= $bbd4		; store fac1 to memory X/Y as 5-byte mflpt
+sub	FTOMEMXY	(mflpt: XY) -> (A?, Y?)		= $bbd4		; store fac1 to memory  X/Y as 5-byte mflpt
 sub	FTOSWORDYA	() -> (Y, A, X?)		= $b1aa		; fac1-> signed word in Y/A (might throw ILLEGAL QUANTITY)
 	; use c64util.FTOSWRDAY to get A/Y output (lo/hi switched to normal order)
 sub	GETADR		() -> (Y, A, X?)		= $b7f7		; fac1 -> unsigned word in Y/A (might throw ILLEGAL QUANTITY)
@@ -174,8 +177,8 @@ sub	VECTOR   (dir: SC, userptr: XY) -> (A?, Y?)     = $FF8D		; read/set I/O vect
 sub	SETMSG   (value: A) -> ()                       = $FF90		; set Kernal message control flag
 sub	SECOND   (address: A) -> (A?)                   = $FF93		; (alias: LSTNSA) send secondary address after LISTEN
 sub	TKSA     (address: A) -> (A?)                   = $FF96		; (alias: TALKSA) send secondary address after TALK
-sub	MEMTOP   (dir: SC, address: XY) -> (XY)         = $FF99		; read/set top of memory pointer
-sub	MEMBOT   (dir: SC, address: XY) -> (XY)         = $FF9C		; read/set bottom of memory pointer
+sub	MEMTOP   (dir: SC, address: XY) -> (XY)         = $FF99		; read/set top of memory  pointer
+sub	MEMBOT   (dir: SC, address: XY) -> (XY)         = $FF9C		; read/set bottom of memory  pointer
 sub	SCNKEY   () -> (A?, X?, Y?)                     = $FF9F		; scan the keyboard
 sub	SETTMO   (timeout: A) -> ()                     = $FFA2		; set time-out flag for IEEE bus
 sub	ACPTR    () -> (A)                              = $FFA5		; (alias: IECIN) input byte from serial bus
@@ -208,9 +211,9 @@ sub	IOBASE   () -> (X, Y)                           = $FFF3		; read base address
 
 ; ---- end of C64 kernal routines ----
 
-		memory .word NMI_VEC   	= $FFFA		; nmi vector, set by the kernal if banked in
-		memory .word RESET_VEC 	= $FFFC		; reset vector, set by the kernal if banked in
-		memory .word IRQ_VEC   	= $FFFE		; interrupt vector, set by the kernal if banked in
+		memory  .word	NMI_VEC   	= $FFFA  ; nmi vector, set by the kernal if banked in
+		memory  .word	RESET_VEC 	= $FFFC  ; reset vector, set by the kernal if banked in
+		memory  .word	IRQ_VEC   	= $FFFE  ; interrupt vector, set by the kernal if banked in
 
 }
 
@@ -225,7 +228,7 @@ sub  FREADS32  () -> (A?, X?, Y?)  {
 		asl  a
 		lda  #0
 		ldx  #$a0
-		jmp  $bc4f
+		jmp  $bc4f		; internal BASIC routine
 	}
 }	
 
@@ -235,7 +238,7 @@ sub  FREADUS32  () -> (A?, X?, Y?)  {
 		sec
 		lda  #0
 		ldx  #$a0
-		jmp  $bc4f
+		jmp  $bc4f		; internal BASIC routine
 	}
 }
 
@@ -252,7 +255,7 @@ sub  FREADS24AXY  (lo: A, mid: X, hi: Y) -> (A?, X?, Y?)  {
 		lda  #0
 		sta  $65
 		ldx  #$98
-		jmp  $bc4f
+		jmp  $bc4f		; internal BASIC routine
 	}
 }
 	
@@ -263,7 +266,7 @@ sub  GIVUAYF  (uword: AY) -> (A?, X?, Y?)  {
 		sta  $63
 		ldx  #$90
 		sec
-		jmp  $bc49
+		jmp  $bc49		; internal BASIC routine
 	}
 }
 
@@ -273,14 +276,14 @@ sub  GIVAYFAY  (sword: AY) -> (A?, X?, Y?)  {
 		sta  c64.SCRATCH_ZP1
 		tya
 		ldy  c64.SCRATCH_ZP1
-		jmp  c64.GIVAYF			; this uses the inverse order, Y/A
+		jmp  c64.GIVAYF		; this uses the inverse order, Y/A
 	}
 }
 
 sub  FTOSWRDAY  () -> (A, Y, X?)  {
 	; ---- fac1 to signed word in A/Y
 	asm {
-		jsr  c64.FTOSWORDYA		; note the inverse Y/A order
+		jsr  c64.FTOSWORDYA	; note the inverse Y/A order
 		sta  c64.SCRATCH_ZP1
 		tya
 		ldy  c64.SCRATCH_ZP1
@@ -291,7 +294,7 @@ sub  FTOSWRDAY  () -> (A, Y, X?)  {
 sub  GETADRAY  () -> (A, Y, X?)  {
 	; ---- fac1 to unsigned word in A/Y
 	asm {
-		jsr  c64.GETADR			; this uses the inverse order, Y/A
+		jsr  c64.GETADR		; this uses the inverse order, Y/A
 		sta  c64.SCRATCH_ZP1
 		tya
 		ldy  c64.SCRATCH_ZP1
@@ -328,34 +331,34 @@ sub  print_pstring  (address: XY) -> (A?, X?, Y)  {
 		jsr  c64.CHROUT
 		dex
 		bne  -
-+		rts 		; output string length is in Y
++		rts 			; output string length is in Y
 	}
 }
 
 sub  print_pimmediate  () -> ()  {
-	; ---- print pstring in memory immediately following the subroutine fast call instruction
+	; ---- print pstring in memory  immediately following the subroutine fast call instruction
 	; note that the clobbered registers (A,X,Y) are not listed ON PURPOSE
 	asm {
 		tsx
 		lda  $102,x
-		tay         		; put high byte in y
+		tay			; put high byte in y
 		lda  $101,x
-		tax         		; and low byte in x.
+		tax			; and low byte in x.
 		inx
 		bne  +
 		iny
-+		jsr  print_pstring   ; print string in XY, returns string length in y.
++		jsr  print_pstring	; print string in XY, returns string length in y.
 		tya
 		tsx
 		clc
-		adc  $101,x 		; add content of 1st (length) byte to return addr.
+		adc  $101,x		; add content of 1st (length) byte to return addr.
 		bcc  +      		; if that made the low byte roll over to 00,
-		inc  $102,x 		; then increment the high byte too.
+		inc  $102,x		; then increment the high byte too.
 +		clc
-		adc  #1     		; now add 1 for the length byte itself.
+		adc  #1			; now add 1 for the length byte itself.
 		sta  $101,x
-		bne  +      		; if that made it (the low byte) roll over to 00,
-		inc  $102,x 		; increment the high byte of the return addr too.
+		bne  +			; if that made it (the low byte) roll over to 00,
+		inc  $102,x		; increment the high byte of the return addr too.
 +		rts
 	}
 }
@@ -394,13 +397,13 @@ sub  byte2hex  (ubyte: A) -> (X, Y, A?)  {
 		tax
 		rts
 
-hex_digits      .text "0123456789abcdef" 		; can probably be reused for other stuff as well
+hex_digits	.text "0123456789abcdef"	; can probably be reused for other stuff as well
 	}
 }
 
 
 
-		var .array(3)	word2bcd_bcdbuff
+		var  .array(3)  word2bcd_bcdbuff
 sub  word2bcd  (address: XY) -> (A?, X?)  {
 	; Convert an 16 bit binary value to BCD
 	;
@@ -412,35 +415,35 @@ sub  word2bcd  (address: XY) -> (A?, X?)  {
 	asm {
 		stx  c64.SCRATCH_ZP1
 		sty  c64.SCRATCH_ZP2
-		sed		; switch to decimal mode
-		lda  #0		; ensure the result is clear
+		sed				; switch to decimal mode
+		lda  #0				; ensure the result is clear
 		sta  word2bcd_bcdbuff+0
 		sta  word2bcd_bcdbuff+1
 		sta  word2bcd_bcdbuff+2
-		ldx  #16    		; the number of source bits
+		ldx  #16			; the number of source bits
 
--		asl  c64.SCRATCH_ZP1 		; shift out one bit
+-		asl  c64.SCRATCH_ZP1		; shift out one bit
 		rol  c64.SCRATCH_ZP2
-		lda  word2bcd_bcdbuff+0	; and add into result
+		lda  word2bcd_bcdbuff+0		; and add into result
 		adc  word2bcd_bcdbuff+0
 		sta  word2bcd_bcdbuff+0
-		lda  word2bcd_bcdbuff+1	; propagating any carry
+		lda  word2bcd_bcdbuff+1		; propagating any carry
 		adc  word2bcd_bcdbuff+1
 		sta  word2bcd_bcdbuff+1
-		lda  word2bcd_bcdbuff+2	; ... thru whole result
+		lda  word2bcd_bcdbuff+2		; ... thru whole result
 		adc  word2bcd_bcdbuff+2
 		sta  word2bcd_bcdbuff+2
-		dex		; and repeat for next bit
+		dex				; and repeat for next bit
 		bne  -
-		cld		; back to binary
+		cld				; back to binary
 		rts
 	}
 }
 
 
-		var .array(5)      word2decimal_output
+		var  .array(5)  word2decimal_output
 sub  word2decimal  (address: XY) -> (A?, X?, Y?)  {
-	; ---- convert 16 bit word in X/Y into decimal string into memory 'word2decimal_output'
+	; ---- convert 16 bit word in X/Y into decimal string into memory  'word2decimal_output'
 	asm {
 		jsr  word2bcd
 		lda  word2bcd_bcdbuff+2
@@ -572,15 +575,15 @@ sub  input_chars  (buffer: AX) -> (A?, Y)  {
 	asm {
 		sta  c64.SCRATCH_ZP1
 		stx  c64.SCRATCH_ZP2
-		ldy  #0		; char counter = 0
+		ldy  #0				; char counter = 0
 -		jsr  c64.CHRIN
-		cmp  #$0d	; return (ascii 13) pressed?
-		beq  +		; yes, end.
-		sta  (c64.SCRATCH_ZP1),y  ; else store char in buffer
+		cmp  #$0d			; return (ascii 13) pressed?
+		beq  +				; yes, end.
+		sta  (c64.SCRATCH_ZP1),y	; else store char in buffer
 		iny
 		bne  -
 +		lda  #0
-		sta  (c64.SCRATCH_ZP1),y  ; finish string with 0 byte
+		sta  (c64.SCRATCH_ZP1),y	; finish string with 0 byte
 		rts
 
 	}
