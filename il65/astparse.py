@@ -77,7 +77,7 @@ def parse_arguments(text: str, sourceref: SourceRef) -> List[Tuple[str, Primitiv
         if isinstance(node, ast.Str):
             return repr(node.s)
         if isinstance(node, ast.BinOp):
-            if node.left.id == "__ptr" and isinstance(node.op, ast.MatMult):
+            if node.left.id == "__ptr" and isinstance(node.op, ast.MatMult):    # type: ignore
                 return '#' + astnode_to_repr(node.right)
             else:
                 print("error", ast.dump(node))

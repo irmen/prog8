@@ -167,29 +167,26 @@ class ConstantDef(SymbolDefinition):
 
 class SubroutineDef(SymbolDefinition):
     def __init__(self, blockname: str, name: str, sourceref: SourceRef,
-                 parameters: Sequence[Tuple[str, str]], returnvalues: Set[str],
+                 parameters: Sequence[Tuple[str, str]], returnvalues: Sequence[str],
                  address: Optional[int]=None, sub_block: Any=None) -> None:
         super().__init__(blockname, name, sourceref, False)
         self.address = address
         self.sub_block = sub_block      # this is a ParseResult.Block
         self.parameters = parameters
-        self.input_registers = set()        # type: Set[str]
-        self.return_registers = set()       # type: Set[str]
         self.clobbered_registers = set()    # type: Set[str]
+        self.return_registers = []      # type: List[str]  # ordered!
         for _, param in parameters:
             if param in REGISTER_BYTES:
-                self.input_registers.add(param)
                 self.clobbered_registers.add(param)
             elif param in REGISTER_WORDS:
-                self.input_registers.add(param[0])
-                self.input_registers.add(param[1])
                 self.clobbered_registers.add(param[0])
                 self.clobbered_registers.add(param[1])
             else:
                 raise SymbolError("invalid parameter spec: " + param)
         for register in returnvalues:
             if register in REGISTER_SYMBOLS_RETURNVALUES:
-                self.return_registers.add(register)
+                self.clobbered_registers.add(register)
+                self.return_registers.append(register)
             elif register[-1] == "?":
                 for r in register[:-1]:
                     if r not in REGISTER_SYMBOLS_RETURNVALUES:
@@ -387,7 +384,7 @@ class SymbolTable:
         self.eval_dict = None
 
     def define_sub(self, name: str, sourceref: SourceRef,
-                   parameters: Sequence[Tuple[str, str]], returnvalues: Set[str],
+                   parameters: Sequence[Tuple[str, str]], returnvalues: Sequence[str],
                    address: Optional[int], sub_block: Any) -> None:
         self.check_identifier_valid(name, sourceref)
         self.symbols[name] = SubroutineDef(self.name, name, sourceref, parameters, returnvalues, address, sub_block)

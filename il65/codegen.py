@@ -12,7 +12,7 @@ import datetime
 import subprocess
 import contextlib
 from functools import partial
-from typing import TextIO, Set, Union
+from typing import TextIO, Set, Union, List
 from .parse import ProgramFormat, ParseResult, Parser
 from .symbols import Zeropage, DataType, ConstantDef, VariableDef, SubroutineDef, \
     STRING_DATATYPES, REGISTER_WORDS, FLOAT_MAX_NEGATIVE, FLOAT_MAX_POSITIVE
@@ -438,6 +438,10 @@ class CodeGenerator:
             for assign_stmt in stmt.desugared_call_arguments:
                 self.generate_assignment(assign_stmt)
 
+        def generate_result_assignments() -> None:
+            for assign_stmt in stmt.desugared_output_assignments:
+                self.generate_assignment(assign_stmt)
+
         def params_load_a() -> bool:
             for assign_stmt in stmt.desugared_call_arguments:
                 for lv in assign_stmt.leftvalues:
@@ -445,6 +449,16 @@ class CodeGenerator:
                         if lv.register == 'A':
                             return True
             return False
+
+        def unclobber_result_registers(registers: Set[str], output_assignments: List[ParseResult.AssignmentStmt]) -> None:
+            for a in output_assignments:
+                for lv in a.leftvalues:
+                    if isinstance(lv, ParseResult.RegisterValue):
+                        if len(lv.register) == 1:
+                            registers.remove(lv.register)
+                        else:
+                            for r in lv.register:
+                                registers.remove(r)
 
         if stmt.target.name:
             symblock, targetdef = self.cur_block.lookup(stmt.target.name)
@@ -459,14 +473,17 @@ class CodeGenerator:
             if stmt.is_goto:
                 generate_param_assignments()
                 self.p("\t\tjmp  " + targetstr)
+                # no result assignments because it's a goto
                 return
             clobbered = set()  # type: Set[str]
             if targetdef.clobbered_registers:
                 if stmt.preserve_regs:
                     clobbered = targetdef.clobbered_registers
+                    unclobber_result_registers(clobbered, stmt.desugared_output_assignments)
             with self.preserving_registers(clobbered, loads_a_within=params_load_a()):
                 generate_param_assignments()
                 self.p("\t\tjsr  " + targetstr)
+                generate_result_assignments()
             return
         if isinstance(stmt.target, ParseResult.IndirectValue):
             if stmt.target.name:
@@ -490,8 +507,10 @@ class CodeGenerator:
                     self.p("\t\tjmp  ({:s})".format(Parser.to_hex(Zeropage.SCRATCH_B1)))
                 else:
                     self.p("\t\tjmp  ({:s})".format(targetstr))
+                # no result assignments because it's a goto
             else:
                 preserve_regs = {'A', 'X', 'Y'} if stmt.preserve_regs else set()
+                unclobber_result_registers(preserve_regs, stmt.desugared_output_assignments)
                 with self.preserving_registers(preserve_regs, loads_a_within=params_load_a()):
                     generate_param_assignments()
                     if targetstr in REGISTER_WORDS:
@@ -519,6 +538,7 @@ class CodeGenerator:
                         self.p("\t\tjmp  ++")
                         self.p("+\t\tjmp  ({:s})".format(targetstr))
                         self.p("+")
+                    generate_result_assignments()
         else:
             if stmt.target.name:
                 targetstr = stmt.target.name
@@ -532,11 +552,14 @@ class CodeGenerator:
                 # no need to preserve registers for a goto
                 generate_param_assignments()
                 self.p("\t\tjmp  " + targetstr)
+                # no result assignments because it's a goto
             else:
                 preserve_regs = {'A', 'X', 'Y'} if stmt.preserve_regs else set()
+                unclobber_result_registers(preserve_regs, stmt.desugared_output_assignments)
                 with self.preserving_registers(preserve_regs, loads_a_within=params_load_a()):
                     generate_param_assignments()
                     self.p("\t\tjsr  " + targetstr)
+                    generate_result_assignments()
 
     def generate_assignment(self, stmt: ParseResult.AssignmentStmt) -> None:
         def unwrap_indirect(iv: ParseResult.IndirectValue) -> ParseResult.MemMappedValue:

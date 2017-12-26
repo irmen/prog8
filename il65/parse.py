@@ -9,10 +9,11 @@ License: GNU GPL 3.0, see LICENSE
 import math
 import re
 import os
+import sys
 import shutil
 import enum
 from collections import defaultdict
-from typing import Set, List, Tuple, Optional, Any, Dict, Union
+from typing import Set, List, Tuple, Optional, Any, Dict, Union, Sequence
 from .astparse import ParseError, parse_expr_as_int, parse_expr_as_number, parse_expr_as_primitive,\
     parse_expr_as_string, parse_arguments
 from .symbols import SourceRef, SymbolTable, DataType, SymbolDefinition, SubroutineDef, LabelDef, \
@@ -409,24 +410,32 @@ class ParseResult:
     class CallStmt(_AstNode):
         def __init__(self, lineno: int, target: Optional['ParseResult.Value']=None, *,
                      address: Optional[int]=None, arguments: List[Tuple[str, Any]]=None,
-                     is_goto: bool=False, preserve_regs: bool=True) -> None:
+                     outputs: List[Tuple[str, 'ParseResult.Value']]=None, is_goto: bool=False, preserve_regs: bool=True) -> None:
             self.lineno = lineno
             self.target = target
             self.address = address
             self.arguments = arguments
+            self.outputvars = outputs
             self.is_goto = is_goto
             self.preserve_regs = preserve_regs
             self.desugared_call_arguments = []  # type: List[ParseResult.AssignmentStmt]
+            self.desugared_output_assignments = []   # type: List[ParseResult.AssignmentStmt]
 
-        def desugar_call_arguments(self, parser: 'Parser') -> None:
-            if self.arguments:
-                self.desugared_call_arguments.clear()
-                for name, value in self.arguments:
-                    assert name is not None, "all call arguments should have a name or be matched on a named parameter"
-                    assignment = parser.parse_assignment("{:s}={:s}".format(name, value))
-                    if not assignment.is_identity():
-                        assignment.lineno = self.lineno
-                        self.desugared_call_arguments.append(assignment)
+        def desugar_call_arguments_and_outputs(self, parser: 'Parser') -> None:
+            self.desugared_call_arguments.clear()
+            self.desugared_output_assignments.clear()
+            for name, value in self.arguments or []:
+                assert name is not None, "all call arguments should have a name or be matched on a named parameter"
+                assignment = parser.parse_assignment("{:s}={:s}".format(name, value))
+                if not assignment.is_identity():
+                    assignment.lineno = self.lineno
+                    self.desugared_call_arguments.append(assignment)
+            for register, value in self.outputvars or []:
+                rvalue = parser.parse_expression(register)
+                assignment = ParseResult.AssignmentStmt([value], rvalue, self.lineno)
+                # note: we need the identity assignment here or the output register handling generates buggy code
+                assignment.lineno = self.lineno
+                self.desugared_output_assignments.append(assignment)
 
     class InlineAsm(_AstNode):
         def __init__(self, lineno: int, asmlines: List[str]) -> None:
@@ -502,19 +511,27 @@ class Parser:
         try:
             return self.parse_file()
         except ParseError as x:
-            print()
+            if sys.stderr.isatty():
+                print("\x1b[1m", file=sys.stderr)
+            print("", file=sys.stderr)
             if x.sourcetext:
-                print("\tsource text: '{:s}'".format(x.sourcetext))
+                print("\tsource text: '{:s}'".format(x.sourcetext), file=sys.stderr)
                 if x.sourceref.column:
-                    print("\t" + ' '*x.sourceref.column + '             ^')
+                    print("\t" + ' '*x.sourceref.column + '             ^', file=sys.stderr)
             if self.parsing_import:
-                print("Error (in imported file):", str(x))
+                print("Error (in imported file):", str(x), file=sys.stderr)
             else:
-                print("Error:", str(x))
+                print("Error:", str(x), file=sys.stderr)
+            if sys.stderr.isatty():
+                print("\x1b[0m", file=sys.stderr)
             raise   # XXX temporary solution to get stack trace info in the event of parse errors
         except Exception as x:
-            print("\nERROR: internal parser error: ", x)
-            print("    file:", self.sourceref.file, "block:", self.cur_block.name, "line:", self.sourceref.line)
+            if sys.stderr.isatty():
+                print("\x1b[1m", file=sys.stderr)
+            print("\nERROR: internal parser error: ", x, file=sys.stderr)
+            print("    file:", self.sourceref.file, "block:", self.cur_block.name, "line:", self.sourceref.line, file=sys.stderr)
+            if sys.stderr.isatty():
+                print("\x1b[0m", file=sys.stderr)
             raise   # XXX temporary solution to get stack trace info in the event of parse errors
 
     def parse_file(self) -> ParseResult:
@@ -524,7 +541,10 @@ class Parser:
         return self.result
 
     def print_warning(self, text: str) -> None:
-        print(text)
+        if sys.stdout.isatty():
+            print("\x1b[1m" + text + "\x1b[0m")
+        else:
+            print(text)
 
     def _parse_comments(self) -> None:
         while True:
@@ -604,22 +624,26 @@ class Parser:
                 if isinstance(stmt, ParseResult.CallStmt):
                     self.sourceref.line = stmt.lineno
                     self.sourceref.column = 0
-                    stmt.desugar_call_arguments(self)
+                    stmt.desugar_call_arguments_and_outputs(self)
             # create parameter loads for calls, in subroutine blocks
             for sub in block.symbols.iter_subroutines(True):
                 for stmt in sub.sub_block.statements:
                     if isinstance(stmt, ParseResult.CallStmt):
                         self.sourceref.line = stmt.lineno
                         self.sourceref.column = 0
-                        stmt.desugar_call_arguments(self)
+                        stmt.desugar_call_arguments_and_outputs(self)
             block.flatten_statement_list()
             # desugar immediate string value assignments
             for index, stmt in enumerate(list(block.statements)):
                 if isinstance(stmt, ParseResult.CallStmt):
-                    for stmt in stmt.desugared_call_arguments:
-                        self.sourceref.line = stmt.lineno
+                    for s in stmt.desugared_call_arguments:
+                        self.sourceref.line = s.lineno
                         self.sourceref.column = 0
-                        stmt.desugar_immediate_string(self)
+                        s.desugar_immediate_string(self)
+                    for s in stmt.desugared_output_assignments:
+                        self.sourceref.line = s.lineno
+                        self.sourceref.column = 0
+                        s.desugar_immediate_string(self)
                 if isinstance(stmt, ParseResult.AssignmentStmt):
                     self.sourceref.line = stmt.lineno
                     self.sourceref.column = 0
@@ -938,7 +962,7 @@ class Parser:
         all_paramnames = [p[0] for p in parameters if p[0]]
         if len(all_paramnames) != len(set(all_paramnames)):
             raise self.PError("duplicates in parameter names")
-        results = {match.group("name") for match in re.finditer(r"\s*(?P<name>(?:\w+)\??)\s*(?:,|$)", resultlist)}
+        results = [match.group("name") for match in re.finditer(r"\s*(?P<name>(?:\w+)\??)\s*(?:,|$)", resultlist)]
         subroutine_block = None
         if code_decl:
             address = None
@@ -1016,17 +1040,31 @@ class Parser:
         return varname, datatype, length, matrix_dimensions, valuetext
 
     def parse_statement(self, line: str) -> ParseResult._AstNode:
+        match = re.match(r"(?P<outputs>.*\s*=)\s*(?P<subname>[\S]+?)\s*(?P<fcall>[!]?)\s*(\((?P<arguments>.*)\))?\s*$", line)
+        if match:
+            # subroutine call (not a goto) with output param assignment
+            preserve = not bool(match.group("fcall"))
+            subname = match.group("subname")
+            arguments = match.group("arguments")
+            outputs = match.group("outputs")
+            if outputs.strip() == "=":
+                raise self.PError("missing assignment target variables")
+            outputs = outputs.rstrip("=")
+            if arguments or match.group(4):
+                return self.parse_call_or_goto(subname, arguments, outputs, preserve, False)
+            # apparently it is not a call (no arguments), fall through
         match = re.match(r"(?P<goto>goto\s+)?(?P<subname>[\S]+?)\s*(?P<fcall>[!]?)\s*(\((?P<arguments>.*)\))?\s*$", line)
         if match:
-            # subroutine or goto call
+            # subroutine or goto call, without output param assignment
             is_goto = bool(match.group("goto"))
             preserve = not bool(match.group("fcall"))
             subname = match.group("subname")
             arguments = match.group("arguments")
             if is_goto:
-                return self.parse_call_or_goto(subname, arguments, preserve, True)
+                return self.parse_call_or_goto(subname, arguments, None, preserve, True)
             elif arguments or match.group(4):
-                return self.parse_call_or_goto(subname, arguments, preserve, False)
+                return self.parse_call_or_goto(subname, arguments, None, preserve, False)
+            # apparently it is not a call (no arguments), fall through
         if line == "return" or line.startswith(("return ", "return\t")):
             return self.parse_return(line)
         elif line.endswith(("++", "--")):
@@ -1042,9 +1080,12 @@ class Parser:
                 return self.parse_assignment(line)
             raise self.PError("invalid statement")
 
-    def parse_call_or_goto(self, targetstr: str, argumentstr: str, preserve_regs=True, is_goto=False) -> ParseResult.CallStmt:
+    def parse_call_or_goto(self, targetstr: str, argumentstr: str, outputstr: str,
+                           preserve_regs=True, is_goto=False) -> ParseResult.CallStmt:
         argumentstr = argumentstr.strip() if argumentstr else ""
+        outputstr = outputstr.strip() if outputstr else ""
         arguments = None
+        outputvars = None
         if argumentstr:
             arguments = parse_arguments(argumentstr, self.sourceref)
         target = None  # type: ParseResult.Value
@@ -1080,19 +1121,35 @@ class Parser:
                 argname = preg
                 args_with_pnames.append((argname, value))
             arguments = args_with_pnames
-            self.result.sub_used_by(symbol, self.sourceref)
+            # verify output parameters
+            if symbol.return_registers:
+                if outputstr:
+                    outputs = [r.strip() for r in outputstr.split(",")]
+                    if len(outputs) != len(symbol.return_registers):
+                        raise self.PError("invalid number of output parameters consumed ({:d}, expected {:d})"
+                                          .format(len(outputs), len(symbol.return_registers)))
+                    outputvars = list(zip(symbol.return_registers, (self.parse_expression(out) for out in outputs)))
+                else:
+                    self.print_warning("warning: {}: return values discarded".format(self.sourceref))
+            else:
+                if outputstr:
+                    raise self.PError("this subroutine doesn't have output parameters")
+            self.result.sub_used_by(symbol, self.sourceref)  # sub usage tracking
         else:
+            if outputstr:
+                raise self.PError("call cannot use output parameter assignment here, a subroutine is required for that")
             if arguments:
-                raise self.PError("call cannot take any arguments here, use a subroutine for that")
-        if arguments:
-            # verify that all arguments have gotten a name
-            if any(not a[0] for a in arguments):
-                raise self.PError("all call arguments should have a name or be matched on a named parameter")
+                raise self.PError("call cannot take any arguments here, a subroutine is required for that")
+        # verify that all arguments have gotten a name
+        if any(not a[0] for a in arguments or []):
+            raise self.PError("all call arguments should have a name or be matched on a named parameter")
         if isinstance(target, (type(None), ParseResult.Value)):
             if is_goto:
-                return ParseResult.CallStmt(self.sourceref.line, target, address=address, arguments=arguments, is_goto=True)
+                return ParseResult.CallStmt(self.sourceref.line, target, address=address,
+                                            arguments=arguments, outputs=outputvars, is_goto=True)
             else:
-                return ParseResult.CallStmt(self.sourceref.line, target, address=address, arguments=arguments, preserve_regs=preserve_regs)
+                return ParseResult.CallStmt(self.sourceref.line, target, address=address,
+                                            arguments=arguments, outputs=outputvars, preserve_regs=preserve_regs)
         else:
             raise TypeError("target should be a Value", target)
 
@@ -1216,7 +1273,6 @@ class Parser:
 
     def parse_expression(self, text: str, is_indirect=False) -> ParseResult.Value:
         # parse an expression into whatever it is (primitive value, register, memory, register, etc)
-        # @todo only numeric expressions supported for now
         text = text.strip()
         if not text:
             raise self.PError("value expected")

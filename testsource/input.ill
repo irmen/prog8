@@ -3,7 +3,6 @@ output prg,sys
 import "c64lib"
 
 ~ main {
-
         var  .text  name        = "?"*80
 
 start
