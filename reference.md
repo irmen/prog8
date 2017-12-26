@@ -277,7 +277,21 @@ but instead assign a memory address to it:
 You call a subroutine like this:
         subroutinename_or_address [!]  ( [arguments...] )
 
-Normally, the registers are preserved when calling the subroutine and restored on return.
+If the subroutine returns one or more values as results, you must use an assignment statement
+to store those values somewhere:
+        outputvar1, outputvar2  =  subroutine ( arg1, arg2, arg3 )
+        
+The output variables must occur in the correct sequence of return registers as specified
+in the subroutine's definiton. It is possible to not specify any of them but the compiler
+will issue a warning then if the result values of a subroutine call are discarded.
+Even if the subroutine returns something in a register that already is the correct one 
+you want to keep, you'll have to explicitly assign the return value to that register.
+If you omit it, no return value is stored at all (well, unless you call the subroutine without
+register preserving, see the next paragraph.)
+
+
+Normally, the registers are preserved when calling the subroutine and restored on return (except
+the ones that explictly take result values from the call).
 If you add a '!' after the name, no register preserving is done and the call essentially
 is just a single JSR instruction.
 Arguments should match the subroutine definition. You are allowed to omit the parameter names.
@@ -290,7 +304,6 @@ essentially is the same as calling a subroutine and only doing something differe
 
 
 @todo support call non-register args (variable parameter passing)
-@todo support assigning call return values (so that you can assign these to other variables, and allows the subroutine call be an actual expression)
 
 
 TODOS
