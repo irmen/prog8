@@ -157,7 +157,7 @@ sub	ATN		() -> (A?, X?, Y?)		= $e30e		; fac1 = ATN(fac1)
 ; ---- C64 basic routines ----
 
 sub	CLEARSCR	() -> (A?, X?, Y?)		= $E544		; clear the screen
-sub	HOMECRSR	() -> (A?, X?, Y?) 		= $E566		; cursor to top left of screen
+sub	HOMECRSR	() -> (A?, X?, Y?)		= $E566		; cursor to top left of screen
 
 
 ; ---- end of C64 basic routines ----
@@ -168,56 +168,86 @@ sub	HOMECRSR	() -> (A?, X?, Y?) 		= $E566		; cursor to top left of screen
 
 sub     IRQDFRT  () -> (A?, X?, Y?)			= $EA31		; default IRQ routine
 sub     IRQDFEND () -> (A?, X?, Y?)			= $EA81		; default IRQ end/cleanup
-sub	CINT     () -> (A?, X?, Y?)                     = $FF81		; (alias: SCINIT) initialize screen editor and video chip
-sub	IOINIT   () -> (A?, X?)                         = $FF84		; initialize I/O devices
-sub	RAMTAS   () -> (A?, X?, Y?)                     = $FF87		; initialize RAM, tape buffer, screen
-sub	RESTOR   () -> ()                               = $FF8A		; restore default I/O vectors
-sub	VECTOR   (dir: SC, userptr: XY) -> (A?, Y?)     = $FF8D		; read/set I/O vector table
-sub	SETMSG   (value: A) -> ()                       = $FF90		; set Kernal message control flag
-sub	SECOND   (address: A) -> (A?)                   = $FF93		; (alias: LSTNSA) send secondary address after LISTEN
-sub	TKSA     (address: A) -> (A?)                   = $FF96		; (alias: TALKSA) send secondary address after TALK
-sub	MEMTOP   (dir: SC, address: XY) -> (XY)         = $FF99		; read/set top of memory  pointer
-sub	MEMBOT   (dir: SC, address: XY) -> (XY)         = $FF9C		; read/set bottom of memory  pointer
-sub	SCNKEY   () -> (A?, X?, Y?)                     = $FF9F		; scan the keyboard
-sub	SETTMO   (timeout: A) -> ()                     = $FFA2		; set time-out flag for IEEE bus
-sub	ACPTR    () -> (A)                              = $FFA5		; (alias: IECIN) input byte from serial bus
-sub	CIOUT    (byte: A) -> ()                        = $FFA8		; (alias: IECOUT) output byte to serial bus
-sub	UNTLK    () -> (A?)                             = $FFAB		; command serial bus device to UNTALK
-sub	UNLSN    () -> (A?)                             = $FFAE		; command serial bus device to UNLISTEN
-sub	LISTEN   (device: A) -> (A?)                    = $FFB1		; command serial bus device to LISTEN
-sub	TALK     (device: A) -> (A?)                    = $FFB4		; command serial bus device to TALK
-sub	READST   () -> (A)                              = $FFB7		; read I/O status word
+sub	CINT     () -> (A?, X?, Y?)			= $FF81		; (alias: SCINIT) initialize screen editor and video chip
+sub	IOINIT   () -> (A?, X?)				= $FF84		; initialize I/O devices (CIA, SID, IRQ)
+sub	RAMTAS   () -> (A?, X?, Y?)			= $FF87		; initialize RAM, tape buffer, screen
+sub	RESTOR   () -> (A?, X?, Y?)			= $FF8A		; restore default I/O vectors
+sub	VECTOR   (dir: SC, userptr: XY) -> (A?, Y?)	= $FF8D		; read/set I/O vector table
+sub	SETMSG   (value: A) -> ()			= $FF90		; set Kernal message control flag
+sub	SECOND   (address: A) -> (A?)			= $FF93		; (alias: LSTNSA) send secondary address after LISTEN
+sub	TKSA     (address: A) -> (A?)			= $FF96		; (alias: TALKSA) send secondary address after TALK
+sub	MEMTOP   (dir: SC, address: XY) -> (XY)		= $FF99		; read/set top of memory  pointer
+sub	MEMBOT   (dir: SC, address: XY) -> (XY)		= $FF9C		; read/set bottom of memory  pointer
+sub	SCNKEY   () -> (A?, X?, Y?)			= $FF9F		; scan the keyboard
+sub	SETTMO   (timeout: A) -> ()			= $FFA2		; set time-out flag for IEEE bus
+sub	ACPTR    () -> (A)				= $FFA5		; (alias: IECIN) input byte from serial bus
+sub	CIOUT    (byte: A) -> ()			= $FFA8		; (alias: IECOUT) output byte to serial bus
+sub	UNTLK    () -> (A?)				= $FFAB		; command serial bus device to UNTALK
+sub	UNLSN    () -> (A?)				= $FFAE		; command serial bus device to UNLISTEN
+sub	LISTEN   (device: A) -> (A?)			= $FFB1		; command serial bus device to LISTEN
+sub	TALK     (device: A) -> (A?)			= $FFB4		; command serial bus device to TALK
+sub	READST   () -> (A)				= $FFB7		; read I/O status word
 sub	SETLFS   (logical: A, device: X, address: Y) -> () = $FFBA	; set logical file parameters
-sub	SETNAM   (namelen: A, filename: XY) -> ()       = $FFBD		; set filename parameters
-sub	OPEN     () -> (A?, X?, Y?)                     = $FFC0		; (via 794 ($31A)) open a logical file
-sub	CLOSE    (logical: A) -> (A?, X?, Y?)           = $FFC3		; (via 796 ($31C)) close a logical file
-sub	CHKIN    (logical: X) -> (A?, X?)               = $FFC6		; (via 798 ($31E)) define an input channel
-sub	CHKOUT   (logical: X) -> (A?, X?)               = $FFC9		; (via 800 ($320)) define an output channel
-sub	CLRCHN   () -> (A?, X?)                         = $FFCC		; (via 802 ($322)) restore default devices
-sub	CHRIN    () -> (A, Y?)                          = $FFCF		; (via 804 ($324)) input a character (for keyboard, read a whole line from the screen) A=byte read.
-sub	CHROUT   (char: A) -> ()                        = $FFD2		; (via 806 ($326)) output a character
+sub	SETNAM   (namelen: A, filename: XY) -> ()	= $FFBD		; set filename parameters
+sub	OPEN     () -> (A?, X?, Y?)			= $FFC0		; (via 794 ($31A)) open a logical file
+sub	CLOSE    (logical: A) -> (A?, X?, Y?)		= $FFC3		; (via 796 ($31C)) close a logical file
+sub	CHKIN    (logical: X) -> (A?, X?)		= $FFC6		; (via 798 ($31E)) define an input channel
+sub	CHKOUT   (logical: X) -> (A?, X?)		= $FFC9		; (via 800 ($320)) define an output channel
+sub	CLRCHN   () -> (A?, X?)				= $FFCC		; (via 802 ($322)) restore default devices
+sub	CHRIN    () -> (A, Y?)				= $FFCF		; (via 804 ($324)) input a character (for keyboard, read a whole line from the screen) A=byte read.
+sub	CHROUT   (char: A) -> ()			= $FFD2		; (via 806 ($326)) output a character
 sub	LOAD     (verify: A, address: XY) -> (SC, A, X, Y) = $FFD5	; (via 816 ($330)) load from device
 sub	SAVE     (zp_startaddr: A, endaddr: XY) -> (SC, A) = $FFD8	; (via 818 ($332)) save to a device
-sub	SETTIM   (low: A, middle: X, high: Y) -> ()     = $FFDB		; set the software clock
-sub	RDTIM    () -> (A, X, Y)                        = $FFDE		; read the software clock
-sub	STOP     () -> (SZ, SC, A?, X?)                 = $FFE1		; (via 808 ($328)) check the STOP key
-sub	GETIN    () -> (A, X?, Y?)                      = $FFE4		; (via 810 ($32A)) get a character
-sub	CLALL    () -> (A?, X?)                         = $FFE7		; (via 812 ($32C)) close all files
-sub	UDTIM    () -> (A?, X?)                         = $FFEA		; update the software clock
-sub	SCREEN   () -> (X, Y)                           = $FFED		; read number of screen rows and columns
-sub	PLOT     (dir: SC, col: X, row: Y) -> (X, Y)    = $FFF0		; read/set position of cursor on screen
-sub	IOBASE   () -> (X, Y)                           = $FFF3		; read base address of I/O devices
+sub	SETTIM   (low: A, middle: X, high: Y) -> ()	= $FFDB		; set the software clock
+sub	RDTIM    () -> (A, X, Y)			= $FFDE		; read the software clock
+sub	STOP     () -> (SZ, SC, A?, X?)			= $FFE1		; (via 808 ($328)) check the STOP key
+sub	GETIN    () -> (A, X?, Y?)			= $FFE4		; (via 810 ($32A)) get a character
+sub	CLALL    () -> (A?, X?)				= $FFE7		; (via 812 ($32C)) close all files
+sub	UDTIM    () -> (A?, X?)				= $FFEA		; update the software clock
+sub	SCREEN   () -> (X, Y)				= $FFED		; read number of screen rows and columns
+sub	PLOT     (dir: SC, col: X, row: Y) -> (X, Y)	= $FFF0		; read/set position of cursor on screen
+sub	IOBASE   () -> (X, Y)				= $FFF3		; read base address of I/O devices
 
 ; ---- end of C64 kernal routines ----
 
-		memory  .word	NMI_VEC   	= $FFFA  ; nmi vector, set by the kernal if banked in
-		memory  .word	RESET_VEC 	= $FFFC  ; reset vector, set by the kernal if banked in
-		memory  .word	IRQ_VEC   	= $FFFE  ; interrupt vector, set by the kernal if banked in
+		memory  .word	NMI_VEC		= $FFFA  ; nmi vector, set by the kernal if banked in
+		memory  .word	RESET_VEC	= $FFFC  ; reset vector, set by the kernal if banked in
+		memory  .word	IRQ_VEC		= $FFFE  ; interrupt vector, set by the kernal if banked in
 
 }
 
 
 ~ c64util {
+
+sub  init_state  () -> (A?, X?, Y?)  {
+	; ---- initializes the machine to a sane starting state
+	; This means that the BASIC, KERNAL and CHARGEN ROMs are banked in,
+	; the VIC, SID and CIA chips are reset, screen is cleared, and the default IRQ is set.
+	; Also a different color scheme is chosen to identify ourselves a little.
+	asm  {
+		sei
+		cld
+		lda  #%00101111
+		sta  $00
+		lda  #%00100111
+		sta  $01
+		jsr  c64.IOINIT
+		jsr  c64.RESTOR
+		jsr  c64.CINT
+		lda  #6
+		sta  c64.EXTCOL
+		lda  #7
+		sta  c64.COLOR
+		lda  #0
+		sta  c64.BGCOL0
+		tax
+		tay
+		clc
+		cli
+		rts
+	}
+}
+
 
 sub  FREADS32  () -> (A?, X?, Y?)  {
 	; ---- fac1 = signed int32 from $62-$65 big endian (MSB FIRST)
