@@ -69,24 +69,6 @@ def parse_arguments(text: str, sourceref: SourceRef) -> List[Tuple[str, Primitiv
     except SyntaxError as x:
         raise src.to_error(str(x))
 
-    def astnode_to_repr(node: ast.AST) -> str:
-        if isinstance(node, ast.Name):
-            return node.id
-        if isinstance(node, ast.Num):
-            return repr(node.n)
-        if isinstance(node, ast.Str):
-            return repr(node.s)
-        if isinstance(node, ast.BinOp):
-            if node.left.id == "__ptr" and isinstance(node.op, ast.MatMult):    # type: ignore
-                return '#' + astnode_to_repr(node.right)
-            else:
-                print("error", ast.dump(node))
-                raise TypeError("invalid arg ast node type", node)
-        if isinstance(node, ast.Attribute):
-            return astnode_to_repr(node.value) + "." + node.attr
-        print("error", ast.dump(node))
-        raise TypeError("invalid arg ast node type", node)
-
     args = []   # type: List[Tuple[str, Any]]
     if isinstance(nodes, ast.Expression):
         for arg in nodes.body.args:
@@ -100,14 +82,37 @@ def parse_arguments(text: str, sourceref: SourceRef) -> List[Tuple[str, Primitiv
         raise TypeError("ast.Expression expected")
 
 
-def parse_expr_as_comparison(text: str, context: Optional[SymbolTable], ppcontext: Optional[SymbolTable], sourceref: SourceRef) -> None:
+def parse_expr_as_comparison(text: str, sourceref: SourceRef) -> Tuple[str, str, str]:
     src = SourceLine(text, sourceref)
     text = src.preprocess()
     try:
         node = ast.parse(text, sourceref.file, mode="eval")
     except SyntaxError as x:
         raise src.to_error(str(x))
-    print("AST NODE", node)
+    if not isinstance(node, ast.Expression):
+        raise TypeError("ast.Expression expected")
+    if isinstance(node.body, ast.Compare):
+        if len(node.body.ops) != 1:
+            raise src.to_error("only one comparison operator at a time is supported")
+        operator = {
+            "Eq": "==",
+            "NotEq": "!=",
+            "Lt": "<",
+            "LtE": "<=",
+            "Gt": ">",
+            "GtE": ">=",
+            "Is": None,
+            "IsNot": None,
+            "In": None,
+            "NotIn": None
+        }[node.body.ops[0].__class__.__name__]
+        if not operator:
+            raise src.to_error("unsupported comparison operator")
+        left = text[node.body.left.col_offset:node.body.comparators[0].col_offset-len(operator)]
+        right = text[node.body.comparators[0].col_offset:]
+        return left.strip(), operator, right.strip()
+    left = astnode_to_repr(node.body)
+    return left, "", ""
 
 
 def parse_expr_as_int(text: str, context: Optional[SymbolTable], ppcontext: Optional[SymbolTable], sourceref: SourceRef, *,
@@ -240,3 +245,22 @@ class ExpressionTransformer(EvaluatingTransformer):
             else:
                 raise self.error("invalid MatMult/Pointer node in AST")
         return node
+
+
+def astnode_to_repr(node: ast.AST) -> str:
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Num):
+        return repr(node.n)
+    if isinstance(node, ast.Str):
+        return repr(node.s)
+    if isinstance(node, ast.BinOp):
+        if node.left.id == "__ptr" and isinstance(node.op, ast.MatMult):    # type: ignore
+            return '#' + astnode_to_repr(node.right)
+        else:
+            print("error", ast.dump(node))
+            raise TypeError("invalid arg ast node type", node)
+    if isinstance(node, ast.Attribute):
+        return astnode_to_repr(node.value) + "." + node.attr
+    print("error", ast.dump(node))
+    raise TypeError("invalid arg ast node type", node)

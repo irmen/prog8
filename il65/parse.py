@@ -13,9 +13,9 @@ import sys
 import shutil
 import enum
 from collections import defaultdict
-from typing import Set, List, Tuple, Optional, Any, Dict, Union, Sequence
+from typing import Set, List, Tuple, Optional, Any, Dict, Union
 from .astparse import ParseError, parse_expr_as_int, parse_expr_as_number, parse_expr_as_primitive,\
-    parse_expr_as_string, parse_arguments
+    parse_expr_as_string, parse_arguments, parse_expr_as_comparison
 from .symbols import SourceRef, SymbolTable, DataType, SymbolDefinition, SubroutineDef, LabelDef, \
     zeropage, check_value_in_range, char_to_bytevalue, \
     PrimitiveType, VariableDef, ConstantDef, SymbolError, STRING_DATATYPES, \
@@ -254,8 +254,11 @@ class ParseResult:
                 return False, "can only assign an integer constant value of 0 or 1 to SC and SI"
             if self.constant:
                 return False, "cannot assign to a constant"
-            if isinstance(other, ParseResult.RegisterValue) and len(self.register) < len(other.register):
-                return False, "register size mismatch"
+            if isinstance(other, ParseResult.RegisterValue):
+                if other.register in {"SI", "SC", "SZ"}:
+                    return False, "cannot explicitly assign from a status bit register alias"
+                if len(self.register) < len(other.register):
+                    return False, "register size mismatch"
             if isinstance(other, ParseResult.StringValue) and self.register in REGISTER_BYTES:
                 return False, "string address requires 16 bits combined register"
             if isinstance(other, ParseResult.IntegerValue):
@@ -345,22 +348,24 @@ class ParseResult:
             return False, "incompatible value for assignment"
 
     class _AstNode:     # @todo merge Value with this?
-        pass
+        def __init__(self, lineno: int) -> None:
+            self.lineno = lineno
 
     class Comment(_AstNode):
-        def __init__(self, text: str) -> None:
+        def __init__(self, text: str, lineno: int) -> None:
+            super().__init__(lineno)
             self.text = text
 
     class Label(_AstNode):
         def __init__(self, name: str, lineno: int) -> None:
+            super().__init__(lineno)
             self.name = name
-            self.lineno = lineno
 
     class AssignmentStmt(_AstNode):
         def __init__(self, leftvalues: List['ParseResult.Value'], right: 'ParseResult.Value', lineno: int) -> None:
+            super().__init__(lineno)
             self.leftvalues = leftvalues
             self.right = right
-            self.lineno = lineno
 
         def __str__(self):
             return "<Assign {:s} to {:s}>".format(str(self.right), ",".join(str(lv) for lv in self.leftvalues))
@@ -395,28 +400,34 @@ class ParseResult:
             return all(lv == self.right for lv in self.leftvalues)
 
     class ReturnStmt(_AstNode):
-        def __init__(self, a: Optional['ParseResult.Value']=None,
+        def __init__(self, lineno: int, a: Optional['ParseResult.Value']=None,
                      x: Optional['ParseResult.Value']=None,
                      y: Optional['ParseResult.Value']=None) -> None:
+            super().__init__(lineno)
             self.a = a
             self.x = x
             self.y = y
 
     class IncrDecrStmt(_AstNode):
-        def __init__(self, what: 'ParseResult.Value', howmuch: int) -> None:
+        def __init__(self, what: 'ParseResult.Value', howmuch: int, lineno: int) -> None:
+            super().__init__(lineno)
             self.what = what
             self.howmuch = howmuch
 
     class CallStmt(_AstNode):
         def __init__(self, lineno: int, target: Optional['ParseResult.Value']=None, *,
                      address: Optional[int]=None, arguments: List[Tuple[str, Any]]=None,
-                     outputs: List[Tuple[str, 'ParseResult.Value']]=None, is_goto: bool=False, preserve_regs: bool=True) -> None:
-            self.lineno = lineno
+                     outputs: List[Tuple[str, 'ParseResult.Value']]=None, is_goto: bool=False,
+                     preserve_regs: bool=True, condition: 'ParseResult.IfCondition'=None) -> None:
+            if not is_goto:
+                assert condition is None
+            super().__init__(lineno)
             self.target = target
             self.address = address
             self.arguments = arguments
             self.outputvars = outputs
             self.is_goto = is_goto
+            self.condition = condition
             self.preserve_regs = preserve_regs
             self.desugared_call_arguments = []  # type: List[ParseResult.AssignmentStmt]
             self.desugared_output_assignments = []   # type: List[ParseResult.AssignmentStmt]
@@ -438,9 +449,55 @@ class ParseResult:
                 self.desugared_output_assignments.append(assignment)
 
     class InlineAsm(_AstNode):
-        def __init__(self, lineno: int, asmlines: List[str]) -> None:
-            self.lineno = lineno
+        def __init__(self, asmlines: List[str], lineno: int) -> None:
+            super().__init__(lineno)
             self.asmlines = asmlines
+
+    class IfCondition(_AstNode):
+        SWAPPED_OPERATOR = {"==": "==",
+                            "!=": "!=",
+                            "<=": ">=",
+                            ">=": "<=",
+                            "<": ">",
+                            ">": "<"}
+        INVERSE_IFSTATUS = {"cc": "cs",
+                            "cs": "cc",
+                            "vc": "vs",
+                            "vs": "vc",
+                            "eq": "ne",
+                            "ne": "eq",
+                            "pos": "neg",
+                            "neg": "pos",
+                            "true": "not",
+                            "not": "true",
+                            "zero": "true",
+                            "lt": "ge",
+                            "gt": "le",
+                            "le": "gt",
+                            "ge": "lt"}
+
+        def __init__(self, ifstatus: str, leftvalue: Optional['ParseResult.Value'],
+                     operator: str, rightvalue: Optional['ParseResult.Value'], lineno: int) -> None:
+            assert ifstatus in self.INVERSE_IFSTATUS
+            assert operator in (None, "") or operator in self.SWAPPED_OPERATOR
+            if operator:
+                assert ifstatus in ("true", "not")
+            super().__init__(lineno)
+            self.ifstatus = ifstatus
+            self.lvalue = leftvalue
+            self.comparison_op = operator
+            self.rvalue = rightvalue
+
+        def __str__(self):
+            return "<IfCondition {} {:s} {}>".format(self.lvalue, self.comparison_op, self.rvalue)
+
+        def inverse_ifstatus(self) -> str:
+            # to be able to generate a branch when the status does NOT apply
+            return self.INVERSE_IFSTATUS[self.ifstatus]
+
+        def swap(self) -> Tuple['ParseResult.Value', str, 'ParseResult.Value']:
+            self.lvalue, self.comparison_op, self.rvalue = self.rvalue, self.SWAPPED_OPERATOR[self.comparison_op], self.lvalue
+            return self.lvalue, self.comparison_op, self.rvalue
 
     def add_block(self, block: 'ParseResult.Block', position: Optional[int]=None) -> None:
         if position is not None:
@@ -550,7 +607,7 @@ class Parser:
         while True:
             line = self.next_line().lstrip()
             if line.startswith(';'):
-                self.cur_block.statements.append(ParseResult.Comment(line))
+                self.cur_block.statements.append(ParseResult.Comment(line, self.sourceref.line))
                 continue
             self.prev_line()
             break
@@ -1040,6 +1097,17 @@ class Parser:
         return varname, datatype, length, matrix_dimensions, valuetext
 
     def parse_statement(self, line: str) -> ParseResult._AstNode:
+        match = re.fullmatch(r"(?P<if>if(_[a-z]+)?)\s+(?P<cond>.+)?goto\s+(?P<subname>[\S]+?)\s*(\((?P<arguments>.*)\))?\s*", line)
+        if match:
+            # conditional goto
+            groups = match.groupdict()
+            subname = groups["subname"]
+            if '!' in subname:
+                raise self.PError("goto is always without register preservation, should not have exclamation mark")
+            if groups["if"] == "if" and not groups["cond"]:
+                raise self.PError("need explicit if status when a condition is not present")
+            condition = self.parse_if_condition(groups["if"], groups["cond"])
+            return self.parse_call_or_goto(subname, groups["arguments"], None, False, True, condition=condition)
         match = re.fullmatch(r"goto\s+(?P<subname>[\S]+?)\s*(\((?P<arguments>.*)\))?\s*", line)
         if match:
             # goto
@@ -1047,8 +1115,7 @@ class Parser:
             subname = groups["subname"]
             if '!' in subname:
                 raise self.PError("goto is always without register preservation, should not have exclamation mark")
-            arguments = groups["arguments"]
-            return self.parse_call_or_goto(subname, arguments, None, False, True)
+            return self.parse_call_or_goto(subname, groups["arguments"], None, False, True)
         match = re.fullmatch(r"(?P<outputs>[^\(]*\s*=)?\s*(?P<subname>[\S]+?)\s*(?P<fcall>[!]?)\s*(\((?P<arguments>.*)\))?\s*", line)
         if match:
             # subroutine call (not a goto) with possible output param assignment
@@ -1070,7 +1137,7 @@ class Parser:
             what = self.parse_expression(line[:-2].rstrip())
             if isinstance(what, ParseResult.IntegerValue):
                 raise self.PError("cannot in/decrement a constant value")
-            return ParseResult.IncrDecrStmt(what, 1 if incr else -1)
+            return ParseResult.IncrDecrStmt(what, 1 if incr else -1, self.sourceref.line)
         else:
             # perhaps it is an assignment statment
             lhs, sep, rhs = line.partition("=")
@@ -1079,7 +1146,9 @@ class Parser:
             raise self.PError("invalid statement")
 
     def parse_call_or_goto(self, targetstr: str, argumentstr: str, outputstr: str,
-                           preserve_regs=True, is_goto=False) -> ParseResult.CallStmt:
+                           preserve_regs=True, is_goto=False, condition: ParseResult.IfCondition=None) -> ParseResult.CallStmt:
+        if not is_goto:
+            assert condition is None
         argumentstr = argumentstr.strip() if argumentstr else ""
         outputstr = outputstr.strip() if outputstr else ""
         arguments = None
@@ -1106,6 +1175,8 @@ class Parser:
         except ParseError:
             symbol = None   # it's probably a number or a register then
         if isinstance(symbol, SubroutineDef):
+            if condition and symbol.parameters:
+                raise self.PError("cannot use a subroutine that requires parameters as a target for conditional goto")
             # verify subroutine arguments
             if len(arguments or []) != len(symbol.parameters):
                 raise self.PError("invalid number of arguments ({:d}, expected {:d})"
@@ -1144,7 +1215,7 @@ class Parser:
         if isinstance(target, (type(None), ParseResult.Value)):
             if is_goto:
                 return ParseResult.CallStmt(self.sourceref.line, target, address=address,
-                                            arguments=arguments, outputs=outputvars, is_goto=True)
+                                            arguments=arguments, outputs=outputvars, is_goto=True, condition=condition)
             else:
                 return ParseResult.CallStmt(self.sourceref.line, target, address=address,
                                             arguments=arguments, outputs=outputvars, preserve_regs=preserve_regs)
@@ -1190,7 +1261,7 @@ class Parser:
         if len(parts) > 1:
             values = parts[1].split(",")
         if len(values) == 0:
-            return ParseResult.ReturnStmt()
+            return ParseResult.ReturnStmt(self.sourceref.line)
         else:
             a = self.parse_expression(values[0]) if values[0] else None
             if len(values) > 1:
@@ -1199,7 +1270,7 @@ class Parser:
                     y = self.parse_expression(values[2]) if values[2] else None
                     if len(values) > 3:
                         raise self.PError("too many returnvalues")
-        return ParseResult.ReturnStmt(a, x, y)
+        return ParseResult.ReturnStmt(self.sourceref.line, a, x, y)
 
     def parse_asm(self) -> ParseResult.InlineAsm:
         line = self.next_line()
@@ -1211,7 +1282,7 @@ class Parser:
         while True:
             line = self.next_line()
             if line.strip() == "}":
-                return ParseResult.InlineAsm(lineno, asmlines)
+                return ParseResult.InlineAsm(asmlines, lineno)
             # asm can refer to other symbols as well, track subroutine usage
             splits = line.split(maxsplit=1)
             if len(splits) == 2:
@@ -1252,7 +1323,7 @@ class Parser:
                 lines = ['{:s}\t.binclude "{:s}"'.format(scopename, filename)]
             else:
                 raise self.PError("invalid asminclude statement")
-            return ParseResult.InlineAsm(self.sourceref.line, lines)
+            return ParseResult.InlineAsm(lines, self.sourceref.line)
         elif aline[0] == "asmbinary":
             if len(aline) == 4:
                 offset = parse_expr_as_int(aline[2], None, None, self.sourceref)
@@ -1265,7 +1336,7 @@ class Parser:
                 lines = ['\t.binary "{:s}"'.format(filename)]
             else:
                 raise self.PError("invalid asmbinary statement")
-            return ParseResult.InlineAsm(self.sourceref.line, lines)
+            return ParseResult.InlineAsm(lines, self.sourceref.line)
         else:
             raise self.PError("invalid statement")
 
@@ -1462,6 +1533,33 @@ class Parser:
         result = [sentence[i:j].strip(separators) for i, j in zip(indices, indices[1:])]
         return list(filter(None, result))   # remove empty strings
 
+    def parse_if_condition(self, ifpart: str, conditionpart: str) -> ParseResult.IfCondition:
+        if ifpart == "if":
+            ifstatus = "true"
+        else:
+            ifstatus = ifpart[3:]
+        if ifstatus not in ParseResult.IfCondition.INVERSE_IFSTATUS:
+            raise self.PError("invalid if form")
+        if conditionpart:
+            left, operator, right = parse_expr_as_comparison(conditionpart, self.sourceref)
+            leftv = self.parse_expression(left)
+            if not operator and isinstance(leftv, (ParseResult.IntegerValue, ParseResult.FloatValue, ParseResult.StringValue)):
+                raise self.PError("condition is a constant value")
+            if isinstance(leftv, ParseResult.RegisterValue):
+                if leftv.register in {"SC", "SZ", "SI"}:
+                    raise self.PError("cannot use a status bit register explicitly in a condition")
+            if operator:
+                rightv = self.parse_expression(right)
+                if ifstatus not in ("true", "not"):
+                    raise self.PError("can only use if[_true] or if_not with a comparison expression")
+            else:
+                rightv = None
+            if leftv == rightv:
+                raise self.PError("left and right values in comparison are identical")
+            return ParseResult.IfCondition(ifstatus, leftv, operator, rightv, self.sourceref.line)
+        else:
+            return ParseResult.IfCondition(ifstatus, None, "", None, self.sourceref.line)
+
 
 class Optimizer:
     def __init__(self, parseresult: ParseResult) -> None:
@@ -1474,11 +1572,22 @@ class Optimizer:
             self.combine_assignments_into_multi(block)
             self.optimize_multiassigns(block)
             self.remove_unused_subroutines(block)
+            self.optimize_compare_with_zero(block)
             for sub in block.symbols.iter_subroutines(True):
                 self.remove_identity_assigns(sub.sub_block)
                 self.combine_assignments_into_multi(sub.sub_block)
                 self.optimize_multiassigns(sub.sub_block)
+                self.optimize_compare_with_zero(sub.sub_block)
         return self.parsed
+
+    def optimize_compare_with_zero(self, block: ParseResult.Block) -> None:
+        # a conditional goto that compares a value to zero will be simplified
+        # the comparison operator and rvalue (0) will be removed and the if-status changed accordingly
+        for stmt in block.statements:
+            if isinstance(stmt, ParseResult.CallStmt):
+                if stmt.condition and isinstance(stmt.condition.rvalue, (ParseResult.IntegerValue, ParseResult.FloatValue)):
+                    if stmt.condition.rvalue.value == 0:
+                        print("ZOMG COMPARE WITH ZERO", stmt.lineno)    # XXX
 
     def combine_assignments_into_multi(self, block: ParseResult.Block) -> None:
         # fold multiple consecutive assignments with the same rvalue into one multi-assignment

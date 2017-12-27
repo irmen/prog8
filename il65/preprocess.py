@@ -41,7 +41,7 @@ class PreprocessingParser(Parser):
         return self.result
 
     def parse_asminclude(self, line: str) -> ParseResult.InlineAsm:
-        return ParseResult.InlineAsm(self.sourceref.line, [])
+        return ParseResult.InlineAsm([], self.sourceref.line)
 
     def parse_statement(self, line: str) -> ParseResult._AstNode:
         return None     # type: ignore

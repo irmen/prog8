@@ -160,7 +160,7 @@ class CodeGenerator:
                         self.p("\t\tsta  {:s}".format(vname))
                         self.p("\t\tstx  {:s}+1".format(vname))
                     elif variable.type == DataType.FLOAT:
-                        raise TypeError("floats cannot be stored in the zp")
+                        raise CodeError("floats cannot be stored in the zp")
                 self.p("; end init zp vars")
             else:
                 self.p("\t\t; there are no zp vars to initialize")
@@ -213,8 +213,9 @@ class CodeGenerator:
                 asmlines = [
                     "\t\tcld\t\t\t; clear decimal flag",
                     "\t\tclc\t\t\t; clear carry flag"
+                    "\t\tclv\t\t\t; clear overflow flag"
                 ]
-                statements.insert(index+1, ParseResult.InlineAsm(0, asmlines))
+                statements.insert(index+1, ParseResult.InlineAsm(asmlines, 0))
                 break
         block.statements = statements
         # generate
@@ -286,7 +287,7 @@ class CodeGenerator:
                     self.p("\t\t{:s} = {:s}\t; matrix {:d} by {:d} = {:d} bytes"
                            .format(vardef.name, Parser.to_hex(vardef.address), vardef.matrixsize[0], vardef.matrixsize[1], vardef.length))
                 else:
-                    raise ValueError("invalid var type")
+                    raise CodeError("invalid var type")
         non_mem_vars = [vi for vi in block.symbols.iter_variables() if vi.allocate]
         if non_mem_vars:
             self.p("; normal variables")
@@ -305,7 +306,7 @@ class CodeGenerator:
                             self.p("{:s}\t\t.byte  ${:02x}, ${:02x}, ${:02x}, ${:02x}, ${:02x}"
                                    .format(vardef.name, *self.to_mflpt5(float(vardef.value))))
                         else:
-                            raise TypeError("weird datatype")
+                            raise CodeError("weird datatype")
                 elif vardef.type in (DataType.BYTEARRAY, DataType.WORDARRAY):
                     if vardef.address:
                         raise CodeError("array or wordarray vars must not have address; will be allocated by assembler")
@@ -316,7 +317,7 @@ class CodeGenerator:
                         self.p("{:s}\t\t.fill  {:d}, [${:02x}, ${:02x}]\t; {:d} words of ${:04x}"
                                .format(vardef.name, vardef.length * 2, f_lo, f_hi, vardef.length, vardef.value or 0))
                     else:
-                        raise TypeError("invalid datatype", vardef.type)
+                        raise CodeError("invalid datatype", vardef.type)
                 elif vardef.type == DataType.MATRIX:
                     if vardef.address:
                         raise CodeError("matrix vars must not have address; will be allocated by assembler")
@@ -434,6 +435,164 @@ class CodeGenerator:
             raise NotImplementedError("decr by > 1")  # XXX
 
     def generate_call(self, stmt: ParseResult.CallStmt) -> None:
+        self.p("\t\t\t\t\t; src l. {:d}".format(stmt.lineno))
+        if stmt.condition:
+            assert stmt.is_goto
+            line_after_goto = ""
+            if stmt.condition.lvalue:
+                if stmt.condition.comparison_op:
+                    # the condition is lvalue operator rvalue
+                    assert stmt.condition.ifstatus in ("true", "not")
+                    assert stmt.condition.lvalue != stmt.condition.rvalue   # so we know we actually have to compare different things
+                    lv, op, rv = stmt.condition.lvalue, stmt.condition.comparison_op, stmt.condition.rvalue
+                    if lv.constant and not rv.constant:
+                        # if lv is a constant, swap the whole thing around so the constant is on the right
+                        lv, op, rv = stmt.condition.swap()
+                    if isinstance(rv, ParseResult.RegisterValue):
+                        # if rv is a register, make sure it comes first instead
+                        lv, op, rv = stmt.condition.swap()
+                    if lv.datatype != DataType.BYTE or rv.datatype != DataType.BYTE:
+                        raise CodeError("can only generate comparison code for byte values for now")   # @todo compare non-bytes
+                    if isinstance(lv, ParseResult.RegisterValue):
+                        if isinstance(rv, ParseResult.RegisterValue):
+                            self.p("\t\tst{:s}  {:s}".format(rv.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                            if lv.register == "A":
+                                self.p("\t\tcmp  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                            elif lv.register == "X":
+                                self.p("\t\tcpx  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                            elif lv.register == "Y":
+                                self.p("\t\tcpy  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                            else:
+                                raise CodeError("wrong lvalue register")
+                        elif isinstance(rv, ParseResult.IntegerValue):
+                            rvstr = rv.name or Parser.to_hex(rv.value)
+                            if lv.register == "A":
+                                self.p("\t\tcmp  #" + rvstr)
+                            elif lv.register == "X":
+                                self.p("\t\tcpx  #" + rvstr)
+                            elif lv.register == "Y":
+                                self.p("\t\tcpy  #" + rvstr)
+                            else:
+                                raise CodeError("wrong lvalue register")
+                        elif isinstance(rv, ParseResult.MemMappedValue):
+                            rvstr = rv.name or Parser.to_hex(rv.address)
+                            if lv.register == "A":
+                                self.p("\t\tcmp  " + rvstr)
+                            elif lv.register == "X":
+                                self.p("\t\tcpx  #" + rvstr)
+                            elif lv.register == "Y":
+                                self.p("\t\tcpy  #" + rvstr)
+                            else:
+                                raise CodeError("wrong lvalue register")
+                        else:
+                            raise CodeError("invalid rvalue type in comparison", rv)
+                    elif isinstance(lv, ParseResult.MemMappedValue):
+                        assert not isinstance(rv, ParseResult.RegisterValue), "registers as rvalue should have been swapped with lvalue"
+                        if isinstance(rv, ParseResult.IntegerValue):
+                            self.p("\t\tsta  " + Parser.to_hex(Zeropage.SCRATCH_B1))   # need to save A, because the goto may not be taken
+                            self.p("\t\tlda  " + (lv.name or Parser.to_hex(lv.address)))
+                            self.p("\t\tcmp  #" + (rv.name or Parser.to_hex(rv.value)))
+                            line_after_goto = "\t\tlda  " + Parser.to_hex(Zeropage.SCRATCH_B1)  # restore A
+                        elif isinstance(rv, ParseResult.MemMappedValue):
+                            rvstr = rv.name or Parser.to_hex(rv.address)
+                            self.p("\t\tsta  " + Parser.to_hex(Zeropage.SCRATCH_B1))   # need to save A, because the goto may not be taken
+                            self.p("\t\tlda  " + (lv.name or Parser.to_hex(lv.address)))
+                            self.p("\t\tcmp  " + rvstr)
+                            line_after_goto = "\t\tlda  " + Parser.to_hex(Zeropage.SCRATCH_B1)  # restore A
+                        else:
+                            raise CodeError("invalid rvalue type in comparison", rv)
+                    else:
+                        raise CodeError("invalid lvalue type in comparison", lv)
+                else:
+                    # the condition is just the 'truth value' of the single value, or rather bool(value)
+                    # this is translated into assembly by comparing the argument to zero.
+                    cv = stmt.condition.lvalue
+                    inverse_status = stmt.condition.inverse_ifstatus()
+                    if isinstance(cv, ParseResult.RegisterValue):
+                        if cv.register == 'A':
+                            self.p("\t\tcmp  #0")
+                        elif cv.register == 'X':
+                            self.p("\t\tcpx  #0")
+                        elif cv.register == 'Y':
+                            self.p("\t\tcpy  #0")
+                        else:
+                            # @todo combined register, not all if statuses are supported yet
+                            opcode = self._branchopcode(inverse_status)
+                            if opcode not in ("beq", "bne"):
+                                raise CodeError("cannot yet generate code for register pair that is not a true/false/eq/ne comparison",
+                                                self.cur_block.sourceref.file, stmt.lineno)  # @todo
+                            if cv.register == 'AX':
+                                line_after_goto = "+"
+                                self.p("\t\tcmp  #0")
+                                self.p("\t\t{:s}  {:s}".format(opcode, line_after_goto))
+                                self.p("\t\tcpx  #0")
+                            elif cv.register == 'AY':
+                                line_after_goto = "+"
+                                self.p("\t\tcmp  #0")
+                                self.p("\t\t{:s}  {:s}".format(opcode, line_after_goto))
+                                self.p("\t\tcpy  #0")
+                            elif cv.register == 'XY':
+                                line_after_goto = "+"
+                                self.p("\t\tcpx  #0")
+                                self.p("\t\t{:s}  {:s}".format(opcode, line_after_goto))
+                                self.p("\t\tcpy  #0")
+                            else:
+                                raise CodeError("invalid register", cv.register)
+                    elif isinstance(cv, ParseResult.MemMappedValue):
+                        if cv.datatype == DataType.BYTE:
+                            self.p("\t\tsta  " + Parser.to_hex(Zeropage.SCRATCH_B1))   # need to save A, because the goto may not be taken
+                            self.p("\t\tlda  " + (cv.name or Parser.to_hex(cv.address)))
+                            line_after_goto = "\t\tlda  " + Parser.to_hex(Zeropage.SCRATCH_B1)  # restore A
+                        elif cv.datatype == DataType.WORD:
+                            # @todo word value, not all if statuses are supported yet
+                            opcode = self._branchopcode(inverse_status)
+                            if opcode not in ("beq", "bne"):
+                                raise CodeError("cannot yet generate code for word value that is not a true/false/eq/ne comparison",
+                                                self.cur_block.sourceref.file, stmt.lineno)  # @todo
+                            self.p("\t\tsta  " + Parser.to_hex(Zeropage.SCRATCH_B1))   # need to save A, because the goto may not be taken
+                            self.p("\t\tlda  " + (cv.name or Parser.to_hex(cv.address)))
+                            self.p("\t\t{:s}  +".format(opcode))
+                            self.p("\t\tlda  " + (cv.name or Parser.to_hex(cv.address)))
+                            line_after_goto = "+\t\tlda  " + Parser.to_hex(Zeropage.SCRATCH_B1)  # restore A
+                        else:
+                            raise CodeError("conditions cannot yet use other types than byte or word",   # XXX
+                                            str(cv), self.cur_block.sourceref.file, stmt.lineno)
+                    else:
+                        raise CodeError("need register or memmapped value")
+            status = stmt.condition.ifstatus
+
+            self._generate_call(stmt, conditional_goto_opcode=self._branchopcode(status), line_after_goto=line_after_goto)
+        else:
+            self._generate_call(stmt)
+
+    def _branchopcode(self, status: str) -> str:
+        if status == "true":
+            status = "ne"
+        elif status in ("not", "zero"):
+            status = "eq"
+        elif status == "lt":
+            status = "cc"
+        elif status == "gt":
+            status = "eq + cs"  # @todo
+        elif status == "le":
+            status = "cc + eq"  # @todo
+        elif status == "ge":
+            status = "cs"
+        opcodes = {"cc": "bcc",
+                   "cs": "bcs",
+                   "vc": "bvc",
+                   "vs": "bvs",
+                   "eq": "beq",
+                   "ne": "bne",
+                   "pos": "bpl",  # @todo correct?
+                   "neg": "bmi"}  # @todo correct?
+        return opcodes[status]
+
+    def _generate_call(self, stmt: ParseResult.CallStmt, conditional_goto_opcode: str=None, line_after_goto: str=None) -> None:
+        if stmt.arguments and conditional_goto_opcode:
+            raise CodeError("cannot use a conditional goto when the target requires parameters")
+        goto_opcode = conditional_goto_opcode or "jmp"
+
         def generate_param_assignments() -> None:
             for assign_stmt in stmt.desugared_call_arguments:
                 self.generate_assignment(assign_stmt)
@@ -469,10 +628,12 @@ class CodeGenerator:
             if isinstance(stmt.target, ParseResult.MemMappedValue):
                 targetstr = stmt.target.name or Parser.to_hex(stmt.address)
             else:
-                raise TypeError("call sub target should be mmapped")
+                raise CodeError("call sub target should be mmapped")
             if stmt.is_goto:
                 generate_param_assignments()
-                self.p("\t\tjmp  " + targetstr)
+                self.p("\t\t{:s}  {:s}".format(goto_opcode, targetstr))
+                if line_after_goto:
+                    self.p(line_after_goto)
                 # no result assignments because it's a goto
                 return
             clobbered = set()  # type: Set[str]
@@ -504,10 +665,12 @@ class CodeGenerator:
                 if targetstr in REGISTER_WORDS:
                     self.p("\t\tst{:s}  {:s}".format(targetstr[0].lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
                     self.p("\t\tst{:s}  {:s}".format(targetstr[1].lower(), Parser.to_hex(Zeropage.SCRATCH_B2)))
-                    self.p("\t\tjmp  ({:s})".format(Parser.to_hex(Zeropage.SCRATCH_B1)))
+                    self.p("\t\t{:s}  ({:s})".format(goto_opcode, Parser.to_hex(Zeropage.SCRATCH_B1)))
                 else:
-                    self.p("\t\tjmp  ({:s})".format(targetstr))
+                    self.p("\t\t{:s}  ({:s})".format(goto_opcode, targetstr))
                 # no result assignments because it's a goto
+                if line_after_goto:
+                    self.p(line_after_goto)
             else:
                 preserve_regs = {'A', 'X', 'Y'} if stmt.preserve_regs else set()
                 unclobber_result_registers(preserve_regs, stmt.desugared_output_assignments)
@@ -551,8 +714,10 @@ class CodeGenerator:
             if stmt.is_goto:
                 # no need to preserve registers for a goto
                 generate_param_assignments()
-                self.p("\t\tjmp  " + targetstr)
+                self.p("\t\t{:s}  {:s}".format(goto_opcode, targetstr))
                 # no result assignments because it's a goto
+                if line_after_goto:
+                    self.p(line_after_goto)
             else:
                 preserve_regs = {'A', 'X', 'Y'} if stmt.preserve_regs else set()
                 unclobber_result_registers(preserve_regs, stmt.desugared_output_assignments)
@@ -813,7 +978,7 @@ class CodeGenerator:
         if lv.name:
             symblock, sym = self.cur_block.lookup(lv.name)
             if not isinstance(sym, VariableDef):
-                raise TypeError("invalid lvalue type " + str(sym))
+                raise CodeError("invalid lvalue type " + str(sym))
             assign_target = symblock.label + '.' + sym.name if symblock is not self.cur_block else lv.name
             lvdatatype = sym.type
         else:
@@ -836,10 +1001,10 @@ class CodeGenerator:
                 self.p("\t\tsta  {}+1".format(assign_target))
         elif lvdatatype == DataType.FLOAT:
             if rvalue.value is not None and not DataType.FLOAT.assignable_from_value(rvalue.value):
-                raise ValueError("value cannot be assigned to a float")
+                raise CodeError("value cannot be assigned to a float")
             self.generate_assign_float_to_mem(lv, rvalue, False)
         else:
-            raise TypeError("invalid lvalue type " + str(lvdatatype))
+            raise CodeError("invalid lvalue type " + str(lvdatatype))
 
     def generate_assign_mem_to_reg(self, l_register: str, rvalue: ParseResult.MemMappedValue) -> None:
         r_str = rvalue.name if rvalue.name else "${:x}".format(rvalue.address)
@@ -934,9 +1099,9 @@ class CodeGenerator:
                     self.p("\t\tlda  #0")
                     self.p("\t\tsta  {}+1".format(assign_target))
                 else:
-                    raise TypeError("invalid lvalue type " + str(sym))
+                    raise CodeError("invalid lvalue type " + str(sym))
             else:
-                raise TypeError("invalid lvalue type " + str(sym))
+                raise CodeError("invalid lvalue type " + str(sym))
 
     def generate_assign_integer_to_reg(self, l_register: str, rvalue: ParseResult.IntegerValue) -> None:
         r_str = rvalue.name if rvalue.name else "${:x}".format(rvalue.value)

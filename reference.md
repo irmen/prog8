@@ -311,21 +311,17 @@ TODOS
 
 ### Flow Control
 
-Required building blocks: additional forms of 'go' statement: including an if clause, comparison statement.
+Required building blocks: additional forms of 'goto' statement: including an if clause, comparison statement.
 
-- a primitive conditional branch instruction (special case of 'go'): directly translates to a branch instruction:
-        if[_XX] goto <label>
-  XX is one of: (cc, cs, vc, vs, eq, ne, pos, min,
-  lt==cc, lts==min,  gt==eq+cs, gts==eq+pos,  le==cc+eq, les==neg+eq,  ge==cs, ges==pos)
-  and when left out, defaults to ne (not-zero, i.e. true)
+- a conditional goto instruction: directly translates to a branch instruction:
+        if[_XX] [<expression>] goto <label>
+  The if-status XX is one of: [cc, cs, vc, vs, eq, ne, pos, neg, true==ne, not==eq, zero==eq,
+        lt==cc, gt==eq+cs, le==cc+eq, ge==cs]
+        (@todo signed: lts==neg?, gts==eq+pos?, les==neg+eq?, ges==pos?)
+  and defaults to true (ne, not-zero) if omitted.
+  The <expression> is optional. If it is provided, it will be evaluated first. Only the [true] and [not] if-statuses
+  can be used when a *comparison expression* (such as "A < 10") is used.  
   NOTE: some combination branches such as cc+eq an be peephole optimized see http://www.6502.org/tutorials/compare_beyond.html#2.2
-
-- conditional goto with expression: where the if[_XX] is followed by a <expression>
-  in that case, evaluate the <expression> first (whatever it is) and then emit the primitive if[_XX] go
-        if[_XX] <expression> goto <label>
-  eventually translates to:
-        <expression-code>
-        bXX <label>
 
 - comparison statement: compares left with right:  compare <first_value>, <second_value>
   (and keeps the comparison result in the status register.)
