@@ -12,16 +12,21 @@ which aims to provide many conveniences over raw assembly code (even when using 
 
 - reduction of source code length
 - easier program understanding (because it's higher level, and more terse)
+- option to automatically run the compiled program in the Vice emulator  
 - modularity, symbol scoping, subroutines
 - subroutines have enforced input- and output parameter definitions
 - automatic variable allocations
 - various data types other than just bytes
 - automatic type conversions
 - floating point operations
-- automatically preserving and restoring CPU registers state, when calling routines that otherwise would clobber these
+- automatically preserving and restoring CPU registers state, when calling routines that otherwise would clobber these 
 - abstracting away low level aspects such as zero page handling, program startup, explicit memory addresses
-- @todo: conditionals and loops
+- breakpoints, that let the Vice emulator drop into the monitor if execution hits them
+- source code labels automatically loaded in Vice emulator so it can show them in disassembly
+- conditional gotos
+- @todo: loops
 - @todo: memory block operations
+
 
 It still allows for low level programming however and inline assembly blocks
 to write performance critical pieces of code, but otherwise compiles fairly straightforwardly
@@ -304,6 +309,23 @@ essentially is the same as calling a subroutine and only doing something differe
 
 
 @todo support call non-register args (variable parameter passing)
+
+
+DEBUGGING (with Vice)
+---------------------
+
+The ``breakpoint`` statement is a special statement that instructs the compiler to put
+a *breakpoint* at that position in the code. It's a logical breakpoint instead of a physical
+BRK instruction because that will usually halt the machine altogether instead of breaking execution.
+Instead, a NOP instruction is generated and in a special output file the list of breakpoints is written.
+
+This file is called "yourprogramname.vice-mon-list" and is meant to be used by the Vice C-64 emulator.
+It contains a series of commands for Vice's monitor, this includes source labels and the breakpoint settings.
+If you use the vice autostart feature of the compiler, it will be automatically processed by Vice.
+If you launch Vice manually, you can use a command line option to load the file: ``x64 -moncommands yourprogramname.vice-mon-list`` 
+
+Vice will use the label names in memory disassembly, and will activate the breakpoints as well
+so if your program runs and it hits a breakpoint, Vice will halt execution and drop into the monitor.
 
 
 TODOS

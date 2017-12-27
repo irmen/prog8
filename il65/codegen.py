@@ -7,6 +7,7 @@ License: GNU GPL 3.0, see LICENSE
 """
 
 import io
+import re
 import math
 import datetime
 import subprocess
@@ -23,6 +24,9 @@ class CodeError(Exception):
 
 
 class CodeGenerator:
+    BREAKPOINT_COMMENT_SIGNATURE = "~~~BREAKPOINT~~~"
+    BREAKPOINT_COMMENT_DETECTOR = r".(?P<address>\w+)\s+ea\s+nop\s+;\s+{:s}.*".format(BREAKPOINT_COMMENT_SIGNATURE)
+
     def __init__(self, parsed: ParseResult) -> None:
         self.parsed = parsed
         self.generated_code = io.StringIO()
@@ -382,6 +386,9 @@ class CodeGenerator:
             self.p("\t\t; end inline asm, src l. {:d}".format(stmt.lineno))
         elif isinstance(stmt, ParseResult.Comment):
             self.p(stmt.text)
+        elif isinstance(stmt, ParseResult.BreakpointStmt):
+            # put a marker in the source so that we can generate a list of breakpoints later
+            self.p("\t\tnop\t; {:s}  src l. {:d}".format(self.BREAKPOINT_COMMENT_SIGNATURE, stmt.lineno))
         else:
             raise CodeError("unknown statement " + repr(stmt))
         self.previous_stmt_was_assignment = isinstance(stmt, ParseResult.AssignmentStmt)
@@ -504,7 +511,7 @@ class CodeGenerator:
                     else:
                         raise CodeError("invalid lvalue type in comparison", lv)
                 else:
-                    # the condition is just the 'truth value' of the single value, or rather bool(value)
+                    # the condition is just the 'truth value' of the single value,
                     # this is translated into assembly by comparing the argument to zero.
                     cv = stmt.condition.lvalue
                     inverse_status = stmt.condition.inverse_ifstatus()
@@ -520,7 +527,7 @@ class CodeGenerator:
                             opcode = self._branchopcode(inverse_status)
                             if opcode not in ("beq", "bne"):
                                 raise CodeError("cannot yet generate code for register pair that is not a true/false/eq/ne comparison",
-                                                self.cur_block.sourceref.file, stmt.lineno)  # @todo
+                                                self.cur_block.sourceref.file, stmt.lineno)  # @todo more register pair comparisons
                             if cv.register == 'AX':
                                 line_after_goto = "+"
                                 self.p("\t\tcmp  #0")
@@ -548,14 +555,14 @@ class CodeGenerator:
                             opcode = self._branchopcode(inverse_status)
                             if opcode not in ("beq", "bne"):
                                 raise CodeError("cannot yet generate code for word value that is not a true/false/eq/ne comparison",
-                                                self.cur_block.sourceref.file, stmt.lineno)  # @todo
+                                                self.cur_block.sourceref.file, stmt.lineno)  # @todo more word value comparisons
                             self.p("\t\tsta  " + Parser.to_hex(Zeropage.SCRATCH_B1))   # need to save A, because the goto may not be taken
                             self.p("\t\tlda  " + (cv.name or Parser.to_hex(cv.address)))
                             self.p("\t\t{:s}  +".format(opcode))
                             self.p("\t\tlda  " + (cv.name or Parser.to_hex(cv.address)))
                             line_after_goto = "+\t\tlda  " + Parser.to_hex(Zeropage.SCRATCH_B1)  # restore A
                         else:
-                            raise CodeError("conditions cannot yet use other types than byte or word",   # XXX
+                            raise CodeError("conditions cannot yet use other types than byte or word",   # @todo comparisons of other types
                                             str(cv), self.cur_block.sourceref.file, stmt.lineno)
                     else:
                         raise CodeError("need register or memmapped value")
@@ -573,9 +580,9 @@ class CodeGenerator:
         elif status == "lt":
             status = "cc"
         elif status == "gt":
-            status = "eq + cs"  # @todo
+            status = "eq + cs"  # @todo  if_gt
         elif status == "le":
-            status = "cc + eq"  # @todo
+            status = "cc + eq"  # @todo  if_le
         elif status == "ge":
             status = "cs"
         opcodes = {"cc": "bcc",
@@ -584,8 +591,8 @@ class CodeGenerator:
                    "vs": "bvs",
                    "eq": "beq",
                    "ne": "bne",
-                   "pos": "bpl",  # @todo correct?
-                   "neg": "bmi"}  # @todo correct?
+                   "pos": "bpl",
+                   "neg": "bmi"}
         return opcodes[status]
 
     def _generate_call(self, stmt: ParseResult.CallStmt, conditional_goto_opcode: str=None, line_after_goto: str=None) -> None:
@@ -1191,8 +1198,9 @@ class Assembler64Tass:
         self.format = format
 
     def assemble(self, inputfilename: str, outputfilename: str) -> None:
-        args = ["64tass", "--ascii", "--case-sensitive", "-Wall", "-Wno-strict-bool", "--dump-labels",
-                "--labels", outputfilename+".labels.txt", "--output", outputfilename, inputfilename]
+        args = ["64tass", "--ascii", "--case-sensitive", "-Wall", "-Wno-strict-bool",
+                "--dump-labels", "--vice-labels", "-l", outputfilename+".vice-mon-list",
+                "-L", outputfilename+".final-asm", "--no-monitor", "--output", outputfilename, inputfilename]
         if self.format == ProgramFormat.PRG:
             args.append("--cbm-prg")
         elif self.format == ProgramFormat.RAW:
@@ -1210,3 +1218,19 @@ class Assembler64Tass:
                 raise SystemExit("ERROR: cannot run assembler program: "+str(x))
         except subprocess.CalledProcessError as x:
             print("assembler failed with returncode", x.returncode)
+
+    def generate_breakpoint_list(self, program_filename: str) -> str:
+        breakpoints = []
+        with open(program_filename + ".final-asm", "rU") as f:
+            for line in f:
+                match = re.fullmatch(CodeGenerator.BREAKPOINT_COMMENT_DETECTOR, line, re.DOTALL)
+                if match:
+                    breakpoints.append("$" + match.group("address"))
+        cmdfile = program_filename + ".vice-mon-list"
+        with open(cmdfile, "at") as f:
+            print("; vice monitor breakpoint list now follows", file=f)
+            print("; {:d} breakpoints have been defined here".format(len(breakpoints)), file=f)
+            print("del", file=f)
+            for b in breakpoints:
+                print("break", b, file=f)
+        return cmdfile

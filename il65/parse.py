@@ -499,6 +499,10 @@ class ParseResult:
             self.lvalue, self.comparison_op, self.rvalue = self.rvalue, self.SWAPPED_OPERATOR[self.comparison_op], self.lvalue
             return self.lvalue, self.comparison_op, self.rvalue
 
+    class BreakpointStmt(_AstNode):
+        def __init__(self, lineno: int) -> None:
+            super().__init__(lineno)
+
     def add_block(self, block: 'ParseResult.Block', position: Optional[int]=None) -> None:
         if position is not None:
             self.blocks.insert(position, block)
@@ -951,6 +955,9 @@ class Parser:
                     raise self.PError("ZP block cannot contain code statements")
                 self.prev_line()
                 self.cur_block.statements.append(self.parse_asm())
+            elif line == "breakpoint":
+                self.cur_block.statements.append(ParseResult.BreakpointStmt(self.sourceref.line))
+                self.print_warning("warning: {}: breakpoint defined".format(self.sourceref))
             elif unstripped_line.startswith((" ", "\t")):
                 if is_zp_block:
                     raise self.PError("ZP block cannot contain code statements")

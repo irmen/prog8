@@ -12,6 +12,7 @@ which aims to provide many conveniences over raw assembly code (even when using 
 
 - reduction of source code length
 - easier program understanding (because it's higher level, and more terse)
+- option to automatically run the compiled program in the Vice emulator  
 - modularity, symbol scoping, subroutines
 - subroutines have enforced input- and output parameter definitions
 - automatic variable allocations
@@ -20,7 +21,10 @@ which aims to provide many conveniences over raw assembly code (even when using 
 - floating point operations
 - automatically preserving and restoring CPU registers state, when calling routines that otherwise would clobber these 
 - abstracting away low level aspects such as zero page handling, program startup, explicit memory addresses
-- @todo: conditionals and loops
+- breakpoints, that let the Vice emulator drop into the monitor if execution hits them
+- source code labels automatically loaded in Vice emulator so it can show them in disassembly
+- conditional gotos
+- @todo: loops
 - @todo: memory block operations
 
 It still allows for low level programming however and inline assembly blocks

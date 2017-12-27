@@ -11,6 +11,7 @@ License: GNU GPL 3.0, see LICENSE
 import time
 import os
 import argparse
+import subprocess
 from .parse import Parser, Optimizer
 from .preprocess import PreprocessingParser
 from .codegen import CodeGenerator, Assembler64Tass
@@ -20,7 +21,8 @@ def main() -> None:
     description = "Compiler for IL65 language, code name 'Sick'"
     ap = argparse.ArgumentParser(description=description)
     ap.add_argument("-o", "--output", help="output directory")
-    ap.add_argument("--noopt", action="store_true", help="do not optimize the parse tree")
+    ap.add_argument("-no", "--nooptimize", action="store_true", help="do not optimize the parse tree")
+    ap.add_argument("-sv", "--startvice", action="store_true", help="autostart vice x64 emulator after compilation")
     ap.add_argument("sourcefile", help="the source .ill/.il65 file to compile")
     args = ap.parse_args()
     assembly_filename = os.path.splitext(args.sourcefile)[0] + ".asm"
@@ -40,7 +42,7 @@ def main() -> None:
     p = Parser(args.sourcefile, args.output, sourcelines, ppsymbols=symbols, sub_usage=pp.result.subroutine_usage)
     parsed = p.parse()
     if parsed:
-        if args.noopt:
+        if args.nooptimize:
             print("not optimizing the parse tree!")
         else:
             opt = Optimizer(parsed)
@@ -52,7 +54,14 @@ def main() -> None:
             cg.write_assembly(out)
         assembler = Assembler64Tass(parsed.format)
         assembler.assemble(assembly_filename, program_filename)
+        mon_command_file = assembler.generate_breakpoint_list(program_filename)
         duration_total = time.perf_counter() - start
         print("Compile duration:  {:.2f} seconds".format(duration_total))
         print("Output file:      ", program_filename)
         print()
+        if args.startvice:
+            print("Autostart vice emulator...")
+            args = ["x64", "-remotemonitor", "-moncommands", mon_command_file,
+                    "-autostartprgmode", "1", "-autostart-warp", "-autostart", program_filename]
+            with open(os.devnull, "wb") as shutup:
+                subprocess.call(args, stdout=shutup)

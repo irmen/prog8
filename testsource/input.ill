@@ -13,9 +13,14 @@ start
         c64.CINV = #irq_handler
         SI = 0
 
+
         c64util.print_string("enter your name: ")
         c64util.input_chars(name)
         c64.CHROUT('\n')
+
+blop
+        breakpoint   ; yeah!
+
         c64util.print_string("thank you, mr or mrs: ")
         c64util.print_string(name)
         c64.CHROUT('\n')
