@@ -311,7 +311,27 @@ essentially is the same as calling a subroutine and only doing something differe
 @todo support call non-register args (variable parameter passing)
 
 
-DEBUGGING (with Vice)
+### Conditional Execution Flow
+
+Conditional execution flow means that the flow of execution changes based on certiain conditions,
+rather than having fixed gotos or subroutine calls. IL65 has a *conditional goto* statement for this,
+that is translated into a comparison (if needed) and then a conditional branch instruction:
+ 
+        if[_XX] [<expression>] goto <label>
+
+The if-status XX is one of: [cc, cs, vc, vs, eq, ne, pos, neg, true==ne, not==eq, zero==eq, lt==cc, gt==eq+cs, le==cc+eq, ge==cs]
+It defaults to 'true' (=='ne', not-zero) if omitted. @todo signed: lts==neg?, gts==eq+pos?, les==neg+eq?, ges==pos?
+
+The <expression> is optional. If it is provided, it will be evaluated first. Only the [true] and [not] if-statuses
+can be used when such a *comparison expression* is used. An example is:
+
+        ``if_not  A > 55  goto  more_iterations``  
+
+NOTE: some combination branches such as cc+eq an be peephole optimized see http://www.6502.org/tutorials/compare_beyond.html#2.2
+
+
+
+Debugging (with Vice)
 ---------------------
 
 The ``breakpoint`` statement is a special statement that instructs the compiler to put
@@ -328,28 +348,9 @@ Vice will use the label names in memory disassembly, and will activate the break
 so if your program runs and it hits a breakpoint, Vice will halt execution and drop into the monitor.
 
 
+
 TODOS
 -----
-
-### Flow Control
-
-Required building blocks: additional forms of 'goto' statement: including an if clause, comparison statement.
-
-- a conditional goto instruction: directly translates to a branch instruction:
-        if[_XX] [<expression>] goto <label>
-  The if-status XX is one of: [cc, cs, vc, vs, eq, ne, pos, neg, true==ne, not==eq, zero==eq,
-        lt==cc, gt==eq+cs, le==cc+eq, ge==cs]
-        (@todo signed: lts==neg?, gts==eq+pos?, les==neg+eq?, ges==pos?)
-  and defaults to true (ne, not-zero) if omitted.
-  The <expression> is optional. If it is provided, it will be evaluated first. Only the [true] and [not] if-statuses
-  can be used when a *comparison expression* (such as "A < 10") is used.  
-  NOTE: some combination branches such as cc+eq an be peephole optimized see http://www.6502.org/tutorials/compare_beyond.html#2.2
-
-- comparison statement: compares left with right:  compare <first_value>, <second_value>
-  (and keeps the comparison result in the status register.)
-  this translates into a lda first_value, cmp second_value sequence after which a conditional branch is possible.
-
-
 
 ### IF_XX:
 

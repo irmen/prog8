@@ -222,9 +222,20 @@ class ExpressionTransformer(EvaluatingTransformer):
             if isinstance(node.op, ast.UAdd):
                 node = self.generic_visit(node)
                 return ast.copy_location(ast.Num(node.operand.n), node)
-            raise self.error("expected unary + or -")
+            if isinstance(node.op, ast.Invert):
+                if isinstance(node.operand, ast.Num):
+                    node = self.generic_visit(node)
+                    return ast.copy_location(ast.Num(~node.operand.n), node)
+                else:
+                    raise self.error("can only bitwise invert a number")
+            raise self.error("expected unary + or - or ~")
+        elif isinstance(node.operand, ast.UnaryOp):
+            # nested unary ops, for instance: "~-2" = invert(minus(2))
+            node = self.generic_visit(node)
+            return self.visit_UnaryOp(node)
         else:
-            raise self.error("expected numeric operand for unary operator")
+            print(node.operand)
+            raise self.error("expected constant numeric operand for unary operator")
 
     def visit_BinOp(self, node):
         node = self.generic_visit(node)
@@ -262,5 +273,14 @@ def astnode_to_repr(node: ast.AST) -> str:
             raise TypeError("invalid arg ast node type", node)
     if isinstance(node, ast.Attribute):
         return astnode_to_repr(node.value) + "." + node.attr
+    if isinstance(node, ast.UnaryOp):
+        if isinstance(node.op, ast.USub):
+            return "-" + astnode_to_repr(node.operand)
+        if isinstance(node.op, ast.UAdd):
+            return "+" + astnode_to_repr(node.operand)
+        if isinstance(node.op, ast.Invert):
+            return "~" + astnode_to_repr(node.operand)
+        if isinstance(node.op, ast.Not):
+            return "not " + astnode_to_repr(node.operand)
     print("error", ast.dump(node))
     raise TypeError("invalid arg ast node type", node)

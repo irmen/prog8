@@ -8,16 +8,28 @@ output raw
 
 
 start
+        A = 44
+        X = ~22+44
+        A= ~-1
+        Y = ~-2
         return
 label1
+        if_true A==0  goto  label1
+        if_true A!=0  goto  label1
+        if_not X!=0  goto  label1
+
+        if_true A<=1  goto  label1
+        if_true A==1  goto  label1
+        if_true A!=1  goto  label1
+        if_not X<1  goto  label1
+        if_not Y>1  goto  label1
+        if_not X!=1  goto  label1
+
         if_true 22<=Y  goto  label1
         if_true A<=22  goto  label1
         if_true A<X  goto  label1
         if_true X>Y  goto  label1
         if_true X>A  goto  label1
-        if_true A<=0  goto  label1
-        if_true A==0  goto  label1
-        if_true A!=0  goto  label1
         if A<=22  goto  label1
         if_cc A  goto  label1
         if_vc X  goto  label1

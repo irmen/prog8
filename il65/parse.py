@@ -1363,7 +1363,7 @@ class Parser:
                 return ParseResult.IntegerValue(expression.address, datatype=DataType.WORD, name=expression.name)
             else:
                 raise self.PError("cannot take the address of this type")
-        elif text[0] in "-.0123456789$%":
+        elif text[0] in "-.0123456789$%~":
             number = parse_expr_as_number(text, self.cur_block.symbols, self.ppsymbols, self.sourceref)
             try:
                 if type(number) is int:
@@ -1592,9 +1592,32 @@ class Optimizer:
         # the comparison operator and rvalue (0) will be removed and the if-status changed accordingly
         for stmt in block.statements:
             if isinstance(stmt, ParseResult.CallStmt):
-                if stmt.condition and isinstance(stmt.condition.rvalue, (ParseResult.IntegerValue, ParseResult.FloatValue)):
-                    if stmt.condition.rvalue.value == 0:
-                        print("ZOMG COMPARE WITH ZERO", stmt.lineno)    # XXX
+                cond = stmt.condition
+                if cond and isinstance(cond.rvalue, (ParseResult.IntegerValue, ParseResult.FloatValue)) and cond.rvalue.value == 0:
+                    simplified = False
+                    if cond.ifstatus in ("true", "ne"):
+                        if cond.comparison_op == "==":
+                            # if_true something == 0   ->  if_not something
+                            cond.ifstatus = "not"
+                            cond.comparison_op, cond.rvalue = "", None
+                            simplified = True
+                        elif cond.comparison_op == "!=":
+                            # if_true something != 0  -> if_true something
+                            cond.comparison_op, cond.rvalue = "", None
+                            simplified = True
+                    elif cond.ifstatus in ("not", "eq"):
+                        if cond.comparison_op == "==":
+                            # if_not something == 0   ->  if_true something
+                            cond.ifstatus = "true"
+                            cond.comparison_op, cond.rvalue = "", None
+                            simplified = True
+                        elif cond.comparison_op == "!=":
+                            # if_not something != 0  -> if_not something
+                            cond.comparison_op, cond.rvalue = "", None
+                            simplified = True
+                    if simplified:
+                        print("{:s}:{:d}: simplified comparison with zero".format(block.sourceref.file, stmt.lineno))
+
 
     def combine_assignments_into_multi(self, block: ParseResult.Block) -> None:
         # fold multiple consecutive assignments with the same rvalue into one multi-assignment
