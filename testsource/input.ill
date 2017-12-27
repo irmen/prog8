@@ -18,6 +18,15 @@ start
         c64util.print_string(name)
         c64.CHROUT('\n')
 
+        ;if_cc goto label
+        ;if_cc label
+        ;if_cc dsdaf + 33 < 22 label
+        ;if_cc dsdaf + 33 < 22  goto  label!
+        goto label
+        goto label()
+
+label
+
         SI = 1
         c64.CINV = XY
         SI = 0

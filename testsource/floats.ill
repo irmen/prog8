@@ -45,10 +45,10 @@ start
 
 sub  printflt (float: AY) -> (A?, X?, Y?) {
         c64.MOVFM!(AY)
-        goto c64.FPRINTLN!()
+        goto c64.FPRINTLN
         ; c64.FOUT!()
         ; c64util.print_string!(AY)
-        ;goto c64.CHROUT!('\n')
+        ;goto c64.CHROUT('\n')
 }
 
 

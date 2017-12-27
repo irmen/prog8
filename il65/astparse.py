@@ -100,6 +100,16 @@ def parse_arguments(text: str, sourceref: SourceRef) -> List[Tuple[str, Primitiv
         raise TypeError("ast.Expression expected")
 
 
+def parse_expr_as_comparison(text: str, context: Optional[SymbolTable], ppcontext: Optional[SymbolTable], sourceref: SourceRef) -> None:
+    src = SourceLine(text, sourceref)
+    text = src.preprocess()
+    try:
+        node = ast.parse(text, sourceref.file, mode="eval")
+    except SyntaxError as x:
+        raise src.to_error(str(x))
+    print("AST NODE", node)
+
+
 def parse_expr_as_int(text: str, context: Optional[SymbolTable], ppcontext: Optional[SymbolTable], sourceref: SourceRef, *,
                       minimum: int=0, maximum: int=0xffff) -> int:
     result = parse_expr_as_primitive(text, context, ppcontext, sourceref, minimum=minimum, maximum=maximum)

@@ -944,25 +944,25 @@ class Parser:
             raise self.PError(str(x)) from x
 
     def parse_subroutine_def(self, line: str) -> None:
-        match = re.match(r"^sub\s+(?P<name>\w+)\s+"
-                         r"\((?P<parameters>[\w\s:,]*)\)"
-                         r"\s*->\s*"
-                         r"\((?P<results>[\w\s?,]*)\)\s*"
-                         r"(?P<decltype>\s+=\s+(?P<address>\S*)|{)\s*$", line)
+        match = re.fullmatch(r"sub\s+(?P<name>\w+)\s+"
+                             r"\((?P<parameters>[\w\s:,]*)\)"
+                             r"\s*->\s*"
+                             r"\((?P<results>[\w\s?,]*)\)\s*"
+                             r"(?P<decltype>\s+=\s+(?P<address>\S*)|{)\s*", line)
         if not match:
             raise self.PError("invalid sub declaration")
-        code_decl = match.group("decltype") == "{"
-        name, parameterlist, resultlist, address_str = \
-            match.group("name"), match.group("parameters"), match.group("results"), match.group("address")
-        parameters = [(match.group("name"), match.group("target"))
-                      for match in re.finditer(r"(?:(?:(?P<name>[\w]+)\s*:\s*)?(?P<target>[\w]+))(?:,|$)", parameterlist)]
+        groups = match.groupdict()
+        code_decl = groups["decltype"] == "{"
+        name, parameterlist, resultlist, address_str = groups["name"], groups["parameters"], groups["results"], groups["address"]
+        parameters = [(m.group("name"), m.group("target"))
+                      for m in re.finditer(r"(?:(?:(?P<name>[\w]+)\s*:\s*)?(?P<target>[\w]+))(?:,|$)", parameterlist)]
         for _, regs in parameters:
             if regs not in REGISTER_SYMBOLS:
                 raise self.PError("invalid register(s) in parameter or return values")
         all_paramnames = [p[0] for p in parameters if p[0]]
         if len(all_paramnames) != len(set(all_paramnames)):
             raise self.PError("duplicates in parameter names")
-        results = [match.group("name") for match in re.finditer(r"\s*(?P<name>(?:\w+)\??)\s*(?:,|$)", resultlist)]
+        results = [m.group("name") for m in re.finditer(r"\s*(?P<name>(?:\w+)\??)\s*(?:,|$)", resultlist)]
         subroutine_block = None
         if code_decl:
             address = None
@@ -1040,30 +1040,28 @@ class Parser:
         return varname, datatype, length, matrix_dimensions, valuetext
 
     def parse_statement(self, line: str) -> ParseResult._AstNode:
-        match = re.match(r"(?P<outputs>.*\s*=)\s*(?P<subname>[\S]+?)\s*(?P<fcall>[!]?)\s*(\((?P<arguments>.*)\))?\s*$", line)
+        match = re.fullmatch(r"goto\s+(?P<subname>[\S]+?)\s*(\((?P<arguments>.*)\))?\s*", line)
         if match:
-            # subroutine call (not a goto) with output param assignment
-            preserve = not bool(match.group("fcall"))
-            subname = match.group("subname")
-            arguments = match.group("arguments")
-            outputs = match.group("outputs")
+            # goto
+            groups = match.groupdict()
+            subname = groups["subname"]
+            if '!' in subname:
+                raise self.PError("goto is always without register preservation, should not have exclamation mark")
+            arguments = groups["arguments"]
+            return self.parse_call_or_goto(subname, arguments, None, False, True)
+        match = re.fullmatch(r"(?P<outputs>[^\(]*\s*=)?\s*(?P<subname>[\S]+?)\s*(?P<fcall>[!]?)\s*(\((?P<arguments>.*)\))?\s*", line)
+        if match:
+            # subroutine call (not a goto) with possible output param assignment
+            groups = match.groupdict()
+            preserve = not bool(groups["fcall"])
+            subname = groups["subname"]
+            arguments = groups["arguments"]
+            outputs = groups["outputs"] or ""
             if outputs.strip() == "=":
                 raise self.PError("missing assignment target variables")
             outputs = outputs.rstrip("=")
-            if arguments or match.group(4):
+            if arguments or match.group(4):     # group 4 = (possibly empty) parenthesis
                 return self.parse_call_or_goto(subname, arguments, outputs, preserve, False)
-            # apparently it is not a call (no arguments), fall through
-        match = re.match(r"(?P<goto>goto\s+)?(?P<subname>[\S]+?)\s*(?P<fcall>[!]?)\s*(\((?P<arguments>.*)\))?\s*$", line)
-        if match:
-            # subroutine or goto call, without output param assignment
-            is_goto = bool(match.group("goto"))
-            preserve = not bool(match.group("fcall"))
-            subname = match.group("subname")
-            arguments = match.group("arguments")
-            if is_goto:
-                return self.parse_call_or_goto(subname, arguments, None, preserve, True)
-            elif arguments or match.group(4):
-                return self.parse_call_or_goto(subname, arguments, None, preserve, False)
             # apparently it is not a call (no arguments), fall through
         if line == "return" or line.startswith(("return ", "return\t")):
             return self.parse_return(line)

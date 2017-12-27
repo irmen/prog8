@@ -10,7 +10,7 @@
 output raw
 
 ~ c64 {
-		memory  SCRATCH_ZP1	= $02		; scratch register #1 in ZP 
+		memory  SCRATCH_ZP1	= $02		; scratch register #1 in ZP
 		memory  SCRATCH_ZP2	= $03		; scratch register #2 in ZP
 
 		memory  .byte COLOR	= $0286		; cursor color
@@ -92,7 +92,6 @@ output raw
 		memory  .float	FL_FR4		= $e2ea  ; .25
 
 
-; @todo verify clobbered registers?
 ; note: fac1/2 might get clobbered even if not mentioned in the function's name.
 ; note: for subtraction and division, the left operand is in fac2, the right operand in fac1.
 
@@ -132,7 +131,7 @@ sub	FADDT		() -> (A?, X?, Y?)		= $b86a		; fac1 += fac2
 sub	FADD		(mflpt: AY) -> (A?, X?, Y?)	= $b867		; fac1 += mflpt value from A/Y
 sub	FSUBT		() -> (A?, X?, Y?)		= $b853		; fac1 = fac2-fac1   mind the order of the operands
 sub	FSUB		(mflpt: AY) -> (A?, X?, Y?)	= $b850		; fac1 = mflpt from A/Y - fac1
-sub	FMULTT 		() -> (A?, X?, Y?)		= $ba2b		; fac1 *= fac2 
+sub	FMULTT 		() -> (A?, X?, Y?)		= $ba2b		; fac1 *= fac2
 sub	FMULT		(mflpt: AY) -> (A?, X?, Y?)	= $ba28		; fac1 *= mflpt value from A/Y
 sub	FDIVT 		() -> (A?, X?, Y?)		= $bb12		; fac1 = fac2/fac1   mind the order of the operands
 sub	FDIV  		(mflpt: AY) -> (A?, X?, Y?)	= $bb0f		; fac1 = mflpt in A/Y / fac1
@@ -230,7 +229,7 @@ sub  FREADS32  () -> (A?, X?, Y?)  {
 		ldx  #$a0
 		jmp  $bc4f		; internal BASIC routine
 	}
-}	
+}
 
 sub  FREADUS32  () -> (A?, X?, Y?)  {
 	; ---- fac1 = uint32 from $62-$65 big endian (MSB FIRST)
@@ -244,7 +243,7 @@ sub  FREADUS32  () -> (A?, X?, Y?)  {
 
 sub  FREADS24AXY  (lo: A, mid: X, hi: Y) -> (A?, X?, Y?)  {
 	; ---- fac1 = signed int24 (A/X/Y contain lo/mid/hi bytes)
-	;      note: there is no FREADU24AXY (unsigned), use FREADUS32 instead. 
+	;      note: there is no FREADU24AXY (unsigned), use FREADUS32 instead.
 	asm {
 		sty  $62
 		stx  $63
@@ -258,7 +257,7 @@ sub  FREADS24AXY  (lo: A, mid: X, hi: Y) -> (A?, X?, Y?)  {
 		jmp  $bc4f		; internal BASIC routine
 	}
 }
-	
+
 sub  GIVUAYF  (uword: AY) -> (A?, X?, Y?)  {
 	; ---- unsigned 16 bit word in A/Y (lo/hi) to fac1
 	asm {
@@ -588,5 +587,49 @@ sub  input_chars  (buffer: AX) -> (A?, Y)  {
 
 	}
 }
+
+sub  memcopy_basic  () -> (A?, X?, Y?)  {
+	; ---- copy a memory block by using a BASIC ROM routine  @todo fix code
+	; it calls a function from the basic interpreter, so:
+	;       - BASIC ROM must be banked in
+	;       - the source block must be readable (so no RAM hidden under BASIC, Kernal, or I/O)
+	;       - the target block must be writable (so no RAM hidden under I/O)
+	; higher addresses are copied first, so:
+	;       - moving data to higher addresses works even if areas overlap
+	;       - moving data to lower addresses only works if areas do not overlap
+	asm {
+		lda  #<src_start
+		ldx  #>src_start
+		sta  $5f
+		stx  $60
+		lda  #<src_end
+		ldx  #>src_end
+		sta  $5a
+		stx  $5b
+		lda  #<(target_start + src_end - src_start)
+		ldx  #>(target_start + src_end - src_start)
+		sta  $58
+		stx  $59
+		jmp  $a3bf
+	}
+}
+
+; macro version of the above memcopy_basic routine:	@todo macro support?
+; MACRO PARAMS src_start, src_end, target_start
+;		lda  #<src_start
+;		ldx  #>src_start
+;		sta  $5f
+;		stx  $60
+;		lda  #<src_end
+;		ldx  #>src_end
+;		sta  $5a
+;		stx  $5b
+;		lda  #<(target_start + src_end - src_start)
+;		ldx  #>(target_start + src_end - src_start)
+;		sta  $58
+;		stx  $59
+;		jsr  $a3bf
+
+
 
 }

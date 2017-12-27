@@ -18,7 +18,7 @@ which aims to provide many conveniences over raw assembly code (even when using 
 - various data types other than just bytes
 - automatic type conversions
 - floating point operations
-- automatically preserving and restoring CPU registers state, when calling routines that otherwise would clobber these 
+- automatically preserving and restoring CPU registers state, when calling routines that otherwise would clobber these
 - abstracting away low level aspects such as zero page handling, program startup, explicit memory addresses
 - @todo: conditionals and loops
 - @todo: memory block operations
@@ -28,7 +28,7 @@ to write performance critical pieces of code, but otherwise compiles fairly stra
 into 6502 assembly code. This resulting code is assembled into a binary program by using
 an external macro assembler, [64tass](https://sourceforge.net/projects/tass64/).
 It can be compiled pretty easily for various platforms (Linux, Mac OS, Windows) or just ask me
-to provide a small precompiled executable if you need that. 
+to provide a small precompiled executable if you need that.
 You need [Python 3.5](https://www.python.org/downloads/) or newer to run IL65 itself.
 
 IL65 is mainly targeted at the Commodore-64 machine, but should be mostly system independent.
@@ -42,7 +42,7 @@ Most of the 64 kilobyte address space can be accessed by your program.
 | type            | memory area             | note                                                            |
 |-----------------|-------------------------|-----------------------------------------------------------------|
 | Zero page       | ``$00`` - ``$ff``       | contains many sensitive system variables                        |
-| Hardware stack  | ``$100`` - ``$1ff``     | is used by the CPU and should normally not be accessed directly | 
+| Hardware stack  | ``$100`` - ``$1ff``     | is used by the CPU and should normally not be accessed directly |
 | Free RAM or ROM | ``$0200`` - ``$ffff``   | free to use memory area, often a mix of RAM and ROM             |
 
 
@@ -92,7 +92,7 @@ For the Commodore-64 here is a list of free-to-use zero page locations even when
 
 ``$02`` - ``$03`` (but see remark above); ``$04`` - ``$05``;  ``$06``;
 ``$0a``;  ``$2a``;  ``$52``;  ``$93``;
-``$f7`` - ``$f8``;  ``$f9`` - ``$fa``;  ``$fb`` - ``$fc``;  ``$fd`` - ``$fe`` 
+``$f7`` - ``$f8``;  ``$f9`` - ``$fa``;  ``$fb`` - ``$fc``;  ``$fd`` - ``$fe``
 
 IL65 knows about all this: it will use the above zero page locations to place its ZP variables in,
 until they're all used up. You can instruct it to treat your program as taking over the entire
@@ -118,7 +118,7 @@ IL65 supports the following data types:
 | address-of         | 16 bits    |                 | ``#variable``    |
 | indirect           | variable   |                 | ``[ address ]``  |
 
-Strings can be writen in your code as CBM PETSCII or as C-64 screencode variants, 
+Strings can be writen in your code as CBM PETSCII or as C-64 screencode variants,
 these will be translated by the compiler. PETSCII is the default, if you need screencodes you
 have to use the ``s`` variants of the type identifier.
 
@@ -134,7 +134,7 @@ treats those as a value that you manipulate via its address, so the ``#`` is ign
 For most other types this prefix is not supported.
 
 **Indirect addressing:** The ``[address]`` syntax means: the contents of the memory at address, or "indirect addressing".
-By default, if not otherwise known, a single byte is assumed. You can add the ``.byte`` or ``.word`` or ``.float`` 
+By default, if not otherwise known, a single byte is assumed. You can add the ``.byte`` or ``.word`` or ``.float``
 type identifier suffix to make it clear what data type the address points to.
 This addressing mode is only supported for constant (integer) addresses and not for variable types,
 unless it is part of a subroutine call statement. For an indirect goto call, the 6502 CPU has a special opcode
@@ -146,7 +146,7 @@ PROGRAM STRUCTURE
 
 In IL65 every line in the source file can only contain *one* statement or declaration.
 Compilation is done on *one* main source code file, but other files can be imported.
- 
+
 ### Comments
 
 Everything after a semicolon '``;``' is a comment and is ignored.
@@ -171,11 +171,11 @@ at the beginning of your program:
 
 ### Program Entry Point
 
-Every program has to have one entry point where code execution begins. 
+Every program has to have one entry point where code execution begins.
 The compiler looks for the ``start`` label in the ``main`` block for this.
 For proper program termination, this block has to end with a ``return`` statement (or a ``goto`` call).
 Blocks and other details are described below.
- 
+
 
 ### Blocks
 
@@ -241,7 +241,7 @@ if this makes sense.
 
 Subroutines are parts of the code that can be repeatedly invoked using a subroutine call from elsewhere.
 Their definition, using the sub statement, includes the specification of the required input- and output parameters.
-For now, only register based parameters are supported (A, X, Y and paired registers, 
+For now, only register based parameters are supported (A, X, Y and paired registers,
 the carry status bit SC and the interrupt disable bit SI as specials).
 For subroutine return values, the special SZ register is also available, it means the zero status bit.
 
@@ -280,11 +280,11 @@ You call a subroutine like this:
 If the subroutine returns one or more values as results, you must use an assignment statement
 to store those values somewhere:
         outputvar1, outputvar2  =  subroutine ( arg1, arg2, arg3 )
-        
+
 The output variables must occur in the correct sequence of return registers as specified
 in the subroutine's definiton. It is possible to not specify any of them but the compiler
 will issue a warning then if the result values of a subroutine call are discarded.
-Even if the subroutine returns something in a register that already is the correct one 
+Even if the subroutine returns something in a register that already is the correct one
 you want to keep, you'll have to explicitly assign the return value to that register.
 If you omit it, no return value is stored at all (well, unless you call the subroutine without
 register preserving, see the next paragraph.)
@@ -314,15 +314,15 @@ TODOS
 Required building blocks: additional forms of 'go' statement: including an if clause, comparison statement.
 
 - a primitive conditional branch instruction (special case of 'go'): directly translates to a branch instruction:
-        if[_XX] go <label>
+        if[_XX] goto <label>
   XX is one of: (cc, cs, vc, vs, eq, ne, pos, min,
   lt==cc, lts==min,  gt==eq+cs, gts==eq+pos,  le==cc+eq, les==neg+eq,  ge==cs, ges==pos)
   and when left out, defaults to ne (not-zero, i.e. true)
   NOTE: some combination branches such as cc+eq an be peephole optimized see http://www.6502.org/tutorials/compare_beyond.html#2.2
 
-- conditional go with expression: where the if[_XX] is followed by a <expression>
+- conditional goto with expression: where the if[_XX] is followed by a <expression>
   in that case, evaluate the <expression> first (whatever it is) and then emit the primitive if[_XX] go
-        if[_XX] <expression> go <label>
+        if[_XX] <expression> goto <label>
   eventually translates to:
         <expression-code>
         bXX <label>
@@ -347,15 +347,15 @@ if[_XX] [<expression>] {
 
 (no else:)
 
-                if[_!XX] [<expression>] go il65_if_999_end          ; !XX being the conditional inverse of XX
+                if[_!XX] [<expression>] goto il65_if_999_end          ; !XX being the conditional inverse of XX
                 .... (true part)
 il65_if_999_end ; code continues after this
 
 
 (with else):
-                if[_XX] [<expression>] go il65_if_999
+                if[_XX] [<expression>] goto il65_if_999
                 ... (else part)
-                go il65_if_999_end
+                goto il65_if_999_end
 il65_if_999     ... (true part)
 il65_if_999_end ; code continues after this
 
@@ -364,7 +364,7 @@ il65_if_999_end ; code continues after this
 
 ==> DESUGARING ==>
    compare X, Y
-   if_XX go ....
+   if_XX goto ....
    XX based on <COMPARISON>.
 
 
@@ -381,13 +381,13 @@ while[_XX] <expression> {
 
 ==> DESUGARING ==>
 
-	go il65_while_999_check    ; jump to the check
+	goto il65_while_999_check    ; jump to the check
 il65_while_999
 	... (code)
-	go  il65_while_999          ;continue
-	go  il65_while_999_end      ;break
+	goto  il65_while_999          ;continue
+	goto  il65_while_999_end      ;break
 il65_while_999_check
-        if[_XX] <expression> go il65_while_999  ; loop condition
+        if[_XX] <expression> goto il65_while_999  ; loop condition
 il65_while_999_end      ; code continues after this
 
 
@@ -403,9 +403,9 @@ repeat {
 
 il65_repeat_999
         ... (code)
-        go il65_repeat_999          ;continue
-        go il65_repeat_999_end      ;break
-        if[_!XX] <expression> go il65_repeat_999        ; loop condition via conditional inverse of XX
+        goto il65_repeat_999          ;continue
+        goto il65_repeat_999_end      ;break
+        if[_!XX] <expression> goto il65_repeat_999        ; loop condition via conditional inverse of XX
 il65_repeat_999_end         ; code continues after this
 
 
@@ -425,17 +425,17 @@ for <loopvar> = <from_expression> to <to_expression> [step <step_expression>] {
 
         loopvar = <from_expression>
         compare loopvar, <to_expression>
-        if_ge go il65_for_999_end       ; loop condition
+        if_ge goto il65_for_999_end       ; loop condition
         step = <step_expression>        ; (store only if step < -1 or step > 1)
 il65_for_999
-        go il65_for_999_end        ;break
-        go il65_for_999_loop       ;continue
+        goto il65_for_999_end        ;break
+        goto il65_for_999_loop       ;continue
         ....  (code)
 il65_for_999_loop
         loopvar += step         ; (if step > 1 or step < -1)
         loopvar++               ; (if step == 1)
         loopvar--               ; (if step == -1)
-        go il65_for_999         ; continue the loop
+        goto il65_for_999         ; continue the loop
 il65_for_999_end        ; code continues after this
 
 
@@ -484,6 +484,16 @@ and SPRITES (24x21 monochrome or 12x21 multicolor = 63 bytes)
 --> PLACE in memory on correct address (base+sprite pointer, 64-byte aligned)
 
 
-### More Datatypes 
+### More Datatypes
 
 @todo 24 and 32 bits integers, unsigned and signed?
+
+### Some support for simple arithmetic
+
+        A *= Y
+        A = X * Y
+        A /= Y
+        A = Y / Y
+
+@todo multiplication routines (8*8 -> 16, 8*16 -> 16, 16*16->16 (or 32?))
+@todo division routines
