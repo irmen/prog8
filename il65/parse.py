@@ -13,7 +13,7 @@ import sys
 import shutil
 import enum
 from collections import defaultdict
-from typing import Set, List, Tuple, Optional, Any, Dict, Union
+from typing import Set, List, Tuple, Optional, Any, Dict, Union, Generator
 from .astparse import ParseError, parse_expr_as_int, parse_expr_as_number, parse_expr_as_primitive,\
     parse_expr_as_string, parse_arguments, parse_expr_as_comparison
 from .symbols import SourceRef, SymbolTable, DataType, SymbolDefinition, SubroutineDef, LabelDef, \
@@ -37,6 +37,12 @@ class ParseResult:
         self.start_address = 0
         self.blocks = []          # type: List['ParseResult.Block']
         self.subroutine_usage = defaultdict(set)    # type: Dict[Tuple[str, str], Set[str]]
+
+    def all_blocks(self) -> Generator['ParseResult.Block', None, None]:
+        for block in self.blocks:
+            yield block
+            for sub in block.symbols.iter_subroutines(True):
+                yield sub.sub_block
 
     class Block:
         _unnamed_block_labels = {}  # type: Dict[ParseResult.Block, str]
@@ -75,18 +81,12 @@ class ParseResult:
             except (SymbolError, LookupError):
                 return None, None
 
-        def flatten_statement_list(self) -> None:
-            if all(isinstance(stmt, ParseResult._AstNode) for stmt in self.statements):
-                # this is the common case
-                return
-            statements = []
+        def all_statements(self) -> Generator[Tuple['ParseResult.Block', Optional[SubroutineDef], 'ParseResult._AstNode'], None, None]:
             for stmt in self.statements:
-                if isinstance(stmt, (tuple, list)):
-                    statements.extend(stmt)
-                else:
-                    assert isinstance(stmt, ParseResult._AstNode)
-                    statements.append(stmt)
-            self.statements = statements
+                yield self, None, stmt
+            for sub in self.symbols.iter_subroutines(True):
+                for stmt in sub.sub_block.statements:
+                    yield sub.sub_block, sub, stmt
 
     class Value:
         def __init__(self, datatype: DataType, name: str=None, constant: bool=False) -> None:
@@ -606,7 +606,10 @@ class Parser:
             if sys.stderr.isatty():
                 print("\x1b[1m", file=sys.stderr)
             print("\nERROR: internal parser error: ", x, file=sys.stderr)
-            print("    file:", self.sourceref.file, "block:", self.cur_block.name, "line:", self.sourceref.line, file=sys.stderr)
+            if self.cur_block:
+                print("    file:", self.sourceref.file, "block:", self.cur_block.name, "line:", self.sourceref.line, file=sys.stderr)
+            else:
+                print("    file:", self.sourceref.file, file=sys.stderr)
             if sys.stderr.isatty():
                 print("\x1b[0m", file=sys.stderr)
             raise   # XXX temporary solution to get stack trace info in the event of parse errors
@@ -697,37 +700,30 @@ class Parser:
         self.sourceref.line = -1
         self.sourceref.column = 0
 
+        def desugar_immediate_strings(stmt: ParseResult._AstNode) -> None:
+            if isinstance(stmt, ParseResult.CallStmt):
+                for s in stmt.desugared_call_arguments:
+                    self.sourceref.line = s.lineno
+                    self.sourceref.column = 0
+                    s.desugar_immediate_string(self)
+                for s in stmt.desugared_output_assignments:
+                    self.sourceref.line = s.lineno
+                    self.sourceref.column = 0
+                    s.desugar_immediate_string(self)
+            if isinstance(stmt, ParseResult.AssignmentStmt):
+                self.sourceref.line = stmt.lineno
+                self.sourceref.column = 0
+                stmt.desugar_immediate_string(self)
+
         for block in self.result.blocks:
             self.cur_block = block
-            # create parameter loads for calls
-            for index, stmt in enumerate(list(block.statements)):
+            self.sourceref = block.sourceref.copy()
+            self.sourceref.column = 0
+            for block, sub, stmt in block.all_statements():
                 if isinstance(stmt, ParseResult.CallStmt):
                     self.sourceref.line = stmt.lineno
-                    self.sourceref.column = 0
                     stmt.desugar_call_arguments_and_outputs(self)
-            # create parameter loads for calls, in subroutine blocks
-            for sub in block.symbols.iter_subroutines(True):
-                for stmt in sub.sub_block.statements:
-                    if isinstance(stmt, ParseResult.CallStmt):
-                        self.sourceref.line = stmt.lineno
-                        self.sourceref.column = 0
-                        stmt.desugar_call_arguments_and_outputs(self)
-            block.flatten_statement_list()
-            # desugar immediate string value assignments
-            for index, stmt in enumerate(list(block.statements)):
-                if isinstance(stmt, ParseResult.CallStmt):
-                    for s in stmt.desugared_call_arguments:
-                        self.sourceref.line = s.lineno
-                        self.sourceref.column = 0
-                        s.desugar_immediate_string(self)
-                    for s in stmt.desugared_output_assignments:
-                        self.sourceref.line = s.lineno
-                        self.sourceref.column = 0
-                        s.desugar_immediate_string(self)
-                if isinstance(stmt, ParseResult.AssignmentStmt):
-                    self.sourceref.line = stmt.lineno
-                    self.sourceref.column = 0
-                    stmt.desugar_immediate_string(self)
+                desugar_immediate_strings(stmt)
 
     def next_line(self) -> str:
         self._cur_lineidx += 1
@@ -787,38 +783,50 @@ class Parser:
         self.result.with_sys = False
         self.result.format = ProgramFormat.RAW
         output_specified = False
+        zp_specified = False
         while True:
             self._parse_comments()
             line = self.next_line()
-            if line.startswith("output"):
+            if line.startswith(("output ", "output\t")):
                 if output_specified:
-                    raise self.PError("multiple occurrences of 'output'")
+                    raise self.PError("can only specify output options once")
                 output_specified = True
-                _, _, arg = line.partition(" ")
-                arg = arg.lstrip()
+                _, _, optionstr = line.partition(" ")
+                options = set(optionstr.replace(' ', '').split(','))
                 self.result.with_sys = False
                 self.result.format = ProgramFormat.RAW
-                if arg == "raw":
-                    pass
-                elif arg == "prg":
+                if "raw" in options:
+                    options.remove("raw")
+                if "prg" in options:
+                    options.remove("prg")
                     self.result.format = ProgramFormat.PRG
-                elif arg.replace(' ', '') == "prg,sys":
-                    self.result.with_sys = True
-                    self.result.format = ProgramFormat.PRG
-                else:
-                    raise self.PError("invalid output format")
-            elif line.startswith("clobberzp"):
-                if self.result.clobberzp:
-                    raise self.PError("multiple occurrences of 'clobberzp'")
-                self.result.clobberzp = True
-                _, _, arg = line.partition(" ")
-                arg = arg.lstrip()
-                if arg == "restore":
-                    self.result.restorezp = True
-                elif arg == "":
-                    pass
-                else:
-                    raise self.PError("invalid arg for clobberzp")
+                if "basic" in options:
+                    options.remove("basic")
+                    if self.result.format == ProgramFormat.PRG:
+                        self.result.with_sys = True
+                    else:
+                        raise self.PError("can only use basic output option with prg, not raw")
+                if options:
+                    raise self.PError("invalid output option(s): " + str(options))
+            elif line.startswith(("zp ", "zp\t")):
+                if zp_specified:
+                    raise self.PError("can only specify ZP options once")
+                zp_specified = True
+                _, _, optionstr = line.partition(" ")
+                options = set(optionstr.replace(' ', '').split(','))
+                self.result.clobberzp = False
+                self.result.restorezp = False
+                if "clobber" in options:
+                    options.remove("clobber")
+                    self.result.clobberzp = True
+                if "restore" in options:
+                    options.remove("restore")
+                    if self.result.clobberzp:
+                        self.result.restorezp = True
+                    else:
+                        raise self.PError("can only use restore zp option if clobber zp is used as well")
+                if options:
+                    raise self.PError("invalid zp option(s): " + str(options))
             elif line.startswith("address"):
                 if self.result.start_address:
                     raise self.PError("multiple occurrences of 'address'")
@@ -1644,17 +1652,12 @@ class Optimizer:
 
     def optimize(self) -> ParseResult:
         print("\noptimizing parse tree")
-        for block in self.parsed.blocks:
+        for block in self.parsed.all_blocks():
             self.remove_identity_assigns(block)
             self.combine_assignments_into_multi(block)
             self.optimize_multiassigns(block)
             self.remove_unused_subroutines(block)
             self.optimize_compare_with_zero(block)
-            for sub in block.symbols.iter_subroutines(True):
-                self.remove_identity_assigns(sub.sub_block)
-                self.combine_assignments_into_multi(sub.sub_block)
-                self.optimize_multiassigns(sub.sub_block)
-                self.optimize_compare_with_zero(sub.sub_block)
         return self.parsed
 
     def optimize_compare_with_zero(self, block: ParseResult.Block) -> None:

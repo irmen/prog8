@@ -1,8 +1,5 @@
-; source IL file
-    ; these are comments
 
-output prg,sys  ; create a c-64 program with basic SYS call to launch it
-; clobberzp restore  ; clobber over the zp memory normally used by basic/kernel rom, frees up more zp
+output prg,basic  ; create a c-64 program with basic SYS call to launch it
 
 
 import "c64lib"               ; searched in several locations and with .ill file extension added

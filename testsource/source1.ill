@@ -4,9 +4,8 @@
 ; line 3 comment
 
 
-output prg,sys  ; create a c-64 program with basic SYS call to launch it
-;clobberzp restore  ; clobber over the zp memory normally used by basic/kernel rom, frees up more zp
-
+output basic ,  prg     ; create a c-64 program with basic SYS call to launch it
+zp   restore ,  clobber   ; clobber over the zp memory normally used by basic/kernel rom, frees up more zp
 
 
 ~main $0a00

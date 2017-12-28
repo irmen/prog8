@@ -165,13 +165,36 @@ The default format of the generated program is a "raw" binary where code starts 
 You can generate other types of programs as well, by telling IL65 via an output mode statement
 at the beginning of your program:
 
-| mode declaration   | meaning                                                                            |
-|--------------------|------------------------------------------------------------------------------------|
-| ``output raw``     | no load address bytes                                                              |
-| ``output prg``     | include the first two load address bytes, (default is ``$0801``), no BASIC program |
-| ``output prg,sys`` | include the first two load address bytes, BASIC start program with sys call to code, default code start is immediately after the BASIC program at ``$081d``, or beyond |
-|                    |   |
-| ``address $0801``  | override program start address (default is set to ``$c000`` for raw mode and ``$0801`` for C-64 prg mode). Cannot be used if output mode is ``prg,sys`` because BASIC programs always have to start at ``$0801``. |
+| mode declaration     | meaning                                                                            |
+|----------------------|------------------------------------------------------------------------------------|
+| ``output raw``       | no load address bytes                                                              |
+| ``output prg``       | include the first two load address bytes, (default is ``$0801``), no BASIC program |
+| ``output prg,basic`` | as 'prg', but include a BASIC start program with SYS call, default code start is immediately after the BASIC program at ``$081d``, or after that. |
+|                      |   |
+| ``address $0801``    | override program start address (default is set to ``$c000`` for raw mode and ``$0801`` for C-64 prg mode). Cannot be used if output mode is ``prg,basic`` because BASIC programs always have to start at ``$0801``. |
+
+
+### ZeroPage Options
+
+You can tell the compiler how to treat the *zero page*. Normally it is considered a 'no-go' area
+except for the frew free locations mentioned under "Memory Model". 
+However you can specify some options globally in your program to change this behavior:
+
+- ``zp clobber``      
+        Use the whole zeropage for variables. It is not possible to exit your program
+        correctly back to BASIC, other than resetting the machine.
+        It does make your program smaller and faster because many more variables can
+        be stored in the ZP, which is more efficient. 
+- ``zp clobber, restore``
+        Use the whole zeropage, but make a backup copy of the original values at program start. 
+        When your program exits, the original ZP is restored and you drop back to the BASIC prompt.
+
+If you use ``zp clobber``, you can no longer use BASIC or KERNAL routines,
+because these depend on most of the locations in the ZP. This includes most of the floating-point
+logic and several utility routines that do I/O, such as  ``print_string``.
+        
+@todo default IRQ handling will still change certain values in ZP...
+ 
 
 
 ### Program Entry Point

@@ -1,4 +1,4 @@
-output prg,sys            ; @todo basic
+output prg,basic
 ;reg_preserve off         ; @todo global option
 
 import "c64lib"
@@ -40,7 +40,13 @@ start
 printloop
         c64util.print_string("\nYou have ")
         c64util.print_byte_decimal(attempts_left)
-        c64util.print_string(" guesses left.\nWhat is your next guess? ")
+        c64util.print_string(" guess")
+        A = attempts_left
+        A -= 1                  ; @todo wrong instruction adc
+        if_zero A goto ask_guess
+        c64util.print_string("es")
+ask_guess
+        c64util.print_string(" left.\nWhat is your next guess? ")
         A = c64util.input_chars(guess)
         c64.CHROUT('\n')
         [$22.word] = guess
@@ -54,8 +60,8 @@ printloop
         goto continue
 
 correct_guess
-        c64util.print_string("\nImpressive!\n")
-        bye()
+        c64util.print_string("\nThat's my number, impressive!\n")
+        goodbye()
         return
 
 too_high
@@ -71,16 +77,15 @@ game_over
         c64util.print_string("\nToo bad! It was: ")
         c64util.print_byte_decimal(secretnumber)
         c64.CHROUT('\n')
-        bye()
+        goodbye()
         return
 
-sub bye ()->() {
+sub goodbye ()->() {
         ;var x             ; @todo vars in sub
         ;memory y = $c000        ; @todo vars in sub
         ;const q = 22            ; @todo const in sub
 
-        c64.CHROUT('\n')
-        ;c64util.print_string("Thanks for playing. Bye!\n\n")        ;@todo string values should work in sub too
+        c64util.print_string("\nThanks for playing. Bye!\n")
         return
 }
 

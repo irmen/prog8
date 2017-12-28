@@ -1,4 +1,4 @@
-output prg,sys  ; create a c-64 program with basic SYS to() launch it
+output prg,basic  ; create a c-64 program with basic SYS to() launch it
 
 	import "c64lib.ill"
 

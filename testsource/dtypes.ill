@@ -1,7 +1,8 @@
 ; var definitions and immediate primitive data type tests
 
 output raw
-clobberzp
+zp clobber
+
 
 import "c64lib"
 

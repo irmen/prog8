@@ -1,6 +1,6 @@
 ; floating point tests
 
-output prg, sys
+output prg, basic
 
 import "c64lib"
 
