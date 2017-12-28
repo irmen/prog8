@@ -1,4 +1,7 @@
-output raw
+output prg,sys
+
+import "c64lib"
+
 
 ~ main {
         var  .text  name        = "?"*80
@@ -8,20 +11,26 @@ output raw
 
 
 start
-        A = 44
-        X = ~22+44
-        A= ~-1
-        Y = ~-2
+        c64util.init_system()
+
+        A = 0
+printloop
+        c64util.print_byte_decimal(A)
+        c64.CHROUT('\n')
+        A++
+        if A <20 goto printloop
         return
+
 label1
-        if_true A==0  goto  label1
+        if_true  A==123  goto  label1
+        if_true  A     ==     123  goto  label1
         if_true A!=0  goto  label1
         if_not X!=0  goto  label1
 
-        if_true A<=1  goto  label1
+        if_true   A  <=  1  goto  label1
         if_true A==1  goto  label1
         if_true A!=1  goto  label1
-        if_not X<1  goto  label1
+        if_not X <   1  goto  label1
         if_not Y>1  goto  label1
         if_not X!=1  goto  label1
 
@@ -31,7 +40,8 @@ label1
         if_true X>Y  goto  label1
         if_true X>A  goto  label1
         if A<=22  goto  label1
-        if_cc A  goto  label1
+        if   A <=  22  goto  label1
+        if_cc  A  goto  label1
         if_vc X  goto  label1
         if_pos Y  goto  label1
         if_true XY  goto  label1

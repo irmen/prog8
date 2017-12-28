@@ -6,7 +6,7 @@ import "c64lib"
         var  .text  name        = "?"*80
 
 start
-        c64util.init_state()
+        c64util.init_system()
 
         XY = c64.CINV
         SI = 1

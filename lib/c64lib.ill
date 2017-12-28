@@ -219,7 +219,7 @@ sub	IOBASE   () -> (X, Y)				= $FFF3		; read base address of I/O devices
 
 ~ c64util {
 
-sub  init_state  () -> (A?, X?, Y?)  {
+sub  init_system  () -> (A?, X?, Y?)  {
 	; ---- initializes the machine to a sane starting state
 	; This means that the BASIC, KERNAL and CHARGEN ROMs are banked in,
 	; the VIC, SID and CIA chips are reset, screen is cleared, and the default IRQ is set.

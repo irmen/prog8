@@ -108,7 +108,7 @@ def parse_expr_as_comparison(text: str, sourceref: SourceRef) -> Tuple[str, str,
         }[node.body.ops[0].__class__.__name__]
         if not operator:
             raise src.to_error("unsupported comparison operator")
-        left = text[node.body.left.col_offset:node.body.comparators[0].col_offset-len(operator)]
+        left = text[node.body.left.col_offset:node.body.comparators[0].col_offset].rstrip()[:-len(operator)]
         right = text[node.body.comparators[0].col_offset:]
         return left.strip(), operator, right.strip()
     left = astnode_to_repr(node.body)
