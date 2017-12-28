@@ -16,7 +16,7 @@ from functools import partial
 from typing import TextIO, Set, Union, List
 from .parse import ProgramFormat, ParseResult, Parser
 from .symbols import Zeropage, DataType, ConstantDef, VariableDef, SubroutineDef, \
-    STRING_DATATYPES, REGISTER_WORDS, FLOAT_MAX_NEGATIVE, FLOAT_MAX_POSITIVE
+    STRING_DATATYPES, REGISTER_WORDS, REGISTER_BYTES, FLOAT_MAX_NEGATIVE, FLOAT_MAX_POSITIVE
 
 
 class CodeError(Exception):
@@ -216,8 +216,8 @@ class CodeGenerator:
             if isinstance(stmt, ParseResult.Label) and stmt.name == "start":
                 asmlines = [
                     "\t\tcld\t\t\t; clear decimal flag",
-                    "\t\tclc\t\t\t; clear carry flag"
-                    "\t\tclv\t\t\t; clear overflow flag"
+                    "\t\tclc\t\t\t; clear carry flag",
+                    "\t\tclv\t\t\t; clear overflow flag",
                 ]
                 statements.insert(index+1, ParseResult.InlineAsm(asmlines, 0))
                 break
@@ -371,12 +371,14 @@ class CodeGenerator:
                 else:
                     raise CodeError("can only return immediate values for now")  # XXX
             self.p("\t\trts")
+        elif isinstance(stmt, ParseResult.AugmentedAssignmentStmt):
+            self.generate_augmented_assignment(stmt)
         elif isinstance(stmt, ParseResult.AssignmentStmt):
             self.generate_assignment(stmt)
         elif isinstance(stmt, ParseResult.Label):
             self.p("\n{:s}\t\t\t\t; src l. {:d}".format(stmt.name, stmt.lineno))
-        elif isinstance(stmt, ParseResult.IncrDecrStmt):
-            self.generate_incrdecr(stmt)
+        elif isinstance(stmt, (ParseResult.InplaceIncrStmt, ParseResult.InplaceDecrStmt)):
+            self.generate_incr_or_decr(stmt)
         elif isinstance(stmt, ParseResult.CallStmt):
             self.generate_call(stmt)
         elif isinstance(stmt, ParseResult.InlineAsm):
@@ -393,36 +395,72 @@ class CodeGenerator:
             raise CodeError("unknown statement " + repr(stmt))
         self.previous_stmt_was_assignment = isinstance(stmt, ParseResult.AssignmentStmt)
 
-    def generate_incrdecr(self, stmt: ParseResult.IncrDecrStmt) -> None:
-        if stmt.howmuch in (-1, 1):
-            if isinstance(stmt.what, ParseResult.RegisterValue):
-                if stmt.howmuch == 1:
-                    if stmt.what.register == 'A':
-                        self.p("\t\tadc  #1")
-                    else:
+    def generate_incr_or_decr(self, stmt: Union[ParseResult.InplaceIncrStmt, ParseResult.InplaceDecrStmt]) -> None:
+        if stmt.what.datatype == DataType.FLOAT:
+            raise CodeError("incr/decr on float not yet supported")  # @todo support incr/decr on float
+        else:
+            assert type(stmt.howmuch) is int
+        assert stmt.howmuch > 0
+        if stmt.howmuch > 0xff:
+            raise CodeError("only supports incr/decr by up to 255 for now")   # XXX
+        is_incr = isinstance(stmt, ParseResult.InplaceIncrStmt)
+        if isinstance(stmt.what, ParseResult.RegisterValue):
+            if is_incr:
+                if stmt.what.register == 'A':
+                    self.p("\t\tclc")
+                    self.p("\t\tadc  #{:d}".format(stmt.howmuch))
+                elif stmt.what.register in REGISTER_BYTES:
+                    if stmt.howmuch == 1:
                         self.p("\t\tin{:s}".format(stmt.what.register.lower()))
-                else:
-                    if stmt.what.register == 'A':
-                        self.p("\t\tsbc  #1")
                     else:
+                        self.p("\t\tpha")
+                        self.p("\t\tt{:s}a".format(stmt.what.register.lower()))
+                        self.p("\t\tclc")
+                        self.p("\t\tadc  #{:d}".format(stmt.howmuch))
+                        self.p("\t\tta{:s}".format(stmt.what.register.lower()))
+                        self.p("\t\tpla")
+                else:
+                    raise CodeError("invalid incr/decr register")
+            else:
+                if stmt.what.register == 'A':
+                    self.p("\t\tadc  #{:d}".format(stmt.howmuch))
+                elif stmt.what.register in REGISTER_BYTES:
+                    if stmt.howmuch == 1:
                         self.p("\t\tde{:s}".format(stmt.what.register.lower()))
-            elif isinstance(stmt.what, (ParseResult.MemMappedValue, ParseResult.IndirectValue)):
-                what = stmt.what
-                if isinstance(what, ParseResult.IndirectValue):
-                    if isinstance(what.value, ParseResult.IntegerValue):
-                        r_str = what.value.name or Parser.to_hex(what.value.value)
                     else:
-                        raise CodeError("invalid incr indirect type", what.value)
+                        self.p("\t\tpha")
+                        self.p("\t\tt{:s}a".format(stmt.what.register.lower()))
+                        self.p("\t\tsbc  #{:d}".format(stmt.howmuch))
+                        self.p("\t\tta{:s}".format(stmt.what.register.lower()))
+                        self.p("\t\tpla")
                 else:
-                    r_str = what.name or Parser.to_hex(what.address)
-                if what.datatype == DataType.BYTE:
-                    if stmt.howmuch == 1:
-                        self.p("\t\tinc  " + r_str)
+                    raise CodeError("invalid incr/decr register")
+        elif isinstance(stmt.what, (ParseResult.MemMappedValue, ParseResult.IndirectValue)):
+            what = stmt.what
+            if isinstance(what, ParseResult.IndirectValue):
+                if isinstance(what.value, ParseResult.IntegerValue):
+                    r_str = what.value.name or Parser.to_hex(what.value.value)
+                else:
+                    raise CodeError("invalid incr indirect type", what.value)
+            else:
+                r_str = what.name or Parser.to_hex(what.address)
+            if what.datatype == DataType.BYTE:
+                if stmt.howmuch == 1:
+                    self.p("\t\t{:s}  {:s}".format("inc" if is_incr else "dec", r_str))
+                else:
+                    self.p("\t\tpha")
+                    self.p("\t\tlda  " + r_str)
+                    if is_incr:
+                        self.p("\t\tclc")
+                        self.p("\t\tadc  #{:d}".format(stmt.howmuch))
                     else:
-                        self.p("\t\tdec  " + r_str)
-                elif what.datatype == DataType.WORD:
-                    # @todo verify this asm code
-                    if stmt.howmuch == 1:
+                        self.p("\t\tsbc  #{:d}".format(stmt.howmuch))
+                    self.p("\t\tsta  " + r_str)
+                    self.p("\t\tpla")
+            elif what.datatype == DataType.WORD:
+                # @todo verify this 16-bit incr/decr asm code
+                if stmt.howmuch == 1:
+                    if is_incr:
                         self.p("\t\tinc  " + r_str)
                         self.p("\t\tbne  +")
                         self.p("\t\tinc  {:s}+1".format(r_str))
@@ -433,13 +471,11 @@ class CodeGenerator:
                         self.p("\t\tdec  {:s}+1".format(r_str))
                         self.p("+")
                 else:
-                    raise CodeError("cannot in/decrement memory of type " + str(what.datatype))
+                    raise CodeError("cannot yet incr/decr 16 bit memory by more than 1")   # @todo 16-bit incr/decr
             else:
-                raise CodeError("cannot in/decrement " + str(stmt.what))
-        elif stmt.howmuch > 0:
-            raise NotImplementedError("incr by > 1")  # XXX
-        elif stmt.howmuch < 0:
-            raise NotImplementedError("decr by > 1")  # XXX
+                raise CodeError("cannot in/decrement memory of type " + str(what.datatype))
+        else:
+            raise CodeError("cannot in/decrement " + str(stmt.what))
 
     def generate_call(self, stmt: ParseResult.CallStmt) -> None:
         self.p("\t\t\t\t\t; src l. {:d}".format(stmt.lineno))
@@ -683,6 +719,7 @@ class CodeGenerator:
                 unclobber_result_registers(preserve_regs, stmt.desugared_output_assignments)
                 with self.preserving_registers(preserve_regs, loads_a_within=params_load_a()):
                     generate_param_assignments()
+                    # @todo optimize this with RTS_trick? https://wiki.nesdev.com/w/index.php/6502_assembly_optimisations#Use_Jump_tables_with_RTS_instruction_instead_of_JMP_indirect_instruction
                     if targetstr in REGISTER_WORDS:
                         if stmt.preserve_regs:
                             # cannot use zp scratch. This is very inefficient code!
@@ -732,6 +769,305 @@ class CodeGenerator:
                     generate_param_assignments()
                     self.p("\t\tjsr  " + targetstr)
                     generate_result_assignments()
+
+    def generate_augmented_assignment(self, stmt: ParseResult.AugmentedAssignmentStmt) -> None:
+        # for instance: value += 3
+        lvalue = stmt.leftvalues[0]
+        rvalue = stmt.right
+        self.p("\t\t\t\t\t; src l. {:d}".format(stmt.lineno))
+        if isinstance(lvalue, ParseResult.RegisterValue):
+            if isinstance(rvalue, ParseResult.IntegerValue):
+                self._generate_aug_reg_int(lvalue, stmt.operator, rvalue)
+            elif isinstance(rvalue, ParseResult.RegisterValue):
+                self._generate_aug_reg_reg(lvalue, stmt.operator, rvalue)
+            else:
+                raise CodeError("incr/decr on register only takes int or register for now")  # XXX
+        else:
+            raise CodeError("incr/decr only implemented for registers for now")  # XXX
+
+    def _generate_aug_reg_int(self, lvalue: ParseResult.RegisterValue, operator: str, rvalue: ParseResult.IntegerValue) -> None:
+        r_str = rvalue.name or Parser.to_hex(rvalue.value)
+        if operator == "+=":
+            self.p("\t\tclc")
+            if lvalue.register == "A":
+                self.p("\t\tadc  #" + r_str)
+            elif lvalue.register == "X":
+                self.p("\t\tpha")
+                self.p("\t\ttxa")
+                self.p("\t\tadc  #" + r_str)
+                self.p("\t\ttax")
+                self.p("\t\tpla")
+            elif lvalue.register == "Y":
+                self.p("\t\tpha")
+                self.p("\t\ttya")
+                self.p("\t\tadc  #" + r_str)
+                self.p("\t\ttay")
+                self.p("\t\tpla")
+            else:
+                raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo +=.word
+        elif operator == "-=":
+            if lvalue.register == "A":
+                self.p("\t\tsbc  #" + r_str)
+            elif lvalue.register == "X":
+                self.p("\t\tpha")
+                self.p("\t\ttxa")
+                self.p("\t\tsbc  #" + r_str)
+                self.p("\t\ttax")
+                self.p("\t\tpla")
+            elif lvalue.register == "Y":
+                self.p("\t\tpha")
+                self.p("\t\ttya")
+                self.p("\t\tsbc  #" + r_str)
+                self.p("\t\ttay")
+                self.p("\t\tpla")
+            else:
+                raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo -=.word
+        elif operator == "&=":
+            if lvalue.register == "A":
+                self.p("\t\tand  #" + r_str)
+            elif lvalue.register == "X":
+                self.p("\t\tpha")
+                self.p("\t\ttxa")
+                self.p("\t\tand  #" + r_str)
+                self.p("\t\ttax")
+                self.p("\t\tpla")
+            elif lvalue.register == "Y":
+                self.p("\t\tpha")
+                self.p("\t\ttya")
+                self.p("\t\tand  #" + r_str)
+                self.p("\t\ttay")
+                self.p("\t\tpla")
+            else:
+                raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo &=.word
+        elif operator == "|=":
+            if lvalue.register == "A":
+                self.p("\t\tora  #" + r_str)
+            elif lvalue.register == "X":
+                self.p("\t\tpha")
+                self.p("\t\ttxa")
+                self.p("\t\tora  #" + r_str)
+                self.p("\t\ttax")
+                self.p("\t\tpla")
+            elif lvalue.register == "Y":
+                self.p("\t\tpha")
+                self.p("\t\ttya")
+                self.p("\t\tora  #" + r_str)
+                self.p("\t\ttay")
+                self.p("\t\tpla")
+            else:
+                raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo |=.word
+        elif operator == "^=":
+            if lvalue.register == "A":
+                self.p("\t\teor  #" + r_str)
+            elif lvalue.register == "X":
+                self.p("\t\tpha")
+                self.p("\t\ttxa")
+                self.p("\t\teor  #" + r_str)
+                self.p("\t\ttax")
+                self.p("\t\tpla")
+            elif lvalue.register == "Y":
+                self.p("\t\tpha")
+                self.p("\t\ttya")
+                self.p("\t\teor  #" + r_str)
+                self.p("\t\ttay")
+                self.p("\t\tpla")
+            else:
+                raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo ^=.word
+        elif operator == ">>=":
+            if rvalue.value != 1:
+                raise CodeError("can only shift 1 bit for now")  # XXX
+            if lvalue.register == "A":
+                self.p("\t\tlsr  a")
+            elif lvalue.register == "X":
+                self.p("\t\tpha")
+                self.p("\t\ttxa")
+                self.p("\t\tlsr  a")
+                self.p("\t\ttax")
+                self.p("\t\tpla")
+            elif lvalue.register == "Y":
+                self.p("\t\tpha")
+                self.p("\t\ttya")
+                self.p("\t\tlsr  a")
+                self.p("\t\ttay")
+                self.p("\t\tpla")
+            else:
+                raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo >>=.word
+        elif operator == "<<=":
+            if rvalue.value != 1:
+                raise CodeError("can only shift 1 bit for now")  # XXX
+            if lvalue.register == "A":
+                self.p("\t\tasl  a")
+            elif lvalue.register == "X":
+                self.p("\t\tpha")
+                self.p("\t\ttxa")
+                self.p("\t\tasl  a")
+                self.p("\t\ttax")
+                self.p("\t\tpla")
+            elif lvalue.register == "Y":
+                self.p("\t\tpha")
+                self.p("\t\ttya")
+                self.p("\t\tasl  a")
+                self.p("\t\ttay")
+                self.p("\t\tpla")
+            else:
+                raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo <<=.word
+
+    def _generate_aug_reg_reg(self, lvalue: ParseResult.RegisterValue, operator: str, rvalue: ParseResult.RegisterValue) -> None:
+        if operator == "+=":
+            self.p("\t\tclc")
+            if rvalue.register not in REGISTER_BYTES:
+                raise CodeError("unsupported rvalue register for aug assign", str(rvalue))  # @todo +=.word
+            if lvalue.register == "A":
+                self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                self.p("\t\tadc  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+            elif lvalue.register == "X":
+                self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                self.p("\t\tpha")
+                self.p("\t\ttxa")
+                self.p("\t\tadc  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                self.p("\t\ttax")
+                self.p("\t\tpla")
+            elif lvalue.register == "Y":
+                self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                self.p("\t\tpha")
+                self.p("\t\ttya")
+                self.p("\t\tadc  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                self.p("\t\ttay")
+                self.p("\t\tpla")
+            else:
+                raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo +=.word
+        elif operator == "-=":
+            if rvalue.register not in REGISTER_BYTES:
+                raise CodeError("unsupported rvalue register for aug assign", str(rvalue))  # @todo -=.word
+            if lvalue.register == "A":
+                self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                self.p("\t\tsbc  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+            elif lvalue.register == "X":
+                self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                self.p("\t\tpha")
+                self.p("\t\ttxa")
+                self.p("\t\tsbc  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                self.p("\t\ttax")
+                self.p("\t\tpla")
+            elif lvalue.register == "Y":
+                self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                self.p("\t\tpha")
+                self.p("\t\ttya")
+                self.p("\t\tsbc  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                self.p("\t\ttay")
+                self.p("\t\tpla")
+            else:
+                raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo -=.word
+        elif operator == "&=":
+            if rvalue.register not in REGISTER_BYTES:
+                raise CodeError("unsupported rvalue register for aug assign", str(rvalue))  # @todo &=.word
+            if lvalue.register == "A":
+                self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                self.p("\t\tand  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+            elif lvalue.register == "X":
+                self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                self.p("\t\tpha")
+                self.p("\t\ttxa")
+                self.p("\t\tand  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                self.p("\t\ttax")
+                self.p("\t\tpla")
+            elif lvalue.register == "Y":
+                self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                self.p("\t\tpha")
+                self.p("\t\ttya")
+                self.p("\t\tand  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                self.p("\t\ttay")
+                self.p("\t\tpla")
+            else:
+                raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo &=.word
+        elif operator == "|=":
+            if rvalue.register not in REGISTER_BYTES:
+                raise CodeError("unsupported rvalue register for aug assign", str(rvalue))  # @todo |=.word
+            if lvalue.register == "A":
+                self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                self.p("\t\tora  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+            elif lvalue.register == "X":
+                self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                self.p("\t\tpha")
+                self.p("\t\ttxa")
+                self.p("\t\tora  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                self.p("\t\ttax")
+                self.p("\t\tpla")
+            elif lvalue.register == "Y":
+                self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                self.p("\t\tpha")
+                self.p("\t\ttya")
+                self.p("\t\tora  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                self.p("\t\ttay")
+                self.p("\t\tpla")
+            else:
+                raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo |=.word
+        elif operator == "^=":
+            if rvalue.register not in REGISTER_BYTES:
+                raise CodeError("unsupported rvalue register for aug assign", str(rvalue))  # @todo ^=.word
+            if lvalue.register == "A":
+                self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                self.p("\t\teor  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+            elif lvalue.register == "X":
+                self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                self.p("\t\tpha")
+                self.p("\t\ttxa")
+                self.p("\t\teor  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                self.p("\t\ttax")
+                self.p("\t\tpla")
+            elif lvalue.register == "Y":
+                self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                self.p("\t\tpha")
+                self.p("\t\ttya")
+                self.p("\t\teor  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                self.p("\t\ttay")
+                self.p("\t\tpla")
+            else:
+                raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo ^=.word
+        elif operator == ">>=":
+            if rvalue.register not in REGISTER_BYTES:
+                raise CodeError("unsupported rvalue register for aug assign", str(rvalue))  # @todo >>=.word
+            if lvalue.register == "A":
+                self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                self.p("\t\tlsr  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+            elif lvalue.register == "X":
+                self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                self.p("\t\tpha")
+                self.p("\t\ttxa")
+                self.p("\t\tlsr  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                self.p("\t\ttax")
+                self.p("\t\tpla")
+            elif lvalue.register == "Y":
+                self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                self.p("\t\tpha")
+                self.p("\t\ttya")
+                self.p("\t\tlsr  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                self.p("\t\ttay")
+                self.p("\t\tpla")
+            else:
+                raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo >>=.word
+        elif operator == "<<=":
+            if rvalue.register not in REGISTER_BYTES:
+                raise CodeError("unsupported rvalue register for aug assign", str(rvalue))  # @todo <<=.word
+            if lvalue.register == "A":
+                self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                self.p("\t\tasl  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+            elif lvalue.register == "X":
+                self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                self.p("\t\tpha")
+                self.p("\t\ttxa")
+                self.p("\t\tasl  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                self.p("\t\ttax")
+                self.p("\t\tpla")
+            elif lvalue.register == "Y":
+                self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                self.p("\t\tpha")
+                self.p("\t\ttya")
+                self.p("\t\tasl  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                self.p("\t\ttay")
+                self.p("\t\tpla")
+            else:
+                raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo <<=.word
 
     def generate_assignment(self, stmt: ParseResult.AssignmentStmt) -> None:
         def unwrap_indirect(iv: ParseResult.IndirectValue) -> ParseResult.MemMappedValue:

@@ -19,7 +19,7 @@ from .astparse import ParseError, parse_expr_as_int, parse_expr_as_number, parse
 from .symbols import SourceRef, SymbolTable, DataType, SymbolDefinition, SubroutineDef, LabelDef, \
     zeropage, check_value_in_range, char_to_bytevalue, \
     PrimitiveType, VariableDef, ConstantDef, SymbolError, STRING_DATATYPES, \
-    REGISTER_SYMBOLS, REGISTER_WORDS, REGISTER_BYTES, RESERVED_NAMES
+    REGISTER_SYMBOLS, REGISTER_WORDS, REGISTER_BYTES, REGISTER_SBITS, RESERVED_NAMES
 
 
 class ProgramFormat(enum.Enum):
@@ -259,7 +259,7 @@ class ParseResult:
                     return False, "cannot explicitly assign from a status bit register alias"
                 if len(self.register) < len(other.register):
                     return False, "register size mismatch"
-            if isinstance(other, ParseResult.StringValue) and self.register in REGISTER_BYTES:
+            if isinstance(other, ParseResult.StringValue) and self.register in REGISTER_BYTES | REGISTER_SBITS:
                 return False, "string address requires 16 bits combined register"
             if isinstance(other, ParseResult.IntegerValue):
                 if other.value is not None:
@@ -399,6 +399,18 @@ class ParseResult:
         def is_identity(self) -> bool:
             return all(lv == self.right for lv in self.leftvalues)
 
+    class AugmentedAssignmentStmt(AssignmentStmt):
+        SUPPORTED_OPERATORS = {"+=", "-=", "&=", "|=", "^=", ">>=", "<<="}
+        # full set: {"+=", "-=", "*=", "/=", "%=", "//=", "**=", "&=", "|=", "^=", ">>=", "<<="}
+
+        def __init__(self, left: 'ParseResult.Value', operator: str, right: 'ParseResult.Value', lineno: int) -> None:
+            assert operator in self.SUPPORTED_OPERATORS
+            super().__init__([left], right, lineno)
+            self.operator = operator
+
+        def __str__(self):
+            return "<AugAssign {:s} {:s} {:s}>".format(str(self.leftvalues[0]), self.operator, str(self.right))
+
     class ReturnStmt(_AstNode):
         def __init__(self, lineno: int, a: Optional['ParseResult.Value']=None,
                      x: Optional['ParseResult.Value']=None,
@@ -408,9 +420,17 @@ class ParseResult:
             self.x = x
             self.y = y
 
-    class IncrDecrStmt(_AstNode):
-        def __init__(self, what: 'ParseResult.Value', howmuch: int, lineno: int) -> None:
+    class InplaceIncrStmt(_AstNode):
+        def __init__(self, what: 'ParseResult.Value', howmuch: Union[int, float], lineno: int) -> None:
             super().__init__(lineno)
+            assert howmuch > 0
+            self.what = what
+            self.howmuch = howmuch
+
+    class InplaceDecrStmt(_AstNode):
+        def __init__(self, what: 'ParseResult.Value', howmuch: Union[int, float], lineno: int) -> None:
+            super().__init__(lineno)
+            assert howmuch > 0
             self.what = what
             self.howmuch = howmuch
 
@@ -437,7 +457,7 @@ class ParseResult:
             self.desugared_output_assignments.clear()
             for name, value in self.arguments or []:
                 assert name is not None, "all call arguments should have a name or be matched on a named parameter"
-                assignment = parser.parse_assignment("{:s}={:s}".format(name, value))
+                assignment = parser.parse_assignment(name, value)
                 if not assignment.is_identity():
                     assignment.lineno = self.lineno
                     self.desugared_call_arguments.append(assignment)
@@ -1144,12 +1164,18 @@ class Parser:
             what = self.parse_expression(line[:-2].rstrip())
             if isinstance(what, ParseResult.IntegerValue):
                 raise self.PError("cannot in/decrement a constant value")
-            return ParseResult.IncrDecrStmt(what, 1 if incr else -1, self.sourceref.line)
+            if incr:
+                return ParseResult.InplaceIncrStmt(what, 1, self.sourceref.line)
+            return ParseResult.InplaceDecrStmt(what, 1, self.sourceref.line)
         else:
-            # perhaps it is an assignment statment
-            lhs, sep, rhs = line.partition("=")
-            if sep:
-                return self.parse_assignment(line)
+            # perhaps it is an augmented assignment statement
+            match = re.fullmatch(r"(?P<left>\S+)\s*(?P<assignment>\+=|-=|\*=|/=|%=|//=|\*\*=|&=|\|=|\^=|>>=|<<=)\s*(?P<right>\S.*)", line)
+            if match:
+                return self.parse_augmented_assignment(match.group("left"), match.group("assignment"), match.group("right"))
+            # a normal assignment perhaps?
+            splits = [s.strip() for s in line.split('=')]
+            if all(splits):
+                return self.parse_assignment(*splits)
             raise self.PError("invalid statement")
 
     def parse_call_or_goto(self, targetstr: str, argumentstr: str, outputstr: str,
@@ -1237,27 +1263,55 @@ class Parser:
             return int(text[1:], 2)
         return int(text)
 
-    def parse_assignment(self, line: str, parsed_rvalue: ParseResult.Value = None) -> ParseResult.AssignmentStmt:
-        # parses assigning a value to one or more targets
-        parts = line.split("=")
-        if parsed_rvalue:
-            r_value = parsed_rvalue
-        else:
-            rhs = parts.pop()
-            r_value = self.parse_expression(rhs)
-        l_values = [self.parse_expression(part) for part in parts]
-        if any(isinstance(lv, ParseResult.IntegerValue) for lv in l_values):
+    def parse_assignment(self, *parts) -> ParseResult.AssignmentStmt:
+        # parses the assignment of one rvalue to one or more lvalues
+        l_values = [self.parse_expression(p) for p in parts[:-1]]
+        r_value = self.parse_expression(parts[-1])
+        if any(lv.constant for lv in l_values):
             raise self.PError("can't have a constant as assignment target, perhaps you wanted indirection [...] instead?")
         for lv in l_values:
             assignable, reason = lv.assignable_from(r_value)
             if not assignable:
                 raise self.PError("cannot assign {0} to {1}; {2}".format(r_value, lv, reason))
             if lv.datatype in (DataType.BYTE, DataType.WORD, DataType.MATRIX):
+                # truncate the rvalue if needed
                 if isinstance(r_value, ParseResult.FloatValue):
                     truncated, value = self.coerce_value(self.sourceref, lv.datatype, r_value.value)
                     if truncated:
                         r_value = ParseResult.IntegerValue(int(value), datatype=lv.datatype, name=r_value.name)
         return ParseResult.AssignmentStmt(l_values, r_value, self.sourceref.line)
+
+    def parse_augmented_assignment(self, leftstr: str, operator: str, rightstr: str) \
+            -> Union[ParseResult.AssignmentStmt, ParseResult.InplaceDecrStmt, ParseResult.InplaceIncrStmt]:
+        # parses an augmented assignment (for instance: value += 3)
+        if operator not in ParseResult.AugmentedAssignmentStmt.SUPPORTED_OPERATORS:
+            raise self.PError("augmented assignment operator '{:s}' not supported".format(operator))
+        l_value = self.parse_expression(leftstr)
+        r_value = self.parse_expression(rightstr)
+        if l_value.constant:
+            raise self.PError("can't have a constant as assignment target, perhaps you wanted indirection [...] instead?")
+        if l_value.datatype in (DataType.BYTE, DataType.WORD, DataType.MATRIX):
+            # truncate the rvalue if needed
+            if isinstance(r_value, ParseResult.FloatValue):
+                truncated, value = self.coerce_value(self.sourceref, l_value.datatype, r_value.value)
+                if truncated:
+                    r_value = ParseResult.IntegerValue(int(value), datatype=l_value.datatype, name=r_value.name)
+        if r_value.constant and operator in ("+=", "-="):
+            if operator == "+=":
+                if r_value.value > 0:  # type: ignore
+                    return ParseResult.InplaceIncrStmt(l_value, r_value.value, self.sourceref.line)  # type: ignore
+                elif r_value.value < 0:  # type: ignore
+                    return ParseResult.InplaceDecrStmt(l_value, -r_value.value, self.sourceref.line)  # type: ignore
+                else:
+                    self.print_warning("warning: {}: incr with zero, ignored".format(self.sourceref))
+            else:
+                if r_value.value > 0:  # type: ignore
+                    return ParseResult.InplaceDecrStmt(l_value, r_value.value, self.sourceref.line)  # type: ignore
+                elif r_value.value < 0:  # type: ignore
+                    return ParseResult.InplaceIncrStmt(l_value, -r_value.value, self.sourceref.line)  # type: ignore
+                else:
+                    self.print_warning("warning: {}: decr with zero, ignored".format(self.sourceref))
+        return ParseResult.AugmentedAssignmentStmt(l_value, operator, r_value, self.sourceref.line)
 
     def parse_return(self, line: str) -> ParseResult.ReturnStmt:
         parts = line.split(maxsplit=1)
@@ -1376,7 +1430,7 @@ class Parser:
                 raise self.PError(str(ex))
         elif text in REGISTER_WORDS:
             return ParseResult.RegisterValue(text, DataType.WORD)
-        elif text in REGISTER_BYTES:
+        elif text in REGISTER_BYTES | REGISTER_SBITS:
             return ParseResult.RegisterValue(text, DataType.BYTE)
         elif (text.startswith("'") and text.endswith("'")) or (text.startswith('"') and text.endswith('"')):
             strvalue = parse_expr_as_string(text, self.cur_block.symbols, self.ppsymbols, self.sourceref)
@@ -1430,7 +1484,7 @@ class Parser:
         elif text.startswith('[') and text.endswith(']'):
             return self.parse_indirect_value(text)[1]
         else:
-            raise self.PError("invalid value '" + text + "'")
+            raise self.PError("invalid single value '" + text + "'")    # @todo understand complex expressions
 
     def parse_indirect_value(self, text: str, allow_mmapped_for_call: bool=False) -> Tuple[str, ParseResult.IndirectValue]:
         indirect = text[1:-1].strip()
@@ -1581,10 +1635,10 @@ class Optimizer:
             self.remove_unused_subroutines(block)
             self.optimize_compare_with_zero(block)
             for sub in block.symbols.iter_subroutines(True):
-                self.remove_identity_assigns(sub.sub_block)
-                self.combine_assignments_into_multi(sub.sub_block)
-                self.optimize_multiassigns(sub.sub_block)
-                self.optimize_compare_with_zero(sub.sub_block)
+               self.remove_identity_assigns(sub.sub_block)
+               self.combine_assignments_into_multi(sub.sub_block)
+               self.optimize_multiassigns(sub.sub_block)
+               self.optimize_compare_with_zero(sub.sub_block)
         return self.parsed
 
     def optimize_compare_with_zero(self, block: ParseResult.Block) -> None:
@@ -1618,13 +1672,12 @@ class Optimizer:
                     if simplified:
                         print("{:s}:{:d}: simplified comparison with zero".format(block.sourceref.file, stmt.lineno))
 
-
     def combine_assignments_into_multi(self, block: ParseResult.Block) -> None:
         # fold multiple consecutive assignments with the same rvalue into one multi-assignment
         statements = []   # type: List[ParseResult._AstNode]
         multi_assign_statement = None
         for stmt in block.statements:
-            if isinstance(stmt, ParseResult.AssignmentStmt):
+            if isinstance(stmt, ParseResult.AssignmentStmt) and not isinstance(stmt, ParseResult.AugmentedAssignmentStmt):
                 if multi_assign_statement and multi_assign_statement.right == stmt.right:
                     multi_assign_statement.leftvalues.extend(stmt.leftvalues)
                     print("{:s}:{:d}: joined with previous line into multi-assign statement".format(block.sourceref.file, stmt.lineno))

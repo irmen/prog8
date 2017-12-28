@@ -619,31 +619,32 @@ sub  input_chars  (buffer: AX) -> (A?, Y)  {
 	}
 }
 
-sub  memcopy_basic  () -> (A?, X?, Y?)  {
-	; ---- copy a memory block by using a BASIC ROM routine  @todo fix code
-	; it calls a function from the basic interpreter, so:
-	;       - BASIC ROM must be banked in
-	;       - the source block must be readable (so no RAM hidden under BASIC, Kernal, or I/O)
-	;       - the target block must be writable (so no RAM hidden under I/O)
-	; higher addresses are copied first, so:
-	;       - moving data to higher addresses works even if areas overlap
-	;       - moving data to lower addresses only works if areas do not overlap
-	asm {
-		lda  #<src_start
-		ldx  #>src_start
-		sta  $5f
-		stx  $60
-		lda  #<src_end
-		ldx  #>src_end
-		sta  $5a
-		stx  $5b
-		lda  #<(target_start + src_end - src_start)
-		ldx  #>(target_start + src_end - src_start)
-		sta  $58
-		stx  $59
-		jmp  $a3bf
-	}
-}
+;sub  memcopy_basic  () -> (A?, X?, Y?)  {
+;	; ---- copy a memory block by using a BASIC ROM routine  @todo fix code
+;	; it calls a function from the basic interpreter, so:
+;	;       - BASIC ROM must be banked in
+;	;       - the source block must be readable (so no RAM hidden under BASIC, Kernal, or I/O)
+;	;       - the target block must be writable (so no RAM hidden under I/O)
+;	; higher addresses are copied first, so:
+;	;       - moving data to higher addresses works even if areas overlap
+;	;       - moving data to lower addresses only works if areas do not overlap
+;	; @todo fix this
+;	asm {
+;		lda  #<src_start
+;		ldx  #>src_start
+;		sta  $5f
+;		stx  $60
+;		lda  #<src_end
+;		ldx  #>src_end
+;		sta  $5a
+;		stx  $5b
+;		lda  #<(target_start + src_end - src_start)
+;		ldx  #>(target_start + src_end - src_start)
+;		sta  $58
+;		stx  $59
+;		jmp  $a3bf
+;	}
+;}
 
 ; macro version of the above memcopy_basic routine:	@todo macro support?
 ; MACRO PARAMS src_start, src_end, target_start

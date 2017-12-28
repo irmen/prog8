@@ -228,6 +228,11 @@ tries to detect this situation however and optimize it itself if it finds the ca
         target1 = target2 = target3 [,...] = value-expression
 
 
+### Augmented Assignments
+
+A special assignment is the *augmented assignment* where the value is modified in-place.
+Several assignment operators are available: ``+=``, ``-=``, ``&=``, ``|=``, ``^=``, ``<<=``, ``>>=``
+
 
 
 ### Expressions

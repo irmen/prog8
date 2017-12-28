@@ -1,0 +1,49 @@
+output prg,sys
+
+import "c64lib"
+
+
+~ main {
+        var     .text   name    = '?' * 80
+        var     .float  myfloat = 2.33
+
+start
+        A += 1
+        A -= 1
+        A &= %10011100
+        A |= %10011100
+        A ^= %10011100
+        A <<= 1
+        A >>= 1
+        A += 2
+        A -= 2
+
+        X += 1
+        X -= 1
+        X += 2
+        X -= 2
+
+        Y += 1
+        Y -= 1
+        Y += 2
+        Y -= 2
+
+        c64util.init_system()
+        A = c64.VMCSB
+        ;A |= 2     ;  @todo A = A | 2 (complex expressions)
+        c64.VMCSB = A
+        ;c64.VMCSB |= 2   ;  @todo c64.VMCSB |= 2
+
+        c64util.print_string("Enter your name: ")
+        c64util.input_chars(name)
+        c64.CHROUT('\n')
+
+        A = 0
+printloop
+        c64util.print_byte_decimal(A)
+        c64.CHROUT('\n')
+        A++
+        if A <20 goto printloop
+        return
+
+}

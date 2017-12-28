@@ -18,7 +18,8 @@ PrimitiveType = Union[int, float, str]
 
 REGISTER_SYMBOLS = {"A", "X", "Y", "AX", "AY", "XY", "SC", "SI"}
 REGISTER_SYMBOLS_RETURNVALUES = REGISTER_SYMBOLS | {"SZ"}
-REGISTER_BYTES = {"A", "X", "Y", "SC", "SI"}
+REGISTER_BYTES = {"A", "X", "Y"}
+REGISTER_SBITS = {"SC", "SI", "SZ"}
 REGISTER_WORDS = {"AX", "AY", "XY"}
 
 # 5-byte cbm MFLPT format limitations:
@@ -176,7 +177,7 @@ class SubroutineDef(SymbolDefinition):
         self.clobbered_registers = set()    # type: Set[str]
         self.return_registers = []      # type: List[str]  # ordered!
         for _, param in parameters:
-            if param in REGISTER_BYTES:
+            if param in REGISTER_BYTES | REGISTER_SBITS:
                 self.clobbered_registers.add(param)
             elif param in REGISTER_WORDS:
                 self.clobbered_registers.add(param[0])
@@ -514,6 +515,9 @@ def check_value_in_range(datatype: DataType, register: str, length: int, value: 
         if register in REGISTER_BYTES:
             if value < 0 or value > 0xff:  # type: ignore
                 return "value out of range, must be (unsigned) byte for a single register"
+        elif register in REGISTER_SBITS:
+            if value not in (0, 1):
+                return "value out of range, must be 0 or 1 for a status bit register"
         elif register in REGISTER_WORDS:
             if value is None and datatype in (DataType.BYTE, DataType.WORD):
                 return None

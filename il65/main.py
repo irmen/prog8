@@ -43,7 +43,7 @@ def main() -> None:
     parsed = p.parse()
     if parsed:
         if args.nooptimize:
-            print("not optimizing the parse tree!")
+            p.print_warning("not optimizing the parse tree!")
         else:
             opt = Optimizer(parsed)
             parsed = opt.optimize()
@@ -57,11 +57,11 @@ def main() -> None:
         mon_command_file = assembler.generate_breakpoint_list(program_filename)
         duration_total = time.perf_counter() - start
         print("Compile duration:  {:.2f} seconds".format(duration_total))
-        print("Output file:      ", program_filename)
+        p.print_warning("Output file:       " + program_filename)
         print()
         if args.startvice:
             print("Autostart vice emulator...")
-            args = ["x64", "-remotemonitor", "-moncommands", mon_command_file,
-                    "-autostartprgmode", "1", "-autostart-warp", "-autostart", program_filename]
+            cmdline = ["x64", "-remotemonitor", "-moncommands", mon_command_file,
+                       "-autostartprgmode", "1", "-autostart-warp", "-autostart", program_filename]
             with open(os.devnull, "wb") as shutup:
-                subprocess.call(args, stdout=shutup)
+                subprocess.call(cmdline, stdout=shutup)
