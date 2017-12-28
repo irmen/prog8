@@ -13,7 +13,7 @@ import datetime
 import subprocess
 import contextlib
 from functools import partial
-from typing import TextIO, Set, Union, List
+from typing import TextIO, Set, Union, List, Tuple, Callable
 from .parse import ProgramFormat, ParseResult, Parser
 from .symbols import Zeropage, DataType, ConstantDef, VariableDef, SubroutineDef, \
     STRING_DATATYPES, REGISTER_WORDS, REGISTER_BYTES, FLOAT_MAX_NEGATIVE, FLOAT_MAX_POSITIVE
@@ -481,168 +481,299 @@ class CodeGenerator:
         self.p("\t\t\t\t\t; src l. {:d}".format(stmt.lineno))
         if stmt.condition:
             assert stmt.is_goto
-            line_after_goto = ""
             if stmt.condition.lvalue:
                 if stmt.condition.comparison_op:
-                    # the condition is lvalue operator rvalue
-                    assert stmt.condition.ifstatus in ("true", "not")
-                    assert stmt.condition.lvalue != stmt.condition.rvalue   # so we know we actually have to compare different things
-                    lv, op, rv = stmt.condition.lvalue, stmt.condition.comparison_op, stmt.condition.rvalue
-                    if lv.constant and not rv.constant:
-                        # if lv is a constant, swap the whole thing around so the constant is on the right
-                        lv, op, rv = stmt.condition.swap()
-                    if isinstance(rv, ParseResult.RegisterValue):
-                        # if rv is a register, make sure it comes first instead
-                        lv, op, rv = stmt.condition.swap()
-                    if lv.datatype != DataType.BYTE or rv.datatype != DataType.BYTE:
-                        raise CodeError("can only generate comparison code for byte values for now")   # @todo compare non-bytes
-                    if isinstance(lv, ParseResult.RegisterValue):
-                        if isinstance(rv, ParseResult.RegisterValue):
-                            self.p("\t\tst{:s}  {:s}".format(rv.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
-                            if lv.register == "A":
-                                self.p("\t\tcmp  " + Parser.to_hex(Zeropage.SCRATCH_B1))
-                            elif lv.register == "X":
-                                self.p("\t\tcpx  " + Parser.to_hex(Zeropage.SCRATCH_B1))
-                            elif lv.register == "Y":
-                                self.p("\t\tcpy  " + Parser.to_hex(Zeropage.SCRATCH_B1))
-                            else:
-                                raise CodeError("wrong lvalue register")
-                        elif isinstance(rv, ParseResult.IntegerValue):
-                            rvstr = rv.name or Parser.to_hex(rv.value)
-                            if lv.register == "A":
-                                self.p("\t\tcmp  #" + rvstr)
-                            elif lv.register == "X":
-                                self.p("\t\tcpx  #" + rvstr)
-                            elif lv.register == "Y":
-                                self.p("\t\tcpy  #" + rvstr)
-                            else:
-                                raise CodeError("wrong lvalue register")
-                        elif isinstance(rv, ParseResult.MemMappedValue):
-                            rvstr = rv.name or Parser.to_hex(rv.address)
-                            if lv.register == "A":
-                                self.p("\t\tcmp  " + rvstr)
-                            elif lv.register == "X":
-                                self.p("\t\tcpx  #" + rvstr)
-                            elif lv.register == "Y":
-                                self.p("\t\tcpy  #" + rvstr)
-                            else:
-                                raise CodeError("wrong lvalue register")
-                        else:
-                            raise CodeError("invalid rvalue type in comparison", rv)
-                    elif isinstance(lv, ParseResult.MemMappedValue):
-                        assert not isinstance(rv, ParseResult.RegisterValue), "registers as rvalue should have been swapped with lvalue"
-                        if isinstance(rv, ParseResult.IntegerValue):
-                            self.p("\t\tsta  " + Parser.to_hex(Zeropage.SCRATCH_B1))   # need to save A, because the goto may not be taken
-                            self.p("\t\tlda  " + (lv.name or Parser.to_hex(lv.address)))
-                            self.p("\t\tcmp  #" + (rv.name or Parser.to_hex(rv.value)))
-                            line_after_goto = "\t\tlda  " + Parser.to_hex(Zeropage.SCRATCH_B1)  # restore A
-                        elif isinstance(rv, ParseResult.MemMappedValue):
-                            rvstr = rv.name or Parser.to_hex(rv.address)
-                            self.p("\t\tsta  " + Parser.to_hex(Zeropage.SCRATCH_B1))   # need to save A, because the goto may not be taken
-                            self.p("\t\tlda  " + (lv.name or Parser.to_hex(lv.address)))
-                            self.p("\t\tcmp  " + rvstr)
-                            line_after_goto = "\t\tlda  " + Parser.to_hex(Zeropage.SCRATCH_B1)  # restore A
-                        else:
-                            raise CodeError("invalid rvalue type in comparison", rv)
-                    else:
-                        raise CodeError("invalid lvalue type in comparison", lv)
+                    self._generate_goto_conditional_comparison(stmt)
                 else:
-                    # the condition is just the 'truth value' of the single value,
-                    # this is translated into assembly by comparing the argument to zero.
-                    cv = stmt.condition.lvalue
-                    inverse_status = stmt.condition.inverse_ifstatus()
-                    if isinstance(cv, ParseResult.RegisterValue):
-                        if cv.register == 'A':
-                            self.p("\t\tcmp  #0")
-                        elif cv.register == 'X':
-                            self.p("\t\tcpx  #0")
-                        elif cv.register == 'Y':
-                            self.p("\t\tcpy  #0")
-                        else:
-                            # @todo combined register, not all if statuses are supported yet
-                            opcode = self._branchopcode(inverse_status)
-                            if opcode not in ("beq", "bne"):
-                                raise CodeError("cannot yet generate code for register pair that is not a true/false/eq/ne comparison",
-                                                self.cur_block.sourceref.file, stmt.lineno)  # @todo more register pair comparisons
-                            if cv.register == 'AX':
-                                line_after_goto = "+"
-                                self.p("\t\tcmp  #0")
-                                self.p("\t\t{:s}  {:s}".format(opcode, line_after_goto))
-                                self.p("\t\tcpx  #0")
-                            elif cv.register == 'AY':
-                                line_after_goto = "+"
-                                self.p("\t\tcmp  #0")
-                                self.p("\t\t{:s}  {:s}".format(opcode, line_after_goto))
-                                self.p("\t\tcpy  #0")
-                            elif cv.register == 'XY':
-                                line_after_goto = "+"
-                                self.p("\t\tcpx  #0")
-                                self.p("\t\t{:s}  {:s}".format(opcode, line_after_goto))
-                                self.p("\t\tcpy  #0")
-                            else:
-                                raise CodeError("invalid register", cv.register)
-                    elif isinstance(cv, ParseResult.MemMappedValue):
-                        if cv.datatype == DataType.BYTE:
-                            self.p("\t\tsta  " + Parser.to_hex(Zeropage.SCRATCH_B1))   # need to save A, because the goto may not be taken
-                            self.p("\t\tlda  " + (cv.name or Parser.to_hex(cv.address)))
-                            line_after_goto = "\t\tlda  " + Parser.to_hex(Zeropage.SCRATCH_B1)  # restore A
-                        elif cv.datatype == DataType.WORD:
-                            # @todo word value, not all if statuses are supported yet
-                            opcode = self._branchopcode(inverse_status)
-                            if opcode not in ("beq", "bne"):
-                                raise CodeError("cannot yet generate code for word value that is not a true/false/eq/ne comparison",
-                                                self.cur_block.sourceref.file, stmt.lineno)  # @todo more word value comparisons
-                            self.p("\t\tsta  " + Parser.to_hex(Zeropage.SCRATCH_B1))   # need to save A, because the goto may not be taken
-                            self.p("\t\tlda  " + (cv.name or Parser.to_hex(cv.address)))
-                            self.p("\t\t{:s}  +".format(opcode))
-                            self.p("\t\tlda  " + (cv.name or Parser.to_hex(cv.address)))
-                            line_after_goto = "+\t\tlda  " + Parser.to_hex(Zeropage.SCRATCH_B1)  # restore A
-                        else:
-                            raise CodeError("conditions cannot yet use other types than byte or word",   # @todo comparisons of other types
-                                            str(cv), self.cur_block.sourceref.file, stmt.lineno)
-                    else:
-                        raise CodeError("need register or memmapped value")
-            status = stmt.condition.ifstatus
-
-            self._generate_call(stmt, conditional_goto_opcode=self._branchopcode(status), line_after_goto=line_after_goto)
+                    self._generate_goto_conditional_truthvalue(stmt)
+            else:
+                self._generate_goto_conditional_if(stmt)
         else:
-            self._generate_call(stmt)
+            # unconditional goto or subroutine call.
+            def branch_emitter(targetstr: str, is_goto: bool, target_indirect: bool) -> None:
+                if is_goto:
+                    if target_indirect:
+                        self.p("\t\tjmp  ({:s})".format(targetstr))
+                    else:
+                        self.p("\t\tjmp  {:s}".format(targetstr))
+                else:
+                    assert not target_indirect
+                    self.p("\t\tjsr  " + targetstr)
+            self._generate_call_or_goto(stmt, branch_emitter)
 
-    def _branchopcode(self, status: str) -> str:
-        if status == "true":
-            status = "ne"
-        elif status in ("not", "zero"):
-            status = "eq"
-        elif status == "lt":
-            status = "cc"
-        elif status == "gt":
-            status = "eq + cs"  # @todo  if_gt
-        elif status == "le":
-            status = "cc + eq"  # @todo  if_le
-        elif status == "ge":
-            status = "cs"
-        opcodes = {"cc": "bcc",
-                   "cs": "bcs",
-                   "vc": "bvc",
-                   "vs": "bvs",
-                   "eq": "beq",
-                   "ne": "bne",
-                   "pos": "bpl",
-                   "neg": "bmi"}
-        return opcodes[status]
+    def _generate_goto_conditional_if(self, stmt):
+        # a goto with just an if-condition, no condition expression
+        def branch_emitter(targetstr: str, is_goto: bool, target_indirect: bool) -> None:
+            assert is_goto and not stmt.condition.comparison_op
+            ifs = stmt.condition.ifstatus
+            if target_indirect:
+                if ifs == "true":
+                    self.p("\t\tbeq  +")
+                    self.p("\t\tjmp  ({:s})".format(targetstr))
+                    self.p("+")
+                elif ifs in ("not", "zero"):
+                    self.p("\t\tbne  +")
+                    self.p("\t\tjmp  ({:s})".format(targetstr))
+                    self.p("+")
+                elif ifs in ("cc", "cs", "vc", "vs", "eq", "ne"):
+                    if ifs == "cc":
+                        self.p("\t\tbcs  +")
+                    elif ifs == "cs":
+                        self.p("\t\tbcc  +")
+                    elif ifs == "vc":
+                        self.p("\t\tbvs  +")
+                    elif ifs == "vs":
+                        self.p("\t\tbvc  +")
+                    elif ifs == "eq":
+                        self.p("\t\tbne  +")
+                    elif ifs == "ne":
+                        self.p("\t\tbeq  +")
+                    self.p("\t\tjmp  ({:s})".format(targetstr))
+                    self.p("+")
+                elif ifs == "lt":
+                    self.p("\t\tbcs  +")
+                    self.p("\t\tjmp  ({:s})".format(targetstr))
+                    self.p("+")
+                elif ifs == "gt":
+                    self.p("\t\tbcc  +")
+                    self.p("\t\tbeq  +")
+                    self.p("\t\tjmp  ({:s})".format(targetstr))
+                    self.p("+")
+                elif ifs == "ge":
+                    self.p("\t\tbcc  +")
+                    self.p("\t\tjmp  ({:s})".format(targetstr))
+                    self.p("+")
+                elif ifs == "le":
+                    self.p("\t\tbeq  +")
+                    self.p("\t\tbcs  ++")
+                    self.p("+\t\tjmp  ({:s})".format(targetstr))
+                    self.p("+")
+                else:
+                    raise CodeError("invalid if status " + ifs)
+            else:
+                if ifs == "true":
+                    self.p("\t\tbne  " + targetstr)
+                elif ifs in ("not", "zero"):
+                    self.p("\t\tbeq  " + targetstr)
+                elif ifs in ("cc", "cs", "vc", "vs", "eq", "ne"):
+                    self.p("\t\tb{:s}  {:s}".format(ifs, targetstr))
+                elif ifs == "lt":
+                    self.p("\t\tbcc  " + targetstr)
+                elif ifs == "gt":
+                    self.p("\t\tbeq  +")
+                    self.p("\t\tbcs  " + targetstr)
+                    self.p("+")
+                elif ifs == "ge":
+                    self.p("\t\tbcs  " + targetstr)
+                elif ifs == "le":
+                    self.p("\t\tbcc  " + targetstr)
+                    self.p("\t\tbeq  " + targetstr)
+                else:
+                    raise CodeError("invalid if status " + ifs)
+        self._generate_call_or_goto(stmt, branch_emitter)
 
-    def _generate_call(self, stmt: ParseResult.CallStmt, conditional_goto_opcode: str=None, line_after_goto: str=None) -> None:
-        if stmt.arguments and conditional_goto_opcode:
-            raise CodeError("cannot use a conditional goto when the target requires parameters")
-        goto_opcode = conditional_goto_opcode or "jmp"
+    def _generate_goto_conditional_truthvalue(self, stmt: ParseResult.CallStmt) -> None:
+        # the condition is just the 'truth value' of the single value,
+        # this is translated into assembly by comparing the argument to zero.
+        def branch_emitter_mmap(targetstr: str, is_goto: bool, target_indirect: bool) -> None:
+            assert is_goto and not stmt.condition.comparison_op
+            assert stmt.condition.lvalue and not stmt.condition.rvalue
+            assert not target_indirect
+            assert stmt.condition.ifstatus in ("true", "not", "zero")
+            branch, inverse_branch = ("bne", "beq") if stmt.condition.ifstatus == "true" else ("beq", "bne")
+            cv = stmt.condition.lvalue
+            assert isinstance(cv, ParseResult.MemMappedValue)
+            cv_str = cv.name or Parser.to_hex(cv.address)
+            if cv.datatype == DataType.BYTE:
+                self.p("\t\tsta  " + Parser.to_hex(Zeropage.SCRATCH_B1))  # need to save A, because the goto may not be taken
+                self.p("\t\tlda  " + cv_str)
+                self.p("\t\t{:s}  {:s}".format(branch, targetstr))
+                self.p("\t\tlda  " + Parser.to_hex(Zeropage.SCRATCH_B1))  # restore A
+            elif cv.datatype == DataType.WORD:
+                self.p("\t\tsta  " + Parser.to_hex(Zeropage.SCRATCH_B1))  # need to save A, because the goto may not be taken
+                self.p("\t\tlda  " + cv_str)
+                if stmt.condition.ifstatus == "true":
+                    self.p("\t\t{:s}  {:s}".format(branch, targetstr))
+                    self.p("\t\tlda  {:s}+1".format(cv_str))
+                    self.p("\t\t{:s}  {:s}".format(branch, targetstr))
+                    self.p("\t\tlda  " + Parser.to_hex(Zeropage.SCRATCH_B1))  # restore A
+                else:
+                    self.p("\t\t{:s}  +".format(inverse_branch, targetstr))
+                    self.p("\t\tlda  {:s}+1".format(cv_str))
+                    self.p("\t\t{:s}  {:s}".format(branch, targetstr))
+                    self.p("+\t\tlda  " + Parser.to_hex(Zeropage.SCRATCH_B1))  # restore A
+            else:
+                raise CodeError("conditions cannot yet use other types than byte or word",  # @todo comparisons of other types
+                                cv.datatype, str(cv), self.cur_block.sourceref.file, stmt.lineno)
 
+        def branch_emitter_reg(targetstr: str, is_goto: bool, target_indirect: bool) -> None:
+            assert is_goto and not stmt.condition.comparison_op
+            assert stmt.condition.lvalue and not stmt.condition.rvalue
+            assert not target_indirect
+            assert stmt.condition.ifstatus in ("true", "not", "zero")
+            branch, inverse_branch = ("bne", "beq") if stmt.condition.ifstatus == "true" else ("beq", "bne")
+            line_after_branch = ""
+            cv = stmt.condition.lvalue
+            assert isinstance(cv, ParseResult.RegisterValue)
+            if cv.register == 'A':
+                self.p("\t\tcmp  #0")
+            elif cv.register == 'X':
+                self.p("\t\tcpx  #0")
+            elif cv.register == 'Y':
+                self.p("\t\tcpy  #0")
+            else:
+                if cv.register == 'AX':
+                    line_after_branch = "+"
+                    self.p("\t\tcmp  #0")
+                    self.p("\t\t{:s}  {:s}".format(inverse_branch, line_after_branch))
+                    self.p("\t\tcpx  #0")
+                elif cv.register == 'AY':
+                    line_after_branch = "+"
+                    self.p("\t\tcmp  #0")
+                    self.p("\t\t{:s}  {:s}".format(inverse_branch, line_after_branch))
+                    self.p("\t\tcpy  #0")
+                elif cv.register == 'XY':
+                    line_after_branch = "+"
+                    self.p("\t\tcpx  #0")
+                    self.p("\t\t{:s}  {:s}".format(inverse_branch, line_after_branch))
+                    self.p("\t\tcpy  #0")
+                else:
+                    raise CodeError("invalid register", cv.register)
+            self.p("\t\t{:s}  {:s}".format(branch, targetstr))
+            if line_after_branch:
+                self.p(line_after_branch)
+
+        def branch_emitter_indirect_cond(targetstr: str, is_goto: bool, target_indirect: bool) -> None:
+            print("EMIT", stmt.target, stmt.condition, is_goto, target_indirect)
+            assert is_goto and not stmt.condition.comparison_op
+            assert stmt.condition.lvalue and not stmt.condition.rvalue
+            assert stmt.condition.ifstatus in ("true", "not", "zero")
+            cv = stmt.condition.lvalue.value   # type: ignore
+            if isinstance(cv, ParseResult.RegisterValue):
+                raise CodeError("indirect registers not yet supported")    # @todo indirect reg
+            elif isinstance(cv, ParseResult.MemMappedValue):
+                raise CodeError("memmapped indirect should not occur, use the variable without indirection")
+            elif isinstance(cv, ParseResult.IntegerValue) and cv.constant:
+                branch, inverse_branch = ("bne", "beq") if stmt.condition.ifstatus == "true" else ("beq", "bne")
+                cv_str = cv.name or Parser.to_hex(cv.value)
+                if cv.datatype == DataType.BYTE:
+                    self.p("\t\tsta  " + Parser.to_hex(Zeropage.SCRATCH_B1))  # need to save A, because the goto may not be taken
+                    self.p("\t\tlda  " + cv_str)
+                    self.p("\t\t{:s}  {:s}".format(branch, targetstr))
+                    self.p("\t\tlda  " + Parser.to_hex(Zeropage.SCRATCH_B1))  # restore A
+                elif cv.datatype == DataType.WORD:
+                    self.p("\t\tsta  " + Parser.to_hex(Zeropage.SCRATCH_B1))  # need to save A, because the goto may not be taken
+                    self.p("\t\tlda  " + cv_str)
+                    if stmt.condition.ifstatus == "true":
+                        self.p("\t\t{:s}  {:s}".format(branch, targetstr))
+                        self.p("\t\tlda  {:s}+1".format(cv_str))
+                        self.p("\t\t{:s}  {:s}".format(branch, targetstr))
+                        self.p("\t\tlda  " + Parser.to_hex(Zeropage.SCRATCH_B1))  # restore A
+                    else:
+                        self.p("\t\t{:s}  +".format(inverse_branch, targetstr))
+                        self.p("\t\tlda  {:s}+1".format(cv_str))
+                        self.p("\t\t{:s}  {:s}".format(branch, targetstr))
+                        self.p("+\t\tlda  " + Parser.to_hex(Zeropage.SCRATCH_B1))  # restore A
+                else:
+                    raise CodeError("conditions cannot yet use other types than byte or word",  # @todo comparisons of other types
+                                    cv.datatype, str(cv), self.cur_block.sourceref.file, stmt.lineno)
+            else:
+                raise CodeError("weird indirect type", str(cv))
+
+        cv = stmt.condition.lvalue
+        if isinstance(cv, ParseResult.RegisterValue):
+            self._generate_call_or_goto(stmt, branch_emitter_reg)
+        elif isinstance(cv, ParseResult.MemMappedValue):
+            self._generate_call_or_goto(stmt, branch_emitter_mmap)
+        elif isinstance(cv, ParseResult.IndirectValue):
+            if isinstance(cv.value, ParseResult.RegisterValue):
+                self._generate_call_or_goto(stmt, branch_emitter_indirect_cond)
+            elif isinstance(cv.value, ParseResult.MemMappedValue):
+                self._generate_call_or_goto(stmt, branch_emitter_indirect_cond)
+            elif isinstance(cv.value, ParseResult.IntegerValue) and cv.value.constant:
+                self._generate_call_or_goto(stmt, branch_emitter_indirect_cond)
+            else:
+                raise CodeError("weird indirect type", str(cv))
+        else:
+            raise CodeError("need register, memmapped or indirect value", str(cv))
+
+    def _generate_goto_conditional_comparison(self, stmt: ParseResult.CallStmt) -> None:
+        # the condition is lvalue operator rvalue
+        raise NotImplementedError("no comparisons yet")  # XXX comparisons
+        assert stmt.condition.ifstatus in ("true", "not", "zero")
+        assert stmt.condition.lvalue != stmt.condition.rvalue  # so we know we actually have to compare different things
+        lv, compare_operator, rv = stmt.condition.lvalue, stmt.condition.comparison_op, stmt.condition.rvalue
+        if lv.constant and not rv.constant:
+            # if lv is a constant, swap the whole thing around so the constant is on the right
+            lv, compare_operator, rv = stmt.condition.swap()
+        if isinstance(rv, ParseResult.RegisterValue):
+            # if rv is a register, make sure it comes first instead
+            lv, compare_operator, rv = stmt.condition.swap()
+        if lv.datatype != DataType.BYTE or rv.datatype != DataType.BYTE:
+            raise CodeError("can only generate comparison code for byte values for now")  # @todo compare non-bytes
+        if isinstance(lv, ParseResult.RegisterValue):
+            if isinstance(rv, ParseResult.RegisterValue):
+                self.p("\t\tst{:s}  {:s}".format(rv.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                if lv.register == "A":
+                    self.p("\t\tcmp  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                elif lv.register == "X":
+                    self.p("\t\tcpx  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                elif lv.register == "Y":
+                    self.p("\t\tcpy  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                else:
+                    raise CodeError("wrong lvalue register")
+            elif isinstance(rv, ParseResult.IntegerValue):
+                rvstr = rv.name or Parser.to_hex(rv.value)
+                if lv.register == "A":
+                    self.p("\t\tcmp  #" + rvstr)
+                elif lv.register == "X":
+                    self.p("\t\tcpx  #" + rvstr)
+                elif lv.register == "Y":
+                    self.p("\t\tcpy  #" + rvstr)
+                else:
+                    raise CodeError("wrong lvalue register")
+            elif isinstance(rv, ParseResult.MemMappedValue):
+                rvstr = rv.name or Parser.to_hex(rv.address)
+                if lv.register == "A":
+                    self.p("\t\tcmp  " + rvstr)
+                elif lv.register == "X":
+                    self.p("\t\tcpx  #" + rvstr)
+                elif lv.register == "Y":
+                    self.p("\t\tcpy  #" + rvstr)
+                else:
+                    raise CodeError("wrong lvalue register")
+            else:
+                raise CodeError("invalid rvalue type in comparison", rv)
+        elif isinstance(lv, ParseResult.MemMappedValue):
+            assert not isinstance(rv, ParseResult.RegisterValue), "registers as rvalue should have been swapped with lvalue"
+            if isinstance(rv, ParseResult.IntegerValue):
+                self.p("\t\tsta  " + Parser.to_hex(Zeropage.SCRATCH_B1))  # need to save A, because the goto may not be taken
+                self.p("\t\tlda  " + (lv.name or Parser.to_hex(lv.address)))
+                self.p("\t\tcmp  #" + (rv.name or Parser.to_hex(rv.value)))
+                line_after_goto = "\t\tlda  " + Parser.to_hex(Zeropage.SCRATCH_B1)  # restore A
+            elif isinstance(rv, ParseResult.MemMappedValue):
+                rvstr = rv.name or Parser.to_hex(rv.address)
+                self.p("\t\tsta  " + Parser.to_hex(Zeropage.SCRATCH_B1))  # need to save A, because the goto may not be taken
+                self.p("\t\tlda  " + (lv.name or Parser.to_hex(lv.address)))
+                self.p("\t\tcmp  " + rvstr)
+                line_after_goto = "\t\tlda  " + Parser.to_hex(Zeropage.SCRATCH_B1)  # restore A
+            else:
+                raise CodeError("invalid rvalue type in comparison", rv)
+        else:
+            raise CodeError("invalid lvalue type in comparison", lv)
+
+    def _generate_call_or_goto(self, stmt: ParseResult.CallStmt, branch_emitter: Callable[[str, bool, bool], None]) -> None:
         def generate_param_assignments() -> None:
+            self.p("; param assignment")  # XXX
             for assign_stmt in stmt.desugared_call_arguments:
                 self.generate_assignment(assign_stmt)
+            self.p("; param assignment done")  # XXX
 
         def generate_result_assignments() -> None:
+            self.p("; result assignment")  # XXX
             for assign_stmt in stmt.desugared_output_assignments:
                 self.generate_assignment(assign_stmt)
+            self.p("; result assignment done")  # XXX
 
         def params_load_a() -> bool:
             for assign_stmt in stmt.desugared_call_arguments:
@@ -657,10 +788,10 @@ class CodeGenerator:
                 for lv in a.leftvalues:
                     if isinstance(lv, ParseResult.RegisterValue):
                         if len(lv.register) == 1:
-                            registers.remove(lv.register)
+                            registers.discard(lv.register)
                         else:
                             for r in lv.register:
-                                registers.remove(r)
+                                registers.discard(r)
 
         if stmt.target.name:
             symblock, targetdef = self.cur_block.lookup(stmt.target.name)
@@ -674,9 +805,7 @@ class CodeGenerator:
                 raise CodeError("call sub target should be mmapped")
             if stmt.is_goto:
                 generate_param_assignments()
-                self.p("\t\t{:s}  {:s}".format(goto_opcode, targetstr))
-                if line_after_goto:
-                    self.p(line_after_goto)
+                branch_emitter(targetstr, True, False)
                 # no result assignments because it's a goto
                 return
             clobbered = set()  # type: Set[str]
@@ -686,7 +815,7 @@ class CodeGenerator:
                     unclobber_result_registers(clobbered, stmt.desugared_output_assignments)
             with self.preserving_registers(clobbered, loads_a_within=params_load_a()):
                 generate_param_assignments()
-                self.p("\t\tjsr  " + targetstr)
+                branch_emitter(targetstr, False, False)
                 generate_result_assignments()
             return
         if isinstance(stmt.target, ParseResult.IndirectValue):
@@ -708,13 +837,12 @@ class CodeGenerator:
                 if targetstr in REGISTER_WORDS:
                     self.p("\t\tst{:s}  {:s}".format(targetstr[0].lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
                     self.p("\t\tst{:s}  {:s}".format(targetstr[1].lower(), Parser.to_hex(Zeropage.SCRATCH_B2)))
-                    self.p("\t\t{:s}  ({:s})".format(goto_opcode, Parser.to_hex(Zeropage.SCRATCH_B1)))
+                    branch_emitter(Parser.to_hex(Zeropage.SCRATCH_B1), True, True)
                 else:
-                    self.p("\t\t{:s}  ({:s})".format(goto_opcode, targetstr))
+                    branch_emitter(targetstr, True, True)
                 # no result assignments because it's a goto
-                if line_after_goto:
-                    self.p(line_after_goto)
             else:
+                # indirect call to subroutine
                 preserve_regs = {'A', 'X', 'Y'} if stmt.preserve_regs else set()
                 unclobber_result_registers(preserve_regs, stmt.desugared_output_assignments)
                 with self.preserving_registers(preserve_regs, loads_a_within=params_load_a()):
@@ -747,6 +875,7 @@ class CodeGenerator:
                         self.p("+")
                     generate_result_assignments()
         else:
+            # call to a label or immediate address
             if stmt.target.name:
                 targetstr = stmt.target.name
             elif stmt.address is not None:
@@ -758,16 +887,14 @@ class CodeGenerator:
             if stmt.is_goto:
                 # no need to preserve registers for a goto
                 generate_param_assignments()
-                self.p("\t\t{:s}  {:s}".format(goto_opcode, targetstr))
+                branch_emitter(targetstr, True, False)
                 # no result assignments because it's a goto
-                if line_after_goto:
-                    self.p(line_after_goto)
             else:
                 preserve_regs = {'A', 'X', 'Y'} if stmt.preserve_regs else set()
                 unclobber_result_registers(preserve_regs, stmt.desugared_output_assignments)
                 with self.preserving_registers(preserve_regs, loads_a_within=params_load_a()):
                     generate_param_assignments()
-                    self.p("\t\tjsr  " + targetstr)
+                    branch_emitter(targetstr, False, False)
                     generate_result_assignments()
 
     def generate_augmented_assignment(self, stmt: ParseResult.AugmentedAssignmentStmt) -> None:
@@ -780,10 +907,105 @@ class CodeGenerator:
                 self._generate_aug_reg_int(lvalue, stmt.operator, rvalue)
             elif isinstance(rvalue, ParseResult.RegisterValue):
                 self._generate_aug_reg_reg(lvalue, stmt.operator, rvalue)
+            elif isinstance(rvalue, ParseResult.MemMappedValue):
+                self._generate_aug_reg_mem(lvalue, stmt.operator, rvalue)
             else:
-                raise CodeError("incr/decr on register only takes int or register for now")  # XXX
+                raise CodeError("invalid rvalue for augmented assignment on register", str(rvalue))
         else:
-            raise CodeError("incr/decr only implemented for registers for now")  # XXX
+            raise CodeError("augmented assignment only implemented for registers for now")  # XXX
+
+    def _generate_aug_reg_mem(self, lvalue: ParseResult.RegisterValue, operator: str, rvalue: ParseResult.MemMappedValue) -> None:
+        r_str = rvalue.name or Parser.to_hex(rvalue.address)
+        if operator == "+=":
+            self.p("\t\tclc")
+            if lvalue.register == "A":
+                self.p("\t\tadc  " + r_str)
+            elif lvalue.register == "X":
+                self.p("\t\tpha")
+                self.p("\t\ttxa")
+                self.p("\t\tadc  " + r_str)
+                self.p("\t\ttax")
+                self.p("\t\tpla")
+            elif lvalue.register == "Y":
+                self.p("\t\tpha")
+                self.p("\t\ttya")
+                self.p("\t\tadc  " + r_str)
+                self.p("\t\ttay")
+                self.p("\t\tpla")
+            else:
+                raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo +=.word
+        elif operator == "-=":
+            if lvalue.register == "A":
+                self.p("\t\tsbc  " + r_str)
+            elif lvalue.register == "X":
+                self.p("\t\tpha")
+                self.p("\t\ttxa")
+                self.p("\t\tsbc  " + r_str)
+                self.p("\t\ttax")
+                self.p("\t\tpla")
+            elif lvalue.register == "Y":
+                self.p("\t\tpha")
+                self.p("\t\ttya")
+                self.p("\t\tsbc  " + r_str)
+                self.p("\t\ttay")
+                self.p("\t\tpla")
+            else:
+                raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo -=.word
+        elif operator == "&=":
+            if lvalue.register == "A":
+                self.p("\t\tand  " + r_str)
+            elif lvalue.register == "X":
+                self.p("\t\tpha")
+                self.p("\t\ttxa")
+                self.p("\t\tand  " + r_str)
+                self.p("\t\ttax")
+                self.p("\t\tpla")
+            elif lvalue.register == "Y":
+                self.p("\t\tpha")
+                self.p("\t\ttya")
+                self.p("\t\tand  " + r_str)
+                self.p("\t\ttay")
+                self.p("\t\tpla")
+            else:
+                raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo &=.word
+        elif operator == "|=":
+            if lvalue.register == "A":
+                self.p("\t\tora  " + r_str)
+            elif lvalue.register == "X":
+                self.p("\t\tpha")
+                self.p("\t\ttxa")
+                self.p("\t\tora  " + r_str)
+                self.p("\t\ttax")
+                self.p("\t\tpla")
+            elif lvalue.register == "Y":
+                self.p("\t\tpha")
+                self.p("\t\ttya")
+                self.p("\t\tora  " + r_str)
+                self.p("\t\ttay")
+                self.p("\t\tpla")
+            else:
+                raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo |=.word
+        elif operator == "^=":
+            if lvalue.register == "A":
+                self.p("\t\teor  " + r_str)
+            elif lvalue.register == "X":
+                self.p("\t\tpha")
+                self.p("\t\ttxa")
+                self.p("\t\teor  " + r_str)
+                self.p("\t\ttax")
+                self.p("\t\tpla")
+            elif lvalue.register == "Y":
+                self.p("\t\tpha")
+                self.p("\t\ttya")
+                self.p("\t\teor  " + r_str)
+                self.p("\t\ttay")
+                self.p("\t\tpla")
+            else:
+                raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo ^=.word
+        elif operator == ">>=":
+            raise CodeError("can not yet shift a variable amount")  # XXX
+        elif operator == "<<=":
+            raise CodeError("can not yet shift a variable amount")  # XXX
 
     def _generate_aug_reg_int(self, lvalue: ParseResult.RegisterValue, operator: str, rvalue: ParseResult.IntegerValue) -> None:
         r_str = rvalue.name or Parser.to_hex(rvalue.value)
@@ -1308,10 +1530,30 @@ class CodeGenerator:
             if not loads_a_within:
                 self.p("\t\tlda  ${:02x}".format(Zeropage.SCRATCH_B2))
             yield
-            if 'Y' in registers:
-                self.p("\t\tpla\n\t\ttay")
-            if 'X' in registers:
-                self.p("\t\tpla\n\t\ttax")
+            if 'X' in registers and 'Y' in registers:
+                if 'A' not in registers:
+                    self.p("\t\tsta  ${:02x}".format(Zeropage.SCRATCH_B2))
+                    self.p("\t\tpla\n\t\ttay")
+                    self.p("\t\tpla\n\t\ttax")
+                    self.p("\t\tlda  ${:02x}".format(Zeropage.SCRATCH_B2))
+                else:
+                    self.p("\t\tpla\n\t\ttay")
+                    self.p("\t\tpla\n\t\ttax")
+            else:
+                if 'Y' in registers:
+                    if 'A' not in registers:
+                        self.p("\t\tsta  ${:02x}".format(Zeropage.SCRATCH_B2))
+                        self.p("\t\tpla\n\t\ttay")
+                        self.p("\t\tlda  ${:02x}".format(Zeropage.SCRATCH_B2))
+                    else:
+                        self.p("\t\tpla\n\t\ttay")
+                if 'X' in registers:
+                    if 'A' not in registers:
+                        self.p("\t\tsta  ${:02x}".format(Zeropage.SCRATCH_B2))
+                        self.p("\t\tpla\n\t\ttax")
+                        self.p("\t\tlda  ${:02x}".format(Zeropage.SCRATCH_B2))
+                    else:
+                        self.p("\t\tpla\n\t\ttax")
             if 'A' in registers:
                 self.p("\t\tpla")
         else:
@@ -1514,15 +1756,15 @@ class CodeGenerator:
                 if screencodes:
                     result += '", {:d}, "'.format(ord(char))
                 else:
-                    if char == "\f":
+                    if char == '\f':
                         result += "{clear}"
-                    elif char == "\b":
+                    elif char == '\b':
                         result += "{delete}"
-                    elif char == "\n":
-                        result += "{lf}"
-                    elif char == "\r":
+                    elif char == '\n':
                         result += "{cr}"
-                    elif char == "\t":
+                    elif char == '\r':
+                        result += "{down}"
+                    elif char == '\t':
                         result += "{tab}"
                     else:
                         result += '", {:d}, "'.format(ord(char))
@@ -1545,7 +1787,7 @@ class Assembler64Tass:
             raise ValueError("don't know how to create format "+str(self.format))
         try:
             if self.format == ProgramFormat.PRG:
-                print("\ncreating C-64 .prg")
+                print("\ncreating C-64 prg")
             elif self.format == ProgramFormat.RAW:
                 print("\ncreating raw binary")
             try:
@@ -1553,7 +1795,7 @@ class Assembler64Tass:
             except FileNotFoundError as x:
                 raise SystemExit("ERROR: cannot run assembler program: "+str(x))
         except subprocess.CalledProcessError as x:
-            print("assembler failed with returncode", x.returncode)
+            raise SystemExit("assembler failed with returncode " + str(x.returncode))
 
     def generate_breakpoint_list(self, program_filename: str) -> str:
         breakpoints = []

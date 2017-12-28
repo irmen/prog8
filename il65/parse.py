@@ -49,6 +49,10 @@ class ParseResult:
             self.symbols = SymbolTable(name, parent_scope, self)
 
         @property
+        def ignore(self) -> bool:
+            return not self.name and not self.address
+
+        @property
         def label_names(self) -> Set[str]:
             return {symbol.name for symbol in self.symbols.iter_labels()}
 
@@ -96,6 +100,7 @@ class ParseResult:
             return False, "incompatible value for assignment"
 
     class IndirectValue(Value):
+        # only constant integers, memmapped and register values are wrapped in this.
         def __init__(self, value: 'ParseResult.Value', type_modifier: DataType) -> None:
             assert type_modifier
             super().__init__(type_modifier, value.name, False)
@@ -480,28 +485,14 @@ class ParseResult:
                             ">=": "<=",
                             "<": ">",
                             ">": "<"}
-        INVERSE_IFSTATUS = {"cc": "cs",
-                            "cs": "cc",
-                            "vc": "vs",
-                            "vs": "vc",
-                            "eq": "ne",
-                            "ne": "eq",
-                            "pos": "neg",
-                            "neg": "pos",
-                            "true": "not",
-                            "not": "true",
-                            "zero": "true",
-                            "lt": "ge",
-                            "gt": "le",
-                            "le": "gt",
-                            "ge": "lt"}
+        IF_STATUSES = {"cc", "cs", "vc", "vs", "eq", "ne", "true", "not", "zero", "lt", "gt", "le", "ge"}
 
         def __init__(self, ifstatus: str, leftvalue: Optional['ParseResult.Value'],
                      operator: str, rightvalue: Optional['ParseResult.Value'], lineno: int) -> None:
-            assert ifstatus in self.INVERSE_IFSTATUS
+            assert ifstatus in self.IF_STATUSES
             assert operator in (None, "") or operator in self.SWAPPED_OPERATOR
             if operator:
-                assert ifstatus in ("true", "not")
+                assert ifstatus in ("true", "not", "zero")
             super().__init__(lineno)
             self.ifstatus = ifstatus
             self.lvalue = leftvalue
@@ -509,11 +500,16 @@ class ParseResult:
             self.rvalue = rightvalue
 
         def __str__(self):
-            return "<IfCondition {} {:s} {}>".format(self.lvalue, self.comparison_op, self.rvalue)
+            return "<IfCondition if_{:s} {} {:s} {}>".format(self.ifstatus, self.lvalue, self.comparison_op, self.rvalue)
 
-        def inverse_ifstatus(self) -> str:
-            # to be able to generate a branch when the status does NOT apply
-            return self.INVERSE_IFSTATUS[self.ifstatus]
+        def make_if_true(self) -> bool:
+            # makes a condition of the form if_not a < b  into: if a > b (gets rid of the not)
+            # returns whether the change was made or not
+            if self.ifstatus == "not" and self.comparison_op:
+                self.ifstatus = "true"
+                self.comparison_op = self.SWAPPED_OPERATOR[self.comparison_op]
+                return True
+            return False
 
         def swap(self) -> Tuple['ParseResult.Value', str, 'ParseResult.Value']:
             self.lvalue, self.comparison_op, self.rvalue = self.rvalue, self.SWAPPED_OPERATOR[self.comparison_op], self.lvalue
@@ -621,7 +617,10 @@ class Parser:
         self._parse_2()
         return self.result
 
-    def print_warning(self, text: str) -> None:
+    def print_warning(self, text: str, sourceref: SourceRef=None) -> None:
+        self.print_bold("warning: {}: {:s}".format(sourceref or self.sourceref, text))
+
+    def print_bold(self, text: str) -> None:
         if sys.stdout.isatty():
             print("\x1b[1m" + text + "\x1b[0m")
         else:
@@ -664,12 +663,12 @@ class Parser:
                     if "start" not in block.label_names:
                         self.sourceref.line = block.sourceref.line
                         self.sourceref.column = 0
-                        raise self.PError("The 'main' block should contain the program entry point 'start'")
+                        raise self.PError("block 'main' should contain the program entry point 'start'")
                     self._check_return_statement(block, "'main' block")
                 for sub in block.symbols.iter_subroutines(True):
-                    self._check_return_statement(sub.sub_block, "'{:s}' subroutine".format(sub.name))
+                    self._check_return_statement(sub.sub_block, "subroutine '{:s}'".format(sub.name))
             if not main_found:
-                raise self.PError("A block named 'main' should be defined for the program's entry point 'start'")
+                raise self.PError("a block 'main' should be defined and contain the program's entry point label 'start'")
 
     def _check_return_statement(self, block: ParseResult.Block, message: str) -> None:
         # find last statement that isn't a comment
@@ -690,7 +689,7 @@ class Parser:
                             continue
                     break
             break
-        self.print_warning("warning: {}: The {:s} doesn't end with a return statement".format(block.sourceref, message))
+        self.print_warning("{:s} doesn't end with a return statement".format(message), block.sourceref)
 
     def _parse_2(self) -> None:
         # parsing pass 2 (not done during preprocessing!)
@@ -886,7 +885,7 @@ class Parser:
     def create_import_parser(self, filename: str, outputdir: str) -> 'Parser':
         return Parser(filename, outputdir, parsing_import=True, ppsymbols=self.ppsymbols, sub_usage=self.result.subroutine_usage)
 
-    def parse_block(self) -> ParseResult.Block:
+    def parse_block(self) -> Optional[ParseResult.Block]:
         # first line contains block header "~ [name] [addr]" followed by a '{'
         self._parse_comments()
         line = self.next_line()
@@ -944,6 +943,20 @@ class Parser:
                 print("  parsing block '{:s}' at ${:04x}".format(self.cur_block.name, self.cur_block.address))
             else:
                 print("  parsing block '{:s}'".format(self.cur_block.name))
+        if self.cur_block.ignore:
+            # just skip the lines until we hit a '}' that closes the block
+            nesting_level = 1
+            while True:
+                line = self.next_line().strip()
+                if line.endswith("{"):
+                    nesting_level += 1
+                elif line == "}":
+                    nesting_level -= 1
+                    if nesting_level == 0:
+                        self.print_warning("ignoring block without name and address", self.cur_block.sourceref)
+                        return None
+            else:
+                raise self.PError("invalid statement in block")
         while True:
             self._parse_comments()
             line = self.next_line()
@@ -952,8 +965,8 @@ class Parser:
             if line == "}":
                 if is_zp_block and any(b.name == "ZP" for b in self.result.blocks):
                     return None     # we already have the ZP block
-                if not self.cur_block.name and not self.cur_block.address:
-                    self.print_warning("warning: {}: Ignoring block without name and address.".format(self.cur_block.sourceref))
+                if self.cur_block.ignore:
+                    self.print_warning("ignoring block without name and address", self.cur_block.sourceref)
                     return None
                 return self.cur_block
             if line.startswith(("var ", "var\t")):
@@ -977,7 +990,7 @@ class Parser:
                 self.cur_block.statements.append(self.parse_asm())
             elif line == "breakpoint":
                 self.cur_block.statements.append(ParseResult.BreakpointStmt(self.sourceref.line))
-                self.print_warning("warning: {}: breakpoint defined".format(self.sourceref))
+                self.print_warning("breakpoint defined")
             elif unstripped_line.startswith((" ", "\t")):
                 if is_zp_block:
                     raise self.PError("ZP block cannot contain code statements")
@@ -1174,7 +1187,7 @@ class Parser:
                 return self.parse_augmented_assignment(match.group("left"), match.group("assignment"), match.group("right"))
             # a normal assignment perhaps?
             splits = [s.strip() for s in line.split('=')]
-            if all(splits):
+            if len(splits) > 1 and all(splits):
                 return self.parse_assignment(*splits)
             raise self.PError("invalid statement")
 
@@ -1232,7 +1245,7 @@ class Parser:
                                           .format(len(outputs), len(symbol.return_registers)))
                     outputvars = list(zip(symbol.return_registers, (self.parse_expression(out) for out in outputs)))
                 else:
-                    self.print_warning("warning: {}: return values discarded".format(self.sourceref))
+                    self.print_warning("return values discarded")
             else:
                 if outputstr:
                     raise self.PError("this subroutine doesn't have output parameters")
@@ -1303,14 +1316,14 @@ class Parser:
                 elif r_value.value < 0:  # type: ignore
                     return ParseResult.InplaceDecrStmt(l_value, -r_value.value, self.sourceref.line)  # type: ignore
                 else:
-                    self.print_warning("warning: {}: incr with zero, ignored".format(self.sourceref))
+                    self.print_warning("incr with zero, ignored")
             else:
                 if r_value.value > 0:  # type: ignore
                     return ParseResult.InplaceDecrStmt(l_value, r_value.value, self.sourceref.line)  # type: ignore
                 elif r_value.value < 0:  # type: ignore
                     return ParseResult.InplaceIncrStmt(l_value, -r_value.value, self.sourceref.line)  # type: ignore
                 else:
-                    self.print_warning("warning: {}: decr with zero, ignored".format(self.sourceref))
+                    self.print_warning("decr with zero, ignored")
         return ParseResult.AugmentedAssignmentStmt(l_value, operator, r_value, self.sourceref.line)
 
     def parse_return(self, line: str) -> ParseResult.ReturnStmt:
@@ -1557,7 +1570,7 @@ class Parser:
         if datatype in (DataType.BYTE, DataType.WORD, DataType.MATRIX) and type(value) is float:
             frac = math.modf(value)  # type:ignore
             if frac != 0:
-                self.print_warning("warning: {}: Float value truncated.".format(sourceref))
+                self.print_warning("float value truncated")
                 return True, int(value)
         return False, value
 
@@ -1599,9 +1612,11 @@ class Parser:
             ifstatus = "true"
         else:
             ifstatus = ifpart[3:]
-        if ifstatus not in ParseResult.IfCondition.INVERSE_IFSTATUS:
+        if ifstatus not in ParseResult.IfCondition.IF_STATUSES:
             raise self.PError("invalid if form")
         if conditionpart:
+            if ifstatus not in ("true", "not", "zero"):
+                raise self.PError("can only have if[_true], if_not or if_zero when using a comparison expression")
             left, operator, right = parse_expr_as_comparison(conditionpart, self.sourceref)
             leftv = self.parse_expression(left)
             if not operator and isinstance(leftv, (ParseResult.IntegerValue, ParseResult.FloatValue, ParseResult.StringValue)):
@@ -1611,15 +1626,16 @@ class Parser:
                     raise self.PError("cannot use a status bit register explicitly in a condition")
             if operator:
                 rightv = self.parse_expression(right)
-                if ifstatus not in ("true", "not"):
-                    raise self.PError("can only use if[_true] or if_not with a comparison expression")
             else:
                 rightv = None
             if leftv == rightv:
                 raise self.PError("left and right values in comparison are identical")
-            return ParseResult.IfCondition(ifstatus, leftv, operator, rightv, self.sourceref.line)
+            result = ParseResult.IfCondition(ifstatus, leftv, operator, rightv, self.sourceref.line)
         else:
-            return ParseResult.IfCondition(ifstatus, None, "", None, self.sourceref.line)
+            result = ParseResult.IfCondition(ifstatus, None, "", None, self.sourceref.line)
+        if result.make_if_true():
+            self.print_warning("if_not condition inverted to if")
+        return result
 
 
 class Optimizer:
@@ -1635,10 +1651,10 @@ class Optimizer:
             self.remove_unused_subroutines(block)
             self.optimize_compare_with_zero(block)
             for sub in block.symbols.iter_subroutines(True):
-               self.remove_identity_assigns(sub.sub_block)
-               self.combine_assignments_into_multi(sub.sub_block)
-               self.optimize_multiassigns(sub.sub_block)
-               self.optimize_compare_with_zero(sub.sub_block)
+                self.remove_identity_assigns(sub.sub_block)
+                self.combine_assignments_into_multi(sub.sub_block)
+                self.optimize_multiassigns(sub.sub_block)
+                self.optimize_compare_with_zero(sub.sub_block)
         return self.parsed
 
     def optimize_compare_with_zero(self, block: ParseResult.Block) -> None:

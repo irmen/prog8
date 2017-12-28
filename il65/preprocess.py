@@ -8,6 +8,7 @@ License: GNU GPL 3.0, see LICENSE
 
 from typing import List, Tuple
 from .parse import Parser, ParseResult, SymbolTable, SymbolDefinition
+from .symbols import SourceRef
 
 
 class PreprocessingParser(Parser):
@@ -27,7 +28,7 @@ class PreprocessingParser(Parser):
         cleanup_table(self.root_scope)
         return self.lines, self.root_scope
 
-    def print_warning(self, text: str) -> None:
+    def print_warning(self, text: str, sourceref: SourceRef=None) -> None:
         pass
 
     def load_source(self, filename: str) -> List[Tuple[int, str]]:

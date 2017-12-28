@@ -142,7 +142,7 @@ For most other types this prefix is not supported.
 By default, if not otherwise known, a single byte is assumed. You can add the ``.byte`` or ``.word`` or ``.float``
 type identifier suffix to make it clear what data type the address points to.
 This addressing mode is only supported for constant (integer) addresses and not for variable types,
-unless it is part of a subroutine call statement. For an indirect goto call, the 6502 CPU has a special opcode
+unless it is part of a subroutine call statement. For an indirect goto call, the 6502 CPU has a special instruction
 (``jmp`` indirect) and an indirect subroutine call (``jsr`` indirect) is synthesized using a couple of instructions.
 
 
@@ -196,6 +196,8 @@ Block address must be >= $0200 (because $00-$fff is the ZP and $100-$200 is the 
 
 You can omit the blockname but then you can only refer to the contents of the block via its absolute address,
 which is required in this case. If you omit both, the block is ignored altogether (and a warning is displayed).
+This is a way to quickly "comment out" a piece of code that is unfinshed or may contain errors that you
+want to work on later, because the contents of the ignored block are not syntactically parsed.
 
 
 ### Importing, Including and Binary-Including Files
@@ -324,15 +326,13 @@ that is translated into a comparison (if needed) and then a conditional branch i
  
         if[_XX] [<expression>] goto <label>
 
-The if-status XX is one of: [cc, cs, vc, vs, eq, ne, pos, neg, true==ne, not==eq, zero==eq, lt==cc, gt==eq+cs, le==cc+eq, ge==cs]
-It defaults to 'true' (=='ne', not-zero) if omitted. @todo signed: lts==neg?, gts==eq+pos?, les==neg+eq?, ges==pos?
+The if-status XX is one of: [cc, cs, vc, vs, eq, ne, true, not, zero, lt, gt, le, ge]
+It defaults to 'true' (=='ne', not-zero) if omitted. @todo signed: pos, neg, lts==neg?, gts==eq+pos?, les==neg+eq?, ges==pos?
 
-The <expression> is optional. If it is provided, it will be evaluated first. Only the [true] and [not] if-statuses
-can be used when such a *comparison expression* is used. An example is:
+The <expression> is optional. If it is provided, it will be evaluated first. Only the [true] and [not] and [zero] 
+if-statuses can be used when such a *comparison expression* is used. An example is:
 
         ``if_not  A > 55  goto  more_iterations``  
-
-NOTE: some combination branches such as cc+eq an be peephole optimized see http://www.6502.org/tutorials/compare_beyond.html#2.2
 
 
 

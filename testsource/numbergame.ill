@@ -1,49 +1,87 @@
-output prg,sys
+output prg,sys            ; @todo basic
+;reg_preserve off         ; @todo global option
 
 import "c64lib"
 
 
 ~ main {
         var     .text   name    = '?' * 80
-        var     .float  myfloat = 2.33
+        var     .text   guess   = '?' * 80
+        var     secretnumber
+        var     attempts_left = 10
 
 start
-        A += 1
-        A -= 1
-        A &= %10011100
-        A |= %10011100
-        A ^= %10011100
-        A <<= 1
-        A >>= 1
-        A += 2
-        A -= 2
-
-        X += 1
-        X -= 1
-        X += 2
-        X -= 2
-
-        Y += 1
-        Y -= 1
-        Y += 2
-        Y -= 2
-
         c64util.init_system()
         A = c64.VMCSB
-        ;A |= 2     ;  @todo A = A | 2 (complex expressions)
+        A |= 2                  ;  @todo c64.VMCSB |= 2
         c64.VMCSB = A
-        ;c64.VMCSB |= 2   ;  @todo c64.VMCSB |= 2
 
+        ; greeting
         c64util.print_string("Enter your name: ")
-        c64util.input_chars(name)
+        Y = c64util.input_chars(name)
+        c64.CHROUT('\n')
+        c64.CHROUT('\n')
+        c64util.print_string("Hello, ")
+        c64util.print_string(name)
+        c64.CHROUT('.')
         c64.CHROUT('\n')
 
-        A = 0
+        ; create a secret random number from 1-100
+        c64.RNDA(0)
+        c64.MUL10()
+        c64.MUL10()
+        c64.FADDH()
+        c64.FADDH()
+        AY = c64util.GETADRAY()
+        secretnumber = A
+
+        c64util.print_string("I am thinking of a number from 1 to 100!You'll have to guess it!\n")
+
 printloop
-        c64util.print_byte_decimal(A)
+        c64util.print_string("\nYou have ")
+        c64util.print_byte_decimal(attempts_left)
+        c64util.print_string(" guesses left.\nWhat is your next guess? ")
+        A = c64util.input_chars(guess)
         c64.CHROUT('\n')
-        A++
-        if A <20 goto printloop
+        [$22.word] = guess
+        c64.FREADSTR(A)
+        AY = c64util.GETADRAY()
+        A -= secretnumber
+        if_zero goto correct_guess
+        if_gt goto too_high
+        c64util.print_string("That is too ")
+        c64util.print_string("low!\n")
+        goto continue
+
+correct_guess
+        c64util.print_string("\nImpressive!\n")
+        bye()
         return
+
+too_high
+        c64util.print_string("That is too ")
+        c64util.print_string("high!\n")
+
+continue
+        attempts_left--
+        if_zero attempts_left goto game_over
+        goto printloop
+
+game_over
+        c64util.print_string("\nToo bad! It was: ")
+        c64util.print_byte_decimal(secretnumber)
+        c64.CHROUT('\n')
+        bye()
+        return
+
+sub bye ()->() {
+        ;var x             ; @todo vars in sub
+        ;memory y = $c000        ; @todo vars in sub
+        ;const q = 22            ; @todo const in sub
+
+        c64.CHROUT('\n')
+        ;c64util.print_string("Thanks for playing. Bye!\n\n")        ;@todo string values should work in sub too
+        return
+}
 
 }

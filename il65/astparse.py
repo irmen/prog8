@@ -282,5 +282,7 @@ def astnode_to_repr(node: ast.AST) -> str:
             return "~" + astnode_to_repr(node.operand)
         if isinstance(node.op, ast.Not):
             return "not " + astnode_to_repr(node.operand)
-    print("error", ast.dump(node))
+    if isinstance(node, ast.List):
+        # indirect values get turned into a list...
+        return "[" + ",".join(astnode_to_repr(elt) for elt in node.elts) + "]"
     raise TypeError("invalid arg ast node type", node)

@@ -2,8 +2,79 @@ output prg,sys
 
 import "c64lib"
 
-
 ~ main {
+        var     .word   value
+        memory  .word   memvalue  = $8000
+
+
+start
+        A = 100
+
+
+        ; conditional if, without conditional expression. needs explicit if status.
+        if_not goto label
+        if_true goto label
+        if_zero goto label
+        if_cc goto label
+        if_lt goto label
+        if_le goto label
+        if_ge goto label
+        if_gt goto label
+        if_cc goto value
+        if_cc goto memvalue
+        if_cc goto #value
+        if_cc goto #memvalue
+        if_cc goto [value]
+        if_cc goto [memvalue]
+        if_cc goto $c000
+        if_cc goto [$c000.word]
+
+label
+        ; conditional if with a single 'truth' value (register)
+        if_true A goto label2
+        if_not A goto label2
+        if_zero A goto label2
+        if A goto label2
+        if_true X goto label2
+        if_not X goto label2
+        if_zero X goto label2
+        if X goto label2
+        if_true Y goto label2
+        if_not Y goto label2
+        if_zero Y goto label2
+        if Y goto label2
+        if_true XY goto label2
+        if_not XY goto label2
+        if_zero XY goto label2
+        if XY goto label2
+
+label2
+        ; conditional if with a single 'truth' value (variable)
+        if_true value goto label3
+        if_not value goto label3
+        if_zero value goto label3
+        if value goto label3
+        if_true memvalue goto label3
+        if_not memvalue goto label3
+        if_zero memvalue goto label3
+        if memvalue goto label3
+
+        ; conditional if with a single 'truth' value (indirect address)
+        if_true [$c000] goto label
+        if_not [$c000] goto label
+        if_zero [$c000] goto label
+        if [$c000] goto label
+        ; if_true [XY] goto label                ; @todo support indirect reg
+
+label3
+        return
+}
+
+
+
+; @todo temporarily disabled until comparison operators are properly implemented:
+
+~  {
         var  .text  name        = "?"*80
         var  bytevar = 22
         var  bytevar2 = 23
@@ -41,9 +112,9 @@ label1
         if_true X>A  goto  label1
         if A<=22  goto  label1
         if   A <=  22  goto  label1
-        if_cc  A  goto  label1
-        if_vc X  goto  label1
-        if_pos Y  goto  label1
+        if_zero  A  goto  label1
+        if_zero X  goto  label1
+        if Y  goto  label1
         if_true XY  goto  label1
         if_not XY  goto  label1
         if A  goto  label1
@@ -55,7 +126,7 @@ label1
         if bytevar<=22  goto  label2
         if bytevar  goto  label2
         if bytevar>bytevar2 goto  label2
-        if_pos bytevar  goto  label2
+        if_zero bytevar  goto  label2
         if_not wordvar  goto  label2
         if_zero wordvar  goto  label2
         if_true wordvar  goto  label2

@@ -1,0 +1,7115 @@
+; var definitions and immediate primitive data type tests
+
+output prg, sys
+clobberzp
+
+import "c64lib"
+
+~ main {
+start
+        [$d020]=0
+        return
+        blockdtypes1.max()
+        blockdtypes2.max()
+        blockdtypes3.max()
+        blockdtypes4.max()
+        blockdtypes5.max()
+        blockdtypes6.max()
+        blockdtypes7.max()
+        blockdtypes8.max()
+        blockdtypes9.max()
+        blockdtypes10.max()
+        blockdtypes11.max()
+        blockdtypes12.max()
+        blockdtypes13.max()
+        blockdtypes14.max()
+        blockdtypes15.max()
+        blockdtypes16.max()
+        blockdtypes17.max()
+        blockdtypes18.max()
+        blockdtypes19.max()
+        blockdtypes20.max()
+        blockcalls1.bar()
+        blockcalls2.bar()
+        blockcalls3.bar()
+        blockcalls4.bar()
+        blockcalls5.bar()
+        blockcalls6.bar()
+        blockcalls7.bar()
+        blockcalls8.bar()
+        blockcalls9.bar()
+        blockcalls10.bar()
+        blockcalls11.bar()
+        blockcalls12.bar()
+        blockcalls13.bar()
+        blockcalls14.bar()
+        blockcalls15.bar()
+        blockcalls16.bar()
+        blockcalls17.bar()
+        blockcalls18.bar()
+        blockcalls19.bar()
+        blockcalls20.bar()
+
+        return
+}
+
+~ blockdtypes1 {
+	; variables
+	var			uninitbyte1
+	var	.byte		uninitbyte2
+	var     		initbyte1	=  $12
+	var                     initbyte1b      = true
+	var  .byte              initbyte2       = $12
+	var  .byte              initbyte2b      = false
+	var  .byte              initbyte3       = 99.876
+	var                     initchar1       = '@'
+	var  .byte              initchar2       = '@'
+	var  .word              uninitword
+	var  .word              initword1       = $1234
+	var  .word              initword1b      = true
+	var  .word              initword2       = false
+	var  .word              initword3       = 9876.554321
+	var  .word              initword5       = 20
+	var  .float             uninitfloat
+	var  .float             initfloat1      = 0
+	var  .float             initfloat1b     = true
+	var  .float             initfloat2      = -1.234e-14
+	var  .float             initfloat3      = 9.87e+14
+	var  .float             initfloat4      = 1.70141183e+38
+	var  .float             initfloat5      = -1.70141183e+38
+	var  .float             initfloat6      = 1.234
+	var  .array( 10)        uninit_bytearray
+	var  .array(10 )        init_bytearray          =$12
+	var  .array(10 )        init_bytearrayb         =true
+	var  .array(10 )        init_bytearrayc         ='@'
+	var  .wordarray( 10 )   uninit_wordarray
+	var  .wordarray(10)     init_wordarray          =  $1234
+	var  .wordarray(10)     init_wordarrayb         =  true
+
+	var  .text              text    = "hello"+"-null"
+	var  .ptext             ptext   = 'hello-pascal'
+	var  .stext             stext   = 'screencodes-null'
+	var  .pstext            pstext  = "screencodes-pascal"
+
+	var  .matrix( 3, 4 ) uninitmatrix
+	var  .matrix( 3, 4 )   initmatrix1      = $12
+	var  .matrix( 3, 4 )   initmatrix1b     = true
+	var  .matrix( 3, 4 )   initmatrix1c     = '@'
+	var  .matrix( 3, 4 )   initmatrix1d     = 123.456
+
+	; memory-mapped variables
+	memory                          membyte1        = $cf01
+	memory  .byte                   membyte2        = $c222
+	memory  .word                   memword1        = $cf03
+	memory  .float                  memfloat        = $cf04
+	memory  .array(10 )             membytes        = $cf05
+	memory  .wordarray( 10)         memwords        = $cf06
+	memory  .matrix( 3, 4 )       memmatrix       = $cf07
+
+	; constants   (= names for constant values, can never occur as lvalue)
+	const                   cbyte1          = 1
+	const                   cbyte1b         = false
+	const  .byte            cbyte2          = 1
+	const  .byte            cbyte3          = '@'
+	const  .byte            cbyte4          = true
+	const  .word            cword1          = false
+	const  .word            cword2          = $1234
+	const  .word            cword5          = 9876.5432
+	const                   cfloat1         = 1.2345
+	const  .float           cfloat2         = 2.3456
+	const  .float           cfloat2b        = cfloat2*3.44
+	const  .float           cfloat3         = true
+	const  .text            ctext3   	= "constant-text"
+	const  .ptext           ctext4   	= "constant-ptext"
+	const  .stext           ctext5   	= "constant-stext"
+	const  .pstext          ctext6   	= "constant-pstext"
+
+        ; taking the address of various things:
+	var .word        vmemaddr1              = #membyte1
+	var .word        vmemaddr2              = #memword1
+	var .word        vmemaddr3              = #memfloat
+	var .word        vmemaddr4              = #membytes
+	var .word        vmemaddr5              = #memwords
+	var .word        vmemaddr6              = #memmatrix
+	var .word        vmemaddr8              = 100*sin(cbyte1)
+	var .word        vmemaddr9              = cword2+$5432
+	var .word        vmemaddr10             = cfloat2b
+	; taking the address of things from the ZP will work even when it is a var
+	; because zp-vars get assigned a specific address (from a pool). Also, it's a byte.
+
+
+max
+        return
+
+
+; --- immediate primitive value assignments ----
+
+	A = [$99]
+	A = [$aabb]
+	A = $99
+        A = [cbyte3]
+	A = 0
+	A = '@'
+	A = 1.2345
+	A = true
+	A = false
+	A = 255
+	A = X
+	A = [$99]
+	A = [$c020.byte]
+	A = [$c020]
+        A = cbyte3
+	A = membyte2
+        A = uninitbyte1
+
+
+	XY = 0
+	XY = '@'
+	XY = 1.2345
+	XY = 456.66
+	XY = 65535
+	XY = true
+	XY = false
+	XY = text
+	XY = cbyte3
+	XY = [cbyte3]
+	XY = [cword2]
+	XY = uninitbyte1
+	XY = "text-immediate"
+	AY = "text-immediate"
+	AX = #"text-immediate"          ; equivalent to simply assigning the string directly
+	AX = # "text-immediate"         ; equivalent to simply assigning the string directly
+	AX = ctext3
+	AX = ""
+	AX = XY
+	AX = Y
+	XY = membyte2
+	XY = #membyte2
+	XY = memword1
+	XY = max
+	XY = #max
+
+
+	[$c000] = A
+	[$c000] = 255
+	[$c000] = '@'
+	[$c000] = true
+	[$c000] = false
+	[$c000] = cbyte3
+	[$c000] = uninitbyte1
+	[$c000] = membyte2
+	[$c000] = cbyte2
+	[$c000] = [cword2]
+
+	[$c000.word] = A
+	[$c000.word] = AX
+	[$c000.word] = cbyte3
+	[$c000.word] = cword2
+	[$c000.word] = ctext3
+	[$c000.word] = 65535
+	[$c000.word] = "text"
+	[$c000.word] = ""
+	[$c000.word] = uninitbyte1
+	[$c000.word] = membyte2
+	[$c000.word] = #membyte2
+	[$c000.word] = [cword2]
+	[$c000.word] = memword1
+	[$c000.float] = 65535
+	[$c000.float] = 456.66
+	[$c000.float] = 1.70141183e+38
+	[$c000.float] = cbyte3
+	[$c000.float] = cword2
+
+	[$c001] = [$c002]
+	[$c111.word] = [$c222]
+        [$c112.word] = [$c223.byte]
+	[$c222.word] = [$c333.word]
+	[$c333.word] = max
+	[$c333.word] = #max
+
+
+	SC = 0
+	SC = 1
+	SC = false
+	SI = 1
+	SI = 0
+	SI = false
+
+	uninitbyte1 = 99
+	uninitbyte1 = 234
+	uninitbyte1 = '@'
+	initbyte1 = 99
+	initbyte1 = 1.234
+	initbyte1 = '@'
+	initbyte1 = A
+	initbyte1 = cbyte3
+	uninitword = 99
+	uninitword = 5.6778
+	uninitword = "test"
+	uninitword = '@'
+	uninitword = A
+	uninitword = XY
+	uninitword = ctext3
+	initword1 = cbyte3
+	initword1 = cword2
+	initfloat1 = 99
+	initfloat1 = 9.8765
+	initfloat1 = '@'
+	initfloat1 = cbyte3
+	initfloat1 = cword2
+	uninitfloat = 99
+	uninitfloat = 9.8765
+	uninitfloat = '@'
+	initword1 = max
+	initword1 = #max
+
+        membyte1 = A
+        membyte1 = cbyte3
+        memword1 = A
+        memword1 = AX
+        memword1 = cbyte3
+        memword1 = cword2
+        memword1 = ctext3
+
+
+        membyte1 = 22
+        memword1 = 2233
+        memfloat = 3.4567
+	memword1 = max
+	memword1 = #max
+
+        membyte1 = A
+        memword1 = A
+        memword1 = XY
+        memfloat = cbyte3
+        memfloat = cword2
+
+        ; float assignments that require ROM functions from c64lib:
+        memfloat = Y
+        memfloat = XY
+	uninitfloat = Y
+	uninitfloat = XY
+        initfloat2 = Y
+        initfloat2 = XY
+        initfloat2 = initbyte2
+        initfloat2 = initword2
+	initfloat1 = uninitfloat
+	initfloat1 = initfloat2
+
+}
+
+
+~ blockcalls1 {
+
+        var     .word   var1    = 99
+        memory  .word   mem1    = $cff0
+
+        var     .byte   varb1    = 99
+        memory  .byte   memb1    = $cff0
+        const   .word   constw   = $2355
+        const   .byte   constb   = $23
+        const   .float  constf   = 3.4556677
+        const   .text   constt   = "derp"
+
+        sub    sub1    () -> (X?)  = $ffdd
+        sub    sub2    (A) -> (Y?)  = $eecc
+        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
+
+
+bar
+        goto sub1
+        goto sub2 (1  )
+        goto sub3 (3)
+        goto sub3 (XY="hello")
+        goto sub3 ("hello, there")
+        goto sub4 (string="hello, there", other = 42)
+        goto sub4 ("hello",  42)
+        goto sub4 ("hello", other= 42)
+        goto sub4 (string="hello", other = 42)
+        goto bar  ()
+	goto [AX]
+	goto [AX]  ()
+	goto [var1]
+	goto [var1]   ()    ; comment
+	goto   [mem1]    ; comment
+	goto [mem1] ()
+	goto [$c2.word]
+	goto [$c2.word]  ()
+	goto [$c2dd.word]
+	goto [$c2dd.word] (  )
+	goto $c000
+	goto $c000        ( )
+	goto $c2
+	goto $c2()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1!()
+        sub2!(11)
+        sub3 !(3)
+        sub3! (XY="hello")
+        sub3! ("hello, there")
+        sub4! ("hello",  42)
+        sub4! ("hello",  other=42)
+        sub4! (string="hello", other = 42)
+        sub4! (string="hello, there", other = 42)
+        bar!()
+	[XY] ! ()
+	[var1] !()
+	[mem1]!()
+	[$c2.word]!()
+	[$c2dd.word]!()
+	$c000!()
+	$c2!()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1()
+        sub2(11)
+        sub3 (3)
+        sub3 (XY="hello")
+        sub3 ("hello, there")
+        sub4 ("hello",  42)
+        sub4 ("hello", other=  42)
+        sub4 (string="hello", other = 42)
+        sub4 (string="hello, there", other = 42)
+        bar ()
+	[AX]()
+	[var1] (  )
+	[mem1]    ()
+	[$c2.word]()
+	[$c2dd.word]()
+	$c000()
+	$c2()
+
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+	constw()
+	sub1()
+	main.start()
+}
+
+~ blockdtypes2 {
+	; variables
+	var			uninitbyte1
+	var	.byte		uninitbyte2
+	var     		initbyte1	=  $12
+	var                     initbyte1b      = true
+	var  .byte              initbyte2       = $12
+	var  .byte              initbyte2b      = false
+	var  .byte              initbyte3       = 99.876
+	var                     initchar1       = '@'
+	var  .byte              initchar2       = '@'
+	var  .word              uninitword
+	var  .word              initword1       = $1234
+	var  .word              initword1b      = true
+	var  .word              initword2       = false
+	var  .word              initword3       = 9876.554321
+	var  .word              initword5       = 20
+	var  .float             uninitfloat
+	var  .float             initfloat1      = 0
+	var  .float             initfloat1b     = true
+	var  .float             initfloat2      = -1.234e-14
+	var  .float             initfloat3      = 9.87e+14
+	var  .float             initfloat4      = 1.70141183e+38
+	var  .float             initfloat5      = -1.70141183e+38
+	var  .float             initfloat6      = 1.234
+	var  .array( 10)        uninit_bytearray
+	var  .array(10 )        init_bytearray          =$12
+	var  .array(10 )        init_bytearrayb         =true
+	var  .array(10 )        init_bytearrayc         ='@'
+	var  .wordarray( 10 )   uninit_wordarray
+	var  .wordarray(10)     init_wordarray          =  $1234
+	var  .wordarray(10)     init_wordarrayb         =  true
+
+	var  .text              text    = "hello"+"-null"
+	var  .ptext             ptext   = 'hello-pascal'
+	var  .stext             stext   = 'screencodes-null'
+	var  .pstext            pstext  = "screencodes-pascal"
+
+	var  .matrix( 3, 4 ) uninitmatrix
+	var  .matrix( 3, 4 )   initmatrix1      = $12
+	var  .matrix( 3, 4 )   initmatrix1b     = true
+	var  .matrix( 3, 4 )   initmatrix1c     = '@'
+	var  .matrix( 3, 4 )   initmatrix1d     = 123.456
+
+	; memory-mapped variables
+	memory                          membyte1        = $cf01
+	memory  .byte                   membyte2        = $c222
+	memory  .word                   memword1        = $cf03
+	memory  .float                  memfloat        = $cf04
+	memory  .array(10 )             membytes        = $cf05
+	memory  .wordarray( 10)         memwords        = $cf06
+	memory  .matrix( 3, 4 )       memmatrix       = $cf07
+
+	; constants   (= names for constant values, can never occur as lvalue)
+	const                   cbyte1          = 1
+	const                   cbyte1b         = false
+	const  .byte            cbyte2          = 1
+	const  .byte            cbyte3          = '@'
+	const  .byte            cbyte4          = true
+	const  .word            cword1          = false
+	const  .word            cword2          = $1234
+	const  .word            cword5          = 9876.5432
+	const                   cfloat1         = 1.2345
+	const  .float           cfloat2         = 2.3456
+	const  .float           cfloat2b        = cfloat2*3.44
+	const  .float           cfloat3         = true
+	const  .text            ctext3   	= "constant-text"
+	const  .ptext           ctext4   	= "constant-ptext"
+	const  .stext           ctext5   	= "constant-stext"
+	const  .pstext          ctext6   	= "constant-pstext"
+
+        ; taking the address of various things:
+	var .word        vmemaddr1              = #membyte1
+	var .word        vmemaddr2              = #memword1
+	var .word        vmemaddr3              = #memfloat
+	var .word        vmemaddr4              = #membytes
+	var .word        vmemaddr5              = #memwords
+	var .word        vmemaddr6              = #memmatrix
+	var .word        vmemaddr8              = 100*sin(cbyte1)
+	var .word        vmemaddr9              = cword2+$5432
+	var .word        vmemaddr10             = cfloat2b
+	; taking the address of things from the ZP will work even when it is a var
+	; because zp-vars get assigned a specific address (from a pool). Also, it's a byte.
+
+
+max
+        return
+
+
+; --- immediate primitive value assignments ----
+
+	A = [$99]
+	A = [$aabb]
+	A = $99
+        A = [cbyte3]
+	A = 0
+	A = '@'
+	A = 1.2345
+	A = true
+	A = false
+	A = 255
+	A = X
+	A = [$99]
+	A = [$c020.byte]
+	A = [$c020]
+        A = cbyte3
+	A = membyte2
+        A = uninitbyte1
+
+
+	XY = 0
+	XY = '@'
+	XY = 1.2345
+	XY = 456.66
+	XY = 65535
+	XY = true
+	XY = false
+	XY = text
+	XY = cbyte3
+	XY = [cbyte3]
+	XY = [cword2]
+	XY = uninitbyte1
+	XY = "text-immediate"
+	AY = "text-immediate"
+	AX = #"text-immediate"          ; equivalent to simply assigning the string directly
+	AX = # "text-immediate"         ; equivalent to simply assigning the string directly
+	AX = ctext3
+	AX = ""
+	AX = XY
+	AX = Y
+	XY = membyte2
+	XY = #membyte2
+	XY = memword1
+	XY = max
+	XY = #max
+
+
+	[$c000] = A
+	[$c000] = 255
+	[$c000] = '@'
+	[$c000] = true
+	[$c000] = false
+	[$c000] = cbyte3
+	[$c000] = uninitbyte1
+	[$c000] = membyte2
+	[$c000] = cbyte2
+	[$c000] = [cword2]
+
+	[$c000.word] = A
+	[$c000.word] = AX
+	[$c000.word] = cbyte3
+	[$c000.word] = cword2
+	[$c000.word] = ctext3
+	[$c000.word] = 65535
+	[$c000.word] = "text"
+	[$c000.word] = ""
+	[$c000.word] = uninitbyte1
+	[$c000.word] = membyte2
+	[$c000.word] = #membyte2
+	[$c000.word] = [cword2]
+	[$c000.word] = memword1
+	[$c000.float] = 65535
+	[$c000.float] = 456.66
+	[$c000.float] = 1.70141183e+38
+	[$c000.float] = cbyte3
+	[$c000.float] = cword2
+
+	[$c001] = [$c002]
+	[$c111.word] = [$c222]
+        [$c112.word] = [$c223.byte]
+	[$c222.word] = [$c333.word]
+	[$c333.word] = max
+	[$c333.word] = #max
+
+
+	SC = 0
+	SC = 1
+	SC = false
+	SI = 1
+	SI = 0
+	SI = false
+
+	uninitbyte1 = 99
+	uninitbyte1 = 1.234
+	uninitbyte1 = '@'
+	initbyte1 = 99
+	initbyte1 = 1.234
+	initbyte1 = '@'
+	initbyte1 = A
+	initbyte1 = cbyte3
+	uninitword = 99
+	uninitword = 5.6778
+	uninitword = "test"
+	uninitword = '@'
+	uninitword = A
+	uninitword = XY
+	uninitword = ctext3
+	initword1 = cbyte3
+	initword1 = cword2
+	initfloat1 = 99
+	initfloat1 = 9.8765
+	initfloat1 = '@'
+	initfloat1 = cbyte3
+	initfloat1 = cword2
+	uninitfloat = 99
+	uninitfloat = 9.8765
+	uninitfloat = '@'
+	initword1 = max
+	initword1 = #max
+
+        membyte1 = A
+        membyte1 = cbyte3
+        memword1 = A
+        memword1 = AX
+        memword1 = cbyte3
+        memword1 = cword2
+        memword1 = ctext3
+
+
+        membyte1 = 22
+        memword1 = 2233
+        memfloat = 3.4567
+	memword1 = max
+	memword1 = #max
+
+        membyte1 = A
+        memword1 = A
+        memword1 = XY
+        memfloat = cbyte3
+        memfloat = cword2
+
+        ; float assignments that require ROM functions from c64lib:
+        memfloat = Y
+        memfloat = XY
+	uninitfloat = Y
+	uninitfloat = XY
+        initfloat2 = Y
+        initfloat2 = XY
+        initfloat2 = initbyte2
+        initfloat2 = initword2
+	initfloat1 = uninitfloat
+	initfloat1 = initfloat2
+
+}
+
+
+~ blockcalls2 {
+
+        var     .word   var1    = 99
+        memory  .word   mem1    = $cff0
+
+        var     .byte   varb1    = 99
+        memory  .byte   memb1    = $cff0
+        const   .word   constw   = $2355
+        const   .byte   constb   = $23
+        const   .float  constf   = 3.4556677
+        const   .text   constt   = "derp"
+
+        sub    sub1    () -> (X?)  = $ffdd
+        sub    sub2    (A) -> (Y?)  = $eecc
+        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
+
+
+bar
+        goto sub1
+        goto sub2 (1  )
+        goto sub3 (3)
+        goto sub3 (XY="hello")
+        goto sub3 ("hello, there")
+        goto sub4 (string="hello, there", other = 42)
+        goto sub4 ("hello",  42)
+        goto sub4 ("hello", other= 42)
+        goto sub4 (string="hello", other = 42)
+        goto bar  ()
+	goto [AX]
+	goto [AX]  ()
+	goto [var1]
+	goto [var1]   ()    ; comment
+	goto   [mem1]    ; comment
+	goto [mem1] ()
+	goto [$c2.word]
+	goto [$c2.word]  ()
+	goto [$c2dd.word]
+	goto [$c2dd.word] (  )
+	goto $c000
+	goto $c000        ( )
+	goto $c2
+	goto $c2()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1!()
+        sub2!(11)
+        sub3 !(3)
+        sub3! (XY="hello")
+        sub3! ("hello, there")
+        sub4! ("hello",  42)
+        sub4! ("hello",  other=42)
+        sub4! (string="hello", other = 42)
+        sub4! (string="hello, there", other = 42)
+        bar!()
+	[XY] ! ()
+	[var1] !()
+	[mem1]!()
+	[$c2.word]!()
+	[$c2dd.word]!()
+	$c000!()
+	$c2!()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1()
+        sub2(11)
+        sub3 (3)
+        sub3 (XY="hello")
+        sub3 ("hello, there")
+        sub4 ("hello",  42)
+        sub4 ("hello", other=  42)
+        sub4 (string="hello", other = 42)
+        sub4 (string="hello, there", other = 42)
+        bar ()
+	[AX]()
+	[var1] (  )
+	[mem1]    ()
+	[$c2.word]()
+	[$c2dd.word]()
+	$c000()
+	$c2()
+
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+	constw()
+	sub1()
+	main.start()
+}
+
+~ blockdtypes3 {
+	; variables
+	var			uninitbyte1
+	var	.byte		uninitbyte2
+	var     		initbyte1	=  $12
+	var                     initbyte1b      = true
+	var  .byte              initbyte2       = $12
+	var  .byte              initbyte2b      = false
+	var  .byte              initbyte3       = 99.876
+	var                     initchar1       = '@'
+	var  .byte              initchar2       = '@'
+	var  .word              uninitword
+	var  .word              initword1       = $1234
+	var  .word              initword1b      = true
+	var  .word              initword2       = false
+	var  .word              initword3       = 9876.554321
+	var  .word              initword5       = 20
+	var  .float             uninitfloat
+	var  .float             initfloat1      = 0
+	var  .float             initfloat1b     = true
+	var  .float             initfloat2      = -1.234e-14
+	var  .float             initfloat3      = 9.87e+14
+	var  .float             initfloat4      = 1.70141183e+38
+	var  .float             initfloat5      = -1.70141183e+38
+	var  .float             initfloat6      = 1.234
+	var  .array( 10)        uninit_bytearray
+	var  .array(10 )        init_bytearray          =$12
+	var  .array(10 )        init_bytearrayb         =true
+	var  .array(10 )        init_bytearrayc         ='@'
+	var  .wordarray( 10 )   uninit_wordarray
+	var  .wordarray(10)     init_wordarray          =  $1234
+	var  .wordarray(10)     init_wordarrayb         =  true
+
+	var  .text              text    = "hello"+"-null"
+	var  .ptext             ptext   = 'hello-pascal'
+	var  .stext             stext   = 'screencodes-null'
+	var  .pstext            pstext  = "screencodes-pascal"
+
+	var  .matrix( 3, 4 ) uninitmatrix
+	var  .matrix( 3, 4 )   initmatrix1      = $12
+	var  .matrix( 3, 4 )   initmatrix1b     = true
+	var  .matrix( 3, 4 )   initmatrix1c     = '@'
+	var  .matrix( 3, 4 )   initmatrix1d     = 123.456
+
+	; memory-mapped variables
+	memory                          membyte1        = $cf01
+	memory  .byte                   membyte2        = $c222
+	memory  .word                   memword1        = $cf03
+	memory  .float                  memfloat        = $cf04
+	memory  .array(10 )             membytes        = $cf05
+	memory  .wordarray( 10)         memwords        = $cf06
+	memory  .matrix( 3, 4 )       memmatrix       = $cf07
+
+	; constants   (= names for constant values, can never occur as lvalue)
+	const                   cbyte1          = 1
+	const                   cbyte1b         = false
+	const  .byte            cbyte2          = 1
+	const  .byte            cbyte3          = '@'
+	const  .byte            cbyte4          = true
+	const  .word            cword1          = false
+	const  .word            cword2          = $1234
+	const  .word            cword5          = 9876.5432
+	const                   cfloat1         = 1.2345
+	const  .float           cfloat2         = 2.3456
+	const  .float           cfloat2b        = cfloat2*3.44
+	const  .float           cfloat3         = true
+	const  .text            ctext3   	= "constant-text"
+	const  .ptext           ctext4   	= "constant-ptext"
+	const  .stext           ctext5   	= "constant-stext"
+	const  .pstext          ctext6   	= "constant-pstext"
+
+        ; taking the address of various things:
+	var .word        vmemaddr1              = #membyte1
+	var .word        vmemaddr2              = #memword1
+	var .word        vmemaddr3              = #memfloat
+	var .word        vmemaddr4              = #membytes
+	var .word        vmemaddr5              = #memwords
+	var .word        vmemaddr6              = #memmatrix
+	var .word        vmemaddr8              = 100*sin(cbyte1)
+	var .word        vmemaddr9              = cword2+$5432
+	var .word        vmemaddr10             = cfloat2b
+	; taking the address of things from the ZP will work even when it is a var
+	; because zp-vars get assigned a specific address (from a pool). Also, it's a byte.
+
+
+max
+        return
+
+
+; --- immediate primitive value assignments ----
+
+	A = [$99]
+	A = [$aabb]
+	A = $99
+        A = [cbyte3]
+	A = 0
+	A = '@'
+	A = 1.2345
+	A = true
+	A = false
+	A = 255
+	A = X
+	A = [$99]
+	A = [$c020.byte]
+	A = [$c020]
+        A = cbyte3
+	A = membyte2
+        A = uninitbyte1
+
+
+	XY = 0
+	XY = '@'
+	XY = 1.2345
+	XY = 456.66
+	XY = 65535
+	XY = true
+	XY = false
+	XY = text
+	XY = cbyte3
+	XY = [cbyte3]
+	XY = [cword2]
+	XY = uninitbyte1
+	XY = "text-immediate"
+	AY = "text-immediate"
+	AX = #"text-immediate"          ; equivalent to simply assigning the string directly
+	AX = # "text-immediate"         ; equivalent to simply assigning the string directly
+	AX = ctext3
+	AX = ""
+	AX = XY
+	AX = Y
+	XY = membyte2
+	XY = #membyte2
+	XY = memword1
+	XY = max
+	XY = #max
+
+
+	[$c000] = A
+	[$c000] = 255
+	[$c000] = '@'
+	[$c000] = true
+	[$c000] = false
+	[$c000] = cbyte3
+	[$c000] = uninitbyte1
+	[$c000] = membyte2
+	[$c000] = cbyte2
+	[$c000] = [cword2]
+
+	[$c000.word] = A
+	[$c000.word] = AX
+	[$c000.word] = cbyte3
+	[$c000.word] = cword2
+	[$c000.word] = ctext3
+	[$c000.word] = 65535
+	[$c000.word] = "text"
+	[$c000.word] = ""
+	[$c000.word] = uninitbyte1
+	[$c000.word] = membyte2
+	[$c000.word] = #membyte2
+	[$c000.word] = [cword2]
+	[$c000.word] = memword1
+	[$c000.float] = 65535
+	[$c000.float] = 456.66
+	[$c000.float] = 1.70141183e+38
+	[$c000.float] = cbyte3
+	[$c000.float] = cword2
+
+	[$c001] = [$c002]
+	[$c111.word] = [$c222]
+        [$c112.word] = [$c223.byte]
+	[$c222.word] = [$c333.word]
+	[$c333.word] = max
+	[$c333.word] = #max
+
+
+	SC = 0
+	SC = 1
+	SC = false
+	SI = 1
+	SI = 0
+	SI = false
+
+	uninitbyte1 = 99
+	uninitbyte1 = 1.234
+	uninitbyte1 = '@'
+	initbyte1 = 99
+	initbyte1 = 1.234
+	initbyte1 = '@'
+	initbyte1 = A
+	initbyte1 = cbyte3
+	uninitword = 99
+	uninitword = 5.6778
+	uninitword = "test"
+	uninitword = '@'
+	uninitword = A
+	uninitword = XY
+	uninitword = ctext3
+	initword1 = cbyte3
+	initword1 = cword2
+	initfloat1 = 99
+	initfloat1 = 9.8765
+	initfloat1 = '@'
+	initfloat1 = cbyte3
+	initfloat1 = cword2
+	uninitfloat = 99
+	uninitfloat = 9.8765
+	uninitfloat = '@'
+	initword1 = max
+	initword1 = #max
+
+        membyte1 = A
+        membyte1 = cbyte3
+        memword1 = A
+        memword1 = AX
+        memword1 = cbyte3
+        memword1 = cword2
+        memword1 = ctext3
+
+
+        membyte1 = 22
+        memword1 = 2233
+        memfloat = 3.4567
+	memword1 = max
+	memword1 = #max
+
+        membyte1 = A
+        memword1 = A
+        memword1 = XY
+        memfloat = cbyte3
+        memfloat = cword2
+
+        ; float assignments that require ROM functions from c64lib:
+        memfloat = Y
+        memfloat = XY
+	uninitfloat = Y
+	uninitfloat = XY
+        initfloat2 = Y
+        initfloat2 = XY
+        initfloat2 = initbyte2
+        initfloat2 = initword2
+	initfloat1 = uninitfloat
+	initfloat1 = initfloat2
+
+}
+
+
+~ blockcalls3 {
+
+        var     .word   var1    = 99
+        memory  .word   mem1    = $cff0
+
+        var     .byte   varb1    = 99
+        memory  .byte   memb1    = $cff0
+        const   .word   constw   = $2355
+        const   .byte   constb   = $23
+        const   .float  constf   = 3.4556677
+        const   .text   constt   = "derp"
+
+        sub    sub1    () -> (X?)  = $ffdd
+        sub    sub2    (A) -> (Y?)  = $eecc
+        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
+
+
+bar
+        goto sub1
+        goto sub2 (1  )
+        goto sub3 (3)
+        goto sub3 (XY="hello")
+        goto sub3 ("hello, there")
+        goto sub4 (string="hello, there", other = 42)
+        goto sub4 ("hello",  42)
+        goto sub4 ("hello", other= 42)
+        goto sub4 (string="hello", other = 42)
+        goto bar  ()
+	goto [AX]
+	goto [AX]  ()
+	goto [var1]
+	goto [var1]   ()    ; comment
+	goto   [mem1]    ; comment
+	goto [mem1] ()
+	goto [$c2.word]
+	goto [$c2.word]  ()
+	goto [$c2dd.word]
+	goto [$c2dd.word] (  )
+	goto $c000
+	goto $c000        ( )
+	goto $c2
+	goto $c2()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1!()
+        sub2!(11)
+        sub3 !(3)
+        sub3! (XY="hello")
+        sub3! ("hello, there")
+        sub4! ("hello",  42)
+        sub4! ("hello",  other=42)
+        sub4! (string="hello", other = 42)
+        sub4! (string="hello, there", other = 42)
+        bar!()
+	[XY] ! ()
+	[var1] !()
+	[mem1]!()
+	[$c2.word]!()
+	[$c2dd.word]!()
+	$c000!()
+	$c2!()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1()
+        sub2(11)
+        sub3 (3)
+        sub3 (XY="hello")
+        sub3 ("hello, there")
+        sub4 ("hello",  42)
+        sub4 ("hello", other=  42)
+        sub4 (string="hello", other = 42)
+        sub4 (string="hello, there", other = 42)
+        bar ()
+	[AX]()
+	[var1] (  )
+	[mem1]    ()
+	[$c2.word]()
+	[$c2dd.word]()
+	$c000()
+	$c2()
+
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+	constw()
+	sub1()
+	main.start()
+}
+
+~ blockdtypes4 {
+	; variables
+	var			uninitbyte1
+	var	.byte		uninitbyte2
+	var     		initbyte1	=  $12
+	var                     initbyte1b      = true
+	var  .byte              initbyte2       = $12
+	var  .byte              initbyte2b      = false
+	var  .byte              initbyte3       = 99.876
+	var                     initchar1       = '@'
+	var  .byte              initchar2       = '@'
+	var  .word              uninitword
+	var  .word              initword1       = $1234
+	var  .word              initword1b      = true
+	var  .word              initword2       = false
+	var  .word              initword3       = 9876.554321
+	var  .word              initword5       = 20
+	var  .float             uninitfloat
+	var  .float             initfloat1      = 0
+	var  .float             initfloat1b     = true
+	var  .float             initfloat2      = -1.234e-14
+	var  .float             initfloat3      = 9.87e+14
+	var  .float             initfloat4      = 1.70141183e+38
+	var  .float             initfloat5      = -1.70141183e+38
+	var  .float             initfloat6      = 1.234
+	var  .array( 10)        uninit_bytearray
+	var  .array(10 )        init_bytearray          =$12
+	var  .array(10 )        init_bytearrayb         =true
+	var  .array(10 )        init_bytearrayc         ='@'
+	var  .wordarray( 10 )   uninit_wordarray
+	var  .wordarray(10)     init_wordarray          =  $1234
+	var  .wordarray(10)     init_wordarrayb         =  true
+
+	var  .text              text    = "hello"+"-null"
+	var  .ptext             ptext   = 'hello-pascal'
+	var  .stext             stext   = 'screencodes-null'
+	var  .pstext            pstext  = "screencodes-pascal"
+
+	var  .matrix( 3, 4 ) uninitmatrix
+	var  .matrix( 3, 4 )   initmatrix1      = $12
+	var  .matrix( 3, 4 )   initmatrix1b     = true
+	var  .matrix( 3, 4 )   initmatrix1c     = '@'
+	var  .matrix( 3, 4 )   initmatrix1d     = 123.456
+
+	; memory-mapped variables
+	memory                          membyte1        = $cf01
+	memory  .byte                   membyte2        = $c222
+	memory  .word                   memword1        = $cf03
+	memory  .float                  memfloat        = $cf04
+	memory  .array(10 )             membytes        = $cf05
+	memory  .wordarray( 10)         memwords        = $cf06
+	memory  .matrix( 3, 4 )       memmatrix       = $cf07
+
+	; constants   (= names for constant values, can never occur as lvalue)
+	const                   cbyte1          = 1
+	const                   cbyte1b         = false
+	const  .byte            cbyte2          = 1
+	const  .byte            cbyte3          = '@'
+	const  .byte            cbyte4          = true
+	const  .word            cword1          = false
+	const  .word            cword2          = $1234
+	const  .word            cword5          = 9876.5432
+	const                   cfloat1         = 1.2345
+	const  .float           cfloat2         = 2.3456
+	const  .float           cfloat2b        = cfloat2*3.44
+	const  .float           cfloat3         = true
+	const  .text            ctext3   	= "constant-text"
+	const  .ptext           ctext4   	= "constant-ptext"
+	const  .stext           ctext5   	= "constant-stext"
+	const  .pstext          ctext6   	= "constant-pstext"
+
+        ; taking the address of various things:
+	var .word        vmemaddr1              = #membyte1
+	var .word        vmemaddr2              = #memword1
+	var .word        vmemaddr3              = #memfloat
+	var .word        vmemaddr4              = #membytes
+	var .word        vmemaddr5              = #memwords
+	var .word        vmemaddr6              = #memmatrix
+	var .word        vmemaddr8              = 100*sin(cbyte1)
+	var .word        vmemaddr9              = cword2+$5432
+	var .word        vmemaddr10             = cfloat2b
+	; taking the address of things from the ZP will work even when it is a var
+	; because zp-vars get assigned a specific address (from a pool). Also, it's a byte.
+
+
+max
+        return
+
+
+; --- immediate primitive value assignments ----
+
+	A = [$99]
+	A = [$aabb]
+	A = $99
+        A = [cbyte3]
+	A = 0
+	A = '@'
+	A = 1.2345
+	A = true
+	A = false
+	A = 255
+	A = X
+	A = [$99]
+	A = [$c020.byte]
+	A = [$c020]
+        A = cbyte3
+	A = membyte2
+        A = uninitbyte1
+
+
+	XY = 0
+	XY = '@'
+	XY = 1.2345
+	XY = 456.66
+	XY = 65535
+	XY = true
+	XY = false
+	XY = text
+	XY = cbyte3
+	XY = [cbyte3]
+	XY = [cword2]
+	XY = uninitbyte1
+	XY = "text-immediate"
+	AY = "text-immediate"
+	AX = #"text-immediate"          ; equivalent to simply assigning the string directly
+	AX = # "text-immediate"         ; equivalent to simply assigning the string directly
+	AX = ctext3
+	AX = ""
+	AX = XY
+	AX = Y
+	XY = membyte2
+	XY = #membyte2
+	XY = memword1
+	XY = max
+	XY = #max
+
+
+	[$c000] = A
+	[$c000] = 255
+	[$c000] = '@'
+	[$c000] = true
+	[$c000] = false
+	[$c000] = cbyte3
+	[$c000] = uninitbyte1
+	[$c000] = membyte2
+	[$c000] = cbyte2
+	[$c000] = [cword2]
+
+	[$c000.word] = A
+	[$c000.word] = AX
+	[$c000.word] = cbyte3
+	[$c000.word] = cword2
+	[$c000.word] = ctext3
+	[$c000.word] = 65535
+	[$c000.word] = "text"
+	[$c000.word] = ""
+	[$c000.word] = uninitbyte1
+	[$c000.word] = membyte2
+	[$c000.word] = #membyte2
+	[$c000.word] = [cword2]
+	[$c000.word] = memword1
+	[$c000.float] = 65535
+	[$c000.float] = 456.66
+	[$c000.float] = 1.70141183e+38
+	[$c000.float] = cbyte3
+	[$c000.float] = cword2
+
+	[$c001] = [$c002]
+	[$c111.word] = [$c222]
+        [$c112.word] = [$c223.byte]
+	[$c222.word] = [$c333.word]
+	[$c333.word] = max
+	[$c333.word] = #max
+
+
+	SC = 0
+	SC = 1
+	SC = false
+	SI = 1
+	SI = 0
+	SI = false
+
+	uninitbyte1 = 99
+	uninitbyte1 = 1.234
+	uninitbyte1 = '@'
+	initbyte1 = 99
+	initbyte1 = 1.234
+	initbyte1 = '@'
+	initbyte1 = A
+	initbyte1 = cbyte3
+	uninitword = 99
+	uninitword = 5.6778
+	uninitword = "test"
+	uninitword = '@'
+	uninitword = A
+	uninitword = XY
+	uninitword = ctext3
+	initword1 = cbyte3
+	initword1 = cword2
+	initfloat1 = 99
+	initfloat1 = 9.8765
+	initfloat1 = '@'
+	initfloat1 = cbyte3
+	initfloat1 = cword2
+	uninitfloat = 99
+	uninitfloat = 9.8765
+	uninitfloat = '@'
+	initword1 = max
+	initword1 = #max
+
+        membyte1 = A
+        membyte1 = cbyte3
+        memword1 = A
+        memword1 = AX
+        memword1 = cbyte3
+        memword1 = cword2
+        memword1 = ctext3
+
+
+        membyte1 = 22
+        memword1 = 2233
+        memfloat = 3.4567
+	memword1 = max
+	memword1 = #max
+
+        membyte1 = A
+        memword1 = A
+        memword1 = XY
+        memfloat = cbyte3
+        memfloat = cword2
+
+        ; float assignments that require ROM functions from c64lib:
+        memfloat = Y
+        memfloat = XY
+	uninitfloat = Y
+	uninitfloat = XY
+        initfloat2 = Y
+        initfloat2 = XY
+        initfloat2 = initbyte2
+        initfloat2 = initword2
+	initfloat1 = uninitfloat
+	initfloat1 = initfloat2
+
+}
+
+
+~ blockcalls4 {
+
+        var     .word   var1    = 99
+        memory  .word   mem1    = $cff0
+
+        var     .byte   varb1    = 99
+        memory  .byte   memb1    = $cff0
+        const   .word   constw   = $2355
+        const   .byte   constb   = $23
+        const   .float  constf   = 3.4556677
+        const   .text   constt   = "derp"
+
+        sub    sub1    () -> (X?)  = $ffdd
+        sub    sub2    (A) -> (Y?)  = $eecc
+        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
+
+
+bar
+        goto sub1
+        goto sub2 (1  )
+        goto sub3 (3)
+        goto sub3 (XY="hello")
+        goto sub3 ("hello, there")
+        goto sub4 (string="hello, there", other = 42)
+        goto sub4 ("hello",  42)
+        goto sub4 ("hello", other= 42)
+        goto sub4 (string="hello", other = 42)
+        goto bar  ()
+	goto [AX]
+	goto [AX]  ()
+	goto [var1]
+	goto [var1]   ()    ; comment
+	goto   [mem1]    ; comment
+	goto [mem1] ()
+	goto [$c2.word]
+	goto [$c2.word]  ()
+	goto [$c2dd.word]
+	goto [$c2dd.word] (  )
+	goto $c000
+	goto $c000        ( )
+	goto $c2
+	goto $c2()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1!()
+        sub2!(11)
+        sub3 !(3)
+        sub3! (XY="hello")
+        sub3! ("hello, there")
+        sub4! ("hello",  42)
+        sub4! ("hello",  other=42)
+        sub4! (string="hello", other = 42)
+        sub4! (string="hello, there", other = 42)
+        bar!()
+	[XY] ! ()
+	[var1] !()
+	[mem1]!()
+	[$c2.word]!()
+	[$c2dd.word]!()
+	$c000!()
+	$c2!()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1()
+        sub2(11)
+        sub3 (3)
+        sub3 (XY="hello")
+        sub3 ("hello, there")
+        sub4 ("hello",  42)
+        sub4 ("hello", other=  42)
+        sub4 (string="hello", other = 42)
+        sub4 (string="hello, there", other = 42)
+        bar ()
+	[AX]()
+	[var1] (  )
+	[mem1]    ()
+	[$c2.word]()
+	[$c2dd.word]()
+	$c000()
+	$c2()
+
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+	constw()
+	sub1()
+	main.start()
+}
+
+~ blockdtypes5 {
+	; variables
+	var			uninitbyte1
+	var	.byte		uninitbyte2
+	var     		initbyte1	=  $12
+	var                     initbyte1b      = true
+	var  .byte              initbyte2       = $12
+	var  .byte              initbyte2b      = false
+	var  .byte              initbyte3       = 99.876
+	var                     initchar1       = '@'
+	var  .byte              initchar2       = '@'
+	var  .word              uninitword
+	var  .word              initword1       = $1234
+	var  .word              initword1b      = true
+	var  .word              initword2       = false
+	var  .word              initword3       = 9876.554321
+	var  .word              initword5       = 20
+	var  .float             uninitfloat
+	var  .float             initfloat1      = 0
+	var  .float             initfloat1b     = true
+	var  .float             initfloat2      = -1.234e-14
+	var  .float             initfloat3      = 9.87e+14
+	var  .float             initfloat4      = 1.70141183e+38
+	var  .float             initfloat5      = -1.70141183e+38
+	var  .float             initfloat6      = 1.234
+	var  .array( 10)        uninit_bytearray
+	var  .array(10 )        init_bytearray          =$12
+	var  .array(10 )        init_bytearrayb         =true
+	var  .array(10 )        init_bytearrayc         ='@'
+	var  .wordarray( 10 )   uninit_wordarray
+	var  .wordarray(10)     init_wordarray          =  $1234
+	var  .wordarray(10)     init_wordarrayb         =  true
+
+	var  .text              text    = "hello"+"-null"
+	var  .ptext             ptext   = 'hello-pascal'
+	var  .stext             stext   = 'screencodes-null'
+	var  .pstext            pstext  = "screencodes-pascal"
+
+	var  .matrix( 3, 4 ) uninitmatrix
+	var  .matrix( 3, 4 )   initmatrix1      = $12
+	var  .matrix( 3, 4 )   initmatrix1b     = true
+	var  .matrix( 3, 4 )   initmatrix1c     = '@'
+	var  .matrix( 3, 4 )   initmatrix1d     = 123.456
+
+	; memory-mapped variables
+	memory                          membyte1        = $cf01
+	memory  .byte                   membyte2        = $c222
+	memory  .word                   memword1        = $cf03
+	memory  .float                  memfloat        = $cf04
+	memory  .array(10 )             membytes        = $cf05
+	memory  .wordarray( 10)         memwords        = $cf06
+	memory  .matrix( 3, 4 )       memmatrix       = $cf07
+
+	; constants   (= names for constant values, can never occur as lvalue)
+	const                   cbyte1          = 1
+	const                   cbyte1b         = false
+	const  .byte            cbyte2          = 1
+	const  .byte            cbyte3          = '@'
+	const  .byte            cbyte4          = true
+	const  .word            cword1          = false
+	const  .word            cword2          = $1234
+	const  .word            cword5          = 9876.5432
+	const                   cfloat1         = 1.2345
+	const  .float           cfloat2         = 2.3456
+	const  .float           cfloat2b        = cfloat2*3.44
+	const  .float           cfloat3         = true
+	const  .text            ctext3   	= "constant-text"
+	const  .ptext           ctext4   	= "constant-ptext"
+	const  .stext           ctext5   	= "constant-stext"
+	const  .pstext          ctext6   	= "constant-pstext"
+
+        ; taking the address of various things:
+	var .word        vmemaddr1              = #membyte1
+	var .word        vmemaddr2              = #memword1
+	var .word        vmemaddr3              = #memfloat
+	var .word        vmemaddr4              = #membytes
+	var .word        vmemaddr5              = #memwords
+	var .word        vmemaddr6              = #memmatrix
+	var .word        vmemaddr8              = 100*sin(cbyte1)
+	var .word        vmemaddr9              = cword2+$5432
+	var .word        vmemaddr10             = cfloat2b
+	; taking the address of things from the ZP will work even when it is a var
+	; because zp-vars get assigned a specific address (from a pool). Also, it's a byte.
+
+
+max
+        return
+
+
+; --- immediate primitive value assignments ----
+
+	A = [$99]
+	A = [$aabb]
+	A = $99
+        A = [cbyte3]
+	A = 0
+	A = '@'
+	A = 1.2345
+	A = true
+	A = false
+	A = 255
+	A = X
+	A = [$99]
+	A = [$c020.byte]
+	A = [$c020]
+        A = cbyte3
+	A = membyte2
+        A = uninitbyte1
+
+
+	XY = 0
+	XY = '@'
+	XY = 1.2345
+	XY = 456.66
+	XY = 65535
+	XY = true
+	XY = false
+	XY = text
+	XY = cbyte3
+	XY = [cbyte3]
+	XY = [cword2]
+	XY = uninitbyte1
+	XY = "text-immediate"
+	AY = "text-immediate"
+	AX = #"text-immediate"          ; equivalent to simply assigning the string directly
+	AX = # "text-immediate"         ; equivalent to simply assigning the string directly
+	AX = ctext3
+	AX = ""
+	AX = XY
+	AX = Y
+	XY = membyte2
+	XY = #membyte2
+	XY = memword1
+	XY = max
+	XY = #max
+
+
+	[$c000] = A
+	[$c000] = 255
+	[$c000] = '@'
+	[$c000] = true
+	[$c000] = false
+	[$c000] = cbyte3
+	[$c000] = uninitbyte1
+	[$c000] = membyte2
+	[$c000] = cbyte2
+	[$c000] = [cword2]
+
+	[$c000.word] = A
+	[$c000.word] = AX
+	[$c000.word] = cbyte3
+	[$c000.word] = cword2
+	[$c000.word] = ctext3
+	[$c000.word] = 65535
+	[$c000.word] = "text"
+	[$c000.word] = ""
+	[$c000.word] = uninitbyte1
+	[$c000.word] = membyte2
+	[$c000.word] = #membyte2
+	[$c000.word] = [cword2]
+	[$c000.word] = memword1
+	[$c000.float] = 65535
+	[$c000.float] = 456.66
+	[$c000.float] = 1.70141183e+38
+	[$c000.float] = cbyte3
+	[$c000.float] = cword2
+
+	[$c001] = [$c002]
+	[$c111.word] = [$c222]
+        [$c112.word] = [$c223.byte]
+	[$c222.word] = [$c333.word]
+	[$c333.word] = max
+	[$c333.word] = #max
+
+
+	SC = 0
+	SC = 1
+	SC = false
+	SI = 1
+	SI = 0
+	SI = false
+
+	uninitbyte1 = 99
+	uninitbyte1 = 1.234
+	uninitbyte1 = '@'
+	initbyte1 = 99
+	initbyte1 = 1.234
+	initbyte1 = '@'
+	initbyte1 = A
+	initbyte1 = cbyte3
+	uninitword = 99
+	uninitword = 5.6778
+	uninitword = "test"
+	uninitword = '@'
+	uninitword = A
+	uninitword = XY
+	uninitword = ctext3
+	initword1 = cbyte3
+	initword1 = cword2
+	initfloat1 = 99
+	initfloat1 = 9.8765
+	initfloat1 = '@'
+	initfloat1 = cbyte3
+	initfloat1 = cword2
+	uninitfloat = 99
+	uninitfloat = 9.8765
+	uninitfloat = '@'
+	initword1 = max
+	initword1 = #max
+
+        membyte1 = A
+        membyte1 = cbyte3
+        memword1 = A
+        memword1 = AX
+        memword1 = cbyte3
+        memword1 = cword2
+        memword1 = ctext3
+
+
+        membyte1 = 22
+        memword1 = 2233
+        memfloat = 3.4567
+	memword1 = max
+	memword1 = #max
+
+        membyte1 = A
+        memword1 = A
+        memword1 = XY
+        memfloat = cbyte3
+        memfloat = cword2
+
+        ; float assignments that require ROM functions from c64lib:
+        memfloat = Y
+        memfloat = XY
+	uninitfloat = Y
+	uninitfloat = XY
+        initfloat2 = Y
+        initfloat2 = XY
+        initfloat2 = initbyte2
+        initfloat2 = initword2
+	initfloat1 = uninitfloat
+	initfloat1 = initfloat2
+
+}
+
+
+~ blockcalls5 {
+
+        var     .word   var1    = 99
+        memory  .word   mem1    = $cff0
+
+        var     .byte   varb1    = 99
+        memory  .byte   memb1    = $cff0
+        const   .word   constw   = $2355
+        const   .byte   constb   = $23
+        const   .float  constf   = 3.4556677
+        const   .text   constt   = "derp"
+
+        sub    sub1    () -> (X?)  = $ffdd
+        sub    sub2    (A) -> (Y?)  = $eecc
+        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
+
+
+bar
+        goto sub1
+        goto sub2 (1  )
+        goto sub3 (3)
+        goto sub3 (XY="hello")
+        goto sub3 ("hello, there")
+        goto sub4 (string="hello, there", other = 42)
+        goto sub4 ("hello",  42)
+        goto sub4 ("hello", other= 42)
+        goto sub4 (string="hello", other = 42)
+        goto bar  ()
+	goto [AX]
+	goto [AX]  ()
+	goto [var1]
+	goto [var1]   ()    ; comment
+	goto   [mem1]    ; comment
+	goto [mem1] ()
+	goto [$c2.word]
+	goto [$c2.word]  ()
+	goto [$c2dd.word]
+	goto [$c2dd.word] (  )
+	goto $c000
+	goto $c000        ( )
+	goto $c2
+	goto $c2()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1!()
+        sub2!(11)
+        sub3 !(3)
+        sub3! (XY="hello")
+        sub3! ("hello, there")
+        sub4! ("hello",  42)
+        sub4! ("hello",  other=42)
+        sub4! (string="hello", other = 42)
+        sub4! (string="hello, there", other = 42)
+        bar!()
+	[XY] ! ()
+	[var1] !()
+	[mem1]!()
+	[$c2.word]!()
+	[$c2dd.word]!()
+	$c000!()
+	$c2!()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1()
+        sub2(11)
+        sub3 (3)
+        sub3 (XY="hello")
+        sub3 ("hello, there")
+        sub4 ("hello",  42)
+        sub4 ("hello", other=  42)
+        sub4 (string="hello", other = 42)
+        sub4 (string="hello, there", other = 42)
+        bar ()
+	[AX]()
+	[var1] (  )
+	[mem1]    ()
+	[$c2.word]()
+	[$c2dd.word]()
+	$c000()
+	$c2()
+
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+	constw()
+	sub1()
+	main.start()
+}
+
+~ blockdtypes6 {
+	; variables
+	var			uninitbyte1
+	var	.byte		uninitbyte2
+	var     		initbyte1	=  $12
+	var                     initbyte1b      = true
+	var  .byte              initbyte2       = $12
+	var  .byte              initbyte2b      = false
+	var  .byte              initbyte3       = 99.876
+	var                     initchar1       = '@'
+	var  .byte              initchar2       = '@'
+	var  .word              uninitword
+	var  .word              initword1       = $1234
+	var  .word              initword1b      = true
+	var  .word              initword2       = false
+	var  .word              initword3       = 9876.554321
+	var  .word              initword5       = 20
+	var  .float             uninitfloat
+	var  .float             initfloat1      = 0
+	var  .float             initfloat1b     = true
+	var  .float             initfloat2      = -1.234e-14
+	var  .float             initfloat3      = 9.87e+14
+	var  .float             initfloat4      = 1.70141183e+38
+	var  .float             initfloat5      = -1.70141183e+38
+	var  .float             initfloat6      = 1.234
+	var  .array( 10)        uninit_bytearray
+	var  .array(10 )        init_bytearray          =$12
+	var  .array(10 )        init_bytearrayb         =true
+	var  .array(10 )        init_bytearrayc         ='@'
+	var  .wordarray( 10 )   uninit_wordarray
+	var  .wordarray(10)     init_wordarray          =  $1234
+	var  .wordarray(10)     init_wordarrayb         =  true
+
+	var  .text              text    = "hello"+"-null"
+	var  .ptext             ptext   = 'hello-pascal'
+	var  .stext             stext   = 'screencodes-null'
+	var  .pstext            pstext  = "screencodes-pascal"
+
+	var  .matrix( 3, 4 ) uninitmatrix
+	var  .matrix( 3, 4 )   initmatrix1      = $12
+	var  .matrix( 3, 4 )   initmatrix1b     = true
+	var  .matrix( 3, 4 )   initmatrix1c     = '@'
+	var  .matrix( 3, 4 )   initmatrix1d     = 123.456
+
+	; memory-mapped variables
+	memory                          membyte1        = $cf01
+	memory  .byte                   membyte2        = $c222
+	memory  .word                   memword1        = $cf03
+	memory  .float                  memfloat        = $cf04
+	memory  .array(10 )             membytes        = $cf05
+	memory  .wordarray( 10)         memwords        = $cf06
+	memory  .matrix( 3, 4 )       memmatrix       = $cf07
+
+	; constants   (= names for constant values, can never occur as lvalue)
+	const                   cbyte1          = 1
+	const                   cbyte1b         = false
+	const  .byte            cbyte2          = 1
+	const  .byte            cbyte3          = '@'
+	const  .byte            cbyte4          = true
+	const  .word            cword1          = false
+	const  .word            cword2          = $1234
+	const  .word            cword5          = 9876.5432
+	const                   cfloat1         = 1.2345
+	const  .float           cfloat2         = 2.3456
+	const  .float           cfloat2b        = cfloat2*3.44
+	const  .float           cfloat3         = true
+	const  .text            ctext3   	= "constant-text"
+	const  .ptext           ctext4   	= "constant-ptext"
+	const  .stext           ctext5   	= "constant-stext"
+	const  .pstext          ctext6   	= "constant-pstext"
+
+        ; taking the address of various things:
+	var .word        vmemaddr1              = #membyte1
+	var .word        vmemaddr2              = #memword1
+	var .word        vmemaddr3              = #memfloat
+	var .word        vmemaddr4              = #membytes
+	var .word        vmemaddr5              = #memwords
+	var .word        vmemaddr6              = #memmatrix
+	var .word        vmemaddr8              = 100*sin(cbyte1)
+	var .word        vmemaddr9              = cword2+$5432
+	var .word        vmemaddr10             = cfloat2b
+	; taking the address of things from the ZP will work even when it is a var
+	; because zp-vars get assigned a specific address (from a pool). Also, it's a byte.
+
+
+max
+        return
+
+
+; --- immediate primitive value assignments ----
+
+	A = [$99]
+	A = [$aabb]
+	A = $99
+        A = [cbyte3]
+	A = 0
+	A = '@'
+	A = 1.2345
+	A = true
+	A = false
+	A = 255
+	A = X
+	A = [$99]
+	A = [$c020.byte]
+	A = [$c020]
+        A = cbyte3
+	A = membyte2
+        A = uninitbyte1
+
+
+	XY = 0
+	XY = '@'
+	XY = 1.2345
+	XY = 456.66
+	XY = 65535
+	XY = true
+	XY = false
+	XY = text
+	XY = cbyte3
+	XY = [cbyte3]
+	XY = [cword2]
+	XY = uninitbyte1
+	XY = "text-immediate"
+	AY = "text-immediate"
+	AX = #"text-immediate"          ; equivalent to simply assigning the string directly
+	AX = # "text-immediate"         ; equivalent to simply assigning the string directly
+	AX = ctext3
+	AX = ""
+	AX = XY
+	AX = Y
+	XY = membyte2
+	XY = #membyte2
+	XY = memword1
+	XY = max
+	XY = #max
+
+
+	[$c000] = A
+	[$c000] = 255
+	[$c000] = '@'
+	[$c000] = true
+	[$c000] = false
+	[$c000] = cbyte3
+	[$c000] = uninitbyte1
+	[$c000] = membyte2
+	[$c000] = cbyte2
+	[$c000] = [cword2]
+
+	[$c000.word] = A
+	[$c000.word] = AX
+	[$c000.word] = cbyte3
+	[$c000.word] = cword2
+	[$c000.word] = ctext3
+	[$c000.word] = 65535
+	[$c000.word] = "text"
+	[$c000.word] = ""
+	[$c000.word] = uninitbyte1
+	[$c000.word] = membyte2
+	[$c000.word] = #membyte2
+	[$c000.word] = [cword2]
+	[$c000.word] = memword1
+	[$c000.float] = 65535
+	[$c000.float] = 456.66
+	[$c000.float] = 1.70141183e+38
+	[$c000.float] = cbyte3
+	[$c000.float] = cword2
+
+	[$c001] = [$c002]
+	[$c111.word] = [$c222]
+        [$c112.word] = [$c223.byte]
+	[$c222.word] = [$c333.word]
+	[$c333.word] = max
+	[$c333.word] = #max
+
+
+	SC = 0
+	SC = 1
+	SC = false
+	SI = 1
+	SI = 0
+	SI = false
+
+	uninitbyte1 = 99
+	uninitbyte1 = 1.234
+	uninitbyte1 = '@'
+	initbyte1 = 99
+	initbyte1 = 1.234
+	initbyte1 = '@'
+	initbyte1 = A
+	initbyte1 = cbyte3
+	uninitword = 99
+	uninitword = 5.6778
+	uninitword = "test"
+	uninitword = '@'
+	uninitword = A
+	uninitword = XY
+	uninitword = ctext3
+	initword1 = cbyte3
+	initword1 = cword2
+	initfloat1 = 99
+	initfloat1 = 9.8765
+	initfloat1 = '@'
+	initfloat1 = cbyte3
+	initfloat1 = cword2
+	uninitfloat = 99
+	uninitfloat = 9.8765
+	uninitfloat = '@'
+	initword1 = max
+	initword1 = #max
+
+        membyte1 = A
+        membyte1 = cbyte3
+        memword1 = A
+        memword1 = AX
+        memword1 = cbyte3
+        memword1 = cword2
+        memword1 = ctext3
+
+
+        membyte1 = 22
+        memword1 = 2233
+        memfloat = 3.4567
+	memword1 = max
+	memword1 = #max
+
+        membyte1 = A
+        memword1 = A
+        memword1 = XY
+        memfloat = cbyte3
+        memfloat = cword2
+
+        ; float assignments that require ROM functions from c64lib:
+        memfloat = Y
+        memfloat = XY
+	uninitfloat = Y
+	uninitfloat = XY
+        initfloat2 = Y
+        initfloat2 = XY
+        initfloat2 = initbyte2
+        initfloat2 = initword2
+	initfloat1 = uninitfloat
+	initfloat1 = initfloat2
+
+}
+
+
+~ blockcalls6 {
+
+        var     .word   var1    = 99
+        memory  .word   mem1    = $cff0
+
+        var     .byte   varb1    = 99
+        memory  .byte   memb1    = $cff0
+        const   .word   constw   = $2355
+        const   .byte   constb   = $23
+        const   .float  constf   = 3.4556677
+        const   .text   constt   = "derp"
+
+        sub    sub1    () -> (X?)  = $ffdd
+        sub    sub2    (A) -> (Y?)  = $eecc
+        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
+
+
+bar
+        goto sub1
+        goto sub2 (1  )
+        goto sub3 (3)
+        goto sub3 (XY="hello")
+        goto sub3 ("hello, there")
+        goto sub4 (string="hello, there", other = 42)
+        goto sub4 ("hello",  42)
+        goto sub4 ("hello", other= 42)
+        goto sub4 (string="hello", other = 42)
+        goto bar  ()
+	goto [AX]
+	goto [AX]  ()
+	goto [var1]
+	goto [var1]   ()    ; comment
+	goto   [mem1]    ; comment
+	goto [mem1] ()
+	goto [$c2.word]
+	goto [$c2.word]  ()
+	goto [$c2dd.word]
+	goto [$c2dd.word] (  )
+	goto $c000
+	goto $c000        ( )
+	goto $c2
+	goto $c2()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1!()
+        sub2!(11)
+        sub3 !(3)
+        sub3! (XY="hello")
+        sub3! ("hello, there")
+        sub4! ("hello",  42)
+        sub4! ("hello",  other=42)
+        sub4! (string="hello", other = 42)
+        sub4! (string="hello, there", other = 42)
+        bar!()
+	[XY] ! ()
+	[var1] !()
+	[mem1]!()
+	[$c2.word]!()
+	[$c2dd.word]!()
+	$c000!()
+	$c2!()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1()
+        sub2(11)
+        sub3 (3)
+        sub3 (XY="hello")
+        sub3 ("hello, there")
+        sub4 ("hello",  42)
+        sub4 ("hello", other=  42)
+        sub4 (string="hello", other = 42)
+        sub4 (string="hello, there", other = 42)
+        bar ()
+	[AX]()
+	[var1] (  )
+	[mem1]    ()
+	[$c2.word]()
+	[$c2dd.word]()
+	$c000()
+	$c2()
+
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+	constw()
+	sub1()
+	main.start()
+}
+
+~ blockdtypes7 {
+	; variables
+	var			uninitbyte1
+	var	.byte		uninitbyte2
+	var     		initbyte1	=  $12
+	var                     initbyte1b      = true
+	var  .byte              initbyte2       = $12
+	var  .byte              initbyte2b      = false
+	var  .byte              initbyte3       = 99.876
+	var                     initchar1       = '@'
+	var  .byte              initchar2       = '@'
+	var  .word              uninitword
+	var  .word              initword1       = $1234
+	var  .word              initword1b      = true
+	var  .word              initword2       = false
+	var  .word              initword3       = 9876.554321
+	var  .word              initword5       = 20
+	var  .float             uninitfloat
+	var  .float             initfloat1      = 0
+	var  .float             initfloat1b     = true
+	var  .float             initfloat2      = -1.234e-14
+	var  .float             initfloat3      = 9.87e+14
+	var  .float             initfloat4      = 1.70141183e+38
+	var  .float             initfloat5      = -1.70141183e+38
+	var  .float             initfloat6      = 1.234
+	var  .array( 10)        uninit_bytearray
+	var  .array(10 )        init_bytearray          =$12
+	var  .array(10 )        init_bytearrayb         =true
+	var  .array(10 )        init_bytearrayc         ='@'
+	var  .wordarray( 10 )   uninit_wordarray
+	var  .wordarray(10)     init_wordarray          =  $1234
+	var  .wordarray(10)     init_wordarrayb         =  true
+
+	var  .text              text    = "hello"+"-null"
+	var  .ptext             ptext   = 'hello-pascal'
+	var  .stext             stext   = 'screencodes-null'
+	var  .pstext            pstext  = "screencodes-pascal"
+
+	var  .matrix( 3, 4 ) uninitmatrix
+	var  .matrix( 3, 4 )   initmatrix1      = $12
+	var  .matrix( 3, 4 )   initmatrix1b     = true
+	var  .matrix( 3, 4 )   initmatrix1c     = '@'
+	var  .matrix( 3, 4 )   initmatrix1d     = 123.456
+
+	; memory-mapped variables
+	memory                          membyte1        = $cf01
+	memory  .byte                   membyte2        = $c222
+	memory  .word                   memword1        = $cf03
+	memory  .float                  memfloat        = $cf04
+	memory  .array(10 )             membytes        = $cf05
+	memory  .wordarray( 10)         memwords        = $cf06
+	memory  .matrix( 3, 4 )       memmatrix       = $cf07
+
+	; constants   (= names for constant values, can never occur as lvalue)
+	const                   cbyte1          = 1
+	const                   cbyte1b         = false
+	const  .byte            cbyte2          = 1
+	const  .byte            cbyte3          = '@'
+	const  .byte            cbyte4          = true
+	const  .word            cword1          = false
+	const  .word            cword2          = $1234
+	const  .word            cword5          = 9876.5432
+	const                   cfloat1         = 1.2345
+	const  .float           cfloat2         = 2.3456
+	const  .float           cfloat2b        = cfloat2*3.44
+	const  .float           cfloat3         = true
+	const  .text            ctext3   	= "constant-text"
+	const  .ptext           ctext4   	= "constant-ptext"
+	const  .stext           ctext5   	= "constant-stext"
+	const  .pstext          ctext6   	= "constant-pstext"
+
+        ; taking the address of various things:
+	var .word        vmemaddr1              = #membyte1
+	var .word        vmemaddr2              = #memword1
+	var .word        vmemaddr3              = #memfloat
+	var .word        vmemaddr4              = #membytes
+	var .word        vmemaddr5              = #memwords
+	var .word        vmemaddr6              = #memmatrix
+	var .word        vmemaddr8              = 100*sin(cbyte1)
+	var .word        vmemaddr9              = cword2+$5432
+	var .word        vmemaddr10             = cfloat2b
+	; taking the address of things from the ZP will work even when it is a var
+	; because zp-vars get assigned a specific address (from a pool). Also, it's a byte.
+
+
+max
+        return
+
+
+; --- immediate primitive value assignments ----
+
+	A = [$99]
+	A = [$aabb]
+	A = $99
+        A = [cbyte3]
+	A = 0
+	A = '@'
+	A = 1.2345
+	A = true
+	A = false
+	A = 255
+	A = X
+	A = [$99]
+	A = [$c020.byte]
+	A = [$c020]
+        A = cbyte3
+	A = membyte2
+        A = uninitbyte1
+
+
+	XY = 0
+	XY = '@'
+	XY = 1.2345
+	XY = 456.66
+	XY = 65535
+	XY = true
+	XY = false
+	XY = text
+	XY = cbyte3
+	XY = [cbyte3]
+	XY = [cword2]
+	XY = uninitbyte1
+	XY = "text-immediate"
+	AY = "text-immediate"
+	AX = #"text-immediate"          ; equivalent to simply assigning the string directly
+	AX = # "text-immediate"         ; equivalent to simply assigning the string directly
+	AX = ctext3
+	AX = ""
+	AX = XY
+	AX = Y
+	XY = membyte2
+	XY = #membyte2
+	XY = memword1
+	XY = max
+	XY = #max
+
+
+	[$c000] = A
+	[$c000] = 255
+	[$c000] = '@'
+	[$c000] = true
+	[$c000] = false
+	[$c000] = cbyte3
+	[$c000] = uninitbyte1
+	[$c000] = membyte2
+	[$c000] = cbyte2
+	[$c000] = [cword2]
+
+	[$c000.word] = A
+	[$c000.word] = AX
+	[$c000.word] = cbyte3
+	[$c000.word] = cword2
+	[$c000.word] = ctext3
+	[$c000.word] = 65535
+	[$c000.word] = "text"
+	[$c000.word] = ""
+	[$c000.word] = uninitbyte1
+	[$c000.word] = membyte2
+	[$c000.word] = #membyte2
+	[$c000.word] = [cword2]
+	[$c000.word] = memword1
+	[$c000.float] = 65535
+	[$c000.float] = 456.66
+	[$c000.float] = 1.70141183e+38
+	[$c000.float] = cbyte3
+	[$c000.float] = cword2
+
+	[$c001] = [$c002]
+	[$c111.word] = [$c222]
+        [$c112.word] = [$c223.byte]
+	[$c222.word] = [$c333.word]
+	[$c333.word] = max
+	[$c333.word] = #max
+
+
+	SC = 0
+	SC = 1
+	SC = false
+	SI = 1
+	SI = 0
+	SI = false
+
+	uninitbyte1 = 99
+	uninitbyte1 = 1.234
+	uninitbyte1 = '@'
+	initbyte1 = 99
+	initbyte1 = 1.234
+	initbyte1 = '@'
+	initbyte1 = A
+	initbyte1 = cbyte3
+	uninitword = 99
+	uninitword = 5.6778
+	uninitword = "test"
+	uninitword = '@'
+	uninitword = A
+	uninitword = XY
+	uninitword = ctext3
+	initword1 = cbyte3
+	initword1 = cword2
+	initfloat1 = 99
+	initfloat1 = 9.8765
+	initfloat1 = '@'
+	initfloat1 = cbyte3
+	initfloat1 = cword2
+	uninitfloat = 99
+	uninitfloat = 9.8765
+	uninitfloat = '@'
+	initword1 = max
+	initword1 = #max
+
+        membyte1 = A
+        membyte1 = cbyte3
+        memword1 = A
+        memword1 = AX
+        memword1 = cbyte3
+        memword1 = cword2
+        memword1 = ctext3
+
+
+        membyte1 = 22
+        memword1 = 2233
+        memfloat = 3.4567
+	memword1 = max
+	memword1 = #max
+
+        membyte1 = A
+        memword1 = A
+        memword1 = XY
+        memfloat = cbyte3
+        memfloat = cword2
+
+        ; float assignments that require ROM functions from c64lib:
+        memfloat = Y
+        memfloat = XY
+	uninitfloat = Y
+	uninitfloat = XY
+        initfloat2 = Y
+        initfloat2 = XY
+        initfloat2 = initbyte2
+        initfloat2 = initword2
+	initfloat1 = uninitfloat
+	initfloat1 = initfloat2
+
+}
+
+
+~ blockcalls7 {
+
+        var     .word   var1    = 99
+        memory  .word   mem1    = $cff0
+
+        var     .byte   varb1    = 99
+        memory  .byte   memb1    = $cff0
+        const   .word   constw   = $2355
+        const   .byte   constb   = $23
+        const   .float  constf   = 3.4556677
+        const   .text   constt   = "derp"
+
+        sub    sub1    () -> (X?)  = $ffdd
+        sub    sub2    (A) -> (Y?)  = $eecc
+        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
+
+
+bar
+        goto sub1
+        goto sub2 (1  )
+        goto sub3 (3)
+        goto sub3 (XY="hello")
+        goto sub3 ("hello, there")
+        goto sub4 (string="hello, there", other = 42)
+        goto sub4 ("hello",  42)
+        goto sub4 ("hello", other= 42)
+        goto sub4 (string="hello", other = 42)
+        goto bar  ()
+	goto [AX]
+	goto [AX]  ()
+	goto [var1]
+	goto [var1]   ()    ; comment
+	goto   [mem1]    ; comment
+	goto [mem1] ()
+	goto [$c2.word]
+	goto [$c2.word]  ()
+	goto [$c2dd.word]
+	goto [$c2dd.word] (  )
+	goto $c000
+	goto $c000        ( )
+	goto $c2
+	goto $c2()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1!()
+        sub2!(11)
+        sub3 !(3)
+        sub3! (XY="hello")
+        sub3! ("hello, there")
+        sub4! ("hello",  42)
+        sub4! ("hello",  other=42)
+        sub4! (string="hello", other = 42)
+        sub4! (string="hello, there", other = 42)
+        bar!()
+	[XY] ! ()
+	[var1] !()
+	[mem1]!()
+	[$c2.word]!()
+	[$c2dd.word]!()
+	$c000!()
+	$c2!()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1()
+        sub2(11)
+        sub3 (3)
+        sub3 (XY="hello")
+        sub3 ("hello, there")
+        sub4 ("hello",  42)
+        sub4 ("hello", other=  42)
+        sub4 (string="hello", other = 42)
+        sub4 (string="hello, there", other = 42)
+        bar ()
+	[AX]()
+	[var1] (  )
+	[mem1]    ()
+	[$c2.word]()
+	[$c2dd.word]()
+	$c000()
+	$c2()
+
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+	constw()
+	sub1()
+	main.start()
+}
+
+~ blockdtypes8 {
+	; variables
+	var			uninitbyte1
+	var	.byte		uninitbyte2
+	var     		initbyte1	=  $12
+	var                     initbyte1b      = true
+	var  .byte              initbyte2       = $12
+	var  .byte              initbyte2b      = false
+	var  .byte              initbyte3       = 99.876
+	var                     initchar1       = '@'
+	var  .byte              initchar2       = '@'
+	var  .word              uninitword
+	var  .word              initword1       = $1234
+	var  .word              initword1b      = true
+	var  .word              initword2       = false
+	var  .word              initword3       = 9876.554321
+	var  .word              initword5       = 20
+	var  .float             uninitfloat
+	var  .float             initfloat1      = 0
+	var  .float             initfloat1b     = true
+	var  .float             initfloat2      = -1.234e-14
+	var  .float             initfloat3      = 9.87e+14
+	var  .float             initfloat4      = 1.70141183e+38
+	var  .float             initfloat5      = -1.70141183e+38
+	var  .float             initfloat6      = 1.234
+	var  .array( 10)        uninit_bytearray
+	var  .array(10 )        init_bytearray          =$12
+	var  .array(10 )        init_bytearrayb         =true
+	var  .array(10 )        init_bytearrayc         ='@'
+	var  .wordarray( 10 )   uninit_wordarray
+	var  .wordarray(10)     init_wordarray          =  $1234
+	var  .wordarray(10)     init_wordarrayb         =  true
+
+	var  .text              text    = "hello"+"-null"
+	var  .ptext             ptext   = 'hello-pascal'
+	var  .stext             stext   = 'screencodes-null'
+	var  .pstext            pstext  = "screencodes-pascal"
+
+	var  .matrix( 3, 4 ) uninitmatrix
+	var  .matrix( 3, 4 )   initmatrix1      = $12
+	var  .matrix( 3, 4 )   initmatrix1b     = true
+	var  .matrix( 3, 4 )   initmatrix1c     = '@'
+	var  .matrix( 3, 4 )   initmatrix1d     = 123.456
+
+	; memory-mapped variables
+	memory                          membyte1        = $cf01
+	memory  .byte                   membyte2        = $c222
+	memory  .word                   memword1        = $cf03
+	memory  .float                  memfloat        = $cf04
+	memory  .array(10 )             membytes        = $cf05
+	memory  .wordarray( 10)         memwords        = $cf06
+	memory  .matrix( 3, 4 )       memmatrix       = $cf07
+
+	; constants   (= names for constant values, can never occur as lvalue)
+	const                   cbyte1          = 1
+	const                   cbyte1b         = false
+	const  .byte            cbyte2          = 1
+	const  .byte            cbyte3          = '@'
+	const  .byte            cbyte4          = true
+	const  .word            cword1          = false
+	const  .word            cword2          = $1234
+	const  .word            cword5          = 9876.5432
+	const                   cfloat1         = 1.2345
+	const  .float           cfloat2         = 2.3456
+	const  .float           cfloat2b        = cfloat2*3.44
+	const  .float           cfloat3         = true
+	const  .text            ctext3   	= "constant-text"
+	const  .ptext           ctext4   	= "constant-ptext"
+	const  .stext           ctext5   	= "constant-stext"
+	const  .pstext          ctext6   	= "constant-pstext"
+
+        ; taking the address of various things:
+	var .word        vmemaddr1              = #membyte1
+	var .word        vmemaddr2              = #memword1
+	var .word        vmemaddr3              = #memfloat
+	var .word        vmemaddr4              = #membytes
+	var .word        vmemaddr5              = #memwords
+	var .word        vmemaddr6              = #memmatrix
+	var .word        vmemaddr8              = 100*sin(cbyte1)
+	var .word        vmemaddr9              = cword2+$5432
+	var .word        vmemaddr10             = cfloat2b
+	; taking the address of things from the ZP will work even when it is a var
+	; because zp-vars get assigned a specific address (from a pool). Also, it's a byte.
+
+
+max
+        return
+
+
+; --- immediate primitive value assignments ----
+
+	A = [$99]
+	A = [$aabb]
+	A = $99
+        A = [cbyte3]
+	A = 0
+	A = '@'
+	A = 1.2345
+	A = true
+	A = false
+	A = 255
+	A = X
+	A = [$99]
+	A = [$c020.byte]
+	A = [$c020]
+        A = cbyte3
+	A = membyte2
+        A = uninitbyte1
+
+
+	XY = 0
+	XY = '@'
+	XY = 1.2345
+	XY = 456.66
+	XY = 65535
+	XY = true
+	XY = false
+	XY = text
+	XY = cbyte3
+	XY = [cbyte3]
+	XY = [cword2]
+	XY = uninitbyte1
+	XY = "text-immediate"
+	AY = "text-immediate"
+	AX = #"text-immediate"          ; equivalent to simply assigning the string directly
+	AX = # "text-immediate"         ; equivalent to simply assigning the string directly
+	AX = ctext3
+	AX = ""
+	AX = XY
+	AX = Y
+	XY = membyte2
+	XY = #membyte2
+	XY = memword1
+	XY = max
+	XY = #max
+
+
+	[$c000] = A
+	[$c000] = 255
+	[$c000] = '@'
+	[$c000] = true
+	[$c000] = false
+	[$c000] = cbyte3
+	[$c000] = uninitbyte1
+	[$c000] = membyte2
+	[$c000] = cbyte2
+	[$c000] = [cword2]
+
+	[$c000.word] = A
+	[$c000.word] = AX
+	[$c000.word] = cbyte3
+	[$c000.word] = cword2
+	[$c000.word] = ctext3
+	[$c000.word] = 65535
+	[$c000.word] = "text"
+	[$c000.word] = ""
+	[$c000.word] = uninitbyte1
+	[$c000.word] = membyte2
+	[$c000.word] = #membyte2
+	[$c000.word] = [cword2]
+	[$c000.word] = memword1
+	[$c000.float] = 65535
+	[$c000.float] = 456.66
+	[$c000.float] = 1.70141183e+38
+	[$c000.float] = cbyte3
+	[$c000.float] = cword2
+
+	[$c001] = [$c002]
+	[$c111.word] = [$c222]
+        [$c112.word] = [$c223.byte]
+	[$c222.word] = [$c333.word]
+	[$c333.word] = max
+	[$c333.word] = #max
+
+
+	SC = 0
+	SC = 1
+	SC = false
+	SI = 1
+	SI = 0
+	SI = false
+
+	uninitbyte1 = 99
+	uninitbyte1 = 1.234
+	uninitbyte1 = '@'
+	initbyte1 = 99
+	initbyte1 = 1.234
+	initbyte1 = '@'
+	initbyte1 = A
+	initbyte1 = cbyte3
+	uninitword = 99
+	uninitword = 5.6778
+	uninitword = "test"
+	uninitword = '@'
+	uninitword = A
+	uninitword = XY
+	uninitword = ctext3
+	initword1 = cbyte3
+	initword1 = cword2
+	initfloat1 = 99
+	initfloat1 = 9.8765
+	initfloat1 = '@'
+	initfloat1 = cbyte3
+	initfloat1 = cword2
+	uninitfloat = 99
+	uninitfloat = 9.8765
+	uninitfloat = '@'
+	initword1 = max
+	initword1 = #max
+
+        membyte1 = A
+        membyte1 = cbyte3
+        memword1 = A
+        memword1 = AX
+        memword1 = cbyte3
+        memword1 = cword2
+        memword1 = ctext3
+
+
+        membyte1 = 22
+        memword1 = 2233
+        memfloat = 3.4567
+	memword1 = max
+	memword1 = #max
+
+        membyte1 = A
+        memword1 = A
+        memword1 = XY
+        memfloat = cbyte3
+        memfloat = cword2
+
+        ; float assignments that require ROM functions from c64lib:
+        memfloat = Y
+        memfloat = XY
+	uninitfloat = Y
+	uninitfloat = XY
+        initfloat2 = Y
+        initfloat2 = XY
+        initfloat2 = initbyte2
+        initfloat2 = initword2
+	initfloat1 = uninitfloat
+	initfloat1 = initfloat2
+
+}
+
+
+~ blockcalls8 {
+
+        var     .word   var1    = 99
+        memory  .word   mem1    = $cff0
+
+        var     .byte   varb1    = 99
+        memory  .byte   memb1    = $cff0
+        const   .word   constw   = $2355
+        const   .byte   constb   = $23
+        const   .float  constf   = 3.4556677
+        const   .text   constt   = "derp"
+
+        sub    sub1    () -> (X?)  = $ffdd
+        sub    sub2    (A) -> (Y?)  = $eecc
+        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
+
+
+bar
+        goto sub1
+        goto sub2 (1  )
+        goto sub3 (3)
+        goto sub3 (XY="hello")
+        goto sub3 ("hello, there")
+        goto sub4 (string="hello, there", other = 42)
+        goto sub4 ("hello",  42)
+        goto sub4 ("hello", other= 42)
+        goto sub4 (string="hello", other = 42)
+        goto bar  ()
+	goto [AX]
+	goto [AX]  ()
+	goto [var1]
+	goto [var1]   ()    ; comment
+	goto   [mem1]    ; comment
+	goto [mem1] ()
+	goto [$c2.word]
+	goto [$c2.word]  ()
+	goto [$c2dd.word]
+	goto [$c2dd.word] (  )
+	goto $c000
+	goto $c000        ( )
+	goto $c2
+	goto $c2()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1!()
+        sub2!(11)
+        sub3 !(3)
+        sub3! (XY="hello")
+        sub3! ("hello, there")
+        sub4! ("hello",  42)
+        sub4! ("hello",  other=42)
+        sub4! (string="hello", other = 42)
+        sub4! (string="hello, there", other = 42)
+        bar!()
+	[XY] ! ()
+	[var1] !()
+	[mem1]!()
+	[$c2.word]!()
+	[$c2dd.word]!()
+	$c000!()
+	$c2!()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1()
+        sub2(11)
+        sub3 (3)
+        sub3 (XY="hello")
+        sub3 ("hello, there")
+        sub4 ("hello",  42)
+        sub4 ("hello", other=  42)
+        sub4 (string="hello", other = 42)
+        sub4 (string="hello, there", other = 42)
+        bar ()
+	[AX]()
+	[var1] (  )
+	[mem1]    ()
+	[$c2.word]()
+	[$c2dd.word]()
+	$c000()
+	$c2()
+
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+	constw()
+	sub1()
+	main.start()
+}
+
+~ blockdtypes9 {
+	; variables
+	var			uninitbyte1
+	var	.byte		uninitbyte2
+	var     		initbyte1	=  $12
+	var                     initbyte1b      = true
+	var  .byte              initbyte2       = $12
+	var  .byte              initbyte2b      = false
+	var  .byte              initbyte3       = 99.876
+	var                     initchar1       = '@'
+	var  .byte              initchar2       = '@'
+	var  .word              uninitword
+	var  .word              initword1       = $1234
+	var  .word              initword1b      = true
+	var  .word              initword2       = false
+	var  .word              initword3       = 9876.554321
+	var  .word              initword5       = 20
+	var  .float             uninitfloat
+	var  .float             initfloat1      = 0
+	var  .float             initfloat1b     = true
+	var  .float             initfloat2      = -1.234e-14
+	var  .float             initfloat3      = 9.87e+14
+	var  .float             initfloat4      = 1.70141183e+38
+	var  .float             initfloat5      = -1.70141183e+38
+	var  .float             initfloat6      = 1.234
+	var  .array( 10)        uninit_bytearray
+	var  .array(10 )        init_bytearray          =$12
+	var  .array(10 )        init_bytearrayb         =true
+	var  .array(10 )        init_bytearrayc         ='@'
+	var  .wordarray( 10 )   uninit_wordarray
+	var  .wordarray(10)     init_wordarray          =  $1234
+	var  .wordarray(10)     init_wordarrayb         =  true
+
+	var  .text              text    = "hello"+"-null"
+	var  .ptext             ptext   = 'hello-pascal'
+	var  .stext             stext   = 'screencodes-null'
+	var  .pstext            pstext  = "screencodes-pascal"
+
+	var  .matrix( 3, 4 ) uninitmatrix
+	var  .matrix( 3, 4 )   initmatrix1      = $12
+	var  .matrix( 3, 4 )   initmatrix1b     = true
+	var  .matrix( 3, 4 )   initmatrix1c     = '@'
+	var  .matrix( 3, 4 )   initmatrix1d     = 123.456
+
+	; memory-mapped variables
+	memory                          membyte1        = $cf01
+	memory  .byte                   membyte2        = $c222
+	memory  .word                   memword1        = $cf03
+	memory  .float                  memfloat        = $cf04
+	memory  .array(10 )             membytes        = $cf05
+	memory  .wordarray( 10)         memwords        = $cf06
+	memory  .matrix( 3, 4 )       memmatrix       = $cf07
+
+	; constants   (= names for constant values, can never occur as lvalue)
+	const                   cbyte1          = 1
+	const                   cbyte1b         = false
+	const  .byte            cbyte2          = 1
+	const  .byte            cbyte3          = '@'
+	const  .byte            cbyte4          = true
+	const  .word            cword1          = false
+	const  .word            cword2          = $1234
+	const  .word            cword5          = 9876.5432
+	const                   cfloat1         = 1.2345
+	const  .float           cfloat2         = 2.3456
+	const  .float           cfloat2b        = cfloat2*3.44
+	const  .float           cfloat3         = true
+	const  .text            ctext3   	= "constant-text"
+	const  .ptext           ctext4   	= "constant-ptext"
+	const  .stext           ctext5   	= "constant-stext"
+	const  .pstext          ctext6   	= "constant-pstext"
+
+        ; taking the address of various things:
+	var .word        vmemaddr1              = #membyte1
+	var .word        vmemaddr2              = #memword1
+	var .word        vmemaddr3              = #memfloat
+	var .word        vmemaddr4              = #membytes
+	var .word        vmemaddr5              = #memwords
+	var .word        vmemaddr6              = #memmatrix
+	var .word        vmemaddr8              = 100*sin(cbyte1)
+	var .word        vmemaddr9              = cword2+$5432
+	var .word        vmemaddr10             = cfloat2b
+	; taking the address of things from the ZP will work even when it is a var
+	; because zp-vars get assigned a specific address (from a pool). Also, it's a byte.
+
+
+max
+        return
+
+
+; --- immediate primitive value assignments ----
+
+	A = [$99]
+	A = [$aabb]
+	A = $99
+        A = [cbyte3]
+	A = 0
+	A = '@'
+	A = 1.2345
+	A = true
+	A = false
+	A = 255
+	A = X
+	A = [$99]
+	A = [$c020.byte]
+	A = [$c020]
+        A = cbyte3
+	A = membyte2
+        A = uninitbyte1
+
+
+	XY = 0
+	XY = '@'
+	XY = 1.2345
+	XY = 456.66
+	XY = 65535
+	XY = true
+	XY = false
+	XY = text
+	XY = cbyte3
+	XY = [cbyte3]
+	XY = [cword2]
+	XY = uninitbyte1
+	XY = "text-immediate"
+	AY = "text-immediate"
+	AX = #"text-immediate"          ; equivalent to simply assigning the string directly
+	AX = # "text-immediate"         ; equivalent to simply assigning the string directly
+	AX = ctext3
+	AX = ""
+	AX = XY
+	AX = Y
+	XY = membyte2
+	XY = #membyte2
+	XY = memword1
+	XY = max
+	XY = #max
+
+
+	[$c000] = A
+	[$c000] = 255
+	[$c000] = '@'
+	[$c000] = true
+	[$c000] = false
+	[$c000] = cbyte3
+	[$c000] = uninitbyte1
+	[$c000] = membyte2
+	[$c000] = cbyte2
+	[$c000] = [cword2]
+
+	[$c000.word] = A
+	[$c000.word] = AX
+	[$c000.word] = cbyte3
+	[$c000.word] = cword2
+	[$c000.word] = ctext3
+	[$c000.word] = 65535
+	[$c000.word] = "text"
+	[$c000.word] = ""
+	[$c000.word] = uninitbyte1
+	[$c000.word] = membyte2
+	[$c000.word] = #membyte2
+	[$c000.word] = [cword2]
+	[$c000.word] = memword1
+	[$c000.float] = 65535
+	[$c000.float] = 456.66
+	[$c000.float] = 1.70141183e+38
+	[$c000.float] = cbyte3
+	[$c000.float] = cword2
+
+	[$c001] = [$c002]
+	[$c111.word] = [$c222]
+        [$c112.word] = [$c223.byte]
+	[$c222.word] = [$c333.word]
+	[$c333.word] = max
+	[$c333.word] = #max
+
+
+	SC = 0
+	SC = 1
+	SC = false
+	SI = 1
+	SI = 0
+	SI = false
+
+	uninitbyte1 = 99
+	uninitbyte1 = 1.234
+	uninitbyte1 = '@'
+	initbyte1 = 99
+	initbyte1 = 1.234
+	initbyte1 = '@'
+	initbyte1 = A
+	initbyte1 = cbyte3
+	uninitword = 99
+	uninitword = 5.6778
+	uninitword = "test"
+	uninitword = '@'
+	uninitword = A
+	uninitword = XY
+	uninitword = ctext3
+	initword1 = cbyte3
+	initword1 = cword2
+	initfloat1 = 99
+	initfloat1 = 9.8765
+	initfloat1 = '@'
+	initfloat1 = cbyte3
+	initfloat1 = cword2
+	uninitfloat = 99
+	uninitfloat = 9.8765
+	uninitfloat = '@'
+	initword1 = max
+	initword1 = #max
+
+        membyte1 = A
+        membyte1 = cbyte3
+        memword1 = A
+        memword1 = AX
+        memword1 = cbyte3
+        memword1 = cword2
+        memword1 = ctext3
+
+
+        membyte1 = 22
+        memword1 = 2233
+        memfloat = 3.4567
+	memword1 = max
+	memword1 = #max
+
+        membyte1 = A
+        memword1 = A
+        memword1 = XY
+        memfloat = cbyte3
+        memfloat = cword2
+
+        ; float assignments that require ROM functions from c64lib:
+        memfloat = Y
+        memfloat = XY
+	uninitfloat = Y
+	uninitfloat = XY
+        initfloat2 = Y
+        initfloat2 = XY
+        initfloat2 = initbyte2
+        initfloat2 = initword2
+	initfloat1 = uninitfloat
+	initfloat1 = initfloat2
+
+}
+
+
+~ blockcalls9 {
+
+        var     .word   var1    = 99
+        memory  .word   mem1    = $cff0
+
+        var     .byte   varb1    = 99
+        memory  .byte   memb1    = $cff0
+        const   .word   constw   = $2355
+        const   .byte   constb   = $23
+        const   .float  constf   = 3.4556677
+        const   .text   constt   = "derp"
+
+        sub    sub1    () -> (X?)  = $ffdd
+        sub    sub2    (A) -> (Y?)  = $eecc
+        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
+
+
+bar
+        goto sub1
+        goto sub2 (1  )
+        goto sub3 (3)
+        goto sub3 (XY="hello")
+        goto sub3 ("hello, there")
+        goto sub4 (string="hello, there", other = 42)
+        goto sub4 ("hello",  42)
+        goto sub4 ("hello", other= 42)
+        goto sub4 (string="hello", other = 42)
+        goto bar  ()
+	goto [AX]
+	goto [AX]  ()
+	goto [var1]
+	goto [var1]   ()    ; comment
+	goto   [mem1]    ; comment
+	goto [mem1] ()
+	goto [$c2.word]
+	goto [$c2.word]  ()
+	goto [$c2dd.word]
+	goto [$c2dd.word] (  )
+	goto $c000
+	goto $c000        ( )
+	goto $c2
+	goto $c2()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1!()
+        sub2!(11)
+        sub3 !(3)
+        sub3! (XY="hello")
+        sub3! ("hello, there")
+        sub4! ("hello",  42)
+        sub4! ("hello",  other=42)
+        sub4! (string="hello", other = 42)
+        sub4! (string="hello, there", other = 42)
+        bar!()
+	[XY] ! ()
+	[var1] !()
+	[mem1]!()
+	[$c2.word]!()
+	[$c2dd.word]!()
+	$c000!()
+	$c2!()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1()
+        sub2(11)
+        sub3 (3)
+        sub3 (XY="hello")
+        sub3 ("hello, there")
+        sub4 ("hello",  42)
+        sub4 ("hello", other=  42)
+        sub4 (string="hello", other = 42)
+        sub4 (string="hello, there", other = 42)
+        bar ()
+	[AX]()
+	[var1] (  )
+	[mem1]    ()
+	[$c2.word]()
+	[$c2dd.word]()
+	$c000()
+	$c2()
+
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+	constw()
+	sub1()
+	main.start()
+}
+
+~ blockdtypes10 {
+	; variables
+	var			uninitbyte1
+	var	.byte		uninitbyte2
+	var     		initbyte1	=  $12
+	var                     initbyte1b      = true
+	var  .byte              initbyte2       = $12
+	var  .byte              initbyte2b      = false
+	var  .byte              initbyte3       = 99.876
+	var                     initchar1       = '@'
+	var  .byte              initchar2       = '@'
+	var  .word              uninitword
+	var  .word              initword1       = $1234
+	var  .word              initword1b      = true
+	var  .word              initword2       = false
+	var  .word              initword3       = 9876.554321
+	var  .word              initword5       = 20
+	var  .float             uninitfloat
+	var  .float             initfloat1      = 0
+	var  .float             initfloat1b     = true
+	var  .float             initfloat2      = -1.234e-14
+	var  .float             initfloat3      = 9.87e+14
+	var  .float             initfloat4      = 1.70141183e+38
+	var  .float             initfloat5      = -1.70141183e+38
+	var  .float             initfloat6      = 1.234
+	var  .array( 10)        uninit_bytearray
+	var  .array(10 )        init_bytearray          =$12
+	var  .array(10 )        init_bytearrayb         =true
+	var  .array(10 )        init_bytearrayc         ='@'
+	var  .wordarray( 10 )   uninit_wordarray
+	var  .wordarray(10)     init_wordarray          =  $1234
+	var  .wordarray(10)     init_wordarrayb         =  true
+
+	var  .text              text    = "hello"+"-null"
+	var  .ptext             ptext   = 'hello-pascal'
+	var  .stext             stext   = 'screencodes-null'
+	var  .pstext            pstext  = "screencodes-pascal"
+
+	var  .matrix( 3, 4 ) uninitmatrix
+	var  .matrix( 3, 4 )   initmatrix1      = $12
+	var  .matrix( 3, 4 )   initmatrix1b     = true
+	var  .matrix( 3, 4 )   initmatrix1c     = '@'
+	var  .matrix( 3, 4 )   initmatrix1d     = 123.456
+
+	; memory-mapped variables
+	memory                          membyte1        = $cf01
+	memory  .byte                   membyte2        = $c222
+	memory  .word                   memword1        = $cf03
+	memory  .float                  memfloat        = $cf04
+	memory  .array(10 )             membytes        = $cf05
+	memory  .wordarray( 10)         memwords        = $cf06
+	memory  .matrix( 3, 4 )       memmatrix       = $cf07
+
+	; constants   (= names for constant values, can never occur as lvalue)
+	const                   cbyte1          = 1
+	const                   cbyte1b         = false
+	const  .byte            cbyte2          = 1
+	const  .byte            cbyte3          = '@'
+	const  .byte            cbyte4          = true
+	const  .word            cword1          = false
+	const  .word            cword2          = $1234
+	const  .word            cword5          = 9876.5432
+	const                   cfloat1         = 1.2345
+	const  .float           cfloat2         = 2.3456
+	const  .float           cfloat2b        = cfloat2*3.44
+	const  .float           cfloat3         = true
+	const  .text            ctext3   	= "constant-text"
+	const  .ptext           ctext4   	= "constant-ptext"
+	const  .stext           ctext5   	= "constant-stext"
+	const  .pstext          ctext6   	= "constant-pstext"
+
+        ; taking the address of various things:
+	var .word        vmemaddr1              = #membyte1
+	var .word        vmemaddr2              = #memword1
+	var .word        vmemaddr3              = #memfloat
+	var .word        vmemaddr4              = #membytes
+	var .word        vmemaddr5              = #memwords
+	var .word        vmemaddr6              = #memmatrix
+	var .word        vmemaddr8              = 100*sin(cbyte1)
+	var .word        vmemaddr9              = cword2+$5432
+	var .word        vmemaddr10             = cfloat2b
+	; taking the address of things from the ZP will work even when it is a var
+	; because zp-vars get assigned a specific address (from a pool). Also, it's a byte.
+
+
+max
+        return
+
+
+; --- immediate primitive value assignments ----
+
+	A = [$99]
+	A = [$aabb]
+	A = $99
+        A = [cbyte3]
+	A = 0
+	A = '@'
+	A = 1.2345
+	A = true
+	A = false
+	A = 255
+	A = X
+	A = [$99]
+	A = [$c020.byte]
+	A = [$c020]
+        A = cbyte3
+	A = membyte2
+        A = uninitbyte1
+
+
+	XY = 0
+	XY = '@'
+	XY = 1.2345
+	XY = 456.66
+	XY = 65535
+	XY = true
+	XY = false
+	XY = text
+	XY = cbyte3
+	XY = [cbyte3]
+	XY = [cword2]
+	XY = uninitbyte1
+	XY = "text-immediate"
+	AY = "text-immediate"
+	AX = #"text-immediate"          ; equivalent to simply assigning the string directly
+	AX = # "text-immediate"         ; equivalent to simply assigning the string directly
+	AX = ctext3
+	AX = ""
+	AX = XY
+	AX = Y
+	XY = membyte2
+	XY = #membyte2
+	XY = memword1
+	XY = max
+	XY = #max
+
+
+	[$c000] = A
+	[$c000] = 255
+	[$c000] = '@'
+	[$c000] = true
+	[$c000] = false
+	[$c000] = cbyte3
+	[$c000] = uninitbyte1
+	[$c000] = membyte2
+	[$c000] = cbyte2
+	[$c000] = [cword2]
+
+	[$c000.word] = A
+	[$c000.word] = AX
+	[$c000.word] = cbyte3
+	[$c000.word] = cword2
+	[$c000.word] = ctext3
+	[$c000.word] = 65535
+	[$c000.word] = "text"
+	[$c000.word] = ""
+	[$c000.word] = uninitbyte1
+	[$c000.word] = membyte2
+	[$c000.word] = #membyte2
+	[$c000.word] = [cword2]
+	[$c000.word] = memword1
+	[$c000.float] = 65535
+	[$c000.float] = 456.66
+	[$c000.float] = 1.70141183e+38
+	[$c000.float] = cbyte3
+	[$c000.float] = cword2
+
+	[$c001] = [$c002]
+	[$c111.word] = [$c222]
+        [$c112.word] = [$c223.byte]
+	[$c222.word] = [$c333.word]
+	[$c333.word] = max
+	[$c333.word] = #max
+
+
+	SC = 0
+	SC = 1
+	SC = false
+	SI = 1
+	SI = 0
+	SI = false
+
+	uninitbyte1 = 99
+	uninitbyte1 = 1.234
+	uninitbyte1 = '@'
+	initbyte1 = 99
+	initbyte1 = 1.234
+	initbyte1 = '@'
+	initbyte1 = A
+	initbyte1 = cbyte3
+	uninitword = 99
+	uninitword = 5.6778
+	uninitword = "test"
+	uninitword = '@'
+	uninitword = A
+	uninitword = XY
+	uninitword = ctext3
+	initword1 = cbyte3
+	initword1 = cword2
+	initfloat1 = 99
+	initfloat1 = 9.8765
+	initfloat1 = '@'
+	initfloat1 = cbyte3
+	initfloat1 = cword2
+	uninitfloat = 99
+	uninitfloat = 9.8765
+	uninitfloat = '@'
+	initword1 = max
+	initword1 = #max
+
+        membyte1 = A
+        membyte1 = cbyte3
+        memword1 = A
+        memword1 = AX
+        memword1 = cbyte3
+        memword1 = cword2
+        memword1 = ctext3
+
+
+        membyte1 = 22
+        memword1 = 2233
+        memfloat = 3.4567
+	memword1 = max
+	memword1 = #max
+
+        membyte1 = A
+        memword1 = A
+        memword1 = XY
+        memfloat = cbyte3
+        memfloat = cword2
+
+        ; float assignments that require ROM functions from c64lib:
+        memfloat = Y
+        memfloat = XY
+	uninitfloat = Y
+	uninitfloat = XY
+        initfloat2 = Y
+        initfloat2 = XY
+        initfloat2 = initbyte2
+        initfloat2 = initword2
+	initfloat1 = uninitfloat
+	initfloat1 = initfloat2
+
+}
+
+
+~ blockcalls10 {
+
+        var     .word   var1    = 99
+        memory  .word   mem1    = $cff0
+
+        var     .byte   varb1    = 99
+        memory  .byte   memb1    = $cff0
+        const   .word   constw   = $2355
+        const   .byte   constb   = $23
+        const   .float  constf   = 3.4556677
+        const   .text   constt   = "derp"
+
+        sub    sub1    () -> (X?)  = $ffdd
+        sub    sub2    (A) -> (Y?)  = $eecc
+        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
+
+
+bar
+        goto sub1
+        goto sub2 (1  )
+        goto sub3 (3)
+        goto sub3 (XY="hello")
+        goto sub3 ("hello, there")
+        goto sub4 (string="hello, there", other = 42)
+        goto sub4 ("hello",  42)
+        goto sub4 ("hello", other= 42)
+        goto sub4 (string="hello", other = 42)
+        goto bar  ()
+	goto [AX]
+	goto [AX]  ()
+	goto [var1]
+	goto [var1]   ()    ; comment
+	goto   [mem1]    ; comment
+	goto [mem1] ()
+	goto [$c2.word]
+	goto [$c2.word]  ()
+	goto [$c2dd.word]
+	goto [$c2dd.word] (  )
+	goto $c000
+	goto $c000        ( )
+	goto $c2
+	goto $c2()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1!()
+        sub2!(11)
+        sub3 !(3)
+        sub3! (XY="hello")
+        sub3! ("hello, there")
+        sub4! ("hello",  42)
+        sub4! ("hello",  other=42)
+        sub4! (string="hello", other = 42)
+        sub4! (string="hello, there", other = 42)
+        bar!()
+	[XY] ! ()
+	[var1] !()
+	[mem1]!()
+	[$c2.word]!()
+	[$c2dd.word]!()
+	$c000!()
+	$c2!()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1()
+        sub2(11)
+        sub3 (3)
+        sub3 (XY="hello")
+        sub3 ("hello, there")
+        sub4 ("hello",  42)
+        sub4 ("hello", other=  42)
+        sub4 (string="hello", other = 42)
+        sub4 (string="hello, there", other = 42)
+        bar ()
+	[AX]()
+	[var1] (  )
+	[mem1]    ()
+	[$c2.word]()
+	[$c2dd.word]()
+	$c000()
+	$c2()
+
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+	constw()
+	sub1()
+	main.start()
+}
+
+~ blockdtypes11 {
+	; variables
+	var			uninitbyte1
+	var	.byte		uninitbyte2
+	var     		initbyte1	=  $12
+	var                     initbyte1b      = true
+	var  .byte              initbyte2       = $12
+	var  .byte              initbyte2b      = false
+	var  .byte              initbyte3       = 99.876
+	var                     initchar1       = '@'
+	var  .byte              initchar2       = '@'
+	var  .word              uninitword
+	var  .word              initword1       = $1234
+	var  .word              initword1b      = true
+	var  .word              initword2       = false
+	var  .word              initword3       = 9876.554321
+	var  .word              initword5       = 20
+	var  .float             uninitfloat
+	var  .float             initfloat1      = 0
+	var  .float             initfloat1b     = true
+	var  .float             initfloat2      = -1.234e-14
+	var  .float             initfloat3      = 9.87e+14
+	var  .float             initfloat4      = 1.70141183e+38
+	var  .float             initfloat5      = -1.70141183e+38
+	var  .float             initfloat6      = 1.234
+	var  .array( 10)        uninit_bytearray
+	var  .array(10 )        init_bytearray          =$12
+	var  .array(10 )        init_bytearrayb         =true
+	var  .array(10 )        init_bytearrayc         ='@'
+	var  .wordarray( 10 )   uninit_wordarray
+	var  .wordarray(10)     init_wordarray          =  $1234
+	var  .wordarray(10)     init_wordarrayb         =  true
+
+	var  .text              text    = "hello"+"-null"
+	var  .ptext             ptext   = 'hello-pascal'
+	var  .stext             stext   = 'screencodes-null'
+	var  .pstext            pstext  = "screencodes-pascal"
+
+	var  .matrix( 3, 4 ) uninitmatrix
+	var  .matrix( 3, 4 )   initmatrix1      = $12
+	var  .matrix( 3, 4 )   initmatrix1b     = true
+	var  .matrix( 3, 4 )   initmatrix1c     = '@'
+	var  .matrix( 3, 4 )   initmatrix1d     = 123.456
+
+	; memory-mapped variables
+	memory                          membyte1        = $cf01
+	memory  .byte                   membyte2        = $c222
+	memory  .word                   memword1        = $cf03
+	memory  .float                  memfloat        = $cf04
+	memory  .array(10 )             membytes        = $cf05
+	memory  .wordarray( 10)         memwords        = $cf06
+	memory  .matrix( 3, 4 )       memmatrix       = $cf07
+
+	; constants   (= names for constant values, can never occur as lvalue)
+	const                   cbyte1          = 1
+	const                   cbyte1b         = false
+	const  .byte            cbyte2          = 1
+	const  .byte            cbyte3          = '@'
+	const  .byte            cbyte4          = true
+	const  .word            cword1          = false
+	const  .word            cword2          = $1234
+	const  .word            cword5          = 9876.5432
+	const                   cfloat1         = 1.2345
+	const  .float           cfloat2         = 2.3456
+	const  .float           cfloat2b        = cfloat2*3.44
+	const  .float           cfloat3         = true
+	const  .text            ctext3   	= "constant-text"
+	const  .ptext           ctext4   	= "constant-ptext"
+	const  .stext           ctext5   	= "constant-stext"
+	const  .pstext          ctext6   	= "constant-pstext"
+
+        ; taking the address of various things:
+	var .word        vmemaddr1              = #membyte1
+	var .word        vmemaddr2              = #memword1
+	var .word        vmemaddr3              = #memfloat
+	var .word        vmemaddr4              = #membytes
+	var .word        vmemaddr5              = #memwords
+	var .word        vmemaddr6              = #memmatrix
+	var .word        vmemaddr8              = 100*sin(cbyte1)
+	var .word        vmemaddr9              = cword2+$5432
+	var .word        vmemaddr10             = cfloat2b
+	; taking the address of things from the ZP will work even when it is a var
+	; because zp-vars get assigned a specific address (from a pool). Also, it's a byte.
+
+
+max
+        return
+
+
+; --- immediate primitive value assignments ----
+
+	A = [$99]
+	A = [$aabb]
+	A = $99
+        A = [cbyte3]
+	A = 0
+	A = '@'
+	A = 1.2345
+	A = true
+	A = false
+	A = 255
+	A = X
+	A = [$99]
+	A = [$c020.byte]
+	A = [$c020]
+        A = cbyte3
+	A = membyte2
+        A = uninitbyte1
+
+
+	XY = 0
+	XY = '@'
+	XY = 1.2345
+	XY = 456.66
+	XY = 65535
+	XY = true
+	XY = false
+	XY = text
+	XY = cbyte3
+	XY = [cbyte3]
+	XY = [cword2]
+	XY = uninitbyte1
+	XY = "text-immediate"
+	AY = "text-immediate"
+	AX = #"text-immediate"          ; equivalent to simply assigning the string directly
+	AX = # "text-immediate"         ; equivalent to simply assigning the string directly
+	AX = ctext3
+	AX = ""
+	AX = XY
+	AX = Y
+	XY = membyte2
+	XY = #membyte2
+	XY = memword1
+	XY = max
+	XY = #max
+
+
+	[$c000] = A
+	[$c000] = 255
+	[$c000] = '@'
+	[$c000] = true
+	[$c000] = false
+	[$c000] = cbyte3
+	[$c000] = uninitbyte1
+	[$c000] = membyte2
+	[$c000] = cbyte2
+	[$c000] = [cword2]
+
+	[$c000.word] = A
+	[$c000.word] = AX
+	[$c000.word] = cbyte3
+	[$c000.word] = cword2
+	[$c000.word] = ctext3
+	[$c000.word] = 65535
+	[$c000.word] = "text"
+	[$c000.word] = ""
+	[$c000.word] = uninitbyte1
+	[$c000.word] = membyte2
+	[$c000.word] = #membyte2
+	[$c000.word] = [cword2]
+	[$c000.word] = memword1
+	[$c000.float] = 65535
+	[$c000.float] = 456.66
+	[$c000.float] = 1.70141183e+38
+	[$c000.float] = cbyte3
+	[$c000.float] = cword2
+
+	[$c001] = [$c002]
+	[$c111.word] = [$c222]
+        [$c112.word] = [$c223.byte]
+	[$c222.word] = [$c333.word]
+	[$c333.word] = max
+	[$c333.word] = #max
+
+
+	SC = 0
+	SC = 1
+	SC = false
+	SI = 1
+	SI = 0
+	SI = false
+
+	uninitbyte1 = 99
+	uninitbyte1 = 1.234
+	uninitbyte1 = '@'
+	initbyte1 = 99
+	initbyte1 = 1.234
+	initbyte1 = '@'
+	initbyte1 = A
+	initbyte1 = cbyte3
+	uninitword = 99
+	uninitword = 5.6778
+	uninitword = "test"
+	uninitword = '@'
+	uninitword = A
+	uninitword = XY
+	uninitword = ctext3
+	initword1 = cbyte3
+	initword1 = cword2
+	initfloat1 = 99
+	initfloat1 = 9.8765
+	initfloat1 = '@'
+	initfloat1 = cbyte3
+	initfloat1 = cword2
+	uninitfloat = 99
+	uninitfloat = 9.8765
+	uninitfloat = '@'
+	initword1 = max
+	initword1 = #max
+
+        membyte1 = A
+        membyte1 = cbyte3
+        memword1 = A
+        memword1 = AX
+        memword1 = cbyte3
+        memword1 = cword2
+        memword1 = ctext3
+
+
+        membyte1 = 22
+        memword1 = 2233
+        memfloat = 3.4567
+	memword1 = max
+	memword1 = #max
+
+        membyte1 = A
+        memword1 = A
+        memword1 = XY
+        memfloat = cbyte3
+        memfloat = cword2
+
+        ; float assignments that require ROM functions from c64lib:
+        memfloat = Y
+        memfloat = XY
+	uninitfloat = Y
+	uninitfloat = XY
+        initfloat2 = Y
+        initfloat2 = XY
+        initfloat2 = initbyte2
+        initfloat2 = initword2
+	initfloat1 = uninitfloat
+	initfloat1 = initfloat2
+
+}
+
+
+~ blockcalls11 {
+
+        var     .word   var1    = 99
+        memory  .word   mem1    = $cff0
+
+        var     .byte   varb1    = 99
+        memory  .byte   memb1    = $cff0
+        const   .word   constw   = $2355
+        const   .byte   constb   = $23
+        const   .float  constf   = 3.4556677
+        const   .text   constt   = "derp"
+
+        sub    sub1    () -> (X?)  = $ffdd
+        sub    sub2    (A) -> (Y?)  = $eecc
+        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
+
+
+bar
+        goto sub1
+        goto sub2 (1  )
+        goto sub3 (3)
+        goto sub3 (XY="hello")
+        goto sub3 ("hello, there")
+        goto sub4 (string="hello, there", other = 42)
+        goto sub4 ("hello",  42)
+        goto sub4 ("hello", other= 42)
+        goto sub4 (string="hello", other = 42)
+        goto bar  ()
+	goto [AX]
+	goto [AX]  ()
+	goto [var1]
+	goto [var1]   ()    ; comment
+	goto   [mem1]    ; comment
+	goto [mem1] ()
+	goto [$c2.word]
+	goto [$c2.word]  ()
+	goto [$c2dd.word]
+	goto [$c2dd.word] (  )
+	goto $c000
+	goto $c000        ( )
+	goto $c2
+	goto $c2()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1!()
+        sub2!(11)
+        sub3 !(3)
+        sub3! (XY="hello")
+        sub3! ("hello, there")
+        sub4! ("hello",  42)
+        sub4! ("hello",  other=42)
+        sub4! (string="hello", other = 42)
+        sub4! (string="hello, there", other = 42)
+        bar!()
+	[XY] ! ()
+	[var1] !()
+	[mem1]!()
+	[$c2.word]!()
+	[$c2dd.word]!()
+	$c000!()
+	$c2!()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1()
+        sub2(11)
+        sub3 (3)
+        sub3 (XY="hello")
+        sub3 ("hello, there")
+        sub4 ("hello",  42)
+        sub4 ("hello", other=  42)
+        sub4 (string="hello", other = 42)
+        sub4 (string="hello, there", other = 42)
+        bar ()
+	[AX]()
+	[var1] (  )
+	[mem1]    ()
+	[$c2.word]()
+	[$c2dd.word]()
+	$c000()
+	$c2()
+
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+	constw()
+	sub1()
+	main.start()
+}
+
+~ blockdtypes12 {
+	; variables
+	var			uninitbyte1
+	var	.byte		uninitbyte2
+	var     		initbyte1	=  $12
+	var                     initbyte1b      = true
+	var  .byte              initbyte2       = $12
+	var  .byte              initbyte2b      = false
+	var  .byte              initbyte3       = 99.876
+	var                     initchar1       = '@'
+	var  .byte              initchar2       = '@'
+	var  .word              uninitword
+	var  .word              initword1       = $1234
+	var  .word              initword1b      = true
+	var  .word              initword2       = false
+	var  .word              initword3       = 9876.554321
+	var  .word              initword5       = 20
+	var  .float             uninitfloat
+	var  .float             initfloat1      = 0
+	var  .float             initfloat1b     = true
+	var  .float             initfloat2      = -1.234e-14
+	var  .float             initfloat3      = 9.87e+14
+	var  .float             initfloat4      = 1.70141183e+38
+	var  .float             initfloat5      = -1.70141183e+38
+	var  .float             initfloat6      = 1.234
+	var  .array( 10)        uninit_bytearray
+	var  .array(10 )        init_bytearray          =$12
+	var  .array(10 )        init_bytearrayb         =true
+	var  .array(10 )        init_bytearrayc         ='@'
+	var  .wordarray( 10 )   uninit_wordarray
+	var  .wordarray(10)     init_wordarray          =  $1234
+	var  .wordarray(10)     init_wordarrayb         =  true
+
+	var  .text              text    = "hello"+"-null"
+	var  .ptext             ptext   = 'hello-pascal'
+	var  .stext             stext   = 'screencodes-null'
+	var  .pstext            pstext  = "screencodes-pascal"
+
+	var  .matrix( 3, 4 ) uninitmatrix
+	var  .matrix( 3, 4 )   initmatrix1      = $12
+	var  .matrix( 3, 4 )   initmatrix1b     = true
+	var  .matrix( 3, 4 )   initmatrix1c     = '@'
+	var  .matrix( 3, 4 )   initmatrix1d     = 123.456
+
+	; memory-mapped variables
+	memory                          membyte1        = $cf01
+	memory  .byte                   membyte2        = $c222
+	memory  .word                   memword1        = $cf03
+	memory  .float                  memfloat        = $cf04
+	memory  .array(10 )             membytes        = $cf05
+	memory  .wordarray( 10)         memwords        = $cf06
+	memory  .matrix( 3, 4 )       memmatrix       = $cf07
+
+	; constants   (= names for constant values, can never occur as lvalue)
+	const                   cbyte1          = 1
+	const                   cbyte1b         = false
+	const  .byte            cbyte2          = 1
+	const  .byte            cbyte3          = '@'
+	const  .byte            cbyte4          = true
+	const  .word            cword1          = false
+	const  .word            cword2          = $1234
+	const  .word            cword5          = 9876.5432
+	const                   cfloat1         = 1.2345
+	const  .float           cfloat2         = 2.3456
+	const  .float           cfloat2b        = cfloat2*3.44
+	const  .float           cfloat3         = true
+	const  .text            ctext3   	= "constant-text"
+	const  .ptext           ctext4   	= "constant-ptext"
+	const  .stext           ctext5   	= "constant-stext"
+	const  .pstext          ctext6   	= "constant-pstext"
+
+        ; taking the address of various things:
+	var .word        vmemaddr1              = #membyte1
+	var .word        vmemaddr2              = #memword1
+	var .word        vmemaddr3              = #memfloat
+	var .word        vmemaddr4              = #membytes
+	var .word        vmemaddr5              = #memwords
+	var .word        vmemaddr6              = #memmatrix
+	var .word        vmemaddr8              = 100*sin(cbyte1)
+	var .word        vmemaddr9              = cword2+$5432
+	var .word        vmemaddr10             = cfloat2b
+	; taking the address of things from the ZP will work even when it is a var
+	; because zp-vars get assigned a specific address (from a pool). Also, it's a byte.
+
+
+max
+        return
+
+
+; --- immediate primitive value assignments ----
+
+	A = [$99]
+	A = [$aabb]
+	A = $99
+        A = [cbyte3]
+	A = 0
+	A = '@'
+	A = 1.2345
+	A = true
+	A = false
+	A = 255
+	A = X
+	A = [$99]
+	A = [$c020.byte]
+	A = [$c020]
+        A = cbyte3
+	A = membyte2
+        A = uninitbyte1
+
+
+	XY = 0
+	XY = '@'
+	XY = 1.2345
+	XY = 456.66
+	XY = 65535
+	XY = true
+	XY = false
+	XY = text
+	XY = cbyte3
+	XY = [cbyte3]
+	XY = [cword2]
+	XY = uninitbyte1
+	XY = "text-immediate"
+	AY = "text-immediate"
+	AX = #"text-immediate"          ; equivalent to simply assigning the string directly
+	AX = # "text-immediate"         ; equivalent to simply assigning the string directly
+	AX = ctext3
+	AX = ""
+	AX = XY
+	AX = Y
+	XY = membyte2
+	XY = #membyte2
+	XY = memword1
+	XY = max
+	XY = #max
+
+
+	[$c000] = A
+	[$c000] = 255
+	[$c000] = '@'
+	[$c000] = true
+	[$c000] = false
+	[$c000] = cbyte3
+	[$c000] = uninitbyte1
+	[$c000] = membyte2
+	[$c000] = cbyte2
+	[$c000] = [cword2]
+
+	[$c000.word] = A
+	[$c000.word] = AX
+	[$c000.word] = cbyte3
+	[$c000.word] = cword2
+	[$c000.word] = ctext3
+	[$c000.word] = 65535
+	[$c000.word] = "text"
+	[$c000.word] = ""
+	[$c000.word] = uninitbyte1
+	[$c000.word] = membyte2
+	[$c000.word] = #membyte2
+	[$c000.word] = [cword2]
+	[$c000.word] = memword1
+	[$c000.float] = 65535
+	[$c000.float] = 456.66
+	[$c000.float] = 1.70141183e+38
+	[$c000.float] = cbyte3
+	[$c000.float] = cword2
+
+	[$c001] = [$c002]
+	[$c111.word] = [$c222]
+        [$c112.word] = [$c223.byte]
+	[$c222.word] = [$c333.word]
+	[$c333.word] = max
+	[$c333.word] = #max
+
+
+	SC = 0
+	SC = 1
+	SC = false
+	SI = 1
+	SI = 0
+	SI = false
+
+	uninitbyte1 = 99
+	uninitbyte1 = 1.234
+	uninitbyte1 = '@'
+	initbyte1 = 99
+	initbyte1 = 1.234
+	initbyte1 = '@'
+	initbyte1 = A
+	initbyte1 = cbyte3
+	uninitword = 99
+	uninitword = 5.6778
+	uninitword = "test"
+	uninitword = '@'
+	uninitword = A
+	uninitword = XY
+	uninitword = ctext3
+	initword1 = cbyte3
+	initword1 = cword2
+	initfloat1 = 99
+	initfloat1 = 9.8765
+	initfloat1 = '@'
+	initfloat1 = cbyte3
+	initfloat1 = cword2
+	uninitfloat = 99
+	uninitfloat = 9.8765
+	uninitfloat = '@'
+	initword1 = max
+	initword1 = #max
+
+        membyte1 = A
+        membyte1 = cbyte3
+        memword1 = A
+        memword1 = AX
+        memword1 = cbyte3
+        memword1 = cword2
+        memword1 = ctext3
+
+
+        membyte1 = 22
+        memword1 = 2233
+        memfloat = 3.4567
+	memword1 = max
+	memword1 = #max
+
+        membyte1 = A
+        memword1 = A
+        memword1 = XY
+        memfloat = cbyte3
+        memfloat = cword2
+
+        ; float assignments that require ROM functions from c64lib:
+        memfloat = Y
+        memfloat = XY
+	uninitfloat = Y
+	uninitfloat = XY
+        initfloat2 = Y
+        initfloat2 = XY
+        initfloat2 = initbyte2
+        initfloat2 = initword2
+	initfloat1 = uninitfloat
+	initfloat1 = initfloat2
+
+}
+
+
+~ blockcalls12 {
+
+        var     .word   var1    = 99
+        memory  .word   mem1    = $cff0
+
+        var     .byte   varb1    = 99
+        memory  .byte   memb1    = $cff0
+        const   .word   constw   = $2355
+        const   .byte   constb   = $23
+        const   .float  constf   = 3.4556677
+        const   .text   constt   = "derp"
+
+        sub    sub1    () -> (X?)  = $ffdd
+        sub    sub2    (A) -> (Y?)  = $eecc
+        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
+
+
+bar
+        goto sub1
+        goto sub2 (1  )
+        goto sub3 (3)
+        goto sub3 (XY="hello")
+        goto sub3 ("hello, there")
+        goto sub4 (string="hello, there", other = 42)
+        goto sub4 ("hello",  42)
+        goto sub4 ("hello", other= 42)
+        goto sub4 (string="hello", other = 42)
+        goto bar  ()
+	goto [AX]
+	goto [AX]  ()
+	goto [var1]
+	goto [var1]   ()    ; comment
+	goto   [mem1]    ; comment
+	goto [mem1] ()
+	goto [$c2.word]
+	goto [$c2.word]  ()
+	goto [$c2dd.word]
+	goto [$c2dd.word] (  )
+	goto $c000
+	goto $c000        ( )
+	goto $c2
+	goto $c2()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1!()
+        sub2!(11)
+        sub3 !(3)
+        sub3! (XY="hello")
+        sub3! ("hello, there")
+        sub4! ("hello",  42)
+        sub4! ("hello",  other=42)
+        sub4! (string="hello", other = 42)
+        sub4! (string="hello, there", other = 42)
+        bar!()
+	[XY] ! ()
+	[var1] !()
+	[mem1]!()
+	[$c2.word]!()
+	[$c2dd.word]!()
+	$c000!()
+	$c2!()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1()
+        sub2(11)
+        sub3 (3)
+        sub3 (XY="hello")
+        sub3 ("hello, there")
+        sub4 ("hello",  42)
+        sub4 ("hello", other=  42)
+        sub4 (string="hello", other = 42)
+        sub4 (string="hello, there", other = 42)
+        bar ()
+	[AX]()
+	[var1] (  )
+	[mem1]    ()
+	[$c2.word]()
+	[$c2dd.word]()
+	$c000()
+	$c2()
+
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+	constw()
+	sub1()
+	main.start()
+}
+
+~ blockdtypes13 {
+	; variables
+	var			uninitbyte1
+	var	.byte		uninitbyte2
+	var     		initbyte1	=  $12
+	var                     initbyte1b      = true
+	var  .byte              initbyte2       = $12
+	var  .byte              initbyte2b      = false
+	var  .byte              initbyte3       = 99.876
+	var                     initchar1       = '@'
+	var  .byte              initchar2       = '@'
+	var  .word              uninitword
+	var  .word              initword1       = $1234
+	var  .word              initword1b      = true
+	var  .word              initword2       = false
+	var  .word              initword3       = 9876.554321
+	var  .word              initword5       = 20
+	var  .float             uninitfloat
+	var  .float             initfloat1      = 0
+	var  .float             initfloat1b     = true
+	var  .float             initfloat2      = -1.234e-14
+	var  .float             initfloat3      = 9.87e+14
+	var  .float             initfloat4      = 1.70141183e+38
+	var  .float             initfloat5      = -1.70141183e+38
+	var  .float             initfloat6      = 1.234
+	var  .array( 10)        uninit_bytearray
+	var  .array(10 )        init_bytearray          =$12
+	var  .array(10 )        init_bytearrayb         =true
+	var  .array(10 )        init_bytearrayc         ='@'
+	var  .wordarray( 10 )   uninit_wordarray
+	var  .wordarray(10)     init_wordarray          =  $1234
+	var  .wordarray(10)     init_wordarrayb         =  true
+
+	var  .text              text    = "hello"+"-null"
+	var  .ptext             ptext   = 'hello-pascal'
+	var  .stext             stext   = 'screencodes-null'
+	var  .pstext            pstext  = "screencodes-pascal"
+
+	var  .matrix( 3, 4 ) uninitmatrix
+	var  .matrix( 3, 4 )   initmatrix1      = $12
+	var  .matrix( 3, 4 )   initmatrix1b     = true
+	var  .matrix( 3, 4 )   initmatrix1c     = '@'
+	var  .matrix( 3, 4 )   initmatrix1d     = 123.456
+
+	; memory-mapped variables
+	memory                          membyte1        = $cf01
+	memory  .byte                   membyte2        = $c222
+	memory  .word                   memword1        = $cf03
+	memory  .float                  memfloat        = $cf04
+	memory  .array(10 )             membytes        = $cf05
+	memory  .wordarray( 10)         memwords        = $cf06
+	memory  .matrix( 3, 4 )       memmatrix       = $cf07
+
+	; constants   (= names for constant values, can never occur as lvalue)
+	const                   cbyte1          = 1
+	const                   cbyte1b         = false
+	const  .byte            cbyte2          = 1
+	const  .byte            cbyte3          = '@'
+	const  .byte            cbyte4          = true
+	const  .word            cword1          = false
+	const  .word            cword2          = $1234
+	const  .word            cword5          = 9876.5432
+	const                   cfloat1         = 1.2345
+	const  .float           cfloat2         = 2.3456
+	const  .float           cfloat2b        = cfloat2*3.44
+	const  .float           cfloat3         = true
+	const  .text            ctext3   	= "constant-text"
+	const  .ptext           ctext4   	= "constant-ptext"
+	const  .stext           ctext5   	= "constant-stext"
+	const  .pstext          ctext6   	= "constant-pstext"
+
+        ; taking the address of various things:
+	var .word        vmemaddr1              = #membyte1
+	var .word        vmemaddr2              = #memword1
+	var .word        vmemaddr3              = #memfloat
+	var .word        vmemaddr4              = #membytes
+	var .word        vmemaddr5              = #memwords
+	var .word        vmemaddr6              = #memmatrix
+	var .word        vmemaddr8              = 100*sin(cbyte1)
+	var .word        vmemaddr9              = cword2+$5432
+	var .word        vmemaddr10             = cfloat2b
+	; taking the address of things from the ZP will work even when it is a var
+	; because zp-vars get assigned a specific address (from a pool). Also, it's a byte.
+
+
+max
+        return
+
+
+; --- immediate primitive value assignments ----
+
+	A = [$99]
+	A = [$aabb]
+	A = $99
+        A = [cbyte3]
+	A = 0
+	A = '@'
+	A = 1.2345
+	A = true
+	A = false
+	A = 255
+	A = X
+	A = [$99]
+	A = [$c020.byte]
+	A = [$c020]
+        A = cbyte3
+	A = membyte2
+        A = uninitbyte1
+
+
+	XY = 0
+	XY = '@'
+	XY = 1.2345
+	XY = 456.66
+	XY = 65535
+	XY = true
+	XY = false
+	XY = text
+	XY = cbyte3
+	XY = [cbyte3]
+	XY = [cword2]
+	XY = uninitbyte1
+	XY = "text-immediate"
+	AY = "text-immediate"
+	AX = #"text-immediate"          ; equivalent to simply assigning the string directly
+	AX = # "text-immediate"         ; equivalent to simply assigning the string directly
+	AX = ctext3
+	AX = ""
+	AX = XY
+	AX = Y
+	XY = membyte2
+	XY = #membyte2
+	XY = memword1
+	XY = max
+	XY = #max
+
+
+	[$c000] = A
+	[$c000] = 255
+	[$c000] = '@'
+	[$c000] = true
+	[$c000] = false
+	[$c000] = cbyte3
+	[$c000] = uninitbyte1
+	[$c000] = membyte2
+	[$c000] = cbyte2
+	[$c000] = [cword2]
+
+	[$c000.word] = A
+	[$c000.word] = AX
+	[$c000.word] = cbyte3
+	[$c000.word] = cword2
+	[$c000.word] = ctext3
+	[$c000.word] = 65535
+	[$c000.word] = "text"
+	[$c000.word] = ""
+	[$c000.word] = uninitbyte1
+	[$c000.word] = membyte2
+	[$c000.word] = #membyte2
+	[$c000.word] = [cword2]
+	[$c000.word] = memword1
+	[$c000.float] = 65535
+	[$c000.float] = 456.66
+	[$c000.float] = 1.70141183e+38
+	[$c000.float] = cbyte3
+	[$c000.float] = cword2
+
+	[$c001] = [$c002]
+	[$c111.word] = [$c222]
+        [$c112.word] = [$c223.byte]
+	[$c222.word] = [$c333.word]
+	[$c333.word] = max
+	[$c333.word] = #max
+
+
+	SC = 0
+	SC = 1
+	SC = false
+	SI = 1
+	SI = 0
+	SI = false
+
+	uninitbyte1 = 99
+	uninitbyte1 = 1.234
+	uninitbyte1 = '@'
+	initbyte1 = 99
+	initbyte1 = 1.234
+	initbyte1 = '@'
+	initbyte1 = A
+	initbyte1 = cbyte3
+	uninitword = 99
+	uninitword = 5.6778
+	uninitword = "test"
+	uninitword = '@'
+	uninitword = A
+	uninitword = XY
+	uninitword = ctext3
+	initword1 = cbyte3
+	initword1 = cword2
+	initfloat1 = 99
+	initfloat1 = 9.8765
+	initfloat1 = '@'
+	initfloat1 = cbyte3
+	initfloat1 = cword2
+	uninitfloat = 99
+	uninitfloat = 9.8765
+	uninitfloat = '@'
+	initword1 = max
+	initword1 = #max
+
+        membyte1 = A
+        membyte1 = cbyte3
+        memword1 = A
+        memword1 = AX
+        memword1 = cbyte3
+        memword1 = cword2
+        memword1 = ctext3
+
+
+        membyte1 = 22
+        memword1 = 2233
+        memfloat = 3.4567
+	memword1 = max
+	memword1 = #max
+
+        membyte1 = A
+        memword1 = A
+        memword1 = XY
+        memfloat = cbyte3
+        memfloat = cword2
+
+        ; float assignments that require ROM functions from c64lib:
+        memfloat = Y
+        memfloat = XY
+	uninitfloat = Y
+	uninitfloat = XY
+        initfloat2 = Y
+        initfloat2 = XY
+        initfloat2 = initbyte2
+        initfloat2 = initword2
+	initfloat1 = uninitfloat
+	initfloat1 = initfloat2
+
+}
+
+
+~ blockcalls13 {
+
+        var     .word   var1    = 99
+        memory  .word   mem1    = $cff0
+
+        var     .byte   varb1    = 99
+        memory  .byte   memb1    = $cff0
+        const   .word   constw   = $2355
+        const   .byte   constb   = $23
+        const   .float  constf   = 3.4556677
+        const   .text   constt   = "derp"
+
+        sub    sub1    () -> (X?)  = $ffdd
+        sub    sub2    (A) -> (Y?)  = $eecc
+        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
+
+
+bar
+        goto sub1
+        goto sub2 (1  )
+        goto sub3 (3)
+        goto sub3 (XY="hello")
+        goto sub3 ("hello, there")
+        goto sub4 (string="hello, there", other = 42)
+        goto sub4 ("hello",  42)
+        goto sub4 ("hello", other= 42)
+        goto sub4 (string="hello", other = 42)
+        goto bar  ()
+	goto [AX]
+	goto [AX]  ()
+	goto [var1]
+	goto [var1]   ()    ; comment
+	goto   [mem1]    ; comment
+	goto [mem1] ()
+	goto [$c2.word]
+	goto [$c2.word]  ()
+	goto [$c2dd.word]
+	goto [$c2dd.word] (  )
+	goto $c000
+	goto $c000        ( )
+	goto $c2
+	goto $c2()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1!()
+        sub2!(11)
+        sub3 !(3)
+        sub3! (XY="hello")
+        sub3! ("hello, there")
+        sub4! ("hello",  42)
+        sub4! ("hello",  other=42)
+        sub4! (string="hello", other = 42)
+        sub4! (string="hello, there", other = 42)
+        bar!()
+	[XY] ! ()
+	[var1] !()
+	[mem1]!()
+	[$c2.word]!()
+	[$c2dd.word]!()
+	$c000!()
+	$c2!()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1()
+        sub2(11)
+        sub3 (3)
+        sub3 (XY="hello")
+        sub3 ("hello, there")
+        sub4 ("hello",  42)
+        sub4 ("hello", other=  42)
+        sub4 (string="hello", other = 42)
+        sub4 (string="hello, there", other = 42)
+        bar ()
+	[AX]()
+	[var1] (  )
+	[mem1]    ()
+	[$c2.word]()
+	[$c2dd.word]()
+	$c000()
+	$c2()
+
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+	constw()
+	sub1()
+	main.start()
+}
+
+~ blockdtypes14 {
+	; variables
+	var			uninitbyte1
+	var	.byte		uninitbyte2
+	var     		initbyte1	=  $12
+	var                     initbyte1b      = true
+	var  .byte              initbyte2       = $12
+	var  .byte              initbyte2b      = false
+	var  .byte              initbyte3       = 99.876
+	var                     initchar1       = '@'
+	var  .byte              initchar2       = '@'
+	var  .word              uninitword
+	var  .word              initword1       = $1234
+	var  .word              initword1b      = true
+	var  .word              initword2       = false
+	var  .word              initword3       = 9876.554321
+	var  .word              initword5       = 20
+	var  .float             uninitfloat
+	var  .float             initfloat1      = 0
+	var  .float             initfloat1b     = true
+	var  .float             initfloat2      = -1.234e-14
+	var  .float             initfloat3      = 9.87e+14
+	var  .float             initfloat4      = 1.70141183e+38
+	var  .float             initfloat5      = -1.70141183e+38
+	var  .float             initfloat6      = 1.234
+	var  .array( 10)        uninit_bytearray
+	var  .array(10 )        init_bytearray          =$12
+	var  .array(10 )        init_bytearrayb         =true
+	var  .array(10 )        init_bytearrayc         ='@'
+	var  .wordarray( 10 )   uninit_wordarray
+	var  .wordarray(10)     init_wordarray          =  $1234
+	var  .wordarray(10)     init_wordarrayb         =  true
+
+	var  .text              text    = "hello"+"-null"
+	var  .ptext             ptext   = 'hello-pascal'
+	var  .stext             stext   = 'screencodes-null'
+	var  .pstext            pstext  = "screencodes-pascal"
+
+	var  .matrix( 3, 4 ) uninitmatrix
+	var  .matrix( 3, 4 )   initmatrix1      = $12
+	var  .matrix( 3, 4 )   initmatrix1b     = true
+	var  .matrix( 3, 4 )   initmatrix1c     = '@'
+	var  .matrix( 3, 4 )   initmatrix1d     = 123.456
+
+	; memory-mapped variables
+	memory                          membyte1        = $cf01
+	memory  .byte                   membyte2        = $c222
+	memory  .word                   memword1        = $cf03
+	memory  .float                  memfloat        = $cf04
+	memory  .array(10 )             membytes        = $cf05
+	memory  .wordarray( 10)         memwords        = $cf06
+	memory  .matrix( 3, 4 )       memmatrix       = $cf07
+
+	; constants   (= names for constant values, can never occur as lvalue)
+	const                   cbyte1          = 1
+	const                   cbyte1b         = false
+	const  .byte            cbyte2          = 1
+	const  .byte            cbyte3          = '@'
+	const  .byte            cbyte4          = true
+	const  .word            cword1          = false
+	const  .word            cword2          = $1234
+	const  .word            cword5          = 9876.5432
+	const                   cfloat1         = 1.2345
+	const  .float           cfloat2         = 2.3456
+	const  .float           cfloat2b        = cfloat2*3.44
+	const  .float           cfloat3         = true
+	const  .text            ctext3   	= "constant-text"
+	const  .ptext           ctext4   	= "constant-ptext"
+	const  .stext           ctext5   	= "constant-stext"
+	const  .pstext          ctext6   	= "constant-pstext"
+
+        ; taking the address of various things:
+	var .word        vmemaddr1              = #membyte1
+	var .word        vmemaddr2              = #memword1
+	var .word        vmemaddr3              = #memfloat
+	var .word        vmemaddr4              = #membytes
+	var .word        vmemaddr5              = #memwords
+	var .word        vmemaddr6              = #memmatrix
+	var .word        vmemaddr8              = 100*sin(cbyte1)
+	var .word        vmemaddr9              = cword2+$5432
+	var .word        vmemaddr10             = cfloat2b
+	; taking the address of things from the ZP will work even when it is a var
+	; because zp-vars get assigned a specific address (from a pool). Also, it's a byte.
+
+
+max
+        return
+
+
+; --- immediate primitive value assignments ----
+
+	A = [$99]
+	A = [$aabb]
+	A = $99
+        A = [cbyte3]
+	A = 0
+	A = '@'
+	A = 1.2345
+	A = true
+	A = false
+	A = 255
+	A = X
+	A = [$99]
+	A = [$c020.byte]
+	A = [$c020]
+        A = cbyte3
+	A = membyte2
+        A = uninitbyte1
+
+
+	XY = 0
+	XY = '@'
+	XY = 1.2345
+	XY = 456.66
+	XY = 65535
+	XY = true
+	XY = false
+	XY = text
+	XY = cbyte3
+	XY = [cbyte3]
+	XY = [cword2]
+	XY = uninitbyte1
+	XY = "text-immediate"
+	AY = "text-immediate"
+	AX = #"text-immediate"          ; equivalent to simply assigning the string directly
+	AX = # "text-immediate"         ; equivalent to simply assigning the string directly
+	AX = ctext3
+	AX = ""
+	AX = XY
+	AX = Y
+	XY = membyte2
+	XY = #membyte2
+	XY = memword1
+	XY = max
+	XY = #max
+
+
+	[$c000] = A
+	[$c000] = 255
+	[$c000] = '@'
+	[$c000] = true
+	[$c000] = false
+	[$c000] = cbyte3
+	[$c000] = uninitbyte1
+	[$c000] = membyte2
+	[$c000] = cbyte2
+	[$c000] = [cword2]
+
+	[$c000.word] = A
+	[$c000.word] = AX
+	[$c000.word] = cbyte3
+	[$c000.word] = cword2
+	[$c000.word] = ctext3
+	[$c000.word] = 65535
+	[$c000.word] = "text"
+	[$c000.word] = ""
+	[$c000.word] = uninitbyte1
+	[$c000.word] = membyte2
+	[$c000.word] = #membyte2
+	[$c000.word] = [cword2]
+	[$c000.word] = memword1
+	[$c000.float] = 65535
+	[$c000.float] = 456.66
+	[$c000.float] = 1.70141183e+38
+	[$c000.float] = cbyte3
+	[$c000.float] = cword2
+
+	[$c001] = [$c002]
+	[$c111.word] = [$c222]
+        [$c112.word] = [$c223.byte]
+	[$c222.word] = [$c333.word]
+	[$c333.word] = max
+	[$c333.word] = #max
+
+
+	SC = 0
+	SC = 1
+	SC = false
+	SI = 1
+	SI = 0
+	SI = false
+
+	uninitbyte1 = 99
+	uninitbyte1 = 1.234
+	uninitbyte1 = '@'
+	initbyte1 = 99
+	initbyte1 = 1.234
+	initbyte1 = '@'
+	initbyte1 = A
+	initbyte1 = cbyte3
+	uninitword = 99
+	uninitword = 5.6778
+	uninitword = "test"
+	uninitword = '@'
+	uninitword = A
+	uninitword = XY
+	uninitword = ctext3
+	initword1 = cbyte3
+	initword1 = cword2
+	initfloat1 = 99
+	initfloat1 = 9.8765
+	initfloat1 = '@'
+	initfloat1 = cbyte3
+	initfloat1 = cword2
+	uninitfloat = 99
+	uninitfloat = 9.8765
+	uninitfloat = '@'
+	initword1 = max
+	initword1 = #max
+
+        membyte1 = A
+        membyte1 = cbyte3
+        memword1 = A
+        memword1 = AX
+        memword1 = cbyte3
+        memword1 = cword2
+        memword1 = ctext3
+
+
+        membyte1 = 22
+        memword1 = 2233
+        memfloat = 3.4567
+	memword1 = max
+	memword1 = #max
+
+        membyte1 = A
+        memword1 = A
+        memword1 = XY
+        memfloat = cbyte3
+        memfloat = cword2
+
+        ; float assignments that require ROM functions from c64lib:
+        memfloat = Y
+        memfloat = XY
+	uninitfloat = Y
+	uninitfloat = XY
+        initfloat2 = Y
+        initfloat2 = XY
+        initfloat2 = initbyte2
+        initfloat2 = initword2
+	initfloat1 = uninitfloat
+	initfloat1 = initfloat2
+
+}
+
+
+~ blockcalls14 {
+
+        var     .word   var1    = 99
+        memory  .word   mem1    = $cff0
+
+        var     .byte   varb1    = 99
+        memory  .byte   memb1    = $cff0
+        const   .word   constw   = $2355
+        const   .byte   constb   = $23
+        const   .float  constf   = 3.4556677
+        const   .text   constt   = "derp"
+
+        sub    sub1    () -> (X?)  = $ffdd
+        sub    sub2    (A) -> (Y?)  = $eecc
+        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
+
+
+bar
+        goto sub1
+        goto sub2 (1  )
+        goto sub3 (3)
+        goto sub3 (XY="hello")
+        goto sub3 ("hello, there")
+        goto sub4 (string="hello, there", other = 42)
+        goto sub4 ("hello",  42)
+        goto sub4 ("hello", other= 42)
+        goto sub4 (string="hello", other = 42)
+        goto bar  ()
+	goto [AX]
+	goto [AX]  ()
+	goto [var1]
+	goto [var1]   ()    ; comment
+	goto   [mem1]    ; comment
+	goto [mem1] ()
+	goto [$c2.word]
+	goto [$c2.word]  ()
+	goto [$c2dd.word]
+	goto [$c2dd.word] (  )
+	goto $c000
+	goto $c000        ( )
+	goto $c2
+	goto $c2()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1!()
+        sub2!(11)
+        sub3 !(3)
+        sub3! (XY="hello")
+        sub3! ("hello, there")
+        sub4! ("hello",  42)
+        sub4! ("hello",  other=42)
+        sub4! (string="hello", other = 42)
+        sub4! (string="hello, there", other = 42)
+        bar!()
+	[XY] ! ()
+	[var1] !()
+	[mem1]!()
+	[$c2.word]!()
+	[$c2dd.word]!()
+	$c000!()
+	$c2!()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1()
+        sub2(11)
+        sub3 (3)
+        sub3 (XY="hello")
+        sub3 ("hello, there")
+        sub4 ("hello",  42)
+        sub4 ("hello", other=  42)
+        sub4 (string="hello", other = 42)
+        sub4 (string="hello, there", other = 42)
+        bar ()
+	[AX]()
+	[var1] (  )
+	[mem1]    ()
+	[$c2.word]()
+	[$c2dd.word]()
+	$c000()
+	$c2()
+
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+	constw()
+	sub1()
+	main.start()
+}
+
+~ blockdtypes15 {
+	; variables
+	var			uninitbyte1
+	var	.byte		uninitbyte2
+	var     		initbyte1	=  $12
+	var                     initbyte1b      = true
+	var  .byte              initbyte2       = $12
+	var  .byte              initbyte2b      = false
+	var  .byte              initbyte3       = 99.876
+	var                     initchar1       = '@'
+	var  .byte              initchar2       = '@'
+	var  .word              uninitword
+	var  .word              initword1       = $1234
+	var  .word              initword1b      = true
+	var  .word              initword2       = false
+	var  .word              initword3       = 9876.554321
+	var  .word              initword5       = 20
+	var  .float             uninitfloat
+	var  .float             initfloat1      = 0
+	var  .float             initfloat1b     = true
+	var  .float             initfloat2      = -1.234e-14
+	var  .float             initfloat3      = 9.87e+14
+	var  .float             initfloat4      = 1.70141183e+38
+	var  .float             initfloat5      = -1.70141183e+38
+	var  .float             initfloat6      = 1.234
+	var  .array( 10)        uninit_bytearray
+	var  .array(10 )        init_bytearray          =$12
+	var  .array(10 )        init_bytearrayb         =true
+	var  .array(10 )        init_bytearrayc         ='@'
+	var  .wordarray( 10 )   uninit_wordarray
+	var  .wordarray(10)     init_wordarray          =  $1234
+	var  .wordarray(10)     init_wordarrayb         =  true
+
+	var  .text              text    = "hello"+"-null"
+	var  .ptext             ptext   = 'hello-pascal'
+	var  .stext             stext   = 'screencodes-null'
+	var  .pstext            pstext  = "screencodes-pascal"
+
+	var  .matrix( 3, 4 ) uninitmatrix
+	var  .matrix( 3, 4 )   initmatrix1      = $12
+	var  .matrix( 3, 4 )   initmatrix1b     = true
+	var  .matrix( 3, 4 )   initmatrix1c     = '@'
+	var  .matrix( 3, 4 )   initmatrix1d     = 123.456
+
+	; memory-mapped variables
+	memory                          membyte1        = $cf01
+	memory  .byte                   membyte2        = $c222
+	memory  .word                   memword1        = $cf03
+	memory  .float                  memfloat        = $cf04
+	memory  .array(10 )             membytes        = $cf05
+	memory  .wordarray( 10)         memwords        = $cf06
+	memory  .matrix( 3, 4 )       memmatrix       = $cf07
+
+	; constants   (= names for constant values, can never occur as lvalue)
+	const                   cbyte1          = 1
+	const                   cbyte1b         = false
+	const  .byte            cbyte2          = 1
+	const  .byte            cbyte3          = '@'
+	const  .byte            cbyte4          = true
+	const  .word            cword1          = false
+	const  .word            cword2          = $1234
+	const  .word            cword5          = 9876.5432
+	const                   cfloat1         = 1.2345
+	const  .float           cfloat2         = 2.3456
+	const  .float           cfloat2b        = cfloat2*3.44
+	const  .float           cfloat3         = true
+	const  .text            ctext3   	= "constant-text"
+	const  .ptext           ctext4   	= "constant-ptext"
+	const  .stext           ctext5   	= "constant-stext"
+	const  .pstext          ctext6   	= "constant-pstext"
+
+        ; taking the address of various things:
+	var .word        vmemaddr1              = #membyte1
+	var .word        vmemaddr2              = #memword1
+	var .word        vmemaddr3              = #memfloat
+	var .word        vmemaddr4              = #membytes
+	var .word        vmemaddr5              = #memwords
+	var .word        vmemaddr6              = #memmatrix
+	var .word        vmemaddr8              = 100*sin(cbyte1)
+	var .word        vmemaddr9              = cword2+$5432
+	var .word        vmemaddr10             = cfloat2b
+	; taking the address of things from the ZP will work even when it is a var
+	; because zp-vars get assigned a specific address (from a pool). Also, it's a byte.
+
+
+max
+        return
+
+
+; --- immediate primitive value assignments ----
+
+	A = [$99]
+	A = [$aabb]
+	A = $99
+        A = [cbyte3]
+	A = 0
+	A = '@'
+	A = 1.2345
+	A = true
+	A = false
+	A = 255
+	A = X
+	A = [$99]
+	A = [$c020.byte]
+	A = [$c020]
+        A = cbyte3
+	A = membyte2
+        A = uninitbyte1
+
+
+	XY = 0
+	XY = '@'
+	XY = 1.2345
+	XY = 456.66
+	XY = 65535
+	XY = true
+	XY = false
+	XY = text
+	XY = cbyte3
+	XY = [cbyte3]
+	XY = [cword2]
+	XY = uninitbyte1
+	XY = "text-immediate"
+	AY = "text-immediate"
+	AX = #"text-immediate"          ; equivalent to simply assigning the string directly
+	AX = # "text-immediate"         ; equivalent to simply assigning the string directly
+	AX = ctext3
+	AX = ""
+	AX = XY
+	AX = Y
+	XY = membyte2
+	XY = #membyte2
+	XY = memword1
+	XY = max
+	XY = #max
+
+
+	[$c000] = A
+	[$c000] = 255
+	[$c000] = '@'
+	[$c000] = true
+	[$c000] = false
+	[$c000] = cbyte3
+	[$c000] = uninitbyte1
+	[$c000] = membyte2
+	[$c000] = cbyte2
+	[$c000] = [cword2]
+
+	[$c000.word] = A
+	[$c000.word] = AX
+	[$c000.word] = cbyte3
+	[$c000.word] = cword2
+	[$c000.word] = ctext3
+	[$c000.word] = 65535
+	[$c000.word] = "text"
+	[$c000.word] = ""
+	[$c000.word] = uninitbyte1
+	[$c000.word] = membyte2
+	[$c000.word] = #membyte2
+	[$c000.word] = [cword2]
+	[$c000.word] = memword1
+	[$c000.float] = 65535
+	[$c000.float] = 456.66
+	[$c000.float] = 1.70141183e+38
+	[$c000.float] = cbyte3
+	[$c000.float] = cword2
+
+	[$c001] = [$c002]
+	[$c111.word] = [$c222]
+        [$c112.word] = [$c223.byte]
+	[$c222.word] = [$c333.word]
+	[$c333.word] = max
+	[$c333.word] = #max
+
+
+	SC = 0
+	SC = 1
+	SC = false
+	SI = 1
+	SI = 0
+	SI = false
+
+	uninitbyte1 = 99
+	uninitbyte1 = 1.234
+	uninitbyte1 = '@'
+	initbyte1 = 99
+	initbyte1 = 1.234
+	initbyte1 = '@'
+	initbyte1 = A
+	initbyte1 = cbyte3
+	uninitword = 99
+	uninitword = 5.6778
+	uninitword = "test"
+	uninitword = '@'
+	uninitword = A
+	uninitword = XY
+	uninitword = ctext3
+	initword1 = cbyte3
+	initword1 = cword2
+	initfloat1 = 99
+	initfloat1 = 9.8765
+	initfloat1 = '@'
+	initfloat1 = cbyte3
+	initfloat1 = cword2
+	uninitfloat = 99
+	uninitfloat = 9.8765
+	uninitfloat = '@'
+	initword1 = max
+	initword1 = #max
+
+        membyte1 = A
+        membyte1 = cbyte3
+        memword1 = A
+        memword1 = AX
+        memword1 = cbyte3
+        memword1 = cword2
+        memword1 = ctext3
+
+
+        membyte1 = 22
+        memword1 = 2233
+        memfloat = 3.4567
+	memword1 = max
+	memword1 = #max
+
+        membyte1 = A
+        memword1 = A
+        memword1 = XY
+        memfloat = cbyte3
+        memfloat = cword2
+
+        ; float assignments that require ROM functions from c64lib:
+        memfloat = Y
+        memfloat = XY
+	uninitfloat = Y
+	uninitfloat = XY
+        initfloat2 = Y
+        initfloat2 = XY
+        initfloat2 = initbyte2
+        initfloat2 = initword2
+	initfloat1 = uninitfloat
+	initfloat1 = initfloat2
+
+}
+
+
+~ blockcalls15 {
+
+        var     .word   var1    = 99
+        memory  .word   mem1    = $cff0
+
+        var     .byte   varb1    = 99
+        memory  .byte   memb1    = $cff0
+        const   .word   constw   = $2355
+        const   .byte   constb   = $23
+        const   .float  constf   = 3.4556677
+        const   .text   constt   = "derp"
+
+        sub    sub1    () -> (X?)  = $ffdd
+        sub    sub2    (A) -> (Y?)  = $eecc
+        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
+
+
+bar
+        goto sub1
+        goto sub2 (1  )
+        goto sub3 (3)
+        goto sub3 (XY="hello")
+        goto sub3 ("hello, there")
+        goto sub4 (string="hello, there", other = 42)
+        goto sub4 ("hello",  42)
+        goto sub4 ("hello", other= 42)
+        goto sub4 (string="hello", other = 42)
+        goto bar  ()
+	goto [AX]
+	goto [AX]  ()
+	goto [var1]
+	goto [var1]   ()    ; comment
+	goto   [mem1]    ; comment
+	goto [mem1] ()
+	goto [$c2.word]
+	goto [$c2.word]  ()
+	goto [$c2dd.word]
+	goto [$c2dd.word] (  )
+	goto $c000
+	goto $c000        ( )
+	goto $c2
+	goto $c2()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1!()
+        sub2!(11)
+        sub3 !(3)
+        sub3! (XY="hello")
+        sub3! ("hello, there")
+        sub4! ("hello",  42)
+        sub4! ("hello",  other=42)
+        sub4! (string="hello", other = 42)
+        sub4! (string="hello, there", other = 42)
+        bar!()
+	[XY] ! ()
+	[var1] !()
+	[mem1]!()
+	[$c2.word]!()
+	[$c2dd.word]!()
+	$c000!()
+	$c2!()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1()
+        sub2(11)
+        sub3 (3)
+        sub3 (XY="hello")
+        sub3 ("hello, there")
+        sub4 ("hello",  42)
+        sub4 ("hello", other=  42)
+        sub4 (string="hello", other = 42)
+        sub4 (string="hello, there", other = 42)
+        bar ()
+	[AX]()
+	[var1] (  )
+	[mem1]    ()
+	[$c2.word]()
+	[$c2dd.word]()
+	$c000()
+	$c2()
+
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+	constw()
+	sub1()
+	main.start()
+}
+
+~ blockdtypes16 {
+	; variables
+	var			uninitbyte1
+	var	.byte		uninitbyte2
+	var     		initbyte1	=  $12
+	var                     initbyte1b      = true
+	var  .byte              initbyte2       = $12
+	var  .byte              initbyte2b      = false
+	var  .byte              initbyte3       = 99.876
+	var                     initchar1       = '@'
+	var  .byte              initchar2       = '@'
+	var  .word              uninitword
+	var  .word              initword1       = $1234
+	var  .word              initword1b      = true
+	var  .word              initword2       = false
+	var  .word              initword3       = 9876.554321
+	var  .word              initword5       = 20
+	var  .float             uninitfloat
+	var  .float             initfloat1      = 0
+	var  .float             initfloat1b     = true
+	var  .float             initfloat2      = -1.234e-14
+	var  .float             initfloat3      = 9.87e+14
+	var  .float             initfloat4      = 1.70141183e+38
+	var  .float             initfloat5      = -1.70141183e+38
+	var  .float             initfloat6      = 1.234
+	var  .array( 10)        uninit_bytearray
+	var  .array(10 )        init_bytearray          =$12
+	var  .array(10 )        init_bytearrayb         =true
+	var  .array(10 )        init_bytearrayc         ='@'
+	var  .wordarray( 10 )   uninit_wordarray
+	var  .wordarray(10)     init_wordarray          =  $1234
+	var  .wordarray(10)     init_wordarrayb         =  true
+
+	var  .text              text    = "hello"+"-null"
+	var  .ptext             ptext   = 'hello-pascal'
+	var  .stext             stext   = 'screencodes-null'
+	var  .pstext            pstext  = "screencodes-pascal"
+
+	var  .matrix( 3, 4 ) uninitmatrix
+	var  .matrix( 3, 4 )   initmatrix1      = $12
+	var  .matrix( 3, 4 )   initmatrix1b     = true
+	var  .matrix( 3, 4 )   initmatrix1c     = '@'
+	var  .matrix( 3, 4 )   initmatrix1d     = 123.456
+
+	; memory-mapped variables
+	memory                          membyte1        = $cf01
+	memory  .byte                   membyte2        = $c222
+	memory  .word                   memword1        = $cf03
+	memory  .float                  memfloat        = $cf04
+	memory  .array(10 )             membytes        = $cf05
+	memory  .wordarray( 10)         memwords        = $cf06
+	memory  .matrix( 3, 4 )       memmatrix       = $cf07
+
+	; constants   (= names for constant values, can never occur as lvalue)
+	const                   cbyte1          = 1
+	const                   cbyte1b         = false
+	const  .byte            cbyte2          = 1
+	const  .byte            cbyte3          = '@'
+	const  .byte            cbyte4          = true
+	const  .word            cword1          = false
+	const  .word            cword2          = $1234
+	const  .word            cword5          = 9876.5432
+	const                   cfloat1         = 1.2345
+	const  .float           cfloat2         = 2.3456
+	const  .float           cfloat2b        = cfloat2*3.44
+	const  .float           cfloat3         = true
+	const  .text            ctext3   	= "constant-text"
+	const  .ptext           ctext4   	= "constant-ptext"
+	const  .stext           ctext5   	= "constant-stext"
+	const  .pstext          ctext6   	= "constant-pstext"
+
+        ; taking the address of various things:
+	var .word        vmemaddr1              = #membyte1
+	var .word        vmemaddr2              = #memword1
+	var .word        vmemaddr3              = #memfloat
+	var .word        vmemaddr4              = #membytes
+	var .word        vmemaddr5              = #memwords
+	var .word        vmemaddr6              = #memmatrix
+	var .word        vmemaddr8              = 100*sin(cbyte1)
+	var .word        vmemaddr9              = cword2+$5432
+	var .word        vmemaddr10             = cfloat2b
+	; taking the address of things from the ZP will work even when it is a var
+	; because zp-vars get assigned a specific address (from a pool). Also, it's a byte.
+
+
+max
+        return
+
+
+; --- immediate primitive value assignments ----
+
+	A = [$99]
+	A = [$aabb]
+	A = $99
+        A = [cbyte3]
+	A = 0
+	A = '@'
+	A = 1.2345
+	A = true
+	A = false
+	A = 255
+	A = X
+	A = [$99]
+	A = [$c020.byte]
+	A = [$c020]
+        A = cbyte3
+	A = membyte2
+        A = uninitbyte1
+
+
+	XY = 0
+	XY = '@'
+	XY = 1.2345
+	XY = 456.66
+	XY = 65535
+	XY = true
+	XY = false
+	XY = text
+	XY = cbyte3
+	XY = [cbyte3]
+	XY = [cword2]
+	XY = uninitbyte1
+	XY = "text-immediate"
+	AY = "text-immediate"
+	AX = #"text-immediate"          ; equivalent to simply assigning the string directly
+	AX = # "text-immediate"         ; equivalent to simply assigning the string directly
+	AX = ctext3
+	AX = ""
+	AX = XY
+	AX = Y
+	XY = membyte2
+	XY = #membyte2
+	XY = memword1
+	XY = max
+	XY = #max
+
+
+	[$c000] = A
+	[$c000] = 255
+	[$c000] = '@'
+	[$c000] = true
+	[$c000] = false
+	[$c000] = cbyte3
+	[$c000] = uninitbyte1
+	[$c000] = membyte2
+	[$c000] = cbyte2
+	[$c000] = [cword2]
+
+	[$c000.word] = A
+	[$c000.word] = AX
+	[$c000.word] = cbyte3
+	[$c000.word] = cword2
+	[$c000.word] = ctext3
+	[$c000.word] = 65535
+	[$c000.word] = "text"
+	[$c000.word] = ""
+	[$c000.word] = uninitbyte1
+	[$c000.word] = membyte2
+	[$c000.word] = #membyte2
+	[$c000.word] = [cword2]
+	[$c000.word] = memword1
+	[$c000.float] = 65535
+	[$c000.float] = 456.66
+	[$c000.float] = 1.70141183e+38
+	[$c000.float] = cbyte3
+	[$c000.float] = cword2
+
+	[$c001] = [$c002]
+	[$c111.word] = [$c222]
+        [$c112.word] = [$c223.byte]
+	[$c222.word] = [$c333.word]
+	[$c333.word] = max
+	[$c333.word] = #max
+
+
+	SC = 0
+	SC = 1
+	SC = false
+	SI = 1
+	SI = 0
+	SI = false
+
+	uninitbyte1 = 99
+	uninitbyte1 = 1.234
+	uninitbyte1 = '@'
+	initbyte1 = 99
+	initbyte1 = 1.234
+	initbyte1 = '@'
+	initbyte1 = A
+	initbyte1 = cbyte3
+	uninitword = 99
+	uninitword = 5.6778
+	uninitword = "test"
+	uninitword = '@'
+	uninitword = A
+	uninitword = XY
+	uninitword = ctext3
+	initword1 = cbyte3
+	initword1 = cword2
+	initfloat1 = 99
+	initfloat1 = 9.8765
+	initfloat1 = '@'
+	initfloat1 = cbyte3
+	initfloat1 = cword2
+	uninitfloat = 99
+	uninitfloat = 9.8765
+	uninitfloat = '@'
+	initword1 = max
+	initword1 = #max
+
+        membyte1 = A
+        membyte1 = cbyte3
+        memword1 = A
+        memword1 = AX
+        memword1 = cbyte3
+        memword1 = cword2
+        memword1 = ctext3
+
+
+        membyte1 = 22
+        memword1 = 2233
+        memfloat = 3.4567
+	memword1 = max
+	memword1 = #max
+
+        membyte1 = A
+        memword1 = A
+        memword1 = XY
+        memfloat = cbyte3
+        memfloat = cword2
+
+        ; float assignments that require ROM functions from c64lib:
+        memfloat = Y
+        memfloat = XY
+	uninitfloat = Y
+	uninitfloat = XY
+        initfloat2 = Y
+        initfloat2 = XY
+        initfloat2 = initbyte2
+        initfloat2 = initword2
+	initfloat1 = uninitfloat
+	initfloat1 = initfloat2
+
+}
+
+
+~ blockcalls16 {
+
+        var     .word   var1    = 99
+        memory  .word   mem1    = $cff0
+
+        var     .byte   varb1    = 99
+        memory  .byte   memb1    = $cff0
+        const   .word   constw   = $2355
+        const   .byte   constb   = $23
+        const   .float  constf   = 3.4556677
+        const   .text   constt   = "derp"
+
+        sub    sub1    () -> (X?)  = $ffdd
+        sub    sub2    (A) -> (Y?)  = $eecc
+        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
+
+
+bar
+        goto sub1
+        goto sub2 (1  )
+        goto sub3 (3)
+        goto sub3 (XY="hello")
+        goto sub3 ("hello, there")
+        goto sub4 (string="hello, there", other = 42)
+        goto sub4 ("hello",  42)
+        goto sub4 ("hello", other= 42)
+        goto sub4 (string="hello", other = 42)
+        goto bar  ()
+	goto [AX]
+	goto [AX]  ()
+	goto [var1]
+	goto [var1]   ()    ; comment
+	goto   [mem1]    ; comment
+	goto [mem1] ()
+	goto [$c2.word]
+	goto [$c2.word]  ()
+	goto [$c2dd.word]
+	goto [$c2dd.word] (  )
+	goto $c000
+	goto $c000        ( )
+	goto $c2
+	goto $c2()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1!()
+        sub2!(11)
+        sub3 !(3)
+        sub3! (XY="hello")
+        sub3! ("hello, there")
+        sub4! ("hello",  42)
+        sub4! ("hello",  other=42)
+        sub4! (string="hello", other = 42)
+        sub4! (string="hello, there", other = 42)
+        bar!()
+	[XY] ! ()
+	[var1] !()
+	[mem1]!()
+	[$c2.word]!()
+	[$c2dd.word]!()
+	$c000!()
+	$c2!()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1()
+        sub2(11)
+        sub3 (3)
+        sub3 (XY="hello")
+        sub3 ("hello, there")
+        sub4 ("hello",  42)
+        sub4 ("hello", other=  42)
+        sub4 (string="hello", other = 42)
+        sub4 (string="hello, there", other = 42)
+        bar ()
+	[AX]()
+	[var1] (  )
+	[mem1]    ()
+	[$c2.word]()
+	[$c2dd.word]()
+	$c000()
+	$c2()
+
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+	constw()
+	sub1()
+	main.start()
+}
+
+~ blockdtypes17 {
+	; variables
+	var			uninitbyte1
+	var	.byte		uninitbyte2
+	var     		initbyte1	=  $12
+	var                     initbyte1b      = true
+	var  .byte              initbyte2       = $12
+	var  .byte              initbyte2b      = false
+	var  .byte              initbyte3       = 99.876
+	var                     initchar1       = '@'
+	var  .byte              initchar2       = '@'
+	var  .word              uninitword
+	var  .word              initword1       = $1234
+	var  .word              initword1b      = true
+	var  .word              initword2       = false
+	var  .word              initword3       = 9876.554321
+	var  .word              initword5       = 20
+	var  .float             uninitfloat
+	var  .float             initfloat1      = 0
+	var  .float             initfloat1b     = true
+	var  .float             initfloat2      = -1.234e-14
+	var  .float             initfloat3      = 9.87e+14
+	var  .float             initfloat4      = 1.70141183e+38
+	var  .float             initfloat5      = -1.70141183e+38
+	var  .float             initfloat6      = 1.234
+	var  .array( 10)        uninit_bytearray
+	var  .array(10 )        init_bytearray          =$12
+	var  .array(10 )        init_bytearrayb         =true
+	var  .array(10 )        init_bytearrayc         ='@'
+	var  .wordarray( 10 )   uninit_wordarray
+	var  .wordarray(10)     init_wordarray          =  $1234
+	var  .wordarray(10)     init_wordarrayb         =  true
+
+	var  .text              text    = "hello"+"-null"
+	var  .ptext             ptext   = 'hello-pascal'
+	var  .stext             stext   = 'screencodes-null'
+	var  .pstext            pstext  = "screencodes-pascal"
+
+	var  .matrix( 3, 4 ) uninitmatrix
+	var  .matrix( 3, 4 )   initmatrix1      = $12
+	var  .matrix( 3, 4 )   initmatrix1b     = true
+	var  .matrix( 3, 4 )   initmatrix1c     = '@'
+	var  .matrix( 3, 4 )   initmatrix1d     = 123.456
+
+	; memory-mapped variables
+	memory                          membyte1        = $cf01
+	memory  .byte                   membyte2        = $c222
+	memory  .word                   memword1        = $cf03
+	memory  .float                  memfloat        = $cf04
+	memory  .array(10 )             membytes        = $cf05
+	memory  .wordarray( 10)         memwords        = $cf06
+	memory  .matrix( 3, 4 )       memmatrix       = $cf07
+
+	; constants   (= names for constant values, can never occur as lvalue)
+	const                   cbyte1          = 1
+	const                   cbyte1b         = false
+	const  .byte            cbyte2          = 1
+	const  .byte            cbyte3          = '@'
+	const  .byte            cbyte4          = true
+	const  .word            cword1          = false
+	const  .word            cword2          = $1234
+	const  .word            cword5          = 9876.5432
+	const                   cfloat1         = 1.2345
+	const  .float           cfloat2         = 2.3456
+	const  .float           cfloat2b        = cfloat2*3.44
+	const  .float           cfloat3         = true
+	const  .text            ctext3   	= "constant-text"
+	const  .ptext           ctext4   	= "constant-ptext"
+	const  .stext           ctext5   	= "constant-stext"
+	const  .pstext          ctext6   	= "constant-pstext"
+
+        ; taking the address of various things:
+	var .word        vmemaddr1              = #membyte1
+	var .word        vmemaddr2              = #memword1
+	var .word        vmemaddr3              = #memfloat
+	var .word        vmemaddr4              = #membytes
+	var .word        vmemaddr5              = #memwords
+	var .word        vmemaddr6              = #memmatrix
+	var .word        vmemaddr8              = 100*sin(cbyte1)
+	var .word        vmemaddr9              = cword2+$5432
+	var .word        vmemaddr10             = cfloat2b
+	; taking the address of things from the ZP will work even when it is a var
+	; because zp-vars get assigned a specific address (from a pool). Also, it's a byte.
+
+
+max
+        return
+
+
+; --- immediate primitive value assignments ----
+
+	A = [$99]
+	A = [$aabb]
+	A = $99
+        A = [cbyte3]
+	A = 0
+	A = '@'
+	A = 1.2345
+	A = true
+	A = false
+	A = 255
+	A = X
+	A = [$99]
+	A = [$c020.byte]
+	A = [$c020]
+        A = cbyte3
+	A = membyte2
+        A = uninitbyte1
+
+
+	XY = 0
+	XY = '@'
+	XY = 1.2345
+	XY = 456.66
+	XY = 65535
+	XY = true
+	XY = false
+	XY = text
+	XY = cbyte3
+	XY = [cbyte3]
+	XY = [cword2]
+	XY = uninitbyte1
+	XY = "text-immediate"
+	AY = "text-immediate"
+	AX = #"text-immediate"          ; equivalent to simply assigning the string directly
+	AX = # "text-immediate"         ; equivalent to simply assigning the string directly
+	AX = ctext3
+	AX = ""
+	AX = XY
+	AX = Y
+	XY = membyte2
+	XY = #membyte2
+	XY = memword1
+	XY = max
+	XY = #max
+
+
+	[$c000] = A
+	[$c000] = 255
+	[$c000] = '@'
+	[$c000] = true
+	[$c000] = false
+	[$c000] = cbyte3
+	[$c000] = uninitbyte1
+	[$c000] = membyte2
+	[$c000] = cbyte2
+	[$c000] = [cword2]
+
+	[$c000.word] = A
+	[$c000.word] = AX
+	[$c000.word] = cbyte3
+	[$c000.word] = cword2
+	[$c000.word] = ctext3
+	[$c000.word] = 65535
+	[$c000.word] = "text"
+	[$c000.word] = ""
+	[$c000.word] = uninitbyte1
+	[$c000.word] = membyte2
+	[$c000.word] = #membyte2
+	[$c000.word] = [cword2]
+	[$c000.word] = memword1
+	[$c000.float] = 65535
+	[$c000.float] = 456.66
+	[$c000.float] = 1.70141183e+38
+	[$c000.float] = cbyte3
+	[$c000.float] = cword2
+
+	[$c001] = [$c002]
+	[$c111.word] = [$c222]
+        [$c112.word] = [$c223.byte]
+	[$c222.word] = [$c333.word]
+	[$c333.word] = max
+	[$c333.word] = #max
+
+
+	SC = 0
+	SC = 1
+	SC = false
+	SI = 1
+	SI = 0
+	SI = false
+
+	uninitbyte1 = 99
+	uninitbyte1 = 1.234
+	uninitbyte1 = '@'
+	initbyte1 = 99
+	initbyte1 = 1.234
+	initbyte1 = '@'
+	initbyte1 = A
+	initbyte1 = cbyte3
+	uninitword = 99
+	uninitword = 5.6778
+	uninitword = "test"
+	uninitword = '@'
+	uninitword = A
+	uninitword = XY
+	uninitword = ctext3
+	initword1 = cbyte3
+	initword1 = cword2
+	initfloat1 = 99
+	initfloat1 = 9.8765
+	initfloat1 = '@'
+	initfloat1 = cbyte3
+	initfloat1 = cword2
+	uninitfloat = 99
+	uninitfloat = 9.8765
+	uninitfloat = '@'
+	initword1 = max
+	initword1 = #max
+
+        membyte1 = A
+        membyte1 = cbyte3
+        memword1 = A
+        memword1 = AX
+        memword1 = cbyte3
+        memword1 = cword2
+        memword1 = ctext3
+
+
+        membyte1 = 22
+        memword1 = 2233
+        memfloat = 3.4567
+	memword1 = max
+	memword1 = #max
+
+        membyte1 = A
+        memword1 = A
+        memword1 = XY
+        memfloat = cbyte3
+        memfloat = cword2
+
+        ; float assignments that require ROM functions from c64lib:
+        memfloat = Y
+        memfloat = XY
+	uninitfloat = Y
+	uninitfloat = XY
+        initfloat2 = Y
+        initfloat2 = XY
+        initfloat2 = initbyte2
+        initfloat2 = initword2
+	initfloat1 = uninitfloat
+	initfloat1 = initfloat2
+
+}
+
+
+~ blockcalls17 {
+
+        var     .word   var1    = 99
+        memory  .word   mem1    = $cff0
+
+        var     .byte   varb1    = 99
+        memory  .byte   memb1    = $cff0
+        const   .word   constw   = $2355
+        const   .byte   constb   = $23
+        const   .float  constf   = 3.4556677
+        const   .text   constt   = "derp"
+
+        sub    sub1    () -> (X?)  = $ffdd
+        sub    sub2    (A) -> (Y?)  = $eecc
+        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
+
+
+bar
+        goto sub1
+        goto sub2 (1  )
+        goto sub3 (3)
+        goto sub3 (XY="hello")
+        goto sub3 ("hello, there")
+        goto sub4 (string="hello, there", other = 42)
+        goto sub4 ("hello",  42)
+        goto sub4 ("hello", other= 42)
+        goto sub4 (string="hello", other = 42)
+        goto bar  ()
+	goto [AX]
+	goto [AX]  ()
+	goto [var1]
+	goto [var1]   ()    ; comment
+	goto   [mem1]    ; comment
+	goto [mem1] ()
+	goto [$c2.word]
+	goto [$c2.word]  ()
+	goto [$c2dd.word]
+	goto [$c2dd.word] (  )
+	goto $c000
+	goto $c000        ( )
+	goto $c2
+	goto $c2()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1!()
+        sub2!(11)
+        sub3 !(3)
+        sub3! (XY="hello")
+        sub3! ("hello, there")
+        sub4! ("hello",  42)
+        sub4! ("hello",  other=42)
+        sub4! (string="hello", other = 42)
+        sub4! (string="hello, there", other = 42)
+        bar!()
+	[XY] ! ()
+	[var1] !()
+	[mem1]!()
+	[$c2.word]!()
+	[$c2dd.word]!()
+	$c000!()
+	$c2!()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1()
+        sub2(11)
+        sub3 (3)
+        sub3 (XY="hello")
+        sub3 ("hello, there")
+        sub4 ("hello",  42)
+        sub4 ("hello", other=  42)
+        sub4 (string="hello", other = 42)
+        sub4 (string="hello, there", other = 42)
+        bar ()
+	[AX]()
+	[var1] (  )
+	[mem1]    ()
+	[$c2.word]()
+	[$c2dd.word]()
+	$c000()
+	$c2()
+
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+	constw()
+	sub1()
+	main.start()
+}
+
+~ blockdtypes18 {
+	; variables
+	var			uninitbyte1
+	var	.byte		uninitbyte2
+	var     		initbyte1	=  $12
+	var                     initbyte1b      = true
+	var  .byte              initbyte2       = $12
+	var  .byte              initbyte2b      = false
+	var  .byte              initbyte3       = 99.876
+	var                     initchar1       = '@'
+	var  .byte              initchar2       = '@'
+	var  .word              uninitword
+	var  .word              initword1       = $1234
+	var  .word              initword1b      = true
+	var  .word              initword2       = false
+	var  .word              initword3       = 9876.554321
+	var  .word              initword5       = 20
+	var  .float             uninitfloat
+	var  .float             initfloat1      = 0
+	var  .float             initfloat1b     = true
+	var  .float             initfloat2      = -1.234e-14
+	var  .float             initfloat3      = 9.87e+14
+	var  .float             initfloat4      = 1.70141183e+38
+	var  .float             initfloat5      = -1.70141183e+38
+	var  .float             initfloat6      = 1.234
+	var  .array( 10)        uninit_bytearray
+	var  .array(10 )        init_bytearray          =$12
+	var  .array(10 )        init_bytearrayb         =true
+	var  .array(10 )        init_bytearrayc         ='@'
+	var  .wordarray( 10 )   uninit_wordarray
+	var  .wordarray(10)     init_wordarray          =  $1234
+	var  .wordarray(10)     init_wordarrayb         =  true
+
+	var  .text              text    = "hello"+"-null"
+	var  .ptext             ptext   = 'hello-pascal'
+	var  .stext             stext   = 'screencodes-null'
+	var  .pstext            pstext  = "screencodes-pascal"
+
+	var  .matrix( 3, 4 ) uninitmatrix
+	var  .matrix( 3, 4 )   initmatrix1      = $12
+	var  .matrix( 3, 4 )   initmatrix1b     = true
+	var  .matrix( 3, 4 )   initmatrix1c     = '@'
+	var  .matrix( 3, 4 )   initmatrix1d     = 123.456
+
+	; memory-mapped variables
+	memory                          membyte1        = $cf01
+	memory  .byte                   membyte2        = $c222
+	memory  .word                   memword1        = $cf03
+	memory  .float                  memfloat        = $cf04
+	memory  .array(10 )             membytes        = $cf05
+	memory  .wordarray( 10)         memwords        = $cf06
+	memory  .matrix( 3, 4 )       memmatrix       = $cf07
+
+	; constants   (= names for constant values, can never occur as lvalue)
+	const                   cbyte1          = 1
+	const                   cbyte1b         = false
+	const  .byte            cbyte2          = 1
+	const  .byte            cbyte3          = '@'
+	const  .byte            cbyte4          = true
+	const  .word            cword1          = false
+	const  .word            cword2          = $1234
+	const  .word            cword5          = 9876.5432
+	const                   cfloat1         = 1.2345
+	const  .float           cfloat2         = 2.3456
+	const  .float           cfloat2b        = cfloat2*3.44
+	const  .float           cfloat3         = true
+	const  .text            ctext3   	= "constant-text"
+	const  .ptext           ctext4   	= "constant-ptext"
+	const  .stext           ctext5   	= "constant-stext"
+	const  .pstext          ctext6   	= "constant-pstext"
+
+        ; taking the address of various things:
+	var .word        vmemaddr1              = #membyte1
+	var .word        vmemaddr2              = #memword1
+	var .word        vmemaddr3              = #memfloat
+	var .word        vmemaddr4              = #membytes
+	var .word        vmemaddr5              = #memwords
+	var .word        vmemaddr6              = #memmatrix
+	var .word        vmemaddr8              = 100*sin(cbyte1)
+	var .word        vmemaddr9              = cword2+$5432
+	var .word        vmemaddr10             = cfloat2b
+	; taking the address of things from the ZP will work even when it is a var
+	; because zp-vars get assigned a specific address (from a pool). Also, it's a byte.
+
+
+max
+        return
+
+
+; --- immediate primitive value assignments ----
+
+	A = [$99]
+	A = [$aabb]
+	A = $99
+        A = [cbyte3]
+	A = 0
+	A = '@'
+	A = 1.2345
+	A = true
+	A = false
+	A = 255
+	A = X
+	A = [$99]
+	A = [$c020.byte]
+	A = [$c020]
+        A = cbyte3
+	A = membyte2
+        A = uninitbyte1
+
+
+	XY = 0
+	XY = '@'
+	XY = 1.2345
+	XY = 456.66
+	XY = 65535
+	XY = true
+	XY = false
+	XY = text
+	XY = cbyte3
+	XY = [cbyte3]
+	XY = [cword2]
+	XY = uninitbyte1
+	XY = "text-immediate"
+	AY = "text-immediate"
+	AX = #"text-immediate"          ; equivalent to simply assigning the string directly
+	AX = # "text-immediate"         ; equivalent to simply assigning the string directly
+	AX = ctext3
+	AX = ""
+	AX = XY
+	AX = Y
+	XY = membyte2
+	XY = #membyte2
+	XY = memword1
+	XY = max
+	XY = #max
+
+
+	[$c000] = A
+	[$c000] = 255
+	[$c000] = '@'
+	[$c000] = true
+	[$c000] = false
+	[$c000] = cbyte3
+	[$c000] = uninitbyte1
+	[$c000] = membyte2
+	[$c000] = cbyte2
+	[$c000] = [cword2]
+
+	[$c000.word] = A
+	[$c000.word] = AX
+	[$c000.word] = cbyte3
+	[$c000.word] = cword2
+	[$c000.word] = ctext3
+	[$c000.word] = 65535
+	[$c000.word] = "text"
+	[$c000.word] = ""
+	[$c000.word] = uninitbyte1
+	[$c000.word] = membyte2
+	[$c000.word] = #membyte2
+	[$c000.word] = [cword2]
+	[$c000.word] = memword1
+	[$c000.float] = 65535
+	[$c000.float] = 456.66
+	[$c000.float] = 1.70141183e+38
+	[$c000.float] = cbyte3
+	[$c000.float] = cword2
+
+	[$c001] = [$c002]
+	[$c111.word] = [$c222]
+        [$c112.word] = [$c223.byte]
+	[$c222.word] = [$c333.word]
+	[$c333.word] = max
+	[$c333.word] = #max
+
+
+	SC = 0
+	SC = 1
+	SC = false
+	SI = 1
+	SI = 0
+	SI = false
+
+	uninitbyte1 = 99
+	uninitbyte1 = 1.234
+	uninitbyte1 = '@'
+	initbyte1 = 99
+	initbyte1 = 1.234
+	initbyte1 = '@'
+	initbyte1 = A
+	initbyte1 = cbyte3
+	uninitword = 99
+	uninitword = 5.6778
+	uninitword = "test"
+	uninitword = '@'
+	uninitword = A
+	uninitword = XY
+	uninitword = ctext3
+	initword1 = cbyte3
+	initword1 = cword2
+	initfloat1 = 99
+	initfloat1 = 9.8765
+	initfloat1 = '@'
+	initfloat1 = cbyte3
+	initfloat1 = cword2
+	uninitfloat = 99
+	uninitfloat = 9.8765
+	uninitfloat = '@'
+	initword1 = max
+	initword1 = #max
+
+        membyte1 = A
+        membyte1 = cbyte3
+        memword1 = A
+        memword1 = AX
+        memword1 = cbyte3
+        memword1 = cword2
+        memword1 = ctext3
+
+
+        membyte1 = 22
+        memword1 = 2233
+        memfloat = 3.4567
+	memword1 = max
+	memword1 = #max
+
+        membyte1 = A
+        memword1 = A
+        memword1 = XY
+        memfloat = cbyte3
+        memfloat = cword2
+
+        ; float assignments that require ROM functions from c64lib:
+        memfloat = Y
+        memfloat = XY
+	uninitfloat = Y
+	uninitfloat = XY
+        initfloat2 = Y
+        initfloat2 = XY
+        initfloat2 = initbyte2
+        initfloat2 = initword2
+	initfloat1 = uninitfloat
+	initfloat1 = initfloat2
+
+}
+
+
+~ blockcalls18 {
+
+        var     .word   var1    = 99
+        memory  .word   mem1    = $cff0
+
+        var     .byte   varb1    = 99
+        memory  .byte   memb1    = $cff0
+        const   .word   constw   = $2355
+        const   .byte   constb   = $23
+        const   .float  constf   = 3.4556677
+        const   .text   constt   = "derp"
+
+        sub    sub1    () -> (X?)  = $ffdd
+        sub    sub2    (A) -> (Y?)  = $eecc
+        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
+
+
+bar
+        goto sub1
+        goto sub2 (1  )
+        goto sub3 (3)
+        goto sub3 (XY="hello")
+        goto sub3 ("hello, there")
+        goto sub4 (string="hello, there", other = 42)
+        goto sub4 ("hello",  42)
+        goto sub4 ("hello", other= 42)
+        goto sub4 (string="hello", other = 42)
+        goto bar  ()
+	goto [AX]
+	goto [AX]  ()
+	goto [var1]
+	goto [var1]   ()    ; comment
+	goto   [mem1]    ; comment
+	goto [mem1] ()
+	goto [$c2.word]
+	goto [$c2.word]  ()
+	goto [$c2dd.word]
+	goto [$c2dd.word] (  )
+	goto $c000
+	goto $c000        ( )
+	goto $c2
+	goto $c2()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1!()
+        sub2!(11)
+        sub3 !(3)
+        sub3! (XY="hello")
+        sub3! ("hello, there")
+        sub4! ("hello",  42)
+        sub4! ("hello",  other=42)
+        sub4! (string="hello", other = 42)
+        sub4! (string="hello, there", other = 42)
+        bar!()
+	[XY] ! ()
+	[var1] !()
+	[mem1]!()
+	[$c2.word]!()
+	[$c2dd.word]!()
+	$c000!()
+	$c2!()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1()
+        sub2(11)
+        sub3 (3)
+        sub3 (XY="hello")
+        sub3 ("hello, there")
+        sub4 ("hello",  42)
+        sub4 ("hello", other=  42)
+        sub4 (string="hello", other = 42)
+        sub4 (string="hello, there", other = 42)
+        bar ()
+	[AX]()
+	[var1] (  )
+	[mem1]    ()
+	[$c2.word]()
+	[$c2dd.word]()
+	$c000()
+	$c2()
+
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+	constw()
+	sub1()
+	main.start()
+}
+
+~ blockdtypes19 {
+	; variables
+	var			uninitbyte1
+	var	.byte		uninitbyte2
+	var     		initbyte1	=  $12
+	var                     initbyte1b      = true
+	var  .byte              initbyte2       = $12
+	var  .byte              initbyte2b      = false
+	var  .byte              initbyte3       = 99.876
+	var                     initchar1       = '@'
+	var  .byte              initchar2       = '@'
+	var  .word              uninitword
+	var  .word              initword1       = $1234
+	var  .word              initword1b      = true
+	var  .word              initword2       = false
+	var  .word              initword3       = 9876.554321
+	var  .word              initword5       = 20
+	var  .float             uninitfloat
+	var  .float             initfloat1      = 0
+	var  .float             initfloat1b     = true
+	var  .float             initfloat2      = -1.234e-14
+	var  .float             initfloat3      = 9.87e+14
+	var  .float             initfloat4      = 1.70141183e+38
+	var  .float             initfloat5      = -1.70141183e+38
+	var  .float             initfloat6      = 1.234
+	var  .array( 10)        uninit_bytearray
+	var  .array(10 )        init_bytearray          =$12
+	var  .array(10 )        init_bytearrayb         =true
+	var  .array(10 )        init_bytearrayc         ='@'
+	var  .wordarray( 10 )   uninit_wordarray
+	var  .wordarray(10)     init_wordarray          =  $1234
+	var  .wordarray(10)     init_wordarrayb         =  true
+
+	var  .text              text    = "hello"+"-null"
+	var  .ptext             ptext   = 'hello-pascal'
+	var  .stext             stext   = 'screencodes-null'
+	var  .pstext            pstext  = "screencodes-pascal"
+
+	var  .matrix( 3, 4 ) uninitmatrix
+	var  .matrix( 3, 4 )   initmatrix1      = $12
+	var  .matrix( 3, 4 )   initmatrix1b     = true
+	var  .matrix( 3, 4 )   initmatrix1c     = '@'
+	var  .matrix( 3, 4 )   initmatrix1d     = 123.456
+
+	; memory-mapped variables
+	memory                          membyte1        = $cf01
+	memory  .byte                   membyte2        = $c222
+	memory  .word                   memword1        = $cf03
+	memory  .float                  memfloat        = $cf04
+	memory  .array(10 )             membytes        = $cf05
+	memory  .wordarray( 10)         memwords        = $cf06
+	memory  .matrix( 3, 4 )       memmatrix       = $cf07
+
+	; constants   (= names for constant values, can never occur as lvalue)
+	const                   cbyte1          = 1
+	const                   cbyte1b         = false
+	const  .byte            cbyte2          = 1
+	const  .byte            cbyte3          = '@'
+	const  .byte            cbyte4          = true
+	const  .word            cword1          = false
+	const  .word            cword2          = $1234
+	const  .word            cword5          = 9876.5432
+	const                   cfloat1         = 1.2345
+	const  .float           cfloat2         = 2.3456
+	const  .float           cfloat2b        = cfloat2*3.44
+	const  .float           cfloat3         = true
+	const  .text            ctext3   	= "constant-text"
+	const  .ptext           ctext4   	= "constant-ptext"
+	const  .stext           ctext5   	= "constant-stext"
+	const  .pstext          ctext6   	= "constant-pstext"
+
+        ; taking the address of various things:
+	var .word        vmemaddr1              = #membyte1
+	var .word        vmemaddr2              = #memword1
+	var .word        vmemaddr3              = #memfloat
+	var .word        vmemaddr4              = #membytes
+	var .word        vmemaddr5              = #memwords
+	var .word        vmemaddr6              = #memmatrix
+	var .word        vmemaddr8              = 100*sin(cbyte1)
+	var .word        vmemaddr9              = cword2+$5432
+	var .word        vmemaddr10             = cfloat2b
+	; taking the address of things from the ZP will work even when it is a var
+	; because zp-vars get assigned a specific address (from a pool). Also, it's a byte.
+
+
+max
+        return
+
+
+; --- immediate primitive value assignments ----
+
+	A = [$99]
+	A = [$aabb]
+	A = $99
+        A = [cbyte3]
+	A = 0
+	A = '@'
+	A = 1.2345
+	A = true
+	A = false
+	A = 255
+	A = X
+	A = [$99]
+	A = [$c020.byte]
+	A = [$c020]
+        A = cbyte3
+	A = membyte2
+        A = uninitbyte1
+
+
+	XY = 0
+	XY = '@'
+	XY = 1.2345
+	XY = 456.66
+	XY = 65535
+	XY = true
+	XY = false
+	XY = text
+	XY = cbyte3
+	XY = [cbyte3]
+	XY = [cword2]
+	XY = uninitbyte1
+	XY = "text-immediate"
+	AY = "text-immediate"
+	AX = #"text-immediate"          ; equivalent to simply assigning the string directly
+	AX = # "text-immediate"         ; equivalent to simply assigning the string directly
+	AX = ctext3
+	AX = ""
+	AX = XY
+	AX = Y
+	XY = membyte2
+	XY = #membyte2
+	XY = memword1
+	XY = max
+	XY = #max
+
+
+	[$c000] = A
+	[$c000] = 255
+	[$c000] = '@'
+	[$c000] = true
+	[$c000] = false
+	[$c000] = cbyte3
+	[$c000] = uninitbyte1
+	[$c000] = membyte2
+	[$c000] = cbyte2
+	[$c000] = [cword2]
+
+	[$c000.word] = A
+	[$c000.word] = AX
+	[$c000.word] = cbyte3
+	[$c000.word] = cword2
+	[$c000.word] = ctext3
+	[$c000.word] = 65535
+	[$c000.word] = "text"
+	[$c000.word] = ""
+	[$c000.word] = uninitbyte1
+	[$c000.word] = membyte2
+	[$c000.word] = #membyte2
+	[$c000.word] = [cword2]
+	[$c000.word] = memword1
+	[$c000.float] = 65535
+	[$c000.float] = 456.66
+	[$c000.float] = 1.70141183e+38
+	[$c000.float] = cbyte3
+	[$c000.float] = cword2
+
+	[$c001] = [$c002]
+	[$c111.word] = [$c222]
+        [$c112.word] = [$c223.byte]
+	[$c222.word] = [$c333.word]
+	[$c333.word] = max
+	[$c333.word] = #max
+
+
+	SC = 0
+	SC = 1
+	SC = false
+	SI = 1
+	SI = 0
+	SI = false
+
+	uninitbyte1 = 99
+	uninitbyte1 = 1.234
+	uninitbyte1 = '@'
+	initbyte1 = 99
+	initbyte1 = 1.234
+	initbyte1 = '@'
+	initbyte1 = A
+	initbyte1 = cbyte3
+	uninitword = 99
+	uninitword = 5.6778
+	uninitword = "test"
+	uninitword = '@'
+	uninitword = A
+	uninitword = XY
+	uninitword = ctext3
+	initword1 = cbyte3
+	initword1 = cword2
+	initfloat1 = 99
+	initfloat1 = 9.8765
+	initfloat1 = '@'
+	initfloat1 = cbyte3
+	initfloat1 = cword2
+	uninitfloat = 99
+	uninitfloat = 9.8765
+	uninitfloat = '@'
+	initword1 = max
+	initword1 = #max
+
+        membyte1 = A
+        membyte1 = cbyte3
+        memword1 = A
+        memword1 = AX
+        memword1 = cbyte3
+        memword1 = cword2
+        memword1 = ctext3
+
+
+        membyte1 = 22
+        memword1 = 2233
+        memfloat = 3.4567
+	memword1 = max
+	memword1 = #max
+
+        membyte1 = A
+        memword1 = A
+        memword1 = XY
+        memfloat = cbyte3
+        memfloat = cword2
+
+        ; float assignments that require ROM functions from c64lib:
+        memfloat = Y
+        memfloat = XY
+	uninitfloat = Y
+	uninitfloat = XY
+        initfloat2 = Y
+        initfloat2 = XY
+        initfloat2 = initbyte2
+        initfloat2 = initword2
+	initfloat1 = uninitfloat
+	initfloat1 = initfloat2
+
+}
+
+
+~ blockcalls19 {
+
+        var     .word   var1    = 99
+        memory  .word   mem1    = $cff0
+
+        var     .byte   varb1    = 99
+        memory  .byte   memb1    = $cff0
+        const   .word   constw   = $2355
+        const   .byte   constb   = $23
+        const   .float  constf   = 3.4556677
+        const   .text   constt   = "derp"
+
+        sub    sub1    () -> (X?)  = $ffdd
+        sub    sub2    (A) -> (Y?)  = $eecc
+        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
+
+
+bar
+        goto sub1
+        goto sub2 (1  )
+        goto sub3 (3)
+        goto sub3 (XY="hello")
+        goto sub3 ("hello, there")
+        goto sub4 (string="hello, there", other = 42)
+        goto sub4 ("hello",  42)
+        goto sub4 ("hello", other= 42)
+        goto sub4 (string="hello", other = 42)
+        goto bar  ()
+	goto [AX]
+	goto [AX]  ()
+	goto [var1]
+	goto [var1]   ()    ; comment
+	goto   [mem1]    ; comment
+	goto [mem1] ()
+	goto [$c2.word]
+	goto [$c2.word]  ()
+	goto [$c2dd.word]
+	goto [$c2dd.word] (  )
+	goto $c000
+	goto $c000        ( )
+	goto $c2
+	goto $c2()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1!()
+        sub2!(11)
+        sub3 !(3)
+        sub3! (XY="hello")
+        sub3! ("hello, there")
+        sub4! ("hello",  42)
+        sub4! ("hello",  other=42)
+        sub4! (string="hello", other = 42)
+        sub4! (string="hello, there", other = 42)
+        bar!()
+	[XY] ! ()
+	[var1] !()
+	[mem1]!()
+	[$c2.word]!()
+	[$c2dd.word]!()
+	$c000!()
+	$c2!()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1()
+        sub2(11)
+        sub3 (3)
+        sub3 (XY="hello")
+        sub3 ("hello, there")
+        sub4 ("hello",  42)
+        sub4 ("hello", other=  42)
+        sub4 (string="hello", other = 42)
+        sub4 (string="hello, there", other = 42)
+        bar ()
+	[AX]()
+	[var1] (  )
+	[mem1]    ()
+	[$c2.word]()
+	[$c2dd.word]()
+	$c000()
+	$c2()
+
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+	constw()
+	sub1()
+	main.start()
+}
+
+~ blockdtypes20 {
+	; variables
+	var			uninitbyte1
+	var	.byte		uninitbyte2
+	var     		initbyte1	=  $12
+	var                     initbyte1b      = true
+	var  .byte              initbyte2       = $12
+	var  .byte              initbyte2b      = false
+	var  .byte              initbyte3       = 99.876
+	var                     initchar1       = '@'
+	var  .byte              initchar2       = '@'
+	var  .word              uninitword
+	var  .word              initword1       = $1234
+	var  .word              initword1b      = true
+	var  .word              initword2       = false
+	var  .word              initword3       = 9876.554321
+	var  .word              initword5       = 20
+	var  .float             uninitfloat
+	var  .float             initfloat1      = 0
+	var  .float             initfloat1b     = true
+	var  .float             initfloat2      = -1.234e-14
+	var  .float             initfloat3      = 9.87e+14
+	var  .float             initfloat4      = 1.70141183e+38
+	var  .float             initfloat5      = -1.70141183e+38
+	var  .float             initfloat6      = 1.234
+	var  .array( 10)        uninit_bytearray
+	var  .array(10 )        init_bytearray          =$12
+	var  .array(10 )        init_bytearrayb         =true
+	var  .array(10 )        init_bytearrayc         ='@'
+	var  .wordarray( 10 )   uninit_wordarray
+	var  .wordarray(10)     init_wordarray          =  $1234
+	var  .wordarray(10)     init_wordarrayb         =  true
+
+	var  .text              text    = "hello"+"-null"
+	var  .ptext             ptext   = 'hello-pascal'
+	var  .stext             stext   = 'screencodes-null'
+	var  .pstext            pstext  = "screencodes-pascal"
+
+	var  .matrix( 3, 4 ) uninitmatrix
+	var  .matrix( 3, 4 )   initmatrix1      = $12
+	var  .matrix( 3, 4 )   initmatrix1b     = true
+	var  .matrix( 3, 4 )   initmatrix1c     = '@'
+	var  .matrix( 3, 4 )   initmatrix1d     = 123.456
+
+	; memory-mapped variables
+	memory                          membyte1        = $cf01
+	memory  .byte                   membyte2        = $c222
+	memory  .word                   memword1        = $cf03
+	memory  .float                  memfloat        = $cf04
+	memory  .array(10 )             membytes        = $cf05
+	memory  .wordarray( 10)         memwords        = $cf06
+	memory  .matrix( 3, 4 )       memmatrix       = $cf07
+
+	; constants   (= names for constant values, can never occur as lvalue)
+	const                   cbyte1          = 1
+	const                   cbyte1b         = false
+	const  .byte            cbyte2          = 1
+	const  .byte            cbyte3          = '@'
+	const  .byte            cbyte4          = true
+	const  .word            cword1          = false
+	const  .word            cword2          = $1234
+	const  .word            cword5          = 9876.5432
+	const                   cfloat1         = 1.2345
+	const  .float           cfloat2         = 2.3456
+	const  .float           cfloat2b        = cfloat2*3.44
+	const  .float           cfloat3         = true
+	const  .text            ctext3   	= "constant-text"
+	const  .ptext           ctext4   	= "constant-ptext"
+	const  .stext           ctext5   	= "constant-stext"
+	const  .pstext          ctext6   	= "constant-pstext"
+
+        ; taking the address of various things:
+	var .word        vmemaddr1              = #membyte1
+	var .word        vmemaddr2              = #memword1
+	var .word        vmemaddr3              = #memfloat
+	var .word        vmemaddr4              = #membytes
+	var .word        vmemaddr5              = #memwords
+	var .word        vmemaddr6              = #memmatrix
+	var .word        vmemaddr8              = 100*sin(cbyte1)
+	var .word        vmemaddr9              = cword2+$5432
+	var .word        vmemaddr10             = cfloat2b
+	; taking the address of things from the ZP will work even when it is a var
+	; because zp-vars get assigned a specific address (from a pool). Also, it's a byte.
+
+
+max
+        return
+
+
+; --- immediate primitive value assignments ----
+
+	A = [$99]
+	A = [$aabb]
+	A = $99
+        A = [cbyte3]
+	A = 0
+	A = '@'
+	A = 1.2345
+	A = true
+	A = false
+	A = 255
+	A = X
+	A = [$99]
+	A = [$c020.byte]
+	A = [$c020]
+        A = cbyte3
+	A = membyte2
+        A = uninitbyte1
+
+
+	XY = 0
+	XY = '@'
+	XY = 1.2345
+	XY = 456.66
+	XY = 65535
+	XY = true
+	XY = false
+	XY = text
+	XY = cbyte3
+	XY = [cbyte3]
+	XY = [cword2]
+	XY = uninitbyte1
+	XY = "text-immediate"
+	AY = "text-immediate"
+	AX = #"text-immediate"          ; equivalent to simply assigning the string directly
+	AX = # "text-immediate"         ; equivalent to simply assigning the string directly
+	AX = ctext3
+	AX = ""
+	AX = XY
+	AX = Y
+	XY = membyte2
+	XY = #membyte2
+	XY = memword1
+	XY = max
+	XY = #max
+
+
+	[$c000] = A
+	[$c000] = 255
+	[$c000] = '@'
+	[$c000] = true
+	[$c000] = false
+	[$c000] = cbyte3
+	[$c000] = uninitbyte1
+	[$c000] = membyte2
+	[$c000] = cbyte2
+	[$c000] = [cword2]
+
+	[$c000.word] = A
+	[$c000.word] = AX
+	[$c000.word] = cbyte3
+	[$c000.word] = cword2
+	[$c000.word] = ctext3
+	[$c000.word] = 65535
+	[$c000.word] = "text"
+	[$c000.word] = ""
+	[$c000.word] = uninitbyte1
+	[$c000.word] = membyte2
+	[$c000.word] = #membyte2
+	[$c000.word] = [cword2]
+	[$c000.word] = memword1
+	[$c000.float] = 65535
+	[$c000.float] = 456.66
+	[$c000.float] = 1.70141183e+38
+	[$c000.float] = cbyte3
+	[$c000.float] = cword2
+
+	[$c001] = [$c002]
+	[$c111.word] = [$c222]
+        [$c112.word] = [$c223.byte]
+	[$c222.word] = [$c333.word]
+	[$c333.word] = max
+	[$c333.word] = #max
+
+
+	SC = 0
+	SC = 1
+	SC = false
+	SI = 1
+	SI = 0
+	SI = false
+
+	uninitbyte1 = 99
+	uninitbyte1 = 1.234
+	uninitbyte1 = '@'
+	initbyte1 = 99
+	initbyte1 = 1.234
+	initbyte1 = '@'
+	initbyte1 = A
+	initbyte1 = cbyte3
+	uninitword = 99
+	uninitword = 5.6778
+	uninitword = "test"
+	uninitword = '@'
+	uninitword = A
+	uninitword = XY
+	uninitword = ctext3
+	initword1 = cbyte3
+	initword1 = cword2
+	initfloat1 = 99
+	initfloat1 = 9.8765
+	initfloat1 = '@'
+	initfloat1 = cbyte3
+	initfloat1 = cword2
+	uninitfloat = 99
+	uninitfloat = 9.8765
+	uninitfloat = '@'
+	initword1 = max
+	initword1 = #max
+
+        membyte1 = A
+        membyte1 = cbyte3
+        memword1 = A
+        memword1 = AX
+        memword1 = cbyte3
+        memword1 = cword2
+        memword1 = ctext3
+
+
+        membyte1 = 22
+        memword1 = 2233
+        memfloat = 3.4567
+	memword1 = max
+	memword1 = #max
+
+        membyte1 = A
+        memword1 = A
+        memword1 = XY
+        memfloat = cbyte3
+        memfloat = cword2
+
+        ; float assignments that require ROM functions from c64lib:
+        memfloat = Y
+        memfloat = XY
+	uninitfloat = Y
+	uninitfloat = XY
+        initfloat2 = Y
+        initfloat2 = XY
+        initfloat2 = initbyte2
+        initfloat2 = initword2
+	initfloat1 = uninitfloat
+	initfloat1 = initfloat2
+
+}
+
+
+~ blockcalls20 {
+
+        var     .word   var1    = 99
+        memory  .word   mem1    = $cff0
+
+        var     .byte   varb1    = 99
+        memory  .byte   memb1    = $cff0
+        const   .word   constw   = $2355
+        const   .byte   constb   = $23
+        const   .float  constf   = 3.4556677
+        const   .text   constt   = "derp"
+
+        sub    sub1    () -> (X?)  = $ffdd
+        sub    sub2    (A) -> (Y?)  = $eecc
+        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
+
+
+bar
+        goto sub1
+        goto sub2 (1  )
+        goto sub3 (3)
+        goto sub3 (XY="hello")
+        goto sub3 ("hello, there")
+        goto sub4 (string="hello, there", other = 42)
+        goto sub4 ("hello",  42)
+        goto sub4 ("hello", other= 42)
+        goto sub4 (string="hello", other = 42)
+        goto bar  ()
+	goto [AX]
+	goto [AX]  ()
+	goto [var1]
+	goto [var1]   ()    ; comment
+	goto   [mem1]    ; comment
+	goto [mem1] ()
+	goto [$c2.word]
+	goto [$c2.word]  ()
+	goto [$c2dd.word]
+	goto [$c2dd.word] (  )
+	goto $c000
+	goto $c000        ( )
+	goto $c2
+	goto $c2()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1!()
+        sub2!(11)
+        sub3 !(3)
+        sub3! (XY="hello")
+        sub3! ("hello, there")
+        sub4! ("hello",  42)
+        sub4! ("hello",  other=42)
+        sub4! (string="hello", other = 42)
+        sub4! (string="hello, there", other = 42)
+        bar!()
+	[XY] ! ()
+	[var1] !()
+	[mem1]!()
+	[$c2.word]!()
+	[$c2dd.word]!()
+	$c000!()
+	$c2!()
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+        sub1()
+        sub2(11)
+        sub3 (3)
+        sub3 (XY="hello")
+        sub3 ("hello, there")
+        sub4 ("hello",  42)
+        sub4 ("hello", other=  42)
+        sub4 (string="hello", other = 42)
+        sub4 (string="hello, there", other = 42)
+        bar ()
+	[AX]()
+	[var1] (  )
+	[mem1]    ()
+	[$c2.word]()
+	[$c2dd.word]()
+	$c000()
+	$c2()
+
+
+        asm {
+                nop
+                nop
+                nop
+                nop
+        }
+
+	constw()
+	sub1()
+	main.start()
+}
+

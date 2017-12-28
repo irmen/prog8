@@ -186,13 +186,21 @@ class SubroutineDef(SymbolDefinition):
                 raise SymbolError("invalid parameter spec: " + param)
         for register in returnvalues:
             if register in REGISTER_SYMBOLS_RETURNVALUES:
-                self.clobbered_registers.add(register)
                 self.return_registers.append(register)
+                if len(register) == 1:
+                    self.clobbered_registers.add(register)
+                else:
+                    self.clobbered_registers.add(register[0])
+                    self.clobbered_registers.add(register[1])
             elif register[-1] == "?":
                 for r in register[:-1]:
                     if r not in REGISTER_SYMBOLS_RETURNVALUES:
                         raise SymbolError("invalid return value spec: " + r)
-                    self.clobbered_registers.add(r)
+                    if len(r) == 1:
+                        self.clobbered_registers.add(r)
+                    else:
+                        self.clobbered_registers.add(r[0])
+                        self.clobbered_registers.add(r[1])
             else:
                 raise SymbolError("invalid return value spec: " + register)
 
@@ -260,6 +268,8 @@ class SymbolTable:
         # such as 'sin' or 'max' are also resolved.
         # Does NOT utilize a symbol table from a preprocessing parse phase, only looks in the current.
         nameparts = dottedname.split('.')
+        if not nameparts[0]:
+            nameparts = nameparts[1:]
         if len(nameparts) == 1:
             try:
                 return self, self.symbols[nameparts[0]]
@@ -432,38 +442,27 @@ class SymbolTable:
                     raise SymbolError("problematic symbol '{:s}' from {}; {:s}"
                                       .format(thing.name, thing.owning_block.sourceref, str(x))) from None
 
-    def print_table(self, summary_only: bool=False) -> None:
-        if summary_only:
-            def count_symbols(symbols: 'SymbolTable') -> int:
-                count = 0
-                for s in symbols.symbols.values():
-                    if isinstance(s, SymbolTable):
-                        count += count_symbols(s)
-                    else:
-                        count += 1
-                return count
-            print("number of symbols:", count_symbols(self))
-        else:
-            def print_symbols(symbols: 'SymbolTable', level: int) -> None:
-                indent = '\t' * level
-                print("\n" + indent + "BLOCK:", symbols.name)
-                for name, s in sorted(symbols.symbols.items(), key=lambda x: str(getattr(x[1], "sourceref", ""))):
-                    if isinstance(s, SymbolTable):
-                        print_symbols(s, level + 1)
-                    elif isinstance(s, SubroutineDef):
-                        print(indent * 2 + "SUB:   " + s.name, s.sourceref, sep="\t")
-                    elif isinstance(s, LabelDef):
-                        print(indent * 2 + "LABEL: " + s.name, s.sourceref, sep="\t")
-                    elif isinstance(s, VariableDef):
-                        print(indent * 2 + "VAR:   " + s.name, s.sourceref, s.type, sep="\t")
-                    elif isinstance(s, ConstantDef):
-                        print(indent * 2 + "CONST: " + s.name, s.sourceref, s.type, sep="\t")
-                    else:
-                        raise TypeError("invalid symbol def type", s)
-            print("\nSymbols defined in the symbol table:")
-            print("------------------------------------")
-            print_symbols(self, 0)
-            print()
+    def print_table(self) -> None:
+        def print_symbols(symbols: 'SymbolTable', level: int) -> None:
+            indent = '\t' * level
+            print("\n" + indent + "BLOCK:", symbols.name)
+            for name, s in sorted(symbols.symbols.items(), key=lambda x: str(getattr(x[1], "sourceref", ""))):
+                if isinstance(s, SymbolTable):
+                    print_symbols(s, level + 1)
+                elif isinstance(s, SubroutineDef):
+                    print(indent * 2 + "SUB:   " + s.name, s.sourceref, sep="\t")
+                elif isinstance(s, LabelDef):
+                    print(indent * 2 + "LABEL: " + s.name, s.sourceref, sep="\t")
+                elif isinstance(s, VariableDef):
+                    print(indent * 2 + "VAR:   " + s.name, s.sourceref, s.type, sep="\t")
+                elif isinstance(s, ConstantDef):
+                    print(indent * 2 + "CONST: " + s.name, s.sourceref, s.type, sep="\t")
+                else:
+                    raise TypeError("invalid symbol def type", s)
+        print("\nSymbols defined in the symbol table:")
+        print("------------------------------------")
+        print_symbols(self, 0)
+        print()
 
 
 class EvalSymbolDict(dict):
@@ -557,9 +556,9 @@ def char_to_bytevalue(character: str, petscii: bool=True) -> int:
 # ASCII/UNICODE-to-PETSCII translation table
 # Unicode symbols supported that map to a PETSCII character:  £ ↑ ← ♠ ♥ ♦ ♣ π ● ○ and various others
 ascii_to_petscii_trans = str.maketrans({
-    '\f': 147,  # form feed becomes ClearScreen
-    '\n': 13,   # line feed becomes a RETURN
-    '\r': 17,   # CR becomes CursorDown
+    '\f': 147,  # form feed becomes ClearScreen  "{clear}"
+    '\n': 13,   # line feed becomes a RETURN  "{cr}"  (not a line feed)
+    '\r': 17,   # CR becomes CursorDown  "{down}"
     'a': 65,
     'b': 66,
     'c': 67,

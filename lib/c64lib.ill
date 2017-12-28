@@ -147,7 +147,8 @@ sub	ABS		() -> ()			= $bc58		; fac1 = ABS(fac1)
 sub	SQR		() -> (A?, X?, Y?)		= $bf71		; fac1 = SQRT(fac1)
 sub	EXP		() -> (A?, X?, Y?)		= $bfed		; fac1 = EXP(fac1)  (e ** fac1)
 sub	NEGOP		() -> (A?)			= $bfb4		; switch the sign of fac1
-sub	RND		() -> (A?, X?, Y?)		= $e097		; fac1 = RND()
+sub	RND		() -> (A?, X?, Y?)		= $e097		; fac1 = RND()   (use RNDA instead)
+sub	RNDA		(A) -> (A?, X?, Y?)		= $e09a		; fac1 = RND(A)
 sub	COS		() -> (A?, X?, Y?)		= $e264		; fac1 = COS(fac1)
 sub	SIN		() -> (A?, X?, Y?)		= $e26b		; fac1 = SIN(fac1)
 sub	TAN		() -> (A?, X?, Y?)		= $e2b4		; fac1 = TAN(fac1)
@@ -166,8 +167,8 @@ sub	HOMECRSR	() -> (A?, X?, Y?)		= $E566		; cursor to top left of screen
 
 ; ---- C64 kernal routines ----
 
-sub     IRQDFRT  () -> (A?, X?, Y?)			= $EA31		; default IRQ routine
-sub     IRQDFEND () -> (A?, X?, Y?)			= $EA81		; default IRQ end/cleanup
+sub	IRQDFRT  () -> (A?, X?, Y?)			= $EA31		; default IRQ routine
+sub	IRQDFEND () -> (A?, X?, Y?)			= $EA81		; default IRQ end/cleanup
 sub	CINT     () -> (A?, X?, Y?)			= $FF81		; (alias: SCINIT) initialize screen editor and video chip
 sub	IOINIT   () -> (A?, X?)				= $FF84		; initialize I/O devices (CIA, SID, IRQ)
 sub	RAMTAS   () -> (A?, X?, Y?)			= $FF87		; initialize RAM, tape buffer, screen
@@ -310,7 +311,7 @@ sub  GIVAYFAY  (sword: AY) -> (A?, X?, Y?)  {
 	}
 }
 
-sub  FTOSWRDAY  () -> (A, Y, X?)  {
+sub  FTOSWRDAY  () -> (AY, X?)  {
 	; ---- fac1 to signed word in A/Y
 	asm {
 		jsr  c64.FTOSWORDYA	; note the inverse Y/A order
@@ -321,7 +322,7 @@ sub  FTOSWRDAY  () -> (A, Y, X?)  {
 	}
 }
 
-sub  GETADRAY  () -> (A, Y, X?)  {
+sub  GETADRAY  () -> (AY, X?)  {
 	; ---- fac1 to unsigned word in A/Y
 	asm {
 		jsr  c64.GETADR		; this uses the inverse order, Y/A
@@ -596,6 +597,9 @@ _pr_decimal
 		rts
 	}
 }
+
+
+; @todo string to 32 bit unsigned integer http://www.6502.org/source/strings/ascii-to-32bit.html
 
 
 sub  input_chars  (buffer: AX) -> (A?, Y)  {

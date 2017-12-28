@@ -37,13 +37,13 @@ def main() -> None:
     start = time.perf_counter()
     pp = PreprocessingParser(args.sourcefile, )
     sourcelines, symbols = pp.preprocess()
-    symbols.print_table(True)
+    # symbols.print_table()
 
     p = Parser(args.sourcefile, args.output, sourcelines, ppsymbols=symbols, sub_usage=pp.result.subroutine_usage)
     parsed = p.parse()
     if parsed:
         if args.nooptimize:
-            p.print_warning("not optimizing the parse tree!")
+            p.print_bold("not optimizing the parse tree!")
         else:
             opt = Optimizer(parsed)
             parsed = opt.optimize()
@@ -57,7 +57,7 @@ def main() -> None:
         mon_command_file = assembler.generate_breakpoint_list(program_filename)
         duration_total = time.perf_counter() - start
         print("Compile duration:  {:.2f} seconds".format(duration_total))
-        p.print_warning("Output file:       " + program_filename)
+        p.print_bold("Output file:       " + program_filename)
         print()
         if args.startvice:
             print("Autostart vice emulator...")
