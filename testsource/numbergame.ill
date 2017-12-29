@@ -11,7 +11,6 @@ import "c64lib"
         var     attempts_left = 10
 
 start
-        c64util.init_system()
         A = c64.VMCSB
         A |= 2                  ;  @todo c64.VMCSB |= 2
         c64.VMCSB = A
@@ -41,8 +40,10 @@ printloop
         c64util.print_string("\nYou have ")
         c64util.print_byte_decimal(attempts_left)
         c64util.print_string(" guess")
+
+        ; @todo comparison expression so we can do if attempts_left>0 ...
         A = attempts_left
-        A -= 1                  ; @todo wrong instruction adc
+        A --
         if_zero A goto ask_guess
         c64util.print_string("es")
 ask_guess
@@ -52,7 +53,7 @@ ask_guess
         [$22.word] = guess
         c64.FREADSTR(A)
         AY = c64util.GETADRAY()
-        A -= secretnumber
+        A -= secretnumber       ; @todo condition so we can do if guess > secretnumber....
         if_zero goto correct_guess
         if_gt goto too_high
         c64util.print_string("That is too ")

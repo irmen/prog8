@@ -423,13 +423,15 @@ class CodeGenerator:
                     raise CodeError("invalid incr/decr register")
             else:
                 if stmt.what.register == 'A':
-                    self.p("\t\tadc  #{:d}".format(stmt.howmuch))
+                    self.p("\t\tsec")
+                    self.p("\t\tsbc  #{:d}".format(stmt.howmuch))
                 elif stmt.what.register in REGISTER_BYTES:
                     if stmt.howmuch == 1:
                         self.p("\t\tde{:s}".format(stmt.what.register.lower()))
                     else:
                         self.p("\t\tpha")
                         self.p("\t\tt{:s}a".format(stmt.what.register.lower()))
+                        self.p("\t\tsec")
                         self.p("\t\tsbc  #{:d}".format(stmt.howmuch))
                         self.p("\t\tta{:s}".format(stmt.what.register.lower()))
                         self.p("\t\tpla")
@@ -454,11 +456,11 @@ class CodeGenerator:
                         self.p("\t\tclc")
                         self.p("\t\tadc  #{:d}".format(stmt.howmuch))
                     else:
+                        self.p("\t\tsec")
                         self.p("\t\tsbc  #{:d}".format(stmt.howmuch))
                     self.p("\t\tsta  " + r_str)
                     self.p("\t\tpla")
             elif what.datatype == DataType.WORD:
-                # @todo verify this 16-bit incr/decr asm code
                 if stmt.howmuch == 1:
                     if is_incr:
                         self.p("\t\tinc  " + r_str)
@@ -466,10 +468,12 @@ class CodeGenerator:
                         self.p("\t\tinc  {:s}+1".format(r_str))
                         self.p("+")
                     else:
-                        self.p("\t\tdec  " + r_str)
+                        self.p("\t\tpha")
+                        self.p("\t\tlda  " + r_str)
                         self.p("\t\tbne  +")
                         self.p("\t\tdec  {:s}+1".format(r_str))
-                        self.p("+")
+                        self.p("+\t\tdec  " + r_str)
+                        self.p("\t\tpla")
                 else:
                     raise CodeError("cannot yet incr/decr 16 bit memory by more than 1")   # @todo 16-bit incr/decr
             else:
@@ -917,18 +921,20 @@ class CodeGenerator:
     def _generate_aug_reg_mem(self, lvalue: ParseResult.RegisterValue, operator: str, rvalue: ParseResult.MemMappedValue) -> None:
         r_str = rvalue.name or Parser.to_hex(rvalue.address)
         if operator == "+=":
-            self.p("\t\tclc")
             if lvalue.register == "A":
+                self.p("\t\tclc")
                 self.p("\t\tadc  " + r_str)
             elif lvalue.register == "X":
                 self.p("\t\tpha")
                 self.p("\t\ttxa")
+                self.p("\t\tclc")
                 self.p("\t\tadc  " + r_str)
                 self.p("\t\ttax")
                 self.p("\t\tpla")
             elif lvalue.register == "Y":
                 self.p("\t\tpha")
                 self.p("\t\ttya")
+                self.p("\t\tclc")
                 self.p("\t\tadc  " + r_str)
                 self.p("\t\ttay")
                 self.p("\t\tpla")
@@ -936,16 +942,19 @@ class CodeGenerator:
                 raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo +=.word
         elif operator == "-=":
             if lvalue.register == "A":
+                self.p("\t\tsec")
                 self.p("\t\tsbc  " + r_str)
             elif lvalue.register == "X":
                 self.p("\t\tpha")
                 self.p("\t\ttxa")
+                self.p("\t\tsec")
                 self.p("\t\tsbc  " + r_str)
                 self.p("\t\ttax")
                 self.p("\t\tpla")
             elif lvalue.register == "Y":
                 self.p("\t\tpha")
                 self.p("\t\ttya")
+                self.p("\t\tsec")
                 self.p("\t\tsbc  " + r_str)
                 self.p("\t\ttay")
                 self.p("\t\tpla")
@@ -1010,18 +1019,20 @@ class CodeGenerator:
     def _generate_aug_reg_int(self, lvalue: ParseResult.RegisterValue, operator: str, rvalue: ParseResult.IntegerValue) -> None:
         r_str = rvalue.name or Parser.to_hex(rvalue.value)
         if operator == "+=":
-            self.p("\t\tclc")
             if lvalue.register == "A":
+                self.p("\t\tclc")
                 self.p("\t\tadc  #" + r_str)
             elif lvalue.register == "X":
                 self.p("\t\tpha")
                 self.p("\t\ttxa")
+                self.p("\t\tclc")
                 self.p("\t\tadc  #" + r_str)
                 self.p("\t\ttax")
                 self.p("\t\tpla")
             elif lvalue.register == "Y":
                 self.p("\t\tpha")
                 self.p("\t\ttya")
+                self.p("\t\tclc")
                 self.p("\t\tadc  #" + r_str)
                 self.p("\t\ttay")
                 self.p("\t\tpla")
@@ -1029,16 +1040,19 @@ class CodeGenerator:
                 raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo +=.word
         elif operator == "-=":
             if lvalue.register == "A":
+                self.p("\t\tsec")
                 self.p("\t\tsbc  #" + r_str)
             elif lvalue.register == "X":
                 self.p("\t\tpha")
                 self.p("\t\ttxa")
+                self.p("\t\tsec")
                 self.p("\t\tsbc  #" + r_str)
                 self.p("\t\ttax")
                 self.p("\t\tpla")
             elif lvalue.register == "Y":
                 self.p("\t\tpha")
                 self.p("\t\ttya")
+                self.p("\t\tsec")
                 self.p("\t\tsbc  #" + r_str)
                 self.p("\t\ttay")
                 self.p("\t\tpla")
@@ -1136,16 +1150,17 @@ class CodeGenerator:
 
     def _generate_aug_reg_reg(self, lvalue: ParseResult.RegisterValue, operator: str, rvalue: ParseResult.RegisterValue) -> None:
         if operator == "+=":
-            self.p("\t\tclc")
             if rvalue.register not in REGISTER_BYTES:
                 raise CodeError("unsupported rvalue register for aug assign", str(rvalue))  # @todo +=.word
             if lvalue.register == "A":
                 self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                self.p("\t\tclc")
                 self.p("\t\tadc  " + Parser.to_hex(Zeropage.SCRATCH_B1))
             elif lvalue.register == "X":
                 self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
                 self.p("\t\tpha")
                 self.p("\t\ttxa")
+                self.p("\t\tclc")
                 self.p("\t\tadc  " + Parser.to_hex(Zeropage.SCRATCH_B1))
                 self.p("\t\ttax")
                 self.p("\t\tpla")
@@ -1153,6 +1168,7 @@ class CodeGenerator:
                 self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
                 self.p("\t\tpha")
                 self.p("\t\ttya")
+                self.p("\t\tclc")
                 self.p("\t\tadc  " + Parser.to_hex(Zeropage.SCRATCH_B1))
                 self.p("\t\ttay")
                 self.p("\t\tpla")
@@ -1163,11 +1179,13 @@ class CodeGenerator:
                 raise CodeError("unsupported rvalue register for aug assign", str(rvalue))  # @todo -=.word
             if lvalue.register == "A":
                 self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
+                self.p("\t\tsec")
                 self.p("\t\tsbc  " + Parser.to_hex(Zeropage.SCRATCH_B1))
             elif lvalue.register == "X":
                 self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
                 self.p("\t\tpha")
                 self.p("\t\ttxa")
+                self.p("\t\tsec")
                 self.p("\t\tsbc  " + Parser.to_hex(Zeropage.SCRATCH_B1))
                 self.p("\t\ttax")
                 self.p("\t\tpla")
@@ -1175,6 +1193,7 @@ class CodeGenerator:
                 self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
                 self.p("\t\tpha")
                 self.p("\t\ttya")
+                self.p("\t\tsec")
                 self.p("\t\tsbc  " + Parser.to_hex(Zeropage.SCRATCH_B1))
                 self.p("\t\ttay")
                 self.p("\t\tpla")
