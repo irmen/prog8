@@ -1,0 +1,18 @@
+; IL65 integer math library for 6502
+; (floating point math is done via the C-64's BASIC ROM routines)
+;
+; Written by Irmen de Jong (irmen@razorvine.net)
+; License: GNU GPL 3.0, see LICENSE
+;
+; indent format: TABS, size=8
+
+
+output raw
+
+~ math {
+
+
+; @todo some interesting routines can be found here http://6502org.wikidot.com/software-math
+
+
+}

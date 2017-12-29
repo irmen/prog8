@@ -17,7 +17,7 @@ from typing import Set, List, Tuple, Optional, Any, Dict, Union, Generator
 from .astparse import ParseError, parse_expr_as_int, parse_expr_as_number, parse_expr_as_primitive,\
     parse_expr_as_string, parse_arguments, parse_expr_as_comparison
 from .symbols import SourceRef, SymbolTable, DataType, SymbolDefinition, SubroutineDef, LabelDef, \
-    zeropage, check_value_in_range, char_to_bytevalue, \
+    Zeropage, check_value_in_range, char_to_bytevalue, \
     PrimitiveType, VariableDef, ConstantDef, SymbolError, STRING_DATATYPES, \
     REGISTER_SYMBOLS, REGISTER_WORDS, REGISTER_BYTES, REGISTER_SBITS, RESERVED_NAMES
 
@@ -37,6 +37,7 @@ class ParseResult:
         self.start_address = 0
         self.blocks = []          # type: List['ParseResult.Block']
         self.subroutine_usage = defaultdict(set)    # type: Dict[Tuple[str, str], Set[str]]
+        self.zeropage = Zeropage()
 
     def all_blocks(self) -> Generator['ParseResult.Block', None, None]:
         for block in self.blocks:
@@ -463,6 +464,11 @@ class ParseResult:
             for name, value in self.arguments or []:
                 assert name is not None, "all call arguments should have a name or be matched on a named parameter"
                 assignment = parser.parse_assignment(name, value)
+                if assignment.leftvalues[0].datatype != DataType.BYTE:
+                    if isinstance(assignment.right, ParseResult.IntegerValue) and assignment.right.constant:
+                        # a call that doesn't expect a BYTE argument but gets one, converted from a 1-byte string most likely
+                        if value.startswith("'") and value.endswith("'"):
+                            parser.print_warning("possible problematic string to byte conversion (use a .text var instead?)")
                 if not assignment.is_identity():
                     assignment.lineno = self.lineno
                     self.desugared_call_arguments.append(assignment)
@@ -562,6 +568,7 @@ class Parser:
         self._cur_lineidx = -1      # used to efficiently go to next/previous line in source
         self.cur_block = None  # type: ParseResult.Block
         self.root_scope = SymbolTable("<root>", None, None)
+        self.root_scope.set_zeropage(self.result.zeropage)
         self.ppsymbols = ppsymbols  # symboltable from preprocess phase
         self.print_block_parsing = True
 
@@ -642,7 +649,8 @@ class Parser:
         self.cur_block = ParseResult.Block("<header>", self.sourceref, self.root_scope)
         self.result.add_block(self.cur_block)
         self.parse_header()
-        zeropage.configure(self.result.clobberzp)
+        if not self.parsing_import:
+            self.result.zeropage.configure(self.result.clobberzp)
         while True:
             self._parse_comments()
             next_line = self.peek_next_line().lstrip()
@@ -1030,7 +1038,7 @@ class Parser:
         varname, datatype, length, dimensions, valuetext = self.parse_def_common(line, "memory")
         memaddress = parse_expr_as_int(valuetext, self.cur_block.symbols, self.ppsymbols, self.sourceref)
         if is_zeropage and memaddress > 0xff:
-            raise self.PError("address must lie in zeropage $00-$ff")
+            raise self.PError("address must be in zeropage $00-$ff")
         try:
             self.cur_block.symbols.define_variable(varname, self.sourceref, datatype,
                                                    length=length, address=memaddress, matrixsize=dimensions)
@@ -1267,6 +1275,15 @@ class Parser:
         if any(not a[0] for a in arguments or []):
             raise self.PError("all call arguments should have a name or be matched on a named parameter")
         if isinstance(target, (type(None), ParseResult.Value)):
+            # special case for the C-64 lib's print function, to be able to use it with a single character argument
+            if target.name == "c64util.print_string" and len(arguments) == 1 and len(arguments[0][0]) > 1:
+                if arguments[0][1].startswith("'") and arguments[0][1].endswith("'"):
+                    target = self.parse_expression("c64.CHROUT")
+                    address = target.address
+                    outputvars = None
+                    _, newsymbol = self.lookup_with_ppsymbols("c64.CHROUT")
+                    assert len(newsymbol.parameters) == 1
+                    arguments = [(newsymbol.parameters[0][1], arguments[0][1])]
             if is_goto:
                 return ParseResult.CallStmt(self.sourceref.line, target, address=address,
                                             arguments=arguments, outputs=outputvars, is_goto=True, condition=condition)

@@ -333,8 +333,6 @@ sub  GETADRAY  () -> (AY, X?)  {
 	}
 }
 
-; @todo optimize print_string()/ print_pstring() of a single character into a call to c64.CHROUT instead
-
 sub  print_string (address: XY) -> (A?, Y?)  {
 	; ---- print null terminated string from X/Y
 	asm {

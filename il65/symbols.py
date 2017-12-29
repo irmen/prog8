@@ -212,8 +212,11 @@ class Zeropage:
     def __init__(self) -> None:
         self.unused_bytes = []  # type: List[int]
         self.unused_words = []  # type: List[int]
+        self._configured = False
 
     def configure(self, clobber_zp: bool = False) -> None:
+        if self._configured:
+            raise SymbolError("cannot configure the ZP multiple times")
         if clobber_zp:
             self.unused_bytes = list(range(0x04, 0x80))
             self.unused_words = list(range(0x80, 0x100, 2))
@@ -224,6 +227,7 @@ class Zeropage:
             self.unused_words = [0x04, 0xf7, 0xf9, 0xfb, 0xfd]  # 5 zp variables (16 bits each)
         assert self.SCRATCH_B1 not in self.unused_bytes and self.SCRATCH_B1 not in self.unused_words
         assert self.SCRATCH_B2 not in self.unused_bytes and self.SCRATCH_B2 not in self.unused_words
+        self._configured = True
 
     def get_unused_byte(self):
         return self.unused_bytes.pop()
@@ -240,10 +244,6 @@ class Zeropage:
         return len(self.unused_words)
 
 
-# the single, global Zeropage object
-zeropage = Zeropage()
-
-
 class SymbolTable:
 
     def __init__(self, name: str, parent: Optional['SymbolTable'], owning_block: Any) -> None:
@@ -252,6 +252,13 @@ class SymbolTable:
         self.parent = parent
         self.owning_block = owning_block
         self.eval_dict = None
+        self._zeropage = parent._zeropage if parent else None
+
+    def set_zeropage(self, zp: Zeropage) -> None:
+        if self._zeropage is None:
+            self._zeropage = zp
+        else:
+            raise SymbolError("already have a zp")
 
     def __iter__(self):
         yield from self.symbols.values()
@@ -358,17 +365,17 @@ class SymbolTable:
         if datatype == DataType.BYTE:
             if allocate and self.name == "ZP":
                 try:
-                    address = zeropage.get_unused_byte()
+                    address = self._zeropage.get_unused_byte()
                 except LookupError:
-                    raise SymbolError("too many global 8-bit variables in ZP")
+                    raise SymbolError("no space in ZP left for more global 8-bit variables (try zp clobber)")
             self.symbols[name] = VariableDef(self.name, name, sourceref, DataType.BYTE, allocate,
                                              value=value, length=1, address=address)
         elif datatype == DataType.WORD:
             if allocate and self.name == "ZP":
                 try:
-                    address = zeropage.get_unused_word()
+                    address = self._zeropage.get_unused_word()
                 except LookupError:
-                    raise SymbolError("too many global 16-bit variables in ZP")
+                    raise SymbolError("no space in ZP left for more global 16-bit variables (try zp clobber)")
             self.symbols[name] = VariableDef(self.name, name, sourceref, DataType.WORD, allocate,
                                              value=value, length=1, address=address)
         elif datatype == DataType.FLOAT:

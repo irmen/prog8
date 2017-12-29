@@ -12,8 +12,8 @@ from .symbols import SourceRef
 
 
 class PreprocessingParser(Parser):
-    def __init__(self, filename: str) -> None:
-        super().__init__(filename, "", parsing_import=True)
+    def __init__(self, filename: str, parsing_import: bool=False) -> None:
+        super().__init__(filename, "", parsing_import=parsing_import)
         self.print_block_parsing = False
 
     def preprocess(self) -> Tuple[List[Tuple[int, str]], SymbolTable]:
@@ -63,4 +63,4 @@ class PreprocessingParser(Parser):
         super().parse_subroutine_def(line)
 
     def create_import_parser(self, filename: str, outputdir: str) -> 'Parser':
-        return PreprocessingParser(filename)
+        return PreprocessingParser(filename, parsing_import=True)

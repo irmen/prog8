@@ -126,6 +126,11 @@ IL65 supports the following data types:
 Strings can be writen in your code as CBM PETSCII or as C-64 screencode variants,
 these will be translated by the compiler. PETSCII is the default, if you need screencodes you
 have to use the ``s`` variants of the type identifier.
+If you write a string with just one character in it, it is *always* considered to be a BYTE instead with
+that character's PETSCII value.  So if you really need a string of length 1 you must declare it 
+explicitly as a variable of type ``.text``, you cannot put ``"x"`` as a subroutine argument where
+the subroutine expects (the address of) a string.  IL65's type system is unfortunately not strict enough to 
+avoid this mistake, but it does print a warning if the situation is detected.
 
 For many floating point operations, the compiler has to use routines in the C-64 BASIC and KERNAL ROMs.
 So they will only work if the BASIC ROM (and KERNAL ROM) are banked in, and your code imports the ``c654lib.ill``.
