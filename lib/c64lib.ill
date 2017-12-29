@@ -434,10 +434,27 @@ hex_digits	.text "0123456789abcdef"	; can probably be reused for other stuff as 
 	}
 }
 
+		; var  .array(4)  word2hex_output_array    @todo support to use array/matrix type by address
+		var  .text      word2hex_output = "123"   ; 0-terminated, 4 bytes total @todo remove if array works
+sub  word2hex  (word: XY) -> (A?, X?, Y?)  {
+	; ---- convert 16 bit word in X/Y into hexadecimal string into memory  'word2hex_output'
+	asm {
+		stx  c64.SCRATCH_ZP2
+		tya
+		jsr  byte2hex
+		stx  word2hex_output
+		sty  word2hex_output+1
+		lda  c64.SCRATCH_ZP2
+		jsr  byte2hex
+		stx  word2hex_output+2
+		sty  word2hex_output+3
+		rts
+	}
+}
 
 
 		var  .array(3)  word2bcd_bcdbuff
-sub  word2bcd  (address: XY) -> (A?, X?)  {
+sub  word2bcd  (word: XY) -> (A?, X?)  {
 	; Convert an 16 bit binary value to BCD
 	;
 	; This function converts a 16 bit binary value in X/Y into a 24 bit BCD. It
@@ -475,7 +492,7 @@ sub  word2bcd  (address: XY) -> (A?, X?)  {
 
 
 		var  .array(5)  word2decimal_output
-sub  word2decimal  (address: XY) -> (A?, X?, Y?)  {
+sub  word2decimal  (word: XY) -> (A?, X?, Y?)  {
 	; ---- convert 16 bit word in X/Y into decimal string into memory  'word2decimal_output'
 	asm {
 		jsr  word2bcd
@@ -538,10 +555,15 @@ sub  print_byte_decimal  (ubyte: A) -> (A?, X?, Y?)  {
 	}
 }
 
-sub  print_byte_hex  (ubyte: A) -> (A?, X?, Y?)  {
-	; ---- print the byte in A in hex form
+sub  print_byte_hex  (prefix: SC, ubyte: A) -> (A?, X?, Y?)  {
+	; ---- print the byte in A in hex form (if Carry is set, a radix prefix '$' is printed as well)
 	asm {
-		jsr  byte2hex
+		bcc  +
+		pha
+		lda  #'$'
+		jsr  c64.CHROUT
+		pla
+	+	jsr  byte2hex
 		txa
 		jsr  c64.CHROUT
 		tya
@@ -549,9 +571,22 @@ sub  print_byte_hex  (ubyte: A) -> (A?, X?, Y?)  {
 	}
 }
 
+sub print_word_hex  (prefix: SC, word: XY) -> (A?, X?, Y?)  {
+	; ---- print the (unsigned) word in X/Y in hexadecimal form (4 digits)
+	;      (if Carry is set, a radix prefix '$' is printed as well)
+	asm {
+		stx  c64.SCRATCH_ZP1
+		tya
+		jsr  print_byte_hex
+		lda  c64.SCRATCH_ZP1
+		clc
+		jmp  print_byte_hex
+	}
+}
 
-sub  print_word_decimal0  (address: XY) -> (A?, X?, Y?)  {
-	; ---- print the word in X/Y in decimal form, with left padding 0s (5 positions total)
+
+sub  print_word_decimal0  (word: XY) -> (A?, X?, Y?)  {
+	; ---- print the (unsigned) word in X/Y in decimal form, with left padding 0s (5 positions total)
 	asm {
 		jsr  word2decimal
 		lda  word2decimal_output
@@ -568,7 +603,7 @@ sub  print_word_decimal0  (address: XY) -> (A?, X?, Y?)  {
 }
 
 
-sub  print_word_decimal  (address: XY) -> (A?, X? Y?)  {
+sub  print_word_decimal  (word: XY) -> (A?, X? Y?)  {
 	; ---- print the word in X/Y in decimal form, without left padding 0s
 	asm {
 		jsr  word2decimal

@@ -15,8 +15,8 @@ which aims to provide many conveniences over raw assembly code (even when using 
 - option to automatically run the compiled program in the Vice emulator  
 - modularity, symbol scoping, subroutines
 - subroutines have enforced input- and output parameter definitions
+- various data types other than just bytes (16-bit words, floats, strings, 16-bit register pairs)
 - automatic variable allocations, automatic string variables and string sharing
-- various data types other than just bytes
 - automatic type conversions
 - floating point operations
 - automatically preserving and restoring CPU registers state, when calling routines that otherwise would clobber these 
