@@ -405,38 +405,75 @@ class CodeGenerator:
             raise CodeError("only supports incr/decr by up to 255 for now")   # XXX
         is_incr = isinstance(stmt, ParseResult.InplaceIncrStmt)
         if isinstance(stmt.what, ParseResult.RegisterValue):
+            reg = stmt.what.register
             if is_incr:
-                if stmt.what.register == 'A':
+                if reg == 'A':
                     self.p("\t\tclc")
                     self.p("\t\tadc  #{:d}".format(stmt.howmuch))
-                elif stmt.what.register in REGISTER_BYTES:
+                elif reg in REGISTER_BYTES:
+                    # 8 bit incr
                     if stmt.howmuch == 1:
-                        self.p("\t\tin{:s}".format(stmt.what.register.lower()))
+                        self.p("\t\tin{:s}".format(reg.lower()))
                     else:
                         self.p("\t\tpha")
-                        self.p("\t\tt{:s}a".format(stmt.what.register.lower()))
+                        self.p("\t\tt{:s}a".format(reg.lower()))
                         self.p("\t\tclc")
                         self.p("\t\tadc  #{:d}".format(stmt.howmuch))
-                        self.p("\t\tta{:s}".format(stmt.what.register.lower()))
+                        self.p("\t\tta{:s}".format(reg.lower()))
                         self.p("\t\tpla")
+                elif reg == "AX":
+                    self.p("\t\tclc")
+                    self.p("\t\tadc  #1")
+                    self.p("\t\tbne  +")
+                    self.p("\t\tinx")
+                    self.p("+")
+                elif reg == "AY":
+                    self.p("\t\tclc")
+                    self.p("\t\tadc  #1")
+                    self.p("\t\tbne  +")
+                    self.p("\t\tiny")
+                    self.p("+")
+                elif reg == "XY":
+                    self.p("\t\tinx")
+                    self.p("\t\tbne  +")
+                    self.p("\t\tiny")
+                    self.p("+")
                 else:
-                    raise CodeError("invalid incr/decr register")
+                    raise CodeError("invalid incr register: " + reg)
             else:
-                if stmt.what.register == 'A':
+                if reg == 'A':
                     self.p("\t\tsec")
                     self.p("\t\tsbc  #{:d}".format(stmt.howmuch))
-                elif stmt.what.register in REGISTER_BYTES:
+                elif reg in REGISTER_BYTES:
+                    # 8 bit decr
                     if stmt.howmuch == 1:
-                        self.p("\t\tde{:s}".format(stmt.what.register.lower()))
+                        self.p("\t\tde{:s}".format(reg.lower()))
                     else:
                         self.p("\t\tpha")
-                        self.p("\t\tt{:s}a".format(stmt.what.register.lower()))
+                        self.p("\t\tt{:s}a".format(reg.lower()))
                         self.p("\t\tsec")
                         self.p("\t\tsbc  #{:d}".format(stmt.howmuch))
-                        self.p("\t\tta{:s}".format(stmt.what.register.lower()))
+                        self.p("\t\tta{:s}".format(reg.lower()))
                         self.p("\t\tpla")
+                elif reg == "AX":
+                    self.p("\t\tcmp  #0")
+                    self.p("\t\tbne  +")
+                    self.p("\t\tdex")
+                    self.p("+\t\tsec")
+                    self.p("\t\tsbc  #1")
+                elif reg == "AY":
+                    self.p("\t\tcmp  #0")
+                    self.p("\t\tbne  +")
+                    self.p("\t\tdey")
+                    self.p("+\t\tsec")
+                    self.p("\t\tsbc  #1")
+                elif reg == "XY":
+                    self.p("\t\tcpx  #0")
+                    self.p("\t\tbne  +")
+                    self.p("\t\tdey")
+                    self.p("+\t\tdex")
                 else:
-                    raise CodeError("invalid incr/decr register")
+                    raise CodeError("invalid decr register: " + reg)
         elif isinstance(stmt.what, (ParseResult.MemMappedValue, ParseResult.IndirectValue)):
             what = stmt.what
             if isinstance(what, ParseResult.IndirectValue):
@@ -768,16 +805,12 @@ class CodeGenerator:
 
     def _generate_call_or_goto(self, stmt: ParseResult.CallStmt, branch_emitter: Callable[[str, bool, bool], None]) -> None:
         def generate_param_assignments() -> None:
-            self.p("; param assignment")  # XXX
             for assign_stmt in stmt.desugared_call_arguments:
                 self.generate_assignment(assign_stmt)
-            self.p("; param assignment done")  # XXX
 
         def generate_result_assignments() -> None:
-            self.p("; result assignment")  # XXX
             for assign_stmt in stmt.desugared_output_assignments:
                 self.generate_assignment(assign_stmt)
-            self.p("; result assignment done")  # XXX
 
         def params_load_a() -> bool:
             for assign_stmt in stmt.desugared_call_arguments:
@@ -1510,19 +1543,21 @@ class CodeGenerator:
                     # y -> x, 6502 doesn't have tyx
                     self.p("\t\tsty  ${0:02x}\n\t\tldx  ${0:02x}".format(Zeropage.SCRATCH_B1))
                 elif lv.register == "AX" and r_register == "XY":
+                    # x -> a, y -> x, 6502 doesn't have tyx
                     self.p("\t\ttxa")
-                    # y -> x, 6502 doesn't have tyx
                     self.p("\t\tsty  ${0:02x}\n\t\tldx  ${0:02x}".format(Zeropage.SCRATCH_B1))
                 elif lv.register == "AY" and r_register == "AX":
                     # x -> y, 6502 doesn't have txy
                     self.p("\t\tstx  ${0:02x}\n\t\tldy  ${0:02x}".format(Zeropage.SCRATCH_B1))
                 elif lv.register == "AY" and r_register == "XY":
+                    # x -> a
                     self.p("\t\ttxa")
                 elif lv.register == "XY" and r_register == "AX":
-                    self.p("\t\ttax")
-                    # x -> y, 6502 doesn't have txy
+                    # x -> y, a -> x, 6502 doesn't have txy
                     self.p("\t\tstx  ${0:02x}\n\t\tldy  ${0:02x}".format(Zeropage.SCRATCH_B1))
+                    self.p("\t\ttax")
                 elif lv.register == "XY" and r_register == "AY":
+                    # a -> x
                     self.p("\t\ttax")
                 else:
                     raise CodeError("invalid register combination", lv.register, r_register)

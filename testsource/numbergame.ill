@@ -10,7 +10,74 @@ import "c64lib"
         var     secretnumber
         var     attempts_left = 10
 
+
 start
+        c64util.init_system()
+
+
+        XY = $0401
+        c64util.print_word_decimal(XY)
+        c64.CHROUT('\n')
+        XY--
+        c64util.print_word_decimal(XY)
+        c64.CHROUT('\n')
+        XY--
+        c64util.print_word_decimal(XY)
+        c64.CHROUT('\n')
+
+        AX = $0401
+        c64util.print_word_decimal(AX)
+        c64.CHROUT('\n')
+        AX--
+        c64util.print_word_decimal(AX)
+        c64.CHROUT('\n')
+        AX--
+        c64util.print_word_decimal(AX)
+        c64.CHROUT('\n')
+
+        AY = $0401
+        c64util.print_word_decimal(AY)
+        c64.CHROUT('\n')
+        AY--
+        c64util.print_word_decimal(AY)
+        c64.CHROUT('\n')
+        AY--
+        c64util.print_word_decimal(AY)
+        c64.CHROUT('\n')
+        c64.CHROUT('\n')
+
+        XY = $03ff
+        c64util.print_word_decimal(XY)
+        c64.CHROUT('\n')
+        XY++
+        c64util.print_word_decimal(XY)
+        c64.CHROUT('\n')
+        XY++
+        c64util.print_word_decimal(XY)
+        c64.CHROUT('\n')
+
+        AX = $03ff
+        c64util.print_word_decimal(AX)
+        c64.CHROUT('\n')
+        AX++
+        c64util.print_word_decimal(AX)
+        c64.CHROUT('\n')
+        AX++
+        c64util.print_word_decimal(AX)
+        c64.CHROUT('\n')
+
+        AY = $03ff
+        c64util.print_word_decimal(AY)
+        c64.CHROUT('\n')
+        AY++
+        c64util.print_word_decimal(AY)
+        c64.CHROUT('\n')
+        AY++
+        c64util.print_word_decimal(AY)
+        c64.CHROUT('\n')
+        c64.CHROUT('\n')
+
+
         A = c64.VMCSB
         A |= 2                  ;  @todo c64.VMCSB |= 2
         c64.VMCSB = A
@@ -43,7 +110,7 @@ printloop
 
         ; @todo comparison expression so we can do if attempts_left>0 ...
         A = attempts_left
-        A --
+        A--
         if_zero A goto ask_guess
         c64util.print_string("es")
 ask_guess
