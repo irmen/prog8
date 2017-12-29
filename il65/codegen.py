@@ -406,15 +406,18 @@ class CodeGenerator:
         is_incr = isinstance(stmt, ParseResult.InplaceIncrStmt)
         if isinstance(stmt.what, ParseResult.RegisterValue):
             reg = stmt.what.register
+            # note: these operations below are all checked to be ok
             if is_incr:
                 if reg == 'A':
+                    # a += 1..255
                     self.p("\t\tclc")
                     self.p("\t\tadc  #{:d}".format(stmt.howmuch))
                 elif reg in REGISTER_BYTES:
-                    # 8 bit incr
                     if stmt.howmuch == 1:
+                        # x/y += 1
                         self.p("\t\tin{:s}".format(reg.lower()))
                     else:
+                        # x/y += 2..255
                         self.p("\t\tpha")
                         self.p("\t\tt{:s}a".format(reg.lower()))
                         self.p("\t\tclc")
@@ -422,33 +425,49 @@ class CodeGenerator:
                         self.p("\t\tta{:s}".format(reg.lower()))
                         self.p("\t\tpla")
                 elif reg == "AX":
+                    # AX += 1..255
                     self.p("\t\tclc")
-                    self.p("\t\tadc  #1")
-                    self.p("\t\tbne  +")
+                    self.p("\t\tadc  #{:d}".format(stmt.howmuch))
+                    self.p("\t\tbcc  +")
                     self.p("\t\tinx")
                     self.p("+")
                 elif reg == "AY":
+                    # AY += 1..255
                     self.p("\t\tclc")
-                    self.p("\t\tadc  #1")
-                    self.p("\t\tbne  +")
+                    self.p("\t\tadc  #{:d}".format(stmt.howmuch))
+                    self.p("\t\tbcc  +")
                     self.p("\t\tiny")
                     self.p("+")
                 elif reg == "XY":
-                    self.p("\t\tinx")
-                    self.p("\t\tbne  +")
-                    self.p("\t\tiny")
-                    self.p("+")
+                    if stmt.howmuch == 1:
+                        # XY += 1
+                        self.p("\t\tinx")
+                        self.p("\t\tbne  +")
+                        self.p("\t\tiny")
+                        self.p("+")
+                    else:
+                        # XY += 2..255
+                        self.p("\t\tpha")
+                        self.p("\t\ttxa")
+                        self.p("\t\tclc")
+                        self.p("\t\tadc  #{:d}".format(stmt.howmuch))
+                        self.p("\t\ttax")
+                        self.p("\t\tbcc  +")
+                        self.p("\t\tiny")
+                        self.p("+\t\tpla")
                 else:
                     raise CodeError("invalid incr register: " + reg)
             else:
                 if reg == 'A':
+                    # a -= 1..255
                     self.p("\t\tsec")
                     self.p("\t\tsbc  #{:d}".format(stmt.howmuch))
                 elif reg in REGISTER_BYTES:
-                    # 8 bit decr
                     if stmt.howmuch == 1:
+                        # x/y -= 1
                         self.p("\t\tde{:s}".format(reg.lower()))
                     else:
+                        # x/y -= 2..255
                         self.p("\t\tpha")
                         self.p("\t\tt{:s}a".format(reg.lower()))
                         self.p("\t\tsec")
@@ -456,22 +475,36 @@ class CodeGenerator:
                         self.p("\t\tta{:s}".format(reg.lower()))
                         self.p("\t\tpla")
                 elif reg == "AX":
-                    self.p("\t\tcmp  #0")
-                    self.p("\t\tbne  +")
+                    # AX -= 1..255
+                    self.p("\t\tsec")
+                    self.p("\t\tsbc  #{:d}".format(stmt.howmuch))
+                    self.p("\t\tbcs  +")
                     self.p("\t\tdex")
-                    self.p("+\t\tsec")
-                    self.p("\t\tsbc  #1")
+                    self.p("+")
                 elif reg == "AY":
-                    self.p("\t\tcmp  #0")
-                    self.p("\t\tbne  +")
+                    # AY -= 1..255
+                    self.p("\t\tsec")
+                    self.p("\t\tsbc  #{:d}".format(stmt.howmuch))
+                    self.p("\t\tbcs  +")
                     self.p("\t\tdey")
-                    self.p("+\t\tsec")
-                    self.p("\t\tsbc  #1")
+                    self.p("+")
                 elif reg == "XY":
-                    self.p("\t\tcpx  #0")
-                    self.p("\t\tbne  +")
-                    self.p("\t\tdey")
-                    self.p("+\t\tdex")
+                    if stmt.howmuch == 1:
+                        # XY -= 1
+                        self.p("\t\tcpx  #0")
+                        self.p("\t\tbne  +")
+                        self.p("\t\tdey")
+                        self.p("+\t\tdex")
+                    else:
+                        # XY -= 2..255
+                        self.p("\t\tpha")
+                        self.p("\t\ttxa")
+                        self.p("\t\tsec")
+                        self.p("\t\tsbc  #{:d}".format(stmt.howmuch))
+                        self.p("\t\ttax")
+                        self.p("\t\tbcs  +")
+                        self.p("\t\tdey")
+                        self.p("+\t\tpla")
                 else:
                     raise CodeError("invalid decr register: " + reg)
         elif isinstance(stmt.what, (ParseResult.MemMappedValue, ParseResult.IndirectValue)):

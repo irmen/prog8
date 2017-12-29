@@ -540,15 +540,17 @@ sub  print_byte_decimal  (ubyte: A) -> (A?, X?, Y?)  {
 	asm {
 		jsr  byte2decimal
 		pha
-		tya
-		cmp  #'0'
-		beq  +
+		cpy  #'0'
+		bne  _print_hundreds
+		cpx  #'0'
+		bne  _print_tens
+		pla
+		jmp  c64.CHROUT
+_print_hundreds	tya
 		jsr  c64.CHROUT
-+		txa
-		cmp  #'0'
-		beq  +
+_print_tens	txa
 		jsr  c64.CHROUT
-+		pla
+		pla
 		jmp  c64.CHROUT
 	}
 }
@@ -561,7 +563,7 @@ sub  print_byte_hex  (prefix: SC, ubyte: A) -> (A?, X?, Y?)  {
 		lda  #'$'
 		jsr  c64.CHROUT
 		pla
-	+	jsr  byte2hex
++		jsr  byte2hex
 		txa
 		jsr  c64.CHROUT
 		tya
