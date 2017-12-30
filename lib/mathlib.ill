@@ -12,9 +12,11 @@
 output raw
 
 ~ math {
-		; note: the following two ZP scratch registers must be the same as in c64lib
-		memory  SCRATCH_ZP1	= $02		; scratch register #1 in ZP
-		memory  SCRATCH_ZP2	= $03		; scratch register #2 in ZP
+		; note: the following ZP scratch registers must be the same as in c64lib
+		memory  .byte  SCRATCH_ZP1	= $02		; scratch register #1 in ZP
+		memory  .byte  SCRATCH_ZP2	= $03		; scratch register #2 in ZP
+		memory  .word  SCRATCH_ZPWORD1	= $fb		; scratch word in ZP ($fb/$fc)
+		memory  .word  SCRATCH_ZPWORD2	= $fd		; scratch word in ZP ($fd/$fe)
 
 
 
@@ -65,13 +67,48 @@ sub  multiply_bytes_addA_16  (byte1: X, byte2: Y, add: A) -> (A?, XY)  {
 	}
 }
 
+	var  .wordarray(2)  multiply_words_product
+sub  multiply_words  (number: XY) -> (A?, X?, Y?)  {		; @todo '?' to mean all 3 registers
+	; ---- multiply two 16-bit words into a 32-bit result
+	;      input: X/Y = first 16-bit number, SCRATCH_ZPWORD1 in ZP = second 16-bit number
+	;      output: multiply_words_product  32-bits product, LSB order (low-to-high)
 
-sub  divide_bytes  (numerator: X, denominator: Y) -> (X, A)  {
+	asm {
+		stx  SCRATCH_ZPWORD2
+		sty  SCRATCH_ZPWORD2+1
+
+mult16		lda  #$00
+		sta  multiply_words_product+2			; clear upper bits of product
+		sta  multiply_words_product+3
+		ldx  #16			; for all 16 bits...
+-	 	lsr  SCRATCH_ZPWORD1+1		; divide multiplier by 2
+		ror  SCRATCH_ZPWORD1
+		bcc  +
+		lda  multiply_words_product+2			; get upper half of product and add multiplicand
+		clc
+		adc  SCRATCH_ZPWORD2
+		sta  multiply_words_product+2
+		lda  multiply_words_product+3
+		adc  SCRATCH_ZPWORD2+1
++ 		ror  a				; rotate partial product
+		sta  multiply_words_product+3
+		ror  multiply_words_product+2
+		ror  multiply_words_product+1
+		ror  multiply_words_product
+		dex
+		bne  -
+		rts
+	}
+}
+
+
+sub  divmod_bytes  (number: X, divisor: Y) -> (X, A)  {
 	; ---- divide X by Y, result quotient in X, remainder in A   (unsigned)
 	;      division by zero will result in quotient = 255 and remainder = original number
 	asm {
 		stx  SCRATCH_ZP1
 		sty  SCRATCH_ZP2
+
 		lda  #0
 		ldx  #8
 		asl  SCRATCH_ZP1
@@ -82,8 +119,57 @@ sub  divide_bytes  (numerator: X, denominator: Y) -> (X, A)  {
 +		rol  SCRATCH_ZP1
 		dex
 		bne  -
+
 		ldx  SCRATCH_ZP1
 		rts
+	}
+}
+
+sub  divmod_words  (divisor: XY) -> (A?, XY)  {
+	; ---- divide two words (16 bit each) into 16 bit results
+	;      input:  SCRATCH_ZPWORD1 in ZP: 16 bit number, X/Y: 16 bit divisor
+	;      output: SCRATCH_ZPWORD1 in ZP: 16 bit result, X/Y: 16 bit remainder
+	;      division by zero will result in quotient = 65535 and remainder = divident
+
+	asm {
+remainder = SCRATCH_ZP1
+
+		stx  SCRATCH_ZPWORD2
+		sty  SCRATCH_ZPWORD2+1
+		lda  #0	        		;preset remainder to 0
+		sta  remainder
+		sta  remainder+1
+		ldx  #16	        	;repeat for each bit: ...
+
+-		asl  SCRATCH_ZPWORD1		;number lb & hb*2, msb -> Carry
+		rol  SCRATCH_ZPWORD1+1
+		rol  remainder			;remainder lb & hb * 2 + msb from carry
+		rol  remainder+1
+		lda  remainder
+		sec
+		sbc  SCRATCH_ZPWORD2		;substract divisor to see if it fits in
+		tay	        		;lb result -> Y, for we may need it later
+		lda  remainder+1
+		sbc  SCRATCH_ZPWORD2+1
+		bcc  +				;if carry=0 then divisor didn't fit in yet
+
+		sta  remainder+1		;else save substraction result as new remainder,
+		sty  remainder
+		inc  SCRATCH_ZPWORD1		;and INCrement result cause divisor fit in 1 times
+
++		dex
+		bne  -
+
+		lda  remainder			; copy remainder to ZPWORD2 result register
+		sta  SCRATCH_ZPWORD2
+		lda  remainder+1
+		sta  SCRATCH_ZPWORD2+1
+
+		ldx  SCRATCH_ZPWORD1		; load division result in X/Y
+		ldy  SCRATCH_ZPWORD1+1
+
+		rts
+
 	}
 }
 

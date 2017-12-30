@@ -1723,9 +1723,9 @@ class CodeGenerator:
             if rvalue.datatype == DataType.FLOAT:
                 with self.preserving_registers({'A', 'X', 'Y'}, loads_a_within=True):
                     self.p("\t\tlda  #<" + r_str)
-                    self.p("\t\tsta  c64.SCRATCH_ZPWORD")
+                    self.p("\t\tsta  c64.SCRATCH_ZPWORD1")
                     self.p("\t\tlda  #>" + r_str)
-                    self.p("\t\tsta  c64.SCRATCH_ZPWORD+1")
+                    self.p("\t\tsta  c64.SCRATCH_ZPWORD1+1")
                     self.p("\t\tldx  #<" + l_str)
                     self.p("\t\tldy  #>" + l_str)
                     self.p("\t\tjsr  c64_lib.copy_mflt")

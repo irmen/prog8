@@ -12,7 +12,8 @@ output raw
 ~ c64 {
 		memory  .byte  SCRATCH_ZP1	= $02		; scratch register #1 in ZP
 		memory  .byte  SCRATCH_ZP2	= $03		; scratch register #2 in ZP
-		memory  .word  SCRATCH_ZPWORD	= $fd		; scratch word in ZP ($fd/$fe)
+		memory  .word  SCRATCH_ZPWORD1	= $fb		; scratch word in ZP ($fb/$fc)
+		memory  .word  SCRATCH_ZPWORD2	= $fd		; scratch word in ZP ($fd/$fe)
 
 		memory  .byte COLOR	= $0286		; cursor color
 		memory  .word CINV	= $0314		; IRQ vector
@@ -717,25 +718,25 @@ sub  input_chars  (buffer: AX) -> (A?, Y)  {
 	asm  {
 
 ; ---- copy a 5 byte MFLT floating point variable to another place
-;      input: X/Y = source address,  SCRATCH_ZPWORD = destination address
+;      input: X/Y = source address,  SCRATCH_ZPWORD1 = destination address
 copy_mflt	stx  c64.SCRATCH_ZP1
-		sty  c64.SCRATCH_ZPWORD+1
+		sty  c64.SCRATCH_ZPWORD1+1
 		ldy  #0
 		lda  (c64.SCRATCH_ZP1),y
-		sta  (c64.SCRATCH_ZPWORD),y
+		sta  (c64.SCRATCH_ZPWORD1),y
 		iny
 		lda  (c64.SCRATCH_ZP1),y
-		sta  (c64.SCRATCH_ZPWORD),y
+		sta  (c64.SCRATCH_ZPWORD1),y
 		iny
 		lda  (c64.SCRATCH_ZP1),y
-		sta  (c64.SCRATCH_ZPWORD),y
+		sta  (c64.SCRATCH_ZPWORD1),y
 		iny
 		lda  (c64.SCRATCH_ZP1),y
-		sta  (c64.SCRATCH_ZPWORD),y
+		sta  (c64.SCRATCH_ZPWORD1),y
 		iny
 		lda  (c64.SCRATCH_ZP1),y
-		sta  (c64.SCRATCH_ZPWORD),y
-		ldy  c64.SCRATCH_ZPWORD+1
+		sta  (c64.SCRATCH_ZPWORD1),y
+		ldy  c64.SCRATCH_ZPWORD1+1
 		rts
 	}
 

@@ -86,7 +86,7 @@ The following 6502 hardware registers are directly accessible in your code (and 
 The zero page locations ``$02`` - ``$ff`` can be regarded as 254 other registers because
 they take less clock cycles to access and need fewer instruction bytes than access to other memory locations.
 Theoretically you can use all of them in your program but there are a few limitations:
-- the four locations ``$02``, ``$03``, ``$fd - $fe`` are reserved for internal use as scratch registers by IL65
+- several locations (``$02``, ``$03``, ``$fb - $fc``, ``$fd - $fe``) are reserved for internal use as scratch registers by IL65
 - most other addresses often are in use by the machine's operating system or kernal,
   and overwriting them can crash the machine. Your program must take over the entire
   system to be able to safely use all zero page locations.
@@ -99,7 +99,7 @@ For the Commodore-64 here is a list of free-to-use zero page locations even when
 ``$f7`` - ``$f8``;  ``$f9`` - ``$fa``;  ``$fb`` - ``$fc``;  ``$fd`` - ``$fe``
 
 The four reserved locations mentioned above are subtracted from this set, leaving you with
-five 1-byte and three 2-byte usable zero page registers.
+five 1-byte and two 2-byte usable zero page registers.
 IL65 knows about all this: it will use the above zero page locations to place its ZP variables in,
 until they're all used up. You can instruct it to treat your program as taking over the entire
 machine, in which case all of the zero page locations are suddenly available for variables.

@@ -208,7 +208,8 @@ class SubroutineDef(SymbolDefinition):
 class Zeropage:
     SCRATCH_B1 = 0x02
     SCRATCH_B2 = 0x03
-    SCRATCH_W1 = 0xfd     # $fd/$fe
+    SCRATCH_W1 = 0xfb     # $fb/$fc
+    SCRATCH_W2 = 0xfd     # $fd/$fe
 
     def __init__(self) -> None:
         self.unused_bytes = []  # type: List[int]
@@ -219,13 +220,14 @@ class Zeropage:
         if self._configured:
             raise SymbolError("cannot configure the ZP multiple times")
         if clobber_zp:
-            self.unused_bytes = list(range(0x04, 0x80)) + [0xfc, 0xff]
-            self.unused_words = list(range(0x80, 0xfc, 2))
+            self.unused_bytes = list(range(0x04, 0x80)) + [0xff]
+            self.unused_words = list(range(0x80, 0xfb, 2))
         else:
             # these are valid for the C-64 (when no RS232 I/O is performed):
-            # ($02, $03, $fd-$fe are reserved as scratch addresses for various routines)
+            # ($02, $03, $fb-$fc, $fd-$fe are reserved as scratch addresses for various routines)
             self.unused_bytes = [0x04, 0x05, 0x06, 0x2a, 0x52]  # 5 zp variables (1 byte each)
-            self.unused_words = [0xf7, 0xf9, 0xfb]  # 3 zp word variables (2 bytes each)
+            self.unused_words = [0xf7, 0xf9]  # 2 zp word variables (2 bytes each)
+        # @todo more clever allocating, don't have fixed bytes and words
         assert self.SCRATCH_B1 not in self.unused_bytes and self.SCRATCH_B1 not in self.unused_words
         assert self.SCRATCH_B2 not in self.unused_bytes and self.SCRATCH_B2 not in self.unused_words
         self._configured = True
