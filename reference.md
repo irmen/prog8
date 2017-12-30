@@ -106,6 +106,11 @@ machine, in which case all of the zero page locations are suddenly available for
 IL65 can generate a special routine that saves and restores the zero page to let your program run
 and return safely back to the system afterwards - you don't have to take care of that yourself.
 
+@todo some global way (in ZP block) to promote certian other blocks/variables from that block or even
+subroutine to the zeropage.  Don't do this in the block itself because it's a global optimization
+and if blocks require it themselves you can't combine various modules anymore once ZP runs out.
+  
+
 
 DATA TYPES
 ----------
@@ -361,8 +366,9 @@ that is translated into a comparison (if needed) and then a conditional branch i
  
         if[_XX] [<expression>] goto <label>
 
-The if-status XX is one of: [cc, cs, vc, vs, eq, ne, true, not, zero, lt, gt, le, ge]
-It defaults to 'true' (=='ne', not-zero) if omitted. @todo signed: pos, neg, lts==neg?, gts==eq+pos?, les==neg+eq?, ges==pos?
+The if-status XX is one of: [cc, cs, vc, vs, eq, ne, true, not, zero, pos, neg, lt, gt, le, ge]
+It defaults to 'true' (=='ne', not-zero) if omitted. ('pos' will translate into 'pl', 'neg' into 'mi') 
+@todo signed: lts==neg?, gts==eq+pos?, les==neg+eq?, ges==pos?
 
 The <expression> is optional. If it is provided, it will be evaluated first. Only the [true] and [not] and [zero] 
 if-statuses can be used when such a *comparison expression* is used. An example is:

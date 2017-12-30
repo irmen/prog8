@@ -13,7 +13,7 @@ import datetime
 import subprocess
 import contextlib
 from functools import partial
-from typing import TextIO, Set, Union, List, Tuple, Callable
+from typing import TextIO, Set, Union, List, Callable
 from .parse import ProgramFormat, ParseResult, Parser
 from .symbols import Zeropage, DataType, ConstantDef, VariableDef, SubroutineDef, \
     STRING_DATATYPES, REGISTER_WORDS, REGISTER_BYTES, FLOAT_MAX_NEGATIVE, FLOAT_MAX_POSITIVE
@@ -127,6 +127,7 @@ class CodeGenerator:
         must_save_zp = self.parsed.clobberzp and self.parsed.restorezp
         if must_save_zp:
             self.p("\t\tjsr  il65_lib_zp.save_zeropage")
+        zp_float_bytes = {}
         # Only the vars from the ZeroPage need to be initialized here,
         # the vars in all other blocks are just defined and pre-filled there.
         zpblocks = [b for b in self.parsed.blocks if b.name == "ZP"]
@@ -157,7 +158,16 @@ class CodeGenerator:
                         self.p("\t\tsta  {:s}".format(vname))
                         self.p("\t\tstx  {:s}+1".format(vname))
                     elif variable.type == DataType.FLOAT:
-                        raise CodeError("floats cannot be stored in the zp")
+                        bytes = self.to_mflpt5(vvalue)   # type: ignore
+                        zp_float_bytes[variable.name] = (vname, bytes, vvalue)
+                if zp_float_bytes:
+                    self.p("\t\tldx  #4")
+                    self.p("-")
+                    for varname, (vname, b, fv) in zp_float_bytes.items():
+                        self.p("\t\tlda  _float_bytes_{:s},x".format(varname))
+                        self.p("\t\tsta  {:s},x".format(vname))
+                    self.p("\t\tdex")
+                    self.p("\t\tbpl  -")
                 self.p("; end init zp vars")
             else:
                 self.p("\t\t; there are no zp vars to initialize")
@@ -170,6 +180,10 @@ class CodeGenerator:
             self.p("\t\tjmp  il65_lib_zp.restore_zeropage")
         else:
             self.p("\t\tjmp  {:s}.start\t\t; call user code".format(main_block_label))
+        self.p("")
+        for varname, (vname, bytes, fpvalue) in zp_float_bytes.items():
+            self.p("_float_bytes_{:s}\t\t.byte  ${:02x}, ${:02x}, ${:02x}, ${:02x}, ${:02x}\t; {}".format(varname, *bytes, fpvalue))
+        self.p("\n")
 
     def blocks(self) -> None:
         # if there's a <header> block, it always goes second
@@ -634,6 +648,10 @@ class CodeGenerator:
                     self.p("\t\tbeq  " + targetstr)
                 elif ifs in ("cc", "cs", "vc", "vs", "eq", "ne"):
                     self.p("\t\tb{:s}  {:s}".format(ifs, targetstr))
+                elif ifs == "pos":
+                    self.p("\t\tbpl  " + targetstr)
+                elif ifs == "neg":
+                    self.p("\t\tbmi  " + targetstr)
                 elif ifs == "lt":
                     self.p("\t\tbcc  " + targetstr)
                 elif ifs == "gt":
@@ -1463,19 +1481,18 @@ class CodeGenerator:
             raise CodeError("invalid assignment value type", str(stmt))
 
     def generate_assign_float_to_mem(self, mmv: ParseResult.MemMappedValue,
-                                     rvalue: Union[ParseResult.FloatValue, ParseResult.IntegerValue], save_reg: bool=True) -> None:
+                                     rvalue: Union[ParseResult.FloatValue, ParseResult.IntegerValue]) -> None:
         floatvalue = float(rvalue.value)
         mflpt = self.to_mflpt5(floatvalue)
         target = mmv.name or Parser.to_hex(mmv.address)
-        if save_reg:
-            self.p("\t\tpha\t\t\t; {:s} = {}".format(target, rvalue.name or floatvalue))
-        else:
-            self.p("\t\t\t\t\t; {:s} = {}".format(target, rvalue.name or floatvalue))
-        for num in range(5):
-            self.p("\t\tlda  #${:02x}".format(mflpt[num]))
-            self.p("\t\tsta  {:s}+{:d}".format(target, num))
-        if save_reg:
-            self.p("\t\tpla")
+        self.p("\t\tpha\t\t\t; {:s} = {}".format(target, rvalue.name or floatvalue))
+        a_reg_value = None
+        for i, byte in enumerate(mflpt):
+            if byte != a_reg_value:
+                self.p("\t\tlda  #${:02x}".format(byte))
+                a_reg_value = byte
+            self.p("\t\tsta  {:s}+{:d}".format(target, i))
+        self.p("\t\tpla")
 
     def generate_assign_reg_to_memory(self, lv: ParseResult.MemMappedValue, r_register: str) -> None:
         # Memory = Register
@@ -1680,7 +1697,7 @@ class CodeGenerator:
         elif lvdatatype == DataType.FLOAT:
             if rvalue.value is not None and not DataType.FLOAT.assignable_from_value(rvalue.value):
                 raise CodeError("value cannot be assigned to a float")
-            self.generate_assign_float_to_mem(lv, rvalue, False)
+            self.generate_assign_float_to_mem(lv, rvalue)
         else:
             raise CodeError("invalid lvalue type " + str(lvdatatype))
 

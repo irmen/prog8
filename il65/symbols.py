@@ -212,39 +212,56 @@ class Zeropage:
     SCRATCH_W2 = 0xfd     # $fd/$fe
 
     def __init__(self) -> None:
-        self.unused_bytes = []  # type: List[int]
-        self.unused_words = []  # type: List[int]
+        self.free = []  # type: List[int]
+        self.allocations = {}   # type: Dict[int, Tuple[str, DataType]]
         self._configured = False
 
     def configure(self, clobber_zp: bool = False) -> None:
         if self._configured:
             raise SymbolError("cannot configure the ZP multiple times")
         if clobber_zp:
-            self.unused_bytes = list(range(0x04, 0x80)) + [0xff]
-            self.unused_words = list(range(0x80, 0xfb, 2))
+            self.free = list(range(0x04, 0xfb)) + [0xff]
         else:
             # these are valid for the C-64 (when no RS232 I/O is performed):
             # ($02, $03, $fb-$fc, $fd-$fe are reserved as scratch addresses for various routines)
-            self.unused_bytes = [0x04, 0x05, 0x06, 0x2a, 0x52]  # 5 zp variables (1 byte each)
-            self.unused_words = [0xf7, 0xf9]  # 2 zp word variables (2 bytes each)
-        # @todo more clever allocating, don't have fixed bytes and words
-        assert self.SCRATCH_B1 not in self.unused_bytes and self.SCRATCH_B1 not in self.unused_words
-        assert self.SCRATCH_B2 not in self.unused_bytes and self.SCRATCH_B2 not in self.unused_words
+            self.free = [0x04, 0x05, 0x06, 0x2a, 0x52, 0xf7, 0xf8, 0xf9, 0xfa]
+        assert self.SCRATCH_B1 not in self.free
+        assert self.SCRATCH_B2 not in self.free
+        assert self.SCRATCH_W1 not in self.free
+        assert self.SCRATCH_W2 not in self.free
         self._configured = True
 
-    def get_unused_byte(self):
-        return self.unused_bytes.pop()
+    def allocate(self, name: str, datatype: DataType) -> int:
+        assert self._configured
+        size = {
+            DataType.BYTE: 1,
+            DataType.WORD: 2,
+            DataType.FLOAT: 5
+        }[datatype]
 
-    def get_unused_word(self):
-        return self.unused_words.pop()
+        def sequential(loc: int) -> bool:
+            for i in range(size):
+                if loc+i not in self.free:
+                    return False
+            return True
 
-    @property
-    def available_byte_vars(self) -> int:
-        return len(self.unused_bytes)
+        if len(self.free) > 0:
+            if size == 1:
+                assert not name or name not in {a[0] for a in self.allocations.values()}
+                loc = self.free.pop()
+                self.allocations[loc] = (name or "<unnamed>", datatype)
+                return loc
+            for candidate in range(min(self.free), max(self.free)+1):
+                if sequential(candidate):
+                    assert not name or name not in {a[0] for a in self.allocations.values()}
+                    for loc in range(candidate, candidate+size):
+                        self.free.remove(loc)
+                    self.allocations[candidate] = (name or "<unnamed>", datatype)
+                    return candidate
+        raise LookupError("no more free space in ZP to allocate {:d} sequential bytes".format(size))
 
-    @property
-    def available_word_vars(self) -> int:
-        return len(self.unused_words)
+    def available(self) -> int:
+        return len(self.free)
 
 
 class SymbolTable:
@@ -368,22 +385,25 @@ class SymbolTable:
         if datatype == DataType.BYTE:
             if allocate and self.name == "ZP":
                 try:
-                    address = self._zeropage.get_unused_byte()
+                    address = self._zeropage.allocate(name, datatype)
                 except LookupError:
-                    raise SymbolError("no space in ZP left for more global 8-bit variables (try zp clobber)")
+                    raise SymbolError("no space in ZP left for global 8-bit variable (try zp clobber)")
             self.symbols[name] = VariableDef(self.name, name, sourceref, DataType.BYTE, allocate,
                                              value=value, length=1, address=address)
         elif datatype == DataType.WORD:
             if allocate and self.name == "ZP":
                 try:
-                    address = self._zeropage.get_unused_word()
+                    address = self._zeropage.allocate(name, datatype)
                 except LookupError:
-                    raise SymbolError("no space in ZP left for more global 16-bit variables (try zp clobber)")
+                    raise SymbolError("no space in ZP left for global 16-bit word variable (try zp clobber)")
             self.symbols[name] = VariableDef(self.name, name, sourceref, DataType.WORD, allocate,
                                              value=value, length=1, address=address)
         elif datatype == DataType.FLOAT:
             if allocate and self.name == "ZP":
-                raise SymbolError("floats cannot be stored in the ZP")
+                try:
+                    address = self._zeropage.allocate(name, datatype)
+                except LookupError:
+                    raise SymbolError("no space in ZP left for global 5-byte MFLT float variable (try zp clobber)")
             self.symbols[name] = VariableDef(self.name, name, sourceref, DataType.FLOAT, allocate,
                                              value=value, length=1, address=address)
         elif datatype == DataType.BYTEARRAY:

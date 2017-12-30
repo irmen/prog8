@@ -508,7 +508,7 @@ class ParseResult:
                             ">=": "<=",
                             "<": ">",
                             ">": "<"}
-        IF_STATUSES = {"cc", "cs", "vc", "vs", "eq", "ne", "true", "not", "zero", "lt", "gt", "le", "ge"}
+        IF_STATUSES = {"cc", "cs", "vc", "vs", "eq", "ne", "true", "not", "zero", "pos", "neg", "lt", "gt", "le", "ge"}
 
         def __init__(self, ifstatus: str, leftvalue: Optional['ParseResult.Value'],
                      operator: str, rightvalue: Optional['ParseResult.Value'], lineno: int) -> None:

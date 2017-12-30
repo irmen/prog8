@@ -15,8 +15,15 @@ import "c64lib"
 
 ~ ZP $0004 {
 	var    zpvar1
+	var    zpvar2
 	memory zpmem1   = $f0
 	const  zpconst  = 1.234
+	var     .word   zpvarw1
+	var     .word   zpvarw2
+	var     .float  zpvarflt1  = 11.11
+	var     .float  zpvarflt2  = 22.22
+	var     .float  zpvarflt3
+
 }
 
 ~ ZP {
