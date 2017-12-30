@@ -472,12 +472,29 @@ class ParseResult:
                 if not assignment.is_identity():
                     assignment.lineno = self.lineno
                     self.desugared_call_arguments.append(assignment)
-            for register, value in self.outputvars or []:
-                rvalue = parser.parse_expression(register)
-                assignment = ParseResult.AssignmentStmt([value], rvalue, self.lineno)
-                # note: we need the identity assignment here or the output register handling generates buggy code
-                assignment.lineno = self.lineno
-                self.desugared_output_assignments.append(assignment)
+            if all(not isinstance(v, ParseResult.RegisterValue) for r, v in self.outputvars or []):
+                # if none of the output variables are registers, we can simply generate the assignments without issues
+                for register, value in self.outputvars or []:
+                    rvalue = parser.parse_expression(register)
+                    assignment = ParseResult.AssignmentStmt([value], rvalue, self.lineno)
+                    assignment.lineno = self.lineno
+                    self.desugared_output_assignments.append(assignment)
+            else:
+                result_reg_mapping = [(register, value.register, value) for register, value in self.outputvars or []
+                                      if isinstance(value, ParseResult.RegisterValue)]
+                if any(r[0] != r[1] for r in result_reg_mapping):
+                    # not all result parameter registers line up with the correct order of registers in the statement,
+                    # reshuffling call results is not supported yet.
+                    raise parser.PError("result registers and/or their ordering is not the same as in the "
+                                        "subroutine definition, this isn't supported yet")
+                else:
+                    # no register alignment issues, just generate the assignments
+                    # note: do not remove the identity assignment here or the output register handling generates buggy code
+                    for register, value in self.outputvars or []:
+                        rvalue = parser.parse_expression(register)
+                        assignment = ParseResult.AssignmentStmt([value], rvalue, self.lineno)
+                        assignment.lineno = self.lineno
+                        self.desugared_output_assignments.append(assignment)
 
     class InlineAsm(_AstNode):
         def __init__(self, asmlines: List[str], lineno: int) -> None:
@@ -552,8 +569,8 @@ class ParseResult:
 
 
 class Parser:
-    def __init__(self, filename: str, outputdir: str, sourcelines: List[Tuple[int, str]] = None, parsing_import: bool = False,
-                 ppsymbols: SymbolTable = None, sub_usage: Dict=None) -> None:
+    def __init__(self, filename: str, outputdir: str, existing_imports: Set[str], parsing_import: bool = False,
+                 sourcelines: List[Tuple[int, str]] = None, ppsymbols: SymbolTable = None, sub_usage: Dict=None) -> None:
         self.result = ParseResult(filename)
         if sub_usage is not None:
             # re-use the (global) subroutine usage tracking
@@ -571,6 +588,7 @@ class Parser:
         self.root_scope.set_zeropage(self.result.zeropage)
         self.ppsymbols = ppsymbols  # symboltable from preprocess phase
         self.print_block_parsing = True
+        self.existing_imports = existing_imports
 
     def load_source(self, filename: str) -> List[Tuple[int, str]]:
         with open(filename, "rU") as source:
@@ -624,6 +642,7 @@ class Parser:
     def parse_file(self) -> ParseResult:
         print("\nparsing", self.sourceref.file)
         self._parse_1()
+        self._parse_import_file("il65lib")      # compiler support library is always imported.
         self._parse_2()
         return self.result
 
@@ -658,7 +677,7 @@ class Parser:
                 block = self.parse_block()
                 if block:
                     self.result.add_block(block)
-            elif next_line.startswith("import"):
+            elif next_line.startswith(("import ", "import\t")):
                 self.parse_import()
             else:
                 break
@@ -861,7 +880,7 @@ class Parser:
     def parse_import(self) -> None:
         line = self.next_line()
         line = line.lstrip()
-        if not line.startswith("import"):
+        if not line.startswith(("import ", "import\t")):
             raise self.PError("expected import")
         try:
             _, arg = line.split(maxsplit=1)
@@ -872,6 +891,9 @@ class Parser:
         filename = arg[1:-1]
         if not filename:
             raise self.PError("invalid filename")
+        self._parse_import_file(filename)
+
+    def _parse_import_file(self, filename: str) -> None:
         filename_at_source_location = os.path.join(os.path.split(self.sourceref.file)[0], filename)
         filename_at_libs_location = os.path.join(os.getcwd(), "lib", filename)
         candidates = [filename,
@@ -882,10 +904,12 @@ class Parser:
                       filename_at_libs_location+".ill"]
         for filename in candidates:
             if os.path.isfile(filename):
-                print("importing", filename)
+                if not self.check_import_okay(filename):
+                    return
+                self.print_import_progress("importing", filename)
                 parser = self.create_import_parser(filename, self.outputdir)
                 result = parser.parse()
-                print("\ncontinuing", self.sourceref.file)
+                self.print_import_progress("\ncontinuing", self.sourceref.file)
                 if result:
                     # merge the symbol table of the imported file into our own
                     try:
@@ -898,8 +922,11 @@ class Parser:
                     raise self.PError("Error while parsing imported file")
         raise self.PError("imported file not found")
 
+    def print_import_progress(self, message: str, *args: str) -> None:
+        print(message, *args)
+
     def create_import_parser(self, filename: str, outputdir: str) -> 'Parser':
-        return Parser(filename, outputdir, parsing_import=True, ppsymbols=self.ppsymbols, sub_usage=self.result.subroutine_usage)
+        return Parser(filename, outputdir, self.existing_imports, True, ppsymbols=self.ppsymbols, sub_usage=self.result.subroutine_usage)
 
     def parse_block(self) -> Optional[ParseResult.Block]:
         # first line contains block header "~ [name] [addr]" followed by a '{'
@@ -1276,7 +1303,7 @@ class Parser:
             raise self.PError("all call arguments should have a name or be matched on a named parameter")
         if isinstance(target, (type(None), ParseResult.Value)):
             # special case for the C-64 lib's print function, to be able to use it with a single character argument
-            if target.name == "c64util.print_string" and len(arguments) == 1 and len(arguments[0][0]) > 1:
+            if target.name == "c64util.print_string" and len(arguments) == 1 and isinstance(arguments[0], str):
                 if arguments[0][1].startswith("'") and arguments[0][1].endswith("'"):
                     target = self.parse_expression("c64.CHROUT")
                     address = target.address
@@ -1662,6 +1689,14 @@ class Parser:
             self.print_warning("if_not condition inverted to if")
         return result
 
+    def check_import_okay(self, filename: str) -> bool:
+        if filename == self.sourceref.file and not filename.endswith("il65lib.ill"):
+            raise self.PError("can't import itself")
+        if filename in self.existing_imports:
+            return False
+        self.existing_imports.add(filename)
+        return True
+
 
 class Optimizer:
     def __init__(self, parseresult: ParseResult) -> None:
@@ -1765,8 +1800,7 @@ class Optimizer:
                 block.symbols.discard_sub(sub.name)
                 discarded.append(sub.name)
         if discarded:
-            print("{}: discarded unused subroutines from block '{:s}':  ".format(block.sourceref, block.name), end="")
-            print(",  ".join(discarded))
+            print("{}: discarded {:d} unused subroutines from block '{:s}'".format(block.sourceref, len(discarded), block.name))
 
 
 def _value_sortkey(value: ParseResult.Value) -> int:

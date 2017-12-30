@@ -6,14 +6,14 @@ Written by Irmen de Jong (irmen@razorvine.net)
 License: GNU GPL 3.0, see LICENSE
 """
 
-from typing import List, Tuple
+from typing import List, Tuple, Set
 from .parse import Parser, ParseResult, SymbolTable, SymbolDefinition
 from .symbols import SourceRef
 
 
 class PreprocessingParser(Parser):
-    def __init__(self, filename: str, parsing_import: bool=False) -> None:
-        super().__init__(filename, "", parsing_import=parsing_import)
+    def __init__(self, filename: str, existing_imports: Set[str], parsing_import: bool=False) -> None:
+        super().__init__(filename, "", existing_imports=existing_imports, parsing_import=parsing_import)
         self.print_block_parsing = False
 
     def preprocess(self) -> Tuple[List[Tuple[int, str]], SymbolTable]:
@@ -37,7 +37,7 @@ class PreprocessingParser(Parser):
         return lines
 
     def parse_file(self) -> ParseResult:
-        print("\npreprocessing", self.sourceref.file)
+        print("preprocessing", self.sourceref.file)
         self._parse_1()
         return self.result
 
@@ -63,4 +63,7 @@ class PreprocessingParser(Parser):
         super().parse_subroutine_def(line)
 
     def create_import_parser(self, filename: str, outputdir: str) -> 'Parser':
-        return PreprocessingParser(filename, parsing_import=True)
+        return PreprocessingParser(filename, parsing_import=True, existing_imports=self.existing_imports)
+
+    def print_import_progress(self, message: str, *args: str) -> None:
+        pass

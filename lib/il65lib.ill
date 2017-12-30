@@ -1,0 +1,88 @@
+; IL65 internal library routines
+;
+; Written by Irmen de Jong (irmen@razorvine.net)
+; License: GNU GPL 3.0, see LICENSE
+;
+; indent format: TABS, size=8
+
+output raw
+
+~ il65_lib_zp {
+; note: separate block so the 64tass assembler can remove this when no zp restore is required
+
+	asm {
+
+; ---- store the Zeropage in a backup area
+save_zeropage
+		sei
+		ldx  #2
+-		lda  $00,x
+		sta  zp_backup-2,x
+		inx
+		bne  -
+		rts
+
+restore_zeropage
+		php
+		pha
+		txa
+		pha
+		sei
+		ldx  #2
+-		lda  zp_backup-2,x
+		sta  $00,x
+		inx
+		bne  -
+		cli
+		pla
+		tax
+		pla
+		plp
+		rts
+
+zp_backup	.fill  254, 0
+
+	}
+}
+
+
+~ il65_lib {
+		; note: the following two ZP scratch registers must be the same as in c64lib
+		memory  SCRATCH_ZP1	= $02		; scratch register #1 in ZP
+		memory  SCRATCH_ZP2	= $03		; scratch register #2 in ZP
+
+
+	asm {
+
+; ---- jmp (indirect) routines for register pairs containing the indirect address
+jsr_indirect_nozpuse_AX
+		sta  jsr_indirect_tmp
+		stx  jsr_indirect_tmp+1
+		jmp  (jsr_indirect_tmp)
+jsr_indirect_nozpuse_AY
+		sta  jsr_indirect_tmp
+		sty  jsr_indirect_tmp+1
+		jmp  (jsr_indirect_tmp)
+jsr_indirect_nozpuse_XY
+		stx  jsr_indirect_tmp
+		sty  jsr_indirect_tmp+1
+		jmp  (jsr_indirect_tmp)
+jsr_indirect_tmp
+		.byte 0, 0
+
+
+jsr_indirect_AX
+		sta  SCRATCH_ZP1
+		stx  SCRATCH_ZP2
+		jmp  (SCRATCH_ZP1)
+jsr_indirect_AY
+		sta  SCRATCH_ZP1
+		sty  SCRATCH_ZP2
+		jmp  (SCRATCH_ZP1)
+jsr_indirect_XY
+		stx  SCRATCH_ZP1
+		sty  SCRATCH_ZP2
+		jmp  (SCRATCH_ZP1)
+
+	}
+}

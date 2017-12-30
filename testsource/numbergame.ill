@@ -1,5 +1,5 @@
 output prg,basic
-;reg_preserve off         ; @todo global option
+;reg_preserve off         ; @todo global option  off/on   default off?
 
 import "c64lib"
 
@@ -13,70 +13,6 @@ import "c64lib"
 
 start
         c64util.init_system()
-
-
-        XY = $0401
-        c64util.print_word_decimal(XY)
-        c64.CHROUT('\n')
-        XY--
-        c64util.print_word_decimal(XY)
-        c64.CHROUT('\n')
-        XY--
-        c64util.print_word_decimal(XY)
-        c64.CHROUT('\n')
-
-        AX = $0401
-        c64util.print_word_decimal(AX)
-        c64.CHROUT('\n')
-        AX--
-        c64util.print_word_decimal(AX)
-        c64.CHROUT('\n')
-        AX--
-        c64util.print_word_decimal(AX)
-        c64.CHROUT('\n')
-
-        AY = $0401
-        c64util.print_word_decimal(AY)
-        c64.CHROUT('\n')
-        AY--
-        c64util.print_word_decimal(AY)
-        c64.CHROUT('\n')
-        AY--
-        c64util.print_word_decimal(AY)
-        c64.CHROUT('\n')
-        c64.CHROUT('\n')
-
-        XY = $03ff
-        c64util.print_word_decimal(XY)
-        c64.CHROUT('\n')
-        XY++
-        c64util.print_word_decimal(XY)
-        c64.CHROUT('\n')
-        XY++
-        c64util.print_word_decimal(XY)
-        c64.CHROUT('\n')
-
-        AX = $03ff
-        c64util.print_word_decimal(AX)
-        c64.CHROUT('\n')
-        AX++
-        c64util.print_word_decimal(AX)
-        c64.CHROUT('\n')
-        AX++
-        c64util.print_word_decimal(AX)
-        c64.CHROUT('\n')
-
-        AY = $03ff
-        c64util.print_word_decimal(AY)
-        c64.CHROUT('\n')
-        AY++
-        c64util.print_word_decimal(AY)
-        c64.CHROUT('\n')
-        AY++
-        c64util.print_word_decimal(AY)
-        c64.CHROUT('\n')
-        c64.CHROUT('\n')
-
 
         A = c64.VMCSB
         A |= 2                  ;  @todo c64.VMCSB |= 2
@@ -115,7 +51,7 @@ printloop
         c64util.print_string("es")
 ask_guess
         c64util.print_string(" left.\nWhat is your next guess? ")
-        A = c64util.input_chars(guess)
+        Y = c64util.input_chars(guess)
         c64.CHROUT('\n')
         [$22.word] = guess
         c64.FREADSTR(A)

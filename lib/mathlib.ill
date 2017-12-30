@@ -1,6 +1,8 @@
 ; IL65 integer math library for 6502
 ; (floating point math is done via the C-64's BASIC ROM routines)
 ;
+;  some more interesting routines can be found here http://6502org.wikidot.com/software-math
+;
 ; Written by Irmen de Jong (irmen@razorvine.net)
 ; License: GNU GPL 3.0, see LICENSE
 ;
@@ -10,9 +12,79 @@
 output raw
 
 ~ math {
+		; note: the following two ZP scratch registers must be the same as in c64lib
+		memory  SCRATCH_ZP1	= $02		; scratch register #1 in ZP
+		memory  SCRATCH_ZP2	= $03		; scratch register #2 in ZP
 
 
-; @todo some interesting routines can be found here http://6502org.wikidot.com/software-math
 
+sub  multiply_bytes  (byte1: X, byte2: Y) -> (A, X?)  {
+	; ---- multiply 2 bytes, result as byte in A  (signed or unsigned)
+	asm {
+		stx  SCRATCH_ZP1
+		sty  SCRATCH_ZP2
+		ldx  #8
+-               asl  a
+		asl  SCRATCH_ZP1
+		bcc  +
+		clc
+		adc  SCRATCH_ZP2
++               dex
+		bne  -
+		rts
+	}
+}
+
+
+sub  multiply_bytes_16  (byte1: X, byte2: Y) -> (A?, XY)  {
+	; ---- multiply 2 bytes, result as word in X/Y (unsigned)
+	asm {
+		lda  #0
+_m_with_add	stx  SCRATCH_ZP1
+		sty  SCRATCH_ZP2
+		ldx  #8
+		lsr  SCRATCH_ZP1
+-               bcc  +
+		clc
+		adc  SCRATCH_ZP2
++               ror  a
+		ror  SCRATCH_ZP1
+		dex
+		bne  -
+		tay
+		ldx  SCRATCH_ZP1
+		rts
+	}
+}
+
+
+sub  multiply_bytes_addA_16  (byte1: X, byte2: Y, add: A) -> (A?, XY)  {
+	; ---- multiply 2 bytes and add A, result as word in X/Y (unsigned)
+	asm {
+		jmp  multiply_bytes_16._m_with_add
+	}
+}
+
+
+sub  divide_bytes  (numerator: X, denominator: Y) -> (X, A)  {
+	; ---- divide X by Y, result quotient in X, remainder in A   (unsigned)
+	;      division by zero will result in quotient = 255 and remainder = original number
+	asm {
+		stx  SCRATCH_ZP1
+		sty  SCRATCH_ZP2
+		lda  #0
+		ldx  #8
+		asl  SCRATCH_ZP1
+-		rol  a
+		cmp  SCRATCH_ZP2
+		bcc  +
+		sbc  SCRATCH_ZP2
++		rol  SCRATCH_ZP1
+		dex
+		bne  -
+		ldx  SCRATCH_ZP1
+		rts
+	}
+}
 
 }

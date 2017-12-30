@@ -126,14 +126,7 @@ class CodeGenerator:
     def initialize_variables(self) -> None:
         must_save_zp = self.parsed.clobberzp and self.parsed.restorezp
         if must_save_zp:
-            self.p("; save zp")
-            self.p("\t\tsei")
-            self.p("\t\tldx  #2")
-            self.p("-\t\tlda  $00,x")
-            self.p("\t\tsta  _il65_zp_backup-2,x")
-            self.p("\t\tinx")
-            self.p("\t\tbne  -")
-
+            self.p("\t\tjsr  il65_lib_zp.save_zeropage")
         # Only the vars from the ZeroPage need to be initialized here,
         # the vars in all other blocks are just defined and pre-filled there.
         zpblocks = [b for b in self.parsed.blocks if b.name == "ZP"]
@@ -173,17 +166,8 @@ class CodeGenerator:
         main_block_label = [b.label for b in self.parsed.blocks if b.name == "main"][0]
         if must_save_zp:
             self.p("\t\tjsr  {:s}.start\t\t; call user code".format(main_block_label))
-            self.p("; restore zp")
             self.p("\t\tcld")
-            self.p("\t\tphp\n\t\tpha\n\t\ttxa\n\t\tpha\n\t\tsei")
-            self.p("\t\tldx  #2")
-            self.p("-\t\tlda  _il65_zp_backup-2,x")
-            self.p("\t\tsta  $00,x")
-            self.p("\t\tinx")
-            self.p("\t\tbne  -")
-            self.p("\t\tcli\n\t\tpla\n\t\ttax\n\t\tpla\n\t\tplp")
-            self.p("\t\trts")
-            self.p("_il65_zp_backup\t\t.fill  254, 0")
+            self.p("\t\tjmp  il65_lib_zp.restore_zeropage")
         else:
             self.p("\t\tjmp  {:s}.start\t\t; call user code".format(main_block_label))
 
@@ -532,6 +516,7 @@ class CodeGenerator:
                     self.p("\t\tpla")
             elif what.datatype == DataType.WORD:
                 if stmt.howmuch == 1:
+                    # mem.word +=/-= 1
                     if is_incr:
                         self.p("\t\tinc  " + r_str)
                         self.p("\t\tbne  +")
@@ -545,7 +530,25 @@ class CodeGenerator:
                         self.p("+\t\tdec  " + r_str)
                         self.p("\t\tpla")
                 else:
-                    raise CodeError("cannot yet incr/decr 16 bit memory by more than 1")   # @todo 16-bit incr/decr
+                    # mem.word +=/-= 2..255
+                    if is_incr:
+                        self.p("\t\tpha")
+                        self.p("\t\tclc")
+                        self.p("\t\tlda  " + r_str)
+                        self.p("\t\tadc  #{:d}".format(stmt.howmuch))
+                        self.p("\t\tsta  " + r_str)
+                        self.p("\t\tbcc  +")
+                        self.p("\t\tinc  {:s}+1".format(r_str))
+                        self.p("+\t\tpla")
+                    else:
+                        self.p("\t\tpha")
+                        self.p("\t\tsec")
+                        self.p("\t\tlda  " + r_str)
+                        self.p("\t\tsbc  #{:d}".format(stmt.howmuch))
+                        self.p("\t\tsta  " + r_str)
+                        self.p("\t\tbcs  +")
+                        self.p("\t\tdec  {:s}+1".format(r_str))
+                        self.p("+\t\tpla")
             else:
                 raise CodeError("cannot in/decrement memory of type " + str(what.datatype))
         else:
@@ -718,13 +721,23 @@ class CodeGenerator:
                 self.p(line_after_branch)
 
         def branch_emitter_indirect_cond(targetstr: str, is_goto: bool, target_indirect: bool) -> None:
-            print("EMIT", stmt.target, stmt.condition, is_goto, target_indirect)
             assert is_goto and not stmt.condition.comparison_op
             assert stmt.condition.lvalue and not stmt.condition.rvalue
             assert stmt.condition.ifstatus in ("true", "not", "zero")
+            assert not target_indirect
             cv = stmt.condition.lvalue.value   # type: ignore
             if isinstance(cv, ParseResult.RegisterValue):
-                raise CodeError("indirect registers not yet supported")    # @todo indirect reg
+                branch = "bne" if stmt.condition.ifstatus == "true" else "beq"
+                self.p("\t\tsta  " + Parser.to_hex(Zeropage.SCRATCH_B1))  # need to save A, because the goto may not be taken
+                if cv.register in REGISTER_BYTES:
+                    self.p("\t\tst{:s}  *+2\t; self-modify".format(cv.register.lower()))
+                    self.p("\t\tlda  $ff")
+                else:
+                    self.p("\t\tst{:s}  (+)+1\t; self-modify".format(cv.register[0].lower()))
+                    self.p("\t\tst{:s}  (+)+2\t; self-modify".format(cv.register[1].lower()))
+                    self.p("+\t\tlda  $ffff")
+                self.p("\t\t{:s}  {:s}".format(branch, targetstr))
+                self.p("\t\tlda  " + Parser.to_hex(Zeropage.SCRATCH_B1))  # restore A
             elif isinstance(cv, ParseResult.MemMappedValue):
                 raise CodeError("memmapped indirect should not occur, use the variable without indirection")
             elif isinstance(cv, ParseResult.IntegerValue) and cv.constant:
@@ -917,27 +930,15 @@ class CodeGenerator:
                 unclobber_result_registers(preserve_regs, stmt.desugared_output_assignments)
                 with self.preserving_registers(preserve_regs, loads_a_within=params_load_a()):
                     generate_param_assignments()
-                    # @todo optimize this with RTS_trick? https://wiki.nesdev.com/w/index.php/6502_assembly_optimisations#Use_Jump_tables_with_RTS_instruction_instead_of_JMP_indirect_instruction
                     if targetstr in REGISTER_WORDS:
+                        print("warning: {:s}:{:d}: indirect register pair call is quite inefficient, use a jump table in memory instead?"
+                              .format(self.cur_block.sourceref.file, stmt.lineno))
                         if stmt.preserve_regs:
-                            # cannot use zp scratch. This is very inefficient code!
-                            print("warning: {:s}:{:d}: indirect register pair call, this is very inefficient"
-                                  .format(self.cur_block.sourceref.file, stmt.lineno))
-                            self.p("\t\tst{:s}  ++".format(targetstr[0].lower()))
-                            self.p("\t\tst{:s}  +++".format(targetstr[1].lower()))
-                            self.p("\t\tjsr  +")
-                            self.p("\t\tjmp  ++++")
-                            self.p("+\t\tjmp  (+)")
-                            self.p("+\t\t.byte  0\t; lo")
-                            self.p("+\t\t.byte  0\t; hi")
-                            self.p("+")
+                            # cannot use zp scratch because it may be used by the register backup. This is very inefficient code!
+                            self.p("\t\tjsr  il65_lib.jsr_indirect_nozpuse_"+targetstr)
+
                         else:
-                            self.p("\t\tst{:s}  {:s}".format(targetstr[0].lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
-                            self.p("\t\tst{:s}  {:s}".format(targetstr[1].lower(), Parser.to_hex(Zeropage.SCRATCH_B2)))
-                            self.p("\t\tjsr  +")
-                            self.p("\t\tjmp  ++")
-                            self.p("+\t\tjmp  ({:s})".format(Parser.to_hex(Zeropage.SCRATCH_B1)))
-                            self.p("+")
+                            self.p("\t\tjsr  il65_lib.jsr_indirect_"+targetstr)
                     else:
                         self.p("\t\tjsr  +")
                         self.p("\t\tjmp  ++")
@@ -1720,17 +1721,14 @@ class CodeGenerator:
                 raise CodeError("can only assign a byte or word to a word", str(rvalue))
         elif lv.datatype == DataType.FLOAT:
             if rvalue.datatype == DataType.FLOAT:
-                with self.preserving_registers({'A'}, loads_a_within=True):
-                    self.p("\t\tlda  " + r_str)
-                    self.p("\t\tsta  " + l_str)
-                    self.p("\t\tlda  {:s}+1".format(r_str))
-                    self.p("\t\tsta  {:s}+1".format(l_str))
-                    self.p("\t\tlda  {:s}+2".format(r_str))
-                    self.p("\t\tsta  {:s}+2".format(l_str))
-                    self.p("\t\tlda  {:s}+3".format(r_str))
-                    self.p("\t\tsta  {:s}+3".format(l_str))
-                    self.p("\t\tlda  {:s}+4".format(r_str))
-                    self.p("\t\tsta  {:s}+4".format(l_str))
+                with self.preserving_registers({'A', 'X', 'Y'}, loads_a_within=True):
+                    self.p("\t\tlda  #<" + r_str)
+                    self.p("\t\tsta  c64.SCRATCH_ZPWORD")
+                    self.p("\t\tlda  #>" + r_str)
+                    self.p("\t\tsta  c64.SCRATCH_ZPWORD+1")
+                    self.p("\t\tldx  #<" + l_str)
+                    self.p("\t\tldy  #>" + l_str)
+                    self.p("\t\tjsr  c64_lib.copy_mflt")
             elif rvalue.datatype == DataType.BYTE:
                 with self.preserving_registers({'A', 'X', 'Y'}):
                     self.p("\t\tldy  " + r_str)

@@ -86,7 +86,7 @@ The following 6502 hardware registers are directly accessible in your code (and 
 The zero page locations ``$02`` - ``$ff`` can be regarded as 254 other registers because
 they take less clock cycles to access and need fewer instruction bytes than access to other memory locations.
 Theoretically you can use all of them in your program but there are a few limitations:
-- ``$02`` and ``$03`` are reserved for internal use as scratch registers by IL65
+- the four locations ``$02``, ``$03``, ``$fd - $fe`` are reserved for internal use as scratch registers by IL65
 - most other addresses often are in use by the machine's operating system or kernal,
   and overwriting them can crash the machine. Your program must take over the entire
   system to be able to safely use all zero page locations.
@@ -95,10 +95,11 @@ Theoretically you can use all of them in your program but there are a few limita
 
 For the Commodore-64 here is a list of free-to-use zero page locations even when its BASIC and KERNAL are active:
 
-``$02`` - ``$03`` (but see remark above); ``$04`` - ``$05``;  ``$06``;
-``$0a``;  ``$2a``;  ``$52``;  ``$93``;
+``$02``; ``$03``; ``$04``; ``$05``;  ``$06``; ``$2a``;  ``$52``; 
 ``$f7`` - ``$f8``;  ``$f9`` - ``$fa``;  ``$fb`` - ``$fc``;  ``$fd`` - ``$fe``
 
+The four reserved locations mentioned above are subtracted from this set, leaving you with
+five 1-byte and three 2-byte usable zero page registers.
 IL65 knows about all this: it will use the above zero page locations to place its ZP variables in,
 until they're all used up. You can instruct it to treat your program as taking over the entire
 machine, in which case all of the zero page locations are suddenly available for variables.
@@ -193,6 +194,9 @@ However you can specify some options globally in your program to change this beh
 - ``zp clobber, restore``
         Use the whole zeropage, but make a backup copy of the original values at program start. 
         When your program exits, the original ZP is restored and you drop back to the BASIC prompt.
+        Not that the interrupts are *disabled* when your program is entered!
+        (you want/have to set your own IRQ routine because the default one will write to
+        various locations in the zeropage)
 
 If you use ``zp clobber``, you can no longer use BASIC or KERNAL routines,
 because these depend on most of the locations in the ZP. This includes most of the floating-point
@@ -231,7 +235,8 @@ want to work on later, because the contents of the ignored block are not syntact
 ### Importing, Including and Binary-Including Files
 
 import "filename[.ill]"
-        Can only be used outside of a block (usually at the top of your file).
+        Must be used *after* any global option statements such as ``output``,
+        and can only be used outside of a block. But can otherwise occur between any blocks.
         Reads everything from the named IL65 file at this point and compile it as a normal part of the program.
 
 asminclude "filename.txt", scopelabel

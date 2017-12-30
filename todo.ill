@@ -1,0 +1,27 @@
+output prg,basic
+
+import "c64lib"
+import "mathlib"
+
+
+~ main {
+
+        ;       zpvar   myvar    @todo allow for zp vars like this
+        var     bytevar
+        var     bytevar2
+        var .word  wordvar
+        var .float fl1
+        var .float fl2
+
+
+start
+        ; XY()            ; @todo better syntax error, need [XY]
+        [AX]()
+        [AY]()
+        [XY]()
+        [AX]!()
+        [AY]!()
+        [XY]!()
+
+        return
+}

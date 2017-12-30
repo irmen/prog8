@@ -21,13 +21,13 @@ start
         if_ge goto label
         if_gt goto label
         if_cc goto value
-        if_cc goto memvalue
+        ;if_cc goto memvalue
         if_cc goto #value
-        if_cc goto #memvalue
+        ;if_cc goto #memvalue
         if_cc goto [value]
-        if_cc goto [memvalue]
-        if_cc goto $c000
-        if_cc goto [$c000.word]
+        ;if_cc goto [memvalue]
+        ;if_cc goto $c000
+        ;if_cc goto [$c000.word]
 
 label
         ; conditional if with a single 'truth' value (register)
@@ -59,14 +59,20 @@ label2
         if_zero memvalue goto label3
         if memvalue goto label3
 
-        ; conditional if with a single 'truth' value (indirect address)
-        if_true [$c000] goto label
-        if_not [$c000] goto label
-        if_zero [$c000] goto label
-        if [$c000] goto label
-        ; if_true [XY] goto label                ; @todo support indirect reg
-
 label3
+        ; conditional if with a single 'truth' value (indirect address)
+        if_true [$c000] goto label4
+        if_not [$c000] goto label4
+        if_zero [$c000] goto label4
+        if [$c000] goto label4
+        if_true [XY] goto label4                ; @todo support indirect reg
+        if_true [AY] goto label4                ; @todo support indirect reg
+        if_true [AX] goto label4                ; @todo support indirect reg
+        if_true [X] goto label4               ; @todo support indirect reg
+        if_true [A] goto label4                ; @todo support indirect reg
+        if_true [Y] goto label4                ; @todo support indirect reg
+
+label4
         return
 }
 

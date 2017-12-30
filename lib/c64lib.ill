@@ -10,8 +10,9 @@
 output raw
 
 ~ c64 {
-		memory  SCRATCH_ZP1	= $02		; scratch register #1 in ZP
-		memory  SCRATCH_ZP2	= $03		; scratch register #2 in ZP
+		memory  .byte  SCRATCH_ZP1	= $02		; scratch register #1 in ZP
+		memory  .byte  SCRATCH_ZP2	= $03		; scratch register #2 in ZP
+		memory  .word  SCRATCH_ZPWORD	= $fd		; scratch word in ZP ($fd/$fe)
 
 		memory  .byte COLOR	= $0286		; cursor color
 		memory  .word CINV	= $0314		; IRQ vector
@@ -335,6 +336,9 @@ sub  GETADRAY  () -> (AY, X?)  {
 
 sub  print_string (address: XY) -> (A?, Y?)  {
 	; ---- print null terminated string from X/Y
+	; note: the IL65 compiler contains an optimization that will replace
+	;       a call to this subroutine with a string argument of just one char,
+	;       by just one call to c64.CHROUT of that single char.
 	asm {
 		stx  c64.SCRATCH_ZP1
 		sty  c64.SCRATCH_ZP2
@@ -433,7 +437,7 @@ hex_digits	.text "0123456789abcdef"	; can probably be reused for other stuff as 
 }
 
 		; var  .array(4)  word2hex_output_array    @todo support to use array/matrix type by address
-		var  .text      word2hex_output = "123"   ; 0-terminated, 4 bytes total @todo remove if array works
+		var  .text      word2hex_output = "123"   ; 0-terminated, 4 bytes total @todo remove once array works
 sub  word2hex  (word: XY) -> (A?, X?, Y?)  {
 	; ---- convert 16 bit word in X/Y into hexadecimal string into memory  'word2hex_output'
 	asm {
@@ -704,5 +708,35 @@ sub  input_chars  (buffer: AX) -> (A?, Y)  {
 ;		jsr  $a3bf
 
 
+
+}
+
+
+~ c64_lib {
+
+	asm  {
+
+; ---- copy a 5 byte MFLT floating point variable to another place
+;      input: X/Y = source address,  SCRATCH_ZPWORD = destination address
+copy_mflt	stx  c64.SCRATCH_ZP1
+		sty  c64.SCRATCH_ZPWORD+1
+		ldy  #0
+		lda  (c64.SCRATCH_ZP1),y
+		sta  (c64.SCRATCH_ZPWORD),y
+		iny
+		lda  (c64.SCRATCH_ZP1),y
+		sta  (c64.SCRATCH_ZPWORD),y
+		iny
+		lda  (c64.SCRATCH_ZP1),y
+		sta  (c64.SCRATCH_ZPWORD),y
+		iny
+		lda  (c64.SCRATCH_ZP1),y
+		sta  (c64.SCRATCH_ZPWORD),y
+		iny
+		lda  (c64.SCRATCH_ZP1),y
+		sta  (c64.SCRATCH_ZPWORD),y
+		ldy  c64.SCRATCH_ZPWORD+1
+		rts
+	}
 
 }
