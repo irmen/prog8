@@ -729,8 +729,13 @@ class CodeGenerator:
             if isinstance(cv, ParseResult.RegisterValue):
                 branch = "bne" if stmt.condition.ifstatus == "true" else "beq"
                 self.p("\t\tsta  " + Parser.to_hex(Zeropage.SCRATCH_B1))  # need to save A, because the goto may not be taken
-                if cv.register in REGISTER_BYTES:
-                    self.p("\t\tst{:s}  *+2\t; self-modify".format(cv.register.lower()))
+                if cv.register == 'Y':
+                    self.p("\t\tlda  ($00),y")
+                elif cv.register == 'X':
+                    self.p("\t\tstx  *+2\t; self-modify")
+                    self.p("\t\tlda  $ff")
+                elif cv.register == 'A':
+                    self.p("\t\tsta  *+2\t; self-modify")
                     self.p("\t\tlda  $ff")
                 else:
                     self.p("\t\tst{:s}  (+)+1\t; self-modify".format(cv.register[0].lower()))

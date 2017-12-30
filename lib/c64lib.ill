@@ -98,69 +98,69 @@ output raw
 ; note: for subtraction and division, the left operand is in fac2, the right operand in fac1.
 
 ; checked functions below:
-sub	MOVFM		(mflpt: AY) -> (A?, Y?)		= $bba2		; load mflpt value from memory  in A/Y into fac1
-sub	FREADMEM	() -> (A?, Y?)			= $bba6		; load mflpt value from memory  in $22/$23 into fac1
-sub	CONUPK		(mflpt: AY) -> (A?, Y?)		= $ba8c		; load mflpt value from memory  in A/Y into fac2
-sub	FAREADMEM	() -> (A?, Y?)			= $ba90		; load mflpt value from memory  in $22/$23 into fac2
-sub	MOVFA		() -> (A?, X?)			= $bbfc		; copy fac2 to fac1
-sub	MOVAF		() -> (A?, X?)			= $bc0c		; copy fac1 to fac2  (rounded)
-sub	MOVEF		() -> (A?, X?)			= $bc0f		; copy fac1 to fac2
-sub	FTOMEMXY	(mflpt: XY) -> (A?, Y?)		= $bbd4		; store fac1 to memory  X/Y as 5-byte mflpt
-sub	FTOSWORDYA	() -> (Y, A, X?)		= $b1aa		; fac1-> signed word in Y/A (might throw ILLEGAL QUANTITY)
+sub	MOVFM		(mflpt: AY) -> (A?, Y?)	= $bba2		; load mflpt value from memory  in A/Y into fac1
+sub	FREADMEM	() -> (A?, Y?)		= $bba6		; load mflpt value from memory  in $22/$23 into fac1
+sub	CONUPK		(mflpt: AY) -> (A?, Y?)	= $ba8c		; load mflpt value from memory  in A/Y into fac2
+sub	FAREADMEM	() -> (A?, Y?)		= $ba90		; load mflpt value from memory  in $22/$23 into fac2
+sub	MOVFA		() -> (A?, X?)		= $bbfc		; copy fac2 to fac1
+sub	MOVAF		() -> (A?, X?)		= $bc0c		; copy fac1 to fac2  (rounded)
+sub	MOVEF		() -> (A?, X?)		= $bc0f		; copy fac1 to fac2
+sub	FTOMEMXY	(mflpt: XY) -> (A?, Y?)	= $bbd4		; store fac1 to memory  X/Y as 5-byte mflpt
+sub	FTOSWORDYA	() -> (Y, A, X?)	= $b1aa		; fac1-> signed word in Y/A (might throw ILLEGAL QUANTITY)
 	; use c64util.FTOSWRDAY to get A/Y output (lo/hi switched to normal order)
-sub	GETADR		() -> (Y, A, X?)		= $b7f7		; fac1 -> unsigned word in Y/A (might throw ILLEGAL QUANTITY)
+sub	GETADR		() -> (Y, A, X?)	= $b7f7		; fac1 -> unsigned word in Y/A (might throw ILLEGAL QUANTITY)
 	; (result also in $14/15) use c64util.GETADRAY to get A/Y output (lo/hi switched to normal order)
-sub	QINT		() -> (A?, X?, Y?)		= $bc9b		; fac1 -> 4-byte signed integer in 98-101 ($62-$65), with the MSB FIRST.
-sub	AYINT		() -> (A?, X?, Y?)		= $b1bf		; fac1-> signed word in 100-101 ($64-$65) MSB FIRST. (might throw ILLEGAL QUANTITY)
-sub	GIVAYF		(lo: Y, hi: A) -> (A?, X?, Y?)	= $b391		; signed word in Y/A -> float in fac1
+sub	QINT		() -> (?)		= $bc9b		; fac1 -> 4-byte signed integer in 98-101 ($62-$65), with the MSB FIRST.
+sub	AYINT		() -> (?)		= $b1bf		; fac1-> signed word in 100-101 ($64-$65) MSB FIRST. (might throw ILLEGAL QUANTITY)
+sub	GIVAYF		(lo: Y, hi: A) -> (?)	= $b391		; signed word in Y/A -> float in fac1
 	; use c64util.GIVAYFAY to use A/Y input (lo/hi switched to normal order)
 ; there is also c64util.GIVUAYF - unsigned word in A/Y (lo/hi) to fac1
 ; there is also c64util.FREADS32  that reads from 98-101 ($62-$65) MSB FIRST
 ; there is also c64util.FREADUS32  that reads from 98-101 ($62-$65) MSB FIRST
 ; there is also c64util.FREADS24AXY  that reads signed int24 into fac1 from A/X/Y (lo/mid/hi bytes)
-sub	FREADUY		(ubyte: Y) -> (A?, X?, Y?)	= $b3a2		; 8 bit unsigned Y -> float in fac1
-sub	FREADSA		(sbyte: A) -> (A?, X?, Y?)	= $bc3c		; 8 bit signed A -> float in fac1
-sub	FREADSTR	(len: A) -> (A?, X?, Y?)	= $b7b5		; str -> fac1, $22/23 must point to string, A=string length
-sub	FPRINTLN	() -> (A?, X?, Y?)		= $aabc		; print string of fac1, on one line (= with newline)
-sub	FOUT		() -> (AY, X?)			= $bddd		; fac1 -> string, address returned in AY ($0100)
+sub	FREADUY		(ubyte: Y) -> (?)	= $b3a2		; 8 bit unsigned Y -> float in fac1
+sub	FREADSA		(sbyte: A) -> (?)	= $bc3c		; 8 bit signed A -> float in fac1
+sub	FREADSTR	(len: A) -> (?)		= $b7b5		; str -> fac1, $22/23 must point to string, A=string length
+sub	FPRINTLN	() -> (?)		= $aabc		; print string of fac1, on one line (= with newline)
+sub	FOUT		() -> (AY, X?)		= $bddd		; fac1 -> string, address returned in AY ($0100)
 
-sub	FADDH		() -> (A?, X?, Y?)		= $b849		; fac1 += 0.5, for rounding- call this before INT
-sub	MUL10		() -> (A?, X?, Y?)		= $bae2		; fac1 *= 10
-sub	DIV10		() -> (A?, X?, Y?)		= $bafe		; fac1 /= 10 , CAUTION: result is always positive!
+sub	FADDH		() -> (?)		= $b849		; fac1 += 0.5, for rounding- call this before INT
+sub	MUL10		() -> (?)		= $bae2		; fac1 *= 10
+sub	DIV10		() -> (?)		= $bafe		; fac1 /= 10 , CAUTION: result is always positive!
 sub	FCOMP		(mflpt: AY) -> (A, X?, Y?)	= $bc5b		; A = compare fac1 to mflpt in A/Y, 0=equal 1=fac1 is greater, 255=fac1 is less than
 
-sub	FADDT		() -> (A?, X?, Y?)		= $b86a		; fac1 += fac2
-sub	FADD		(mflpt: AY) -> (A?, X?, Y?)	= $b867		; fac1 += mflpt value from A/Y
-sub	FSUBT		() -> (A?, X?, Y?)		= $b853		; fac1 = fac2-fac1   mind the order of the operands
-sub	FSUB		(mflpt: AY) -> (A?, X?, Y?)	= $b850		; fac1 = mflpt from A/Y - fac1
-sub	FMULTT 		() -> (A?, X?, Y?)		= $ba2b		; fac1 *= fac2
-sub	FMULT		(mflpt: AY) -> (A?, X?, Y?)	= $ba28		; fac1 *= mflpt value from A/Y
-sub	FDIVT 		() -> (A?, X?, Y?)		= $bb12		; fac1 = fac2/fac1   mind the order of the operands
-sub	FDIV  		(mflpt: AY) -> (A?, X?, Y?)	= $bb0f		; fac1 = mflpt in A/Y / fac1
-sub	FPWRT		() -> (A?, X?, Y?)		= $bf7b		; fac1 = fac2 ** fac1
-sub	FPWR		(mflpt: AY) -> (A?, X?, Y?)	= $bf78		; fac1 = fac2 ** mflpt from A/Y
+sub	FADDT		() -> (?)		= $b86a		; fac1 += fac2
+sub	FADD		(mflpt: AY) -> (?)	= $b867		; fac1 += mflpt value from A/Y
+sub	FSUBT		() -> (?)		= $b853		; fac1 = fac2-fac1   mind the order of the operands
+sub	FSUB		(mflpt: AY) -> (?)	= $b850		; fac1 = mflpt from A/Y - fac1
+sub	FMULTT 		() -> (?)		= $ba2b		; fac1 *= fac2
+sub	FMULT		(mflpt: AY) -> (?)	= $ba28		; fac1 *= mflpt value from A/Y
+sub	FDIVT 		() -> (?)		= $bb12		; fac1 = fac2/fac1   mind the order of the operands
+sub	FDIV  		(mflpt: AY) -> (?)	= $bb0f		; fac1 = mflpt in A/Y / fac1
+sub	FPWRT		() -> (?)		= $bf7b		; fac1 = fac2 ** fac1
+sub	FPWR		(mflpt: AY) -> (?)	= $bf78		; fac1 = fac2 ** mflpt from A/Y
 
-sub	NOTOP		() -> (A?, X?, Y?)		= $aed4		; fac1 = NOT(fac1)
-sub	INT		() -> (A?, X?, Y?)		= $bccc		; INT() truncates, use FADDH first to round instead of trunc
-sub	LOG		() -> (A?, X?, Y?)		= $b9ea		; fac1 = LN(fac1)  (natural log)
-sub	SGN		() -> (A?, X?, Y?)		= $bc39		; fac1 = SGN(fac1), result of SIGN (-1, 0 or 1)
-sub	SIGN		() -> (A)			= $bc2b		; SIGN(fac1) to A, $ff, $0, $1 for negative, zero, positive
-sub	ABS		() -> ()			= $bc58		; fac1 = ABS(fac1)
-sub	SQR		() -> (A?, X?, Y?)		= $bf71		; fac1 = SQRT(fac1)
-sub	EXP		() -> (A?, X?, Y?)		= $bfed		; fac1 = EXP(fac1)  (e ** fac1)
-sub	NEGOP		() -> (A?)			= $bfb4		; switch the sign of fac1
-sub	RND		() -> (A?, X?, Y?)		= $e097		; fac1 = RND()   (use RNDA instead)
-sub	RNDA		(A) -> (A?, X?, Y?)		= $e09a		; fac1 = RND(A)
-sub	COS		() -> (A?, X?, Y?)		= $e264		; fac1 = COS(fac1)
-sub	SIN		() -> (A?, X?, Y?)		= $e26b		; fac1 = SIN(fac1)
-sub	TAN		() -> (A?, X?, Y?)		= $e2b4		; fac1 = TAN(fac1)
-sub	ATN		() -> (A?, X?, Y?)		= $e30e		; fac1 = ATN(fac1)
+sub	NOTOP		() -> (?)		= $aed4		; fac1 = NOT(fac1)
+sub	INT		() -> (?)		= $bccc		; INT() truncates, use FADDH first to round instead of trunc
+sub	LOG		() -> (?)		= $b9ea		; fac1 = LN(fac1)  (natural log)
+sub	SGN		() -> (?)		= $bc39		; fac1 = SGN(fac1), result of SIGN (-1, 0 or 1)
+sub	SIGN		() -> (A)		= $bc2b		; SIGN(fac1) to A, $ff, $0, $1 for negative, zero, positive
+sub	ABS		() -> ()		= $bc58		; fac1 = ABS(fac1)
+sub	SQR		() -> (?)		= $bf71		; fac1 = SQRT(fac1)
+sub	EXP		() -> (?)		= $bfed		; fac1 = EXP(fac1)  (e ** fac1)
+sub	NEGOP		() -> (A?)		= $bfb4		; switch the sign of fac1
+sub	RND		() -> (?)		= $e097		; fac1 = RND()   (use RNDA instead)
+sub	RNDA		(A) -> (?)		= $e09a		; fac1 = RND(A)
+sub	COS		() -> (?)		= $e264		; fac1 = COS(fac1)
+sub	SIN		() -> (?)		= $e26b		; fac1 = SIN(fac1)
+sub	TAN		() -> (?)		= $e2b4		; fac1 = TAN(fac1)
+sub	ATN		() -> (?)		= $e30e		; fac1 = ATN(fac1)
 
 
 ; ---- C64 basic routines ----
 
-sub	CLEARSCR	() -> (A?, X?, Y?)		= $E544		; clear the screen
-sub	HOMECRSR	() -> (A?, X?, Y?)		= $E566		; cursor to top left of screen
+sub	CLEARSCR	() -> (?)		= $E544		; clear the screen
+sub	HOMECRSR	() -> (?)		= $E566		; cursor to top left of screen
 
 
 ; ---- end of C64 basic routines ----
@@ -169,47 +169,47 @@ sub	HOMECRSR	() -> (A?, X?, Y?)		= $E566		; cursor to top left of screen
 
 ; ---- C64 kernal routines ----
 
-sub	IRQDFRT  () -> (A?, X?, Y?)			= $EA31		; default IRQ routine
-sub	IRQDFEND () -> (A?, X?, Y?)			= $EA81		; default IRQ end/cleanup
-sub	CINT     () -> (A?, X?, Y?)			= $FF81		; (alias: SCINIT) initialize screen editor and video chip
-sub	IOINIT   () -> (A?, X?)				= $FF84		; initialize I/O devices (CIA, SID, IRQ)
-sub	RAMTAS   () -> (A?, X?, Y?)			= $FF87		; initialize RAM, tape buffer, screen
-sub	RESTOR   () -> (A?, X?, Y?)			= $FF8A		; restore default I/O vectors
+sub	IRQDFRT  () -> (?)			= $EA31		; default IRQ routine
+sub	IRQDFEND () -> (?)			= $EA81		; default IRQ end/cleanup
+sub	CINT     () -> (?)			= $FF81		; (alias: SCINIT) initialize screen editor and video chip
+sub	IOINIT   () -> (A?, X?)			= $FF84		; initialize I/O devices (CIA, SID, IRQ)
+sub	RAMTAS   () -> (?)			= $FF87		; initialize RAM, tape buffer, screen
+sub	RESTOR   () -> (?)			= $FF8A		; restore default I/O vectors
 sub	VECTOR   (dir: SC, userptr: XY) -> (A?, Y?)	= $FF8D		; read/set I/O vector table
-sub	SETMSG   (value: A) -> ()			= $FF90		; set Kernal message control flag
-sub	SECOND   (address: A) -> (A?)			= $FF93		; (alias: LSTNSA) send secondary address after LISTEN
-sub	TKSA     (address: A) -> (A?)			= $FF96		; (alias: TALKSA) send secondary address after TALK
-sub	MEMTOP   (dir: SC, address: XY) -> (XY)		= $FF99		; read/set top of memory  pointer
-sub	MEMBOT   (dir: SC, address: XY) -> (XY)		= $FF9C		; read/set bottom of memory  pointer
-sub	SCNKEY   () -> (A?, X?, Y?)			= $FF9F		; scan the keyboard
-sub	SETTMO   (timeout: A) -> ()			= $FFA2		; set time-out flag for IEEE bus
-sub	ACPTR    () -> (A)				= $FFA5		; (alias: IECIN) input byte from serial bus
-sub	CIOUT    (byte: A) -> ()			= $FFA8		; (alias: IECOUT) output byte to serial bus
-sub	UNTLK    () -> (A?)				= $FFAB		; command serial bus device to UNTALK
-sub	UNLSN    () -> (A?)				= $FFAE		; command serial bus device to UNLISTEN
-sub	LISTEN   (device: A) -> (A?)			= $FFB1		; command serial bus device to LISTEN
-sub	TALK     (device: A) -> (A?)			= $FFB4		; command serial bus device to TALK
-sub	READST   () -> (A)				= $FFB7		; read I/O status word
+sub	SETMSG   (value: A) -> ()		= $FF90		; set Kernal message control flag
+sub	SECOND   (address: A) -> (A?)		= $FF93		; (alias: LSTNSA) send secondary address after LISTEN
+sub	TKSA     (address: A) -> (A?)		= $FF96		; (alias: TALKSA) send secondary address after TALK
+sub	MEMTOP   (dir: SC, address: XY) -> (XY)	= $FF99		; read/set top of memory  pointer
+sub	MEMBOT   (dir: SC, address: XY) -> (XY)	= $FF9C		; read/set bottom of memory  pointer
+sub	SCNKEY   () -> (?)			= $FF9F		; scan the keyboard
+sub	SETTMO   (timeout: A) -> ()		= $FFA2		; set time-out flag for IEEE bus
+sub	ACPTR    () -> (A)			= $FFA5		; (alias: IECIN) input byte from serial bus
+sub	CIOUT    (byte: A) -> ()		= $FFA8		; (alias: IECOUT) output byte to serial bus
+sub	UNTLK    () -> (A?)			= $FFAB		; command serial bus device to UNTALK
+sub	UNLSN    () -> (A?)			= $FFAE		; command serial bus device to UNLISTEN
+sub	LISTEN   (device: A) -> (A?)		= $FFB1		; command serial bus device to LISTEN
+sub	TALK     (device: A) -> (A?)		= $FFB4		; command serial bus device to TALK
+sub	READST   () -> (A)			= $FFB7		; read I/O status word
 sub	SETLFS   (logical: A, device: X, address: Y) -> () = $FFBA	; set logical file parameters
 sub	SETNAM   (namelen: A, filename: XY) -> ()	= $FFBD		; set filename parameters
-sub	OPEN     () -> (A?, X?, Y?)			= $FFC0		; (via 794 ($31A)) open a logical file
-sub	CLOSE    (logical: A) -> (A?, X?, Y?)		= $FFC3		; (via 796 ($31C)) close a logical file
-sub	CHKIN    (logical: X) -> (A?, X?)		= $FFC6		; (via 798 ($31E)) define an input channel
-sub	CHKOUT   (logical: X) -> (A?, X?)		= $FFC9		; (via 800 ($320)) define an output channel
-sub	CLRCHN   () -> (A?, X?)				= $FFCC		; (via 802 ($322)) restore default devices
-sub	CHRIN    () -> (A, Y?)				= $FFCF		; (via 804 ($324)) input a character (for keyboard, read a whole line from the screen) A=byte read.
-sub	CHROUT   (char: A) -> ()			= $FFD2		; (via 806 ($326)) output a character
+sub	OPEN     () -> (?)			= $FFC0		; (via 794 ($31A)) open a logical file
+sub	CLOSE    (logical: A) -> (?)		= $FFC3		; (via 796 ($31C)) close a logical file
+sub	CHKIN    (logical: X) -> (A?, X?)	= $FFC6		; (via 798 ($31E)) define an input channel
+sub	CHKOUT   (logical: X) -> (A?, X?)	= $FFC9		; (via 800 ($320)) define an output channel
+sub	CLRCHN   () -> (A?, X?)			= $FFCC		; (via 802 ($322)) restore default devices
+sub	CHRIN    () -> (A, Y?)			= $FFCF		; (via 804 ($324)) input a character (for keyboard, read a whole line from the screen) A=byte read.
+sub	CHROUT   (char: A) -> ()		= $FFD2		; (via 806 ($326)) output a character
 sub	LOAD     (verify: A, address: XY) -> (SC, A, X, Y) = $FFD5	; (via 816 ($330)) load from device
 sub	SAVE     (zp_startaddr: A, endaddr: XY) -> (SC, A) = $FFD8	; (via 818 ($332)) save to a device
 sub	SETTIM   (low: A, middle: X, high: Y) -> ()	= $FFDB		; set the software clock
-sub	RDTIM    () -> (A, X, Y)			= $FFDE		; read the software clock
-sub	STOP     () -> (SZ, SC, A?, X?)			= $FFE1		; (via 808 ($328)) check the STOP key
-sub	GETIN    () -> (A, X?, Y?)			= $FFE4		; (via 810 ($32A)) get a character
-sub	CLALL    () -> (A?, X?)				= $FFE7		; (via 812 ($32C)) close all files
-sub	UDTIM    () -> (A?, X?)				= $FFEA		; update the software clock
-sub	SCREEN   () -> (X, Y)				= $FFED		; read number of screen rows and columns
+sub	RDTIM    () -> (A, X, Y)		= $FFDE		; read the software clock
+sub	STOP     () -> (SZ, SC, A?, X?)		= $FFE1		; (via 808 ($328)) check the STOP key
+sub	GETIN    () -> (A, X?, Y?)		= $FFE4		; (via 810 ($32A)) get a character
+sub	CLALL    () -> (A?, X?)			= $FFE7		; (via 812 ($32C)) close all files
+sub	UDTIM    () -> (A?, X?)			= $FFEA		; update the software clock
+sub	SCREEN   () -> (X, Y)			= $FFED		; read number of screen rows and columns
 sub	PLOT     (dir: SC, col: X, row: Y) -> (X, Y)	= $FFF0		; read/set position of cursor on screen
-sub	IOBASE   () -> (X, Y)				= $FFF3		; read base address of I/O devices
+sub	IOBASE   () -> (X, Y)			= $FFF3		; read base address of I/O devices
 
 ; ---- end of C64 kernal routines ----
 
@@ -222,7 +222,7 @@ sub	IOBASE   () -> (X, Y)				= $FFF3		; read base address of I/O devices
 
 ~ c64util {
 
-sub  init_system  () -> (A?, X?, Y?)  {
+sub  init_system  () -> (?)  {
 	; ---- initializes the machine to a sane starting state
 	; This means that the BASIC, KERNAL and CHARGEN ROMs are banked in,
 	; the VIC, SID and CIA chips are reset, screen is cleared, and the default IRQ is set.
@@ -253,7 +253,7 @@ sub  init_system  () -> (A?, X?, Y?)  {
 }
 
 
-sub  FREADS32  () -> (A?, X?, Y?)  {
+sub  FREADS32  () -> (?)  {
 	; ---- fac1 = signed int32 from $62-$65 big endian (MSB FIRST)
 	asm {
 		lda  $62
@@ -265,7 +265,7 @@ sub  FREADS32  () -> (A?, X?, Y?)  {
 	}
 }
 
-sub  FREADUS32  () -> (A?, X?, Y?)  {
+sub  FREADUS32  () -> (?)  {
 	; ---- fac1 = uint32 from $62-$65 big endian (MSB FIRST)
 	asm {
 		sec
@@ -275,7 +275,7 @@ sub  FREADUS32  () -> (A?, X?, Y?)  {
 	}
 }
 
-sub  FREADS24AXY  (lo: A, mid: X, hi: Y) -> (A?, X?, Y?)  {
+sub  FREADS24AXY  (lo: A, mid: X, hi: Y) -> (?)  {
 	; ---- fac1 = signed int24 (A/X/Y contain lo/mid/hi bytes)
 	;      note: there is no FREADU24AXY (unsigned), use FREADUS32 instead.
 	asm {
@@ -292,7 +292,7 @@ sub  FREADS24AXY  (lo: A, mid: X, hi: Y) -> (A?, X?, Y?)  {
 	}
 }
 
-sub  GIVUAYF  (uword: AY) -> (A?, X?, Y?)  {
+sub  GIVUAYF  (uword: AY) -> (?)  {
 	; ---- unsigned 16 bit word in A/Y (lo/hi) to fac1
 	asm {
 		sty  $62
@@ -303,7 +303,7 @@ sub  GIVUAYF  (uword: AY) -> (A?, X?, Y?)  {
 	}
 }
 
-sub  GIVAYFAY  (sword: AY) -> (A?, X?, Y?)  {
+sub  GIVAYFAY  (sword: AY) -> (?)  {
 	; ---- signed 16 bit word in A/Y (lo/hi) to float in fac1
 	asm {
 		sta  c64.SCRATCH_ZP1
@@ -439,7 +439,7 @@ hex_digits	.text "0123456789abcdef"	; can probably be reused for other stuff as 
 
 		; var  .array(4)  word2hex_output_array    @todo support to use array/matrix type by address
 		var  .text      word2hex_output = "123"   ; 0-terminated, 4 bytes total @todo remove once array works
-sub  word2hex  (word: XY) -> (A?, X?, Y?)  {
+sub  word2hex  (word: XY) -> (?)  {
 	; ---- convert 16 bit word in X/Y into hexadecimal string into memory  'word2hex_output'
 	asm {
 		stx  c64.SCRATCH_ZP2
@@ -495,7 +495,7 @@ sub  word2bcd  (word: XY) -> (A?, X?)  {
 
 
 		var  .array(5)  word2decimal_output
-sub  word2decimal  (word: XY) -> (A?, X?, Y?)  {
+sub  word2decimal  (word: XY) -> (?)  {
 	; ---- convert 16 bit word in X/Y into decimal string into memory  'word2decimal_output'
 	asm {
 		jsr  word2bcd
@@ -526,7 +526,7 @@ sub  word2decimal  (word: XY) -> (A?, X?, Y?)  {
 	}
 }
 
-sub  print_byte_decimal0  (ubyte: A) -> (A?, X?, Y?)  {
+sub  print_byte_decimal0  (ubyte: A) -> (?)  {
 	; ---- print the byte in A in decimal form, with left padding 0s (3 positions total)
 	asm {
 		jsr  byte2decimal
@@ -540,7 +540,7 @@ sub  print_byte_decimal0  (ubyte: A) -> (A?, X?, Y?)  {
 	}
 }
 
-sub  print_byte_decimal  (ubyte: A) -> (A?, X?, Y?)  {
+sub  print_byte_decimal  (ubyte: A) -> (?)  {
 	; ---- print the byte in A in decimal form, without left padding 0s
 	asm {
 		jsr  byte2decimal
@@ -560,7 +560,7 @@ _print_tens	txa
 	}
 }
 
-sub  print_byte_hex  (prefix: SC, ubyte: A) -> (A?, X?, Y?)  {
+sub  print_byte_hex  (prefix: SC, ubyte: A) -> (?)  {
 	; ---- print the byte in A in hex form (if Carry is set, a radix prefix '$' is printed as well)
 	asm {
 		bcc  +
@@ -576,7 +576,7 @@ sub  print_byte_hex  (prefix: SC, ubyte: A) -> (A?, X?, Y?)  {
 	}
 }
 
-sub print_word_hex  (prefix: SC, word: XY) -> (A?, X?, Y?)  {
+sub print_word_hex  (prefix: SC, word: XY) -> (?)  {
 	; ---- print the (unsigned) word in X/Y in hexadecimal form (4 digits)
 	;      (if Carry is set, a radix prefix '$' is printed as well)
 	asm {
@@ -590,7 +590,7 @@ sub print_word_hex  (prefix: SC, word: XY) -> (A?, X?, Y?)  {
 }
 
 
-sub  print_word_decimal0  (word: XY) -> (A?, X?, Y?)  {
+sub  print_word_decimal0  (word: XY) -> (?)  {
 	; ---- print the (unsigned) word in X/Y in decimal form, with left padding 0s (5 positions total)
 	asm {
 		jsr  word2decimal
@@ -665,7 +665,7 @@ sub  input_chars  (buffer: AX) -> (A?, Y)  {
 	}
 }
 
-;sub  memcopy_basic  () -> (A?, X?, Y?)  {
+;sub  memcopy_basic  () -> (?)  {
 ;	; ---- copy a memory block by using a BASIC ROM routine  @todo fix code
 ;	; it calls a function from the basic interpreter, so:
 ;	;       - BASIC ROM must be banked in

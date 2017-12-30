@@ -306,6 +306,8 @@ The syntax is:
                        is clobbered in the process so the original value it had before calling the sub is no longer valid.
                        This is not immediately useful for your own code, but the compiler needs this information to
                        emit the correct assembly code to preserve the cpu registers if needed when the call is made.
+                       For convenience: a single '?' als the result spec is shorthand for ``A?, X?, Y?`` ("I don't know
+                       what the changed registers are, assume the worst")
 
 
 Subroutines that are pre-defined on a specific memory location (usually routines from ROM),

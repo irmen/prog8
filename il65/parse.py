@@ -1103,6 +1103,12 @@ class Parser:
         if len(all_paramnames) != len(set(all_paramnames)):
             raise self.PError("duplicates in parameter names")
         results = [m.group("name") for m in re.finditer(r"\s*(?P<name>(?:\w+)\??)\s*(?:,|$)", resultlist)]
+        if not results:
+            if resultlist == "?":
+                # a single '?' in the result spec means: all 3 registers clobbered
+                results = ['A?', 'X?', 'Y?']
+            elif resultlist:
+                raise self.PError("invalid return values spec")
         subroutine_block = None
         if code_decl:
             address = None
@@ -1252,8 +1258,7 @@ class Parser:
                 raise self.PError("invalid call target (should contain 16-bit)")
         else:
             target = self.parse_expression(targetstr)
-        if not isinstance(target, (ParseResult.IntegerValue, ParseResult.RegisterValue,
-                                   ParseResult.MemMappedValue, ParseResult.IndirectValue)):
+        if not isinstance(target, (ParseResult.IntegerValue, ParseResult.MemMappedValue, ParseResult.IndirectValue)):
             raise self.PError("cannot call that type of symbol")
         if isinstance(target, ParseResult.IndirectValue) \
                 and not isinstance(target.value, (ParseResult.IntegerValue, ParseResult.RegisterValue, ParseResult.MemMappedValue)):

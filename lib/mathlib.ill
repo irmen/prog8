@@ -68,7 +68,7 @@ sub  multiply_bytes_addA_16  (byte1: X, byte2: Y, add: A) -> (A?, XY)  {
 }
 
 	var  .wordarray(2)  multiply_words_product
-sub  multiply_words  (number: XY) -> (A?, X?, Y?)  {		; @todo '?' to mean all 3 registers
+sub  multiply_words  (number: XY) -> (?)  {
 	; ---- multiply two 16-bit words into a 32-bit result
 	;      input: X/Y = first 16-bit number, SCRATCH_ZPWORD1 in ZP = second 16-bit number
 	;      output: multiply_words_product  32-bits product, LSB order (low-to-high)

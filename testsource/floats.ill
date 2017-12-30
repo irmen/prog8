@@ -43,7 +43,7 @@ start
         var .word  wordvar = $cdef
 
 
-sub  printflt (float: AY) -> (A?, X?, Y?) {
+sub  printflt (float: AY) -> (?) {
         c64.MOVFM!(AY)
         goto c64.FPRINTLN
         ; c64.FOUT!()
