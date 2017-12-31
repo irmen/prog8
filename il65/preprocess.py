@@ -9,6 +9,7 @@ License: GNU GPL 3.0, see LICENSE
 from typing import List, Tuple, Set
 from .parse import Parser, ParseResult, SymbolTable, SymbolDefinition
 from .symbols import SourceRef
+from .astdefs import _AstNode, InlineAsm
 
 
 class PreprocessingParser(Parser):
@@ -41,10 +42,10 @@ class PreprocessingParser(Parser):
         self._parse_1()
         return self.result
 
-    def parse_asminclude(self, line: str) -> ParseResult.InlineAsm:
-        return ParseResult.InlineAsm([], self.sourceref)
+    def parse_asminclude(self, line: str) -> InlineAsm:
+        return InlineAsm([], self.sourceref)
 
-    def parse_statement(self, line: str) -> ParseResult._AstNode:
+    def parse_statement(self, line: str) -> _AstNode:
         return None     # type: ignore
 
     def parse_var_def(self, line: str) -> None:
@@ -62,7 +63,7 @@ class PreprocessingParser(Parser):
     def parse_subroutine_def(self, line: str) -> None:
         super().parse_subroutine_def(line)
 
-    def create_import_parser(self, filename: str, outputdir: str) -> 'Parser':
+    def create_import_parser(self, filename: str, outputdir: str) -> Parser:
         return PreprocessingParser(filename, parsing_import=True, existing_imports=self.existing_imports)
 
     def print_import_progress(self, message: str, *args: str) -> None:
