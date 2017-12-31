@@ -217,7 +217,7 @@ class CodeGenerator:
                     "\t\tclc\t\t\t; clear carry flag",
                     "\t\tclv\t\t\t; clear overflow flag",
                 ]
-                statements.insert(index+1, ParseResult.InlineAsm(asmlines, 0))
+                statements.insert(index+1, ParseResult.InlineAsm(asmlines, stmt.sourceref))
                 break
         block.statements = statements
         # generate
@@ -374,21 +374,21 @@ class CodeGenerator:
         elif isinstance(stmt, ParseResult.AssignmentStmt):
             self.generate_assignment(stmt)
         elif isinstance(stmt, ParseResult.Label):
-            self.p("\n{:s}\t\t\t\t; src l. {:d}".format(stmt.name, stmt.lineno))
+            self.p("\n{:s}\t\t\t\t; {:s}".format(stmt.name, stmt.lineref))
         elif isinstance(stmt, (ParseResult.InplaceIncrStmt, ParseResult.InplaceDecrStmt)):
             self.generate_incr_or_decr(stmt)
         elif isinstance(stmt, ParseResult.CallStmt):
             self.generate_call(stmt)
         elif isinstance(stmt, ParseResult.InlineAsm):
-            self.p("\t\t; inline asm, src l. {:d}".format(stmt.lineno))
+            self.p("\t\t; inline asm, " + stmt.lineref)
             for line in stmt.asmlines:
                 self.p(line)
-            self.p("\t\t; end inline asm, src l. {:d}".format(stmt.lineno))
+            self.p("\t\t; end inline asm, " + stmt.lineref)
         elif isinstance(stmt, ParseResult.Comment):
             self.p(stmt.text)
         elif isinstance(stmt, ParseResult.BreakpointStmt):
             # put a marker in the source so that we can generate a list of breakpoints later
-            self.p("\t\tnop\t; {:s}  src l. {:d}".format(self.BREAKPOINT_COMMENT_SIGNATURE, stmt.lineno))
+            self.p("\t\tnop\t; {:s}  {:s}".format(self.BREAKPOINT_COMMENT_SIGNATURE, stmt.lineref))
         else:
             raise CodeError("unknown statement " + repr(stmt))
         self.previous_stmt_was_assignment = isinstance(stmt, ParseResult.AssignmentStmt)
@@ -569,7 +569,7 @@ class CodeGenerator:
             raise CodeError("cannot in/decrement " + str(stmt.what))
 
     def generate_call(self, stmt: ParseResult.CallStmt) -> None:
-        self.p("\t\t\t\t\t; src l. {:d}".format(stmt.lineno))
+        self.p("\t\t\t\t\t; " + stmt.lineref)
         if stmt.condition:
             assert stmt.is_goto
             if stmt.condition.lvalue:
@@ -699,7 +699,7 @@ class CodeGenerator:
                     self.p("+\t\tlda  " + Parser.to_hex(Zeropage.SCRATCH_B1))  # restore A
             else:
                 raise CodeError("conditions cannot yet use other types than byte or word",  # @todo comparisons of other types
-                                cv.datatype, str(cv), self.cur_block.sourceref.file, stmt.lineno)
+                                cv.datatype, str(cv), stmt.sourceref)
 
         def branch_emitter_reg(targetstr: str, is_goto: bool, target_indirect: bool) -> None:
             assert is_goto and not stmt.condition.comparison_op
@@ -786,7 +786,7 @@ class CodeGenerator:
                         self.p("+\t\tlda  " + Parser.to_hex(Zeropage.SCRATCH_B1))  # restore A
                 else:
                     raise CodeError("conditions cannot yet use other types than byte or word",  # @todo comparisons of other types
-                                    cv.datatype, str(cv), self.cur_block.sourceref.file, stmt.lineno)
+                                    cv.datatype, str(cv), stmt.sourceref)
             else:
                 raise CodeError("weird indirect type", str(cv))
 
@@ -954,8 +954,8 @@ class CodeGenerator:
                 with self.preserving_registers(preserve_regs, loads_a_within=params_load_a()):
                     generate_param_assignments()
                     if targetstr in REGISTER_WORDS:
-                        print("warning: {:s}:{:d}: indirect register pair call is quite inefficient, use a jump table in memory instead?"
-                              .format(self.cur_block.sourceref.file, stmt.lineno))
+                        print("warning: {}: indirect register pair call is quite inefficient, use a jump table in memory instead?"
+                              .format(stmt.sourceref))
                         if stmt.preserve_regs:
                             # cannot use zp scratch because it may be used by the register backup. This is very inefficient code!
                             self.p("\t\tjsr  il65_lib.jsr_indirect_nozpuse_"+targetstr)
@@ -995,7 +995,7 @@ class CodeGenerator:
         # for instance: value += 3
         lvalue = stmt.leftvalues[0]
         rvalue = stmt.right
-        self.p("\t\t\t\t\t; src l. {:d}".format(stmt.lineno))
+        self.p("\t\t\t\t\t; " + stmt.lineref)
         if isinstance(lvalue, ParseResult.RegisterValue):
             if isinstance(rvalue, ParseResult.IntegerValue):
                 self._generate_aug_reg_int(lvalue, stmt.operator, rvalue)
@@ -1405,14 +1405,14 @@ class CodeGenerator:
             if isinstance(iv.value, ParseResult.MemMappedValue):
                 return iv.value
             elif iv.value.constant and isinstance(iv.value, ParseResult.IntegerValue):
-                return ParseResult.MemMappedValue(iv.value.value, iv.datatype, 1, iv.name)
+                return ParseResult.MemMappedValue(iv.value.value, iv.datatype, 1, stmt.sourceref, iv.name)
             else:
                 raise CodeError("cannot yet generate code for assignment: non-constant and non-memmapped indirect")  # XXX
 
         rvalue = stmt.right
         if isinstance(rvalue, ParseResult.IndirectValue):
             rvalue = unwrap_indirect(rvalue)
-        self.p("\t\t\t\t\t; src l. {:d}".format(stmt.lineno))
+        self.p("\t\t\t\t\t; " + stmt.lineref)
         if isinstance(rvalue, ParseResult.IntegerValue):
             for lv in stmt.leftvalues:
                 if isinstance(lv, ParseResult.RegisterValue):

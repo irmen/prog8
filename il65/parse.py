@@ -45,11 +45,44 @@ class ParseResult:
             for sub in block.symbols.iter_subroutines(True):
                 yield sub.sub_block
 
-    class Block:
+    def add_block(self, block: 'ParseResult.Block', position: Optional[int]=None) -> None:
+        if position is not None:
+            self.blocks.insert(position, block)
+        else:
+            self.blocks.append(block)
+
+    def merge(self, parsed: 'ParseResult') -> None:
+        existing_blocknames = set(block.name for block in self.blocks)
+        other_blocknames = set(block.name for block in parsed.blocks)
+        overlap = existing_blocknames & other_blocknames
+        if overlap != {"<header>"}:
+            raise SymbolError("double block names: {}".format(overlap))
+        for block in parsed.blocks:
+            if block.name != "<header>":
+                self.blocks.append(block)
+
+    def find_block(self, name: str) -> 'Block':
+        for block in self.blocks:
+            if block.name == name:
+                return block
+        raise KeyError("block not found: " + name)
+
+    def sub_used_by(self, sub: SubroutineDef, sourceref: SourceRef) -> None:
+        self.subroutine_usage[(sub.blockname, sub.name)].add(str(sourceref))
+
+    class _AstNode:
+        def __init__(self, sourceref: SourceRef) -> None:
+            self.sourceref = sourceref.copy()
+
+        @property
+        def lineref(self) -> str:
+            return "src l. " + str(self.sourceref.line)
+
+    class Block(_AstNode):
         _unnamed_block_labels = {}  # type: Dict[ParseResult.Block, str]
 
         def __init__(self, name: str, sourceref: SourceRef, parent_scope: SymbolTable) -> None:
-            self.sourceref = sourceref.copy()
+            super().__init__(sourceref)
             self.address = 0
             self.name = name
             self.statements = []    # type: List[ParseResult._AstNode]
@@ -89,8 +122,9 @@ class ParseResult:
                 for stmt in sub.sub_block.statements:
                     yield sub.sub_block, sub, stmt
 
-    class Value:
-        def __init__(self, datatype: DataType, name: str=None, constant: bool=False) -> None:
+    class Value(_AstNode):
+        def __init__(self, datatype: DataType, sourceref: SourceRef, name: str=None, constant: bool=False) -> None:
+            super().__init__(sourceref)
             self.datatype = datatype
             self.name = name
             self.constant = constant
@@ -102,9 +136,9 @@ class ParseResult:
 
     class IndirectValue(Value):
         # only constant integers, memmapped and register values are wrapped in this.
-        def __init__(self, value: 'ParseResult.Value', type_modifier: DataType) -> None:
+        def __init__(self, value: 'ParseResult.Value', type_modifier: DataType, sourceref: SourceRef) -> None:
             assert type_modifier
-            super().__init__(type_modifier, value.name, False)
+            super().__init__(type_modifier, sourceref, value.name, False)
             self.value = value
 
         def __str__(self):
@@ -144,7 +178,7 @@ class ParseResult:
             return False, "incompatible value for indirect assignment (need byte, word, float or string)"
 
     class IntegerValue(Value):
-        def __init__(self, value: Optional[int], *, datatype: DataType=None, name: str=None) -> None:
+        def __init__(self, value: Optional[int], sourceref: SourceRef, *, datatype: DataType=None, name: str=None) -> None:
             if type(value) is int:
                 if datatype is None:
                     if 0 <= value < 0x100:
@@ -157,12 +191,12 @@ class ParseResult:
                     faultreason = check_value_in_range(datatype, "", 1, value)
                     if faultreason:
                         raise OverflowError(faultreason)
-                super().__init__(datatype, name, True)
+                super().__init__(datatype, sourceref, name, True)
                 self.value = value
             elif value is None:
                 if not name:
                     raise ValueError("when integer value is not given, the name symbol should be speicified")
-                super().__init__(datatype, name, True)
+                super().__init__(datatype, sourceref, name, True)
                 self.value = None
             else:
                 raise TypeError("invalid data type")
@@ -182,9 +216,9 @@ class ParseResult:
             return "<IntegerValue {} name={}>".format(self.value, self.name)
 
     class FloatValue(Value):
-        def __init__(self, value: float, name: str=None) -> None:
+        def __init__(self, value: float, sourceref: SourceRef, name: str=None) -> None:
             if type(value) is float:
-                super().__init__(DataType.FLOAT, name, True)
+                super().__init__(DataType.FLOAT, sourceref, name, True)
                 self.value = value
             else:
                 raise TypeError("invalid data type")
@@ -204,8 +238,8 @@ class ParseResult:
             return "<FloatValue {} name={}>".format(self.value, self.name)
 
     class StringValue(Value):
-        def __init__(self, value: str, name: str=None, constant: bool=False) -> None:
-            super().__init__(DataType.STRING, name, constant)
+        def __init__(self, value: str, sourceref: SourceRef, name: str=None, constant: bool=False) -> None:
+            super().__init__(DataType.STRING, sourceref, name, constant)
             self.value = value
 
         def __hash__(self):
@@ -223,10 +257,10 @@ class ParseResult:
             return "<StringValue {!r:s} name={} constant={}>".format(self.value, self.name, self.constant)
 
     class RegisterValue(Value):
-        def __init__(self, register: str, datatype: DataType, name: str=None) -> None:
+        def __init__(self, register: str, datatype: DataType, sourceref: SourceRef, name: str=None) -> None:
             assert datatype in (DataType.BYTE, DataType.WORD)
             assert register in REGISTER_SYMBOLS
-            super().__init__(datatype, name, False)
+            super().__init__(datatype, sourceref, name, False)
             self.register = register
 
         def __hash__(self):
@@ -292,8 +326,9 @@ class ParseResult:
             return False, "incompatible value for register assignment"
 
     class MemMappedValue(Value):
-        def __init__(self, address: Optional[int], datatype: DataType, length: int, name: str=None, constant: bool=False) -> None:
-            super().__init__(datatype, name, constant)
+        def __init__(self, address: Optional[int], datatype: DataType, length: int,
+                     sourceref: SourceRef, name: str=None, constant: bool=False) -> None:
+            super().__init__(datatype, sourceref, name, constant)
             self.address = address
             self.length = length
             assert address is None or type(address) is int
@@ -353,23 +388,19 @@ class ParseResult:
                     return False, "(unsigned) word required"
             return False, "incompatible value for assignment"
 
-    class _AstNode:     # @todo merge Value with this?
-        def __init__(self, lineno: int) -> None:
-            self.lineno = lineno
-
     class Comment(_AstNode):
-        def __init__(self, text: str, lineno: int) -> None:
-            super().__init__(lineno)
+        def __init__(self, text: str, sourceref: SourceRef) -> None:
+            super().__init__(sourceref)
             self.text = text
 
     class Label(_AstNode):
-        def __init__(self, name: str, lineno: int) -> None:
-            super().__init__(lineno)
+        def __init__(self, name: str, sourceref: SourceRef) -> None:
+            super().__init__(sourceref)
             self.name = name
 
     class AssignmentStmt(_AstNode):
-        def __init__(self, leftvalues: List['ParseResult.Value'], right: 'ParseResult.Value', lineno: int) -> None:
-            super().__init__(lineno)
+        def __init__(self, leftvalues: List['ParseResult.Value'], right: 'ParseResult.Value', sourceref: SourceRef) -> None:
+            super().__init__(sourceref)
             self.leftvalues = leftvalues
             self.right = right
 
@@ -395,10 +426,10 @@ class ParseResult:
                 self.right.name = stringvar_name
                 self._immediate_string_vars[self.right.value] = (cur_block.name, stringvar_name)
 
-        def remove_identity_lvalues(self, filename: str, lineno: int) -> None:
+        def remove_identity_lvalues(self) -> None:
             for lv in self.leftvalues:
                 if lv == self.right:
-                    print("{:s}:{:d}: removed identity assignment".format(filename, lineno))
+                    print("{}: removed identity assignment".format(self.sourceref))
             remaining_leftvalues = [lv for lv in self.leftvalues if lv != self.right]
             self.leftvalues = remaining_leftvalues
 
@@ -409,45 +440,45 @@ class ParseResult:
         SUPPORTED_OPERATORS = {"+=", "-=", "&=", "|=", "^=", ">>=", "<<="}
         # full set: {"+=", "-=", "*=", "/=", "%=", "//=", "**=", "&=", "|=", "^=", ">>=", "<<="}
 
-        def __init__(self, left: 'ParseResult.Value', operator: str, right: 'ParseResult.Value', lineno: int) -> None:
+        def __init__(self, left: 'ParseResult.Value', operator: str, right: 'ParseResult.Value', sourceref: SourceRef) -> None:
             assert operator in self.SUPPORTED_OPERATORS
-            super().__init__([left], right, lineno)
+            super().__init__([left], right, sourceref)
             self.operator = operator
 
         def __str__(self):
             return "<AugAssign {:s} {:s} {:s}>".format(str(self.leftvalues[0]), self.operator, str(self.right))
 
     class ReturnStmt(_AstNode):
-        def __init__(self, lineno: int, a: Optional['ParseResult.Value']=None,
+        def __init__(self, sourceref: SourceRef, a: Optional['ParseResult.Value']=None,
                      x: Optional['ParseResult.Value']=None,
                      y: Optional['ParseResult.Value']=None) -> None:
-            super().__init__(lineno)
+            super().__init__(sourceref)
             self.a = a
             self.x = x
             self.y = y
 
     class InplaceIncrStmt(_AstNode):
-        def __init__(self, what: 'ParseResult.Value', howmuch: Union[int, float], lineno: int) -> None:
-            super().__init__(lineno)
+        def __init__(self, what: 'ParseResult.Value', howmuch: Union[int, float], sourceref: SourceRef) -> None:
+            super().__init__(sourceref)
             assert howmuch > 0
             self.what = what
             self.howmuch = howmuch
 
     class InplaceDecrStmt(_AstNode):
-        def __init__(self, what: 'ParseResult.Value', howmuch: Union[int, float], lineno: int) -> None:
-            super().__init__(lineno)
+        def __init__(self, what: 'ParseResult.Value', howmuch: Union[int, float], sourceref: SourceRef) -> None:
+            super().__init__(sourceref)
             assert howmuch > 0
             self.what = what
             self.howmuch = howmuch
 
     class CallStmt(_AstNode):
-        def __init__(self, lineno: int, target: Optional['ParseResult.Value']=None, *,
+        def __init__(self, sourceref: SourceRef, target: Optional['ParseResult.Value']=None, *,
                      address: Optional[int]=None, arguments: List[Tuple[str, Any]]=None,
                      outputs: List[Tuple[str, 'ParseResult.Value']]=None, is_goto: bool=False,
                      preserve_regs: bool=True, condition: 'ParseResult.IfCondition'=None) -> None:
             if not is_goto:
                 assert condition is None
-            super().__init__(lineno)
+            super().__init__(sourceref)
             self.target = target
             self.address = address
             self.arguments = arguments
@@ -470,14 +501,13 @@ class ParseResult:
                         if value.startswith("'") and value.endswith("'"):
                             parser.print_warning("possible problematic string to byte conversion (use a .text var instead?)")
                 if not assignment.is_identity():
-                    assignment.lineno = self.lineno
+                    assignment.sourceref = self.sourceref.copy()    # @todo why set this?
                     self.desugared_call_arguments.append(assignment)
             if all(not isinstance(v, ParseResult.RegisterValue) for r, v in self.outputvars or []):
                 # if none of the output variables are registers, we can simply generate the assignments without issues
                 for register, value in self.outputvars or []:
                     rvalue = parser.parse_expression(register)
-                    assignment = ParseResult.AssignmentStmt([value], rvalue, self.lineno)
-                    assignment.lineno = self.lineno
+                    assignment = ParseResult.AssignmentStmt([value], rvalue, self.sourceref)
                     self.desugared_output_assignments.append(assignment)
             else:
                 result_reg_mapping = [(register, value.register, value) for register, value in self.outputvars or []
@@ -492,13 +522,12 @@ class ParseResult:
                     # note: do not remove the identity assignment here or the output register handling generates buggy code
                     for register, value in self.outputvars or []:
                         rvalue = parser.parse_expression(register)
-                        assignment = ParseResult.AssignmentStmt([value], rvalue, self.lineno)
-                        assignment.lineno = self.lineno
+                        assignment = ParseResult.AssignmentStmt([value], rvalue, self.sourceref)
                         self.desugared_output_assignments.append(assignment)
 
     class InlineAsm(_AstNode):
-        def __init__(self, asmlines: List[str], lineno: int) -> None:
-            super().__init__(lineno)
+        def __init__(self, asmlines: List[str], sourceref: SourceRef) -> None:
+            super().__init__(sourceref)
             self.asmlines = asmlines
 
     class IfCondition(_AstNode):
@@ -511,12 +540,12 @@ class ParseResult:
         IF_STATUSES = {"cc", "cs", "vc", "vs", "eq", "ne", "true", "not", "zero", "pos", "neg", "lt", "gt", "le", "ge"}
 
         def __init__(self, ifstatus: str, leftvalue: Optional['ParseResult.Value'],
-                     operator: str, rightvalue: Optional['ParseResult.Value'], lineno: int) -> None:
+                     operator: str, rightvalue: Optional['ParseResult.Value'], sourceref: SourceRef) -> None:
             assert ifstatus in self.IF_STATUSES
             assert operator in (None, "") or operator in self.SWAPPED_OPERATOR
             if operator:
                 assert ifstatus in ("true", "not", "zero")
-            super().__init__(lineno)
+            super().__init__(sourceref)
             self.ifstatus = ifstatus
             self.lvalue = leftvalue
             self.comparison_op = operator
@@ -539,33 +568,8 @@ class ParseResult:
             return self.lvalue, self.comparison_op, self.rvalue
 
     class BreakpointStmt(_AstNode):
-        def __init__(self, lineno: int) -> None:
-            super().__init__(lineno)
-
-    def add_block(self, block: 'ParseResult.Block', position: Optional[int]=None) -> None:
-        if position is not None:
-            self.blocks.insert(position, block)
-        else:
-            self.blocks.append(block)
-
-    def merge(self, parsed: 'ParseResult') -> None:
-        existing_blocknames = set(block.name for block in self.blocks)
-        other_blocknames = set(block.name for block in parsed.blocks)
-        overlap = existing_blocknames & other_blocknames
-        if overlap != {"<header>"}:
-            raise SymbolError("double block names: {}".format(overlap))
-        for block in parsed.blocks:
-            if block.name != "<header>":
-                self.blocks.append(block)
-
-    def find_block(self, name: str) -> Block:
-        for block in self.blocks:
-            if block.name == name:
-                return block
-        raise KeyError("block not found: " + name)
-
-    def sub_used_by(self, sub: SubroutineDef, sourceref: SourceRef) -> None:
-        self.subroutine_usage[(sub.blockname, sub.name)].add(str(sourceref))
+        def __init__(self, sourceref: SourceRef) -> None:
+            super().__init__(sourceref)
 
 
 class Parser:
@@ -659,7 +663,7 @@ class Parser:
         while True:
             line = self.next_line().lstrip()
             if line.startswith(';'):
-                self.cur_block.statements.append(ParseResult.Comment(line, self.sourceref.line))
+                self.cur_block.statements.append(ParseResult.Comment(line, self.sourceref))
                 continue
             self.prev_line()
             break
@@ -730,16 +734,13 @@ class Parser:
         def desugar_immediate_strings(stmt: ParseResult._AstNode) -> None:
             if isinstance(stmt, ParseResult.CallStmt):
                 for s in stmt.desugared_call_arguments:
-                    self.sourceref.line = s.lineno
-                    self.sourceref.column = 0
+                    self.sourceref = s.sourceref.copy()
                     s.desugar_immediate_string(self)
                 for s in stmt.desugared_output_assignments:
-                    self.sourceref.line = s.lineno
-                    self.sourceref.column = 0
+                    self.sourceref = s.sourceref.copy()
                     s.desugar_immediate_string(self)
             if isinstance(stmt, ParseResult.AssignmentStmt):
-                self.sourceref.line = stmt.lineno
-                self.sourceref.column = 0
+                self.sourceref = stmt.sourceref.copy()
                 stmt.desugar_immediate_string(self)
 
         for block in self.result.blocks:
@@ -748,7 +749,7 @@ class Parser:
             self.sourceref.column = 0
             for block, sub, stmt in block.all_statements():
                 if isinstance(stmt, ParseResult.CallStmt):
-                    self.sourceref.line = stmt.lineno
+                    self.sourceref = stmt.sourceref.copy()
                     stmt.desugar_call_arguments_and_outputs(self)
                 desugar_immediate_strings(stmt)
 
@@ -1032,7 +1033,7 @@ class Parser:
                 self.prev_line()
                 self.cur_block.statements.append(self.parse_asm())
             elif line == "breakpoint":
-                self.cur_block.statements.append(ParseResult.BreakpointStmt(self.sourceref.line))
+                self.cur_block.statements.append(ParseResult.BreakpointStmt(self.sourceref))
                 self.print_warning("breakpoint defined")
             elif unstripped_line.startswith((" ", "\t")):
                 if is_zp_block:
@@ -1054,7 +1055,7 @@ class Parser:
             if labelname in self.cur_block.symbols:
                 raise self.PError("symbol already defined")
             self.cur_block.symbols.define_label(labelname, self.sourceref)
-            self.cur_block.statements.append(ParseResult.Label(labelname, self.sourceref.line))
+            self.cur_block.statements.append(ParseResult.Label(labelname, self.sourceref))
             if len(label_line) > 1:
                 rest = label_line[1]
                 self.cur_block.statements.append(self.parse_statement(rest))
@@ -1227,8 +1228,8 @@ class Parser:
             if isinstance(what, ParseResult.IntegerValue):
                 raise self.PError("cannot in/decrement a constant value")
             if incr:
-                return ParseResult.InplaceIncrStmt(what, 1, self.sourceref.line)
-            return ParseResult.InplaceDecrStmt(what, 1, self.sourceref.line)
+                return ParseResult.InplaceIncrStmt(what, 1, self.sourceref)
+            return ParseResult.InplaceDecrStmt(what, 1, self.sourceref)
         else:
             # perhaps it is an augmented assignment statement
             match = re.fullmatch(r"(?P<left>\S+)\s*(?P<assignment>\+=|-=|\*=|/=|%=|//=|\*\*=|&=|\|=|\^=|>>=|<<=)\s*(?P<right>\S.*)", line)
@@ -1317,10 +1318,10 @@ class Parser:
                     assert len(newsymbol.parameters) == 1
                     arguments = [(newsymbol.parameters[0][1], arguments[0][1])]
             if is_goto:
-                return ParseResult.CallStmt(self.sourceref.line, target, address=address,
+                return ParseResult.CallStmt(self.sourceref, target, address=address,
                                             arguments=arguments, outputs=outputvars, is_goto=True, condition=condition)
             else:
-                return ParseResult.CallStmt(self.sourceref.line, target, address=address,
+                return ParseResult.CallStmt(self.sourceref, target, address=address,
                                             arguments=arguments, outputs=outputvars, preserve_regs=preserve_regs)
         else:
             raise TypeError("target should be a Value", target)
@@ -1348,8 +1349,8 @@ class Parser:
                 if isinstance(r_value, ParseResult.FloatValue):
                     truncated, value = self.coerce_value(self.sourceref, lv.datatype, r_value.value)
                     if truncated:
-                        r_value = ParseResult.IntegerValue(int(value), datatype=lv.datatype, name=r_value.name)
-        return ParseResult.AssignmentStmt(l_values, r_value, self.sourceref.line)
+                        r_value = ParseResult.IntegerValue(int(value), self.sourceref, datatype=lv.datatype, name=r_value.name)
+        return ParseResult.AssignmentStmt(l_values, r_value, self.sourceref)
 
     def parse_augmented_assignment(self, leftstr: str, operator: str, rightstr: str) \
             -> Union[ParseResult.AssignmentStmt, ParseResult.InplaceDecrStmt, ParseResult.InplaceIncrStmt]:
@@ -1365,23 +1366,23 @@ class Parser:
             if isinstance(r_value, ParseResult.FloatValue):
                 truncated, value = self.coerce_value(self.sourceref, l_value.datatype, r_value.value)
                 if truncated:
-                    r_value = ParseResult.IntegerValue(int(value), datatype=l_value.datatype, name=r_value.name)
+                    r_value = ParseResult.IntegerValue(int(value), self.sourceref, datatype=l_value.datatype, name=r_value.name)
         if r_value.constant and operator in ("+=", "-="):
             if operator == "+=":
                 if r_value.value > 0:  # type: ignore
-                    return ParseResult.InplaceIncrStmt(l_value, r_value.value, self.sourceref.line)  # type: ignore
+                    return ParseResult.InplaceIncrStmt(l_value, r_value.value, self.sourceref)  # type: ignore
                 elif r_value.value < 0:  # type: ignore
-                    return ParseResult.InplaceDecrStmt(l_value, -r_value.value, self.sourceref.line)  # type: ignore
+                    return ParseResult.InplaceDecrStmt(l_value, -r_value.value, self.sourceref)  # type: ignore
                 else:
                     self.print_warning("incr with zero, ignored")
             else:
                 if r_value.value > 0:  # type: ignore
-                    return ParseResult.InplaceDecrStmt(l_value, r_value.value, self.sourceref.line)  # type: ignore
+                    return ParseResult.InplaceDecrStmt(l_value, r_value.value, self.sourceref)  # type: ignore
                 elif r_value.value < 0:  # type: ignore
-                    return ParseResult.InplaceIncrStmt(l_value, -r_value.value, self.sourceref.line)  # type: ignore
+                    return ParseResult.InplaceIncrStmt(l_value, -r_value.value, self.sourceref)  # type: ignore
                 else:
                     self.print_warning("decr with zero, ignored")
-        return ParseResult.AugmentedAssignmentStmt(l_value, operator, r_value, self.sourceref.line)
+        return ParseResult.AugmentedAssignmentStmt(l_value, operator, r_value, self.sourceref)
 
     def parse_return(self, line: str) -> ParseResult.ReturnStmt:
         parts = line.split(maxsplit=1)
@@ -1392,7 +1393,7 @@ class Parser:
         if len(parts) > 1:
             values = parts[1].split(",")
         if len(values) == 0:
-            return ParseResult.ReturnStmt(self.sourceref.line)
+            return ParseResult.ReturnStmt(self.sourceref)
         else:
             a = self.parse_expression(values[0]) if values[0] else None
             if len(values) > 1:
@@ -1401,11 +1402,10 @@ class Parser:
                     y = self.parse_expression(values[2]) if values[2] else None
                     if len(values) > 3:
                         raise self.PError("too many returnvalues")
-        return ParseResult.ReturnStmt(self.sourceref.line, a, x, y)
+        return ParseResult.ReturnStmt(self.sourceref, a, x, y)
 
     def parse_asm(self) -> ParseResult.InlineAsm:
         line = self.next_line()
-        lineno = self.sourceref.line
         aline = line.split()
         if not len(aline) == 2 or aline[0] != "asm" or aline[1] != "{":
             raise self.PError("invalid asm start")
@@ -1413,7 +1413,7 @@ class Parser:
         while True:
             line = self.next_line()
             if line.strip() == "}":
-                return ParseResult.InlineAsm(asmlines, lineno)
+                return ParseResult.InlineAsm(asmlines, self.sourceref)
             # asm can refer to other symbols as well, track subroutine usage
             splits = line.split(maxsplit=1)
             if len(splits) == 2:
@@ -1454,7 +1454,7 @@ class Parser:
                 lines = ['{:s}\t.binclude "{:s}"'.format(scopename, filename)]
             else:
                 raise self.PError("invalid asminclude statement")
-            return ParseResult.InlineAsm(lines, self.sourceref.line)
+            return ParseResult.InlineAsm(lines, self.sourceref)
         elif aline[0] == "asmbinary":
             if len(aline) == 4:
                 offset = parse_expr_as_int(aline[2], None, None, self.sourceref)
@@ -1467,7 +1467,7 @@ class Parser:
                 lines = ['\t.binary "{:s}"'.format(filename)]
             else:
                 raise self.PError("invalid asmbinary statement")
-            return ParseResult.InlineAsm(lines, self.sourceref.line)
+            return ParseResult.InlineAsm(lines, self.sourceref)
         else:
             raise self.PError("invalid statement")
 
@@ -1484,34 +1484,34 @@ class Parser:
             if isinstance(expression, ParseResult.StringValue):
                 return expression
             elif isinstance(expression, ParseResult.MemMappedValue):
-                return ParseResult.IntegerValue(expression.address, datatype=DataType.WORD, name=expression.name)
+                return ParseResult.IntegerValue(expression.address, self.sourceref, datatype=DataType.WORD, name=expression.name)
             else:
                 raise self.PError("cannot take the address of this type")
         elif text[0] in "-.0123456789$%~":
             number = parse_expr_as_number(text, self.cur_block.symbols, self.ppsymbols, self.sourceref)
             try:
                 if type(number) is int:
-                    return ParseResult.IntegerValue(int(number))
+                    return ParseResult.IntegerValue(int(number), self.sourceref)
                 elif type(number) is float:
-                    return ParseResult.FloatValue(number)
+                    return ParseResult.FloatValue(number, self.sourceref)
                 else:
                     raise TypeError("invalid number type")
             except (ValueError, OverflowError) as ex:
                 raise self.PError(str(ex))
         elif text in REGISTER_WORDS:
-            return ParseResult.RegisterValue(text, DataType.WORD)
+            return ParseResult.RegisterValue(text, DataType.WORD, self.sourceref)
         elif text in REGISTER_BYTES | REGISTER_SBITS:
-            return ParseResult.RegisterValue(text, DataType.BYTE)
+            return ParseResult.RegisterValue(text, DataType.BYTE, self.sourceref)
         elif (text.startswith("'") and text.endswith("'")) or (text.startswith('"') and text.endswith('"')):
             strvalue = parse_expr_as_string(text, self.cur_block.symbols, self.ppsymbols, self.sourceref)
             if len(strvalue) == 1:
                 petscii_code = char_to_bytevalue(strvalue)
-                return ParseResult.IntegerValue(petscii_code)
-            return ParseResult.StringValue(strvalue)
+                return ParseResult.IntegerValue(petscii_code, self.sourceref)
+            return ParseResult.StringValue(strvalue, self.sourceref)
         elif text == "true":
-            return ParseResult.IntegerValue(1)
+            return ParseResult.IntegerValue(1, self.sourceref)
         elif text == "false":
-            return ParseResult.IntegerValue(0)
+            return ParseResult.IntegerValue(0, self.sourceref)
         elif self.is_identifier(text):
             symblock, sym = self.lookup_with_ppsymbols(text)
             if isinstance(sym, (VariableDef, ConstantDef)):
@@ -1521,21 +1521,22 @@ class Parser:
                 else:
                     symbolname = "{:s}.{:s}".format(sym.blockname, sym.name)
                 if isinstance(sym, VariableDef) and sym.register:
-                    return ParseResult.RegisterValue(sym.register, sym.type, name=symbolname)
+                    return ParseResult.RegisterValue(sym.register, sym.type, self.sourceref, name=symbolname)
                 elif sym.type in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
                     if isinstance(sym, ConstantDef):
                         if sym.type == DataType.FLOAT:
-                            return ParseResult.FloatValue(sym.value, sym.name)   # type: ignore
+                            return ParseResult.FloatValue(sym.value, self.sourceref, sym.name)   # type: ignore
                         elif sym.type in (DataType.BYTE, DataType.WORD):
-                            return ParseResult.IntegerValue(sym.value, datatype=sym.type, name=sym.name)  # type: ignore
+                            return ParseResult.IntegerValue(sym.value, self.sourceref, datatype=sym.type, name=sym.name)  # type: ignore
                         elif sym.type in STRING_DATATYPES:
-                            return ParseResult.StringValue(sym.value, sym.name, True)   # type: ignore
+                            return ParseResult.StringValue(sym.value, self.sourceref, sym.name, True)   # type: ignore
                         else:
                             raise TypeError("invalid const type", sym.type)
                     else:
-                        return ParseResult.MemMappedValue(sym.address, sym.type, sym.length, name=symbolname, constant=constant)
+                        return ParseResult.MemMappedValue(sym.address, sym.type, sym.length,
+                                                          self.sourceref, name=symbolname, constant=constant)
                 elif sym.type in STRING_DATATYPES:
-                    return ParseResult.StringValue(sym.value, name=symbolname, constant=constant)      # type: ignore
+                    return ParseResult.StringValue(sym.value, self.sourceref, name=symbolname, constant=constant)      # type: ignore
                 elif sym.type == DataType.MATRIX:
                     raise self.PError("cannot manipulate matrix directly, use one of the matrix procedures")
                 elif sym.type == DataType.BYTEARRAY or sym.type == DataType.WORDARRAY:
@@ -1544,11 +1545,11 @@ class Parser:
                     raise self.PError("invalid symbol type")
             elif isinstance(sym, LabelDef):
                 name = sym.name if symblock is self.cur_block else sym.blockname + '.' + sym.name
-                return ParseResult.MemMappedValue(None, DataType.WORD, 1, name, True)
+                return ParseResult.MemMappedValue(None, DataType.WORD, 1, self.sourceref, name, True)
             elif isinstance(sym, SubroutineDef):
                 self.result.sub_used_by(sym, self.sourceref)
                 name = sym.name if symblock is self.cur_block else sym.blockname + '.' + sym.name
-                return ParseResult.MemMappedValue(sym.address, DataType.WORD, 1, name, True)
+                return ParseResult.MemMappedValue(sym.address, DataType.WORD, 1, self.sourceref, name, True)
             else:
                 raise self.PError("invalid symbol type")
         elif text.startswith('[') and text.endswith(']'):
@@ -1581,7 +1582,7 @@ class Parser:
                     raise self.PError("invalid type modifier for the value's datatype, must be " + expr.datatype.name)
             else:
                 raise self.PError("use variable directly instead of using indirect addressing")
-        return indirect, ParseResult.IndirectValue(expr, type_modifier)
+        return indirect, ParseResult.IndirectValue(expr, type_modifier, self.sourceref)
 
     def is_identifier(self, name: str) -> bool:
         if name.isidentifier():
@@ -1687,9 +1688,9 @@ class Parser:
                 rightv = None
             if leftv == rightv:
                 raise self.PError("left and right values in comparison are identical")
-            result = ParseResult.IfCondition(ifstatus, leftv, operator, rightv, self.sourceref.line)
+            result = ParseResult.IfCondition(ifstatus, leftv, operator, rightv, self.sourceref)
         else:
-            result = ParseResult.IfCondition(ifstatus, None, "", None, self.sourceref.line)
+            result = ParseResult.IfCondition(ifstatus, None, "", None, self.sourceref)
         if result.make_if_true():
             self.print_warning("if_not condition inverted to if")
         return result
@@ -1746,7 +1747,7 @@ class Optimizer:
                             cond.comparison_op, cond.rvalue = "", None
                             simplified = True
                     if simplified:
-                        print("{:s}:{:d}: simplified comparison with zero".format(block.sourceref.file, stmt.lineno))
+                        print("{}: simplified comparison with zero".format(stmt.sourceref))
 
     def combine_assignments_into_multi(self, block: ParseResult.Block) -> None:
         # fold multiple consecutive assignments with the same rvalue into one multi-assignment
@@ -1756,7 +1757,7 @@ class Optimizer:
             if isinstance(stmt, ParseResult.AssignmentStmt) and not isinstance(stmt, ParseResult.AugmentedAssignmentStmt):
                 if multi_assign_statement and multi_assign_statement.right == stmt.right:
                     multi_assign_statement.leftvalues.extend(stmt.leftvalues)
-                    print("{:s}:{:d}: joined with previous line into multi-assign statement".format(block.sourceref.file, stmt.lineno))
+                    print("{}: joined with previous line into multi-assign statement".format(stmt.sourceref))
                 else:
                     if multi_assign_statement:
                         statements.append(multi_assign_statement)
@@ -1777,7 +1778,7 @@ class Optimizer:
                 # remove duplicates
                 lvalues = list(set(stmt.leftvalues))
                 if len(lvalues) != len(stmt.leftvalues):
-                    print("{:s}:{:d}: removed duplicate assignment targets".format(block.sourceref.file, stmt.lineno))
+                    print("{}: removed duplicate assignment targets".format(stmt.sourceref))
                 # change order: first registers, then zp addresses, then non-zp addresses, then the rest (if any)
                 stmt.leftvalues = list(sorted(lvalues, key=_value_sortkey))
 
@@ -1785,9 +1786,9 @@ class Optimizer:
         have_removed_stmts = False
         for index, stmt in enumerate(list(block.statements)):
             if isinstance(stmt, ParseResult.AssignmentStmt):
-                stmt.remove_identity_lvalues(block.sourceref.file, stmt.lineno)
+                stmt.remove_identity_lvalues()
                 if not stmt.leftvalues:
-                    print("{:s}:{:d}: removed identity assignment statement".format(block.sourceref.file, stmt.lineno))
+                    print("{}: removed identity assignment statement".format(stmt.sourceref))
                     have_removed_stmts = True
                     block.statements[index] = None
         if have_removed_stmts:
