@@ -307,7 +307,9 @@ class MemMappedValue(Value):
         if self.constant:
             return False, "cannot assign to a constant"
         if isinstance(other, IndirectValue):
-            return False, "can not yet assign memory mapped value from indirect value"  # @todo indirect v assign
+            if self.datatype == other.datatype:
+                return True, ""
+            return False, "data type of value and target are not the same"
         if self.datatype == DataType.BYTE:
             if isinstance(other, (IntegerValue, RegisterValue, MemMappedValue)):
                 if other.datatype == DataType.BYTE:

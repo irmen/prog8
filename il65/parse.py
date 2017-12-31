@@ -1163,7 +1163,7 @@ class Parser:
         if datatype in (DataType.BYTE, DataType.WORD, DataType.MATRIX) and type(value) is float:
             frac = math.modf(value)  # type:ignore
             if frac != 0:
-                self.print_warning("float value truncated")
+                self.print_warning("float value truncated ({} to datatype {})".format(value, datatype.name))
                 return True, int(value)
         return False, value
 
@@ -1333,7 +1333,8 @@ class Optimizer:
     def remove_unused_subroutines(self, block: Block) -> None:
         # some symbols are used by the emitted assembly code from the code generator,
         # and should never be removed or the assembler will fail
-        never_remove = {"c64.GIVUAYF", "c64.FREADUY", "c64.FTOMEMXY"}
+        # @todo make this dynamic
+        never_remove = {"c64.GIVUAYF", "c64.FREADUY", "c64.FTOMEMXY", "c64.FADD", "c64.FSUB"}
         discarded = []
         for sub in list(block.symbols.iter_subroutines()):
             usages = self.parsed.subroutine_usage[(sub.blockname, sub.name)]

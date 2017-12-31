@@ -5,7 +5,35 @@ output prg,basic
 import "c64lib"
 
 ~ main {
+
+        var     .float  float1  = 123.456
 start
+        c64.MOVFM(#float1)
+        c64.FPRINTLN()
+        float1++
+        c64.MOVFM(#float1)
+        c64.FPRINTLN()
+        float1-=1
+        c64.MOVFM(#float1)
+        c64.FPRINTLN()
+        float1--
+        c64.MOVFM(#float1)
+        c64.FPRINTLN()
+        ;float1+=0.5
+        ;c64.MOVFM(#float1)
+        ;c64.FPRINTLN()
+        ;float1+=2235.55
+        ;c64.MOVFM(#float1)
+        ;c64.FPRINTLN()
+        ;float1-=999.55
+        ;c64.MOVFM(#float1)
+        ;c64.FPRINTLN()
+        ;float1-=33333.456
+        ;c64.MOVFM(#float1)
+        ;c64.FPRINTLN()
+
+        return
+
         A = $11
         X = $22
         Y = $33

@@ -395,13 +395,9 @@ class CodeGenerator:
         self.previous_stmt_was_assignment = isinstance(stmt, AssignmentStmt)
 
     def generate_incr_or_decr(self, stmt: Union[InplaceIncrStmt, InplaceDecrStmt]) -> None:
-        if stmt.what.datatype == DataType.FLOAT:
-            raise CodeError("incr/decr on float not yet supported")  # @todo support incr/decr on float
-        else:
-            assert type(stmt.howmuch) is int
         assert stmt.howmuch > 0
-        if stmt.howmuch > 0xff:
-            raise CodeError("only supports incr/decr by up to 255 for now")   # XXX
+        if stmt.what.datatype != DataType.FLOAT and stmt.howmuch > 0xff:
+            raise CodeError("only supports integer incr/decr by up to 255 for now")   # XXX
         is_incr = isinstance(stmt, InplaceIncrStmt)
         if isinstance(stmt.what, RegisterValue):
             reg = stmt.what.register
@@ -564,8 +560,20 @@ class CodeGenerator:
                         self.p("\t\tbcs  +")
                         self.p("\t\tdec  {:s}+1".format(r_str))
                         self.p("+\t\tpla")
+            elif what.datatype == DataType.FLOAT:
+                if stmt.howmuch == 1.0:
+                    t_str = stmt.what.name or Parser.to_hex(stmt.what.address)
+                    with self.preserving_registers({'A', 'X', 'Y'}, loads_a_within=True):
+                        self.p("\t\t  ldx  #<" + t_str)
+                        self.p("\t\t  ldy  #>" + t_str)
+                        if is_incr:
+                            self.p("\t\t  jsr  il65_lib.float_add_one")
+                        else:
+                            self.p("\t\t  jsr  il65_lib.float_sub_one")
+                else:
+                    raise CodeError("cannot incr/decr float by other than 1 at this time", stmt.howmuch)  # XXX
             else:
-                raise CodeError("cannot in/decrement memory of type " + str(what.datatype))
+                raise CodeError("cannot in/decrement memory of type " + str(what.datatype), stmt.howmuch)
         else:
             raise CodeError("cannot in/decrement " + str(stmt.what))
 
