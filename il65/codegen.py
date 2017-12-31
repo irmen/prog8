@@ -1514,7 +1514,7 @@ class CodeGenerator:
             # assigning a register to a float requires c64 ROM routines
             if r_register in REGISTER_WORDS:
                 def do_rom_calls():
-                    self.p("\t\tjsr  c64util.GIVUAYF")  # uword AY -> fac1
+                    self.p("\t\tjsr  c64.GIVUAYF")  # uword AY -> fac1
                     self.p("\t\tldx  #<" + lv_string)
                     self.p("\t\tldy  #>" + lv_string)
                     self.p("\t\tjsr  c64.FTOMEMXY")  # fac1 -> memory XY
@@ -1750,7 +1750,7 @@ class CodeGenerator:
                     self.p("\t\tsta  c64.SCRATCH_ZPWORD1+1")
                     self.p("\t\tldx  #<" + l_str)
                     self.p("\t\tldy  #>" + l_str)
-                    self.p("\t\tjsr  c64_lib.copy_mflt")
+                    self.p("\t\tjsr  il65_lib.copy_mflt")
             elif rvalue.datatype == DataType.BYTE:
                 with self.preserving_registers({'A', 'X', 'Y'}):
                     self.p("\t\tldy  " + r_str)
@@ -1762,7 +1762,7 @@ class CodeGenerator:
                 with self.preserving_registers({'A', 'X', 'Y'}, loads_a_within=True):
                     self.p("\t\tlda  " + r_str)
                     self.p("\t\tldy  {:s}+1".format(r_str))
-                    self.p("\t\tjsr  c64util.GIVUAYF")  # uword AY -> fac1
+                    self.p("\t\tjsr  c64.GIVUAYF")  # uword AY -> fac1
                     self.p("\t\tldx  #<" + l_str)
                     self.p("\t\tldy  #>" + l_str)
                     self.p("\t\tjsr  c64.FTOMEMXY")  # fac1 -> memory XY

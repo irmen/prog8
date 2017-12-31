@@ -1308,7 +1308,7 @@ class Parser:
             raise self.PError("all call arguments should have a name or be matched on a named parameter")
         if isinstance(target, (type(None), ParseResult.Value)):
             # special case for the C-64 lib's print function, to be able to use it with a single character argument
-            if target.name == "c64util.print_string" and len(arguments) == 1 and isinstance(arguments[0], str):
+            if target.name == "c64scr.print_string" and len(arguments) == 1 and isinstance(arguments[0], str):
                 if arguments[0][1].startswith("'") and arguments[0][1].endswith("'"):
                     target = self.parse_expression("c64.CHROUT")
                     address = target.address
@@ -1797,7 +1797,7 @@ class Optimizer:
     def remove_unused_subroutines(self, block: ParseResult.Block) -> None:
         # some symbols are used by the emitted assembly code from the code generator,
         # and should never be removed or the assembler will fail
-        never_remove = {"c64util.GIVUAYF", "c64.FREADUY", "c64.FTOMEMXY"}
+        never_remove = {"c64.GIVUAYF", "c64.FREADUY", "c64.FTOMEMXY"}
         discarded = []
         for sub in list(block.symbols.iter_subroutines()):
             usages = self.parsed.subroutine_usage[(sub.blockname, sub.name)]

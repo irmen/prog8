@@ -221,6 +221,8 @@ class Zeropage:
             raise SymbolError("cannot configure the ZP multiple times")
         if clobber_zp:
             self.free = list(range(0x04, 0xfb)) + [0xff]
+            for updated_by_irq in [0xa0, 0xa1, 0xa2, 0x91, 0xc0, 0xc5, 0xcb, 0xf5, 0xf6]:
+                self.free.remove(updated_by_irq)
         else:
             # these are valid for the C-64 (when no RS232 I/O is performed):
             # ($02, $03, $fb-$fc, $fd-$fe are reserved as scratch addresses for various routines)

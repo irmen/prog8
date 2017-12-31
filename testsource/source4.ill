@@ -9,41 +9,41 @@ output prg,basic  ; create a c-64 program with basic SYS to() launch it
 	const .word BORDER = $d020
 
 start
-	c64util.print_pimmediate ! ()          ; this prints the pstring immediately following it
+	c64scr.print_pimmediate ! ()          ; this prints the pstring immediately following it
 	asm {
 		.ptext "hello-pimmediate!{cr}"
 	}
 
-	c64util.print_byte_decimal0 ! (19)
+	c64scr.print_byte_decimal0 ! (19)
 	c64.CHROUT ! (13)
-	c64util.print_byte_decimal ! (19)
+	c64scr.print_byte_decimal ! (19)
 	c64.CHROUT ! (13)
 
 
-	c64util.print_word_decimal0 ! ($0102)
+	c64scr.print_word_decimal0 ! ($0102)
 	c64.CHROUT ! (13)
-	c64util.print_word_decimal ! ($0102)
+	c64scr.print_word_decimal ! ($0102)
 	c64.CHROUT ! (13)
 	return
 
 start2
 	global2.make_screen_black()
 	c64.CLEARSCR()
-	c64util.print_string(greeting)
-	c64util.print_pstring(p_greeting)
-	c64util.print_byte_decimal(0)
-	c64util.print_byte_hex(0, 0)
+	c64scr.print_string(greeting)
+	c64scr.print_pstring(p_greeting)
+	c64scr.print_byte_decimal(0)
+	c64scr.print_byte_hex(0, 0)
 	c64.CHROUT(13)
-	c64util.print_byte_decimal(13)
-	c64util.print_byte_hex(0, 13)
+	c64scr.print_byte_decimal(13)
+	c64scr.print_byte_hex(0, 13)
 	c64.CHROUT(13)
-	c64util.print_byte_decimal(255)
-	c64util.print_byte_hex(0, 254)
-	c64util.print_byte_hex(0, 129)
+	c64scr.print_byte_decimal(255)
+	c64scr.print_byte_hex(0, 254)
+	c64scr.print_byte_hex(0, 129)
 	c64.CHROUT(13)
 
 	c64.CHROUT(13)
-	c64util.print_word_decimal($0100)
+	c64scr.print_word_decimal($0100)
 	c64.CHROUT(13)
 	return
 

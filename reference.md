@@ -102,11 +102,22 @@ The four reserved locations mentioned above are subtracted from this set, leavin
 five 1-byte and two 2-byte usable zero page registers.
 IL65 knows about all this: it will use the above zero page locations to place its ZP variables in,
 until they're all used up. You can instruct it to treat your program as taking over the entire
-machine, in which case all of the zero page locations are suddenly available for variables.
+machine, in which case (almost) all of the zero page locations are suddenly available for variables.
 IL65 can generate a special routine that saves and restores the zero page to let your program run
 and return safely back to the system afterwards - you don't have to take care of that yourself.
 
-@todo some global way (in ZP block) to promote certian other blocks/variables from that block or even
+**IRQ and the Zero page:**
+
+The normal IRQ routine in the C-64's kernal will read and write several locations in the zero page:
+
+``$a0 - $a2``; ``$91``; ``$c0``; ``$c5``; ``$cb``; ``$f5 - $f6``
+
+These locations will not be used by the compiler for zero page variables, so your variables will
+not interfere with the IRQ routine and vice versa. This is true for the normal zp mode but also 
+for the mode where the whole zp has been taken over.
+
+
+@todo: some global way (in ZP block) to promote certian other blocks/variables from that block or even
 subroutine to the zeropage.  Don't do this in the block itself because it's a global optimization
 and if blocks require it themselves you can't combine various modules anymore once ZP runs out.
   
@@ -198,18 +209,15 @@ However you can specify some options globally in your program to change this beh
         be stored in the ZP, which is more efficient. 
 - ``zp clobber, restore``
         Use the whole zeropage, but make a backup copy of the original values at program start. 
-        When your program exits, the original ZP is restored and you drop back to the BASIC prompt.
-        Not that the interrupts are *disabled* when your program is entered!
-        (you want/have to set your own IRQ routine because the default one will write to
-        various locations in the zeropage)
+        When your program exits, the original ZP is restored (except for the software jiffy clock
+        in ``$a0 - $a2``) and you drop back to the BASIC prompt.
+        Not that the default IRQ routine is *still enabled* when your program is entered!
+        See the paragraph on the zero page for more info about this.
 
-If you use ``zp clobber``, you can no longer use BASIC or KERNAL routines,
-because these depend on most of the locations in the ZP. This includes most of the floating-point
+If you use ``zp clobber``, you can no longer use most BASIC or KERNAL routines,
+because these depend on most of the locations in the ZP. This includes the floating-point
 logic and several utility routines that do I/O, such as  ``print_string``.
         
-@todo default IRQ handling will still change certain values in ZP...
- 
-
 
 ### Program Entry Point
 
@@ -375,6 +383,12 @@ if-statuses can be used when such a *comparison expression* is used. An example 
 
         ``if_not  A > 55  goto  more_iterations``  
 
+
+Conditional jumps are compiled into 6502's branching instructions (such as ``bne`` and ``bcc``) so 
+the rather strict limit on how *far* it can jump applies. The compiler itself can't figure this
+out unfortunately, so it is entirely possible to create code that cannot be assembled successfully.
+You'll have to restructure your gotos in the code (place target labels closer to the branch)
+if you run into this type of assembler error.
 
 
 Debugging (with Vice)

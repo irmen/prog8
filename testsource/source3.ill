@@ -57,7 +57,7 @@ start
 	c64.CHROUT('0')
 	c64.CHROUT('1')
 	c64.CHROUT('2')
-	c64util.print_string(hello)
+	c64scr.print_string(hello)
 	goto c64.CHROUT('!')
 
 

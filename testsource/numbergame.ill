@@ -13,19 +13,19 @@ import "c64lib"
 
 
 start
-        c64util.init_system()
+        c64.init_system()
 
         A = c64.VMCSB
         A |= 2                  ;  @todo c64.VMCSB |= 2
         c64.VMCSB = A
 
         ; greeting
-        c64util.print_string("Enter your name: ")
-        Y = c64util.input_chars(name)
+        c64scr.print_string("Enter your name: ")
+        Y = c64scr.input_chars(name)
         c64.CHROUT('\n')
         c64.CHROUT('\n')
-        c64util.print_string("Hello, ")
-        c64util.print_string(name)
+        c64scr.print_string("Hello, ")
+        c64scr.print_string(name)
         c64.CHROUT('.')
         c64.CHROUT('\n')
 
@@ -35,43 +35,43 @@ start
         c64.MUL10()
         c64.FADDH()
         c64.FADDH()
-        AY = c64util.GETADRAY()
+        AY = c64.GETADRAY()
         secretnumber = A
 
-        c64util.print_string("I am thinking of a number from 1 to 100!You'll have to guess it!\n")
+        c64scr.print_string("I am thinking of a number from 1 to 100!You'll have to guess it!\n")
 
 printloop
-        c64util.print_string("\nYou have ")
-        c64util.print_byte_decimal(attempts_left)
-        c64util.print_string(" guess")
+        c64scr.print_string("\nYou have ")
+        c64scr.print_byte_decimal(attempts_left)
+        c64scr.print_string(" guess")
 
         ; @todo comparison expression so we can do if attempts_left>0 ...
         A = attempts_left
         A--
         if_zero A goto ask_guess
-        c64util.print_string("es")
+        c64scr.print_string("es")
 ask_guess
-        c64util.print_string(" left.\nWhat is your next guess? ")
-        Y = c64util.input_chars(guess)
+        c64scr.print_string(" left.\nWhat is your next guess? ")
+        Y = c64scr.input_chars(guess)
         c64.CHROUT('\n')
         [$22.word] = guess
         c64.FREADSTR(A)
-        AY = c64util.GETADRAY()
+        AY = c64.GETADRAY()
         A -= secretnumber       ; @todo condition so we can do if guess > secretnumber....
         if_zero goto correct_guess
         if_gt goto too_high
-        c64util.print_string("That is too ")
-        c64util.print_string("low!\n")
+        c64scr.print_string("That is too ")
+        c64scr.print_string("low!\n")
         goto continue
 
 correct_guess
-        c64util.print_string("\nThat's my number, impressive!\n")
+        c64scr.print_string("\nThat's my number, impressive!\n")
         goodbye()
         return
 
 too_high
-        c64util.print_string("That is too ")
-        c64util.print_string("high!\n")
+        c64scr.print_string("That is too ")
+        c64scr.print_string("high!\n")
 
 continue
         attempts_left--
@@ -79,8 +79,8 @@ continue
         goto printloop
 
 game_over
-        c64util.print_string("\nToo bad! It was: ")
-        c64util.print_byte_decimal(secretnumber)
+        c64scr.print_string("\nToo bad! It was: ")
+        c64scr.print_byte_decimal(secretnumber)
         c64.CHROUT('\n')
         goodbye()
         return
@@ -90,7 +90,7 @@ sub goodbye ()->() {
         ;memory y = $c000        ; @todo vars in sub
         ;const q = 22            ; @todo const in sub
 
-        c64util.print_string("\nThanks for playing. Bye!\n")
+        c64scr.print_string("\nThanks for playing. Bye!\n")
         return
 }
 

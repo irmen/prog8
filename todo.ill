@@ -1,48 +1,27 @@
 output prg,basic
-zp clobber, restore
 
 ;reg_preserve off         ; @todo global option  off/on   default off?
 
 import "c64lib"
 
-~ ZP {
-        var .float fl1 = 3.1415927
-        var .float fl2 = 99.999999
-        var .float fl3 = 100000
-}
-
-
 ~ main {
-        var .float fl1 = 3.1415927
-        var .float fl2 = 99.999999
-        var .float fl3 = 10
-
 start
-        fl1 = 111111.22222
-        fl2 = 0
-        fl3 = 1
-        fl3 = -1
-        fl3 = 0.5
-        fl3 = -0.5
+        A = $11
+        X = $22
+        Y = $33
 
-        X=6
-loop1
-        A=X
-        c64util.print_byte_hex(0, A)
-        c64.CHROUT!(" ")
-        X--
-        if_pos goto loop1
+        c64scr.clear_screen !(81, 5, $04)
+        ;c64scr.clear_screen !A (81, 5, $04)
+        ;c64scr.clear_screen !AX (81, 5, $04)
+        ;c64scr.clear_screen !AXY (81, 5, $04)
 
-        Y=6
-loop2
-        A=Y
-        c64util.print_byte_hex(0, A)
-        c64.CHROUT!(" ")
-        Y--
-        if_neg goto stop
-        goto loop2
-
-stop
+        c64scr.print_byte_hex(1,A)
+        c64.CHROUT(' ')
+        c64scr.print_byte_hex(1,X)
+        c64.CHROUT(' ')
+        c64scr.print_byte_hex(1,Y)
+        c64scr.print_word_decimal(1222)
+        c64.CHROUT('\n')
 
         return
 

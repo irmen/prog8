@@ -7,16 +7,21 @@
 ; indent format: TABS, size=8
 
 
-output raw
-
 ~ c64 {
 		memory  .byte  SCRATCH_ZP1	= $02		; scratch register #1 in ZP
 		memory  .byte  SCRATCH_ZP2	= $03		; scratch register #2 in ZP
 		memory  .word  SCRATCH_ZPWORD1	= $fb		; scratch word in ZP ($fb/$fc)
 		memory  .word  SCRATCH_ZPWORD2	= $fd		; scratch word in ZP ($fd/$fe)
 
-		memory  .byte COLOR	= $0286		; cursor color
-		memory  .word CINV	= $0314		; IRQ vector
+
+		memory  .byte  TIME_HI		= $a0		; software jiffy clock, hi byte
+		memory  .byte  TIME_MID		= $a1		;  .. mid byte
+		memory  .byte  TIME_LO		= $a2		;    .. lo byte. Updated by IRQ every 1/60 sec
+		memory  .byte  STKEY		= $91		; various keyboard statuses (updated by IRQ)
+		memory  .byte  SFDX		= $cb		; current key pressed (matrix value) (updated by IRQ)
+
+		memory  .byte  COLOR		= $0286		; cursor color
+		memory  .word  CINV		= $0314		; IRQ vector
 
 ; ---- VIC-II registers ----
 
@@ -107,17 +112,17 @@ sub	MOVAF		() -> (A?, X?)		= $bc0c		; copy fac1 to fac2  (rounded)
 sub	MOVEF		() -> (A?, X?)		= $bc0f		; copy fac1 to fac2
 sub	FTOMEMXY	(mflpt: XY) -> (A?, Y?)	= $bbd4		; store fac1 to memory  X/Y as 5-byte mflpt
 sub	FTOSWORDYA	() -> (Y, A, X?)	= $b1aa		; fac1-> signed word in Y/A (might throw ILLEGAL QUANTITY)
-	; use c64util.FTOSWRDAY to get A/Y output (lo/hi switched to normal order)
+	; use c64.FTOSWRDAY to get A/Y output (lo/hi switched to normal order)
 sub	GETADR		() -> (Y, A, X?)	= $b7f7		; fac1 -> unsigned word in Y/A (might throw ILLEGAL QUANTITY)
-	; (result also in $14/15) use c64util.GETADRAY to get A/Y output (lo/hi switched to normal order)
+	; (result also in $14/15) use c64.GETADRAY to get A/Y output (lo/hi switched to normal order)
 sub	QINT		() -> (?)		= $bc9b		; fac1 -> 4-byte signed integer in 98-101 ($62-$65), with the MSB FIRST.
 sub	AYINT		() -> (?)		= $b1bf		; fac1-> signed word in 100-101 ($64-$65) MSB FIRST. (might throw ILLEGAL QUANTITY)
 sub	GIVAYF		(lo: Y, hi: A) -> (?)	= $b391		; signed word in Y/A -> float in fac1
-	; use c64util.GIVAYFAY to use A/Y input (lo/hi switched to normal order)
-; there is also c64util.GIVUAYF - unsigned word in A/Y (lo/hi) to fac1
-; there is also c64util.FREADS32  that reads from 98-101 ($62-$65) MSB FIRST
-; there is also c64util.FREADUS32  that reads from 98-101 ($62-$65) MSB FIRST
-; there is also c64util.FREADS24AXY  that reads signed int24 into fac1 from A/X/Y (lo/mid/hi bytes)
+	; use c64.GIVAYFAY to use A/Y input (lo/hi switched to normal order)
+; there is also c64.GIVUAYF - unsigned word in A/Y (lo/hi) to fac1
+; there is also c64.FREADS32  that reads from 98-101 ($62-$65) MSB FIRST
+; there is also c64.FREADUS32  that reads from 98-101 ($62-$65) MSB FIRST
+; there is also c64.FREADS24AXY  that reads signed int24 into fac1 from A/X/Y (lo/mid/hi bytes)
 sub	FREADUY		(ubyte: Y) -> (?)	= $b3a2		; 8 bit unsigned Y -> float in fac1
 sub	FREADSA		(sbyte: A) -> (?)	= $bc3c		; 8 bit signed A -> float in fac1
 sub	FREADSTR	(len: A) -> (?)		= $b7b5		; str -> fac1, $22/23 must point to string, A=string length
@@ -217,10 +222,9 @@ sub	IOBASE   () -> (X, Y)			= $FFF3		; read base address of I/O devices
 		memory  .word	RESET_VEC	= $FFFC  ; reset vector, set by the kernal if banked in
 		memory  .word	IRQ_VEC		= $FFFE  ; interrupt vector, set by the kernal if banked in
 
-}
 
 
-~ c64util {
+; ----- utility functions ----
 
 sub  init_system  () -> (?)  {
 	; ---- initializes the machine to a sane starting state
@@ -251,7 +255,6 @@ sub  init_system  () -> (?)  {
 		rts
 	}
 }
-
 
 sub  FREADS32  () -> (?)  {
 	; ---- fac1 = signed int32 from $62-$65 big endian (MSB FIRST)
@@ -335,69 +338,54 @@ sub  GETADRAY  () -> (AY, X?)  {
 	}
 }
 
-sub  print_string (address: XY) -> (A?, Y?)  {
-	; ---- print null terminated string from X/Y
-	; note: the IL65 compiler contains an optimization that will replace
-	;       a call to this subroutine with a string argument of just one char,
-	;       by just one call to c64.CHROUT of that single char.
-	asm {
-		stx  c64.SCRATCH_ZP1
-		sty  c64.SCRATCH_ZP2
-		ldy  #0
--               lda  (c64.SCRATCH_ZP1),y
-		beq  +
-		jsr  c64.CHROUT
-		iny
-		bne  -
-+		rts
-	}
-}
 
-sub  print_pstring  (address: XY) -> (A?, X?, Y)  {
-	; ---- print pstring (length as first byte) from X/Y, returns str len in Y
-	asm {
-		stx  c64.SCRATCH_ZP1
-		sty  c64.SCRATCH_ZP2
-		ldy  #0
-		lda  (c64.SCRATCH_ZP1),y
-		beq  +
-		tax
--		iny
-		lda  (c64.SCRATCH_ZP1),y
-		jsr  c64.CHROUT
-		dex
-		bne  -
-+		rts 			; output string length is in Y
-	}
-}
+}  ; ------ end of block c64
 
-sub  print_pimmediate  () -> ()  {
-	; ---- print pstring in memory  immediately following the subroutine fast call instruction
-	; note that the clobbered registers (A,X,Y) are not listed ON PURPOSE
+
+
+~ c64scr {
+	; ---- this block contains (character) Screen and text I/O related functions ----
+
+
+sub  clear_screen (char:A, color: Y, screenaddr_hi: X) -> ()  {
+	; ---- clear the character screen with the given fill character and character color.
+	;      X must be set to the high byte of the current screen display memory address (usually $04, for $0400).
+
 	asm {
-		tsx
-		lda  $102,x
-		tay			; put high byte in y
-		lda  $101,x
-		tax			; and low byte in x.
+		;ldx  #$04       ; high byte of screen addres
+		;lda  #1        ;  fill char
+		;ldy  #3         ; fill color
+		sta  _loop +1		; self-modify
+		sty  _mod_col +1	; self-modify
+		stx  _loop + 4		; self-modify
 		inx
-		bne  +
-		iny
-+		jsr  print_pstring	; print string in XY, returns string length in y.
-		tya
-		tsx
-		clc
-		adc  $101,x		; add content of 1st (length) byte to return addr.
-		bcc  +      		; if that made the low byte roll over to 00,
-		inc  $102,x		; then increment the high byte too.
-+		clc
-		adc  #1			; now add 1 for the length byte itself.
-		sta  $101,x
-		bne  +			; if that made it (the low byte) roll over to 00,
-		inc  $102,x		; increment the high byte of the return addr too.
-+		rts
-	}
+		stx  _loop + 7		; self-modify
+		inx
+		stx  _loop + 10		; self-modify
+		stx  _loop + 13		; self-modify
+
+
+		ldx  #0
+_loop           lda  #0
+		sta  $8400,x            ; screen address will be modified
+		sta  $8500,x
+		sta  $8600,x
+		sta  $86e8,x
+_mod_col        lda  #0
+		sta  $d800,x            ; color address is fixed
+		sta  $d900,x
+		sta  $da00,x
+		sta  $dae8,x
+		inx
+		bne  _loop
+
+		lda  _loop+1		; restore A and X
+		ldx  _loop+4
+		rts
+        }
+
 }
+
 
 sub  byte2decimal  (ubyte: A) -> (Y, X, A)  {
 	; ---- A to decimal string in Y/X/A  (100s in Y, 10s in X, 1s in A)
@@ -437,10 +425,10 @@ hex_digits	.text "0123456789abcdef"	; can probably be reused for other stuff as 
 	}
 }
 
-		; var  .array(4)  word2hex_output_array    @todo support to use array/matrix type by address
-		var  .text      word2hex_output = "123"   ; 0-terminated, 4 bytes total @todo remove once array works
+
+		var  .text      word2hex_output = "1234"   ; 0-terminated, to make printing easier
 sub  word2hex  (word: XY) -> (?)  {
-	; ---- convert 16 bit word in X/Y into hexadecimal string into memory  'word2hex_output'
+	; ---- convert 16 bit word in X/Y into 4-character hexadecimal string into memory  'word2hex_output'
 	asm {
 		stx  c64.SCRATCH_ZP2
 		tya
@@ -526,6 +514,77 @@ sub  word2decimal  (word: XY) -> (?)  {
 	}
 }
 
+
+; @todo string to 32 bit unsigned integer http://www.6502.org/source/strings/ascii-to-32bit.html
+
+
+sub  print_string (address: XY) -> (A?, Y?)  {
+	; ---- print null terminated string from X/Y
+	; note: the IL65 compiler contains an optimization that will replace
+	;       a call to this subroutine with a string argument of just one char,
+	;       by just one call to c64.CHROUT of that single char.
+	asm {
+		stx  c64.SCRATCH_ZP1
+		sty  c64.SCRATCH_ZP2
+		ldy  #0
+-               lda  (c64.SCRATCH_ZP1),y
+		beq  +
+		jsr  c64.CHROUT
+		iny
+		bne  -
++		rts
+	}
+}
+
+
+sub  print_pstring  (address: XY) -> (A?, X?, Y)  {
+	; ---- print pstring (length as first byte) from X/Y, returns str len in Y
+	asm {
+		stx  c64.SCRATCH_ZP1
+		sty  c64.SCRATCH_ZP2
+		ldy  #0
+		lda  (c64.SCRATCH_ZP1),y
+		beq  +
+		tax
+-		iny
+		lda  (c64.SCRATCH_ZP1),y
+		jsr  c64.CHROUT
+		dex
+		bne  -
++		rts 			; output string length is in Y
+	}
+}
+
+
+sub  print_pimmediate  () -> ()  {
+	; ---- print pstring in memory  immediately following the subroutine fast call instruction
+	; note that the clobbered registers (A,X,Y) are not listed ON PURPOSE
+	asm {
+		tsx
+		lda  $102,x
+		tay			; put high byte in y
+		lda  $101,x
+		tax			; and low byte in x.
+		inx
+		bne  +
+		iny
++		jsr  print_pstring	; print string in XY, returns string length in y.
+		tya
+		tsx
+		clc
+		adc  $101,x		; add content of 1st (length) byte to return addr.
+		bcc  +      		; if that made the low byte roll over to 00,
+		inc  $102,x		; then increment the high byte too.
++		clc
+		adc  #1			; now add 1 for the length byte itself.
+		sta  $101,x
+		bne  +			; if that made it (the low byte) roll over to 00,
+		inc  $102,x		; increment the high byte of the return addr too.
++		rts
+	}
+}
+
+
 sub  print_byte_decimal0  (ubyte: A) -> (?)  {
 	; ---- print the byte in A in decimal form, with left padding 0s (3 positions total)
 	asm {
@@ -539,6 +598,7 @@ sub  print_byte_decimal0  (ubyte: A) -> (?)  {
 		jmp  c64.CHROUT
 	}
 }
+
 
 sub  print_byte_decimal  (ubyte: A) -> (?)  {
 	; ---- print the byte in A in decimal form, without left padding 0s
@@ -560,6 +620,7 @@ _print_tens	txa
 	}
 }
 
+
 sub  print_byte_hex  (prefix: SC, ubyte: A) -> (?)  {
 	; ---- print the byte in A in hex form (if Carry is set, a radix prefix '$' is printed as well)
 	asm {
@@ -575,6 +636,7 @@ sub  print_byte_hex  (prefix: SC, ubyte: A) -> (?)  {
 		jmp  c64.CHROUT
 	}
 }
+
 
 sub print_word_hex  (prefix: SC, word: XY) -> (?)  {
 	; ---- print the (unsigned) word in X/Y in hexadecimal form (4 digits)
@@ -641,9 +703,6 @@ _pr_decimal
 }
 
 
-; @todo string to 32 bit unsigned integer http://www.6502.org/source/strings/ascii-to-32bit.html
-
-
 sub  input_chars  (buffer: AX) -> (A?, Y)  {
 	; ---- Input a string (max. 80 chars) from the keyboard.
 	;      It assumes the keyboard is selected as I/O channel!!
@@ -664,6 +723,11 @@ sub  input_chars  (buffer: AX) -> (A?, Y)  {
 
 	}
 }
+
+
+}  ; ---- end block c64scr
+
+
 
 ;sub  memcopy_basic  () -> (?)  {
 ;	; ---- copy a memory block by using a BASIC ROM routine  @todo fix code
@@ -708,36 +772,3 @@ sub  input_chars  (buffer: AX) -> (A?, Y)  {
 ;		stx  $59
 ;		jsr  $a3bf
 
-
-
-}
-
-
-~ c64_lib {
-
-	asm  {
-
-; ---- copy a 5 byte MFLT floating point variable to another place
-;      input: X/Y = source address,  SCRATCH_ZPWORD1 = destination address
-copy_mflt	stx  c64.SCRATCH_ZP1
-		sty  c64.SCRATCH_ZPWORD1+1
-		ldy  #0
-		lda  (c64.SCRATCH_ZP1),y
-		sta  (c64.SCRATCH_ZPWORD1),y
-		iny
-		lda  (c64.SCRATCH_ZP1),y
-		sta  (c64.SCRATCH_ZPWORD1),y
-		iny
-		lda  (c64.SCRATCH_ZP1),y
-		sta  (c64.SCRATCH_ZPWORD1),y
-		iny
-		lda  (c64.SCRATCH_ZP1),y
-		sta  (c64.SCRATCH_ZPWORD1),y
-		iny
-		lda  (c64.SCRATCH_ZP1),y
-		sta  (c64.SCRATCH_ZPWORD1),y
-		ldy  c64.SCRATCH_ZPWORD1+1
-		rts
-	}
-
-}

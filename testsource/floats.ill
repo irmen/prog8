@@ -47,7 +47,7 @@ sub  printflt (float: AY) -> (?) {
         c64.MOVFM!(AY)
         goto c64.FPRINTLN
         ; c64.FOUT!()
-        ; c64util.print_string!(AY)
+        ; c64scr.print_string!(AY)
         ;goto c64.CHROUT('\n')
 }
 

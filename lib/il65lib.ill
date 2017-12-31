@@ -5,7 +5,6 @@
 ;
 ; indent format: TABS, size=8
 
-output raw
 
 ~ il65_lib_zp {
 ; note: separate block so the 64tass assembler can remove this when no zp restore is required
@@ -17,9 +16,10 @@ save_zeropage
 		sei
 		ldx  #2
 -		lda  $00,x
-		sta  zp_backup-2,x
+		sta  zp_backup,x
 		inx
 		bne  -
+		cli
 		rts
 
 restore_zeropage
@@ -28,6 +28,14 @@ restore_zeropage
 		txa
 		pha
 		sei
+
+		lda  $a0		; save the current jiffy clock
+		sta  zp_backup+$a0
+		lda  $a1
+		sta  zp_backup+$a1
+		lda  $a2
+		sta  zp_backup+$a2
+
 		ldx  #2
 -		lda  zp_backup-2,x
 		sta  $00,x
@@ -40,7 +48,7 @@ restore_zeropage
 		plp
 		rts
 
-zp_backup	.fill  254, 0
+zp_backup	.fill  256, 0
 
 	}
 }
@@ -86,5 +94,31 @@ jsr_indirect_XY
 		sty  SCRATCH_ZP2
 		jmp  (SCRATCH_ZP1)
 
+	}
+
+
+	asm  {
+
+; ---- copy a 5 byte MFLT floating point variable to another place
+;      input: X/Y = source address,  SCRATCH_ZPWORD1 = destination address
+copy_mflt	stx  SCRATCH_ZP1
+		sty  SCRATCH_ZPWORD1+1
+		ldy  #0
+		lda  (SCRATCH_ZP1),y
+		sta  (SCRATCH_ZPWORD1),y
+		iny
+		lda  (SCRATCH_ZP1),y
+		sta  (SCRATCH_ZPWORD1),y
+		iny
+		lda  (SCRATCH_ZP1),y
+		sta  (SCRATCH_ZPWORD1),y
+		iny
+		lda  (SCRATCH_ZP1),y
+		sta  (SCRATCH_ZPWORD1),y
+		iny
+		lda  (SCRATCH_ZP1),y
+		sta  (SCRATCH_ZPWORD1),y
+		ldy  SCRATCH_ZPWORD1+1
+		rts
 	}
 }

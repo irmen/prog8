@@ -88,11 +88,11 @@ label4
 
 
 start
-        c64util.init_system()
+        c64.init_system()
 
         A = 0
 printloop
-        c64util.print_byte_decimal(A)
+        c64scr.print_byte_decimal(A)
         c64.CHROUT('\n')
         A++
         if A <20 goto printloop

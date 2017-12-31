@@ -38,14 +38,20 @@ def test_zp_noclobber_allocation():
 def test_zp_clobber_allocation():
     zp = Zeropage()
     zp.configure(True)
-    assert zp.available() == 248
+    assert zp.available() == 239
     loc = zp.allocate("", DataType.FLOAT)
     assert loc > 3 and loc not in zp.free
     num, rest = divmod(zp.available(), 5)
-    for _ in range(num):
+    for _ in range(num-3):
         zp.allocate("", DataType.FLOAT)
-    assert zp.available() == rest
-    for _ in range(rest // 2):
+    assert zp.available() == 19
+    with pytest.raises(LookupError):
+        zp.allocate("", DataType.FLOAT)     # can't allocate because no more sequential bytes, only fragmented
+    for _ in range(14):
+        zp.allocate("", DataType.BYTE)
+    zp.allocate("", DataType.WORD)
+    zp.allocate("", DataType.WORD)
+    with pytest.raises(LookupError):
         zp.allocate("", DataType.WORD)
     assert zp.available() == 1
     zp.allocate("last", DataType.BYTE)
