@@ -225,24 +225,21 @@ logic and several utility routines that do I/O, such as  ``print_string``.
 
 ### Importing, Including and Binary-Including other files or raw assembly code
 
-```%import "filename[.ill]"```
+- ``%import "filename[.ill]"``
         Must be used *after* any global option directives, and outside of a block,
         but otherwise can be placed anywhere in the program.
         Reads and compiles the named IL65 file and stores the resulting definitions
         as if they were a part of your current program.
-
-```%asminclude "filename.txt", scopelabel```
+- ``%asminclude "filename.txt", scopelabel``
         This directive can only be used inside a block.
         The assembler will include the file as raw assembly source text at this point, il65 will not process this at all.
         The scopelabel will be used as a prefix to access the labels from the included source code,
         otherwise you would risk symbol redefinitions or duplications.
-
-```%asmbinary "filename.bin" [, <offset>[, <length>]]```
+- ``%asmbinary "filename.bin" [, <offset>[, <length>]]``
         This directive can only be used inside a block.
         The assembler will include the file as binary bytes at this point, il65 will not process this at all.
         The optional offset and length can be used to select a particular piece of the file.
-
-```%asm {``` [raw assembly code lines] ``}`` 
+- ``%asm {`` [raw assembly code lines] ``}`` 
         This directive includes raw unparsed assembly code at that exact spot in the program.
         The ``%asm {`` and ``}`` start and end markers each have to be on their own unique line.
 
@@ -257,12 +254,10 @@ Blocks and other details are described below.
 
 ### Blocks
 
-``~ blockname [address] {``
-
-        [directives...]
-        [statements...]
-
-``}``
+        ~ blockname [address] {
+                [directives...]
+                [statements...]
+        }
 
 Blocks form the separate pieces of code and data of your program. They are combined and
 arranged to a single output program.  No code or data can occur outside a block.
@@ -324,18 +319,20 @@ The syntax is:
                 ... statements ...
         }
 
-        proc_parameters = comma separated list of "<parametername>:<register>" pairs specifying the input parameters.
-                          You can omit the parameter names as long as the arguments "line up".
-                          (actually, the Python parameter passing rules apply, so you can also mix positional
-                          and keyword arguments, as long as the keyword arguments come last)
+**proc_parameters =**
+        comma separated list of "<parametername>:<register>" pairs specifying the input parameters.
+        You can omit the parameter names as long as the arguments "line up".
+        (actually, the Python parameter passing rules apply, so you can also mix positional
+        and keyword arguments, as long as the keyword arguments come last)
 
-        proc_results = comma separated list of <register> names specifying in which register(s) the output is returned.
-                       If the register name ends with a '?', that means the register doesn't contain a real return value but
-                       is clobbered in the process so the original value it had before calling the sub is no longer valid.
-                       This is not immediately useful for your own code, but the compiler needs this information to
-                       emit the correct assembly code to preserve the cpu registers if needed when the call is made.
-                       For convenience: a single '?' als the result spec is shorthand for ``A?, X?, Y?`` ("I don't know
-                       what the changed registers are, assume the worst")
+**proc_results =**
+        comma separated list of <register> names specifying in which register(s) the output is returned.
+        If the register name ends with a '?', that means the register doesn't contain a real return value but
+        is clobbered in the process so the original value it had before calling the sub is no longer valid.
+        This is not immediately useful for your own code, but the compiler needs this information to
+        emit the correct assembly code to preserve the cpu registers if needed when the call is made.
+        For convenience: a single '?' als the result spec is shorthand for ``A?, X?, Y?`` ("I don't know
+        what the changed registers are, assume the worst")
 
 
 Subroutines that are pre-defined on a specific memory location (usually routines from ROM),
@@ -344,23 +341,25 @@ but instead assign a memory address to it:
 
         sub  <identifier>  ([proc_parameters]) -> ([proc_results])  = <address>
 
-        example:  "sub  CLOSE  (logical: A) -> (A?, X?, Y?)  = $FFC3"
+example:
+
+        sub  CLOSE  (logical: A) -> (A?, X?, Y?)  = $FFC3"
 
 
 ### Subroutine Calling
 
 You call a subroutine like this:
 
-        ``subroutinename_or_address (`` [arguments...] ``)``
+        subroutinename_or_address ( [arguments...] )
 
 or:
 
-        ``subroutinename_or_address !``[register(s)] ``( [arguments...] )``
+        subroutinename_or_address ![register(s)] ( [arguments...] )
 
 If the subroutine returns one or more values as results, you must use an assignment statement
 to store those values somewhere:
 
-        ``outputvar1, outputvar2  =  subroutine ( arg1, arg2, arg3 )``
+        outputvar1, outputvar2  =  subroutine ( arg1, arg2, arg3 )
 
 The output variables must occur in the correct sequence of return registers as specified
 in the subroutine's definiton. It is possible to not specify any of them but the compiler
@@ -427,7 +426,7 @@ It defaults to 'true' (=='ne', not-zero) if omitted. ('pos' will translate into 
 The <expression> is optional. If it is provided, it will be evaluated first. Only the [true] and [not] and [zero] 
 if-statuses can be used when such a *comparison expression* is used. An example is:
 
-        ``if_not  A > 55  goto  more_iterations``  
+        if_not  A > 55  goto  more_iterations
 
 
 Conditional jumps are compiled into 6502's branching instructions (such as ``bne`` and ``bcc``) so 
