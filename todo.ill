@@ -5,7 +5,16 @@ output prg,basic
 import "c64lib"
 
 ~ main {
+                const   num = 44
+                var     var1  =22
+                var .word  wvar1 = 22
 start
+        var1 ++
+        var1 += num
+        X++
+        X+=num
+
+
         asm {
                 ldy  #200
 -               lda  #81
@@ -42,7 +51,7 @@ start
 loop
         A=c64.GETIN()
         if_not goto loop
-        c64scr.scroll_down_full(1)
+        c64scr.scroll_right_full(1)
         goto loop
         c64.CHROUT(A)
         goto loop

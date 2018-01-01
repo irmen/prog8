@@ -396,10 +396,13 @@ class CodeGenerator:
         self.previous_stmt_was_assignment = isinstance(stmt, AssignmentStmt)
 
     def generate_incr_or_decr(self, stmt: Union[InplaceIncrStmt, InplaceDecrStmt]) -> None:
-        assert (stmt.howmuch is None and stmt.float_var_name) or (stmt.howmuch > 0 and not stmt.float_var_name)
-        if stmt.what.datatype != DataType.FLOAT and stmt.howmuch > 0xff:
+        assert stmt.value.constant
+        assert (stmt.value.value is None and stmt.value.name) or stmt.value.value > 0
+        if stmt.what.datatype != DataType.FLOAT and not stmt.value.name and stmt.value.value > 0xff:
             raise CodeError("only supports integer incr/decr by up to 255 for now")   # XXX
         is_incr = isinstance(stmt, InplaceIncrStmt)
+        howmuch = stmt.value.value
+        value_str = stmt.value.name or str(howmuch)
         if isinstance(stmt.what, RegisterValue):
             reg = stmt.what.register
             # note: these operations below are all checked to be ok
@@ -407,9 +410,9 @@ class CodeGenerator:
                 if reg == 'A':
                     # a += 1..255
                     self.p("\t\tclc")
-                    self.p("\t\tadc  #{:d}".format(stmt.howmuch))
+                    self.p("\t\tadc  #" + value_str)
                 elif reg in REGISTER_BYTES:
-                    if stmt.howmuch == 1:
+                    if howmuch == 1:
                         # x/y += 1
                         self.p("\t\tin{:s}".format(reg.lower()))
                     else:
@@ -417,25 +420,25 @@ class CodeGenerator:
                         self.p("\t\tpha")
                         self.p("\t\tt{:s}a".format(reg.lower()))
                         self.p("\t\tclc")
-                        self.p("\t\tadc  #{:d}".format(stmt.howmuch))
+                        self.p("\t\tadc  #" + value_str)
                         self.p("\t\tta{:s}".format(reg.lower()))
                         self.p("\t\tpla")
                 elif reg == "AX":
                     # AX += 1..255
                     self.p("\t\tclc")
-                    self.p("\t\tadc  #{:d}".format(stmt.howmuch))
+                    self.p("\t\tadc  #" + value_str)
                     self.p("\t\tbcc  +")
                     self.p("\t\tinx")
                     self.p("+")
                 elif reg == "AY":
                     # AY += 1..255
                     self.p("\t\tclc")
-                    self.p("\t\tadc  #{:d}".format(stmt.howmuch))
+                    self.p("\t\tadc  # " + value_str)
                     self.p("\t\tbcc  +")
                     self.p("\t\tiny")
                     self.p("+")
                 elif reg == "XY":
-                    if stmt.howmuch == 1:
+                    if howmuch == 1:
                         # XY += 1
                         self.p("\t\tinx")
                         self.p("\t\tbne  +")
@@ -446,7 +449,7 @@ class CodeGenerator:
                         self.p("\t\tpha")
                         self.p("\t\ttxa")
                         self.p("\t\tclc")
-                        self.p("\t\tadc  #{:d}".format(stmt.howmuch))
+                        self.p("\t\tadc  #" + value_str)
                         self.p("\t\ttax")
                         self.p("\t\tbcc  +")
                         self.p("\t\tiny")
@@ -457,9 +460,9 @@ class CodeGenerator:
                 if reg == 'A':
                     # a -= 1..255
                     self.p("\t\tsec")
-                    self.p("\t\tsbc  #{:d}".format(stmt.howmuch))
+                    self.p("\t\tsbc  #" + value_str)
                 elif reg in REGISTER_BYTES:
-                    if stmt.howmuch == 1:
+                    if howmuch == 1:
                         # x/y -= 1
                         self.p("\t\tde{:s}".format(reg.lower()))
                     else:
@@ -467,25 +470,25 @@ class CodeGenerator:
                         self.p("\t\tpha")
                         self.p("\t\tt{:s}a".format(reg.lower()))
                         self.p("\t\tsec")
-                        self.p("\t\tsbc  #{:d}".format(stmt.howmuch))
+                        self.p("\t\tsbc  #" + value_str)
                         self.p("\t\tta{:s}".format(reg.lower()))
                         self.p("\t\tpla")
                 elif reg == "AX":
                     # AX -= 1..255
                     self.p("\t\tsec")
-                    self.p("\t\tsbc  #{:d}".format(stmt.howmuch))
+                    self.p("\t\tsbc  #" + value_str)
                     self.p("\t\tbcs  +")
                     self.p("\t\tdex")
                     self.p("+")
                 elif reg == "AY":
                     # AY -= 1..255
                     self.p("\t\tsec")
-                    self.p("\t\tsbc  #{:d}".format(stmt.howmuch))
+                    self.p("\t\tsbc  #" + value_str)
                     self.p("\t\tbcs  +")
                     self.p("\t\tdey")
                     self.p("+")
                 elif reg == "XY":
-                    if stmt.howmuch == 1:
+                    if howmuch == 1:
                         # XY -= 1
                         self.p("\t\tcpx  #0")
                         self.p("\t\tbne  +")
@@ -496,7 +499,7 @@ class CodeGenerator:
                         self.p("\t\tpha")
                         self.p("\t\ttxa")
                         self.p("\t\tsec")
-                        self.p("\t\tsbc  #{:d}".format(stmt.howmuch))
+                        self.p("\t\tsbc  #" + value_str)
                         self.p("\t\ttax")
                         self.p("\t\tbcs  +")
                         self.p("\t\tdey")
@@ -507,86 +510,86 @@ class CodeGenerator:
             what = stmt.what
             if isinstance(what, IndirectValue):
                 if isinstance(what.value, IntegerValue):
-                    r_str = what.value.name or Parser.to_hex(what.value.value)
+                    what_str = what.value.name or Parser.to_hex(what.value.value)
                 else:
                     raise CodeError("invalid incr indirect type", what.value)
             else:
-                r_str = what.name or Parser.to_hex(what.address)
+                what_str = what.name or Parser.to_hex(what.address)
             if what.datatype == DataType.BYTE:
-                if stmt.howmuch == 1:
-                    self.p("\t\t{:s}  {:s}".format("inc" if is_incr else "dec", r_str))
+                if howmuch == 1:
+                    self.p("\t\t{:s}  {:s}".format("inc" if is_incr else "dec", what_str))
                 else:
                     self.p("\t\tpha")
-                    self.p("\t\tlda  " + r_str)
+                    self.p("\t\tlda  " + what_str)
                     if is_incr:
                         self.p("\t\tclc")
-                        self.p("\t\tadc  #{:d}".format(stmt.howmuch))
+                        self.p("\t\tadc  #" + value_str)
                     else:
                         self.p("\t\tsec")
-                        self.p("\t\tsbc  #{:d}".format(stmt.howmuch))
-                    self.p("\t\tsta  " + r_str)
+                        self.p("\t\tsbc  #" + value_str)
+                    self.p("\t\tsta  " + what_str)
                     self.p("\t\tpla")
             elif what.datatype == DataType.WORD:
-                if stmt.howmuch == 1:
+                if howmuch == 1:
                     # mem.word +=/-= 1
                     if is_incr:
-                        self.p("\t\tinc  " + r_str)
+                        self.p("\t\tinc  " + what_str)
                         self.p("\t\tbne  +")
-                        self.p("\t\tinc  {:s}+1".format(r_str))
+                        self.p("\t\tinc  {:s}+1".format(what_str))
                         self.p("+")
                     else:
                         self.p("\t\tpha")
-                        self.p("\t\tlda  " + r_str)
+                        self.p("\t\tlda  " + what_str)
                         self.p("\t\tbne  +")
-                        self.p("\t\tdec  {:s}+1".format(r_str))
-                        self.p("+\t\tdec  " + r_str)
+                        self.p("\t\tdec  {:s}+1".format(what_str))
+                        self.p("+\t\tdec  " + what_str)
                         self.p("\t\tpla")
                 else:
                     # mem.word +=/-= 2..255
                     if is_incr:
                         self.p("\t\tpha")
                         self.p("\t\tclc")
-                        self.p("\t\tlda  " + r_str)
-                        self.p("\t\tadc  #{:d}".format(stmt.howmuch))
-                        self.p("\t\tsta  " + r_str)
+                        self.p("\t\tlda  " + what_str)
+                        self.p("\t\tadc  #" + value_str)
+                        self.p("\t\tsta  " + what_str)
                         self.p("\t\tbcc  +")
-                        self.p("\t\tinc  {:s}+1".format(r_str))
+                        self.p("\t\tinc  {:s}+1".format(what_str))
                         self.p("+\t\tpla")
                     else:
                         self.p("\t\tpha")
                         self.p("\t\tsec")
-                        self.p("\t\tlda  " + r_str)
-                        self.p("\t\tsbc  #{:d}".format(stmt.howmuch))
-                        self.p("\t\tsta  " + r_str)
+                        self.p("\t\tlda  " + what_str)
+                        self.p("\t\tsbc  #" + value_str)
+                        self.p("\t\tsta  " + what_str)
                         self.p("\t\tbcs  +")
-                        self.p("\t\tdec  {:s}+1".format(r_str))
+                        self.p("\t\tdec  {:s}+1".format(what_str))
                         self.p("+\t\tpla")
             elif what.datatype == DataType.FLOAT:
-                if stmt.howmuch == 1.0:
+                if howmuch == 1.0:
                     # special case for +/-1
                     with self.preserving_registers({'A', 'X', 'Y'}, loads_a_within=True):
-                        self.p("\t\tldx  #<" + r_str)
-                        self.p("\t\tldy  #>" + r_str)
+                        self.p("\t\tldx  #<" + what_str)
+                        self.p("\t\tldy  #>" + what_str)
                         if is_incr:
-                            self.p("\t\tjsr  il65_lib.float_add_one")
+                            self.p("\t\tjsr  c64flt.float_add_one")
                         else:
-                            self.p("\t\tjsr  il65_lib.float_sub_one")
-                elif stmt.float_var_name:
+                            self.p("\t\tjsr  c64flt.float_sub_one")
+                elif stmt.value.name:
                     with self.preserving_registers({'A', 'X', 'Y'}, loads_a_within=True):
-                        self.p("\t\tlda  #<" + stmt.float_var_name)
+                        self.p("\t\tlda  #<" + stmt.value.name)
                         self.p("\t\tsta  c64.SCRATCH_ZPWORD1")
-                        self.p("\t\tlda  #>" + stmt.float_var_name)
+                        self.p("\t\tlda  #>" + stmt.value.name)
                         self.p("\t\tsta  c64.SCRATCH_ZPWORD1+1")
-                        self.p("\t\tldx  #<" + r_str)
-                        self.p("\t\tldy  #>" + r_str)
+                        self.p("\t\tldx  #<" + what_str)
+                        self.p("\t\tldy  #>" + what_str)
                         if is_incr:
-                            self.p("\t\tjsr  il65_lib.float_add_SW1_to_XY")
+                            self.p("\t\tjsr  c64flt.float_add_SW1_to_XY")
                         else:
-                            self.p("\t\tjsr  il65_lib.float_sub_SW1_from_XY")
+                            self.p("\t\tjsr  c64flt.float_sub_SW1_from_XY")
                 else:
                     raise CodeError("incr/decr missing float constant definition")
             else:
-                raise CodeError("cannot in/decrement memory of type " + str(what.datatype), stmt.howmuch)
+                raise CodeError("cannot in/decrement memory of type " + str(what.datatype), howmuch)
         else:
             raise CodeError("cannot in/decrement " + str(stmt.what))
 
@@ -1536,7 +1539,7 @@ class CodeGenerator:
             # assigning a register to a float requires c64 ROM routines
             if r_register in REGISTER_WORDS:
                 def do_rom_calls():
-                    self.p("\t\tjsr  c64.GIVUAYF")  # uword AY -> fac1
+                    self.p("\t\tjsr  c64flt.GIVUAYF")  # uword AY -> fac1
                     self.p("\t\tldx  #<" + lv_string)
                     self.p("\t\tldy  #>" + lv_string)
                     self.p("\t\tjsr  c64.FTOMEMXY")  # fac1 -> memory XY
@@ -1772,7 +1775,7 @@ class CodeGenerator:
                     self.p("\t\tsta  c64.SCRATCH_ZPWORD1+1")
                     self.p("\t\tldx  #<" + l_str)
                     self.p("\t\tldy  #>" + l_str)
-                    self.p("\t\tjsr  il65_lib.copy_mflt")
+                    self.p("\t\tjsr  c64flt.copy_mflt")
             elif rvalue.datatype == DataType.BYTE:
                 with self.preserving_registers({'A', 'X', 'Y'}):
                     self.p("\t\tldy  " + r_str)
@@ -1784,7 +1787,7 @@ class CodeGenerator:
                 with self.preserving_registers({'A', 'X', 'Y'}, loads_a_within=True):
                     self.p("\t\tlda  " + r_str)
                     self.p("\t\tldy  {:s}+1".format(r_str))
-                    self.p("\t\tjsr  c64.GIVUAYF")  # uword AY -> fac1
+                    self.p("\t\tjsr  c64flt.GIVUAYF")  # uword AY -> fac1
                     self.p("\t\tldx  #<" + l_str)
                     self.p("\t\tldy  #>" + l_str)
                     self.p("\t\tjsr  c64.FTOMEMXY")  # fac1 -> memory XY

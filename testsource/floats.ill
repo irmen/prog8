@@ -59,6 +59,15 @@ start
         some_address = 4123.2342342222
         [$c000.word] = # flt_pi
 
+        my_float ++
+        my_float += 1
+        my_float += 0.5
+        my_float += 999.222
+        my_float --
+        my_float -= 1
+        my_float -= 0.5
+        my_float -= 999.222
+
         ; print some floating points from source and compare them with ROM
 
         printflt(#flt_pi)

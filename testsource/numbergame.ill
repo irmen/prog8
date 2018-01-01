@@ -15,8 +15,6 @@ import "c64lib"
 start
         c64.init_system()
 
-        c64.VMCSB += 2
-        c64.VMCSB *= 2
         A = c64.VMCSB
         A |= 2                  ;  @todo c64.VMCSB |= 2
         c64.VMCSB = A
@@ -37,7 +35,7 @@ start
         c64.MUL10()
         c64.FADDH()
         c64.FADDH()
-        AY = c64.GETADRAY()
+        AY = c64flt.GETADRAY()
         secretnumber = A
 
         c64scr.print_string("I am thinking of a number from 1 to 100!You'll have to guess it!\n")
@@ -58,7 +56,7 @@ ask_guess
         c64.CHROUT('\n')
         [$22.word] = guess
         c64.FREADSTR(A)
-        AY = c64.GETADRAY()
+        AY = c64flt.GETADRAY()
         A -= secretnumber       ; @todo condition so we can do if guess > secretnumber....
         if_zero goto correct_guess
         if_gt goto too_high

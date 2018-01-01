@@ -115,17 +115,17 @@ sub	MOVAF		() -> (A?, X?)		= $bc0c		; copy fac1 to fac2  (rounded)
 sub	MOVEF		() -> (A?, X?)		= $bc0f		; copy fac1 to fac2
 sub	FTOMEMXY	(mflpt: XY) -> (A?, Y?)	= $bbd4		; store fac1 to memory  X/Y as 5-byte mflpt
 sub	FTOSWORDYA	() -> (Y, A, X?)	= $b1aa		; fac1-> signed word in Y/A (might throw ILLEGAL QUANTITY)
-	; use c64.FTOSWRDAY to get A/Y output (lo/hi switched to normal order)
+	; use c64flt.FTOSWRDAY to get A/Y output (lo/hi switched to normal order)
 sub	GETADR		() -> (Y, A, X?)	= $b7f7		; fac1 -> unsigned word in Y/A (might throw ILLEGAL QUANTITY)
-	; (result also in $14/15) use c64.GETADRAY to get A/Y output (lo/hi switched to normal order)
+	; (result also in $14/15) use c64flt.GETADRAY to get A/Y output (lo/hi switched to normal order)
 sub	QINT		() -> (?)		= $bc9b		; fac1 -> 4-byte signed integer in 98-101 ($62-$65), with the MSB FIRST.
 sub	AYINT		() -> (?)		= $b1bf		; fac1-> signed word in 100-101 ($64-$65) MSB FIRST. (might throw ILLEGAL QUANTITY)
 sub	GIVAYF		(lo: Y, hi: A) -> (?)	= $b391		; signed word in Y/A -> float in fac1
-	; use c64.GIVAYFAY to use A/Y input (lo/hi switched to normal order)
-; there is also c64.GIVUAYF - unsigned word in A/Y (lo/hi) to fac1
-; there is also c64.FREADS32  that reads from 98-101 ($62-$65) MSB FIRST
-; there is also c64.FREADUS32  that reads from 98-101 ($62-$65) MSB FIRST
-; there is also c64.FREADS24AXY  that reads signed int24 into fac1 from A/X/Y (lo/mid/hi bytes)
+	; use c64flt.GIVAYFAY to use A/Y input (lo/hi switched to normal order)
+; there is also c64flt.GIVUAYF - unsigned word in A/Y (lo/hi) to fac1
+; there is also c64flt.FREADS32  that reads from 98-101 ($62-$65) MSB FIRST
+; there is also c64flt.FREADUS32  that reads from 98-101 ($62-$65) MSB FIRST
+; there is also c64flt.FREADS24AXY  that reads signed int24 into fac1 from A/X/Y (lo/mid/hi bytes)
 sub	FREADUY		(ubyte: Y) -> (?)	= $b3a2		; 8 bit unsigned Y -> float in fac1
 sub	FREADSA		(sbyte: A) -> (?)	= $bc3c		; 8 bit signed A -> float in fac1
 sub	FREADSTR	(len: A) -> (?)		= $b7b5		; str -> fac1, $22/23 must point to string, A=string length
@@ -259,6 +259,14 @@ sub  init_system  () -> (?)  {
 	}
 }
 
+
+}  ; ------ end of block c64
+
+
+~ c64flt {
+	; ---- this block contains C-64 floating point related functions ----
+
+
 sub  FREADS32  () -> (?)  {
 	; ---- fac1 = signed int32 from $62-$65 big endian (MSB FIRST)
 	asm {
@@ -342,7 +350,99 @@ sub  GETADRAY  () -> (AY, X?)  {
 }
 
 
-}  ; ------ end of block c64
+sub  copy_mflt  (source: XY) -> (A?, Y?)  {
+	; ---- copy a 5 byte MFLT floating point variable to another place
+	;      input: X/Y = source address,  c64.SCRATCH_ZPWORD1 = destination address
+	asm {
+		stx  c64.SCRATCH_ZP1
+		sty  c64.SCRATCH_ZPWORD1+1
+		ldy  #0
+		lda  (c64.SCRATCH_ZP1),y
+		sta  (c64.SCRATCH_ZPWORD1),y
+		iny
+		lda  (c64.SCRATCH_ZP1),y
+		sta  (c64.SCRATCH_ZPWORD1),y
+		iny
+		lda  (c64.SCRATCH_ZP1),y
+		sta  (c64.SCRATCH_ZPWORD1),y
+		iny
+		lda  (c64.SCRATCH_ZP1),y
+		sta  (c64.SCRATCH_ZPWORD1),y
+		iny
+		lda  (c64.SCRATCH_ZP1),y
+		sta  (c64.SCRATCH_ZPWORD1),y
+		ldy  c64.SCRATCH_ZPWORD1+1
+		rts
+	}
+}
+
+sub  float_add_one  (mflt: XY) -> (?)  {
+	; ---- add 1 to the MFLT pointed to by X/Y.  Clobbers A, X, Y
+	asm {
+		stx  c64.SCRATCH_ZP1
+		sty  c64.SCRATCH_ZP2
+		txa
+		jsr  c64.MOVFM		; fac1 = float XY
+		lda  #<c64.FL_FONE
+		ldy  #>c64.FL_FONE
+		jsr  c64.FADD		; fac1 += 1
+		ldx  c64.SCRATCH_ZP1
+		ldy  c64.SCRATCH_ZP2
+		jmp  c64.FTOMEMXY	; float XY = fac1
+	}
+}
+
+sub  float_sub_one  (mflt: XY) -> (?)  {
+	; ---- subtract 1 from the MFLT pointed to by X/Y.  Clobbers A, X, Y
+	asm {
+		stx  c64.SCRATCH_ZP1
+		sty  c64.SCRATCH_ZP2
+		lda  #<c64.FL_FONE
+		ldy  #>c64.FL_FONE
+		jsr  c64.MOVFM		; fac1 = 1
+		txa
+		ldy  c64.SCRATCH_ZP2
+		jsr  c64.FSUB		; fac1 = float XY - 1
+		ldx  c64.SCRATCH_ZP1
+		ldy  c64.SCRATCH_ZP2
+		jmp  c64.FTOMEMXY	; float XY = fac1
+	}
+}
+
+sub  float_add_SW1_to_XY  (mflt: XY) -> (?)  {
+	; ---- add MFLT pointed to by SCRATCH_ZPWORD1 to the MFLT pointed to by X/Y.  Clobbers A, X, Y
+	asm {
+		stx  c64.SCRATCH_ZP1
+		sty  c64.SCRATCH_ZP2
+		txa
+		jsr  c64.MOVFM		; fac1 = float XY
+		lda  c64.SCRATCH_ZPWORD1
+		ldy  c64.SCRATCH_ZPWORD1+1
+		jsr  c64.FADD		; fac1 += SCRATCH_ZPWORD1
+		ldx  c64.SCRATCH_ZP1
+		ldy  c64.SCRATCH_ZP2
+		jmp  c64.FTOMEMXY	; float XY = fac1
+	}
+}
+
+sub  float_sub_SW1_from_XY  (mflt: XY) -> (?)  {
+	; ---- subtract MFLT pointed to by SCRATCH_ZPWORD1 from the MFLT pointed to by X/Y.  Clobbers A, X, Y
+	asm {
+		stx  c64.SCRATCH_ZP1
+		sty  c64.SCRATCH_ZP2
+		lda  c64.SCRATCH_ZPWORD1
+		ldy  c64.SCRATCH_ZPWORD1+1
+		jsr  c64.MOVFM		; fac1 = SCRATCH_ZPWORD1
+		txa
+		ldy  c64.SCRATCH_ZP2
+		jsr  c64.FSUB		; fac1 = float XY - SCRATCH_ZPWORD1
+		ldx  c64.SCRATCH_ZP1
+		ldy  c64.SCRATCH_ZP2
+		jmp  c64.FTOMEMXY	; float XY = fac1
+	}
+}
+
+}  ; ------ end of block c64flt
 
 
 
@@ -391,32 +491,10 @@ sub scroll_left_full  (alsocolors: SC) -> (A?, X?, Y?)  {
 		ldx  #0
 		ldy  #38
 -
-		lda  c64.Colors + 40*0 + 1,x
-		sta  c64.Colors + 40*0,x
-		lda  c64.Colors + 40*1 + 1,x
-		sta  c64.Colors + 40*1,x
-		lda  c64.Colors + 40*2 + 1,x
-		sta  c64.Colors + 40*2,x
-		lda  c64.Colors + 40*3 + 1,x
-		sta  c64.Colors + 40*3,x
-		lda  c64.Colors + 40*4 + 1,x
-		sta  c64.Colors + 40*4,x
-		lda  c64.Colors + 40*5 + 1,x
-		sta  c64.Colors + 40*5,x
-		lda  c64.Colors + 40*6 + 1,x
-		sta  c64.Colors + 40*6,x
-		lda  c64.Colors + 40*7 + 1,x
-		sta  c64.Colors + 40*7,x
-		lda  c64.Colors + 40*8 + 1,x
-		sta  c64.Colors + 40*8,x
-		lda  c64.Colors + 40*9 + 1,x
-		sta  c64.Colors + 40*9,x
-		lda  c64.Colors + 40*10 + 1,x
-		sta  c64.Colors + 40*10,x
-		lda  c64.Colors + 40*11 + 1,x
-		sta  c64.Colors + 40*11,x
-		lda  c64.Colors + 40*12 + 1,x
-		sta  c64.Colors + 40*12,x
+	.for row=0, row<=12, row+=1
+		lda  c64.Colors + 40*row + 1,x
+		sta  c64.Colors + 40*row,x
+	.next
 		inx
 		dey
 		bpl  -
@@ -424,30 +502,10 @@ sub scroll_left_full  (alsocolors: SC) -> (A?, X?, Y?)  {
 		ldx  #0
 		ldy  #38
 -
-		lda  c64.Colors + 40*13 + 1,x
-		sta  c64.Colors + 40*13,x
-		lda  c64.Colors + 40*14 + 1,x
-		sta  c64.Colors + 40*14,x
-		lda  c64.Colors + 40*15 + 1,x
-		sta  c64.Colors + 40*15,x
-		lda  c64.Colors + 40*16 + 1,x
-		sta  c64.Colors + 40*16,x
-		lda  c64.Colors + 40*17 + 1,x
-		sta  c64.Colors + 40*17,x
-		lda  c64.Colors + 40*18 + 1,x
-		sta  c64.Colors + 40*18,x
-		lda  c64.Colors + 40*19 + 1,x
-		sta  c64.Colors + 40*19,x
-		lda  c64.Colors + 40*20 + 1,x
-		sta  c64.Colors + 40*20,x
-		lda  c64.Colors + 40*21 + 1,x
-		sta  c64.Colors + 40*21,x
-		lda  c64.Colors + 40*22 + 1,x
-		sta  c64.Colors + 40*22,x
-		lda  c64.Colors + 40*23 + 1,x
-		sta  c64.Colors + 40*23,x
-		lda  c64.Colors + 40*24 + 1,x
-		sta  c64.Colors + 40*24,x
+	.for row=13, row<=24, row+=1
+		lda  c64.Colors + 40*row + 1,x
+		sta  c64.Colors + 40*row,x
+	.next
 		inx
 		dey
 		bpl  -
@@ -456,32 +514,10 @@ _scroll_screen
 		ldx  #0
 		ldy  #38
 -
-		lda  c64.Screen + 40*0 + 1,x
-		sta  c64.Screen + 40*0,x
-		lda  c64.Screen + 40*1 + 1,x
-		sta  c64.Screen + 40*1,x
-		lda  c64.Screen + 40*2 + 1,x
-		sta  c64.Screen + 40*2,x
-		lda  c64.Screen + 40*3 + 1,x
-		sta  c64.Screen + 40*3,x
-		lda  c64.Screen + 40*4 + 1,x
-		sta  c64.Screen + 40*4,x
-		lda  c64.Screen + 40*5 + 1,x
-		sta  c64.Screen + 40*5,x
-		lda  c64.Screen + 40*6 + 1,x
-		sta  c64.Screen + 40*6,x
-		lda  c64.Screen + 40*7 + 1,x
-		sta  c64.Screen + 40*7,x
-		lda  c64.Screen + 40*8 + 1,x
-		sta  c64.Screen + 40*8,x
-		lda  c64.Screen + 40*9 + 1,x
-		sta  c64.Screen + 40*9,x
-		lda  c64.Screen + 40*10 + 1,x
-		sta  c64.Screen + 40*10,x
-		lda  c64.Screen + 40*11 + 1,x
-		sta  c64.Screen + 40*11,x
-		lda  c64.Screen + 40*12 + 1,x
-		sta  c64.Screen + 40*12,x
+	.for row=0, row<=12, row+=1
+		lda  c64.Screen + 40*row + 1,x
+		sta  c64.Screen + 40*row,x
+	.next
 		inx
 		dey
 		bpl  -
@@ -489,33 +525,14 @@ _scroll_screen
 		ldx  #0
 		ldy  #38
 -
-		lda  c64.Screen + 40*13 + 1,x
-		sta  c64.Screen + 40*13,x
-		lda  c64.Screen + 40*14 + 1,x
-		sta  c64.Screen + 40*14,x
-		lda  c64.Screen + 40*15 + 1,x
-		sta  c64.Screen + 40*15,x
-		lda  c64.Screen + 40*16 + 1,x
-		sta  c64.Screen + 40*16,x
-		lda  c64.Screen + 40*17 + 1,x
-		sta  c64.Screen + 40*17,x
-		lda  c64.Screen + 40*18 + 1,x
-		sta  c64.Screen + 40*18,x
-		lda  c64.Screen + 40*19 + 1,x
-		sta  c64.Screen + 40*19,x
-		lda  c64.Screen + 40*20 + 1,x
-		sta  c64.Screen + 40*20,x
-		lda  c64.Screen + 40*21 + 1,x
-		sta  c64.Screen + 40*21,x
-		lda  c64.Screen + 40*22 + 1,x
-		sta  c64.Screen + 40*22,x
-		lda  c64.Screen + 40*23 + 1,x
-		sta  c64.Screen + 40*23,x
-		lda  c64.Screen + 40*24 + 1,x
-		sta  c64.Screen + 40*24,x
+	.for row=13, row<=24, row+=1
+		lda  c64.Screen + 40*row + 1,x
+		sta  c64.Screen + 40*row,x
+	.next
 		inx
 		dey
 		bpl  -
+
 		rts
 	}
 }
@@ -532,124 +549,41 @@ sub scroll_right_full  (alsocolors: SC) -> (A?, X?)  {
 +
 		ldx  #38
 -
-		lda  c64.Colors + 40*0,x
-		sta  c64.Colors + 40*0 + 1,x
-		lda  c64.Colors + 40*1,x
-		sta  c64.Colors + 40*1 + 1,x
-		lda  c64.Colors + 40*2,x
-		sta  c64.Colors + 40*2 + 1,x
-		lda  c64.Colors + 40*3,x
-		sta  c64.Colors + 40*3 + 1,x
-		lda  c64.Colors + 40*4,x
-		sta  c64.Colors + 40*4 + 1,x
-		lda  c64.Colors + 40*5,x
-		sta  c64.Colors + 40*5 + 1,x
-		lda  c64.Colors + 40*6,x
-		sta  c64.Colors + 40*6 + 1,x
-		lda  c64.Colors + 40*7,x
-		sta  c64.Colors + 40*7 + 1,x
-		lda  c64.Colors + 40*8,x
-		sta  c64.Colors + 40*8 + 1,x
-		lda  c64.Colors + 40*9,x
-		sta  c64.Colors + 40*9 + 1,x
-		lda  c64.Colors + 40*10,x
-		sta  c64.Colors + 40*10 + 1,x
-		lda  c64.Colors + 40*11,x
-		sta  c64.Colors + 40*11 + 1,x
-		lda  c64.Colors + 40*12,x
-		sta  c64.Colors + 40*12 + 1,x
+	.for row=0, row<=12, row+=1
+		lda  c64.Colors + 40*row + 0,x
+		sta  c64.Colors + 40*row + 1,x
+	.next
 		dex
 		bpl  -
 
 		ldx  #38
 -
-		lda  c64.Colors + 40*13,x
-		sta  c64.Colors + 40*13 + 1,x
-		lda  c64.Colors + 40*14,x
-		sta  c64.Colors + 40*14 + 1,x
-		lda  c64.Colors + 40*15,x
-		sta  c64.Colors + 40*15 + 1,x
-		lda  c64.Colors + 40*16,x
-		sta  c64.Colors + 40*16 + 1,x
-		lda  c64.Colors + 40*17,x
-		sta  c64.Colors + 40*17 + 1,x
-		lda  c64.Colors + 40*18,x
-		sta  c64.Colors + 40*18 + 1,x
-		lda  c64.Colors + 40*19,x
-		sta  c64.Colors + 40*19 + 1,x
-		lda  c64.Colors + 40*20,x
-		sta  c64.Colors + 40*20 + 1,x
-		lda  c64.Colors + 40*21,x
-		sta  c64.Colors + 40*21 + 1,x
-		lda  c64.Colors + 40*22,x
-		sta  c64.Colors + 40*22 + 1,x
-		lda  c64.Colors + 40*23,x
-		sta  c64.Colors + 40*23 + 1,x
-		lda  c64.Colors + 40*24,x
-		sta  c64.Colors + 40*24 + 1,x
+	.for row=13, row<=24, row+=1
+		lda  c64.Colors + 40*row,x
+		sta  c64.Colors + 40*row + 1,x
+	.next
 		dex
 		bpl  -
 
 _scroll_screen
 		ldx  #38
 -
-		lda  c64.Screen + 40*0,x
-		sta  c64.Screen + 40*0 + 1,x
-		lda  c64.Screen + 40*1,x
-		sta  c64.Screen + 40*1 + 1,x
-		lda  c64.Screen + 40*2,x
-		sta  c64.Screen + 40*2 + 1,x
-		lda  c64.Screen + 40*3,x
-		sta  c64.Screen + 40*3 + 1,x
-		lda  c64.Screen + 40*4,x
-		sta  c64.Screen + 40*4 + 1,x
-		lda  c64.Screen + 40*5,x
-		sta  c64.Screen + 40*5 + 1,x
-		lda  c64.Screen + 40*6,x
-		sta  c64.Screen + 40*6 + 1,x
-		lda  c64.Screen + 40*7,x
-		sta  c64.Screen + 40*7 + 1,x
-		lda  c64.Screen + 40*8,x
-		sta  c64.Screen + 40*8 + 1,x
-		lda  c64.Screen + 40*9,x
-		sta  c64.Screen + 40*9 + 1,x
-		lda  c64.Screen + 40*10,x
-		sta  c64.Screen + 40*10 + 1,x
-		lda  c64.Screen + 40*11,x
-		sta  c64.Screen + 40*11 + 1,x
-		lda  c64.Screen + 40*12,x
-		sta  c64.Screen + 40*12 + 1,x
+	.for row=0, row<=12, row+=1
+		lda  c64.Screen + 40*row + 0,x
+		sta  c64.Screen + 40*row + 1,x
+	.next
 		dex
 		bpl  -
 
 		ldx  #38
 -
-		lda  c64.Screen + 40*13,x
-		sta  c64.Screen + 40*13 + 1,x
-		lda  c64.Screen + 40*14,x
-		sta  c64.Screen + 40*14 + 1,x
-		lda  c64.Screen + 40*15,x
-		sta  c64.Screen + 40*15 + 1,x
-		lda  c64.Screen + 40*16,x
-		sta  c64.Screen + 40*16 + 1,x
-		lda  c64.Screen + 40*17,x
-		sta  c64.Screen + 40*17 + 1,x
-		lda  c64.Screen + 40*18,x
-		sta  c64.Screen + 40*18 + 1,x
-		lda  c64.Screen + 40*19,x
-		sta  c64.Screen + 40*19 + 1,x
-		lda  c64.Screen + 40*20,x
-		sta  c64.Screen + 40*20 + 1,x
-		lda  c64.Screen + 40*21,x
-		sta  c64.Screen + 40*21 + 1,x
-		lda  c64.Screen + 40*22,x
-		sta  c64.Screen + 40*22 + 1,x
-		lda  c64.Screen + 40*23,x
-		sta  c64.Screen + 40*23 + 1,x
-		lda  c64.Screen + 40*24,x
-		sta  c64.Screen + 40*24 + 1,x
+	.for row=13, row<=24, row+=1
+		lda  c64.Screen + 40*row,x
+		sta  c64.Screen + 40*row + 1,x
+	.next
 		dex
 		bpl  -
+
 		rts
 	}
 }
@@ -666,118 +600,38 @@ sub scroll_up_full  (alsocolors: SC) -> (A?, X?)  {
 +
 		ldx #39
 -
-		lda  c64.Colors + 40*1,x
-		sta  c64.Colors + 40*0,x
-		lda  c64.Colors + 40*2,x
-		sta  c64.Colors + 40*1,x
-		lda  c64.Colors + 40*3,x
-		sta  c64.Colors + 40*2,x
-		lda  c64.Colors + 40*4,x
-		sta  c64.Colors + 40*3,x
-		lda  c64.Colors + 40*5,x
-		sta  c64.Colors + 40*4,x
-		lda  c64.Colors + 40*6,x
-		sta  c64.Colors + 40*5,x
-		lda  c64.Colors + 40*7,x
-		sta  c64.Colors + 40*6,x
-		lda  c64.Colors + 40*8,x
-		sta  c64.Colors + 40*7,x
-		lda  c64.Colors + 40*9,x
-		sta  c64.Colors + 40*8,x
-		lda  c64.Colors + 40*10,x
-		sta  c64.Colors + 40*9,x
-		lda  c64.Colors + 40*11,x
-		sta  c64.Colors + 40*10,x
-		lda  c64.Colors + 40*12,x
-		sta  c64.Colors + 40*11,x
+	.for row=1, row<=11, row+=1
+		lda  c64.Colors + 40*row,x
+		sta  c64.Colors + 40*(row-1),x
+	.next
 		dex
 		bpl  -
 
 		ldx #39
 -
-		lda  c64.Colors + 40*13,x
-		sta  c64.Colors + 40*12,x
-		lda  c64.Colors + 40*14,x
-		sta  c64.Colors + 40*13,x
-		lda  c64.Colors + 40*15,x
-		sta  c64.Colors + 40*14,x
-		lda  c64.Colors + 40*16,x
-		sta  c64.Colors + 40*15,x
-		lda  c64.Colors + 40*17,x
-		sta  c64.Colors + 40*16,x
-		lda  c64.Colors + 40*18,x
-		sta  c64.Colors + 40*17,x
-		lda  c64.Colors + 40*19,x
-		sta  c64.Colors + 40*18,x
-		lda  c64.Colors + 40*20,x
-		sta  c64.Colors + 40*19,x
-		lda  c64.Colors + 40*21,x
-		sta  c64.Colors + 40*20,x
-		lda  c64.Colors + 40*22,x
-		sta  c64.Colors + 40*21,x
-		lda  c64.Colors + 40*23,x
-		sta  c64.Colors + 40*22,x
-		lda  c64.Colors + 40*24,x
-		sta  c64.Colors + 40*23,x
+	.for row=12, row<=24, row+=1
+		lda  c64.Colors + 40*row,x
+		sta  c64.Colors + 40*(row-1),x
+	.next
 		dex
 		bpl  -
 
 _scroll_screen
 		ldx #39
 -
-		lda  c64.Screen + 40*1,x
-		sta  c64.Screen + 40*0,x
-		lda  c64.Screen + 40*2,x
-		sta  c64.Screen + 40*1,x
-		lda  c64.Screen + 40*3,x
-		sta  c64.Screen + 40*2,x
-		lda  c64.Screen + 40*4,x
-		sta  c64.Screen + 40*3,x
-		lda  c64.Screen + 40*5,x
-		sta  c64.Screen + 40*4,x
-		lda  c64.Screen + 40*6,x
-		sta  c64.Screen + 40*5,x
-		lda  c64.Screen + 40*7,x
-		sta  c64.Screen + 40*6,x
-		lda  c64.Screen + 40*8,x
-		sta  c64.Screen + 40*7,x
-		lda  c64.Screen + 40*9,x
-		sta  c64.Screen + 40*8,x
-		lda  c64.Screen + 40*10,x
-		sta  c64.Screen + 40*9,x
-		lda  c64.Screen + 40*11,x
-		sta  c64.Screen + 40*10,x
-		lda  c64.Screen + 40*12,x
-		sta  c64.Screen + 40*11,x
+	.for row=1, row<=11, row+=1
+		lda  c64.Screen + 40*row,x
+		sta  c64.Screen + 40*(row-1),x
+	.next
 		dex
 		bpl  -
 
 		ldx #39
 -
-		lda  c64.Screen + 40*13,x
-		sta  c64.Screen + 40*12,x
-		lda  c64.Screen + 40*14,x
-		sta  c64.Screen + 40*13,x
-		lda  c64.Screen + 40*15,x
-		sta  c64.Screen + 40*14,x
-		lda  c64.Screen + 40*16,x
-		sta  c64.Screen + 40*15,x
-		lda  c64.Screen + 40*17,x
-		sta  c64.Screen + 40*16,x
-		lda  c64.Screen + 40*18,x
-		sta  c64.Screen + 40*17,x
-		lda  c64.Screen + 40*19,x
-		sta  c64.Screen + 40*18,x
-		lda  c64.Screen + 40*20,x
-		sta  c64.Screen + 40*19,x
-		lda  c64.Screen + 40*21,x
-		sta  c64.Screen + 40*20,x
-		lda  c64.Screen + 40*22,x
-		sta  c64.Screen + 40*21,x
-		lda  c64.Screen + 40*23,x
-		sta  c64.Screen + 40*22,x
-		lda  c64.Screen + 40*24,x
-		sta  c64.Screen + 40*23,x
+	.for row=12, row<=24, row+=1
+		lda  c64.Screen + 40*row,x
+		sta  c64.Screen + 40*(row-1),x
+	.next
 		dex
 		bpl  -
 
@@ -797,122 +651,38 @@ sub scroll_down_full  (alsocolors: SC) -> (A?, X?)  {
 +
 		ldx #39
 -
-		lda  c64.Colors + 40*23,x
-		sta  c64.Colors + 40*24,x
-		lda  c64.Colors + 40*22,x
-		sta  c64.Colors + 40*23,x
-		lda  c64.Colors + 40*21,x
-		sta  c64.Colors + 40*22,x
-		lda  c64.Colors + 40*20,x
-		sta  c64.Colors + 40*21,x
-		lda  c64.Colors + 40*19,x
-		sta  c64.Colors + 40*20,x
-		lda  c64.Colors + 40*18,x
-		sta  c64.Colors + 40*19,x
-		lda  c64.Colors + 40*17,x
-		sta  c64.Colors + 40*18,x
-		lda  c64.Colors + 40*16,x
-		sta  c64.Colors + 40*17,x
-		lda  c64.Colors + 40*15,x
-		sta  c64.Colors + 40*16,x
-		lda  c64.Colors + 40*14,x
-		sta  c64.Colors + 40*15,x
-		lda  c64.Colors + 40*13,x
-		sta  c64.Colors + 40*14,x
-		lda  c64.Colors + 40*12,x
-		sta  c64.Colors + 40*13,x
-
+	.for row=23, row>=12, row-=1
+		lda  c64.Colors + 40*row,x
+		sta  c64.Colors + 40*(row+1),x
+	.next
 		dex
 		bpl  -
 
 		ldx #39
 -
-		lda  c64.Colors + 40*11,x
-		sta  c64.Colors + 40*12,x
-		lda  c64.Colors + 40*10,x
-		sta  c64.Colors + 40*11,x
-		lda  c64.Colors + 40*9,x
-		sta  c64.Colors + 40*10,x
-		lda  c64.Colors + 40*8,x
-		sta  c64.Colors + 40*9,x
-		lda  c64.Colors + 40*7,x
-		sta  c64.Colors + 40*8,x
-		lda  c64.Colors + 40*6,x
-		sta  c64.Colors + 40*7,x
-		lda  c64.Colors + 40*5,x
-		sta  c64.Colors + 40*6,x
-		lda  c64.Colors + 40*4,x
-		sta  c64.Colors + 40*5,x
-		lda  c64.Colors + 40*3,x
-		sta  c64.Colors + 40*4,x
-		lda  c64.Colors + 40*2,x
-		sta  c64.Colors + 40*3,x
-		lda  c64.Colors + 40*1,x
-		sta  c64.Colors + 40*2,x
-		lda  c64.Colors + 40*0,x
-		sta  c64.Colors + 40*1,x
-
+	.for row=11, row>=0, row-=1
+		lda  c64.Colors + 40*row,x
+		sta  c64.Colors + 40*(row+1),x
+	.next
 		dex
 		bpl  -
 
 _scroll_screen
 		ldx #39
 -
-		lda  c64.Screen + 40*23,x
-		sta  c64.Screen + 40*24,x
-		lda  c64.Screen + 40*22,x
-		sta  c64.Screen + 40*23,x
-		lda  c64.Screen + 40*21,x
-		sta  c64.Screen + 40*22,x
-		lda  c64.Screen + 40*20,x
-		sta  c64.Screen + 40*21,x
-		lda  c64.Screen + 40*19,x
-		sta  c64.Screen + 40*20,x
-		lda  c64.Screen + 40*18,x
-		sta  c64.Screen + 40*19,x
-		lda  c64.Screen + 40*17,x
-		sta  c64.Screen + 40*18,x
-		lda  c64.Screen + 40*16,x
-		sta  c64.Screen + 40*17,x
-		lda  c64.Screen + 40*15,x
-		sta  c64.Screen + 40*16,x
-		lda  c64.Screen + 40*14,x
-		sta  c64.Screen + 40*15,x
-		lda  c64.Screen + 40*13,x
-		sta  c64.Screen + 40*14,x
-		lda  c64.Screen + 40*12,x
-		sta  c64.Screen + 40*13,x
-
+	.for row=23, row>=12, row-=1
+		lda  c64.Screen + 40*row,x
+		sta  c64.Screen + 40*(row+1),x
+	.next
 		dex
 		bpl  -
 
 		ldx #39
 -
-		lda  c64.Screen + 40*11,x
-		sta  c64.Screen + 40*12,x
-		lda  c64.Screen + 40*10,x
-		sta  c64.Screen + 40*11,x
-		lda  c64.Screen + 40*9,x
-		sta  c64.Screen + 40*10,x
-		lda  c64.Screen + 40*8,x
-		sta  c64.Screen + 40*9,x
-		lda  c64.Screen + 40*7,x
-		sta  c64.Screen + 40*8,x
-		lda  c64.Screen + 40*6,x
-		sta  c64.Screen + 40*7,x
-		lda  c64.Screen + 40*5,x
-		sta  c64.Screen + 40*6,x
-		lda  c64.Screen + 40*4,x
-		sta  c64.Screen + 40*5,x
-		lda  c64.Screen + 40*3,x
-		sta  c64.Screen + 40*4,x
-		lda  c64.Screen + 40*2,x
-		sta  c64.Screen + 40*3,x
-		lda  c64.Screen + 40*1,x
-		sta  c64.Screen + 40*2,x
-		lda  c64.Screen + 40*0,x
-		sta  c64.Screen + 40*1,x
-
+	.for row=11, row>=0, row-=1
+		lda  c64.Screen + 40*row,x
+		sta  c64.Screen + 40*(row+1),x
+	.next
 		dex
 		bpl  -
 

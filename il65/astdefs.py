@@ -164,6 +164,9 @@ class IntegerValue(Value):
     def __str__(self):
         return "<IntegerValue {} name={}>".format(self.value, self.name)
 
+    def negative(self) -> 'IntegerValue':
+        return IntegerValue(-self.value, self.sourceref, datatype=self.datatype, name=self.name)
+
 
 class FloatValue(Value):
     def __init__(self, value: float, sourceref: SourceRef, name: str = None) -> None:
@@ -186,6 +189,9 @@ class FloatValue(Value):
 
     def __str__(self):
         return "<FloatValue {} name={}>".format(self.value, self.name)
+
+    def negative(self) -> 'FloatValue':
+        return FloatValue(-self.value, self.sourceref, name=self.name)
 
 
 class StringValue(Value):
@@ -419,21 +425,21 @@ class ReturnStmt(_AstNode):
 
 
 class InplaceIncrStmt(_AstNode):
-    def __init__(self, what: Value, howmuch: Union[None, int, float], byname: Optional[str], sourceref: SourceRef) -> None:
+    def __init__(self, what: Value, value: Union[IntegerValue, FloatValue], sourceref: SourceRef) -> None:
         super().__init__(sourceref)
-        assert howmuch is None or howmuch > 0
+        assert value.constant
+        assert (value.value is None and value.name) or value.value > 0
         self.what = what
-        self.howmuch = howmuch
-        self.float_var_name = byname
+        self.value = value
 
 
 class InplaceDecrStmt(_AstNode):
-    def __init__(self, what: Value, howmuch: Union[None, int, float], byname: Optional[str], sourceref: SourceRef) -> None:
+    def __init__(self, what: Value, value: Union[IntegerValue, FloatValue], sourceref: SourceRef) -> None:
         super().__init__(sourceref)
-        assert howmuch is None or howmuch > 0
+        assert value.constant
+        assert (value.value is None and value.name) or value.value > 0
         self.what = what
-        self.howmuch = howmuch
-        self.float_var_name = byname
+        self.value = value
 
 
 class IfCondition(_AstNode):

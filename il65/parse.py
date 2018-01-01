@@ -254,10 +254,11 @@ class Parser:
 
         def desugar_immediate_floats(stmt: _AstNode, containing_block: Block) -> None:
             if isinstance(stmt, (InplaceIncrStmt, InplaceDecrStmt)):
-                if stmt.howmuch is None:
-                    assert stmt.float_var_name
+                howmuch = stmt.value.value
+                if howmuch is None:
+                    assert stmt.value.name
                     return
-                if stmt.howmuch in (0, 1):
+                if howmuch in (0, 1) or type(howmuch) is int:
                     return      # 1 is special cased in the code generator
                 rom_floats = {
                     1: "c64.FL_FONE",
@@ -276,24 +277,24 @@ class Parser:
                     1.0 / math.log(2): "c64.FL_LOGEB2",
                 }
                 for fv, name in rom_floats.items():
-                    if math.isclose(stmt.howmuch, fv, rel_tol=0, abs_tol=1e-9):
+                    if math.isclose(howmuch, fv, rel_tol=0, abs_tol=1e-9):
                         # use one of the constants available in ROM
-                        stmt.float_var_name = name
+                        stmt.value.name = name
                         return
-                if stmt.howmuch in self._immediate_floats:
+                if howmuch in self._immediate_floats:
                     # reuse previously defined float constant
-                    blockname, floatvar_name = self._immediate_floats[stmt.howmuch]
+                    blockname, floatvar_name = self._immediate_floats[howmuch]
                     if blockname:
-                        stmt.float_var_name = blockname + '.' + floatvar_name
+                        stmt.value.name = blockname + '.' + floatvar_name
                     else:
-                        stmt.float_var_name = floatvar_name
+                        stmt.value.name = floatvar_name
                 else:
                     # define new float variable to hold the incr/decr value
                     # note: not a constant, because we need the MFLT bytes
                     floatvar_name = "il65_float_{:d}".format(id(stmt))
-                    containing_block.symbols.define_variable(floatvar_name, stmt.sourceref, DataType.FLOAT, value=stmt.howmuch)
-                    self._immediate_floats[stmt.howmuch] = (containing_block.name, floatvar_name)
-                    stmt.float_var_name = floatvar_name
+                    containing_block.symbols.define_variable(floatvar_name, stmt.sourceref, DataType.FLOAT, value=howmuch)
+                    self._immediate_floats[howmuch] = (containing_block.name, floatvar_name)
+                    stmt.value.name = floatvar_name
 
         for block in self.result.blocks:
             self.cur_block = block
@@ -826,9 +827,10 @@ class Parser:
             what = self.parse_expression(line[:-2].rstrip())
             if isinstance(what, IntegerValue):
                 raise self.PError("cannot in/decrement a constant value")
+            one_value = IntegerValue(1, self.sourceref)
             if incr:
-                return InplaceIncrStmt(what, 1, None, self.sourceref)
-            return InplaceDecrStmt(what, 1, None, self.sourceref)
+                return InplaceIncrStmt(what, one_value, self.sourceref)
+            return InplaceDecrStmt(what, one_value, self.sourceref)
         else:
             # perhaps it is an augmented assignment statement
             match = re.fullmatch(r"(?P<left>\S+)\s*(?P<assignment>\+=|-=|\*=|/=|%=|//=|\*\*=|&=|\|=|\^=|>>=|<<=)\s*(?P<right>\S.*)", line)
@@ -967,27 +969,24 @@ class Parser:
                 if truncated:
                     r_value = IntegerValue(int(value), self.sourceref, datatype=l_value.datatype, name=r_value.name)
         if operator in ("+=", "-="):
-            # see if we can simplify this to inplace incr/decr statement
+            # see if we can simplify this to inplace incr/decr statement (only int/float constant values)
             if r_value.constant:
+                if not isinstance(r_value, (IntegerValue, FloatValue)):
+                    raise self.PError("incr/decr requires constant int or float, not " + r_value.__class__.__name__)
                 if operator == "+=":
-                    if r_value.value > 0:  # type: ignore
-                        return InplaceIncrStmt(l_value, r_value.value, None, self.sourceref)
-                    elif r_value.value < 0:  # type: ignore
-                        return InplaceDecrStmt(l_value, -r_value.value, None, self.sourceref)
+                    if r_value.value > 0:
+                        return InplaceIncrStmt(l_value, r_value, self.sourceref)
+                    elif r_value.value < 0:
+                        return InplaceDecrStmt(l_value, r_value.negative(), self.sourceref)
                     else:
                         self.print_warning("incr with zero, ignored")
                 else:
-                    if r_value.value > 0:  # type: ignore
-                        return InplaceDecrStmt(l_value, r_value.value, None, self.sourceref)
-                    elif r_value.value < 0:  # type: ignore
-                        return InplaceIncrStmt(l_value, -r_value.value, None, self.sourceref)
+                    if r_value.value > 0:
+                        return InplaceDecrStmt(l_value, r_value, self.sourceref)
+                    elif r_value.value < 0:
+                        return InplaceIncrStmt(l_value, r_value.negative(), self.sourceref)
                     else:
                         self.print_warning("decr with zero, ignored")
-            else:
-                if r_value.name:
-                    if operator == "+=":
-                        return InplaceIncrStmt(l_value, None, r_value.name, self.sourceref)
-                    return InplaceDecrStmt(l_value, None, r_value.name, self.sourceref)
         return AugmentedAssignmentStmt(l_value, operator, r_value, self.sourceref)
 
     def parse_return(self, line: str) -> ReturnStmt:
@@ -1404,7 +1403,9 @@ class Optimizer:
         # some symbols are used by the emitted assembly code from the code generator,
         # and should never be removed or the assembler will fail
         # @todo make this dynamic
-        never_remove = {"c64.GIVUAYF", "c64.FREADUY", "c64.FTOMEMXY", "c64.FADD", "c64.FSUB"}
+        never_remove = {"c64.FREADUY", "c64.FTOMEMXY", "c64.FADD", "c64.FSUB",
+                        "c64flt.GIVUAYF", "c64flt.copy_mflt", "c64flt.float_add_one", "c64flt.float_sub_one",
+                        "c64flt.float_add_SW1_to_XY", "c64flt.float_sub_SW1_from_XY"}
         discarded = []
         for sub in list(block.symbols.iter_subroutines()):
             usages = self.parsed.subroutine_usage[(sub.blockname, sub.name)]
