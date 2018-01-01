@@ -313,13 +313,13 @@ class Parser:
         for name, value in stmt.arguments or []:
             assert name is not None, "all call arguments should have a name or be matched on a named parameter"
             assignment = self.parse_assignment(name, value)
+            assignment.sourceref = stmt.sourceref.copy()
             if assignment.leftvalues[0].datatype != DataType.BYTE:
                 if isinstance(assignment.right, IntegerValue) and assignment.right.constant:
                     # a call that doesn't expect a BYTE argument but gets one, converted from a 1-byte string most likely
                     if value.startswith("'") and value.endswith("'"):
                         self.print_warning("possible problematic string to byte conversion (use a .text var instead?)")
             if not assignment.is_identity():
-                assignment.sourceref = stmt.sourceref.copy()  # @todo why set this?
                 stmt.desugared_call_arguments.append(assignment)
         if all(not isinstance(v, RegisterValue) for r, v in stmt.outputvars or []):
             # if none of the output variables are registers, we can simply generate the assignments without issues
@@ -978,15 +978,11 @@ class Parser:
                         return InplaceIncrStmt(l_value, r_value, self.sourceref)
                     elif r_value.value < 0:
                         return InplaceDecrStmt(l_value, r_value.negative(), self.sourceref)
-                    else:
-                        self.print_warning("incr with zero, ignored")
                 else:
                     if r_value.value > 0:
                         return InplaceDecrStmt(l_value, r_value, self.sourceref)
                     elif r_value.value < 0:
                         return InplaceIncrStmt(l_value, r_value.negative(), self.sourceref)
-                    else:
-                        self.print_warning("decr with zero, ignored")
         return AugmentedAssignmentStmt(l_value, operator, r_value, self.sourceref)
 
     def parse_return(self, line: str) -> ReturnStmt:
@@ -1315,12 +1311,30 @@ class Optimizer:
     def optimize(self) -> ParseResult:
         print("\noptimizing parse tree")
         for block in self.parsed.all_blocks():
+            self.remove_augmentedassign_incrdecr_nops(block)
             self.remove_identity_assigns(block)
             self.combine_assignments_into_multi(block)
             self.optimize_multiassigns(block)
             self.remove_unused_subroutines(block)
             self.optimize_compare_with_zero(block)
         return self.parsed
+
+    def remove_augmentedassign_incrdecr_nops(self, block: Block) -> None:
+        have_removed_stmts = False
+        for index, stmt in enumerate(list(block.statements)):
+            if isinstance(stmt, AugmentedAssignmentStmt):
+                if isinstance(stmt.right, (IntegerValue, FloatValue)):
+                    if stmt.right.value == 0 and stmt.operator in ("+=", "-=", "|=", "<<=", ">>=", "^="):
+                        print("{}: removed statement that has no effect".format(stmt.sourceref))
+                        have_removed_stmts = True
+                        block.statements[index] = None
+                    if stmt.right.value >= 8 and stmt.operator in ("<<=", ">>="):
+                        print("{}: shifting that many times always results in zero".format(stmt.sourceref))
+                        new_stmt = AssignmentStmt(stmt.leftvalues, IntegerValue(0, stmt.sourceref), stmt.sourceref)
+                        block.statements[index] = new_stmt
+        if have_removed_stmts:
+            # remove the Nones
+            block.statements = [s for s in block.statements if s is not None]
 
     def optimize_compare_with_zero(self, block: Block) -> None:
         # a conditional goto that compares a value to zero will be simplified
@@ -1402,7 +1416,6 @@ class Optimizer:
     def remove_unused_subroutines(self, block: Block) -> None:
         # some symbols are used by the emitted assembly code from the code generator,
         # and should never be removed or the assembler will fail
-        # @todo make this dynamic
         never_remove = {"c64.FREADUY", "c64.FTOMEMXY", "c64.FADD", "c64.FSUB",
                         "c64flt.GIVUAYF", "c64flt.copy_mflt", "c64flt.float_add_one", "c64flt.float_sub_one",
                         "c64flt.float_add_SW1_to_XY", "c64flt.float_sub_SW1_from_XY"}

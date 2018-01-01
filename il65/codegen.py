@@ -1127,9 +1127,45 @@ class CodeGenerator:
             else:
                 raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo ^=.word
         elif operator == ">>=":
-            raise CodeError("can not yet shift a variable amount")  # XXX
+            if rvalue.datatype != DataType.BYTE:
+                raise CodeError("can only shift by a byte value", str(rvalue))
+            r_str = rvalue.name or Parser.to_hex(rvalue.address)
+            if lvalue.register == "A":
+                self.p("\t\tlsr  " + r_str)
+            elif lvalue.register == "X":
+                self.p("\t\tpha")
+                self.p("\t\ttxa")
+                self.p("\t\tlsr  " + r_str)
+                self.p("\t\ttax")
+                self.p("\t\tpla")
+            elif lvalue.register == "Y":
+                self.p("\t\tpha")
+                self.p("\t\ttya")
+                self.p("\t\tlsr  " + r_str)
+                self.p("\t\ttay")
+                self.p("\t\tpla")
+            else:
+                raise CodeError("unsupported lvalue register for shift", str(lvalue))  # @todo >>=.word
         elif operator == "<<=":
-            raise CodeError("can not yet shift a variable amount")  # XXX
+            if rvalue.datatype != DataType.BYTE:
+                raise CodeError("can only shift by a byte value", str(rvalue))
+            r_str = rvalue.name or Parser.to_hex(rvalue.address)
+            if lvalue.register == "A":
+                self.p("\t\tasl  " + r_str)
+            elif lvalue.register == "X":
+                self.p("\t\tpha")
+                self.p("\t\ttxa")
+                self.p("\t\tasl  " + r_str)
+                self.p("\t\ttax")
+                self.p("\t\tpla")
+            elif lvalue.register == "Y":
+                self.p("\t\tpha")
+                self.p("\t\ttya")
+                self.p("\t\tasl  " + r_str)
+                self.p("\t\ttay")
+                self.p("\t\tpla")
+            else:
+                raise CodeError("unsupported lvalue register for shift", str(lvalue))  # @todo >>=.word
 
     def _generate_aug_reg_int(self, lvalue: RegisterValue, operator: str, rvalue: IntegerValue) -> None:
         r_str = rvalue.name or Parser.to_hex(rvalue.value)
@@ -1225,43 +1261,53 @@ class CodeGenerator:
             else:
                 raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo ^=.word
         elif operator == ">>=":
-            if rvalue.value != 1:
-                raise CodeError("can only shift 1 bit for now")  # XXX
-            if lvalue.register == "A":
-                self.p("\t\tlsr  a")
-            elif lvalue.register == "X":
-                self.p("\t\tpha")
-                self.p("\t\ttxa")
-                self.p("\t\tlsr  a")
-                self.p("\t\ttax")
-                self.p("\t\tpla")
-            elif lvalue.register == "Y":
-                self.p("\t\tpha")
-                self.p("\t\ttya")
-                self.p("\t\tlsr  a")
-                self.p("\t\ttay")
-                self.p("\t\tpla")
-            else:
-                raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo >>=.word
+            if rvalue.value > 0:
+                def shifts_A(times: int) -> None:
+                    if times >= 8:
+                        self.p("\t\tlda  #0")
+                    else:
+                        for _ in range(min(8, times)):
+                            self.p("\t\tlsr  a")
+                if lvalue.register == "A":
+                    shifts_A(rvalue.value)
+                elif lvalue.register == "X":
+                    self.p("\t\tpha")
+                    self.p("\t\ttxa")
+                    shifts_A(rvalue.value)
+                    self.p("\t\ttax")
+                    self.p("\t\tpla")
+                elif lvalue.register == "Y":
+                    self.p("\t\tpha")
+                    self.p("\t\ttya")
+                    shifts_A(rvalue.value)
+                    self.p("\t\ttay")
+                    self.p("\t\tpla")
+                else:
+                    raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo >>=.word
         elif operator == "<<=":
-            if rvalue.value != 1:
-                raise CodeError("can only shift 1 bit for now")  # XXX
-            if lvalue.register == "A":
-                self.p("\t\tasl  a")
-            elif lvalue.register == "X":
-                self.p("\t\tpha")
-                self.p("\t\ttxa")
-                self.p("\t\tasl  a")
-                self.p("\t\ttax")
-                self.p("\t\tpla")
-            elif lvalue.register == "Y":
-                self.p("\t\tpha")
-                self.p("\t\ttya")
-                self.p("\t\tasl  a")
-                self.p("\t\ttay")
-                self.p("\t\tpla")
-            else:
-                raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo <<=.word
+            if rvalue.value > 0:
+                def shifts_A(times: int) -> None:
+                    if times >= 8:
+                        self.p("\t\tlda  #0")
+                    else:
+                        for _ in range(min(8, times)):
+                            self.p("\t\tasl  a")
+                if lvalue.register == "A":
+                    shifts_A(rvalue.value)
+                elif lvalue.register == "X":
+                    self.p("\t\tpha")
+                    self.p("\t\ttxa")
+                    shifts_A(rvalue.value)
+                    self.p("\t\ttax")
+                    self.p("\t\tpla")
+                elif lvalue.register == "Y":
+                    self.p("\t\tpha")
+                    self.p("\t\ttya")
+                    shifts_A(rvalue.value)
+                    self.p("\t\ttay")
+                    self.p("\t\tpla")
+                else:
+                    raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo <<=.word
 
     def _generate_aug_reg_reg(self, lvalue: RegisterValue, operator: str, rvalue: RegisterValue) -> None:
         if operator == "+=":

@@ -5,14 +5,40 @@ output prg,basic
 import "c64lib"
 
 ~ main {
-                const   num = 44
-                var     var1  =22
-                var .word  wvar1 = 22
+                const   num = 2
+                var     var1  =2
+                var .word  wvar1 = 2
+
 start
+
+        X <<= var1
+        X >>= var1
+
         var1 ++
         var1 += num
         X++
         X+=num
+        X+=0
+        X-=0
+        X <<= Y
+        A <<= X
+        Y <<= A
+        X <<= 0
+        X <<= 33333
+        X >>= 33333
+        X <<= 2
+        X <<= 7
+        X <<= 8
+        X <<= 22
+        X >>= 0
+        X >>= 1
+        X >>= 2
+        X >>= 7
+        X >>= 8
+        X >>= 22
+        ;XY <<= 0
+        ;XY <<= 1
+        ;XY <<= 2
 
 
         asm {
