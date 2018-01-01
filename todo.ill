@@ -5,23 +5,62 @@ output prg,basic
 import "c64lib"
 
 ~ main {
-
-        var     .float  float1  = 123.456
-        var     .float  float2  = 99.99
-        const   .float  flc     =  1234.55
-        const   .text   foostr     = "derp"
-        var     .text   foostr2    = "derp2"
-
 start
+        asm {
+                ldy  #200
+-               lda  #81
+                sta  c64.Screen+39-40,y
+                sta  c64.Screen+39+4*40,y
+                sta  c64.Screen+39+9*40,y
+                sta  c64.Screen+39+14*40,y
+                sta  c64.Screen+39+19*40,y
+                lda  #83
+                sta  c64.Screen-40,y
+                sta  c64.Screen+4*40,y
+                sta  c64.Screen+9*40,y
+                sta  c64.Screen+14*40,y
+                sta  c64.Screen+19*40,y
+                lda  #1
+                sta  c64.Colors+39-40,y
+                sta  c64.Colors+39+4*40,y
+                sta  c64.Colors+39+9*40,y
+                sta  c64.Colors+39+14*40,y
+                sta  c64.Colors+39+19*40,y
+                lda  #5
+                sta  c64.Colors-40,y
+                sta  c64.Colors+4*40,y
+                sta  c64.Colors+9*40,y
+                sta  c64.Colors+14*40,y
+                sta  c64.Colors+19*40,y
+                tya
+                sec
+                sbc  #40
+                tay
+                bne  -
+        }
+
+loop
+        A=c64.GETIN()
+        if_not goto loop
+        c64scr.scroll_down_full(1)
+        goto loop
+        c64.CHROUT(A)
+        goto loop
+
+        ;c64scr.print_byte_hex(0, A)
+        ;c64.CHROUT(' ')
+        ;goto loop
+
+        ;return
 
         A = $11
         X = $22
         Y = $33
 
-        c64scr.clear_screen !(81, 5, $04)     ; @todo new syntax to specify registers to save (! = all three A,X,Y)
-        ;c64scr.clear_screen !A (81, 5, $04)    ; @todo new syntax to specify registers to save (only A)
-        ;c64scr.clear_screen !AX (81, 5, $04)
-        ;c64scr.clear_screen !AXY (81, 5, $04)
+        c64scr.clear_screen !(81, 5)     ; @todo new syntax to specify registers to save (! = all three A,X,Y)
+        ;c64scr.clear_screen !A (81, 5)    ; @todo new syntax to specify registers to save (only A)
+        ;c64scr.clear_screen !AX (81, 5)
+        ;c64scr.clear_screen !AXY (81, 5)
 
         c64scr.print_byte_hex(1,A)
         c64.CHROUT(' ')

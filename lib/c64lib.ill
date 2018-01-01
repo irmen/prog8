@@ -22,6 +22,9 @@
 
 		memory  .byte  COLOR		= $0286		; cursor color
 		memory  .word  CINV		= $0314		; IRQ vector
+		memory  .matrix(40, 25) Screen  = $0400		; default character screen matrix
+		memory  .matrix(40, 25) Colors  = $d800		; character screen colors
+
 
 ; ---- VIC-II registers ----
 
@@ -213,7 +216,7 @@ sub	GETIN    () -> (A, X?, Y?)		= $FFE4		; (via 810 ($32A)) get a character
 sub	CLALL    () -> (A?, X?)			= $FFE7		; (via 812 ($32C)) close all files
 sub	UDTIM    () -> (A?, X?)			= $FFEA		; update the software clock
 sub	SCREEN   () -> (X, Y)			= $FFED		; read number of screen rows and columns
-sub	PLOT     (dir: SC, col: X, row: Y) -> (X, Y)	= $FFF0		; read/set position of cursor on screen
+sub	PLOT     (dir: SC, col: Y, row: X) -> (X, Y)	= $FFF0		; read/set position of cursor on screen
 sub	IOBASE   () -> (X, Y)			= $FFF3		; read base address of I/O devices
 
 ; ---- end of C64 kernal routines ----
@@ -347,43 +350,574 @@ sub  GETADRAY  () -> (AY, X?)  {
 	; ---- this block contains (character) Screen and text I/O related functions ----
 
 
-sub  clear_screen (char:A, color: Y, screenaddr_hi: X) -> ()  {
+sub  clear_screen (char:A, color: Y) -> ()  {
 	; ---- clear the character screen with the given fill character and character color.
-	;      X must be set to the high byte of the current screen display memory address (usually $04, for $0400).
+	;      (assumes screen is at $0400, could be altered in the future with self-modifying code)
 
 	asm {
-		;ldx  #$04       ; high byte of screen addres
-		;lda  #1        ;  fill char
-		;ldy  #3         ; fill color
-		sta  _loop +1		; self-modify
-		sty  _mod_col +1	; self-modify
-		stx  _loop + 4		; self-modify
-		inx
-		stx  _loop + 7		; self-modify
-		inx
-		stx  _loop + 10		; self-modify
-		stx  _loop + 13		; self-modify
-
-
+		sta  _loop + 1      ; self-modifying
+		stx  c64.SCRATCH_ZP1
 		ldx  #0
 _loop           lda  #0
-		sta  $8400,x            ; screen address will be modified
-		sta  $8500,x
-		sta  $8600,x
-		sta  $86e8,x
-_mod_col        lda  #0
-		sta  $d800,x            ; color address is fixed
-		sta  $d900,x
-		sta  $da00,x
-		sta  $dae8,x
+		sta  c64.Screen,x
+		sta  c64.Screen+$0100,x
+		sta  c64.Screen+$0200,x
+		sta  c64.Screen+$02e8,x
+	        tya
+		sta  c64.Colors,x
+		sta  c64.Colors+$0100,x
+		sta  c64.Colors+$0200,x
+		sta  c64.Colors+$02e8,x
 		inx
 		bne  _loop
 
 		lda  _loop+1		; restore A and X
-		ldx  _loop+4
+		ldx  c64.SCRATCH_ZP1
 		rts
         }
 
+}
+
+
+sub scroll_left_full  (alsocolors: SC) -> (A?, X?, Y?)  {
+	; ---- scroll the whole screen 1 character to the left
+	;      contents of the rightmost column are unchanged, you should clear/refill this yourself
+	;      Carry flag determines if screen color data should be scrolled too
+	asm {
+		bcs  +
+		jmp  _scroll_screen
+
++
+		ldx  #0
+		ldy  #38
+-
+		lda  c64.Colors + 40*0 + 1,x
+		sta  c64.Colors + 40*0,x
+		lda  c64.Colors + 40*1 + 1,x
+		sta  c64.Colors + 40*1,x
+		lda  c64.Colors + 40*2 + 1,x
+		sta  c64.Colors + 40*2,x
+		lda  c64.Colors + 40*3 + 1,x
+		sta  c64.Colors + 40*3,x
+		lda  c64.Colors + 40*4 + 1,x
+		sta  c64.Colors + 40*4,x
+		lda  c64.Colors + 40*5 + 1,x
+		sta  c64.Colors + 40*5,x
+		lda  c64.Colors + 40*6 + 1,x
+		sta  c64.Colors + 40*6,x
+		lda  c64.Colors + 40*7 + 1,x
+		sta  c64.Colors + 40*7,x
+		lda  c64.Colors + 40*8 + 1,x
+		sta  c64.Colors + 40*8,x
+		lda  c64.Colors + 40*9 + 1,x
+		sta  c64.Colors + 40*9,x
+		lda  c64.Colors + 40*10 + 1,x
+		sta  c64.Colors + 40*10,x
+		lda  c64.Colors + 40*11 + 1,x
+		sta  c64.Colors + 40*11,x
+		lda  c64.Colors + 40*12 + 1,x
+		sta  c64.Colors + 40*12,x
+		inx
+		dey
+		bpl  -
+
+		ldx  #0
+		ldy  #38
+-
+		lda  c64.Colors + 40*13 + 1,x
+		sta  c64.Colors + 40*13,x
+		lda  c64.Colors + 40*14 + 1,x
+		sta  c64.Colors + 40*14,x
+		lda  c64.Colors + 40*15 + 1,x
+		sta  c64.Colors + 40*15,x
+		lda  c64.Colors + 40*16 + 1,x
+		sta  c64.Colors + 40*16,x
+		lda  c64.Colors + 40*17 + 1,x
+		sta  c64.Colors + 40*17,x
+		lda  c64.Colors + 40*18 + 1,x
+		sta  c64.Colors + 40*18,x
+		lda  c64.Colors + 40*19 + 1,x
+		sta  c64.Colors + 40*19,x
+		lda  c64.Colors + 40*20 + 1,x
+		sta  c64.Colors + 40*20,x
+		lda  c64.Colors + 40*21 + 1,x
+		sta  c64.Colors + 40*21,x
+		lda  c64.Colors + 40*22 + 1,x
+		sta  c64.Colors + 40*22,x
+		lda  c64.Colors + 40*23 + 1,x
+		sta  c64.Colors + 40*23,x
+		lda  c64.Colors + 40*24 + 1,x
+		sta  c64.Colors + 40*24,x
+		inx
+		dey
+		bpl  -
+
+_scroll_screen
+		ldx  #0
+		ldy  #38
+-
+		lda  c64.Screen + 40*0 + 1,x
+		sta  c64.Screen + 40*0,x
+		lda  c64.Screen + 40*1 + 1,x
+		sta  c64.Screen + 40*1,x
+		lda  c64.Screen + 40*2 + 1,x
+		sta  c64.Screen + 40*2,x
+		lda  c64.Screen + 40*3 + 1,x
+		sta  c64.Screen + 40*3,x
+		lda  c64.Screen + 40*4 + 1,x
+		sta  c64.Screen + 40*4,x
+		lda  c64.Screen + 40*5 + 1,x
+		sta  c64.Screen + 40*5,x
+		lda  c64.Screen + 40*6 + 1,x
+		sta  c64.Screen + 40*6,x
+		lda  c64.Screen + 40*7 + 1,x
+		sta  c64.Screen + 40*7,x
+		lda  c64.Screen + 40*8 + 1,x
+		sta  c64.Screen + 40*8,x
+		lda  c64.Screen + 40*9 + 1,x
+		sta  c64.Screen + 40*9,x
+		lda  c64.Screen + 40*10 + 1,x
+		sta  c64.Screen + 40*10,x
+		lda  c64.Screen + 40*11 + 1,x
+		sta  c64.Screen + 40*11,x
+		lda  c64.Screen + 40*12 + 1,x
+		sta  c64.Screen + 40*12,x
+		inx
+		dey
+		bpl  -
+
+		ldx  #0
+		ldy  #38
+-
+		lda  c64.Screen + 40*13 + 1,x
+		sta  c64.Screen + 40*13,x
+		lda  c64.Screen + 40*14 + 1,x
+		sta  c64.Screen + 40*14,x
+		lda  c64.Screen + 40*15 + 1,x
+		sta  c64.Screen + 40*15,x
+		lda  c64.Screen + 40*16 + 1,x
+		sta  c64.Screen + 40*16,x
+		lda  c64.Screen + 40*17 + 1,x
+		sta  c64.Screen + 40*17,x
+		lda  c64.Screen + 40*18 + 1,x
+		sta  c64.Screen + 40*18,x
+		lda  c64.Screen + 40*19 + 1,x
+		sta  c64.Screen + 40*19,x
+		lda  c64.Screen + 40*20 + 1,x
+		sta  c64.Screen + 40*20,x
+		lda  c64.Screen + 40*21 + 1,x
+		sta  c64.Screen + 40*21,x
+		lda  c64.Screen + 40*22 + 1,x
+		sta  c64.Screen + 40*22,x
+		lda  c64.Screen + 40*23 + 1,x
+		sta  c64.Screen + 40*23,x
+		lda  c64.Screen + 40*24 + 1,x
+		sta  c64.Screen + 40*24,x
+		inx
+		dey
+		bpl  -
+		rts
+	}
+}
+
+
+sub scroll_right_full  (alsocolors: SC) -> (A?, X?)  {
+	; ---- scroll the whole screen 1 character to the right
+	;      contents of the leftmost column are unchanged, you should clear/refill this yourself
+	;      Carry flag determines if screen color data should be scrolled too
+	asm {
+		bcs  +
+		jmp  _scroll_screen
+
++
+		ldx  #38
+-
+		lda  c64.Colors + 40*0,x
+		sta  c64.Colors + 40*0 + 1,x
+		lda  c64.Colors + 40*1,x
+		sta  c64.Colors + 40*1 + 1,x
+		lda  c64.Colors + 40*2,x
+		sta  c64.Colors + 40*2 + 1,x
+		lda  c64.Colors + 40*3,x
+		sta  c64.Colors + 40*3 + 1,x
+		lda  c64.Colors + 40*4,x
+		sta  c64.Colors + 40*4 + 1,x
+		lda  c64.Colors + 40*5,x
+		sta  c64.Colors + 40*5 + 1,x
+		lda  c64.Colors + 40*6,x
+		sta  c64.Colors + 40*6 + 1,x
+		lda  c64.Colors + 40*7,x
+		sta  c64.Colors + 40*7 + 1,x
+		lda  c64.Colors + 40*8,x
+		sta  c64.Colors + 40*8 + 1,x
+		lda  c64.Colors + 40*9,x
+		sta  c64.Colors + 40*9 + 1,x
+		lda  c64.Colors + 40*10,x
+		sta  c64.Colors + 40*10 + 1,x
+		lda  c64.Colors + 40*11,x
+		sta  c64.Colors + 40*11 + 1,x
+		lda  c64.Colors + 40*12,x
+		sta  c64.Colors + 40*12 + 1,x
+		dex
+		bpl  -
+
+		ldx  #38
+-
+		lda  c64.Colors + 40*13,x
+		sta  c64.Colors + 40*13 + 1,x
+		lda  c64.Colors + 40*14,x
+		sta  c64.Colors + 40*14 + 1,x
+		lda  c64.Colors + 40*15,x
+		sta  c64.Colors + 40*15 + 1,x
+		lda  c64.Colors + 40*16,x
+		sta  c64.Colors + 40*16 + 1,x
+		lda  c64.Colors + 40*17,x
+		sta  c64.Colors + 40*17 + 1,x
+		lda  c64.Colors + 40*18,x
+		sta  c64.Colors + 40*18 + 1,x
+		lda  c64.Colors + 40*19,x
+		sta  c64.Colors + 40*19 + 1,x
+		lda  c64.Colors + 40*20,x
+		sta  c64.Colors + 40*20 + 1,x
+		lda  c64.Colors + 40*21,x
+		sta  c64.Colors + 40*21 + 1,x
+		lda  c64.Colors + 40*22,x
+		sta  c64.Colors + 40*22 + 1,x
+		lda  c64.Colors + 40*23,x
+		sta  c64.Colors + 40*23 + 1,x
+		lda  c64.Colors + 40*24,x
+		sta  c64.Colors + 40*24 + 1,x
+		dex
+		bpl  -
+
+_scroll_screen
+		ldx  #38
+-
+		lda  c64.Screen + 40*0,x
+		sta  c64.Screen + 40*0 + 1,x
+		lda  c64.Screen + 40*1,x
+		sta  c64.Screen + 40*1 + 1,x
+		lda  c64.Screen + 40*2,x
+		sta  c64.Screen + 40*2 + 1,x
+		lda  c64.Screen + 40*3,x
+		sta  c64.Screen + 40*3 + 1,x
+		lda  c64.Screen + 40*4,x
+		sta  c64.Screen + 40*4 + 1,x
+		lda  c64.Screen + 40*5,x
+		sta  c64.Screen + 40*5 + 1,x
+		lda  c64.Screen + 40*6,x
+		sta  c64.Screen + 40*6 + 1,x
+		lda  c64.Screen + 40*7,x
+		sta  c64.Screen + 40*7 + 1,x
+		lda  c64.Screen + 40*8,x
+		sta  c64.Screen + 40*8 + 1,x
+		lda  c64.Screen + 40*9,x
+		sta  c64.Screen + 40*9 + 1,x
+		lda  c64.Screen + 40*10,x
+		sta  c64.Screen + 40*10 + 1,x
+		lda  c64.Screen + 40*11,x
+		sta  c64.Screen + 40*11 + 1,x
+		lda  c64.Screen + 40*12,x
+		sta  c64.Screen + 40*12 + 1,x
+		dex
+		bpl  -
+
+		ldx  #38
+-
+		lda  c64.Screen + 40*13,x
+		sta  c64.Screen + 40*13 + 1,x
+		lda  c64.Screen + 40*14,x
+		sta  c64.Screen + 40*14 + 1,x
+		lda  c64.Screen + 40*15,x
+		sta  c64.Screen + 40*15 + 1,x
+		lda  c64.Screen + 40*16,x
+		sta  c64.Screen + 40*16 + 1,x
+		lda  c64.Screen + 40*17,x
+		sta  c64.Screen + 40*17 + 1,x
+		lda  c64.Screen + 40*18,x
+		sta  c64.Screen + 40*18 + 1,x
+		lda  c64.Screen + 40*19,x
+		sta  c64.Screen + 40*19 + 1,x
+		lda  c64.Screen + 40*20,x
+		sta  c64.Screen + 40*20 + 1,x
+		lda  c64.Screen + 40*21,x
+		sta  c64.Screen + 40*21 + 1,x
+		lda  c64.Screen + 40*22,x
+		sta  c64.Screen + 40*22 + 1,x
+		lda  c64.Screen + 40*23,x
+		sta  c64.Screen + 40*23 + 1,x
+		lda  c64.Screen + 40*24,x
+		sta  c64.Screen + 40*24 + 1,x
+		dex
+		bpl  -
+		rts
+	}
+}
+
+
+sub scroll_up_full  (alsocolors: SC) -> (A?, X?)  {
+	; ---- scroll the whole screen 1 character up
+	;      contents of the bottom row are unchanged, you should refill/clear this yourself
+	;      Carry flag determines if screen color data should be scrolled too
+	asm {
+		bcs  +
+		jmp  _scroll_screen
+
++
+		ldx #39
+-
+		lda  c64.Colors + 40*1,x
+		sta  c64.Colors + 40*0,x
+		lda  c64.Colors + 40*2,x
+		sta  c64.Colors + 40*1,x
+		lda  c64.Colors + 40*3,x
+		sta  c64.Colors + 40*2,x
+		lda  c64.Colors + 40*4,x
+		sta  c64.Colors + 40*3,x
+		lda  c64.Colors + 40*5,x
+		sta  c64.Colors + 40*4,x
+		lda  c64.Colors + 40*6,x
+		sta  c64.Colors + 40*5,x
+		lda  c64.Colors + 40*7,x
+		sta  c64.Colors + 40*6,x
+		lda  c64.Colors + 40*8,x
+		sta  c64.Colors + 40*7,x
+		lda  c64.Colors + 40*9,x
+		sta  c64.Colors + 40*8,x
+		lda  c64.Colors + 40*10,x
+		sta  c64.Colors + 40*9,x
+		lda  c64.Colors + 40*11,x
+		sta  c64.Colors + 40*10,x
+		lda  c64.Colors + 40*12,x
+		sta  c64.Colors + 40*11,x
+		dex
+		bpl  -
+
+		ldx #39
+-
+		lda  c64.Colors + 40*13,x
+		sta  c64.Colors + 40*12,x
+		lda  c64.Colors + 40*14,x
+		sta  c64.Colors + 40*13,x
+		lda  c64.Colors + 40*15,x
+		sta  c64.Colors + 40*14,x
+		lda  c64.Colors + 40*16,x
+		sta  c64.Colors + 40*15,x
+		lda  c64.Colors + 40*17,x
+		sta  c64.Colors + 40*16,x
+		lda  c64.Colors + 40*18,x
+		sta  c64.Colors + 40*17,x
+		lda  c64.Colors + 40*19,x
+		sta  c64.Colors + 40*18,x
+		lda  c64.Colors + 40*20,x
+		sta  c64.Colors + 40*19,x
+		lda  c64.Colors + 40*21,x
+		sta  c64.Colors + 40*20,x
+		lda  c64.Colors + 40*22,x
+		sta  c64.Colors + 40*21,x
+		lda  c64.Colors + 40*23,x
+		sta  c64.Colors + 40*22,x
+		lda  c64.Colors + 40*24,x
+		sta  c64.Colors + 40*23,x
+		dex
+		bpl  -
+
+_scroll_screen
+		ldx #39
+-
+		lda  c64.Screen + 40*1,x
+		sta  c64.Screen + 40*0,x
+		lda  c64.Screen + 40*2,x
+		sta  c64.Screen + 40*1,x
+		lda  c64.Screen + 40*3,x
+		sta  c64.Screen + 40*2,x
+		lda  c64.Screen + 40*4,x
+		sta  c64.Screen + 40*3,x
+		lda  c64.Screen + 40*5,x
+		sta  c64.Screen + 40*4,x
+		lda  c64.Screen + 40*6,x
+		sta  c64.Screen + 40*5,x
+		lda  c64.Screen + 40*7,x
+		sta  c64.Screen + 40*6,x
+		lda  c64.Screen + 40*8,x
+		sta  c64.Screen + 40*7,x
+		lda  c64.Screen + 40*9,x
+		sta  c64.Screen + 40*8,x
+		lda  c64.Screen + 40*10,x
+		sta  c64.Screen + 40*9,x
+		lda  c64.Screen + 40*11,x
+		sta  c64.Screen + 40*10,x
+		lda  c64.Screen + 40*12,x
+		sta  c64.Screen + 40*11,x
+		dex
+		bpl  -
+
+		ldx #39
+-
+		lda  c64.Screen + 40*13,x
+		sta  c64.Screen + 40*12,x
+		lda  c64.Screen + 40*14,x
+		sta  c64.Screen + 40*13,x
+		lda  c64.Screen + 40*15,x
+		sta  c64.Screen + 40*14,x
+		lda  c64.Screen + 40*16,x
+		sta  c64.Screen + 40*15,x
+		lda  c64.Screen + 40*17,x
+		sta  c64.Screen + 40*16,x
+		lda  c64.Screen + 40*18,x
+		sta  c64.Screen + 40*17,x
+		lda  c64.Screen + 40*19,x
+		sta  c64.Screen + 40*18,x
+		lda  c64.Screen + 40*20,x
+		sta  c64.Screen + 40*19,x
+		lda  c64.Screen + 40*21,x
+		sta  c64.Screen + 40*20,x
+		lda  c64.Screen + 40*22,x
+		sta  c64.Screen + 40*21,x
+		lda  c64.Screen + 40*23,x
+		sta  c64.Screen + 40*22,x
+		lda  c64.Screen + 40*24,x
+		sta  c64.Screen + 40*23,x
+		dex
+		bpl  -
+
+		rts
+	}
+}
+
+
+sub scroll_down_full  (alsocolors: SC) -> (A?, X?)  {
+	; ---- scroll the whole screen 1 character down
+	;      contents of the top row are unchanged, you should refill/clear this yourself
+	;      Carry flag determines if screen color data should be scrolled too
+	asm {
+		bcs  +
+		jmp  _scroll_screen
+
++
+		ldx #39
+-
+		lda  c64.Colors + 40*23,x
+		sta  c64.Colors + 40*24,x
+		lda  c64.Colors + 40*22,x
+		sta  c64.Colors + 40*23,x
+		lda  c64.Colors + 40*21,x
+		sta  c64.Colors + 40*22,x
+		lda  c64.Colors + 40*20,x
+		sta  c64.Colors + 40*21,x
+		lda  c64.Colors + 40*19,x
+		sta  c64.Colors + 40*20,x
+		lda  c64.Colors + 40*18,x
+		sta  c64.Colors + 40*19,x
+		lda  c64.Colors + 40*17,x
+		sta  c64.Colors + 40*18,x
+		lda  c64.Colors + 40*16,x
+		sta  c64.Colors + 40*17,x
+		lda  c64.Colors + 40*15,x
+		sta  c64.Colors + 40*16,x
+		lda  c64.Colors + 40*14,x
+		sta  c64.Colors + 40*15,x
+		lda  c64.Colors + 40*13,x
+		sta  c64.Colors + 40*14,x
+		lda  c64.Colors + 40*12,x
+		sta  c64.Colors + 40*13,x
+
+		dex
+		bpl  -
+
+		ldx #39
+-
+		lda  c64.Colors + 40*11,x
+		sta  c64.Colors + 40*12,x
+		lda  c64.Colors + 40*10,x
+		sta  c64.Colors + 40*11,x
+		lda  c64.Colors + 40*9,x
+		sta  c64.Colors + 40*10,x
+		lda  c64.Colors + 40*8,x
+		sta  c64.Colors + 40*9,x
+		lda  c64.Colors + 40*7,x
+		sta  c64.Colors + 40*8,x
+		lda  c64.Colors + 40*6,x
+		sta  c64.Colors + 40*7,x
+		lda  c64.Colors + 40*5,x
+		sta  c64.Colors + 40*6,x
+		lda  c64.Colors + 40*4,x
+		sta  c64.Colors + 40*5,x
+		lda  c64.Colors + 40*3,x
+		sta  c64.Colors + 40*4,x
+		lda  c64.Colors + 40*2,x
+		sta  c64.Colors + 40*3,x
+		lda  c64.Colors + 40*1,x
+		sta  c64.Colors + 40*2,x
+		lda  c64.Colors + 40*0,x
+		sta  c64.Colors + 40*1,x
+
+		dex
+		bpl  -
+
+_scroll_screen
+		ldx #39
+-
+		lda  c64.Screen + 40*23,x
+		sta  c64.Screen + 40*24,x
+		lda  c64.Screen + 40*22,x
+		sta  c64.Screen + 40*23,x
+		lda  c64.Screen + 40*21,x
+		sta  c64.Screen + 40*22,x
+		lda  c64.Screen + 40*20,x
+		sta  c64.Screen + 40*21,x
+		lda  c64.Screen + 40*19,x
+		sta  c64.Screen + 40*20,x
+		lda  c64.Screen + 40*18,x
+		sta  c64.Screen + 40*19,x
+		lda  c64.Screen + 40*17,x
+		sta  c64.Screen + 40*18,x
+		lda  c64.Screen + 40*16,x
+		sta  c64.Screen + 40*17,x
+		lda  c64.Screen + 40*15,x
+		sta  c64.Screen + 40*16,x
+		lda  c64.Screen + 40*14,x
+		sta  c64.Screen + 40*15,x
+		lda  c64.Screen + 40*13,x
+		sta  c64.Screen + 40*14,x
+		lda  c64.Screen + 40*12,x
+		sta  c64.Screen + 40*13,x
+
+		dex
+		bpl  -
+
+		ldx #39
+-
+		lda  c64.Screen + 40*11,x
+		sta  c64.Screen + 40*12,x
+		lda  c64.Screen + 40*10,x
+		sta  c64.Screen + 40*11,x
+		lda  c64.Screen + 40*9,x
+		sta  c64.Screen + 40*10,x
+		lda  c64.Screen + 40*8,x
+		sta  c64.Screen + 40*9,x
+		lda  c64.Screen + 40*7,x
+		sta  c64.Screen + 40*8,x
+		lda  c64.Screen + 40*6,x
+		sta  c64.Screen + 40*7,x
+		lda  c64.Screen + 40*5,x
+		sta  c64.Screen + 40*6,x
+		lda  c64.Screen + 40*4,x
+		sta  c64.Screen + 40*5,x
+		lda  c64.Screen + 40*3,x
+		sta  c64.Screen + 40*4,x
+		lda  c64.Screen + 40*2,x
+		sta  c64.Screen + 40*3,x
+		lda  c64.Screen + 40*1,x
+		sta  c64.Screen + 40*2,x
+		lda  c64.Screen + 40*0,x
+		sta  c64.Screen + 40*1,x
+
+		dex
+		bpl  -
+
+		rts
+	}
 }
 
 

@@ -971,16 +971,16 @@ class Parser:
             if r_value.constant:
                 if operator == "+=":
                     if r_value.value > 0:  # type: ignore
-                        return InplaceIncrStmt(l_value, r_value.value, self.sourceref)  # type: ignore
+                        return InplaceIncrStmt(l_value, r_value.value, None, self.sourceref)
                     elif r_value.value < 0:  # type: ignore
-                        return InplaceDecrStmt(l_value, -r_value.value, self.sourceref)  # type: ignore
+                        return InplaceDecrStmt(l_value, -r_value.value, None, self.sourceref)
                     else:
                         self.print_warning("incr with zero, ignored")
                 else:
                     if r_value.value > 0:  # type: ignore
-                        return InplaceDecrStmt(l_value, r_value.value, self.sourceref)  # type: ignore
+                        return InplaceDecrStmt(l_value, r_value.value, None, self.sourceref)
                     elif r_value.value < 0:  # type: ignore
-                        return InplaceIncrStmt(l_value, -r_value.value, self.sourceref)  # type: ignore
+                        return InplaceIncrStmt(l_value, -r_value.value, None, self.sourceref)
                     else:
                         self.print_warning("decr with zero, ignored")
             else:
@@ -1230,8 +1230,8 @@ class Parser:
             if len(value) == 1:
                 return True, char_to_bytevalue(value)
         # if we're an integer value and the passed value is float, truncate it (and give a warning)
-        if datatype in (DataType.BYTE, DataType.WORD, DataType.MATRIX) and type(value) is float:
-            frac = math.modf(value)  # type:ignore
+        if datatype in (DataType.BYTE, DataType.WORD, DataType.MATRIX) and isinstance(value, float):
+            frac = math.modf(value)
             if frac != 0:
                 self.print_warning("float value truncated ({} to datatype {})".format(value, datatype.name))
                 return True, int(value)

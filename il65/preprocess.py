@@ -46,7 +46,7 @@ class PreprocessingParser(Parser):
         return InlineAsm([], self.sourceref)
 
     def parse_statement(self, line: str) -> _AstNode:
-        return None     # type: ignore
+        return None
 
     def parse_var_def(self, line: str) -> None:
         super().parse_var_def(line)

@@ -15,6 +15,8 @@ import "c64lib"
 start
         c64.init_system()
 
+        c64.VMCSB += 2
+        c64.VMCSB *= 2
         A = c64.VMCSB
         A |= 2                  ;  @todo c64.VMCSB |= 2
         c64.VMCSB = A
