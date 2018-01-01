@@ -379,7 +379,7 @@ class AssignmentStmt(_AstNode):
         else:
             stringvar_name = "il65_str_{:d}".format(id(self))
             value = self.right.value
-            containing_block.symbols.define_variable(stringvar_name, self.sourceref, DataType.STRING, value=value)
+            containing_block.symbols.define_constant(stringvar_name, self.sourceref, DataType.STRING, value=value)
             self.right.name = stringvar_name
             self._immediate_string_vars[self.right.value] = (containing_block.name, stringvar_name)
 
@@ -419,19 +419,21 @@ class ReturnStmt(_AstNode):
 
 
 class InplaceIncrStmt(_AstNode):
-    def __init__(self, what: Value, howmuch: Union[int, float], sourceref: SourceRef) -> None:
+    def __init__(self, what: Value, howmuch: Union[None, int, float], byname: Optional[str], sourceref: SourceRef) -> None:
         super().__init__(sourceref)
-        assert howmuch > 0
+        assert howmuch is None or howmuch > 0
         self.what = what
         self.howmuch = howmuch
+        self.float_var_name = byname
 
 
 class InplaceDecrStmt(_AstNode):
-    def __init__(self, what: Value, howmuch: Union[int, float], sourceref: SourceRef) -> None:
+    def __init__(self, what: Value, howmuch: Union[None, int, float], byname: Optional[str], sourceref: SourceRef) -> None:
         super().__init__(sourceref)
-        assert howmuch > 0
+        assert howmuch is None or howmuch > 0
         self.what = what
         self.howmuch = howmuch
+        self.float_var_name = byname
 
 
 class IfCondition(_AstNode):

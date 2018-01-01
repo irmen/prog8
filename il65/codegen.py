@@ -296,25 +296,26 @@ class CodeGenerator:
             self.p("; normal variables")
             for vardef in non_mem_vars:
                 # create a definition for a variable that takes up space and will be initialized at startup
+                sourcecomment = "\t; " + vardef.sourcecomment if vardef.sourcecomment else ""
                 if vardef.type in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
                     if vardef.address:
                         assert block.name == "ZP", "only ZP-variables can be put on an address"
                         self.p("\t\t{:s} = {:s}".format(vardef.name, Parser.to_hex(vardef.address)))
                     else:
                         if vardef.type == DataType.BYTE:
-                            self.p("{:s}\t\t.byte  {:s}".format(vardef.name, Parser.to_hex(int(vardef.value))))
+                            self.p("{:s}\t\t.byte  {:s}{:s}".format(vardef.name, Parser.to_hex(int(vardef.value)), sourcecomment))
                         elif vardef.type == DataType.WORD:
-                            self.p("{:s}\t\t.word  {:s}".format(vardef.name, Parser.to_hex(int(vardef.value))))
+                            self.p("{:s}\t\t.word  {:s}{:s}".format(vardef.name, Parser.to_hex(int(vardef.value)), sourcecomment))
                         elif vardef.type == DataType.FLOAT:
-                            self.p("{:s}\t\t.byte  ${:02x}, ${:02x}, ${:02x}, ${:02x}, ${:02x}"
-                                   .format(vardef.name, *self.to_mflpt5(float(vardef.value))))
+                            self.p("{:s}\t\t.byte  ${:02x}, ${:02x}, ${:02x}, ${:02x}, ${:02x}{:s}"
+                                   .format(vardef.name, *self.to_mflpt5(float(vardef.value)), sourcecomment))
                         else:
                             raise CodeError("weird datatype")
                 elif vardef.type in (DataType.BYTEARRAY, DataType.WORDARRAY):
                     if vardef.address:
                         raise CodeError("array or wordarray vars must not have address; will be allocated by assembler")
                     if vardef.type == DataType.BYTEARRAY:
-                        self.p("{:s}\t\t.fill  {:d}, ${:02x}".format(vardef.name, vardef.length, vardef.value or 0))
+                        self.p("{:s}\t\t.fill  {:d}, ${:02x}{:s}".format(vardef.name, vardef.length, vardef.value or 0, sourcecomment))
                     elif vardef.type == DataType.WORDARRAY:
                         f_hi, f_lo = divmod(vardef.value or 0, 256)  # type: ignore
                         self.p("{:s}\t\t.fill  {:d}, [${:02x}, ${:02x}]\t; {:d} words of ${:04x}"
@@ -395,7 +396,7 @@ class CodeGenerator:
         self.previous_stmt_was_assignment = isinstance(stmt, AssignmentStmt)
 
     def generate_incr_or_decr(self, stmt: Union[InplaceIncrStmt, InplaceDecrStmt]) -> None:
-        assert stmt.howmuch > 0
+        assert (stmt.howmuch is None and stmt.float_var_name) or (stmt.howmuch > 0 and not stmt.float_var_name)
         if stmt.what.datatype != DataType.FLOAT and stmt.howmuch > 0xff:
             raise CodeError("only supports integer incr/decr by up to 255 for now")   # XXX
         is_incr = isinstance(stmt, InplaceIncrStmt)
@@ -562,16 +563,28 @@ class CodeGenerator:
                         self.p("+\t\tpla")
             elif what.datatype == DataType.FLOAT:
                 if stmt.howmuch == 1.0:
-                    t_str = stmt.what.name or Parser.to_hex(stmt.what.address)
+                    # special case for +/-1
                     with self.preserving_registers({'A', 'X', 'Y'}, loads_a_within=True):
-                        self.p("\t\t  ldx  #<" + t_str)
-                        self.p("\t\t  ldy  #>" + t_str)
+                        self.p("\t\tldx  #<" + r_str)
+                        self.p("\t\tldy  #>" + r_str)
                         if is_incr:
-                            self.p("\t\t  jsr  il65_lib.float_add_one")
+                            self.p("\t\tjsr  il65_lib.float_add_one")
                         else:
-                            self.p("\t\t  jsr  il65_lib.float_sub_one")
+                            self.p("\t\tjsr  il65_lib.float_sub_one")
+                elif stmt.float_var_name:
+                    with self.preserving_registers({'A', 'X', 'Y'}, loads_a_within=True):
+                        self.p("\t\tlda  #<" + stmt.float_var_name)
+                        self.p("\t\tsta  c64.SCRATCH_ZPWORD1")
+                        self.p("\t\tlda  #>" + stmt.float_var_name)
+                        self.p("\t\tsta  c64.SCRATCH_ZPWORD1+1")
+                        self.p("\t\tldx  #<" + r_str)
+                        self.p("\t\tldy  #>" + r_str)
+                        if is_incr:
+                            self.p("\t\tjsr  il65_lib.float_add_SW1_to_XY")
+                        else:
+                            self.p("\t\tjsr  il65_lib.float_sub_SW1_from_XY")
                 else:
-                    raise CodeError("cannot incr/decr float by other than 1 at this time", stmt.howmuch)  # XXX
+                    raise CodeError("incr/decr missing float constant definition")
             else:
                 raise CodeError("cannot in/decrement memory of type " + str(what.datatype), stmt.howmuch)
         else:
@@ -1015,7 +1028,7 @@ class CodeGenerator:
             else:
                 raise CodeError("invalid rvalue for augmented assignment on register", str(rvalue))
         else:
-            raise CodeError("augmented assignment only implemented for registers for now")  # XXX
+            raise CodeError("augmented assignment only implemented for registers for now", str(rvalue))  # XXX
 
     def _generate_aug_reg_mem(self, lvalue: RegisterValue, operator: str, rvalue: MemMappedValue) -> None:
         r_str = rvalue.name or Parser.to_hex(rvalue.address)

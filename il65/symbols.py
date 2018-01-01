@@ -121,7 +121,7 @@ class VariableDef(SymbolDefinition):
     def __init__(self, blockname: str, name: str, sourceref: SourceRef,
                  datatype: DataType, allocate: bool, *,
                  value: PrimitiveType, length: int, address: Optional[int]=None,
-                 register: str=None, matrixsize: Tuple[int, int]=None) -> None:
+                 register: str=None, matrixsize: Tuple[int, int]=None, sourcecomment: str="") -> None:
         super().__init__(blockname, name, sourceref, allocate)
         self.type = datatype
         self.address = address
@@ -129,6 +129,7 @@ class VariableDef(SymbolDefinition):
         self.value = value
         self.register = register
         self.matrixsize = matrixsize
+        self.sourcecomment = sourcecomment
 
     @property
     def is_memmap(self):
@@ -406,8 +407,9 @@ class SymbolTable:
                     address = self._zeropage.allocate(name, datatype)
                 except LookupError:
                     raise SymbolError("no space in ZP left for global 5-byte MFLT float variable (try zp clobber)")
+            sourcecomment = "float " + str(value)
             self.symbols[name] = VariableDef(self.name, name, sourceref, DataType.FLOAT, allocate,
-                                             value=value, length=1, address=address)
+                                             value=value, length=1, address=address, sourcecomment=sourcecomment)
         elif datatype == DataType.BYTEARRAY:
             self.symbols[name] = VariableDef(self.name, name, sourceref, DataType.BYTEARRAY, allocate,
                                              value=value, length=length, address=address)

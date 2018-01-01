@@ -7,32 +7,12 @@ import "c64lib"
 ~ main {
 
         var     .float  float1  = 123.456
-start
-        c64.MOVFM(#float1)
-        c64.FPRINTLN()
-        float1++
-        c64.MOVFM(#float1)
-        c64.FPRINTLN()
-        float1-=1
-        c64.MOVFM(#float1)
-        c64.FPRINTLN()
-        float1--
-        c64.MOVFM(#float1)
-        c64.FPRINTLN()
-        ;float1+=0.5
-        ;c64.MOVFM(#float1)
-        ;c64.FPRINTLN()
-        ;float1+=2235.55
-        ;c64.MOVFM(#float1)
-        ;c64.FPRINTLN()
-        ;float1-=999.55
-        ;c64.MOVFM(#float1)
-        ;c64.FPRINTLN()
-        ;float1-=33333.456
-        ;c64.MOVFM(#float1)
-        ;c64.FPRINTLN()
+        var     .float  float2  = 99.99
+        const   .float  flc     =  1234.55
+        const   .text   foostr     = "derp"
+        var     .text   foostr2    = "derp2"
 
-        return
+start
 
         A = $11
         X = $22

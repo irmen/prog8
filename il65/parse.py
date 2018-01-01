@@ -225,6 +225,8 @@ class Parser:
             break
         self.print_warning("{:s} doesn't end with a return statement".format(message), block.sourceref)
 
+    _immediate_floats = {}  # type: Dict[float, Tuple[str, str]]
+
     def _parse_2(self) -> None:
         # parsing pass 2 (not done during preprocessing!)
         self.cur_block = None
@@ -243,6 +245,49 @@ class Parser:
                 self.sourceref = stmt.sourceref.copy()
                 stmt.desugar_immediate_string(containing_block)
 
+        def desugar_immediate_floats(stmt: _AstNode, containing_block: Block) -> None:
+            if isinstance(stmt, (InplaceIncrStmt, InplaceDecrStmt)):
+                if stmt.howmuch is None:
+                    assert stmt.float_var_name
+                    return
+                if stmt.howmuch in (0, 1):
+                    return      # 1 is special cased in the code generator
+                rom_floats = {
+                    1: "c64.FL_FONE",
+                    .25: "c64.FL_FR4",
+                    .5: "c64.FL_FHALF",
+                    -.5: "c64.FL_NEGHLF",
+                    10: "c64.FL_TENC",
+                    -32768: "c64.FL_N32768",
+                    1e9: "c64.FL_NZMIL",
+                    math.pi: "c64.FL_PIVAL",
+                    math.pi / 2: "c64.FL_PIHALF",
+                    math.pi * 2: "c64.FL_TWOPI",
+                    math.sqrt(2)/2.0: "c64.FL_SQRHLF",
+                    math.sqrt(2): "c64.FL_SQRTWO",
+                    math.log(2): "c64.FL_LOG2",
+                    1.0 / math.log(2): "c64.FL_LOGEB2",
+                }
+                for fv, name in rom_floats.items():
+                    if math.isclose(stmt.howmuch, fv, rel_tol=0, abs_tol=1e-9):
+                        # use one of the constants available in ROM
+                        stmt.float_var_name = name
+                        return
+                if stmt.howmuch in self._immediate_floats:
+                    # reuse previously defined float constant
+                    blockname, floatvar_name = self._immediate_floats[stmt.howmuch]
+                    if blockname:
+                        stmt.float_var_name = blockname + '.' + floatvar_name
+                    else:
+                        stmt.float_var_name = floatvar_name
+                else:
+                    # define new float variable to hold the incr/decr value
+                    # note: not a constant, because we need the MFLT bytes
+                    floatvar_name = "il65_float_{:d}".format(id(stmt))
+                    containing_block.symbols.define_variable(floatvar_name, stmt.sourceref, DataType.FLOAT, value=stmt.howmuch)
+                    self._immediate_floats[stmt.howmuch] = (containing_block.name, floatvar_name)
+                    stmt.float_var_name = floatvar_name
+
         for block in self.result.blocks:
             self.cur_block = block
             self.sourceref = block.sourceref.copy()
@@ -252,6 +297,7 @@ class Parser:
                     self.sourceref = stmt.sourceref.copy()
                     self.desugar_call_arguments_and_outputs(stmt)
                 desugar_immediate_strings(stmt, self.cur_block)
+                desugar_immediate_floats(stmt, self.cur_block)
 
     def desugar_call_arguments_and_outputs(self, stmt: CallStmt) -> None:
         stmt.desugared_call_arguments.clear()
@@ -764,8 +810,8 @@ class Parser:
             if isinstance(what, IntegerValue):
                 raise self.PError("cannot in/decrement a constant value")
             if incr:
-                return InplaceIncrStmt(what, 1, self.sourceref)
-            return InplaceDecrStmt(what, 1, self.sourceref)
+                return InplaceIncrStmt(what, 1, None, self.sourceref)
+            return InplaceDecrStmt(what, 1, None, self.sourceref)
         else:
             # perhaps it is an augmented assignment statement
             match = re.fullmatch(r"(?P<left>\S+)\s*(?P<assignment>\+=|-=|\*=|/=|%=|//=|\*\*=|&=|\|=|\^=|>>=|<<=)\s*(?P<right>\S.*)", line)
@@ -903,21 +949,28 @@ class Parser:
                 truncated, value = self.coerce_value(self.sourceref, l_value.datatype, r_value.value)
                 if truncated:
                     r_value = IntegerValue(int(value), self.sourceref, datatype=l_value.datatype, name=r_value.name)
-        if r_value.constant and operator in ("+=", "-="):
-            if operator == "+=":
-                if r_value.value > 0:  # type: ignore
-                    return InplaceIncrStmt(l_value, r_value.value, self.sourceref)  # type: ignore
-                elif r_value.value < 0:  # type: ignore
-                    return InplaceDecrStmt(l_value, -r_value.value, self.sourceref)  # type: ignore
+        if operator in ("+=", "-="):
+            # see if we can simplify this to inplace incr/decr statement
+            if r_value.constant:
+                if operator == "+=":
+                    if r_value.value > 0:  # type: ignore
+                        return InplaceIncrStmt(l_value, r_value.value, self.sourceref)  # type: ignore
+                    elif r_value.value < 0:  # type: ignore
+                        return InplaceDecrStmt(l_value, -r_value.value, self.sourceref)  # type: ignore
+                    else:
+                        self.print_warning("incr with zero, ignored")
                 else:
-                    self.print_warning("incr with zero, ignored")
+                    if r_value.value > 0:  # type: ignore
+                        return InplaceDecrStmt(l_value, r_value.value, self.sourceref)  # type: ignore
+                    elif r_value.value < 0:  # type: ignore
+                        return InplaceIncrStmt(l_value, -r_value.value, self.sourceref)  # type: ignore
+                    else:
+                        self.print_warning("decr with zero, ignored")
             else:
-                if r_value.value > 0:  # type: ignore
-                    return InplaceDecrStmt(l_value, r_value.value, self.sourceref)  # type: ignore
-                elif r_value.value < 0:  # type: ignore
-                    return InplaceIncrStmt(l_value, -r_value.value, self.sourceref)  # type: ignore
-                else:
-                    self.print_warning("decr with zero, ignored")
+                if r_value.name:
+                    if operator == "+=":
+                        return InplaceIncrStmt(l_value, None, r_value.name, self.sourceref)
+                    return InplaceDecrStmt(l_value, None, r_value.name, self.sourceref)
         return AugmentedAssignmentStmt(l_value, operator, r_value, self.sourceref)
 
     def parse_return(self, line: str) -> ReturnStmt:
@@ -1022,7 +1075,7 @@ class Parser:
             elif isinstance(expression, MemMappedValue):
                 return IntegerValue(expression.address, self.sourceref, datatype=DataType.WORD, name=expression.name)
             else:
-                raise self.PError("cannot take the address of this type")
+                raise self.PError("cannot take the address of type " + expression.__class__.__name__)
         elif text[0] in "-.0123456789$%~":
             number = parse_expr_as_number(text, self.cur_block.symbols, self.ppsymbols, self.sourceref)
             try:

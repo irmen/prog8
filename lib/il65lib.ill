@@ -151,5 +151,33 @@ float_sub_one
 		ldy  SCRATCH_ZP2
 		jmp  c64.FTOMEMXY	; float XY = fac1
 
+
+; ---- add MFLT pointed to by SCRATCH_ZPWORD1 to the MFLT pointed to by X/Y.  Clobbers A, X, Y
+float_add_SW1_to_XY
+		stx  SCRATCH_ZP1
+		sty  SCRATCH_ZP2
+		txa
+		jsr  c64.MOVFM		; fac1 = float XY
+		lda  SCRATCH_ZPWORD1
+		ldy  SCRATCH_ZPWORD1+1
+		jsr  c64.FADD		; fac1 += SCRATCH_ZPWORD1
+		ldx  SCRATCH_ZP1
+		ldy  SCRATCH_ZP2
+		jmp  c64.FTOMEMXY	; float XY = fac1
+
+
+; ---- subtract MFLT pointed to by SCRATCH_ZPWORD1 from the MFLT pointed to by X/Y.  Clobbers A, X, Y
+float_sub_SW1_from_XY
+		stx  SCRATCH_ZP1
+		sty  SCRATCH_ZP2
+		lda  SCRATCH_ZPWORD1
+		ldy  SCRATCH_ZPWORD1+1
+		jsr  c64.MOVFM		; fac1 = SCRATCH_ZPWORD1
+		txa
+		ldy  SCRATCH_ZP2
+		jsr  c64.FSUB		; fac1 = float XY - SCRATCH_ZPWORD1
+		ldx  SCRATCH_ZP1
+		ldy  SCRATCH_ZP2
+		jmp  c64.FTOMEMXY	; float XY = fac1
 	}
 }
