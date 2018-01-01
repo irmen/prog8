@@ -1,6 +1,6 @@
-output prg,basic
+%output prg,basic
 
-import "c64lib"
+%import "c64lib"
 
 ~ main {
         var     .word   value

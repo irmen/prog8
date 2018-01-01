@@ -39,6 +39,7 @@ class ParseResult:
         self.blocks = []          # type: List[Block]
         self.subroutine_usage = defaultdict(set)    # type: Dict[Tuple[str, str], Set[str]]
         self.zeropage = Zeropage()
+        self.preserve_registers = False
 
     def all_blocks(self) -> Generator[Block, None, None]:
         for block in self.blocks:
@@ -176,7 +177,7 @@ class Parser:
             break
 
     def _parse_1(self) -> None:
-        self.cur_block = Block("<header>", self.sourceref, self.root_scope)
+        self.cur_block = Block("<header>", self.sourceref, self.root_scope, self.result.preserve_registers)
         self.result.add_block(self.cur_block)
         self.parse_header()
         if not self.parsing_import:
@@ -188,7 +189,7 @@ class Parser:
                 block = self.parse_block()
                 if block:
                     self.result.add_block(block)
-            elif next_line.startswith(("import ", "import\t")):
+            elif next_line.startswith(("%import ", "%import\t")):
                 self.parse_import()
             else:
                 break
@@ -402,76 +403,91 @@ class Parser:
         self.result.format = ProgramFormat.RAW
         output_specified = False
         zp_specified = False
+        preserve_specified = False
         while True:
             self._parse_comments()
             line = self.next_line()
-            if line.startswith(("output ", "output\t")):
-                if output_specified:
-                    raise self.PError("can only specify output options once")
-                output_specified = True
-                _, _, optionstr = line.partition(" ")
-                options = set(optionstr.replace(' ', '').split(','))
-                self.result.with_sys = False
-                self.result.format = ProgramFormat.RAW
-                if "raw" in options:
-                    options.remove("raw")
-                if "prg" in options:
-                    options.remove("prg")
-                    self.result.format = ProgramFormat.PRG
-                if "basic" in options:
-                    options.remove("basic")
-                    if self.result.format == ProgramFormat.PRG:
-                        self.result.with_sys = True
-                    else:
-                        raise self.PError("can only use basic output option with prg, not raw")
-                if options:
-                    raise self.PError("invalid output option(s): " + str(options))
-            elif line.startswith(("zp ", "zp\t")):
-                if zp_specified:
-                    raise self.PError("can only specify ZP options once")
-                zp_specified = True
-                _, _, optionstr = line.partition(" ")
-                options = set(optionstr.replace(' ', '').split(','))
-                self.result.clobberzp = False
-                self.result.restorezp = False
-                if "clobber" in options:
-                    options.remove("clobber")
-                    self.result.clobberzp = True
-                if "restore" in options:
-                    options.remove("restore")
-                    if self.result.clobberzp:
-                        self.result.restorezp = True
-                    else:
-                        raise self.PError("can only use restore zp option if clobber zp is used as well")
-                if options:
-                    raise self.PError("invalid zp option(s): " + str(options))
-            elif line.startswith("address"):
-                if self.result.start_address:
-                    raise self.PError("multiple occurrences of 'address'")
-                _, _, arg = line.partition(" ")
-                try:
-                    self.result.start_address = parse_expr_as_int(arg, None, None, self.sourceref)
-                except ParseError:
-                    raise self.PError("invalid address")
-                if self.result.format == ProgramFormat.PRG and self.result.with_sys and self.result.start_address != 0x0801:
-                    raise self.PError("cannot use non-default 'address' when output format includes basic SYS program")
-            else:
-                # header parsing finished!
-                self.prev_line()
-                if not self.result.start_address:
-                    # set the proper default start address
-                    if self.result.format == ProgramFormat.PRG:
-                        self.result.start_address = 0x0801  # normal C-64 basic program start address
-                    elif self.result.format == ProgramFormat.RAW:
-                        self.result.start_address = 0xc000  # default start for raw assembly
-                if self.result.format == ProgramFormat.PRG and self.result.with_sys and self.result.start_address != 0x0801:
-                    raise self.PError("cannot use non-default 'address' when output format includes basic SYS program")
-                return
+            if line.startswith('%'):
+                directive = line.split(maxsplit=1)[0][1:]
+                if directive == "output":
+                    if output_specified:
+                        raise self.PError("can only specify output options once")
+                    output_specified = True
+                    _, _, optionstr = line.partition(" ")
+                    options = set(optionstr.replace(' ', '').split(','))
+                    self.result.with_sys = False
+                    self.result.format = ProgramFormat.RAW
+                    if "raw" in options:
+                        options.remove("raw")
+                    if "prg" in options:
+                        options.remove("prg")
+                        self.result.format = ProgramFormat.PRG
+                    if "basic" in options:
+                        options.remove("basic")
+                        if self.result.format == ProgramFormat.PRG:
+                            self.result.with_sys = True
+                        else:
+                            raise self.PError("can only use basic output option with prg, not raw")
+                    if options:
+                        raise self.PError("invalid output option(s): " + str(options))
+                    continue
+                elif directive == "zp":
+                    if zp_specified:
+                        raise self.PError("can only specify ZP options once")
+                    zp_specified = True
+                    _, _, optionstr = line.partition(" ")
+                    options = set(optionstr.replace(' ', '').split(','))
+                    self.result.clobberzp = False
+                    self.result.restorezp = False
+                    if "clobber" in options:
+                        options.remove("clobber")
+                        self.result.clobberzp = True
+                    if "restore" in options:
+                        options.remove("restore")
+                        if self.result.clobberzp:
+                            self.result.restorezp = True
+                        else:
+                            raise self.PError("can only use restore zp option if clobber zp is used as well")
+                    if options:
+                        raise self.PError("invalid zp option(s): " + str(options))
+                    continue
+                elif directive == "address":
+                    if self.result.start_address:
+                        raise self.PError("multiple occurrences of 'address'")
+                    _, _, arg = line.partition(" ")
+                    try:
+                        self.result.start_address = parse_expr_as_int(arg, None, None, self.sourceref)
+                    except ParseError:
+                        raise self.PError("invalid address")
+                    if self.result.format == ProgramFormat.PRG and self.result.with_sys and self.result.start_address != 0x0801:
+                        raise self.PError("cannot use non-default 'address' when output format includes basic SYS program")
+                    continue
+                elif directive == "preserve_registers":
+                    if preserve_specified:
+                        raise self.PError("can only specify preserve_registers option once")
+                    preserve_specified = True
+                    _, _, optionstr = line.partition(" ")
+                    self.result.preserve_registers = optionstr in ("", "true", "yes")
+                    continue
+                elif directive == "import":
+                    break    # the first import directive actually is not part of the header anymore
+                else:
+                    raise self.PError("invalid directive")
+            break # no more directives, header parsing finished!
+        self.prev_line()
+        if not self.result.start_address:
+            # set the proper default start address
+            if self.result.format == ProgramFormat.PRG:
+                self.result.start_address = 0x0801  # normal C-64 basic program start address
+            elif self.result.format == ProgramFormat.RAW:
+                self.result.start_address = 0xc000  # default start for raw assembly
+        if self.result.format == ProgramFormat.PRG and self.result.with_sys and self.result.start_address != 0x0801:
+            raise self.PError("cannot use non-default 'address' when output format includes basic SYS program")
 
     def parse_import(self) -> None:
         line = self.next_line()
         line = line.lstrip()
-        if not line.startswith(("import ", "import\t")):
+        if not line.startswith(("%import ", "%import\t")):
             raise self.PError("expected import")
         try:
             _, arg = line.split(maxsplit=1)
@@ -528,7 +544,7 @@ class Parser:
             raise self.PError("expected '~' (block)")
         block_args = line[1:].split()
         arg = ""
-        self.cur_block = Block("", self.sourceref.copy(), self.root_scope)
+        self.cur_block = Block("", self.sourceref.copy(), self.root_scope, self.result.preserve_registers)
         is_zp_block = False
         while block_args:
             arg = block_args.pop(0)
@@ -542,7 +558,7 @@ class Parser:
                         raise self.PError("duplicate block name '{:s}', original definition at {}".format(arg, orig.sourceref))
                     self.cur_block = orig  # zero page block occurrences are merged
                 else:
-                    self.cur_block = Block(arg, self.sourceref.copy(), self.root_scope)
+                    self.cur_block = Block(arg, self.sourceref.copy(), self.root_scope, self.result.preserve_registers)
                     try:
                         self.root_scope.define_scope(self.cur_block.symbols, self.cur_block.sourceref)
                     except SymbolError as x:
@@ -605,14 +621,34 @@ class Parser:
         line = self.next_line()
         unstripped_line = line
         line = line.strip()
-        if line == "}":
+        if line.startswith('%'):
+            directive, _, optionstr = line.partition(" ")
+            directive = directive[1:]
+            self.cur_block.preserve_registers = optionstr in ("", "true", "yes")
+            if directive in ("asminclude", "asmbinary"):
+                if is_zp_block:
+                    raise self.PError("ZP block cannot contain assembler directives")
+                self.cur_block.statements.append(self.parse_asminclude(line))
+            elif directive == "asm":
+                if is_zp_block:
+                    raise self.PError("ZP block cannot contain code statements")
+                self.prev_line()
+                self.cur_block.statements.append(self.parse_asm())
+            elif directive == "breakpoint":
+                self.cur_block.statements.append(BreakpointStmt(self.sourceref))
+                self.print_warning("breakpoint defined")
+            elif directive == "preserve_registers":
+                self.result.preserve_registers = optionstr in ("", "true", "yes")
+            else:
+                raise self.PError("invalid directive")
+        elif line == "}":
             if is_zp_block and any(b.name == "ZP" for b in self.result.blocks):
                 return False, None     # we already have the ZP block
             if self.cur_block.ignore:
                 self.print_warning("ignoring block without name and address", self.cur_block.sourceref)
                 return False, None
             return False, self.cur_block
-        if line.startswith(("var ", "var\t")):
+        elif line.startswith(("var ", "var\t")):
             self.parse_var_def(line)
         elif line.startswith(("const ", "const\t")):
             self.parse_const_def(line)
@@ -622,19 +658,9 @@ class Parser:
             if is_zp_block:
                 raise self.PError("ZP block cannot contain subroutines")
             self.parse_subroutine_def(line)
-        elif line.startswith(("asminclude ", "asminclude\t", "asmbinary ", "asmbinary\t")):
-            if is_zp_block:
-                raise self.PError("ZP block cannot contain assembler directives")
-            self.cur_block.statements.append(self.parse_asminclude(line))
-        elif line.startswith(("asm ", "asm\t")):
-            if is_zp_block:
-                raise self.PError("ZP block cannot contain code statements")
-            self.prev_line()
-            self.cur_block.statements.append(self.parse_asm())
-        elif line == "breakpoint":
-            self.cur_block.statements.append(BreakpointStmt(self.sourceref))
-            self.print_warning("breakpoint defined")
         elif unstripped_line.startswith((" ", "\t")):
+            if line.endswith("{"):
+                raise self.PError("invalid statement")
             if is_zp_block:
                 raise self.PError("ZP block cannot contain code statements")
             self.cur_block.statements.append(self.parse_statement(line))
@@ -714,7 +740,8 @@ class Parser:
         if code_decl:
             address = None
             # parse the subroutine code lines (until the closing '}')
-            subroutine_block = Block(self.cur_block.name + "." + name, self.sourceref, self.cur_block.symbols)
+            subroutine_block = Block(self.cur_block.name + "." + name, self.sourceref, self.cur_block.symbols,
+                                     self.cur_block.preserve_registers)
             current_block = self.cur_block
             self.cur_block = subroutine_block
             while True:
@@ -727,10 +754,12 @@ class Parser:
                     break
                 if line.startswith(("sub ", "sub\t")):
                     raise self.PError("cannot nest subroutines")
-                elif line.startswith(("asm ", "asm\t")):
+                elif line.startswith(("%asm ", "%asm\t")):
                     self.prev_line()
                     subroutine_block.statements.append(self.parse_asm())
                 elif unstripped_line.startswith((" ", "\t")):
+                    if line.endswith("{"):
+                        raise self.PError("invalid statement")
                     subroutine_block.statements.append(self.parse_statement(line))
                 elif line:
                     self.parse_label(line)
@@ -792,25 +821,31 @@ class Parser:
             # conditional goto
             groups = match.groupdict()
             subname = groups["subname"]
-            if '!' in subname:
-                raise self.PError("goto is always without register preservation, should not have exclamation mark")
             if groups["if"] == "if" and not groups["cond"]:
                 raise self.PError("need explicit if status when a condition is not present")
             condition = self.parse_if_condition(groups["if"], groups["cond"])
-            return self.parse_call_or_goto(subname, groups["arguments"], None, False, True, condition=condition)
+            return self.parse_call_or_goto(subname, groups["arguments"], None, None, True, condition=condition)
         match = re.fullmatch(r"goto\s+(?P<subname>[\S]+?)\s*(\((?P<arguments>.*)\))?\s*", line)
         if match:
             # goto
             groups = match.groupdict()
             subname = groups["subname"]
-            if '!' in subname:
-                raise self.PError("goto is always without register preservation, should not have exclamation mark")
-            return self.parse_call_or_goto(subname, groups["arguments"], None, False, True)
-        match = re.fullmatch(r"(?P<outputs>[^\(]*\s*=)?\s*(?P<subname>[\S]+?)\s*(?P<fcall>[!]?)\s*(\((?P<arguments>.*)\))?\s*", line)
+            return self.parse_call_or_goto(subname, groups["arguments"], None, None, True)
+        match = re.fullmatch(r"(?P<outputs>[^\(]*\s*=)?\s*(?P<subname>[\S]+?)\s*(?P<preserve>!\s*[A-Z]*)?\s*(\((?P<arguments>.*)\))?\s*", line)
         if match:
             # subroutine call (not a goto) with possible output param assignment
             groups = match.groupdict()
-            preserve = not bool(groups["fcall"])
+            preserve = None
+            preserve_str = groups["preserve"]
+            if preserve_str and preserve_str.startswith('!'):
+                preserve_str = preserve_str.replace(' ', '')
+                if preserve_str == "!":
+                    preserve = {'A', 'X', 'Y'}
+                else:
+                    preserve = set(preserve_str[1:])
+                    for r in preserve:
+                        if r not in REGISTER_BYTES:
+                            raise self.PError("invalid register in call preservation list")
             subname = groups["subname"]
             arguments = groups["arguments"]
             outputs = groups["outputs"] or ""
@@ -843,7 +878,7 @@ class Parser:
             raise self.PError("invalid statement")
 
     def parse_call_or_goto(self, targetstr: str, argumentstr: str, outputstr: str,
-                           preserve_regs=True, is_goto=False, condition: IfCondition=None) -> CallStmt:
+                           preserve_regs: Set[str]=None, is_goto: bool=False, condition: IfCondition=None) -> CallStmt:
         if not is_goto:
             assert condition is None
         argumentstr = argumentstr.strip() if argumentstr else ""
@@ -1008,8 +1043,8 @@ class Parser:
     def parse_asm(self) -> InlineAsm:
         line = self.next_line()
         aline = line.split()
-        if not len(aline) == 2 or aline[0] != "asm" or aline[1] != "{":
-            raise self.PError("invalid asm start")
+        if not len(aline) == 2 or aline[0] != "%asm" or aline[1] != "{":
+            raise self.PError("invalid asm directive")
         asmlines = []   # type: List[str]
         while True:
             line = self.next_line()
@@ -1036,7 +1071,7 @@ class Parser:
     def parse_asminclude(self, line: str) -> InlineAsm:
         aline = line.split()
         if len(aline) < 2:
-            raise self.PError("invalid asminclude or asmbinary statement")
+            raise self.PError("invalid asminclude or asmbinary directive")
         filename = aline[1]
         if not filename.startswith('"') or not filename.endswith('"'):
             raise self.PError("filename must be between quotes")
@@ -1049,14 +1084,14 @@ class Parser:
             raise self.PError("included file not found")
         print("copying included file to output location:", filename)
         shutil.copy(filename_in_sourcedir, filename_in_output_location)
-        if aline[0] == "asminclude":
+        if aline[0] == "%asminclude":
             if len(aline) == 3:
                 scopename = aline[2]
                 lines = ['{:s}\t.binclude "{:s}"'.format(scopename, filename)]
             else:
-                raise self.PError("invalid asminclude statement")
+                raise self.PError("invalid asminclude directive")
             return InlineAsm(lines, self.sourceref)
-        elif aline[0] == "asmbinary":
+        elif aline[0] == "%asmbinary":
             if len(aline) == 4:
                 offset = parse_expr_as_int(aline[2], None, None, self.sourceref)
                 length = parse_expr_as_int(aline[3], None, None, self.sourceref)
@@ -1067,7 +1102,7 @@ class Parser:
             elif len(aline) == 2:
                 lines = ['\t.binary "{:s}"'.format(filename)]
             else:
-                raise self.PError("invalid asmbinary statement")
+                raise self.PError("invalid asmbinary directive")
             return InlineAsm(lines, self.sourceref)
         else:
             raise self.PError("invalid statement")

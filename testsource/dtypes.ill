@@ -1,10 +1,10 @@
 ; var definitions and immediate primitive data type tests
 
-output raw
-zp clobber
+%output raw
+%zp clobber
 
 
-import "c64lib"
+%import "c64lib"
 
 ~ ZP {
 	; ZeroPage block definition:

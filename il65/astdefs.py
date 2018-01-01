@@ -27,12 +27,13 @@ class _AstNode:
 class Block(_AstNode):
     _unnamed_block_labels = {}  # type: Dict[Block, str]
 
-    def __init__(self, name: str, sourceref: SourceRef, parent_scope: SymbolTable) -> None:
+    def __init__(self, name: str, sourceref: SourceRef, parent_scope: SymbolTable, preserve_registers: bool=False) -> None:
         super().__init__(sourceref)
         self.address = 0
         self.name = name
         self.statements = []  # type: List[_AstNode]
         self.symbols = SymbolTable(name, parent_scope, self)
+        self.preserve_registers = preserve_registers
 
     @property
     def ignore(self) -> bool:
@@ -484,7 +485,7 @@ class CallStmt(_AstNode):
     def __init__(self, sourceref: SourceRef, target: Optional[Value] = None, *,
                  address: Optional[int] = None, arguments: List[Tuple[str, Any]] = None,
                  outputs: List[Tuple[str, Value]] = None, is_goto: bool = False,
-                 preserve_regs: bool = True, condition: IfCondition = None) -> None:
+                 preserve_regs: Set[str] = None, condition: IfCondition = None) -> None:
         if not is_goto:
             assert condition is None
         super().__init__(sourceref)

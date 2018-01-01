@@ -19,7 +19,7 @@ which aims to provide many conveniences over raw assembly code (even when using 
 - automatic variable allocations, automatic string variables and string sharing
 - automatic type conversions
 - floating point operations
-- automatically preserving and restoring CPU registers state, when calling routines that otherwise would clobber these 
+- optional automatic preserving and restoring CPU registers state, when calling routines that otherwise would clobber these 
 - abstracting away low level aspects such as zero page handling, program startup, explicit memory addresses
 - breakpoints, that let the Vice emulator drop into the monitor if execution hits them
 - source code labels automatically loaded in Vice emulator so it can show them in disassembly

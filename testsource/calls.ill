@@ -59,7 +59,7 @@ bar
 	goto $c2
 	goto $c2()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -75,6 +75,15 @@ bar
         sub4! ("hello",  other=42)
         sub4! (string="hello", other = 42)
         sub4! (string="hello, there", other = 42)
+
+        sub3 (81)
+        sub3 !(81)
+        sub3 !A (81)
+        sub3 !X (81)
+        sub3 !Y (81)
+        sub3 !XY (81)
+        sub3 !AXY (81)
+
         bar!()
 	[XY] ! ()
 	[var1] !()
@@ -84,7 +93,7 @@ bar
 	$c000!()
 	$c2!()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -110,7 +119,7 @@ bar
 	$c2()
 
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop

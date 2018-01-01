@@ -22,7 +22,7 @@
 
 sub  multiply_bytes  (byte1: X, byte2: Y) -> (A, X?)  {
 	; ---- multiply 2 bytes, result as byte in A  (signed or unsigned)
-	asm {
+	%asm {
 		stx  SCRATCH_ZP1
 		sty  SCRATCH_ZP2
 		ldx  #8
@@ -40,7 +40,7 @@ sub  multiply_bytes  (byte1: X, byte2: Y) -> (A, X?)  {
 
 sub  multiply_bytes_16  (byte1: X, byte2: Y) -> (A?, XY)  {
 	; ---- multiply 2 bytes, result as word in X/Y (unsigned)
-	asm {
+	%asm {
 		lda  #0
 _m_with_add	stx  SCRATCH_ZP1
 		sty  SCRATCH_ZP2
@@ -62,7 +62,7 @@ _m_with_add	stx  SCRATCH_ZP1
 
 sub  multiply_bytes_addA_16  (byte1: X, byte2: Y, add: A) -> (A?, XY)  {
 	; ---- multiply 2 bytes and add A, result as word in X/Y (unsigned)
-	asm {
+	%asm {
 		jmp  multiply_bytes_16._m_with_add
 	}
 }
@@ -73,7 +73,7 @@ sub  multiply_words  (number: XY) -> (?)  {
 	;      input: X/Y = first 16-bit number, SCRATCH_ZPWORD1 in ZP = second 16-bit number
 	;      output: multiply_words_product  32-bits product, LSB order (low-to-high)
 
-	asm {
+	%asm {
 		stx  SCRATCH_ZPWORD2
 		sty  SCRATCH_ZPWORD2+1
 
@@ -105,7 +105,7 @@ mult16		lda  #$00
 sub  divmod_bytes  (number: X, divisor: Y) -> (X, A)  {
 	; ---- divide X by Y, result quotient in X, remainder in A   (unsigned)
 	;      division by zero will result in quotient = 255 and remainder = original number
-	asm {
+	%asm {
 		stx  SCRATCH_ZP1
 		sty  SCRATCH_ZP2
 
@@ -131,7 +131,7 @@ sub  divmod_words  (divisor: XY) -> (A?, XY)  {
 	;      output: SCRATCH_ZPWORD1 in ZP: 16 bit result, X/Y: 16 bit remainder
 	;      division by zero will result in quotient = 65535 and remainder = divident
 
-	asm {
+	%asm {
 remainder = SCRATCH_ZP1
 
 		stx  SCRATCH_ZPWORD2

@@ -4,8 +4,8 @@
 ; line 3 comment
 
 
-output basic ,  prg     ; create a c-64 program with basic SYS call to launch it
-zp   restore ,  clobber   ; clobber over the zp memory normally used by basic/kernel rom, frees up more zp
+%output basic ,  prg     ; create a c-64 program with basic SYS call to launch it
+%zp   restore ,  clobber   ; clobber over the zp memory normally used by basic/kernel rom, frees up more zp
 
 
 ~main $0a00
@@ -88,7 +88,7 @@ sub  memsub () -> ()  = $fff2
 
 sub  customsub (Y)->()  {
 
-        asm {
+        %asm {
                 nop
                 nop
                 lda #99
@@ -120,7 +120,7 @@ somelabel1222
 
 ~ block3 {
 somelabel1
-	asm {
+	%asm {
 		nop
 		nop
 		nop

@@ -1,6 +1,6 @@
-output prg,basic  ; create a c-64 program with basic SYS to() launch it
+%output prg,basic  ; create a c-64 program with basic SYS to() launch it
 
-	import "c64lib.ill"
+	%import "c64lib.ill"
 
  ~ main
 {
@@ -9,21 +9,21 @@ output prg,basic  ; create a c-64 program with basic SYS to() launch it
 	const .word BORDER = $d020
 
 start
-	c64scr.print_pimmediate ! ()          ; this prints the pstring immediately following it
-	asm {
+	c64scr.print_pimmediate()          ; this prints the pstring immediately following it
+	%asm {
 		.ptext "hello-pimmediate!{cr}"
 	}
 
-	c64scr.print_byte_decimal0 ! (19)
-	c64.CHROUT ! (13)
-	c64scr.print_byte_decimal ! (19)
-	c64.CHROUT ! (13)
+	c64scr.print_byte_decimal0 (19)
+	c64.CHROUT (13)
+	c64scr.print_byte_decimal (19)
+	c64.CHROUT (13)
 
 
-	c64scr.print_word_decimal0 ! ($0102)
-	c64.CHROUT ! (13)
-	c64scr.print_word_decimal ! ($0102)
-	c64.CHROUT ! (13)
+	c64scr.print_word_decimal0 ($0102)
+	c64.CHROUT (13)
+	c64scr.print_word_decimal ($0102)
+	c64.CHROUT (13)
 	return
 
 start2

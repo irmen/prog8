@@ -1,10 +1,12 @@
-output prg,basic
+%output prg,basic
+%preserve_registers no
 
-;reg_preserve off         ; @todo global option  off/on   default off? NOT AN OPTION -> change the default to OFF
-
-import "c64lib"
+%import "c64lib"
 
 ~ main {
+        %preserve_registers false
+
+
                 const   num = 2
                 var     var1  =2
                 var .word  wvar1 = 2
@@ -41,7 +43,7 @@ start
         ;XY <<= 2
 
 
-        asm {
+        %asm {
                 ldy  #200
 -               lda  #81
                 sta  c64.Screen+39-40,y
@@ -92,10 +94,13 @@ loop
         X = $22
         Y = $33
 
-        c64scr.clear_screen !(81, 5)     ; @todo new syntax to specify registers to save (! = all three A,X,Y)
-        ;c64scr.clear_screen !A (81, 5)    ; @todo new syntax to specify registers to save (only A)
-        ;c64scr.clear_screen !AX (81, 5)
-        ;c64scr.clear_screen !AXY (81, 5)
+        c64scr.clear_screen (81, 5)
+        c64scr.clear_screen !(81, 5)
+        c64scr.clear_screen !A (81, 5)
+        c64scr.clear_screen !X (81, 5)
+        c64scr.clear_screen !Y (81, 5)
+        c64scr.clear_screen !XY (81, 5)
+        c64scr.clear_screen !AXY (81, 5)
 
         c64scr.print_byte_hex(1,A)
         c64.CHROUT(' ')

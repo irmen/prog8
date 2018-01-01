@@ -9,7 +9,7 @@
 ~ il65_lib_zp {
 ; note: separate block so the 64tass assembler can remove this when no zp restore is required
 
-	asm {
+	%asm {
 
 ; ---- store the Zeropage in a backup area
 save_zeropage
@@ -62,7 +62,7 @@ zp_backup	.fill  256, 0
 		memory  .word  SCRATCH_ZPWORD2	= $fd		; scratch word in ZP ($fd/$fe)
 
 
-	asm {
+	%asm {
 
 ; ---- jmp (indirect) routines for register pairs containing the indirect address
 jsr_indirect_nozpuse_AX

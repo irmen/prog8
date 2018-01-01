@@ -1,71 +1,24 @@
-; source IL file
-    ; these are comments
+%output prg
+%address  $c000
 
-output prg, basic  ; create a c-64 program with basic SYS call to launch it
-zp clobber,restore  ; clobber over the zp memory normally used by basic/kernel rom, frees up more zp
+~ test {
+        var .byte localvar = 33
+        return
+}
 
-~main
-{
-	memory borderb1 = $d020
-	memory .byte borderb2 = $d020
-	memory .word screencolors = $d020
-	memory .array($10) screenblock1 = $0400      ; 10 bytes
-	memory .array($0100) screenblock2 = $0500    ; 256 bytes
-	memory .array($0234) screenblock3 = $2000    ; some weird size
-	memory .wordarray($20) screenblock4 = $0600      ; 32 words
-	memory .matrix(40,25) charscreen = $0400
-	var .array($10) var1  = $aa
-	var .wordarray($10) var2  = $9988
-	var .array($10) var3  = $11
-	var var4
-	var .matrix(40,25) vcharscreen      ; init with 0
-	var .matrix(40,25) vcharscreen2 = 111   ; init with 111
-
+~ main {
 start
-	; set some colors
-	Y = 0
-	borderb1 = Y
-	X=Y=A = 0
-	X = 1
-	screencolors = X
-	borderb1 = 0
-	borderb2 = 1
-	screencolors = $0
-	screencolors = $0207
+        A=0
+        [$d020]=A
+        X=false
+        Y=true
+        return
 
-	; fill block of memory with a single value (byte or word)
-	;screenblock1,* = A
-	;screenblock1,* = X
-	;screenblock1,* = Y
-	;screenblock1,* = 2
-	;screenblock1,* = $aaa
-	;screenblock2,* = A
-	;screenblock2,* = X
-	;screenblock2,* = Y
-	;screenblock2,* = 2
-	;screenblock2,* = $aaa
-	;screenblock3,* = A
-	;screenblock3,* = X
-	;screenblock3,* = Y
-	;screenblock3,* = 2
-	;screenblock3,* = $aaa
-	;screenblock4,* = A
-	;screenblock4,* = X
-	;screenblock4,* = Y
-	;screenblock4,* = 2
-	;screenblock4,* = $aaa
+        ;included_assembly
+        %asminclude "included.source" test_include
 
-	; swap bytes
-	;A = var1[0]
-	;X = var1[1]
-	;var1[0] = X
-	;var1[1] = A
-
-	; swap words
-	;A = var2[0]     ; must crash, cannot put word in register
-	;X = var2[1]     ;crash
-	;var2[0] = X     ; ok, 00-padded
-	;var2[1] = A     ; ok, 00-padded
-
-	return
+        ;included_binary
+        %asmbinary "included.binary"
+        %asmbinary "included.binary" $40
+        %asmbinary "included.binary" $40 $200
 }

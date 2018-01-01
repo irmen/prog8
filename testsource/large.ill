@@ -1,9 +1,9 @@
 ; var definitions and immediate primitive data type tests
 
-output prg, basic
-zp clobber
+%output prg, basic
+%zp clobber
 
-import "c64lib"
+%import "c64lib"
 
 ~ main {
 start
@@ -343,7 +343,7 @@ bar
 	goto $c2
 	goto $c2()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -368,7 +368,7 @@ bar
 	$c000!()
 	$c2!()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -394,7 +394,7 @@ bar
 	$c2()
 
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -696,7 +696,7 @@ bar
 	goto $c2
 	goto $c2()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -721,7 +721,7 @@ bar
 	$c000!()
 	$c2!()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -747,7 +747,7 @@ bar
 	$c2()
 
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -1049,7 +1049,7 @@ bar
 	goto $c2
 	goto $c2()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -1074,7 +1074,7 @@ bar
 	$c000!()
 	$c2!()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -1100,7 +1100,7 @@ bar
 	$c2()
 
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -1402,7 +1402,7 @@ bar
 	goto $c2
 	goto $c2()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -1427,7 +1427,7 @@ bar
 	$c000!()
 	$c2!()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -1453,7 +1453,7 @@ bar
 	$c2()
 
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -1755,7 +1755,7 @@ bar
 	goto $c2
 	goto $c2()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -1780,7 +1780,7 @@ bar
 	$c000!()
 	$c2!()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -1806,7 +1806,7 @@ bar
 	$c2()
 
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -2108,7 +2108,7 @@ bar
 	goto $c2
 	goto $c2()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -2133,7 +2133,7 @@ bar
 	$c000!()
 	$c2!()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -2159,7 +2159,7 @@ bar
 	$c2()
 
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -2461,7 +2461,7 @@ bar
 	goto $c2
 	goto $c2()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -2486,7 +2486,7 @@ bar
 	$c000!()
 	$c2!()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -2512,7 +2512,7 @@ bar
 	$c2()
 
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -2814,7 +2814,7 @@ bar
 	goto $c2
 	goto $c2()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -2839,7 +2839,7 @@ bar
 	$c000!()
 	$c2!()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -2865,7 +2865,7 @@ bar
 	$c2()
 
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -3167,7 +3167,7 @@ bar
 	goto $c2
 	goto $c2()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -3192,7 +3192,7 @@ bar
 	$c000!()
 	$c2!()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -3218,7 +3218,7 @@ bar
 	$c2()
 
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -3520,7 +3520,7 @@ bar
 	goto $c2
 	goto $c2()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -3545,7 +3545,7 @@ bar
 	$c000!()
 	$c2!()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -3571,7 +3571,7 @@ bar
 	$c2()
 
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -3873,7 +3873,7 @@ bar
 	goto $c2
 	goto $c2()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -3898,7 +3898,7 @@ bar
 	$c000!()
 	$c2!()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -3924,7 +3924,7 @@ bar
 	$c2()
 
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -4226,7 +4226,7 @@ bar
 	goto $c2
 	goto $c2()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -4251,7 +4251,7 @@ bar
 	$c000!()
 	$c2!()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -4277,7 +4277,7 @@ bar
 	$c2()
 
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -4579,7 +4579,7 @@ bar
 	goto $c2
 	goto $c2()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -4604,7 +4604,7 @@ bar
 	$c000!()
 	$c2!()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -4630,7 +4630,7 @@ bar
 	$c2()
 
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -4932,7 +4932,7 @@ bar
 	goto $c2
 	goto $c2()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -4957,7 +4957,7 @@ bar
 	$c000!()
 	$c2!()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -4983,7 +4983,7 @@ bar
 	$c2()
 
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -5285,7 +5285,7 @@ bar
 	goto $c2
 	goto $c2()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -5310,7 +5310,7 @@ bar
 	$c000!()
 	$c2!()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -5336,7 +5336,7 @@ bar
 	$c2()
 
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -5638,7 +5638,7 @@ bar
 	goto $c2
 	goto $c2()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -5663,7 +5663,7 @@ bar
 	$c000!()
 	$c2!()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -5689,7 +5689,7 @@ bar
 	$c2()
 
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -5991,7 +5991,7 @@ bar
 	goto $c2
 	goto $c2()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -6016,7 +6016,7 @@ bar
 	$c000!()
 	$c2!()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -6042,7 +6042,7 @@ bar
 	$c2()
 
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -6344,7 +6344,7 @@ bar
 	goto $c2
 	goto $c2()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -6369,7 +6369,7 @@ bar
 	$c000!()
 	$c2!()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -6395,7 +6395,7 @@ bar
 	$c2()
 
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -6697,7 +6697,7 @@ bar
 	goto $c2
 	goto $c2()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -6722,7 +6722,7 @@ bar
 	$c000!()
 	$c2!()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -6748,7 +6748,7 @@ bar
 	$c2()
 
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -7050,7 +7050,7 @@ bar
 	goto $c2
 	goto $c2()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -7075,7 +7075,7 @@ bar
 	$c000!()
 	$c2!()
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop
@@ -7101,7 +7101,7 @@ bar
 	$c2()
 
 
-        asm {
+        %asm {
                 nop
                 nop
                 nop

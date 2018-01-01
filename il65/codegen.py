@@ -417,12 +417,11 @@ class CodeGenerator:
                         self.p("\t\tin{:s}".format(reg.lower()))
                     else:
                         # x/y += 2..255
-                        self.p("\t\tpha")
-                        self.p("\t\tt{:s}a".format(reg.lower()))
-                        self.p("\t\tclc")
-                        self.p("\t\tadc  #" + value_str)
-                        self.p("\t\tta{:s}".format(reg.lower()))
-                        self.p("\t\tpla")
+                        with self.preserving_registers({'A'}):
+                            self.p("\t\tt{:s}a".format(reg.lower()))
+                            self.p("\t\tclc")
+                            self.p("\t\tadc  #" + value_str)
+                            self.p("\t\tta{:s}".format(reg.lower()))
                 elif reg == "AX":
                     # AX += 1..255
                     self.p("\t\tclc")
@@ -446,14 +445,14 @@ class CodeGenerator:
                         self.p("+")
                     else:
                         # XY += 2..255
-                        self.p("\t\tpha")
-                        self.p("\t\ttxa")
-                        self.p("\t\tclc")
-                        self.p("\t\tadc  #" + value_str)
-                        self.p("\t\ttax")
-                        self.p("\t\tbcc  +")
-                        self.p("\t\tiny")
-                        self.p("+\t\tpla")
+                        with self.preserving_registers({'A'}):
+                            self.p("\t\ttxa")
+                            self.p("\t\tclc")
+                            self.p("\t\tadc  #" + value_str)
+                            self.p("\t\ttax")
+                            self.p("\t\tbcc  +")
+                            self.p("\t\tiny")
+                            self.p("+")
                 else:
                     raise CodeError("invalid incr register: " + reg)
             else:
@@ -467,12 +466,11 @@ class CodeGenerator:
                         self.p("\t\tde{:s}".format(reg.lower()))
                     else:
                         # x/y -= 2..255
-                        self.p("\t\tpha")
-                        self.p("\t\tt{:s}a".format(reg.lower()))
-                        self.p("\t\tsec")
-                        self.p("\t\tsbc  #" + value_str)
-                        self.p("\t\tta{:s}".format(reg.lower()))
-                        self.p("\t\tpla")
+                        with self.preserving_registers({'A'}):
+                            self.p("\t\tt{:s}a".format(reg.lower()))
+                            self.p("\t\tsec")
+                            self.p("\t\tsbc  #" + value_str)
+                            self.p("\t\tta{:s}".format(reg.lower()))
                 elif reg == "AX":
                     # AX -= 1..255
                     self.p("\t\tsec")
@@ -496,14 +494,14 @@ class CodeGenerator:
                         self.p("+\t\tdex")
                     else:
                         # XY -= 2..255
-                        self.p("\t\tpha")
-                        self.p("\t\ttxa")
-                        self.p("\t\tsec")
-                        self.p("\t\tsbc  #" + value_str)
-                        self.p("\t\ttax")
-                        self.p("\t\tbcs  +")
-                        self.p("\t\tdey")
-                        self.p("+\t\tpla")
+                        with self.preserving_registers({'A'}):
+                            self.p("\t\ttxa")
+                            self.p("\t\tsec")
+                            self.p("\t\tsbc  #" + value_str)
+                            self.p("\t\ttax")
+                            self.p("\t\tbcs  +")
+                            self.p("\t\tdey")
+                            self.p("+")
                 else:
                     raise CodeError("invalid decr register: " + reg)
         elif isinstance(stmt.what, (MemMappedValue, IndirectValue)):
@@ -519,16 +517,15 @@ class CodeGenerator:
                 if howmuch == 1:
                     self.p("\t\t{:s}  {:s}".format("inc" if is_incr else "dec", what_str))
                 else:
-                    self.p("\t\tpha")
-                    self.p("\t\tlda  " + what_str)
-                    if is_incr:
-                        self.p("\t\tclc")
-                        self.p("\t\tadc  #" + value_str)
-                    else:
-                        self.p("\t\tsec")
-                        self.p("\t\tsbc  #" + value_str)
-                    self.p("\t\tsta  " + what_str)
-                    self.p("\t\tpla")
+                    with self.preserving_registers({'A'}):
+                        self.p("\t\tlda  " + what_str)
+                        if is_incr:
+                            self.p("\t\tclc")
+                            self.p("\t\tadc  #" + value_str)
+                        else:
+                            self.p("\t\tsec")
+                            self.p("\t\tsbc  #" + value_str)
+                        self.p("\t\tsta  " + what_str)
             elif what.datatype == DataType.WORD:
                 if howmuch == 1:
                     # mem.word +=/-= 1
@@ -538,32 +535,31 @@ class CodeGenerator:
                         self.p("\t\tinc  {:s}+1".format(what_str))
                         self.p("+")
                     else:
-                        self.p("\t\tpha")
-                        self.p("\t\tlda  " + what_str)
-                        self.p("\t\tbne  +")
-                        self.p("\t\tdec  {:s}+1".format(what_str))
-                        self.p("+\t\tdec  " + what_str)
-                        self.p("\t\tpla")
+                        with self.preserving_registers({'A'}):
+                            self.p("\t\tlda  " + what_str)
+                            self.p("\t\tbne  +")
+                            self.p("\t\tdec  {:s}+1".format(what_str))
+                            self.p("+\t\tdec  " + what_str)
                 else:
                     # mem.word +=/-= 2..255
                     if is_incr:
-                        self.p("\t\tpha")
-                        self.p("\t\tclc")
-                        self.p("\t\tlda  " + what_str)
-                        self.p("\t\tadc  #" + value_str)
-                        self.p("\t\tsta  " + what_str)
-                        self.p("\t\tbcc  +")
-                        self.p("\t\tinc  {:s}+1".format(what_str))
-                        self.p("+\t\tpla")
+                        with self.preserving_registers({'A'}):
+                            self.p("\t\tclc")
+                            self.p("\t\tlda  " + what_str)
+                            self.p("\t\tadc  #" + value_str)
+                            self.p("\t\tsta  " + what_str)
+                            self.p("\t\tbcc  +")
+                            self.p("\t\tinc  {:s}+1".format(what_str))
+                            self.p("+")
                     else:
-                        self.p("\t\tpha")
-                        self.p("\t\tsec")
-                        self.p("\t\tlda  " + what_str)
-                        self.p("\t\tsbc  #" + value_str)
-                        self.p("\t\tsta  " + what_str)
-                        self.p("\t\tbcs  +")
-                        self.p("\t\tdec  {:s}+1".format(what_str))
-                        self.p("+\t\tpla")
+                        with self.preserving_registers({'A'}):
+                            self.p("\t\tsec")
+                            self.p("\t\tlda  " + what_str)
+                            self.p("\t\tsbc  #" + value_str)
+                            self.p("\t\tsta  " + what_str)
+                            self.p("\t\tbcs  +")
+                            self.p("\t\tdec  {:s}+1".format(what_str))
+                            self.p("+")
             elif what.datatype == DataType.FLOAT:
                 if howmuch == 1.0:
                     # special case for +/-1
@@ -914,15 +910,17 @@ class CodeGenerator:
                             return True
             return False
 
-        def unclobber_result_registers(registers: Set[str], output_assignments: List[AssignmentStmt]) -> None:
+        def unclobber_result_registers(registers: Set[str], output_assignments: List[AssignmentStmt]) -> Set[str]:
+            result = registers.copy()
             for a in output_assignments:
                 for lv in a.leftvalues:
                     if isinstance(lv, RegisterValue):
                         if len(lv.register) == 1:
-                            registers.discard(lv.register)
+                            result.discard(lv.register)
                         else:
                             for r in lv.register:
-                                registers.discard(r)
+                                result.discard(r)
+            return result
 
         if stmt.target.name:
             symblock, targetdef = self.cur_block.lookup(stmt.target.name)
@@ -941,10 +939,10 @@ class CodeGenerator:
                 return
             clobbered = set()  # type: Set[str]
             if targetdef.clobbered_registers:
-                if stmt.preserve_regs:
-                    clobbered = targetdef.clobbered_registers
-                    unclobber_result_registers(clobbered, stmt.desugared_output_assignments)
-            with self.preserving_registers(clobbered, loads_a_within=params_load_a()):
+                if stmt.preserve_regs is not None:
+                    clobbered = targetdef.clobbered_registers & stmt.preserve_regs
+                    clobbered = unclobber_result_registers(clobbered, stmt.desugared_output_assignments)
+            with self.preserving_registers(clobbered, loads_a_within=params_load_a(), always_preserve=stmt.preserve_regs is not None):
                 generate_param_assignments()
                 branch_emitter(targetstr, False, False)
                 generate_result_assignments()
@@ -974,14 +972,14 @@ class CodeGenerator:
                 # no result assignments because it's a goto
             else:
                 # indirect call to subroutine
-                preserve_regs = {'A', 'X', 'Y'} if stmt.preserve_regs else set()
-                unclobber_result_registers(preserve_regs, stmt.desugared_output_assignments)
-                with self.preserving_registers(preserve_regs, loads_a_within=params_load_a()):
+                preserve_regs = unclobber_result_registers(stmt.preserve_regs or set(), stmt.desugared_output_assignments)
+                with self.preserving_registers(preserve_regs, loads_a_within=params_load_a(),
+                                               always_preserve=stmt.preserve_regs is not None):
                     generate_param_assignments()
                     if targetstr in REGISTER_WORDS:
                         print("warning: {}: indirect register pair call is quite inefficient, use a jump table in memory instead?"
                               .format(stmt.sourceref))
-                        if stmt.preserve_regs:
+                        if stmt.preserve_regs is not None:
                             # cannot use zp scratch because it may be used by the register backup. This is very inefficient code!
                             self.p("\t\tjsr  il65_lib.jsr_indirect_nozpuse_"+targetstr)
 
@@ -1009,9 +1007,9 @@ class CodeGenerator:
                 branch_emitter(targetstr, True, False)
                 # no result assignments because it's a goto
             else:
-                preserve_regs = {'A', 'X', 'Y'} if stmt.preserve_regs else set()
-                unclobber_result_registers(preserve_regs, stmt.desugared_output_assignments)
-                with self.preserving_registers(preserve_regs, loads_a_within=params_load_a()):
+                preserve_regs = unclobber_result_registers(stmt.preserve_regs or set(), stmt.desugared_output_assignments)
+                with self.preserving_registers(preserve_regs, loads_a_within=params_load_a(),
+                                               always_preserve=stmt.preserve_regs is not None):
                     generate_param_assignments()
                     branch_emitter(targetstr, False, False)
                     generate_result_assignments()
@@ -1040,19 +1038,17 @@ class CodeGenerator:
                 self.p("\t\tclc")
                 self.p("\t\tadc  " + r_str)
             elif lvalue.register == "X":
-                self.p("\t\tpha")
-                self.p("\t\ttxa")
-                self.p("\t\tclc")
-                self.p("\t\tadc  " + r_str)
-                self.p("\t\ttax")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttxa")
+                    self.p("\t\tclc")
+                    self.p("\t\tadc  " + r_str)
+                    self.p("\t\ttax")
             elif lvalue.register == "Y":
-                self.p("\t\tpha")
-                self.p("\t\ttya")
-                self.p("\t\tclc")
-                self.p("\t\tadc  " + r_str)
-                self.p("\t\ttay")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttya")
+                    self.p("\t\tclc")
+                    self.p("\t\tadc  " + r_str)
+                    self.p("\t\ttay")
             else:
                 raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo +=.word
         elif operator == "-=":
@@ -1060,70 +1056,62 @@ class CodeGenerator:
                 self.p("\t\tsec")
                 self.p("\t\tsbc  " + r_str)
             elif lvalue.register == "X":
-                self.p("\t\tpha")
-                self.p("\t\ttxa")
-                self.p("\t\tsec")
-                self.p("\t\tsbc  " + r_str)
-                self.p("\t\ttax")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttxa")
+                    self.p("\t\tsec")
+                    self.p("\t\tsbc  " + r_str)
+                    self.p("\t\ttax")
             elif lvalue.register == "Y":
-                self.p("\t\tpha")
-                self.p("\t\ttya")
-                self.p("\t\tsec")
-                self.p("\t\tsbc  " + r_str)
-                self.p("\t\ttay")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttya")
+                    self.p("\t\tsec")
+                    self.p("\t\tsbc  " + r_str)
+                    self.p("\t\ttay")
             else:
                 raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo -=.word
         elif operator == "&=":
             if lvalue.register == "A":
                 self.p("\t\tand  " + r_str)
             elif lvalue.register == "X":
-                self.p("\t\tpha")
-                self.p("\t\ttxa")
-                self.p("\t\tand  " + r_str)
-                self.p("\t\ttax")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttxa")
+                    self.p("\t\tand  " + r_str)
+                    self.p("\t\ttax")
             elif lvalue.register == "Y":
-                self.p("\t\tpha")
-                self.p("\t\ttya")
-                self.p("\t\tand  " + r_str)
-                self.p("\t\ttay")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttya")
+                    self.p("\t\tand  " + r_str)
+                    self.p("\t\ttay")
             else:
                 raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo &=.word
         elif operator == "|=":
             if lvalue.register == "A":
                 self.p("\t\tora  " + r_str)
             elif lvalue.register == "X":
-                self.p("\t\tpha")
-                self.p("\t\ttxa")
-                self.p("\t\tora  " + r_str)
-                self.p("\t\ttax")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttxa")
+                    self.p("\t\tora  " + r_str)
+                    self.p("\t\ttax")
             elif lvalue.register == "Y":
-                self.p("\t\tpha")
-                self.p("\t\ttya")
-                self.p("\t\tora  " + r_str)
-                self.p("\t\ttay")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttya")
+                    self.p("\t\tora  " + r_str)
+                    self.p("\t\ttay")
             else:
                 raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo |=.word
         elif operator == "^=":
             if lvalue.register == "A":
                 self.p("\t\teor  " + r_str)
             elif lvalue.register == "X":
-                self.p("\t\tpha")
-                self.p("\t\ttxa")
-                self.p("\t\teor  " + r_str)
-                self.p("\t\ttax")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttxa")
+                    self.p("\t\teor  " + r_str)
+                    self.p("\t\ttax")
             elif lvalue.register == "Y":
-                self.p("\t\tpha")
-                self.p("\t\ttya")
-                self.p("\t\teor  " + r_str)
-                self.p("\t\ttay")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttya")
+                    self.p("\t\teor  " + r_str)
+                    self.p("\t\ttay")
             else:
                 raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo ^=.word
         elif operator == ">>=":
@@ -1133,17 +1121,15 @@ class CodeGenerator:
             if lvalue.register == "A":
                 self.p("\t\tlsr  " + r_str)
             elif lvalue.register == "X":
-                self.p("\t\tpha")
-                self.p("\t\ttxa")
-                self.p("\t\tlsr  " + r_str)
-                self.p("\t\ttax")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttxa")
+                    self.p("\t\tlsr  " + r_str)
+                    self.p("\t\ttax")
             elif lvalue.register == "Y":
-                self.p("\t\tpha")
-                self.p("\t\ttya")
-                self.p("\t\tlsr  " + r_str)
-                self.p("\t\ttay")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttya")
+                    self.p("\t\tlsr  " + r_str)
+                    self.p("\t\ttay")
             else:
                 raise CodeError("unsupported lvalue register for shift", str(lvalue))  # @todo >>=.word
         elif operator == "<<=":
@@ -1153,17 +1139,15 @@ class CodeGenerator:
             if lvalue.register == "A":
                 self.p("\t\tasl  " + r_str)
             elif lvalue.register == "X":
-                self.p("\t\tpha")
-                self.p("\t\ttxa")
-                self.p("\t\tasl  " + r_str)
-                self.p("\t\ttax")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttxa")
+                    self.p("\t\tasl  " + r_str)
+                    self.p("\t\ttax")
             elif lvalue.register == "Y":
-                self.p("\t\tpha")
-                self.p("\t\ttya")
-                self.p("\t\tasl  " + r_str)
-                self.p("\t\ttay")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttya")
+                    self.p("\t\tasl  " + r_str)
+                    self.p("\t\ttay")
             else:
                 raise CodeError("unsupported lvalue register for shift", str(lvalue))  # @todo >>=.word
 
@@ -1174,19 +1158,17 @@ class CodeGenerator:
                 self.p("\t\tclc")
                 self.p("\t\tadc  #" + r_str)
             elif lvalue.register == "X":
-                self.p("\t\tpha")
-                self.p("\t\ttxa")
-                self.p("\t\tclc")
-                self.p("\t\tadc  #" + r_str)
-                self.p("\t\ttax")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttxa")
+                    self.p("\t\tclc")
+                    self.p("\t\tadc  #" + r_str)
+                    self.p("\t\ttax")
             elif lvalue.register == "Y":
-                self.p("\t\tpha")
-                self.p("\t\ttya")
-                self.p("\t\tclc")
-                self.p("\t\tadc  #" + r_str)
-                self.p("\t\ttay")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttya")
+                    self.p("\t\tclc")
+                    self.p("\t\tadc  #" + r_str)
+                    self.p("\t\ttay")
             else:
                 raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo +=.word
         elif operator == "-=":
@@ -1194,70 +1176,62 @@ class CodeGenerator:
                 self.p("\t\tsec")
                 self.p("\t\tsbc  #" + r_str)
             elif lvalue.register == "X":
-                self.p("\t\tpha")
-                self.p("\t\ttxa")
-                self.p("\t\tsec")
-                self.p("\t\tsbc  #" + r_str)
-                self.p("\t\ttax")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttxa")
+                    self.p("\t\tsec")
+                    self.p("\t\tsbc  #" + r_str)
+                    self.p("\t\ttax")
             elif lvalue.register == "Y":
-                self.p("\t\tpha")
-                self.p("\t\ttya")
-                self.p("\t\tsec")
-                self.p("\t\tsbc  #" + r_str)
-                self.p("\t\ttay")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttya")
+                    self.p("\t\tsec")
+                    self.p("\t\tsbc  #" + r_str)
+                    self.p("\t\ttay")
             else:
                 raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo -=.word
         elif operator == "&=":
             if lvalue.register == "A":
                 self.p("\t\tand  #" + r_str)
             elif lvalue.register == "X":
-                self.p("\t\tpha")
-                self.p("\t\ttxa")
-                self.p("\t\tand  #" + r_str)
-                self.p("\t\ttax")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttxa")
+                    self.p("\t\tand  #" + r_str)
+                    self.p("\t\ttax")
             elif lvalue.register == "Y":
-                self.p("\t\tpha")
-                self.p("\t\ttya")
-                self.p("\t\tand  #" + r_str)
-                self.p("\t\ttay")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttya")
+                    self.p("\t\tand  #" + r_str)
+                    self.p("\t\ttay")
             else:
                 raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo &=.word
         elif operator == "|=":
             if lvalue.register == "A":
                 self.p("\t\tora  #" + r_str)
             elif lvalue.register == "X":
-                self.p("\t\tpha")
-                self.p("\t\ttxa")
-                self.p("\t\tora  #" + r_str)
-                self.p("\t\ttax")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttxa")
+                    self.p("\t\tora  #" + r_str)
+                    self.p("\t\ttax")
             elif lvalue.register == "Y":
-                self.p("\t\tpha")
-                self.p("\t\ttya")
-                self.p("\t\tora  #" + r_str)
-                self.p("\t\ttay")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttya")
+                    self.p("\t\tora  #" + r_str)
+                    self.p("\t\ttay")
             else:
                 raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo |=.word
         elif operator == "^=":
             if lvalue.register == "A":
                 self.p("\t\teor  #" + r_str)
             elif lvalue.register == "X":
-                self.p("\t\tpha")
-                self.p("\t\ttxa")
-                self.p("\t\teor  #" + r_str)
-                self.p("\t\ttax")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttxa")
+                    self.p("\t\teor  #" + r_str)
+                    self.p("\t\ttax")
             elif lvalue.register == "Y":
-                self.p("\t\tpha")
-                self.p("\t\ttya")
-                self.p("\t\teor  #" + r_str)
-                self.p("\t\ttay")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttya")
+                    self.p("\t\teor  #" + r_str)
+                    self.p("\t\ttay")
             else:
                 raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo ^=.word
         elif operator == ">>=":
@@ -1271,17 +1245,15 @@ class CodeGenerator:
                 if lvalue.register == "A":
                     shifts_A(rvalue.value)
                 elif lvalue.register == "X":
-                    self.p("\t\tpha")
-                    self.p("\t\ttxa")
-                    shifts_A(rvalue.value)
-                    self.p("\t\ttax")
-                    self.p("\t\tpla")
+                    with self.preserving_registers({'A'}):
+                        self.p("\t\ttxa")
+                        shifts_A(rvalue.value)
+                        self.p("\t\ttax")
                 elif lvalue.register == "Y":
-                    self.p("\t\tpha")
-                    self.p("\t\ttya")
-                    shifts_A(rvalue.value)
-                    self.p("\t\ttay")
-                    self.p("\t\tpla")
+                    with self.preserving_registers({'A'}):
+                        self.p("\t\ttya")
+                        shifts_A(rvalue.value)
+                        self.p("\t\ttay")
                 else:
                     raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo >>=.word
         elif operator == "<<=":
@@ -1295,17 +1267,15 @@ class CodeGenerator:
                 if lvalue.register == "A":
                     shifts_A(rvalue.value)
                 elif lvalue.register == "X":
-                    self.p("\t\tpha")
-                    self.p("\t\ttxa")
-                    shifts_A(rvalue.value)
-                    self.p("\t\ttax")
-                    self.p("\t\tpla")
+                    with self.preserving_registers({'A'}):
+                        self.p("\t\ttxa")
+                        shifts_A(rvalue.value)
+                        self.p("\t\ttax")
                 elif lvalue.register == "Y":
-                    self.p("\t\tpha")
-                    self.p("\t\ttya")
-                    shifts_A(rvalue.value)
-                    self.p("\t\ttay")
-                    self.p("\t\tpla")
+                    with self.preserving_registers({'A'}):
+                        self.p("\t\ttya")
+                        shifts_A(rvalue.value)
+                        self.p("\t\ttay")
                 else:
                     raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo <<=.word
 
@@ -1319,20 +1289,18 @@ class CodeGenerator:
                 self.p("\t\tadc  " + Parser.to_hex(Zeropage.SCRATCH_B1))
             elif lvalue.register == "X":
                 self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
-                self.p("\t\tpha")
-                self.p("\t\ttxa")
-                self.p("\t\tclc")
-                self.p("\t\tadc  " + Parser.to_hex(Zeropage.SCRATCH_B1))
-                self.p("\t\ttax")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttxa")
+                    self.p("\t\tclc")
+                    self.p("\t\tadc  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                    self.p("\t\ttax")
             elif lvalue.register == "Y":
                 self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
-                self.p("\t\tpha")
-                self.p("\t\ttya")
-                self.p("\t\tclc")
-                self.p("\t\tadc  " + Parser.to_hex(Zeropage.SCRATCH_B1))
-                self.p("\t\ttay")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttya")
+                    self.p("\t\tclc")
+                    self.p("\t\tadc  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                    self.p("\t\ttay")
             else:
                 raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo +=.word
         elif operator == "-=":
@@ -1344,20 +1312,18 @@ class CodeGenerator:
                 self.p("\t\tsbc  " + Parser.to_hex(Zeropage.SCRATCH_B1))
             elif lvalue.register == "X":
                 self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
-                self.p("\t\tpha")
-                self.p("\t\ttxa")
-                self.p("\t\tsec")
-                self.p("\t\tsbc  " + Parser.to_hex(Zeropage.SCRATCH_B1))
-                self.p("\t\ttax")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttxa")
+                    self.p("\t\tsec")
+                    self.p("\t\tsbc  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                    self.p("\t\ttax")
             elif lvalue.register == "Y":
                 self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
-                self.p("\t\tpha")
-                self.p("\t\ttya")
-                self.p("\t\tsec")
-                self.p("\t\tsbc  " + Parser.to_hex(Zeropage.SCRATCH_B1))
-                self.p("\t\ttay")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttya")
+                    self.p("\t\tsec")
+                    self.p("\t\tsbc  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                    self.p("\t\ttay")
             else:
                 raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo -=.word
         elif operator == "&=":
@@ -1368,18 +1334,16 @@ class CodeGenerator:
                 self.p("\t\tand  " + Parser.to_hex(Zeropage.SCRATCH_B1))
             elif lvalue.register == "X":
                 self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
-                self.p("\t\tpha")
-                self.p("\t\ttxa")
-                self.p("\t\tand  " + Parser.to_hex(Zeropage.SCRATCH_B1))
-                self.p("\t\ttax")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttxa")
+                    self.p("\t\tand  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                    self.p("\t\ttax")
             elif lvalue.register == "Y":
                 self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
-                self.p("\t\tpha")
-                self.p("\t\ttya")
-                self.p("\t\tand  " + Parser.to_hex(Zeropage.SCRATCH_B1))
-                self.p("\t\ttay")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttya")
+                    self.p("\t\tand  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                    self.p("\t\ttay")
             else:
                 raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo &=.word
         elif operator == "|=":
@@ -1390,18 +1354,16 @@ class CodeGenerator:
                 self.p("\t\tora  " + Parser.to_hex(Zeropage.SCRATCH_B1))
             elif lvalue.register == "X":
                 self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
-                self.p("\t\tpha")
-                self.p("\t\ttxa")
-                self.p("\t\tora  " + Parser.to_hex(Zeropage.SCRATCH_B1))
-                self.p("\t\ttax")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttxa")
+                    self.p("\t\tora  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                    self.p("\t\ttax")
             elif lvalue.register == "Y":
                 self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
-                self.p("\t\tpha")
-                self.p("\t\ttya")
-                self.p("\t\tora  " + Parser.to_hex(Zeropage.SCRATCH_B1))
-                self.p("\t\ttay")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttya")
+                    self.p("\t\tora  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                    self.p("\t\ttay")
             else:
                 raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo |=.word
         elif operator == "^=":
@@ -1412,18 +1374,16 @@ class CodeGenerator:
                 self.p("\t\teor  " + Parser.to_hex(Zeropage.SCRATCH_B1))
             elif lvalue.register == "X":
                 self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
-                self.p("\t\tpha")
-                self.p("\t\ttxa")
-                self.p("\t\teor  " + Parser.to_hex(Zeropage.SCRATCH_B1))
-                self.p("\t\ttax")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttxa")
+                    self.p("\t\teor  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                    self.p("\t\ttax")
             elif lvalue.register == "Y":
                 self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
-                self.p("\t\tpha")
-                self.p("\t\ttya")
-                self.p("\t\teor  " + Parser.to_hex(Zeropage.SCRATCH_B1))
-                self.p("\t\ttay")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttya")
+                    self.p("\t\teor  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                    self.p("\t\ttay")
             else:
                 raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo ^=.word
         elif operator == ">>=":
@@ -1434,18 +1394,16 @@ class CodeGenerator:
                 self.p("\t\tlsr  " + Parser.to_hex(Zeropage.SCRATCH_B1))
             elif lvalue.register == "X":
                 self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
-                self.p("\t\tpha")
-                self.p("\t\ttxa")
-                self.p("\t\tlsr  " + Parser.to_hex(Zeropage.SCRATCH_B1))
-                self.p("\t\ttax")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttxa")
+                    self.p("\t\tlsr  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                    self.p("\t\ttax")
             elif lvalue.register == "Y":
                 self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
-                self.p("\t\tpha")
-                self.p("\t\ttya")
-                self.p("\t\tlsr  " + Parser.to_hex(Zeropage.SCRATCH_B1))
-                self.p("\t\ttay")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttya")
+                    self.p("\t\tlsr  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                    self.p("\t\ttay")
             else:
                 raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo >>=.word
         elif operator == "<<=":
@@ -1456,18 +1414,16 @@ class CodeGenerator:
                 self.p("\t\tasl  " + Parser.to_hex(Zeropage.SCRATCH_B1))
             elif lvalue.register == "X":
                 self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
-                self.p("\t\tpha")
-                self.p("\t\ttxa")
-                self.p("\t\tasl  " + Parser.to_hex(Zeropage.SCRATCH_B1))
-                self.p("\t\ttax")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttxa")
+                    self.p("\t\tasl  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                    self.p("\t\ttax")
             elif lvalue.register == "Y":
                 self.p("\t\tst{:s}  {:s}".format(rvalue.register.lower(), Parser.to_hex(Zeropage.SCRATCH_B1)))
-                self.p("\t\tpha")
-                self.p("\t\ttya")
-                self.p("\t\tasl  " + Parser.to_hex(Zeropage.SCRATCH_B1))
-                self.p("\t\ttay")
-                self.p("\t\tpla")
+                with self.preserving_registers({'A'}):
+                    self.p("\t\ttya")
+                    self.p("\t\tasl  " + Parser.to_hex(Zeropage.SCRATCH_B1))
+                    self.p("\t\ttay")
             else:
                 raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo <<=.word
 
@@ -1556,14 +1512,14 @@ class CodeGenerator:
         floatvalue = float(rvalue.value)
         mflpt = self.to_mflpt5(floatvalue)
         target = mmv.name or Parser.to_hex(mmv.address)
-        self.p("\t\tpha\t\t\t; {:s} = {}".format(target, rvalue.name or floatvalue))
-        a_reg_value = None
-        for i, byte in enumerate(mflpt):
-            if byte != a_reg_value:
-                self.p("\t\tlda  #${:02x}".format(byte))
-                a_reg_value = byte
-            self.p("\t\tsta  {:s}+{:d}".format(target, i))
-        self.p("\t\tpla")
+        with self.preserving_registers({'A'}):
+            self.p("\t\t\t\t\t; {:s} = {}".format(target, rvalue.name or floatvalue))
+            a_reg_value = None
+            for i, byte in enumerate(mflpt):
+                if byte != a_reg_value:
+                    self.p("\t\tlda  #${:02x}".format(byte))
+                    a_reg_value = byte
+                self.p("\t\tsta  {:s}+{:d}".format(target, i))
 
     def generate_assign_reg_to_memory(self, lv: MemMappedValue, r_register: str) -> None:
         # Memory = Register
@@ -1692,9 +1648,12 @@ class CodeGenerator:
                 raise CodeError("invalid register " + lv.register)
 
     @contextlib.contextmanager
-    def preserving_registers(self, registers: Set[str], loads_a_within: bool=False):
-        # this clobbers a ZP scratch register and is therefore NOT safe to use in interrupts
+    def preserving_registers(self, registers: Set[str], loads_a_within: bool=False, always_preserve: bool=False):
+        # this sometimes clobbers a ZP scratch register and is therefore NOT safe to use in interrupts
         # see http://6502.org/tutorials/register_preservation.html
+        if not self.cur_block.preserve_registers and not always_preserve:
+            yield
+            return
         if registers == {'A'}:
             self.p("\t\tpha")
             yield
