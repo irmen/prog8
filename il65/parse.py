@@ -93,6 +93,7 @@ class Parser:
         self.ppsymbols = ppsymbols  # symboltable from preprocess phase
         self.print_block_parsing = True
         self.existing_imports = existing_imports
+        self.parse_errors = 0
 
     def load_source(self, filename: str) -> List[Tuple[int, str]]:
         with open(filename, "rU") as source:
@@ -115,22 +116,9 @@ class Parser:
     def parse(self) -> Optional[ParseResult]:
         # start the parsing
         try:
-            return self.parse_file()
+            result = self.parse_file()
         except ParseError as x:
-            if sys.stderr.isatty():
-                print("\x1b[1m", file=sys.stderr)
-            print("", file=sys.stderr)
-            if x.sourcetext:
-                print("\tsource text: '{:s}'".format(x.sourcetext), file=sys.stderr)
-                if x.sourceref.column:
-                    print("\t" + ' '*x.sourceref.column + '             ^', file=sys.stderr)
-            if self.parsing_import:
-                print("Error (in imported file):", str(x), file=sys.stderr)
-            else:
-                print("Error:", str(x), file=sys.stderr)
-            if sys.stderr.isatty():
-                print("\x1b[0m", file=sys.stderr)
-            raise   # XXX temporary solution to get stack trace info in the event of parse errors
+            self.handle_parse_error(x)
         except Exception as x:
             if sys.stderr.isatty():
                 print("\x1b[1m", file=sys.stderr)
@@ -140,8 +128,27 @@ class Parser:
             else:
                 print("    file:", self.sourceref.file, file=sys.stderr)
             if sys.stderr.isatty():
-                print("\x1b[0m", file=sys.stderr)
-            raise   # XXX temporary solution to get stack trace info in the event of parse errors
+                print("\x1b[0m", file=sys.stderr, end="", flush=True)
+            raise
+        if self.parse_errors:
+            self.print_bold("\nNo output; there were {:d} errors in file {:s}\n".format(self.parse_errors, self.sourceref.file))
+            raise SystemExit(1)
+        return result
+
+    def handle_parse_error(self, exc: ParseError) -> None:
+        self.parse_errors += 1
+        if sys.stderr.isatty():
+            print("\x1b[1m", file=sys.stderr)
+        if exc.sourcetext:
+            print("\t" + exc.sourcetext, file=sys.stderr)
+            if exc.sourceref.column:
+                print("\t" + ' ' * exc.sourceref.column + '             ^', file=sys.stderr)
+        if self.parsing_import:
+            print("Error (in imported file):", str(exc), file=sys.stderr)
+        else:
+            print("Error:", str(exc), file=sys.stderr)
+        if sys.stderr.isatty():
+            print("\x1b[0m", file=sys.stderr, end="", flush=True)
 
     def parse_file(self) -> ParseResult:
         print("\nparsing", self.sourceref.file)
@@ -155,7 +162,7 @@ class Parser:
 
     def print_bold(self, text: str) -> None:
         if sys.stdout.isatty():
-            print("\x1b[1m" + text + "\x1b[0m")
+            print("\x1b[1m" + text + "\x1b[0m", flush=True)
         else:
             print(text)
 
@@ -584,49 +591,59 @@ class Parser:
             else:
                 raise self.PError("invalid statement in block")
         while True:
-            self._parse_comments()
-            line = self.next_line()
-            unstripped_line = line
-            line = line.strip()
-            if line == "}":
-                if is_zp_block and any(b.name == "ZP" for b in self.result.blocks):
-                    return None     # we already have the ZP block
-                if self.cur_block.ignore:
-                    self.print_warning("ignoring block without name and address", self.cur_block.sourceref)
-                    return None
-                return self.cur_block
-            if line.startswith(("var ", "var\t")):
-                self.parse_var_def(line)
-            elif line.startswith(("const ", "const\t")):
-                self.parse_const_def(line)
-            elif line.startswith(("memory ", "memory\t")):
-                self.parse_memory_def(line, is_zp_block)
-            elif line.startswith(("sub ", "sub\t")):
-                if is_zp_block:
-                    raise self.PError("ZP block cannot contain subroutines")
-                self.parse_subroutine_def(line)
-            elif line.startswith(("asminclude ", "asminclude\t", "asmbinary ", "asmbinary\t")):
-                if is_zp_block:
-                    raise self.PError("ZP block cannot contain assembler directives")
-                self.cur_block.statements.append(self.parse_asminclude(line))
-            elif line.startswith(("asm ", "asm\t")):
-                if is_zp_block:
-                    raise self.PError("ZP block cannot contain code statements")
-                self.prev_line()
-                self.cur_block.statements.append(self.parse_asm())
-            elif line == "breakpoint":
-                self.cur_block.statements.append(BreakpointStmt(self.sourceref))
-                self.print_warning("breakpoint defined")
-            elif unstripped_line.startswith((" ", "\t")):
-                if is_zp_block:
-                    raise self.PError("ZP block cannot contain code statements")
-                self.cur_block.statements.append(self.parse_statement(line))
-            elif line:
-                if is_zp_block:
-                    raise self.PError("ZP block cannot contain code labels")
-                self.parse_label(line)
-            else:
-                raise self.PError("invalid statement in block")
+            try:
+                go_on, resultblock = self._parse_block_statement(is_zp_block)
+                if not go_on:
+                    return resultblock
+            except ParseError as x:
+                self.handle_parse_error(x)
+
+    def _parse_block_statement(self, is_zp_block: bool) -> Tuple[bool, Optional[Block]]:
+        # parse the statements inside a block
+        self._parse_comments()
+        line = self.next_line()
+        unstripped_line = line
+        line = line.strip()
+        if line == "}":
+            if is_zp_block and any(b.name == "ZP" for b in self.result.blocks):
+                return False, None     # we already have the ZP block
+            if self.cur_block.ignore:
+                self.print_warning("ignoring block without name and address", self.cur_block.sourceref)
+                return False, None
+            return False, self.cur_block
+        if line.startswith(("var ", "var\t")):
+            self.parse_var_def(line)
+        elif line.startswith(("const ", "const\t")):
+            self.parse_const_def(line)
+        elif line.startswith(("memory ", "memory\t")):
+            self.parse_memory_def(line, is_zp_block)
+        elif line.startswith(("sub ", "sub\t")):
+            if is_zp_block:
+                raise self.PError("ZP block cannot contain subroutines")
+            self.parse_subroutine_def(line)
+        elif line.startswith(("asminclude ", "asminclude\t", "asmbinary ", "asmbinary\t")):
+            if is_zp_block:
+                raise self.PError("ZP block cannot contain assembler directives")
+            self.cur_block.statements.append(self.parse_asminclude(line))
+        elif line.startswith(("asm ", "asm\t")):
+            if is_zp_block:
+                raise self.PError("ZP block cannot contain code statements")
+            self.prev_line()
+            self.cur_block.statements.append(self.parse_asm())
+        elif line == "breakpoint":
+            self.cur_block.statements.append(BreakpointStmt(self.sourceref))
+            self.print_warning("breakpoint defined")
+        elif unstripped_line.startswith((" ", "\t")):
+            if is_zp_block:
+                raise self.PError("ZP block cannot contain code statements")
+            self.cur_block.statements.append(self.parse_statement(line))
+        elif line:
+            if is_zp_block:
+                raise self.PError("ZP block cannot contain code labels")
+            self.parse_label(line)
+        else:
+            raise self.PError("invalid statement in block")
+        return True, None   # continue with more statements
 
     def parse_label(self, line: str) -> None:
         label_line = line.split(maxsplit=1)
