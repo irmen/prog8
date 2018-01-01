@@ -173,4 +173,76 @@ remainder = SCRATCH_ZP1
 	}
 }
 
+
+sub  randbyte  () -> (A)  {
+	; ---- 8-bit pseudo random number generator into A
+
+	%asm {
+		lda  _seed
+		beq  +
+		asl  a
+		beq  ++		;if the input was $80, skip the EOR
+		bcc  ++
++		eor  _magic	; #$1d		; could be self-modifying code to set new magic
++		sta  _seed
+		rts
+
+		_seed		.byte  $3a
+_magic		.byte  $1d
+_magiceors	.byte  $1d, $2b, $2d, $4d, $5f, $63, $65, $69
+		.byte  $71, $87, $8d, $a9, $c3, $cf, $e7, $f5
+
+ 		;returns  - this comment avoids compiler warning
+	}
+}
+
+sub  randword  () ->  (XY)  {
+	; ---- 16 bit pseudo random number generator into XY
+
+	%asm {
+		lda  _seed
+		beq  _lowZero	; $0000 and $8000 are special values to test for
+
+ 		; Do a normal shift
+		asl  _seed
+		lda  _seed+1
+		rol  a
+		bcc  _noEor
+
+_doEor		; high byte is in A
+		eor  _magic+1	; #>magic	; could be self-modifying code to set new magic
+  		sta  _seed+1
+  		lda  _seed
+  		eor  _magic	; #<magic	; could be self-modifying code to set new magic
+  		sta  _seed
+  		tax
+  		ldy  _seed+1
+  		rts
+
+_lowZero	lda  _seed+1
+		beq  _doEor	; High byte is also zero, so apply the EOR
+				; For speed, you could store 'magic' into 'seed' directly
+				; instead of running the EORs
+
+ 		; wasn't zero, check for $8000
+		asl  a
+		beq  _noEor	; if $00 is left after the shift, then it was $80
+		bcs  _doEor	; else, do the EOR based on the carry bit as usual
+
+_noEor		sta  _seed+1
+		tay
+		ldx  _seed
+ 		rts
+
+
+_seed		.word	$2c9e
+_magic		.word   $3f1d
+_magiceors	.word   $3f1d, $3f81, $3fa5, $3fc5, $4075, $409d, $40cd, $4109
+ 		.word   $413f, $414b, $4153, $4159, $4193, $4199, $41af, $41bb
+
+ 		;returns  - this comment avoids compiler warning
+	}
+}
+
+
 }

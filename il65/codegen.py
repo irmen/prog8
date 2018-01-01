@@ -8,16 +8,13 @@ License: GNU GPL 3.0, see LICENSE
 
 import io
 import re
-import math
 import datetime
 import subprocess
 import contextlib
 from functools import partial
-from typing import TextIO, Set, Union, List, Callable
+from typing import TextIO, Callable
 from .parse import ProgramFormat, ParseResult, Parser
-from .astdefs import *
-from .symbols import Zeropage, DataType, ConstantDef, VariableDef, SubroutineDef, \
-    STRING_DATATYPES, REGISTER_WORDS, REGISTER_BYTES, FLOAT_MAX_NEGATIVE, FLOAT_MAX_POSITIVE
+from .symbols import *
 
 
 class CodeError(Exception):
@@ -353,7 +350,7 @@ class CodeGenerator:
             self.p("{:s}\n\t\t.ptext  {:s}".format(vardef.name, self.output_string(str(vardef.value), True)))
             self.p(".enc  'none'")
 
-    def generate_statement(self, stmt: _AstNode) -> None:
+    def generate_statement(self, stmt: AstNode) -> None:
         if isinstance(stmt, ReturnStmt):
             if stmt.a:
                 if isinstance(stmt.a, IntegerValue):

@@ -8,8 +8,7 @@ License: GNU GPL 3.0, see LICENSE
 
 from typing import List, Tuple, Set
 from .parse import Parser, ParseResult, SymbolTable, SymbolDefinition
-from .symbols import SourceRef
-from .astdefs import _AstNode, InlineAsm
+from .symbols import SourceRef, AstNode, InlineAsm
 
 
 class PreprocessingParser(Parser):
@@ -45,7 +44,7 @@ class PreprocessingParser(Parser):
     def parse_asminclude(self, line: str) -> InlineAsm:
         return InlineAsm([], self.sourceref)
 
-    def parse_statement(self, line: str) -> _AstNode:
+    def parse_statement(self, line: str) -> AstNode:
         return None
 
     def parse_var_def(self, line: str) -> None:

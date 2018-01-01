@@ -1,6 +1,6 @@
 %output prg,basic
 %import "c64lib"
-
+%import "mathlib"
 
 ~ main {
         var     .text   name    = '?' * 80
@@ -27,13 +27,17 @@ start
         c64.CHROUT('\n')
 
         ; create a secret random number from 1-100
-        c64.RNDA(0)
-        c64.MUL10()
-        c64.MUL10()
-        c64.FADDH()
-        c64.FADDH()
+        c64.RNDA(0)             ; fac = rnd(0)
+        c64.MUL10()             ; fac *= 10
+        c64.MUL10()             ; .. and now *100
+        c64.FADDH()             ; add 0.5..
+        c64.FADDH()             ;   and again, so +1 total
         AY = c64flt.GETADRAY()
-        secretnumber = A
+        secretnumber=A
+        ;A=math.randbyte()
+        ;A+=c64.RASTER
+        ;A-=c64.TIME_LO
+        ;X,secretnumber=math.divmod_bytes(A, 99)
 
         c64scr.print_string("I am thinking of a number from 1 to 100!You'll have to guess it!\n")
 

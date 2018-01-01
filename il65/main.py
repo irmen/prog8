@@ -12,7 +12,8 @@ import time
 import os
 import argparse
 import subprocess
-from .parse import Parser, Optimizer
+from .parse import Parser
+from .optimize import Optimizer
 from .preprocess import PreprocessingParser
 from .codegen import CodeGenerator, Assembler64Tass
 

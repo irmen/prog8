@@ -1,10 +1,8 @@
 %output prg,basic
-%preserve_registers no
-
 %import "c64lib"
+%import "mathlib"
 
 ~ main {
-        %preserve_registers false
 
 
                 const   num = 2
@@ -12,6 +10,46 @@
                 var .word  wvar1 = 2
 
 start
+        A=math.randbyte()
+        A+=c64.RASTER
+        A-=c64.TIME_LO
+        X,A=math.divmod_bytes(A, 99)
+        c64scr.print_byte_decimal(A)
+        c64.CHROUT('\n')
+        return
+
+
+rndloop
+        XY = math.randword()
+        %asm {
+                txa
+                sta $0400,y
+                tya
+                sta $0500,x
+        }
+        ;[wvar1] = 81            ; @todo implement pointers like this
+        goto rndloop
+
+
+
+
+
+        A = math.randbyte()
+        Y=A
+        %asm {
+                txa
+                sta  $0400,y
+        }
+        X--
+        if_ne  goto rndloop
+        %asm {
+                iny
+                sty  math.randbyte._seed
+        }
+        goto rndloop
+        return
+
+        goto start
 
         X <<= var1
         X >>= var1

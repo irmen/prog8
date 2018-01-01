@@ -364,8 +364,8 @@ to store those values somewhere:
 The output variables must occur in the correct sequence of return registers as specified
 in the subroutine's definiton. It is possible to not specify any of them but the compiler
 will issue a warning then if the result values of a subroutine call are discarded.
-Even if the subroutine returns something in a register that already is the correct one
-you want to keep, you'll have to explicitly assign the return value to that register.
+If you don't have a variable to store the output register in, it's then required
+to list the register itself instead as output variable.
 
 Arguments should match the subroutine definition. You are allowed to omit the parameter names.
 If no definition is available (because you're directly calling memory or a label or something else),
