@@ -974,7 +974,7 @@ sub  print_word_decimal0  (word: XY) -> (?)  {
 }
 
 
-sub  print_word_decimal  (word: XY) -> (A?, X? Y?)  {
+sub  print_word_decimal  (word: XY) -> (A?, X?, Y?)  {
 	; ---- print the word in X/Y in decimal form, without left padding 0s
 	%asm {
 		jsr  word2decimal

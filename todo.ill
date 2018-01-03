@@ -1,6 +1,6 @@
 %output prg,basic
-%import "c64lib"
-%import "mathlib"
+%import c64lib
+%import mathlib
 
 ~ main {
 
@@ -9,9 +9,9 @@
                 var     var1  =2
                 var .word  wvar1 = 2
 
-start
+start:
         A=math.randbyte()
-        A+=c64.RASTER
+        A +=  c64.RASTER
         A-=c64.TIME_LO
         X,A=math.divmod_bytes(A, 99)
         c64scr.print_byte_decimal(A)
@@ -19,7 +19,7 @@ start
         return
 
 
-rndloop
+rndloop:
         XY = math.randword()
         %asm {
                 txa
@@ -76,6 +76,10 @@ rndloop
         X >>= 7
         X >>= 8
         X >>= 22
+        XY = 1
+        AX = 2
+        SC =2
+        QW =3
         ;XY <<= 0
         ;XY <<= 1
         ;XY <<= 2
@@ -114,7 +118,7 @@ rndloop
                 bne  -
         }
 
-loop
+loop   :
         A=c64.GETIN()
         if_not goto loop
         c64scr.scroll_right_full(1)
@@ -133,6 +137,12 @@ loop
         Y = $33
 
         c64scr.clear_screen (81, 5)
+        c64scr.clear_screen (81, 5)
+        c64scr.clear_screen (81, 5)
+        c64scr.clear_screen (81, 5)
+        c64scr.clear_screen ! (81, 5)
+        c64scr.clear_screen ! (81, 5)
+        c64scr.clear_screen !(81, 5)
         c64scr.clear_screen !(81, 5)
         c64scr.clear_screen !A (81, 5)
         c64scr.clear_screen !X (81, 5)

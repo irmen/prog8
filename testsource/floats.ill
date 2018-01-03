@@ -2,10 +2,10 @@
 
 %output prg, basic
 
-%import "c64lib"
+%import c64lib
 
 ~ main_testing {
-start
+start:
         var     .float          myfloat1        = 1234.56789
         var     .float          myfloat2        = 9876.54321
         var     .float          myfloatneg1     = -555.666
@@ -52,7 +52,7 @@ sub  printflt (float: AY) -> (?) {
 }
 
 
-start
+start:
         ; assign some float values to the memory
         AY = #flt_pi
         some_address = # flt_pi
@@ -112,7 +112,7 @@ start
         printflt(# flt_point25)
         printflt(#c64.FL_FR4)
 
-reg_to_float
+reg_to_float:
         c64.CHROUT!('\n')
 
         A=33

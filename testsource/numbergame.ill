@@ -1,6 +1,6 @@
 %output prg,basic
-%import "c64lib"
-%import "mathlib"
+%import c64lib
+%import mathlib
 
 ~ main {
         var     .text   name    = '?' * 80
@@ -9,7 +9,7 @@
         var     attempts_left = 10
 
 
-start
+start:
         c64.init_system()
 
         A = c64.VMCSB
@@ -41,7 +41,7 @@ start
 
         c64scr.print_string("I am thinking of a number from 1 to 100!You'll have to guess it!\n")
 
-printloop
+printloop:
         c64scr.print_string("\nYou have ")
         c64scr.print_byte_decimal(attempts_left)
         c64scr.print_string(" guess")
@@ -51,7 +51,7 @@ printloop
         A--
         if_zero A goto ask_guess
         c64scr.print_string("es")
-ask_guess
+ask_guess:
         c64scr.print_string(" left.\nWhat is your next guess? ")
         Y = c64scr.input_chars(guess)
         c64.CHROUT('\n')
@@ -65,21 +65,21 @@ ask_guess
         c64scr.print_string("low!\n")
         goto continue
 
-correct_guess
+correct_guess:
         c64scr.print_string("\nThat's my number, impressive!\n")
         goodbye()
         return
 
-too_high
+too_high:
         c64scr.print_string("That is too ")
         c64scr.print_string("high!\n")
 
-continue
+continue:
         attempts_left--
         if_zero attempts_left goto game_over
         goto printloop
 
-game_over
+game_over:
         c64scr.print_string("\nToo bad! It was: ")
         c64scr.print_byte_decimal(secretnumber)
         c64.CHROUT('\n')

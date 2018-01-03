@@ -21,7 +21,7 @@
         sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
 
 
-bar
+bar:
 
         goto $c000
         goto [$c000.word]
@@ -134,7 +134,7 @@ bar
 
 ~ main {
 
-start
+start:
         foo.bar()
 	return
 

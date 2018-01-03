@@ -4,7 +4,7 @@
 %zp clobber
 
 
-%import "c64lib"
+%import c64lib
 
 ~ ZP {
 	; ZeroPage block definition:
@@ -72,7 +72,7 @@
 	var  .wordarray(10)     init_wordarray          =  $1234
 	var  .wordarray(10)     init_wordarrayb         =  true
 
-	var  .text              text    = "hello"+"-null"
+	var  .text              text    = "hello-null"
 	var  .ptext             ptext   = 'hello-pascal'
 	var  .stext             stext   = 'screencodes-null'
 	var  .pstext            pstext  = "screencodes-pascal"

@@ -2,7 +2,7 @@
 %output prg,basic  ; create a c-64 program with basic SYS call to launch it
 
 
-%import "c64lib"               ; searched in several locations and with .ill file extension added
+%import c64lib               ; searched in several locations and with .ill file extension added
 
 ~ main
 {
@@ -24,7 +24,7 @@
 
 	var .text hello2 = "@@\f\b\n\r\t@@"
 
-start
+start:
 	global2.make_screen_black()
 
 	A='?'
@@ -66,7 +66,7 @@ start
 
 ~ global2 {
 
-make_screen_black
+make_screen_black:
 		c64.EXTCOL = c64.BGCOL0 = 0
 		c64.COLOR = 3
 		Y = true

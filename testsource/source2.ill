@@ -7,7 +7,7 @@
 }
 
 ~ main {
-start
+start:
         A=0
         [$d020]=A
         X=false

@@ -1,13 +1,14 @@
 %output prg,basic
 
-%import "c64lib"
+%import c64lib
+
 
 ~ main {
         var     .word   value
         memory  .word   memvalue  = $8000
 
 
-start
+start:
         A = 100
 
 
@@ -29,7 +30,7 @@ start
         ;if_cc goto $c000
         ;if_cc goto [$c000.word]
 
-label
+label:
         ; conditional if with a single 'truth' value (register)
         if_true A goto label2
         if_not A goto label2
@@ -48,7 +49,7 @@ label
         if_zero XY goto label2
         if XY goto label2
 
-label2
+label2:
         ; conditional if with a single 'truth' value (variable)
         if_true value goto label3
         if_not value goto label3
@@ -59,7 +60,7 @@ label2
         if_zero memvalue goto label3
         if memvalue goto label3
 
-label3
+label3:
         ; conditional if with a single 'truth' value (indirect address)
         if_true [$c000] goto label4
         if_not [$c000] goto label4
@@ -72,7 +73,7 @@ label3
         if_true [A] goto label4
         if_true [Y] goto label4
 
-label4
+label4:
         return
 }
 
@@ -87,18 +88,18 @@ label4
         var .word wordvar = 22345
 
 
-start
+start:
         c64.init_system()
 
         A = 0
-printloop
+printloop:
         c64scr.print_byte_decimal(A)
         c64.CHROUT('\n')
         A++
         if A <20 goto printloop
         return
 
-label1
+label1:
         if_true  A==123  goto  label1
         if_true  A     ==     123  goto  label1
         if_true A!=0  goto  label1
@@ -138,6 +139,6 @@ label1
         if_true wordvar  goto  label2
 
 
-label2
+label2:
         return
 }

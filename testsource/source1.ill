@@ -26,7 +26,7 @@
 	var .wordarray(10)	words2   = $bbcc
 
 
-start   ;foo
+start:   ;foo
 	X = 55
 	Y = $77
 	Y = X
@@ -63,7 +63,7 @@ start   ;foo
 	; [646,Y] = [$d020,X]
 
 
-_loop   block2.zpw1 ++
+_loop:   block2.zpw1 ++
         A ++
 	X ++
 	Y ++
@@ -103,7 +103,7 @@ sub  customsub (Y)->()  {
 }
 
 
-somelabel1222
+somelabel1222:
         customsub(2)
 	return
 
@@ -119,7 +119,7 @@ somelabel1222
 }
 
 ~ block3 {
-somelabel1
+somelabel1:
 	%asm {
 		nop
 		nop
@@ -180,7 +180,8 @@ somelabel1
 ~  fidget $1000
 {
 
-subroutine
+subroutine:
+
 ; subroutine (A, X, Y)
 	;[border2] = red
 	;[screen2] = white
