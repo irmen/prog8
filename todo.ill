@@ -78,7 +78,9 @@ rndloop:
         X >>= 22
         XY = 1
         AX = 2
-        SC =2
+        SC =1
+
+        var QW
         QW =3
         ;XY <<= 0
         ;XY <<= 1

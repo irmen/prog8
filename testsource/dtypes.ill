@@ -133,14 +133,14 @@
 	var     .byte           expr_fault2     =  1 + (8/3)+sin(33) + max(1,2,3)
 
 
-sin
+sin:
         return
 
-max
+max:
         return
 
 
-start
+start:
 
 ; --- immediate primitive value assignments ----
 

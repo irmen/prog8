@@ -171,6 +171,7 @@ def p_directive_args(p):
 def p_directive_arg(p):
     """directive_arg :  NAME
                      |  INTEGER
+                     |  STRING
     """
     p[0] = p[1]
 

@@ -503,12 +503,9 @@ class Parser:
         if not line.startswith(("%import ", "%import\t")):
             raise self.PError("expected import")
         try:
-            _, arg = line.split(maxsplit=1)
+            _, filename = line.split(maxsplit=1)
         except ValueError:
             raise self.PError("invalid import statement")
-        if not arg.startswith('"') or not arg.endswith('"'):
-            raise self.PError("filename must be between quotes")
-        filename = arg[1:-1]
         if not filename:
             raise self.PError("invalid filename")
         self._parse_import_file(filename)
@@ -678,25 +675,28 @@ class Parser:
                 raise self.PError("ZP block cannot contain code statements")
             self.cur_block.statements.append(self.parse_statement(line))
         elif line:
-            if is_zp_block:
-                raise self.PError("ZP block cannot contain code labels")
-            self.parse_label(line)
+            match = re.fullmatch(r"(?P<label>\S+)\s*:(?P<rest>.*)", line)
+            if match:
+                if is_zp_block:
+                    raise self.PError("ZP block cannot contain code labels")
+                label = match.group("label")
+                rest = match.group("rest")
+                self.parse_label(label, rest)
+            else:
+                raise self.PError("invalid statement in block")
         else:
             raise self.PError("invalid statement in block")
         return True, None   # continue with more statements
 
-    def parse_label(self, line: str) -> None:
-        label_line = line.split(maxsplit=1)
-        if str.isidentifier(label_line[0]):
-            labelname = label_line[0]
+    def parse_label(self, labelname: str, rest: str) -> None:
+        if str.isidentifier(labelname):
             if labelname in self.cur_block.label_names:
                 raise self.PError("label already defined")
             if labelname in self.cur_block.symbols:
                 raise self.PError("symbol already defined")
             self.cur_block.symbols.define_label(labelname, self.sourceref)
             self.cur_block.statements.append(Label(labelname, self.sourceref))
-            if len(label_line) > 1:
-                rest = label_line[1]
+            if rest:
                 self.cur_block.statements.append(self.parse_statement(rest))
         else:
             raise self.PError("invalid label name")
@@ -775,7 +775,13 @@ class Parser:
                         raise self.PError("invalid statement")
                     subroutine_block.statements.append(self.parse_statement(line))
                 elif line:
-                    self.parse_label(line)
+                    match = re.fullmatch(r"(?P<label>\S+)\s*:(?P<rest>.*)", line)
+                    if match:
+                        label = match.group("label")
+                        rest = match.group("rest")
+                        self.parse_label(label, rest)
+                    else:
+                        raise self.PError("invalid statement in subroutine")
                 else:
                     raise self.PError("invalid statement in subroutine")
             self.cur_block = current_block
@@ -1087,11 +1093,10 @@ class Parser:
         if len(aline) < 2:
             raise self.PError("invalid asminclude or asmbinary directive")
         filename = aline[1]
-        if not filename.startswith('"') or not filename.endswith('"'):
-            raise self.PError("filename must be between quotes")
-        filename = filename[1:-1]
         if not filename:
             raise self.PError("invalid filename")
+        if filename[0] in "'\"" or filename[-1] in "'\"":
+            raise self.PError("invalid filename, should not use quotes")
         filename_in_sourcedir = os.path.join(os.path.split(self.sourceref.file)[0], filename)
         filename_in_output_location = os.path.join(self.outputdir, filename)
         if not os.path.isfile(filename_in_sourcedir):

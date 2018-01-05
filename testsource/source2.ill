@@ -8,17 +8,18 @@
 
 ~ main {
 start:
-        A=0
-        [$d020]=A
-        X=false
-        Y=true
-        return
+        ;A=0
+        ;[$d020]=A
+        ;X=false
+        ;Y=true
+        ;return
 
         ;included_assembly
-        %asminclude "included.source" test_include
+        %asminclude "   included.sourcelynx   walla  derp   ",  test_include
+        %asminclude "   included.sourcelynx   walla  derp   ",  "test_include"
 
         ;included_binary
-        %asmbinary "included.binary"
-        %asmbinary "included.binary" $40
-        %asmbinary "included.binary" $40 $200
+        %asmbinary  "   included.binary  234  "
+        %asmbinary  "   included.binary",  $40
+        %asmbinary  "included.binary",  $40, $200
 }

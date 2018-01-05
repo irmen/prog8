@@ -56,8 +56,8 @@ class PreprocessingParser(Parser):
     def parse_memory_def(self, line: str, is_zeropage: bool=False) -> None:
         super().parse_memory_def(line, is_zeropage)
 
-    def parse_label(self, line: str) -> None:
-        super().parse_label(line)
+    def parse_label(self, labelname: str, rest: str) -> None:
+        super().parse_label(labelname, rest)
 
     def parse_subroutine_def(self, line: str) -> None:
         super().parse_subroutine_def(line)
