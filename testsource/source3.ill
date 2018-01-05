@@ -58,7 +58,7 @@ start:
 	c64.CHROUT('1')
 	c64.CHROUT('2')
 	c64scr.print_string(hello)
-	goto c64.CHROUT('!')
+	return c64.CHROUT('!')
 
 
 	return
@@ -67,7 +67,7 @@ start:
 ~ global2 {
 
 make_screen_black:
-		c64.EXTCOL = c64.BGCOL0 = 0
+		c64.EXTCOL = c64.BGCOL0 = 0             ; @todo ply parse multiassign
 		c64.COLOR = 3
 		Y = true
 		return

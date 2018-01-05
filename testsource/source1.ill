@@ -8,7 +8,7 @@
 %zp   restore ,  clobber   ; clobber over the zp memory normally used by basic/kernel rom, frees up more zp
 
 
-~main $0a00
+~ main $0a00
 {
         ; this is the main block with the start routine.
 
@@ -33,7 +33,7 @@ start:   ;foo
 	Y = X
 	X = 66
 	screen = 0
-	screen = border =  cursor = X = Y = A = X = Y = A = border = cursor = border = cursor = 66  ; multi-assign!
+	screen = border =  cursor = X = Y = A = X = Y = A = border = cursor = border = cursor = 66  ; multi-assign!  @todo ply parse
 	border = false
 	border = true
 	border = 0
@@ -98,7 +98,7 @@ sub  customsub (Y)->()  {
 
         A=2
         X=33
-        goto fidget.subroutine()
+        return fidget.subroutine()
 
 }
 
@@ -186,8 +186,6 @@ subroutine:
 	;[border2] = red
 	;[screen2] = white
 	return $99
-	return ,$99
-	return ,,$99
 
 }
 

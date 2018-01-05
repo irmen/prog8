@@ -11,7 +11,7 @@ start:
 
         orig_irq = c64.CINV
         SI = 1
-        c64.CINV = #irq_handler
+        c64.CINV = &irq_handler
         SI = 0
 
 
@@ -20,7 +20,11 @@ start:
         c64.CHROUT('\n')
 
 blop:
-        %breakpoint   ; yeah!
+	return
+        %breakpoint
+        return
+
+           ; yeah!
 
         c64scr.print_string("thank you, mr or mrs: ")
         c64scr.print_string(name)

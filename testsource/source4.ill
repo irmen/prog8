@@ -1,6 +1,6 @@
 %output prg,basic  ; create a c-64 program with basic SYS to() launch it
 
-	%import c64lib.ill
+	%import "c64lib.ill"
 
  ~ main
 {
@@ -53,7 +53,7 @@ start2:
 ~ global2 {
 
 make_screen_black:
-		c64.EXTCOL = c64.BGCOL0 = 0
+		c64.EXTCOL = c64.BGCOL0 = 0             ; @todo ply parse multi assign
 		c64.COLOR = 3
 		return
 

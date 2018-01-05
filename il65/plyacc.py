@@ -66,6 +66,12 @@ class SubCall(AstNode):
         self.arguments = arguments
 
 
+class Return(AstNode):
+    def __init__(self, value, sourceref):
+        super().__init__(sourceref)
+        self.value = value
+
+
 class InlineAssembly(AstNode):
     def __init__(self, assembly, sourceref):
         super().__init__(sourceref)
@@ -103,6 +109,27 @@ class Goto(AstNode):
         self.target = target
         self.ifstmt = ifstmt
         self.condition = condition
+
+
+class Dereference(AstNode):
+    def __init__(self, location, datatype, sourceref):
+        super().__init__(sourceref)
+        self.location = location
+        self.datatype = datatype
+
+
+class CallTarget(AstNode):
+    def __init__(self, target, address_of: bool, sourceref: SourceRef) -> None:
+        super().__init__(sourceref)
+        self.target = target
+        self.address_of = address_of
+
+
+class CallArgument(AstNode):
+    def __init__(self, name, value, sourceref):
+        super().__init__(sourceref)
+        self.name = name
+        self.value = value
 
 
 class UnaryOp(AstNode):
@@ -143,14 +170,15 @@ def p_module(p):
 
 
 def p_module_elt(p):
-    """module_elt :  directive
-                  |  block"""
+    """module_elt :  ENDL
+                  |  directive
+                  |  block """
     p[0] = p[1]
 
 
 def p_directive(p):
-    """directive : DIRECTIVE
-                 | DIRECTIVE  directive_args
+    """directive : DIRECTIVE  ENDL
+                 | DIRECTIVE  directive_args  ENDL
     """
     if len(p) == 2:
         p[0] = Directive(p[1], None, _token_sref(p, 1))
@@ -176,11 +204,25 @@ def p_directive_arg(p):
     p[0] = p[1]
 
 
+def p_block_name_addr(p):
+    """block :  BITINVERT  NAME  INTEGER  endl_opt  scope"""
+    p[0] = Block(p[2], p[3], p[5], _token_sref(p, 1))
+
+
+def p_block_name(p):
+    """block :  BITINVERT  NAME  endl_opt  scope"""
+    p[0] = Block(p[2], None, p[4], _token_sref(p, 1))
+
+
 def p_block(p):
-    """block :  TILDE  NAME  INTEGER  scope
-             |  TILDE  NAME  empty  scope
-             |  TILDE  empty  empty  scope"""
-    p[0] = Block(p[2], p[3], p[4], _token_sref(p, 1))
+    """block :  BITINVERT  endl_opt  scope"""
+    p[0] = Block(None, None, p[3], _token_sref(p, 1))
+
+
+def p_endl_opt(p):
+    """endl_opt :  empty
+                |  ENDL"""
+    p[0] = p[1]
 
 
 def p_scope(p):
@@ -204,10 +246,11 @@ def p_scope_elements(p):
 
 
 def p_scope_element(p):
-    """scope_element :  directive
+    """scope_element :  ENDL
+                     |  label
+                     |  directive
                      |  vardef
                      |  subroutine
-                     |  label
                      |  inlineasm
                      |  statement"""
     p[0] = p[1]
@@ -219,26 +262,27 @@ def p_label(p):
 
 
 def p_inlineasm(p):
-    """inlineasm :  INLINEASM"""
+    """inlineasm :  INLINEASM  ENDL"""
     p[0] = InlineAssembly(p[1], _token_sref(p, 1))
 
 
 def p_vardef(p):
-    """vardef : VARTYPE type_opt NAME IS literal_value
-              | VARTYPE type_opt NAME"""
-    if len(p) == 4:
-        p[0] = VarDef(p[3], p[1], p[2], None, _token_sref(p, 1))
-    else:
-        p[0] = VarDef(p[3], p[1], p[2], p[5], _token_sref(p, 1))
+    """vardef :  VARTYPE  type_opt  NAME  ENDL"""
+    p[0] = VarDef(p[3], p[1], p[2], None, _token_sref(p, 1))
+
+
+def p_vardef_value(p):
+    """vardef :  VARTYPE  type_opt  NAME  IS  expression"""
+    p[0] = VarDef(p[3], p[1], p[2], p[5], _token_sref(p, 1))
 
 
 def p_type_opt(p):
-    """type_opt : DATATYPE
-                | DATATYPE '(' dimensions ')'
+    """type_opt : DATATYPE '(' dimensions ')'
+                | DATATYPE
                 | empty"""
     if len(p) == 4:
         p[0] = Datatype(p[1], p[3], _token_sref(p, 1))
-    elif p:
+    elif len(p) == 2:
         p[0] = Datatype(p[1], None, _token_sref(p, 1))
 
 
@@ -261,7 +305,7 @@ def p_literal_value(p):
 
 
 def p_subroutine(p):
-    """subroutine : SUB NAME '(' sub_param_spec ')' RARROW '(' sub_result_spec ')' subroutine_body"""
+    """subroutine : SUB NAME '(' sub_param_spec ')' RARROW '(' sub_result_spec ')' subroutine_body  ENDL"""
     p[0] = Subroutine(p[2], p[4], p[8], p[10], _token_sref(p, 1))
 
 
@@ -282,13 +326,11 @@ def p_sub_param_list(p):
 
 def p_sub_param(p):
     """sub_param : LABEL REGISTER
-                 | empty REGISTER"""
-    p[0] = (p[1], p[2])
-
-
-def p_param_name(p):
-    """param_name : NAME ':'"""
-    p[0] = p[1]
+                 | REGISTER"""
+    if len(p) == 3:
+        p[0] = (p[1], p[2])
+    elif len(p) == 2:
+        p[0] = (None, p[1])
 
 
 def p_sub_result_spec(p):
@@ -325,26 +367,24 @@ def p_subroutine_body(p):
 
 
 def p_statement(p):
-    """statement :  assignment
-                 |  subroutine_call
-                 |  goto
-                 |  conditional_goto
-                 |  incrdecr
-                 |  RETURN
+    """statement :  assignment  ENDL
+                 |  subroutine_call  ENDL
+                 |  goto  ENDL
+                 |  conditional_goto  ENDL
+                 |  incrdecr  ENDL
+                 |  return  ENDL
     """
     p[0] = p[1]
 
 
 def p_incrdecr(p):
-    """incrdecr :  register  INCR
-                |  register  DECR
-                |  symbolname  INCR
-                |  symbolname  DECR"""
+    """incrdecr :  assignment_target  INCR
+                |  assignment_target  DECR"""
     p[0] = UnaryOp(p[2], p[1], _token_sref(p, 1))
 
 
 def p_call_subroutine(p):
-    """subroutine_call : symbolname  preserveregs_opt  '(' call_arguments_opt ')'"""
+    """subroutine_call : calltarget  preserveregs_opt  '(' call_arguments_opt ')'"""
     p[0] = SubCall(p[1], p[3], _token_sref(p, 1))
 
 
@@ -375,9 +415,22 @@ def p_call_arguments(p):
 
 
 def p_call_argument(p):
-    """call_argument : literal_value
-                     | register"""
-    p[0] = p[1]
+    """call_argument : expression
+                     | register IS expression
+                     | NAME IS expression"""
+    if len(p) == 2:
+        p[0] = CallArgument(None, p[1], _token_sref(p, 1))
+    elif len(p) == 3:
+        p[0] = CallArgument(p[1], p[3], _token_sref(p, 1))
+
+
+def p_return(p):
+    """return :  RETURN
+              |  RETURN  expression"""
+    if len(p) == 2:
+        p[0] = Return(None, _token_sref(p, 1))
+    elif len(p) == 4:
+        p[0] = Return(p[3], _token_sref(p, 1))
 
 
 def p_register(p):
@@ -386,15 +439,41 @@ def p_register(p):
 
 
 def p_goto(p):
-    """goto : GOTO  symbolname
-            | GOTO  INTEGER"""
+    """goto : GOTO  calltarget"""
     p[0] = Goto(p[2], None, None, _token_sref(p, 1))
 
 
-def p_conditional_goto(p):
-    """conditional_goto : IF GOTO symbolname"""
-    # @todo support conditional expression
+def p_conditional_goto_plain(p):
+    """conditional_goto : IF GOTO calltarget"""
     p[0] = Goto(p[3], p[1], None, _token_sref(p, 1))
+
+
+def p_conditional_goto_expr(p):
+    """conditional_goto : IF expression GOTO calltarget"""
+    p[0] = Goto(p[4], p[1], p[2], _token_sref(p, 1))
+
+
+def p_calltarget(p):
+    """calltarget :  symbolname
+                  |  INTEGER
+                  |  BITAND symbolname
+                  |  dereference"""
+    if len(p) == 2:
+        p[0] = CallTarget(p[1], False, _token_sref(p, 1))
+    elif len(p) == 3:
+        p[0] = CallTarget(p[2], True, _token_sref(p, 1))
+
+
+def p_dereference(p):
+    """dereference :  '[' dereference_operand ']' """
+    p[0] = Dereference(p[2][0], p[2][1], _token_sref(p, 1))
+
+
+def p_dereference_operand(p):
+    """dereference_operand : symbolname type_opt
+                  |  REGISTER type_opt
+                  |  INTEGER type_opt"""
+    p[0] = (p[1], p[2])
 
 
 def p_symbolname(p):
@@ -404,8 +483,7 @@ def p_symbolname(p):
 
 
 def p_assignment(p):
-    """assignment : assignment_lhs assignment_operator assignment_rhs"""
-    # @todo replace lhs/rhs by expressions
+    """assignment : assignment_lhs assignment_operator expression"""
     p[0] = Assignment(p[1], p[2], p[3], _token_sref(p, 1))
 
 
@@ -415,35 +493,76 @@ def p_assignment_operator(p):
     p[0] = p[1]
 
 
-def p_unary_operator(p):
-    """unary_operator : '+'
-                      | '-'
-                      | NOT
-                      | ADDRESSOF"""
+precedence = (
+    ('left', '+', '-'),
+    ('left', '*', '/'),
+    ('right', 'UNARY_MINUS', 'BITINVERT', "UNARY_ADDRESSOF"),
+    ('left', "LT", "GT", "LE", "GE", "EQUALS", "NOTEQUALS"),
+    ('nonassoc', "COMMENT"),
+)
+
+
+def p_expression(p):
+    """expression : expression '+' expression
+           | expression '-' expression
+           | expression '*' expression
+           | expression '/' expression
+           | expression LT expression
+           | expression GT expression
+           | expression LE expression
+           | expression GE expression
+           | expression EQUALS expression
+           | expression NOTEQUALS expression"""
+    pass
+
+
+def p_expression_uminus(p):
+    """expression : '-' expression %prec UNARY_MINUS"""
+    pass
+
+
+def p_expression_addressof(p):
+    """expression : BITAND symbolname %prec UNARY_ADDRESSOF"""
+    pass
+
+
+def p_unary_expression_bitinvert(p):
+    """expression : BITINVERT expression"""
+    pass
+
+
+def p_expression_group(p):
+    """expression : '(' expression ')'"""
+    p[0] = p[2]
+
+
+def p_expression_ass_rhs(p):
+    """expression : expression_value"""
+    p[0] = p[1]
+
+
+def p_expression_value(p):
+    """expression_value : literal_value
+                        | symbolname
+                        | register
+                        | subroutine_call
+                        | dereference"""
     p[0] = p[1]
 
 
 def p_assignment_lhs(p):
-    """assignment_lhs : register
-                      | symbolname
-                      | assignment_lhs ',' register
-                      | assignment_lhs ',' symbolname"""
+    """assignment_lhs : assignment_target
+                      | assignment_lhs ',' assignment_target"""
     if len(p) == 2:
         p[0] = [p[1]]
     else:
         p[0] = p[1] + [p[2]]
 
 
-def p_assignment_rhs(p):
-    """assignment_rhs : literal_value
-                      | symbolname
-                      | register
-                      | subroutine_call"""
-    p[0] = p[1]
-
-
-def p_term(p):
-    """term : register"""
+def p_assignment_target(p):
+    """assignment_target : register
+                         | symbolname
+                         | dereference"""
     p[0] = p[1]
 
 
@@ -454,8 +573,8 @@ def p_empty(p):
 
 def p_error(p):
     if p:
-        sref = SourceRef("@todo-filename2", p.lineno, find_tok_column(p))
-        lexer.error_function("{}: before '{:.20s}' ({})", sref, str(p.value), repr(p))
+        sref = SourceRef(p.lexer.source_filename, p.lineno, find_tok_column(p))
+        p.lexer.error_function("{}: before '{:.20s}' ({})", sref, str(p.value), repr(p))
     else:
         lexer.error_function("{}: at end of input", "@todo-filename3")
 
@@ -469,19 +588,39 @@ def _token_sref(p, token_idx):
     if last_cr < 0:
         last_cr = -1
     column = (p.lexpos(token_idx) - last_cr)
-    return SourceRef("@todo-filename", p.lineno(token_idx), column)
+    return SourceRef(p.lexer.source_filename, p.lineno(token_idx), column)
 
 
-precedence = (
-    ('nonassoc', "COMMENT"),
-)
+class TokenFilter:
+    def __init__(self, lexer):
+        self.lexer = lexer
+        self.prev_was_EOL = False
+        assert "ENDL" in tokens
 
-parser = yacc()
+    def token(self):
+        # make sure we only ever emit ONE "ENDL" token in sequence
+        if self.prev_was_EOL:
+            # skip all EOLS that might follow
+            while True:
+                tok = self.lexer.token()
+                if not tok or tok.type != "ENDL":
+                    break
+            self.prev_was_EOL = False
+        else:
+            tok = self.lexer.token()
+            self.prev_was_EOL = tok and tok.type == "ENDL"
+        return tok
+
+
+parser = yacc(write_tables=True)
 
 
 if __name__ == "__main__":
     import sys
     file = sys.stdin  # open(sys.argv[1], "rU")
-    result = parser.parse(input=file.read()) or Module(None, SourceRef("@todo-sfile", 1, 1))
-    print("RESULT")
-    print(str(result))
+    lexer.source_filename = "derp"
+    tokenfilter = TokenFilter(lexer)
+    result = parser.parse(input=file.read(),
+                          tokenfunc=tokenfilter.token) or Module(None, SourceRef(lexer.source_filename, 1, 1))
+    # print("RESULT:")
+    # print(str(result))

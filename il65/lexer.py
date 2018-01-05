@@ -9,20 +9,17 @@ tokens = (
     "FLOATINGPOINT",
     "DOTTEDNAME",
     "NAME",
-    "DOT",
     "IS",
     "CLOBBEREDREGISTER",
     "REGISTER",
     "COMMENT",
     "DIRECTIVE",
     "AUGASSIGN",
-    "EQUAL",
-    "NOTEQUAL",
+    "EQUALS",
+    "NOTEQUALS",
     "RARROW",
     "RETURN",
-    "TILDE",
     "VARTYPE",
-    "KEYWORD",
     "SUB",
     "DATATYPE",
     "CHARACTER",
@@ -31,37 +28,47 @@ tokens = (
     "GOTO",
     "INCR",
     "DECR",
-    "NOT",
     "LT",
     "GT",
     "LE",
     "GE",
+    "BITAND",
+    "BITOR",
+    "BITXOR",
+    "BITINVERT",
+    "LOGICAND",
+    "LOGICOR",
+    "LOGICNOT",
+    "POWER",
     "LABEL",
     "IF",
-    "ADDRESSOF",
     "PRESERVEREGS",
     "INLINEASM",
+    "ENDL"
 )
 
 literals = ['+', '-', '*', '/', '(', ')', '[', ']', '{', '}', '.', ',', '!', '?', ':']
 
 # regex rules for simple tokens
 
-t_ADDRESSOF = r"\#"
+t_BITAND = r"&"
+t_BITOR = r"\|"
+t_BITXOR = r"\^"
+t_BITINVERT = r"~"
 t_IS = r"="
-t_TILDE = r"~"
-t_DIRECTIVE = r"%[a-z]+"
 t_AUGASSIGN = r"\+=|-=|/=|\*=|<<=|>>=|&=|\|=|\^="
 t_DECR = r"--"
 t_INCR = r"\+\+"
-t_EQUAL = r"=="
-t_NOTEQUAL = r"!="
+t_EQUALS = r"=="
+t_NOTEQUALS = r"!="
 t_LT = r"<"
 t_GT = r">"
 t_LE = r"<="
 t_GE = r">="
 t_IF = "if(_[a-z]+)?"
 t_RARROW = r"->"
+t_POWER = r"\*\*"
+
 
 # ignore inline whitespace
 t_ignore = " \t"
@@ -83,7 +90,9 @@ reserved = {
     "return": "RETURN",
     "true": "BOOLEAN",
     "false": "BOOLEAN",
-    "not": "NOT",
+    "not": "LOGICNOT",
+    "and": "LOGICAND",
+    "or": "LOGICOR",
     "AX": "REGISTER",
     "AY": "REGISTER",
     "XY": "REGISTER",
@@ -96,12 +105,15 @@ reserved = {
     "if": "IF",
     "if_true": "IF",
     "if_not": "IF",
+    "if_zero": "IF",
     "if_ne": "IF",
     "if_eq": "IF",
     "if_cc": "IF",
     "if_cs": "IF",
     "if_vc": "IF",
     "if_vs": "IF",
+    "if_ge": "IF",
+    "if_le": "IF",
     "if_gt": "IF",
     "if_lt": "IF",
     "if_pos": "IF",
@@ -197,6 +209,12 @@ def t_NAME(t):
     return t
 
 
+def t_DIRECTIVE(t):
+    r"%[a-z]+"
+    t.value = t.value[1:]
+    return t
+
+
 def t_STRING(t):
     r"""(?x)   # verbose mode
     (?<!\\)    # not preceded by a backslash
@@ -220,7 +238,7 @@ def t_STRING(t):
 
 
 def t_FLOATINGPOINT(t):
-    r"[-+]? (?: (?: \d* \. \d+ ) | (?: \d+ \.? ) )(?: [Ee] [+-]? \d+ ) ?"
+    r"((?: (?: \d* \. \d+ ) | (?: \d+ \.? ) )(?: [Ee] [+-]? \d+ ) ?)(?![a-z])"
     try:
         t.value = int(t.value)
         t.type = "INTEGER"
@@ -230,7 +248,7 @@ def t_FLOATINGPOINT(t):
 
 
 def t_INTEGER(t):
-    r"([-+]?\$?[a-fA-F\d]+ | [-+]?[\$%]?\d+ | [-+]?%?[01]+)(?!\.)"
+    r"\$?[a-fA-F\d]+ | [\$%]?\d+ | %?[01]+"
     sign = 1
     if t.value[0] in "+-":
         sign = -1 if t.value[0] == "-" else 1
@@ -245,21 +263,20 @@ def t_INTEGER(t):
 
 
 def t_COMMENT(t):
-    r";[^\n]*"
-    # don't include the \n at the end, that must be processed by t_newline
-    return None   # ignore comments for now
+    r"[ \t]*;[^\n]*"    # dont eat newline
+    return None   # don't process comments
 
 
 def t_PRESERVEREGS(t):
-    r"!\s*[AXY]{0,3}\s*"
+    r"!\s*[AXY]{0,3}\s*(?!=)"
     t.value = t.value[1:-1].strip()
     return t
 
 
-def t_newline(t):
+def t_ENDL(t):
     r"\n+"
     t.lexer.lineno += len(t.value)
-    return None   # ignore white space tokens
+    return t    # end of lines are significant to the parser
 
 
 def t_error(t):

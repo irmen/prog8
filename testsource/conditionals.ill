@@ -3,7 +3,8 @@
 %import c64lib
 
 
-~ main {
+~ main  {
+
         var     .word   value
         memory  .word   memvalue  = $8000
 
@@ -23,7 +24,7 @@ start:
         if_gt goto label
         if_cc goto value
         ;if_cc goto memvalue
-        if_cc goto #value
+        if_cc goto &value
         ;if_cc goto #memvalue
         if_cc goto [value]
         ;if_cc goto [memvalue]
@@ -66,12 +67,12 @@ label3:
         if_not [$c000] goto label4
         if_zero [$c000] goto label4
         if [$c000] goto label4
-        if_true [XY] goto label4
-        if_true [AY] goto label4
-        if_true [AX] goto label4
-        if_true [X] goto label4
-        if_true [A] goto label4
-        if_true [Y] goto label4
+        if_true [XY]  goto label4
+        if_true [AY]  goto label4
+        if_true [AX]  goto label4
+        if_true [X ] goto label4
+        if_true [A ] goto label4
+        if_true [Y ] goto label4
 
 label4:
         return
@@ -81,9 +82,9 @@ label4:
 
 ; @todo temporarily disabled until comparison operators are properly implemented:
 
-~  {
+~ {
+        var  bytevar = 22 + 23
         var  .text  name        = "?"*80
-        var  bytevar = 22
         var  bytevar2 = 23
         var .word wordvar = 22345
 
@@ -142,3 +143,5 @@ label1:
 label2:
         return
 }
+
+

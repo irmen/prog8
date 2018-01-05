@@ -64,13 +64,15 @@
 	var  .float             initfloat4      = 1.70141183e+38
 	var  .float             initfloat5      = -1.70141183e+38
 	var  .float             initfloat6      = 1.234
+	var  .float (44)  zzzz = 333
+
+	var  .wordarray ( 10 )   uninit_wordarray
+	var  .wordarray(10)     init_wordarray          =  $1234
+	var  .wordarray(10)     init_wordarrayb         =  true
 	var  .array( 10)        uninit_bytearray
 	var  .array(10 )        init_bytearray          =$12
 	var  .array(10 )        init_bytearrayb         =true
 	var  .array(10 )        init_bytearrayc         ='@'
-	var  .wordarray( 10 )   uninit_wordarray
-	var  .wordarray(10)     init_wordarray          =  $1234
-	var  .wordarray(10)     init_wordarrayb         =  true
 
 	var  .text              text    = "hello-null"
 	var  .ptext             ptext   = 'hello-pascal'
@@ -111,25 +113,27 @@
 	const  .pstext          ctext6   	= "constant-pstext"
 
         ; taking the address of various things:
-	var .word        vmemaddr1              = #membyte1
-	var .word        vmemaddr2              = #memword1
-	var .word        vmemaddr3              = #memfloat
-	var .word        vmemaddr4              = #membytes
-	var .word        vmemaddr5              = #memwords
-	var .word        vmemaddr6              = #memmatrix
+	var .word        vmemaddr1              = & membyte1
+	var .word        vmemaddr2              = & memword1
+	var .word        vmemaddr3              = & memfloat
+	var .word        vmemaddr4              = & membytes
+	var .word        vmemaddr5              = & memwords
+	var .word        vmemaddr6              = & memmatrix
 	var .word        vmemaddr8              = 100*sin(cbyte1)
 	var .word        vmemaddr9              = cword2+$5432
 	var .word        vmemaddr10             = cfloat2b
+
 	; taking the address of things from the ZP will work even when it is a var
 	; because zp-vars get assigned a specific address (from a pool). Also, it's a byte.
-	var .word        initword0a             = #ZP.zpmem1
-	var .word	 initword0              = #ZP.zpvar1
-	var              initbytea0             = #ZP.zpmem1
-	var	.word	 initworda1             = #ZP.zpvar1
+
+	var .word        initword0a             = & ZP.zpmem1
+	var .word	 initword0              = & ZP.zpvar1
+	var              initbytea0             = & ZP.zpmem1
+	var	.word	 initworda1             = & ZP.zpvar1
 
 
         ; (constant) expressions
-	var                     expr_byte1b     =  -1-2-3-4-$22+0x80+ZP.zpconst
+	var                     expr_byte1b     =  -1-2-3-4-$22+$80+ZP.zpconst
 	var     .byte           expr_fault2     =  1 + (8/3)+sin(33) + max(1,2,3)
 
 
@@ -177,17 +181,18 @@ start:
 	XY = uninitbyte1
 	XY = "text-immediate"
 	AY = "text-immediate"
-	AX = #"text-immediate"          ; equivalent to simply assigning the string directly
-	AX = # "text-immediate"         ; equivalent to simply assigning the string directly
+	AX = &derp
+	; AX = &"text-immediate"          ; equivalent to simply assigning the string directly
+	; AX = & "text-immediate"         ; equivalent to simply assigning the string directly
 	AX = ctext3
 	AX = ""
 	AX = XY
 	AX = Y
 	XY = membyte2
-	XY = #membyte2
+	XY = membyte2
 	XY = memword1
 	XY = sin
-	XY = #sin
+	XY = &sin
 
 
 	[$c000] = A
@@ -211,7 +216,7 @@ start:
 	[$c000.word] = ""
 	[$c000.word] = uninitbyte1
 	[$c000.word] = membyte2
-	[$c000.word] = #membyte2
+	[$c000.word] = &membyte2
 	[$c000.word] = [cword2]
 	[$c000.word] = memword1
 	[$c000.float] = 65535
@@ -225,7 +230,7 @@ start:
         [$c112.word] = [$c223.byte]
 	[$c222.word] = [$c333.word]
 	[$c333.word] = sin
-	[$c333.word] = #sin
+	[$c333.word] = &sin
 
 
 	SC = 0
@@ -261,7 +266,7 @@ start:
 	uninitfloat = 9.8765
 	uninitfloat = '@'
 	initword1 = sin
-	initword1 = #sin
+	initword1 = &sin
 
         membyte1 = A
         membyte1 = cbyte3
@@ -276,7 +281,7 @@ start:
         memword1 = 2233
         memfloat = 3.4567
 	memword1 = sin
-	memword1 = #sin
+	memword1 = &sin
 
         membyte1 = A
         memword1 = A
@@ -304,7 +309,7 @@ start:
         AY = "text-immediate"   ; reuses existing
         AX = "another"
         AX = ""
-        [$c000.word] = "another"               ; reuse
-        [$c100.word] = "text-immediate"        ; reuse
-        [$c200.word] = ""        ; reuse
+        ;*$c000.word = "another"               ; reuse    @ todo precedence?
+        ;*$c100.word = "text-immediate"        ; reuse @ todo precedence?
+        ;*$c200.word = ""        ; reuse  @ todo precedence?
 }

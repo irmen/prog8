@@ -1,9 +1,11 @@
 ; call tests
 
-;output
+%output foobar
 
 
 ~ foo {
+
+
 
         var     .word   var1    = 99
         memory  .word   mem1    = $cff0
@@ -20,44 +22,54 @@
         sub    sub3    (XY) -> (Y?)  = $ddaa
         sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
 
+bar2:
 
-bar:
-
-        goto $c000
+bar:    goto $c000
+        goto var1               ; jumps to the address in var1
+        goto mem1               ; jumps to the address in mem1
+        goto &var1              ; strange, but jumps to the location in memory where var1 sits
+        goto &mem1              ; strange, but jumps to the location in mempory where mem1 sits (points to)
+        goto [var1]
         goto [$c000.word]
         goto [var1]
         goto [mem1]
-        goto var1               ; jumps to the address in var1
-        goto mem1               ; jumps to the address in mem1
-        goto #var1              ; strange, but jumps to the location in memory where var1 sits
-        goto #mem1              ; strange, but jumps to the location in mempory where mem1 sits (points to)
 
         ; ----
 
         goto sub1
-        goto sub2 (1  )
-        goto sub3 (3)
-        goto sub3 (XY="hello")
-        goto sub3 ("hello, there")
-        goto sub4 (string="hello, there", other = 42)
-        goto sub4 ("hello",  42)
-        goto sub4 ("hello", other= 42)
-        goto sub4 (string="hello", other = 42)
-        goto bar  ()
+        ;goto sub2 (1  )         ; @todo error, must be return sub2(1)   -> optimized in 'tail call'
+        return  sub2 (  )
+        return  sub2 ()
+        return  sub2 (1  )
+        return  sub3 (3)
+        return  sub3 (XY="hello")
+        return  sub3 ("hello, there")
+        return  sub4 (string="hello, there", other = 42)
+        return  sub4 ("hello",  42)
+        return  sub4 ("hello", other= 42)
+        return  sub4 (string="hello", other = 42)
+        return  bar  ()
 	goto [AX]
-	goto [AX]  ()
+	; goto [AX()]     % ; @todo error, must be return()
 	goto [var1]
-	goto [var1]   ()    ; comment
-	goto   [mem1]    ; comment
-	goto [mem1] ()
-	goto [$c2.word]
-	goto [$c2.word]  ()
-	goto [$c2dd.word]
-	goto [$c2dd.word] (  )
+	goto   [mem1]                 ; comment
+	return [AX]()
+	return  [var1]   ()       ; comment
+	return [mem1] ()
 	goto $c000
-	goto $c000        ( )
+	return $c000       ( )
 	goto $c2
-	goto $c2()
+	return $c2()
+	goto [$c2.word]
+	return 33
+	return [$c2.word]               ; @todo this as rvalue
+	; [ $c2.word  (4) ]                 ;@ todo parse precedence
+	return [$c2.word]  (4)
+	return [$c2.word]  (4)
+	return [$c2.word]  (4)
+	return [$c2.word]  (4)
+	; return [$c2dd.word] (  )         ;@ todo parse precedence
+	goto [$c2dd.word]
 
         %asm {
                 nop
@@ -85,8 +97,10 @@ bar:
         sub3 !AXY (81)
 
         bar!()
+        bar !()
+	[XY]! ()
 	[XY] ! ()
-	[var1] !()
+	[var1]!()
 	[mem1]!()
 	[$c2.word]!()
 	[$c2dd.word]!()
@@ -113,8 +127,9 @@ bar:
 	[AX]()
 	[var1] (  )
 	[mem1]    ()
-	[$c2.word]()
-	[$c2dd.word]()
+	A= [$c2.word(4)]
+	;A= [$c2.word()   ] ; @todo Precedence?
+	;A= [$c2dd.word() ] ; @todo Precedence?
 	$c000()
 	$c2()
 
@@ -144,5 +159,6 @@ sub unused_sub ()->() {
         Y=A
         return
 }
+
 
 }

@@ -695,8 +695,9 @@ ascii_to_petscii_trans = str.maketrans({
 
 
 class AstNode:
-    def __init__(self, sourceref: SourceRef) -> None:
+    def __init__(self, sourceref: SourceRef, children: List['AstNode']=None) -> None:
         self.sourceref = sourceref.copy()
+        self.children = children or []
 
     @property
     def lineref(self) -> str:

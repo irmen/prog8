@@ -54,10 +54,10 @@ sub  printflt (float: AY) -> (?) {
 
 start:
         ; assign some float values to the memory
-        AY = #flt_pi
-        some_address = # flt_pi
+        AY = &flt_pi
+        some_address = & flt_pi
         some_address = 4123.2342342222
-        [$c000.word] = # flt_pi
+        [$c000.word] = & flt_pi
 
         my_float ++
         my_float += 1
@@ -70,47 +70,47 @@ start:
 
         ; print some floating points from source and compare them with ROM
 
-        printflt(#flt_pi)
-        printflt(#c64.FL_PIVAL)
+        printflt(&flt_pi)
+        printflt(&c64.FL_PIVAL)
 
-        printflt(#flt_minus32768)
-        printflt(#c64.FL_N32768)
+        printflt(&flt_minus32768)
+        printflt(&c64.FL_N32768)
 
-        printflt(#flt_1)
-        printflt(#c64.FL_FONE)
+        printflt(&flt_1)
+        printflt(&c64.FL_FONE)
 
-        printflt(#flt_half_sqr2)
-        printflt( #  c64.FL_SQRHLF)
+        printflt(&flt_half_sqr2)
+        printflt( &  c64.FL_SQRHLF)
 
-        printflt(#flt_sqr2)
-        printflt(#c64.FL_SQRTWO)
+        printflt(&flt_sqr2)
+        printflt(&c64.FL_SQRTWO)
 
-        printflt(#flt_minus_half)
-        printflt(#c64.FL_NEGHLF)
+        printflt(&flt_minus_half)
+        printflt(&c64.FL_NEGHLF)
 
-        printflt(#flt_log_2)
-        printflt(#c64.FL_LOG2)
+        printflt(&flt_log_2)
+        printflt(&c64.FL_LOG2)
 
-        printflt(#flt_10)
-        printflt(#c64.FL_TENC)
+        printflt(&flt_10)
+        printflt(&c64.FL_TENC)
 
-        printflt(#flt_1e9)
-        printflt(#c64.FL_NZMIL)
+        printflt(&flt_1e9)
+        printflt(&c64.FL_NZMIL)
 
-        printflt(#flt_half)
-        printflt(#c64.FL_FHALF)
+        printflt(&flt_half)
+        printflt(&c64.FL_FHALF)
 
-        printflt(#flt_one_over_log_2)
-        printflt(#c64.FL_LOGEB2)
+        printflt(&flt_one_over_log_2)
+        printflt(&c64.FL_LOGEB2)
 
-        printflt(#flt_half_pi)
-        printflt(#c64.FL_PIHALF)
+        printflt(&flt_half_pi)
+        printflt(&c64.FL_PIHALF)
 
-        printflt(#flt_double_pi)
-        printflt(#c64.FL_TWOPI)
+        printflt(&flt_double_pi)
+        printflt(&c64.FL_TWOPI)
 
-        printflt(# flt_point25)
-        printflt(#c64.FL_FR4)
+        printflt(& flt_point25)
+        printflt(&c64.FL_FR4)
 
 reg_to_float:
         c64.CHROUT!('\n')
@@ -120,25 +120,25 @@ reg_to_float:
         Y=55
 
         my_float = A
-        printflt(#my_float)
+        printflt(&my_float)
 
         my_float = X
-        printflt(#my_float)
+        printflt(&my_float)
 
         my_float = Y
-        printflt(#my_float)
+        printflt(&my_float)
 
         XY = 11122
         my_float = XY
-        printflt(#my_float)
+        printflt(&my_float)
 
         AX = 33344
         my_float = AX
-        printflt(#my_float)
+        printflt(&my_float)
 
         AY = 55566
         my_float = AY
-        printflt(#my_float)
+        printflt(&my_float)
 
         return
 }
