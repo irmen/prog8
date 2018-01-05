@@ -702,6 +702,40 @@ class AstNode:
     def lineref(self) -> str:
         return "src l. " + str(self.sourceref.line)
 
+    def __str__(self) -> str:
+        def tostr(node: Any, level: int) -> str:
+            indent = "   "
+            clsname = node.__class__.__name__
+            attrs = []
+            try:
+                nvars = vars(node)
+            except TypeError:
+                if type(node) is str:
+                    sv = repr(node)
+                    if len(sv) > 20:
+                        sv = sv[:20] + "...'"
+                    return sv
+                return str(node)
+            for name, value in nvars.items():
+                if name == "sourceref":
+                    continue
+                if type(value) in (str, int, float, bool, type(None)):
+                    attrs.append((name, tostr(value, level+1)))
+            for name, value in nvars.items():
+                if type(value) is list:
+                    strvalue = "["
+                    strvalue += (",\n" + indent*(level+1)).join(tostr(v, level+1) for v in value) + "\n" + (1+level)*indent + "]"
+                    attrs.append((name, strvalue))
+            for name, value in nvars.items():
+                if name == "sourceref":
+                    continue
+                if type(value) is not list and type(value) not in (str, int, float, bool, type(None)):
+                    attrs.append((name, tostr(value, level+2)))
+            attrstr = ("\n" + indent*(1+level)).join("{} = {}".format(name, sv) for name, sv in attrs)
+            result = "\n" + indent * level + "<{0:s}  l={1:d}  c={2:d}".format(clsname, node.sourceref.line, node.sourceref.column)
+            return result + "{} |end {} l={:d}|>".format(attrstr, clsname, node.sourceref.line)
+        return tostr(self, 0)
+
 
 class Block(AstNode):
     _unnamed_block_labels = {}  # type: Dict[Block, str]

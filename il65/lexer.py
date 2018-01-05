@@ -127,7 +127,7 @@ def t_inlineasm_lbrace(t):
 def t_inlineasm_rbrace(t):
     r"\}"
     t.lexer.level -= 1
-    #if closing brace, return code fragment
+    # if closing brace, return code fragment
     if t.lexer.level == 0:
         t.value = t.lexer.lexdata[t.lexer.code_start:t.lexer.lexpos-1]
         t.type = "INLINEASM"
@@ -285,5 +285,5 @@ lexer.error_function = error_function        # can override this
 
 if __name__ == "__main__":
     ply.lex.runmain()
-    #lexer = ply.lex.Lexer()
-    #ply.lex.runmain(lexer=lexer)
+    # lexer = ply.lex.Lexer()
+    # ply.lex.runmain(lexer=lexer)

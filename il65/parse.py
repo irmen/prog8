@@ -486,7 +486,7 @@ class Parser:
                     break    # the first import directive actually is not part of the header anymore
                 else:
                     raise self.PError("invalid directive")
-            break # no more directives, header parsing finished!
+            break  # no more directives, header parsing finished!
         self.prev_line()
         if not self.result.start_address:
             # set the proper default start address
@@ -844,7 +844,8 @@ class Parser:
             groups = match.groupdict()
             subname = groups["subname"]
             return self.parse_call_or_goto(subname, groups["arguments"], None, None, True)
-        match = re.fullmatch(r"(?P<outputs>[^\(]*\s*=)?\s*(?P<subname>[\S]+?)\s*(?P<preserve>!\s*[A-Z]*)?\s*(\((?P<arguments>.*)\))?\s*", line)
+        match = re.fullmatch(
+            r"(?P<outputs>[^\(]*\s*=)?\s*(?P<subname>[\S]+?)\s*(?P<preserve>!\s*[A-Z]*)?\s*(\((?P<arguments>.*)\))?\s*", line)
         if match:
             # subroutine call (not a goto) with possible output param assignment
             groups = match.groupdict()

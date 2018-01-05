@@ -244,7 +244,7 @@ def p_type_opt(p):
 def p_dimensions(p):
     """dimensions : INTEGER
                   | dimensions ',' INTEGER"""
-    if len(p)==2:
+    if len(p) == 2:
         p[0] = [p[1]]
     else:
         p[0] = p[1] + [p[3]]
@@ -480,7 +480,7 @@ parser = yacc()
 
 if __name__ == "__main__":
     import sys
-    file=sys.stdin  # open(sys.argv[1], "rU")
+    file = sys.stdin  # open(sys.argv[1], "rU")
     result = parser.parse(input=file.read()) or Module(None, SourceRef("@todo-sfile", 1, 1))
     print("RESULT")
-    print(result.nodes)
+    print(str(result))
