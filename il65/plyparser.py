@@ -8,7 +8,7 @@ License: GNU GPL 3.0, see LICENSE
 
 import attr
 from ply.yacc import yacc
-from typing import Union
+from typing import Union, Type, Generator
 from .symbols import SourceRef
 from .lexer import tokens, lexer, find_tok_column   # get the lexer tokens. required.
 
@@ -48,70 +48,121 @@ class AstNode:
         tostr(self, 0)
 
 
-@attr.s(cmp=False)
-class Module(AstNode):
-    nodes = attr.ib(type=list)
-
-
-@attr.s(cmp=False)
+@attr.s(cmp=False, repr=False)
 class Directive(AstNode):
     name = attr.ib(type=str)
     args = attr.ib(type=list, default=attr.Factory(list))
 
 
-@attr.s(cmp=False)
+@attr.s(cmp=False, slots=True, repr=False)
 class Scope(AstNode):
     nodes = attr.ib(type=list)
+    symbols = attr.ib(init=False)
+    name = attr.ib(init=False)          # will be set by enclosing block, or subroutine etc.
+    parent_scope = attr.ib(init=False, default=None)  # will be wired up later
+    save_registers = attr.ib(type=bool, default=False, init=False)    # XXX will be set later
+
+    def __attrs_post_init__(self):
+        # populate the symbol table for this scope for fast lookups via scope["name"] or scope["dotted.name"]
+        self.symbols = {}
+        for node in self.nodes:
+            if isinstance(node, (Label, VarDef)):
+                self.symbols[node.name] = node
+            if isinstance(node, Subroutine):
+                self.symbols[node.name] = node
+                if node.scope is not None:
+                    node.scope.parent_scope = self
+            if isinstance(node, Block):
+                if node.name:
+                    self.symbols[node.name] = node
+                    node.scope.parent_scope = self
+
+    def __getitem__(self, name: str) -> AstNode:
+        if '.' in name:
+            # look up the dotted name starting from the topmost scope
+            scope = self
+            while scope.parent_scope:
+                scope = scope.parent_scope
+            for namepart in name.split('.'):
+                if isinstance(scope, (Block, Subroutine)):
+                    scope = scope.scope
+                if not isinstance(scope, Scope):
+                    raise LookupError("undefined symbol: " + name)
+                scope = scope.symbols.get(namepart, None)
+                if scope is None:
+                    raise LookupError("undefined symbol: " + name)
+            return scope
+        else:
+            # find the name in nested scope hierarchy
+            if name in self.symbols:
+                return self.symbols[name]
+            if self.parent_scope:
+                return self.parent_scope[name]
+            raise LookupError("undefined symbol: " + name)
+
+    def filter_nodes(self, nodetype) -> Generator[AstNode, None, None]:
+        for node in self.nodes:
+            if isinstance(node, nodetype):
+                yield node
 
 
-@attr.s(cmp=False)
+@attr.s(cmp=False, repr=False)
+class Module(AstNode):
+    name = attr.ib(type=str)     # filename
+    scope = attr.ib(type=Scope)
+
+
+@attr.s(cmp=False, repr=False)
 class Block(AstNode):
     scope = attr.ib(type=Scope)
     name = attr.ib(type=str, default=None)
     address = attr.ib(type=int, default=None)
 
+    def __attrs_post_init__(self):
+        self.scope.name = self.name
 
-@attr.s(cmp=False)
+
+@attr.s(cmp=False, repr=False)
 class Label(AstNode):
     name = attr.ib(type=str)
 
 
-@attr.s(cmp=False)
+@attr.s(cmp=False, repr=False)
 class Register(AstNode):
     name = attr.ib(type=str)
 
 
-@attr.s(cmp=False)
+@attr.s(cmp=False, repr=False)
 class PreserveRegs(AstNode):
     registers = attr.ib(type=str)
 
 
-@attr.s(cmp=False)
+@attr.s(cmp=False, repr=False)
 class Assignment(AstNode):
     left = attr.ib()     # type: Union[str, TargetRegisters, Dereference]
     right = attr.ib()
 
 
-@attr.s(cmp=False)
+@attr.s(cmp=False, repr=False)
 class AugAssignment(Assignment):
     operator = attr.ib(type=str)
 
 
-@attr.s(cmp=False)
+@attr.s(cmp=False, repr=False)
 class SubCall(AstNode):
     target = attr.ib()
     preserve_regs = attr.ib()
     arguments = attr.ib()
 
 
-@attr.s(cmp=False)
+@attr.s(cmp=False, repr=False)
 class Return(AstNode):
     value_A = attr.ib(default=None)
     value_X = attr.ib(default=None)
     value_Y = attr.ib(default=None)
 
 
-@attr.s(cmp=False)
+@attr.s(cmp=False, repr=False)
 class TargetRegisters(AstNode):
     registers = attr.ib(type=list)
 
@@ -119,12 +170,12 @@ class TargetRegisters(AstNode):
         self.registers.append(register)
 
 
-@attr.s(cmp=False)
+@attr.s(cmp=False, repr=False)
 class InlineAssembly(AstNode):
     assembly = attr.ib(type=str)
 
 
-@attr.s(cmp=False)
+@attr.s(cmp=False, repr=False)
 class VarDef(AstNode):
     name = attr.ib(type=str)
     vartype = attr.ib()
@@ -132,13 +183,13 @@ class VarDef(AstNode):
     value = attr.ib(default=None)
 
 
-@attr.s(cmp=False, slots=True)
+@attr.s(cmp=False, slots=True, repr=False)
 class Datatype(AstNode):
     name = attr.ib(type=str)
     dimension = attr.ib(type=list, default=None)
 
 
-@attr.s(cmp=False)
+@attr.s(cmp=False, repr=False)
 class Subroutine(AstNode):
     name = attr.ib(type=str)
     param_spec = attr.ib()
@@ -149,40 +200,42 @@ class Subroutine(AstNode):
     def __attrs_post_init__(self):
         if self.scope is not None and self.address is not None:
             raise ValueError("subroutine must have either a scope or an address, not both")
+        if self.scope is not None:
+            self.scope.name = self.name
 
 
-@attr.s(cmp=False)
+@attr.s(cmp=False, repr=False)
 class Goto(AstNode):
     target = attr.ib()
     if_stmt = attr.ib(default=None)
     condition = attr.ib(default=None)
 
 
-@attr.s(cmp=False)
+@attr.s(cmp=False, repr=False)
 class Dereference(AstNode):
     location = attr.ib()
     datatype = attr.ib()
 
 
-@attr.s(cmp=False, slots=True)
+@attr.s(cmp=False, slots=True, repr=False)
 class CallTarget(AstNode):
     target = attr.ib()
     address_of = attr.ib(type=bool)
 
 
-@attr.s(cmp=False, slots=True)
+@attr.s(cmp=False, slots=True, repr=False)
 class CallArgument(AstNode):
     value = attr.ib()
     name = attr.ib(type=str, default=None)
 
 
-@attr.s(cmp=False)
+@attr.s(cmp=False, repr=False)
 class UnaryOp(AstNode):
     operator = attr.ib(type=str)
     operand = attr.ib()
 
 
-@attr.s(cmp=False, slots=True)
+@attr.s(cmp=False, slots=True, repr=False)
 class Expression(AstNode):
     left = attr.ib()
     operator = attr.ib(type=str)
@@ -195,7 +248,13 @@ def p_start(p):
           |  module_elements
     """
     if p[1]:
-        p[0] = Module(nodes=p[1], sourceref=_token_sref(p, 1))
+        scope = Scope(nodes=p[1], sourceref=_token_sref(p, 1))
+        scope.name = "<" + p.lexer.source_filename + " global scope>"
+        p[0] = Module(name=p.lexer.source_filename, scope=scope, sourceref=_token_sref(p, 1))
+    else:
+        scope = Scope(nodes=[], sourceref=_token_sref(p, 1))
+        scope.name = "<" + p.lexer.source_filename + " global scope>"
+        p[0] = Module(name=p.lexer.source_filename, scope=scope, sourceref=SourceRef(lexer.source_filename, 1, 1))
 
 
 def p_module(p):
@@ -214,8 +273,9 @@ def p_module_elt(p):
     module_elt :  ENDL
                |  directive
                |  block
-   """
-    p[0] = p[1]
+    """
+    if p[1] != '\n':
+        p[0] = p[1]
 
 
 def p_directive(p):
@@ -245,6 +305,7 @@ def p_directive_arg(p):
     directive_arg :  NAME
                   |  INTEGER
                   |  STRING
+                  |  BOOLEAN
     """
     p[0] = p[1]
 
@@ -289,7 +350,7 @@ def p_scope_elements_opt(p):
     """
     scope_elements_opt :  empty
                        |  scope_elements
-   """
+    """
     p[0] = p[1]
 
 
@@ -297,11 +358,14 @@ def p_scope_elements(p):
     """
     scope_elements :  scope_element
                    |  scope_elements  scope_element
-   """
+    """
     if len(p) == 2:
-        p[0] = [p[1]]
+        p[0] = [] if p[1] in (None, '\n') else [p[1]]
     else:
-        p[0] = p[1] + [p[2]]
+        if p[2] in (None, '\n'):
+            p[0] = p[1]
+        else:
+            p[0] = p[1] + [p[2]]
 
 
 def p_scope_element(p):
@@ -314,7 +378,10 @@ def p_scope_element(p):
                   |  inlineasm
                   |  statement
     """
-    p[0] = p[1]
+    if p[1] != '\n':
+        p[0] = p[1]
+    else:
+        p[0] = None
 
 
 def p_label(p):
@@ -729,17 +796,18 @@ def p_empty(p):
 
 
 def p_error(p):
+    stack_state_str = '  '.join([symbol.type for symbol in parser.symstack][1:])
+    print('\n[ERROR DEBUG: parser state={:d} stack: {} . {} ]'.format(parser.state, stack_state_str, p))
     if p:
         sref = SourceRef(p.lexer.source_filename, p.lineno, find_tok_column(p))
-        p.lexer.error_function("{}: before '{:.20s}' ({})", sref, str(p.value), repr(p))
+        p.lexer.error_function("syntax error before '{:.20s}'", str(p.value), sourceref=sref)
     else:
-        lexer.error_function("{}: at end of input", "@todo-filename3")
+        lexer.error_function("syntax error at end of input", lexer.source_filename, sourceref=None)
 
 
 def _token_sref(p, token_idx):
     """ Returns the coordinates for the YaccProduction object 'p' indexed
-        with 'token_idx'. The coordinate includes the 'lineno' and
-        'column'. Both follow the lex semantic, starting from 1.
+        with 'token_idx'. The coordinate includes the 'lineno' and 'column', starting from 1.
     """
     last_cr = p.lexer.lexdata.rfind('\n', 0, p.lexpos(token_idx))
     if last_cr < 0:
@@ -772,12 +840,10 @@ class TokenFilter:
 parser = yacc(write_tables=True)
 
 
-if __name__ == "__main__":
-    import sys
-    file = sys.stdin  # open(sys.argv[1], "rU")
-    lexer.source_filename = "derp"
-    tokenfilter = TokenFilter(lexer)
-    result = parser.parse(input=file.read(),
-                          tokenfunc=tokenfilter.token) or Module(None, SourceRef(lexer.source_filename, 1, 1))
-    print("RESULT:")
-    result.print_tree()
+def parse_file(filename: str) -> Module:
+    lexer.lineno = 1
+    lexer.source_filename = filename
+    tfilter = TokenFilter(lexer)
+    with open(filename, "rU") as inf:
+        sourcecode = inf.read()
+    return parser.parse(input=sourcecode, tokenfunc=tfilter.token)

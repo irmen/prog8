@@ -475,9 +475,9 @@ class Parser:
                     if self.result.format == ProgramFormat.PRG and self.result.with_sys and self.result.start_address != 0x0801:
                         raise self.PError("cannot use non-default 'address' when output format includes basic SYS program")
                     continue
-                elif directive == "preserve_registers":
+                elif directive == "saveregisters":
                     if preserve_specified:
-                        raise self.PError("can only specify preserve_registers option once")
+                        raise self.PError("can only specify saveregisters option once")
                     preserve_specified = True
                     _, _, optionstr = line.partition(" ")
                     self.result.preserve_registers = optionstr in ("", "true", "yes")
@@ -649,7 +649,7 @@ class Parser:
             elif directive == "breakpoint":
                 self.cur_block.statements.append(BreakpointStmt(self.sourceref))
                 self.print_warning("breakpoint defined")
-            elif directive == "preserve_registers":
+            elif directive == "saveregisters":
                 self.result.preserve_registers = optionstr in ("", "true", "yes")
             else:
                 raise self.PError("invalid directive")

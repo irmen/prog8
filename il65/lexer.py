@@ -9,6 +9,8 @@ License: GNU GPL 3.0, see LICENSE
 import sys
 import ply.lex
 from .symbols import SourceRef
+from .parse import ParseError
+
 
 # token names
 
@@ -218,7 +220,7 @@ def t_NAME(t):
 
 
 def t_DIRECTIVE(t):
-    r"%[a-z]+"
+    r"%[a-z]+\b"
     t.value = t.value[1:]
     return t
 
@@ -284,13 +286,15 @@ def t_PRESERVEREGS(t):
 def t_ENDL(t):
     r"\n+"
     t.lexer.lineno += len(t.value)
+    t.value = "\n"
     return t    # end of lines are significant to the parser
 
 
 def t_error(t):
     line, col = t.lineno, find_tok_column(t)
-    sref = SourceRef("@todo-filename-f1", line, col)
-    t.lexer.error_function("{}: Illegal character '{:s}'", sref, t.value[0])
+    filename = getattr(t.lexer, "source_filename", "<unknown-file>")
+    sref = SourceRef(filename, line, col)
+    t.lexer.error_function("{}: Illegal character '{:s}'", sref, t.value[0], sourceref=sref)
     t.lexer.skip(1)
 
 
@@ -300,8 +304,8 @@ def find_tok_column(token):
     return token.lexpos - last_cr
 
 
-def error_function(fmtstring, *args):
-    print("ERROR:", fmtstring.format(*args), file=sys.stderr)
+def error_function(fmtstring, *args, sourceref: SourceRef=None) -> None:
+    raise ParseError(fmtstring.format(*args), None, sourceref=sourceref)
 
 
 lexer = ply.lex.lex()

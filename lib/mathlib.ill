@@ -59,7 +59,6 @@ _m_with_add	stx  SCRATCH_ZP1
 	}
 }
 
-
 sub  multiply_bytes_addA_16  (byte1: X, byte2: Y, add: A) -> (A?, XY)  {
 	; ---- multiply 2 bytes and add A, result as word in X/Y (unsigned)
 	%asm {

@@ -400,7 +400,7 @@ Normally, the registers are NOT preserved when calling a subroutine or when a ce
 operations are performed. Most calls will be simply a few instructions to load the
 values in the registers and then a JSR or JMP.
 
-By using the ``%preserve_registers`` directive (globally or in a block) you can tell the
+By using the ``%saveregisters`` directive (globally or in a block) you can tell the
 compiler to preserve all registers. This does generate a lot of extra code that puts
 original values on the stack and gets them off the stack again once the subroutine is done.
 In this case however you don't have to worry about A, X and Y losing their original values

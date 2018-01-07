@@ -710,17 +710,18 @@ class AstNode:
             try:
                 variables = vars(node).items()
             except TypeError:
-                variables = {}
-            for name, value in variables:
-                if isinstance(value, AstNode):
-                    tostr(value, level + 1)
-                if isinstance(value, (list, tuple, set)):
-                    if len(value) > 0:
-                        elt = list(value)[0]
-                        if isinstance(elt, AstNode) or name == "nodes":
-                            print(indent, "  >", name, "=")
-                            for elt in value:
-                                tostr(elt, level + 2)
+                pass
+            else:
+                for name, value in variables:
+                    if isinstance(value, AstNode):
+                        tostr(value, level + 1)
+                    if isinstance(value, (list, tuple, set)):
+                        if len(value) > 0:
+                            elt = list(value)[0]
+                            if isinstance(elt, AstNode) or name == "nodes":
+                                print(indent, "  >", name, "=")
+                                for elt in value:
+                                    tostr(elt, level + 2)
         tostr(self, 0)
 
 
