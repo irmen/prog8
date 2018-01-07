@@ -6,7 +6,7 @@ Written by Irmen de Jong (irmen@razorvine.net)
 License: GNU GPL 3.0, see LICENSE
 """
 
-from typing import List, Any
+from typing import List, Set
 from ply.yacc import yacc
 from .symbols import SourceRef, AstNode
 from .lexer import tokens, lexer, find_tok_column   # get the lexer tokens. required.
@@ -89,9 +89,12 @@ class Return(AstNode):
 
 
 class TargetRegisters(AstNode):
-    def __init__(self, registers, sourceref: SourceRef) -> None:
+    def __init__(self, registers: List[str], sourceref: SourceRef) -> None:
         super().__init__(sourceref)
         self.registers = registers
+
+    def add_register(self, register) -> None:
+        self.registers.append(register)
 
 
 class InlineAssembly(AstNode):
@@ -754,5 +757,5 @@ if __name__ == "__main__":
     tokenfilter = TokenFilter(lexer)
     result = parser.parse(input=file.read(),
                           tokenfunc=tokenfilter.token) or Module(None, SourceRef(lexer.source_filename, 1, 1))
-    # print("RESULT:")
-    # print(str(result))
+    print("RESULT:")
+    result.print_tree()

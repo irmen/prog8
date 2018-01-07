@@ -2,7 +2,7 @@
 %import c64lib
 %import mathlib
 
-~ main {
+~ main $4444 {
 
 
                 const   num = 2

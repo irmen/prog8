@@ -700,37 +700,28 @@ class AstNode:
     def lineref(self) -> str:
         return "src l. " + str(self.sourceref.line)
 
-    def __str__(self) -> str:
-        def tostr(node: Any, level: int) -> str:
-            indent = "   "
-            clsname = node.__class__.__name__
-            attrs = []
+    def print_tree(self) -> None:
+        def tostr(node: AstNode, level: int) -> None:
+            if not isinstance(node, AstNode):
+                return
+            indent = "   " * level
+            name = getattr(node, "name", "")
+            print(indent, node.__class__.__name__, repr(name))
             try:
-                nvars = vars(node)
+                variables = vars(node).items()
             except TypeError:
-                if type(node) is str:
-                    sv = repr(node)
-                    if len(sv) > 20:
-                        sv = sv[:20] + "...'"
-                    return sv
-                return str(node)
-            for name, value in nvars.items():
-                if name == "sourceref":
-                    continue
-                elif type(value) in (str, int, float, bool, type(None)):
-                    attrs.append((name, tostr(value, level+1)))
-                elif type(value) is list:
-                    strvalue = "["
-                    strvalue += (",\n" + indent*(level+1)).join(tostr(v, level+1) for v in value) + "\n" + (1+level)*indent + "]"
-                    attrs.append((name, strvalue))
-                elif type(value) is not list and type(value) not in (str, int, float, bool, type(None)):
-                    attrs.append((name, tostr(value, level+2)))
-                else:
-                    raise TypeError("WEIRD TYPE", type(value))
-            attrstr = ("\n" + indent*(1+level)).join("{} = {}".format(name, sv) for name, sv in attrs)
-            result = "\n" + indent * level + "<{0:s}  l={1:d}  c={2:d}".format(clsname, node.sourceref.line, node.sourceref.column)
-            return result + "{} |end {} l={:d}|>".format(attrstr, clsname, node.sourceref.line)
-        return tostr(self, 0)
+                variables = {}
+            for name, value in variables:
+                if isinstance(value, AstNode):
+                    tostr(value, level + 1)
+                if isinstance(value, (list, tuple, set)):
+                    if len(value) > 0:
+                        elt = list(value)[0]
+                        if isinstance(elt, AstNode) or name == "nodes":
+                            print(indent, "  >", name, "=")
+                            for elt in value:
+                                tostr(elt, level + 2)
+        tostr(self, 0)
 
 
 class Block(AstNode):
