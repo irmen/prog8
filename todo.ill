@@ -172,6 +172,7 @@ loop   :
 
 sub sub1 () -> () {
 
+	%breakpoint
 	%saveregisters off
 	%breakpoint
 

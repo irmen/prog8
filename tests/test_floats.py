@@ -1,5 +1,5 @@
 import pytest
-from il65 import codegen, symbols
+from il65.handwritten import symbols, codegen
 
 
 def test_float_to_mflpt5():

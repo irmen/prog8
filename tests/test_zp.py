@@ -1,5 +1,5 @@
 import pytest
-from il65.symbols import Zeropage, SymbolError, DataType
+from il65.handwritten.symbols import Zeropage, SymbolError, DataType
 
 
 def test_zp_configure_onlyonce():

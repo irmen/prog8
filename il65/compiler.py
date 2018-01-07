@@ -3,25 +3,41 @@ import sys
 import linecache
 from typing import Optional, Generator, Tuple, Set
 from .plyparser import parse_file, Module, Directive, Block, Subroutine, AstNode
-from .parse import ParseError
-from .symbols import SourceRef
+from .plylexer import SourceRef
+
+
+class ParseError(Exception):
+    def __init__(self, message: str, sourcetext: Optional[str], sourceref: SourceRef) -> None:
+        self.sourceref = sourceref
+        self.msg = message
+        self.sourcetext = sourcetext
+
+    def __str__(self):
+        return "{} {:s}".format(self.sourceref, self.msg)
 
 
 class PlyParser:
-    def __init__(self):
+    def __init__(self, parsing_import: bool=False) -> None:
         self.parse_errors = 0
-        self.parsing_import = False
+        self.parsing_import = parsing_import
 
     def parse_file(self, filename: str) -> Module:
         print("parsing:", filename)
-        module = parse_file(filename)
+        module = parse_file(filename, self.lexer_error)
         try:
             self.check_directives(module)
             self.remove_empty_blocks(module)
             self.process_imports(module)
         except ParseError as x:
             self.handle_parse_error(x)
+        if self.parse_errors:
+            self.print_bold("\nNo output; there were {:d} errors.\n".format(self.parse_errors))
+            raise SystemExit(1)
         return module
+
+    def lexer_error(self, sourceref: SourceRef, fmtstring: str, *args: str) -> None:
+        self.parse_errors += 1
+        self.print_bold("ERROR: {}: {}".format(sourceref, fmtstring.format(*args)))
 
     def remove_empty_blocks(self, module: Module) -> None:
         # remove blocks without name and without address, or that are empty
@@ -87,27 +103,39 @@ class PlyParser:
                     filename = self.find_import_file(arg, directive.sourceref.file)
                     if not filename:
                         raise ParseError("imported file not found", None, directive.sourceref)
-                    imported_module = self.import_file(filename)
+                    imported_module, import_parse_errors = self.import_file(filename)
                     imported_module.scope.parent_scope = module.scope
                     imported.append(imported_module)
+                    self.parse_errors += import_parse_errors
+        if not self.parsing_import:
+            # compiler support library is always imported (in main parser)
+            filename = self.find_import_file("il65lib", module.sourceref.file)
+            if filename:
+                imported_module, import_parse_errors = self.import_file(filename)
+                imported_module.scope.parent_scope = module.scope
+                imported.append(imported_module)
+                self.parse_errors += import_parse_errors
+            else:
+                raise FileNotFoundError("missing il65lib")
         # append the imported module's contents (blocks) at the end of the current module
         for imported_module in imported:
             for block in imported_module.scope.filter_nodes(Block):
                 module.scope.nodes.append(block)
 
-    def import_file(self, filename: str) -> Module:
-        sub_parser = PlyParser()
-        return sub_parser.parse_file(filename)
+    def import_file(self, filename: str) -> Tuple[Module, int]:
+        sub_parser = PlyParser(parsing_import=True)
+        return sub_parser.parse_file(filename), sub_parser.parse_errors
 
     def find_import_file(self, modulename: str, sourcefile: str) -> Optional[str]:
+        candidates = [modulename+".ill", modulename]
         filename_at_source_location = os.path.join(os.path.split(sourcefile)[0], modulename)
-        filename_at_libs_location = os.path.join(os.getcwd(), "lib", modulename)
-        candidates = [modulename,
-                      filename_at_source_location,
-                      filename_at_libs_location,
-                      modulename+".ill",
-                      filename_at_source_location+".ill",
-                      filename_at_libs_location+".ill"]
+        if filename_at_source_location not in candidates:
+            candidates.append(filename_at_source_location+".ill")
+            candidates.append(filename_at_source_location)
+        filename_at_libs_location = os.path.join(os.path.split(__file__)[0], "lib", modulename)
+        if filename_at_libs_location not in candidates:
+            candidates.append(filename_at_libs_location+".ill")
+            candidates.append(filename_at_libs_location)
         for filename in candidates:
             if os.path.isfile(filename):
                 return filename

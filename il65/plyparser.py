@@ -8,9 +8,8 @@ License: GNU GPL 3.0, see LICENSE
 
 import attr
 from ply.yacc import yacc
-from typing import Union, Type, Generator
-from .symbols import SourceRef
-from .lexer import tokens, lexer, find_tok_column   # get the lexer tokens. required.
+from typing import Union, Generator
+from .plylexer import SourceRef, tokens, lexer, find_tok_column
 
 
 start = "start"
@@ -800,9 +799,9 @@ def p_error(p):
     print('\n[ERROR DEBUG: parser state={:d} stack: {} . {} ]'.format(parser.state, stack_state_str, p))
     if p:
         sref = SourceRef(p.lexer.source_filename, p.lineno, find_tok_column(p))
-        p.lexer.error_function("syntax error before '{:.20s}'", str(p.value), sourceref=sref)
+        p.lexer.error_function(sref, "syntax error before '{:.20s}'", str(p.value))
     else:
-        lexer.error_function("syntax error at end of input", lexer.source_filename, sourceref=None)
+        lexer.error_function(None, "syntax error at end of input", lexer.source_filename)
 
 
 def _token_sref(p, token_idx):
@@ -840,7 +839,8 @@ class TokenFilter:
 parser = yacc(write_tables=True)
 
 
-def parse_file(filename: str) -> Module:
+def parse_file(filename: str, lexer_error_func=None) -> Module:
+    lexer.error_function = lexer_error_func
     lexer.lineno = 1
     lexer.source_filename = filename
     tfilter = TokenFilter(lexer)

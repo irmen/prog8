@@ -1,6 +1,6 @@
 """
 Programming Language for 6502/6510 microprocessors
-This is the parser of the IL65 code, that generates a parse tree.
+This is the hand-written parser of the IL65 code, that generates a parse tree.
 
 Written by Irmen de Jong (irmen@razorvine.net)
 License: GNU GPL 3.0, see LICENSE
@@ -10,9 +10,7 @@ import re
 import os
 import sys
 import shutil
-import attr
 from collections import defaultdict
-from typing import Set, List, Tuple, Optional, Dict, Union, Generator
 from .exprparse import ParseError, parse_expr_as_int, parse_expr_as_number, parse_expr_as_primitive,\
     parse_expr_as_string, parse_arguments, parse_expr_as_comparison
 from .symbols import *
@@ -513,14 +511,15 @@ class Parser:
         self._parse_import_file(filename)
 
     def _parse_import_file(self, filename: str) -> None:
+        candidates = [filename+".ill", filename]
         filename_at_source_location = os.path.join(os.path.split(self.sourceref.file)[0], filename)
-        filename_at_libs_location = os.path.join(os.getcwd(), "lib", filename)
-        candidates = [filename,
-                      filename_at_source_location,
-                      filename_at_libs_location,
-                      filename+".ill",
-                      filename_at_source_location+".ill",
-                      filename_at_libs_location+".ill"]
+        if filename_at_source_location not in candidates:
+            candidates.append(filename_at_source_location+".ill")
+            candidates.append(filename_at_source_location)
+        filename_at_libs_location = os.path.join(os.path.split(__file__)[0], "../lib", filename)
+        if filename_at_libs_location not in candidates:
+            candidates.append(filename_at_libs_location+".ill")
+            candidates.append(filename_at_libs_location)
         for filename in candidates:
             if os.path.isfile(filename):
                 if not self.check_import_okay(filename):

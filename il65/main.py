@@ -12,10 +12,10 @@ import time
 import os
 import argparse
 import subprocess
-from .parse import Parser
-from .optimize import Optimizer
-from .preprocess import PreprocessingParser
-from .codegen import CodeGenerator, Assembler64Tass
+from .handwritten.parse import Parser
+from .handwritten.optimize import Optimizer
+from .handwritten.preprocess import PreprocessingParser
+from .handwritten.codegen import CodeGenerator, Assembler64Tass
 
 
 def main() -> None:

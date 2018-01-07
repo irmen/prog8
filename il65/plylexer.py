@@ -8,8 +8,21 @@ License: GNU GPL 3.0, see LICENSE
 
 import sys
 import ply.lex
-from .symbols import SourceRef
-from .parse import ParseError
+import attr
+
+
+@attr.s(slots=True, frozen=True)
+class SourceRef:
+    file = attr.ib(type=str)
+    line = attr.ib(type=int)
+    column = attr.ib(type=int, default=0)
+
+    def __str__(self) -> str:
+        if self.column:
+            return "{:s}:{:d}:{:d}".format(self.file, self.line, self.column)
+        if self.line:
+            return "{:s}:{:d}".format(self.file, self.line)
+        return self.file
 
 
 # token names
@@ -294,7 +307,10 @@ def t_error(t):
     line, col = t.lineno, find_tok_column(t)
     filename = getattr(t.lexer, "source_filename", "<unknown-file>")
     sref = SourceRef(filename, line, col)
-    t.lexer.error_function("{}: Illegal character '{:s}'", sref, t.value[0], sourceref=sref)
+    if hasattr(t.lexer, "error_function"):
+        t.lexer.error_function(sref, "illegal character '{:s}'", t.value[0])
+    else:
+        print("{}: illegal character '{:s}'".format(sref, t.value[0]), file=sys.stderr)
     t.lexer.skip(1)
 
 
@@ -304,12 +320,7 @@ def find_tok_column(token):
     return token.lexpos - last_cr
 
 
-def error_function(fmtstring, *args, sourceref: SourceRef=None) -> None:
-    raise ParseError(fmtstring.format(*args), None, sourceref=sourceref)
-
-
 lexer = ply.lex.lex()
-lexer.error_function = error_function        # can override this
 
 
 if __name__ == "__main__":
