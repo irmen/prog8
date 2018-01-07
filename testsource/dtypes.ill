@@ -64,9 +64,8 @@
 	var  .float             initfloat4      = 1.70141183e+38
 	var  .float             initfloat5      = -1.70141183e+38
 	var  .float             initfloat6      = 1.234
-	var  .float (44)  zzzz = 333
 
-	var  .wordarray ( 10 )   uninit_wordarray
+	var  .wordarray( 10 )   uninit_wordarray
 	var  .wordarray(10)     init_wordarray          =  $1234
 	var  .wordarray(10)     init_wordarrayb         =  true
 	var  .array( 10)        uninit_bytearray
@@ -113,12 +112,12 @@
 	const  .pstext          ctext6   	= "constant-pstext"
 
         ; taking the address of various things:
-	var .word        vmemaddr1              = & membyte1
-	var .word        vmemaddr2              = & memword1
-	var .word        vmemaddr3              = & memfloat
-	var .word        vmemaddr4              = & membytes
-	var .word        vmemaddr5              = & memwords
-	var .word        vmemaddr6              = & memmatrix
+	var .word        vmemaddr1              = &membyte1
+	var .word        vmemaddr2              = &memword1
+	var .word        vmemaddr3              = &memfloat
+	var .word        vmemaddr4              = &membytes
+	var .word        vmemaddr5              = &memwords
+	var .word        vmemaddr6              = &memmatrix
 	var .word        vmemaddr8              = 100*sin(cbyte1)
 	var .word        vmemaddr9              = cword2+$5432
 	var .word        vmemaddr10             = cfloat2b
@@ -126,10 +125,10 @@
 	; taking the address of things from the ZP will work even when it is a var
 	; because zp-vars get assigned a specific address (from a pool). Also, it's a byte.
 
-	var .word        initword0a             = & ZP.zpmem1
-	var .word	 initword0              = & ZP.zpvar1
-	var              initbytea0             = & ZP.zpmem1
-	var	.word	 initworda1             = & ZP.zpvar1
+	var .word        initword0a             = &ZP.zpmem1
+	var .word	 initword0              = &ZP.zpvar1
+	var              initbytea0             = &ZP.zpmem1
+	var	.word	 initworda1             = &ZP.zpvar1
 
 
         ; (constant) expressions
@@ -181,7 +180,6 @@ start:
 	XY = uninitbyte1
 	XY = "text-immediate"
 	AY = "text-immediate"
-	AX = &derp
 	; AX = &"text-immediate"          ; equivalent to simply assigning the string directly
 	; AX = & "text-immediate"         ; equivalent to simply assigning the string directly
 	AX = ctext3

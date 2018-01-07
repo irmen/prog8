@@ -1,6 +1,14 @@
+"""
+Programming Language for 6502/6510 microprocessors
+This is the lexer of the IL65 code, that generates a stream of tokens for the parser.
+
+Written by Irmen de Jong (irmen@razorvine.net)
+License: GNU GPL 3.0, see LICENSE
+"""
+
 import sys
-from .symbols import SourceRef
 import ply.lex
+from .symbols import SourceRef
 
 # token names
 

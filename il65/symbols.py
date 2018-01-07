@@ -12,6 +12,7 @@ import enum
 import builtins
 from functools import total_ordering
 from typing import Optional, Set, Union, Tuple, Dict, Iterable, Sequence, Any, List, Generator
+import attr
 
 
 PrimitiveType = Union[int, float, str]
@@ -74,13 +75,11 @@ class SymbolError(Exception):
 _identifier_seq_nr = 0
 
 
+@attr.s(slots=True, frozen=True)
 class SourceRef:
-    __slots__ = ("file", "line", "column")
-
-    def __init__(self, file: str, line: int, column: int=0) -> None:
-        self.file = file
-        self.line = line
-        self.column = column
+    file = attr.ib(type=str)
+    line = attr.ib(type=int)
+    column = attr.ib(type=int, default=0)
 
     def __str__(self) -> str:
         if self.column:
@@ -89,15 +88,12 @@ class SourceRef:
             return "{:s}:{:d}".format(self.file, self.line)
         return self.file
 
-    def copy(self) -> 'SourceRef':
-        return SourceRef(self.file, self.line, self.column)
-
 
 class SymbolDefinition:
     def __init__(self, blockname: str, name: str, sourceref: SourceRef, allocate: bool) -> None:
         self.blockname = blockname
         self.name = name
-        self.sourceref = sourceref.copy()
+        self.sourceref = sourceref
         self.allocate = allocate     # set to false if the variable is memory mapped (or a constant) instead of allocated
         global _identifier_seq_nr
         self.seq_nr = _identifier_seq_nr
@@ -695,9 +691,10 @@ ascii_to_petscii_trans = str.maketrans({
 
 
 class AstNode:
-    def __init__(self, sourceref: SourceRef, children: List['AstNode']=None) -> None:
-        self.sourceref = sourceref.copy()
-        self.children = children or []
+    __slots__ = ["sourceref"]
+
+    def __init__(self, sourceref: SourceRef) -> None:
+        self.sourceref = sourceref
 
     @property
     def lineref(self) -> str:

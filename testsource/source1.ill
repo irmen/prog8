@@ -33,7 +33,7 @@ start:   ;foo
 	Y = X
 	X = 66
 	screen = 0
-	screen = border =  cursor = X = Y = A = X = Y = A = border = cursor = border = cursor = 66  ; multi-assign!  @todo ply parse
+	screen = border =  cursor = X = Y = A = X = Y = A = border = cursor = border = cursor = 66  ; multi-assign!
 	border = false
 	border = true
 	border = 0
@@ -104,6 +104,7 @@ sub  customsub (Y)->()  {
 
 
 somelabel1222:
+
         customsub(2)
 	return
 

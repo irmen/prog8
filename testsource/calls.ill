@@ -1,8 +1,5 @@
 ; call tests
 
-%output foobar
-
-
 ~ foo {
 
 

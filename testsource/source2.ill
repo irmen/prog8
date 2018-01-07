@@ -15,11 +15,11 @@ start:
         ;return
 
         ;included_assembly
-        %asminclude "   included.sourcelynx   walla  derp   ",  test_include
-        %asminclude "   included.sourcelynx   walla  derp   ",  "test_include"
+        ;%asminclude "   included.sourcelynx   walla  derp   ",  test_include
+        ;%asminclude "   included.sourcelynx   walla  derp   ",  "test_include"
 
         ;included_binary
-        %asmbinary  "   included.binary  234  "
-        %asmbinary  "   included.binary",  $40
+        ;%asmbinary  "   included.binary  234  "
+        ;%asmbinary  "   included.binary",  $40
         %asmbinary  "included.binary",  $40, $200
 }

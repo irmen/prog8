@@ -10,6 +10,7 @@ import re
 import os
 import sys
 import shutil
+import attr
 from collections import defaultdict
 from typing import Set, List, Tuple, Optional, Dict, Union, Generator
 from .exprparse import ParseError, parse_expr_as_int, parse_expr_as_number, parse_expr_as_primitive,\
@@ -235,8 +236,7 @@ class Parser:
     def _parse_2(self) -> None:
         # parsing pass 2 (not done during preprocessing!)
         self.cur_block = None
-        self.sourceref.line = -1
-        self.sourceref.column = 0
+        self.sourceref = SourceRef(self.sourceref.file, -1)
 
         def imm_string_to_var(stmt: AssignmentStmt, containing_block: Block) -> None:
             if stmt.right.name or not isinstance(stmt.right, StringValue):
@@ -257,13 +257,13 @@ class Parser:
         def desugar_immediate_strings(stmt: AstNode, containing_block: Block) -> None:
             if isinstance(stmt, CallStmt):
                 for s in stmt.desugared_call_arguments:
-                    self.sourceref = s.sourceref.copy()
+                    self.sourceref = s.sourceref
                     imm_string_to_var(s, containing_block)
                 for s in stmt.desugared_output_assignments:
-                    self.sourceref = s.sourceref.copy()
+                    self.sourceref = s.sourceref
                     imm_string_to_var(s, containing_block)
             if isinstance(stmt, AssignmentStmt):
-                self.sourceref = stmt.sourceref.copy()
+                self.sourceref = stmt.sourceref
                 imm_string_to_var(stmt, containing_block)
 
         def desugar_immediate_floats(stmt: AstNode, containing_block: Block) -> None:
@@ -312,11 +312,10 @@ class Parser:
 
         for block in self.result.blocks:
             self.cur_block = block
-            self.sourceref = block.sourceref.copy()
-            self.sourceref.column = 0
+            self.sourceref = attr.evolve(block.sourceref, column=0)
             for _, sub, stmt in block.all_statements():
                 if isinstance(stmt, CallStmt):
-                    self.sourceref = stmt.sourceref.copy()
+                    self.sourceref = stmt.sourceref
                     self.desugar_call_arguments_and_outputs(stmt)
                 desugar_immediate_strings(stmt, self.cur_block)
                 desugar_immediate_floats(stmt, self.cur_block)
@@ -327,7 +326,7 @@ class Parser:
         for name, value in stmt.arguments or []:
             assert name is not None, "all call arguments should have a name or be matched on a named parameter"
             assignment = self.parse_assignment(name, value)
-            assignment.sourceref = stmt.sourceref.copy()
+            assignment.sourceref = stmt.sourceref
             if assignment.leftvalues[0].datatype != DataType.BYTE:
                 if isinstance(assignment.right, IntegerValue) and assignment.right.constant:
                     # a call that doesn't expect a BYTE argument but gets one, converted from a 1-byte string most likely
@@ -360,15 +359,16 @@ class Parser:
     def next_line(self) -> str:
         self._cur_lineidx += 1
         try:
-            self.sourceref.line, line = self.lines[self._cur_lineidx]
-            self.sourceref.column = 0
+            lineno, line = self.lines[self._cur_lineidx]
+            self.sourceref = SourceRef(file=self.sourceref.file, line=lineno)
             return line
         except IndexError:
             return ""
 
     def prev_line(self) -> str:
         self._cur_lineidx -= 1
-        self.sourceref.line, line = self.lines[self._cur_lineidx]
+        lineno, line = self.lines[self._cur_lineidx]
+        self.sourceref = SourceRef(file=self.sourceref.file, line=lineno)
         return line
 
     def peek_next_line(self) -> str:
@@ -506,6 +506,8 @@ class Parser:
             _, filename = line.split(maxsplit=1)
         except ValueError:
             raise self.PError("invalid import statement")
+        if filename[0] in "'\"" and filename[-1] in "'\"":
+            filename = filename[1:-1]
         if not filename:
             raise self.PError("invalid filename")
         self._parse_import_file(filename)
@@ -554,7 +556,7 @@ class Parser:
             raise self.PError("expected '~' (block)")
         block_args = line[1:].split()
         arg = ""
-        self.cur_block = Block("", self.sourceref.copy(), self.root_scope, self.result.preserve_registers)
+        self.cur_block = Block("", self.sourceref, self.root_scope, self.result.preserve_registers)
         is_zp_block = False
         while block_args:
             arg = block_args.pop(0)
@@ -568,7 +570,7 @@ class Parser:
                         raise self.PError("duplicate block name '{:s}', original definition at {}".format(arg, orig.sourceref))
                     self.cur_block = orig  # zero page block occurrences are merged
                 else:
-                    self.cur_block = Block(arg, self.sourceref.copy(), self.root_scope, self.result.preserve_registers)
+                    self.cur_block = Block(arg, self.sourceref, self.root_scope, self.result.preserve_registers)
                     try:
                         self.root_scope.define_scope(self.cur_block.symbols, self.cur_block.sourceref)
                     except SymbolError as x:
@@ -1040,10 +1042,15 @@ class Parser:
                         return InplaceIncrStmt(l_value, r_value.negative(), self.sourceref)
         return AugmentedAssignmentStmt(l_value, operator, r_value, self.sourceref)
 
-    def parse_return(self, line: str) -> ReturnStmt:
+    def parse_return(self, line: str) -> Union[ReturnStmt, CallStmt]:
         parts = line.split(maxsplit=1)
         if parts[0] != "return":
             raise self.PError("invalid statement, return expected")
+        if '(' in line and line[-1] == ')':
+            # assume it's a function call that follows the 'return'. Turn it into a goto.
+            parts[0] = "goto"
+            line = " ".join(parts)
+            return self.parse_statement(line)       # type: ignore
         a = x = y = None
         values = []  # type: List[str]
         if len(parts) > 1:
@@ -1057,7 +1064,7 @@ class Parser:
                 if len(values) > 2:
                     y = self.parse_expression(values[2]) if values[2] else None
                     if len(values) > 3:
-                        raise self.PError("too many returnvalues")
+                        raise self.PError("too many returnvalues (>3)")
         return ReturnStmt(self.sourceref, a, x, y)
 
     def parse_asm(self) -> InlineAsm:
@@ -1089,14 +1096,16 @@ class Parser:
             asmlines.append(line)
 
     def parse_asminclude(self, line: str) -> InlineAsm:
+        line = line.replace(",", " ")
         aline = line.split()
         if len(aline) < 2:
             raise self.PError("invalid asminclude or asmbinary directive")
         filename = aline[1]
+        if filename[0] not in "'\"" or filename[-1] not in "'\"":
+            raise self.PError("invalid filename, should use quotes")
+        filename = filename[1:-1]
         if not filename:
             raise self.PError("invalid filename")
-        if filename[0] in "'\"" or filename[-1] in "'\"":
-            raise self.PError("invalid filename, should not use quotes")
         filename_in_sourcedir = os.path.join(os.path.split(self.sourceref.file)[0], filename)
         filename_in_output_location = os.path.join(self.outputdir, filename)
         if not os.path.isfile(filename_in_sourcedir):
@@ -1131,7 +1140,7 @@ class Parser:
         text = text.strip()
         if not text:
             raise self.PError("value expected")
-        if text[0] == '#':
+        if text[0] == '&':
             if is_indirect:
                 raise self.PError("using the address-of something in an indirect value makes no sense")
             # take the pointer (memory address) from the thing that follows this

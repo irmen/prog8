@@ -7,6 +7,7 @@ License: GNU GPL 3.0, see LICENSE
 """
 
 import ast
+import attr
 from typing import Union, Optional, List, Tuple, Any
 from .symbols import FLOAT_MAX_POSITIVE, FLOAT_MAX_NEGATIVE, SourceRef, SymbolTable, SymbolError, PrimitiveType
 
@@ -52,7 +53,7 @@ class SourceLine:
                 if c == '$' and self.text[i + 1] in "0123456789abcdefABCDEF":
                     text += "0x"
                     continue
-                if c == '#':
+                if c == '&':
                     if i > 0:
                         text += " "
                     text += "__ptr@"
@@ -172,11 +173,7 @@ class EvaluatingTransformer(ast.NodeTransformer):
         self.ppcontext = ppcontext
 
     def error(self, message: str, column: int=0) -> ParseError:
-        if column:
-            ref = self.src.sourceref.copy()
-            ref.column = column
-        else:
-            ref = self.src.sourceref
+        ref = attr.evolve(self.src.sourceref, column=column)
         return ParseError(message, self.src.text, ref)
 
     def evaluate(self, node: ast.Expression) -> PrimitiveType:
@@ -267,7 +264,7 @@ def astnode_to_repr(node: ast.AST) -> str:
         return repr(node.s)
     if isinstance(node, ast.BinOp):
         if node.left.id == "__ptr" and isinstance(node.op, ast.MatMult):    # type: ignore
-            return '#' + astnode_to_repr(node.right)
+            return '&' + astnode_to_repr(node.right)
         else:
             print("error", ast.dump(node))
             raise TypeError("invalid arg ast node type", node)

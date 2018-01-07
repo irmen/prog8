@@ -14,6 +14,7 @@ start:
         A +=  c64.RASTER
         A-=c64.TIME_LO
         X,A=math.divmod_bytes(A, 99)
+        A=B=C=foo()
         c64scr.print_byte_decimal(A)
         c64.CHROUT('\n')
         return
@@ -27,7 +28,7 @@ rndloop:
                 tya
                 sta $0500,x
         }
-        ;[wvar1] = 81            ; @todo implement pointers like this
+        [wvar1] = 81            ; @todo implement pointers like this
         goto rndloop
 
 
