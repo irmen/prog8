@@ -1,30 +1,29 @@
 """
-Programming Language for 6502/6510 microprocessors
+Programming Language for 6502/6510 microprocessors, codename 'Sick'
 This is the compiler of the IL65 code, that prepares the parse tree for code generation.
 
-Written by Irmen de Jong (irmen@razorvine.net)
-License: GNU GPL 3.0, see LICENSE
+Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
 import re
 import os
 import sys
 import linecache
-from typing import Optional, Tuple, Set, Dict, Any, List
+from typing import Optional, Tuple, Set, Dict, Any, no_type_check
 from .plyparser import parse_file, Module, Directive, Block, Subroutine, Scope, \
-    SubCall, Goto, Return, Assignment, InlineAssembly, Register, Expression, TargetRegisters
+    SubCall, Goto, Return, Assignment, InlineAssembly, Register, Expression
 from .plylexer import SourceRef, print_bold
 from .optimizer import optimize
 
 
 class ParseError(Exception):
     def __init__(self, message: str, sourcetext: Optional[str], sourceref: SourceRef) -> None:
+        super().__init__(message)
         self.sourceref = sourceref
-        self.msg = message
         self.sourcetext = sourcetext
 
     def __str__(self):
-        return "{} {:s}".format(self.sourceref, self.msg)
+        return "{} {:s}".format(self.sourceref, self.args[0])
 
 
 class PlyParser:
@@ -39,6 +38,7 @@ class PlyParser:
             self.check_directives(module)
             self.process_imports(module)
             self.create_multiassigns(module)
+            self.process_all_expressions(module)
             if not self.parsing_import:
                 self.determine_subroutine_usage(module)
         except ParseError as x:
@@ -52,49 +52,52 @@ class PlyParser:
         self.parse_errors += 1
         print_bold("ERROR: {}: {}".format(sourceref, fmtstring.format(*args)))
 
+    @no_type_check
+    def process_all_expressions(self, module: Module) -> None:
+        # process/simplify all expressions (constant folding etc)
+        for block, parent in module.all_scopes():
+            if block.scope:
+                for node in block.scope.nodes:
+                    if node is None:
+                        print(block, block.scope, block.scope.nodes)
+                    node.process_expressions()
+
+    @no_type_check
     def create_multiassigns(self, module: Module) -> None:
         # create multi-assign statements from nested assignments (A=B=C=5),
         # and optimize TargetRegisters down to single Register if it's just one register.
-        def simplify_targetregisters(targets: List[Any]) -> List[Any]:
-            new_targets = []
-            for t in targets:
-                if isinstance(t, TargetRegisters) and len(t.registers) == 1:
-                    t = t.registers[0]
-                new_targets.append(t)
-            return new_targets
-
         def reduce_right(assign: Assignment) -> Assignment:
             if isinstance(assign.right, Assignment):
                 right = reduce_right(assign.right)
-                targets = simplify_targetregisters(right.left)
-                assign.left.extend(targets)
+                assign.left.extend(right.left)
                 assign.right = right.right
             return assign
 
-        for mnode, parent in module.all_scopes():
-            if mnode.scope:
-                for node in mnode.scope.nodes:
+        for block, parent in module.all_scopes():
+            if block.scope:
+                for node in block.scope.nodes:
                     if isinstance(node, Assignment):
-                        node.left = simplify_targetregisters(node.left)
                         if isinstance(node.right, Assignment):
                             multi = reduce_right(node)
                             assert multi is node and len(multi.left) > 1 and not isinstance(multi.right, Assignment)
+                        node.simplify_targetregisters()
 
+    @no_type_check
     def determine_subroutine_usage(self, module: Module) -> None:
         module.subroutine_usage.clear()
-        for mnode, parent in module.all_scopes():
-            if mnode.scope:
-                for node in mnode.scope.nodes:
+        for block, parent in module.all_scopes():
+            if block.scope:
+                for node in block.scope.nodes:
                     if isinstance(node, InlineAssembly):
-                        self._parse_asm_for_subroutine_usage(module.subroutine_usage, node, mnode.scope)
+                        self._parse_asm_for_subroutine_usage(module.subroutine_usage, node, block.scope)
                     elif isinstance(node, SubCall):
-                        self._parse_subcall_for_subroutine_usages(module.subroutine_usage, node, mnode.scope)
+                        self._parse_subcall_for_subroutine_usages(module.subroutine_usage, node, block.scope)
                     elif isinstance(node, Goto):
-                        self._parse_goto_for_subroutine_usages(module.subroutine_usage, node, mnode.scope)
+                        self._parse_goto_for_subroutine_usages(module.subroutine_usage, node, block.scope)
                     elif isinstance(node, Return):
-                        self._parse_return_for_subroutine_usages(module.subroutine_usage, node, mnode.scope)
+                        self._parse_return_for_subroutine_usages(module.subroutine_usage, node, block.scope)
                     elif isinstance(node, Assignment):
-                        self._parse_assignment_for_subroutine_usages(module.subroutine_usage, node, mnode.scope)
+                        self._parse_assignment_for_subroutine_usages(module.subroutine_usage, node, block.scope)
 
     def _parse_subcall_for_subroutine_usages(self, usages: Dict[Tuple[str, str], Set[str]],
                                              subcall: SubCall, parent_scope: Scope) -> None:
@@ -265,7 +268,7 @@ class PlyParser:
 
 if __name__ == "__main__":
     description = "Compiler for IL65 language, code name 'Sick'"
-    print("\n" + description)
+    print("\n" + description + "\n")
     plyparser = PlyParser()
     m = plyparser.parse_file(sys.argv[1])
     optimize(m)

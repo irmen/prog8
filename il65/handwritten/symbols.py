@@ -2,8 +2,7 @@
 Programming Language for 6502/6510 microprocessors
 Here are the symbol (name) operations such as lookups, datatype definitions.
 
-Written by Irmen de Jong (irmen@razorvine.net)
-License: GNU GPL 3.0, see LICENSE
+Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
 import inspect
@@ -356,6 +355,9 @@ class SymbolTable:
 
     def iter_labels(self) -> Iterable[LabelDef]:
         yield from sorted((v for v in self.symbols.values() if isinstance(v, LabelDef)))
+
+    def remove_node(self, name: str) -> None:
+        del self.symbols[name]
 
     def check_identifier_valid(self, name: str, sourceref: SourceRef) -> None:
         if not name.isidentifier():

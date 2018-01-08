@@ -80,9 +80,7 @@ label4:
 
 
 
-; @todo temporarily disabled until comparison operators are properly implemented:
-
-~ {
+~ conditionals {
         var  bytevar = 22 + 23
         var  .text  name        = "?"*80
         var  bytevar2 = 23

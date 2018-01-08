@@ -1,9 +1,8 @@
 ; IL65 definitions for the Commodore-64
 ; Including memory registers, I/O registers, Basic and Kernel subroutines, utility subroutines.
 ;
-; Written by Irmen de Jong (irmen@razorvine.net)
-; License: GNU GPL 3.0, see LICENSE
-;
+; Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
+; ;
 ; indent format: TABS, size=8
 
 

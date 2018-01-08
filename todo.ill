@@ -9,11 +9,12 @@
 
                 const   num = 2
                 var     var1  =2
-                var .word  wvar1 = 2
+                var .word  wvar1 = 2 + foo()    ; @todo constant
 
 
 start:
 
+	wvar1 = 2+foo()
 
         A=math.randbyte()
         A +=  c64.RASTER
@@ -148,6 +149,12 @@ loop   :
         ;return
 
         A = $11
+        A = $11
+        A = $11
+        X = $11
+        Y = $11
+        X = $11
+        Y = $11
         X = $22
         Y = $33
 

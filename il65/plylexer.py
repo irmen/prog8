@@ -1,9 +1,8 @@
 """
-Programming Language for 6502/6510 microprocessors
+Programming Language for 6502/6510 microprocessors, codename 'Sick'
 This is the lexer of the IL65 code, that generates a stream of tokens for the parser.
 
-Written by Irmen de Jong (irmen@razorvine.net)
-License: GNU GPL 3.0, see LICENSE
+Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
 import sys
@@ -338,5 +337,3 @@ lexer = ply.lex.lex()
 
 if __name__ == "__main__":
     ply.lex.runmain()
-    # lexer = ply.lex.Lexer()
-    # ply.lex.runmain(lexer=lexer)

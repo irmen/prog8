@@ -1,16 +1,16 @@
 """
-Programming Language for 6502/6510 microprocessors
+Programming Language for 6502/6510 microprocessors, codename 'Sick'
 This is the parser of the IL65 code, that generates a parse tree.
 
-Written by Irmen de Jong (irmen@razorvine.net)
-License: GNU GPL 3.0, see LICENSE
+Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
 from collections import defaultdict
+from typing import Union, Generator, Tuple, List
 import attr
 from ply.yacc import yacc
-from typing import Union, Generator, Tuple, List
 from .plylexer import SourceRef, tokens, lexer, find_tok_column
+from .symbols import DataType
 
 
 start = "start"
@@ -47,6 +47,11 @@ class AstNode:
                                 tostr(elt, level + 2)
         tostr(self, 0)
 
+    def process_expressions(self) -> None:
+        # process/simplify all expressions (constant folding etc)   @todo
+        # override in node types that have expression(s)
+        pass
+
 
 @attr.s(cmp=False, repr=False)
 class Directive(AstNode):
@@ -66,11 +71,12 @@ class Scope(AstNode):
         # populate the symbol table for this scope for fast lookups via scope["name"] or scope["dotted.name"]
         self.symbols = {}
         for node in self.nodes:
+            assert isinstance(node, AstNode)
             if isinstance(node, (Label, VarDef)):
                 self.symbols[node.name] = node
             if isinstance(node, Subroutine):
                 self.symbols[node.name] = node
-                if node.scope is not None:
+                if node.scope:
                     node.scope.parent_scope = self
             if isinstance(node, Block):
                 if node.name:
@@ -89,7 +95,7 @@ class Scope(AstNode):
                 if not isinstance(scope, Scope):
                     raise LookupError("undefined symbol: " + name)
                 scope = scope.symbols.get(namepart, None)
-                if scope is None:
+                if not scope:
                     raise LookupError("undefined symbol: " + name)
             return scope
         else:
@@ -109,6 +115,13 @@ class Scope(AstNode):
         if hasattr(node, "name"):
             del self.symbols[node.name]
         self.nodes.remove(node)
+
+    def replace_node(self, oldnode: AstNode, newnode: AstNode) -> None:
+        assert isinstance(newnode, AstNode)
+        idx = self.nodes.index(oldnode)
+        self.nodes[idx] = newnode
+        if hasattr(oldnode, "name"):
+            del self.symbols[oldnode.name]
 
 
 @attr.s(cmp=False, repr=False)
@@ -171,6 +184,18 @@ class Assignment(AstNode):
     left = attr.ib(type=list)     # type: List[Union[str, TargetRegisters, Dereference]]
     right = attr.ib()
 
+    def __attrs_post_init__(self):
+        self.simplify_targetregisters()
+
+    def simplify_targetregisters(self) -> None:
+        # optimize TargetRegisters down to single Register if it's just one register
+        new_targets = []
+        for t in self.left:
+            if isinstance(t, TargetRegisters) and len(t.registers) == 1:
+                t = t.registers[0]
+            new_targets.append(t)
+        self.left = new_targets
+
 
 @attr.s(cmp=False, repr=False)
 class AugAssignment(AstNode):
@@ -215,12 +240,41 @@ class VarDef(AstNode):
     vartype = attr.ib()
     datatype = attr.ib()
     value = attr.ib(default=None)
+    size = attr.ib(type=int, default=None)
+
+    def __attrs_post_init__(self):
+        # convert datatype node to enum + size
+        if self.datatype is None:
+            assert self.size is None
+            self.size = 1
+            self.datatype = DataType.BYTE
+        elif isinstance(self.datatype, DatatypeNode):
+            assert self.size is None
+            self.size = self.datatype.dimensions
+            self.datatype = self.datatype.to_enum()
+        # if the value is an expression, mark it as a *constant* expression here
+        if isinstance(self.value, Expression):
+            self.value.processed_must_be_constant = True
 
 
 @attr.s(cmp=False, slots=True, repr=False)
-class Datatype(AstNode):
+class DatatypeNode(AstNode):
     name = attr.ib(type=str)
-    dimension = attr.ib(type=list, default=None)
+    dimensions = attr.ib(type=list, default=None)    # if set, 1 or more dimensions (ints)
+
+    def to_enum(self):
+        return {
+            "byte": DataType.BYTE,
+            "word": DataType.WORD,
+            "float": DataType.FLOAT,
+            "text": DataType.STRING,
+            "ptext": DataType.STRING_P,
+            "stext": DataType.STRING_S,
+            "pstext": DataType.STRING_PS,
+            "matrix": DataType.MATRIX,
+            "array": DataType.BYTEARRAY,
+            "wordarray": DataType.WORDARRAY
+        }[self.name]
 
 
 @attr.s(cmp=False, repr=False)
@@ -232,9 +286,9 @@ class Subroutine(AstNode):
     address = attr.ib(type=int, default=None)
 
     def __attrs_post_init__(self):
-        if self.scope is not None and self.address is not None:
+        if self.scope and self.address is not None:
             raise ValueError("subroutine must have either a scope or an address, not both")
-        if self.scope is not None:
+        if self.scope:
             self.scope.name = self.name
 
 
@@ -249,6 +303,18 @@ class Goto(AstNode):
 class Dereference(AstNode):
     location = attr.ib()
     datatype = attr.ib()
+    size = attr.ib(type=int, default=None)
+
+    def __attrs_post_init__(self):
+        # convert datatype node to enum + size
+        if self.datatype is None:
+            assert self.size is None
+            self.size = 1
+            self.datatype = DataType.BYTE
+        elif isinstance(self.datatype, DatatypeNode):
+            assert self.size is None
+            self.size = self.datatype.dimensions
+            self.datatype = self.datatype.to_enum()
 
 
 @attr.s(cmp=False, slots=True, repr=False)
@@ -274,6 +340,9 @@ class Expression(AstNode):
     left = attr.ib()
     operator = attr.ib(type=str)
     right = attr.ib()
+    processed_must_be_constant = attr.ib(type=bool, init=False, default=False)     # does the expression have to be a constant value?
+    processed = attr.ib(type=bool, init=False, default=False)    # has this expression been processed/simplified yet?
+    constant = attr.ib(type=bool, init=False, default=False)     # is the processed expression a constant value?
 
 
 def p_start(p):
@@ -297,9 +366,15 @@ def p_module(p):
                     |  module_elements  module_elt
     """
     if len(p) == 2:
-        p[0] = [p[1]]
+        if p[1] is None:
+            p[0] = []
+        else:
+            p[0] = [p[1]]
     else:
-        p[0] = p[1] + [p[2]]
+        if p[2] is None:
+            p[0] = p[1]
+        else:
+            p[0] = p[1] + [p[2]]
 
 
 def p_module_elt(p):
@@ -377,7 +452,7 @@ def p_scope(p):
     """
     scope :  '{'  scope_elements_opt  '}'
     """
-    p[0] = Scope(nodes=p[2], sourceref=_token_sref(p, 1))
+    p[0] = Scope(nodes=p[2] or [], sourceref=_token_sref(p, 1))
 
 
 def p_scope_elements_opt(p):
@@ -453,9 +528,9 @@ def p_type_opt(p):
              |  empty
     """
     if len(p) == 5:
-        p[0] = Datatype(name=p[1], dimension=p[3], sourceref=_token_sref(p, 1))
-    elif len(p) == 2:
-        p[0] = Datatype(name=p[1], sourceref=_token_sref(p, 1))
+        p[0] = DatatypeNode(name=p[1], dimensions=p[3], sourceref=_token_sref(p, 1))
+    elif len(p) == 2 and p[1]:
+        p[0] = DatatypeNode(name=p[1], sourceref=_token_sref(p, 1))
 
 
 def p_dimensions(p):

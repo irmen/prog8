@@ -5,9 +5,8 @@
 ;	http://6502org.wikidot.com/software-math
 ;	http://codebase64.org/doku.php?id=base:6502_6510_maths
 ;
-; Written by Irmen de Jong (irmen@razorvine.net)
-; License: GNU GPL 3.0, see LICENSE
-;
+; Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
+; ;
 ; indent format: TABS, size=8
 
 

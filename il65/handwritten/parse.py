@@ -2,8 +2,7 @@
 Programming Language for 6502/6510 microprocessors
 This is the hand-written parser of the IL65 code, that generates a parse tree.
 
-Written by Irmen de Jong (irmen@razorvine.net)
-License: GNU GPL 3.0, see LICENSE
+Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
 import re
@@ -73,7 +72,7 @@ class Parser:
         if sub_usage is not None:
             # re-use the (global) subroutine usage tracking
             self.result.subroutine_usage = sub_usage
-        self.sourceref = SourceRef(filename, -1, 0)
+        self.sourceref = SourceRef(filename, -1, 0)   # type: ignore
         if sourcelines:
             self.lines = sourcelines
         else:
@@ -234,7 +233,7 @@ class Parser:
     def _parse_2(self) -> None:
         # parsing pass 2 (not done during preprocessing!)
         self.cur_block = None
-        self.sourceref = SourceRef(self.sourceref.file, -1)
+        self.sourceref = SourceRef(self.sourceref.file, -1)   # type: ignore
 
         def imm_string_to_var(stmt: AssignmentStmt, containing_block: Block) -> None:
             if stmt.right.name or not isinstance(stmt.right, StringValue):
@@ -358,7 +357,7 @@ class Parser:
         self._cur_lineidx += 1
         try:
             lineno, line = self.lines[self._cur_lineidx]
-            self.sourceref = SourceRef(file=self.sourceref.file, line=lineno)
+            self.sourceref = SourceRef(file=self.sourceref.file, line=lineno)    # type: ignore
             return line
         except IndexError:
             return ""
@@ -366,7 +365,7 @@ class Parser:
     def prev_line(self) -> str:
         self._cur_lineidx -= 1
         lineno, line = self.lines[self._cur_lineidx]
-        self.sourceref = SourceRef(file=self.sourceref.file, line=lineno)
+        self.sourceref = SourceRef(file=self.sourceref.file, line=lineno)    # type: ignore
         return line
 
     def peek_next_line(self) -> str:
@@ -382,7 +381,7 @@ class Parser:
             if num == lineno:
                 sourceline = text.strip()
                 break
-        return ParseError(message, sourceline, SourceRef(self.sourceref.file, lineno, column))
+        return ParseError(message, sourceline, SourceRef(self.sourceref.file, lineno, column))    # type: ignore
 
     def get_datatype(self, typestr: str) -> Tuple[DataType, int, Optional[Tuple[int, int]]]:
         if typestr == ".byte":

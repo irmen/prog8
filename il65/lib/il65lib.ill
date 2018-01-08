@@ -1,8 +1,7 @@
 ; IL65 internal library routines
 ;
-; Written by Irmen de Jong (irmen@razorvine.net)
-; License: GNU GPL 3.0, see LICENSE
-;
+; Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
+; ;
 ; indent format: TABS, size=8
 
 

@@ -2,8 +2,7 @@
 Programming Language for 6502/6510 microprocessors, codename 'Sick'
 This is the assembly code generator (from the parse tree)
 
-Written by Irmen de Jong (irmen@razorvine.net)
-License: GNU GPL 3.0, see LICENSE
+Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
 import io
@@ -259,6 +258,7 @@ class CodeGenerator:
             self.p("\t.pend\n")
 
     def generate_block_vars(self, block: Block) -> None:
+        # @todo block vars should be re-initialized when the program is run again, and not depend on statically prefilled data!
         consts = [c for c in block.symbols.iter_constants()]
         if consts:
             self.p("; constants")

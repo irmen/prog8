@@ -2,8 +2,7 @@
 Programming Language for 6502/6510 microprocessors
 This is the preprocessing parser of the IL65 code, that only generates a symbol table.
 
-Written by Irmen de Jong (irmen@razorvine.net)
-License: GNU GPL 3.0, see LICENSE
+Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
 from typing import List, Tuple, Set

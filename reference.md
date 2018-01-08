@@ -1,9 +1,9 @@
 IL65 / 'Sick' - Experimental Programming Language for 8-bit 6502/6510 microprocessors
 =====================================================================================
 
-*Written by Irmen de Jong (irmen@razorvine.net)*
+*Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0*
 
-*Software license: GNU GPL 3.0, see LICENSE*
+*Software license: GNU GPL 3.0, see file LICENSE*
 
 
 This is an experimental programming language for the 8-bit 6502/6510 microprocessor from the late 1970's and 1980's
