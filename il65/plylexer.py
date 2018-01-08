@@ -147,11 +147,10 @@ reserved = {
 # rules for tokens with some actions
 
 def t_inlineasm(t):
-    r"%asm\s*\{\s*"
+    r"%asm\s*\{[^\S\n]*"
     t.lexer.code_start = t.lexer.lexpos     # Record start position
     t.lexer.level = 1                       # initial brace level
     t.lexer.begin("inlineasm")             # enter state 'inlineasm'
-    t.lexer.lineno += 1
 
 
 def t_inlineasm_lbrace(t):
@@ -318,6 +317,20 @@ def find_tok_column(token):
     """ Find the column of the token in its line."""
     last_cr = lexer.lexdata.rfind('\n', 0, token.lexpos)
     return token.lexpos - last_cr
+
+
+def print_warning(text: str, sourceref: SourceRef = None) -> None:
+    if sourceref:
+        print_bold("warning: {}: {:s}".format(sourceref, text))
+    else:
+        print_bold("warning: " + text)
+
+
+def print_bold(text: str) -> None:
+    if sys.stdout.isatty():
+        print("\x1b[1m" + text + "\x1b[0m", flush=True)
+    else:
+        print(text)
 
 
 lexer = ply.lex.lex()

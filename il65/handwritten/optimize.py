@@ -131,7 +131,7 @@ class Optimizer:
         for sub in list(block.symbols.iter_subroutines()):
             usages = self.parsed.subroutine_usage[(sub.blockname, sub.name)]
             if not usages and sub.blockname + '.' + sub.name not in never_remove:
-                block.symbols.discard_sub(sub.name)
+                block.symbols.remove_node(sub.name)
                 discarded.append(sub.name)
         if discarded:
             print("{}: discarded {:d} unused subroutines from block '{:s}'".format(block.sourceref, len(discarded), block.name))

@@ -24,6 +24,12 @@ start:
         c64.CHROUT('\n')
         return
 
+	screen = border =  cursor = X = Y = A = X = Y = A = border = cursor = border = cursor = 66  ; multi-assign!
+	X = Y = A = X = Y = A = X = Y = A = X = Y = AX = Y = A = X = AY = XY =A = 123  ; multi-assign!
+	XY = XY
+	A= A
+	A=X=Y=A
+
 
 rndloop:
         XY = math.randword()
@@ -126,6 +132,7 @@ rndloop:
                 bne  -
         }
 
+
 loop   :
         A=c64.GETIN()
         if_not goto loop
@@ -172,8 +179,8 @@ loop   :
 
 sub sub1 () -> () {
 
-	%breakpoint
 	%saveregisters off
+	%breakpoint
 	%breakpoint
 
 label:

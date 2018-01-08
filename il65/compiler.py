@@ -1,9 +1,20 @@
+"""
+Programming Language for 6502/6510 microprocessors
+This is the compiler of the IL65 code, that prepares the parse tree for code generation.
+
+Written by Irmen de Jong (irmen@razorvine.net)
+License: GNU GPL 3.0, see LICENSE
+"""
+
+import re
 import os
 import sys
 import linecache
-from typing import Optional, Generator, Tuple, Set
-from .plyparser import parse_file, Module, Directive, Block, Subroutine, AstNode
-from .plylexer import SourceRef
+from typing import Optional, Tuple, Set, Dict, Any, List
+from .plyparser import parse_file, Module, Directive, Block, Subroutine, Scope, \
+    SubCall, Goto, Return, Assignment, InlineAssembly, Register, Expression, TargetRegisters
+from .plylexer import SourceRef, print_bold
+from .optimizer import optimize
 
 
 class ParseError(Exception):
@@ -26,41 +37,138 @@ class PlyParser:
         module = parse_file(filename, self.lexer_error)
         try:
             self.check_directives(module)
-            self.remove_empty_blocks(module)
             self.process_imports(module)
+            self.create_multiassigns(module)
+            if not self.parsing_import:
+                self.determine_subroutine_usage(module)
         except ParseError as x:
             self.handle_parse_error(x)
         if self.parse_errors:
-            self.print_bold("\nNo output; there were {:d} errors.\n".format(self.parse_errors))
+            print_bold("\nNo output; there were {:d} errors.\n".format(self.parse_errors))
             raise SystemExit(1)
         return module
 
     def lexer_error(self, sourceref: SourceRef, fmtstring: str, *args: str) -> None:
         self.parse_errors += 1
-        self.print_bold("ERROR: {}: {}".format(sourceref, fmtstring.format(*args)))
+        print_bold("ERROR: {}: {}".format(sourceref, fmtstring.format(*args)))
 
-    def remove_empty_blocks(self, module: Module) -> None:
-        # remove blocks without name and without address, or that are empty
-        for scope, parent in self.recurse_scopes(module):
-            if isinstance(scope, (Subroutine, Block)):
-                if not scope.scope:
-                    continue
-                if all(isinstance(n, Directive) for n in scope.scope.nodes):
-                    empty = True
-                    for n in scope.scope.nodes:
-                        empty = empty and n.name not in {"asmbinary", "asminclude"}
-                    if empty:
-                        self.print_warning("ignoring empty block or subroutine", scope.sourceref)
-                        assert isinstance(parent, (Block, Module))
-                        parent.scope.nodes.remove(scope)
-            if isinstance(scope, Block):
-                if not scope.name and scope.address is None:
-                    self.print_warning("ignoring block without name and address", scope.sourceref)
-                    assert isinstance(parent, Module)
-                    parent.scope.nodes.remove(scope)
+    def create_multiassigns(self, module: Module) -> None:
+        # create multi-assign statements from nested assignments (A=B=C=5),
+        # and optimize TargetRegisters down to single Register if it's just one register.
+        def simplify_targetregisters(targets: List[Any]) -> List[Any]:
+            new_targets = []
+            for t in targets:
+                if isinstance(t, TargetRegisters) and len(t.registers) == 1:
+                    t = t.registers[0]
+                new_targets.append(t)
+            return new_targets
+
+        def reduce_right(assign: Assignment) -> Assignment:
+            if isinstance(assign.right, Assignment):
+                right = reduce_right(assign.right)
+                targets = simplify_targetregisters(right.left)
+                assign.left.extend(targets)
+                assign.right = right.right
+            return assign
+
+        for mnode, parent in module.all_scopes():
+            if mnode.scope:
+                for node in mnode.scope.nodes:
+                    if isinstance(node, Assignment):
+                        node.left = simplify_targetregisters(node.left)
+                        if isinstance(node.right, Assignment):
+                            multi = reduce_right(node)
+                            assert multi is node and len(multi.left) > 1 and not isinstance(multi.right, Assignment)
+
+    def determine_subroutine_usage(self, module: Module) -> None:
+        module.subroutine_usage.clear()
+        for mnode, parent in module.all_scopes():
+            if mnode.scope:
+                for node in mnode.scope.nodes:
+                    if isinstance(node, InlineAssembly):
+                        self._parse_asm_for_subroutine_usage(module.subroutine_usage, node, mnode.scope)
+                    elif isinstance(node, SubCall):
+                        self._parse_subcall_for_subroutine_usages(module.subroutine_usage, node, mnode.scope)
+                    elif isinstance(node, Goto):
+                        self._parse_goto_for_subroutine_usages(module.subroutine_usage, node, mnode.scope)
+                    elif isinstance(node, Return):
+                        self._parse_return_for_subroutine_usages(module.subroutine_usage, node, mnode.scope)
+                    elif isinstance(node, Assignment):
+                        self._parse_assignment_for_subroutine_usages(module.subroutine_usage, node, mnode.scope)
+
+    def _parse_subcall_for_subroutine_usages(self, usages: Dict[Tuple[str, str], Set[str]],
+                                             subcall: SubCall, parent_scope: Scope) -> None:
+        # node.target (relevant if its a symbolname -- a str), node.arguments (list of CallArgument)
+        #   CallArgument.value = expression.
+        if isinstance(subcall.target.target, str):
+            try:
+                scopename, name = subcall.target.target.split('.')
+            except ValueError:
+                scopename = parent_scope.name
+                name = subcall.target.target
+            usages[(scopename, name)].add(str(subcall.sourceref))
+        for arg in subcall.arguments:
+            self._parse_expression_for_subroutine_usages(usages, arg.value, parent_scope)
+
+    def _parse_expression_for_subroutine_usages(self, usages: Dict[Tuple[str, str], Set[str]],
+                                                expr: Any, parent_scope: Scope) -> None:
+        if expr is None or isinstance(expr, (int, str, float, bool, Register)):
+            return
+        elif isinstance(expr, SubCall):
+            self._parse_subcall_for_subroutine_usages(usages, expr, parent_scope)
+        elif isinstance(expr, Expression):
+            self._parse_expression_for_subroutine_usages(usages, expr.left, parent_scope)
+            self._parse_expression_for_subroutine_usages(usages, expr.right, parent_scope)
+        else:
+            print("@todo parse expression for subroutine usage:", expr)    # @todo
+
+    def _parse_goto_for_subroutine_usages(self, usages: Dict[Tuple[str, str], Set[str]],
+                                          goto: Goto, parent_scope: Scope) -> None:
+        # node.target (relevant if its a symbolname -- a str), node.condition (expression)
+        if isinstance(goto.target.target, str):
+            try:
+                symbol = parent_scope[goto.target.target]
+            except LookupError:
+                return
+            if isinstance(symbol, Subroutine):
+                usages[(parent_scope.name, symbol.name)].add(str(goto.sourceref))
+        self._parse_expression_for_subroutine_usages(usages, goto.condition, parent_scope)
+
+    def _parse_return_for_subroutine_usages(self, usages: Dict[Tuple[str, str], Set[str]],
+                                            returnnode: Return, parent_scope: Scope) -> None:
+        # node.value_A (expression), value_X (expression), value_Y (expression)
+        self._parse_expression_for_subroutine_usages(usages, returnnode.value_A, parent_scope)
+        self._parse_expression_for_subroutine_usages(usages, returnnode.value_X, parent_scope)
+        self._parse_expression_for_subroutine_usages(usages, returnnode.value_Y, parent_scope)
+
+    def _parse_assignment_for_subroutine_usages(self, usages: Dict[Tuple[str, str], Set[str]],
+                                                assignment: Assignment, parent_scope: Scope) -> None:
+        # node.right (expression, or another Assignment)
+        if isinstance(assignment.right, Assignment):
+            self._parse_assignment_for_subroutine_usages(usages, assignment.right, parent_scope)
+        else:
+            self._parse_expression_for_subroutine_usages(usages, assignment.right, parent_scope)
+
+    def _parse_asm_for_subroutine_usage(self, usages: Dict[Tuple[str, str], Set[str]],
+                                        asmnode: InlineAssembly, parent_scope: Scope) -> None:
+        # asm can refer to other symbols as well, track subroutine usage
+        for line in asmnode.assembly.splitlines():
+            splits = line.split(maxsplit=1)
+            if len(splits) == 2:
+                for match in re.finditer(r"(?P<symbol>[a-zA-Z_$][a-zA-Z0-9_\.]+)", splits[1]):
+                    name = match.group("symbol")
+                    if name[0] == '$':
+                        continue
+                    try:
+                        symbol = parent_scope[name]
+                    except LookupError:
+                        pass
+                    else:
+                        if isinstance(symbol, Subroutine):
+                            usages[(parent_scope.name, symbol.name)].add(str(asmnode.sourceref))
 
     def check_directives(self, module: Module) -> None:
-        for node, parent in self.recurse_scopes(module):
+        for node, parent in module.all_scopes():
             if isinstance(node, Module):
                 # check module-level directives
                 imports = set()  # type: Set[str]
@@ -83,14 +191,6 @@ class PlyParser:
                         if sub_node.name == "saveregisters" and not first_node:
                             raise ParseError("saveregisters directive should be the first", None, sub_node.sourceref)
                     first_node = False
-
-    def recurse_scopes(self, module: Module) -> Generator[Tuple[AstNode, AstNode], None, None]:
-        # generator that recursively yields through the scopes (preorder traversal), yields (node, parent_node) tuples.
-        yield module, None
-        for block in list(module.scope.filter_nodes(Block)):
-            yield block, module
-            for subroutine in list(block.scope.filter_nodes(Subroutine)):
-                yield subroutine, block
 
     def process_imports(self, module: Module) -> None:
         # (recursively) imports the modules
@@ -141,18 +241,6 @@ class PlyParser:
                 return filename
         return None
 
-    def print_warning(self, text: str, sourceref: SourceRef=None) -> None:
-        if sourceref:
-            self.print_bold("warning: {}: {:s}".format(sourceref, text))
-        else:
-            self.print_bold("warning: " + text)
-
-    def print_bold(self, text: str) -> None:
-        if sys.stdout.isatty():
-            print("\x1b[1m" + text + "\x1b[0m", flush=True)
-        else:
-            print(text)
-
     def handle_parse_error(self, exc: ParseError) -> None:
         self.parse_errors += 1
         if sys.stderr.isatty():
@@ -176,6 +264,9 @@ class PlyParser:
 
 
 if __name__ == "__main__":
+    description = "Compiler for IL65 language, code name 'Sick'"
+    print("\n" + description)
     plyparser = PlyParser()
     m = plyparser.parse_file(sys.argv[1])
-    print(str(m)[:400], "...")
+    optimize(m)
+    print()

@@ -6,9 +6,10 @@ Written by Irmen de Jong (irmen@razorvine.net)
 License: GNU GPL 3.0, see LICENSE
 """
 
+from collections import defaultdict
 import attr
 from ply.yacc import yacc
-from typing import Union, Generator
+from typing import Union, Generator, Tuple, List
 from .plylexer import SourceRef, tokens, lexer, find_tok_column
 
 
@@ -104,11 +105,26 @@ class Scope(AstNode):
             if isinstance(node, nodetype):
                 yield node
 
+    def remove_node(self, node: AstNode) -> None:
+        if hasattr(node, "name"):
+            del self.symbols[node.name]
+        self.nodes.remove(node)
+
 
 @attr.s(cmp=False, repr=False)
 class Module(AstNode):
     name = attr.ib(type=str)     # filename
     scope = attr.ib(type=Scope)
+    subroutine_usage = attr.ib(type=defaultdict, init=False, default=attr.Factory(lambda: defaultdict(set)))    # will be populated later
+
+    def all_scopes(self) -> Generator[Tuple[AstNode, AstNode], None, None]:
+        # generator that recursively yields through the scopes (preorder traversal), yields (node, parent_node) tuples.
+        # it iterates of copies of the node collections, so it's okay to modify the scopes you iterate over.
+        yield self, None
+        for block in list(self.scope.filter_nodes(Block)):
+            yield block, self
+            for subroutine in list(block.scope.filter_nodes(Subroutine)):
+                yield subroutine, block
 
 
 @attr.s(cmp=False, repr=False)
@@ -130,6 +146,19 @@ class Label(AstNode):
 class Register(AstNode):
     name = attr.ib(type=str)
 
+    def __hash__(self) -> int:
+        return hash(self.name)
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, Register):
+            return NotImplemented
+        return self.name == other.name
+
+    def __lt__(self, other) -> bool:
+        if not isinstance(other, Register):
+            return NotImplemented
+        return self.name < other.name
+
 
 @attr.s(cmp=False, repr=False)
 class PreserveRegs(AstNode):
@@ -138,13 +167,16 @@ class PreserveRegs(AstNode):
 
 @attr.s(cmp=False, repr=False)
 class Assignment(AstNode):
-    left = attr.ib()     # type: Union[str, TargetRegisters, Dereference]
+    # can be single- or multi-assignment
+    left = attr.ib(type=list)     # type: List[Union[str, TargetRegisters, Dereference]]
     right = attr.ib()
 
 
 @attr.s(cmp=False, repr=False)
-class AugAssignment(Assignment):
+class AugAssignment(AstNode):
+    left = attr.ib()
     operator = attr.ib(type=str)
+    right = attr.ib()
 
 
 @attr.s(cmp=False, repr=False)
@@ -152,6 +184,9 @@ class SubCall(AstNode):
     target = attr.ib()
     preserve_regs = attr.ib()
     arguments = attr.ib()
+
+    def __attrs_post_init__(self):
+        self.arguments = self.arguments or []
 
 
 @attr.s(cmp=False, repr=False)
@@ -689,14 +724,14 @@ def p_assignment(p):
     assignment :  assignment_target  IS  expression
                |  assignment_target  IS  assignment
     """
-    p[0] = Assignment(left=p[1], right=p[3], sourceref=_token_sref(p, 1))
+    p[0] = Assignment(left=[p[1]], right=p[3], sourceref=_token_sref(p, 2))
 
 
 def p_aug_assignment(p):
     """
     aug_assignment :  assignment_target  AUGASSIGN  expression
     """
-    p[0] = AugAssignment(left=p[1], operator=p[2], right=p[3], sourceref=_token_sref(p, 1))
+    p[0] = AugAssignment(left=p[1], operator=p[2], right=p[3], sourceref=_token_sref(p, 2))
 
 
 precedence = (
@@ -721,7 +756,7 @@ def p_expression(p):
                |  expression  EQUALS  expression
                |  expression  NOTEQUALS  expression
     """
-    p[0] = Expression(left=p[1], operator=p[2], right=p[3], sourceref=_token_sref(p, 1))
+    p[0] = Expression(left=p[1], operator=p[2], right=p[3], sourceref=_token_sref(p, 2))
 
 
 def p_expression_uminus(p):
