@@ -1,6 +1,7 @@
-from il65.symbols import DataType, STRING_DATATYPES
-from il65.compiler import ParseError
-from il65.plylexer import SourceRef
+import pytest
+from il65.symbols import DataType, STRING_DATATYPES, to_hex
+from il65.compile import ParseError
+from il65.plylex import SourceRef
 
 
 def test_datatypes():
@@ -15,6 +16,19 @@ def test_sourceref():
 
 
 def test_parseerror():
-    p = ParseError("message", "source code", SourceRef("filename", 99, 42))
+    p = ParseError("message", SourceRef("filename", 99, 42))
     assert p.args == ("message", )
     assert str(p) == "filename:99:42 message"
+
+
+def test_to_hex():
+    assert to_hex(0) == "$00"
+    assert to_hex(1) == "$01"
+    assert to_hex(255) == "$ff"
+    assert to_hex(256) == "$0100"
+    assert to_hex(20060) == "$4e5c"
+    assert to_hex(65535) == "$ffff"
+    with pytest.raises(OverflowError):
+        to_hex(-1)
+    with pytest.raises(OverflowError):
+        to_hex(65536)

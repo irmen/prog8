@@ -1,5 +1,5 @@
-from il65.plylexer import lexer, tokens, find_tok_column, literals, reserved
-from il65.plyparser import parser, TokenFilter, Module, Subroutine, Block, Return
+from il65.plylex import lexer, tokens, find_tok_column, literals, reserved
+from il65.plyparse import parser, TokenFilter, Module, Subroutine, Block, Return
 
 
 def test_lexer_definitions():

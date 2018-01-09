@@ -1,10 +1,14 @@
-%output prg,basic
+%output prg
+%saveregisters
 %import c64lib
 %import mathlib
 
+%address 22222
+
+
 ~ main $4444 {
 
-	%saveregisters true, false
+	%saveregisters true
 
 
                 const   num = 2
@@ -186,7 +190,8 @@ loop   :
 
 sub sub1 () -> () {
 
-	%saveregisters off
+	%saveregisters no
+	%breakpoint
 	%breakpoint
 	%breakpoint
 
@@ -197,7 +202,7 @@ label:
 
 sub emptysub () -> () {
 
-	%saveregisters on
+	%saveregisters yes
 
 }
 

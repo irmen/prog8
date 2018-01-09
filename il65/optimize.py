@@ -5,9 +5,8 @@ This is the optimizer that applies various optimizations to the parse tree.
 Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
-from typing import no_type_check
-from .plyparser import Module, Subroutine, Block, Directive, Assignment, AugAssignment, Goto, Expression
-from .plylexer import print_warning, print_bold
+from .plyparse import Module, Subroutine, Block, Directive, Assignment, AugAssignment, Goto, Expression
+from .plylex import print_warning, print_bold
 
 
 class Optimizer:
@@ -27,7 +26,7 @@ class Optimizer:
     def remove_useless_assigns(self):
         # remove assignment statements that do nothing (A=A)
         # and augmented assignments that have no effect (A+=0)
-        # @todo remove or simplify logical aug assigns like A |= 0, A |= true, A |= false
+        # @todo remove or simplify logical aug assigns like A |= 0, A |= true, A |= false  (or perhaps turn them into byte values first?)
         for block, parent in self.module.all_scopes():
             if block.scope:
                 for assignment in list(block.scope.nodes):
@@ -63,10 +62,10 @@ class Optimizer:
                                 continue
                             elif len(assignments) > 1:
                                 # replace the first assignment by a multi-assign with all the others
-                                for stmt in assignments[1:]:
-                                    print("{}: joined with previous assignment".format(stmt.sourceref))
-                                    assignments[0].left.extend(stmt.left)
-                                    block.scope.remove_node(stmt)
+                                for assignment in assignments[1:]:
+                                    print("{}: joined with previous assignment".format(assignment.sourceref))
+                                    assignments[0].left.extend(assignment.left)
+                                    block.scope.remove_node(assignment)
                                 rvalue = None
                                 assignments.clear()
                         else:
@@ -165,7 +164,4 @@ def optimize(mod: Module) -> None:
     opt = Optimizer(mod)
     opt.optimize()
     if opt.num_warnings:
-        if opt.num_warnings == 1:
-            print_bold("\nThere is one optimization warning.\n")
-        else:
-            print_bold("\nThere are {:d} optimization warnings.\n".format(opt.num_warnings))
+        print_bold("There are {:d} optimization warnings.".format(opt.num_warnings))

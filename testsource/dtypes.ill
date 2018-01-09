@@ -13,7 +13,7 @@
 	; you can NOT put subroutines in here (yet).
 }
 
-~ ZP $0004 {
+~ ZP {
 	var    zpvar1
 	var    zpvar2
 	memory zpmem1   = $f0

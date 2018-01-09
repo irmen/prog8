@@ -1,4 +1,4 @@
-from il65.optimizer import Optimizer
+from il65.optimize import Optimizer
 
 
 def test_optimizer():

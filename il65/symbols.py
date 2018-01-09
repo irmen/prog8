@@ -24,3 +24,15 @@ class DataType(enum.Enum):
 
 
 STRING_DATATYPES = {DataType.STRING, DataType.STRING_P, DataType.STRING_S, DataType.STRING_PS}
+
+
+def to_hex(number: int) -> str:
+    # 0..255 -> "$00".."$ff"
+    # 256..65536 -> "$0100".."$ffff"
+    if number is None:
+        raise ValueError("number")
+    if 0 <= number < 0x100:
+        return "${:02x}".format(number)
+    if 0 <= number < 0x10000:
+        return "${:04x}".format(number)
+    raise OverflowError(number)

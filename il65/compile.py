@@ -10,20 +10,11 @@ import os
 import sys
 import linecache
 from typing import Optional, Tuple, Set, Dict, Any, no_type_check
-from .plyparser import parse_file, Module, Directive, Block, Subroutine, Scope, \
-    SubCall, Goto, Return, Assignment, InlineAssembly, Register, Expression
-from .plylexer import SourceRef, print_bold
-from .optimizer import optimize
-
-
-class ParseError(Exception):
-    def __init__(self, message: str, sourcetext: Optional[str], sourceref: SourceRef) -> None:
-        super().__init__(message)
-        self.sourceref = sourceref
-        self.sourcetext = sourcetext
-
-    def __str__(self):
-        return "{} {:s}".format(self.sourceref, self.args[0])
+import attr
+from .plyparse import parse_file, ParseError, Module, Directive, Block, Subroutine, Scope, VarDef, \
+    SubCall, Goto, Return, Assignment, InlineAssembly, Register, Expression, ProgramFormat, ZpOptions
+from .plylex import SourceRef, print_bold
+from .optimize import optimize
 
 
 class PlyParser:
@@ -33,14 +24,18 @@ class PlyParser:
 
     def parse_file(self, filename: str) -> Module:
         print("parsing:", filename)
-        module = parse_file(filename, self.lexer_error)
+        module = None
         try:
+            module = parse_file(filename, self.lexer_error)
             self.check_directives(module)
             self.process_imports(module)
             self.create_multiassigns(module)
             self.process_all_expressions(module)
             if not self.parsing_import:
+                # these shall only be done on the main module after all imports have been done:
+                self.apply_directive_options(module)
                 self.determine_subroutine_usage(module)
+                self.check_and_merge_zeropages(module)
         except ParseError as x:
             self.handle_parse_error(x)
         if self.parse_errors:
@@ -51,6 +46,27 @@ class PlyParser:
     def lexer_error(self, sourceref: SourceRef, fmtstring: str, *args: str) -> None:
         self.parse_errors += 1
         print_bold("ERROR: {}: {}".format(sourceref, fmtstring.format(*args)))
+
+    def check_and_merge_zeropages(self, module: Module) -> None:
+        # merge all ZP blocks into one
+        zeropage = None
+        for block in list(module.scope.filter_nodes(Block)):
+            if block.name == "ZP":
+                if zeropage:
+                    # merge other ZP block into first ZP block
+                    for node in block.scope.nodes:
+                        if isinstance(node, Directive):
+                            zeropage.scope.add_node(node, 0)
+                        elif isinstance(node, VarDef):
+                            zeropage.scope.add_node(node)
+                        else:
+                            raise ParseError("only variables and directives allowed in zeropage block", node.sourceref)
+                else:
+                    zeropage = block
+                module.scope.remove_node(block)
+        if zeropage:
+            # add the zero page again, as the very first block
+            module.scope.add_node(zeropage, 0)
 
     @no_type_check
     def process_all_expressions(self, module: Module) -> None:
@@ -81,6 +97,82 @@ class PlyParser:
                             multi = reduce_right(node)
                             assert multi is node and len(multi.left) > 1 and not isinstance(multi.right, Assignment)
                         node.simplify_targetregisters()
+
+    def apply_directive_options(self, module: Module) -> None:
+        def set_save_registers(scope: Scope, save_dir: Directive) -> None:
+            if not scope:
+                return
+            if len(save_dir.args) > 1:
+                raise ParseError("need zero or one directive argument", save_dir.sourceref)
+            if save_dir.args:
+                if save_dir.args[0] in ("yes", "true"):
+                    scope.save_registers = True
+                elif save_dir.args[0] in ("no", "false"):
+                    scope.save_registers = False
+                else:
+                    raise ParseError("invalid directive args", save_dir.sourceref)
+            else:
+                scope.save_registers = True
+
+        for block, parent in module.all_scopes():
+            if isinstance(block, Module):
+                # process the module's directives
+                for directive in block.scope.filter_nodes(Directive):
+                    if directive.name == "output":
+                        if len(directive.args) != 1 or not isinstance(directive.args[0], str):
+                            raise ParseError("need one str directive argument", directive.sourceref)
+                        if directive.args[0] == "raw":
+                            block.format = ProgramFormat.RAW
+                            block.address = 0xc000
+                        elif directive.args[0] == "prg":
+                            block.format = ProgramFormat.PRG
+                            block.address = 0x0801
+                        elif directive.args[0] == "basic":
+                            block.format = ProgramFormat.BASIC
+                            block.address = 0x0801
+                        else:
+                            raise ParseError("invalid directive args", directive.sourceref)
+                    elif directive.name == "address":
+                        if len(directive.args) != 1 or not isinstance(directive.args[0], int):
+                            raise ParseError("need one integer directive argument", directive.sourceref)
+                        if block.format == ProgramFormat.BASIC:
+                            raise ParseError("basic cannot have a custom load address", directive.sourceref)
+                        block.address = directive.args[0]
+                        attr.validate(block)
+                    elif directive.name in "import":
+                        pass   # is processed earlier
+                    elif directive.name == "zp":
+                        if len(directive.args) not in (1, 2) or set(directive.args) - {"clobber", "restore"}:
+                            raise ParseError("invalid directive args", directive.sourceref)
+                        if "clobber" in directive.args and "restore" in directive.args:
+                            module.zp_options = ZpOptions.CLOBBER_RESTORE
+                        elif "clobber" in directive.args:
+                            module.zp_options = ZpOptions.CLOBBER
+                        elif "restore" in directive.args:
+                            raise ParseError("invalid directive args", directive.sourceref)
+                    elif directive.name == "saveregisters":
+                        set_save_registers(block.scope, directive)
+                    else:
+                        raise NotImplementedError(directive.name)
+            elif isinstance(block, Block):
+                # process the block's directives
+                for directive in block.scope.filter_nodes(Directive):
+                    if directive.name == "saveregisters":
+                        set_save_registers(block.scope, directive)
+                    elif directive.name in ("breakpoint", "asmbinary", "asminclude"):
+                        continue
+                    else:
+                        raise NotImplementedError(directive.name)
+            elif isinstance(block, Subroutine):
+                if block.scope:
+                    # process the sub's directives
+                    for directive in block.scope.filter_nodes(Directive):
+                        if directive.name == "saveregisters":
+                            set_save_registers(block.scope, directive)
+                        elif directive.name in ("breakpoint", "asmbinary", "asminclude"):
+                            continue
+                        else:
+                            raise NotImplementedError(directive.name)
 
     @no_type_check
     def determine_subroutine_usage(self, module: Module) -> None:
@@ -177,10 +269,10 @@ class PlyParser:
                 imports = set()  # type: Set[str]
                 for directive in node.scope.filter_nodes(Directive):
                     if directive.name not in {"output", "zp", "address", "import", "saveregisters"}:
-                        raise ParseError("invalid directive in module", None, directive.sourceref)
+                        raise ParseError("invalid directive in module", directive.sourceref)
                     if directive.name == "import":
                         if imports & set(directive.args):
-                            raise ParseError("duplicate import", None, directive.sourceref)
+                            raise ParseError("duplicate import", directive.sourceref)
                         imports |= set(directive.args)
             if isinstance(node, (Block, Subroutine)):
                 # check block and subroutine-level directives
@@ -190,9 +282,9 @@ class PlyParser:
                 for sub_node in node.scope.nodes:
                     if isinstance(sub_node, Directive):
                         if sub_node.name not in {"asmbinary", "asminclude", "breakpoint", "saveregisters"}:
-                            raise ParseError("invalid directive in " + node.__class__.__name__.lower(), None, sub_node.sourceref)
+                            raise ParseError("invalid directive in " + node.__class__.__name__.lower(), sub_node.sourceref)
                         if sub_node.name == "saveregisters" and not first_node:
-                            raise ParseError("saveregisters directive should be the first", None, sub_node.sourceref)
+                            raise ParseError("saveregisters directive should be the first", sub_node.sourceref)
                     first_node = False
 
     def process_imports(self, module: Module) -> None:
@@ -201,11 +293,11 @@ class PlyParser:
         for directive in module.scope.filter_nodes(Directive):
             if directive.name == "import":
                 if len(directive.args) < 1:
-                    raise ParseError("missing argument(s) for import directive", None, directive.sourceref)
+                    raise ParseError("missing argument(s) for import directive", directive.sourceref)
                 for arg in directive.args:
                     filename = self.find_import_file(arg, directive.sourceref.file)
                     if not filename:
-                        raise ParseError("imported file not found", None, directive.sourceref)
+                        raise ParseError("imported file not found", directive.sourceref)
                     imported_module, import_parse_errors = self.import_file(filename)
                     imported_module.scope.parent_scope = module.scope
                     imported.append(imported_module)
@@ -252,16 +344,11 @@ class PlyParser:
             print("Error (in imported file):", str(exc), file=sys.stderr)
         else:
             print("Error:", str(exc), file=sys.stderr)
-        if exc.sourcetext is None:
-            exc.sourcetext = linecache.getline(exc.sourceref.file, exc.sourceref.line).rstrip()
-        if exc.sourcetext:
-            # remove leading whitespace
-            stripped = exc.sourcetext.lstrip()
-            num_spaces = len(exc.sourcetext) - len(stripped)
-            stripped = stripped.rstrip()
-            print("  " + stripped, file=sys.stderr)
+        sourcetext = linecache.getline(exc.sourceref.file, exc.sourceref.line).rstrip()
+        if sourcetext:
+            print("  " + sourcetext.expandtabs(1), file=sys.stderr)
             if exc.sourceref.column:
-                print("  " + ' ' * (exc.sourceref.column - num_spaces) + '^', file=sys.stderr)
+                print(' ' * (1+exc.sourceref.column) + '^', file=sys.stderr)
         if sys.stderr.isatty():
             print("\x1b[0m", file=sys.stderr, end="", flush=True)
 

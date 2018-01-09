@@ -9,10 +9,10 @@ import time
 import os
 import argparse
 import subprocess
-from .compile import PlyParser
-from .optimize import optimize
-from .generateasm import AssemblyGenerator, Assembler64Tass
-from .plylex import print_bold
+from .handwritten.parse import Parser
+from .handwritten.optimize import Optimizer
+from .handwritten.preprocess import PreprocessingParser
+from .handwritten.codegen import CodeGenerator, Assembler64Tass
 
 
 def main() -> None:
@@ -33,24 +33,29 @@ def main() -> None:
     print("\n" + description)
 
     start = time.perf_counter()
-    print("\nParsing program source code.")
-    parser = PlyParser()
-    parsed_module = parser.parse_file(args.sourcefile)
-    if parsed_module:
+    pp = PreprocessingParser(args.sourcefile, set())
+    sourcelines, symbols = pp.preprocess()
+    # symbols.print_table()
+
+    p = Parser(args.sourcefile, args.output, set(), sourcelines=sourcelines, ppsymbols=symbols, sub_usage=pp.result.subroutine_usage)
+    parsed = p.parse()
+    if parsed:
         if args.nooptimize:
-            print_bold("not optimizing the parse tree!")
+            p.print_bold("not optimizing the parse tree!")
         else:
-            print("\nOptimizing parse tree.")
-            optimize(parsed_module)
-        print("\nGenerating assembly code.")
-        cg = AssemblyGenerator(parsed_module)
-        cg.generate(assembly_filename)
-        assembler = Assembler64Tass(parsed_module.format)
+            opt = Optimizer(parsed)
+            parsed = opt.optimize()
+        cg = CodeGenerator(parsed)
+        cg.generate()
+        cg.optimize()
+        with open(assembly_filename, "wt") as out:
+            cg.write_assembly(out)
+        assembler = Assembler64Tass(parsed.format)
         assembler.assemble(assembly_filename, program_filename)
         mon_command_file = assembler.generate_breakpoint_list(program_filename)
         duration_total = time.perf_counter() - start
         print("Compile duration:  {:.2f} seconds".format(duration_total))
-        print_bold("Output file:       " + program_filename)
+        p.print_bold("Output file:       " + program_filename)
         print()
         if args.startvice:
             print("Autostart vice emulator...")

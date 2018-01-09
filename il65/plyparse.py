@@ -5,12 +5,34 @@ This is the parser of the IL65 code, that generates a parse tree.
 Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
+import enum
 from collections import defaultdict
-from typing import Union, Generator, Tuple, List
+from typing import Union, Generator, Tuple, List, Optional, Dict
 import attr
 from ply.yacc import yacc
-from .plylexer import SourceRef, tokens, lexer, find_tok_column
+from .plylex import SourceRef, tokens, lexer, find_tok_column
 from .symbols import DataType
+
+
+class ProgramFormat(enum.Enum):
+    RAW = "raw"
+    PRG = "prg"
+    BASIC = "basicprg"
+
+
+class ZpOptions(enum.Enum):
+    NOCLOBBER = "noclobber"
+    CLOBBER = "clobber"
+    CLOBBER_RESTORE = "clobber_restore"
+
+
+class ParseError(Exception):
+    def __init__(self, message: str, sourceref: SourceRef) -> None:
+        super().__init__(message)
+        self.sourceref = sourceref
+
+    def __str__(self):
+        return "{} {:s}".format(self.sourceref, self.args[0])
 
 
 start = "start"
@@ -65,23 +87,32 @@ class Scope(AstNode):
     symbols = attr.ib(init=False)
     name = attr.ib(init=False)          # will be set by enclosing block, or subroutine etc.
     parent_scope = attr.ib(init=False, default=None)  # will be wired up later
-    save_registers = attr.ib(type=bool, default=False, init=False)    # XXX will be set later
+    save_registers = attr.ib(type=bool, default=None, init=False)    # None = look in parent scope's setting
 
     def __attrs_post_init__(self):
         # populate the symbol table for this scope for fast lookups via scope["name"] or scope["dotted.name"]
         self.symbols = {}
         for node in self.nodes:
             assert isinstance(node, AstNode)
-            if isinstance(node, (Label, VarDef)):
+            self._populate_symboltable(node)
+
+    def _populate_symboltable(self, node: AstNode) -> None:
+        if isinstance(node, (Label, VarDef)):
+            if node.name in self.symbols:
+                raise ParseError("symbol already defined at {}".format(self.symbols[node.name].sourceref), node.sourceref)
+            self.symbols[node.name] = node
+        if isinstance(node, Subroutine):
+            if node.name in self.symbols:
+                raise ParseError("symbol already defined at {}".format(self.symbols[node.name].sourceref), node.sourceref)
+            self.symbols[node.name] = node
+            if node.scope:
+                node.scope.parent_scope = self
+        if isinstance(node, Block):
+            if node.name:
+                if node.name != "ZP" and node.name in self.symbols:
+                    raise ParseError("symbol already defined at {}".format(self.symbols[node.name].sourceref), node.sourceref)
                 self.symbols[node.name] = node
-            if isinstance(node, Subroutine):
-                self.symbols[node.name] = node
-                if node.scope:
-                    node.scope.parent_scope = self
-            if isinstance(node, Block):
-                if node.name:
-                    self.symbols[node.name] = node
-                    node.scope.parent_scope = self
+                node.scope.parent_scope = self
 
     def __getitem__(self, name: str) -> AstNode:
         if '.' in name:
@@ -113,7 +144,10 @@ class Scope(AstNode):
 
     def remove_node(self, node: AstNode) -> None:
         if hasattr(node, "name"):
-            del self.symbols[node.name]
+            try:
+                del self.symbols[node.name]     # type: ignore
+            except KeyError:
+                pass
         self.nodes.remove(node)
 
     def replace_node(self, oldnode: AstNode, newnode: AstNode) -> None:
@@ -121,7 +155,45 @@ class Scope(AstNode):
         idx = self.nodes.index(oldnode)
         self.nodes[idx] = newnode
         if hasattr(oldnode, "name"):
-            del self.symbols[oldnode.name]
+            del self.symbols[oldnode.name]  # type: ignore
+
+    def add_node(self, newnode: AstNode, index: int=None) -> None:
+        assert isinstance(newnode, AstNode)
+        if index is None:
+            self.nodes.append(newnode)
+        else:
+            self.nodes.insert(index, newnode)
+        self._populate_symboltable(newnode)
+
+
+def validate_address(object: AstNode, attrib: attr.Attribute, value: Optional[int]):
+    if value is None:
+        return
+    if isinstance(object, Block) and object.name == "ZP":
+        raise ParseError("zeropage block cannot have custom start {:s}".format(attrib.name), object.sourceref)
+    if value < 0x0200 or value > 0xffff:
+        raise ParseError("invalid {:s} (must be from $0200 to $ffff)".format(attrib.name), object.sourceref)
+
+
+@attr.s(cmp=False, repr=False)
+class Block(AstNode):
+    scope = attr.ib(type=Scope)
+    name = attr.ib(type=str, default=None)
+    address = attr.ib(type=int, default=None, validator=validate_address)
+    _unnamed_block_labels = {}  # type: Dict[Block, str]
+
+    def __attrs_post_init__(self):
+        self.scope.name = self.name
+
+    @property
+    def label(self) -> str:
+        if self.name:
+            return self.name
+        if self in self._unnamed_block_labels:
+            return self._unnamed_block_labels[self]
+        label = "il65_block_{:d}".format(len(self._unnamed_block_labels))
+        self._unnamed_block_labels[self] = label
+        return label
 
 
 @attr.s(cmp=False, repr=False)
@@ -129,6 +201,9 @@ class Module(AstNode):
     name = attr.ib(type=str)     # filename
     scope = attr.ib(type=Scope)
     subroutine_usage = attr.ib(type=defaultdict, init=False, default=attr.Factory(lambda: defaultdict(set)))    # will be populated later
+    format = attr.ib(type=ProgramFormat, init=False, default=ProgramFormat.PRG)     # can be set via directive
+    address = attr.ib(type=int, init=False, default=0xc000, validator=validate_address)     # can be set via directive
+    zp_options = attr.ib(type=ZpOptions, init=False, default=ZpOptions.NOCLOBBER)    # can be set via directive
 
     def all_scopes(self) -> Generator[Tuple[AstNode, AstNode], None, None]:
         # generator that recursively yields through the scopes (preorder traversal), yields (node, parent_node) tuples.
@@ -139,15 +214,19 @@ class Module(AstNode):
             for subroutine in list(block.scope.filter_nodes(Subroutine)):
                 yield subroutine, block
 
+    def zeropage(self) -> Optional[Block]:
+        # return the zeropage block (if defined)
+        first_block = next(self.scope.filter_nodes(Block))
+        if first_block.name == "ZP":
+            return first_block
+        return None
 
-@attr.s(cmp=False, repr=False)
-class Block(AstNode):
-    scope = attr.ib(type=Scope)
-    name = attr.ib(type=str, default=None)
-    address = attr.ib(type=int, default=None)
-
-    def __attrs_post_init__(self):
-        self.scope.name = self.name
+    def main(self) -> Optional[Block]:
+        # return the 'main' block (if defined)
+        for block in self.scope.filter_nodes(Block):
+            if block.name == "main":
+                return block
+        return None
 
 
 @attr.s(cmp=False, repr=False)
@@ -283,7 +362,7 @@ class Subroutine(AstNode):
     param_spec = attr.ib()
     result_spec = attr.ib()
     scope = attr.ib(type=Scope, default=None)
-    address = attr.ib(type=int, default=None)
+    address = attr.ib(type=int, default=None, validator=validate_address)
 
     def __attrs_post_init__(self):
         if self.scope and self.address is not None:
@@ -392,7 +471,7 @@ def p_directive(p):
     directive :  DIRECTIVE  ENDL
               |  DIRECTIVE  directive_args  ENDL
     """
-    if len(p) == 2:
+    if len(p) == 3:
         p[0] = Directive(name=p[1], sourceref=_token_sref(p, 1))
     else:
         p[0] = Directive(name=p[1], args=p[2], sourceref=_token_sref(p, 1))
@@ -423,14 +502,14 @@ def p_block_name_addr(p):
     """
     block :  BITINVERT  NAME  INTEGER  endl_opt  scope
     """
-    p[0] = Block(name=p[2], address=p[3], scope=p[5], sourceref=_token_sref(p, 1))
+    p[0] = Block(name=p[2], address=p[3], scope=p[5], sourceref=_token_sref(p, 2))
 
 
 def p_block_name(p):
     """
     block :  BITINVERT  NAME  endl_opt  scope
     """
-    p[0] = Block(name=p[2], scope=p[4], sourceref=_token_sref(p, 1))
+    p[0] = Block(name=p[2], scope=p[4], sourceref=_token_sref(p, 2))
 
 
 def p_block(p):
@@ -511,14 +590,14 @@ def p_vardef(p):
     """
     vardef :  VARTYPE  type_opt  NAME  ENDL
     """
-    p[0] = VarDef(name=p[3], vartype=p[1], datatype=p[2], sourceref=_token_sref(p, 1))
+    p[0] = VarDef(name=p[3], vartype=p[1], datatype=p[2], sourceref=_token_sref(p, 3))
 
 
 def p_vardef_value(p):
     """
     vardef :  VARTYPE  type_opt  NAME  IS  expression
     """
-    p[0] = VarDef(name=p[3], vartype=p[1], datatype=p[2], value=p[5], sourceref=_token_sref(p, 1))
+    p[0] = VarDef(name=p[3], vartype=p[1], datatype=p[2], value=p[5], sourceref=_token_sref(p, 3))
 
 
 def p_type_opt(p):
