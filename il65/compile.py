@@ -126,7 +126,7 @@ class PlyParser:
                             block.address = 0xc000
                         elif directive.args[0] == "prg":
                             block.format = ProgramFormat.PRG
-                            block.address = 0x0801
+                            block.address = 0xc000
                         elif directive.args[0] == "basic":
                             block.format = ProgramFormat.BASIC
                             block.address = 0x0801

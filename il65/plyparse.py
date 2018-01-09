@@ -11,7 +11,7 @@ from typing import Union, Generator, Tuple, List, Optional, Dict
 import attr
 from ply.yacc import yacc
 from .plylex import SourceRef, tokens, lexer, find_tok_column
-from .symbols import DataType
+from .datatypes import DataType, VarType, coerce_value
 
 
 class ProgramFormat(enum.Enum):
@@ -71,7 +71,7 @@ class AstNode:
 
     def process_expressions(self) -> None:
         # process/simplify all expressions (constant folding etc)   @todo
-        # override in node types that have expression(s)
+        # @todo override in node types that have expression(s)
         pass
 
 
@@ -319,21 +319,45 @@ class VarDef(AstNode):
     vartype = attr.ib()
     datatype = attr.ib()
     value = attr.ib(default=None)
-    size = attr.ib(type=int, default=None)
+    size = attr.ib(type=list, default=None)
 
     def __attrs_post_init__(self):
+        # convert vartype to enum
+        if self.vartype == "const":
+            self.vartype = VarType.CONST
+        elif self.vartype == "var":
+            self.vartype = VarType.VAR
+        elif self.vartype == "memory":
+            self.vartype = VarType.MEMORY
+        else:
+            raise ValueError("invalid vartype", self.vartype)
         # convert datatype node to enum + size
         if self.datatype is None:
             assert self.size is None
-            self.size = 1
+            self.size = [1]
             self.datatype = DataType.BYTE
         elif isinstance(self.datatype, DatatypeNode):
             assert self.size is None
-            self.size = self.datatype.dimensions
+            self.size = self.datatype.dimensions or [1]
             self.datatype = self.datatype.to_enum()
         # if the value is an expression, mark it as a *constant* expression here
         if isinstance(self.value, Expression):
             self.value.processed_must_be_constant = True
+        elif self.value is None and self.datatype in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
+            self.value = 0
+        # note: value coercion is done later, when all expressions are evaluated
+
+    def process_expressions(self) -> None:
+        if isinstance(self.value, Expression):
+            # process/simplify all expressions (constant folding etc)  # @todo
+            # verify that the expression yields a single constant value, replace value by that value  # @todo
+            self.value = 123  # XXX
+        assert not isinstance(self.value, Expression)
+        if self.vartype in (VarType.CONST, VarType.VAR):
+            try:
+                _, self.value = coerce_value(self.datatype, self.value, self.sourceref)
+            except OverflowError as x:
+                raise ParseError(str(x), self.sourceref) from None
 
 
 @attr.s(cmp=False, slots=True, repr=False)
@@ -359,8 +383,8 @@ class DatatypeNode(AstNode):
 @attr.s(cmp=False, repr=False)
 class Subroutine(AstNode):
     name = attr.ib(type=str)
-    param_spec = attr.ib()
-    result_spec = attr.ib()
+    param_spec = attr.ib(type=list)
+    result_spec = attr.ib(type=list)
     scope = attr.ib(type=Scope, default=None)
     address = attr.ib(type=int, default=None, validator=validate_address)
 
@@ -638,9 +662,9 @@ def p_subroutine(p):
     """
     body = p[10]
     if isinstance(body, Scope):
-        p[0] = Subroutine(name=p[2], param_spec=p[4], result_spec=p[8], scope=body, sourceref=_token_sref(p, 1))
+        p[0] = Subroutine(name=p[2], param_spec=p[4] or [], result_spec=p[8] or [], scope=body, sourceref=_token_sref(p, 1))
     elif isinstance(body, int):
-        p[0] = Subroutine(name=p[2], param_spec=p[4], result_spec=p[8], address=body, sourceref=_token_sref(p, 1))
+        p[0] = Subroutine(name=p[2], param_spec=p[4] or [], result_spec=p[8] or [], address=body, sourceref=_token_sref(p, 1))
     else:
         raise TypeError("subroutine_body", p.slice)
 

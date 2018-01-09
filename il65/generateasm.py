@@ -5,13 +5,13 @@ This is the assembly code generator (from the parse tree)
 Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
-import io
 import re
 import subprocess
 import datetime
-from typing import Union
-from .plyparse import Module, ProgramFormat, Block, Directive, VarDef, Label, ZpOptions, DataType
-from .symbols import to_hex
+import itertools
+from typing import Union, TextIO, List, Tuple, Iterator
+from .plyparse import Module, ProgramFormat, Block, Directive, VarDef, Label, Subroutine, AstNode, ZpOptions
+from .datatypes import VarType, DataType, to_hex, mflpt5_to_float, to_mflpt5, STRING_DATATYPES
 
 
 class CodeError(Exception):
@@ -24,17 +24,20 @@ class AssemblyGenerator:
 
     def __init__(self, module: Module) -> None:
         self.module = module
-        self.generated_code = io.StringIO()
+        self.cur_block = None
+        self.output = None      # type: TextIO
 
     def p(self, text, *args, **vargs):
         # replace '\v' (vertical tab) char by the actual line indent (2 tabs) and write to the stringIo
-        print(text.replace("\v", "\t\t"), *args, file=self.generated_code, **vargs)
+        print(text.replace("\v", "\t\t"), *args, file=self.output, **vargs)
 
     def generate(self, filename: str) -> None:
-        self._generate()
-        with open(filename, "wt") as out:
-            out.write(self.generated_code.getvalue())
-        self.generated_code.close()
+        with open(filename, "wt") as self.output:
+            try:
+                self._generate()
+            except Exception as x:
+                self.output.write(".error \"****** ABORTED DUE TO ERROR: " + str(x) + "\"\n")
+                raise
 
     def _generate(self) -> None:
         self.sanitycheck()
@@ -93,7 +96,7 @@ class AssemblyGenerator:
         zpblock = self.module.zeropage()
         if zpblock:
             vars_to_init = [v for v in zpblock.scope.filter_nodes(VarDef)
-                            if v.allocate and v.type in (DataType.BYTE, DataType.WORD, DataType.FLOAT)]
+                            if v.vartype == VarType.VAR and v.vartype in (DataType.BYTE, DataType.WORD, DataType.FLOAT)]
             # @todo optimize sort order (sort on value first, then type, then blockname, then address/name)
             # (str(self.value) or "", self.blockname, self.name or "", self.address or 0, self.seq_nr)
             prev_value = 0  # type: Union[str, int, float]
@@ -131,6 +134,7 @@ class AssemblyGenerator:
                 self.p("\v; there are no zp vars to initialize")
         else:
             self.p("\v; there is no zp block to initialize")
+        # @todo all block vars should be (re)initialized here as well!
         if self.module.zp_options == ZpOptions.CLOBBER_RESTORE:
             self.p("\vjsr  {:s}.start\v; call user code".format(self.module.main().label))
             self.p("\vcld")
@@ -142,13 +146,190 @@ class AssemblyGenerator:
             self.p("_float_bytes_{:s}\v.byte  ${:02x}, ${:02x}, ${:02x}, ${:02x}, ${:02x}\t; {}".format(varname, *bytes, fpvalue))
         self.p("\n")
 
-    def blocks(self):
-        self.p("; @todo")   # @todo
-        pass
+    def blocks(self) -> None:
+        zpblock = self.module.zeropage()
+        if zpblock:
+            # if there's a Zeropage block, it always goes first
+            self.cur_block = zpblock    # type: ignore
+            self.p("\n; ---- zero page block: '{:s}' ----\t\t; src l. {:d}\n".format(zpblock.sourceref.file, zpblock.sourceref.line))
+            self.p("{:s}\t.proc\n".format(zpblock.label))
+            self.generate_block_vars(zpblock)
+            self.p("\v.pend\n")
+        for block in sorted(self.module.scope.filter_nodes(Block), key=lambda b: b.address or 0):
+            if block.name == "ZP":
+                continue    # already processed
+            self.cur_block = block
+            self.p("\n; ---- next block: '{:s}' ----\t\t; src l. {:d}\n".format(block.sourceref.file, block.sourceref.line))
+            if block.address:
+                self.p(".cerror * > ${0:04x}, 'block address overlaps by ', *-${0:04x},' bytes'".format(block.address))
+                self.p("* = ${:04x}".format(block.address))
+            self.p("{:s}\t.proc\n".format(block.label))
+            self.generate_block_vars(block)
+            subroutines = list(sub for sub in block.scope.filter_nodes(Subroutine) if sub.address is not None)
+            if subroutines:
+                # these are (external) subroutines that are defined by address instead of a scope/code
+                self.p("; external subroutines")
+                for subdef in subroutines:
+                    assert subdef.scope is None
+                    self.p("\v{:s} = {:s}".format(subdef.name, to_hex(subdef.address)))
+                self.p("; end external subroutines\n")
+            for stmt in block.scope.nodes:
+                if isinstance(stmt, Directive):
+                    continue   # should have been handled already
+                self.generate_statement(stmt)
+                if block.name == "main" and isinstance(stmt, Label) and stmt.name == "start":
+                    # make sure the main.start routine clears the decimal and carry flags as first steps
+                    self.p("\vcld\t\t\t; clear decimal flag")
+                    self.p("\vclc\t\t\t; clear carry flag")
+                    self.p("\vclv\t\t\t; clear overflow flag")
+            subroutines = list(sub for sub in block.scope.filter_nodes(Subroutine) if sub.address is None)
+            if subroutines:
+                # these are subroutines that are defined by a scope/code
+                self.p("; -- block subroutines")
+                for subdef in subroutines:
+                    assert subdef.scope is not None
+                    self.p("{:s}\v; src l. {:d}".format(subdef.name, subdef.sourceref.line))
+                    params = ", ".join("{:s} -> {:s}".format(name or "<unnamed>", registers) for name, registers in subdef.param_spec)
+                    returns = ",".join(sorted(register for register in subdef.result_spec if register[-1] != '?'))
+                    clobbers = ",".join(sorted(register for register in subdef.result_spec if register[-1] == '?'))
+                    self.p("\v; params: {}\n\v; returns: {}   clobbers: {}"
+                           .format(params or "-", returns or "-", clobbers or "-"))
+                    cur_block = self.cur_block
+                    self.cur_block = subdef.scope
+                    for stmt in subdef.scope.nodes:
+                        if isinstance(stmt, Directive):
+                            continue  # should have been handled already
+                        self.generate_statement(stmt)
+                    self.cur_block = cur_block
+                    self.p("")
+                self.p("; -- end block subroutines")
+            self.p("\n\v.pend\n")
 
-    def footer(self):
-        self.p("; @todo")   # @todo
-        pass
+    def footer(self) -> None:
+        self.p("\t.end")
+
+    def output_string(self, value: str, screencodes: bool = False) -> str:
+        if len(value) == 1 and screencodes:
+            if value[0].isprintable() and ord(value[0]) < 128:
+                return "'{:s}'".format(value[0])
+            else:
+                return str(ord(value[0]))
+        result = '"'
+        for char in value:
+            if char in "{}":
+                result += '", {:d}, "'.format(ord(char))
+            elif char.isprintable() and ord(char) < 128:
+                result += char
+            else:
+                if screencodes:
+                    result += '", {:d}, "'.format(ord(char))
+                else:
+                    if char == '\f':
+                        result += "{clear}"
+                    elif char == '\b':
+                        result += "{delete}"
+                    elif char == '\n':
+                        result += "{cr}"
+                    elif char == '\r':
+                        result += "{down}"
+                    elif char == '\t':
+                        result += "{tab}"
+                    else:
+                        result += '", {:d}, "'.format(ord(char))
+        return result + '"'
+
+    def generate_block_vars(self, block: Block) -> None:
+        # @todo block vars should be re-initialized when the program is run again, and not depend on statically prefilled data!
+        vars_by_vartype = itertools.groupby(block.scope.filter_nodes(VarDef), lambda c: c.vartype)
+        variable_definitions = sorted(vars_by_vartype, key=lambda gt: gt[0])  # type: List[Tuple[VarType, Iterator[VarDef]]]
+        for vartype, varnodes in variable_definitions:
+            if vartype == VarType.CONST:
+                self.p("; constants")
+                for vardef in varnodes:
+                    if vardef.datatype == DataType.FLOAT:
+                        self.p("\t\t{:s} = {}".format(vardef.name, vardef.value))
+                    elif vardef.datatype in (DataType.BYTE, DataType.WORD):
+                        self.p("\t\t{:s} = {:s}".format(vardef.name, to_hex(vardef.value)))
+                    elif vardef.datatype in STRING_DATATYPES:
+                        # a const string is just a string variable in the generated assembly
+                        self._generate_string_var(vardef)
+                    else:
+                        raise CodeError("invalid const type", vardef)
+            elif vartype == VarType.MEMORY:
+                self.p("; memory mapped variables")
+                for vardef in varnodes:
+                    # create a definition for variables at a specific place in memory (memory-mapped)
+                    if vardef.datatype in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
+                        assert vardef.size == [1]
+                        self.p("\t\t{:s} = {:s}\t; {:s}".format(vardef.name, to_hex(vardef.value), vardef.datatype.name.lower()))
+                    elif vardef.datatype == DataType.BYTEARRAY:
+                        assert len(vardef.size) == 1
+                        self.p("\t\t{:s} = {:s}\t; array of {:d} bytes".format(vardef.name, to_hex(vardef.value), vardef.size[0]))
+                    elif vardef.datatype == DataType.WORDARRAY:
+                        assert len(vardef.size) == 1
+                        self.p("\t\t{:s} = {:s}\t; array of {:d} words".format(vardef.name, to_hex(vardef.value), vardef.size[0]))
+                    elif vardef.datatype == DataType.MATRIX:
+                        assert len(vardef.size) == 2
+                        self.p("\t\t{:s} = {:s}\t; matrix {:d} by {:d} = {:d} bytes"
+                               .format(vardef.name, to_hex(vardef.value), vardef.size[0], vardef.size[1], vardef.size[0]*vardef.size[1]))
+                    else:
+                        raise CodeError("invalid var type")
+            elif vartype == VarType.VAR:
+                self.p("; normal variables")
+                for vardef in varnodes:
+                    # create a definition for a variable that takes up space and will be initialized at startup
+                    if vardef.datatype in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
+                        assert vardef.size == [1]
+                        if vardef.datatype == DataType.BYTE:
+                            self.p("{:s}\t\t.byte  {:s}".format(vardef.name, to_hex(int(vardef.value or 0))))
+                        elif vardef.datatype == DataType.WORD:
+                            self.p("{:s}\t\t.word  {:s}".format(vardef.name, to_hex(int(vardef.value or 0))))
+                        elif vardef.datatype == DataType.FLOAT:
+                            self.p("{:s}\t\t.byte  ${:02x}, ${:02x}, ${:02x}, ${:02x}, ${:02x}{:s}"
+                                   .format(vardef.name, *to_mflpt5(float(vardef.value or 0.0))))
+                        else:
+                            raise CodeError("weird datatype")
+                    elif vardef.datatype in (DataType.BYTEARRAY, DataType.WORDARRAY):
+                        assert len(vardef.size) == 1
+                        if vardef.datatype == DataType.BYTEARRAY:
+                            self.p("{:s}\t\t.fill  {:d}, ${:02x}".format(vardef.name, vardef.size[0], vardef.value or 0))
+                        elif vardef.datatype == DataType.WORDARRAY:
+                            f_hi, f_lo = divmod(vardef.value or 0, 256)  # type: ignore
+                            self.p("{:s}\t\t.fill  {:d}, [${:02x}, ${:02x}]\t; {:d} words of ${:04x}"
+                                   .format(vardef.name, vardef.size[0] * 2, f_lo, f_hi, vardef.size[0], vardef.value or 0))
+                        else:
+                            raise CodeError("invalid datatype", vardef.datatype)
+                    elif vardef.datatype == DataType.MATRIX:
+                        assert len(vardef.size) == 2
+                        self.p("{:s}\t\t.fill  {:d}, ${:02x}\t\t; matrix {:d}*{:d} bytes"
+                               .format(vardef.name, vardef.size[0] * vardef.size[1], vardef.value or 0, vardef.size[0], vardef.size[1]))
+                    elif vardef.datatype in STRING_DATATYPES:
+                        self._generate_string_var(vardef)
+                    else:
+                        raise CodeError("unknown variable type " + str(vardef.datatype))
+
+    def _generate_string_var(self, vardef: VarDef) -> None:
+        if vardef.datatype == DataType.STRING:
+            # 0-terminated string
+            self.p("{:s}\n\v.null  {:s}".format(vardef.name, self.output_string(str(vardef.value))))
+        elif vardef.datatype == DataType.STRING_P:
+            # pascal string
+            self.p("{:s}\n\v.ptext  {:s}".format(vardef.name, self.output_string(str(vardef.value))))
+        elif vardef.datatype == DataType.STRING_S:
+            # 0-terminated string in screencode encoding
+            self.p(".enc  'screen'")
+            self.p("{:s}\n\v.null  {:s}".format(vardef.name, self.output_string(str(vardef.value), True)))
+            self.p(".enc  'none'")
+        elif vardef.datatype == DataType.STRING_PS:
+            # 0-terminated pascal string in screencode encoding
+            self.p(".enc  'screen'")
+            self.p("{:s}\n\v.ptext  {:s}".format(vardef.name, self.output_string(str(vardef.value), True)))
+            self.p(".enc  'none'")
+
+    def generate_statement(self, stmt: AstNode) -> None:
+        if isinstance(stmt, Label):
+            self.p("\n{:s}\v\t\t; {:s}".format(stmt.name, stmt.lineref))
+        # @todo rest of the statement nodes
 
 
 class Assembler64Tass:
@@ -164,7 +345,7 @@ class Assembler64Tass:
         elif self.format == ProgramFormat.RAW:
             args.append("--nostart")
         else:
-            raise ValueError("don't know how to create format "+str(self.format))
+            raise CodeError("don't know how to create format "+str(self.format))
         try:
             if self.format == ProgramFormat.PRG:
                 print("\nCreating C-64 prg.")

@@ -1,19 +1,18 @@
-%output prg
+%output basic
 %saveregisters
 %import c64lib
 %import mathlib
 
-%address 22222
 
 
-~ main $4444 {
+~ main  {
 
 	%saveregisters true
 
 
                 const   num = 2
                 var     var1  =2
-                var .word  wvar1 = 2 + foo()    ; @todo constant
+                var .word  wvar1 = 2 + foo()    ; @todo constant check error
 
 
 start:
