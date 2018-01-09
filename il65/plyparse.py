@@ -5,9 +5,12 @@ This is the parser of the IL65 code, that generates a parse tree.
 Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
+import math
+import builtins
+import inspect
 import enum
 from collections import defaultdict
-from typing import Union, Generator, Tuple, List, Optional, Dict
+from typing import Union, Generator, Tuple, List, Optional, Dict, Any, Iterable
 import attr
 from ply.yacc import yacc
 from .plylex import SourceRef, tokens, lexer, find_tok_column
@@ -26,13 +29,22 @@ class ZpOptions(enum.Enum):
     CLOBBER_RESTORE = "clobber_restore"
 
 
+math_functions = {name: func for name, func in vars(math).items() if inspect.isbuiltin(func)}
+builtin_functions = {name: func for name, func in vars(builtins).items() if inspect.isbuiltin(func)}
+
+
 class ParseError(Exception):
     def __init__(self, message: str, sourceref: SourceRef) -> None:
         super().__init__(message)
         self.sourceref = sourceref
+        # @todo chain attribute, a list of other exceptions, so we can have more than 1 error at a time.
 
     def __str__(self):
         return "{} {:s}".format(self.sourceref, self.args[0])
+
+
+class ExpressionEvaluationError(ParseError):
+    pass
 
 
 start = "start"
@@ -69,9 +81,9 @@ class AstNode:
                                 tostr(elt, level + 2)
         tostr(self, 0)
 
-    def process_expressions(self) -> None:
-        # process/simplify all expressions (constant folding etc)   @todo
-        # @todo override in node types that have expression(s)
+    def process_expressions(self, scope: 'Scope') -> None:
+        # process/simplify all expressions (constant folding etc)
+        # this is implemented in node types that have expression(s) and that should act on this.
         pass
 
 
@@ -115,6 +127,7 @@ class Scope(AstNode):
                 node.scope.parent_scope = self
 
     def __getitem__(self, name: str) -> AstNode:
+        assert isinstance(name, str)
         if '.' in name:
             # look up the dotted name starting from the topmost scope
             scope = self
@@ -166,13 +179,13 @@ class Scope(AstNode):
         self._populate_symboltable(newnode)
 
 
-def validate_address(object: AstNode, attrib: attr.Attribute, value: Optional[int]):
+def validate_address(obj: AstNode, attrib: attr.Attribute, value: Optional[int]):
     if value is None:
         return
-    if isinstance(object, Block) and object.name == "ZP":
-        raise ParseError("zeropage block cannot have custom start {:s}".format(attrib.name), object.sourceref)
+    if isinstance(obj, Block) and obj.name == "ZP":
+        raise ParseError("zeropage block cannot have custom start {:s}".format(attrib.name), obj.sourceref)
     if value < 0x0200 or value > 0xffff:
-        raise ParseError("invalid {:s} (must be from $0200 to $ffff)".format(attrib.name), object.sourceref)
+        raise ParseError("invalid {:s} (must be from $0200 to $ffff)".format(attrib.name), obj.sourceref)
 
 
 @attr.s(cmp=False, repr=False)
@@ -184,6 +197,12 @@ class Block(AstNode):
 
     def __attrs_post_init__(self):
         self.scope.name = self.name
+
+    @property
+    def nodes(self) -> Iterable[AstNode]:
+        if self.scope:
+            return self.scope.nodes
+        return []
 
     @property
     def label(self) -> str:
@@ -204,6 +223,12 @@ class Module(AstNode):
     format = attr.ib(type=ProgramFormat, init=False, default=ProgramFormat.PRG)     # can be set via directive
     address = attr.ib(type=int, init=False, default=0xc000, validator=validate_address)     # can be set via directive
     zp_options = attr.ib(type=ZpOptions, init=False, default=ZpOptions.NOCLOBBER)    # can be set via directive
+
+    @property
+    def nodes(self) -> Iterable[AstNode]:
+        if self.scope:
+            return self.scope.nodes
+        return []
 
     def all_scopes(self) -> Generator[Tuple[AstNode, AstNode], None, None]:
         # generator that recursively yields through the scopes (preorder traversal), yields (node, parent_node) tuples.
@@ -275,12 +300,18 @@ class Assignment(AstNode):
             new_targets.append(t)
         self.left = new_targets
 
+    def process_expressions(self, scope: Scope) -> None:
+        self.right = process_expression(self.right, scope, self.right.sourceref)
+
 
 @attr.s(cmp=False, repr=False)
 class AugAssignment(AstNode):
     left = attr.ib()
     operator = attr.ib(type=str)
     right = attr.ib()
+
+    def process_expressions(self, scope: Scope) -> None:
+        self.right = process_expression(self.right, scope, self.right.sourceref)
 
 
 @attr.s(cmp=False, repr=False)
@@ -292,12 +323,25 @@ class SubCall(AstNode):
     def __attrs_post_init__(self):
         self.arguments = self.arguments or []
 
+    def process_expressions(self, scope: Scope) -> None:
+        for callarg in self.arguments:
+            assert isinstance(callarg, CallArgument)
+            callarg.process_expressions(scope)
+
 
 @attr.s(cmp=False, repr=False)
 class Return(AstNode):
     value_A = attr.ib(default=None)
     value_X = attr.ib(default=None)
     value_Y = attr.ib(default=None)
+
+    def process_expressions(self, scope: Scope) -> None:
+        if self.value_A is not None:
+            self.value_A = process_expression(self.value_A, scope, self.value_A.sourceref)
+        if self.value_X is not None:
+            self.value_X = process_expression(self.value_X, scope, self.value_X.sourceref)
+        if self.value_Y is not None:
+            self.value_Y = process_expression(self.value_Y, scope, self.value_Y.sourceref)
 
 
 @attr.s(cmp=False, repr=False)
@@ -347,12 +391,9 @@ class VarDef(AstNode):
             self.value = 0
         # note: value coercion is done later, when all expressions are evaluated
 
-    def process_expressions(self) -> None:
-        if isinstance(self.value, Expression):
-            # process/simplify all expressions (constant folding etc)  # @todo
-            # verify that the expression yields a single constant value, replace value by that value  # @todo
-            self.value = 123  # XXX
-        assert not isinstance(self.value, Expression)
+    def process_expressions(self, scope: Scope) -> None:
+        self.value = process_expression(self.value, scope, self.sourceref)
+        assert not isinstance(self.value, Expression), "processed expression for vardef should reduce to a constant value"
         if self.vartype in (VarType.CONST, VarType.VAR):
             try:
                 _, self.value = coerce_value(self.datatype, self.value, self.sourceref)
@@ -388,6 +429,12 @@ class Subroutine(AstNode):
     scope = attr.ib(type=Scope, default=None)
     address = attr.ib(type=int, default=None, validator=validate_address)
 
+    @property
+    def nodes(self) -> Iterable[AstNode]:
+        if self.scope:
+            return self.scope.nodes
+        return []
+
     def __attrs_post_init__(self):
         if self.scope and self.address is not None:
             raise ValueError("subroutine must have either a scope or an address, not both")
@@ -400,6 +447,10 @@ class Goto(AstNode):
     target = attr.ib()
     if_stmt = attr.ib(default=None)
     condition = attr.ib(default=None)
+
+    def process_expressions(self, scope: Scope) -> None:
+        if self.condition is not None:
+            self.condition = process_expression(self.condition, scope, self.condition.sourceref)
 
 
 @attr.s(cmp=False, repr=False)
@@ -420,6 +471,37 @@ class Dereference(AstNode):
             self.datatype = self.datatype.to_enum()
 
 
+@attr.s(cmp=False, repr=False)
+class LiteralValue(AstNode):
+    value = attr.ib()
+
+    def __repr__(self) -> str:
+        return repr(self.value)
+
+
+@attr.s(cmp=False, repr=False)
+class AddressOf(AstNode):
+    name = attr.ib(type=str)
+
+
+@attr.s(cmp=False, repr=False)
+class IncrDecr(AstNode):
+    target = attr.ib()
+    operator = attr.ib(type=str, validator=attr.validators.in_(["++", "--"]))
+    howmuch = attr.ib(default=1)
+
+    def __attrs_post_init__(self):
+        # make sure the amount is always >= 0
+        if self.howmuch < 0:
+            self.howmuch = -self.howmuch
+            self.operator = "++" if self.operator == "--" else "--"
+
+
+@attr.s(cmp=False, repr=False)
+class SymbolName(AstNode):
+    name = attr.ib(type=str)
+
+
 @attr.s(cmp=False, slots=True, repr=False)
 class CallTarget(AstNode):
     target = attr.ib()
@@ -431,11 +513,8 @@ class CallArgument(AstNode):
     value = attr.ib()
     name = attr.ib(type=str, default=None)
 
-
-@attr.s(cmp=False, repr=False)
-class UnaryOp(AstNode):
-    operator = attr.ib(type=str)
-    operand = attr.ib()
+    def process_expressions(self, scope: Scope) -> None:
+        self.value = process_expression(self.value, scope, self.sourceref)
 
 
 @attr.s(cmp=False, slots=True, repr=False)
@@ -443,10 +522,187 @@ class Expression(AstNode):
     left = attr.ib()
     operator = attr.ib(type=str)
     right = attr.ib()
+    unary = attr.ib(type=bool, default=False)
     processed_must_be_constant = attr.ib(type=bool, init=False, default=False)     # does the expression have to be a constant value?
-    processed = attr.ib(type=bool, init=False, default=False)    # has this expression been processed/simplified yet?
-    constant = attr.ib(type=bool, init=False, default=False)     # is the processed expression a constant value?
 
+    def __attrs_post_init__(self):
+        assert self.operator not in ("++", "--"), "incr/decr should not be an expression"
+
+    def process_expressions(self, scope: Scope) -> None:
+        raise RuntimeError("should be done via parent node's process_expressions")
+
+    def evaluate_primitive_constants(self, scope: Scope) -> Union[int, float, str, bool]:
+        # make sure the lvalue and rvalue are primitives, and the operator is allowed
+        if not isinstance(self.left, (LiteralValue, int, float, str, bool)):
+            raise TypeError("left", self)
+        if not isinstance(self.right, (LiteralValue, int, float, str, bool)):
+            raise TypeError("right", self)
+        if self.operator not in {'+', '-', '*', '/', '//', '~', '<', '>', '<=', '>=', '==', '!='}:
+            raise ValueError("operator", self)
+        estr = "{} {} {}".format(repr(self.left), self.operator, repr(self.right))
+        try:
+            return eval(estr, {}, {})   # safe because of checks above
+        except Exception as x:
+            raise ExpressionEvaluationError("expression error: " + str(x), self.sourceref) from None
+
+    def print_tree(self) -> None:
+        def tree(expr: Any, level: int) -> str:
+            indent = "  "*level
+            if not isinstance(expr, Expression):
+                return indent + str(expr) + "\n"
+            if expr.unary:
+                return indent + "{}{}".format(expr.operator, tree(expr.left, level+1))
+            else:
+                return indent + "{}".format(tree(expr.left, level+1)) + \
+                       indent + str(expr.operator) + "\n" + \
+                       indent + "{}".format(tree(expr.right, level + 1))
+        print(tree(self, 0))
+
+
+def process_expression(value: Any, scope: Scope, sourceref: SourceRef) -> Any:
+    # process/simplify all expressions (constant folding etc)
+    if isinstance(value, Expression):
+        must_be_constant = value.processed_must_be_constant
+    else:
+        must_be_constant = False
+    if must_be_constant:
+        return process_constant_expression(value, sourceref, scope)
+    else:
+        return process_dynamic_expression(value, sourceref, scope)
+
+
+def process_constant_expression(expr: Any, sourceref: SourceRef, symbolscope: Scope) -> Union[int, float, str, bool]:
+    # the expression must result in a single (constant) value (int, float, whatever)
+    if expr is None or isinstance(expr, (int, float, str, bool)):
+        return expr
+    elif isinstance(expr, LiteralValue):
+        return expr.value
+    elif isinstance(expr, SymbolName):
+        try:
+            value = symbolscope[expr.name]
+            if isinstance(value, VarDef):
+                if value.vartype == VarType.MEMORY:
+                    raise ExpressionEvaluationError("can't take a memory value, must be a constant", expr.sourceref)
+                value = value.value
+            if isinstance(value, Expression):
+                raise ExpressionEvaluationError("circular reference?", expr.sourceref)
+            elif isinstance(value, (int, float, str, bool)):
+                return value
+            else:
+                raise ExpressionEvaluationError("constant symbol required, not {}".format(value.__class__.__name__), expr.sourceref)
+        except LookupError as x:
+            raise ExpressionEvaluationError(str(x), expr.sourceref) from None
+    elif isinstance(expr, AddressOf):
+        assert isinstance(expr.name, SymbolName)
+        try:
+            value = symbolscope[expr.name.name]
+            if isinstance(value, VarDef):
+                if value.vartype == VarType.MEMORY:
+                    return value.value
+                raise ParseError("can't take the address of this {}".format(value.__class__.__name__), expr.name.sourceref)
+            else:
+                raise ExpressionEvaluationError("constant address required, not {}".format(value.__class__.__name__), expr.name.sourceref)
+        except LookupError as x:
+            raise ParseError(str(x), expr.sourceref) from None
+    elif isinstance(expr, SubCall):
+        if isinstance(expr.target, CallTarget):
+            funcname = expr.target.target.name
+            if funcname in math_functions or funcname in builtin_functions:
+                if isinstance(expr.target.target, SymbolName):
+                    func_args = []
+                    for a in (process_constant_expression(callarg.value, sourceref, symbolscope) for callarg in expr.arguments):
+                        if isinstance(a, LiteralValue):
+                            func_args.append(a.value)
+                        else:
+                            func_args.append(a)
+                    func = math_functions.get(funcname, builtin_functions.get(funcname))
+                    try:
+                        return func(*func_args)
+                    except Exception as x:
+                        raise ExpressionEvaluationError(str(x), expr.sourceref)
+                else:
+                    raise ParseError("symbol name required, not {}".format(expr.target.__class__.__name__), expr.sourceref)
+            else:
+                raise ExpressionEvaluationError("can only use math- or builtin function", expr.sourceref)
+        else:
+            raise ParseError("function name required, not {}".format(expr.target.__class__.__name__), expr.sourceref)
+    elif not isinstance(expr, Expression):
+        raise ExpressionEvaluationError("constant value required, not {}".format(expr.__class__.__name__), expr.sourceref)
+    if expr.unary:
+        left_sourceref = expr.left.sourceref if isinstance(expr.left, AstNode) else sourceref
+        expr.left = process_constant_expression(expr.left, left_sourceref, symbolscope)
+        if isinstance(expr.left, (int, float)):
+            try:
+                if expr.operator == '-':
+                    return -expr.left
+                elif expr.operator == '~':
+                    return ~expr.left       # type: ignore
+                elif expr.operator in ("++", "--"):
+                    raise ValueError("incr/decr should not be an expression")
+                raise ValueError("invalid unary operator", expr.operator)
+            except TypeError as x:
+                raise ParseError(str(x), expr.sourceref) from None
+        raise ValueError("invalid operand type for unary operator", expr.left, expr.operator)
+    else:
+        left_sourceref = expr.left.sourceref if isinstance(expr.left, AstNode) else sourceref
+        expr.left = process_constant_expression(expr.left, left_sourceref, symbolscope)
+        right_sourceref = expr.right.sourceref if isinstance(expr.right, AstNode) else sourceref
+        expr.right = process_constant_expression(expr.right, right_sourceref, symbolscope)
+        if isinstance(expr.left, (LiteralValue, SymbolName, int, float, str, bool)):
+            if isinstance(expr.right, (LiteralValue, SymbolName, int, float, str, bool)):
+                return expr.evaluate_primitive_constants(symbolscope)
+            else:
+                raise ExpressionEvaluationError("constant value required on right, not {}"
+                                                .format(expr.right.__class__.__name__), right_sourceref)
+        else:
+            raise ExpressionEvaluationError("constant value required on left, not {}"
+                                            .format(expr.left.__class__.__name__), left_sourceref)
+
+
+def process_dynamic_expression(expr: Any, sourceref: SourceRef, symbolscope: Scope) -> Any:
+    # constant-fold a dynamic expression
+    if expr is None or isinstance(expr, (int, float, str, bool)):
+        return expr
+    elif isinstance(expr, LiteralValue):
+        return expr.value
+    elif isinstance(expr, SymbolName):
+        try:
+            return process_constant_expression(expr, sourceref, symbolscope)
+        except ExpressionEvaluationError:
+            return expr
+    elif isinstance(expr, AddressOf):
+        try:
+            return process_constant_expression(expr, sourceref, symbolscope)
+        except ExpressionEvaluationError:
+            return expr
+    elif isinstance(expr, SubCall):
+        try:
+            return process_constant_expression(expr, sourceref, symbolscope)
+        except ExpressionEvaluationError:
+            return expr
+    elif isinstance(expr, Register):
+        return expr
+    elif not isinstance(expr, Expression):
+        raise ParseError("expression required, not {}".format(expr.__class__.__name__), expr.sourceref)
+    if expr.unary:
+        left_sourceref = expr.left.sourceref if isinstance(expr.left, AstNode) else sourceref
+        expr.left = process_dynamic_expression(expr.left, left_sourceref, symbolscope)
+        try:
+            return process_constant_expression(expr, sourceref, symbolscope)
+        except ExpressionEvaluationError:
+            return expr
+    else:
+        left_sourceref = expr.left.sourceref if isinstance(expr.left, AstNode) else sourceref
+        expr.left = process_dynamic_expression(expr.left, left_sourceref, symbolscope)
+        right_sourceref = expr.right.sourceref if isinstance(expr.right, AstNode) else sourceref
+        expr.right = process_dynamic_expression(expr.right, right_sourceref, symbolscope)
+        try:
+            return process_constant_expression(expr, sourceref, symbolscope)
+        except ExpressionEvaluationError:
+            return expr
+
+
+# ----------------- PLY parser definition follows ----------------------
 
 def p_start(p):
     """
@@ -653,7 +909,7 @@ def p_literal_value(p):
                      | STRING
                      | CHARACTER
                      | BOOLEAN"""
-    p[0] = p[1]
+    p[0] = LiteralValue(value=p[1], sourceref=_token_sref(p, 1))
 
 
 def p_subroutine(p):
@@ -759,14 +1015,14 @@ def p_incrdecr(p):
     incrdecr :  assignment_target  INCR
              |  assignment_target  DECR
     """
-    p[0] = UnaryOp(operator=p[2], operand=p[1], sourceref=_token_sref(p, 1))
+    p[0] = IncrDecr(target=p[1], operator=p[2], sourceref=_token_sref(p, 1))
 
 
 def p_call_subroutine(p):
     """
     subroutine_call :  calltarget  preserveregs_opt  '('  call_arguments_opt  ')'
     """
-    p[0] = SubCall(target=p[1], preserve_regs=p[2], arguments=p[4], sourceref=_token_sref(p, 1))
+    p[0] = SubCall(target=p[1], preserve_regs=p[2], arguments=p[4], sourceref=_token_sref(p, 3))
 
 
 def p_preserveregs_opt(p):
@@ -894,7 +1150,7 @@ def p_symbolname(p):
     symbolname :  NAME
                |  DOTTEDNAME
     """
-    p[0] = p[1]
+    p[0] = SymbolName(name=p[1], sourceref=_token_sref(p, 1))
 
 
 def p_assignment(p):
@@ -914,7 +1170,7 @@ def p_aug_assignment(p):
 
 precedence = (
     ('left', '+', '-'),
-    ('left', '*', '/'),
+    ('left', '*', '/', 'INTEGERDIVIDE'),
     ('right', 'UNARY_MINUS', 'BITINVERT', "UNARY_ADDRESSOF"),
     ('left', "LT", "GT", "LE", "GE", "EQUALS", "NOTEQUALS"),
     ('nonassoc', "COMMENT"),
@@ -927,6 +1183,7 @@ def p_expression(p):
                |  expression  '-'  expression
                |  expression  '*'  expression
                |  expression  '/'  expression
+               |  expression  INTEGERDIVIDE  expression
                |  expression  LT  expression
                |  expression  GT  expression
                |  expression  LE  expression
@@ -941,21 +1198,21 @@ def p_expression_uminus(p):
     """
     expression :  '-'  expression  %prec UNARY_MINUS
     """
-    p[0] = UnaryOp(operator=p[1], operand=p[2], sourceref=_token_sref(p, 1))
+    p[0] = Expression(left=p[2], operator=p[1], right=None, unary=True, sourceref=_token_sref(p, 1))
 
 
 def p_expression_addressof(p):
     """
     expression :  BITAND  symbolname  %prec UNARY_ADDRESSOF
     """
-    p[0] = UnaryOp(operator=p[1], operand=p[2], sourceref=_token_sref(p, 1))
+    p[0] = AddressOf(name=p[2], sourceref=_token_sref(p, 1))
 
 
 def p_unary_expression_bitinvert(p):
     """
     expression :  BITINVERT  expression
     """
-    p[0] = UnaryOp(operator=p[1], operand=p[2], sourceref=_token_sref(p, 1))
+    p[0] = Expression(left=p[2], operator=p[1], right=None, unary=True, sourceref=_token_sref(p, 1))
 
 
 def p_expression_group(p):
@@ -1012,7 +1269,10 @@ def p_error(p):
     print('\n[ERROR DEBUG: parser state={:d} stack: {} . {} ]'.format(parser.state, stack_state_str, p))
     if p:
         sref = SourceRef(p.lexer.source_filename, p.lineno, find_tok_column(p))
-        p.lexer.error_function(sref, "syntax error before '{:.20s}'", str(p.value))
+        if p.value in ("", "\n"):
+            p.lexer.error_function(sref, "syntax error before end of line")
+        else:
+            p.lexer.error_function(sref, "syntax error before '{:.20s}'", str(p.value).rstrip())
     else:
         lexer.error_function(None, "syntax error at end of input", lexer.source_filename)
 

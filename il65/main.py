@@ -40,7 +40,7 @@ def main() -> None:
         if args.nooptimize:
             print_bold("not optimizing the parse tree!")
         else:
-            print("\nOptimizing parse tree.")
+            print("\nOptimizing code.")
             optimize(parsed_module)
         print("\nGenerating assembly code.")
         cg = AssemblyGenerator(parsed_module)

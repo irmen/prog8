@@ -104,13 +104,13 @@ def coerce_value(datatype: DataType, value: PrimitiveType, sourceref: SourceRef=
     # if we're a BYTE type, and the value is a single character, convert it to the numeric value
     def verify_bounds(value: PrimitiveType) -> None:
         # if the value is out of bounds, raise an overflow exception
-        if datatype == DataType.BYTE and not (0 <= value <= 0xff):       # type: ignore
-            raise OverflowError("value out of range for byte")
-        if datatype == DataType.WORD and not (0 <= value <= 0xffff):        # type: ignore
-            raise OverflowError("value out of range for word")
-        if datatype == DataType.FLOAT and not (FLOAT_MAX_NEGATIVE <= value <= FLOAT_MAX_POSITIVE):      # type: ignore
-            raise OverflowError("value out of range for float")
-
+        if isinstance(value, (int, float)):
+            if datatype == DataType.BYTE and not (0 <= value <= 0xff):       # type: ignore
+                raise OverflowError("value out of range for byte")
+            if datatype == DataType.WORD and not (0 <= value <= 0xffff):        # type: ignore
+                raise OverflowError("value out of range for word")
+            if datatype == DataType.FLOAT and not (FLOAT_MAX_NEGATIVE <= value <= FLOAT_MAX_POSITIVE):      # type: ignore
+                raise OverflowError("value out of range for float")
     if datatype in (DataType.BYTE, DataType.BYTEARRAY, DataType.MATRIX) and isinstance(value, str):
         if len(value) == 1:
             return True, char_to_bytevalue(value)

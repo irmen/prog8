@@ -28,66 +28,61 @@ class Optimizer:
         # and augmented assignments that have no effect (A+=0)
         # @todo remove or simplify logical aug assigns like A |= 0, A |= true, A |= false  (or perhaps turn them into byte values first?)
         for block, parent in self.module.all_scopes():
-            if block.scope:
-                for assignment in list(block.scope.nodes):
-                    if isinstance(assignment, Assignment):
-                        assignment.left = [lv for lv in assignment.left if lv != assignment.right]
-                        if not assignment.left:
-                            block.scope.remove_node(assignment)
+            for assignment in list(block.nodes):
+                if isinstance(assignment, Assignment):
+                    assignment.left = [lv for lv in assignment.left if lv != assignment.right]
+                    if not assignment.left:
+                        block.scope.remove_node(assignment)
+                        self.num_warnings += 1
+                        print_warning("{}: removed statement that has no effect".format(assignment.sourceref))
+                if isinstance(assignment, AugAssignment):
+                    if isinstance(assignment.right, (int, float)):
+                        if assignment.right == 0 and assignment.operator in ("+=", "-=", "|=", "<<=", ">>=", "^="):
                             self.num_warnings += 1
                             print_warning("{}: removed statement that has no effect".format(assignment.sourceref))
-                    if isinstance(assignment, AugAssignment):
-                        if isinstance(assignment.right, (int, float)):
-                            if assignment.right == 0 and assignment.operator in ("+=", "-=", "|=", "<<=", ">>=", "^="):
-                                self.num_warnings += 1
-                                print_warning("{}: removed statement that has no effect".format(assignment.sourceref))
-                                block.scope.remove_node(assignment)
-                            if assignment.right >= 8 and assignment.operator in ("<<=", ">>="):
-                                self.num_warnings += 1
-                                print_warning("{}: shifting result is always zero".format(assignment.sourceref))
-                                new_stmt = Assignment(left=[assignment.left], right=0, sourceref=assignment.sourceref)
-                                block.scope.replace_node(assignment, new_stmt)
+                            block.scope.remove_node(assignment)
+                        if assignment.right >= 8 and assignment.operator in ("<<=", ">>="):
+                            print("{}: shifting result is always zero".format(assignment.sourceref))
+                            new_stmt = Assignment(left=[assignment.left], right=0, sourceref=assignment.sourceref)
+                            block.scope.replace_node(assignment, new_stmt)
 
     def combine_assignments_into_multi(self):
         # fold multiple consecutive assignments with the same rvalue into one multi-assignment
         for block, parent in self.module.all_scopes():
-            if block.scope:
-                rvalue = None
-                assignments = []
-                for stmt in list(block.scope.nodes):
-                    if isinstance(stmt, Assignment):
-                        if assignments:
-                            if stmt.right == rvalue:
-                                assignments.append(stmt)
-                                continue
-                            elif len(assignments) > 1:
-                                # replace the first assignment by a multi-assign with all the others
-                                for assignment in assignments[1:]:
-                                    print("{}: joined with previous assignment".format(assignment.sourceref))
-                                    assignments[0].left.extend(assignment.left)
-                                    block.scope.remove_node(assignment)
-                                rvalue = None
-                                assignments.clear()
-                        else:
-                            rvalue = stmt.right
+            rvalue = None
+            assignments = []
+            for stmt in list(block.nodes):
+                if isinstance(stmt, Assignment):
+                    if assignments:
+                        if stmt.right == rvalue:
                             assignments.append(stmt)
+                            continue
+                        elif len(assignments) > 1:
+                            # replace the first assignment by a multi-assign with all the others
+                            for assignment in assignments[1:]:
+                                print("{}: joined with previous assignment".format(assignment.sourceref))
+                                assignments[0].left.extend(assignment.left)
+                                block.scope.remove_node(assignment)
+                            rvalue = None
+                            assignments.clear()
                     else:
-                        rvalue = None
-                        assignments.clear()
+                        rvalue = stmt.right
+                        assignments.append(stmt)
+                else:
+                    rvalue = None
+                    assignments.clear()
 
     def optimize_multiassigns(self):
         # optimize multi-assign statements (remove duplicate targets, optimize order)
         for block, parent in self.module.all_scopes():
-            if block.scope:
-                for assignment in block.scope.nodes:
-                    if isinstance(assignment, Assignment) and len(assignment.left) > 1:
-                        # remove duplicates
-                        lvalues = set(assignment.left)
-                        if len(lvalues) != len(assignment.left):
-                            self.num_warnings += 1
-                            print_warning("{}: removed duplicate assignment targets".format(assignment.sourceref))
-                        # @todo change order: first registers, then zp addresses, then non-zp addresses, then the rest (if any)
-                        assignment.left = list(lvalues)
+            for assignment in block.nodes:
+                if isinstance(assignment, Assignment) and len(assignment.left) > 1:
+                    # remove duplicates
+                    lvalues = set(assignment.left)
+                    if len(lvalues) != len(assignment.left):
+                        print("{}: removed duplicate assignment targets".format(assignment.sourceref))
+                    # @todo change order: first registers, then zp addresses, then non-zp addresses, then the rest (if any)
+                    assignment.left = list(lvalues)
 
     def remove_unused_subroutines(self):
         # some symbols are used by the emitted assembly code from the code generator,

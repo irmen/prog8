@@ -1,7 +1,7 @@
 IL65 / 'Sick' - Experimental Programming Language for 8-bit 6502/6510 microprocessors
 =====================================================================================
 
-*Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0*
+*Written by Irmen de Jong (irmen@razorvine.net)*
 
 *Software license: GNU GPL 3.0, see file LICENSE*
 
@@ -17,6 +17,7 @@ which aims to provide many conveniences over raw assembly code (even when using 
 - subroutines have enforced input- and output parameter definitions
 - various data types other than just bytes (16-bit words, floats, strings, 16-bit register pairs)
 - automatic variable allocations, automatic string variables and string sharing
+- constant folding in expressions (compile-time evaluation)
 - automatic type conversions
 - floating point operations
 - optional automatic preserving and restoring CPU registers state, when calling routines that otherwise would clobber these 
@@ -24,6 +25,7 @@ which aims to provide many conveniences over raw assembly code (even when using 
 - breakpoints, that let the Vice emulator drop into the monitor if execution hits them
 - source code labels automatically loaded in Vice emulator so it can show them in disassembly
 - conditional gotos
+- some code optimizations (such as not repeatedly loading the same value in a register) 
 - @todo: loops
 - @todo: memory block operations
 

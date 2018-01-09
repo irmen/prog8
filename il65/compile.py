@@ -11,8 +11,9 @@ import sys
 import linecache
 from typing import Optional, Tuple, Set, Dict, Any, no_type_check
 import attr
-from .plyparse import parse_file, ParseError, Module, Directive, Block, Subroutine, Scope, VarDef, \
-    SubCall, Goto, Return, Assignment, InlineAssembly, Register, Expression, ProgramFormat, ZpOptions
+from .plyparse import parse_file, ParseError, Module, Directive, Block, Subroutine, Scope, VarDef, LiteralValue, \
+    SubCall, Goto, Return, Assignment, InlineAssembly, Register, Expression, ProgramFormat, ZpOptions,\
+    SymbolName, process_constant_expression, process_dynamic_expression
 from .plylex import SourceRef, print_bold
 from .optimize import optimize
 
@@ -72,11 +73,8 @@ class PlyParser:
     def process_all_expressions(self, module: Module) -> None:
         # process/simplify all expressions (constant folding etc)
         for block, parent in module.all_scopes():
-            if block.scope:
-                for node in block.scope.nodes:
-                    if node is None:
-                        print(block, block.scope, block.scope.nodes)
-                    node.process_expressions()
+            for node in block.nodes:
+                node.process_expressions(block.scope)
 
     @no_type_check
     def create_multiassigns(self, module: Module) -> None:
@@ -90,24 +88,23 @@ class PlyParser:
             return assign
 
         for block, parent in module.all_scopes():
-            if block.scope:
-                for node in block.scope.nodes:
-                    if isinstance(node, Assignment):
-                        if isinstance(node.right, Assignment):
-                            multi = reduce_right(node)
-                            assert multi is node and len(multi.left) > 1 and not isinstance(multi.right, Assignment)
-                        node.simplify_targetregisters()
+            for node in block.nodes:
+                if isinstance(node, Assignment):
+                    if isinstance(node.right, Assignment):
+                        multi = reduce_right(node)
+                        assert multi is node and len(multi.left) > 1 and not isinstance(multi.right, Assignment)
+                    node.simplify_targetregisters()
 
     def apply_directive_options(self, module: Module) -> None:
         def set_save_registers(scope: Scope, save_dir: Directive) -> None:
             if not scope:
                 return
             if len(save_dir.args) > 1:
-                raise ParseError("need zero or one directive argument", save_dir.sourceref)
+                raise ParseError("expected zero or one directive argument", save_dir.sourceref)
             if save_dir.args:
-                if save_dir.args[0] in ("yes", "true"):
+                if save_dir.args[0] in ("yes", "true", True):
                     scope.save_registers = True
-                elif save_dir.args[0] in ("no", "false"):
+                elif save_dir.args[0] in ("no", "false", False):
                     scope.save_registers = False
                 else:
                     raise ParseError("invalid directive args", save_dir.sourceref)
@@ -120,7 +117,7 @@ class PlyParser:
                 for directive in block.scope.filter_nodes(Directive):
                     if directive.name == "output":
                         if len(directive.args) != 1 or not isinstance(directive.args[0], str):
-                            raise ParseError("need one str directive argument", directive.sourceref)
+                            raise ParseError("expected one str directive argument", directive.sourceref)
                         if directive.args[0] == "raw":
                             block.format = ProgramFormat.RAW
                             block.address = 0xc000
@@ -134,7 +131,7 @@ class PlyParser:
                             raise ParseError("invalid directive args", directive.sourceref)
                     elif directive.name == "address":
                         if len(directive.args) != 1 or not isinstance(directive.args[0], int):
-                            raise ParseError("need one integer directive argument", directive.sourceref)
+                            raise ParseError("expected one integer directive argument", directive.sourceref)
                         if block.format == ProgramFormat.BASIC:
                             raise ParseError("basic cannot have a custom load address", directive.sourceref)
                         block.address = directive.args[0]
@@ -178,21 +175,20 @@ class PlyParser:
     def determine_subroutine_usage(self, module: Module) -> None:
         module.subroutine_usage.clear()
         for block, parent in module.all_scopes():
-            if block.scope:
-                for node in block.scope.nodes:
-                    if isinstance(node, InlineAssembly):
-                        self._parse_asm_for_subroutine_usage(module.subroutine_usage, node, block.scope)
-                    elif isinstance(node, SubCall):
-                        self._parse_subcall_for_subroutine_usages(module.subroutine_usage, node, block.scope)
-                    elif isinstance(node, Goto):
-                        self._parse_goto_for_subroutine_usages(module.subroutine_usage, node, block.scope)
-                    elif isinstance(node, Return):
-                        self._parse_return_for_subroutine_usages(module.subroutine_usage, node, block.scope)
-                    elif isinstance(node, Assignment):
-                        self._parse_assignment_for_subroutine_usages(module.subroutine_usage, node, block.scope)
+            for node in block.nodes:
+                if isinstance(node, InlineAssembly):
+                    self._get_subroutine_usages_from_asm(module.subroutine_usage, node, block.scope)
+                elif isinstance(node, SubCall):
+                    self._get_subroutine_usages_from_subcall(module.subroutine_usage, node, block.scope)
+                elif isinstance(node, Goto):
+                    self._get_subroutine_usages_from_goto(module.subroutine_usage, node, block.scope)
+                elif isinstance(node, Return):
+                    self._get_subroutine_usages_from_return(module.subroutine_usage, node, block.scope)
+                elif isinstance(node, Assignment):
+                    self._get_subroutine_usages_from_assignment(module.subroutine_usage, node, block.scope)
 
-    def _parse_subcall_for_subroutine_usages(self, usages: Dict[Tuple[str, str], Set[str]],
-                                             subcall: SubCall, parent_scope: Scope) -> None:
+    def _get_subroutine_usages_from_subcall(self, usages: Dict[Tuple[str, str], Set[str]],
+                                            subcall: SubCall, parent_scope: Scope) -> None:
         # node.target (relevant if its a symbolname -- a str), node.arguments (list of CallArgument)
         #   CallArgument.value = expression.
         if isinstance(subcall.target.target, str):
@@ -203,22 +199,31 @@ class PlyParser:
                 name = subcall.target.target
             usages[(scopename, name)].add(str(subcall.sourceref))
         for arg in subcall.arguments:
-            self._parse_expression_for_subroutine_usages(usages, arg.value, parent_scope)
+            self._get_subroutine_usages_from_expression(usages, arg.value, parent_scope)
 
-    def _parse_expression_for_subroutine_usages(self, usages: Dict[Tuple[str, str], Set[str]],
-                                                expr: Any, parent_scope: Scope) -> None:
+    def _get_subroutine_usages_from_expression(self, usages: Dict[Tuple[str, str], Set[str]],
+                                               expr: Any, parent_scope: Scope) -> None:
         if expr is None or isinstance(expr, (int, str, float, bool, Register)):
             return
         elif isinstance(expr, SubCall):
-            self._parse_subcall_for_subroutine_usages(usages, expr, parent_scope)
+            self._get_subroutine_usages_from_subcall(usages, expr, parent_scope)
         elif isinstance(expr, Expression):
-            self._parse_expression_for_subroutine_usages(usages, expr.left, parent_scope)
-            self._parse_expression_for_subroutine_usages(usages, expr.right, parent_scope)
+            self._get_subroutine_usages_from_expression(usages, expr.left, parent_scope)
+            self._get_subroutine_usages_from_expression(usages, expr.right, parent_scope)
+        elif isinstance(expr, LiteralValue):
+            return
+        elif isinstance(expr, SymbolName):
+            try:
+                symbol = parent_scope[expr.name]
+                if isinstance(symbol, Subroutine):
+                    usages[(parent_scope.name, expr.name)].add(str(expr.sourceref))
+            except LookupError:
+                pass
         else:
-            print("@todo parse expression for subroutine usage:", expr)    # @todo
+            raise TypeError("unknown expr type to scan for sub usages", expr, expr.sourceref)
 
-    def _parse_goto_for_subroutine_usages(self, usages: Dict[Tuple[str, str], Set[str]],
-                                          goto: Goto, parent_scope: Scope) -> None:
+    def _get_subroutine_usages_from_goto(self, usages: Dict[Tuple[str, str], Set[str]],
+                                         goto: Goto, parent_scope: Scope) -> None:
         # node.target (relevant if its a symbolname -- a str), node.condition (expression)
         if isinstance(goto.target.target, str):
             try:
@@ -227,24 +232,24 @@ class PlyParser:
                 return
             if isinstance(symbol, Subroutine):
                 usages[(parent_scope.name, symbol.name)].add(str(goto.sourceref))
-        self._parse_expression_for_subroutine_usages(usages, goto.condition, parent_scope)
+        self._get_subroutine_usages_from_expression(usages, goto.condition, parent_scope)
 
-    def _parse_return_for_subroutine_usages(self, usages: Dict[Tuple[str, str], Set[str]],
-                                            returnnode: Return, parent_scope: Scope) -> None:
+    def _get_subroutine_usages_from_return(self, usages: Dict[Tuple[str, str], Set[str]],
+                                           returnnode: Return, parent_scope: Scope) -> None:
         # node.value_A (expression), value_X (expression), value_Y (expression)
-        self._parse_expression_for_subroutine_usages(usages, returnnode.value_A, parent_scope)
-        self._parse_expression_for_subroutine_usages(usages, returnnode.value_X, parent_scope)
-        self._parse_expression_for_subroutine_usages(usages, returnnode.value_Y, parent_scope)
+        self._get_subroutine_usages_from_expression(usages, returnnode.value_A, parent_scope)
+        self._get_subroutine_usages_from_expression(usages, returnnode.value_X, parent_scope)
+        self._get_subroutine_usages_from_expression(usages, returnnode.value_Y, parent_scope)
 
-    def _parse_assignment_for_subroutine_usages(self, usages: Dict[Tuple[str, str], Set[str]],
-                                                assignment: Assignment, parent_scope: Scope) -> None:
+    def _get_subroutine_usages_from_assignment(self, usages: Dict[Tuple[str, str], Set[str]],
+                                               assignment: Assignment, parent_scope: Scope) -> None:
         # node.right (expression, or another Assignment)
         if isinstance(assignment.right, Assignment):
-            self._parse_assignment_for_subroutine_usages(usages, assignment.right, parent_scope)
+            self._get_subroutine_usages_from_assignment(usages, assignment.right, parent_scope)
         else:
-            self._parse_expression_for_subroutine_usages(usages, assignment.right, parent_scope)
+            self._get_subroutine_usages_from_expression(usages, assignment.right, parent_scope)
 
-    def _parse_asm_for_subroutine_usage(self, usages: Dict[Tuple[str, str], Set[str]],
+    def _get_subroutine_usages_from_asm(self, usages: Dict[Tuple[str, str], Set[str]],
                                         asmnode: InlineAssembly, parent_scope: Scope) -> None:
         # asm can refer to other symbols as well, track subroutine usage
         for line in asmnode.assembly.splitlines():

@@ -1,5 +1,5 @@
-from il65.plylex import lexer, tokens, find_tok_column, literals, reserved
-from il65.plyparse import parser, TokenFilter, Module, Subroutine, Block, Return
+from il65.plylex import lexer, tokens, find_tok_column, literals, reserved, SourceRef
+from il65.plyparse import parser, TokenFilter, Module, Subroutine, Block, Return, Scope, VarDef, Expression, LiteralValue, Label
 
 
 def test_lexer_definitions():
@@ -26,6 +26,7 @@ test_source = """ %output prg, sys
 
     ; comment
 
+    var foo = 42+true
     var .matrix(20,30) m = 9.234556
     ;comment2
 
@@ -47,6 +48,7 @@ def test_lexer():
     assert token_types == ['DIRECTIVE', 'NAME', ',', 'NAME', 'ENDL', 'ENDL', 'ENDL',
                            'BITINVERT', 'NAME', 'INTEGER', '{', 'ENDL',
                            'DIRECTIVE', 'NAME', ',', 'NAME', 'ENDL', 'ENDL',
+                           'VARTYPE', 'NAME', 'IS', 'INTEGER', '+', 'BOOLEAN', 'ENDL',
                            'VARTYPE', 'DATATYPE', '(', 'INTEGER', ',', 'INTEGER', ')', 'NAME', 'IS', 'FLOATINGPOINT', 'ENDL', 'ENDL',
                            'SUB', 'NAME', '(', ')', 'RARROW', '(', ')', '{', 'ENDL', 'RETURN', 'ENDL', '}', 'ENDL', 'ENDL', 'ENDL', 'ENDL',
                            '}', 'ENDL']
@@ -56,6 +58,10 @@ def test_lexer():
     assert directive_token.lineno == 9
     assert directive_token.lexpos == lexer.lexdata.index("%import")
     assert find_tok_column(directive_token) == 10
+    bool_token = tokens[23]
+    assert bool_token.type == "BOOLEAN"
+    assert type(bool_token.value) is bool
+    assert bool_token.value == True
 
 
 def test_tokenfilter():
@@ -72,6 +78,7 @@ def test_tokenfilter():
     assert token_types == ['DIRECTIVE', 'NAME', ',', 'NAME', 'ENDL',
                            'BITINVERT', 'NAME', 'INTEGER', '{', 'ENDL',
                            'DIRECTIVE', 'NAME', ',', 'NAME', 'ENDL',
+                           'VARTYPE', 'NAME', 'IS', 'INTEGER', '+', 'BOOLEAN', 'ENDL',
                            'VARTYPE', 'DATATYPE', '(', 'INTEGER', ',', 'INTEGER', ')', 'NAME', 'IS', 'FLOATINGPOINT', 'ENDL',
                            'SUB', 'NAME', '(', ')', 'RARROW', '(', ')', '{', 'ENDL', 'RETURN', 'ENDL', '}', 'ENDL',
                            '}', 'ENDL']
@@ -93,10 +100,17 @@ def test_parser():
     block = result.scope["block"]
     assert isinstance(block, Block)
     assert block.name == "block"
+    assert block.nodes is block.scope.nodes
+    bool_vdef = block.scope.nodes[1]
+    assert isinstance(bool_vdef, VarDef)
+    assert isinstance(bool_vdef.value, Expression)
+    assert isinstance(bool_vdef.value.right, LiteralValue)
+    assert isinstance(bool_vdef.value.right.value, bool)
+    assert bool_vdef.value.right.value == True
     assert block.address == 49152
     sub2 = block.scope["calculate"]
     assert sub2 is sub
-    assert sub2.lineref == "src l. 18"
+    assert sub2.lineref == "src l. 19"
     all_scopes = list(result.all_scopes())
     assert len(all_scopes) == 3
     assert isinstance(all_scopes[0][0], Module)
@@ -108,4 +122,16 @@ def test_parser():
     stmt = list(all_scopes[2][0].scope.filter_nodes(Return))
     assert len(stmt) == 1
     assert isinstance(stmt[0], Return)
-    assert stmt[0].lineref == "src l. 19"
+    assert stmt[0].lineref == "src l. 20"
+
+
+def test_block_nodes():
+    sref = SourceRef("file", 1, 1)
+    sub1 = Subroutine(name="subaddr", param_spec=[], result_spec=[], address=0xc000, sourceref=sref)
+    sub2 = Subroutine(name="subblock", param_spec=[], result_spec=[],
+                      scope=Scope(nodes=[Label(name="start", sourceref=sref)], sourceref=sref), sourceref=sref)
+    assert sub1.scope is None
+    assert sub1.nodes == []
+    assert sub2.scope is not None
+    assert len(sub2.scope.nodes) > 0
+    assert sub2.nodes is sub2.scope.nodes

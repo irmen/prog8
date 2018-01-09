@@ -10,14 +10,18 @@
 	%saveregisters true
 
 
-                const   num = 2
-                var     var1  =2
-                var .word  wvar1 = 2 + foo()    ; @todo constant check error
+                const   num = 2 + max(2, 8, 3.44//3)
+		const pi_val = 22/7 - 2.23423
+                var     var1  =2 + 9/4
+                var .word  wvar2 = 2 + cos(23.2)
+                memory memvar = $d020
+                var .word test2b = &memvar
+                var test3 = var1
 
 
 start:
 
-	wvar1 = 2+foo()
+	wvar1 = 2+foo()+emptysub2
 
         A=math.randbyte()
         A +=  c64.RASTER
@@ -212,11 +216,11 @@ sub emptysub () -> () {
 	%saveregisters
 	%breakpoint
 
-	return
+	return 999990 + (2*sin(1.0)) + foo(), 999990 -1, 999999
 
 }
 ~  {
 	;sdfsdf
-	return
+	return 999, -1, 3.445
 	;sdfsdf
 }

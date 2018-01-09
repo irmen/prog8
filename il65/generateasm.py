@@ -10,6 +10,7 @@ import subprocess
 import datetime
 import itertools
 from typing import Union, TextIO, List, Tuple, Iterator
+from .plylex import print_bold
 from .plyparse import Module, ProgramFormat, Block, Directive, VarDef, Label, Subroutine, AstNode, ZpOptions
 from .datatypes import VarType, DataType, to_hex, mflpt5_to_float, to_mflpt5, STRING_DATATYPES
 
@@ -47,7 +48,17 @@ class AssemblyGenerator:
         self.footer()
 
     def sanitycheck(self):
-        # duplicate block names?
+        start_found = False
+        for block, parent in self.module.all_scopes():
+            for label in block.nodes:
+                if isinstance(label, Label) and label.name == "start" and block.name == "main":
+                    start_found = True
+                    break
+            if start_found:
+                break
+        if not start_found:
+            print_bold("ERROR: program entry point is missing ('start' label in 'main' block)\n")
+            raise SystemExit(1)
         all_blocknames = [b.name for b in self.module.scope.filter_nodes(Block)]
         unique_blocknames = set(all_blocknames)
         if len(all_blocknames) != len(unique_blocknames):
@@ -329,6 +340,7 @@ class AssemblyGenerator:
     def generate_statement(self, stmt: AstNode) -> None:
         if isinstance(stmt, Label):
             self.p("\n{:s}\v\t\t; {:s}".format(stmt.name, stmt.lineref))
+        self.p("\vrts")
         # @todo rest of the statement nodes
 
 

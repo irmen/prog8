@@ -61,6 +61,7 @@ tokens = (
     "LOGICAND",
     "LOGICOR",
     "LOGICNOT",
+    "INTEGERDIVIDE",
     "POWER",
     "LABEL",
     "IF",
@@ -73,6 +74,7 @@ literals = ['+', '-', '*', '/', '(', ')', '[', ']', '{', '}', '.', ',', '!', '?'
 
 # regex rules for simple tokens
 
+t_INTEGERDIVIDE = r"//"
 t_BITAND = r"&"
 t_BITOR = r"\|"
 t_BITXOR = r"\^"
@@ -216,6 +218,12 @@ def t_DATATYPE(t):
 def t_LABEL(t):
     r"[a-zA-Z_]\w*\s*:"
     t.value = t.value[:-1].strip()
+    return t
+
+
+def t_BOOLEAN(t):
+    r"true|false"
+    t.value = t.value == "true"
     return t
 
 
