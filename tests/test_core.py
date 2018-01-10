@@ -96,6 +96,10 @@ def test_coerce_value():
     assert datatypes.coerce_value(datatypes.DataType.FLOAT, 123.45) == (False, 123.45)
     assert datatypes.coerce_value(datatypes.DataType.BYTE, 5.678) == (True, 5)
     assert datatypes.coerce_value(datatypes.DataType.WORD, 5.678) == (True, 5)
+    assert datatypes.coerce_value(datatypes.DataType.STRING, "string") == (False, "string")
+    assert datatypes.coerce_value(datatypes.DataType.STRING_P, "string") == (False, "string")
+    assert datatypes.coerce_value(datatypes.DataType.STRING_S, "string") == (False, "string")
+    assert datatypes.coerce_value(datatypes.DataType.STRING_PS, "string") == (False, "string")
     with pytest.raises(OverflowError):
         datatypes.coerce_value(datatypes.DataType.BYTE, -1)
     with pytest.raises(OverflowError):
@@ -112,3 +116,9 @@ def test_coerce_value():
         datatypes.coerce_value(datatypes.DataType.FLOAT, -1.7014118346e+38)
     with pytest.raises(OverflowError):
         datatypes.coerce_value(datatypes.DataType.FLOAT, 1.7014118347e+38)
+    with pytest.raises(TypeError):
+        datatypes.coerce_value(datatypes.DataType.BYTE, "string")
+    with pytest.raises(TypeError):
+        datatypes.coerce_value(datatypes.DataType.WORD, "string")
+    with pytest.raises(TypeError):
+        datatypes.coerce_value(datatypes.DataType.FLOAT, "string")

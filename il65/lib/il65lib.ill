@@ -62,7 +62,6 @@ zp_backup	.fill  256, 0
 
 
 	%asm {
-
 ; ---- jmp (indirect) routines for register pairs containing the indirect address
 jsr_indirect_nozpuse_AX
 		sta  jsr_indirect_tmp
@@ -92,6 +91,49 @@ jsr_indirect_XY
 		stx  SCRATCH_ZP1
 		sty  SCRATCH_ZP2
 		jmp  (SCRATCH_ZP1)
+
+
+; copy memory UP from (SCRATCH_ZPWORD1) to (SCRATCH_ZPWORD2) of length X/Y (16-bit, X=lo, Y=hi)
+; clobbers register A,X,Y
+memcopy16_up
+		source = SCRATCH_ZPWORD1
+		dest = SCRATCH_ZPWORD2
+		length = SCRATCH_ZP1   ; (and SCRATCH_ZP2)
+
+		stx  length
+		sty  length+1
+
+		ldx  length             ; move low byte of length into X
+		bne  +                  ; jump to start if X > 0
+		dec  length             ; subtract 1 from length
++		ldy  #0                 ; set Y to 0
+-		lda  (source),y         ; set A to whatever (source) points to offset by Y
+		sta  (dest),y           ; move A to location pointed to by (dest) offset by Y
+		iny                     ; increment Y
+		bne  +                  ; if Y<>0 then (rolled over) then still moving bytes
+		inc  source+1           ; increment hi byte of source
+		inc  dest+1             ; increment hi byte of dest
++		dex                     ; decrement X (lo byte counter)
+		bne  -                  ; if X<>0 then move another byte
+		dec  length             ; weve moved 255 bytes, dec length
+		bpl  -                  ; if length is still positive go back and move more
+		rts                     ; done
+
+
+; copy memory UP from (SCRATCH_ZPWORD1) to (AY) with length X (0 = 256)
+; destination must not overlap, or be before start, then overlap is possible.
+; clobbers A, X, Y
+
+memcopy
+		sta  SCRATCH_ZPWORD2
+		sty  SCRATCH_ZPWORD2+1
+		ldy  #0
+-		lda  (SCRATCH_ZPWORD1),y
+		sta  (SCRATCH_ZPWORD2),y
+		iny
+		dex
+		bne  -
+		rts
 
 	}
 }

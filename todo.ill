@@ -1,226 +1,29 @@
 %output basic
-%saveregisters
-%import c64lib
-%import mathlib
 
+~ ZP {
+	var     zp1_1
+	var     zp1_2
+	var     zp1_3
+	var     zp1_4
+	const   zpc1_1
+	const   zpc1_2
+}
+
+~ ZP {
+	var     zp2_1
+	var     zp2_2
+	var     zp2_3
+	var     zp2_4
+	const   zpc2_1
+	const   zpc2_2
+}
 
 
 ~ main  {
 
-	%saveregisters true
-
-
-                const   num = 2 + max(2, 8, 3.44//3)
-		const pi_val = 22/7 - 2.23423
-                var     var1  =2 + 9/4
-                var .word  wvar2 = 2 + cos(23.2)
-                memory memvar = $d020
-                var .word test2b = &memvar
-                var test3 = var1
-
 
 start:
 
-	wvar1 = 2+foo()+emptysub2
-
-        A=math.randbyte()
-        A +=  c64.RASTER
-        A-=c64.TIME_LO
-        X,A=math.divmod_bytes(A, 99)
-        A=B=C=foo()
-        c64scr.print_byte_decimal(A)
-        c64.CHROUT('\n')
-        return
-
-	screen = border =  cursor = X = Y = A = X = Y = A = border = cursor = border = cursor = 66  ; multi-assign!
-	X = Y = A = X = Y = A = X = Y = A = X = Y = AX = Y = A = X = AY = XY =A = 123  ; multi-assign!
-	XY = XY
-	A= A
-	A=X=Y=A
-
-
-rndloop:
-        XY = math.randword()
-        %asm {
-                txa
-                sta $0400,y
-                tya
-                sta $0500,x
-        }
-        [wvar1] = 81            ; @todo implement pointers like this
-        goto rndloop
-
-
-
-
-
-        A = math.randbyte()
-        Y=A
-        %asm {
-                txa
-                sta  $0400,y
-        }
-        X--
-        if_ne  goto rndloop
-        %asm {
-                iny
-                sty  math.randbyte._seed
-        }
-        goto rndloop
-        return
-
-        goto start
-
-        X <<= var1
-        X >>= var1
-
-        var1 ++
-        var1 += num
-        X++
-        X+=num
-        X+=0
-        X-=0
-        X <<= Y
-        A <<= X
-        Y <<= A
-        X <<= 0
-        X <<= 33333
-        X >>= 33333
-        X <<= 2
-        X <<= 7
-        X <<= 8
-        X <<= 22
-        X >>= 0
-        X >>= 1
-        X >>= 2
-        X >>= 7
-        X >>= 8
-        X >>= 22
-        XY = 1
-        AX = 2
-        SC =1
-
-        var QW
-        QW =3
-        ;XY <<= 0
-        ;XY <<= 1
-        ;XY <<= 2
-
-
-        %asm {
-                ldy  #200
--               lda  #81
-                sta  c64.Screen+39-40,y
-                sta  c64.Screen+39+4*40,y
-                sta  c64.Screen+39+9*40,y
-                sta  c64.Screen+39+14*40,y
-                sta  c64.Screen+39+19*40,y
-                lda  #83
-                sta  c64.Screen-40,y
-                sta  c64.Screen+4*40,y
-                sta  c64.Screen+9*40,y
-                sta  c64.Screen+14*40,y
-                sta  c64.Screen+19*40,y
-                lda  #1
-                sta  c64.Colors+39-40,y
-                sta  c64.Colors+39+4*40,y
-                sta  c64.Colors+39+9*40,y
-                sta  c64.Colors+39+14*40,y
-                sta  c64.Colors+39+19*40,y
-                lda  #5
-                sta  c64.Colors-40,y
-                sta  c64.Colors+4*40,y
-                sta  c64.Colors+9*40,y
-                sta  c64.Colors+14*40,y
-                sta  c64.Colors+19*40,y
-                tya
-                sec
-                sbc  #40
-                tay
-                bne  -
-        }
-
-
-loop   :
-        A=c64.GETIN()
-        if_not goto loop
-        c64scr.scroll_right_full(1)
-        goto loop
-        c64.CHROUT(A)
-        goto loop
-
-        ;c64scr.print_byte_hex(0, A)
-        ;c64.CHROUT(' ')
-        ;goto loop
-
-        ;return
-
-        A = $11
-        A = $11
-        A = $11
-        X = $11
-        Y = $11
-        X = $11
-        Y = $11
-        X = $22
-        Y = $33
-
-        c64scr.clear_screen (81, 5)
-        c64scr.clear_screen (81, 5)
-        c64scr.clear_screen (81, 5)
-        c64scr.clear_screen (81, 5)
-        c64scr.clear_screen ! (81, 5)
-        c64scr.clear_screen ! (81, 5)
-        c64scr.clear_screen !(81, 5)
-        c64scr.clear_screen !(81, 5)
-        c64scr.clear_screen !A (81, 5)
-        c64scr.clear_screen !X (81, 5)
-        c64scr.clear_screen !Y (81, 5)
-        c64scr.clear_screen !XY (81, 5)
-        c64scr.clear_screen !AXY (81, 5)
-
-        c64scr.print_byte_hex(1,A)
-        c64.CHROUT(' ')
-        c64scr.print_byte_hex(1,X)
-        c64.CHROUT(' ')
-        c64scr.print_byte_hex(1,Y)
-        c64scr.print_word_decimal(1222)
-        c64.CHROUT('\n')
-
-	%breakpoint
-
-        return
-
-sub sub1 () -> () {
-
-	%saveregisters no
-	%breakpoint
-	%breakpoint
-	%breakpoint
-
-label:
 	return
-
 }
 
-sub emptysub () -> () {
-
-	%saveregisters yes
-
-}
-
-}
-
-~ zzzz {
-
-	%saveregisters
-	%breakpoint
-
-	return 999990 + (2*sin(1.0)) + foo(), 999990 -1, 999999
-
-}
-~  {
-	;sdfsdf
-	return 999, -1, 3.445
-	;sdfsdf
-}

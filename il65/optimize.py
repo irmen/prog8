@@ -97,7 +97,8 @@ class Optimizer:
                 if not usages and parent.name + '.' + sub.name not in never_remove:
                     parent.scope.remove_node(sub)
                     num_discarded += 1
-        print("discarded {:d} unused subroutines".format(num_discarded))
+        if num_discarded:
+            print("discarded {:d} unused subroutines".format(num_discarded))
 
     def optimize_compare_with_zero(self):
         # a conditional goto that compares a value with zero will be simplified

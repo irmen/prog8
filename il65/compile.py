@@ -55,7 +55,7 @@ class PlyParser:
             if block.name == "ZP":
                 if zeropage:
                     # merge other ZP block into first ZP block
-                    for node in block.scope.nodes:
+                    for node in block.nodes:
                         if isinstance(node, Directive):
                             zeropage.scope.add_node(node, 0)
                         elif isinstance(node, VarDef):

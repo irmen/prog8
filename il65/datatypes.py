@@ -49,6 +49,12 @@ class DataType(enum.Enum):
 
 STRING_DATATYPES = {DataType.STRING, DataType.STRING_P, DataType.STRING_S, DataType.STRING_PS}
 
+REGISTER_SYMBOLS = {"A", "X", "Y", "AX", "AY", "XY", "SC", "SI"}
+REGISTER_SYMBOLS_RETURNVALUES = REGISTER_SYMBOLS | {"SZ"}
+REGISTER_BYTES = {"A", "X", "Y"}
+REGISTER_SBITS = {"SC", "SI", "SZ"}
+REGISTER_WORDS = {"AX", "AY", "XY"}
+
 # 5-byte cbm MFLPT format limitations:
 FLOAT_MAX_POSITIVE = 1.7014118345e+38
 FLOAT_MAX_NEGATIVE = -1.7014118345e+38
@@ -106,11 +112,14 @@ def coerce_value(datatype: DataType, value: PrimitiveType, sourceref: SourceRef=
         # if the value is out of bounds, raise an overflow exception
         if isinstance(value, (int, float)):
             if datatype == DataType.BYTE and not (0 <= value <= 0xff):       # type: ignore
-                raise OverflowError("value out of range for byte")
+                raise OverflowError("value out of range for byte: " + str(value))
             if datatype == DataType.WORD and not (0 <= value <= 0xffff):        # type: ignore
-                raise OverflowError("value out of range for word")
+                raise OverflowError("value out of range for word: " + str(value))
             if datatype == DataType.FLOAT and not (FLOAT_MAX_NEGATIVE <= value <= FLOAT_MAX_POSITIVE):      # type: ignore
-                raise OverflowError("value out of range for float")
+                raise OverflowError("value out of range for float: " + str(value))
+        if datatype in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
+            if not isinstance(value, (int, float)):
+                raise TypeError("cannot assign '{:s}' to {:s}".format(type(value).__name__, datatype.name.lower()))
     if datatype in (DataType.BYTE, DataType.BYTEARRAY, DataType.MATRIX) and isinstance(value, str):
         if len(value) == 1:
             return True, char_to_bytevalue(value)

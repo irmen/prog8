@@ -14,7 +14,7 @@ from typing import Union, Generator, Tuple, List, Optional, Dict, Any, Iterable
 import attr
 from ply.yacc import yacc
 from .plylex import SourceRef, tokens, lexer, find_tok_column
-from .datatypes import DataType, VarType, coerce_value
+from .datatypes import DataType, VarType, coerce_value, REGISTER_SYMBOLS, REGISTER_BYTES, REGISTER_WORDS
 
 
 class ProgramFormat(enum.Enum):
@@ -261,7 +261,14 @@ class Label(AstNode):
 
 @attr.s(cmp=False, repr=False)
 class Register(AstNode):
-    name = attr.ib(type=str)
+    name = attr.ib(type=str, validator=attr.validators.in_(REGISTER_SYMBOLS))
+    datatype = attr.ib(type=DataType, init=False)
+
+    def __attrs_post_init__(self):
+        if self.name in REGISTER_BYTES:
+            self.datatype = DataType.BYTE
+        elif self.name in REGISTER_WORDS:
+            self.datatype = DataType.WORD
 
     def __hash__(self) -> int:
         return hash(self.name)
@@ -337,11 +344,26 @@ class Return(AstNode):
 
     def process_expressions(self, scope: Scope) -> None:
         if self.value_A is not None:
-            self.value_A = process_expression(self.value_A, scope, self.value_A.sourceref)
+            self.value_A = process_expression(self.value_A, scope, self.sourceref)
+            if isinstance(self.value_A, (int, float, str, bool)):
+                try:
+                    _, self.value_A = coerce_value(DataType.BYTE, self.value_A, self.sourceref)
+                except (OverflowError, TypeError) as x:
+                    raise ParseError("first value (A): " + str(x), self.sourceref) from None
         if self.value_X is not None:
-            self.value_X = process_expression(self.value_X, scope, self.value_X.sourceref)
+            self.value_X = process_expression(self.value_X, scope, self.sourceref)
+            if isinstance(self.value_X, (int, float, str, bool)):
+                try:
+                    _, self.value_X = coerce_value(DataType.BYTE, self.value_X, self.sourceref)
+                except (OverflowError, TypeError) as x:
+                    raise ParseError("second value (X): " + str(x), self.sourceref) from None
         if self.value_Y is not None:
-            self.value_Y = process_expression(self.value_Y, scope, self.value_Y.sourceref)
+            self.value_Y = process_expression(self.value_Y, scope, self.sourceref)
+            if isinstance(self.value_Y, (int, float, str, bool)):
+                try:
+                    _, self.value_Y = coerce_value(DataType.BYTE, self.value_Y, self.sourceref)
+                except (OverflowError, TypeError) as x:
+                    raise ParseError("third value (Y): " + str(x), self.sourceref) from None
 
 
 @attr.s(cmp=False, repr=False)
@@ -384,6 +406,9 @@ class VarDef(AstNode):
             assert self.size is None
             self.size = self.datatype.dimensions or [1]
             self.datatype = self.datatype.to_enum()
+        if self.vartype == VarType.CONST and self.value is None:
+            raise ParseError("constant value assignment is missing",
+                             attr.evolve(self.sourceref, column=self.sourceref.column+len(self.name)))
         # if the value is an expression, mark it as a *constant* expression here
         if isinstance(self.value, Expression):
             self.value.processed_must_be_constant = True
@@ -397,7 +422,7 @@ class VarDef(AstNode):
         if self.vartype in (VarType.CONST, VarType.VAR):
             try:
                 _, self.value = coerce_value(self.datatype, self.value, self.sourceref)
-            except OverflowError as x:
+            except (TypeError, OverflowError) as x:
                 raise ParseError(str(x), self.sourceref) from None
 
 

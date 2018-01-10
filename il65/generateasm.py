@@ -8,10 +8,11 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 import re
 import subprocess
 import datetime
-import itertools
-from typing import Union, TextIO, List, Tuple, Iterator
+from collections import defaultdict
+from typing import Dict, TextIO, List, Any
 from .plylex import print_bold
-from .plyparse import Module, ProgramFormat, Block, Directive, VarDef, Label, Subroutine, AstNode, ZpOptions
+from .plyparse import Module, ProgramFormat, Block, Directive, VarDef, Label, Subroutine, AstNode, ZpOptions, \
+    InlineAssembly, Return, Register, LiteralValue
 from .datatypes import VarType, DataType, to_hex, mflpt5_to_float, to_mflpt5, STRING_DATATYPES
 
 
@@ -43,7 +44,7 @@ class AssemblyGenerator:
     def _generate(self) -> None:
         self.sanitycheck()
         self.header()
-        self.initialize_variables()
+        self.init_vars_and_start()
         self.blocks()
         self.footer()
 
@@ -98,83 +99,46 @@ class AssemblyGenerator:
             self.p("; ---- raw assembler program ----")
             self.p("* = " + to_hex(self.module.address) + "\n")
 
-    def initialize_variables(self) -> None:
+    def init_vars_and_start(self) -> None:
         if self.module.zp_options == ZpOptions.CLOBBER_RESTORE:
             self.p("\vjsr  il65_lib_zp.save_zeropage")
-        zp_float_bytes = {}
-        # Only the vars from the ZeroPage need to be initialized here,
-        # the vars in all other blocks are just defined and pre-filled there.
-        zpblock = self.module.zeropage()
-        if zpblock:
-            vars_to_init = [v for v in zpblock.scope.filter_nodes(VarDef)
-                            if v.vartype == VarType.VAR and v.vartype in (DataType.BYTE, DataType.WORD, DataType.FLOAT)]
-            # @todo optimize sort order (sort on value first, then type, then blockname, then address/name)
-            # (str(self.value) or "", self.blockname, self.name or "", self.address or 0, self.seq_nr)
-            prev_value = 0  # type: Union[str, int, float]
-            if vars_to_init:
-                self.p("; init zp vars")
-                self.p("\vlda  #0\n\vldx  #0")
-                for variable in vars_to_init:
-                    vname = zpblock.label + '.' + variable.name
-                    vvalue = variable.value
-                    if variable.type == DataType.BYTE:
-                        if vvalue != prev_value:
-                            self.p("\vlda  #${:02x}".format(vvalue))
-                            prev_value = vvalue
-                        self.p("\vsta  {:s}".format(vname))
-                    elif variable.type == DataType.WORD:
-                        if vvalue != prev_value:
-                            self.p("\vlda  #<${:04x}".format(vvalue))
-                            self.p("\vldx  #>${:04x}".format(vvalue))
-                            prev_value = vvalue
-                        self.p("\vsta  {:s}".format(vname))
-                        self.p("\vstx  {:s}+1".format(vname))
-                    elif variable.type == DataType.FLOAT:
-                        bytes = self.to_mflpt5(vvalue)   # type: ignore
-                        zp_float_bytes[variable.name] = (vname, bytes, vvalue)
-                if zp_float_bytes:
-                    self.p("\vldx  #4")
-                    self.p("-")
-                    for varname, (vname, b, fv) in zp_float_bytes.items():
-                        self.p("\vlda  _float_bytes_{:s},x".format(varname))
-                        self.p("\vsta  {:s},x".format(vname))
-                    self.p("\vdex")
-                    self.p("\vbpl  -")
-                self.p("; end init zp vars")
-            else:
-                self.p("\v; there are no zp vars to initialize")
-        else:
-            self.p("\v; there is no zp block to initialize")
-        # @todo all block vars should be (re)initialized here as well!
+        self.p("\v; initialize all blocks (reset vars)")
+        if self.module.zeropage():
+            self.p("\vjsr  ZP._il65_init_block")
+        for block in self.module.nodes:
+            if isinstance(block, Block) and block.name != "ZP":
+                self.p("\vjsr  {}._il65_init_block".format(block.name))
+        self.p("\v; call user code")
         if self.module.zp_options == ZpOptions.CLOBBER_RESTORE:
-            self.p("\vjsr  {:s}.start\v; call user code".format(self.module.main().label))
+            self.p("\vjsr  {:s}.start".format(self.module.main().label))
             self.p("\vcld")
             self.p("\vjmp  il65_lib_zp.restore_zeropage")
         else:
-            self.p("\vjmp  {:s}.start\v; call user code".format(self.module.main().label))
+            self.p("\vjmp  {:s}.start".format(self.module.main().label))
         self.p("")
-        for varname, (vname, bytes, fpvalue) in zp_float_bytes.items():
-            self.p("_float_bytes_{:s}\v.byte  ${:02x}, ${:02x}, ${:02x}, ${:02x}, ${:02x}\t; {}".format(varname, *bytes, fpvalue))
-        self.p("\n")
 
     def blocks(self) -> None:
         zpblock = self.module.zeropage()
         if zpblock:
             # if there's a Zeropage block, it always goes first
             self.cur_block = zpblock    # type: ignore
-            self.p("\n; ---- zero page block: '{:s}' ----\t\t; src l. {:d}\n".format(zpblock.sourceref.file, zpblock.sourceref.line))
+            self.p("\n; ---- zero page block: '{:s}' ----".format(zpblock.name))
+            self.p("; file: '{:s}' src l. {:d}\n".format(zpblock.sourceref.file, zpblock.sourceref.line))
             self.p("{:s}\t.proc\n".format(zpblock.label))
+            self.generate_block_init(zpblock)
             self.generate_block_vars(zpblock)
             self.p("\v.pend\n")
         for block in sorted(self.module.scope.filter_nodes(Block), key=lambda b: b.address or 0):
             if block.name == "ZP":
                 continue    # already processed
             self.cur_block = block
-            self.p("\n; ---- next block: '{:s}' ----\t\t; src l. {:d}\n".format(block.sourceref.file, block.sourceref.line))
+            self.p("\n; ---- block: '{:s}' ----".format(block.name))
+            self.p("; file: '{:s}' src l. {:d}\n".format(block.sourceref.file, block.sourceref.line))
             if block.address:
                 self.p(".cerror * > ${0:04x}, 'block address overlaps by ', *-${0:04x},' bytes'".format(block.address))
                 self.p("* = ${:04x}".format(block.address))
             self.p("{:s}\t.proc\n".format(block.label))
+            self.generate_block_init(block)
             self.generate_block_vars(block)
             subroutines = list(sub for sub in block.scope.filter_nodes(Subroutine) if sub.address is not None)
             if subroutines:
@@ -185,14 +149,12 @@ class AssemblyGenerator:
                     self.p("\v{:s} = {:s}".format(subdef.name, to_hex(subdef.address)))
                 self.p("; end external subroutines\n")
             for stmt in block.scope.nodes:
-                if isinstance(stmt, Directive):
+                if isinstance(stmt, (VarDef, Directive)):
                     continue   # should have been handled already
                 self.generate_statement(stmt)
                 if block.name == "main" and isinstance(stmt, Label) and stmt.name == "start":
                     # make sure the main.start routine clears the decimal and carry flags as first steps
-                    self.p("\vcld\t\t\t; clear decimal flag")
-                    self.p("\vclc\t\t\t; clear carry flag")
-                    self.p("\vclv\t\t\t; clear overflow flag")
+                    self.p("\vcld\n\vclc\n\vclv")
             subroutines = list(sub for sub in block.scope.filter_nodes(Subroutine) if sub.address is None)
             if subroutines:
                 # these are subroutines that are defined by a scope/code
@@ -208,7 +170,7 @@ class AssemblyGenerator:
                     cur_block = self.cur_block
                     self.cur_block = subdef.scope
                     for stmt in subdef.scope.nodes:
-                        if isinstance(stmt, Directive):
+                        if isinstance(stmt, (VarDef, Directive)):
                             continue  # should have been handled already
                         self.generate_statement(stmt)
                     self.cur_block = cur_block
@@ -249,99 +211,172 @@ class AssemblyGenerator:
                         result += '", {:d}, "'.format(ord(char))
         return result + '"'
 
-    def generate_block_vars(self, block: Block) -> None:
-        # @todo block vars should be re-initialized when the program is run again, and not depend on statically prefilled data!
-        vars_by_vartype = itertools.groupby(block.scope.filter_nodes(VarDef), lambda c: c.vartype)
-        variable_definitions = sorted(vars_by_vartype, key=lambda gt: gt[0])  # type: List[Tuple[VarType, Iterator[VarDef]]]
-        for vartype, varnodes in variable_definitions:
-            if vartype == VarType.CONST:
-                self.p("; constants")
-                for vardef in varnodes:
-                    if vardef.datatype == DataType.FLOAT:
-                        self.p("\t\t{:s} = {}".format(vardef.name, vardef.value))
-                    elif vardef.datatype in (DataType.BYTE, DataType.WORD):
-                        self.p("\t\t{:s} = {:s}".format(vardef.name, to_hex(vardef.value)))
-                    elif vardef.datatype in STRING_DATATYPES:
-                        # a const string is just a string variable in the generated assembly
-                        self._generate_string_var(vardef)
-                    else:
-                        raise CodeError("invalid const type", vardef)
-            elif vartype == VarType.MEMORY:
-                self.p("; memory mapped variables")
-                for vardef in varnodes:
-                    # create a definition for variables at a specific place in memory (memory-mapped)
-                    if vardef.datatype in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
-                        assert vardef.size == [1]
-                        self.p("\t\t{:s} = {:s}\t; {:s}".format(vardef.name, to_hex(vardef.value), vardef.datatype.name.lower()))
-                    elif vardef.datatype == DataType.BYTEARRAY:
-                        assert len(vardef.size) == 1
-                        self.p("\t\t{:s} = {:s}\t; array of {:d} bytes".format(vardef.name, to_hex(vardef.value), vardef.size[0]))
-                    elif vardef.datatype == DataType.WORDARRAY:
-                        assert len(vardef.size) == 1
-                        self.p("\t\t{:s} = {:s}\t; array of {:d} words".format(vardef.name, to_hex(vardef.value), vardef.size[0]))
-                    elif vardef.datatype == DataType.MATRIX:
-                        assert len(vardef.size) == 2
-                        self.p("\t\t{:s} = {:s}\t; matrix {:d} by {:d} = {:d} bytes"
-                               .format(vardef.name, to_hex(vardef.value), vardef.size[0], vardef.size[1], vardef.size[0]*vardef.size[1]))
-                    else:
-                        raise CodeError("invalid var type")
-            elif vartype == VarType.VAR:
-                self.p("; normal variables")
-                for vardef in varnodes:
-                    # create a definition for a variable that takes up space and will be initialized at startup
-                    if vardef.datatype in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
-                        assert vardef.size == [1]
-                        if vardef.datatype == DataType.BYTE:
-                            self.p("{:s}\t\t.byte  {:s}".format(vardef.name, to_hex(int(vardef.value or 0))))
-                        elif vardef.datatype == DataType.WORD:
-                            self.p("{:s}\t\t.word  {:s}".format(vardef.name, to_hex(int(vardef.value or 0))))
-                        elif vardef.datatype == DataType.FLOAT:
-                            self.p("{:s}\t\t.byte  ${:02x}, ${:02x}, ${:02x}, ${:02x}, ${:02x}{:s}"
-                                   .format(vardef.name, *to_mflpt5(float(vardef.value or 0.0))))
-                        else:
-                            raise CodeError("weird datatype")
-                    elif vardef.datatype in (DataType.BYTEARRAY, DataType.WORDARRAY):
-                        assert len(vardef.size) == 1
-                        if vardef.datatype == DataType.BYTEARRAY:
-                            self.p("{:s}\t\t.fill  {:d}, ${:02x}".format(vardef.name, vardef.size[0], vardef.value or 0))
-                        elif vardef.datatype == DataType.WORDARRAY:
-                            f_hi, f_lo = divmod(vardef.value or 0, 256)  # type: ignore
-                            self.p("{:s}\t\t.fill  {:d}, [${:02x}, ${:02x}]\t; {:d} words of ${:04x}"
-                                   .format(vardef.name, vardef.size[0] * 2, f_lo, f_hi, vardef.size[0], vardef.value or 0))
-                        else:
-                            raise CodeError("invalid datatype", vardef.datatype)
-                    elif vardef.datatype == DataType.MATRIX:
-                        assert len(vardef.size) == 2
-                        self.p("{:s}\t\t.fill  {:d}, ${:02x}\t\t; matrix {:d}*{:d} bytes"
-                               .format(vardef.name, vardef.size[0] * vardef.size[1], vardef.value or 0, vardef.size[0], vardef.size[1]))
-                    elif vardef.datatype in STRING_DATATYPES:
-                        self._generate_string_var(vardef)
-                    else:
-                        raise CodeError("unknown variable type " + str(vardef.datatype))
+    def generate_block_init(self, block: Block) -> None:
+        # generate the block initializer
+        # @todo add a block initializer subroutine that can contain custom reset/init code? (static initializers)
+        self.p("_il65_init_block\v; (re)set vars to initial values")
+        # @todo optimize init order (sort on value first to avoid needless register loads, etc)
+        self.p("\vlda  #0\n\vldx  #0")
+        float_inits = {}
+        string_inits = []
+        prev_value = 0
+        for variable in [vd for vd in block.scope.filter_nodes(VarDef) if vd.vartype == VarType.VAR]:
+            vname = variable.name
+            vvalue = variable.value
+            if variable.datatype == DataType.BYTE:
+                if vvalue != prev_value:
+                    self.p("\vlda  #${:02x}".format(vvalue))
+                    prev_value = vvalue
+                self.p("\vsta  {:s}".format(vname))
+            elif variable.datatype == DataType.WORD:
+                if vvalue != prev_value:
+                    self.p("\vlda  #<${:04x}".format(vvalue))
+                    self.p("\vldx  #>${:04x}".format(vvalue))
+                    prev_value = vvalue
+                self.p("\vsta  {:s}".format(vname))
+                self.p("\vstx  {:s}+1".format(vname))
+            elif variable.datatype == DataType.FLOAT:
+                fpbytes = to_mflpt5(vvalue)  # type: ignore
+                float_inits[variable.name] = (vname, fpbytes, vvalue)
+            elif variable.datatype in STRING_DATATYPES:
+                string_inits.append(variable)
+            else:
+                raise CodeError("weird var datatype", variable.datatype)
+        if float_inits:
+            self.p("\vldx  #4")
+            self.p("-")
+            for varname, (vname, b, fv) in sorted(float_inits.items()):
+                self.p("\vlda  _init_float_{:s},x".format(varname))
+                self.p("\vsta  {:s},x".format(vname))
+            self.p("\vdex")
+            self.p("\vbpl  -")
+        if string_inits:
+            pass    # @todo init string block (1 memcopy)
+        self.p("\vrts\n")
+        for varname, (vname, fpbytes, fpvalue) in sorted(float_inits.items()):
+            self.p("_init_float_{:s}\t\t.byte  ${:02x}, ${:02x}, ${:02x}, ${:02x}, ${:02x}\t; {}".format(varname, *fpbytes, fpvalue))
+        if string_inits:
+            self.p("_init_strings_start")
+            for svar in sorted(string_inits, key=lambda v: v.name):
+                self._generate_string_var(svar, init=True)
+            self.p("_init_strings_size = * - _init_strings_start")
+        self.p("")
 
-    def _generate_string_var(self, vardef: VarDef) -> None:
+    def generate_block_vars(self, block: Block) -> None:
+        # Generate the block variable storage.
+        # The memory bytes of the allocated variables is set to zero (so it compresses very well),
+        # their actual starting values are set by the block init code.
+        vars_by_vartype = defaultdict(list)  # type: Dict[VarType, List[VarDef]]
+        for vardef in block.scope.filter_nodes(VarDef):
+            vars_by_vartype[vardef.vartype].append(vardef)
+        self.p("; constants")
+        for vardef in vars_by_vartype.get(VarType.CONST, []):
+            if vardef.datatype == DataType.FLOAT:
+                self.p("\v{:s} = {}".format(vardef.name, vardef.value))
+            elif vardef.datatype in (DataType.BYTE, DataType.WORD):
+                self.p("\v{:s} = {:s}".format(vardef.name, to_hex(vardef.value)))
+            elif vardef.datatype in STRING_DATATYPES:
+                # a const string is just a string variable in the generated assembly
+                self._generate_string_var(vardef)
+            else:
+                raise CodeError("invalid const type", vardef)
+        self.p("; memory mapped variables")
+        for vardef in vars_by_vartype.get(VarType.MEMORY, []):
+            # create a definition for variables at a specific place in memory (memory-mapped)
+            if vardef.datatype in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
+                assert vardef.size == [1]
+                self.p("\v{:s} = {:s}\t; {:s}".format(vardef.name, to_hex(vardef.value), vardef.datatype.name.lower()))
+            elif vardef.datatype == DataType.BYTEARRAY:
+                assert len(vardef.size) == 1
+                self.p("\v{:s} = {:s}\t; array of {:d} bytes".format(vardef.name, to_hex(vardef.value), vardef.size[0]))
+            elif vardef.datatype == DataType.WORDARRAY:
+                assert len(vardef.size) == 1
+                self.p("\v{:s} = {:s}\t; array of {:d} words".format(vardef.name, to_hex(vardef.value), vardef.size[0]))
+            elif vardef.datatype == DataType.MATRIX:
+                assert len(vardef.size) == 2
+                self.p("\v{:s} = {:s}\t; matrix of {:d} by {:d} = {:d} bytes"
+                       .format(vardef.name, to_hex(vardef.value), vardef.size[0], vardef.size[1], vardef.size[0]*vardef.size[1]))
+            else:
+                raise CodeError("invalid var type")
+        self.p("; normal variables - initial values will be set by init code")
+        string_vars = []
+        for vardef in vars_by_vartype.get(VarType.VAR, []):
+            # create a definition for a variable that takes up empty space and will be initialized at startup
+            if vardef.datatype in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
+                assert vardef.size == [1]
+                if vardef.datatype == DataType.BYTE:
+                    self.p("{:s}\v.byte  ?".format(vardef.name))
+                elif vardef.datatype == DataType.WORD:
+                    self.p("{:s}\v.word  ?".format(vardef.name))
+                elif vardef.datatype == DataType.FLOAT:
+                    self.p("{:s}\v.fill  5\t\t; float".format(vardef.name))
+                else:
+                    raise CodeError("weird datatype")
+            elif vardef.datatype in (DataType.BYTEARRAY, DataType.WORDARRAY):
+                assert len(vardef.size) == 1
+                if vardef.datatype == DataType.BYTEARRAY:
+                    self.p("{:s}\v.fill  {:d}\t\t; bytearray".format(vardef.name, vardef.size[0]))
+                elif vardef.datatype == DataType.WORDARRAY:
+                    self.p("{:s}\v.fill  {:d}*2\t\t; wordarray".format(vardef.name, vardef.size[0]))
+                else:
+                    raise CodeError("invalid datatype", vardef.datatype)
+            elif vardef.datatype == DataType.MATRIX:
+                assert len(vardef.size) == 2
+                self.p("{:s}\v.fill  {:d}\t\t; matrix {:d}*{:d} bytes"
+                       .format(vardef.name, vardef.size[0] * vardef.size[1], vardef.size[0], vardef.size[1]))
+            elif vardef.datatype in STRING_DATATYPES:
+                string_vars.append(vardef)
+            else:
+                raise CodeError("unknown variable type " + str(vardef.datatype))
+        if string_vars:
+            self.p("il65_string_vars_start")
+            for sv in sorted(string_vars):      # must be the same order as in the init routine!!!
+                self.p("{:s}\v.fill  {:d}+1\t\t; {}".format(sv.name, len(sv.value), sv.datatype.name.lower()))
+        self.p("")
+
+    def _generate_string_var(self, vardef: VarDef, init: bool=False) -> None:
+        prefix = "_init_str_" if init else ""
         if vardef.datatype == DataType.STRING:
             # 0-terminated string
-            self.p("{:s}\n\v.null  {:s}".format(vardef.name, self.output_string(str(vardef.value))))
+            self.p("{:s}{:s}\n\v.null  {:s}".format(prefix, vardef.name, self.output_string(str(vardef.value))))
         elif vardef.datatype == DataType.STRING_P:
             # pascal string
-            self.p("{:s}\n\v.ptext  {:s}".format(vardef.name, self.output_string(str(vardef.value))))
+            self.p("{:s}{:s}\n\v.ptext  {:s}".format(prefix, vardef.name, self.output_string(str(vardef.value))))
         elif vardef.datatype == DataType.STRING_S:
             # 0-terminated string in screencode encoding
             self.p(".enc  'screen'")
-            self.p("{:s}\n\v.null  {:s}".format(vardef.name, self.output_string(str(vardef.value), True)))
+            self.p("{:s}{:s}\n\v.null  {:s}".format(prefix, vardef.name, self.output_string(str(vardef.value), True)))
             self.p(".enc  'none'")
         elif vardef.datatype == DataType.STRING_PS:
             # 0-terminated pascal string in screencode encoding
             self.p(".enc  'screen'")
-            self.p("{:s}\n\v.ptext  {:s}".format(vardef.name, self.output_string(str(vardef.value), True)))
+            self.p("{:s}{:s}n\v.ptext  {:s}".format(prefix, vardef.name, self.output_string(str(vardef.value), True)))
             self.p(".enc  'none'")
 
     def generate_statement(self, stmt: AstNode) -> None:
         if isinstance(stmt, Label):
             self.p("\n{:s}\v\t\t; {:s}".format(stmt.name, stmt.lineref))
-        self.p("\vrts")
-        # @todo rest of the statement nodes
+        elif isinstance(stmt, Return):
+            if stmt.value_A:
+                self.generate_assignment(Register(name="A", sourceref=stmt.sourceref), '=', stmt.value_A)   # type: ignore
+            if stmt.value_X:
+                self.generate_assignment(Register(name="X", sourceref=stmt.sourceref), '=', stmt.value_X)   # type: ignore
+            if stmt.value_Y:
+                self.generate_assignment(Register(name="Y", sourceref=stmt.sourceref), '=', stmt.value_Y)   # type: ignore
+            self.p("\vrts")
+        elif isinstance(stmt, InlineAssembly):
+            self.p("\n\v; inline asm, " + stmt.lineref)
+            self.p(stmt.assembly)
+            self.p("\v; end inline asm, " + stmt.lineref + "\n")
+        else:
+            self.p("\vrts; " + str(stmt))   # @todo rest of the statement nodes
+
+    def generate_assignment(self, lvalue: AstNode, operator: str, rvalue: Any) -> None:
+        assert rvalue is not None
+        if isinstance(rvalue, LiteralValue):
+            rvalue = rvalue.value
+        print("ASSIGN", lvalue, lvalue.datatype, operator, rvalue)
+        # @todo
 
 
 class Assembler64Tass:
