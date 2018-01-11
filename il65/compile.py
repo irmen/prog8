@@ -13,7 +13,7 @@ from typing import Optional, Tuple, Set, Dict, Any, no_type_check
 import attr
 from .plyparse import parse_file, ParseError, Module, Directive, Block, Subroutine, Scope, VarDef, LiteralValue, \
     SubCall, Goto, Return, Assignment, InlineAssembly, Register, Expression, ProgramFormat, ZpOptions,\
-    SymbolName, process_constant_expression, process_dynamic_expression
+    SymbolName, Dereference, AddressOf
 from .plylex import SourceRef, print_bold
 from .optimize import optimize
 
@@ -74,7 +74,12 @@ class PlyParser:
         # process/simplify all expressions (constant folding etc)
         for block, parent in module.all_scopes():
             for node in block.nodes:
-                node.process_expressions(block.scope)
+                try:
+                    node.process_expressions(block.scope)
+                except ParseError:
+                    raise
+                except Exception as x:
+                    self.handle_internal_error(x, "process_expressions of node {} in block {}".format(node, block.name))
 
     @no_type_check
     def create_multiassigns(self, module: Module) -> None:
@@ -212,6 +217,10 @@ class PlyParser:
             self._get_subroutine_usages_from_expression(usages, expr.right, parent_scope)
         elif isinstance(expr, LiteralValue):
             return
+        elif isinstance(expr, Dereference):
+            return self._get_subroutine_usages_from_expression(usages, expr.location, parent_scope)
+        elif isinstance(expr, AddressOf):
+            return self._get_subroutine_usages_from_expression(usages, expr.name, parent_scope)
         elif isinstance(expr, SymbolName):
             try:
                 symbol = parent_scope[expr.name]
@@ -356,6 +365,16 @@ class PlyParser:
                 print(' ' * (1+exc.sourceref.column) + '^', file=sys.stderr)
         if sys.stderr.isatty():
             print("\x1b[0m", file=sys.stderr, end="", flush=True)
+
+    def handle_internal_error(self, exc: Exception, msg: str="") -> None:
+        if sys.stderr.isatty():
+            print("\x1b[1m", file=sys.stderr)
+        print("\nERROR: internal parser error: ", exc, file=sys.stderr)
+        if msg:
+            print("    Message:", msg, end="\n\n")
+        if sys.stderr.isatty():
+            print("\x1b[0m", file=sys.stderr, end="", flush=True)
+        raise exc
 
 
 if __name__ == "__main__":

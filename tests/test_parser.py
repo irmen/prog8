@@ -1,5 +1,6 @@
 from il65.plylex import lexer, tokens, find_tok_column, literals, reserved, SourceRef
-from il65.plyparse import parser, TokenFilter, Module, Subroutine, Block, Return, Scope, VarDef, Expression, LiteralValue, Label
+from il65.plyparse import parser, TokenFilter, Module, Subroutine, Block, Return, Scope, \
+    VarDef, Expression, LiteralValue, Label, SubCall, CallTarget, SymbolName
 
 
 def test_lexer_definitions():
@@ -13,7 +14,7 @@ def test_lexer_definitions():
     assert "if_cc" in reserved
 
 
-test_source = """ %output prg, sys
+test_source_1 = """ %output prg, sys
 
 ; c1
 
@@ -40,8 +41,9 @@ test_source = """ %output prg, sys
 }
 """
 
+
 def test_lexer():
-    lexer.input(test_source)
+    lexer.input(test_source_1)
     lexer.lineno = 1
     tokens = list(iter(lexer))
     token_types = list(t.type for t in tokens)
@@ -64,8 +66,22 @@ def test_lexer():
     assert bool_token.value == True
 
 
+def test_lexer_strings():
+    lexer.input(r"'hello\tbye\n\n' '\n'")
+    lexer.lineno = 1
+    tokens = list(iter(lexer))
+    assert len(tokens) == 2
+    st = tokens[0]
+    assert st.type == "STRING"
+    assert st.value == "hello\tbye\n\n"
+    lexer.input(r"'hello\tbye\n\n'")
+    st = tokens[1]
+    assert st.type == "CHARACTER"
+    assert st.value == '\n'
+
+
 def test_tokenfilter():
-    lexer.input(test_source)
+    lexer.input(test_source_1)
     lexer.lineno = 1
     filter = TokenFilter(lexer)
     tokens = []
@@ -88,7 +104,7 @@ def test_parser():
     lexer.lineno = 1
     lexer.source_filename = "sourcefile"
     filter = TokenFilter(lexer)
-    result = parser.parse(input=test_source, tokenfunc=filter.token)
+    result = parser.parse(input=test_source_1, tokenfunc=filter.token)
     assert isinstance(result, Module)
     assert result.name == "sourcefile"
     assert result.scope.name == "<sourcefile global scope>"
@@ -135,3 +151,32 @@ def test_block_nodes():
     assert sub2.scope is not None
     assert len(sub2.scope.nodes) > 0
     assert sub2.nodes is sub2.scope.nodes
+
+
+test_source_2 = """
+~ {
+    999(1,2)
+    &zz()
+}
+"""
+
+
+def test_parser_2():
+    lexer.lineno = 1
+    lexer.source_filename = "sourcefile"
+    filter = TokenFilter(lexer)
+    result = parser.parse(input=test_source_2, tokenfunc=filter.token)
+    block = result.nodes[0]
+    call = block.nodes[0]
+    assert isinstance(call, SubCall)
+    assert len(call.arguments) == 2
+    assert isinstance(call.target, CallTarget)
+    assert call.target.target == 999
+    assert call.target.address_of is False
+    call = block.nodes[1]
+    assert isinstance(call, SubCall)
+    assert len(call.arguments) == 0
+    assert isinstance(call.target, CallTarget)
+    assert isinstance(call.target.target, SymbolName)
+    assert call.target.target.name == "zz"
+    assert call.target.address_of is True

@@ -5,6 +5,7 @@ This is the lexer of the IL65 code, that generates a stream of tokens for the pa
 Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
+import ast
 import sys
 import ply.lex
 import attr
@@ -258,7 +259,7 @@ def t_STRING(t):
     (?<!\\)    # not preceded by a backslash
     '          # a literal double-quote
     """
-    t.value = t.value[1:-1]
+    t.value = ast.literal_eval(t.value)
     if len(t.value) == 1:
         t.type = "CHARACTER"
     if len(t.value) == 2 and t.value[0] == '\\':

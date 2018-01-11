@@ -213,7 +213,7 @@ class AssemblyGenerator:
 
     def generate_block_init(self, block: Block) -> None:
         # generate the block initializer
-        # @todo add a block initializer subroutine that can contain custom reset/init code? (static initializers)
+        # @todo add a block initializer subroutine that can contain custom reset/init code? (static initializer)
         self.p("_il65_init_block\v; (re)set vars to initial values")
         # @todo optimize init order (sort on value first to avoid needless register loads, etc)
         self.p("\vlda  #0\n\vldx  #0")
@@ -240,6 +240,12 @@ class AssemblyGenerator:
                 float_inits[variable.name] = (vname, fpbytes, vvalue)
             elif variable.datatype in STRING_DATATYPES:
                 string_inits.append(variable)
+            elif variable.datatype == DataType.BYTEARRAY:
+                pass   # @todo init bytearray
+            elif variable.datatype == DataType.WORDARRAY:
+                pass  # @todo init wordarray
+            elif variable.datatype == DataType.MATRIX:
+                pass  # @todo init matrix
             else:
                 raise CodeError("weird var datatype", variable.datatype)
         if float_inits:
@@ -330,8 +336,8 @@ class AssemblyGenerator:
                 raise CodeError("unknown variable type " + str(vardef.datatype))
         if string_vars:
             self.p("il65_string_vars_start")
-            for sv in sorted(string_vars):      # must be the same order as in the init routine!!!
-                self.p("{:s}\v.fill  {:d}+1\t\t; {}".format(sv.name, len(sv.value), sv.datatype.name.lower()))
+            for svar in sorted(string_vars, key=lambda v: v.name):      # must be the same order as in the init routine!!!
+                self.p("{:s}\v.fill  {:d}+1\t\t; {}".format(svar.name, len(svar.value), svar.datatype.name.lower()))
         self.p("")
 
     def _generate_string_var(self, vardef: VarDef, init: bool=False) -> None:
@@ -375,8 +381,7 @@ class AssemblyGenerator:
         assert rvalue is not None
         if isinstance(rvalue, LiteralValue):
             rvalue = rvalue.value
-        print("ASSIGN", lvalue, lvalue.datatype, operator, rvalue)
-        # @todo
+        print("ASSIGN", lvalue, lvalue.datatype, operator, rvalue)    # @todo
 
 
 class Assembler64Tass:

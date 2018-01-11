@@ -1,6 +1,6 @@
 ; var definitions and immediate primitive data type tests
 
-%output prg, basic
+%output basic
 %zp clobber
 
 %import c64lib

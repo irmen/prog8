@@ -624,31 +624,40 @@ def process_constant_expression(expr: Any, sourceref: SourceRef, symbolscope: Sc
             if isinstance(value, VarDef):
                 if value.vartype == VarType.MEMORY:
                     return value.value
-                raise ParseError("can't take the address of this {}".format(value.__class__.__name__), expr.name.sourceref)
+                raise ExpressionEvaluationError("taking the address of this {} isn't a constant".format(value.__class__.__name__), expr.name.sourceref)
             else:
                 raise ExpressionEvaluationError("constant address required, not {}".format(value.__class__.__name__), expr.name.sourceref)
         except LookupError as x:
             raise ParseError(str(x), expr.sourceref) from None
     elif isinstance(expr, SubCall):
         if isinstance(expr.target, CallTarget):
-            funcname = expr.target.target.name
-            if funcname in math_functions or funcname in builtin_functions:
-                if isinstance(expr.target.target, SymbolName):
-                    func_args = []
-                    for a in (process_constant_expression(callarg.value, sourceref, symbolscope) for callarg in expr.arguments):
-                        if isinstance(a, LiteralValue):
-                            func_args.append(a.value)
-                        else:
-                            func_args.append(a)
-                    func = math_functions.get(funcname, builtin_functions.get(funcname))
-                    try:
-                        return func(*func_args)
-                    except Exception as x:
-                        raise ExpressionEvaluationError(str(x), expr.sourceref)
+            print("CALLTARGET", expr.target.address_of, expr.target.target) # XXX
+            target = expr.target.target
+            if isinstance(target, SymbolName):      # 'function(1,2,3)'
+                funcname = target.name
+                if funcname in math_functions or funcname in builtin_functions:
+                    if isinstance(expr.target.target, SymbolName):
+                        func_args = []
+                        for a in (process_constant_expression(callarg.value, sourceref, symbolscope) for callarg in expr.arguments):
+                            if isinstance(a, LiteralValue):
+                                func_args.append(a.value)
+                            else:
+                                func_args.append(a)
+                        func = math_functions.get(funcname, builtin_functions.get(funcname))
+                        try:
+                            return func(*func_args)
+                        except Exception as x:
+                            raise ExpressionEvaluationError(str(x), expr.sourceref)
+                    else:
+                        raise ParseError("symbol name required, not {}".format(expr.target.__class__.__name__), expr.sourceref)
                 else:
-                    raise ParseError("symbol name required, not {}".format(expr.target.__class__.__name__), expr.sourceref)
+                    raise ExpressionEvaluationError("can only use math- or builtin function", expr.sourceref)
+            elif isinstance(target, Dereference):       # '[...](1,2,3)'
+                return None  #  XXX
+            elif isinstance(target, int):    # '64738()'
+                return None  #  XXX
             else:
-                raise ExpressionEvaluationError("can only use math- or builtin function", expr.sourceref)
+                raise NotImplementedError("weird call target", target)  # XXX
         else:
             raise ParseError("function name required, not {}".format(expr.target.__class__.__name__), expr.sourceref)
     elif not isinstance(expr, Expression):
@@ -706,6 +715,8 @@ def process_dynamic_expression(expr: Any, sourceref: SourceRef, symbolscope: Sco
         except ExpressionEvaluationError:
             return expr
     elif isinstance(expr, Register):
+        return expr
+    elif isinstance(expr, Dereference):
         return expr
     elif not isinstance(expr, Expression):
         raise ParseError("expression required, not {}".format(expr.__class__.__name__), expr.sourceref)

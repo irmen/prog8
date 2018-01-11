@@ -50,6 +50,10 @@ bar:    goto $c000
 	; goto [AX()]     % ; @todo error, must be return()
 	goto [var1]
 	goto   [mem1]                 ; comment
+	goto $c000
+	goto 64738
+	64738(1,2)         ;  @todo jsr $64738 ??
+	return 9999()         ;  @todo jsr 9999 ??
 	return [AX]()
 	return  [var1]   ()       ; comment
 	return [mem1] ()

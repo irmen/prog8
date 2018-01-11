@@ -107,7 +107,7 @@ class Optimizer:
             if block.scope:
                 for stmt in block.scope.filter_nodes(Goto):
                     if isinstance(stmt.condition, Expression):
-                        raise NotImplementedError("optimize goto conditionals", stmt.condition)   # @todo
+                        print("NOT IMPLEMENTED YET: optimize goto conditionals", stmt.condition)   # @todo
                         # if cond and isinstance(cond.rvalue, (int, float)) and cond.rvalue.value == 0:
                         #     simplified = False
                         #     if cond.ifstatus in ("true", "ne"):

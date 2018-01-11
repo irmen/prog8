@@ -1,5 +1,5 @@
 
-%output prg,basic  ; create a c-64 program with basic SYS call to launch it
+%output basic  ; create a c-64 program with basic SYS call to launch it
 
 
 %import c64lib               ; searched in several locations and with .ill file extension added

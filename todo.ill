@@ -1,29 +1,36 @@
 %output basic
 
 ~ ZP {
-	var     zp1_1
-	var     zp1_2
-	var     zp1_3
-	var     zp1_4
-	const   zpc1_1
-	const   zpc1_2
+	var     zp1_1   = 200
+	var     zp1_2   = 200
+	var .word     zp1_3  = $ff99
+	var .word    zp1_4 = $ee88
+	const   zpc1_1  = 55
+	const .word   zpc1_2  = 2333.54566
+	const .float   zpc1_3  = 6.54566
 }
 
 ~ ZP {
-	var     zp2_1
-	var     zp2_2
-	var     zp2_3
-	var     zp2_4
-	const   zpc2_1
-	const   zpc2_2
+	var     zp2_1   = 100
+	var     zp2_2   = 100
+	var .word    zp2_3  = $55aa
+	var .word    zp2_4  = $66bb
+	const .text  zpc2_1  = "hello"
+	const   zpc2_2  = 0
 }
 
 
-~ main  {
+~ main {
 
+	var .text  hello_str = "hello there"
+	var .float float1 = 3.14
+	var .float float2 = 3.14
+	var .float float3 = 3.14
+	var .float float4 = 3.14
+	var .float float5 = 3.14
 
 start:
 
-	return
+	return 1.22, 46
 }
 
