@@ -53,6 +53,8 @@ start = "start"
 @attr.s(cmp=False, slots=True, frozen=False)
 class AstNode:
     sourceref = attr.ib(type=SourceRef)
+    # when evaluating an expression, does it have to be a constant value?:
+    processed_expr_must_be_constant = attr.ib(type=bool, init=False, default=False)
 
     @property
     def lineref(self) -> str:
@@ -410,8 +412,8 @@ class VarDef(AstNode):
             raise ParseError("constant value assignment is missing",
                              attr.evolve(self.sourceref, column=self.sourceref.column+len(self.name)))
         # if the value is an expression, mark it as a *constant* expression here
-        if isinstance(self.value, Expression):
-            self.value.processed_must_be_constant = True
+        if isinstance(self.value, AstNode):
+            self.value.processed_expr_must_be_constant = True
         elif self.value is None and self.datatype in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
             self.value = 0
         # note: value coercion is done later, when all expressions are evaluated
@@ -423,7 +425,7 @@ class VarDef(AstNode):
             try:
                 _, self.value = coerce_value(self.datatype, self.value, self.sourceref)
             except (TypeError, OverflowError) as x:
-                raise ParseError(str(x), self.sourceref) from None
+                raise ParseError("processed expression vor vardef is not a constant value: " + str(x), self.sourceref) from None
 
 
 @attr.s(cmp=False, slots=True, repr=False)
@@ -548,7 +550,6 @@ class Expression(AstNode):
     operator = attr.ib(type=str)
     right = attr.ib()
     unary = attr.ib(type=bool, default=False)
-    processed_must_be_constant = attr.ib(type=bool, init=False, default=False)     # does the expression have to be a constant value?
 
     def __attrs_post_init__(self):
         assert self.operator not in ("++", "--"), "incr/decr should not be an expression"
@@ -586,8 +587,8 @@ class Expression(AstNode):
 
 def process_expression(value: Any, scope: Scope, sourceref: SourceRef) -> Any:
     # process/simplify all expressions (constant folding etc)
-    if isinstance(value, Expression):
-        must_be_constant = value.processed_must_be_constant
+    if isinstance(value, AstNode):
+        must_be_constant = value.processed_expr_must_be_constant
     else:
         must_be_constant = False
     if must_be_constant:
@@ -631,7 +632,6 @@ def process_constant_expression(expr: Any, sourceref: SourceRef, symbolscope: Sc
             raise ParseError(str(x), expr.sourceref) from None
     elif isinstance(expr, SubCall):
         if isinstance(expr.target, CallTarget):
-            print("CALLTARGET", expr.target.address_of, expr.target.target) # XXX
             target = expr.target.target
             if isinstance(target, SymbolName):      # 'function(1,2,3)'
                 funcname = target.name

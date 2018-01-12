@@ -127,6 +127,7 @@ class AssemblyGenerator:
             self.p("{:s}\t.proc\n".format(zpblock.label))
             self.generate_block_init(zpblock)
             self.generate_block_vars(zpblock)
+            # there's no code in the zero page block.
             self.p("\v.pend\n")
         for block in sorted(self.module.scope.filter_nodes(Block), key=lambda b: b.address or 0):
             if block.name == "ZP":
@@ -149,8 +150,8 @@ class AssemblyGenerator:
                     self.p("\v{:s} = {:s}".format(subdef.name, to_hex(subdef.address)))
                 self.p("; end external subroutines\n")
             for stmt in block.scope.nodes:
-                if isinstance(stmt, (VarDef, Directive)):
-                    continue   # should have been handled already
+                if isinstance(stmt, (VarDef, Directive, Subroutine)):
+                    continue   # should have been handled already or will be later
                 self.generate_statement(stmt)
                 if block.name == "main" and isinstance(stmt, Label) and stmt.name == "start":
                     # make sure the main.start routine clears the decimal and carry flags as first steps
@@ -215,12 +216,13 @@ class AssemblyGenerator:
         # generate the block initializer
         # @todo add a block initializer subroutine that can contain custom reset/init code? (static initializer)
         self.p("_il65_init_block\v; (re)set vars to initial values")
-        # @todo optimize init order (sort on value first to avoid needless register loads, etc)
         self.p("\vlda  #0\n\vldx  #0")
         float_inits = {}
         string_inits = []
         prev_value = 0
-        for variable in [vd for vd in block.scope.filter_nodes(VarDef) if vd.vartype == VarType.VAR]:
+        vardefs = [vd for vd in block.scope.filter_nodes(VarDef) if vd.vartype == VarType.VAR]
+        # @todo optimize init order (sort on value first to avoid needless register loads, etc)
+        for variable in vardefs:
             vname = variable.name
             vvalue = variable.value
             if variable.datatype == DataType.BYTE:

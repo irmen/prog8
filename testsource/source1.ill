@@ -8,7 +8,7 @@
 %zp   restore ,  clobber   ; clobber over the zp memory normally used by basic/kernel rom, frees up more zp
 
 
-~ main $0a00
+~ main
 {
         ; this is the main block with the start routine.
 
@@ -178,7 +178,7 @@ somelabel1:
 }
 
 
-~  fidget $1000
+~  fidget $0c00
 {
 
 subroutine:

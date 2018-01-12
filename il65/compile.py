@@ -31,12 +31,12 @@ class PlyParser:
             self.check_directives(module)
             self.process_imports(module)
             self.create_multiassigns(module)
+            self.check_and_merge_zeropages(module)
             self.process_all_expressions(module)
             if not self.parsing_import:
                 # these shall only be done on the main module after all imports have been done:
                 self.apply_directive_options(module)
                 self.determine_subroutine_usage(module)
-                self.check_and_merge_zeropages(module)
         except ParseError as x:
             self.handle_parse_error(x)
         if self.parse_errors:
@@ -60,6 +60,7 @@ class PlyParser:
                             zeropage.scope.add_node(node, 0)
                         elif isinstance(node, VarDef):
                             zeropage.scope.add_node(node)
+                            print("ADDED ZP VAR", node)  # XXX
                         else:
                             raise ParseError("only variables and directives allowed in zeropage block", node.sourceref)
                 else:
@@ -72,7 +73,11 @@ class PlyParser:
     @no_type_check
     def process_all_expressions(self, module: Module) -> None:
         # process/simplify all expressions (constant folding etc)
+        encountered_blocks = set()
         for block, parent in module.all_scopes():
+            if block.name in encountered_blocks:
+                raise ValueError("block names not unique:", block.name)
+            encountered_blocks.add(block.name)
             for node in block.nodes:
                 try:
                     node.process_expressions(block.scope)
@@ -266,7 +271,7 @@ class PlyParser:
             if len(splits) == 2:
                 for match in re.finditer(r"(?P<symbol>[a-zA-Z_$][a-zA-Z0-9_\.]+)", splits[1]):
                     name = match.group("symbol")
-                    if name[0] == '$':
+                    if name[0] == '$' or "." not in name:
                         continue
                     try:
                         symbol = parent_scope[name]
@@ -274,7 +279,8 @@ class PlyParser:
                         pass
                     else:
                         if isinstance(symbol, Subroutine):
-                            usages[(parent_scope.name, symbol.name)].add(str(asmnode.sourceref))
+                            namespace, name = name.rsplit(".", maxsplit=2)
+                            usages[(namespace, name)].add(str(asmnode.sourceref))
 
     def check_directives(self, module: Module) -> None:
         for node, parent in module.all_scopes():
@@ -329,7 +335,7 @@ class PlyParser:
         # append the imported module's contents (blocks) at the end of the current module
         for imported_module in imported:
             for block in imported_module.scope.filter_nodes(Block):
-                module.scope.nodes.append(block)
+                module.scope.add_node(block)
 
     def import_file(self, filename: str) -> Tuple[Module, int]:
         sub_parser = PlyParser(parsing_import=True)
