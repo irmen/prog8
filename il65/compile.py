@@ -9,13 +9,18 @@ import re
 import os
 import sys
 import linecache
-from typing import Optional, Tuple, Set, Dict, Any, no_type_check
+from typing import Optional, Tuple, Set, Dict, List, Any, no_type_check
 import attr
 from .plyparse import parse_file, ParseError, Module, Directive, Block, Subroutine, Scope, VarDef, LiteralValue, \
     SubCall, Goto, Return, Assignment, InlineAssembly, Register, Expression, ProgramFormat, ZpOptions,\
     SymbolName, Dereference, AddressOf
 from .plylex import SourceRef, print_bold
 from .optimize import optimize
+from .datatypes import DataType, datatype_sizes
+
+
+class CompileError(Exception):
+    pass
 
 
 class PlyParser:
@@ -37,6 +42,8 @@ class PlyParser:
                 # these shall only be done on the main module after all imports have been done:
                 self.apply_directive_options(module)
                 self.determine_subroutine_usage(module)
+                # XXX merge zero page from imported modules??? do we still have to do that?
+                self.allocate_zeropage_vars(module)
         except ParseError as x:
             self.handle_parse_error(x)
         if self.parse_errors:
@@ -60,7 +67,6 @@ class PlyParser:
                             zeropage.scope.add_node(node, 0)
                         elif isinstance(node, VarDef):
                             zeropage.scope.add_node(node)
-                            print("ADDED ZP VAR", node)  # XXX
                         else:
                             raise ParseError("only variables and directives allowed in zeropage block", node.sourceref)
                 else:
@@ -69,6 +75,19 @@ class PlyParser:
         if zeropage:
             # add the zero page again, as the very first block
             module.scope.add_node(zeropage, 0)
+
+    def allocate_zeropage_vars(self, module: Module) -> None:
+        # allocate zeropage variables to the available free zp addresses
+        if not module.scope.nodes:
+            return
+        zpnode = module.scope.nodes[0]
+        assert zpnode.name == "ZP", "first node should be the (only) ZP"
+        zeropage = Zeropage(module.zp_options)
+        for vardef in zpnode.scope.filter_nodes(VarDef):
+            try:
+                vardef.zp_address = zeropage.allocate(vardef.name, vardef.datatype)
+            except CompileError as x:
+                raise ParseError(str(x), vardef.sourceref)
 
     @no_type_check
     def process_all_expressions(self, module: Module) -> None:
@@ -381,6 +400,60 @@ class PlyParser:
         if sys.stderr.isatty():
             print("\x1b[0m", file=sys.stderr, end="", flush=True)
         raise exc
+
+
+class Zeropage:
+    SCRATCH_B1 = 0x02
+    SCRATCH_B2 = 0x03
+    SCRATCH_W1 = 0xfb     # $fb/$fc
+    SCRATCH_W2 = 0xfd     # $fd/$fe
+
+    def __init__(self, options: ZpOptions) -> None:
+        self.free = []  # type: List[int]
+        self.allocations = {}   # type: Dict[int, Tuple[str, DataType]]
+        if options in (ZpOptions.CLOBBER_RESTORE, ZpOptions.CLOBBER):
+            # clobber the zp, more free storage, yay!
+            self.free = list(range(0x04, 0xfb)) + [0xff]
+            for updated_by_irq in [0xa0, 0xa1, 0xa2, 0x91, 0xc0, 0xc5, 0xcb, 0xf5, 0xf6]:
+                self.free.remove(updated_by_irq)
+        else:
+            # these are valid for the C-64 (when no RS232 I/O is performed):
+            # ($02, $03, $fb-$fc, $fd-$fe are reserved as scratch addresses for various routines)
+            self.free = [0x04, 0x05, 0x06, 0x2a, 0x52, 0xf7, 0xf8, 0xf9, 0xfa]
+        assert self.SCRATCH_B1 not in self.free
+        assert self.SCRATCH_B2 not in self.free
+        assert self.SCRATCH_W1 not in self.free
+        assert self.SCRATCH_W2 not in self.free
+
+    def allocate(self, name: str, datatype: DataType) -> int:
+        assert not name or name not in {a[0] for a in self.allocations.values()}, "var name is not unique"
+
+        def sequential_free(location: int) -> bool:
+            return all(location + i in self.free for i in range(size))
+
+        def lone_byte(location: int) -> bool:
+            return (location-1) not in self.free and (location+1) not in self.free and location in self.free
+
+        def make_allocation(location: int) -> int:
+            for loc in range(location, location + size):
+                self.free.remove(loc)
+            self.allocations[location] = (name or "<unnamed>", datatype)
+            return location
+
+        size = datatype_sizes[datatype]
+        if len(self.free) > 0:
+            if size == 1:
+                for candidate in range(min(self.free), max(self.free)+1):
+                    if lone_byte(candidate):
+                        return make_allocation(candidate)
+                return make_allocation(self.free[0])
+            for candidate in range(min(self.free), max(self.free)+1):
+                if sequential_free(candidate):
+                    return make_allocation(candidate)
+        raise CompileError("ERROR: no more free space in ZP to allocate {:d} sequential bytes".format(size))
+
+    def available(self) -> int:
+        return len(self.free)
 
 
 if __name__ == "__main__":

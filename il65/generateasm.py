@@ -13,7 +13,7 @@ from typing import Dict, TextIO, List, Any
 from .plylex import print_bold
 from .plyparse import Module, ProgramFormat, Block, Directive, VarDef, Label, Subroutine, AstNode, ZpOptions, \
     InlineAssembly, Return, Register, LiteralValue
-from .datatypes import VarType, DataType, to_hex, mflpt5_to_float, to_mflpt5, STRING_DATATYPES
+from .datatypes import VarType, DataType, datatype_sizes, to_hex, mflpt5_to_float, to_mflpt5, STRING_DATATYPES
 
 
 class CodeError(Exception):
@@ -126,7 +126,7 @@ class AssemblyGenerator:
             self.p("; file: '{:s}' src l. {:d}\n".format(zpblock.sourceref.file, zpblock.sourceref.line))
             self.p("{:s}\t.proc\n".format(zpblock.label))
             self.generate_block_init(zpblock)
-            self.generate_block_vars(zpblock)
+            self.generate_block_vars(zpblock, True)
             # there's no code in the zero page block.
             self.p("\v.pend\n")
         for block in sorted(self.module.scope.filter_nodes(Block), key=lambda b: b.address or 0):
@@ -270,7 +270,7 @@ class AssemblyGenerator:
             self.p("_init_strings_size = * - _init_strings_start")
         self.p("")
 
-    def generate_block_vars(self, block: Block) -> None:
+    def generate_block_vars(self, block: Block, zeropage: bool=False) -> None:
         # Generate the block variable storage.
         # The memory bytes of the allocated variables is set to zero (so it compresses very well),
         # their actual starting values are set by the block init code.
@@ -307,39 +307,46 @@ class AssemblyGenerator:
             else:
                 raise CodeError("invalid var type")
         self.p("; normal variables - initial values will be set by init code")
-        string_vars = []
-        for vardef in vars_by_vartype.get(VarType.VAR, []):
-            # create a definition for a variable that takes up empty space and will be initialized at startup
-            if vardef.datatype in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
-                assert vardef.size == [1]
-                if vardef.datatype == DataType.BYTE:
-                    self.p("{:s}\v.byte  ?".format(vardef.name))
-                elif vardef.datatype == DataType.WORD:
-                    self.p("{:s}\v.word  ?".format(vardef.name))
-                elif vardef.datatype == DataType.FLOAT:
-                    self.p("{:s}\v.fill  5\t\t; float".format(vardef.name))
+        if zeropage:
+            # zeropage uses the zp_address we've allocated, instead of allocating memory here
+            for vardef in vars_by_vartype.get(VarType.VAR, []):
+                assert vardef.zp_address is not None
+                self.p("\v{:s} = {:s}\t; {:s} ({:d})".format(vardef.name, to_hex(vardef.zp_address),
+                                                             vardef.datatype.name.lower(), datatype_sizes[vardef.datatype]))
+        else:
+            # create definitions for the variables that takes up empty space and will be initialized at startup
+            string_vars = []
+            for vardef in vars_by_vartype.get(VarType.VAR, []):
+                if vardef.datatype in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
+                    assert vardef.size == [1]
+                    if vardef.datatype == DataType.BYTE:
+                        self.p("{:s}\v.byte  ?".format(vardef.name))
+                    elif vardef.datatype == DataType.WORD:
+                        self.p("{:s}\v.word  ?".format(vardef.name))
+                    elif vardef.datatype == DataType.FLOAT:
+                        self.p("{:s}\v.fill  5\t\t; float".format(vardef.name))
+                    else:
+                        raise CodeError("weird datatype")
+                elif vardef.datatype in (DataType.BYTEARRAY, DataType.WORDARRAY):
+                    assert len(vardef.size) == 1
+                    if vardef.datatype == DataType.BYTEARRAY:
+                        self.p("{:s}\v.fill  {:d}\t\t; bytearray".format(vardef.name, vardef.size[0]))
+                    elif vardef.datatype == DataType.WORDARRAY:
+                        self.p("{:s}\v.fill  {:d}*2\t\t; wordarray".format(vardef.name, vardef.size[0]))
+                    else:
+                        raise CodeError("invalid datatype", vardef.datatype)
+                elif vardef.datatype == DataType.MATRIX:
+                    assert len(vardef.size) == 2
+                    self.p("{:s}\v.fill  {:d}\t\t; matrix {:d}*{:d} bytes"
+                           .format(vardef.name, vardef.size[0] * vardef.size[1], vardef.size[0], vardef.size[1]))
+                elif vardef.datatype in STRING_DATATYPES:
+                    string_vars.append(vardef)
                 else:
-                    raise CodeError("weird datatype")
-            elif vardef.datatype in (DataType.BYTEARRAY, DataType.WORDARRAY):
-                assert len(vardef.size) == 1
-                if vardef.datatype == DataType.BYTEARRAY:
-                    self.p("{:s}\v.fill  {:d}\t\t; bytearray".format(vardef.name, vardef.size[0]))
-                elif vardef.datatype == DataType.WORDARRAY:
-                    self.p("{:s}\v.fill  {:d}*2\t\t; wordarray".format(vardef.name, vardef.size[0]))
-                else:
-                    raise CodeError("invalid datatype", vardef.datatype)
-            elif vardef.datatype == DataType.MATRIX:
-                assert len(vardef.size) == 2
-                self.p("{:s}\v.fill  {:d}\t\t; matrix {:d}*{:d} bytes"
-                       .format(vardef.name, vardef.size[0] * vardef.size[1], vardef.size[0], vardef.size[1]))
-            elif vardef.datatype in STRING_DATATYPES:
-                string_vars.append(vardef)
-            else:
-                raise CodeError("unknown variable type " + str(vardef.datatype))
-        if string_vars:
-            self.p("il65_string_vars_start")
-            for svar in sorted(string_vars, key=lambda v: v.name):      # must be the same order as in the init routine!!!
-                self.p("{:s}\v.fill  {:d}+1\t\t; {}".format(svar.name, len(svar.value), svar.datatype.name.lower()))
+                    raise CodeError("unknown variable type " + str(vardef.datatype))
+            if string_vars:
+                self.p("il65_string_vars_start")
+                for svar in sorted(string_vars, key=lambda v: v.name):      # must be the same order as in the init routine!!!
+                    self.p("{:s}\v.fill  {:d}+1\t\t; {}".format(svar.name, len(svar.value), svar.datatype.name.lower()))
         self.p("")
 
     def _generate_string_var(self, vardef: VarDef, init: bool=False) -> None:

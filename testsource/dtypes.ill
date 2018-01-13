@@ -126,9 +126,7 @@
 	; because zp-vars get assigned a specific address (from a pool). Also, it's a byte.
 
 	var .word        initword0a             = &ZP.zpmem1
-	var .word	 initword0              = &ZP.zpvar1    ; @todo should work, reference this symbols' generated address (@todo generate address for ZP)
 	var              initbytea0             = &ZP.zpmem1
-	var	.word	 initworda1             = &ZP.zpvar1    ; @todo should work, reference this symbols' generated address (@todo generate address for ZP)
 
 
         ; (constant) expressions

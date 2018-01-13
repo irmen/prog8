@@ -47,6 +47,13 @@ class DataType(enum.Enum):
         return NotImplemented
 
 
+datatype_sizes = {
+    DataType.BYTE: 1,
+    DataType.WORD: 2,
+    DataType.FLOAT: 5
+}
+
+
 STRING_DATATYPES = {DataType.STRING, DataType.STRING_P, DataType.STRING_S, DataType.STRING_PS}
 
 REGISTER_SYMBOLS = {"A", "X", "Y", "AX", "AY", "XY", "SC", "SI"}

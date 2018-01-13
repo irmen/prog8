@@ -381,13 +381,14 @@ class InlineAssembly(AstNode):
     assembly = attr.ib(type=str)
 
 
-@attr.s(cmp=False, repr=False)
+@attr.s(cmp=False, repr=False, slots=True)
 class VarDef(AstNode):
     name = attr.ib(type=str)
     vartype = attr.ib()
     datatype = attr.ib()
     value = attr.ib(default=None)
     size = attr.ib(type=list, default=None)
+    zp_address = attr.ib(type=int, default=None, init=False)    # the address in the zero page if this var is there, will be set later
 
     def __attrs_post_init__(self):
         # convert vartype to enum
@@ -625,7 +626,9 @@ def process_constant_expression(expr: Any, sourceref: SourceRef, symbolscope: Sc
             if isinstance(value, VarDef):
                 if value.vartype == VarType.MEMORY:
                     return value.value
-                raise ExpressionEvaluationError("taking the address of this {} isn't a constant".format(value.__class__.__name__), expr.name.sourceref)
+                if value.vartype == VarType.CONST:
+                    raise ExpressionEvaluationError("can't take the address of a constant", expr.name.sourceref)
+                raise ExpressionEvaluationError("address-of this {} isn't a compile-time constant".format(value.__class__.__name__), expr.name.sourceref)
             else:
                 raise ExpressionEvaluationError("constant address required, not {}".format(value.__class__.__name__), expr.name.sourceref)
         except LookupError as x:
