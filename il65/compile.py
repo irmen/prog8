@@ -16,7 +16,7 @@ from .plyparse import parse_file, ParseError, Module, Directive, Block, Subrouti
     SymbolName, Dereference, AddressOf
 from .plylex import SourceRef, print_bold
 from .optimize import optimize
-from .datatypes import DataType, STRING_DATATYPES
+from .datatypes import DataType, VarType, STRING_DATATYPES
 
 
 class CompileError(Exception):
@@ -97,7 +97,7 @@ class PlyParser:
         for block, parent in module.all_scopes():
             parentname = (parent.name + ".") if parent else ""
             blockname = parentname + block.name
-            if  blockname in encountered_blocks:
+            if blockname in encountered_blocks:
                 raise ValueError("block names not unique:", blockname)
             encountered_blocks.add(blockname)
             for node in block.nodes:
@@ -429,6 +429,7 @@ class Zeropage:
 
     def allocate(self, vardef: VarDef) -> int:
         assert not vardef.name or vardef.name not in {a[0] for a in self.allocations.values()}, "var name is not unique"
+        assert vardef.vartype == VarType.VAR, "can only allocate var"
 
         def sequential_free(location: int) -> bool:
             return all(location + i in self.free for i in range(size))

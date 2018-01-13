@@ -245,7 +245,7 @@ class AssemblyGenerator:
 
         self.p("_il65_init_block\v; (re)set vars to initial values")
         float_inits = {}
-        string_inits = []
+        string_inits = []   # type: List[VarDef]
         prev_value_a, prev_value_x = None, None
         vars_by_datatype = defaultdict(list)  # type: Dict[DataType, List[VarDef]]
         for vardef in block.scope.filter_nodes(VarDef):
