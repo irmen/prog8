@@ -50,6 +50,8 @@ def main() -> None:
         mon_command_file = assembler.generate_breakpoint_list(program_filename)
         duration_total = time.perf_counter() - start
         print("Compile duration:  {:.2f} seconds".format(duration_total))
+        size = os.path.getsize(program_filename)
+        print("Output size:       {:d} bytes".format(size))
         print_bold("Output file:       " + program_filename)
         print()
         if args.startvice:

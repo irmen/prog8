@@ -202,7 +202,7 @@ class Parser:
                 for sub in block.symbols.iter_subroutines(True):
                     self._check_return_statement(sub.sub_block, "subroutine '{:s}'".format(sub.name))
             if not main_found:
-                raise self.PError("a block 'main' should be defined and contain the program's entry point label 'start'")
+                raise self.PError("a block 'main' must be defined and contain the program's entry point label 'start'")
 
     def _check_return_statement(self, block: Block, message: str) -> None:
         # find last statement that isn't a comment
@@ -560,7 +560,7 @@ class Parser:
             arg = block_args.pop(0)
             if arg.isidentifier():
                 if arg.lower() == "zeropage" or arg in ("zp", "zP", "Zp"):
-                    raise self.PError("zero page block should be named 'ZP'")
+                    raise self.PError("zero page block must be named 'ZP'")
                 is_zp_block = arg == "ZP"
                 if arg in set(b.name for b in self.result.blocks):
                     orig = [b for b in self.result.blocks if b.name == arg][0]
@@ -980,7 +980,7 @@ class Parser:
                 return CallStmt(self.sourceref, target, address=address, arguments=arguments,
                                 outputs=outputvars, preserve_regs=preserve_regs)
         else:
-            raise TypeError("target should be a Value", target)
+            raise TypeError("target must be a Value", target)
 
     def parse_integer(self, text: str) -> int:
         text = text.strip()

@@ -848,7 +848,7 @@ class IntegerValue(Value):
             self.value = value
         elif value is None:
             if not name:
-                raise ValueError("when integer value is not given, the name symbol should be speicified")
+                raise ValueError("when integer value is not given, the name symbol must be specified")
             super().__init__(datatype, sourceref, name, True)
             self.value = None
         else:

@@ -81,7 +81,8 @@ class PlyParser:
         if not module.scope.nodes:
             return
         zpnode = module.scope.nodes[0]
-        assert zpnode.name == "ZP", "first node should be the (only) ZP"
+        if zpnode.name != "ZP":
+            return
         zeropage = Zeropage(module.zp_options)
         for vardef in zpnode.scope.filter_nodes(VarDef):
             try:
@@ -94,9 +95,11 @@ class PlyParser:
         # process/simplify all expressions (constant folding etc)
         encountered_blocks = set()
         for block, parent in module.all_scopes():
-            if block.name in encountered_blocks:
-                raise ValueError("block names not unique:", block.name)
-            encountered_blocks.add(block.name)
+            parentname = (parent.name + ".") if parent else ""
+            blockname = parentname + block.name
+            if  blockname in encountered_blocks:
+                raise ValueError("block names not unique:", blockname)
+            encountered_blocks.add(blockname)
             for node in block.nodes:
                 try:
                     node.process_expressions(block.scope)
@@ -323,7 +326,7 @@ class PlyParser:
                         if sub_node.name not in {"asmbinary", "asminclude", "breakpoint", "saveregisters"}:
                             raise ParseError("invalid directive in " + node.__class__.__name__.lower(), sub_node.sourceref)
                         if sub_node.name == "saveregisters" and not first_node:
-                            raise ParseError("saveregisters directive should be the first", sub_node.sourceref)
+                            raise ParseError("saveregisters directive must be the first", sub_node.sourceref)
                     first_node = False
 
     def process_imports(self, module: Module) -> None:

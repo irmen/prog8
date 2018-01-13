@@ -68,10 +68,13 @@ FLOAT_MAX_NEGATIVE = -1.7014118345e+38
 
 
 def to_hex(number: int) -> str:
-    # 0..255 -> "$00".."$ff"
+    # 0..15 -> "0".."15"
+    # 16..255 -> "$10".."$ff"
     # 256..65536 -> "$0100".."$ffff"
     if number is None:
         raise ValueError("number")
+    if 0 <= number < 16:
+        return str(number)
     if 0 <= number < 0x100:
         return "${:02x}".format(number)
     if 0 <= number < 0x10000:

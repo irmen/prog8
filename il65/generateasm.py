@@ -270,6 +270,19 @@ class AssemblyGenerator:
             self.p("_init_strings_size = * - _init_strings_start")
         self.p("")
 
+    def _numeric_value_str(self, value: Any, as_hex: bool=False) -> str:
+        if isinstance(value, bool):
+            return "1" if value else "0"
+        if isinstance(value, int):
+            if as_hex:
+                return to_hex(value)
+            return str(value)
+        if isinstance(value, (int, float)):
+            if as_hex:
+                raise TypeError("cannot output float as hex")
+            return str(value)
+        raise TypeError("no numeric representation possible", value)
+
     def generate_block_vars(self, block: Block, zeropage: bool=False) -> None:
         # Generate the block variable storage.
         # The memory bytes of the allocated variables is set to zero (so it compresses very well),
@@ -280,9 +293,9 @@ class AssemblyGenerator:
         self.p("; constants")
         for vardef in vars_by_vartype.get(VarType.CONST, []):
             if vardef.datatype == DataType.FLOAT:
-                self.p("\v{:s} = {}".format(vardef.name, vardef.value))
+                self.p("\v{:s} = {}".format(vardef.name, self._numeric_value_str(vardef.value)))
             elif vardef.datatype in (DataType.BYTE, DataType.WORD):
-                self.p("\v{:s} = {:s}".format(vardef.name, to_hex(vardef.value)))
+                self.p("\v{:s} = {:s}".format(vardef.name, self._numeric_value_str(vardef.value, True)))
             elif vardef.datatype in STRING_DATATYPES:
                 # a const string is just a string variable in the generated assembly
                 self._generate_string_var(vardef)

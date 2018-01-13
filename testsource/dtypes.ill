@@ -65,10 +65,10 @@
 	var  .float             initfloat5      = -1.70141183e+38
 	var  .float             initfloat6      = 1.234
 
-	var  .wordarray( 10 )   uninit_wordarray
+	var  .wordarray( 256 )   uninit_wordarray
 	var  .wordarray(10)     init_wordarray          =  $1234
 	var  .wordarray(10)     init_wordarrayb         =  true
-	var  .array( 10)        uninit_bytearray
+	var  .array( 256)        uninit_bytearray
 	var  .array(10 )        init_bytearray          =$12
 	var  .array(10 )        init_bytearrayb         =true
 	var  .array(10 )        init_bytearrayc         ='@'
@@ -78,7 +78,7 @@
 	var  .stext             stext   = 'screencodes-null'
 	var  .pstext            pstext  = "screencodes-pascal"
 
-	var  .matrix( 10, 20 ) uninitmatrix
+	var  .matrix( 2, 400 ) uninitmatrix
 	var  .matrix(10, 20)   initmatrix1      = $12
 	var  .matrix(10, 20)   initmatrix1b     = true
 	var  .matrix(10, 20)   initmatrix1c     = '@'

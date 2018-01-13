@@ -481,7 +481,7 @@ _loop           lda  #0
 sub scroll_left_full  (alsocolors: SC) -> (A?, X?, Y?)  {
 	; ---- scroll the whole screen 1 character to the left
 	;      contents of the rightmost column are unchanged, you should clear/refill this yourself
-	;      Carry flag determines if screen color data should be scrolled too
+	;      Carry flag determines if screen color data must be scrolled too
 	%asm {
 		bcs  +
 		jmp  _scroll_screen
@@ -540,7 +540,7 @@ _scroll_screen
 sub scroll_right_full  (alsocolors: SC) -> (A?, X?)  {
 	; ---- scroll the whole screen 1 character to the right
 	;      contents of the leftmost column are unchanged, you should clear/refill this yourself
-	;      Carry flag determines if screen color data should be scrolled too
+	;      Carry flag determines if screen color data must be scrolled too
 	%asm {
 		bcs  +
 		jmp  _scroll_screen
@@ -591,7 +591,7 @@ _scroll_screen
 sub scroll_up_full  (alsocolors: SC) -> (A?, X?)  {
 	; ---- scroll the whole screen 1 character up
 	;      contents of the bottom row are unchanged, you should refill/clear this yourself
-	;      Carry flag determines if screen color data should be scrolled too
+	;      Carry flag determines if screen color data must be scrolled too
 	%asm {
 		bcs  +
 		jmp  _scroll_screen
@@ -642,7 +642,7 @@ _scroll_screen
 sub scroll_down_full  (alsocolors: SC) -> (A?, X?)  {
 	; ---- scroll the whole screen 1 character down
 	;      contents of the top row are unchanged, you should refill/clear this yourself
-	;      Carry flag determines if screen color data should be scrolled too
+	;      Carry flag determines if screen color data must be scrolled too
 	%asm {
 		bcs  +
 		jmp  _scroll_screen

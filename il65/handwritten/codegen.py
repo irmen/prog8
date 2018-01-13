@@ -258,7 +258,6 @@ class CodeGenerator:
             self.p("\t.pend\n")
 
     def generate_block_vars(self, block: Block) -> None:
-        # @todo block vars should be re-initialized when the program is run again, and not depend on statically prefilled data!
         consts = [c for c in block.symbols.iter_constants()]
         if consts:
             self.p("; constants")
@@ -928,7 +927,7 @@ class CodeGenerator:
             if isinstance(stmt.target, MemMappedValue):
                 targetstr = stmt.target.name or Parser.to_hex(stmt.address)
             else:
-                raise CodeError("call sub target should be mmapped")
+                raise CodeError("call sub target must be mmapped")
             if stmt.is_goto:
                 generate_param_assignments()
                 branch_emitter(targetstr, True, False)
@@ -1857,7 +1856,7 @@ class CodeGenerator:
             self.p("\t\tld{:s}  #<{:s}".format(lv.register[0].lower(), rvalue.name))
             self.p("\t\tld{:s}  #>{:s}".format(lv.register[1].lower(), rvalue.name))
         else:
-            raise CodeError("cannot assign immediate string, it should be a string variable")
+            raise CodeError("cannot assign immediate string, it must be a string variable")
 
     def generate_assign_string_to_memory(self, lv: MemMappedValue, rvalue: StringValue) -> None:
         if lv.datatype != DataType.WORD:
@@ -1869,7 +1868,7 @@ class CodeGenerator:
             self.p("\t\tlda  #>{:s}".format(rvalue.name))
             self.p("\t\tsta  {}+1".format(assign_target))
         else:
-            raise CodeError("cannot assign immediate string, it should be a string variable")
+            raise CodeError("cannot assign immediate string, it must be a string variable")
 
     def footer(self) -> None:
         self.p("\n\n.end")

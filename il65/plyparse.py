@@ -181,13 +181,34 @@ class Scope(AstNode):
         self._populate_symboltable(newnode)
 
 
-def validate_address(obj: AstNode, attrib: attr.Attribute, value: Optional[int]):
+def validate_address(obj: AstNode, attrib: attr.Attribute, value: Optional[int]) -> None:
     if value is None:
         return
     if isinstance(obj, Block) and obj.name == "ZP":
         raise ParseError("zeropage block cannot have custom start {:s}".format(attrib.name), obj.sourceref)
     if value < 0x0200 or value > 0xffff:
         raise ParseError("invalid {:s} (must be from $0200 to $ffff)".format(attrib.name), obj.sourceref)
+
+
+def dimensions_validator(obj: 'DatatypeNode', attrib: attr.Attribute, value: List[int]) -> None:
+    if not value:
+        return
+    dt = obj.to_enum()
+    if value and dt not in (DataType.MATRIX, DataType.WORDARRAY, DataType.BYTEARRAY):
+        raise ParseError("cannot use a dimension for this datatype", obj.sourceref)
+    if dt == DataType.WORDARRAY or dt == DataType.BYTEARRAY:
+        if len(value) == 1:
+            if value[0] <= 0 or value[0] > 256:
+                raise ParseError("array length must be 1..256", obj.sourceref)
+        else:
+            raise ParseError("array must have only one dimension", obj.sourceref)
+    if dt == DataType.MATRIX:
+        if len(value) == 2:
+            size = value[0] * value[1]
+            if size <= 0 or size > 0x8000:
+                raise ParseError("matrix size columns * rows must be 1..32768", obj.sourceref)
+        else:
+            raise ParseError("matrix must have two dimensions", obj.sourceref)
 
 
 @attr.s(cmp=False, repr=False)
@@ -432,7 +453,7 @@ class VarDef(AstNode):
 @attr.s(cmp=False, slots=True, repr=False)
 class DatatypeNode(AstNode):
     name = attr.ib(type=str)
-    dimensions = attr.ib(type=list, default=None)    # if set, 1 or more dimensions (ints)
+    dimensions = attr.ib(type=list, default=None, validator=dimensions_validator)    # if set, 1 or more dimensions (ints)
 
     def to_enum(self):
         return {
@@ -556,7 +577,7 @@ class Expression(AstNode):
         assert self.operator not in ("++", "--"), "incr/decr should not be an expression"
 
     def process_expressions(self, scope: Scope) -> None:
-        raise RuntimeError("should be done via parent node's process_expressions")
+        raise RuntimeError("must be done via parent node's process_expressions")
 
     def evaluate_primitive_constants(self, scope: Scope) -> Union[int, float, str, bool]:
         # make sure the lvalue and rvalue are primitives, and the operator is allowed
@@ -628,9 +649,11 @@ def process_constant_expression(expr: Any, sourceref: SourceRef, symbolscope: Sc
                     return value.value
                 if value.vartype == VarType.CONST:
                     raise ExpressionEvaluationError("can't take the address of a constant", expr.name.sourceref)
-                raise ExpressionEvaluationError("address-of this {} isn't a compile-time constant".format(value.__class__.__name__), expr.name.sourceref)
+                raise ExpressionEvaluationError("address-of this {} isn't a compile-time constant"
+                                                .format(value.__class__.__name__), expr.name.sourceref)
             else:
-                raise ExpressionEvaluationError("constant address required, not {}".format(value.__class__.__name__), expr.name.sourceref)
+                raise ExpressionEvaluationError("constant address required, not {}"
+                                                .format(value.__class__.__name__), expr.name.sourceref)
         except LookupError as x:
             raise ParseError(str(x), expr.sourceref) from None
     elif isinstance(expr, SubCall):
@@ -656,9 +679,9 @@ def process_constant_expression(expr: Any, sourceref: SourceRef, symbolscope: Sc
                 else:
                     raise ExpressionEvaluationError("can only use math- or builtin function", expr.sourceref)
             elif isinstance(target, Dereference):       # '[...](1,2,3)'
-                return None  #  XXX
+                return None  # XXX
             elif isinstance(target, int):    # '64738()'
-                return None  #  XXX
+                return None  # XXX
             else:
                 raise NotImplementedError("weird call target", target)  # XXX
         else:

@@ -22,8 +22,11 @@ def test_parseerror():
 
 
 def test_to_hex():
-    assert datatypes.to_hex(0) == "$00"
-    assert datatypes.to_hex(1) == "$01"
+    assert datatypes.to_hex(0) == "0"
+    assert datatypes.to_hex(1) == "1"
+    assert datatypes.to_hex(10) == "10"
+    assert datatypes.to_hex(15) == "15"
+    assert datatypes.to_hex(16) == "$10"
     assert datatypes.to_hex(255) == "$ff"
     assert datatypes.to_hex(256) == "$0100"
     assert datatypes.to_hex(20060) == "$4e5c"
