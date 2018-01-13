@@ -13,8 +13,9 @@ start:
         c64.init_system()
 
         A = c64.VMCSB
-        A |= 2                  ;  @todo c64.VMCSB |= 2
+        A |= 2
         c64.VMCSB = A
+        c64.VMCSB |= 2     ;  @todo when this works it replaces the three lines above
 
         ; greeting
         c64scr.print_string("Enter your name: ")
@@ -58,7 +59,8 @@ ask_guess:
         [$22.word] = guess
         c64.FREADSTR(A)
         AY = c64flt.GETADRAY()
-        A -= secretnumber       ; @todo condition so we can do if guess > secretnumber....
+        A -= secretnumber       ; @todo condition so we can do if guess > secretnumber....      # @todo "removed statement that has no effect" is WRONG!!
+        A -= secretnumber       ;   # @todo "removed statement that has no effect" is WRONG!!
         if_zero goto correct_guess
         if_gt goto too_high
         c64scr.print_string("That is too ")
@@ -87,9 +89,12 @@ game_over:
         return
 
 sub goodbye ()->() {
-        ;var x             ; @todo vars in sub
-        ;memory y = $c000        ; @todo vars in sub
-        ;const q = 22            ; @todo const in sub
+        var xxxxxx             ; @todo vars in sub
+        memory y = $c000        ; @todo vars in sub
+        const q = 22            ; @todo const in sub
+
+	xxxxxx = q *4
+	xxxxxx = qqqqq *44 ;@todo symbol error
 
         c64scr.print_string("\nThanks for playing. Bye!\n")
         return

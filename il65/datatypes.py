@@ -46,8 +46,18 @@ class DataType(enum.Enum):
             return self.value < other.value
         return NotImplemented
 
+    def isnumeric(self) -> bool:
+        return self.value in (1, 2, 3)
+
+    def isarray(self) -> bool:
+        return self.value in (4, 5, 6)
+
+    def isstring(self) -> bool:
+        return self.value in (7, 8, 9, 10)
+
 
 STRING_DATATYPES = {DataType.STRING, DataType.STRING_P, DataType.STRING_S, DataType.STRING_PS}
+
 
 REGISTER_SYMBOLS = {"A", "X", "Y", "AX", "AY", "XY", "SC", "SI"}
 REGISTER_SYMBOLS_RETURNVALUES = REGISTER_SYMBOLS | {"SZ"}

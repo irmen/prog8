@@ -1035,7 +1035,7 @@ sub  input_chars  (buffer: AX) -> (A?, Y)  {
 
 
 ;sub  memcopy_basic  () -> (?)  {
-;	; ---- copy a memory block by using a BASIC ROM routine  @todo fix code
+;	; ---- copy a memory block by using a BASIC ROM routine
 ;	; it calls a function from the basic interpreter, so:
 ;	;       - BASIC ROM must be banked in
 ;	;       - the source block must be readable (so no RAM hidden under BASIC, Kernal, or I/O)
@@ -1043,7 +1043,6 @@ sub  input_chars  (buffer: AX) -> (A?, Y)  {
 ;	; higher addresses are copied first, so:
 ;	;       - moving data to higher addresses works even if areas overlap
 ;	;       - moving data to lower addresses only works if areas do not overlap
-;	; @todo fix this
 ;	%asm {
 ;		lda  #<src_start
 ;		ldx  #>src_start
@@ -1061,7 +1060,7 @@ sub  input_chars  (buffer: AX) -> (A?, Y)  {
 ;	}
 ;}
 
-; macro version of the above memcopy_basic routine:	@todo macro support?
+; macro version of the above memcopy_basic routine:
 ; MACRO PARAMS src_start, src_end, target_start
 ;		lda  #<src_start
 ;		ldx  #>src_start

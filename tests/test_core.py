@@ -6,6 +6,14 @@ from il65.plylex import SourceRef
 
 def test_datatypes():
     assert all(isinstance(s, datatypes.DataType) for s in datatypes.STRING_DATATYPES)
+    assert all(s.isstring() for s in datatypes.STRING_DATATYPES)
+    assert not any(s.isarray() or s.isnumeric() for s in datatypes.STRING_DATATYPES)
+    assert datatypes.DataType.WORDARRAY.isarray()
+    assert not datatypes.DataType.WORDARRAY.isnumeric()
+    assert not datatypes.DataType.WORDARRAY.isstring()
+    assert not datatypes.DataType.WORD.isarray()
+    assert datatypes.DataType.WORD.isnumeric()
+    assert not datatypes.DataType.WORD.isstring()
 
 
 def test_sourceref():

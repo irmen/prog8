@@ -223,40 +223,55 @@ class AssemblyGenerator:
         # @todo add a block initializer subroutine that can contain custom reset/init code? (static initializer)
 
         def _memset(varname: str, value: int, size: int) -> None:
-            value = value or 0
-            self.p("\vlda  #<" + varname)
-            self.p("\vsta  il65_lib.SCRATCH_ZPWORD1")
-            self.p("\vlda  #>" + varname)
-            self.p("\vsta  il65_lib.SCRATCH_ZPWORD1+1")
-            self.p("\vlda  #" + to_hex(value))
-            self.p("\vldx  #" + to_hex(size))
-            self.p("\vjsr  il65_lib.memset")
+            if size > 6:
+                self.p("\vlda  #<" + varname)
+                self.p("\vsta  il65_lib.SCRATCH_ZPWORD1")
+                self.p("\vlda  #>" + varname)
+                self.p("\vsta  il65_lib.SCRATCH_ZPWORD1+1")
+                self.p("\vlda  #" + to_hex(value))
+                self.p("\vldx  #<" + to_hex(size))
+                self.p("\vldy  #>" + to_hex(size))
+                self.p("\vjsr  il65_lib.memset")
+            else:
+                self.p("\vlda  #" + to_hex(value))
+                for i in range(size):
+                    self.p("\vsta  {:s}+{:d}".format(varname, i))
 
         def _memsetw(varname: str, value: int, size: int) -> None:
-            value = value or 0
-            self.p("\vlda  #<" + varname)
-            self.p("\vsta  il65_lib.SCRATCH_ZPWORD1")
-            self.p("\vlda  #>" + varname)
-            self.p("\vsta  il65_lib.SCRATCH_ZPWORD1+1")
-            self.p("\vlda  #<" + to_hex(value))
-            self.p("\vldy  #>" + to_hex(value))
-            self.p("\vldx  #" + to_hex(size))
-            self.p("\vjsr  il65_lib.memsetw")
+            if size > 4:
+                self.p("\vlda  #<" + varname)
+                self.p("\vsta  il65_lib.SCRATCH_ZPWORD1")
+                self.p("\vlda  #>" + varname)
+                self.p("\vsta  il65_lib.SCRATCH_ZPWORD1+1")
+                self.p("\vlda  #<" + to_hex(size))
+                self.p("\vsta  il65_lib.SCRATCH_ZPWORD2")
+                self.p("\vlda  #>" + to_hex(size))
+                self.p("\vsta  il65_lib.SCRATCH_ZPWORD2+1")
+                self.p("\vlda  #<" + to_hex(value))
+                self.p("\vldx  #>" + to_hex(value))
+                self.p("\vjsr  il65_lib.memsetw")
+            else:
+                self.p("\vlda  #<" + to_hex(value))
+                self.p("\vldy  #>" + to_hex(value))
+                for i in range(size):
+                    self.p("\vsta  {:s}+{:d}".format(varname, i*2))
+                    self.p("\vsty  {:s}+{:d}".format(varname, i*2+1))
 
         self.p("_il65_init_block\v; (re)set vars to initial values")
         float_inits = {}
-        string_inits = []   # type: List[VarDef]
         prev_value_a, prev_value_x = None, None
         vars_by_datatype = defaultdict(list)  # type: Dict[DataType, List[VarDef]]
         for vardef in block.scope.filter_nodes(VarDef):
             if vardef.vartype == VarType.VAR:
                 vars_by_datatype[vardef.datatype].append(vardef)
         for bytevar in sorted(vars_by_datatype[DataType.BYTE], key=lambda vd: vd.value):
+            assert isinstance(bytevar.value, int)
             if bytevar.value != prev_value_a:
                 self.p("\vlda  #${:02x}".format(bytevar.value))
                 prev_value_a = bytevar.value
             self.p("\vsta  {:s}".format(bytevar.name))
         for wordvar in sorted(vars_by_datatype[DataType.WORD], key=lambda vd: vd.value):
+            assert isinstance(wordvar.value, int)
             v_hi, v_lo = divmod(wordvar.value, 256)
             if v_hi != prev_value_a:
                 self.p("\vlda  #${:02x}".format(v_hi))
@@ -267,15 +282,18 @@ class AssemblyGenerator:
             self.p("\vsta  {:s}".format(wordvar.name))
             self.p("\vstx  {:s}+1".format(wordvar.name))
         for floatvar in vars_by_datatype[DataType.FLOAT]:
+            assert isinstance(floatvar.value, (int, float))
             fpbytes = to_mflpt5(floatvar.value)  # type: ignore
             float_inits[floatvar.name] = (floatvar.name, fpbytes, floatvar.value)
         for arrayvar in vars_by_datatype[DataType.BYTEARRAY]:
+            assert isinstance(arrayvar.value, int)
             _memset(arrayvar.name, arrayvar.value, arrayvar.size[0])
         for arrayvar in vars_by_datatype[DataType.WORDARRAY]:
+            assert isinstance(arrayvar.value, int)
             _memsetw(arrayvar.name, arrayvar.value, arrayvar.size[0])
         for arrayvar in vars_by_datatype[DataType.MATRIX]:
+            assert isinstance(arrayvar.value, int)
             _memset(arrayvar.name, arrayvar.value, arrayvar.size[0] * arrayvar.size[1])
-        # @todo string datatype inits with 1 memcopy
         if float_inits:
             self.p("\vldx  #4")
             self.p("-")
@@ -287,11 +305,12 @@ class AssemblyGenerator:
         self.p("\vrts\n")
         for varname, (vname, fpbytes, fpvalue) in sorted(float_inits.items()):
             self.p("_init_float_{:s}\t\t.byte  ${:02x}, ${:02x}, ${:02x}, ${:02x}, ${:02x}\t; {}".format(varname, *fpbytes, fpvalue))
-        if string_inits:
-            self.p("_init_strings_start")
-            for svar in sorted(string_inits, key=lambda v: v.name):
-                self._generate_string_var(svar, init=True)
-            self.p("_init_strings_size = * - _init_strings_start")
+        all_string_vars = []
+        for svtype in STRING_DATATYPES:
+            all_string_vars.extend(vars_by_datatype[svtype])
+        for strvar in all_string_vars:
+            # string vars are considered to be a constant, and are statically initialized.
+            self._generate_string_var(strvar)
         self.p("")
 
     def _numeric_value_str(self, value: Any, as_hex: bool=False) -> str:
@@ -320,7 +339,7 @@ class AssemblyGenerator:
                 self.p("\v{:s} = {}".format(vardef.name, self._numeric_value_str(vardef.value)))
             elif vardef.datatype in (DataType.BYTE, DataType.WORD):
                 self.p("\v{:s} = {:s}".format(vardef.name, self._numeric_value_str(vardef.value, True)))
-            elif vardef.datatype in STRING_DATATYPES:
+            elif vardef.datatype.isstring():
                 # a const string is just a string variable in the generated assembly
                 self._generate_string_var(vardef)
             else:
@@ -328,7 +347,7 @@ class AssemblyGenerator:
         self.p("; memory mapped variables")
         for vardef in vars_by_vartype.get(VarType.MEMORY, []):
             # create a definition for variables at a specific place in memory (memory-mapped)
-            if vardef.datatype in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
+            if vardef.datatype.isnumeric():
                 assert vardef.size == [1]
                 self.p("\v{:s} = {:s}\t; {:s}".format(vardef.name, to_hex(vardef.value), vardef.datatype.name.lower()))
             elif vardef.datatype == DataType.BYTEARRAY:
@@ -353,7 +372,9 @@ class AssemblyGenerator:
             # zeropage uses the zp_address we've allocated, instead of allocating memory here
             for vardef in vars_by_vartype.get(VarType.VAR, []):
                 assert vardef.zp_address is not None
-                if vardef.datatype in (DataType.WORDARRAY, DataType.BYTEARRAY, DataType.MATRIX):
+                if vardef.datatype.isstring():
+                    raise CodeError("cannot put strings in the zeropage", vardef.sourceref)
+                if vardef.datatype.isarray():
                     size_str = "size " + str(vardef.size)
                 else:
                     size_str = ""
@@ -363,7 +384,7 @@ class AssemblyGenerator:
             # create definitions for the variables that takes up empty space and will be initialized at startup
             string_vars = []
             for vardef in vars_by_vartype.get(VarType.VAR, []):
-                if vardef.datatype in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
+                if vardef.datatype.isnumeric():
                     assert vardef.size == [1]
                     if vardef.datatype == DataType.BYTE:
                         self.p("{:s}\v.byte  ?".format(vardef.name))
@@ -385,33 +406,29 @@ class AssemblyGenerator:
                     assert len(vardef.size) == 2
                     self.p("{:s}\v.fill  {:d}\t\t; matrix {:d}*{:d} bytes"
                            .format(vardef.name, vardef.size[0] * vardef.size[1], vardef.size[0], vardef.size[1]))
-                elif vardef.datatype in STRING_DATATYPES:
+                elif vardef.datatype.isstring():
                     string_vars.append(vardef)
                 else:
                     raise CodeError("unknown variable type " + str(vardef.datatype))
-            if string_vars:
-                self.p("il65_string_vars_start")
-                for svar in sorted(string_vars, key=lambda v: v.name):      # must be the same order as in the init routine!!!
-                    self.p("{:s}\v.fill  {:d}+1\t\t; {}".format(svar.name, len(svar.value), svar.datatype.name.lower()))
+            # string vars are considered to be a constant, and are not re-initialized.
         self.p("")
 
-    def _generate_string_var(self, vardef: VarDef, init: bool=False) -> None:
-        prefix = "_init_str_" if init else ""
+    def _generate_string_var(self, vardef: VarDef) -> None:
         if vardef.datatype == DataType.STRING:
             # 0-terminated string
-            self.p("{:s}{:s}\n\v.null  {:s}".format(prefix, vardef.name, self.output_string(str(vardef.value))))
+            self.p("{:s}\n\v.null  {:s}".format(vardef.name, self.output_string(str(vardef.value))))
         elif vardef.datatype == DataType.STRING_P:
             # pascal string
-            self.p("{:s}{:s}\n\v.ptext  {:s}".format(prefix, vardef.name, self.output_string(str(vardef.value))))
+            self.p("{:s}\n\v.ptext  {:s}".format(vardef.name, self.output_string(str(vardef.value))))
         elif vardef.datatype == DataType.STRING_S:
             # 0-terminated string in screencode encoding
             self.p(".enc  'screen'")
-            self.p("{:s}{:s}\n\v.null  {:s}".format(prefix, vardef.name, self.output_string(str(vardef.value), True)))
+            self.p("{:s}\n\v.null  {:s}".format(vardef.name, self.output_string(str(vardef.value), True)))
             self.p(".enc  'none'")
         elif vardef.datatype == DataType.STRING_PS:
             # 0-terminated pascal string in screencode encoding
             self.p(".enc  'screen'")
-            self.p("{:s}{:s}n\v.ptext  {:s}".format(prefix, vardef.name, self.output_string(str(vardef.value), True)))
+            self.p("{:s}n\v.ptext  {:s}".format(vardef.name, self.output_string(str(vardef.value), True)))
             self.p(".enc  'none'")
 
     def generate_statement(self, stmt: AstNode) -> None:

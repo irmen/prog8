@@ -34,7 +34,6 @@ bar:    goto $c000
         ; ----
 
         goto sub1
-        ;goto sub2 (1  )         ; @todo error, must be return sub2(1)   -> optimized in 'tail call'
         return  sub2 (  )
         return  sub2 ()
         return  sub2 (1  )
@@ -47,13 +46,12 @@ bar:    goto $c000
         return  sub4 (string="hello", other = 42)
         return  bar  ()
 	goto [AX]
-	; goto [AX()]     % ; @todo error, must be return()
 	goto [var1]
 	goto   [mem1]                 ; comment
 	goto $c000
 	goto 64738
-	64738(1,2)         ;  @todo jsr $64738 ??
-	return 9999()         ;  @todo jsr 9999 ??
+	64738(1,2)         ;  @todo should be jsr $64738
+	return 9999()         ;  @todo should be jmp 9999 ?
 	return [AX]()
 	return  [var1]   ()       ; comment
 	return [mem1] ()
@@ -63,13 +61,12 @@ bar:    goto $c000
 	return $c2()
 	goto [$c2.word]
 	return 33
-	return [$c2.word]               ; @todo this as rvalue
-	; [ $c2.word  (4) ]                 ;@ todo parse precedence
+	return [$c2.word]
 	return [$c2.word]  (4)
 	return [$c2.word]  (4)
 	return [$c2.word]  (4)
 	return [$c2.word]  (4)
-	; return [$c2dd.word] (  )         ;@ todo parse precedence
+	return [$c2dd.word] (  )
 	goto [$c2dd.word]
 
         %asm {
@@ -128,9 +125,8 @@ bar:    goto $c000
 	[AX]()
 	[var1] (  )
 	[mem1]    ()
-	A= [$c2.word(4)]
-	;A= [$c2.word()   ] ; @todo Precedence?
-	;A= [$c2dd.word() ] ; @todo Precedence?
+	A= [$c2.word]
+	A= [$c2dd.word ]
 	$c000()
 	$c2()
 

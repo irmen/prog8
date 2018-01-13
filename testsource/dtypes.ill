@@ -78,7 +78,7 @@
 	var  .stext             stext   = 'screencodes-null'
 	var  .pstext            pstext  = "screencodes-pascal"
 
-	var  .matrix( 2, 400 ) uninitmatrix
+	var  .matrix( 2, 128 ) uninitmatrix
 	var  .matrix(10, 20)   initmatrix1      = $12
 	var  .matrix(10, 20)   initmatrix1b     = true
 	var  .matrix(10, 20)   initmatrix1c     = '@'
@@ -305,7 +305,7 @@ start:
         AY = "text-immediate"   ; reuses existing
         AX = "another"
         AX = ""
-        ;*$c000.word = "another"               ; reuse    @ todo precedence?
-        ;*$c100.word = "text-immediate"        ; reuse @ todo precedence?
-        ;*$c200.word = ""        ; reuse  @ todo precedence?
+        [$c000.word] = "another"               ; must reuse string
+        [$c100.word] = "text-immediate"        ; must reuse string
+        [$c200.word] = ""        ; must reuse string
 }

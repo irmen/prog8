@@ -247,12 +247,17 @@ logic and several utility routines that do I/O, such as  ``print_string``.
         The ``%asm {`` and ``}`` start and end markers each have to be on their own unique line.
 
 
-### Program Entry Point
+### Program Start and Entry Point
 
 Every program has to have one entry point where code execution begins.
 The compiler looks for the ``start`` label in the ``main`` block for this.
 For proper program termination, this block has to end with a ``return`` statement (or a ``goto`` call).
 Blocks and other details are described below.
+
+The initial values of your variables will be restored automatically when the program is (re)started,
+*except for string variables*. It is assumed they are unchanged by your program.
+If you do modify them in-place, you should take care yourself that they work as
+expected when the program is restarted. 
 
 
 ### Blocks

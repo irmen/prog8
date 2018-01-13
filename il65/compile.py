@@ -16,7 +16,7 @@ from .plyparse import parse_file, ParseError, Module, Directive, Block, Subrouti
     SymbolName, Dereference, AddressOf
 from .plylex import SourceRef, print_bold
 from .optimize import optimize
-from .datatypes import DataType, VarType, STRING_DATATYPES
+from .datatypes import DataType, VarType
 
 
 class CompileError(Exception):
@@ -42,7 +42,6 @@ class PlyParser:
                 # these shall only be done on the main module after all imports have been done:
                 self.apply_directive_options(module)
                 self.determine_subroutine_usage(module)
-                # XXX merge zero page from imported modules??? do we still have to do that?
                 self.allocate_zeropage_vars(module)
         except ParseError as x:
             self.handle_parse_error(x)
@@ -85,6 +84,8 @@ class PlyParser:
             return
         zeropage = Zeropage(module.zp_options)
         for vardef in zpnode.scope.filter_nodes(VarDef):
+            if vardef.datatype.isstring():
+                raise ParseError("cannot put strings in the zeropage", vardef.sourceref)
             try:
                 if vardef.vartype == VarType.VAR:
                     vardef.zp_address = zeropage.allocate(vardef)
@@ -293,7 +294,7 @@ class PlyParser:
             if len(splits) == 2:
                 for match in re.finditer(r"(?P<symbol>[a-zA-Z_$][a-zA-Z0-9_\.]+)", splits[1]):
                     name = match.group("symbol")
-                    if name[0] == '$' or "." not in name:
+                    if name[0] == '$':
                         continue
                     try:
                         symbol = parent_scope[name]
@@ -301,8 +302,11 @@ class PlyParser:
                         pass
                     else:
                         if isinstance(symbol, Subroutine):
-                            namespace, name = name.rsplit(".", maxsplit=2)
-                            usages[(namespace, name)].add(str(asmnode.sourceref))
+                            if symbol.scope:
+                                namespace = symbol.scope.parent_scope.name
+                            else:
+                                namespace, name = name.rsplit(".", maxsplit=2)
+                            usages[(namespace, symbol.name)].add(str(asmnode.sourceref))
 
     def check_directives(self, module: Module) -> None:
         for node, parent in module.all_scopes():
@@ -460,7 +464,7 @@ class Zeropage:
         elif vardef.datatype == DataType.MATRIX:
             print_bold("warning: {}: allocating a large datatype in zeropage".format(vardef.sourceref))
             size = vardef.size[0] * vardef.size[1]
-        elif vardef.datatype in STRING_DATATYPES:
+        elif vardef.datatype.isstring():
             print_bold("warning: {}: allocating a large datatype in zeropage".format(vardef.sourceref))
             size = vardef.size[0]
         else:
