@@ -116,7 +116,8 @@ The normal IRQ routine in the C-64's kernal will read and write several location
 
 These locations will not be used by the compiler for zero page variables, so your variables will
 not interfere with the IRQ routine and vice versa. This is true for the normal zp mode but also 
-for the mode where the whole zp has been taken over.
+for the mode where the whole zp has been taken over. So the normal IRQ vector is still
+running when your program is entered, even when you use ``%zp clobber``.
 
 
 @todo: some global way (in ZP block) to promote certian other blocks/variables from that block or even

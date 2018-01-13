@@ -1,4 +1,5 @@
 %output basic
+%zp clobber,restore
 
 ~ ZP {
 	var     zp1_1   = 200
@@ -15,6 +16,17 @@
 	var     zp2_2   = 100
 	var .word    zp2_3  = $55aa
 	var .word    zp2_4  = $66bb
+	var .word    zp2_5  = $66bc
+	var .word    zp2_6  = $66bd
+	var .word    zp2_7  = $66be
+	var .word    zp2_8  = $67be
+	var .word    zp2_9  = $68be
+	var .word    zp2_10  = $69be
+	var .word    zp2_11  = $69be
+	var .array(4)  array1
+	var .wordarray(4)  warray1
+	var .matrix(3,3) matrix1
+	var .text string = "bye"
 	const .text  zpc2_1  = "hello"
 	const   zpc2_2  = 0
 }
@@ -22,12 +34,31 @@
 
 ~ main {
 
-	var .text  hello_str = "hello there"
 	var .float float1 = 3.14
 	var .float float2 = 3.14
 	var .float float3 = 3.14
 	var .float float4 = 3.14
 	var .float float5 = 3.14
+	var .array(10)  array1
+	var .wordarray(10)  warray1
+	var .matrix(4,4) matrix1
+	var  b1 = 10
+	var  b2 = 20
+	var  b3 = 10
+	var  b4 = 20
+	var  b5 = 10
+	var  b6 = 20
+	var  b7 = 10
+	var  b8 = 30
+	var  b9 = 30
+	var  b10 = 40
+	var  b11 = 40
+	var  b12 = 30
+	var  b13 = 40
+	var  b14 = 0
+	var  b15 = 0
+	var  b16 = 0
+
 
 start:
 

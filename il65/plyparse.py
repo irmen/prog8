@@ -402,7 +402,7 @@ class InlineAssembly(AstNode):
     assembly = attr.ib(type=str)
 
 
-@attr.s(cmp=False, repr=False, slots=True)
+@attr.s(cmp=False, repr=True, slots=True)
 class VarDef(AstNode):
     name = attr.ib(type=str)
     vartype = attr.ib()
@@ -430,6 +430,8 @@ class VarDef(AstNode):
             assert self.size is None
             self.size = self.datatype.dimensions or [1]
             self.datatype = self.datatype.to_enum()
+        if self.datatype in {DataType.BYTEARRAY, DataType.WORDARRAY, DataType.MATRIX} and sum(self.size) in (0, 1):
+            print("warning: {}: array/matrix with size 1, use normal byte/word instead for efficiency".format(self.sourceref))
         if self.vartype == VarType.CONST and self.value is None:
             raise ParseError("constant value assignment is missing",
                              attr.evolve(self.sourceref, column=self.sourceref.column+len(self.name)))
@@ -446,7 +448,9 @@ class VarDef(AstNode):
         if self.vartype in (VarType.CONST, VarType.VAR):
             try:
                 _, self.value = coerce_value(self.datatype, self.value, self.sourceref)
-            except (TypeError, OverflowError) as x:
+            except OverflowError as x:
+                raise ParseError(str(x), self.sourceref) from None
+            except TypeError as x:
                 raise ParseError("processed expression vor vardef is not a constant value: " + str(x), self.sourceref) from None
 
 
@@ -679,11 +683,11 @@ def process_constant_expression(expr: Any, sourceref: SourceRef, symbolscope: Sc
                 else:
                     raise ExpressionEvaluationError("can only use math- or builtin function", expr.sourceref)
             elif isinstance(target, Dereference):       # '[...](1,2,3)'
-                return None  # XXX
+                raise NotImplementedError("dereferenced call")  # XXX
             elif isinstance(target, int):    # '64738()'
-                return None  # XXX
+                raise NotImplementedError("immediate address call")  # XXX
             else:
-                raise NotImplementedError("weird call target", target)  # XXX
+                raise NotImplementedError("weird call target", target)
         else:
             raise ParseError("function name required, not {}".format(expr.target.__class__.__name__), expr.sourceref)
     elif not isinstance(expr, Expression):

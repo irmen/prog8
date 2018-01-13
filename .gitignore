@@ -17,3 +17,4 @@
 __pycache__/
 parser.out
 parsetab.py
+!/il65/lib/*

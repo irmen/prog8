@@ -1,56 +1,8 @@
-; IL65 internal library routines
+; IL65 internal library routines - always included by the compiler
 ;
 ; Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
-; ;
+;
 ; indent format: TABS, size=8
-
-
-~ il65_lib_zp {
-; note: separate block so the 64tass assembler can remove this when no zp restore is required
-
-	%asm {
-
-; ---- store the Zeropage in a backup area
-save_zeropage
-		sei
-		ldx  #2
--		lda  $00,x
-		sta  zp_backup,x
-		inx
-		bne  -
-		cli
-		rts
-
-restore_zeropage
-		php
-		pha
-		txa
-		pha
-		sei
-
-		lda  $a0		; save the current jiffy clock
-		sta  zp_backup+$a0
-		lda  $a1
-		sta  zp_backup+$a1
-		lda  $a2
-		sta  zp_backup+$a2
-
-		ldx  #2
--		lda  zp_backup-2,x
-		sta  $00,x
-		inx
-		bne  -
-		cli
-		pla
-		tax
-		pla
-		plp
-		rts
-
-zp_backup	.fill  256, 0
-
-	}
-}
 
 
 ~ il65_lib {
@@ -120,7 +72,7 @@ memcopy16_up
 		rts                     ; done
 
 
-; copy memory UP from (SCRATCH_ZPWORD1) to (AY) with length X (0 = 256)
+; copy memory UP from (SCRATCH_ZPWORD1) to (AY) with length X (1 to 256, 0 meaning 256)
 ; destination must not overlap, or be before start, then overlap is possible.
 ; clobbers A, X, Y
 
@@ -128,11 +80,36 @@ memcopy
 		sta  SCRATCH_ZPWORD2
 		sty  SCRATCH_ZPWORD2+1
 		ldy  #0
--		lda  (SCRATCH_ZPWORD1),y
-		sta  (SCRATCH_ZPWORD2),y
+-		lda  (SCRATCH_ZPWORD1), y
+		sta  (SCRATCH_ZPWORD2), y
 		iny
 		dex
 		bne  -
+		rts
+
+
+; fill memory from (SCRATCH_ZPWORD1) length X (1-256, 0=256) with value in A.
+; clobbers X, Y
+memset          ldy  #0
+-               sta  (SCRATCH_ZPWORD1), y
+		iny
+		dex
+		bne  -
+		rts
+
+; fill memory from (SCRATCH_ZPWORD1) length X (1-256, 0=256) with word value in AY.
+; clobbers A, X, Y
+memsetw		sty  _mod_hi+1          ; self-modify
+		sta  _mod_lo+1          ; self-modify
+		ldy  #0
+_mod_lo		lda  #$00               ; self-modified
+                sta  (SCRATCH_ZPWORD1), y
+		iny
+_mod_hi		lda  #$00               ; self-modified
+                sta  (SCRATCH_ZPWORD1), y
+		iny
+		dex
+		bne  _mod_lo
 		rts
 
 	}

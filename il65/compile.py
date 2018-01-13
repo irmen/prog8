@@ -16,7 +16,7 @@ from .plyparse import parse_file, ParseError, Module, Directive, Block, Subrouti
     SymbolName, Dereference, AddressOf
 from .plylex import SourceRef, print_bold
 from .optimize import optimize
-from .datatypes import DataType, datatype_sizes
+from .datatypes import DataType, STRING_DATATYPES
 
 
 class CompileError(Exception):
@@ -86,7 +86,7 @@ class PlyParser:
         zeropage = Zeropage(module.zp_options)
         for vardef in zpnode.scope.filter_nodes(VarDef):
             try:
-                vardef.zp_address = zeropage.allocate(vardef.name, vardef.datatype)
+                vardef.zp_address = zeropage.allocate(vardef)
             except CompileError as x:
                 raise ParseError(str(x), vardef.sourceref)
 
@@ -108,7 +108,6 @@ class PlyParser:
                 except Exception as x:
                     self.handle_internal_error(x, "process_expressions of node {} in block {}".format(node, block.name))
 
-    @no_type_check
     def create_multiassigns(self, module: Module) -> None:
         # create multi-assign statements from nested assignments (A=B=C=5),
         # and optimize TargetRegisters down to single Register if it's just one register.
@@ -120,7 +119,7 @@ class PlyParser:
             return assign
 
         for block, parent in module.all_scopes():
-            for node in block.nodes:
+            for node in block.nodes:        # type: ignore
                 if isinstance(node, Assignment):
                     if isinstance(node.right, Assignment):
                         multi = reduce_right(node)
@@ -428,8 +427,8 @@ class Zeropage:
         assert self.SCRATCH_W1 not in self.free
         assert self.SCRATCH_W2 not in self.free
 
-    def allocate(self, name: str, datatype: DataType) -> int:
-        assert not name or name not in {a[0] for a in self.allocations.values()}, "var name is not unique"
+    def allocate(self, vardef: VarDef) -> int:
+        assert not vardef.name or vardef.name not in {a[0] for a in self.allocations.values()}, "var name is not unique"
 
         def sequential_free(location: int) -> bool:
             return all(location + i in self.free for i in range(size))
@@ -440,10 +439,30 @@ class Zeropage:
         def make_allocation(location: int) -> int:
             for loc in range(location, location + size):
                 self.free.remove(loc)
-            self.allocations[location] = (name or "<unnamed>", datatype)
+            self.allocations[location] = (vardef.name or "<unnamed>", vardef.datatype)
             return location
 
-        size = datatype_sizes[datatype]
+        if vardef.datatype == DataType.BYTE:
+            size = 1
+        elif vardef.datatype == DataType.WORD:
+            size = 2
+        elif vardef.datatype == DataType.FLOAT:
+            print_bold("warning: {}: allocating a large datatype in zeropage".format(vardef.sourceref))
+            size = 5
+        elif vardef.datatype == DataType.BYTEARRAY:
+            print_bold("warning: {}: allocating a large datatype in zeropage".format(vardef.sourceref))
+            size = vardef.size[0]
+        elif vardef.datatype == DataType.WORDARRAY:
+            print_bold("warning: {}: allocating a large datatype in zeropage".format(vardef.sourceref))
+            size = vardef.size[0] * 2
+        elif vardef.datatype == DataType.MATRIX:
+            print_bold("warning: {}: allocating a large datatype in zeropage".format(vardef.sourceref))
+            size = vardef.size[0] * vardef.size[1]
+        elif vardef.datatype in STRING_DATATYPES:
+            print_bold("warning: {}: allocating a large datatype in zeropage".format(vardef.sourceref))
+            size = vardef.size[0]
+        else:
+            raise CompileError("cannot put datatype {:s} in ZP".format(vardef.datatype.name))
         if len(self.free) > 0:
             if size == 1:
                 for candidate in range(min(self.free), max(self.free)+1):

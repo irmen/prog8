@@ -5,6 +5,7 @@ This is the assembly code generator (from the parse tree)
 Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
+import os
 import re
 import subprocess
 import datetime
@@ -13,7 +14,7 @@ from typing import Dict, TextIO, List, Any
 from .plylex import print_bold
 from .plyparse import Module, ProgramFormat, Block, Directive, VarDef, Label, Subroutine, AstNode, ZpOptions, \
     InlineAssembly, Return, Register, LiteralValue
-from .datatypes import VarType, DataType, datatype_sizes, to_hex, mflpt5_to_float, to_mflpt5, STRING_DATATYPES
+from .datatypes import VarType, DataType, to_hex, to_mflpt5, STRING_DATATYPES
 
 
 class CodeError(Exception):
@@ -89,9 +90,9 @@ class AssemblyGenerator:
                 self.p("* = " + to_hex(self.module.address))
                 year = datetime.datetime.now().year
                 self.p("\v.word  (+), {:d}".format(year))
-                self.p("\v.null  $9e, format(' %d ', _il65_sysaddr), $3a, $8f, ' il65 by idj'")
+                self.p("\v.null  $9e, format(' %d ', _il65_entrypoint), $3a, $8f, ' il65 by idj'")
                 self.p("+\v.word  0")
-                self.p("_il65_sysaddr\v; assembly code starts here\n")
+                self.p("_il65_entrypoint\v; assembly code starts here\n")
             else:
                 self.p("; ---- program without sys call ----")
                 self.p("* = " + to_hex(self.module.address) + "\n")
@@ -101,7 +102,7 @@ class AssemblyGenerator:
 
     def init_vars_and_start(self) -> None:
         if self.module.zp_options == ZpOptions.CLOBBER_RESTORE:
-            self.p("\vjsr  il65_lib_zp.save_zeropage")
+            self.p("\vjsr  _il65_save_zeropage")
         self.p("\v; initialize all blocks (reset vars)")
         if self.module.zeropage():
             self.p("\vjsr  ZP._il65_init_block")
@@ -112,7 +113,12 @@ class AssemblyGenerator:
         if self.module.zp_options == ZpOptions.CLOBBER_RESTORE:
             self.p("\vjsr  {:s}.start".format(self.module.main().label))
             self.p("\vcld")
-            self.p("\vjmp  il65_lib_zp.restore_zeropage")
+            self.p("\vjmp  _il65_restore_zeropage\n")
+            # include the assembly code for the save/restore zeropage routines
+            zprestorefile = os.path.join(os.path.split(__file__)[0], "lib", "restorezp.asm")
+            with open(zprestorefile, "rU") as f:
+                for line in f.readlines():
+                    self.p(line.rstrip("\n"))
         else:
             self.p("\vjmp  {:s}.start".format(self.module.main().label))
         self.p("")
@@ -215,41 +221,61 @@ class AssemblyGenerator:
     def generate_block_init(self, block: Block) -> None:
         # generate the block initializer
         # @todo add a block initializer subroutine that can contain custom reset/init code? (static initializer)
+
+        def _memset(varname: str, value: int, size: int) -> None:
+            value = value or 0
+            self.p("\vlda  #<" + varname)
+            self.p("\vsta  il65_lib.SCRATCH_ZPWORD1")
+            self.p("\vlda  #>" + varname)
+            self.p("\vsta  il65_lib.SCRATCH_ZPWORD1+1")
+            self.p("\vlda  #" + to_hex(value))
+            self.p("\vldx  #" + to_hex(size))
+            self.p("\vjsr  il65_lib.memset")
+
+        def _memsetw(varname: str, value: int, size: int) -> None:
+            value = value or 0
+            self.p("\vlda  #<" + varname)
+            self.p("\vsta  il65_lib.SCRATCH_ZPWORD1")
+            self.p("\vlda  #>" + varname)
+            self.p("\vsta  il65_lib.SCRATCH_ZPWORD1+1")
+            self.p("\vlda  #<" + to_hex(value))
+            self.p("\vldy  #>" + to_hex(value))
+            self.p("\vldx  #" + to_hex(size))
+            self.p("\vjsr  il65_lib.memsetw")
+
         self.p("_il65_init_block\v; (re)set vars to initial values")
-        self.p("\vlda  #0\n\vldx  #0")
         float_inits = {}
         string_inits = []
-        prev_value = 0
-        vardefs = [vd for vd in block.scope.filter_nodes(VarDef) if vd.vartype == VarType.VAR]
-        # @todo optimize init order (sort on value first to avoid needless register loads, etc)
-        for variable in vardefs:
-            vname = variable.name
-            vvalue = variable.value
-            if variable.datatype == DataType.BYTE:
-                if vvalue != prev_value:
-                    self.p("\vlda  #${:02x}".format(vvalue))
-                    prev_value = vvalue
-                self.p("\vsta  {:s}".format(vname))
-            elif variable.datatype == DataType.WORD:
-                if vvalue != prev_value:
-                    self.p("\vlda  #<${:04x}".format(vvalue))
-                    self.p("\vldx  #>${:04x}".format(vvalue))
-                    prev_value = vvalue
-                self.p("\vsta  {:s}".format(vname))
-                self.p("\vstx  {:s}+1".format(vname))
-            elif variable.datatype == DataType.FLOAT:
-                fpbytes = to_mflpt5(vvalue)  # type: ignore
-                float_inits[variable.name] = (vname, fpbytes, vvalue)
-            elif variable.datatype in STRING_DATATYPES:
-                string_inits.append(variable)
-            elif variable.datatype == DataType.BYTEARRAY:
-                pass   # @todo init bytearray
-            elif variable.datatype == DataType.WORDARRAY:
-                pass  # @todo init wordarray
-            elif variable.datatype == DataType.MATRIX:
-                pass  # @todo init matrix
-            else:
-                raise CodeError("weird var datatype", variable.datatype)
+        prev_value_a, prev_value_x = None, None
+        vars_by_datatype = defaultdict(list)  # type: Dict[DataType, List[VarDef]]
+        for vardef in block.scope.filter_nodes(VarDef):
+            if vardef.vartype == VarType.VAR:
+                vars_by_datatype[vardef.datatype].append(vardef)
+        for bytevar in sorted(vars_by_datatype[DataType.BYTE], key=lambda vd: vd.value):
+            if bytevar.value != prev_value_a:
+                self.p("\vlda  #${:02x}".format(bytevar.value))
+                prev_value_a = bytevar.value
+            self.p("\vsta  {:s}".format(bytevar.name))
+        for wordvar in sorted(vars_by_datatype[DataType.WORD], key=lambda vd: vd.value):
+            v_hi, v_lo = divmod(wordvar.value, 256)
+            if v_hi != prev_value_a:
+                self.p("\vlda  #${:02x}".format(v_hi))
+                prev_value_a = v_hi
+            if v_lo != prev_value_x:
+                self.p("\vldx  #${:02x}".format(v_lo))
+                prev_value_x = v_lo
+            self.p("\vsta  {:s}".format(wordvar.name))
+            self.p("\vstx  {:s}+1".format(wordvar.name))
+        for floatvar in vars_by_datatype[DataType.FLOAT]:
+            fpbytes = to_mflpt5(floatvar.value)  # type: ignore
+            float_inits[floatvar.name] = (floatvar.name, fpbytes, floatvar.value)
+        for arrayvar in vars_by_datatype[DataType.BYTEARRAY]:
+            _memset(arrayvar.name, arrayvar.value, arrayvar.size[0])
+        for arrayvar in vars_by_datatype[DataType.WORDARRAY]:
+            _memsetw(arrayvar.name, arrayvar.value, arrayvar.size[0])
+        for arrayvar in vars_by_datatype[DataType.MATRIX]:
+            _memset(arrayvar.name, arrayvar.value, arrayvar.size[0] * arrayvar.size[1])
+        # @todo string datatype inits with 1 memcopy
         if float_inits:
             self.p("\vldx  #4")
             self.p("-")
@@ -258,8 +284,6 @@ class AssemblyGenerator:
                 self.p("\vsta  {:s},x".format(vname))
             self.p("\vdex")
             self.p("\vbpl  -")
-        if string_inits:
-            pass    # @todo init string block (1 memcopy)
         self.p("\vrts\n")
         for varname, (vname, fpbytes, fpvalue) in sorted(float_inits.items()):
             self.p("_init_float_{:s}\t\t.byte  ${:02x}, ${:02x}, ${:02x}, ${:02x}, ${:02x}\t; {}".format(varname, *fpbytes, fpvalue))
@@ -324,8 +348,12 @@ class AssemblyGenerator:
             # zeropage uses the zp_address we've allocated, instead of allocating memory here
             for vardef in vars_by_vartype.get(VarType.VAR, []):
                 assert vardef.zp_address is not None
-                self.p("\v{:s} = {:s}\t; {:s} ({:d})".format(vardef.name, to_hex(vardef.zp_address),
-                                                             vardef.datatype.name.lower(), datatype_sizes[vardef.datatype]))
+                if vardef.datatype in (DataType.WORDARRAY, DataType.BYTEARRAY, DataType.MATRIX):
+                    size_str = "size " + str(vardef.size)
+                else:
+                    size_str = ""
+                self.p("\v{:s} = {:s}\t; {:s} {:s}".format(vardef.name, to_hex(vardef.zp_address),
+                                                           vardef.datatype.name.lower(), size_str))
         else:
             # create definitions for the variables that takes up empty space and will be initialized at startup
             string_vars = []
