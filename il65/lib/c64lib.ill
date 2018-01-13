@@ -20,6 +20,7 @@
 		memory  .byte  SFDX		= $cb		; current key pressed (matrix value) (updated by IRQ)
 
 		memory  .byte  COLOR		= $0286		; cursor color
+		memory  .byte  HIBASE           = $0288         ; screen base address / 256 (hi-byte of screen memory address)
 		memory  .word  CINV		= $0314		; IRQ vector
 		memory  .matrix(40, 25) Screen  = $0400		; default character screen matrix
 		memory  .matrix(40, 25) Colors  = $d800		; character screen colors
@@ -452,6 +453,7 @@ sub  float_sub_SW1_from_XY  (mflt: XY) -> (?)  {
 sub  clear_screen (char:A, color: Y) -> ()  {
 	; ---- clear the character screen with the given fill character and character color.
 	;      (assumes screen is at $0400, could be altered in the future with self-modifying code)
+	;       @todo X = SCREEN ADDR HI BYTE
 
 	%asm {
 		sta  _loop + 1      ; self-modifying
@@ -486,7 +488,7 @@ sub scroll_left_full  (alsocolors: SC) -> (A?, X?, Y?)  {
 		bcs  +
 		jmp  _scroll_screen
 
-+
++               ; scroll the color memory
 		ldx  #0
 		ldy  #38
 -
@@ -509,7 +511,7 @@ sub scroll_left_full  (alsocolors: SC) -> (A?, X?, Y?)  {
 		dey
 		bpl  -
 
-_scroll_screen
+_scroll_screen  ; scroll the screen memory
 		ldx  #0
 		ldy  #38
 -
@@ -545,7 +547,7 @@ sub scroll_right_full  (alsocolors: SC) -> (A?, X?)  {
 		bcs  +
 		jmp  _scroll_screen
 
-+
++               ; scroll the color memory
 		ldx  #38
 -
 	.for row=0, row<=12, row+=1
@@ -564,7 +566,7 @@ sub scroll_right_full  (alsocolors: SC) -> (A?, X?)  {
 		dex
 		bpl  -
 
-_scroll_screen
+_scroll_screen  ; scroll the screen memory
 		ldx  #38
 -
 	.for row=0, row<=12, row+=1
@@ -596,7 +598,7 @@ sub scroll_up_full  (alsocolors: SC) -> (A?, X?)  {
 		bcs  +
 		jmp  _scroll_screen
 
-+
++               ; scroll the color memory
 		ldx #39
 -
 	.for row=1, row<=11, row+=1
@@ -615,7 +617,7 @@ sub scroll_up_full  (alsocolors: SC) -> (A?, X?)  {
 		dex
 		bpl  -
 
-_scroll_screen
+_scroll_screen  ; scroll the screen memory
 		ldx #39
 -
 	.for row=1, row<=11, row+=1
@@ -647,7 +649,7 @@ sub scroll_down_full  (alsocolors: SC) -> (A?, X?)  {
 		bcs  +
 		jmp  _scroll_screen
 
-+
++               ; scroll the color memory
 		ldx #39
 -
 	.for row=23, row>=12, row-=1
@@ -666,7 +668,7 @@ sub scroll_down_full  (alsocolors: SC) -> (A?, X?)  {
 		dex
 		bpl  -
 
-_scroll_screen
+_scroll_screen  ; scroll the screen memory
 		ldx #39
 -
 	.for row=23, row>=12, row-=1

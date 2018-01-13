@@ -56,7 +56,8 @@ def main() -> None:
         print()
         if args.startvice:
             print("Autostart vice emulator...")
-            cmdline = ["x64", "-remotemonitor", "-moncommands", mon_command_file,
+            # "-remotemonitor"
+            cmdline = ["x64", "-moncommands", mon_command_file,
                        "-autostartprgmode", "1", "-autostart-warp", "-autostart", program_filename]
             with open(os.devnull, "wb") as shutup:
                 subprocess.call(cmdline, stdout=shutup)

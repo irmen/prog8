@@ -203,12 +203,13 @@ def dimensions_validator(obj: 'DatatypeNode', attrib: attr.Attribute, value: Lis
         else:
             raise ParseError("array must have only one dimension", obj.sourceref)
     if dt == DataType.MATRIX:
-        if len(value) == 2:
-            size = value[0] * value[1]
-            if size <= 0 or size > 0x8000:
-                raise ParseError("matrix size columns * rows must be 1..32768", obj.sourceref)
-        else:
-            raise ParseError("matrix must have two dimensions", obj.sourceref)
+        if len(value) < 2 or len(value) > 3:
+            raise ParseError("matrix must have two dimensions, with optional interleave", obj.sourceref)
+        if len(value) == 3:
+            if value[2] < 1 or value[2] > 256:
+                raise ParseError("matrix interleave must be 1..256", obj.sourceref)
+        if value[0] < 0 or value[0] > 128 or value[1] < 0 or value[1] > 128:
+            raise ParseError("matrix rows and columns must be 1..128", obj.sourceref)
 
 
 @attr.s(cmp=False, repr=False)
@@ -440,6 +441,10 @@ class VarDef(AstNode):
             self.value.processed_expr_must_be_constant = True
         elif self.value is None and self.datatype in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
             self.value = 0
+        # if it's a matrix with interleave, it must be memory mapped
+        if self.datatype == DataType.MATRIX and len(self.size) == 3:
+            if self.vartype != VarType.MEMORY:
+                raise ParseError("matrix with interleave can only be a memory-mapped variable", self.sourceref)
         # note: value coercion is done later, when all expressions are evaluated
 
     def process_expressions(self, scope: Scope) -> None:

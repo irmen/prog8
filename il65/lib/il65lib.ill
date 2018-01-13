@@ -88,29 +88,84 @@ memcopy
 		rts
 
 
-; fill memory from (SCRATCH_ZPWORD1) length X (1-256, 0=256) with value in A.
+; fill memory from (SCRATCH_ZPWORD1), length XY, with value in A.
 ; clobbers X, Y
-memset          ldy  #0
--               sta  (SCRATCH_ZPWORD1), y
-		iny
-		dex
-		bne  -
-		rts
-
-; fill memory from (SCRATCH_ZPWORD1) length X (1-256, 0=256) with word value in AY.
-; clobbers A, X, Y
-memsetw		sty  _mod_hi+1          ; self-modify
-		sta  _mod_lo+1          ; self-modify
+memset          stx  SCRATCH_ZP1
+		sty  SCRATCH_ZP2
 		ldy  #0
-_mod_lo		lda  #$00               ; self-modified
-                sta  (SCRATCH_ZPWORD1), y
+		ldx  SCRATCH_ZP2
+		beq  _lastpage
+
+_fullpage	sta  (SCRATCH_ZPWORD1),y
 		iny
-_mod_hi		lda  #$00               ; self-modified
-                sta  (SCRATCH_ZPWORD1), y
-		iny
+		bne  _fullpage
+		inc  SCRATCH_ZPWORD1+1          ; next page
 		dex
-		bne  _mod_lo
-		rts
+		bne  _fullpage
+
+_lastpage	ldy  SCRATCH_ZP1
+		beq  +
+-         	dey
+		sta  (SCRATCH_ZPWORD1),y
+		bne  -
+
++           	rts
+
+
+
+; fill memory from (SCRATCH_ZPWORD1) number of words in SCRATCH_ZPWORD2, with word value in AY.
+; clobbers A, X, Y
+memsetw
+		sta  _mod1+1                    ; self-modify
+		sty  _mod1b+1                   ; self-modify
+		sta  _mod2+1                    ; self-modify
+		sty  _mod2b+1                   ; self-modify
+		ldx  SCRATCH_ZPWORD1
+		stx  SCRATCH_ZP1
+		ldx  SCRATCH_ZPWORD1+1
+		inx
+		stx  SCRATCH_ZP2                ; second page
+
+		ldy  #0
+		ldx  SCRATCH_ZPWORD2+1
+		beq  _lastpage
+
+_fullpage
+_mod1           lda  #0                         ; self-modified
+		sta  (SCRATCH_ZPWORD1),y        ; first page
+		sta  (SCRATCH_ZP1),y            ; second page
+		iny
+_mod1b		lda  #0                         ; self-modified
+		sta  (SCRATCH_ZPWORD1),y        ; first page
+		sta  (SCRATCH_ZP1),y            ; second page
+		iny
+		bne  _fullpage
+		inc  SCRATCH_ZPWORD1+1          ; next page pair
+		inc  SCRATCH_ZPWORD1+1          ; next page pair
+		inc  SCRATCH_ZP1+1              ; next page pair
+		inc  SCRATCH_ZP1+1              ; next page pair
+		dex
+		bne  _fullpage
+
+_lastpage	ldx  SCRATCH_ZPWORD2
+		beq  _done
+
+		ldy  #0
+-
+_mod2           lda  #0                         ; self-modified
+                sta  (SCRATCH_ZPWORD1), y
+		inc  SCRATCH_ZPWORD1
+		bne  _mod2b
+		inc  SCRATCH_ZPWORD1+1
+_mod2b          lda  #0                         ; self-modified
+		sta  (SCRATCH_ZPWORD1), y
+		inc  SCRATCH_ZPWORD1
+		bne  +
+		inc  SCRATCH_ZPWORD1+1
++               dex
+		bne  -
+_done		rts
+
 
 	}
 }

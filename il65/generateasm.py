@@ -338,9 +338,14 @@ class AssemblyGenerator:
                 assert len(vardef.size) == 1
                 self.p("\v{:s} = {:s}\t; array of {:d} words".format(vardef.name, to_hex(vardef.value), vardef.size[0]))
             elif vardef.datatype == DataType.MATRIX:
-                assert len(vardef.size) == 2
-                self.p("\v{:s} = {:s}\t; matrix of {:d} by {:d} = {:d} bytes"
-                       .format(vardef.name, to_hex(vardef.value), vardef.size[0], vardef.size[1], vardef.size[0]*vardef.size[1]))
+                assert len(vardef.size) in (2, 3)
+                if len(vardef.size) == 2:
+                    comment = "matrix of {:d} by {:d} = {:d} bytes".format(vardef.size[0], vardef.size[1], vardef.size[0]*vardef.size[1])
+                elif len(vardef.size) == 3:
+                    comment = "matrix of {:d} by {:d}, interleave {:d}".format(vardef.size[0], vardef.size[1], vardef.size[2])
+                else:
+                    raise CodeError("matrix size should be 2 or 3 numbers")
+                self.p("\v{:s} = {:s}\t; {:s}".format(vardef.name, to_hex(vardef.value), comment))
             else:
                 raise CodeError("invalid var type")
         self.p("; normal variables - initial values will be set by init code")

@@ -594,6 +594,9 @@ Allows us to create pre calculated sine tables and such. Something like:
 
 - strings: identical operations as on lists.
 
+- matrix with row-interleave can only be a memory mapped variable and can be used to directly
+  access a rectangular area within another piece of memory - such as a rectangle on the (character) screen
+
 these should call (or emit inline) optimized pieces of assembly code, so they run as fast as possible
 
 

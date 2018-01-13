@@ -86,7 +86,8 @@ class PlyParser:
         zeropage = Zeropage(module.zp_options)
         for vardef in zpnode.scope.filter_nodes(VarDef):
             try:
-                vardef.zp_address = zeropage.allocate(vardef)
+                if vardef.vartype == VarType.VAR:
+                    vardef.zp_address = zeropage.allocate(vardef)
             except CompileError as x:
                 raise ParseError(str(x), vardef.sourceref)
 
