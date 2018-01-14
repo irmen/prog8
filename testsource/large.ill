@@ -295,7 +295,7 @@ max:
         initfloat2 = initword2
 	initfloat1 = uninitfloat
 	initfloat1 = initfloat2
-
+%noreturn
 }
 
 
@@ -404,6 +404,7 @@ bar:
 	constw()
 	sub1()
 	main.start()
+	%noreturn
 }
 
 ~ blockdtypes2 {
@@ -648,7 +649,7 @@ max:
         initfloat2 = initword2
 	initfloat1 = uninitfloat
 	initfloat1 = initfloat2
-
+%noreturn
 }
 
 
@@ -757,6 +758,7 @@ bar:
 	constw()
 	sub1()
 	main.start()
+%noreturn
 }
 
 ~ blockdtypes3 {
@@ -1001,7 +1003,7 @@ max:
         initfloat2 = initword2
 	initfloat1 = uninitfloat
 	initfloat1 = initfloat2
-
+%noreturn
 }
 
 
@@ -1110,6 +1112,7 @@ bar:
 	constw()
 	sub1()
 	main.start()
+%noreturn
 }
 
 ~ blockdtypes4 {
@@ -1354,7 +1357,7 @@ max:
         initfloat2 = initword2
 	initfloat1 = uninitfloat
 	initfloat1 = initfloat2
-
+%noreturn
 }
 
 
@@ -1463,6 +1466,7 @@ bar:
 	constw()
 	sub1()
 	main.start()
+%noreturn
 }
 
 ~ blockdtypes5 {
@@ -1707,7 +1711,7 @@ max:
         initfloat2 = initword2
 	initfloat1 = uninitfloat
 	initfloat1 = initfloat2
-
+%noreturn
 }
 
 
@@ -1816,6 +1820,7 @@ bar:
 	constw()
 	sub1()
 	main.start()
+%noreturn
 }
 
 ~ blockdtypes6 {
@@ -2060,7 +2065,7 @@ max:
         initfloat2 = initword2
 	initfloat1 = uninitfloat
 	initfloat1 = initfloat2
-
+%noreturn
 }
 
 
@@ -2169,6 +2174,7 @@ bar:
 	constw()
 	sub1()
 	main.start()
+%noreturn
 }
 
 ~ blockdtypes7 {
@@ -2413,7 +2419,7 @@ max:
         initfloat2 = initword2
 	initfloat1 = uninitfloat
 	initfloat1 = initfloat2
-
+%noreturn
 }
 
 
@@ -2522,6 +2528,7 @@ bar:
 	constw()
 	sub1()
 	main.start()
+%noreturn
 }
 
 ~ blockdtypes8 {
@@ -2766,7 +2773,7 @@ max:
         initfloat2 = initword2
 	initfloat1 = uninitfloat
 	initfloat1 = initfloat2
-
+%noreturn
 }
 
 
@@ -2875,6 +2882,7 @@ bar:
 	constw()
 	sub1()
 	main.start()
+%noreturn
 }
 
 ~ blockdtypes9 {
@@ -3119,7 +3127,7 @@ max:
         initfloat2 = initword2
 	initfloat1 = uninitfloat
 	initfloat1 = initfloat2
-
+%noreturn
 }
 
 
@@ -3228,6 +3236,7 @@ bar:
 	constw()
 	sub1()
 	main.start()
+%noreturn
 }
 
 ~ blockdtypes10 {
@@ -3472,7 +3481,7 @@ max:
         initfloat2 = initword2
 	initfloat1 = uninitfloat
 	initfloat1 = initfloat2
-
+%noreturn
 }
 
 
@@ -3581,6 +3590,7 @@ bar:
 	constw()
 	sub1()
 	main.start()
+%noreturn
 }
 
 ~ blockdtypes11 {
@@ -3825,7 +3835,7 @@ max:
         initfloat2 = initword2
 	initfloat1 = uninitfloat
 	initfloat1 = initfloat2
-
+%noreturn
 }
 
 
@@ -3934,6 +3944,7 @@ bar:
 	constw()
 	sub1()
 	main.start()
+%noreturn
 }
 
 ~ blockdtypes12 {
@@ -4178,7 +4189,7 @@ max:
         initfloat2 = initword2
 	initfloat1 = uninitfloat
 	initfloat1 = initfloat2
-
+%noreturn
 }
 
 
@@ -4287,6 +4298,7 @@ bar:
 	constw()
 	sub1()
 	main.start()
+%noreturn
 }
 
 ~ blockdtypes13 {
@@ -4531,7 +4543,7 @@ max:
         initfloat2 = initword2
 	initfloat1 = uninitfloat
 	initfloat1 = initfloat2
-
+%noreturn
 }
 
 
@@ -4640,6 +4652,7 @@ bar:
 	constw()
 	sub1()
 	main.start()
+%noreturn
 }
 
 ~ blockdtypes14 {
@@ -4884,7 +4897,7 @@ max:
         initfloat2 = initword2
 	initfloat1 = uninitfloat
 	initfloat1 = initfloat2
-
+%noreturn
 }
 
 
@@ -4993,6 +5006,7 @@ bar:
 	constw()
 	sub1()
 	main.start()
+%noreturn
 }
 
 ~ blockdtypes15 {
@@ -5237,7 +5251,7 @@ max:
         initfloat2 = initword2
 	initfloat1 = uninitfloat
 	initfloat1 = initfloat2
-
+%noreturn
 }
 
 
@@ -5346,6 +5360,7 @@ bar:
 	constw()
 	sub1()
 	main.start()
+%noreturn
 }
 
 ~ blockdtypes16 {
@@ -5590,7 +5605,7 @@ max:
         initfloat2 = initword2
 	initfloat1 = uninitfloat
 	initfloat1 = initfloat2
-
+%noreturn
 }
 
 
@@ -5699,6 +5714,7 @@ bar:
 	constw()
 	sub1()
 	main.start()
+%noreturn
 }
 
 ~ blockdtypes17 {
@@ -5943,7 +5959,7 @@ max:
         initfloat2 = initword2
 	initfloat1 = uninitfloat
 	initfloat1 = initfloat2
-
+%noreturn
 }
 
 
@@ -6052,6 +6068,7 @@ bar:
 	constw()
 	sub1()
 	main.start()
+%noreturn
 }
 
 ~ blockdtypes18 {
@@ -6296,7 +6313,7 @@ max:
         initfloat2 = initword2
 	initfloat1 = uninitfloat
 	initfloat1 = initfloat2
-
+%noreturn
 }
 
 
@@ -6405,6 +6422,7 @@ bar:
 	constw()
 	sub1()
 	main.start()
+%noreturn
 }
 
 ~ blockdtypes19 {
@@ -6649,7 +6667,7 @@ max:
         initfloat2 = initword2
 	initfloat1 = uninitfloat
 	initfloat1 = initfloat2
-
+%noreturn
 }
 
 
@@ -6758,6 +6776,7 @@ bar:
 	constw()
 	sub1()
 	main.start()
+%noreturn
 }
 
 ~ blockdtypes20 {
@@ -7002,7 +7021,7 @@ max:
         initfloat2 = initword2
 	initfloat1 = uninitfloat
 	initfloat1 = initfloat2
-
+%noreturn
 }
 
 
@@ -7111,5 +7130,6 @@ bar:
 	constw()
 	sub1()
 	main.start()
+%noreturn
 }
 

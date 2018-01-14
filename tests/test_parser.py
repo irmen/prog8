@@ -1,6 +1,13 @@
 from il65.plylex import lexer, tokens, find_tok_column, literals, reserved, SourceRef
 from il65.plyparse import parser, TokenFilter, Module, Subroutine, Block, Return, Scope, \
-    VarDef, Expression, LiteralValue, Label, SubCall, CallTarget, SymbolName
+    VarDef, Expression, LiteralValue, Label, SubCall, CallTarget, SymbolName, Dereference
+from il65.datatypes import DataType
+
+
+def lexer_error(sourceref: SourceRef, fmtstring: str, *args: str) -> None:
+    print("ERROR: {}: {}".format(sourceref, fmtstring.format(*args)))
+
+lexer.error_function = lexer_error
 
 
 def test_lexer_definitions():
@@ -184,10 +191,10 @@ def test_parser_2():
 
 test_source_3 = """
 ~ {
-    goto.XY = 5
-    AX.text = 5
     [$c000.word] = 5
-    [AX.word] = 5
+    [$c000 .byte] = 5
+    [AX .word] = 5
+    [AX .float] = 5
 }
 """
 
@@ -202,7 +209,27 @@ def test_typespec():
     assert assignment2.right.value == 5
     assert assignment3.right.value == 5
     assert assignment4.right.value == 5
-    print("A1", assignment1.left)
-    print("A2", assignment2.left)
-    print("A3", assignment3.left)
-    print("A4", assignment4.left)
+    assert len(assignment1.left) == 1
+    assert len(assignment2.left) == 1
+    assert len(assignment3.left) == 1
+    assert len(assignment4.left) == 1
+    t1 = assignment1.left[0]
+    t2 = assignment2.left[0]
+    t3 = assignment3.left[0]
+    t4 = assignment4.left[0]
+    assert isinstance(t1, Dereference)
+    assert isinstance(t2, Dereference)
+    assert isinstance(t3, Dereference)
+    assert isinstance(t4, Dereference)
+    assert t1.location == 0xc000
+    assert t2.location == 0xc000
+    assert t3.location == "AX"
+    assert t4.location == "AX"
+    assert t1.datatype == DataType.WORD
+    assert t2.datatype == DataType.BYTE
+    assert t3.datatype == DataType.WORD
+    assert t4.datatype == DataType.FLOAT
+    assert t1.size is None
+    assert t2.size is None
+    assert t3.size is None
+    assert t4.size is None

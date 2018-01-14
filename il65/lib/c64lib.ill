@@ -259,7 +259,7 @@ sub  init_system  () -> (?)  {
 	}
 }
 
-
+%noreturn
 }  ; ------ end of block c64
 
 
@@ -441,6 +441,8 @@ sub  float_sub_SW1_from_XY  (mflt: XY) -> (?)  {
 		jmp  c64.FTOMEMXY	; float XY = fac1
 	}
 }
+
+%noreturn
 
 }  ; ------ end of block c64flt
 
@@ -1029,6 +1031,7 @@ sub  input_chars  (buffer: AX) -> (A?, Y)  {
 	}
 }
 
+%noreturn
 
 }  ; ---- end block c64scr
 

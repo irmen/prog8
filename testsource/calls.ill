@@ -141,6 +141,8 @@ bar:    goto $c000
 	constw()
 	sub1()
 	main.start()
+	return
+
 }
 
 

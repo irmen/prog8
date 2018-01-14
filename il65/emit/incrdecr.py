@@ -1,15 +1,16 @@
 """
 Programming Language for 6502/6510 microprocessors, codename 'Sick'
 This is the code generator for the in-place incr and decr instructions.
+Incrementing or decrementing variables by 1 (or another constant amount)
+is quite frequent and this generates assembly code tweaked for this case.
 
 Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
 from typing import Callable
-from ..plyparse import Scope, VarType, VarDef, Register, TargetRegisters, IncrDecr, SymbolName, Dereference
+from ..plyparse import Scope, VarType, VarDef, Register, IncrDecr, SymbolName, Dereference, datatype_of
 from ..datatypes import DataType, REGISTER_BYTES
-from . import CodeError, to_hex, preserving_registers
-from .assignment import datatype_of
+from . import CodeError, preserving_registers
 
 
 def generate_incrdecr(out: Callable, stmt: IncrDecr, scope: Scope) -> None:
@@ -190,7 +191,7 @@ def generate_incrdecr(out: Callable, stmt: IncrDecr, scope: Scope) -> None:
                         out("\vjsr  c64flt.float_add_one")
                     else:
                         out("\vjsr  c64flt.float_sub_one")
-            elif stmt.value.name:     # XXX
+            elif NOTYETIMPLEMENTED:     # XXX  for the  float += otherfloat cases
                 with preserving_registers({'A', 'X', 'Y'}, scope, out, loads_a_within=True):
                     out("\vlda  #<" + stmt.value.name)
                     out("\vsta  c64.SCRATCH_ZPWORD1")

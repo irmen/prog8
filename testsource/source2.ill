@@ -22,4 +22,6 @@ start:
         ;%asmbinary  "   included.binary  234  "
         ;%asmbinary  "   included.binary",  $40
         %asmbinary  "included.binary",  $40, $200
+
+        return
 }

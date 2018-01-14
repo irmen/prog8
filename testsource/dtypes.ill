@@ -36,6 +36,7 @@
         var    foovar1
 	memory foomem1   = $f0f0
 	const  fooconst  = 1.234
+	return
 }
 
 
@@ -152,7 +153,8 @@ start:
 	A = 0
 	A = '@'
 	A = 1.2345
-	A = true
+	A=X=Y= true
+	A=XY= true
 	A = false
 	A = 255
 	A = X
@@ -308,4 +310,5 @@ start:
         [$c000.word] = "another"               ; must reuse string
         [$c100.word] = "text-immediate"        ; must reuse string
         [$c200.word] = ""        ; must reuse string
+        return
 }

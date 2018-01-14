@@ -13,7 +13,7 @@ from typing import Optional, Tuple, Set, Dict, List, Any, no_type_check
 import attr
 from .plyparse import parse_file, ParseError, Module, Directive, Block, Subroutine, Scope, VarDef, LiteralValue, \
     SubCall, Goto, Return, Assignment, InlineAssembly, Register, Expression, ProgramFormat, ZpOptions,\
-    SymbolName, Dereference, AddressOf, IncrDecr, TargetRegisters
+    SymbolName, Dereference, AddressOf, IncrDecr, Label, AstNode, datatype_of, coerce_constant_value
 from .plylex import SourceRef, print_bold
 from .optimize import optimize
 from .datatypes import DataType, VarType
@@ -57,15 +57,43 @@ class PlyParser:
 
     def semantic_check(self, module: Module) -> None:
         # perform semantic analysis / checks on the syntactic parse tree we have so far
+        def check_last_statement_is_return(last_stmt: AstNode) -> None:
+            if isinstance(last_stmt, Subroutine):
+                return
+            if isinstance(last_stmt, Directive) and last_stmt.name == "noreturn":
+                return
+            if isinstance(last_stmt, InlineAssembly):
+                for line in reversed(last_stmt.assembly.splitlines()):
+                    line = line.strip()
+                    if line.startswith(";"):
+                        continue
+                    if "jmp " in line or "jmp\t" in line or "rts" in line or "rti" in line:
+                        return
+            raise ParseError("last statement in a block/subroutine must be a return or goto, "
+                             "(or %noreturn directive to silence this error)", last_stmt.sourceref)
+
         for block, parent in module.all_scopes():
             assert isinstance(block, (Module, Block, Subroutine))
             assert parent is None or isinstance(parent, (Module, Block, Subroutine))
+            previous_stmt = None
             for stmt in block.nodes:
+                if isinstance(stmt, Subroutine):
+                    # the previous statement (if any) must be a Goto or Return
+                    if previous_stmt and not isinstance(previous_stmt, (Goto, Return, VarDef, Subroutine)):
+                        raise ParseError("statement preceding subroutine must be a goto or return or another subroutine", stmt.sourceref)
+                if isinstance(previous_stmt, Subroutine):
+                    # the statement after a subroutine can not be some random executable instruction because it could not be reached
+                    if not isinstance(stmt, (Subroutine, Label, Directive, InlineAssembly, VarDef)):
+                        raise ParseError("statement following a subroutine can't be runnable code, "
+                                         "at least use a label first", stmt.sourceref)
+                previous_stmt = stmt
                 if isinstance(stmt, IncrDecr):
                     if isinstance(stmt.target, SymbolName):
                         symdef = block.scope[stmt.target.name]
                         if isinstance(symdef, VarDef) and symdef.vartype == VarType.CONST:
                             raise ParseError("cannot modify a constant", stmt.sourceref)
+            if parent and block.name != "ZP" and not isinstance(stmt, (Return, Goto)):
+                check_last_statement_is_return(stmt)
 
     def check_and_merge_zeropages(self, module: Module) -> None:
         # merge all ZP blocks into one
@@ -122,6 +150,15 @@ class PlyParser:
                     raise
                 except Exception as x:
                     self.handle_internal_error(x, "process_expressions of node {} in block {}".format(node, block.name))
+                if isinstance(node, IncrDecr) and node.howmuch not in (0, 1):
+                    _, node.howmuch = coerce_constant_value(datatype_of(node.target, block.scope), node.howmuch, node.sourceref)
+                elif isinstance(node, Assignment):
+                    lvalue_types = set(datatype_of(lv, block.scope) for lv in node.left)
+                    if len(lvalue_types) == 1:
+                        _, node.right = coerce_constant_value(lvalue_types.pop(), node.right, node.sourceref)
+                    else:
+                        for lv_dt in lvalue_types:
+                            coerce_constant_value(lv_dt, node.right, node.sourceref)
 
     def create_multiassigns(self, module: Module) -> None:
         # create multi-assign statements from nested assignments (A=B=C=5),
@@ -201,7 +238,7 @@ class PlyParser:
                 for directive in block.scope.filter_nodes(Directive):
                     if directive.name == "saveregisters":
                         set_save_registers(block.scope, directive)
-                    elif directive.name in ("breakpoint", "asmbinary", "asminclude"):
+                    elif directive.name in ("breakpoint", "asmbinary", "asminclude", "noreturn"):
                         continue
                     else:
                         raise NotImplementedError(directive.name)
@@ -211,7 +248,7 @@ class PlyParser:
                     for directive in block.scope.filter_nodes(Directive):
                         if directive.name == "saveregisters":
                             set_save_registers(block.scope, directive)
-                        elif directive.name in ("breakpoint", "asmbinary", "asminclude"):
+                        elif directive.name in ("breakpoint", "asmbinary", "asminclude", "noreturn"):
                             continue
                         else:
                             raise NotImplementedError(directive.name)
@@ -326,7 +363,7 @@ class PlyParser:
                 # check module-level directives
                 imports = set()  # type: Set[str]
                 for directive in node.scope.filter_nodes(Directive):
-                    if directive.name not in {"output", "zp", "address", "import", "saveregisters"}:
+                    if directive.name not in {"output", "zp", "address", "import", "saveregisters", "noreturn"}:
                         raise ParseError("invalid directive in module", directive.sourceref)
                     if directive.name == "import":
                         if imports & set(directive.args):
@@ -339,7 +376,7 @@ class PlyParser:
                     continue
                 for sub_node in node.scope.nodes:
                     if isinstance(sub_node, Directive):
-                        if sub_node.name not in {"asmbinary", "asminclude", "breakpoint", "saveregisters"}:
+                        if sub_node.name not in {"asmbinary", "asminclude", "breakpoint", "saveregisters", "noreturn"}:
                             raise ParseError("invalid directive in " + node.__class__.__name__.lower(), sub_node.sourceref)
                         if sub_node.name == "saveregisters" and not first_node:
                             raise ParseError("saveregisters directive must be the first", sub_node.sourceref)
@@ -396,28 +433,30 @@ class PlyParser:
 
     def handle_parse_error(self, exc: ParseError) -> None:
         self.parse_errors += 1
-        if sys.stderr.isatty():
-            print("\x1b[1m", file=sys.stderr)
+        out = sys.stdout
+        if out.isatty():
+            print("\x1b[1m", file=out)
         if self.parsing_import:
-            print("Error (in imported file):", str(exc), file=sys.stderr)
+            print("Error (in imported file):", str(exc), file=out)
         else:
-            print("Error:", str(exc), file=sys.stderr)
+            print("Error:", str(exc), file=out)
         sourcetext = linecache.getline(exc.sourceref.file, exc.sourceref.line).rstrip()
         if sourcetext:
-            print("  " + sourcetext.expandtabs(8), file=sys.stderr)
+            print("  " + sourcetext.expandtabs(8), file=out)
             if exc.sourceref.column:
-                print(' ' * (1+exc.sourceref.column) + '^', file=sys.stderr)
-        if sys.stderr.isatty():
-            print("\x1b[0m", file=sys.stderr, end="", flush=True)
+                print(' ' * (1+exc.sourceref.column) + '^', file=out)
+        if out.isatty():
+            print("\x1b[0m", file=out, end="", flush=True)
 
     def handle_internal_error(self, exc: Exception, msg: str="") -> None:
-        if sys.stderr.isatty():
-            print("\x1b[1m", file=sys.stderr)
-        print("\nERROR: internal parser error: ", exc, file=sys.stderr)
+        out = sys.stdout
+        if out.isatty():
+            print("\x1b[1m", file=out)
+        print("\nERROR: internal parser error: ", exc, file=out)
         if msg:
             print("    Message:", msg, end="\n\n")
-        if sys.stderr.isatty():
-            print("\x1b[0m", file=sys.stderr, end="", flush=True)
+        if out.isatty():
+            print("\x1b[0m", file=out, end="", flush=True)
         raise exc
 
 

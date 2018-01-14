@@ -321,7 +321,7 @@ def t_error(t):
     if hasattr(t.lexer, "error_function"):
         t.lexer.error_function(sref, "illegal character '{:s}'", t.value[0])
     else:
-        print("{}: illegal character '{:s}'".format(sref, t.value[0]), file=sys.stderr)
+        print("{}: illegal character '{:s}'".format(sref, t.value[0]))
     t.lexer.skip(1)
 
 
@@ -332,7 +332,7 @@ def custom_error(t, message):
     if hasattr(t.lexer, "error_function"):
         t.lexer.error_function(sref, message)
     else:
-        print(sref, message, file=sys.stderr)
+        print(sref, message)
     t.lexer.skip(1)
 
 

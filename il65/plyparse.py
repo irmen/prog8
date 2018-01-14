@@ -13,8 +13,9 @@ from collections import defaultdict
 from typing import Union, Generator, Tuple, List, Optional, Dict, Any, Iterable
 import attr
 from ply.yacc import yacc
-from .plylex import SourceRef, tokens, lexer, find_tok_column
-from .datatypes import DataType, VarType, coerce_value, REGISTER_SYMBOLS, REGISTER_BYTES, REGISTER_WORDS
+from .plylex import SourceRef, tokens, lexer, find_tok_column, print_warning
+from .datatypes import DataType, VarType, REGISTER_SYMBOLS, REGISTER_BYTES, REGISTER_WORDS, \
+    char_to_bytevalue, FLOAT_MAX_NEGATIVE, FLOAT_MAX_POSITIVE
 
 
 class ProgramFormat(enum.Enum):
@@ -293,6 +294,8 @@ class Register(AstNode):
             self.datatype = DataType.BYTE
         elif self.name in REGISTER_WORDS:
             self.datatype = DataType.WORD
+        else:
+            self.datatype = None    # register 'SC' etc.
 
     def __hash__(self) -> int:
         return hash(self.name)
@@ -359,21 +362,21 @@ class Return(AstNode):
             self.value_A = process_expression(self.value_A, scope, self.sourceref)
             if isinstance(self.value_A, (int, float, str, bool)):
                 try:
-                    _, self.value_A = coerce_value(DataType.BYTE, self.value_A, self.sourceref)
+                    _, self.value_A = coerce_constant_value(DataType.BYTE, self.value_A, self.sourceref)
                 except (OverflowError, TypeError) as x:
                     raise ParseError("first value (A): " + str(x), self.sourceref) from None
         if self.value_X is not None:
             self.value_X = process_expression(self.value_X, scope, self.sourceref)
             if isinstance(self.value_X, (int, float, str, bool)):
                 try:
-                    _, self.value_X = coerce_value(DataType.BYTE, self.value_X, self.sourceref)
+                    _, self.value_X = coerce_constant_value(DataType.BYTE, self.value_X, self.sourceref)
                 except (OverflowError, TypeError) as x:
                     raise ParseError("second value (X): " + str(x), self.sourceref) from None
         if self.value_Y is not None:
             self.value_Y = process_expression(self.value_Y, scope, self.sourceref)
             if isinstance(self.value_Y, (int, float, str, bool)):
                 try:
-                    _, self.value_Y = coerce_value(DataType.BYTE, self.value_Y, self.sourceref)
+                    _, self.value_Y = coerce_constant_value(DataType.BYTE, self.value_Y, self.sourceref)
                 except (OverflowError, TypeError) as x:
                     raise ParseError("third value (Y): " + str(x), self.sourceref) from None
 
@@ -444,7 +447,7 @@ class VarDef(AstNode):
         assert not isinstance(self.value, Expression), "processed expression for vardef should reduce to a constant value"
         if self.vartype in (VarType.CONST, VarType.VAR):
             try:
-                _, self.value = coerce_value(self.datatype, self.value, self.sourceref)
+                _, self.value = coerce_constant_value(self.datatype, self.value, self.sourceref)
             except OverflowError as x:
                 raise ParseError(str(x), self.sourceref) from None
             except TypeError as x:
@@ -538,7 +541,7 @@ class AddressOf(AstNode):
 
 @attr.s(cmp=False, repr=False)
 class IncrDecr(AstNode):
-    # increment or decrement something by a constant value (1 or more)
+    # increment or decrement something by a CONSTANT value (1 or more)
     target = attr.ib()
     operator = attr.ib(type=str, validator=attr.validators.in_(["++", "--"]))
     howmuch = attr.ib(default=1)
@@ -614,6 +617,51 @@ class Expression(AstNode):
                        indent + str(expr.operator) + "\n" + \
                        indent + "{}".format(tree(expr.right, level + 1))
         print(tree(self, 0))
+
+
+def datatype_of(assignmenttarget: AstNode, scope: Scope) -> DataType:
+    # tries to determine the DataType of an assignment target node
+    if isinstance(assignmenttarget, (VarDef, Dereference, Register)):
+        return assignmenttarget.datatype
+    elif isinstance(assignmenttarget, SymbolName):
+        symdef = scope[assignmenttarget.name]
+        if isinstance(symdef, VarDef):
+            return symdef.datatype
+    elif isinstance(assignmenttarget, TargetRegisters):
+        if len(assignmenttarget.registers) == 1:
+            return datatype_of(assignmenttarget.registers[0], scope)
+    raise TypeError("cannot determine datatype", assignmenttarget)
+
+
+def coerce_constant_value(datatype: DataType, value: Union[int, float, str],
+                          sourceref: SourceRef=None) -> Tuple[bool, Union[int, float, str]]:
+    # if we're a BYTE type, and the value is a single character, convert it to the numeric value
+    def verify_bounds(value: Union[int, float, str]) -> None:
+        # if the value is out of bounds, raise an overflow exception
+        if isinstance(value, (int, float)):
+            if datatype == DataType.BYTE and not (0 <= value <= 0xff):       # type: ignore
+                raise OverflowError("value out of range for byte: " + str(value))
+            if datatype == DataType.WORD and not (0 <= value <= 0xffff):        # type: ignore
+                raise OverflowError("value out of range for word: " + str(value))
+            if datatype == DataType.FLOAT and not (FLOAT_MAX_NEGATIVE <= value <= FLOAT_MAX_POSITIVE):      # type: ignore
+                raise OverflowError("value out of range for float: " + str(value))
+        if datatype in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
+            if not isinstance(value, (int, float)):
+                raise TypeError("cannot assign '{:s}' to {:s}".format(type(value).__name__, datatype.name.lower()))
+    if datatype in (DataType.BYTE, DataType.BYTEARRAY, DataType.MATRIX) and isinstance(value, str):
+        if len(value) == 1:
+            return True, char_to_bytevalue(value)
+    # if we're an integer value and the passed value is float, truncate it (and give a warning)
+    if datatype in (DataType.BYTE, DataType.WORD, DataType.MATRIX) and isinstance(value, float):
+        frac = math.modf(value)
+        if frac != 0:
+            print_warning("float value truncated ({} to datatype {})".format(value, datatype.name), sourceref=sourceref)
+            value = int(value)
+            verify_bounds(value)
+            return True, value
+    if isinstance(value, (int, float)):
+        verify_bounds(value)
+    return False, value
 
 
 def process_expression(value: Any, scope: Scope, sourceref: SourceRef) -> Any:

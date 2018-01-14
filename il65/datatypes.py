@@ -67,35 +67,6 @@ FLOAT_MAX_POSITIVE = 1.7014118345e+38
 FLOAT_MAX_NEGATIVE = -1.7014118345e+38
 
 
-def coerce_value(datatype: DataType, value: Union[int, float, str], sourceref: SourceRef=None) -> Tuple[bool, Union[int, float, str]]:
-    # if we're a BYTE type, and the value is a single character, convert it to the numeric value
-    def verify_bounds(value: Union[int, float, str]) -> None:
-        # if the value is out of bounds, raise an overflow exception
-        if isinstance(value, (int, float)):
-            if datatype == DataType.BYTE and not (0 <= value <= 0xff):       # type: ignore
-                raise OverflowError("value out of range for byte: " + str(value))
-            if datatype == DataType.WORD and not (0 <= value <= 0xffff):        # type: ignore
-                raise OverflowError("value out of range for word: " + str(value))
-            if datatype == DataType.FLOAT and not (FLOAT_MAX_NEGATIVE <= value <= FLOAT_MAX_POSITIVE):      # type: ignore
-                raise OverflowError("value out of range for float: " + str(value))
-        if datatype in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
-            if not isinstance(value, (int, float)):
-                raise TypeError("cannot assign '{:s}' to {:s}".format(type(value).__name__, datatype.name.lower()))
-    if datatype in (DataType.BYTE, DataType.BYTEARRAY, DataType.MATRIX) and isinstance(value, str):
-        if len(value) == 1:
-            return True, char_to_bytevalue(value)
-    # if we're an integer value and the passed value is float, truncate it (and give a warning)
-    if datatype in (DataType.BYTE, DataType.WORD, DataType.MATRIX) and isinstance(value, float):
-        frac = math.modf(value)
-        if frac != 0:
-            print_warning("float value truncated ({} to datatype {})".format(value, datatype.name), sourceref=sourceref)
-            value = int(value)
-            verify_bounds(value)
-            return True, value
-    verify_bounds(value)
-    return False, value
-
-
 def char_to_bytevalue(character: str, petscii: bool=True) -> int:
     assert len(character) == 1
     if petscii:

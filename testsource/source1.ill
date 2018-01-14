@@ -117,6 +117,7 @@ somelabel1222:
 	const red = 2
 	const .word border2 = $d020
 	const .word screen2 = $d021
+	return
 }
 
 ~ block3 {

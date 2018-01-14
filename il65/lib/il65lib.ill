@@ -168,4 +168,6 @@ _done		rts
 
 
 	}
+
+	%noreturn
 }

@@ -117,7 +117,7 @@ class AssemblyGenerator:
             out("\vcld")
             out("\vjmp  _il65_restore_zeropage\n")
             # include the assembly code for the save/restore zeropage routines
-            zprestorefile = os.path.join(os.path.split(__file__)[0], "lib", "restorezp.asm")
+            zprestorefile = os.path.join(os.path.split(__file__)[0], "../lib", "restorezp.asm")
             with open(zprestorefile, "rU") as f:
                 for line in f.readlines():
                     out(line.rstrip("\n"))

@@ -5,7 +5,8 @@ This is the optimizer that applies various optimizations to the parse tree.
 Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
-from .plyparse import Module, Subroutine, Block, Directive, Assignment, AugAssignment, Goto, Expression, IncrDecr
+from .plyparse import Module, Subroutine, Block, Directive, Assignment, AugAssignment, Goto, Expression, IncrDecr,\
+    datatype_of, coerce_constant_value
 from .plylex import print_warning, print_bold
 
 
@@ -21,6 +22,7 @@ class Optimizer:
         self.optimize_multiassigns()
         self.remove_unused_subroutines()
         self.optimize_compare_with_zero()
+        # @todo join multiple incr/decr of same var into one (if value stays < 256)
         self.remove_empty_blocks()
 
     def optimize_assignments(self):
@@ -47,8 +49,11 @@ class Optimizer:
                             new_stmt = Assignment(left=[assignment.left], right=0, sourceref=assignment.sourceref)
                             block.scope.replace_node(assignment, new_stmt)
                         if assignment.operator in ("+=", "-=") and 0 < assignment.right < 256:
+                            howmuch = assignment.right
+                            if howmuch not in (0, 1):
+                                _, howmuch = coerce_constant_value(datatype_of(assignment.left, block.scope), howmuch, assignment.sourceref)
                             new_stmt = IncrDecr(target=assignment.left, operator="++" if assignment.operator == "+=" else "--",
-                                                howmuch=assignment.right, sourceref=assignment.sourceref)
+                                                howmuch=howmuch, sourceref=assignment.sourceref)
                             block.scope.replace_node(assignment, new_stmt)
 
     def combine_assignments_into_multi(self):
