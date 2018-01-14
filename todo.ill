@@ -1,5 +1,4 @@
 %output basic
-%import c64lib
 
 
 ~ main {
@@ -16,32 +15,18 @@
 	var  .wordarray(20)  arr2 = $ea
 
 start:
-	%asm {
+	%breakpoint abc,def
 
-	lda  zp1_1
-	jsr  c64scr.print_byte_decimal0
-	inc  zp1_1
-	lda  zp1_1
-	jsr  c64scr.print_byte_decimal0
-	inc  zp1_1
-	lda  zp1_1
-	jsr  c64scr.print_byte_decimal0
-	inc  zp1_1
-	lda  zp1_1
-	jsr  c64scr.print_byte_decimal0
-	inc  zp1_1
+	foobar()
 
-	;ldx     #<zp_s1
-	;ldy     #>zp_s1
-	;jsr     c64scr.print_string
-	;ldx     #<zp_s2
-	;ldy     #>zp_s2
-	;jsr     c64scr.print_pstring
+	return 44
 
-	;ldx     #<ctext
-	;ldy     #>ctext
-	;jsr     c64scr.print_string
-	}
+sub foobar () -> () {
+
 	return
+	%breakpoint yep
+
+	; @todo check that subs/asm blocks end with return/rts
+}
 }
 

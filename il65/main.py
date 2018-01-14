@@ -7,12 +7,57 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 
 import time
 import os
+import re
 import argparse
 import subprocess
 from .compile import PlyParser
 from .optimize import optimize
-from .generateasm import AssemblyGenerator, Assembler64Tass
+from .emit.generate import AssemblyGenerator
 from .plylex import print_bold
+from .plyparse import ProgramFormat
+
+
+class Assembler64Tass:
+    def __init__(self, format: ProgramFormat) -> None:
+        self.format = format
+
+    def assemble(self, inputfilename: str, outputfilename: str) -> None:
+        args = ["64tass", "--ascii", "--case-sensitive", "-Wall", "-Wno-strict-bool",
+                "--dump-labels", "--vice-labels", "-l", outputfilename+".vice-mon-list",
+                "-L", outputfilename+".final-asm", "--no-monitor", "--output", outputfilename, inputfilename]
+        if self.format in (ProgramFormat.PRG, ProgramFormat.BASIC):
+            args.append("--cbm-prg")
+        elif self.format == ProgramFormat.RAW:
+            args.append("--nostart")
+        else:
+            raise ValueError("don't know how to create code format "+str(self.format))
+        try:
+            if self.format == ProgramFormat.PRG:
+                print("\nCreating C-64 prg.")
+            elif self.format == ProgramFormat.RAW:
+                print("\nCreating raw binary.")
+            try:
+                subprocess.check_call(args)
+            except FileNotFoundError as x:
+                raise SystemExit("ERROR: cannot run assembler program: "+str(x))
+        except subprocess.CalledProcessError as x:
+            raise SystemExit("assembler failed with returncode " + str(x.returncode))
+
+    def generate_breakpoint_list(self, program_filename: str) -> str:
+        breakpoints = []
+        with open(program_filename + ".final-asm", "rU") as f:
+            for line in f:
+                match = re.fullmatch(AssemblyGenerator.BREAKPOINT_COMMENT_DETECTOR, line, re.DOTALL)
+                if match:
+                    breakpoints.append("$" + match.group("address"))
+        cmdfile = program_filename + ".vice-mon-list"
+        with open(cmdfile, "at") as f:
+            print("; vice monitor breakpoint list now follows", file=f)
+            print("; {:d} breakpoints have been defined here".format(len(breakpoints)), file=f)
+            print("del", file=f)
+            for b in breakpoints:
+                print("break", b, file=f)
+        return cmdfile
 
 
 def main() -> None:

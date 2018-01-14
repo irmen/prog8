@@ -12,9 +12,6 @@ from functools import total_ordering
 from .plylex import print_warning, SourceRef
 
 
-PrimitiveType = Union[int, float, str]
-
-
 @total_ordering
 class VarType(enum.Enum):
     CONST = 1
@@ -70,58 +67,9 @@ FLOAT_MAX_POSITIVE = 1.7014118345e+38
 FLOAT_MAX_NEGATIVE = -1.7014118345e+38
 
 
-def to_hex(number: int) -> str:
-    # 0..15 -> "0".."15"
-    # 16..255 -> "$10".."$ff"
-    # 256..65536 -> "$0100".."$ffff"
-    if number is None:
-        raise ValueError("number")
-    if 0 <= number < 16:
-        return str(number)
-    if 0 <= number < 0x100:
-        return "${:02x}".format(number)
-    if 0 <= number < 0x10000:
-        return "${:04x}".format(number)
-    raise OverflowError(number)
-
-
-def to_mflpt5(number: float) -> bytearray:
-    # algorithm here https://sourceforge.net/p/acme-crossass/code-0/62/tree/trunk/ACME_Lib/cbm/mflpt.a
-    number = float(number)
-    if number < FLOAT_MAX_NEGATIVE or number > FLOAT_MAX_POSITIVE:
-        raise OverflowError("floating point number out of 5-byte mflpt range", number)
-    if number == 0.0:
-        return bytearray([0, 0, 0, 0, 0])
-    if number < 0.0:
-        sign = 0x80000000
-        number = -number
-    else:
-        sign = 0x00000000
-    mant, exp = math.frexp(number)
-    exp += 128
-    if exp < 1:
-        # underflow, use zero instead
-        return bytearray([0, 0, 0, 0, 0])
-    if exp > 255:
-        raise OverflowError("floating point number out of 5-byte mflpt range", number)
-    mant = sign | int(mant * 0x100000000) & 0x7fffffff
-    return bytearray([exp]) + int.to_bytes(mant, 4, "big")
-
-
-def mflpt5_to_float(mflpt: bytearray) -> float:
-    # algorithm here https://sourceforge.net/p/acme-crossass/code-0/62/tree/trunk/ACME_Lib/cbm/mflpt.a
-    if mflpt == bytearray([0, 0, 0, 0, 0]):
-        return 0.0
-    exp = mflpt[0] - 128
-    sign = mflpt[1] & 0x80
-    number = 0x80000000 | int.from_bytes(mflpt[1:], "big")
-    number = float(number) * 2**exp / 0x100000000
-    return -number if sign else number
-
-
-def coerce_value(datatype: DataType, value: PrimitiveType, sourceref: SourceRef=None) -> Tuple[bool, PrimitiveType]:
+def coerce_value(datatype: DataType, value: Union[int, float, str], sourceref: SourceRef=None) -> Tuple[bool, Union[int, float, str]]:
     # if we're a BYTE type, and the value is a single character, convert it to the numeric value
-    def verify_bounds(value: PrimitiveType) -> None:
+    def verify_bounds(value: Union[int, float, str]) -> None:
         # if the value is out of bounds, raise an overflow exception
         if isinstance(value, (int, float)):
             if datatype == DataType.BYTE and not (0 <= value <= 0xff):       # type: ignore

@@ -101,7 +101,7 @@ class Scope(AstNode):
     symbols = attr.ib(init=False)
     name = attr.ib(init=False)          # will be set by enclosing block, or subroutine etc.
     parent_scope = attr.ib(init=False, default=None)  # will be wired up later
-    save_registers = attr.ib(type=bool, default=None, init=False)    # None = look in parent scope's setting
+    save_registers = attr.ib(type=bool, default=None, init=False)    # None = look in parent scope's setting  # @todo property that does that
 
     def __attrs_post_init__(self):
         # populate the symbol table for this scope for fast lookups via scope["name"] or scope["dotted.name"]
@@ -325,6 +325,7 @@ class Assignment(AstNode):
     def simplify_targetregisters(self) -> None:
         # optimize TargetRegisters down to single Register if it's just one register
         new_targets = []
+        assert isinstance(self.left, (list, tuple)), "assignment lvalue must be sequence"
         for t in self.left:
             if isinstance(t, TargetRegisters) and len(t.registers) == 1:
                 t = t.registers[0]
@@ -439,7 +440,7 @@ class VarDef(AstNode):
         # if the value is an expression, mark it as a *constant* expression here
         if isinstance(self.value, AstNode):
             self.value.processed_expr_must_be_constant = True
-        elif self.value is None and self.datatype.isnumeric():
+        elif self.value is None and (self.datatype.isnumeric() or self.datatype.isarray()):
             self.value = 0
         # if it's a matrix with interleave, it must be memory mapped
         if self.datatype == DataType.MATRIX and len(self.size) == 3:
