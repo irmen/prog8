@@ -5,7 +5,7 @@ This is the optimizer that applies various optimizations to the parse tree.
 Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
-from .plyparse import Module, Subroutine, Block, Directive, Assignment, AugAssignment, Goto, Expression
+from .plyparse import Module, Subroutine, Block, Directive, Assignment, AugAssignment, Goto, Expression, IncrDecr
 from .plylex import print_warning, print_bold
 
 
@@ -16,16 +16,17 @@ class Optimizer:
 
     def optimize(self) -> None:
         self.num_warnings = 0
-        self.remove_useless_assigns()
+        self.optimize_assignments()
         self.combine_assignments_into_multi()
         self.optimize_multiassigns()
         self.remove_unused_subroutines()
         self.optimize_compare_with_zero()
         self.remove_empty_blocks()
 
-    def remove_useless_assigns(self):
+    def optimize_assignments(self):
         # remove assignment statements that do nothing (A=A)
         # and augmented assignments that have no effect (A+=0)
+        # convert augmented assignments to simple incr/decr if possible (A+=10 =>  A++ by 10)
         # @todo remove or simplify logical aug assigns like A |= 0, A |= true, A |= false  (or perhaps turn them into byte values first?)
         for block, parent in self.module.all_scopes():
             for assignment in list(block.nodes):
@@ -44,6 +45,10 @@ class Optimizer:
                         if assignment.right >= 8 and assignment.operator in ("<<=", ">>="):
                             print("{}: shifting result is always zero".format(assignment.sourceref))
                             new_stmt = Assignment(left=[assignment.left], right=0, sourceref=assignment.sourceref)
+                            block.scope.replace_node(assignment, new_stmt)
+                        if assignment.operator in ("+=", "-=") and 0 < assignment.right < 256:
+                            new_stmt = IncrDecr(target=assignment.left, operator="++" if assignment.operator == "+=" else "--",
+                                                howmuch=assignment.right, sourceref=assignment.sourceref)
                             block.scope.replace_node(assignment, new_stmt)
 
     def combine_assignments_into_multi(self):

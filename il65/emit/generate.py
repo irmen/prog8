@@ -9,7 +9,7 @@ import os
 import datetime
 from typing import TextIO, Callable
 from ..plylex import print_bold
-from ..plyparse import Module, ProgramFormat, Block, Directive, VarDef, Label, Subroutine, AstNode, ZpOptions, \
+from ..plyparse import Module, Scope, ProgramFormat, Block, Directive, VarDef, Label, Subroutine, AstNode, ZpOptions, \
     InlineAssembly, Return, Register, Goto, SubCall, Assignment, AugAssignment, IncrDecr
 from . import CodeError, to_hex
 from .variables import generate_block_init, generate_block_vars
@@ -160,7 +160,7 @@ class AssemblyGenerator:
             for stmt in block.scope.nodes:
                 if isinstance(stmt, (VarDef, Subroutine)):
                     continue   # should have been handled already or will be later
-                self.generate_statement(out, stmt)
+                self.generate_statement(out, stmt, block.scope)
                 if block.name == "main" and isinstance(stmt, Label) and stmt.name == "start":
                     # make sure the main.start routine clears the decimal and carry flags as first steps
                     out("\vcld\n\vclc\n\vclv")
@@ -177,15 +177,14 @@ class AssemblyGenerator:
                     out("\v; params: {}\n\v; returns: {}   clobbers: {}".format(params or "-", returns or "-", clobbers or "-"))
                     cur_block = self.cur_block
                     self.cur_block = subdef.scope
-                    print(subdef.scope.nodes)
                     for stmt in subdef.scope.nodes:
-                        self.generate_statement(out, stmt)
+                        self.generate_statement(out, stmt, subdef.scope)
                     self.cur_block = cur_block
                     out("")
                 out("; -- end block subroutines")
             out("\n\v.pend\n")
 
-    def generate_statement(self, out: Callable, stmt: AstNode) -> None:
+    def generate_statement(self, out: Callable, stmt: AstNode, scope: Scope) -> None:
         if isinstance(stmt, Label):
             out("\n{:s}\v\t\t; {:s}".format(stmt.name, stmt.lineref))
         elif isinstance(stmt, Return):
@@ -207,7 +206,7 @@ class AssemblyGenerator:
             out(stmt.assembly)
             out("\v; end inline asm, " + stmt.lineref + "\n")
         elif isinstance(stmt, IncrDecr):
-            generate_incrdecr(out, stmt)
+            generate_incrdecr(out, stmt, scope)
         elif isinstance(stmt, Goto):
             generate_goto(out, stmt)
         elif isinstance(stmt, SubCall):

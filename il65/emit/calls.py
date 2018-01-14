@@ -15,4 +15,3 @@ def generate_goto(out: Callable, stmt: Goto) -> None:
 
 def generate_subcall(out: Callable, stmt: SubCall) -> None:
     pass  # @todo
-

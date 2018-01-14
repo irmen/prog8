@@ -230,6 +230,10 @@ def t_BOOLEAN(t):
 
 def t_DOTTEDNAME(t):
     r"[a-zA-Z_]\w*(\.[a-zA-Z_]\w*)+"
+    first, second = t.value.split(".")
+    if first in reserved or second in reserved:
+        custom_error(t, "reserved word as part of dotted name")
+        return None
     return t
 
 
@@ -321,10 +325,22 @@ def t_error(t):
     t.lexer.skip(1)
 
 
+def custom_error(t, message):
+    line, col = t.lineno, find_tok_column(t)
+    filename = getattr(t.lexer, "source_filename", "<unknown-file>")
+    sref = SourceRef(filename, line, col)
+    if hasattr(t.lexer, "error_function"):
+        t.lexer.error_function(sref, message)
+    else:
+        print(sref, message, file=sys.stderr)
+    t.lexer.skip(1)
+
+
 def find_tok_column(token):
     """ Find the column of the token in its line."""
     last_cr = lexer.lexdata.rfind('\n', 0, token.lexpos)
-    return token.lexpos - last_cr
+    chunk = lexer.lexdata[last_cr:token.lexpos]
+    return len(chunk.expandtabs())
 
 
 def print_warning(text: str, sourceref: SourceRef = None) -> None:

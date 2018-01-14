@@ -5,6 +5,7 @@
 
 	var     zp1_1   = 200
 	var     zp1_2   = 200
+	var .float  zpf1
 	var .text zp_s1 = "hello\n"
 	var .ptext zp_s2 = "goodbye\n"
 	var .stext zp_s3 = "welcome\n"
@@ -13,9 +14,30 @@
 
 	var  .array(20)  arr1 = $ea
 	var  .wordarray(20)  arr2 = $ea
+	memory  border = $d020
+	const .word cword = 2
 
 start:
 	%breakpoint abc,def
+
+	A++
+	X--
+	A+=1
+	X-=2
+	border++
+	zp1_1++
+	zpf1++
+	[AX]++
+	[AX .byte]++
+	[AX .word]++
+	[AX .float]++
+	[$ccc0]++
+	[$ccc0 .byte]++
+	[$ccc0 .word]++
+	[$ccc0 .float]++
+	A+=2
+	XY+=666
+
 
 	foobar()
 

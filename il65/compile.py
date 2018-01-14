@@ -13,7 +13,7 @@ from typing import Optional, Tuple, Set, Dict, List, Any, no_type_check
 import attr
 from .plyparse import parse_file, ParseError, Module, Directive, Block, Subroutine, Scope, VarDef, LiteralValue, \
     SubCall, Goto, Return, Assignment, InlineAssembly, Register, Expression, ProgramFormat, ZpOptions,\
-    SymbolName, Dereference, AddressOf
+    SymbolName, Dereference, AddressOf, IncrDecr, TargetRegisters
 from .plylex import SourceRef, print_bold
 from .optimize import optimize
 from .datatypes import DataType, VarType
@@ -42,6 +42,7 @@ class PlyParser:
                 # these shall only be done on the main module after all imports have been done:
                 self.apply_directive_options(module)
                 self.determine_subroutine_usage(module)
+                self.semantic_check(module)
                 self.allocate_zeropage_vars(module)
         except ParseError as x:
             self.handle_parse_error(x)
@@ -53,6 +54,18 @@ class PlyParser:
     def lexer_error(self, sourceref: SourceRef, fmtstring: str, *args: str) -> None:
         self.parse_errors += 1
         print_bold("ERROR: {}: {}".format(sourceref, fmtstring.format(*args)))
+
+    def semantic_check(self, module: Module) -> None:
+        # perform semantic analysis / checks on the syntactic parse tree we have so far
+        for block, parent in module.all_scopes():
+            assert isinstance(block, (Module, Block, Subroutine))
+            assert parent is None or isinstance(parent, (Module, Block, Subroutine))
+            for stmt in block.nodes:
+                if isinstance(stmt, IncrDecr):
+                    if isinstance(stmt.target, SymbolName):
+                        symdef = block.scope[stmt.target.name]
+                        if isinstance(symdef, VarDef) and symdef.vartype == VarType.CONST:
+                            raise ParseError("cannot modify a constant", stmt.sourceref)
 
     def check_and_merge_zeropages(self, module: Module) -> None:
         # merge all ZP blocks into one
@@ -126,7 +139,6 @@ class PlyParser:
                     if isinstance(node.right, Assignment):
                         multi = reduce_right(node)
                         assert multi is node and len(multi.left) > 1 and not isinstance(multi.right, Assignment)
-                    node.simplify_targetregisters()
 
     def apply_directive_options(self, module: Module) -> None:
         def set_save_registers(scope: Scope, save_dir: Directive) -> None:
@@ -392,7 +404,7 @@ class PlyParser:
             print("Error:", str(exc), file=sys.stderr)
         sourcetext = linecache.getline(exc.sourceref.file, exc.sourceref.line).rstrip()
         if sourcetext:
-            print("  " + sourcetext.expandtabs(1), file=sys.stderr)
+            print("  " + sourcetext.expandtabs(8), file=sys.stderr)
             if exc.sourceref.column:
                 print(' ' * (1+exc.sourceref.column) + '^', file=sys.stderr)
         if sys.stderr.isatty():

@@ -101,7 +101,7 @@ class Scope(AstNode):
     symbols = attr.ib(init=False)
     name = attr.ib(init=False)          # will be set by enclosing block, or subroutine etc.
     parent_scope = attr.ib(init=False, default=None)  # will be wired up later
-    save_registers = attr.ib(type=bool, default=None, init=False)    # None = look in parent scope's setting  # @todo property that does that
+    save_registers = attr.ib(type=bool, default=None, init=False)  # None = look in parent scope's setting  @todo property that does that
 
     def __attrs_post_init__(self):
         # populate the symbol table for this scope for fast lookups via scope["name"] or scope["dotted.name"]
@@ -319,19 +319,6 @@ class Assignment(AstNode):
     left = attr.ib(type=list)     # type: List[Union[str, TargetRegisters, Dereference]]
     right = attr.ib()
 
-    def __attrs_post_init__(self):
-        self.simplify_targetregisters()
-
-    def simplify_targetregisters(self) -> None:
-        # optimize TargetRegisters down to single Register if it's just one register
-        new_targets = []
-        assert isinstance(self.left, (list, tuple)), "assignment lvalue must be sequence"
-        for t in self.left:
-            if isinstance(t, TargetRegisters) and len(t.registers) == 1:
-                t = t.registers[0]
-            new_targets.append(t)
-        self.left = new_targets
-
     def process_expressions(self, scope: Scope) -> None:
         self.right = process_expression(self.right, scope, self.right.sourceref)
 
@@ -393,6 +380,10 @@ class Return(AstNode):
 
 @attr.s(cmp=False, repr=False)
 class TargetRegisters(AstNode):
+    # This is a tuple of 1 or more registers.
+    # In it's multiple-register form it is only used to be able to parse
+    # the result of a subroutine call such as A,X = sub().
+    # It will be replaced by a regular Register node if it contains just one register.
     registers = attr.ib(type=list)
 
     def add(self, register: str) -> None:
@@ -527,6 +518,8 @@ class Dereference(AstNode):
         elif isinstance(self.datatype, DatatypeNode):
             assert self.size is None
             self.size = self.datatype.dimensions
+            if not self.datatype.to_enum().isnumeric():
+                raise ParseError("dereference target value must be byte, word, float", self.datatype.sourceref)
             self.datatype = self.datatype.to_enum()
 
 
@@ -545,6 +538,7 @@ class AddressOf(AstNode):
 
 @attr.s(cmp=False, repr=False)
 class IncrDecr(AstNode):
+    # increment or decrement something by a constant value (1 or more)
     target = attr.ib()
     operator = attr.ib(type=str, validator=attr.validators.in_(["++", "--"]))
     howmuch = attr.ib(default=1)
@@ -554,6 +548,11 @@ class IncrDecr(AstNode):
         if self.howmuch < 0:
             self.howmuch = -self.howmuch
             self.operator = "++" if self.operator == "--" else "--"
+        if isinstance(self.target, Register):
+            if self.target.name not in REGISTER_BYTES | REGISTER_WORDS:
+                raise ParseError("cannot incr/decr that register", self.sourceref)
+        if isinstance(self.target, TargetRegisters):
+            raise ParseError("cannot incr/decr multiple registers at once", self.sourceref)
 
 
 @attr.s(cmp=False, repr=False)
@@ -1087,7 +1086,7 @@ def p_incrdecr(p):
     incrdecr :  assignment_target  INCR
              |  assignment_target  DECR
     """
-    p[0] = IncrDecr(target=p[1], operator=p[2], sourceref=_token_sref(p, 1))
+    p[0] = IncrDecr(target=p[1], operator=p[2], sourceref=_token_sref(p, 2))
 
 
 def p_call_subroutine(p):
@@ -1316,6 +1315,11 @@ def p_assignment_target(p):
                       |  symbolname
                       |  dereference
     """
+    if isinstance(p[1], TargetRegisters):
+        # if the target registers is just a single register, use that instead
+        if len(p[1].registers) == 1:
+            assert isinstance(p[1].registers[0], Register)
+            p[1] = p[1].registers[0]
     p[0] = p[1]
 
 
@@ -1356,7 +1360,8 @@ def _token_sref(p, token_idx):
     last_cr = p.lexer.lexdata.rfind('\n', 0, p.lexpos(token_idx))
     if last_cr < 0:
         last_cr = -1
-    column = (p.lexpos(token_idx) - last_cr)
+    chunk = p.lexer.lexdata[last_cr:p.lexpos(token_idx)]
+    column = len(chunk.expandtabs())
     return SourceRef(p.lexer.source_filename, p.lineno(token_idx), column)
 
 

@@ -165,10 +165,11 @@ For most other types this prefix is not supported.
 
 **Indirect addressing:** The ``[address]`` syntax means: the contents of the memory at address, or "indirect addressing".
 By default, if not otherwise known, a single byte is assumed. You can add the ``.byte`` or ``.word`` or ``.float``
-type identifier suffix to make it clear what data type the address points to.
-This addressing mode is only supported for constant (integer) addresses and not for variable types,
-unless it is part of a subroutine call statement. For an indirect goto call, the 6502 CPU has a special instruction
-(``jmp`` indirect) and an indirect subroutine call (``jsr`` indirect) is synthesized using a couple of instructions.
+type identifier, inside the bracket, to make it clear what data type the address points to.
+For instance: ``[address .word]``  (notice the space, to distinguish this from a dotted symbol name).
+For an indirect goto call, the 6502 CPU has a special instruction
+(``jmp`` indirect) and an indirect subroutine call (``jsr`` indirect) is emitted
+using a couple of instructions.
 
 
 Program Structure

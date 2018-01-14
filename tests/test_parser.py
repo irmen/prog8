@@ -180,3 +180,29 @@ def test_parser_2():
     assert isinstance(call.target.target, SymbolName)
     assert call.target.target.name == "zz"
     assert call.target.address_of is True
+
+
+test_source_3 = """
+~ {
+    goto.XY = 5
+    AX.text = 5
+    [$c000.word] = 5
+    [AX.word] = 5
+}
+"""
+
+def test_typespec():
+    lexer.lineno = 1
+    lexer.source_filename = "sourcefile"
+    filter = TokenFilter(lexer)
+    result = parser.parse(input=test_source_3, tokenfunc=filter.token)
+    nodes = result.nodes[0].nodes
+    assignment1, assignment2, assignment3, assignment4 = nodes
+    assert assignment1.right.value == 5
+    assert assignment2.right.value == 5
+    assert assignment3.right.value == 5
+    assert assignment4.right.value == 5
+    print("A1", assignment1.left)
+    print("A2", assignment2.left)
+    print("A3", assignment3.left)
+    print("A4", assignment4.left)
