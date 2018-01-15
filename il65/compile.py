@@ -15,7 +15,6 @@ from .plyparse import parse_file, ParseError, Module, Directive, Block, Subrouti
     SubCall, Goto, Return, Assignment, InlineAssembly, Register, Expression, ProgramFormat, ZpOptions,\
     SymbolName, Dereference, AddressOf, IncrDecr, Label, AstNode, datatype_of, coerce_constant_value
 from .plylex import SourceRef, print_bold
-from .optimize import optimize
 from .datatypes import DataType, VarType
 
 
@@ -212,7 +211,7 @@ class PlyParser:
                         else:
                             raise ParseError("invalid directive args", directive.sourceref)
                     elif directive.name == "address":
-                        if len(directive.args) != 1 or not isinstance(directive.args[0], int):
+                        if len(directive.args) != 1 or type(directive.args[0]) is not int:
                             raise ParseError("expected one integer directive argument", directive.sourceref)
                         if block.format == ProgramFormat.BASIC:
                             raise ParseError("basic cannot have a custom load address", directive.sourceref)
@@ -533,12 +532,3 @@ class Zeropage:
 
     def available(self) -> int:
         return len(self.free)
-
-
-if __name__ == "__main__":
-    description = "Compiler for IL65 language, code name 'Sick'"
-    print("\n" + description + "\n")
-    plyparser = PlyParser()
-    m = plyparser.parse_file(sys.argv[1])
-    optimize(m)
-    print()

@@ -530,9 +530,6 @@ class Dereference(AstNode):
 class LiteralValue(AstNode):
     value = attr.ib()
 
-    def __repr__(self) -> str:
-        return repr(self.value)
-
 
 @attr.s(cmp=False, repr=False)
 class AddressOf(AstNode):
@@ -645,12 +642,8 @@ def coerce_constant_value(datatype: DataType, value: Union[int, float, str],
                 raise OverflowError("value out of range for word: " + str(value))
             if datatype == DataType.FLOAT and not (FLOAT_MAX_NEGATIVE <= value <= FLOAT_MAX_POSITIVE):      # type: ignore
                 raise OverflowError("value out of range for float: " + str(value))
-        if datatype in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
-            if not isinstance(value, (int, float)):
-                raise TypeError("cannot assign '{:s}' to {:s}".format(type(value).__name__, datatype.name.lower()))
-    if datatype in (DataType.BYTE, DataType.BYTEARRAY, DataType.MATRIX) and isinstance(value, str):
-        if len(value) == 1:
-            return True, char_to_bytevalue(value)
+    if isinstance(value, str) and len(value) == 1 and (datatype.isnumeric() or datatype.isarray()):
+        return True, char_to_bytevalue(value)
     # if we're an integer value and the passed value is float, truncate it (and give a warning)
     if datatype in (DataType.BYTE, DataType.WORD, DataType.MATRIX) and isinstance(value, float):
         frac = math.modf(value)
@@ -661,6 +654,14 @@ def coerce_constant_value(datatype: DataType, value: Union[int, float, str],
             return True, value
     if isinstance(value, (int, float)):
         verify_bounds(value)
+    if isinstance(value, (Expression, SubCall)):
+        return False, value
+    elif datatype == DataType.WORD:
+        if not isinstance(value, (int, float, str, Dereference, Register, SymbolName, AddressOf)):
+            raise TypeError("cannot assign '{:s}' to {:s}".format(type(value).__name__, datatype.name.lower()), sourceref)
+    elif datatype in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
+        if not isinstance(value, (int, float, Dereference, Register, SymbolName)):
+            raise TypeError("cannot assign '{:s}' to {:s}".format(type(value).__name__, datatype.name.lower()), sourceref)
     return False, value
 
 
@@ -737,7 +738,7 @@ def process_constant_expression(expr: Any, sourceref: SourceRef, symbolscope: Sc
                     raise ExpressionEvaluationError("can only use math- or builtin function", expr.sourceref)
             elif isinstance(target, Dereference):       # '[...](1,2,3)'
                 raise ExpressionEvaluationError("dereferenced value call is not a constant value", expr.sourceref)
-            elif isinstance(target, int):    # '64738()'
+            elif type(target) is int:    # '64738()'
                 raise ExpressionEvaluationError("immediate address call is not a constant value", expr.sourceref)
             else:
                 raise NotImplementedError("weird call target", target)
@@ -1028,6 +1029,11 @@ def p_literal_value(p):
                      | STRING
                      | CHARACTER
                      | BOOLEAN"""
+    tok = p.slice[-1]
+    if tok.type == "CHARACTER":
+        p[1] = char_to_bytevalue(p[1])     # character literals are converted to byte value.
+    elif tok.type == "BOOLEAN":
+        p[1] = int(p[1])    # boolean literals are converted to integer form (true=1, false=0).
     p[0] = LiteralValue(value=p[1], sourceref=_token_sref(p, 1))
 
 
@@ -1038,7 +1044,7 @@ def p_subroutine(p):
     body = p[10]
     if isinstance(body, Scope):
         p[0] = Subroutine(name=p[2], param_spec=p[4] or [], result_spec=p[8] or [], scope=body, sourceref=_token_sref(p, 1))
-    elif isinstance(body, int):
+    elif type(body) is int:
         p[0] = Subroutine(name=p[2], param_spec=p[4] or [], result_spec=p[8] or [], address=body, sourceref=_token_sref(p, 1))
     else:
         raise TypeError("subroutine_body", p.slice)

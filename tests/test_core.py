@@ -1,5 +1,6 @@
 import pytest
 from il65 import datatypes
+from il65.plyparse import coerce_constant_value
 from il65.compile import ParseError
 from il65.plylex import SourceRef
 from il65.emit import to_hex, to_mflpt5
@@ -100,37 +101,40 @@ def test_char_to_bytevalue():
 
 
 def test_coerce_value():
-    assert datatypes.coerce_value(datatypes.DataType.BYTE, 0) == (False, 0)
-    assert datatypes.coerce_value(datatypes.DataType.BYTE, 255) == (False, 255)
-    assert datatypes.coerce_value(datatypes.DataType.WORD, 0) == (False, 0)
-    assert datatypes.coerce_value(datatypes.DataType.WORD, 65535) == (False, 65535)
-    assert datatypes.coerce_value(datatypes.DataType.FLOAT, -999.22) == (False, -999.22)
-    assert datatypes.coerce_value(datatypes.DataType.FLOAT, 123.45) == (False, 123.45)
-    assert datatypes.coerce_value(datatypes.DataType.BYTE, 5.678) == (True, 5)
-    assert datatypes.coerce_value(datatypes.DataType.WORD, 5.678) == (True, 5)
-    assert datatypes.coerce_value(datatypes.DataType.STRING, "string") == (False, "string")
-    assert datatypes.coerce_value(datatypes.DataType.STRING_P, "string") == (False, "string")
-    assert datatypes.coerce_value(datatypes.DataType.STRING_S, "string") == (False, "string")
-    assert datatypes.coerce_value(datatypes.DataType.STRING_PS, "string") == (False, "string")
+    assert coerce_constant_value(datatypes.DataType.BYTE, 0) == (False, 0)
+    assert coerce_constant_value(datatypes.DataType.BYTE, 255) == (False, 255)
+    assert coerce_constant_value(datatypes.DataType.BYTE, '@') == (True, 64)
+    assert coerce_constant_value(datatypes.DataType.WORD, 0) == (False, 0)
+    assert coerce_constant_value(datatypes.DataType.WORD, 65535) == (False, 65535)
+    assert coerce_constant_value(datatypes.DataType.WORD, '@') == (True, 64)
+    assert coerce_constant_value(datatypes.DataType.FLOAT, -999.22) == (False, -999.22)
+    assert coerce_constant_value(datatypes.DataType.FLOAT, 123.45) == (False, 123.45)
+    assert coerce_constant_value(datatypes.DataType.FLOAT, '@') == (True, 64)
+    assert coerce_constant_value(datatypes.DataType.BYTE, 5.678) == (True, 5)
+    assert coerce_constant_value(datatypes.DataType.WORD, 5.678) == (True, 5)
+    assert coerce_constant_value(datatypes.DataType.STRING, "string") == (False, "string")
+    assert coerce_constant_value(datatypes.DataType.STRING_P, "string") == (False, "string")
+    assert coerce_constant_value(datatypes.DataType.STRING_S, "string") == (False, "string")
+    assert coerce_constant_value(datatypes.DataType.STRING_PS, "string") == (False, "string")
     with pytest.raises(OverflowError):
-        datatypes.coerce_value(datatypes.DataType.BYTE, -1)
+        coerce_constant_value(datatypes.DataType.BYTE, -1)
     with pytest.raises(OverflowError):
-        datatypes.coerce_value(datatypes.DataType.BYTE, 256)
+        coerce_constant_value(datatypes.DataType.BYTE, 256)
     with pytest.raises(OverflowError):
-        datatypes.coerce_value(datatypes.DataType.BYTE, 256.12345)
+        coerce_constant_value(datatypes.DataType.BYTE, 256.12345)
     with pytest.raises(OverflowError):
-        datatypes.coerce_value(datatypes.DataType.WORD, -1)
+        coerce_constant_value(datatypes.DataType.WORD, -1)
     with pytest.raises(OverflowError):
-        datatypes.coerce_value(datatypes.DataType.WORD, 65536)
+        coerce_constant_value(datatypes.DataType.WORD, 65536)
     with pytest.raises(OverflowError):
-        datatypes.coerce_value(datatypes.DataType.WORD, 65536.12345)
+        coerce_constant_value(datatypes.DataType.WORD, 65536.12345)
     with pytest.raises(OverflowError):
-        datatypes.coerce_value(datatypes.DataType.FLOAT, -1.7014118346e+38)
+        coerce_constant_value(datatypes.DataType.FLOAT, -1.7014118346e+38)
     with pytest.raises(OverflowError):
-        datatypes.coerce_value(datatypes.DataType.FLOAT, 1.7014118347e+38)
+        coerce_constant_value(datatypes.DataType.FLOAT, 1.7014118347e+38)
     with pytest.raises(TypeError):
-        datatypes.coerce_value(datatypes.DataType.BYTE, "string")
+        coerce_constant_value(datatypes.DataType.BYTE, "string")
     with pytest.raises(TypeError):
-        datatypes.coerce_value(datatypes.DataType.WORD, "string")
+        coerce_constant_value(datatypes.DataType.WORD, "string")
     with pytest.raises(TypeError):
-        datatypes.coerce_value(datatypes.DataType.FLOAT, "string")
+        coerce_constant_value(datatypes.DataType.FLOAT, "string")

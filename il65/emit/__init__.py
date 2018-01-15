@@ -22,6 +22,7 @@ def to_hex(number: int) -> str:
     # 0..15 -> "0".."15"
     # 16..255 -> "$10".."$ff"
     # 256..65536 -> "$0100".."$ffff"
+    assert type(number) is int
     if number is None:
         raise ValueError("number")
     if 0 <= number < 16:

@@ -4,30 +4,58 @@
 
 ~ main {
 
-	var     zp1_1   = 200
-	var     zp1_2   = 200
-	var .float  zpf1
-	var .text zp_s1 = "hello\n"
-	var .ptext zp_s2 = "goodbye\n"
-	var .stext zp_s3 = "welcome\n"
-	var .pstext zp_s4 = "go away\n"
-	const .text ctext = "constant\n"
+	var .byte  v1t  = true
+	var .byte  v1f  = false
+	var .word  v2t  = true
+	var .word  v2f  = false
+	var .float  v3t  = true
+	var .float  v3f  = false
+	var .text  v4t  = true
+	var .text  v4f  = false
+	var .array(3)  v5t = true
+	var .array(3)  v5f = false
+	var .array(10)  v6t = true
+	var .array(10)  v6f = false
+	var .wordarray(3)  v7t = true
+	var .wordarray(3)  v7f = false
+	var .wordarray(10)  v8t = true
+	var .wordarray(10)  v8f = false
+	var .matrix(2,2) v9t = true
+	var .matrix(2,2) v9f = false
+	var .matrix(5,5) v10t = true
+	var .matrix(5,5) v10f = false
 
-	var  .array(20)  arr1 = $ea
-	var  .wordarray(20)  arr2 = $ea
-	memory  border = $d020
-	const .word cword = 5/3
+	const .byte c1t=true
+	const .byte c1f=false
+	const .word c2t=true
+	const .word c2f=false
+	const .float c3t=true
+	const .float c3f=false
+
 
 start:
 	%breakpoint abc,def
 
+	;c3f=444         ; @todo constant error
+	;c3f=c3f         ; @todo constant error
+	;c3f=c2t         ; @todo constant error
+	;c3f+=2.23424    ; @todo constant error
+	v3t++
+	v3t+=1
+	v3t+=0
+	;v3t+=2.23424 ; @todo store as constant float with generated name, replace value node
+	;v3t+=2.23424 ; @todo store as constant float with generated name, replace value node
+	;v3t+=2.23425 ; @todo store as constant float with generated name, replace value node
+;	v4t++           ; @todo parser error
+;	v4t+=20          ; @todo parser error
+;	v4t+=2000        ; @todo parser error
+;	v5t++            ; @todo parser error
+;	v5t+=20          ; @todo parser error
+;	v5t+=2000        ; @todo parser error
 	A++
 	X--
 	A+=1
 	X-=2
-	border++
-	zp1_1++
-	zpf1++
 	;[AX]++
 	;[AX .byte]++
 	;[AX .word]++
@@ -42,25 +70,7 @@ start:
 	XY+=222
 	A=222/13                ; @todo warn truncate (in assignment stmt)
 	XY+=666
-	zpf1+=1
-	zpf1+=2
-	zpf1+=2.123425425               ; @todo store as constant float with generated name, replace value node
-
-
-	foobar()
 
 	return 44
-
-sub foobar () -> () {
-
-	return
-	%breakpoint yep
-	return
-}
-
-label2:
-	A++
-	%noreturn
-
 }
 

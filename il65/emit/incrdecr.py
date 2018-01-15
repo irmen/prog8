@@ -209,4 +209,4 @@ def generate_incrdecr(out: Callable, stmt: IncrDecr, scope: Scope) -> None:
             raise CodeError("cannot in/decrement memory of type " + str(target.datatype), stmt.howmuch)
 
     else:
-        raise CodeError("cannot in/decrement", target)
+        raise CodeError("cannot in/decrement", target)      # @todo support more such as [dereference]++

@@ -15,6 +15,7 @@ from . import to_hex, to_mflpt5, CodeError
 def generate_block_init(out: Callable, block: Block) -> None:
     # generate the block initializer
     # @todo add a block initializer subroutine that can contain custom reset/init code? (static initializer)
+    # @todo will be called at program start automatically, so there's no risk of forgetting to call it manually
 
     def _memset(varname: str, value: int, size: int) -> None:
         if size > 6:
@@ -59,13 +60,13 @@ def generate_block_init(out: Callable, block: Block) -> None:
         if vardef.vartype == VarType.VAR:
             vars_by_datatype[vardef.datatype].append(vardef)
     for bytevar in sorted(vars_by_datatype[DataType.BYTE], key=lambda vd: vd.value):
-        assert isinstance(bytevar.value, int)
+        assert type(bytevar.value) is int
         if bytevar.value != prev_value_a:
             out("\vlda  #${:02x}".format(bytevar.value))
             prev_value_a = bytevar.value
         out("\vsta  {:s}".format(bytevar.name))
     for wordvar in sorted(vars_by_datatype[DataType.WORD], key=lambda vd: vd.value):
-        assert isinstance(wordvar.value, int)
+        assert type(wordvar.value) is int
         v_hi, v_lo = divmod(wordvar.value, 256)
         if v_hi != prev_value_a:
             out("\vlda  #${:02x}".format(v_hi))
@@ -80,13 +81,13 @@ def generate_block_init(out: Callable, block: Block) -> None:
         fpbytes = to_mflpt5(floatvar.value)  # type: ignore
         float_inits[floatvar.name] = (floatvar.name, fpbytes, floatvar.value)
     for arrayvar in vars_by_datatype[DataType.BYTEARRAY]:
-        assert isinstance(arrayvar.value, int)
+        assert type(arrayvar.value) is int
         _memset(arrayvar.name, arrayvar.value, arrayvar.size[0])
     for arrayvar in vars_by_datatype[DataType.WORDARRAY]:
-        assert isinstance(arrayvar.value, int)
+        assert type(arrayvar.value) is int
         _memsetw(arrayvar.name, arrayvar.value, arrayvar.size[0])
     for arrayvar in vars_by_datatype[DataType.MATRIX]:
-        assert isinstance(arrayvar.value, int)
+        assert type(arrayvar.value) is int
         _memset(arrayvar.name, arrayvar.value, arrayvar.size[0] * arrayvar.size[1])
     if float_inits:
         out("\vldx  #4")
@@ -248,7 +249,7 @@ def _format_string(value: str, screencodes: bool = False) -> str:
 def _numeric_value_str(value: Any, as_hex: bool=False) -> str:
     if isinstance(value, bool):
         return "1" if value else "0"
-    if isinstance(value, int):
+    if type(value) is int:
         if as_hex:
             return to_hex(value)
         return str(value)

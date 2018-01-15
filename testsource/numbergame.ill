@@ -85,7 +85,16 @@ game_over:
         c64scr.print_string("\nToo bad! It was: ")
         c64scr.print_byte_decimal(secretnumber)
         c64.CHROUT('\n')
-        goodbye()
+        goodbye()               ; @todo fix subroutine usage tracking, it doesn't register this one
+        return
+        return
+        return
+        return
+        return
+        return
+        return
+        return
+        return
         return
 
 sub goodbye ()->() {
@@ -93,6 +102,8 @@ sub goodbye ()->() {
         memory y = $c000        ; @todo vars in sub
         const q = 22            ; @todo const in sub
 
+	xxxxxx++
+	y++
 	xxxxxx = q *4
 	xxxxxx = qqqqq *44 ;@todo symbol error
 

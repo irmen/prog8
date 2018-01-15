@@ -23,6 +23,7 @@ class Optimizer:
         self.remove_unused_subroutines()
         self.optimize_compare_with_zero()
         # @todo join multiple incr/decr of same var into one (if value stays < 256)
+        # @todo analyse for unreachable code and remove that (f.i. code after goto or return that has no label so can never be jumped to)
         self.remove_empty_blocks()
 
     def optimize_assignments(self):

@@ -1,7 +1,7 @@
 from il65.plylex import lexer, tokens, find_tok_column, literals, reserved, SourceRef
 from il65.plyparse import parser, TokenFilter, Module, Subroutine, Block, Return, Scope, \
     VarDef, Expression, LiteralValue, Label, SubCall, CallTarget, SymbolName, Dereference
-from il65.datatypes import DataType
+from il65.datatypes import DataType, char_to_bytevalue
 
 
 def lexer_error(sourceref: SourceRef, fmtstring: str, *args: str) -> None:
@@ -128,8 +128,8 @@ def test_parser():
     assert isinstance(bool_vdef, VarDef)
     assert isinstance(bool_vdef.value, Expression)
     assert isinstance(bool_vdef.value.right, LiteralValue)
-    assert isinstance(bool_vdef.value.right.value, bool)
-    assert bool_vdef.value.right.value == True
+    assert isinstance(bool_vdef.value.right.value, int)
+    assert bool_vdef.value.right.value == 1
     assert block.address == 49152
     sub2 = block.scope["calculate"]
     assert sub2 is sub
@@ -233,3 +233,54 @@ def test_typespec():
     assert t2.size is None
     assert t3.size is None
     assert t4.size is None
+
+
+test_source_4 = """
+~ {
+    var x1 = '@'
+    var x2 = 'π'
+    var x3 = 'abc'
+    A = '@'
+    A = 'π'
+    A = 'abc'
+}
+"""
+
+
+def test_char_string():
+    lexer.lineno = 1
+    lexer.source_filename = "sourcefile"
+    filter = TokenFilter(lexer)
+    result = parser.parse(input=test_source_4, tokenfunc=filter.token)
+    nodes = result.nodes[0].nodes
+    var1, var2, var3, assgn1, assgn2, assgn3, = nodes
+    assert var1.value.value == 64
+    assert var2.value.value == 126
+    assert var3.value.value == "abc"
+    assert assgn1.right.value == 64
+    assert assgn2.right.value == 126
+    assert assgn3.right.value == "abc"
+
+
+
+test_source_5 = """
+~ {
+    var x1 = true
+    var x2 = false
+    A = true
+    A = false
+}
+"""
+
+
+def test_boolean_int():
+    lexer.lineno = 1
+    lexer.source_filename = "sourcefile"
+    filter = TokenFilter(lexer)
+    result = parser.parse(input=test_source_5, tokenfunc=filter.token)
+    nodes = result.nodes[0].nodes
+    var1, var2, assgn1, assgn2, = nodes
+    assert type(var1.value.value) is int and var1.value.value == 1
+    assert type(var2.value.value) is int and var2.value.value == 0
+    assert type(assgn1.right.value) is int and assgn1.right.value == 1
+    assert type(assgn2.right.value) is int and assgn2.right.value == 0
