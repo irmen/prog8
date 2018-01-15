@@ -24,7 +24,6 @@ start:
         if_gt goto label
         if_cc goto value
         ;if_cc goto memvalue
-        if_cc goto &value
         ;if_cc goto #memvalue
         if_cc goto [value]
         ;if_cc goto [memvalue]

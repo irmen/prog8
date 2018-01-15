@@ -1245,7 +1245,6 @@ def p_calltarget(p):
     """
     calltarget :  symbolname
                |  INTEGER
-               |  BITAND symbolname
                |  dereference
     """
     if len(p) == 2:
@@ -1402,7 +1401,7 @@ def p_error(p):
         if p.value in ("", "\n"):
             p.lexer.error_function(sref, "syntax error before end of line")
         else:
-            p.lexer.error_function(sref, "syntax error before '{:.20s}'", str(p.value).rstrip())
+            p.lexer.error_function(sref, "syntax error before or at '{:.20s}'", str(p.value).rstrip())
     else:
         lexer.error_function(None, "syntax error at end of input", lexer.source_filename)
 

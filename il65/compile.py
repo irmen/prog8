@@ -267,18 +267,16 @@ class PlyParser:
                     self._get_subroutine_usages_from_return(module.subroutine_usage, node, block.scope)
                 elif isinstance(node, Assignment):
                     self._get_subroutine_usages_from_assignment(module.subroutine_usage, node, block.scope)
+        print("----------SUBROUTINES IN USE-------------")  # XXX
+        import pprint
+        pprint.pprint(module.subroutine_usage) # XXX
+        print("----------/SUBROUTINES IN USE-------------")  # XXX
 
     def _get_subroutine_usages_from_subcall(self, usages: Dict[Tuple[str, str], Set[str]],
                                             subcall: SubCall, parent_scope: Scope) -> None:
-        # node.target (relevant if its a symbolname -- a str), node.arguments (list of CallArgument)
-        #   CallArgument.value = expression.
-        if isinstance(subcall.target.target, str):
-            try:
-                scopename, name = subcall.target.target.split('.')
-            except ValueError:
-                scopename = parent_scope.name
-                name = subcall.target.target
-            usages[(scopename, name)].add(str(subcall.sourceref))
+        target = subcall.target.target
+        if isinstance(target, SymbolName):
+            usages[(parent_scope.name, target.name)].add(str(subcall.sourceref))
         for arg in subcall.arguments:
             self._get_subroutine_usages_from_expression(usages, arg.value, parent_scope)
 
@@ -309,14 +307,9 @@ class PlyParser:
 
     def _get_subroutine_usages_from_goto(self, usages: Dict[Tuple[str, str], Set[str]],
                                          goto: Goto, parent_scope: Scope) -> None:
-        # node.target (relevant if its a symbolname -- a str), node.condition (expression)
-        if isinstance(goto.target.target, str):
-            try:
-                symbol = parent_scope[goto.target.target]
-            except LookupError:
-                return
-            if isinstance(symbol, Subroutine):
-                usages[(parent_scope.name, symbol.name)].add(str(goto.sourceref))
+        target = goto.target.target
+        if isinstance(target, SymbolName):
+            usages[(parent_scope.name, target.name)].add(str(goto.sourceref))
         self._get_subroutine_usages_from_expression(usages, goto.condition, parent_scope)
 
     def _get_subroutine_usages_from_return(self, usages: Dict[Tuple[str, str], Set[str]],

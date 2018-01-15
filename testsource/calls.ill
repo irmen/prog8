@@ -24,8 +24,6 @@ bar2:
 bar:    goto $c000
         goto var1               ; jumps to the address in var1
         goto mem1               ; jumps to the address in mem1
-        goto &var1              ; strange, but jumps to the location in memory where var1 sits
-        goto &mem1              ; strange, but jumps to the location in mempory where mem1 sits (points to)
         goto [var1]
         goto [$c000.word]
         goto [var1]
