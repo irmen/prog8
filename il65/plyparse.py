@@ -48,6 +48,10 @@ class ExpressionEvaluationError(ParseError):
     pass
 
 
+class UndefinedSymbolError(LookupError):
+    pass
+
+
 start = "start"
 
 
@@ -89,6 +93,11 @@ class AstNode:
         # this is implemented in node types that have expression(s) and that should act on this.
         pass
 
+    def verify_symbol_names(self, scope: 'Scope') -> None:
+        # check all SymbolNames to see if they exist.
+        # this is implemented in node types that have expression(s) and that should act on this.
+        pass
+
 
 @attr.s(cmp=False, repr=False)
 class Directive(AstNode):
@@ -105,7 +114,7 @@ class Scope(AstNode):
     save_registers = attr.ib(type=bool, default=None, init=False)  # None = look in parent scope's setting  @todo property that does that
 
     def __attrs_post_init__(self):
-        # populate the symbol table for this scope for fast lookups via scope["name"] or scope["dotted.name"]
+        # populate the symbol table for this scope for fast lookups via scope.lookup("name") or scope.lookup("dotted.name")
         self.symbols = {}
         for node in self.nodes:
             assert isinstance(node, AstNode)
@@ -129,7 +138,7 @@ class Scope(AstNode):
                 self.symbols[node.name] = node
                 node.scope.parent_scope = self
 
-    def __getitem__(self, name: str) -> AstNode:
+    def lookup(self, name: str) -> AstNode:
         assert isinstance(name, str)
         if '.' in name:
             # look up the dotted name starting from the topmost scope
@@ -140,18 +149,18 @@ class Scope(AstNode):
                 if isinstance(scope, (Block, Subroutine)):
                     scope = scope.scope
                 if not isinstance(scope, Scope):
-                    raise LookupError("undefined symbol: " + name)
+                    raise UndefinedSymbolError("undefined symbol: " + name)
                 scope = scope.symbols.get(namepart, None)
                 if not scope:
-                    raise LookupError("undefined symbol: " + name)
+                    raise UndefinedSymbolError("undefined symbol: " + name)
             return scope
         else:
             # find the name in nested scope hierarchy
             if name in self.symbols:
                 return self.symbols[name]
             if self.parent_scope:
-                return self.parent_scope[name]
-            raise LookupError("undefined symbol: " + name)
+                return self.parent_scope.lookup(name)
+            raise UndefinedSymbolError("undefined symbol: " + name)
 
     def filter_nodes(self, nodetype) -> Generator[AstNode, None, None]:
         for node in self.nodes:
@@ -325,6 +334,15 @@ class Assignment(AstNode):
     def process_expressions(self, scope: Scope) -> None:
         self.right = process_expression(self.right, scope, self.right.sourceref)
 
+    def verify_symbol_names(self, scope: Scope) -> None:
+        for lv in self.left:
+            if isinstance(lv, SymbolName):
+                check_symbol_definition(lv.name, scope, lv.sourceref)
+            elif isinstance(lv, Dereference):
+                if isinstance(lv.location, SymbolName):
+                    check_symbol_definition(lv.location.name, scope, lv.location.sourceref)
+        # the symbols in the assignment rvalue are checked when its expression is processed.
+
 
 @attr.s(cmp=False, repr=False)
 class AugAssignment(AstNode):
@@ -334,6 +352,11 @@ class AugAssignment(AstNode):
 
     def process_expressions(self, scope: Scope) -> None:
         self.right = process_expression(self.right, scope, self.right.sourceref)
+
+    def verify_symbol_names(self, scope: Scope) -> None:
+        if isinstance(self.left, SymbolName):
+            check_symbol_definition(self.left.name, scope, self.left.sourceref)
+        # the symbols in the assignment rvalue are checked when its expression is processed.
 
 
 @attr.s(cmp=False, repr=False)
@@ -349,6 +372,11 @@ class SubCall(AstNode):
         for callarg in self.arguments:
             assert isinstance(callarg, CallArgument)
             callarg.process_expressions(scope)
+
+    def verify_symbol_names(self, scope: Scope) -> None:
+        if isinstance(self.target.target, SymbolName):
+            check_symbol_definition(self.target.target.name, scope, self.target.target.sourceref)
+        # the symbols in the subroutine's arguments are checked when their expression is processed.
 
 
 @attr.s(cmp=False, repr=False)
@@ -505,6 +533,10 @@ class Goto(AstNode):
         if self.condition is not None:
             self.condition = process_expression(self.condition, scope, self.condition.sourceref)
 
+    def verify_symbol_names(self, scope: Scope) -> None:
+        if isinstance(self.target.target, SymbolName):
+            check_symbol_definition(self.target.target.name, scope, self.target.target.sourceref)
+
 
 @attr.s(cmp=False, repr=False)
 class Dereference(AstNode):
@@ -524,6 +556,11 @@ class Dereference(AstNode):
             if not self.datatype.to_enum().isnumeric():
                 raise ParseError("dereference target value must be byte, word, float", self.datatype.sourceref)
             self.datatype = self.datatype.to_enum()
+
+    def verify_symbol_names(self, scope: Scope) -> None:
+        print("DEREF", self.location)  # XXX not called?????
+        if isinstance(self.location, SymbolName):
+            check_symbol_definition(self.location.name, scope, self.location.sourceref)
 
 
 @attr.s(cmp=False, repr=False)
@@ -553,6 +590,10 @@ class IncrDecr(AstNode):
                 raise ParseError("cannot incr/decr that register", self.sourceref)
         if isinstance(self.target, TargetRegisters):
             raise ParseError("cannot incr/decr multiple registers at once", self.sourceref)
+
+    def verify_symbol_names(self, scope: Scope) -> None:
+        if isinstance(self.target, SymbolName):
+            check_symbol_definition(self.target.name, scope, self.target.sourceref)
 
 
 @attr.s(cmp=False, repr=False)
@@ -621,7 +662,7 @@ def datatype_of(assignmenttarget: AstNode, scope: Scope) -> DataType:
     if isinstance(assignmenttarget, (VarDef, Dereference, Register)):
         return assignmenttarget.datatype
     elif isinstance(assignmenttarget, SymbolName):
-        symdef = scope[assignmenttarget.name]
+        symdef = scope.lookup(assignmenttarget.name)
         if isinstance(symdef, VarDef):
             return symdef.datatype
     elif isinstance(assignmenttarget, TargetRegisters):
@@ -630,8 +671,8 @@ def datatype_of(assignmenttarget: AstNode, scope: Scope) -> DataType:
     raise TypeError("cannot determine datatype", assignmenttarget)
 
 
-def coerce_constant_value(datatype: DataType, value: Union[int, float, str],
-                          sourceref: SourceRef=None) -> Tuple[bool, Union[int, float, str]]:
+def coerce_constant_value(datatype: DataType, value: Any,
+                          sourceref: SourceRef=None) -> Tuple[bool, Any]:
     # if we're a BYTE type, and the value is a single character, convert it to the numeric value
     def verify_bounds(value: Union[int, float, str]) -> None:
         # if the value is out of bounds, raise an overflow exception
@@ -684,56 +725,47 @@ def process_constant_expression(expr: Any, sourceref: SourceRef, symbolscope: Sc
     elif isinstance(expr, LiteralValue):
         return expr.value
     elif isinstance(expr, SymbolName):
-        try:
-            value = symbolscope[expr.name]
-            if isinstance(value, VarDef):
-                if value.vartype == VarType.MEMORY:
-                    raise ExpressionEvaluationError("can't take a memory value, must be a constant", expr.sourceref)
-                value = value.value
-            if isinstance(value, Expression):
-                raise ExpressionEvaluationError("circular reference?", expr.sourceref)
-            elif isinstance(value, (int, float, str, bool)):
-                return value
-            else:
-                raise ExpressionEvaluationError("constant symbol required, not {}".format(value.__class__.__name__), expr.sourceref)
-        except LookupError as x:
-            raise ExpressionEvaluationError(str(x), expr.sourceref) from None
+        value = check_symbol_definition(expr.name, symbolscope, expr.sourceref)
+        if isinstance(value, VarDef):
+            if value.vartype == VarType.MEMORY:
+                raise ExpressionEvaluationError("can't take a memory value, must be a constant", expr.sourceref)
+            value = value.value
+        if isinstance(value, Expression):
+            raise ExpressionEvaluationError("circular reference?", expr.sourceref)
+        elif isinstance(value, (int, float, str, bool)):
+            return value
+        else:
+            raise ExpressionEvaluationError("constant symbol required, not {}".format(value.__class__.__name__), expr.sourceref)
     elif isinstance(expr, AddressOf):
         assert isinstance(expr.name, SymbolName)
-        try:
-            value = symbolscope[expr.name.name]
-            if isinstance(value, VarDef):
-                if value.vartype == VarType.MEMORY:
-                    return value.value
-                if value.vartype == VarType.CONST:
-                    raise ExpressionEvaluationError("can't take the address of a constant", expr.name.sourceref)
-                raise ExpressionEvaluationError("address-of this {} isn't a compile-time constant"
-                                                .format(value.__class__.__name__), expr.name.sourceref)
-            else:
-                raise ExpressionEvaluationError("constant address required, not {}"
-                                                .format(value.__class__.__name__), expr.name.sourceref)
-        except LookupError as x:
-            raise ParseError(str(x), expr.sourceref) from None
+        value = check_symbol_definition(expr.name.name, symbolscope, expr.sourceref)
+        if isinstance(value, VarDef):
+            if value.vartype == VarType.MEMORY:
+                return value.value
+            if value.vartype == VarType.CONST:
+                raise ExpressionEvaluationError("can't take the address of a constant", expr.name.sourceref)
+            raise ExpressionEvaluationError("address-of this {} isn't a compile-time constant"
+                                            .format(value.__class__.__name__), expr.name.sourceref)
+        else:
+            raise ExpressionEvaluationError("constant address required, not {}"
+                                            .format(value.__class__.__name__), expr.name.sourceref)
     elif isinstance(expr, SubCall):
         if isinstance(expr.target, CallTarget):
             target = expr.target.target
             if isinstance(target, SymbolName):      # 'function(1,2,3)'
                 funcname = target.name
                 if funcname in math_functions or funcname in builtin_functions:
-                    if isinstance(expr.target.target, SymbolName):
-                        func_args = []
-                        for a in (process_constant_expression(callarg.value, sourceref, symbolscope) for callarg in expr.arguments):
-                            if isinstance(a, LiteralValue):
-                                func_args.append(a.value)
-                            else:
-                                func_args.append(a)
-                        func = math_functions.get(funcname, builtin_functions.get(funcname))
-                        try:
-                            return func(*func_args)
-                        except Exception as x:
-                            raise ExpressionEvaluationError(str(x), expr.sourceref)
-                    else:
-                        raise ParseError("symbol name required, not {}".format(expr.target.__class__.__name__), expr.sourceref)
+                    func_args = []
+                    for a in (process_constant_expression(callarg.value, sourceref, symbolscope) for callarg in expr.arguments):
+                        if isinstance(a, LiteralValue):
+                            func_args.append(a.value)
+                        else:
+                            func_args.append(a)
+                    func = math_functions.get(funcname, builtin_functions.get(funcname))
+                    try:
+                        return func(*func_args)
+                    except Exception as x:
+                        raise ExpressionEvaluationError(str(x), expr.sourceref)
                 else:
                     raise ExpressionEvaluationError("can only use math- or builtin function", expr.sourceref)
             elif isinstance(target, Dereference):       # '[...](1,2,3)'
@@ -766,8 +798,8 @@ def process_constant_expression(expr: Any, sourceref: SourceRef, symbolscope: Sc
         expr.left = process_constant_expression(expr.left, left_sourceref, symbolscope)
         right_sourceref = expr.right.sourceref if isinstance(expr.right, AstNode) else sourceref
         expr.right = process_constant_expression(expr.right, right_sourceref, symbolscope)
-        if isinstance(expr.left, (LiteralValue, SymbolName, int, float, str, bool)):
-            if isinstance(expr.right, (LiteralValue, SymbolName, int, float, str, bool)):
+        if isinstance(expr.left, (LiteralValue, int, float, str, bool)):
+            if isinstance(expr.right, (LiteralValue, int, float, str, bool)):
                 return expr.evaluate_primitive_constants(symbolscope)
             else:
                 raise ExpressionEvaluationError("constant value required on right, not {}"
@@ -775,6 +807,13 @@ def process_constant_expression(expr: Any, sourceref: SourceRef, symbolscope: Sc
         else:
             raise ExpressionEvaluationError("constant value required on left, not {}"
                                             .format(expr.left.__class__.__name__), left_sourceref)
+
+
+def check_symbol_definition(name: str, scope: Scope, sref: SourceRef) -> Any:
+    try:
+        return scope.lookup(name)
+    except UndefinedSymbolError as x:
+        raise ParseError(str(x), sref)
 
 
 def process_dynamic_expression(expr: Any, sourceref: SourceRef, symbolscope: Scope) -> Any:
@@ -797,10 +836,14 @@ def process_dynamic_expression(expr: Any, sourceref: SourceRef, symbolscope: Sco
         try:
             return process_constant_expression(expr, sourceref, symbolscope)
         except ExpressionEvaluationError:
+            if isinstance(expr.target.target, SymbolName):
+                check_symbol_definition(expr.target.target.name, symbolscope, expr.target.target.sourceref)
             return expr
     elif isinstance(expr, Register):
         return expr
     elif isinstance(expr, Dereference):
+        if isinstance(expr.location, SymbolName):
+            check_symbol_definition(expr.location.name, symbolscope, expr.location.sourceref)
         return expr
     elif not isinstance(expr, Expression):
         raise ParseError("expression required, not {}".format(expr.__class__.__name__), expr.sourceref)

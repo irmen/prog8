@@ -13,7 +13,7 @@ from typing import Optional, Tuple, Set, Dict, List, Any, no_type_check
 import attr
 from .plyparse import parse_file, ParseError, Module, Directive, Block, Subroutine, Scope, VarDef, LiteralValue, \
     SubCall, Goto, Return, Assignment, InlineAssembly, Register, Expression, ProgramFormat, ZpOptions,\
-    SymbolName, Dereference, AddressOf, IncrDecr, Label, AstNode, datatype_of, coerce_constant_value
+    SymbolName, Dereference, AddressOf, IncrDecr, Label, AstNode, datatype_of, coerce_constant_value, UndefinedSymbolError
 from .plylex import SourceRef, print_bold
 from .datatypes import DataType, VarType
 
@@ -36,7 +36,7 @@ class PlyParser:
             self.process_imports(module)
             self.create_multiassigns(module)
             self.check_and_merge_zeropages(module)
-            self.process_all_expressions(module)
+            self.process_all_expressions_and_symbolnames(module)
             if not self.parsing_import:
                 # these shall only be done on the main module after all imports have been done:
                 self.apply_directive_options(module)
@@ -54,28 +54,33 @@ class PlyParser:
         self.parse_errors += 1
         print_bold("ERROR: {}: {}".format(sourceref, fmtstring.format(*args)))
 
+    def _check_last_statement_is_return(self, last_stmt: AstNode) -> None:
+        if isinstance(last_stmt, Subroutine):
+            return
+        if isinstance(last_stmt, Directive) and last_stmt.name == "noreturn":
+            return
+        if isinstance(last_stmt, InlineAssembly):
+            for line in reversed(last_stmt.assembly.splitlines()):
+                line = line.strip()
+                if line.startswith(";"):
+                    continue
+                if "jmp " in line or "jmp\t" in line or "rts" in line or "rti" in line:
+                    return
+        raise ParseError("last statement in a block/subroutine must be a return or goto, "
+                         "(or %noreturn directive to silence this error)", last_stmt.sourceref)
+
     def semantic_check(self, module: Module) -> None:
         # perform semantic analysis / checks on the syntactic parse tree we have so far
-        def check_last_statement_is_return(last_stmt: AstNode) -> None:
-            if isinstance(last_stmt, Subroutine):
-                return
-            if isinstance(last_stmt, Directive) and last_stmt.name == "noreturn":
-                return
-            if isinstance(last_stmt, InlineAssembly):
-                for line in reversed(last_stmt.assembly.splitlines()):
-                    line = line.strip()
-                    if line.startswith(";"):
-                        continue
-                    if "jmp " in line or "jmp\t" in line or "rts" in line or "rti" in line:
-                        return
-            raise ParseError("last statement in a block/subroutine must be a return or goto, "
-                             "(or %noreturn directive to silence this error)", last_stmt.sourceref)
-
+        # (note: symbol names have already been checked to exist when we start this)
         for block, parent in module.all_scopes():
             assert isinstance(block, (Module, Block, Subroutine))
             assert parent is None or isinstance(parent, (Module, Block, Subroutine))
             previous_stmt = None
             for stmt in block.nodes:
+                if isinstance(stmt, SubCall):
+                    if isinstance(stmt.target.target, SymbolName):
+                        subdef = block.scope.lookup(stmt.target.target.name)
+                        self.check_subroutine_arguments(stmt, subdef)
                 if isinstance(stmt, Subroutine):
                     # the previous statement (if any) must be a Goto or Return
                     if previous_stmt and not isinstance(previous_stmt, (Goto, Return, VarDef, Subroutine)):
@@ -88,11 +93,20 @@ class PlyParser:
                 previous_stmt = stmt
                 if isinstance(stmt, IncrDecr):
                     if isinstance(stmt.target, SymbolName):
-                        symdef = block.scope[stmt.target.name]
+                        symdef = block.scope.lookup(stmt.target.name)
                         if isinstance(symdef, VarDef) and symdef.vartype == VarType.CONST:
                             raise ParseError("cannot modify a constant", stmt.sourceref)
             if parent and block.name != "ZP" and not isinstance(stmt, (Return, Goto)):
-                check_last_statement_is_return(stmt)
+                self._check_last_statement_is_return(stmt)
+
+    def check_subroutine_arguments(self, call: SubCall, subdef: Subroutine) -> None:
+        # @todo must be moved to expression processing, or, restructure whole AST tree walking to make it easier to walk over everything
+        if len(call.arguments) != len(subdef.param_spec):
+            raise ParseError("invalid number of arguments ({:d}, required: {:d})"
+                             .format(len(call.arguments), len(subdef.param_spec)), call.sourceref)
+        for arg, param in zip(call.arguments, subdef.param_spec):
+            if arg.name and arg.name != param[0]:
+                raise ParseError("parameter name mismatch", arg.sourceref)
 
     def check_and_merge_zeropages(self, module: Module) -> None:
         # merge all ZP blocks into one
@@ -133,8 +147,8 @@ class PlyParser:
                 raise ParseError(str(x), vardef.sourceref)
 
     @no_type_check
-    def process_all_expressions(self, module: Module) -> None:
-        # process/simplify all expressions (constant folding etc)
+    def process_all_expressions_and_symbolnames(self, module: Module) -> None:
+        # process/simplify all expressions (constant folding etc), and check all symbol names
         encountered_blocks = set()
         for block, parent in module.all_scopes():
             parentname = (parent.name + ".") if parent else ""
@@ -144,6 +158,7 @@ class PlyParser:
             encountered_blocks.add(blockname)
             for node in block.nodes:
                 try:
+                    node.verify_symbol_names(block.scope)
                     node.process_expressions(block.scope)
                 except ParseError:
                     raise
@@ -297,10 +312,10 @@ class PlyParser:
             return self._get_subroutine_usages_from_expression(usages, expr.name, parent_scope)
         elif isinstance(expr, SymbolName):
             try:
-                symbol = parent_scope[expr.name]
+                symbol = parent_scope.lookup(expr.name)
                 if isinstance(symbol, Subroutine):
                     usages[(parent_scope.name, expr.name)].add(str(expr.sourceref))
-            except LookupError:
+            except UndefinedSymbolError:
                 pass
         else:
             raise TypeError("unknown expr type to scan for sub usages", expr, expr.sourceref)
@@ -338,8 +353,8 @@ class PlyParser:
                     if name[0] == '$':
                         continue
                     try:
-                        symbol = parent_scope[name]
-                    except LookupError:
+                        symbol = parent_scope.lookup(name)
+                    except UndefinedSymbolError:
                         pass
                     else:
                         if isinstance(symbol, Subroutine):
@@ -439,6 +454,7 @@ class PlyParser:
                 print(' ' * (1+exc.sourceref.column) + '^', file=out)
         if out.isatty():
             print("\x1b[0m", file=out, end="", flush=True)
+        raise exc   # XXX temporary to see where the error occurred
 
     def handle_internal_error(self, exc: Exception, msg: str="") -> None:
         out = sys.stdout

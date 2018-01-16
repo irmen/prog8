@@ -112,6 +112,7 @@ def test_coerce_value():
     assert coerce_constant_value(datatypes.DataType.FLOAT, '@') == (True, 64)
     assert coerce_constant_value(datatypes.DataType.BYTE, 5.678) == (True, 5)
     assert coerce_constant_value(datatypes.DataType.WORD, 5.678) == (True, 5)
+    assert coerce_constant_value(datatypes.DataType.WORD, "string") == (False, "string"),  "string (address) can be assigned to a word"
     assert coerce_constant_value(datatypes.DataType.STRING, "string") == (False, "string")
     assert coerce_constant_value(datatypes.DataType.STRING_P, "string") == (False, "string")
     assert coerce_constant_value(datatypes.DataType.STRING_S, "string") == (False, "string")
@@ -134,7 +135,5 @@ def test_coerce_value():
         coerce_constant_value(datatypes.DataType.FLOAT, 1.7014118347e+38)
     with pytest.raises(TypeError):
         coerce_constant_value(datatypes.DataType.BYTE, "string")
-    with pytest.raises(TypeError):
-        coerce_constant_value(datatypes.DataType.WORD, "string")
     with pytest.raises(TypeError):
         coerce_constant_value(datatypes.DataType.FLOAT, "string")

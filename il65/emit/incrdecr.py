@@ -18,7 +18,7 @@ def generate_incrdecr(out: Callable, stmt: IncrDecr, scope: Scope) -> None:
     assert stmt.operator in ("++", "--")
     target = stmt.target        # one of Register/SymbolName/Dereference
     if isinstance(target, SymbolName):
-        symdef = scope[target.name]
+        symdef = scope.lookup(target.name)
         if isinstance(symdef, VarDef):
             target = symdef
         else:

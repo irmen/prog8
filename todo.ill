@@ -68,7 +68,6 @@ start:
 	A+=3
 	XY+=6
 	XY+=222
-	A=222/13                ; @todo warn truncate (in assignment stmt)
 	XY+=666
 
 	return 44

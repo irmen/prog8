@@ -85,6 +85,7 @@ game_over:
         c64scr.print_string("\nToo bad! It was: ")
         c64scr.print_byte_decimal(secretnumber)
         c64.CHROUT('\n')
+        return goodbye()
         goodbye()               ; @todo fix subroutine usage tracking, it doesn't register this one
         return
         return

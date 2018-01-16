@@ -117,10 +117,10 @@ def test_parser():
     assert result.scope.name == "<sourcefile global scope>"
     assert result.subroutine_usage == {}
     assert result.scope.parent_scope is None
-    sub = result.scope["block.calculate"]
+    sub = result.scope.lookup("block.calculate")
     assert isinstance(sub, Subroutine)
     assert sub.name == "calculate"
-    block = result.scope["block"]
+    block = result.scope.lookup("block")
     assert isinstance(block, Block)
     assert block.name == "block"
     assert block.nodes is block.scope.nodes
@@ -131,7 +131,7 @@ def test_parser():
     assert isinstance(bool_vdef.value.right.value, int)
     assert bool_vdef.value.right.value == 1
     assert block.address == 49152
-    sub2 = block.scope["calculate"]
+    sub2 = block.scope.lookup("calculate")
     assert sub2 is sub
     assert sub2.lineref == "src l. 19"
     all_scopes = list(result.all_scopes())
@@ -163,7 +163,7 @@ def test_block_nodes():
 test_source_2 = """
 ~ {
     999(1,2)
-    &zz()
+    [zz]()
 }
 """
 
@@ -184,9 +184,9 @@ def test_parser_2():
     assert isinstance(call, SubCall)
     assert len(call.arguments) == 0
     assert isinstance(call.target, CallTarget)
-    assert isinstance(call.target.target, SymbolName)
-    assert call.target.target.name == "zz"
-    assert call.target.address_of is True
+    assert isinstance(call.target.target, Dereference)
+    assert call.target.target.location.name == "zz"
+    assert call.target.address_of is False
 
 
 test_source_3 = """
