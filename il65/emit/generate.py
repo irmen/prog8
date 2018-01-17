@@ -10,7 +10,7 @@ import datetime
 from typing import TextIO, Callable
 from ..plylex import print_bold
 from ..plyparse import Module, Scope, ProgramFormat, Block, Directive, VarDef, Label, Subroutine, AstNode, ZpOptions, \
-    InlineAssembly, Return, Register, Goto, SubCall, Assignment, AugAssignment, IncrDecr
+    InlineAssembly, Return, Register, Goto, SubCall, Assignment, AugAssignment, IncrDecr, AssignmentTargets
 from . import CodeError, to_hex
 from .variables import generate_block_init, generate_block_vars
 from .assignment import generate_assignment, generate_aug_assignment
@@ -190,15 +190,21 @@ class AssemblyGenerator:
         elif isinstance(stmt, Return):
             if stmt.value_A:
                 reg = Register(name="A", sourceref=stmt.sourceref)   # type: ignore
-                assignment = Assignment(left=[reg], right=stmt.value_A, sourceref=stmt.sourceref)   # type: ignore
+                assignment = Assignment(sourceref=stmt.sourceref)   # type: ignore
+                assignment.nodes.append(AssignmentTargets(nodes=[reg], sourceref=stmt.sourceref))
+                assignment.nodes.append(stmt.value_A)
                 generate_assignment(out, assignment)
             if stmt.value_X:
                 reg = Register(name="X", sourceref=stmt.sourceref)   # type: ignore
-                assignment = Assignment(left=[reg], right=stmt.value_X, sourceref=stmt.sourceref)   # type: ignore
+                assignment = Assignment(sourceref=stmt.sourceref)   # type: ignore
+                assignment.nodes.append(AssignmentTargets(nodes=[reg], sourceref=stmt.sourceref))
+                assignment.nodes.append(stmt.value_X)
                 generate_assignment(out, assignment)
             if stmt.value_Y:
                 reg = Register(name="Y", sourceref=stmt.sourceref)   # type: ignore
-                assignment = Assignment(left=[reg], right=stmt.value_Y, sourceref=stmt.sourceref)   # type: ignore
+                assignment = Assignment(sourceref=stmt.sourceref)   # type: ignore
+                assignment.nodes.append(AssignmentTargets(nodes=[reg], sourceref=stmt.sourceref))
+                assignment.nodes.append(stmt.value_Y)
                 generate_assignment(out, assignment)
             out("\vrts")
         elif isinstance(stmt, InlineAssembly):

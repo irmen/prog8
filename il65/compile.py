@@ -13,7 +13,8 @@ from typing import Optional, Tuple, Set, Dict, List, Any, no_type_check
 import attr
 from .plyparse import parse_file, ParseError, Module, Directive, Block, Subroutine, Scope, VarDef, LiteralValue, \
     SubCall, Goto, Return, Assignment, InlineAssembly, Register, Expression, ProgramFormat, ZpOptions,\
-    SymbolName, Dereference, AddressOf, IncrDecr, Label, AstNode, datatype_of, coerce_constant_value, UndefinedSymbolError
+    SymbolName, Dereference, AddressOf, IncrDecr, AstNode, datatype_of, coerce_constant_value, \
+    check_symbol_definition, UndefinedSymbolError
 from .plylex import SourceRef, print_bold
 from .datatypes import DataType, VarType
 
@@ -23,9 +24,9 @@ class CompileError(Exception):
 
 
 class PlyParser:
-    def __init__(self, parsing_import: bool=False) -> None:
+    def __init__(self, imported_module: bool=False) -> None:
         self.parse_errors = 0
-        self.parsing_import = parsing_import
+        self.imported_module = imported_module
 
     def parse_file(self, filename: str) -> Module:
         print("parsing:", filename)
@@ -34,15 +35,17 @@ class PlyParser:
             module = parse_file(filename, self.lexer_error)
             self.check_directives(module)
             self.process_imports(module)
+            self.check_all_symbolnames(module)
             self.create_multiassigns(module)
             self.check_and_merge_zeropages(module)
             self.process_all_expressions_and_symbolnames(module)
-            if not self.parsing_import:
-                # these shall only be done on the main module after all imports have been done:
-                self.apply_directive_options(module)
-                self.determine_subroutine_usage(module)
-                self.semantic_check(module)
-                self.allocate_zeropage_vars(module)
+            return module  # XXX
+            # if not self.parsing_import:
+            #     # these shall only be done on the main module after all imports have been done:
+            #     self.apply_directive_options(module)
+            #     self.determine_subroutine_usage(module)
+            #     self.semantic_check(module)
+            #     self.allocate_zeropage_vars(module)
         except ParseError as x:
             self.handle_parse_error(x)
         if self.parse_errors:
@@ -69,35 +72,33 @@ class PlyParser:
         raise ParseError("last statement in a block/subroutine must be a return or goto, "
                          "(or %noreturn directive to silence this error)", last_stmt.sourceref)
 
-    def semantic_check(self, module: Module) -> None:
-        # perform semantic analysis / checks on the syntactic parse tree we have so far
-        # (note: symbol names have already been checked to exist when we start this)
-        for block, parent in module.all_scopes():
-            assert isinstance(block, (Module, Block, Subroutine))
-            assert parent is None or isinstance(parent, (Module, Block, Subroutine))
-            previous_stmt = None
-            for stmt in block.nodes:
-                if isinstance(stmt, SubCall):
-                    if isinstance(stmt.target.target, SymbolName):
-                        subdef = block.scope.lookup(stmt.target.target.name)
-                        self.check_subroutine_arguments(stmt, subdef)
-                if isinstance(stmt, Subroutine):
-                    # the previous statement (if any) must be a Goto or Return
-                    if previous_stmt and not isinstance(previous_stmt, (Goto, Return, VarDef, Subroutine)):
-                        raise ParseError("statement preceding subroutine must be a goto or return or another subroutine", stmt.sourceref)
-                if isinstance(previous_stmt, Subroutine):
-                    # the statement after a subroutine can not be some random executable instruction because it could not be reached
-                    if not isinstance(stmt, (Subroutine, Label, Directive, InlineAssembly, VarDef)):
-                        raise ParseError("statement following a subroutine can't be runnable code, "
-                                         "at least use a label first", stmt.sourceref)
-                previous_stmt = stmt
-                if isinstance(stmt, IncrDecr):
-                    if isinstance(stmt.target, SymbolName):
-                        symdef = block.scope.lookup(stmt.target.name)
-                        if isinstance(symdef, VarDef) and symdef.vartype == VarType.CONST:
-                            raise ParseError("cannot modify a constant", stmt.sourceref)
-            if parent and block.name != "ZP" and not isinstance(stmt, (Return, Goto)):
-                self._check_last_statement_is_return(stmt)
+    # def semantic_check(self, module: Module) -> None:
+    #     # perform semantic analysis / checks on the syntactic parse tree we have so far
+    #     # (note: symbol names have already been checked to exist when we start this)
+    #     for node, parent in module.all_nodes():
+    #         previous_stmt = None
+    #         if isinstance(node, SubCall):
+    #             if isinstance(node.target, SymbolName):
+    #                 subdef = block.scope.lookup(stmt.target.target.name)
+    #                 self.check_subroutine_arguments(stmt, subdef)
+    #         if isinstance(stmt, Subroutine):
+    #             # the previous statement (if any) must be a Goto or Return
+    #             if previous_stmt and not isinstance(previous_stmt, (Goto, Return, VarDef, Subroutine)):
+    #                 raise ParseError("statement preceding subroutine must be a goto or return or another subroutine", stmt.sourceref)
+    #         if isinstance(previous_stmt, Subroutine):
+    #             # the statement after a subroutine can not be some random executable instruction because it could not be reached
+    #             if not isinstance(stmt, (Subroutine, Label, Directive, InlineAssembly, VarDef)):
+    #                 raise ParseError("statement following a subroutine can't be runnable code, "
+    #                                  "at least use a label first", stmt.sourceref)
+    #         previous_stmt = stmt
+    #         if isinstance(stmt, IncrDecr):
+    #             if isinstance(stmt.target, SymbolName):
+    #                 symdef = block.scope.lookup(stmt.target.name)
+    #                 if isinstance(symdef, VarDef) and symdef.vartype == VarType.CONST:
+    #                     raise ParseError("cannot modify a constant", stmt.sourceref)
+    #
+    #         if parent and block.name != "ZP" and not isinstance(stmt, (Return, Goto)):
+    #             self._check_last_statement_is_return(stmt)
 
     def check_subroutine_arguments(self, call: SubCall, subdef: Subroutine) -> None:
         # @todo must be moved to expression processing, or, restructure whole AST tree walking to make it easier to walk over everything
@@ -110,8 +111,9 @@ class PlyParser:
 
     def check_and_merge_zeropages(self, module: Module) -> None:
         # merge all ZP blocks into one
+        # XXX done: converted to new nodes
         zeropage = None
-        for block in list(module.scope.filter_nodes(Block)):
+        for block in module.all_nodes([Block]):
             if block.name == "ZP":
                 if zeropage:
                     # merge other ZP block into first ZP block
@@ -124,7 +126,7 @@ class PlyParser:
                             raise ParseError("only variables and directives allowed in zeropage block", node.sourceref)
                 else:
                     zeropage = block
-                module.scope.remove_node(block)
+                block.parent.remove_node(block)
         if zeropage:
             # add the zero page again, as the very first block
             module.scope.add_node(zeropage, 0)
@@ -146,37 +148,42 @@ class PlyParser:
             except CompileError as x:
                 raise ParseError(str(x), vardef.sourceref)
 
-    @no_type_check
+    def check_all_symbolnames(self, module: Module) -> None:
+        for node in module.all_nodes([SymbolName]):
+            check_symbol_definition(node.name, node.my_scope(), node.sourceref)
+
     def process_all_expressions_and_symbolnames(self, module: Module) -> None:
-        # process/simplify all expressions (constant folding etc), and check all symbol names
+        # process/simplify all expressions (constant folding etc)
         encountered_blocks = set()
-        for block, parent in module.all_scopes():
-            parentname = (parent.name + ".") if parent else ""
-            blockname = parentname + block.name
-            if blockname in encountered_blocks:
-                raise ValueError("block names not unique:", blockname)
-            encountered_blocks.add(blockname)
-            for node in block.nodes:
-                try:
-                    node.verify_symbol_names(block.scope)
-                    node.process_expressions(block.scope)
-                except ParseError:
-                    raise
-                except Exception as x:
-                    self.handle_internal_error(x, "process_expressions of node {} in block {}".format(node, block.name))
-                if isinstance(node, IncrDecr) and node.howmuch not in (0, 1):
-                    _, node.howmuch = coerce_constant_value(datatype_of(node.target, block.scope), node.howmuch, node.sourceref)
-                elif isinstance(node, Assignment):
-                    lvalue_types = set(datatype_of(lv, block.scope) for lv in node.left)
-                    if len(lvalue_types) == 1:
-                        _, node.right = coerce_constant_value(lvalue_types.pop(), node.right, node.sourceref)
-                    else:
-                        for lv_dt in lvalue_types:
-                            coerce_constant_value(lv_dt, node.right, node.sourceref)
+        for node in module.all_nodes():
+            if isinstance(node, Block):
+                parentname = (node.parent.name + ".") if node.parent else ""
+                blockname = parentname + node.name
+                if blockname in encountered_blocks:
+                    raise ValueError("block names not unique:", blockname)
+                encountered_blocks.add(blockname)
+            elif isinstance(node, Expression):
+                print("EXPRESSION", node)  # XXX
+                # try:
+                #     node.process_expressions(block.scope)
+                # except ParseError:
+                #     raise
+                # except Exception as x:
+                #     self.handle_internal_error(x, "process_expressions of node {} in block {}".format(node, block.name))
+            elif isinstance(node, IncrDecr) and node.howmuch not in (0, 1):
+                _, node.howmuch = coerce_constant_value(datatype_of(node.target, node.my_scope()), node.howmuch, node.sourceref)
+            elif isinstance(node, Assignment):
+                lvalue_types = set(datatype_of(lv, node.my_scope()) for lv in node.left.nodes)
+                if len(lvalue_types) == 1:
+                    _, node.right = coerce_constant_value(lvalue_types.pop(), node.right, node.sourceref)
+                else:
+                    for lv_dt in lvalue_types:
+                        coerce_constant_value(lv_dt, node.right, node.sourceref)
 
     def create_multiassigns(self, module: Module) -> None:
         # create multi-assign statements from nested assignments (A=B=C=5),
         # and optimize TargetRegisters down to single Register if it's just one register.
+        # XXX done: converted to new nodes
         def reduce_right(assign: Assignment) -> Assignment:
             if isinstance(assign.right, Assignment):
                 right = reduce_right(assign.right)
@@ -184,12 +191,10 @@ class PlyParser:
                 assign.right = right.right
             return assign
 
-        for block, parent in module.all_scopes():
-            for node in block.nodes:        # type: ignore
-                if isinstance(node, Assignment):
-                    if isinstance(node.right, Assignment):
-                        multi = reduce_right(node)
-                        assert multi is node and len(multi.left) > 1 and not isinstance(multi.right, Assignment)
+        for node in module.all_nodes([Assignment]):
+            if isinstance(node.right, Assignment):
+                multi = reduce_right(node)
+                assert multi is node and len(multi.left) > 1 and not isinstance(multi.right, Assignment)
 
     def apply_directive_options(self, module: Module) -> None:
         def set_save_registers(scope: Scope, save_dir: Directive) -> None:
@@ -284,7 +289,7 @@ class PlyParser:
                     self._get_subroutine_usages_from_assignment(module.subroutine_usage, node, block.scope)
         print("----------SUBROUTINES IN USE-------------")  # XXX
         import pprint
-        pprint.pprint(module.subroutine_usage) # XXX
+        pprint.pprint(module.subroutine_usage)  # XXX
         print("----------/SUBROUTINES IN USE-------------")  # XXX
 
     def _get_subroutine_usages_from_subcall(self, usages: Dict[Tuple[str, str], Set[str]],
@@ -307,7 +312,7 @@ class PlyParser:
         elif isinstance(expr, LiteralValue):
             return
         elif isinstance(expr, Dereference):
-            return self._get_subroutine_usages_from_expression(usages, expr.location, parent_scope)
+            return self._get_subroutine_usages_from_expression(usages, expr.operand, parent_scope)
         elif isinstance(expr, AddressOf):
             return self._get_subroutine_usages_from_expression(usages, expr.name, parent_scope)
         elif isinstance(expr, SymbolName):
@@ -365,34 +370,31 @@ class PlyParser:
                             usages[(namespace, symbol.name)].add(str(asmnode.sourceref))
 
     def check_directives(self, module: Module) -> None:
-        for node, parent in module.all_scopes():
-            if isinstance(node, Module):
-                # check module-level directives
-                imports = set()  # type: Set[str]
-                for directive in node.scope.filter_nodes(Directive):
-                    if directive.name not in {"output", "zp", "address", "import", "saveregisters", "noreturn"}:
-                        raise ParseError("invalid directive in module", directive.sourceref)
-                    if directive.name == "import":
-                        if imports & set(directive.args):
-                            raise ParseError("duplicate import", directive.sourceref)
-                        imports |= set(directive.args)
-            if isinstance(node, (Block, Subroutine)):
-                # check block and subroutine-level directives
-                first_node = True
-                if not node.scope:
-                    continue
-                for sub_node in node.scope.nodes:
-                    if isinstance(sub_node, Directive):
-                        if sub_node.name not in {"asmbinary", "asminclude", "breakpoint", "saveregisters", "noreturn"}:
-                            raise ParseError("invalid directive in " + node.__class__.__name__.lower(), sub_node.sourceref)
-                        if sub_node.name == "saveregisters" and not first_node:
-                            raise ParseError("saveregisters directive must be the first", sub_node.sourceref)
-                    first_node = False
+        # XXX done: converted to new nodes
+        imports = set()  # type: Set[str]
+        for node in module.all_nodes():
+            if isinstance(node, Directive):
+                assert isinstance(node.parent, Scope)
+                if node.parent.level == "module":
+                    if node.name not in {"output", "zp", "address", "import", "saveregisters", "noreturn"}:
+                        raise ParseError("invalid directive in module", node.sourceref)
+                    if node.name == "import":
+                        if imports & set(node.args):
+                            raise ParseError("duplicate import", node.sourceref)
+                        imports |= set(node.args)
+                else:
+                    if node.name not in {"asmbinary", "asminclude", "breakpoint", "saveregisters", "noreturn"}:
+                        raise ParseError("invalid directive in " + node.parent.__class__.__name__.lower(), node.sourceref)
+                    if node.name == "saveregisters":
+                        # it should be the first node in the scope
+                        if node.parent.nodes[0] is not node:
+                            raise ParseError("saveregisters directive must be first in this scope", node.sourceref)
 
     def process_imports(self, module: Module) -> None:
         # (recursively) imports the modules
+        # XXX done: converted to new nodes
         imported = []
-        for directive in module.scope.filter_nodes(Directive):
+        for directive in module.all_nodes([Directive]):
             if directive.name == "import":
                 if len(directive.args) < 1:
                     raise ParseError("missing argument(s) for import directive", directive.sourceref)
@@ -404,7 +406,7 @@ class PlyParser:
                     imported_module.scope.parent_scope = module.scope
                     imported.append(imported_module)
                     self.parse_errors += import_parse_errors
-        if not self.parsing_import:
+        if not self.imported_module:
             # compiler support library is always imported (in main parser)
             filename = self.find_import_file("il65lib", module.sourceref.file)
             if filename:
@@ -414,13 +416,14 @@ class PlyParser:
                 self.parse_errors += import_parse_errors
             else:
                 raise FileNotFoundError("missing il65lib")
-        # append the imported module's contents (blocks) at the end of the current module
-        for imported_module in imported:
-            for block in imported_module.scope.filter_nodes(Block):
-                module.scope.add_node(block)
+        # XXX append the imported module's contents (blocks) at the end of the current module
+        # for block in (node for imported_module in imported
+        #               for node in imported_module.scope.nodes
+        #               if isinstance(node, Block)):
+        #     module.scope.add_node(block)
 
     def import_file(self, filename: str) -> Tuple[Module, int]:
-        sub_parser = PlyParser(parsing_import=True)
+        sub_parser = PlyParser(imported_module=True)
         return sub_parser.parse_file(filename), sub_parser.parse_errors
 
     def find_import_file(self, modulename: str, sourcefile: str) -> Optional[str]:
@@ -443,7 +446,7 @@ class PlyParser:
         out = sys.stdout
         if out.isatty():
             print("\x1b[1m", file=out)
-        if self.parsing_import:
+        if self.imported_module:
             print("Error (in imported file):", str(exc), file=out)
         else:
             print("Error:", str(exc), file=out)

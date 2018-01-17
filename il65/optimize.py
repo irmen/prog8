@@ -6,7 +6,7 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
 from .plyparse import Module, Subroutine, Block, Directive, Assignment, AugAssignment, Goto, Expression, IncrDecr,\
-    datatype_of, coerce_constant_value
+    datatype_of, coerce_constant_value, AssignmentTargets
 from .plylex import print_warning, print_bold
 
 
@@ -47,14 +47,17 @@ class Optimizer:
                             block.scope.remove_node(assignment)
                         if assignment.right >= 8 and assignment.operator in ("<<=", ">>="):
                             print("{}: shifting result is always zero".format(assignment.sourceref))
-                            new_stmt = Assignment(left=[assignment.left], right=0, sourceref=assignment.sourceref)
+                            new_stmt = Assignment(sourceref=assignment.sourceref)
+                            new_stmt.nodes.append(AssignmentTargets(nodes=[assignment.left], sourceref=assignment.sourceref))
+                            new_stmt.nodes.append(0)
                             block.scope.replace_node(assignment, new_stmt)
                         if assignment.operator in ("+=", "-=") and 0 < assignment.right < 256:
                             howmuch = assignment.right
                             if howmuch not in (0, 1):
                                 _, howmuch = coerce_constant_value(datatype_of(assignment.left, block.scope), howmuch, assignment.sourceref)
-                            new_stmt = IncrDecr(target=assignment.left, operator="++" if assignment.operator == "+=" else "--",
+                            new_stmt = IncrDecr(operator="++" if assignment.operator == "+=" else "--",
                                                 howmuch=howmuch, sourceref=assignment.sourceref)
+                            new_stmt.target = assignment.left
                             block.scope.replace_node(assignment, new_stmt)
 
     def combine_assignments_into_multi(self):

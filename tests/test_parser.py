@@ -1,11 +1,12 @@
 from il65.plylex import lexer, tokens, find_tok_column, literals, reserved, SourceRef
-from il65.plyparse import parser, TokenFilter, Module, Subroutine, Block, Return, Scope, \
-    VarDef, Expression, LiteralValue, Label, SubCall, CallTarget, SymbolName, Dereference
-from il65.datatypes import DataType, char_to_bytevalue
+from il65.plyparse import parser, connect_parents, TokenFilter, Module, Subroutine, Block, Return, Scope, \
+    VarDef, Expression, LiteralValue, Label, SubCall, Dereference
+from il65.datatypes import DataType
 
 
 def lexer_error(sourceref: SourceRef, fmtstring: str, *args: str) -> None:
     print("ERROR: {}: {}".format(sourceref, fmtstring.format(*args)))
+
 
 lexer.error_function = lexer_error
 
@@ -112,6 +113,7 @@ def test_parser():
     lexer.source_filename = "sourcefile"
     filter = TokenFilter(lexer)
     result = parser.parse(input=test_source_1, tokenfunc=filter.token)
+    connect_parents(result, None)
     assert isinstance(result, Module)
     assert result.name == "sourcefile"
     assert result.scope.name == "<sourcefile global scope>"
@@ -123,7 +125,6 @@ def test_parser():
     block = result.scope.lookup("block")
     assert isinstance(block, Block)
     assert block.name == "block"
-    assert block.nodes is block.scope.nodes
     bool_vdef = block.scope.nodes[1]
     assert isinstance(bool_vdef, VarDef)
     assert isinstance(bool_vdef.value, Expression)
@@ -134,30 +135,26 @@ def test_parser():
     sub2 = block.scope.lookup("calculate")
     assert sub2 is sub
     assert sub2.lineref == "src l. 19"
-    all_scopes = list(result.all_scopes())
-    assert len(all_scopes) == 3
-    assert isinstance(all_scopes[0][0], Module)
-    assert all_scopes[0][1] is None
-    assert isinstance(all_scopes[1][0], Block)
-    assert isinstance(all_scopes[1][1], Module)
-    assert isinstance(all_scopes[2][0], Subroutine)
-    assert isinstance(all_scopes[2][1], Block)
-    stmt = list(all_scopes[2][0].scope.filter_nodes(Return))
-    assert len(stmt) == 1
-    assert isinstance(stmt[0], Return)
-    assert stmt[0].lineref == "src l. 20"
+    all_nodes = list(result.all_nodes())
+    assert len(all_nodes) == 12
+    all_nodes = list(result.all_nodes([Subroutine]))
+    assert len(all_nodes) == 1
+    assert isinstance(all_nodes[0], Subroutine)
+    assert isinstance(all_nodes[0].parent, Scope)
+    assert all_nodes[0] in all_nodes[0].parent.nodes
+    assert all_nodes[0].lineref == "src l. 19"
+    assert all_nodes[0].parent.lineref == "src l. 8"
 
 
 def test_block_nodes():
     sref = SourceRef("file", 1, 1)
     sub1 = Subroutine(name="subaddr", param_spec=[], result_spec=[], address=0xc000, sourceref=sref)
-    sub2 = Subroutine(name="subblock", param_spec=[], result_spec=[],
-                      scope=Scope(nodes=[Label(name="start", sourceref=sref)], sourceref=sref), sourceref=sref)
+    sub2 = Subroutine(name="subblock", param_spec=[], result_spec=[], sourceref=sref)
+    sub2.scope = Scope(nodes=[Label(name="start", sourceref=sref)], level="block", sourceref=sref)
     assert sub1.scope is None
     assert sub1.nodes == []
     assert sub2.scope is not None
     assert len(sub2.scope.nodes) > 0
-    assert sub2.nodes is sub2.scope.nodes
 
 
 test_source_2 = """
@@ -173,20 +170,18 @@ def test_parser_2():
     lexer.source_filename = "sourcefile"
     filter = TokenFilter(lexer)
     result = parser.parse(input=test_source_2, tokenfunc=filter.token)
-    block = result.nodes[0]
-    call = block.nodes[0]
+    connect_parents(result, None)
+    block = result.scope.nodes[0]
+    call = block.scope.nodes[0]
     assert isinstance(call, SubCall)
-    assert len(call.arguments) == 2
-    assert isinstance(call.target, CallTarget)
-    assert call.target.target == 999
-    assert call.target.address_of is False
-    call = block.nodes[1]
+    assert len(call.arguments.nodes) == 2
+    assert isinstance(call.target, int)
+    assert call.target == 999
+    call = block.scope.nodes[1]
     assert isinstance(call, SubCall)
-    assert len(call.arguments) == 0
-    assert isinstance(call.target, CallTarget)
-    assert isinstance(call.target.target, Dereference)
-    assert call.target.target.location.name == "zz"
-    assert call.target.address_of is False
+    assert len(call.arguments.nodes) == 0
+    assert isinstance(call.target, Dereference)
+    assert call.target.operand.name == "zz"
 
 
 test_source_3 = """
@@ -198,33 +193,35 @@ test_source_3 = """
 }
 """
 
+
 def test_typespec():
     lexer.lineno = 1
     lexer.source_filename = "sourcefile"
     filter = TokenFilter(lexer)
     result = parser.parse(input=test_source_3, tokenfunc=filter.token)
-    nodes = result.nodes[0].nodes
-    assignment1, assignment2, assignment3, assignment4 = nodes
+    connect_parents(result, None)
+    block = result.scope.nodes[0]
+    assignment1, assignment2, assignment3, assignment4 = block.scope.nodes
     assert assignment1.right.value == 5
     assert assignment2.right.value == 5
     assert assignment3.right.value == 5
     assert assignment4.right.value == 5
-    assert len(assignment1.left) == 1
-    assert len(assignment2.left) == 1
-    assert len(assignment3.left) == 1
-    assert len(assignment4.left) == 1
-    t1 = assignment1.left[0]
-    t2 = assignment2.left[0]
-    t3 = assignment3.left[0]
-    t4 = assignment4.left[0]
+    assert len(assignment1.left.nodes) == 1
+    assert len(assignment2.left.nodes) == 1
+    assert len(assignment3.left.nodes) == 1
+    assert len(assignment4.left.nodes) == 1
+    t1 = assignment1.left.nodes[0]
+    t2 = assignment2.left.nodes[0]
+    t3 = assignment3.left.nodes[0]
+    t4 = assignment4.left.nodes[0]
     assert isinstance(t1, Dereference)
     assert isinstance(t2, Dereference)
     assert isinstance(t3, Dereference)
     assert isinstance(t4, Dereference)
-    assert t1.location == 0xc000
-    assert t2.location == 0xc000
-    assert t3.location == "AX"
-    assert t4.location == "AX"
+    assert t1.operand == 0xc000
+    assert t2.operand == 0xc000
+    assert t3.operand == "AX"
+    assert t4.operand == "AX"
     assert t1.datatype == DataType.WORD
     assert t2.datatype == DataType.BYTE
     assert t3.datatype == DataType.WORD
@@ -252,8 +249,9 @@ def test_char_string():
     lexer.source_filename = "sourcefile"
     filter = TokenFilter(lexer)
     result = parser.parse(input=test_source_4, tokenfunc=filter.token)
-    nodes = result.nodes[0].nodes
-    var1, var2, var3, assgn1, assgn2, assgn3, = nodes
+    connect_parents(result, None)
+    block = result.scope.nodes[0]
+    var1, var2, var3, assgn1, assgn2, assgn3, = block.scope.nodes
     assert var1.value.value == 64
     assert var2.value.value == 126
     assert var3.value.value == "abc"
@@ -278,8 +276,9 @@ def test_boolean_int():
     lexer.source_filename = "sourcefile"
     filter = TokenFilter(lexer)
     result = parser.parse(input=test_source_5, tokenfunc=filter.token)
-    nodes = result.nodes[0].nodes
-    var1, var2, assgn1, assgn2, = nodes
+    connect_parents(result, None)
+    block = result.scope.nodes[0]
+    var1, var2, assgn1, assgn2, = block.scope.nodes
     assert type(var1.value.value) is int and var1.value.value == 1
     assert type(var2.value.value) is int and var2.value.value == 0
     assert type(assgn1.right.value) is int and assgn1.right.value == 1

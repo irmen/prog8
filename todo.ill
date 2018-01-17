@@ -3,7 +3,6 @@
 
 
 ~ main {
-
 	var .byte  v1t  = true
 	var .byte  v1f  = false
 	var .word  v2t  = true
