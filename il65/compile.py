@@ -14,7 +14,7 @@ import attr
 from .plyparse import parse_file, ParseError, Module, Directive, Block, Subroutine, Scope, VarDef, LiteralValue, \
     SubCall, Goto, Return, Assignment, InlineAssembly, Register, Expression, ProgramFormat, ZpOptions,\
     SymbolName, Dereference, AddressOf, IncrDecr, AstNode, datatype_of, coerce_constant_value, \
-    check_symbol_definition, UndefinedSymbolError
+    check_symbol_definition, UndefinedSymbolError, process_expression
 from .plylex import SourceRef, print_bold
 from .datatypes import DataType, VarType
 
@@ -38,7 +38,7 @@ class PlyParser:
             self.check_all_symbolnames(module)
             self.create_multiassigns(module)
             self.check_and_merge_zeropages(module)
-            self.process_all_expressions_and_symbolnames(module)
+            self.process_all_expressions(module)
             return module  # XXX
             # if not self.parsing_import:
             #     # these shall only be done on the main module after all imports have been done:
@@ -152,7 +152,7 @@ class PlyParser:
         for node in module.all_nodes([SymbolName]):
             check_symbol_definition(node.name, node.my_scope(), node.sourceref)
 
-    def process_all_expressions_and_symbolnames(self, module: Module) -> None:
+    def process_all_expressions(self, module: Module) -> None:
         # process/simplify all expressions (constant folding etc)
         encountered_blocks = set()
         for node in module.all_nodes():
@@ -163,13 +163,12 @@ class PlyParser:
                     raise ValueError("block names not unique:", blockname)
                 encountered_blocks.add(blockname)
             elif isinstance(node, Expression):
-                print("EXPRESSION", node)  # XXX
-                # try:
-                #     node.process_expressions(block.scope)
-                # except ParseError:
-                #     raise
-                # except Exception as x:
-                #     self.handle_internal_error(x, "process_expressions of node {} in block {}".format(node, block.name))
+                try:
+                    process_expression(node, node.my_scope(), node.sourceref)
+                except ParseError:
+                    raise
+                except Exception as x:
+                    self.handle_internal_error(x, "process_expressions of node {}".format(node))
             elif isinstance(node, IncrDecr) and node.howmuch not in (0, 1):
                 _, node.howmuch = coerce_constant_value(datatype_of(node.target, node.my_scope()), node.howmuch, node.sourceref)
             elif isinstance(node, Assignment):

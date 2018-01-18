@@ -59,10 +59,13 @@ tokens = (
     "BITOR",
     "BITXOR",
     "BITINVERT",
+    "SHIFTLEFT",
+    "SHIFTRIGHT",
     "LOGICAND",
     "LOGICOR",
     "LOGICNOT",
     "INTEGERDIVIDE",
+    "MODULO",
     "POWER",
     "LABEL",
     "IF",
@@ -75,6 +78,8 @@ literals = ['+', '-', '*', '/', '(', ')', '[', ']', '{', '}', '.', ',', '!', '?'
 
 # regex rules for simple tokens
 
+t_SHIFTLEFT = r"<<"
+t_SHIFTRIGHT = r">>"
 t_INTEGERDIVIDE = r"//"
 t_BITAND = r"&"
 t_BITOR = r"\|"
@@ -118,6 +123,7 @@ reserved = {
     "not": "LOGICNOT",
     "and": "LOGICAND",
     "or": "LOGICOR",
+    "mod": "MODULO",
     "AX": "REGISTER",
     "AY": "REGISTER",
     "XY": "REGISTER",
