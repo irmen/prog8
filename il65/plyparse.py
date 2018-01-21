@@ -75,17 +75,14 @@ class AstNode:
             scope = scope.parent
         raise LookupError("no scope found in node ancestry")
 
-    def all_nodes(self, nodetypes: Sequence['AstNode']=None) -> Generator['AstNode', None, None]:
-        if nodetypes is None:
-            nodett = AstNode
-        else:
-            nodett = tuple(nodetypes)       # type: ignore
+    def all_nodes(self, *nodetypes: type) -> Generator['AstNode', None, None]:
+        nodetypes = nodetypes or (AstNode, )
         for node in self.nodes:
-            if isinstance(node, nodett):  # type: ignore
+            if isinstance(node, nodetypes):  # type: ignore
                 yield node
         for node in self.nodes:
             if isinstance(node, AstNode):
-                yield from node.all_nodes(nodetypes)
+                yield from node.all_nodes(*nodetypes)
 
     def remove_node(self, node: 'AstNode') -> None:
         self.nodes.remove(node)
@@ -597,15 +594,15 @@ class Return(AstNode):
     # one, two or three subnodes: value_A, value_X, value_Y (all three Expression)
     @property
     def value_A(self) -> Expression:
-        return self.nodes[0]    # type: ignore
+        return self.nodes[0] if self.nodes else None    # type: ignore
 
     @property
     def value_X(self) -> Expression:
-        return self.nodes[0]    # type: ignore
+        return self.nodes[0] if self.nodes else None    # type: ignore
 
     @property
     def value_Y(self) -> Expression:
-        return self.nodes[0]    # type: ignore
+        return self.nodes[0] if self.nodes else None    # type: ignore
 
 
 @attr.s(cmp=False, slots=True, repr=False)

@@ -102,7 +102,7 @@ def test_char_to_bytevalue():
 
 def test_coerce_value():
     def lv(v) -> LiteralValue:
-        return LiteralValue(value=v, sourceref=SourceRef("test", 1, 1))
+        return LiteralValue(value=v, sourceref=SourceRef("test", 1, 1))     # type: ignore
     assert coerce_constant_value(datatypes.DataType.BYTE, lv(0)) == (False, lv(0))
     assert coerce_constant_value(datatypes.DataType.BYTE, lv(255)) == (False, lv(255))
     assert coerce_constant_value(datatypes.DataType.BYTE, lv('@')) == (True, lv(64))

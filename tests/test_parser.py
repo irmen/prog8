@@ -137,7 +137,7 @@ def test_parser():
     assert sub2.lineref == "src l. 19"
     all_nodes = list(result.all_nodes())
     assert len(all_nodes) == 12
-    all_nodes = list(result.all_nodes([Subroutine]))
+    all_nodes = list(result.all_nodes(Subroutine))
     assert len(all_nodes) == 1
     assert isinstance(all_nodes[0], Subroutine)
     assert isinstance(all_nodes[0].parent, Scope)
