@@ -73,11 +73,11 @@ class AstNode:
             if isinstance(scope, Scope):
                 return scope
             scope = scope.parent
-        raise LookupError("no scope found in node ancestry")
+        raise LookupError("no scope found in node ancestry", self)
 
     def all_nodes(self, *nodetypes: type) -> Generator['AstNode', None, None]:
         nodetypes = nodetypes or (AstNode, )
-        for node in self.nodes:
+        for node in list(self.nodes):
             if isinstance(node, nodetypes):  # type: ignore
                 yield node
         for node in self.nodes:
@@ -121,7 +121,10 @@ class Scope(AstNode):
     def save_registers(self) -> bool:
         if self._save_registers is not None:
             return self._save_registers
-        return self.my_scope().save_registers
+        try:
+            return self.my_scope().save_registers
+        except LookupError:
+            return False
 
     @save_registers.setter
     def save_registers(self, save: bool) -> None:
@@ -507,7 +510,7 @@ class Goto(AstNode):
         return self.nodes[1] if len(self.nodes) == 2 else None      # type: ignore
 
 
-@attr.s(cmp=False, slots=True)
+@attr.s(cmp=False, slots=True, repr=False)
 class CallArgument(AstNode):
     # one subnode: the value (Expression)
     name = attr.ib(type=str, default=None)
@@ -553,12 +556,12 @@ class VarDef(AstNode):
     zp_address = attr.ib(type=int, default=None, init=False)    # the address in the zero page if this var is there, will be set later
 
     @property
-    def value(self) -> Union[LiteralValue, Expression]:
+    def value(self) -> Union[LiteralValue, Expression, AddressOf, SymbolName]:
         return self.nodes[0] if self.nodes else None    # type: ignore
 
     @value.setter
-    def value(self, value: Union[LiteralValue, Expression]) -> None:
-        assert isinstance(value, (LiteralValue, Expression))
+    def value(self, value: Union[LiteralValue, Expression, AddressOf, SymbolName]) -> None:
+        assert isinstance(value, (LiteralValue, Expression, AddressOf, SymbolName))
         if self.nodes:
             self.nodes[0] = value
         else:
@@ -634,8 +637,8 @@ class Assignment(AstNode):
         return self.nodes[1]    # type: ignore
 
     @right.setter
-    def right(self, rvalue: Union[Register, LiteralValue, Expression]) -> None:
-        assert isinstance(rvalue, (Register, LiteralValue, Expression))
+    def right(self, rvalue: Union[Register, LiteralValue, Expression, Dereference, SymbolName, SubCall]) -> None:
+        assert isinstance(rvalue, (Register, LiteralValue, Expression, Dereference, SymbolName, SubCall))
         self.nodes[1] = rvalue
 
 
@@ -704,10 +707,16 @@ def coerce_constant_value(datatype: DataType, value: AstNode,
                 raise TypeError("cannot assign '{:s}' to {:s}".format(type(value.value).__name__, datatype.name.lower()), sourceref)
     elif isinstance(value, (Expression, SubCall)):
         return False, value
+    elif isinstance(value, SymbolName):
+        symboldef = value.my_scope().lookup(value.name)
+        if isinstance(symboldef, VarDef) and symboldef.vartype == VarType.CONST:
+            return True, symboldef.value
+    elif isinstance(value, AddressOf):
+        raise NotImplementedError("addressof const coerce", value)  # XXX implement this
     if datatype == DataType.WORD and not isinstance(value, (LiteralValue, Dereference, Register, SymbolName, AddressOf)):
         raise TypeError("cannot assign '{:s}' to {:s}".format(type(value).__name__, datatype.name.lower()), sourceref)
     elif datatype in (DataType.BYTE, DataType.WORD, DataType.FLOAT) \
-            and not isinstance(value, (LiteralValue, Dereference, Register, SymbolName)):
+            and not isinstance(value, (LiteralValue, Dereference, Register, SymbolName, AddressOf)):
         raise TypeError("cannot assign '{:s}' to {:s}".format(type(value).__name__, datatype.name.lower()), sourceref)
     return False, value
 
@@ -734,6 +743,8 @@ def process_constant_expression(expr: Any, sourceref: SourceRef, symbolscope: Sc
             value = value.value
         if isinstance(value, Expression):
             raise ExpressionEvaluationError("circular reference?", expr.sourceref)
+        elif isinstance(value, LiteralValue):
+            return value
         elif isinstance(value, (int, float, str, bool)):
             raise TypeError("symbol value node should not be a python primitive value", expr)
         else:
@@ -1199,10 +1210,11 @@ def p_call_subroutine(p):
     """
     subroutine_call :  calltarget  preserveregs_opt  '('  call_arguments_opt  ')'
     """
-    p[0] = SubCall(sourceref=_token_sref(p, 3))
+    sref = _token_sref(p, 3)
+    p[0] = SubCall(sourceref=sref)
     p[0].nodes.append(p[1])
     p[0].nodes.append(p[2])
-    p[0].nodes.append(CallArguments(nodes=p[4] or [], sourceref=p[0].sourceref))
+    p[0].nodes.append(CallArguments(nodes=p[4] or [], sourceref=sref))
 
 
 def p_preserveregs_opt(p):
@@ -1249,7 +1261,11 @@ def p_call_argument(p):
         p[0] = CallArgument(sourceref=_token_sref(p, 1))
         p[0].nodes.append(p[1])
     elif len(p) == 4:
-        p[0] = CallArgument(name=p[1], sourceref=_token_sref(p, 1))
+        if isinstance(p[1], AstNode):
+            sref = p[1].sourceref
+        else:
+            sref = _token_sref(p, 2)
+        p[0] = CallArgument(name=p[1], sourceref=sref)
         p[0].nodes.append(p[3])
 
 

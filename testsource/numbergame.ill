@@ -106,7 +106,6 @@ sub goodbye ()->() {
 	xxxxxx++
 	y++
 	xxxxxx = q *4
-	xxxxxx = qqqqq *44 ;@todo symbol error
 
         c64scr.print_string("\nThanks for playing. Bye!\n")
         return

@@ -101,8 +101,11 @@ class PlyParser:
             raise ParseError("invalid number of arguments ({:d}, required: {:d})"
                              .format(len(call.arguments.nodes), len(subdef.param_spec)), call.sourceref)
         for arg, param in zip(call.arguments.nodes, subdef.param_spec):
-            if arg.name and arg.name != param[0]:
-                raise ParseError("parameter name mismatch", arg.sourceref)
+            if arg.name:
+                if not param[0]:
+                    raise ParseError("parameter is unnamed but name was used", arg.sourceref)
+                if arg.name != param[0]:
+                    raise ParseError("parameter name mismatch", arg.sourceref)
 
     def check_and_merge_zeropages(self, module: Module) -> None:
         # merge all ZP blocks into one
@@ -111,7 +114,7 @@ class PlyParser:
             if block.name == "ZP":   # type: ignore
                 if zeropage:
                     # merge other ZP block into first ZP block
-                    for node in block.nodes:
+                    for node in block.scope.nodes:
                         if isinstance(node, Directive):
                             zeropage.scope.add_node(node, 0)
                         elif isinstance(node, VarDef):
@@ -172,7 +175,7 @@ class PlyParser:
                 lvalue_types = set(datatype_of(lv, node.my_scope()) for lv in node.left.nodes)
                 if len(lvalue_types) == 1:
                     _, newright = coerce_constant_value(lvalue_types.pop(), node.right, node.sourceref)
-                    if isinstance(newright, (Register, LiteralValue, Expression)):
+                    if isinstance(newright, (Register, LiteralValue, Expression, Dereference, SymbolName, SubCall)):
                         node.right = newright
                     else:
                         raise TypeError("invalid coerced constant type", newright)

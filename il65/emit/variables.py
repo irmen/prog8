@@ -247,6 +247,8 @@ def _format_string(value: str, screencodes: bool = False) -> str:
 
 
 def _numeric_value_str(value: Any, as_hex: bool=False) -> str:
+    if isinstance(value, LiteralValue):
+        value = value.value
     if isinstance(value, bool):
         return "1" if value else "0"
     if type(value) is int:

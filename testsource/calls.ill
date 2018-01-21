@@ -32,11 +32,9 @@ bar:    goto $c000
         ; ----
 
         goto sub1
-        return  sub2 (  )
-        return  sub2 ()
         return  sub2 (1  )
         return  sub3 (3)
-        return  sub3 (XY="hello")
+        return  sub3 ("hello")
         return  sub3 ("hello, there")
         return  sub4 (string="hello, there", other = 42)
         return  sub4 ("hello",  42)
@@ -77,7 +75,7 @@ bar:    goto $c000
         sub1!()
         sub2!(11)
         sub3 !(3)
-        sub3! (XY="hello")
+        sub3! ("hello")
         sub3! ("hello, there")
         sub4! ("hello",  42)
         sub4! ("hello",  other=42)
@@ -113,7 +111,7 @@ bar:    goto $c000
         sub1()
         sub2(11)
         sub3 (3)
-        sub3 (XY="hello")
+        sub3 ("hello")
         sub3 ("hello, there")
         sub4 ("hello",  42)
         sub4 ("hello", other=  42)
