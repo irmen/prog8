@@ -78,16 +78,16 @@ class PlyParser:
         previous_stmt = None
         for node in module.all_nodes():
             if isinstance(node, Scope):
-                previous_stmt = None
                 if node.nodes and isinstance(node.parent, (Block, Subroutine)):
                     self._check_last_statement_is_return(node.nodes[-1])
             elif isinstance(node, SubCall):
                 if isinstance(node.target, SymbolName):
                     subdef = node.my_scope().lookup(node.target.name)
-                    self.check_subroutine_arguments(node, subdef)   # type: ignore
+                    if isinstance(subdef, Subroutine):
+                        self.check_subroutine_arguments(node, subdef)
             elif isinstance(node, Subroutine):
                 # the previous statement (if any) must be a Goto or Return
-                if previous_stmt and not isinstance(previous_stmt, (Goto, Return, VarDef, Subroutine)):
+                if not isinstance(previous_stmt, (Scope, Goto, Return, VarDef, Subroutine)):
                     raise ParseError("statement preceding subroutine must be a goto or return or another subroutine", node.sourceref)
             elif isinstance(node, IncrDecr):
                 if isinstance(node.target, SymbolName):
@@ -172,7 +172,7 @@ class PlyParser:
                 lvalue_types = set(datatype_of(lv, node.my_scope()) for lv in node.left.nodes)
                 if len(lvalue_types) == 1:
                     _, newright = coerce_constant_value(lvalue_types.pop(), node.right, node.sourceref)
-                    if isinstance(newright, (LiteralValue, Expression)):
+                    if isinstance(newright, (Register, LiteralValue, Expression)):
                         node.right = newright
                     else:
                         raise TypeError("invalid coerced constant type", newright)
@@ -187,14 +187,14 @@ class PlyParser:
         def reduce_right(assign: Assignment) -> Assignment:
             if isinstance(assign.right, Assignment):
                 right = reduce_right(assign.right)
-                assign.left.extend(right.left)
+                assign.left.nodes.extend(right.left.nodes)
                 assign.right = right.right
             return assign
 
         for node in module.all_nodes(Assignment):
             if isinstance(node.right, Assignment):
                 multi = reduce_right(node)
-                assert multi is node and len(multi.left) > 1 and not isinstance(multi.right, Assignment)
+                assert multi is node and len(multi.left.nodes) > 1 and not isinstance(multi.right, Assignment)
 
     @no_type_check
     def apply_directive_options(self, module: Module) -> None:
@@ -324,9 +324,8 @@ class PlyParser:
     @no_type_check
     def _get_subroutine_usages_from_goto(self, usages: Dict[Tuple[str, str], Set[str]],
                                          goto: Goto, parent_scope: Scope) -> None:
-        target = goto.target.target
-        if isinstance(target, SymbolName):
-            usages[(parent_scope.name, target.name)].add(str(goto.sourceref))
+        if isinstance(goto.target, SymbolName):
+            usages[(parent_scope.name, goto.target.name)].add(str(goto.sourceref))
         self._get_subroutine_usages_from_expression(usages, goto.condition, parent_scope)
 
     def _get_subroutine_usages_from_return(self, usages: Dict[Tuple[str, str], Set[str]],

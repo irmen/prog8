@@ -382,12 +382,6 @@ class Subroutine(AstNode):
             raise ValueError("subroutine must have either a scope or an address, not both")
 
 
-@attr.s(cmp=False, repr=False)
-class Goto(AstNode):
-    # one or two subnodes: target (SymbolName, int or Dereference) and optionally: condition (Expression)
-    if_stmt = attr.ib(default=None)
-
-
 @attr.s(cmp=True, slots=True)
 class LiteralValue(AstNode):
     # no subnodes.
@@ -497,6 +491,20 @@ class Expression(AstNode):
                        indent + str(expr.operator) + "\n" + \
                        indent + "{}".format(tree(expr.right, level + 1))
         print(tree(self, 0))
+
+
+@attr.s(cmp=False, repr=False)
+class Goto(AstNode):
+    # one or two subnodes: target (SymbolName, int or Dereference) and optionally: condition (Expression)
+    if_stmt = attr.ib(default=None)
+
+    @property
+    def target(self) -> Union[SymbolName, int, Dereference]:
+        return self.nodes[0]    # type: ignore
+
+    @property
+    def condition(self) -> Expression:
+        return self.nodes[1] if len(self.nodes) == 2 else None      # type: ignore
 
 
 @attr.s(cmp=False, slots=True)
@@ -614,19 +622,20 @@ class AssignmentTargets(AstNode):
 @attr.s(cmp=False, slots=True, repr=False)
 class Assignment(AstNode):
     # can be single- or multi-assignment
-    # has two subnodes: left (=AssignmentTargets) and right (=Expression or another Assignment but those will be converted to multi assign)
+    # has two subnodes: left (=AssignmentTargets) and right (=reg/literal/expr
+    #    or another Assignment but those will be converted to multi assign)
 
     @property
     def left(self) -> AssignmentTargets:
         return self.nodes[0]    # type: ignore
 
     @property
-    def right(self) -> Union[LiteralValue, Expression]:
+    def right(self) -> Union[Register, LiteralValue, Expression]:
         return self.nodes[1]    # type: ignore
 
     @right.setter
-    def right(self, rvalue: Union[LiteralValue, Expression]) -> None:
-        assert isinstance(rvalue, (LiteralValue, Expression))
+    def right(self, rvalue: Union[Register, LiteralValue, Expression]) -> None:
+        assert isinstance(rvalue, (Register, LiteralValue, Expression))
         self.nodes[1] = rvalue
 
 
