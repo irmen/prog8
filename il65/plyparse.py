@@ -270,7 +270,7 @@ class Module(AstNode):
     @no_type_check
     def zeropage(self) -> Optional[Block]:
         # return the zeropage block (if defined)
-        first_block = next(self.scope.filter_nodes(Block))
+        first_block = next(self.scope.all_nodes(Block))
         if first_block.name == "ZP":
             return first_block
         return None
@@ -278,7 +278,7 @@ class Module(AstNode):
     @no_type_check
     def main(self) -> Optional[Block]:
         # return the 'main' block (if defined)
-        for block in self.scope.filter_nodes(Block):
+        for block in self.scope.all_nodes(Block):
             if block.name == "main":
                 return block
         return None

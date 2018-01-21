@@ -133,7 +133,7 @@ class PlyParser:
         if zpnode.name != "ZP":
             return
         zeropage = Zeropage(module.zp_options)
-        for vardef in zpnode.scope.filter_nodes(VarDef):
+        for vardef in zpnode.all_nodes(VarDef):
             if vardef.datatype.isstring():
                 raise ParseError("cannot put strings in the zeropage", vardef.sourceref)
             try:
@@ -158,7 +158,10 @@ class PlyParser:
                 encountered_blocks.add(blockname)
             elif isinstance(node, Expression):
                 try:
-                    process_expression(node, node.my_scope(), node.sourceref)
+                    evaluated = process_expression(node, node.my_scope(), node.sourceref)
+                    if evaluated is not node:
+                        # replace the node with the newly evaluated result
+                        node.parent.replace_node(node, evaluated)
                 except ParseError:
                     raise
                 except Exception as x:
@@ -408,11 +411,11 @@ class PlyParser:
                 self.parse_errors += import_parse_errors
             else:
                 raise FileNotFoundError("missing il65lib")
-        # XXX append the imported module's contents (blocks) at the end of the current module
-        # for block in (node for imported_module in imported
-        #               for node in imported_module.scope.nodes
-        #               if isinstance(node, Block)):
-        #     module.scope.add_node(block)
+        # append the imported module's contents (blocks) at the end of the current module
+        for block in (node for imported_module in imported
+                      for node in imported_module.scope.nodes
+                      if isinstance(node, Block)):
+            module.scope.add_node(block)
 
     def import_file(self, filename: str) -> Tuple[Module, int]:
         sub_parser = PlyParser(imported_module=True)

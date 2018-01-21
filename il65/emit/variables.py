@@ -7,7 +7,7 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 
 from collections import defaultdict
 from typing import Dict, List, Callable, Any
-from ..plyparse import Block, VarType, VarDef
+from ..plyparse import Block, VarType, VarDef, LiteralValue
 from ..datatypes import DataType, STRING_DATATYPES
 from . import to_hex, to_mflpt5, CodeError
 
@@ -56,18 +56,18 @@ def generate_block_init(out: Callable, block: Block) -> None:
     float_inits = {}
     prev_value_a, prev_value_x = None, None
     vars_by_datatype = defaultdict(list)  # type: Dict[DataType, List[VarDef]]
-    for vardef in block.scope.filter_nodes(VarDef):
+    for vardef in block.all_nodes(VarDef):
         if vardef.vartype == VarType.VAR:
             vars_by_datatype[vardef.datatype].append(vardef)
     for bytevar in sorted(vars_by_datatype[DataType.BYTE], key=lambda vd: vd.value):
-        assert type(bytevar.value) is int
-        if bytevar.value != prev_value_a:
-            out("\vlda  #${:02x}".format(bytevar.value))
-            prev_value_a = bytevar.value
+        assert isinstance(bytevar.value, LiteralValue) and type(bytevar.value.value) is int
+        if bytevar.value.value != prev_value_a:
+            out("\vlda  #${:02x}".format(bytevar.value.value))
+            prev_value_a = bytevar.value.value
         out("\vsta  {:s}".format(bytevar.name))
     for wordvar in sorted(vars_by_datatype[DataType.WORD], key=lambda vd: vd.value):
-        assert type(wordvar.value) is int
-        v_hi, v_lo = divmod(wordvar.value, 256)
+        assert isinstance(wordvar.value, LiteralValue) and type(wordvar.value.value) is int
+        v_hi, v_lo = divmod(wordvar.value.value, 256)
         if v_hi != prev_value_a:
             out("\vlda  #${:02x}".format(v_hi))
             prev_value_a = v_hi
@@ -77,18 +77,18 @@ def generate_block_init(out: Callable, block: Block) -> None:
         out("\vsta  {:s}".format(wordvar.name))
         out("\vstx  {:s}+1".format(wordvar.name))
     for floatvar in vars_by_datatype[DataType.FLOAT]:
-        assert isinstance(floatvar.value, (int, float))
-        fpbytes = to_mflpt5(floatvar.value)  # type: ignore
+        assert isinstance(floatvar.value, LiteralValue) and type(floatvar.value.value) in (int, float)
+        fpbytes = to_mflpt5(floatvar.value.value)  # type: ignore
         float_inits[floatvar.name] = (floatvar.name, fpbytes, floatvar.value)
     for arrayvar in vars_by_datatype[DataType.BYTEARRAY]:
-        assert type(arrayvar.value) is int
-        _memset(arrayvar.name, arrayvar.value, arrayvar.size[0])
+        assert isinstance(arrayvar.value, LiteralValue) and type(arrayvar.value.value) is int
+        _memset(arrayvar.name, arrayvar.value.value, arrayvar.size[0])
     for arrayvar in vars_by_datatype[DataType.WORDARRAY]:
-        assert type(arrayvar.value) is int
-        _memsetw(arrayvar.name, arrayvar.value, arrayvar.size[0])
+        assert isinstance(arrayvar.value, LiteralValue) and type(arrayvar.value.value) is int
+        _memsetw(arrayvar.name, arrayvar.value.value, arrayvar.size[0])
     for arrayvar in vars_by_datatype[DataType.MATRIX]:
-        assert type(arrayvar.value) is int
-        _memset(arrayvar.name, arrayvar.value, arrayvar.size[0] * arrayvar.size[1])
+        assert isinstance(arrayvar.value, LiteralValue) and type(arrayvar.value.value) is int
+        _memset(arrayvar.name, arrayvar.value.value, arrayvar.size[0] * arrayvar.size[1])
     if float_inits:
         out("\vldx  #4")
         out("-")
@@ -114,7 +114,7 @@ def generate_block_vars(out: Callable, block: Block, zeropage: bool=False) -> No
     # The memory bytes of the allocated variables is set to zero (so it compresses very well),
     # their actual starting values are set by the block init code.
     vars_by_vartype = defaultdict(list)  # type: Dict[VarType, List[VarDef]]
-    for vardef in block.scope.filter_nodes(VarDef):
+    for vardef in block.all_nodes(VarDef):
         vars_by_vartype[vardef.vartype].append(vardef)
     out("; constants")
     for vardef in vars_by_vartype.get(VarType.CONST, []):
@@ -132,13 +132,13 @@ def generate_block_vars(out: Callable, block: Block, zeropage: bool=False) -> No
         # create a definition for variables at a specific place in memory (memory-mapped)
         if vardef.datatype.isnumeric():
             assert vardef.size == [1]
-            out("\v{:s} = {:s}\t; {:s}".format(vardef.name, to_hex(vardef.value), vardef.datatype.name.lower()))
+            out("\v{:s} = {:s}\t; {:s}".format(vardef.name, to_hex(vardef.value.value), vardef.datatype.name.lower()))
         elif vardef.datatype == DataType.BYTEARRAY:
             assert len(vardef.size) == 1
-            out("\v{:s} = {:s}\t; array of {:d} bytes".format(vardef.name, to_hex(vardef.value), vardef.size[0]))
+            out("\v{:s} = {:s}\t; array of {:d} bytes".format(vardef.name, to_hex(vardef.value.value), vardef.size[0]))
         elif vardef.datatype == DataType.WORDARRAY:
             assert len(vardef.size) == 1
-            out("\v{:s} = {:s}\t; array of {:d} words".format(vardef.name, to_hex(vardef.value), vardef.size[0]))
+            out("\v{:s} = {:s}\t; array of {:d} words".format(vardef.name, to_hex(vardef.value.value), vardef.size[0]))
         elif vardef.datatype == DataType.MATRIX:
             assert len(vardef.size) in (2, 3)
             if len(vardef.size) == 2:
@@ -147,7 +147,7 @@ def generate_block_vars(out: Callable, block: Block, zeropage: bool=False) -> No
                 comment = "matrix of {:d} by {:d}, interleave {:d}".format(vardef.size[0], vardef.size[1], vardef.size[2])
             else:
                 raise CodeError("matrix size should be 2 or 3 numbers")
-            out("\v{:s} = {:s}\t; {:s}".format(vardef.name, to_hex(vardef.value), comment))
+            out("\v{:s} = {:s}\t; {:s}".format(vardef.name, to_hex(vardef.value.value), comment))
         else:
             raise CodeError("invalid var type")
     out("; normal variables - initial values will be set by init code")

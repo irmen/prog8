@@ -52,19 +52,13 @@ class AssemblyGenerator:
         out("\t.end")
 
     def sanitycheck(self) -> None:
-        start_found = False
-        for block, parent in self.module.all_scopes():
-            assert isinstance(block, (Module, Block, Subroutine))
-            for label in block.nodes:
-                if isinstance(label, Label) and label.name == "start" and block.name == "main":
-                    start_found = True
-                    break
-            if start_found:
+        for label in self.module.all_nodes(Label):
+            if label.name == "start" and label.my_scope().name == "main":
                 break
-        if not start_found:
+        else:
             print_bold("ERROR: program entry point is missing ('start' label in 'main' block)\n")
             raise SystemExit(1)
-        all_blocknames = [b.name for b in self.module.scope.filter_nodes(Block)]
+        all_blocknames = [b.name for b in self.module.all_nodes(Block)]
         unique_blocknames = set(all_blocknames)
         if len(all_blocknames) != len(unique_blocknames):
             for name in unique_blocknames:
@@ -137,7 +131,7 @@ class AssemblyGenerator:
             generate_block_vars(out, zpblock, True)
             # there's no code in the zero page block.
             out("\v.pend\n")
-        for block in sorted(self.module.scope.filter_nodes(Block), key=lambda b: b.address or 0):
+        for block in sorted(self.module.all_nodes(Block), key=lambda b: b.address or 0):
             if block.name == "ZP":
                 continue    # already processed
             self.cur_block = block
@@ -149,7 +143,7 @@ class AssemblyGenerator:
             out("{:s}\t.proc\n".format(block.label))
             generate_block_init(out, block)
             generate_block_vars(out, block)
-            subroutines = list(sub for sub in block.scope.filter_nodes(Subroutine) if sub.address is not None)
+            subroutines = list(sub for sub in block.all_nodes(Subroutine) if sub.address is not None)
             if subroutines:
                 # these are (external) subroutines that are defined by address instead of a scope/code
                 out("; external subroutines")
@@ -164,7 +158,7 @@ class AssemblyGenerator:
                 if block.name == "main" and isinstance(stmt, Label) and stmt.name == "start":
                     # make sure the main.start routine clears the decimal and carry flags as first steps
                     out("\vcld\n\vclc\n\vclv")
-            subroutines = list(sub for sub in block.scope.filter_nodes(Subroutine) if sub.address is None)
+            subroutines = list(sub for sub in block.all_nodes(Subroutine) if sub.address is None)
             if subroutines:
                 # these are subroutines that are defined by a scope/code
                 out("; -- block subroutines")

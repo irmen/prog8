@@ -81,7 +81,6 @@ def main() -> None:
     print("\nParsing program source code.")
     parser = PlyParser()
     parsed_module = parser.parse_file(args.sourcefile)
-    raise SystemExit("First fix the parser to iterate all nodes in the new way.")  # XXX
     if parsed_module:
         if args.nooptimize:
             print_bold("not optimizing the parse tree!")
