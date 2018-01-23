@@ -102,7 +102,7 @@ class PlyParser:
                         if isinstance(symdef, VarDef) and symdef.vartype == VarType.CONST:
                             raise ParseError("cannot modify a constant", target.sourceref)
             elif isinstance(node, AugAssignment):
-                # the assignment target must be a variable
+                # the assignment target must not be a constant
                 if isinstance(node.left, SymbolName):
                     symdef = node.my_scope().lookup(node.left.name)
                     if isinstance(symdef, VarDef):
@@ -111,6 +111,10 @@ class PlyParser:
                         elif symdef.datatype not in {DataType.BYTE, DataType.WORD, DataType.FLOAT}:
                             raise ParseError("cannot modify that datatype ({:s}) in this way"
                                              .format(symdef.datatype.name.lower()), node.sourceref)
+                # check for divide by (constant) zero
+                if node.operator in ("/=", "//="):
+                    if isinstance(node.right, LiteralValue) and node.right.value == 0:
+                        raise ParseError("division by zero", node.right.sourceref)
             previous_stmt = node
 
     def check_subroutine_arguments(self, call: SubCall, subdef: Subroutine) -> None:

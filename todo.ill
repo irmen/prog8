@@ -38,8 +38,8 @@ start:
 	v3t++
 	v3t+=1
 	v3t+=1          ; @todo? (optimize) join with previous
-	v3t+=0
-	v3t+=1
+	v3t+=0  ; is removed.
+	v3t+=1         ; @todo? (optimize) join with previous
 	v3t+=1          ; @todo? (optimize) join with previous
 	v3t=2.23424 ; @todo store as constant float with generated name, replace value node
 	v3t=2.23411 ; @todo store as constant float with generated name, replace value node
@@ -49,7 +49,13 @@ start:
 ;	v3t+=2.23411 ; @todo store as constant float with generated name, replace value node
 ;	v3t+=2.23411 ; @todo store as constant float with generated name, replace value node
 	v3t=2.23424 * v3t ; @todo store as constant float with generated name, replace value node
-	v3t*=2.23424 * v3t ; @todo store as constant float with generated name, replace value node
+	XY*=2
+	XY*=3
+	XY=XY/0    ; @todo zerodiv (during expression to code generation)
+	XY=XY//0    ; @todo zerodiv (during expression to code generation)
+	XY*=2.23424 ; @todo store as constant float with generated name, replace value node
+	XY*=2.23424 * v3t ; @todo store as constant float with generated name, replace value node
+	;v3t*=2.23424 * v3t ; @todo store as constant float with generated name, replace value node
 ;	A++
 ;	X--
 ;	A+=1

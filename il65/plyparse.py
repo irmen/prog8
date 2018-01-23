@@ -482,6 +482,8 @@ class Expression(AstNode):
         estr = "{} {} {}".format(repr(self.left.value), self.operator, repr(self.right.value))
         try:
             return LiteralValue(value=eval(estr, {}, {}), sourceref=sourceref)   # type: ignore  # safe because of checks above
+        except ZeroDivisionError:
+            raise ParseError("division by zero", sourceref)
         except Exception as x:
             raise ExpressionEvaluationError("expression error: " + str(x), self.sourceref) from None
 

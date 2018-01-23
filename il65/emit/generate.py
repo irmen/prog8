@@ -211,9 +211,9 @@ class AssemblyGenerator:
         elif isinstance(stmt, SubCall):
             generate_subcall(out, stmt)
         elif isinstance(stmt, Assignment):
-            generate_assignment(out, stmt)
+            generate_assignment(out, stmt, scope)
         elif isinstance(stmt, AugAssignment):
-            generate_aug_assignment(out, stmt)
+            generate_aug_assignment(out, stmt, scope)
         elif isinstance(stmt, Directive):
             if stmt.name == "breakpoint":
                 # put a marker in the source so that we can generate a list of breakpoints later

@@ -43,15 +43,26 @@ class Optimizer:
                     print_warning("{}: removed statement that has no effect".format(assignment.sourceref))
             if isinstance(assignment, AugAssignment):
                 if isinstance(assignment.right, LiteralValue) and isinstance(assignment.right.value, (int, float)):
-                    if assignment.right.value == 0 and assignment.operator in ("+=", "-=", "|=", "<<=", ">>=", "^="):
-                        self.num_warnings += 1
-                        print_warning("{}: removed statement that has no effect".format(assignment.sourceref))
-                        assignment.my_scope().remove_node(assignment)
+                    if assignment.right.value == 0:
+                        if assignment.operator in ("+=", "-=", "|=", "<<=", ">>=", "^="):
+                            self.num_warnings += 1
+                            print_warning("{}: removed statement that has no effect".format(assignment.sourceref))
+                            assignment.my_scope().remove_node(assignment)
+                        elif assignment.operator == "*=":
+                            self.num_warnings += 1
+                            print_warning("{}: statement replaced by = 0".format(assignment.sourceref))
+                            new_assignment = self._make_new_assignment(assignment, 0)
+                            assignment.my_scope().replace_node(assignment, new_assignment)
+                        elif assignment.operator == "**=":
+                            self.num_warnings += 1
+                            print_warning("{}: statement replaced by = 1".format(assignment.sourceref))
+                            new_assignment = self._make_new_assignment(assignment, 1)
+                            assignment.my_scope().replace_node(assignment, new_assignment)
                     if assignment.right.value >= 8 and assignment.operator in ("<<=", ">>="):
                         print("{}: shifting result is always zero".format(assignment.sourceref))
                         new_stmt = Assignment(sourceref=assignment.sourceref)
                         new_stmt.nodes.append(AssignmentTargets(nodes=[assignment.left], sourceref=assignment.sourceref))
-                        new_stmt.nodes.append(0)
+                        new_stmt.nodes.append(0)    # XXX literalvalue?
                         assignment.my_scope().replace_node(assignment, new_stmt)
                     if assignment.operator in ("+=", "-=") and 0 < assignment.right.value < 256:
                         howmuch = assignment.right
@@ -62,6 +73,22 @@ class Optimizer:
                                             howmuch=howmuch.value, sourceref=assignment.sourceref)
                         new_stmt.target = assignment.left
                         assignment.my_scope().replace_node(assignment, new_stmt)
+                    if assignment.operator in ("/=", "//=", "*=") and assignment.right.value == 1:
+                        self.num_warnings += 1
+                        print_warning("{}: removed statement that has no effect".format(assignment.sourceref))
+                        assignment.my_scope().remove_node(assignment)
+
+    @no_type_check
+    def _make_new_assignment(self, old_aug_assignment: AugAssignment, constantvalue: int) -> Assignment:
+        new_assignment = Assignment(sourceref=old_aug_assignment.sourceref)
+        new_assignment.parent = old_aug_assignment.parent
+        left = AssignmentTargets(nodes=[old_aug_assignment.left], sourceref=old_aug_assignment.sourceref)
+        left.parent = new_assignment
+        new_assignment.nodes.append(left)
+        value = LiteralValue(value=constantvalue, sourceref=old_aug_assignment.sourceref)
+        value.parent = new_assignment
+        new_assignment.nodes.append(value)
+        return new_assignment
 
     def combine_assignments_into_multi(self) -> None:
         # fold multiple consecutive assignments with the same rvalue into one multi-assignment

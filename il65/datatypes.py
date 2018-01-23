@@ -46,6 +46,9 @@ class DataType(enum.Enum):
     def isnumeric(self) -> bool:
         return self.value in (1, 2, 3)
 
+    def isinteger(self) -> bool:
+        return self.value in (1, 2)
+
     def isarray(self) -> bool:
         return self.value in (4, 5, 6)
 
