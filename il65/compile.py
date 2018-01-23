@@ -14,7 +14,7 @@ import attr
 from .plyparse import parse_file, ParseError, Module, Directive, Block, Subroutine, Scope, VarDef, LiteralValue, \
     SubCall, Goto, Return, Assignment, InlineAssembly, Register, Expression, ProgramFormat, ZpOptions,\
     SymbolName, Dereference, AddressOf, IncrDecr, AstNode, datatype_of, coerce_constant_value, \
-    check_symbol_definition, UndefinedSymbolError, process_expression, Label
+    check_symbol_definition, UndefinedSymbolError, process_expression, AugAssignment
 from .plylex import SourceRef, print_bold
 from .datatypes import DataType, VarType
 
@@ -68,7 +68,6 @@ class PlyParser:
                     continue
                 if "jmp " in line or "jmp\t" in line or "rts" in line or "rti" in line:
                     return
-        print(last_stmt)
         raise ParseError("last statement in a block/subroutine must be a return or goto, "
                          "(or %noreturn directive to silence this error)", last_stmt.sourceref)
 
@@ -79,7 +78,8 @@ class PlyParser:
         for node in module.all_nodes():
             if isinstance(node, Scope):
                 if node.nodes and isinstance(node.parent, (Block, Subroutine)):
-                    self._check_last_statement_is_return(node.nodes[-1])
+                    if isinstance(node.parent, Block) and node.parent.name != "ZP":
+                        self._check_last_statement_is_return(node.nodes[-1])
             elif isinstance(node, SubCall):
                 if isinstance(node.target, SymbolName):
                     subdef = node.my_scope().lookup(node.target.name)
@@ -94,6 +94,23 @@ class PlyParser:
                     symdef = node.my_scope().lookup(node.target.name)
                     if isinstance(symdef, VarDef) and symdef.vartype == VarType.CONST:
                         raise ParseError("cannot modify a constant", node.sourceref)
+            elif isinstance(node, Assignment):
+                scope = node.my_scope()
+                for target in node.left.nodes:
+                    if isinstance(target, SymbolName):
+                        symdef = scope.lookup(target.name)
+                        if isinstance(symdef, VarDef) and symdef.vartype == VarType.CONST:
+                            raise ParseError("cannot modify a constant", target.sourceref)
+            elif isinstance(node, AugAssignment):
+                # the assignment target must be a variable
+                if isinstance(node.left, SymbolName):
+                    symdef = node.my_scope().lookup(node.left.name)
+                    if isinstance(symdef, VarDef):
+                        if symdef.vartype == VarType.CONST:
+                            raise ParseError("cannot modify a constant", node.sourceref)
+                        elif symdef.datatype not in {DataType.BYTE, DataType.WORD, DataType.FLOAT}:
+                            raise ParseError("cannot modify that datatype ({:s}) in this way"
+                                             .format(symdef.datatype.name.lower()), node.sourceref)
             previous_stmt = node
 
     def check_subroutine_arguments(self, call: SubCall, subdef: Subroutine) -> None:
@@ -171,12 +188,18 @@ class PlyParser:
                     self.handle_internal_error(x, "process_expressions of node {}".format(node))
             elif isinstance(node, IncrDecr) and node.howmuch not in (0, 1):
                 _, node.howmuch = coerce_constant_value(datatype_of(node.target, node.my_scope()), node.howmuch, node.sourceref)
+            elif isinstance(node, VarDef):
+                dtype = DataType.WORD if node.vartype == VarType.MEMORY else node.datatype
+                try:
+                    _, node.value = coerce_constant_value(dtype, node.value, node.sourceref)
+                except OverflowError as x:
+                    raise ParseError(str(x), node.sourceref) from None
             elif isinstance(node, Assignment):
                 lvalue_types = set(datatype_of(lv, node.my_scope()) for lv in node.left.nodes)
                 if len(lvalue_types) == 1:
                     _, newright = coerce_constant_value(lvalue_types.pop(), node.right, node.sourceref)
                     if isinstance(newright, (Register, LiteralValue, Expression, Dereference, SymbolName, SubCall)):
-                        node.right = newright
+                        node.right = newright   # type: ignore
                     else:
                         raise TypeError("invalid coerced constant type", newright)
                 else:
@@ -287,10 +310,10 @@ class PlyParser:
                 self._get_subroutine_usages_from_return(module.subroutine_usage, node, node.my_scope())
             elif isinstance(node, Assignment):
                 self._get_subroutine_usages_from_assignment(module.subroutine_usage, node, node.my_scope())
-        print("----------SUBROUTINES IN USE-------------")  # XXX
-        import pprint
-        pprint.pprint(module.subroutine_usage)  # XXX
-        print("----------/SUBROUTINES IN USE-------------")  # XXX
+        # print("----------SUBROUTINES IN USE-------------")
+        # import pprint
+        # pprint.pprint(module.subroutine_usage)
+        # print("----------/SUBROUTINES IN USE-------------")
 
     def _get_subroutine_usages_from_subcall(self, usages: Dict[Tuple[str, str], Set[str]],
                                             subcall: SubCall, parent_scope: Scope) -> None:

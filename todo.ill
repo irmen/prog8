@@ -35,39 +35,38 @@
 start:
 	%breakpoint abc,def
 
-	;c3f=444         ; @todo constant error
-	;c3f=c3f         ; @todo constant error
-	;c3f=c2t         ; @todo constant error
-	;c3f+=2.23424    ; @todo constant error
 	v3t++
 	v3t+=1
+	v3t+=1          ; @todo? (optimize) join with previous
 	v3t+=0
-	;v3t+=2.23424 ; @todo store as constant float with generated name, replace value node
-	;v3t+=2.23424 ; @todo store as constant float with generated name, replace value node
-	;v3t+=2.23425 ; @todo store as constant float with generated name, replace value node
-;	v4t++           ; @todo parser error
-;	v4t+=20          ; @todo parser error
-;	v4t+=2000        ; @todo parser error
-;	v5t++            ; @todo parser error
-;	v5t+=20          ; @todo parser error
-;	v5t+=2000        ; @todo parser error
-	A++
-	X--
-	A+=1
-	X-=2
-	;[AX]++
-	;[AX .byte]++
-	;[AX .word]++
-	;[AX .float]++
-	;[$ccc0]++
-	;[$ccc0 .byte]++
-	;[$ccc0 .word]++
-	;[$ccc0 .float]++
-	A+=2
-	A+=3
-	XY+=6
-	XY+=222
-	XY+=666
+	v3t+=1
+	v3t+=1          ; @todo? (optimize) join with previous
+	v3t=2.23424 ; @todo store as constant float with generated name, replace value node
+	v3t=2.23411 ; @todo store as constant float with generated name, replace value node
+	v3t=1.23411 + 1; @todo store as constant float with generated name, replace value node
+;	v3t+=2.23424 ; @todo store as constant float with generated name, replace value node
+;	v3t+=2.23424 ; @todo store as constant float with generated name, replace value node
+;	v3t+=2.23411 ; @todo store as constant float with generated name, replace value node
+;	v3t+=2.23411 ; @todo store as constant float with generated name, replace value node
+	v3t=2.23424 * v3t ; @todo store as constant float with generated name, replace value node
+	v3t*=2.23424 * v3t ; @todo store as constant float with generated name, replace value node
+;	A++
+;	X--
+;	A+=1
+;	X-=2
+;	[AX]++
+;	[AX .byte]++
+;	[AX .word]++
+;	[AX .float]++
+;	[$ccc0]++
+;	[$ccc0 .byte]++
+;	[$ccc0 .word]++
+;	[$ccc0 .float]++
+;	A+=2
+;	A+=3
+;	XY+=6
+;	XY+=222
+;	XY+=666
 
 	return 44
 }

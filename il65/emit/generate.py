@@ -7,7 +7,7 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 
 import os
 import datetime
-from typing import TextIO, Callable
+from typing import TextIO, Callable, no_type_check
 from ..plylex import print_bold
 from ..plyparse import Module, Scope, ProgramFormat, Block, Directive, VarDef, Label, Subroutine, AstNode, ZpOptions, \
     InlineAssembly, Return, Register, Goto, SubCall, Assignment, AugAssignment, IncrDecr, AssignmentTargets
@@ -28,9 +28,6 @@ class Output:
 
 
 class AssemblyGenerator:
-    BREAKPOINT_COMMENT_SIGNATURE = "~~~BREAKPOINT~~~"
-    BREAKPOINT_COMMENT_DETECTOR = r".(?P<address>\w+)\s+ea\s+nop\s+;\s+{:s}.*".format(BREAKPOINT_COMMENT_SIGNATURE)
-
     def __init__(self, module: Module) -> None:
         self.module = module
         self.cur_block = None
@@ -53,12 +50,12 @@ class AssemblyGenerator:
 
     def sanitycheck(self) -> None:
         for label in self.module.all_nodes(Label):
-            if label.name == "start" and label.my_scope().name == "main":
+            if label.name == "start" and label.my_scope().name == "main":          # type: ignore
                 break
         else:
             print_bold("ERROR: program entry point is missing ('start' label in 'main' block)\n")
             raise SystemExit(1)
-        all_blocknames = [b.name for b in self.module.all_nodes(Block)]
+        all_blocknames = [b.name for b in self.module.all_nodes(Block)]        # type: ignore
         unique_blocknames = set(all_blocknames)
         if len(all_blocknames) != len(unique_blocknames):
             for name in unique_blocknames:
@@ -119,6 +116,7 @@ class AssemblyGenerator:
             out("\vjmp  {:s}.start".format(self.module.main().label))
         out("")
 
+    @no_type_check
     def blocks(self, out: Callable) -> None:
         zpblock = self.module.zeropage()
         if zpblock:
@@ -178,25 +176,26 @@ class AssemblyGenerator:
                 out("; -- end block subroutines")
             out("\n\v.pend\n")
 
+    @no_type_check
     def generate_statement(self, out: Callable, stmt: AstNode, scope: Scope) -> None:
         if isinstance(stmt, Label):
             out("\n{:s}\v\t\t; {:s}".format(stmt.name, stmt.lineref))
         elif isinstance(stmt, Return):
             if stmt.value_A:
-                reg = Register(name="A", sourceref=stmt.sourceref)   # type: ignore
-                assignment = Assignment(sourceref=stmt.sourceref)   # type: ignore
+                reg = Register(name="A", sourceref=stmt.sourceref)
+                assignment = Assignment(sourceref=stmt.sourceref)
                 assignment.nodes.append(AssignmentTargets(nodes=[reg], sourceref=stmt.sourceref))
                 assignment.nodes.append(stmt.value_A)
                 generate_assignment(out, assignment)
             if stmt.value_X:
-                reg = Register(name="X", sourceref=stmt.sourceref)   # type: ignore
-                assignment = Assignment(sourceref=stmt.sourceref)   # type: ignore
+                reg = Register(name="X", sourceref=stmt.sourceref)
+                assignment = Assignment(sourceref=stmt.sourceref)
                 assignment.nodes.append(AssignmentTargets(nodes=[reg], sourceref=stmt.sourceref))
                 assignment.nodes.append(stmt.value_X)
                 generate_assignment(out, assignment)
             if stmt.value_Y:
-                reg = Register(name="Y", sourceref=stmt.sourceref)   # type: ignore
-                assignment = Assignment(sourceref=stmt.sourceref)   # type: ignore
+                reg = Register(name="Y", sourceref=stmt.sourceref)
+                assignment = Assignment(sourceref=stmt.sourceref)
                 assignment.nodes.append(AssignmentTargets(nodes=[reg], sourceref=stmt.sourceref))
                 assignment.nodes.append(stmt.value_Y)
                 generate_assignment(out, assignment)
@@ -218,7 +217,8 @@ class AssemblyGenerator:
         elif isinstance(stmt, Directive):
             if stmt.name == "breakpoint":
                 # put a marker in the source so that we can generate a list of breakpoints later
-                out("\vnop\t\t; {:s}  {:s}".format(self.BREAKPOINT_COMMENT_SIGNATURE, stmt.lineref))
+                # this label is later extracted from the label dump file to turn it into a breakpoint instruction
+                out("_il65_breakpoint_{:d}".format(id(stmt)))
             # other directives are ignored here
         else:
             raise NotImplementedError("statement", stmt)

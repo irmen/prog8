@@ -1,6 +1,7 @@
 """
 Programming Language for 6502/6510 microprocessors, codename 'Sick'
-This is the optimizer that applies various optimizations to the parse tree.
+This is the optimizer that applies various optimizations to the parse tree,
+eliminates statements that have no effect, optimizes calculations etc.
 
 Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """

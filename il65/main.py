@@ -24,7 +24,7 @@ class Assembler64Tass:
     def assemble(self, inputfilename: str, outputfilename: str) -> None:
         args = ["64tass", "--ascii", "--case-sensitive", "-Wall", "-Wno-strict-bool",
                 "--dump-labels", "--vice-labels", "-l", outputfilename+".vice-mon-list",
-                "-L", outputfilename+".final-asm", "--no-monitor", "--output", outputfilename, inputfilename]
+                "--no-monitor", "--output", outputfilename, inputfilename]
         if self.format in (ProgramFormat.PRG, ProgramFormat.BASIC):
             args.append("--cbm-prg")
         elif self.format == ProgramFormat.RAW:
@@ -45,19 +45,19 @@ class Assembler64Tass:
 
     def generate_breakpoint_list(self, program_filename: str) -> str:
         breakpoints = []
-        with open(program_filename + ".final-asm", "rU") as f:
+        vice_mon_file = program_filename + ".vice-mon-list"
+        with open(vice_mon_file, "rU") as f:
             for line in f:
-                match = re.fullmatch(AssemblyGenerator.BREAKPOINT_COMMENT_DETECTOR, line, re.DOTALL)
+                match = re.fullmatch(r"al (?P<address>\w+) \S+_il65_breakpoint_\d+.?", line, re.DOTALL)
                 if match:
                     breakpoints.append("$" + match.group("address"))
-        cmdfile = program_filename + ".vice-mon-list"
-        with open(cmdfile, "at") as f:
+        with open(vice_mon_file, "at") as f:
             print("; vice monitor breakpoint list now follows", file=f)
             print("; {:d} breakpoints have been defined here".format(len(breakpoints)), file=f)
             print("del", file=f)
             for b in breakpoints:
                 print("break", b, file=f)
-        return cmdfile
+        return vice_mon_file
 
 
 def main() -> None:

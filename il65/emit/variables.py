@@ -57,8 +57,8 @@ def generate_block_init(out: Callable, block: Block) -> None:
     prev_value_a, prev_value_x = None, None
     vars_by_datatype = defaultdict(list)  # type: Dict[DataType, List[VarDef]]
     for vardef in block.all_nodes(VarDef):
-        if vardef.vartype == VarType.VAR:
-            vars_by_datatype[vardef.datatype].append(vardef)
+        if vardef.vartype == VarType.VAR:       # type: ignore
+            vars_by_datatype[vardef.datatype].append(vardef)           # type: ignore
     for bytevar in sorted(vars_by_datatype[DataType.BYTE], key=lambda vd: vd.value):
         assert isinstance(bytevar.value, LiteralValue) and type(bytevar.value.value) is int
         if bytevar.value.value != prev_value_a:
@@ -99,7 +99,8 @@ def generate_block_init(out: Callable, block: Block) -> None:
         out("\vbpl  -")
     out("\vrts\n")
     for varname, (vname, fpbytes, fpvalue) in sorted(float_inits.items()):
-        out("_init_float_{:s}\t\t.byte  ${:02x}, ${:02x}, ${:02x}, ${:02x}, ${:02x}\t; {}".format(varname, *fpbytes, fpvalue))
+        assert isinstance(fpvalue, LiteralValue)
+        out("_init_float_{:s}\t\t.byte  ${:02x}, ${:02x}, ${:02x}, ${:02x}, ${:02x}\t; {}".format(varname, *fpbytes, fpvalue.value))
     all_string_vars = []
     for svtype in STRING_DATATYPES:
         all_string_vars.extend(vars_by_datatype[svtype])
@@ -115,12 +116,13 @@ def generate_block_vars(out: Callable, block: Block, zeropage: bool=False) -> No
     # their actual starting values are set by the block init code.
     vars_by_vartype = defaultdict(list)  # type: Dict[VarType, List[VarDef]]
     for vardef in block.all_nodes(VarDef):
-        vars_by_vartype[vardef.vartype].append(vardef)
+        vars_by_vartype[vardef.vartype].append(vardef)             # type: ignore
     out("; constants")
     for vardef in vars_by_vartype.get(VarType.CONST, []):
         if vardef.datatype == DataType.FLOAT:
             out("\v{:s} = {}".format(vardef.name, _numeric_value_str(vardef.value)))
         elif vardef.datatype in (DataType.BYTE, DataType.WORD):
+            assert isinstance(vardef.value.value, int)
             out("\v{:s} = {:s}".format(vardef.name, _numeric_value_str(vardef.value, True)))
         elif vardef.datatype.isstring():
             # a const string is just a string variable in the generated assembly
@@ -130,6 +132,7 @@ def generate_block_vars(out: Callable, block: Block, zeropage: bool=False) -> No
     out("; memory mapped variables")
     for vardef in vars_by_vartype.get(VarType.MEMORY, []):
         # create a definition for variables at a specific place in memory (memory-mapped)
+        assert isinstance(vardef.value.value, int)
         if vardef.datatype.isnumeric():
             assert vardef.size == [1]
             out("\v{:s} = {:s}\t; {:s}".format(vardef.name, to_hex(vardef.value.value), vardef.datatype.name.lower()))
@@ -199,19 +202,19 @@ def generate_block_vars(out: Callable, block: Block, zeropage: bool=False) -> No
 def _generate_string_var(out: Callable, vardef: VarDef) -> None:
     if vardef.datatype == DataType.STRING:
         # 0-terminated string
-        out("{:s}\n\v.null  {:s}".format(vardef.name, _format_string(str(vardef.value))))
+        out("{:s}\n\v.null  {:s}".format(vardef.name, _format_string(str(vardef.value.value))))
     elif vardef.datatype == DataType.STRING_P:
         # pascal string
-        out("{:s}\n\v.ptext  {:s}".format(vardef.name, _format_string(str(vardef.value))))
+        out("{:s}\n\v.ptext  {:s}".format(vardef.name, _format_string(str(vardef.value.value))))
     elif vardef.datatype == DataType.STRING_S:
         # 0-terminated string in screencode encoding
         out(".enc  'screen'")
-        out("{:s}\n\v.null  {:s}".format(vardef.name, _format_string(str(vardef.value), True)))
+        out("{:s}\n\v.null  {:s}".format(vardef.name, _format_string(str(vardef.value.value), True)))
         out(".enc  'none'")
     elif vardef.datatype == DataType.STRING_PS:
         # 0-terminated pascal string in screencode encoding
         out(".enc  'screen'")
-        out("{:s}n\v.ptext  {:s}".format(vardef.name, _format_string(str(vardef.value), True)))
+        out("{:s}n\v.ptext  {:s}".format(vardef.name, _format_string(str(vardef.value.value), True)))
         out(".enc  'none'")
 
 

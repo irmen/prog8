@@ -385,10 +385,13 @@ class Subroutine(AstNode):
             raise ValueError("subroutine must have either a scope or an address, not both")
 
 
-@attr.s(cmp=True, slots=True)
+@attr.s(cmp=True, slots=True, repr=False)
 class LiteralValue(AstNode):
     # no subnodes.
     value = attr.ib()
+
+    def __repr__(self) -> str:
+        return "<LiteralValue value={!r} at {}>".format(self.value, self.sourceref)
 
 
 @attr.s(cmp=False)

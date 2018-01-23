@@ -16,11 +16,11 @@ from . import CodeError, preserving_registers
 def generate_incrdecr(out: Callable, stmt: IncrDecr, scope: Scope) -> None:
     assert isinstance(stmt.howmuch, (int, float)) and stmt.howmuch >= 0
     assert stmt.operator in ("++", "--")
-    target = stmt.target        # one of Register/SymbolName/Dereference
+    target = stmt.target        # one of Register/SymbolName/Dereference, or a VarDef
     if isinstance(target, SymbolName):
         symdef = scope.lookup(target.name)
         if isinstance(symdef, VarDef):
-            target = symdef
+            target = symdef     # type: ignore
         else:
             raise CodeError("cannot incr/decr this", symdef)
     if stmt.howmuch > 255:
