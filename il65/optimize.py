@@ -8,7 +8,7 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 
 from typing import List, no_type_check
 from .plyparse import Module, Subroutine, Block, Directive, Assignment, AugAssignment, Goto, Expression, IncrDecr,\
-    datatype_of, coerce_constant_value, AssignmentTargets, LiteralValue, Scope
+    datatype_of, coerce_constant_value, AssignmentTargets, LiteralValue, Scope, Register
 from .plylex import print_warning, print_bold
 
 
@@ -20,6 +20,7 @@ class Optimizer:
     def optimize(self) -> None:
         self.num_warnings = 0
         self.optimize_assignments()
+        self.remove_superfluous_assignments()
         self.combine_assignments_into_multi()
         self.optimize_multiassigns()
         self.remove_unused_subroutines()
@@ -28,10 +29,25 @@ class Optimizer:
         # @todo analyse for unreachable code and remove that (f.i. code after goto or return that has no label so can never be jumped to)
         self.remove_empty_blocks()
 
+    def remove_superfluous_assignments(self) -> None:
+        # remove consecutive assignment statements to the same target, only keep the last value (only if its a constant!)
+        # this is NOT done for memory mapped variables because these often represent a volatile register of some sort!
+        for scope in self.module.all_nodes(Scope):
+            prev_node = None
+            for node in list(scope.nodes):
+                if isinstance(node, Assignment) and isinstance(prev_node, Assignment):
+                    if isinstance(node.right, (LiteralValue, Register)) and node.left.same_targets(prev_node.left):
+                        if not node.left.has_memvalue():
+                            scope.remove_node(prev_node)
+                            self.num_warnings += 1
+                            print_warning("{}: removed superfluous assignment".format(prev_node.sourceref))
+                prev_node = node
+
     def optimize_assignments(self) -> None:
         # remove assignment statements that do nothing (A=A)
-        # and augmented assignments that have no effect (A+=0)
+        # and augmented assignments that have no effect (x+=0, x-=0, x/=1, x//=1, x*=1)
         # convert augmented assignments to simple incr/decr if possible (A+=10 =>  A++ by 10)
+        # simplify some calculations (x*=0, x**=0) to simple constant value assignment
         # @todo remove or simplify logical aug assigns like A |= 0, A |= true, A |= false  (or perhaps turn them into byte values first?)
         for assignment in self.module.all_nodes():
             if isinstance(assignment, Assignment):
@@ -73,7 +89,7 @@ class Optimizer:
                                             howmuch=howmuch.value, sourceref=assignment.sourceref)
                         new_stmt.target = assignment.left
                         assignment.my_scope().replace_node(assignment, new_stmt)
-                    if assignment.operator in ("/=", "//=", "*=") and assignment.right.value == 1:
+                    if assignment.right.value == 1 and assignment.operator in ("/=", "//=", "*="):
                         self.num_warnings += 1
                         print_warning("{}: removed statement that has no effect".format(assignment.sourceref))
                         assignment.my_scope().remove_node(assignment)

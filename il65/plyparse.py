@@ -626,6 +626,47 @@ class AssignmentTargets(AstNode):
     # a list of one or more assignment targets (TargetRegisters, Register, SymbolName, or Dereference).
     nodes = attr.ib(type=list, init=True)    # requires nodes in __init__
 
+    def has_memvalue(self) -> bool:
+        for t in self.nodes:
+            if isinstance(t, Dereference):
+                return True
+            if isinstance(t, SymbolName):
+                symdef = self.my_scope().lookup(t.name)
+                if isinstance(symdef, VarDef) and symdef.vartype == VarType.MEMORY:
+                    return True
+        return False
+
+    def same_targets(self, other: 'AssignmentTargets') -> bool:
+        if len(self.nodes) != len(other.nodes):
+            return False
+        # @todo be able to compare targets in different order as well (sort them)
+        for t1, t2 in zip(self.nodes, other.nodes):
+            if type(t1) is not type(t2):
+                return False
+            if isinstance(t1, TargetRegisters):
+                pass
+            elif isinstance(t1, Register):
+                if t1 != t2:  # __eq__ is defined
+                    return False
+            elif isinstance(t1, SymbolName):
+                if t1.name != t2.name:
+                    return False
+            elif isinstance(t1, Dereference):
+                if t1.size != t2.size or t1.datatype != t2.datatype:
+                    return False
+                op1, op2 = t1.operand, t2.operand
+                if type(op1) is not type(op2):
+                    return False
+                if isinstance(op1, SymbolName):
+                    if op1.name != op2.name:
+                        return False
+                else:
+                    if op1 != op2:
+                        return False
+            else:
+                return False
+        return True
+
 
 @attr.s(cmp=False, slots=True, repr=False)
 class Assignment(AstNode):

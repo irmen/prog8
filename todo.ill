@@ -31,6 +31,8 @@
 	const .float c3t=true
 	const .float c3f=false
 
+	memory border = $d020
+
 
 start:
 	%breakpoint abc,def
@@ -51,6 +53,21 @@ start:
 	v3t=2.23424 * v3t ; @todo store as constant float with generated name, replace value node
 	XY*=2
 	XY*=3
+	X=3           ; @todo optimize consecutive assignments
+	X=4
+	X=5
+	X=A=6
+	A=X=6
+	X=A=6
+	X=A=9
+	X=A=10
+	v3t=1           ; @todo optimize consecutive assignments
+	v3t=2
+	v3t=3
+	border = 0      ; @todo do not optimize consecucutive assignments to a memory var
+	border = 1
+	border = 2
+
 	XY=XY/0    ; @todo zerodiv (during expression to code generation)
 	XY=XY//0    ; @todo zerodiv (during expression to code generation)
 	XY*=2.23424 ; @todo store as constant float with generated name, replace value node
