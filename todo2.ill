@@ -1,0 +1,103 @@
+%output basic
+%import c64lib
+
+
+~ main {
+	var .byte  v1t  = true
+	var .byte  v1f  = false
+	var .word  v2t  = true
+	var .word  v2f  = false
+	var .float  v3t  = true
+	var .float  v3f  = false
+	var .text  v4t  = true
+	var .text  v4f  = false
+	var .array(3)  v5t = true
+	var .array(3)  v5f = false
+	var .array(10)  v6t = true
+	var .array(10)  v6f = false
+	var .wordarray(3)  v7t = true
+	var .wordarray(3)  v7f = false
+	var .wordarray(10)  v8t = true
+	var .wordarray(10)  v8f = false
+	var .matrix(2,2) v9t = true
+	var .matrix(2,2) v9f = false
+	var .matrix(5,5) v10t = true
+	var .matrix(5,5) v10f = false
+
+	const .byte c1t=true
+	const .byte c1f=false
+	const .word c2t=true
+	const .word c2f=false
+	const .float c3t=true
+	const .float c3f=false
+
+	memory border = $d020
+
+
+start:
+	%breakpoint abc,def
+
+	XY+=255
+	XY+=256
+	XY+=257
+	XY-=255
+	XY-=256
+	XY-=257
+
+	v3t++
+	v3t+=1
+	v3t+=1          ; @todo? (optimize) join with previous
+	v3t+=0  ; is removed.
+	v3t+=1         ; @todo? (optimize) join with previous
+	v3t+=1          ; @todo? (optimize) join with previous
+	v3t=2.23424 ; @todo store as constant float with generated name, replace value node
+	v3t=2.23411 ; @todo store as constant float with generated name, replace value node
+	v3t=1.23411 + 1; @todo store as constant float with generated name, replace value node
+;	v3t+=2.23424 ; @todo store as constant float with generated name, replace value node
+;	v3t+=2.23424 ; @todo store as constant float with generated name, replace value node
+;	v3t+=2.23411 ; @todo store as constant float with generated name, replace value node
+;	v3t+=2.23411 ; @todo store as constant float with generated name, replace value node
+	v3t=2.23424 * v3t ; @todo store as constant float with generated name, replace value node
+	XY*=2
+	XY*=3
+	X=3           ; @todo optimize consecutive assignments
+	X=4
+	X=5
+	X=A=6
+	A=X=6
+	X=A=6
+	X=A=9
+	X=A=10
+	v3t=1           ; @todo optimize consecutive assignments
+	v3t=2
+	v3t=3
+	border = 0      ; @todo do not optimize consecucutive assignments to a memory var
+	border = 1
+	border = 2
+
+	XY=XY/0    ; @todo zerodiv (during expression to code generation)
+	XY=XY//0    ; @todo zerodiv (during expression to code generation)
+	XY*=2.23424 ; @todo store as constant float with generated name, replace value node
+	XY*=2.23424 * v3t ; @todo store as constant float with generated name, replace value node
+	;v3t*=2.23424 * v3t ; @todo store as constant float with generated name, replace value node
+;	A++
+;	X--
+;	A+=1
+;	X-=2
+;	[AX]++
+;	[AX .byte]++
+;	[AX .word]++
+;	[AX .float]++
+;	[$ccc0]++
+;	[$ccc0 .byte]++
+;	[$ccc0 .word]++
+;	[$ccc0 .float]++
+;	A+=2
+;	A+=3
+;	XY+=6
+;	XY+=222
+;	XY+=666
+
+	return 44
+}
+

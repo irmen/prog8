@@ -7,7 +7,7 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
 from typing import List, no_type_check
-from .plyparse import Module, Subroutine, Block, Directive, Assignment, AugAssignment, Goto, Expression, IncrDecr,\
+from .plyparse import AstNode, Module, Subroutine, Block, Directive, Assignment, AugAssignment, Goto, Expression, IncrDecr,\
     datatype_of, coerce_constant_value, AssignmentTargets, LiteralValue, Scope, Register
 from .plylex import print_warning, print_bold
 
@@ -25,15 +25,19 @@ class Optimizer:
         self.optimize_multiassigns()
         self.remove_unused_subroutines()
         self.optimize_goto_compare_with_zero()
-        # @todo join multiple incr/decr of same var into one (if value stays < 256)
+        self.join_incrdecrs()
         # @todo analyse for unreachable code and remove that (f.i. code after goto or return that has no label so can never be jumped to)
         self.remove_empty_blocks()
+
+    def join_incrdecrs(self) -> None:
+        # @todo joins multiple incr/decr of same var into one (if value stays < 256 which ...)
+        pass
 
     def remove_superfluous_assignments(self) -> None:
         # remove consecutive assignment statements to the same target, only keep the last value (only if its a constant!)
         # this is NOT done for memory mapped variables because these often represent a volatile register of some sort!
         for scope in self.module.all_nodes(Scope):
-            prev_node = None
+            prev_node = None    # type: AstNode
             for node in list(scope.nodes):
                 if isinstance(node, Assignment) and isinstance(prev_node, Assignment):
                     if isinstance(node.right, (LiteralValue, Register)) and node.left.same_targets(prev_node.left):
@@ -78,7 +82,7 @@ class Optimizer:
                         print("{}: shifting result is always zero".format(assignment.sourceref))
                         new_stmt = Assignment(sourceref=assignment.sourceref)
                         new_stmt.nodes.append(AssignmentTargets(nodes=[assignment.left], sourceref=assignment.sourceref))
-                        new_stmt.nodes.append(0)    # XXX literalvalue?
+                        new_stmt.nodes.append(LiteralValue(value=0, sourceref=assignment.sourceref))
                         assignment.my_scope().replace_node(assignment, new_stmt)
                     if assignment.operator in ("+=", "-=") and 0 < assignment.right.value < 256:
                         howmuch = assignment.right

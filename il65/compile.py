@@ -182,7 +182,7 @@ class PlyParser:
                 encountered_blocks.add(blockname)
             elif isinstance(node, Expression):
                 try:
-                    evaluated = process_expression(node, node.my_scope(), node.sourceref)
+                    evaluated = process_expression(node, node.sourceref)
                     if evaluated is not node:
                         # replace the node with the newly evaluated result
                         node.parent.replace_node(node, evaluated)
@@ -195,7 +195,7 @@ class PlyParser:
             elif isinstance(node, VarDef):
                 dtype = DataType.WORD if node.vartype == VarType.MEMORY else node.datatype
                 try:
-                    _, node.value = coerce_constant_value(dtype, node.value, node.sourceref)
+                    _, node.value = coerce_constant_value(dtype, node.value, node.sourceref)    # type: ignore
                 except OverflowError as x:
                     raise ParseError(str(x), node.sourceref) from None
             elif isinstance(node, Assignment):

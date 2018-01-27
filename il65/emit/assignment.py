@@ -20,7 +20,7 @@ def generate_assignment(out: Callable, stmt: Assignment, scope: Scope) -> None:
 
 
 def generate_aug_assignment(out: Callable, stmt: AugAssignment, scope: Scope) -> None:
-    # for instance: value += 3
+    # for instance: value += 3  (value = 1-255)
     # left: Register, SymbolName, or Dereference. right: Expression/LiteralValue
     out("\v\t\t\t; " + stmt.lineref)
     out("\v; @todo aug-assignment")
@@ -29,16 +29,21 @@ def generate_aug_assignment(out: Callable, stmt: AugAssignment, scope: Scope) ->
     if isinstance(lvalue, Register):
         if isinstance(rvalue, LiteralValue):
             if type(rvalue.value) is int:
-                _generate_aug_reg_constant_int(out, lvalue, stmt.operator, rvalue.value, "", scope)
+                if 0 < rvalue.value < 256:
+                    _generate_aug_reg_constant_int(out, lvalue, stmt.operator, rvalue.value, "", scope)
+                else:
+                    raise CodeError("incr/decr value should be 1..255", rvalue)
             else:
-                raise CodeError("integer literal or variable required for now", rvalue)   # XXX
+                raise CodeError("constant integer literal or variable required for now", rvalue)   # XXX
         elif isinstance(rvalue, SymbolName):
             symdef = scope.lookup(rvalue.name)
-            if isinstance(symdef, VarDef) and symdef.datatype.isinteger():
+            if isinstance(symdef, VarDef) and symdef.vartype == VarType.CONST and symdef.datatype.isinteger():
+                # @todo check value range
                 _generate_aug_reg_constant_int(out, lvalue, stmt.operator, 0, symdef.name, scope)
             else:
-                raise CodeError("integer literal or variable required for now", rvalue)   # XXX
+                raise CodeError("constant integer literal or variable required for now", rvalue)   # XXX
         elif isinstance(rvalue, Register):
+            # @todo check value range (single register; 0-255)   @todo support combined registers
             _generate_aug_reg_reg(out, lvalue, stmt.operator, rvalue, scope)
         else:
             # @todo Register += symbolname / dereference  , _generate_aug_reg_mem?
