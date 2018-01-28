@@ -1,7 +1,7 @@
 """
 Programming Language for 6502/6510 microprocessors, codename 'Sick'
 This is the code generator for the in-place incr and decr instructions.
-Incrementing or decrementing variables by 1 (or another constant amount)
+Incrementing or decrementing variables by a small value 0..255 (for integers)
 is quite frequent and this generates assembly code tweaked for this case.
 
 Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
@@ -16,6 +16,8 @@ from . import CodeError, preserving_registers
 def generate_incrdecr(out: Callable, stmt: IncrDecr, scope: Scope) -> None:
     assert isinstance(stmt.howmuch, (int, float)) and stmt.howmuch >= 0
     assert stmt.operator in ("++", "--")
+    if stmt.howmuch == 0:
+        return
     target = stmt.target        # one of Register/SymbolName/Dereference, or a VarDef
     if isinstance(target, SymbolName):
         symdef = scope.lookup(target.name)

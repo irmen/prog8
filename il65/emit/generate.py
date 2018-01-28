@@ -186,19 +186,19 @@ class AssemblyGenerator:
                 assignment = Assignment(sourceref=stmt.sourceref)
                 assignment.nodes.append(AssignmentTargets(nodes=[reg], sourceref=stmt.sourceref))
                 assignment.nodes.append(stmt.value_A)
-                generate_assignment(out, assignment)
+                generate_assignment(out, assignment, scope)
             if stmt.value_X:
                 reg = Register(name="X", sourceref=stmt.sourceref)
                 assignment = Assignment(sourceref=stmt.sourceref)
                 assignment.nodes.append(AssignmentTargets(nodes=[reg], sourceref=stmt.sourceref))
                 assignment.nodes.append(stmt.value_X)
-                generate_assignment(out, assignment)
+                generate_assignment(out, assignment, scope)
             if stmt.value_Y:
                 reg = Register(name="Y", sourceref=stmt.sourceref)
                 assignment = Assignment(sourceref=stmt.sourceref)
                 assignment.nodes.append(AssignmentTargets(nodes=[reg], sourceref=stmt.sourceref))
                 assignment.nodes.append(stmt.value_Y)
-                generate_assignment(out, assignment)
+                generate_assignment(out, assignment, scope)
             out("\vrts")
         elif isinstance(stmt, InlineAssembly):
             out("\n\v; inline asm, " + stmt.lineref)

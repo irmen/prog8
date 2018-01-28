@@ -6,10 +6,12 @@ eliminates statements that have no effect, optimizes calculations etc.
 Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
-from typing import List, no_type_check
+from typing import List, no_type_check, Union
 from .plyparse import AstNode, Module, Subroutine, Block, Directive, Assignment, AugAssignment, Goto, Expression, IncrDecr,\
-    datatype_of, coerce_constant_value, AssignmentTargets, LiteralValue, Scope, Register
-from .plylex import print_warning, print_bold
+    datatype_of, coerce_constant_value, AssignmentTargets, LiteralValue, Scope, Register, SymbolName, \
+    Dereference, TargetRegisters, VarDef
+from .plylex import print_warning, print_bold, SourceRef
+from .datatypes import DataType
 
 
 class Optimizer:
@@ -19,10 +21,13 @@ class Optimizer:
 
     def optimize(self) -> None:
         self.num_warnings = 0
+        self.create_aug_assignments()
         self.optimize_assignments()
         self.remove_superfluous_assignments()
         self.combine_assignments_into_multi()
         self.optimize_multiassigns()
+        # @todo optimize some simple multiplications into shifts  (A*=8 -> A<<3)
+        # @todo optimize addition with self into shift 1  (A+=A -> A<<=1)
         self.remove_unused_subroutines()
         self.optimize_goto_compare_with_zero()
         self.join_incrdecrs()
@@ -30,8 +35,106 @@ class Optimizer:
         self.remove_empty_blocks()
 
     def join_incrdecrs(self) -> None:
-        # @todo joins multiple incr/decr of same var into one (if value stays < 256 which ...)
-        pass
+        for scope in self.module.all_nodes(Scope):
+            incrdecrs = []      # type: List[IncrDecr]
+            target = None
+            for node in list(scope.nodes):
+                if isinstance(node, IncrDecr):
+                    if target is None:
+                        target = node.target
+                        incrdecrs.append(node)
+                        continue
+                    if self._same_target(target, node.target):
+                        incrdecrs.append(node)
+                        continue
+                if len(incrdecrs) > 1:
+                    # optimize...
+                    replaced = False
+                    total = 0
+                    for i in incrdecrs:
+                        if i.operator == "++":
+                            total += i.howmuch
+                        else:
+                            total -= i.howmuch
+                    if total == 0:
+                        replaced = True
+                        for x in incrdecrs:
+                            scope.remove_node(x)
+                    else:
+                        is_float = False
+                        if isinstance(target, SymbolName):
+                            symdef = target.my_scope().lookup(target.name)
+                            if isinstance(symdef, VarDef) and symdef.datatype == DataType.FLOAT:
+                                is_float = True
+                        elif isinstance(target, Dereference):
+                            is_float = target.datatype == DataType.FLOAT
+                        if is_float:
+                            replaced = True
+                            for x in incrdecrs[1:]:
+                                scope.remove_node(x)
+                            incrdecr = self._make_incrdecr(incrdecrs[0], target, abs(total), "++" if total >= 0 else "--")
+                            scope.replace_node(incrdecrs[0], incrdecr)
+                        elif 0 < total <= 255:
+                            replaced = True
+                            for x in incrdecrs[1:]:
+                                scope.remove_node(x)
+                            incrdecr = self._make_incrdecr(incrdecrs[0], target, total, "++")
+                            scope.replace_node(incrdecrs[0], incrdecr)
+                        elif -255 <= total < 0:
+                            replaced = True
+                            total = -total
+                            for x in incrdecrs[1:]:
+                                scope.remove_node(x)
+                            incrdecr = self._make_incrdecr(incrdecrs[0], target, total, "--")
+                            scope.replace_node(incrdecrs[0], incrdecr)
+                    if replaced:
+                        self.num_warnings += 1
+                        print_warning("{}: merged a sequence of incr/decrs or augmented assignments".format(incrdecrs[0].sourceref))
+                incrdecrs.clear()
+                target = None
+                if isinstance(node, IncrDecr):
+                    incrdecrs.append(node)
+                    target = node.target
+
+    def _same_target(self, node1: Union[TargetRegisters, Register, SymbolName, Dereference],
+                     node2: Union[TargetRegisters, Register, SymbolName, Dereference]) -> bool:
+        if isinstance(node1, Register) and isinstance(node2, Register) and node1.name == node2.name:
+            return True
+        if isinstance(node1, SymbolName) and isinstance(node2, SymbolName) and node1.name == node2.name:
+            return True
+        if isinstance(node1, Dereference) and isinstance(node2, Dereference) and node1.operand == node2.operand:
+            return True
+        return False
+
+    @no_type_check
+    def create_aug_assignments(self) -> None:
+        # create augmented assignments from regular assignment that only refers to the lvalue
+        # A=A+10, A=10+A -> A+=10,  A=A*4, A=4*A -> A*=4,  etc
+        for assignment in self.module.all_nodes(Assignment):
+            if len(assignment.left.nodes) > 1:
+                continue
+            if not isinstance(assignment.right, Expression) or assignment.right.unary:
+                continue
+            expr = assignment.right
+            if expr.operator in ('-', '/', '//', '**', '<<', '>>', '&'):   # non-associative operators
+                if isinstance(expr.right, (LiteralValue, SymbolName)) and self._same_target(assignment.left.nodes[0], expr.left):
+                    num_val = expr.right.const_num_val()
+                    operator = expr.operator + '='
+                    aug_assign = self._make_aug_assign(assignment, assignment.left.nodes[0], num_val, operator)
+                    assignment.my_scope().replace_node(assignment, aug_assign)
+                continue
+            if expr.operator not in ('+', '*', '|', '^'):  # associative operators
+                continue
+            if isinstance(expr.right, (LiteralValue, SymbolName)) and self._same_target(assignment.left.nodes[0], expr.left):
+                num_val = expr.right.const_num_val()
+                operator = expr.operator + '='
+                aug_assign = self._make_aug_assign(assignment, assignment.left.nodes[0], num_val, operator)
+                assignment.my_scope().replace_node(assignment, aug_assign)
+            elif isinstance(expr.left, (LiteralValue, SymbolName)) and self._same_target(assignment.left.nodes[0], expr.right):
+                num_val = expr.left.const_num_val()
+                operator = expr.operator + '='
+                aug_assign = self._make_aug_assign(assignment, assignment.left.nodes[0], num_val, operator)
+                assignment.my_scope().replace_node(assignment, aug_assign)
 
     def remove_superfluous_assignments(self) -> None:
         # remove consecutive assignment statements to the same target, only keep the last value (only if its a constant!)
@@ -49,15 +152,13 @@ class Optimizer:
 
     def optimize_assignments(self) -> None:
         # remove assignment statements that do nothing (A=A)
-        # and augmented assignments that have no effect (x+=0, x-=0, x/=1, x//=1, x*=1)
+        # remove augmented assignments that have no effect (x+=0, x-=0, x/=1, x//=1, x*=1)
         # convert augmented assignments to simple incr/decr if possible (A+=10 =>  A++ by 10)
         # simplify some calculations (x*=0, x**=0) to simple constant value assignment
         # @todo remove or simplify logical aug assigns like A |= 0, A |= true, A |= false  (or perhaps turn them into byte values first?)
         for assignment in self.module.all_nodes():
             if isinstance(assignment, Assignment):
-                if any(lv != assignment.right for lv in assignment.left.nodes):
-                    assignment.left.nodes = [lv for lv in assignment.left.nodes if lv != assignment.right]
-                if not assignment.left:
+                if all(lv == assignment.right for lv in assignment.left.nodes):
                     assignment.my_scope().remove_node(assignment)
                     self.num_warnings += 1
                     print_warning("{}: removed statement that has no effect".format(assignment.sourceref))
@@ -109,6 +210,23 @@ class Optimizer:
         value.parent = new_assignment
         new_assignment.nodes.append(value)
         return new_assignment
+
+    @no_type_check
+    def _make_aug_assign(self, old_assign: Assignment, target: Union[TargetRegisters, Register, SymbolName, Dereference],
+                         value: Union[int, float], operator: str) -> AugAssignment:
+        a = AugAssignment(operator=operator, sourceref=old_assign.sourceref)
+        a.nodes.append(target)
+        a.nodes.append(LiteralValue(value=value, sourceref=old_assign.sourceref))
+        a.parent = old_assign.parent
+        return a
+
+    @no_type_check
+    def _make_incrdecr(self, old_stmt: AstNode, target: Union[TargetRegisters, Register, SymbolName, Dereference],
+                       howmuch: Union[int, float], operator: str) -> AugAssignment:
+        a = IncrDecr(operator=operator, howmuch=howmuch, sourceref=old_stmt.sourceref)
+        a.nodes.append(target)
+        a.parent = old_stmt.parent
+        return a
 
     def combine_assignments_into_multi(self) -> None:
         # fold multiple consecutive assignments with the same rvalue into one multi-assignment

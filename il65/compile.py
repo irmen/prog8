@@ -192,10 +192,12 @@ class PlyParser:
                     self.handle_internal_error(x, "process_expressions of node {}".format(node))
             elif isinstance(node, IncrDecr) and node.howmuch not in (0, 1):
                 _, node.howmuch = coerce_constant_value(datatype_of(node.target, node.my_scope()), node.howmuch, node.sourceref)
+                attr.validate(node)
             elif isinstance(node, VarDef):
                 dtype = DataType.WORD if node.vartype == VarType.MEMORY else node.datatype
                 try:
                     _, node.value = coerce_constant_value(dtype, node.value, node.sourceref)    # type: ignore
+                    attr.validate(node)
                 except OverflowError as x:
                     raise ParseError(str(x), node.sourceref) from None
             elif isinstance(node, Assignment):

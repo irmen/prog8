@@ -6,7 +6,7 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
 from collections import defaultdict
-from typing import Dict, List, Callable, Any
+from typing import Dict, List, Callable, Any, no_type_check
 from ..plyparse import Block, VarType, VarDef, LiteralValue
 from ..datatypes import DataType, STRING_DATATYPES
 from . import to_hex, to_mflpt5, CodeError
@@ -122,7 +122,7 @@ def generate_block_vars(out: Callable, block: Block, zeropage: bool=False) -> No
         if vardef.datatype == DataType.FLOAT:
             out("\v{:s} = {}".format(vardef.name, _numeric_value_str(vardef.value)))
         elif vardef.datatype in (DataType.BYTE, DataType.WORD):
-            assert isinstance(vardef.value.value, int)
+            assert isinstance(vardef.value.value, int)      # type: ignore
             out("\v{:s} = {:s}".format(vardef.name, _numeric_value_str(vardef.value, True)))
         elif vardef.datatype.isstring():
             # a const string is just a string variable in the generated assembly
@@ -132,16 +132,16 @@ def generate_block_vars(out: Callable, block: Block, zeropage: bool=False) -> No
     out("; memory mapped variables")
     for vardef in vars_by_vartype.get(VarType.MEMORY, []):
         # create a definition for variables at a specific place in memory (memory-mapped)
-        assert isinstance(vardef.value.value, int)
+        assert isinstance(vardef.value.value, int)      # type: ignore
         if vardef.datatype.isnumeric():
             assert vardef.size == [1]
-            out("\v{:s} = {:s}\t; {:s}".format(vardef.name, to_hex(vardef.value.value), vardef.datatype.name.lower()))
+            out("\v{:s} = {:s}\t; {:s}".format(vardef.name, to_hex(vardef.value.value), vardef.datatype.name.lower()))  # type: ignore
         elif vardef.datatype == DataType.BYTEARRAY:
             assert len(vardef.size) == 1
-            out("\v{:s} = {:s}\t; array of {:d} bytes".format(vardef.name, to_hex(vardef.value.value), vardef.size[0]))
+            out("\v{:s} = {:s}\t; array of {:d} bytes".format(vardef.name, to_hex(vardef.value.value), vardef.size[0]))  # type: ignore
         elif vardef.datatype == DataType.WORDARRAY:
             assert len(vardef.size) == 1
-            out("\v{:s} = {:s}\t; array of {:d} words".format(vardef.name, to_hex(vardef.value.value), vardef.size[0]))
+            out("\v{:s} = {:s}\t; array of {:d} words".format(vardef.name, to_hex(vardef.value.value), vardef.size[0]))  # type: ignore
         elif vardef.datatype == DataType.MATRIX:
             assert len(vardef.size) in (2, 3)
             if len(vardef.size) == 2:
@@ -149,8 +149,8 @@ def generate_block_vars(out: Callable, block: Block, zeropage: bool=False) -> No
             elif len(vardef.size) == 3:
                 comment = "matrix of {:d} by {:d}, interleave {:d}".format(vardef.size[0], vardef.size[1], vardef.size[2])
             else:
-                raise CodeError("matrix size should be 2 or 3 numbers")
-            out("\v{:s} = {:s}\t; {:s}".format(vardef.name, to_hex(vardef.value.value), comment))
+                raise CodeError("matrix size must be 2 or 3 numbers")
+            out("\v{:s} = {:s}\t; {:s}".format(vardef.name, to_hex(vardef.value.value), comment))   # type: ignore
         else:
             raise CodeError("invalid var type")
     out("; normal variables - initial values will be set by init code")
@@ -199,6 +199,7 @@ def generate_block_vars(out: Callable, block: Block, zeropage: bool=False) -> No
     out("")
 
 
+@no_type_check
 def _generate_string_var(out: Callable, vardef: VarDef) -> None:
     if vardef.datatype == DataType.STRING:
         # 0-terminated string

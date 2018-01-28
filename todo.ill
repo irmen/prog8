@@ -1,24 +1,57 @@
 
 ~ main {
 
+	var .float flt
+
 start:
-	XY=0
-	XY+=255
-	XY+=256
-	XY+=257
-	XY-=255
-	XY-=256
-	XY-=257
 
+	Y+=10
+	Y-=5
+	Y-=8
+	Y--
 
-	XY++
-	XY+=1
-	XY+=1          ; @todo? (optimize) join with previous
-	XY+=0  ; is removed.
+	flt+=2
+	flt+=2
+	flt+=2
+	flt+=2
+	flt+=2
+
+	X=0
+	X+=5
+	X=X+22
+	X=33+X
+	X-=3
+	X=X-4
+	X=X-5
+	X=8*X
+	X=24|X
+	X=X^66
+	X+=250
+	X+=5
+	X-=100
+	X-=50
+	X-=5
+
+	Y=Y
+	X=X
+	A=A
+
+	X++
+	X--
+	X+=1
+	X+=1          ; @todo? (optimize) join with previous
+	X+=0  ; is removed.
 	A+=0  ; is removed.
 	Y+=0  ; is removed.
-	XY+=1         ; @todo? (optimize) join with previous
-	XY+=1          ; @todo? (optimize) join with previous
+	X+=1         ; @todo? (optimize) join with previous
+	X+=1          ; @todo? (optimize) join with previous
+
+	;@todo float incrdecr/augassign
+	;flt += 0.1
+	;flt += 1.1
+	;flt += 10.1
+	;flt += 100.1
+	;flt += 1000.1
 
 	return 44
 }
