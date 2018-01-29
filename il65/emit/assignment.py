@@ -36,7 +36,7 @@ def generate_aug_assignment(out: Callable, stmt: AugAssignment, scope: Scope) ->
         elif isinstance(rvalue, SymbolName):
             symdef = scope.lookup(rvalue.name)
             if isinstance(symdef, VarDef) and symdef.vartype == VarType.CONST and symdef.datatype.isinteger():
-                if 0 <= symdef.value.const_num_val() <= 255:
+                if 0 <= symdef.value.const_value() <= 255:  # type: ignore
                     _generate_aug_reg_constant_int(out, lvalue, stmt.operator, 0, symdef.name, scope)
                 else:
                     raise CodeError("assignment value must be 0..255", rvalue)
@@ -136,7 +136,7 @@ def _generate_aug_reg_constant_int(out: Callable, lvalue: Register, operator: st
         else:
             raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo ^=.word
     elif operator == ">>=":
-        if rvalue.value > 0:
+        if rvalue > 0:
             def shifts_A(times: int) -> None:
                 if times >= 8:
                     out("\vlda  #0")
@@ -144,21 +144,21 @@ def _generate_aug_reg_constant_int(out: Callable, lvalue: Register, operator: st
                     for _ in range(min(8, times)):
                         out("\vlsr  a")
             if lvalue.name == "A":
-                shifts_A(rvalue.value)
+                shifts_A(rvalue)
             elif lvalue.name == "X":
                 with preserving_registers({'A'}, scope, out):
                     out("\vtxa")
-                    shifts_A(rvalue.value)
+                    shifts_A(rvalue)
                     out("\vtax")
             elif lvalue.name == "Y":
                 with preserving_registers({'A'}, scope, out):
                     out("\vtya")
-                    shifts_A(rvalue.value)
+                    shifts_A(rvalue)
                     out("\vtay")
             else:
                 raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo >>=.word
     elif operator == "<<=":
-        if rvalue.value > 0:
+        if rvalue > 0:
             def shifts_A(times: int) -> None:
                 if times >= 8:
                     out("\vlda  #0")
@@ -166,16 +166,16 @@ def _generate_aug_reg_constant_int(out: Callable, lvalue: Register, operator: st
                     for _ in range(min(8, times)):
                         out("\vasl  a")
             if lvalue.name == "A":
-                shifts_A(rvalue.value)
+                shifts_A(rvalue)
             elif lvalue.name == "X":
                 with preserving_registers({'A'}, scope, out):
                     out("\vtxa")
-                    shifts_A(rvalue.value)
+                    shifts_A(rvalue)
                     out("\vtax")
             elif lvalue.name == "Y":
                 with preserving_registers({'A'}, scope, out):
                     out("\vtya")
-                    shifts_A(rvalue.value)
+                    shifts_A(rvalue)
                     out("\vtay")
             else:
                 raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo <<=.word

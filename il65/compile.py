@@ -192,7 +192,7 @@ class PlyParser:
                 lvalue_types = set(datatype_of(lv, node.my_scope()) for lv in node.left.nodes)
                 if len(lvalue_types) == 1:
                     _, newright = coerce_constant_value(lvalue_types.pop(), node.right, node.sourceref)
-                    if isinstance(newright, (Register, LiteralValue, Expression, Dereference, SymbolName, SubCall)):
+                    if isinstance(newright, Expression):
                         node.right = newright   # type: ignore
                     else:
                         raise TypeError("invalid coerced constant type", newright)
@@ -322,7 +322,7 @@ class PlyParser:
             return
         elif isinstance(expr, SubCall):
             self._get_subroutine_usages_from_subcall(usages, expr, parent_scope)
-        elif isinstance(expr, Expression):
+        elif isinstance(expr, ExpressionWithOperator):
             self._get_subroutine_usages_from_expression(usages, expr.left, parent_scope)
             self._get_subroutine_usages_from_expression(usages, expr.right, parent_scope)
         elif isinstance(expr, LiteralValue):

@@ -58,11 +58,14 @@ class Optimizer:
 
     def constant_folding(self) -> None:
         for expression in self.module.all_nodes(Expression):
+            if isinstance(expression, LiteralValue):
+                continue
             try:
-                evaluated = process_expression(expression, expression.sourceref)    # type: ignore
+                evaluated = process_expression(expression)    # type: ignore
                 if evaluated is not expression:
                     # replace the node with the newly evaluated result
                     expression.parent.replace_node(expression, evaluated)
+                    self.optimizations_performed = True
             except ParseError:
                 raise
             except Exception as x:
@@ -148,12 +151,12 @@ class Optimizer:
         for assignment in self.module.all_nodes(Assignment):
             if len(assignment.left.nodes) > 1:
                 continue
-            if not isinstance(assignment.right, Expression) or assignment.right.unary:
+            if not isinstance(assignment.right, ExpressionWithOperator) or assignment.right.unary:
                 continue
             expr = assignment.right
             if expr.operator in ('-', '/', '//', '**', '<<', '>>', '&'):   # non-associative operators
                 if isinstance(expr.right, (LiteralValue, SymbolName)) and self._same_target(assignment.left.nodes[0], expr.left):
-                    num_val = expr.right.const_num_val()
+                    num_val = expr.right.const_value()
                     operator = expr.operator + '='
                     aug_assign = self._make_aug_assign(assignment, assignment.left.nodes[0], num_val, operator)
                     assignment.my_scope().replace_node(assignment, aug_assign)
@@ -162,13 +165,13 @@ class Optimizer:
             if expr.operator not in ('+', '*', '|', '^'):  # associative operators
                 continue
             if isinstance(expr.right, (LiteralValue, SymbolName)) and self._same_target(assignment.left.nodes[0], expr.left):
-                num_val = expr.right.const_num_val()
+                num_val = expr.right.const_value()
                 operator = expr.operator + '='
                 aug_assign = self._make_aug_assign(assignment, assignment.left.nodes[0], num_val, operator)
                 assignment.my_scope().replace_node(assignment, aug_assign)
                 self.optimizations_performed = True
             elif isinstance(expr.left, (LiteralValue, SymbolName)) and self._same_target(assignment.left.nodes[0], expr.right):
-                num_val = expr.left.const_num_val()
+                num_val = expr.left.const_value()
                 operator = expr.operator + '='
                 aug_assign = self._make_aug_assign(assignment, assignment.left.nodes[0], num_val, operator)
                 assignment.my_scope().replace_node(assignment, aug_assign)
@@ -189,6 +192,7 @@ class Optimizer:
                             print_warning("{}: removed superfluous assignment".format(prev_node.sourceref))
                 prev_node = node
 
+    @no_type_check
     def optimize_assignments(self) -> None:
         # remove assignment statements that do nothing (A=A)
         # remove augmented assignments that have no effect (x+=0, x-=0, x/=1, x//=1, x*=1)
@@ -385,27 +389,27 @@ class Optimizer:
                     node.my_scope().nodes.remove(node)
 
 
-def process_expression(expr: Expression, sourceref: SourceRef) -> Any:
+def process_expression(expr: Expression) -> Any:
     # process/simplify all expressions (constant folding etc)
-    if expr.must_be_constant:
-        return process_constant_expression(expr, sourceref)
+    if expr.is_compile_constant() or isinstance(expr, ExpressionWithOperator) and expr.must_be_constant:
+        return process_constant_expression(expr, expr.sourceref)
     else:
-        return process_dynamic_expression(expr, sourceref)
+        return process_dynamic_expression(expr, expr.sourceref)
 
 
-def process_constant_expression(expr: Any, sourceref: SourceRef) -> LiteralValue:
+def process_constant_expression(expr: Expression, sourceref: SourceRef) -> LiteralValue:
     # the expression must result in a single (constant) value (int, float, whatever) wrapped as LiteralValue.
-    if isinstance(expr, (int, float, str, bool)):
-        raise TypeError("expr node should not be a python primitive value", expr, sourceref)
-    elif expr is None or isinstance(expr, LiteralValue):
+    if isinstance(expr, LiteralValue):
         return expr
+    if expr.is_compile_constant():
+        return LiteralValue(value=expr.const_value(), sourceref=sourceref)  # type: ignore
     elif isinstance(expr, SymbolName):
         value = check_symbol_definition(expr.name, expr.my_scope(), expr.sourceref)
         if isinstance(value, VarDef):
             if value.vartype == VarType.MEMORY:
                 raise ExpressionEvaluationError("can't take a memory value, must be a constant", expr.sourceref)
             value = value.value
-        if isinstance(value, Expression):
+        if isinstance(value, ExpressionWithOperator):
             raise ExpressionEvaluationError("circular reference?", expr.sourceref)
         elif isinstance(value, LiteralValue):
             return value
@@ -452,45 +456,46 @@ def process_constant_expression(expr: Any, sourceref: SourceRef) -> LiteralValue
             raise ExpressionEvaluationError("immediate address call is not a constant value", expr.sourceref)
         else:
             raise NotImplementedError("weird call target", expr.target)
-    elif not isinstance(expr, Expression):
-        raise ExpressionEvaluationError("constant value required, not {}".format(expr.__class__.__name__), expr.sourceref)
-    if expr.unary:
-        left_sourceref = expr.left.sourceref if isinstance(expr.left, AstNode) else sourceref
-        expr.left = process_constant_expression(expr.left, left_sourceref)
-        if isinstance(expr.left, LiteralValue) and type(expr.left.value) in (int, float):
-            try:
-                if expr.operator == '-':
-                    return LiteralValue(value=-expr.left.value, sourceref=expr.left.sourceref)  # type: ignore
-                elif expr.operator == '~':
-                    return LiteralValue(value=~expr.left.value, sourceref=expr.left.sourceref)  # type: ignore
-                elif expr.operator in ("++", "--"):
-                    raise ValueError("incr/decr should not be an expression")
-                raise ValueError("invalid unary operator", expr.operator)
-            except TypeError as x:
-                raise ParseError(str(x), expr.sourceref) from None
-        raise ValueError("invalid operand type for unary operator", expr.left, expr.operator)
-    else:
-        left_sourceref = expr.left.sourceref if isinstance(expr.left, AstNode) else sourceref
-        expr.left = process_constant_expression(expr.left, left_sourceref)
-        right_sourceref = expr.right.sourceref if isinstance(expr.right, AstNode) else sourceref
-        expr.right = process_constant_expression(expr.right, right_sourceref)
-        if isinstance(expr.left, LiteralValue):
-            if isinstance(expr.right, LiteralValue):
-                return expr.evaluate_primitive_constants(expr.right.sourceref)
-            else:
-                raise ExpressionEvaluationError("constant literal value required on right, not {}"
-                                                .format(expr.right.__class__.__name__), right_sourceref)
+    elif isinstance(expr, ExpressionWithOperator):
+        if expr.unary:
+            left_sourceref = expr.left.sourceref if isinstance(expr.left, AstNode) else sourceref
+            expr.left = process_constant_expression(expr.left, left_sourceref)
+            if isinstance(expr.left, LiteralValue) and type(expr.left.value) in (int, float):
+                try:
+                    if expr.operator == '-':
+                        return LiteralValue(value=-expr.left.value, sourceref=expr.left.sourceref)  # type: ignore
+                    elif expr.operator == '~':
+                        return LiteralValue(value=~expr.left.value, sourceref=expr.left.sourceref)  # type: ignore
+                    elif expr.operator in ("++", "--"):
+                        raise ValueError("incr/decr should not be an expression")
+                    raise ValueError("invalid unary operator", expr.operator)
+                except TypeError as x:
+                    raise ParseError(str(x), expr.sourceref) from None
+            raise ValueError("invalid operand type for unary operator", expr.left, expr.operator)
         else:
-            raise ExpressionEvaluationError("constant literal value required on left, not {}"
-                                            .format(expr.left.__class__.__name__), left_sourceref)
+            left_sourceref = expr.left.sourceref if isinstance(expr.left, AstNode) else sourceref
+            expr.left = process_constant_expression(expr.left, left_sourceref)
+            right_sourceref = expr.right.sourceref if isinstance(expr.right, AstNode) else sourceref
+            expr.right = process_constant_expression(expr.right, right_sourceref)
+            if isinstance(expr.left, LiteralValue):
+                if isinstance(expr.right, LiteralValue):
+                    return expr.evaluate_primitive_constants(expr.right.sourceref)
+                else:
+                    raise ExpressionEvaluationError("constant literal value required on right, not {}"
+                                                    .format(expr.right.__class__.__name__), right_sourceref)
+            else:
+                raise ExpressionEvaluationError("constant literal value required on left, not {}"
+                                                .format(expr.left.__class__.__name__), left_sourceref)
+    else:
+        raise ExpressionEvaluationError("constant value required, not {}".format(expr.__class__.__name__), expr.sourceref)
 
 
-def process_dynamic_expression(expr: Any, sourceref: SourceRef) -> Any:
+def process_dynamic_expression(expr: Expression, sourceref: SourceRef) -> Any:
     # constant-fold a dynamic expression
-    if isinstance(expr, (int, float, str, bool)):
-        raise TypeError("expr node should not be a python primitive value", expr, sourceref)
-    elif expr is None or isinstance(expr, LiteralValue):
+    if isinstance(expr, LiteralValue):
         return expr
+    if expr.is_compile_constant():
+        return LiteralValue(value=expr.const_value(), sourceref=sourceref)  # type: ignore
     elif isinstance(expr, SymbolName):
         try:
             return process_constant_expression(expr, sourceref)
@@ -514,24 +519,25 @@ def process_dynamic_expression(expr: Any, sourceref: SourceRef) -> Any:
         if isinstance(expr.operand, SymbolName):
             check_symbol_definition(expr.operand.name, expr.my_scope(), expr.operand.sourceref)
         return expr
-    elif not isinstance(expr, Expression):
-        raise ParseError("expression required, not {}".format(expr.__class__.__name__), expr.sourceref)
-    if expr.unary:
-        left_sourceref = expr.left.sourceref if isinstance(expr.left, AstNode) else sourceref
-        expr.left = process_dynamic_expression(expr.left, left_sourceref)
-        try:
-            return process_constant_expression(expr, sourceref)
-        except ExpressionEvaluationError:
-            return expr
+    elif isinstance(expr, ExpressionWithOperator):
+        if expr.unary:
+            left_sourceref = expr.left.sourceref if isinstance(expr.left, AstNode) else sourceref
+            expr.left = process_dynamic_expression(expr.left, left_sourceref)
+            try:
+                return process_constant_expression(expr, sourceref)
+            except ExpressionEvaluationError:
+                return expr
+        else:
+            left_sourceref = expr.left.sourceref if isinstance(expr.left, AstNode) else sourceref
+            expr.left = process_dynamic_expression(expr.left, left_sourceref)
+            right_sourceref = expr.right.sourceref if isinstance(expr.right, AstNode) else sourceref
+            expr.right = process_dynamic_expression(expr.right, right_sourceref)
+            try:
+                return process_constant_expression(expr, sourceref)
+            except ExpressionEvaluationError:
+                return expr
     else:
-        left_sourceref = expr.left.sourceref if isinstance(expr.left, AstNode) else sourceref
-        expr.left = process_dynamic_expression(expr.left, left_sourceref)
-        right_sourceref = expr.right.sourceref if isinstance(expr.right, AstNode) else sourceref
-        expr.right = process_dynamic_expression(expr.right, right_sourceref)
-        try:
-            return process_constant_expression(expr, sourceref)
-        except ExpressionEvaluationError:
-            return expr
+        raise ParseError("expression required, not {}".format(expr.__class__.__name__), expr.sourceref)
 
 
 def optimize(mod: Module) -> None:

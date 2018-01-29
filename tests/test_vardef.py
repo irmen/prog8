@@ -1,6 +1,6 @@
 import pytest
 from il65.datatypes import DataType
-from il65.plyparse import LiteralValue, VarDef, VarType, DatatypeNode, Expression, Scope, AddressOf, SymbolName, UndefinedSymbolError
+from il65.plyparse import LiteralValue, VarDef, VarType, DatatypeNode, ExpressionWithOperator, Scope, AddressOf, SymbolName, UndefinedSymbolError
 from il65.plylex import SourceRef
 
 # zero or one subnode: value (an Expression, LiteralValue, AddressOf or SymbolName.).
@@ -61,14 +61,14 @@ def test_set_value():
     assert v.value is None
     v.value = LiteralValue(value="hello", sourceref=sref)
     assert v.value.value == "hello"
-    e = Expression(left=LiteralValue(value=42, sourceref=sref), operator="-", unary=True, right=None, sourceref=sref)
+    e = ExpressionWithOperator(left=LiteralValue(value=42, sourceref=sref), operator="-", unary=True, right=None, sourceref=sref)
     assert not e.must_be_constant
     v.value = e
     assert v.value is e
     assert e.must_be_constant
 
 
-def test_const_num_val():
+def test_const_value():
     sref = SourceRef("test", 1, 1)
     scope = Scope(nodes=[], level="block", sourceref=sref)
     vardef = VarDef(name="constvar", vartype="const", datatype=None, sourceref=sref)
@@ -82,37 +82,37 @@ def test_const_num_val():
     scope.add_node(vardef)
     v = VarDef(name="v1", vartype="var", datatype=DatatypeNode(name="word", sourceref=sref), sourceref=sref)
     with pytest.raises(TypeError):
-        v.const_num_val()
+        v.const_value()
     v = VarDef(name="v1", vartype="memory", datatype=DatatypeNode(name="word", sourceref=sref), sourceref=sref)
     with pytest.raises(TypeError):
-        v.const_num_val()
+        v.const_value()
     v = VarDef(name="v1", vartype="const", datatype=DatatypeNode(name="word", sourceref=sref), sourceref=sref)
-    assert v.const_num_val() == 0
+    assert v.const_value() == 0
     v.value = LiteralValue(value=42, sourceref=sref)
-    assert v.const_num_val() == 42
+    assert v.const_value() == 42
     v = VarDef(name="v1", vartype="const", datatype=DatatypeNode(name="float", sourceref=sref), sourceref=sref)
-    assert v.const_num_val() == 0
+    assert v.const_value() == 0
     v.value = LiteralValue(value=42.9988, sourceref=sref)
-    assert v.const_num_val() == 42.9988
-    e = Expression(left=LiteralValue(value=42, sourceref=sref), operator="-", unary=True, right=None, sourceref=sref)
+    assert v.const_value() == 42.9988
+    e = ExpressionWithOperator(left=LiteralValue(value=42, sourceref=sref), operator="-", unary=True, right=None, sourceref=sref)
     v.value = e
     with pytest.raises(TypeError):
-        v.const_num_val()
+        v.const_value()
     s = SymbolName(name="unexisting", sourceref=sref)
     s.parent = scope
     v.value = s
     with pytest.raises(UndefinedSymbolError):
-        v.const_num_val()
+        v.const_value()
     s = SymbolName(name="constvar", sourceref=sref)
     s.parent = scope
     v.value = s
-    assert v.const_num_val() == 43
+    assert v.const_value() == 43
     a = AddressOf(name="varvar", sourceref=sref)
     a.parent = scope
     v.value = a
     with pytest.raises(TypeError):
-        v.const_num_val()
+        v.const_value()
     a = AddressOf(name="memvar", sourceref=sref)
     a.parent = scope
     v.value = a
-    assert v.const_num_val() == 45
+    assert v.const_value() == 45

@@ -5,16 +5,15 @@
 
 start:
 
-	Y+=10
 	Y-=5
 	Y-=8
 	Y--
 
-	flt+=2
-	flt+=2
-	flt+=2
-	flt+=2
-	flt+=2
+	;flt+=2         ; @todo implement on float
+	;flt+=2
+	;flt+=2
+	;flt+=2
+	;flt+=2
 
 	X=0
 	X+=5
@@ -27,7 +26,8 @@ start:
 	X=24|X
 	X=X^66
 	X+=250
-	X+=5
+	X=5+2+3+4
+	X+=5+2+3+4
 	X-=100
 	X-=50
 	X-=5
@@ -52,6 +52,7 @@ start:
 	;flt += 10.1
 	;flt += 100.1
 	;flt += 1000.1
+	;flt *= 2.34
 
 	return 44
 }

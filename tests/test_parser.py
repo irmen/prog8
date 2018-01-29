@@ -1,6 +1,7 @@
+import pytest
 from il65.plylex import lexer, tokens, find_tok_column, literals, reserved, SourceRef
-from il65.plyparse import parser, connect_parents, TokenFilter, Module, Subroutine, Block, Return, Scope, \
-    VarDef, Expression, LiteralValue, Label, SubCall, Dereference
+from il65.plyparse import parser, connect_parents, TokenFilter, Module, Subroutine, Block, IncrDecr, Scope, \
+    VarDef, Expression, ExpressionWithOperator, LiteralValue, Label, SubCall, Dereference
 from il65.datatypes import DataType
 
 
@@ -127,7 +128,7 @@ def test_parser():
     assert block.name == "block"
     bool_vdef = block.scope.nodes[1]
     assert isinstance(bool_vdef, VarDef)
-    assert isinstance(bool_vdef.value, Expression)
+    assert isinstance(bool_vdef.value, ExpressionWithOperator)
     assert isinstance(bool_vdef.value.right, LiteralValue)
     assert isinstance(bool_vdef.value.right.value, int)
     assert bool_vdef.value.right.value == 1
@@ -283,3 +284,11 @@ def test_boolean_int():
     assert type(var2.value.value) is int and var2.value.value == 0
     assert type(assgn1.right.value) is int and assgn1.right.value == 1
     assert type(assgn2.right.value) is int and assgn2.right.value == 0
+
+
+def test_incrdecr():
+    sref = SourceRef("test", 1, 1)
+    with pytest.raises(ValueError):
+        IncrDecr(operator="??", sourceref=sref)
+    i = IncrDecr(operator="++", sourceref=sref)
+    assert i.howmuch == 1

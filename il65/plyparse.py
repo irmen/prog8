@@ -77,10 +77,11 @@ class AstNode:
 
     def all_nodes(self, *nodetypes: type) -> Generator['AstNode', None, None]:
         nodetypes = nodetypes or (AstNode, )
-        for node in list(self.nodes):
-            if isinstance(node, nodetypes):  # type: ignore
+        child_nodes = list(self.nodes)
+        for node in child_nodes:
+            if isinstance(node, nodetypes):
                 yield node
-        for node in self.nodes:
+        for node in child_nodes:
             if isinstance(node, AstNode):
                 yield from node.all_nodes(*nodetypes)
 
@@ -293,8 +294,19 @@ class Label(AstNode):
     # no subnodes.
 
 
+@attr.s(cmp=False, slots=True, repr=False)
+class Expression(AstNode):
+    # just a common base class for the nodes that are an expression themselves:
+    # ExpressionWithOperator, AddressOf, LiteralValue, SymbolName, Register, SubCall, Dereference
+    def is_compile_constant(self) -> bool:
+        raise NotImplementedError("implement in subclass")
+
+    def const_value(self) -> Union[int, float, bool, str]:
+        raise NotImplementedError("implement in subclass")
+
+
 @attr.s(cmp=False, slots=True)
-class Register(AstNode):
+class Register(Expression):
     name = attr.ib(type=str, validator=attr.validators.in_(REGISTER_SYMBOLS))
     datatype = attr.ib(type=DataType, init=False)
     # no subnodes.
@@ -319,6 +331,12 @@ class Register(AstNode):
         if not isinstance(other, Register):
             return NotImplemented
         return self.name < other.name
+
+    def is_compile_constant(self) -> bool:
+        return False
+
+    def const_value(self) -> Union[int, float, bool, str]:
+        raise TypeError("register doesn't have a constant numeric value", self)
 
 
 @attr.s(cmp=False)
@@ -386,51 +404,57 @@ class Subroutine(AstNode):
 
 
 @attr.s(cmp=True, slots=True, repr=False)
-class LiteralValue(AstNode):
+class LiteralValue(Expression):
     # no subnodes.
     value = attr.ib()
 
     def __repr__(self) -> str:
         return "<LiteralValue value={!r} at {}>".format(self.value, self.sourceref)
 
-    def const_num_val(self) -> Union[int, float]:
-        if isinstance(self.value, (int, float)):
-            return self.value
-        raise TypeError("literal value is not numeric", self)
+    def const_value(self) -> Union[int, float, bool, str]:
+        return self.value
+
+    def is_compile_constant(self) -> bool:
+        return True
 
 
 @attr.s(cmp=False)
-class AddressOf(AstNode):
+class AddressOf(Expression):
     # no subnodes.
     name = attr.ib(type=str)
 
-    def const_num_val(self) -> Union[int, float]:
+    def is_compile_constant(self) -> bool:
+        return False
+
+    def const_value(self) -> Union[int, float, bool, str]:
         symdef = self.my_scope().lookup(self.name)
         if isinstance(symdef, VarDef):
             if symdef.zp_address is not None:
                 return symdef.zp_address
             if symdef.vartype == VarType.MEMORY:
-                return symdef.value.const_num_val()
+                return symdef.value.const_value()
             raise TypeError("can only take constant address of a memory mapped variable", self)
         raise TypeError("should be a vardef to be able to take its address", self)
 
 
 @attr.s(cmp=False, slots=True)
-class SymbolName(AstNode):
+class SymbolName(Expression):
     # no subnodes.
     name = attr.ib(type=str)
 
-    def const_num_val(self) -> Union[int, float]:
+    def is_compile_constant(self) -> bool:
+        symdef = self.my_scope().lookup(self.name)
+        return isinstance(symdef, VarDef) and symdef.vartype == VarType.CONST
+
+    def const_value(self) -> Union[int, float, bool, str]:
         symdef = self.my_scope().lookup(self.name)
         if isinstance(symdef, VarDef) and symdef.vartype == VarType.CONST:
-            if symdef.datatype.isnumeric():
-                return symdef.const_num_val()
-            raise TypeError("not a constant value", self)
-        raise TypeError("should be a vardef to be able to take its constant numeric value", self)
+            return symdef.const_value()
+        raise TypeError("should be a const vardef to be able to take its constant numeric value", self)
 
 
 @attr.s(cmp=False)
-class Dereference(AstNode):
+class Dereference(Expression):
     # one subnode: operand (SymbolName, int or register name)
     datatype = attr.ib()
     size = attr.ib(type=int, default=None)
@@ -451,6 +475,12 @@ class Dereference(AstNode):
             if not self.datatype.to_enum().isnumeric():
                 raise ParseError("dereference target value must be byte, word, float", self.datatype.sourceref)
             self.datatype = self.datatype.to_enum()
+
+    def is_compile_constant(self) -> bool:
+        return False
+
+    def const_value(self) -> Union[int, float, bool, str]:
+        raise TypeError("dereference is not a constant numeric value")
 
 
 @attr.s(cmp=False)
@@ -483,12 +513,12 @@ class IncrDecr(AstNode):
 
 
 @attr.s(cmp=False, slots=True, repr=False)
-class Expression(AstNode):
-    left = attr.ib()
+class ExpressionWithOperator(Expression):
+    left = attr.ib()                # type: Expression
     operator = attr.ib(type=str)
-    right = attr.ib()
+    right = attr.ib()               # type: Expression
     unary = attr.ib(type=bool, default=False)
-    # when evaluating an expression, does it have to be a constant value?
+    # when evaluating the expression, does it have to be a compile-time constant value?
     must_be_constant = attr.ib(type=bool, init=False, default=False)
 
     def __attrs_post_init__(self):
@@ -496,8 +526,11 @@ class Expression(AstNode):
         if self.operator == "mod":
             self.operator = "%"   # change it back to the more common '%'
 
-    def const_num_val(self) -> Union[int, float]:
+    def const_value(self) -> Union[int, float, bool, str]:
         raise TypeError("an expression is not a constant", self)
+
+    def is_compile_constant(self) -> bool:
+        return False
 
     def evaluate_primitive_constants(self, sourceref: SourceRef) -> LiteralValue:
         # make sure the lvalue and rvalue are primitives, and the operator is allowed
@@ -513,19 +546,6 @@ class Expression(AstNode):
         except Exception as x:
             raise ExpressionEvaluationError("expression error: " + str(x), self.sourceref) from None
 
-    def print_tree(self) -> None:
-        def tree(expr: Any, level: int) -> str:
-            indent = "  "*level
-            if not isinstance(expr, Expression):
-                return indent + str(expr) + "\n"
-            if expr.unary:
-                return indent + "{}{}".format(expr.operator, tree(expr.left, level+1))
-            else:
-                return indent + "{}".format(tree(expr.left, level+1)) + \
-                       indent + str(expr.operator) + "\n" + \
-                       indent + "{}".format(tree(expr.right, level + 1))
-        print(tree(self, 0))
-
 
 @attr.s(cmp=False, repr=False)
 class Goto(AstNode):
@@ -537,7 +557,7 @@ class Goto(AstNode):
         return self.nodes[0]    # type: ignore
 
     @property
-    def condition(self) -> Expression:
+    def condition(self) -> Optional[Expression]:
         return self.nodes[1] if len(self.nodes) == 2 else None      # type: ignore
 
 
@@ -558,7 +578,7 @@ class CallArguments(AstNode):
 
 
 @attr.s(cmp=False, repr=False)
-class SubCall(AstNode):
+class SubCall(Expression):
     # has three subnodes:
     # 0: target (Symbolname, int, or Dereference),
     # 1: preserve_regs (PreserveRegs)
@@ -576,10 +596,16 @@ class SubCall(AstNode):
     def arguments(self) -> CallArguments:
         return self.nodes[2]    # type: ignore
 
+    def is_compile_constant(self) -> bool:
+        return False
+
+    def const_value(self) -> Union[int, float, bool, str]:
+        raise TypeError("subroutine call is not a constant value", self)
+
 
 @attr.s(cmp=False, slots=True, repr=False)
 class VarDef(AstNode):
-    # zero or one subnode: value (an Expression, LiteralValue, AddressOf or SymbolName.).
+    # zero or one subnode: value (Expression).
     name = attr.ib(type=str)
     vartype = attr.ib()
     datatype = attr.ib()
@@ -587,29 +613,26 @@ class VarDef(AstNode):
     zp_address = attr.ib(type=int, default=None, init=False)    # the address in the zero page if this var is there, will be set later
 
     @property
-    def value(self) -> Union[LiteralValue, Expression, AddressOf, SymbolName]:
+    def value(self) -> Expression:
         return self.nodes[0] if self.nodes else None    # type: ignore
 
     @value.setter
-    def value(self, value: Union[LiteralValue, Expression, AddressOf, SymbolName]) -> None:
-        assert isinstance(value, (LiteralValue, Expression, AddressOf, SymbolName))
+    def value(self, value: Expression) -> None:
+        assert isinstance(value, Expression)
         if self.nodes:
             self.nodes[0] = value
         else:
             self.nodes.append(value)
-        # if the value is an expression, mark it as a *constant* expression here
-        if isinstance(value, Expression):
+        if isinstance(value, ExpressionWithOperator):
+            # an expression in a vardef should evaluate to a compile-time constant:
             value.must_be_constant = True
 
-    def const_num_val(self) -> Union[int, float]:
+    def const_value(self) -> Union[int, float, bool, str]:
         if self.vartype != VarType.CONST:
             raise TypeError("not a constant value", self)
-        if self.datatype.isnumeric():
-            if self.nodes:
-                return self.nodes[0].const_num_val()    # type: ignore
-            raise ValueError("no value", self)
-        else:
-            raise TypeError("not numeric", self)
+        if self.nodes and isinstance(self.nodes[0], Expression):
+            return self.nodes[0].const_value()
+        raise ValueError("no value", self)
 
     def __attrs_post_init__(self):
         # convert vartype to enum
@@ -647,15 +670,15 @@ class VarDef(AstNode):
 class Return(AstNode):
     # one, two or three subnodes: value_A, value_X, value_Y (all three Expression)
     @property
-    def value_A(self) -> Expression:
+    def value_A(self) -> Optional[Expression]:
         return self.nodes[0] if self.nodes else None    # type: ignore
 
     @property
-    def value_X(self) -> Expression:
+    def value_X(self) -> Optional[Expression]:
         return self.nodes[0] if self.nodes else None    # type: ignore
 
     @property
-    def value_Y(self) -> Expression:
+    def value_Y(self) -> Optional[Expression]:
         return self.nodes[0] if self.nodes else None    # type: ignore
 
 
@@ -709,20 +732,20 @@ class AssignmentTargets(AstNode):
 @attr.s(cmp=False, slots=True, repr=False)
 class Assignment(AstNode):
     # can be single- or multi-assignment
-    # has two subnodes: left (=AssignmentTargets) and right (=reg/literal/expr
-    #    or another Assignment but those will be converted to multi assign)
+    # has two subnodes: left (=AssignmentTargets) and right (=Expression,
+    #    or another Assignment but those will be converted into multi assign)
 
     @property
     def left(self) -> AssignmentTargets:
         return self.nodes[0]    # type: ignore
 
     @property
-    def right(self) -> Union[Register, LiteralValue, Expression]:
+    def right(self) -> Expression:
         return self.nodes[1]    # type: ignore
 
     @right.setter
-    def right(self, rvalue: Union[Register, LiteralValue, Expression, Dereference, SymbolName, SubCall]) -> None:
-        assert isinstance(rvalue, (Register, LiteralValue, Expression, Dereference, SymbolName, SubCall))
+    def right(self, rvalue: Expression) -> None:
+        assert isinstance(rvalue, Expression)
         self.nodes[1] = rvalue
 
 
@@ -789,7 +812,7 @@ def coerce_constant_value(datatype: DataType, value: AstNode,
         elif datatype in (DataType.BYTE, DataType.WORD, DataType.FLOAT):
             if type(value.value) not in (int, float):
                 raise TypeError("cannot assign '{:s}' to {:s}".format(type(value.value).__name__, datatype.name.lower()), sourceref)
-    elif isinstance(value, (Expression, SubCall)):
+    elif isinstance(value, (ExpressionWithOperator, SubCall)):
         return False, value
     elif isinstance(value, SymbolName):
         symboldef = value.my_scope().lookup(value.name)
@@ -797,7 +820,7 @@ def coerce_constant_value(datatype: DataType, value: AstNode,
             return True, symboldef.value
     elif isinstance(value, AddressOf):
         try:
-            address = value.const_num_val()
+            address = value.const_value()
             return True, LiteralValue(value=address, sourceref=value.sourceref)     # type: ignore
         except TypeError:
             return False, value
@@ -1357,14 +1380,14 @@ def p_expression(p):
                |  expression  EQUALS  expression
                |  expression  NOTEQUALS  expression
     """
-    p[0] = Expression(left=p[1], operator=p[2], right=p[3], sourceref=_token_sref(p, 2))
+    p[0] = ExpressionWithOperator(left=p[1], operator=p[2], right=p[3], sourceref=_token_sref(p, 2))
 
 
 def p_expression_uminus(p):
     """
     expression :  '-'  expression  %prec UNARY_MINUS
     """
-    p[0] = Expression(left=p[2], operator=p[1], right=None, unary=True, sourceref=_token_sref(p, 1))
+    p[0] = ExpressionWithOperator(left=p[2], operator=p[1], right=None, unary=True, sourceref=_token_sref(p, 1))
 
 
 def p_expression_addressof(p):
@@ -1378,14 +1401,14 @@ def p_unary_expression_bitinvert(p):
     """
     expression :  BITINVERT  expression
     """
-    p[0] = Expression(left=p[2], operator=p[1], right=None, unary=True, sourceref=_token_sref(p, 1))
+    p[0] = ExpressionWithOperator(left=p[2], operator=p[1], right=None, unary=True, sourceref=_token_sref(p, 1))
 
 
 def p_unary_expression_logicnot(p):
     """
     expression :  LOGICNOT  expression
     """
-    p[0] = Expression(left=p[2], operator=p[1], right=None, unary=True, sourceref=_token_sref(p, 1))
+    p[0] = ExpressionWithOperator(left=p[2], operator=p[1], right=None, unary=True, sourceref=_token_sref(p, 1))
 
 
 def p_expression_group(p):
