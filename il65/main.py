@@ -83,7 +83,7 @@ def main() -> None:
     parsed_module = parser.parse_file(args.sourcefile)
     if parsed_module:
         if args.nooptimize:
-            print_bold("not optimizing the parse tree!")
+            print_bold("Optimizations disabled!")
         else:
             print("\nOptimizing code.")
             optimize(parsed_module)

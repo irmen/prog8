@@ -11,10 +11,7 @@ import sys
 import linecache
 from typing import Optional, Tuple, Set, Dict, List, Any, no_type_check
 import attr
-from .plyparse import parse_file, ParseError, Module, Directive, Block, Subroutine, Scope, VarDef, LiteralValue, \
-    SubCall, Goto, Return, Assignment, InlineAssembly, Register, Expression, ProgramFormat, ZpOptions,\
-    SymbolName, Dereference, AddressOf, IncrDecr, AstNode, datatype_of, coerce_constant_value, \
-    check_symbol_definition, UndefinedSymbolError, process_expression, AugAssignment
+from .plyparse import *
 from .plylex import SourceRef, print_bold
 from .datatypes import DataType, VarType
 
@@ -38,7 +35,7 @@ class PlyParser:
             self.check_all_symbolnames(module)
             self.create_multiassigns(module)
             self.check_and_merge_zeropages(module)
-            self.process_all_expressions(module)
+            self.simplify_some_assignments(module)
             if not self.imported_module:
                 # the following shall only be done on the main module after all imports have been done:
                 self.apply_directive_options(module)
@@ -75,7 +72,14 @@ class PlyParser:
         # perform semantic analysis / checks on the syntactic parse tree we have so far
         # (note: symbol names have already been checked to exist when we start this)
         previous_stmt = None
+        encountered_blocks = set()  # type: Set[Block]
         for node in module.all_nodes():
+            if isinstance(node, Block):
+                parentname = (node.parent.name + ".") if node.parent else ""
+                blockname = parentname + node.name
+                if blockname in encountered_blocks:
+                    raise ValueError("block names not unique:", blockname)
+                encountered_blocks.add(blockname)
             if isinstance(node, Scope):
                 if node.nodes and isinstance(node.parent, (Block, Subroutine)):
                     if isinstance(node.parent, Block) and node.parent.name != "ZP":
@@ -170,27 +174,11 @@ class PlyParser:
         for node in module.all_nodes(SymbolName):
             check_symbol_definition(node.name, node.my_scope(), node.sourceref)     # type: ignore
 
-    def process_all_expressions(self, module: Module) -> None:
-        # process/simplify all expressions (constant folding etc)
-        encountered_blocks = set()    # type: Set[Block]
+    def simplify_some_assignments(self, module: Module) -> None:
+        # simplify some assignment statements,
+        # note taht most of the expression optimization (constant folding etc) is done in the optimizer.
         for node in module.all_nodes():
-            if isinstance(node, Block):
-                parentname = (node.parent.name + ".") if node.parent else ""
-                blockname = parentname + node.name
-                if blockname in encountered_blocks:
-                    raise ValueError("block names not unique:", blockname)
-                encountered_blocks.add(blockname)
-            elif isinstance(node, Expression):
-                try:
-                    evaluated = process_expression(node, node.sourceref)
-                    if evaluated is not node:
-                        # replace the node with the newly evaluated result
-                        node.parent.replace_node(node, evaluated)
-                except ParseError:
-                    raise
-                except Exception as x:
-                    self.handle_internal_error(x, "process_expressions of node {}".format(node))
-            elif isinstance(node, IncrDecr) and node.howmuch not in (0, 1):
+            if isinstance(node, IncrDecr) and node.howmuch not in (0, 1):
                 _, node.howmuch = coerce_constant_value(datatype_of(node.target, node.my_scope()), node.howmuch, node.sourceref)
                 attr.validate(node)
             elif isinstance(node, VarDef):
@@ -484,17 +472,6 @@ class PlyParser:
         if out.isatty():
             print("\x1b[0m", file=out, end="", flush=True)
         raise exc   # XXX temporary to see where the error occurred
-
-    def handle_internal_error(self, exc: Exception, msg: str="") -> None:
-        out = sys.stdout
-        if out.isatty():
-            print("\x1b[1m", file=out)
-        print("\nERROR: internal parser error: ", exc, file=out)
-        if msg:
-            print("    Message:", msg, end="\n\n")
-        if out.isatty():
-            print("\x1b[0m", file=out, end="", flush=True)
-        raise exc
 
 
 class Zeropage:

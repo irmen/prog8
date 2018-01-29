@@ -5,11 +5,8 @@ Here are the data type definitions and -conversions.
 Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
-import math
 import enum
-from typing import Tuple, Union
 from functools import total_ordering
-from .plylex import print_warning, SourceRef
 
 
 @total_ordering

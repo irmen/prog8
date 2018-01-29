@@ -129,6 +129,7 @@ def generate_block_vars(out: Callable, block: Block, zeropage: bool=False) -> No
             _generate_string_var(out, vardef)
         else:
             raise CodeError("invalid const type", vardef)
+    # @todo float constants that are used in expressions
     out("; memory mapped variables")
     for vardef in vars_by_vartype.get(VarType.MEMORY, []):
         # create a definition for variables at a specific place in memory (memory-mapped)

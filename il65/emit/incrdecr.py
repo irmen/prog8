@@ -193,11 +193,13 @@ def generate_incrdecr(out: Callable, stmt: IncrDecr, scope: Scope) -> None:
                         out("\vjsr  c64flt.float_add_one")
                     else:
                         out("\vjsr  c64flt.float_sub_one")
-            elif NOTYETIMPLEMENTED:     # XXX  for the  float += otherfloat cases
+            else:
+                # XXX  for the  float += otherfloat cases
+                print("FLOAT INCR/DECR BY", stmt.howmuch)  # XXX
                 with preserving_registers({'A', 'X', 'Y'}, scope, out, loads_a_within=True):
-                    out("\vlda  #<" + stmt.value.name)
+                    # XXX out("\vlda  #<" + stmt.value.name)
                     out("\vsta  c64.SCRATCH_ZPWORD1")
-                    out("\vlda  #>" + stmt.value.name)
+                    # XXX out("\vlda  #>" + stmt.value.name)
                     out("\vsta  c64.SCRATCH_ZPWORD1+1")
                     out("\vldx  #<" + what_str)
                     out("\vldy  #>" + what_str)
@@ -205,8 +207,6 @@ def generate_incrdecr(out: Callable, stmt: IncrDecr, scope: Scope) -> None:
                         out("\vjsr  c64flt.float_add_SW1_to_XY")
                     else:
                         out("\vjsr  c64flt.float_sub_SW1_from_XY")
-            else:
-                raise CodeError("incr/decr missing float constant definition")
         else:
             raise CodeError("cannot in/decrement memory of type " + str(target.datatype), stmt.howmuch)
 

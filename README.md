@@ -25,7 +25,7 @@ which aims to provide many conveniences over raw assembly code (even when using 
 - breakpoints, that let the Vice emulator drop into the monitor if execution hits them
 - source code labels automatically loaded in Vice emulator so it can show them in disassembly
 - conditional gotos
-- some code optimizations (such as not repeatedly loading the same value in a register) 
+- various code optimizations (code structure, logical and numerical expressions, ...) 
 - @todo: loops
 - @todo: memory block operations
 
