@@ -40,6 +40,7 @@ class PlyParser:
                 # the following shall only be done on the main module after all imports have been done:
                 self.apply_directive_options(module)
                 self.determine_subroutine_usage(module)
+                self.all_parents_connected(module)
                 self.semantic_check(module)
                 self.allocate_zeropage_vars(module)
         except ParseError as x:
@@ -67,6 +68,18 @@ class PlyParser:
                     return
         raise ParseError("last statement in a block/subroutine must be a return or goto, "
                          "(or %noreturn directive to silence this error)", last_stmt.sourceref)
+
+    def all_parents_connected(self, module: Module) -> None:
+        # check that all parents are connected in all nodes
+        def check(node: AstNode, expected_parent: AstNode) -> None:
+            if node.parent is not expected_parent:
+                raise CompileError("parent node invalid", node, node.parent, expected_parent, node.sourceref, expected_parent.sourceref)
+            for child_node in node.nodes:
+                if isinstance(child_node, AstNode):
+                    check(child_node, node)
+                else:
+                    raise TypeError("invalid child node type", child_node, " in ", node, " sref", node.sourceref)
+        check(module, None)
 
     def semantic_check(self, module: Module) -> None:
         # perform semantic analysis / checks on the syntactic parse tree we have so far
@@ -203,12 +216,15 @@ class PlyParser:
     @no_type_check
     def create_multiassigns(self, module: Module) -> None:
         # create multi-assign statements from nested assignments (A=B=C=5),
-        # and optimize TargetRegisters down to single Register if it's just one register.
+        # @todo optimize TargetRegisters down to single Register if it's just one register.
         def reduce_right(assign: Assignment) -> Assignment:
             if isinstance(assign.right, Assignment):
                 right = reduce_right(assign.right)
+                for rn in right.left.nodes:
+                    rn.parent = assign.left
                 assign.left.nodes.extend(right.left.nodes)
                 assign.right = right.right
+                assign.right.parent = assign
             return assign
 
         for node in module.all_nodes(Assignment):
@@ -325,12 +341,10 @@ class PlyParser:
         elif isinstance(expr, ExpressionWithOperator):
             self._get_subroutine_usages_from_expression(usages, expr.left, parent_scope)
             self._get_subroutine_usages_from_expression(usages, expr.right, parent_scope)
-        elif isinstance(expr, LiteralValue):
+        elif isinstance(expr, (LiteralValue, AddressOf)):
             return
         elif isinstance(expr, Dereference):
             return self._get_subroutine_usages_from_expression(usages, expr.operand, parent_scope)
-        elif isinstance(expr, AddressOf):
-            return self._get_subroutine_usages_from_expression(usages, expr.name, parent_scope)
         elif isinstance(expr, SymbolName):
             try:
                 symbol = parent_scope.lookup(expr.name)

@@ -64,7 +64,8 @@ class Optimizer:
                 evaluated = process_expression(expression)    # type: ignore
                 if evaluated is not expression:
                     # replace the node with the newly evaluated result
-                    expression.parent.replace_node(expression, evaluated)
+                    parent = expression.parent
+                    parent.replace_node(expression, evaluated)
                     self.optimizations_performed = True
             except ParseError:
                 raise
@@ -389,15 +390,18 @@ class Optimizer:
                     node.my_scope().nodes.remove(node)
 
 
-def process_expression(expr: Expression) -> Any:
+def process_expression(expr: Expression) -> Expression:
     # process/simplify all expressions (constant folding etc)
+    result = None   # type: Expression
     if expr.is_compile_constant() or isinstance(expr, ExpressionWithOperator) and expr.must_be_constant:
-        return process_constant_expression(expr, expr.sourceref)
+        result = _process_constant_expression(expr, expr.sourceref)
     else:
-        return process_dynamic_expression(expr, expr.sourceref)
+        result = _process_dynamic_expression(expr, expr.sourceref)
+    result.parent = expr.parent
+    return result
 
 
-def process_constant_expression(expr: Expression, sourceref: SourceRef) -> LiteralValue:
+def _process_constant_expression(expr: Expression, sourceref: SourceRef) -> LiteralValue:
     # the expression must result in a single (constant) value (int, float, whatever) wrapped as LiteralValue.
     if isinstance(expr, LiteralValue):
         return expr
@@ -418,8 +422,8 @@ def process_constant_expression(expr: Expression, sourceref: SourceRef) -> Liter
         else:
             raise ExpressionEvaluationError("constant symbol required, not {}".format(value.__class__.__name__), expr.sourceref)
     elif isinstance(expr, AddressOf):
-        assert isinstance(expr.name, SymbolName)
-        value = check_symbol_definition(expr.name.name, expr.my_scope(), expr.sourceref)
+        assert isinstance(expr.name, str)
+        value = check_symbol_definition(expr.name, expr.my_scope(), expr.sourceref)
         if isinstance(value, VarDef):
             if value.vartype == VarType.MEMORY:
                 if isinstance(value.value, LiteralValue):
@@ -427,18 +431,18 @@ def process_constant_expression(expr: Expression, sourceref: SourceRef) -> Liter
                 else:
                     raise ExpressionEvaluationError("constant literal value required", value.sourceref)
             if value.vartype == VarType.CONST:
-                raise ExpressionEvaluationError("can't take the address of a constant", expr.name.sourceref)
+                raise ExpressionEvaluationError("can't take the address of a constant", expr.sourceref)
             raise ExpressionEvaluationError("address-of this {} isn't a compile-time constant"
-                                            .format(value.__class__.__name__), expr.name.sourceref)
+                                            .format(value.__class__.__name__), expr.sourceref)
         else:
             raise ExpressionEvaluationError("constant address required, not {}"
-                                            .format(value.__class__.__name__), expr.name.sourceref)
+                                            .format(value.__class__.__name__), expr.sourceref)
     elif isinstance(expr, SubCall):
         if isinstance(expr.target, SymbolName):      # 'function(1,2,3)'
             funcname = expr.target.name
             if funcname in math_functions or funcname in builtin_functions:
                 func_args = []
-                for a in (process_constant_expression(callarg.value, sourceref) for callarg in expr.arguments.nodes):
+                for a in (_process_constant_expression(callarg.value, sourceref) for callarg in list(expr.arguments.nodes)):
                     if isinstance(a, LiteralValue):
                         func_args.append(a.value)
                     else:
@@ -459,7 +463,8 @@ def process_constant_expression(expr: Expression, sourceref: SourceRef) -> Liter
     elif isinstance(expr, ExpressionWithOperator):
         if expr.unary:
             left_sourceref = expr.left.sourceref if isinstance(expr.left, AstNode) else sourceref
-            expr.left = process_constant_expression(expr.left, left_sourceref)
+            expr.left = _process_constant_expression(expr.left, left_sourceref)
+            expr.left.parent = expr
             if isinstance(expr.left, LiteralValue) and type(expr.left.value) in (int, float):
                 try:
                     if expr.operator == '-':
@@ -474,9 +479,11 @@ def process_constant_expression(expr: Expression, sourceref: SourceRef) -> Liter
             raise ValueError("invalid operand type for unary operator", expr.left, expr.operator)
         else:
             left_sourceref = expr.left.sourceref if isinstance(expr.left, AstNode) else sourceref
-            expr.left = process_constant_expression(expr.left, left_sourceref)
+            expr.left = _process_constant_expression(expr.left, left_sourceref)
+            expr.left.parent = expr
             right_sourceref = expr.right.sourceref if isinstance(expr.right, AstNode) else sourceref
-            expr.right = process_constant_expression(expr.right, right_sourceref)
+            expr.right = _process_constant_expression(expr.right, right_sourceref)
+            expr.right.parent = expr
             if isinstance(expr.left, LiteralValue):
                 if isinstance(expr.right, LiteralValue):
                     return expr.evaluate_primitive_constants(expr.right.sourceref)
@@ -490,7 +497,7 @@ def process_constant_expression(expr: Expression, sourceref: SourceRef) -> Liter
         raise ExpressionEvaluationError("constant value required, not {}".format(expr.__class__.__name__), expr.sourceref)
 
 
-def process_dynamic_expression(expr: Expression, sourceref: SourceRef) -> Any:
+def _process_dynamic_expression(expr: Expression, sourceref: SourceRef) -> Expression:
     # constant-fold a dynamic expression
     if isinstance(expr, LiteralValue):
         return expr
@@ -498,17 +505,17 @@ def process_dynamic_expression(expr: Expression, sourceref: SourceRef) -> Any:
         return LiteralValue(value=expr.const_value(), sourceref=sourceref)  # type: ignore
     elif isinstance(expr, SymbolName):
         try:
-            return process_constant_expression(expr, sourceref)
+            return _process_constant_expression(expr, sourceref)
         except ExpressionEvaluationError:
             return expr
     elif isinstance(expr, AddressOf):
         try:
-            return process_constant_expression(expr, sourceref)
+            return _process_constant_expression(expr, sourceref)
         except ExpressionEvaluationError:
             return expr
     elif isinstance(expr, SubCall):
         try:
-            return process_constant_expression(expr, sourceref)
+            return _process_constant_expression(expr, sourceref)
         except ExpressionEvaluationError:
             if isinstance(expr.target, SymbolName):
                 check_symbol_definition(expr.target.name, expr.my_scope(), expr.target.sourceref)
@@ -522,18 +529,21 @@ def process_dynamic_expression(expr: Expression, sourceref: SourceRef) -> Any:
     elif isinstance(expr, ExpressionWithOperator):
         if expr.unary:
             left_sourceref = expr.left.sourceref if isinstance(expr.left, AstNode) else sourceref
-            expr.left = process_dynamic_expression(expr.left, left_sourceref)
+            expr.left = _process_dynamic_expression(expr.left, left_sourceref)
+            expr.left.parent = expr
             try:
-                return process_constant_expression(expr, sourceref)
+                return _process_constant_expression(expr, sourceref)
             except ExpressionEvaluationError:
                 return expr
         else:
             left_sourceref = expr.left.sourceref if isinstance(expr.left, AstNode) else sourceref
-            expr.left = process_dynamic_expression(expr.left, left_sourceref)
+            expr.left = _process_dynamic_expression(expr.left, left_sourceref)
+            expr.left.parent = expr
             right_sourceref = expr.right.sourceref if isinstance(expr.right, AstNode) else sourceref
-            expr.right = process_dynamic_expression(expr.right, right_sourceref)
+            expr.right = _process_dynamic_expression(expr.right, right_sourceref)
+            expr.right.parent = expr
             try:
-                return process_constant_expression(expr, sourceref)
+                return _process_constant_expression(expr, sourceref)
             except ExpressionEvaluationError:
                 return expr
     else:

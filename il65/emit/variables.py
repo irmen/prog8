@@ -7,7 +7,7 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 
 from collections import defaultdict
 from typing import Dict, List, Callable, Any, no_type_check
-from ..plyparse import Block, VarType, VarDef, LiteralValue
+from ..plyparse import Block, VarType, VarDef, LiteralValue, AddressOf
 from ..datatypes import DataType, STRING_DATATYPES
 from . import to_hex, to_mflpt5, CodeError
 
@@ -66,6 +66,8 @@ def generate_block_init(out: Callable, block: Block) -> None:
             prev_value_a = bytevar.value.value
         out("\vsta  {:s}".format(bytevar.name))
     for wordvar in sorted(vars_by_datatype[DataType.WORD], key=lambda vd: vd.value):
+        if isinstance(wordvar.value, AddressOf):
+            raise CodeError("can't yet use addressof here", wordvar.sourceref)  # XXX
         assert isinstance(wordvar.value, LiteralValue) and type(wordvar.value.value) is int
         v_hi, v_lo = divmod(wordvar.value.value, 256)
         if v_hi != prev_value_a:

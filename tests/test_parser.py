@@ -1,7 +1,7 @@
 import pytest
 from il65.plylex import lexer, tokens, find_tok_column, literals, reserved, SourceRef
 from il65.plyparse import parser, connect_parents, TokenFilter, Module, Subroutine, Block, IncrDecr, Scope, \
-    VarDef, Expression, ExpressionWithOperator, LiteralValue, Label, SubCall, Dereference
+    VarDef, Register, ExpressionWithOperator, LiteralValue, Label, SubCall, Dereference
 from il65.datatypes import DataType
 
 
@@ -137,7 +137,7 @@ def test_parser():
     assert sub2 is sub
     assert sub2.lineref == "src l. 19"
     all_nodes = list(result.all_nodes())
-    assert len(all_nodes) == 12
+    assert len(all_nodes) == 14
     all_nodes = list(result.all_nodes(Subroutine))
     assert len(all_nodes) == 1
     assert isinstance(all_nodes[0], Subroutine)
@@ -176,8 +176,8 @@ def test_parser_2():
     call = block.scope.nodes[0]
     assert isinstance(call, SubCall)
     assert len(call.arguments.nodes) == 2
-    assert isinstance(call.target, int)
-    assert call.target == 999
+    assert isinstance(call.target, LiteralValue)
+    assert call.target.value == 999
     call = block.scope.nodes[1]
     assert isinstance(call, SubCall)
     assert len(call.arguments.nodes) == 0
@@ -219,10 +219,14 @@ def test_typespec():
     assert isinstance(t2, Dereference)
     assert isinstance(t3, Dereference)
     assert isinstance(t4, Dereference)
-    assert t1.operand == 0xc000
-    assert t2.operand == 0xc000
-    assert t3.operand == "AX"
-    assert t4.operand == "AX"
+    assert isinstance(t1.operand, LiteralValue)
+    assert isinstance(t2.operand, LiteralValue)
+    assert isinstance(t3.operand, Register)
+    assert isinstance(t4.operand, Register)
+    assert t1.operand.value == 0xc000
+    assert t2.operand.value == 0xc000
+    assert t3.operand.name == "AX"
+    assert t4.operand.name == "AX"
     assert t1.datatype == DataType.WORD
     assert t2.datatype == DataType.BYTE
     assert t3.datatype == DataType.WORD

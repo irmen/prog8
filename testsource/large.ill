@@ -313,7 +313,7 @@ max:
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
-        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub3    (thing: XY) -> (Y?)  = $ddaa
         sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
 
 
@@ -321,7 +321,7 @@ bar:
         goto sub1
         return sub2 (1  )
         return sub3 (3)
-        return sub3 (XY="hello")
+        return sub3 (thing="hello")
         return sub3 ("hello, there")
         return sub4 (string="hello, there", other = 42)
         return sub4 ("hello",  42)
@@ -353,7 +353,7 @@ bar:
         sub1!()
         sub2!(11)
         sub3 !(3)
-        sub3! (XY="hello")
+        sub3! (thing="hello")
         sub3! ("hello, there")
         sub4! ("hello",  42)
         sub4! ("hello",  other=42)
@@ -378,7 +378,7 @@ bar:
         sub1()
         sub2(11)
         sub3 (3)
-        sub3 (XY="hello")
+        sub3 (thing="hello")
         sub3 ("hello, there")
         sub4 ("hello",  42)
         sub4 ("hello", other=  42)
@@ -667,7 +667,7 @@ max:
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
-        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub3    (thing: XY) -> (Y?)  = $ddaa
         sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
 
 
@@ -675,7 +675,7 @@ bar:
         goto sub1
         return sub2 (1  )
         return sub3 (3)
-        return sub3 (XY="hello")
+        return sub3 (thing="hello")
         return sub3 ("hello, there")
         return sub4 (string="hello, there", other = 42)
         return sub4 ("hello",  42)
@@ -707,7 +707,7 @@ bar:
         sub1!()
         sub2!(11)
         sub3 !(3)
-        sub3! (XY="hello")
+        sub3! (thing="hello")
         sub3! ("hello, there")
         sub4! ("hello",  42)
         sub4! ("hello",  other=42)
@@ -732,7 +732,7 @@ bar:
         sub1()
         sub2(11)
         sub3 (3)
-        sub3 (XY="hello")
+        sub3 (thing="hello")
         sub3 ("hello, there")
         sub4 ("hello",  42)
         sub4 ("hello", other=  42)
@@ -1021,7 +1021,7 @@ max:
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
-        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub3    (thing: XY) -> (Y?)  = $ddaa
         sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
 
 
@@ -1029,7 +1029,7 @@ bar:
         goto sub1
         return sub2 (1  )
         return sub3 (3)
-        return sub3 (XY="hello")
+        return sub3 (thing="hello")
         return sub3 ("hello, there")
         return sub4 (string="hello, there", other = 42)
         return sub4 ("hello",  42)
@@ -1061,7 +1061,7 @@ bar:
         sub1!()
         sub2!(11)
         sub3 !(3)
-        sub3! (XY="hello")
+        sub3! (thing="hello")
         sub3! ("hello, there")
         sub4! ("hello",  42)
         sub4! ("hello",  other=42)
@@ -1086,7 +1086,7 @@ bar:
         sub1()
         sub2(11)
         sub3 (3)
-        sub3 (XY="hello")
+        sub3 (thing="hello")
         sub3 ("hello, there")
         sub4 ("hello",  42)
         sub4 ("hello", other=  42)
@@ -1375,7 +1375,7 @@ max:
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
-        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub3    (thing: XY) -> (Y?)  = $ddaa
         sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
 
 
@@ -1383,7 +1383,7 @@ bar:
         goto sub1
         return sub2 (1  )
         return sub3 (3)
-        return sub3 (XY="hello")
+        return sub3 (thing="hello")
         return sub3 ("hello, there")
         return sub4 (string="hello, there", other = 42)
         return sub4 ("hello",  42)
@@ -1415,7 +1415,7 @@ bar:
         sub1!()
         sub2!(11)
         sub3 !(3)
-        sub3! (XY="hello")
+        sub3! (thing="hello")
         sub3! ("hello, there")
         sub4! ("hello",  42)
         sub4! ("hello",  other=42)
@@ -1440,7 +1440,7 @@ bar:
         sub1()
         sub2(11)
         sub3 (3)
-        sub3 (XY="hello")
+        sub3 (thing="hello")
         sub3 ("hello, there")
         sub4 ("hello",  42)
         sub4 ("hello", other=  42)
@@ -1729,7 +1729,7 @@ max:
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
-        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub3    (thing: XY) -> (Y?)  = $ddaa
         sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
 
 
@@ -1737,7 +1737,7 @@ bar:
         goto sub1
         return sub2 (1  )
         return sub3 (3)
-        return sub3 (XY="hello")
+        return sub3 (thing="hello")
         return sub3 ("hello, there")
         return sub4 (string="hello, there", other = 42)
         return sub4 ("hello",  42)
@@ -1769,7 +1769,7 @@ bar:
         sub1!()
         sub2!(11)
         sub3 !(3)
-        sub3! (XY="hello")
+        sub3! (thing="hello")
         sub3! ("hello, there")
         sub4! ("hello",  42)
         sub4! ("hello",  other=42)
@@ -1794,7 +1794,7 @@ bar:
         sub1()
         sub2(11)
         sub3 (3)
-        sub3 (XY="hello")
+        sub3 (thing="hello")
         sub3 ("hello, there")
         sub4 ("hello",  42)
         sub4 ("hello", other=  42)
@@ -2083,7 +2083,7 @@ max:
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
-        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub3    (thing: XY) -> (Y?)  = $ddaa
         sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
 
 
@@ -2091,7 +2091,7 @@ bar:
         goto sub1
         return sub2 (1  )
         return sub3 (3)
-        return sub3 (XY="hello")
+        return sub3 (thing="hello")
         return sub3 ("hello, there")
         return sub4 (string="hello, there", other = 42)
         return sub4 ("hello",  42)
@@ -2123,7 +2123,7 @@ bar:
         sub1!()
         sub2!(11)
         sub3 !(3)
-        sub3! (XY="hello")
+        sub3! (thing="hello")
         sub3! ("hello, there")
         sub4! ("hello",  42)
         sub4! ("hello",  other=42)
@@ -2148,7 +2148,7 @@ bar:
         sub1()
         sub2(11)
         sub3 (3)
-        sub3 (XY="hello")
+        sub3 (thing="hello")
         sub3 ("hello, there")
         sub4 ("hello",  42)
         sub4 ("hello", other=  42)
@@ -2437,7 +2437,7 @@ max:
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
-        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub3    (thing: XY) -> (Y?)  = $ddaa
         sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
 
 
@@ -2445,7 +2445,7 @@ bar:
         goto sub1
         return sub2 (1  )
         return sub3 (3)
-        return sub3 (XY="hello")
+        return sub3 (thing="hello")
         return sub3 ("hello, there")
         return sub4 (string="hello, there", other = 42)
         return sub4 ("hello",  42)
@@ -2477,7 +2477,7 @@ bar:
         sub1!()
         sub2!(11)
         sub3 !(3)
-        sub3! (XY="hello")
+        sub3! (thing="hello")
         sub3! ("hello, there")
         sub4! ("hello",  42)
         sub4! ("hello",  other=42)
@@ -2502,7 +2502,7 @@ bar:
         sub1()
         sub2(11)
         sub3 (3)
-        sub3 (XY="hello")
+        sub3 (thing="hello")
         sub3 ("hello, there")
         sub4 ("hello",  42)
         sub4 ("hello", other=  42)
@@ -2791,7 +2791,7 @@ max:
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
-        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub3    (thing: XY) -> (Y?)  = $ddaa
         sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
 
 
@@ -2799,7 +2799,7 @@ bar:
         goto sub1
         return sub2 (1  )
         return sub3 (3)
-        return sub3 (XY="hello")
+        return sub3 (thing="hello")
         return sub3 ("hello, there")
         return sub4 (string="hello, there", other = 42)
         return sub4 ("hello",  42)
@@ -2831,7 +2831,7 @@ bar:
         sub1!()
         sub2!(11)
         sub3 !(3)
-        sub3! (XY="hello")
+        sub3! (thing="hello")
         sub3! ("hello, there")
         sub4! ("hello",  42)
         sub4! ("hello",  other=42)
@@ -2856,7 +2856,7 @@ bar:
         sub1()
         sub2(11)
         sub3 (3)
-        sub3 (XY="hello")
+        sub3 (thing="hello")
         sub3 ("hello, there")
         sub4 ("hello",  42)
         sub4 ("hello", other=  42)
@@ -3145,7 +3145,7 @@ max:
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
-        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub3    (thing: XY) -> (Y?)  = $ddaa
         sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
 
 
@@ -3153,7 +3153,7 @@ bar:
         goto sub1
         return sub2 (1  )
         return sub3 (3)
-        return sub3 (XY="hello")
+        return sub3 (thing="hello")
         return sub3 ("hello, there")
         return sub4 (string="hello, there", other = 42)
         return sub4 ("hello",  42)
@@ -3185,7 +3185,7 @@ bar:
         sub1!()
         sub2!(11)
         sub3 !(3)
-        sub3! (XY="hello")
+        sub3! (thing="hello")
         sub3! ("hello, there")
         sub4! ("hello",  42)
         sub4! ("hello",  other=42)
@@ -3210,7 +3210,7 @@ bar:
         sub1()
         sub2(11)
         sub3 (3)
-        sub3 (XY="hello")
+        sub3 (thing="hello")
         sub3 ("hello, there")
         sub4 ("hello",  42)
         sub4 ("hello", other=  42)
@@ -3499,7 +3499,7 @@ max:
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
-        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub3    (thing: XY) -> (Y?)  = $ddaa
         sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
 
 
@@ -3507,7 +3507,7 @@ bar:
         goto sub1
         return sub2 (1  )
         return sub3 (3)
-        return sub3 (XY="hello")
+        return sub3 (thing="hello")
         return sub3 ("hello, there")
         return sub4 (string="hello, there", other = 42)
         return sub4 ("hello",  42)
@@ -3539,7 +3539,7 @@ bar:
         sub1!()
         sub2!(11)
         sub3 !(3)
-        sub3! (XY="hello")
+        sub3! (thing="hello")
         sub3! ("hello, there")
         sub4! ("hello",  42)
         sub4! ("hello",  other=42)
@@ -3564,7 +3564,7 @@ bar:
         sub1()
         sub2(11)
         sub3 (3)
-        sub3 (XY="hello")
+        sub3 (thing="hello")
         sub3 ("hello, there")
         sub4 ("hello",  42)
         sub4 ("hello", other=  42)
@@ -3853,7 +3853,7 @@ max:
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
-        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub3    (thing: XY) -> (Y?)  = $ddaa
         sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
 
 
@@ -3861,7 +3861,7 @@ bar:
         goto sub1
         return sub2 (1  )
         return sub3 (3)
-        return sub3 (XY="hello")
+        return sub3 (thing="hello")
         return sub3 ("hello, there")
         return sub4 (string="hello, there", other = 42)
         return sub4 ("hello",  42)
@@ -3893,7 +3893,7 @@ bar:
         sub1!()
         sub2!(11)
         sub3 !(3)
-        sub3! (XY="hello")
+        sub3! (thing="hello")
         sub3! ("hello, there")
         sub4! ("hello",  42)
         sub4! ("hello",  other=42)
@@ -3918,7 +3918,7 @@ bar:
         sub1()
         sub2(11)
         sub3 (3)
-        sub3 (XY="hello")
+        sub3 (thing="hello")
         sub3 ("hello, there")
         sub4 ("hello",  42)
         sub4 ("hello", other=  42)
@@ -4207,7 +4207,7 @@ max:
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
-        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub3    (thing: XY) -> (Y?)  = $ddaa
         sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
 
 
@@ -4215,7 +4215,7 @@ bar:
         goto sub1
         return sub2 (1  )
         return sub3 (3)
-        return sub3 (XY="hello")
+        return sub3 (thing="hello")
         return sub3 ("hello, there")
         return sub4 (string="hello, there", other = 42)
         return sub4 ("hello",  42)
@@ -4247,7 +4247,7 @@ bar:
         sub1!()
         sub2!(11)
         sub3 !(3)
-        sub3! (XY="hello")
+        sub3! (thing="hello")
         sub3! ("hello, there")
         sub4! ("hello",  42)
         sub4! ("hello",  other=42)
@@ -4272,7 +4272,7 @@ bar:
         sub1()
         sub2(11)
         sub3 (3)
-        sub3 (XY="hello")
+        sub3 (thing="hello")
         sub3 ("hello, there")
         sub4 ("hello",  42)
         sub4 ("hello", other=  42)
@@ -4561,7 +4561,7 @@ max:
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
-        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub3    (thing: XY) -> (Y?)  = $ddaa
         sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
 
 
@@ -4569,7 +4569,7 @@ bar:
         goto sub1
         return sub2 (1  )
         return sub3 (3)
-        return sub3 (XY="hello")
+        return sub3 (thing="hello")
         return sub3 ("hello, there")
         return sub4 (string="hello, there", other = 42)
         return sub4 ("hello",  42)
@@ -4601,7 +4601,7 @@ bar:
         sub1!()
         sub2!(11)
         sub3 !(3)
-        sub3! (XY="hello")
+        sub3! (thing="hello")
         sub3! ("hello, there")
         sub4! ("hello",  42)
         sub4! ("hello",  other=42)
@@ -4626,7 +4626,7 @@ bar:
         sub1()
         sub2(11)
         sub3 (3)
-        sub3 (XY="hello")
+        sub3 (thing="hello")
         sub3 ("hello, there")
         sub4 ("hello",  42)
         sub4 ("hello", other=  42)
@@ -4915,7 +4915,7 @@ max:
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
-        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub3    (thing: XY) -> (Y?)  = $ddaa
         sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
 
 
@@ -4923,7 +4923,7 @@ bar:
         goto sub1
         return sub2 (1  )
         return sub3 (3)
-        return sub3 (XY="hello")
+        return sub3 (thing="hello")
         return sub3 ("hello, there")
         return sub4 (string="hello, there", other = 42)
         return sub4 ("hello",  42)
@@ -4955,7 +4955,7 @@ bar:
         sub1!()
         sub2!(11)
         sub3 !(3)
-        sub3! (XY="hello")
+        sub3! (thing="hello")
         sub3! ("hello, there")
         sub4! ("hello",  42)
         sub4! ("hello",  other=42)
@@ -4980,7 +4980,7 @@ bar:
         sub1()
         sub2(11)
         sub3 (3)
-        sub3 (XY="hello")
+        sub3 (thing="hello")
         sub3 ("hello, there")
         sub4 ("hello",  42)
         sub4 ("hello", other=  42)
@@ -5269,7 +5269,7 @@ max:
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
-        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub3    (thing: XY) -> (Y?)  = $ddaa
         sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
 
 
@@ -5277,7 +5277,7 @@ bar:
         goto sub1
         return sub2 (1  )
         return sub3 (3)
-        return sub3 (XY="hello")
+        return sub3 (thing="hello")
         return sub3 ("hello, there")
         return sub4 (string="hello, there", other = 42)
         return sub4 ("hello",  42)
@@ -5309,7 +5309,7 @@ bar:
         sub1!()
         sub2!(11)
         sub3 !(3)
-        sub3! (XY="hello")
+        sub3! (thing="hello")
         sub3! ("hello, there")
         sub4! ("hello",  42)
         sub4! ("hello",  other=42)
@@ -5334,7 +5334,7 @@ bar:
         sub1()
         sub2(11)
         sub3 (3)
-        sub3 (XY="hello")
+        sub3 (thing="hello")
         sub3 ("hello, there")
         sub4 ("hello",  42)
         sub4 ("hello", other=  42)
@@ -5623,7 +5623,7 @@ max:
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
-        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub3    (thing: XY) -> (Y?)  = $ddaa
         sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
 
 
@@ -5631,7 +5631,7 @@ bar:
         goto sub1
         return sub2 (1  )
         return sub3 (3)
-        return sub3 (XY="hello")
+        return sub3 (thing="hello")
         return sub3 ("hello, there")
         return sub4 (string="hello, there", other = 42)
         return sub4 ("hello",  42)
@@ -5663,7 +5663,7 @@ bar:
         sub1!()
         sub2!(11)
         sub3 !(3)
-        sub3! (XY="hello")
+        sub3! (thing="hello")
         sub3! ("hello, there")
         sub4! ("hello",  42)
         sub4! ("hello",  other=42)
@@ -5688,7 +5688,7 @@ bar:
         sub1()
         sub2(11)
         sub3 (3)
-        sub3 (XY="hello")
+        sub3 (thing="hello")
         sub3 ("hello, there")
         sub4 ("hello",  42)
         sub4 ("hello", other=  42)
@@ -5977,7 +5977,7 @@ max:
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
-        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub3    (thing: XY) -> (Y?)  = $ddaa
         sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
 
 
@@ -5985,7 +5985,7 @@ bar:
         goto sub1
         return sub2 (1  )
         return sub3 (3)
-        return sub3 (XY="hello")
+        return sub3 (thing="hello")
         return sub3 ("hello, there")
         return sub4 (string="hello, there", other = 42)
         return sub4 ("hello",  42)
@@ -6017,7 +6017,7 @@ bar:
         sub1!()
         sub2!(11)
         sub3 !(3)
-        sub3! (XY="hello")
+        sub3! (thing="hello")
         sub3! ("hello, there")
         sub4! ("hello",  42)
         sub4! ("hello",  other=42)
@@ -6042,7 +6042,7 @@ bar:
         sub1()
         sub2(11)
         sub3 (3)
-        sub3 (XY="hello")
+        sub3 (thing="hello")
         sub3 ("hello, there")
         sub4 ("hello",  42)
         sub4 ("hello", other=  42)
@@ -6331,7 +6331,7 @@ max:
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
-        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub3    (thing: XY) -> (Y?)  = $ddaa
         sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
 
 
@@ -6339,7 +6339,7 @@ bar:
         goto sub1
         return sub2 (1  )
         return sub3 (3)
-        return sub3 (XY="hello")
+        return sub3 (thing="hello")
         return sub3 ("hello, there")
         return sub4 (string="hello, there", other = 42)
         return sub4 ("hello",  42)
@@ -6371,7 +6371,7 @@ bar:
         sub1!()
         sub2!(11)
         sub3 !(3)
-        sub3! (XY="hello")
+        sub3! (thing="hello")
         sub3! ("hello, there")
         sub4! ("hello",  42)
         sub4! ("hello",  other=42)
@@ -6396,7 +6396,7 @@ bar:
         sub1()
         sub2(11)
         sub3 (3)
-        sub3 (XY="hello")
+        sub3 (thing="hello")
         sub3 ("hello, there")
         sub4 ("hello",  42)
         sub4 ("hello", other=  42)
@@ -6685,7 +6685,7 @@ max:
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
-        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub3    (thing: XY) -> (Y?)  = $ddaa
         sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
 
 
@@ -6693,7 +6693,7 @@ bar:
         goto sub1
         return sub2 (1  )
         return sub3 (3)
-        return sub3 (XY="hello")
+        return sub3 (thing="hello")
         return sub3 ("hello, there")
         return sub4 (string="hello, there", other = 42)
         return sub4 ("hello",  42)
@@ -6725,7 +6725,7 @@ bar:
         sub1!()
         sub2!(11)
         sub3 !(3)
-        sub3! (XY="hello")
+        sub3! (thing="hello")
         sub3! ("hello, there")
         sub4! ("hello",  42)
         sub4! ("hello",  other=42)
@@ -6750,7 +6750,7 @@ bar:
         sub1()
         sub2(11)
         sub3 (3)
-        sub3 (XY="hello")
+        sub3 (thing="hello")
         sub3 ("hello, there")
         sub4 ("hello",  42)
         sub4 ("hello", other=  42)
@@ -7039,7 +7039,7 @@ max:
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
-        sub    sub3    (XY) -> (Y?)  = $ddaa
+        sub    sub3    (thing: XY) -> (Y?)  = $ddaa
         sub    sub4    (string: XY, other  : A) -> (Y?)  = $dd22
 
 
@@ -7047,7 +7047,7 @@ bar:
         goto sub1
         return sub2 (1  )
         return sub3 (3)
-        return sub3 (XY="hello")
+        return sub3 (thing="hello")
         return sub3 ("hello, there")
         return sub4 (string="hello, there", other = 42)
         return sub4 ("hello",  42)
@@ -7079,7 +7079,7 @@ bar:
         sub1!()
         sub2!(11)
         sub3 !(3)
-        sub3! (XY="hello")
+        sub3! (thing="hello")
         sub3! ("hello, there")
         sub4! ("hello",  42)
         sub4! ("hello",  other=42)
@@ -7104,7 +7104,7 @@ bar:
         sub1()
         sub2(11)
         sub3 (3)
-        sub3 (XY="hello")
+        sub3 (thing="hello")
         sub3 ("hello, there")
         sub4 ("hello",  42)
         sub4 ("hello", other=  42)

@@ -86,12 +86,17 @@ class AstNode:
                 yield from node.all_nodes(*nodetypes)
 
     def remove_node(self, node: 'AstNode') -> None:
+        assert node.parent is self
         self.nodes.remove(node)
+        node.parent = None
 
     def replace_node(self, oldnode: 'AstNode', newnode: 'AstNode') -> None:
+        assert oldnode.parent is self
         assert isinstance(newnode, AstNode)
         idx = self.nodes.index(oldnode)
         self.nodes[idx] = newnode
+        newnode.parent = self
+        oldnode.parent = None
 
     def add_node(self, newnode: 'AstNode', index: int = None) -> None:
         assert isinstance(newnode, AstNode)
@@ -99,6 +104,7 @@ class AstNode:
             self.nodes.append(newnode)
         else:
             self.nodes.insert(index, newnode)
+        newnode.parent = self
 
 
 @attr.s(cmp=False)
@@ -421,7 +427,7 @@ class LiteralValue(Expression):
 @attr.s(cmp=False)
 class AddressOf(Expression):
     # no subnodes.
-    name = attr.ib(type=str)
+    name = attr.ib(type=str, validator=attr.validators._InstanceOfValidator(type=str))
 
     def is_compile_constant(self) -> bool:
         return False
@@ -455,12 +461,12 @@ class SymbolName(Expression):
 
 @attr.s(cmp=False)
 class Dereference(Expression):
-    # one subnode: operand (SymbolName, int or register name)
+    # one subnode: operand (SymbolName, integer LiteralValue or Register)
     datatype = attr.ib()
     size = attr.ib(type=int, default=None)
 
     @property
-    def operand(self) -> Union[SymbolName, int, str]:
+    def operand(self) -> Union[SymbolName, LiteralValue, Register]:
         return self.nodes[0]    # type: ignore
 
     def __attrs_post_init__(self):
@@ -475,6 +481,8 @@ class Dereference(Expression):
             if not self.datatype.to_enum().isnumeric():
                 raise ParseError("dereference target value must be byte, word, float", self.datatype.sourceref)
             self.datatype = self.datatype.to_enum()
+        if self.nodes and not isinstance(self.nodes[0], (SymbolName, LiteralValue, Register)):
+            raise TypeError("operand of dereference invalid type", self.nodes[0], self.sourceref)
 
     def is_compile_constant(self) -> bool:
         return False
@@ -514,12 +522,33 @@ class IncrDecr(AstNode):
 
 @attr.s(cmp=False, slots=True, repr=False)
 class ExpressionWithOperator(Expression):
-    left = attr.ib()                # type: Expression
+    # 2 nodes: left (Expression), right (not present if unary, Expression if not unary)
     operator = attr.ib(type=str)
-    right = attr.ib()               # type: Expression
-    unary = attr.ib(type=bool, default=False)
     # when evaluating the expression, does it have to be a compile-time constant value?
     must_be_constant = attr.ib(type=bool, init=False, default=False)
+
+    @property
+    def unary(self) -> bool:
+        return len(self.nodes) == 1
+
+    @property
+    def left(self) -> Expression:
+        return self.nodes[0]    # type: ignore
+
+    @left.setter
+    def left(self, newleft: Expression) -> None:
+        if self.nodes:
+            self.nodes[0] = newleft
+        else:
+            self.nodes.append(newleft)
+
+    @property
+    def right(self) -> Optional[Expression]:
+        return self.nodes[1] if len(self.nodes) == 2 else None    # type: ignore
+
+    @right.setter
+    def right(self, newright: Expression) -> None:
+        self.nodes[1] = newright
 
     def __attrs_post_init__(self):
         assert self.operator not in ("++", "--"), "incr/decr should not be an expression"
@@ -540,7 +569,9 @@ class ExpressionWithOperator(Expression):
             raise ValueError("operator", self.operator)
         estr = "{} {} {}".format(repr(self.left.value), self.operator, repr(self.right.value))
         try:
-            return LiteralValue(value=eval(estr, {}, {}), sourceref=sourceref)   # type: ignore  # safe because of checks above
+            lv = LiteralValue(value=eval(estr, {}, {}), sourceref=sourceref)   # type: ignore  # safe because of checks above
+            lv.parent = self.parent
+            return lv
         except ZeroDivisionError:
             raise ParseError("division by zero", sourceref)
         except Exception as x:
@@ -580,12 +611,12 @@ class CallArguments(AstNode):
 @attr.s(cmp=False, repr=False)
 class SubCall(Expression):
     # has three subnodes:
-    # 0: target (Symbolname, int, or Dereference),
+    # 0: target (Symbolname, integer LiteralValue, or Dereference),
     # 1: preserve_regs (PreserveRegs)
     # 2: arguments (CallArguments).
 
     @property
-    def target(self) -> Union[SymbolName, int, Dereference]:
+    def target(self) -> Union[SymbolName, LiteralValue, Dereference]:
         return self.nodes[0]        # type: ignore
 
     @property
@@ -659,6 +690,7 @@ class VarDef(AstNode):
             print("warning: {}: array/matrix with size 1, use normal byte/word instead".format(self.sourceref))
         if self.value is None and (self.datatype.isnumeric() or self.datatype.isarray()):
             self.value = LiteralValue(value=0, sourceref=self.sourceref)
+            self.value.parent = self
         # if it's a matrix with interleave, it must be memory mapped
         if self.datatype == DataType.MATRIX and len(self.size) == 3:
             if self.vartype != VarType.MEMORY:
@@ -795,7 +827,9 @@ def coerce_constant_value(datatype: DataType, value: AstNode,
     if isinstance(value, LiteralValue):
         if type(value.value) is str and len(value.value) == 1 and (datatype.isnumeric() or datatype.isarray()):
             # convert a string of length 1 to its numeric character value
-            return True, LiteralValue(value=char_to_bytevalue(value.value), sourceref=value.sourceref)   # type: ignore
+            lv = LiteralValue(value=char_to_bytevalue(value.value), sourceref=value.sourceref)   # type: ignore
+            lv.parent = value.parent
+            return True, lv
         # if we're an integer value and the passed value is float, truncate it (and give a warning)
         if datatype in (DataType.BYTE, DataType.WORD, DataType.MATRIX) and isinstance(value.value, float):
             frac = math.modf(value.value)
@@ -803,7 +837,9 @@ def coerce_constant_value(datatype: DataType, value: AstNode,
                 print_warning("float value truncated ({} to datatype {})".format(value.value, datatype.name), sourceref=sourceref)
                 v2 = int(value.value)
                 verify_bounds(v2)
-                return True, LiteralValue(value=v2, sourceref=value.sourceref)  # type: ignore
+                lv = LiteralValue(value=v2, sourceref=value.sourceref)  # type: ignore
+                lv.parent = value.parent
+                return True, lv
         if type(value.value) in (int, float):
             verify_bounds(value.value)
         if datatype == DataType.WORD:
@@ -821,7 +857,9 @@ def coerce_constant_value(datatype: DataType, value: AstNode,
     elif isinstance(value, AddressOf):
         try:
             address = value.const_value()
-            return True, LiteralValue(value=address, sourceref=value.sourceref)     # type: ignore
+            lv = LiteralValue(value=address, sourceref=value.sourceref)     # type: ignore
+            lv.parent = value.parent
+            return True, lv
         except TypeError:
             return False, value
     if datatype == DataType.WORD and not isinstance(value, (LiteralValue, Dereference, Register, SymbolName, AddressOf)):
@@ -1174,8 +1212,11 @@ def p_call_subroutine(p):
     """
     sref = _token_sref(p, 3)
     p[0] = SubCall(sourceref=sref)
-    p[0].nodes.append(p[1])
-    p[0].nodes.append(p[2])
+    target = p[1]
+    if isinstance(target, int):
+        target = LiteralValue(value=target, sourceref=sref)
+    p[0].nodes.append(target)
+    p[0].nodes.append(p[2] or PreserveRegs(registers="", sourceref=sref))
     p[0].nodes.append(CallArguments(nodes=p[4] or [], sourceref=sref))
 
 
@@ -1300,7 +1341,14 @@ def p_dereference(p):
     dereference :  '['  dereference_operand  ']'
     """
     p[0] = Dereference(datatype=p[2][1], sourceref=_token_sref(p, 1))
-    p[0].nodes.append(p[2][0])
+    operand = p[2][0]
+    if isinstance(operand, int):
+        p[0].nodes.append(LiteralValue(value=operand, sourceref=p[0].sourceref))
+    elif isinstance(operand, str):
+        p[0].nodes.append(Register(name=operand, sourceref=p[0].sourceref))
+    elif isinstance(operand, SymbolName):
+        p[0].nodes.append(operand)
+    attr.validate(p[0])
 
 
 def p_dereference_operand(p):
@@ -1380,35 +1428,40 @@ def p_expression(p):
                |  expression  EQUALS  expression
                |  expression  NOTEQUALS  expression
     """
-    p[0] = ExpressionWithOperator(left=p[1], operator=p[2], right=p[3], sourceref=_token_sref(p, 2))
+    p[0] = ExpressionWithOperator(operator=p[2], sourceref=_token_sref(p, 2))
+    p[0].nodes.append(p[1])
+    p[0].nodes.append(p[3])
 
 
 def p_expression_uminus(p):
     """
     expression :  '-'  expression  %prec UNARY_MINUS
     """
-    p[0] = ExpressionWithOperator(left=p[2], operator=p[1], right=None, unary=True, sourceref=_token_sref(p, 1))
+    p[0] = ExpressionWithOperator(operator=p[1], sourceref=_token_sref(p, 1))
+    p[0].nodes.append(p[2])
 
 
 def p_expression_addressof(p):
     """
     expression :  BITAND  symbolname  %prec UNARY_ADDRESSOF
     """
-    p[0] = AddressOf(name=p[2], sourceref=_token_sref(p, 1))
+    p[0] = AddressOf(name=p[2].name, sourceref=_token_sref(p, 1))
 
 
 def p_unary_expression_bitinvert(p):
     """
     expression :  BITINVERT  expression
     """
-    p[0] = ExpressionWithOperator(left=p[2], operator=p[1], right=None, unary=True, sourceref=_token_sref(p, 1))
+    p[0] = ExpressionWithOperator(operator=p[1], sourceref=_token_sref(p, 1))
+    p[0].nodes.append(p[2])
 
 
 def p_unary_expression_logicnot(p):
     """
     expression :  LOGICNOT  expression
     """
-    p[0] = ExpressionWithOperator(left=p[2], operator=p[1], right=None, unary=True, sourceref=_token_sref(p, 1))
+    p[0] = ExpressionWithOperator(operator=p[1], sourceref=_token_sref(p, 1))
+    p[0].nodes.append(p[2])
 
 
 def p_expression_group(p):

@@ -2,6 +2,7 @@
 ~ main {
 
 	var .float flt
+	var .word        vmemaddr1              = &flt
 
 start:
 

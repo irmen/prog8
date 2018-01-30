@@ -61,7 +61,8 @@ def test_set_value():
     assert v.value is None
     v.value = LiteralValue(value="hello", sourceref=sref)
     assert v.value.value == "hello"
-    e = ExpressionWithOperator(left=LiteralValue(value=42, sourceref=sref), operator="-", unary=True, right=None, sourceref=sref)
+    e = ExpressionWithOperator(operator="-", sourceref=sref)
+    e.left = LiteralValue(value=42, sourceref=sref)
     assert not e.must_be_constant
     v.value = e
     assert v.value is e
@@ -94,7 +95,8 @@ def test_const_value():
     assert v.const_value() == 0
     v.value = LiteralValue(value=42.9988, sourceref=sref)
     assert v.const_value() == 42.9988
-    e = ExpressionWithOperator(left=LiteralValue(value=42, sourceref=sref), operator="-", unary=True, right=None, sourceref=sref)
+    e = ExpressionWithOperator(operator="-", sourceref=sref)
+    e.left = LiteralValue(value=42, sourceref=sref)
     v.value = e
     with pytest.raises(TypeError):
         v.const_value()
