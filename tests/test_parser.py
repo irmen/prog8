@@ -1,8 +1,10 @@
+import math
 import pytest
 from il65.plylex import lexer, tokens, find_tok_column, literals, reserved, SourceRef
 from il65.plyparse import parser, connect_parents, TokenFilter, Module, Subroutine, Block, IncrDecr, Scope, \
-    VarDef, Register, ExpressionWithOperator, LiteralValue, Label, SubCall, Dereference
-from il65.datatypes import DataType
+    VarDef, Register, ExpressionWithOperator, LiteralValue, Label, SubCall, Dereference,\
+    BuiltinFunction, UndefinedSymbolError
+from il65.datatypes import DataType, VarType
 
 
 def lexer_error(sourceref: SourceRef, fmtstring: str, *args: str) -> None:
@@ -296,3 +298,58 @@ def test_incrdecr():
         IncrDecr(operator="??", sourceref=sref)
     i = IncrDecr(operator="++", sourceref=sref)
     assert i.howmuch == 1
+
+
+def test_symbol_lookup():
+    sref = SourceRef("test", 1, 1)
+    var1 = VarDef(name="var1", vartype="const", datatype=DataType.WORD, sourceref=sref)
+    var1.value = LiteralValue(value=42, sourceref=sref)
+    var1.value.parent = var1
+    var2 = VarDef(name="var2", vartype="const", datatype=DataType.FLOAT, sourceref=sref)
+    var2.value = LiteralValue(value=123.456, sourceref=sref)
+    var2.value.parent = var2
+    label1 = Label(name="outerlabel", sourceref=sref)
+    label2 = Label(name="innerlabel", sourceref=sref)
+    scope_inner = Scope(nodes=[
+        label2,
+        var2
+    ], level="block", sourceref=sref)
+    scope_inner.name = "inner"
+    var2.parent = label2.parent = scope_inner
+    scope_outer = Scope(nodes=[
+        label1,
+        var1,
+        scope_inner
+    ], level="block", sourceref=sref)
+    scope_outer.name = "outer"
+    scope_outer.define_builtin_functions()
+    var1.parent = label1.parent = scope_inner.parent = scope_outer
+    assert scope_inner.parent_scope is scope_outer
+    assert scope_outer.parent_scope is None
+    assert label1.my_scope() is scope_outer
+    assert var1.my_scope() is scope_outer
+    assert scope_inner.my_scope() is scope_outer
+    assert label2.my_scope() is scope_inner
+    assert var2.my_scope() is scope_inner
+    with pytest.raises(LookupError):
+        scope_outer.my_scope()
+    with pytest.raises(UndefinedSymbolError):
+        scope_inner.lookup("unexisting")
+    with pytest.raises(UndefinedSymbolError):
+        scope_outer.lookup("unexisting")
+    assert scope_inner.lookup("innerlabel") is label2
+    assert scope_inner.lookup("var2") is var2
+    assert scope_inner.lookup("outerlabel") is label1
+    assert scope_inner.lookup("var1") is var1
+    with pytest.raises(UndefinedSymbolError):
+        scope_outer.lookup("innerlabel")
+    with pytest.raises(UndefinedSymbolError):
+        scope_outer.lookup("var2")
+    assert scope_outer.lookup("var1") is var1
+    assert scope_outer.lookup("outerlabel") is label1
+    math_func = scope_inner.lookup("sin")
+    assert isinstance(math_func, BuiltinFunction)
+    assert math_func.name == "sin" and math_func.func is math.sin
+    builtin_func = scope_inner.lookup("max")
+    assert isinstance(builtin_func, BuiltinFunction)
+    assert builtin_func.name == "max" and builtin_func.func is max

@@ -30,7 +30,7 @@ class ZpOptions(enum.Enum):
     CLOBBER_RESTORE = "clobber_restore"
 
 
-math_functions = {name: func for name, func in vars(math).items() if inspect.isbuiltin(func)}
+math_functions = {name: func for name, func in vars(math).items() if inspect.isbuiltin(func) and name != "pow"}
 builtin_functions = {name: func for name, func in vars(builtins).items() if inspect.isbuiltin(func)}
 
 
@@ -121,7 +121,6 @@ class Scope(AstNode):
     nodes = attr.ib(type=list, init=True)    # requires nodes in __init__
     symbols = attr.ib(init=False)
     name = attr.ib(init=False)          # will be set by enclosing block, or subroutine etc.
-    parent_scope = attr.ib(init=False, default=None)  # will be wired up later
     _save_registers = attr.ib(type=bool, default=None, init=False)
 
     @property
@@ -137,6 +136,13 @@ class Scope(AstNode):
     def save_registers(self, save: bool) -> None:
         self._save_registers = save
 
+    @property
+    def parent_scope(self) -> Optional['Scope']:
+        parent_scope = self.parent
+        while parent_scope and not isinstance(parent_scope, Scope):
+            parent_scope = parent_scope.parent
+        return parent_scope
+
     def __attrs_post_init__(self):
         # populate the symbol table for this scope for fast lookups via scope.lookup("name") or scope.lookup("dotted.name")
         self.symbols = {}
@@ -147,28 +153,38 @@ class Scope(AstNode):
     def _populate_symboltable(self, node: AstNode) -> None:
         if isinstance(node, (Label, VarDef)):
             if node.name in self.symbols:
-                raise ParseError("symbol already defined at {}".format(self.symbols[node.name].sourceref), node.sourceref)
+                raise ParseError("symbol '{}' already defined at {}".format(node.name, self.symbols[node.name].sourceref), node.sourceref)
             self.symbols[node.name] = node
-        if isinstance(node, Subroutine):
+        elif isinstance(node, (Subroutine, BuiltinFunction)):
             if node.name in self.symbols:
-                raise ParseError("symbol already defined at {}".format(self.symbols[node.name].sourceref), node.sourceref)
+                raise ParseError("symbol '{}' already defined at {}".format(node.name, self.symbols[node.name].sourceref), node.sourceref)
             self.symbols[node.name] = node
-            if node.scope:
-                node.scope.parent_scope = self
-        if isinstance(node, Block):
+        elif isinstance(node, Block):
             if node.name:
                 if node.name != "ZP" and node.name in self.symbols:
-                    raise ParseError("symbol already defined at {}".format(self.symbols[node.name].sourceref), node.sourceref)
+                    raise ParseError("symbol '{}' already defined at {}"
+                                     .format(node.name, self.symbols[node.name].sourceref), node.sourceref)
                 self.symbols[node.name] = node
-                node.scope.parent_scope = self
+
+    @no_type_check
+    def define_builtin_functions(self) -> None:
+        for name, func in math_functions.items():
+            f = BuiltinFunction(name=name, func=func, sourceref=self.sourceref)
+            self.add_node(f)
+        for name, func in builtin_functions.items():
+            f = BuiltinFunction(name=name, func=func, sourceref=self.sourceref)
+            self.add_node(f)
 
     def lookup(self, name: str) -> AstNode:
         assert isinstance(name, str)
         if '.' in name:
             # look up the dotted name starting from the topmost scope
             scope = self
-            while scope.parent_scope:
-                scope = scope.parent_scope
+            node = self
+            while node.parent:
+                if isinstance(node.parent, Scope):
+                    scope = node.parent
+                node = node.parent
             for namepart in name.split('.'):
                 if isinstance(scope, (Block, Subroutine)):
                     scope = scope.scope
@@ -182,8 +198,11 @@ class Scope(AstNode):
             # find the name in nested scope hierarchy
             if name in self.symbols:
                 return self.symbols[name]
-            if self.parent_scope:
-                return self.parent_scope.lookup(name)
+            parent_scope = self.parent
+            while parent_scope and not isinstance(parent_scope, Scope):
+                parent_scope = parent_scope.parent
+            if parent_scope:
+                return parent_scope.lookup(name)
             raise UndefinedSymbolError("undefined symbol: " + name)
 
     def remove_node(self, node: AstNode) -> None:
@@ -385,6 +404,15 @@ class DatatypeNode(AstNode):
             "array": DataType.BYTEARRAY,
             "wordarray": DataType.WORDARRAY
         }[self.name]
+
+
+@attr.s(cmp=False, repr=False)
+class BuiltinFunction(AstNode):
+    # This is a pseudo-node that will be artificially injected in the top-most scope,
+    # to represent all supported built-in functions or math-functions.
+    # No child nodes.
+    name = attr.ib(type=str)
+    func = attr.ib(type=callable)
 
 
 @attr.s(cmp=False, repr=False)

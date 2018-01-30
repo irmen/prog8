@@ -31,6 +31,7 @@ class PlyParser:
         try:
             module = parse_file(filename, self.lexer_error)
             self.check_directives(module)
+            module.scope.define_builtin_functions()
             self.process_imports(module)
             self.check_all_symbolnames(module)
             self.create_multiassigns(module)
@@ -431,7 +432,6 @@ class PlyParser:
                     if not filename:
                         raise ParseError("imported file not found", directive.sourceref)
                     imported_module, import_parse_errors = self.import_file(filename)
-                    imported_module.scope.parent_scope = module.scope
                     imported.append(imported_module)
                     self.parse_errors += import_parse_errors
         if not self.imported_module:
@@ -439,7 +439,6 @@ class PlyParser:
             filename = self.find_import_file("il65lib", module.sourceref.file)
             if filename:
                 imported_module, import_parse_errors = self.import_file(filename)
-                imported_module.scope.parent_scope = module.scope
                 imported.append(imported_module)
                 self.parse_errors += import_parse_errors
             else:
