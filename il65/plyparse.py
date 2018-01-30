@@ -159,7 +159,7 @@ class Scope(AstNode):
             if node.name in self.symbols:
                 raise ParseError("symbol '{}' already defined at {}".format(node.name, self.symbols[node.name].sourceref), node.sourceref)
             self.symbols[node.name] = node
-        elif isinstance(node, Block):
+        elif isinstance(node, (Block, Scope)):
             if node.name:
                 if node.name != "ZP" and node.name in self.symbols:
                     raise ParseError("symbol '{}' already defined at {}"
@@ -608,11 +608,11 @@ class ExpressionWithOperator(Expression):
 
 @attr.s(cmp=False, repr=False)
 class Goto(AstNode):
-    # one or two subnodes: target (SymbolName, int or Dereference) and optionally: condition (Expression)
+    # one or two subnodes: target (SymbolName, integer LiteralValue, or Dereference) and optionally: condition (Expression)
     if_stmt = attr.ib(default=None)
 
     @property
-    def target(self) -> Union[SymbolName, int, Dereference]:
+    def target(self) -> Union[SymbolName, LiteralValue, Dereference]:
         return self.nodes[0]    # type: ignore
 
     @property
@@ -1335,7 +1335,10 @@ def p_goto(p):
     goto :  GOTO  calltarget
     """
     p[0] = Goto(sourceref=_token_sref(p, 1))
-    p[0].nodes.append(p[2])
+    target = p[2]
+    if isinstance(target, int):
+        target = LiteralValue(value=target, sourceref=p[0].sourceref)
+    p[0].nodes.append(target)
 
 
 def p_conditional_goto_plain(p):

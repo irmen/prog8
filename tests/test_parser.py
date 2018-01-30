@@ -322,17 +322,22 @@ def test_symbol_lookup():
         scope_inner
     ], level="block", sourceref=sref)
     scope_outer.name = "outer"
-    scope_outer.define_builtin_functions()
     var1.parent = label1.parent = scope_inner.parent = scope_outer
+    scope_topmost = Scope(nodes=[scope_outer], level="module", sourceref=sref)
+    scope_topmost.name = "topmost"
+    scope_outer.parent = scope_topmost
+    scope_topmost.define_builtin_functions()
     assert scope_inner.parent_scope is scope_outer
-    assert scope_outer.parent_scope is None
+    assert scope_outer.parent_scope is scope_topmost
+    assert scope_topmost.parent_scope is None
     assert label1.my_scope() is scope_outer
     assert var1.my_scope() is scope_outer
     assert scope_inner.my_scope() is scope_outer
     assert label2.my_scope() is scope_inner
     assert var2.my_scope() is scope_inner
+    assert scope_outer.my_scope() is scope_topmost
     with pytest.raises(LookupError):
-        scope_outer.my_scope()
+        scope_topmost.my_scope()
     with pytest.raises(UndefinedSymbolError):
         scope_inner.lookup("unexisting")
     with pytest.raises(UndefinedSymbolError):
@@ -353,3 +358,12 @@ def test_symbol_lookup():
     builtin_func = scope_inner.lookup("max")
     assert isinstance(builtin_func, BuiltinFunction)
     assert builtin_func.name == "max" and builtin_func.func is max
+    # test dotted names:
+    with pytest.raises(UndefinedSymbolError):
+        scope_inner.lookup("noscope.nosymbol.nothing")
+    assert scope_inner.lookup("outer.inner.var2") is var2
+    with pytest.raises(UndefinedSymbolError):
+        scope_inner.lookup("outer.inner.var1")
+    with pytest.raises(UndefinedSymbolError):
+        scope_inner.lookup("outer.var2")
+    assert scope_inner.lookup("outer.var1") is var1

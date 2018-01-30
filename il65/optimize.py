@@ -242,6 +242,7 @@ class Optimizer:
                         new_stmt = IncrDecr(operator="++" if assignment.operator == "+=" else "--",
                                             howmuch=howmuch.value, sourceref=assignment.sourceref)
                         new_stmt.target = assignment.left
+                        new_stmt.target.parent = new_stmt
                         assignment.my_scope().replace_node(assignment, new_stmt)
                         self.optimizations_performed = True
                     if assignment.right.value == 1 and assignment.operator in ("/=", "//=", "*="):
@@ -265,17 +266,23 @@ class Optimizer:
     @no_type_check
     def _make_aug_assign(self, old_assign: Assignment, target: Union[TargetRegisters, Register, SymbolName, Dereference],
                          value: Union[int, float], operator: str) -> AugAssignment:
+        assert isinstance(target, (TargetRegisters, Register, SymbolName, Dereference))
         a = AugAssignment(operator=operator, sourceref=old_assign.sourceref)
         a.nodes.append(target)
-        a.nodes.append(LiteralValue(value=value, sourceref=old_assign.sourceref))
+        target.parent = a
+        lv = LiteralValue(value=value, sourceref=old_assign.sourceref)
+        a.nodes.append(lv)
+        lv.parent = a
         a.parent = old_assign.parent
         return a
 
     @no_type_check
     def _make_incrdecr(self, old_stmt: AstNode, target: Union[TargetRegisters, Register, SymbolName, Dereference],
                        howmuch: Union[int, float], operator: str) -> IncrDecr:
+        assert isinstance(target, (TargetRegisters, Register, SymbolName, Dereference))
         a = IncrDecr(operator=operator, howmuch=howmuch, sourceref=old_stmt.sourceref)
         a.nodes.append(target)
+        target.parent = a
         a.parent = old_stmt.parent
         return a
 
@@ -341,7 +348,7 @@ class Optimizer:
         # the comparison operator and rvalue (0) will be removed and the if-status changed accordingly
         for goto in self.module.all_nodes(Goto):
             if isinstance(goto.condition, Expression):
-                print("NOT IMPLEMENTED YET: optimize goto conditionals", goto.condition)   # @todo
+                pass  # @todo optimize goto conditionals
                 # if cond and isinstance(cond.rvalue, (int, float)) and cond.rvalue.value == 0:
                 #     simplified = False
                 #     if cond.ifstatus in ("true", "ne"):
@@ -456,7 +463,7 @@ def _process_constant_expression(expr: Expression, sourceref: SourceRef) -> Lite
                 raise ExpressionEvaluationError("can only use math- or builtin function", expr.sourceref)
         elif isinstance(expr.target, Dereference):       # '[...](1,2,3)'
             raise ExpressionEvaluationError("dereferenced value call is not a constant value", expr.sourceref)
-        elif type(expr.target) is int:    # '64738()'
+        elif isinstance(expr.target, LiteralValue) and type(expr.target.value) is int:   # '64738()'
             raise ExpressionEvaluationError("immediate address call is not a constant value", expr.sourceref)
         else:
             raise NotImplementedError("weird call target", expr.target)
@@ -504,15 +511,19 @@ def _process_dynamic_expression(expr: Expression, sourceref: SourceRef) -> Expre
     if expr.is_compile_constant():
         return LiteralValue(value=expr.const_value(), sourceref=sourceref)  # type: ignore
     elif isinstance(expr, SymbolName):
-        try:
-            return _process_constant_expression(expr, sourceref)
-        except ExpressionEvaluationError:
-            return expr
+        if expr.is_compile_constant():
+            try:
+                return _process_constant_expression(expr, sourceref)
+            except ExpressionEvaluationError:
+                pass
+        return expr
     elif isinstance(expr, AddressOf):
-        try:
-            return _process_constant_expression(expr, sourceref)
-        except ExpressionEvaluationError:
-            return expr
+        if expr.is_compile_constant():
+            try:
+                return _process_constant_expression(expr, sourceref)
+            except ExpressionEvaluationError:
+                pass
+        return expr
     elif isinstance(expr, SubCall):
         try:
             return _process_constant_expression(expr, sourceref)
@@ -520,11 +531,7 @@ def _process_dynamic_expression(expr: Expression, sourceref: SourceRef) -> Expre
             if isinstance(expr.target, SymbolName):
                 check_symbol_definition(expr.target.name, expr.my_scope(), expr.target.sourceref)
             return expr
-    elif isinstance(expr, Register):
-        return expr
-    elif isinstance(expr, Dereference):
-        if isinstance(expr.operand, SymbolName):
-            check_symbol_definition(expr.operand.name, expr.my_scope(), expr.operand.sourceref)
+    elif isinstance(expr, (Register, Dereference)):
         return expr
     elif isinstance(expr, ExpressionWithOperator):
         if expr.unary:
