@@ -33,12 +33,11 @@ class PlyParser:
             self.check_directives(module)
             module.scope.define_builtin_functions()
             self.process_imports(module)
-            self.check_all_symbolnames(module)
-            self.create_multiassigns(module)
             self.check_and_merge_zeropages(module)
-            self.simplify_some_assignments(module)
+            self.create_multiassigns(module)
             if not self.imported_module:
                 # the following shall only be done on the main module after all imports have been done:
+                self.check_all_symbolnames(module)
                 self.apply_directive_options(module)
                 self.determine_subroutine_usage(module)
                 self.all_parents_connected(module)
@@ -74,7 +73,10 @@ class PlyParser:
         # check that all parents are connected in all nodes
         def check(node: AstNode, expected_parent: AstNode) -> None:
             if node.parent is not expected_parent:
-                raise CompileError("parent node invalid", node, node.parent, expected_parent, node.sourceref, expected_parent.sourceref)
+                print("\nINTERNAL ERROR: parent node invalid of node", node, node.sourceref)
+                print("  current parent:", node.parent)
+                print("  expected parent:", expected_parent, expected_parent.sourceref)
+                raise CompileError("parent node invalid, see message above")
             for child_node in node.nodes:
                 if isinstance(child_node, AstNode):
                     check(child_node, node)
@@ -86,14 +88,18 @@ class PlyParser:
         # perform semantic analysis / checks on the syntactic parse tree we have so far
         # (note: symbol names have already been checked to exist when we start this)
         previous_stmt = None
+        encountered_block_names = set()  # type: Set[str]
         encountered_blocks = set()  # type: Set[Block]
         for node in module.all_nodes():
             if isinstance(node, Block):
+                if node in encountered_blocks:
+                    raise CompileError("parse tree malformed; block duplicated", node, node.name, node.sourceref)
                 parentname = (node.parent.name + ".") if node.parent else ""
                 blockname = parentname + node.name
-                if blockname in encountered_blocks:
-                    raise ValueError("block names not unique:", blockname)
-                encountered_blocks.add(blockname)
+                if blockname in encountered_block_names:
+                    raise CompileError("block names not unique:", blockname)
+                encountered_block_names.add(blockname)
+                encountered_blocks.add(node)
             if isinstance(node, Scope):
                 if node.nodes and isinstance(node.parent, (Block, Subroutine)):
                     if isinstance(node.parent, Block) and node.parent.name != "ZP":
@@ -146,26 +152,26 @@ class PlyParser:
                 if arg.name != param[0]:
                     raise ParseError("parameter name mismatch", arg.sourceref)
 
+    @no_type_check
     def check_and_merge_zeropages(self, module: Module) -> None:
         # merge all ZP blocks into one
-        zeropage = None
-        for block in module.all_nodes(Block):
-            if block.name == "ZP":   # type: ignore
-                if zeropage:
-                    # merge other ZP block into first ZP block
-                    for node in block.scope.nodes:
-                        if isinstance(node, Directive):
-                            zeropage.scope.add_node(node, 0)
-                        elif isinstance(node, VarDef):
-                            zeropage.scope.add_node(node)
-                        else:
-                            raise ParseError("only variables and directives allowed in zeropage block", node.sourceref)
-                else:
-                    zeropage = block
+        for zeropage in module.all_nodes(Block):
+            if zeropage.name == "ZP":
+                break
+        else:
+            return
+        for block in list(module.all_nodes(Block)):
+            if block is not zeropage and block.name == "ZP":
+                # merge other ZP block into first ZP block
+                for node in block.scope.nodes:
+                    if isinstance(node, Directive):
+                        zeropage.scope.add_node(node, 0)
+                    elif isinstance(node, VarDef):
+                        zeropage.scope.add_node(node)
+                    else:
+                        raise ParseError("only variables and directives allowed in zeropage block", node.sourceref)
                 block.parent.remove_node(block)
-        if zeropage:
-            # add the zero page again, as the very first block
-            module.scope.add_node(zeropage, 0)
+        block.parent._populate_symboltable(zeropage)  # re-add the 'ZP' symbol
 
     def allocate_zeropage_vars(self, module: Module) -> None:
         # allocate zeropage variables to the available free zp addresses
@@ -187,32 +193,6 @@ class PlyParser:
     def check_all_symbolnames(self, module: Module) -> None:
         for node in module.all_nodes(SymbolName):
             check_symbol_definition(node.name, node.my_scope(), node.sourceref)     # type: ignore
-
-    def simplify_some_assignments(self, module: Module) -> None:
-        # simplify some assignment statements,
-        # note taht most of the expression optimization (constant folding etc) is done in the optimizer.
-        for node in module.all_nodes():
-            if isinstance(node, IncrDecr) and node.howmuch not in (0, 1):
-                _, node.howmuch = coerce_constant_value(datatype_of(node.target, node.my_scope()), node.howmuch, node.sourceref)
-                attr.validate(node)
-            elif isinstance(node, VarDef):
-                dtype = DataType.WORD if node.vartype == VarType.MEMORY else node.datatype
-                try:
-                    _, node.value = coerce_constant_value(dtype, node.value, node.sourceref)    # type: ignore
-                    attr.validate(node)
-                except OverflowError as x:
-                    raise ParseError(str(x), node.sourceref) from None
-            elif isinstance(node, Assignment):
-                lvalue_types = set(datatype_of(lv, node.my_scope()) for lv in node.left.nodes)
-                if len(lvalue_types) == 1:
-                    _, newright = coerce_constant_value(lvalue_types.pop(), node.right, node.sourceref)
-                    if isinstance(newright, Expression):
-                        node.right = newright   # type: ignore
-                    else:
-                        raise TypeError("invalid coerced constant type", newright)
-                else:
-                    for lv_dt in lvalue_types:
-                        coerce_constant_value(lv_dt, node.right, node.sourceref)
 
     @no_type_check
     def create_multiassigns(self, module: Module) -> None:

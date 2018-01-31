@@ -30,8 +30,10 @@ class ZpOptions(enum.Enum):
     CLOBBER_RESTORE = "clobber_restore"
 
 
-math_functions = {name: func for name, func in vars(math).items() if inspect.isbuiltin(func) and name != "pow"}
-builtin_functions = {name: func for name, func in vars(builtins).items() if inspect.isbuiltin(func)}
+math_functions = {name: func for name, func in vars(math).items()
+                  if inspect.isbuiltin(func) and name != "pow" and not name.startswith("_")}
+builtin_functions = {name: func for name, func in vars(builtins).items()
+                     if inspect.isbuiltin(func) and not name.startswith("_")}
 
 
 class ParseError(Exception):
@@ -922,6 +924,7 @@ def p_start(p):
         scope.name = "<" + p.lexer.source_filename + " global scope>"
         p[0] = Module(name=p.lexer.source_filename, sourceref=SourceRef(lexer.source_filename, 1, 1))
         p[0].nodes.append(scope)
+    print("CREATED ROOT SCOPE AND MODULE", p[0])
 
 
 def p_module(p):
