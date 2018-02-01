@@ -207,7 +207,7 @@ class Optimizer:
                     self.optimizations_performed = True
                     self.num_warnings += 1
                     print_warning("{}: removed statement that has no effect".format(assignment.sourceref))
-            if isinstance(assignment, AugAssignment):
+            elif isinstance(assignment, AugAssignment):
                 if isinstance(assignment.right, LiteralValue) and isinstance(assignment.right.value, (int, float)):
                     if assignment.right.value == 0:
                         if assignment.operator in ("+=", "-=", "|=", "<<=", ">>=", "^="):
@@ -538,10 +538,12 @@ def _process_dynamic_expression(expr: Expression, sourceref: SourceRef) -> Expre
             left_sourceref = expr.left.sourceref if isinstance(expr.left, AstNode) else sourceref
             expr.left = _process_dynamic_expression(expr.left, left_sourceref)
             expr.left.parent = expr
-            try:
-                return _process_constant_expression(expr, sourceref)
-            except ExpressionEvaluationError:
-                return expr
+            if expr.is_compile_constant():
+                try:
+                    return _process_constant_expression(expr, sourceref)
+                except ExpressionEvaluationError:
+                    pass
+            return expr
         else:
             left_sourceref = expr.left.sourceref if isinstance(expr.left, AstNode) else sourceref
             expr.left = _process_dynamic_expression(expr.left, left_sourceref)
@@ -549,10 +551,12 @@ def _process_dynamic_expression(expr: Expression, sourceref: SourceRef) -> Expre
             right_sourceref = expr.right.sourceref if isinstance(expr.right, AstNode) else sourceref
             expr.right = _process_dynamic_expression(expr.right, right_sourceref)
             expr.right.parent = expr
-            try:
-                return _process_constant_expression(expr, sourceref)
-            except ExpressionEvaluationError:
-                return expr
+            if expr.is_compile_constant():
+                try:
+                    return _process_constant_expression(expr, sourceref)
+                except ExpressionEvaluationError:
+                    pass
+            return expr
     else:
         raise ParseError("expression required, not {}".format(expr.__class__.__name__), expr.sourceref)
 

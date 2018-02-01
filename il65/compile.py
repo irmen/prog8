@@ -42,8 +42,8 @@ class PlyParser:
                 self.determine_subroutine_usage(module)
                 self.all_parents_connected(module)
                 self.semantic_check(module)
-                self.allocate_zeropage_vars(module)
                 self.coerce_values(module)
+                self.allocate_zeropage_vars(module)
         except ParseError as x:
             self.handle_parse_error(x)
         if self.parse_errors:
@@ -73,9 +73,9 @@ class PlyParser:
     def coerce_values(self, module: Module) -> None:
         for node in module.all_nodes():
             try:
-                if isinstance(node, Assignment):
-                    pass    # @todo coerce assignment
-                elif isinstance(node, AugAssignment):
+                # note: not processing regular assignments, because they can contain multiple targets of different datatype.
+                # this has to be dealt with anyway later, so we don't bother dealing with it here for just a special case.
+                if isinstance(node, AugAssignment):
                     if node.right.is_compile_constant():
                         _, node.right = coerce_constant_value(datatype_of(node.left, node.my_scope()), node.right, node.right.sourceref)
                 elif isinstance(node, Goto):
@@ -165,6 +165,9 @@ class PlyParser:
                 if node.operator in ("/=", "//="):
                     if isinstance(node.right, LiteralValue) and node.right.value == 0:
                         raise ParseError("division by zero", node.right.sourceref)
+            elif isinstance(node, VarDef):
+                if node.value is not None and not node.value.is_compile_constant():
+                    raise ParseError("variable initialization value should be a compile-time constant", node.value.sourceref)
             previous_stmt = node
 
     def check_subroutine_arguments(self, call: SubCall, subdef: Subroutine) -> None:
@@ -223,7 +226,6 @@ class PlyParser:
     @no_type_check
     def create_multiassigns(self, module: Module) -> None:
         # create multi-assign statements from nested assignments (A=B=C=5),
-        # @todo optimize TargetRegisters down to single Register if it's just one register.
         def reduce_right(assign: Assignment) -> Assignment:
             if isinstance(assign.right, Assignment):
                 right = reduce_right(assign.right)

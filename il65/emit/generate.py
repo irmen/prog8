@@ -11,7 +11,7 @@ from typing import TextIO, Callable, no_type_check
 from ..plylex import print_bold
 from ..plyparse import Module, Scope, ProgramFormat, Block, Directive, VarDef, Label, Subroutine, AstNode, ZpOptions, \
     InlineAssembly, Return, Register, Goto, SubCall, Assignment, AugAssignment, IncrDecr, AssignmentTargets
-from . import CodeError, to_hex
+from . import CodeError, to_hex, to_mflpt5
 from .variables import generate_block_init, generate_block_vars
 from .assignment import generate_assignment, generate_aug_assignment
 from .calls import generate_goto, generate_subcall
@@ -174,6 +174,11 @@ class AssemblyGenerator:
                     self.cur_block = cur_block
                     out("")
                 out("; -- end block subroutines")
+            if block.scope.float_const_values:
+                # generate additional float constants that are used in floating point expressions
+                out("\n; -- float constants")
+                for name, value in block.scope.float_const_values.items():
+                    out("{:s}\t\t.byte  ${:02x}, ${:02x}, ${:02x}, ${:02x}, ${:02x}\t; {}".format(name, *to_mflpt5(value), value))
             out("\n\v.pend\n")
 
     @no_type_check

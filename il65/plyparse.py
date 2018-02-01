@@ -123,6 +123,7 @@ class Scope(AstNode):
     nodes = attr.ib(type=list, init=True)    # requires nodes in __init__
     symbols = attr.ib(init=False)
     name = attr.ib(init=False)          # will be set by enclosing block, or subroutine etc.
+    float_const_values = attr.ib(type=dict, default=attr.Factory(dict), init=False)     # floatingpoint number -> float const name
     _save_registers = attr.ib(type=bool, default=None, init=False)
 
     @property
@@ -176,6 +177,13 @@ class Scope(AstNode):
         for name, func in builtin_functions.items():
             f = BuiltinFunction(name=name, func=func, sourceref=self.sourceref)
             self.add_node(f)
+
+    def define_float_constant(self, value: float) -> str:
+        if value in self.float_const_values:
+            return self.float_const_values[value]
+        name = "il65_float_const_" + str(1 + len(self.float_const_values))
+        self.float_const_values[name] = value
+        return name
 
     def lookup(self, name: str) -> AstNode:
         assert isinstance(name, str)

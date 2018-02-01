@@ -67,7 +67,7 @@ def generate_block_init(out: Callable, block: Block) -> None:
         out("\vsta  {:s}".format(bytevar.name))
     for wordvar in sorted(vars_by_datatype[DataType.WORD], key=lambda vd: vd.value):
         if isinstance(wordvar.value, AddressOf):
-            raise CodeError("can't yet use addressof here", wordvar.sourceref)  # XXX
+            raise CodeError("addressof is not a compile-time constant value", wordvar.sourceref)
         assert isinstance(wordvar.value, LiteralValue) and type(wordvar.value.value) is int
         v_hi, v_lo = divmod(wordvar.value.value, 256)
         if v_hi != prev_value_a:
@@ -131,7 +131,6 @@ def generate_block_vars(out: Callable, block: Block, zeropage: bool=False) -> No
             _generate_string_var(out, vardef)
         else:
             raise CodeError("invalid const type", vardef)
-    # @todo float constants that are used in expressions
     out("; memory mapped variables")
     for vardef in vars_by_vartype.get(VarType.MEMORY, []):
         # create a definition for variables at a specific place in memory (memory-mapped)

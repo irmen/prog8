@@ -38,11 +38,11 @@ start:
 	%breakpoint abc,def
 
 	XY+=255
-	XY+=256
-	XY+=257
+	XY+=254
+	XY+=253
 	XY-=255
-	XY-=256
-	XY-=257
+	XY-=254
+	XY-=253
 
 	v3t++
 	v3t+=1
@@ -57,7 +57,7 @@ start:
 ;	v3t+=2.23424 ; @todo store as constant float with generated name, replace value node
 ;	v3t+=2.23411 ; @todo store as constant float with generated name, replace value node
 ;	v3t+=2.23411 ; @todo store as constant float with generated name, replace value node
-	v3t=2.23424 * v3t ; @todo store as constant float with generated name, replace value node
+	;v3t=2.23424 * v3t ; @todo store as constant float with generated name, replace value node
 	XY*=2
 	XY*=3
 	X=3           ; @todo optimize consecutive assignments
@@ -78,7 +78,7 @@ start:
 	XY=XY/0    ; @todo zerodiv (during expression to code generation)
 	XY=XY//0    ; @todo zerodiv (during expression to code generation)
 	XY*=2.23424 ; @todo store as constant float with generated name, replace value node
-	XY*=2.23424 * v3t ; @todo store as constant float with generated name, replace value node
+	;XY*=2.23424 * v3t ; @todo store as constant float with generated name, replace value node
 	;v3t*=2.23424 * v3t ; @todo store as constant float with generated name, replace value node
 ;	A++
 ;	X--

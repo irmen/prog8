@@ -1,59 +1,25 @@
+%import c64lib
 
 ~ main {
 
-	var .float flt
-	var .word        vmemaddr1              = &flt
+;	var .float flt
+;        var  bytevar = 22 + 23          ; @todo constant-fold before semantic check
+;	var  .float   initfloat1    = -1.234e-14           ; @todo constant-fold before semantic check / fix float parse?
+;	var  .float   initfloat2    = -555.666           ; @todo constant-fold before semantic check / fix float parse?
+;        var     .text   guess   = '?' * 80  ; @todo constant-fold before semantic check
+	const .word border = $d020
 
 start:
+	; @todo float incrdecr/augassign
+;	flt += 0.1
+;	flt += 1.1
+;	flt += 10.1
+;	flt += 100.1
+;	flt += 1000.1
+;	flt *= 2.34
 
-	Y-=5
-	Y-=8
-	Y--
-
-	;flt+=2         ; @todo implement on float
-	;flt+=2
-	;flt+=2
-	;flt+=2
-	;flt+=2
-
-	X=0
-	X+=5
-	X=X+22
-	X=33+X
-	X-=3
-	X=X-4
-	X=X-5
-	X=8*X
-	X=24|X
-	X=X^66
-	X+=250
-	X=5+2+3+4
-	X+=5+2+3+4
-	X-=100
-	X-=50
-	X-=5
-
-	Y=Y
-	X=X
-	A=A
-
-	X++
-	X--
-	X+=1
-	X+=1          ; @todo? (optimize) join with previous
-	X+=0  ; is removed.
-	A+=0  ; is removed.
-	Y+=0  ; is removed.
-	X+=1         ; @todo? (optimize) join with previous
-	X+=1          ; @todo? (optimize) join with previous
-
-	;@todo float incrdecr/augassign
-	;flt += 0.1
-	;flt += 1.1
-	;flt += 10.1
-	;flt += 100.1
-	;flt += 1000.1
-	;flt *= 2.34
+	[border] ++;   @todo suport incr/decr on deref constant
+	[$d020] ++      ; @todo suport incr/decr on deref memory
 
 	return 44
 }
