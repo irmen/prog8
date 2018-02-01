@@ -43,6 +43,7 @@ class PlyParser:
                 self.all_parents_connected(module)
                 self.semantic_check(module)
                 self.allocate_zeropage_vars(module)
+                self.coerce_values(module)
         except ParseError as x:
             self.handle_parse_error(x)
         if self.parse_errors:
@@ -68,6 +69,31 @@ class PlyParser:
                     return
         raise ParseError("last statement in a block/subroutine must be a return or goto, "
                          "(or %noreturn directive to silence this error)", last_stmt.sourceref)
+
+    def coerce_values(self, module: Module) -> None:
+        for node in module.all_nodes():
+            try:
+                if isinstance(node, Assignment):
+                    pass    # @todo coerce assignment
+                elif isinstance(node, AugAssignment):
+                    if node.right.is_compile_constant():
+                        _, node.right = coerce_constant_value(datatype_of(node.left, node.my_scope()), node.right, node.right.sourceref)
+                elif isinstance(node, Goto):
+                    if node.condition is not None and node.condition.is_compile_constant():
+                        _, node.nodes[1] = coerce_constant_value(DataType.WORD, node.nodes[1], node.nodes[1].sourceref)   # type: ignore
+                elif isinstance(node, Return):
+                    if node.value_A is not None and node.value_A.is_compile_constant():
+                        _, node.nodes[0] = coerce_constant_value(DataType.BYTE, node.nodes[0], node.nodes[0].sourceref)   # type: ignore
+                    if node.value_X is not None and node.value_X.is_compile_constant():
+                        _, node.nodes[1] = coerce_constant_value(DataType.BYTE, node.nodes[1], node.nodes[1].sourceref)   # type: ignore
+                    if node.value_Y is not None and node.value_Y.is_compile_constant():
+                        _, node.nodes[2] = coerce_constant_value(DataType.BYTE, node.nodes[2], node.nodes[2].sourceref)   # type: ignore
+                elif isinstance(node, VarDef):
+                    if node.value is not None:
+                        if node.value.is_compile_constant():
+                            _, node.value = coerce_constant_value(datatype_of(node, node.my_scope()), node.value, node.value.sourceref)
+            except OverflowError as x:
+                raise ParseError(str(x), node.sourceref)
 
     def all_parents_connected(self, module: Module) -> None:
         # check that all parents are connected in all nodes

@@ -733,15 +733,15 @@ class Return(AstNode):
     # one, two or three subnodes: value_A, value_X, value_Y (all three Expression)
     @property
     def value_A(self) -> Optional[Expression]:
-        return self.nodes[0] if self.nodes else None    # type: ignore
+        return self.nodes[0] if len(self.nodes) >= 1 else None    # type: ignore
 
     @property
     def value_X(self) -> Optional[Expression]:
-        return self.nodes[0] if self.nodes else None    # type: ignore
+        return self.nodes[1] if len(self.nodes) >= 2 else None    # type: ignore
 
     @property
     def value_Y(self) -> Optional[Expression]:
-        return self.nodes[0] if self.nodes else None    # type: ignore
+        return self.nodes[2] if len(self.nodes) >= 3 else None    # type: ignore
 
 
 @attr.s(cmp=False, slots=True, repr=False)
@@ -824,35 +824,42 @@ class AugAssignment(AstNode):
     def right(self) -> Expression:
         return self.nodes[1]    # type: ignore
 
+    @right.setter
+    def right(self, rvalue: Expression) -> None:
+        assert isinstance(rvalue, Expression)
+        self.nodes[1] = rvalue
 
-def datatype_of(assignmenttarget: AstNode, scope: Scope) -> DataType:
+
+def datatype_of(targetnode: AstNode, scope: Scope) -> DataType:
     # tries to determine the DataType of an assignment target node
-    if isinstance(assignmenttarget, (VarDef, Dereference, Register)):
-        return assignmenttarget.datatype
-    elif isinstance(assignmenttarget, SymbolName):
-        symdef = scope.lookup(assignmenttarget.name)
+    if isinstance(targetnode, VarDef):
+        return DataType.WORD if targetnode.vartype == VarType.MEMORY else targetnode.datatype
+    elif isinstance(targetnode, (Dereference, Register)):
+        return targetnode.datatype
+    elif isinstance(targetnode, SymbolName):
+        symdef = scope.lookup(targetnode.name)
         if isinstance(symdef, VarDef):
             return symdef.datatype
-    elif isinstance(assignmenttarget, TargetRegisters):
-        if len(assignmenttarget.nodes) == 1:
-            return datatype_of(assignmenttarget.nodes[0], scope)
-    raise TypeError("cannot determine datatype", assignmenttarget)
+    elif isinstance(targetnode, TargetRegisters):
+        if len(targetnode.nodes) == 1:
+            return datatype_of(targetnode.nodes[0], scope)
+    raise TypeError("cannot determine datatype", targetnode)
 
 
-def coerce_constant_value(datatype: DataType, value: AstNode,
-                          sourceref: SourceRef=None) -> Tuple[bool, AstNode]:
+def coerce_constant_value(datatype: DataType, value: Expression,
+                          sourceref: SourceRef=None) -> Tuple[bool, Expression]:
     # if we're a BYTE type, and the value is a single character, convert it to the numeric value
-    assert isinstance(value, AstNode)
+    assert isinstance(value, Expression)
 
-    def verify_bounds(value: Union[int, float, str]) -> None:
+    def verify_bounds(pvalue: Union[int, float, str]) -> None:
         # if the value is out of bounds, raise an overflow exception
-        if isinstance(value, (int, float)):
-            if datatype == DataType.BYTE and not (0 <= value <= 0xff):       # type: ignore
-                raise OverflowError("value out of range for byte: " + str(value))
-            if datatype == DataType.WORD and not (0 <= value <= 0xffff):        # type: ignore
-                raise OverflowError("value out of range for word: " + str(value))
-            if datatype == DataType.FLOAT and not (FLOAT_MAX_NEGATIVE <= value <= FLOAT_MAX_POSITIVE):      # type: ignore
-                raise OverflowError("value out of range for float: " + str(value))
+        if isinstance(pvalue, (int, float)):
+            if datatype == DataType.BYTE and not (0 <= pvalue <= 0xff):       # type: ignore
+                raise OverflowError("value out of range for byte: " + str(pvalue))
+            if datatype == DataType.WORD and not (0 <= pvalue <= 0xffff):        # type: ignore
+                raise OverflowError("value out of range for word: " + str(pvalue))
+            if datatype == DataType.FLOAT and not (FLOAT_MAX_NEGATIVE <= pvalue <= FLOAT_MAX_POSITIVE):      # type: ignore
+                raise OverflowError("value out of range for float: " + str(pvalue))
 
     if isinstance(value, LiteralValue):
         if type(value.value) is str and len(value.value) == 1 and (datatype.isnumeric() or datatype.isarray()):
@@ -924,7 +931,6 @@ def p_start(p):
         scope.name = "<" + p.lexer.source_filename + " global scope>"
         p[0] = Module(name=p.lexer.source_filename, sourceref=SourceRef(lexer.source_filename, 1, 1))
         p[0].nodes.append(scope)
-    print("CREATED ROOT SCOPE AND MODULE", p[0])
 
 
 def p_module(p):

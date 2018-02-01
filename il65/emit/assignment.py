@@ -30,7 +30,7 @@ def generate_aug_assignment(out: Callable, stmt: AugAssignment, scope: Scope) ->
                 if 0 <= rvalue.value <= 255:
                     _generate_aug_reg_constant_int(out, lvalue, stmt.operator, rvalue.value, "", scope)
                 else:
-                    raise CodeError("assignment value must be 0..255", rvalue)
+                    raise CodeError("aug. assignment value must be 0..255", rvalue)
             else:
                 raise CodeError("constant integer literal or variable required for now", rvalue)   # XXX
         elif isinstance(rvalue, SymbolName):
@@ -39,7 +39,7 @@ def generate_aug_assignment(out: Callable, stmt: AugAssignment, scope: Scope) ->
                 if 0 <= symdef.value.const_value() <= 255:  # type: ignore
                     _generate_aug_reg_constant_int(out, lvalue, stmt.operator, 0, symdef.name, scope)
                 else:
-                    raise CodeError("assignment value must be 0..255", rvalue)
+                    raise CodeError("aug. assignment value must be 0..255", rvalue)
             else:
                 raise CodeError("constant integer literal or variable required for now", rvalue)   # XXX
         elif isinstance(rvalue, Register):
@@ -47,9 +47,9 @@ def generate_aug_assignment(out: Callable, stmt: AugAssignment, scope: Scope) ->
             _generate_aug_reg_reg(out, lvalue, stmt.operator, rvalue, scope)
         else:
             # @todo Register += symbolname / dereference  , _generate_aug_reg_mem?
-            raise CodeError("invalid rvalue for augmented assignment on register", rvalue)
+            raise CodeError("invalid rvalue for aug. assignment on register", rvalue)
     else:
-        raise CodeError("augmented assignment only implemented for registers for now", stmt.sourceref)  # XXX
+        raise CodeError("aug. assignment only implemented for registers for now", stmt.sourceref)  # XXX
 
 
 def _generate_aug_reg_constant_int(out: Callable, lvalue: Register, operator: str, rvalue: int, rname: str, scope: Scope) -> None:
