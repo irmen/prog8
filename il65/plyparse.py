@@ -301,6 +301,7 @@ class Module(AstNode):
     format = attr.ib(type=ProgramFormat, init=False, default=ProgramFormat.PRG)     # can be set via directive
     address = attr.ib(type=int, init=False, default=0xc000, validator=validate_address)     # can be set via directive
     zp_options = attr.ib(type=ZpOptions, init=False, default=ZpOptions.NOCLOBBER)    # can be set via directive
+    floats_enabled = attr.ib(type=bool, init=False, default=False)  # can be set via directive
 
     @property
     def scope(self) -> Scope:

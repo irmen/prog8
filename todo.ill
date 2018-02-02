@@ -2,7 +2,7 @@
 
 ~ main {
 
-;	var .float flt
+	;var .float flt
 ;        var  bytevar = 22 + 23          ; @todo constant-fold before semantic check
 ;	var  .float   initfloat1    = -1.234e-14           ; @todo constant-fold before semantic check / fix float parse?
 ;	var  .float   initfloat2    = -555.666           ; @todo constant-fold before semantic check / fix float parse?
@@ -20,7 +20,9 @@ start:
 
 	[border] ++;   @todo suport incr/decr on deref constant
 	[$d020] ++      ; @todo suport incr/decr on deref memory
+	[XY] ++
+	[X] ++
 
-	return 44
+	return 44.123
 }
 

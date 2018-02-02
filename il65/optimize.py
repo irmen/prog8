@@ -339,8 +339,8 @@ class Optimizer:
             if not usages and sub.parent.name + '.' + sub.name not in never_remove:
                 sub.parent.remove_node(sub)
                 num_discarded += 1
-        if num_discarded:
-            print("discarded {:d} unused subroutines".format(num_discarded))
+        # if num_discarded:
+        #     print("discarded {:d} unused subroutines".format(num_discarded))
 
     @no_type_check
     def optimize_goto_compare_with_zero(self) -> None:

@@ -21,9 +21,10 @@ class CompileError(Exception):
 
 
 class PlyParser:
-    def __init__(self, imported_module: bool=False) -> None:
+    def __init__(self, *, enable_floats: bool=False, imported_module: bool=False) -> None:
         self.parse_errors = 0
         self.imported_module = imported_module
+        self.floats_enabled = enable_floats
 
     def parse_file(self, filename: str) -> Module:
         print("parsing:", filename)
@@ -31,6 +32,7 @@ class PlyParser:
         try:
             module = parse_file(filename, self.lexer_error)
             self.check_directives(module)
+            self.apply_directive_options(module)
             module.scope.define_builtin_functions()
             self.process_imports(module)
             self.check_and_merge_zeropages(module)
@@ -38,11 +40,11 @@ class PlyParser:
             if not self.imported_module:
                 # the following shall only be done on the main module after all imports have been done:
                 self.check_all_symbolnames(module)
-                self.apply_directive_options(module)
                 self.determine_subroutine_usage(module)
                 self.all_parents_connected(module)
                 self.semantic_check(module)
                 self.coerce_values(module)
+                self.check_floats_enabled(module)
                 self.allocate_zeropage_vars(module)
         except ParseError as x:
             self.handle_parse_error(x)
@@ -69,6 +71,18 @@ class PlyParser:
                     return
         raise ParseError("last statement in a block/subroutine must be a return or goto, "
                          "(or %noreturn directive to silence this error)", last_stmt.sourceref)
+
+    def check_floats_enabled(self, module: Module) -> None:
+        if self.floats_enabled:
+            return
+        for node in module.all_nodes():
+            if isinstance(node, LiteralValue):
+                if type(node.value) is float:
+                    raise ParseError("floating point numbers not enabled via option", node.sourceref)
+            elif isinstance(node, VarDef):
+                if node.datatype == DataType.FLOAT:
+                    raise ParseError("floating point numbers not enabled via option", node.sourceref)
+
 
     def coerce_values(self, module: Module) -> None:
         for node in module.all_nodes():
@@ -206,10 +220,10 @@ class PlyParser:
         # allocate zeropage variables to the available free zp addresses
         if not module.scope.nodes:
             return
-        zpnode = module.scope.nodes[0]
-        if zpnode.name != "ZP":
+        zpnode = module.zeropage()
+        if zpnode is None:
             return
-        zeropage = Zeropage(module.zp_options)
+        zeropage = Zeropage(module.zp_options, self.floats_enabled)
         for vardef in zpnode.all_nodes(VarDef):
             if vardef.datatype.isstring():
                 raise ParseError("cannot put strings in the zeropage", vardef.sourceref)
@@ -274,6 +288,8 @@ class PlyParser:
                     elif directive.args[0] == "basic":
                         node.format = ProgramFormat.BASIC
                         node.address = 0x0801
+                    elif directive.args[0] == "enable_floats":
+                        self.floats_enabled = module.floats_enabled = True
                     else:
                         raise ParseError("invalid directive args", directive.sourceref)
                 elif directive.name == "address":
@@ -451,6 +467,8 @@ class PlyParser:
                 self.parse_errors += import_parse_errors
             else:
                 raise FileNotFoundError("missing il65lib")
+        if sum(m.floats_enabled for m in imported):
+            self.floats_enabled = module.floats_enabled = True
         # append the imported module's contents (blocks) at the end of the current module
         for block in (node for imported_module in imported
                       for node in imported_module.scope.nodes
@@ -501,7 +519,8 @@ class Zeropage:
     SCRATCH_W1 = 0xfb     # $fb/$fc
     SCRATCH_W2 = 0xfd     # $fd/$fe
 
-    def __init__(self, options: ZpOptions) -> None:
+    def __init__(self, options: ZpOptions, enable_floats: bool) -> None:
+        self.floats_enabled = enable_floats
         self.free = []  # type: List[int]
         self.allocations = {}   # type: Dict[int, Tuple[str, DataType]]
         if options in (ZpOptions.CLOBBER_RESTORE, ZpOptions.CLOBBER):
@@ -539,6 +558,8 @@ class Zeropage:
         elif vardef.datatype == DataType.WORD:
             size = 2
         elif vardef.datatype == DataType.FLOAT:
+            if not self.floats_enabled:
+                raise TypeError("floating point numbers not enabled via option")
             print_bold("warning: {}: allocating a large datatype in zeropage".format(vardef.sourceref))
             size = 5
         elif vardef.datatype == DataType.BYTEARRAY:
@@ -564,7 +585,7 @@ class Zeropage:
             for candidate in range(min(self.free), max(self.free)+1):
                 if sequential_free(candidate):
                     return make_allocation(candidate)
-        raise CompileError("ERROR: no more free space in ZP to allocate {:d} sequential bytes".format(size))
+        raise CompileError("ERROR: no free space in ZP to allocate {:d} sequential bytes".format(size))
 
     def available(self) -> int:
         return len(self.free)

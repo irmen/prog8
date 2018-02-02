@@ -13,7 +13,7 @@ from ..datatypes import DataType, REGISTER_BYTES
 from . import CodeError, preserving_registers
 
 
-def generate_incrdecr(out: Callable, stmt: IncrDecr, scope: Scope) -> None:
+def generate_incrdecr(out: Callable, stmt: IncrDecr, scope: Scope, floats_enabled: bool) -> None:
     assert isinstance(stmt.howmuch, (int, float)) and stmt.howmuch >= 0
     assert stmt.operator in ("++", "--")
     if stmt.howmuch == 0:
@@ -184,6 +184,8 @@ def generate_incrdecr(out: Callable, stmt: IncrDecr, scope: Scope) -> None:
                         out("\vdec  {:s}+1".format(what_str))
                         out("+")
         elif target.datatype == DataType.FLOAT:
+            if not floats_enabled:
+                raise CodeError("floating point numbers not enabled via option")
             if stmt.howmuch == 1.0:
                 # special case for +/-1
                 with preserving_registers({'A', 'X', 'Y'}, scope, out, loads_a_within=True):
@@ -209,5 +211,14 @@ def generate_incrdecr(out: Callable, stmt: IncrDecr, scope: Scope) -> None:
         else:
             raise CodeError("cannot in/decrement memory of type " + str(target.datatype), stmt.howmuch)
 
+    elif isinstance(target, Dereference):
+        if target.datatype == DataType.BYTE:
+            pass   # @todo
+        elif target.datatype == DataType.WORD:
+            pass   # @todo
+        elif target.datatype == DataType.FLOAT:
+            pass   # @todo
+        else:
+            raise CodeError("cannot inc/decrement dereferenced " + str(target.datatype), stmt)
     else:
-        raise CodeError("cannot in/decrement", target)      # @todo support more such as [dereference]++
+        raise CodeError("cannot inc/decrement", target)      # @todo support more such as [dereference]++

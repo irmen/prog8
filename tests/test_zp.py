@@ -7,7 +7,7 @@ from il65.datatypes import DataType
 
 def test_zp_names():
     sref = SourceRef("test", 1, 1)
-    zp = Zeropage(ZpOptions.NOCLOBBER)
+    zp = Zeropage(ZpOptions.NOCLOBBER, False)
     with pytest.raises(AssertionError):
         zp.allocate(VarDef(name="", vartype="memory", datatype=DataType.BYTE, sourceref=sref))
     zp.allocate(VarDef(name="", vartype="var", datatype=DataType.BYTE, sourceref=sref))
@@ -20,7 +20,7 @@ def test_zp_names():
 
 def test_zp_noclobber_allocation():
     sref = SourceRef("test", 1, 1)
-    zp = Zeropage(ZpOptions.NOCLOBBER)
+    zp = Zeropage(ZpOptions.NOCLOBBER, True)
     assert zp.available() == 9
     with pytest.raises(CompileError):
         # in regular zp there aren't 5 sequential bytes free
@@ -35,9 +35,18 @@ def test_zp_noclobber_allocation():
         zp.allocate(VarDef(name="", vartype="var", datatype=DataType.WORD, sourceref=sref))
 
 
+def test_zp_float_enable():
+    sref = SourceRef("test", 1, 1)
+    zp = Zeropage(ZpOptions.CLOBBER, False)
+    with pytest.raises(TypeError):
+        zp.allocate(VarDef(name="", vartype="var", datatype=DataType.FLOAT, sourceref=sref))
+    zp = Zeropage(ZpOptions.CLOBBER, True)
+    zp.allocate(VarDef(name="", vartype="var", datatype=DataType.FLOAT, sourceref=sref))
+
+
 def test_zp_clobber_allocation():
     sref = SourceRef("test", 1, 1)
-    zp = Zeropage(ZpOptions.CLOBBER)
+    zp = Zeropage(ZpOptions.CLOBBER, True)
     assert zp.available() == 239
     loc = zp.allocate(VarDef(name="", vartype="var", datatype=DataType.FLOAT, sourceref=sref))
     assert loc > 3 and loc not in zp.free
@@ -63,7 +72,7 @@ def test_zp_clobber_allocation():
 def test_zp_efficient_allocation():
     # free = [0x04, 0x05, 0x06, 0x2a, 0x52, 0xf7, 0xf8, 0xf9, 0xfa]
     sref = SourceRef("test", 1, 1)
-    zp = Zeropage(ZpOptions.NOCLOBBER)
+    zp = Zeropage(ZpOptions.NOCLOBBER, False)
     assert zp.available() == 9
     assert 0x2a == zp.allocate(VarDef(name="", vartype="var", datatype=DataType.BYTE, sourceref=sref))
     assert 0x52 == zp.allocate(VarDef(name="", vartype="var", datatype=DataType.BYTE, sourceref=sref))

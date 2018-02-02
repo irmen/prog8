@@ -28,8 +28,9 @@ class Output:
 
 
 class AssemblyGenerator:
-    def __init__(self, module: Module) -> None:
+    def __init__(self, module: Module, enable_floats: bool) -> None:
         self.module = module
+        self.floats_enabled = enable_floats
         self.cur_block = None
         self.output = None      # type: Output
 
@@ -175,6 +176,8 @@ class AssemblyGenerator:
                     out("")
                 out("; -- end block subroutines")
             if block.scope.float_const_values:
+                if not self.floats_enabled:
+                    raise CodeError("floating point numbers not enabled via option")
                 # generate additional float constants that are used in floating point expressions
                 out("\n; -- float constants")
                 for name, value in block.scope.float_const_values.items():
@@ -210,7 +213,7 @@ class AssemblyGenerator:
             out(stmt.assembly)
             out("\v; end inline asm, " + stmt.lineref + "\n")
         elif isinstance(stmt, IncrDecr):
-            generate_incrdecr(out, stmt, scope)
+            generate_incrdecr(out, stmt, scope, self.floats_enabled)
         elif isinstance(stmt, Goto):
             generate_goto(out, stmt)
         elif isinstance(stmt, SubCall):

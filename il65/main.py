@@ -64,6 +64,7 @@ def main() -> None:
     description = "Compiler for IL65 language, code name 'Sick'"
     ap = argparse.ArgumentParser(description=description)
     ap.add_argument("-o", "--output", help="output directory")
+    ap.add_argument("-f", "--enablefloat", action="store_true", help="enable C64 (mflpt5) floating point operations")
     ap.add_argument("-no", "--nooptimize", action="store_true", help="do not optimize the parse tree")
     ap.add_argument("-sv", "--startvice", action="store_true", help="autostart vice x64 emulator after compilation")
     ap.add_argument("sourcefile", help="the source .ill/.il65 file to compile")
@@ -79,7 +80,7 @@ def main() -> None:
 
     start = time.perf_counter()
     print("\nParsing program source code.")
-    parser = PlyParser()
+    parser = PlyParser(enable_floats=args.enablefloat)
     parsed_module = parser.parse_file(args.sourcefile)
     if parsed_module:
         if args.nooptimize:
@@ -88,7 +89,7 @@ def main() -> None:
             print("\nOptimizing code.")
             optimize(parsed_module)
         print("\nGenerating assembly code.")
-        cg = AssemblyGenerator(parsed_module)
+        cg = AssemblyGenerator(parsed_module, args.enablefloat)
         cg.generate(assembly_filename)
         assembler = Assembler64Tass(parsed_module.format)
         assembler.assemble(assembly_filename, program_filename)

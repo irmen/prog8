@@ -5,6 +5,8 @@
 ; ;
 ; indent format: TABS, size=8
 
+%output enable_floats
+
 
 ~ c64 {
 		memory  .byte  SCRATCH_ZP1	= $02		; scratch register #1 in ZP
