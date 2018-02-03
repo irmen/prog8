@@ -8,9 +8,9 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
 from typing import Callable
-from ..plyparse import Scope, VarType, VarDef, Register, IncrDecr, SymbolName, Dereference, datatype_of
+from ..plyparse import Scope, VarType, VarDef, Register, IncrDecr, SymbolName, Dereference, LiteralValue, datatype_of
 from ..datatypes import DataType, REGISTER_BYTES
-from . import CodeError, preserving_registers
+from . import CodeError, preserving_registers, to_hex
 
 
 def generate_incrdecr(out: Callable, stmt: IncrDecr, scope: Scope, floats_enabled: bool) -> None:
@@ -25,6 +25,7 @@ def generate_incrdecr(out: Callable, stmt: IncrDecr, scope: Scope, floats_enable
             target = symdef     # type: ignore
         else:
             raise CodeError("cannot incr/decr this", symdef)
+
     if stmt.howmuch > 255:
         if datatype_of(target, scope) != DataType.FLOAT:
             raise CodeError("only supports integer incr/decr by up to 255 for now")
@@ -212,13 +213,65 @@ def generate_incrdecr(out: Callable, stmt: IncrDecr, scope: Scope, floats_enable
             raise CodeError("cannot in/decrement memory of type " + str(target.datatype), stmt.howmuch)
 
     elif isinstance(target, Dereference):
-        if target.datatype == DataType.BYTE:
-            pass   # @todo
-        elif target.datatype == DataType.WORD:
-            pass   # @todo
-        elif target.datatype == DataType.FLOAT:
-            pass   # @todo
+        if isinstance(target.operand, (LiteralValue, SymbolName)):
+            if isinstance(target.operand, LiteralValue):
+                what = to_hex(target.operand.value)
+            else:
+                symdef = target.my_scope().lookup(target.operand.name)
+                if isinstance(symdef, VarDef) and symdef.vartype == VarType.MEMORY:
+                    what = to_hex(symdef.value.value)   # type: ignore
+                else:
+                    what = target.operand.name
+            if stmt.howmuch == 1:
+                if target.datatype == DataType.FLOAT:
+                    if not floats_enabled:
+                        raise CodeError("floating point numbers not enabled via option")
+                    with preserving_registers({'A', 'X', 'Y'}, scope, out, loads_a_within=True):
+                        out("\vldx  " + what)
+                        out("\vldy  {:s}+1".format(what))
+                        if stmt.operator == "++":
+                            out("\vjsr  c64flt.float_add_one")
+                        else:
+                            out("\vjsr  c64flt.float_sub_one")
+                else:
+                    with preserving_registers({'A', 'Y'}, scope, out, loads_a_within=True):
+                        out("\vlda  " + what)
+                        out("\vsta  c64.SCRATCH_ZPWORD1")
+                        out("\vlda  {:s}+1".format(what))
+                        out("\vsta  c64.SCRATCH_ZPWORD1+1")
+                        if target.datatype == DataType.BYTE:
+                            if stmt.operator == "++":
+                                out("\vjsr  il65_lib.incr_deref_byte")
+                            else:
+                                out("\vjsr  il65_lib.decr_deref_byte")
+                        elif target.datatype == DataType.WORD:
+                            if stmt.operator == "++":
+                                out("\vjsr  il65_lib.incr_deref_word")
+                            else:
+                                out("\vjsr  il65_lib.decr_deref_word")
+                        else:
+                            raise CodeError("cannot inc/decrement dereferenced literal of type " + str(target.datatype), stmt)
+            else:
+                raise CodeError("can't inc/dec this by something else as 1 right now", stmt)  # XXX
+        elif isinstance(target.operand, Register):
+            if target.operand.datatype == DataType.BYTE:
+                raise CodeError("can't dereference just a single register, need combined register", target)
+            reg = target.operand.name
+            if stmt.howmuch == 1:
+                if stmt.operator == "++":
+                    out("\vclc")
+                else:
+                    out("\vsec")
+                if target.datatype == DataType.BYTE:
+                    with preserving_registers({'A', 'Y'}, scope, out, loads_a_within=True):
+                        out("\vjsr  il65_lib.incrdecr_deref_byte_reg_" + reg)
+                else:
+                    with preserving_registers({'A', 'Y'}, scope, out, loads_a_within=True):
+                        out("\vjsr  il65_lib.incrdecr_deref_word_reg_" + reg)
+            else:
+                raise CodeError("can't inc/dec this by something else as 1 right now", stmt)  # XXX
         else:
-            raise CodeError("cannot inc/decrement dereferenced " + str(target.datatype), stmt)
+            raise TypeError("invalid dereference target type", target)
+
     else:
-        raise CodeError("cannot inc/decrement", target)      # @todo support more such as [dereference]++
+        raise CodeError("cannot inc/decrement", target)      # @todo support more

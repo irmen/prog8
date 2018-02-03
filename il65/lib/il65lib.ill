@@ -167,6 +167,81 @@ _mod2b          lda  #0                         ; self-modified
 _done		rts
 
 
+; increments/decrements a byte referenced by indirect register pair by 1
+; clobbers A/Y,  Carry flag determines incr or decr
+incrdecr_deref_byte_reg_AX
+		sta  SCRATCH_ZPWORD1
+		stx  SCRATCH_ZPWORD1+1
+		bcc  incr_deref_byte
+		bcs  decr_deref_byte
+incrdecr_deref_byte_reg_AY
+		sta  SCRATCH_ZPWORD1
+		sty  SCRATCH_ZPWORD1+1
+		bcc  incr_deref_byte
+		bcs  decr_deref_byte
+incrdecr_deref_byte_reg_XY
+		stx  SCRATCH_ZPWORD1
+		sty  SCRATCH_ZPWORD1+1
+		bcs  decr_deref_byte
+
+incr_deref_byte
+		ldy  #0
+		lda  (c64.SCRATCH_ZPWORD1), y
+		adc  #1         ; carry's cleared already
+		sta  (c64.SCRATCH_ZPWORD1), y
+		rts
+decr_deref_byte
+		ldy  #0
+		lda  (c64.SCRATCH_ZPWORD1), y
+		sbc  #1         ; carry's set already
+		sta  (c64.SCRATCH_ZPWORD1), y
+		rts
+
+; increments/decrements a word referenced by indirect register pair by 1
+; clobbers A/Y,  Carry flag determines incr or decr
+incrdecr_deref_word_reg_AX
+		sta  SCRATCH_ZPWORD1
+		stx  SCRATCH_ZPWORD1+1
+		bcc  incr_deref_word
+		bcs  decr_deref_word
+incrdecr_deref_word_reg_AY
+		sta  SCRATCH_ZPWORD1
+		sty  SCRATCH_ZPWORD1+1
+		bcc  incr_deref_word
+		bcs  decr_deref_word
+incrdecr_deref_word_reg_XY
+		stx  SCRATCH_ZPWORD1
+		sty  SCRATCH_ZPWORD1+1
+		bcs  decr_deref_word
+
+incr_deref_word
+		ldy  #0
+		lda  (c64.SCRATCH_ZPWORD1), y
+		adc  #1         ; carry's cleared already
+		sta  (c64.SCRATCH_ZPWORD1), y
+		bcc  +
+		iny
+		lda  (c64.SCRATCH_ZPWORD1), y
+		adc  #0         ; carry is set
+		sta  (c64.SCRATCH_ZPWORD1), y
++       	rts
+
+decr_deref_word
+		ldy  #0
+		lda  (c64.SCRATCH_ZPWORD1), y
+		bne  +
+		pha
+		iny
+		lda  (c64.SCRATCH_ZPWORD1), y
+		sbc  #1         ; carry's set already
+		sta  (c64.SCRATCH_ZPWORD1), y
+		dey
+		pla
++       	sec
+		sbc  #1
+		sta  (c64.SCRATCH_ZPWORD1), y
+		rts
+
 	}
 
 	%noreturn

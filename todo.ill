@@ -1,3 +1,4 @@
+%output basic
 %import c64lib
 
 ~ main {
@@ -8,6 +9,8 @@
 ;	var  .float   initfloat2    = -555.666           ; @todo constant-fold before semantic check / fix float parse?
 ;        var     .text   guess   = '?' * 80  ; @todo constant-fold before semantic check
 	const .word border = $d020
+	var .word border2 = $d020
+	memory  screenm = $d021
 
 start:
 	; @todo float incrdecr/augassign
@@ -18,10 +21,27 @@ start:
 ;	flt += 1000.1
 ;	flt *= 2.34
 
-	[border] ++;   @todo suport incr/decr on deref constant
-	[$d020] ++      ; @todo suport incr/decr on deref memory
-	[XY] ++
-	[X] ++
+	screenm ++
+	screenm ++
+	border2 ++
+	border2 ++
+	screenm --
+	border2 --
+
+	[$55 .float] ++
+	[screenm .float]--
+
+	;[border] ++
+	;[border] ++
+	;[border] --
+	[$d020] ++
+	[$d020] ++
+	[$d020] --
+	;[border2] ++  ;@todo suport incr/decr on deref var WORD
+	;[border2] ++  ;@todo suport incr/decr on deref var WORD
+	;[border2] -- ;@todo suport incr/decr on deref var WORD
+	;[XY] ++
+	;[XY] --
 
 	return 44.123
 }

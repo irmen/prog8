@@ -83,7 +83,6 @@ class PlyParser:
                 if node.datatype == DataType.FLOAT:
                     raise ParseError("floating point numbers not enabled via option", node.sourceref)
 
-
     def coerce_values(self, module: Module) -> None:
         for node in module.all_nodes():
             try:
@@ -182,6 +181,9 @@ class PlyParser:
             elif isinstance(node, VarDef):
                 if node.value is not None and not node.value.is_compile_constant():
                     raise ParseError("variable initialization value should be a compile-time constant", node.value.sourceref)
+            elif isinstance(node, Dereference):
+                if isinstance(node.operand, Register) and node.operand.datatype == DataType.BYTE:
+                    raise ParseError("can't dereference a single register; use a register pair", node.operand.sourceref)
             previous_stmt = node
 
     def check_subroutine_arguments(self, call: SubCall, subdef: Subroutine) -> None:
