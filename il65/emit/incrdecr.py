@@ -7,13 +7,16 @@ is quite frequent and this generates assembly code tweaked for this case.
 Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
-from typing import Callable
-from ..plyparse import Scope, VarType, VarDef, Register, IncrDecr, SymbolName, Dereference, LiteralValue, datatype_of
+from ..plyparse import VarType, VarDef, Register, IncrDecr, SymbolName, Dereference, LiteralValue, datatype_of
 from ..datatypes import DataType, REGISTER_BYTES
-from . import CodeError, preserving_registers, to_hex
+from . import CodeError, preserving_registers, to_hex, Context
 
 
-def generate_incrdecr(out: Callable, stmt: IncrDecr, scope: Scope, floats_enabled: bool) -> None:
+def generate_incrdecr(ctx: Context) -> None:
+    out = ctx.out
+    stmt = ctx.stmt
+    scope = ctx.scope
+    assert isinstance(stmt, IncrDecr)
     assert isinstance(stmt.howmuch, (int, float)) and stmt.howmuch >= 0
     assert stmt.operator in ("++", "--")
     if stmt.howmuch == 0:
@@ -185,7 +188,7 @@ def generate_incrdecr(out: Callable, stmt: IncrDecr, scope: Scope, floats_enable
                         out("\vdec  {:s}+1".format(what_str))
                         out("+")
         elif target.datatype == DataType.FLOAT:
-            if not floats_enabled:
+            if not ctx.floats_enabled:
                 raise CodeError("floating point numbers not enabled via option")
             if stmt.howmuch == 1.0:
                 # special case for +/-1
@@ -224,7 +227,7 @@ def generate_incrdecr(out: Callable, stmt: IncrDecr, scope: Scope, floats_enable
                     what = target.operand.name
             if stmt.howmuch == 1:
                 if target.datatype == DataType.FLOAT:
-                    if not floats_enabled:
+                    if not ctx.floats_enabled:
                         raise CodeError("floating point numbers not enabled via option")
                     with preserving_registers({'A', 'X', 'Y'}, scope, out, loads_a_within=True):
                         out("\vldx  " + what)
@@ -236,19 +239,13 @@ def generate_incrdecr(out: Callable, stmt: IncrDecr, scope: Scope, floats_enable
                 else:
                     with preserving_registers({'A', 'Y'}, scope, out, loads_a_within=True):
                         out("\vlda  " + what)
-                        out("\vsta  c64.SCRATCH_ZPWORD1")
-                        out("\vlda  {:s}+1".format(what))
-                        out("\vsta  c64.SCRATCH_ZPWORD1+1")
+                        out("\vldy  {:s}+1".format(what))
                         if target.datatype == DataType.BYTE:
-                            if stmt.operator == "++":
-                                out("\vjsr  il65_lib.incr_deref_byte")
-                            else:
-                                out("\vjsr  il65_lib.decr_deref_byte")
+                            out("\vclc" if stmt.operator == "++" else "\vsec")
+                            out("\vjsr  il65_lib.incrdecr_deref_byte_reg_AY")
                         elif target.datatype == DataType.WORD:
-                            if stmt.operator == "++":
-                                out("\vjsr  il65_lib.incr_deref_word")
-                            else:
-                                out("\vjsr  il65_lib.decr_deref_word")
+                            out("\vclc" if stmt.operator == "++" else "\vsec")
+                            out("\vjsr  il65_lib.incrdecr_deref_word_reg_AY")
                         else:
                             raise CodeError("cannot inc/decrement dereferenced literal of type " + str(target.datatype), stmt)
             else:
@@ -258,10 +255,7 @@ def generate_incrdecr(out: Callable, stmt: IncrDecr, scope: Scope, floats_enable
                 raise CodeError("can't dereference just a single register, need combined register", target)
             reg = target.operand.name
             if stmt.howmuch == 1:
-                if stmt.operator == "++":
-                    out("\vclc")
-                else:
-                    out("\vsec")
+                out("\vclc" if stmt.operator == "++" else "\vsec")
                 if target.datatype == DataType.BYTE:
                     with preserving_registers({'A', 'Y'}, scope, out, loads_a_within=True):
                         out("\vjsr  il65_lib.incrdecr_deref_byte_reg_" + reg)

@@ -5,17 +5,25 @@ This is the assembly code generator (from the parse tree)
 Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
-
 import contextlib
 import math
+import attr
 from typing import Set, Callable
 from ..datatypes import FLOAT_MAX_POSITIVE, FLOAT_MAX_NEGATIVE
-from ..plyparse import Scope
+from ..plyparse import Scope, AstNode
 from ..compile import Zeropage
 
 
 class CodeError(Exception):
     pass
+
+
+@attr.s(repr=False, cmp=False)
+class Context:
+    out = attr.ib(type=Callable)
+    stmt = attr.ib(type=AstNode)
+    scope = attr.ib(type=Scope)
+    floats_enabled = attr.ib(type=bool)
 
 
 def to_hex(number: int) -> str:

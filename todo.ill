@@ -31,17 +31,16 @@ start:
 	[$55 .float] ++
 	[screenm .float]--
 
-	;[border] ++
-	;[border] ++
-	;[border] --
+	[border] ++
+	[border] ++
+	[border] --
 	[$d020] ++
 	[$d020] ++
 	[$d020] --
-	;[border2] ++  ;@todo suport incr/decr on deref var WORD
-	;[border2] ++  ;@todo suport incr/decr on deref var WORD
-	;[border2] -- ;@todo suport incr/decr on deref var WORD
-	;[XY] ++
-	;[XY] --
+	[border2 .word] ++
+	[border2 .float] ++
+	[border2] --
+	[XY] ++
 
 	return 44.123
 }

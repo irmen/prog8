@@ -11,7 +11,7 @@ from typing import TextIO, Callable, no_type_check
 from ..plylex import print_bold
 from ..plyparse import Module, Scope, ProgramFormat, Block, Directive, VarDef, Label, Subroutine, AstNode, ZpOptions, \
     InlineAssembly, Return, Register, Goto, SubCall, Assignment, AugAssignment, IncrDecr, AssignmentTargets
-from . import CodeError, to_hex, to_mflpt5
+from . import CodeError, to_hex, to_mflpt5, Context
 from .variables import generate_block_init, generate_block_vars
 from .assignment import generate_assignment, generate_aug_assignment
 from .calls import generate_goto, generate_subcall
@@ -131,6 +131,7 @@ class AssemblyGenerator:
             # there's no code in the zero page block.
             out("\v.pend\n")
         for block in sorted(self.module.all_nodes(Block), key=lambda b: b.address or 0):
+            ctx = Context(out=out, stmt=None, scope=block.scope, floats_enabled=self.floats_enabled)
             if block.name == "ZP":
                 continue    # already processed
             self.cur_block = block
@@ -153,7 +154,8 @@ class AssemblyGenerator:
             for stmt in block.scope.nodes:
                 if isinstance(stmt, (VarDef, Subroutine)):
                     continue   # should have been handled already or will be later
-                self.generate_statement(out, stmt, block.scope)
+                ctx.stmt = stmt
+                self.generate_statement(ctx)
                 if block.name == "main" and isinstance(stmt, Label) and stmt.name == "start":
                     # make sure the main.start routine clears the decimal and carry flags as first steps
                     out("\vcld\n\vclc\n\vclv")
@@ -170,8 +172,8 @@ class AssemblyGenerator:
                     out("\v; params: {}\n\v; returns: {}   clobbers: {}".format(params or "-", returns or "-", clobbers or "-"))
                     cur_block = self.cur_block
                     self.cur_block = subdef.scope
-                    for stmt in subdef.scope.nodes:
-                        self.generate_statement(out, stmt, subdef.scope)
+                    for ctx.stmt in subdef.scope.nodes:
+                        self.generate_statement(ctx)
                     self.cur_block = cur_block
                     out("")
                 out("; -- end block subroutines")
@@ -185,48 +187,52 @@ class AssemblyGenerator:
             out("\n\v.pend\n")
 
     @no_type_check
-    def generate_statement(self, out: Callable, stmt: AstNode, scope: Scope) -> None:
+    def generate_statement(self, ctx: Context) -> None:
+        stmt = ctx.stmt
         if isinstance(stmt, Label):
-            out("\n{:s}\v\t\t; {:s}".format(stmt.name, stmt.lineref))
+            ctx.out("\n{:s}\v\t\t; {:s}".format(stmt.name, stmt.lineref))
         elif isinstance(stmt, Return):
             if stmt.value_A:
                 reg = Register(name="A", sourceref=stmt.sourceref)
                 assignment = Assignment(sourceref=stmt.sourceref)
                 assignment.nodes.append(AssignmentTargets(nodes=[reg], sourceref=stmt.sourceref))
                 assignment.nodes.append(stmt.value_A)
-                generate_assignment(out, assignment, scope)
+                ctx.stmt = assignment
+                generate_assignment(ctx)
             if stmt.value_X:
                 reg = Register(name="X", sourceref=stmt.sourceref)
                 assignment = Assignment(sourceref=stmt.sourceref)
                 assignment.nodes.append(AssignmentTargets(nodes=[reg], sourceref=stmt.sourceref))
                 assignment.nodes.append(stmt.value_X)
-                generate_assignment(out, assignment, scope)
+                ctx.stmt = assignment
+                generate_assignment(ctx)
             if stmt.value_Y:
                 reg = Register(name="Y", sourceref=stmt.sourceref)
                 assignment = Assignment(sourceref=stmt.sourceref)
                 assignment.nodes.append(AssignmentTargets(nodes=[reg], sourceref=stmt.sourceref))
                 assignment.nodes.append(stmt.value_Y)
-                generate_assignment(out, assignment, scope)
-            out("\vrts")
+                ctx.stmt = assignment
+                generate_assignment(ctx)
+            ctx.out("\vrts")
         elif isinstance(stmt, InlineAssembly):
-            out("\n\v; inline asm, " + stmt.lineref)
-            out(stmt.assembly)
-            out("\v; end inline asm, " + stmt.lineref + "\n")
+            ctx.out("\n\v; inline asm, " + stmt.lineref)
+            ctx.out(stmt.assembly)
+            ctx.out("\v; end inline asm, " + stmt.lineref + "\n")
         elif isinstance(stmt, IncrDecr):
-            generate_incrdecr(out, stmt, scope, self.floats_enabled)
+            generate_incrdecr(ctx)
         elif isinstance(stmt, Goto):
-            generate_goto(out, stmt)
+            generate_goto(ctx)
         elif isinstance(stmt, SubCall):
-            generate_subcall(out, stmt)
+            generate_subcall(ctx)
         elif isinstance(stmt, Assignment):
-            generate_assignment(out, stmt, scope)
+            generate_assignment(ctx)
         elif isinstance(stmt, AugAssignment):
-            generate_aug_assignment(out, stmt, scope)
+            generate_aug_assignment(ctx)
         elif isinstance(stmt, Directive):
             if stmt.name == "breakpoint":
                 # put a marker in the source so that we can generate a list of breakpoints later
                 # this label is later extracted from the label dump file to turn it into a breakpoint instruction
-                out("_il65_breakpoint_{:d}".format(id(stmt)))
+                ctx.out("_il65_breakpoint_{:d}".format(id(stmt)))
             # other directives are ignored here
         else:
             raise NotImplementedError("statement", stmt)

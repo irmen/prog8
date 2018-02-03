@@ -7,20 +7,24 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 
 from typing import Callable
 from ..plyparse import Scope, Assignment, AugAssignment, Register, LiteralValue, SymbolName, VarDef
-from . import CodeError, preserving_registers, to_hex
-from ..datatypes import REGISTER_BYTES, REGISTER_WORDS, VarType, DataType
+from . import CodeError, preserving_registers, to_hex, Context
+from ..datatypes import REGISTER_BYTES, VarType
 from ..compile import Zeropage
 
 
-def generate_assignment(out: Callable, stmt: Assignment, scope: Scope) -> None:
-    out("\v\t\t\t; " + stmt.lineref)
-    out("\v; @todo assignment")
+def generate_assignment(ctx: Context) -> None:
+    assert isinstance(ctx.stmt, Assignment)
+    ctx.out("\v\t\t\t; " + ctx.stmt.lineref)
+    ctx.out("\v; @todo assignment")
     # @todo assignment
 
 
-def generate_aug_assignment(out: Callable, stmt: AugAssignment, scope: Scope) -> None:
+def generate_aug_assignment(ctx: Context) -> None:
     # for instance: value += 3  (value = 0-255 for now)
     # left: Register, SymbolName, or Dereference. right: Expression/LiteralValue
+    out = ctx.out
+    stmt = ctx.stmt
+    assert isinstance(stmt, AugAssignment)
     out("\v\t\t\t; " + stmt.lineref)
     lvalue = stmt.left
     rvalue = stmt.right
@@ -28,23 +32,23 @@ def generate_aug_assignment(out: Callable, stmt: AugAssignment, scope: Scope) ->
         if isinstance(rvalue, LiteralValue):
             if type(rvalue.value) is int:
                 if 0 <= rvalue.value <= 255:
-                    _generate_aug_reg_constant_int(out, lvalue, stmt.operator, rvalue.value, "", scope)
+                    _generate_aug_reg_constant_int(out, lvalue, stmt.operator, rvalue.value, "", ctx.scope)
                 else:
                     raise CodeError("aug. assignment value must be 0..255", rvalue)
             else:
                 raise CodeError("constant integer literal or variable required for now", rvalue)   # XXX
         elif isinstance(rvalue, SymbolName):
-            symdef = scope.lookup(rvalue.name)
+            symdef = ctx.scope.lookup(rvalue.name)
             if isinstance(symdef, VarDef) and symdef.vartype == VarType.CONST and symdef.datatype.isinteger():
                 if 0 <= symdef.value.const_value() <= 255:  # type: ignore
-                    _generate_aug_reg_constant_int(out, lvalue, stmt.operator, 0, symdef.name, scope)
+                    _generate_aug_reg_constant_int(out, lvalue, stmt.operator, 0, symdef.name, ctx.scope)
                 else:
                     raise CodeError("aug. assignment value must be 0..255", rvalue)
             else:
                 raise CodeError("constant integer literal or variable required for now", rvalue)   # XXX
         elif isinstance(rvalue, Register):
             # @todo check value range (single register; 0-255)   @todo support combined registers
-            _generate_aug_reg_reg(out, lvalue, stmt.operator, rvalue, scope)
+            _generate_aug_reg_reg(out, lvalue, stmt.operator, rvalue, ctx.scope)
         else:
             # @todo Register += symbolname / dereference  , _generate_aug_reg_mem?
             raise CodeError("invalid rvalue for aug. assignment on register", rvalue)
