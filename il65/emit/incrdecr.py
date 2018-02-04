@@ -251,8 +251,7 @@ def generate_incrdecr(ctx: Context) -> None:
             else:
                 raise CodeError("can't inc/dec this by something else as 1 right now", stmt)  # XXX
         elif isinstance(target.operand, Register):
-            if target.operand.datatype == DataType.BYTE:
-                raise CodeError("can't dereference just a single register, need combined register", target)
+            assert target.operand.datatype == DataType.WORD
             reg = target.operand.name
             if stmt.howmuch == 1:
                 out("\vclc" if stmt.operator == "++" else "\vsec")
@@ -265,7 +264,7 @@ def generate_incrdecr(ctx: Context) -> None:
             else:
                 raise CodeError("can't inc/dec this by something else as 1 right now", stmt)  # XXX
         else:
-            raise TypeError("invalid dereference target type", target)
+            raise TypeError("invalid dereference operand type", target)
 
     else:
         raise CodeError("cannot inc/decrement", target)      # @todo support more

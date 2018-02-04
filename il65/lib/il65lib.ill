@@ -186,15 +186,15 @@ incrdecr_deref_byte_reg_XY
 
 incr_deref_byte
 		ldy  #0
-		lda  (c64.SCRATCH_ZPWORD1), y
+		lda  (SCRATCH_ZPWORD1), y
 		adc  #1         ; carry's cleared already
-		sta  (c64.SCRATCH_ZPWORD1), y
+		sta  (SCRATCH_ZPWORD1), y
 		rts
 decr_deref_byte
 		ldy  #0
-		lda  (c64.SCRATCH_ZPWORD1), y
+		lda  (SCRATCH_ZPWORD1), y
 		sbc  #1         ; carry's set already
-		sta  (c64.SCRATCH_ZPWORD1), y
+		sta  (SCRATCH_ZPWORD1), y
 		rts
 
 ; increments/decrements a word referenced by indirect register pair by 1
@@ -216,31 +216,60 @@ incrdecr_deref_word_reg_XY
 
 incr_deref_word
 		ldy  #0
-		lda  (c64.SCRATCH_ZPWORD1), y
+		lda  (SCRATCH_ZPWORD1), y
 		adc  #1         ; carry's cleared already
-		sta  (c64.SCRATCH_ZPWORD1), y
+		sta  (SCRATCH_ZPWORD1), y
 		bcc  +
 		iny
-		lda  (c64.SCRATCH_ZPWORD1), y
+		lda  (SCRATCH_ZPWORD1), y
 		adc  #0         ; carry is set
-		sta  (c64.SCRATCH_ZPWORD1), y
+		sta  (SCRATCH_ZPWORD1), y
 +       	rts
 
 decr_deref_word
 		ldy  #0
-		lda  (c64.SCRATCH_ZPWORD1), y
+		lda  (SCRATCH_ZPWORD1), y
 		bne  +
 		pha
 		iny
-		lda  (c64.SCRATCH_ZPWORD1), y
+		lda  (SCRATCH_ZPWORD1), y
 		sbc  #1         ; carry's set already
-		sta  (c64.SCRATCH_ZPWORD1), y
+		sta  (SCRATCH_ZPWORD1), y
 		dey
 		pla
 +       	sec
 		sbc  #1
-		sta  (c64.SCRATCH_ZPWORD1), y
+		sta  (SCRATCH_ZPWORD1), y
 		rts
+
+
+; shift bits in A right by X positions
+lsr_A_by_X
+		cpx  #8
+		bcc  _shift
+		lda  #0         ; x >=8, result always 0
+		rts
+_shift		cpx  #0
+		beq  +
+-               lsr  a
+		dex
+		bne  -
++		rts
+
+
+; shift bits in A left by X positions
+asl_A_by_X
+		cpx  #8
+		bcc  _shift
+		lda  #0         ; x >=8, result always 0
+		rts
+_shift		cpx  #0
+		beq  +
+-               asl  a
+		dex
+		bne  -
++		rts
+
 
 	}
 

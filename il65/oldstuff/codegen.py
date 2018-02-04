@@ -1,5 +1,6 @@
 # old deprecated code, in the process of moving this to the new emit/... modules
 
+
 class CodeGenerator:
     BREAKPOINT_COMMENT_SIGNATURE = "~~~BREAKPOINT~~~"
     BREAKPOINT_COMMENT_DETECTOR = r".(?P<address>\w+)\s+ea\s+nop\s+;\s+{:s}.*".format(BREAKPOINT_COMMENT_SIGNATURE)
@@ -428,130 +429,6 @@ class CodeGenerator:
                     generate_param_assignments()
                     branch_emitter(targetstr, False, False)
                     generate_result_assignments()
-
-
-
-    def _generate_aug_reg_mem(self, lvalue: RegisterValue, operator: str, rvalue: MemMappedValue) -> None:
-        r_str = rvalue.name or Parser.to_hex(rvalue.address)
-        if operator == "+=":
-            if lvalue.register == "A":
-                self.p("\t\tclc")
-                self.p("\t\tadc  " + r_str)
-            elif lvalue.register == "X":
-                with self.preserving_registers({'A'}):
-                    self.p("\t\ttxa")
-                    self.p("\t\tclc")
-                    self.p("\t\tadc  " + r_str)
-                    self.p("\t\ttax")
-            elif lvalue.register == "Y":
-                with self.preserving_registers({'A'}):
-                    self.p("\t\ttya")
-                    self.p("\t\tclc")
-                    self.p("\t\tadc  " + r_str)
-                    self.p("\t\ttay")
-            else:
-                raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo +=.word
-        elif operator == "-=":
-            if lvalue.register == "A":
-                self.p("\t\tsec")
-                self.p("\t\tsbc  " + r_str)
-            elif lvalue.register == "X":
-                with self.preserving_registers({'A'}):
-                    self.p("\t\ttxa")
-                    self.p("\t\tsec")
-                    self.p("\t\tsbc  " + r_str)
-                    self.p("\t\ttax")
-            elif lvalue.register == "Y":
-                with self.preserving_registers({'A'}):
-                    self.p("\t\ttya")
-                    self.p("\t\tsec")
-                    self.p("\t\tsbc  " + r_str)
-                    self.p("\t\ttay")
-            else:
-                raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo -=.word
-        elif operator == "&=":
-            if lvalue.register == "A":
-                self.p("\t\tand  " + r_str)
-            elif lvalue.register == "X":
-                with self.preserving_registers({'A'}):
-                    self.p("\t\ttxa")
-                    self.p("\t\tand  " + r_str)
-                    self.p("\t\ttax")
-            elif lvalue.register == "Y":
-                with self.preserving_registers({'A'}):
-                    self.p("\t\ttya")
-                    self.p("\t\tand  " + r_str)
-                    self.p("\t\ttay")
-            else:
-                raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo &=.word
-        elif operator == "|=":
-            if lvalue.register == "A":
-                self.p("\t\tora  " + r_str)
-            elif lvalue.register == "X":
-                with self.preserving_registers({'A'}):
-                    self.p("\t\ttxa")
-                    self.p("\t\tora  " + r_str)
-                    self.p("\t\ttax")
-            elif lvalue.register == "Y":
-                with self.preserving_registers({'A'}):
-                    self.p("\t\ttya")
-                    self.p("\t\tora  " + r_str)
-                    self.p("\t\ttay")
-            else:
-                raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo |=.word
-        elif operator == "^=":
-            if lvalue.register == "A":
-                self.p("\t\teor  " + r_str)
-            elif lvalue.register == "X":
-                with self.preserving_registers({'A'}):
-                    self.p("\t\ttxa")
-                    self.p("\t\teor  " + r_str)
-                    self.p("\t\ttax")
-            elif lvalue.register == "Y":
-                with self.preserving_registers({'A'}):
-                    self.p("\t\ttya")
-                    self.p("\t\teor  " + r_str)
-                    self.p("\t\ttay")
-            else:
-                raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo ^=.word
-        elif operator == ">>=":
-            if rvalue.datatype != DataType.BYTE:
-                raise CodeError("can only shift by a byte value", str(rvalue))
-            r_str = rvalue.name or Parser.to_hex(rvalue.address)
-            if lvalue.register == "A":
-                self.p("\t\tlsr  " + r_str)
-            elif lvalue.register == "X":
-                with self.preserving_registers({'A'}):
-                    self.p("\t\ttxa")
-                    self.p("\t\tlsr  " + r_str)
-                    self.p("\t\ttax")
-            elif lvalue.register == "Y":
-                with self.preserving_registers({'A'}):
-                    self.p("\t\ttya")
-                    self.p("\t\tlsr  " + r_str)
-                    self.p("\t\ttay")
-            else:
-                raise CodeError("unsupported lvalue register for shift", str(lvalue))  # @todo >>=.word
-        elif operator == "<<=":
-            if rvalue.datatype != DataType.BYTE:
-                raise CodeError("can only shift by a byte value", str(rvalue))
-            r_str = rvalue.name or Parser.to_hex(rvalue.address)
-            if lvalue.register == "A":
-                self.p("\t\tasl  " + r_str)
-            elif lvalue.register == "X":
-                with self.preserving_registers({'A'}):
-                    self.p("\t\ttxa")
-                    self.p("\t\tasl  " + r_str)
-                    self.p("\t\ttax")
-            elif lvalue.register == "Y":
-                with self.preserving_registers({'A'}):
-                    self.p("\t\ttya")
-                    self.p("\t\tasl  " + r_str)
-                    self.p("\t\ttay")
-            else:
-                raise CodeError("unsupported lvalue register for shift", str(lvalue))  # @todo >>=.word
-
-
 
     def generate_assignment(self, stmt: AssignmentStmt) -> None:
         def unwrap_indirect(iv: IndirectValue) -> MemMappedValue:

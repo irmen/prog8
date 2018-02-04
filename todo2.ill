@@ -37,6 +37,12 @@
 start:
 	%breakpoint abc,def
 
+	;X += border
+	;XY += border
+	A += [c2f]
+	AY += [c2f]
+	AY += [XY]
+
 	XY+=255
 	XY+=254
 	XY+=253
