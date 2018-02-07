@@ -472,7 +472,8 @@ class AddressOf(Expression):
     def is_compile_constant(self) -> bool:
         # address-of can be a compile time constant if the operand is a memory mapped variable or ZP variable
         symdef = self.my_scope().lookup(self.name)
-        return isinstance(symdef, VarDef) and symdef.vartype == VarType.MEMORY or getattr(symdef, "zp_address", None) is not None   # type: ignore
+        return isinstance(symdef, VarDef) and symdef.vartype == VarType.MEMORY \
+            or getattr(symdef, "zp_address", None) is not None   # type: ignore
 
     def const_value(self) -> Union[int, float, bool, str]:
         symdef = self.my_scope().lookup(self.name)

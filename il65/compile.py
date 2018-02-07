@@ -11,9 +11,10 @@ import sys
 import linecache
 from typing import Optional, Tuple, Set, Dict, List, Any, no_type_check
 import attr
-from .plyparse import *
-from .plylex import SourceRef, print_bold
 from .datatypes import DataType, VarType
+from .plylex import SourceRef, print_bold
+from .expressions import ExpressionOptimizer
+from .plyparse import *
 
 
 class CompileError(Exception):
@@ -42,6 +43,8 @@ class PlyParser:
                 self.check_all_symbolnames(module)
                 self.determine_subroutine_usage(module)
                 self.all_parents_connected(module)
+                eo = ExpressionOptimizer(module)
+                eo.optimize()   # do some constant-folding
                 self.semantic_check(module)
                 self.coerce_values(module)
                 self.check_floats_enabled(module)
