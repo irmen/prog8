@@ -2,13 +2,22 @@ import math
 import pytest
 from il65.plylex import lexer, tokens, find_tok_column, literals, reserved, SourceRef
 from il65.plyparse import parser, connect_parents, TokenFilter, Module, Subroutine, Block, IncrDecr, Scope, \
-    VarDef, Register, ExpressionWithOperator, LiteralValue, Label, SubCall, Dereference,\
+    AstNode, Expression, Assignment, VarDef, Register, ExpressionWithOperator, LiteralValue, Label, SubCall, Dereference,\
     BuiltinFunction, UndefinedSymbolError
 from il65.datatypes import DataType, VarType
 
 
 def lexer_error(sourceref: SourceRef, fmtstring: str, *args: str) -> None:
     print("ERROR: {}: {}".format(sourceref, fmtstring.format(*args)))
+
+
+def parse_source(src: str) -> AstNode:
+    lexer.lineno = 1
+    lexer.source_filename = "sourcefile"
+    tfilt = TokenFilter(lexer)
+    result = parser.parse(input=src, tokenfunc=tfilt.token)
+    connect_parents(result, None)
+    return result
 
 
 lexer.error_function = lexer_error
@@ -112,11 +121,7 @@ def test_tokenfilter():
 
 
 def test_parser():
-    lexer.lineno = 1
-    lexer.source_filename = "sourcefile"
-    filter = TokenFilter(lexer)
-    result = parser.parse(input=test_source_1, tokenfunc=filter.token)
-    connect_parents(result, None)
+    result = parse_source(test_source_1)
     assert isinstance(result, Module)
     assert result.name == "sourcefile"
     assert result.scope.name == "<sourcefile global scope>"
@@ -169,11 +174,7 @@ test_source_2 = """
 
 
 def test_parser_2():
-    lexer.lineno = 1
-    lexer.source_filename = "sourcefile"
-    filter = TokenFilter(lexer)
-    result = parser.parse(input=test_source_2, tokenfunc=filter.token)
-    connect_parents(result, None)
+    result = parse_source(test_source_2)
     block = result.scope.nodes[0]
     call = block.scope.nodes[0]
     assert isinstance(call, SubCall)
@@ -198,11 +199,7 @@ test_source_3 = """
 
 
 def test_typespec():
-    lexer.lineno = 1
-    lexer.source_filename = "sourcefile"
-    filter = TokenFilter(lexer)
-    result = parser.parse(input=test_source_3, tokenfunc=filter.token)
-    connect_parents(result, None)
+    result = parse_source(test_source_3)
     block = result.scope.nodes[0]
     assignment1, assignment2, assignment3, assignment4 = block.scope.nodes
     assert assignment1.right.value == 5
@@ -252,11 +249,7 @@ test_source_4 = """
 
 
 def test_char_string():
-    lexer.lineno = 1
-    lexer.source_filename = "sourcefile"
-    filter = TokenFilter(lexer)
-    result = parser.parse(input=test_source_4, tokenfunc=filter.token)
-    connect_parents(result, None)
+    result = parse_source(test_source_4)
     block = result.scope.nodes[0]
     var1, var2, var3, assgn1, assgn2, assgn3, = block.scope.nodes
     assert var1.value.value == 64
@@ -279,11 +272,7 @@ test_source_5 = """
 
 
 def test_boolean_int():
-    lexer.lineno = 1
-    lexer.source_filename = "sourcefile"
-    filter = TokenFilter(lexer)
-    result = parser.parse(input=test_source_5, tokenfunc=filter.token)
-    connect_parents(result, None)
+    result = parse_source(test_source_5)
     block = result.scope.nodes[0]
     var1, var2, assgn1, assgn2, = block.scope.nodes
     assert type(var1.value.value) is int and var1.value.value == 1
@@ -355,9 +344,9 @@ def test_symbol_lookup():
     math_func = scope_inner.lookup("sin")
     assert isinstance(math_func, BuiltinFunction)
     assert math_func.name == "sin" and math_func.func is math.sin
-    builtin_func = scope_inner.lookup("max")
+    builtin_func = scope_inner.lookup("abs")
     assert isinstance(builtin_func, BuiltinFunction)
-    assert builtin_func.name == "max" and builtin_func.func is max
+    assert builtin_func.name == "abs" and builtin_func.func is abs
     # test dotted names:
     with pytest.raises(UndefinedSymbolError):
         scope_inner.lookup("noscope.nosymbol.nothing")
@@ -367,3 +356,74 @@ def test_symbol_lookup():
     with pytest.raises(UndefinedSymbolError):
         scope_inner.lookup("outer.var2")
     assert scope_inner.lookup("outer.var1") is var1
+
+
+def test_const_numeric_expressions():
+    src = """
+~ {
+        A = 1+2+3+4+5
+        X = 1+2*5+2
+        Y = (1+2)*(5+2)
+        A = (((10+20)/2)+5)**3
+        X = -10-11-12
+        Y = 1.234 mod (0.9 / 1.2)
+        A = sin(1.234)
+        X = round(4.567)-2
+        Y = 1+abs(-100)
+        A = ~1
+        X = -1
+        A = 4 << (9-3)
+        X = 5000 >> 2
+        Y = 999//88
+        A = &sin        ; type error
+}
+"""
+    result = parse_source(src)
+    if isinstance(result, Module):
+        result.scope.define_builtin_functions()
+    assignments = list(result.all_nodes(Assignment))
+    e = [a.nodes[1] for a in assignments]
+    assert e[0].const_value() == 15     # 1+2+3+4+5
+    assert e[1].const_value() == 13     # 1+2*5+2
+    assert e[2].const_value() == 21     # (1+2)*(5+2)
+    assert e[3].const_value() == 8000   # (((10+20)/2)+5)**3
+    assert e[4].const_value() == -33    # -10-11-12
+    assert e[5].const_value() == 0.484  # 1.234 mod (0.9 / 1.2)
+    assert math.isclose(e[6].const_value(), 0.9438182093746337)   # sin(1.234)
+    assert e[7].const_value() == 3      # round(4.567)-2
+    assert e[8].const_value() == 101    # 1+abs(-100)
+    assert e[9].const_value() == -2     # ~1
+    assert e[10].const_value() == -1    # -1
+    assert e[11].const_value() == 256   # 4 << (9-3)
+    assert e[12].const_value() == 1250  # 5000 >> 2
+    assert e[13].const_value() == 11    # 999//88
+    with pytest.raises(TypeError):
+        e[14].const_value()
+
+
+def test_const_logic_expressions():
+    src = """
+~ {
+        A = true or false
+        X = true and false
+        Y = true xor false
+        A = false and false or true
+        X = (false and (false or true))
+        Y = not (false or true)
+        A = 1 < 2
+        X = 1 >= 2
+        Y = 1 == (2+3)
+}
+"""
+    result = parse_source(src)
+    assignments = list(result.all_nodes(Assignment))
+    e = [a.nodes[1] for a in assignments]
+    assert e[0].const_value() == True
+    assert e[1].const_value() == False
+    assert e[2].const_value() == True
+    assert e[3].const_value() == True
+    assert e[4].const_value() == False
+    assert e[5].const_value() == False
+    assert e[6].const_value() == True
+    assert e[7].const_value() == False
+    assert e[8].const_value() == False

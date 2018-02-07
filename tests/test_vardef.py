@@ -98,8 +98,7 @@ def test_const_value():
     e = ExpressionWithOperator(operator="-", sourceref=sref)
     e.left = LiteralValue(value=42, sourceref=sref)
     v.value = e
-    with pytest.raises(TypeError):
-        v.const_value()
+    assert v.const_value() == -42
     s = SymbolName(name="unexisting", sourceref=sref)
     s.parent = scope
     v.value = s

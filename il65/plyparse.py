@@ -32,8 +32,9 @@ class ZpOptions(enum.Enum):
 
 math_functions = {name: func for name, func in vars(math).items()
                   if inspect.isbuiltin(func) and name != "pow" and not name.startswith("_")}
-builtin_functions = {name: func for name, func in vars(builtins).items()
-                     if inspect.isbuiltin(func) and not name.startswith("_")}
+builtin_functions = {name: getattr(builtins, name)
+                     for name in ['abs', 'bin', 'chr', 'divmod', 'hash', 'hex', 'len', 'oct', 'ord', 'pow', 'round']}
+# @todo support more builtins 'all', 'any', 'max', 'min', 'sum'
 
 
 class ParseError(Exception):
@@ -469,7 +470,9 @@ class AddressOf(Expression):
     name = attr.ib(type=str, validator=attr.validators._InstanceOfValidator(type=str))
 
     def is_compile_constant(self) -> bool:
-        return False
+        # address-of can be a compile time constant if the operand is a memory mapped variable or ZP variable
+        symdef = self.my_scope().lookup(self.name)
+        return isinstance(symdef, VarDef) and symdef.vartype == VarType.MEMORY or symdef.zp_address is not None   # type: ignore
 
     def const_value(self) -> Union[int, float, bool, str]:
         symdef = self.my_scope().lookup(self.name)
@@ -595,10 +598,75 @@ class ExpressionWithOperator(Expression):
             self.operator = "%"   # change it back to the more common '%'
 
     def const_value(self) -> Union[int, float, bool, str]:
-        raise TypeError("an expression is not a constant", self)
+        cv = [n.const_value() for n in self.nodes]       # type: ignore
+        if self.unary:
+            if self.operator == "-":
+                return -cv[0]
+            elif self.operator == "+":
+                return cv[0]
+            elif self.operator == "~":
+                return ~cv[0]
+            elif self.operator == "not":
+                return not cv[0]
+            elif self.operator == "&":
+                raise TypeError("the address-of operator should have been parsed into an AddressOf node")
+            else:
+                raise ValueError("invalid unary operator: "+self.operator, self.sourceref)
+        else:
+            if self.operator == "-":
+                return cv[0] - cv[1]
+            elif self.operator == "+":
+                return cv[0] + cv[1]
+            elif self.operator == "*":
+                return cv[0] * cv[1]
+            elif self.operator == "/":
+                return cv[0] / cv[1]
+            elif self.operator == "**":
+                return cv[0] ** cv[1]
+            elif self.operator == "//":
+                return cv[0] // cv[1]
+            elif self.operator in ("%", "mod"):
+                return cv[0] % cv[1]
+            elif self.operator == "<<":
+                return cv[0] << cv[1]
+            elif self.operator == ">>":
+                return cv[0] >> cv[1]
+            elif self.operator == "|":
+                return cv[0] | cv[1]
+            elif self.operator == "&":
+                return cv[0] & cv[1]
+            elif self.operator == "^":
+                return cv[0] ^ cv[1]
+            elif self.operator == "==":
+                return cv[0] == cv[1]
+            elif self.operator == "!=":
+                return cv[0] != cv[1]
+            elif self.operator == "<":
+                return cv[0] < cv[1]
+            elif self.operator == ">":
+                return cv[0] > cv[1]
+            elif self.operator == "<=":
+                return cv[0] <= cv[1]
+            elif self.operator == ">=":
+                return cv[0] >= cv[1]
+            elif self.operator == "and":
+                return cv[0] and cv[1]
+            elif self.operator == "or":
+                return cv[0] or cv[1]
+            elif self.operator == "xor":
+                i1 = 1 if cv[0] else 0
+                i2 = 1 if cv[1] else 0
+                return bool(i1 ^ i2)
+            else:
+                raise ValueError("invalid operator: "+self.operator, self.sourceref)
 
+    @no_type_check
     def is_compile_constant(self) -> bool:
-        return False
+        if len(self.nodes) == 1:
+            return self.nodes[0].is_compile_constant()
+        elif len(self.nodes) == 2:
+            return self.nodes[0].is_compile_constant() and self.nodes[1].is_compile_constant()
+        raise ValueError("should have 1 or 2 nodes")
 
     def evaluate_primitive_constants(self, sourceref: SourceRef) -> LiteralValue:
         # make sure the lvalue and rvalue are primitives, and the operator is allowed
@@ -667,9 +735,19 @@ class SubCall(Expression):
         return self.nodes[2]    # type: ignore
 
     def is_compile_constant(self) -> bool:
+        if isinstance(self.nodes[0], SymbolName):
+            symdef = self.nodes[0].my_scope().lookup(self.nodes[0].name)
+            if isinstance(symdef, BuiltinFunction):
+                return True
         return False
 
+    @no_type_check
     def const_value(self) -> Union[int, float, bool, str]:
+        if isinstance(self.nodes[0], SymbolName):
+            symdef = self.nodes[0].my_scope().lookup(self.nodes[0].name)
+            if isinstance(symdef, BuiltinFunction):
+                arguments = [a.nodes[0].const_value() for a in self.nodes[2].nodes]
+                return symdef.func(*arguments)
         raise TypeError("subroutine call is not a constant value", self)
 
 
@@ -1439,6 +1517,7 @@ def p_aug_assignment(p):
 precedence = (
     # following the python operator precedence rules mostly; https://docs.python.org/3/reference/expressions.html#operator-precedence
     ('left', 'LOGICOR'),
+    ('left', 'LOGICXOR'),
     ('left', 'LOGICAND'),
     ('right', 'LOGICNOT'),
     ('left', "LT", "GT", "LE", "GE", "EQUALS", "NOTEQUALS"),
@@ -1468,6 +1547,7 @@ def p_expression(p):
                |  expression  SHIFTRIGHT  expression
                |  expression  LOGICOR  expression
                |  expression  LOGICAND  expression
+               |  expression  LOGICXOR  expression
                |  expression  POWER  expression
                |  expression  INTEGERDIVIDE  expression
                |  expression  LT  expression
