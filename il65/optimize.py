@@ -32,17 +32,19 @@ class Optimizer:
 
     def _optimize(self) -> None:
         self.constant_folding()
-        # @todo expression optimization: reduce expression nesting
+        # @todo expression optimization: reduce expression nesting / flattening of parenthesis
         # @todo expression optimization: simplify logical expression when a term makes it always true or false
+        # @todo expression optimization: optimize some simple multiplications into shifts  (A*=8 -> A<<3)
         self.create_aug_assignments()
         self.optimize_assignments()
         self.remove_superfluous_assignments()
         self.combine_assignments_into_multi()
         self.optimize_multiassigns()
-        # @todo optimize some simple multiplications into shifts  (A*=8 -> A<<3)
         # @todo optimize addition with self into shift 1  (A+=A -> A<<=1)
         self.optimize_goto_compare_with_zero()
         self.join_incrdecrs()
+        # @todo remove gotos with conditions that are always false
+        # @todo remove loops with conditions that are always empty/false
         # @todo analyse for unreachable code and remove that (f.i. code after goto or return that has no label so can never be jumped to)
 
     def handle_internal_error(self, exc: Exception, msg: str="") -> None:
