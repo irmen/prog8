@@ -58,6 +58,9 @@ def generate_aug_assignment(ctx: Context) -> None:
                 raise CodeError("cannot assign a combined 16-bit register to a single 8-bit register", rvalue)
             _generate_aug_reg_reg(out, lvalue, stmt.operator, rvalue, ctx.scope)
         elif isinstance(rvalue, Dereference):
+            print("warning: {}: using indirect/dereferece is very costly".format(rvalue.sourceref))
+            if rvalue.datatype != DataType.BYTE:
+                raise CodeError("aug. assignment value must be a byte, 0..255", rvalue)
             if isinstance(rvalue.operand, (LiteralValue, SymbolName)):
                 if isinstance(rvalue.operand, LiteralValue):
                     what = to_hex(rvalue.operand.value)
@@ -75,14 +78,22 @@ def generate_aug_assignment(ctx: Context) -> None:
                 out("\vldy  #0")
                 out("\vlda  (il65_lib.SCRATCH_ZPWORD1), y")
                 a_reg = Register(name="A", sourceref=stmt.sourceref)        # type: ignore
+                if 'A' in lvalue.name:
+                    raise CodeError("can't yet use register A in this aug assign lhs", lvalue.sourceref)   # @todo
                 _generate_aug_reg_reg(out, lvalue, stmt.operator, a_reg, ctx.scope)
-                out("\vst{:s}  il65_lib.SCRATCH_ZP1".format(lvalue.name.lower()))
+                if lvalue.name in REGISTER_BYTES:
+                    out("\vst{:s}  il65_lib.SCRATCH_ZP1".format(lvalue.name.lower()))
+                else:
+                    out("\vst{:s}  il65_lib.SCRATCH_ZP1".format(lvalue.name[0].lower()))
+                    out("\vst{:s}  il65_lib.SCRATCH_ZP2".format(lvalue.name[1].lower()))
                 out("\vpla\n\vtay\n\vpla")  # restore A, Y from stack
-                out("\vld{:s}  il65_lib.SCRATCH_ZP1".format(lvalue.name.lower()))
+                if lvalue.name in REGISTER_BYTES:
+                    out("\vld{:s}  il65_lib.SCRATCH_ZP1".format(lvalue.name.lower()))
+                else:
+                    out("\vld{:s}  il65_lib.SCRATCH_ZP2".format(lvalue.name[0].lower()))
+                    out("\vld{:s}  il65_lib.SCRATCH_ZP2".format(lvalue.name[1].lower()))
             elif isinstance(rvalue.operand, Register):
                 assert rvalue.operand.datatype == DataType.WORD
-                if rvalue.datatype != DataType.BYTE:
-                    raise CodeError("aug. assignment value must be a byte, 0..255", rvalue)
                 reg = rvalue.operand.name
                 out("\vst{:s}  il65_lib.SCRATCH_ZPWORD1".format(reg[0].lower()))
                 out("\vst{:s}  il65_lib.SCRATCH_ZPWORD1+1".format(reg[1].lower()))
@@ -90,12 +101,22 @@ def generate_aug_assignment(ctx: Context) -> None:
                 out("\vldy  #0")
                 out("\vlda  (il65_lib.SCRATCH_ZPWORD1), y")
                 a_reg = Register(name="A", sourceref=stmt.sourceref)        # type: ignore
+                if 'A' in lvalue.name:
+                    raise CodeError("can't yet use register A in this aug assign lhs", lvalue.sourceref)   # @todo
                 _generate_aug_reg_reg(out, lvalue, stmt.operator, a_reg, ctx.scope)
                 if lvalue.name != 'X':
-                    out("\vst{:s}  il65_lib.SCRATCH_ZP1".format(lvalue.name.lower()))
+                    if lvalue.name in REGISTER_BYTES:
+                        out("\vst{:s}  il65_lib.SCRATCH_ZP1".format(lvalue.name.lower()))
+                    else:
+                        out("\vst{:s}  il65_lib.SCRATCH_ZP1".format(lvalue.name[0].lower()))
+                        out("\vst{:s}  il65_lib.SCRATCH_ZP2".format(lvalue.name[1].lower()))
                 out("\vpla\n\vtay\n\vpla")  # restore A, Y from stack
                 if lvalue.name != 'X':
-                    out("\vld{:s}  il65_lib.SCRATCH_ZP1".format(lvalue.name.lower()))
+                    if lvalue.name in REGISTER_BYTES:
+                        out("\vld{:s}  il65_lib.SCRATCH_ZP1".format(lvalue.name.lower()))
+                    else:
+                        out("\vld{:s}  il65_lib.SCRATCH_ZP1".format(lvalue.name[0].lower()))
+                        out("\vld{:s}  il65_lib.SCRATCH_ZP2".format(lvalue.name[1].lower()))
             else:
                 raise CodeError("invalid dereference operand type", rvalue)
         else:
@@ -109,7 +130,7 @@ def _generate_aug_reg_int(out: Callable, lvalue: Register, operator: str, rvalue
         right_str = rname
     else:
         # an immediate value is provided in rvalue
-        right_str = "#" + to_hex(rvalue)
+        right_str = "#" + str(rvalue)
     if operator == "+=":
         _gen_aug_plus_reg_int(lvalue, out, right_str, scope)
     elif operator == "-=":
@@ -125,7 +146,8 @@ def _generate_aug_reg_int(out: Callable, lvalue: Register, operator: str, rvalue
     elif operator == "<<=":
         _gen_aug_shiftleft_reg_int(lvalue, out, rname, rvalue, scope)
     else:
-        raise ValueError("invalid operator", operator)
+        # @todo implement more operators such as *=  /=
+        raise ValueError("invalid operator: " + operator, str(lvalue.sourceref))
 
 
 def _generate_aug_reg_reg(out: Callable, lvalue: Register, operator: str, rvalue: Register, scope: Scope) -> None:
@@ -144,7 +166,8 @@ def _generate_aug_reg_reg(out: Callable, lvalue: Register, operator: str, rvalue
     elif operator == "<<=":
         _gen_aug_shiftleft_reg_reg(lvalue, out, rvalue, scope)
     else:
-        raise ValueError("invalid operator", operator)
+        # @todo implement more operators such as *=  /=
+        raise ValueError("invalid operator: " + operator, str(lvalue.sourceref))
 
 
 def _gen_aug_shiftleft_reg_int(lvalue: Register, out: Callable, rname: str, rvalue: int, scope: Scope) -> None:
@@ -304,8 +327,29 @@ def _gen_aug_minus_reg_int(lvalue: Register, out: Callable, right_str: str, scop
             out("\vsec")
             out("\vsbc  " + right_str)
             out("\vtay")
+    elif lvalue.name == "AX":
+        out("\vsec")
+        out("\vsbc  " + right_str)
+        out("\vbcs  +")
+        out("\vdex")
+        out("+")
+    elif lvalue.name == "AY":
+        out("\vsec")
+        out("\vsbc  " + right_str)
+        out("\vbcs  +")
+        out("\vdey")
+        out("+")
+    elif lvalue.name == "XY":
+        with preserving_registers({'A'}, scope, out):
+            out("\vtxa")
+            out("\vsec")
+            out("\vsbc  " + right_str)
+            out("\vtax")
+            out("\vbcs  +")
+            out("\vdey")
+            out("+")
     else:
-        raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo -=.word
+        raise ValueError("invalid register", str(lvalue))
 
 
 def _gen_aug_plus_reg_int(lvalue: Register, out: Callable, right_str: str, scope: Scope) -> None:
@@ -324,8 +368,29 @@ def _gen_aug_plus_reg_int(lvalue: Register, out: Callable, right_str: str, scope
             out("\vclc")
             out("\vadc  " + right_str)
             out("\vtay")
+    elif lvalue.name == "AX":
+        out("\vclc")
+        out("\vadc  " + right_str)
+        out("\vbcc  +")
+        out("\vinx")
+        out("+")
+    elif lvalue.name == "AY":
+        out("\vclc")
+        out("\vadc  " + right_str)
+        out("\vbcc  +")
+        out("\viny")
+        out("+")
+    elif lvalue.name == "XY":
+        with preserving_registers({'A'}, scope, out):
+            out("\vtxa")
+            out("\vclc")
+            out("\vadc  " + right_str)
+            out("\vtax")
+            out("\vbcc  +")
+            out("\viny")
+            out("+")
     else:
-        raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo +=.word
+        raise ValueError("invalid register", str(lvalue))
 
 
 def _gen_aug_shiftleft_reg_reg(lvalue: Register, out: Callable, rvalue: Register, scope: Scope) -> None:
@@ -466,23 +531,42 @@ def _gen_aug_minus_reg_reg(lvalue: Register, out: Callable, rvalue: Register, sc
 def _gen_aug_plus_reg_reg(lvalue: Register, out: Callable, rvalue: Register, scope: Scope) -> None:
     if rvalue.name not in REGISTER_BYTES:
         raise CodeError("unsupported rvalue register for aug assign", str(rvalue))  # @todo +=.word
+    out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
     if lvalue.name == "A":
-        out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
         out("\vclc")
         out("\vadc  " + to_hex(Zeropage.SCRATCH_B1))
     elif lvalue.name == "X":
-        out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
         with preserving_registers({'A'}, scope, out):
             out("\vtxa")
             out("\vclc")
             out("\vadc  " + to_hex(Zeropage.SCRATCH_B1))
             out("\vtax")
     elif lvalue.name == "Y":
-        out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
         with preserving_registers({'A'}, scope, out):
             out("\vtya")
             out("\vclc")
             out("\vadc  " + to_hex(Zeropage.SCRATCH_B1))
             out("\vtay")
+    elif lvalue.name == "AX":
+        out("\vclc")
+        out("\vadc  " + to_hex(Zeropage.SCRATCH_B1))
+        out("\vbcc  +")
+        out("\vinx")
+        out("+")
+    elif lvalue.name == "AY":
+        out("\vclc")
+        out("\vadc  " + to_hex(Zeropage.SCRATCH_B1))
+        out("\vbcc  +")
+        out("\viny")
+        out("+")
+    elif lvalue.name == "XY":
+        with preserving_registers({'A'}, scope, out):
+            out("\vtxa")
+            out("\vclc")
+            out("\vadc  " + to_hex(Zeropage.SCRATCH_B1))
+            out("\vtax")
+            out("\vbcc  +")
+            out("\viny")
+            out("+")
     else:
-        raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo +=.word
+        raise ValueError("invalid register", str(lvalue))
