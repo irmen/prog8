@@ -37,8 +37,10 @@
 start:
 	%breakpoint abc,def
 
-	;X += border
-	;XY += border
+	X += border
+	XY += border            ; @todo .word augassign register
+	XY -= 1234+333            ; @todo .word augassign register
+
 	A += [c2f]
 	AY += [c2f]
 	AY += [XY]
@@ -59,11 +61,11 @@ start:
 	v3t=2.23424 ; @todo store as constant float with generated name, replace value node
 	v3t=2.23411 ; @todo store as constant float with generated name, replace value node
 	v3t=1.23411 + 1; @todo store as constant float with generated name, replace value node
-;	v3t+=2.23424 ; @todo store as constant float with generated name, replace value node
-;	v3t+=2.23424 ; @todo store as constant float with generated name, replace value node
-;	v3t+=2.23411 ; @todo store as constant float with generated name, replace value node
-;	v3t+=2.23411 ; @todo store as constant float with generated name, replace value node
-	;v3t=2.23424 * v3t ; @todo store as constant float with generated name, replace value node
+	v3t+=2.23424 ; @todo store as constant float with generated name, replace value node
+	v3t+=2.23424 ; @todo store as constant float with generated name, replace value node
+	v3t+=2.23411 ; @todo store as constant float with generated name, replace value node
+	v3t+=2.23411 ; @todo store as constant float with generated name, replace value node
+	v3t=2.23424 * v3t ; @todo store as constant float with generated name, replace value node
 	XY*=2
 	XY*=3
 	X=3           ; @todo optimize consecutive assignments
@@ -84,25 +86,25 @@ start:
 	XY=XY/0    ; @todo zerodiv (during expression to code generation)
 	XY=XY//0    ; @todo zerodiv (during expression to code generation)
 	XY*=2.23424 ; @todo store as constant float with generated name, replace value node
-	;XY*=2.23424 * v3t ; @todo store as constant float with generated name, replace value node
-	;v3t*=2.23424 * v3t ; @todo store as constant float with generated name, replace value node
-;	A++
-;	X--
-;	A+=1
-;	X-=2
-;	[AX]++
-;	[AX .byte]++
-;	[AX .word]++
-;	[AX .float]++
-;	[$ccc0]++
-;	[$ccc0 .byte]++
-;	[$ccc0 .word]++
-;	[$ccc0 .float]++
-;	A+=2
-;	A+=3
-;	XY+=6
-;	XY+=222
-;	XY+=666
+	XY*=2.23424 * v3t ; @todo store as constant float with generated name, replace value node
+	v3t*=2.23424 * v3t ; @todo store as constant float with generated name, replace value node
+	A++
+	X--
+	A+=1
+	X-=2
+	[AX]++
+	[AX .byte]++
+	[AX .word]++
+	[AX .float]++
+	[$ccc0]++
+	[$ccc0 .byte]++
+	[$ccc0 .word]++
+	[$ccc0 .float]++
+	A+=2
+	A+=3
+	XY+=6
+	XY+=222
+	XY+=666
 
 	return 44
 }

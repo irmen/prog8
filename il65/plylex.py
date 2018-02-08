@@ -157,19 +157,19 @@ reserved = {
 # rules for tokens with some actions
 
 def t_inlineasm(t):
-    r"%asm\s*\{[^\S\n]*"
+    r"""%asm\s*\{[^\S\n]*"""
     t.lexer.code_start = t.lexer.lexpos     # Record start position
     t.lexer.level = 1                       # initial brace level
     t.lexer.begin("inlineasm")             # enter state 'inlineasm'
 
 
 def t_inlineasm_lbrace(t):
-    r"\{"
+    r"""\{"""
     t.lexer.level += 1
 
 
 def t_inlineasm_rbrace(t):
-    r"\}"
+    r"""\}"""
     t.lexer.level -= 1
     # if closing brace, return code fragment
     if t.lexer.level == 0:
@@ -181,7 +181,7 @@ def t_inlineasm_rbrace(t):
 
 
 def t_inlineasm_comment(t):
-    r";[^\n]*"
+    r""";[^\n]*"""
     pass
 
 
@@ -203,7 +203,7 @@ def t_inlineasm_string(t):
 
 
 def t_inlineasm_nonspace(t):
-    r'[^\s\{\}\'\"]+'
+    r"""[^\s\{\}\'\"]+"""
     pass
 
 
@@ -213,31 +213,31 @@ def t_inlineasm_error(t):
 
 
 def t_CLOBBEREDREGISTER(t):
-    r"(AX|AY|XY|A|X|Y)\?"
+    r"""(AX|AY|XY|A|X|Y)\?"""
     t.value = t.value[:-1]
     return t
 
 
 def t_DATATYPE(t):
-    r"\.byte|\.wordarray|\.float|\.array|\.word|\.text|\.stext|\.ptext|\.pstext|\.matrix"
+    r"""\.byte|\.wordarray|\.float|\.array|\.word|\.text|\.stext|\.ptext|\.pstext|\.matrix"""
     t.value = t.value[1:]
     return t
 
 
 def t_LABEL(t):
-    r"[a-zA-Z_]\w*\s*:"
+    r"""[a-zA-Z_]\w*\s*:"""
     t.value = t.value[:-1].strip()
     return t
 
 
 def t_BOOLEAN(t):
-    r"true|false"
+    r"""true|false"""
     t.value = t.value == "true"
     return t
 
 
 def t_DOTTEDNAME(t):
-    r"[a-zA-Z_]\w*(\.[a-zA-Z_]\w*)+"
+    r"""[a-zA-Z_]\w*(\.[a-zA-Z_]\w*)+"""
     first, second = t.value.split(".")
     if first in reserved or second in reserved:
         custom_error(t, "reserved word as part of dotted name")
@@ -246,13 +246,13 @@ def t_DOTTEDNAME(t):
 
 
 def t_NAME(t):
-    r"[a-zA-Z_]\w*"
+    r"""[a-zA-Z_]\w*"""
     t.type = reserved.get(t.value, "NAME")   # check for reserved words
     return t
 
 
 def t_DIRECTIVE(t):
-    r"%[a-z]+\b"
+    r"""%[a-z]+\b"""
     t.value = t.value[1:]
     return t
 
@@ -280,7 +280,7 @@ def t_STRING(t):
 
 
 def t_FLOATINGPOINT(t):
-    r"((?: (?: \d* \. \d+ ) | (?: \d+ \.? ) )(?: [Ee] [+-]? \d+ ) ?)(?![a-z])"
+    r"""((?: (?: \d* \. \d+ ) | (?: \d+ \.? ) )(?: [Ee] [+-]? \d+ ) ?)(?![a-z])"""
     try:
         t.value = int(t.value)
         t.type = "INTEGER"
@@ -290,7 +290,7 @@ def t_FLOATINGPOINT(t):
 
 
 def t_INTEGER(t):
-    r"\$?[a-fA-F\d]+ | [\$%]?\d+ | %?[01]+"
+    r"""\$?[a-fA-F\d]+ | [\$%]?\d+ | %?[01]+"""
     sign = 1
     if t.value[0] in "+-":
         sign = -1 if t.value[0] == "-" else 1
@@ -305,18 +305,18 @@ def t_INTEGER(t):
 
 
 def t_COMMENT(t):
-    r"[ \t]*;[^\n]*"    # dont eat newline
+    r"""[ \t]*;[^\n]*"""  # dont eat newline
     return None   # don't process comments
 
 
 def t_PRESERVEREGS(t):
-    r"!\s*[AXY]{0,3}\s*(?!=)"
+    r"""!\s*[AXY]{0,3}\s*(?!=)"""
     t.value = t.value[1:-1].strip()
     return t
 
 
 def t_ENDL(t):
-    r"\n+"
+    r"""\n+"""
     t.lexer.lineno += len(t.value)
     t.value = "\n"
     return t    # end of lines are significant to the parser
@@ -345,7 +345,7 @@ def custom_error(t, message):
 
 
 def find_tok_column(token):
-    """ Find the column of the token in its line."""
+    """Find the column of the token in its line."""
     last_cr = lexer.lexdata.rfind('\n', 0, token.lexpos)
     chunk = lexer.lexdata[last_cr:token.lexpos]
     return len(chunk.expandtabs())

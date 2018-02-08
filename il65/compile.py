@@ -9,11 +9,11 @@ import re
 import os
 import sys
 import linecache
-from typing import Optional, Tuple, Set, Dict, List, Any, no_type_check
+from typing import no_type_check, Set, List, Dict, Tuple, Optional, Any
 import attr
 from .datatypes import DataType, VarType
 from .plylex import SourceRef, print_bold
-from .expressions import ExpressionOptimizer
+from .constantfold import ConstantFold
 from .plyparse import *
 
 
@@ -43,8 +43,8 @@ class PlyParser:
                 self.check_all_symbolnames(module)
                 self.determine_subroutine_usage(module)
                 self.all_parents_connected(module)
-                eo = ExpressionOptimizer(module)
-                eo.optimize()   # do some constant-folding
+                cf = ConstantFold(module)
+                cf.fold_constants()   # do some constant-folding
                 self.semantic_check(module)
                 self.coerce_values(module)
                 self.check_floats_enabled(module)

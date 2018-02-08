@@ -8,11 +8,9 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 
 from typing import List, no_type_check, Union
 from .datatypes import DataType
-from .plyparse import Module, Block, Scope, IncrDecr, AstNode, Register, TargetRegisters, Assignment, AugAssignment, \
-    AssignmentTargets, SymbolName, VarDef, Dereference, LiteralValue, ExpressionWithOperator, Subroutine, \
-    Goto, Expression, Directive, coerce_constant_value, datatype_of
+from .plyparse import *
 from .plylex import print_warning, print_bold
-from .expressions import ExpressionOptimizer
+from .constantfold import ConstantFold
 
 
 class Optimizer:
@@ -20,7 +18,7 @@ class Optimizer:
         self.num_warnings = 0
         self.module = mod
         self.optimizations_performed = False
-        self.simple_expression_optimizer = ExpressionOptimizer(self.module)
+        self.constant_folder = ConstantFold(self.module)
 
     def optimize(self) -> None:
         self.num_warnings = 0
@@ -34,7 +32,7 @@ class Optimizer:
         self.remove_empty_blocks()
 
     def _optimize(self) -> None:
-        self.simple_expression_optimizer.optimize(True)    # perform constant folding and simple expression optimization
+        self.constant_folder.fold_constants(True)    # perform constant folding and simple expression optimization
         # @todo expression optimization: reduce expression nesting / flattening of parenthesis
         # @todo expression optimization: simplify logical expression when a term makes it always true or false
         # @todo expression optimization: optimize some simple multiplications into shifts  (A*=8 -> A<<3)

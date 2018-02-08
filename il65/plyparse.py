@@ -18,6 +18,14 @@ from .datatypes import DataType, VarType, REGISTER_SYMBOLS, REGISTER_BYTES, REGI
     char_to_bytevalue, FLOAT_MAX_NEGATIVE, FLOAT_MAX_POSITIVE
 
 
+__all__ = ["ProgramFormat", "ZpOptions", "math_functions", "builtin_functions", "ParseError", "ExpressionEvaluationError",
+           "UndefinedSymbolError", "AstNode", "Directive", "Scope", "Block", "Module", "Label", "Expression",
+           "Register", "Subroutine", "LiteralValue", "AddressOf", "SymbolName", "Dereference", "IncrDecr",
+           "ExpressionWithOperator", "Goto", "SubCall", "VarDef", "Return", "Assignment", "AugAssignment",
+           "InlineAssembly", "TargetRegisters", "AssignmentTargets",
+           "parse_file", "coerce_constant_value", "datatype_of", "check_symbol_definition"]
+
+
 class ProgramFormat(enum.Enum):
     RAW = "raw"
     PRG = "prg"

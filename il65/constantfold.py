@@ -1,6 +1,7 @@
 """
 Programming Language for 6502/6510 microprocessors, codename 'Sick'
-This is the part of the compiler/optimizer that simplifies/evaluates expressions.
+This is the part of the compiler/optimizer that simplifies expressions by doing
+'constant folding' - replacing expressions with constant, compile-time precomputed values.
 
 Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
@@ -8,9 +9,7 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 import sys
 from .plylex import SourceRef
 from .datatypes import VarType
-from .plyparse import Module, Expression, LiteralValue, SymbolName, ParseError, VarDef, Dereference, Register,\
-    SubCall, AddressOf, AstNode, ExpressionWithOperator, ExpressionEvaluationError, \
-    math_functions, builtin_functions, check_symbol_definition
+from .plyparse import *
 
 
 def handle_internal_error(exc: Exception, msg: str = "") -> None:
@@ -25,29 +24,29 @@ def handle_internal_error(exc: Exception, msg: str = "") -> None:
     raise exc
 
 
-class ExpressionOptimizer:
+class ConstantFold:
     def __init__(self, mod: Module) -> None:
         self.num_warnings = 0
         self.module = mod
         self.optimizations_performed = False
 
-    def optimize(self, once: bool=False) -> None:
+    def fold_constants(self, once: bool=False) -> None:
         self.num_warnings = 0
         if once:
-            self.constant_folding()
+            self._constant_folding()
         else:
             self.optimizations_performed = True
             # keep optimizing as long as there were changes made
             while self.optimizations_performed:
                 self.optimizations_performed = False
-                self.constant_folding()
+                self._constant_folding()
 
-    def constant_folding(self) -> None:
+    def _constant_folding(self) -> None:
         for expression in self.module.all_nodes(Expression):
             if isinstance(expression, LiteralValue):
                 continue
             try:
-                evaluated = self.process_expression(expression)      # type: ignore
+                evaluated = self._process_expression(expression)      # type: ignore
                 if evaluated is not expression:
                     # replace the node with the newly evaluated result
                     parent = expression.parent
@@ -58,7 +57,7 @@ class ExpressionOptimizer:
             except Exception as x:
                 handle_internal_error(x, "process_expressions of node {}".format(expression))
 
-    def process_expression(self, expr: Expression) -> Expression:
+    def _process_expression(self, expr: Expression) -> Expression:
         # process/simplify all expressions (constant folding etc)
         result = None   # type: Expression
         if expr.is_compile_constant() or isinstance(expr, ExpressionWithOperator) and expr.must_be_constant:
