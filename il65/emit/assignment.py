@@ -14,8 +14,9 @@ from ..compile import Zeropage
 
 def generate_assignment(ctx: Context) -> None:
     assert isinstance(ctx.stmt, Assignment)
+    assert not isinstance(ctx.stmt.right, Assignment), "assignment should have been flattened"
     ctx.out("\v\t\t\t; " + ctx.stmt.lineref)
-    ctx.out("\v; @todo assignment")
+    ctx.out("\v; @todo assignment: {} = {}".format(ctx.stmt.left.nodes, ctx.stmt.right))
     # @todo assignment
 
 
@@ -110,320 +111,378 @@ def _generate_aug_reg_int(out: Callable, lvalue: Register, operator: str, rvalue
         # an immediate value is provided in rvalue
         right_str = "#" + to_hex(rvalue)
     if operator == "+=":
-        if lvalue.name == "A":
-            out("\vclc")
-            out("\vadc  " + right_str)
-        elif lvalue.name == "X":
-            with preserving_registers({'A'}, scope, out):
-                out("\vtxa")
-                out("\vclc")
-                out("\vadc  " + right_str)
-                out("\vtax")
-        elif lvalue.name == "Y":
-            with preserving_registers({'A'}, scope, out):
-                out("\vtya")
-                out("\vclc")
-                out("\vadc  " + right_str)
-                out("\vtay")
-        else:
-            raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo +=.word
+        _gen_aug_plus_reg_int(lvalue, out, right_str, scope)
     elif operator == "-=":
-        if lvalue.name == "A":
-            out("\vsec")
-            out("\vsbc  " + right_str)
-        elif lvalue.name == "X":
-            with preserving_registers({'A'}, scope, out):
-                out("\vtxa")
-                out("\vsec")
-                out("\vsbc  " + right_str)
-                out("\vtax")
-        elif lvalue.name == "Y":
-            with preserving_registers({'A'}, scope, out):
-                out("\vtya")
-                out("\vsec")
-                out("\vsbc  " + right_str)
-                out("\vtay")
-        else:
-            raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo -=.word
+        _gen_aug_minus_reg_int(lvalue, out, right_str, scope)
     elif operator == "&=":
-        if lvalue.name == "A":
-            out("\vand  " + right_str)
-        elif lvalue.name == "X":
-            with preserving_registers({'A'}, scope, out):
-                out("\vtxa")
-                out("\vand  " + right_str)
-                out("\vtax")
-        elif lvalue.name == "Y":
-            with preserving_registers({'A'}, scope, out):
-                out("\vtya")
-                out("\vand  " + right_str)
-                out("\vtay")
-        else:
-            raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo &=.word
+        _gen_aug_and_reg_int(lvalue, out, right_str, scope)
     elif operator == "|=":
-        if lvalue.name == "A":
-            out("\vora  " + right_str)
-        elif lvalue.name == "X":
-            with preserving_registers({'A'}, scope, out):
-                out("\vtxa")
-                out("\vora  " + right_str)
-                out("\vtax")
-        elif lvalue.name == "Y":
-            with preserving_registers({'A'}, scope, out):
-                out("\vtya")
-                out("\vora  " + right_str)
-                out("\vtay")
-        else:
-            raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo |=.word
+        _gen_aug_or_reg_int(lvalue, out, right_str, scope)
     elif operator == "^=":
-        if lvalue.name == "A":
-            out("\veor  " + right_str)
-        elif lvalue.name == "X":
-            with preserving_registers({'A'}, scope, out):
-                out("\vtxa")
-                out("\veor  " + right_str)
-                out("\vtax")
-        elif lvalue.name == "Y":
-            with preserving_registers({'A'}, scope, out):
-                out("\vtya")
-                out("\veor  " + right_str)
-                out("\vtay")
-        else:
-            raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo ^=.word
+        _gen_aug_xor_reg_int(lvalue, out, right_str, scope)
     elif operator == ">>=":
-        if rname:
-            assert lvalue.name in REGISTER_BYTES, "only single registers for now"  # @todo >>=.word
-            if lvalue.name == "A":
-                preserve_regs = {'X'}
-            elif lvalue.name == "X":
-                preserve_regs = {'A'}
-                out("\vtxa")
-            elif lvalue.name == "Y":
-                preserve_regs = {'A', 'X'}
-                out("\vtya")
-            with preserving_registers(preserve_regs, scope, out):
-                out("\vldx  " + rname)
-                out("\vjsr  il65_lib.lsr_A_by_X")
-                # out("\vbeq  +")
-                # out("-\vlsr  a")
-                # out("\vdex")
-                # out("\vbne  -")
-                # put A back into target register
-                if lvalue.name == "X":
-                    out("\vtax")
-                if lvalue.name == "Y":
-                    out("\vtay")
-        else:
-            def shifts_A(times: int) -> None:
-                if times >= 8:
-                    out("\vlda  #0")
-                else:
-                    for _ in range(min(8, times)):
-                        out("\vlsr  a")
-            if lvalue.name == "A":
-                shifts_A(rvalue)
-            elif lvalue.name == "X":
-                with preserving_registers({'A'}, scope, out):
-                    out("\vtxa")
-                    shifts_A(rvalue)
-                    out("\vtax")
-            elif lvalue.name == "Y":
-                with preserving_registers({'A'}, scope, out):
-                    out("\vtya")
-                    shifts_A(rvalue)
-                    out("\vtay")
-            else:
-                raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo >>=.word
+        _gen_aug_shiftright_reg_int(lvalue, out, rname, rvalue, scope)
     elif operator == "<<=":
-        if rname:
-            assert lvalue.name in REGISTER_BYTES, "only single registers for now"   # @todo <<=.word
-            if lvalue.name == "A":
-                preserve_regs = {'X'}
-            elif lvalue.name == "X":
-                preserve_regs = {'A'}
-                out("\vtxa")
-            elif lvalue.name == "Y":
-                preserve_regs = {'A', 'X'}
-                out("\vtya")
-            with preserving_registers(preserve_regs, scope, out):
-                out("\vldx  " + rname)
-                out("\vjsr  il65_lib.asl_A_by_X")
-                # out("\vbeq  +")
-                # out("-\vasl  a")
-                # out("\vdex")
-                # out("\vbne  -")
-                # put A back into target register
-                if lvalue.name == "X":
-                    out("\vtax")
-                elif lvalue.name == "Y":
-                    out("\vtay")
-        else:
-            def shifts_A(times: int) -> None:
-                if times >= 8:
-                    out("\vlda  #0")
-                else:
-                    for _ in range(min(8, times)):
-                        out("\vasl  a")
-            if lvalue.name == "A":
-                shifts_A(rvalue)
-            elif lvalue.name == "X":
-                with preserving_registers({'A'}, scope, out):
-                    out("\vtxa")
-                    shifts_A(rvalue)
-                    out("\vtax")
-            elif lvalue.name == "Y":
-                with preserving_registers({'A'}, scope, out):
-                    out("\vtya")
-                    shifts_A(rvalue)
-                    out("\vtay")
-            else:
-                raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo <<=.word
+        _gen_aug_shiftleft_reg_int(lvalue, out, rname, rvalue, scope)
+    else:
+        raise ValueError("invalid operator", operator)
 
 
 def _generate_aug_reg_reg(out: Callable, lvalue: Register, operator: str, rvalue: Register, scope: Scope) -> None:
     if operator == "+=":
-        if rvalue.name not in REGISTER_BYTES:
-            raise CodeError("unsupported rvalue register for aug assign", str(rvalue))  # @todo +=.word
+        _gen_aug_plus_reg_reg(lvalue, out, rvalue, scope)
+    elif operator == "-=":
+        _gen_aug_minus_reg_reg(lvalue, out, rvalue, scope)
+    elif operator == "&=":
+        _gen_aug_and_reg_reg(lvalue, out, rvalue, scope)
+    elif operator == "|=":
+        _gen_aug_or_reg_reg(lvalue, out, rvalue, scope)
+    elif operator == "^=":
+        _gen_aug_xor_reg_reg(lvalue, out, rvalue, scope)
+    elif operator == ">>=":
+        _gen_aug_shiftright_reg_reg(lvalue, out, rvalue, scope)
+    elif operator == "<<=":
+        _gen_aug_shiftleft_reg_reg(lvalue, out, rvalue, scope)
+    else:
+        raise ValueError("invalid operator", operator)
+
+
+def _gen_aug_shiftleft_reg_int(lvalue: Register, out: Callable, rname: str, rvalue: int, scope: Scope) -> None:
+    if rname:
+        assert lvalue.name in REGISTER_BYTES, "only single registers for now"  # @todo <<=.word
         if lvalue.name == "A":
-            out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
-            out("\vclc")
-            out("\vadc  " + to_hex(Zeropage.SCRATCH_B1))
+            preserve_regs = {'X'}
         elif lvalue.name == "X":
-            out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
+            preserve_regs = {'A'}
+            out("\vtxa")
+        elif lvalue.name == "Y":
+            preserve_regs = {'A', 'X'}
+            out("\vtya")
+        with preserving_registers(preserve_regs, scope, out):
+            out("\vldx  " + rname)
+            out("\vjsr  il65_lib.asl_A_by_X")
+            # out("\vbeq  +")
+            # out("-\vasl  a")
+            # out("\vdex")
+            # out("\vbne  -")
+            # put A back into target register
+            if lvalue.name == "X":
+                out("\vtax")
+            elif lvalue.name == "Y":
+                out("\vtay")
+    else:
+        def shifts_A(times: int) -> None:
+            if times >= 8:
+                out("\vlda  #0")
+            else:
+                for _ in range(min(8, times)):
+                    out("\vasl  a")
+
+        if lvalue.name == "A":
+            shifts_A(rvalue)
+        elif lvalue.name == "X":
             with preserving_registers({'A'}, scope, out):
                 out("\vtxa")
-                out("\vclc")
-                out("\vadc  " + to_hex(Zeropage.SCRATCH_B1))
+                shifts_A(rvalue)
                 out("\vtax")
         elif lvalue.name == "Y":
-            out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
             with preserving_registers({'A'}, scope, out):
                 out("\vtya")
-                out("\vclc")
-                out("\vadc  " + to_hex(Zeropage.SCRATCH_B1))
+                shifts_A(rvalue)
                 out("\vtay")
         else:
-            raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo +=.word
-    elif operator == "-=":
-        if rvalue.name not in REGISTER_BYTES:
-            raise CodeError("unsupported rvalue register for aug assign", str(rvalue))  # @todo -=.word
+            raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo <<=.word
+
+
+def _gen_aug_shiftright_reg_int(lvalue: Register, out: Callable, rname: str, rvalue: int, scope: Scope) -> None:
+    if rname:
+        assert lvalue.name in REGISTER_BYTES, "only single registers for now"  # @todo >>=.word
         if lvalue.name == "A":
-            out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
+            preserve_regs = {'X'}
+        elif lvalue.name == "X":
+            preserve_regs = {'A'}
+            out("\vtxa")
+        elif lvalue.name == "Y":
+            preserve_regs = {'A', 'X'}
+            out("\vtya")
+        with preserving_registers(preserve_regs, scope, out):
+            out("\vldx  " + rname)
+            out("\vjsr  il65_lib.lsr_A_by_X")
+            # put A back into target register
+            if lvalue.name == "X":
+                out("\vtax")
+            if lvalue.name == "Y":
+                out("\vtay")
+    else:
+        def shifts_A(times: int) -> None:
+            if times >= 8:
+                out("\vlda  #0")
+            else:
+                for _ in range(min(8, times)):
+                    out("\vlsr  a")
+
+        if lvalue.name == "A":
+            shifts_A(rvalue)
+        elif lvalue.name == "X":
+            with preserving_registers({'A'}, scope, out):
+                out("\vtxa")
+                shifts_A(rvalue)
+                out("\vtax")
+        elif lvalue.name == "Y":
+            with preserving_registers({'A'}, scope, out):
+                out("\vtya")
+                shifts_A(rvalue)
+                out("\vtay")
+        else:
+            raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo >>=.word
+
+
+def _gen_aug_xor_reg_int(lvalue: Register, out: Callable, right_str: str, scope: Scope) -> None:
+    if lvalue.name == "A":
+        out("\veor  " + right_str)
+    elif lvalue.name == "X":
+        with preserving_registers({'A'}, scope, out):
+            out("\vtxa")
+            out("\veor  " + right_str)
+            out("\vtax")
+    elif lvalue.name == "Y":
+        with preserving_registers({'A'}, scope, out):
+            out("\vtya")
+            out("\veor  " + right_str)
+            out("\vtay")
+    else:
+        raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo ^=.word
+
+
+def _gen_aug_or_reg_int(lvalue: Register, out: Callable, right_str: str, scope: Scope) -> None:
+    if lvalue.name == "A":
+        out("\vora  " + right_str)
+    elif lvalue.name == "X":
+        with preserving_registers({'A'}, scope, out):
+            out("\vtxa")
+            out("\vora  " + right_str)
+            out("\vtax")
+    elif lvalue.name == "Y":
+        with preserving_registers({'A'}, scope, out):
+            out("\vtya")
+            out("\vora  " + right_str)
+            out("\vtay")
+    else:
+        raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo |=.word
+
+
+def _gen_aug_and_reg_int(lvalue: Register, out: Callable, right_str: str, scope: Scope) -> None:
+    if lvalue.name == "A":
+        out("\vand  " + right_str)
+    elif lvalue.name == "X":
+        with preserving_registers({'A'}, scope, out):
+            out("\vtxa")
+            out("\vand  " + right_str)
+            out("\vtax")
+    elif lvalue.name == "Y":
+        with preserving_registers({'A'}, scope, out):
+            out("\vtya")
+            out("\vand  " + right_str)
+            out("\vtay")
+    else:
+        raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo &=.word
+
+
+def _gen_aug_minus_reg_int(lvalue: Register, out: Callable, right_str: str, scope: Scope) -> None:
+    if lvalue.name == "A":
+        out("\vsec")
+        out("\vsbc  " + right_str)
+    elif lvalue.name == "X":
+        with preserving_registers({'A'}, scope, out):
+            out("\vtxa")
+            out("\vsec")
+            out("\vsbc  " + right_str)
+            out("\vtax")
+    elif lvalue.name == "Y":
+        with preserving_registers({'A'}, scope, out):
+            out("\vtya")
+            out("\vsec")
+            out("\vsbc  " + right_str)
+            out("\vtay")
+    else:
+        raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo -=.word
+
+
+def _gen_aug_plus_reg_int(lvalue: Register, out: Callable, right_str: str, scope: Scope) -> None:
+    if lvalue.name == "A":
+        out("\vclc")
+        out("\vadc  " + right_str)
+    elif lvalue.name == "X":
+        with preserving_registers({'A'}, scope, out):
+            out("\vtxa")
+            out("\vclc")
+            out("\vadc  " + right_str)
+            out("\vtax")
+    elif lvalue.name == "Y":
+        with preserving_registers({'A'}, scope, out):
+            out("\vtya")
+            out("\vclc")
+            out("\vadc  " + right_str)
+            out("\vtay")
+    else:
+        raise CodeError("unsupported register for aug assign", str(lvalue))  # @todo +=.word
+
+
+def _gen_aug_shiftleft_reg_reg(lvalue: Register, out: Callable, rvalue: Register, scope: Scope) -> None:
+    if rvalue.name not in REGISTER_BYTES:
+        raise CodeError("unsupported rvalue register for aug assign", str(rvalue))  # @todo <<=.word
+    if lvalue.name == "A":
+        out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
+        out("\vasl  " + to_hex(Zeropage.SCRATCH_B1))
+    elif lvalue.name == "X":
+        out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
+        with preserving_registers({'A'}, scope, out):
+            out("\vtxa")
+            out("\vasl  " + to_hex(Zeropage.SCRATCH_B1))
+            out("\vtax")
+    elif lvalue.name == "Y":
+        out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
+        with preserving_registers({'A'}, scope, out):
+            out("\vtya")
+            out("\vasl  " + to_hex(Zeropage.SCRATCH_B1))
+            out("\vtay")
+    else:
+        raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo <<=.word
+
+
+def _gen_aug_shiftright_reg_reg(lvalue: Register, out: Callable, rvalue: Register, scope: Scope) -> None:
+    if rvalue.name not in REGISTER_BYTES:
+        raise CodeError("unsupported rvalue register for aug assign", str(rvalue))  # @todo >>=.word
+    if lvalue.name == "A":
+        out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
+        out("\vlsr  " + to_hex(Zeropage.SCRATCH_B1))
+    elif lvalue.name == "X":
+        out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
+        with preserving_registers({'A'}, scope, out):
+            out("\vtxa")
+            out("\vlsr  " + to_hex(Zeropage.SCRATCH_B1))
+            out("\vtax")
+    elif lvalue.name == "Y":
+        out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
+        with preserving_registers({'A'}, scope, out):
+            out("\vtya")
+            out("\vlsr  " + to_hex(Zeropage.SCRATCH_B1))
+            out("\vtay")
+    else:
+        raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo >>=.word
+
+
+def _gen_aug_xor_reg_reg(lvalue: Register, out: Callable, rvalue: Register, scope: Scope) -> None:
+    if rvalue.name not in REGISTER_BYTES:
+        raise CodeError("unsupported rvalue register for aug assign", str(rvalue))  # @todo ^=.word
+    if lvalue.name == "A":
+        out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
+        out("\veor  " + to_hex(Zeropage.SCRATCH_B1))
+    elif lvalue.name == "X":
+        out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
+        with preserving_registers({'A'}, scope, out):
+            out("\vtxa")
+            out("\veor  " + to_hex(Zeropage.SCRATCH_B1))
+            out("\vtax")
+    elif lvalue.name == "Y":
+        out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
+        with preserving_registers({'A'}, scope, out):
+            out("\vtya")
+            out("\veor  " + to_hex(Zeropage.SCRATCH_B1))
+            out("\vtay")
+    else:
+        raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo ^=.word
+
+
+def _gen_aug_or_reg_reg(lvalue: Register, out: Callable, rvalue: Register, scope: Scope) -> None:
+    if rvalue.name not in REGISTER_BYTES:
+        raise CodeError("unsupported rvalue register for aug assign", str(rvalue))  # @todo |=.word
+    if lvalue.name == "A":
+        out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
+        out("\vora  " + to_hex(Zeropage.SCRATCH_B1))
+    elif lvalue.name == "X":
+        out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
+        with preserving_registers({'A'}, scope, out):
+            out("\vtxa")
+            out("\vora  " + to_hex(Zeropage.SCRATCH_B1))
+            out("\vtax")
+    elif lvalue.name == "Y":
+        out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
+        with preserving_registers({'A'}, scope, out):
+            out("\vtya")
+            out("\vora  " + to_hex(Zeropage.SCRATCH_B1))
+            out("\vtay")
+    else:
+        raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo |=.word
+
+
+def _gen_aug_and_reg_reg(lvalue: Register, out: Callable, rvalue: Register, scope: Scope) -> None:
+    if rvalue.name not in REGISTER_BYTES:
+        raise CodeError("unsupported rvalue register for aug assign", str(rvalue))  # @todo &=.word
+    if lvalue.name == "A":
+        out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
+        out("\vand  " + to_hex(Zeropage.SCRATCH_B1))
+    elif lvalue.name == "X":
+        out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
+        with preserving_registers({'A'}, scope, out):
+            out("\vtxa")
+            out("\vand  " + to_hex(Zeropage.SCRATCH_B1))
+            out("\vtax")
+    elif lvalue.name == "Y":
+        out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
+        with preserving_registers({'A'}, scope, out):
+            out("\vtya")
+            out("\vand  " + to_hex(Zeropage.SCRATCH_B1))
+            out("\vtay")
+    else:
+        raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo &=.word
+
+
+def _gen_aug_minus_reg_reg(lvalue: Register, out: Callable, rvalue: Register, scope: Scope) -> None:
+    if rvalue.name not in REGISTER_BYTES:
+        raise CodeError("unsupported rvalue register for aug assign", str(rvalue))  # @todo -=.word
+    if lvalue.name == "A":
+        out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
+        out("\vsec")
+        out("\vsbc  " + to_hex(Zeropage.SCRATCH_B1))
+    elif lvalue.name == "X":
+        out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
+        with preserving_registers({'A'}, scope, out):
+            out("\vtxa")
             out("\vsec")
             out("\vsbc  " + to_hex(Zeropage.SCRATCH_B1))
-        elif lvalue.name == "X":
-            out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
-            with preserving_registers({'A'}, scope, out):
-                out("\vtxa")
-                out("\vsec")
-                out("\vsbc  " + to_hex(Zeropage.SCRATCH_B1))
-                out("\vtax")
-        elif lvalue.name == "Y":
-            out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
-            with preserving_registers({'A'}, scope, out):
-                out("\vtya")
-                out("\vsec")
-                out("\vsbc  " + to_hex(Zeropage.SCRATCH_B1))
-                out("\vtay")
-        else:
-            raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo -=.word
-    elif operator == "&=":
-        if rvalue.name not in REGISTER_BYTES:
-            raise CodeError("unsupported rvalue register for aug assign", str(rvalue))  # @todo &=.word
-        if lvalue.name == "A":
-            out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
-            out("\vand  " + to_hex(Zeropage.SCRATCH_B1))
-        elif lvalue.name == "X":
-            out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
-            with preserving_registers({'A'}, scope, out):
-                out("\vtxa")
-                out("\vand  " + to_hex(Zeropage.SCRATCH_B1))
-                out("\vtax")
-        elif lvalue.name == "Y":
-            out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
-            with preserving_registers({'A'}, scope, out):
-                out("\vtya")
-                out("\vand  " + to_hex(Zeropage.SCRATCH_B1))
-                out("\vtay")
-        else:
-            raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo &=.word
-    elif operator == "|=":
-        if rvalue.name not in REGISTER_BYTES:
-            raise CodeError("unsupported rvalue register for aug assign", str(rvalue))  # @todo |=.word
-        if lvalue.name == "A":
-            out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
-            out("\vora  " + to_hex(Zeropage.SCRATCH_B1))
-        elif lvalue.name == "X":
-            out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
-            with preserving_registers({'A'}, scope, out):
-                out("\vtxa")
-                out("\vora  " + to_hex(Zeropage.SCRATCH_B1))
-                out("\vtax")
-        elif lvalue.name == "Y":
-            out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
-            with preserving_registers({'A'}, scope, out):
-                out("\vtya")
-                out("\vora  " + to_hex(Zeropage.SCRATCH_B1))
-                out("\vtay")
-        else:
-            raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo |=.word
-    elif operator == "^=":
-        if rvalue.name not in REGISTER_BYTES:
-            raise CodeError("unsupported rvalue register for aug assign", str(rvalue))  # @todo ^=.word
-        if lvalue.name == "A":
-            out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
-            out("\veor  " + to_hex(Zeropage.SCRATCH_B1))
-        elif lvalue.name == "X":
-            out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
-            with preserving_registers({'A'}, scope, out):
-                out("\vtxa")
-                out("\veor  " + to_hex(Zeropage.SCRATCH_B1))
-                out("\vtax")
-        elif lvalue.name == "Y":
-            out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
-            with preserving_registers({'A'}, scope, out):
-                out("\vtya")
-                out("\veor  " + to_hex(Zeropage.SCRATCH_B1))
-                out("\vtay")
-        else:
-            raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo ^=.word
-    elif operator == ">>=":
-        if rvalue.name not in REGISTER_BYTES:
-            raise CodeError("unsupported rvalue register for aug assign", str(rvalue))  # @todo >>=.word
-        if lvalue.name == "A":
-            out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
-            out("\vlsr  " + to_hex(Zeropage.SCRATCH_B1))
-        elif lvalue.name == "X":
-            out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
-            with preserving_registers({'A'}, scope, out):
-                out("\vtxa")
-                out("\vlsr  " + to_hex(Zeropage.SCRATCH_B1))
-                out("\vtax")
-        elif lvalue.name == "Y":
-            out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
-            with preserving_registers({'A'}, scope, out):
-                out("\vtya")
-                out("\vlsr  " + to_hex(Zeropage.SCRATCH_B1))
-                out("\vtay")
-        else:
-            raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo >>=.word
-    elif operator == "<<=":
-        if rvalue.name not in REGISTER_BYTES:
-            raise CodeError("unsupported rvalue register for aug assign", str(rvalue))  # @todo <<=.word
-        if lvalue.name == "A":
-            out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
-            out("\vasl  " + to_hex(Zeropage.SCRATCH_B1))
-        elif lvalue.name == "X":
-            out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
-            with preserving_registers({'A'}, scope, out):
-                out("\vtxa")
-                out("\vasl  " + to_hex(Zeropage.SCRATCH_B1))
-                out("\vtax")
-        elif lvalue.name == "Y":
-            out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
-            with preserving_registers({'A'}, scope, out):
-                out("\vtya")
-                out("\vasl  " + to_hex(Zeropage.SCRATCH_B1))
-                out("\vtay")
-        else:
-            raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo <<=.word
+            out("\vtax")
+    elif lvalue.name == "Y":
+        out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
+        with preserving_registers({'A'}, scope, out):
+            out("\vtya")
+            out("\vsec")
+            out("\vsbc  " + to_hex(Zeropage.SCRATCH_B1))
+            out("\vtay")
+    else:
+        raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo -=.word
+
+
+def _gen_aug_plus_reg_reg(lvalue: Register, out: Callable, rvalue: Register, scope: Scope) -> None:
+    if rvalue.name not in REGISTER_BYTES:
+        raise CodeError("unsupported rvalue register for aug assign", str(rvalue))  # @todo +=.word
+    if lvalue.name == "A":
+        out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
+        out("\vclc")
+        out("\vadc  " + to_hex(Zeropage.SCRATCH_B1))
+    elif lvalue.name == "X":
+        out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
+        with preserving_registers({'A'}, scope, out):
+            out("\vtxa")
+            out("\vclc")
+            out("\vadc  " + to_hex(Zeropage.SCRATCH_B1))
+            out("\vtax")
+    elif lvalue.name == "Y":
+        out("\vst{:s}  {:s}".format(rvalue.name.lower(), to_hex(Zeropage.SCRATCH_B1)))
+        with preserving_registers({'A'}, scope, out):
+            out("\vtya")
+            out("\vclc")
+            out("\vadc  " + to_hex(Zeropage.SCRATCH_B1))
+            out("\vtay")
+    else:
+        raise CodeError("unsupported lvalue register for aug assign", str(lvalue))  # @todo +=.word
