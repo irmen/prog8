@@ -1,12 +1,7 @@
-%output basic
-%import c64lib
-
 ~ main {
 
-	var .float flt
-        var  bytevar = 22 + 23          ; @todo bytevar in source should show its initial value in a comment
-        var     .text   guess1   = "?X" * 40  ; @todo constant-fold before semantic check
-        var     .text   guess2   = "?" * 40  ; @todo string result instead of int!
+	var .float flt = -9.87e-21
+        var  bytevar = 22 + 23
 	const .word border = $d020
 	var .word border2 = $d020
 	memory  screenm = $d021

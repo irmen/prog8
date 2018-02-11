@@ -14,8 +14,8 @@ from typing import Union, Generator, Tuple, List, Optional, Dict, Any, no_type_c
 import attr
 from ply.yacc import yacc
 from .plylex import SourceRef, tokens, lexer, find_tok_column, print_warning
-from .datatypes import DataType, VarType, REGISTER_SYMBOLS, REGISTER_BYTES, REGISTER_WORDS, \
-    char_to_bytevalue, FLOAT_MAX_NEGATIVE, FLOAT_MAX_POSITIVE
+from .datatypes import (DataType, VarType, REGISTER_SYMBOLS, REGISTER_BYTES, REGISTER_WORDS,
+                        FLOAT_MAX_NEGATIVE, FLOAT_MAX_POSITIVE, char_to_bytevalue)
 
 
 __all__ = ["ProgramFormat", "ZpOptions", "math_functions", "builtin_functions", "ParseError", "ExpressionEvaluationError",
@@ -1224,9 +1224,7 @@ def p_literal_value(p):
                      | CHARACTER
                      | BOOLEAN"""
     tok = p.slice[-1]
-    if tok.type == "CHARACTER":
-        p[1] = char_to_bytevalue(p[1])     # character literals are converted to byte value.
-    elif tok.type == "BOOLEAN":
+    if tok.type == "BOOLEAN":
         p[1] = int(p[1])    # boolean literals are converted to integer form (true=1, false=0).
     p[0] = LiteralValue(value=p[1], sourceref=_token_sref(p, 1))
 
@@ -1659,7 +1657,6 @@ def p_empty(p):
 
 def p_error(p):
     stack_state_str = '  '.join([symbol.type for symbol in parser.symstack][1:])
-    print('\n[ERROR DEBUG: parser state={:d} stack: {} . {} ]'.format(parser.state, stack_state_str, p))
     if p:
         sref = SourceRef(p.lexer.source_filename, p.lineno, find_tok_column(p))
         if p.value in ("", "\n"):
@@ -1668,6 +1665,7 @@ def p_error(p):
             p.lexer.error_function(sref, "syntax error before or at '{:.20s}'", str(p.value).rstrip())
     else:
         lexer.error_function(None, "syntax error at end of input", lexer.source_filename)
+    # print('\n[ERROR DEBUG: parser state={:d} stack: {} . {} ]'.format(parser.state, stack_state_str, p))
 
 
 def _token_sref(p, token_idx):

@@ -252,13 +252,13 @@ def test_char_string():
     result = parse_source(test_source_4)
     block = result.scope.nodes[0]
     var1, var2, var3, assgn1, assgn2, assgn3, = block.scope.nodes
-    assert var1.value.value == 64
-    assert var2.value.value == 126
+    assert var1.value.value == '@'
+    assert var2.value.value == 'π'
     assert var3.value.value == "abc"
-    assert assgn1.right.value == 64
-    assert assgn2.right.value == 126
+    assert assgn1.right.value == '@'
+    assert assgn2.right.value == 'π'
     assert assgn3.right.value == "abc"
-
+    # note: the actual one-charactor-to-bytevalue conversion is done at the very latest, when issuing an assignment statement
 
 
 test_source_5 = """

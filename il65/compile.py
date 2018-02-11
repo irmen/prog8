@@ -58,6 +58,7 @@ class PlyParser:
 
     def lexer_error(self, sourceref: SourceRef, fmtstring: str, *args: str) -> None:
         self.parse_errors += 1
+        self.print_error_sourceline(sourceref)
         print_bold("ERROR: {}: {}".format(sourceref, fmtstring.format(*args)))
 
     def _check_last_statement_is_return(self, last_stmt: AstNode) -> None:
@@ -508,14 +509,19 @@ class PlyParser:
             print("Error (in imported file):", str(exc), file=out)
         else:
             print("Error:", str(exc), file=out)
-        sourcetext = linecache.getline(exc.sourceref.file, exc.sourceref.line).rstrip()
-        if sourcetext:
-            print("  " + sourcetext.expandtabs(8), file=out)
-            if exc.sourceref.column:
-                print(' ' * (1+exc.sourceref.column) + '^', file=out)
+        self.print_error_sourceline(exc.sourceref)
         if out.isatty():
             print("\x1b[0m", file=out, end="", flush=True)
         raise exc   # XXX temporary to see where the error occurred
+
+    def print_error_sourceline(self, sref: SourceRef) -> None:
+        if not sref:
+            return
+        sourcetext = linecache.getline(sref.file, sref.line).rstrip()
+        if sourcetext:
+            print("  " + sourcetext.expandtabs(8))
+            if sref.column:
+                print(' ' * (1+sref.column) + '^')
 
 
 class Zeropage:

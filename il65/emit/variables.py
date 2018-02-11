@@ -7,8 +7,8 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 
 from collections import defaultdict
 from typing import Dict, List, Callable, Any, no_type_check
-from ..plyparse import Block, VarType, VarDef, LiteralValue, AddressOf
-from ..datatypes import DataType, STRING_DATATYPES
+from ..plyparse import Block, VarDef, LiteralValue, AddressOf
+from ..datatypes import DataType, VarType, STRING_DATATYPES
 from . import to_hex, to_mflpt5, CodeError
 
 
@@ -173,12 +173,13 @@ def generate_block_vars(out: Callable, block: Block, zeropage: bool=False) -> No
         for vardef in vars_by_vartype.get(VarType.VAR, []):
             if vardef.datatype.isnumeric():
                 assert vardef.size == [1]
+                assert isinstance(vardef.value, LiteralValue)
                 if vardef.datatype == DataType.BYTE:
-                    out("{:s}\v.byte  ?".format(vardef.name))
+                    out("{:s}\v.byte  ?\t; {:s}".format(vardef.name, to_hex(vardef.value.value)))
                 elif vardef.datatype == DataType.WORD:
-                    out("{:s}\v.word  ?".format(vardef.name))
+                    out("{:s}\v.word  ?\t; {:s}".format(vardef.name, to_hex(vardef.value.value)))
                 elif vardef.datatype == DataType.FLOAT:
-                    out("{:s}\v.fill  5\t\t; float".format(vardef.name))
+                    out("{:s}\v.fill  5\t\t; float {}".format(vardef.name, vardef.value.value))
                 else:
                     raise CodeError("weird datatype")
             elif vardef.datatype in (DataType.BYTEARRAY, DataType.WORDARRAY):
