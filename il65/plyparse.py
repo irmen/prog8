@@ -22,7 +22,7 @@ __all__ = ["ProgramFormat", "ZpOptions", "math_functions", "builtin_functions", 
            "UndefinedSymbolError", "AstNode", "Directive", "Scope", "Block", "Module", "Label", "Expression",
            "Register", "Subroutine", "LiteralValue", "AddressOf", "SymbolName", "Dereference", "IncrDecr",
            "ExpressionWithOperator", "Goto", "SubCall", "VarDef", "Return", "Assignment", "AugAssignment",
-           "InlineAssembly", "TargetRegisters", "AssignmentTargets",
+           "InlineAssembly", "AssignmentTargets",
            "parse_file", "coerce_constant_value", "datatype_of", "check_symbol_definition"]
 
 
@@ -390,15 +390,6 @@ class PreserveRegs(AstNode):
     # no subnodes.
 
 
-@attr.s(cmp=False)
-class TargetRegisters(AstNode):
-    # subnodes is is a list of 1 or more registers.
-    # In it's multiple-register form it is only used to be able to parse
-    # the result of a subroutine call such as A,X = sub().
-    # It will be replaced by a regular Register node if it contains just one register.
-    pass
-
-
 @attr.s(cmp=False, repr=False)
 class InlineAssembly(AstNode):
     # no subnodes.
@@ -545,21 +536,19 @@ class Dereference(Expression):
 @attr.s(cmp=False)
 class IncrDecr(AstNode):
     # increment or decrement something by a CONSTANT value (1 or more)
-    # one subnode: target (TargetRegisters, Register, SymbolName, or Dereference).
+    # one subnode: target (Register, SymbolName, or Dereference).
     operator = attr.ib(type=str, validator=attr.validators.in_(["++", "--"]))
     howmuch = attr.ib(default=1)
 
     @property
-    def target(self) -> Union[TargetRegisters, Register, SymbolName, Dereference]:
+    def target(self) -> Union[Register, SymbolName, Dereference]:
         return self.nodes[0]        # type: ignore
 
     @target.setter
-    def target(self, target: Union[TargetRegisters, Register, SymbolName, Dereference]) -> None:
+    def target(self, target: Union[Register, SymbolName, Dereference]) -> None:
         if isinstance(target, Register):
             if target.name not in REGISTER_BYTES | REGISTER_WORDS:
                 raise ParseError("cannot incr/decr that register", self.sourceref)
-        if isinstance(target, TargetRegisters):
-            raise ParseError("cannot incr/decr multiple registers at once", self.sourceref)
         assert isinstance(target, (Register, SymbolName, Dereference))
         self.nodes.clear()
         self.nodes.append(target)
@@ -842,7 +831,7 @@ class Return(AstNode):
 
 @attr.s(cmp=False, slots=True, repr=False)
 class AssignmentTargets(AstNode):
-    # a list of one or more assignment targets (TargetRegisters, Register, SymbolName, or Dereference).
+    # a list of one or more assignment targets (Register, SymbolName, or Dereference).
     nodes = attr.ib(type=list, init=True)    # requires nodes in __init__
 
     def has_memvalue(self) -> bool:
@@ -862,9 +851,7 @@ class AssignmentTargets(AstNode):
         for t1, t2 in zip(self.nodes, other.nodes):
             if type(t1) is not type(t2):
                 return False
-            if isinstance(t1, TargetRegisters):
-                pass
-            elif isinstance(t1, Register):
+            if isinstance(t1, Register):
                 if t1 != t2:  # __eq__ is defined
                     return False
             elif isinstance(t1, SymbolName):
@@ -909,11 +896,11 @@ class Assignment(AstNode):
 
 @attr.s(cmp=False, slots=True, repr=False)
 class AugAssignment(AstNode):
-    # has two subnodes: left (=TargetRegisters, Register, SymbolName, or Dereference) and right (=Expression)
+    # has two subnodes: left (=Register, SymbolName, or Dereference) and right (=Expression)
     operator = attr.ib(type=str)
 
     @property
-    def left(self) -> Union[TargetRegisters, Register, SymbolName, Dereference]:
+    def left(self) -> Union[Register, SymbolName, Dereference]:
         return self.nodes[0]    # type: ignore
 
     @property
@@ -936,9 +923,6 @@ def datatype_of(targetnode: AstNode, scope: Scope) -> DataType:
         symdef = scope.lookup(targetnode.name)
         if isinstance(symdef, VarDef):
             return symdef.datatype
-    elif isinstance(targetnode, TargetRegisters):
-        if len(targetnode.nodes) == 1:
-            return datatype_of(targetnode.nodes[0], scope)
     raise TypeError("cannot determine datatype", targetnode)
 
 
@@ -1625,29 +1609,11 @@ def p_expression_value(p):
 
 def p_assignment_target(p):
     """
-    assignment_target :  target_registers
+    assignment_target :  register
                       |  symbolname
                       |  dereference
     """
-    if isinstance(p[1], TargetRegisters):
-        # if the target registers is just a single register, use that instead
-        if len(p[1].nodes) == 1:
-            assert isinstance(p[1].nodes[0], Register)
-            p[1] = p[1].nodes[0]
     p[0] = p[1]
-
-
-def p_target_registers(p):
-    """
-    target_registers :  register
-                     |  target_registers  ','  register
-    """
-    if len(p) == 2:
-        p[0] = TargetRegisters(sourceref=_token_sref(p, 1))
-        p[0].nodes.append(p[1])
-    else:
-        p[1].nodes.append(p[3])
-        p[0] = p[1]
 
 
 def p_empty(p):
@@ -1656,7 +1622,6 @@ def p_empty(p):
 
 
 def p_error(p):
-    stack_state_str = '  '.join([symbol.type for symbol in parser.symstack][1:])
     if p:
         sref = SourceRef(p.lexer.source_filename, p.lineno, find_tok_column(p))
         if p.value in ("", "\n"):
@@ -1665,6 +1630,7 @@ def p_error(p):
             p.lexer.error_function(sref, "syntax error before or at '{:.20s}'", str(p.value).rstrip())
     else:
         lexer.error_function(None, "syntax error at end of input", lexer.source_filename)
+    # stack_state_str = '  '.join([symbol.type for symbol in parser.symstack][1:])
     # print('\n[ERROR DEBUG: parser state={:d} stack: {} . {} ]'.format(parser.state, stack_state_str, p))
 
 

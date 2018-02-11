@@ -111,8 +111,8 @@ class Optimizer:
                     incrdecrs.append(node)
                     target = node.target
 
-    def _same_target(self, node1: Union[TargetRegisters, Register, SymbolName, Dereference],
-                     node2: Union[TargetRegisters, Register, SymbolName, Dereference]) -> bool:
+    def _same_target(self, node1: Union[Register, SymbolName, Dereference],
+                     node2: Union[Register, SymbolName, Dereference]) -> bool:
         if isinstance(node1, Register) and isinstance(node2, Register) and node1.name == node2.name:
             return True
         if isinstance(node1, SymbolName) and isinstance(node2, SymbolName) and node1.name == node2.name:
@@ -240,9 +240,9 @@ class Optimizer:
         return new_assignment
 
     @no_type_check
-    def _make_aug_assign(self, old_assign: Assignment, target: Union[TargetRegisters, Register, SymbolName, Dereference],
+    def _make_aug_assign(self, old_assign: Assignment, target: Union[Register, SymbolName, Dereference],
                          value: Union[int, float], operator: str) -> AugAssignment:
-        assert isinstance(target, (TargetRegisters, Register, SymbolName, Dereference))
+        assert isinstance(target, (Register, SymbolName, Dereference))
         a = AugAssignment(operator=operator, sourceref=old_assign.sourceref)
         a.nodes.append(target)
         target.parent = a
@@ -253,9 +253,9 @@ class Optimizer:
         return a
 
     @no_type_check
-    def _make_incrdecr(self, old_stmt: AstNode, target: Union[TargetRegisters, Register, SymbolName, Dereference],
+    def _make_incrdecr(self, old_stmt: AstNode, target: Union[Register, SymbolName, Dereference],
                        howmuch: Union[int, float], operator: str) -> IncrDecr:
-        assert isinstance(target, (TargetRegisters, Register, SymbolName, Dereference))
+        assert isinstance(target, (Register, SymbolName, Dereference))
         a = IncrDecr(operator=operator, howmuch=howmuch, sourceref=old_stmt.sourceref)
         a.nodes.append(target)
         target.parent = a

@@ -146,8 +146,7 @@ def _generate_aug_reg_int(out: Callable, lvalue: Register, operator: str, rvalue
     elif operator == "<<=":
         _gen_aug_shiftleft_reg_int(lvalue, out, rname, rvalue, scope)
     else:
-        # @todo implement more operators such as *=  /=
-        raise ValueError("invalid operator: " + operator, str(lvalue.sourceref))
+        raise ValueError("invalid operator: " + operator, str(lvalue.sourceref))   # @todo implement more operators such as *=,  /=
 
 
 def _generate_aug_reg_reg(out: Callable, lvalue: Register, operator: str, rvalue: Register, scope: Scope) -> None:
@@ -166,8 +165,7 @@ def _generate_aug_reg_reg(out: Callable, lvalue: Register, operator: str, rvalue
     elif operator == "<<=":
         _gen_aug_shiftleft_reg_reg(lvalue, out, rvalue, scope)
     else:
-        # @todo implement more operators such as *=  /=
-        raise ValueError("invalid operator: " + operator, str(lvalue.sourceref))
+        raise ValueError("invalid operator: " + operator, str(lvalue.sourceref))  # @todo implement more operators such as *=,  /=
 
 
 def _gen_aug_shiftleft_reg_int(lvalue: Register, out: Callable, rname: str, rvalue: int, scope: Scope) -> None:
