@@ -1,9 +1,6 @@
 ~ main {
-
 	var .float flt = -9.87e-21
 	const .word border = $0099
-	const        cbyte2         = 2222
-	const        cbyte2b        = cbyte2*3          ; @todo fix scope not found crash
 	var counter = 1
 
 start:
@@ -33,7 +30,6 @@ start:
 	block2.start()
 	return 44.123
 
-sub varssub()->() {
 sub goodbye ()->() {
         var xxxxxx             ; @todo vars in sub?
         memory y = $c000        ; @todo memvars in sub?
@@ -43,7 +39,7 @@ sub goodbye ()->() {
         return
 }
 
-}
+
 sub derp ()->() {
         const q = 22
 	A = q *4                ; @todo fix scope not found error

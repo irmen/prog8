@@ -22,7 +22,7 @@ __all__ = ["ProgramFormat", "ZpOptions", "math_functions", "builtin_functions", 
            "UndefinedSymbolError", "AstNode", "Directive", "Scope", "Block", "Module", "Label", "Expression",
            "Register", "Subroutine", "LiteralValue", "AddressOf", "SymbolName", "Dereference", "IncrDecr",
            "ExpressionWithOperator", "Goto", "SubCall", "VarDef", "Return", "Assignment", "AugAssignment",
-           "InlineAssembly", "AssignmentTargets",
+           "InlineAssembly", "AssignmentTargets", "BuiltinFunction", "TokenFilter", "parser", "connect_parents",
            "parse_file", "coerce_constant_value", "datatype_of", "check_symbol_definition"]
 
 
@@ -108,6 +108,7 @@ class AstNode:
         self.nodes[idx] = newnode
         newnode.parent = self
         oldnode.parent = None
+        oldnode.nodes = None
 
     def add_node(self, newnode: 'AstNode', index: int = None) -> None:
         assert isinstance(newnode, AstNode)
@@ -804,8 +805,10 @@ class VarDef(AstNode):
         if self.datatype.isarray() and sum(self.size) in (0, 1):
             print("warning: {}: array/matrix with size 1, use normal byte/word instead".format(self.sourceref))
         if self.value is None and (self.datatype.isnumeric() or self.datatype.isarray()):
-            self.value = LiteralValue(value=0, sourceref=self.sourceref)
-            self.value.parent = self
+            if self.vartype != VarType.CONST:
+                # leave None when it's a const, so we can check for uninitialized consts later and raise error.
+                self.value = LiteralValue(value=0, sourceref=self.sourceref)
+                self.value.parent = self
         # if it's a matrix with interleave, it must be memory mapped
         if self.datatype == DataType.MATRIX and len(self.size) == 3:
             if self.vartype != VarType.MEMORY:

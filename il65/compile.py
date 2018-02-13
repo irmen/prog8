@@ -32,7 +32,7 @@ class PlyParser:
         module = None
         try:
             module = parse_file(filename, self.lexer_error)
-            self.check_directives(module)
+            self.check_directives_and_const_defs(module)
             self.apply_directive_options(module)
             module.scope.define_builtin_functions()
             self.process_imports(module)
@@ -44,7 +44,7 @@ class PlyParser:
                 self.determine_subroutine_usage(module)
                 self.all_parents_connected(module)
                 cf = ConstantFold(module)
-                cf.fold_constants()   # do some constant-folding
+                cf.fold_constants()
                 self.semantic_check(module)
                 self.coerce_values(module)
                 self.check_floats_enabled(module)
@@ -430,10 +430,13 @@ class PlyParser:
                                 namespace, name = name.rsplit(".", maxsplit=2)
                             usages[(namespace, symbol.name)].add(str(asmnode.sourceref))
 
-    def check_directives(self, module: Module) -> None:
+    def check_directives_and_const_defs(self, module: Module) -> None:
         imports = set()  # type: Set[str]
         for node in module.all_nodes():
-            if isinstance(node, Directive):
+            if isinstance(node, VarDef):
+                if node.value is None and node.vartype == VarType.CONST:
+                    raise ParseError("const should be initialized with a compile-time constant value", node.sourceref)
+            elif isinstance(node, Directive):
                 assert isinstance(node.parent, Scope)
                 if node.parent.level == "module":
                     if node.name not in {"output", "zp", "address", "import", "saveregisters", "noreturn"}:

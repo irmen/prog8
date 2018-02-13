@@ -18,8 +18,7 @@ def test_creation():
     assert v.vartype == VarType.CONST
     assert v.datatype == DataType.BYTE
     assert v.size == [1]
-    assert isinstance(v.value, LiteralValue)
-    assert v.value.value == 0
+    assert v.value is None
     assert v.zp_address is None
     v = VarDef(name="v2", vartype="memory", datatype=None, sourceref=sref)
     assert v.vartype == VarType.MEMORY
@@ -88,11 +87,13 @@ def test_const_value():
     with pytest.raises(TypeError):
         v.const_value()
     v = VarDef(name="v1", vartype="const", datatype=DatatypeNode(name="word", sourceref=sref), sourceref=sref)
-    assert v.const_value() == 0
+    with pytest.raises(ValueError):
+        v.const_value()
     v.value = LiteralValue(value=42, sourceref=sref)
     assert v.const_value() == 42
     v = VarDef(name="v1", vartype="const", datatype=DatatypeNode(name="float", sourceref=sref), sourceref=sref)
-    assert v.const_value() == 0
+    with pytest.raises(ValueError):
+        v.const_value()
     v.value = LiteralValue(value=42.9988, sourceref=sref)
     assert v.const_value() == 42.9988
     e = ExpressionWithOperator(operator="-", sourceref=sref)

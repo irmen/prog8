@@ -42,7 +42,10 @@ class ConstantFold:
                 self._constant_folding()
 
     def _constant_folding(self) -> None:
-        for expression in self.module.all_nodes(Expression):
+        for expression in list(self.module.all_nodes(Expression)):
+            if expression.parent is None or expression.parent.parent is None:
+                # stale expression node (was part of an expression that was constant-folded away)
+                continue
             if isinstance(expression, LiteralValue):
                 continue
             try:

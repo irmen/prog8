@@ -1,10 +1,9 @@
 import math
 import pytest
 from il65.plylex import lexer, tokens, find_tok_column, literals, reserved, SourceRef
-from il65.plyparse import parser, connect_parents, TokenFilter, Module, Subroutine, Block, IncrDecr, Scope, \
-    AstNode, Expression, Assignment, VarDef, Register, ExpressionWithOperator, LiteralValue, Label, SubCall, Dereference,\
-    BuiltinFunction, UndefinedSymbolError
+from il65.plyparse import *
 from il65.datatypes import DataType, VarType
+from il65.constantfold import ConstantFold
 
 
 def lexer_error(sourceref: SourceRef, fmtstring: str, *args: str) -> None:
@@ -450,3 +449,49 @@ def test_const_other_expressions():
     assert not e[2].is_compile_constant()
     with pytest.raises(TypeError):
         e[2].const_value()
+
+
+def test_vdef_const_folds():
+    src = """
+~ {
+    const  cb1 = 123
+    const  cb2 = cb1
+    const  cb3 = cb1*3
+}
+"""
+    result = parse_source(src)
+    if isinstance(result, Module):
+        result.scope.define_builtin_functions()
+    vd = list(result.all_nodes(VarDef))
+    assert vd[0].name == "cb1"
+    assert vd[0].vartype == VarType.CONST
+    assert vd[0].datatype == DataType.BYTE
+    assert isinstance(vd[0].value, LiteralValue)
+    assert vd[0].value.value == 123
+    assert vd[1].name == "cb2"
+    assert vd[1].vartype == VarType.CONST
+    assert vd[1].datatype == DataType.BYTE
+    assert isinstance(vd[1].value, SymbolName)
+    assert vd[1].value.name == "cb1"
+    assert vd[2].name == "cb3"
+    assert vd[2].vartype == VarType.CONST
+    assert vd[2].datatype == DataType.BYTE
+    assert isinstance(vd[2].value, ExpressionWithOperator)
+    cf = ConstantFold(result)
+    cf.fold_constants()
+    vd = list(result.all_nodes(VarDef))
+    assert vd[0].name == "cb1"
+    assert vd[0].vartype == VarType.CONST
+    assert vd[0].datatype == DataType.BYTE
+    assert isinstance(vd[0].value, LiteralValue)
+    assert vd[0].value.value == 123
+    assert vd[1].name == "cb2"
+    assert vd[1].vartype == VarType.CONST
+    assert vd[1].datatype == DataType.BYTE
+    assert isinstance(vd[1].value, LiteralValue)
+    assert vd[1].value.value == 123
+    assert vd[2].name == "cb3"
+    assert vd[2].vartype == VarType.CONST
+    assert vd[2].datatype == DataType.BYTE
+    assert isinstance(vd[2].value, LiteralValue)
+    assert vd[2].value.value == 369
