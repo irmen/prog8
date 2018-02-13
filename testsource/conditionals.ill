@@ -69,9 +69,6 @@ label3:
         if_true [XY]  goto label4
         if_true [AY]  goto label4
         if_true [AX]  goto label4
-        if_true [X ] goto label4
-        if_true [A ] goto label4
-        if_true [Y ] goto label4
 
 label4:
         return

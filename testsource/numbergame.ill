@@ -99,14 +99,6 @@ game_over:
         return
 
 sub goodbye ()->() {
-        var xxxxxx             ; @todo vars in sub
-        memory y = $c000        ; @todo vars in sub
-        const q = 22            ; @todo const in sub
-
-	xxxxxx++
-	y++
-	xxxxxx = q *4
-
         c64scr.print_string("\nThanks for playing. Bye!\n")
         return
 }
