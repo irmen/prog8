@@ -137,6 +137,12 @@ class PlyParser:
             if isinstance(node, Block):
                 if node in encountered_blocks:
                     raise CompileError("parse tree malformed; block duplicated", node, node.name, node.sourceref)
+                if node.name is None:
+                    # blocks without names are possible, in this case their address is specified
+                    if node.address is not None:
+                        continue
+                    else:
+                        raise ParseError("block without name must have address", node.sourceref)
                 parentname = (node.parent.name + ".") if node.parent else ""
                 blockname = parentname + node.name
                 if blockname in encountered_block_names:

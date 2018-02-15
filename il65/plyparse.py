@@ -88,6 +88,9 @@ class AstNode:
 
     def all_nodes(self, *nodetypes: type) -> Generator['AstNode', None, None]:
         nodetypes = nodetypes or (AstNode, )
+        if self.nodes is None:
+            # this is the case when a node has been pruned away
+            return
         child_nodes = list(self.nodes)
         for node in child_nodes:
             if isinstance(node, nodetypes):
@@ -1088,6 +1091,14 @@ def p_block_name(p):
     block :  BITINVERT  NAME  endl_opt  scope
     """
     p[0] = Block(name=p[2], sourceref=_token_sref(p, 2))
+    p[0].scope = p[4]
+
+
+def p_block_address(p):
+    """
+    block :  BITINVERT  INTEGER  endl_opt  scope
+    """
+    p[0] = Block(address=p[2], sourceref=_token_sref(p, 2))
     p[0].scope = p[4]
 
 

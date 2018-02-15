@@ -127,3 +127,8 @@ def preserving_registers(registers: Set[str], scope: Scope, out: Callable, loads
             out("\t\tpla")
     else:
         yield
+
+
+def scoped_name(node_with_name: AstNode, current_scope: Scope) -> str:
+    node_scope = node_with_name.my_scope()
+    return node_with_name.name if node_scope is current_scope else node_scope.name + "." + node_with_name.name

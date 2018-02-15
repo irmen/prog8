@@ -9,7 +9,7 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 
 from ..plyparse import VarType, VarDef, Register, IncrDecr, SymbolName, Dereference, LiteralValue, datatype_of
 from ..datatypes import DataType, REGISTER_BYTES
-from . import CodeError, preserving_registers, to_hex, Context
+from . import CodeError, preserving_registers, to_hex, Context, scoped_name
 
 
 def generate_incrdecr(ctx: Context) -> None:
@@ -139,7 +139,7 @@ def generate_incrdecr(ctx: Context) -> None:
     elif isinstance(target, VarDef):
         if target.vartype == VarType.CONST:
             raise CodeError("cannot modify a constant", target)
-        what_str = target.name
+        what_str = scoped_name(target, scope)
         if target.datatype == DataType.BYTE:
             if stmt.howmuch == 1:
                 out("\v{:s}  {:s}".format("inc" if stmt.operator == "++" else "dec", what_str))

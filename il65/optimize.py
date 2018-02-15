@@ -203,14 +203,14 @@ class Optimizer:
                             new_assignment = self._make_new_assignment(assignment, 1)
                             assignment.my_scope().replace_node(assignment, new_assignment)
                             self.optimizations_performed = True
-                    if assignment.right.value >= 8 and assignment.operator in ("<<=", ">>="):
+                    elif assignment.right.value >= 8 and assignment.operator in ("<<=", ">>="):
                         print("{}: shifting result is always zero".format(assignment.sourceref))
                         new_stmt = Assignment(sourceref=assignment.sourceref)
                         new_stmt.nodes.append(AssignmentTargets(nodes=[assignment.left], sourceref=assignment.sourceref))
                         new_stmt.nodes.append(LiteralValue(value=0, sourceref=assignment.sourceref))
                         assignment.my_scope().replace_node(assignment, new_stmt)
                         self.optimizations_performed = True
-                    if assignment.operator in ("+=", "-=") and 0 < assignment.right.value < 256:
+                    elif assignment.operator in ("+=", "-=") and 0 < assignment.right.value < 256:
                         howmuch = assignment.right
                         if howmuch.value not in (0, 1):
                             _, howmuch = coerce_constant_value(datatype_of(assignment.left, assignment.my_scope()),
@@ -221,7 +221,7 @@ class Optimizer:
                         new_stmt.target.parent = new_stmt
                         assignment.my_scope().replace_node(assignment, new_stmt)
                         self.optimizations_performed = True
-                    if assignment.right.value == 1 and assignment.operator in ("/=", "//=", "*="):
+                    elif assignment.right.value == 1 and assignment.operator in ("/=", "//=", "*="):
                         self.num_warnings += 1
                         print_warning("{}: removed statement that has no effect".format(assignment.sourceref))
                         assignment.my_scope().remove_node(assignment)
