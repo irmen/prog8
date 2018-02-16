@@ -2,9 +2,6 @@
 
 
 class CodeGenerator:
-    BREAKPOINT_COMMENT_SIGNATURE = "~~~BREAKPOINT~~~"
-    BREAKPOINT_COMMENT_DETECTOR = r".(?P<address>\w+)\s+ea\s+nop\s+;\s+{:s}.*".format(BREAKPOINT_COMMENT_SIGNATURE)
-
     def generate_call(self, stmt: CallStmt) -> None:
         self.p("\t\t\t\t\t; " + stmt.lineref)
         if stmt.condition:

@@ -87,17 +87,18 @@ class AstNode:
         raise LookupError("no scope found in node ancestry", self)
 
     def all_nodes(self, *nodetypes: type) -> Generator['AstNode', None, None]:
-        nodetypes = nodetypes or (AstNode, )
-        if self.nodes is None:
-            # this is the case when a node has been pruned away
+        if not self.nodes:
+            # this is the case when a node has been pruned away (nodes=None) or we don't have any child nodes
             return
         child_nodes = list(self.nodes)
+        if nodetypes:
+            for node in child_nodes:
+                if isinstance(node, nodetypes):
+                    yield node
+        else:
+            yield from child_nodes
         for node in child_nodes:
-            if isinstance(node, nodetypes):
-                yield node
-        for node in child_nodes:
-            if isinstance(node, AstNode):
-                yield from node.all_nodes(*nodetypes)
+            yield from node.all_nodes(*nodetypes)
 
     def remove_node(self, node: 'AstNode') -> None:
         assert node.parent is self
