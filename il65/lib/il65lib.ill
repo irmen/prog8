@@ -15,6 +15,7 @@
 
 	%asm {
 ; ---- jmp (indirect) routines for register pairs containing the indirect address
+; @todo still needed??
 jsr_indirect_nozpuse_AX
 		sta  jsr_indirect_tmp
 		stx  jsr_indirect_tmp+1

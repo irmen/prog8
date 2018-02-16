@@ -508,7 +508,7 @@ class SymbolName(Expression):
 
 @attr.s(cmp=False)
 class Dereference(Expression):
-    # one subnode: operand (SymbolName, integer LiteralValue or Register)
+    # one subnode: operand (SymbolName, integer LiteralValue or Register (pair) )
     datatype = attr.ib()
     size = attr.ib(type=int, default=None)
 
@@ -691,6 +691,7 @@ class ExpressionWithOperator(Expression):
 @attr.s(cmp=False, repr=False)
 class Goto(AstNode):
     # one or two subnodes: target (SymbolName, integer LiteralValue, or Dereference) and optionally: condition (Expression)
+    # also the if_stmt itself can be a form of a condition (if_gt, ...)
     if_stmt = attr.ib(default=None)
 
     @property
@@ -700,6 +701,10 @@ class Goto(AstNode):
     @property
     def condition(self) -> Optional[Expression]:
         return self.nodes[1] if len(self.nodes) == 2 else None      # type: ignore
+
+    @property
+    def if_cond(self) -> str:
+        return self.if_stmt[3:] if self.if_stmt else ""
 
 
 @attr.s(cmp=False, slots=True, repr=False)

@@ -15,7 +15,7 @@ start:
         A = c64.VMCSB
         A |= 2
         c64.VMCSB = A
-        c64.VMCSB |= 2     ;  @todo when this works it replaces the three lines above
+        ;c64.VMCSB |= 2     ;  @todo when this works it replaces the three lines above
 
         ; greeting
         c64scr.print_string("Enter your name: ")

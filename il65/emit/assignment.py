@@ -121,8 +121,10 @@ def generate_aug_assignment(ctx: Context) -> None:
                 raise CodeError("invalid dereference operand type", rvalue)
         else:
             raise CodeError("invalid rvalue type", rvalue)
+    elif isinstance(lvalue, SymbolName):
+        raise NotImplementedError("symbolname augassign", lvalue)  # XXX
     else:
-        raise CodeError("aug. assignment only implemented for registers for now", stmt.sourceref)  # XXX
+        raise CodeError("aug. assignment only implemented for registers and symbols for now", lvalue, stmt.sourceref)  # XXX
 
 
 def _generate_aug_reg_int(out: Callable, lvalue: Register, operator: str, rvalue: int, rname: str, scope: Scope) -> None:
