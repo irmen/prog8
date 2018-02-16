@@ -132,7 +132,7 @@
 
         ; (constant) expressions
 	var     .word                expr_byte1b     =  -1-2-3-4-$22+$80+ZP.zpconst
-	var     .byte           expr_fault2     =  1 + (8/3)+sin(33) + max(1,2,3)
+	var     .byte           expr_fault2     =  1 + (8/3)+sin(33) + len("abc")
 
 
 sin:

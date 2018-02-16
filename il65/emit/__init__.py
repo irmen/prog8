@@ -8,7 +8,7 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 import contextlib
 import math
 import attr
-from typing import Set, Callable
+from typing import Set, Callable, no_type_check
 from ..datatypes import FLOAT_MAX_POSITIVE, FLOAT_MAX_NEGATIVE
 from ..plyparse import Scope, AstNode
 from ..compile import Zeropage
@@ -129,6 +129,7 @@ def preserving_registers(registers: Set[str], scope: Scope, out: Callable, loads
         yield
 
 
+@no_type_check
 def scoped_name(node_with_name: AstNode, current_scope: Scope) -> str:
     node_scope = node_with_name.my_scope()
     return node_with_name.name if node_scope is current_scope else node_scope.name + "." + node_with_name.name
