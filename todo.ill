@@ -1,4 +1,5 @@
 ~ main {
+	var .float flt1 = 9.87e-21
 	var .float flt = -9.87e-21
 	const .word border = $0099
 	var counter = 1

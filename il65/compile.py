@@ -93,21 +93,21 @@ class PlyParser:
                 # note: not processing regular assignments, because they can contain multiple targets of different datatype.
                 # this has to be dealt with anyway later, so we don't bother dealing with it here for just a special case.
                 if isinstance(node, AugAssignment):
-                    if node.right.is_compile_constant():
+                    if node.right.is_compiletime_const():
                         _, node.right = coerce_constant_value(datatype_of(node.left, node.my_scope()), node.right, node.right.sourceref)
                 elif isinstance(node, Goto):
-                    if node.condition is not None and node.condition.is_compile_constant():
+                    if node.condition is not None and node.condition.is_compiletime_const():
                         _, node.nodes[1] = coerce_constant_value(DataType.WORD, node.nodes[1], node.nodes[1].sourceref)   # type: ignore
                 elif isinstance(node, Return):
-                    if node.value_A is not None and node.value_A.is_compile_constant():
+                    if node.value_A is not None and node.value_A.is_compiletime_const():
                         _, node.nodes[0] = coerce_constant_value(DataType.BYTE, node.nodes[0], node.nodes[0].sourceref)   # type: ignore
-                    if node.value_X is not None and node.value_X.is_compile_constant():
+                    if node.value_X is not None and node.value_X.is_compiletime_const():
                         _, node.nodes[1] = coerce_constant_value(DataType.BYTE, node.nodes[1], node.nodes[1].sourceref)   # type: ignore
-                    if node.value_Y is not None and node.value_Y.is_compile_constant():
+                    if node.value_Y is not None and node.value_Y.is_compiletime_const():
                         _, node.nodes[2] = coerce_constant_value(DataType.BYTE, node.nodes[2], node.nodes[2].sourceref)   # type: ignore
                 elif isinstance(node, VarDef):
                     if node.value is not None:
-                        if node.value.is_compile_constant():
+                        if node.value.is_compiletime_const():
                             _, node.value = coerce_constant_value(datatype_of(node, node.my_scope()), node.value, node.value.sourceref)
             except OverflowError as x:
                 raise ParseError(str(x), node.sourceref)
@@ -189,7 +189,7 @@ class PlyParser:
                     if isinstance(node.right, LiteralValue) and node.right.value == 0:
                         raise ParseError("division by zero", node.right.sourceref)
             elif isinstance(node, VarDef):
-                if node.value is not None and not node.value.is_compile_constant():
+                if node.value is not None and not node.value.is_compiletime_const():
                     raise ParseError("variable initialization value should be a compile-time constant", node.value.sourceref)
             elif isinstance(node, Dereference):
                 if isinstance(node.operand, Register) and node.operand.datatype == DataType.BYTE:

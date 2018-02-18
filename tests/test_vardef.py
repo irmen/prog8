@@ -3,13 +3,6 @@ from il65.datatypes import DataType
 from il65.plyparse import LiteralValue, VarDef, VarType, DatatypeNode, ExpressionWithOperator, Scope, AddressOf, SymbolName, UndefinedSymbolError
 from il65.plylex import SourceRef
 
-# zero or one subnode: value (an Expression, LiteralValue, AddressOf or SymbolName.).
-# name = attr.ib(type=str)
-# vartype = attr.ib()
-# datatype = attr.ib()
-# size = attr.ib(type=list, default=None)
-# zp_address = attr.ib(type=int, default=None, init=False)  # the address in the zero page if this var is there, will be set later
-
 
 def test_creation():
     sref = SourceRef("test", 1, 1)
@@ -62,10 +55,8 @@ def test_set_value():
     assert v.value.value == "hello"
     e = ExpressionWithOperator(operator="-", sourceref=sref)
     e.left = LiteralValue(value=42, sourceref=sref)
-    assert not e.must_be_constant
     v.value = e
     assert v.value is e
-    assert e.must_be_constant
 
 
 def test_const_value():

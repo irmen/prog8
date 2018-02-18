@@ -164,16 +164,14 @@ def test_block_nodes():
     assert len(sub2.scope.nodes) > 0
 
 
-test_source_2 = """
-~ {
-    999(1,2)
-    [zz]()
-}
-"""
-
-
 def test_parser_2():
-    result = parse_source(test_source_2)
+    src = """
+    ~ {
+        999(1,2)
+        [zz]()
+    }
+    """
+    result = parse_source(src)
     block = result.scope.nodes[0]
     call = block.scope.nodes[0]
     assert isinstance(call, SubCall)
@@ -187,18 +185,16 @@ def test_parser_2():
     assert call.target.operand.name == "zz"
 
 
-test_source_3 = """
-~ {
-    [$c000.word] = 5
-    [$c000 .byte] = 5
-    [AX .word] = 5
-    [AX .float] = 5
-}
-"""
-
-
 def test_typespec():
-    result = parse_source(test_source_3)
+    src = """
+    ~ {
+        [$c000.word] = 5
+        [$c000 .byte] = 5
+        [AX .word] = 5
+        [AX .float] = 5
+    }
+    """
+    result = parse_source(src)
     block = result.scope.nodes[0]
     assignment1, assignment2, assignment3, assignment4 = block.scope.nodes
     assert assignment1.right.value == 5
@@ -209,10 +205,10 @@ def test_typespec():
     assert len(assignment2.left.nodes) == 1
     assert len(assignment3.left.nodes) == 1
     assert len(assignment4.left.nodes) == 1
-    t1 = assignment1.left.nodes[0]
-    t2 = assignment2.left.nodes[0]
-    t3 = assignment3.left.nodes[0]
-    t4 = assignment4.left.nodes[0]
+    t1 = assignment1.left
+    t2 = assignment2.left
+    t3 = assignment3.left
+    t4 = assignment4.left
     assert isinstance(t1, Dereference)
     assert isinstance(t2, Dereference)
     assert isinstance(t3, Dereference)
@@ -235,20 +231,18 @@ def test_typespec():
     assert t4.size is None
 
 
-test_source_4 = """
-~ {
-    var x1 = '@'
-    var x2 = 'π'
-    var x3 = 'abc'
-    A = '@'
-    A = 'π'
-    A = 'abc'
-}
-"""
-
-
 def test_char_string():
-    result = parse_source(test_source_4)
+    src = """
+    ~ {
+        var x1 = '@'
+        var x2 = 'π'
+        var x3 = 'abc'
+        A = '@'
+        A = 'π'
+        A = 'abc'
+    }
+    """
+    result = parse_source(src)
     block = result.scope.nodes[0]
     var1, var2, var3, assgn1, assgn2, assgn3, = block.scope.nodes
     assert var1.value.value == '@'
@@ -260,18 +254,16 @@ def test_char_string():
     # note: the actual one-charactor-to-bytevalue conversion is done at the very latest, when issuing an assignment statement
 
 
-test_source_5 = """
-~ {
-    var x1 = true
-    var x2 = false
-    A = true
-    A = false
-}
-"""
-
-
 def test_boolean_int():
-    result = parse_source(test_source_5)
+    src = """
+    ~ {
+        var x1 = true
+        var x2 = false
+        A = true
+        A = false
+    }
+    """
+    result = parse_source(src)
     block = result.scope.nodes[0]
     var1, var2, assgn1, assgn2, = block.scope.nodes
     assert type(var1.value.value) is int and var1.value.value == 1
@@ -381,7 +373,7 @@ def test_const_numeric_expressions():
         result.scope.define_builtin_functions()
     assignments = list(result.all_nodes(Assignment))
     e = [a.nodes[1] for a in assignments]
-    assert all(x.is_compile_constant() for x in e)
+    assert all(x.is_compiletime_const() for x in e)
     assert e[0].const_value() == 15     # 1+2+3+4+5
     assert e[1].const_value() == 13     # 1+2*5+2
     assert e[2].const_value() == 21     # (1+2)*(5+2)
@@ -415,7 +407,7 @@ def test_const_logic_expressions():
     result = parse_source(src)
     assignments = list(result.all_nodes(Assignment))
     e = [a.nodes[1] for a in assignments]
-    assert all(x.is_compile_constant() for x in e)
+    assert all(x.is_compiletime_const() for x in e)
     assert e[0].const_value() == True
     assert e[1].const_value() == False
     assert e[2].const_value() == True
@@ -441,12 +433,12 @@ def test_const_other_expressions():
         result.scope.define_builtin_functions()
     assignments = list(result.all_nodes(Assignment))
     e = [a.nodes[1] for a in assignments]
-    assert e[0].is_compile_constant()
+    assert e[0].is_compiletime_const()
     assert e[0].const_value() == 0xc123
-    assert not e[1].is_compile_constant()
+    assert not e[1].is_compiletime_const()
     with pytest.raises(TypeError):
         e[1].const_value()
-    assert not e[2].is_compile_constant()
+    assert not e[2].is_compiletime_const()
     with pytest.raises(TypeError):
         e[2].const_value()
 
@@ -495,3 +487,67 @@ def test_vdef_const_folds():
     assert vd[2].datatype == DataType.BYTE
     assert isinstance(vd[2].value, LiteralValue)
     assert vd[2].value.value == 369
+
+
+def test_vdef_const_expressions():
+    src = """
+~ {
+    var bvar = 99
+    var .float fvar = sin(1.2-0.3)
+    var .float flt2 = -9.87e-6
+    
+    bvar ++
+    fvar ++
+    flt2 ++
+    bvar += 2+2
+    fvar += 2+3
+    flt2 += 2+4
+    bvar = 2+5
+    fvar = 2+6
+    flt2 = 2+7
+}
+"""
+    result = parse_source(src)
+    if isinstance(result, Module):
+        result.scope.define_builtin_functions()
+    cf = ConstantFold(result)
+    cf.fold_constants()
+    vd = list(result.all_nodes(VarDef))
+    assert len(vd)==3
+    assert vd[0].name == "bvar"
+    assert isinstance(vd[0].value, LiteralValue)
+    assert vd[0].value.value == 99
+    assert vd[1].name == "fvar"
+    assert isinstance(vd[1].value, LiteralValue)
+    assert type(vd[1].value.value) is float
+    assert math.isclose(vd[1].value.value, math.sin(0.9))
+    assert vd[2].name == "flt2"
+    assert isinstance(vd[2].value, LiteralValue)
+    assert math.isclose(-9.87e-6, vd[2].value.value)
+    # test incrdecr assignment target
+    nodes = list(result.all_nodes(IncrDecr))
+    assert len(nodes) == 3
+    assert isinstance(nodes[0].target, SymbolName)
+    assert nodes[0].target.name == "bvar"
+    assert isinstance(nodes[1].target, SymbolName)
+    assert nodes[1].target.name == "fvar"
+    assert isinstance(nodes[2].target, SymbolName)
+    assert nodes[2].target.name == "flt2"
+    # test augassign assignment target
+    nodes = list(result.all_nodes(AugAssignment))
+    assert len(nodes) == 3
+    assert isinstance(nodes[0].left, SymbolName)
+    assert nodes[0].left.name == "bvar"
+    assert isinstance(nodes[1].left, SymbolName)
+    assert nodes[1].left.name == "fvar"
+    assert isinstance(nodes[2].left, SymbolName)
+    assert nodes[2].left.name == "flt2"
+    # test assign assignment target
+    nodes = list(result.all_nodes(Assignment))
+    assert len(nodes) == 3
+    assert isinstance(nodes[0].left, SymbolName)
+    assert nodes[0].left.name == "bvar"
+    assert isinstance(nodes[1].left, SymbolName)
+    assert nodes[1].left.name == "fvar"
+    assert isinstance(nodes[2].left, SymbolName)
+    assert nodes[2].left.name == "flt2"

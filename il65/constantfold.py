@@ -62,8 +62,12 @@ class ConstantFold:
 
     def _process_expression(self, expr: Expression) -> Expression:
         # process/simplify all expressions (constant folding etc)
+        if expr.is_lhs:
+            if isinstance(expr, (Register, SymbolName, Dereference)):
+                return expr
+            raise ParseError("invalid lhs expression type", expr.sourceref)
         result = None   # type: Expression
-        if expr.is_compile_constant() or isinstance(expr, ExpressionWithOperator) and expr.must_be_constant:
+        if expr.is_compiletime_const():
             result = self._process_constant_expression(expr, expr.sourceref)
         else:
             result = self._process_dynamic_expression(expr, expr.sourceref)
@@ -74,9 +78,11 @@ class ConstantFold:
         # the expression must result in a single (constant) value (int, float, whatever) wrapped as LiteralValue.
         if isinstance(expr, LiteralValue):
             return expr
-        if expr.is_compile_constant():
+        try:
             return LiteralValue(value=expr.const_value(), sourceref=sourceref)  # type: ignore
-        elif isinstance(expr, SymbolName):
+        except NotCompiletimeConstantError:
+            pass
+        if isinstance(expr, SymbolName):
             value = check_symbol_definition(expr.name, expr.my_scope(), expr.sourceref)
             if isinstance(value, VarDef):
                 if value.vartype == VarType.MEMORY:
@@ -169,26 +175,24 @@ class ConstantFold:
         # constant-fold a dynamic expression
         if isinstance(expr, LiteralValue):
             return expr
-        if expr.is_compile_constant():
+        try:
             return LiteralValue(value=expr.const_value(), sourceref=sourceref)  # type: ignore
-        elif isinstance(expr, SymbolName):
-            if expr.is_compile_constant():
-                try:
-                    return self._process_constant_expression(expr, sourceref)
-                except ExpressionEvaluationError:
-                    pass
-            return expr
+        except NotCompiletimeConstantError:
+            pass
+        if isinstance(expr, SymbolName):
+            try:
+                return self._process_constant_expression(expr, sourceref)
+            except (ExpressionEvaluationError, NotCompiletimeConstantError):
+                return expr
         elif isinstance(expr, AddressOf):
-            if expr.is_compile_constant():
-                try:
-                    return self._process_constant_expression(expr, sourceref)
-                except ExpressionEvaluationError:
-                    pass
-            return expr
+            try:
+                return self._process_constant_expression(expr, sourceref)
+            except (ExpressionEvaluationError, NotCompiletimeConstantError):
+                return expr
         elif isinstance(expr, SubCall):
             try:
                 return self._process_constant_expression(expr, sourceref)
-            except ExpressionEvaluationError:
+            except (ExpressionEvaluationError, NotCompiletimeConstantError):
                 if isinstance(expr.target, SymbolName):
                     check_symbol_definition(expr.target.name, expr.my_scope(), expr.target.sourceref)
                 return expr
@@ -199,12 +203,10 @@ class ConstantFold:
                 left_sourceref = expr.left.sourceref if isinstance(expr.left, AstNode) else sourceref
                 expr.left = self._process_dynamic_expression(expr.left, left_sourceref)
                 expr.left.parent = expr
-                if expr.is_compile_constant():
-                    try:
-                        return self._process_constant_expression(expr, sourceref)
-                    except ExpressionEvaluationError:
-                        pass
-                return expr
+                try:
+                    return self._process_constant_expression(expr, sourceref)
+                except (ExpressionEvaluationError, NotCompiletimeConstantError):
+                    return expr
             else:
                 left_sourceref = expr.left.sourceref if isinstance(expr.left, AstNode) else sourceref
                 expr.left = self._process_dynamic_expression(expr.left, left_sourceref)
@@ -212,11 +214,9 @@ class ConstantFold:
                 right_sourceref = expr.right.sourceref if isinstance(expr.right, AstNode) else sourceref
                 expr.right = self._process_dynamic_expression(expr.right, right_sourceref)
                 expr.right.parent = expr
-                if expr.is_compile_constant():
-                    try:
-                        return self._process_constant_expression(expr, sourceref)
-                    except ExpressionEvaluationError:
-                        pass
-                return expr
+                try:
+                    return self._process_constant_expression(expr, sourceref)
+                except (ExpressionEvaluationError, NotCompiletimeConstantError):
+                    return expr
         else:
             raise ParseError("expression required, not {}".format(expr.__class__.__name__), expr.sourceref)

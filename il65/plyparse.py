@@ -22,8 +22,8 @@ __all__ = ["ProgramFormat", "ZpOptions", "math_functions", "builtin_functions", 
            "UndefinedSymbolError", "AstNode", "Directive", "Scope", "Block", "Module", "Label", "Expression",
            "Register", "Subroutine", "LiteralValue", "AddressOf", "SymbolName", "Dereference", "IncrDecr",
            "ExpressionWithOperator", "Goto", "SubCall", "VarDef", "Return", "Assignment", "AugAssignment",
-           "InlineAssembly", "AssignmentTargets", "BuiltinFunction", "TokenFilter", "parser", "connect_parents",
-           "parse_file", "coerce_constant_value", "datatype_of", "check_symbol_definition"]
+           "InlineAssembly", "BuiltinFunction", "TokenFilter", "parser", "connect_parents",
+           "parse_file", "coerce_constant_value", "datatype_of", "check_symbol_definition", "NotCompiletimeConstantError"]
 
 
 class ProgramFormat(enum.Enum):
@@ -53,6 +53,10 @@ class ParseError(Exception):
 
     def __str__(self):
         return "{} {:s}".format(self.sourceref, self.args[0])
+
+
+class NotCompiletimeConstantError(TypeError):
+    pass
 
 
 class ExpressionEvaluationError(ParseError):
@@ -348,7 +352,9 @@ class Label(AstNode):
 class Expression(AstNode):
     # just a common base class for the nodes that are an expression themselves:
     # ExpressionWithOperator, AddressOf, LiteralValue, SymbolName, Register, SubCall, Dereference
-    def is_compile_constant(self) -> bool:
+    is_lhs = attr.ib(type=bool, init=False, default=False)  # left hand side of incrdecr/assignment/augassign?
+
+    def is_compiletime_const(self) -> bool:
         raise NotImplementedError("implement in subclass")
 
     def const_value(self) -> Union[int, float, bool, str]:
@@ -382,11 +388,11 @@ class Register(Expression):
             return NotImplemented
         return self.name < other.name
 
-    def is_compile_constant(self) -> bool:
+    def is_compiletime_const(self) -> bool:
         return False
 
     def const_value(self) -> Union[int, float, bool, str]:
-        raise TypeError("register doesn't have a constant numeric value", self)
+        raise NotCompiletimeConstantError("register doesn't have a constant numeric value", self)
 
 
 @attr.s(cmp=False)
@@ -464,7 +470,7 @@ class LiteralValue(Expression):
     def const_value(self) -> Union[int, float, bool, str]:
         return self.value
 
-    def is_compile_constant(self) -> bool:
+    def is_compiletime_const(self) -> bool:
         return True
 
 
@@ -473,7 +479,7 @@ class AddressOf(Expression):
     # no subnodes.
     name = attr.ib(type=str, validator=attr.validators._InstanceOfValidator(type=str))
 
-    def is_compile_constant(self) -> bool:
+    def is_compiletime_const(self) -> bool:
         # address-of can be a compile time constant if the operand is a memory mapped variable or ZP variable
         symdef = self.my_scope().lookup(self.name)
         return isinstance(symdef, VarDef) and symdef.vartype == VarType.MEMORY \
@@ -486,16 +492,16 @@ class AddressOf(Expression):
                 return symdef.zp_address
             if symdef.vartype == VarType.MEMORY:
                 return symdef.value.const_value()
-            raise TypeError("can only take constant address of a memory mapped variable", self)
-        raise TypeError("should be a vardef to be able to take its address", self)
+            raise NotCompiletimeConstantError("can only take constant address of a memory mapped variable", self)
+        raise NotCompiletimeConstantError("should be a vardef to be able to take its address", self)
 
 
-@attr.s(cmp=False, slots=True)
+@attr.s(cmp=True, slots=True)
 class SymbolName(Expression):
     # no subnodes.
     name = attr.ib(type=str)
 
-    def is_compile_constant(self) -> bool:
+    def is_compiletime_const(self) -> bool:
         symdef = self.my_scope().lookup(self.name)
         return isinstance(symdef, VarDef) and symdef.vartype == VarType.CONST
 
@@ -503,7 +509,7 @@ class SymbolName(Expression):
         symdef = self.my_scope().lookup(self.name)
         if isinstance(symdef, VarDef) and symdef.vartype == VarType.CONST:
             return symdef.const_value()
-        raise TypeError("should be a const vardef to be able to take its constant numeric value", self)
+        raise NotCompiletimeConstantError("should be a const vardef to be able to take its constant numeric value", self)
 
 
 @attr.s(cmp=False)
@@ -531,11 +537,11 @@ class Dereference(Expression):
         if self.nodes and not isinstance(self.nodes[0], (SymbolName, LiteralValue, Register)):
             raise TypeError("operand of dereference invalid type", self.nodes[0], self.sourceref)
 
-    def is_compile_constant(self) -> bool:
+    def is_compiletime_const(self) -> bool:
         return False
 
     def const_value(self) -> Union[int, float, bool, str]:
-        raise TypeError("dereference is not a constant numeric value")
+        raise NotCompiletimeConstantError("dereference is not a constant numeric value")
 
 
 @attr.s(cmp=False)
@@ -556,6 +562,8 @@ class IncrDecr(AstNode):
                 raise ParseError("cannot incr/decr that register", self.sourceref)
         assert isinstance(target, (Register, SymbolName, Dereference))
         self.nodes.clear()
+        # the expression on the left hand side should be marked LHS to avoid improper constant folding/replacement.
+        target.is_lhs = True
         self.nodes.append(target)
 
     def __attrs_post_init__(self):
@@ -569,8 +577,6 @@ class IncrDecr(AstNode):
 class ExpressionWithOperator(Expression):
     # 2 nodes: left (Expression), right (not present if unary, Expression if not unary)
     operator = attr.ib(type=str)
-    # when evaluating the expression, does it have to be a compile-time constant value?
-    must_be_constant = attr.ib(type=bool, init=False, default=False)
 
     @property
     def unary(self) -> bool:
@@ -612,7 +618,7 @@ class ExpressionWithOperator(Expression):
             elif self.operator == "not":
                 return not cv[0]
             elif self.operator == "&":
-                raise TypeError("the address-of operator should have been parsed into an AddressOf node")
+                raise NotCompiletimeConstantError("the address-of operator should have been parsed into an AddressOf node")
             else:
                 raise ValueError("invalid unary operator: "+self.operator, self.sourceref)
         else:
@@ -664,11 +670,11 @@ class ExpressionWithOperator(Expression):
                 raise ValueError("invalid operator: "+self.operator, self.sourceref)
 
     @no_type_check
-    def is_compile_constant(self) -> bool:
+    def is_compiletime_const(self) -> bool:
         if len(self.nodes) == 1:
-            return self.nodes[0].is_compile_constant()
+            return self.nodes[0].is_compiletime_const()
         elif len(self.nodes) == 2:
-            return self.nodes[0].is_compile_constant() and self.nodes[1].is_compile_constant()
+            return self.nodes[0].is_compiletime_const() and self.nodes[1].is_compiletime_const()
         raise ValueError("should have 1 or 2 nodes")
 
     def evaluate_primitive_constants(self, sourceref: SourceRef) -> LiteralValue:
@@ -742,7 +748,7 @@ class SubCall(Expression):
     def arguments(self) -> CallArguments:
         return self.nodes[2]    # type: ignore
 
-    def is_compile_constant(self) -> bool:
+    def is_compiletime_const(self) -> bool:
         if isinstance(self.nodes[0], SymbolName):
             symdef = self.nodes[0].my_scope().lookup(self.nodes[0].name)
             if isinstance(symdef, BuiltinFunction):
@@ -756,7 +762,7 @@ class SubCall(Expression):
             if isinstance(symdef, BuiltinFunction):
                 arguments = [a.nodes[0].const_value() for a in self.nodes[2].nodes]
                 return symdef.func(*arguments)
-        raise TypeError("subroutine call is not a constant value", self)
+        raise NotCompiletimeConstantError("subroutine call is not a constant value", self)
 
 
 @attr.s(cmp=False, slots=True, repr=False)
@@ -779,13 +785,10 @@ class VarDef(AstNode):
             self.nodes[0] = value
         else:
             self.nodes.append(value)
-        if isinstance(value, ExpressionWithOperator):
-            # an expression in a vardef should evaluate to a compile-time constant:
-            value.must_be_constant = True
 
     def const_value(self) -> Union[int, float, bool, str]:
         if self.vartype != VarType.CONST:
-            raise TypeError("not a constant value", self)
+            raise NotCompiletimeConstantError("not a constant value", self)
         if self.nodes and isinstance(self.nodes[0], Expression):
             return self.nodes[0].const_value()
         raise ValueError("no value", self)
@@ -842,58 +845,13 @@ class Return(AstNode):
 
 
 @attr.s(cmp=False, slots=True, repr=False)
-class AssignmentTargets(AstNode):
-    # a list of one or more assignment targets (Register, SymbolName, or Dereference).
-    nodes = attr.ib(type=list, init=True)    # requires nodes in __init__
-
-    def has_memvalue(self) -> bool:
-        for t in self.nodes:
-            if isinstance(t, Dereference):
-                return True
-            if isinstance(t, SymbolName):
-                symdef = self.my_scope().lookup(t.name)
-                if isinstance(symdef, VarDef) and symdef.vartype == VarType.MEMORY:
-                    return True
-        return False
-
-    def same_targets(self, other: 'AssignmentTargets') -> bool:
-        if len(self.nodes) != len(other.nodes):
-            return False
-        # @todo be able to compare targets in different order as well (sort them)
-        for t1, t2 in zip(self.nodes, other.nodes):
-            if type(t1) is not type(t2):
-                return False
-            if isinstance(t1, Register):
-                if t1 != t2:  # __eq__ is defined
-                    return False
-            elif isinstance(t1, SymbolName):
-                if t1.name != t2.name:
-                    return False
-            elif isinstance(t1, Dereference):
-                if t1.size != t2.size or t1.datatype != t2.datatype:
-                    return False
-                op1, op2 = t1.operand, t2.operand
-                if type(op1) is not type(op2):
-                    return False
-                if isinstance(op1, SymbolName):
-                    if op1.name != op2.name:
-                        return False
-                else:
-                    if op1 != op2:
-                        return False
-            else:
-                return False
-        return True
-
-
-@attr.s(cmp=False, slots=True, repr=False)
 class Assignment(AstNode):
     # can be single- or multi-assignment
-    # has two subnodes: left (=AssignmentTargets) and right (=Expression,
+    # has two subnodes: left (=Register/SymbolName/Dereference ) and right (=Expression,
     #    or another Assignment but those will be converted into multi assign)
 
     @property
-    def left(self) -> AssignmentTargets:
+    def left(self) -> Union[Register, SymbolName, Dereference]:
         return self.nodes[0]    # type: ignore
 
     @property
@@ -904,6 +862,10 @@ class Assignment(AstNode):
     def right(self, rvalue: Expression) -> None:
         assert isinstance(rvalue, Expression)
         self.nodes[1] = rvalue
+
+    def mark_lhs(self):
+        # the expression on the left hand side should be marked LHS to avoid improper constant folding/replacement.
+        self.nodes[0].is_lhs = True
 
 
 @attr.s(cmp=False, slots=True, repr=False)
@@ -923,6 +885,10 @@ class AugAssignment(AstNode):
     def right(self, rvalue: Expression) -> None:
         assert isinstance(rvalue, Expression)
         self.nodes[1] = rvalue
+
+    def mark_lhs(self):
+        # the expression on the left hand side should be marked LHS to avoid improper constant folding/replacement.
+        self.nodes[0].is_lhs = True
 
 
 def datatype_of(targetnode: AstNode, scope: Scope) -> DataType:
@@ -1512,8 +1478,9 @@ def p_assignment(p):
                |  assignment_target  IS  assignment
     """
     p[0] = Assignment(sourceref=_token_sref(p, 2))
-    p[0].nodes.append(AssignmentTargets(nodes=[p[1]], sourceref=p[0].sourceref))
+    p[0].nodes.append(p[1])
     p[0].nodes.append(p[3])
+    p[0].mark_lhs()
 
 
 def p_aug_assignment(p):
@@ -1523,6 +1490,7 @@ def p_aug_assignment(p):
     p[0] = AugAssignment(operator=p[2], sourceref=_token_sref(p, 2))
     p[0].nodes.append(p[1])
     p[0].nodes.append(p[3])
+    p[0].mark_lhs()
 
 
 precedence = (

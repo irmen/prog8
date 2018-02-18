@@ -16,7 +16,7 @@ def generate_assignment(ctx: Context) -> None:
     assert isinstance(ctx.stmt, Assignment)
     assert not isinstance(ctx.stmt.right, Assignment), "assignment should have been flattened"
     ctx.out("\v\t\t\t; " + ctx.stmt.lineref)
-    ctx.out("\v; @todo assignment: {} = {}".format(ctx.stmt.left.nodes, ctx.stmt.right))
+    ctx.out("\v; @todo assignment: {} = {}".format(ctx.stmt.left, ctx.stmt.right))
     # @todo assignment
 
 

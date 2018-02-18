@@ -7,7 +7,7 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
 from typing import List, no_type_check, Union
-from .datatypes import DataType
+from .datatypes import DataType, VarType
 from .plyparse import *
 from .plylex import print_warning, print_bold
 from .constantfold import ConstantFold
@@ -117,8 +117,13 @@ class Optimizer:
             return True
         if isinstance(node1, SymbolName) and isinstance(node2, SymbolName) and node1.name == node2.name:
             return True
-        if isinstance(node1, Dereference) and isinstance(node2, Dereference) and node1.operand == node2.operand:
-            return True
+        if isinstance(node1, Dereference) and isinstance(node2, Dereference):
+            if type(node1.operand) is not type(node2.operand):
+                return False
+            if isinstance(node1.operand, (SymbolName, LiteralValue, Register)):
+                return node1.operand == node2.operand
+        if not isinstance(node1, AstNode) or not isinstance(node2, AstNode):
+            raise TypeError("same_target called with invalid type(s)", node1, node2)
         return False
 
     @no_type_check
@@ -132,7 +137,7 @@ class Optimizer:
                 continue
             expr = assignment.right
             if expr.operator in ('-', '/', '//', '**', '<<', '>>', '&'):   # non-associative operators
-                if isinstance(expr.right, (LiteralValue, SymbolName)) and self._same_target(assignment.left.nodes[0], expr.left):
+                if isinstance(expr.right, (LiteralValue, SymbolName)) and self._same_target(assignment.left, expr.left):
                     num_val = expr.right.const_value()
                     operator = expr.operator + '='
                     aug_assign = self._make_aug_assign(assignment, assignment.left.nodes[0], num_val, operator)
@@ -141,13 +146,13 @@ class Optimizer:
                 continue
             if expr.operator not in ('+', '*', '|', '^'):  # associative operators
                 continue
-            if isinstance(expr.right, (LiteralValue, SymbolName)) and self._same_target(assignment.left.nodes[0], expr.left):
+            if isinstance(expr.right, (LiteralValue, SymbolName)) and self._same_target(assignment.left, expr.left):
                 num_val = expr.right.const_value()
                 operator = expr.operator + '='
                 aug_assign = self._make_aug_assign(assignment, assignment.left.nodes[0], num_val, operator)
                 assignment.my_scope().replace_node(assignment, aug_assign)
                 self.optimizations_performed = True
-            elif isinstance(expr.left, (LiteralValue, SymbolName)) and self._same_target(assignment.left.nodes[0], expr.right):
+            elif isinstance(expr.left, (LiteralValue, SymbolName)) and self._same_target(assignment.left, expr.right):
                 num_val = expr.left.const_value()
                 operator = expr.operator + '='
                 aug_assign = self._make_aug_assign(assignment, assignment.left.nodes[0], num_val, operator)
@@ -161,12 +166,16 @@ class Optimizer:
             prev_node = None    # type: AstNode
             for node in list(scope.nodes):
                 if isinstance(node, Assignment) and isinstance(prev_node, Assignment):
-                    if isinstance(node.right, (LiteralValue, Register)) and node.left.same_targets(prev_node.left):
-                        if not node.left.has_memvalue():
-                            scope.remove_node(prev_node)
-                            self.optimizations_performed = True
-                            self.num_warnings += 1
-                            print_warning("{}: removed superfluous assignment".format(prev_node.sourceref))
+                    if isinstance(node.right, (LiteralValue, Register)) and self._same_target(node.left, prev_node.left):
+                        if isinstance(node.left, SymbolName):
+                            # only optimize if the symbol is not a memory mapped address (volatile memory!)
+                            symdef = node.left.my_scope().lookup(node.left.name)
+                            if isinstance(symdef, VarDef) and symdef.vartype == VarType.MEMORY:
+                                continue
+                        scope.remove_node(prev_node)
+                        self.optimizations_performed = True
+                        self.num_warnings += 1
+                        print_warning("{}: removed superfluous assignment".format(prev_node.sourceref))
                 prev_node = node
 
     @no_type_check
@@ -178,17 +187,17 @@ class Optimizer:
         # @todo remove or simplify logical aug assigns like A |= 0, A |= true, A |= false  (or perhaps turn them into byte values first?)
         for assignment in self.module.all_nodes():
             if isinstance(assignment, Assignment):
-                if all(lv == assignment.right for lv in assignment.left.nodes):
+                if self._same_target(assignment.left, assignment.right):
                     assignment.my_scope().remove_node(assignment)
                     self.optimizations_performed = True
                     self.num_warnings += 1
-                    print_warning("{}: removed statement that has no effect".format(assignment.sourceref))
+                    print_warning("{}: removed statement that has no effect (left=right)".format(assignment.sourceref))
             elif isinstance(assignment, AugAssignment):
                 if isinstance(assignment.right, LiteralValue) and isinstance(assignment.right.value, (int, float)):
                     if assignment.right.value == 0:
                         if assignment.operator in ("+=", "-=", "|=", "<<=", ">>=", "^="):
                             self.num_warnings += 1
-                            print_warning("{}: removed statement that has no effect".format(assignment.sourceref))
+                            print_warning("{}: removed statement that has no effect (aug.assign zero)".format(assignment.sourceref))
                             assignment.my_scope().remove_node(assignment)
                             self.optimizations_performed = True
                         elif assignment.operator == "*=":
@@ -206,9 +215,10 @@ class Optimizer:
                     elif assignment.right.value >= 8 and assignment.operator in ("<<=", ">>="):
                         print("{}: shifting result is always zero".format(assignment.sourceref))
                         new_stmt = Assignment(sourceref=assignment.sourceref)
-                        new_stmt.nodes.append(AssignmentTargets(nodes=[assignment.left], sourceref=assignment.sourceref))
+                        new_stmt.nodes.append(assignment.left)
                         new_stmt.nodes.append(LiteralValue(value=0, sourceref=assignment.sourceref))
                         assignment.my_scope().replace_node(assignment, new_stmt)
+                        assignment.mark_lhs()
                         self.optimizations_performed = True
                     elif assignment.operator in ("+=", "-=") and 0 < assignment.right.value < 256:
                         howmuch = assignment.right
@@ -223,7 +233,7 @@ class Optimizer:
                         self.optimizations_performed = True
                     elif assignment.right.value == 1 and assignment.operator in ("/=", "//=", "*="):
                         self.num_warnings += 1
-                        print_warning("{}: removed statement that has no effect".format(assignment.sourceref))
+                        print_warning("{}: removed statement that has no effect (aug.assign identity)".format(assignment.sourceref))
                         assignment.my_scope().remove_node(assignment)
                         self.optimizations_performed = True
 
@@ -231,12 +241,13 @@ class Optimizer:
     def _make_new_assignment(self, old_aug_assignment: AugAssignment, constantvalue: int) -> Assignment:
         new_assignment = Assignment(sourceref=old_aug_assignment.sourceref)
         new_assignment.parent = old_aug_assignment.parent
-        left = AssignmentTargets(nodes=[old_aug_assignment.left], sourceref=old_aug_assignment.sourceref)
+        left = old_aug_assignment.left
         left.parent = new_assignment
         new_assignment.nodes.append(left)
         value = LiteralValue(value=constantvalue, sourceref=old_aug_assignment.sourceref)
         value.parent = new_assignment
         new_assignment.nodes.append(value)
+        new_assignment.mark_lhs()
         return new_assignment
 
     @no_type_check
@@ -250,6 +261,7 @@ class Optimizer:
         a.nodes.append(lv)
         lv.parent = a
         a.parent = old_assign.parent
+        a.mark_lhs()
         return a
 
     @no_type_check

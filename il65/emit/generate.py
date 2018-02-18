@@ -10,7 +10,7 @@ import datetime
 from typing import TextIO, Callable, no_type_check
 from ..plylex import print_bold
 from ..plyparse import (Module, ProgramFormat, Block, Directive, VarDef, Label, Subroutine, ZpOptions,
-                        InlineAssembly, Return, Register, Goto, SubCall, Assignment, AugAssignment, IncrDecr, AssignmentTargets)
+                        InlineAssembly, Return, Register, Goto, SubCall, Assignment, AugAssignment, IncrDecr)
 from . import CodeError, to_hex, to_mflpt5, Context
 from .variables import generate_block_init, generate_block_vars
 from .assignment import generate_assignment, generate_aug_assignment
@@ -195,22 +195,25 @@ class AssemblyGenerator:
             if stmt.value_A:
                 reg = Register(name="A", sourceref=stmt.sourceref)
                 assignment = Assignment(sourceref=stmt.sourceref)
-                assignment.nodes.append(AssignmentTargets(nodes=[reg], sourceref=stmt.sourceref))
+                assignment.nodes.append(reg)
                 assignment.nodes.append(stmt.value_A)
+                assignment.mark_lhs()
                 ctx.stmt = assignment
                 generate_assignment(ctx)
             if stmt.value_X:
                 reg = Register(name="X", sourceref=stmt.sourceref)
                 assignment = Assignment(sourceref=stmt.sourceref)
-                assignment.nodes.append(AssignmentTargets(nodes=[reg], sourceref=stmt.sourceref))
+                assignment.nodes.append(reg)
                 assignment.nodes.append(stmt.value_X)
+                assignment.mark_lhs()
                 ctx.stmt = assignment
                 generate_assignment(ctx)
             if stmt.value_Y:
                 reg = Register(name="Y", sourceref=stmt.sourceref)
                 assignment = Assignment(sourceref=stmt.sourceref)
-                assignment.nodes.append(AssignmentTargets(nodes=[reg], sourceref=stmt.sourceref))
+                assignment.nodes.append(reg)
                 assignment.nodes.append(stmt.value_Y)
+                assignment.mark_lhs()
                 ctx.stmt = assignment
                 generate_assignment(ctx)
             ctx.out("\vrts")

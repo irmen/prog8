@@ -15,9 +15,9 @@ def generate_goto(ctx: Context) -> None:
     ctx.out("\v\t\t\t; " + ctx.stmt.lineref)
     if stmt.condition:
         if stmt.if_stmt:
-            _gen_goto_special_if_cond(ctx, stmt)
+            _gen_goto_cond(ctx, stmt, "true")
         else:
-            _gen_goto_cond(ctx, stmt)
+            _gen_goto_cond(ctx, stmt, stmt.if_cond)
     else:
         if stmt.if_stmt:
             _gen_goto_special_if(ctx, stmt)
@@ -134,12 +134,11 @@ def _gen_goto_unconditional(ctx: Context, stmt: Goto) -> None:
         raise CodeError("invalid goto target type", stmt)
 
 
-def _gen_goto_special_if_cond(ctx: Context, stmt: Goto) -> None:
-    pass    # @todo  special if WITH conditional expression
-
-
-def _gen_goto_cond(ctx: Context, stmt: Goto) -> None:
-    pass    # @todo  regular if WITH conditional expression
+def _gen_goto_cond(ctx: Context, stmt: Goto, if_cond: str) -> None:
+    if isinstance(stmt.condition, LiteralValue):
+        pass    # @todo  if WITH conditional expression
+    else:
+        raise CodeError("no support for evaluating conditional expression yet", stmt)   # @todo
 
 
 def generate_subcall(ctx: Context) -> None:
