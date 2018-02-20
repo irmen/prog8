@@ -1,6 +1,6 @@
 import pytest
-from il65.datatypes import DataType, VarType, STRING_DATATYPES, FLOAT_MAX_POSITIVE, FLOAT_MAX_NEGATIVE, char_to_bytevalue
-from il65.plyparse import coerce_constant_value, LiteralValue, Scope, AddressOf, SymbolName, VarDef
+from il65.datatypes import DataType, STRING_DATATYPES, FLOAT_MAX_POSITIVE, FLOAT_MAX_NEGATIVE, char_to_bytevalue
+from il65.plyparse import coerce_constant_value, LiteralValue, Scope, SymbolName, VarDef
 from il65.compile import ParseError
 from il65.plylex import SourceRef
 from il65.emit import to_hex, to_mflpt5

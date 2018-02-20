@@ -165,8 +165,7 @@ def test_block_nodes():
 
 
 def test_parser_2():
-    src = """
-    ~ {
+    src = """~ test {
         999(1,2)
         [zz]()
     }
@@ -186,8 +185,7 @@ def test_parser_2():
 
 
 def test_typespec():
-    src = """
-    ~ {
+    src = """~ test {
         [$c000.word] = 5
         [$c000 .byte] = 5
         [AX .word] = 5
@@ -232,8 +230,7 @@ def test_typespec():
 
 
 def test_char_string():
-    src = """
-    ~ {
+    src = """~ test {
         var x1 = '@'
         var x2 = 'π'
         var x3 = 'abc'
@@ -255,8 +252,7 @@ def test_char_string():
 
 
 def test_boolean_int():
-    src = """
-    ~ {
+    src = """~ test {
         var x1 = true
         var x2 = false
         A = true
@@ -272,7 +268,7 @@ def test_boolean_int():
     assert type(assgn2.right.value) is int and assgn2.right.value == 0
 
 
-def test_incrdecr():
+def test_incrdecr_operators():
     sref = SourceRef("test", 1, 1)
     with pytest.raises(ValueError):
         IncrDecr(operator="??", sourceref=sref)
@@ -350,8 +346,7 @@ def test_symbol_lookup():
 
 
 def test_const_numeric_expressions():
-    src = """
-~ {
+    src = """~ test {
         A = 1+2+3+4+5
         X = 1+2*5+2
         Y = (1+2)*(5+2)
@@ -391,8 +386,7 @@ def test_const_numeric_expressions():
 
 
 def test_const_logic_expressions():
-    src = """
-~ {
+    src = """~ test {
         A = true or false
         X = true and false
         Y = true xor false
@@ -420,8 +414,7 @@ def test_const_logic_expressions():
 
 
 def test_const_other_expressions():
-    src = """
-~ {
+    src = """~ test {
         memory memvar = $c123
         A = &memvar     ; constant
         X = &sin        ; non-constant
@@ -444,8 +437,7 @@ def test_const_other_expressions():
 
 
 def test_vdef_const_folds():
-    src = """
-~ {
+    src = """~ test {
     const  cb1 = 123
     const  cb2 = cb1
     const  cb3 = cb1*3
@@ -490,8 +482,7 @@ def test_vdef_const_folds():
 
 
 def test_vdef_const_expressions():
-    src = """
-~ {
+    src = """~ test {
     var bvar = 99
     var .float fvar = sin(1.2-0.3)
     var .float flt2 = -9.87e-6

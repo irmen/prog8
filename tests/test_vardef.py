@@ -1,6 +1,7 @@
 import pytest
-from il65.datatypes import DataType
-from il65.plyparse import LiteralValue, VarDef, VarType, DatatypeNode, ExpressionWithOperator, Scope, AddressOf, SymbolName, UndefinedSymbolError
+from il65.datatypes import DataType, VarType
+from il65.plyparse import (LiteralValue, VarDef, DatatypeNode, ExpressionWithOperator,
+                           Scope, AddressOf, SymbolName, UndefinedSymbolError)
 from il65.plylex import SourceRef
 
 

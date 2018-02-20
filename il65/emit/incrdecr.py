@@ -1,14 +1,14 @@
 """
 Programming Language for 6502/6510 microprocessors, codename 'Sick'
 This is the code generator for the in-place incr and decr instructions.
-Incrementing or decrementing variables by a small value 0..255 (for integers)
+Incrementing or decrementing variables by a small byte value 0..255
 is quite frequent and this generates assembly code tweaked for this case.
 
 Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
-from ..plyparse import VarType, VarDef, Register, IncrDecr, SymbolName, Dereference, LiteralValue, datatype_of
-from ..datatypes import DataType, REGISTER_BYTES
+from ..plyparse import VarDef, Register, IncrDecr, SymbolName, Dereference, LiteralValue
+from ..datatypes import VarType, DataType, REGISTER_BYTES
 from . import CodeError, preserving_registers, to_hex, Context, scoped_name
 
 
@@ -17,10 +17,10 @@ def generate_incrdecr(ctx: Context) -> None:
     stmt = ctx.stmt
     scope = ctx.scope
     assert isinstance(stmt, IncrDecr)
-    assert isinstance(stmt.howmuch, (int, float)) and stmt.howmuch >= 0
-    assert stmt.operator in ("++", "--")
     if stmt.howmuch == 0:
         return
+    if not 0 <= stmt.howmuch <= 255:
+        raise CodeError("incr/decr value must be 0..255 - other values should have been converted into an AugAssignment")
     target = stmt.target        # one of Register/SymbolName/Dereference, or a VarDef
     if isinstance(target, SymbolName):
         symdef = scope.lookup(target.name)
@@ -28,10 +28,6 @@ def generate_incrdecr(ctx: Context) -> None:
             target = symdef     # type: ignore
         else:
             raise CodeError("cannot incr/decr this", symdef)
-
-    if stmt.howmuch > 255:
-        if datatype_of(target, scope) != DataType.FLOAT:
-            raise CodeError("only supports integer incr/decr by up to 255 for now")
     howmuch_str = str(stmt.howmuch)
 
     if isinstance(target, Register):

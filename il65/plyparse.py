@@ -22,7 +22,7 @@ __all__ = ["ProgramFormat", "ZpOptions", "math_functions", "builtin_functions", 
            "UndefinedSymbolError", "AstNode", "Directive", "Scope", "Block", "Module", "Label", "Expression",
            "Register", "Subroutine", "LiteralValue", "AddressOf", "SymbolName", "Dereference", "IncrDecr",
            "ExpressionWithOperator", "Goto", "SubCall", "VarDef", "Return", "Assignment", "AugAssignment",
-           "InlineAssembly", "BuiltinFunction", "TokenFilter", "parser", "connect_parents",
+           "InlineAssembly", "BuiltinFunction", "TokenFilter", "parser", "connect_parents", "DatatypeNode",
            "parse_file", "coerce_constant_value", "datatype_of", "check_symbol_definition", "NotCompiletimeConstantError"]
 
 
@@ -546,7 +546,8 @@ class Dereference(Expression):
 
 @attr.s(cmp=False)
 class IncrDecr(AstNode):
-    # increment or decrement something by a CONSTANT value (1 or more)
+    # increment or decrement something by a small CONSTANT value (1..255)
+    # larger values will be treated/converted as an augmented assignment += or -=.
     # one subnode: target (Register, SymbolName, or Dereference).
     operator = attr.ib(type=str, validator=attr.validators.in_(["++", "--"]))
     howmuch = attr.ib(default=1)
@@ -567,7 +568,7 @@ class IncrDecr(AstNode):
         self.nodes.append(target)
 
     def __attrs_post_init__(self):
-        # make sure the amount is always >= 0
+        # make sure the amount is always >= 0, flip the operator if needed
         if self.howmuch < 0:
             self.howmuch = -self.howmuch
             self.operator = "++" if self.operator == "--" else "--"

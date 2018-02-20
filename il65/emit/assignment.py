@@ -21,7 +21,8 @@ def generate_assignment(ctx: Context) -> None:
 
 
 def generate_aug_assignment(ctx: Context) -> None:
-    # for instance: value += 3  (value = 0-255 for now)
+    # for instance: value += 33
+    # (note that with += and -=, values 0..255 usually occur as the more efficient incrdecr statements instead)
     # left: Register, SymbolName, or Dereference. right: Expression/LiteralValue
     out = ctx.out
     stmt = ctx.stmt
@@ -36,7 +37,7 @@ def generate_aug_assignment(ctx: Context) -> None:
                     if stmt.operator not in ("<<=", ">>=") or rvalue.value != 0:
                         _generate_aug_reg_int(out, lvalue, stmt.operator, rvalue.value, "", ctx.scope)
                 else:
-                    raise CodeError("aug. assignment value must be 0..255", rvalue)
+                    raise CodeError("aug. assignment value must be 0..255", rvalue)    # @todo value > 255
             else:
                 raise CodeError("constant integer literal or variable required for now", rvalue)   # XXX
         elif isinstance(rvalue, SymbolName):
@@ -46,7 +47,7 @@ def generate_aug_assignment(ctx: Context) -> None:
                     if symdef.datatype.isinteger() and 0 <= symdef.value.const_value() <= 255:  # type: ignore
                         _generate_aug_reg_int(out, lvalue, stmt.operator, symdef.value.const_value(), "", ctx.scope)   # type: ignore
                     else:
-                        raise CodeError("aug. assignment value must be integer 0..255", rvalue)
+                        raise CodeError("aug. assignment value must be integer 0..255", rvalue)  # @todo value > 255
                 elif symdef.datatype == DataType.BYTE:
                     _generate_aug_reg_int(out, lvalue, stmt.operator, 0, symdef.name, ctx.scope)
                 else:
@@ -60,7 +61,7 @@ def generate_aug_assignment(ctx: Context) -> None:
         elif isinstance(rvalue, Dereference):
             print("warning: {}: using indirect/dereferece is very costly".format(rvalue.sourceref))
             if rvalue.datatype != DataType.BYTE:
-                raise CodeError("aug. assignment value must be a byte, 0..255", rvalue)
+                raise CodeError("aug. assignment value must be a byte, 0..255", rvalue)  # @todo value > 255
             if isinstance(rvalue.operand, (LiteralValue, SymbolName)):
                 if isinstance(rvalue.operand, LiteralValue):
                     what = to_hex(rvalue.operand.value)

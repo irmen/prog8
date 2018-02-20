@@ -39,7 +39,6 @@ class Optimizer:
         self.create_aug_assignments()
         self.optimize_assignments()
         self.remove_superfluous_assignments()
-        self.combine_assignments_into_multi()
         # @todo optimize addition with self into shift 1  (A+=A -> A<<=1)
         self.optimize_goto_compare_with_zero()
         self.join_incrdecrs()
@@ -48,9 +47,54 @@ class Optimizer:
         # @todo analyse for unreachable code and remove that (f.i. code after goto or return that has no label so can never be jumped to)
 
     def join_incrdecrs(self) -> None:
+        def combine(incrdecrs: List[IncrDecr], scope: Scope) -> None:
+            # combine the separate incrdecrs
+            replaced = False
+            total = 0
+            for i in incrdecrs:
+                if i.operator == "++":
+                    total += i.howmuch
+                else:
+                    total -= i.howmuch
+            if total == 0:
+                replaced = True
+                for x in incrdecrs:
+                    scope.remove_node(x)
+            else:
+                is_float = False
+                if isinstance(target, SymbolName):
+                    symdef = target.my_scope().lookup(target.name)
+                    is_float = isinstance(symdef, VarDef) and symdef.datatype == DataType.FLOAT
+                elif isinstance(target, Dereference):
+                    is_float = target.datatype == DataType.FLOAT
+                if is_float or -255 <= total <= 255:
+                    replaced = True
+                    for x in incrdecrs[1:]:
+                        scope.remove_node(x)
+                    incrdecr = self._make_incrdecr(incrdecrs[0], target, abs(total), "++" if total >= 0 else "--")
+                    scope.replace_node(incrdecrs[0], incrdecr)
+                else:
+                    # total is > or < than 255, make an augmented assignment out of it instead of an incrdecr
+                    aug_assign = AugAssignment(operator="-=" if total < 0 else "+=", sourceref=incrdecrs[0].sourceref)  # type: ignore
+                    left = incrdecrs[0].target
+                    right = LiteralValue(value=abs(total), sourceref=incrdecrs[0].sourceref)  # type: ignore
+                    left.parent = aug_assign
+                    right.parent = aug_assign
+                    aug_assign.nodes.append(left)
+                    aug_assign.nodes.append(right)
+                    aug_assign.mark_lhs()
+                    replaced = True
+                    for x in incrdecrs[1:]:
+                        scope.remove_node(x)
+                    scope.replace_node(incrdecrs[0], aug_assign)
+            if replaced:
+                self.optimizations_performed = True
+                self.num_warnings += 1
+                print_warning("{}: merged a sequence of incr/decrs or augmented assignments".format(incrdecrs[0].sourceref))
+
         for scope in self.module.all_nodes(Scope):
-            incrdecrs = []      # type: List[IncrDecr]
             target = None
+            incrdecrs = []  # type: List[IncrDecr]
             for node in list(scope.nodes):
                 if isinstance(node, IncrDecr):
                     if target is None:
@@ -61,54 +105,17 @@ class Optimizer:
                         incrdecrs.append(node)
                         continue
                 if len(incrdecrs) > 1:
-                    # optimize...
-                    replaced = False
-                    total = 0
-                    for i in incrdecrs:
-                        if i.operator == "++":
-                            total += i.howmuch
-                        else:
-                            total -= i.howmuch
-                    if total == 0:
-                        replaced = True
-                        for x in incrdecrs:
-                            scope.remove_node(x)
-                    else:
-                        is_float = False
-                        if isinstance(target, SymbolName):
-                            symdef = target.my_scope().lookup(target.name)
-                            if isinstance(symdef, VarDef) and symdef.datatype == DataType.FLOAT:
-                                is_float = True
-                        elif isinstance(target, Dereference):
-                            is_float = target.datatype == DataType.FLOAT
-                        if is_float:
-                            replaced = True
-                            for x in incrdecrs[1:]:
-                                scope.remove_node(x)
-                            incrdecr = self._make_incrdecr(incrdecrs[0], target, abs(total), "++" if total >= 0 else "--")
-                            scope.replace_node(incrdecrs[0], incrdecr)
-                        elif 0 < total <= 255:
-                            replaced = True
-                            for x in incrdecrs[1:]:
-                                scope.remove_node(x)
-                            incrdecr = self._make_incrdecr(incrdecrs[0], target, total, "++")
-                            scope.replace_node(incrdecrs[0], incrdecr)
-                        elif -255 <= total < 0:
-                            replaced = True
-                            total = -total
-                            for x in incrdecrs[1:]:
-                                scope.remove_node(x)
-                            incrdecr = self._make_incrdecr(incrdecrs[0], target, total, "--")
-                            scope.replace_node(incrdecrs[0], incrdecr)
-                    if replaced:
-                        self.optimizations_performed = True
-                        self.num_warnings += 1
-                        print_warning("{}: merged a sequence of incr/decrs or augmented assignments".format(incrdecrs[0].sourceref))
+                    combine(incrdecrs, scope)   # type: ignore
                 incrdecrs.clear()
                 target = None
                 if isinstance(node, IncrDecr):
-                    incrdecrs.append(node)
-                    target = node.target
+                    # it was an incrdecr with a different target than what we had gathered so far.
+                    if target is None:
+                        target = node.target
+                        incrdecrs.append(node)
+            if len(incrdecrs) > 1:
+                # combine remaining incrdecrs at the bottom of the block
+                combine(incrdecrs, scope)   # type: ignore
 
     def _same_target(self, node1: Union[Register, SymbolName, Dereference],
                      node2: Union[Register, SymbolName, Dereference]) -> bool:
@@ -181,7 +188,7 @@ class Optimizer:
     def optimize_assignments(self) -> None:
         # remove assignment statements that do nothing (A=A)
         # remove augmented assignments that have no effect (x+=0, x-=0, x/=1, x//=1, x*=1)
-        # convert augmented assignments to simple incr/decr if possible (A+=10 =>  A++ by 10)
+        # convert augmented assignments to simple incr/decr if value allows it (A+=10 =>  incr A by 10)
         # simplify some calculations (x*=0, x**=0) to simple constant value assignment
         # @todo remove or simplify logical aug assigns like A |= 0, A |= true, A |= false  (or perhaps turn them into byte values first?)
         for assignment in self.module.all_nodes():
@@ -272,33 +279,6 @@ class Optimizer:
         target.parent = a
         a.parent = old_stmt.parent
         return a
-
-    def combine_assignments_into_multi(self) -> None:
-        # fold multiple consecutive assignments with the same rvalue into one multi-assignment
-        for scope in self.module.all_nodes(Scope):
-            rvalue = None
-            assignments = []    # type: List[Assignment]
-            for stmt in list(scope.nodes):
-                if isinstance(stmt, Assignment):
-                    if assignments:
-                        if stmt.right == rvalue:
-                            assignments.append(stmt)
-                            continue
-                        elif len(assignments) > 1:
-                            # replace the first assignment by a multi-assign with all the others
-                            for assignment in assignments[1:]:
-                                print("{}: joined with previous assignment".format(assignment.sourceref))
-                                assignments[0].left.nodes.extend(assignment.left.nodes)
-                                scope.remove_node(assignment)
-                                self.optimizations_performed = True
-                            rvalue = None
-                            assignments.clear()
-                    else:
-                        rvalue = stmt.right
-                        assignments.append(stmt)
-                else:
-                    rvalue = None
-                    assignments.clear()
 
     @no_type_check
     def remove_unused_subroutines(self) -> None:
