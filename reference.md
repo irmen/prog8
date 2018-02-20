@@ -288,13 +288,9 @@ want to work on later, because the contents of the ignored block are not fully p
 
 ### Assignments
 
-Assignment statements assign a single value to one or more variables or memory locations.
-If you know that you have to assign the same value to more than one thing at once, it is more
-efficient to write it as a multi-assign instead of several separate assignments. The compiler
-tries to detect this situation however and optimize it itself if it finds the case.
+Assignment statements assign a single value to a target variable or memory location.
 
         target = value-expression
-        target1 = target2 = target3 [,...] = value-expression
 
 
 ### Augmented Assignments

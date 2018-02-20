@@ -33,7 +33,19 @@ start:   ;foo
 	Y = X
 	X = 66
 	screen = 0
-	screen = border =  cursor = X = Y = A = X = Y = A = border = cursor = border = cursor = 66  ; multi-assign!
+	screen = 66
+	border = 66
+	cursor = 66
+	X = 66
+	Y = 66
+	A = 66
+	X = 66
+	Y = 66
+	A = 66
+	border = 66
+	cursor = 66
+	border = 66
+	cursor = 66
 	border = false
 	border = true
 	border = 0
@@ -58,7 +70,9 @@ start:   ;foo
 	Y = 2
 	Y = true
 	Y = false
-	A = Y = X = 0		; multi assign!
+	A = 0
+	Y = 0
+	X = 0
 
 	; [646,Y] = [$d020,X]
 
@@ -130,8 +144,19 @@ somelabel1:
 
         goto somelabel1
         goto block2.somelabel1222
-	A=X=Y=A=X=Y=A=X=Y=99
-	[$d020]=[$d021]=[$d020]=[$d021]=55
+	A=99
+	X=99
+	Y=99
+	A=99
+	X=99
+	Y=99
+	A=99
+	X=99
+	Y=99
+	[$d020]=55
+	[$d021]=55
+	[$d020]=55
+	[$d021]=55
 
 	A=1
 	X=1

@@ -153,8 +153,6 @@ start:
 	A = 0
 	A = '@'
 	A = 1.2345
-	A=X=Y= true
-	A=XY= true
 	A = false
 	A = 255
 	A = X
@@ -180,8 +178,6 @@ start:
 	XY = uninitbyte1
 	XY = "text-immediate"
 	AY = "text-immediate"
-	; AX = &"text-immediate"          ; equivalent to simply assigning the string directly
-	; AX = & "text-immediate"         ; equivalent to simply assigning the string directly
 	AX = ctext3
 	AX = ""
 	AX = XY
@@ -190,7 +186,7 @@ start:
 	XY = membyte2
 	XY = memword1
 	XY = sin
-	; XY = &sin     ; @todo not yet implemented
+	XY = &sin     ; @todo not yet implemented
 
 
 	[$c000] = A
@@ -214,7 +210,7 @@ start:
 	[$c000.word] = ""
 	[$c000.word] = uninitbyte1
 	[$c000.word] = membyte2
-	; [$c000.word] = &membyte2              ; @todo not yet implemented
+	[$c000.word] = &membyte2              ; @todo not yet implemented
 	[$c000.word] = [cword2]
 	[$c000.word] = memword1
 	[$c000.float] = 65535
@@ -228,7 +224,7 @@ start:
         [$c112.word] = [$c223.byte]
 	[$c222.word] = [$c333.word]
 	[$c333.word] = sin
-	; [$c333.word] = &sin           ; @todo not yet implemented
+	[$c333.word] = &sin           ; @todo not yet implemented
 
 
 	SC = 0
@@ -264,7 +260,7 @@ start:
 	uninitfloat = 9.8765
 	uninitfloat = '@'
 	initword1 = sin
-	; initword1 = &sin    ; @todo not yet implemented
+	initword1 = &sin    ; @todo not yet implemented
 
 
         membyte1 = A
@@ -280,7 +276,7 @@ start:
         memword1 = 2233
         memfloat = 3.4567
 	memword1 = sin
-	; memword1 = &sin               ; @todo not yet implemented
+	memword1 = &sin               ; @todo not yet implemented
 
         membyte1 = A
         memword1 = A

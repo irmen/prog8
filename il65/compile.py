@@ -37,7 +37,6 @@ class PlyParser:
             module.scope.define_builtin_functions()
             self.process_imports(module)
             self.check_and_merge_zeropages(module)
-            self.create_multiassigns(module)
             if not self.imported_module:
                 # the following shall only be done on the main module after all imports have been done:
                 self.check_all_symbolnames(module)
@@ -248,24 +247,6 @@ class PlyParser:
     def check_all_symbolnames(self, module: Module) -> None:
         for node in module.all_nodes(SymbolName):
             check_symbol_definition(node.name, node.my_scope(), node.sourceref)     # type: ignore
-
-    @no_type_check
-    def create_multiassigns(self, module: Module) -> None:
-        # create multi-assign statements from nested assignments (A=B=C=5),
-        def reduce_right(assign: Assignment) -> Assignment:
-            if isinstance(assign.right, Assignment):
-                right = reduce_right(assign.right)
-                for rn in right.left.nodes:
-                    rn.parent = assign.left
-                assign.left.nodes.extend(right.left.nodes)
-                assign.right = right.right
-                assign.right.parent = assign
-            return assign
-
-        for node in module.all_nodes(Assignment):
-            if isinstance(node.right, Assignment):
-                multi = reduce_right(node)
-                assert multi is node and len(multi.left.nodes) > 1 and not isinstance(multi.right, Assignment)
 
     @no_type_check
     def apply_directive_options(self, module: Module) -> None:

@@ -846,10 +846,7 @@ class Return(AstNode):
 
 @attr.s(cmp=False, slots=True, repr=False)
 class Assignment(AstNode):
-    # can be single- or multi-assignment
-    # has two subnodes: left (=Register/SymbolName/Dereference ) and right (=Expression,
-    #    or another Assignment but those will be converted into multi assign)
-
+    # has two subnodes: left (=Register/SymbolName/Dereference ) and right (=Expression)
     @property
     def left(self) -> Union[Register, SymbolName, Dereference]:
         return self.nodes[0]    # type: ignore
@@ -1475,7 +1472,6 @@ def p_symbolname(p):
 def p_assignment(p):
     """
     assignment :  assignment_target  IS  expression
-               |  assignment_target  IS  assignment
     """
     p[0] = Assignment(sourceref=_token_sref(p, 2))
     p[0].nodes.append(p[1])

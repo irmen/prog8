@@ -40,7 +40,6 @@ class Optimizer:
         self.optimize_assignments()
         self.remove_superfluous_assignments()
         self.combine_assignments_into_multi()
-        self.optimize_multiassigns()
         # @todo optimize addition with self into shift 1  (A+=A -> A<<=1)
         self.optimize_goto_compare_with_zero()
         self.join_incrdecrs()
@@ -300,19 +299,6 @@ class Optimizer:
                 else:
                     rvalue = None
                     assignments.clear()
-
-    @no_type_check
-    def optimize_multiassigns(self) -> None:
-        # optimize multi-assign statements (remove duplicate targets, optimize order)
-        for assignment in self.module.all_nodes(Assignment):
-            if len(assignment.left.nodes) > 1:
-                # remove duplicates
-                lvalues = set(assignment.left.nodes)
-                if len(lvalues) != len(assignment.left.nodes):
-                    print("{}: removed duplicate assignment targets".format(assignment.sourceref))
-                    # @todo change order: first registers, then zp addresses, then non-zp addresses, then the rest (if any)
-                    assignment.left.nodes = list(lvalues)
-                    self.optimizations_performed = True
 
     @no_type_check
     def remove_unused_subroutines(self) -> None:
