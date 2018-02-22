@@ -74,7 +74,7 @@ class Optimizer:
                     incrdecr = self._make_incrdecr(incrdecrs[0], target, abs(total), "++" if total >= 0 else "--")
                     scope.replace_node(incrdecrs[0], incrdecr)
                 else:
-                    # total is > or < than 255, make an augmented assignment out of it instead of an incrdecr
+                    # total is > 255 or < -255, make an augmented assignment out of it instead of an incrdecr
                     aug_assign = AugAssignment(operator="-=" if total < 0 else "+=", sourceref=incrdecrs[0].sourceref)  # type: ignore
                     left = incrdecrs[0].target
                     right = LiteralValue(value=abs(total), sourceref=incrdecrs[0].sourceref)  # type: ignore

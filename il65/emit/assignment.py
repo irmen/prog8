@@ -33,21 +33,19 @@ def generate_aug_assignment(ctx: Context) -> None:
     if isinstance(lvalue, Register):
         if isinstance(rvalue, LiteralValue):
             if type(rvalue.value) is int:
-                if 0 <= rvalue.value <= 255:
-                    if stmt.operator not in ("<<=", ">>=") or rvalue.value != 0:
-                        _generate_aug_reg_int(out, lvalue, stmt.operator, rvalue.value, "", ctx.scope)
-                else:
-                    raise CodeError("aug. assignment value must be 0..255", rvalue)    # @todo value > 255
+                assert rvalue.value >= 0, "augassign value can't be < 0"
+                _generate_aug_reg_int(out, lvalue, stmt.operator, rvalue.value, "", ctx.scope)
             else:
                 raise CodeError("constant integer literal or variable required for now", rvalue)   # XXX
         elif isinstance(rvalue, SymbolName):
             symdef = ctx.scope.lookup(rvalue.name)
             if isinstance(symdef, VarDef):
                 if symdef.vartype == VarType.CONST:
-                    if symdef.datatype.isinteger() and 0 <= symdef.value.const_value() <= 255:  # type: ignore
+                    if symdef.datatype.isinteger():
+                        assert symdef.value.const_value() >= 0, "augassign value can't be <0"   # type: ignore
                         _generate_aug_reg_int(out, lvalue, stmt.operator, symdef.value.const_value(), "", ctx.scope)   # type: ignore
                     else:
-                        raise CodeError("aug. assignment value must be integer 0..255", rvalue)  # @todo value > 255
+                        raise CodeError("aug. assignment value must be integer", rvalue)
                 elif symdef.datatype == DataType.BYTE:
                     _generate_aug_reg_int(out, lvalue, stmt.operator, 0, symdef.name, ctx.scope)
                 else:
@@ -61,7 +59,7 @@ def generate_aug_assignment(ctx: Context) -> None:
         elif isinstance(rvalue, Dereference):
             print("warning: {}: using indirect/dereferece is very costly".format(rvalue.sourceref))
             if rvalue.datatype != DataType.BYTE:
-                raise CodeError("aug. assignment value must be a byte, 0..255", rvalue)  # @todo value > 255
+                raise CodeError("aug. assignment value must be a byte for now", rvalue)
             if isinstance(rvalue.operand, (LiteralValue, SymbolName)):
                 if isinstance(rvalue.operand, LiteralValue):
                     what = to_hex(rvalue.operand.value)
@@ -135,15 +133,32 @@ def _generate_aug_reg_int(out: Callable, lvalue: Register, operator: str, rvalue
         # an immediate value is provided in rvalue
         right_str = "#" + str(rvalue)
     if operator == "+=":
-        _gen_aug_plus_reg_int(lvalue, out, right_str, scope)
+        assert 0 <= rvalue <= 255, "+= value should be 0..255 for now at " + str(lvalue.sourceref)    # @todo
+        if rvalue > 0:
+            _gen_aug_plus_reg_int(lvalue, out, right_str, scope)
     elif operator == "-=":
-        _gen_aug_minus_reg_int(lvalue, out, right_str, scope)
+        assert 0 <= rvalue <= 255, "-= value should be 0..255 for now at " + str(lvalue.sourceref)    # @todo
+        if rvalue > 0:
+            _gen_aug_minus_reg_int(lvalue, out, right_str, scope)
     elif operator == "&=":
-        _gen_aug_and_reg_int(lvalue, out, right_str, scope)
+        assert 0 <= rvalue <= 255, "&= value should be 0..255 for now at " + str(lvalue.sourceref)    # @todo
+        if rvalue == 0:
+            # output '=0'
+            assignment = Assignment(sourceref=lvalue.sourceref)   # type: ignore
+            assignment.nodes.append(lvalue)
+            assignment.nodes.append(LiteralValue(value=0, sourceref=lvalue.sourceref))  # type: ignore
+            ctx = Context(out=out, stmt=assignment, scope=scope, floats_enabled=False)  # type: ignore
+            generate_assignment(ctx)
+        else:
+            _gen_aug_and_reg_int(lvalue, out, right_str, scope)
     elif operator == "|=":
-        _gen_aug_or_reg_int(lvalue, out, right_str, scope)
+        assert 0 <= rvalue <= 255, "|= value should be 0..255 for now at " + str(lvalue.sourceref)    # @todo
+        if rvalue > 0:
+            _gen_aug_or_reg_int(lvalue, out, right_str, scope)
     elif operator == "^=":
-        _gen_aug_xor_reg_int(lvalue, out, right_str, scope)
+        assert 0 <= rvalue <= 255, "^= value should be 0..255 for now at " + str(lvalue.sourceref)    # @todo
+        if rvalue > 0:
+            _gen_aug_xor_reg_int(lvalue, out, right_str, scope)
     elif operator == ">>=":
         _gen_aug_shiftright_reg_int(lvalue, out, rname, rvalue, scope)
     elif operator == "<<=":
@@ -185,10 +200,6 @@ def _gen_aug_shiftleft_reg_int(lvalue: Register, out: Callable, rname: str, rval
         with preserving_registers(preserve_regs, scope, out):
             out("\vldx  " + rname)
             out("\vjsr  il65_lib.asl_A_by_X")
-            # out("\vbeq  +")
-            # out("-\vasl  a")
-            # out("\vdex")
-            # out("\vbne  -")
             # put A back into target register
             if lvalue.name == "X":
                 out("\vtax")
