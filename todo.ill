@@ -7,7 +7,9 @@
 start:
 	counter ++
 	main.counter ++
-	; @todo float augassign
+	; @
+
+	todo float augassign
 	flt += 1000.1
 	flt *= 2.34
 	flt *= flt

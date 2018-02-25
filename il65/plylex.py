@@ -150,7 +150,7 @@ reserved = {
     "if_gt": "IF",
     "if_lt": "IF",
     "if_pos": "IF",
-    "if_get": "IF",
+    "if_neg": "IF",
 }
 
 

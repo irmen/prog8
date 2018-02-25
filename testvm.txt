@@ -1,0 +1,56 @@
+; source code for a tinyvm program
+%block   b1
+%vardefs
+var     byte    v1      0
+var     word    w1      2222
+var     sword   ws      -3333
+const   byte    c1      99
+const   sword   cws     -5444
+var     array_byte  linefeed  12 11
+var     array_byte  ba  10  33
+var     array_byte  ba2  10  [1 2 3 4 5 6 7 8 9 10]
+var     matrix_byte mxb  4 5 33
+var     matrix_byte mxb2 3 2 [1 2 3 4 5 6]
+%end_vardefs
+
+%instructions
+    nop
+    nop
+l1:
+    nop
+    push  cws
+    jump_if_false  l3
+    push  c1
+    push2  c1 cws
+    syscall hexstr_signed
+    push w1
+    syscall decimalstr_signed
+    syscall printstr
+    push linefeed
+    syscall printstr
+l3:
+    return
+%end_instructions
+
+%subblocks
+
+%block  b2
+%vardefs
+%end_vardefs
+%end_block  ; b2
+
+%end_subblocks
+%end_block ;b1
+
+
+
+%block   b3
+%vardefs
+%end_vardefs
+%instructions
+    nop
+    nop
+l2:
+    return
+%end_instructions
+%end_block    ; b3

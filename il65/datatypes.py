@@ -77,6 +77,8 @@ def char_to_bytevalue(character: str, petscii: bool=True) -> int:
 
 # ASCII/UNICODE-to-PETSCII translation table
 # Unicode symbols supported that map to a PETSCII character:  £ ↑ ← ♠ ♥ ♦ ♣ π ● ○ and various others
+
+# @todo cbmcodecs pypi package?     extend that with screencode codec?
 ascii_to_petscii_trans = str.maketrans({
     '\f': 147,  # form feed becomes ClearScreen  "{clear}"
     '\n': 13,   # line feed becomes a RETURN  "{cr}"  (not a line feed)
