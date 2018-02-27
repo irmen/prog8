@@ -51,17 +51,19 @@
 #       call function  (arguments are on stack)
 #       enter / exit   (function call frame)
 #
-# TIMER INTERRUPT:   triggered every 1/60th of a second.
+# TIMER INTERRUPT:   triggered around each 1/30th of a second.
 #       executes on a DIFFERENT stack and with a different PROGRAM LIST,
 #       but with access to ALL THE SAME DYNAMIC VARIABLES.
+#       This suspends the main program until the timer program RETURNs!
 #
 
 import time
 import itertools
 import collections
 import array
+import threading
 import pprint
-from .core import Instruction, Variable, Block, Program, Opcode, CONDITIONAL_OPCODES
+from .core import Instruction, Variable, Block, Program, Opcode
 from typing import Dict, List, Tuple, Union
 from il65.emit import mflpt5_to_float, to_mflpt5
 
@@ -131,7 +133,18 @@ class Memory:
         self.mem[index: index+5] = to_mflpt5(value)
 
 
-StackValueType = Union[bool, int, float, bytearray, array.array]
+class CallFrameMarker:
+    pass
+
+
+class ReturnInstruction:
+    __slots__ = ["instruction"]
+
+    def __init__(self, instruction: Instruction) -> None:
+        self.instruction = instruction
+
+
+StackValueType = Union[bool, int, float, bytearray, array.array, CallFrameMarker, ReturnInstruction]
 
 
 class Stack:
@@ -188,8 +201,8 @@ class Stack:
         self.stack[-2] = x
 
     def _typecheck(self, value: StackValueType):
-        if type(value) not in (bool, int, float, bytearray, array.array):
-            raise TypeError("stack can only contain bool, int, float, (byte)array")
+        if type(value) not in (bool, int, float, bytearray, array.array, CallFrameMarker, ReturnInstruction):
+            raise TypeError("invalid item type pushed")
 
 
 # noinspection PyPep8Naming,PyUnusedLocal,PyMethodMayBeStatic
@@ -197,8 +210,11 @@ class VM:
     str_encoding = "iso-8859-15"
     str_alt_encoding = "iso-8859-15"
     readonly_mem_ranges = []        # type: List[Tuple[int, int]]
+    timer_irq_resolution = 1/30
+    timer_irq_interlock = threading.Lock()
+    timer_irq_event = threading.Event()
 
-    def __init__(self, program: Program, timerprogram: Program) -> None:
+    def __init__(self, program: Program, timerprogram: Program=Program([])) -> None:
         opcode_names = [oc.name for oc in Opcode]
         for ocname in opcode_names:
             if not hasattr(self, "opcode_" + ocname):
@@ -212,33 +228,39 @@ class VM:
             self.memory.mark_readonly(start, end)
         self.main_stack = Stack()
         self.timer_stack = Stack()
-        (self.main_program, self.timer_program), self.variables, self.labels = self.flatten_programs(program, timerprogram)
+        self.main_program, self.timer_program, self.variables, self.labels = self.flatten_programs(program, timerprogram)
+        print("MAIN PROGRAM"); pprint.pprint([str(i) for i in self.main_program])
         self.connect_instruction_pointers(self.main_program)
         self.connect_instruction_pointers(self.timer_program)
         self.program = self.main_program
         self.stack = self.main_stack
         self.pc = None           # type: Instruction
-        self.previous_pc = None  # type: Instruction
         self.system = System(self)
         assert all(i.next for i in self.main_program
                    if i.opcode != Opcode.TERMINATE), "main: all instrs next must be set"
         assert all(i.next for i in self.timer_program
-                   if i.opcode != Opcode.TERMINATE), "main: all instrs next must be set"
-        assert all(i.condnext for i in self.main_program
-                   if i.opcode in CONDITIONAL_OPCODES), "timer: all conditional instrs condnext must be set"
-        assert all(i.condnext for i in self.timer_program
-                   if i.opcode in CONDITIONAL_OPCODES), "timer: all conditional instrs condnext must be set"
+                   if i.opcode not in (Opcode.TERMINATE, Opcode.RETURN)), "timer: all instrs next must be set"
+        assert all(i.alt_next for i in self.main_program
+                   if i.opcode in (Opcode.CALL, Opcode.JUMP_IF_FALSE, Opcode.JUMP_IF_TRUE)), "main: alt_nexts must be set"
+        assert all(i.alt_next for i in self.timer_program
+                   if i.opcode in (Opcode.CALL, Opcode.JUMP_IF_FALSE, Opcode.JUMP_IF_TRUE)), "timer: alt_nexts must be set"
+        threading.Thread(target=self.timer_irq, name="timer_irq", daemon=True).start()
         print("[TinyVM starting up.]")
 
-    def flatten_programs(self, *programs: Program) -> Tuple[List[List[Instruction]], Dict[str, Variable], Dict[str, Instruction]]:
-        variables = {}      # type: Dict[str, Variable]
-        labels = {}         # type: Dict[str, Instruction]
-        flat_programs = []  # type: List[List[Instruction]]
-        for program in programs:
-            for block in program.blocks:
-                flat = self.flatten(block, variables, labels)
-                flat_programs.append(flat)
-        return flat_programs, variables, labels
+    def flatten_programs(self, main: Program, timer: Program) \
+            -> Tuple[List[Instruction], List[Instruction], Dict[str, Variable], Dict[str, Instruction]]:
+        variables = {}           # type: Dict[str, Variable]
+        labels = {}              # type: Dict[str, Instruction]
+        instructions_main = []   # type: List[Instruction]
+        instructions_timer = []  # type: List[Instruction]
+        for block in main.blocks:
+            flat = self.flatten(block, variables, labels)
+            instructions_main.extend(flat)
+        instructions_main.append(Instruction(Opcode.TERMINATE, [], None, None))
+        for block in timer.blocks:
+            flat = self.flatten(block, variables, labels)
+            instructions_timer.extend(flat)
+        return instructions_main, instructions_timer, variables, labels
 
     def flatten(self, block: Block, variables: Dict[str, Variable], labels: Dict[str, Instruction]) -> List[Instruction]:
         def block_prefix(b: Block) -> str:
@@ -269,7 +291,6 @@ class VM:
             labels[name] = instr
         for subblock in block.blocks:
             instructions.extend(self.flatten(subblock, variables, labels))
-        instructions.append(Instruction(Opcode.TERMINATE, [], None, None))
         del block.instructions
         del block.variables
         del block.labels
@@ -279,42 +300,65 @@ class VM:
         i1, i2 = itertools.tee(instructions)
         next(i2, None)
         for i, nexti in itertools.zip_longest(i1, i2):
-            i.next = nexti
-            if i.opcode in CONDITIONAL_OPCODES:
-                i.condnext = self.labels[i.args[0]]
+            if i.opcode in (Opcode.JUMP_IF_TRUE, Opcode.JUMP_IF_FALSE):
+                i.next = nexti      # normal flow target
+                i.alt_next = self.labels[i.args[0]]  # conditional jump target
+            elif i.opcode == Opcode.JUMP:
+                i.next = self.labels[i.args[0]]      # jump target
+            elif i.opcode == Opcode.CALL:
+                i.next = self.labels[i.args[0]]      # call target
+                i.alt_next = nexti                   # return instruction
+            else:
+                i.next = nexti
 
     def run(self) -> None:
-        last_timer = time.time()
         self.pc = self.program[0]   # first instruction of the main program
-        steps = 1
+        self.stack.push(ReturnInstruction(None))  # sentinel
+        self.stack.push(CallFrameMarker())  # enter the call frame so the timer program can end with a RETURN
         try:
-            while True:
-                now = time.time()
-                # if now - last_timer >= 1/60:
-                #     last_timer = now
-                #     # start running the timer interrupt program instead
-                #     self.previous_pc = self.pc
-                #     self.program = self.timer_program
-                #     self.stack = self.timer_stack
-                #     self.pc = 0
-                #     while True:
-                #         self.dispatch(self.program[self.pc])
-                #         return True
-                #     self.pc = self.previous_pc
-                #     self.program = self.mainprogram
-                #     self.stack = self.mainstack
-                next_pc = getattr(self, "opcode_" + self.pc.opcode.name)(self.pc)
-                if next_pc:
-                    self.pc = self.pc.next
-                steps += 1
+            while self.pc is not None:
+                with self.timer_irq_interlock:
+                    next_pc = getattr(self, "opcode_" + self.pc.opcode.name)(self.pc)
+                    if next_pc:
+                        self.pc = self.pc.next
         except TerminateExecution as x:
             why = str(x)
-            print("[TinyVM execution halted{:s}]\n".format(": "+why if why else "."))
+            print("[TinyVM execution terminated{:s}]\n".format(": "+why if why else "."))
             return
         except Exception as x:
             print("EXECUTION ERROR")
             self.debug_stack(5)
             raise
+        else:
+            print("[TinyVM execution ended.]")
+
+    def timer_irq(self) -> None:
+        resolution = 1/30
+        wait_time = resolution
+        while True:
+            self.timer_irq_event.wait(wait_time)
+            self.timer_irq_event.clear()
+            start = time.perf_counter()
+            if self.timer_program:
+                with self.timer_irq_interlock:
+                    previous_pc = self.pc
+                    previous_program = self.program
+                    previous_stack = self.stack
+                    self.stack = self.timer_stack
+                    self.program = self.timer_program
+                    self.pc = self.program[0]
+                    self.stack.push(ReturnInstruction(None))  # sentinel
+                    self.stack.push(CallFrameMarker())  # enter the call frame so the timer program can end with a RETURN
+                    while self.pc is not None:
+                        next_pc = getattr(self, "opcode_" + self.pc.opcode.name)(self.pc)
+                        if next_pc:
+                            self.pc = self.pc.next
+                    self.pc = previous_pc
+                    self.program = previous_program
+                    self.stack = previous_stack
+            current = time.perf_counter()
+            duration, previously = current - start, current
+            wait_time = max(0, resolution - duration)
 
     def debug_stack(self, size: int=5) -> None:
         stack = self.stack.debug_peek(size)
@@ -424,13 +468,13 @@ class VM:
         self.stack.push(not self.stack.pop())
         return True
 
+    def opcode_TEST(self, instruction: Instruction) -> bool:
+        self.stack.push(bool(self.stack.pop()))
+        return True
+
     def opcode_CMP_EQ(self, instruction: Instruction) -> bool:
         second, first = self.stack.pop2()
         self.stack.push(first == second)
-        return True
-
-    def opcode_TEST(self, instruction: Instruction) -> bool:
-        self.stack.push(bool(self.stack.pop()))
         return True
 
     def opcode_CMP_LT(self, instruction: Instruction) -> bool:
@@ -453,29 +497,36 @@ class VM:
         self.stack.push(first >= second)        # type: ignore
         return True
 
-    def opcode_RETURN(self, instruction: Instruction) -> bool:
-        # returns from the current function call
-        # any return values have already been pushed on the stack
-        raise NotImplementedError("return")
-
-    def opcode_JUMP(self, instruction: Instruction) -> bool:
-        # jumps unconditionally by resetting the PC to the given instruction index value
+    def opcode_CALL(self, instruction: Instruction) -> bool:
+        self.stack.push(ReturnInstruction(instruction.alt_next))
+        self.stack.push(CallFrameMarker())
         return True
 
+    def opcode_RETURN(self, instruction: Instruction) -> bool:
+        # unwind the function call frame
+        item = self.stack.pop()
+        while not isinstance(item, CallFrameMarker):
+            item = self.stack.pop()
+        returninstruction = self.stack.pop()
+        assert isinstance(returninstruction, ReturnInstruction)
+        self.pc = returninstruction.instruction
+        return False
+
+    def opcode_JUMP(self, instruction: Instruction) -> bool:
+        return True    # jump simply points to the next instruction elsewhere
+
     def opcode_JUMP_IF_TRUE(self, instruction: Instruction) -> bool:
-        # pops stack and jumps if that value is true, by resetting the PC to the given instruction index value
         result = self.stack.pop()
         if result:
-            self.pc = self.pc.condnext
+            self.pc = self.pc.alt_next     # alternative next instruction
             return False
         return True
 
     def opcode_JUMP_IF_FALSE(self, instruction: Instruction) -> bool:
-        # pops stack and jumps if that value is false, by resetting the PC to the given instruction index value
         result = self.stack.pop()
         if result:
             return True
-        self.pc = self.pc.condnext
+        self.pc = self.pc.alt_next     # alternative next instruction
         return False
 
     def opcode_SYSCALL(self, instruction: Instruction) -> bool:
@@ -498,7 +549,7 @@ class System:
 
     def syscall_printstr(self) -> bool:
         value = self.vm.stack.pop()
-        if isinstance(value, bytearray):
+        if isinstance(value, (bytearray, array.array)):
             print(self._decodestr(value), end="")
             return True
         else:

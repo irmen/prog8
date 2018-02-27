@@ -125,10 +125,13 @@ class Parser:
                 label = line[:-1].rstrip()
                 self.lineno += 1
                 line = self.source[self.lineno]
-                labels[label] = parse_instruction(line)
+                next_instruction = parse_instruction(line)
+                labels[label] = next_instruction
+                instructions.append(next_instruction)
+                self.lineno += 1
             else:
                 instructions.append(parse_instruction(line))
-            self.lineno += 1
+                self.lineno += 1
         self.skip_empty()
         assert self.source[self.lineno].startswith("%end_instructions")
         self.lineno += 1

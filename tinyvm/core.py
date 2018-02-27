@@ -3,36 +3,34 @@ from typing import Any, List, Dict, Optional
 
 
 class Opcode(enum.IntEnum):
-    NOP = 0
-    TERMINATE = 1
+    TERMINATE = 0
+    NOP = 1
     PUSH = 10
     PUSH2 = 11
     PUSH3 = 12
-    POP = 20
-    POP2 = 21
-    POP3 = 22
-    ADD = 100
-    SUB = 101
-    MUL = 102
-    DIV = 103
-    AND = 200
-    OR = 201
-    XOR = 202
-    NOT = 203
-    CMP_EQ = 300
-    CMP_LT = 301
-    CMP_GT = 302
-    CMP_LTE = 303
-    CMP_GTE = 304
-    TEST = 305
-    RETURN = 500
-    JUMP = 501
-    JUMP_IF_TRUE = 502
-    JUMP_IF_FALSE = 503
-    SYSCALL = 504
-
-
-CONDITIONAL_OPCODES = {Opcode.JUMP_IF_FALSE, Opcode.JUMP_IF_TRUE}
+    POP = 13
+    POP2 = 14
+    POP3 = 15
+    ADD = 50
+    SUB = 51
+    MUL = 52
+    DIV = 53
+    AND = 70
+    OR = 71
+    XOR = 72
+    NOT = 73
+    TEST = 100
+    CMP_EQ = 101
+    CMP_LT = 102
+    CMP_GT = 103
+    CMP_LTE = 104
+    CMP_GTE = 105
+    CALL = 200
+    RETURN = 201
+    JUMP = 202
+    JUMP_IF_TRUE = 203
+    JUMP_IF_FALSE = 204
+    SYSCALL = 205
 
 
 class DataType(enum.IntEnum):
@@ -63,13 +61,13 @@ class Variable:
 
 
 class Instruction:
-    __slots__ = ["opcode", "args", "next", "condnext"]
+    __slots__ = ["opcode", "args", "next", "alt_next"]
 
-    def __init__(self, opcode: Opcode, args: List[Any], nxt: Optional['Instruction'], condnxt: Optional['Instruction']) -> None:
+    def __init__(self, opcode: Opcode, args: List[Any], nxt: Optional['Instruction'], alt_next: Optional['Instruction']) -> None:
         self.opcode = opcode
         self.args = args
-        self.next = nxt            # regular next statement, None=end
-        self.condnext = condnxt    # alternate next statement (for condition nodes)
+        self.next = nxt             # regular next statement, None=end
+        self.alt_next = alt_next    # alternate next statement (for condition nodes, and return instruction for call nodes)
 
     def __str__(self) -> str:
         return "<Instruction {} args: {}>".format(self.opcode.name, self.args)
