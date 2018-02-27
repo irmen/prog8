@@ -24,6 +24,7 @@ class Opcode(enum.IntEnum):
     CMP_GT = 302
     CMP_LTE = 303
     CMP_GTE = 304
+    TEST = 305
     RETURN = 500
     JUMP = 501
     JUMP_IF_TRUE = 502

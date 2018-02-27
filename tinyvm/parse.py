@@ -1,3 +1,4 @@
+import array
 from typing import Optional, List, Tuple, Dict
 from .core import DataType, Opcode, Program, Block, Variable, Instruction
 from .vm import StackValueType
@@ -49,6 +50,16 @@ class Parser:
         self.lineno += 1
         return block
 
+    def get_array_type(self, dtype: DataType) -> str:
+        return {
+            DataType.ARRAY_BYTE: 'B',
+            DataType.ARRAY_SBYTE: 'b',
+            DataType.ARRAY_WORD: 'H',
+            DataType.ARRAY_SWORD: 'h',
+            DataType.MATRIX_BYTE: 'B',
+            DataType.MATRIX_SBYTE: 'b'
+        }[dtype]
+
     def parse_vardefs(self) -> List[Variable]:
         assert self.source[self.lineno].startswith("%vardefs")
         self.lineno += 1
@@ -68,24 +79,23 @@ class Parser:
                 args = argstr.split(maxsplit=1)
                 length = int(args[0])
                 valuestr = args[1]
+                typecode = self.get_array_type(dtype)
                 if valuestr[0] == '[' and valuestr[-1] == ']':
-                    value = bytearray([int(v) for v in valuestr[1:-1].split()])
+                    value = array.array(typecode, [int(v) for v in valuestr[1:-1].split()])
                 else:
-                    value = bytearray([int(valuestr)]) * length
+                    value = array.array(typecode, [int(valuestr)]) * length
             elif dtype in (DataType.MATRIX_BYTE, DataType.MATRIX_SBYTE):
                 args = argstr.split(maxsplit=2)
                 length = int(args[0])
                 height = int(args[1])
                 valuestr = args[2]
+                typecode = self.get_array_type(dtype)
                 if valuestr[0] == '[' and valuestr[-1] == ']':
-                    value = bytearray([int(v) for v in valuestr[1:-1].split()])
+                    value = array.array(typecode, [int(v) for v in valuestr[1:-1].split()])
                 else:
-                    value = bytearray([int(valuestr)]) * length * height
+                    value = array.array(typecode, [int(valuestr)] * length * height)
             else:
                 raise TypeError("weird dtype", dtype)
-            if vartype == "const" and dtype not in (DataType.BYTE, DataType.WORD, DataType.SBYTE,
-                                                    DataType.SWORD, DataType.FLOAT, DataType.BOOL):
-                raise TypeError("invalid const datatype", dtype)
             variables.append(Variable(name, dtype, value, length, height, vartype == "const"))
             self.lineno += 1
         self.skip_empty()

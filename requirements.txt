@@ -1,2 +1,4 @@
 attrs
 ply
+git+https://github.com/irmen/cbmcodecs.git@master
+
