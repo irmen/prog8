@@ -3,8 +3,8 @@
 %vardefs
 var     byte   teller       1
 const   byte    one     1
-const   byte    thousand  1000
-var     array_byte  newlinestr  1  10
+const   byte    thousand  100000
+var     array_byte  newlinestr  2  [32 32]
 %end_vardefs
 
 %instructions

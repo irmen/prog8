@@ -229,7 +229,6 @@ class VM:
         self.main_stack = Stack()
         self.timer_stack = Stack()
         self.main_program, self.timer_program, self.variables, self.labels = self.flatten_programs(program, timerprogram)
-        print("MAIN PROGRAM"); pprint.pprint([str(i) for i in self.main_program])
         self.connect_instruction_pointers(self.main_program)
         self.connect_instruction_pointers(self.timer_program)
         self.program = self.main_program
@@ -318,7 +317,7 @@ class VM:
         try:
             while self.pc is not None:
                 with self.timer_irq_interlock:
-                    next_pc = getattr(self, "opcode_" + self.pc.opcode.name)(self.pc)
+                    next_pc = self.dispatch_table[self.pc.opcode](self, self.pc)
                     if next_pc:
                         self.pc = self.pc.next
         except TerminateExecution as x:
@@ -350,7 +349,7 @@ class VM:
                     self.stack.push(ReturnInstruction(None))  # sentinel
                     self.stack.push(CallFrameMarker())  # enter the call frame so the timer program can end with a RETURN
                     while self.pc is not None:
-                        next_pc = getattr(self, "opcode_" + self.pc.opcode.name)(self.pc)
+                        next_pc = self.dispatch_table[self.pc.opcode](self, self.pc)
                         if next_pc:
                             self.pc = self.pc.next
                     self.pc = previous_pc
@@ -535,6 +534,37 @@ class VM:
             return call()
         else:
             raise RuntimeError("no syscall method for " + instruction.args[0])
+
+    dispatch_table = {
+        Opcode.TERMINATE: opcode_TERMINATE,
+        Opcode.NOP: opcode_NOP,
+        Opcode.PUSH: opcode_PUSH,
+        Opcode.PUSH2: opcode_PUSH2,
+        Opcode.PUSH3: opcode_PUSH3,
+        Opcode.POP: opcode_POP,
+        Opcode.POP2: opcode_POP2,
+        Opcode.POP3: opcode_POP3,
+        Opcode.ADD: opcode_ADD,
+        Opcode.SUB: opcode_SUB,
+        Opcode.MUL: opcode_MUL,
+        Opcode.DIV: opcode_DIV,
+        Opcode.AND: opcode_AND,
+        Opcode.OR: opcode_OR,
+        Opcode.XOR: opcode_XOR,
+        Opcode.NOT: opcode_NOT,
+        Opcode.TEST: opcode_TEST,
+        Opcode.CMP_EQ: opcode_CMP_EQ,
+        Opcode.CMP_LT: opcode_CMP_LT,
+        Opcode.CMP_GT: opcode_CMP_GT,
+        Opcode.CMP_LTE: opcode_CMP_LTE,
+        Opcode.CMP_GTE: opcode_CMP_GTE,
+        Opcode.CALL: opcode_CALL,
+        Opcode.RETURN: opcode_RETURN,
+        Opcode.JUMP: opcode_JUMP,
+        Opcode.JUMP_IF_TRUE: opcode_JUMP_IF_TRUE,
+        Opcode.JUMP_IF_FALSE: opcode_JUMP_IF_FALSE,
+        Opcode.SYSCALL: opcode_SYSCALL,
+    }
 
 
 class System:
