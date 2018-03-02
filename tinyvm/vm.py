@@ -134,17 +134,19 @@ class Memory:
 
 
 class CallFrameMarker:
-    pass
-
-
-class ReturnInstruction:
-    __slots__ = ["instruction"]
+    __slots__ = ["returninstruction"]
 
     def __init__(self, instruction: Instruction) -> None:
-        self.instruction = instruction
+        self.returninstruction = instruction
+
+    def __str__(self) -> str:
+        return repr(self)
+
+    def __repr__(self) -> str:
+        return "<CallFrameMarker returninstruction={:s}>".format(str(self.returninstruction))
 
 
-StackValueType = Union[bool, int, float, bytearray, array.array, CallFrameMarker, ReturnInstruction]
+StackValueType = Union[bool, int, float, bytearray, array.array, CallFrameMarker]
 
 
 class Stack:
@@ -176,6 +178,9 @@ class Stack:
         self.pop_history.append(z)
         return x, y, z
 
+    def pop_under(self, number: int) -> StackValueType:
+        return self.stack.pop(-1-number)
+
     def push(self, item: StackValueType) -> None:
         self._typecheck(item)
         self.stack.append(item)
@@ -192,6 +197,9 @@ class Stack:
         self._typecheck(third)
         self.stack.extend([first, second, third])
 
+    def push_under(self, number: int, value: StackValueType) -> None:
+        self.stack.insert(-number, value)
+
     def peek(self) -> StackValueType:
         return self.stack[-1] if self.stack else None
 
@@ -201,7 +209,7 @@ class Stack:
         self.stack[-2] = x
 
     def _typecheck(self, value: StackValueType):
-        if type(value) not in (bool, int, float, bytearray, array.array, CallFrameMarker, ReturnInstruction):
+        if type(value) not in (bool, int, float, bytearray, array.array, CallFrameMarker):
             raise TypeError("invalid item type pushed")
 
 
@@ -223,6 +231,9 @@ class VM:
             if method.startswith("opcode_"):
                 if not method[7:] in opcode_names:
                     raise RuntimeError("opcode method for undefined opcode " + method)
+        for oc in Opcode:
+            if oc not in self.dispatch_table:
+                raise NotImplementedError("no dispatch entry in table for " + oc.name)
         self.memory = Memory()
         for start, end in self.readonly_mem_ranges:
             self.memory.mark_readonly(start, end)
@@ -305,15 +316,14 @@ class VM:
             elif i.opcode == Opcode.JUMP:
                 i.next = self.labels[i.args[0]]      # jump target
             elif i.opcode == Opcode.CALL:
-                i.next = self.labels[i.args[0]]      # call target
+                i.next = self.labels[i.args[1]]      # call target
                 i.alt_next = nexti                   # return instruction
             else:
                 i.next = nexti
 
     def run(self) -> None:
         self.pc = self.program[0]   # first instruction of the main program
-        self.stack.push(ReturnInstruction(None))  # sentinel
-        self.stack.push(CallFrameMarker())  # enter the call frame so the timer program can end with a RETURN
+        self.stack.push(CallFrameMarker(None))  # enter the call frame so the timer program can end with a RETURN
         try:
             while self.pc is not None:
                 with self.timer_irq_interlock:
@@ -346,8 +356,7 @@ class VM:
                     self.stack = self.timer_stack
                     self.program = self.timer_program
                     self.pc = self.program[0]
-                    self.stack.push(ReturnInstruction(None))  # sentinel
-                    self.stack.push(CallFrameMarker())  # enter the call frame so the timer program can end with a RETURN
+                    self.stack.push(CallFrameMarker(None))  # enter the call frame so the timer program can end with a RETURN
                     while self.pc is not None:
                         next_pc = self.dispatch_table[self.pc.opcode](self, self.pc)
                         if next_pc:
@@ -362,14 +371,14 @@ class VM:
     def debug_stack(self, size: int=5) -> None:
         stack = self.stack.debug_peek(size)
         if len(stack) > 0:
-            print("* stack (top {:d}):".format(size))
+            print("** stack (top {:d}):".format(size))
             for i, value in enumerate(reversed(stack), start=1):
-                print("  {:d}. {:s}  {!r}".format(i, type(value).__name__, value))
+                print("  {:d}. {:s}  {:s}".format(i, type(value).__name__, str(value)))
         else:
-            print("* stack is empty.")
+            print("** stack is empty.")
         if self.stack.pop_history:
-            print("* last {:d} values popped from stack (most recent last):".format(self.stack.pop_history.maxlen))
-            pprint.pprint(list(self.stack.pop_history), indent=2, compact=True, width=20)    # type: ignore
+            print("** last {:d} values popped from stack (most recent on top):".format(self.stack.pop_history.maxlen))
+            pprint.pprint(list(reversed(self.stack.pop_history)), indent=2, compact=True, width=20)    # type: ignore
         if self.pc is not None:
             print("* instruction:", self.pc)
 
@@ -387,6 +396,16 @@ class VM:
     def opcode_PUSH(self, instruction: Instruction) -> bool:
         value = self.variables[instruction.args[0]].value
         self.stack.push(value)
+        return True
+
+    def opcode_DUP(self, instruction: Instruction) -> bool:
+        self.stack.push(self.stack.peek())
+        return True
+
+    def opcode_DUP2(self, instruction: Instruction) -> bool:
+        x = self.stack.peek()
+        self.stack.push(x)
+        self.stack.push(x)
         return True
 
     def opcode_PUSH2(self, instruction: Instruction) -> bool:
@@ -497,18 +516,14 @@ class VM:
         return True
 
     def opcode_CALL(self, instruction: Instruction) -> bool:
-        self.stack.push(ReturnInstruction(instruction.alt_next))
-        self.stack.push(CallFrameMarker())
+        # arguments are already on the stack
+        self.stack.push_under(instruction.args[0], CallFrameMarker(instruction.alt_next))
         return True
 
     def opcode_RETURN(self, instruction: Instruction) -> bool:
-        # unwind the function call frame
-        item = self.stack.pop()
-        while not isinstance(item, CallFrameMarker):
-            item = self.stack.pop()
-        returninstruction = self.stack.pop()
-        assert isinstance(returninstruction, ReturnInstruction)
-        self.pc = returninstruction.instruction
+        callframe = self.stack.pop_under(instruction.args[0])
+        assert isinstance(callframe, CallFrameMarker)
+        self.pc = callframe.returninstruction
         return False
 
     def opcode_JUMP(self, instruction: Instruction) -> bool:
@@ -544,6 +559,8 @@ class VM:
         Opcode.POP: opcode_POP,
         Opcode.POP2: opcode_POP2,
         Opcode.POP3: opcode_POP3,
+        Opcode.DUP: opcode_DUP,
+        Opcode.DUP2: opcode_DUP2,
         Opcode.ADD: opcode_ADD,
         Opcode.SUB: opcode_SUB,
         Opcode.MUL: opcode_MUL,

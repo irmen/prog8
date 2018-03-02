@@ -2,6 +2,7 @@
 %block   b1
 %vardefs
 var     byte   teller       1
+var     byte  numbertoprint  0
 const   byte    one     1
 const   byte    thousand  100000
 var     array_byte  newlinestr  2  [32 32]
@@ -17,17 +18,20 @@ back:
 	push teller
 	push one
 	add
-	pop  teller
-	push teller
+	dup
+	dup
+	pop teller
+	call  1  printnumber
+	push  thousand
+	cmp_lt
+	jump_if_true back
+	return 0
+printnumber:
 	syscall decimalstr_signed
 	syscall printstr
 	push newlinestr
 	syscall printstr
-	push  teller
-	push  thousand
-	cmp_lt
-	jump_if_true back
-	return
+	return 0
 %end_instructions
 
 %subblocks

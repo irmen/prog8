@@ -116,6 +116,8 @@ class Parser:
                 args = parts[1].split()
             else:
                 args = []
+            if opcode in (Opcode.CALL, Opcode.RETURN):
+                args[0] = int(args[0])   # the number of arguments/parameters
             return Instruction(opcode, args, None, None)
 
         while not self.source[self.lineno].startswith("%"):
@@ -175,7 +177,8 @@ l1:
     nop
     push  c1
     push2  c1 cws
-    return
+    call  3  l1
+    return  2
 %end_instructions
 
 %subblocks
@@ -198,7 +201,7 @@ l1:
     nop
 l1:
     nop
-    return
+    return 99
 %end_instructions
 %end_block    ; b3
 """
