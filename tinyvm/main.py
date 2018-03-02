@@ -1,6 +1,6 @@
 import sys
 from .parse import Parser
-from .core import Program, Opcode, Block, Instruction
+from .program import Program, Opcode, Block, Instruction
 from .vm import VM
 
 

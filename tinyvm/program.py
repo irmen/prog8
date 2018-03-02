@@ -65,7 +65,7 @@ class Variable:
 class Instruction:
     __slots__ = ["opcode", "args", "next", "alt_next"]
 
-    def __init__(self, opcode: Opcode, args: List[Any], nxt: Optional['Instruction'], alt_next: Optional['Instruction']) -> None:
+    def __init__(self, opcode: Opcode, args: List[Any], nxt: Optional['Instruction']=None, alt_next: Optional['Instruction']=None) -> None:
         self.opcode = opcode
         self.args = args
         self.next = nxt             # regular next statement, None=end
@@ -77,16 +77,16 @@ class Instruction:
 
 class Block:
     def __init__(self, name: str, parent: 'Block',
-                 variables: List[Variable],
-                 instructions: List[Instruction],
-                 labels: Dict[str, Instruction],        # named entry points
-                 blocks: List['Block']) -> None:
+                 variables: List[Variable] = None,
+                 instructions: List[Instruction] = None,
+                 labels: Dict[str, Instruction] = None,        # named entry points
+                 subblocks: List['Block'] = None) -> None:
         self.name = name
         self.parent = parent
-        self.variables = variables
-        self.blocks = blocks
-        self.instructions = instructions
-        self.labels = labels
+        self.variables = variables or []
+        self.blocks = subblocks or []
+        self.instructions = instructions or []
+        self.labels = labels or {}
 
     def __str__(self) -> str:
         if self.parent:

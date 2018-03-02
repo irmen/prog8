@@ -16,11 +16,11 @@
 #                 or in one of the dynamic variables.
 #
 # I/O:  either via programmed I/O routines:
-#           write [byte to text output/screen],
-#           read [byte from keyboard],
-#           wait [till any input comes available],
-#           check [if input is available)
-#       or via memory-mapped I/O  (text screen matrix, keyboard scan register)
+#           write [byte/bytearray to text output/screen],
+#           read [byte/bytearray from keyboard],
+#           wait [till any input comes available],  @todo
+#           check [if input is available)   @todo
+#       or via memory-mapped I/O  (text screen matrix, keyboard scan register)  @todo
 #
 # CPU:  stack based execution, no registers.
 #       unlimited dynamic variables (v0, v1, ...) that have a value and a type.
@@ -63,9 +63,9 @@ import collections
 import array
 import threading
 import pprint
-from .core import Instruction, Variable, Block, Program, Opcode
 from typing import Dict, List, Tuple, Union
 from il65.emit import mflpt5_to_float, to_mflpt5
+from .program import Instruction, Variable, Block, Program, Opcode
 
 
 class ExecutionError(Exception):
@@ -522,7 +522,7 @@ class VM:
 
     def opcode_RETURN(self, instruction: Instruction) -> bool:
         callframe = self.stack.pop_under(instruction.args[0])
-        assert isinstance(callframe, CallFrameMarker)
+        assert isinstance(callframe, CallFrameMarker), callframe
         self.pc = callframe.returninstruction
         return False
 
@@ -591,8 +591,8 @@ class System:
     def _encodestr(self, string: str, alt: bool=False) -> bytearray:
         return bytearray(string, self.vm.str_alt_encoding if alt else self.vm.str_encoding)
 
-    def _decodestr(self, bb: bytearray, alt: bool=False) -> str:
-        return str(bb, self.vm.str_alt_encoding if alt else self.vm.str_encoding)
+    def _decodestr(self, bb: Union[bytearray, array.array], alt: bool=False) -> str:
+        return str(bb, self.vm.str_alt_encoding if alt else self.vm.str_encoding)   # type: ignore
 
     def syscall_printstr(self) -> bool:
         value = self.vm.stack.pop()
@@ -601,6 +601,22 @@ class System:
             return True
         else:
             raise TypeError("printstr expects bytearray", value)
+
+    def syscall_printchr(self) -> bool:
+        character = self.vm.stack.pop()
+        if isinstance(character, int):
+            print(self._decodestr(bytearray([character])), end="")
+            return True
+        else:
+            raise TypeError("printchr expects integer (1 char)", character)
+
+    def syscall_input(self) -> bool:
+        self.vm.stack.push(self._encodestr(input()))
+        return True
+
+    def syscall_getchr(self) -> bool:
+        self.vm.stack.push(self._encodestr(input() + '\n')[0])
+        return True
 
     def syscall_decimalstr_signed(self) -> bool:
         value = self.vm.stack.pop()
@@ -630,4 +646,25 @@ class System:
     def syscall_memwrite_sbyte(self) -> bool:
         value, address = self.vm.stack.pop2()
         self.vm.memory.set_sbyte(address, value)  # type: ignore
+        return True
+
+    def syscall_memwrite_word(self) -> bool:
+        value, address = self.vm.stack.pop2()
+        self.vm.memory.set_word(address, value)  # type: ignore
+        return True
+
+    def syscall_memwrite_sword(self) -> bool:
+        value, address = self.vm.stack.pop2()
+        self.vm.memory.set_sword(address, value)  # type: ignore
+        return True
+
+    def syscall_memwrite_float(self) -> bool:
+        value, address = self.vm.stack.pop2()
+        self.vm.memory.set_float(address, value)  # type: ignore
+        return True
+
+    def syscall_memwrite_str(self) -> bool:
+        strbytes, address = self.vm.stack.pop2()
+        for i, b in enumerate(strbytes):            # type: ignore
+            self.vm.memory.set_byte(address+i, b)   # type: ignore
         return True

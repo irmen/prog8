@@ -1,19 +1,14 @@
 ; source code for a tinyvm program
 %block   b1
 %vardefs
-var     byte   teller       1
+var     byte   teller       0
 var     byte  numbertoprint  0
 const   byte    one     1
-const   byte    thousand  100000
-var     array_byte  newlinestr  2  [32 32]
+const   byte    thousand  1000
+const   byte   space_chr   32
 %end_vardefs
 
 %instructions
-	push teller
-	syscall decimalstr_signed
-	syscall printstr
-	push newlinestr
-	syscall printstr
 back:
 	push teller
 	push one
@@ -29,8 +24,8 @@ back:
 printnumber:
 	syscall decimalstr_signed
 	syscall printstr
-	push newlinestr
-	syscall printstr
+	push space_chr
+	syscall printchr
 	return 0
 %end_instructions
 

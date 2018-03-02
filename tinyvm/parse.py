@@ -1,6 +1,6 @@
 import array
-from typing import Optional, List, Tuple, Dict
-from .core import DataType, Opcode, Program, Block, Variable, Instruction
+from typing import Optional, List, Tuple, Dict, Any
+from .program import DataType, Opcode, Program, Block, Variable, Instruction
 from .vm import StackValueType
 
 
@@ -112,6 +112,7 @@ class Parser:
         def parse_instruction(ln: str) -> Instruction:
             parts = ln.split(maxsplit=1)
             opcode = Opcode[parts[0].upper()]
+            args = []   # type: List[Any]
             if len(parts) == 2:
                 args = parts[1].split()
             else:
