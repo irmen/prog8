@@ -5,7 +5,8 @@ var     byte   teller       0
 var     byte  numbertoprint  0
 const   byte    one     1
 const   byte    thousand  1000
-const   byte   space_chr   32
+const   byte   space_chr   10
+const   word  screenstart 1024
 %end_vardefs
 
 %instructions
@@ -15,8 +16,13 @@ back:
 	add
 	dup
 	dup
+	dup
+	push screenstart
+	swap
+	syscall memwrite_word
 	pop teller
 	call  1  printnumber
+	syscall delay
 	push  thousand
 	cmp_lt
 	jump_if_true back

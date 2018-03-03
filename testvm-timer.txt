@@ -1,0 +1,22 @@
+; source code for a tinyvm program for the timer
+%block   b1_timer
+%vardefs
+var     byte   teller_timer       0
+const   word  screenloc_timer 1028
+const  byte one_timer  1
+%end_vardefs
+
+%instructions
+	push teller_timer
+	push one_timer
+	add
+	dup
+	pop teller_timer
+	push screenloc_timer
+	swap
+	syscall memwrite_word
+	return 0
+%end_instructions
+%subblocks
+%end_subblocks
+%end_block ;b1_timer

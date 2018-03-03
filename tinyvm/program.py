@@ -13,6 +13,7 @@ class Opcode(enum.IntEnum):
     POP3 = 15
     DUP = 16
     DUP2 = 17
+    SWAP = 18
     ADD = 50
     SUB = 51
     MUL = 52
