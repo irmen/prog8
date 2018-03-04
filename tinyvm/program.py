@@ -1,3 +1,10 @@
+"""
+Simplistic 8/16 bit Virtual Machine to execute a stack based instruction language.
+These are the program/instruction definitions that make up a program for the vm
+
+Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
+"""
+
 import enum
 import array
 import operator

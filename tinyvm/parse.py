@@ -1,3 +1,10 @@
+"""
+Simplistic 8/16 bit Virtual Machine to execute a stack based instruction language.
+Parser for the simplistic text based program representation
+
+Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
+"""
+
 import array
 from typing import Optional, List, Tuple, Dict, Any
 from .program import DataType, Opcode, Program, Block, Variable, Instruction, Value

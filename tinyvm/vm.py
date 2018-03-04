@@ -1,3 +1,10 @@
+"""
+Simplistic 8/16 bit Virtual Machine to execute a stack based instruction language.
+This is the VM itself (execution engine)
+
+Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
+"""
+
 # 8/16 bit virtual machine
 
 # machine specs:
