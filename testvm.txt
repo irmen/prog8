@@ -1,10 +1,10 @@
 ; source code for a tinyvm program
 %block   b1
 %vardefs
-var     byte   teller       0
-var     byte  numbertoprint  0
+var     word   teller       0
+var     word  numbertoprint  0
 const   byte    one     1
-const   byte    thousand  1000
+const   word    thousand  1000
 const   byte   space_chr   10
 const   word  screenstart 1024
 %end_vardefs
@@ -22,13 +22,12 @@ back:
 	syscall memwrite_word
 	pop teller
 	call  1  printnumber
-	syscall delay
 	push  thousand
 	cmp_lt
 	jump_if_true back
 	return 0
 printnumber:
-	syscall decimalstr_signed
+	syscall decimalstr_unsigned
 	syscall printstr
 	push space_chr
 	syscall printchr

@@ -67,7 +67,7 @@ import tkinter
 import tkinter.font
 from typing import Dict, List, Tuple, Union
 from il65.emit import mflpt5_to_float, to_mflpt5
-from .program import Instruction, Variable, Block, Program, Opcode
+from .program import Instruction, Variable, Block, Program, Opcode, Value, DataType
 
 
 class ExecutionError(Exception):
@@ -151,7 +151,7 @@ class CallFrameMarker:
         return "<CallFrameMarker returninstruction={:s}>".format(str(self.returninstruction))
 
 
-StackValueType = Union[bool, int, float, bytearray, array.array, CallFrameMarker]
+StackValueType = Union[Value, CallFrameMarker]
 
 
 class Stack:
@@ -214,8 +214,8 @@ class Stack:
         self.stack[-2] = x
 
     def _typecheck(self, value: StackValueType):
-        if type(value) not in (bool, int, float, bytearray, array.array, CallFrameMarker):
-            raise TypeError("invalid item type pushed")
+        if not isinstance(value, (Value, CallFrameMarker)):
+            raise TypeError("invalid item type pushed", value)
 
 
 # noinspection PyPep8Naming,PyUnusedLocal,PyMethodMayBeStatic
@@ -251,7 +251,9 @@ class VM:
         self.program = self.main_program
         self.stack = self.main_stack
         self.pc = None           # type: Instruction
-        self.charscreen = None
+        self.charscreen_address = 0
+        self.charscreen_width = 0
+        self.charscreen_height = 0
         self.system = System(self)
         assert all(i.next for i in self.main_program
                    if i.opcode != Opcode.TERMINATE), "main: all instrs next must be set"
@@ -265,7 +267,8 @@ class VM:
         print("[TinyVM starting up.]")
 
     def enable_charscreen(self, screen_address: int, width: int, height: int) -> None:
-        self.charscreen = (screen_address, width, height)
+        self.charscreen_address = screen_address
+        self.charscreen_width, self.charscreen_height = width, height
 
     def flatten_programs(self, main: Program, timer: Program) \
             -> Tuple[List[Instruction], List[Instruction], Dict[str, Variable], Dict[str, Instruction]]:
@@ -294,12 +297,12 @@ class VM:
             if ins.opcode == Opcode.SYSCALL:
                 continue
             if ins.args:
-                newargs = []
+                newargs = []    # type: List[Union[str, int, Value]]
                 for a in ins.args:
-                    if type(a) is str:
+                    if isinstance(a, str):
                         newargs.append(prefix + "." + a)
                     else:
-                        newargs.append(a)
+                        newargs.append(a)       # type: ignore
                 ins.args = newargs
         for vardef in block.variables:
             vname = prefix + "." + vardef.name
@@ -332,8 +335,10 @@ class VM:
                 i.next = nexti
 
     def run(self) -> None:
-        if self.charscreen:
-            threading.Thread(target=ScreenViewer.create, args=(self.memory, self.system, self.charscreen), name="screenviewer", daemon=True).start()
+        if self.charscreen_address:
+            threading.Thread(target=ScreenViewer.create,
+                             args=(self.memory, self.system, self.charscreen_address, self.charscreen_width, self.charscreen_height),
+                             name="screenviewer", daemon=True).start()
 
         self.pc = self.program[0]   # first instruction of the main program
         self.stack.push(CallFrameMarker(None))  # enter the call frame so the timer program can end with a RETURN
@@ -363,7 +368,6 @@ class VM:
         while True:
             self.timer_irq_event.wait(wait_time)
             self.timer_irq_event.clear()
-            print("....timer irq", wait_time, time.time())  # XXX
             start = time.perf_counter()
             if self.timer_program:
                 with self.timer_irq_interlock:
@@ -399,8 +403,9 @@ class VM:
         if self.pc is not None:
             print("* instruction:", self.pc)
 
-    def assign_variable(self, variable: Variable, value: StackValueType) -> None:
+    def assign_variable(self, variable: Variable, value: Value) -> None:
         assert not variable.const, "cannot modify a const"
+        assert isinstance(value, Value)
         variable.value = value
 
     def opcode_NOP(self, instruction: Instruction) -> bool:
@@ -501,49 +506,53 @@ class VM:
         second, first = self.stack.pop2()
         ifirst = 1 if first else 0
         isecond = 1 if second else 0
-        self.stack.push(bool(ifirst ^ isecond))
+        self.stack.push(Value(DataType.BOOL, bool(ifirst ^ isecond)))
         return True
 
     def opcode_NOT(self, instruction: Instruction) -> bool:
-        self.stack.push(not self.stack.pop())
+        self.stack.push(Value(DataType.BOOL, not self.stack.pop()))
         return True
 
     def opcode_TEST(self, instruction: Instruction) -> bool:
-        self.stack.push(bool(self.stack.pop()))
+        self.stack.push(Value(DataType.BOOL, bool(self.stack.pop())))
         return True
 
     def opcode_CMP_EQ(self, instruction: Instruction) -> bool:
         second, first = self.stack.pop2()
-        self.stack.push(first == second)
+        self.stack.push(Value(DataType.BOOL, first == second))
         return True
 
     def opcode_CMP_LT(self, instruction: Instruction) -> bool:
         second, first = self.stack.pop2()
-        self.stack.push(first < second)        # type: ignore
+        self.stack.push(Value(DataType.BOOL, first < second))
         return True
 
     def opcode_CMP_GT(self, instruction: Instruction) -> bool:
         second, first = self.stack.pop2()
-        self.stack.push(first > second)        # type: ignore
+        self.stack.push(Value(DataType.BOOL, first > second))
         return True
 
     def opcode_CMP_LTE(self, instruction: Instruction) -> bool:
         second, first = self.stack.pop2()
-        self.stack.push(first <= second)        # type: ignore
+        self.stack.push(Value(DataType.BOOL, first <= second))
         return True
 
     def opcode_CMP_GTE(self, instruction: Instruction) -> bool:
         second, first = self.stack.pop2()
-        self.stack.push(first >= second)        # type: ignore
+        self.stack.push(Value(DataType.BOOL, first >= second))
         return True
 
     def opcode_CALL(self, instruction: Instruction) -> bool:
         # arguments are already on the stack
-        self.stack.push_under(instruction.args[0], CallFrameMarker(instruction.alt_next))
+        num_args = instruction.args[0]
+        assert isinstance(num_args, int)
+        self.stack.push_under(num_args, CallFrameMarker(instruction.alt_next))
         return True
 
     def opcode_RETURN(self, instruction: Instruction) -> bool:
-        callframe = self.stack.pop_under(instruction.args[0])
+        num_returnvalues = instruction.args[0]
+        assert isinstance(num_returnvalues, int)
+        callframe = self.stack.pop_under(num_returnvalues)
         assert isinstance(callframe, CallFrameMarker), callframe
         self.pc = callframe.returninstruction
         return False
@@ -566,11 +575,13 @@ class VM:
         return False
 
     def opcode_SYSCALL(self, instruction: Instruction) -> bool:
-        call = getattr(self.system, "syscall_" + instruction.args[0], None)
+        syscall = instruction.args[0]
+        assert isinstance(syscall, str)
+        call = getattr(self.system, "syscall_" + syscall, None)
         if call:
             return call()
         else:
-            raise RuntimeError("no syscall method for " + instruction.args[0])
+            raise RuntimeError("no syscall method for " + syscall)
 
     dispatch_table = {
         Opcode.TERMINATE: opcode_TERMINATE,
@@ -619,35 +630,45 @@ class System:
 
     def syscall_printstr(self) -> bool:
         value = self.vm.stack.pop()
-        if isinstance(value, (bytearray, array.array)):
-            print(self.decodestr(value), end="")
+        assert isinstance(value, Value)
+        if value.dtype == DataType.ARRAY_BYTE:
+            print(self.decodestr(value.value), end="@")   # type: ignore
             return True
         else:
             raise TypeError("printstr expects bytearray", value)
 
     def syscall_printchr(self) -> bool:
-        character = self.vm.stack.pop()
-        if isinstance(character, int):
-            print(self.decodestr(bytearray([character])), end="")
+        charactervalue = self.vm.stack.pop()
+        assert isinstance(charactervalue, Value)
+        if charactervalue.dtype == DataType.BYTE:
+            print(self.decodestr(bytearray([charactervalue.value])), end="")    # type: ignore
             return True
         else:
-            raise TypeError("printchr expects integer (1 char)", character)
+            raise TypeError("printchr expects BYTE", charactervalue)
 
     def syscall_input(self) -> bool:
-        self.vm.stack.push(self.encodestr(input()))
+        self.vm.stack.push(Value(DataType.ARRAY_BYTE, self.encodestr(input())))
         return True
 
     def syscall_getchr(self) -> bool:
-        self.vm.stack.push(self.encodestr(input() + '\n')[0])
+        self.vm.stack.push(Value(DataType.BYTE, self.encodestr(input() + '\n')[0]))
         return True
 
     def syscall_decimalstr_signed(self) -> bool:
         value = self.vm.stack.pop()
-        if type(value) is int:
-            self.vm.stack.push(self.encodestr(str(value)))
+        if value.dtype in (DataType.SBYTE, DataType.SWORD):
+            self.vm.stack.push(Value(DataType.ARRAY_BYTE, self.encodestr(str(value.value))))
             return True
         else:
-            raise TypeError("decimalstr expects int", value)
+            raise TypeError("decimalstr_signed expects signed int", value)
+
+    def syscall_decimalstr_unsigned(self) -> bool:
+        value = self.vm.stack.pop()
+        if value.dtype in (DataType.BYTE, DataType.WORD):
+            self.vm.stack.push(Value(DataType.ARRAY_BYTE, self.encodestr(str(value.value))))
+            return True
+        else:
+            raise TypeError("decimalstr_signed expects unsigned int", value)
 
     def syscall_hexstr_signed(self) -> bool:
         value = self.vm.stack.pop()
@@ -656,40 +677,52 @@ class System:
                 strvalue = "${:x}".format(value)
             else:
                 strvalue = "-${:x}".format(-value)  # type: ignore
-            self.vm.stack.push(self.encodestr(strvalue))
+            self.vm.stack.push(Value(DataType.ARRAY_BYTE, self.encodestr(strvalue)))
             return True
         else:
             raise TypeError("hexstr expects int", value)
 
     def syscall_memwrite_byte(self) -> bool:
         value, address = self.vm.stack.pop2()
-        self.vm.memory.set_byte(address, value)  # type: ignore
+        assert isinstance(value, Value) and isinstance(address, Value)
+        assert value.dtype == DataType.BYTE and address.dtype == DataType.WORD
+        self.vm.memory.set_byte(address.value, value.value)    # type: ignore
         return True
 
     def syscall_memwrite_sbyte(self) -> bool:
         value, address = self.vm.stack.pop2()
-        self.vm.memory.set_sbyte(address, value)  # type: ignore
+        assert isinstance(value, Value) and isinstance(address, Value)
+        assert value.dtype == DataType.SBYTE and address.dtype == DataType.WORD
+        self.vm.memory.set_sbyte(address.value, value.value)    # type: ignore
         return True
 
     def syscall_memwrite_word(self) -> bool:
         value, address = self.vm.stack.pop2()
-        self.vm.memory.set_word(address, value)  # type: ignore
+        assert isinstance(value, Value) and isinstance(address, Value)
+        assert value.dtype in (DataType.WORD, DataType.BYTE) and address.dtype == DataType.WORD
+        self.vm.memory.set_word(address.value, value.value)    # type: ignore
         return True
 
     def syscall_memwrite_sword(self) -> bool:
         value, address = self.vm.stack.pop2()
-        self.vm.memory.set_sword(address, value)  # type: ignore
+        assert isinstance(value, Value) and isinstance(address, Value)
+        assert value.dtype in (DataType.SWORD, DataType.SBYTE, DataType.BYTE) and address.dtype == DataType.WORD
+        self.vm.memory.set_sword(address.value, value.value)    # type: ignore
         return True
 
     def syscall_memwrite_float(self) -> bool:
         value, address = self.vm.stack.pop2()
-        self.vm.memory.set_float(address, value)  # type: ignore
+        assert isinstance(value, Value) and isinstance(address, Value)
+        assert value.dtype == DataType.FLOAT and address.dtype == DataType.WORD
+        self.vm.memory.set_float(address.value, value.value)    # type: ignore
         return True
 
     def syscall_memwrite_str(self) -> bool:
         strbytes, address = self.vm.stack.pop2()
-        for i, b in enumerate(strbytes):            # type: ignore
-            self.vm.memory.set_byte(address+i, b)   # type: ignore
+        assert isinstance(strbytes, Value) and isinstance(address, Value)
+        assert strbytes.dtype == DataType.ARRAY_BYTE and address.dtype == DataType.WORD
+        for i, b in enumerate(strbytes.value):          # type: ignore
+            self.vm.memory.set_byte(address+i, b)       # type: ignore
         return True
 
     def syscall_smalldelay(self) -> bool:
@@ -697,20 +730,20 @@ class System:
         return True
 
     def syscall_delay(self) -> bool:
-        time.sleep(0.5)
+        time.sleep(0.1)
         return True
 
 
 class ScreenViewer(tkinter.Tk):
-    def __init__(self, memory: Memory, system: System, screenconfig: Tuple[int, int, int]) -> None:
+    def __init__(self, memory: Memory, system: System, screen_addr: int, screen_width: int, screen_height: int) -> None:
         super().__init__()
         self.fontsize = 14
         self.memory = memory
         self.system = system
-        self.address = screenconfig[0]
-        self.width = screenconfig[1]
-        self.height = screenconfig[2]
-        self.monospace = tkinter.font.Font(self, family="Courier", weight="bold", size=self.fontsize)
+        self.address = screen_addr
+        self.width = screen_width
+        self.height = screen_height
+        self.monospace = tkinter.font.Font(self, family="Courier", weight="bold", size=self.fontsize)   # type: ignore
         cw = self.monospace.measure("x")*self.width+8
         self.canvas = tkinter.Canvas(self, width=cw, height=self.fontsize*self.height+8, bg="blue")
         self.canvas.pack()
@@ -725,6 +758,6 @@ class ScreenViewer(tkinter.Tk):
         self.after(10, self.update_screen)
 
     @classmethod
-    def create(cls, memory: Memory, system: System, screenconfig: Tuple[int, int, int]) -> None:
-        viewer = cls(memory, system, screenconfig)
+    def create(cls, memory: Memory, system: System, screen_addr: int, screen_width: int, screen_height: int) -> None:
+        viewer = cls(memory, system, screen_addr, screen_width, screen_height)
         viewer.mainloop()

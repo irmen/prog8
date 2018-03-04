@@ -10,7 +10,7 @@ import builtins
 import inspect
 import enum
 from collections import defaultdict
-from typing import Union, Generator, Tuple, List, Optional, Dict, Any, no_type_check
+from typing import Union, Generator, Tuple, List, Optional, Dict, Any, no_type_check, Callable
 import attr
 from ply.yacc import yacc
 from .plylex import SourceRef, tokens, lexer, find_tok_column, print_warning
@@ -70,12 +70,14 @@ class UndefinedSymbolError(LookupError):
 start = "start"
 
 
-@attr.s(cmp=False, slots=True, frozen=False, repr=False)
 class AstNode:
     # all ast nodes have: sourceref, parent, and nodes (=list of zero or more sub-nodes)
-    sourceref = attr.ib(type=SourceRef)
-    parent = attr.ib(init=False, default=None)   # will be hooked up later
-    nodes = attr.ib(type=list, init=False, default=attr.Factory(list))      # type: List['AstNode']
+    __slots__ = ["sourceref", "parent", "nodes"]
+
+    def __init__(self, sourceref: SourceRef) -> None:
+        self.sourceref = sourceref
+        self.parent = None    # type: AstNode    # will be hooked up later
+        self.nodes = []   # type: List[AstNode]
 
     @property
     def lineref(self) -> str:
@@ -129,7 +131,7 @@ class AstNode:
 
 @attr.s(cmp=False)
 class Directive(AstNode):
-    name = attr.ib(type=str)
+    name = attr.ib(type=str, default=None)
     args = attr.ib(type=list, default=attr.Factory(list))
     # no subnodes.
 
@@ -162,7 +164,7 @@ class Scope(AstNode):
         parent_scope = self.parent
         while parent_scope and not isinstance(parent_scope, Scope):
             parent_scope = parent_scope.parent
-        return parent_scope
+        return parent_scope     # type: ignore
 
     def __attrs_post_init__(self):
         # populate the symbol table for this scope for fast lookups via scope.lookup("name") or scope.lookup("dotted.name")
@@ -208,7 +210,7 @@ class Scope(AstNode):
         if '.' in name:
             # look up the dotted name starting from the topmost scope
             scope = self
-            node = self
+            node = self     # type: AstNode
             while node.parent:
                 if isinstance(node.parent, Scope):
                     scope = node.parent
@@ -230,6 +232,7 @@ class Scope(AstNode):
             while parent_scope and not isinstance(parent_scope, Scope):
                 parent_scope = parent_scope.parent
             if parent_scope:
+                assert isinstance(parent_scope, Scope)
                 return parent_scope.lookup(name)
             raise UndefinedSymbolError("undefined symbol: " + name)
 
@@ -314,7 +317,7 @@ class Block(AstNode):
 @attr.s(cmp=False, repr=False)
 class Module(AstNode):
     # has one subnode: the Scope.
-    name = attr.ib(type=str)     # filename
+    name = attr.ib(type=str, default=None)     # filename
     subroutine_usage = attr.ib(type=defaultdict, init=False, default=attr.Factory(lambda: defaultdict(set)))    # will be populated later
     format = attr.ib(type=ProgramFormat, init=False, default=ProgramFormat.PRG)     # can be set via directive
     address = attr.ib(type=int, init=False, default=0xc000, validator=validate_address)     # can be set via directive
@@ -344,7 +347,7 @@ class Module(AstNode):
 
 @attr.s(cmp=False)
 class Label(AstNode):
-    name = attr.ib(type=str)
+    name = attr.ib(type=str, default=None)
     # no subnodes.
 
 
@@ -363,7 +366,7 @@ class Expression(AstNode):
 
 @attr.s(cmp=False, slots=True)
 class Register(Expression):
-    name = attr.ib(type=str, validator=attr.validators.in_(REGISTER_SYMBOLS))
+    name = attr.ib(type=str, validator=attr.validators.in_(REGISTER_SYMBOLS), default="???")
     datatype = attr.ib(type=DataType, init=False)
     # no subnodes.
 
@@ -434,7 +437,7 @@ class BuiltinFunction(AstNode):
     # to represent all supported built-in functions or math-functions.
     # No child nodes.
     name = attr.ib(type=str)
-    func = attr.ib(type=callable)
+    func = attr.ib(type=Callable)
 
 
 @attr.s(cmp=False, repr=False)
@@ -462,7 +465,7 @@ class Subroutine(AstNode):
 @attr.s(cmp=True, slots=True, repr=False)
 class LiteralValue(Expression):
     # no subnodes.
-    value = attr.ib()
+    value = attr.ib(default=None)
 
     def __repr__(self) -> str:
         return "<LiteralValue value={!r} at {}>".format(self.value, self.sourceref)
@@ -477,7 +480,7 @@ class LiteralValue(Expression):
 @attr.s(cmp=False)
 class AddressOf(Expression):
     # no subnodes.
-    name = attr.ib(type=str, validator=attr.validators._InstanceOfValidator(type=str))
+    name = attr.ib(type=str, validator=attr.validators._InstanceOfValidator(type=str), default="???")   # type: ignore
 
     def is_compiletime_const(self) -> bool:
         # address-of can be a compile time constant if the operand is a memory mapped variable or ZP variable
@@ -499,7 +502,7 @@ class AddressOf(Expression):
 @attr.s(cmp=True, slots=True)
 class SymbolName(Expression):
     # no subnodes.
-    name = attr.ib(type=str)
+    name = attr.ib(type=str, default="???")
 
     def is_compiletime_const(self) -> bool:
         symdef = self.my_scope().lookup(self.name)
@@ -515,7 +518,7 @@ class SymbolName(Expression):
 @attr.s(cmp=False)
 class Dereference(Expression):
     # one subnode: operand (SymbolName, integer LiteralValue or Register (pair) )
-    datatype = attr.ib()
+    datatype = attr.ib(type=DataType, default=None)
     size = attr.ib(type=int, default=None)
 
     @property
@@ -577,7 +580,7 @@ class IncrDecr(AstNode):
 @attr.s(cmp=False, slots=True, repr=False)
 class ExpressionWithOperator(Expression):
     # 2 nodes: left (Expression), right (not present if unary, Expression if not unary)
-    operator = attr.ib(type=str)
+    operator = attr.ib(type=str, default="???")
 
     @property
     def unary(self) -> bool:

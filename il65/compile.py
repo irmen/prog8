@@ -142,7 +142,7 @@ class PlyParser:
                         continue
                     else:
                         raise ParseError("block without name must have address", node.sourceref)
-                parentname = (node.parent.name + ".") if node.parent else ""
+                parentname = (node.parent.name + ".") if node.parent else ""    # type: ignore
                 blockname = parentname + node.name
                 if blockname in encountered_block_names:
                     raise CompileError("block names not unique:", blockname)

@@ -1,6 +1,6 @@
 import array
 from typing import Optional, List, Tuple, Dict, Any
-from .program import DataType, Opcode, Program, Block, Variable, Instruction
+from .program import DataType, Opcode, Program, Block, Variable, Instruction, Value
 from .vm import StackValueType
 
 
@@ -70,20 +70,20 @@ class Parser:
             length = height = 0
             value = None  # type: StackValueType
             if dtype in (DataType.BYTE, DataType.WORD, DataType.SBYTE, DataType.SWORD):
-                value = int(argstr)
+                value = Value(dtype, int(argstr))
             elif dtype == DataType.FLOAT:
-                value = float(argstr)
+                value = Value(dtype, float(argstr))
             elif dtype == DataType.BOOL:
-                value = argstr.lower() not in ("0", "false")
+                value = Value(dtype, argstr.lower() not in ("0", "false"))
             elif dtype in (DataType.ARRAY_BYTE, DataType.ARRAY_SBYTE, DataType.ARRAY_WORD, DataType.ARRAY_SWORD):
                 args = argstr.split(maxsplit=1)
                 length = int(args[0])
                 valuestr = args[1]
                 typecode = self.get_array_type(dtype)
                 if valuestr[0] == '[' and valuestr[-1] == ']':
-                    value = array.array(typecode, [int(v) for v in valuestr[1:-1].split()])
+                    value = Value(dtype, array.array(typecode, [int(v) for v in valuestr[1:-1].split()]))
                 else:
-                    value = array.array(typecode, [int(valuestr)]) * length
+                    value = Value(dtype, array.array(typecode, [int(valuestr)]) * length)
             elif dtype in (DataType.MATRIX_BYTE, DataType.MATRIX_SBYTE):
                 args = argstr.split(maxsplit=2)
                 length = int(args[0])
@@ -91,12 +91,12 @@ class Parser:
                 valuestr = args[2]
                 typecode = self.get_array_type(dtype)
                 if valuestr[0] == '[' and valuestr[-1] == ']':
-                    value = array.array(typecode, [int(v) for v in valuestr[1:-1].split()])
+                    value = Value(dtype, array.array(typecode, [int(v) for v in valuestr[1:-1].split()]))
                 else:
-                    value = array.array(typecode, [int(valuestr)] * length * height)
+                    value = Value(dtype, array.array(typecode, [int(valuestr)] * length * height))
             else:
                 raise TypeError("weird dtype", dtype)
-            variables.append(Variable(name, dtype, value, length, height, vartype == "const"))
+            variables.append(Variable(name, dtype, value, vartype == "const"))
             self.lineno += 1
         self.skip_empty()
         assert self.source[self.lineno].startswith("%end_vardefs")
