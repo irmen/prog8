@@ -1,7 +1,7 @@
 import enum
 import array
 import operator
-from typing import List, Dict, Optional, Union, Callable
+from typing import List, Dict, Optional, Union, Callable, Any
 
 
 class Opcode(enum.IntEnum):
@@ -109,7 +109,9 @@ class Value:
     def __floordiv__(self, other: 'Value') -> 'Value':
         return self.number_arithmetic(self, operator.floordiv, other)
 
-    def __eq__(self, other: 'Value') -> bool:
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Value):
+            return False
         return self.number_comparison(self, operator.eq, other)
 
     def __lt__(self, other: 'Value') -> bool:
@@ -123,7 +125,6 @@ class Value:
 
     def __ge__(self, other: 'Value') -> bool:
         return self.number_comparison(self, operator.ge, other)
-
 
 
 class Variable:

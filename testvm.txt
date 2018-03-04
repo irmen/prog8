@@ -5,7 +5,7 @@ var     word   teller       0
 var     word  numbertoprint  0
 const   byte    one     1
 const   word    thousand  1000
-const   byte   space_chr   10
+const   byte   space_chr   32
 const   word  screenstart 1024
 %end_vardefs
 

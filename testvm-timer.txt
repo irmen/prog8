@@ -1,7 +1,7 @@
 ; source code for a tinyvm program for the timer
 %block   b1_timer
 %vardefs
-var     byte   teller_timer       0
+var     byte   teller_timer       32
 const   word  screenloc_timer 1028
 const  byte one_timer  1
 %end_vardefs
