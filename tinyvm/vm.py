@@ -27,7 +27,7 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 #           read [byte/bytearray from keyboard],
 #           wait [till any input comes available],  @todo
 #           check [if input is available)   @todo
-#       or via memory-mapped I/O  (text screen matrix, keyboard scan register @todo)
+#       or via memory-mapped I/O  (text screen matrix, keyboard scan register)
 #
 # CPU:  stack based execution, no registers.
 #       unlimited dynamic variables (v0, v1, ...) that have a value and a type.
@@ -73,76 +73,8 @@ import pprint
 import tkinter
 import tkinter.font
 from typing import Dict, List, Tuple, Union, no_type_check
-from il65.emit import mflpt5_to_float, to_mflpt5
-from .program import Instruction, Variable, Block, Program, Opcode, Value, DataType
-
-
-class ExecutionError(Exception):
-    pass
-
-
-class TerminateExecution(SystemExit):
-    pass
-
-
-class MemoryAccessError(Exception):
-    pass
-
-
-class Memory:
-    def __init__(self):
-        self.mem = bytearray(65536)
-        self.readonly = bytearray(65536)
-
-    def mark_readonly(self, start: int, end: int) -> None:
-        self.readonly[start:end+1] = [1] * (end-start+1)
-
-    def get_byte(self, index: int) -> int:
-        return self.mem[index]
-
-    def get_bytes(self, startindex: int, amount: int) -> int:
-        return self.mem[startindex: startindex+amount]
-
-    def get_sbyte(self, index: int) -> int:
-        return 256 - self.mem[index]
-
-    def get_word(self, index: int) -> int:
-        return self.mem[index] + 256 * self.mem[index+1]
-
-    def get_sword(self, index: int) -> int:
-        return 65536 - (self.mem[index] + 256 * self.mem[index+1])
-
-    def get_float(self, index: int) -> float:
-        return mflpt5_to_float(self.mem[index: index+5])
-
-    def set_byte(self, index: int, value: int) -> None:
-        if self.readonly[index]:
-            raise MemoryAccessError("read-only", index)
-        self.mem[index] = value
-
-    def set_sbyte(self, index: int, value: int) -> None:
-        if self.readonly[index]:
-            raise MemoryAccessError("read-only", index)
-        self.mem[index] = value + 256
-
-    def set_word(self, index: int, value: int) -> None:
-        if self.readonly[index] or self.readonly[index+1]:
-            raise MemoryAccessError("read-only", index)
-        hi, lo = divmod(value, 256)
-        self.mem[index] = lo
-        self.mem[index+1] = hi
-
-    def set_sword(self, index: int, value: int) -> None:
-        if self.readonly[index] or self.readonly[index+1]:
-            raise MemoryAccessError("read-only", index)
-        hi, lo = divmod(value + 65536, 256)
-        self.mem[index] = lo
-        self.mem[index+1] = hi
-
-    def set_float(self, index: int, value: float) -> None:
-        if any(self.readonly[index:index+5]):
-            raise MemoryAccessError("read-only", index)
-        self.mem[index: index+5] = to_mflpt5(value)
+from .program import Instruction, Variable, Block, Program, Opcode, Value
+from .core import Memory, DataType, TerminateExecution
 
 
 class CallFrameMarker:
@@ -231,6 +163,8 @@ class VM:
     str_alt_encoding = "iso-8859-15"
     readonly_mem_ranges = []        # type: List[Tuple[int, int]]
     timer_irq_resolution = 1/30
+    charout_address = 0xd000
+    charin_address = 0xd001
 
     def __init__(self, program: Program, timerprogram: Program=None) -> None:
         opcode_names = [oc.name for oc in Opcode]
@@ -246,6 +180,8 @@ class VM:
             if oc not in self.dispatch_table:
                 raise NotImplementedError("no dispatch entry in table for " + oc.name)
         self.memory = Memory()
+        self.memory.memmapped_io_charout(self.charout_address, self.memmapped_charout)
+        self.memory.memmapped_io_charin(self.charin_address, self.memmapped_charin)
         for start, end in self.readonly_mem_ranges:
             self.memory.mark_readonly(start, end)
         self.main_stack = Stack()
@@ -259,6 +195,7 @@ class VM:
         self.charscreen_address = 0
         self.charscreen_width = 0
         self.charscreen_height = 0
+        self.keyboard_scancode = 0
         self.system = System(self)
         assert all(i.next for i in self.main_program
                    if i.opcode != Opcode.TERMINATE), "main: all instrs next must be set"
@@ -341,7 +278,7 @@ class VM:
     def run(self) -> None:
         if self.charscreen_address:
             threading.Thread(target=ScreenViewer.create,
-                             args=(self.memory, self.system, self.charscreen_address, self.charscreen_width, self.charscreen_height),
+                             args=(self, self.charscreen_address, self.charscreen_width, self.charscreen_height),
                              name="screenviewer", daemon=True).start()
             time.sleep(0.05)
 
@@ -404,6 +341,13 @@ class VM:
             pprint.pprint(list(reversed(self.stack.pop_history)), indent=2, compact=True, width=20)    # type: ignore
         if self.pc is not None:
             print("* instruction:", self.pc)
+
+    def memmapped_charout(self, value: int) -> None:
+        string = self.system.decodestr(bytearray([value]))
+        print(string, end="")
+
+    def memmapped_charin(self) -> int:
+        return self.keyboard_scancode
 
     def assign_variable(self, variable: Variable, value: Value) -> None:
         assert not variable.const, "cannot modify a const"
@@ -742,6 +686,13 @@ class System:
             self.vm.memory.set_byte(address+i, b)       # type: ignore
         return True
 
+    def syscall_memread_byte(self) -> bool:
+        address = self.vm.stack.pop()
+        assert isinstance(address, Value)
+        assert address.dtype == DataType.WORD
+        self.vm.stack.push(Value(DataType.BYTE, self.vm.memory.get_byte(address.value)))   # type: ignore
+        return True
+
     def syscall_smalldelay(self) -> bool:
         time.sleep(1/100)
         return True
@@ -752,12 +703,11 @@ class System:
 
 
 class ScreenViewer(tkinter.Tk):
-    def __init__(self, memory: Memory, system: System, screen_addr: int, screen_width: int, screen_height: int) -> None:
+    def __init__(self, vm: VM, screen_addr: int, screen_width: int, screen_height: int) -> None:
         super().__init__()
         self.title("IL65 tinyvm")
         self.fontsize = 16
-        self.memory = memory
-        self.system = system
+        self.vm = vm
         self.address = screen_addr
         self.width = screen_width
         self.height = screen_height
@@ -765,19 +715,42 @@ class ScreenViewer(tkinter.Tk):
         cw = self.monospace.measure("x")*self.width+8
         self.canvas = tkinter.Canvas(self, width=cw, height=self.fontsize*self.height+8, bg="blue")
         self.canvas.pack()
+        self.bind("<KeyPress>", self.keypress)
+        self.bind("<KeyRelease>", self.keyrelease)
         self.after(10, self.update_screen)
 
-    def update_screen(self):
+    def keypress(self, e) -> None:
+        key = e.char or e.keysym
+        if len(key) == 1:
+            self.vm.keyboard_scancode = self.vm.system.encodestr(key)[0]
+        elif len(key) > 1:
+            code = 0
+            if key == "Up":
+                code = ord("w")
+            elif key == "Down":
+                code = ord("s")
+            elif key == "Left":
+                code = ord("a")
+            elif key == "Right":
+                code = ord("d")
+            self.vm.keyboard_scancode = code
+        else:
+            self.vm.keyboard_scancode = 0
+
+    def keyrelease(self, e) -> None:
+        self.vm.keyboard_scancode = 0
+
+    def update_screen(self) -> None:
         self.canvas.delete(tkinter.ALL)
         lines = []
         for y in range(self.height):
-            line = self.system.decodestr(self.memory.get_bytes(self.address+y*self.width, self.width))
+            line = self.vm.system.decodestr(self.vm.memory.get_bytes(self.address+y*self.width, self.width))
             lines.append("".join(c if c.isprintable() else " " for c in line))
         for y, line in enumerate(lines):
             self.canvas.create_text(4, self.fontsize*y, text=line, fill="white", font=self.monospace, anchor=tkinter.NW)
         self.after(30, self.update_screen)
 
     @classmethod
-    def create(cls, memory: Memory, system: System, screen_addr: int, screen_width: int, screen_height: int) -> None:
-        viewer = cls(memory, system, screen_addr, screen_width, screen_height)
+    def create(cls, vm: VM, screen_addr: int, screen_width: int, screen_height: int) -> None:
+        viewer = cls(vm, screen_addr, screen_width, screen_height)
         viewer.mainloop()

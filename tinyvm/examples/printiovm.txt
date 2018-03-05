@@ -1,0 +1,26 @@
+; source code for a tinyvm program; memory mapped I/O
+%block   b1
+%vardefs
+const   byte    chr_i  105
+const   byte    chr_r  114
+const   byte    chr_m  109
+const   byte    chr_e  101
+const   byte    chr_n  110
+const   byte    chr_EOL  10
+const   word    chrout  53248
+const   word    chrin   53249
+%end_vardefs
+%instructions
+loop:
+	push chrin
+	syscall memread_byte
+	push chrout
+	swap
+	syscall memwrite_byte
+	push chrout
+	push chr_EOL
+	syscall memwrite_byte
+	syscall delay
+	jump loop
+%end_instructions
+%end_block ;b1

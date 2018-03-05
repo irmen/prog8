@@ -7,8 +7,9 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 
 import array
 from typing import Optional, List, Tuple, Dict, Any
-from .program import DataType, Opcode, Program, Block, Variable, Instruction, Value
+from .program import Opcode, Program, Block, Variable, Instruction, Value
 from .vm import StackValueType
+from .core import DataType
 
 
 class ParseError(Exception):

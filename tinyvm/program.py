@@ -9,6 +9,7 @@ import enum
 import array
 import operator
 from typing import List, Dict, Optional, Union, Callable, Any
+from .core import DataType
 
 
 class Opcode(enum.IntEnum):
@@ -43,21 +44,6 @@ class Opcode(enum.IntEnum):
     JUMP_IF_TRUE = 203
     JUMP_IF_FALSE = 204
     SYSCALL = 205
-
-
-class DataType(enum.IntEnum):
-    BOOL = 1
-    BYTE = 2
-    SBYTE = 3
-    WORD = 4
-    SWORD = 5
-    FLOAT = 6
-    ARRAY_BYTE = 7
-    ARRAY_SBYTE = 8
-    ARRAY_WORD = 9
-    ARRAY_SWORD = 10
-    MATRIX_BYTE = 11
-    MATRIX_SBYTE = 12
 
 
 class Value:
