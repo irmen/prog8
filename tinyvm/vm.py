@@ -52,7 +52,7 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 #       various arithmetic operations, logical operations, boolean test and comparison operations
 #       jump  label
 #       jump_if_true  label, jump_if_false  label
-#       @todo jump_if_status_XX  label  special system dependent status register conditional check such as carry bit or overflow bit)
+#       jump_if_status_XX  label  special system dependent status register conditional check such as carry bit or overflow bit)
 #       return  (return values on stack)
 #       syscall function    (special system dependent implementation)
 #       call function  (arguments are on stack)
@@ -74,7 +74,7 @@ import tkinter
 import tkinter.font
 from typing import Dict, List, Tuple, Union, no_type_check
 from .program import Instruction, Variable, Block, Program, Opcode, Value
-from .core import Memory, DataType, TerminateExecution
+from .core import Memory, DataType, TerminateExecution, ExecutionError
 
 
 class CallFrameMarker:
@@ -167,15 +167,9 @@ class VM:
     charin_address = 0xd001
 
     def __init__(self, program: Program, timerprogram: Program=None) -> None:
-        opcode_names = [oc.name for oc in Opcode]
-        timerprogram = timerprogram or Program([])
-        for ocname in opcode_names:
-            if not hasattr(self, "opcode_" + ocname):
-                raise NotImplementedError("missing opcode method for " + ocname)
-        for method in dir(self):
-            if method.startswith("opcode_"):
-                if not method[7:] in opcode_names:
-                    raise RuntimeError("opcode method for undefined opcode " + method)
+        for opcode in Opcode:
+            if opcode not in self.dispatch_table:
+                raise NotImplementedError("missing opcode dispatch for " + opcode.name)
         for oc in Opcode:
             if oc not in self.dispatch_table:
                 raise NotImplementedError("no dispatch entry in table for " + oc.name)
@@ -186,7 +180,7 @@ class VM:
             self.memory.mark_readonly(start, end)
         self.main_stack = Stack()
         self.timer_stack = Stack()
-        self.main_program, self.timer_program, self.variables, self.labels = self.flatten_programs(program, timerprogram)
+        self.main_program, self.timer_program, self.variables, self.labels = self.flatten_programs(program, timerprogram or Program([]))
         self.connect_instruction_pointers(self.main_program)
         self.connect_instruction_pointers(self.timer_program)
         self.program = self.main_program
@@ -516,23 +510,6 @@ class VM:
         self.pc = callframe.returninstruction
         return False
 
-    def opcode_JUMP(self, instruction: Instruction) -> bool:
-        return True    # jump simply points to the next instruction elsewhere
-
-    def opcode_JUMP_IF_TRUE(self, instruction: Instruction) -> bool:
-        result = self.stack.pop()
-        if result:
-            self.pc = self.pc.alt_next     # alternative next instruction
-            return False
-        return True
-
-    def opcode_JUMP_IF_FALSE(self, instruction: Instruction) -> bool:
-        result = self.stack.pop()
-        if result:
-            return True
-        self.pc = self.pc.alt_next     # alternative next instruction
-        return False
-
     def opcode_SYSCALL(self, instruction: Instruction) -> bool:
         syscall = instruction.args[0]
         assert isinstance(syscall, str)
@@ -541,6 +518,27 @@ class VM:
             return call()
         else:
             raise RuntimeError("no syscall method for " + syscall)
+
+    def opcode_JUMP(self, instruction: Instruction) -> bool:
+        return True    # jump simply points to the next instruction elsewhere
+
+    def opcode_JUMP_IF_TRUE(self, instruction: Instruction) -> bool:
+        result = self.stack.pop()
+        assert isinstance(result, Value)
+        if result.value:
+            self.pc = self.pc.alt_next     # alternative next instruction
+            return False
+        return True
+
+    def opcode_JUMP_IF_FALSE(self, instruction: Instruction) -> bool:
+        result = self.stack.pop()
+        if result.value:               # type: ignore
+            return True
+        self.pc = self.pc.alt_next     # alternative next instruction
+        return False
+
+    def opcode_JUMP_IF_STATUS_UNSUPPORTED_FLAG(self, instruction: Instruction) -> bool:
+        raise ExecutionError("unsupported conditional jump", instruction)   # @todo implement hardware specific status register flags
 
     dispatch_table = {
         Opcode.TERMINATE: opcode_TERMINATE,
@@ -570,10 +568,23 @@ class VM:
         Opcode.CMP_GTE: opcode_CMP_GTE,
         Opcode.CALL: opcode_CALL,
         Opcode.RETURN: opcode_RETURN,
+        Opcode.SYSCALL: opcode_SYSCALL,
         Opcode.JUMP: opcode_JUMP,
         Opcode.JUMP_IF_TRUE: opcode_JUMP_IF_TRUE,
         Opcode.JUMP_IF_FALSE: opcode_JUMP_IF_FALSE,
-        Opcode.SYSCALL: opcode_SYSCALL,
+        Opcode.JUMP_IF_STATUS_ZERO: opcode_JUMP_IF_STATUS_UNSUPPORTED_FLAG,
+        Opcode.JUMP_IF_STATUS_NE: opcode_JUMP_IF_STATUS_UNSUPPORTED_FLAG,
+        Opcode.JUMP_IF_STATUS_EQ: opcode_JUMP_IF_STATUS_UNSUPPORTED_FLAG,
+        Opcode.JUMP_IF_STATUS_CC: opcode_JUMP_IF_STATUS_UNSUPPORTED_FLAG,
+        Opcode.JUMP_IF_STATUS_CS: opcode_JUMP_IF_STATUS_UNSUPPORTED_FLAG,
+        Opcode.JUMP_IF_STATUS_VC: opcode_JUMP_IF_STATUS_UNSUPPORTED_FLAG,
+        Opcode.JUMP_IF_STATUS_VS: opcode_JUMP_IF_STATUS_UNSUPPORTED_FLAG,
+        Opcode.JUMP_IF_STATUS_GE: opcode_JUMP_IF_STATUS_UNSUPPORTED_FLAG,
+        Opcode.JUMP_IF_STATUS_LE: opcode_JUMP_IF_STATUS_UNSUPPORTED_FLAG,
+        Opcode.JUMP_IF_STATUS_GT: opcode_JUMP_IF_STATUS_UNSUPPORTED_FLAG,
+        Opcode.JUMP_IF_STATUS_LT: opcode_JUMP_IF_STATUS_UNSUPPORTED_FLAG,
+        Opcode.JUMP_IF_STATUS_POS: opcode_JUMP_IF_STATUS_UNSUPPORTED_FLAG,
+        Opcode.JUMP_IF_STATUS_NEG: opcode_JUMP_IF_STATUS_UNSUPPORTED_FLAG,
     }
 
 
