@@ -5,8 +5,9 @@ This is the code generator for gotos and subroutine calls.
 Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
-from ..plyparse import Goto, SubCall, LiteralValue, SymbolName, Dereference, Register
-from . import Context, CodeError, to_hex
+from . import Context
+from ..shared import CodeError, to_hex
+from ...plyparse import Goto, SubCall, LiteralValue, SymbolName, Dereference
 
 
 def generate_goto(ctx: Context) -> None:

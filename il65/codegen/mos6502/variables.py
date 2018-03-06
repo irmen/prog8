@@ -7,9 +7,9 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 
 from collections import defaultdict
 from typing import Dict, List, Callable, Any, no_type_check
-from ..plyparse import Block, VarDef, LiteralValue, AddressOf
-from ..datatypes import DataType, VarType, STRING_DATATYPES
-from . import to_hex, to_mflpt5, CodeError
+from ..shared import to_hex, to_mflpt5, CodeError
+from ...plyparse import Block, VarDef, LiteralValue, AddressOf
+from ...datatypes import DataType, VarType, STRING_DATATYPES
 
 
 def generate_block_init(out: Callable, block: Block) -> None:

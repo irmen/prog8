@@ -18,12 +18,13 @@ from .datatypes import (DataType, VarType, REGISTER_SYMBOLS, REGISTER_BYTES, REG
                         FLOAT_MAX_NEGATIVE, FLOAT_MAX_POSITIVE, char_to_bytevalue)
 
 
-__all__ = ["ProgramFormat", "ZpOptions", "math_functions", "builtin_functions", "ParseError", "ExpressionEvaluationError",
-           "UndefinedSymbolError", "AstNode", "Directive", "Scope", "Block", "Module", "Label", "Expression",
+__all__ = ["ProgramFormat", "ZpOptions", "math_functions", "builtin_functions",
+           "AstNode", "Directive", "Scope", "Block", "Module", "Label", "Expression",
            "Register", "Subroutine", "LiteralValue", "AddressOf", "SymbolName", "Dereference", "IncrDecr",
            "ExpressionWithOperator", "Goto", "SubCall", "VarDef", "Return", "Assignment", "AugAssignment",
            "InlineAssembly", "BuiltinFunction", "TokenFilter", "parser", "connect_parents", "DatatypeNode",
-           "parse_file", "coerce_constant_value", "datatype_of", "check_symbol_definition", "NotCompiletimeConstantError"]
+           "parse_file", "coerce_constant_value", "datatype_of", "check_symbol_definition", "scoped_name",
+           "NotCompiletimeConstantError", "ExpressionEvaluationError", "ParseError", "UndefinedSymbolError"]
 
 
 class ProgramFormat(enum.Enum):

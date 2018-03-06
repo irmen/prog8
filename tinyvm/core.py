@@ -8,7 +8,7 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 import enum
 import struct
 from typing import Callable
-from il65.emit import mflpt5_to_float, to_mflpt5
+from il65.codegen.shared import mflpt5_to_float, to_mflpt5
 
 
 class DataType(enum.IntEnum):

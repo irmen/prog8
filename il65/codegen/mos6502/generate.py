@@ -8,14 +8,15 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 import os
 import datetime
 from typing import TextIO, Callable, no_type_check
-from ..plylex import print_bold
-from ..plyparse import (Module, ProgramFormat, Block, Directive, VarDef, Label, Subroutine, ZpOptions,
-                        InlineAssembly, Return, Register, Goto, SubCall, Assignment, AugAssignment, IncrDecr)
-from . import CodeError, to_hex, to_mflpt5, Context
+from . import Context
 from .variables import generate_block_init, generate_block_vars
 from .assignment import generate_assignment, generate_aug_assignment
 from .calls import generate_goto, generate_subcall
 from .incrdecr import generate_incrdecr
+from ..shared import CodeError, to_hex, to_mflpt5
+from ...plylex import print_bold
+from ...plyparse import (Module, ProgramFormat, Block, Directive, VarDef, Label, Subroutine, ZpOptions,
+                         InlineAssembly, Return, Register, Goto, SubCall, Assignment, AugAssignment, IncrDecr)
 
 
 class Output:

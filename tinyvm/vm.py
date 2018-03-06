@@ -23,14 +23,12 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 #                 or in one of the dynamic variables.
 #
 # I/O:  either via programmed I/O routines:
-#           write [byte/bytearray to text output/screen],
-#           read [byte/bytearray from keyboard],
-#           wait [till any input comes available],  @todo
-#           check [if input is available)   @todo
+#           write [byte/bytearray to text output/screen] : syscall_printstr / syscall_printchr,
+#           read [byte/bytearray from keyboard] : syscall_input / syscall_getchr (both blocking)
 #       or via memory-mapped I/O  (text screen matrix, keyboard scan register)
 #
-# CPU:  stack based execution, no registers.
-#       unlimited dynamic variables (v0, v1, ...) that have a value and a type.
+# CPU:  single threaded, stack based execution,
+#       no registers, but unlimited dynamic variables (v0, v1, ...) that have a value and a type.
 #       types:
 #           1-bit boolean,
 #           8-bit byte (singed and unsigned),
@@ -41,9 +39,6 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 #           matrix (2-dimensional array) of bytes (signed and unsigned).
 #       all of these can have the flag CONST as well which means they cannot be modified.
 #
-#       push (constant,
-#       mark, unwind to previous mark.
-#
 # CPU INSTRUCTIONS:
 #       stack manipulation mainly:
 #       nop
@@ -53,12 +48,11 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 #       jump  label
 #       jump_if_true  label, jump_if_false  label
 #       jump_if_status_XX  label  special system dependent status register conditional check such as carry bit or overflow bit)
+#       call function  (arguments are on stack)
 #       return  (return values on stack)
 #       syscall function    (special system dependent implementation)
-#       call function  (arguments are on stack)
-#       enter / exit   (function call frame)
 #
-# TIMER INTERRUPT:   triggered around each 1/60th of a second.
+# TIMER 'INTERRUPT':   triggered around each 1/60th of a second.
 #       executes on a DIFFERENT stack and with a different PROGRAM LIST,
 #       but with access to ALL THE SAME DYNAMIC VARIABLES.
 #       This suspends the main program until the timer program RETURNs!

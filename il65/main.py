@@ -12,7 +12,7 @@ import argparse
 import subprocess
 from .compile import PlyParser
 from .optimize import optimize
-from .emit.generate import AssemblyGenerator
+from .codegen.mos6502.generate import AssemblyGenerator
 from .plylex import print_bold
 from .plyparse import ProgramFormat
 

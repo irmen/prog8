@@ -6,10 +6,11 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
 from typing import Callable
-from ..plyparse import Scope, Assignment, AugAssignment, Register, LiteralValue, SymbolName, VarDef, Dereference
-from . import CodeError, preserving_registers, to_hex, Context
-from ..datatypes import REGISTER_BYTES, VarType, DataType
-from ..compile import Zeropage
+from . import preserving_registers, Context
+from ..shared import CodeError, to_hex
+from ...plyparse import Scope, Assignment, AugAssignment, Register, LiteralValue, SymbolName, VarDef, Dereference
+from ...datatypes import REGISTER_BYTES, VarType, DataType
+from ...compile import Zeropage
 
 
 def generate_assignment(ctx: Context) -> None:
