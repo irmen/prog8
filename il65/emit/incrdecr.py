@@ -7,9 +7,9 @@ is quite frequent and this generates assembly code tweaked for this case.
 Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
-from ..plyparse import VarDef, Register, IncrDecr, SymbolName, Dereference, LiteralValue
+from ..plyparse import VarDef, Register, IncrDecr, SymbolName, Dereference, LiteralValue, scoped_name
 from ..datatypes import VarType, DataType, REGISTER_BYTES
-from . import CodeError, preserving_registers, to_hex, Context, scoped_name
+from . import CodeError, preserving_registers, to_hex, Context
 
 
 def generate_incrdecr(ctx: Context) -> None:

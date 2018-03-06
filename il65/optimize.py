@@ -36,7 +36,7 @@ class Optimizer:
         # @todo expression optimization: reduce expression nesting / flattening of parenthesis
         # @todo expression optimization: simplify logical expression when a term makes it always true or false
         # @todo expression optimization: optimize some simple multiplications into shifts  (A*=8 -> A<<3)
-        self.create_aug_assignments()
+        # @todo expression optimization: create augmented assignment from assignment that only refers to its lvalue (A=A+10, A=4*A, ...)
         self.optimize_assignments()
         self.remove_superfluous_assignments()
         # @todo optimize addition with self into shift 1  (A+=A -> A<<=1)
@@ -131,39 +131,6 @@ class Optimizer:
         if not isinstance(node1, AstNode) or not isinstance(node2, AstNode):
             raise TypeError("same_target called with invalid type(s)", node1, node2)
         return False
-
-    @no_type_check
-    def create_aug_assignments(self) -> None:
-        # create augmented assignments from regular assignment that only refers to the lvalue
-        # A=A+10, A=10+A -> A+=10,  A=A*4, A=4*A -> A*=4,  etc
-        for assignment in self.module.all_nodes(Assignment):
-            if len(assignment.left.nodes) > 1:
-                continue
-            if not isinstance(assignment.right, ExpressionWithOperator) or assignment.right.unary:
-                continue
-            expr = assignment.right
-            if expr.operator in ('-', '/', '//', '**', '<<', '>>', '&'):   # non-associative operators
-                if isinstance(expr.right, (LiteralValue, SymbolName)) and self._same_target(assignment.left, expr.left):
-                    num_val = expr.right.const_value()
-                    operator = expr.operator + '='
-                    aug_assign = self._make_aug_assign(assignment, assignment.left.nodes[0], num_val, operator)
-                    assignment.my_scope().replace_node(assignment, aug_assign)
-                    self.optimizations_performed = True
-                continue
-            if expr.operator not in ('+', '*', '|', '^'):  # associative operators
-                continue
-            if isinstance(expr.right, (LiteralValue, SymbolName)) and self._same_target(assignment.left, expr.left):
-                num_val = expr.right.const_value()
-                operator = expr.operator + '='
-                aug_assign = self._make_aug_assign(assignment, assignment.left.nodes[0], num_val, operator)
-                assignment.my_scope().replace_node(assignment, aug_assign)
-                self.optimizations_performed = True
-            elif isinstance(expr.left, (LiteralValue, SymbolName)) and self._same_target(assignment.left, expr.right):
-                num_val = expr.left.const_value()
-                operator = expr.operator + '='
-                aug_assign = self._make_aug_assign(assignment, assignment.left.nodes[0], num_val, operator)
-                assignment.my_scope().replace_node(assignment, aug_assign)
-                self.optimizations_performed = True
 
     def remove_superfluous_assignments(self) -> None:
         # remove consecutive assignment statements to the same target, only keep the last value (only if its a constant!)

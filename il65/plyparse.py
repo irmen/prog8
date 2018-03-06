@@ -70,14 +70,12 @@ class UndefinedSymbolError(LookupError):
 start = "start"
 
 
+@attr.s(repr=False, cmp=False, slots=True)
 class AstNode:
     # all ast nodes have: sourceref, parent, and nodes (=list of zero or more sub-nodes)
-    __slots__ = ["sourceref", "parent", "nodes"]
-
-    def __init__(self, sourceref: SourceRef) -> None:
-        self.sourceref = sourceref
-        self.parent = None    # type: AstNode    # will be hooked up later
-        self.nodes = []   # type: List[AstNode]
+    sourceref = attr.ib(type=SourceRef, init=True)
+    parent = attr.ib(type='AstNode', init=False, default=None)      # will be hooked up later
+    nodes = attr.ib(type=List['AstNode'], init=False, default=attr.Factory(list))
 
     @property
     def lineref(self) -> str:
@@ -139,7 +137,7 @@ class Directive(AstNode):
 @attr.s(cmp=False, slots=True, repr=False)
 class Scope(AstNode):
     # has zero or more subnodes
-    level = attr.ib(type=str, init=True)
+    level = attr.ib(type=str, init=True)    # type: ignore
     nodes = attr.ib(type=list, init=True)    # requires nodes in __init__
     symbols = attr.ib(init=False)
     name = attr.ib(init=False)          # will be set by enclosing block, or subroutine etc.
@@ -400,20 +398,20 @@ class Register(Expression):
 
 @attr.s(cmp=False)
 class PreserveRegs(AstNode):
-    registers = attr.ib(type=str)
+    registers = attr.ib(type=str)    # type: ignore
     # no subnodes.
 
 
 @attr.s(cmp=False, repr=False)
 class InlineAssembly(AstNode):
     # no subnodes.
-    assembly = attr.ib(type=str)
+    assembly = attr.ib(type=str)    # type: ignore
 
 
 @attr.s(cmp=False, slots=True)
 class DatatypeNode(AstNode):
     # no subnodes.
-    name = attr.ib(type=str)
+    name = attr.ib(type=str)    # type: ignore
     dimensions = attr.ib(type=list, default=None, validator=dimensions_validator)    # if set, 1 or more dimensions (ints)
 
     def to_enum(self):
@@ -436,14 +434,14 @@ class BuiltinFunction(AstNode):
     # This is a pseudo-node that will be artificially injected in the top-most scope,
     # to represent all supported built-in functions or math-functions.
     # No child nodes.
-    name = attr.ib(type=str)
+    name = attr.ib(type=str)    # type: ignore
     func = attr.ib(type=Callable)
 
 
 @attr.s(cmp=False, repr=False)
 class Subroutine(AstNode):
     # one subnode: the Scope.
-    name = attr.ib(type=str)
+    name = attr.ib(type=str)    # type: ignore
     param_spec = attr.ib(type=list)
     result_spec = attr.ib(type=list)
     address = attr.ib(type=int, default=None, validator=validate_address)
@@ -552,7 +550,7 @@ class IncrDecr(AstNode):
     # increment or decrement something by a small CONSTANT value (1..255)
     # larger values will be treated/converted as an augmented assignment += or -=.
     # one subnode: target (Register, SymbolName, or Dereference).
-    operator = attr.ib(type=str, validator=attr.validators.in_(["++", "--"]))
+    operator = attr.ib(type=str, validator=attr.validators.in_(["++", "--"]))    # type: ignore
     howmuch = attr.ib(default=1)
 
     @property
@@ -730,7 +728,7 @@ class CallArgument(AstNode):
 @attr.s(cmp=False)
 class CallArguments(AstNode):
     # subnodes are zero or more subroutine call arguments (CallArgument)
-    nodes = attr.ib(type=list, init=True)    # requires nodes in __init__
+    nodes = attr.ib(type=list, init=True)    # type: ignore  # requires nodes in __init__
 
 
 @attr.s(cmp=False, repr=False)
@@ -772,7 +770,7 @@ class SubCall(Expression):
 @attr.s(cmp=False, slots=True, repr=False)
 class VarDef(AstNode):
     # zero or one subnode: value (Expression).
-    name = attr.ib(type=str)
+    name = attr.ib(type=str)    # type: ignore
     vartype = attr.ib()
     datatype = attr.ib()
     size = attr.ib(type=list, default=None)
@@ -872,7 +870,7 @@ class Assignment(AstNode):
 @attr.s(cmp=False, slots=True, repr=False)
 class AugAssignment(AstNode):
     # has two subnodes: left (=Register, SymbolName, or Dereference) and right (=Expression)
-    operator = attr.ib(type=str)
+    operator = attr.ib(type=str)    # type: ignore
 
     @property
     def left(self) -> Union[Register, SymbolName, Dereference]:
@@ -971,6 +969,12 @@ def check_symbol_definition(name: str, scope: Scope, sref: SourceRef) -> Any:
         return scope.lookup(name)
     except UndefinedSymbolError as x:
         raise ParseError(str(x), sref)
+
+
+@no_type_check
+def scoped_name(node_with_name: AstNode, current_scope: Scope) -> str:
+    node_scope = node_with_name.my_scope()
+    return node_with_name.name if node_scope is current_scope else node_scope.name + "." + node_with_name.name
 
 
 # ----------------- PLY parser definition follows ----------------------
