@@ -8,10 +8,33 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 
 import math
 from ..datatypes import FLOAT_MAX_POSITIVE, FLOAT_MAX_NEGATIVE
+from ..plyparse import Module, Label, Block, Directive, VarDef
+from ..plylex import print_bold
 
 
-class CodeError(Exception):
+class CodeGenerationError(Exception):
     pass
+
+
+def sanitycheck(module: Module) -> None:
+    for label in module.all_nodes(Label):
+        if label.name == "start" and label.my_scope().name == "main":      # type: ignore
+            break
+    else:
+        print_bold("ERROR: program entry point is missing ('start' label in 'main' block)\n")
+        raise SystemExit(1)
+    all_blocknames = [b.name for b in module.all_nodes(Block)]        # type: ignore
+    unique_blocknames = set(all_blocknames)
+    if len(all_blocknames) != len(unique_blocknames):
+        for name in unique_blocknames:
+            all_blocknames.remove(name)
+        raise CodeGenerationError("there are duplicate block names", all_blocknames)
+    zpblock = module.zeropage()
+    if zpblock:
+        # ZP block contains no code?
+        for stmt in zpblock.scope.nodes:
+            if not isinstance(stmt, (Directive, VarDef)):
+                raise CodeGenerationError("ZP block can only contain directive and var")
 
 
 def to_hex(number: int) -> str:

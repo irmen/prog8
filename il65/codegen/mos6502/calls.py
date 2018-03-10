@@ -6,7 +6,7 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
 from . import Context
-from ..shared import CodeError, to_hex
+from ..shared import CodeGenerationError, to_hex
 from ...plyparse import Goto, SubCall, LiteralValue, SymbolName, Dereference
 
 
@@ -81,14 +81,14 @@ def _gen_goto_special_if(ctx: Context, stmt: Goto) -> None:
             ctx.out("+\t\tjmp  ({:s})".format(targetstr))
             ctx.out("+")
         else:
-            raise CodeError("invalid if status " + stmt.if_cond)
+            raise CodeGenerationError("invalid if status " + stmt.if_cond)
     else:
         if isinstance(stmt.target, LiteralValue) and type(stmt.target.value) is int:
             targetstr = to_hex(stmt.target.value)
         elif isinstance(stmt.target, SymbolName):
             targetstr = stmt.target.name
         else:
-            raise CodeError("invalid goto target type", stmt)
+            raise CodeGenerationError("invalid goto target type", stmt)
         if stmt.if_cond == "true":
             ctx.out("\vbne  " + targetstr)
         elif stmt.if_cond in ("not", "zero"):
@@ -111,7 +111,7 @@ def _gen_goto_special_if(ctx: Context, stmt: Goto) -> None:
             ctx.out("\vbcc  " + targetstr)
             ctx.out("\vbeq  " + targetstr)
         else:
-            raise CodeError("invalid if status " + stmt.if_cond)
+            raise CodeGenerationError("invalid if status " + stmt.if_cond)
 
 
 def _gen_goto_unconditional(ctx: Context, stmt: Goto) -> None:
@@ -132,14 +132,14 @@ def _gen_goto_unconditional(ctx: Context, stmt: Goto) -> None:
             ctx.out("\vst{:s}  il65_lib.SCRATCH_ZPWORD1+1".format(stmt.target.operand.name[1]))
             ctx.out("\vjmp  (il65_lib.SCRATCH_ZPWORD1)")
     else:
-        raise CodeError("invalid goto target type", stmt)
+        raise CodeGenerationError("invalid goto target type", stmt)
 
 
 def _gen_goto_cond(ctx: Context, stmt: Goto, if_cond: str) -> None:
     if isinstance(stmt.condition, LiteralValue):
         pass    # @todo  if WITH conditional expression
     else:
-        raise CodeError("no support for evaluating conditional expression yet", stmt)   # @todo
+        raise CodeGenerationError("no support for evaluating conditional expression yet", stmt)   # @todo
 
 
 def generate_subcall(ctx: Context) -> None:

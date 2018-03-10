@@ -7,7 +7,8 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 
 import enum
 import struct
-from typing import Callable
+import array
+from typing import Callable, Union
 from il65.codegen.shared import mflpt5_to_float, to_mflpt5
 
 
@@ -24,6 +25,36 @@ class DataType(enum.IntEnum):
     ARRAY_SWORD = 10
     MATRIX_BYTE = 11
     MATRIX_SBYTE = 12
+
+    @staticmethod
+    def guess_datatype_for(value: Union[bool, int, float, bytearray, array.array]) -> 'DataType':
+        if isinstance(value, int):
+            if 0 <= value <= 255:
+                return DataType.BYTE
+            if -128 <= value <= 127:
+                return DataType.SBYTE
+            if 0 <= value <= 65535:
+                return DataType.WORD
+            if -32768 <= value <= 32767:
+                return DataType.SWORD
+            raise OverflowError("integer value too large for byte or word", value)
+        if isinstance(value, bool):
+            return DataType.BOOL
+        if isinstance(value, float):
+            return DataType.FLOAT
+        if isinstance(value, bytearray):
+            return DataType.ARRAY_BYTE
+        if isinstance(value, array.array):
+            if value.typecode == "B":
+                return DataType.ARRAY_BYTE
+            if value.typecode == "H":
+                return DataType.ARRAY_WORD
+            if value.typecode == "b":
+                return DataType.ARRAY_SBYTE
+            if value.typecode == "h":
+                return DataType.ARRAY_SWORD
+            raise ValueError("invalid array typecode", value.typecode)
+        raise TypeError("invalid value type", value)
 
 
 class ExecutionError(Exception):

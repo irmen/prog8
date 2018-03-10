@@ -8,7 +8,7 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
 from . import Context, preserving_registers
-from ..shared import CodeError, to_hex
+from ..shared import CodeGenerationError, to_hex
 from ...plyparse import VarDef, Register, IncrDecr, SymbolName, Dereference, LiteralValue, scoped_name
 from ...datatypes import VarType, DataType, REGISTER_BYTES
 
@@ -21,14 +21,14 @@ def generate_incrdecr(ctx: Context) -> None:
     if stmt.howmuch == 0:
         return
     if not 0 <= stmt.howmuch <= 255:
-        raise CodeError("incr/decr value must be 0..255 - other values should have been converted into an AugAssignment")
+        raise CodeGenerationError("incr/decr value must be 0..255 - other values should have been converted into an AugAssignment")
     target = stmt.target        # one of Register/SymbolName/Dereference, or a VarDef
     if isinstance(target, SymbolName):
         symdef = scope.lookup(target.name)
         if isinstance(symdef, VarDef):
             target = symdef     # type: ignore
         else:
-            raise CodeError("cannot incr/decr this", symdef)
+            raise CodeGenerationError("cannot incr/decr this", symdef)
     howmuch_str = str(stmt.howmuch)
 
     if isinstance(target, Register):
@@ -82,7 +82,7 @@ def generate_incrdecr(ctx: Context) -> None:
                         out("\viny")
                         out("+")
             else:
-                raise CodeError("invalid incr register: " + reg)
+                raise CodeGenerationError("invalid incr register: " + reg)
         else:
             if reg == 'A':
                 # a -= 1..255
@@ -131,11 +131,11 @@ def generate_incrdecr(ctx: Context) -> None:
                         out("\vdey")
                         out("+")
             else:
-                raise CodeError("invalid decr register: " + reg)
+                raise CodeGenerationError("invalid decr register: " + reg)
 
     elif isinstance(target, VarDef):
         if target.vartype == VarType.CONST:
-            raise CodeError("cannot modify a constant", target)
+            raise CodeGenerationError("cannot modify a constant", target)
         what_str = scoped_name(target, scope)
         if target.datatype == DataType.BYTE:
             if stmt.howmuch == 1:
@@ -186,7 +186,7 @@ def generate_incrdecr(ctx: Context) -> None:
                         out("+")
         elif target.datatype == DataType.FLOAT:
             if not ctx.floats_enabled:
-                raise CodeError("floating point numbers not enabled via option")
+                raise CodeGenerationError("floating point numbers not enabled via option")
             if stmt.howmuch == 1.0:
                 # special case for +/-1
                 with preserving_registers({'A', 'X', 'Y'}, scope, out, loads_a_within=True):
@@ -210,7 +210,7 @@ def generate_incrdecr(ctx: Context) -> None:
                     else:
                         out("\vjsr  c64flt.float_sub_SW1_from_XY")
         else:
-            raise CodeError("cannot in/decrement memory of type " + str(target.datatype), stmt.howmuch)
+            raise CodeGenerationError("cannot in/decrement memory of type " + str(target.datatype), stmt.howmuch)
 
     elif isinstance(target, Dereference):
         if isinstance(target.operand, (LiteralValue, SymbolName)):
@@ -225,7 +225,7 @@ def generate_incrdecr(ctx: Context) -> None:
             if stmt.howmuch == 1:
                 if target.datatype == DataType.FLOAT:
                     if not ctx.floats_enabled:
-                        raise CodeError("floating point numbers not enabled via option")
+                        raise CodeGenerationError("floating point numbers not enabled via option")
                     with preserving_registers({'A', 'X', 'Y'}, scope, out, loads_a_within=True):
                         out("\vldx  " + what)
                         out("\vldy  {:s}+1".format(what))
@@ -244,9 +244,9 @@ def generate_incrdecr(ctx: Context) -> None:
                             out("\vclc" if stmt.operator == "++" else "\vsec")
                             out("\vjsr  il65_lib.incrdecr_deref_word_reg_AY")
                         else:
-                            raise CodeError("cannot inc/decrement dereferenced literal of type " + str(target.datatype), stmt)
+                            raise CodeGenerationError("cannot inc/decrement dereferenced literal of type " + str(target.datatype), stmt)
             else:
-                raise CodeError("can't inc/dec this by something else as 1 right now", stmt)  # XXX
+                raise CodeGenerationError("can't inc/dec this by something else as 1 right now", stmt)  # XXX
         elif isinstance(target.operand, Register):
             assert target.operand.datatype == DataType.WORD
             reg = target.operand.name
@@ -259,9 +259,9 @@ def generate_incrdecr(ctx: Context) -> None:
                     with preserving_registers({'A', 'Y'}, scope, out, loads_a_within=True):
                         out("\vjsr  il65_lib.incrdecr_deref_word_reg_" + reg)
             else:
-                raise CodeError("can't inc/dec this by something else as 1 right now", stmt)  # XXX
+                raise CodeGenerationError("can't inc/dec this by something else as 1 right now", stmt)  # XXX
         else:
             raise TypeError("invalid dereference operand type", target)
 
     else:
-        raise CodeError("cannot inc/decrement", target)      # @todo support more
+        raise CodeGenerationError("cannot inc/decrement", target)      # @todo support more

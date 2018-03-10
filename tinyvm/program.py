@@ -167,7 +167,7 @@ class Instruction:
 
 
 class Block:
-    def __init__(self, name: str, parent: 'Block',
+    def __init__(self, name: str, parent: Optional['Block'],
                  variables: List[Variable] = None,
                  instructions: List[Instruction] = None,
                  labels: Dict[str, Instruction] = None,        # named entry points

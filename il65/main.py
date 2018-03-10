@@ -12,9 +12,8 @@ import argparse
 import subprocess
 from .compile import PlyParser
 from .optimize import optimize
-from .codegen.mos6502.generate import AssemblyGenerator
 from .plylex import print_bold
-from .plyparse import ProgramFormat
+from .plyparse import ProgramFormat, Module
 
 
 class Assembler64Tass:
@@ -64,6 +63,7 @@ def main() -> None:
     description = "Compiler for IL65 language, code name 'Sick'"
     ap = argparse.ArgumentParser(description=description)
     ap.add_argument("-o", "--output", help="output directory")
+    ap.add_argument("-c", "--codegenerator", choices=["6502", "tinyvm"], default="tinyvm", help="what code generator to use")
     ap.add_argument("-f", "--enablefloat", action="store_true", help="enable C64 (mflpt5) floating point operations")
     ap.add_argument("-no", "--nooptimize", action="store_true", help="do not optimize the parse tree")
     ap.add_argument("-sv", "--startvice", action="store_true", help="autostart vice x64 emulator after compilation")
@@ -88,22 +88,41 @@ def main() -> None:
         else:
             print("\nOptimizing code.")
             optimize(parsed_module)
-        print("\nGenerating assembly code.")
-        cg = AssemblyGenerator(parsed_module, args.enablefloat)
-        cg.generate(assembly_filename)
-        assembler = Assembler64Tass(parsed_module.format)
-        assembler.assemble(assembly_filename, program_filename)
-        mon_command_file = assembler.generate_breakpoint_list(program_filename)
-        duration_total = time.perf_counter() - start
-        print("Compile duration:  {:.2f} seconds".format(duration_total))
-        size = os.path.getsize(program_filename)
-        print("Output size:       {:d} bytes".format(size))
-        print_bold("Output file:       " + program_filename)
-        print()
-        if args.startvice:
-            print("Autostart vice emulator...")
-            # "-remotemonitor"
-            cmdline = ["x64", "-moncommands", mon_command_file,
-                       "-autostartprgmode", "1", "-autostart-warp", "-autostart", program_filename]
-            with open(os.devnull, "wb") as shutup:
-                subprocess.call(cmdline, stdout=shutup)
+        if args.codegenerator == "tinyvm":
+            generate_tinyvm_code(parsed_module, args.enablefloat, assembly_filename, start)
+        else:
+            generate_6502_code(parsed_module, args.enablefloat, args.startvice, program_filename, assembly_filename, start)
+
+
+def generate_tinyvm_code(module: Module, float_enabled: bool, assembly_filename: str, compilationstart: float) -> None:
+    print("\nGenerating tinyvm code.")
+    from il65.codegen.tinyvm.generate import AssemblyGenerator
+    cg = AssemblyGenerator(module, float_enabled)
+    cg.generate(assembly_filename)
+    duration_total = time.perf_counter() - compilationstart
+    print("Compile duration:  {:.2f} seconds".format(duration_total))
+    print()
+
+
+def generate_6502_code(module: Module, float_enabled: bool, startvice: bool,
+                       program_filename: str, assembly_filename: str, compilationstart: float) -> None:
+    print("\nGenerating 6502 assembly code.")
+    from il65.codegen.mos6502.generate import AssemblyGenerator
+    cg = AssemblyGenerator(module, float_enabled)
+    cg.generate(assembly_filename)
+    assembler = Assembler64Tass(module.format)
+    assembler.assemble(assembly_filename, program_filename)
+    mon_command_file = assembler.generate_breakpoint_list(program_filename)
+    duration_total = time.perf_counter() - compilationstart
+    print("Compile duration:  {:.2f} seconds".format(duration_total))
+    size = os.path.getsize(program_filename)
+    print("Output size:       {:d} bytes".format(size))
+    print_bold("Output file:       " + program_filename)
+    print()
+    if startvice:
+        print("Autostart vice emulator...")
+        # "-remotemonitor"
+        cmdline = ["x64", "-moncommands", mon_command_file,
+                   "-autostartprgmode", "1", "-autostart-warp", "-autostart", program_filename]
+        with open(os.devnull, "wb") as shutup:
+            subprocess.call(cmdline, stdout=shutup)

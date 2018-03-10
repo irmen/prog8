@@ -7,7 +7,7 @@ Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 
 from collections import defaultdict
 from typing import Dict, List, Callable, Any, no_type_check
-from ..shared import to_hex, to_mflpt5, CodeError
+from ..shared import to_hex, to_mflpt5, CodeGenerationError
 from ...plyparse import Block, VarDef, LiteralValue, AddressOf
 from ...datatypes import DataType, VarType, STRING_DATATYPES
 
@@ -67,7 +67,7 @@ def generate_block_init(out: Callable, block: Block) -> None:
         out("\vsta  {:s}".format(bytevar.name))
     for wordvar in sorted(vars_by_datatype[DataType.WORD], key=lambda vd: vd.value):
         if isinstance(wordvar.value, AddressOf):
-            raise CodeError("addressof is not a compile-time constant value", wordvar.sourceref)
+            raise CodeGenerationError("addressof is not a compile-time constant value", wordvar.sourceref)
         assert isinstance(wordvar.value, LiteralValue) and type(wordvar.value.value) is int
         v_hi, v_lo = divmod(wordvar.value.value, 256)
         if v_hi != prev_value_a:
@@ -130,7 +130,7 @@ def generate_block_vars(out: Callable, block: Block, zeropage: bool=False) -> No
             # a const string is just a string variable in the generated assembly
             _generate_string_var(out, vardef)
         else:
-            raise CodeError("invalid const type", vardef)
+            raise CodeGenerationError("invalid const type", vardef)
     out("; memory mapped variables")
     for vardef in vars_by_vartype.get(VarType.MEMORY, []):
         # create a definition for variables at a specific place in memory (memory-mapped)
@@ -151,17 +151,17 @@ def generate_block_vars(out: Callable, block: Block, zeropage: bool=False) -> No
             elif len(vardef.size) == 3:
                 comment = "matrix of {:d} by {:d}, interleave {:d}".format(vardef.size[0], vardef.size[1], vardef.size[2])
             else:
-                raise CodeError("matrix size must be 2 or 3 numbers")
+                raise CodeGenerationError("matrix size must be 2 or 3 numbers")
             out("\v{:s} = {:s}\t; {:s}".format(vardef.name, to_hex(vardef.value.value), comment))   # type: ignore
         else:
-            raise CodeError("invalid var type")
+            raise CodeGenerationError("invalid var type")
     out("; normal variables - initial values will be set by init code")
     if zeropage:
         # zeropage uses the zp_address we've allocated, instead of allocating memory here
         for vardef in vars_by_vartype.get(VarType.VAR, []):
             assert vardef.zp_address is not None
             if vardef.datatype.isstring():
-                raise CodeError("cannot put strings in the zeropage", vardef.sourceref)
+                raise CodeGenerationError("cannot put strings in the zeropage", vardef.sourceref)
             if vardef.datatype.isarray():
                 size_str = "size " + str(vardef.size)
             else:
@@ -181,7 +181,7 @@ def generate_block_vars(out: Callable, block: Block, zeropage: bool=False) -> No
                 elif vardef.datatype == DataType.FLOAT:
                     out("{:s}\v.fill  5\t\t; float {}".format(vardef.name, vardef.value.value))
                 else:
-                    raise CodeError("weird datatype")
+                    raise CodeGenerationError("weird datatype")
             elif vardef.datatype in (DataType.BYTEARRAY, DataType.WORDARRAY):
                 assert len(vardef.size) == 1
                 if vardef.datatype == DataType.BYTEARRAY:
@@ -189,7 +189,7 @@ def generate_block_vars(out: Callable, block: Block, zeropage: bool=False) -> No
                 elif vardef.datatype == DataType.WORDARRAY:
                     out("{:s}\v.fill  {:d}*2\t\t; wordarray".format(vardef.name, vardef.size[0]))
                 else:
-                    raise CodeError("invalid datatype", vardef.datatype)
+                    raise CodeGenerationError("invalid datatype", vardef.datatype)
             elif vardef.datatype == DataType.MATRIX:
                 assert len(vardef.size) == 2
                 out("{:s}\v.fill  {:d}\t\t; matrix {:d}*{:d} bytes"
@@ -197,7 +197,7 @@ def generate_block_vars(out: Callable, block: Block, zeropage: bool=False) -> No
             elif vardef.datatype.isstring():
                 string_vars.append(vardef)
             else:
-                raise CodeError("unknown variable type " + str(vardef.datatype))
+                raise CodeGenerationError("unknown variable type " + str(vardef.datatype))
         # string vars are considered to be a constant, and are not re-initialized.
     out("")
 
