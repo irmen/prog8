@@ -131,37 +131,48 @@ Data Types
 
 IL65 supports the following data types:
 
-| type               | size       | type identifier | example                                           |
-|--------------------|------------|-----------------|---------------------------------------------------|
-| (unsigned) byte    | 8 bits     | ``.byte``       | ``$8f``    |
-| (unsigned) integer | 16 bits    | ``.word``       | ``$8fee``  |
-| boolean            | 1 byte     |                 | ``true``, ``false`` (aliases for the numeric values 1 and 0) |
-| character          | 1 byte     |                 | ``'@'`` (converted to a numeric byte)             |
-| floating-point     | 40 bits    | ``.float``      | ``1.2345``   (stored in 5-byte cbm MFLPT format)    |
-| string             | variable   | ``.text``, ``.stext``   | ``"hello."``  (implicitly terminated by a 0-byte) |
-| pascal-string      | variable   | ``.ptext``, ``.pstext`` | ``"hello."``  (implicit first byte = length, no 0-byte |
-| address-of         | 16 bits    |                 | ``#variable``    |
-| indirect           | variable   |                 | ``[ address ]``  |
+| type                    | storage size      | type identifier | example                                           |
+|-------------------------|-------------------|-----------------|---------------------------------------------------|
+| unsigned byte           | 1 byte = 8 bits   | ``.byte``       | ``$8f``    |
+| unsigned word           | 2 bytes = 16 bits | ``.word``       | ``$8fee``  |
+| floating-point          | 5 bytes = 40 bits | ``.float``      | ``1.2345``   (stored in 5-byte cbm MFLPT format)  |
+| byte array              | varies            | ``.array``      | @todo      |
+| word array              | varies            | ``.wordarray``  | @todo      |
+| matrix (of bytes)       | varies            | ``.matrix``     | @todo      |
+| string (petscii)        | varies            | ``.text``       | ``"hello."``  (implicitly terminated by a 0-byte)      |
+| pascal-string (petscii) | varies            | ``.ptext``      | ``"hello."``  (implicit first byte = length, no 0-byte |
+| string (screencodes)    | varies            | ``.stext``      | ``"hello."``  (implicitly terminated by a 0-byte)      |
+| pascal-string (scr)     | varies            | ``.pstext``     | ``"hello."``  (implicit first byte = length, no 0-byte |
 
-Strings can be writen in your code as CBM PETSCII or as C-64 screencode variants,
-these will be translated by the compiler. PETSCII is the default, if you need screencodes you
-have to use the ``s`` variants of the type identifier.
-If you write a string with just one character in it, it is *always* considered to be a BYTE instead with
-that character's PETSCII value.  So if you really need a string of length 1 you must declare it 
-explicitly as a variable of type ``.text``, you cannot put ``"x"`` as a subroutine argument where
-the subroutine expects (the address of) a string.  IL65's type system is unfortunately not strict enough to 
-avoid this mistake, but it does print a warning if the situation is detected.
 
-For many floating point operations, the compiler has to use routines in the C-64 BASIC and KERNAL ROMs.
-So they will only work if the BASIC ROM (and KERNAL ROM) are banked in, and your code imports the ``c654lib.ill``.
+You can use the literals ``true`` and ``false`` as 'boolean' values, they are aliases for the 
+byte value 1 and 0 respectively.
+ 
+    
+Strings in your code will be encoded in either CBM PETSCII or C-64 screencode variants,
+this encoding is done by the compiler. PETSCII is the default, if you need screencodes you
+have to use the ``s`` variants of the string type identifier.
+A string with just one character in it is considered to be a BYTE instead with
+that character's PETSCII value.  So if you really need a string of length 1 you must declare
+the variable explicitly of type ``.text``.
 
+Floating point numbers are stored in the 5-byte 'MFLPT' format that is used on CBM machines,
+but most float operations are specific to the Commodore-64 even because 
+routines in the C-64 BASIC and KERNAL ROMs are used.
+So floating point operations will only work if the C-64 BASIC ROM (and KERNAL ROM) are banked in, and your code imports the ``c654lib.ill``.
 The largest 5-byte MFLPT float that can be stored is: 1.7014118345e+38   (negative: -1.7014118345e+38)
 
+
+Indirect addressing and address-of
+----------------------------------
+
+**Address-of:**
 The ``#`` prefix is used to take the address of something. This is sometimes useful,
 for instance when you want to manipulate the *address* of a memory mapped variable rather than
-the value it represents.  You can take the address of a string as well, but the compiler already
-treats those as a value that you manipulate via its address, so the ``#`` is ignored here.
-For most other types this prefix is not supported.
+the value it represents.  You could take the address of a string as well, but that is redundant:
+the compiler already treats those as a value that you manipulate via its address.
+For most other types this prefix is not supported and will result in a compile error.
+The resulting value is simply a 16 bit word.
 
 **Indirect addressing:** The ``[address]`` syntax means: the contents of the memory at address, or "indirect addressing".
 By default, if not otherwise known, a single byte is assumed. You can add the ``.byte`` or ``.word`` or ``.float``
@@ -261,7 +272,7 @@ If you do modify them in-place, you should take care yourself that they work as
 expected when the program is restarted. 
 
 
-### Blocks
+### Blocks and Scopes
 
         ~ blockname [address] {
                 [directives...]
@@ -273,17 +284,21 @@ arranged to a single output program.  No code or data can occur outside a block.
 A block is also a *scope* in your program so the symbols in the block don't clash with
 symbols of the same name defined elsewhere.  You can refer to the symbols in a particular block
 by using a *dotted name*: ``blockname.symbolname``.
+Note that the *file* (or module) that blocks are defined in, is of no consequence to the 
+full scope name; all blocks defined in it are simply added to the set of blocks that make up the
+entire program. 
 
-Block names must be unique in your entire program,
-except "ZP": the contents of every block with that name are merged into one.
-This block name refers to the zero page. Its start address is always set to $04,
+Hence block names must be unique in your entire program.
+Except "ZP": the contents of every block with that name are merged into one.
+This "ZP" block name is special and refers to the zero page. Its start address is always set to $04,
 because $00/$01 are used by the hardware and $02/$03 are reserved as general purpose scratch registers.
 Block address must be >= $0200 (because $00-$fff is the ZP and $100-$200 is the cpu stack)
 
-You can omit the blockname but then you can only refer to the contents of the block via its absolute address,
-which is required in this case. If you omit *both*, the block is ignored altogether (and a warning is displayed).
+When declaring a block in your code, it's possible to omit the blockname.
+But then you can only refer to the contents of the block via its absolute address,
+which is required in this case. If you omit *both* name and address, the block is *ignored* by the compiler (and a warning is displayed).
 This is a way to quickly "comment out" a piece of code that is unfinshed or may contain errors that you
-want to work on later, because the contents of the ignored block are not fully parsed.
+want to work on later, because the contents of the ignored block are not fully parsed either.
 
 
 ### Assignments
@@ -340,9 +355,9 @@ The syntax is:
         what the changed registers are, assume the worst")
 
 
-Subroutines that are pre-defined on a specific memory location (usually routines from ROM),
-can also be defined using the 'sub' statement. But in this case you don't supply a block with statements,
-but instead assign a memory address to it:
+Pre-defined subroutines that are available on specific memory addresses 
+(in system ROM for instance) can also be defined using the 'sub' statement.
+To do this you assign the routine's memory address to the sub:
 
         sub  <identifier>  ([proc_parameters]) -> ([proc_results])  = <address>
 
