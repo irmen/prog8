@@ -4,14 +4,14 @@
 
  ~ main
 {
-	var .text greeting = "hello world!\r12345678 is a big number.\r"
-	var .ptext p_greeting = "hello world!\r12345678 is a big number.\r"
+	var .str greeting = "hello world!\r12345678 is a big number.\r"
+	var .strp p_greeting = "hello world!\r12345678 is a big number.\r"
 	const .word BORDER = $d020
 
 start:
 	c64scr.print_pimmediate()          ; this prints the pstring immediately following it
 	%asm {
-		.ptext "hello-pimmediate!{cr}"
+		.strp "hello-pimmediate!{cr}"
 	}
 
 	c64scr.print_byte_decimal0 (19)

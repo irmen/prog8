@@ -139,10 +139,10 @@ IL65 supports the following data types:
 | byte array              | varies            | ``.array``      | @todo      |
 | word array              | varies            | ``.wordarray``  | @todo      |
 | matrix (of bytes)       | varies            | ``.matrix``     | @todo      |
-| string (petscii)        | varies            | ``.text``       | ``"hello."``  (implicitly terminated by a 0-byte)      |
-| pascal-string (petscii) | varies            | ``.ptext``      | ``"hello."``  (implicit first byte = length, no 0-byte |
-| string (screencodes)    | varies            | ``.stext``      | ``"hello."``  (implicitly terminated by a 0-byte)      |
-| pascal-string (scr)     | varies            | ``.pstext``     | ``"hello."``  (implicit first byte = length, no 0-byte |
+| string (petscii)        | varies            | ``.str``        | ``"hello."``  (implicitly terminated by a 0-byte)      |
+| pascal-string (petscii) | varies            | ``.strp``       | ``"hello."``  (implicit first byte = length, no 0-byte |
+| string (screencodes)    | varies            | ``.strs``       | ``"hello."``  (implicitly terminated by a 0-byte)      |
+| pascal-string (scr)     | varies            | ``.strps``      | ``"hello."``  (implicit first byte = length, no 0-byte |
 
 
 You can use the literals ``true`` and ``false`` as 'boolean' values, they are aliases for the 
@@ -154,7 +154,7 @@ this encoding is done by the compiler. PETSCII is the default, if you need scree
 have to use the ``s`` variants of the string type identifier.
 A string with just one character in it is considered to be a BYTE instead with
 that character's PETSCII value.  So if you really need a string of length 1 you must declare
-the variable explicitly of type ``.text``.
+the variable explicitly of type ``.str``.
 
 Floating point numbers are stored in the 5-byte 'MFLPT' format that is used on CBM machines,
 but most float operations are specific to the Commodore-64 even because 

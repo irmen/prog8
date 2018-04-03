@@ -74,10 +74,10 @@
 	var  .array(10 )        init_bytearrayb         =true
 	var  .array(10 )        init_bytearrayc         ='@'
 
-	var  .text              text    = "hello-null"
-	var  .ptext             ptext   = 'hello-pascal'
-	var  .stext             stext   = 'screencodes-null'
-	var  .pstext            pstext  = "screencodes-pascal"
+	var  .str              text    = "hello-null"
+	var  .strp             ptext   = 'hello-pascal'
+	var  .strs             stext   = 'screencodes-null'
+	var  .strps            pstext  = "screencodes-pascal"
 
 	var  .matrix( 2, 128 ) uninitmatrix
 	var  .matrix(10, 20)   initmatrix1      = $12
@@ -107,10 +107,10 @@
 	const  .float           cfloat2         = 2.3456
 	const  .float           cfloat2b        = cfloat2*3.44
 	const  .float           cfloat3         = true
-	const  .text            ctext3   	= "constant-text"
-	const  .ptext           ctext4   	= "constant-ptext"
-	const  .stext           ctext5   	= "constant-stext"
-	const  .pstext          ctext6   	= "constant-pstext"
+	const  .str             ctext3   	= "constant-text"
+	const  .strp            ctext4   	= "constant-ptext"
+	const  .strs            ctext5   	= "constant-stext"
+	const  .strps           ctext6   	= "constant-pstext"
 
         ; taking the address of various things:
 	var .word        vmemaddr1              = &membyte1

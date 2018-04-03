@@ -34,7 +34,7 @@ def test_creation():
     assert v.size == [2, 3]
     assert isinstance(v.value, LiteralValue)
     assert v.value.value == 0
-    dt = DatatypeNode(name="text", sourceref=sref)
+    dt = DatatypeNode(name="str", sourceref=sref)
     v = VarDef(name="v2", vartype="var", datatype=dt, sourceref=sref)
     assert v.vartype == VarType.VAR
     assert v.datatype == DataType.STRING
@@ -49,7 +49,7 @@ def test_set_value():
     assert v.value.value == 0
     v.value = LiteralValue(value=42, sourceref=sref)
     assert v.value.value == 42
-    v = VarDef(name="v1", vartype="var", datatype=DatatypeNode(name="text", sourceref=sref), sourceref=sref)
+    v = VarDef(name="v1", vartype="var", datatype=DatatypeNode(name="str", sourceref=sref), sourceref=sref)
     assert v.datatype == DataType.STRING
     assert v.value is None
     v.value = LiteralValue(value="hello", sourceref=sref)

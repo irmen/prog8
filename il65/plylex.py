@@ -219,7 +219,7 @@ def t_CLOBBEREDREGISTER(t):
 
 
 def t_DATATYPE(t):
-    r"""\.byte|\.wordarray|\.float|\.array|\.word|\.text|\.stext|\.ptext|\.pstext|\.matrix"""
+    r"""\.byte|\.wordarray|\.float|\.array|\.word|\.strps|\.strs|\.strp|\.str|\.matrix"""
     t.value = t.value[1:]
     return t
 

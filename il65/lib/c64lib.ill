@@ -730,12 +730,12 @@ sub  byte2hex  (ubyte: A) -> (X, Y, A?)  {
 		tax
 		rts
 
-hex_digits	.text "0123456789abcdef"	; can probably be reused for other stuff as well
+hex_digits	.str "0123456789abcdef"	; can probably be reused for other stuff as well
 	}
 }
 
 
-		var  .text      word2hex_output = "1234"   ; 0-terminated, to make printing easier
+		var  .str      word2hex_output = "1234"   ; 0-terminated, to make printing easier
 sub  word2hex  (word: XY) -> (?)  {
 	; ---- convert 16 bit word in X/Y into 4-character hexadecimal string into memory  'word2hex_output'
 	%asm {

@@ -78,7 +78,7 @@ label4:
 
 ~ conditionals {
         var  bytevar = 22 + 23
-        var  .text  name        = "?"*80
+        var  .str  name        = "?"*80
         var  bytevar2 = 23
         var .word wordvar = 22345
 

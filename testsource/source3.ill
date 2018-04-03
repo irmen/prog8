@@ -11,18 +11,18 @@
 	memory .word screenw = $0500
 
 	; ascii to petscii, 0 terminated
-	var .text hello = "hello everyone out there."
+	var .str hello = "hello everyone out there."
 
 	; ascii to petscii, with length as first byte
-	var .ptext hellopascalstr = "Hello!\0x00\x01\x02d ag\0x01."
+	var .strp hellopascalstr = "Hello!\0x00\x01\x02d ag\0x01."
 
 	; ascii to screen codes, 0 terminated
-	var .stext hello_screen = "Hello!\n guys123."
+	var .strs hello_screen = "Hello!\n guys123."
 
 	; ascii to screen codes, length as first byte
-	var .pstext hellopascal_screen = "Hello! \n."
+	var .strps hellopascal_screen = "Hello! \n."
 
-	var .text hello2 = "@@\f\b\n\r\t@@"
+	var .str hello2 = "@@\f\b\n\r\t@@"
 
 start:
 	global2.make_screen_black()

@@ -86,10 +86,10 @@ start:
 	var  .wordarray(10)     init_wordarray          =  $1234
 	var  .wordarray(10)     init_wordarrayb         =  true
 
-	var  .text              text    = "hello"+"-null"
-	var  .ptext             ptext   = 'hello-pascal'
-	var  .stext             stext   = 'screencodes-null'
-	var  .pstext            pstext  = "screencodes-pascal"
+	var  .str              text    = "hello"+"-null"
+	var  .strp             ptext   = 'hello-pascal'
+	var  .strs             stext   = 'screencodes-null'
+	var  .strps            pstext  = "screencodes-pascal"
 
 	var  .matrix( 3, 4 ) uninitmatrix
 	var  .matrix( 3, 4 )   initmatrix1      = $12
@@ -119,10 +119,10 @@ start:
 	const  .float           cfloat2         = 2.3456
 	const  .float           cfloat2b        = cfloat2*3.44
 	const  .float           cfloat3         = true
-	const  .text            ctext3   	= "constant-text"
-	const  .ptext           ctext4   	= "constant-ptext"
-	const  .stext           ctext5   	= "constant-stext"
-	const  .pstext          ctext6   	= "constant-pstext"
+	const  .str            ctext3   	= "constant-text"
+	const  .strp           ctext4   	= "constant-ptext"
+	const  .strs           ctext5   	= "constant-stext"
+	const  .strps          ctext6   	= "constant-pstext"
 
         ; taking the address of various things:
 	var .word        vmemaddr1              = &membyte1
@@ -309,7 +309,7 @@ max:
         const   .word   constw   = $2355
         const   .byte   constb   = $23
         const   .float  constf   = 3.4556677
-        const   .text   constt   = "derp"
+        const   .str   constt   = "derp"
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
@@ -440,10 +440,10 @@ bar:
 	var  .wordarray(10)     init_wordarray          =  $1234
 	var  .wordarray(10)     init_wordarrayb         =  true
 
-	var  .text              text    = "hello"+"-null"
-	var  .ptext             ptext   = 'hello-pascal'
-	var  .stext             stext   = 'screencodes-null'
-	var  .pstext            pstext  = "screencodes-pascal"
+	var  .str              text    = "hello"+"-null"
+	var  .strp             ptext   = 'hello-pascal'
+	var  .strs             stext   = 'screencodes-null'
+	var  .strps            pstext  = "screencodes-pascal"
 
 	var  .matrix( 3, 4 ) uninitmatrix
 	var  .matrix( 3, 4 )   initmatrix1      = $12
@@ -473,10 +473,10 @@ bar:
 	const  .float           cfloat2         = 2.3456
 	const  .float           cfloat2b        = cfloat2*3.44
 	const  .float           cfloat3         = true
-	const  .text            ctext3   	= "constant-text"
-	const  .ptext           ctext4   	= "constant-ptext"
-	const  .stext           ctext5   	= "constant-stext"
-	const  .pstext          ctext6   	= "constant-pstext"
+	const  .str            ctext3   	= "constant-text"
+	const  .strp           ctext4   	= "constant-ptext"
+	const  .strs           ctext5   	= "constant-stext"
+	const  .strps          ctext6   	= "constant-pstext"
 
         ; taking the address of various things:
 	var .word        vmemaddr1              = &membyte1
@@ -663,7 +663,7 @@ max:
         const   .word   constw   = $2355
         const   .byte   constb   = $23
         const   .float  constf   = 3.4556677
-        const   .text   constt   = "derp"
+        const   .str   constt   = "derp"
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
@@ -794,10 +794,10 @@ bar:
 	var  .wordarray(10)     init_wordarray          =  $1234
 	var  .wordarray(10)     init_wordarrayb         =  true
 
-	var  .text              text    = "hello"+"-null"
-	var  .ptext             ptext   = 'hello-pascal'
-	var  .stext             stext   = 'screencodes-null'
-	var  .pstext            pstext  = "screencodes-pascal"
+	var  .str              text    = "hello"+"-null"
+	var  .strp             ptext   = 'hello-pascal'
+	var  .strs             stext   = 'screencodes-null'
+	var  .strps            pstext  = "screencodes-pascal"
 
 	var  .matrix( 3, 4 ) uninitmatrix
 	var  .matrix( 3, 4 )   initmatrix1      = $12
@@ -827,10 +827,10 @@ bar:
 	const  .float           cfloat2         = 2.3456
 	const  .float           cfloat2b        = cfloat2*3.44
 	const  .float           cfloat3         = true
-	const  .text            ctext3   	= "constant-text"
-	const  .ptext           ctext4   	= "constant-ptext"
-	const  .stext           ctext5   	= "constant-stext"
-	const  .pstext          ctext6   	= "constant-pstext"
+	const  .str            ctext3   	= "constant-text"
+	const  .strp           ctext4   	= "constant-ptext"
+	const  .strs           ctext5   	= "constant-stext"
+	const  .strps          ctext6   	= "constant-pstext"
 
         ; taking the address of various things:
 	var .word        vmemaddr1              = &membyte1
@@ -1017,7 +1017,7 @@ max:
         const   .word   constw   = $2355
         const   .byte   constb   = $23
         const   .float  constf   = 3.4556677
-        const   .text   constt   = "derp"
+        const   .str   constt   = "derp"
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
@@ -1148,10 +1148,10 @@ bar:
 	var  .wordarray(10)     init_wordarray          =  $1234
 	var  .wordarray(10)     init_wordarrayb         =  true
 
-	var  .text              text    = "hello"+"-null"
-	var  .ptext             ptext   = 'hello-pascal'
-	var  .stext             stext   = 'screencodes-null'
-	var  .pstext            pstext  = "screencodes-pascal"
+	var  .str              text    = "hello"+"-null"
+	var  .strp             ptext   = 'hello-pascal'
+	var  .strs             stext   = 'screencodes-null'
+	var  .strps            pstext  = "screencodes-pascal"
 
 	var  .matrix( 3, 4 ) uninitmatrix
 	var  .matrix( 3, 4 )   initmatrix1      = $12
@@ -1181,10 +1181,10 @@ bar:
 	const  .float           cfloat2         = 2.3456
 	const  .float           cfloat2b        = cfloat2*3.44
 	const  .float           cfloat3         = true
-	const  .text            ctext3   	= "constant-text"
-	const  .ptext           ctext4   	= "constant-ptext"
-	const  .stext           ctext5   	= "constant-stext"
-	const  .pstext          ctext6   	= "constant-pstext"
+	const  .str            ctext3   	= "constant-text"
+	const  .strp           ctext4   	= "constant-ptext"
+	const  .strs           ctext5   	= "constant-stext"
+	const  .strps          ctext6   	= "constant-pstext"
 
         ; taking the address of various things:
 	var .word        vmemaddr1              = &membyte1
@@ -1371,7 +1371,7 @@ max:
         const   .word   constw   = $2355
         const   .byte   constb   = $23
         const   .float  constf   = 3.4556677
-        const   .text   constt   = "derp"
+        const   .str   constt   = "derp"
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
@@ -1502,10 +1502,10 @@ bar:
 	var  .wordarray(10)     init_wordarray          =  $1234
 	var  .wordarray(10)     init_wordarrayb         =  true
 
-	var  .text              text    = "hello"+"-null"
-	var  .ptext             ptext   = 'hello-pascal'
-	var  .stext             stext   = 'screencodes-null'
-	var  .pstext            pstext  = "screencodes-pascal"
+	var  .str              text    = "hello"+"-null"
+	var  .strp             ptext   = 'hello-pascal'
+	var  .strs             stext   = 'screencodes-null'
+	var  .strps            pstext  = "screencodes-pascal"
 
 	var  .matrix( 3, 4 ) uninitmatrix
 	var  .matrix( 3, 4 )   initmatrix1      = $12
@@ -1535,10 +1535,10 @@ bar:
 	const  .float           cfloat2         = 2.3456
 	const  .float           cfloat2b        = cfloat2*3.44
 	const  .float           cfloat3         = true
-	const  .text            ctext3   	= "constant-text"
-	const  .ptext           ctext4   	= "constant-ptext"
-	const  .stext           ctext5   	= "constant-stext"
-	const  .pstext          ctext6   	= "constant-pstext"
+	const  .str            ctext3   	= "constant-text"
+	const  .strp           ctext4   	= "constant-ptext"
+	const  .strs           ctext5   	= "constant-stext"
+	const  .strps          ctext6   	= "constant-pstext"
 
         ; taking the address of various things:
 	var .word        vmemaddr1              = &membyte1
@@ -1725,7 +1725,7 @@ max:
         const   .word   constw   = $2355
         const   .byte   constb   = $23
         const   .float  constf   = 3.4556677
-        const   .text   constt   = "derp"
+        const   .str   constt   = "derp"
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
@@ -1856,10 +1856,10 @@ bar:
 	var  .wordarray(10)     init_wordarray          =  $1234
 	var  .wordarray(10)     init_wordarrayb         =  true
 
-	var  .text              text    = "hello"+"-null"
-	var  .ptext             ptext   = 'hello-pascal'
-	var  .stext             stext   = 'screencodes-null'
-	var  .pstext            pstext  = "screencodes-pascal"
+	var  .str              text    = "hello"+"-null"
+	var  .strp             ptext   = 'hello-pascal'
+	var  .strs             stext   = 'screencodes-null'
+	var  .strps            pstext  = "screencodes-pascal"
 
 	var  .matrix( 3, 4 ) uninitmatrix
 	var  .matrix( 3, 4 )   initmatrix1      = $12
@@ -1889,10 +1889,10 @@ bar:
 	const  .float           cfloat2         = 2.3456
 	const  .float           cfloat2b        = cfloat2*3.44
 	const  .float           cfloat3         = true
-	const  .text            ctext3   	= "constant-text"
-	const  .ptext           ctext4   	= "constant-ptext"
-	const  .stext           ctext5   	= "constant-stext"
-	const  .pstext          ctext6   	= "constant-pstext"
+	const  .str            ctext3   	= "constant-text"
+	const  .strp           ctext4   	= "constant-ptext"
+	const  .strs           ctext5   	= "constant-stext"
+	const  .strps          ctext6   	= "constant-pstext"
 
         ; taking the address of various things:
 	var .word        vmemaddr1              = &membyte1
@@ -2079,7 +2079,7 @@ max:
         const   .word   constw   = $2355
         const   .byte   constb   = $23
         const   .float  constf   = 3.4556677
-        const   .text   constt   = "derp"
+        const   .str   constt   = "derp"
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
@@ -2210,10 +2210,10 @@ bar:
 	var  .wordarray(10)     init_wordarray          =  $1234
 	var  .wordarray(10)     init_wordarrayb         =  true
 
-	var  .text              text    = "hello"+"-null"
-	var  .ptext             ptext   = 'hello-pascal'
-	var  .stext             stext   = 'screencodes-null'
-	var  .pstext            pstext  = "screencodes-pascal"
+	var  .str              text    = "hello"+"-null"
+	var  .strp             ptext   = 'hello-pascal'
+	var  .strs             stext   = 'screencodes-null'
+	var  .strps            pstext  = "screencodes-pascal"
 
 	var  .matrix( 3, 4 ) uninitmatrix
 	var  .matrix( 3, 4 )   initmatrix1      = $12
@@ -2243,10 +2243,10 @@ bar:
 	const  .float           cfloat2         = 2.3456
 	const  .float           cfloat2b        = cfloat2*3.44
 	const  .float           cfloat3         = true
-	const  .text            ctext3   	= "constant-text"
-	const  .ptext           ctext4   	= "constant-ptext"
-	const  .stext           ctext5   	= "constant-stext"
-	const  .pstext          ctext6   	= "constant-pstext"
+	const  .str            ctext3   	= "constant-text"
+	const  .strp           ctext4   	= "constant-ptext"
+	const  .strs           ctext5   	= "constant-stext"
+	const  .strps          ctext6   	= "constant-pstext"
 
         ; taking the address of various things:
 	var .word        vmemaddr1              = &membyte1
@@ -2433,7 +2433,7 @@ max:
         const   .word   constw   = $2355
         const   .byte   constb   = $23
         const   .float  constf   = 3.4556677
-        const   .text   constt   = "derp"
+        const   .str   constt   = "derp"
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
@@ -2564,10 +2564,10 @@ bar:
 	var  .wordarray(10)     init_wordarray          =  $1234
 	var  .wordarray(10)     init_wordarrayb         =  true
 
-	var  .text              text    = "hello"+"-null"
-	var  .ptext             ptext   = 'hello-pascal'
-	var  .stext             stext   = 'screencodes-null'
-	var  .pstext            pstext  = "screencodes-pascal"
+	var  .str              text    = "hello"+"-null"
+	var  .strp             ptext   = 'hello-pascal'
+	var  .strs             stext   = 'screencodes-null'
+	var  .strps            pstext  = "screencodes-pascal"
 
 	var  .matrix( 3, 4 ) uninitmatrix
 	var  .matrix( 3, 4 )   initmatrix1      = $12
@@ -2597,10 +2597,10 @@ bar:
 	const  .float           cfloat2         = 2.3456
 	const  .float           cfloat2b        = cfloat2*3.44
 	const  .float           cfloat3         = true
-	const  .text            ctext3   	= "constant-text"
-	const  .ptext           ctext4   	= "constant-ptext"
-	const  .stext           ctext5   	= "constant-stext"
-	const  .pstext          ctext6   	= "constant-pstext"
+	const  .str            ctext3   	= "constant-text"
+	const  .strp           ctext4   	= "constant-ptext"
+	const  .strs           ctext5   	= "constant-stext"
+	const  .strps          ctext6   	= "constant-pstext"
 
         ; taking the address of various things:
 	var .word        vmemaddr1              = &membyte1
@@ -2787,7 +2787,7 @@ max:
         const   .word   constw   = $2355
         const   .byte   constb   = $23
         const   .float  constf   = 3.4556677
-        const   .text   constt   = "derp"
+        const   .str   constt   = "derp"
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
@@ -2918,10 +2918,10 @@ bar:
 	var  .wordarray(10)     init_wordarray          =  $1234
 	var  .wordarray(10)     init_wordarrayb         =  true
 
-	var  .text              text    = "hello"+"-null"
-	var  .ptext             ptext   = 'hello-pascal'
-	var  .stext             stext   = 'screencodes-null'
-	var  .pstext            pstext  = "screencodes-pascal"
+	var  .str              text    = "hello"+"-null"
+	var  .strp             ptext   = 'hello-pascal'
+	var  .strs             stext   = 'screencodes-null'
+	var  .strps            pstext  = "screencodes-pascal"
 
 	var  .matrix( 3, 4 ) uninitmatrix
 	var  .matrix( 3, 4 )   initmatrix1      = $12
@@ -2951,10 +2951,10 @@ bar:
 	const  .float           cfloat2         = 2.3456
 	const  .float           cfloat2b        = cfloat2*3.44
 	const  .float           cfloat3         = true
-	const  .text            ctext3   	= "constant-text"
-	const  .ptext           ctext4   	= "constant-ptext"
-	const  .stext           ctext5   	= "constant-stext"
-	const  .pstext          ctext6   	= "constant-pstext"
+	const  .str            ctext3   	= "constant-text"
+	const  .strp           ctext4   	= "constant-ptext"
+	const  .strs           ctext5   	= "constant-stext"
+	const  .strps          ctext6   	= "constant-pstext"
 
         ; taking the address of various things:
 	var .word        vmemaddr1              = &membyte1
@@ -3141,7 +3141,7 @@ max:
         const   .word   constw   = $2355
         const   .byte   constb   = $23
         const   .float  constf   = 3.4556677
-        const   .text   constt   = "derp"
+        const   .str   constt   = "derp"
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
@@ -3272,10 +3272,10 @@ bar:
 	var  .wordarray(10)     init_wordarray          =  $1234
 	var  .wordarray(10)     init_wordarrayb         =  true
 
-	var  .text              text    = "hello"+"-null"
-	var  .ptext             ptext   = 'hello-pascal'
-	var  .stext             stext   = 'screencodes-null'
-	var  .pstext            pstext  = "screencodes-pascal"
+	var  .str              text    = "hello"+"-null"
+	var  .strp             ptext   = 'hello-pascal'
+	var  .strs             stext   = 'screencodes-null'
+	var  .strps            pstext  = "screencodes-pascal"
 
 	var  .matrix( 3, 4 ) uninitmatrix
 	var  .matrix( 3, 4 )   initmatrix1      = $12
@@ -3305,10 +3305,10 @@ bar:
 	const  .float           cfloat2         = 2.3456
 	const  .float           cfloat2b        = cfloat2*3.44
 	const  .float           cfloat3         = true
-	const  .text            ctext3   	= "constant-text"
-	const  .ptext           ctext4   	= "constant-ptext"
-	const  .stext           ctext5   	= "constant-stext"
-	const  .pstext          ctext6   	= "constant-pstext"
+	const  .str            ctext3   	= "constant-text"
+	const  .strp           ctext4   	= "constant-ptext"
+	const  .strs           ctext5   	= "constant-stext"
+	const  .strps          ctext6   	= "constant-pstext"
 
         ; taking the address of various things:
 	var .word        vmemaddr1              = &membyte1
@@ -3495,7 +3495,7 @@ max:
         const   .word   constw   = $2355
         const   .byte   constb   = $23
         const   .float  constf   = 3.4556677
-        const   .text   constt   = "derp"
+        const   .str   constt   = "derp"
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
@@ -3626,10 +3626,10 @@ bar:
 	var  .wordarray(10)     init_wordarray          =  $1234
 	var  .wordarray(10)     init_wordarrayb         =  true
 
-	var  .text              text    = "hello"+"-null"
-	var  .ptext             ptext   = 'hello-pascal'
-	var  .stext             stext   = 'screencodes-null'
-	var  .pstext            pstext  = "screencodes-pascal"
+	var  .str              text    = "hello"+"-null"
+	var  .strp             ptext   = 'hello-pascal'
+	var  .strs             stext   = 'screencodes-null'
+	var  .strps            pstext  = "screencodes-pascal"
 
 	var  .matrix( 3, 4 ) uninitmatrix
 	var  .matrix( 3, 4 )   initmatrix1      = $12
@@ -3659,10 +3659,10 @@ bar:
 	const  .float           cfloat2         = 2.3456
 	const  .float           cfloat2b        = cfloat2*3.44
 	const  .float           cfloat3         = true
-	const  .text            ctext3   	= "constant-text"
-	const  .ptext           ctext4   	= "constant-ptext"
-	const  .stext           ctext5   	= "constant-stext"
-	const  .pstext          ctext6   	= "constant-pstext"
+	const  .str            ctext3   	= "constant-text"
+	const  .strp           ctext4   	= "constant-ptext"
+	const  .strs           ctext5   	= "constant-stext"
+	const  .strps          ctext6   	= "constant-pstext"
 
         ; taking the address of various things:
 	var .word        vmemaddr1              = &membyte1
@@ -3849,7 +3849,7 @@ max:
         const   .word   constw   = $2355
         const   .byte   constb   = $23
         const   .float  constf   = 3.4556677
-        const   .text   constt   = "derp"
+        const   .str   constt   = "derp"
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
@@ -3980,10 +3980,10 @@ bar:
 	var  .wordarray(10)     init_wordarray          =  $1234
 	var  .wordarray(10)     init_wordarrayb         =  true
 
-	var  .text              text    = "hello"+"-null"
-	var  .ptext             ptext   = 'hello-pascal'
-	var  .stext             stext   = 'screencodes-null'
-	var  .pstext            pstext  = "screencodes-pascal"
+	var  .str              text    = "hello"+"-null"
+	var  .strp             ptext   = 'hello-pascal'
+	var  .strs             stext   = 'screencodes-null'
+	var  .strps            pstext  = "screencodes-pascal"
 
 	var  .matrix( 3, 4 ) uninitmatrix
 	var  .matrix( 3, 4 )   initmatrix1      = $12
@@ -4013,10 +4013,10 @@ bar:
 	const  .float           cfloat2         = 2.3456
 	const  .float           cfloat2b        = cfloat2*3.44
 	const  .float           cfloat3         = true
-	const  .text            ctext3   	= "constant-text"
-	const  .ptext           ctext4   	= "constant-ptext"
-	const  .stext           ctext5   	= "constant-stext"
-	const  .pstext          ctext6   	= "constant-pstext"
+	const  .str            ctext3   	= "constant-text"
+	const  .strp           ctext4   	= "constant-ptext"
+	const  .strs           ctext5   	= "constant-stext"
+	const  .strps          ctext6   	= "constant-pstext"
 
         ; taking the address of various things:
 	var .word        vmemaddr1              = &membyte1
@@ -4203,7 +4203,7 @@ max:
         const   .word   constw   = $2355
         const   .byte   constb   = $23
         const   .float  constf   = 3.4556677
-        const   .text   constt   = "derp"
+        const   .str   constt   = "derp"
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
@@ -4334,10 +4334,10 @@ bar:
 	var  .wordarray(10)     init_wordarray          =  $1234
 	var  .wordarray(10)     init_wordarrayb         =  true
 
-	var  .text              text    = "hello"+"-null"
-	var  .ptext             ptext   = 'hello-pascal'
-	var  .stext             stext   = 'screencodes-null'
-	var  .pstext            pstext  = "screencodes-pascal"
+	var  .str              text    = "hello"+"-null"
+	var  .strp             ptext   = 'hello-pascal'
+	var  .strs             stext   = 'screencodes-null'
+	var  .strps            pstext  = "screencodes-pascal"
 
 	var  .matrix( 3, 4 ) uninitmatrix
 	var  .matrix( 3, 4 )   initmatrix1      = $12
@@ -4367,10 +4367,10 @@ bar:
 	const  .float           cfloat2         = 2.3456
 	const  .float           cfloat2b        = cfloat2*3.44
 	const  .float           cfloat3         = true
-	const  .text            ctext3   	= "constant-text"
-	const  .ptext           ctext4   	= "constant-ptext"
-	const  .stext           ctext5   	= "constant-stext"
-	const  .pstext          ctext6   	= "constant-pstext"
+	const  .str            ctext3   	= "constant-text"
+	const  .strp           ctext4   	= "constant-ptext"
+	const  .strs           ctext5   	= "constant-stext"
+	const  .strps          ctext6   	= "constant-pstext"
 
         ; taking the address of various things:
 	var .word        vmemaddr1              = &membyte1
@@ -4557,7 +4557,7 @@ max:
         const   .word   constw   = $2355
         const   .byte   constb   = $23
         const   .float  constf   = 3.4556677
-        const   .text   constt   = "derp"
+        const   .str   constt   = "derp"
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
@@ -4688,10 +4688,10 @@ bar:
 	var  .wordarray(10)     init_wordarray          =  $1234
 	var  .wordarray(10)     init_wordarrayb         =  true
 
-	var  .text              text    = "hello"+"-null"
-	var  .ptext             ptext   = 'hello-pascal'
-	var  .stext             stext   = 'screencodes-null'
-	var  .pstext            pstext  = "screencodes-pascal"
+	var  .str              text    = "hello"+"-null"
+	var  .strp             ptext   = 'hello-pascal'
+	var  .strs             stext   = 'screencodes-null'
+	var  .strps            pstext  = "screencodes-pascal"
 
 	var  .matrix( 3, 4 ) uninitmatrix
 	var  .matrix( 3, 4 )   initmatrix1      = $12
@@ -4721,10 +4721,10 @@ bar:
 	const  .float           cfloat2         = 2.3456
 	const  .float           cfloat2b        = cfloat2*3.44
 	const  .float           cfloat3         = true
-	const  .text            ctext3   	= "constant-text"
-	const  .ptext           ctext4   	= "constant-ptext"
-	const  .stext           ctext5   	= "constant-stext"
-	const  .pstext          ctext6   	= "constant-pstext"
+	const  .str            ctext3   	= "constant-text"
+	const  .strp           ctext4   	= "constant-ptext"
+	const  .strs           ctext5   	= "constant-stext"
+	const  .strps          ctext6   	= "constant-pstext"
 
         ; taking the address of various things:
 	var .word        vmemaddr1              = &membyte1
@@ -4911,7 +4911,7 @@ max:
         const   .word   constw   = $2355
         const   .byte   constb   = $23
         const   .float  constf   = 3.4556677
-        const   .text   constt   = "derp"
+        const   .str   constt   = "derp"
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
@@ -5042,10 +5042,10 @@ bar:
 	var  .wordarray(10)     init_wordarray          =  $1234
 	var  .wordarray(10)     init_wordarrayb         =  true
 
-	var  .text              text    = "hello"+"-null"
-	var  .ptext             ptext   = 'hello-pascal'
-	var  .stext             stext   = 'screencodes-null'
-	var  .pstext            pstext  = "screencodes-pascal"
+	var  .str              text    = "hello"+"-null"
+	var  .strp             ptext   = 'hello-pascal'
+	var  .strs             stext   = 'screencodes-null'
+	var  .strps            pstext  = "screencodes-pascal"
 
 	var  .matrix( 3, 4 ) uninitmatrix
 	var  .matrix( 3, 4 )   initmatrix1      = $12
@@ -5075,10 +5075,10 @@ bar:
 	const  .float           cfloat2         = 2.3456
 	const  .float           cfloat2b        = cfloat2*3.44
 	const  .float           cfloat3         = true
-	const  .text            ctext3   	= "constant-text"
-	const  .ptext           ctext4   	= "constant-ptext"
-	const  .stext           ctext5   	= "constant-stext"
-	const  .pstext          ctext6   	= "constant-pstext"
+	const  .str            ctext3   	= "constant-text"
+	const  .strp           ctext4   	= "constant-ptext"
+	const  .strs           ctext5   	= "constant-stext"
+	const  .strps          ctext6   	= "constant-pstext"
 
         ; taking the address of various things:
 	var .word        vmemaddr1              = &membyte1
@@ -5265,7 +5265,7 @@ max:
         const   .word   constw   = $2355
         const   .byte   constb   = $23
         const   .float  constf   = 3.4556677
-        const   .text   constt   = "derp"
+        const   .str   constt   = "derp"
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
@@ -5396,10 +5396,10 @@ bar:
 	var  .wordarray(10)     init_wordarray          =  $1234
 	var  .wordarray(10)     init_wordarrayb         =  true
 
-	var  .text              text    = "hello"+"-null"
-	var  .ptext             ptext   = 'hello-pascal'
-	var  .stext             stext   = 'screencodes-null'
-	var  .pstext            pstext  = "screencodes-pascal"
+	var  .str              text    = "hello"+"-null"
+	var  .strp             ptext   = 'hello-pascal'
+	var  .strs             stext   = 'screencodes-null'
+	var  .strps            pstext  = "screencodes-pascal"
 
 	var  .matrix( 3, 4 ) uninitmatrix
 	var  .matrix( 3, 4 )   initmatrix1      = $12
@@ -5429,10 +5429,10 @@ bar:
 	const  .float           cfloat2         = 2.3456
 	const  .float           cfloat2b        = cfloat2*3.44
 	const  .float           cfloat3         = true
-	const  .text            ctext3   	= "constant-text"
-	const  .ptext           ctext4   	= "constant-ptext"
-	const  .stext           ctext5   	= "constant-stext"
-	const  .pstext          ctext6   	= "constant-pstext"
+	const  .str            ctext3   	= "constant-text"
+	const  .strp           ctext4   	= "constant-ptext"
+	const  .strs           ctext5   	= "constant-stext"
+	const  .strps          ctext6   	= "constant-pstext"
 
         ; taking the address of various things:
 	var .word        vmemaddr1              = &membyte1
@@ -5619,7 +5619,7 @@ max:
         const   .word   constw   = $2355
         const   .byte   constb   = $23
         const   .float  constf   = 3.4556677
-        const   .text   constt   = "derp"
+        const   .str   constt   = "derp"
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
@@ -5750,10 +5750,10 @@ bar:
 	var  .wordarray(10)     init_wordarray          =  $1234
 	var  .wordarray(10)     init_wordarrayb         =  true
 
-	var  .text              text    = "hello"+"-null"
-	var  .ptext             ptext   = 'hello-pascal'
-	var  .stext             stext   = 'screencodes-null'
-	var  .pstext            pstext  = "screencodes-pascal"
+	var  .str              text    = "hello"+"-null"
+	var  .strp             ptext   = 'hello-pascal'
+	var  .strs             stext   = 'screencodes-null'
+	var  .strps            pstext  = "screencodes-pascal"
 
 	var  .matrix( 3, 4 ) uninitmatrix
 	var  .matrix( 3, 4 )   initmatrix1      = $12
@@ -5783,10 +5783,10 @@ bar:
 	const  .float           cfloat2         = 2.3456
 	const  .float           cfloat2b        = cfloat2*3.44
 	const  .float           cfloat3         = true
-	const  .text            ctext3   	= "constant-text"
-	const  .ptext           ctext4   	= "constant-ptext"
-	const  .stext           ctext5   	= "constant-stext"
-	const  .pstext          ctext6   	= "constant-pstext"
+	const  .str            ctext3   	= "constant-text"
+	const  .strp           ctext4   	= "constant-ptext"
+	const  .strs           ctext5   	= "constant-stext"
+	const  .strps          ctext6   	= "constant-pstext"
 
         ; taking the address of various things:
 	var .word        vmemaddr1              = &membyte1
@@ -5973,7 +5973,7 @@ max:
         const   .word   constw   = $2355
         const   .byte   constb   = $23
         const   .float  constf   = 3.4556677
-        const   .text   constt   = "derp"
+        const   .str   constt   = "derp"
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
@@ -6104,10 +6104,10 @@ bar:
 	var  .wordarray(10)     init_wordarray          =  $1234
 	var  .wordarray(10)     init_wordarrayb         =  true
 
-	var  .text              text    = "hello"+"-null"
-	var  .ptext             ptext   = 'hello-pascal'
-	var  .stext             stext   = 'screencodes-null'
-	var  .pstext            pstext  = "screencodes-pascal"
+	var  .str              text    = "hello"+"-null"
+	var  .strp             ptext   = 'hello-pascal'
+	var  .strs             stext   = 'screencodes-null'
+	var  .strps            pstext  = "screencodes-pascal"
 
 	var  .matrix( 3, 4 ) uninitmatrix
 	var  .matrix( 3, 4 )   initmatrix1      = $12
@@ -6137,10 +6137,10 @@ bar:
 	const  .float           cfloat2         = 2.3456
 	const  .float           cfloat2b        = cfloat2*3.44
 	const  .float           cfloat3         = true
-	const  .text            ctext3   	= "constant-text"
-	const  .ptext           ctext4   	= "constant-ptext"
-	const  .stext           ctext5   	= "constant-stext"
-	const  .pstext          ctext6   	= "constant-pstext"
+	const  .str            ctext3   	= "constant-text"
+	const  .strp           ctext4   	= "constant-ptext"
+	const  .strs           ctext5   	= "constant-stext"
+	const  .strps          ctext6   	= "constant-pstext"
 
         ; taking the address of various things:
 	var .word        vmemaddr1              = &membyte1
@@ -6327,7 +6327,7 @@ max:
         const   .word   constw   = $2355
         const   .byte   constb   = $23
         const   .float  constf   = 3.4556677
-        const   .text   constt   = "derp"
+        const   .str   constt   = "derp"
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
@@ -6458,10 +6458,10 @@ bar:
 	var  .wordarray(10)     init_wordarray          =  $1234
 	var  .wordarray(10)     init_wordarrayb         =  true
 
-	var  .text              text    = "hello"+"-null"
-	var  .ptext             ptext   = 'hello-pascal'
-	var  .stext             stext   = 'screencodes-null'
-	var  .pstext            pstext  = "screencodes-pascal"
+	var  .str              text    = "hello"+"-null"
+	var  .strp             ptext   = 'hello-pascal'
+	var  .strs             stext   = 'screencodes-null'
+	var  .strps            pstext  = "screencodes-pascal"
 
 	var  .matrix( 3, 4 ) uninitmatrix
 	var  .matrix( 3, 4 )   initmatrix1      = $12
@@ -6491,10 +6491,10 @@ bar:
 	const  .float           cfloat2         = 2.3456
 	const  .float           cfloat2b        = cfloat2*3.44
 	const  .float           cfloat3         = true
-	const  .text            ctext3   	= "constant-text"
-	const  .ptext           ctext4   	= "constant-ptext"
-	const  .stext           ctext5   	= "constant-stext"
-	const  .pstext          ctext6   	= "constant-pstext"
+	const  .str            ctext3   	= "constant-text"
+	const  .strp           ctext4   	= "constant-ptext"
+	const  .strs           ctext5   	= "constant-stext"
+	const  .strps          ctext6   	= "constant-pstext"
 
         ; taking the address of various things:
 	var .word        vmemaddr1              = &membyte1
@@ -6681,7 +6681,7 @@ max:
         const   .word   constw   = $2355
         const   .byte   constb   = $23
         const   .float  constf   = 3.4556677
-        const   .text   constt   = "derp"
+        const   .str   constt   = "derp"
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc
@@ -6812,10 +6812,10 @@ bar:
 	var  .wordarray(10)     init_wordarray          =  $1234
 	var  .wordarray(10)     init_wordarrayb         =  true
 
-	var  .text              text    = "hello"+"-null"
-	var  .ptext             ptext   = 'hello-pascal'
-	var  .stext             stext   = 'screencodes-null'
-	var  .pstext            pstext  = "screencodes-pascal"
+	var  .str              text    = "hello"+"-null"
+	var  .strp             ptext   = 'hello-pascal'
+	var  .strs             stext   = 'screencodes-null'
+	var  .strps            pstext  = "screencodes-pascal"
 
 	var  .matrix( 3, 4 ) uninitmatrix
 	var  .matrix( 3, 4 )   initmatrix1      = $12
@@ -6845,10 +6845,10 @@ bar:
 	const  .float           cfloat2         = 2.3456
 	const  .float           cfloat2b        = cfloat2*3.44
 	const  .float           cfloat3         = true
-	const  .text            ctext3   	= "constant-text"
-	const  .ptext           ctext4   	= "constant-ptext"
-	const  .stext           ctext5   	= "constant-stext"
-	const  .pstext          ctext6   	= "constant-pstext"
+	const  .str            ctext3   	= "constant-text"
+	const  .strp           ctext4   	= "constant-ptext"
+	const  .strs           ctext5   	= "constant-stext"
+	const  .strps          ctext6   	= "constant-pstext"
 
         ; taking the address of various things:
 	var .word        vmemaddr1              = &membyte1
@@ -7035,7 +7035,7 @@ max:
         const   .word   constw   = $2355
         const   .byte   constb   = $23
         const   .float  constf   = 3.4556677
-        const   .text   constt   = "derp"
+        const   .str   constt   = "derp"
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc

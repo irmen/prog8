@@ -11,7 +11,7 @@ start:
         var     .float          myfloatneg1     = -555.666
         var     .float          myfloat_large1  = 987654.1111
         var     .float          myfloat_large2  = -123456.2222
-        var     .text           myfloatstr   = "1234.998877"
+        var     .str            myfloatstr   = "1234.998877"
         var     .float          myfloatzero     = 0
         var     .float          myfloatsmall1     = 1.234
         var     .float          myfloatsmall2     = 2.6677

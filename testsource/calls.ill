@@ -12,7 +12,7 @@
         const   .word   constw   = $2355
         const   .byte   constb   = $23
         const   .float  constf   = 3.4556677
-        const   .text   constt   = "derp"
+        const   .str    constt   = "derp"
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc

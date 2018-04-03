@@ -209,7 +209,7 @@ def _generate_string_var(out: Callable, vardef: VarDef) -> None:
         out("{:s}\n\v.null  {:s}".format(vardef.name, _format_string(str(vardef.value.value))))
     elif vardef.datatype == DataType.STRING_P:
         # pascal string
-        out("{:s}\n\v.ptext  {:s}".format(vardef.name, _format_string(str(vardef.value.value))))
+        out("{:s}\n\v.strp  {:s}".format(vardef.name, _format_string(str(vardef.value.value))))
     elif vardef.datatype == DataType.STRING_S:
         # 0-terminated string in screencode encoding
         out(".enc  'screen'")
@@ -218,7 +218,7 @@ def _generate_string_var(out: Callable, vardef: VarDef) -> None:
     elif vardef.datatype == DataType.STRING_PS:
         # 0-terminated pascal string in screencode encoding
         out(".enc  'screen'")
-        out("{:s}n\v.ptext  {:s}".format(vardef.name, _format_string(str(vardef.value.value), True)))
+        out("{:s}n\v.strp  {:s}".format(vardef.name, _format_string(str(vardef.value.value), True)))
         out(".enc  'none'")
 
 
