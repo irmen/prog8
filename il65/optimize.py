@@ -6,6 +6,7 @@ eliminates statements that have no effect, optimizes calculations etc.
 Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 """
 
+
 from typing import List, no_type_check, Union
 from .datatypes import DataType, VarType
 from .plyparse import *
