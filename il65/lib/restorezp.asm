@@ -1,4 +1,4 @@
-; backup/restore the zero page
+; backup/restore the ZeroPage
 ; this is in a separate file so it can be omitted completely if it's not needed.
 
 _il65_save_zeropage
@@ -7,10 +7,12 @@ _il65_save_zeropage
 		lda  #%00100111
 		sta  _il65_zp_backup+1          ; default value for $01
 		ldx  #2
+		sei
 -		lda  $00,x
 		sta  _il65_zp_backup,x
 		inx
 		bne  -
+		cli
 		rts
 
 _il65_restore_zeropage

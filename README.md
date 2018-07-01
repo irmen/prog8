@@ -21,13 +21,12 @@ which aims to provide many conveniences over raw assembly code (even when using 
 - automatic type conversions
 - floating point operations
 - optional automatic preserving and restoring CPU registers state, when calling routines that otherwise would clobber these 
-- abstracting away low level aspects such as zero page handling, program startup, explicit memory addresses
+- abstracting away low level aspects such as ZeroPage handling, program startup, explicit memory addresses
 - breakpoints, that let the Vice emulator drop into the monitor if execution hits them
 - source code labels automatically loaded in Vice emulator so it can show them in disassembly
 - conditional gotos
 - various code optimizations (code structure, logical and numerical expressions, ...) 
-- @todo: loops
-- @todo: memory block operations
+
 
 It still allows for low level programming however and inline assembly blocks
 to write performance critical pieces of code, but otherwise compiles fairly straightforwardly

@@ -7,13 +7,12 @@
 /build/
 /dist/
 /output/
-.cache/
+.*cache/
 .eggs/
 *.directory
 *.prg
 *.asm
 *.labels.txt
-.mypy_cache/
 __pycache__/
 parser.out
 parsetab.py

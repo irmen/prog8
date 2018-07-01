@@ -103,12 +103,12 @@ class AssemblyGenerator:
         if zpblock:
             # if there's a Zeropage block, it always goes first
             self.cur_block = zpblock    # type: ignore
-            out("\n; ---- zero page block: '{:s}' ----".format(zpblock.name))
+            out("\n; ---- ZeroPage block: '{:s}' ----".format(zpblock.name))
             out("; file: '{:s}' src l. {:d}\n".format(zpblock.sourceref.file, zpblock.sourceref.line))
             out("{:s}\t.proc\n".format(zpblock.label))
             generate_block_init(out, zpblock)
             generate_block_vars(out, zpblock, True)
-            # there's no code in the zero page block.
+            # there's no code in the ZeroPage block.
             out("\v.pend\n")
         for block in sorted(self.module.all_nodes(Block), key=lambda b: b.address or 0):
             ctx = Context(out=out, stmt=None, scope=block.scope, floats_enabled=self.floats_enabled)

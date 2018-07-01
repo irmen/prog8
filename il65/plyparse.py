@@ -775,7 +775,7 @@ class VarDef(AstNode):
     vartype = attr.ib()
     datatype = attr.ib()
     size = attr.ib(type=list, default=None)
-    zp_address = attr.ib(type=int, default=None, init=False)    # the address in the zero page if this var is there, will be set later
+    zp_address = attr.ib(type=int, default=None, init=False)    # the address in the ZeroPage if this var is there, will be set later
 
     @property
     def value(self) -> Expression:

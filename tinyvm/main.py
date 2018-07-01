@@ -25,7 +25,7 @@ if len(sys.argv) == 3:
 if len(sys.argv) not in (2, 3):
     raise SystemExit("provide 1 or 2 program file names as arguments")
 
-# zero page and hardware stack of a 6502 cpu are off limits for now
+# ZeroPage and hardware stack of a 6502 cpu are off limits for now
 VM.readonly_mem_ranges = [(0x00, 0xff), (0x100, 0x1ff)]
 vm = VM(mainprogram, timerprogram)
 vm.enable_charscreen(0x0400, 40, 25)

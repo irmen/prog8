@@ -5,7 +5,12 @@
 
 
 %output basic     ; create a c-64 program with basic SYS call to launch it
-%zp   restore ,  clobber   ; clobber over the zp memory normally used by basic/kernel rom, frees up more zp
+%zp   restore ,  clobber   ; clobber over the zp memory normally used by basic/kernal rom, frees up more zp
+
+options
+
+
+%blocks
 
 
 ~ main
@@ -24,6 +29,7 @@
 	var .word		initword9876   = $9876
 	var .array(10)		bytes2   = $44
 	var .wordarray(10)	words2   = $bbcc
+	]
 
 
 start:   ;foo
