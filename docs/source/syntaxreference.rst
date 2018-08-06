@@ -10,20 +10,22 @@ Module file
 This is a file with the ``.ill`` suffix, containing *directives* and *code blocks*, described below.
 The file is a text file wich can also contain:
 
-.. data:: Lines, whitespace, indentation
+Lines, whitespace, indentation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-	Line endings are significant because *only one* declaration, statement or other instruction can occur on every line.
-	Other whitespace and line indentation is arbitrary and ignored by the compiler.
-	You can use tabs or spaces as you wish.
+Line endings are significant because *only one* declaration, statement or other instruction can occur on every line.
+Other whitespace and line indentation is arbitrary and ignored by the compiler.
+You can use tabs or spaces as you wish.
 
-.. data:: Source code comments
+Source code comments
+^^^^^^^^^^^^^^^^^^^^
 
-	Everything after a semicolon ``;`` is a comment and is ignored.
-	If the whole line is just a comment, it will be copied into the resulting assembly source code.
-	This makes it easier to understand and relate the generated code. Examples::
+Everything after a semicolon ``;`` is a comment and is ignored.
+If the whole line is just a comment, it will be copied into the resulting assembly source code.
+This makes it easier to understand and relate the generated code. Examples::
 
-		A = 42    ; set the initial value to 42
-		; next is the code that...
+	A = 42    ; set the initial value to 42
+	; next is the code that...
 
 
 .. _directives:
@@ -168,6 +170,19 @@ Also read :ref:`blocks`.  Here is an example of a code block, to be loaded at ``
 	}
 
 
+
+Labels
+------
+
+To label a position in your code where you can jump to from another place, you use a label::
+
+	nice_place:
+			; code ...
+
+It's just an identifier followed by a colon ``:``. It's allowed to put the next statement on
+the same line, after the label.
+
+
 Variables and value literals
 ----------------------------
 
@@ -178,7 +193,23 @@ data types below you can see how they should be written.
 Variable declarations
 ^^^^^^^^^^^^^^^^^^^^^
 
-@todo
+Variables should be declared with their exact type and size so the compiler can allocate storage
+for them. You can give them an initial value as well. That value can be a simple literal value,
+but you can put a (constant) expression there as well. The syntax is::
+
+	<datatype>   <variable name>   [ = <initial value> ]
+
+Various examples::
+
+	word        thing
+	byte        counter = 0
+	byte        age     = 2018 - 1974
+	float       wallet  = 55.25
+	str	    name    = "my name is Irmen"
+	word        address = #counter
+	byte[5]     values  = [11, 22, 33, 44, 55]
+	byte[5][6]  empty_matrix
+
 
 
 Data types
@@ -211,121 +242,132 @@ type identifier  type                     storage size       example var declara
 ===============  =======================  =================  =========================================
 
 
-**String encoding:**
-Strings in your code will be encoded (translated from ASCII/UTF-8) into either CBM PETSCII or C-64 screencodes.
-PETSCII is the default, so if you need screencodes (also called 'poke' codes)
-you have to use the ``_s`` variants of the string type identifier.
-A string literal of length 1 is considered to be a *byte* instead with
-that single character's PETSCII value.  If you really need a *string* of length 1 you
-can only do so by assigning it to a variable with one of the string types.
-
-**Floating point numbers:**
-Floats are stored in the 5-byte 'MFLPT' format that is used on CBM machines,
-and also most float operations are specific to the Commodore-64.
-This is because routines in the C-64 BASIC and KERNAL ROMs are used for that.
-So floating point operations will only work if the C-64 BASIC ROM (and KERNAL ROM)
-are banked in (and your code imports the ``c64lib.ill``)
-
-The largest 5-byte MFLPT float that can be stored is: **1.7014118345e+38**   (negative: **-1.7014118345e+38**)
-
-**Initial values over multiple runs:**
-The initial values of your variables will be restored automatically when the program is (re)started,
-*except for string variables*. It is assumed these are left unchanged by the program.
-If you do modify them in-place, you should take care yourself that they work as
-expected when the program is restarted.
-
-
 **@todo pointers/addresses?  (as opposed to normal WORDs)**
 **@todo signed integers (byte and word)?**
 
 
+Reserved names
+^^^^^^^^^^^^^^
 
-Indirect addressing and address-of
-----------------------------------
+The following names are reserved, they have a special meaning::
 
-**Address-of:**
-The ``#`` prefix is used to take the address of something.
-It can be used for example to work with the *address* of a memory mapped variable rather than
-the value it holds.  You could take the address of a string as well, but that is redundant:
-the compiler already treats those as a value that you manipulate via its address.
-For most other types this prefix is not supported and will result in a compilation error.
-The resulting value is simply a 16 bit word.
-
-**Indirect addressing:**
-@todo
-
-**Indirect addressing in jumps:**
-@todo
-For an indirect ``goto`` statement, the compiler will issue the 6502 CPU's special instruction
-(``jmp`` indirect).  A subroutine call (``jsr`` indirect) is emitted
-using a couple of instructions.
+	A    X    Y	; 6502 hardware registers
+	AX   AY   XY	; 16-bit pseudo register pairs
+	SC   SI   SZ	; bits of the 6502 hardware status register
 
 
-Conditional Execution
----------------------
+Operators
+---------
 
-Conditional execution means that the flow of execution changes based on certiain conditions,
-rather than having fixed gotos or subroutine calls. IL65 has a *conditional goto* statement for this,
-that is translated into a comparison (if needed) and then a conditional branch instruction::
+.. data::  #  (address-of)
 
-	if[_XX] [<expression>] goto <label>
+Takes the address of the symbol following it:   ``word  address =  #somevar``
 
 
-The if-status XX is one of: [cc, cs, vc, vs, eq, ne, true, not, zero, pos, neg, lt, gt, le, ge]
-It defaults to 'true' (=='ne', not-zero) if omitted. ('pos' will translate into 'pl', 'neg' into 'mi') 
-@todo signed: lts==neg?, gts==eq+pos?, les==neg+eq?, ges==pos?
+.. data::  +  -  *  /  //  **  %   (arithmetic)
 
-The <expression> is optional. If it is provided, it will be evaluated first. Only the [true] and [not] and [zero] 
-if-statuses can be used when such a *comparison expression* is used. An example is::
+``+``, ``-``, ``*``, ``/`` are the familiar arithmetic operations.
 
-        if_not  A > 55  goto  more_iterations
+``//`` means *integer division* even when the operands are floating point values:  ``9.5 // 2.5`` is 3 (and not 3.8)
 
+``**`` is the power operator: ``3 ** 5`` is equal to 3*3*3*3*3 and is 243.
 
-Conditional jumps are compiled into 6502's branching instructions (such as ``bne`` and ``bcc``) so 
-the rather strict limit on how *far* it can jump applies. The compiler itself can't figure this
-out unfortunately, so it is entirely possible to create code that cannot be assembled successfully.
-You'll have to restructure your gotos in the code (place target labels closer to the branch)
-if you run into this type of assembler error.
+``%`` is the modulo operator: ``25 % 7`` is 4.
 
 
-Assignments
------------
+.. data::  <<  >>   <<@  >>@   &  |  ^  ~  (bitwise arithmetic)
 
-Assignment statements assign a single value to a target variable or memory location.::
+``<<`` and ``>>`` are bitwise shifts (left and right), ``<<@`` and ``@>>`` are bitwise rotations (left and right)
 
-        target = value-expression
-
-
-Augmented Assignments
----------------------
-
-A special assignment is the *augmented assignment* where the value is modified in-place.
-Several assignment operators are available: ``+=``, ``-=``, ``&=``, ``|=``, ``^=``, ``<<=``, ``>>=``
+``&`` is bitwise and, ``|`` is bitwise or, ``^`` is bitwise xor, ``~`` is bitwise invert (this one is an unary operator)
 
 
-Expressions
------------
+.. data::  =   (assignment)
 
-In most places where a number or other value is expected, you can use just the number, or a full constant expression.
-The expression is parsed and evaluated by Python itself at compile time, and the (constant) resulting value is used in its place.
-Ofcourse the special il65 syntax for hexadecimal numbers (``$xxxx``), binary numbers (``%bbbbbbbb``),
-and the address-of (``#xxxx``) is supported. Other than that it must be valid Python syntax.
-Expressions can contain function calls to the math library (sin, cos, etc) and you can also use
-all builtin functions (max, avg, min, sum etc). They can also reference idendifiers defined elsewhere in your code,
-if this makes sense.
+Sets the target on the LHS (left hand side) of the operator to the value of the expression on the RHS (right hand side).
 
 
-Subroutines
------------
+.. data::  +=  -=  *=  /=  //=  **=  <<=  >>=  <<@=  >>@=  &=  |=  ^=  (augmented assignment)
 
-Defining a subroutine
-^^^^^^^^^^^^^^^^^^^^^
+Syntactic sugar; ``A += X`` is equivalent to ``A = A + X``
 
-Subroutines are parts of the code that can be repeatedly invoked using a subroutine call from elsewhere.
-Their definition, using the sub statement, includes the specification of the required input- and output parameters.
-For now, only register based parameters are supported (A, X, Y and paired registers,
-the carry status bit SC and the interrupt disable bit SI as specials).
-For subroutine return values, the special SZ register is also available, it means the zero status bit.
+
+.. data::  ++  --   (postfix increment and decrement)
+
+Syntactic sugar; ``A++`` is equivalent to ``A = A + 1``, and ``A--`` is equivalent to ``A = A - 1``.
+Because these operations are so common, we have these short forms.
+
+
+.. data::  ==  !=  <  >  <=  >=  (comparison)
+
+Equality, Inequality, Less-than, Greater-than, Less-or-Equal-than, Greater-or-Equal-than comparisons.
+The result is a 'boolean' value 'true' or 'false' (which in reality is just a byte value of 1 or 0).
+
+
+.. data::  not  and  or  xor  (logical)
+
+These operators are the usual logical operations that are part of a logical expression to reason
+about truths (boolean values). The result of such an expression is a 'boolean' value 'true' or 'false'
+(which in reality is just a byte value of 1 or 0).
+
+
+.. data::  ..    (range creation)
+
+Creates a range of values from the LHS value to the RHS value, inclusive.
+These are mainly used in for loops to set the loop range. Example::
+
+	0 .. 7		; range of values 0, 1, 2, 3, 4, 5, 6, 7  (constant)
+
+	A = 5
+	X = 10
+	A .. X		; range of 5, 6, 7, 8, 9, 10
+
+	byte[4] array = 10 .. 13   ; sets the array to [1, 2, 3, 4]
+
+	for  i  in  0 .. 127  {
+		; i loops 0, 1, 2, ... 127
+	}
+
+
+
+.. data::  [ ... ]   (array indexing)
+
+When put after a sequence type (array, string or matrix) it means to point to the given element in that sequence::
+
+	array[2]		; the third byte in the array (index is 0-based)
+	matrix[4,2]		; the byte at the 5th column and 3rd row in the matrix
+
+
+.. data::  ( ... )    (precedence grouping in expressions, or subroutine parameter list)
+
+Parentheses are used to chose the evaluation precedence in expressions.
+Usually the normal precedence rules apply (``*`` goes before ``+`` etc.) but with
+parentheses you can change this: ``4 + 8 * 2`` is 20, but ``(4 + 8) * 2`` is 24.
+
+Parentheses are also used in a subroutine call, they follow the name of the subroutine and contain
+the list of arguments to pass to the subroutine:   ``big_function(1, 99)``
+
+
+Subroutine calls
+----------------
+
+You call a subroutine like this::
+
+        [ result = ]  subroutinename_or_address ( [argument...] )
+
+        ; example:
+        outputvar1, outputvar2  =  subroutine ( arg1, arg2, arg3 )
+
+Arguments are separated by commas. The argument list can also be empty if the subroutine
+takes no parameters.
+If the subroutine returns one or more result values, you must use an assignment statement
+to store those values somewhere. If the subroutine has no result values, you must
+omit the assignment.
+
+
+
+Subroutine definitions
+----------------------
 
 The syntax is::
 
@@ -333,13 +375,33 @@ The syntax is::
                 ... statements ...
         }
 
-**proc_parameters =**
+        ; example:
+        sub  triple_something (amount: X) -> A  {
+        	return  X * 3
+        }
+
+The open curly brace must immediately follow the subroutine result specification on the same line,
+and can have nothing following it. The close curly brace must be on its own line as well.
+
+Pre-defined subroutines that are available on specific memory addresses
+(in system ROM for instance) can be defined by assigning the routine's memory address to the sub,
+and not specifying a code block::
+
+	sub  <identifier>  ([proc_parameters]) -> ([proc_results])  = <address>
+
+	; example:
+	sub  CLOSE  (logical: A) -> (A?, X?, Y?)  = $FFC3
+
+
+.. data:: proc_parameters
+
         comma separated list of "<parametername>:<register>" pairs specifying the input parameters.
         You can omit the parameter names as long as the arguments "line up".
         (actually, the Python parameter passing rules apply, so you can also mix positional
         and keyword arguments, as long as the keyword arguments come last)
 
-**proc_results =**
+.. data:: proc_results
+
         comma separated list of <register> names specifying in which register(s) the output is returned.
         If the register name ends with a '?', that means the register doesn't contain a real return value but
         is clobbered in the process so the original value it had before calling the sub is no longer valid.
@@ -349,49 +411,53 @@ The syntax is::
         what the changed registers are, assume the worst")
 
 
-Pre-defined subroutines that are available on specific memory addresses 
-(in system ROM for instance) can also be defined using the 'sub' statement.
-To do this you assign the routine's memory address to the sub::
+Loops
+-----
 
-        sub  <identifier>  ([proc_parameters]) -> ([proc_results])  = <address>
+for loop
+^^^^^^^^
+@todo::
 
-example::
+	for  <loopvar>  in  <range>  [ step <amount> ]   {
+		; do something...
+	}
 
-        sub  CLOSE  (logical: A) -> (A?, X?, Y?)  = $FFC3"
+
+while loop
+^^^^^^^^^^
+@todo::
+
+	while  <condition>  {
+		; do something...
+	}
 
 
-Calling a subroutine
-^^^^^^^^^^^^^^^^^^^^
+repeat--until loop
+^^^^^^^^^^^^^^^^^^
+@todo::
 
-You call a subroutine like this::
+	repeat  {
+		; do something...
+	} until  <condition>
 
-        subroutinename_or_address ( [arguments...] )
 
-or::
+Conditional Execution
+---------------------
 
-        subroutinename_or_address ![register(s)] ( [arguments...] )
+Must align this with the various status bits in the cpu... not only true/false....
 
-If the subroutine returns one or more values as results, you must use an assignment statement
-to store those values somewhere::
+@todo::
 
-        outputvar1, outputvar2  =  subroutine ( arg1, arg2, arg3 )
+	if  <condition>   {
+		; do something....
+	}
+	[ else {
+		; do something else...
+	} ]
 
-The output variables must occur in the correct sequence of return registers as specified
-in the subroutine's definiton. It is possible to not specify any of them but the compiler
-will issue a warning then if the result values of a subroutine call are discarded.
-If you don't have a variable to store the output register in, it's then required
-to list the register itself instead as output variable.
 
-Arguments should match the subroutine definition. You are allowed to omit the parameter names.
-If no definition is available (because you're directly calling memory or a label or something else),
-you can freely add arguments (but in this case they all have to be named).
 
-To jump to a subroutine (without returning), prefix the subroutine call with the word 'goto'.
-Unlike gotos in other languages, here it take arguments as well, because it
-essentially is the same as calling a subroutine and only doing something different when it's finished.
+@todo::
 
-**Register preserving calls:** use the ``!`` followed by a combination of A, X and Y (or followed
-by nothing, which is the same as AXY) to tell the compiler you want to preserve the origial
-value of the given registers after the subroutine call.  Otherwise, the subroutine may just
-as well clobber all three registers. Preserving the original values does result in some
-stack manipulation code to be inserted for every call like this, which can be quite slow.
+	if  <condition>  goto  <location>
+

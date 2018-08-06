@@ -40,6 +40,7 @@ Design principles
 - The compiler outputs a regular 6502 assembly code file, it doesn't assemble this itself.
   A third party cross-assembler tool is used to do this final step.
 - Goto is considered harmful, but not here; arbitrary control flow jumps are allowed.
+- No complicated error handling or overflow checks that would slow things down.
 
 
 Required tools
@@ -56,8 +57,8 @@ Required tools
     :caption: Contents of this manual:
 
     targetsystem.rst
+    building.rst
     programming.rst
-    progstructure.rst
     syntaxreference.rst
     todo.rst
 
