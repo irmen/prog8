@@ -4,15 +4,15 @@
 
 
 
-        var     .word   var1    = 99
-        memory  .word   mem1    = $cff0
+        var     word   var1    = 99
+        memory  word   mem1    = $cff0
 
-        var     .byte   varb1    = 99
-        memory  .byte   memb1    = $cff0
-        const   .word   constw   = $2355
-        const   .byte   constb   = $23
-        const   .float  constf   = 3.4556677
-        const   .str    constt   = "derp"
+        var     byte   varb1    = 99
+        memory  byte   memb1    = $cff0
+        const   word   constw   = $2355
+        const   byte   constb   = $23
+        const   float  constf   = 3.4556677
+        const   str    constt   = "derp"
 
         sub    sub1    () -> (X?)  = $ffdd
         sub    sub2    (A) -> (Y?)  = $eecc

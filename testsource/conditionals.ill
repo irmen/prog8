@@ -5,8 +5,8 @@
 
 ~ main  {
 
-        var     .word   value
-        memory  .word   memvalue  = $8000
+        var     word   value
+        memory  word   memvalue  = $8000
 
 
 start:
@@ -78,9 +78,9 @@ label4:
 
 ~ conditionals {
         var  bytevar = 22 + 23
-        var  .str  name        = "?"*80
+        var  str  name        = "?"*80
         var  bytevar2 = 23
-        var .word wordvar = 22345
+        var  word wordvar = 22345
 
 
 start:

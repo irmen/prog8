@@ -7,10 +7,10 @@
 
 ~ il65_lib {
 		; note: the following ZP scratch registers must be the same as in c64lib
-		memory  .byte  SCRATCH_ZP1	= $02		; scratch register #1 in ZP
-		memory  .byte  SCRATCH_ZP2	= $03		; scratch register #2 in ZP
-		memory  .word  SCRATCH_ZPWORD1	= $fb		; scratch word in ZP ($fb/$fc)
-		memory  .word  SCRATCH_ZPWORD2	= $fd		; scratch word in ZP ($fd/$fe)
+		memory  byte  SCRATCH_ZP1	= $02		; scratch register #1 in ZP
+		memory  byte  SCRATCH_ZP2	= $03		; scratch register #2 in ZP
+		memory  word  SCRATCH_ZPWORD1	= $fb		; scratch word in ZP ($fb/$fc)
+		memory  word  SCRATCH_ZPWORD2	= $fd		; scratch word in ZP ($fd/$fe)
 
 
 	%asm {

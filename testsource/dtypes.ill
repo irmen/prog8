@@ -18,11 +18,11 @@
 	var    zpvar2
 	memory zpmem1   = $f0
 	const  zpconst  = 1.234
-	var     .word   zpvarw1
-	var     .word   zpvarw2
-	var     .float  zpvarflt1  = 11.11
-	var     .float  zpvarflt2  = 22.22
-	var     .float  zpvarflt3
+	var    word   zpvarw1
+	var    word   zpvarw2
+	var    float  zpvarflt1  = 11.11
+	var    float  zpvarflt2  = 22.22
+	var    float  zpvarflt3
 
 }
 
@@ -43,96 +43,96 @@
 ~ main {
 	; variables
 	var			uninitbyte1
-	var	.byte		uninitbyte2
+	var	byte		uninitbyte2
 	var     		initbyte1	=  $12
 	var                     initbyte1b      = true
-	var  .byte              initbyte2       = $12
-	var  .byte              initbyte2b      = false
-	var  .byte              initbyte3       = 99.876
-	var                     initchar1       = '@'
-	var  .byte              initchar2       = '@'
-	var  .word              uninitword
-	var  .word              initword1       = $1234
-	var  .word              initword1b      = true
-	var  .word              initword2       = false
-	var  .word              initword3       = 9876.554321
-	var  .word              initword5       = 20
-	var  .float             uninitfloat
-	var  .float             initfloat1      = 0
-	var  .float             initfloat1b     = true
-	var  .float             initfloat2      = -1.234e-14
-	var  .float             initfloat3      = 9.87e+14
-	var  .float             initfloat4      = 1.70141183e+38
-	var  .float             initfloat5      = -1.70141183e+38
-	var  .float             initfloat6      = 1.234
+	var  byte              initbyte2       = $12
+	var  byte              initbyte2b      = false
+	var  byte              initbyte3       = 99.876
+	var                    initchar1       = '@'
+	var  byte              initchar2       = '@'
+	var  word              uninitword
+	var  word              initword1       = $1234
+	var  word              initword1b      = true
+	var  word              initword2       = false
+	var  word              initword3       = 9876.554321
+	var  word              initword5       = 20
+	var  float             uninitfloat
+	var  float             initfloat1      = 0
+	var  float             initfloat1b     = true
+	var  float             initfloat2      = -1.234e-14
+	var  float             initfloat3      = 9.87e+14
+	var  float             initfloat4      = 1.70141183e+38
+	var  float             initfloat5      = -1.70141183e+38
+	var  float             initfloat6      = 1.234
 
-	var  .wordarray( 256 )   uninit_wordarray
-	var  .wordarray(10)     init_wordarray          =  $1234
-	var  .wordarray(10)     init_wordarrayb         =  true
-	var  .array( 256)        uninit_bytearray
-	var  .array(10 )        init_bytearray          =$12
-	var  .array(10 )        init_bytearrayb         =true
-	var  .array(10 )        init_bytearrayc         ='@'
+	var  wordarray( 256 )   uninit_wordarray
+	var  wordarray(10)     init_wordarray          =  $1234
+	var  wordarray(10)     init_wordarrayb         =  true
+	var  array( 256)        uninit_bytearray
+	var  array(10 )        init_bytearray          =$12
+	var  array(10 )        init_bytearrayb         =true
+	var  array(10 )        init_bytearrayc         ='@'
 
-	var  .str              text    = "hello-null"
-	var  .strp             ptext   = 'hello-pascal'
-	var  .strs             stext   = 'screencodes-null'
-	var  .strps            pstext  = "screencodes-pascal"
+	var  str              text    = "hello-null"
+	var  strp             ptext   = 'hello-pascal'
+	var  strs             stext   = 'screencodes-null'
+	var  strps            pstext  = "screencodes-pascal"
 
-	var  .matrix( 2, 128 ) uninitmatrix
-	var  .matrix(10, 20)   initmatrix1      = $12
-	var  .matrix(10, 20)   initmatrix1b     = true
-	var  .matrix(10, 20)   initmatrix1c     = '@'
-	var  .matrix(10, 20)   initmatrix1d     = 123.456
+	var  matrix( 2, 128 ) uninitmatrix
+	var  matrix(10, 20)   initmatrix1      = $12
+	var  matrix(10, 20)   initmatrix1b     = true
+	var  matrix(10, 20)   initmatrix1c     = '@'
+	var  matrix(10, 20)   initmatrix1d     = 123.456
 
 	; memory-mapped variables
 	memory                          membyte1        = $cf01
-	memory  .byte                   membyte2        = $c222
-	memory  .word                   memword1        = $cf03
-	memory  .float                  memfloat        = $cf04
-	memory  .array(10 )             membytes        = $cf05
-	memory  .wordarray( 10)         memwords        = $cf06
-	memory  .matrix( 10, 20 )       memmatrix       = $cf07
+	memory  byte                   membyte2        = $c222
+	memory  word                   memword1        = $cf03
+	memory  float                  memfloat        = $cf04
+	memory  array(10 )             membytes        = $cf05
+	memory  wordarray( 10)         memwords        = $cf06
+	memory  matrix( 10, 20 )       memmatrix       = $cf07
 
 	; constants   (= names for constant values, can never occur as lvalue)
 	const                   cbyte1          = 1
 	const                   cbyte1b         = false
-	const  .byte            cbyte2          = 1
-	const  .byte            cbyte3          = '@'
-	const  .byte            cbyte4          = true
-	const  .word            cword1          = false
-	const  .word            cword2          = $1234
-	const  .word            cword5          = 9876.5432
+	const  byte            cbyte2          = 1
+	const  byte            cbyte3          = '@'
+	const  byte            cbyte4          = true
+	const  word            cword1          = false
+	const  word            cword2          = $1234
+	const  word            cword5          = 9876.5432
 	const                   cfloat1         = 1.2345
-	const  .float           cfloat2         = 2.3456
-	const  .float           cfloat2b        = cfloat2*3.44
-	const  .float           cfloat3         = true
-	const  .str             ctext3   	= "constant-text"
-	const  .strp            ctext4   	= "constant-ptext"
-	const  .strs            ctext5   	= "constant-stext"
-	const  .strps           ctext6   	= "constant-pstext"
+	const  float           cfloat2         = 2.3456
+	const  float           cfloat2b        = cfloat2*3.44
+	const  float           cfloat3         = true
+	const  str             ctext3   	= "constant-text"
+	const  strp            ctext4   	= "constant-ptext"
+	const  strs            ctext5   	= "constant-stext"
+	const  strps           ctext6   	= "constant-pstext"
 
         ; taking the address of various things:
-	var .word        vmemaddr1              = &membyte1
-	var .word        vmemaddr2              = &memword1
-	var .word        vmemaddr3              = &memfloat
-	var .word        vmemaddr4              = &membytes
-	var .word        vmemaddr5              = &memwords
-	var .word        vmemaddr6              = &memmatrix
-	var .word        vmemaddr8              = 100*sin(cbyte1)
-	var .word        vmemaddr9              = cword2+$5432
-	var .word        vmemaddr10             = cfloat2b
+	var word        vmemaddr1              = &membyte1
+	var word        vmemaddr2              = &memword1
+	var word        vmemaddr3              = &memfloat
+	var word        vmemaddr4              = &membytes
+	var word        vmemaddr5              = &memwords
+	var word        vmemaddr6              = &memmatrix
+	var word        vmemaddr8              = 100*sin(cbyte1)
+	var word        vmemaddr9              = cword2+$5432
+	var word        vmemaddr10             = cfloat2b
 
 	; taking the address of things from the ZP will work even when it is a var
 	; because zp-vars get assigned a specific address (from a pool). Also, it's a byte.
 
-	var .word        initword0a             = &ZP.zpmem1
+	var word        initword0a             = &ZP.zpmem1
 	var              initbytea0             = &ZP.zpmem1
 
 
         ; (constant) expressions
-	var     .word                expr_byte1b     =  -1-2-3-4-$22+$80+ZP.zpconst
-	var     .byte           expr_fault2     =  1 + (8/3)+sin(33) + len("abc")
+	var     word                expr_byte1b     =  -1-2-3-4-$22+$80+ZP.zpconst
+	var     byte           expr_fault2     =  1 + (8/3)+sin(33) + len("abc")
 
 
 sin:

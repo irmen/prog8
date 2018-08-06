@@ -9,23 +9,27 @@
 
 
 ~ c64 {
-		memory  .byte  SCRATCH_ZP1	= $02		; scratch register #1 in ZP
-		memory  .byte  SCRATCH_ZP2	= $03		; scratch register #2 in ZP
-		memory  .word  SCRATCH_ZPWORD1	= $fb		; scratch word in ZP ($fb/$fc)
-		memory  .word  SCRATCH_ZPWORD2	= $fd		; scratch word in ZP ($fd/$fe)
+		memory  byte  SCRATCH_ZP1	= $02		; scratch register #1 in ZP
+		memory  byte  SCRATCH_ZP2	= $03		; scratch register #2 in ZP
+		memory  word  SCRATCH_ZPWORD1	= $fb		; scratch word in ZP ($fb/$fc)
+		memory  word  SCRATCH_ZPWORD2	= $fd		; scratch word in ZP ($fd/$fe)
 
 
-		memory  .byte  TIME_HI		= $a0		; software jiffy clock, hi byte
-		memory  .byte  TIME_MID		= $a1		;  .. mid byte
-		memory  .byte  TIME_LO		= $a2		;    .. lo byte. Updated by IRQ every 1/60 sec
-		memory  .byte  STKEY		= $91		; various keyboard statuses (updated by IRQ)
-		memory  .byte  SFDX		= $cb		; current key pressed (matrix value) (updated by IRQ)
+		memory  byte  TIME_HI		= $a0		; software jiffy clock, hi byte
+		memory  byte  TIME_MID		= $a1		;  .. mid byte
+		memory  byte  TIME_LO		= $a2		;    .. lo byte. Updated by IRQ every 1/60 sec
+		memory  byte  STKEY		= $91		; various keyboard statuses (updated by IRQ)
+		memory  byte  SFDX		= $cb		; current key pressed (matrix value) (updated by IRQ)
 
-		memory  .byte  COLOR		= $0286		; cursor color
-		memory  .byte  HIBASE           = $0288         ; screen base address / 256 (hi-byte of screen memory address)
-		memory  .word  CINV		= $0314		; IRQ vector
-		memory  .matrix(40, 25) Screen  = $0400		; default character screen matrix
-		memory  .matrix(40, 25) Colors  = $d800		; character screen colors
+		memory  byte  COLOR		= $0286		; cursor color
+		memory  byte  HIBASE		= $0288         ; screen base address / 256 (hi-byte of screen memory address)
+		memory  word  CINV		= $0314		; IRQ vector
+		memory  word  NMI_VEC		= $FFFA  	; 6502 nmi vector, determined by the kernal if banked in
+		memory  word  RESET_VEC		= $FFFC  	; 6502 reset vector, determined by the kernal if banked in
+		memory  word  IRQ_VEC		= $FFFE  	; 6502 interrupt vector, determined by the kernal if banked in
+
+		memory  matrix(40, 25) Screen	= $0400		; default character screen matrix
+		memory  matrix(40, 25) Colors	= $d800		; character screen colors
 
 
 ; ---- VIC-II registers ----
@@ -88,20 +92,20 @@
 		; floats in memory  (and rom) are stored in 5-byte MFLPT packed format.
 
 		; constants in five-byte "mflpt" format in the BASIC ROM
-		memory  .float	FL_PIVAL	= $aea8  ; 3.1415926...
-		memory  .float	FL_N32768	= $b1a5  ; -32768
-		memory  .float	FL_FONE		= $b9bc  ; 1
-		memory  .float	FL_SQRHLF	= $b9d6  ; SQR(2) / 2
-		memory  .float	FL_SQRTWO	= $b9db  ; SQR(2)
-		memory  .float	FL_NEGHLF	= $b9e0  ; -.5
-		memory  .float	FL_LOG2		= $b9e5  ; LOG(2)
-		memory  .float	FL_TENC		= $baf9  ; 10
-		memory  .float	FL_NZMIL	= $bdbd  ; 1e9 (1 billion)
-		memory  .float	FL_FHALF	= $bf11  ; .5
-		memory  .float	FL_LOGEB2	= $bfbf  ; 1 / LOG(2)
-		memory  .float	FL_PIHALF	= $e2e0  ; PI / 2
-		memory  .float	FL_TWOPI	= $e2e5  ; 2 * PI
-		memory  .float	FL_FR4		= $e2ea  ; .25
+		memory  float  FL_PIVAL		= $aea8  ; 3.1415926...
+		memory  float  FL_N32768	= $b1a5  ; -32768
+		memory  float  FL_FONE		= $b9bc  ; 1
+		memory  float  FL_SQRHLF	= $b9d6  ; SQR(2) / 2
+		memory  float  FL_SQRTWO	= $b9db  ; SQR(2)
+		memory  float  FL_NEGHLF	= $b9e0  ; -.5
+		memory  float  FL_LOG2		= $b9e5  ; LOG(2)
+		memory  float  FL_TENC		= $baf9  ; 10
+		memory  float  FL_NZMIL		= $bdbd  ; 1e9 (1 billion)
+		memory  float  FL_FHALF		= $bf11  ; .5
+		memory  float  FL_LOGEB2	= $bfbf  ; 1 / LOG(2)
+		memory  float  FL_PIHALF	= $e2e0  ; PI / 2
+		memory  float  FL_TWOPI		= $e2e5  ; 2 * PI
+		memory  float  FL_FR4		= $e2ea  ; .25
 
 
 ; note: fac1/2 might get clobbered even if not mentioned in the function's name.
@@ -116,18 +120,26 @@ sub	MOVFA		() -> (A?, X?)		= $bbfc		; copy fac2 to fac1
 sub	MOVAF		() -> (A?, X?)		= $bc0c		; copy fac1 to fac2  (rounded)
 sub	MOVEF		() -> (A?, X?)		= $bc0f		; copy fac1 to fac2
 sub	FTOMEMXY	(mflpt: XY) -> (A?, Y?)	= $bbd4		; store fac1 to memory  X/Y as 5-byte mflpt
-sub	FTOSWORDYA	() -> (Y, A, X?)	= $b1aa		; fac1-> signed word in Y/A (might throw ILLEGAL QUANTITY)
-	; use c64flt.FTOSWRDAY to get A/Y output (lo/hi switched to normal order)
-sub	GETADR		() -> (Y, A, X?)	= $b7f7		; fac1 -> unsigned word in Y/A (might throw ILLEGAL QUANTITY)
-	; (result also in $14/15) use c64flt.GETADRAY to get A/Y output (lo/hi switched to normal order)
+
+; fac1-> signed word in Y/A (might throw ILLEGAL QUANTITY)
+; (use c64flt.FTOSWRDAY to get A/Y output; lo/hi switched to normal order)
+sub	FTOSWORDYA	() -> (Y, A, X?)	= $b1aa
+
+; fac1 -> unsigned word in Y/A (might throw ILLEGAL QUANTITY) (result also in $14/15)
+; (use c64flt.GETADRAY to get A/Y output; lo/hi switched to normal order)
+sub	GETADR		() -> (Y, A, X?)	= $b7f7
+
 sub	QINT		() -> (?)		= $bc9b		; fac1 -> 4-byte signed integer in 98-101 ($62-$65), with the MSB FIRST.
 sub	AYINT		() -> (?)		= $b1bf		; fac1-> signed word in 100-101 ($64-$65) MSB FIRST. (might throw ILLEGAL QUANTITY)
-sub	GIVAYF		(lo: Y, hi: A) -> (?)	= $b391		; signed word in Y/A -> float in fac1
-	; use c64flt.GIVAYFAY to use A/Y input (lo/hi switched to normal order)
+
+; signed word in Y/A -> float in fac1
+; (use c64flt.GIVAYFAY to use A/Y input; lo/hi switched to normal order)
 ; there is also c64flt.GIVUAYF - unsigned word in A/Y (lo/hi) to fac1
 ; there is also c64flt.FREADS32  that reads from 98-101 ($62-$65) MSB FIRST
 ; there is also c64flt.FREADUS32  that reads from 98-101 ($62-$65) MSB FIRST
 ; there is also c64flt.FREADS24AXY  that reads signed int24 into fac1 from A/X/Y (lo/mid/hi bytes)
+sub	GIVAYF		(lo: Y, hi: A) -> (?)	= $b391
+
 sub	FREADUY		(ubyte: Y) -> (?)	= $b3a2		; 8 bit unsigned Y -> float in fac1
 sub	FREADSA		(sbyte: A) -> (?)	= $bc3c		; 8 bit signed A -> float in fac1
 sub	FREADSTR	(len: A) -> (?)		= $b7b5		; str -> fac1, $22/23 must point to string, A=string length
@@ -222,10 +234,6 @@ sub	PLOT     (dir: SC, col: Y, row: X) -> (X, Y)	= $FFF0		; read/set position of
 sub	IOBASE   () -> (X, Y)			= $FFF3		; read base address of I/O devices
 
 ; ---- end of C64 kernal routines ----
-
-		memory  .word	NMI_VEC		= $FFFA  ; nmi vector, set by the kernal if banked in
-		memory  .word	RESET_VEC	= $FFFC  ; reset vector, set by the kernal if banked in
-		memory  .word	IRQ_VEC		= $FFFE  ; interrupt vector, set by the kernal if banked in
 
 
 
@@ -735,7 +743,7 @@ hex_digits	.str "0123456789abcdef"	; can probably be reused for other stuff as w
 }
 
 
-		var  .str      word2hex_output = "1234"   ; 0-terminated, to make printing easier
+		var  str  word2hex_output = "1234"   ; 0-terminated, to make printing easier
 sub  word2hex  (word: XY) -> (?)  {
 	; ---- convert 16 bit word in X/Y into 4-character hexadecimal string into memory  'word2hex_output'
 	%asm {
@@ -753,7 +761,7 @@ sub  word2hex  (word: XY) -> (?)  {
 }
 
 
-		var  .array(3)  word2bcd_bcdbuff
+		var  array(3)  word2bcd_bcdbuff
 sub  word2bcd  (word: XY) -> (A?, X?)  {
 	; Convert an 16 bit binary value to BCD
 	;
@@ -791,7 +799,7 @@ sub  word2bcd  (word: XY) -> (A?, X?)  {
 }
 
 
-		var  .array(5)  word2decimal_output
+		var  array(5)  word2decimal_output
 sub  word2decimal  (word: XY) -> (?)  {
 	; ---- convert 16 bit word in X/Y into decimal string into memory  'word2decimal_output'
 	%asm {

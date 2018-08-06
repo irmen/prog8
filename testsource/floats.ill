@@ -6,15 +6,15 @@
 
 ~ main_testing {
 start:
-        var     .float          myfloat1        = 1234.56789
-        var     .float          myfloat2        = 9876.54321
-        var     .float          myfloatneg1     = -555.666
-        var     .float          myfloat_large1  = 987654.1111
-        var     .float          myfloat_large2  = -123456.2222
-        var     .str            myfloatstr   = "1234.998877"
-        var     .float          myfloatzero     = 0
-        var     .float          myfloatsmall1     = 1.234
-        var     .float          myfloatsmall2     = 2.6677
+        var     float          myfloat1        = 1234.56789
+        var     float          myfloat2        = 9876.54321
+        var     float          myfloatneg1     = -555.666
+        var     float          myfloat_large1  = 987654.1111
+        var     float          myfloat_large2  = -123456.2222
+        var     str            myfloatstr   = "1234.998877"
+        var     float          myfloatzero     = 0
+        var     float          myfloatsmall1     = 1.234
+        var     float          myfloatsmall2     = 2.6677
 
         return
 }
@@ -22,21 +22,25 @@ start:
 
 ~ main {
 
-        var .float flt_pi		 = 3.141592653589793
-        var .float flt_minus32768	 = -32768
-        var .float flt_1		 = 1
-        var .float flt_half_sqr2	 = 0.7071067811865476
-        var .float flt_sqr2		 = 1.4142135623730951
-        var .float flt_minus_half  	 = -.5
-        var .float flt_log_2		 = 0.6931471805599453
-        var .float flt_10		 = 10
-        var .float flt_1e9		 = 1000000000
-        var .float flt_half        	 = .5
-        var .float flt_one_over_log_2	 = 1.4426950408889634
-        var .float flt_half_pi		 = 1.5707963267948966
-        var .float flt_double_pi	 = 6.283185307179586
-        var .float flt_point25		 = .25
-        var .float my_float
+	byte bbvar
+
+	float@
+
+        var float flt_pi		 = 3.141592653589793
+        var float flt_minus32768	 = -32768
+        var float flt_1		 = 1
+        var float flt_half_sqr2	 = 0.7071067811865476
+        var float flt_sqr2		 = 1.4142135623730951
+        var float flt_minus_half  	 = -.5
+        var float flt_log_2		 = 0.6931471805599453
+        var float flt_10		 = 10
+        var float flt_1e9		 = 1000000000
+        var float flt_half        	 = .5
+        var float flt_one_over_log_2	 = 1.4426950408889634
+        var float flt_half_pi		 = 1.5707963267948966
+        var float flt_double_pi	 = 6.283185307179586
+        var float flt_point25		 = .25
+        var float my_float
         memory .word  some_address       = $ccdd
         memory .byte  some_addressb      = $ccee
         var .byte  bytevar = $cc
