@@ -227,10 +227,10 @@ type identifier  type                     storage size       example var declara
 ``word``         unsigned word            2 bytes = 16 bits  ``word myvar = $8fee``
 ``float``        floating-point           5 bytes = 40 bits  ``float myvar = 1.2345``
                                                              stored in 5-byte cbm MFLPT format
-``byte[x]``      byte array               x bytes            ``byte[4] myvar = [1, 2, 3, 4]``
-``word[x]``      word array               2*x bytes          ``word[4] myvar = [1, 2, 3, 4]``
-``byte[x,y]``    byte matrix              x*y bytes          ``byte[40,25] myvar = @todo``
-                                                             Note: word-matrix not supported
+``byte[x]``      unsigned byte array      x bytes            ``byte[4] myvar = [1, 2, 3, 4]``
+``word[x]``      unsigned word array      2*x bytes          ``word[4] myvar = [1, 2, 3, 4]``
+``byte[x,y]``    unsigned byte matrix     x*y bytes          ``byte[40,25] myvar = @todo``
+                                                             word-matrix not supported
 ``str``          string (petscii)         varies             ``str myvar = "hello."``
                                                              implicitly terminated by a 0-byte
 ``str_p``        pascal-string (petscii)  varies             ``str_p myvar = "hello."``
@@ -243,6 +243,7 @@ type identifier  type                     storage size       example var declara
 
 
 **@todo pointers/addresses?  (as opposed to normal WORDs)**
+
 **@todo signed integers (byte and word)?**
 
 
@@ -340,9 +341,9 @@ When put after a sequence type (array, string or matrix) it means to point to th
 
 .. data::  ( ... )    (precedence grouping in expressions, or subroutine parameter list)
 
-Parentheses are used to chose the evaluation precedence in expressions.
-Usually the normal precedence rules apply (``*`` goes before ``+`` etc.) but with
-parentheses you can change this: ``4 + 8 * 2`` is 20, but ``(4 + 8) * 2`` is 24.
+Parentheses are used to group parts of an expression to change the order of evaluation.
+(the subexpression inside the parentheses will be evaluated first):
+``(4 + 8) * 2`` is 24 instead of 20.
 
 Parentheses are also used in a subroutine call, they follow the name of the subroutine and contain
 the list of arguments to pass to the subroutine:   ``big_function(1, 99)``
@@ -397,8 +398,6 @@ and not specifying a code block::
 
         comma separated list of "<parametername>:<register>" pairs specifying the input parameters.
         You can omit the parameter names as long as the arguments "line up".
-        (actually, the Python parameter passing rules apply, so you can also mix positional
-        and keyword arguments, as long as the keyword arguments come last)
 
 .. data:: proc_results
 

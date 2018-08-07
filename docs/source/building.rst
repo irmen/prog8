@@ -27,6 +27,10 @@ The compiler is invoked with the command:
 
 	``$ @todo``
 
+It produces an assembly source code file which in turn will (automatically) be passed to
+the `64tass <https://sourceforge.net/projects/tass64/>`_ cross assembler tool
+that assembles it into the final program.
+
 
 Module source code files
 ------------------------

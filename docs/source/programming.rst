@@ -166,7 +166,7 @@ Integers
 Integers are 8 or 16 bit numbers and can be written in normal decimal notation,
 in hexadecimal and in binary notation.
 
-@todo right now only unsinged integers are supported (>=0)
+@todo right now only unsinged integers are supported (0-255 for byte types, 0-65535 for word types)
 
 
 Strings
@@ -217,12 +217,11 @@ The resulting value is simply a 16 bit word. Example::
 	AX = #somevar
 
 
-
 **Indirect addressing:**
-@todo
+@todo ???
 
 **Indirect addressing in jumps:**
-@todo
+@todo ???
 For an indirect ``goto`` statement, the compiler will issue the 6502 CPU's special instruction
 (``jmp`` indirect).  A subroutine call (``jsr`` indirect) is emitted
 using a couple of instructions.
@@ -280,22 +279,24 @@ Expressions
 -----------
 
 In most places where a number or other value is expected, you can use just the number, or a full constant expression.
-The expression is parsed and evaluated by Python itself at compile time, and the (constant) resulting value is used in its place.
-Ofcourse the special il65 syntax for hexadecimal numbers (``$xxxx``), binary numbers (``%bbbbbbbb``),
-and the address-of (``#xxxx``) is supported. Other than that it must be valid Python syntax.
+The expression is parsed and evaluated by the compiler itself at compile time, and the (constant) resulting value is used in its place.
 Expressions can contain function calls to the math library (sin, cos, etc) and you can also use
 all builtin functions (max, avg, min, sum etc). They can also reference idendifiers defined elsewhere in your code,
 if this makes sense.
 
 
-Arithmetic
-^^^^^^^^^^
-@todo
+Arithmetic and Logical expressions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Arithmetic expressions are expressions that calculate a numeric result (integer or floating point).
+Many common arithmetic operators can be used and follow the regular precedence rules.
 
+Logical expressions are expressions that calculate a boolean result, true or false
+(which in IL65 will effectively be a 1 or 0 integer value).
 
-Logical expressions
-^^^^^^^^^^^^^^^^^^^
-@todo
+You can use parentheses to group parts of an expresion to change the precedence.
+Usually the normal precedence rules apply (``*`` goes before ``+`` etc.) but subexpressions
+within parentheses will be evaluated first. So ``(4 + 8) * 2`` is 24 and not 20,
+and ``(true or false) and false`` is false instead of true.
 
 
 Subroutines

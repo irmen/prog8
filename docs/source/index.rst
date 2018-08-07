@@ -38,7 +38,7 @@ Design principles
 - Provide a convenient edit/compile/run cycle by being able to directly launch
   the compiled program in an emulator and provide debugging information to the emulator.
 - The compiler outputs a regular 6502 assembly code file, it doesn't assemble this itself.
-  A third party cross-assembler tool is used to do this final step.
+  The '64tass' third party cross-assembler tool is used to do this final step.
 - Goto is considered harmful, but not here; arbitrary control flow jumps are allowed.
 - No complicated error handling or overflow checks that would slow things down.
 
@@ -46,8 +46,9 @@ Design principles
 Required tools
 --------------
 
+`64tass <https://sourceforge.net/projects/tass64/>`_ - cross assembler
+
 @TODO
-- 64tass cross-assembler?
 - java?
 - kotlin?
 

@@ -111,11 +111,10 @@ For::
 
 ### Macros
 
-@todo macros are meta-code (written in Python syntax) that actually runs in a preprecessing step
-during the compilation, and produces output value that is then replaced on that point in the input source.
-Allows us to create pre calculated sine tables and such. Something like::
+@todo macros are meta-code that is executed by the compiler, in a preprecessing step
+during the compilation, and can produce output that is then replaced on that point in the input source.
+Allows us to create pre calculated sine tables and such.
 
-        var .array sinetable ``[sin(x) * 10 for x in range(100)]``
 
 
 Memory Block Operations
