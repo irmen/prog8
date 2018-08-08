@@ -136,14 +136,15 @@ Directives
 Identifiers
 -----------
 
-Naming things in IL65 is done via valid *identifiers*. They start with a letter, and after that,
-must consist of letters, numbers, or underscores. Examples of valid identifiers::
+Naming things in IL65 is done via valid *identifiers*. They start with a letter or underscore,
+and after that, a combination of letters, numbers, or underscores. Examples of valid identifiers::
 
 	a
 	A
 	monkey
 	COUNTER
 	Better_Name_2
+	_something_strange_
 
 
 Code blocks
@@ -245,6 +246,25 @@ type identifier  type                     storage size       example var declara
 **@todo pointers/addresses?  (as opposed to normal WORDs)**
 
 **@todo signed integers (byte and word)?**
+
+Memory mapped variables
+^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``memory`` keyword is used in front of a data type keyword, to say that no storage
+should be allocated by the compiler. Instead, the value assigned to the variable (mandatory now!)
+should be the *memory address* where the value is located::
+
+	memory  byte  BORDER = $d020
+
+
+Constants
+^^^^^^^^^
+
+All variables can be assigned new values unless you use the ``const`` keyword.
+The initial value will now be evaluated at compile time (it must be a compile time constant expression)
+and no storage is allocated for the constant::
+
+	const  byte  max_age = 99
 
 
 Reserved names

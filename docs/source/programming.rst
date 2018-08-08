@@ -135,12 +135,12 @@ The compiler expects a ``start`` subroutine in the ``main`` block for this,
 taking no parameters and having no return value.
 As any subroutine, it has to end with a ``return`` statement (or a ``goto`` call)::
 
-    ~ main {
-        sub start () -> ()  {
-            ; program entrypoint code here
-            return
-        }
-    }
+	~ main {
+	    sub start () -> ()  {
+	        ; program entrypoint code here
+	        return
+	    }
+	}
 
 The ``main`` module is always relocated to the start of your programs
 address space, and the ``start`` subroutine (the entrypoint) will be on the
@@ -148,16 +148,37 @@ first address. This will also be the address that the BASIC loader program (if g
 calls with the SYS statement.
 
 
-Variables and data
-------------------
+Variables and values
+--------------------
 
-::
+Variables are named values that can change during the execution of the program.
+When declaring a variable it is possible to specify the initial value it should get.
+Values will usually be part of an expression or assignment statement::
 
 	12345			; integer number
+	$aa43			; hex integer number
+	%100101			; binary integer number
 	"Hi, I am a string"	; text string
 	-33.456e52		; floating point number
 
 	byte  counter  = 42	; variable of size 8 bits, with initial value 42
+
+
+Special types: const and memory-mapped
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When using ``const``, the value of the 'variable' can no longer be changed.
+You'll have to specify the initial value expression. This value is then used
+by the compiler everywhere you refer to the constant (and no storage is allocated
+for the constant itself).
+
+When using ``memory``, the variable will point to specific location in memory,
+rather than being newly allocated. The initial value (mandatory) must be a valid
+memory address.  Reading the variable will read the given data type from the
+address you specified, and setting the varible will directly modify that memory location(s)::
+
+	const  byte  max_age = 2000 - 1974      ; max_age will be the constant value 26
+	memory word  SCREENCOLORS = $d020       ; a 16-bit word at the addres $d020-$d021
 
 
 Integers
