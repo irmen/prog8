@@ -124,13 +124,15 @@ Directives
 	Level: block, subroutine.
 	Defines a debugging breakpoint at this location. See :ref:`debugging`
 
-.. data:: %asm { ... }
+.. data:: %asm {{ ... }}
 
 	Level: block, subroutine.
 	Declares that there is *inline assembly code* in the lines enclosed by the curly braces.
 	This code will be written as-is into the generated output file.
 	The assembler syntax used should be for the 3rd party cross assembler tool that IL65 uses.
-        The ``%asm {`` and ``}`` start and end markers each have to be on their own unique line.
+	Note that the start and end markers are both *double curly braces* to minimize the chance
+	that the inline assembly itself contains either of those. If it does contain a ``}}``,
+ 	the parsing of the inline assembler block will end prematurely and cause compilation errors.
 
 
 Identifiers
@@ -160,10 +162,9 @@ can contain IL65 *code*, *directives*, *variable declarations* and *subroutines*
         <subroutines>
     }
 
-The <blockname> must be a valid identifier or can be completely omitted.
-In that case the <address> is required to tell the compiler to put the block at
-a certain position in memory. Otherwise it would be impossible to access its contents.
-The <address> is optional. It must be a valid memory address such as ``$c000``.
+The <blockname> must be a valid identifier.
+The <address> is optional. If specified it must be a valid memory address such as ``$c000``.
+It's used to tell the compiler to put the block at a certain position in memory.
 Also read :ref:`blocks`.  Here is an example of a code block, to be loaded at ``$c000``::
 
 	~ main $c000 {
@@ -280,97 +281,75 @@ The following names are reserved, they have a special meaning::
 Operators
 ---------
 
-.. data::  #  (address-of)
-
-Takes the address of the symbol following it:   ``word  address =  #somevar``
-
-
-.. data::  +  -  *  /  //  **  %   (arithmetic)
-
-``+``, ``-``, ``*``, ``/`` are the familiar arithmetic operations.
-
-``//`` means *integer division* even when the operands are floating point values:  ``9.5 // 2.5`` is 3 (and not 3.8)
-
-``**`` is the power operator: ``3 ** 5`` is equal to 3*3*3*3*3 and is 243.
-
-``%`` is the modulo operator: ``25 % 7`` is 4.
+address-of: ``#``
+	Takes the address of the symbol following it:   ``word  address =  #somevar``
 
 
-.. data::  <<  >>   <<@  >>@   &  |  ^  ~  (bitwise arithmetic)
-
-``<<`` and ``>>`` are bitwise shifts (left and right), ``<<@`` and ``@>>`` are bitwise rotations (left and right)
-
-``&`` is bitwise and, ``|`` is bitwise or, ``^`` is bitwise xor, ``~`` is bitwise invert (this one is an unary operator)
-
-
-.. data::  =   (assignment)
-
-Sets the target on the LHS (left hand side) of the operator to the value of the expression on the RHS (right hand side).
+arithmetic: ``+``  ``-``  ``*``  ``/``  ``//``  ``**``  ``%``
+	``+``, ``-``, ``*``, ``/`` are the familiar arithmetic operations.
+	``//`` means *integer division* even when the operands are floating point values:  ``9.5 // 2.5`` is 3 (and not 3.8)
+	``**`` is the power operator: ``3 ** 5`` is equal to 3*3*3*3*3 and is 243.
+	``%`` is the modulo operator: ``25 % 7`` is 4.
 
 
-.. data::  +=  -=  *=  /=  //=  **=  <<=  >>=  <<@=  >>@=  &=  |=  ^=  (augmented assignment)
+bitwise arithmetic: ``<<``  ``>>``  ``<<@``  ``>@``  ``&``  ``|``  ``^``  ``~``
+	``<<`` and ``>>`` are bitwise shifts (left and right), ``<<@`` and ``@>>`` are bitwise rotations (left and right)
+	``&`` is bitwise and, ``|`` is bitwise or, ``^`` is bitwise xor, ``~`` is bitwise invert (this one is an unary operator)
 
-Syntactic sugar; ``A += X`` is equivalent to ``A = A + X``
+assignment: ``=``
+	Sets the target on the LHS (left hand side) of the operator to the value of the expression on the RHS (right hand side).
 
+augmented assignment: ``+=``  ``-=``  ``*=``  ``/=``  ``//=``  ``**=``  ``<<=``  ``>>=``  ``<<@=``  ``>>@=``  ``&=``  ``|=``  ``^=``
+	Syntactic sugar; ``A += X`` is equivalent to ``A = A + X``
 
-.. data::  ++  --   (postfix increment and decrement)
+postfix increment and decrement: ``++``  ``--``
+	Syntactic sugar; ``A++`` is equivalent to ``A = A + 1``, and ``A--`` is equivalent to ``A = A - 1``.
+	Because these operations are so common, we have these short forms.
 
-Syntactic sugar; ``A++`` is equivalent to ``A = A + 1``, and ``A--`` is equivalent to ``A = A - 1``.
-Because these operations are so common, we have these short forms.
+comparison: ``!=``  ``<``  ``>``  ``<=``  ``>=``
+	Equality, Inequality, Less-than, Greater-than, Less-or-Equal-than, Greater-or-Equal-than comparisons.
+	The result is a 'boolean' value 'true' or 'false' (which in reality is just a byte value of 1 or 0).
 
+logical:  ``not``  ``and``  ``or``  ``xor``
+	These operators are the usual logical operations that are part of a logical expression to reason
+	about truths (boolean values). The result of such an expression is a 'boolean' value 'true' or 'false'
+	(which in reality is just a byte value of 1 or 0).
 
-.. data::  ==  !=  <  >  <=  >=  (comparison)
+range creation:  ``to``
+	Creates a range of values from the LHS value to the RHS value, inclusive.
+	These are mainly used in for loops to set the loop range. Example::
 
-Equality, Inequality, Less-than, Greater-than, Less-or-Equal-than, Greater-or-Equal-than comparisons.
-The result is a 'boolean' value 'true' or 'false' (which in reality is just a byte value of 1 or 0).
+		0 to 7		; range of values 0, 1, 2, 3, 4, 5, 6, 7  (constant)
 
+		A = 5
+		X = 10
+		A to X		; range of 5, 6, 7, 8, 9, 10
 
-.. data::  not  and  or  xor  (logical)
+		byte[4] array = 10 to 13   ; sets the array to [1, 2, 3, 4]
 
-These operators are the usual logical operations that are part of a logical expression to reason
-about truths (boolean values). The result of such an expression is a 'boolean' value 'true' or 'false'
-(which in reality is just a byte value of 1 or 0).
-
-
-.. data::  ..    (range creation)
-
-Creates a range of values from the LHS value to the RHS value, inclusive.
-These are mainly used in for loops to set the loop range. Example::
-
-	0 .. 7		; range of values 0, 1, 2, 3, 4, 5, 6, 7  (constant)
-
-	A = 5
-	X = 10
-	A .. X		; range of 5, 6, 7, 8, 9, 10
-
-	byte[4] array = 10 .. 13   ; sets the array to [1, 2, 3, 4]
-
-	for  i  in  0 .. 127  {
-		; i loops 0, 1, 2, ... 127
-	}
+		for  i  in  0 to 127  {
+			; i loops 0, 1, 2, ... 127
+		}
 
 
+array indexing:  ``[`` *index* ``]``
+	When put after a sequence type (array, string or matrix) it means to point to the given element in that sequence::
 
-.. data::  [ ... ]   (array indexing)
-
-When put after a sequence type (array, string or matrix) it means to point to the given element in that sequence::
-
-	array[2]		; the third byte in the array (index is 0-based)
-	matrix[4,2]		; the byte at the 5th column and 3rd row in the matrix
+		array[2]		; the third byte in the array (index is 0-based)
+		matrix[4,2]		; the byte at the 5th column and 3rd row in the matrix
 
 
-.. data::  ( ... )    (precedence grouping in expressions, or subroutine parameter list)
+precedence grouping in expressions, or subroutine parameter list:  ``(`` *expression* ``)``
+	Parentheses are used to group parts of an expression to change the order of evaluation.
+	(the subexpression inside the parentheses will be evaluated first):
+	``(4 + 8) * 2`` is 24 instead of 20.
 
-Parentheses are used to group parts of an expression to change the order of evaluation.
-(the subexpression inside the parentheses will be evaluated first):
-``(4 + 8) * 2`` is 24 instead of 20.
-
-Parentheses are also used in a subroutine call, they follow the name of the subroutine and contain
-the list of arguments to pass to the subroutine:   ``big_function(1, 99)``
+	Parentheses are also used in a subroutine call, they follow the name of the subroutine and contain
+	the list of arguments to pass to the subroutine:   ``big_function(1, 99)``
 
 
-Subroutine calls
-----------------
+Subroutine / function calls
+---------------------------
 
 You call a subroutine like this::
 
@@ -439,6 +418,8 @@ for loop
 
 	for  <loopvar>  in  <range>  [ step <amount> ]   {
 		; do something...
+		break		; break out of the loop
+		continue	; immediately enter next iteration
 	}
 
 
@@ -448,6 +429,8 @@ while loop
 
 	while  <condition>  {
 		; do something...
+		break		; break out of the loop
+		continue	; immediately enter next iteration
 	}
 
 
@@ -457,26 +440,36 @@ repeat--until loop
 
 	repeat  {
 		; do something...
+		break		; break out of the loop
+		continue	; immediately enter next iteration
 	} until  <condition>
 
 
-Conditional Execution
----------------------
+Conditional Execution and Jumps
+-------------------------------
 
-Must align this with the various status bits in the cpu... not only true/false....
-
-@todo::
-
-	if  <condition>   {
-		; do something....
-	}
-	[ else {
-		; do something else...
-	} ]
-
-
+unconditional jump
+^^^^^^^^^^^^^^^^^^
 
 @todo::
+	goto  $c000		; address
+	goto  name		; label or subroutine
 
-	if  <condition>  goto  <location>
+conditional execution
+^^^^^^^^^^^^^^^^^^^^^
 
+@todo::
+	if  <condition>   <single_statement or subblock>
+	  [else   <single_statement or subblock>]
+
+	condition = arithmetic expression
+		or  logical expression
+		or  comparison expression
+		or  status_register_flags
+
+	single_statement = goto, assignment, ...
+
+	subblock = '{'  statements (but no subroutine definition)  '}'
+
+if the single_statement or the subblock is just a single goto,
+the efficient *conditional branching instructions* of the CPU will be used.

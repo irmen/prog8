@@ -1,13 +1,18 @@
 /*
-IL65 lexer and parser grammar
+IL65 combined lexer and parser grammar
+
+NOTES:
+
+- whitespace is ignored. (tabs/spaces)
+- every line can be empty, be a comment, or contain ONE statement.
+
 */
 
 grammar il65;
 
-
-COMMENT :  ';' ~[\r\n]* -> channel(1) ;
+COMMENT :  ';' ~[\r\n]* -> channel(HIDDEN) ;
 WS :  [ \t] -> skip ;
-EOL :  [\r\n]+ -> skip	;
+EOL :  [\r\n]+ ;
 NAME :  [a-zA-Z_][a-zA-Z0-9_]* ;
 DEC_INTEGER :  ('0'..'9') | (('1'..'9')('0'..'9')+);
 HEX_INTEGER :  '$' (('a'..'f') | ('A'..'F') | ('0'..'9'))+ ;
@@ -25,9 +30,21 @@ STRING :
 		setText(s.substring(1, s.length() - 1));
 	}
 	;
+INLINEASMBLOCK :
+	'{{' .+? '}}'
+	{
+		// get rid of the enclosing double braces
+		String s = getText();
+		setText(s.substring(2, s.length() - 2));
+	}
+	;
 
 
-module :  statement* EOF ;
+module :  EOL* (modulestatement | EOL)* EOF ;
+
+modulestatement:  directive | block ;
+
+block: '~' identifier integerliteral? '{' EOL (statement EOL)* EOL* '}' ;
 
 statement :
 	directive
@@ -37,12 +54,26 @@ statement :
 	| memoryvardecl
 	| assignment
 	| augassignment
+	| unconditionaljump
+	| postincrdecr
+	| inlineasm
+	| label
+	// @todo forloop, whileloop, repeatloop, ifelse
 	;
 
+label :  identifier ':'  ;
 
-directive :  '%' identifier (directivearg? | directivearg (',' directivearg)*) ;
+call_location :  integerliteral | identifier | scoped_identifier ;
 
-directivearg : identifier | integerliteral ;
+unconditionaljump :  'goto'  call_location ;
+
+directive :
+	directivename=('%output' | '%launcher' | '%zp' | '%address' | '%import' |
+                       '%breakpoint' | '%asminclude' | '%asmbinary')
+        (directivearg? | directivearg (',' directivearg)*)
+        ;
+
+directivearg : stringliteral | identifier | integerliteral ;
 
 vardecl:  datatype arrayspec? identifier ;
 
@@ -69,25 +100,36 @@ assign_target:
 	| scoped_identifier
 	;
 
+postincrdecr :  assign_target  operator = ('++' | '--') ;
+
 expression :
-	unaryexp = unary_expression
-	| '(' precedence_expr=expression ')'
-	| left = expression '**' right = expression
-	| left = expression ('*' | '/' | '//' | '**') right = expression
-	| left = expression ('+' | '-' | '%') right = expression
-	| left = expression ('<<' | '>>' | '<<@' | '>>@' | '&' | '|' | '^') right = expression
-	| left = expression ('and' | 'or' | 'xor') right = expression
-	| left = expression ('==' | '!=' | '<' | '>' | '<=' | '>=') right = expression
+	'(' expression ')'
+	| expression arrayspec
+	| functioncall
+	| prefix = ('+'|'-') expression
+	| prefix = ('~'|'not') expression
+	| left = expression bop = '**' right = expression
+	| left = expression bop = ('*' | '/' | '//' | '%') right = expression
+	| left = expression bop = ('+' | '-' ) right = expression
+	| left = expression bop = ('<<' | '>>' | '<<@' | '>>@' ) right = expression
+	| left = expression bop = ('<' | '>' | '<=' | '>=') right = expression
+	| left = expression bop = ('==' | '!=') right = expression
+	| left = expression bop = '&' right = expression
+	| left = expression bop = '^' right = expression
+	| left = expression bop = '|' right = expression
+	| left = expression bop = 'and' right = expression
+	| left = expression bop = 'or' right = expression
+	| left = expression bop = 'xor' right = expression
+	| rangefrom = expression 'to' rangeto = expression
 	| literalvalue
 	| register
 	| identifier
 	| scoped_identifier
 	;
 
-unary_expression :
-	operator = '~' expression
-	| operator = ('+' | '-') expression
-	| operator = 'not' expression
+
+functioncall :
+	call_location '(' expression? ')'		//  @todo arglist
 	;
 
 identifier :  NAME ;
@@ -113,3 +155,5 @@ literalvalue :
 	| stringliteral
 	| floatliteral
 	;
+
+inlineasm :  '%asm' INLINEASMBLOCK;
