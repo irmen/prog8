@@ -61,7 +61,7 @@ data class MemoryVarDecl(override val datatype: DataType,
 
 data class Assignment(val target: AssignTarget, val aug_op : String?, val value: IExpression) : IStatement
 
-data class AssignTarget(val register: Register?, val singlename: String?, val dottedname: String?) : Node
+data class AssignTarget(val register: Register?, val identifier: String?, val scoped_identifier: String?) : Node
 
 
 interface IExpression: Node
@@ -78,42 +78,45 @@ data class LiteralValue(val intvalue: Int?,
 
 data class RegisterExpr(val register: Register) : IExpression
 
-data class DottedNameExpr(val dottedname: String) : IExpression
-
-data class SingleNameExpr(val name: String) : IExpression
+data class Identifier(val name: String, val scope: String?) : IExpression
 
 
 
 fun il65Parser.ModuleContext.toAst() = Module(this.statement().map { it.toAst() })
 
 fun il65Parser.StatementContext.toAst() : IStatement {
-    val directive = this.directive()?.toAst()
-    if(directive!=null) return directive
-
     val vardecl = this.vardecl()
     if(vardecl!=null) {
         return VarDecl(vardecl.datatype().toAst(),
                 vardecl.arrayspec()?.toAst(),
-                vardecl.singlename().text,
+                vardecl.identifier().text,
                 null)
+    }
+
+    val varinit = this.varinitializer()
+    if(varinit!=null) {
+        return VarDecl(varinit.datatype().toAst(),
+                varinit.arrayspec()?.toAst(),
+                varinit.identifier().text,
+                varinit.expression().toAst())
     }
 
     val constdecl = this.constdecl()
     if(constdecl!=null) {
-        val varinit = constdecl.varinitializer()
-        return ConstDecl(varinit.datatype().toAst(),
-                varinit.arrayspec()?.toAst(),
-                varinit.singlename().text,
-                varinit.expression().toAst())
+        val cvarinit = constdecl.varinitializer()
+        return ConstDecl(cvarinit.datatype().toAst(),
+                cvarinit.arrayspec()?.toAst(),
+                cvarinit.identifier().text,
+                cvarinit.expression().toAst())
     }
 
     val memdecl = this.memoryvardecl()
     if(memdecl!=null) {
-        val varinit = memdecl.varinitializer()
-        return MemoryVarDecl(varinit.datatype().toAst(),
-                varinit.arrayspec()?.toAst(),
-                varinit.singlename().text,
-                varinit.expression().toAst())
+        val mvarinit = memdecl.varinitializer()
+        return MemoryVarDecl(mvarinit.datatype().toAst(),
+                mvarinit.arrayspec()?.toAst(),
+                mvarinit.identifier().text,
+                mvarinit.expression().toAst())
     }
 
     val assign = this.assignment()
@@ -122,22 +125,24 @@ fun il65Parser.StatementContext.toAst() : IStatement {
     }
 
     val augassign = this.augassignment()
-    if (augassign!=null) {
+    if (augassign!=null)
         return Assignment(
-                augassign.assign_target().toAst(),
-                augassign.children[1].text,
-                augassign.expression().toAst())
-    }
+            augassign.assign_target().toAst(),
+            augassign.operator.text,
+            augassign.expression().toAst())
+
+    val directive = this.directive()?.toAst()
+    if(directive!=null) return directive
 
     throw UnsupportedOperationException(this.text)
 }
 
 fun il65Parser.Assign_targetContext.toAst() =
-        AssignTarget(this.register()?.toAst(), this.singlename()?.text, this.dottedname()?.text)
+        AssignTarget(this.register()?.toAst(), this.identifier()?.text, this.scoped_identifier()?.text)
 
-fun il65Parser.RegisterContext.toAst() = Register.valueOf(this.text)
+fun il65Parser.RegisterContext.toAst() = Register.valueOf(this.text.toUpperCase())
 
-fun il65Parser.DatatypeContext.toAst() = DataType.valueOf(this.text)
+fun il65Parser.DatatypeContext.toAst() = DataType.valueOf(this.text.toUpperCase())
 
 fun il65Parser.ArrayspecContext.toAst() = ArraySpec(
         this.expression(0).toAst(),
@@ -145,9 +150,9 @@ fun il65Parser.ArrayspecContext.toAst() = ArraySpec(
 )
 
 
-fun il65Parser.DirectiveContext.toAst() = Directive(this.singlename().text, this.directivearg().map { it.toAst() })
+fun il65Parser.DirectiveContext.toAst() = Directive(this.identifier().text, this.directivearg().map { it.toAst() })
 
-fun il65Parser.DirectiveargContext.toAst() = DirectiveArg(this.singlename()?.text, this.integerliteral()?.toAst())
+fun il65Parser.DirectiveargContext.toAst() = DirectiveArg(this.identifier()?.text, this.integerliteral()?.toAst())
 
 fun il65Parser.IntegerliteralContext.toAst(): Int {
     val terminal: TerminalNode = this.children[0] as TerminalNode
@@ -161,40 +166,33 @@ fun il65Parser.IntegerliteralContext.toAst(): Int {
 
 fun il65Parser.ExpressionContext.toAst() : IExpression {
 
-    if(this.singlename()!=null) {
-        return SingleNameExpr(this.singlename().text)
-    }
+    if(this.identifier()!=null)
+        return Identifier(this.identifier().text, null)
 
     val litval = this.literalvalue()
-    if(litval!=null) {
+    if(litval!=null)
         return LiteralValue(litval.integerliteral()?.toAst(),
-                litval.floatliteral()?.toAst(),
-                litval.stringliteral()?.text,
-                litval.booleanliteral()?.toAst(),
-                litval.arrayliteral()?.toAst()
-                )
-    }
+            litval.floatliteral()?.toAst(),
+            litval.stringliteral()?.text,
+            litval.booleanliteral()?.toAst(),
+            litval.arrayliteral()?.toAst()
+            )
 
-    if(this.dottedname()!=null) {
-        return DottedNameExpr(this.dottedname().text)
-    }
+    if(this.scoped_identifier()!=null)
+        return Identifier(this.scoped_identifier().text, "SCOPE????")   // todo!
 
-    if(this.register()!=null) {
+    if(this.register()!=null)
         return RegisterExpr(this.register().toAst())
-    }
 
-    if(this.unary_expression()!=null) {
-        return UnaryExpression(this.unary_expression().children[0].text, this.unary_expression().expression().toAst())
-    }
+    if(this.unaryexp!=null)
+        return UnaryExpression(this.unaryexp.operator.text, this.unaryexp.expression().toAst())
 
-    if(this.expression().size == 2) {
-        return BinaryExpression(this.expression(0).toAst(), this.text, this.expression(1).toAst())
-    }
+    if(this.left != null && this.right != null)
+        return BinaryExpression(this.left.toAst(), this.text, this.right.toAst())
 
-    // (....)
-    if(this.childCount == 3 && this.children[0].text=="(" && this.children[2].text==")") {
-        return this.expression(0).toAst()
-    }
+    //  ( expression )
+    if(this.precedence_expr!=null)
+        return this.precedence_expr.toAst()
 
     throw UnsupportedOperationException(this.text)
 }

@@ -11,8 +11,11 @@ fun main(args: Array<String>) {
     // println("Reading source file: ${args[0]}")
 
     val input = CharStreams.fromString(
-            "AX //= (5+8)*77\n" +
-            "X = -3.44e-99")
+            "byte   derp=3"
+//                    +
+//            "AX //= (5+8)*77\n" +
+//            "X = -3.44e-99"
+    )
     val lexer = il65Lexer(input)
     val tokens = CommonTokenStream(lexer)
     val parser = il65Parser(tokens)

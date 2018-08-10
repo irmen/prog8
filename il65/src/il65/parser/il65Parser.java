@@ -33,13 +33,13 @@ public class il65Parser extends Parser {
 		RULE_vardecl = 4, RULE_varinitializer = 5, RULE_constdecl = 6, RULE_memoryvardecl = 7, 
 		RULE_datatype = 8, RULE_arrayspec = 9, RULE_assignment = 10, RULE_augassignment = 11, 
 		RULE_assign_target = 12, RULE_expression = 13, RULE_unary_expression = 14, 
-		RULE_singlename = 15, RULE_dottedname = 16, RULE_register = 17, RULE_integerliteral = 18, 
-		RULE_booleanliteral = 19, RULE_arrayliteral = 20, RULE_stringliteral = 21, 
-		RULE_floatliteral = 22, RULE_literalvalue = 23;
+		RULE_identifier = 15, RULE_scoped_identifier = 16, RULE_register = 17, 
+		RULE_integerliteral = 18, RULE_booleanliteral = 19, RULE_arrayliteral = 20, 
+		RULE_stringliteral = 21, RULE_floatliteral = 22, RULE_literalvalue = 23;
 	public static final String[] ruleNames = {
 		"module", "statement", "directive", "directivearg", "vardecl", "varinitializer", 
 		"constdecl", "memoryvardecl", "datatype", "arrayspec", "assignment", "augassignment", 
-		"assign_target", "expression", "unary_expression", "singlename", "dottedname", 
+		"assign_target", "expression", "unary_expression", "identifier", "scoped_identifier", 
 		"register", "integerliteral", "booleanliteral", "arrayliteral", "stringliteral", 
 		"floatliteral", "literalvalue"
 	};
@@ -166,17 +166,17 @@ public class il65Parser extends Parser {
 		public DirectiveContext directive() {
 			return getRuleContext(DirectiveContext.class,0);
 		}
-		public ConstdeclContext constdecl() {
-			return getRuleContext(ConstdeclContext.class,0);
-		}
-		public MemoryvardeclContext memoryvardecl() {
-			return getRuleContext(MemoryvardeclContext.class,0);
-		}
 		public VardeclContext vardecl() {
 			return getRuleContext(VardeclContext.class,0);
 		}
 		public VarinitializerContext varinitializer() {
 			return getRuleContext(VarinitializerContext.class,0);
+		}
+		public ConstdeclContext constdecl() {
+			return getRuleContext(ConstdeclContext.class,0);
+		}
+		public MemoryvardeclContext memoryvardecl() {
+			return getRuleContext(MemoryvardeclContext.class,0);
 		}
 		public AssignmentContext assignment() {
 			return getRuleContext(AssignmentContext.class,0);
@@ -208,28 +208,28 @@ public class il65Parser extends Parser {
 				enterOuterAlt(_localctx, 2);
 				{
 				setState(57);
-				constdecl();
+				vardecl();
 				}
 				break;
 			case 3:
 				enterOuterAlt(_localctx, 3);
 				{
 				setState(58);
-				memoryvardecl();
+				varinitializer();
 				}
 				break;
 			case 4:
 				enterOuterAlt(_localctx, 4);
 				{
 				setState(59);
-				vardecl();
+				constdecl();
 				}
 				break;
 			case 5:
 				enterOuterAlt(_localctx, 5);
 				{
 				setState(60);
-				varinitializer();
+				memoryvardecl();
 				}
 				break;
 			case 6:
@@ -260,8 +260,8 @@ public class il65Parser extends Parser {
 	}
 
 	public static class DirectiveContext extends ParserRuleContext {
-		public SinglenameContext singlename() {
-			return getRuleContext(SinglenameContext.class,0);
+		public IdentifierContext identifier() {
+			return getRuleContext(IdentifierContext.class,0);
 		}
 		public List<DirectiveargContext> directivearg() {
 			return getRuleContexts(DirectiveargContext.class);
@@ -285,7 +285,7 @@ public class il65Parser extends Parser {
 			setState(65);
 			match(T__0);
 			setState(66);
-			singlename();
+			identifier();
 			setState(78);
 			_errHandler.sync(this);
 			switch ( getInterpreter().adaptivePredict(_input,4,_ctx) ) {
@@ -340,8 +340,8 @@ public class il65Parser extends Parser {
 	}
 
 	public static class DirectiveargContext extends ParserRuleContext {
-		public SinglenameContext singlename() {
-			return getRuleContext(SinglenameContext.class,0);
+		public IdentifierContext identifier() {
+			return getRuleContext(IdentifierContext.class,0);
 		}
 		public IntegerliteralContext integerliteral() {
 			return getRuleContext(IntegerliteralContext.class,0);
@@ -363,7 +363,7 @@ public class il65Parser extends Parser {
 				enterOuterAlt(_localctx, 1);
 				{
 				setState(80);
-				singlename();
+				identifier();
 				}
 				break;
 			case DEC_INTEGER:
@@ -394,8 +394,8 @@ public class il65Parser extends Parser {
 		public DatatypeContext datatype() {
 			return getRuleContext(DatatypeContext.class,0);
 		}
-		public SinglenameContext singlename() {
-			return getRuleContext(SinglenameContext.class,0);
+		public IdentifierContext identifier() {
+			return getRuleContext(IdentifierContext.class,0);
 		}
 		public ArrayspecContext arrayspec() {
 			return getRuleContext(ArrayspecContext.class,0);
@@ -426,7 +426,7 @@ public class il65Parser extends Parser {
 			}
 
 			setState(88);
-			singlename();
+			identifier();
 			}
 		}
 		catch (RecognitionException re) {
@@ -444,8 +444,8 @@ public class il65Parser extends Parser {
 		public DatatypeContext datatype() {
 			return getRuleContext(DatatypeContext.class,0);
 		}
-		public SinglenameContext singlename() {
-			return getRuleContext(SinglenameContext.class,0);
+		public IdentifierContext identifier() {
+			return getRuleContext(IdentifierContext.class,0);
 		}
 		public ExpressionContext expression() {
 			return getRuleContext(ExpressionContext.class,0);
@@ -479,7 +479,7 @@ public class il65Parser extends Parser {
 			}
 
 			setState(94);
-			singlename();
+			identifier();
 			setState(95);
 			match(T__2);
 			setState(96);
@@ -690,6 +690,7 @@ public class il65Parser extends Parser {
 	}
 
 	public static class AugassignmentContext extends ParserRuleContext {
+		public Token operator;
 		public Assign_targetContext assign_target() {
 			return getRuleContext(Assign_targetContext.class,0);
 		}
@@ -712,9 +713,10 @@ public class il65Parser extends Parser {
 			setState(118);
 			assign_target();
 			setState(119);
+			((AugassignmentContext)_localctx).operator = _input.LT(1);
 			_la = _input.LA(1);
 			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << T__14) | (1L << T__15) | (1L << T__16) | (1L << T__17) | (1L << T__18) | (1L << T__19) | (1L << T__20) | (1L << T__21) | (1L << T__22) | (1L << T__23) | (1L << T__24) | (1L << T__25) | (1L << T__26))) != 0)) ) {
-			_errHandler.recoverInline(this);
+				((AugassignmentContext)_localctx).operator = (Token)_errHandler.recoverInline(this);
 			}
 			else {
 				if ( _input.LA(1)==Token.EOF ) matchedEOF = true;
@@ -740,11 +742,11 @@ public class il65Parser extends Parser {
 		public RegisterContext register() {
 			return getRuleContext(RegisterContext.class,0);
 		}
-		public SinglenameContext singlename() {
-			return getRuleContext(SinglenameContext.class,0);
+		public IdentifierContext identifier() {
+			return getRuleContext(IdentifierContext.class,0);
 		}
-		public DottednameContext dottedname() {
-			return getRuleContext(DottednameContext.class,0);
+		public Scoped_identifierContext scoped_identifier() {
+			return getRuleContext(Scoped_identifierContext.class,0);
 		}
 		public Assign_targetContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
@@ -770,14 +772,14 @@ public class il65Parser extends Parser {
 				enterOuterAlt(_localctx, 2);
 				{
 				setState(123);
-				singlename();
+				identifier();
 				}
 				break;
 			case 3:
 				enterOuterAlt(_localctx, 3);
 				{
 				setState(124);
-				dottedname();
+				scoped_identifier();
 				}
 				break;
 			}
@@ -794,6 +796,10 @@ public class il65Parser extends Parser {
 	}
 
 	public static class ExpressionContext extends ParserRuleContext {
+		public ExpressionContext left;
+		public Unary_expressionContext unaryexp;
+		public ExpressionContext precedence_expr;
+		public ExpressionContext right;
 		public Unary_expressionContext unary_expression() {
 			return getRuleContext(Unary_expressionContext.class,0);
 		}
@@ -809,11 +815,11 @@ public class il65Parser extends Parser {
 		public RegisterContext register() {
 			return getRuleContext(RegisterContext.class,0);
 		}
-		public DottednameContext dottedname() {
-			return getRuleContext(DottednameContext.class,0);
+		public IdentifierContext identifier() {
+			return getRuleContext(IdentifierContext.class,0);
 		}
-		public SinglenameContext singlename() {
-			return getRuleContext(SinglenameContext.class,0);
+		public Scoped_identifierContext scoped_identifier() {
+			return getRuleContext(Scoped_identifierContext.class,0);
 		}
 		public ExpressionContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
@@ -843,7 +849,7 @@ public class il65Parser extends Parser {
 			case 1:
 				{
 				setState(128);
-				unary_expression();
+				((ExpressionContext)_localctx).unaryexp = unary_expression();
 				}
 				break;
 			case 2:
@@ -851,7 +857,7 @@ public class il65Parser extends Parser {
 				setState(129);
 				match(T__27);
 				setState(130);
-				expression(0);
+				((ExpressionContext)_localctx).precedence_expr = expression(0);
 				setState(131);
 				match(T__28);
 				}
@@ -871,13 +877,13 @@ public class il65Parser extends Parser {
 			case 5:
 				{
 				setState(135);
-				dottedname();
+				identifier();
 				}
 				break;
 			case 6:
 				{
 				setState(136);
-				singlename();
+				scoped_identifier();
 				}
 				break;
 			}
@@ -896,18 +902,22 @@ public class il65Parser extends Parser {
 					case 1:
 						{
 						_localctx = new ExpressionContext(_parentctx, _parentState);
+						_localctx.left = _prevctx;
+						_localctx.left = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
 						setState(139);
 						if (!(precpred(_ctx, 10))) throw new FailedPredicateException(this, "precpred(_ctx, 10)");
 						setState(140);
 						match(T__29);
 						setState(141);
-						expression(11);
+						((ExpressionContext)_localctx).right = expression(11);
 						}
 						break;
 					case 2:
 						{
 						_localctx = new ExpressionContext(_parentctx, _parentState);
+						_localctx.left = _prevctx;
+						_localctx.left = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
 						setState(142);
 						if (!(precpred(_ctx, 9))) throw new FailedPredicateException(this, "precpred(_ctx, 9)");
@@ -922,12 +932,14 @@ public class il65Parser extends Parser {
 							consume();
 						}
 						setState(144);
-						expression(10);
+						((ExpressionContext)_localctx).right = expression(10);
 						}
 						break;
 					case 3:
 						{
 						_localctx = new ExpressionContext(_parentctx, _parentState);
+						_localctx.left = _prevctx;
+						_localctx.left = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
 						setState(145);
 						if (!(precpred(_ctx, 8))) throw new FailedPredicateException(this, "precpred(_ctx, 8)");
@@ -942,12 +954,14 @@ public class il65Parser extends Parser {
 							consume();
 						}
 						setState(147);
-						expression(9);
+						((ExpressionContext)_localctx).right = expression(9);
 						}
 						break;
 					case 4:
 						{
 						_localctx = new ExpressionContext(_parentctx, _parentState);
+						_localctx.left = _prevctx;
+						_localctx.left = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
 						setState(148);
 						if (!(precpred(_ctx, 7))) throw new FailedPredicateException(this, "precpred(_ctx, 7)");
@@ -962,12 +976,14 @@ public class il65Parser extends Parser {
 							consume();
 						}
 						setState(150);
-						expression(8);
+						((ExpressionContext)_localctx).right = expression(8);
 						}
 						break;
 					case 5:
 						{
 						_localctx = new ExpressionContext(_parentctx, _parentState);
+						_localctx.left = _prevctx;
+						_localctx.left = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
 						setState(151);
 						if (!(precpred(_ctx, 6))) throw new FailedPredicateException(this, "precpred(_ctx, 6)");
@@ -982,12 +998,14 @@ public class il65Parser extends Parser {
 							consume();
 						}
 						setState(153);
-						expression(7);
+						((ExpressionContext)_localctx).right = expression(7);
 						}
 						break;
 					case 6:
 						{
 						_localctx = new ExpressionContext(_parentctx, _parentState);
+						_localctx.left = _prevctx;
+						_localctx.left = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
 						setState(154);
 						if (!(precpred(_ctx, 5))) throw new FailedPredicateException(this, "precpred(_ctx, 5)");
@@ -1002,7 +1020,7 @@ public class il65Parser extends Parser {
 							consume();
 						}
 						setState(156);
-						expression(6);
+						((ExpressionContext)_localctx).right = expression(6);
 						}
 						break;
 					}
@@ -1026,6 +1044,7 @@ public class il65Parser extends Parser {
 	}
 
 	public static class Unary_expressionContext extends ParserRuleContext {
+		public Token operator;
 		public ExpressionContext expression() {
 			return getRuleContext(ExpressionContext.class,0);
 		}
@@ -1047,7 +1066,7 @@ public class il65Parser extends Parser {
 				enterOuterAlt(_localctx, 1);
 				{
 				setState(162);
-				match(T__51);
+				((Unary_expressionContext)_localctx).operator = match(T__51);
 				setState(163);
 				expression(0);
 				}
@@ -1057,9 +1076,10 @@ public class il65Parser extends Parser {
 				enterOuterAlt(_localctx, 2);
 				{
 				setState(164);
+				((Unary_expressionContext)_localctx).operator = _input.LT(1);
 				_la = _input.LA(1);
 				if ( !(_la==T__33 || _la==T__34) ) {
-				_errHandler.recoverInline(this);
+					((Unary_expressionContext)_localctx).operator = (Token)_errHandler.recoverInline(this);
 				}
 				else {
 					if ( _input.LA(1)==Token.EOF ) matchedEOF = true;
@@ -1074,7 +1094,7 @@ public class il65Parser extends Parser {
 				enterOuterAlt(_localctx, 3);
 				{
 				setState(166);
-				match(T__52);
+				((Unary_expressionContext)_localctx).operator = match(T__52);
 				setState(167);
 				expression(0);
 				}
@@ -1094,17 +1114,17 @@ public class il65Parser extends Parser {
 		return _localctx;
 	}
 
-	public static class SinglenameContext extends ParserRuleContext {
+	public static class IdentifierContext extends ParserRuleContext {
 		public TerminalNode NAME() { return getToken(il65Parser.NAME, 0); }
-		public SinglenameContext(ParserRuleContext parent, int invokingState) {
+		public IdentifierContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
 		}
-		@Override public int getRuleIndex() { return RULE_singlename; }
+		@Override public int getRuleIndex() { return RULE_identifier; }
 	}
 
-	public final SinglenameContext singlename() throws RecognitionException {
-		SinglenameContext _localctx = new SinglenameContext(_ctx, getState());
-		enterRule(_localctx, 30, RULE_singlename);
+	public final IdentifierContext identifier() throws RecognitionException {
+		IdentifierContext _localctx = new IdentifierContext(_ctx, getState());
+		enterRule(_localctx, 30, RULE_identifier);
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
@@ -1123,20 +1143,20 @@ public class il65Parser extends Parser {
 		return _localctx;
 	}
 
-	public static class DottednameContext extends ParserRuleContext {
+	public static class Scoped_identifierContext extends ParserRuleContext {
 		public List<TerminalNode> NAME() { return getTokens(il65Parser.NAME); }
 		public TerminalNode NAME(int i) {
 			return getToken(il65Parser.NAME, i);
 		}
-		public DottednameContext(ParserRuleContext parent, int invokingState) {
+		public Scoped_identifierContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
 		}
-		@Override public int getRuleIndex() { return RULE_dottedname; }
+		@Override public int getRuleIndex() { return RULE_scoped_identifier; }
 	}
 
-	public final DottednameContext dottedname() throws RecognitionException {
-		DottednameContext _localctx = new DottednameContext(_ctx, getState());
-		enterRule(_localctx, 32, RULE_dottedname);
+	public final Scoped_identifierContext scoped_identifier() throws RecognitionException {
+		Scoped_identifierContext _localctx = new Scoped_identifierContext(_ctx, getState());
+		enterRule(_localctx, 32, RULE_scoped_identifier);
 		try {
 			int _alt;
 			enterOuterAlt(_localctx, 1);
@@ -1537,11 +1557,11 @@ public class il65Parser extends Parser {
 		"\3\2\2\2$\u00b5\3\2\2\2&\u00b7\3\2\2\2(\u00b9\3\2\2\2*\u00bb\3\2\2\2,"+
 		"\u00c6\3\2\2\2.\u00c8\3\2\2\2\60\u00cf\3\2\2\2\62\64\5\4\3\2\63\62\3\2"+
 		"\2\2\64\67\3\2\2\2\65\63\3\2\2\2\65\66\3\2\2\2\668\3\2\2\2\67\65\3\2\2"+
-		"\289\7\2\2\39\3\3\2\2\2:B\5\6\4\2;B\5\16\b\2<B\5\20\t\2=B\5\n\6\2>B\5"+
-		"\f\7\2?B\5\26\f\2@B\5\30\r\2A:\3\2\2\2A;\3\2\2\2A<\3\2\2\2A=\3\2\2\2A"+
-		">\3\2\2\2A?\3\2\2\2A@\3\2\2\2B\5\3\2\2\2CD\7\3\2\2DP\5 \21\2EG\5\b\5\2"+
-		"FE\3\2\2\2FG\3\2\2\2GQ\3\2\2\2HM\5\b\5\2IJ\7\4\2\2JL\5\b\5\2KI\3\2\2\2"+
-		"LO\3\2\2\2MK\3\2\2\2MN\3\2\2\2NQ\3\2\2\2OM\3\2\2\2PF\3\2\2\2PH\3\2\2\2"+
+		"\289\7\2\2\39\3\3\2\2\2:B\5\6\4\2;B\5\n\6\2<B\5\f\7\2=B\5\16\b\2>B\5\20"+
+		"\t\2?B\5\26\f\2@B\5\30\r\2A:\3\2\2\2A;\3\2\2\2A<\3\2\2\2A=\3\2\2\2A>\3"+
+		"\2\2\2A?\3\2\2\2A@\3\2\2\2B\5\3\2\2\2CD\7\3\2\2DP\5 \21\2EG\5\b\5\2FE"+
+		"\3\2\2\2FG\3\2\2\2GQ\3\2\2\2HM\5\b\5\2IJ\7\4\2\2JL\5\b\5\2KI\3\2\2\2L"+
+		"O\3\2\2\2MK\3\2\2\2MN\3\2\2\2NQ\3\2\2\2OM\3\2\2\2PF\3\2\2\2PH\3\2\2\2"+
 		"Q\7\3\2\2\2RU\5 \21\2SU\5&\24\2TR\3\2\2\2TS\3\2\2\2U\t\3\2\2\2VX\5\22"+
 		"\n\2WY\5\24\13\2XW\3\2\2\2XY\3\2\2\2YZ\3\2\2\2Z[\5 \21\2[\13\3\2\2\2\\"+
 		"^\5\22\n\2]_\5\24\13\2^]\3\2\2\2^_\3\2\2\2_`\3\2\2\2`a\5 \21\2ab\7\5\2"+
@@ -1553,7 +1573,7 @@ public class il65Parser extends Parser {
 		"\177|\3\2\2\2\177}\3\2\2\2\177~\3\2\2\2\u0080\33\3\2\2\2\u0081\u0082\b"+
 		"\17\1\2\u0082\u008c\5\36\20\2\u0083\u0084\7\36\2\2\u0084\u0085\5\34\17"+
 		"\2\u0085\u0086\7\37\2\2\u0086\u008c\3\2\2\2\u0087\u008c\5\60\31\2\u0088"+
-		"\u008c\5$\23\2\u0089\u008c\5\"\22\2\u008a\u008c\5 \21\2\u008b\u0081\3"+
+		"\u008c\5$\23\2\u0089\u008c\5 \21\2\u008a\u008c\5\"\22\2\u008b\u0081\3"+
 		"\2\2\2\u008b\u0083\3\2\2\2\u008b\u0087\3\2\2\2\u008b\u0088\3\2\2\2\u008b"+
 		"\u0089\3\2\2\2\u008b\u008a\3\2\2\2\u008c\u00a1\3\2\2\2\u008d\u008e\f\f"+
 		"\2\2\u008e\u008f\7 \2\2\u008f\u00a0\5\34\17\r\u0090\u0091\f\13\2\2\u0091"+

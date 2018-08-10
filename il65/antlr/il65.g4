@@ -31,22 +31,22 @@ module :  statement* EOF ;
 
 statement :
 	directive
+	| varinitializer
+	| vardecl
 	| constdecl
 	| memoryvardecl
-	| vardecl
-	| varinitializer
 	| assignment
 	| augassignment
 	;
 
 
-directive :  '%' singlename (directivearg? | directivearg (',' directivearg)*) ;
+directive :  '%' identifier (directivearg? | directivearg (',' directivearg)*) ;
 
-directivearg : singlename | integerliteral ;
+directivearg : identifier | integerliteral ;
 
-vardecl:  datatype arrayspec? singlename ;
+vardecl:  datatype arrayspec? identifier ;
 
-varinitializer : datatype arrayspec? singlename '=' expression ;
+varinitializer : datatype arrayspec? identifier '=' expression ;
 
 constdecl: 'const' varinitializer ;
 
@@ -59,40 +59,40 @@ arrayspec:  '[' expression (',' expression)? ']' ;
 assignment :  assign_target '=' expression ;
 
 augassignment :
-	assign_target ('+=' | '-=' | '/=' | '//=' | '*=' | '**=' |
+	assign_target operator=('+=' | '-=' | '/=' | '//=' | '*=' | '**=' |
 	               '<<=' | '>>=' | '<<@=' | '>>@=' | '&=' | '|=' | '^=') expression
 	;
 
 assign_target:
 	register
-	| singlename
-	| dottedname
+	| identifier
+	| scoped_identifier
 	;
 
 expression :
-	unary_expression
-	| '(' expression ')'
-	| expression '**'  expression
-	| expression ('*' | '/' | '//' | '**') expression
-	| expression ('+' | '-' | '%') expression
-	| expression ('<<' | '>>' | '<<@' | '>>@' | '&' | '|' | '^') expression
-	| expression ('and' | 'or' | 'xor') expression
-	| expression ('==' | '!=' | '<' | '>' | '<=' | '>=') expression
+	unaryexp = unary_expression
+	| '(' precedence_expr=expression ')'
+	| left = expression '**' right = expression
+	| left = expression ('*' | '/' | '//' | '**') right = expression
+	| left = expression ('+' | '-' | '%') right = expression
+	| left = expression ('<<' | '>>' | '<<@' | '>>@' | '&' | '|' | '^') right = expression
+	| left = expression ('and' | 'or' | 'xor') right = expression
+	| left = expression ('==' | '!=' | '<' | '>' | '<=' | '>=') right = expression
 	| literalvalue
 	| register
-	| dottedname
-	| singlename
+	| identifier
+	| scoped_identifier
 	;
 
 unary_expression :
-	'~' expression
-	| ('+' | '-') expression
-	| 'not' expression
+	operator = '~' expression
+	| operator = ('+' | '-') expression
+	| operator = 'not' expression
 	;
 
-singlename :  NAME ;
+identifier :  NAME ;
 
-dottedname :  NAME ('.' NAME)+ ;
+scoped_identifier :  NAME ('.' NAME)+ ;
 
 register :  'A' | 'X' | 'Y' | 'AX' | 'AY' | 'XY' | 'SC' | 'SI' | 'SZ' ;
 
