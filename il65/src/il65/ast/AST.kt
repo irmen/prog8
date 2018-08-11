@@ -1,7 +1,10 @@
 package il65.ast
 
 import il65.parser.il65Parser
+import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
+
+/**************************** AST Data classes ****************************/
 
 enum class DataType {
     BYTE,
@@ -25,19 +28,29 @@ enum class Register {
     SZ
 }
 
+data class Position(val line: Int, val startCol:Int, val endCol: Int)
+
 interface Node
+{
+    val position: Position
+}
 
 interface IStatement : Node
 
-data class Module(val lines: List<IStatement>) : Node
+data class Module(val lines: List<IStatement>,
+                  override val position: Position) : Node
 
-data class Block(val name: String, val address: Int?, val statements: List<IStatement>) : IStatement
+data class Block(val name: String, val address: Int?, val statements: List<IStatement>,
+                 override val position: Position) : IStatement
 
-data class Directive(val directive: String, val args: List<DirectiveArg>) : IStatement
+data class Directive(val directive: String, val args: List<DirectiveArg>,
+                     override val position: Position) : IStatement
 
-data class DirectiveArg(val str: String?, val name: String?, val int: Int?) : Node
+data class DirectiveArg(val str: String?, val name: String?, val int: Int?,
+                        override val position: Position) : Node
 
-data class Label(val name: String) : IStatement
+data class Label(val name: String,
+                 override val position: Position) : IStatement
 
 interface IVarDecl : IStatement {
     val datatype: DataType
@@ -46,169 +59,228 @@ interface IVarDecl : IStatement {
     val value: IExpression?
 }
 
-data class ArraySpec(val x: IExpression, val y: IExpression?) : Node
+data class ArraySpec(val x: IExpression, val y: IExpression?,
+                     override val position: Position) : Node
 
 data class VarDecl(override val datatype: DataType,
                    override val arrayspec: ArraySpec?,
                    override val name: String,
-                   override val value: IExpression?) : IVarDecl
+                   override val value: IExpression?,
+                   override val position: Position) : IVarDecl
 
 data class ConstDecl(override val datatype: DataType,
                      override val arrayspec: ArraySpec?,
                      override val name: String,
-                     override val value: IExpression) : IVarDecl
+                     override val value: IExpression,
+                     override val position: Position) : IVarDecl
 
 data class MemoryVarDecl(override val datatype: DataType,
                          override val arrayspec: ArraySpec?,
                          override val name: String,
-                         override val value: IExpression) : IVarDecl
+                         override val value: IExpression,
+                         override val position: Position) : IVarDecl
 
-data class Assignment(val target: AssignTarget, val aug_op : String?, val value: IExpression) : IStatement
+data class Assignment(val target: AssignTarget, val aug_op : String?, val value: IExpression,
+                      override val position: Position) : IStatement
 
-data class AssignTarget(val register: Register?, val identifier: Identifier?) : Node
+data class AssignTarget(val register: Register?, val identifier: Identifier?,
+                        override val position: Position) : Node
 
 
 interface IExpression: Node
 
-data class PrefixExpression(val operator: String, val expression: IExpression) : IExpression
+data class PrefixExpression(val operator: String, val expression: IExpression,
+                            override val position: Position) : IExpression
 
-data class BinaryExpression(val left: IExpression, val operator: String, val right: IExpression) : IExpression
+data class BinaryExpression(val left: IExpression, val operator: String, val right: IExpression,
+                            override val position: Position) : IExpression
 
 data class LiteralValue(val intvalue: Int?,
                         val floatvalue: Double?,
                         val strvalue: String?,
                         val boolvalue: Boolean?,
-                        val arrayvalue: List<IExpression>?) : IExpression
+                        val arrayvalue: List<IExpression>?,
+                        override val position: Position) : IExpression
 
-data class RangeExpr(val from: IExpression, val to: IExpression) : IExpression
+data class RangeExpr(val from: IExpression, val to: IExpression,
+                     override val position: Position) : IExpression
 
-data class RegisterExpr(val register: Register) : IExpression
+data class RegisterExpr(val register: Register,
+                        override val position: Position) : IExpression
 
-data class Identifier(val name: String, val scope: List<String>) : IExpression
+data class Identifier(val name: String, val scope: List<String>,
+                      override val position: Position) : IExpression
 
-data class CallTarget(val address: Int?, val identifier: Identifier?) : Node
+data class CallTarget(val address: Int?, val identifier: Identifier?,
+                      override val position: Position) : Node
 
-data class PostIncrDecr(val target: AssignTarget, val operator: String) : IStatement
+data class PostIncrDecr(val target: AssignTarget, val operator: String,
+                        override val position: Position) : IStatement
 
-data class Jump(val target: CallTarget) : IStatement
+data class Jump(val target: CallTarget,
+                override val position: Position) : IStatement
 
-data class FunctionCall(val target: CallTarget, val arglist: List<IExpression>) : IExpression
+data class FunctionCall(val target: CallTarget, val arglist: List<IExpression>,
+                        override val position: Position) : IExpression
 
-data class InlineAssembly(val assembly: String) : IStatement
+data class InlineAssembly(val assembly: String,
+                          override val position: Position) : IStatement
 
 
-fun il65Parser.ModuleContext.toAst() = Module(this.modulestatement().map { it.toAst() })
+/***************** Antlr Extension methods to create AST ****************/
 
-fun il65Parser.ModulestatementContext.toAst() : IStatement {
-    val directive = this.directive()?.toAst()
+fun ParserRuleContext.toPosition(withPosition: Boolean) : Position {
+    return if (withPosition)
+        Position(start.line, start.charPositionInLine, stop.charPositionInLine)
+    else
+        Position(start.line, start.charPositionInLine, stop.charPositionInLine)     // @todo null
+}
+
+
+fun il65Parser.ModuleContext.toAst(withPosition: Boolean) =
+        Module(this.modulestatement().map { it.toAst(withPosition) },
+                this.toPosition(withPosition))
+
+
+fun il65Parser.ModulestatementContext.toAst(withPosition: Boolean) : IStatement {
+    val directive = this.directive()?.toAst(withPosition)
     if(directive!=null) return directive
 
-    val block = this.block()?.toAst()
+    val block = this.block()?.toAst(withPosition)
     if(block!=null) return block
 
     throw UnsupportedOperationException(this.text)
 }
 
-fun il65Parser.BlockContext.toAst() : IStatement {
-    return Block(this.identifier().text, this.integerliteral()?.toAst(), this.statement().map { it.toAst() })
+
+fun il65Parser.BlockContext.toAst(withPosition: Boolean) : IStatement {
+    return Block(this.identifier().text, this.integerliteral()?.toAst(),
+                 this.statement().map { it.toAst(withPosition) }, this.toPosition(withPosition))
 }
 
-fun il65Parser.StatementContext.toAst() : IStatement {
+
+fun il65Parser.StatementContext.toAst(withPosition: Boolean) : IStatement {
     val vardecl = this.vardecl()
     if(vardecl!=null) {
         return VarDecl(vardecl.datatype().toAst(),
-                vardecl.arrayspec()?.toAst(),
+                vardecl.arrayspec()?.toAst(withPosition),
                 vardecl.identifier().text,
-                null)
+                null,
+                vardecl.toPosition(withPosition))
     }
 
     val varinit = this.varinitializer()
     if(varinit!=null) {
         return VarDecl(varinit.datatype().toAst(),
-                varinit.arrayspec()?.toAst(),
+                varinit.arrayspec()?.toAst(withPosition),
                 varinit.identifier().text,
-                varinit.expression().toAst())
+                varinit.expression().toAst(withPosition),
+                varinit.toPosition(withPosition))
     }
 
     val constdecl = this.constdecl()
     if(constdecl!=null) {
         val cvarinit = constdecl.varinitializer()
         return ConstDecl(cvarinit.datatype().toAst(),
-                cvarinit.arrayspec()?.toAst(),
+                cvarinit.arrayspec()?.toAst(withPosition),
                 cvarinit.identifier().text,
-                cvarinit.expression().toAst())
+                cvarinit.expression().toAst(withPosition),
+                cvarinit.toPosition(withPosition))
     }
 
     val memdecl = this.memoryvardecl()
     if(memdecl!=null) {
         val mvarinit = memdecl.varinitializer()
         return MemoryVarDecl(mvarinit.datatype().toAst(),
-                mvarinit.arrayspec()?.toAst(),
+                mvarinit.arrayspec()?.toAst(withPosition),
                 mvarinit.identifier().text,
-                mvarinit.expression().toAst())
+                mvarinit.expression().toAst(withPosition),
+                mvarinit.toPosition(withPosition))
     }
 
     val assign = this.assignment()
     if (assign!=null) {
-        return Assignment(assign.assign_target().toAst(), null, assign.expression().toAst())
+        return Assignment(assign.assign_target().toAst(withPosition),
+                  null, assign.expression().toAst(withPosition),
+                assign.toPosition(withPosition))
     }
 
     val augassign = this.augassignment()
     if (augassign!=null)
-        return Assignment(
-            augassign.assign_target().toAst(),
-            augassign.operator.text,
-            augassign.expression().toAst())
+        return Assignment(augassign.assign_target().toAst(withPosition),
+                augassign.operator.text,
+                augassign.expression().toAst(withPosition),
+                augassign.toPosition(withPosition))
 
     val post = this.postincrdecr()
     if(post!=null)
-        return PostIncrDecr(post.assign_target().toAst(), post.operator.text)
+        return PostIncrDecr(post.assign_target().toAst(withPosition),
+                post.operator.text, post.toPosition(withPosition))
 
-    val directive = this.directive()?.toAst()
+    val directive = this.directive()?.toAst(withPosition)
     if(directive!=null) return directive
 
     val label=this.label()
     if(label!=null)
-        return Label(label.text)
+        return Label(label.text, label.toPosition(withPosition))
 
     val jump = this.unconditionaljump()
     if(jump!=null)
-        return Jump(jump.call_location().toAst())
+        return Jump(jump.call_location().toAst(withPosition), jump.toPosition(withPosition))
 
     val asm = this.inlineasm()
     if(asm!=null)
-        return InlineAssembly(asm.INLINEASMBLOCK().text)
+        return InlineAssembly(asm.INLINEASMBLOCK().text, asm.toPosition(withPosition))
 
     throw UnsupportedOperationException(this.text)
 }
 
-fun il65Parser.Call_locationContext.toAst() : CallTarget {
-    val address = this.integerliteral()?.toAst()
-    if(this.identifier()!=null) return CallTarget(address, Identifier(this.identifier().text, emptyList()))
-    return CallTarget(address, this.scoped_identifier().toAst())
+
+fun il65Parser.Call_locationContext.toAst(withPosition: Boolean) : CallTarget {
+    val address = integerliteral()?.toAst()
+    val identifier = identifier()
+    return if(identifier!=null)
+        CallTarget(address, identifier.toAst(withPosition), toPosition(withPosition))
+    else
+        CallTarget(address, scoped_identifier().toAst(withPosition), toPosition(withPosition))
 }
 
-fun il65Parser.Assign_targetContext.toAst() : AssignTarget {
+
+fun il65Parser.Assign_targetContext.toAst(withPosition: Boolean) : AssignTarget {
     val register = this.register()?.toAst()
-    val identifier = this.identifier()?.text
-    if(identifier!=null) return AssignTarget(register, Identifier(identifier, emptyList()))
-    return AssignTarget(register, this.scoped_identifier()?.toAst())
+    val identifier = this.identifier()
+    return if(identifier!=null)
+        AssignTarget(register, identifier.toAst(withPosition), this.toPosition(withPosition))
+    else
+        AssignTarget(register, this.scoped_identifier()?.toAst(withPosition), this.toPosition(withPosition))
 }
+
 
 fun il65Parser.RegisterContext.toAst() = Register.valueOf(this.text.toUpperCase())
 
+
 fun il65Parser.DatatypeContext.toAst() = DataType.valueOf(this.text.toUpperCase())
 
-fun il65Parser.ArrayspecContext.toAst() = ArraySpec(
-        this.expression(0).toAst(),
-        if (this.expression().size > 1) this.expression(1).toAst() else null
+
+fun il65Parser.ArrayspecContext.toAst(withPosition: Boolean) = ArraySpec(
+        this.expression(0).toAst(withPosition),
+        if (this.expression().size > 1) this.expression(1).toAst(withPosition) else null,
+        this.toPosition(withPosition)
 )
 
 
-fun il65Parser.DirectiveContext.toAst() = Directive(this.directivename.text, this.directivearg().map { it.toAst() })
+fun il65Parser.DirectiveContext.toAst(withPosition: Boolean) =
+        Directive(this.directivename.text,
+                this.directivearg().map { it.toAst(withPosition) },
+                this.toPosition(withPosition))
 
-fun il65Parser.DirectiveargContext.toAst() =
-        DirectiveArg(this.stringliteral()?.text, this.identifier()?.text, this.integerliteral()?.toAst())
+
+fun il65Parser.DirectiveargContext.toAst(withPosition: Boolean) =
+        DirectiveArg(this.stringliteral()?.text,
+                this.identifier()?.text,
+                this.integerliteral()?.toAst(),
+                this.toPosition(withPosition))
+
 
 fun il65Parser.IntegerliteralContext.toAst(): Int {
     val terminal: TerminalNode = this.children[0] as TerminalNode
@@ -220,7 +292,8 @@ fun il65Parser.IntegerliteralContext.toAst(): Int {
     }
 }
 
-fun il65Parser.ExpressionContext.toAst() : IExpression {
+
+fun il65Parser.ExpressionContext.toAst(withPosition: Boolean) : IExpression {
 
     val litval = this.literalvalue()
     if(litval!=null)
@@ -228,45 +301,63 @@ fun il65Parser.ExpressionContext.toAst() : IExpression {
                 litval.floatliteral()?.toAst(),
                 litval.stringliteral()?.text,
                 litval.booleanliteral()?.toAst(),
-                litval.arrayliteral()?.toAst()
+                litval.arrayliteral()?.toAst(withPosition),
+                litval.toPosition(withPosition)
         )
 
     if(this.register()!=null)
-        return RegisterExpr(this.register().toAst())
+        return RegisterExpr(this.register().toAst(), this.register().toPosition(withPosition))
 
     if(this.identifier()!=null)
-        return Identifier(this.identifier().text, emptyList())
+        return this.identifier().toAst(withPosition)
 
     if(this.scoped_identifier()!=null)
-        return this.scoped_identifier().toAst()
+        return this.scoped_identifier().toAst(withPosition)
 
     if(this.bop!=null)
-        return BinaryExpression(this.left.toAst(), this.bop.text, this.right.toAst())
+        return BinaryExpression(this.left.toAst(withPosition),
+                this.bop.text,
+                this.right.toAst(withPosition),
+                this.toPosition(withPosition))
 
     if(this.prefix!=null)
-        return PrefixExpression(this.prefix.text, this.expression(0).toAst())
+        return PrefixExpression(this.prefix.text,
+                this.expression(0).toAst(withPosition),
+                this.toPosition(withPosition))
 
     val funcall = this.functioncall()
     if(funcall!=null) {
-        val location = funcall.call_location().toAst()
-        if(funcall.expression()!=null) return FunctionCall(location, listOf(funcall.expression().toAst()))
-        return FunctionCall(location, emptyList())
+        val location = funcall.call_location().toAst(withPosition)
+        return if(funcall.expression()!=null)
+            FunctionCall(location, listOf(funcall.expression().toAst(withPosition)), funcall.toPosition(withPosition))
+        else
+            FunctionCall(location, emptyList(), funcall.toPosition(withPosition))
     }
 
     if (this.rangefrom!=null && this.rangeto!=null)
-        return RangeExpr(this.rangefrom.toAst(), this.rangeto.toAst())
+        return RangeExpr(this.rangefrom.toAst(withPosition),
+                this.rangeto.toAst(withPosition),
+                this.toPosition(withPosition))
 
     throw UnsupportedOperationException(this.text)
 }
 
-fun il65Parser.Scoped_identifierContext.toAst() : Identifier {
+
+fun il65Parser.IdentifierContext.toAst(withPosition: Boolean) : Identifier {
+    return Identifier(this.text, emptyList(), this.toPosition(withPosition))
+}
+
+
+fun il65Parser.Scoped_identifierContext.toAst(withPosition: Boolean) : Identifier {
     val names = this.NAME()
     val name = names.last().text
     val scope = names.take(names.size-1)
-    return Identifier(name, scope.map { it.text })
+    return Identifier(name, scope.map { it.text }, toPosition(withPosition))
 }
 
+
 fun il65Parser.FloatliteralContext.toAst() = this.text.toDouble()
+
 
 fun il65Parser.BooleanliteralContext.toAst() = when(this.text) {
     "true" -> true
@@ -274,5 +365,7 @@ fun il65Parser.BooleanliteralContext.toAst() = when(this.text) {
     else -> throw UnsupportedOperationException(this.text)
 }
 
-fun il65Parser.ArrayliteralContext.toAst() = this.expression().map { it.toAst() }
+
+fun il65Parser.ArrayliteralContext.toAst(withPosition: Boolean) =
+        this.expression().map { it.toAst(withPosition) }
 

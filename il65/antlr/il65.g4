@@ -4,12 +4,14 @@ IL65 combined lexer and parser grammar
 NOTES:
 
 - whitespace is ignored. (tabs/spaces)
-- every line can be empty, be a comment, or contain ONE statement.
+- every position can be empty, be a comment, or contain ONE statement.
 
 */
 
 grammar il65;
 
+
+LINECOMMENT : [\r\n][ \t]* COMMENT -> channel(HIDDEN);
 COMMENT :  ';' ~[\r\n]* -> channel(HIDDEN) ;
 WS :  [ \t] -> skip ;
 EOL :  [\r\n]+ ;
@@ -40,11 +42,15 @@ INLINEASMBLOCK :
 	;
 
 
-module :  EOL* (modulestatement | EOL)* EOF ;
+module :  (modulestatement | EOL)* EOF ;
 
 modulestatement:  directive | block ;
 
-block: '~' identifier integerliteral? '{' EOL (statement EOL)* EOL* '}' ;
+block:
+	'~' identifier integerliteral? '{' EOL
+ 		(statement | EOL)*
+ 	'}' EOL
+ 	;
 
 statement :
 	directive

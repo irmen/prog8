@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestSource() {
+class TestSource {
     @Test
     fun f() {
         assertThat(2, Is(equalTo(2)))
