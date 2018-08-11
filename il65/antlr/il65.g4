@@ -96,7 +96,7 @@ arrayspec:  '[' expression (',' expression)? ']' ;
 assignment :  assign_target '=' expression ;
 
 augassignment :
-	assign_target operator=('+=' | '-=' | '/=' | '//=' | '*=' | '**=' |
+	assign_target operator=('+=' | '-=' | '/=' | '*=' | '**=' |
 	               '<<=' | '>>=' | '<<@=' | '>>@=' | '&=' | '|=' | '^=') expression
 	;
 
@@ -112,10 +112,9 @@ expression :
 	'(' expression ')'
 	| expression arrayspec
 	| functioncall
-	| prefix = ('+'|'-') expression
-	| prefix = ('~'|'not') expression
+	| prefix = ('+'|'-'|'~') expression
 	| left = expression bop = '**' right = expression
-	| left = expression bop = ('*' | '/' | '//' | '%') right = expression
+	| left = expression bop = ('*' | '/' | '%') right = expression
 	| left = expression bop = ('+' | '-' ) right = expression
 	| left = expression bop = ('<<' | '>>' | '<<@' | '>>@' ) right = expression
 	| left = expression bop = ('<' | '>' | '<=' | '>=') right = expression
@@ -126,6 +125,7 @@ expression :
 	| left = expression bop = 'and' right = expression
 	| left = expression bop = 'or' right = expression
 	| left = expression bop = 'xor' right = expression
+	| prefix = 'not' expression
 	| rangefrom = expression 'to' rangeto = expression
 	| literalvalue
 	| register

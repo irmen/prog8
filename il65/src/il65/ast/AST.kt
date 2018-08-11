@@ -1,8 +1,10 @@
 package il65.ast
 
+import il65.IAstOptimizer
 import il65.parser.il65Parser
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
+
 
 /**************************** AST Data classes ****************************/
 
@@ -28,28 +30,51 @@ enum class Register {
     SZ
 }
 
+
+class AstException(override var message: String) : Exception(message)
+
+
 data class Position(val line: Int, val startCol:Int, val endCol: Int)
+
 
 interface Node {
     val position: Position?     // optional for the sake of easy unit testing
 }
 
-interface IStatement : Node
 
-data class Module(val lines: MutableList<IStatement>,
-                  override val position: Position? = null) : Node
+interface IStatement : Node {
+    fun optimize(optimizer: IAstOptimizer) : IStatement
+}
 
-data class Block(val name: String, val address: Int?, val statements: MutableList<IStatement>,
-                 override val position: Position? = null) : IStatement
+
+data class Module(var lines: List<IStatement>,
+                  override val position: Position? = null) : Node {
+    fun optimizeOnceWith(optimizer: IAstOptimizer): Module {
+        lines = lines.map { it.optimize(optimizer) }
+        return this
+    }
+}
+
+data class Block(val name: String, val address: Int?, var statements: List<IStatement>,
+                 override val position: Position? = null) : IStatement {
+    override fun optimize(optimizer: IAstOptimizer) : IStatement {
+        statements = statements.map { it.optimize(optimizer) }
+        return this
+    }
+}
 
 data class Directive(val directive: String, val args: List<DirectiveArg>,
-                     override val position: Position? = null) : IStatement
+                     override val position: Position? = null) : IStatement {
+    override fun optimize(optimizer: IAstOptimizer) = this
+}
 
 data class DirectiveArg(val str: String?, val name: String?, val int: Int?,
                         override val position: Position? = null) : Node
 
 data class Label(val name: String,
-                 override val position: Position? = null) : IStatement
+                 override val position: Position? = null) : IStatement {
+    override fun optimize(optimizer: IAstOptimizer) = this
+}
 
 interface IVarDecl : IStatement {
     val datatype: DataType
@@ -66,68 +91,159 @@ data class VarDecl(override val datatype: DataType,
                    override val arrayspec: ArraySpec?,
                    override val name: String,
                    override var value: IExpression?,
-                   override val position: Position? = null) : IVarDecl
+                   override val position: Position? = null) : IVarDecl {
+    override fun optimize(optimizer: IAstOptimizer): IStatement {
+        value = value?.optimize(optimizer)
+        return this
+    }
+}
 
 data class ConstDecl(override val datatype: DataType,
                      override val arrayspec: ArraySpec?,
                      override val name: String,
                      override var value: IExpression?,
-                     override val position: Position? = null) : IVarDecl
+                     override val position: Position? = null) : IVarDecl {
+    override fun optimize(optimizer: IAstOptimizer): IStatement {
+        value = value?.optimize(optimizer)
+        return this
+    }
+}
 
 data class MemoryVarDecl(override val datatype: DataType,
                          override val arrayspec: ArraySpec?,
                          override val name: String,
                          override var value: IExpression?,
-                         override val position: Position? = null) : IVarDecl
+                         override val position: Position? = null) : IVarDecl {
+    override fun optimize(optimizer: IAstOptimizer): IStatement {
+        value = value?.optimize(optimizer)
+        return this
+    }
+}
 
-data class Assignment(val target: AssignTarget, val aug_op : String?, var value: IExpression,
-                      override val position: Position? = null) : IStatement
+data class Assignment(var target: AssignTarget, val aug_op : String?, var value: IExpression,
+                      override val position: Position? = null) : IStatement {
+    override fun optimize(optimizer: IAstOptimizer): IStatement {
+        target = target.optimize(optimizer)
+        value = value.optimize(optimizer)
+        return this
+    }
+}
 
 data class AssignTarget(val register: Register?, val identifier: Identifier?,
-                        override val position: Position? = null) : Node
+                        override val position: Position? = null) : Node {
+    fun optimize(optimizer: IAstOptimizer) = this       // for now
+}
 
 
-interface IExpression: Node
+interface IExpression: Node {
+    fun constValue() : LiteralValue?
+    fun optimize(optimizer: IAstOptimizer): IExpression
+}
 
 
 // note: some expression elements are mutable, to be able to rewrite/optimize the expression tree
 
-data class PrefixExpression(val operator: String, val expression: IExpression,
-                            override val position: Position? = null) : IExpression
+data class PrefixExpression(val operator: String, var expression: IExpression,
+                            override val position: Position? = null) : IExpression {
+    override fun constValue(): LiteralValue? {
+        throw AstException("should have been optimized away before const value was asked")
+    }
+
+    override fun optimize(optimizer: IAstOptimizer) = optimizer.optimize(this)
+}
+
 
 data class BinaryExpression(var left: IExpression, val operator: String, var right: IExpression,
-                            override val position: Position? = null) : IExpression
+                            override val position: Position? = null) : IExpression {
+    override fun constValue(): LiteralValue? {
+        throw AstException("should have been optimized away before const value was asked")
+    }
 
-data class LiteralValue(val intvalue: Int?,
-                        val floatvalue: Double?,
-                        val strvalue: String?,
-                        val boolvalue: Boolean?,
-                        val arrayvalue: MutableList<IExpression>?,
-                        override val position: Position? = null) : IExpression
+    override fun optimize(optimizer: IAstOptimizer) = optimizer.optimize(this)
+}
+
+data class LiteralValue(val intvalue: Int? = null,
+                        val floatvalue: Double? = null,
+                        val strvalue: String? = null,
+                        val arrayvalue: List<IExpression>? = null,
+                        override val position: Position? = null) : IExpression {
+    override fun constValue(): LiteralValue?  = this
+    override fun optimize(optimizer: IAstOptimizer) = this
+}
+
 
 data class RangeExpr(var from: IExpression, var to: IExpression,
-                     override val position: Position? = null) : IExpression
+                     override val position: Position? = null) : IExpression {
+    override fun constValue(): LiteralValue? = null
+    override fun optimize(optimizer: IAstOptimizer): IExpression {
+        from = from.optimize(optimizer)
+        to = to.optimize(optimizer)
+        return this
+    }
+}
+
 
 data class RegisterExpr(val register: Register,
-                        override val position: Position? = null) : IExpression
+                        override val position: Position? = null) : IExpression {
+    override fun constValue(): LiteralValue? = null
+    override fun optimize(optimizer: IAstOptimizer) = this
+}
+
 
 data class Identifier(val name: String, val scope: List<String>,
-                      override val position: Position? = null) : IExpression
+                      override val position: Position? = null) : IExpression {
+    override fun constValue(): LiteralValue? {
+        // @todo should look up the identifier and return its value if that is a compile time const
+        return null
+    }
+
+    override fun optimize(optimizer: IAstOptimizer) = this
+}
+
 
 data class CallTarget(val address: Int?, val identifier: Identifier?,
-                      override val position: Position? = null) : Node
+                      override val position: Position? = null) : Node {
+    fun optimize(optimizer: IAstOptimizer) = this
+}
 
-data class PostIncrDecr(val target: AssignTarget, val operator: String,
-                        override val position: Position? = null) : IStatement
 
-data class Jump(val target: CallTarget,
-                override val position: Position? = null) : IStatement
+data class PostIncrDecr(var target: AssignTarget, val operator: String,
+                        override val position: Position? = null) : IStatement {
+    override fun optimize(optimizer: IAstOptimizer): IStatement {
+        target = target.optimize(optimizer)
+        return this
+    }
+}
 
-data class FunctionCall(val target: CallTarget, val arglist: MutableList<IExpression>,
-                        override val position: Position? = null) : IExpression
+
+data class Jump(var target: CallTarget,
+                override val position: Position? = null) : IStatement {
+    override fun optimize(optimizer: IAstOptimizer): IStatement {
+        target = target.optimize(optimizer)
+        return this
+    }
+}
+
+
+data class FunctionCall(var target: CallTarget, var arglist: List<IExpression>,
+                        override val position: Position? = null) : IExpression {
+    override fun constValue(): LiteralValue? {
+        // if the function is a built-in function and the args are consts, should evaluate!
+        return null
+    }
+
+    override fun optimize(optimizer: IAstOptimizer): IExpression {
+        target = target.optimize(optimizer)
+        arglist = arglist.map{it.optimize(optimizer)}
+        return this
+    }
+}
+
 
 data class InlineAssembly(val assembly: String,
-                          override val position: Position? = null) : IStatement
+                          override val position: Position? = null) : IStatement {
+    override fun optimize(optimizer: IAstOptimizer) = this
+}
 
 
 /***************** Antlr Extension methods to create AST ****************/
@@ -141,7 +257,7 @@ fun ParserRuleContext.toPosition(withPosition: Boolean) : Position? {
 
 
 fun il65Parser.ModuleContext.toAst(withPosition: Boolean) =
-        Module(modulestatement().map { it.toAst(withPosition) }.toMutableList(), toPosition(withPosition))
+        Module(modulestatement().map { it.toAst(withPosition) }, toPosition(withPosition))
 
 
 fun il65Parser.ModulestatementContext.toAst(withPosition: Boolean) : IStatement {
@@ -158,7 +274,7 @@ fun il65Parser.ModulestatementContext.toAst(withPosition: Boolean) : IStatement 
 fun il65Parser.BlockContext.toAst(withPosition: Boolean) : IStatement {
     return Block(identifier().text,
             integerliteral()?.toAst(),
-            statement().map { it.toAst(withPosition) }.toMutableList(),
+            statement().map { it.toAst(withPosition) },
             toPosition(withPosition))
 }
 
@@ -298,14 +414,17 @@ fun il65Parser.IntegerliteralContext.toAst(): Int {
 fun il65Parser.ExpressionContext.toAst(withPosition: Boolean) : IExpression {
 
     val litval = literalvalue()
-    if(litval!=null)
+    if(litval!=null) {
+        val booleanlit = litval.booleanliteral()?.toAst()
+        if(booleanlit!=null)
+            return LiteralValue(intvalue = if(booleanlit) 1 else 0)
         return LiteralValue(litval.integerliteral()?.toAst(),
                 litval.floatliteral()?.toAst(),
                 litval.stringliteral()?.text,
-                litval.booleanliteral()?.toAst(),
                 litval.arrayliteral()?.toAst(withPosition),
                 litval.toPosition(withPosition)
         )
+    }
 
     if(register()!=null)
         return RegisterExpr(register().toAst(), register().toPosition(withPosition))
@@ -331,13 +450,17 @@ fun il65Parser.ExpressionContext.toAst(withPosition: Boolean) : IExpression {
     if(funcall!=null) {
         val location = funcall.call_location().toAst(withPosition)
         return if(funcall.expression()!=null)
-            FunctionCall(location, mutableListOf(funcall.expression().toAst(withPosition)), funcall.toPosition(withPosition))
+            // TODO : more than one argument
+            FunctionCall(location, listOf(funcall.expression().toAst(withPosition)), funcall.toPosition(withPosition))
         else
-            FunctionCall(location, mutableListOf(), funcall.toPosition(withPosition))
+            FunctionCall(location, emptyList(), funcall.toPosition(withPosition))
     }
 
     if (rangefrom!=null && rangeto!=null)
         return RangeExpr(rangefrom.toAst(withPosition), rangeto.toAst(withPosition), toPosition(withPosition))
+
+    if(childCount==3 && children[0].text=="(" && children[2].text==")")
+        return expression(0).toAst(withPosition)        // expression within ( )
 
     throw UnsupportedOperationException(text)
 }
@@ -367,5 +490,5 @@ fun il65Parser.BooleanliteralContext.toAst() = when(text) {
 
 
 fun il65Parser.ArrayliteralContext.toAst(withPosition: Boolean) =
-        expression().map { it.toAst(withPosition) }.toMutableList()
+        expression().map { it.toAst(withPosition) }
 

@@ -289,7 +289,7 @@ arithmetic: ``+``  ``-``  ``*``  ``/``  ``//``  ``**``  ``%``
 	``+``, ``-``, ``*``, ``/`` are the familiar arithmetic operations.
 	``//`` means *integer division* even when the operands are floating point values:  ``9.5 // 2.5`` is 3 (and not 3.8)
 	``**`` is the power operator: ``3 ** 5`` is equal to 3*3*3*3*3 and is 243.
-	``%`` is the modulo operator: ``25 % 7`` is 4.
+	``%`` is the remainder operator: ``25 % 7`` is 4.
 
 
 bitwise arithmetic: ``<<``  ``>>``  ``<<@``  ``>@``  ``&``  ``|``  ``^``  ``~``
