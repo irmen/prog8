@@ -4,25 +4,20 @@ import il65.ast.*
 import kotlin.math.pow
 
 
-interface IAstOptimizer {
-    fun optimize(expr: PrefixExpression): IExpression
-    fun optimize(expr: BinaryExpression): IExpression
-}
-
 fun Module.optimized() : Module {
     val optimizer = AstOptimizer()
-    var result = this.optimizeOnceWith(optimizer)
+    var result = this.process(optimizer)
     while(optimizer.optimizationsDone>0) {
         println("Optimizations done: ${optimizer.optimizationsDone}")
         optimizer.reset()
-        result = result.optimizeOnceWith(optimizer)
+        result = result.process(optimizer)
     }
-    println("nothing left to optimize!")
+    println("nothing left to process!")
     return result
 }
 
 
-class AstOptimizer : IAstOptimizer {
+class AstOptimizer : IAstProcessor {
 
     var optimizationsDone: Int = 0
         private set
@@ -32,16 +27,16 @@ class AstOptimizer : IAstOptimizer {
     }
 
     /**
-     * Try to optimize a unary prefix expression.
+     * Try to process a unary prefix expression.
      * Compile-time constant sub expressions will be evaluated on the spot.
      * For instance, the expression for "- 4.5" will be optimized into the float literal -4.5
      */
-    override fun optimize(expr: PrefixExpression): IExpression {
-        expr.expression = expr.expression.optimize(this)    // optimize sub expression first
+    override fun process(expr: PrefixExpression): IExpression {
+        expr.expression = expr.expression.process(this)    // process sub expression first
 
         val subexpr = expr.expression
         if (subexpr is LiteralValue) {
-            // optimize prefixed literal values (such as -3, not true)
+            // process prefixed literal values (such as -3, not true)
             return when {
                 expr.operator == "+" -> subexpr
                 expr.operator == "-" -> return when {
@@ -80,15 +75,15 @@ class AstOptimizer : IAstOptimizer {
     }
 
     /**
-     * Try to optimize a binary expression.
+     * Try to process a binary expression.
      * Compile-time constant sub expressions will be evaluated on the spot.
      * For instance, "9 * (4 + 2)" will be optimized into the integer literal 54.
      */
-    override fun optimize(expr: BinaryExpression): IExpression {
+    override fun process(expr: BinaryExpression): IExpression {
         val evaluator = ConstExprEvaluator()
-        // optimize sub expressions first
-        expr.left = expr.left.optimize(this)
-        expr.right = expr.right.optimize(this)
+        // process sub expressions first
+        expr.left = expr.left.process(this)
+        expr.right = expr.right.process(this)
 
         val leftconst = expr.left.constValue()
         val rightconst = expr.right.constValue()
@@ -100,6 +95,11 @@ class AstOptimizer : IAstOptimizer {
             }
             else -> expr
         }
+    }
+
+    override fun process(directive: Directive): IStatement {
+        println("directove OPT $directive")
+        return directive
     }
 }
 

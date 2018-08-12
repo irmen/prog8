@@ -63,11 +63,12 @@ statement :
 	| unconditionaljump
 	| postincrdecr
 	| inlineasm
-	| label
+	| labeldef
+	| returnstmt
 	// @todo forloop, whileloop, repeatloop, ifelse
 	;
 
-label :  identifier ':'  ;
+labeldef :  identifier ':'  ;
 
 call_location :  integerliteral | identifier | scoped_identifier ;
 
@@ -135,12 +136,14 @@ expression :
 
 
 functioncall :
-	call_location '(' function_arg_list? ')'
+	call_location '(' expression_list? ')'
 	;
 
-function_arg_list :
+expression_list :
 	expression (',' expression)*
 	;
+
+returnstmt : 'return' expression_list? ;
 
 identifier :  NAME ;
 

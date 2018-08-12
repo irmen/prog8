@@ -1,0 +1,14 @@
+~ main $c000  {
+	const byte hopla=55-33
+	const byte hopla2=55-hopla
+	A = "derp" * %000100
+
+	%import maghierniet
+
+	return 1+999
+}
+
+%import imported1, 33, aaa
+%import imported2
+%import imported3
+

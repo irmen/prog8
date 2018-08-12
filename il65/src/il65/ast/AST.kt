@@ -1,6 +1,5 @@
 package il65.ast
 
-import il65.IAstOptimizer
 import il65.parser.il65Parser
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
@@ -34,8 +33,25 @@ enum class Register {
 open class AstException(override var message: String) : Exception(message)
 class ExpressionException(override var message: String) : AstException(message)
 
+class SyntaxError(override var message: String, val node: Node?) : AstException(message) {
+    fun printError() {
+        val location = if(node?.position == null)
+            ""
+        else
+            "[line ${node.position!!.line} col ${node.position!!.startCol}-${node.position!!.endCol}] "
+        System.err.println("$location$message")
+    }
+}
+
 
 data class Position(val line: Int, val startCol:Int, val endCol: Int)
+
+
+interface IAstProcessor {
+    fun process(expr: PrefixExpression): IExpression
+    fun process(expr: BinaryExpression): IExpression
+    fun process(directive: Directive): IStatement
+}
 
 
 interface Node {
@@ -44,29 +60,32 @@ interface Node {
 
 
 interface IStatement : Node {
-    fun optimize(optimizer: IAstOptimizer) : IStatement
+    fun process(processor: IAstProcessor) : IStatement
 }
 
 
-data class Module(var lines: List<IStatement>,
+data class Module(val name: String,
+                  var lines: List<IStatement>,
                   override val position: Position? = null) : Node {
-    fun optimizeOnceWith(optimizer: IAstOptimizer): Module {
-        lines = lines.map { it.optimize(optimizer) }
+    fun process(processor: IAstProcessor): Module {
+        lines = lines.map { it.process(processor) }
         return this
     }
 }
 
 data class Block(val name: String, val address: Int?, var statements: List<IStatement>,
                  override val position: Position? = null) : IStatement {
-    override fun optimize(optimizer: IAstOptimizer) : IStatement {
-        statements = statements.map { it.optimize(optimizer) }
+    override fun process(processor: IAstProcessor) : IStatement {
+        statements = statements.map { it.process(processor) }
         return this
     }
 }
 
 data class Directive(val directive: String, val args: List<DirectiveArg>,
                      override val position: Position? = null) : IStatement {
-    override fun optimize(optimizer: IAstOptimizer) = this
+    override fun process(processor: IAstProcessor) : IStatement {
+        return processor.process(this)
+    }
 }
 
 data class DirectiveArg(val str: String?, val name: String?, val int: Int?,
@@ -74,8 +93,17 @@ data class DirectiveArg(val str: String?, val name: String?, val int: Int?,
 
 data class Label(val name: String,
                  override val position: Position? = null) : IStatement {
-    override fun optimize(optimizer: IAstOptimizer) = this
+    override fun process(processor: IAstProcessor) = this
 }
+
+data class Return(var values: List<IExpression>,
+                  override val position: Position? = null) : IStatement {
+    override fun process(processor: IAstProcessor): IStatement {
+        values = values.map { it.process(processor) }
+        return this
+    }
+}
+
 
 interface IVarDecl : IStatement {
     val datatype: DataType
@@ -93,8 +121,8 @@ data class VarDecl(override val datatype: DataType,
                    override val name: String,
                    override var value: IExpression?,
                    override val position: Position? = null) : IVarDecl {
-    override fun optimize(optimizer: IAstOptimizer): IStatement {
-        value = value?.optimize(optimizer)
+    override fun process(processor: IAstProcessor): IStatement {
+        value = value?.process(processor)
         return this
     }
 }
@@ -104,8 +132,8 @@ data class ConstDecl(override val datatype: DataType,
                      override val name: String,
                      override var value: IExpression?,
                      override val position: Position? = null) : IVarDecl {
-    override fun optimize(optimizer: IAstOptimizer): IStatement {
-        value = value?.optimize(optimizer)
+    override fun process(processor: IAstProcessor): IStatement {
+        value = value?.process(processor)
         return this
     }
 }
@@ -115,34 +143,34 @@ data class MemoryVarDecl(override val datatype: DataType,
                          override val name: String,
                          override var value: IExpression?,
                          override val position: Position? = null) : IVarDecl {
-    override fun optimize(optimizer: IAstOptimizer): IStatement {
-        value = value?.optimize(optimizer)
+    override fun process(processor: IAstProcessor): IStatement {
+        value = value?.process(processor)
         return this
     }
 }
 
 data class Assignment(var target: AssignTarget, val aug_op : String?, var value: IExpression,
                       override val position: Position? = null) : IStatement {
-    override fun optimize(optimizer: IAstOptimizer): IStatement {
-        target = target.optimize(optimizer)
-        value = value.optimize(optimizer)
+    override fun process(processor: IAstProcessor): IStatement {
+        target = target.process(processor)
+        value = value.process(processor)
         return this
     }
 }
 
 data class AssignTarget(val register: Register?, val identifier: Identifier?,
                         override val position: Position? = null) : Node {
-    fun optimize(optimizer: IAstOptimizer) = this       // for now
+    fun process(processor: IAstProcessor) = this       // for now
 }
 
 
 interface IExpression: Node {
     fun constValue() : LiteralValue?
-    fun optimize(optimizer: IAstOptimizer): IExpression
+    fun process(processor: IAstProcessor): IExpression
 }
 
 
-// note: some expression elements are mutable, to be able to rewrite/optimize the expression tree
+// note: some expression elements are mutable, to be able to rewrite/process the expression tree
 
 data class PrefixExpression(val operator: String, var expression: IExpression,
                             override val position: Position? = null) : IExpression {
@@ -150,7 +178,7 @@ data class PrefixExpression(val operator: String, var expression: IExpression,
         throw ExpressionException("should have been optimized away before const value was asked")
     }
 
-    override fun optimize(optimizer: IAstOptimizer) = optimizer.optimize(this)
+    override fun process(processor: IAstProcessor) = processor.process(this)
 }
 
 
@@ -160,7 +188,7 @@ data class BinaryExpression(var left: IExpression, val operator: String, var rig
         throw ExpressionException("should have been optimized away before const value was asked")
     }
 
-    override fun optimize(optimizer: IAstOptimizer) = optimizer.optimize(this)
+    override fun process(processor: IAstProcessor) = processor.process(this)
 }
 
 data class LiteralValue(val intvalue: Int? = null,
@@ -169,16 +197,16 @@ data class LiteralValue(val intvalue: Int? = null,
                         val arrayvalue: List<IExpression>? = null,
                         override val position: Position? = null) : IExpression {
     override fun constValue(): LiteralValue?  = this
-    override fun optimize(optimizer: IAstOptimizer) = this
+    override fun process(processor: IAstProcessor) = this
 }
 
 
 data class RangeExpr(var from: IExpression, var to: IExpression,
                      override val position: Position? = null) : IExpression {
     override fun constValue(): LiteralValue? = null
-    override fun optimize(optimizer: IAstOptimizer): IExpression {
-        from = from.optimize(optimizer)
-        to = to.optimize(optimizer)
+    override fun process(processor: IAstProcessor): IExpression {
+        from = from.process(processor)
+        to = to.process(processor)
         return this
     }
 }
@@ -187,7 +215,7 @@ data class RangeExpr(var from: IExpression, var to: IExpression,
 data class RegisterExpr(val register: Register,
                         override val position: Position? = null) : IExpression {
     override fun constValue(): LiteralValue? = null
-    override fun optimize(optimizer: IAstOptimizer) = this
+    override fun process(processor: IAstProcessor) = this
 }
 
 
@@ -198,20 +226,20 @@ data class Identifier(val name: String, val scope: List<String>,
         return null
     }
 
-    override fun optimize(optimizer: IAstOptimizer) = this
+    override fun process(processor: IAstProcessor) = this
 }
 
 
 data class CallTarget(val address: Int?, val identifier: Identifier?,
                       override val position: Position? = null) : Node {
-    fun optimize(optimizer: IAstOptimizer) = this
+    fun process(processor: IAstProcessor) = this
 }
 
 
 data class PostIncrDecr(var target: AssignTarget, val operator: String,
                         override val position: Position? = null) : IStatement {
-    override fun optimize(optimizer: IAstOptimizer): IStatement {
-        target = target.optimize(optimizer)
+    override fun process(processor: IAstProcessor): IStatement {
+        target = target.process(processor)
         return this
     }
 }
@@ -219,8 +247,8 @@ data class PostIncrDecr(var target: AssignTarget, val operator: String,
 
 data class Jump(var target: CallTarget,
                 override val position: Position? = null) : IStatement {
-    override fun optimize(optimizer: IAstOptimizer): IStatement {
-        target = target.optimize(optimizer)
+    override fun process(processor: IAstProcessor): IStatement {
+        target = target.process(processor)
         return this
     }
 }
@@ -233,9 +261,9 @@ data class FunctionCall(var target: CallTarget, var arglist: List<IExpression>,
         return null
     }
 
-    override fun optimize(optimizer: IAstOptimizer): IExpression {
-        target = target.optimize(optimizer)
-        arglist = arglist.map{it.optimize(optimizer)}
+    override fun process(processor: IAstProcessor): IExpression {
+        target = target.process(processor)
+        arglist = arglist.map{it.process(processor)}
         return this
     }
 }
@@ -243,7 +271,7 @@ data class FunctionCall(var target: CallTarget, var arglist: List<IExpression>,
 
 data class InlineAssembly(val assembly: String,
                           override val position: Position? = null) : IStatement {
-    override fun optimize(optimizer: IAstOptimizer) = this
+    override fun process(processor: IAstProcessor) = this
 }
 
 
@@ -251,14 +279,14 @@ data class InlineAssembly(val assembly: String,
 
 fun ParserRuleContext.toPosition(withPosition: Boolean) : Position? {
     return if (withPosition)
-        Position(start.line, start.charPositionInLine, stop.charPositionInLine)
+        Position(start.line, start.charPositionInLine, stop.charPositionInLine+stop.text.length)
     else
         null
 }
 
 
-fun il65Parser.ModuleContext.toAst(withPosition: Boolean) =
-        Module(modulestatement().map { it.toAst(withPosition) }, toPosition(withPosition))
+fun il65Parser.ModuleContext.toAst(name: String, withPosition: Boolean) =
+        Module(name, modulestatement().map { it.toAst(withPosition) }, toPosition(withPosition))
 
 
 fun il65Parser.ModulestatementContext.toAst(withPosition: Boolean) : IStatement {
@@ -341,13 +369,17 @@ fun il65Parser.StatementContext.toAst(withPosition: Boolean) : IStatement {
     val directive = directive()?.toAst(withPosition)
     if(directive!=null) return directive
 
-    val label=label()
+    val label=labeldef()
     if(label!=null)
         return Label(label.text, label.toPosition(withPosition))
 
     val jump = unconditionaljump()
     if(jump!=null)
         return Jump(jump.call_location().toAst(withPosition), jump.toPosition(withPosition))
+
+    val returnstmt = returnstmt()
+    if(returnstmt!=null)
+        return Return(returnstmt.expression_list().toAst(withPosition))
 
     val asm = inlineasm()
     if(asm!=null)
@@ -450,10 +482,10 @@ fun il65Parser.ExpressionContext.toAst(withPosition: Boolean) : IExpression {
     val funcall = functioncall()
     if(funcall!=null) {
         val location = funcall.call_location().toAst(withPosition)
-        return if(funcall.function_arg_list()==null)
+        return if(funcall.expression_list()==null)
             FunctionCall(location, emptyList(), funcall.toPosition(withPosition))
         else
-            FunctionCall(location, funcall.function_arg_list().toAst(withPosition), funcall.toPosition(withPosition))
+            FunctionCall(location, funcall.expression_list().toAst(withPosition), funcall.toPosition(withPosition))
     }
 
     if (rangefrom!=null && rangeto!=null)
@@ -466,7 +498,7 @@ fun il65Parser.ExpressionContext.toAst(withPosition: Boolean) : IExpression {
 }
 
 
-fun il65Parser.Function_arg_listContext.toAst(withPosition: Boolean) = expression().map{ it.toAst(withPosition) }
+fun il65Parser.Expression_listContext.toAst(withPosition: Boolean) = expression().map{ it.toAst(withPosition) }
 
 
 fun il65Parser.IdentifierContext.toAst(withPosition: Boolean) : Identifier {

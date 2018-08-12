@@ -1,13 +1,15 @@
 package il65
 
-import il65.ast.IStatement
+import il65.ast.Directive
 import il65.ast.Module
+import il65.ast.SyntaxError
 import il65.ast.toAst
 import il65.parser.il65Lexer
 import il65.parser.il65Parser
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 import org.antlr.v4.runtime.Lexer
+import java.nio.file.Paths
 
 
 class MyTokenStream(lexer: Lexer) : CommonTokenStream(lexer) {
@@ -27,34 +29,70 @@ class MyTokenStream(lexer: Lexer) : CommonTokenStream(lexer) {
     }
 }
 
-public inline fun <R> Module.map(transform: (IStatement) -> R): List<R> {
-    val result = ArrayList<R>(lines.size)
-    for (line in this.lines) {
-        result.add(transform(line))
+class ParsingFailedError(override var message: String) : Exception(message)
+
+
+fun loadModule(filename: String) : Module {
+
+    val filePath = Paths.get(filename).normalize()
+    val fileLocation = filePath.parent
+    val fileName = filePath.fileName
+
+    println("importing '$fileName'  (from $fileLocation)...")
+    val input = CharStreams.fromPath(filePath)
+    val lexer = il65Lexer(input)
+    val tokens = MyTokenStream(lexer)
+    val parser = il65Parser(tokens)
+    val parseTree = parser.module()
+    if(parser.numberOfSyntaxErrors > 0)
+        throw ParsingFailedError("There are ${parser.numberOfSyntaxErrors} syntax errors in '$fileName'.")
+
+    // TODO the comments:
+    // tokens.commentTokens().forEach { println(it) }
+
+    // convert to Ast (optimizing this is done as a final step)
+    var moduleAst = parseTree.toAst(fileName.toString(),true)
+    val checkResult = moduleAst.checkValid()
+    checkResult.forEach { it.printError() }
+    if(checkResult.isNotEmpty())
+        throw ParsingFailedError("There are ${checkResult.size} syntax errors in '$fileName'.")
+
+    // process imports
+    val lines = moduleAst.lines.toMutableList()
+    val imports = lines
+            .mapIndexed { i, it -> Pair(i, it) }
+            .filter { (it.second as? Directive)?.directive == "%import" }
+            .map { Pair(it.first, executeImportDirective(it.second as Directive)) }
+
+    imports.reversed().forEach {
+            println("IMPORT [in ${moduleAst.name}]: $it")
     }
-    return result
+
+    moduleAst.lines = lines
+    return moduleAst
+}
+
+
+fun executeImportDirective(import: Directive): Module {
+    if(import.directive!="%import" || import.args.size!=1 || import.args[0].name==null)
+        throw SyntaxError("invalid import directive", import)
+
+    return Module("???", emptyList(), null)   // TODO
 }
 
 
 fun main(args: Array<String>) {
-    // println("Reading source file: ${args[0]}")
+    println("Reading source file: ${args[0]}")
+    try {
+        val moduleAst = loadModule(args[0]).optimized()
 
-    val input = CharStreams.fromString(
-                    "~ main \$c000  { \n" +
-                            " const byte hopla=55-33\n"+
-                            " const byte hopla2=55-hopla\n"+
-                            " A = \"derp\" * %000100 \n" +
-                            "}\n")
-    val lexer = il65Lexer(input)
-    val tokens = MyTokenStream(lexer)
-    val parser = il65Parser(tokens)
-    var moduleAst = parser.module().toAst(true).optimized()
-
-    // the comments:
-    tokens.commentTokens().forEach { println(it) }
-
-    moduleAst.lines.map {
-        println(it)
+        moduleAst.lines.map {
+            println(it)
+        }
+    } catch(sx: SyntaxError) {
+        sx.printError()
+    } catch (px: ParsingFailedError) {
+        System.err.println(px.message)
     }
 }
 
