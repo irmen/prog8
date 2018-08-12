@@ -1,20 +1,30 @@
-package il65
+package il65.ast
 
-import il65.ast.*
+import il65.ParsingFailedError
 
 
-fun Module.checkValid() : List<SyntaxError> {
+fun Module.checkValid() {
     val checker = AstChecker()
     this.process(checker)
-    return checker.result()
+    val checkResult = checker.result()
+    checkResult.forEach {
+        it.printError()
+    }
+    if(checkResult.isNotEmpty())
+        throw ParsingFailedError("There are ${checkResult.size} errors in module '$name'.")
 }
 
 
 class AstChecker : IAstProcessor {
     private val checkResult: MutableList<SyntaxError> = mutableListOf()
+    private val blockNames: HashMap<String, Position?> = hashMapOf()
 
     fun result(): List<SyntaxError> {
         return checkResult
+    }
+
+    override fun process(module: Module) {
+        module.lines.forEach { it.process(this) }
     }
 
     override fun process(expr: PrefixExpression): IExpression {
@@ -29,6 +39,12 @@ class AstChecker : IAstProcessor {
         if(block.address!=null && (block.address<0 || block.address>65535)) {
             checkResult.add(SyntaxError("block memory address must be valid 0..\$ffff", block))
         }
+        val existing = blockNames[block.name]
+        if(existing!=null) {
+            checkResult.add(SyntaxError("block name conflict, first defined in ${existing.file} line ${existing.line}", block))
+        } else {
+            blockNames[block.name] = block.position
+        }
         block.statements.forEach { it.process(this) }
         return block
     }
@@ -38,8 +54,6 @@ class AstChecker : IAstProcessor {
      */
     override fun process(decl: VarDecl): IStatement {
         fun err(msg: String) {
-            if(decl.value?.position == null)
-                throw AstException("declvalue no pos!")
             checkResult.add(SyntaxError(msg, decl))
         }
         when(decl.type) {
@@ -127,16 +141,21 @@ class AstChecker : IAstProcessor {
                 if(directive.parent !is Module) err("this directive may only occur at module level")
                 if(directive.args.size!=1 || directive.args[0].name==null)
                     err("invalid import directive, expected module name argument")
+                if(directive.args[0].name == (directive.parent as Module).name)
+                    err("invalid import directive, cannot import itself")
             }
             "%breakpoint" -> {
+                if(directive.parent !is Block) err("this directive may only occur in a block")
                 if(directive.args.isNotEmpty())
                     err("invalid breakpoint directive, expected no arguments")
             }
             "%asminclude" -> {
+                if(directive.parent !is Block) err("this directive may only occur in a block")
                 if(directive.args.size!=2 || directive.args[0].str==null || directive.args[1].name==null)
                     err("invalid asminclude directive, expected arguments: \"filename\", scopelabel")
             }
             "%asmbinary" -> {
+                if(directive.parent !is Block) err("this directive may only occur in a block")
                 val errormsg = "invalid asmbinary directive, expected arguments: \"filename\" [, offset [, length ] ]"
                 if(directive.args.isEmpty()) err(errormsg)
                 if(directive.args.isNotEmpty() && directive.args[0].str==null) err(errormsg)

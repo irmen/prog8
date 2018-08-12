@@ -3,6 +3,7 @@ package il65.ast
 import il65.parser.il65Parser
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
+import java.nio.file.Paths
 
 
 /**************************** AST Data classes ****************************/
@@ -35,19 +36,19 @@ class ExpressionException(override var message: String) : AstException(message)
 
 class SyntaxError(override var message: String, val node: Node?) : AstException(message) {
     fun printError() {
-        val location = if(node?.position == null)
-            ""
-        else
-            "[line ${node.position!!.line} col ${node.position!!.startCol}-${node.position!!.endCol}] "
-        System.err.println("$location$message")
+        val location = if(node?.position == null) "" else node.position.toString()
+        System.err.println("$location $message")
     }
 }
 
 
-data class Position(val line: Int, val startCol:Int, val endCol: Int)
+data class Position(val file: String, val line: Int, val startCol: Int, val endCol: Int) {
+    override fun toString(): String = "[$file: line $line col $startCol-$endCol]"
+}
 
 
 interface IAstProcessor {
+    fun process(module: Module)
     fun process(expr: PrefixExpression): IExpression
     fun process(expr: BinaryExpression): IExpression
     fun process(directive: Directive): IStatement
@@ -81,9 +82,8 @@ data class Module(val name: String,
         lines.forEach {it.linkParents(this)}
     }
 
-    fun process(processor: IAstProcessor): Module {
-        lines = lines.map { it.process(processor) }
-        return this
+    fun process(processor: IAstProcessor) {
+        processor.process(this)
     }
 }
 
@@ -440,9 +440,10 @@ data class InlineAssembly(val assembly: String) : IStatement {
 /***************** Antlr Extension methods to create AST ****************/
 
 fun ParserRuleContext.toPosition(withPosition: Boolean) : Position? {
+    val file = Paths.get(this.start.inputStream.sourceName).fileName.toString()
     return if (withPosition)
         // note: be ware of TAB characters in the source text, they count as 1 column...
-        Position(start.line, start.charPositionInLine, stop.charPositionInLine+stop.text.length)
+        Position(file, start.line, start.charPositionInLine, stop.charPositionInLine+stop.text.length)
     else
         null
 }

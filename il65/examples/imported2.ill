@@ -1,0 +1,25 @@
+%zp full
+%address 33
+
+~ extra  {
+	; this is imported
+
+	X = 42
+	return 44
+}
+
+~ extra2  {
+	; this is imported
+
+	X = 42
+	return 44
+}
+
+
+~ main  {
+	; this is imported
+
+	X = 42
+	return 44
+}
+

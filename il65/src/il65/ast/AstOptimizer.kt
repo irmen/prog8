@@ -1,29 +1,32 @@
-package il65
+package il65.ast
 
-import il65.ast.*
 import kotlin.math.pow
 
 
-fun Module.optimized() : Module {
+fun Module.optimize() {
     val optimizer = AstOptimizer()
-    var result = this.process(optimizer)
+    this.process(optimizer)
+    if(optimizer.optimizationsDone==0)
+        println("[${this.name}] 0 optimizations performed")
+
     while(optimizer.optimizationsDone>0) {
-        println("Optimizations done: ${optimizer.optimizationsDone}")
+        println("[${this.name}] ${optimizer.optimizationsDone} optimizations performed")
         optimizer.reset()
-        result = result.process(optimizer)
+        this.process(optimizer)
     }
-    println("nothing left to process!")
-    return result
 }
 
 
 class AstOptimizer : IAstProcessor {
-
     var optimizationsDone: Int = 0
         private set
 
     fun reset() {
         optimizationsDone = 0
+    }
+
+    override fun process(module: Module) {
+        module.lines = module.lines.map { it.process(this) }
     }
 
     override fun process(block: Block): IStatement {
@@ -102,7 +105,6 @@ class AstOptimizer : IAstProcessor {
         val rightconst = expr.right.constValue()
         return when {
             leftconst != null && rightconst != null -> {
-                println("optimizing $expr")
                 optimizationsDone++
                 evaluator.evaluate(leftconst, expr.operator, rightconst)
             }

@@ -1,6 +1,0 @@
-~ extra  {
-	; this is imported
-
-	X = 42
-	return 44
-}
