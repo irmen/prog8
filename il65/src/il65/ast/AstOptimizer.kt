@@ -34,6 +34,12 @@ class AstOptimizer : IAstProcessor {
         return block
     }
 
+    override fun process(subroutine: Subroutine): IStatement {
+        subroutine.statements = subroutine.statements.map { it.process(this) }
+        return subroutine
+    }
+
+
     override fun process(decl: VarDecl): IStatement {
         decl.value = decl.value?.process(this)
         decl.arrayspec?.process(this)

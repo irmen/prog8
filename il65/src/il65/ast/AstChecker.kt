@@ -16,6 +16,7 @@ fun Module.checkValid() {
 
 
 class AstChecker : IAstProcessor {
+
     private val checkResult: MutableList<SyntaxError> = mutableListOf()
     private val blockNames: HashMap<String, Position?> = hashMapOf()
 
@@ -50,6 +51,39 @@ class AstChecker : IAstProcessor {
     }
 
     /**
+     * Check subroutine definition
+     */
+    override fun process(subroutine: Subroutine): IStatement {
+        fun err(msg: String) {
+            checkResult.add(SyntaxError(msg, subroutine))
+        }
+        val uniqueNames = subroutine.parameters.map { it.name }.toSet()
+        if(uniqueNames.size!=subroutine.parameters.size)
+            err("parameter names should be unique")
+        val uniqueParamRegs = subroutine.parameters.map {it.register}.toSet()
+        if(uniqueParamRegs.size!=subroutine.parameters.size)
+            err("parameter registers should be unique")
+        val uniqueResults = subroutine.returnvalues.map {it.register}.toSet()
+        if(uniqueResults.size!=subroutine.returnvalues.size)
+            err("return registers should be unique")
+
+        subroutine.statements.forEach { it.process(this) }
+
+        // subroutine must contain at least one 'return' or 'goto'
+        // (or if it has an asm block, that must contain a 'rts' or 'jmp')
+        if(subroutine.statements.count { it is Return || it is Jump } == 0) {
+            val amount = subroutine.statements
+                    .map {(it as InlineAssembly)?.assembly}
+                    .count { it.contains(" rts") || it.contains("\trts") ||
+                             it.contains(" jmp") || it.contains("\tjmp")}
+            if(amount==0)
+                err("subroutine must have at least one 'return' or 'goto' in it (or 'rts' / 'jmp' in case of %asm)")
+        }
+
+        return subroutine
+    }
+
+    /**
      * Check the variable declarations (values within range etc)
      */
     override fun process(decl: VarDecl): IStatement {
@@ -58,40 +92,45 @@ class AstChecker : IAstProcessor {
         }
         when(decl.type) {
             VarDeclType.VAR, VarDeclType.CONST -> {
-                val value = decl.value as? LiteralValue
-                if(value==null)
-                    err("need a compile-time constant initializer value, found: ${decl.value!!::class.simpleName}")
-                else
-                    when(decl.datatype) {
-                        DataType.FLOAT -> {
-                            val number = value.asFloat()
-                            if(number==null)
-                                err("need a const float initializer value")
-                            else if(number > 1.7014118345e+38 || number < -1.7014118345e+38)
-                                err("floating point value out of range for MFLPT format")
-                        }
-                        DataType.BYTE -> {
-                            val number = value.asInt()
-                            if(number==null)
-                                err("need a const integer initializer value")
-                            else if(number < 0 || number > 255)
-                                err("value out of range for unsigned byte")
-                        }
-                        DataType.WORD -> {
-                            val number = value.asInt()
-                            if(number==null)
-                                err("need a const integer initializer value")
-                            else if(number < 0 || number > 65535)
-                                err("value out of range for unsigned word")
-                        }
-                        DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
-                            val str = value.strvalue
-                            if(str==null)
-                                err("need a const string initializer value")
-                            else if(str.isEmpty() || str.length>65535)
-                                err("string length must be 1..65535")
+                when {
+                    decl.value == null ->
+                        err("need a compile-time constant initializer value")
+                    decl.value !is LiteralValue ->
+                        err("need a compile-time constant initializer value, found: ${decl.value!!::class.simpleName}")
+                    else -> {
+                        val value = decl.value as LiteralValue
+                        when (decl.datatype) {
+                            DataType.FLOAT -> {
+                                val number = value.asFloat()
+                                if (number == null)
+                                    err("need a const float initializer value")
+                                else if (number > 1.7014118345e+38 || number < -1.7014118345e+38)
+                                    err("floating point value out of range for MFLPT format")
+                            }
+                            DataType.BYTE -> {
+                                val number = value.asInt()
+                                if (number == null)
+                                    err("need a const integer initializer value")
+                                else if (number < 0 || number > 255)
+                                    err("value out of range for unsigned byte")
+                            }
+                            DataType.WORD -> {
+                                val number = value.asInt()
+                                if (number == null)
+                                    err("need a const integer initializer value")
+                                else if (number < 0 || number > 65535)
+                                    err("value out of range for unsigned word")
+                            }
+                            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
+                                val str = value.strvalue
+                                if (str == null)
+                                    err("need a const string initializer value")
+                                else if (str.isEmpty() || str.length > 65535)
+                                    err("string length must be 1..65535")
+                            }
                         }
                     }
+                }
             }
             VarDeclType.MEMORY -> {
                 val value = decl.value as LiteralValue

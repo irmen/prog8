@@ -13,7 +13,7 @@
 		memory  word  SCRATCH_ZPWORD2	= $fd		; scratch word in ZP ($fd/$fe)
 
 
-	%asm {
+	%asm {{
 ; ---- jmp (indirect) routines for register pairs containing the indirect address
 ; @todo still needed??
 jsr_indirect_nozpuse_AX
@@ -272,7 +272,5 @@ _shift		cpx  #0
 +		rts
 
 
-	}
-
-	%noreturn
+	}}
 }

@@ -41,6 +41,10 @@ class ImportedAstChecker : IAstProcessor {
         module.lines = newLines
     }
 
+    override fun process(subroutine: Subroutine): IStatement {
+        return subroutine
+    }
+
     override fun process(expr: PrefixExpression): IExpression {
         return expr
     }

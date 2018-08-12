@@ -62,6 +62,7 @@ statement :
 	| augassignment
 	| unconditionaljump
 	| postincrdecr
+	| subroutine
 	| inlineasm
 	| labeldef
 	| returnstmt
@@ -170,3 +171,18 @@ literalvalue :
 	;
 
 inlineasm :  '%asm' INLINEASMBLOCK;
+
+
+subroutine :
+	'sub' identifier '(' sub_params? ')' '->' '(' sub_returns? ')' '{' EOL
+		(statement | EOL) *
+	'}' EOL
+	;
+
+sub_params : sub_param (',' sub_param)* ;
+
+sub_param: identifier ':' register ;
+
+sub_returns : '?' | ( sub_return (',' sub_return)* ) ;
+
+sub_return: register '?'? ;

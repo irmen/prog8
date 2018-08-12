@@ -28,61 +28,61 @@
 		memory  word  RESET_VEC		= $FFFC  	; 6502 reset vector, determined by the kernal if banked in
 		memory  word  IRQ_VEC		= $FFFE  	; 6502 interrupt vector, determined by the kernal if banked in
 
-		memory  matrix(40, 25) Screen	= $0400		; default character screen matrix
-		memory  matrix(40, 25) Colors	= $d800		; character screen colors
+		memory  byte[40, 25]  Screen	= $0400		; default character screen matrix
+		memory  byte[40, 25]  Colors	= $d800		; character screen colors
 
 
 ; ---- VIC-II registers ----
 
-		memory  SP0X		= $d000
-		memory  SP0Y		= $d001
-		memory  SP1X		= $d002
-		memory  SP1Y		= $d003
-		memory  SP2X		= $d004
-		memory  SP2Y		= $d005
-		memory  SP3X		= $d006
-		memory  SP3Y		= $d007
-		memory  SP4X		= $d008
-		memory  SP4Y		= $d009
-		memory  SP5X		= $d00a
-		memory  SP5Y		= $d00b
-		memory  SP6X		= $d00c
-		memory  SP6Y		= $d00d
-		memory  SP7X		= $d00e
-		memory  SP7Y		= $d00f
+		memory  byte SP0X		= $d000
+		memory  byte SP0Y		= $d001
+		memory  byte SP1X		= $d002
+		memory  byte SP1Y		= $d003
+		memory  byte SP2X		= $d004
+		memory  byte SP2Y		= $d005
+		memory  byte SP3X		= $d006
+		memory  byte SP3Y		= $d007
+		memory  byte SP4X		= $d008
+		memory  byte SP4Y		= $d009
+		memory  byte SP5X		= $d00a
+		memory  byte SP5Y		= $d00b
+		memory  byte SP6X		= $d00c
+		memory  byte SP6Y		= $d00d
+		memory  byte SP7X		= $d00e
+		memory  byte SP7Y		= $d00f
 
-		memory  MSIGX		= $d010
-		memory  SCROLY		= $d011
-		memory  RASTER		= $d012
-		memory  LPENX		= $d013
-		memory  LPENY		= $d014
-		memory  SPENA		= $d015
-		memory  SCROLX		= $d016
-		memory  YXPAND		= $d017
-		memory  VMCSB		= $d018
-		memory  VICIRQ		= $d019
-		memory  IREQMASK	= $d01a
-		memory  SPBGPR		= $d01b
-		memory  SPMC		= $d01c
-		memory  XXPAND		= $d01d
-		memory  SPSPCL		= $d01e
-		memory  SPBGCL		= $d01f
+		memory  byte MSIGX		= $d010
+		memory  byte SCROLY		= $d011
+		memory  byte RASTER		= $d012
+		memory  byte LPENX		= $d013
+		memory  byte LPENY		= $d014
+		memory  byte SPENA		= $d015
+		memory  byte SCROLX		= $d016
+		memory  byte YXPAND		= $d017
+		memory  byte VMCSB		= $d018
+		memory  byte VICIRQ		= $d019
+		memory  byte IREQMASK		= $d01a
+		memory  byte SPBGPR		= $d01b
+		memory  byte SPMC		= $d01c
+		memory  byte XXPAND		= $d01d
+		memory  byte SPSPCL		= $d01e
+		memory  byte SPBGCL		= $d01f
 
-		memory  EXTCOL		= $d020		; border color
-		memory  BGCOL0		= $d021		; screen color
-		memory  BGCOL1		= $d022
-		memory  BGCOL2		= $d023
-		memory  BGCOL4		= $d024
-		memory  SPMC0		= $d025
-		memory  SPMC1		= $d026
-		memory  SP0COL		= $d027
-		memory  SP1COL		= $d028
-		memory  SP2COL		= $d029
-		memory  SP3COL		= $d02a
-		memory  SP4COL		= $d02b
-		memory  SP5COL		= $d02c
-		memory  SP6COL		= $d02d
-		memory  SP7COL		= $d02e
+		memory  byte EXTCOL		= $d020		; border color
+		memory  byte BGCOL0		= $d021		; screen color
+		memory  byte BGCOL1		= $d022
+		memory  byte BGCOL2		= $d023
+		memory  byte BGCOL4		= $d024
+		memory  byte SPMC0		= $d025
+		memory  byte SPMC1		= $d026
+		memory  byte SP0COL		= $d027
+		memory  byte SP1COL		= $d028
+		memory  byte SP2COL		= $d029
+		memory  byte SP3COL		= $d02a
+		memory  byte SP4COL		= $d02b
+		memory  byte SP5COL		= $d02c
+		memory  byte SP6COL		= $d02d
+		memory  byte SP7COL		= $d02e
 
 ; ---- end of VIC-II registers ----
 
@@ -244,7 +244,7 @@ sub  init_system  () -> (?)  {
 	; This means that the BASIC, KERNAL and CHARGEN ROMs are banked in,
 	; the VIC, SID and CIA chips are reset, screen is cleared, and the default IRQ is set.
 	; Also a different color scheme is chosen to identify ourselves a little.
-	%asm {
+	%asm {{
 		sei
 		cld
 		lda  #%00101111
@@ -266,7 +266,7 @@ sub  init_system  () -> (?)  {
 		clv
 		cli
 		rts
-	}
+	}}
 }
 
 %noreturn
@@ -279,30 +279,30 @@ sub  init_system  () -> (?)  {
 
 sub  FREADS32  () -> (?)  {
 	; ---- fac1 = signed int32 from $62-$65 big endian (MSB FIRST)
-	%asm {
+	%asm {{
 		lda  $62
 		eor  #$ff
 		asl  a
 		lda  #0
 		ldx  #$a0
 		jmp  $bc4f		; internal BASIC routine
-	}
+	}}
 }
 
 sub  FREADUS32  () -> (?)  {
 	; ---- fac1 = uint32 from $62-$65 big endian (MSB FIRST)
-	%asm {
+	%asm {{
 		sec
 		lda  #0
 		ldx  #$a0
 		jmp  $bc4f		; internal BASIC routine
-	}
+	}}
 }
 
 sub  FREADS24AXY  (lo: A, mid: X, hi: Y) -> (?)  {
 	; ---- fac1 = signed int24 (A/X/Y contain lo/mid/hi bytes)
 	;      note: there is no FREADU24AXY (unsigned), use FREADUS32 instead.
-	%asm {
+	%asm {{
 		sty  $62
 		stx  $63
 		sta  $64
@@ -313,57 +313,57 @@ sub  FREADS24AXY  (lo: A, mid: X, hi: Y) -> (?)  {
 		sta  $65
 		ldx  #$98
 		jmp  $bc4f		; internal BASIC routine
-	}
+	}}
 }
 
 sub  GIVUAYF  (uword: AY) -> (?)  {
 	; ---- unsigned 16 bit word in A/Y (lo/hi) to fac1
-	%asm {
+	%asm {{
 		sty  $62
 		sta  $63
 		ldx  #$90
 		sec
 		jmp  $bc49		; internal BASIC routine
-	}
+	}}
 }
 
 sub  GIVAYFAY  (sword: AY) -> (?)  {
 	; ---- signed 16 bit word in A/Y (lo/hi) to float in fac1
-	%asm {
+	%asm {{
 		sta  c64.SCRATCH_ZP1
 		tya
 		ldy  c64.SCRATCH_ZP1
 		jmp  c64.GIVAYF		; this uses the inverse order, Y/A
-	}
+	}}
 }
 
 sub  FTOSWRDAY  () -> (AY, X?)  {
 	; ---- fac1 to signed word in A/Y
-	%asm {
+	%asm {{
 		jsr  c64.FTOSWORDYA	; note the inverse Y/A order
 		sta  c64.SCRATCH_ZP1
 		tya
 		ldy  c64.SCRATCH_ZP1
 		rts
-	}
+	}}
 }
 
 sub  GETADRAY  () -> (AY, X?)  {
 	; ---- fac1 to unsigned word in A/Y
-	%asm {
+	%asm {{
 		jsr  c64.GETADR		; this uses the inverse order, Y/A
 		sta  c64.SCRATCH_ZP1
 		tya
 		ldy  c64.SCRATCH_ZP1
 		rts
-	}
+	}}
 }
 
 
 sub  copy_mflt  (source: XY) -> (A?, Y?)  {
 	; ---- copy a 5 byte MFLT floating point variable to another place
 	;      input: X/Y = source address,  c64.SCRATCH_ZPWORD1 = destination address
-	%asm {
+	%asm {{
 		stx  c64.SCRATCH_ZP1
 		sty  c64.SCRATCH_ZPWORD1+1
 		ldy  #0
@@ -383,12 +383,12 @@ sub  copy_mflt  (source: XY) -> (A?, Y?)  {
 		sta  (c64.SCRATCH_ZPWORD1),y
 		ldy  c64.SCRATCH_ZPWORD1+1
 		rts
-	}
+	}}
 }
 
 sub  float_add_one  (mflt: XY) -> (?)  {
 	; ---- add 1 to the MFLT pointed to by X/Y.  Clobbers A, X, Y
-	%asm {
+	%asm {{
 		stx  c64.SCRATCH_ZP1
 		sty  c64.SCRATCH_ZP2
 		txa
@@ -399,12 +399,12 @@ sub  float_add_one  (mflt: XY) -> (?)  {
 		ldx  c64.SCRATCH_ZP1
 		ldy  c64.SCRATCH_ZP2
 		jmp  c64.FTOMEMXY	; float XY = fac1
-	}
+	}}
 }
 
 sub  float_sub_one  (mflt: XY) -> (?)  {
 	; ---- subtract 1 from the MFLT pointed to by X/Y.  Clobbers A, X, Y
-	%asm {
+	%asm {{
 		stx  c64.SCRATCH_ZP1
 		sty  c64.SCRATCH_ZP2
 		lda  #<c64.FL_FONE
@@ -416,12 +416,12 @@ sub  float_sub_one  (mflt: XY) -> (?)  {
 		ldx  c64.SCRATCH_ZP1
 		ldy  c64.SCRATCH_ZP2
 		jmp  c64.FTOMEMXY	; float XY = fac1
-	}
+	}}
 }
 
 sub  float_add_SW1_to_XY  (mflt: XY) -> (?)  {
 	; ---- add MFLT pointed to by SCRATCH_ZPWORD1 to the MFLT pointed to by X/Y.  Clobbers A, X, Y
-	%asm {
+	%asm {{
 		stx  c64.SCRATCH_ZP1
 		sty  c64.SCRATCH_ZP2
 		txa
@@ -432,12 +432,12 @@ sub  float_add_SW1_to_XY  (mflt: XY) -> (?)  {
 		ldx  c64.SCRATCH_ZP1
 		ldy  c64.SCRATCH_ZP2
 		jmp  c64.FTOMEMXY	; float XY = fac1
-	}
+	}}
 }
 
 sub  float_sub_SW1_from_XY  (mflt: XY) -> (?)  {
 	; ---- subtract MFLT pointed to by SCRATCH_ZPWORD1 from the MFLT pointed to by X/Y.  Clobbers A, X, Y
-	%asm {
+	%asm {{
 		stx  c64.SCRATCH_ZP1
 		sty  c64.SCRATCH_ZP2
 		lda  c64.SCRATCH_ZPWORD1
@@ -449,7 +449,7 @@ sub  float_sub_SW1_from_XY  (mflt: XY) -> (?)  {
 		ldx  c64.SCRATCH_ZP1
 		ldy  c64.SCRATCH_ZP2
 		jmp  c64.FTOMEMXY	; float XY = fac1
-	}
+	}}
 }
 
 %noreturn
@@ -467,7 +467,7 @@ sub  clear_screen (char: A, color: Y) -> ()  {
 	;      (assumes screen is at $0400, could be altered in the future with self-modifying code)
 	;       @todo X = SCREEN ADDR HI BYTE
 
-	%asm {
+	%asm {{
 		sta  _loop + 1      ; self-modifying
 		stx  c64.SCRATCH_ZP1
 		ldx  #0
@@ -487,7 +487,7 @@ _loop           lda  #0
 		lda  _loop+1		; restore A and X
 		ldx  c64.SCRATCH_ZP1
 		rts
-        }
+        }}
 
 }
 
@@ -496,7 +496,7 @@ sub scroll_left_full  (alsocolors: SC) -> (A?, X?, Y?)  {
 	; ---- scroll the whole screen 1 character to the left
 	;      contents of the rightmost column are unchanged, you should clear/refill this yourself
 	;      Carry flag determines if screen color data must be scrolled too
-	%asm {
+	%asm {{
 		bcs  +
 		jmp  _scroll_screen
 
@@ -547,7 +547,7 @@ _scroll_screen  ; scroll the screen memory
 		bpl  -
 
 		rts
-	}
+	}}
 }
 
 
@@ -555,7 +555,7 @@ sub scroll_right_full  (alsocolors: SC) -> (A?, X?)  {
 	; ---- scroll the whole screen 1 character to the right
 	;      contents of the leftmost column are unchanged, you should clear/refill this yourself
 	;      Carry flag determines if screen color data must be scrolled too
-	%asm {
+	%asm {{
 		bcs  +
 		jmp  _scroll_screen
 
@@ -598,7 +598,7 @@ _scroll_screen  ; scroll the screen memory
 		bpl  -
 
 		rts
-	}
+	}}
 }
 
 
@@ -606,7 +606,7 @@ sub scroll_up_full  (alsocolors: SC) -> (A?, X?)  {
 	; ---- scroll the whole screen 1 character up
 	;      contents of the bottom row are unchanged, you should refill/clear this yourself
 	;      Carry flag determines if screen color data must be scrolled too
-	%asm {
+	%asm {{
 		bcs  +
 		jmp  _scroll_screen
 
@@ -649,7 +649,7 @@ _scroll_screen  ; scroll the screen memory
 		bpl  -
 
 		rts
-	}
+	}}
 }
 
 
@@ -657,7 +657,7 @@ sub scroll_down_full  (alsocolors: SC) -> (A?, X?)  {
 	; ---- scroll the whole screen 1 character down
 	;      contents of the top row are unchanged, you should refill/clear this yourself
 	;      Carry flag determines if screen color data must be scrolled too
-	%asm {
+	%asm {{
 		bcs  +
 		jmp  _scroll_screen
 
@@ -700,13 +700,13 @@ _scroll_screen  ; scroll the screen memory
 		bpl  -
 
 		rts
-	}
+	}}
 }
 
 
 sub  byte2decimal  (ubyte: A) -> (Y, X, A)  {
 	; ---- A to decimal string in Y/X/A  (100s in Y, 10s in X, 1s in A)
-	%asm {
+	%asm {{
 		ldy  #$2f
 		ldx  #$3a
 		sec
@@ -718,12 +718,12 @@ sub  byte2decimal  (ubyte: A) -> (Y, X, A)  {
 		bmi  -
 		adc  #$2f
 		rts
-	}
+	}}
 }
 
 sub  byte2hex  (ubyte: A) -> (X, Y, A?)  {
 	; ---- A to hex string in XY (first hex char in X, second hex char in Y)
-	%asm {
+	%asm {{
 		pha
 		and  #$0f
 		tax
@@ -739,14 +739,14 @@ sub  byte2hex  (ubyte: A) -> (X, Y, A?)  {
 		rts
 
 hex_digits	.str "0123456789abcdef"	; can probably be reused for other stuff as well
-	}
+	}}
 }
 
 
 		var  str  word2hex_output = "1234"   ; 0-terminated, to make printing easier
 sub  word2hex  (word: XY) -> (?)  {
 	; ---- convert 16 bit word in X/Y into 4-character hexadecimal string into memory  'word2hex_output'
-	%asm {
+	%asm {{
 		stx  c64.SCRATCH_ZP2
 		tya
 		jsr  byte2hex
@@ -757,7 +757,7 @@ sub  word2hex  (word: XY) -> (?)  {
 		stx  word2hex_output+2
 		sty  word2hex_output+3
 		rts
-	}
+	}}
 }
 
 
@@ -770,7 +770,7 @@ sub  word2bcd  (word: XY) -> (A?, X?)  {
 	; into a BCD value that is being doubled on each iteration. As all the
 	; arithmetic is being done in BCD the result is a binary to decimal
 	; conversion.
-	%asm {
+	%asm {{
 		stx  c64.SCRATCH_ZP1
 		sty  c64.SCRATCH_ZP2
 		sed				; switch to decimal mode
@@ -795,14 +795,14 @@ sub  word2bcd  (word: XY) -> (A?, X?)  {
 		bne  -
 		cld				; back to binary
 		rts
-	}
+	}}
 }
 
 
 		var  array(5)  word2decimal_output
 sub  word2decimal  (word: XY) -> (?)  {
 	; ---- convert 16 bit word in X/Y into decimal string into memory  'word2decimal_output'
-	%asm {
+	%asm {{
 		jsr  word2bcd
 		lda  word2bcd_bcdbuff+2
 		clc
@@ -828,7 +828,7 @@ sub  word2decimal  (word: XY) -> (?)  {
 		sta  word2decimal_output,y
 		iny
 		rts
-	}
+	}}
 }
 
 
@@ -840,7 +840,7 @@ sub  print_string (address: XY) -> (A?, Y?)  {
 	; note: the IL65 compiler contains an optimization that will replace
 	;       a call to this subroutine with a string argument of just one char,
 	;       by just one call to c64.CHROUT of that single char.
-	%asm {
+	%asm {{
 		stx  c64.SCRATCH_ZP1
 		sty  c64.SCRATCH_ZP2
 		ldy  #0
@@ -850,13 +850,13 @@ sub  print_string (address: XY) -> (A?, Y?)  {
 		iny
 		bne  -
 +		rts
-	}
+	}}
 }
 
 
 sub  print_pstring  (address: XY) -> (A?, X?, Y)  {
 	; ---- print pstring (length as first byte) from X/Y, returns str len in Y
-	%asm {
+	%asm {{
 		stx  c64.SCRATCH_ZP1
 		sty  c64.SCRATCH_ZP2
 		ldy  #0
@@ -869,14 +869,14 @@ sub  print_pstring  (address: XY) -> (A?, X?, Y)  {
 		dex
 		bne  -
 +		rts 			; output string length is in Y
-	}
+	}}
 }
 
 
 sub  print_pimmediate  () -> ()  {
 	; ---- print pstring in memory  immediately following the subroutine fast call instruction
 	; note that the clobbered registers (A,X,Y) are not listed ON PURPOSE
-	%asm {
+	%asm {{
 		tsx
 		lda  $102,x
 		tay			; put high byte in y
@@ -898,13 +898,13 @@ sub  print_pimmediate  () -> ()  {
 		bne  +			; if that made it (the low byte) roll over to 00,
 		inc  $102,x		; increment the high byte of the return addr too.
 +		rts
-	}
+	}}
 }
 
 
 sub  print_byte_decimal0  (ubyte: A) -> (?)  {
 	; ---- print the byte in A in decimal form, with left padding 0s (3 positions total)
-	%asm {
+	%asm {{
 		jsr  byte2decimal
 		pha
 		tya
@@ -913,13 +913,13 @@ sub  print_byte_decimal0  (ubyte: A) -> (?)  {
 		jsr  c64.CHROUT
 		pla
 		jmp  c64.CHROUT
-	}
+	}}
 }
 
 
 sub  print_byte_decimal  (ubyte: A) -> (?)  {
 	; ---- print the byte in A in decimal form, without left padding 0s
-	%asm {
+	%asm {{
 		jsr  byte2decimal
 		pha
 		cpy  #'0'
@@ -934,13 +934,13 @@ _print_tens	txa
 		jsr  c64.CHROUT
 		pla
 		jmp  c64.CHROUT
-	}
+	}}
 }
 
 
 sub  print_byte_hex  (prefix: SC, ubyte: A) -> (?)  {
 	; ---- print the byte in A in hex form (if Carry is set, a radix prefix '$' is printed as well)
-	%asm {
+	%asm {{
 		bcc  +
 		pha
 		lda  #'$'
@@ -951,27 +951,27 @@ sub  print_byte_hex  (prefix: SC, ubyte: A) -> (?)  {
 		jsr  c64.CHROUT
 		tya
 		jmp  c64.CHROUT
-	}
+	}}
 }
 
 
 sub print_word_hex  (prefix: SC, word: XY) -> (?)  {
 	; ---- print the (unsigned) word in X/Y in hexadecimal form (4 digits)
 	;      (if Carry is set, a radix prefix '$' is printed as well)
-	%asm {
+	%asm {{
 		stx  c64.SCRATCH_ZP1
 		tya
 		jsr  print_byte_hex
 		lda  c64.SCRATCH_ZP1
 		clc
 		jmp  print_byte_hex
-	}
+	}}
 }
 
 
 sub  print_word_decimal0  (word: XY) -> (?)  {
 	; ---- print the (unsigned) word in X/Y in decimal form, with left padding 0s (5 positions total)
-	%asm {
+	%asm {{
 		jsr  word2decimal
 		lda  word2decimal_output
 		jsr  c64.CHROUT
@@ -983,13 +983,13 @@ sub  print_word_decimal0  (word: XY) -> (?)  {
 		jsr  c64.CHROUT
 		lda  word2decimal_output+4
 		jmp  c64.CHROUT
-	}
+	}}
 }
 
 
 sub  print_word_decimal  (word: XY) -> (A?, X?, Y?)  {
 	; ---- print the word in X/Y in decimal form, without left padding 0s
-	%asm {
+	%asm {{
 		jsr  word2decimal
 		ldy  #0
 		lda  word2decimal_output
@@ -1016,7 +1016,7 @@ _pr_decimal
 		cpy  #5
 		bcc  _pr_decimal
 		rts
-	}
+	}}
 }
 
 
@@ -1024,7 +1024,7 @@ sub  input_chars  (buffer: AX) -> (A?, Y)  {
 	; ---- Input a string (max. 80 chars) from the keyboard.
 	;      It assumes the keyboard is selected as I/O channel!!
 
-	%asm {
+	%asm {{
 		sta  c64.SCRATCH_ZP1
 		stx  c64.SCRATCH_ZP2
 		ldy  #0				; char counter = 0
@@ -1038,7 +1038,7 @@ sub  input_chars  (buffer: AX) -> (A?, Y)  {
 		sta  (c64.SCRATCH_ZP1),y	; finish string with 0 byte
 		rts
 
-	}
+	}}
 }
 
 %noreturn
@@ -1056,7 +1056,7 @@ sub  input_chars  (buffer: AX) -> (A?, Y)  {
 ;	; higher addresses are copied first, so:
 ;	;       - moving data to higher addresses works even if areas overlap
 ;	;       - moving data to lower addresses only works if areas do not overlap
-;	%asm {
+;	%asm {{
 ;		lda  #<src_start
 ;		ldx  #>src_start
 ;		sta  $5f

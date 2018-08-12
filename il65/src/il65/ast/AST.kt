@@ -54,11 +54,12 @@ interface IAstProcessor {
     fun process(directive: Directive): IStatement
     fun process(block: Block): IStatement
     fun process(decl: VarDecl): IStatement
+    fun process(subroutine: Subroutine): IStatement
 }
 
 
 interface Node {
-    val position: Position?     // optional for the sake of easy unit testing
+    var position: Position?     // optional for the sake of easy unit testing
     var parent: Node?           // will be linked correctly later
     fun linkParents(parent: Node)
 }
@@ -437,9 +438,57 @@ data class InlineAssembly(val assembly: String) : IStatement {
 }
 
 
+data class Subroutine(val name: String,
+                      val parameters: List<SubroutineParameter>,
+                      val returnvalues: List<SubroutineReturnvalue>,
+                      var statements: List<IStatement>) : IStatement {
+    override var position: Position? = null
+    override var parent: Node? = null
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        parameters.forEach { it.parent=this }
+        returnvalues.forEach { it.parent=this }
+        statements.forEach { it.parent=this }
+    }
+
+    override fun process(processor: IAstProcessor) = processor.process(this)
+}
+
+
+data class SubroutineParameter(val name: String, val register: Register) : Node {
+    override var position: Position? = null
+    override var parent: Node? = null
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+    }
+}
+
+
+data class SubroutineReturnvalue(val register: Register, val clobbered: Boolean) : Node {
+    override var position: Position? = null
+    override var parent: Node? = null
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+    }
+}
+
+
+
 /***************** Antlr Extension methods to create AST ****************/
 
-fun ParserRuleContext.toPosition(withPosition: Boolean) : Position? {
+fun il65Parser.ModuleContext.toAst(name: String, withPosition: Boolean) : Module {
+    val module = Module(name, modulestatement().map { it.toAst(withPosition) })
+    module.position = toPosition(withPosition)
+    return module
+}
+
+
+/************** Helper extesion methods (private) ************/
+
+private fun ParserRuleContext.toPosition(withPosition: Boolean) : Position? {
     val file = Paths.get(this.start.inputStream.sourceName).fileName.toString()
     return if (withPosition)
         // note: be ware of TAB characters in the source text, they count as 1 column...
@@ -449,14 +498,7 @@ fun ParserRuleContext.toPosition(withPosition: Boolean) : Position? {
 }
 
 
-fun il65Parser.ModuleContext.toAst(name: String, withPosition: Boolean) : Module {
-    val module = Module(name, modulestatement().map { it.toAst(withPosition) })
-    module.position = toPosition(withPosition)
-    return module
-}
-
-
-fun il65Parser.ModulestatementContext.toAst(withPosition: Boolean) : IStatement {
+private fun il65Parser.ModulestatementContext.toAst(withPosition: Boolean) : IStatement {
     val directive = directive()?.toAst(withPosition)
     if(directive!=null) return directive
 
@@ -467,7 +509,7 @@ fun il65Parser.ModulestatementContext.toAst(withPosition: Boolean) : IStatement 
 }
 
 
-fun il65Parser.BlockContext.toAst(withPosition: Boolean) : IStatement {
+private fun il65Parser.BlockContext.toAst(withPosition: Boolean) : IStatement {
     val block= Block(identifier().text,
             integerliteral()?.toAst(),
             statement().map { it.toAst(withPosition) })
@@ -476,7 +518,7 @@ fun il65Parser.BlockContext.toAst(withPosition: Boolean) : IStatement {
 }
 
 
-fun il65Parser.StatementContext.toAst(withPosition: Boolean) : IStatement {
+private fun il65Parser.StatementContext.toAst(withPosition: Boolean) : IStatement {
     val vardecl = vardecl()
     if(vardecl!=null) {
         val decl= VarDecl(VarDeclType.VAR,
@@ -550,36 +592,68 @@ fun il65Parser.StatementContext.toAst(withPosition: Boolean) : IStatement {
     val directive = directive()?.toAst(withPosition)
     if(directive!=null) return directive
 
-    val label=labeldef()
-    if(label!=null) {
-        val lbl = Label(label.text)
-        lbl.position = label.toPosition(withPosition)
-        return lbl
-    }
+    val label = labeldef()?.toAst(withPosition)
+    if(label!=null) return label
 
-    val jump = unconditionaljump()
-    if(jump!=null) {
-        val ast = Jump(jump.call_location().toAst(withPosition))
-        ast.position = jump.toPosition(withPosition)
-        return ast
-    }
+    val jump = unconditionaljump()?.toAst(withPosition)
+    if(jump!=null) return jump
 
     val returnstmt = returnstmt()
-    if(returnstmt!=null)
-        return Return(returnstmt.expression_list().toAst(withPosition))
+    if(returnstmt!=null) return Return(returnstmt.expression_list().toAst(withPosition))
 
-    val asm = inlineasm()
-    if(asm!=null) {
-        val ast = InlineAssembly(asm.INLINEASMBLOCK().text)
-        ast.position = asm.toPosition(withPosition)
-        return ast
-    }
+    val sub = subroutine()?.toAst(withPosition)
+    if(sub!=null) return sub
+
+    val asm = inlineasm()?.toAst(withPosition)
+    if(asm!=null) return asm
 
     throw UnsupportedOperationException(text)
 }
 
 
-fun il65Parser.Call_locationContext.toAst(withPosition: Boolean) : CallTarget {
+private fun il65Parser.InlineasmContext.toAst(withPosition: Boolean): IStatement {
+    val asm = InlineAssembly(INLINEASMBLOCK().text)
+    asm.position = toPosition(withPosition)
+    return asm
+}
+
+
+private fun il65Parser.UnconditionaljumpContext.toAst(withPosition: Boolean): IStatement {
+    val jump = Jump(call_location().toAst(withPosition))
+    jump.position = toPosition(withPosition)
+    return jump
+}
+
+
+private fun il65Parser.LabeldefContext.toAst(withPosition: Boolean): IStatement {
+    val lbl = Label(text)
+    lbl.position = toPosition(withPosition)
+    return lbl
+}
+
+
+private fun il65Parser.SubroutineContext.toAst(withPosition: Boolean) : Subroutine {
+    val sub = Subroutine(identifier().text,
+            if(sub_params()==null) emptyList() else sub_params().toAst(withPosition),
+            if(sub_returns()==null) emptyList() else sub_returns().toAst(withPosition),
+            statement().map{ it.toAst(withPosition) })
+    sub.position = toPosition(withPosition)
+    return sub
+}
+
+
+private fun il65Parser.Sub_paramsContext.toAst(withPosition: Boolean): List<SubroutineParameter> =
+        sub_param().map { SubroutineParameter(it.identifier().text, it.register().toAst()) }
+
+
+private fun il65Parser.Sub_returnsContext.toAst(withPosition: Boolean): List<SubroutineReturnvalue> =
+        sub_return().map {
+            val isClobber = it.childCount==2 && it.children[1].text == "?"
+            SubroutineReturnvalue(it.register().toAst(), isClobber)
+        }
+
+
+private fun il65Parser.Call_locationContext.toAst(withPosition: Boolean) : CallTarget {
     val address = integerliteral()?.toAst()
     val identifier = identifier()
     val result =
@@ -590,7 +664,7 @@ fun il65Parser.Call_locationContext.toAst(withPosition: Boolean) : CallTarget {
 }
 
 
-fun il65Parser.Assign_targetContext.toAst(withPosition: Boolean) : AssignTarget {
+private fun il65Parser.Assign_targetContext.toAst(withPosition: Boolean) : AssignTarget {
     val register = register()?.toAst()
     val identifier = identifier()
     val result = if(identifier!=null)
@@ -602,13 +676,13 @@ fun il65Parser.Assign_targetContext.toAst(withPosition: Boolean) : AssignTarget 
 }
 
 
-fun il65Parser.RegisterContext.toAst() = Register.valueOf(text.toUpperCase())
+private fun il65Parser.RegisterContext.toAst() = Register.valueOf(text.toUpperCase())
 
 
-fun il65Parser.DatatypeContext.toAst() = DataType.valueOf(text.toUpperCase())
+private fun il65Parser.DatatypeContext.toAst() = DataType.valueOf(text.toUpperCase())
 
 
-fun il65Parser.ArrayspecContext.toAst(withPosition: Boolean) : ArraySpec {
+private fun il65Parser.ArrayspecContext.toAst(withPosition: Boolean) : ArraySpec {
     val spec = ArraySpec(
             expression(0).toAst(withPosition),
             if (expression().size > 1) expression(1).toAst(withPosition) else null)
@@ -617,14 +691,14 @@ fun il65Parser.ArrayspecContext.toAst(withPosition: Boolean) : ArraySpec {
 }
 
 
-fun il65Parser.DirectiveContext.toAst(withPosition: Boolean) : Directive {
+private fun il65Parser.DirectiveContext.toAst(withPosition: Boolean) : Directive {
     val dir = Directive(directivename.text, directivearg().map { it.toAst(withPosition) })
     dir.position = toPosition(withPosition)
     return dir
 }
 
 
-fun il65Parser.DirectiveargContext.toAst(withPosition: Boolean) : DirectiveArg {
+private fun il65Parser.DirectiveargContext.toAst(withPosition: Boolean) : DirectiveArg {
     val darg = DirectiveArg(stringliteral()?.text,
             identifier()?.text,
             integerliteral()?.toAst())
@@ -633,7 +707,7 @@ fun il65Parser.DirectiveargContext.toAst(withPosition: Boolean) : DirectiveArg {
 }
 
 
-fun il65Parser.IntegerliteralContext.toAst(): Int {
+private fun il65Parser.IntegerliteralContext.toAst(): Int {
     val terminal: TerminalNode = children[0] as TerminalNode
     return when (terminal.symbol.type) {
         il65Parser.DEC_INTEGER -> text.toInt()
@@ -644,7 +718,7 @@ fun il65Parser.IntegerliteralContext.toAst(): Int {
 }
 
 
-fun il65Parser.ExpressionContext.toAst(withPosition: Boolean) : IExpression {
+private fun il65Parser.ExpressionContext.toAst(withPosition: Boolean) : IExpression {
 
     val litval = literalvalue()
     if(litval!=null) {
@@ -712,17 +786,17 @@ fun il65Parser.ExpressionContext.toAst(withPosition: Boolean) : IExpression {
 }
 
 
-fun il65Parser.Expression_listContext.toAst(withPosition: Boolean) = expression().map{ it.toAst(withPosition) }
+private fun il65Parser.Expression_listContext.toAst(withPosition: Boolean) = expression().map{ it.toAst(withPosition) }
 
 
-fun il65Parser.IdentifierContext.toAst(withPosition: Boolean) : Identifier {
+private fun il65Parser.IdentifierContext.toAst(withPosition: Boolean) : Identifier {
     val ident = Identifier(text, emptyList())
     ident.position = toPosition(withPosition)
     return ident
 }
 
 
-fun il65Parser.Scoped_identifierContext.toAst(withPosition: Boolean) : Identifier {
+private fun il65Parser.Scoped_identifierContext.toAst(withPosition: Boolean) : Identifier {
     val names = NAME()
     val name = names.last().text
     val scope = names.take(names.size-1)
@@ -732,16 +806,16 @@ fun il65Parser.Scoped_identifierContext.toAst(withPosition: Boolean) : Identifie
 }
 
 
-fun il65Parser.FloatliteralContext.toAst() = text.toDouble()
+private fun il65Parser.FloatliteralContext.toAst() = text.toDouble()
 
 
-fun il65Parser.BooleanliteralContext.toAst() = when(text) {
+private fun il65Parser.BooleanliteralContext.toAst() = when(text) {
     "true" -> true
     "false" -> false
     else -> throw UnsupportedOperationException(text)
 }
 
 
-fun il65Parser.ArrayliteralContext.toAst(withPosition: Boolean) =
+private fun il65Parser.ArrayliteralContext.toAst(withPosition: Boolean) =
         expression().map { it.toAst(withPosition) }
 
