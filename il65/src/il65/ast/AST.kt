@@ -31,7 +31,8 @@ enum class Register {
 }
 
 
-class AstException(override var message: String) : Exception(message)
+open class AstException(override var message: String) : Exception(message)
+class ExpressionException(override var message: String) : AstException(message)
 
 
 data class Position(val line: Int, val startCol:Int, val endCol: Int)
@@ -146,7 +147,7 @@ interface IExpression: Node {
 data class PrefixExpression(val operator: String, var expression: IExpression,
                             override val position: Position? = null) : IExpression {
     override fun constValue(): LiteralValue? {
-        throw AstException("should have been optimized away before const value was asked")
+        throw ExpressionException("should have been optimized away before const value was asked")
     }
 
     override fun optimize(optimizer: IAstOptimizer) = optimizer.optimize(this)
@@ -156,7 +157,7 @@ data class PrefixExpression(val operator: String, var expression: IExpression,
 data class BinaryExpression(var left: IExpression, val operator: String, var right: IExpression,
                             override val position: Position? = null) : IExpression {
     override fun constValue(): LiteralValue? {
-        throw AstException("should have been optimized away before const value was asked")
+        throw ExpressionException("should have been optimized away before const value was asked")
     }
 
     override fun optimize(optimizer: IAstOptimizer) = optimizer.optimize(this)
@@ -449,11 +450,10 @@ fun il65Parser.ExpressionContext.toAst(withPosition: Boolean) : IExpression {
     val funcall = functioncall()
     if(funcall!=null) {
         val location = funcall.call_location().toAst(withPosition)
-        return if(funcall.expression()!=null)
-            // TODO : more than one argument
-            FunctionCall(location, listOf(funcall.expression().toAst(withPosition)), funcall.toPosition(withPosition))
-        else
+        return if(funcall.function_arg_list()==null)
             FunctionCall(location, emptyList(), funcall.toPosition(withPosition))
+        else
+            FunctionCall(location, funcall.function_arg_list().toAst(withPosition), funcall.toPosition(withPosition))
     }
 
     if (rangefrom!=null && rangeto!=null)
@@ -464,6 +464,9 @@ fun il65Parser.ExpressionContext.toAst(withPosition: Boolean) : IExpression {
 
     throw UnsupportedOperationException(text)
 }
+
+
+fun il65Parser.Function_arg_listContext.toAst(withPosition: Boolean) = expression().map{ it.toAst(withPosition) }
 
 
 fun il65Parser.IdentifierContext.toAst(withPosition: Boolean) : Identifier {

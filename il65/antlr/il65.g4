@@ -114,7 +114,7 @@ expression :
 	| functioncall
 	| prefix = ('+'|'-'|'~') expression
 	| left = expression bop = '**' right = expression
-	| left = expression bop = ('*' | '/' | '%') right = expression
+	| left = expression bop = ('*' | '/' ) right = expression
 	| left = expression bop = ('+' | '-' ) right = expression
 	| left = expression bop = ('<<' | '>>' | '<<@' | '>>@' ) right = expression
 	| left = expression bop = ('<' | '>' | '<=' | '>=') right = expression
@@ -135,7 +135,11 @@ expression :
 
 
 functioncall :
-	call_location '(' expression? ')'		//  @todo arglist
+	call_location '(' function_arg_list? ')'
+	;
+
+function_arg_list :
+	expression (',' expression)*
 	;
 
 identifier :  NAME ;

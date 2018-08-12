@@ -43,7 +43,7 @@ fun main(args: Array<String>) {
                     "~ main \$c000  { \n" +
                             " const byte hopla=55-33\n"+
                             " const byte hopla2=55-hopla\n"+
-                            " A = \"derp\" * (2-2) \n" +
+                            " A = \"derp\" * %000100 \n" +
                             "}\n")
     val lexer = il65Lexer(input)
     val tokens = MyTokenStream(lexer)
