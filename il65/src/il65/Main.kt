@@ -50,12 +50,14 @@ fun loadModule(filename: String) : Module {
     // TODO the comments:
     // tokens.commentTokens().forEach { println(it) }
 
-    // convert to Ast (optimizing this is done as a final step)
-    var moduleAst = parseTree.toAst(fileName.toString(),true)
+    // convert to Ast and optimize
+    var moduleAst = parseTree.toAst(fileName.toString(),true).optimized()
+    moduleAst.linkParents()
+
     val checkResult = moduleAst.checkValid()
     checkResult.forEach { it.printError() }
     if(checkResult.isNotEmpty())
-        throw ParsingFailedError("There are ${checkResult.size} syntax errors in '$fileName'.")
+        throw ParsingFailedError("There are ${checkResult.size} errors in '$fileName'.")
 
     // process imports
     val lines = moduleAst.lines.toMutableList()
@@ -65,7 +67,7 @@ fun loadModule(filename: String) : Module {
             .map { Pair(it.first, executeImportDirective(it.second as Directive)) }
 
     imports.reversed().forEach {
-            println("IMPORT [in ${moduleAst.name}]: $it")
+            println("IMPORT [in ${moduleAst.name}]: $it")   // TODO
     }
 
     moduleAst.lines = lines
@@ -77,14 +79,15 @@ fun executeImportDirective(import: Directive): Module {
     if(import.directive!="%import" || import.args.size!=1 || import.args[0].name==null)
         throw SyntaxError("invalid import directive", import)
 
-    return Module("???", emptyList(), null)   // TODO
+    return Module("???", emptyList())   // TODO
 }
 
 
 fun main(args: Array<String>) {
     println("Reading source file: ${args[0]}")
     try {
-        val moduleAst = loadModule(args[0]).optimized()
+        val moduleAst = loadModule(args[0]).optimized()     // one final global optimization
+        moduleAst.linkParents()  // re-link parents in final configuration
 
         moduleAst.lines.map {
             println(it)

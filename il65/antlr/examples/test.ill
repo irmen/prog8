@@ -1,11 +1,18 @@
-~ main $c000  {
-	const byte hopla=55-33
-	const byte hopla2=55-hopla
-	A = "derp" * %000100
+~ main $c003  {
+  memory byte derp = $ffdd1
+  const byte hopla=55-33
+  ; const byte hopla2=55-hopla
+  const float zwop = -1.7014118345e+38
+  const float zwop = -1.7014118346e+38
 
-	%import maghierniet
+  A = "derp" * %000100
 
-	return 1+999
+  %import maghierniet
+  %import maghierniet
+  %import maghierniet
+  %import maghierniet
+
+  return 1+999
 }
 
 %import imported1, 33, aaa
