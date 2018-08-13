@@ -44,11 +44,6 @@ class AstOptimizer : IAstProcessor {
         return functionCall
     }
 
-    override fun process(jump: Jump): IStatement {
-        return jump
-    }
-
-
     override fun process(decl: VarDecl): IStatement {
         decl.value = decl.value?.process(this)
         decl.arrayspec?.process(this)
@@ -125,10 +120,6 @@ class AstOptimizer : IAstProcessor {
             }
             else -> expr
         }
-    }
-
-    override fun process(directive: Directive): IStatement {
-        return directive
     }
 }
 

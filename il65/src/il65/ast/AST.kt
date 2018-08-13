@@ -48,15 +48,32 @@ data class Position(val file: String, val line: Int, val startCol: Int, val endC
 
 
 interface IAstProcessor {
-    fun process(module: Module)
-    fun process(expr: PrefixExpression): IExpression
-    fun process(expr: BinaryExpression): IExpression
-    fun process(directive: Directive): IStatement
-    fun process(block: Block): IStatement
-    fun process(decl: VarDecl): IStatement
-    fun process(subroutine: Subroutine): IStatement
-    fun process(jump: Jump): IStatement
-    fun process(functionCall: FunctionCall): IExpression
+    fun process(module: Module) {
+    }
+    fun process(expr: PrefixExpression): IExpression {
+        return expr
+    }
+    fun process(expr: BinaryExpression): IExpression {
+        return expr
+    }
+    fun process(directive: Directive): IStatement {
+        return directive
+    }
+    fun process(block: Block): IStatement {
+        return block
+    }
+    fun process(decl: VarDecl): IStatement {
+        return decl
+    }
+    fun process(subroutine: Subroutine): IStatement {
+        return subroutine
+    }
+    fun process(jump: Jump): IStatement {
+        return jump
+    }
+    fun process(functionCall: FunctionCall): IExpression {
+        return functionCall
+    }
 }
 
 
@@ -623,7 +640,7 @@ private fun il65Parser.UnconditionaljumpContext.toAst(withPosition: Boolean): IS
 
 
 private fun il65Parser.LabeldefContext.toAst(withPosition: Boolean): IStatement {
-    val lbl = Label(text)
+    val lbl = Label(this.children[0].text)
     lbl.position = toPosition(withPosition)
     return lbl
 }

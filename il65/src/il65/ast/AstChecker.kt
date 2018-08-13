@@ -28,14 +28,6 @@ class AstChecker : IAstProcessor {
         module.lines.forEach { it.process(this) }
     }
 
-    override fun process(expr: PrefixExpression): IExpression {
-        return expr
-    }
-
-    override fun process(expr: BinaryExpression): IExpression {
-        return expr
-    }
-
     override fun process(functionCall: FunctionCall): IExpression {
         functionCall.arglist.map{it.process(this)}
         return functionCall

@@ -40,37 +40,4 @@ class ImportedAstChecker : IAstProcessor {
         }
         module.lines = newLines
     }
-
-    override fun process(subroutine: Subroutine): IStatement {
-        return subroutine
-    }
-
-    override fun process(expr: PrefixExpression): IExpression {
-        return expr
-    }
-
-    override fun process(expr: BinaryExpression): IExpression {
-        return expr
-    }
-
-    override fun process(block: Block): IStatement {
-        return block
-    }
-
-    override fun process(decl: VarDecl): IStatement {
-        return decl
-    }
-
-    override fun process(directive: Directive): IStatement {
-        return directive
-    }
-
-    override fun process(functionCall: FunctionCall): IExpression {
-        return functionCall
-    }
-
-    override fun process(jump: Jump): IStatement {
-        return jump
-    }
-
 }
