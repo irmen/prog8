@@ -1,7 +1,6 @@
 package il65.ast
 
 import il65.ParsingFailedError
-import javax.xml.crypto.Data
 
 
 fun Module.checkValid() {
@@ -50,6 +49,18 @@ class AstChecker : IAstProcessor {
             blockNames[block.name] = block.position
         }
         block.statements.forEach { it.process(this) }
+
+        // check if labels are unique
+        val labels = block.statements.filter { it is Label }.map { it as Label }
+        val labelnames = mutableMapOf<String, Position?>()
+        labels.forEach {
+            val existing = labelnames[it.name]
+            if(existing!=null) {
+                checkResult.add(SyntaxError("label name conflict, first defined on line ${existing.line}", it.position))
+            } else {
+                labelnames[it.name] = it.position
+            }
+        }
         return block
     }
 
@@ -71,6 +82,18 @@ class AstChecker : IAstProcessor {
             err("return registers should be unique")
 
         subroutine.statements.forEach { it.process(this) }
+
+        // check if labels are unique
+        val labels = subroutine.statements.filter { it is Label }.map { it as Label }
+        val labelnames = mutableMapOf<String, Position?>()
+        labels.forEach {
+            val existing = labelnames[it.name]
+            if(existing!=null) {
+                checkResult.add(SyntaxError("label name conflict, first defined on line ${existing.line}", it.position))
+            } else {
+                labelnames[it.name] = it.position
+            }
+        }
 
         // subroutine must contain at least one 'return' or 'goto'
         // (or if it has an asm block, that must contain a 'rts' or 'jmp')

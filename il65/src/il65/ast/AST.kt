@@ -48,6 +48,7 @@ data class Position(val file: String, val line: Int, val startCol: Int, val endC
 
 
 interface IAstProcessor {
+    // override the ones you want to act upon
     fun process(module: Module) {
     }
     fun process(expr: PrefixExpression): IExpression {
