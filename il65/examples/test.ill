@@ -19,6 +19,7 @@
 	%asmbinary "derp", 0, 200
 }
 
+%option enable_floats
 
 %import imported
 %import imported

@@ -94,15 +94,14 @@ Directives
 	You can import modules one at a time, and importing a module more than once has no effect.
 
 
-.. data:: %saveregisters
+.. data:: %option <option> [, <option> ...]
 
-	Level: block.
-	@todo
+	Level: module.
+	Sets special compiler options.
+	For now, only the ``enable_floats`` option is recognised, which will tell the compiler
+	to deal with floating point numbers (by using various subroutines from the Commodore-64 kernal).
+	Otherwise, floating point support is not enabled.
 
-.. data:: %noreturn
-
-	Level: block, subroutine.
-	@todo
 
 .. data:: %asmbinary "<filename>" [, <offset>[, <length>]]
 
@@ -247,6 +246,7 @@ type identifier  type                     storage size       example var declara
 **@todo pointers/addresses?  (as opposed to normal WORDs)**
 
 **@todo signed integers (byte and word)?**
+
 
 Memory mapped variables
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -451,14 +451,22 @@ Conditional Execution and Jumps
 unconditional jump
 ^^^^^^^^^^^^^^^^^^
 
-@todo::
+To jump to another part of the program, you use a ``goto`` statement with an addres or the name
+of a label or subroutine::
+
 	goto  $c000		; address
 	goto  name		; label or subroutine
+
+
+Notice that this is a valid way to end a subroutine (you can either ``return`` from it, or jump
+to another piece of code that eventually returns).
+
 
 conditional execution
 ^^^^^^^^^^^^^^^^^^^^^
 
 @todo::
+
 	if  <condition>   <single_statement or subblock>
 	  [else   <single_statement or subblock>]
 

@@ -285,6 +285,11 @@ class AstChecker : IAstProcessor {
                 if(directive.args.size==3 && directive.args[2].int==null) err(errormsg)
                 if(directive.args.size>3) err(errormsg)
             }
+            "%option" -> {
+                if(directive.parent !is Module) err("this directive may only occur at module level")
+                if(directive.args.size!=1 || directive.args[0].name != "enable_floats")
+                    err("invalid option directive argument, expected enable_floats")
+            }
             else -> throw AstException("invalid directive ${directive.directive}")
         }
         return directive

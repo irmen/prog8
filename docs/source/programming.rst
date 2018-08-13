@@ -164,6 +164,11 @@ Values will usually be part of an expression or assignment statement::
 	byte  counter  = 42	; variable of size 8 bits, with initial value 42
 
 
+Note that the various keywords for the data type and variable type (``byte``, ``word``, ``const``, etc.)
+cannot be used as *identifiers* elsewhere. You can't make a variable, block or subroutine with the name ``byte``
+for instance.
+
+
 Special types: const and memory-mapped
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

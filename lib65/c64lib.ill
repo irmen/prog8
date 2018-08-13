@@ -5,7 +5,7 @@
 ; ;
 ; indent format: TABS, size=8
 
-; todo %option enable_floats
+%option enable_floats
 
 
 ~ c64 {
