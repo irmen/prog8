@@ -7,6 +7,12 @@
 
   A = "derp" * %000100
 
+  sub foo () -> () {
+  	A=99
+  	return 33
+  	X =33
+  }
+
   return 1+999
 	%breakpoint
 	%asminclude "derp", hopsa

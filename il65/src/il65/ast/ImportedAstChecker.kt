@@ -65,4 +65,12 @@ class ImportedAstChecker : IAstProcessor {
         return directive
     }
 
+    override fun process(functionCall: FunctionCall): IExpression {
+        return functionCall
+    }
+
+    override fun process(jump: Jump): IStatement {
+        return jump
+    }
+
 }

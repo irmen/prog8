@@ -97,7 +97,7 @@ fun discoverImportedModule(name: String, importedFrom: Path): Path {
 
 fun executeImportDirective(import: Directive, importedFrom: Path): Module? {
     if(import.directive!="%import" || import.args.size!=1 || import.args[0].name==null)
-        throw SyntaxError("invalid import directive", import)
+        throw SyntaxError("invalid import directive", import.position)
     val moduleName = import.args[0].name!!
     if(importedModules.containsKey(moduleName))
         return null

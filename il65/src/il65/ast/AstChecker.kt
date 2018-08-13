@@ -1,6 +1,7 @@
 package il65.ast
 
 import il65.ParsingFailedError
+import javax.xml.crypto.Data
 
 
 fun Module.checkValid() {
@@ -16,7 +17,6 @@ fun Module.checkValid() {
 
 
 class AstChecker : IAstProcessor {
-
     private val checkResult: MutableList<SyntaxError> = mutableListOf()
     private val blockNames: HashMap<String, Position?> = hashMapOf()
 
@@ -36,13 +36,24 @@ class AstChecker : IAstProcessor {
         return expr
     }
 
+    override fun process(functionCall: FunctionCall): IExpression {
+        functionCall.arglist.map{it.process(this)}
+        return functionCall
+    }
+
+    override fun process(jump: Jump): IStatement {
+        if(jump.address!=null && (jump.address < 0 || jump.address > 65535))
+            checkResult.add(SyntaxError("jump address must be valid 0..\$ffff", jump.position))
+        return jump
+    }
+
     override fun process(block: Block): IStatement {
         if(block.address!=null && (block.address<0 || block.address>65535)) {
-            checkResult.add(SyntaxError("block memory address must be valid 0..\$ffff", block))
+            checkResult.add(SyntaxError("block memory address must be valid 0..\$ffff", block.position))
         }
         val existing = blockNames[block.name]
         if(existing!=null) {
-            checkResult.add(SyntaxError("block name conflict, first defined in ${existing.file} line ${existing.line}", block))
+            checkResult.add(SyntaxError("block name conflict, first defined in ${existing.file} line ${existing.line}", block.position))
         } else {
             blockNames[block.name] = block.position
         }
@@ -55,7 +66,7 @@ class AstChecker : IAstProcessor {
      */
     override fun process(subroutine: Subroutine): IStatement {
         fun err(msg: String) {
-            checkResult.add(SyntaxError(msg, subroutine))
+            checkResult.add(SyntaxError(msg, subroutine.position))
         }
         val uniqueNames = subroutine.parameters.map { it.name }.toSet()
         if(uniqueNames.size!=subroutine.parameters.size)
@@ -72,12 +83,15 @@ class AstChecker : IAstProcessor {
         // subroutine must contain at least one 'return' or 'goto'
         // (or if it has an asm block, that must contain a 'rts' or 'jmp')
         if(subroutine.statements.count { it is Return || it is Jump } == 0) {
+            if(subroutine.address==null) {
             val amount = subroutine.statements
-                    .map {(it as InlineAssembly)?.assembly}
+                    .filter { it is InlineAssembly }
+                    .map {(it as InlineAssembly).assembly}
                     .count { it.contains(" rts") || it.contains("\trts") ||
                              it.contains(" jmp") || it.contains("\tjmp")}
-            if(amount==0)
+            if(amount==0 )
                 err("subroutine must have at least one 'return' or 'goto' in it (or 'rts' / 'jmp' in case of %asm)")
+                }
         }
 
         return subroutine
@@ -88,7 +102,7 @@ class AstChecker : IAstProcessor {
      */
     override fun process(decl: VarDecl): IStatement {
         fun err(msg: String) {
-            checkResult.add(SyntaxError(msg, decl))
+            checkResult.add(SyntaxError(msg, decl.position))
         }
         when(decl.type) {
             VarDeclType.VAR, VarDeclType.CONST -> {
@@ -97,38 +111,12 @@ class AstChecker : IAstProcessor {
                         err("need a compile-time constant initializer value")
                     decl.value !is LiteralValue ->
                         err("need a compile-time constant initializer value, found: ${decl.value!!::class.simpleName}")
-                    else -> {
-                        val value = decl.value as LiteralValue
-                        when (decl.datatype) {
-                            DataType.FLOAT -> {
-                                val number = value.asFloat()
-                                if (number == null)
-                                    err("need a const float initializer value")
-                                else if (number > 1.7014118345e+38 || number < -1.7014118345e+38)
-                                    err("floating point value out of range for MFLPT format")
-                            }
-                            DataType.BYTE -> {
-                                val number = value.asInt()
-                                if (number == null)
-                                    err("need a const integer initializer value")
-                                else if (number < 0 || number > 255)
-                                    err("value out of range for unsigned byte")
-                            }
-                            DataType.WORD -> {
-                                val number = value.asInt()
-                                if (number == null)
-                                    err("need a const integer initializer value")
-                                else if (number < 0 || number > 65535)
-                                    err("value out of range for unsigned word")
-                            }
-                            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
-                                val str = value.strvalue
-                                if (str == null)
-                                    err("need a const string initializer value")
-                                else if (str.isEmpty() || str.length > 65535)
-                                    err("string length must be 1..65535")
-                            }
-                        }
+                    decl.isScalar -> {
+                        checkConstInitializerValueScalar(decl)
+                        checkValueRange(decl.datatype, decl.value as LiteralValue, decl.position)
+                    }
+                    decl.isArray || decl.isMatrix -> {
+                        checkConstInitializerValueArray(decl)
                     }
                 }
             }
@@ -145,12 +133,107 @@ class AstChecker : IAstProcessor {
         return decl
     }
 
+
+    private fun checkConstInitializerValueArray(decl: VarDecl) {
+        val value = decl.value as LiteralValue
+        // init value should either be a scalar or an array with the same dimensions as the arrayspec.
+
+        if(decl.isArray) {
+            if(value.arrayvalue==null) {
+                checkValueRange(decl.datatype, value.constValue()!!, value.position)
+            }
+            else {
+                if (value.arrayvalue.size != decl.arraySizeX)
+                    checkResult.add(SyntaxError("initializer array size mismatch (expecting ${decl.arraySizeX})", decl.position))
+                else {
+                    value.arrayvalue.forEach {
+                        checkValueRange(decl.datatype, it.constValue()!!, it.position)
+                    }
+                }
+            }
+        }
+
+        if(decl.isMatrix) {
+            if(value.arrayvalue==null) {
+                checkValueRange(decl.datatype, value.constValue()!!, value.position)
+            }
+            else {
+                if (value.arrayvalue.size != decl.arraySizeX!! * decl.arraySizeY!!)
+                    checkResult.add(SyntaxError("initializer array size mismatch (expecting ${decl.arraySizeX!! * decl.arraySizeY!!}", decl.position))
+                else {
+                    value.arrayvalue.forEach {
+                        checkValueRange(decl.datatype, it.constValue()!!, it.position)
+                    }
+                }
+            }
+        }
+    }
+
+
+    private fun checkValueRange(datatype: DataType, value: LiteralValue, position: Position?) {
+        fun err(msg: String) {
+            checkResult.add(SyntaxError(msg, position))
+        }
+        when (datatype) {
+            DataType.FLOAT -> {
+                val number = value.asFloat(false)
+                if (number!=null && (number > 1.7014118345e+38 || number < -1.7014118345e+38))
+                    err("floating point value out of range for MFLPT format")
+            }
+            DataType.BYTE -> {
+                val number = value.asInt(false)
+                if (number!=null && (number < 0 || number > 255))
+                    err("value out of range for unsigned byte")
+            }
+            DataType.WORD -> {
+                val number = value.asInt(false)
+                if (number!=null && (number < 0 || number > 65535))
+                    err("value out of range for unsigned word")
+            }
+            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
+                val str = value.strvalue
+                if (str!=null && (str.isEmpty() || str.length > 65535))
+                    err("string length must be 1..65535")
+            }
+        }
+    }
+
+
+    private fun checkConstInitializerValueScalar(decl: VarDecl) {
+        fun err(msg: String) {
+            checkResult.add(SyntaxError(msg, decl.position))
+        }
+        val value = decl.value as LiteralValue
+        when (decl.datatype) {
+            DataType.FLOAT -> {
+                val number = value.asFloat(false)
+                if (number == null)
+                    err("need a const float initializer value")
+            }
+            DataType.BYTE -> {
+                val number = value.asInt(false)
+                if (number == null)
+                    err("need a const integer initializer value")
+            }
+            DataType.WORD -> {
+                val number = value.asInt(false)
+                if (number == null)
+                    err("need a const integer initializer value")
+            }
+            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
+                val str = value.strvalue
+                if (str == null)
+                    err("need a const string initializer value")
+            }
+        }
+    }
+
     /**
      * check the arguments of the directive
      */
     override fun process(directive: Directive): IStatement {
         fun err(msg: String) {
-            checkResult.add(SyntaxError(msg, directive))
+            checkResult.add(SyntaxError(msg, directive.position))
         }
         when(directive.directive) {
             "%output" -> {

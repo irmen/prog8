@@ -71,9 +71,7 @@ statement :
 
 labeldef :  identifier ':'  ;
 
-call_location :  integerliteral | identifier | scoped_identifier ;
-
-unconditionaljump :  'goto'  call_location ;
+unconditionaljump :  'goto'  (integerliteral | identifier | scoped_identifier) ;
 
 directive :
 	directivename=('%output' | '%launcher' | '%zp' | '%address' | '%import' |
@@ -137,7 +135,7 @@ expression :
 
 
 functioncall :
-	call_location '(' expression_list? ')'
+	(identifier | scoped_identifier) '(' expression_list? ')'
 	;
 
 expression_list :
@@ -174,10 +172,16 @@ inlineasm :  '%asm' INLINEASMBLOCK;
 
 
 subroutine :
-	'sub' identifier '(' sub_params? ')' '->' '(' sub_returns? ')' '{' EOL
+	'sub' identifier '(' sub_params? ')' '->' '(' sub_returns? ')'  (sub_address | sub_body)
+	;
+
+sub_body :
+	'{' EOL
 		(statement | EOL) *
 	'}' EOL
 	;
+
+sub_address : '=' integerliteral ;
 
 sub_params : sub_param (',' sub_param)* ;
 

@@ -39,6 +39,15 @@ class AstOptimizer : IAstProcessor {
         return subroutine
     }
 
+    override fun process(functionCall: FunctionCall): IExpression {
+        functionCall.arglist = functionCall.arglist.map{it.process(this)}
+        return functionCall
+    }
+
+    override fun process(jump: Jump): IStatement {
+        return jump
+    }
+
 
     override fun process(decl: VarDecl): IStatement {
         decl.value = decl.value?.process(this)

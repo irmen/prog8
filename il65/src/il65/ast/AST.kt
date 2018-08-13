@@ -34,9 +34,9 @@ enum class Register {
 open class AstException(override var message: String) : Exception(message)
 class ExpressionException(override var message: String) : AstException(message)
 
-class SyntaxError(override var message: String, val node: Node?) : AstException(message) {
+class SyntaxError(override var message: String, val position: Position?) : AstException(message) {
     fun printError() {
-        val location = if(node?.position == null) "" else node.position.toString()
+        val location = if(position == null) "" else position.toString()
         System.err.println("$location $message")
     }
 }
@@ -55,6 +55,8 @@ interface IAstProcessor {
     fun process(block: Block): IStatement
     fun process(decl: VarDecl): IStatement
     fun process(subroutine: Subroutine): IStatement
+    fun process(jump: Jump): IStatement
+    fun process(functionCall: FunctionCall): IExpression
 }
 
 
@@ -193,6 +195,14 @@ data class VarDecl(val type: VarDeclType,
     }
 
     override fun process(processor: IAstProcessor) = processor.process(this)
+
+    val isScalar = arrayspec==null
+    val isArray = arrayspec!=null && arrayspec.y==null
+    val isMatrix = arrayspec?.y != null
+    val arraySizeX : Int?
+        get() = arrayspec?.x?.constValue()?.intvalue
+    val arraySizeY : Int?
+        get() = arrayspec?.y?.constValue()?.intvalue
 }
 
 
@@ -275,24 +285,24 @@ data class LiteralValue(val intvalue: Int? = null,
     override var position: Position? = null
     override var parent: Node? = null
 
-    fun asInt(): Int? {
+    fun asInt(errorIfNotNumeric: Boolean=true): Int? {
         return when {
             intvalue!=null -> intvalue
             floatvalue!=null -> floatvalue.toInt()
             else -> {
-                if(strvalue!=null || arrayvalue!=null)
+                if((strvalue!=null || arrayvalue!=null) && errorIfNotNumeric)
                     throw AstException("attempt to get int value from non-integer $this")
                 else null
             }
         }
     }
 
-    fun asFloat(): Double? {
+    fun asFloat(errorIfNotNumeric: Boolean=true): Double? {
         return when {
             floatvalue!=null -> floatvalue
             intvalue!=null -> intvalue.toDouble()
             else -> {
-                if(strvalue!=null || arrayvalue!=null)
+                if((strvalue!=null || arrayvalue!=null) && errorIfNotNumeric)
                     throw AstException("attempt to get float value from non-integer $this")
                 else null
             }
@@ -350,24 +360,11 @@ data class Identifier(val name: String, val scope: List<String>) : IExpression {
     }
 
     override fun constValue(): LiteralValue? {
-        // @todo should look up the identifier and return its value if that is a compile time const
+        // @todo should look up the location and return its value if that is a compile time const
         return null
     }
 
     override fun process(processor: IAstProcessor) = this
-}
-
-
-data class CallTarget(val address: Int?, val identifier: Identifier?) : Node {
-    override var position: Position? = null
-    override var parent: Node? = null
-
-    override fun linkParents(parent: Node) {
-        this.parent = parent
-        identifier?.linkParents(this)
-    }
-
-    fun process(processor: IAstProcessor) = this
 }
 
 
@@ -387,29 +384,26 @@ data class PostIncrDecr(var target: AssignTarget, val operator: String) : IState
 }
 
 
-data class Jump(var target: CallTarget) : IStatement {
+data class Jump(val address: Int?, val identifier: Identifier?) : IStatement {
     override var position: Position? = null
     override var parent: Node? = null
 
     override fun linkParents(parent: Node) {
         this.parent = parent
-        target.linkParents(this)
+        identifier?.linkParents(this)
     }
 
-    override fun process(processor: IAstProcessor): IStatement {
-        target = target.process(processor)
-        return this
-    }
+    override fun process(processor: IAstProcessor) = processor.process(this)
 }
 
 
-data class FunctionCall(var target: CallTarget, var arglist: List<IExpression>) : IExpression {
+data class FunctionCall(var location: Identifier, var arglist: List<IExpression>) : IExpression {
     override var position: Position? = null
     override var parent: Node? = null
 
     override fun linkParents(parent: Node) {
         this.parent = parent
-        target.linkParents(this)
+        location.linkParents(this)
         arglist.forEach { it.linkParents(this) }
     }
 
@@ -418,11 +412,7 @@ data class FunctionCall(var target: CallTarget, var arglist: List<IExpression>) 
         return null
     }
 
-    override fun process(processor: IAstProcessor): IExpression {
-        target = target.process(processor)
-        arglist = arglist.map{it.process(processor)}
-        return this
-    }
+    override fun process(processor: IAstProcessor) = processor.process(this)
 }
 
 
@@ -441,6 +431,7 @@ data class InlineAssembly(val assembly: String) : IStatement {
 data class Subroutine(val name: String,
                       val parameters: List<SubroutineParameter>,
                       val returnvalues: List<SubroutineReturnvalue>,
+                      val address: Int?,
                       var statements: List<IStatement>) : IStatement {
     override var position: Position? = null
     override var parent: Node? = null
@@ -619,7 +610,13 @@ private fun il65Parser.InlineasmContext.toAst(withPosition: Boolean): IStatement
 
 
 private fun il65Parser.UnconditionaljumpContext.toAst(withPosition: Boolean): IStatement {
-    val jump = Jump(call_location().toAst(withPosition))
+
+    val address = integerliteral()?.toAst()
+    val identifier =
+            if(identifier()!=null) identifier()?.toAst(withPosition)
+            else scoped_identifier()?.toAst(withPosition)
+
+    val jump = Jump(address, identifier)
     jump.position = toPosition(withPosition)
     return jump
 }
@@ -636,7 +633,8 @@ private fun il65Parser.SubroutineContext.toAst(withPosition: Boolean) : Subrouti
     val sub = Subroutine(identifier().text,
             if(sub_params()==null) emptyList() else sub_params().toAst(withPosition),
             if(sub_returns()==null) emptyList() else sub_returns().toAst(withPosition),
-            statement().map{ it.toAst(withPosition) })
+            sub_address()?.integerliteral()?.toAst(),
+            if(sub_body()==null) emptyList() else sub_body().statement().map {it.toAst(withPosition)})
     sub.position = toPosition(withPosition)
     return sub
 }
@@ -651,17 +649,6 @@ private fun il65Parser.Sub_returnsContext.toAst(withPosition: Boolean): List<Sub
             val isClobber = it.childCount==2 && it.children[1].text == "?"
             SubroutineReturnvalue(it.register().toAst(), isClobber)
         }
-
-
-private fun il65Parser.Call_locationContext.toAst(withPosition: Boolean) : CallTarget {
-    val address = integerliteral()?.toAst()
-    val identifier = identifier()
-    val result =
-            if(identifier!=null) CallTarget(address, identifier.toAst(withPosition))
-            else CallTarget(address, scoped_identifier().toAst(withPosition))
-    result.position = toPosition(withPosition)
-    return result
-}
 
 
 private fun il65Parser.Assign_targetContext.toAst(withPosition: Boolean) : AssignTarget {
@@ -764,7 +751,7 @@ private fun il65Parser.ExpressionContext.toAst(withPosition: Boolean) : IExpress
 
     val funcall = functioncall()
     if(funcall!=null) {
-        val location = funcall.call_location().toAst(withPosition)
+        val location = funcall.identifier().toAst(withPosition)
         val fcall = if(funcall.expression_list()==null)
             FunctionCall(location, emptyList())
         else

@@ -5,7 +5,7 @@
 ; ;
 ; indent format: TABS, size=8
 
-%output enable_floats
+; todo %option enable_floats
 
 
 ~ c64 {
@@ -172,7 +172,7 @@ sub	SQR		() -> (?)		= $bf71		; fac1 = SQRT(fac1)
 sub	EXP		() -> (?)		= $bfed		; fac1 = EXP(fac1)  (e ** fac1)
 sub	NEGOP		() -> (A?)		= $bfb4		; switch the sign of fac1
 sub	RND		() -> (?)		= $e097		; fac1 = RND()   (use RNDA instead)
-sub	RNDA		(A) -> (?)		= $e09a		; fac1 = RND(A)
+sub	RNDA		(acc: A) -> (?)		= $e09a		; fac1 = RND(A)
 sub	COS		() -> (?)		= $e264		; fac1 = COS(fac1)
 sub	SIN		() -> (?)		= $e26b		; fac1 = SIN(fac1)
 sub	TAN		() -> (?)		= $e2b4		; fac1 = TAN(fac1)
@@ -206,7 +206,7 @@ sub	MEMBOT   (dir: SC, address: XY) -> (XY)	= $FF9C		; read/set bottom of memory
 sub	SCNKEY   () -> (?)			= $FF9F		; scan the keyboard
 sub	SETTMO   (timeout: A) -> ()		= $FFA2		; set time-out flag for IEEE bus
 sub	ACPTR    () -> (A)			= $FFA5		; (alias: IECIN) input byte from serial bus
-sub	CIOUT    (byte: A) -> ()		= $FFA8		; (alias: IECOUT) output byte to serial bus
+sub	CIOUT    (databyte: A) -> ()		= $FFA8		; (alias: IECOUT) output byte to serial bus
 sub	UNTLK    () -> (A?)			= $FFAB		; command serial bus device to UNTALK
 sub	UNLSN    () -> (A?)			= $FFAE		; command serial bus device to UNLISTEN
 sub	LISTEN   (device: A) -> (A?)		= $FFB1		; command serial bus device to LISTEN
@@ -269,7 +269,6 @@ sub  init_system  () -> (?)  {
 	}}
 }
 
-%noreturn
 }  ; ------ end of block c64
 
 
@@ -451,8 +450,6 @@ sub  float_sub_SW1_from_XY  (mflt: XY) -> (?)  {
 		jmp  c64.FTOMEMXY	; float XY = fac1
 	}}
 }
-
-%noreturn
 
 }  ; ------ end of block c64flt
 
@@ -743,8 +740,8 @@ hex_digits	.str "0123456789abcdef"	; can probably be reused for other stuff as w
 }
 
 
-		var  str  word2hex_output = "1234"   ; 0-terminated, to make printing easier
-sub  word2hex  (word: XY) -> (?)  {
+		str  word2hex_output = "1234"   ; 0-terminated, to make printing easier
+sub  word2hex  (dataword: XY) -> (?)  {
 	; ---- convert 16 bit word in X/Y into 4-character hexadecimal string into memory  'word2hex_output'
 	%asm {{
 		stx  c64.SCRATCH_ZP2
@@ -760,9 +757,8 @@ sub  word2hex  (word: XY) -> (?)  {
 	}}
 }
 
-
-		var  array(3)  word2bcd_bcdbuff
-sub  word2bcd  (word: XY) -> (A?, X?)  {
+		byte[3]  word2bcd_bcdbuff = [0, 0, 0]
+sub  word2bcd  (dataword: XY) -> (A?, X?)  {
 	; Convert an 16 bit binary value to BCD
 	;
 	; This function converts a 16 bit binary value in X/Y into a 24 bit BCD. It
@@ -799,8 +795,8 @@ sub  word2bcd  (word: XY) -> (A?, X?)  {
 }
 
 
-		var  array(5)  word2decimal_output
-sub  word2decimal  (word: XY) -> (?)  {
+		byte[5]  word2decimal_output = 0
+sub  word2decimal  (dataword: XY) -> (?)  {
 	; ---- convert 16 bit word in X/Y into decimal string into memory  'word2decimal_output'
 	%asm {{
 		jsr  word2bcd
@@ -955,7 +951,7 @@ sub  print_byte_hex  (prefix: SC, ubyte: A) -> (?)  {
 }
 
 
-sub print_word_hex  (prefix: SC, word: XY) -> (?)  {
+sub print_word_hex  (prefix: SC, dataword: XY) -> (?)  {
 	; ---- print the (unsigned) word in X/Y in hexadecimal form (4 digits)
 	;      (if Carry is set, a radix prefix '$' is printed as well)
 	%asm {{
@@ -969,7 +965,7 @@ sub print_word_hex  (prefix: SC, word: XY) -> (?)  {
 }
 
 
-sub  print_word_decimal0  (word: XY) -> (?)  {
+sub  print_word_decimal0  (dataword: XY) -> (?)  {
 	; ---- print the (unsigned) word in X/Y in decimal form, with left padding 0s (5 positions total)
 	%asm {{
 		jsr  word2decimal
@@ -987,7 +983,7 @@ sub  print_word_decimal0  (word: XY) -> (?)  {
 }
 
 
-sub  print_word_decimal  (word: XY) -> (A?, X?, Y?)  {
+sub  print_word_decimal  (dataword: XY) -> (A?, X?, Y?)  {
 	; ---- print the word in X/Y in decimal form, without left padding 0s
 	%asm {{
 		jsr  word2decimal
@@ -1040,8 +1036,6 @@ sub  input_chars  (buffer: AX) -> (A?, Y)  {
 
 	}}
 }
-
-%noreturn
 
 }  ; ---- end block c64scr
 
