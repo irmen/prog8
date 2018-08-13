@@ -18,7 +18,7 @@ fun Module.optimize(globalNamespace: INameScope) {
 }
 
 
-class AstOptimizer(val globalNamespace: INameScope) : IAstProcessor {
+class AstOptimizer(private val globalNamespace: INameScope) : IAstProcessor {
     var optimizationsDone: Int = 0
         private set
 
@@ -26,6 +26,14 @@ class AstOptimizer(val globalNamespace: INameScope) : IAstProcessor {
         optimizationsDone = 0
     }
 
+    /**
+     * some identifiers can be replaced with the constant value they refer to
+     */
+    override fun process(identifier: Identifier): IExpression {
+        println("PROCESS ID $identifier")  // todo
+        val const = identifier.constValue(globalNamespace)
+        return const ?: identifier
+    }
 
     /**
      * Try to process a unary prefix expression.
@@ -43,7 +51,7 @@ class AstOptimizer(val globalNamespace: INameScope) : IAstProcessor {
                 expr.operator == "-" -> when {
                     subexpr.intvalue != null -> {
                         optimizationsDone++
-                        LiteralValue(intvalue = subexpr.intvalue)
+                        LiteralValue(intvalue = -subexpr.intvalue)
                     }
                     subexpr.floatvalue != null -> {
                         optimizationsDone++

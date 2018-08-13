@@ -58,7 +58,7 @@ fun loadModule(filePath: Path) : Module {
     importedModules[moduleAst.name] = moduleAst
 
     // process imports
-    val lines = moduleAst.lines.toMutableList()
+    val lines = moduleAst.statements.toMutableList()
     val imports = lines
             .mapIndexed { i, it -> Pair(i, it) }
             .filter { (it.second as? Directive)?.directive == "%import" }
@@ -70,11 +70,11 @@ fun loadModule(filePath: Path) : Module {
             lines.removeAt(it.first)
         } else {
             // merge imported lines at this spot
-            lines.addAll(it.first, it.second!!.lines)
+            lines.addAll(it.first, it.second!!.statements)
         }
     }
 
-    moduleAst.lines = lines
+    moduleAst.statements = lines
     return moduleAst
 }
 
@@ -124,16 +124,16 @@ fun main(args: Array<String>) {
         val filepath = Paths.get(args[0]).normalize()
         val moduleAst = loadModule(filepath)
         moduleAst.linkParents()
-        var globalNamespace = moduleAst.namespace()
+        val globalNamespace = moduleAst.namespace()
         globalNamespace.debugPrint()
 
-//        moduleAst.optimize(namespace)
-//        moduleAst.checkValid()      // check if final tree is valid
-//
-//        // todo compile to asm...
-//        moduleAst.lines.forEach {
-//            println(it)
-//        }
+        moduleAst.optimize(globalNamespace)
+        moduleAst.checkValid(globalNamespace)      // check if final tree is valid
+
+        // todo compile to asm...
+        moduleAst.statements.forEach {
+            println(it)
+        }
     } catch(sx: SyntaxError) {
         sx.printError()
     } catch (px: ParsingFailedError) {

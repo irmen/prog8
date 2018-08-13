@@ -24,8 +24,8 @@ class ImportedAstChecker : IAstProcessor {
 
     override fun process(module: Module) {
         super.process(module)
-        val newLines : MutableList<IStatement> = mutableListOf()
-        module.lines.forEach {
+        val newStatements : MutableList<IStatement> = mutableListOf()
+        module.statements.forEach {
             val stmt = it.process(this)
             if(stmt is Directive) {
                 if(stmt.parent is Module) {
@@ -33,12 +33,12 @@ class ImportedAstChecker : IAstProcessor {
                         "%output", "%launcher", "%zp", "%address" ->
                             println("${stmt.position} Warning: ignoring module directive because it was imported: ${stmt.directive}")
                         else ->
-                            newLines.add(stmt)
+                            newStatements.add(stmt)
                     }
                 }
             }
-            else newLines.add(stmt)
+            else newStatements.add(stmt)
         }
-        module.lines = newLines
+        module.statements = newStatements
     }
 }

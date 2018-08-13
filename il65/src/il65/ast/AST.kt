@@ -1,5 +1,6 @@
 package il65.ast
 
+import il65.functions.*
 import il65.parser.il65Parser
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
@@ -36,7 +37,7 @@ class ExpressionException(override var message: String) : AstException(message)
 
 class SyntaxError(override var message: String, val position: Position?) : AstException(message) {
     fun printError() {
-        val location = if(position == null) "" else position.toString()
+        val location = position?.toString() ?: ""
         System.err.println("$location $message")
     }
 }
@@ -49,7 +50,7 @@ data class Position(val file: String, val line: Int, val startCol: Int, val endC
 
 interface IAstProcessor {
     fun process(module: Module) {
-        module.lines = module.lines.map { it.process(this) }
+        module.statements = module.statements.map { it.process(this) }
     }
     fun process(expr: PrefixExpression): IExpression {
         expr.expression = expr.expression.process(this)
@@ -80,6 +81,9 @@ interface IAstProcessor {
         functionCall.arglist = functionCall.arglist.map { it.process(this) }
         return functionCall
     }
+    fun process(identifier: Identifier): IExpression {
+        return identifier
+    }
     fun process(jump: Jump): IStatement {
         return jump
     }
@@ -103,28 +107,59 @@ interface INameScope {
     val position: Position?
     var statements: List<IStatement>
 
-    fun subScopes(): List<INameScope> = statements.filter { it is INameScope }.map { it as INameScope }
+    fun subScopes() = statements.filter { it is INameScope } .map { it as INameScope }.associate { it.name to it }
 
-    fun definedNames(): List<IStatement> = statements.filter { it is Label || it is VarDecl }
+    fun definedNames() = statements.filter { it is Label || it is VarDecl }
+            .associate {
+                when(it) {
+                    is Label -> it.name to it
+                    is VarDecl -> it.name to it
+                    else -> throw AstException("expected label or vardecl")
+                }
+            }
 
-    fun lookup(scopedName: List<String>) : IStatement? {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    fun lookup(scopedName: List<String>, statement: Node) : IStatement? {
+        if(scopedName.size>1) {
+            // it's a qualified name, look it up from the namespace root
+            var scope: INameScope? = this
+            scopedName.dropLast(1).forEach {
+                scope = scope?.subScopes()?.get(it)
+                if(scope==null)
+                    return null
+            }
+            val foundScope : INameScope = scope!!
+            return foundScope.definedNames()[scopedName.last()]
+                    ?:
+                    foundScope.subScopes()[scopedName.last()] as IStatement?
+        } else {
+            // unqualified name, find the scope the statement is in, look in that first
+            var statementScope: Node? = statement
+            while(true) {
+                while (statementScope !is INameScope && statementScope?.parent != null)
+                    statementScope = statementScope.parent
+                if (statementScope == null)
+                    return null
+                val localScope = statementScope as INameScope
+                val result = localScope.definedNames()[scopedName[0]]
+                if (result != null)
+                    return result
+                val subscope = localScope.subScopes()[scopedName[0]] as IStatement?
+                if (subscope != null)
+                    return subscope
+                // not found in this scope, look one higher up
+                statementScope = statementScope.parent
+            }
+        }
     }
 
     fun debugPrint() {
         fun printNames(indent: Int, namespace: INameScope) {
             println(" ".repeat(4*indent) + "${namespace.name}   ->  ${namespace::class.simpleName} at ${namespace.position}")
             namespace.definedNames().forEach {
-                val name =
-                    when(it) {
-                        is Label -> it.name
-                        is VarDecl -> it.name
-                        else -> throw AstException("expected label or vardecl")
-                    }
-                println(" ".repeat(4 * (1 + indent)) + "$name   ->  ${it::class.simpleName} at ${it.position}")
+                println(" ".repeat(4 * (1 + indent)) + "${it.key}   ->  ${it.value::class.simpleName} at ${it.value.position}")
             }
             namespace.subScopes().forEach {
-                printNames(indent+1, it)
+                printNames(indent+1, it.value)
             }
         }
         printNames(0, this)
@@ -132,8 +167,8 @@ interface INameScope {
 }
 
 
-data class Module(val name: String,
-                  var lines: List<IStatement>) : Node {
+data class Module(override val name: String,
+                  override var statements: List<IStatement>) : Node, INameScope {
     override var position: Position? = null
     override var parent: Node? = null
 
@@ -142,7 +177,7 @@ data class Module(val name: String,
     }
     fun linkParents() {
         parent = null
-        lines.forEach {it.linkParents(this)}
+        statements.forEach {it.linkParents(this)}
     }
 
     fun process(processor: IAstProcessor) {
@@ -154,7 +189,7 @@ data class Module(val name: String,
                               override var statements: List<IStatement>,
                               override val position: Position?) : INameScope
 
-        return GlobalNamespace("<<<global>>>", lines, position)
+        return GlobalNamespace("<<<global>>>", statements, position)
     }
 }
 
@@ -327,10 +362,7 @@ data class PrefixExpression(val operator: String, var expression: IExpression) :
         expression.linkParents(this)
     }
 
-    override fun constValue(namespace: INameScope): LiteralValue? {
-        throw ExpressionException("should have been optimized away before const value was asked")
-    }
-
+    override fun constValue(namespace: INameScope): LiteralValue? = null
     override fun process(processor: IAstProcessor) = processor.process(this)
 }
 
@@ -434,20 +466,21 @@ data class Identifier(val scopedName: List<String>) : IExpression {
     }
 
     override fun constValue(namespace: INameScope): LiteralValue? {
-        val node = namespace.lookup(scopedName)
-        return if(node==null) null
-        else {
-            var vardecl = node as VarDecl
-            if(vardecl!=null){
-                if(vardecl.type!=VarDeclType.CONST)
-                    throw SyntaxError("constant expected", position)
-                return vardecl.value?.constValue(namespace)
-            }
-            throw SyntaxError("expected a literal value", position)
+        val node = namespace.lookup(scopedName, this)
+                ?:
+                throw SyntaxError("undefined symbol: ${scopedName.joinToString(".")}", position) // todo add to a list of errors instead
+        val vardecl = node as? VarDecl
+        if(vardecl==null) {
+            // todo add to a list of errors instead
+            throw SyntaxError("name should be a constant, instead of: ${node::class.simpleName}", position)
+        } else if(vardecl.type!=VarDeclType.CONST) {
+            // todo add to a list of errors instead
+            throw SyntaxError("name should be a constant, instead of: ${vardecl.type}", position)
         }
+        return vardecl.value?.constValue(namespace)
     }
 
-    override fun process(processor: IAstProcessor) = this
+    override fun process(processor: IAstProcessor) = processor.process(this)
 }
 
 
@@ -492,7 +525,24 @@ data class FunctionCall(var location: Identifier, var arglist: List<IExpression>
 
     override fun constValue(namespace: INameScope): LiteralValue? {
         // if the function is a built-in function and the args are consts, should evaluate!
-        return null
+        println("CONSTVALUE of Function call $location") // todo
+        if(location.scopedName.size>1) return null
+        return when(location.scopedName[0]){
+            "sin" -> builtin_sin(arglist, namespace)
+            "cos" -> builtin_cos(arglist, namespace)
+            "abs" -> builtin_abs(arglist, namespace)
+            "acos" -> builtin_acos(arglist, namespace)
+            "asin" -> builtin_asin(arglist, namespace)
+            "tan" -> builtin_tan(arglist, namespace)
+            "atan" -> builtin_atan(arglist, namespace)
+            "log" -> builtin_log(arglist, namespace)
+            "log10" -> builtin_log10(arglist, namespace)
+            "sqrt" -> builtin_sqrt(arglist, namespace)
+            "max" -> builtin_max(arglist, namespace)
+            "min" -> builtin_min(arglist, namespace)
+            "round" -> builtin_round(arglist, namespace)
+            else -> null
+        }
     }
 
     override fun process(processor: IAstProcessor) = processor.process(this)

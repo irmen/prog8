@@ -15,7 +15,7 @@ fun Module.checkValid(globalNamespace: INameScope) {
 }
 
 
-class AstChecker(val globalNamespace: INameScope) : IAstProcessor {
+class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
     private val checkResult: MutableList<SyntaxError> = mutableListOf()
     private val blockNames: HashMap<String, Position?> = hashMapOf()
 
@@ -26,13 +26,13 @@ class AstChecker(val globalNamespace: INameScope) : IAstProcessor {
     override fun process(jump: Jump): IStatement {
         super.process(jump)
         if(jump.address!=null && (jump.address < 0 || jump.address > 65535))
-            checkResult.add(SyntaxError("jump address must be valid 0..\$ffff", jump.position))
+            checkResult.add(SyntaxError("jump address must be valid integer 0..\$ffff", jump.position))
         return jump
     }
 
     override fun process(block: Block): IStatement {
         if(block.address!=null && (block.address<0 || block.address>65535)) {
-            checkResult.add(SyntaxError("block memory address must be valid 0..\$ffff", block.position))
+            checkResult.add(SyntaxError("block memory address must be valid integer 0..\$ffff", block.position))
         }
         val existing = blockNames[block.name]
         if(existing!=null) {
@@ -54,6 +54,31 @@ class AstChecker(val globalNamespace: INameScope) : IAstProcessor {
                 labelnames[it.name] = it.position
             }
         }
+
+        // check if var names are unique
+        val variables = block.statements.filter { it is VarDecl }.map{ it as VarDecl }
+        val varnames= mutableMapOf<String, Position?>()
+        variables.forEach {
+            val existing = varnames[it.name]
+            if(existing!=null) {
+                checkResult.add(SyntaxError("variable name conflict, first defined on line ${existing.line}", it.position))
+            } else {
+                varnames[it.name] = it.position
+            }
+        }
+
+        // check if subroutine names are unique
+        val subroutines = block.statements.filter { it is Subroutine }.map{ it as Subroutine }
+        val subnames = mutableMapOf<String, Position?>()
+        subroutines.forEach {
+            val existing = subnames[it.name]
+            if(existing!=null) {
+                checkResult.add(SyntaxError("subroutine name conflict, first defined on line ${existing.line}", it.position))
+            } else {
+                subnames[it.name] = it.position
+            }
+        }
+
         return block
     }
 
@@ -85,6 +110,18 @@ class AstChecker(val globalNamespace: INameScope) : IAstProcessor {
                 checkResult.add(SyntaxError("label name conflict, first defined on line ${existing.line}", it.position))
             } else {
                 labelnames[it.name] = it.position
+            }
+        }
+
+        // check if var names are unique
+        val variables = subroutine.statements.filter { it is VarDecl }.map{ it as VarDecl }
+        val varnames= mutableMapOf<String, Position?>()
+        variables.forEach {
+            val existing = varnames[it.name]
+            if(existing!=null) {
+                checkResult.add(SyntaxError("variable name conflict, first defined on line ${existing.line}", it.position))
+            } else {
+                varnames[it.name] = it.position
             }
         }
 
@@ -129,9 +166,12 @@ class AstChecker(val globalNamespace: INameScope) : IAstProcessor {
                 }
             }
             VarDeclType.MEMORY -> {
+                if(decl.value !is LiteralValue)
+                    throw AstException("${decl.value?.position} value of memory var decl is not a literal (it is a ${decl.value!!::class.simpleName}). This is likely a bug in the AstOptimizer")
+
                 val value = decl.value as LiteralValue
                 if(value.intvalue==null || value.intvalue<0 || value.intvalue>65535) {
-                    err("memory address must be valid 0..\$ffff")
+                    err("memory address must be valid integer 0..\$ffff")
                 }
             }
         }
