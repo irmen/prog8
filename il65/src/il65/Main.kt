@@ -53,11 +53,8 @@ fun loadModule(filePath: Path) : Module {
     // TODO the comments:
     // tokens.commentTokens().forEach { println(it) }
 
-    // convert to Ast and optimize
+    // convert to Ast
     val moduleAst = parseTree.toAst(moduleName,true)
-    moduleAst.optimize()
-    moduleAst.linkParents()
-    moduleAst.checkValid()
     importedModules[moduleAst.name] = moduleAst
 
     // process imports
@@ -126,14 +123,17 @@ fun main(args: Array<String>) {
     try {
         val filepath = Paths.get(args[0]).normalize()
         val moduleAst = loadModule(filepath)
-        moduleAst.optimize()        // one final global optimization
-        moduleAst.linkParents()     // re-link parents in final configuration
-        moduleAst.checkValid()      // check if final tree is valid
+        moduleAst.linkParents()
+        var globalNamespace = moduleAst.namespace()
+        globalNamespace.debugPrint()
 
-        // todo compile to asm...
-        moduleAst.lines.forEach {
-            println(it)
-        }
+//        moduleAst.optimize(namespace)
+//        moduleAst.checkValid()      // check if final tree is valid
+//
+//        // todo compile to asm...
+//        moduleAst.lines.forEach {
+//            println(it)
+//        }
     } catch(sx: SyntaxError) {
         sx.printError()
     } catch (px: ParsingFailedError) {

@@ -23,6 +23,7 @@ class ImportedAstChecker : IAstProcessor {
     }
 
     override fun process(module: Module) {
+        super.process(module)
         val newLines : MutableList<IStatement> = mutableListOf()
         module.lines.forEach {
             val stmt = it.process(this)

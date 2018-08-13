@@ -48,32 +48,40 @@ data class Position(val file: String, val line: Int, val startCol: Int, val endC
 
 
 interface IAstProcessor {
-    // override the ones you want to act upon
     fun process(module: Module) {
+        module.lines = module.lines.map { it.process(this) }
     }
     fun process(expr: PrefixExpression): IExpression {
+        expr.expression = expr.expression.process(this)
         return expr
     }
     fun process(expr: BinaryExpression): IExpression {
+        expr.left = expr.left.process(this)
+        expr.right = expr.right.process(this)
         return expr
     }
     fun process(directive: Directive): IStatement {
         return directive
     }
     fun process(block: Block): IStatement {
+        block.statements = block.statements.map { it.process(this) }
         return block
     }
     fun process(decl: VarDecl): IStatement {
+        decl.value = decl.value?.process(this)
+        decl.arrayspec?.process(this)
         return decl
     }
     fun process(subroutine: Subroutine): IStatement {
+        subroutine.statements = subroutine.statements.map { it.process(this) }
         return subroutine
+    }
+    fun process(functionCall: FunctionCall): IExpression {
+        functionCall.arglist = functionCall.arglist.map { it.process(this) }
+        return functionCall
     }
     fun process(jump: Jump): IStatement {
         return jump
-    }
-    fun process(functionCall: FunctionCall): IExpression {
-        return functionCall
     }
 }
 
@@ -87,6 +95,40 @@ interface Node {
 
 interface IStatement : Node {
     fun process(processor: IAstProcessor) : IStatement
+}
+
+
+interface INameScope {
+    val name: String
+    val position: Position?
+    var statements: List<IStatement>
+
+    fun subScopes(): List<INameScope> = statements.filter { it is INameScope }.map { it as INameScope }
+
+    fun definedNames(): List<IStatement> = statements.filter { it is Label || it is VarDecl }
+
+    fun lookup(scopedName: List<String>) : IStatement? {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    fun debugPrint() {
+        fun printNames(indent: Int, namespace: INameScope) {
+            println(" ".repeat(4*indent) + "${namespace.name}   ->  ${namespace::class.simpleName} at ${namespace.position}")
+            namespace.definedNames().forEach {
+                val name =
+                    when(it) {
+                        is Label -> it.name
+                        is VarDecl -> it.name
+                        else -> throw AstException("expected label or vardecl")
+                    }
+                println(" ".repeat(4 * (1 + indent)) + "$name   ->  ${it::class.simpleName} at ${it.position}")
+            }
+            namespace.subScopes().forEach {
+                printNames(indent+1, it)
+            }
+        }
+        printNames(0, this)
+    }
 }
 
 
@@ -106,12 +148,20 @@ data class Module(val name: String,
     fun process(processor: IAstProcessor) {
         processor.process(this)
     }
+
+    fun namespace(): INameScope {
+        class GlobalNamespace(override val name: String,
+                              override var statements: List<IStatement>,
+                              override val position: Position?) : INameScope
+
+        return GlobalNamespace("<<<global>>>", lines, position)
+    }
 }
 
 
-data class Block(val name: String,
+data class Block(override val name: String,
                  val address: Int?,
-                 var statements: List<IStatement>) : IStatement {
+                 override var statements: List<IStatement>) : IStatement, INameScope {
     override var position: Position? = null
     override var parent: Node? = null
 
@@ -121,6 +171,10 @@ data class Block(val name: String,
     }
 
     override fun process(processor: IAstProcessor) = processor.process(this)
+
+    override fun toString(): String {
+        return "Block(name=$name, address=$address, ${statements.size} statements)"
+    }
 }
 
 
@@ -217,10 +271,12 @@ data class VarDecl(val type: VarDeclType,
     val isScalar = arrayspec==null
     val isArray = arrayspec!=null && arrayspec.y==null
     val isMatrix = arrayspec?.y != null
-    val arraySizeX : Int?
-        get() = arrayspec?.x?.constValue()?.intvalue
-    val arraySizeY : Int?
-        get() = arrayspec?.y?.constValue()?.intvalue
+    fun arraySizeX(namespace: INameScope) : Int? {
+        return arrayspec?.x?.constValue(namespace)?.intvalue
+    }
+    fun arraySizeY(namespace: INameScope) : Int? {
+        return arrayspec?.y?.constValue(namespace)?.intvalue
+    }
 }
 
 
@@ -255,7 +311,7 @@ data class AssignTarget(val register: Register?, val identifier: Identifier?) : 
 
 
 interface IExpression: Node {
-    fun constValue() : LiteralValue?
+    fun constValue(namespace: INameScope): LiteralValue?
     fun process(processor: IAstProcessor): IExpression
 }
 
@@ -271,7 +327,7 @@ data class PrefixExpression(val operator: String, var expression: IExpression) :
         expression.linkParents(this)
     }
 
-    override fun constValue(): LiteralValue? {
+    override fun constValue(namespace: INameScope): LiteralValue? {
         throw ExpressionException("should have been optimized away before const value was asked")
     }
 
@@ -289,7 +345,7 @@ data class BinaryExpression(var left: IExpression, val operator: String, var rig
         right.linkParents(this)
     }
 
-    override fun constValue(): LiteralValue? {
+    override fun constValue(namespace: INameScope): LiteralValue? {
         throw ExpressionException("should have been optimized away before const value was asked")
     }
 
@@ -332,7 +388,7 @@ data class LiteralValue(val intvalue: Int? = null,
         arrayvalue?.forEach {it.linkParents(this)}
     }
 
-    override fun constValue(): LiteralValue?  = this
+    override fun constValue(namespace: INameScope): LiteralValue?  = this
     override fun process(processor: IAstProcessor) = this
 }
 
@@ -347,7 +403,7 @@ data class RangeExpr(var from: IExpression, var to: IExpression) : IExpression {
         to.linkParents(this)
     }
 
-    override fun constValue(): LiteralValue? = null
+    override fun constValue(namespace: INameScope): LiteralValue? = null
     override fun process(processor: IAstProcessor): IExpression {
         from = from.process(processor)
         to = to.process(processor)
@@ -364,12 +420,12 @@ data class RegisterExpr(val register: Register) : IExpression {
         this.parent = parent
     }
 
-    override fun constValue(): LiteralValue? = null
+    override fun constValue(namespace: INameScope): LiteralValue? = null
     override fun process(processor: IAstProcessor) = this
 }
 
 
-data class Identifier(val name: String, val scope: List<String>) : IExpression {
+data class Identifier(val scopedName: List<String>) : IExpression {
     override var position: Position? = null
     override var parent: Node? = null
 
@@ -377,9 +433,18 @@ data class Identifier(val name: String, val scope: List<String>) : IExpression {
         this.parent = parent
     }
 
-    override fun constValue(): LiteralValue? {
-        // @todo should look up the location and return its value if that is a compile time const
-        return null
+    override fun constValue(namespace: INameScope): LiteralValue? {
+        val node = namespace.lookup(scopedName)
+        return if(node==null) null
+        else {
+            var vardecl = node as VarDecl
+            if(vardecl!=null){
+                if(vardecl.type!=VarDeclType.CONST)
+                    throw SyntaxError("constant expected", position)
+                return vardecl.value?.constValue(namespace)
+            }
+            throw SyntaxError("expected a literal value", position)
+        }
     }
 
     override fun process(processor: IAstProcessor) = this
@@ -425,7 +490,7 @@ data class FunctionCall(var location: Identifier, var arglist: List<IExpression>
         arglist.forEach { it.linkParents(this) }
     }
 
-    override fun constValue(): LiteralValue? {
+    override fun constValue(namespace: INameScope): LiteralValue? {
         // if the function is a built-in function and the args are consts, should evaluate!
         return null
     }
@@ -446,11 +511,11 @@ data class InlineAssembly(val assembly: String) : IStatement {
 }
 
 
-data class Subroutine(val name: String,
+data class Subroutine(override val name: String,
                       val parameters: List<SubroutineParameter>,
                       val returnvalues: List<SubroutineReturnvalue>,
                       val address: Int?,
-                      var statements: List<IStatement>) : IStatement {
+                      override var statements: List<IStatement>) : IStatement, INameScope {
     override var position: Position? = null
     override var parent: Node? = null
 
@@ -462,6 +527,10 @@ data class Subroutine(val name: String,
     }
 
     override fun process(processor: IAstProcessor) = processor.process(this)
+
+    override fun toString(): String {
+        return "Subroutine(name=$name, address=$address, parameters=$parameters, returnvalues=$returnvalues, ${statements.size} statements)"
+    }
 }
 
 
@@ -607,8 +676,8 @@ private fun il65Parser.StatementContext.toAst(withPosition: Boolean) : IStatemen
     val jump = unconditionaljump()?.toAst(withPosition)
     if(jump!=null) return jump
 
-    val returnstmt = returnstmt()
-    if(returnstmt!=null) return Return(returnstmt.expression_list().toAst(withPosition))
+    val returnstmt = returnstmt()?.toAst(withPosition)
+    if(returnstmt!=null) return returnstmt
 
     val sub = subroutine()?.toAst(withPosition)
     if(sub!=null) return sub
@@ -626,6 +695,11 @@ private fun il65Parser.InlineasmContext.toAst(withPosition: Boolean): IStatement
     return asm
 }
 
+
+private fun il65Parser.ReturnstmtContext.toAst(withPosition: Boolean) : IStatement {
+    val values = expression_list()
+    return Return(values?.toAst(withPosition) ?: emptyList())
+}
 
 private fun il65Parser.UnconditionaljumpContext.toAst(withPosition: Boolean): IStatement {
 
@@ -795,17 +869,14 @@ private fun il65Parser.Expression_listContext.toAst(withPosition: Boolean) = exp
 
 
 private fun il65Parser.IdentifierContext.toAst(withPosition: Boolean) : Identifier {
-    val ident = Identifier(text, emptyList())
+    val ident = Identifier(listOf(text))
     ident.position = toPosition(withPosition)
     return ident
 }
 
 
 private fun il65Parser.Scoped_identifierContext.toAst(withPosition: Boolean) : Identifier {
-    val names = NAME()
-    val name = names.last().text
-    val scope = names.take(names.size-1)
-    val ident = Identifier(name, scope.map { it.text })
+    val ident = Identifier(NAME().map { it.text })
     ident.position = toPosition(withPosition)
     return ident
 }

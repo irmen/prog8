@@ -14,10 +14,20 @@
 
 	X = 42
 	return 44
+
+label_in_extra2:
+	X = 33
+
+	sub sub_in_extra2() -> () {
+		return
+	}
+	sub another_sub_in_extra2() -> () {
+		return
+	}
 }
 
 
-~ main  {
+~ main2  {
 	; this is imported
 
 	X = 42

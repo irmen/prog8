@@ -1,14 +1,14 @@
 %zp full
 %address 33
 
-~ extra  {
+~ extra3  {
 	; this is imported
 
 	X = 42
 	return 44
 }
 
-~ extra2  {
+~ extra233  {
 	; this is imported
 
 	X = 42
@@ -16,7 +16,7 @@
 }
 
 
-~ main  {
+~ mainzzz  {
 	; this is imported
 
 	X = 42

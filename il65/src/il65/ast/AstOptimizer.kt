@@ -3,8 +3,8 @@ package il65.ast
 import kotlin.math.pow
 
 
-fun Module.optimize() {
-    val optimizer = AstOptimizer()
+fun Module.optimize(globalNamespace: INameScope) {
+    val optimizer = AstOptimizer(globalNamespace)
     this.process(optimizer)
     if(optimizer.optimizationsDone==0)
         println("[${this.name}] 0 optimizations performed")
@@ -14,10 +14,11 @@ fun Module.optimize() {
         optimizer.reset()
         this.process(optimizer)
     }
+    this.linkParents()  // re-link in final configuration
 }
 
 
-class AstOptimizer : IAstProcessor {
+class AstOptimizer(val globalNamespace: INameScope) : IAstProcessor {
     var optimizationsDone: Int = 0
         private set
 
@@ -25,30 +26,6 @@ class AstOptimizer : IAstProcessor {
         optimizationsDone = 0
     }
 
-    override fun process(module: Module) {
-        module.lines = module.lines.map { it.process(this) }
-    }
-
-    override fun process(block: Block): IStatement {
-        block.statements = block.statements.map { it.process(this) }
-        return block
-    }
-
-    override fun process(subroutine: Subroutine): IStatement {
-        subroutine.statements = subroutine.statements.map { it.process(this) }
-        return subroutine
-    }
-
-    override fun process(functionCall: FunctionCall): IExpression {
-        functionCall.arglist = functionCall.arglist.map{it.process(this)}
-        return functionCall
-    }
-
-    override fun process(decl: VarDecl): IStatement {
-        decl.value = decl.value?.process(this)
-        decl.arrayspec?.process(this)
-        return decl
-    }
 
     /**
      * Try to process a unary prefix expression.
@@ -56,7 +33,7 @@ class AstOptimizer : IAstProcessor {
      * For instance, the expression for "- 4.5" will be optimized into the float literal -4.5
      */
     override fun process(expr: PrefixExpression): IExpression {
-        expr.expression = expr.expression.process(this)    // process sub expression first
+        super.process(expr)
 
         val subexpr = expr.expression
         if (subexpr is LiteralValue) {
@@ -106,13 +83,11 @@ class AstOptimizer : IAstProcessor {
      * For instance, "9 * (4 + 2)" will be optimized into the integer literal 54.
      */
     override fun process(expr: BinaryExpression): IExpression {
-        val evaluator = ConstExprEvaluator()
-        // process sub expressions first
-        expr.left = expr.left.process(this)
-        expr.right = expr.right.process(this)
+        super.process(expr)
 
-        val leftconst = expr.left.constValue()
-        val rightconst = expr.right.constValue()
+        val evaluator = ConstExprEvaluator()
+        val leftconst = expr.left.constValue(globalNamespace)
+        val rightconst = expr.right.constValue(globalNamespace)
         return when {
             leftconst != null && rightconst != null -> {
                 optimizationsDone++

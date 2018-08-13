@@ -3,8 +3,8 @@ package il65.ast
 import il65.ParsingFailedError
 
 
-fun Module.checkValid() {
-    val checker = AstChecker()
+fun Module.checkValid(globalNamespace: INameScope) {
+    val checker = AstChecker(globalNamespace)
     this.process(checker)
     val checkResult = checker.result()
     checkResult.forEach {
@@ -15,7 +15,7 @@ fun Module.checkValid() {
 }
 
 
-class AstChecker : IAstProcessor {
+class AstChecker(val globalNamespace: INameScope) : IAstProcessor {
     private val checkResult: MutableList<SyntaxError> = mutableListOf()
     private val blockNames: HashMap<String, Position?> = hashMapOf()
 
@@ -23,16 +23,8 @@ class AstChecker : IAstProcessor {
         return checkResult
     }
 
-    override fun process(module: Module) {
-        module.lines.forEach { it.process(this) }
-    }
-
-    override fun process(functionCall: FunctionCall): IExpression {
-        functionCall.arglist.map{it.process(this)}
-        return functionCall
-    }
-
     override fun process(jump: Jump): IStatement {
+        super.process(jump)
         if(jump.address!=null && (jump.address < 0 || jump.address > 65535))
             checkResult.add(SyntaxError("jump address must be valid 0..\$ffff", jump.position))
         return jump
@@ -48,7 +40,8 @@ class AstChecker : IAstProcessor {
         } else {
             blockNames[block.name] = block.position
         }
-        block.statements.forEach { it.process(this) }
+
+        super.process(block)
 
         // check if labels are unique
         val labels = block.statements.filter { it is Label }.map { it as Label }
@@ -81,7 +74,7 @@ class AstChecker : IAstProcessor {
         if(uniqueResults.size!=subroutine.returnvalues.size)
             err("return registers should be unique")
 
-        subroutine.statements.forEach { it.process(this) }
+        super.process(subroutine)
 
         // check if labels are unique
         val labels = subroutine.statements.filter { it is Label }.map { it as Label }
@@ -143,104 +136,7 @@ class AstChecker : IAstProcessor {
             }
         }
 
-        decl.arrayspec?.process(this)
-        decl.value?.process(this)
-        return decl
-    }
-
-
-    private fun checkConstInitializerValueArray(decl: VarDecl) {
-        val value = decl.value as LiteralValue
-        // init value should either be a scalar or an array with the same dimensions as the arrayspec.
-
-        if(decl.isArray) {
-            if(value.arrayvalue==null) {
-                checkValueRange(decl.datatype, value.constValue()!!, value.position)
-            }
-            else {
-                if (value.arrayvalue.size != decl.arraySizeX)
-                    checkResult.add(SyntaxError("initializer array size mismatch (expecting ${decl.arraySizeX})", decl.position))
-                else {
-                    value.arrayvalue.forEach {
-                        checkValueRange(decl.datatype, it.constValue()!!, it.position)
-                    }
-                }
-            }
-        }
-
-        if(decl.isMatrix) {
-            if(value.arrayvalue==null) {
-                checkValueRange(decl.datatype, value.constValue()!!, value.position)
-            }
-            else {
-                if (value.arrayvalue.size != decl.arraySizeX!! * decl.arraySizeY!!)
-                    checkResult.add(SyntaxError("initializer array size mismatch (expecting ${decl.arraySizeX!! * decl.arraySizeY!!}", decl.position))
-                else {
-                    value.arrayvalue.forEach {
-                        checkValueRange(decl.datatype, it.constValue()!!, it.position)
-                    }
-                }
-            }
-        }
-    }
-
-
-    private fun checkValueRange(datatype: DataType, value: LiteralValue, position: Position?) {
-        fun err(msg: String) {
-            checkResult.add(SyntaxError(msg, position))
-        }
-        when (datatype) {
-            DataType.FLOAT -> {
-                val number = value.asFloat(false)
-                if (number!=null && (number > 1.7014118345e+38 || number < -1.7014118345e+38))
-                    err("floating point value out of range for MFLPT format")
-            }
-            DataType.BYTE -> {
-                val number = value.asInt(false)
-                if (number!=null && (number < 0 || number > 255))
-                    err("value out of range for unsigned byte")
-            }
-            DataType.WORD -> {
-                val number = value.asInt(false)
-                if (number!=null && (number < 0 || number > 65535))
-                    err("value out of range for unsigned word")
-            }
-            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
-                val str = value.strvalue
-                if (str!=null && (str.isEmpty() || str.length > 65535))
-                    err("string length must be 1..65535")
-            }
-        }
-    }
-
-
-    private fun checkConstInitializerValueScalar(decl: VarDecl) {
-        fun err(msg: String) {
-            checkResult.add(SyntaxError(msg, decl.position))
-        }
-        val value = decl.value as LiteralValue
-        when (decl.datatype) {
-            DataType.FLOAT -> {
-                val number = value.asFloat(false)
-                if (number == null)
-                    err("need a const float initializer value")
-            }
-            DataType.BYTE -> {
-                val number = value.asInt(false)
-                if (number == null)
-                    err("need a const integer initializer value")
-            }
-            DataType.WORD -> {
-                val number = value.asInt(false)
-                if (number == null)
-                    err("need a const integer initializer value")
-            }
-            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
-                val str = value.strvalue
-                if (str == null)
-                    err("need a const string initializer value")
-            }
-        }
+        return super.process(decl)
     }
 
     /**
@@ -307,7 +203,100 @@ class AstChecker : IAstProcessor {
             }
             else -> throw AstException("invalid directive ${directive.directive}")
         }
-        return directive
+        return super.process(directive)
     }
 
+    private fun checkConstInitializerValueArray(decl: VarDecl) {
+        val value = decl.value as LiteralValue
+        // init value should either be a scalar or an array with the same dimensions as the arrayspec.
+
+        if(decl.isArray) {
+            if(value.arrayvalue==null) {
+                checkValueRange(decl.datatype, value.constValue(globalNamespace)!!, value.position)
+            }
+            else {
+                val expected = decl.arraySizeX(globalNamespace)
+                if (value.arrayvalue.size != expected)
+                    checkResult.add(SyntaxError("initializer array size mismatch (expecting $expected)", decl.position))
+                else {
+                    value.arrayvalue.forEach {
+                        checkValueRange(decl.datatype, it.constValue(globalNamespace)!!, it.position)
+                    }
+                }
+            }
+        }
+
+        if(decl.isMatrix) {
+            if(value.arrayvalue==null) {
+                checkValueRange(decl.datatype, value.constValue(globalNamespace)!!, value.position)
+            }
+            else {
+                val expected = decl.arraySizeX(globalNamespace)!! * decl.arraySizeY(globalNamespace)!!
+                if (value.arrayvalue.size != expected)
+                    checkResult.add(SyntaxError("initializer array size mismatch (expecting $expected)", decl.position))
+                else {
+                    value.arrayvalue.forEach {
+                        checkValueRange(decl.datatype, it.constValue(globalNamespace)!!, it.position)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun checkValueRange(datatype: DataType, value: LiteralValue, position: Position?) {
+        fun err(msg: String) {
+            checkResult.add(SyntaxError(msg, position))
+        }
+        when (datatype) {
+            DataType.FLOAT -> {
+                val number = value.asFloat(false)
+                if (number!=null && (number > 1.7014118345e+38 || number < -1.7014118345e+38))
+                    err("floating point value out of range for MFLPT format")
+            }
+            DataType.BYTE -> {
+                val number = value.asInt(false)
+                if (number!=null && (number < 0 || number > 255))
+                    err("value out of range for unsigned byte")
+            }
+            DataType.WORD -> {
+                val number = value.asInt(false)
+                if (number!=null && (number < 0 || number > 65535))
+                    err("value out of range for unsigned word")
+            }
+            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
+                val str = value.strvalue
+                if (str!=null && (str.isEmpty() || str.length > 65535))
+                    err("string length must be 1..65535")
+            }
+        }
+    }
+
+    private fun checkConstInitializerValueScalar(decl: VarDecl) {
+        fun err(msg: String) {
+            checkResult.add(SyntaxError(msg, decl.position))
+        }
+        val value = decl.value as LiteralValue
+        when (decl.datatype) {
+            DataType.FLOAT -> {
+                val number = value.asFloat(false)
+                if (number == null)
+                    err("need a const float initializer value")
+            }
+            DataType.BYTE -> {
+                val number = value.asInt(false)
+                if (number == null)
+                    err("need a const integer initializer value")
+            }
+            DataType.WORD -> {
+                val number = value.asInt(false)
+                if (number == null)
+                    err("need a const integer initializer value")
+            }
+            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
+                val str = value.strvalue
+                if (str == null)
+                    err("need a const string initializer value")
+            }
+        }
+    }
 }
