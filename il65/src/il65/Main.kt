@@ -86,12 +86,24 @@ fun fileNameWithoutSuffix(filePath: Path) =
         filePath.fileName.toString().substringBeforeLast('.')
 
 
-fun discoverImportedModule(name: String, importedFrom: Path): Path {
-    val tryName = Paths.get(importedFrom.parent.toString(), name + ".ill")
-    if(Files.exists(tryName))
-        return tryName
-    else
-        throw ParsingFailedError("No such module source file: $tryName")
+fun discoverImportedModule(name: String, importedFrom: Path, position: Position?): Path {
+    val fileName = name + ".ill"
+    val locations = mutableListOf(Paths.get(importedFrom.parent.toString()))
+
+    val propPath = System.getProperty("il65.libpath")
+    if(propPath!=null)
+        locations.add(Paths.get(propPath))
+    val envPath = System.getenv("IL65_LIBPATH")
+    if(envPath!=null)
+        locations.add(Paths.get(envPath))
+    locations.add(Paths.get(Paths.get("").toAbsolutePath().toString(), "lib65"))
+
+    locations.forEach {
+        val file = Paths.get(it.toString(), fileName)
+        if (Files.isReadable(file)) return file
+    }
+
+    throw ParsingFailedError("$position Import: no module source file '$fileName' found  (I've looked in: $locations)")
 }
 
 
@@ -102,7 +114,7 @@ fun executeImportDirective(import: Directive, importedFrom: Path): Module? {
     if(importedModules.containsKey(moduleName))
         return null
 
-    val modulePath = discoverImportedModule(moduleName, importedFrom)
+    val modulePath = discoverImportedModule(moduleName, importedFrom, import.position)
     val importedModule = loadModule(modulePath)
     importedModule.checkImportValid()
 

@@ -250,7 +250,7 @@ data class AssignTarget(val register: Register?, val identifier: Identifier?) : 
         identifier?.linkParents(this)
     }
 
-    fun process(processor: IAstProcessor) = this       // for now
+    fun process(processor: IAstProcessor) = this
 }
 
 
@@ -649,8 +649,8 @@ private fun il65Parser.LabeldefContext.toAst(withPosition: Boolean): IStatement 
 
 private fun il65Parser.SubroutineContext.toAst(withPosition: Boolean) : Subroutine {
     val sub = Subroutine(identifier().text,
-            if(sub_params()==null) emptyList() else sub_params().toAst(withPosition),
-            if(sub_returns()==null) emptyList() else sub_returns().toAst(withPosition),
+            if(sub_params()==null) emptyList() else sub_params().toAst(),
+            if(sub_returns()==null) emptyList() else sub_returns().toAst(),
             sub_address()?.integerliteral()?.toAst(),
             if(sub_body()==null) emptyList() else sub_body().statement().map {it.toAst(withPosition)})
     sub.position = toPosition(withPosition)
@@ -658,11 +658,11 @@ private fun il65Parser.SubroutineContext.toAst(withPosition: Boolean) : Subrouti
 }
 
 
-private fun il65Parser.Sub_paramsContext.toAst(withPosition: Boolean): List<SubroutineParameter> =
+private fun il65Parser.Sub_paramsContext.toAst(): List<SubroutineParameter> =
         sub_param().map { SubroutineParameter(it.identifier().text, it.register().toAst()) }
 
 
-private fun il65Parser.Sub_returnsContext.toAst(withPosition: Boolean): List<SubroutineReturnvalue> =
+private fun il65Parser.Sub_returnsContext.toAst(): List<SubroutineReturnvalue> =
         sub_return().map {
             val isClobber = it.childCount==2 && it.children[1].text == "?"
             SubroutineReturnvalue(it.register().toAst(), isClobber)
