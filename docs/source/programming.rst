@@ -360,3 +360,54 @@ by nothing, which is the same as AXY) to tell the compiler you want to preserve 
 value of the given registers after the subroutine call.  Otherwise, the subroutine may just
 as well clobber all three registers. Preserving the original values does result in some
 stack manipulation code to be inserted for every call like this, which can be quite slow.
+
+
+Built-in Functions
+------------------
+
+The compiler has the following built-in functions that you can use in expressions:
+
+sin(value)
+	Sine.
+
+cos(value)
+	Cosine.
+
+abs(value)
+	Absolute value.
+
+acos(value)
+	Arccosine.
+
+asin(value)
+	Arcsine.
+
+tan(value)
+	Tangent.
+
+atan(value)
+	Arctangent.
+
+log(value)
+	Natural logarithm.
+
+log10(value)
+	Base-10 logarithm.
+
+sqrt(value)
+	Square root.
+
+max(value [, value, ...])
+	Maximum of the values.
+
+min(value [, value, ...])
+	Minumum of the values.
+
+round(value)
+	Rounds the floating point to an integer.
+
+rad(value)
+	Degrees to radians.
+
+deg(value)
+	Radians to degrees.

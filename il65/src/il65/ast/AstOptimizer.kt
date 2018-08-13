@@ -30,9 +30,12 @@ class AstOptimizer(private val globalNamespace: INameScope) : IAstProcessor {
      * some identifiers can be replaced with the constant value they refer to
      */
     override fun process(identifier: Identifier): IExpression {
-        println("PROCESS ID $identifier")  // todo
-        val const = identifier.constValue(globalNamespace)
-        return const ?: identifier
+        return identifier.constValue(globalNamespace) ?: identifier
+    }
+
+    override fun process(functionCall: FunctionCall): IExpression {
+        super.process(functionCall)
+        return functionCall.constValue(globalNamespace) ?: functionCall
     }
 
     /**

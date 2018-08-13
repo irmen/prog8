@@ -1,7 +1,12 @@
 ~ main $c003  {
-  ;memory byte derp = $ffdd
-  ;memory byte derp2 = 2+$ffdd+sin(3)
-  memory byte derp3 = round(sin(3))
+  memory byte derp = max($ffdd)
+  memory byte derpA = abs(-2.5-0.5)
+  memory byte derpB = max(1, 2.2, 4.4, 100)
+  memory byte cderp = min($ffdd)
+  memory byte cderpA = min($ffdd, 10, 20, 30)
+  memory byte cderpB = min(1, 2.2, 4.4, 100)
+  memory byte derp2 = 2+$ffdd+round(10*sin(3))
+  memory byte derp3 = round(100*sin(3))
   const byte hopla=55-33
   const byte hopla2=100+(-main.hopla)
   const byte hopla3=100+(-hopla)

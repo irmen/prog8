@@ -525,7 +525,6 @@ data class FunctionCall(var location: Identifier, var arglist: List<IExpression>
 
     override fun constValue(namespace: INameScope): LiteralValue? {
         // if the function is a built-in function and the args are consts, should evaluate!
-        println("CONSTVALUE of Function call $location") // todo
         if(location.scopedName.size>1) return null
         return when(location.scopedName[0]){
             "sin" -> builtin_sin(arglist, namespace)
@@ -541,6 +540,8 @@ data class FunctionCall(var location: Identifier, var arglist: List<IExpression>
             "max" -> builtin_max(arglist, namespace)
             "min" -> builtin_min(arglist, namespace)
             "round" -> builtin_round(arglist, namespace)
+            "rad" -> builtin_rad(arglist, namespace)
+            "deg" -> builtin_deg(arglist, namespace)
             else -> null
         }
     }
