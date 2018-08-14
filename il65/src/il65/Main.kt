@@ -1,7 +1,8 @@
 package il65
 
 import il65.ast.*
-import il65.optimizing.optimize
+import il65.optimizing.optimizeExpressions
+import il65.optimizing.optimizeStatements
 import il65.parser.il65Lexer
 import il65.parser.il65Parser
 import org.antlr.v4.runtime.CharStreams
@@ -128,7 +129,8 @@ fun main(args: Array<String>) {
         val globalNamespace = moduleAst.namespace()
         // globalNamespace.debugPrint()
 
-        moduleAst.optimize(globalNamespace)
+        moduleAst.optimizeExpressions(globalNamespace)
+        moduleAst.optimizeStatements(globalNamespace)
         moduleAst.checkValid(globalNamespace)      // check if final tree is valid
 
         // todo compile to asm...

@@ -1,4 +1,10 @@
 ~ main $c003  {
+  word[100]  ascending = 100 to 199
+  word[100]  ascending2 = "a" to "z"
+  str  ascending3 = "a" to "z"
+  str  ascending5 = "z" to "z"
+  const byte cc = 4 + (2==9)
+  byte cc2 = 4 - (2==10)
   memory byte derp = max($ffdd)
   memory byte derpA = abs(-2.5-0.5)
   memory byte derpB = max(1, 2.2, 4.4, 100)
@@ -19,8 +25,16 @@
   const byte equal = 4==4
   const byte equal2 = (4+hopla)>0
 
+	%breakpoint
+
+  byte equalQQ = 4==4
+  const byte equalQQ2 = (4+hopla)>0
+
   XY = hopla*2+hopla1
   A = "derp" * %000100
+
+  byte equalWW = 4==4
+  const byte equalWW2 = (4+hopla)>0
 
 	if (1==1) goto hopla
 
@@ -32,13 +46,14 @@
 
 	if (5==5) {
 		A=99
+		%breakpoint
 	}
 
 	if(6==6) {
 		A=99
 	}  else X=33
 
-	if(6==6) {
+	if(6>36) {
 		A=99
 	}  else {
 		X=33

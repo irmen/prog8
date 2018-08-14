@@ -124,7 +124,7 @@ expression :
 	| left = expression bop = 'or' right = expression
 	| left = expression bop = 'xor' right = expression
 	| prefix = 'not' expression
-	| rangefrom = expression 'to' rangeto = expression
+	| rangefrom = expression 'to' rangeto = expression	// create separate rule once for-loops are here?
 	| literalvalue
 	| register
 	| identifier

@@ -4,7 +4,7 @@ import il65.ast.*
 import kotlin.math.pow
 
 
-fun Module.optimize(globalNamespace: INameScope) {
+fun Module.optimizeExpressions(globalNamespace: INameScope) {
     val optimizer = ExpressionOptimizer(globalNamespace)
     this.process(optimizer)
     if(optimizer.optimizationsDone==0)
@@ -107,6 +107,41 @@ class ExpressionOptimizer(private val globalNamespace: INameScope) : IAstProcess
             }
             else -> expr
         }
+    }
+
+    override fun process(range: RangeExpr): IExpression {
+        super.process(range)
+        val from = range.from.constValue(globalNamespace)
+        val to = range.to.constValue(globalNamespace)
+        if(from!=null && to != null) {
+            when {
+                from.intvalue!=null && to.intvalue!=null -> {
+                    // int range
+                    val rangevalue = from.intvalue.rangeTo(to.intvalue)
+                    if(rangevalue.last-rangevalue.first > 65535) {
+                        throw AstException("amount of values in range exceeds 65535, at ${range.position}")
+                    }
+                    return LiteralValue(arrayvalue = rangevalue.map {
+                        val v = LiteralValue(intvalue=it)
+                        v.position=range.position
+                        v.parent=range.parent
+                        v
+                    })
+                }
+                from.strvalue!=null && to.strvalue!=null -> {
+                    // char range
+                    val rangevalue = from.strvalue[0].rangeTo(to.strvalue[0])
+                    if(rangevalue.last-rangevalue.first > 65535) {
+                        throw AstException("amount of characters in range exceeds 65535, at ${range.position}")
+                    }
+                    val newval = LiteralValue(strvalue = rangevalue.toList().joinToString(""))
+                    newval.position = range.position
+                    newval.parent = range.parent
+                    return newval
+                }
+            }
+        }
+        return range
     }
 }
 

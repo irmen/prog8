@@ -92,6 +92,11 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
         fun err(msg: String) {
             checkResult.add(SyntaxError(msg, subroutine.position))
         }
+
+        // subroutines may only be defined directly inside a block
+        if(subroutine.parent !is Block)
+            err("subroutines can only be defined in a block (not in other scopes)")
+
         val uniqueNames = subroutine.parameters.map { it.name }.toSet()
         if(uniqueNames.size!=subroutine.parameters.size)
             err("parameter names should be unique")
@@ -184,6 +189,19 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
     }
 
     /**
+     * check if condition
+     */
+    override fun process(ifStatement: IfStatement): IStatement {
+        val constvalue = ifStatement.condition.constValue(globalNamespace)
+        if(constvalue!=null) {
+            val msg = if (constvalue.asBoolean()) "condition is always true" else "condition is always false"
+            println("${ifStatement.position} Warning: $msg")
+        }
+
+        return super.process(ifStatement)
+    }
+
+    /**
      * check the arguments of the directive
      */
     override fun process(directive: Directive): IStatement {
@@ -222,17 +240,17 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
                     err("invalid import directive, cannot import itself")
             }
             "%breakpoint" -> {
-                if(directive.parent !is Block) err("this directive may only occur in a block")
+                if(directive.parent is Module) err("this directive may only occur in a block")
                 if(directive.args.isNotEmpty())
                     err("invalid breakpoint directive, expected no arguments")
             }
             "%asminclude" -> {
-                if(directive.parent !is Block) err("this directive may only occur in a block")
+                if(directive.parent is Module) err("this directive may only occur in a block")
                 if(directive.args.size!=2 || directive.args[0].str==null || directive.args[1].name==null)
                     err("invalid asminclude directive, expected arguments: \"filename\", scopelabel")
             }
             "%asmbinary" -> {
-                if(directive.parent !is Block) err("this directive may only occur in a block")
+                if(directive.parent is Module) err("this directive may only occur in a block")
                 val errormsg = "invalid asmbinary directive, expected arguments: \"filename\" [, offset [, length ] ]"
                 if(directive.args.isEmpty()) err(errormsg)
                 if(directive.args.isNotEmpty() && directive.args[0].str==null) err(errormsg)
@@ -261,7 +279,7 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
             else {
                 val expected = decl.arraySizeX(globalNamespace)
                 if (value.arrayvalue.size != expected)
-                    checkResult.add(SyntaxError("initializer array size mismatch (expecting $expected)", decl.position))
+                    checkResult.add(SyntaxError("initializer array size mismatch (expecting $expected, got ${value.arrayvalue.size})", decl.position))
                 else {
                     value.arrayvalue.forEach {
                         checkValueRange(decl.datatype, it.constValue(globalNamespace)!!, it.position)
@@ -277,7 +295,7 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
             else {
                 val expected = decl.arraySizeX(globalNamespace)!! * decl.arraySizeY(globalNamespace)!!
                 if (value.arrayvalue.size != expected)
-                    checkResult.add(SyntaxError("initializer array size mismatch (expecting $expected)", decl.position))
+                    checkResult.add(SyntaxError("initializer array size mismatch (expecting $expected, got ${value.arrayvalue.size})", decl.position))
                 else {
                     value.arrayvalue.forEach {
                         checkValueRange(decl.datatype, it.constValue(globalNamespace)!!, it.position)
@@ -285,6 +303,31 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
                 }
             }
         }
+    }
+
+    override fun process(range: RangeExpr): IExpression {
+        fun err(msg: String) {
+            checkResult.add(SyntaxError(msg, range.position))
+        }
+        super.process(range)
+        val from = range.from.constValue(globalNamespace)
+        val to = range.to.constValue(globalNamespace)
+        if(from!=null && to != null) {
+            when {
+                from.intvalue!=null && to.intvalue!=null -> {
+                    if(from.intvalue > to.intvalue)
+                        err("range from is larger than to value")
+                }
+                from.strvalue!=null && to.strvalue!=null -> {
+                    if(from.strvalue.length!=1 || to.strvalue.length!=1)
+                        err("range from and to must be a single character")
+                    if(from.strvalue[0] > to.strvalue[0])
+                        err("range from is larger than to value")
+                }
+                else -> err("range expression must be over integers or over characters")
+            }
+        }
+        return range
     }
 
     private fun checkValueRange(datatype: DataType, value: LiteralValue, position: Position?) {

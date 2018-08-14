@@ -100,6 +100,12 @@ interface IAstProcessor {
         ifStatement.elsepart = ifStatement.elsepart?.map { it.process(this) }
         return ifStatement
     }
+
+    fun process(range: RangeExpr): IExpression {
+        range.from = range.from.process(this)
+        range.to = range.to.process(this)
+        return range
+    }
 }
 
 
@@ -181,6 +187,25 @@ interface INameScope {
             }
         }
         printNames(0, this)
+    }
+}
+
+
+/**
+ * Inserted into the Ast in place of modified nodes (not inserted directly as a parser result)
+ * It can hold zero or more replacement statements that have to be inserted at that point.
+ */
+data class AnonymousStatementList(override var parent: Node?, var statements: List<IStatement>) : IStatement {
+    override var position: Position? = null
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        statements.forEach { it.linkParents(this) }
+    }
+
+    override fun process(processor: IAstProcessor): IStatement {
+        statements = statements.map { it.process(processor) }
+        return this
     }
 }
 
@@ -433,6 +458,12 @@ data class LiteralValue(val intvalue: Int? = null,
         }
     }
 
+    fun asBoolean(): Boolean =
+            (floatvalue!=null && floatvalue != 0.0) ||
+            (intvalue!=null && intvalue != 0) ||
+            (strvalue!=null && strvalue.isNotEmpty()) ||
+            (arrayvalue != null && arrayvalue.isNotEmpty())
+
     override fun linkParents(parent: Node) {
         this.parent = parent
         arrayvalue?.forEach {it.linkParents(this)}
@@ -454,11 +485,7 @@ data class RangeExpr(var from: IExpression, var to: IExpression) : IExpression {
     }
 
     override fun constValue(namespace: INameScope): LiteralValue? = null
-    override fun process(processor: IAstProcessor): IExpression {
-        from = from.process(processor)
-        to = to.process(processor)
-        return this
-    }
+    override fun process(processor: IAstProcessor) = processor.process(this)
 }
 
 

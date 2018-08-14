@@ -152,7 +152,7 @@ Variables and values
 --------------------
 
 Variables are named values that can change during the execution of the program.
-When declaring a variable it is possible to specify the initial value it should get.
+When declaring a variable it is required to specify the initial value it should get.
 Values will usually be part of an expression or assignment statement::
 
 	12345			; integer number
@@ -162,6 +162,10 @@ Values will usually be part of an expression or assignment statement::
 	-33.456e52		; floating point number
 
 	byte  counter  = 42	; variable of size 8 bits, with initial value 42
+
+	byte[4]  array = [1, 2, 3, 4]    ; initialize the array
+	byte[99] array = 255             ; initialize array with all 255's [255, 255, 255, 255, ...]
+	byte[100] array = 100 to 199     ; initialize array with [100, 101, ..., 198, 199]
 
 
 Note that the various keywords for the data type and variable type (``byte``, ``word``, ``const``, etc.)

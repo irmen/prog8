@@ -191,6 +191,21 @@ The data that the code works on is stored in variables. Variable names have to b
 Values in the source code are written using *value literals*. In the table of the supported
 data types below you can see how they should be written.
 
+
+Range expression
+----------------
+A special value is the *range expression* ( ``<startvalue>  to  <endvalue>`` )
+which represents a range of numbers or characters,
+from the starting value to (and including) the ending value.
+If used in the place of a literal value, it expands into the actual array of values::
+
+	byte[100] array = 100 to 199     ; initialize array with [100, 101, ..., 198, 199]
+
+
+.. todo::
+	this may be used later in the for-loop as well.  Add 'step' to range expression as well?
+
+
 Variable declarations
 ^^^^^^^^^^^^^^^^^^^^^
 
@@ -469,7 +484,7 @@ Notice that this is a valid way to end a subroutine (you can either ``return`` f
 to another piece of code that eventually returns).
 
 
-conditional execution
+Conditional execution
 ^^^^^^^^^^^^^^^^^^^^^
 
 With the 'if' / 'else' statement you can execute code depending on the value of a condition::
