@@ -281,8 +281,9 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
                 if (value.arrayvalue.size != expected)
                     checkResult.add(SyntaxError("initializer array size mismatch (expecting $expected, got ${value.arrayvalue.size})", decl.position))
                 else {
-                    value.arrayvalue.forEach {
-                        checkValueRange(decl.datatype, it.constValue(globalNamespace)!!, it.position)
+                    for(v in value.arrayvalue) {
+                        if(!checkValueRange(decl.datatype, v.constValue(globalNamespace)!!, v.position))
+                            break
                     }
                 }
             }
@@ -297,8 +298,9 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
                 if (value.arrayvalue.size != expected)
                     checkResult.add(SyntaxError("initializer array size mismatch (expecting $expected, got ${value.arrayvalue.size})", decl.position))
                 else {
-                    value.arrayvalue.forEach {
-                        checkValueRange(decl.datatype, it.constValue(globalNamespace)!!, it.position)
+                    for(v in value.arrayvalue) {
+                        if(!checkValueRange(decl.datatype, v.constValue(globalNamespace)!!, v.position))
+                            break
                     }
                 }
             }
@@ -330,32 +332,34 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
         return range
     }
 
-    private fun checkValueRange(datatype: DataType, value: LiteralValue, position: Position?) {
-        fun err(msg: String) {
+    private fun checkValueRange(datatype: DataType, value: LiteralValue, position: Position?) : Boolean {
+        fun err(msg: String) : Boolean {
             checkResult.add(SyntaxError(msg, position))
+            return false
         }
         when (datatype) {
             DataType.FLOAT -> {
                 val number = value.asFloat(false)
                 if (number!=null && (number > 1.7014118345e+38 || number < -1.7014118345e+38))
-                    err("floating point value out of range for MFLPT format")
+                    return err("floating point value out of range for MFLPT format")
             }
             DataType.BYTE -> {
                 val number = value.asInt(false)
                 if (number!=null && (number < 0 || number > 255))
-                    err("value out of range for unsigned byte")
+                    return err("value out of range for unsigned byte")
             }
             DataType.WORD -> {
                 val number = value.asInt(false)
                 if (number!=null && (number < 0 || number > 65535))
-                    err("value out of range for unsigned word")
+                    return err("value out of range for unsigned word")
             }
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
                 val str = value.strvalue
                 if (str!=null && (str.isEmpty() || str.length > 65535))
-                    err("string length must be 1..65535")
+                    return err("string length must be 1..65535")
             }
         }
+        return true
     }
 
     private fun checkConstInitializerValueScalar(decl: VarDecl) {

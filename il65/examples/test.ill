@@ -1,5 +1,5 @@
 ~ main $c003  {
-  word[100]  ascending = 100 to 199
+  word[1000]  ascending = 10 to 1009
   word[100]  ascending2 = "a" to "z"
   str  ascending3 = "a" to "z"
   str  ascending5 = "z" to "z"
