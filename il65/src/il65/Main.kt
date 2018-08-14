@@ -125,7 +125,7 @@ fun main(args: Array<String>) {
         val moduleAst = loadModule(filepath)
         moduleAst.linkParents()
         val globalNamespace = moduleAst.namespace()
-        globalNamespace.debugPrint()
+        // globalNamespace.debugPrint()
 
         moduleAst.optimize(globalNamespace)
         moduleAst.checkValid(globalNamespace)      // check if final tree is valid

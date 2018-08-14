@@ -81,6 +81,10 @@ interface IAstProcessor {
         functionCall.arglist = functionCall.arglist.map { it.process(this) }
         return functionCall
     }
+    fun process(functionCall: FunctionCallStatement): IStatement {
+        functionCall.arglist = functionCall.arglist.map { it.process(this) }
+        return functionCall
+    }
     fun process(identifier: Identifier): IExpression {
         return identifier
     }
@@ -101,6 +105,11 @@ interface IStatement : Node {
     fun process(processor: IAstProcessor) : IStatement
 }
 
+
+interface IFunctionCall {
+    var location: Identifier
+    var arglist: List<IExpression>
+}
 
 interface INameScope {
     val name: String
@@ -474,8 +483,7 @@ data class Identifier(val scopedName: List<String>) : IExpression {
             // todo add to a list of errors instead
             throw SyntaxError("name should be a constant, instead of: ${node::class.simpleName}", position)
         } else if(vardecl.type!=VarDeclType.CONST) {
-            // todo add to a list of errors instead
-            throw SyntaxError("name should be a constant, instead of: ${vardecl.type}", position)
+            return null
         }
         return vardecl.value?.constValue(namespace)
     }
@@ -513,7 +521,7 @@ data class Jump(val address: Int?, val identifier: Identifier?) : IStatement {
 }
 
 
-data class FunctionCall(var location: Identifier, var arglist: List<IExpression>) : IExpression {
+data class FunctionCall(override var location: Identifier, override var arglist: List<IExpression>) : IExpression, IFunctionCall {
     override var position: Position? = null
     override var parent: Node? = null
 
@@ -544,6 +552,20 @@ data class FunctionCall(var location: Identifier, var arglist: List<IExpression>
             "deg" -> builtin_deg(arglist, namespace)
             else -> null
         }
+    }
+
+    override fun process(processor: IAstProcessor) = processor.process(this)
+}
+
+
+data class FunctionCallStatement(override var location: Identifier, override var arglist: List<IExpression>) : IStatement, IFunctionCall {
+    override var position: Position? = null
+    override var parent: Node? = null
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        location.linkParents(this)
+        arglist.forEach { it.linkParents(this) }
     }
 
     override fun process(processor: IAstProcessor) = processor.process(this)
@@ -736,7 +758,36 @@ private fun il65Parser.StatementContext.toAst(withPosition: Boolean) : IStatemen
     val asm = inlineasm()?.toAst(withPosition)
     if(asm!=null) return asm
 
+    val fcall = functioncall_stmt()?.toAst(withPosition)
+    if(fcall!=null) return fcall
+
     throw UnsupportedOperationException(text)
+}
+
+
+private fun il65Parser.Functioncall_stmtContext.toAst(withPosition: Boolean): IStatement {
+    val location =
+            if(identifier()!=null) identifier()?.toAst(withPosition)
+            else scoped_identifier()?.toAst(withPosition)
+    val fcall = if(expression_list()==null)
+        FunctionCallStatement(location!!, emptyList())
+    else
+        FunctionCallStatement(location!!, expression_list().toAst(withPosition))
+    fcall.position = toPosition(withPosition)
+    return fcall
+}
+
+
+private fun il65Parser.FunctioncallContext.toAst(withPosition: Boolean): FunctionCall {
+    val location =
+            if(identifier()!=null) identifier()?.toAst(withPosition)
+            else scoped_identifier()?.toAst(withPosition)
+    val fcall = if(expression_list()==null)
+        FunctionCall(location!!, emptyList())
+    else
+        FunctionCall(location!!, expression_list().toAst(withPosition))
+    fcall.position = toPosition(withPosition)
+    return fcall
 }
 
 
@@ -892,16 +943,8 @@ private fun il65Parser.ExpressionContext.toAst(withPosition: Boolean) : IExpress
         return expr
     }
 
-    val funcall = functioncall()
-    if(funcall!=null) {
-        val location = funcall.identifier().toAst(withPosition)
-        val fcall = if(funcall.expression_list()==null)
-            FunctionCall(location, emptyList())
-        else
-            FunctionCall(location, funcall.expression_list().toAst(withPosition))
-        fcall.position = funcall.toPosition(withPosition)
-        return fcall
-    }
+    val funcall = functioncall()?.toAst(withPosition)
+    if(funcall!=null) return funcall
 
     if (rangefrom!=null && rangeto!=null) {
         val rexp = RangeExpr(rangefrom.toAst(withPosition), rangeto.toAst(withPosition))

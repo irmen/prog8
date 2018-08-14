@@ -267,23 +267,34 @@ You can also create loops by using the ``goto`` statement, but this should be av
 Conditional Execution
 ---------------------
 
-@todo
+.. todo::
+	not sure how to handle direct translation into
+	[cc, cs, vc, vs, eq, ne, true, not, zero, pos, neg, lt, gt, le, ge]
+	It defaults to 'true' (=='ne', not-zero) if omitted. ('pos' will translate into 'pl', 'neg' into 'mi')
+	@todo signed: lts==neg?, gts==eq+pos?, les==neg+eq?, ges==pos?
+
+.. todo::
+	eventually allow local variable definitions inside the sub blocks but for now,
+	they have to use the same variables as the block the ``if`` statement itself is in.
+
 
 Conditional execution means that the flow of execution changes based on certiain conditions,
-rather than having fixed gotos or subroutine calls. IL65 has a *conditional goto* statement for this,
-that is translated into a comparison (if needed) and then a conditional branch instruction::
+rather than having fixed gotos or subroutine calls::
 
-	if[_XX] [<expression>] goto <label>
+	if A > 4 goto overflow
+
+	if X == 3 then Y = 4
+	if X == 3 then Y = 4 else A = 2
+
+	if X == 5 {
+		Y = 99
+	} else {
+		A = 3
+	}
+
+condition = arithmetic expression or  logical expression or  comparison expression or  status_register_flags ( ``SR.cs`` , ``SR.cc``, ``SR.pl`` etc... @todo )
 
 
-The if-status XX is one of: [cc, cs, vc, vs, eq, ne, true, not, zero, pos, neg, lt, gt, le, ge]
-It defaults to 'true' (=='ne', not-zero) if omitted. ('pos' will translate into 'pl', 'neg' into 'mi')
-@todo signed: lts==neg?, gts==eq+pos?, les==neg+eq?, ges==pos?
-
-The <expression> is optional. If it is provided, it will be evaluated first. Only the [true] and [not] and [zero]
-if-statuses can be used when such a *comparison expression* is used. An example is::
-
-        if_not  A > 55  goto  more_iterations
 
 
 Conditional jumps are compiled into 6502's branching instructions (such as ``bne`` and ``bcc``) so

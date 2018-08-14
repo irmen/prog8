@@ -20,6 +20,8 @@
   XY = hopla*2+hopla1
   A = "derp" * %000100
 
+  main.foo(1,2,3)
+
 mega:
 	X=1
 cool:

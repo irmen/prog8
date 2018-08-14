@@ -167,7 +167,8 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
             }
             VarDeclType.MEMORY -> {
                 if(decl.value !is LiteralValue)
-                    throw AstException("${decl.value?.position} value of memory var decl is not a literal (it is a ${decl.value!!::class.simpleName}). This is likely a bug in the AstOptimizer")
+                    // @todo normal error reporting
+                    throw AstException("${decl.value?.position} value of memory var decl is not a literal (it is a ${decl.value!!::class.simpleName}).")
 
                 val value = decl.value as LiteralValue
                 if(value.intvalue==null || value.intvalue<0 || value.intvalue>65535) {

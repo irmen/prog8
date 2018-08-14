@@ -62,6 +62,7 @@ statement :
 	| augassignment
 	| unconditionaljump
 	| postincrdecr
+	| functioncall_stmt
 	| subroutine
 	| inlineasm
 	| labeldef
@@ -137,6 +138,12 @@ expression :
 functioncall :
 	(identifier | scoped_identifier) '(' expression_list? ')'
 	;
+
+
+functioncall_stmt :
+	(identifier | scoped_identifier) '(' expression_list? ')'
+	;
+
 
 expression_list :
 	expression (',' expression)*

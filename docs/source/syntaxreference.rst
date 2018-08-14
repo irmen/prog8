@@ -467,8 +467,15 @@ conditional execution
 
 @todo::
 
-	if  <condition>   <single_statement or subblock>
-	  [else   <single_statement or subblock>]
+	if  <condition>  goto  <location>
+	if  <condition>  then  <simple_stateument>  [else  <simple_statement> ]
+
+	if  <condition>  {
+		<statements>
+	}
+	[ else {
+	  	<alternative statements>
+	} ]
 
 	condition = arithmetic expression
 		or  logical expression
