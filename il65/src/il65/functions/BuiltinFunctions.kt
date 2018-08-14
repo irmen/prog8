@@ -48,18 +48,41 @@ private fun twoDoubleArg(args: List<IExpression>, namespace: INameScope, functio
         throw UnsupportedOperationException("built-in function requires two floating point values as argument")
 }
 
-fun builtin_round(args: List<IExpression>, namespace: INameScope): LiteralValue = oneDoubleArgOutputInt(args, namespace) { it -> Math.round(it).toInt() }
-fun builtin_sin(args: List<IExpression>, namespace: INameScope): LiteralValue = oneDoubleArg(args, namespace, Math::sin)
-fun builtin_cos(args: List<IExpression>, namespace: INameScope): LiteralValue = oneDoubleArg(args, namespace, Math::cos)
-fun builtin_acos(args: List<IExpression>, namespace: INameScope): LiteralValue = oneDoubleArg(args, namespace, Math::acos)
-fun builtin_asin(args: List<IExpression>, namespace: INameScope): LiteralValue = oneDoubleArg(args, namespace, Math::asin)
-fun builtin_tan(args: List<IExpression>, namespace: INameScope): LiteralValue = oneDoubleArg(args, namespace, Math::tan)
-fun builtin_atan(args: List<IExpression>, namespace: INameScope): LiteralValue = oneDoubleArg(args, namespace, Math::atan)
-fun builtin_log(args: List<IExpression>, namespace: INameScope): LiteralValue = oneDoubleArg(args, namespace, Math::log)
-fun builtin_log10(args: List<IExpression>, namespace: INameScope): LiteralValue = oneDoubleArg(args, namespace, Math::log10)
-fun builtin_sqrt(args: List<IExpression>, namespace: INameScope): LiteralValue = oneDoubleArg(args, namespace, Math::sqrt)
-fun builtin_rad(args: List<IExpression>, namespace: INameScope): LiteralValue = oneDoubleArg(args, namespace, Math::toRadians)
-fun builtin_deg(args: List<IExpression>, namespace: INameScope): LiteralValue = oneDoubleArg(args, namespace, Math::toDegrees)
+fun builtin_round(args: List<IExpression>, namespace: INameScope): LiteralValue
+        = oneDoubleArgOutputInt(args, namespace) { it -> Math.round(it).toInt() }
+
+fun builtin_sin(args: List<IExpression>, namespace: INameScope): LiteralValue
+        = oneDoubleArg(args, namespace, Math::sin)
+
+fun builtin_cos(args: List<IExpression>, namespace: INameScope): LiteralValue
+        = oneDoubleArg(args, namespace, Math::cos)
+
+fun builtin_acos(args: List<IExpression>, namespace: INameScope): LiteralValue
+        = oneDoubleArg(args, namespace, Math::acos)
+
+fun builtin_asin(args: List<IExpression>, namespace: INameScope): LiteralValue
+        = oneDoubleArg(args, namespace, Math::asin)
+
+fun builtin_tan(args: List<IExpression>, namespace: INameScope): LiteralValue
+        = oneDoubleArg(args, namespace, Math::tan)
+
+fun builtin_atan(args: List<IExpression>, namespace: INameScope): LiteralValue
+        = oneDoubleArg(args, namespace, Math::atan)
+
+fun builtin_log(args: List<IExpression>, namespace: INameScope): LiteralValue
+        = oneDoubleArg(args, namespace, Math::log)
+
+fun builtin_log10(args: List<IExpression>, namespace: INameScope): LiteralValue
+        = oneDoubleArg(args, namespace, Math::log10)
+
+fun builtin_sqrt(args: List<IExpression>, namespace: INameScope): LiteralValue
+        = oneDoubleArg(args, namespace, Math::sqrt)
+
+fun builtin_rad(args: List<IExpression>, namespace: INameScope): LiteralValue
+        = oneDoubleArg(args, namespace, Math::toRadians)
+
+fun builtin_deg(args: List<IExpression>, namespace: INameScope): LiteralValue
+        = oneDoubleArg(args, namespace, Math::toDegrees)
 
 fun builtin_abs(args: List<IExpression>, namespace: INameScope): LiteralValue {
     if(args.size!=1)

@@ -1,6 +1,7 @@
 package il65
 
 import il65.ast.*
+import il65.optimizing.optimize
 import il65.parser.il65Lexer
 import il65.parser.il65Parser
 import org.antlr.v4.runtime.CharStreams
@@ -87,10 +88,10 @@ fun discoverImportedModule(name: String, importedFrom: Path, position: Position?
     val fileName = name + ".ill"
     val locations = mutableListOf(Paths.get(importedFrom.parent.toString()))
 
-    val propPath = System.getProperty("il65.libpath")
+    val propPath = System.getProperty("il65.libdir")
     if(propPath!=null)
         locations.add(Paths.get(propPath))
-    val envPath = System.getenv("IL65_LIBPATH")
+    val envPath = System.getenv("IL65_LIBDIR")
     if(envPath!=null)
         locations.add(Paths.get(envPath))
     locations.add(Paths.get(Paths.get("").toAbsolutePath().toString(), "lib65"))
@@ -113,7 +114,7 @@ fun executeImportDirective(import: Directive, importedFrom: Path): Module? {
 
     val modulePath = discoverImportedModule(moduleName, importedFrom, import.position)
     val importedModule = loadModule(modulePath)
-    importedModule.checkImportValid()
+    importedModule.checkImportedValid()
 
     return importedModule
 }

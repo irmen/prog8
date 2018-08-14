@@ -1,10 +1,11 @@
-package il65.ast
+package il65.optimizing
 
+import il65.ast.*
 import kotlin.math.pow
 
 
 fun Module.optimize(globalNamespace: INameScope) {
-    val optimizer = AstOptimizer(globalNamespace)
+    val optimizer = ExpressionOptimizer(globalNamespace)
     this.process(optimizer)
     if(optimizer.optimizationsDone==0)
         println("[${this.name}] 0 optimizations performed")
@@ -18,7 +19,7 @@ fun Module.optimize(globalNamespace: INameScope) {
 }
 
 
-class AstOptimizer(private val globalNamespace: INameScope) : IAstProcessor {
+class ExpressionOptimizer(private val globalNamespace: INameScope) : IAstProcessor {
     var optimizationsDone: Int = 0
         private set
 
@@ -27,7 +28,7 @@ class AstOptimizer(private val globalNamespace: INameScope) : IAstProcessor {
     }
 
     /**
-     * some identifiers can be replaced with the constant value they refer to
+     * replace identifiers that refer to const value, with the value itself
      */
     override fun process(identifier: Identifier): IExpression {
         return identifier.constValue(globalNamespace) ?: identifier
@@ -141,7 +142,7 @@ class ConstExprEvaluator {
 
     private fun comparenotequal(left: LiteralValue, right: LiteralValue): LiteralValue {
         val leq = compareequal(left, right)
-        val litval = LiteralValue(intvalue = if(leq.intvalue==1) 0 else 1)
+        val litval = LiteralValue(intvalue = if (leq.intvalue == 1) 0 else 1)
         litval.position = left.position
         return litval
     }
@@ -161,7 +162,7 @@ class ConstExprEvaluator {
             right.arrayvalue!=null -> right.arrayvalue
             else -> throw AstException("missing literal value")
         }
-        val litval = LiteralValue(intvalue = if(leftvalue==rightvalue) 1 else 0)
+        val litval = LiteralValue(intvalue = if (leftvalue == rightvalue) 1 else 0)
         litval.position = left.position
         return litval
     }
@@ -214,14 +215,14 @@ class ConstExprEvaluator {
 
     private fun comparegreater(left: LiteralValue, right: LiteralValue): LiteralValue {
         val leq = comparelessequal(left, right)
-        val litval = LiteralValue(intvalue = if(leq.intvalue==1) 0 else 1)
+        val litval = LiteralValue(intvalue = if (leq.intvalue == 1) 0 else 1)
         litval.position = left.position
         return litval
     }
 
     private fun compareless(left: LiteralValue, right: LiteralValue): LiteralValue {
         val leq = comparegreaterequal(left, right)
-        val litval = LiteralValue(intvalue = if(leq.intvalue==1) 0 else 1)
+        val litval = LiteralValue(intvalue = if (leq.intvalue == 1) 0 else 1)
         litval.position = left.position
         return litval
     }
@@ -231,16 +232,16 @@ class ConstExprEvaluator {
         val litval = when {
             left.intvalue!=null -> when {
                 right.intvalue!=null -> LiteralValue(
-                        intvalue = if ((left.intvalue!=0).xor(right.intvalue!=0)) 1 else 0)
+                        intvalue = if ((left.intvalue != 0).xor(right.intvalue != 0)) 1 else 0)
                 right.floatvalue!=null -> LiteralValue(
-                        intvalue = if ((left.intvalue!=0).xor(right.floatvalue!=0.0)) 1 else 0)
+                        intvalue = if ((left.intvalue != 0).xor(right.floatvalue != 0.0)) 1 else 0)
                 else -> throw ExpressionException(error)
             }
             left.floatvalue!=null -> when {
                 right.intvalue!=null -> LiteralValue(
-                        intvalue = if ((left.floatvalue!=0.0).xor(right.intvalue!=0)) 1 else 0)
+                        intvalue = if ((left.floatvalue != 0.0).xor(right.intvalue != 0)) 1 else 0)
                 right.floatvalue!=null -> LiteralValue(
-                        intvalue = if ((left.floatvalue!=0.0).xor(right.floatvalue!=0.0)) 1 else 0)
+                        intvalue = if ((left.floatvalue != 0.0).xor(right.floatvalue != 0.0)) 1 else 0)
                 else -> throw ExpressionException(error)
             }
             else -> throw ExpressionException(error)
@@ -254,16 +255,16 @@ class ConstExprEvaluator {
         val litval = when {
             left.intvalue!=null -> when {
                 right.intvalue!=null -> LiteralValue(
-                        intvalue = if (left.intvalue!=0 || right.intvalue!=0) 1 else 0)
+                        intvalue = if (left.intvalue != 0 || right.intvalue != 0) 1 else 0)
                 right.floatvalue!=null -> LiteralValue(
-                        intvalue = if (left.intvalue!=0 || right.floatvalue!=0.0) 1 else 0)
+                        intvalue = if (left.intvalue != 0 || right.floatvalue != 0.0) 1 else 0)
                 else -> throw ExpressionException(error)
             }
             left.floatvalue!=null -> when {
                 right.intvalue!=null -> LiteralValue(
-                        intvalue = if (left.floatvalue!=0.0 || right.intvalue!=0) 1 else 0)
+                        intvalue = if (left.floatvalue != 0.0 || right.intvalue != 0) 1 else 0)
                 right.floatvalue!=null -> LiteralValue(
-                        intvalue = if (left.floatvalue!=0.0 || right.floatvalue!=0.0) 1 else 0)
+                        intvalue = if (left.floatvalue != 0.0 || right.floatvalue != 0.0) 1 else 0)
                 else -> throw ExpressionException(error)
             }
             else -> throw ExpressionException(error)
@@ -277,16 +278,16 @@ class ConstExprEvaluator {
         val litval = when {
             left.intvalue!=null -> when {
                 right.intvalue!=null -> LiteralValue(
-                        intvalue = if (left.intvalue!=0 && right.intvalue!=0) 1 else 0)
+                        intvalue = if (left.intvalue != 0 && right.intvalue != 0) 1 else 0)
                 right.floatvalue!=null -> LiteralValue(
-                        intvalue = if (left.intvalue!=0 && right.floatvalue!=0.0) 1 else 0)
+                        intvalue = if (left.intvalue != 0 && right.floatvalue != 0.0) 1 else 0)
                 else -> throw ExpressionException(error)
             }
             left.floatvalue!=null -> when {
                 right.intvalue!=null -> LiteralValue(
-                        intvalue = if (left.floatvalue!=0.0 && right.intvalue!=0) 1 else 0)
+                        intvalue = if (left.floatvalue != 0.0 && right.intvalue != 0) 1 else 0)
                 right.floatvalue!=null -> LiteralValue(
-                        intvalue = if (left.floatvalue!=0.0 && right.floatvalue!=0.0) 1 else 0)
+                        intvalue = if (left.floatvalue != 0.0 && right.floatvalue != 0.0) 1 else 0)
                 else -> throw ExpressionException(error)
             }
             else -> throw ExpressionException(error)

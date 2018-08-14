@@ -2,6 +2,9 @@ package il65.ast
 
 import il65.ParsingFailedError
 
+/**
+ * General checks on the Ast
+ */
 
 fun Module.checkValid(globalNamespace: INameScope) {
     val checker = AstChecker(globalNamespace)

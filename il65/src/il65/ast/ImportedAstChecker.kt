@@ -2,8 +2,11 @@ package il65.ast
 
 import il65.ParsingFailedError
 
+/**
+ * Checks that are specific for imported modules.
+ */
 
-fun Module.checkImportValid() {
+fun Module.checkImportedValid() {
     val checker = ImportedAstChecker()
     this.process(checker)
     val result = checker.result()
@@ -11,7 +14,7 @@ fun Module.checkImportValid() {
         it.printError()
     }
     if(result.isNotEmpty())
-        throw ParsingFailedError("There are ${result.size} errors in module '$name'.")
+        throw ParsingFailedError("There are ${result.size} errors in imported module '$name'.")
 }
 
 
@@ -22,6 +25,9 @@ class ImportedAstChecker : IAstProcessor {
         return checkResult
     }
 
+    /**
+     * Module check: most global directives don't apply for imported modules
+     */
     override fun process(module: Module) {
         super.process(module)
         val newStatements : MutableList<IStatement> = mutableListOf()
