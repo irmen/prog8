@@ -197,12 +197,12 @@ sub	CINT     () -> (?)			= $FF81		; (alias: SCINIT) initialize screen editor and
 sub	IOINIT   () -> (A?, X?)			= $FF84		; initialize I/O devices (CIA, SID, IRQ)
 sub	RAMTAS   () -> (?)			= $FF87		; initialize RAM, tape buffer, screen
 sub	RESTOR   () -> (?)			= $FF8A		; restore default I/O vectors
-sub	VECTOR   (dir: SC, userptr: XY) -> (A?, Y?)	= $FF8D		; read/set I/O vector table
+sub	VECTOR   (dir: Pc, userptr: XY) -> (A?, Y?)	= $FF8D		; read/set I/O vector table
 sub	SETMSG   (value: A) -> ()		= $FF90		; set Kernal message control flag
 sub	SECOND   (address: A) -> (A?)		= $FF93		; (alias: LSTNSA) send secondary address after LISTEN
 sub	TKSA     (address: A) -> (A?)		= $FF96		; (alias: TALKSA) send secondary address after TALK
-sub	MEMTOP   (dir: SC, address: XY) -> (XY)	= $FF99		; read/set top of memory  pointer
-sub	MEMBOT   (dir: SC, address: XY) -> (XY)	= $FF9C		; read/set bottom of memory  pointer
+sub	MEMTOP   (dir: Pc, address: XY) -> (XY)	= $FF99		; read/set top of memory  pointer
+sub	MEMBOT   (dir: Pc, address: XY) -> (XY)	= $FF9C		; read/set bottom of memory  pointer
 sub	SCNKEY   () -> (?)			= $FF9F		; scan the keyboard
 sub	SETTMO   (timeout: A) -> ()		= $FFA2		; set time-out flag for IEEE bus
 sub	ACPTR    () -> (A)			= $FFA5		; (alias: IECIN) input byte from serial bus
@@ -221,16 +221,16 @@ sub	CHKOUT   (logical: X) -> (A?, X?)	= $FFC9		; (via 800 ($320)) define an outp
 sub	CLRCHN   () -> (A?, X?)			= $FFCC		; (via 802 ($322)) restore default devices
 sub	CHRIN    () -> (A, Y?)			= $FFCF		; (via 804 ($324)) input a character (for keyboard, read a whole line from the screen) A=byte read.
 sub	CHROUT   (char: A) -> ()		= $FFD2		; (via 806 ($326)) output a character
-sub	LOAD     (verify: A, address: XY) -> (SC, A, X, Y) = $FFD5	; (via 816 ($330)) load from device
-sub	SAVE     (zp_startaddr: A, endaddr: XY) -> (SC, A) = $FFD8	; (via 818 ($332)) save to a device
+sub	LOAD     (verify: A, address: XY) -> (Pc, A, X, Y) = $FFD5	; (via 816 ($330)) load from device
+sub	SAVE     (zp_startaddr: A, endaddr: XY) -> (Pc, A) = $FFD8	; (via 818 ($332)) save to a device
 sub	SETTIM   (low: A, middle: X, high: Y) -> ()	= $FFDB		; set the software clock
 sub	RDTIM    () -> (A, X, Y)		= $FFDE		; read the software clock
-sub	STOP     () -> (SZ, SC, A?, X?)		= $FFE1		; (via 808 ($328)) check the STOP key
+sub	STOP     () -> (Pz, Pc, A?, X?)		= $FFE1		; (via 808 ($328)) check the STOP key
 sub	GETIN    () -> (A, X?, Y?)		= $FFE4		; (via 810 ($32A)) get a character
 sub	CLALL    () -> (A?, X?)			= $FFE7		; (via 812 ($32C)) close all files
 sub	UDTIM    () -> (A?, X?)			= $FFEA		; update the software clock
 sub	SCREEN   () -> (X, Y)			= $FFED		; read number of screen rows and columns
-sub	PLOT     (dir: SC, col: Y, row: X) -> (X, Y)	= $FFF0		; read/set position of cursor on screen
+sub	PLOT     (dir: Pc, col: Y, row: X) -> (X, Y)	= $FFF0		; read/set position of cursor on screen
 sub	IOBASE   () -> (X, Y)			= $FFF3		; read base address of I/O devices
 
 ; ---- end of C64 kernal routines ----
@@ -489,7 +489,7 @@ _loop           lda  #0
 }
 
 
-sub scroll_left_full  (alsocolors: SC) -> (A?, X?, Y?)  {
+sub scroll_left_full  (alsocolors: Pc) -> (A?, X?, Y?)  {
 	; ---- scroll the whole screen 1 character to the left
 	;      contents of the rightmost column are unchanged, you should clear/refill this yourself
 	;      Carry flag determines if screen color data must be scrolled too
@@ -548,7 +548,7 @@ _scroll_screen  ; scroll the screen memory
 }
 
 
-sub scroll_right_full  (alsocolors: SC) -> (A?, X?)  {
+sub scroll_right_full  (alsocolors: Pc) -> (A?, X?)  {
 	; ---- scroll the whole screen 1 character to the right
 	;      contents of the leftmost column are unchanged, you should clear/refill this yourself
 	;      Carry flag determines if screen color data must be scrolled too
@@ -599,7 +599,7 @@ _scroll_screen  ; scroll the screen memory
 }
 
 
-sub scroll_up_full  (alsocolors: SC) -> (A?, X?)  {
+sub scroll_up_full  (alsocolors: Pc) -> (A?, X?)  {
 	; ---- scroll the whole screen 1 character up
 	;      contents of the bottom row are unchanged, you should refill/clear this yourself
 	;      Carry flag determines if screen color data must be scrolled too
@@ -650,7 +650,7 @@ _scroll_screen  ; scroll the screen memory
 }
 
 
-sub scroll_down_full  (alsocolors: SC) -> (A?, X?)  {
+sub scroll_down_full  (alsocolors: Pc) -> (A?, X?)  {
 	; ---- scroll the whole screen 1 character down
 	;      contents of the top row are unchanged, you should refill/clear this yourself
 	;      Carry flag determines if screen color data must be scrolled too
@@ -934,7 +934,7 @@ _print_tens	txa
 }
 
 
-sub  print_byte_hex  (prefix: SC, ubyte: A) -> (?)  {
+sub  print_byte_hex  (prefix: Pc, ubyte: A) -> (?)  {
 	; ---- print the byte in A in hex form (if Carry is set, a radix prefix '$' is printed as well)
 	%asm {{
 		bcc  +
@@ -951,7 +951,7 @@ sub  print_byte_hex  (prefix: SC, ubyte: A) -> (?)  {
 }
 
 
-sub print_word_hex  (prefix: SC, dataword: XY) -> (?)  {
+sub print_word_hex  (prefix: Pc, dataword: XY) -> (?)  {
 	; ---- print the (unsigned) word in X/Y in hexadecimal form (4 digits)
 	;      (if Carry is set, a radix prefix '$' is printed as well)
 	%asm {{

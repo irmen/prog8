@@ -273,9 +273,9 @@ Reserved names
 
 The following names are reserved, they have a special meaning::
 
-	A    X    Y	; 6502 hardware registers
-	AX   AY   XY	; 16-bit pseudo register pairs
-	SC   SI   SZ	; bits of the 6502 hardware status register
+	A    X    Y              ; 6502 hardware registers
+	AX   AY   XY             ; 16-bit pseudo register pairs
+	Pc   Pi   Pz  Pn  Pv     ; bits of the 6502 hardware status register
 
 
 Operators
@@ -414,7 +414,9 @@ Loops
 
 for loop
 ^^^^^^^^
-@todo::
+.. todo:: not implemented yet, for now you can use the if statement with gotos to implement a for-loop.
+
+::
 
 	for  <loopvar>  in  <range>  [ step <amount> ]   {
 		; do something...
@@ -425,7 +427,9 @@ for loop
 
 while loop
 ^^^^^^^^^^
-@todo::
+.. todo:: not implemented yet, for now you can use the if statement with gotos to implement a while-loop.
+
+::
 
 	while  <condition>  {
 		; do something...
@@ -434,9 +438,12 @@ while loop
 	}
 
 
+
 repeat--until loop
 ^^^^^^^^^^^^^^^^^^
-@todo::
+.. todo:: not implemented yet, for now you can use the if statement with gotos to implement a repeat-loop.
+
+::
 
 	repeat  {
 		; do something...
@@ -465,26 +472,14 @@ to another piece of code that eventually returns).
 conditional execution
 ^^^^^^^^^^^^^^^^^^^^^
 
-@todo::
+With the 'if' / 'else' statement you can execute code depending on the value of a condition::
 
-	if  <condition>  goto  <location>
-	if  <condition>  then  <simple_stateument>  [else  <simple_statement> ]
+	if  ( <expression> )  <statements>  [else  <statements> ]
 
-	if  <condition>  {
+where <statements> can be just a single statement, or a block, such as this::
+
+	if  ( <expression> ) {
 		<statements>
-	}
-	[ else {
+	} else {
 	  	<alternative statements>
-	} ]
-
-	condition = arithmetic expression
-		or  logical expression
-		or  comparison expression
-		or  status_register_flags
-
-	single_statement = goto, assignment, ...
-
-	subblock = '{'  statements (but no subroutine definition)  '}'
-
-if the single_statement or the subblock is just a single goto,
-the efficient *conditional branching instructions* of the CPU will be used.
+	}

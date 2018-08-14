@@ -256,12 +256,11 @@ using a couple of instructions.
 Loops
 -----
 
-The *for*-loop is used to iterate over a range of values. Iteration steps by 1,
-but you can set it to something else as well.
+The *for*-loop is used to iterate over a range of values. Iteration is done in steps of 1, but you can change this.
 The *while*-loop is used to repeat a piece of code while a certain condition is still true.
 The *repeat--until* loop is used to repeat a piece of code until a certain condition is true.
 
-You can also create loops by using the ``goto`` statement, but this should be avoided.
+You can also create loops by using the ``goto`` statement, but this should usually be avoided.
 
 
 Conditional Execution

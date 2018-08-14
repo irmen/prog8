@@ -26,9 +26,11 @@ enum class Register {
     AX,
     AY,
     XY,
-    SI,
-    SC,
-    SZ
+    PC,
+    PI,
+    PZ,
+    PN,
+    PV
 }
 
 
@@ -90,6 +92,13 @@ interface IAstProcessor {
     }
     fun process(jump: Jump): IStatement {
         return jump
+    }
+
+    fun process(ifStatement: IfStatement): IStatement {
+        ifStatement.condition = ifStatement.condition.process(this)
+        ifStatement.statements = ifStatement.statements.map { it.process(this) }
+        ifStatement.elsepart = ifStatement.elsepart?.map { it.process(this) }
+        return ifStatement
     }
 }
 
@@ -627,6 +636,22 @@ data class SubroutineReturnvalue(val register: Register, val clobbered: Boolean)
 }
 
 
+data class IfStatement(var condition: IExpression,
+                       var statements: List<IStatement>, var
+                       elsepart: List<IStatement>) : IStatement {
+    override var position: Position? = null
+    override var parent: Node? = null
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        condition.linkParents(this)
+        statements.forEach { it.linkParents(this) }
+        elsepart.forEach { it.linkParents(this) }
+    }
+
+    override fun process(processor: IAstProcessor): IStatement = processor.process(this)
+}
+
 
 /***************** Antlr Extension methods to create AST ****************/
 
@@ -663,10 +688,14 @@ private fun il65Parser.ModulestatementContext.toAst(withPosition: Boolean) : ISt
 private fun il65Parser.BlockContext.toAst(withPosition: Boolean) : IStatement {
     val block= Block(identifier().text,
             integerliteral()?.toAst(),
-            statement().map { it.toAst(withPosition) })
+            statement_block().toAst(withPosition))
     block.position = toPosition(withPosition)
     return block
 }
+
+
+private fun il65Parser.Statement_blockContext.toAst(withPosition: Boolean): List<IStatement>
+        = statement().map { it.toAst(withPosition) }
 
 
 private fun il65Parser.StatementContext.toAst(withPosition: Boolean) : IStatement {
@@ -749,6 +778,12 @@ private fun il65Parser.StatementContext.toAst(withPosition: Boolean) : IStatemen
     val jump = unconditionaljump()?.toAst(withPosition)
     if(jump!=null) return jump
 
+    val fcall = functioncall_stmt()?.toAst(withPosition)
+    if(fcall!=null) return fcall
+
+    val ifstmt = if_stmt()?.toAst(withPosition)
+    if(ifstmt!=null) return ifstmt
+
     val returnstmt = returnstmt()?.toAst(withPosition)
     if(returnstmt!=null) return returnstmt
 
@@ -758,12 +793,8 @@ private fun il65Parser.StatementContext.toAst(withPosition: Boolean) : IStatemen
     val asm = inlineasm()?.toAst(withPosition)
     if(asm!=null) return asm
 
-    val fcall = functioncall_stmt()?.toAst(withPosition)
-    if(fcall!=null) return fcall
-
     throw UnsupportedOperationException(text)
 }
-
 
 private fun il65Parser.Functioncall_stmtContext.toAst(withPosition: Boolean): IStatement {
     val location =
@@ -828,7 +859,7 @@ private fun il65Parser.SubroutineContext.toAst(withPosition: Boolean) : Subrouti
             if(sub_params()==null) emptyList() else sub_params().toAst(),
             if(sub_returns()==null) emptyList() else sub_returns().toAst(),
             sub_address()?.integerliteral()?.toAst(),
-            if(sub_body()==null) emptyList() else sub_body().statement().map {it.toAst(withPosition)})
+            if(statement_block()==null) emptyList() else statement_block().toAst(withPosition))
     sub.position = toPosition(withPosition)
     return sub
 }
@@ -989,3 +1020,16 @@ private fun il65Parser.BooleanliteralContext.toAst() = when(text) {
 private fun il65Parser.ArrayliteralContext.toAst(withPosition: Boolean) =
         expression().map { it.toAst(withPosition) }
 
+
+private fun il65Parser.If_stmtContext.toAst(withPosition: Boolean): IfStatement {
+    val condition = expression().toAst(withPosition)
+    val statements = statement_block()?.toAst(withPosition) ?: listOf(statement().toAst(withPosition))
+    val elsepart = else_part()?.toAst(withPosition) ?: emptyList()
+    val result = IfStatement(condition, statements, elsepart)
+    result.position = toPosition(withPosition)
+    return result
+}
+
+private fun il65Parser.Else_partContext.toAst(withPosition: Boolean): List<IStatement> {
+    return statement_block()?.toAst(withPosition) ?: listOf(statement().toAst(withPosition))
+}

@@ -46,11 +46,7 @@ module :  (modulestatement | EOL)* EOF ;
 
 modulestatement:  directive | block ;
 
-block:
-	'~' identifier integerliteral? '{' EOL
- 		(statement | EOL)*
- 	'}' EOL
- 	;
+block:	'~' identifier integerliteral? statement_block EOL ;
 
 statement :
 	directive
@@ -63,6 +59,7 @@ statement :
 	| unconditionaljump
 	| postincrdecr
 	| functioncall_stmt
+	| if_stmt
 	| subroutine
 	| inlineasm
 	| labeldef
@@ -155,7 +152,7 @@ identifier :  NAME ;
 
 scoped_identifier :  NAME ('.' NAME)+ ;
 
-register :  'A' | 'X' | 'Y' | 'AX' | 'AY' | 'XY' | 'SC' | 'SI' | 'SZ' ;
+register :  'A' | 'X' | 'Y' | 'AX' | 'AY' | 'XY' | 'Pc' | 'Pi' | 'Pz' | 'Pn' | 'Pv' ;
 
 integerliteral :  DEC_INTEGER | HEX_INTEGER | BIN_INTEGER ;
 
@@ -179,21 +176,26 @@ inlineasm :  '%asm' INLINEASMBLOCK;
 
 
 subroutine :
-	'sub' identifier '(' sub_params? ')' '->' '(' sub_returns? ')'  (sub_address | sub_body)
+	'sub' identifier '(' sub_params? ')' '->' '(' sub_returns? ')'  (sub_address | (statement_block EOL))
 	;
 
-sub_body :
+statement_block :
 	'{' EOL
 		(statement | EOL) *
-	'}' EOL
+	'}'
 	;
 
 sub_address : '=' integerliteral ;
 
 sub_params : sub_param (',' sub_param)* ;
 
-sub_param: identifier ':' register ;
+sub_param: identifier ':' register;
 
 sub_returns : '?' | ( sub_return (',' sub_return)* ) ;
 
 sub_return: register '?'? ;
+
+
+if_stmt :  'if' '(' expression ')' EOL? (statement | statement_block) EOL? else_part? EOL ; // statement is constrained later
+
+else_part :  'else' EOL? (statement | statement_block) ;   // statement is constrained later

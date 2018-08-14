@@ -16,9 +16,33 @@
   const float zwop = -1.7014118345e+38
   const float zwop2 = -1.7014118345e+38
   const float blerp2 = zwop / 2.22
+  const byte equal = 4==4
+  const byte equal2 = (4+hopla)>0
 
   XY = hopla*2+hopla1
   A = "derp" * %000100
+
+	if (1==1) goto hopla
+
+	if (1==2) return 44
+
+	if (2==2) A=4
+
+	if (3==3) X=5 else A=99
+
+	if (5==5) {
+		A=99
+	}
+
+	if(6==6) {
+		A=99
+	}  else X=33
+
+	if(6==6) {
+		A=99
+	}  else {
+		X=33
+	}
 
   main.foo(1,2,3)
 
