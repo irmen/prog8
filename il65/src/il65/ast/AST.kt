@@ -34,13 +34,21 @@ enum class Register {
 }
 
 
-open class AstException(override var message: String) : Exception(message)
-class ExpressionException(override var message: String) : AstException(message)
+class FatalAstException (override var message: String) : Exception(message)
 
-class SyntaxError(override var message: String, val position: Position?) : AstException(message) {
-    fun printError() {
+open class AstException (override var message: String) : Exception(message)
+
+open class SyntaxError(override var message: String, val position: Position?) : AstException(message) {
+    override fun toString(): String {
         val location = position?.toString() ?: ""
-        System.err.println("$location $message")
+        return "$location Syntax error: $message"
+    }
+}
+
+class ExpressionException(message: String, val position: Position?) : AstException(message) {
+    override fun toString(): String {
+        val location = position?.toString() ?: ""
+        return "$location Error: $message"
     }
 }
 
@@ -97,7 +105,7 @@ interface IAstProcessor {
     fun process(ifStatement: IfStatement): IStatement {
         ifStatement.condition = ifStatement.condition.process(this)
         ifStatement.statements = ifStatement.statements.map { it.process(this) }
-        ifStatement.elsepart = ifStatement.elsepart?.map { it.process(this) }
+        ifStatement.elsepart = ifStatement.elsepart.map { it.process(this) }
         return ifStatement
     }
 
@@ -134,13 +142,7 @@ interface INameScope {
     fun subScopes() = statements.filter { it is INameScope } .map { it as INameScope }.associate { it.name to it }
 
     fun definedNames() = statements.filter { it is Label || it is VarDecl }
-            .associate {
-                when(it) {
-                    is Label -> it.name to it
-                    is VarDecl -> it.name to it
-                    else -> throw AstException("expected label or vardecl")
-                }
-            }
+            .associate {((it as? Label)?.name ?: (it as? VarDecl)?.name) to it }
 
     fun lookup(scopedName: List<String>, statement: Node) : IStatement? {
         if(scopedName.size>1) {
@@ -391,6 +393,7 @@ data class AssignTarget(val register: Register?, val identifier: Identifier?) : 
 interface IExpression: Node {
     fun constValue(namespace: INameScope): LiteralValue?
     fun process(processor: IAstProcessor): IExpression
+    fun referencesIdentifier(name: String): Boolean
 }
 
 
@@ -407,6 +410,7 @@ data class PrefixExpression(val operator: String, var expression: IExpression) :
 
     override fun constValue(namespace: INameScope): LiteralValue? = null
     override fun process(processor: IAstProcessor) = processor.process(this)
+    override fun referencesIdentifier(name: String) = expression.referencesIdentifier(name)
 }
 
 
@@ -421,10 +425,11 @@ data class BinaryExpression(var left: IExpression, val operator: String, var rig
     }
 
     override fun constValue(namespace: INameScope): LiteralValue? {
-        throw ExpressionException("should have been optimized away before const value was asked")
+        throw ExpressionException("expression should have been optimized away into a single value, before const value was requested (this error is often caused by another)", position)
     }
 
     override fun process(processor: IAstProcessor) = processor.process(this)
+    override fun referencesIdentifier(name: String) = left.referencesIdentifier(name) || right.referencesIdentifier(name)
 }
 
 data class LiteralValue(val intvalue: Int? = null,
@@ -433,6 +438,7 @@ data class LiteralValue(val intvalue: Int? = null,
                         val arrayvalue: List<IExpression>? = null) : IExpression {
     override var position: Position? = null
     override var parent: Node? = null
+    override fun referencesIdentifier(name: String) = arrayvalue?.any { it.referencesIdentifier(name) } ?: false
 
     fun asInt(errorIfNotNumeric: Boolean=true): Int? {
         return when {
@@ -486,6 +492,7 @@ data class RangeExpr(var from: IExpression, var to: IExpression) : IExpression {
 
     override fun constValue(namespace: INameScope): LiteralValue? = null
     override fun process(processor: IAstProcessor) = processor.process(this)
+    override fun referencesIdentifier(name: String): Boolean  = from.referencesIdentifier(name) || to.referencesIdentifier(name)
 }
 
 
@@ -499,6 +506,7 @@ data class RegisterExpr(val register: Register) : IExpression {
 
     override fun constValue(namespace: INameScope): LiteralValue? = null
     override fun process(processor: IAstProcessor) = this
+    override fun referencesIdentifier(name: String): Boolean  = false
 }
 
 
@@ -513,11 +521,10 @@ data class Identifier(val scopedName: List<String>) : IExpression {
     override fun constValue(namespace: INameScope): LiteralValue? {
         val node = namespace.lookup(scopedName, this)
                 ?:
-                throw SyntaxError("undefined symbol: ${scopedName.joinToString(".")}", position) // todo add to a list of errors instead
+                throw ExpressionException("undefined symbol: ${scopedName.joinToString(".")}", position)
         val vardecl = node as? VarDecl
         if(vardecl==null) {
-            // todo add to a list of errors instead
-            throw SyntaxError("name should be a constant, instead of: ${node::class.simpleName}", position)
+            throw ExpressionException("name should be a constant, instead of: ${node::class.simpleName}", position)
         } else if(vardecl.type!=VarDeclType.CONST) {
             return null
         }
@@ -525,6 +532,7 @@ data class Identifier(val scopedName: List<String>) : IExpression {
     }
 
     override fun process(processor: IAstProcessor) = processor.process(this)
+    override fun referencesIdentifier(name: String): Boolean  = scopedName.last() == name   // @todo is this correct all the time?
 }
 
 
@@ -571,26 +579,27 @@ data class FunctionCall(override var location: Identifier, override var arglist:
         // if the function is a built-in function and the args are consts, should evaluate!
         if(location.scopedName.size>1) return null
         return when(location.scopedName[0]){
-            "sin" -> builtin_sin(arglist, namespace)
-            "cos" -> builtin_cos(arglist, namespace)
-            "abs" -> builtin_abs(arglist, namespace)
-            "acos" -> builtin_acos(arglist, namespace)
-            "asin" -> builtin_asin(arglist, namespace)
-            "tan" -> builtin_tan(arglist, namespace)
-            "atan" -> builtin_atan(arglist, namespace)
-            "log" -> builtin_log(arglist, namespace)
-            "log10" -> builtin_log10(arglist, namespace)
-            "sqrt" -> builtin_sqrt(arglist, namespace)
-            "max" -> builtin_max(arglist, namespace)
-            "min" -> builtin_min(arglist, namespace)
-            "round" -> builtin_round(arglist, namespace)
-            "rad" -> builtin_rad(arglist, namespace)
-            "deg" -> builtin_deg(arglist, namespace)
+            "sin" -> builtin_sin(arglist, position, namespace)
+            "cos" -> builtin_cos(arglist, position, namespace)
+            "abs" -> builtin_abs(arglist, position, namespace)
+            "acos" -> builtin_acos(arglist, position, namespace)
+            "asin" -> builtin_asin(arglist, position, namespace)
+            "tan" -> builtin_tan(arglist, position, namespace)
+            "atan" -> builtin_atan(arglist, position, namespace)
+            "log" -> builtin_log(arglist, position, namespace)
+            "log10" -> builtin_log10(arglist, position, namespace)
+            "sqrt" -> builtin_sqrt(arglist, position, namespace)
+            "max" -> builtin_max(arglist, position, namespace)
+            "min" -> builtin_min(arglist, position, namespace)
+            "round" -> builtin_round(arglist, position, namespace)
+            "rad" -> builtin_rad(arglist, position, namespace)
+            "deg" -> builtin_deg(arglist, position, namespace)
             else -> null
         }
     }
 
     override fun process(processor: IAstProcessor) = processor.process(this)
+    override fun referencesIdentifier(name: String): Boolean = location.referencesIdentifier(name) || arglist.any{it.referencesIdentifier(name)}
 }
 
 
@@ -708,7 +717,7 @@ private fun il65Parser.ModulestatementContext.toAst(withPosition: Boolean) : ISt
     val block = block()?.toAst(withPosition)
     if(block!=null) return block
 
-    throw UnsupportedOperationException(text)
+    throw FatalAstException(text)
 }
 
 
@@ -820,7 +829,7 @@ private fun il65Parser.StatementContext.toAst(withPosition: Boolean) : IStatemen
     val asm = inlineasm()?.toAst(withPosition)
     if(asm!=null) return asm
 
-    throw UnsupportedOperationException(text)
+    throw FatalAstException(text)
 }
 
 private fun il65Parser.Functioncall_stmtContext.toAst(withPosition: Boolean): IStatement {
@@ -952,7 +961,7 @@ private fun il65Parser.IntegerliteralContext.toAst(): Int {
         il65Parser.DEC_INTEGER -> text.toInt()
         il65Parser.HEX_INTEGER -> text.substring(1).toInt(16)
         il65Parser.BIN_INTEGER -> text.substring(1).toInt(2)
-        else -> throw UnsupportedOperationException(text)
+        else -> throw FatalAstException(terminal.text)
     }
 }
 
@@ -1013,7 +1022,7 @@ private fun il65Parser.ExpressionContext.toAst(withPosition: Boolean) : IExpress
     if(childCount==3 && children[0].text=="(" && children[2].text==")")
         return expression(0).toAst(withPosition)        // expression within ( )
 
-    throw UnsupportedOperationException(text)
+    throw FatalAstException(text)
 }
 
 
@@ -1040,7 +1049,7 @@ private fun il65Parser.FloatliteralContext.toAst() = text.toDouble()
 private fun il65Parser.BooleanliteralContext.toAst() = when(text) {
     "true" -> true
     "false" -> false
-    else -> throw UnsupportedOperationException(text)
+    else -> throw FatalAstException(text)
 }
 
 

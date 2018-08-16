@@ -11,7 +11,7 @@ fun Module.checkImportedValid() {
     this.process(checker)
     val result = checker.result()
     result.forEach {
-        it.printError()
+        System.err.println(it)
     }
     if(result.isNotEmpty())
         throw ParsingFailedError("There are ${result.size} errors in imported module '$name'.")

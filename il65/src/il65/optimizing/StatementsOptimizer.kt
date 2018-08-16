@@ -1,7 +1,6 @@
 package il65.optimizing
 
 import il65.ast.*
-import kotlin.math.pow
 
 
 fun Module.optimizeStatements(globalNamespace: INameScope) {
@@ -31,7 +30,6 @@ class StatementOptimizer(private val globalNamespace: INameScope) : IAstProcesso
         super.process(ifStatement)
         val constvalue = ifStatement.condition.constValue(globalNamespace)
         if(constvalue!=null) {
-            val statements: List<IStatement>
             return if(constvalue.asBoolean()) {
                 // always true -> keep only if-part
                 println("${ifStatement.position} Warning: condition is always true")

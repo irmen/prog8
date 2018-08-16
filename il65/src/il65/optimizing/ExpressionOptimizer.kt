@@ -1,42 +1,72 @@
 package il65.optimizing
 
+import il65.ParsingFailedError
 import il65.ast.*
 import kotlin.math.pow
 
 
 fun Module.optimizeExpressions(globalNamespace: INameScope) {
     val optimizer = ExpressionOptimizer(globalNamespace)
-    this.process(optimizer)
+    try {
+        this.process(optimizer)
+    } catch (ax: AstException) {
+        optimizer.errors.add(ax)
+    }
+
     if(optimizer.optimizationsDone==0)
         println("[${this.name}] 0 optimizations performed")
 
-    while(optimizer.optimizationsDone>0) {
+    while(optimizer.errors.isEmpty() && optimizer.optimizationsDone>0) {
         println("[${this.name}] ${optimizer.optimizationsDone} optimizations performed")
-        optimizer.reset()
+        optimizer.optimizationsDone = 0
         this.process(optimizer)
     }
-    this.linkParents()  // re-link in final configuration
+
+    if(optimizer.errors.isNotEmpty()) {
+        optimizer.errors.forEach { System.err.println(it) }
+        throw ParsingFailedError("There are ${optimizer.errors.size} errors.")
+    } else {
+        this.linkParents()  // re-link in final configuration
+    }
 }
 
 
 class ExpressionOptimizer(private val globalNamespace: INameScope) : IAstProcessor {
     var optimizationsDone: Int = 0
-        private set
+    var errors : MutableList<AstException> = mutableListOf()
 
-    fun reset() {
-        optimizationsDone = 0
+
+    override fun process(decl: VarDecl): IStatement {
+        // the initializer value can't refer to the variable itself (recursive definition)
+        if(decl.value?.referencesIdentifier(decl.name) == true||
+                decl.arrayspec?.x?.referencesIdentifier(decl.name) == true ||
+                decl.arrayspec?.y?.referencesIdentifier(decl.name) == true) {
+            errors.add(ExpressionException("recursive var declaration", decl.position))
+            return decl
+        }
+        return super.process(decl)
     }
 
     /**
      * replace identifiers that refer to const value, with the value itself
      */
     override fun process(identifier: Identifier): IExpression {
-        return identifier.constValue(globalNamespace) ?: identifier
+        return try {
+            identifier.constValue(globalNamespace) ?: identifier
+        } catch (ax: AstException) {
+            errors.add(ax)
+            identifier
+        }
     }
 
     override fun process(functionCall: FunctionCall): IExpression {
-        super.process(functionCall)
-        return functionCall.constValue(globalNamespace) ?: functionCall
+        return try {
+            super.process(functionCall)
+            functionCall.constValue(globalNamespace) ?: functionCall
+        } catch (ax: AstException) {
+            errors.add(ax)
+            functionCall
+        }
     }
 
     /**
@@ -45,48 +75,53 @@ class ExpressionOptimizer(private val globalNamespace: INameScope) : IAstProcess
      * For instance, the expression for "- 4.5" will be optimized into the float literal -4.5
      */
     override fun process(expr: PrefixExpression): IExpression {
-        super.process(expr)
+        return try {
+            super.process(expr)
 
-        val subexpr = expr.expression
-        if (subexpr is LiteralValue) {
-            // process prefixed literal values (such as -3, not true)
-            val result = when {
-                expr.operator == "+" -> subexpr
-                expr.operator == "-" -> when {
-                    subexpr.intvalue != null -> {
-                        optimizationsDone++
-                        LiteralValue(intvalue = -subexpr.intvalue)
+            val subexpr = expr.expression
+            if (subexpr is LiteralValue) {
+                // process prefixed literal values (such as -3, not true)
+                val result = when {
+                    expr.operator == "+" -> subexpr
+                    expr.operator == "-" -> when {
+                        subexpr.intvalue != null -> {
+                            optimizationsDone++
+                            LiteralValue(intvalue = -subexpr.intvalue)
+                        }
+                        subexpr.floatvalue != null -> {
+                            optimizationsDone++
+                            LiteralValue(floatvalue = -subexpr.floatvalue)
+                        }
+                        else -> throw ExpressionException("can only take negative of int or float", subexpr.position)
                     }
-                    subexpr.floatvalue != null -> {
-                        optimizationsDone++
-                        LiteralValue(floatvalue = -subexpr.floatvalue)
+                    expr.operator == "~" -> when {
+                        subexpr.intvalue != null -> {
+                            optimizationsDone++
+                            LiteralValue(intvalue = subexpr.intvalue.inv())
+                        }
+                        else -> throw ExpressionException("can only take bitwise inversion of int", subexpr.position)
                     }
-                    else -> throw UnsupportedOperationException("can only take negative of int or float")
+                    expr.operator == "not" -> when {
+                        subexpr.intvalue != null -> {
+                            optimizationsDone++
+                            LiteralValue(intvalue = if (subexpr.intvalue == 0) 1 else 0)
+                        }
+                        subexpr.floatvalue != null -> {
+                            optimizationsDone++
+                            LiteralValue(intvalue = if (subexpr.floatvalue == 0.0) 1 else 0)
+                        }
+                        else -> throw ExpressionException("can not take logical not of $subexpr", subexpr.position)
+                    }
+                    else -> throw ExpressionException(expr.operator, subexpr.position)
                 }
-                expr.operator == "~" -> when {
-                    subexpr.intvalue != null -> {
-                        optimizationsDone++
-                        LiteralValue(intvalue = subexpr.intvalue.inv())
-                    }
-                    else -> throw UnsupportedOperationException("can only take bitwise inversion of int")
-                }
-                expr.operator == "not" -> when {
-                    subexpr.intvalue != null -> {
-                        optimizationsDone++
-                        LiteralValue(intvalue = if (subexpr.intvalue == 0) 1 else 0)
-                    }
-                    subexpr.floatvalue != null -> {
-                        optimizationsDone++
-                        LiteralValue(intvalue = if (subexpr.floatvalue == 0.0) 1 else 0)
-                    }
-                    else -> throw UnsupportedOperationException("can not take logical not of $subexpr")
-                }
-                else -> throw UnsupportedOperationException(expr.operator)
+                result.position = subexpr.position
+                return result
             }
-            result.position = subexpr.position
-            return result
+            return expr
+        } catch (ax: AstException) {
+            errors.add(ax)
+            expr
         }
-        return expr
     }
 
     /**
@@ -95,53 +130,63 @@ class ExpressionOptimizer(private val globalNamespace: INameScope) : IAstProcess
      * For instance, "9 * (4 + 2)" will be optimized into the integer literal 54.
      */
     override fun process(expr: BinaryExpression): IExpression {
-        super.process(expr)
+        return try {
+            super.process(expr)
 
-        val evaluator = ConstExprEvaluator()
-        val leftconst = expr.left.constValue(globalNamespace)
-        val rightconst = expr.right.constValue(globalNamespace)
-        return when {
-            leftconst != null && rightconst != null -> {
-                optimizationsDone++
-                evaluator.evaluate(leftconst, expr.operator, rightconst)
+            val evaluator = ConstExprEvaluator()
+            val leftconst = expr.left.constValue(globalNamespace)
+            val rightconst = expr.right.constValue(globalNamespace)
+            return when {
+                leftconst != null && rightconst != null -> {
+                    optimizationsDone++
+                    evaluator.evaluate(leftconst, expr.operator, rightconst)
+                }
+                else -> expr
             }
-            else -> expr
+        } catch (ax: AstException) {
+            errors.add(ax)
+            expr
         }
     }
 
     override fun process(range: RangeExpr): IExpression {
-        super.process(range)
-        val from = range.from.constValue(globalNamespace)
-        val to = range.to.constValue(globalNamespace)
-        if(from!=null && to != null) {
-            when {
-                from.intvalue!=null && to.intvalue!=null -> {
-                    // int range
-                    val rangevalue = from.intvalue.rangeTo(to.intvalue)
-                    if(rangevalue.last-rangevalue.first > 65535) {
-                        throw AstException("amount of values in range exceeds 65535, at ${range.position}")
+        return try {
+            super.process(range)
+            val from = range.from.constValue(globalNamespace)
+            val to = range.to.constValue(globalNamespace)
+            if (from != null && to != null) {
+                when {
+                    from.intvalue != null && to.intvalue != null -> {
+                        // int range
+                        val rangevalue = from.intvalue.rangeTo(to.intvalue)
+                        if (rangevalue.last - rangevalue.first > 65535) {
+                            throw ExpressionException("amount of values in range exceeds 65535", range.position)
+                        }
+                        return LiteralValue(arrayvalue = rangevalue.map {
+                            val v = LiteralValue(intvalue = it)
+                            v.position = range.position
+                            v.parent = range.parent
+                            v
+                        })
                     }
-                    return LiteralValue(arrayvalue = rangevalue.map {
-                        val v = LiteralValue(intvalue=it)
-                        v.position=range.position
-                        v.parent=range.parent
-                        v
-                    })
-                }
-                from.strvalue!=null && to.strvalue!=null -> {
-                    // char range
-                    val rangevalue = from.strvalue[0].rangeTo(to.strvalue[0])
-                    if(rangevalue.last-rangevalue.first > 65535) {
-                        throw AstException("amount of characters in range exceeds 65535, at ${range.position}")
+                    from.strvalue != null && to.strvalue != null -> {
+                        // char range
+                        val rangevalue = from.strvalue[0].rangeTo(to.strvalue[0])
+                        if (rangevalue.last - rangevalue.first > 65535) {
+                            throw ExpressionException("amount of characters in range exceeds 65535", range.position)
+                        }
+                        val newval = LiteralValue(strvalue = rangevalue.toList().joinToString(""))
+                        newval.position = range.position
+                        newval.parent = range.parent
+                        return newval
                     }
-                    val newval = LiteralValue(strvalue = rangevalue.toList().joinToString(""))
-                    newval.position = range.position
-                    newval.parent = range.parent
-                    return newval
                 }
             }
+            return range
+        } catch (ax: AstException) {
+            errors.add(ax)
+            range
         }
-        return range
     }
 }
 
@@ -171,7 +216,7 @@ class ConstExprEvaluator {
             ">=" -> comparegreaterequal(left, right)
             "==" -> compareequal(left, right)
             "!=" -> comparenotequal(left, right)
-            else -> throw AstException("const evaluation for invalid operator $operator")
+            else -> throw FatalAstException("const evaluation for invalid operator $operator")
         }
     }
 
@@ -188,14 +233,14 @@ class ConstExprEvaluator {
             left.floatvalue!=null -> left.floatvalue
             left.strvalue!=null -> left.strvalue
             left.arrayvalue!=null -> left.arrayvalue
-            else -> throw AstException("missing literal value")
+            else -> throw FatalAstException("missing literal value")
         }
         val rightvalue: Any = when {
             right.intvalue!=null -> right.intvalue
             right.floatvalue!=null -> right.floatvalue
             right.strvalue!=null -> right.strvalue
             right.arrayvalue!=null -> right.arrayvalue
-            else -> throw AstException("missing literal value")
+            else -> throw FatalAstException("missing literal value")
         }
         val litval = LiteralValue(intvalue = if (leftvalue == rightvalue) 1 else 0)
         litval.position = left.position
@@ -210,16 +255,16 @@ class ConstExprEvaluator {
                         intvalue = if (left.intvalue >= right.intvalue) 1 else 0)
                 right.floatvalue!=null -> LiteralValue(
                         intvalue = if (left.intvalue >= right.floatvalue) 1 else 0)
-                else -> throw ExpressionException(error)
+                else -> throw ExpressionException(error, left.position)
             }
             left.floatvalue!=null -> when {
                 right.intvalue!=null -> LiteralValue(
                         intvalue = if (left.floatvalue >= right.intvalue) 1 else 0)
                 right.floatvalue!=null -> LiteralValue(
                         intvalue = if (left.floatvalue >= right.floatvalue) 1 else 0)
-                else -> throw ExpressionException(error)
+                else -> throw ExpressionException(error, left.position)
             }
-            else -> throw ExpressionException(error)
+            else -> throw ExpressionException(error, left.position)
         }
         litval.position = left.position
         return litval
@@ -233,16 +278,16 @@ class ConstExprEvaluator {
                         intvalue = if (left.intvalue <= right.intvalue) 1 else 0)
                 right.floatvalue!=null -> LiteralValue(
                         intvalue = if (left.intvalue <= right.floatvalue) 1 else 0)
-                else -> throw ExpressionException(error)
+                else -> throw ExpressionException(error, left.position)
             }
             left.floatvalue!=null -> when {
                 right.intvalue!=null -> LiteralValue(
                         intvalue = if (left.floatvalue <= right.intvalue) 1 else 0)
                 right.floatvalue!=null -> LiteralValue(
                         intvalue = if (left.floatvalue <= right.floatvalue) 1 else 0)
-                else -> throw ExpressionException(error)
+                else -> throw ExpressionException(error, left.position)
             }
-            else -> throw ExpressionException(error)
+            else -> throw ExpressionException(error, left.position)
         }
         litval.position = left.position
         return litval
@@ -270,16 +315,16 @@ class ConstExprEvaluator {
                         intvalue = if ((left.intvalue != 0).xor(right.intvalue != 0)) 1 else 0)
                 right.floatvalue!=null -> LiteralValue(
                         intvalue = if ((left.intvalue != 0).xor(right.floatvalue != 0.0)) 1 else 0)
-                else -> throw ExpressionException(error)
+                else -> throw ExpressionException(error, left.position)
             }
             left.floatvalue!=null -> when {
                 right.intvalue!=null -> LiteralValue(
                         intvalue = if ((left.floatvalue != 0.0).xor(right.intvalue != 0)) 1 else 0)
                 right.floatvalue!=null -> LiteralValue(
                         intvalue = if ((left.floatvalue != 0.0).xor(right.floatvalue != 0.0)) 1 else 0)
-                else -> throw ExpressionException(error)
+                else -> throw ExpressionException(error, left.position)
             }
-            else -> throw ExpressionException(error)
+            else -> throw ExpressionException(error, left.position)
         }
         litval.position = left.position
         return litval
@@ -293,16 +338,16 @@ class ConstExprEvaluator {
                         intvalue = if (left.intvalue != 0 || right.intvalue != 0) 1 else 0)
                 right.floatvalue!=null -> LiteralValue(
                         intvalue = if (left.intvalue != 0 || right.floatvalue != 0.0) 1 else 0)
-                else -> throw ExpressionException(error)
+                else -> throw ExpressionException(error, left.position)
             }
             left.floatvalue!=null -> when {
                 right.intvalue!=null -> LiteralValue(
                         intvalue = if (left.floatvalue != 0.0 || right.intvalue != 0) 1 else 0)
                 right.floatvalue!=null -> LiteralValue(
                         intvalue = if (left.floatvalue != 0.0 || right.floatvalue != 0.0) 1 else 0)
-                else -> throw ExpressionException(error)
+                else -> throw ExpressionException(error, left.position)
             }
-            else -> throw ExpressionException(error)
+            else -> throw ExpressionException(error, left.position)
         }
         litval.position = left.position
         return litval
@@ -316,16 +361,16 @@ class ConstExprEvaluator {
                         intvalue = if (left.intvalue != 0 && right.intvalue != 0) 1 else 0)
                 right.floatvalue!=null -> LiteralValue(
                         intvalue = if (left.intvalue != 0 && right.floatvalue != 0.0) 1 else 0)
-                else -> throw ExpressionException(error)
+                else -> throw ExpressionException(error, left.position)
             }
             left.floatvalue!=null -> when {
                 right.intvalue!=null -> LiteralValue(
                         intvalue = if (left.floatvalue != 0.0 && right.intvalue != 0) 1 else 0)
                 right.floatvalue!=null -> LiteralValue(
                         intvalue = if (left.floatvalue != 0.0 && right.floatvalue != 0.0) 1 else 0)
-                else -> throw ExpressionException(error)
+                else -> throw ExpressionException(error, left.position)
             }
-            else -> throw ExpressionException(error)
+            else -> throw ExpressionException(error, left.position)
         }
         litval.position = left.position
         return litval
@@ -337,7 +382,7 @@ class ConstExprEvaluator {
             litval.position = left.position
             return litval
         }
-        throw ExpressionException("cannot calculate $left ^ $right")
+        throw ExpressionException("cannot calculate $left ^ $right", left.position)
     }
 
     private fun bitwiseor(left: LiteralValue, right: LiteralValue): LiteralValue {
@@ -346,7 +391,7 @@ class ConstExprEvaluator {
             litval.position = left.position
             return litval
         }
-        throw ExpressionException("cannot calculate $left | $right")
+        throw ExpressionException("cannot calculate $left | $right", left.position)
     }
 
     private fun bitwiseand(left: LiteralValue, right: LiteralValue): LiteralValue {
@@ -355,15 +400,15 @@ class ConstExprEvaluator {
             litval.position = left.position
             return litval
         }
-        throw ExpressionException("cannot calculate $left & $right")
+        throw ExpressionException("cannot calculate $left & $right", left.position)
     }
 
     private fun rotateright(left: LiteralValue, right: LiteralValue): LiteralValue {
-        throw ExpressionException("ror not possible on literal values")
+        throw ExpressionException("ror not possible on literal values", left.position)
     }
 
     private fun rotateleft(left: LiteralValue, right: LiteralValue): LiteralValue {
-        throw ExpressionException("rol not possible on literal values")
+        throw ExpressionException("rol not possible on literal values", left.position)
     }
 
     private fun shiftright(left: LiteralValue, right: LiteralValue): LiteralValue {
@@ -372,7 +417,7 @@ class ConstExprEvaluator {
             litval.position = left.position
             return litval
         }
-        throw ExpressionException("cannot calculate $left >> $right")
+        throw ExpressionException("cannot calculate $left >> $right", left.position)
     }
 
     private fun shiftleft(left: LiteralValue, right: LiteralValue): LiteralValue {
@@ -381,7 +426,7 @@ class ConstExprEvaluator {
             litval.position = left.position
             return litval
         }
-        throw ExpressionException("cannot calculate $left << $right")
+        throw ExpressionException("cannot calculate $left << $right", left.position)
     }
 
     private fun power(left: LiteralValue, right: LiteralValue): LiteralValue {
@@ -390,14 +435,14 @@ class ConstExprEvaluator {
             left.intvalue!=null -> when {
                 right.intvalue!=null -> LiteralValue(intvalue = left.intvalue.toDouble().pow(right.intvalue).toInt())
                 right.floatvalue!=null -> LiteralValue(floatvalue = left.intvalue.toDouble().pow(right.floatvalue))
-                else -> throw ExpressionException(error)
+                else -> throw ExpressionException(error, left.position)
             }
             left.floatvalue!=null -> when {
                 right.intvalue!=null -> LiteralValue(floatvalue = left.floatvalue.pow(right.intvalue))
                 right.floatvalue!=null -> LiteralValue(floatvalue = left.floatvalue.pow(right.floatvalue))
-                else -> throw ExpressionException(error)
+                else -> throw ExpressionException(error, left.position)
             }
-            else -> throw ExpressionException(error)
+            else -> throw ExpressionException(error, left.position)
         }
         litval.position = left.position
         return litval
@@ -409,14 +454,14 @@ class ConstExprEvaluator {
             left.intvalue!=null -> when {
                 right.intvalue!=null -> LiteralValue(intvalue = left.intvalue + right.intvalue)
                 right.floatvalue!=null -> LiteralValue(floatvalue = left.intvalue + right.floatvalue)
-                else -> throw ExpressionException(error)
+                else -> throw ExpressionException(error, left.position)
             }
             left.floatvalue!=null -> when {
                 right.intvalue!=null -> LiteralValue(floatvalue = left.floatvalue + right.intvalue)
                 right.floatvalue!=null -> LiteralValue(floatvalue = left.floatvalue + right.floatvalue)
-                else -> throw ExpressionException(error)
+                else -> throw ExpressionException(error, left.position)
             }
-            else -> throw ExpressionException(error)
+            else -> throw ExpressionException(error, left.position)
         }
         litval.position = left.position
         return litval
@@ -428,14 +473,14 @@ class ConstExprEvaluator {
             left.intvalue!=null -> when {
                 right.intvalue!=null -> LiteralValue(intvalue = left.intvalue - right.intvalue)
                 right.floatvalue!=null -> LiteralValue(floatvalue = left.intvalue - right.floatvalue)
-                else -> throw ExpressionException(error)
+                else -> throw ExpressionException(error, left.position)
             }
             left.floatvalue!=null -> when {
                 right.intvalue!=null -> LiteralValue(floatvalue = left.floatvalue - right.intvalue)
                 right.floatvalue!=null -> LiteralValue(floatvalue = left.floatvalue - right.floatvalue)
-                else -> throw ExpressionException(error)
+                else -> throw ExpressionException(error, left.position)
             }
-            else -> throw ExpressionException(error)
+            else -> throw ExpressionException(error, left.position)
         }
         litval.position = left.position
         return litval
@@ -448,24 +493,24 @@ class ConstExprEvaluator {
                 right.intvalue!=null -> LiteralValue(intvalue = left.intvalue * right.intvalue)
                 right.floatvalue!=null -> LiteralValue(floatvalue = left.intvalue * right.floatvalue)
                 right.strvalue!=null -> {
-                    if(right.strvalue.length * left.intvalue > 65535) throw ExpressionException("string too large")
+                    if(right.strvalue.length * left.intvalue > 65535) throw ExpressionException("string too large", left.position)
                     LiteralValue(strvalue = right.strvalue.repeat(left.intvalue))
                 }
-                else -> throw ExpressionException(error)
+                else -> throw ExpressionException(error, left.position)
             }
             left.floatvalue!=null -> when {
                 right.intvalue!=null -> LiteralValue(floatvalue = left.floatvalue * right.intvalue)
                 right.floatvalue!=null -> LiteralValue(floatvalue = left.floatvalue * right.floatvalue)
-                else -> throw ExpressionException(error)
+                else -> throw ExpressionException(error, left.position)
             }
             left.strvalue!=null -> when {
                 right.intvalue!=null -> {
-                    if(left.strvalue.length * right.intvalue > 65535) throw ExpressionException("string too large")
+                    if(left.strvalue.length * right.intvalue > 65535) throw ExpressionException("string too large", left.position)
                     LiteralValue(strvalue = left.strvalue.repeat(right.intvalue))
                 }
-                else -> throw ExpressionException(error)
+                else -> throw ExpressionException(error, left.position)
             }
-            else -> throw ExpressionException(error)
+            else -> throw ExpressionException(error, left.position)
         }
         litval.position = left.position
         return litval
@@ -476,27 +521,27 @@ class ConstExprEvaluator {
         val litval = when {
             left.intvalue!=null -> when {
                 right.intvalue!=null -> {
-                    if(right.intvalue==0) throw ExpressionException("attempt to divide by zero")
+                    if(right.intvalue==0) throw ExpressionException("attempt to divide by zero", left.position)
                     LiteralValue(intvalue = left.intvalue / right.intvalue)
                 }
                 right.floatvalue!=null -> {
-                    if(right.floatvalue==0.0) throw ExpressionException("attempt to divide by zero")
+                    if(right.floatvalue==0.0) throw ExpressionException("attempt to divide by zero", left.position)
                     LiteralValue(floatvalue = left.intvalue / right.floatvalue)
                 }
-                else -> throw ExpressionException(error)
+                else -> throw ExpressionException(error, left.position)
             }
             left.floatvalue!=null -> when {
                 right.intvalue!=null -> {
-                    if(right.intvalue==0) throw ExpressionException("attempt to divide by zero")
+                    if(right.intvalue==0) throw ExpressionException("attempt to divide by zero", left.position)
                     LiteralValue(floatvalue = left.floatvalue / right.intvalue)
                 }
                 right.floatvalue!=null -> {
-                    if(right.floatvalue==0.0) throw ExpressionException("attempt to divide by zero")
+                    if(right.floatvalue==0.0) throw ExpressionException("attempt to divide by zero", left.position)
                     LiteralValue(floatvalue = left.floatvalue / right.floatvalue)
                 }
-                else -> throw ExpressionException(error)
+                else -> throw ExpressionException(error, left.position)
             }
-            else -> throw ExpressionException(error)
+            else -> throw ExpressionException(error, left.position)
         }
         litval.position = left.position
         return litval

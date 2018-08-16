@@ -137,8 +137,10 @@ fun main(args: Array<String>) {
         moduleAst.statements.forEach {
             println(it)
         }
-    } catch(sx: SyntaxError) {
-        sx.printError()
+//    } catch(sx: SyntaxError) {
+//        System.err.println(sx)
+//    } catch(ex: ExpressionException) {
+//        System.err.println(ex)
     } catch (px: ParsingFailedError) {
         System.err.println(px.message)
     }

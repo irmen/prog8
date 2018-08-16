@@ -64,7 +64,7 @@ statement :
 	| inlineasm
 	| labeldef
 	| returnstmt
-	// @todo forloop, whileloop, repeatloop, ifelse
+	// @todo forloop, whileloop, repeatloop
 	;
 
 labeldef :  identifier ':'  ;

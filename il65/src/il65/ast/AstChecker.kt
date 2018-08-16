@@ -11,7 +11,7 @@ fun Module.checkValid(globalNamespace: INameScope) {
     this.process(checker)
     val checkResult = checker.result()
     checkResult.forEach {
-        it.printError()
+        System.err.println(it)
     }
     if(checkResult.isNotEmpty())
         throw ParsingFailedError("There are ${checkResult.size} errors in module '$name'.")
@@ -157,6 +157,14 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
         fun err(msg: String) {
             checkResult.add(SyntaxError(msg, decl.position))
         }
+
+        // the initializer value can't refer to the variable itself (recursive definition)
+        if(decl.value?.referencesIdentifier(decl.name) == true||
+                decl.arrayspec?.x?.referencesIdentifier(decl.name) == true ||
+                decl.arrayspec?.y?.referencesIdentifier(decl.name) == true) {
+            err("recursive var declaration")
+        }
+
         when(decl.type) {
             VarDeclType.VAR, VarDeclType.CONST -> {
                 when {
@@ -176,7 +184,7 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
             VarDeclType.MEMORY -> {
                 if(decl.value !is LiteralValue)
                     // @todo normal error reporting
-                    throw AstException("${decl.value?.position} value of memory var decl is not a literal (it is a ${decl.value!!::class.simpleName}).")
+                    throw SyntaxError("value of memory var decl is not a literal (it is a ${decl.value!!::class.simpleName}).", decl.value?.position)
 
                 val value = decl.value as LiteralValue
                 if(value.intvalue==null || value.intvalue<0 || value.intvalue>65535) {
@@ -263,7 +271,7 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
                 if(directive.args.size!=1 || directive.args[0].name != "enable_floats")
                     err("invalid option directive argument, expected enable_floats")
             }
-            else -> throw AstException("invalid directive ${directive.directive}")
+            else -> throw SyntaxError("invalid directive ${directive.directive}", directive.position)
         }
         return super.process(directive)
     }
