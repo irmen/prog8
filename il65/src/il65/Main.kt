@@ -3,8 +3,10 @@ package il65
 import java.nio.file.Paths
 import il65.ast.*
 import il65.parser.*
+import il65.compiler.*
 import il65.optimizing.optimizeExpressions
 import il65.optimizing.optimizeStatements
+import kotlin.system.exitProcess
 
 
 fun main(args: Array<String>) {
@@ -20,20 +22,34 @@ fun main(args: Array<String>) {
 
         moduleAst.optimizeExpressions(globalNamespace)
         moduleAst.optimizeStatements(globalNamespace)
-        moduleAst.checkValid(globalNamespace)      // check if final tree is valid
+        val globalNamespaceAfterOptimize = moduleAst.namespace()  // it could have changed in the meantime
+        moduleAst.checkValid(globalNamespaceAfterOptimize)        // check if final tree is valid
 
         // determine special compiler options
         val options = moduleAst.statements.filter { it is Directive && it.directive=="%option" }.flatMap { (it as Directive).args }.toSet()
         val optionEnableFloats = options.contains(DirectiveArg(null, "enable_floats", null))
 
-        if(optionEnableFloats) println("Compiler: floats enabled")
+        val compilerOptions = CompilationOptions(OutputType.PRG,
+                Launcher.BASIC,
+                Zeropage.COMPATIBLE,
+                optionEnableFloats)
 
-        // todo compile to asm...
-        moduleAst.statements.forEach {
-            println(it)
-        }
+        val intermediate = moduleAst.compileToIntermediate(compilerOptions, globalNamespaceAfterOptimize)
+        intermediate.optimize()
+
+//        val assembler = intermediate.compileToAssembly()
+//        assembler.assemble(compilerOptions, "input", "output")
+//        val monitorfile = assembler.genereateBreakpointList()
+
+        // start the vice emulator
+//        val program = "foo"
+//        val cmdline = listOf("x64", "-moncommands", monitorfile,
+//                "-autostartprgmode", "1", "-autostart-warp", "-autostart", program)
+//        ProcessBuilder(cmdline).inheritIO().start()
+
     } catch (px: ParsingFailedError) {
         System.err.println(px.message)
+        exitProcess(1)
     }
 }
 
