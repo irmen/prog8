@@ -130,7 +130,7 @@ interface IStatement : Node {
 
 
 interface IFunctionCall {
-    var location: Identifier
+    var target: Identifier
     var arglist: List<IExpression>
 }
 
@@ -565,20 +565,20 @@ data class Jump(val address: Int?, val identifier: Identifier?) : IStatement {
 }
 
 
-data class FunctionCall(override var location: Identifier, override var arglist: List<IExpression>) : IExpression, IFunctionCall {
+data class FunctionCall(override var target: Identifier, override var arglist: List<IExpression>) : IExpression, IFunctionCall {
     override var position: Position? = null
     override var parent: Node? = null
 
     override fun linkParents(parent: Node) {
         this.parent = parent
-        location.linkParents(this)
+        target.linkParents(this)
         arglist.forEach { it.linkParents(this) }
     }
 
     override fun constValue(namespace: INameScope): LiteralValue? {
         // if the function is a built-in function and the args are consts, should evaluate!
-        if(location.scopedName.size>1) return null
-        return when(location.scopedName[0]){
+        if(target.scopedName.size>1) return null
+        return when(target.scopedName[0]){
             "sin" -> builtin_sin(arglist, position, namespace)
             "cos" -> builtin_cos(arglist, position, namespace)
             "abs" -> builtin_abs(arglist, position, namespace)
@@ -599,17 +599,17 @@ data class FunctionCall(override var location: Identifier, override var arglist:
     }
 
     override fun process(processor: IAstProcessor) = processor.process(this)
-    override fun referencesIdentifier(name: String): Boolean = location.referencesIdentifier(name) || arglist.any{it.referencesIdentifier(name)}
+    override fun referencesIdentifier(name: String): Boolean = target.referencesIdentifier(name) || arglist.any{it.referencesIdentifier(name)}
 }
 
 
-data class FunctionCallStatement(override var location: Identifier, override var arglist: List<IExpression>) : IStatement, IFunctionCall {
+data class FunctionCallStatement(override var target: Identifier, override var arglist: List<IExpression>) : IStatement, IFunctionCall {
     override var position: Position? = null
     override var parent: Node? = null
 
     override fun linkParents(parent: Node) {
         this.parent = parent
-        location.linkParents(this)
+        target.linkParents(this)
         arglist.forEach { it.linkParents(this) }
     }
 

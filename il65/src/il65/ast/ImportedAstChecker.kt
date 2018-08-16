@@ -1,6 +1,7 @@
 package il65.ast
 
-import il65.ParsingFailedError
+import il65.parser.ParsingFailedError
+
 
 /**
  * Checks that are specific for imported modules.

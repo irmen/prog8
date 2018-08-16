@@ -1,6 +1,7 @@
 package il65.ast
 
-import il65.ParsingFailedError
+import il65.functions.BuiltIns
+import il65.parser.ParsingFailedError
 
 /**
  * General checks on the Ast
@@ -97,6 +98,9 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
         if(subroutine.parent !is Block)
             err("subroutines can only be defined in a block (not in other scopes)")
 
+        if(BuiltIns.contains(subroutine.name))
+            err("cannot override a built-in function")
+
         val uniqueNames = subroutine.parameters.map { it.name }.toSet()
         if(uniqueNames.size!=subroutine.parameters.size)
             err("parameter names should be unique")
@@ -154,8 +158,8 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
      * Check the variable declarations (values within range etc)
      */
     override fun process(decl: VarDecl): IStatement {
-        fun err(msg: String) {
-            checkResult.add(SyntaxError(msg, decl.position))
+        fun err(msg: String, position: Position?=null) {
+            checkResult.add(SyntaxError(msg, position ?: decl.position))
         }
 
         // the initializer value can't refer to the variable itself (recursive definition)
@@ -182,13 +186,13 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
                 }
             }
             VarDeclType.MEMORY -> {
-                if(decl.value !is LiteralValue)
-                    // @todo normal error reporting
-                    throw SyntaxError("value of memory var decl is not a literal (it is a ${decl.value!!::class.simpleName}).", decl.value?.position)
-
-                val value = decl.value as LiteralValue
-                if(value.intvalue==null || value.intvalue<0 || value.intvalue>65535) {
-                    err("memory address must be valid integer 0..\$ffff")
+                if(decl.value !is LiteralValue) {
+                    err("value of memory var decl is not a literal (it is a ${decl.value!!::class.simpleName}).", decl.value?.position)
+                } else {
+                    val value = decl.value as LiteralValue
+                    if (value.intvalue == null || value.intvalue < 0 || value.intvalue > 65535) {
+                        err("memory address must be valid integer 0..\$ffff")
+                    }
                 }
             }
         }
@@ -338,6 +342,27 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
             }
         }
         return range
+    }
+
+    override fun process(functionCall: FunctionCall): IExpression {
+        // this function call is (part of) an expression, which should be in a statement somewhere.
+        var statementNode: Node? = functionCall
+        while(statementNode !is IStatement && statementNode?.parent != null) statementNode = statementNode.parent
+        if(statementNode==null)
+            throw FatalAstException("cannot determine statement scope of function call expression at ${functionCall.position}")
+
+        checkFunctionExists(functionCall.target, statementNode as IStatement)
+        return super.process(functionCall)
+    }
+
+    override fun process(functionCall: FunctionCallStatement): IStatement {
+        checkFunctionExists(functionCall.target, functionCall)
+        return super.process(functionCall)
+    }
+
+    private fun checkFunctionExists(target: Identifier, statement: IStatement) {
+        if(globalNamespace.lookup(target.scopedName, statement)==null)
+            checkResult.add(SyntaxError("undefined function or subroutine: ${target.scopedName.joinToString(".")}", statement.position))
     }
 
     private fun checkValueRange(datatype: DataType, value: LiteralValue, position: Position?) : Boolean {

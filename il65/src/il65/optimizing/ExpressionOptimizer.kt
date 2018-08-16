@@ -1,6 +1,6 @@
 package il65.optimizing
 
-import il65.ParsingFailedError
+import il65.parser.ParsingFailedError
 import il65.ast.*
 import kotlin.math.pow
 

@@ -2,6 +2,10 @@ package il65.functions
 
 import il65.ast.*
 
+
+val BuiltIns = listOf("sin", "cos", "abs", "acos", "asin", "tan", "atan", "log", "log10", "sqrt", "max", "min", "round", "rad", "deg")
+
+
 private fun oneDoubleArg(args: List<IExpression>, position: Position?, namespace:INameScope, function: (arg: Double)->Double): LiteralValue {
     if(args.size!=1)
         throw SyntaxError("built-in function requires one floating point argument", position)
