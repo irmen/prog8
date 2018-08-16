@@ -19,12 +19,29 @@ fun Module.checkValid(globalNamespace: INameScope) {
 }
 
 
+/**
+ * todo check subroutine parameters against signature
+ * todo check subroutine return values against target assignment values
+ *
+ */
+
 class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
     private val checkResult: MutableList<SyntaxError> = mutableListOf()
     private val blockNames: HashMap<String, Position?> = hashMapOf()
 
     fun result(): List<SyntaxError> {
         return checkResult
+    }
+
+    override fun process(module: Module) {
+        super.process(module)
+        val directives = module.statements.filter { it is Directive }.groupBy { (it as Directive).directive }
+        directives.filter { it.value.size > 1 }.forEach{
+            when(it.key) {
+                "%output", "%launcher", "%zeropage", "%address" ->
+                    it.value.mapTo(checkResult) { SyntaxError("directive can just occur once", it.position) }
+            }
+        }
     }
 
     override fun process(jump: Jump): IStatement {
@@ -231,7 +248,7 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
                 if(directive.args.size!=1 || directive.args[0].name != "basic" && directive.args[0].name != "none")
                     err("invalid launcher directive type, expected basic or none")
             }
-            "%zp" -> {
+            "%zeropage" -> {
                 if(directive.parent !is Module) err("this directive may only occur at module level")
                 if(directive.args.size!=1 ||
                         directive.args[0].name != "compatible" &&

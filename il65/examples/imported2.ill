@@ -1,4 +1,4 @@
-%zp full
+%zeropage full
 %address 33
 
 ~ extra3  {

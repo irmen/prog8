@@ -1,4 +1,4 @@
-// Generated from /home/irmen/Projects/IL65/il65/antlr/il65.g4 by ANTLR 4.7
+// Generated from il65.g4 by ANTLR 4.7.1
 package il65.parser;
 import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;
@@ -11,7 +11,7 @@ import java.util.ArrayList;
 
 @SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast"})
 public class il65Parser extends Parser {
-	static { RuntimeMetaData.checkVersion("4.7", RuntimeMetaData.VERSION); }
+	static { RuntimeMetaData.checkVersion("4.7.1", RuntimeMetaData.VERSION); }
 
 	protected static final DFA[] _decisionToDFA;
 	protected static final PredictionContextCache _sharedContextCache =
@@ -56,17 +56,17 @@ public class il65Parser extends Parser {
 	};
 
 	private static final String[] _LITERAL_NAMES = {
-		null, "'~'", "':'", "'goto'", "'%output'", "'%launcher'", "'%zp'", "'%address'", 
-		"'%import'", "'%breakpoint'", "'%asminclude'", "'%asmbinary'", "'%option'", 
-		"','", "'='", "'const'", "'memory'", "'byte'", "'word'", "'float'", "'str'", 
-		"'str_p'", "'str_s'", "'str_ps'", "'['", "']'", "'+='", "'-='", "'/='", 
-		"'*='", "'**='", "'<<='", "'>>='", "'<<@='", "'>>@='", "'&='", "'|='", 
-		"'^='", "'++'", "'--'", "'('", "')'", "'+'", "'-'", "'**'", "'*'", "'/'", 
-		"'<<'", "'>>'", "'<<@'", "'>>@'", "'<'", "'>'", "'<='", "'>='", "'=='", 
-		"'!='", "'&'", "'^'", "'|'", "'and'", "'or'", "'xor'", "'not'", "'to'", 
-		"'return'", "'.'", "'A'", "'X'", "'Y'", "'AX'", "'AY'", "'XY'", "'Pc'", 
-		"'Pi'", "'Pz'", "'Pn'", "'Pv'", "'true'", "'false'", "'%asm'", "'sub'", 
-		"'->'", "'{'", "'}'", "'?'", "'if'", "'else'"
+		null, "'~'", "':'", "'goto'", "'%output'", "'%launcher'", "'%zeropage'", 
+		"'%address'", "'%import'", "'%breakpoint'", "'%asminclude'", "'%asmbinary'", 
+		"'%option'", "','", "'='", "'const'", "'memory'", "'byte'", "'word'", 
+		"'float'", "'str'", "'str_p'", "'str_s'", "'str_ps'", "'['", "']'", "'+='", 
+		"'-='", "'/='", "'*='", "'**='", "'<<='", "'>>='", "'<<@='", "'>>@='", 
+		"'&='", "'|='", "'^='", "'++'", "'--'", "'('", "')'", "'+'", "'-'", "'**'", 
+		"'*'", "'/'", "'<<'", "'>>'", "'<<@'", "'>>@'", "'<'", "'>'", "'<='", 
+		"'>='", "'=='", "'!='", "'&'", "'^'", "'|'", "'to'", "'and'", "'or'", 
+		"'xor'", "'not'", "'return'", "'.'", "'A'", "'X'", "'Y'", "'AX'", "'AY'", 
+		"'XY'", "'Pc'", "'Pi'", "'Pz'", "'Pn'", "'Pv'", "'true'", "'false'", "'%asm'", 
+		"'sub'", "'->'", "'{'", "'}'", "'?'", "'if'", "'else'"
 	};
 	private static final String[] _SYMBOLIC_NAMES = {
 		null, null, null, null, null, null, null, null, null, null, null, null, 
@@ -1274,9 +1274,9 @@ public class il65Parser extends Parser {
 			case 4:
 				{
 				setState(204);
-				((ExpressionContext)_localctx).prefix = match(T__62);
+				((ExpressionContext)_localctx).prefix = match(T__63);
 				setState(205);
-				expression(6);
+				expression(5);
 				}
 				break;
 			case 5:
@@ -1490,15 +1490,15 @@ public class il65Parser extends Parser {
 					case 10:
 						{
 						_localctx = new ExpressionContext(_parentctx, _parentState);
-						_localctx.left = _prevctx;
-						_localctx.left = _prevctx;
+						_localctx.rangefrom = _prevctx;
+						_localctx.rangefrom = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
 						setState(239);
 						if (!(precpred(_ctx, 9))) throw new FailedPredicateException(this, "precpred(_ctx, 9)");
 						setState(240);
-						((ExpressionContext)_localctx).bop = match(T__59);
+						match(T__59);
 						setState(241);
-						((ExpressionContext)_localctx).right = expression(10);
+						((ExpressionContext)_localctx).rangeto = expression(10);
 						}
 						break;
 					case 11:
@@ -1532,15 +1532,15 @@ public class il65Parser extends Parser {
 					case 13:
 						{
 						_localctx = new ExpressionContext(_parentctx, _parentState);
-						_localctx.rangefrom = _prevctx;
-						_localctx.rangefrom = _prevctx;
+						_localctx.left = _prevctx;
+						_localctx.left = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
 						setState(248);
-						if (!(precpred(_ctx, 5))) throw new FailedPredicateException(this, "precpred(_ctx, 5)");
+						if (!(precpred(_ctx, 6))) throw new FailedPredicateException(this, "precpred(_ctx, 6)");
 						setState(249);
-						match(T__63);
+						((ExpressionContext)_localctx).bop = match(T__62);
 						setState(250);
-						((ExpressionContext)_localctx).rangeto = expression(6);
+						((ExpressionContext)_localctx).right = expression(7);
 						}
 						break;
 					case 14:
@@ -1617,7 +1617,7 @@ public class il65Parser extends Parser {
 			setState(264);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << T__0) | (1L << T__23) | (1L << T__39) | (1L << T__41) | (1L << T__42) | (1L << T__62))) != 0) || ((((_la - 67)) & ~0x3f) == 0 && ((1L << (_la - 67)) & ((1L << (T__66 - 67)) | (1L << (T__67 - 67)) | (1L << (T__68 - 67)) | (1L << (T__69 - 67)) | (1L << (T__70 - 67)) | (1L << (T__71 - 67)) | (1L << (T__72 - 67)) | (1L << (T__73 - 67)) | (1L << (T__74 - 67)) | (1L << (T__75 - 67)) | (1L << (T__76 - 67)) | (1L << (T__77 - 67)) | (1L << (T__78 - 67)) | (1L << (NAME - 67)) | (1L << (DEC_INTEGER - 67)) | (1L << (HEX_INTEGER - 67)) | (1L << (BIN_INTEGER - 67)) | (1L << (FLOAT_NUMBER - 67)) | (1L << (STRING - 67)))) != 0)) {
+			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << T__0) | (1L << T__23) | (1L << T__39) | (1L << T__41) | (1L << T__42))) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & ((1L << (T__63 - 64)) | (1L << (T__66 - 64)) | (1L << (T__67 - 64)) | (1L << (T__68 - 64)) | (1L << (T__69 - 64)) | (1L << (T__70 - 64)) | (1L << (T__71 - 64)) | (1L << (T__72 - 64)) | (1L << (T__73 - 64)) | (1L << (T__74 - 64)) | (1L << (T__75 - 64)) | (1L << (T__76 - 64)) | (1L << (T__77 - 64)) | (1L << (T__78 - 64)) | (1L << (NAME - 64)) | (1L << (DEC_INTEGER - 64)) | (1L << (HEX_INTEGER - 64)) | (1L << (BIN_INTEGER - 64)) | (1L << (FLOAT_NUMBER - 64)) | (1L << (STRING - 64)))) != 0)) {
 				{
 				setState(263);
 				expression_list();
@@ -1683,7 +1683,7 @@ public class il65Parser extends Parser {
 			setState(274);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << T__0) | (1L << T__23) | (1L << T__39) | (1L << T__41) | (1L << T__42) | (1L << T__62))) != 0) || ((((_la - 67)) & ~0x3f) == 0 && ((1L << (_la - 67)) & ((1L << (T__66 - 67)) | (1L << (T__67 - 67)) | (1L << (T__68 - 67)) | (1L << (T__69 - 67)) | (1L << (T__70 - 67)) | (1L << (T__71 - 67)) | (1L << (T__72 - 67)) | (1L << (T__73 - 67)) | (1L << (T__74 - 67)) | (1L << (T__75 - 67)) | (1L << (T__76 - 67)) | (1L << (T__77 - 67)) | (1L << (T__78 - 67)) | (1L << (NAME - 67)) | (1L << (DEC_INTEGER - 67)) | (1L << (HEX_INTEGER - 67)) | (1L << (BIN_INTEGER - 67)) | (1L << (FLOAT_NUMBER - 67)) | (1L << (STRING - 67)))) != 0)) {
+			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << T__0) | (1L << T__23) | (1L << T__39) | (1L << T__41) | (1L << T__42))) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & ((1L << (T__63 - 64)) | (1L << (T__66 - 64)) | (1L << (T__67 - 64)) | (1L << (T__68 - 64)) | (1L << (T__69 - 64)) | (1L << (T__70 - 64)) | (1L << (T__71 - 64)) | (1L << (T__72 - 64)) | (1L << (T__73 - 64)) | (1L << (T__74 - 64)) | (1L << (T__75 - 64)) | (1L << (T__76 - 64)) | (1L << (T__77 - 64)) | (1L << (T__78 - 64)) | (1L << (NAME - 64)) | (1L << (DEC_INTEGER - 64)) | (1L << (HEX_INTEGER - 64)) | (1L << (BIN_INTEGER - 64)) | (1L << (FLOAT_NUMBER - 64)) | (1L << (STRING - 64)))) != 0)) {
 				{
 				setState(273);
 				expression_list();
@@ -2934,7 +2934,7 @@ public class il65Parser extends Parser {
 		case 11:
 			return precpred(_ctx, 7);
 		case 12:
-			return precpred(_ctx, 5);
+			return precpred(_ctx, 6);
 		case 13:
 			return precpred(_ctx, 21);
 		}
@@ -3018,7 +3018,7 @@ public class il65Parser extends Parser {
 		"\u00c3\u00c4\5\"\22\2\u00c4\u00c5\t\5\2\2\u00c5%\3\2\2\2\u00c6\u00c7\b"+
 		"\24\1\2\u00c7\u00c8\7*\2\2\u00c8\u00c9\5&\24\2\u00c9\u00ca\7+\2\2\u00ca"+
 		"\u00d5\3\2\2\2\u00cb\u00d5\5(\25\2\u00cc\u00cd\t\6\2\2\u00cd\u00d5\5&"+
-		"\24\25\u00ce\u00cf\7A\2\2\u00cf\u00d5\5&\24\b\u00d0\u00d5\5@!\2\u00d1"+
+		"\24\25\u00ce\u00cf\7B\2\2\u00cf\u00d5\5&\24\7\u00d0\u00d5\5@!\2\u00d1"+
 		"\u00d5\5\64\33\2\u00d2\u00d5\5\60\31\2\u00d3\u00d5\5\62\32\2\u00d4\u00c6"+
 		"\3\2\2\2\u00d4\u00cb\3\2\2\2\u00d4\u00cc\3\2\2\2\u00d4\u00ce\3\2\2\2\u00d4"+
 		"\u00d0\3\2\2\2\u00d4\u00d1\3\2\2\2\u00d4\u00d2\3\2\2\2\u00d4\u00d3\3\2"+
@@ -3032,8 +3032,8 @@ public class il65Parser extends Parser {
 		"\2\2\u00ed\u0100\5&\24\16\u00ee\u00ef\f\f\2\2\u00ef\u00f0\7=\2\2\u00f0"+
 		"\u0100\5&\24\r\u00f1\u00f2\f\13\2\2\u00f2\u00f3\7>\2\2\u00f3\u0100\5&"+
 		"\24\f\u00f4\u00f5\f\n\2\2\u00f5\u00f6\7?\2\2\u00f6\u0100\5&\24\13\u00f7"+
-		"\u00f8\f\t\2\2\u00f8\u00f9\7@\2\2\u00f9\u0100\5&\24\n\u00fa\u00fb\f\7"+
-		"\2\2\u00fb\u00fc\7B\2\2\u00fc\u0100\5&\24\b\u00fd\u00fe\f\27\2\2\u00fe"+
+		"\u00f8\f\t\2\2\u00f8\u00f9\7@\2\2\u00f9\u0100\5&\24\n\u00fa\u00fb\f\b"+
+		"\2\2\u00fb\u00fc\7A\2\2\u00fc\u0100\5&\24\t\u00fd\u00fe\f\27\2\2\u00fe"+
 		"\u0100\5\34\17\2\u00ff\u00d6\3\2\2\2\u00ff\u00d9\3\2\2\2\u00ff\u00dc\3"+
 		"\2\2\2\u00ff\u00df\3\2\2\2\u00ff\u00e2\3\2\2\2\u00ff\u00e5\3\2\2\2\u00ff"+
 		"\u00e8\3\2\2\2\u00ff\u00eb\3\2\2\2\u00ff\u00ee\3\2\2\2\u00ff\u00f1\3\2"+

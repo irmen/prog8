@@ -5,14 +5,11 @@ import il65.ast.Module
 import kotlin.system.exitProcess
 
 
-fun Module.compileToIntermediate(options: CompilationOptions, namespace: INameScope): IntermediateForm {
-
-    val compiler = Compiler(options, namespace)
-    return compiler.compile(this)
-}
-
-
 class Compiler(val options: CompilationOptions, val namespace: INameScope) {
+    init {
+        val zeropage = Zeropage(options)
+    }
+
     fun compile(module: Module) : IntermediateForm {
         println("......@TODO compile Ast into Intermediate result......")       // todo
         return IntermediateForm(module.name)
@@ -37,12 +34,12 @@ enum class OutputType {
     PRG
 }
 
-enum class Launcher {
+enum class LauncherType {
     BASIC,
     NONE
 }
 
-enum class Zeropage {
+enum class ZeropageType {
     COMPATIBLE,
     FULL,
     FULL_RESTORE
@@ -50,8 +47,8 @@ enum class Zeropage {
 
 
 data class CompilationOptions(val output: OutputType,
-                              val launcher: Launcher,
-                              val zeropage: Zeropage,
+                              val launcher: LauncherType,
+                              val zeropage: ZeropageType,
                               val floats: Boolean)
 
 

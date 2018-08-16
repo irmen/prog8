@@ -52,7 +52,7 @@ Directives
 	- type ``none`` : no launcher logic is added at all
 
 
-.. data:: %zp <style>
+.. data:: %zeropage <style>
 
 	Level: module.
 	Global setting, select ZeroPage handling style. Defaults to ``compatible``.

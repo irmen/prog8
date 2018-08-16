@@ -1,4 +1,12 @@
+%output prg
+%launcher basic
+
 ~ main $c003  {
+
+
+	A = X>2
+	X = Y>Y
+
   word[1000]  ascending = 10 to 1009
   word[100]  ascending2 = "a" to "z"
   str  ascending3 = "a" to "z"
@@ -62,7 +70,7 @@
   main.foo(1,2,3)
 
 mega:
-	X=1
+	X += 1
 cool:
 	Y=2
 

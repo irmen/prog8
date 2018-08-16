@@ -1,4 +1,4 @@
-%zp full
+%zeropage full
 %address 33
 %option enable_floats
 %option enable_floats

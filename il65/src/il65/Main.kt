@@ -27,19 +27,26 @@ fun main(args: Array<String>) {
 
         // determine special compiler options
         val options = moduleAst.statements.filter { it is Directive && it.directive=="%option" }.flatMap { (it as Directive).args }.toSet()
-        val optionEnableFloats = options.contains(DirectiveArg(null, "enable_floats", null))
+        val outputType = (moduleAst.statements.singleOrNull { it is Directive && it.directive=="%output"}
+                as? Directive)?.args?.single()?.name?.toUpperCase()
+        val launcherType = (moduleAst.statements.singleOrNull { it is Directive && it.directive=="%launcher"}
+                as? Directive)?.args?.single()?.name?.toUpperCase()
+        val zpType = (moduleAst.statements.singleOrNull { it is Directive && it.directive=="%zeropage"}
+                as? Directive)?.args?.single()?.name?.toUpperCase()
 
-        val compilerOptions = CompilationOptions(OutputType.PRG,
-                Launcher.BASIC,
-                Zeropage.COMPATIBLE,
-                optionEnableFloats)
-
-        val intermediate = moduleAst.compileToIntermediate(compilerOptions, globalNamespaceAfterOptimize)
+        val compilerOptions = CompilationOptions(
+                if(outputType==null) OutputType.PRG else OutputType.valueOf(outputType),
+                if(launcherType==null) LauncherType.BASIC else LauncherType.valueOf(launcherType),
+                if(zpType==null) ZeropageType.COMPATIBLE else ZeropageType.valueOf(zpType),
+                options.contains(DirectiveArg(null, "enable_floats", null))
+        )
+        val compiler = Compiler(compilerOptions, globalNamespaceAfterOptimize)
+        val intermediate = compiler.compile(moduleAst)
         intermediate.optimize()
 
 //        val assembler = intermediate.compileToAssembly()
 //        assembler.assemble(compilerOptions, "input", "output")
-//        val monitorfile = assembler.genereateBreakpointList()
+//        val monitorfile = assembler.generateBreakpointList()
 
         // start the vice emulator
 //        val program = "foo"

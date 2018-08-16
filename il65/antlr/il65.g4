@@ -72,7 +72,7 @@ labeldef :  identifier ':'  ;
 unconditionaljump :  'goto'  (integerliteral | identifier | scoped_identifier) ;
 
 directive :
-	directivename=('%output' | '%launcher' | '%zp' | '%address' | '%import' |
+	directivename=('%output' | '%launcher' | '%zeropage' | '%address' | '%import' |
                        '%breakpoint' | '%asminclude' | '%asmbinary' | '%option')
         (directivearg? | directivearg (',' directivearg)*)
         ;
@@ -120,11 +120,11 @@ expression :
 	| left = expression bop = '&' right = expression
 	| left = expression bop = '^' right = expression
 	| left = expression bop = '|' right = expression
+	| rangefrom = expression 'to' rangeto = expression	// create separate rule once for-loops are here?
 	| left = expression bop = 'and' right = expression
 	| left = expression bop = 'or' right = expression
 	| left = expression bop = 'xor' right = expression
 	| prefix = 'not' expression
-	| rangefrom = expression 'to' rangeto = expression	// create separate rule once for-loops are here?
 	| literalvalue
 	| register
 	| identifier

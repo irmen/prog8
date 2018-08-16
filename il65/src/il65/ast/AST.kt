@@ -698,7 +698,7 @@ fun il65Parser.ModuleContext.toAst(name: String, withPosition: Boolean) : Module
 }
 
 
-/************** Helper extesion methods (private) ************/
+/************** Helper extension methods (private) ************/
 
 private fun ParserRuleContext.toPosition(withPosition: Boolean) : Position? {
     val file = Paths.get(this.start.inputStream.sourceName).fileName.toString()

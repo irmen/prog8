@@ -9,6 +9,7 @@ import il65.parser.ParsingFailedError
 
 fun Module.checkImportedValid() {
     val checker = ImportedAstChecker()
+    this.linkParents()
     this.process(checker)
     val result = checker.result()
     result.forEach {
@@ -33,9 +34,10 @@ class ImportedAstChecker : IAstProcessor {
         super.process(module)
         val newStatements : MutableList<IStatement> = mutableListOf()
 
-        val moduleLevelDirectives = listOf("%output", "%launcher", "%zp", "%address")
+        val moduleLevelDirectives = listOf("%output", "%launcher", "%zeropage", "%address")
         for (sourceStmt in module.statements) {
             val stmt = sourceStmt.process(this)
+            if(stmt.parent == null) throw AstException("should have linked parents")
             if(stmt is Directive && stmt.parent is Module) {
                 if(moduleLevelDirectives.contains(stmt.directive)) {
                     println("${stmt.position} Warning: ignoring module directive because it was imported: ${stmt.directive}")
