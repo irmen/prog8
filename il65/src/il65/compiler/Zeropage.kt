@@ -50,13 +50,13 @@ class Zeropage(private val options: CompilationOptions) {
                         DataType.BYTE -> (vardecl.arrayspec.x as LiteralValue).intvalue!!
                         DataType.WORD -> (vardecl.arrayspec.x as LiteralValue).intvalue!! * 2
                         DataType.FLOAT -> (vardecl.arrayspec.x as LiteralValue).intvalue!! *  5
-                        else -> throw UnsupportedOperationException("array can only be of byte, word, float")
+                        else -> throw CompilerException("array can only be of byte, word, float")
                     }
                 } else {
                     // 2 dimensional matrix (only bytes for now)
                     when(vardecl.datatype) {
                         DataType.BYTE -> (vardecl.arrayspec.x as LiteralValue).intvalue!! * y
-                        else -> throw UnsupportedOperationException("matrix can only be of byte")
+                        else -> throw CompilerException("matrix can only be of byte")
                     }
                 }
             } else {
@@ -67,9 +67,9 @@ class Zeropage(private val options: CompilationOptions) {
                         if (options.floats) {
                             println("${vardecl.position} warning: allocating a large value in zeropage")
                             5
-                        } else throw UnsupportedOperationException("floating point option not enabled")
+                        } else throw CompilerException("floating point option not enabled")
                     }
-                    else -> throw UnsupportedOperationException("cannot put datatype ${vardecl.datatype} in zeropage")
+                    else -> throw CompilerException("cannot put datatype ${vardecl.datatype} in zeropage")
                 }
             }
 
@@ -87,7 +87,7 @@ class Zeropage(private val options: CompilationOptions) {
             }
         }
 
-        throw UnsupportedOperationException("ERROR: no free space in ZP to allocate $size sequential bytes")
+        throw CompilerException("ERROR: no free space in ZP to allocate $size sequential bytes")
     }
 
     private fun makeAllocation(location: Int, size: Int, datatype: DataType, name: String?): Int {
