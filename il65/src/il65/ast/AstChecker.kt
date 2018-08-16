@@ -273,7 +273,7 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
             "%option" -> {
                 if(directive.parent !is Module) err("this directive may only occur at module level")
                 if(directive.args.size!=1 || directive.args[0].name != "enable_floats")
-                    err("invalid option directive argument, expected enable_floats")
+                    err("invalid option directive argument(s)")
             }
             else -> throw SyntaxError("invalid directive ${directive.directive}", directive.position)
         }

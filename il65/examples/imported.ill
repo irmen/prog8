@@ -1,6 +1,7 @@
 %zp full
 %address 33
 %option enable_floats
+%option enable_floats
 
 ~ extra  {
 	; this is imported

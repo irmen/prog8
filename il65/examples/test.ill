@@ -84,6 +84,9 @@ some_label_def:   A=44
 	%asmbinary "derp", 0, 200
 }
 
+%option enable_floats
+%option enable_floats
+%option enable_floats
 
 %import imported
 %import imported

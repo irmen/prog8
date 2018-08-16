@@ -22,6 +22,12 @@ fun main(args: Array<String>) {
         moduleAst.optimizeStatements(globalNamespace)
         moduleAst.checkValid(globalNamespace)      // check if final tree is valid
 
+        // determine special compiler options
+        val options = moduleAst.statements.filter { it is Directive && it.directive=="%option" }.flatMap { (it as Directive).args }.toSet()
+        val optionEnableFloats = options.contains(DirectiveArg(null, "enable_floats", null))
+
+        if(optionEnableFloats) println("Compiler: floats enabled")
+
         // todo compile to asm...
         moduleAst.statements.forEach {
             println(it)
