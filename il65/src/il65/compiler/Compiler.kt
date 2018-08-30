@@ -2,8 +2,9 @@ package il65.compiler
 
 import il65.ast.INameScope
 import il65.ast.Module
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
+import kotlin.experimental.and
+import kotlin.math.absoluteValue
+import kotlin.math.pow
 import kotlin.system.exitProcess
 
 
@@ -28,86 +29,61 @@ fun Number.toHex(): String {
 }
 
 
-fun Double.frexp(): Pair<Double, Int> {
-    var exponent: Int = Math.getExponent(this)
-    val mantissa: Double
+data class Mflpt5(val b0: Short, val b1: Short, val b2: Short, val b3: Short, val b4: Short){
 
-    when (exponent) {
-        1024
-        -> {
-            // Inf or NaN
-            mantissa = this
-            exponent = 0
-        }
+    companion object {
+        val zero = Mflpt5(0, 0,0,0,0)
+        fun fromNumber(num: Number): Mflpt5 {
+            // see https://en.wikipedia.org/wiki/Microsoft_Binary_Format
+            // and https://sourceforge.net/p/acme-crossass/code-0/62/tree/trunk/ACME_Lib/cbm/mflpt.a
+            // and https://en.wikipedia.org/wiki/IEEE_754-1985
 
-        -1023 -> if (this == 0.0) {
-            // -0.0 or 0.0
-            mantissa = this
-            exponent = 0
-        } else {
-            exponent = Math.getExponent(this * 0x10000000000000) - 51     // that is 0x1p52 == 2**52
-            mantissa = Math.scalb(this, -exponent)
-        }
+            val flt = num.toDouble()
+            if(flt < FLOAT_MAX_NEGATIVE || flt > FLOAT_MAX_POSITIVE)
+                throw CompilerException("floating point number out of 5-byte mflpt range: $this")
+            if(flt==0.0)
+                return zero
 
-        else -> {
-            exponent++
-            mantissa = Math.scalb(this, -exponent)
-        }
-    }
-    return Pair(mantissa, exponent)
-}
+            val sign = if(flt<0.0) 0x80L else 0x00L
+            var exponent = 128 + 32	// 128 is cbm's bias, 32 is this algo's bias
+            var mantissa = flt.absoluteValue
 
-fun Number.toMflpt5(): ShortArray {
-    // algorithm here https://sourceforge.net/p/acme-crossass/code-0/62/tree/trunk/ACME_Lib/cbm/mflpt.a
-
-    // @todo fix this
-
-    var flt = this.toDouble()
-    if(flt < FLOAT_MAX_NEGATIVE || flt > FLOAT_MAX_POSITIVE)
-        throw CompilerException("floating point number out of 5-byte mflpt range: $this")
-    if(flt==0.0)
-        return shortArrayOf(0, 0, 0, 0, 0)
-    val sign: Long =
-            when {
-                flt < 0.0 -> {
-                    flt = -flt
-                    0x80000000L
-                }
-                else -> 0x00000000L
+            // if mantissa is too large, shift right and adjust exponent
+            while(mantissa >= 0x100000000) {
+                mantissa /= 2.0
+                exponent ++
+            }
+            // if mantissa is too small, shift left and adjust exponent
+            while(mantissa < 0x80000000) {
+                mantissa *= 2.0
+                exponent --
             }
 
-    var (mant, exp) = flt.frexp()
-    exp += 128
-    if(exp < 1) {
-        // underflow, use zero instead
-        return shortArrayOf(0, 0, 0 ,0 ,0)
+            return when {
+                exponent<0 -> zero  // underflow, use zero instead
+                exponent>255 -> throw CompilerException("floating point overflow: $this")
+                exponent==0 -> zero
+                else -> {
+                    val mant_long = mantissa.toLong()
+                    Mflpt5(
+                            exponent.toShort(),
+                            (mant_long.and(0x7f000000L) ushr 24).or(sign).toShort(),
+                            (mant_long.and(0x00ff0000L) ushr 16).toShort(),
+                            (mant_long.and(0x0000ff00L) ushr 8).toShort(),
+                            (mant_long.and(0x000000ffL)).toShort())
+                }
+            }
+        }
     }
-    if(exp > 255) {
-        throw CompilerException("floating point number out of 5-byte mflpt range: $this")
+
+    fun toDouble(): Double {
+        if(this == zero) return 0.0
+        val exp = b0 - 128
+        val sign = (b1.and(0x80)) > 0
+        val number = 0x80000000L.or(b1.toLong() shl 24).or(b2.toLong() shl 16).or(b3.toLong() shl 8).or(b4.toLong())
+        val result = number.toDouble() * (2.0).pow(exp) / 0x100000000
+        return if(sign) -result else result
     }
-    val mflpt = sign.or((mant * 0x100000000L).toLong()).and(0x7fffffffL)
-
-
-    val result = ShortArray(5)
-    result[0] = exp.toShort()
-    result[1] = (mflpt and -0x1000000 shr 24).toShort()
-    result[2] = (mflpt and 0x00FF0000 shr 16).toShort()
-    result[3] = (mflpt and 0x0000FF00 shr 8).toShort()
-    result[4] = (mflpt and 0x000000FF shr 0).toShort()
-    return result
-    /*
-
-    mant, exp = math.frexp(number)
-    exp += 128
-    if exp < 1:
-        # underflow, use zero instead
-        return bytearray([0, 0, 0, 0, 0])
-    if exp > 255:
-        raise OverflowError("floating point number out of 5-byte mflpt range", number)
-    mant = sign | int(mant * 0x100000000) & 0x7fffffff
-    return bytearray([exp]) + int.to_bytes(mant, 4, "big")
-
-     */
 }
 
 

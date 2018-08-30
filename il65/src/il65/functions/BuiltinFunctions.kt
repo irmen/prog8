@@ -76,7 +76,7 @@ fun builtin_abs(args: List<IExpression>, position: Position?, namespace:INameSco
         throw SyntaxError("built-in function abs requires one numeric argument", position)
     val float = args[0].constValue(namespace)?.asFloat()
     if(float!=null)
-        return IntOrFloatLiteral(Math.abs(float), args[0].position)
+        return intOrFloatLiteral(Math.abs(float), args[0].position)
     else
         throw SyntaxError("built-in function abs requires floating point value as argument", position)
 }
@@ -88,7 +88,7 @@ fun builtin_max(args: List<IExpression>, position: Position?, namespace:INameSco
     if(constants.contains(null))
         throw SyntaxError("not all arguments to max are a constant value", position)
     val result = constants.map { it?.asFloat()!! }.max()
-    return IntOrFloatLiteral(result!!, args[0].position)
+    return intOrFloatLiteral(result!!, args[0].position)
 }
 
 fun builtin_min(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue {
@@ -98,11 +98,11 @@ fun builtin_min(args: List<IExpression>, position: Position?, namespace:INameSco
     if(constants.contains(null))
         throw SyntaxError("not all arguments to min are a constant value", position)
     val result = constants.map { it?.asFloat()!! }.min()
-    return IntOrFloatLiteral(result!!, args[0].position)
+    return intOrFloatLiteral(result!!, args[0].position)
 }
 
 
-private fun IntOrFloatLiteral(value: Double, position: Position?): LiteralValue {
+private fun intOrFloatLiteral(value: Double, position: Position?): LiteralValue {
     val intresult = value.toInt()
     val result = if(value-intresult==0.0)
         LiteralValue(intvalue = intresult)
