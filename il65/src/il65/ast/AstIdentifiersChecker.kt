@@ -35,50 +35,46 @@ class AstIdentifiersChecker(private val globalNamespace: INameScope) : IAstProce
     }
 
     override fun process(block: Block): IStatement {
-        val scopedName = block.scopedName(block.name)
+        val scopedName = block.makeScopedName(block.name).joinToString(".")
         val existing = symbols[scopedName]
         if(existing!=null) {
             nameError(block.name, block.position, existing)
         } else {
             symbols[scopedName] = block
         }
-        super.process(block)
-        return block
+        return super.process(block)
     }
 
     override fun process(decl: VarDecl): IStatement {
-        val scopedName = decl.scopedName(decl.name)
+        val scopedName = decl.makeScopedName(decl.name).joinToString(".")
         val existing = symbols[scopedName]
         if(existing!=null) {
             nameError(decl.name, decl.position, existing)
         } else {
             symbols[scopedName] = decl
         }
-        super.process(decl)
-        return decl
+        return super.process(decl)
     }
 
     override fun process(subroutine: Subroutine): IStatement {
-        val scopedName = subroutine.scopedName(subroutine.name)
+        val scopedName = subroutine.makeScopedName(subroutine.name).joinToString(".")
         val existing = symbols[scopedName]
         if(existing!=null) {
             nameError(subroutine.name, subroutine.position, existing)
         } else {
             symbols[scopedName] = subroutine
         }
-        super.process(subroutine)
-        return subroutine
+        return super.process(subroutine)
     }
 
     override fun process(label: Label): IStatement {
-        val scopedName = label.scopedName(label.name)
+        val scopedName = label.makeScopedName(label.name).joinToString(".")
         val existing = symbols[scopedName]
         if(existing!=null) {
             nameError(label.name, label.position, existing)
         } else {
             symbols[scopedName] = label
         }
-        super.process(label)
-        return label
+        return super.process(label)
     }
 }

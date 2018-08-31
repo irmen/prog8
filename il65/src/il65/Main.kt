@@ -14,20 +14,27 @@ fun main(args: Array<String>) {
         println("\nIL65 compiler by Irmen de Jong (irmen@razorvine.net)")
         println("This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html\n")
 
+        // import main module and process additional imports
+
         val filepath = Paths.get(args[0]).normalize()
         val moduleAst = importModule(filepath)
         moduleAst.linkParents()
         val globalNamespace = moduleAst.namespace()
         //globalNamespace.debugPrint()
 
+
+        // perform syntax checks and optimizations
+
         moduleAst.checkIdentifiers(globalNamespace)
         moduleAst.optimizeExpressions(globalNamespace)
-        moduleAst.optimizeStatements(globalNamespace)
+        val allScopedSymbolDefinitions = moduleAst.checkIdentifiers(globalNamespace)
+        moduleAst.optimizeStatements(globalNamespace, allScopedSymbolDefinitions)
         val globalNamespaceAfterOptimize = moduleAst.namespace()  // it could have changed in the meantime
         moduleAst.checkValid(globalNamespaceAfterOptimize)        // check if final tree is valid
-        val allScopedSymbolDefinitions = moduleAst.checkIdentifiers(globalNamespace)
+
 
         // determine special compiler options
+
         val options = moduleAst.statements.filter { it is Directive && it.directive=="%option" }.flatMap { (it as Directive).args }.toSet()
         val outputType = (moduleAst.statements.singleOrNull { it is Directive && it.directive=="%output"}
                 as? Directive)?.args?.single()?.name?.toUpperCase()
@@ -42,6 +49,10 @@ fun main(args: Array<String>) {
                 if(zpType==null) ZeropageType.COMPATIBLE else ZeropageType.valueOf(zpType),
                 options.contains(DirectiveArg(null, "enable_floats", null))
         )
+
+
+        // compile the syntax tree into intermediate form, and optimize that
+
         val compiler = Compiler(compilerOptions, globalNamespaceAfterOptimize)
         val intermediate = compiler.compile(moduleAst)
         intermediate.optimize()
@@ -49,8 +60,8 @@ fun main(args: Array<String>) {
 //        val assembler = intermediate.compileToAssembly()
 //        assembler.assemble(compilerOptions, "input", "output")
 //        val monitorfile = assembler.generateBreakpointList()
-
-        // start the vice emulator
+//
+//        // start the vice emulator
 //        val program = "foo"
 //        val cmdline = listOf("x64", "-moncommands", monitorfile,
 //                "-autostartprgmode", "1", "-autostart-warp", "-autostart", program)
@@ -61,5 +72,3 @@ fun main(args: Array<String>) {
         exitProcess(1)
     }
 }
-
-

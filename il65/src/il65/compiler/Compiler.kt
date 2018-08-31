@@ -161,7 +161,8 @@ class AssemblyResult(val name: String) {
         }
     }
 
-    fun genereateBreakpointList(): String {
+    fun generateBreakpointList(): String {
+        // todo build breakpoint list!
 /*
     def generate_breakpoint_list(self, program_filename: str) -> str:
         breakpoints = []

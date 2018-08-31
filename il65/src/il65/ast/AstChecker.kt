@@ -309,8 +309,8 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
     }
 
     private fun checkFunctionExists(target: IdentifierReference, statement: IStatement) {
-        if(globalNamespace.lookup(target.scopedName, statement)==null)
-            checkResult.add(SyntaxError("undefined function or subroutine: ${target.scopedName.joinToString(".")}", statement.position))
+        if(globalNamespace.lookup(target.nameInSource, statement)==null)
+            checkResult.add(SyntaxError("undefined function or subroutine: ${target.nameInSource.joinToString(".")}", statement.position))
     }
 
     private fun checkValueRange(datatype: DataType, value: LiteralValue, position: Position?) : Boolean {

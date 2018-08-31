@@ -61,50 +61,62 @@ class ExpressionException(message: String, val position: Position?) : AstExcepti
 
 
 data class Position(val file: String, val line: Int, val startCol: Int, val endCol: Int) {
-    override fun toString(): String = "[$file: line $line col $startCol-$endCol]"
+    override fun toString(): String = "[$file: line $line col ${startCol+1}-${endCol+1}]"
 }
 
 
 interface IAstProcessor {
     fun process(module: Module) {
-        module.statements = module.statements.map { it.process(this) }
+        module.statements = module.statements.map { it.process(this) }.toMutableList()
     }
+
     fun process(expr: PrefixExpression): IExpression {
         expr.expression = expr.expression.process(this)
         return expr
     }
+
     fun process(expr: BinaryExpression): IExpression {
         expr.left = expr.left.process(this)
         expr.right = expr.right.process(this)
         return expr
     }
+
     fun process(directive: Directive): IStatement {
         return directive
     }
+
     fun process(block: Block): IStatement {
-        block.statements = block.statements.map { it.process(this) }
+        block.statements = block.statements.map { it.process(this) }.toMutableList()
         return block
     }
+
     fun process(decl: VarDecl): IStatement {
         decl.value = decl.value?.process(this)
         decl.arrayspec?.process(this)
         return decl
     }
+
     fun process(subroutine: Subroutine): IStatement {
-        subroutine.statements = subroutine.statements.map { it.process(this) }
+        subroutine.statements = subroutine.statements.map { it.process(this) }.toMutableList()
         return subroutine
     }
+
     fun process(functionCall: FunctionCall): IExpression {
         functionCall.arglist = functionCall.arglist.map { it.process(this) }
         return functionCall
     }
+
     fun process(functionCall: FunctionCallStatement): IStatement {
         functionCall.arglist = functionCall.arglist.map { it.process(this) }
         return functionCall
     }
+
     fun process(identifier: IdentifierReference): IExpression {
+        // note: this is an identifier that is used in an expression.
+        // other identifiers are simply part of the other statements (such as jumps, subroutine defs etc)
         return identifier
     }
+
     fun process(jump: Jump): IStatement {
         return jump
     }
@@ -137,7 +149,7 @@ interface Node {
 
 interface IStatement : Node {
     fun process(processor: IAstProcessor) : IStatement
-    fun scopedName(name: String): String {
+    fun makeScopedName(name: String): List<String> {
         val scope = mutableListOf<String>()
         var statementScope = this.parent
         while(statementScope!=null && statementScope !is Module) {
@@ -147,7 +159,7 @@ interface IStatement : Node {
             statementScope = statementScope.parent
         }
         scope.add(name)
-        return scope.joinToString(".")
+        return scope
     }
 }
 
@@ -160,7 +172,11 @@ interface IFunctionCall {
 interface INameScope {
     val name: String
     val position: Position?
-    var statements: List<IStatement>
+    var statements: MutableList<IStatement>
+
+    fun usedNames(): Set<String>
+
+    fun registerUsedName(name: String)
 
     fun subScopes() = statements.filter { it is INameScope } .map { it as INameScope }.associate { it.name to it }
 
@@ -188,6 +204,9 @@ interface INameScope {
                     statementScope = statementScope.parent
                 if (statementScope == null)
                     return null
+                if(statementScope.parent==null && statementScope !is Module)
+                    throw AstException("non-Module node has no parent! node: $statementScope  at ${statementScope.position}")
+
                 val localScope = statementScope as INameScope
                 val result = localScope.definedNames()[scopedName[0]]
                 if (result != null)
@@ -213,6 +232,12 @@ interface INameScope {
         }
         printNames(0, this)
     }
+
+    fun removeStatement(statement: IStatement) {
+        // remove a statement (most likely because it is never referenced such as a subroutine)
+        val removed = statements.remove(statement)
+        if(!removed) throw AstException("node to remove wasn't found")
+    }
 }
 
 
@@ -236,13 +261,14 @@ data class AnonymousStatementList(override var parent: Node?, var statements: Li
 
 
 data class Module(override val name: String,
-                  override var statements: List<IStatement>) : Node, INameScope {
+                  override var statements: MutableList<IStatement>) : Node, INameScope {
     override var position: Position? = null
     override var parent: Node? = null
 
     override fun linkParents(parent: Node) {
         this.parent=parent
     }
+
     fun linkParents() {
         parent = null
         statements.forEach {it.linkParents(this)}
@@ -254,17 +280,44 @@ data class Module(override val name: String,
 
     fun namespace(): INameScope {
         class GlobalNamespace(override val name: String,
-                              override var statements: List<IStatement>,
-                              override val position: Position?) : INameScope
+                              override var statements: MutableList<IStatement>,
+                              override val position: Position?) : INameScope {
+
+            private val scopedNamesUsed: MutableSet<String> = mutableSetOf("main")      // main is always used
+
+            override fun usedNames(): Set<String>  = scopedNamesUsed
+
+            override fun lookup(scopedName: List<String>, statement: Node): IStatement? {
+                val stmt = super.lookup(scopedName, statement)
+                if(stmt!=null) {
+                    val targetScopedName = when(stmt) {
+                        is Label -> stmt.makeScopedName(stmt.name)
+                        is VarDecl -> stmt.makeScopedName(stmt.name)
+                        is Block -> stmt.makeScopedName(stmt.name)
+                        is Subroutine -> stmt.makeScopedName(stmt.name)
+                        else -> throw NameError("wrong identifier target: $stmt", stmt.position)
+                    }
+                    registerUsedName(targetScopedName.joinToString("."))
+                }
+                return stmt
+            }
+
+            override fun registerUsedName(name: String) {
+                scopedNamesUsed.add(name)
+            }
+        }
 
         return GlobalNamespace("<<<global>>>", statements, position)
     }
+
+    override fun usedNames(): Set<String> = throw NotImplementedError("not implemented on sub-scopes")
+    override fun registerUsedName(name: String) = throw NotImplementedError("not implemented on sub-scopes")
 }
 
 
 data class Block(override val name: String,
                  val address: Int?,
-                 override var statements: List<IStatement>) : IStatement, INameScope {
+                 override var statements: MutableList<IStatement>) : IStatement, INameScope {
     override var position: Position? = null
     override var parent: Node? = null
 
@@ -278,6 +331,9 @@ data class Block(override val name: String,
     override fun toString(): String {
         return "Block(name=$name, address=$address, ${statements.size} statements)"
     }
+
+    override fun usedNames(): Set<String> = throw NotImplementedError("not implemented on sub-scopes")
+    override fun registerUsedName(name: String) = throw NotImplementedError("not implemented on sub-scopes")
 }
 
 
@@ -533,7 +589,7 @@ data class RegisterExpr(val register: Register) : IExpression {
 }
 
 
-data class IdentifierReference(val scopedName: List<String>) : IExpression {
+data class IdentifierReference(val nameInSource: List<String>) : IExpression {
     override var position: Position? = null
     override var parent: Node? = null
 
@@ -542,9 +598,9 @@ data class IdentifierReference(val scopedName: List<String>) : IExpression {
     }
 
     override fun constValue(namespace: INameScope): LiteralValue? {
-        val node = namespace.lookup(scopedName, this)
+        val node = namespace.lookup(nameInSource, this)
                 ?:
-                throw ExpressionException("undefined symbol: ${scopedName.joinToString(".")}", position)
+                throw ExpressionException("undefined symbol: ${nameInSource.joinToString(".")}", position)
         val vardecl = node as? VarDecl
         if(vardecl==null) {
             throw ExpressionException("name should be a constant, instead of: ${node::class.simpleName}", position)
@@ -555,7 +611,7 @@ data class IdentifierReference(val scopedName: List<String>) : IExpression {
     }
 
     override fun process(processor: IAstProcessor) = processor.process(this)
-    override fun referencesIdentifier(name: String): Boolean  = scopedName.last() == name   // @todo is this correct all the time?
+    override fun referencesIdentifier(name: String): Boolean  = nameInSource.last() == name   // @todo is this correct all the time?
 }
 
 
@@ -600,8 +656,8 @@ data class FunctionCall(override var target: IdentifierReference, override var a
 
     override fun constValue(namespace: INameScope): LiteralValue? {
         // if the function is a built-in function and the args are consts, should evaluate!
-        if(target.scopedName.size>1) return null
-        return when(target.scopedName[0]){
+        if(target.nameInSource.size>1) return null
+        return when(target.nameInSource[0]){
             "sin" -> builtin_sin(arglist, position, namespace)
             "cos" -> builtin_cos(arglist, position, namespace)
             "abs" -> builtin_abs(arglist, position, namespace)
@@ -656,15 +712,15 @@ data class Subroutine(override val name: String,
                       val parameters: List<SubroutineParameter>,
                       val returnvalues: List<SubroutineReturnvalue>,
                       val address: Int?,
-                      override var statements: List<IStatement>) : IStatement, INameScope {
+                      override var statements: MutableList<IStatement>) : IStatement, INameScope {
     override var position: Position? = null
     override var parent: Node? = null
 
     override fun linkParents(parent: Node) {
         this.parent = parent
-        parameters.forEach { it.parent=this }
-        returnvalues.forEach { it.parent=this }
-        statements.forEach { it.parent=this }
+        parameters.forEach { it.linkParents(this) }
+        returnvalues.forEach { it.linkParents(this) }
+        statements.forEach { it.linkParents(this) }
     }
 
     override fun process(processor: IAstProcessor) = processor.process(this)
@@ -672,6 +728,9 @@ data class Subroutine(override val name: String,
     override fun toString(): String {
         return "Subroutine(name=$name, address=$address, parameters=$parameters, returnvalues=$returnvalues, ${statements.size} statements)"
     }
+
+    override fun usedNames(): Set<String> = throw NotImplementedError("not implemented on sub-scopes")
+    override fun registerUsedName(name: String) = throw NotImplementedError("not implemented on sub-scopes")
 }
 
 
@@ -715,7 +774,7 @@ data class IfStatement(var condition: IExpression,
 /***************** Antlr Extension methods to create AST ****************/
 
 fun il65Parser.ModuleContext.toAst(name: String, withPosition: Boolean) : Module {
-    val module = Module(name, modulestatement().map { it.toAst(withPosition) })
+    val module = Module(name, modulestatement().map { it.toAst(withPosition) }.toMutableList())
     module.position = toPosition(withPosition)
     return module
 }
@@ -753,8 +812,8 @@ private fun il65Parser.BlockContext.toAst(withPosition: Boolean) : IStatement {
 }
 
 
-private fun il65Parser.Statement_blockContext.toAst(withPosition: Boolean): List<IStatement>
-        = statement().map { it.toAst(withPosition) }
+private fun il65Parser.Statement_blockContext.toAst(withPosition: Boolean): MutableList<IStatement>
+        = statement().map { it.toAst(withPosition) }.toMutableList()
 
 
 private fun il65Parser.StatementContext.toAst(withPosition: Boolean) : IStatement {
@@ -918,7 +977,7 @@ private fun il65Parser.SubroutineContext.toAst(withPosition: Boolean) : Subrouti
             if(sub_params()==null) emptyList() else sub_params().toAst(),
             if(sub_returns()==null) emptyList() else sub_returns().toAst(),
             sub_address()?.integerliteral()?.toAst(),
-            if(statement_block()==null) emptyList() else statement_block().toAst(withPosition))
+            if(statement_block()==null) mutableListOf() else statement_block().toAst(withPosition))
     sub.position = toPosition(withPosition)
     return sub
 }

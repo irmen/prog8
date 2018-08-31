@@ -11,12 +11,15 @@
 ~ extra233  {
 	; this is imported
 
-	X = 42
-	return 44
+    const byte snerp=33
+    const byte snerp2 = snerp+22
 
-	    sub foo() -> () {
-          A=99
-          return
+	X = 42+snerp
+	return 44+snerp
+
+	    sub foo234234() -> () {
+          A=99+snerp
+          return A+snerp2
         }
 
 }

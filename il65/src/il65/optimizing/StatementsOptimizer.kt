@@ -3,9 +3,10 @@ package il65.optimizing
 import il65.ast.*
 
 
-fun Module.optimizeStatements(globalNamespace: INameScope) {
+fun Module.optimizeStatements(globalNamespace: INameScope, allScopedSymbolDefinitions: MutableMap<String, IStatement>) {
     val optimizer = StatementOptimizer(globalNamespace)
     this.process(optimizer)
+    optimizer.removeUnusedNodes(globalNamespace.usedNames(), allScopedSymbolDefinitions)
     if(optimizer.optimizationsDone==0)
         println("[${this.name}] 0 optimizations performed")
 
@@ -18,7 +19,6 @@ fun Module.optimizeStatements(globalNamespace: INameScope) {
 }
 
 /*
-    todo remove unused blocks, subroutines and variable decls (replace with empty AnonymousStatementList)
     todo statement optimization: create augmented assignment from assignment that only refers to its lvalue (A=A+10, A=4*A, ...)
     todo statement optimization: X+=1, X-=1  --> X++/X--  ,
     todo remove statements that have no effect  X=X , X+=0, X-=0, X*=1, X/=1, X//=1, A |= 0, A ^= 0, A<<=0, etc etc
@@ -37,6 +37,32 @@ class StatementOptimizer(private val globalNamespace: INameScope) : IAstProcesso
         optimizationsDone = 0
     }
 
+    override fun process(functionCall: FunctionCall): IExpression {
+        val function = globalNamespace.lookup(functionCall.target.nameInSource, functionCall)
+        if(function!=null) {
+            val scopedName = when(function) {
+                is Label -> function.makeScopedName(function.name)
+                is Subroutine -> function.makeScopedName(function.name)
+                else -> throw AstException("invalid function call target node type")
+            }
+            globalNamespace.registerUsedName(scopedName.joinToString("."))
+        }
+        return super.process(functionCall)
+    }
+
+    override fun process(functionCall: FunctionCallStatement): IStatement {
+        val function = globalNamespace.lookup(functionCall.target.nameInSource, functionCall)
+        if(function!=null) {
+            val scopedName = when(function) {
+                is Label -> function.makeScopedName(function.name)
+                is Subroutine -> function.makeScopedName(function.name)
+                else -> throw AstException("invalid function call target node type")
+            }
+            globalNamespace.registerUsedName(scopedName.joinToString("."))
+        }
+        return super.process(functionCall)
+    }
+
     override fun process(ifStatement: IfStatement): IStatement {
         super.process(ifStatement)
         val constvalue = ifStatement.condition.constValue(globalNamespace)
@@ -52,5 +78,17 @@ class StatementOptimizer(private val globalNamespace: INameScope) : IAstProcesso
             }
         }
         return ifStatement
+    }
+
+    fun removeUnusedNodes(usedNames: Set<String>, allScopedSymbolDefinitions: MutableMap<String, IStatement>) {
+        for ((name, value) in allScopedSymbolDefinitions) {
+            if(!usedNames.contains(name)) {
+                val parentScope = value.parent as INameScope
+                val localname = name.substringAfterLast(".")
+                println("${value.position} Warning: ${value::class.simpleName} '$localname' is never used")
+                parentScope.removeStatement(value)
+                optimizationsDone++
+            }
+        }
     }
 }
