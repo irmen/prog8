@@ -70,7 +70,7 @@ class ExpressionOptimizer(private val globalNamespace: INameScope) : IAstProcess
     /**
      * replace identifiers that refer to const value, with the value itself
      */
-    override fun process(identifier: Identifier): IExpression {
+    override fun process(identifier: IdentifierReference): IExpression {
         return try {
             identifier.constValue(globalNamespace) ?: identifier
         } catch (ax: AstException) {

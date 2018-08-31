@@ -84,7 +84,6 @@ cool:
 
   }
 
-
 some_label_def:   A=44
   return 1+999
 	%breakpoint

@@ -202,3 +202,64 @@ class TestZeropage {
         assert(zp.available()==0)
     }
 }
+
+
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class TestPetscii {
+
+    @Test
+    fun testLowercase() {
+        assertThat(Petscii.encodePetscii("hello WORLD 123 @!£", true), equalTo(
+                shortArrayOf(72, 69, 76, 76, 79, 32, 0xd7, 0xcf, 0xd2, 0xcc, 0xc4, 32, 49, 50, 51, 32, 64, 33, 0x5c)))
+        assertThat(Petscii.encodePetscii("\uf11a", true), equalTo(shortArrayOf(0x12)))   // reverse vid
+        assertThat(Petscii.encodePetscii("✓", true), equalTo(shortArrayOf(0xfa)))
+        assertFailsWith<CompilerException> { Petscii.encodePetscii("π", true) }
+        assertFailsWith<CompilerException> { Petscii.encodePetscii("♥", true) }
+
+        assertThat(Petscii.decodePetscii(shortArrayOf(72, 0xd7, 0x5c, 0xfa, 0x12), true), equalTo("hW£✓\uF11A"))
+        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodePetscii(shortArrayOf(-1), true) }
+        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodePetscii(shortArrayOf(256), true) }
+    }
+
+    @Test
+    fun testUppercase() {
+        assertThat(Petscii.encodePetscii("HELLO 123 @!£"), equalTo(
+                shortArrayOf(72, 69, 76, 76, 79, 32, 49, 50, 51, 32, 64, 33, 0x5c)))
+        assertThat(Petscii.encodePetscii("\uf11a"), equalTo(shortArrayOf(0x12)))   // reverse vid
+        assertThat(Petscii.encodePetscii("♥"), equalTo(shortArrayOf(0xd3)))
+        assertThat(Petscii.encodePetscii("π"), equalTo(shortArrayOf(0xff)))
+        assertFailsWith<CompilerException> { Petscii.encodePetscii("✓") }
+
+        assertThat(Petscii.decodePetscii(shortArrayOf(72, 0x5c, 0xd3, 0xff)), equalTo("H£♥π"))
+        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodePetscii(shortArrayOf(-1)) }
+        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodePetscii(shortArrayOf(256)) }
+    }
+
+    @Test
+    fun testScreencodeLowercase() {
+        assertThat(Petscii.encodeScreencode("hello WORLD 123 @!£", true), equalTo(
+                shortArrayOf(0x08, 0x05, 0x0c, 0x0c, 0x0f, 0x20, 0x57, 0x4f, 0x52, 0x4c, 0x44, 0x20, 0x31, 0x32, 0x33, 0x20, 0x00, 0x21, 0x1c)
+        ))
+        assertThat(Petscii.encodeScreencode("✓", true), equalTo(shortArrayOf(0x7a)))
+        assertFailsWith<CompilerException> { Petscii.encodeScreencode("♥", true) }
+        assertFailsWith<CompilerException> { Petscii.encodeScreencode("π", true) }
+
+        assertThat(Petscii.decodeScreencode(shortArrayOf(0x08, 0x57, 0x1c, 0x7a), true), equalTo("hW£✓"))
+        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodeScreencode(shortArrayOf(-1), true) }
+        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodeScreencode(shortArrayOf(256), true) }
+    }
+
+    @Test
+    fun testScreencodeUppercase() {
+        assertThat(Petscii.encodeScreencode("WORLD 123 @!£"), equalTo(
+                shortArrayOf(0x17, 0x0f, 0x12, 0x0c, 0x04, 0x20, 0x31, 0x32, 0x33, 0x20, 0x00, 0x21, 0x1c)))
+        assertThat(Petscii.encodeScreencode("♥"), equalTo(shortArrayOf(0x53)))
+        assertThat(Petscii.encodeScreencode("π"), equalTo(shortArrayOf(0x5e)))
+        assertFailsWith<CompilerException> { Petscii.encodeScreencode("✓") }
+        assertFailsWith<CompilerException> { Petscii.encodeScreencode("hello") }
+
+        assertThat(Petscii.decodeScreencode(shortArrayOf(0x17, 0x1c, 0x53, 0x5e)), equalTo("W£♥π"))
+        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodeScreencode(shortArrayOf(-1)) }
+        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodeScreencode(shortArrayOf(256)) }
+    }
+}

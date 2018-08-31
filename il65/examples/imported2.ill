@@ -13,6 +13,12 @@
 
 	X = 42
 	return 44
+
+	    sub foo() -> () {
+          A=99
+          return
+        }
+
 }
 
 

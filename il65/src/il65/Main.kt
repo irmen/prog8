@@ -18,12 +18,14 @@ fun main(args: Array<String>) {
         val moduleAst = importModule(filepath)
         moduleAst.linkParents()
         val globalNamespace = moduleAst.namespace()
-        // globalNamespace.debugPrint()
+        //globalNamespace.debugPrint()
 
+        moduleAst.checkIdentifiers(globalNamespace)
         moduleAst.optimizeExpressions(globalNamespace)
         moduleAst.optimizeStatements(globalNamespace)
         val globalNamespaceAfterOptimize = moduleAst.namespace()  // it could have changed in the meantime
         moduleAst.checkValid(globalNamespaceAfterOptimize)        // check if final tree is valid
+        val allScopedSymbolDefinitions = moduleAst.checkIdentifiers(globalNamespace)
 
         // determine special compiler options
         val options = moduleAst.statements.filter { it is Directive && it.directive=="%option" }.flatMap { (it as Directive).args }.toSet()

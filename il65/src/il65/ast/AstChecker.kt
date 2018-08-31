@@ -27,7 +27,6 @@ fun Module.checkValid(globalNamespace: INameScope) {
 
 class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
     private val checkResult: MutableList<SyntaxError> = mutableListOf()
-    private val blockNames: HashMap<String, Position?> = hashMapOf()
 
     fun result(): List<SyntaxError> {
         return checkResult
@@ -36,10 +35,10 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
     override fun process(module: Module) {
         super.process(module)
         val directives = module.statements.filter { it is Directive }.groupBy { (it as Directive).directive }
-        directives.filter { it.value.size > 1 }.forEach{
-            when(it.key) {
+        directives.filter { it.value.size > 1 }.forEach{ entry ->
+            when(entry.key) {
                 "%output", "%launcher", "%zeropage", "%address" ->
-                    it.value.mapTo(checkResult) { SyntaxError("directive can just occur once", it.position) }
+                    entry.value.mapTo(checkResult) { SyntaxError("directive can just occur once", it.position) }
             }
         }
     }
@@ -55,51 +54,7 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
         if(block.address!=null && (block.address<0 || block.address>65535)) {
             checkResult.add(SyntaxError("block memory address must be valid integer 0..\$ffff", block.position))
         }
-        val existing = blockNames[block.name]
-        if(existing!=null) {
-            checkResult.add(SyntaxError("block name conflict, first defined in ${existing.file} line ${existing.line}", block.position))
-        } else {
-            blockNames[block.name] = block.position
-        }
-
         super.process(block)
-
-        // check if labels are unique
-        val labels = block.statements.filter { it is Label }.map { it as Label }
-        val labelnames = mutableMapOf<String, Position?>()
-        labels.forEach {
-            val existing = labelnames[it.name]
-            if(existing!=null) {
-                checkResult.add(SyntaxError("label name conflict, first defined on line ${existing.line}", it.position))
-            } else {
-                labelnames[it.name] = it.position
-            }
-        }
-
-        // check if var names are unique
-        val variables = block.statements.filter { it is VarDecl }.map{ it as VarDecl }
-        val varnames= mutableMapOf<String, Position?>()
-        variables.forEach {
-            val existing = varnames[it.name]
-            if(existing!=null) {
-                checkResult.add(SyntaxError("variable name conflict, first defined on line ${existing.line}", it.position))
-            } else {
-                varnames[it.name] = it.position
-            }
-        }
-
-        // check if subroutine names are unique
-        val subroutines = block.statements.filter { it is Subroutine }.map{ it as Subroutine }
-        val subnames = mutableMapOf<String, Position?>()
-        subroutines.forEach {
-            val existing = subnames[it.name]
-            if(existing!=null) {
-                checkResult.add(SyntaxError("subroutine name conflict, first defined on line ${existing.line}", it.position))
-            } else {
-                subnames[it.name] = it.position
-            }
-        }
-
         return block
     }
 
@@ -130,30 +85,6 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
 
         super.process(subroutine)
 
-        // check if labels are unique
-        val labels = subroutine.statements.filter { it is Label }.map { it as Label }
-        val labelnames = mutableMapOf<String, Position?>()
-        labels.forEach {
-            val existing = labelnames[it.name]
-            if(existing!=null) {
-                checkResult.add(SyntaxError("label name conflict, first defined on line ${existing.line}", it.position))
-            } else {
-                labelnames[it.name] = it.position
-            }
-        }
-
-        // check if var names are unique
-        val variables = subroutine.statements.filter { it is VarDecl }.map{ it as VarDecl }
-        val varnames= mutableMapOf<String, Position?>()
-        variables.forEach {
-            val existing = varnames[it.name]
-            if(existing!=null) {
-                checkResult.add(SyntaxError("variable name conflict, first defined on line ${existing.line}", it.position))
-            } else {
-                varnames[it.name] = it.position
-            }
-        }
-
         // subroutine must contain at least one 'return' or 'goto'
         // (or if it has an asm block, that must contain a 'rts' or 'jmp')
         if(subroutine.statements.count { it is Return || it is Jump } == 0) {
@@ -165,7 +96,7 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
                              it.contains(" jmp") || it.contains("\tjmp")}
             if(amount==0 )
                 err("subroutine must have at least one 'return' or 'goto' in it (or 'rts' / 'jmp' in case of %asm)")
-                }
+            }
         }
 
         return subroutine
@@ -377,7 +308,7 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
         return super.process(functionCall)
     }
 
-    private fun checkFunctionExists(target: Identifier, statement: IStatement) {
+    private fun checkFunctionExists(target: IdentifierReference, statement: IStatement) {
         if(globalNamespace.lookup(target.scopedName, statement)==null)
             checkResult.add(SyntaxError("undefined function or subroutine: ${target.scopedName.joinToString(".")}", statement.position))
     }

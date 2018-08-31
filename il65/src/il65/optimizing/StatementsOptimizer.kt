@@ -18,7 +18,7 @@ fun Module.optimizeStatements(globalNamespace: INameScope) {
 }
 
 /*
-    todo remove unused blocks and unused subroutines
+    todo remove unused blocks, subroutines and variable decls (replace with empty AnonymousStatementList)
     todo statement optimization: create augmented assignment from assignment that only refers to its lvalue (A=A+10, A=4*A, ...)
     todo statement optimization: X+=1, X-=1  --> X++/X--  ,
     todo remove statements that have no effect  X=X , X+=0, X-=0, X*=1, X/=1, X//=1, A |= 0, A ^= 0, A<<=0, etc etc

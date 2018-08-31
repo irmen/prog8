@@ -38,10 +38,17 @@ class FatalAstException (override var message: String) : Exception(message)
 
 open class AstException (override var message: String) : Exception(message)
 
-open class SyntaxError(override var message: String, val position: Position?) : AstException(message) {
+class SyntaxError(override var message: String, val position: Position?) : AstException(message) {
     override fun toString(): String {
         val location = position?.toString() ?: ""
         return "$location Syntax error: $message"
+    }
+}
+
+class NameError(override var message: String, val position: Position?) : AstException(message) {
+    override fun toString(): String {
+        val location = position?.toString() ?: ""
+        return "$location Name error: $message"
     }
 }
 
@@ -95,7 +102,7 @@ interface IAstProcessor {
         functionCall.arglist = functionCall.arglist.map { it.process(this) }
         return functionCall
     }
-    fun process(identifier: Identifier): IExpression {
+    fun process(identifier: IdentifierReference): IExpression {
         return identifier
     }
     fun process(jump: Jump): IStatement {
@@ -114,6 +121,10 @@ interface IAstProcessor {
         range.to = range.to.process(this)
         return range
     }
+
+    fun process(label: Label): IStatement {
+        return label
+    }
 }
 
 
@@ -126,11 +137,23 @@ interface Node {
 
 interface IStatement : Node {
     fun process(processor: IAstProcessor) : IStatement
+    fun scopedName(name: String): String {
+        val scope = mutableListOf<String>()
+        var statementScope = this.parent
+        while(statementScope!=null && statementScope !is Module) {
+            if(statementScope is INameScope) {
+                scope.add(0, statementScope.name)
+            }
+            statementScope = statementScope.parent
+        }
+        scope.add(name)
+        return scope.joinToString(".")
+    }
 }
 
 
 interface IFunctionCall {
-    var target: Identifier
+    var target: IdentifierReference
     var arglist: List<IExpression>
 }
 
@@ -289,7 +312,7 @@ data class Label(val name: String) : IStatement {
         this.parent = parent
     }
 
-    override fun process(processor: IAstProcessor) = this
+    override fun process(processor: IAstProcessor) = processor.process(this)
 }
 
 
@@ -377,7 +400,7 @@ data class Assignment(var target: AssignTarget, val aug_op : String?, var value:
     }
 }
 
-data class AssignTarget(val register: Register?, val identifier: Identifier?) : Node {
+data class AssignTarget(val register: Register?, val identifier: IdentifierReference?) : Node {
     override var position: Position? = null
     override var parent: Node? = null
 
@@ -510,7 +533,7 @@ data class RegisterExpr(val register: Register) : IExpression {
 }
 
 
-data class Identifier(val scopedName: List<String>) : IExpression {
+data class IdentifierReference(val scopedName: List<String>) : IExpression {
     override var position: Position? = null
     override var parent: Node? = null
 
@@ -552,7 +575,7 @@ data class PostIncrDecr(var target: AssignTarget, val operator: String) : IState
 }
 
 
-data class Jump(val address: Int?, val identifier: Identifier?) : IStatement {
+data class Jump(val address: Int?, val identifier: IdentifierReference?) : IStatement {
     override var position: Position? = null
     override var parent: Node? = null
 
@@ -565,7 +588,7 @@ data class Jump(val address: Int?, val identifier: Identifier?) : IStatement {
 }
 
 
-data class FunctionCall(override var target: Identifier, override var arglist: List<IExpression>) : IExpression, IFunctionCall {
+data class FunctionCall(override var target: IdentifierReference, override var arglist: List<IExpression>) : IExpression, IFunctionCall {
     override var position: Position? = null
     override var parent: Node? = null
 
@@ -603,7 +626,7 @@ data class FunctionCall(override var target: Identifier, override var arglist: L
 }
 
 
-data class FunctionCallStatement(override var target: Identifier, override var arglist: List<IExpression>) : IStatement, IFunctionCall {
+data class FunctionCallStatement(override var target: IdentifierReference, override var arglist: List<IExpression>) : IStatement, IFunctionCall {
     override var position: Position? = null
     override var parent: Node? = null
 
@@ -1029,15 +1052,15 @@ private fun il65Parser.ExpressionContext.toAst(withPosition: Boolean) : IExpress
 private fun il65Parser.Expression_listContext.toAst(withPosition: Boolean) = expression().map{ it.toAst(withPosition) }
 
 
-private fun il65Parser.IdentifierContext.toAst(withPosition: Boolean) : Identifier {
-    val ident = Identifier(listOf(text))
+private fun il65Parser.IdentifierContext.toAst(withPosition: Boolean) : IdentifierReference {
+    val ident = IdentifierReference(listOf(text))
     ident.position = toPosition(withPosition)
     return ident
 }
 
 
-private fun il65Parser.Scoped_identifierContext.toAst(withPosition: Boolean) : Identifier {
-    val ident = Identifier(NAME().map { it.text })
+private fun il65Parser.Scoped_identifierContext.toAst(withPosition: Boolean) : IdentifierReference {
+    val ident = IdentifierReference(NAME().map { it.text })
     ident.position = toPosition(withPosition)
     return ident
 }
