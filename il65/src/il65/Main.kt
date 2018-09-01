@@ -16,6 +16,11 @@ fun main(args: Array<String>) {
 
         // import main module and process additional imports
 
+        if(args.size != 1) {
+            System.err.println("module filename argument missing")
+            exitProcess(1)
+        }
+
         val filepath = Paths.get(args[0]).normalize()
         val moduleAst = importModule(filepath)
         moduleAst.linkParents()
