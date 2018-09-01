@@ -127,19 +127,17 @@ The following 6502 CPU hardware registers are directly usable in program code (a
 
 - ``A``, ``X``, ``Y``  the three main cpu registers (8 bits)
 - ``AX``, ``AY``, ``XY`` surrogate 16-bit registers: LSB-order (lo/hi) combined register pairs
-- ``SC``  status register's Carry flag
-- ``SI``  status register's Interrupt Disable flag
-
-The other status bits of the status register are not directly accessible,
-but can be acted upon via conditional statements.
-The stack pointer and program counter registers are not accessible.
-
+- ``Pc``  status register (P) Carry flag  (read-only, use ``P_carry()`` pseudo-function to write it)
+- ``Pz``  status register (P) Zero flag  (read-only)
+- ``Pn``  status register (P) Negative flag  (read-only)
+- ``Pv``  status register (P) Overflow flag  (read-only)
+- the status register (P) Interrupt flag is not accessible, but can be set with the ``P_irqd()`` pseudo-function.
 
 Subroutine Calling Conventions
 ------------------------------
 
 Subroutine arguments and results are passed via registers.
-Sometimes the status register's Carry flag is used as well (as a boolean flag).
+Sometimes the status register's Carry flag (``Pc``) is used as well (as a boolean flag).
 Additional arguments can be passed via memory locations as well ofcourse.
 But you'll have to be careful when dealing with chained or even recursive calls then,
 because there's a big risk of overwriting those memory locations.

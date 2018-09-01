@@ -27,20 +27,20 @@ This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/license
 Design principles
 -----------------
 
-- It is a cross-compilation toolkit running on a modern machine.
-  The resulting output is a machine code program runnable on actual 8-bit 6502 hardware.
+- It is a cross-compiler running on modern machines (Linux, MacOS, Windows, ...)
+  The generated output is a machine code program runnable on actual 8-bit 6502 hardware.
 - Based on simple and familiar imperative structured programming paradigm.
-- Allowing modular programming: modules, code blocks, subroutines.
+- Modular programming and scoping via modules, code blocks, and subroutines.
 - Provide high level programming constructs but stay close to the metal;
   still able to directly use memory addresses, CPU registers and ROM subroutines
 - No dynamic memory allocation. All variables stay fixed size as determined at compile time.
 - Provide various quality of life language features specifically for the target platform.
 - Provide a convenient edit/compile/run cycle by being able to directly launch
   the compiled program in an emulator and provide debugging information to the emulator.
-- The compiler outputs a regular 6502 assembly code file, it doesn't assemble this itself.
+- The compiler outputs a regular 6502 assembly source code file, it doesn't assemble this itself.
   The '64tass' third party cross-assembler tool is used to do this final step.
-- Goto is considered harmful, but not here; arbitrary control flow jumps are allowed.
-- No complicated error handling or overflow checks that would slow things down.
+- Goto is usually considered harmful, but not here: arbitrary control flow jumps are possible.
+- There are no complicated built-in error handling or overflow checks.
 
 
 Required tools

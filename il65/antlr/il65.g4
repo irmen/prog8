@@ -152,7 +152,7 @@ identifier :  NAME ;
 
 scoped_identifier :  NAME ('.' NAME)+ ;
 
-register :  'A' | 'X' | 'Y' | 'AX' | 'AY' | 'XY' | 'Pc' | 'Pi' | 'Pz' | 'Pn' | 'Pv' ;
+register :  'A' | 'X' | 'Y' | 'AX' | 'AY' | 'XY' | 'Pc' | 'Pz' | 'Pn' | 'Pv' ;
 
 integerliteral :  DEC_INTEGER | HEX_INTEGER | BIN_INTEGER ;
 

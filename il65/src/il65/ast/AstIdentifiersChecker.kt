@@ -20,6 +20,9 @@ fun Module.checkIdentifiers(globalNamespace: INameScope): MutableMap<String, ISt
 }
 
 
+val PseudoFunctionNames = setOf("P_carry", "P_irqd")
+
+
 class AstIdentifiersChecker(private val globalNamespace: INameScope) : IAstProcessor {
     private val checkResult: MutableList<AstException> = mutableListOf()
 
@@ -57,23 +60,33 @@ class AstIdentifiersChecker(private val globalNamespace: INameScope) : IAstProce
     }
 
     override fun process(subroutine: Subroutine): IStatement {
-        val scopedName = subroutine.makeScopedName(subroutine.name).joinToString(".")
-        val existing = symbols[scopedName]
-        if(existing!=null) {
-            nameError(subroutine.name, subroutine.position, existing)
+        if(PseudoFunctionNames.contains(subroutine.name)) {
+            // the special pseudo-functions can't be redefined
+            checkResult.add(NameError("subroutine cannot have the name of a builtin pseudo-function", subroutine.position))
         } else {
-            symbols[scopedName] = subroutine
+            val scopedName = subroutine.makeScopedName(subroutine.name).joinToString(".")
+            val existing = symbols[scopedName]
+            if (existing != null) {
+                nameError(subroutine.name, subroutine.position, existing)
+            } else {
+                symbols[scopedName] = subroutine
+            }
         }
         return super.process(subroutine)
     }
 
     override fun process(label: Label): IStatement {
-        val scopedName = label.makeScopedName(label.name).joinToString(".")
-        val existing = symbols[scopedName]
-        if(existing!=null) {
-            nameError(label.name, label.position, existing)
+        if(PseudoFunctionNames.contains(label.name)) {
+            // the special pseudo-functions can't be redefined
+            checkResult.add(NameError("label cannot have the name of a builtin pseudo-function", label.position))
         } else {
-            symbols[scopedName] = label
+            val scopedName = label.makeScopedName(label.name).joinToString(".")
+            val existing = symbols[scopedName]
+            if (existing != null) {
+                nameError(label.name, label.position, existing)
+            } else {
+                symbols[scopedName] = label
+            }
         }
         return super.process(label)
     }

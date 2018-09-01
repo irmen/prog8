@@ -290,7 +290,7 @@ The following names are reserved, they have a special meaning::
 
 	A    X    Y              ; 6502 hardware registers
 	AX   AY   XY             ; 16-bit pseudo register pairs
-	Pc   Pi   Pz  Pn  Pv     ; bits of the 6502 hardware status register
+	Pc   Pz  Pn  Pv          ; bits of the 6502 hardware status register
 
 
 Operators

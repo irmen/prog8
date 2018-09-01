@@ -288,6 +288,12 @@ data class Module(override val name: String,
             override fun usedNames(): Set<String>  = scopedNamesUsed
 
             override fun lookup(scopedName: List<String>, statement: Node): IStatement? {
+                if(PseudoFunctionNames.contains(scopedName.last())) {
+                    // pseudo functions always exist, return a dummy statement for them
+                    val pseudo = Label("pseudo::${scopedName.last()}")
+                    pseudo.position = statement.position
+                    return pseudo
+                }
                 val stmt = super.lookup(scopedName, statement)
                 if(stmt!=null) {
                     val targetScopedName = when(stmt) {
@@ -817,31 +823,28 @@ private fun il65Parser.Statement_blockContext.toAst(withPosition: Boolean): Muta
 
 
 private fun il65Parser.StatementContext.toAst(withPosition: Boolean) : IStatement {
-    val vardecl = vardecl()
-    if(vardecl!=null) {
+    vardecl()?.let {
         val decl= VarDecl(VarDeclType.VAR,
-                vardecl.datatype().toAst(),
-                vardecl.arrayspec()?.toAst(withPosition),
-                vardecl.identifier().text,
+                it.datatype().toAst(),
+                it.arrayspec()?.toAst(withPosition),
+                it.identifier().text,
                 null)
-        decl.position = vardecl.toPosition(withPosition)
+        decl.position = it.toPosition(withPosition)
         return decl
     }
 
-    val varinit = varinitializer()
-    if(varinit!=null) {
+    varinitializer()?.let {
         val decl= VarDecl(VarDeclType.VAR,
-                varinit.datatype().toAst(),
-                varinit.arrayspec()?.toAst(withPosition),
-                varinit.identifier().text,
-                varinit.expression().toAst(withPosition))
-        decl.position = varinit.toPosition(withPosition)
+                it.datatype().toAst(),
+                it.arrayspec()?.toAst(withPosition),
+                it.identifier().text,
+                it.expression().toAst(withPosition))
+        decl.position = it.toPosition(withPosition)
         return decl
     }
 
-    val constdecl = constdecl()
-    if(constdecl!=null) {
-        val cvarinit = constdecl.varinitializer()
+    constdecl()?.let {
+        val cvarinit = it.varinitializer()
         val decl = VarDecl(VarDeclType.CONST,
                 cvarinit.datatype().toAst(),
                 cvarinit.arrayspec()?.toAst(withPosition),
@@ -851,9 +854,8 @@ private fun il65Parser.StatementContext.toAst(withPosition: Boolean) : IStatemen
         return decl
     }
 
-    val memdecl = memoryvardecl()
-    if(memdecl!=null) {
-        val mvarinit = memdecl.varinitializer()
+    memoryvardecl()?.let {
+        val mvarinit = it.varinitializer()
         val decl = VarDecl(VarDeclType.MEMORY,
                 mvarinit.datatype().toAst(),
                 mvarinit.arrayspec()?.toAst(withPosition),
@@ -863,27 +865,24 @@ private fun il65Parser.StatementContext.toAst(withPosition: Boolean) : IStatemen
         return decl
     }
 
-    val assign = assignment()
-    if (assign!=null) {
-        val ast =Assignment(assign.assign_target().toAst(withPosition),
-                null, assign.expression().toAst(withPosition))
-        ast.position = assign.toPosition(withPosition)
+    assignment()?.let {
+        val ast =Assignment(it.assign_target().toAst(withPosition),
+                null, it.expression().toAst(withPosition))
+        ast.position = it.toPosition(withPosition)
         return ast
     }
 
-    val augassign = augassignment()
-    if (augassign!=null) {
-        val aug= Assignment(augassign.assign_target().toAst(withPosition),
-                augassign.operator.text,
-                augassign.expression().toAst(withPosition))
-        aug.position = augassign.toPosition(withPosition)
+    augassignment()?.let {
+        val aug= Assignment(it.assign_target().toAst(withPosition),
+                it.operator.text,
+                it.expression().toAst(withPosition))
+        aug.position = it.toPosition(withPosition)
         return aug
     }
 
-    val post = postincrdecr()
-    if(post!=null) {
-        val ast = PostIncrDecr(post.assign_target().toAst(withPosition), post.operator.text)
-        ast.position = post.toPosition(withPosition)
+    postincrdecr()?.let {
+        val ast = PostIncrDecr(it.assign_target().toAst(withPosition), it.operator.text)
+        ast.position = it.toPosition(withPosition)
         return ast
     }
 
