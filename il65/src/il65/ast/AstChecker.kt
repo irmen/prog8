@@ -294,9 +294,10 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
 
     override fun process(functionCall: FunctionCall): IExpression {
         // this function call is (part of) an expression, which should be in a statement somewhere.
-        var statementNode: Node? = functionCall
-        while(statementNode !is IStatement && statementNode?.parent != null) statementNode = statementNode.parent
-        if(statementNode==null)
+        var statementNode: Node = functionCall
+        while(statementNode !is IStatement && statementNode !is ParentSentinel)
+            statementNode = statementNode.parent
+        if(statementNode is ParentSentinel)
             throw FatalAstException("cannot determine statement scope of function call expression at ${functionCall.position}")
 
         checkFunctionExists(functionCall.target, statementNode as IStatement)

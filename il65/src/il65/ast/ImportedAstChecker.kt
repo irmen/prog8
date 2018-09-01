@@ -37,7 +37,6 @@ class ImportedAstChecker : IAstProcessor {
         val moduleLevelDirectives = listOf("%output", "%launcher", "%zeropage", "%address")
         for (sourceStmt in module.statements) {
             val stmt = sourceStmt.process(this)
-            if(stmt.parent == null) throw AstException("should have linked parents")
             if(stmt is Directive && stmt.parent is Module) {
                 if(moduleLevelDirectives.contains(stmt.directive)) {
                     println("${stmt.position} Warning: ignoring module directive because it was imported: ${stmt.directive}")

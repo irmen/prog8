@@ -64,13 +64,13 @@ data class Mflpt5(val b0: Short, val b1: Short, val b2: Short, val b3: Short, va
                 exponent>255 -> throw CompilerException("floating point overflow: $this")
                 exponent==0 -> zero
                 else -> {
-                    val mant_long = mantissa.toLong()
+                    val mantLong = mantissa.toLong()
                     Mflpt5(
                             exponent.toShort(),
-                            (mant_long.and(0x7f000000L) ushr 24).or(sign).toShort(),
-                            (mant_long.and(0x00ff0000L) ushr 16).toShort(),
-                            (mant_long.and(0x0000ff00L) ushr 8).toShort(),
-                            (mant_long.and(0x000000ffL)).toShort())
+                            (mantLong.and(0x7f000000L) ushr 24).or(sign).toShort(),
+                            (mantLong.and(0x00ff0000L) ushr 16).toShort(),
+                            (mantLong.and(0x0000ff00L) ushr 8).toShort(),
+                            (mantLong.and(0x000000ffL)).toShort())
                 }
             }
         }
@@ -87,7 +87,7 @@ data class Mflpt5(val b0: Short, val b1: Short, val b2: Short, val b3: Short, va
 }
 
 
-class Compiler(val options: CompilationOptions, val namespace: INameScope) {
+class Compiler(private val options: CompilationOptions, val namespace: INameScope) {
     init {
         val zeropage = Zeropage(options)
     }

@@ -141,8 +141,8 @@ interface IAstProcessor {
 
 
 interface Node {
-    var position: Position?     // optional for the sake of easy unit testing
-    var parent: Node?           // will be linked correctly later
+    var position: Position?      // optional for the sake of easy unit testing
+    var parent: Node             // will be linked correctly later (late init)
     fun linkParents(parent: Node)
 }
 
@@ -152,7 +152,7 @@ interface IStatement : Node {
     fun makeScopedName(name: String): List<String> {
         val scope = mutableListOf<String>()
         var statementScope = this.parent
-        while(statementScope!=null && statementScope !is Module) {
+        while(statementScope !is ParentSentinel && statementScope !is Module) {
             if(statementScope is INameScope) {
                 scope.add(0, statementScope.name)
             }
@@ -198,15 +198,12 @@ interface INameScope {
                     foundScope.subScopes()[scopedName.last()] as IStatement?
         } else {
             // unqualified name, find the scope the statement is in, look in that first
-            var statementScope: Node? = statement
+            var statementScope: Node = statement
             while(true) {
-                while (statementScope !is INameScope && statementScope?.parent != null)
+                while (statementScope !is INameScope && statementScope !is ParentSentinel)
                     statementScope = statementScope.parent
-                if (statementScope == null)
+                if (statementScope is ParentSentinel)
                     return null
-                if(statementScope.parent==null && statementScope !is Module)
-                    throw AstException("non-Module node has no parent! node: $statementScope  at ${statementScope.position}")
-
                 val localScope = statementScope as INameScope
                 val result = localScope.definedNames()[scopedName[0]]
                 if (result != null)
@@ -245,7 +242,7 @@ interface INameScope {
  * Inserted into the Ast in place of modified nodes (not inserted directly as a parser result)
  * It can hold zero or more replacement statements that have to be inserted at that point.
  */
-data class AnonymousStatementList(override var parent: Node?, var statements: List<IStatement>) : IStatement {
+data class AnonymousStatementList(override var parent: Node, var statements: List<IStatement>) : IStatement {
     override var position: Position? = null
 
     override fun linkParents(parent: Node) {
@@ -260,17 +257,24 @@ data class AnonymousStatementList(override var parent: Node?, var statements: Li
 }
 
 
+object ParentSentinel : Node {
+    override var position: Position? = null
+    override var parent: Node = this
+    override fun linkParents(parent: Node) {}
+}
+
+
 data class Module(override val name: String,
                   override var statements: MutableList<IStatement>) : Node, INameScope {
     override var position: Position? = null
-    override var parent: Node? = null
+    override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent=parent
     }
 
     fun linkParents() {
-        parent = null
+        parent = ParentSentinel
         statements.forEach {it.linkParents(this)}
     }
 
@@ -292,6 +296,7 @@ data class Module(override val name: String,
                     // pseudo functions always exist, return a dummy statement for them
                     val pseudo = Label("pseudo::${scopedName.last()}")
                     pseudo.position = statement.position
+                    pseudo.parent = ParentSentinel
                     return pseudo
                 }
                 val stmt = super.lookup(scopedName, statement)
@@ -325,7 +330,7 @@ data class Block(override val name: String,
                  val address: Int?,
                  override var statements: MutableList<IStatement>) : IStatement, INameScope {
     override var position: Position? = null
-    override var parent: Node? = null
+    override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -345,7 +350,7 @@ data class Block(override val name: String,
 
 data class Directive(val directive: String, val args: List<DirectiveArg>) : IStatement {
     override var position: Position? = null
-    override var parent: Node? = null
+    override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -358,7 +363,7 @@ data class Directive(val directive: String, val args: List<DirectiveArg>) : ISta
 
 data class DirectiveArg(val str: String?, val name: String?, val int: Int?) : Node {
     override var position: Position? = null
-    override var parent: Node? = null
+    override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -368,7 +373,7 @@ data class DirectiveArg(val str: String?, val name: String?, val int: Int?) : No
 
 data class Label(val name: String) : IStatement {
     override var position: Position? = null
-    override var parent: Node? = null
+    override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -380,7 +385,7 @@ data class Label(val name: String) : IStatement {
 
 data class Return(var values: List<IExpression>) : IStatement {
     override var position: Position? = null
-    override var parent: Node? = null
+    override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -396,7 +401,7 @@ data class Return(var values: List<IExpression>) : IStatement {
 
 data class ArraySpec(var x: IExpression, var y: IExpression?) : Node {
     override var position: Position? = null
-    override var parent: Node? = null
+    override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -423,7 +428,7 @@ data class VarDecl(val type: VarDeclType,
                    val name: String,
                    var value: IExpression?) : IStatement {
     override var position: Position? = null
-    override var parent: Node? = null
+    override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -447,7 +452,7 @@ data class VarDecl(val type: VarDeclType,
 
 data class Assignment(var target: AssignTarget, val aug_op : String?, var value: IExpression) : IStatement {
     override var position: Position? = null
-    override var parent: Node? = null
+    override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -464,7 +469,7 @@ data class Assignment(var target: AssignTarget, val aug_op : String?, var value:
 
 data class AssignTarget(val register: Register?, val identifier: IdentifierReference?) : Node {
     override var position: Position? = null
-    override var parent: Node? = null
+    override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -486,7 +491,7 @@ interface IExpression: Node {
 
 data class PrefixExpression(val operator: String, var expression: IExpression) : IExpression {
     override var position: Position? = null
-    override var parent: Node? = null
+    override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -501,7 +506,7 @@ data class PrefixExpression(val operator: String, var expression: IExpression) :
 
 data class BinaryExpression(var left: IExpression, val operator: String, var right: IExpression) : IExpression {
     override var position: Position? = null
-    override var parent: Node? = null
+    override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -522,7 +527,7 @@ data class LiteralValue(val intvalue: Int? = null,
                         val strvalue: String? = null,
                         val arrayvalue: List<IExpression>? = null) : IExpression {
     override var position: Position? = null
-    override var parent: Node? = null
+    override lateinit var parent: Node
     override fun referencesIdentifier(name: String) = arrayvalue?.any { it.referencesIdentifier(name) } ?: false
 
     fun asInt(errorIfNotNumeric: Boolean=true): Int? {
@@ -567,7 +572,7 @@ data class LiteralValue(val intvalue: Int? = null,
 
 data class RangeExpr(var from: IExpression, var to: IExpression) : IExpression {
     override var position: Position? = null
-    override var parent: Node? = null
+    override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -583,7 +588,7 @@ data class RangeExpr(var from: IExpression, var to: IExpression) : IExpression {
 
 data class RegisterExpr(val register: Register) : IExpression {
     override var position: Position? = null
-    override var parent: Node? = null
+    override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -597,7 +602,7 @@ data class RegisterExpr(val register: Register) : IExpression {
 
 data class IdentifierReference(val nameInSource: List<String>) : IExpression {
     override var position: Position? = null
-    override var parent: Node? = null
+    override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -623,7 +628,7 @@ data class IdentifierReference(val nameInSource: List<String>) : IExpression {
 
 data class PostIncrDecr(var target: AssignTarget, val operator: String) : IStatement {
     override var position: Position? = null
-    override var parent: Node? = null
+    override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -639,7 +644,7 @@ data class PostIncrDecr(var target: AssignTarget, val operator: String) : IState
 
 data class Jump(val address: Int?, val identifier: IdentifierReference?) : IStatement {
     override var position: Position? = null
-    override var parent: Node? = null
+    override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -652,7 +657,7 @@ data class Jump(val address: Int?, val identifier: IdentifierReference?) : IStat
 
 data class FunctionCall(override var target: IdentifierReference, override var arglist: List<IExpression>) : IExpression, IFunctionCall {
     override var position: Position? = null
-    override var parent: Node? = null
+    override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -690,7 +695,7 @@ data class FunctionCall(override var target: IdentifierReference, override var a
 
 data class FunctionCallStatement(override var target: IdentifierReference, override var arglist: List<IExpression>) : IStatement, IFunctionCall {
     override var position: Position? = null
-    override var parent: Node? = null
+    override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -704,7 +709,7 @@ data class FunctionCallStatement(override var target: IdentifierReference, overr
 
 data class InlineAssembly(val assembly: String) : IStatement {
     override var position: Position? = null
-    override var parent: Node? = null
+    override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -720,7 +725,7 @@ data class Subroutine(override val name: String,
                       val address: Int?,
                       override var statements: MutableList<IStatement>) : IStatement, INameScope {
     override var position: Position? = null
-    override var parent: Node? = null
+    override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -742,7 +747,7 @@ data class Subroutine(override val name: String,
 
 data class SubroutineParameter(val name: String, val register: Register) : Node {
     override var position: Position? = null
-    override var parent: Node? = null
+    override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -752,7 +757,7 @@ data class SubroutineParameter(val name: String, val register: Register) : Node 
 
 data class SubroutineReturnvalue(val register: Register, val clobbered: Boolean) : Node {
     override var position: Position? = null
-    override var parent: Node? = null
+    override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -764,7 +769,7 @@ data class IfStatement(var condition: IExpression,
                        var statements: List<IStatement>, var
                        elsepart: List<IStatement>) : IStatement {
     override var position: Position? = null
-    override var parent: Node? = null
+    override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent

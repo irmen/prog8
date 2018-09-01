@@ -1,5 +1,7 @@
 package il65.stackvm
 
+import kotlin.experimental.and
+
 enum class Opcode {
 
     // pushing values on the (evaluation) stack
@@ -97,8 +99,42 @@ enum class Opcode {
 }
 
 private class Memory {
-    val mem = ByteArray(65536)
+    private val mem = ShortArray(65536)         // shorts because byte is signed and we store values 0..255
+
+    fun getByte(address: Int): Short {
+        return mem[address]
+    }
+
+    fun setByte(address: Int, value: Short) {
+        mem[address] = value
+    }
+
+    fun getWord(address: Int): Int {
+        return 256*mem[address] + mem[address+1]
+    }
+
+    fun setWord(address: Int, value: Short) {
+        mem[address] = (value / 256).toShort()
+        mem[address+1] = value.and(255)
+    }
+
+    fun getCopy() = mem.copyOf()
+}
 
 
+data class Instruction(val opcode: Opcode, val args: List<Any>) {
+    lateinit var next: Instruction
+    lateinit var nextAlt: Instruction
+}
+
+
+class StackVm {
+    private val mem = Memory()
+
+    fun memDump() = mem.getCopy()
+
+    init {
+        val x=Instruction(Opcode.ADD, emptyList())
+    }
 }
 
