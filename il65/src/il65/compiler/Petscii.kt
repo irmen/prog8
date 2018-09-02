@@ -1043,21 +1043,18 @@ class Petscii {
         )
 
         // encoding:  from unicode to Petscii/Screencodes (0-255)
-        private val encodingPetsciiLowercase = decodingPetsciiLowercase.mapIndexed { index, unicode -> Pair(unicode, index) }.toMap()
-        private val encodingPetsciiUppercase = decodingPetsciiUppercase.mapIndexed { index, unicode -> Pair(unicode, index) }.toMap()
-        private val encodingScreencodeLowercase = decodingScreencodeLowercase.mapIndexed { index, unicode -> Pair(unicode, index) }.toMap()
-        private val encodingScreencodeUppercase = decodingScreencodeUppercase.mapIndexed { index, unicode -> Pair(unicode, index) }.toMap()
+        private val encodingPetsciiLowercase = decodingPetsciiLowercase.withIndex().associate{it.value to it.index}
+        private val encodingPetsciiUppercase = decodingPetsciiUppercase.withIndex().associate{it.value to it.index}
+        private val encodingScreencodeLowercase = decodingScreencodeLowercase.withIndex().associate{it.value to it.index}
+        private val encodingScreencodeUppercase = decodingScreencodeUppercase.withIndex().associate{it.value to it.index}
 
 
-        fun encodePetscii(text: String, lowercase: Boolean = false): ShortArray {
-            val result = ShortArray(text.length)
+        fun encodePetscii(text: String, lowercase: Boolean = false): List<Short> {
             val lookup = if(lowercase) encodingPetsciiLowercase else encodingPetsciiUppercase
-            text.forEachIndexed { index, c ->
-                val petscii = lookup[c] ?: throw CompilerException("no Petscii character for '$c'")
-                result[index] = petscii.toShort()
+            return text.map {
+                val petscii = lookup[it] ?: throw CompilerException("no Petscii character for '$it'")
+                petscii.toShort()
             }
-
-            return result
         }
 
         fun decodePetscii(petscii: Iterable<Short>, lowercase: Boolean = false): String {
@@ -1065,14 +1062,12 @@ class Petscii {
             return petscii.map { decodeTable[it.toInt()] }.joinToString("")
         }
 
-        fun encodeScreencode(text: String, lowercase: Boolean = false): ShortArray {
-            val result = ShortArray(text.length)
+        fun encodeScreencode(text: String, lowercase: Boolean = false): List<Short> {
             val lookup = if(lowercase) encodingScreencodeLowercase else encodingScreencodeUppercase
-            text.forEachIndexed { index, c ->
-                val screencode = lookup[c] ?: throw CompilerException("no Screencode character for '$c'")
-                result[index] = screencode.toShort()
+            return text.map{
+                val screencode = lookup[it] ?: throw CompilerException("no Screencode character for '$it'")
+                screencode.toShort()
             }
-            return result
         }
 
         fun decodeScreencode(screencode: Iterable<Short>, lowercase: Boolean = false): String {
