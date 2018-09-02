@@ -216,9 +216,9 @@ class TestPetscii {
         assertFailsWith<CompilerException> { Petscii.encodePetscii("π", true) }
         assertFailsWith<CompilerException> { Petscii.encodePetscii("♥", true) }
 
-        assertThat(Petscii.decodePetscii(shortArrayOf(72, 0xd7, 0x5c, 0xfa, 0x12), true), equalTo("hW£✓\uF11A"))
-        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodePetscii(shortArrayOf(-1), true) }
-        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodePetscii(shortArrayOf(256), true) }
+        assertThat(Petscii.decodePetscii(listOf(72, 0xd7, 0x5c, 0xfa, 0x12), true), equalTo("hW£✓\uF11A"))
+        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodePetscii(listOf(-1), true) }
+        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodePetscii(listOf(256), true) }
     }
 
     @Test
@@ -230,9 +230,9 @@ class TestPetscii {
         assertThat(Petscii.encodePetscii("π"), equalTo(shortArrayOf(0xff)))
         assertFailsWith<CompilerException> { Petscii.encodePetscii("✓") }
 
-        assertThat(Petscii.decodePetscii(shortArrayOf(72, 0x5c, 0xd3, 0xff)), equalTo("H£♥π"))
-        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodePetscii(shortArrayOf(-1)) }
-        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodePetscii(shortArrayOf(256)) }
+        assertThat(Petscii.decodePetscii(listOf(72, 0x5c, 0xd3, 0xff)), equalTo("H£♥π"))
+        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodePetscii(listOf(-1)) }
+        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodePetscii(listOf(256)) }
     }
 
     @Test
@@ -244,9 +244,9 @@ class TestPetscii {
         assertFailsWith<CompilerException> { Petscii.encodeScreencode("♥", true) }
         assertFailsWith<CompilerException> { Petscii.encodeScreencode("π", true) }
 
-        assertThat(Petscii.decodeScreencode(shortArrayOf(0x08, 0x57, 0x1c, 0x7a), true), equalTo("hW£✓"))
-        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodeScreencode(shortArrayOf(-1), true) }
-        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodeScreencode(shortArrayOf(256), true) }
+        assertThat(Petscii.decodeScreencode(listOf(0x08, 0x57, 0x1c, 0x7a), true), equalTo("hW£✓"))
+        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodeScreencode(listOf(-1), true) }
+        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodeScreencode(listOf(256), true) }
     }
 
     @Test
@@ -258,8 +258,8 @@ class TestPetscii {
         assertFailsWith<CompilerException> { Petscii.encodeScreencode("✓") }
         assertFailsWith<CompilerException> { Petscii.encodeScreencode("hello") }
 
-        assertThat(Petscii.decodeScreencode(shortArrayOf(0x17, 0x1c, 0x53, 0x5e)), equalTo("W£♥π"))
-        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodeScreencode(shortArrayOf(-1)) }
-        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodeScreencode(shortArrayOf(256)) }
+        assertThat(Petscii.decodeScreencode(listOf(0x17, 0x1c, 0x53, 0x5e)), equalTo("W£♥π"))
+        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodeScreencode(listOf(-1)) }
+        assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodeScreencode(listOf(256)) }
     }
 }

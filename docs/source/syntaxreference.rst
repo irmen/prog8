@@ -307,14 +307,13 @@ arithmetic: ``+``  ``-``  ``*``  ``/``  ``//``  ``**``  ``%``
 	``%`` is the remainder operator: ``25 % 7`` is 4.
 
 
-bitwise arithmetic: ``<<``  ``>>``  ``<<@``  ``>@``  ``&``  ``|``  ``^``  ``~``
-	``<<`` and ``>>`` are bitwise shifts (left and right), ``<<@`` and ``@>>`` are bitwise rotations (left and right)
+bitwise arithmetic: ``&``  ``|``  ``^``  ``~``
 	``&`` is bitwise and, ``|`` is bitwise or, ``^`` is bitwise xor, ``~`` is bitwise invert (this one is an unary operator)
 
 assignment: ``=``
 	Sets the target on the LHS (left hand side) of the operator to the value of the expression on the RHS (right hand side).
 
-augmented assignment: ``+=``  ``-=``  ``*=``  ``/=``  ``//=``  ``**=``  ``<<=``  ``>>=``  ``<<@=``  ``>>@=``  ``&=``  ``|=``  ``^=``
+augmented assignment: ``+=``  ``-=``  ``*=``  ``/=``  ``//=``  ``**=``  ``&=``  ``|=``  ``^=``
 	Syntactic sugar; ``A += X`` is equivalent to ``A = A + X``
 
 postfix increment and decrement: ``++``  ``--``

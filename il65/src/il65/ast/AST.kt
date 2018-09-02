@@ -292,7 +292,7 @@ data class Module(override val name: String,
             override fun usedNames(): Set<String>  = scopedNamesUsed
 
             override fun lookup(scopedName: List<String>, statement: Node): IStatement? {
-                if(PseudoFunctionNames.contains(scopedName.last())) {
+                if(BuiltinFunctionNames.contains(scopedName.last())) {
                     // pseudo functions always exist, return a dummy statement for them
                     val pseudo = Label("pseudo::${scopedName.last()}")
                     pseudo.position = statement.position
@@ -666,25 +666,39 @@ data class FunctionCall(override var target: IdentifierReference, override var a
     }
 
     override fun constValue(namespace: INameScope): LiteralValue? {
-        // if the function is a built-in function and the args are consts, should evaluate!
+        // if the function is a built-in function and the args are consts, should try to const-evaluate!
         if(target.nameInSource.size>1) return null
-        return when(target.nameInSource[0]){
-            "sin" -> builtin_sin(arglist, position, namespace)
-            "cos" -> builtin_cos(arglist, position, namespace)
-            "abs" -> builtin_abs(arglist, position, namespace)
-            "acos" -> builtin_acos(arglist, position, namespace)
-            "asin" -> builtin_asin(arglist, position, namespace)
-            "tan" -> builtin_tan(arglist, position, namespace)
-            "atan" -> builtin_atan(arglist, position, namespace)
-            "log" -> builtin_log(arglist, position, namespace)
-            "log10" -> builtin_log10(arglist, position, namespace)
-            "sqrt" -> builtin_sqrt(arglist, position, namespace)
-            "max" -> builtin_max(arglist, position, namespace)
-            "min" -> builtin_min(arglist, position, namespace)
-            "round" -> builtin_round(arglist, position, namespace)
-            "rad" -> builtin_rad(arglist, position, namespace)
-            "deg" -> builtin_deg(arglist, position, namespace)
-            else -> null
+        try {
+            return when (target.nameInSource[0]) {
+                "sin" -> builtinSin(arglist, position, namespace)
+                "cos" -> builtinCos(arglist, position, namespace)
+                "abs" -> builtinAbs(arglist, position, namespace)
+                "acos" -> builtinAcos(arglist, position, namespace)
+                "asin" -> builtinAsin(arglist, position, namespace)
+                "tan" -> builtinTan(arglist, position, namespace)
+                "atan" -> builtinAtan(arglist, position, namespace)
+                "log" -> builtinLog(arglist, position, namespace)
+                "log10" -> builtinLog10(arglist, position, namespace)
+                "sqrt" -> builtinSqrt(arglist, position, namespace)
+                "max" -> builtinMax(arglist, position, namespace)
+                "min" -> builtinMin(arglist, position, namespace)
+                "round" -> builtinRound(arglist, position, namespace)
+                "rad" -> builtinRad(arglist, position, namespace)
+                "deg" -> builtinDeg(arglist, position, namespace)
+                "_lsl" -> builtinLsl(arglist, position, namespace)
+                "_lsr" -> builtinLsr(arglist, position, namespace)
+                "_rol" -> throw ExpressionException("builtin function _rol can't be used in expressions because it doesn't return a value", position)
+                "_rol2" -> throw ExpressionException("builtin function _rol2 can't be used in expressions because it doesn't return a value", position)
+                "_ror" -> throw ExpressionException("builtin function _ror can't be used in expressions because it doesn't return a value", position)
+                "_ror2" -> throw ExpressionException("builtin function _ror2 can't be used in expressions because it doesn't return a value", position)
+                "_P_carry" -> throw ExpressionException("builtin function _P_carry can't be used in expressions because it doesn't return a value", position)
+                "_P_irqd" -> throw ExpressionException("builtin function _P_irqd can't be used in expressions because it doesn't return a value", position)
+                else -> null
+            }
+        }
+        catch(x: NotConstArgumentException) {
+            // const-evaluating the builtin function call failed.
+            return null
         }
     }
 

@@ -172,6 +172,15 @@ Note that the various keywords for the data type and variable type (``byte``, ``
 cannot be used as *identifiers* elsewhere. You can't make a variable, block or subroutine with the name ``byte``
 for instance.
 
+Variables that represent CPU hardware registers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The following variables are reserved
+and map directly (read/write) to a CPU hardware register: ``A``, ``X``, ``Y``, ``AX``, ``AY``, ``XY``  (the 2-letter ones
+are a pseudo 16-bit 'register' by pairing two 8-bit registers).
+The following variables are reserved and can be used to *read* a CPU status register bit (can be used in conditional
+expressions): ``Pc``, ``Pz``, ``Pn``, ``Pv``.
+
 
 Special types: const and memory-mapped
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -379,49 +388,94 @@ stack manipulation code to be inserted for every call like this, which can be qu
 Built-in Functions
 ------------------
 
-The compiler has the following built-in functions that you can use in expressions:
 
-sin(value)
+There's a set of predefined functions in the language. These are fixed and can't be redefined in user code.
+You can use them in expressions and the compiler will evaluate them at compile-time if possible.
+
+
+sin(x)
 	Sine.
 
-cos(value)
+cos(x)
 	Cosine.
 
-abs(value)
+abs(x)
 	Absolute value.
 
-acos(value)
+acos(x)
 	Arccosine.
 
-asin(value)
+asin(x)
 	Arcsine.
 
-tan(value)
+tan(x)
 	Tangent.
 
-atan(value)
+atan(x)
 	Arctangent.
 
-log(value)
+log(x)
 	Natural logarithm.
 
-log10(value)
+log10(x)
 	Base-10 logarithm.
 
-sqrt(value)
+sqrt(x)
 	Square root.
 
-max(value [, value, ...])
-	Maximum of the values.
+max(x [, y, ...])
+	Maximum of the values x, y, ...
 
-min(value [, value, ...])
-	Minumum of the values.
+min(x [, y, ...])
+	Minumum of the values x, y, ...
 
-round(value)
+round(x)
 	Rounds the floating point to an integer.
 
-rad(value)
+rad(x)
 	Degrees to radians.
 
-deg(value)
+deg(x)
 	Radians to degrees.
+
+_lsl(x)
+    Shift the bits in x (byte or word) one position to the left.
+    Bit 0 is set to 0 (and the highest bit is shifted into the status register's Carry flag)
+    Modifies in-place but also returns the new value.
+
+_lsr(x)
+    Shift the bits in x (byte or word) one position to the right.
+    The highest bit is set to 0 (and bit 0 is shifted into the status register's Carry flag)
+    Modifies in-place but also returns the new value.
+
+_rol(x)
+    Rotate the bits in x (byte or word) one position to the left.
+    This uses the CPU's rotate semantics: bit 0 will be set to the current value of the Carry flag,
+    while the highest bit will become the new Carry flag value.
+    (essentially, it is a 9-bit or 17-bit rotation)
+    Modifies in-place, doesn't return a value (so can't be used in an expression).
+
+_rol2(x)
+    Like _rol but now as 8-bit or 16-bit rotation.
+    It uses some extra logic to not consider the carry flag as extra rotation bit.
+    Modifies in-place, doesn't return a value (so can't be used in an expression).
+
+_ror(x)
+    Rotate the bits in x (byte or word) one position to the right.
+    This uses the CPU's rotate semantics: the highest bit will be set to the current value of the Carry flag,
+    while bit 0 will become the new Carry flag value.
+    (essentially, it is a 9-bit or 17-bit rotation)
+    Modifies in-place, doesn't return a value (so can't be used in an expression).
+
+_ror2(x)
+    Like _ror but now as 8-bit or 16-bit rotation.
+    It uses some extra logic to not consider the carry flag as extra rotation bit.
+    Modifies in-place, doesn't return a value (so can't be used in an expression).
+
+_P_carry(bit)
+    Set (or clear) the CPU status register Carry flag. No result value.
+    (translated into ``SEC`` or ``CLC`` cpu instruction)
+
+_P_irqd(bit)
+    Set (or clear) the CPU status register Interrupt Disable flag. No result value.
+    (translated into ``SEI`` or ``CLI`` cpu instruction)

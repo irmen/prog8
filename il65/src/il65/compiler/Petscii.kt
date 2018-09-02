@@ -1060,7 +1060,7 @@ class Petscii {
             return result
         }
 
-        fun decodePetscii(petscii: ShortArray, lowercase: Boolean = false): String {
+        fun decodePetscii(petscii: Iterable<Short>, lowercase: Boolean = false): String {
             val decodeTable = if(lowercase) decodingPetsciiLowercase else decodingPetsciiUppercase
             return petscii.map { decodeTable[it.toInt()] }.joinToString("")
         }
@@ -1075,7 +1075,7 @@ class Petscii {
             return result
         }
 
-        fun decodeScreencode(screencode: ShortArray, lowercase: Boolean = false): String {
+        fun decodeScreencode(screencode: Iterable<Short>, lowercase: Boolean = false): String {
             val decodeTable = if(lowercase) decodingScreencodeLowercase else decodingScreencodeUppercase
             return screencode.map { decodeTable[it.toInt()] }.joinToString("")
         }

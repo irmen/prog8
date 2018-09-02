@@ -6,6 +6,9 @@ import il65.ast.*
 val BuiltIns = listOf("sin", "cos", "abs", "acos", "asin", "tan", "atan", "log", "log10", "sqrt", "max", "min", "round", "rad", "deg")
 
 
+class NotConstArgumentException: AstException("not a const argument to a built-in function")
+
+
 private fun oneDoubleArg(args: List<IExpression>, position: Position?, namespace:INameScope, function: (arg: Double)->Double): LiteralValue {
     if(args.size!=1)
         throw SyntaxError("built-in function requires one floating point argument", position)
@@ -17,7 +20,7 @@ private fun oneDoubleArg(args: List<IExpression>, position: Position?, namespace
         return result
     }
     else
-        throw SyntaxError("built-in function requires floating point value as argument", position)
+        throw NotConstArgumentException()
 }
 
 private fun oneDoubleArgOutputInt(args: List<IExpression>, position: Position?, namespace:INameScope, function: (arg: Double)->Int): LiteralValue {
@@ -31,47 +34,60 @@ private fun oneDoubleArgOutputInt(args: List<IExpression>, position: Position?, 
         return result
     }
     else
-        throw SyntaxError("built-in function requires floating point value as argument", position)
+        throw NotConstArgumentException()
 }
 
+private fun oneIntArgOutputInt(args: List<IExpression>, position: Position?, namespace:INameScope, function: (arg: Int)->Int): LiteralValue {
+    if(args.size!=1)
+        throw SyntaxError("built-in function requires one integer argument", position)
 
-fun builtin_round(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
+    val integer = args[0].constValue(namespace)?.asInt()
+    if(integer!=null) {
+        val result = LiteralValue(intvalue = function(integer))
+        result.position = args[0].position
+        return result
+    }
+    else
+        throw NotConstArgumentException()
+}
+
+fun builtinRound(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
         = oneDoubleArgOutputInt(args, position, namespace) { it -> Math.round(it).toInt() }
 
-fun builtin_sin(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
+fun builtinSin(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
         = oneDoubleArg(args, position, namespace, Math::sin)
 
-fun builtin_cos(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
+fun builtinCos(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
         = oneDoubleArg(args, position, namespace, Math::cos)
 
-fun builtin_acos(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
+fun builtinAcos(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
         = oneDoubleArg(args, position, namespace, Math::acos)
 
-fun builtin_asin(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
+fun builtinAsin(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
         = oneDoubleArg(args, position, namespace, Math::asin)
 
-fun builtin_tan(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
+fun builtinTan(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
         = oneDoubleArg(args, position, namespace, Math::tan)
 
-fun builtin_atan(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
+fun builtinAtan(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
         = oneDoubleArg(args, position, namespace, Math::atan)
 
-fun builtin_log(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
+fun builtinLog(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
         = oneDoubleArg(args, position, namespace, Math::log)
 
-fun builtin_log10(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
+fun builtinLog10(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
         = oneDoubleArg(args, position, namespace, Math::log10)
 
-fun builtin_sqrt(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
+fun builtinSqrt(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
         = oneDoubleArg(args, position, namespace, Math::sqrt)
 
-fun builtin_rad(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
+fun builtinRad(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
         = oneDoubleArg(args, position, namespace, Math::toRadians)
 
-fun builtin_deg(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
+fun builtinDeg(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
         = oneDoubleArg(args, position, namespace, Math::toDegrees)
 
-fun builtin_abs(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue {
+fun builtinAbs(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue {
     if(args.size!=1)
         throw SyntaxError("built-in function abs requires one numeric argument", position)
     val float = args[0].constValue(namespace)?.asFloat()
@@ -81,25 +97,31 @@ fun builtin_abs(args: List<IExpression>, position: Position?, namespace:INameSco
         throw SyntaxError("built-in function abs requires floating point value as argument", position)
 }
 
-fun builtin_max(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue {
+fun builtinMax(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue {
     if(args.isEmpty())
         throw SyntaxError("max requires at least one argument", position)
     val constants = args.map { it.constValue(namespace) }
     if(constants.contains(null))
-        throw SyntaxError("not all arguments to max are a constant value", position)
+        throw NotConstArgumentException()
     val result = constants.map { it?.asFloat()!! }.max()
     return intOrFloatLiteral(result!!, args[0].position)
 }
 
-fun builtin_min(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue {
+fun builtinMin(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue {
     if(args.isEmpty())
         throw SyntaxError("min requires at least one argument", position)
     val constants = args.map { it.constValue(namespace) }
     if(constants.contains(null))
-        throw SyntaxError("not all arguments to min are a constant value", position)
+        throw NotConstArgumentException()
     val result = constants.map { it?.asFloat()!! }.min()
     return intOrFloatLiteral(result!!, args[0].position)
 }
+
+fun builtinLsl(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue =
+        oneIntArgOutputInt(args, position, namespace) { x: Int -> x shl 1 }
+
+fun builtinLsr(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue =
+        oneIntArgOutputInt(args, position, namespace) { x: Int -> x ushr 1 }
 
 
 private fun intOrFloatLiteral(value: Double, position: Position?): LiteralValue {

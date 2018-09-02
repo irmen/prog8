@@ -220,10 +220,6 @@ class ConstExprEvaluator {
             "*" -> multiply(left, right)
             "/" -> divide(left, right)
             "**" -> power(left, right)
-            "<<" -> shiftleft(left, right)
-            ">>" -> shiftright(left, right)
-            "<<@" -> rotateleft(left, right)
-            ">>@" -> rotateright(left, right)
             "&" -> bitwiseand(left, right)
             "|" -> bitwiseor(left, right)
             "^" -> bitwisexor(left, right)
@@ -421,32 +417,6 @@ class ConstExprEvaluator {
             return litval
         }
         throw ExpressionException("cannot calculate $left & $right", left.position)
-    }
-
-    private fun rotateright(left: LiteralValue, right: LiteralValue): LiteralValue {
-        throw ExpressionException("ror not possible on literal values", left.position)
-    }
-
-    private fun rotateleft(left: LiteralValue, right: LiteralValue): LiteralValue {
-        throw ExpressionException("rol not possible on literal values", left.position)
-    }
-
-    private fun shiftright(left: LiteralValue, right: LiteralValue): LiteralValue {
-        if(left.intvalue!=null && right.intvalue !=null) {
-            val litval = LiteralValue(intvalue = left.intvalue.shr(right.intvalue))
-            litval.position = left.position
-            return litval
-        }
-        throw ExpressionException("cannot calculate $left >> $right", left.position)
-    }
-
-    private fun shiftleft(left: LiteralValue, right: LiteralValue): LiteralValue {
-        if(left.intvalue!=null && right.intvalue !=null) {
-            val litval = LiteralValue(intvalue = left.intvalue.shl(right.intvalue))
-            litval.position = left.position
-            return litval
-        }
-        throw ExpressionException("cannot calculate $left << $right", left.position)
     }
 
     private fun power(left: LiteralValue, right: LiteralValue): LiteralValue {

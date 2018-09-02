@@ -20,7 +20,11 @@ fun Module.checkIdentifiers(globalNamespace: INameScope): MutableMap<String, ISt
 }
 
 
-val PseudoFunctionNames = setOf("P_carry", "P_irqd")
+val BuiltinFunctionNames = setOf(
+        "_P_carry", "_P_irqd", "_rol", "_ror", "_rol2", "_ror2",
+        "_lsl", "_lsr", "sin", "cos", "abs", "acos",
+        "asin", "tan", "atan", "log", "log10", "sqrt",
+        "max", "min", "round", "rad", "deg")
 
 
 class AstIdentifiersChecker(private val globalNamespace: INameScope) : IAstProcessor {
@@ -60,9 +64,9 @@ class AstIdentifiersChecker(private val globalNamespace: INameScope) : IAstProce
     }
 
     override fun process(subroutine: Subroutine): IStatement {
-        if(PseudoFunctionNames.contains(subroutine.name)) {
+        if(BuiltinFunctionNames.contains(subroutine.name)) {
             // the special pseudo-functions can't be redefined
-            checkResult.add(NameError("subroutine cannot have the name of a builtin pseudo-function", subroutine.position))
+            checkResult.add(NameError("builtin function cannot be redefined", subroutine.position))
         } else {
             val scopedName = subroutine.makeScopedName(subroutine.name).joinToString(".")
             val existing = symbols[scopedName]
@@ -76,9 +80,9 @@ class AstIdentifiersChecker(private val globalNamespace: INameScope) : IAstProce
     }
 
     override fun process(label: Label): IStatement {
-        if(PseudoFunctionNames.contains(label.name)) {
+        if(BuiltinFunctionNames.contains(label.name)) {
             // the special pseudo-functions can't be redefined
-            checkResult.add(NameError("label cannot have the name of a builtin pseudo-function", label.position))
+            checkResult.add(NameError("builtin function cannot be redefined", label.position))
         } else {
             val scopedName = label.makeScopedName(label.name).joinToString(".")
             val existing = symbols[scopedName]
