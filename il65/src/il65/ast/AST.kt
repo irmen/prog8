@@ -33,6 +33,24 @@ enum class Register {
     PV
 }
 
+enum class Statusflag {
+    Pc,
+    Pz,
+    Pv,
+    Pn
+}
+
+enum class BranchCondition {
+    CS,
+    CC,
+    EQ,
+    NE,
+    VS,
+    VC,
+    MI,
+    PL
+}
+
 
 class FatalAstException (override var message: String) : Exception(message)
 
@@ -126,6 +144,12 @@ interface IAstProcessor {
         ifStatement.statements = ifStatement.statements.map { it.process(this) }
         ifStatement.elsepart = ifStatement.elsepart.map { it.process(this) }
         return ifStatement
+    }
+
+    fun process(branchStatement: BranchStatement): IStatement {
+        branchStatement.statements = branchStatement.statements.map { it.process(this) }
+        branchStatement.elsepart = branchStatement.elsepart.map { it.process(this) }
+        return branchStatement
     }
 
     fun process(range: RangeExpr): IExpression {
@@ -759,7 +783,7 @@ data class Subroutine(override val name: String,
 }
 
 
-data class SubroutineParameter(val name: String, val register: Register) : Node {
+data class SubroutineParameter(val name: String, val register: Register?, val statusflag: Statusflag?) : Node {
     override var position: Position? = null
     override lateinit var parent: Node
 
@@ -769,7 +793,7 @@ data class SubroutineParameter(val name: String, val register: Register) : Node 
 }
 
 
-data class SubroutineReturnvalue(val register: Register, val clobbered: Boolean) : Node {
+data class SubroutineReturnvalue(val register: Register?, val statusflag: Statusflag?, val clobbered: Boolean) : Node {
     override var position: Position? = null
     override lateinit var parent: Node
 
@@ -788,6 +812,22 @@ data class IfStatement(var condition: IExpression,
     override fun linkParents(parent: Node) {
         this.parent = parent
         condition.linkParents(this)
+        statements.forEach { it.linkParents(this) }
+        elsepart.forEach { it.linkParents(this) }
+    }
+
+    override fun process(processor: IAstProcessor): IStatement = processor.process(this)
+}
+
+
+data class BranchStatement(var condition: BranchCondition,
+                       var statements: List<IStatement>, var
+                       elsepart: List<IStatement>) : IStatement {
+    override var position: Position? = null
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
         statements.forEach { it.linkParents(this) }
         elsepart.forEach { it.linkParents(this) }
     }
@@ -929,7 +969,10 @@ private fun il65Parser.StatementContext.toAst(withPosition: Boolean) : IStatemen
     val asm = inlineasm()?.toAst(withPosition)
     if(asm!=null) return asm
 
-    throw FatalAstException(text)
+    val branchstmt = branch_stmt()?.toAst(withPosition)
+    if(branchstmt!=null) return branchstmt
+
+    throw FatalAstException("unprocessed source text: $text")
 }
 
 private fun il65Parser.Functioncall_stmtContext.toAst(withPosition: Boolean): IStatement {
@@ -1002,13 +1045,15 @@ private fun il65Parser.SubroutineContext.toAst(withPosition: Boolean) : Subrouti
 
 
 private fun il65Parser.Sub_paramsContext.toAst(): List<SubroutineParameter> =
-        sub_param().map { SubroutineParameter(it.identifier().text, it.register().toAst()) }
+        sub_param().map {
+            SubroutineParameter(it.identifier().text, it.register()?.toAst(), it.statusflag()?.toAst())
+        }
 
 
 private fun il65Parser.Sub_returnsContext.toAst(): List<SubroutineReturnvalue> =
         sub_return().map {
             val isClobber = it.childCount==2 && it.children[1].text == "?"
-            SubroutineReturnvalue(it.register().toAst(), isClobber)
+            SubroutineReturnvalue(it.register()?.toAst(), it.statusflag()?.toAst(), isClobber)
         }
 
 
@@ -1026,6 +1071,7 @@ private fun il65Parser.Assign_targetContext.toAst(withPosition: Boolean) : Assig
 
 private fun il65Parser.RegisterContext.toAst() = Register.valueOf(text.toUpperCase())
 
+private fun il65Parser.StatusflagContext.toAst() = Statusflag.valueOf(text)
 
 private fun il65Parser.DatatypeContext.toAst() = DataType.valueOf(text.toUpperCase())
 
@@ -1169,3 +1215,15 @@ private fun il65Parser.If_stmtContext.toAst(withPosition: Boolean): IfStatement 
 private fun il65Parser.Else_partContext.toAst(withPosition: Boolean): List<IStatement> {
     return statement_block()?.toAst(withPosition) ?: listOf(statement().toAst(withPosition))
 }
+
+
+private fun il65Parser.Branch_stmtContext.toAst(withPosition: Boolean): IStatement {
+    val branchcondition = branchcondition().toAst(withPosition)
+    val statements = statement_block()?.toAst(withPosition) ?: listOf(statement().toAst(withPosition))
+    val elsepart = else_part()?.toAst(withPosition) ?: emptyList()
+    val result = BranchStatement(branchcondition, statements, elsepart)
+    result.position = toPosition(withPosition)
+    return result
+}
+
+private fun il65Parser.BranchconditionContext.toAst(withPosition: Boolean) = BranchCondition.valueOf(text.substringAfter('_').toUpperCase())

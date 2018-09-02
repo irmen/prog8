@@ -290,7 +290,6 @@ The following names are reserved, they have a special meaning::
 
 	A    X    Y              ; 6502 hardware registers
 	AX   AY   XY             ; 16-bit pseudo register pairs
-	Pc   Pz  Pn  Pv          ; bits of the 6502 hardware status register
 
 
 Operators
@@ -490,10 +489,30 @@ With the 'if' / 'else' statement you can execute code depending on the value of 
 
 	if  ( <expression> )  <statements>  [else  <statements> ]
 
-where <statements> can be just a single statement, or a block, such as this::
+where <statements> can be just a single statement for instance just a ``goto``, or it can be a block such as this::
 
 	if  ( <expression> ) {
 		<statements>
 	} else {
 	  	<alternative statements>
 	}
+
+
+**Special status register branch form:**
+
+There is a special form of the if-statement that immediately translates into one of the 6502's branching instructions.
+It is almost the same as the regular if-statement but it lacks a contional expression part, because the if-statement
+itself defines on what status register bit it should branch on::
+
+	if_XX  <statements>  [else  <statements> ]
+
+where <statements> can be just a single statement for instance just a ``goto``, or it can be a block such as this::
+
+	if_XX {
+		<statements>
+	} else {
+	  	<alternative statements>
+	}
+
+The XX corresponds to one of the eigth branching instructions so the possibilities are:
+``if_cs``, ``if_cc``, ``if_eq``, ``if_ne``, ``if_pl``, ``if_mi``, ``if_vs`` and ``if_vc``.

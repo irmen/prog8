@@ -1,6 +1,8 @@
 %output prg
 %launcher basic
 
+%import c64lib
+
 ~ main $c003  {
 
 
@@ -30,6 +32,14 @@
   const float blerp2 = zwop / 2.22
   const byte equal = 4==4
   const byte equal2 = (4+hopla)>0
+
+  if_eq goto mega
+
+  if_eq {
+    A=99
+  } else {
+    A=100
+  }
 
 	%breakpoint
 

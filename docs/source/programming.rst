@@ -178,8 +178,6 @@ Variables that represent CPU hardware registers
 The following variables are reserved
 and map directly (read/write) to a CPU hardware register: ``A``, ``X``, ``Y``, ``AX``, ``AY``, ``XY``  (the 2-letter ones
 are a pseudo 16-bit 'register' by pairing two 8-bit registers).
-The following variables are reserved and can be used to *read* a CPU status register bit (can be used in conditional
-expressions): ``Pc``, ``Pz``, ``Pn``, ``Pv``.
 
 
 Special types: const and memory-mapped
@@ -280,12 +278,6 @@ Conditional Execution
 ---------------------
 
 .. todo::
-	not sure how to handle direct translation into
-	[cc, cs, vc, vs, eq, ne, true, not, zero, pos, neg, lt, gt, le, ge]
-	It defaults to 'true' (=='ne', not-zero) if omitted. ('pos' will translate into 'pl', 'neg' into 'mi')
-	@todo signed: lts==neg?, gts==eq+pos?, les==neg+eq?, ges==pos?
-
-.. todo::
 	eventually allow local variable definitions inside the sub blocks but for now,
 	they have to use the same variables as the block the ``if`` statement itself is in.
 
@@ -293,27 +285,29 @@ Conditional Execution
 Conditional execution means that the flow of execution changes based on certiain conditions,
 rather than having fixed gotos or subroutine calls::
 
-	if A > 4 goto overflow
+	if (A > 4) goto overflow
 
-	if X == 3 then Y = 4
-	if X == 3 then Y = 4 else A = 2
+	if (X == 3) Y = 4
+	if (X == 3) Y = 4 else A = 2
 
-	if X == 5 {
+	if (X == 5) {
 		Y = 99
 	} else {
 		A = 3
 	}
 
-condition = arithmetic expression or  logical expression or  comparison expression or  status_register_flags ( ``SR.cs`` , ``SR.cc``, ``SR.pl`` etc... @todo )
 
-
-
-
-Conditional jumps are compiled into 6502's branching instructions (such as ``bne`` and ``bcc``) so
+Conditional jumps (``if (condition) goto label``) are compiled using 6502's branching instructions (such as ``bne`` and ``bcc``) so
 the rather strict limit on how *far* it can jump applies. The compiler itself can't figure this
 out unfortunately, so it is entirely possible to create code that cannot be assembled successfully.
 You'll have to restructure your gotos in the code (place target labels closer to the branch)
 if you run into this type of assembler error.
+
+There is a special form of the if-statement that immediately translates into one of the 6502's branching instructions.
+This allows you to write a conditional jump or block execution directly acting on the current values of the CPU's status register bits.
+The eight branching instructions of the CPU each have an if-equivalent:
+``if_cs``, ``if_cc``, ``if_eq``, ``if_ne``, ``if_pl``, ``if_mi``, ``if_vs`` and ``if_vc``.
+So ``if_cc goto target`` will directly translate into the single CPU instruction ``BCC target``.
 
 
 Assignments

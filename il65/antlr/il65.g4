@@ -60,6 +60,7 @@ statement :
 	| postincrdecr
 	| functioncall_stmt
 	| if_stmt
+	| branch_stmt
 	| subroutine
 	| inlineasm
 	| labeldef
@@ -150,7 +151,9 @@ identifier :  NAME ;
 
 scoped_identifier :  NAME ('.' NAME)+ ;
 
-register :  'A' | 'X' | 'Y' | 'AX' | 'AY' | 'XY' | 'Pc' | 'Pz' | 'Pn' | 'Pv' ;
+register :  'A' | 'X' | 'Y' | 'AX' | 'AY' | 'XY' ;
+
+statusflag : 'Pc' | 'Pz' | 'Pn' | 'Pv' ;
 
 integerliteral :  DEC_INTEGER | HEX_INTEGER | BIN_INTEGER ;
 
@@ -187,13 +190,18 @@ sub_address : '=' integerliteral ;
 
 sub_params : sub_param (',' sub_param)* ;
 
-sub_param: identifier ':' register;
+sub_param: identifier ':' (register | statusflag);
 
 sub_returns : '?' | ( sub_return (',' sub_return)* ) ;
 
-sub_return: register '?'? ;
+sub_return: (register | statusflag) '?'? ;
 
 
 if_stmt :  'if' '(' expression ')' EOL? (statement | statement_block) EOL? else_part? EOL ; // statement is constrained later
 
 else_part :  'else' EOL? (statement | statement_block) ;   // statement is constrained later
+
+
+branch_stmt : branchcondition EOL? (statement | statement_block) EOL? else_part? EOL ;
+
+branchcondition: 'if_cs' | 'if_cc' | 'if_eq' | 'if_ne' | 'if_pl' | 'if_mi' | 'if_vs' | 'if_vc' ;
