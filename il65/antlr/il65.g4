@@ -113,7 +113,6 @@ expression :
 	| left = expression bop = '**' right = expression
 	| left = expression bop = ('*' | '/' ) right = expression
 	| left = expression bop = ('+' | '-' ) right = expression
-	| left = expression bop = ('<<' | '>>') right = expression
 	| left = expression bop = ('<' | '>' | '<=' | '>=') right = expression
 	| left = expression bop = ('==' | '!=') right = expression
 	| left = expression bop = '&' right = expression
