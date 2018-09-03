@@ -1,0 +1,31 @@
+; source code for a stackvm program
+; init memory bytes/words/strings
+%memory
+0400 01 02 03 04 05 06 07 08 09 22 33 44 55 66
+0500 1111 2222 3333 4444
+1000 "Hello world!\n"
+%end_memory
+; init global var table with bytes/words/floats/strings
+%variables
+main.var1    str  "This is main.var1"
+main.var2   byte    aa
+main.var3  word   ea44
+main.var4  float  3.1415927
+input.prompt  str  "Enter a number: "
+input.result  word  0
+%end_variables
+; instructions and labels
+%instructions
+    nop
+    syscall WRITE_MEMSTR word:1000
+loop:
+    syscall WRITE_VAR str:"input.prompt"
+    syscall INPUT_VAR str:"input.result"
+    syscall WRITE_VAR str:"input.result"
+    push byte:8d
+    syscall WRITE_CHAR
+    jump loop
+%end_instructions
+
+
+

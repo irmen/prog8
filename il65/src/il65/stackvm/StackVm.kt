@@ -6,6 +6,7 @@ import il65.compiler.Petscii
 import java.io.File
 import java.io.PrintWriter
 import java.util.*
+import java.util.regex.Pattern
 import kotlin.math.max
 import kotlin.math.pow
 
@@ -91,6 +92,7 @@ enum class Opcode {
     SWAP,
     SEC,
     CLC,
+    NOP,
     TERMINATE
 }
 
@@ -100,6 +102,7 @@ enum class Syscall(val callNr: Short) {
     WRITE_NUM(12),              // pop from the evaluation stack and print it as a number
     WRITE_CHAR(13),             // pop from the evaluation stack and print it as a single petscii character
     WRITE_VAR(14),              // print the number or string from the given variable
+    INPUT_VAR(15),              // user input a string into a variable
 }
 
 class Memory {
@@ -376,23 +379,25 @@ data class Value(val type: DataType, private val numericvalue: Number?, val stri
 
 
 data class Instruction(val opcode: Opcode,
-                       val args: List<Value> = emptyList(),
-                       val subArgAllocations: List<String> = emptyList(),
-                       val callLabel: String? = null) {
+                       val arg: Value? = null,
+                       val callArgs: List<Value>? = emptyList(),
+                       val callArgsAllocations: List<String> = emptyList(),
+                       val callLabel: String? = null)
+{
     lateinit var next: Instruction
     var nextAlt: Instruction? = null
 
     init {
         if(callLabel!=null) {
-            if(args.size!=subArgAllocations.size)
-                throw VmExecutionException("for $opcode the subArgAllocations size is not the same as the arg list size")
+            if(callArgs!!.size != callArgsAllocations.size)
+                throw VmExecutionException("for $opcode the callArgsAllocations size is not the same as the callArgs size")
         }
     }
     override fun toString(): String {
         return if(callLabel==null)
-            "$opcode  $args"
+            "$opcode  $arg"
         else
-            "$opcode  $callLabel  $args  $subArgAllocations"
+            "$opcode  $callLabel  $callArgs  $callArgsAllocations"
     }
 }
 
@@ -413,14 +418,172 @@ private class MyStack<T> : Stack<T>() {
     }
 }
 
-class Program (prog: List<Instruction>, labels: Map<String, Instruction>, val variables: Map<String, Value>) {
+class Program (prog: MutableList<Instruction>,
+               labels: Map<String, Instruction>,
+               val variables: Map<String, Value>,
+               val memory: Map<Int, List<Value>>)
+{
+    companion object {
+        fun load(filename: String): Program {
+            val lines = File(filename).readLines().withIndex().iterator()
+            var memory = mapOf<Int, List<Value>>()
+            var vars = mapOf<String, Value>()
+            var instructions = mutableListOf<Instruction>()
+            var labels = mapOf<String, Instruction>()
+            while(lines.hasNext()) {
+                val (lineNr, line) = lines.next()
+                if(line.startsWith(';') || line.isEmpty())
+                    continue
+                else if(line=="%memory")
+                    memory = loadMemory(lines)
+                else if(line=="%variables")
+                    vars = loadVars(lines)
+                else if(line=="%instructions") {
+                    val (insResult, labelResult) = loadInstructions(lines)
+                    instructions = insResult
+                    labels = labelResult
+                }
+                else throw VmExecutionException("syntax error at line ${lineNr+1}")
+            }
+            return Program(instructions, labels, vars, memory)
+        }
 
-    val program: List<Instruction> = prog.plus(listOf(
-            Instruction(Opcode.TERMINATE, listOf()),
-            Instruction(Opcode.TERMINATE, listOf())
-    ))
+        private fun loadInstructions(lines: Iterator<IndexedValue<String>>): Pair<MutableList<Instruction>, Map<String, Instruction>> {
+            val instructions = mutableListOf<Instruction>()
+            val labels = mutableMapOf<String, Instruction>()
+            val splitpattern = Pattern.compile("\\s+")
+            var nextInstructionLabelname = ""
+            while(true) {
+                val (lineNr, line) = lines.next()
+                if(line=="%end_instructions")
+                    return Pair(instructions, labels)
+                if(!line.startsWith(' ') && line.endsWith(':')) {
+                    nextInstructionLabelname = line.substring(0, line.length-1)
+                } else if(line.startsWith(' ')) {
+                    val parts = line.trimStart().split(splitpattern, limit = 2)
+                    val opcode=Opcode.valueOf(parts[0].toUpperCase())
+                    val args = if(parts.size==2) parts[1] else null
+                    val instruction = when(opcode) {
+                        Opcode.JUMP -> {
+                            Instruction(opcode, callLabel = args)
+                        }
+                        Opcode.SYSCALL -> {
+                            val parts = args!!.split(' ')
+                            val call = Syscall.valueOf(parts[0])
+                            val callValue = if(parts.size==2) getArgValue(parts[1]) else null
+                            val callValues = if(callValue==null) emptyList() else listOf(callValue)
+                            Instruction(opcode, Value(DataType.BYTE, call.callNr), callValues)
+                        }
+                        else -> Instruction(opcode, getArgValue(args))
+                    }
+                    instructions.add(instruction)
+                    if(nextInstructionLabelname.isNotEmpty()) {
+                        labels[nextInstructionLabelname] = instruction
+                        nextInstructionLabelname = ""
+                    }
+                }
+            }
+        }
+
+        private fun getArgValue(args: String?): Value? {
+            if(args==null)
+                return null
+            val (type, valueStr) = args.split(':')
+            return when(type) {
+                "byte" -> Value(DataType.BYTE, valueStr.toShort(16))
+                "word" -> Value(DataType.WORD, valueStr.toInt(16))
+                "float" -> Value(DataType.FLOAT, valueStr.toDouble())
+                "str" -> {
+                    if(valueStr.startsWith('"') && valueStr.endsWith('"'))
+                        Value(DataType.STR, null, unescape(valueStr.substring(1, valueStr.length-1)))
+                    else
+                        throw VmExecutionException("str should be enclosed in quotes")
+                }
+                else -> throw VmExecutionException("invalid datatype $type")
+            }
+        }
+
+        private fun loadVars(lines: Iterator<IndexedValue<String>>): Map<String, Value> {
+            val vars = mutableMapOf<String, Value>()
+            val splitpattern = Pattern.compile("\\s+")
+            while(true) {
+                val (lineNr, line) = lines.next()
+                if(line=="%end_variables")
+                    return vars
+                val (name, type, valueStr) = line.split(splitpattern, limit = 3)
+                val value = when(type) {
+                    "byte" -> Value(DataType.BYTE, valueStr.toShort(16))
+                    "word" -> Value(DataType.WORD, valueStr.toInt(16))
+                    "float" -> Value(DataType.FLOAT, valueStr.toDouble())
+                    "str" -> {
+                        if(valueStr.startsWith('"') && valueStr.endsWith('"'))
+                            Value(DataType.STR, null, unescape(valueStr.substring(1, valueStr.length-1)))
+                        else
+                            throw VmExecutionException("str should be enclosed in quotes at line ${lineNr+1}")
+                    }
+                    else -> throw VmExecutionException("invalid datatype at line ${lineNr+1}")
+                }
+                vars[name] = value
+            }
+        }
+
+        private fun unescape(st: String): String {
+            val result = mutableListOf<Char>()
+            val iter = st.iterator()
+            while(iter.hasNext()) {
+                val c = iter.nextChar()
+                if(c=='\\') {
+                    val ec = iter.nextChar()
+                    result.add(when(ec) {
+                        '\\' -> '\\'
+                        'b' -> '\b'
+                        'n' -> '\n'
+                        'r' -> '\r'
+                        't' -> '\t'
+                        'u' -> {
+                            "${iter.nextChar()}${iter.nextChar()}${iter.nextChar()}${iter.nextChar()}".toInt(16).toChar()
+                        }
+                        else -> throw VmExecutionException("invalid escape char: $ec")
+                    })
+                } else {
+                    result.add(c)
+                }
+            }
+            return result.joinToString("")
+        }
+
+        private fun loadMemory(lines: Iterator<IndexedValue<String>>): Map<Int, List<Value>> {
+            val memory = mutableMapOf<Int, List<Value>>()
+            while(true) {
+                val (lineNr, line) = lines.next()
+                if(line=="%end_memory")
+                    return memory
+                val address = line.substringBefore(' ').toInt(16)
+                val rest = line.substringAfter(' ').trim()
+                if(rest.startsWith('"')) {
+                    memory[address] = listOf(Value(DataType.STR, null, unescape(rest.substring(1, rest.length - 1))))
+                } else {
+                    val valueStrings = rest.split(' ')
+                    val values = mutableListOf<Value>()
+                    valueStrings.forEach {
+                        when(it.length) {
+                            2 -> values.add(Value(DataType.BYTE, it.toShort(16)))
+                            4 -> values.add(Value(DataType.WORD, it.toInt(16)))
+                            else -> throw VmExecutionException("invalid value at line $lineNr+1")
+                        }
+                    }
+                    memory[address] = values
+                }
+            }
+        }
+    }
+
+    val program: List<Instruction>
 
     init {
+        prog.add(Instruction(Opcode.TERMINATE))
+        prog.add(Instruction(Opcode.NOP))
+        program = prog
         connect(labels)
     }
 
@@ -435,9 +598,10 @@ class Program (prog: List<Instruction>, labels: Map<String, Instruction>, val va
             when(instr.opcode) {
                 Opcode.TERMINATE -> instr.next = instr          // won't ever execute a next instruction
                 Opcode.RETURN -> instr.next = instr             // kinda a special one, in actuality the return instruction is dynamic
-                Opcode.JUMP -> labels[instr.callLabel]?.let {instr.next=it}
-                Opcode.BCC -> labels[instr.callLabel]?.let {instr.next=it}
-                Opcode.BCS -> labels[instr.callLabel]?.let {instr.next=it}
+                Opcode.JUMP, Opcode.BCC, Opcode.BCS -> {
+                    val target = labels[instr.callLabel] ?: throw VmExecutionException("undefined label: ${instr.callLabel}")
+                    instr.next = target
+                }
                 Opcode.CALL -> {
                     val jumpInstr = labels[instr.callLabel] ?: throw VmExecutionException("undefined label: ${instr.callLabel}")
                     instr.next=jumpInstr
@@ -462,6 +626,7 @@ class StackVm(val traceOutputFile: String?) {
     fun run(program: Program) {
         this.program = program.program
         this.variables = program.variables.toMutableMap()
+        initMemory(program.memory)
         var ins = this.program[0]
 
         try {
@@ -478,13 +643,40 @@ class StackVm(val traceOutputFile: String?) {
         } finally {
             traceOutput?.close()
         }
+    }
 
+    private fun initMemory(memory: Map<Int, List<Value>>) {
+        for (meminit in memory) {
+            var address = meminit.key
+            for (value in meminit.value) {
+                when(value.type) {
+                    DataType.BYTE -> {
+                        mem.setByte(address, value.integerValue().toShort())
+                        address += 1
+                    }
+                    DataType.WORD -> {
+                        mem.setWord(address, value.integerValue())
+                        address += 2
+                    }
+                    DataType.FLOAT -> {
+                        mem.setFloat(address, value.numericValue().toDouble())
+                        address += 5
+                    }
+                    DataType.STR -> {
+                        mem.setString(address, value.stringvalue!!)
+                        address += value.stringvalue.length+1
+                    }
+                    else -> throw VmExecutionException("invalid mem datatype ${value.type}")
+                }
+            }
+        }
     }
 
     fun dispatch(ins: Instruction) : Instruction {
         traceOutput?.println("\n$ins")
         when (ins.opcode) {
-            Opcode.PUSH -> evalstack.push(ins.args[0])
+            Opcode.NOP -> {}
+            Opcode.PUSH -> evalstack.push(ins.arg)
             Opcode.DUP -> evalstack.push(evalstack.peek())
             Opcode.DISCARD -> evalstack.pop()
             Opcode.SWAP -> {
@@ -494,7 +686,7 @@ class StackVm(val traceOutputFile: String?) {
             }
             Opcode.POP_MEM -> {
                 val value = evalstack.pop()
-                val address = ins.args[0].integerValue()
+                val address = ins.arg!!.integerValue()
                 when (value.type) {
                     DataType.BYTE -> mem.setByte(address, value.integerValue().toShort())
                     DataType.WORD -> mem.setWord(address, value.integerValue())
@@ -579,21 +771,34 @@ class StackVm(val traceOutputFile: String?) {
                 evalstack.push(v.dec())
             }
             Opcode.SYSCALL -> {
-                val callId = ins.args[0].integerValue().toShort()
+                val callId = ins.arg!!.integerValue().toShort()
                 val syscall = Syscall.values().first { it.callNr == callId }
                 when (syscall) {
-                    Syscall.WRITE_MEMCHR -> print(Petscii.decodePetscii(listOf(mem.getByte(ins.args[1].integerValue())), true))
-                    Syscall.WRITE_MEMSTR -> print(mem.getString(ins.args[1].integerValue()))
+                    Syscall.WRITE_MEMCHR -> print(Petscii.decodePetscii(listOf(mem.getByte(ins.callArgs!![0].integerValue())), true))
+                    Syscall.WRITE_MEMSTR -> print(mem.getString(ins.callArgs!![0].integerValue()))
                     Syscall.WRITE_NUM -> print(evalstack.pop().numericValue())
                     Syscall.WRITE_CHAR -> print(Petscii.decodePetscii(listOf(evalstack.pop().integerValue().toShort()), true))
                     Syscall.WRITE_VAR -> {
-                        val varname = ins.args[1].stringvalue ?: throw VmExecutionException("$syscall expects string argument (the variable name)")
+                        val varname = ins.callArgs!![0].stringvalue ?: throw VmExecutionException("$syscall expects string argument (the variable name)")
                         val variable = variables[varname] ?: throw VmExecutionException("unknown variable: $varname")
                         when(variable.type) {
                             DataType.BYTE, DataType.WORD, DataType.FLOAT -> print(variable.numericValue())
                             DataType.STR -> print(variable.stringvalue)
                             else -> throw VmExecutionException("invalid datatype")
                         }
+                    }
+                    Syscall.INPUT_VAR -> {
+                        val varname = ins.callArgs!![0].stringvalue ?: throw VmExecutionException("$syscall expects string argument (the variable name)")
+                        val variable = variables[varname] ?: throw VmExecutionException("unknown variable: $varname")
+                        val input = readLine() ?: throw VmExecutionException("expected user input")
+                        val value = when(variable.type) {
+                            DataType.BYTE -> Value(DataType.BYTE, input.toShort())
+                            DataType.WORD -> Value(DataType.WORD, input.toInt())
+                            DataType.FLOAT -> Value(DataType.FLOAT, input.toDouble())
+                            DataType.STR -> Value(DataType.STR, null, input)
+                            else -> throw VmExecutionException("invalid datatype")
+                        }
+                        variables[varname] = value
                     }
                     else -> throw VmExecutionException("unimplemented syscall $syscall")
                 }
@@ -604,97 +809,97 @@ class StackVm(val traceOutputFile: String?) {
             Opcode.TERMINATE -> throw VmTerminationException("execution terminated")
 
             Opcode.INC_MEM -> {
-                val addr = ins.args[0].integerValue()
+                val addr = ins.arg!!.integerValue()
                 val newValue = Value(DataType.BYTE, mem.getByte(addr)).inc()
                 mem.setByte(addr, newValue.integerValue().toShort())
             }
             Opcode.INC_MEM_W -> {
-                val addr = ins.args[0].integerValue()
+                val addr = ins.arg!!.integerValue()
                 val newValue = Value(DataType.WORD, mem.getWord(addr)).inc()
                 mem.setWord(addr, newValue.integerValue())
             }
             Opcode.DEC_MEM -> {
-                val addr = ins.args[0].integerValue()
+                val addr = ins.arg!!.integerValue()
                 val newValue = Value(DataType.BYTE, mem.getByte(addr)).dec()
                 mem.setByte(addr, newValue.integerValue().toShort())
             }
             Opcode.DEC_MEM_W -> {
-                val addr = ins.args[0].integerValue()
+                val addr = ins.arg!!.integerValue()
                 val newValue = Value(DataType.WORD, mem.getWord(addr)).dec()
                 mem.setWord(addr, newValue.integerValue())
             }
             Opcode.SHL_MEM -> {
-                val addr = ins.args[0].integerValue()
+                val addr = ins.arg!!.integerValue()
                 val value = Value(DataType.BYTE, mem.getByte(addr))
                 val newValue = value.shl()
                 mem.setByte(addr, newValue.integerValue().toShort())
             }
             Opcode.SHL_MEM_W -> {
-                val addr = ins.args[0].integerValue()
+                val addr = ins.arg!!.integerValue()
                 val value = Value(DataType.WORD, mem.getWord(addr))
                 val newValue = value.shl()
                 mem.setWord(addr, newValue.integerValue())
             }
             Opcode.SHR_MEM -> {
-                val addr = ins.args[0].integerValue()
+                val addr = ins.arg!!.integerValue()
                 val value = Value(DataType.BYTE, mem.getByte(addr))
                 val newValue = value.shr()
                 mem.setByte(addr, newValue.integerValue().toShort())
             }
             Opcode.SHR_MEM_W -> {
-                val addr = ins.args[0].integerValue()
+                val addr = ins.arg!!.integerValue()
                 val value = Value(DataType.WORD, mem.getWord(addr))
                 val newValue = value.shr()
                 mem.setWord(addr, newValue.integerValue())
             }
             Opcode.ROL_MEM -> {
-                val addr = ins.args[0].integerValue()
+                val addr = ins.arg!!.integerValue()
                 val value = Value(DataType.BYTE, mem.getByte(addr))
                 val (newValue, newCarry) = value.rol(carry)
                 mem.setByte(addr, newValue.integerValue().toShort())
                 carry = newCarry
             }
             Opcode.ROL_MEM_W -> {
-                val addr = ins.args[0].integerValue()
+                val addr = ins.arg!!.integerValue()
                 val value = Value(DataType.WORD, mem.getWord(addr))
                 val (newValue, newCarry) = value.rol(carry)
                 mem.setWord(addr, newValue.integerValue())
                 carry = newCarry
             }
             Opcode.ROR_MEM -> {
-                val addr = ins.args[0].integerValue()
+                val addr = ins.arg!!.integerValue()
                 val value = Value(DataType.BYTE, mem.getByte(addr))
                 val (newValue, newCarry) = value.ror(carry)
                 mem.setByte(addr, newValue.integerValue().toShort())
                 carry = newCarry
             }
             Opcode.ROR_MEM_W -> {
-                val addr = ins.args[0].integerValue()
+                val addr = ins.arg!!.integerValue()
                 val value = Value(DataType.WORD, mem.getWord(addr))
                 val (newValue, newCarry) = value.ror(carry)
                 mem.setWord(addr, newValue.integerValue())
                 carry = newCarry
             }
             Opcode.ROL2_MEM -> {
-                val addr = ins.args[0].integerValue()
+                val addr = ins.arg!!.integerValue()
                 val value = Value(DataType.BYTE, mem.getByte(addr))
                 val newValue = value.rol2()
                 mem.setByte(addr, newValue.integerValue().toShort())
             }
             Opcode.ROL2_MEM_W -> {
-                val addr = ins.args[0].integerValue()
+                val addr = ins.arg!!.integerValue()
                 val value = Value(DataType.WORD, mem.getWord(addr))
                 val newValue = value.rol2()
                 mem.setWord(addr, newValue.integerValue())
             }
             Opcode.ROR2_MEM -> {
-                val addr = ins.args[0].integerValue()
+                val addr = ins.arg!!.integerValue()
                 val value = Value(DataType.BYTE, mem.getByte(addr))
                 val newValue = value.ror2()
                 mem.setByte(addr, newValue.integerValue().toShort())
             }
             Opcode.ROR2_MEM_W -> {
-                val addr = ins.args[0].integerValue()
+                val addr = ins.arg!!.integerValue()
                 val value = Value(DataType.WORD, mem.getWord(addr))
                 val newValue = value.ror2()
                 mem.setWord(addr, newValue.integerValue())
@@ -706,58 +911,58 @@ class StackVm(val traceOutputFile: String?) {
             Opcode.CALL -> callstack.push(ins.nextAlt)
             Opcode.RETURN -> return callstack.pop()
             Opcode.PUSH_VAR -> {
-                val varname = ins.args[0].stringvalue ?: throw VmExecutionException("${ins.opcode} expects string argument (the variable name)")
+                val varname = ins.arg!!.stringvalue ?: throw VmExecutionException("${ins.opcode} expects string argument (the variable name)")
                 val variable = variables[varname] ?: throw VmExecutionException("unknown variable: $varname")
                 evalstack.push(variable)
             }
             Opcode.POP_VAR -> {
                 val value = evalstack.pop()
-                val varname = ins.args[0].stringvalue ?: throw VmExecutionException("${ins.opcode} expects string argument (the variable name)")
+                val varname = ins.arg!!.stringvalue ?: throw VmExecutionException("${ins.opcode} expects string argument (the variable name)")
                 val variable = variables[varname] ?: throw VmExecutionException("unknown variable: $varname")
                 if(variable.type!=value.type) throw VmExecutionException("value datatype ${value.type} is not the same as variable datatype ${variable.type}")
                 variables[varname] = value
             }
             Opcode.SHL_VAR -> {
-                val varname = ins.args[0].stringvalue ?: throw VmExecutionException("${ins.opcode} expects string argument (the variable name)")
+                val varname = ins.arg!!.stringvalue ?: throw VmExecutionException("${ins.opcode} expects string argument (the variable name)")
                 val variable = variables[varname] ?: throw VmExecutionException("unknown variable: $varname")
                 variables[varname] = variable.shl()
             }
             Opcode.SHR_VAR -> {
-                val varname = ins.args[0].stringvalue ?: throw VmExecutionException("${ins.opcode} expects string argument (the variable name)")
+                val varname = ins.arg!!.stringvalue ?: throw VmExecutionException("${ins.opcode} expects string argument (the variable name)")
                 val variable = variables[varname] ?: throw VmExecutionException("unknown variable: $varname")
                 variables[varname] = variable.shr()
             }
             Opcode.ROL_VAR -> {
-                val varname = ins.args[0].stringvalue ?: throw VmExecutionException("${ins.opcode} expects string argument (the variable name)")
+                val varname = ins.arg!!.stringvalue ?: throw VmExecutionException("${ins.opcode} expects string argument (the variable name)")
                 val variable = variables[varname] ?: throw VmExecutionException("unknown variable: $varname")
                 val (newValue, newCarry) = variable.rol(carry)
                 variables[varname] = newValue
                 carry = newCarry
             }
             Opcode.ROR_VAR -> {
-                val varname = ins.args[0].stringvalue ?: throw VmExecutionException("${ins.opcode} expects string argument (the variable name)")
+                val varname = ins.arg!!.stringvalue ?: throw VmExecutionException("${ins.opcode} expects string argument (the variable name)")
                 val variable = variables[varname] ?: throw VmExecutionException("unknown variable: $varname")
                 val (newValue, newCarry) = variable.ror(carry)
                 variables[varname] = newValue
                 carry = newCarry
             }
             Opcode.ROL2_VAR -> {
-                val varname = ins.args[0].stringvalue ?: throw VmExecutionException("${ins.opcode} expects string argument (the variable name)")
+                val varname = ins.arg!!.stringvalue ?: throw VmExecutionException("${ins.opcode} expects string argument (the variable name)")
                 val variable = variables[varname] ?: throw VmExecutionException("unknown variable: $varname")
                 variables[varname] = variable.rol2()
             }
             Opcode.ROR2_VAR -> {
-                val varname = ins.args[0].stringvalue ?: throw VmExecutionException("${ins.opcode} expects string argument (the variable name)")
+                val varname = ins.arg!!.stringvalue ?: throw VmExecutionException("${ins.opcode} expects string argument (the variable name)")
                 val variable = variables[varname] ?: throw VmExecutionException("unknown variable: $varname")
                 variables[varname] = variable.ror2()
             }
             Opcode.INC_VAR -> {
-                val varname = ins.args[0].stringvalue ?: throw VmExecutionException("${ins.opcode} expects string argument (the variable name)")
+                val varname = ins.arg!!.stringvalue ?: throw VmExecutionException("${ins.opcode} expects string argument (the variable name)")
                 val variable = variables[varname] ?: throw VmExecutionException("unknown variable: $varname")
                 variables[varname] = variable.inc()
             }
             Opcode.DEC_VAR -> {
-                val varname = ins.args[0].stringvalue ?: throw VmExecutionException("${ins.opcode} expects string argument (the variable name)")
+                val varname = ins.arg!!.stringvalue ?: throw VmExecutionException("${ins.opcode} expects string argument (the variable name)")
                 val variable = variables[varname] ?: throw VmExecutionException("unknown variable: $varname")
                 variables[varname] = variable.dec()
             }
@@ -775,28 +980,6 @@ class StackVm(val traceOutputFile: String?) {
 
 fun main(args: Array<String>) {
     val vm = StackVm(traceOutputFile = "vmtrace.txt")
-    vm.mem.setString(0x1000, "Hallo!\n")
-
-    val instructions = listOf(
-            Instruction(Opcode.SYSCALL, listOf(Value(DataType.BYTE, Syscall.WRITE_VAR.callNr), Value(DataType.STR, null, stringvalue = "main.var1"))),
-            Instruction(Opcode.SYSCALL, listOf(Value(DataType.BYTE, Syscall.WRITE_MEMSTR.callNr), Value(DataType.WORD, 0x1000))),
-            Instruction(Opcode.SYSCALL, listOf(Value(DataType.BYTE, Syscall.WRITE_VAR.callNr), Value(DataType.STR, null, "main.var2"))),
-            Instruction(Opcode.PUSH, listOf(Value(DataType.WORD, 12345))),
-            Instruction(Opcode.POP_VAR, listOf(Value(DataType.STR, null, "main.var2"))),
-            Instruction(Opcode.SYSCALL, listOf(Value(DataType.BYTE, Syscall.WRITE_VAR.callNr), Value(DataType.STR, null, "main.var2"))),
-            Instruction(Opcode.DEC_VAR, listOf(Value(DataType.STR, null, "main.var2"))),
-            Instruction(Opcode.SYSCALL, listOf(Value(DataType.BYTE, Syscall.WRITE_VAR.callNr), Value(DataType.STR, null, "main.var2"))),
-            Instruction(Opcode.SHR_VAR, listOf(Value(DataType.STR, null, "main.var2"))),
-            Instruction(Opcode.SYSCALL, listOf(Value(DataType.BYTE, Syscall.WRITE_VAR.callNr), Value(DataType.STR, null, "main.var2"))),
-            Instruction(Opcode.TERMINATE)
-    )
-
-    val labels = listOf(Pair("derp", instructions[0])).toMap()
-    val variables = mapOf(
-            "main.var1" to Value(DataType.STR, null, "Dit is variabele main.var1!\n"),
-            "main.var2" to Value(DataType.WORD, 9999)
-            )
-
-    val program = Program(instructions, labels, variables)
+    val program = Program.load("il65/examples/stackvmtest.txt")
     vm.run(program)
 }
