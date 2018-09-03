@@ -6,6 +6,9 @@ import il65.ast.*
 val BuiltIns = listOf("sin", "cos", "abs", "acos", "asin", "tan", "atan", "log", "log10", "sqrt", "max", "min", "round", "rad", "deg")
 
 
+// @todo additional builtins such as: avg, sum, abs, round
+
+
 class NotConstArgumentException: AstException("not a const argument to a built-in function")
 
 

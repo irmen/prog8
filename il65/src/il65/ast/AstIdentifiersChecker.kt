@@ -7,8 +7,8 @@ import il65.parser.ParsingFailedError
  * Also builds a list of all (scoped) symbol definitions
  */
 
-fun Module.checkIdentifiers(globalNamespace: INameScope): MutableMap<String, IStatement> {
-    val checker = AstIdentifiersChecker(globalNamespace)
+fun Module.checkIdentifiers(): MutableMap<String, IStatement> {
+    val checker = AstIdentifiersChecker()
     this.process(checker)
     val checkResult = checker.result()
     checkResult.forEach {
@@ -27,7 +27,7 @@ val BuiltinFunctionNames = setOf(
         "max", "min", "round", "rad", "deg")
 
 
-class AstIdentifiersChecker(private val globalNamespace: INameScope) : IAstProcessor {
+class AstIdentifiersChecker : IAstProcessor {
     private val checkResult: MutableList<AstException> = mutableListOf()
 
     var symbols: MutableMap<String, IStatement> = mutableMapOf()
@@ -42,7 +42,7 @@ class AstIdentifiersChecker(private val globalNamespace: INameScope) : IAstProce
     }
 
     override fun process(block: Block): IStatement {
-        val scopedName = block.makeScopedName(block.name).joinToString(".")
+        val scopedName = block.scopedname.joinToString(".")
         val existing = symbols[scopedName]
         if(existing!=null) {
             nameError(block.name, block.position, existing)
@@ -53,7 +53,7 @@ class AstIdentifiersChecker(private val globalNamespace: INameScope) : IAstProce
     }
 
     override fun process(decl: VarDecl): IStatement {
-        val scopedName = decl.makeScopedName(decl.name).joinToString(".")
+        val scopedName = decl.scopedname.joinToString(".")
         val existing = symbols[scopedName]
         if(existing!=null) {
             nameError(decl.name, decl.position, existing)
@@ -68,7 +68,7 @@ class AstIdentifiersChecker(private val globalNamespace: INameScope) : IAstProce
             // the special pseudo-functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", subroutine.position))
         } else {
-            val scopedName = subroutine.makeScopedName(subroutine.name).joinToString(".")
+            val scopedName = subroutine.scopedname.joinToString(".")
             val existing = symbols[scopedName]
             if (existing != null) {
                 nameError(subroutine.name, subroutine.position, existing)
@@ -84,7 +84,7 @@ class AstIdentifiersChecker(private val globalNamespace: INameScope) : IAstProce
             // the special pseudo-functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", label.position))
         } else {
-            val scopedName = label.makeScopedName(label.name).joinToString(".")
+            val scopedName = label.scopedname.joinToString(".")
             val existing = symbols[scopedName]
             if (existing != null) {
                 nameError(label.name, label.position, existing)

@@ -203,7 +203,9 @@ Integers
 Integers are 8 or 16 bit numbers and can be written in normal decimal notation,
 in hexadecimal and in binary notation.
 
-@todo right now only unsinged integers are supported (0-255 for byte types, 0-65535 for word types)
+.. todo::
+    Right now only unsinged integers are supported (0-255 for byte types, 0-65535 for word types)
+    @todo maybe signed integers (-128..127  and -32768..32767) will be added later
 
 
 Strings
@@ -254,14 +256,9 @@ The resulting value is simply a 16 bit word. Example::
 	AX = #somevar
 
 
-**Indirect addressing:**
-@todo ???
-
-**Indirect addressing in jumps:**
-@todo ???
-For an indirect ``goto`` statement, the compiler will issue the 6502 CPU's special instruction
-(``jmp`` indirect).  A subroutine call (``jsr`` indirect) is emitted
-using a couple of instructions.
+.. todo::
+    This is not yet implemented.
+    Indirect addressing, Indirect addressing in jumps (jmp/jsr indirect)
 
 
 Loops
@@ -321,11 +318,13 @@ for normal assignments (``A = A + X``).
 Expressions
 -----------
 
-In most places where a number or other value is expected, you can use just the number, or a full constant expression.
+In most places where a number or other value is expected, you can use just the number, or a constant expression.
 The expression is parsed and evaluated by the compiler itself at compile time, and the (constant) resulting value is used in its place.
-Expressions can contain function calls to the math library (sin, cos, etc) and you can also use
-all builtin functions (max, avg, min, sum etc). They can also reference idendifiers defined elsewhere in your code,
-if this makes sense.
+Expressions can contain procedure and function calls.
+There are various built-in functions such as sin(), cos(), min(), max() that can be used in expressions (see :ref:`builtinfunctions`).
+You can also reference idendifiers defined elsewhere in your code.
+The compiler will evaluate the expression if it is a constant, and just use the resulting value from then on.
+Expressions that cannot be compile-time evaluated will result in code that calculates them at runtime.
 
 
 Arithmetic and Logical expressions
@@ -378,6 +377,13 @@ value of the given registers after the subroutine call.  Otherwise, the subrouti
 as well clobber all three registers. Preserving the original values does result in some
 stack manipulation code to be inserted for every call like this, which can be quite slow.
 
+.. caution::
+    Note that *recursive* subroutine calls are not supported at this time.
+    If you do need a recursive algorithm, you'll have to hand code it in embedded assembly for now,
+    or rewrite it into an iterative algorithm.
+
+
+.. _builtinfunctions:
 
 Built-in Functions
 ------------------
@@ -473,3 +479,6 @@ _P_carry(bit)
 _P_irqd(bit)
     Set (or clear) the CPU status register Interrupt Disable flag. No result value.
     (translated into ``SEI`` or ``CLI`` cpu instruction)
+
+.. todo::
+    additional builtins such as: avg, sum, abs, round

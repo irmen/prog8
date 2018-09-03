@@ -33,6 +33,7 @@
   const byte equal = 4==4
   const byte equal2 = (4+hopla)>0
 
+  goto mega
   if_eq goto mega
 
   if_eq {
@@ -57,7 +58,7 @@
   byte equalWW = 4==4
   const byte equalWW2 = (4+hopla)>0
 
-	if (1==1) goto hopla
+	if (1==1) goto cool
 
 	if (1==2) return 44
 
@@ -101,9 +102,14 @@ cool:
   	byte blerp = 3
   	A=99
   	return 33
+  	ultrafoo()
   	X =33
 mega:
 cool:
+    sub ultrafoo() -> () {
+        return 33
+        goto main.mega
+    }
 
   }
 

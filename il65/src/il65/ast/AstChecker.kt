@@ -22,7 +22,6 @@ fun Module.checkValid(globalNamespace: INameScope) {
 /**
  * todo check subroutine parameters against signature
  * todo check subroutine return values against target assignment values
- *
  */
 
 class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
@@ -44,18 +43,22 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
     }
 
     override fun process(jump: Jump): IStatement {
-        super.process(jump)
+        if(jump.identifier!=null) {
+            val targetStatement = checkFunctionOrLabelExists(jump.identifier, jump)
+            if(targetStatement!=null)
+                jump.targetStatement = targetStatement      // link to actual jump target
+        }
+
         if(jump.address!=null && (jump.address < 0 || jump.address > 65535))
             checkResult.add(SyntaxError("jump address must be valid integer 0..\$ffff", jump.position))
-        return jump
+        return super.process(jump)
     }
 
     override fun process(block: Block): IStatement {
         if(block.address!=null && (block.address<0 || block.address>65535)) {
             checkResult.add(SyntaxError("block memory address must be valid integer 0..\$ffff", block.position))
         }
-        super.process(block)
-        return block
+        return super.process(block)
     }
 
     /**
@@ -66,9 +69,9 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
             checkResult.add(SyntaxError(msg, subroutine.position))
         }
 
-        // subroutines may only be defined directly inside a block
-        if(subroutine.parent !is Block)
-            err("subroutines can only be defined in a block (not in other scopes)")
+//        // subroutines may only be defined directly inside a block    @todo NAH, why should we restrict that?
+//        if(subroutine.parent !is Block)
+//            err("subroutines can only be defined in a block (not in other scopes)")
 
         if(BuiltIns.contains(subroutine.name))
             err("cannot override a built-in function")
@@ -79,8 +82,9 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
         val uniqueParamRegs = subroutine.parameters.map {it.register}.toSet()
         if(uniqueParamRegs.size!=subroutine.parameters.size)
             err("parameter registers should be unique")
-        val uniqueResults = subroutine.returnvalues.map {it.register}.toSet()
-        if(uniqueResults.size!=subroutine.returnvalues.size)
+        val uniqueResultRegisters = subroutine.returnvalues.filter{it.register!=null}.map {it.register.toString()}.toMutableSet()
+        uniqueResultRegisters.addAll(subroutine.returnvalues.filter{it.statusflag!=null}.map{it.statusflag.toString()})
+        if(uniqueResultRegisters.size!=subroutine.returnvalues.size)
             err("return registers should be unique")
 
         super.process(subroutine)
@@ -294,24 +298,28 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
 
     override fun process(functionCall: FunctionCall): IExpression {
         // this function call is (part of) an expression, which should be in a statement somewhere.
-        var statementNode: Node = functionCall
-        while(statementNode !is IStatement && statementNode !is ParentSentinel)
-            statementNode = statementNode.parent
-        if(statementNode is ParentSentinel)
-            throw FatalAstException("cannot determine statement scope of function call expression at ${functionCall.position}")
+        val statementNode = findParentNode<IStatement>(functionCall)
+                ?: throw FatalAstException("cannot determine statement scope of function call expression at ${functionCall.position}")
 
-        checkFunctionExists(functionCall.target, statementNode as IStatement)
+        val targetStatement = checkFunctionOrLabelExists(functionCall.target, statementNode)
+        if(targetStatement!=null)
+            functionCall.targetStatement = targetStatement      // link to the actual target statement
         return super.process(functionCall)
     }
 
     override fun process(functionCall: FunctionCallStatement): IStatement {
-        checkFunctionExists(functionCall.target, functionCall)
+        val targetStatement = checkFunctionOrLabelExists(functionCall.target, functionCall)
+        if(targetStatement!=null)
+            functionCall.targetStatement = targetStatement      // link to the actual target statement
         return super.process(functionCall)
     }
 
-    private fun checkFunctionExists(target: IdentifierReference, statement: IStatement) {
-        if(globalNamespace.lookup(target.nameInSource, statement)==null)
-            checkResult.add(SyntaxError("undefined function or subroutine: ${target.nameInSource.joinToString(".")}", statement.position))
+    private fun checkFunctionOrLabelExists(target: IdentifierReference, statement: IStatement): IStatement? {
+        val targetStatement = globalNamespace.lookup(target.nameInSource, statement)
+        if(targetStatement is Label || targetStatement is Subroutine)
+            return targetStatement
+        checkResult.add(SyntaxError("undefined function or subroutine: ${target.nameInSource.joinToString(".")}", statement.position))
+        return null
     }
 
     private fun checkValueRange(datatype: DataType, value: LiteralValue, position: Position?) : Boolean {

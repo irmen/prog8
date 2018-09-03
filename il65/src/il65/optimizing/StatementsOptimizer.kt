@@ -38,29 +38,26 @@ class StatementOptimizer(private val globalNamespace: INameScope) : IAstProcesso
     }
 
     override fun process(functionCall: FunctionCall): IExpression {
-        val function = globalNamespace.lookup(functionCall.target.nameInSource, functionCall)
-        if(function!=null) {
-            val scopedName = when(function) {
-                is Label -> function.makeScopedName(function.name)
-                is Subroutine -> function.makeScopedName(function.name)
-                else -> throw AstException("invalid function call target node type")
-            }
-            globalNamespace.registerUsedName(scopedName.joinToString("."))
-        }
+        val target = globalNamespace.lookup(functionCall.target.nameInSource, functionCall)
+        if(target!=null)
+            used(target)
         return super.process(functionCall)
     }
 
     override fun process(functionCall: FunctionCallStatement): IStatement {
-        val function = globalNamespace.lookup(functionCall.target.nameInSource, functionCall)
-        if(function!=null) {
-            val scopedName = when(function) {
-                is Label -> function.makeScopedName(function.name)
-                is Subroutine -> function.makeScopedName(function.name)
-                else -> throw AstException("invalid function call target node type")
-            }
-            globalNamespace.registerUsedName(scopedName.joinToString("."))
-        }
+        val target = globalNamespace.lookup(functionCall.target.nameInSource, functionCall)
+        if(target!=null)
+            used(target)
         return super.process(functionCall)
+    }
+
+    override fun process(jump: Jump): IStatement {
+        if(jump.identifier!=null) {
+            val target = globalNamespace.lookup(jump.identifier.nameInSource, jump)
+            if (target != null)
+                used(target)
+        }
+        return super.process(jump)
     }
 
     override fun process(ifStatement: IfStatement): IStatement {
@@ -78,6 +75,15 @@ class StatementOptimizer(private val globalNamespace: INameScope) : IAstProcesso
             }
         }
         return ifStatement
+    }
+
+    private fun used(stmt: IStatement) {
+        val scopedName = when (stmt) {
+            is Label -> stmt.scopedname
+            is Subroutine -> stmt.scopedname
+            else -> throw AstException("invalid call target node type: ${stmt::class}")
+        }
+        globalNamespace.registerUsedName(scopedName.joinToString("."))
     }
 
     fun removeUnusedNodes(usedNames: Set<String>, allScopedSymbolDefinitions: MutableMap<String, IStatement>) {

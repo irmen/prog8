@@ -30,12 +30,14 @@ fun main(args: Array<String>) {
 
         // perform syntax checks and optimizations
 
-        moduleAst.checkIdentifiers(globalNamespace)
+        moduleAst.checkIdentifiers()
         moduleAst.optimizeExpressions(globalNamespace)
-        val allScopedSymbolDefinitions = moduleAst.checkIdentifiers(globalNamespace)
+        moduleAst.checkValid(globalNamespace)          // check if tree is valid
+        val allScopedSymbolDefinitions = moduleAst.checkIdentifiers()
         moduleAst.optimizeStatements(globalNamespace, allScopedSymbolDefinitions)
-        val globalNamespaceAfterOptimize = moduleAst.namespace()  // it could have changed in the meantime
-        moduleAst.checkValid(globalNamespaceAfterOptimize)        // check if final tree is valid
+        val globalNamespaceAfterOptimize = moduleAst.namespace()    // it could have changed in the meantime
+        moduleAst.checkValid(globalNamespaceAfterOptimize)          // check if final tree is valid
+        moduleAst.checkRecursion()      // check if there are recursive subroutine calls
 
 
         // determine special compiler options

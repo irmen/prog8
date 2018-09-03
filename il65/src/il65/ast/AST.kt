@@ -168,12 +168,36 @@ interface Node {
     var position: Position?      // optional for the sake of easy unit testing
     var parent: Node             // will be linked correctly later (late init)
     fun linkParents(parent: Node)
+    fun definingScope(): INameScope {
+        val scope = findParentNode<INameScope>(this)
+        if(scope!=null) {
+            return scope
+        }
+        if(this is Label && this.name.startsWith("pseudo::")) {
+            return BuiltinFunctionScopePlaceholder
+        }
+        throw FatalAstException("scope missing from $this")
+    }
+}
+
+
+// find the parent node of a specific type or interface
+// (useful to figure out in what namespace/block something is defined, etc)
+inline fun <reified T> findParentNode(node: Node): T? {
+    var candidate = node.parent
+    while(candidate !is T && candidate !is ParentSentinel)
+        candidate = candidate.parent
+    return if(candidate is ParentSentinel)
+        null
+    else
+        candidate as T
 }
 
 
 interface IStatement : Node {
     fun process(processor: IAstProcessor) : IStatement
     fun makeScopedName(name: String): List<String> {
+        // this is usually cached in a lazy property on the statement object itself
         val scope = mutableListOf<String>()
         var statementScope = this.parent
         while(statementScope !is ParentSentinel && statementScope !is Module) {
@@ -191,6 +215,7 @@ interface IStatement : Node {
 interface IFunctionCall {
     var target: IdentifierReference
     var arglist: List<IExpression>
+    var targetStatement: IStatement
 }
 
 interface INameScope {
@@ -204,7 +229,7 @@ interface INameScope {
 
     fun subScopes() = statements.filter { it is INameScope } .map { it as INameScope }.associate { it.name to it }
 
-    fun definedNames() = statements.filter { it is Label || it is VarDecl }
+    fun labelsAndVariables() = statements.filter { it is Label || it is VarDecl }
             .associate {((it as? Label)?.name ?: (it as? VarDecl)?.name) to it }
 
     fun lookup(scopedName: List<String>, statement: Node) : IStatement? {
@@ -217,19 +242,15 @@ interface INameScope {
                     return null
             }
             val foundScope : INameScope = scope!!
-            return foundScope.definedNames()[scopedName.last()]
+            return foundScope.labelsAndVariables()[scopedName.last()]
                     ?:
                     foundScope.subScopes()[scopedName.last()] as IStatement?
         } else {
             // unqualified name, find the scope the statement is in, look in that first
-            var statementScope: Node = statement
+            var statementScope = statement
             while(true) {
-                while (statementScope !is INameScope && statementScope !is ParentSentinel)
-                    statementScope = statementScope.parent
-                if (statementScope is ParentSentinel)
-                    return null
-                val localScope = statementScope as INameScope
-                val result = localScope.definedNames()[scopedName[0]]
+                val localScope = statementScope.definingScope()
+                val result = localScope.labelsAndVariables()[scopedName[0]]
                 if (result != null)
                     return result
                 val subscope = localScope.subScopes()[scopedName[0]] as IStatement?
@@ -244,7 +265,7 @@ interface INameScope {
     fun debugPrint() {
         fun printNames(indent: Int, namespace: INameScope) {
             println(" ".repeat(4*indent) + "${namespace.name}   ->  ${namespace::class.simpleName} at ${namespace.position}")
-            namespace.definedNames().forEach {
+            namespace.labelsAndVariables().forEach {
                 println(" ".repeat(4 * (1 + indent)) + "${it.key}   ->  ${it.value::class.simpleName} at ${it.value.position}")
             }
             namespace.subScopes().forEach {
@@ -266,7 +287,7 @@ interface INameScope {
  * Inserted into the Ast in place of modified nodes (not inserted directly as a parser result)
  * It can hold zero or more replacement statements that have to be inserted at that point.
  */
-data class AnonymousStatementList(override var parent: Node, var statements: List<IStatement>) : IStatement {
+class AnonymousStatementList(override var parent: Node, var statements: List<IStatement>) : IStatement {
     override var position: Position? = null
 
     override fun linkParents(parent: Node) {
@@ -281,15 +302,22 @@ data class AnonymousStatementList(override var parent: Node, var statements: Lis
 }
 
 
-object ParentSentinel : Node {
+private object ParentSentinel : Node {
     override var position: Position? = null
     override var parent: Node = this
     override fun linkParents(parent: Node) {}
 }
 
+object BuiltinFunctionScopePlaceholder : INameScope {
+    override val name = "<<builtin-functions-scope-placeholder>>"
+    override val position: Position? = null
+    override var statements = mutableListOf<IStatement>()
+    override fun usedNames(): Set<String> = throw NotImplementedError("not implemented on sub-scopes")
+    override fun registerUsedName(name: String) = throw NotImplementedError("not implemented on sub-scopes")
+}
 
-data class Module(override val name: String,
-                  override var statements: MutableList<IStatement>) : Node, INameScope {
+class Module(override val name: String,
+             override var statements: MutableList<IStatement>) : Node, INameScope {
     override var position: Position? = null
     override lateinit var parent: Node
 
@@ -326,10 +354,10 @@ data class Module(override val name: String,
                 val stmt = super.lookup(scopedName, statement)
                 if(stmt!=null) {
                     val targetScopedName = when(stmt) {
-                        is Label -> stmt.makeScopedName(stmt.name)
-                        is VarDecl -> stmt.makeScopedName(stmt.name)
-                        is Block -> stmt.makeScopedName(stmt.name)
-                        is Subroutine -> stmt.makeScopedName(stmt.name)
+                        is Label -> stmt.scopedname
+                        is VarDecl -> stmt.scopedname
+                        is Block -> stmt.scopedname
+                        is Subroutine -> stmt.scopedname
                         else -> throw NameError("wrong identifier target: $stmt", stmt.position)
                     }
                     registerUsedName(targetScopedName.joinToString("."))
@@ -350,11 +378,12 @@ data class Module(override val name: String,
 }
 
 
-data class Block(override val name: String,
+class Block(override val name: String,
                  val address: Int?,
                  override var statements: MutableList<IStatement>) : IStatement, INameScope {
     override var position: Position? = null
     override lateinit var parent: Node
+    val scopedname: List<String> by lazy { makeScopedName(name) }
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -372,7 +401,7 @@ data class Block(override val name: String,
 }
 
 
-data class Directive(val directive: String, val args: List<DirectiveArg>) : IStatement {
+class Directive(val directive: String, val args: List<DirectiveArg>) : IStatement {
     override var position: Position? = null
     override lateinit var parent: Node
 
@@ -385,7 +414,7 @@ data class Directive(val directive: String, val args: List<DirectiveArg>) : ISta
 }
 
 
-data class DirectiveArg(val str: String?, val name: String?, val int: Int?) : Node {
+class DirectiveArg(val str: String?, val name: String?, val int: Int?) : Node {
     override var position: Position? = null
     override lateinit var parent: Node
 
@@ -395,19 +424,24 @@ data class DirectiveArg(val str: String?, val name: String?, val int: Int?) : No
 }
 
 
-data class Label(val name: String) : IStatement {
+class Label(val name: String) : IStatement {
     override var position: Position? = null
     override lateinit var parent: Node
+    val scopedname: List<String> by lazy { makeScopedName(name) }
 
     override fun linkParents(parent: Node) {
         this.parent = parent
     }
 
     override fun process(processor: IAstProcessor) = processor.process(this)
+
+    override fun toString(): String {
+        return "Label(name=$name, pos=$position)"
+    }
 }
 
 
-data class Return(var values: List<IExpression>) : IStatement {
+class Return(var values: List<IExpression>) : IStatement {
     override var position: Position? = null
     override lateinit var parent: Node
 
@@ -423,7 +457,7 @@ data class Return(var values: List<IExpression>) : IStatement {
 }
 
 
-data class ArraySpec(var x: IExpression, var y: IExpression?) : Node {
+class ArraySpec(var x: IExpression, var y: IExpression?) : Node {
     override var position: Position? = null
     override lateinit var parent: Node
 
@@ -446,7 +480,7 @@ enum class VarDeclType {
     MEMORY
 }
 
-data class VarDecl(val type: VarDeclType,
+class VarDecl(val type: VarDeclType,
                    val datatype: DataType,
                    val arrayspec: ArraySpec?,
                    val name: String,
@@ -465,6 +499,8 @@ data class VarDecl(val type: VarDeclType,
     val isScalar = arrayspec==null
     val isArray = arrayspec!=null && arrayspec.y==null
     val isMatrix = arrayspec?.y != null
+    val scopedname: List<String> by lazy { makeScopedName(name) }
+
     fun arraySizeX(namespace: INameScope) : Int? {
         return arrayspec?.x?.constValue(namespace)?.intvalue
     }
@@ -474,7 +510,7 @@ data class VarDecl(val type: VarDeclType,
 }
 
 
-data class Assignment(var target: AssignTarget, val aug_op : String?, var value: IExpression) : IStatement {
+class Assignment(var target: AssignTarget, val aug_op : String?, var value: IExpression) : IStatement {
     override var position: Position? = null
     override lateinit var parent: Node
 
@@ -491,7 +527,7 @@ data class Assignment(var target: AssignTarget, val aug_op : String?, var value:
     }
 }
 
-data class AssignTarget(val register: Register?, val identifier: IdentifierReference?) : Node {
+class AssignTarget(val register: Register?, val identifier: IdentifierReference?) : Node {
     override var position: Position? = null
     override lateinit var parent: Node
 
@@ -513,7 +549,7 @@ interface IExpression: Node {
 
 // note: some expression elements are mutable, to be able to rewrite/process the expression tree
 
-data class PrefixExpression(val operator: String, var expression: IExpression) : IExpression {
+class PrefixExpression(val operator: String, var expression: IExpression) : IExpression {
     override var position: Position? = null
     override lateinit var parent: Node
 
@@ -528,7 +564,7 @@ data class PrefixExpression(val operator: String, var expression: IExpression) :
 }
 
 
-data class BinaryExpression(var left: IExpression, val operator: String, var right: IExpression) : IExpression {
+class BinaryExpression(var left: IExpression, val operator: String, var right: IExpression) : IExpression {
     override var position: Position? = null
     override lateinit var parent: Node
 
@@ -546,7 +582,7 @@ data class BinaryExpression(var left: IExpression, val operator: String, var rig
     override fun referencesIdentifier(name: String) = left.referencesIdentifier(name) || right.referencesIdentifier(name)
 }
 
-data class LiteralValue(val intvalue: Int? = null,
+class LiteralValue(val intvalue: Int? = null,
                         val floatvalue: Double? = null,
                         val strvalue: String? = null,
                         val arrayvalue: List<IExpression>? = null) : IExpression {
@@ -594,7 +630,7 @@ data class LiteralValue(val intvalue: Int? = null,
 }
 
 
-data class RangeExpr(var from: IExpression, var to: IExpression) : IExpression {
+class RangeExpr(var from: IExpression, var to: IExpression) : IExpression {
     override var position: Position? = null
     override lateinit var parent: Node
 
@@ -610,7 +646,7 @@ data class RangeExpr(var from: IExpression, var to: IExpression) : IExpression {
 }
 
 
-data class RegisterExpr(val register: Register) : IExpression {
+class RegisterExpr(val register: Register) : IExpression {
     override var position: Position? = null
     override lateinit var parent: Node
 
@@ -624,7 +660,7 @@ data class RegisterExpr(val register: Register) : IExpression {
 }
 
 
-data class IdentifierReference(val nameInSource: List<String>) : IExpression {
+class IdentifierReference(val nameInSource: List<String>) : IExpression {
     override var position: Position? = null
     override lateinit var parent: Node
 
@@ -645,12 +681,16 @@ data class IdentifierReference(val nameInSource: List<String>) : IExpression {
         return vardecl.value?.constValue(namespace)
     }
 
+    override fun toString(): String {
+        return "IdentifierRef($nameInSource)"
+    }
+
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String): Boolean  = nameInSource.last() == name   // @todo is this correct all the time?
 }
 
 
-data class PostIncrDecr(var target: AssignTarget, val operator: String) : IStatement {
+class PostIncrDecr(var target: AssignTarget, val operator: String) : IStatement {
     override var position: Position? = null
     override lateinit var parent: Node
 
@@ -666,9 +706,10 @@ data class PostIncrDecr(var target: AssignTarget, val operator: String) : IState
 }
 
 
-data class Jump(val address: Int?, val identifier: IdentifierReference?) : IStatement {
+class Jump(val address: Int?, val identifier: IdentifierReference?) : IStatement {
     override var position: Position? = null
     override lateinit var parent: Node
+    var targetStatement: IStatement? = null
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -679,9 +720,10 @@ data class Jump(val address: Int?, val identifier: IdentifierReference?) : IStat
 }
 
 
-data class FunctionCall(override var target: IdentifierReference, override var arglist: List<IExpression>) : IExpression, IFunctionCall {
+class FunctionCall(override var target: IdentifierReference, override var arglist: List<IExpression>) : IExpression, IFunctionCall {
     override var position: Position? = null
     override lateinit var parent: Node
+    override lateinit var targetStatement: IStatement
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -726,14 +768,19 @@ data class FunctionCall(override var target: IdentifierReference, override var a
         }
     }
 
+    override fun toString(): String {
+        return "FunctionCall(target=$target, targetStmt=$targetStatement, pos=$position)"
+    }
+
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String): Boolean = target.referencesIdentifier(name) || arglist.any{it.referencesIdentifier(name)}
 }
 
 
-data class FunctionCallStatement(override var target: IdentifierReference, override var arglist: List<IExpression>) : IStatement, IFunctionCall {
+class FunctionCallStatement(override var target: IdentifierReference, override var arglist: List<IExpression>) : IStatement, IFunctionCall {
     override var position: Position? = null
     override lateinit var parent: Node
+    override lateinit var targetStatement: IStatement
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -742,10 +789,14 @@ data class FunctionCallStatement(override var target: IdentifierReference, overr
     }
 
     override fun process(processor: IAstProcessor) = processor.process(this)
+
+    override fun toString(): String {
+        return "FunctionCall(target=$target, targetStmt=$targetStatement, pos=$position)"
+    }
 }
 
 
-data class InlineAssembly(val assembly: String) : IStatement {
+class InlineAssembly(val assembly: String) : IStatement {
     override var position: Position? = null
     override lateinit var parent: Node
 
@@ -757,13 +808,14 @@ data class InlineAssembly(val assembly: String) : IStatement {
 }
 
 
-data class Subroutine(override val name: String,
+class Subroutine(override val name: String,
                       val parameters: List<SubroutineParameter>,
                       val returnvalues: List<SubroutineReturnvalue>,
                       val address: Int?,
                       override var statements: MutableList<IStatement>) : IStatement, INameScope {
     override var position: Position? = null
     override lateinit var parent: Node
+    val scopedname: List<String> by lazy { makeScopedName(name) }
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -783,7 +835,7 @@ data class Subroutine(override val name: String,
 }
 
 
-data class SubroutineParameter(val name: String, val register: Register?, val statusflag: Statusflag?) : Node {
+class SubroutineParameter(val name: String, val register: Register?, val statusflag: Statusflag?) : Node {
     override var position: Position? = null
     override lateinit var parent: Node
 
@@ -793,7 +845,7 @@ data class SubroutineParameter(val name: String, val register: Register?, val st
 }
 
 
-data class SubroutineReturnvalue(val register: Register?, val statusflag: Statusflag?, val clobbered: Boolean) : Node {
+class SubroutineReturnvalue(val register: Register?, val statusflag: Statusflag?, val clobbered: Boolean) : Node {
     override var position: Position? = null
     override lateinit var parent: Node
 
@@ -803,7 +855,7 @@ data class SubroutineReturnvalue(val register: Register?, val statusflag: Status
 }
 
 
-data class IfStatement(var condition: IExpression,
+class IfStatement(var condition: IExpression,
                        var statements: List<IStatement>, var
                        elsepart: List<IStatement>) : IStatement {
     override var position: Position? = null
@@ -820,7 +872,7 @@ data class IfStatement(var condition: IExpression,
 }
 
 
-data class BranchStatement(var condition: BranchCondition,
+class BranchStatement(var condition: BranchCondition,
                        var statements: List<IStatement>, var
                        elsepart: List<IStatement>) : IStatement {
     override var position: Position? = null
