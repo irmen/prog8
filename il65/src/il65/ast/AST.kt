@@ -347,11 +347,7 @@ class Module(override val name: String,
         processor.process(this)
     }
 
-    private val theGlobalNamespace by lazy {
-        GlobalNamespace("<<<global>>>", statements, position)
-    }
-
-    override fun definingScope(): INameScope  = theGlobalNamespace
+    override fun definingScope(): INameScope  = GlobalNamespace("<<<global>>>", statements, position)
     override fun usedNames(): Set<String> = throw NotImplementedError("not implemented on sub-scopes")
     override fun registerUsedName(name: String) = throw NotImplementedError("not implemented on sub-scopes")
 

@@ -8,10 +8,10 @@ fun Module.optimizeStatements(globalNamespace: INameScope, allScopedSymbolDefini
     this.process(optimizer)
     optimizer.removeUnusedNodes(globalNamespace.usedNames(), allScopedSymbolDefinitions)
     if(optimizer.optimizationsDone==0)
-        println("[${this.name}] 0 optimizations performed")
+        println("[${this.name}] 0 statement optimizations performed")
 
     while(optimizer.optimizationsDone>0) {
-        println("[${this.name}] ${optimizer.optimizationsDone} optimizations performed")
+        println("[${this.name}] ${optimizer.optimizationsDone} statement optimizations performed")
         optimizer.reset()
         this.process(optimizer)
     }
@@ -91,7 +91,10 @@ class StatementOptimizer(private val globalNamespace: INameScope) : IAstProcesso
             if(!usedNames.contains(name)) {
                 val parentScope = value.parent as INameScope
                 val localname = name.substringAfterLast(".")
-                println("${value.position} Warning: ${value::class.simpleName} '$localname' is never used")
+                // printing every possible node that is removed can result in many dozens of warnings.
+                // we chose to just print the blocks that aren't used.
+                if(value is Block)
+                    println("${value.position} Info: block '$localname' is never used")
                 parentScope.removeStatement(value)
                 optimizationsDone++
             }

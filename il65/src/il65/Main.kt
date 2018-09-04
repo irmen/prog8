@@ -25,21 +25,20 @@ fun main(args: Array<String>) {
         val filepath = Paths.get(args[0]).normalize()
         val moduleAst = importModule(filepath)
         moduleAst.linkParents()
-        val globalNamespace = moduleAst.definingScope()
-        // globalNamespace.debugPrint()
+        val globalNameSpaceBeforeOptimization = moduleAst.definingScope()
 
 
         // perform syntax checks and optimizations
-
         moduleAst.checkIdentifiers()
-        moduleAst.optimizeExpressions(globalNamespace)
-        moduleAst.checkValid(globalNamespace)          // check if tree is valid
+        moduleAst.optimizeExpressions(globalNameSpaceBeforeOptimization)
+        moduleAst.checkValid(globalNameSpaceBeforeOptimization)          // check if tree is valid
         val allScopedSymbolDefinitions = moduleAst.checkIdentifiers()
-        moduleAst.optimizeStatements(globalNamespace, allScopedSymbolDefinitions)
+        moduleAst.optimizeStatements(globalNameSpaceBeforeOptimization, allScopedSymbolDefinitions)
         val globalNamespaceAfterOptimize = moduleAst.definingScope()    // it could have changed in the meantime
         moduleAst.checkValid(globalNamespaceAfterOptimize)          // check if final tree is valid
         moduleAst.checkRecursion()      // check if there are recursive subroutine calls
 
+        // globalNamespaceAfterOptimize.debugPrint()
 
         // determine special compiler options
 

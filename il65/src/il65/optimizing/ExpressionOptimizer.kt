@@ -14,10 +14,10 @@ fun Module.optimizeExpressions(globalNamespace: INameScope) {
     }
 
     if(optimizer.optimizationsDone==0)
-        println("[${this.name}] 0 optimizations performed")
+        println("[${this.name}] 0 expression optimizations performed")
 
     while(optimizer.errors.isEmpty() && optimizer.optimizationsDone>0) {
-        println("[${this.name}] ${optimizer.optimizationsDone} optimizations performed")
+        println("[${this.name}] ${optimizer.optimizationsDone} expression optimizations performed")
         optimizer.optimizationsDone = 0
         this.process(optimizer)
     }
