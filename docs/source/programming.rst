@@ -172,6 +172,10 @@ Note that the various keywords for the data type and variable type (``byte``, ``
 cannot be used as *identifiers* elsewhere. You can't make a variable, block or subroutine with the name ``byte``
 for instance.
 
+.. todo::
+    matrix datatype
+
+
 Variables that represent CPU hardware registers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -423,14 +427,14 @@ log10(x)
 sqrt(x)
 	Square root.
 
-max(x [, y, ...])
-	Maximum of the values x, y, ...
-
-min(x [, y, ...])
-	Minumum of the values x, y, ...
-
 round(x)
-	Rounds the floating point to an integer.
+	Rounds the floating point to the closest integer.
+
+floor (x)
+	Rounds the floating point down to an integer towards minus infinity.
+
+ceil(x)
+	Rounds the floating point up to an integer towards positive infinity.
 
 rad(x)
 	Degrees to radians.
@@ -438,47 +442,66 @@ rad(x)
 deg(x)
 	Radians to degrees.
 
-_lsl(x)
+max(x)
+	Maximum of the values in the non-scalar (array or matrix) value x
+
+min(x)
+	Minimum of the values in the non-scalar (array or matrix) value x
+
+avg(x)
+	Average of the values in the non-scalar (array or matrix) value x
+
+sum(x)
+	Sum of the values in the non-scalar (array or matrix) value x
+
+len(x)
+    Number of values in the non-scalar (array or matrix) value x.
+    (This is different from the number of *bytes* in memory if the datatype isn't byte)
+
+any(x)
+	1 ('true') if any of the values in the non-scalar (array or matrix) value x is 'true' (not zero), else 0 ('false')
+
+all(x)
+	1 ('true') if all of the values in the non-scalar (array or matrix) value x are 'true' (not zero), else 0 ('false')
+
+lsl(x)
     Shift the bits in x (byte or word) one position to the left.
     Bit 0 is set to 0 (and the highest bit is shifted into the status register's Carry flag)
     Modifies in-place but also returns the new value.
 
-_lsr(x)
+lsr(x)
     Shift the bits in x (byte or word) one position to the right.
     The highest bit is set to 0 (and bit 0 is shifted into the status register's Carry flag)
     Modifies in-place but also returns the new value.
 
-_rol(x)
+rol(x)
     Rotate the bits in x (byte or word) one position to the left.
     This uses the CPU's rotate semantics: bit 0 will be set to the current value of the Carry flag,
     while the highest bit will become the new Carry flag value.
     (essentially, it is a 9-bit or 17-bit rotation)
     Modifies in-place, doesn't return a value (so can't be used in an expression).
 
-_rol2(x)
+rol2(x)
     Like _rol but now as 8-bit or 16-bit rotation.
     It uses some extra logic to not consider the carry flag as extra rotation bit.
     Modifies in-place, doesn't return a value (so can't be used in an expression).
 
-_ror(x)
+ror(x)
     Rotate the bits in x (byte or word) one position to the right.
     This uses the CPU's rotate semantics: the highest bit will be set to the current value of the Carry flag,
     while bit 0 will become the new Carry flag value.
     (essentially, it is a 9-bit or 17-bit rotation)
     Modifies in-place, doesn't return a value (so can't be used in an expression).
 
-_ror2(x)
+ror2(x)
     Like _ror but now as 8-bit or 16-bit rotation.
     It uses some extra logic to not consider the carry flag as extra rotation bit.
     Modifies in-place, doesn't return a value (so can't be used in an expression).
 
-_P_carry(bit)
+P_carry(bit)
     Set (or clear) the CPU status register Carry flag. No result value.
     (translated into ``SEC`` or ``CLC`` cpu instruction)
 
-_P_irqd(bit)
+P_irqd(bit)
     Set (or clear) the CPU status register Interrupt Disable flag. No result value.
     (translated into ``SEI`` or ``CLI`` cpu instruction)
-
-.. todo::
-    additional builtins such as: avg, sum, abs, round

@@ -127,7 +127,7 @@ The following 6502 CPU hardware registers are directly usable in program code (a
 
 - ``A``, ``X``, ``Y``  the three main cpu registers (8 bits)
 - ``AX``, ``AY``, ``XY`` surrogate 16-bit registers: LSB-order (lo/hi) combined register pairs
-- the status register (P) carry flag and interrupt disable flag can be written via the ``_P_carry`` and ``_P_irqd`` builtin functions.
+- the status register (P) carry flag and interrupt disable flag can be written via the ``P_carry`` and ``P_irqd`` builtin functions.
 
 Subroutine Calling Conventions
 ------------------------------

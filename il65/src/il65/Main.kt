@@ -21,11 +21,12 @@ fun main(args: Array<String>) {
             exitProcess(1)
         }
 
+        val startTime = System.currentTimeMillis()
         val filepath = Paths.get(args[0]).normalize()
         val moduleAst = importModule(filepath)
         moduleAst.linkParents()
-        val globalNamespace = moduleAst.namespace()
-        //globalNamespace.debugPrint()
+        val globalNamespace = moduleAst.definingScope()
+        // globalNamespace.debugPrint()
 
 
         // perform syntax checks and optimizations
@@ -35,7 +36,7 @@ fun main(args: Array<String>) {
         moduleAst.checkValid(globalNamespace)          // check if tree is valid
         val allScopedSymbolDefinitions = moduleAst.checkIdentifiers()
         moduleAst.optimizeStatements(globalNamespace, allScopedSymbolDefinitions)
-        val globalNamespaceAfterOptimize = moduleAst.namespace()    // it could have changed in the meantime
+        val globalNamespaceAfterOptimize = moduleAst.definingScope()    // it could have changed in the meantime
         moduleAst.checkValid(globalNamespaceAfterOptimize)          // check if final tree is valid
         moduleAst.checkRecursion()      // check if there are recursive subroutine calls
 
@@ -67,7 +68,10 @@ fun main(args: Array<String>) {
 //        val assembler = intermediate.compileToAssembly()
 //        assembler.assemble(compilerOptions, "input", "output")
 //        val monitorfile = assembler.generateBreakpointList()
-//
+
+        val endTime = System.currentTimeMillis()
+        println("Compilation time: ${(endTime-startTime)/1000.0} sec.")
+
 //        // start the vice emulator
 //        val program = "foo"
 //        val cmdline = listOf("x64", "-moncommands", monitorfile,

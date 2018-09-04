@@ -48,7 +48,7 @@ fun Module.optimizeExpressions(globalNamespace: INameScope) {
     todo expression optimization: reduce expression nesting / flattening of parenthesis
     todo expression optimization: simplify logical expression when a term makes it always true or false (1 or 0)
     todo expression optimization: optimize some simple multiplications into shifts  (A*8 -> A<<3,  A/4 -> A>>2)
-    to
+    todo expression optimization: common (sub) expression elimination (turn common expressions into single subroutine call)
 
  */
 class ExpressionOptimizer(private val globalNamespace: INameScope) : IAstProcessor {
@@ -187,7 +187,7 @@ class ExpressionOptimizer(private val globalNamespace: INameScope) : IAstProcess
                             v.position = range.position
                             v.parent = range.parent
                             v
-                        })
+                        }.toMutableList())
                     }
                     from.strvalue != null && to.strvalue != null -> {
                         // char range
@@ -207,6 +207,15 @@ class ExpressionOptimizer(private val globalNamespace: INameScope) : IAstProcess
             errors.add(ax)
             range
         }
+    }
+
+    override fun process(literalValue: LiteralValue): LiteralValue {
+        if(literalValue.arrayvalue!=null) {
+            val newArray = literalValue.arrayvalue.map { it.process(this) }
+            literalValue.arrayvalue.clear()
+            literalValue.arrayvalue.addAll(newArray)
+        }
+        return super.process(literalValue)
     }
 }
 

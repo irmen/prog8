@@ -21,10 +21,10 @@ fun Module.checkIdentifiers(): MutableMap<String, IStatement> {
 
 
 val BuiltinFunctionNames = setOf(
-        "_P_carry", "_P_irqd", "_rol", "_ror", "_rol2", "_ror2",
-        "_lsl", "_lsr", "sin", "cos", "abs", "acos",
-        "asin", "tan", "atan", "log", "log10", "sqrt",
-        "max", "min", "round", "rad", "deg")
+        "P_carry", "P_irqd", "rol", "ror", "rol2", "ror2", "lsl", "lsr",
+        "sin", "cos", "abs", "acos", "asin", "tan", "atan",
+        "log", "log10", "sqrt", "rad", "deg", "round", "floor", "ceil",
+        "max", "min", "avg", "sum", "len", "any", "all")
 
 
 class AstIdentifiersChecker : IAstProcessor {
@@ -65,7 +65,7 @@ class AstIdentifiersChecker : IAstProcessor {
 
     override fun process(subroutine: Subroutine): IStatement {
         if(BuiltinFunctionNames.contains(subroutine.name)) {
-            // the special pseudo-functions can't be redefined
+            // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", subroutine.position))
         } else {
             val scopedName = subroutine.scopedname.joinToString(".")
@@ -81,7 +81,7 @@ class AstIdentifiersChecker : IAstProcessor {
 
     override fun process(label: Label): IStatement {
         if(BuiltinFunctionNames.contains(label.name)) {
-            // the special pseudo-functions can't be redefined
+            // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", label.position))
         } else {
             val scopedName = label.scopedname.joinToString(".")

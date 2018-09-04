@@ -462,7 +462,7 @@ sub  float_sub_SW1_from_XY  (mflt: XY) -> (?)  {
 sub  clear_screen (char: A, color: Y) -> ()  {
 	; ---- clear the character screen with the given fill character and character color.
 	;      (assumes screen is at $0400, could be altered in the future with self-modifying code)
-	;       @todo X = SCREEN ADDR HI BYTE
+	;       @todo some byte var to set the SCREEN ADDR HI BYTE
 
 	%asm {{
 		sta  _loop + 1      ; self-modifying

@@ -161,6 +161,10 @@ interface IAstProcessor {
     fun process(label: Label): IStatement {
         return label
     }
+
+    fun process(literalValue: LiteralValue): LiteralValue {
+        return literalValue
+    }
 }
 
 
@@ -173,7 +177,7 @@ interface Node {
         if(scope!=null) {
             return scope
         }
-        if(this is Label && this.name.startsWith("pseudo::")) {
+        if(this is Label && this.name.startsWith("builtin::")) {
             return BuiltinFunctionScopePlaceholder
         }
         throw FatalAstException("scope missing from $this")
@@ -248,7 +252,7 @@ interface INameScope {
         } else {
             // unqualified name, find the scope the statement is in, look in that first
             var statementScope = statement
-            while(true) {
+            while(statementScope !is ParentSentinel) {
                 val localScope = statementScope.definingScope()
                 val result = localScope.labelsAndVariables()[scopedName[0]]
                 if (result != null)
@@ -259,6 +263,7 @@ interface INameScope {
                 // not found in this scope, look one higher up
                 statementScope = statementScope.parent
             }
+            return null
         }
     }
 
@@ -316,6 +321,14 @@ object BuiltinFunctionScopePlaceholder : INameScope {
     override fun registerUsedName(name: String) = throw NotImplementedError("not implemented on sub-scopes")
 }
 
+object BuiltinFunctionStatementPlaceholder : IStatement {
+    override var position: Position? = null
+    override var parent: Node = ParentSentinel
+    override fun linkParents(parent: Node) {}
+    override fun process(processor: IAstProcessor): IStatement = this
+    override fun definingScope(): INameScope = BuiltinFunctionScopePlaceholder
+}
+
 class Module(override val name: String,
              override var statements: MutableList<IStatement>) : Node, INameScope {
     override var position: Position? = null
@@ -334,47 +347,49 @@ class Module(override val name: String,
         processor.process(this)
     }
 
-    fun namespace(): INameScope {
-        class GlobalNamespace(override val name: String,
-                              override var statements: MutableList<IStatement>,
-                              override val position: Position?) : INameScope {
-
-            private val scopedNamesUsed: MutableSet<String> = mutableSetOf("main")      // main is always used
-
-            override fun usedNames(): Set<String>  = scopedNamesUsed
-
-            override fun lookup(scopedName: List<String>, statement: Node): IStatement? {
-                if(BuiltinFunctionNames.contains(scopedName.last())) {
-                    // pseudo functions always exist, return a dummy statement for them
-                    val pseudo = Label("pseudo::${scopedName.last()}")
-                    pseudo.position = statement.position
-                    pseudo.parent = ParentSentinel
-                    return pseudo
-                }
-                val stmt = super.lookup(scopedName, statement)
-                if(stmt!=null) {
-                    val targetScopedName = when(stmt) {
-                        is Label -> stmt.scopedname
-                        is VarDecl -> stmt.scopedname
-                        is Block -> stmt.scopedname
-                        is Subroutine -> stmt.scopedname
-                        else -> throw NameError("wrong identifier target: $stmt", stmt.position)
-                    }
-                    registerUsedName(targetScopedName.joinToString("."))
-                }
-                return stmt
-            }
-
-            override fun registerUsedName(name: String) {
-                scopedNamesUsed.add(name)
-            }
-        }
-
-        return GlobalNamespace("<<<global>>>", statements, position)
+    private val theGlobalNamespace by lazy {
+        GlobalNamespace("<<<global>>>", statements, position)
     }
 
+    override fun definingScope(): INameScope  = theGlobalNamespace
     override fun usedNames(): Set<String> = throw NotImplementedError("not implemented on sub-scopes")
     override fun registerUsedName(name: String) = throw NotImplementedError("not implemented on sub-scopes")
+
+
+    private class GlobalNamespace(override val name: String,
+                          override var statements: MutableList<IStatement>,
+                          override val position: Position?) : INameScope {
+
+        private val scopedNamesUsed: MutableSet<String> = mutableSetOf("main")      // main is always used
+
+        override fun usedNames(): Set<String>  = scopedNamesUsed
+
+        override fun lookup(scopedName: List<String>, statement: Node): IStatement? {
+            if(BuiltinFunctionNames.contains(scopedName.last())) {
+                // builtin functions always exist, return a dummy statement for them
+                val builtinPlaceholder = Label("builtin::${scopedName.last()}")
+                builtinPlaceholder.position = statement.position
+                builtinPlaceholder.parent = ParentSentinel
+                return builtinPlaceholder
+            }
+            val stmt = super.lookup(scopedName, statement)
+            if(stmt!=null) {
+                val targetScopedName = when(stmt) {
+                    is Label -> stmt.scopedname
+                    is VarDecl -> stmt.scopedname
+                    is Block -> stmt.scopedname
+                    is Subroutine -> stmt.scopedname
+                    else -> throw NameError("wrong identifier target: $stmt", stmt.position)
+                }
+                registerUsedName(targetScopedName.joinToString("."))
+            }
+            return stmt
+        }
+
+        override fun registerUsedName(name: String) {
+            scopedNamesUsed.add(name)
+        }
+    }
 }
 
 
@@ -575,7 +590,7 @@ class BinaryExpression(var left: IExpression, val operator: String, var right: I
     }
 
     override fun constValue(namespace: INameScope): LiteralValue? {
-        throw ExpressionException("expression should have been optimized away into a single value, before const value was requested (this error is often caused by another)", position)
+        throw FatalAstException("binary expression should have been optimized away into a single value, before const value was requested (this error is often caused by another) pos=$position")
     }
 
     override fun process(processor: IAstProcessor) = processor.process(this)
@@ -585,7 +600,7 @@ class BinaryExpression(var left: IExpression, val operator: String, var right: I
 class LiteralValue(val intvalue: Int? = null,
                         val floatvalue: Double? = null,
                         val strvalue: String? = null,
-                        val arrayvalue: List<IExpression>? = null) : IExpression {
+                        val arrayvalue: MutableList<IExpression>? = null) : IExpression {
     override var position: Position? = null
     override lateinit var parent: Node
     override fun referencesIdentifier(name: String) = arrayvalue?.any { it.referencesIdentifier(name) } ?: false
@@ -596,7 +611,7 @@ class LiteralValue(val intvalue: Int? = null,
             floatvalue!=null -> floatvalue.toInt()
             else -> {
                 if((strvalue!=null || arrayvalue!=null) && errorIfNotNumeric)
-                    throw AstException("attempt to get int value from non-integer $this")
+                    throw AstException("attempt to get int value from non-numeric $this")
                 else null
             }
         }
@@ -608,7 +623,7 @@ class LiteralValue(val intvalue: Int? = null,
             intvalue!=null -> intvalue.toDouble()
             else -> {
                 if((strvalue!=null || arrayvalue!=null) && errorIfNotNumeric)
-                    throw AstException("attempt to get float value from non-integer $this")
+                    throw AstException("attempt to get float value from non-numeric $this")
                 else null
             }
         }
@@ -626,7 +641,11 @@ class LiteralValue(val intvalue: Int? = null,
     }
 
     override fun constValue(namespace: INameScope): LiteralValue?  = this
-    override fun process(processor: IAstProcessor) = this
+    override fun process(processor: IAstProcessor) = processor.process(this)
+
+    override fun toString(): String {
+        return "LiteralValue(int=$intvalue, float=$floatvalue, str=$strvalue, array=$arrayvalue pos=$position)"
+    }
 }
 
 
@@ -751,14 +770,21 @@ class FunctionCall(override var target: IdentifierReference, override var arglis
                 "round" -> builtinRound(arglist, position, namespace)
                 "rad" -> builtinRad(arglist, position, namespace)
                 "deg" -> builtinDeg(arglist, position, namespace)
-                "_lsl" -> builtinLsl(arglist, position, namespace)
-                "_lsr" -> builtinLsr(arglist, position, namespace)
-                "_rol" -> throw ExpressionException("builtin function _rol can't be used in expressions because it doesn't return a value", position)
-                "_rol2" -> throw ExpressionException("builtin function _rol2 can't be used in expressions because it doesn't return a value", position)
-                "_ror" -> throw ExpressionException("builtin function _ror can't be used in expressions because it doesn't return a value", position)
-                "_ror2" -> throw ExpressionException("builtin function _ror2 can't be used in expressions because it doesn't return a value", position)
-                "_P_carry" -> throw ExpressionException("builtin function _P_carry can't be used in expressions because it doesn't return a value", position)
-                "_P_irqd" -> throw ExpressionException("builtin function _P_irqd can't be used in expressions because it doesn't return a value", position)
+                "sum" -> builtinSum(arglist, position, namespace)
+                "avg" -> builtinAvg(arglist, position, namespace)
+                "len" -> builtinLen(arglist, position, namespace)
+                "any" -> builtinAny(arglist, position, namespace)
+                "all" -> builtinAll(arglist, position, namespace)
+                "floor" -> builtinFloor(arglist, position, namespace)
+                "ceil" -> builtinCeil(arglist, position, namespace)
+                "lsl" -> builtinLsl(arglist, position, namespace)
+                "lsr" -> builtinLsr(arglist, position, namespace)
+                "rol" -> throw ExpressionException("builtin function _rol can't be used in expressions because it doesn't return a value", position)
+                "rol2" -> throw ExpressionException("builtin function _rol2 can't be used in expressions because it doesn't return a value", position)
+                "ror" -> throw ExpressionException("builtin function _ror can't be used in expressions because it doesn't return a value", position)
+                "ror2" -> throw ExpressionException("builtin function _ror2 can't be used in expressions because it doesn't return a value", position)
+                "P_carry" -> throw ExpressionException("builtin function _P_carry can't be used in expressions because it doesn't return a value", position)
+                "P_irqd" -> throw ExpressionException("builtin function _P_irqd can't be used in expressions because it doesn't return a value", position)
                 else -> null
             }
         }
@@ -1252,7 +1278,7 @@ private fun il65Parser.BooleanliteralContext.toAst() = when(text) {
 
 
 private fun il65Parser.ArrayliteralContext.toAst(withPosition: Boolean) =
-        expression().map { it.toAst(withPosition) }
+        expression().map { it.toAst(withPosition) }.toMutableList()
 
 
 private fun il65Parser.If_stmtContext.toAst(withPosition: Boolean): IfStatement {

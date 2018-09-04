@@ -20,8 +20,8 @@ fun Module.checkValid(globalNamespace: INameScope) {
 
 
 /**
- * todo check subroutine parameters against signature
- * todo check subroutine return values against target assignment values
+ * todo check subroutine call parameters against signature
+ * todo check subroutine return values against the call's result assignments
  */
 
 class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
@@ -125,11 +125,12 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
             VarDeclType.VAR, VarDeclType.CONST -> {
                 when {
                     decl.value == null ->
-                        err("need a compile-time constant initializer value")
+                        err("var/const declaration needs a compile-time constant initializer value")
                     decl.value !is LiteralValue ->
-                        err("need a compile-time constant initializer value, found: ${decl.value!!::class.simpleName}")
+                        err("var/const declaration needs a compile-time constant initializer value, found: ${decl.value!!::class.simpleName}")
                     decl.isScalar -> {
                         checkConstInitializerValueScalar(decl)
+                        checkValueType(decl, decl.value as LiteralValue, decl.position)
                         checkValueRange(decl.datatype, decl.value as LiteralValue, decl.position)
                     }
                     decl.isArray || decl.isMatrix -> {
@@ -298,10 +299,10 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
 
     override fun process(functionCall: FunctionCall): IExpression {
         // this function call is (part of) an expression, which should be in a statement somewhere.
-        val statementNode = findParentNode<IStatement>(functionCall)
+        val stmtOfExpression = findParentNode<IStatement>(functionCall)
                 ?: throw FatalAstException("cannot determine statement scope of function call expression at ${functionCall.position}")
 
-        val targetStatement = checkFunctionOrLabelExists(functionCall.target, statementNode)
+        val targetStatement = checkFunctionOrLabelExists(functionCall.target, stmtOfExpression)
         if(targetStatement!=null)
             functionCall.targetStatement = targetStatement      // link to the actual target statement
         return super.process(functionCall)
@@ -315,6 +316,8 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
     }
 
     private fun checkFunctionOrLabelExists(target: IdentifierReference, statement: IStatement): IStatement? {
+        if(target.nameInSource.size==1 && BuiltinFunctionNames.contains(target.nameInSource[0]))
+             return BuiltinFunctionStatementPlaceholder
         val targetStatement = globalNamespace.lookup(target.nameInSource, statement)
         if(targetStatement is Label || targetStatement is Subroutine)
             return targetStatement
@@ -331,23 +334,54 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
             DataType.FLOAT -> {
                 val number = value.asFloat(false)
                 if (number!=null && (number > 1.7014118345e+38 || number < -1.7014118345e+38))
-                    return err("floating point value out of range for MFLPT format")
+                    return err("floating point value '$number' out of range for MFLPT format")
             }
             DataType.BYTE -> {
                 val number = value.asInt(false)
                 if (number!=null && (number < 0 || number > 255))
-                    return err("value out of range for unsigned byte")
+                    return err("value '$number' out of range for unsigned byte")
             }
             DataType.WORD -> {
                 val number = value.asInt(false)
                 if (number!=null && (number < 0 || number > 65535))
-                    return err("value out of range for unsigned word")
+                    return err("value '$number' out of range for unsigned word")
             }
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
                 val str = value.strvalue
                 if (str!=null && (str.isEmpty() || str.length > 65535))
                     return err("string length must be 1..65535")
             }
+        }
+        return true
+    }
+
+    private fun checkValueType(vardecl: VarDecl, value: LiteralValue, position: Position?) : Boolean {
+        fun err(msg: String) : Boolean {
+            checkResult.add(SyntaxError(msg, position))
+            return false
+        }
+        when {
+            vardecl.isScalar -> when (vardecl.datatype) {
+                DataType.FLOAT -> {
+                    if (value.floatvalue == null)
+                        return err("floating point value expected")
+                }
+                DataType.BYTE -> {
+                    if (value.intvalue == null)
+                        return err("byte integer value expected")
+                }
+                DataType.WORD -> {
+                    if (value.intvalue == null)
+                        return err("word integer value expected")
+                }
+                DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
+                    if (value.strvalue == null)
+                        return err("string value expected")
+                }
+            }
+            vardecl.isArray -> if(value.arrayvalue==null)
+                return err("array value expected")
+            vardecl.isMatrix -> TODO()
         }
         return true
     }
