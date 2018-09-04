@@ -22,6 +22,9 @@
           return A+snerp2
         }
 
+    sub thingy()->() {
+        return 99
+    }
 }
 
 

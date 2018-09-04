@@ -129,9 +129,9 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
                     decl.value !is LiteralValue ->
                         err("var/const declaration needs a compile-time constant initializer value, found: ${decl.value!!::class.simpleName}")
                     decl.isScalar -> {
-                        checkConstInitializerValueScalar(decl)
-                        checkValueType(decl, decl.value as LiteralValue, decl.position)
-                        checkValueRange(decl.datatype, decl.value as LiteralValue, decl.position)
+                        if(checkValueType(decl, decl.value as LiteralValue, decl.position)) {
+                            checkValueRange(decl.datatype, decl.value as LiteralValue, decl.position)
+                        }
                     }
                     decl.isArray || decl.isMatrix -> {
                         checkConstInitializerValueArray(decl)
@@ -159,7 +159,7 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
     override fun process(ifStatement: IfStatement): IStatement {
         val constvalue = ifStatement.condition.constValue(globalNamespace)
         if(constvalue!=null) {
-            val msg = if (constvalue.asBoolean()) "condition is always true" else "condition is always false"
+            val msg = if (constvalue.asBooleanValue) "condition is always true" else "condition is always false"
             println("${ifStatement.position} Warning: $msg")
         }
 
@@ -303,26 +303,48 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
                 ?: throw FatalAstException("cannot determine statement scope of function call expression at ${functionCall.position}")
 
         val targetStatement = checkFunctionOrLabelExists(functionCall.target, stmtOfExpression)
-        if(targetStatement!=null)
+        if(targetStatement!=null) {
             functionCall.targetStatement = targetStatement      // link to the actual target statement
+            checkBuiltinFunctionCall(functionCall, functionCall.position)
+        }
         return super.process(functionCall)
     }
 
     override fun process(functionCall: FunctionCallStatement): IStatement {
         val targetStatement = checkFunctionOrLabelExists(functionCall.target, functionCall)
-        if(targetStatement!=null)
+        if(targetStatement!=null) {
             functionCall.targetStatement = targetStatement      // link to the actual target statement
+            checkBuiltinFunctionCall(functionCall, functionCall.position)
+        }
         return super.process(functionCall)
     }
 
     private fun checkFunctionOrLabelExists(target: IdentifierReference, statement: IStatement): IStatement? {
-        if(target.nameInSource.size==1 && BuiltinFunctionNames.contains(target.nameInSource[0]))
-             return BuiltinFunctionStatementPlaceholder
+        if(target.nameInSource.size==1 && BuiltinFunctionNames.contains(target.nameInSource[0])) {
+            return BuiltinFunctionStatementPlaceholder
+        }
         val targetStatement = globalNamespace.lookup(target.nameInSource, statement)
         if(targetStatement is Label || targetStatement is Subroutine)
             return targetStatement
         checkResult.add(SyntaxError("undefined function or subroutine: ${target.nameInSource.joinToString(".")}", statement.position))
         return null
+    }
+
+    private fun checkBuiltinFunctionCall(call: IFunctionCall, position: Position?) {
+        if(call.target.nameInSource.size==1 && BuiltinFunctionNames.contains(call.target.nameInSource[0])) {
+            val functionName = call.target.nameInSource[0]
+            if(functionName=="P_carry" || functionName=="P_irqd") {
+                // these functions allow only 0 or 1 as argument
+                if(call.arglist.size!=1 || call.arglist[0] !is LiteralValue) {
+                    checkResult.add(SyntaxError("$functionName requires one argument, 0 or 1", position))
+                } else {
+                    val value = call.arglist[0] as LiteralValue
+                    if(value.intvalue==null || value.intvalue < 0 || value.intvalue > 1) {
+                        checkResult.add(SyntaxError("$functionName requires one argument, 0 or 1", position))
+                    }
+                }
+            }
+        }
     }
 
     private fun checkValueRange(datatype: DataType, value: LiteralValue, position: Position?) : Boolean {
@@ -332,23 +354,27 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
         }
         when (datatype) {
             DataType.FLOAT -> {
-                val number = value.asFloat(false)
-                if (number!=null && (number > 1.7014118345e+38 || number < -1.7014118345e+38))
+                val number = value.floatvalue
+                        ?: return err("floating point value expected")
+                if (number > 1.7014118345e+38 || number < -1.7014118345e+38)
                     return err("floating point value '$number' out of range for MFLPT format")
             }
             DataType.BYTE -> {
-                val number = value.asInt(false)
-                if (number!=null && (number < 0 || number > 255))
+                val number = value.intvalue
+                        ?: return err("byte integer value expected")
+                if (number < 0 || number > 255)
                     return err("value '$number' out of range for unsigned byte")
             }
             DataType.WORD -> {
-                val number = value.asInt(false)
-                if (number!=null && (number < 0 || number > 65535))
+                val number = value.intvalue
+                        ?: return err("word integer value expected")
+                if (number < 0 || number > 65535)
                     return err("value '$number' out of range for unsigned word")
             }
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
                 val str = value.strvalue
-                if (str!=null && (str.isEmpty() || str.length > 65535))
+                        ?: return err("string value expected")
+                if (str.isEmpty() || str.length > 65535)
                     return err("string length must be 1..65535")
             }
         }
@@ -384,34 +410,5 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
             vardecl.isMatrix -> TODO()
         }
         return true
-    }
-
-    private fun checkConstInitializerValueScalar(decl: VarDecl) {
-        fun err(msg: String) {
-            checkResult.add(SyntaxError(msg, decl.position))
-        }
-        val value = decl.value as LiteralValue
-        when (decl.datatype) {
-            DataType.FLOAT -> {
-                val number = value.asFloat(false)
-                if (number == null)
-                    err("need a const float initializer value")
-            }
-            DataType.BYTE -> {
-                val number = value.asInt(false)
-                if (number == null)
-                    err("need a const integer initializer value")
-            }
-            DataType.WORD -> {
-                val number = value.asInt(false)
-                if (number == null)
-                    err("need a const integer initializer value")
-            }
-            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
-                val str = value.strvalue
-                if (str == null)
-                    err("need a const string initializer value")
-            }
-        }
     }
 }

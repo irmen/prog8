@@ -1,6 +1,8 @@
 package il65.functions
 
 import il65.ast.*
+import kotlin.math.abs
+import kotlin.math.floor
 
 
 val BuiltIns = listOf(
@@ -16,9 +18,9 @@ private fun oneDoubleArg(args: List<IExpression>, position: Position?, namespace
     if(args.size!=1)
         throw SyntaxError("built-in function requires one floating point argument", position)
 
-    val float = args[0].constValue(namespace)?.asFloat()
+    val float = args[0].constValue(namespace)?.asNumericValue?.toDouble()
     if(float!=null) {
-        val result = intOrFloatLiteral(function(float).toDouble(), args[0].position)
+        val result = numericLiteral(function(float), args[0].position)
         result.position = args[0].position
         return result
     }
@@ -30,7 +32,7 @@ private fun oneDoubleArgOutputInt(args: List<IExpression>, position: Position?, 
     if(args.size!=1)
         throw SyntaxError("built-in function requires one floating point argument", position)
 
-    val float = args[0].constValue(namespace)?.asFloat()
+    val float = args[0].constValue(namespace)?.asNumericValue?.toDouble()
     if(float!=null) {
         val result = LiteralValue(function(float).toInt())
         result.position = args[0].position
@@ -44,7 +46,7 @@ private fun oneIntArgOutputInt(args: List<IExpression>, position: Position?, nam
     if(args.size!=1)
         throw SyntaxError("built-in function requires one integer argument", position)
 
-    val integer = args[0].constValue(namespace)?.asInt()
+    val integer = args[0].constValue(namespace)?.asNumericValue?.toInt()
     if(integer!=null) {
         val result = LiteralValue(function(integer).toInt())
         result.position = args[0].position
@@ -54,31 +56,38 @@ private fun oneIntArgOutputInt(args: List<IExpression>, position: Position?, nam
         throw NotConstArgumentException()
 }
 
-private fun nonScalarArgOutputNumber(args: List<IExpression>, position: Position?, namespace:INameScope,
-                                     function: (arg: Collection<Double>)->Number): LiteralValue {
+private fun collectionArgOutputNumber(args: List<IExpression>, position: Position?, namespace:INameScope,
+                                      function: (arg: Collection<Double>)->Number): LiteralValue {
     if(args.size!=1)
         throw SyntaxError("builtin function requires one non-scalar argument", position)
     val iterable = args[0].constValue(namespace)
     if(iterable?.arrayvalue == null)
         throw SyntaxError("builtin function requires one non-scalar argument", position)
-    val constants = iterable.arrayvalue.map { it.constValue(namespace) }
+    val constants = iterable.arrayvalue.map { it.constValue(namespace)?.asNumericValue }
     if(constants.contains(null))
         throw NotConstArgumentException()
-    val result = function(constants.map { it?.asFloat()!! }).toDouble()
-    return intOrFloatLiteral(result, args[0].position)
+    val result = function(constants.map { it!!.toDouble() }).toDouble()
+    val value =
+            if(result-floor(result) == 0.0) {
+                LiteralValue(result.toInt())
+            } else {
+                LiteralValue(floatvalue = result)
+            }
+    value.position = args[0].position
+    return value
 }
 
-private fun nonScalarArgOutputBoolean(args: List<IExpression>, position: Position?, namespace:INameScope,
-                                      function: (arg: Collection<Double>)->Boolean): LiteralValue {
+private fun collectionArgOutputBoolean(args: List<IExpression>, position: Position?, namespace:INameScope,
+                                       function: (arg: Collection<Double>)->Boolean): LiteralValue {
     if(args.size!=1)
         throw SyntaxError("builtin function requires one non-scalar argument", position)
     val iterable = args[0].constValue(namespace)
     if(iterable?.arrayvalue == null)
         throw SyntaxError("builtin function requires one non-scalar argument", position)
-    val constants = iterable.arrayvalue.map { it.constValue(namespace) }
+    val constants = iterable.arrayvalue.map { it.constValue(namespace)?.asNumericValue }
     if(constants.contains(null))
         throw NotConstArgumentException()
-    val result = function(constants.map { it?.asFloat()!! })
+    val result = function(constants.map { it?.toDouble()!! })
     return LiteralValue(if(result) 1 else 0)
 }
 
@@ -124,8 +133,25 @@ fun builtinRad(args: List<IExpression>, position: Position?, namespace:INameScop
 fun builtinDeg(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
         = oneDoubleArg(args, position, namespace, Math::toDegrees)
 
-fun builtinAbs(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
-        = oneDoubleArg(args, position, namespace, Math::abs)
+fun builtinAbs(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue {
+    // 1 arg, type = float or int, result type= same as argument type
+    if(args.size!=1)
+        throw SyntaxError("abs requires one numeric argument", position)
+
+    val constval = args[0].constValue(namespace) ?: throw NotConstArgumentException()
+    var number = constval.asNumericValue
+    val result =
+            if(number is Int || number is Byte || number is Short) {
+                number = number.toInt()
+                LiteralValue(intvalue = abs(number))
+            } else if(number is Double) {
+                LiteralValue(floatvalue = abs(number.toDouble()))
+            } else {
+                throw SyntaxError("abs requires one numeric argument", position)
+            }
+    result.position = args[0].position
+    return result
+}
 
 fun builtinLsl(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
         = oneIntArgOutputInt(args, position, namespace) { x: Int -> x shl 1 }
@@ -134,33 +160,60 @@ fun builtinLsr(args: List<IExpression>, position: Position?, namespace:INameScop
         = oneIntArgOutputInt(args, position, namespace) { x: Int -> x ushr 1 }
 
 fun builtinMin(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
-        = nonScalarArgOutputNumber(args, position, namespace) { it.min()!! }
+        = collectionArgOutputNumber(args, position, namespace) { it.min()!! }
 
 fun builtinMax(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
-        = nonScalarArgOutputNumber(args, position, namespace) { it.max()!! }
+        = collectionArgOutputNumber(args, position, namespace) { it.max()!! }
 
 fun builtinSum(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
-        = nonScalarArgOutputNumber(args, position, namespace) { it.sum() }
+        = collectionArgOutputNumber(args, position, namespace) { it.sum() }
 
-fun builtinAvg(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
-        = nonScalarArgOutputNumber(args, position, namespace) { it.average() }
+fun builtinAvg(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue {
+    if(args.size!=1)
+        throw SyntaxError("avg requires one non-scalar argument", position)
+    val iterable = args[0].constValue(namespace)
+    if(iterable?.arrayvalue == null)
+        throw SyntaxError("avg requires one non-scalar argument", position)
+    val constants = iterable.arrayvalue.map { it.constValue(namespace)?.asNumericValue }
+    if(constants.contains(null))
+        throw NotConstArgumentException()
+    val result = (constants.map { it!!.toDouble() }).average()
+    val value = LiteralValue(floatvalue = result)
+    value.position = args[0].position
+    return value
+}
 
-fun builtinLen(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
-        = nonScalarArgOutputNumber(args, position, namespace) { it.size }
+fun builtinLen(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue {
+    if(args.size!=1)
+        throw SyntaxError("len requires one non-scalar argument", position)
+    val iterable = args[0].constValue(namespace)
+    if(iterable?.arrayvalue == null)
+        throw SyntaxError("len requires one non-scalar argument", position)
+    val constants = iterable.arrayvalue.map { it.constValue(namespace)?.asNumericValue }
+    if(constants.contains(null))
+        throw NotConstArgumentException()
+    val result = (constants.map { it!!.toDouble() }).size
+    val value = LiteralValue(intvalue = result)
+    value.position = args[0].position
+    return value
+}
 
 fun builtinAny(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
-        = nonScalarArgOutputBoolean(args, position, namespace) { it.any { v -> v != 0.0} }
+        = collectionArgOutputBoolean(args, position, namespace) { it.any { v -> v != 0.0} }
 
 fun builtinAll(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
-        = nonScalarArgOutputBoolean(args, position, namespace) { it.all { v -> v != 0.0} }
+        = collectionArgOutputBoolean(args, position, namespace) { it.all { v -> v != 0.0} }
 
 
-private fun intOrFloatLiteral(value: Double, position: Position?): LiteralValue {
-    val intresult = value.toInt()
-    val result = if(value-intresult==0.0)
-        LiteralValue(intvalue = intresult)
-    else
-        LiteralValue(floatvalue = value)
+private fun numericLiteral(value: Number, position: Position?): LiteralValue {
+    val result = when(value) {
+        is Int -> LiteralValue(intvalue = value.toInt())
+        is Short -> LiteralValue(intvalue = value.toInt())
+        is Byte -> LiteralValue(intvalue = value.toInt())
+        is Double -> LiteralValue(floatvalue = value.toDouble())
+        is Float -> LiteralValue(floatvalue = value.toDouble())
+        else -> throw FatalAstException("invalid number type ${value::class}")
+    }
     result.position = position
     return result
 }

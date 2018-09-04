@@ -1,5 +1,6 @@
 package il65.compiler
 
+import il65.ast.Block
 import il65.ast.INameScope
 import il65.ast.Module
 import kotlin.experimental.and
@@ -93,7 +94,16 @@ class Compiler(private val options: CompilationOptions, val namespace: INameScop
     }
 
     fun compile(module: Module) : IntermediateForm {
-        println("......@TODO compile Ast into Intermediate result......")       // todo
+        println("\nCompiling parsed source code to intermediate code...")
+        // todo
+
+        namespace.debugPrint()
+
+        module.statements.filter { it is Block }.map {
+            with(it as Block) {
+                "$address $scopedname"
+            }
+        }.forEach { println(it) }
         return IntermediateForm(module.name)
     }
 }
@@ -101,11 +111,13 @@ class Compiler(private val options: CompilationOptions, val namespace: INameScop
 
 class IntermediateForm(val name: String) {
     fun optimize() {
-        println("......@TODO optimize intermediate result......")       // todo
+        println("\nOptimizing intermediate code...")
+        // todo
     }
 
     fun compileToAssembly(): AssemblyResult {
-        println("......@TODO compile intermediate result to assembly code......")       // todo
+        println("\nGenerating assembly code from intermediate code... ")
+        // todo
         return AssemblyResult(name)
     }
 
@@ -136,10 +148,10 @@ data class CompilationOptions(val output: OutputType,
 
 class AssemblyResult(val name: String) {
     fun assemble(options: CompilationOptions, inputfilename: String, outputfilename: String) {
-        println("......@TODO assemble with 64tass......")       // todo
+        println("\nGenerating machine code program...")
 
         val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "-Wall", "-Wno-strict-bool",
-            "--dump-labels", "--vice-labels", "-l", outputfilename+".vice-mon-list",
+            "--dump-labels", "--vice-labels", "-l", "$outputfilename.vice-mon-list",
             "--no-monitor", "--output", outputfilename, inputfilename)
 
         when(options.output) {

@@ -518,6 +518,10 @@ class VarDecl(val type: VarDeclType,
     fun arraySizeY(namespace: INameScope) : Int? {
         return arrayspec?.y?.constValue(namespace)?.intvalue
     }
+
+    override fun toString(): String {
+        return "VarDecl(name=$name, vartype=$type, datatype=$datatype, value=$value, pos=$position)"
+    }
 }
 
 
@@ -601,31 +605,19 @@ class LiteralValue(val intvalue: Int? = null,
     override lateinit var parent: Node
     override fun referencesIdentifier(name: String) = arrayvalue?.any { it.referencesIdentifier(name) } ?: false
 
-    fun asInt(errorIfNotNumeric: Boolean=true): Int? {
-        return when {
-            intvalue!=null -> intvalue
-            floatvalue!=null -> floatvalue.toInt()
-            else -> {
-                if((strvalue!=null || arrayvalue!=null) && errorIfNotNumeric)
-                    throw AstException("attempt to get int value from non-numeric $this")
-                else null
-            }
-        }
+    val isInteger = intvalue!=null
+    val isFloat = floatvalue!=null
+    val isNumeric = intvalue!=null || floatvalue!=null
+    val isArray = arrayvalue!=null
+    val isString = strvalue!=null
+
+    val asNumericValue: Number? = when {
+        intvalue!=null -> intvalue
+        floatvalue!=null -> floatvalue
+        else -> null
     }
 
-    fun asFloat(errorIfNotNumeric: Boolean=true): Double? {
-        return when {
-            floatvalue!=null -> floatvalue
-            intvalue!=null -> intvalue.toDouble()
-            else -> {
-                if((strvalue!=null || arrayvalue!=null) && errorIfNotNumeric)
-                    throw AstException("attempt to get float value from non-numeric $this")
-                else null
-            }
-        }
-    }
-
-    fun asBoolean(): Boolean =
+    val asBooleanValue: Boolean =
             (floatvalue!=null && floatvalue != 0.0) ||
             (intvalue!=null && intvalue != 0) ||
             (strvalue!=null && strvalue.isNotEmpty()) ||
@@ -775,12 +767,12 @@ class FunctionCall(override var target: IdentifierReference, override var arglis
                 "ceil" -> builtinCeil(arglist, position, namespace)
                 "lsl" -> builtinLsl(arglist, position, namespace)
                 "lsr" -> builtinLsr(arglist, position, namespace)
-                "rol" -> throw ExpressionException("builtin function _rol can't be used in expressions because it doesn't return a value", position)
-                "rol2" -> throw ExpressionException("builtin function _rol2 can't be used in expressions because it doesn't return a value", position)
-                "ror" -> throw ExpressionException("builtin function _ror can't be used in expressions because it doesn't return a value", position)
-                "ror2" -> throw ExpressionException("builtin function _ror2 can't be used in expressions because it doesn't return a value", position)
-                "P_carry" -> throw ExpressionException("builtin function _P_carry can't be used in expressions because it doesn't return a value", position)
-                "P_irqd" -> throw ExpressionException("builtin function _P_irqd can't be used in expressions because it doesn't return a value", position)
+                "rol" -> throw ExpressionException("builtin function rol can't be used in expressions because it doesn't return a value", position)
+                "rol2" -> throw ExpressionException("builtin function rol2 can't be used in expressions because it doesn't return a value", position)
+                "ror" -> throw ExpressionException("builtin function ror can't be used in expressions because it doesn't return a value", position)
+                "ror2" -> throw ExpressionException("builtin function ror2 can't be used in expressions because it doesn't return a value", position)
+                "P_carry" -> throw ExpressionException("builtin function P_carry can't be used in expressions because it doesn't return a value", position)
+                "P_irqd" -> throw ExpressionException("builtin function P_irqd can't be used in expressions because it doesn't return a value", position)
                 else -> null
             }
         }
@@ -791,7 +783,7 @@ class FunctionCall(override var target: IdentifierReference, override var arglis
     }
 
     override fun toString(): String {
-        return "FunctionCall(target=$target, targetStmt=$targetStatement, pos=$position)"
+        return "FunctionCall(target=$target, pos=$position)"
     }
 
     override fun process(processor: IAstProcessor) = processor.process(this)

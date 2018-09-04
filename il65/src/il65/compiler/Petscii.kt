@@ -1052,7 +1052,11 @@ class Petscii {
         fun encodePetscii(text: String, lowercase: Boolean = false): List<Short> {
             val lookup = if(lowercase) encodingPetsciiLowercase else encodingPetsciiUppercase
             return text.map {
-                val petscii = lookup[it] ?: throw CompilerException("no Petscii character for '$it'")
+                val petscii = lookup[it]
+                if(petscii==null) {
+                    val case = if(lowercase) "lower" else "upper"
+                    throw CompilerException("no ${case}case Petscii character for '$it'")
+                }
                 petscii.toShort()
             }
         }
@@ -1065,7 +1069,11 @@ class Petscii {
         fun encodeScreencode(text: String, lowercase: Boolean = false): List<Short> {
             val lookup = if(lowercase) encodingScreencodeLowercase else encodingScreencodeUppercase
             return text.map{
-                val screencode = lookup[it] ?: throw CompilerException("no Screencode character for '$it'")
+                val screencode = lookup[it]
+                if(screencode==null) {
+                    val case = if(lowercase) "lower" else "upper"
+                    throw CompilerException("no ${case}Screencode character for '$it'")
+                }
                 screencode.toShort()
             }
         }

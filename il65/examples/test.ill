@@ -6,9 +6,10 @@
 ~ main $c003  {
 
   const word len1 = len([1,2,3,wa1, wa2, ws1, all1])
-  const word wa1 = abs(-999)
+  const word wa1 = ceil(abs(-999.22))
   const byte wa2 = abs(-99)
   const float wa3 = abs(-1.23456)
+  const float wa4 = abs(-133)
   const float avg1 = avg([-1.23456, 99999])
   const float sum1 = sum([-1.23456, 99999])
   const word ws1 = floor(sum([1,2,3,4.9]))
@@ -28,14 +29,15 @@
 	A = X>2
 	X = Y>Y
 
+    byte myByteChar = "A"
+    word myWordChar = "B"
   word[1000]  ascending = 10 to 1009
-  word[100]  ascending2 = "a" to "z"
   str  ascending3 = "a" to "z"
   str  ascending5 = "z" to "z"
   const byte cc = 4 + (2==9)
   byte cc2 = 4 - (2==10)
   memory byte derp = max([$ffdd])
-  memory byte derpA = abs(-2.5-0.5)
+  memory byte derpA = abs(-20000)
   memory byte derpB = max([1, 2.2, 4.4, 100])
   memory byte cderp = min([$ffdd])+ (1/1)
   memory byte cderpA = min([$ffdd, 10, 20, 30])
@@ -92,17 +94,20 @@
 
 	if(6==6) {
 		A=sin(X)
+		A=sin([X])
 		X=max([1,2,Y])
 		X=min([1,2,Y])
-		X=lsl(1)
+		X=lsl(1.2)
 		X=lsl(Y)
 		P_carry(0)
-		P_carry(Y)         ; TODO error
-		P_carry(9.99)      ; TODO error
+		P_carry(1)
+		P_carry(1-1)
 		P_irqd(0)
-		P_irqd(Y)         ; TODO error
-		P_irqd(9.99)      ; TODO error
+		P_irqd(1)
 	}  else X=33
+
+        X= extra233.thingy()        ; TODO EHHHH, should be counted as used?
+
 
 	if(6>36) {
 		A=99
@@ -126,6 +131,7 @@ cool:
 mega:
 cool:
     sub ultrafoo() -> () {
+        X= extra233.thingy()       ; TODO EHHHH, should be counted as used?
         return 33
         goto main.mega
     }

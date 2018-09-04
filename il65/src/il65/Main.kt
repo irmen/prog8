@@ -64,12 +64,13 @@ fun main(args: Array<String>) {
         val intermediate = compiler.compile(moduleAst)
         intermediate.optimize()
 
-//        val assembler = intermediate.compileToAssembly()
-//        assembler.assemble(compilerOptions, "input", "output")
-//        val monitorfile = assembler.generateBreakpointList()
+//        val assembly = intermediate.compileToAssembly()
+//
+//        assembly.assemble(compilerOptions, "input", "output")
+//        val monitorfile = assembly.generateBreakpointList()
 
         val endTime = System.currentTimeMillis()
-        println("Compilation time: ${(endTime-startTime)/1000.0} sec.")
+        println("\nTotal compilation time: ${(endTime-startTime)/1000.0} sec.")
 
 //        // start the vice emulator
 //        val program = "foo"

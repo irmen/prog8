@@ -64,7 +64,7 @@ class StatementOptimizer(private val globalNamespace: INameScope) : IAstProcesso
         super.process(ifStatement)
         val constvalue = ifStatement.condition.constValue(globalNamespace)
         if(constvalue!=null) {
-            return if(constvalue.asBoolean()) {
+            return if(constvalue.asBooleanValue){
                 // always true -> keep only if-part
                 println("${ifStatement.position} Warning: condition is always true")
                 AnonymousStatementList(ifStatement.parent, ifStatement.statements)

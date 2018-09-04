@@ -2,6 +2,7 @@ package il65.optimizing
 
 import il65.parser.ParsingFailedError
 import il65.ast.*
+import il65.compiler.Petscii
 import kotlin.math.pow
 
 
@@ -64,7 +65,33 @@ class ExpressionOptimizer(private val globalNamespace: INameScope) : IAstProcess
             errors.add(ExpressionException("recursive var declaration", decl.position))
             return decl
         }
-        return super.process(decl)
+
+        val result = super.process(decl)
+
+        if(decl.type==VarDeclType.CONST || decl.type==VarDeclType.VAR) {
+            when {
+                decl.datatype == DataType.FLOAT -> {
+                    // vardecl: for float vars, promote constant integer initialization values to floats
+                    val literal = decl.value as? LiteralValue
+                    if (literal != null && literal.isInteger) {
+                        val newValue = LiteralValue(floatvalue = literal.intvalue!!.toDouble())
+                        newValue.position = literal.position
+                        decl.value = newValue
+                    }
+                }
+                decl.datatype == DataType.BYTE || decl.datatype == DataType.WORD -> {
+                    // vardecl: for byte/word vars, convert char/string of length 1 initialization values to integer
+                    val literal = decl.value as? LiteralValue
+                    if (literal != null && literal.isString && literal.strvalue?.length == 1) {
+                        val petscii = Petscii.encodePetscii(literal.strvalue)[0]
+                        val newValue = LiteralValue(petscii.toInt())
+                        newValue.position = literal.position
+                        decl.value = newValue
+                    }
+                }
+            }
+        }
+        return result
     }
 
     /**
