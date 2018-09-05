@@ -106,7 +106,7 @@
 		P_irqd(1)
 	}  else X=33
 
-        X= extra233.thingy()        ; TODO EHHHH, should be counted as used?
+        X= extra233.thingy()
 
 
 	if(6>36) {
@@ -131,7 +131,7 @@ cool:
 mega:
 cool:
     sub ultrafoo() -> () {
-        X= extra233.thingy()       ; TODO EHHHH, should be counted as used?
+        X= extra233.thingy()
         return 33
         goto main.mega
     }

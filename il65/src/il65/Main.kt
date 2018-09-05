@@ -27,19 +27,6 @@ fun main(args: Array<String>) {
         moduleAst.linkParents()
         val globalNameSpaceBeforeOptimization = moduleAst.definingScope()
 
-
-        // perform syntax checks and optimizations
-        moduleAst.checkIdentifiers()
-        moduleAst.optimizeExpressions(globalNameSpaceBeforeOptimization)
-        moduleAst.checkValid(globalNameSpaceBeforeOptimization)          // check if tree is valid
-        val allScopedSymbolDefinitions = moduleAst.checkIdentifiers()
-        moduleAst.optimizeStatements(globalNameSpaceBeforeOptimization, allScopedSymbolDefinitions)
-        val globalNamespaceAfterOptimize = moduleAst.definingScope()    // it could have changed in the meantime
-        moduleAst.checkValid(globalNamespaceAfterOptimize)          // check if final tree is valid
-        moduleAst.checkRecursion()      // check if there are recursive subroutine calls
-
-        // globalNamespaceAfterOptimize.debugPrint()
-
         // determine special compiler options
 
         val options = moduleAst.statements.filter { it is Directive && it.directive=="%option" }.flatMap { (it as Directive).args }.toSet()
@@ -56,6 +43,19 @@ fun main(args: Array<String>) {
                 if(zpType==null) ZeropageType.COMPATIBLE else ZeropageType.valueOf(zpType),
                 options.contains(DirectiveArg(null, "enable_floats", null))
         )
+
+
+        // perform syntax checks and optimizations
+        moduleAst.checkIdentifiers()
+        moduleAst.optimizeExpressions(globalNameSpaceBeforeOptimization)
+        moduleAst.checkValid(globalNameSpaceBeforeOptimization, compilerOptions)          // check if tree is valid
+        val allScopedSymbolDefinitions = moduleAst.checkIdentifiers()
+        moduleAst.optimizeStatements(globalNameSpaceBeforeOptimization, allScopedSymbolDefinitions)
+        val globalNamespaceAfterOptimize = moduleAst.definingScope()    // it could have changed in the meantime
+        moduleAst.checkValid(globalNamespaceAfterOptimize, compilerOptions)          // check if final tree is valid
+        moduleAst.checkRecursion()      // check if there are recursive subroutine calls
+
+        // globalNamespaceAfterOptimize.debugPrint()
 
 
         // compile the syntax tree into intermediate form, and optimize that

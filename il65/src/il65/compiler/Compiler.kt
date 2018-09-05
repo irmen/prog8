@@ -89,10 +89,6 @@ data class Mflpt5(val b0: Short, val b1: Short, val b2: Short, val b3: Short, va
 
 
 class Compiler(private val options: CompilationOptions, val namespace: INameScope) {
-    init {
-        val zeropage = Zeropage(options)
-    }
-
     fun compile(module: Module) : IntermediateForm {
         println("\nCompiling parsed source code to intermediate code...")
         // todo

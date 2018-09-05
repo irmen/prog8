@@ -1,5 +1,6 @@
 package il65.ast
 
+import il65.compiler.CompilationOptions
 import il65.functions.BuiltIns
 import il65.parser.ParsingFailedError
 
@@ -7,8 +8,8 @@ import il65.parser.ParsingFailedError
  * General checks on the Ast
  */
 
-fun Module.checkValid(globalNamespace: INameScope) {
-    val checker = AstChecker(globalNamespace)
+fun Module.checkValid(globalNamespace: INameScope, compilerOptions: CompilationOptions) {
+    val checker = AstChecker(globalNamespace, compilerOptions)
     this.process(checker)
     val checkResult = checker.result()
     checkResult.forEach {
@@ -24,7 +25,7 @@ fun Module.checkValid(globalNamespace: INameScope) {
  * todo check subroutine return values against the call's result assignments
  */
 
-class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
+class AstChecker(private val globalNamespace: INameScope, val compilerOptions: CompilationOptions) : IAstProcessor {
     private val checkResult: MutableList<SyntaxError> = mutableListOf()
 
     fun result(): List<SyntaxError> {
@@ -119,6 +120,10 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
                 decl.arrayspec?.x?.referencesIdentifier(decl.name) == true ||
                 decl.arrayspec?.y?.referencesIdentifier(decl.name) == true) {
             err("recursive var declaration")
+        }
+
+        if(!compilerOptions.floats && decl.datatype==DataType.FLOAT) {
+            err("float var/const declaration, but floating point is not enabled via options")
         }
 
         when(decl.type) {
@@ -231,6 +236,13 @@ class AstChecker(private val globalNamespace: INameScope) : IAstProcessor {
             else -> throw SyntaxError("invalid directive ${directive.directive}", directive.position)
         }
         return super.process(directive)
+    }
+
+    override fun process(literalValue: LiteralValue): LiteralValue {
+        if(!compilerOptions.floats && literalValue.isFloat) {
+            checkResult.add(SyntaxError("floating point value used, but floating point is not enabled via options", literalValue.position))
+        }
+        return super.process(literalValue)
     }
 
     private fun checkConstInitializerValueArray(decl: VarDecl) {

@@ -383,7 +383,10 @@ class Module(override val name: String,
         }
 
         override fun registerUsedName(name: String) {
+            // make sure to also register each scope separately
             scopedNamesUsed.add(name)
+            if(name.contains('.'))
+                registerUsedName(name.substringBeforeLast('.'))
         }
     }
 }
@@ -412,7 +415,7 @@ class Block(override val name: String,
 }
 
 
-class Directive(val directive: String, val args: List<DirectiveArg>) : IStatement {
+data class Directive(val directive: String, val args: List<DirectiveArg>) : IStatement {
     override var position: Position? = null
     override lateinit var parent: Node
 
@@ -425,7 +428,7 @@ class Directive(val directive: String, val args: List<DirectiveArg>) : IStatemen
 }
 
 
-class DirectiveArg(val str: String?, val name: String?, val int: Int?) : Node {
+data class DirectiveArg(val str: String?, val name: String?, val int: Int?) : Node {
     override var position: Position? = null
     override lateinit var parent: Node
 
@@ -435,7 +438,7 @@ class DirectiveArg(val str: String?, val name: String?, val int: Int?) : Node {
 }
 
 
-class Label(val name: String) : IStatement {
+data class Label(val name: String) : IStatement {
     override var position: Position? = null
     override lateinit var parent: Node
     val scopedname: List<String> by lazy { makeScopedName(name) }
@@ -542,7 +545,7 @@ class Assignment(var target: AssignTarget, val aug_op : String?, var value: IExp
     }
 }
 
-class AssignTarget(val register: Register?, val identifier: IdentifierReference?) : Node {
+data class AssignTarget(val register: Register?, val identifier: IdentifierReference?) : Node {
     override var position: Position? = null
     override lateinit var parent: Node
 
@@ -597,7 +600,7 @@ class BinaryExpression(var left: IExpression, val operator: String, var right: I
     override fun referencesIdentifier(name: String) = left.referencesIdentifier(name) || right.referencesIdentifier(name)
 }
 
-class LiteralValue(val intvalue: Int? = null,
+data class LiteralValue(val intvalue: Int? = null,
                         val floatvalue: Double? = null,
                         val strvalue: String? = null,
                         val arrayvalue: MutableList<IExpression>? = null) : IExpression {
@@ -667,7 +670,7 @@ class RegisterExpr(val register: Register) : IExpression {
 }
 
 
-class IdentifierReference(val nameInSource: List<String>) : IExpression {
+data class IdentifierReference(val nameInSource: List<String>) : IExpression {
     override var position: Position? = null
     override lateinit var parent: Node
 
@@ -849,7 +852,7 @@ class Subroutine(override val name: String,
 }
 
 
-class SubroutineParameter(val name: String, val register: Register?, val statusflag: Statusflag?) : Node {
+data class SubroutineParameter(val name: String, val register: Register?, val statusflag: Statusflag?) : Node {
     override var position: Position? = null
     override lateinit var parent: Node
 
@@ -859,7 +862,7 @@ class SubroutineParameter(val name: String, val register: Register?, val statusf
 }
 
 
-class SubroutineReturnvalue(val register: Register?, val statusflag: Statusflag?, val clobbered: Boolean) : Node {
+data class SubroutineReturnvalue(val register: Register?, val statusflag: Statusflag?, val clobbered: Boolean) : Node {
     override var position: Position? = null
     override lateinit var parent: Node
 
