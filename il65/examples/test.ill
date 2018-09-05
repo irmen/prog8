@@ -3,8 +3,14 @@
 
 %import c64lib
 
-~ main $c003  {
+~ not_main $d000 {
+    const float len1 =  111 ;len([1,2,3])
+    const float round1 =  111 ;len([1,2,3])
+    const float sin1 =  111 ;len([1,2,3])
+    float cos1 =  111 ;len([1,2,3])
+}
 
+~ main $c003  {
   const word len1 = len([1,2,3,wa1, wa2, ws1, all1])
   const word wa1 = ceil(abs(-999.22))
   const byte wa2 = abs(-99)
@@ -144,10 +150,6 @@ some_label_def:   A=44
 	%asminclude "derp", hopsa
 	%asmbinary "derp", 0, 200
 }
-
-%option enable_floats
-%option enable_floats
-%option enable_floats
 
 %import imported
 %import imported

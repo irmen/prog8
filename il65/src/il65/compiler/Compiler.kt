@@ -30,7 +30,7 @@ fun Number.toHex(): String {
 }
 
 
-data class Mflpt5(val b0: Short, val b1: Short, val b2: Short, val b3: Short, val b4: Short){
+data class Mflpt5(val b0: Short, val b1: Short, val b2: Short, val b3: Short, val b4: Short) {
 
     companion object {
         val zero = Mflpt5(0, 0,0,0,0)

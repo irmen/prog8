@@ -53,6 +53,10 @@ class AstIdentifiersChecker : IAstProcessor {
     }
 
     override fun process(decl: VarDecl): IStatement {
+        if(BuiltinFunctionNames.contains(decl.name))
+            // the builtin functions can't be redefined
+            checkResult.add(NameError("builtin function cannot be redefined", decl.position))
+
         val scopedName = decl.scopedname.joinToString(".")
         val existing = symbols[scopedName]
         if(existing!=null) {
