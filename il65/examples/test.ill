@@ -30,7 +30,7 @@
   const word max1 = max([-1,-2,3,99+22])
 
   const word min1 = min([1,2,3,99+22])
-
+    word dinges = round(not_main.len1)
 
 	A = X>2
 	X = Y>Y

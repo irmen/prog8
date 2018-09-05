@@ -88,9 +88,16 @@ data class Mflpt5(val b0: Short, val b1: Short, val b2: Short, val b3: Short, va
 }
 
 
-class Compiler(private val options: CompilationOptions, val namespace: INameScope) {
+class Compiler(private val options: CompilationOptions) {
     fun compile(module: Module) : IntermediateForm {
         println("\nCompiling parsed source code to intermediate code...")
+
+        // make sure the 'main' block is the first block. Statement even.
+        val mainBlock = module.statements.single { it is Block && it.name=="main" }
+        module.statements.remove(mainBlock)
+        module.statements.add(0, mainBlock)
+        val namespace = module.definingScope()
+
         // todo
 
         namespace.debugPrint()

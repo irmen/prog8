@@ -11,7 +11,7 @@ fun Module.optimizeExpressions(globalNamespace: INameScope) {
     try {
         this.process(optimizer)
     } catch (ax: AstException) {
-        optimizer.errors.add(ax)
+        optimizer.addError(ax)
     }
 
     if(optimizer.optimizationsDone==0)
@@ -56,6 +56,15 @@ class ExpressionOptimizer(private val globalNamespace: INameScope) : IAstProcess
     var optimizationsDone: Int = 0
     var errors : MutableList<AstException> = mutableListOf()
 
+    private val reportedErrorMessages = mutableSetOf<String>()
+
+    fun addError(x: AstException) {
+        // check that we don't add the same error more than once
+        if(!reportedErrorMessages.contains(x.message)) {
+            reportedErrorMessages.add(x.message)
+            errors.add(x)
+        }
+    }
 
     override fun process(decl: VarDecl): IStatement {
         // the initializer value can't refer to the variable itself (recursive definition)
@@ -101,7 +110,7 @@ class ExpressionOptimizer(private val globalNamespace: INameScope) : IAstProcess
         return try {
             identifier.constValue(globalNamespace) ?: identifier
         } catch (ax: AstException) {
-            errors.add(ax)
+            addError(ax)
             identifier
         }
     }
@@ -111,7 +120,7 @@ class ExpressionOptimizer(private val globalNamespace: INameScope) : IAstProcess
             super.process(functionCall)
             functionCall.constValue(globalNamespace) ?: functionCall
         } catch (ax: AstException) {
-            errors.add(ax)
+            addError(ax)
             functionCall
         }
     }
@@ -166,7 +175,7 @@ class ExpressionOptimizer(private val globalNamespace: INameScope) : IAstProcess
             }
             return expr
         } catch (ax: AstException) {
-            errors.add(ax)
+            addError(ax)
             expr
         }
     }
@@ -191,7 +200,7 @@ class ExpressionOptimizer(private val globalNamespace: INameScope) : IAstProcess
                 else -> expr
             }
         } catch (ax: AstException) {
-            errors.add(ax)
+            addError(ax)
             expr
         }
     }
@@ -231,7 +240,7 @@ class ExpressionOptimizer(private val globalNamespace: INameScope) : IAstProcess
             }
             return range
         } catch (ax: AstException) {
-            errors.add(ax)
+            addError(ax)
             range
         }
     }

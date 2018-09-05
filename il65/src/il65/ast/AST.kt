@@ -70,12 +70,15 @@ class NameError(override var message: String, val position: Position?) : AstExce
     }
 }
 
-class ExpressionException(message: String, val position: Position?) : AstException(message) {
+open class ExpressionException(message: String, val position: Position?) : AstException(message) {
     override fun toString(): String {
         val location = position?.toString() ?: ""
         return "$location Error: $message"
     }
 }
+
+class UndefinedSymbolException(val symbol: IdentifierReference)
+    : ExpressionException("undefined symbol: ${symbol.nameInSource.joinToString(".")}", symbol.position)
 
 
 data class Position(val file: String, val line: Int, val startCol: Int, val endCol: Int) {
@@ -273,8 +276,8 @@ interface INameScope {
             namespace.labelsAndVariables().forEach {
                 println(" ".repeat(4 * (1 + indent)) + "${it.key}   ->  ${it.value::class.simpleName} at ${it.value.position}")
             }
-            namespace.subScopes().forEach {
-                printNames(indent+1, it.value)
+            namespace.statements.filter { it is INameScope }.forEach {
+                printNames(indent+1, it as INameScope)
             }
         }
         printNames(0, this)
@@ -347,47 +350,49 @@ class Module(override val name: String,
         processor.process(this)
     }
 
-    override fun definingScope(): INameScope  = GlobalNamespace("<<<global>>>", statements, position)
+    override fun definingScope(): INameScope = GlobalNamespace("<<<global>>>", statements, position)
     override fun usedNames(): Set<String> = throw NotImplementedError("not implemented on sub-scopes")
     override fun registerUsedName(name: String) = throw NotImplementedError("not implemented on sub-scopes")
 
 
-    private class GlobalNamespace(override val name: String,
-                          override var statements: MutableList<IStatement>,
-                          override val position: Position?) : INameScope {
+}
 
-        private val scopedNamesUsed: MutableSet<String> = mutableSetOf("main")      // main is always used
 
-        override fun usedNames(): Set<String>  = scopedNamesUsed
+private class GlobalNamespace(override val name: String,
+                              override var statements: MutableList<IStatement>,
+                              override val position: Position?) : INameScope {
 
-        override fun lookup(scopedName: List<String>, statement: Node): IStatement? {
-            if(BuiltinFunctionNames.contains(scopedName.last())) {
-                // builtin functions always exist, return a dummy statement for them
-                val builtinPlaceholder = Label("builtin::${scopedName.last()}")
-                builtinPlaceholder.position = statement.position
-                builtinPlaceholder.parent = ParentSentinel
-                return builtinPlaceholder
-            }
-            val stmt = super.lookup(scopedName, statement)
-            if(stmt!=null) {
-                val targetScopedName = when(stmt) {
-                    is Label -> stmt.scopedname
-                    is VarDecl -> stmt.scopedname
-                    is Block -> stmt.scopedname
-                    is Subroutine -> stmt.scopedname
-                    else -> throw NameError("wrong identifier target: $stmt", stmt.position)
-                }
-                registerUsedName(targetScopedName.joinToString("."))
-            }
-            return stmt
+    private val scopedNamesUsed: MutableSet<String> = mutableSetOf("main")      // main is always used
+
+    override fun usedNames(): Set<String>  = scopedNamesUsed
+
+    override fun lookup(scopedName: List<String>, statement: Node): IStatement? {
+        if(BuiltinFunctionNames.contains(scopedName.last())) {
+            // builtin functions always exist, return a dummy statement for them
+            val builtinPlaceholder = Label("builtin::${scopedName.last()}")
+            builtinPlaceholder.position = statement.position
+            builtinPlaceholder.parent = ParentSentinel
+            return builtinPlaceholder
         }
-
-        override fun registerUsedName(name: String) {
-            // make sure to also register each scope separately
-            scopedNamesUsed.add(name)
-            if(name.contains('.'))
-                registerUsedName(name.substringBeforeLast('.'))
+        val stmt = super.lookup(scopedName, statement)
+        if(stmt!=null) {
+            val targetScopedName = when(stmt) {
+                is Label -> stmt.scopedname
+                is VarDecl -> stmt.scopedname
+                is Block -> stmt.scopedname
+                is Subroutine -> stmt.scopedname
+                else -> throw NameError("wrong identifier target: $stmt", stmt.position)
+            }
+            registerUsedName(targetScopedName.joinToString("."))
         }
+        return stmt
+    }
+
+    override fun registerUsedName(name: String) {
+        // make sure to also register each scope separately
+        scopedNamesUsed.add(name)
+        if(name.contains('.'))
+            registerUsedName(name.substringBeforeLast('.'))
     }
 }
 
@@ -678,10 +683,10 @@ data class IdentifierReference(val nameInSource: List<String>) : IExpression {
         this.parent = parent
     }
 
+
     override fun constValue(namespace: INameScope): LiteralValue? {
         val node = namespace.lookup(nameInSource, this)
-                ?:
-                throw ExpressionException("undefined symbol: ${nameInSource.joinToString(".")}", position)
+                ?: throw UndefinedSymbolException(this)
         val vardecl = node as? VarDecl
         if(vardecl==null) {
             throw ExpressionException("name should be a constant, instead of: ${node::class.simpleName}", position)

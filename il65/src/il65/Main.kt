@@ -60,7 +60,7 @@ fun main(args: Array<String>) {
 
         // compile the syntax tree into intermediate form, and optimize that
 
-        val compiler = Compiler(compilerOptions, globalNamespaceAfterOptimize)
+        val compiler = Compiler(compilerOptions)
         val intermediate = compiler.compile(moduleAst)
         intermediate.optimize()
 
