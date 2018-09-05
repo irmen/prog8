@@ -124,8 +124,9 @@
 
   sub start () -> () {
     word dinges = 0
-    dinges=round(blerp1)
-    A=round(blerp1)
+    word blerp1 =99
+    dinges=blerp1
+    A=blerp1
     return
   }
 

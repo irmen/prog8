@@ -115,6 +115,8 @@ A block is also a *scope* in your program so the symbols in the block don't clas
 symbols of the same name defined elsewhere in the same file or in another file.
 You can refer to the symbols in a particular block by using a *dotted name*: ``blockname.symbolname``.
 Labels inside a subroutine are appended again to that; ``blockname.subroutinename.label``.
+A symbol name that's not a dotted name is searched for in the current scope, if it's not found there,
+one scope higher, and so on until it is found.
 
 Every symbol is 'public' and can be accessed from elsewhere given its dotted name.
 

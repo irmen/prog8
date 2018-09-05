@@ -51,15 +51,14 @@ fun main(args: Array<String>) {
         moduleAst.checkValid(globalNameSpaceBeforeOptimization, compilerOptions)          // check if tree is valid
         val allScopedSymbolDefinitions = moduleAst.checkIdentifiers()
         moduleAst.optimizeStatements(globalNameSpaceBeforeOptimization, allScopedSymbolDefinitions)
-        val globalNamespaceAfterOptimize = moduleAst.definingScope()    // it could have changed in the meantime
+        StatementReorderer().process(moduleAst)                         // reorder statements to please the compiler later
+        val globalNamespaceAfterOptimize = moduleAst.definingScope()    // create it again, it could have changed in the meantime
         moduleAst.checkValid(globalNamespaceAfterOptimize, compilerOptions)          // check if final tree is valid
         moduleAst.checkRecursion()      // check if there are recursive subroutine calls
 
         // globalNamespaceAfterOptimize.debugPrint()
 
-
         // compile the syntax tree into intermediate form, and optimize that
-
         val compiler = Compiler(compilerOptions)
         val intermediate = compiler.compile(moduleAst)
         intermediate.optimize()

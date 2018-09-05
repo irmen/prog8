@@ -1,8 +1,6 @@
 package il65.compiler
 
-import il65.ast.Block
-import il65.ast.INameScope
-import il65.ast.Module
+import il65.ast.*
 import kotlin.experimental.and
 import kotlin.math.absoluteValue
 import kotlin.math.pow
@@ -92,14 +90,9 @@ class Compiler(private val options: CompilationOptions) {
     fun compile(module: Module) : IntermediateForm {
         println("\nCompiling parsed source code to intermediate code...")
 
-        // make sure the 'main' block is the first block. Statement even.
-        val mainBlock = module.statements.single { it is Block && it.name=="main" }
-        module.statements.remove(mainBlock)
-        module.statements.add(0, mainBlock)
-        val namespace = module.definingScope()
-
         // todo
 
+        val namespace = module.definingScope()
         namespace.debugPrint()
 
         module.statements.filter { it is Block }.map {
