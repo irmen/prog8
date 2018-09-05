@@ -17,6 +17,8 @@ enum class DataType {
     STR_P,
     STR_S,
     STR_PS
+
+    // TODO arrays (of byte, word)  and matrix (of byte) should have their own datatype as well?
 }
 
 enum class Register {
@@ -25,12 +27,7 @@ enum class Register {
     Y,
     AX,
     AY,
-    XY,
-    PC,
-    PI,
-    PZ,
-    PN,
-    PV
+    XY
 }
 
 enum class Statusflag {
@@ -167,6 +164,12 @@ interface IAstProcessor {
 
     fun process(literalValue: LiteralValue): LiteralValue {
         return literalValue
+    }
+
+    fun process(assignment: Assignment): IStatement {
+        assignment.target = assignment.target.process(this)
+        assignment.value = assignment.value.process(this)
+        return assignment
     }
 }
 
@@ -362,7 +365,7 @@ private class GlobalNamespace(override val name: String,
                               override var statements: MutableList<IStatement>,
                               override val position: Position?) : INameScope {
 
-    private val scopedNamesUsed: MutableSet<String> = mutableSetOf("main")      // main is always used
+    private val scopedNamesUsed: MutableSet<String> = mutableSetOf("main", "main.start")      // main and main.start are always used
 
     override fun usedNames(): Set<String>  = scopedNamesUsed
 
@@ -515,7 +518,7 @@ class VarDecl(val type: VarDeclType,
 
     override fun process(processor: IAstProcessor) = processor.process(this)
 
-    val isScalar = arrayspec==null
+    val isScalar = arrayspec==null      // TODO replace with actual array/matrix datatype itself?
     val isArray = arrayspec!=null && arrayspec.y==null
     val isMatrix = arrayspec?.y != null
     val scopedname: List<String> by lazy { makeScopedName(name) }
@@ -543,11 +546,7 @@ class Assignment(var target: AssignTarget, val aug_op : String?, var value: IExp
         value.linkParents(this)
     }
 
-    override fun process(processor: IAstProcessor): IStatement {
-        target = target.process(processor)
-        value = value.process(processor)
-        return this
-    }
+    override fun process(processor: IAstProcessor) = processor.process(this)
 }
 
 data class AssignTarget(val register: Register?, val identifier: IdentifierReference?) : Node {
@@ -560,6 +559,18 @@ data class AssignTarget(val register: Register?, val identifier: IdentifierRefer
     }
 
     fun process(processor: IAstProcessor) = this
+
+    fun determineDatatype(namespace: INameScope, stmt: IStatement): DataType {
+        if(register!=null)
+            return when(register){
+                Register.A, Register.X, Register.Y -> DataType.BYTE
+                Register.AX, Register.AY, Register.XY -> DataType.WORD
+            }
+
+        val symbol = namespace.lookup(identifier!!.nameInSource, stmt)
+        if(symbol is VarDecl) return symbol.datatype
+        throw FatalAstException("cannot determine datatype of assignment target $this")
+    }
 }
 
 
@@ -597,9 +608,8 @@ class BinaryExpression(var left: IExpression, val operator: String, var right: I
         right.linkParents(this)
     }
 
-    override fun constValue(namespace: INameScope): LiteralValue? {
-        throw FatalAstException("binary expression should have been optimized away into a single value, before const value was requested (this error is often caused by another) pos=$position")
-    }
+    // binary expression should actually have been optimized away into a single value, before const value was requested...
+    override fun constValue(namespace: INameScope): LiteralValue? = null
 
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String) = left.referencesIdentifier(name) || right.referencesIdentifier(name)
@@ -813,7 +823,7 @@ class FunctionCallStatement(override var target: IdentifierReference, override v
     override fun process(processor: IAstProcessor) = processor.process(this)
 
     override fun toString(): String {
-        return "FunctionCall(target=$target, targetStmt=$targetStatement, pos=$position)"
+        return "FunctionCall(target=$target, pos=$position)"
     }
 }
 

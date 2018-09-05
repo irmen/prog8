@@ -41,6 +41,13 @@ class AstChecker(private val globalNamespace: INameScope, val compilerOptions: C
                     entry.value.mapTo(checkResult) { SyntaxError("directive can just occur once", it.position) }
             }
         }
+
+        // there must be a 'main' block with a 'start' subroutine for the program entry point.
+        val mainBlock = module.statements.singleOrNull { it is Block && it.name=="main" } as? Block?
+        val startSub = mainBlock?.subScopes()?.get("start")
+        if(startSub==null) {
+            checkResult.add(SyntaxError("missing program entrypoint ('start' subroutine in 'main' block)", module.position))
+        }
     }
 
     override fun process(jump: Jump): IStatement {
@@ -105,6 +112,31 @@ class AstChecker(private val globalNamespace: INameScope, val compilerOptions: C
         }
 
         return subroutine
+    }
+
+    /**
+     * Assignment target must be register, or a variable name
+     * for constant-value assignments, check the datatype as well
+     */
+    override fun process(assignment: Assignment): IStatement {
+        if(assignment.target.identifier!=null) {
+            val targetSymbol = globalNamespace.lookup(assignment.target.identifier!!.nameInSource, assignment)
+            if(targetSymbol !is VarDecl) {
+                checkResult.add(SyntaxError("assignment LHS must be register or variable", assignment.position))
+                return super.process(assignment)
+            } else if(targetSymbol.type==VarDeclType.CONST) {
+                checkResult.add(SyntaxError("cannot assign new value to a constant", assignment.position))
+                return super.process(assignment)
+            }
+        }
+
+        if(assignment.value is LiteralValue) {
+            val targetDatatype = assignment.target.determineDatatype(globalNamespace, assignment)
+            if(checkValueType(targetDatatype, assignment.value as LiteralValue, assignment.position)) {
+                checkValueRange(targetDatatype, assignment.value as LiteralValue, assignment.position)
+            }
+        }
+        return super.process(assignment)
     }
 
     /**
@@ -399,27 +431,35 @@ class AstChecker(private val globalNamespace: INameScope, val compilerOptions: C
             return false
         }
         when {
-            vardecl.isScalar -> when (vardecl.datatype) {
-                DataType.FLOAT -> {
-                    if (value.floatvalue == null)
-                        return err("floating point value expected")
-                }
-                DataType.BYTE -> {
-                    if (value.intvalue == null)
-                        return err("byte integer value expected")
-                }
-                DataType.WORD -> {
-                    if (value.intvalue == null)
-                        return err("word integer value expected")
-                }
-                DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
-                    if (value.strvalue == null)
-                        return err("string value expected")
-                }
-            }
-            vardecl.isArray -> if(value.arrayvalue==null)
-                return err("array value expected")
+            vardecl.isScalar -> checkValueType(vardecl.datatype, value, position)
+            vardecl.isArray -> if(value.arrayvalue==null) return err("array value expected")
             vardecl.isMatrix -> TODO()
+        }
+        return true
+    }
+
+    private fun checkValueType(targetType: DataType, value: LiteralValue, position: Position?) : Boolean {
+        fun err(msg: String) : Boolean {
+            checkResult.add(SyntaxError(msg, position))
+            return false
+        }
+        when(targetType) {
+            DataType.FLOAT -> {
+                if (value.floatvalue == null)
+                    return err("floating point value expected")
+            }
+            DataType.BYTE -> {
+                if (value.intvalue == null)
+                    return err("byte integer value expected")
+            }
+            DataType.WORD -> {
+                if (value.intvalue == null)
+                    return err("word integer value expected")
+            }
+            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
+                if (value.strvalue == null)
+                    return err("string value expected")
+            }
         }
         return true
     }

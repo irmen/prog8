@@ -80,7 +80,6 @@
   equalQQ = foo(33)
   equalQQ = main.foo(33)
   XY = hopla*2+hopla1
-  A = "derp" * %000100
 
   byte equalWW = 4==4
   const byte equalWW2 = (4+hopla)>0
@@ -122,6 +121,14 @@
 	}
 
   main.foo(1,2,3)
+
+  sub start () -> () {
+    word dinges = 0
+    dinges=round(blerp1)
+    A=round(blerp1)
+    return
+  }
+
 
 mega:
 	X += 1
