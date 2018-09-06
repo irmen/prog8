@@ -16,9 +16,10 @@ enum class DataType {
     STR,
     STR_P,
     STR_S,
-    STR_PS
-
-    // TODO arrays (of byte, word)  and matrix (of byte) should have their own datatype as well?
+    STR_PS,
+    ARRAY,
+    ARRAY_W,
+    MATRIX
 }
 
 enum class Register {
@@ -74,7 +75,7 @@ open class ExpressionException(message: String, val position: Position?) : AstEx
     }
 }
 
-class UndefinedSymbolException(val symbol: IdentifierReference)
+class UndefinedSymbolException(symbol: IdentifierReference)
     : ExpressionException("undefined symbol: ${symbol.nameInSource.joinToString(".")}", symbol.position)
 
 
@@ -503,13 +504,26 @@ enum class VarDeclType {
 }
 
 class VarDecl(val type: VarDeclType,
-                   val datatype: DataType,
+                   declaredDatatype: DataType,
                    val arrayspec: ArraySpec?,
                    val name: String,
                    var value: IExpression?) : IStatement {
     override var position: Position? = null
     override lateinit var parent: Node
+    val datatype: DataType
 
+    init {
+        datatype = when {
+            arrayspec!=null -> // it's not a scalar, adjust the datatype
+                when(declaredDatatype) {
+                    DataType.BYTE -> DataType.ARRAY
+                    DataType.WORD -> DataType.ARRAY_W
+                    DataType.MATRIX -> TODO()
+                    else -> throw FatalAstException("invalid vardecl array datatype $declaredDatatype at $position")
+                }
+            else -> declaredDatatype
+        }
+    }
     override fun linkParents(parent: Node) {
         this.parent = parent
         arrayspec?.linkParents(this)
@@ -518,9 +532,6 @@ class VarDecl(val type: VarDeclType,
 
     override fun process(processor: IAstProcessor) = processor.process(this)
 
-    val isScalar = arrayspec==null      // TODO replace with actual array/matrix datatype itself?
-    val isArray = arrayspec!=null && arrayspec.y==null
-    val isMatrix = arrayspec?.y != null
     val scopedname: List<String> by lazy { makeScopedName(name) }
 
     fun arraySizeX(namespace: INameScope) : Int? {

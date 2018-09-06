@@ -9,43 +9,43 @@ class StatementReorderer: IAstProcessor {
     //      -- the remaining statements then follow in their original order.
     // - the 'start' subroutine in the 'main' block will be moved to the top immediately following the directives.
 
-    val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%address", "%option")
+    private val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%address", "%option")
 
-    override fun process(node: Module) {
-        val mainBlock = node.statements.single { it is Block && it.name=="main" }
-        node.statements.remove(mainBlock)
-        node.statements.add(0, mainBlock)
-        val varDecls = node.statements.filter { it is VarDecl }
-        node.statements.removeAll(varDecls)
-        node.statements.addAll(0, varDecls)
-        val directives = node.statements.filter {it is Directive && directivesToMove.contains(it.directive)}
-        node.statements.removeAll(directives)
-        node.statements.addAll(0, directives)
-        super.process(node)
+    override fun process(module: Module) {
+        val mainBlock = module.statements.single { it is Block && it.name=="main" }
+        module.statements.remove(mainBlock)
+        module.statements.add(0, mainBlock)
+        val varDecls = module.statements.filter { it is VarDecl }
+        module.statements.removeAll(varDecls)
+        module.statements.addAll(0, varDecls)
+        val directives = module.statements.filter {it is Directive && directivesToMove.contains(it.directive)}
+        module.statements.removeAll(directives)
+        module.statements.addAll(0, directives)
+        super.process(module)
     }
 
-    override fun process(node: Block): IStatement {
-        val startSub = node.statements.singleOrNull {it is Subroutine && it.name=="start"}
+    override fun process(block: Block): IStatement {
+        val startSub = block.statements.singleOrNull {it is Subroutine && it.name=="start"}
         if(startSub!=null) {
-            node.statements.remove(startSub)
-            node.statements.add(0, startSub)
+            block.statements.remove(startSub)
+            block.statements.add(0, startSub)
         }
-        val varDecls = node.statements.filter { it is VarDecl }
-        node.statements.removeAll(varDecls)
-        node.statements.addAll(0, varDecls)
-        val directives = node.statements.filter {it is Directive && directivesToMove.contains(it.directive)}
-        node.statements.removeAll(directives)
-        node.statements.addAll(0, directives)
-        return super.process(node)
+        val varDecls = block.statements.filter { it is VarDecl }
+        block.statements.removeAll(varDecls)
+        block.statements.addAll(0, varDecls)
+        val directives = block.statements.filter {it is Directive && directivesToMove.contains(it.directive)}
+        block.statements.removeAll(directives)
+        block.statements.addAll(0, directives)
+        return super.process(block)
     }
 
-    override fun process(node: Subroutine): IStatement {
-        val varDecls = node.statements.filter { it is VarDecl }
-        node.statements.removeAll(varDecls)
-        node.statements.addAll(0, varDecls)
-        val directives = node.statements.filter {it is Directive && directivesToMove.contains(it.directive)}
-        node.statements.removeAll(directives)
-        node.statements.addAll(0, directives)
-        return super.process(node)
+    override fun process(subroutine: Subroutine): IStatement {
+        val varDecls = subroutine.statements.filter { it is VarDecl }
+        subroutine.statements.removeAll(varDecls)
+        subroutine.statements.addAll(0, varDecls)
+        val directives = subroutine.statements.filter {it is Directive && directivesToMove.contains(it.directive)}
+        subroutine.statements.removeAll(directives)
+        subroutine.statements.addAll(0, directives)
+        return super.process(subroutine)
     }
 }

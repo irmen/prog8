@@ -211,6 +211,7 @@ Various examples::
 	str	    name    = "my name is Irmen"
 	word        address = #counter
 	byte[5]     values  = [11, 22, 33, 44, 55]
+	byte[5]     values  = 255           ; initialize with five 255 bytes
 	byte[5][6]  empty_matrix
 
 

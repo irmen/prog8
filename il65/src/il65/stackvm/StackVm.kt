@@ -488,7 +488,7 @@ class Program (prog: MutableList<Instruction>,
                         Opcode.SYSCALL -> {
                             val syscallparts = args!!.split(' ')
                             val call = Syscall.valueOf(syscallparts[0])
-                            val callValue = if(parts.size==2) getArgValue(syscallparts[1]) else null
+                            val callValue = if(syscallparts.size==2) getArgValue(syscallparts[1]) else null
                             val callValues = if(callValue==null) emptyList() else listOf(callValue)
                             Instruction(opcode, Value(DataType.BYTE, call.callNr), callValues)
                         }
@@ -690,7 +690,7 @@ class StackVm(val traceOutputFile: String?) {
         }
     }
 
-    fun dispatch(ins: Instruction) : Instruction {
+    private fun dispatch(ins: Instruction) : Instruction {
         traceOutput?.println("\n$ins")
         when (ins.opcode) {
             Opcode.NOP -> {}

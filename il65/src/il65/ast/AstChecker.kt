@@ -25,7 +25,7 @@ fun Module.checkValid(globalNamespace: INameScope, compilerOptions: CompilationO
  * todo check subroutine return values against the call's result assignments
  */
 
-class AstChecker(private val globalNamespace: INameScope, val compilerOptions: CompilationOptions) : IAstProcessor {
+class AstChecker(private val globalNamespace: INameScope, private val compilerOptions: CompilationOptions) : IAstProcessor {
     private val checkResult: MutableList<SyntaxError> = mutableListOf()
 
     fun result(): List<SyntaxError> {
@@ -132,9 +132,7 @@ class AstChecker(private val globalNamespace: INameScope, val compilerOptions: C
 
         if(assignment.value is LiteralValue) {
             val targetDatatype = assignment.target.determineDatatype(globalNamespace, assignment)
-            if(checkValueType(targetDatatype, assignment.value as LiteralValue, assignment.position)) {
-                checkValueRange(targetDatatype, assignment.value as LiteralValue, assignment.position)
-            }
+            checkValueTypeAndRange(targetDatatype, null, assignment.value as LiteralValue, assignment.position)
         }
         return super.process(assignment)
     }
@@ -160,20 +158,17 @@ class AstChecker(private val globalNamespace: INameScope, val compilerOptions: C
 
         when(decl.type) {
             VarDeclType.VAR, VarDeclType.CONST -> {
-                when {
-                    decl.value == null ->
+                when(decl.value) {
+                    null -> {
                         err("var/const declaration needs a compile-time constant initializer value")
-                    decl.value !is LiteralValue ->
-                        err("var/const declaration needs a compile-time constant initializer value, found: ${decl.value!!::class.simpleName}")
-                    decl.isScalar -> {
-                        if(checkValueType(decl, decl.value as LiteralValue, decl.position)) {
-                            checkValueRange(decl.datatype, decl.value as LiteralValue, decl.position)
-                        }
+                        return super.process(decl)
                     }
-                    decl.isArray || decl.isMatrix -> {
-                        checkConstInitializerValueArray(decl)
+                    !is LiteralValue -> {
+                        err("var/const declaration needs a compile-time constant initializer value, found: ${decl.value!!::class.simpleName}")
+                        return super.process(decl)
                     }
                 }
+                checkValueTypeAndRange(decl.datatype, decl.arrayspec, decl.value as LiteralValue, decl.position)
             }
             VarDeclType.MEMORY -> {
                 if(decl.value !is LiteralValue) {
@@ -277,45 +272,6 @@ class AstChecker(private val globalNamespace: INameScope, val compilerOptions: C
         return super.process(literalValue)
     }
 
-    private fun checkConstInitializerValueArray(decl: VarDecl) {
-        val value = decl.value as LiteralValue
-        // init value should either be a scalar or an array with the same dimensions as the arrayspec.
-
-        if(decl.isArray) {
-            if(value.arrayvalue==null) {
-                checkValueRange(decl.datatype, value.constValue(globalNamespace)!!, value.position)
-            }
-            else {
-                val expected = decl.arraySizeX(globalNamespace)
-                if (value.arrayvalue.size != expected)
-                    checkResult.add(SyntaxError("initializer array size mismatch (expecting $expected, got ${value.arrayvalue.size})", decl.position))
-                else {
-                    for(v in value.arrayvalue) {
-                        if(!checkValueRange(decl.datatype, v.constValue(globalNamespace)!!, v.position))
-                            break
-                    }
-                }
-            }
-        }
-
-        if(decl.isMatrix) {
-            if(value.arrayvalue==null) {
-                checkValueRange(decl.datatype, value.constValue(globalNamespace)!!, value.position)
-            }
-            else {
-                val expected = decl.arraySizeX(globalNamespace)!! * decl.arraySizeY(globalNamespace)!!
-                if (value.arrayvalue.size != expected)
-                    checkResult.add(SyntaxError("initializer array size mismatch (expecting $expected, got ${value.arrayvalue.size})", decl.position))
-                else {
-                    for(v in value.arrayvalue) {
-                        if(!checkValueRange(decl.datatype, v.constValue(globalNamespace)!!, v.position))
-                            break
-                    }
-                }
-            }
-        }
-    }
-
     override fun process(range: RangeExpr): IExpression {
         fun err(msg: String) {
             checkResult.add(SyntaxError(msg, range.position))
@@ -391,7 +347,7 @@ class AstChecker(private val globalNamespace: INameScope, val compilerOptions: C
         }
     }
 
-    private fun checkValueRange(datatype: DataType, value: LiteralValue, position: Position?) : Boolean {
+    private fun checkValueTypeAndRange(datatype: DataType, arrayspec: ArraySpec?, value: LiteralValue, position: Position?) : Boolean {
         fun err(msg: String) : Boolean {
             checkResult.add(SyntaxError(msg, position))
             return false
@@ -421,45 +377,49 @@ class AstChecker(private val globalNamespace: INameScope, val compilerOptions: C
                 if (str.isEmpty() || str.length > 65535)
                     return err("string length must be 1..65535")
             }
-        }
-        return true
-    }
+            DataType.ARRAY -> {
+                // value may be either a single byte, or a byte array
+                if(value.isArray) {
+                    for (av in value.arrayvalue!!) {
+                        val number = (av as LiteralValue).intvalue
+                                ?: return err("array must be all bytes")
 
-    private fun checkValueType(vardecl: VarDecl, value: LiteralValue, position: Position?) : Boolean {
-        fun err(msg: String) : Boolean {
-            checkResult.add(SyntaxError(msg, position))
-            return false
-        }
-        when {
-            vardecl.isScalar -> checkValueType(vardecl.datatype, value, position)
-            vardecl.isArray -> if(value.arrayvalue==null) return err("array value expected")
-            vardecl.isMatrix -> TODO()
-        }
-        return true
-    }
+                        val expectedSize = arrayspec?.x?.constValue(globalNamespace)?.intvalue
+                        if (value.arrayvalue.size != expectedSize)
+                            return err("initializer array size mismatch (expecting $expectedSize, got ${value.arrayvalue.size})")
 
-    private fun checkValueType(targetType: DataType, value: LiteralValue, position: Position?) : Boolean {
-        fun err(msg: String) : Boolean {
-            checkResult.add(SyntaxError(msg, position))
-            return false
-        }
-        when(targetType) {
-            DataType.FLOAT -> {
-                if (value.floatvalue == null)
-                    return err("floating point value expected")
+                        if (number < 0 || number > 255)
+                            return err("value '$number' in byte array is out of range for unsigned byte")
+                    }
+                } else {
+                    val number = value.intvalue
+                            ?: return err("byte integer value expected")
+                    if (number < 0 || number > 255)
+                        return err("value '$number' out of range for unsigned byte")
+                }
             }
-            DataType.BYTE -> {
-                if (value.intvalue == null)
-                    return err("byte integer value expected")
+            DataType.ARRAY_W -> {
+                // value may be either a single word, or a word array
+                if(value.isArray) {
+                    for (av in value.arrayvalue!!) {
+                        val number = (av as LiteralValue).intvalue
+                                ?: return err("array must be all words")
+
+                        val expectedSize = arrayspec?.x?.constValue(globalNamespace)?.intvalue
+                        if (value.arrayvalue.size != expectedSize)
+                            return err("initializer array size mismatch (expecting $expectedSize, got ${value.arrayvalue.size})")
+
+                        if (number < 0 || number > 65535)
+                            return err("value '$number' in word array is out of range for unsigned word")
+                    }
+                } else {
+                    val number = value.intvalue
+                            ?: return err("word integer value expected")
+                    if (number < 0 || number > 65535)
+                        return err("value '$number' out of range for unsigned word")
+                }
             }
-            DataType.WORD -> {
-                if (value.intvalue == null)
-                    return err("word integer value expected")
-            }
-            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
-                if (value.strvalue == null)
-                    return err("string value expected")
-            }
+            DataType.MATRIX -> TODO()
         }
         return true
     }
