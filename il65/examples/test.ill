@@ -11,6 +11,13 @@
 }
 
 ~ main $c003  {
+  word lsb1 = lsb($ea31)
+  word msb1 = msb($ea31)
+  byte lsb2 = lsb($ea31)
+  byte msb2 = msb($ea31)
+  word lsb3 = lsb($ea)
+  word msb3 = msb($ea)
+
   const word len1 = len([1,2,3,wa1, wa2, ws1, all1])
   const word wa1 = ceil(abs(-999.22))
   const byte wa2 = abs(-99)
@@ -22,7 +29,7 @@
   const word ws2 = ceil(avg([1,2,3,4.9]))
   const word ws3 = round(sum([1,2,3,4.9]))
   const word any1 = any([0,0,0,0,0,22,0,0])
-  const word any2 = any([2+sin(2), 2])
+  const word any2 = any([2+sin(2.0), 2])
   const word all1 = all([0,0,0,0,0,22,0,0])
   const word all2 = all([0.0])
   const word all3 = all([wa1, wa2, ws1, all1])
@@ -48,7 +55,7 @@
   memory byte cderp = min([$ffdd])+ (1/1)
   memory byte cderpA = min([$ffdd, 10, 20, 30])
   memory byte cderpB = min([1, 2.2, 4.4, 100])
-  memory byte derp2 = 2+$ffdd+round(10*sin(3))
+  memory byte derp2 = 2+$ffdd+round(10*sin(3.1))
   const byte hopla=55-33
   const byte hopla3=100+(-hopla)
   const byte hopla4 = 100-hopla
@@ -99,10 +106,9 @@
 
 	if(6==6) {
 		A=sin(X)
-		A=sin([X])
 		X=max([1,2,Y])
 		X=min([1,2,Y])
-		X=lsl(1.2)
+		X=lsl(12)
 		X=lsl(Y)
 		P_carry(0)
 		P_carry(1)

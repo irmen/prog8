@@ -1,5 +1,6 @@
 package il65.ast
 
+import il65.functions.BuiltinFunctionNames
 import il65.parser.ParsingFailedError
 
 /**
@@ -18,13 +19,6 @@ fun Module.checkIdentifiers(): MutableMap<String, IStatement> {
         throw ParsingFailedError("There are ${checkResult.size} errors in module '$name'.")
     return checker.symbols
 }
-
-
-val BuiltinFunctionNames = setOf(
-        "P_carry", "P_irqd", "rol", "ror", "rol2", "ror2", "lsl", "lsr",
-        "sin", "cos", "abs", "acos", "asin", "tan", "atan",
-        "log", "log10", "sqrt", "rad", "deg", "round", "floor", "ceil",
-        "max", "min", "avg", "sum", "len", "any", "all")
 
 
 class AstIdentifiersChecker : IAstProcessor {

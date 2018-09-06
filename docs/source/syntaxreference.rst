@@ -54,23 +54,24 @@ Directives
 
 .. data:: %zeropage <style>
 
-	Level: module.
-	Global setting, select ZeroPage handling style. Defaults to ``compatible``.
+    Level: module.
+    Global setting, select ZeroPage handling style. Defaults to ``kernalsafe``.
 
-	- style ``compatible`` -- only use the few 'free' addresses in the ZP, and don't change anything else.
-	  This allows full use of BASIC and KERNAL ROM routines including default IRQs during normal system operation.
-	- style ``full`` -- claim the whole ZP for variables for the program, overwriting everything,
-  	  except the few addresses mentioned above that are used by the system's IRQ routine.
-	  Even though the default IRQ routine is still active, it is impossible to use most BASIC and KERNAL ROM routines.
-	  This includes many floating point operations and several utility routines that do I/O, such as ``print_string``.
-	  It is also not possible to cleanly exit the program, other than resetting the machine.
-	  This option makes programs smaller and faster because many more variables can
-	  be stored in the ZP, which is more efficient.
-	- style ``full-restore`` -- like ``full``, but makes a backup copy of the original values at program start.
-	  These are restored (except for the software jiffy clock in ``$a0``--``$a2``)
-	  when the program exits, and allows it to exit back to the BASIC prompt.
+    - style ``kernalsafe`` -- use the part of the ZP that is 'free' or only used by BASIC routines,
+      and don't change anything else.  This allows full use of KERNAL ROM routines (but not BASIC routines),
+      including default IRQs during normal system operation.
+    - style ``basicsafe`` -- the most restricted mode; only use the handful 'free' addresses in the ZP, and don't
+      touch change anything else. This allows full use of BASIC and KERNAL ROM routines including default IRQs
+      during normal system operation.
+    - style ``full`` -- claim the whole ZP for variables for the program, overwriting everything,
+      except the few addresses mentioned above that are used by the system's IRQ routine.
+      Even though the default IRQ routine is still active, it is impossible to use most BASIC and KERNAL ROM routines.
+      This includes many floating point operations and several utility routines that do I/O, such as ``print_string``.
+      It is also not possible to cleanly exit the program, other than resetting the machine.
+      This option makes programs smaller and faster because many more variables can
+      be stored in the ZP, which is more efficient.
 
-	Also read :ref:`zeropage`.
+    Also read :ref:`zeropage`.
 
 
 .. data:: %address <address>
@@ -192,20 +193,6 @@ Values in the source code are written using *value literals*. In the table of th
 data types below you can see how they should be written.
 
 
-Range expression
-----------------
-A special value is the *range expression* ( ``<startvalue>  to  <endvalue>`` )
-which represents a range of numbers or characters,
-from the starting value to (and including) the ending value.
-If used in the place of a literal value, it expands into the actual array of values::
-
-	byte[100] array = 100 to 199     ; initialize array with [100, 101, ..., 198, 199]
-
-
-.. todo::
-	this may be used later in the for-loop as well.  Add 'step' to range expression as well?
-
-
 Variable declarations
 ^^^^^^^^^^^^^^^^^^^^^
 
@@ -267,7 +254,7 @@ Memory mapped variables
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 The ``memory`` keyword is used in front of a data type keyword, to say that no storage
-should be allocated by the compiler. Instead, the value assigned to the variable (mandatory now!)
+should be allocated by the compiler. Instead, the (mandatory) value assigned to the variable
 should be the *memory address* where the value is located::
 
 	memory  byte  BORDER = $d020
@@ -290,6 +277,21 @@ The following names are reserved, they have a special meaning::
 
 	A    X    Y              ; 6502 hardware registers
 	AX   AY   XY             ; 16-bit pseudo register pairs
+
+
+Range expression
+^^^^^^^^^^^^^^^^
+
+A special value is the *range expression* ( ``<startvalue>  to  <endvalue>`` )
+which represents a range of numbers or characters,
+from the starting value to (and including) the ending value.
+If used in the place of a literal value, it expands into the actual array of values::
+
+	byte[100] array = 100 to 199     ; initialize array with [100, 101, ..., 198, 199]
+
+
+.. todo::
+	this may be used later in the for-loop as well.  Add 'step' to range expression as well?
 
 
 Operators

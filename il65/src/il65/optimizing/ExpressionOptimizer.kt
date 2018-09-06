@@ -60,8 +60,8 @@ class ExpressionOptimizer(private val globalNamespace: INameScope) : IAstProcess
 
     fun addError(x: AstException) {
         // check that we don't add the same error more than once
-        if(!reportedErrorMessages.contains(x.message)) {
-            reportedErrorMessages.add(x.message)
+        if(!reportedErrorMessages.contains(x.toString())) {
+            reportedErrorMessages.add(x.toString())
             errors.add(x)
         }
     }

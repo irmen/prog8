@@ -130,9 +130,9 @@ enum class LauncherType {
 }
 
 enum class ZeropageType {
-    COMPATIBLE,
-    FULL,
-    FULL_RESTORE
+    BASICSAFE,
+    KERNALSAFE,
+    FULL
 }
 
 

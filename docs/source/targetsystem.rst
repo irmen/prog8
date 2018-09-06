@@ -77,19 +77,22 @@ Theoretically they can all be used in a program, with the follwoing limitations:
 - it's more convenient and safe to let IL65 allocate these addresses for you and just
   use symbolic names in the program code.
 
-Here is the list of the remaining free-to-use ZP addresses with BASIC and KERNAL active in the Commodore-64:
+.. todo::
+    There must be a way to tell the compiler which variables you require to be in Zeropage:
+    ``zeropage`` modifier keyword on vardecl perhaps?
 
-``$02``, ``$03``, ``$04``, ``$05``, ``$06``, ``$2a``, ``$52``,
-``$f7 - $f8``, ``$f9 - $fa``, ``$fb - $fc``, ``$fd - $fe``
 
-*The six reserved addresses mentioned earliser are subtracted from this set,* leaving you with
-just *five* 1-byte and *two* 2-byte usable ZP 'registers' for use by the program.
-
-**IL65 knows about all of this.** It will use the free ZP addresses to place its ZP variables in,
+IL65 knows what addresses are safe to use in the various ZP handling configurations.
+It will use the free ZP addresses to place its ZP variables in,
 until they're all used up. If instructed to output a program that takes over the entire
 machine, (almost) all of the ZP addresses are suddenly available and will be used.
-IL65 can also generate a special routine that saves and restores the ZP to let the program run
-and return safely back to the system afterwards - you don't have to take care of that yourself.
+
+**ZeroPage handling is configurable:**
+There's a global program directive to specify the way the compiler
+treats the ZP for the program. The default is to be reasonably restrictive to use the
+part of the ZP that is not used by the C64's kernal routines.
+It's possible to claim the whole ZP as well (by disabling the operating system or kernal).
+If you want, it's also possible to be more restricive and stay clear of the addresses used by BASIC routines too.
 
 
 IRQs and the ZeroPage
@@ -100,20 +103,11 @@ The normal IRQ routine in the C-64's kernal will read and write several addresse
 
 ``$a0 - $a2``; ``$91``; ``$c0``; ``$c5``; ``$cb``; ``$f5 - $f6``
 
-These addresses will never be used by the compiler for ZP variables, so variables will
+These addresses will *never* be used by the compiler for ZP variables, so variables will
 not interfere with the IRQ routine and vice versa. This is true for the normal ZP mode but also
 for the mode where the whole system and ZP have been taken over.
 So the normal IRQ vector can still run and will be when the program is started!
 
-
-ZeroPage handling is configurable
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-There's a global program directive to specify the way the compiler
-treats the ZP for the program. The default is to be restrictive to just
-the few free locations mentioned above, where most of the ZP is considered a no-go zone by the compiler.
-It's possible to claim the whole ZP as well (by disabling the operating system or kernal),
-and even ask for a save/restore of the original values to be able to cleanly exit back to a BASIC prompt.
 
 
 

@@ -177,6 +177,10 @@ for instance.
 .. todo::
     matrix datatype
 
+.. todo::
+    There must be a way to tell the compiler which variables you require to be in Zeropage:
+    ``zeropage`` modifier keyword on vardecl perhaps?
+
 
 Variables that represent CPU hardware registers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -201,6 +205,13 @@ address you specified, and setting the varible will directly modify that memory 
 
 	const  byte  max_age = 2000 - 1974      ; max_age will be the constant value 26
 	memory word  SCREENCOLORS = $d020       ; a 16-bit word at the addres $d020-$d021
+
+
+.. note::
+    Directly accessing random memory locations is not yet supported without the
+    intermediate step of declaring a memory-mapped variable for the memory location.
+    The advantages of this however, is that it's clearer what the memory location
+    stands for, and the compiler also knows the data type.
 
 
 Integers
@@ -459,6 +470,12 @@ sum(x)
 len(x)
     Number of values in the non-scalar (array or matrix) value x.
     (This is different from the number of *bytes* in memory if the datatype isn't byte)
+
+lsb(x)
+    Get the least significant byte of the word x.
+
+msb(x)
+    Get the most significant byte of the word x.
 
 any(x)
 	1 ('true') if any of the values in the non-scalar (array or matrix) value x is 'true' (not zero), else 0 ('false')

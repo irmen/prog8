@@ -1,7 +1,7 @@
 package il65.ast
 
 import il65.compiler.CompilationOptions
-import il65.functions.BuiltIns
+import il65.functions.BuiltinFunctionNames
 import il65.parser.ParsingFailedError
 
 /**
@@ -81,8 +81,8 @@ class AstChecker(private val globalNamespace: INameScope, val compilerOptions: C
 //        if(subroutine.parent !is Block)
 //            err("subroutines can only be defined in a block (not in other scopes)")
 
-        if(BuiltIns.contains(subroutine.name))
-            err("cannot override a built-in function")
+        if(BuiltinFunctionNames.contains(subroutine.name))
+            err("cannot redefine a built-in function")
 
         val uniqueNames = subroutine.parameters.map { it.name }.toSet()
         if(uniqueNames.size!=subroutine.parameters.size)
@@ -224,10 +224,10 @@ class AstChecker(private val globalNamespace: INameScope, val compilerOptions: C
             "%zeropage" -> {
                 if(directive.parent !is Module) err("this directive may only occur at module level")
                 if(directive.args.size!=1 ||
-                        directive.args[0].name != "compatible" &&
-                        directive.args[0].name != "full" &&
-                        directive.args[0].name != "full-restore")
-                    err("invalid zp directive style, expected compatible, full or full-restore")
+                        directive.args[0].name != "basicsafe" &&
+                        directive.args[0].name != "kernalsafe" &&
+                        directive.args[0].name != "full")
+                    err("invalid zp directive style, expected basicsafe, kernalsafe, or full")
             }
             "%address" -> {
                 if(directive.parent !is Module) err("this directive may only occur at module level")

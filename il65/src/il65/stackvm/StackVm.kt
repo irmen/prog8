@@ -57,6 +57,8 @@ enum class Opcode {
     OR,
     XOR,
     INV,
+    LSB,
+    MSB,
 
     // logical operations (?)
 
@@ -375,6 +377,22 @@ data class Value(val type: DataType, private val numericvalue: Number?, val stri
             else -> throw VmExecutionException("dec can only work on byte/word/float")
         }
     }
+
+    fun lsb(): Value {
+        return when(type) {
+            DataType.BYTE -> Value(DataType.BYTE, byteval!!.toInt() and 255)
+            DataType.WORD -> Value(DataType.WORD, wordval!! and 255)
+            else -> throw VmExecutionException("not can only work on byte/word")
+        }
+    }
+
+    fun msb(): Value {
+        return when(type) {
+            DataType.BYTE -> Value(DataType.BYTE, byteval!!.toInt() ushr 8 and 255)
+            DataType.WORD -> Value(DataType.WORD, wordval!! ushr 8 and 255)
+            else -> throw VmExecutionException("not can only work on byte/word")
+        }
+    }
 }
 
 
@@ -468,9 +486,9 @@ class Program (prog: MutableList<Instruction>,
                             Instruction(opcode, callLabel = args)
                         }
                         Opcode.SYSCALL -> {
-                            val parts = args!!.split(' ')
-                            val call = Syscall.valueOf(parts[0])
-                            val callValue = if(parts.size==2) getArgValue(parts[1]) else null
+                            val syscallparts = args!!.split(' ')
+                            val call = Syscall.valueOf(syscallparts[0])
+                            val callValue = if(parts.size==2) getArgValue(syscallparts[1]) else null
                             val callValues = if(callValue==null) emptyList() else listOf(callValue)
                             Instruction(opcode, Value(DataType.BYTE, call.callNr), callValues)
                         }
@@ -965,6 +983,14 @@ class StackVm(val traceOutputFile: String?) {
                 val varname = ins.arg!!.stringvalue ?: throw VmExecutionException("${ins.opcode} expects string argument (the variable name)")
                 val variable = variables[varname] ?: throw VmExecutionException("unknown variable: $varname")
                 variables[varname] = variable.dec()
+            }
+            Opcode.LSB -> {
+                val v = evalstack.pop()
+                evalstack.push(v.lsb())
+            }
+            Opcode.MSB -> {
+                val v = evalstack.pop()
+                evalstack.push(v.msb())
             }
         }
 

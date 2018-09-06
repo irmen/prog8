@@ -40,7 +40,7 @@ fun main(args: Array<String>) {
         val compilerOptions = CompilationOptions(
                 if(outputType==null) OutputType.PRG else OutputType.valueOf(outputType),
                 if(launcherType==null) LauncherType.BASIC else LauncherType.valueOf(launcherType),
-                if(zpType==null) ZeropageType.COMPATIBLE else ZeropageType.valueOf(zpType),
+                if(zpType==null) ZeropageType.KERNALSAFE else ZeropageType.valueOf(zpType),
                 options.contains(DirectiveArg(null, "enable_floats", null))
         )
 

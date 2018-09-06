@@ -5,10 +5,11 @@ import kotlin.math.abs
 import kotlin.math.floor
 
 
-val BuiltIns = listOf(
-        "sin", "cos", "abs", "acos", "asin", "tan", "atan", "log", "log10",
-        "sqrt", "max", "min", "round", "rad", "deg", "avg", "sum"
-)
+val BuiltinFunctionNames = setOf(
+        "P_carry", "P_irqd", "rol", "ror", "rol2", "ror2", "lsl", "lsr",
+        "sin", "cos", "abs", "acos", "asin", "tan", "atan",
+        "log", "log10", "sqrt", "rad", "deg", "round", "floor", "ceil",
+        "max", "min", "avg", "sum", "len", "any", "all", "lsb", "msb")
 
 
 class NotConstArgumentException: AstException("not a const argument to a built-in function")
@@ -17,43 +18,40 @@ class NotConstArgumentException: AstException("not a const argument to a built-i
 private fun oneDoubleArg(args: List<IExpression>, position: Position?, namespace:INameScope, function: (arg: Double)->Number): LiteralValue {
     if(args.size!=1)
         throw SyntaxError("built-in function requires one floating point argument", position)
+    val constval = args[0].constValue(namespace) ?: throw NotConstArgumentException()
+    if(!constval.isFloat)
+        throw SyntaxError("built-in function requires one floating point argument", position)
 
-    val float = args[0].constValue(namespace)?.asNumericValue?.toDouble()
-    if(float!=null) {
-        val result = numericLiteral(function(float), args[0].position)
-        result.position = args[0].position
-        return result
-    }
-    else
-        throw NotConstArgumentException()
+    val float = constval.asNumericValue?.toDouble()!!
+    val result = numericLiteral(function(float), args[0].position)
+    result.position = args[0].position
+    return result
 }
 
 private fun oneDoubleArgOutputInt(args: List<IExpression>, position: Position?, namespace:INameScope, function: (arg: Double)->Number): LiteralValue {
     if(args.size!=1)
         throw SyntaxError("built-in function requires one floating point argument", position)
+    val constval = args[0].constValue(namespace) ?: throw NotConstArgumentException()
+    if(!constval.isFloat)
+        throw SyntaxError("built-in function requires one floating point argument", position)
 
-    val float = args[0].constValue(namespace)?.asNumericValue?.toDouble()
-    if(float!=null) {
-        val result = LiteralValue(function(float).toInt())
-        result.position = args[0].position
-        return result
-    }
-    else
-        throw NotConstArgumentException()
+    val float = constval.asNumericValue?.toDouble()!!
+    val result = LiteralValue(function(float).toInt())
+    result.position = args[0].position
+    return result
 }
 
 private fun oneIntArgOutputInt(args: List<IExpression>, position: Position?, namespace:INameScope, function: (arg: Int)->Number): LiteralValue {
     if(args.size!=1)
         throw SyntaxError("built-in function requires one integer argument", position)
+    val constval = args[0].constValue(namespace) ?: throw NotConstArgumentException()
+    if(!constval.isInteger)
+        throw SyntaxError("built-in function requires one integer argument", position)
 
-    val integer = args[0].constValue(namespace)?.asNumericValue?.toInt()
-    if(integer!=null) {
-        val result = LiteralValue(function(integer).toInt())
-        result.position = args[0].position
-        return result
-    }
-    else
-        throw NotConstArgumentException()
+    val integer = constval.asNumericValue?.toInt()!!
+    val result = LiteralValue(function(integer).toInt())
+    result.position = args[0].position
+    return result
 }
 
 private fun collectionArgOutputNumber(args: List<IExpression>, position: Position?, namespace:INameScope,
@@ -152,6 +150,13 @@ fun builtinAbs(args: List<IExpression>, position: Position?, namespace:INameScop
     result.position = args[0].position
     return result
 }
+
+
+fun builtinLsb(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
+        = oneIntArgOutputInt(args, position, namespace) { x: Int -> x and 255 }
+
+fun builtinMsb(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
+        = oneIntArgOutputInt(args, position, namespace) { x: Int -> x ushr 8 and 255}
 
 fun builtinLsl(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
         = oneIntArgOutputInt(args, position, namespace) { x: Int -> x shl 1 }

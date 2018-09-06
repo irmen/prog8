@@ -779,6 +779,8 @@ class FunctionCall(override var target: IdentifierReference, override var arglis
                 "sum" -> builtinSum(arglist, position, namespace)
                 "avg" -> builtinAvg(arglist, position, namespace)
                 "len" -> builtinLen(arglist, position, namespace)
+                "lsb" -> builtinLsb(arglist, position, namespace)
+                "msb" -> builtinMsb(arglist, position, namespace)
                 "any" -> builtinAny(arglist, position, namespace)
                 "all" -> builtinAll(arglist, position, namespace)
                 "floor" -> builtinFloor(arglist, position, namespace)

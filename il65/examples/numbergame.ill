@@ -3,14 +3,13 @@
 %import mathlib
 
 ~ main {
+    sub start() -> () {
         str   name    = "?" * 80
         str   guess   = "?" * 80
         byte  secretnumber = 0
         byte  attempts_left = 10
         memory word freadstr_arg = $22		; argument for FREADSTR
 
-
-start:
         c64.init_system()
         c64.VMCSB |= 2		; lowercase charset
 
@@ -43,7 +42,7 @@ ask_guess:
         c64scr.print_string("\nYou have ")
         c64scr.print_byte_decimal(attempts_left)
         c64scr.print_string(" guess")
-	if(attempts_left>0) c64scr.print_string("es")
+        if(attempts_left>0) c64scr.print_string("es")
 
         c64scr.print_string(" left.\nWhat is your next guess? ")
         Y = c64scr.input_chars(guess)
@@ -52,17 +51,17 @@ ask_guess:
         c64.FREADSTR(A)
         AY = c64flt.GETADRAY()
         if(A==secretnumber) {
-		c64scr.print_string("\nThat's my number, impressive!\n")
-		goto goodbye
+        c64scr.print_string("\nThat's my number, impressive!\n")
+        goto goodbye
         }
         c64scr.print_string("That is too ")
         if(A > secretnumber)
-        	c64scr.print_string("low!\n")
+            c64scr.print_string("low!\n")
         else
-        	c64scr.print_string("high!\n")
+            c64scr.print_string("high!\n")
 
         attempts_left--
-	if(attempts_left>0) goto ask_guess
+        if(attempts_left>0) goto ask_guess
 
 game_over:
         c64scr.print_string("\nToo bad! It was: ")
@@ -72,4 +71,5 @@ game_over:
 goodbye:
         c64scr.print_string("\nThanks for playing. Bye!\n")
         return
+    }
 }
