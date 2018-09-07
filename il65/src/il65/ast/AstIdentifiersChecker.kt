@@ -36,7 +36,7 @@ class AstIdentifiersChecker : IAstProcessor {
     }
 
     override fun process(block: Block): IStatement {
-        val scopedName = block.scopedname.joinToString(".")
+        val scopedName = block.scopedname
         val existing = symbols[scopedName]
         if(existing!=null) {
             nameError(block.name, block.position, existing)
@@ -51,7 +51,7 @@ class AstIdentifiersChecker : IAstProcessor {
             // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", decl.position))
 
-        val scopedName = decl.scopedname.joinToString(".")
+        val scopedName = decl.scopedname
         val existing = symbols[scopedName]
         if(existing!=null) {
             nameError(decl.name, decl.position, existing)
@@ -66,7 +66,7 @@ class AstIdentifiersChecker : IAstProcessor {
             // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", subroutine.position))
         } else {
-            val scopedName = subroutine.scopedname.joinToString(".")
+            val scopedName = subroutine.scopedname
             val existing = symbols[scopedName]
             if (existing != null) {
                 nameError(subroutine.name, subroutine.position, existing)
@@ -82,7 +82,7 @@ class AstIdentifiersChecker : IAstProcessor {
             // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", label.position))
         } else {
-            val scopedName = label.scopedname.joinToString(".")
+            val scopedName = label.scopedname
             val existing = symbols[scopedName]
             if (existing != null) {
                 nameError(label.name, label.position, existing)

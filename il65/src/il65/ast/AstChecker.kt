@@ -53,8 +53,10 @@ class AstChecker(private val globalNamespace: INameScope, private val compilerOp
     override fun process(jump: Jump): IStatement {
         if(jump.identifier!=null) {
             val targetStatement = checkFunctionOrLabelExists(jump.identifier, jump)
-            if(targetStatement!=null)
-                jump.targetStatement = targetStatement      // link to actual jump target
+            if(targetStatement!=null) {
+                if(targetStatement is BuiltinFunctionStatementPlaceholder)
+                    checkResult.add(SyntaxError("can't jump to a builtin function", jump.position))
+            }
         }
 
         if(jump.address!=null && (jump.address < 0 || jump.address > 65535))
@@ -303,28 +305,38 @@ class AstChecker(private val globalNamespace: INameScope, private val compilerOp
                 ?: throw FatalAstException("cannot determine statement scope of function call expression at ${functionCall.position}")
 
         val targetStatement = checkFunctionOrLabelExists(functionCall.target, stmtOfExpression)
-        if(targetStatement!=null) {
-            functionCall.targetStatement = targetStatement      // link to the actual target statement
+        if(targetStatement!=null)
             checkBuiltinFunctionCall(functionCall, functionCall.position)
-        }
         return super.process(functionCall)
     }
 
     override fun process(functionCall: FunctionCallStatement): IStatement {
         val targetStatement = checkFunctionOrLabelExists(functionCall.target, functionCall)
-        if(targetStatement!=null) {
-            functionCall.targetStatement = targetStatement      // link to the actual target statement
+        if(targetStatement!=null)
             checkBuiltinFunctionCall(functionCall, functionCall.position)
-        }
         return super.process(functionCall)
     }
 
-    private fun checkFunctionOrLabelExists(target: IdentifierReference, statement: IStatement): IStatement? {
-        if(target.nameInSource.size==1 && BuiltinFunctionNames.contains(target.nameInSource[0])) {
-            return BuiltinFunctionStatementPlaceholder
+    override fun process(postIncrDecr: PostIncrDecr): IStatement {
+        if(postIncrDecr.target.register==null) {
+            val targetName = postIncrDecr.target.identifier!!.nameInSource
+            val target = globalNamespace.lookup(targetName, postIncrDecr)
+            if(target==null) {
+                checkResult.add(SyntaxError("undefined symbol: ${targetName.joinToString(".")}", postIncrDecr.position))
+            } else {
+                if(target !is VarDecl || target.type==VarDeclType.CONST) {
+                    checkResult.add(SyntaxError("can only increment or decrement a variable", postIncrDecr.position))
+                } else if(target.datatype!=DataType.FLOAT && target.datatype!=DataType.WORD && target.datatype!=DataType.BYTE) {
+                    checkResult.add(SyntaxError("can only increment or decrement a byte/float/word variable", postIncrDecr.position))
+                }
+            }
         }
-        val targetStatement = globalNamespace.lookup(target.nameInSource, statement)
-        if(targetStatement is Label || targetStatement is Subroutine)
+        return super.process(postIncrDecr)
+    }
+
+    private fun checkFunctionOrLabelExists(target: IdentifierReference, statement: IStatement): IStatement? {
+        val targetStatement = target.targetStatement(globalNamespace)
+        if(targetStatement is Label || targetStatement is Subroutine || targetStatement is BuiltinFunctionStatementPlaceholder)
             return targetStatement
         checkResult.add(SyntaxError("undefined function or subroutine: ${target.nameInSource.joinToString(".")}", statement.position))
         return null

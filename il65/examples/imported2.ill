@@ -15,15 +15,18 @@
     const byte snerp2 = snerp+22
 
 	X = 42+snerp
-	return 44+snerp
+	;return 44+snerp
+	return
 
 	    sub foo234234() -> () {
           A=99+snerp
-          return A+snerp2
+          ;return A+snerp2
+          return
         }
 
     sub thingy()->() {
-        return 99
+        ;return 99
+        return
     }
 }
 
@@ -32,6 +35,7 @@
 	; this is imported
 
 	X = 42
-	return 44
+	;return 44
+	return
 }
 

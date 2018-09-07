@@ -67,6 +67,12 @@
   const byte equal = 4==4
   const byte equal2 = (4+hopla)>0
 
+    goto 64738
+
+    ; A++
+    derp++
+    cc2--
+
   goto mega
   if_eq goto mega
 
@@ -81,6 +87,7 @@
   byte equalQQ = 4==4
   const byte equalQQ2 = (4+hopla)>0
 
+  sin(1)        ; @todo error statement has no effect (returnvalue of builtin function not used)
   P_carry(1)
   P_irqd(0)
 
@@ -145,21 +152,24 @@ cool:
   sub foo () -> () {
   	byte blerp = 3
   	A=99
-  	return 33
+  	; return 33
+  	return
   	ultrafoo()
   	X =33
 mega:
 cool:
     sub ultrafoo() -> () {
         X= extra233.thingy()
-        return 33
+        ;return 33
+        return
         goto main.mega
     }
 
   }
 
 some_label_def:   A=44
-  return 1+999
+  ;return 1+999
+  return
 	%breakpoint
 	%asminclude "derp", hopsa
 	%asmbinary "derp", 0, 200

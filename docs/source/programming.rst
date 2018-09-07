@@ -101,8 +101,7 @@ The name of a block must be unique in your entire program.
 Also be careful when importing other modules; blocks in your own code cannot have
 the same name as a block defined in an imported module or library.
 
-It's possible to omit this name, but then you can only refer to the contents of the block via its absolute address,
-which is required in this case. If you omit *both* name and address, the block is *ignored* by the compiler (and a warning is displayed).
+If you omit both the name and address, the entire block is *ignored* by the compiler (and a warning is displayed).
 This is a way to quickly "comment out" a piece of code that is unfinshed or may contain errors that you
 want to work on later, because the contents of the ignored block are not fully parsed either.
 

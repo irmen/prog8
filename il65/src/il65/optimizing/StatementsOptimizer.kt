@@ -83,7 +83,7 @@ class StatementOptimizer(private val globalNamespace: INameScope) : IAstProcesso
             is Subroutine -> stmt.scopedname
             else -> throw AstException("invalid call target node type: ${stmt::class}")
         }
-        globalNamespace.registerUsedName(scopedName.joinToString("."))
+        globalNamespace.registerUsedName(scopedName)
     }
 
     fun removeUnusedNodes(usedNames: Set<String>, allScopedSymbolDefinitions: MutableMap<String, IStatement>) {

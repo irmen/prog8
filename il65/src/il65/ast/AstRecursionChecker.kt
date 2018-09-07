@@ -6,8 +6,8 @@ import il65.parser.ParsingFailedError
  * Checks for the occurrence of recursive subroutine calls
  */
 
-fun Module.checkRecursion() {
-    val checker = AstRecursionChecker()
+fun Module.checkRecursion(namespace: INameScope) {
+    val checker = AstRecursionChecker(namespace)
     this.process(checker)
     val checkResult = checker.result()
     checkResult.forEach {
@@ -88,7 +88,7 @@ class DirectedGraph<VT> {
 }
 
 
-class AstRecursionChecker : IAstProcessor {
+class AstRecursionChecker(val namespace: INameScope) : IAstProcessor {
     private val callGraph = DirectedGraph<INameScope>()
 
     fun result(): List<AstException> {
@@ -96,26 +96,32 @@ class AstRecursionChecker : IAstProcessor {
         if(cycle.isEmpty())
             return emptyList()
         val chain = cycle.joinToString(" <-- ") { "${it.name} at ${it.position}" }
-        return listOf(AstException("Program contains recursive subroutine calls, this is not supported. Recursive chain:\n"+chain))
+        return listOf(AstException("Program contains recursive subroutine calls, this is not supported. Recursive chain:\n (a subroutine call in) "+chain))
     }
 
     override fun process(functionCall: FunctionCallStatement): IStatement {
         val scope = functionCall.definingScope()
-        val targetScope = when(functionCall.targetStatement) {
-            is Subroutine -> functionCall.targetStatement as Subroutine
-            else -> functionCall.targetStatement.definingScope()
+        val targetStatement = functionCall.target.targetStatement(namespace)
+        if(targetStatement!=null) {
+            val targetScope = when (targetStatement) {
+                is Subroutine -> targetStatement
+                else -> targetStatement.definingScope()
+            }
+            callGraph.add(scope, targetScope)
         }
-        callGraph.add(scope, targetScope)
         return super.process(functionCall)
     }
 
     override fun process(functionCall: FunctionCall): IExpression {
         val scope = functionCall.definingScope()
-        val targetScope = when(functionCall.targetStatement) {
-            is Subroutine -> functionCall.targetStatement as Subroutine
-            else -> functionCall.targetStatement.definingScope()
+        val targetStatement = functionCall.target.targetStatement(namespace)
+        if(targetStatement!=null) {
+            val targetScope = when (targetStatement) {
+                is Subroutine -> targetStatement
+                else -> targetStatement.definingScope()
+            }
+            callGraph.add(scope, targetScope)
         }
-        callGraph.add(scope, targetScope)
         return super.process(functionCall)
     }
 }

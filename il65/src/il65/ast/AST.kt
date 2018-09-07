@@ -172,6 +172,11 @@ interface IAstProcessor {
         assignment.value = assignment.value.process(this)
         return assignment
     }
+
+    fun process(postIncrDecr: PostIncrDecr): IStatement {
+        postIncrDecr.target = postIncrDecr.target.process(this)
+        return postIncrDecr
+    }
 }
 
 
@@ -226,8 +231,8 @@ interface IStatement : Node {
 interface IFunctionCall {
     var target: IdentifierReference
     var arglist: List<IExpression>
-    var targetStatement: IStatement
 }
+
 
 interface INameScope {
     val name: String
@@ -387,7 +392,7 @@ private class GlobalNamespace(override val name: String,
                 is Subroutine -> stmt.scopedname
                 else -> throw NameError("wrong identifier target: $stmt", stmt.position)
             }
-            registerUsedName(targetScopedName.joinToString("."))
+            registerUsedName(targetScopedName)
         }
         return stmt
     }
@@ -406,7 +411,8 @@ class Block(override val name: String,
                  override var statements: MutableList<IStatement>) : IStatement, INameScope {
     override var position: Position? = null
     override lateinit var parent: Node
-    val scopedname: List<String> by lazy { makeScopedName(name) }
+    val scopedname: String by lazy { makeScopedName(name).joinToString(".") }
+
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -450,7 +456,7 @@ data class DirectiveArg(val str: String?, val name: String?, val int: Int?) : No
 data class Label(val name: String) : IStatement {
     override var position: Position? = null
     override lateinit var parent: Node
-    val scopedname: List<String> by lazy { makeScopedName(name) }
+    val scopedname: String by lazy { makeScopedName(name).joinToString(".") }
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -476,6 +482,10 @@ class Return(var values: List<IExpression>) : IStatement {
     override fun process(processor: IAstProcessor): IStatement {
         values = values.map { it.process(processor) }
         return this
+    }
+
+    override fun toString(): String {
+        return "Return(values: $values, pos=$position)"
     }
 }
 
@@ -532,7 +542,8 @@ class VarDecl(val type: VarDeclType,
 
     override fun process(processor: IAstProcessor) = processor.process(this)
 
-    val scopedname: List<String> by lazy { makeScopedName(name) }
+    val scopedname: String by lazy { makeScopedName(name).joinToString(".") }
+
 
     fun arraySizeX(namespace: INameScope) : Int? {
         return arrayspec?.x?.constValue(namespace)?.intvalue
@@ -558,6 +569,10 @@ class Assignment(var target: AssignTarget, val aug_op : String?, var value: IExp
     }
 
     override fun process(processor: IAstProcessor) = processor.process(this)
+
+    override fun toString(): String {
+        return("Assignment(augop: $aug_op, target: $target, value: $value, pos=$position)")
+    }
 }
 
 data class AssignTarget(val register: Register?, val identifier: IdentifierReference?) : Node {
@@ -700,10 +715,15 @@ data class IdentifierReference(val nameInSource: List<String>) : IExpression {
     override var position: Position? = null
     override lateinit var parent: Node
 
+    fun targetStatement(namespace: INameScope) =
+        if(nameInSource.size==1 && BuiltinFunctionNames.contains(nameInSource[0]))
+            BuiltinFunctionStatementPlaceholder
+        else
+            namespace.lookup(nameInSource, this)
+
     override fun linkParents(parent: Node) {
         this.parent = parent
     }
-
 
     override fun constValue(namespace: INameScope): LiteralValue? {
         val node = namespace.lookup(nameInSource, this)
@@ -735,9 +755,10 @@ class PostIncrDecr(var target: AssignTarget, val operator: String) : IStatement 
         target.linkParents(this)
     }
 
-    override fun process(processor: IAstProcessor): IStatement {
-        target = target.process(processor)
-        return this
+    override fun process(processor: IAstProcessor) = processor.process(this)
+
+    override fun toString(): String {
+        return "PostIncrDecr(op: $operator, target: $target, pos=$position)"
     }
 }
 
@@ -745,7 +766,6 @@ class PostIncrDecr(var target: AssignTarget, val operator: String) : IStatement 
 class Jump(val address: Int?, val identifier: IdentifierReference?) : IStatement {
     override var position: Position? = null
     override lateinit var parent: Node
-    var targetStatement: IStatement? = null
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -753,13 +773,16 @@ class Jump(val address: Int?, val identifier: IdentifierReference?) : IStatement
     }
 
     override fun process(processor: IAstProcessor) = processor.process(this)
+
+    override fun toString(): String {
+        return "Jump(addr: $address, identifier: $identifier, target:  pos=$position)"
+    }
 }
 
 
 class FunctionCall(override var target: IdentifierReference, override var arglist: List<IExpression>) : IExpression, IFunctionCall {
     override var position: Position? = null
     override lateinit var parent: Node
-    override lateinit var targetStatement: IStatement
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -825,7 +848,6 @@ class FunctionCall(override var target: IdentifierReference, override var arglis
 class FunctionCallStatement(override var target: IdentifierReference, override var arglist: List<IExpression>) : IStatement, IFunctionCall {
     override var position: Position? = null
     override lateinit var parent: Node
-    override lateinit var targetStatement: IStatement
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -860,7 +882,8 @@ class Subroutine(override val name: String,
                       override var statements: MutableList<IStatement>) : IStatement, INameScope {
     override var position: Position? = null
     override lateinit var parent: Node
-    val scopedname: List<String> by lazy { makeScopedName(name) }
+    val scopedname: String by lazy { makeScopedName(name).joinToString(".") }
+
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -930,6 +953,10 @@ class BranchStatement(var condition: BranchCondition,
     }
 
     override fun process(processor: IAstProcessor): IStatement = processor.process(this)
+
+    override fun toString(): String {
+        return "Branch(cond: $condition, ${statements.size} stmts, ${elsepart.size} else-stmts, pos=$position)"
+    }
 }
 
 

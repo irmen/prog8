@@ -54,16 +54,16 @@ fun main(args: Array<String>) {
         StatementReorderer().process(moduleAst)                         // reorder statements to please the compiler later
         val globalNamespaceAfterOptimize = moduleAst.definingScope()    // create it again, it could have changed in the meantime
         moduleAst.checkValid(globalNamespaceAfterOptimize, compilerOptions)          // check if final tree is valid
-        moduleAst.checkRecursion()      // check if there are recursive subroutine calls
+        moduleAst.checkRecursion(globalNamespaceAfterOptimize)      // check if there are recursive subroutine calls
 
         // globalNamespaceAfterOptimize.debugPrint()
 
-        // compile the syntax tree into intermediate form, and optimize that
+        // compile the syntax tree into stackvmProg form, and optimize that
         val compiler = Compiler(compilerOptions)
         val intermediate = compiler.compile(moduleAst)
         intermediate.optimize()
 
-//        val assembly = intermediate.compileToAssembly()
+//        val assembly = stackvmProg.compileToAssembly()
 //
 //        assembly.assemble(compilerOptions, "input", "output")
 //        val monitorfile = assembly.generateBreakpointList()
