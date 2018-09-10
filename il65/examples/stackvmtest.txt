@@ -11,19 +11,25 @@ main.var1    str  "This is main.var1"
 main.var2   byte    aa
 main.var3  word   ea44
 main.var4  float  3.1415927
+main.textcolor byte 0
 input.prompt  str  "Enter a number: "
 input.result  word  0
 %end_variables
 ; instructions and labels
 %instructions
     nop
-    syscall WRITE_MEMSTR word:1000
+    syscall WRITE_MEMSTR w:1000
 loop:
-    syscall WRITE_VAR str:"input.prompt"
-    syscall INPUT_VAR str:"input.result"
-    syscall WRITE_VAR str:"input.result"
-    push byte:8d
-    syscall WRITE_CHAR
+    inc_var "main.textcolor"
+    syscall RANDOM
+    syscall RANDOM
+    push_var "main.textcolor"
+    syscall GFX_PIXEL
+;    syscall WRITE_VAR "input.prompt"
+;    syscall INPUT_VAR "input.result"
+;    syscall WRITE_VAR "input.result"
+;    push b:8d
+;    syscall WRITE_CHAR
     jump loop
 %end_instructions
 

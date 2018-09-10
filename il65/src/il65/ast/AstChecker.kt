@@ -25,7 +25,7 @@ fun Module.checkValid(globalNamespace: INameScope, compilerOptions: CompilationO
  * todo check subroutine return values against the call's result assignments
  */
 
-class AstChecker(private val globalNamespace: INameScope, private val compilerOptions: CompilationOptions) : IAstProcessor {
+class AstChecker(private val namespace: INameScope, private val compilerOptions: CompilationOptions) : IAstProcessor {
     private val checkResult: MutableList<SyntaxError> = mutableListOf()
 
     fun result(): List<SyntaxError> {
@@ -122,7 +122,7 @@ class AstChecker(private val globalNamespace: INameScope, private val compilerOp
      */
     override fun process(assignment: Assignment): IStatement {
         if(assignment.target.identifier!=null) {
-            val targetSymbol = globalNamespace.lookup(assignment.target.identifier!!.nameInSource, assignment)
+            val targetSymbol = namespace.lookup(assignment.target.identifier!!.nameInSource, assignment)
             if(targetSymbol !is VarDecl) {
                 checkResult.add(SyntaxError("assignment LHS must be register or variable", assignment.position))
                 return super.process(assignment)
@@ -133,7 +133,7 @@ class AstChecker(private val globalNamespace: INameScope, private val compilerOp
         }
 
         if(assignment.value is LiteralValue) {
-            val targetDatatype = assignment.target.determineDatatype(globalNamespace, assignment)
+            val targetDatatype = assignment.target.determineDatatype(namespace, assignment)
             checkValueTypeAndRange(targetDatatype, null, assignment.value as LiteralValue, assignment.position)
         }
         return super.process(assignment)
@@ -191,7 +191,7 @@ class AstChecker(private val globalNamespace: INameScope, private val compilerOp
      * check if condition
      */
     override fun process(ifStatement: IfStatement): IStatement {
-        val constvalue = ifStatement.condition.constValue(globalNamespace)
+        val constvalue = ifStatement.condition.constValue(namespace)
         if(constvalue!=null) {
             val msg = if (constvalue.asBooleanValue) "condition is always true" else "condition is always false"
             println("${ifStatement.position} Warning: $msg")
@@ -279,8 +279,8 @@ class AstChecker(private val globalNamespace: INameScope, private val compilerOp
             checkResult.add(SyntaxError(msg, range.position))
         }
         super.process(range)
-        val from = range.from.constValue(globalNamespace)
-        val to = range.to.constValue(globalNamespace)
+        val from = range.from.constValue(namespace)
+        val to = range.to.constValue(namespace)
         if(from!=null && to != null) {
             when {
                 from.intvalue!=null && to.intvalue!=null -> {
@@ -320,7 +320,7 @@ class AstChecker(private val globalNamespace: INameScope, private val compilerOp
     override fun process(postIncrDecr: PostIncrDecr): IStatement {
         if(postIncrDecr.target.register==null) {
             val targetName = postIncrDecr.target.identifier!!.nameInSource
-            val target = globalNamespace.lookup(targetName, postIncrDecr)
+            val target = namespace.lookup(targetName, postIncrDecr)
             if(target==null) {
                 checkResult.add(SyntaxError("undefined symbol: ${targetName.joinToString(".")}", postIncrDecr.position))
             } else {
@@ -335,7 +335,7 @@ class AstChecker(private val globalNamespace: INameScope, private val compilerOp
     }
 
     private fun checkFunctionOrLabelExists(target: IdentifierReference, statement: IStatement): IStatement? {
-        val targetStatement = target.targetStatement(globalNamespace)
+        val targetStatement = target.targetStatement(namespace)
         if(targetStatement is Label || targetStatement is Subroutine || targetStatement is BuiltinFunctionStatementPlaceholder)
             return targetStatement
         checkResult.add(SyntaxError("undefined function or subroutine: ${target.nameInSource.joinToString(".")}", statement.position))
@@ -396,7 +396,7 @@ class AstChecker(private val globalNamespace: INameScope, private val compilerOp
                         val number = (av as LiteralValue).intvalue
                                 ?: return err("array must be all bytes")
 
-                        val expectedSize = arrayspec?.x?.constValue(globalNamespace)?.intvalue
+                        val expectedSize = arrayspec?.x?.constValue(namespace)?.intvalue
                         if (value.arrayvalue.size != expectedSize)
                             return err("initializer array size mismatch (expecting $expectedSize, got ${value.arrayvalue.size})")
 
@@ -417,7 +417,7 @@ class AstChecker(private val globalNamespace: INameScope, private val compilerOp
                         val number = (av as LiteralValue).intvalue
                                 ?: return err("array must be all words")
 
-                        val expectedSize = arrayspec?.x?.constValue(globalNamespace)?.intvalue
+                        val expectedSize = arrayspec?.x?.constValue(namespace)?.intvalue
                         if (value.arrayvalue.size != expectedSize)
                             return err("initializer array size mismatch (expecting $expectedSize, got ${value.arrayvalue.size})")
 

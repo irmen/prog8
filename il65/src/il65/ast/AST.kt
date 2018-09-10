@@ -544,14 +544,6 @@ class VarDecl(val type: VarDeclType,
 
     val scopedname: String by lazy { makeScopedName(name).joinToString(".") }
 
-
-    fun arraySizeX(namespace: INameScope) : Int? {
-        return arrayspec?.x?.constValue(namespace)?.intvalue
-    }
-    fun arraySizeY(namespace: INameScope) : Int? {
-        return arrayspec?.y?.constValue(namespace)?.intvalue
-    }
-
     override fun toString(): String {
         return "VarDecl(name=$name, vartype=$type, datatype=$datatype, value=$value, pos=$position)"
     }

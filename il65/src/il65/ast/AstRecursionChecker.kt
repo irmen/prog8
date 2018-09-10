@@ -88,7 +88,7 @@ class DirectedGraph<VT> {
 }
 
 
-class AstRecursionChecker(val namespace: INameScope) : IAstProcessor {
+class AstRecursionChecker(private val namespace: INameScope) : IAstProcessor {
     private val callGraph = DirectedGraph<INameScope>()
 
     fun result(): List<AstException> {

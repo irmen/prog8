@@ -3,10 +3,12 @@ package il65.stackvm
 import il65.ast.DataType
 import il65.compiler.Mflpt5
 import il65.compiler.Petscii
+import java.awt.EventQueue
 import java.io.File
 import java.io.PrintWriter
 import java.util.*
 import java.util.regex.Pattern
+import javax.swing.Timer
 import kotlin.math.max
 import kotlin.math.pow
 
@@ -14,11 +16,14 @@ enum class Opcode {
 
     // pushing values on the (evaluation) stack
     PUSH,           // push constant byte value
+    PUSH_MEM,       // push byte value from memory to stack
+    PUSH_MEM_W,     // push word value from memory to stack
+    PUSH_MEM_F,     // push float value from memory to stack
     PUSH_VAR,       // push a variable
     DUP,            // push topmost value once again
 
     // popping values off the (evaluation) stack, possibly storing them in another location
-    DISCARD,        // discard X bytes from the top of the stack
+    DISCARD,        // discard top value
     POP_MEM,        // pop value into destination memory address
     POP_VAR,        // pop value into variable
 
@@ -78,12 +83,12 @@ enum class Opcode {
     JUMP,
     BCS,
     BCC,
-    //BEQ,      // @todo not implemented status flag Z
-    //BNE,      // @todo not implemented status flag Z
-    //BVS,      // @todo not implemented status flag V
-    //BVC,      // @todo not implemented status flag V
-    //BMI,      // @todo not implemented status flag N
-    //BPL,      // @todo not implemented status flag N
+    BEQ,        // branch if value on top of stack is zero
+    BNE,        // branch if value on top of stack is not zero
+    BMI,        // branch if value on top of stack < 0
+    BPL,        // branch if value on top of stack >= 0
+    // BVS,      // status flag V (overflow) not implemented
+    // BVC,      // status flag V (overflow) not implemented
 
     // subroutine calling
     CALL,
@@ -92,8 +97,8 @@ enum class Opcode {
 
     // misc
     SWAP,
-    SEC,
-    CLC,
+    SEC,        // set carry status flag  NOTE: is mostly fake, carry flag is not affected by any numeric operations
+    CLC,        // clear carry status flag  NOTE: is mostly fake, carry flag is not affected by any numeric operations
     NOP,
     TERMINATE
 }
@@ -105,6 +110,11 @@ enum class Syscall(val callNr: Short) {
     WRITE_CHAR(13),             // pop from the evaluation stack and print it as a single petscii character
     WRITE_VAR(14),              // print the number or string from the given variable
     INPUT_VAR(15),              // user input a string into a variable
+    GFX_PIXEL(16),              // plot a pixel at (x,y,color) pushed on stack in that order
+    GFX_CLEARSCR(17),           // clear the screen with color pushed on stack
+    GFX_TEXT(18),               // write text on screen at (x,y,text,color) pushed on stack in that order
+    RANDOM(19),                 // push a random byte on the stack
+    RANDOM_W(20)                // push a random word on the stack
 }
 
 class Memory {
@@ -506,17 +516,15 @@ class Program (prog: MutableList<Instruction>,
         private fun getArgValue(args: String?): Value? {
             if(args==null)
                 return null
+            if(args[0]=='"' && args[args.length-1]=='"') {
+                // it's a string.
+                return Value(DataType.STR, null, unescape(args.substring(1, args.length-1)))
+            }
             val (type, valueStr) = args.split(':')
             return when(type) {
-                "byte" -> Value(DataType.BYTE, valueStr.toShort(16))
-                "word" -> Value(DataType.WORD, valueStr.toInt(16))
-                "float" -> Value(DataType.FLOAT, valueStr.toDouble())
-                "str" -> {
-                    if(valueStr.startsWith('"') && valueStr.endsWith('"'))
-                        Value(DataType.STR, null, unescape(valueStr.substring(1, valueStr.length-1)))
-                    else
-                        throw VmExecutionException("str should be enclosed in quotes")
-                }
+                "b" -> Value(DataType.BYTE, valueStr.toShort(16))
+                "w" -> Value(DataType.WORD, valueStr.toInt(16))
+                "f" -> Value(DataType.FLOAT, valueStr.toDouble())
                 else -> throw VmExecutionException("invalid datatype $type")
             }
         }
@@ -616,13 +624,18 @@ class Program (prog: MutableList<Instruction>,
             when(instr.opcode) {
                 Opcode.TERMINATE -> instr.next = instr          // won't ever execute a next instruction
                 Opcode.RETURN -> instr.next = instr             // kinda a special one, in actuality the return instruction is dynamic
-                Opcode.JUMP, Opcode.BCC, Opcode.BCS -> {
+                Opcode.JUMP -> {
                     val target = labels[instr.callLabel] ?: throw VmExecutionException("undefined label: ${instr.callLabel}")
                     instr.next = target
                 }
+                Opcode.BCC, Opcode.BCS, Opcode.BEQ, Opcode.BNE, Opcode.BMI, Opcode.BPL -> {
+                    val jumpInstr = labels[instr.callLabel] ?: throw VmExecutionException("undefined label: ${instr.callLabel}")
+                    instr.next = jumpInstr
+                    instr.nextAlt = nextInstr
+                }
                 Opcode.CALL -> {
                     val jumpInstr = labels[instr.callLabel] ?: throw VmExecutionException("undefined label: ${instr.callLabel}")
-                    instr.next=jumpInstr
+                    instr.next = jumpInstr
                     instr.nextAlt = nextInstr  // instruction to return to
                 }
                 else -> instr.next = nextInstr
@@ -633,33 +646,41 @@ class Program (prog: MutableList<Instruction>,
 
 
 class StackVm(val traceOutputFile: String?) {
-    val mem = Memory()
+    private val mem = Memory()
     private val evalstack = MyStack<Value>()   // evaluation stack
     private val callstack = MyStack<Instruction>()    // subroutine call stack        (@todo maybe use evalstack as well for this?)
     private var variables = mutableMapOf<String, Value>()     // all variables (set of all vars used by all blocks/subroutines) key = their fully scoped name
     private var carry: Boolean = false
     private var program = listOf<Instruction>()
     private var traceOutput = if(traceOutputFile!=null) File(traceOutputFile).printWriter() else null
+    private lateinit var currentIns: Instruction
+    private lateinit var canvas: BitmapScreenPanel
+    private val rnd = Random()
 
-    fun run(program: Program) {
+    fun load(program: Program, canvas: BitmapScreenPanel) {
         this.program = program.program
+        this.canvas = canvas
         this.variables = program.variables.toMutableMap()
         initMemory(program.memory)
-        var ins = this.program[0]
+        currentIns = this.program[0]
+    }
 
-        try {
-            while (true) {
-                ins = dispatch(ins)
+    fun step() {
+        // step is invoked every 1/100 sec
+        // we execute 5000 instructions in one go so we end up doing 500.000 instructions per second
+        val instructionsPerStep = 5000
+        val start = System.currentTimeMillis()
+        for(i:Int in 0..instructionsPerStep) {
+            currentIns = dispatch(currentIns)
 
-                if(evalstack.size > 128)
-                    throw VmExecutionException("too many values on evaluation stack")
-                if(callstack.size > 128)
-                    throw VmExecutionException("too many nested/recursive calls")
-            }
-        } catch (x: VmTerminationException) {
-            println("\n\nExecution terminated.")
-        } finally {
-            traceOutput?.close()
+            if (evalstack.size > 128)
+                throw VmExecutionException("too many values on evaluation stack")
+            if (callstack.size > 128)
+                throw VmExecutionException("too many nested/recursive calls")
+        }
+        val time = System.currentTimeMillis()-start
+        if(time > 100) {
+            println("WARNING: vm dispatch step took > 100 msec")
         }
     }
 
@@ -695,6 +716,18 @@ class StackVm(val traceOutputFile: String?) {
         when (ins.opcode) {
             Opcode.NOP -> {}
             Opcode.PUSH -> evalstack.push(ins.arg)
+            Opcode.PUSH_MEM -> {
+                val address = ins.arg!!.integerValue()
+                evalstack.push(Value(DataType.BYTE, mem.getByte(address)))
+            }
+            Opcode.PUSH_MEM_W -> {
+                val address = ins.arg!!.integerValue()
+                evalstack.push(Value(DataType.WORD, mem.getWord(address)))
+            }
+            Opcode.PUSH_MEM_F -> {
+                val address = ins.arg!!.integerValue()
+                evalstack.push(Value(DataType.FLOAT, mem.getFloat(address)))
+            }
             Opcode.DUP -> evalstack.push(evalstack.peek())
             Opcode.DISCARD -> evalstack.pop()
             Opcode.SWAP -> {
@@ -818,6 +851,24 @@ class StackVm(val traceOutputFile: String?) {
                         }
                         variables[varname] = value
                     }
+                    Syscall.GFX_PIXEL -> {
+                        // plot pixel at (x, y, color) from stack
+                        val color = evalstack.pop()
+                        val (y, x) = evalstack.pop2()
+                        canvas.setPixel(x.integerValue(), y.integerValue(), color.integerValue())
+                    }
+                    Syscall.GFX_CLEARSCR -> {
+                        val color = evalstack.pop()
+                        canvas.clearScreen(color.integerValue())
+                    }
+                    Syscall.GFX_TEXT -> {
+                        val color = evalstack.pop()
+                        val text = evalstack.pop()
+                        val (y, x) = evalstack.pop2()
+                        canvas.writeText(x.integerValue(), y.integerValue(), text.stringvalue!!, color.integerValue())
+                    }
+                    Syscall.RANDOM -> evalstack.push(Value(DataType.BYTE, rnd.nextInt() and 255))
+                    Syscall.RANDOM_W -> evalstack.push(Value(DataType.WORD, rnd.nextInt() and 65535))
                     else -> throw VmExecutionException("unimplemented syscall $syscall")
                 }
             }
@@ -926,6 +977,10 @@ class StackVm(val traceOutputFile: String?) {
             Opcode.JUMP -> {}   // do nothing; the next instruction is wired up already to the jump target
             Opcode.BCS -> return if(carry) ins.next else ins.nextAlt!!
             Opcode.BCC -> return if(carry) ins.nextAlt!! else ins.next
+            Opcode.BEQ -> return if(evalstack.peek().numericValue().toDouble()==0.0) ins.next else ins.nextAlt!!
+            Opcode.BNE -> return if(evalstack.peek().numericValue().toDouble()!=0.0) ins.next else ins.nextAlt!!
+            Opcode.BMI -> return if(evalstack.peek().numericValue().toDouble()<0.0) ins.next else ins.nextAlt!!
+            Opcode.BPL -> return if(evalstack.peek().numericValue().toDouble()>=0.0) ins.next else ins.nextAlt!!
             Opcode.CALL -> callstack.push(ins.nextAlt)
             Opcode.RETURN -> return callstack.pop()
             Opcode.PUSH_VAR -> {
@@ -1005,7 +1060,16 @@ class StackVm(val traceOutputFile: String?) {
 
 
 fun main(args: Array<String>) {
-    val vm = StackVm(traceOutputFile = "vmtrace.txt")
-    val program = Program.load("il65/examples/stackvmtest.txt")
-    vm.run(program)
+    val program = Program.load("examples/stackvmtest.txt")
+    val vm = StackVm(traceOutputFile = null)
+    val dialog = ScreenDialog()
+    vm.load(program, dialog.canvas)
+    EventQueue.invokeLater {
+        dialog.pack()
+        dialog.isVisible = true
+        dialog.start()
+
+        val programTimer = Timer(10) { _ -> vm.step() }
+        programTimer.start()
+    }
 }
