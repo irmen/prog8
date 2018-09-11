@@ -68,15 +68,15 @@ class NameError(override var message: String, val position: Position?) : AstExce
     }
 }
 
-open class ExpressionException(message: String, val position: Position?) : AstException(message) {
+open class ExpressionError(message: String, val position: Position?) : AstException(message) {
     override fun toString(): String {
         val location = position?.toString() ?: ""
         return "$location Error: $message"
     }
 }
 
-class UndefinedSymbolException(symbol: IdentifierReference)
-    : ExpressionException("undefined symbol: ${symbol.nameInSource.joinToString(".")}", symbol.position)
+class UndefinedSymbolError(symbol: IdentifierReference)
+    : ExpressionError("undefined symbol: ${symbol.nameInSource.joinToString(".")}", symbol.position)
 
 
 data class Position(val file: String, val line: Int, val startCol: Int, val endCol: Int) {
@@ -514,26 +514,17 @@ enum class VarDeclType {
 }
 
 class VarDecl(val type: VarDeclType,
-                   declaredDatatype: DataType,
+                   private val declaredDatatype: DataType,
                    val arrayspec: ArraySpec?,
                    val name: String,
                    var value: IExpression?) : IStatement {
     override var position: Position? = null
     override lateinit var parent: Node
-    val datatype: DataType
 
-    init {
-        datatype = when {
-            arrayspec!=null -> // it's not a scalar, adjust the datatype
-                when(declaredDatatype) {
-                    DataType.BYTE -> DataType.ARRAY
-                    DataType.WORD -> DataType.ARRAY_W
-                    DataType.MATRIX -> TODO()
-                    else -> throw FatalAstException("invalid vardecl array datatype $declaredDatatype at $position")
-                }
-            else -> declaredDatatype
-        }
-    }
+    // note: the actual datatype will be determined somewhat later (in the ast checker phase)
+    // (we don't do it at init time, because we have to have a way to create a proper syntax error instead of a crash)
+    lateinit var datatype: DataType
+
     override fun linkParents(parent: Node) {
         this.parent = parent
         arrayspec?.linkParents(this)
@@ -543,9 +534,51 @@ class VarDecl(val type: VarDeclType,
     override fun process(processor: IAstProcessor) = processor.process(this)
 
     val scopedname: String by lazy { makeScopedName(name).joinToString(".") }
+    val memorySize: Int
+        get() = when(datatype) {
+            DataType.BYTE -> 1
+            DataType.WORD -> 2
+            DataType.FLOAT -> 5   // MFLPT5
+            DataType.STR,
+            DataType.STR_P,
+            DataType.STR_S,
+            DataType.STR_PS -> {
+                val lv = value as? LiteralValue ?: throw ExpressionError("need constant initializer value expression", position)
+                lv.strvalue!!.length + 1
+            }
+            DataType.ARRAY -> {
+                val aX = arrayspec?.x as? LiteralValue ?: throw ExpressionError("need constant value expression for arrayspec", position)
+                aX.intvalue!!
+            }
+            DataType.ARRAY_W -> {
+                val aX = arrayspec?.x as? LiteralValue ?: throw ExpressionError("need constant value expression for arrayspec", position)
+                2*aX.intvalue!!
+            }
+            DataType.MATRIX -> {
+                val aX = arrayspec?.x as? LiteralValue ?: throw ExpressionError("need constant value expression for arrayspec", position)
+                val aY = arrayspec.y as? LiteralValue ?: throw ExpressionError("need constant value expression for arrayspec", position)
+                aX.intvalue!! * aY.intvalue!!
+            }
+        }
 
     override fun toString(): String {
         return "VarDecl(name=$name, vartype=$type, datatype=$datatype, value=$value, pos=$position)"
+    }
+
+    fun setDatatype() {
+        datatype =
+                when {
+                    arrayspec == null -> declaredDatatype
+                    arrayspec.y!=null -> when (declaredDatatype) {
+                        DataType.BYTE -> DataType.MATRIX
+                        else -> throw SyntaxError("matrix can only contain bytes", position)
+                    }
+                    else -> when (declaredDatatype) {
+                        DataType.BYTE -> DataType.ARRAY
+                        DataType.WORD -> DataType.ARRAY_W
+                        else -> throw SyntaxError("array can only contain bytes or words", position)
+                    }
+                }
     }
 }
 
@@ -719,10 +752,10 @@ data class IdentifierReference(val nameInSource: List<String>) : IExpression {
 
     override fun constValue(namespace: INameScope): LiteralValue? {
         val node = namespace.lookup(nameInSource, this)
-                ?: throw UndefinedSymbolException(this)
+                ?: throw UndefinedSymbolError(this)
         val vardecl = node as? VarDecl
         if(vardecl==null) {
-            throw ExpressionException("name should be a constant, instead of: ${node::class.simpleName}", position)
+            throw ExpressionError("name should be a constant, instead of: ${node::class.simpleName}", position)
         } else if(vardecl.type!=VarDeclType.CONST) {
             return null
         }
@@ -813,12 +846,12 @@ class FunctionCall(override var target: IdentifierReference, override var arglis
                 "ceil" -> builtinCeil(arglist, position, namespace)
                 "lsl" -> builtinLsl(arglist, position, namespace)
                 "lsr" -> builtinLsr(arglist, position, namespace)
-                "rol" -> throw ExpressionException("builtin function rol can't be used in expressions because it doesn't return a value", position)
-                "rol2" -> throw ExpressionException("builtin function rol2 can't be used in expressions because it doesn't return a value", position)
-                "ror" -> throw ExpressionException("builtin function ror can't be used in expressions because it doesn't return a value", position)
-                "ror2" -> throw ExpressionException("builtin function ror2 can't be used in expressions because it doesn't return a value", position)
-                "P_carry" -> throw ExpressionException("builtin function P_carry can't be used in expressions because it doesn't return a value", position)
-                "P_irqd" -> throw ExpressionException("builtin function P_irqd can't be used in expressions because it doesn't return a value", position)
+                "rol" -> throw ExpressionError("builtin function rol can't be used in expressions because it doesn't return a value", position)
+                "rol2" -> throw ExpressionError("builtin function rol2 can't be used in expressions because it doesn't return a value", position)
+                "ror" -> throw ExpressionError("builtin function ror can't be used in expressions because it doesn't return a value", position)
+                "ror2" -> throw ExpressionError("builtin function ror2 can't be used in expressions because it doesn't return a value", position)
+                "P_carry" -> throw ExpressionError("builtin function P_carry can't be used in expressions because it doesn't return a value", position)
+                "P_irqd" -> throw ExpressionError("builtin function P_irqd can't be used in expressions because it doesn't return a value", position)
                 else -> null
             }
         }

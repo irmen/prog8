@@ -20,10 +20,10 @@ input.result  word  0
     nop
     syscall WRITE_MEMSTR w:1000
 loop:
-    inc_var "main.textcolor"
+    inc_var main.textcolor
     syscall RANDOM
     syscall RANDOM
-    push_var "main.textcolor"
+    push_var main.textcolor
     syscall GFX_PIXEL
 ;    syscall WRITE_VAR "input.prompt"
 ;    syscall INPUT_VAR "input.result"

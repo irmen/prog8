@@ -69,7 +69,7 @@ class Zeropage(private val options: CompilationOptions) {
                     // 2 dimensional matrix (only bytes for now)
                     when(vardecl.datatype) {
                         DataType.BYTE -> (vardecl.arrayspec.x as LiteralValue).intvalue!! * y
-                        else -> throw CompilerException("matrix can only be of byte")
+                        else -> throw CompilerException("matrix can only contain bytes")
                     }
                 }
             } else {

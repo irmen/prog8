@@ -26,9 +26,9 @@ fun Module.checkValid(globalNamespace: INameScope, compilerOptions: CompilationO
  */
 
 class AstChecker(private val namespace: INameScope, private val compilerOptions: CompilationOptions) : IAstProcessor {
-    private val checkResult: MutableList<SyntaxError> = mutableListOf()
+    private val checkResult: MutableList<AstException> = mutableListOf()
 
-    fun result(): List<SyntaxError> {
+    fun result(): List<AstException> {
         return checkResult
     }
 
@@ -122,13 +122,21 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
      */
     override fun process(assignment: Assignment): IStatement {
         if(assignment.target.identifier!=null) {
-            val targetSymbol = namespace.lookup(assignment.target.identifier!!.nameInSource, assignment)
-            if(targetSymbol !is VarDecl) {
-                checkResult.add(SyntaxError("assignment LHS must be register or variable", assignment.position))
-                return super.process(assignment)
-            } else if(targetSymbol.type==VarDeclType.CONST) {
-                checkResult.add(SyntaxError("cannot assign new value to a constant", assignment.position))
-                return super.process(assignment)
+            val targetName = assignment.target.identifier!!.nameInSource
+            val targetSymbol = namespace.lookup(targetName, assignment)
+            when {
+                targetSymbol == null -> {
+                    checkResult.add(ExpressionError("undefined symbol: ${targetName.joinToString(".")}", assignment.position))
+                    return super.process(assignment)
+                }
+                targetSymbol !is VarDecl -> {
+                    checkResult.add(SyntaxError("assignment LHS must be register or variable", assignment.position))
+                    return super.process(assignment)
+                }
+                targetSymbol.type == VarDeclType.CONST -> {
+                    checkResult.add(ExpressionError("cannot assign new value to a constant", assignment.position))
+                    return super.process(assignment)
+                }
             }
         }
 
@@ -361,7 +369,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
 
     private fun checkValueTypeAndRange(datatype: DataType, arrayspec: ArraySpec?, value: LiteralValue, position: Position?) : Boolean {
         fun err(msg: String) : Boolean {
-            checkResult.add(SyntaxError(msg, position))
+            checkResult.add(ExpressionError(msg, position))
             return false
         }
         when (datatype) {
@@ -417,7 +425,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                         val number = (av as LiteralValue).intvalue
                                 ?: return err("array must be all words")
 
-                        val expectedSize = arrayspec?.x?.constValue(namespace)?.intvalue
+                        val expectedSize = arrayspec!!.x.constValue(namespace)?.intvalue!!
                         if (value.arrayvalue.size != expectedSize)
                             return err("initializer array size mismatch (expecting $expectedSize, got ${value.arrayvalue.size})")
 
@@ -431,7 +439,29 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                         return err("value '$number' out of range for unsigned word")
                 }
             }
-            DataType.MATRIX -> TODO()
+            DataType.MATRIX -> {
+                // value can only be a single byte, or a byte array (which represents the matrix)
+                if(value.isArray) {
+                    for (av in value.arrayvalue!!) {
+                        val number = (av as LiteralValue).intvalue
+                                ?: return err("array must be all bytes")
+
+                        val expectedSizeX = arrayspec!!.x.constValue(namespace)?.intvalue!!
+                        val expectedSizeY = arrayspec.y!!.constValue(namespace)?.intvalue!!
+                        val expectedSize = expectedSizeX * expectedSizeY
+                        if (value.arrayvalue.size != expectedSize)
+                            return err("initializer array size mismatch (expecting $expectedSize, got ${value.arrayvalue.size})")
+
+                        if (number < 0 || number > 255)
+                            return err("value '$number' in byte array is out of range for unsigned byte")
+                    }
+                } else {
+                    val number = value.intvalue
+                            ?: return err("byte integer value expected")
+                    if (number < 0 || number > 255)
+                        return err("value '$number' out of range for unsigned byte")
+                }
+            }
         }
         return true
     }

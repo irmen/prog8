@@ -164,17 +164,19 @@ Values will usually be part of an expression or assignment statement::
 
 	byte  counter  = 42	; variable of size 8 bits, with initial value 42
 
-	byte[4]  array = [1, 2, 3, 4]    ; initialize the array
-	byte[99] array = 255             ; initialize array with all 255's [255, 255, 255, 255, ...]
-	byte[100] array = 100 to 199     ; initialize array with [100, 101, ..., 198, 199]
+
+Array and Matrix (2-dimensional array) types are also supported in a limited way::
+
+	byte[4]  array = [1, 2, 3, 4]     ; initialize the array
+	byte[99] array = 255              ; initialize array with all 255's [255, 255, 255, 255, ...]
+	byte[100] array = 100 to 199      ; initialize array with [100, 101, ..., 198, 199]
+	byte[2,3] matrix = 1              ; a matrix of 2*3=6 bytes all with value 1
+	byte[2,3] matrix = [1,2,3,4,5,6]  ; a 2*3 matrix with value |(1,2)  (3,4)  (5,6)|
 
 
 Note that the various keywords for the data type and variable type (``byte``, ``word``, ``const``, etc.)
 cannot be used as *identifiers* elsewhere. You can't make a variable, block or subroutine with the name ``byte``
 for instance.
-
-.. todo::
-    matrix datatype
 
 .. todo::
     There must be a way to tell the compiler which variables you require to be in Zeropage:

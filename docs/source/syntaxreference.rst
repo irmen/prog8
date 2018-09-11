@@ -197,22 +197,23 @@ Variable declarations
 ^^^^^^^^^^^^^^^^^^^^^
 
 Variables should be declared with their exact type and size so the compiler can allocate storage
-for them. You can give them an initial value as well. That value can be a simple literal value,
-but you can put a (constant) expression there as well. The syntax is::
+for them. You must give them an initial value as well. That value can be a simple literal value,
+or a (constant) expression. The syntax is::
 
 	<datatype>   <variable name>   [ = <initial value> ]
 
 Various examples::
 
-	word        thing
-	byte        counter = 0
-	byte        age     = 2018 - 1974
-	float       wallet  = 55.25
-	str	    name    = "my name is Irmen"
-	word        address = #counter
-	byte[5]     values  = [11, 22, 33, 44, 55]
-	byte[5]     values  = 255           ; initialize with five 255 bytes
-	byte[5][6]  empty_matrix
+    word        thing   = 0
+    byte        counter = len([1, 2, 3]) * 20
+    byte        age     = 2018 - 1974
+    float       wallet  = 55.25
+    str         name    = "my name is Irmen"
+    word        address = #counter
+    byte[5]     values  = [11, 22, 33, 44, 55]
+    byte[5]     values  = 255           ; initialize with five 255 bytes
+    byte[5][6]  empty_matrix = 0        ; initialize with 30 zero bytes
+    byte[2][3]  other_matrix = [1,2,3,4,5,6]   ; 2*3 matrix with value | (1,2)  (3,4)  (5,6) |
 
 
 
@@ -348,11 +349,12 @@ range creation:  ``to``
 		}
 
 
-array indexing:  ``[`` *index* ``]``
-	When put after a sequence type (array, string or matrix) it means to point to the given element in that sequence::
+.. todo::
+    array indexing:  ``[`` *index* ``]``
+        When put after a sequence type (array, string or matrix) it means to point to the given element in that sequence::
 
-		array[2]		; the third byte in the array (index is 0-based)
-		matrix[4,2]		; the byte at the 5th column and 3rd row in the matrix
+            array[2]		; the third byte in the array (index is 0-based)
+            matrix[4,2]		; the byte at the 5th column and 3rd row in the matrix
 
 
 precedence grouping in expressions, or subroutine parameter list:  ``(`` *expression* ``)``

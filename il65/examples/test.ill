@@ -4,10 +4,20 @@
 %import c64lib
 
 ~ not_main $d000 {
-    const float len1 =  111 ;len([1,2,3])
-    const float round1 =  111 ;len([1,2,3])
-    const float sin1 =  111 ;len([1,2,3])
-    float cos1 =  111 ;len([1,2,3])
+    byte [100] array1 = 0
+    word [100] array2 = 1
+    byte [2,3] matrix1 = 2
+    byte [2,3] matrix2 = [1,2,3,4,5,6]
+
+    const byte [100] carray1 = 0
+    const word [100] carray2 = 1
+    const byte [2,3] cmatrix1 = [1,2,3,4,5,255]
+
+
+    const float len1 =  len([1,2,3])
+    const float round1 =  len([1,2,3])
+    const float sin1 =  len([1,2,3])
+    float cos1 =  len([1,2,3])
 }
 
 ~ main $c003  {

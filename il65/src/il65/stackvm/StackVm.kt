@@ -495,6 +495,14 @@ class Program (prog: MutableList<Instruction>,
                         Opcode.JUMP -> {
                             Instruction(opcode, callLabel = args)
                         }
+                        Opcode.INC_VAR, Opcode.DEC_VAR,
+                        Opcode.SHR_VAR, Opcode.SHL_VAR, Opcode.ROL_VAR, Opcode.ROR_VAR,
+                        Opcode.ROL2_VAR, Opcode.ROR2_VAR, Opcode.POP_VAR, Opcode.PUSH_VAR -> {
+                            val withoutQuotes =
+                                    if(args!!.startsWith('"') && args.endsWith('"'))
+                                        args.substring(1, args.length-1) else args
+                            Instruction(opcode, Value(DataType.STR, null, withoutQuotes))
+                        }
                         Opcode.SYSCALL -> {
                             val syscallparts = args!!.split(' ')
                             val call = Syscall.valueOf(syscallparts[0])

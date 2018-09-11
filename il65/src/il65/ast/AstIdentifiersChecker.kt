@@ -6,6 +6,7 @@ import il65.parser.ParsingFailedError
 /**
  * Checks the validity of all identifiers (no conflicts)
  * Also builds a list of all (scoped) symbol definitions
+ * Finally, it also makes sure the datatype of all Var decls is set correctly.
  */
 
 fun Module.checkIdentifiers(): MutableMap<String, IStatement> {
@@ -47,6 +48,14 @@ class AstIdentifiersChecker : IAstProcessor {
     }
 
     override fun process(decl: VarDecl): IStatement {
+        // first, set the datatype
+        try {
+            decl.setDatatype()
+        } catch(ax: AstException) {
+            checkResult.add(ax)
+        }
+
+        // now check the identifier
         if(BuiltinFunctionNames.contains(decl.name))
             // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", decl.position))

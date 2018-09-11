@@ -62,6 +62,7 @@ fun main(args: Array<String>) {
         val compiler = Compiler(compilerOptions)
         val intermediate = compiler.compile(moduleAst)
         intermediate.optimize()
+        intermediate.toTextLines().forEach { println(it) }
 
 //        val assembly = stackvmProg.compileToAssembly()
 //

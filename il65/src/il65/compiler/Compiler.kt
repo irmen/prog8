@@ -85,39 +85,6 @@ data class Mflpt5(val b0: Short, val b1: Short, val b2: Short, val b3: Short, va
     }
 }
 
-/*
-
-; source code for a stackvm program
-; init memory bytes/words/strings
-%memory
-0400 01 02 03 04 05 06 07 08 09 22 33 44 55 66
-0500 1111 2222 3333 4444
-1000 "Hello world!\n"
-%end_memory
-; init global var table with bytes/words/floats/strings
-%variables
-main.var1    str  "This is main.var1"
-main.var2   byte    aa
-main.var3  word   ea44
-main.var4  float  3.1415927
-input.prompt  str  "Enter a number: "
-input.result  word  0
-%end_variables
-; instructions and labels
-%instructions
-    nop
-    syscall WRITE_MEMSTR word:1000
-loop:
-    syscall WRITE_VAR str:"input.prompt"
-    syscall INPUT_VAR str:"input.result"
-    syscall WRITE_VAR str:"input.result"
-    push byte:8d
-    syscall WRITE_CHAR
-    jump loop
-%end_instructions
-
-
- */
 
 class Compiler(private val options: CompilationOptions) {
     fun compile(module: Module) : StackVmProgram {
@@ -125,19 +92,19 @@ class Compiler(private val options: CompilationOptions) {
 
         val namespace = module.definingScope()
 
-        // todo
         val intermediate = StackVmProgram(module.name)
         namespace.debugPrint()
-
 
         // create the pool of all variables used in all blocks and scopes
         val varGather = VarGatherer(intermediate)
         varGather.process(module)
+        println("Number of allocated variables and constants: ${intermediate.variables.size} (${intermediate.variablesMemSize} bytes)")
 
-        val stmtGatherer = StatementGatherer(intermediate, namespace)
-        stmtGatherer.process(module)
+        val translator = StatementTranslator(intermediate, namespace)
+        translator.process(module)
+        println("Number of source statements: ${translator.stmtUniqueSequenceNr}")
+        println("Number of vm instructions: ${intermediate.instructions.size}")
 
-        intermediate.toTextLines().forEach { System.out.println(it) }
         return intermediate
     }
 
@@ -151,7 +118,10 @@ class Compiler(private val options: CompilationOptions) {
         }
     }
 
-    class StatementGatherer(val stackvmProg: StackVmProgram, val namespace: INameScope): IAstProcessor {
+    class StatementTranslator(val stackvmProg: StackVmProgram, val namespace: INameScope): IAstProcessor {
+        var stmtUniqueSequenceNr = 0
+            private set
+
         override fun process(subroutine: Subroutine): IStatement {
             translate(subroutine.statements)
             return super.process(subroutine)
@@ -164,6 +134,7 @@ class Compiler(private val options: CompilationOptions) {
 
         private fun translate(statements: List<IStatement>) {
             for (stmt: IStatement in statements) {
+                stmtUniqueSequenceNr++
                 when (stmt) {
                     is AnonymousStatementList -> translate(stmt.statements)
                     is BuiltinFunctionStatementPlaceholder -> translate(stmt)
@@ -176,30 +147,90 @@ class Compiler(private val options: CompilationOptions) {
                     is InlineAssembly -> translate(stmt)
                     is IfStatement -> translate(stmt)
                     is BranchStatement -> translate(stmt)
-                    is Directive, is VarDecl, is Subroutine -> {}
+                    is Directive, is VarDecl, is Subroutine -> {}   // skip this, already processed these.
                     else -> TODO("translate statement $stmt")
                 }
             }
         }
 
-        private fun translate(stmt: BranchStatement) {
-            println("translate: $stmt")
-            // todo
+        private fun translate(branch: BranchStatement) {
+            /*
+             * A branch: IF_CC { stuff } else { other_stuff }
+             * Which is desugared into:
+             *      BCS _stmt_999_else
+             *      stuff
+             *      JUMP _stmt_999_continue
+             * _stmt_999_else:
+             *      other_stuff     ;; optional
+             * _stmt_999_continue:
+             *      ...
+             */
+            val labelElse = makeLabel("else")
+            val labelContinue = makeLabel("continue")
+            val opcode = when(branch.condition) {
+                BranchCondition.CS -> "bcc"
+                BranchCondition.CC -> "bcs"
+                BranchCondition.EQ -> "bne"
+                BranchCondition.NE -> "beq"
+                BranchCondition.VS -> "bvc"
+                BranchCondition.VC -> "bvs"
+                BranchCondition.MI -> "bpl"
+                BranchCondition.PL -> "bmi"
+            }
+            if(branch.elsepart.isEmpty()) {
+                stackvmProg.instruction("$opcode $labelContinue")
+                translate(branch.statements)
+                stackvmProg.label(labelContinue)
+            } else {
+                stackvmProg.instruction("$opcode $labelElse")
+                translate(branch.statements)
+                stackvmProg.instruction("jump $labelContinue")
+                stackvmProg.label(labelElse)
+                translate(branch.elsepart)
+                stackvmProg.label(labelContinue)
+            }
         }
 
+        private fun makeLabel(postfix: String): String = "_il65stmt_${stmtUniqueSequenceNr}_$postfix"
+
         private fun translate(stmt: IfStatement) {
-            println("translate: $stmt")
-            // todo
+            println("@todo translate: #$stmtUniqueSequenceNr :  $stmt")
+            stackvmProg.instruction("nop") // todo translate if statement
         }
 
         private fun translate(stmt: InlineAssembly) {
-            println("translate: $stmt")
+            println("@todo translate: #$stmtUniqueSequenceNr :  $stmt")
             TODO("inline assembly not supported yet by stackvm")
         }
 
         private fun translate(stmt: FunctionCallStatement) {
-            println("translate: $stmt")
-            // todo
+            val targetStmt = stmt.target.targetStatement(namespace)!!
+            if(targetStmt is BuiltinFunctionStatementPlaceholder) {
+                // call to a builtin function
+                TODO("BUILTIN_${stmt.target.nameInSource[0]}")      // TODO
+                return
+            }
+
+            val targetname = when(targetStmt) {
+                is Label -> targetStmt.scopedname
+                is Subroutine -> targetStmt.scopedname
+                else -> throw AstException("invalid call target node type: ${targetStmt::class}")
+            }
+
+            for (arg in stmt.arglist) {
+                val lv = arg.constValue(namespace)
+                if(lv==null) TODO("argument must be constant for now")      // TODO non-const args
+                stackvmProg.instruction("push ${makeValue(lv)}")
+            }
+            stackvmProg.instruction("call $targetname")
+        }
+
+        private fun makeValue(value: LiteralValue): String {
+            return when {
+                value.isString -> "\"${value.strvalue}\""
+                value.isNumeric -> value.asNumericValue.toString()
+                else -> TODO("stackvm value for $value")
+            }
         }
 
         private fun translate(stmt: Jump) {
@@ -230,8 +261,8 @@ class Compiler(private val options: CompilationOptions) {
         }
 
         private fun translate(stmt: Assignment) {
-            println("translate: $stmt")
-            // todo
+            println("@todo translate: #$stmtUniqueSequenceNr :  $stmt")
+            stackvmProg.instruction("nop") // todo translate assignment
         }
 
         private fun translate(stmt: Return) {
@@ -246,8 +277,8 @@ class Compiler(private val options: CompilationOptions) {
         }
 
         private fun translate(stmt: BuiltinFunctionStatementPlaceholder) {
-            println("translate: $stmt")
-            // todo
+            println("@todo translate: #$stmtUniqueSequenceNr :  $stmt")
+            stackvmProg.instruction("nop") // todo translate builtinfunction placeholder
         }
     }
 }
@@ -258,20 +289,23 @@ class StackVmProgram(val name: String) {
 
     val variables = mutableMapOf<String, VarDecl>()
     val instructions = mutableListOf<String>()
+    val variablesMemSize: Int
+        get() {
+            return variables.values.fold(0) { acc, vardecl -> acc+vardecl.memorySize}
+        }
 
     fun optimize() {
         println("\nOptimizing stackvmProg code...")
-        // todo
+        // todo optimize stackvm code
     }
 
     fun compileToAssembly(): AssemblyResult {
         println("\nGenerating assembly code from stackvmProg code... ")
-        // todo
+        // todo generate 6502 assembly
         return AssemblyResult(name)
     }
 
     fun blockvar(scopedname: String, decl: VarDecl) {
-        println("$scopedname   $decl")
         variables[scopedname] = decl
     }
 
@@ -295,7 +329,7 @@ class StackVmProgram(val name: String) {
         result.add("%end_variables")
         result.add("%instructions")
         result.addAll(instructions)
-        result.add("%end_nstructions")
+        result.add("%end_instructions")
         return result
     }
 
