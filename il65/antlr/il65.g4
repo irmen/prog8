@@ -1,10 +1,10 @@
 /*
-IL65 combined lexer and parser grammar
+IL65 combined lexer bitand parser grammar
 
 NOTES:
 
 - whitespace is ignored. (tabs/spaces)
-- every position can be empty, be a comment, or contain ONE statement.
+- every position can be empty, be a comment, bitor contain ONE statement.
 
 */
 

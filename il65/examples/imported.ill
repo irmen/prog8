@@ -18,6 +18,7 @@
 
 label_in_extra2:
 	X = 33
+	return
 
 	sub sub_in_extra2() -> () {
 		return

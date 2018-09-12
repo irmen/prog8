@@ -59,13 +59,13 @@
   str  ascending5 = "z" to "z"
   const byte cc = 4 + (2==9)
   byte cc2 = 4 - (2==10)
-  memory byte derp = max([$ffdd])
-  memory byte derpA = abs(-20000)
-  memory byte derpB = max([1, 2.2, 4.4, 100])
-  memory byte cderp = min([$ffdd])+ (1/1)
-  memory byte cderpA = min([$ffdd, 10, 20, 30])
-  memory byte cderpB = min([1, 2.2, 4.4, 100])
-  memory byte derp2 = 2+$ffdd+round(10*sin(3.1))
+;  memory byte derp = max([$ffdd])          ; @todo implement memory vars in stackvm
+;  memory byte derpA = abs(-20000)
+;  memory byte derpB = max([1, 2.2, 4.4, 100])
+;  memory byte cderp = min([$ffdd])+ (1/1)
+;  memory byte cderpA = min([$ffdd, 10, 20, 30])
+;  memory byte cderpB = min([1, 2.2, 4.4, 100])
+;  memory byte derp2 = 2+$ffdd+round(10*sin(3.1))
   const byte hopla=55-33
   const byte hopla3=100+(-hopla)
   const byte hopla4 = 100-hopla
@@ -77,10 +77,10 @@
   const byte equal = 4==4
   const byte equal2 = (4+hopla)>0
 
-    goto 64738
+    ; goto 64738
 
-    ; A++
-    derp++
+    A++
+;    derp++
     cc2--
 
   goto mega
@@ -92,12 +92,19 @@
     A=100
   }
 
-	%breakpoint
 
   byte equalQQ = 4==4
   const byte equalQQ2 = (4+hopla)>0
 
-  sin(1)        ; @todo error statement has no effect (returnvalue of builtin function not used)
+  equalQQ++
+  cos(2)    ; @todo warning statement has no effect (returnvalue of builtin function not used)  (remove statement)
+  cos(A)    ; @todo warning statement has no effect (returnvalue of builtin function not used)  (remove statement)
+  AX++
+    A=X + round(sin(Y))
+  equalQQ= X
+  equalQQ= len([X, Y, AX])
+  len([X, Y, AX])  ; @todo warning statement has no effect (returnvalue of builtin function not used)  (remove statement)
+  sin(1)        ; @todo warning statement has no effect (returnvalue of builtin function not used)  (remove statement)
   P_carry(1)
   P_irqd(0)
 
@@ -118,7 +125,6 @@
 
 	if (5==5) {
 		A=99
-		%breakpoint
 	}
 
 	if(6==6) {
@@ -144,12 +150,19 @@
 	}
 
   main.foo(1,2,3)
+  return
 
   sub start () -> () {
     word dinges = 0
     word blerp1 =99
+    byte blerp2 =99
     dinges=blerp1
-    A=blerp1
+    A=blerp1        ; @todo error can't assign word to byte
+    A=blerp2
+    A=9999
+    XY=blerp1
+    X=blerp1        ; @todo error can't assign word to byte
+    X=blerp2
     return
   }
 
@@ -158,6 +171,7 @@ mega:
 	X += 1
 cool:
 	Y=2
+	goto start
 
   sub foo () -> () {
   	byte blerp = 3
@@ -166,8 +180,11 @@ cool:
   	return
   	ultrafoo()
   	X =33
+
 mega:
 cool:
+  	return
+
     sub ultrafoo() -> () {
         X= extra233.thingy()
         ;return 33
@@ -180,9 +197,6 @@ cool:
 some_label_def:   A=44
   ;return 1+999
   return
-	%breakpoint
-	%asminclude "derp", hopsa
-	%asmbinary "derp", 0, 200
 }
 
 %import imported

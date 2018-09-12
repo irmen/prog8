@@ -132,7 +132,7 @@ fun builtinDeg(args: List<IExpression>, position: Position?, namespace:INameScop
         = oneDoubleArg(args, position, namespace, Math::toDegrees)
 
 fun builtinAbs(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue {
-    // 1 arg, type = float or int, result type= same as argument type
+    // 1 arg, type = float bitor int, result type= same as argument type
     if(args.size!=1)
         throw SyntaxError("abs requires one numeric argument", position)
 

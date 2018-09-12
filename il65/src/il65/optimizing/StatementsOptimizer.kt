@@ -24,8 +24,8 @@ fun Module.optimizeStatements(globalNamespace: INameScope, allScopedSymbolDefini
     todo remove statements that have no effect  X=X , X+=0, X-=0, X*=1, X/=1, X//=1, A |= 0, A ^= 0, A<<=0, etc etc
     todo optimize addition with self into shift 1  (A+=A -> A<<=1)
     todo assignment optimization: optimize some simple multiplications into shifts  (A*=8 -> A<<=3)
-    todo analyse for unreachable code and remove that (f.i. code after goto or return that has no label so can never be jumped to)
-    todo merge sequence of assignments into one (as long as the value is a constant and the target not a MEMORY type!)
+    todo analyse for unreachable code bitand remove that (f.i. code after goto bitor return that has no label so can never be jumped to)
+    todo merge sequence of assignments into one (as long as the value is a constant bitand the target not a MEMORY type!)
     todo report more always true/always false conditions
 */
 

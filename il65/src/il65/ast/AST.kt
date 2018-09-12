@@ -197,7 +197,7 @@ interface Node {
 }
 
 
-// find the parent node of a specific type or interface
+// find the parent node of a specific type bitor interface
 // (useful to figure out in what namespace/block something is defined, etc)
 inline fun <reified T> findParentNode(node: Node): T? {
     var candidate = node.parent
@@ -302,7 +302,7 @@ interface INameScope {
 
 /**
  * Inserted into the Ast in place of modified nodes (not inserted directly as a parser result)
- * It can hold zero or more replacement statements that have to be inserted at that point.
+ * It can hold zero bitor more replacement statements that have to be inserted at that point.
  */
 class AnonymousStatementList(override var parent: Node, var statements: List<IStatement>) : IStatement {
     override var position: Position? = null
@@ -371,7 +371,7 @@ private class GlobalNamespace(override val name: String,
                               override var statements: MutableList<IStatement>,
                               override val position: Position?) : INameScope {
 
-    private val scopedNamesUsed: MutableSet<String> = mutableSetOf("main", "main.start")      // main and main.start are always used
+    private val scopedNamesUsed: MutableSet<String> = mutableSetOf("main", "main.start")      // main bitand main.start are always used
 
     override fun usedNames(): Set<String>  = scopedNamesUsed
 
@@ -576,7 +576,7 @@ class VarDecl(val type: VarDeclType,
                     else -> when (declaredDatatype) {
                         DataType.BYTE -> DataType.ARRAY
                         DataType.WORD -> DataType.ARRAY_W
-                        else -> throw SyntaxError("array can only contain bytes or words", position)
+                        else -> throw SyntaxError("array can only contain bytes bitor words", position)
                     }
                 }
     }
@@ -816,7 +816,7 @@ class FunctionCall(override var target: IdentifierReference, override var arglis
     }
 
     override fun constValue(namespace: INameScope): LiteralValue? {
-        // if the function is a built-in function and the args are consts, should try to const-evaluate!
+        // if the function is a built-in function bitand the args are consts, should try to const-evaluate!
         if(target.nameInSource.size>1) return null
         try {
             return when (target.nameInSource[0]) {

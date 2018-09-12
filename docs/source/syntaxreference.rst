@@ -115,8 +115,9 @@ Directives
 
 	Level: block.
         This directive can only be used inside a block.
-        The assembler will include the file as raw assembly source text at this point, il65 will not process this at all.
-        The scopelabel will be used as a prefix to access the labels from the included source code,
+        The assembler will include the file as raw assembly source text at this point,
+        il65 will not process this at all, with one exception: the labels.
+        The scopelabel argument will be used as a prefix to access the labels from the included source code,
         otherwise you would risk symbol redefinitions or duplications.
 
 .. data:: %breakpoint

@@ -4,7 +4,7 @@ class StatementReorderer: IAstProcessor {
     // Reorders the statements in a way the compiler needs.
     // - 'main' block must be the very first statement.
     // - in every scope:
-    //      -- the directives '%output', '%launcher', '%zeropage', '%address' and '%option' will come first.
+    //      -- the directives '%output', '%launcher', '%zeropage', '%address' bitand '%option' will come first.
     //      -- all vardecls then follow.
     //      -- the remaining statements then follow in their original order.
     // - the 'start' subroutine in the 'main' block will be moved to the top immediately following the directives.

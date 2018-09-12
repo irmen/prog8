@@ -47,7 +47,7 @@ fun Module.optimizeExpressions(globalNamespace: INameScope) {
         X ^ 0 -> X
 
     todo expression optimization: reduce expression nesting / flattening of parenthesis
-    todo expression optimization: simplify logical expression when a term makes it always true or false (1 or 0)
+    todo expression optimization: simplify logical expression when a term makes it always true bitor false (1 bitor 0)
     todo expression optimization: optimize some simple multiplications into shifts  (A*8 -> A<<3,  A/4 -> A>>2)
     todo expression optimization: common (sub) expression elimination (turn common expressions into single subroutine call)
 
@@ -148,7 +148,7 @@ class ExpressionOptimizer(private val globalNamespace: INameScope) : IAstProcess
                             optimizationsDone++
                             LiteralValue(floatvalue = -subexpr.floatvalue)
                         }
-                        else -> throw ExpressionError("can only take negative of int or float", subexpr.position)
+                        else -> throw ExpressionError("can only take negative of int bitor float", subexpr.position)
                     }
                     expr.operator == "~" -> when {
                         subexpr.intvalue != null -> {
@@ -268,9 +268,9 @@ class ConstExprEvaluator {
             "&" -> bitwiseand(left, right)
             "|" -> bitwiseor(left, right)
             "^" -> bitwisexor(left, right)
-            "and" -> logicaland(left, right)
-            "or" -> logicalor(left, right)
-            "xor" -> logicalxor(left, right)
+            "bitand" -> logicaland(left, right)
+            "bitor" -> logicalor(left, right)
+            "bitxor" -> logicalxor(left, right)
             "<" -> compareless(left, right)
             ">" -> comparegreater(left, right)
             "<=" -> comparelessequal(left, right)
@@ -369,7 +369,7 @@ class ConstExprEvaluator {
     }
 
     private fun logicalxor(left: LiteralValue, right: LiteralValue): LiteralValue {
-        val error = "cannot compute $left locical-xor $right"
+        val error = "cannot compute $left locical-bitxor $right"
         val litval = when {
             left.intvalue!=null -> when {
                 right.intvalue!=null -> LiteralValue(
@@ -392,7 +392,7 @@ class ConstExprEvaluator {
     }
 
     private fun logicalor(left: LiteralValue, right: LiteralValue): LiteralValue {
-        val error = "cannot compute $left locical-or $right"
+        val error = "cannot compute $left locical-bitor $right"
         val litval = when {
             left.intvalue!=null -> when {
                 right.intvalue!=null -> LiteralValue(
@@ -415,7 +415,7 @@ class ConstExprEvaluator {
     }
 
     private fun logicaland(left: LiteralValue, right: LiteralValue): LiteralValue {
-        val error = "cannot compute $left locical-and $right"
+        val error = "cannot compute $left locical-bitand $right"
         val litval = when {
             left.intvalue!=null -> when {
                 right.intvalue!=null -> LiteralValue(
@@ -484,7 +484,7 @@ class ConstExprEvaluator {
     }
 
     private fun plus(left: LiteralValue, right: LiteralValue): LiteralValue {
-        val error = "cannot add $left and $right"
+        val error = "cannot add $left bitand $right"
         val litval = when {
             left.intvalue!=null -> when {
                 right.intvalue!=null -> LiteralValue(intvalue = left.intvalue + right.intvalue)
@@ -503,7 +503,7 @@ class ConstExprEvaluator {
     }
 
     private fun minus(left: LiteralValue, right: LiteralValue): LiteralValue {
-        val error = "cannot subtract $left and $right"
+        val error = "cannot subtract $left bitand $right"
         val litval = when {
             left.intvalue!=null -> when {
                 right.intvalue!=null -> LiteralValue(intvalue = left.intvalue - right.intvalue)
@@ -522,7 +522,7 @@ class ConstExprEvaluator {
     }
 
     private fun multiply(left: LiteralValue, right: LiteralValue): LiteralValue {
-        val error = "cannot multiply $left and $right"
+        val error = "cannot multiply $left bitand $right"
         val litval = when {
             left.intvalue!=null -> when {
                 right.intvalue!=null -> LiteralValue(intvalue = left.intvalue * right.intvalue)

@@ -21,13 +21,14 @@ enum class Opcode {
     PUSH_MEM_F,     // push float value from memory to stack
     PUSH_VAR,       // push a variable
     DUP,            // push topmost value once again
+    ARRAY,          // create arrayvalue of number of integer values on the stack, given in argument
 
     // popping values off the (evaluation) stack, possibly storing them in another location
     DISCARD,        // discard top value
     POP_MEM,        // pop value into destination memory address
     POP_VAR,        // pop value into variable
 
-    // numeric and bitwise arithmetic
+    // numeric bitand bitwise arithmetic
     ADD,
     SUB,
     MUL,
@@ -58,14 +59,17 @@ enum class Opcode {
     ROR2_MEM,
     ROR2_MEM_W,
     ROR2_VAR,
-    AND,
-    OR,
-    XOR,
+    BITAND,
+    BITOR,
+    BITXOR,
     INV,
     LSB,
     MSB,
 
-    // logical operations (?)
+    // logical operations
+    AND,
+    OR,
+    XOR,
 
     // increment, decrement
     INC,
@@ -77,7 +81,13 @@ enum class Opcode {
     DEC_MEM_W,
     DEC_VAR,
 
-    // comparisons (?)
+    // comparisons
+    LESS,
+    GREATER,
+    LESSEQ,
+    GREATEREQ,
+    EQUAL,
+    NOTEQUAL,
 
     // branching
     JUMP,
@@ -100,25 +110,61 @@ enum class Opcode {
     SEC,        // set carry status flag  NOTE: is mostly fake, carry flag is not affected by any numeric operations
     CLC,        // clear carry status flag  NOTE: is mostly fake, carry flag is not affected by any numeric operations
     NOP,
-    TERMINATE
+    BREAK,      // breakpoint
+    TERMINATE   // end the program
 }
 
 enum class Syscall(val callNr: Short) {
     WRITE_MEMCHR(10),           // print a single char from the memory
     WRITE_MEMSTR(11),           // print a 0-terminated petscii string from the memory
-    WRITE_NUM(12),              // pop from the evaluation stack and print it as a number
-    WRITE_CHAR(13),             // pop from the evaluation stack and print it as a single petscii character
-    WRITE_VAR(14),              // print the number or string from the given variable
+    WRITE_NUM(12),              // pop from the evaluation stack bitand print it as a number
+    WRITE_CHAR(13),             // pop from the evaluation stack bitand print it as a single petscii character
+    WRITE_VAR(14),              // print the number bitor string from the given variable
     INPUT_VAR(15),              // user input a string into a variable
     GFX_PIXEL(16),              // plot a pixel at (x,y,color) pushed on stack in that order
     GFX_CLEARSCR(17),           // clear the screen with color pushed on stack
     GFX_TEXT(18),               // write text on screen at (x,y,text,color) pushed on stack in that order
     RANDOM(19),                 // push a random byte on the stack
-    RANDOM_W(20)                // push a random word on the stack
+    RANDOM_W(20),               // push a random word on the stack
+
+
+    FUNC_P_CARRY(100),
+    FUNC_P_IRQD(101),
+    FUNC_ROL(102),
+    FUNC_ROR(103),
+    FUNC_ROL2(104),
+    FUNC_ROR2(105),
+    FUNC_LSL(106),
+    FUNC_LSR(107),
+    FUNC_SIN(108),
+    FUNC_COS(109),
+    FUNC_ABS(110),
+    FUNC_ACOS(111),
+    FUNC_ASIN(112),
+    FUNC_TAN(113),
+    FUNC_ATAN(114),
+    FUNC_LOG(115),
+    FUNC_LOG10(116),
+    FUNC_SQRT(117),
+    FUNC_RAD(118),
+    FUNC_DEG(119),
+    FUNC_ROUND(120),
+    FUNC_FLOOR(121),
+    FUNC_CEIL(122),
+    FUNC_MAX(123),
+    FUNC_MIN(124),
+    FUNC_AVG(125),
+    FUNC_SUM(126),
+    FUNC_LEN(127),
+    FUNC_ANY(128),
+    FUNC_ALL(129),
+    FUNC_LSB(130),
+    FUNC_MSB(131)
+
 }
 
 class Memory {
-    private val mem = ShortArray(65536)         // shorts because byte is signed and we store values 0..255
+    private val mem = ShortArray(65536)         // shorts because byte is signed bitand we store values 0..255
 
     fun getByte(address: Int): Short {
         return mem[address]
@@ -174,17 +220,33 @@ class Memory {
 }
 
 
-data class Value(val type: DataType, private val numericvalue: Number?, val stringvalue: String?=null) {
+class Value(val type: DataType, private val numericvalue: Number?, val stringvalue: String?=null, val arrayvalue: IntArray?=null) {
     private var byteval: Short? = null
     private var wordval: Int? = null
     private var floatval: Double? = null
+    val asBooleanValue: Boolean
 
     init {
         when(type) {
-            DataType.BYTE -> byteval = (numericvalue!!.toInt() and 255).toShort()
-            DataType.WORD -> wordval = numericvalue!!.toInt() and 65535
-            DataType.FLOAT -> floatval = numericvalue!!.toDouble()
-            DataType.STR -> if(stringvalue==null) throw VmExecutionException("expect stringvalue for STR type")
+            DataType.BYTE -> {
+                byteval = (numericvalue!!.toInt() and 255).toShort()
+                asBooleanValue = byteval != (0.toShort())
+            }
+            DataType.WORD -> {
+                wordval = numericvalue!!.toInt() and 65535
+                asBooleanValue = wordval != 0
+            }
+            DataType.FLOAT -> {
+                floatval = numericvalue!!.toDouble()
+                asBooleanValue = floatval != 0.0
+            }
+            DataType.ARRAY -> {
+                asBooleanValue = arrayvalue!!.isNotEmpty()
+            }
+            DataType.STR -> {
+                if(stringvalue==null) throw VmExecutionException("expect stringvalue for STR type")
+                asBooleanValue = stringvalue.isNotEmpty()
+            }
             else -> throw VmExecutionException("invalid datatype $type")
         }
     }
@@ -257,7 +319,7 @@ data class Value(val type: DataType, private val numericvalue: Number?, val stri
     }
 
     fun rol(carry: Boolean): Pair<Value, Boolean> {
-        // 9 or 17 bit rotate left (with carry))
+        // 9 bitor 17 bit rotate left (with carry))
         return when(type) {
             DataType.BYTE -> {
                 val v = byteval!!.toInt()
@@ -276,7 +338,7 @@ data class Value(val type: DataType, private val numericvalue: Number?, val stri
     }
 
     fun ror(carry: Boolean): Pair<Value, Boolean> {
-        // 9 or 17 bit rotate right (with carry)
+        // 9 bitor 17 bit rotate right (with carry)
         return when(type) {
             DataType.BYTE -> {
                 val v = byteval!!.toInt()
@@ -295,7 +357,7 @@ data class Value(val type: DataType, private val numericvalue: Number?, val stri
     }
 
     fun rol2(): Value {
-        // 8 or 16 bit rotate left
+        // 8 bitor 16 bit rotate left
         return when(type) {
             DataType.BYTE -> {
                 val v = byteval!!.toInt()
@@ -314,7 +376,7 @@ data class Value(val type: DataType, private val numericvalue: Number?, val stri
     }
 
     fun ror2(): Value {
-        // 8 or 16 bit rotate right
+        // 8 bitor 16 bit rotate right
         return when(type) {
             DataType.BYTE -> {
                 val v = byteval!!.toInt()
@@ -341,26 +403,30 @@ data class Value(val type: DataType, private val numericvalue: Number?, val stri
         }
     }
 
-    fun and(other: Value): Value {
+    fun bitand(other: Value): Value {
         val v1 = integerValue()
         val v2 = other.integerValue()
         val result = v1.and(v2)
         return Value(type, result)
     }
 
-    fun or(other: Value): Value {
+    fun bitor(other: Value): Value {
         val v1 = integerValue()
         val v2 = other.integerValue()
         val result = v1.or(v2)
         return Value(type, result)
     }
 
-    fun xor(other: Value): Value {
+    fun bitxor(other: Value): Value {
         val v1 = integerValue()
         val v2 = other.integerValue()
         val result = v1.xor(v2)
         return Value(type, result)
     }
+
+    fun and(other: Value) = Value(DataType.BYTE, if(this.asBooleanValue && other.asBooleanValue) 1 else 0)
+    fun or(other: Value) = Value(DataType.BYTE, if(this.asBooleanValue || other.asBooleanValue) 1 else 0)
+    fun xor(other: Value) = Value(DataType.BYTE, if(this.asBooleanValue xor other.asBooleanValue) 1 else 0)
 
     fun inv(): Value {
         return when(type) {
@@ -403,6 +469,13 @@ data class Value(val type: DataType, private val numericvalue: Number?, val stri
             else -> throw VmExecutionException("not can only work on byte/word")
         }
     }
+
+    fun compareLess(other: Value) = Value(DataType.BYTE, if(this.numericValue().toDouble() < other.numericValue().toDouble()) 1 else 0)
+    fun compareGreater(other: Value) = Value(DataType.BYTE, if(this.numericValue().toDouble() > other.numericValue().toDouble()) 1 else 0)
+    fun compareLessEq(other: Value) = Value(DataType.BYTE, if(this.numericValue().toDouble() <= other.numericValue().toDouble()) 1 else 0)
+    fun compareGreaterEq(other: Value) = Value(DataType.BYTE, if(this.numericValue().toDouble() >= other.numericValue().toDouble()) 1 else 0)
+    fun compareEqual(other: Value) = Value(DataType.BYTE, if(this.numericValue() == other.numericValue()) 1 else 0)
+    fun compareNotEqual(other: Value) = Value(DataType.BYTE, if(this.numericValue() != other.numericValue()) 1 else 0)
 }
 
 
@@ -433,6 +506,8 @@ data class Instruction(val opcode: Opcode,
 private class VmExecutionException(msg: String?) : Exception(msg)
 
 private class VmTerminationException(msg: String?) : Exception(msg)
+
+private class VmBreakpointException : Exception("breakpoint")
 
 private class MyStack<T> : Stack<T>() {
     fun peek(amount: Int) : List<T> {
@@ -492,8 +567,13 @@ class Program (prog: MutableList<Instruction>,
                     val opcode=Opcode.valueOf(parts[0].toUpperCase())
                     val args = if(parts.size==2) parts[1] else null
                     val instruction = when(opcode) {
-                        Opcode.JUMP -> {
-                            Instruction(opcode, callLabel = args)
+                        Opcode.JUMP, Opcode.CALL, Opcode.BMI, Opcode.BPL,
+                        Opcode.BEQ, Opcode.BNE, Opcode.BCS, Opcode.BCC -> {
+                            if(args!!.startsWith('$')) {
+                                Instruction(opcode, Value(DataType.WORD, args.substring(1).toInt(16)))
+                            } else {
+                                Instruction(opcode, callLabel = args)
+                            }
                         }
                         Opcode.INC_VAR, Opcode.DEC_VAR,
                         Opcode.SHR_VAR, Opcode.SHL_VAR, Opcode.ROL_VAR, Opcode.ROR_VAR,
@@ -510,7 +590,10 @@ class Program (prog: MutableList<Instruction>,
                             val callValues = if(callValue==null) emptyList() else listOf(callValue)
                             Instruction(opcode, Value(DataType.BYTE, call.callNr), callValues)
                         }
-                        else -> Instruction(opcode, getArgValue(args))
+                        else -> {
+                            println("INSTR $opcode at $lineNr  args=$args")  // TODO weg
+                            Instruction(opcode, getArgValue(args))
+                        }
                     }
                     instructions.add(instruction)
                     if(nextInstructionLabelname.isNotEmpty()) {
@@ -633,18 +716,33 @@ class Program (prog: MutableList<Instruction>,
                 Opcode.TERMINATE -> instr.next = instr          // won't ever execute a next instruction
                 Opcode.RETURN -> instr.next = instr             // kinda a special one, in actuality the return instruction is dynamic
                 Opcode.JUMP -> {
-                    val target = labels[instr.callLabel] ?: throw VmExecutionException("undefined label: ${instr.callLabel}")
-                    instr.next = target
+                    if(instr.callLabel==null) {
+                        throw VmExecutionException("stackVm doesn't support JUMP to memory address")
+                    } else {
+                        // jump to label
+                        val target = labels[instr.callLabel] ?: throw VmExecutionException("undefined label: ${instr.callLabel}")
+                        instr.next = target
+                    }
                 }
                 Opcode.BCC, Opcode.BCS, Opcode.BEQ, Opcode.BNE, Opcode.BMI, Opcode.BPL -> {
-                    val jumpInstr = labels[instr.callLabel] ?: throw VmExecutionException("undefined label: ${instr.callLabel}")
-                    instr.next = jumpInstr
-                    instr.nextAlt = nextInstr
+                    if(instr.callLabel==null) {
+                        throw VmExecutionException("stackVm doesn't support branch to memory address")
+                    } else {
+                        // branch to label
+                        val jumpInstr = labels[instr.callLabel] ?: throw VmExecutionException("undefined label: ${instr.callLabel}")
+                        instr.next = jumpInstr
+                        instr.nextAlt = nextInstr
+                    }
                 }
                 Opcode.CALL -> {
-                    val jumpInstr = labels[instr.callLabel] ?: throw VmExecutionException("undefined label: ${instr.callLabel}")
-                    instr.next = jumpInstr
-                    instr.nextAlt = nextInstr  // instruction to return to
+                    if(instr.callLabel==null) {
+                        throw VmExecutionException("stackVm doesn't support CALL to memory address")
+                    } else {
+                        // call label
+                        val jumpInstr = labels[instr.callLabel] ?: throw VmExecutionException("undefined label: ${instr.callLabel}")
+                        instr.next = jumpInstr
+                        instr.nextAlt = nextInstr  // instruction to return to
+                    }
                 }
                 else -> instr.next = nextInstr
             }
@@ -669,6 +767,21 @@ class StackVm(val traceOutputFile: String?) {
         this.program = program.program
         this.canvas = canvas
         this.variables = program.variables.toMutableMap()
+        if(this.variables.contains("A") ||
+                this.variables.contains("X") ||
+                this.variables.contains("Y") ||
+                this.variables.contains("XY") ||
+                this.variables.contains("AX") ||
+                this.variables.contains("AY"))
+            throw VmExecutionException("program contains variable(s) for the reserved registers A,X,...")
+        // define the 'registers'
+        this.variables["A"] = Value(DataType.BYTE, 0)
+        this.variables["X"] = Value(DataType.BYTE, 0)
+        this.variables["Y"] = Value(DataType.BYTE, 0)
+        this.variables["AX"] = Value(DataType.WORD, 0)
+        this.variables["AY"] = Value(DataType.WORD, 0)
+        this.variables["XY"] = Value(DataType.WORD, 0)
+
         initMemory(program.memory)
         currentIns = this.program[0]
     }
@@ -679,12 +792,17 @@ class StackVm(val traceOutputFile: String?) {
         val instructionsPerStep = 5000
         val start = System.currentTimeMillis()
         for(i:Int in 0..instructionsPerStep) {
-            currentIns = dispatch(currentIns)
+            try {
+                currentIns = dispatch(currentIns)
 
-            if (evalstack.size > 128)
-                throw VmExecutionException("too many values on evaluation stack")
-            if (callstack.size > 128)
-                throw VmExecutionException("too many nested/recursive calls")
+                if (evalstack.size > 128)
+                    throw VmExecutionException("too many values on evaluation stack")
+                if (callstack.size > 128)
+                    throw VmExecutionException("too many nested/recursive calls")
+            } catch (bp: VmBreakpointException) {
+                currentIns = currentIns.next
+                throw bp
+            }
         }
         val time = System.currentTimeMillis()-start
         if(time > 100) {
@@ -737,6 +855,17 @@ class StackVm(val traceOutputFile: String?) {
                 evalstack.push(Value(DataType.FLOAT, mem.getFloat(address)))
             }
             Opcode.DUP -> evalstack.push(evalstack.peek())
+            Opcode.ARRAY -> {
+                val amount = ins.arg!!.integerValue()
+                val array = mutableListOf<Int>()
+                for (i in 0..amount) {
+                    val value = evalstack.pop()
+                    if(value.type!=DataType.BYTE && value.type!=DataType.WORD)
+                        throw VmExecutionException("array requires values to be all byte/word")
+                    array.add(value.integerValue())
+                }
+                evalstack.push(Value(DataType.ARRAY, null, arrayvalue =  array.toIntArray()))
+            }
             Opcode.DISCARD -> evalstack.pop()
             Opcode.SWAP -> {
                 val (top, second) = evalstack.pop2()
@@ -805,17 +934,17 @@ class StackVm(val traceOutputFile: String?) {
                 val v = evalstack.pop()
                 evalstack.push(v.ror2())
             }
-            Opcode.AND -> {
+            Opcode.BITAND -> {
                 val (top, second) = evalstack.pop2()
-                evalstack.push(second.and(top))
+                evalstack.push(second.bitand(top))
             }
-            Opcode.OR -> {
+            Opcode.BITOR -> {
                 val (top, second) = evalstack.pop2()
-                evalstack.push(second.or(top))
+                evalstack.push(second.bitor(top))
             }
-            Opcode.XOR -> {
+            Opcode.BITXOR -> {
                 val (top, second) = evalstack.pop2()
-                evalstack.push(second.xor(top))
+                evalstack.push(second.bitxor(top))
             }
             Opcode.INV -> {
                 val v = evalstack.pop()
@@ -884,6 +1013,7 @@ class StackVm(val traceOutputFile: String?) {
             Opcode.SEC -> carry = true
             Opcode.CLC -> carry = false
             Opcode.TERMINATE -> throw VmTerminationException("execution terminated")
+            Opcode.BREAK -> throw VmBreakpointException()
 
             Opcode.INC_MEM -> {
                 val addr = ins.arg!!.integerValue()
@@ -985,10 +1115,10 @@ class StackVm(val traceOutputFile: String?) {
             Opcode.JUMP -> {}   // do nothing; the next instruction is wired up already to the jump target
             Opcode.BCS -> return if(carry) ins.next else ins.nextAlt!!
             Opcode.BCC -> return if(carry) ins.nextAlt!! else ins.next
-            Opcode.BEQ -> return if(evalstack.peek().numericValue().toDouble()==0.0) ins.next else ins.nextAlt!!
-            Opcode.BNE -> return if(evalstack.peek().numericValue().toDouble()!=0.0) ins.next else ins.nextAlt!!
-            Opcode.BMI -> return if(evalstack.peek().numericValue().toDouble()<0.0) ins.next else ins.nextAlt!!
-            Opcode.BPL -> return if(evalstack.peek().numericValue().toDouble()>=0.0) ins.next else ins.nextAlt!!
+            Opcode.BEQ -> return if(evalstack.pop().numericValue().toDouble()==0.0) ins.next else ins.nextAlt!!
+            Opcode.BNE -> return if(evalstack.pop().numericValue().toDouble()!=0.0) ins.next else ins.nextAlt!!
+            Opcode.BMI -> return if(evalstack.pop().numericValue().toDouble()<0.0) ins.next else ins.nextAlt!!
+            Opcode.BPL -> return if(evalstack.pop().numericValue().toDouble()>=0.0) ins.next else ins.nextAlt!!
             Opcode.CALL -> callstack.push(ins.nextAlt)
             Opcode.RETURN -> return callstack.pop()
             Opcode.PUSH_VAR -> {
@@ -1055,6 +1185,43 @@ class StackVm(val traceOutputFile: String?) {
                 val v = evalstack.pop()
                 evalstack.push(v.msb())
             }
+            Opcode.AND -> {
+                val (top, second) = evalstack.pop2()
+                evalstack.push(second.and(top))
+            }
+            Opcode.OR -> {
+                val (top, second) = evalstack.pop2()
+                evalstack.push(second.or(top))
+            }
+            Opcode.XOR -> {
+                val (top, second) = evalstack.pop2()
+                evalstack.push(second.xor(top))
+            }
+            Opcode.LESS -> {
+                val (top, second) = evalstack.pop2()
+                evalstack.push(second.compareLess(top))
+            }
+            Opcode.GREATER -> {
+                val (top, second) = evalstack.pop2()
+                evalstack.push(second.compareGreater(top))
+            }
+            Opcode.LESSEQ -> {
+                val (top, second) = evalstack.pop2()
+                evalstack.push(second.compareLessEq(top))
+            }
+            Opcode.GREATEREQ -> {
+                val (top, second) = evalstack.pop2()
+                evalstack.push(second.compareGreaterEq(top))
+            }
+            Opcode.EQUAL -> {
+                val (top, second) = evalstack.pop2()
+                evalstack.push(second.compareEqual(top))
+            }
+            Opcode.NOTEQUAL -> {
+                val (top, second) = evalstack.pop2()
+                evalstack.push(second.compareNotEqual(top))
+            }
+            else -> throw VmExecutionException("unimplemented opcode: ${ins.opcode}")
         }
 
         if(traceOutput!=null) {
@@ -1068,7 +1235,7 @@ class StackVm(val traceOutputFile: String?) {
 
 
 fun main(args: Array<String>) {
-    val program = Program.load("examples/stackvmtest.txt")
+    val program = Program.load(args.first())
     val vm = StackVm(traceOutputFile = null)
     val dialog = ScreenDialog()
     vm.load(program, dialog.canvas)
@@ -1077,7 +1244,14 @@ fun main(args: Array<String>) {
         dialog.isVisible = true
         dialog.start()
 
-        val programTimer = Timer(10) { _ -> vm.step() }
+        val programTimer = Timer(10) { _ ->
+            try {
+                vm.step()
+            } catch(bp: VmBreakpointException) {
+                println("Breakpoint: execution halted. Press enter to resume.")
+                readLine()
+            }
+        }
         programTimer.start()
     }
 }
