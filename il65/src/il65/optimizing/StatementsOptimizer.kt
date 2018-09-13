@@ -1,6 +1,8 @@
 package il65.optimizing
 
 import il65.ast.*
+import il65.functions.BuiltinFunctionNames
+import il65.functions.BuiltinFunctionsWithoutSideEffects
 
 
 fun Module.optimizeStatements(globalNamespace: INameScope, allScopedSymbolDefinitions: MutableMap<String, IStatement>) {
@@ -33,6 +35,8 @@ class StatementOptimizer(private val globalNamespace: INameScope) : IAstProcesso
     var optimizationsDone: Int = 0
         private set
 
+    private var statementsToRemove = mutableListOf<IStatement>()
+
     fun reset() {
         optimizationsDone = 0
     }
@@ -48,6 +52,15 @@ class StatementOptimizer(private val globalNamespace: INameScope) : IAstProcesso
         val target = globalNamespace.lookup(functionCall.target.nameInSource, functionCall)
         if(target!=null)
             used(target)
+
+        if(functionCall.target.nameInSource.size==1 && BuiltinFunctionNames.contains(functionCall.target.nameInSource[0])) {
+            val functionName = functionCall.target.nameInSource[0]
+            if (BuiltinFunctionsWithoutSideEffects.contains(functionName)) {
+                println("${functionCall.position} Warning: statement has no effect (function return value is discarded)")
+                statementsToRemove.add(functionCall)
+            }
+        }
+
         return super.process(functionCall)
     }
 
@@ -98,6 +111,10 @@ class StatementOptimizer(private val globalNamespace: INameScope) : IAstProcesso
                 parentScope.removeStatement(value)
                 optimizationsDone++
             }
+        }
+
+        for(stmt in statementsToRemove) {
+            stmt.definingScope().removeStatement(stmt)
         }
     }
 }

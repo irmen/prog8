@@ -160,12 +160,34 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
             }
         }
 
-        if(assignment.value is LiteralValue) {
-            val targetDatatype = assignment.target.determineDatatype(namespace, assignment)
+        val targetDatatype = assignment.target.determineDatatype(namespace, assignment)
+        val constVal = assignment.value.constValue(namespace)
+        if(constVal!=null) {
             checkValueTypeAndRange(targetDatatype, null, assignment.value as LiteralValue, assignment.position)
+        } else {
+            val sourceDatatype: DataType = when(assignment.value) {
+                is RegisterExpr -> {
+                    when((assignment.value as RegisterExpr).register) {
+                        Register.A, Register.X, Register.Y -> DataType.BYTE
+                        Register.AX, Register.AY, Register.XY -> DataType.WORD
+                    }
+                }
+                is IdentifierReference -> {
+                    val targetStmt = (assignment.value as IdentifierReference).targetStatement(namespace)
+                    if(targetStmt is VarDecl) {
+                        targetStmt.datatype
+                    } else {
+                        throw FatalAstException("cannot get datatype from assignment value ${assignment.value}, pos=${assignment.position}")
+                    }
+                }
+                else -> TODO("check assignment compatibility for value ${assignment.value}, pos=${assignment.position}")
+            }
+            checkAssignmentCompatible(targetDatatype, sourceDatatype, assignment.position)
         }
+
         return super.process(assignment)
     }
+
 
     /**
      * Check the variable declarations (values within range etc)
@@ -498,5 +520,26 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
             }
         }
         return true
+    }
+
+    private fun checkAssignmentCompatible(targetDatatype: DataType, sourceDatatype: DataType, position: Position?) : Boolean {
+        val result =  when(targetDatatype) {
+            DataType.BYTE -> sourceDatatype==DataType.BYTE
+            DataType.WORD -> sourceDatatype==DataType.BYTE || sourceDatatype==DataType.WORD
+            DataType.FLOAT -> sourceDatatype==DataType.BYTE || sourceDatatype==DataType.WORD || sourceDatatype==DataType.FLOAT
+            DataType.STR -> sourceDatatype==DataType.STR
+            DataType.STR_P -> sourceDatatype==DataType.STR_P
+            DataType.STR_S -> sourceDatatype==DataType.STR_S
+            DataType.STR_PS -> sourceDatatype==DataType.STR_PS
+            DataType.ARRAY -> sourceDatatype==DataType.ARRAY
+            DataType.ARRAY_W -> sourceDatatype==DataType.ARRAY_W
+            DataType.MATRIX -> sourceDatatype==DataType.MATRIX
+        }
+
+        if(result)
+            return true
+
+        checkResult.add(ExpressionError("cannot assign ${sourceDatatype.toString().toLowerCase()} to ${targetDatatype.toString().toLowerCase()}", position))
+        return false
     }
 }

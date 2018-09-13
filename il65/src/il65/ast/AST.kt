@@ -117,7 +117,7 @@ interface IAstProcessor {
     }
 
     fun process(subroutine: Subroutine): IStatement {
-        subroutine.statements = subroutine.statements.asSequence().map { it.process(this) }.toMutableList()
+        subroutine.statements = subroutine.statements.map { it.process(this) }.toMutableList()
         return subroutine
     }
 
@@ -630,6 +630,7 @@ interface IExpression: Node {
     fun constValue(namespace: INameScope): LiteralValue?
     fun process(processor: IAstProcessor): IExpression
     fun referencesIdentifier(name: String): Boolean
+    // TODO fun resultingDatatype(): DataType
 }
 
 
@@ -771,6 +772,10 @@ class RegisterExpr(val register: Register) : IExpression {
     override fun constValue(namespace: INameScope): LiteralValue? = null
     override fun process(processor: IAstProcessor) = this
     override fun referencesIdentifier(name: String): Boolean  = false
+
+    override fun toString(): String {
+        return "RegisterExpr(register=$register, pos=$position)"
+    }
 }
 
 

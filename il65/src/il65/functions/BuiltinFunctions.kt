@@ -11,6 +11,8 @@ val BuiltinFunctionNames = setOf(
         "log", "log10", "sqrt", "rad", "deg", "round", "floor", "ceil",
         "max", "min", "avg", "sum", "len", "any", "all", "lsb", "msb")
 
+val BuiltinFunctionsWithoutSideEffects = BuiltinFunctionNames - setOf("P_carry", "P_irqd")
+
 
 class NotConstArgumentException: AstException("not a const argument to a built-in function")
 

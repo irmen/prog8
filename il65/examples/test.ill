@@ -103,14 +103,10 @@
   const byte equalQQ2 = (4+hopla)>0
 
   equalQQ++
-  cos(2)    ; @todo warning statement has no effect (returnvalue of builtin function not used)  (remove statement)
-  cos(A)    ; @todo warning statement has no effect (returnvalue of builtin function not used)  (remove statement)
   AX++
     A=X + round(sin(Y))
   equalQQ= X
   equalQQ= len([X, Y, AX])
-  len([X, Y, AX])  ; @todo warning statement has no effect (returnvalue of builtin function not used)  (remove statement)
-  sin(1)        ; @todo warning statement has no effect (returnvalue of builtin function not used)  (remove statement)
   P_carry(1)
   P_irqd(0)
 

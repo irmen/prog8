@@ -1,0 +1,29 @@
+%output prg
+%launcher basic
+
+~ main {
+;  memory byte derp = max([$ffdd])          ; @todo implement memory vars in stackvm
+;  memory byte derpA = abs(-20000)
+;  memory byte derpB = max([1, 2.2, 4.4, 100])
+;  memory byte cderp = min([$ffdd])+ (1/1)
+;  memory byte cderpA = min([$ffdd, 10, 20, 30])
+;  memory byte cderpB = min([1, 2.2, 4.4, 100])
+;  memory byte derp2 = 2+$ffdd+round(10*sin(3.1))
+
+sub start() -> () {
+  P_irqd(1)     ; is okay. (has side-effects, is not a pure function)
+
+    word dinges = 0
+    word blerp1 =999
+    word blerp3 = 1
+    byte blerp2 =99
+    dinges=blerp1
+    blerp3 = blerp2
+    A=blerp2
+    A=X
+    XY=X
+    XY=AX
+
+    return
+    }
+}
