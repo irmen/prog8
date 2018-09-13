@@ -66,7 +66,7 @@ class DirectedGraph<VT> {
         if(recStack[node]==true) return true
         if(visited[node]==true) return false
 
-        // mark current node as visited bitand add to recursion stack
+        // mark current node as visited and add to recursion stack
         visited[node] = true
         recStack[node] = true
 

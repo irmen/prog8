@@ -56,19 +56,19 @@ class Zeropage(private val options: CompilationOptions) {
                 if(vardecl.position!=null)
                     print(vardecl.position)
                 println(" warning: allocating a large value (array) in zeropage")
-                val y = (vardecl.arrayspec.y as? LiteralValue)?.intvalue
+                val y = (vardecl.arrayspec.y as? LiteralValue)?.asIntegerValue
                 if(y==null) {
                     // 1 dimensional array
                     when(vardecl.datatype) {
-                        DataType.BYTE -> (vardecl.arrayspec.x as LiteralValue).intvalue!!
-                        DataType.WORD -> (vardecl.arrayspec.x as LiteralValue).intvalue!! * 2
-                        DataType.FLOAT -> (vardecl.arrayspec.x as LiteralValue).intvalue!! *  5
+                        DataType.BYTE -> (vardecl.arrayspec.x as LiteralValue).asIntegerValue!!
+                        DataType.WORD -> (vardecl.arrayspec.x as LiteralValue).asIntegerValue!! * 2
+                        DataType.FLOAT -> (vardecl.arrayspec.x as LiteralValue).asIntegerValue!! *  5
                         else -> throw CompilerException("array can only be of byte, word, float")
                     }
                 } else {
                     // 2 dimensional matrix (only bytes for now)
                     when(vardecl.datatype) {
-                        DataType.BYTE -> (vardecl.arrayspec.x as LiteralValue).intvalue!! * y
+                        DataType.BYTE -> (vardecl.arrayspec.x as LiteralValue).asIntegerValue!! * y
                         else -> throw CompilerException("matrix can only contain bytes")
                     }
                 }

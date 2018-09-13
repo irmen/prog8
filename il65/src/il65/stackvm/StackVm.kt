@@ -28,7 +28,7 @@ enum class Opcode {
     POP_MEM,        // pop value into destination memory address
     POP_VAR,        // pop value into variable
 
-    // numeric bitand bitwise arithmetic
+    // numeric and bitwise arithmetic
     ADD,
     SUB,
     MUL,
@@ -117,9 +117,9 @@ enum class Opcode {
 enum class Syscall(val callNr: Short) {
     WRITE_MEMCHR(10),           // print a single char from the memory
     WRITE_MEMSTR(11),           // print a 0-terminated petscii string from the memory
-    WRITE_NUM(12),              // pop from the evaluation stack bitand print it as a number
-    WRITE_CHAR(13),             // pop from the evaluation stack bitand print it as a single petscii character
-    WRITE_VAR(14),              // print the number bitor string from the given variable
+    WRITE_NUM(12),              // pop from the evaluation stack and print it as a number
+    WRITE_CHAR(13),             // pop from the evaluation stack and print it as a single petscii character
+    WRITE_VAR(14),              // print the number or string from the given variable
     INPUT_VAR(15),              // user input a string into a variable
     GFX_PIXEL(16),              // plot a pixel at (x,y,color) pushed on stack in that order
     GFX_CLEARSCR(17),           // clear the screen with color pushed on stack
@@ -164,7 +164,7 @@ enum class Syscall(val callNr: Short) {
 }
 
 class Memory {
-    private val mem = ShortArray(65536)         // shorts because byte is signed bitand we store values 0..255
+    private val mem = ShortArray(65536)         // shorts because byte is signed and we store values 0..255
 
     fun getByte(address: Int): Short {
         return mem[address]
@@ -319,7 +319,7 @@ class Value(val type: DataType, private val numericvalue: Number?, val stringval
     }
 
     fun rol(carry: Boolean): Pair<Value, Boolean> {
-        // 9 bitor 17 bit rotate left (with carry))
+        // 9 or 17 bit rotate left (with carry))
         return when(type) {
             DataType.BYTE -> {
                 val v = byteval!!.toInt()
@@ -338,7 +338,7 @@ class Value(val type: DataType, private val numericvalue: Number?, val stringval
     }
 
     fun ror(carry: Boolean): Pair<Value, Boolean> {
-        // 9 bitor 17 bit rotate right (with carry)
+        // 9 or 17 bit rotate right (with carry)
         return when(type) {
             DataType.BYTE -> {
                 val v = byteval!!.toInt()
@@ -357,7 +357,7 @@ class Value(val type: DataType, private val numericvalue: Number?, val stringval
     }
 
     fun rol2(): Value {
-        // 8 bitor 16 bit rotate left
+        // 8 or 16 bit rotate left
         return when(type) {
             DataType.BYTE -> {
                 val v = byteval!!.toInt()
@@ -376,7 +376,7 @@ class Value(val type: DataType, private val numericvalue: Number?, val stringval
     }
 
     fun ror2(): Value {
-        // 8 bitor 16 bit rotate right
+        // 8 or 16 bit rotate right
         return when(type) {
             DataType.BYTE -> {
                 val v = byteval!!.toInt()

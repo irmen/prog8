@@ -5,6 +5,7 @@ import il65.parser.il65Parser
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
 import java.nio.file.Paths
+import kotlin.math.floor
 
 
 /**************************** AST Data classes ****************************/
@@ -86,7 +87,7 @@ data class Position(val file: String, val line: Int, val startCol: Int, val endC
 
 interface IAstProcessor {
     fun process(module: Module) {
-        module.statements = module.statements.map { it.process(this) }.toMutableList()
+        module.statements = module.statements.asSequence().map { it.process(this) }.toMutableList()
     }
 
     fun process(expr: PrefixExpression): IExpression {
@@ -105,7 +106,7 @@ interface IAstProcessor {
     }
 
     fun process(block: Block): IStatement {
-        block.statements = block.statements.map { it.process(this) }.toMutableList()
+        block.statements = block.statements.asSequence().map { it.process(this) }.toMutableList()
         return block
     }
 
@@ -116,7 +117,7 @@ interface IAstProcessor {
     }
 
     fun process(subroutine: Subroutine): IStatement {
-        subroutine.statements = subroutine.statements.map { it.process(this) }.toMutableList()
+        subroutine.statements = subroutine.statements.asSequence().map { it.process(this) }.toMutableList()
         return subroutine
     }
 
@@ -197,7 +198,7 @@ interface Node {
 }
 
 
-// find the parent node of a specific type bitor interface
+// find the parent node of a specific type or interface
 // (useful to figure out in what namespace/block something is defined, etc)
 inline fun <reified T> findParentNode(node: Node): T? {
     var candidate = node.parent
@@ -243,9 +244,9 @@ interface INameScope {
 
     fun registerUsedName(name: String)
 
-    fun subScopes() = statements.filter { it is INameScope } .map { it as INameScope }.associate { it.name to it }
+    fun subScopes() = statements.asSequence().filter { it is INameScope }.map { it as INameScope }.associate { it.name to it }
 
-    fun labelsAndVariables() = statements.filter { it is Label || it is VarDecl }
+    fun labelsAndVariables() = statements.asSequence().filter { it is Label || it is VarDecl }
             .associate {((it as? Label)?.name ?: (it as? VarDecl)?.name) to it }
 
     fun lookup(scopedName: List<String>, statement: Node) : IStatement? {
@@ -302,7 +303,7 @@ interface INameScope {
 
 /**
  * Inserted into the Ast in place of modified nodes (not inserted directly as a parser result)
- * It can hold zero bitor more replacement statements that have to be inserted at that point.
+ * It can hold zero or more replacement statements that have to be inserted at that point.
  */
 class AnonymousStatementList(override var parent: Node, var statements: List<IStatement>) : IStatement {
     override var position: Position? = null
@@ -371,7 +372,7 @@ private class GlobalNamespace(override val name: String,
                               override var statements: MutableList<IStatement>,
                               override val position: Position?) : INameScope {
 
-    private val scopedNamesUsed: MutableSet<String> = mutableSetOf("main", "main.start")      // main bitand main.start are always used
+    private val scopedNamesUsed: MutableSet<String> = mutableSetOf("main", "main.start")      // main and main.start are always used
 
     override fun usedNames(): Set<String>  = scopedNamesUsed
 
@@ -548,16 +549,16 @@ class VarDecl(val type: VarDeclType,
             }
             DataType.ARRAY -> {
                 val aX = arrayspec?.x as? LiteralValue ?: throw ExpressionError("need constant value expression for arrayspec", position)
-                aX.intvalue!!
+                aX.asIntegerValue!!
             }
             DataType.ARRAY_W -> {
                 val aX = arrayspec?.x as? LiteralValue ?: throw ExpressionError("need constant value expression for arrayspec", position)
-                2*aX.intvalue!!
+                2*aX.asIntegerValue!!
             }
             DataType.MATRIX -> {
                 val aX = arrayspec?.x as? LiteralValue ?: throw ExpressionError("need constant value expression for arrayspec", position)
                 val aY = arrayspec.y as? LiteralValue ?: throw ExpressionError("need constant value expression for arrayspec", position)
-                aX.intvalue!! * aY.intvalue!!
+                aX.asIntegerValue!! * aY.asIntegerValue!!
             }
         }
 
@@ -576,7 +577,7 @@ class VarDecl(val type: VarDeclType,
                     else -> when (declaredDatatype) {
                         DataType.BYTE -> DataType.ARRAY
                         DataType.WORD -> DataType.ARRAY_W
-                        else -> throw SyntaxError("array can only contain bytes bitor words", position)
+                        else -> throw SyntaxError("array can only contain bytes or words", position)
                     }
                 }
     }
@@ -666,7 +667,13 @@ class BinaryExpression(var left: IExpression, val operator: String, var right: I
     override fun referencesIdentifier(name: String) = left.referencesIdentifier(name) || right.referencesIdentifier(name)
 }
 
-data class LiteralValue(val intvalue: Int? = null,
+private data class ByteOrWordLiteral(val intvalue: Int, val datatype: DataType) {
+    fun asWord() = ByteOrWordLiteral(intvalue, DataType.WORD)
+    fun asByte() = ByteOrWordLiteral(intvalue, DataType.BYTE)
+}
+
+data class LiteralValue(val bytevalue: Short? = null,
+                        val wordvalue: Int? = null,
                         val floatvalue: Double? = null,
                         val strvalue: String? = null,
                         val arrayvalue: MutableList<IExpression>? = null) : IExpression {
@@ -674,21 +681,52 @@ data class LiteralValue(val intvalue: Int? = null,
     override lateinit var parent: Node
     override fun referencesIdentifier(name: String) = arrayvalue?.any { it.referencesIdentifier(name) } ?: false
 
-    val isInteger = intvalue!=null
+    companion object {
+        fun optimalNumeric(value: Number): LiteralValue {
+            val floatval = value.toDouble()
+            return if(floatval == floor(floatval)  && floatval in -32768..65535) {
+                // the floating point value is actually an integer.
+                when (floatval) {
+                    // note: we cheat a little here and allow negative integers during expression evaluations
+                    in -128..255 -> LiteralValue(bytevalue = floatval.toShort())
+                    in -32768..65535 -> LiteralValue(wordvalue = floatval.toInt())
+                    else -> throw FatalAstException("integer overflow: $floatval")
+                }
+            } else {
+                LiteralValue(floatvalue = floatval)
+            }
+        }
+    }
+
+    val isByte = bytevalue!=null
+    val isWord = wordvalue!=null
+    val isInteger = isByte or isWord
     val isFloat = floatvalue!=null
-    val isNumeric = intvalue!=null || floatvalue!=null
-    val isArray = arrayvalue!=null
+    val isArray = arrayvalue!=null      // @todo: array / word-array / matrix ?
     val isString = strvalue!=null
 
+    init {
+        if(bytevalue==null && wordvalue==null && floatvalue==null && arrayvalue==null && strvalue==null)
+            throw FatalAstException("literal value without actual value")
+    }
+
     val asNumericValue: Number? = when {
-        intvalue!=null -> intvalue
+        bytevalue!=null -> bytevalue
+        wordvalue!=null -> wordvalue
         floatvalue!=null -> floatvalue
+        else -> null
+    }
+
+    val asIntegerValue: Int? = when {
+        bytevalue!=null -> bytevalue.toInt()
+        wordvalue!=null -> wordvalue
         else -> null
     }
 
     val asBooleanValue: Boolean =
             (floatvalue!=null && floatvalue != 0.0) ||
-            (intvalue!=null && intvalue != 0) ||
+            (bytevalue!=null && bytevalue != 0.toShort()) ||
+            (wordvalue!=null && wordvalue != 0) ||
             (strvalue!=null && strvalue.isNotEmpty()) ||
             (arrayvalue != null && arrayvalue.isNotEmpty())
 
@@ -701,7 +739,7 @@ data class LiteralValue(val intvalue: Int? = null,
     override fun process(processor: IAstProcessor) = processor.process(this)
 
     override fun toString(): String {
-        return "LiteralValue(int=$intvalue, float=$floatvalue, str=$strvalue, array=$arrayvalue pos=$position)"
+        return "LiteralValue(byte=$bytevalue, word=$wordvalue, float=$floatvalue, str=$strvalue, array=$arrayvalue pos=$position)"
     }
 }
 
@@ -816,7 +854,7 @@ class FunctionCall(override var target: IdentifierReference, override var arglis
     }
 
     override fun constValue(namespace: INameScope): LiteralValue? {
-        // if the function is a built-in function bitand the args are consts, should try to const-evaluate!
+        // if the function is a built-in function and the args are consts, should try to const-evaluate!
         if(target.nameInSource.size>1) return null
         try {
             return when (target.nameInSource[0]) {
@@ -988,7 +1026,7 @@ class BranchStatement(var condition: BranchCondition,
 /***************** Antlr Extension methods to create AST ****************/
 
 fun il65Parser.ModuleContext.toAst(name: String, withPosition: Boolean) : Module {
-    val module = Module(name, modulestatement().map { it.toAst(withPosition) }.toMutableList())
+    val module = Module(name, modulestatement().asSequence().map { it.toAst(withPosition) }.toMutableList())
     module.position = toPosition(withPosition)
     return module
 }
@@ -1019,7 +1057,7 @@ private fun il65Parser.ModulestatementContext.toAst(withPosition: Boolean) : ISt
 
 private fun il65Parser.BlockContext.toAst(withPosition: Boolean) : IStatement {
     val block= Block(identifier().text,
-            integerliteral()?.toAst(),
+            integerliteral()?.toAst()?.intvalue,
             statement_block().toAst(withPosition))
     block.position = toPosition(withPosition)
     return block
@@ -1027,7 +1065,7 @@ private fun il65Parser.BlockContext.toAst(withPosition: Boolean) : IStatement {
 
 
 private fun il65Parser.Statement_blockContext.toAst(withPosition: Boolean): MutableList<IStatement>
-        = statement().map { it.toAst(withPosition) }.toMutableList()
+        = statement().asSequence().map { it.toAst(withPosition) }.toMutableList()
 
 
 private fun il65Parser.StatementContext.toAst(withPosition: Boolean) : IStatement {
@@ -1164,7 +1202,7 @@ private fun il65Parser.ReturnstmtContext.toAst(withPosition: Boolean) : IStateme
 
 private fun il65Parser.UnconditionaljumpContext.toAst(withPosition: Boolean): IStatement {
 
-    val address = integerliteral()?.toAst()
+    val address = integerliteral()?.toAst()?.intvalue
     val identifier =
             if(identifier()!=null) identifier()?.toAst(withPosition)
             else scoped_identifier()?.toAst(withPosition)
@@ -1186,7 +1224,7 @@ private fun il65Parser.SubroutineContext.toAst(withPosition: Boolean) : Subrouti
     val sub = Subroutine(identifier().text,
             if(sub_params()==null) emptyList() else sub_params().toAst(),
             if(sub_returns()==null) emptyList() else sub_returns().toAst(),
-            sub_address()?.integerliteral()?.toAst(),
+            sub_address()?.integerliteral()?.toAst()?.intvalue,
             if(statement_block()==null) mutableListOf() else statement_block().toAst(withPosition))
     sub.position = toPosition(withPosition)
     return sub
@@ -1244,18 +1282,39 @@ private fun il65Parser.DirectiveContext.toAst(withPosition: Boolean) : Directive
 private fun il65Parser.DirectiveargContext.toAst(withPosition: Boolean) : DirectiveArg {
     val darg = DirectiveArg(stringliteral()?.text,
             identifier()?.text,
-            integerliteral()?.toAst())
+            integerliteral()?.toAst()?.intvalue)
     darg.position = toPosition(withPosition)
     return darg
 }
 
 
-private fun il65Parser.IntegerliteralContext.toAst(): Int {
+private fun il65Parser.IntegerliteralContext.toAst(): ByteOrWordLiteral {
+    fun makeLiteral(text: String, radix: Int, forceWord: Boolean): ByteOrWordLiteral {
+        val integer: Int
+        var datatype = DataType.BYTE
+        if(radix==10) {
+            integer = text.toInt()
+            if(integer in 256..65535)
+                datatype = DataType.WORD
+        } else if(radix==2) {
+            if(text.length>8)
+                datatype = DataType.WORD
+            integer = text.toInt(2)
+        } else if(radix==16) {
+            if(text.length>2)
+                datatype = DataType.WORD
+            integer = text.toInt(16)
+        } else {
+            throw FatalAstException("invalid radix")
+        }
+        return ByteOrWordLiteral(integer, if(forceWord) DataType.WORD else datatype)
+    }
     val terminal: TerminalNode = children[0] as TerminalNode
+    val integerPart = this.intpart.text
     return when (terminal.symbol.type) {
-        il65Parser.DEC_INTEGER -> text.toInt()
-        il65Parser.HEX_INTEGER -> text.substring(1).toInt(16)
-        il65Parser.BIN_INTEGER -> text.substring(1).toInt(2)
+        il65Parser.DEC_INTEGER -> makeLiteral(integerPart, 10, wordsuffix()!=null)
+        il65Parser.HEX_INTEGER -> makeLiteral(integerPart.substring(1), 16, wordsuffix()!=null)
+        il65Parser.BIN_INTEGER -> makeLiteral(integerPart.substring(1), 2, wordsuffix()!=null)
         else -> throw FatalAstException(terminal.text)
     }
 }
@@ -1268,12 +1327,22 @@ private fun il65Parser.ExpressionContext.toAst(withPosition: Boolean) : IExpress
         val booleanlit = litval.booleanliteral()?.toAst()
         val value =
                 if(booleanlit!=null)
-                    LiteralValue(intvalue = if(booleanlit) 1 else 0)
-                else
-                    LiteralValue(litval.integerliteral()?.toAst(),
-                            litval.floatliteral()?.toAst(),
-                            litval.stringliteral()?.text,
-                            litval.arrayliteral()?.toAst(withPosition))
+                    LiteralValue(bytevalue = if(booleanlit) 1 else 0)
+                else {
+                    val intLit = litval.integerliteral()?.toAst()
+                    if(intLit!=null) {
+                        when(intLit.datatype) {
+                            DataType.BYTE -> LiteralValue(bytevalue = intLit.intvalue.toShort())
+                            DataType.WORD -> LiteralValue(wordvalue = intLit.intvalue)
+                            else -> throw FatalAstException("invalid datatype for integer literal")
+                        }
+                    } else {
+                        LiteralValue(null, null,
+                                litval.floatliteral()?.toAst(),
+                                litval.stringliteral()?.text,
+                                litval.arrayliteral()?.toAst(withPosition))
+                    }
+                }
         value.position = litval.toPosition(withPosition)
         return value
     }
@@ -1349,7 +1418,7 @@ private fun il65Parser.BooleanliteralContext.toAst() = when(text) {
 
 
 private fun il65Parser.ArrayliteralContext.toAst(withPosition: Boolean) =
-        expression().map { it.toAst(withPosition) }.toMutableList()
+        expression().asSequence().map { it.toAst(withPosition) }.toMutableList()
 
 
 private fun il65Parser.If_stmtContext.toAst(withPosition: Boolean): IfStatement {

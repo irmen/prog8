@@ -248,6 +248,18 @@ type identifier  type                     storage size       example var declara
 ===============  =======================  =================  =========================================
 
 
+**hexadecimal numbers:** you can use a dollar prefix to write hexadecimal numbers: ``$20ac``
+
+**binary numbers:** you can use a percent prefix to write binary numbers: ``%10010011``
+
+**``byte`` versus ``word`` values:**
+
+- When an integer value ranges from 0..255 the compiler sees it as a ``byte``.
+- When an integer value ranges from 256..65535 the compiler sees it as a ``word``.
+- When a hex number has 3 or 4 digits, for example ``$0004``, it is seen as a ``word`` otherwise as a ``byte``.
+- When a binary number has 9 to 16 digits, for example ``%1100110011``, it is seen as a ``word`` otherwise as a ``byte``.
+- You can force a byte value into a word value by adding the ``.w`` datatype suffix to the number: ``$2a.w`` is equivalent to ``$002a``.
+
 **@todo pointers/addresses?  (as opposed to normal WORDs)**
 
 **@todo signed integers (byte and word)?**

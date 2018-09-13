@@ -34,8 +34,8 @@ data class Mflpt5(val b0: Short, val b1: Short, val b2: Short, val b3: Short, va
         val zero = Mflpt5(0, 0,0,0,0)
         fun fromNumber(num: Number): Mflpt5 {
             // see https://en.wikipedia.org/wiki/Microsoft_Binary_Format
-            // bitand https://sourceforge.net/p/acme-crossass/code-0/62/tree/trunk/ACME_Lib/cbm/mflpt.a
-            // bitand https://en.wikipedia.org/wiki/IEEE_754-1985
+            // and https://sourceforge.net/p/acme-crossass/code-0/62/tree/trunk/ACME_Lib/cbm/mflpt.a
+            // and https://en.wikipedia.org/wiki/IEEE_754-1985
 
             val flt = num.toDouble()
             if(flt < FLOAT_MAX_NEGATIVE || flt > FLOAT_MAX_POSITIVE)
@@ -47,12 +47,12 @@ data class Mflpt5(val b0: Short, val b1: Short, val b2: Short, val b3: Short, va
             var exponent = 128 + 32	// 128 is cbm's bias, 32 is this algo's bias
             var mantissa = flt.absoluteValue
 
-            // if mantissa is too large, shift right bitand adjust exponent
+            // if mantissa is too large, shift right and adjust exponent
             while(mantissa >= 0x100000000) {
                 mantissa /= 2.0
                 exponent ++
             }
-            // if mantissa is too small, shift left bitand adjust exponent
+            // if mantissa is too small, shift left and adjust exponent
             while(mantissa < 0x80000000) {
                 mantissa *= 2.0
                 exponent --
@@ -95,10 +95,10 @@ class Compiler(private val options: CompilationOptions) {
         val intermediate = StackVmProgram(module.name)
         namespace.debugPrint()
 
-        // create the pool of all variables used in all blocks bitand scopes
+        // create the pool of all variables used in all blocks and scopes
         val varGather = VarGatherer(intermediate)
         varGather.process(module)
-        println("Number of allocated variables bitand constants: ${intermediate.variables.size} (${intermediate.variablesMemSize} bytes)")
+        println("Number of allocated variables and constants: ${intermediate.variables.size} (${intermediate.variablesMemSize} bytes)")
 
         val translator = StatementTranslator(intermediate, namespace)
         translator.process(module)
@@ -271,14 +271,9 @@ class Compiler(private val options: CompilationOptions) {
                     val lv = expr.constValue(namespace) ?: throw CompilerException("constant expression required, not $expr")
                     when {
                         lv.isString -> stackvmProg.instruction("push \"${lv.strvalue}\"")
-                        lv.isInteger -> {
-                            val intval = lv.intvalue!!
-                            if(intval<=255)
-                                stackvmProg.instruction("push b:${intval.toString(16)}")
-                            else if(intval <= 65535)
-                                stackvmProg.instruction("push w:${intval.toString(16)}")
-                        }
-                        lv.isNumeric -> stackvmProg.instruction("push f:${lv.asNumericValue}")
+                        lv.isByte -> stackvmProg.instruction("push b:${lv.bytevalue!!.toString(16)}")
+                        lv.isWord -> stackvmProg.instruction("push w:${lv.wordvalue!!.toString(16)}")
+                        lv.isFloat -> stackvmProg.instruction("push f:${lv.floatvalue}")
                         lv.isArray -> {
                             lv.arrayvalue?.forEach { translate(it) }
                             stackvmProg.instruction("array w:${lv.arrayvalue!!.size.toString(16)}")
@@ -299,9 +294,9 @@ class Compiler(private val options: CompilationOptions) {
                 "&" -> "bitand"
                 "|" -> "bitor"
                 "^" -> "bitxor"
-                "bitand" -> "bitand"
-                "bitor" -> "bitor"
-                "bitxor" -> "bitxor"
+                "and" -> "and"
+                "or" -> "or"
+                "xor" -> "xor"
                 "<" -> "less"
                 ">" -> "greater"
                 "<=" -> "lesseq"
@@ -450,11 +445,12 @@ class StackVmProgram(val name: String) {
         result.add("%variables")
         for(v in variables) {
             if (!(v.value.type == VarDeclType.VAR || v.value.type == VarDeclType.CONST)) {
-                throw AssertionError("Should be only VAR bitor CONST variables")
+                throw AssertionError("Should be only VAR or CONST variables")
             }
             val litval = v.value.value as LiteralValue
             val litvalStr = when {
-                litval.isInteger -> litval.intvalue!!.toString(16)
+                litval.isByte -> litval.bytevalue!!.toString(16)
+                litval.isWord -> litval.wordvalue!!.toString(16)
                 litval.isFloat -> litval.floatvalue.toString()
                 litval.isString -> "\"${litval.strvalue}\""
                 else -> TODO("non-scalar value")

@@ -9,8 +9,8 @@
     byte [2,3] matrix1 = 2
     byte [2,3] matrix2 = [1,2,3,4,5,6]
 
-    const byte [100] carray1 = 0
-    const word [100] carray2 = 1
+    const byte [100] carray1 = 2
+    const word [100] carray2 = 1.w
     const byte [2,3] cmatrix1 = [1,2,3,4,5,255]
 
 
@@ -30,7 +30,13 @@
 
   const word len1 = len([1,2,3,wa1, wa2, ws1, all1])
   const word wa1 = ceil(abs(-999.22))
+  const byte wa1b = abs(99)
+  const byte wa1c = -(1-99)
+  const byte wa1d = -0
   const byte wa2 = abs(-99)
+  const byte wa2b= abs(-99.w)
+  const byte wa2c = abs(-99)
+  const word wa2d = abs(-999)
   const float wa3 = abs(-1.23456)
   const float wa4 = abs(-133)
   const float avg1 = avg([-1.23456, 99999])
@@ -44,7 +50,7 @@
   const word all2 = all([0.0])
   const word all3 = all([wa1, wa2, ws1, all1])
 
-  const word max1 = max([-1,-2,3,99+22])
+  const word max1 = max([-1,-2,3.33,99+22])
 
   const word min1 = min([1,2,3,99+22])
     word dinges = round(not_main.len1)
@@ -154,12 +160,21 @@
 
   sub start () -> () {
     word dinges = 0
-    word blerp1 =99
+    word blerp1 =999
+    word blerp3 = 1
     byte blerp2 =99
     dinges=blerp1
     A=blerp1        ; @todo error can't assign word to byte
+    A=blerp3        ; @todo error can't assign word to byte
+    blerp2=blerp3; @todo error can't assign word to byte
+    blerp3 = blerp2
     A=blerp2
-    A=9999
+    A=$02
+    A=$002
+    A=$00ff
+    A=%11001100
+    A=%0010011001
+    A=99.w
     XY=blerp1
     X=blerp1        ; @todo error can't assign word to byte
     X=blerp2

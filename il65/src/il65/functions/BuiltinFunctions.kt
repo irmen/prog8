@@ -23,9 +23,7 @@ private fun oneDoubleArg(args: List<IExpression>, position: Position?, namespace
         throw SyntaxError("built-in function requires one floating point argument", position)
 
     val float = constval.asNumericValue?.toDouble()!!
-    val result = numericLiteral(function(float), args[0].position)
-    result.position = args[0].position
-    return result
+    return numericLiteral(function(float), args[0].position)
 }
 
 private fun oneDoubleArgOutputInt(args: List<IExpression>, position: Position?, namespace:INameScope, function: (arg: Double)->Number): LiteralValue {
@@ -36,9 +34,7 @@ private fun oneDoubleArgOutputInt(args: List<IExpression>, position: Position?, 
         throw SyntaxError("built-in function requires one floating point argument", position)
 
     val float = constval.asNumericValue?.toDouble()!!
-    val result = LiteralValue(function(float).toInt())
-    result.position = args[0].position
-    return result
+    return numericLiteral(function(float).toInt(), args[0].position)
 }
 
 private fun oneIntArgOutputInt(args: List<IExpression>, position: Position?, namespace:INameScope, function: (arg: Int)->Number): LiteralValue {
@@ -49,9 +45,7 @@ private fun oneIntArgOutputInt(args: List<IExpression>, position: Position?, nam
         throw SyntaxError("built-in function requires one integer argument", position)
 
     val integer = constval.asNumericValue?.toInt()!!
-    val result = LiteralValue(function(integer).toInt())
-    result.position = args[0].position
-    return result
+    return numericLiteral(function(integer).toInt(), args[0].position)
 }
 
 private fun collectionArgOutputNumber(args: List<IExpression>, position: Position?, namespace:INameScope,
@@ -65,14 +59,7 @@ private fun collectionArgOutputNumber(args: List<IExpression>, position: Positio
     if(constants.contains(null))
         throw NotConstArgumentException()
     val result = function(constants.map { it!!.toDouble() }).toDouble()
-    val value =
-            if(result-floor(result) == 0.0) {
-                LiteralValue(result.toInt())
-            } else {
-                LiteralValue(floatvalue = result)
-            }
-    value.position = args[0].position
-    return value
+    return numericLiteral(result, args[0].position)
 }
 
 private fun collectionArgOutputBoolean(args: List<IExpression>, position: Position?, namespace:INameScope,
@@ -86,7 +73,7 @@ private fun collectionArgOutputBoolean(args: List<IExpression>, position: Positi
     if(constants.contains(null))
         throw NotConstArgumentException()
     val result = function(constants.map { it?.toDouble()!! })
-    return LiteralValue(if(result) 1 else 0)
+    return LiteralValue(bytevalue = if(result) 1 else 0)
 }
 
 fun builtinRound(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
@@ -132,26 +119,21 @@ fun builtinDeg(args: List<IExpression>, position: Position?, namespace:INameScop
         = oneDoubleArg(args, position, namespace, Math::toDegrees)
 
 fun builtinAbs(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue {
-    // 1 arg, type = float bitor int, result type= same as argument type
+    // 1 arg, type = float or int, result type= same as argument type
     if(args.size!=1)
         throw SyntaxError("abs requires one numeric argument", position)
 
     val constval = args[0].constValue(namespace) ?: throw NotConstArgumentException()
-    var number = constval.asNumericValue
-    val result =
-            if(number is Int || number is Byte || number is Short) {
-                number = number.toInt()
-                LiteralValue(intvalue = abs(number))
-            } else if(number is Double) {
-                LiteralValue(floatvalue = abs(number.toDouble()))
-            } else {
-                throw SyntaxError("abs requires one numeric argument", position)
-            }
-    result.position = args[0].position
-    return result
+    val number = constval.asNumericValue
+    return when (number) {
+        is Int, is Byte, is Short -> numericLiteral(abs(number.toInt()), args[0].position)
+        is Double -> numericLiteral(abs(number.toDouble()), args[0].position)
+        else -> throw SyntaxError("abs requires one numeric argument", position)
+    }
 }
 
 
+// todo different functions for byte/word params/results?
 fun builtinLsb(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
         = oneIntArgOutputInt(args, position, namespace) { x: Int -> x and 255 }
 
@@ -183,9 +165,7 @@ fun builtinAvg(args: List<IExpression>, position: Position?, namespace:INameScop
     if(constants.contains(null))
         throw NotConstArgumentException()
     val result = (constants.map { it!!.toDouble() }).average()
-    val value = LiteralValue(floatvalue = result)
-    value.position = args[0].position
-    return value
+    return numericLiteral(result, args[0].position)
 }
 
 fun builtinLen(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue {
@@ -198,9 +178,7 @@ fun builtinLen(args: List<IExpression>, position: Position?, namespace:INameScop
     if(constants.contains(null))
         throw NotConstArgumentException()
     val result = (constants.map { it!!.toDouble() }).size
-    val value = LiteralValue(intvalue = result)
-    value.position = args[0].position
-    return value
+    return numericLiteral(result, args[0].position)
 }
 
 fun builtinAny(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue
@@ -211,10 +189,17 @@ fun builtinAll(args: List<IExpression>, position: Position?, namespace:INameScop
 
 
 private fun numericLiteral(value: Number, position: Position?): LiteralValue {
-    val result = when(value) {
-        is Int -> LiteralValue(intvalue = value.toInt())
-        is Short -> LiteralValue(intvalue = value.toInt())
-        is Byte -> LiteralValue(intvalue = value.toInt())
+    val floatNum=value.toDouble()
+    val tweakedValue: Number =
+            if(floatNum==floor(floatNum) && floatNum in -32768..65535)
+                floatNum.toInt()  // we have an integer disguised as a float.
+            else
+                floatNum
+
+    val result = when(tweakedValue) {
+        is Int -> LiteralValue.optimalNumeric(value.toInt())
+        is Short -> LiteralValue.optimalNumeric(value.toInt())
+        is Byte -> LiteralValue(bytevalue = value.toShort())
         is Double -> LiteralValue(floatvalue = value.toDouble())
         is Float -> LiteralValue(floatvalue = value.toDouble())
         else -> throw FatalAstException("invalid number type ${value::class}")

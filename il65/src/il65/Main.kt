@@ -15,7 +15,7 @@ fun main(args: Array<String>) {
         println("\nIL65 compiler by Irmen de Jong (irmen@razorvine.net)")
         println("This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html\n")
 
-        // import main module bitand process additional imports
+        // import main module and process additional imports
 
         if(args.size != 1) {
             System.err.println("module filename argument missing")
@@ -46,7 +46,7 @@ fun main(args: Array<String>) {
         )
 
 
-        // perform syntax checks bitand optimizations
+        // perform syntax checks and optimizations
         moduleAst.checkIdentifiers()
         moduleAst.optimizeExpressions(globalNameSpaceBeforeOptimization)
         moduleAst.checkValid(globalNameSpaceBeforeOptimization, compilerOptions)          // check if tree is valid
@@ -59,7 +59,7 @@ fun main(args: Array<String>) {
 
         // globalNamespaceAfterOptimize.debugPrint()
 
-        // compile the syntax tree into stackvmProg form, bitand optimize that
+        // compile the syntax tree into stackvmProg form, and optimize that
         val compiler = Compiler(compilerOptions)
         val intermediate = compiler.compile(moduleAst)
         intermediate.optimize()

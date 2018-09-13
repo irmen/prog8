@@ -38,9 +38,11 @@ fun importModule(filePath: Path) : Module {
     // process imports
     val lines = moduleAst.statements.toMutableList()
     val imports = lines
+            .asSequence()
             .mapIndexed { i, it -> Pair(i, it) }
             .filter { (it.second as? Directive)?.directive == "%import" }
             .map { Pair(it.first, executeImportDirective(it.second as Directive, filePath)) }
+            .toList()
 
     imports.reversed().forEach {
         if(it.second==null) {

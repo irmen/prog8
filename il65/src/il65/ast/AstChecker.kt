@@ -34,7 +34,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
 
     override fun process(module: Module) {
         super.process(module)
-        val directives = module.statements.filter { it is Directive }.groupBy { (it as Directive).directive }
+        val directives = module.statements.asSequence().filter { it is Directive }.groupBy { (it as Directive).directive }
         directives.filter { it.value.size > 1 }.forEach{ entry ->
             when(entry.key) {
                 "%output", "%launcher", "%zeropage", "%address" ->
@@ -88,31 +88,32 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         if(BuiltinFunctionNames.contains(subroutine.name))
             err("cannot redefine a built-in function")
 
-        val uniqueNames = subroutine.parameters.map { it.name }.toSet()
+        val uniqueNames = subroutine.parameters.asSequence().map { it.name }.toSet()
         if(uniqueNames.size!=subroutine.parameters.size)
             err("parameter names should be unique")
-        val uniqueParamRegs = subroutine.parameters.map {it.register}.toSet()
+        val uniqueParamRegs = subroutine.parameters.asSequence().map {it.register}.toSet()
         if(uniqueParamRegs.size!=subroutine.parameters.size)
             err("parameter registers should be unique")
-        val uniqueResultRegisters = subroutine.returnvalues.filter{it.register!=null}.map {it.register.toString()}.toMutableSet()
-        uniqueResultRegisters.addAll(subroutine.returnvalues.filter{it.statusflag!=null}.map{it.statusflag.toString()})
+        val uniqueResultRegisters = subroutine.returnvalues.asSequence().filter{it.register!=null}.map {it.register.toString()}.toMutableSet()
+        uniqueResultRegisters.addAll(subroutine.returnvalues.asSequence().filter{it.statusflag!=null}.map{it.statusflag.toString()}.toList())
         if(uniqueResultRegisters.size!=subroutine.returnvalues.size)
             err("return registers should be unique")
 
         super.process(subroutine)
         checkSubroutinesPrecededByReturnOrJump(subroutine.statements)
 
-        // subroutine must contain at least one 'return' bitor 'goto'
-        // (bitor if it has an asm block, that must contain a 'rts' bitor 'jmp')
+        // subroutine must contain at least one 'return' or 'goto'
+        // (or if it has an asm block, that must contain a 'rts' or 'jmp')
         if(subroutine.statements.count { it is Return || it is Jump } == 0) {
             if(subroutine.address==null) {
             val amount = subroutine.statements
+                    .asSequence()
                     .filter { it is InlineAssembly }
                     .map {(it as InlineAssembly).assembly}
                     .count { it.contains(" rts") || it.contains("\trts") ||
                              it.contains(" jmp") || it.contains("\tjmp")}
             if(amount==0 )
-                err("subroutine must have at least one 'return' bitor 'goto' in it (bitor 'rts' / 'jmp' in case of %asm)")
+                err("subroutine must have at least one 'return' or 'goto' in it (or 'rts' / 'jmp' in case of %asm)")
             }
         }
 
@@ -128,7 +129,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                         && preceding !is Subroutine
                         && preceding !is VarDecl
                         && preceding !is BuiltinFunctionStatementPlaceholder) {
-                    checkResult.add(SyntaxError("subroutine definition should be preceded by a return, jump, vardecl, bitor another subroutine statement", stmt.position))
+                    checkResult.add(SyntaxError("subroutine definition should be preceded by a return, jump, vardecl, or another subroutine statement", stmt.position))
                 }
             }
             preceding = stmt
@@ -136,7 +137,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
     }
 
     /**
-     * Assignment target must be register, bitor a variable name
+     * Assignment target must be register, or a variable name
      * for constant-value assignments, check the datatype as well
      */
     override fun process(assignment: Assignment): IStatement {
@@ -149,7 +150,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                     return super.process(assignment)
                 }
                 targetSymbol !is VarDecl -> {
-                    checkResult.add(SyntaxError("assignment LHS must be register bitor variable", assignment.position))
+                    checkResult.add(SyntaxError("assignment LHS must be register or variable", assignment.position))
                     return super.process(assignment)
                 }
                 targetSymbol.type == VarDeclType.CONST -> {
@@ -204,7 +205,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                     err("value of memory var decl is not a literal (it is a ${decl.value!!::class.simpleName}).", decl.value?.position)
                 } else {
                     val value = decl.value as LiteralValue
-                    if (value.intvalue == null || value.intvalue < 0 || value.intvalue > 65535) {
+                    if (value.asIntegerValue == null || value.asIntegerValue< 0 || value.asIntegerValue > 65535) {
                         err("memory address must be valid integer 0..\$ffff")
                     }
                 }
@@ -238,12 +239,12 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
             "%output" -> {
                 if(directive.parent !is Module) err("this directive may only occur at module level")
                 if(directive.args.size!=1 || directive.args[0].name != "raw" && directive.args[0].name != "prg")
-                    err("invalid output directive type, expected raw bitor prg")
+                    err("invalid output directive type, expected raw or prg")
             }
             "%launcher" -> {
                 if(directive.parent !is Module) err("this directive may only occur at module level")
                 if(directive.args.size!=1 || directive.args[0].name != "basic" && directive.args[0].name != "none")
-                    err("invalid launcher directive type, expected basic bitor none")
+                    err("invalid launcher directive type, expected basic or none")
             }
             "%zeropage" -> {
                 if(directive.parent !is Module) err("this directive may only occur at module level")
@@ -251,7 +252,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                         directive.args[0].name != "basicsafe" &&
                         directive.args[0].name != "kernalsafe" &&
                         directive.args[0].name != "full")
-                    err("invalid zp directive style, expected basicsafe, kernalsafe, bitor full")
+                    err("invalid zp directive style, expected basicsafe, kernalsafe, or full")
             }
             "%address" -> {
                 if(directive.parent !is Module) err("this directive may only occur at module level")
@@ -298,6 +299,11 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         if(!compilerOptions.floats && literalValue.isFloat) {
             checkResult.add(SyntaxError("floating point value used, but floating point is not enabled via options", literalValue.position))
         }
+        when {
+            literalValue.isByte -> checkValueTypeAndRange(DataType.BYTE, null, literalValue, literalValue.position)
+            literalValue.isWord -> checkValueTypeAndRange(DataType.WORD, null, literalValue, literalValue.position)
+            literalValue.isFloat -> checkValueTypeAndRange(DataType.FLOAT, null, literalValue, literalValue.position)
+        }
         return super.process(literalValue)
     }
 
@@ -310,17 +316,17 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         val to = range.to.constValue(namespace)
         if(from!=null && to != null) {
             when {
-                from.intvalue!=null && to.intvalue!=null -> {
-                    if(from.intvalue > to.intvalue)
+                from.asIntegerValue!=null && to.asIntegerValue!=null -> {
+                    if(from.asIntegerValue > to.asIntegerValue)
                         err("range from is larger than to value")
                 }
                 from.strvalue!=null && to.strvalue!=null -> {
                     if(from.strvalue.length!=1 || to.strvalue.length!=1)
-                        err("range from bitand to must be a single character")
+                        err("range from and to must be a single character")
                     if(from.strvalue[0] > to.strvalue[0])
                         err("range from is larger than to value")
                 }
-                else -> err("range expression must be over integers bitor over characters")
+                else -> err("range expression must be over integers or over characters")
             }
         }
         return range
@@ -352,9 +358,9 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                 checkResult.add(SyntaxError("undefined symbol: ${targetName.joinToString(".")}", postIncrDecr.position))
             } else {
                 if(target !is VarDecl || target.type==VarDeclType.CONST) {
-                    checkResult.add(SyntaxError("can only increment bitor decrement a variable", postIncrDecr.position))
+                    checkResult.add(SyntaxError("can only increment or decrement a variable", postIncrDecr.position))
                 } else if(target.datatype!=DataType.FLOAT && target.datatype!=DataType.WORD && target.datatype!=DataType.BYTE) {
-                    checkResult.add(SyntaxError("can only increment bitor decrement a byte/float/word variable", postIncrDecr.position))
+                    checkResult.add(SyntaxError("can only increment or decrement a byte/float/word variable", postIncrDecr.position))
                 }
             }
         }
@@ -365,7 +371,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         val targetStatement = target.targetStatement(namespace)
         if(targetStatement is Label || targetStatement is Subroutine || targetStatement is BuiltinFunctionStatementPlaceholder)
             return targetStatement
-        checkResult.add(SyntaxError("undefined function bitor subroutine: ${target.nameInSource.joinToString(".")}", statement.position))
+        checkResult.add(SyntaxError("undefined function or subroutine: ${target.nameInSource.joinToString(".")}", statement.position))
         return null
     }
 
@@ -373,13 +379,13 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         if(call.target.nameInSource.size==1 && BuiltinFunctionNames.contains(call.target.nameInSource[0])) {
             val functionName = call.target.nameInSource[0]
             if(functionName=="P_carry" || functionName=="P_irqd") {
-                // these functions allow only 0 bitor 1 as argument
+                // these functions allow only 0 or 1 as argument
                 if(call.arglist.size!=1 || call.arglist[0] !is LiteralValue) {
-                    checkResult.add(SyntaxError("$functionName requires one argument, 0 bitor 1", position))
+                    checkResult.add(SyntaxError("$functionName requires one argument, 0 or 1", position))
                 } else {
                     val value = call.arglist[0] as LiteralValue
-                    if(value.intvalue==null || value.intvalue < 0 || value.intvalue > 1) {
-                        checkResult.add(SyntaxError("$functionName requires one argument, 0 bitor 1", position))
+                    if(value.asIntegerValue==null || value.asIntegerValue < 0 || value.asIntegerValue > 1) {
+                        checkResult.add(SyntaxError("$functionName requires one argument, 0 or 1", position))
                     }
                 }
             }
@@ -399,14 +405,18 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                     return err("floating point value '$number' out of range for MFLPT format")
             }
             DataType.BYTE -> {
-                val number = value.intvalue
-                        ?: return err("byte integer value expected")
+                val number = value.asIntegerValue ?: return if (value.floatvalue!=null)
+                    err("unsigned byte integer value expected instead of float; possible loss of precision")
+                else
+                    err("unsigned byte integer value expected")
                 if (number < 0 || number > 255)
                     return err("value '$number' out of range for unsigned byte")
             }
             DataType.WORD -> {
-                val number = value.intvalue
-                        ?: return err("word integer value expected")
+                val number = value.asIntegerValue ?: return if (value.floatvalue!=null)
+                    err("unsigned word integer value expected instead of float; possible loss of precision")
+                else
+                    err("unsigned word integer value expected")
                 if (number < 0 || number > 65535)
                     return err("value '$number' out of range for unsigned word")
             }
@@ -417,13 +427,13 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                     return err("string length must be 1..65535")
             }
             DataType.ARRAY -> {
-                // value may be either a single byte, bitor a byte array
+                // value may be either a single byte, or a byte array
                 if(value.isArray) {
                     for (av in value.arrayvalue!!) {
-                        val number = (av as LiteralValue).intvalue
+                        val number = (av as LiteralValue).bytevalue
                                 ?: return err("array must be all bytes")
 
-                        val expectedSize = arrayspec?.x?.constValue(namespace)?.intvalue
+                        val expectedSize = arrayspec?.x?.constValue(namespace)?.asIntegerValue
                         if (value.arrayvalue.size != expectedSize)
                             return err("initializer array size mismatch (expecting $expectedSize, got ${value.arrayvalue.size})")
 
@@ -431,20 +441,22 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                             return err("value '$number' in byte array is out of range for unsigned byte")
                     }
                 } else {
-                    val number = value.intvalue
-                            ?: return err("byte integer value expected")
+                    val number = value.bytevalue ?: return if (value.floatvalue!=null)
+                        err("unsigned byte integer value expected instead of float; possible loss of precision")
+                    else
+                        err("unsigned byte integer value expected")
                     if (number < 0 || number > 255)
                         return err("value '$number' out of range for unsigned byte")
                 }
             }
             DataType.ARRAY_W -> {
-                // value may be either a single word, bitor a word array
+                // value may be either a single word, or a word array
                 if(value.isArray) {
                     for (av in value.arrayvalue!!) {
-                        val number = (av as LiteralValue).intvalue
+                        val number = (av as LiteralValue).asIntegerValue   // both byte and word are acceptable
                                 ?: return err("array must be all words")
 
-                        val expectedSize = arrayspec!!.x.constValue(namespace)?.intvalue!!
+                        val expectedSize = arrayspec!!.x.constValue(namespace)?.asIntegerValue
                         if (value.arrayvalue.size != expectedSize)
                             return err("initializer array size mismatch (expecting $expectedSize, got ${value.arrayvalue.size})")
 
@@ -452,21 +464,24 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                             return err("value '$number' in word array is out of range for unsigned word")
                     }
                 } else {
-                    val number = value.intvalue
-                            ?: return err("word integer value expected")
+                    val number = value.asIntegerValue   // both byte and word are acceptable
+                            ?: return if (value.floatvalue!=null)
+                                err("unsigned word integer value expected instead of float; possible loss of precision")
+                            else
+                                err("unsigned word integer value expected")
                     if (number < 0 || number > 65535)
                         return err("value '$number' out of range for unsigned word")
                 }
             }
             DataType.MATRIX -> {
-                // value can only be a single byte, bitor a byte array (which represents the matrix)
+                // value can only be a single byte, or a byte array (which represents the matrix)
                 if(value.isArray) {
                     for (av in value.arrayvalue!!) {
-                        val number = (av as LiteralValue).intvalue
+                        val number = (av as LiteralValue).bytevalue
                                 ?: return err("array must be all bytes")
 
-                        val expectedSizeX = arrayspec!!.x.constValue(namespace)?.intvalue!!
-                        val expectedSizeY = arrayspec.y!!.constValue(namespace)?.intvalue!!
+                        val expectedSizeX = arrayspec!!.x.constValue(namespace)?.asIntegerValue!!
+                        val expectedSizeY = arrayspec.y!!.constValue(namespace)?.asIntegerValue!!
                         val expectedSize = expectedSizeX * expectedSizeY
                         if (value.arrayvalue.size != expectedSize)
                             return err("initializer array size mismatch (expecting $expectedSize, got ${value.arrayvalue.size})")
@@ -475,8 +490,8 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                             return err("value '$number' in byte array is out of range for unsigned byte")
                     }
                 } else {
-                    val number = value.intvalue
-                            ?: return err("byte integer value expected")
+                    val number = value.bytevalue
+                            ?: return err("unsigned byte integer value expected")
                     if (number < 0 || number > 255)
                         return err("value '$number' out of range for unsigned byte")
                 }

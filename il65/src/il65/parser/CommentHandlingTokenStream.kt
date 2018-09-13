@@ -12,11 +12,13 @@ class CommentHandlingTokenStream(lexer: Lexer) : CommonTokenStream(lexer) {
         // extract the comments
         val commentTokenChannel = il65Lexer.channelNames.indexOf("HIDDEN")
         val theLexer = tokenSource as Lexer
-        return  get(0, size())
+        return get(0, size())
+                .asSequence()
                 .filter { it.channel == commentTokenChannel }
                 .map {
                     Comment(theLexer.vocabulary.getSymbolicName(it.type),
                             it.line, it.text.substringAfter(';').trim())
                 }
+                .toList()
     }
 }

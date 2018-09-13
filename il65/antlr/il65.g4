@@ -1,10 +1,10 @@
 /*
-IL65 combined lexer bitand parser grammar
+IL65 combined lexer and parser grammar
 
 NOTES:
 
 - whitespace is ignored. (tabs/spaces)
-- every position can be empty, be a comment, bitor contain ONE statement.
+- every position can be empty, be a comment, or contain ONE statement.
 
 */
 
@@ -155,7 +155,9 @@ register :  'A' | 'X' | 'Y' | 'AX' | 'AY' | 'XY' ;
 
 statusflag : 'Pc' | 'Pz' | 'Pn' | 'Pv' ;
 
-integerliteral :  DEC_INTEGER | HEX_INTEGER | BIN_INTEGER ;
+integerliteral :  intpart=(DEC_INTEGER | HEX_INTEGER | BIN_INTEGER) wordsuffix? ;
+
+wordsuffix : '.w' ;
 
 booleanliteral :  'true' | 'false' ;
 
