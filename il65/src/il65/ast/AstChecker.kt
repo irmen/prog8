@@ -165,24 +165,16 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         if(constVal!=null) {
             checkValueTypeAndRange(targetDatatype, null, assignment.value as LiteralValue, assignment.position)
         } else {
-            val sourceDatatype: DataType = when(assignment.value) {
-                is RegisterExpr -> {
-                    when((assignment.value as RegisterExpr).register) {
-                        Register.A, Register.X, Register.Y -> DataType.BYTE
-                        Register.AX, Register.AY, Register.XY -> DataType.WORD
-                    }
-                }
-                is IdentifierReference -> {
-                    val targetStmt = (assignment.value as IdentifierReference).targetStatement(namespace)
-                    if(targetStmt is VarDecl) {
-                        targetStmt.datatype
-                    } else {
-                        throw FatalAstException("cannot get datatype from assignment value ${assignment.value}, pos=${assignment.position}")
-                    }
-                }
-                else -> TODO("check assignment compatibility for value ${assignment.value}, pos=${assignment.position}")
+            val sourceDatatype: DataType? = assignment.value.resultingDatatype(namespace)
+            if(sourceDatatype==null) {
+                if(assignment.value is FunctionCall)
+                    checkResult.add(ExpressionError("function call doesn't return a value to use in assignment", assignment.value.position))
+                else
+                    checkResult.add(ExpressionError("assignment source ${assignment.value} is no value or has no proper datatype", assignment.value.position))
             }
-            checkAssignmentCompatible(targetDatatype, sourceDatatype, assignment.position)
+            else {
+                checkAssignmentCompatible(targetDatatype, sourceDatatype, assignment.position)
+            }
         }
 
         return super.process(assignment)
@@ -539,7 +531,13 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         if(result)
             return true
 
-        checkResult.add(ExpressionError("cannot assign ${sourceDatatype.toString().toLowerCase()} to ${targetDatatype.toString().toLowerCase()}", position))
+        if(sourceDatatype==DataType.WORD && targetDatatype==DataType.BYTE)
+            checkResult.add(ExpressionError("cannot assign word to byte, use msb() or lsb()?", position))
+        else if(sourceDatatype==DataType.FLOAT && (targetDatatype==DataType.BYTE || targetDatatype==DataType.WORD))
+            checkResult.add(ExpressionError("cannot assign ${sourceDatatype.toString().toLowerCase()} to ${targetDatatype.toString().toLowerCase()}; possible loss of precision", position))
+        else
+            checkResult.add(ExpressionError("cannot assign ${sourceDatatype.toString().toLowerCase()} to ${targetDatatype.toString().toLowerCase()}", position))
+
         return false
     }
 }

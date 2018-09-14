@@ -172,15 +172,13 @@ fun builtinAvg(args: List<IExpression>, position: Position?, namespace:INameScop
 
 fun builtinLen(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue {
     if(args.size!=1)
-        throw SyntaxError("len requires one non-scalar argument", position)
-    val iterable = args[0].constValue(namespace)
-    if(iterable?.arrayvalue == null)
-        throw SyntaxError("len requires one non-scalar argument", position)
-    val constants = iterable.arrayvalue.map { it.constValue(namespace)?.asNumericValue }
-    if(constants.contains(null))
-        throw NotConstArgumentException()
-    val result = (constants.map { it!!.toDouble() }).size
-    return numericLiteral(result, args[0].position)
+        throw SyntaxError("len requires one argument", position)
+    val argument = args[0].constValue(namespace) ?: throw NotConstArgumentException()
+    return when {
+        argument.isArray -> numericLiteral(argument.arrayvalue!!.size, args[0].position)
+        argument.isString -> numericLiteral(argument.strvalue!!.length, args[0].position)
+        else -> throw FatalAstException("len of weird argument ${args[0]}")
+    }
 }
 
 fun builtinAny(args: List<IExpression>, position: Position?, namespace:INameScope): LiteralValue

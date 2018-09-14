@@ -101,17 +101,26 @@
 
   byte equalQQ = 4==4
   const byte equalQQ2 = (4+hopla)>0
+  const str string1 = "hallo"
+  str string2 = "doei"
 
   equalQQ++
   AX++
-    A=X + round(sin(Y))
+  A=msb(X + round(sin(Y)+ 1111))
+  A=lsb(X + round(sin(Y)+1111))
   equalQQ= X
   equalQQ= len([X, Y, AX])
+  equalQQ= len("abcdef")
+  equalQQ= len([1,2,3])
+  equalQQ= len(string1)
+  equalQQ= len(string2)         ; @todo len function call on str type          ALSO ADD ALL THIS TO DOCS OF FUNCTION LEN!
   P_carry(1)
   P_irqd(0)
 
-  equalQQ = foo(33)
-  equalQQ = main.foo(33)
+  ;equalQQ = foo(33)
+  ;equalQQ = main.foo(33)
+  foo(33)
+  main.foo(33)
   XY = hopla*2+hopla1
 
   byte equalWW = 4==4
@@ -130,11 +139,11 @@
 	}
 
 	if(6==6) {
-		A=sin(X)
-		X=max([1,2,Y])
-		X=min([1,2,Y])
+		A=sin(X)        ; @todo should give error of float loss of precision
+		X=max([1,2,Y])  ; @todo must be byte so should be ok
+		X=min([1,2,Y])  ; @todo must be byte so should be ok
 		X=lsl(12)
-		X=lsl(Y)
+		X=lsl(Y)  ; @todo must be byte so should be ok
 		P_carry(0)
 		P_carry(1)
 		P_carry(1-1)
@@ -159,10 +168,8 @@
     word blerp1 =999
     word blerp3 = 1
     byte blerp2 =99
+    float flob =1.1
     dinges=blerp1
-    A=blerp1        ; @todo error can't assign word to byte
-    A=blerp3        ; @todo error can't assign word to byte
-    blerp2=blerp3; @todo error can't assign word to byte
     blerp3 = blerp2
     A=blerp2
     A=$02
@@ -172,7 +179,6 @@
     A=%0010011001
     A=99.w
     XY=blerp1
-    X=blerp1        ; @todo error can't assign word to byte
     X=blerp2
     return
   }

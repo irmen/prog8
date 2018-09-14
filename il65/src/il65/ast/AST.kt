@@ -5,6 +5,7 @@ import il65.parser.il65Parser
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
 import java.nio.file.Paths
+import javax.xml.crypto.Data
 import kotlin.math.floor
 
 
@@ -630,7 +631,7 @@ interface IExpression: Node {
     fun constValue(namespace: INameScope): LiteralValue?
     fun process(processor: IAstProcessor): IExpression
     fun referencesIdentifier(name: String): Boolean
-    // TODO fun resultingDatatype(): DataType
+    fun resultingDatatype(namespace: INameScope): DataType?
 }
 
 
@@ -648,6 +649,7 @@ class PrefixExpression(val operator: String, var expression: IExpression) : IExp
     override fun constValue(namespace: INameScope): LiteralValue? = null
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String) = expression.referencesIdentifier(name)
+    override fun resultingDatatype(namespace: INameScope): DataType? = expression.resultingDatatype(namespace)
 }
 
 
@@ -666,6 +668,45 @@ class BinaryExpression(var left: IExpression, val operator: String, var right: I
 
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String) = left.referencesIdentifier(name) || right.referencesIdentifier(name)
+    override fun resultingDatatype(namespace: INameScope): DataType? {
+        val leftDt = left.resultingDatatype(namespace)
+        val rightDt = right.resultingDatatype(namespace)
+        return when(operator) {
+            "+", "-", "*", "/", "**" -> if(leftDt==null || rightDt==null) null else arithmeticOpDt(leftDt, rightDt)
+            "&" -> leftDt
+            "|" -> leftDt
+            "^" -> leftDt
+            "and", "or", "xor",
+            "<", ">",
+            "<=", ">=",
+            "==", "!=" -> DataType.BYTE
+            else -> throw FatalAstException("resulting datatype check for invalid operator $operator")
+        }
+    }
+
+    private fun arithmeticOpDt(leftDt: DataType, rightDt: DataType): DataType {
+        return when(leftDt) {
+            DataType.BYTE -> when(rightDt) {
+                DataType.BYTE -> DataType.BYTE
+                DataType.WORD -> DataType.WORD
+                DataType.FLOAT -> DataType.FLOAT
+                else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+            }
+            DataType.WORD -> when(rightDt) {
+                DataType.BYTE -> DataType.BYTE
+                DataType.WORD -> DataType.WORD
+                DataType.FLOAT -> DataType.FLOAT
+                else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+            }
+            DataType.FLOAT -> when(rightDt) {
+                DataType.BYTE -> DataType.FLOAT
+                DataType.WORD -> DataType.FLOAT
+                DataType.FLOAT -> DataType.FLOAT
+                else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+            }
+            else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+        }
+    }
 }
 
 private data class ByteOrWordLiteral(val intvalue: Int, val datatype: DataType) {
@@ -742,6 +783,17 @@ data class LiteralValue(val bytevalue: Short? = null,
     override fun toString(): String {
         return "LiteralValue(byte=$bytevalue, word=$wordvalue, float=$floatvalue, str=$strvalue, array=$arrayvalue pos=$position)"
     }
+
+    override fun resultingDatatype(namespace: INameScope): DataType? {
+        return when {
+            isByte -> DataType.BYTE
+            isWord -> DataType.WORD
+            isFloat -> DataType.FLOAT
+            isString -> DataType.STR        // @todo which string?
+            isArray -> DataType.ARRAY       // @todo byte/word array?
+            else -> throw FatalAstException("literalvalue has no value")
+        }
+    }
 }
 
 
@@ -758,6 +810,19 @@ class RangeExpr(var from: IExpression, var to: IExpression) : IExpression {
     override fun constValue(namespace: INameScope): LiteralValue? = null
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String): Boolean  = from.referencesIdentifier(name) || to.referencesIdentifier(name)
+    override fun resultingDatatype(namespace: INameScope): DataType? {
+        val fromDt=from.resultingDatatype(namespace)
+        val toDt=to.resultingDatatype(namespace)
+        return when {
+            fromDt==null || toDt==null -> null
+            fromDt==DataType.WORD || toDt==DataType.WORD -> DataType.WORD
+            fromDt==DataType.STR || toDt==DataType.STR -> DataType.STR
+            fromDt==DataType.STR_P || toDt==DataType.STR_P -> DataType.STR_P
+            fromDt==DataType.STR_S || toDt==DataType.STR_S -> DataType.STR_S
+            fromDt==DataType.STR_PS || toDt==DataType.STR_PS -> DataType.STR_PS
+            else -> DataType.BYTE
+        }
+    }
 }
 
 
@@ -775,6 +840,13 @@ class RegisterExpr(val register: Register) : IExpression {
 
     override fun toString(): String {
         return "RegisterExpr(register=$register, pos=$position)"
+    }
+
+    override fun resultingDatatype(namespace: INameScope): DataType? {
+        return when(register){
+            Register.A, Register.X, Register.Y -> DataType.BYTE
+            Register.AX, Register.AY, Register.XY -> DataType.WORD
+        }
     }
 }
 
@@ -811,6 +883,15 @@ data class IdentifierReference(val nameInSource: List<String>) : IExpression {
 
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String): Boolean  = nameInSource.last() == name   // @todo is this correct all the time?
+
+    override fun resultingDatatype(namespace: INameScope): DataType? {
+        val targetStmt = targetStatement(namespace)
+        if(targetStmt is VarDecl) {
+            return targetStmt.datatype
+        } else {
+            throw FatalAstException("cannot get datatype from identifier reference ${this}, pos=$position")
+        }
+    }
 }
 
 
@@ -858,11 +939,13 @@ class FunctionCall(override var target: IdentifierReference, override var arglis
         arglist.forEach { it.linkParents(this) }
     }
 
-    override fun constValue(namespace: INameScope): LiteralValue? {
+    override fun constValue(namespace: INameScope) = constValue(namespace, true)
+
+    private fun constValue(namespace: INameScope, withDatatypeCheck: Boolean): LiteralValue? {
         // if the function is a built-in function and the args are consts, should try to const-evaluate!
         if(target.nameInSource.size>1) return null
         try {
-            return when (target.nameInSource[0]) {
+            val resultValue = when (target.nameInSource[0]) {
                 "sin" -> builtinSin(arglist, position, namespace)
                 "cos" -> builtinCos(arglist, position, namespace)
                 "abs" -> builtinAbs(arglist, position, namespace)
@@ -897,6 +980,23 @@ class FunctionCall(override var target: IdentifierReference, override var arglis
                 "P_irqd" -> throw ExpressionError("builtin function P_irqd can't be used in expressions because it doesn't return a value", position)
                 else -> null
             }
+            if(withDatatypeCheck) {
+                val resultDt = this.resultingDatatype(namespace)
+                if(resultValue==null)
+                    return resultValue
+                when(resultDt) {
+                    DataType.BYTE -> if(resultValue.isByte) return resultValue
+                    DataType.WORD -> if(resultValue.isWord) return resultValue
+                    DataType.FLOAT -> if(resultValue.isFloat) return resultValue
+                    DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> if(resultValue.isString) return resultValue
+                    DataType.ARRAY -> if(resultValue.isArray) return resultValue
+                    DataType.ARRAY_W -> if(resultValue.isArray) return resultValue
+                    DataType.MATRIX -> TODO("expected matrix as constvalue this is not yet supported")
+                }
+                throw FatalAstException("evaluated const expression result value doesn't match expected datatype $resultDt, pos=$position")
+            } else {
+                return resultValue
+            }
         }
         catch(x: NotConstArgumentException) {
             // const-evaluating the builtin function call failed.
@@ -910,6 +1010,34 @@ class FunctionCall(override var target: IdentifierReference, override var arglis
 
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String): Boolean = target.referencesIdentifier(name) || arglist.any{it.referencesIdentifier(name)}
+
+    override fun resultingDatatype(namespace: INameScope): DataType? {
+        val constVal = constValue(namespace, false)
+        if(constVal!=null)
+            return constVal.resultingDatatype(namespace)
+        val stmt = target.targetStatement(namespace)
+        if(stmt is BuiltinFunctionStatementPlaceholder) {
+            if(target.nameInSource[0] == "P_carry" || target.nameInSource[0]=="P_irqd") {
+                return null // these have no return value
+            }
+            return DataType.BYTE        // @todo table lookup to determine result type of builtin function call
+        }
+        else if(stmt is Subroutine) {
+            if(stmt.returnvalues.isEmpty()) {
+                return null     // no return value
+            }
+            if(stmt.returnvalues.size==1) {
+                return when(stmt.returnvalues[0].register) {
+                    Register.A, Register.X, Register.Y -> DataType.BYTE
+                    Register.AX, Register.AY, Register.XY -> DataType.WORD
+                    else -> TODO("return type for non-register result from subroutine $stmt")
+                }
+            }
+            TODO("return type for subroutine with multiple return values $stmt")
+        }
+        TODO("datatype of functioncall to $stmt")
+    }
+
 }
 
 

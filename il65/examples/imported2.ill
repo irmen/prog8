@@ -24,7 +24,7 @@
           return
         }
 
-    sub thingy()->() {
+    sub thingy()->(X) {
         ;return 99
         return
     }
