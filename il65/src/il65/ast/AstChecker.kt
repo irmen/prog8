@@ -163,7 +163,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         val targetDatatype = assignment.target.determineDatatype(namespace, assignment)
         val constVal = assignment.value.constValue(namespace)
         if(constVal!=null) {
-            checkValueTypeAndRange(targetDatatype, null, assignment.value as LiteralValue, assignment.position)
+            checkValueTypeAndRange(targetDatatype, null, assignment.value as LiteralValue)
         } else {
             val sourceDatatype: DataType? = assignment.value.resultingDatatype(namespace)
             if(sourceDatatype==null) {
@@ -212,7 +212,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                         return super.process(decl)
                     }
                 }
-                checkValueTypeAndRange(decl.datatype, decl.arrayspec, decl.value as LiteralValue, decl.position)
+                checkValueTypeAndRange(decl.datatype, decl.arrayspec, decl.value as LiteralValue)
             }
             VarDeclType.MEMORY -> {
                 if(decl.value !is LiteralValue) {
@@ -310,14 +310,10 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
     }
 
     override fun process(literalValue: LiteralValue): LiteralValue {
-        if(!compilerOptions.floats && literalValue.isFloat) {
+        if(!compilerOptions.floats && literalValue.type==DataType.FLOAT) {
             checkResult.add(SyntaxError("floating point value used, but floating point is not enabled via options", literalValue.position))
         }
-        when {
-            literalValue.isByte -> checkValueTypeAndRange(DataType.BYTE, null, literalValue, literalValue.position)
-            literalValue.isWord -> checkValueTypeAndRange(DataType.WORD, null, literalValue, literalValue.position)
-            literalValue.isFloat -> checkValueTypeAndRange(DataType.FLOAT, null, literalValue, literalValue.position)
-        }
+        checkValueTypeAndRange(literalValue.type, null, literalValue)
         return super.process(literalValue)
     }
 
@@ -389,7 +385,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         return null
     }
 
-    private fun checkBuiltinFunctionCall(call: IFunctionCall, position: Position?) {
+    private fun checkBuiltinFunctionCall(call: IFunctionCall, position: Position) {
         if(call.target.nameInSource.size==1 && BuiltinFunctionNames.contains(call.target.nameInSource[0])) {
             val functionName = call.target.nameInSource[0]
             if(functionName=="P_carry" || functionName=="P_irqd") {
@@ -406,9 +402,9 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         }
     }
 
-    private fun checkValueTypeAndRange(datatype: DataType, arrayspec: ArraySpec?, value: LiteralValue, position: Position?) : Boolean {
+    private fun checkValueTypeAndRange(datatype: DataType, arrayspec: ArraySpec?, value: LiteralValue) : Boolean {
         fun err(msg: String) : Boolean {
-            checkResult.add(ExpressionError(msg, position))
+            checkResult.add(ExpressionError(msg, value.position))
             return false
         }
         when (datatype) {
@@ -442,17 +438,27 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
             }
             DataType.ARRAY -> {
                 // value may be either a single byte, or a byte array
-                if(value.isArray) {
+                if(value.type==DataType.ARRAY) {
                     for (av in value.arrayvalue!!) {
-                        val number = (av as LiteralValue).bytevalue
-                                ?: return err("array must be all bytes")
+                        if(arrayspec!=null) {
+                            // arrayspec is not always known when checking
+                            val expectedSize = arrayspec.x.constValue(namespace)?.asIntegerValue
+                            if (value.arrayvalue.size != expectedSize)
+                                return err("initializer array size mismatch (expecting $expectedSize, got ${value.arrayvalue.size})")
+                        }
 
-                        val expectedSize = arrayspec?.x?.constValue(namespace)?.asIntegerValue
-                        if (value.arrayvalue.size != expectedSize)
-                            return err("initializer array size mismatch (expecting $expectedSize, got ${value.arrayvalue.size})")
+                        if(av is LiteralValue) {
+                            val number = av.bytevalue
+                                    ?: return err("array must be all bytes")
+                            if (number < 0 || number > 255)
+                                return err("value '$number' in byte array is out of range for unsigned byte")
+                        } else if(av is RegisterExpr) {
+                            if(av.register!=Register.A && av.register!=Register.X && av.register!=Register.Y)
+                                return err("register '$av' in byte array is not a single register")
+                        } else {
+                            TODO("array value $av")
+                        }
 
-                        if (number < 0 || number > 255)
-                            return err("value '$number' in byte array is out of range for unsigned byte")
                     }
                 } else {
                     val number = value.bytevalue ?: return if (value.floatvalue!=null)
@@ -465,14 +471,17 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
             }
             DataType.ARRAY_W -> {
                 // value may be either a single word, or a word array
-                if(value.isArray) {
+                if(value.type==DataType.ARRAY || value.type==DataType.ARRAY_W) {
                     for (av in value.arrayvalue!!) {
                         val number = (av as LiteralValue).asIntegerValue   // both byte and word are acceptable
                                 ?: return err("array must be all words")
 
-                        val expectedSize = arrayspec!!.x.constValue(namespace)?.asIntegerValue
-                        if (value.arrayvalue.size != expectedSize)
-                            return err("initializer array size mismatch (expecting $expectedSize, got ${value.arrayvalue.size})")
+                        if(arrayspec!=null) {
+                            // arrayspec is not always known when checking
+                            val expectedSize = arrayspec.x.constValue(namespace)?.asIntegerValue
+                            if (value.arrayvalue.size != expectedSize)
+                                return err("initializer array size mismatch (expecting $expectedSize, got ${value.arrayvalue.size})")
+                        }
 
                         if (number < 0 || number > 65535)
                             return err("value '$number' in word array is out of range for unsigned word")
@@ -489,7 +498,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
             }
             DataType.MATRIX -> {
                 // value can only be a single byte, or a byte array (which represents the matrix)
-                if(value.isArray) {
+                if(value.type==DataType.ARRAY) {
                     for (av in value.arrayvalue!!) {
                         val number = (av as LiteralValue).bytevalue
                                 ?: return err("array must be all bytes")
@@ -514,7 +523,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         return true
     }
 
-    private fun checkAssignmentCompatible(targetDatatype: DataType, sourceDatatype: DataType, position: Position?) : Boolean {
+    private fun checkAssignmentCompatible(targetDatatype: DataType, sourceDatatype: DataType, position: Position) : Boolean {
         val result =  when(targetDatatype) {
             DataType.BYTE -> sourceDatatype==DataType.BYTE
             DataType.WORD -> sourceDatatype==DataType.BYTE || sourceDatatype==DataType.WORD

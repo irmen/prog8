@@ -32,8 +32,8 @@ class AstIdentifiersChecker : IAstProcessor {
         return checkResult
     }
 
-    private fun nameError(name: String, position: Position?, existing: IStatement) {
-        checkResult.add(NameError("name conflict '$name', first defined in ${existing.position?.file} line ${existing.position?.line}", position))
+    private fun nameError(name: String, position: Position, existing: IStatement) {
+        checkResult.add(NameError("name conflict '$name', first defined in ${existing.position.file} line ${existing.position.line}", position))
     }
 
     override fun process(block: Block): IStatement {
@@ -48,12 +48,8 @@ class AstIdentifiersChecker : IAstProcessor {
     }
 
     override fun process(decl: VarDecl): IStatement {
-        // first, set the datatype
-        try {
-            decl.setDatatype()
-        } catch(ax: AstException) {
-            checkResult.add(ax)
-        }
+        // first, check if there are datatype errors on the vardecl
+        decl.datatypeErrors.forEach { checkResult.add(it) }
 
         // now check the identifier
         if(BuiltinFunctionNames.contains(decl.name))

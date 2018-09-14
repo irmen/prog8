@@ -96,7 +96,7 @@ class AstRecursionChecker(private val namespace: INameScope) : IAstProcessor {
         if(cycle.isEmpty())
             return emptyList()
         val chain = cycle.joinToString(" <-- ") { "${it.name} at ${it.position}" }
-        return listOf(AstException("Program contains recursive subroutine calls, this is not supported. Recursive chain:\n (a subroutine call in) "+chain))
+        return listOf(AstException("Program contains recursive subroutine calls, this is not supported. Recursive chain:\n (a subroutine call in) $chain"))
     }
 
     override fun process(functionCall: FunctionCallStatement): IStatement {

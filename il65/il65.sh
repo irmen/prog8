@@ -1,4 +1,4 @@
-#/bin/env sh
+#!/usr/bin/env sh
 
 IL65_LIBDIR=../lib65
 IL65CLASSPATH=out/production/il65

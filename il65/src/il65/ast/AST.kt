@@ -5,7 +5,6 @@ import il65.parser.il65Parser
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
 import java.nio.file.Paths
-import javax.xml.crypto.Data
 import kotlin.math.floor
 
 
@@ -56,25 +55,16 @@ class FatalAstException (override var message: String) : Exception(message)
 
 open class AstException (override var message: String) : Exception(message)
 
-class SyntaxError(override var message: String, val position: Position?) : AstException(message) {
-    override fun toString(): String {
-        val location = position?.toString() ?: ""
-        return "$location Syntax error: $message"
-    }
+class SyntaxError(override var message: String, val position: Position) : AstException(message) {
+    override fun toString() = "$position Syntax error: $message"
 }
 
-class NameError(override var message: String, val position: Position?) : AstException(message) {
-    override fun toString(): String {
-        val location = position?.toString() ?: ""
-        return "$location Name error: $message"
-    }
+class NameError(override var message: String, val position: Position) : AstException(message) {
+    override fun toString() = "$position Name error: $message"
 }
 
-open class ExpressionError(message: String, val position: Position?) : AstException(message) {
-    override fun toString(): String {
-        val location = position?.toString() ?: ""
-        return "$location Error: $message"
-    }
+open class ExpressionError(message: String, val position: Position) : AstException(message) {
+    override fun toString() = "$position Error: $message"
 }
 
 class UndefinedSymbolError(symbol: IdentifierReference)
@@ -118,7 +108,7 @@ interface IAstProcessor {
     }
 
     fun process(subroutine: Subroutine): IStatement {
-        subroutine.statements = subroutine.statements.map { it.process(this) }.toMutableList()
+        subroutine.statements = subroutine.statements.asSequence().map { it.process(this) }.toMutableList()
         return subroutine
     }
 
@@ -183,7 +173,7 @@ interface IAstProcessor {
 
 
 interface Node {
-    var position: Position?      // optional for the sake of easy unit testing
+    val position: Position
     var parent: Node             // will be linked correctly later (late init)
     fun linkParents(parent: Node)
     fun definingScope(): INameScope {
@@ -238,7 +228,7 @@ interface IFunctionCall {
 
 interface INameScope {
     val name: String
-    val position: Position?
+    val position: Position
     var statements: MutableList<IStatement>
 
     fun usedNames(): Set<String>
@@ -306,8 +296,9 @@ interface INameScope {
  * Inserted into the Ast in place of modified nodes (not inserted directly as a parser result)
  * It can hold zero or more replacement statements that have to be inserted at that point.
  */
-class AnonymousStatementList(override var parent: Node, var statements: List<IStatement>) : IStatement {
-    override var position: Position? = null
+class AnonymousStatementList(override var parent: Node,
+                             var statements: List<IStatement>,
+                             override val position: Position) : IStatement {
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -322,21 +313,21 @@ class AnonymousStatementList(override var parent: Node, var statements: List<ISt
 
 
 private object ParentSentinel : Node {
-    override var position: Position? = null
+    override val position = Position("<<sentinel>>", 0, 0, 0)
     override var parent: Node = this
     override fun linkParents(parent: Node) {}
 }
 
 object BuiltinFunctionScopePlaceholder : INameScope {
     override val name = "<<builtin-functions-scope-placeholder>>"
-    override val position: Position? = null
+    override val position = Position("<<placeholder>>", 0, 0, 0)
     override var statements = mutableListOf<IStatement>()
     override fun usedNames(): Set<String> = throw NotImplementedError("not implemented on sub-scopes")
     override fun registerUsedName(name: String) = throw NotImplementedError("not implemented on sub-scopes")
 }
 
 object BuiltinFunctionStatementPlaceholder : IStatement {
-    override var position: Position? = null
+    override val position = Position("<<placeholder>>", 0, 0, 0)
     override var parent: Node = ParentSentinel
     override fun linkParents(parent: Node) {}
     override fun process(processor: IAstProcessor): IStatement = this
@@ -344,8 +335,8 @@ object BuiltinFunctionStatementPlaceholder : IStatement {
 }
 
 class Module(override val name: String,
-             override var statements: MutableList<IStatement>) : Node, INameScope {
-    override var position: Position? = null
+             override var statements: MutableList<IStatement>,
+             override val position: Position) : Node, INameScope {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -371,7 +362,7 @@ class Module(override val name: String,
 
 private class GlobalNamespace(override val name: String,
                               override var statements: MutableList<IStatement>,
-                              override val position: Position?) : INameScope {
+                              override val position: Position) : INameScope {
 
     private val scopedNamesUsed: MutableSet<String> = mutableSetOf("main", "main.start")      // main and main.start are always used
 
@@ -380,8 +371,7 @@ private class GlobalNamespace(override val name: String,
     override fun lookup(scopedName: List<String>, statement: Node): IStatement? {
         if(BuiltinFunctionNames.contains(scopedName.last())) {
             // builtin functions always exist, return a dummy statement for them
-            val builtinPlaceholder = Label("builtin::${scopedName.last()}")
-            builtinPlaceholder.position = statement.position
+            val builtinPlaceholder = Label("builtin::${scopedName.last()}", statement.position)
             builtinPlaceholder.parent = ParentSentinel
             return builtinPlaceholder
         }
@@ -409,9 +399,9 @@ private class GlobalNamespace(override val name: String,
 
 
 class Block(override val name: String,
-                 val address: Int?,
-                 override var statements: MutableList<IStatement>) : IStatement, INameScope {
-    override var position: Position? = null
+            val address: Int?,
+            override var statements: MutableList<IStatement>,
+            override val position: Position) : IStatement, INameScope {
     override lateinit var parent: Node
     val scopedname: String by lazy { makeScopedName(name).joinToString(".") }
 
@@ -432,8 +422,7 @@ class Block(override val name: String,
 }
 
 
-data class Directive(val directive: String, val args: List<DirectiveArg>) : IStatement {
-    override var position: Position? = null
+data class Directive(val directive: String, val args: List<DirectiveArg>, override val position: Position) : IStatement {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -445,8 +434,7 @@ data class Directive(val directive: String, val args: List<DirectiveArg>) : ISta
 }
 
 
-data class DirectiveArg(val str: String?, val name: String?, val int: Int?) : Node {
-    override var position: Position? = null
+data class DirectiveArg(val str: String?, val name: String?, val int: Int?, override val position: Position) : Node {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -455,8 +443,7 @@ data class DirectiveArg(val str: String?, val name: String?, val int: Int?) : No
 }
 
 
-data class Label(val name: String) : IStatement {
-    override var position: Position? = null
+data class Label(val name: String, override val position: Position) : IStatement {
     override lateinit var parent: Node
     val scopedname: String by lazy { makeScopedName(name).joinToString(".") }
 
@@ -472,8 +459,7 @@ data class Label(val name: String) : IStatement {
 }
 
 
-class Return(var values: List<IExpression>) : IStatement {
-    override var position: Position? = null
+class Return(var values: List<IExpression>, override val position: Position) : IStatement {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -492,8 +478,7 @@ class Return(var values: List<IExpression>) : IStatement {
 }
 
 
-class ArraySpec(var x: IExpression, var y: IExpression?) : Node {
-    override var position: Position? = null
+class ArraySpec(var x: IExpression, var y: IExpression?, override val position: Position) : Node {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -516,16 +501,33 @@ enum class VarDeclType {
 }
 
 class VarDecl(val type: VarDeclType,
-                   private val declaredDatatype: DataType,
-                   val arrayspec: ArraySpec?,
-                   val name: String,
-                   var value: IExpression?) : IStatement {
-    override var position: Position? = null
+              declaredDatatype: DataType,
+              val arrayspec: ArraySpec?,
+              val name: String,
+              var value: IExpression?,
+              override val position: Position) : IStatement {
     override lateinit var parent: Node
 
-    // note: the actual datatype will be determined somewhat later (in the ast checker phase)
-    // (we don't do it at init time, because we have to have a way to create a proper syntax error instead of a crash)
-    lateinit var datatype: DataType
+    val datatypeErrors = mutableListOf<SyntaxError>()       // don't crash at init time, report them in the AstChecker
+    val datatype = when {
+        arrayspec == null -> declaredDatatype
+        arrayspec.y != null -> when (declaredDatatype) {
+            DataType.BYTE -> DataType.MATRIX
+            else -> {
+                datatypeErrors.add(SyntaxError("matrix can only contain bytes", position))
+                DataType.BYTE
+            }
+        }
+        else -> when (declaredDatatype) {
+            DataType.BYTE -> DataType.ARRAY
+            DataType.WORD -> DataType.ARRAY_W
+            else -> {
+                datatypeErrors.add(SyntaxError("array can only contain bytes or words", position))
+                DataType.BYTE
+            }
+        }
+    }
+
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -566,27 +568,10 @@ class VarDecl(val type: VarDeclType,
     override fun toString(): String {
         return "VarDecl(name=$name, vartype=$type, datatype=$datatype, value=$value, pos=$position)"
     }
-
-    fun setDatatype() {
-        datatype =
-                when {
-                    arrayspec == null -> declaredDatatype
-                    arrayspec.y!=null -> when (declaredDatatype) {
-                        DataType.BYTE -> DataType.MATRIX
-                        else -> throw SyntaxError("matrix can only contain bytes", position)
-                    }
-                    else -> when (declaredDatatype) {
-                        DataType.BYTE -> DataType.ARRAY
-                        DataType.WORD -> DataType.ARRAY_W
-                        else -> throw SyntaxError("array can only contain bytes or words", position)
-                    }
-                }
-    }
 }
 
 
-class Assignment(var target: AssignTarget, val aug_op : String?, var value: IExpression) : IStatement {
-    override var position: Position? = null
+class Assignment(var target: AssignTarget, val aug_op : String?, var value: IExpression, override val position: Position) : IStatement {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -602,8 +587,7 @@ class Assignment(var target: AssignTarget, val aug_op : String?, var value: IExp
     }
 }
 
-data class AssignTarget(val register: Register?, val identifier: IdentifierReference?) : Node {
-    override var position: Position? = null
+data class AssignTarget(val register: Register?, val identifier: IdentifierReference?, override val position: Position) : Node {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -637,8 +621,7 @@ interface IExpression: Node {
 
 // note: some expression elements are mutable, to be able to rewrite/process the expression tree
 
-class PrefixExpression(val operator: String, var expression: IExpression) : IExpression {
-    override var position: Position? = null
+class PrefixExpression(val operator: String, var expression: IExpression, override val position: Position) : IExpression {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -653,8 +636,7 @@ class PrefixExpression(val operator: String, var expression: IExpression) : IExp
 }
 
 
-class BinaryExpression(var left: IExpression, val operator: String, var right: IExpression) : IExpression {
-    override var position: Position? = null
+class BinaryExpression(var left: IExpression, val operator: String, var right: IExpression, override val position: Position) : IExpression {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -714,40 +696,47 @@ private data class ByteOrWordLiteral(val intvalue: Int, val datatype: DataType) 
     fun asByte() = ByteOrWordLiteral(intvalue, DataType.BYTE)
 }
 
-data class LiteralValue(val bytevalue: Short? = null,
+data class LiteralValue(val type: DataType,
+                        val bytevalue: Short? = null,
                         val wordvalue: Int? = null,
                         val floatvalue: Double? = null,
                         val strvalue: String? = null,
-                        val arrayvalue: MutableList<IExpression>? = null) : IExpression {
-    override var position: Position? = null
+                        val arrayvalue: MutableList<IExpression>? = null,
+                        override val position: Position) : IExpression {
     override lateinit var parent: Node
     override fun referencesIdentifier(name: String) = arrayvalue?.any { it.referencesIdentifier(name) } ?: false
 
+    val isString = type==DataType.STR || type==DataType.STR_P || type==DataType.STR_S || type==DataType.STR_PS
+
     companion object {
-        fun optimalNumeric(value: Number): LiteralValue {
+        fun fromBoolean(bool: Boolean, position: Position) =
+                LiteralValue(DataType.BYTE, bytevalue = if(bool) 1 else 0, position=position)
+
+        fun optimalNumeric(value: Number, position: Position): LiteralValue {
             val floatval = value.toDouble()
             return if(floatval == floor(floatval)  && floatval in -32768..65535) {
                 // the floating point value is actually an integer.
                 when (floatval) {
                     // note: we cheat a little here and allow negative integers during expression evaluations
-                    in -128..255 -> LiteralValue(bytevalue = floatval.toShort())
-                    in -32768..65535 -> LiteralValue(wordvalue = floatval.toInt())
+                    in -128..255 -> LiteralValue(DataType.BYTE, bytevalue = floatval.toShort(), position = position)
+                    in -32768..65535 -> LiteralValue(DataType.WORD, wordvalue = floatval.toInt(), position = position)
                     else -> throw FatalAstException("integer overflow: $floatval")
                 }
             } else {
-                LiteralValue(floatvalue = floatval)
+                LiteralValue(DataType.FLOAT, floatvalue = floatval, position = position)
             }
         }
     }
 
-    val isByte = bytevalue!=null
-    val isWord = wordvalue!=null
-    val isInteger = isByte or isWord
-    val isFloat = floatvalue!=null
-    val isArray = arrayvalue!=null      // @todo: array / word-array / matrix ?
-    val isString = strvalue!=null
-
     init {
+        when(type){
+            DataType.BYTE -> if(bytevalue==null) throw FatalAstException("literal value missing bytevalue")
+            DataType.WORD -> if(wordvalue==null) throw FatalAstException("literal value missing wordvalue")
+            DataType.FLOAT -> if(floatvalue==null) throw FatalAstException("literal value missing floatvalue")
+            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> if(strvalue==null) throw FatalAstException("literal value missing strvalue")
+            DataType.ARRAY, DataType.ARRAY_W -> if(arrayvalue==null) throw FatalAstException("literal value missing arrayvalue")
+            DataType.MATRIX -> TODO("matrix literalvalue")
+        }
         if(bytevalue==null && wordvalue==null && floatvalue==null && arrayvalue==null && strvalue==null)
             throw FatalAstException("literal value without actual value")
     }
@@ -784,21 +773,11 @@ data class LiteralValue(val bytevalue: Short? = null,
         return "LiteralValue(byte=$bytevalue, word=$wordvalue, float=$floatvalue, str=$strvalue, array=$arrayvalue pos=$position)"
     }
 
-    override fun resultingDatatype(namespace: INameScope): DataType? {
-        return when {
-            isByte -> DataType.BYTE
-            isWord -> DataType.WORD
-            isFloat -> DataType.FLOAT
-            isString -> DataType.STR        // @todo which string?
-            isArray -> DataType.ARRAY       // @todo byte/word array?
-            else -> throw FatalAstException("literalvalue has no value")
-        }
-    }
+    override fun resultingDatatype(namespace: INameScope) = type
 }
 
 
-class RangeExpr(var from: IExpression, var to: IExpression) : IExpression {
-    override var position: Position? = null
+class RangeExpr(var from: IExpression, var to: IExpression, override val position: Position) : IExpression {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -826,8 +805,7 @@ class RangeExpr(var from: IExpression, var to: IExpression) : IExpression {
 }
 
 
-class RegisterExpr(val register: Register) : IExpression {
-    override var position: Position? = null
+class RegisterExpr(val register: Register, override val position: Position) : IExpression {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -851,8 +829,7 @@ class RegisterExpr(val register: Register) : IExpression {
 }
 
 
-data class IdentifierReference(val nameInSource: List<String>) : IExpression {
-    override var position: Position? = null
+data class IdentifierReference(val nameInSource: List<String>, override val position: Position) : IExpression {
     override lateinit var parent: Node
 
     fun targetStatement(namespace: INameScope) =
@@ -895,8 +872,7 @@ data class IdentifierReference(val nameInSource: List<String>) : IExpression {
 }
 
 
-class PostIncrDecr(var target: AssignTarget, val operator: String) : IStatement {
-    override var position: Position? = null
+class PostIncrDecr(var target: AssignTarget, val operator: String, override val position: Position) : IStatement {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -912,8 +888,7 @@ class PostIncrDecr(var target: AssignTarget, val operator: String) : IStatement 
 }
 
 
-class Jump(val address: Int?, val identifier: IdentifierReference?) : IStatement {
-    override var position: Position? = null
+class Jump(val address: Int?, val identifier: IdentifierReference?, override val position: Position) : IStatement {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -929,8 +904,9 @@ class Jump(val address: Int?, val identifier: IdentifierReference?) : IStatement
 }
 
 
-class FunctionCall(override var target: IdentifierReference, override var arglist: List<IExpression>) : IExpression, IFunctionCall {
-    override var position: Position? = null
+class FunctionCall(override var target: IdentifierReference,
+                   override var arglist: List<IExpression>,
+                   override val position: Position) : IExpression, IFunctionCall {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -982,17 +958,8 @@ class FunctionCall(override var target: IdentifierReference, override var arglis
             }
             if(withDatatypeCheck) {
                 val resultDt = this.resultingDatatype(namespace)
-                if(resultValue==null)
+                if(resultValue==null || resultDt == resultValue.type)
                     return resultValue
-                when(resultDt) {
-                    DataType.BYTE -> if(resultValue.isByte) return resultValue
-                    DataType.WORD -> if(resultValue.isWord) return resultValue
-                    DataType.FLOAT -> if(resultValue.isFloat) return resultValue
-                    DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> if(resultValue.isString) return resultValue
-                    DataType.ARRAY -> if(resultValue.isArray) return resultValue
-                    DataType.ARRAY_W -> if(resultValue.isArray) return resultValue
-                    DataType.MATRIX -> TODO("expected matrix as constvalue this is not yet supported")
-                }
                 throw FatalAstException("evaluated const expression result value doesn't match expected datatype $resultDt, pos=$position")
             } else {
                 return resultValue
@@ -1041,8 +1008,9 @@ class FunctionCall(override var target: IdentifierReference, override var arglis
 }
 
 
-class FunctionCallStatement(override var target: IdentifierReference, override var arglist: List<IExpression>) : IStatement, IFunctionCall {
-    override var position: Position? = null
+class FunctionCallStatement(override var target: IdentifierReference,
+                            override var arglist: List<IExpression>,
+                            override val position: Position) : IStatement, IFunctionCall {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -1059,8 +1027,7 @@ class FunctionCallStatement(override var target: IdentifierReference, override v
 }
 
 
-class InlineAssembly(val assembly: String) : IStatement {
-    override var position: Position? = null
+class InlineAssembly(val assembly: String, override val position: Position) : IStatement {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -1072,11 +1039,11 @@ class InlineAssembly(val assembly: String) : IStatement {
 
 
 class Subroutine(override val name: String,
-                      val parameters: List<SubroutineParameter>,
-                      val returnvalues: List<SubroutineReturnvalue>,
-                      val address: Int?,
-                      override var statements: MutableList<IStatement>) : IStatement, INameScope {
-    override var position: Position? = null
+                 val parameters: List<SubroutineParameter>,
+                 val returnvalues: List<SubroutineReturnvalue>,
+                 val address: Int?,
+                 override var statements: MutableList<IStatement>,
+                 override val position: Position) : IStatement, INameScope {
     override lateinit var parent: Node
     val scopedname: String by lazy { makeScopedName(name).joinToString(".") }
 
@@ -1099,8 +1066,10 @@ class Subroutine(override val name: String,
 }
 
 
-data class SubroutineParameter(val name: String, val register: Register?, val statusflag: Statusflag?) : Node {
-    override var position: Position? = null
+data class SubroutineParameter(val name: String,
+                               val register: Register?,
+                               val statusflag: Statusflag?,
+                               override val position: Position) : Node {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -1109,8 +1078,10 @@ data class SubroutineParameter(val name: String, val register: Register?, val st
 }
 
 
-data class SubroutineReturnvalue(val register: Register?, val statusflag: Statusflag?, val clobbered: Boolean) : Node {
-    override var position: Position? = null
+data class SubroutineReturnvalue(val register: Register?,
+                                 val statusflag: Statusflag?,
+                                 val clobbered: Boolean,
+                                 override val position: Position) : Node {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -1120,9 +1091,9 @@ data class SubroutineReturnvalue(val register: Register?, val statusflag: Status
 
 
 class IfStatement(var condition: IExpression,
-                       var statements: List<IStatement>, var
-                       elsepart: List<IStatement>) : IStatement {
-    override var position: Position? = null
+                  var statements: List<IStatement>,
+                  var elsepart: List<IStatement>,
+                  override val position: Position) : IStatement {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -1137,9 +1108,9 @@ class IfStatement(var condition: IExpression,
 
 
 class BranchStatement(var condition: BranchCondition,
-                       var statements: List<IStatement>, var
-                       elsepart: List<IStatement>) : IStatement {
-    override var position: Position? = null
+                      var statements: List<IStatement>,
+                      var elsepart: List<IStatement>,
+                      override val position: Position) : IStatement {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -1158,234 +1129,198 @@ class BranchStatement(var condition: BranchCondition,
 
 /***************** Antlr Extension methods to create AST ****************/
 
-fun il65Parser.ModuleContext.toAst(name: String, withPosition: Boolean) : Module {
-    val module = Module(name, modulestatement().asSequence().map { it.toAst(withPosition) }.toMutableList())
-    module.position = toPosition(withPosition)
-    return module
-}
+fun il65Parser.ModuleContext.toAst(name: String) : Module =
+        Module(name, modulestatement().asSequence().map { it.toAst() }.toMutableList(), toPosition())
 
 
 /************** Helper extension methods (private) ************/
 
-private fun ParserRuleContext.toPosition(withPosition: Boolean) : Position? {
+private fun ParserRuleContext.toPosition() : Position {
     val file = Paths.get(this.start.inputStream.sourceName).fileName.toString()
-    return if (withPosition)
-        // note: be ware of TAB characters in the source text, they count as 1 column...
-        Position(file, start.line, start.charPositionInLine, stop.charPositionInLine+stop.text.length)
-    else
-        null
+    // note: be ware of TAB characters in the source text, they count as 1 column...
+    return Position(file, start.line, start.charPositionInLine, stop.charPositionInLine+stop.text.length)
 }
 
 
-private fun il65Parser.ModulestatementContext.toAst(withPosition: Boolean) : IStatement {
-    val directive = directive()?.toAst(withPosition)
+private fun il65Parser.ModulestatementContext.toAst() : IStatement {
+    val directive = directive()?.toAst()
     if(directive!=null) return directive
 
-    val block = block()?.toAst(withPosition)
+    val block = block()?.toAst()
     if(block!=null) return block
 
     throw FatalAstException(text)
 }
 
 
-private fun il65Parser.BlockContext.toAst(withPosition: Boolean) : IStatement {
-    val block= Block(identifier().text,
-            integerliteral()?.toAst()?.intvalue,
-            statement_block().toAst(withPosition))
-    block.position = toPosition(withPosition)
-    return block
-}
+private fun il65Parser.BlockContext.toAst() : IStatement =
+        Block(identifier().text, integerliteral()?.toAst()?.intvalue, statement_block().toAst(), toPosition())
 
 
-private fun il65Parser.Statement_blockContext.toAst(withPosition: Boolean): MutableList<IStatement>
-        = statement().asSequence().map { it.toAst(withPosition) }.toMutableList()
+private fun il65Parser.Statement_blockContext.toAst(): MutableList<IStatement> =
+        statement().asSequence().map { it.toAst() }.toMutableList()
 
 
-private fun il65Parser.StatementContext.toAst(withPosition: Boolean) : IStatement {
+private fun il65Parser.StatementContext.toAst() : IStatement {
     vardecl()?.let {
-        val decl= VarDecl(VarDeclType.VAR,
+        return VarDecl(VarDeclType.VAR,
                 it.datatype().toAst(),
-                it.arrayspec()?.toAst(withPosition),
+                it.arrayspec()?.toAst(),
                 it.identifier().text,
-                null)
-        decl.position = it.toPosition(withPosition)
-        return decl
+                null,
+                it.toPosition())
     }
 
     varinitializer()?.let {
-        val decl= VarDecl(VarDeclType.VAR,
+        return VarDecl(VarDeclType.VAR,
                 it.datatype().toAst(),
-                it.arrayspec()?.toAst(withPosition),
+                it.arrayspec()?.toAst(),
                 it.identifier().text,
-                it.expression().toAst(withPosition))
-        decl.position = it.toPosition(withPosition)
-        return decl
+                it.expression().toAst(),
+                it.toPosition())
     }
 
     constdecl()?.let {
         val cvarinit = it.varinitializer()
-        val decl = VarDecl(VarDeclType.CONST,
+        return VarDecl(VarDeclType.CONST,
                 cvarinit.datatype().toAst(),
-                cvarinit.arrayspec()?.toAst(withPosition),
+                cvarinit.arrayspec()?.toAst(),
                 cvarinit.identifier().text,
-                cvarinit.expression().toAst(withPosition))
-        decl.position = cvarinit.toPosition(withPosition)
-        return decl
+                cvarinit.expression().toAst(),
+                cvarinit.toPosition())
     }
 
     memoryvardecl()?.let {
         val mvarinit = it.varinitializer()
-        val decl = VarDecl(VarDeclType.MEMORY,
+        return VarDecl(VarDeclType.MEMORY,
                 mvarinit.datatype().toAst(),
-                mvarinit.arrayspec()?.toAst(withPosition),
+                mvarinit.arrayspec()?.toAst(),
                 mvarinit.identifier().text,
-                mvarinit.expression().toAst(withPosition))
-        decl.position = mvarinit.toPosition(withPosition)
-        return decl
+                mvarinit.expression().toAst(),
+                mvarinit.toPosition())
     }
 
     assignment()?.let {
-        val ast =Assignment(it.assign_target().toAst(withPosition),
-                null, it.expression().toAst(withPosition))
-        ast.position = it.toPosition(withPosition)
-        return ast
+        return Assignment(it.assign_target().toAst(),null, it.expression().toAst(), it.toPosition())
     }
 
     augassignment()?.let {
-        val aug= Assignment(it.assign_target().toAst(withPosition),
+        return Assignment(it.assign_target().toAst(),
                 it.operator.text,
-                it.expression().toAst(withPosition))
-        aug.position = it.toPosition(withPosition)
-        return aug
+                it.expression().toAst(),
+                it.toPosition())
     }
 
     postincrdecr()?.let {
-        val ast = PostIncrDecr(it.assign_target().toAst(withPosition), it.operator.text)
-        ast.position = it.toPosition(withPosition)
-        return ast
+        return PostIncrDecr(it.assign_target().toAst(), it.operator.text, it.toPosition())
     }
 
-    val directive = directive()?.toAst(withPosition)
+    val directive = directive()?.toAst()
     if(directive!=null) return directive
 
-    val label = labeldef()?.toAst(withPosition)
+    val label = labeldef()?.toAst()
     if(label!=null) return label
 
-    val jump = unconditionaljump()?.toAst(withPosition)
+    val jump = unconditionaljump()?.toAst()
     if(jump!=null) return jump
 
-    val fcall = functioncall_stmt()?.toAst(withPosition)
+    val fcall = functioncall_stmt()?.toAst()
     if(fcall!=null) return fcall
 
-    val ifstmt = if_stmt()?.toAst(withPosition)
+    val ifstmt = if_stmt()?.toAst()
     if(ifstmt!=null) return ifstmt
 
-    val returnstmt = returnstmt()?.toAst(withPosition)
+    val returnstmt = returnstmt()?.toAst()
     if(returnstmt!=null) return returnstmt
 
-    val sub = subroutine()?.toAst(withPosition)
+    val sub = subroutine()?.toAst()
     if(sub!=null) return sub
 
-    val asm = inlineasm()?.toAst(withPosition)
+    val asm = inlineasm()?.toAst()
     if(asm!=null) return asm
 
-    val branchstmt = branch_stmt()?.toAst(withPosition)
+    val branchstmt = branch_stmt()?.toAst()
     if(branchstmt!=null) return branchstmt
 
     throw FatalAstException("unprocessed source text: $text")
 }
 
-private fun il65Parser.Functioncall_stmtContext.toAst(withPosition: Boolean): IStatement {
+private fun il65Parser.Functioncall_stmtContext.toAst(): IStatement {
     val location =
-            if(identifier()!=null) identifier()?.toAst(withPosition)
-            else scoped_identifier()?.toAst(withPosition)
-    val fcall = if(expression_list()==null)
-        FunctionCallStatement(location!!, emptyList())
+            if(identifier()!=null) identifier()?.toAst()
+            else scoped_identifier()?.toAst()
+    return if(expression_list() ==null)
+        FunctionCallStatement(location!!, emptyList(), toPosition())
     else
-        FunctionCallStatement(location!!, expression_list().toAst(withPosition))
-    fcall.position = toPosition(withPosition)
-    return fcall
+        FunctionCallStatement(location!!, expression_list().toAst(), toPosition())
 }
 
 
-private fun il65Parser.FunctioncallContext.toAst(withPosition: Boolean): FunctionCall {
+private fun il65Parser.FunctioncallContext.toAst(): FunctionCall {
     val location =
-            if(identifier()!=null) identifier()?.toAst(withPosition)
-            else scoped_identifier()?.toAst(withPosition)
-    val fcall = if(expression_list()==null)
-        FunctionCall(location!!, emptyList())
+            if(identifier()!=null) identifier()?.toAst()
+            else scoped_identifier()?.toAst()
+    return if(expression_list() ==null)
+        FunctionCall(location!!, emptyList(), toPosition())
     else
-        FunctionCall(location!!, expression_list().toAst(withPosition))
-    fcall.position = toPosition(withPosition)
-    return fcall
+        FunctionCall(location!!, expression_list().toAst(), toPosition())
 }
 
 
-private fun il65Parser.InlineasmContext.toAst(withPosition: Boolean): IStatement {
-    val asm = InlineAssembly(INLINEASMBLOCK().text)
-    asm.position = toPosition(withPosition)
-    return asm
-}
+private fun il65Parser.InlineasmContext.toAst(): IStatement =
+        InlineAssembly(INLINEASMBLOCK().text, toPosition())
 
 
-private fun il65Parser.ReturnstmtContext.toAst(withPosition: Boolean) : IStatement {
+private fun il65Parser.ReturnstmtContext.toAst() : IStatement {
     val values = expression_list()
-    return Return(values?.toAst(withPosition) ?: emptyList())
+    return Return(values?.toAst() ?: emptyList(), toPosition())
 }
 
-private fun il65Parser.UnconditionaljumpContext.toAst(withPosition: Boolean): IStatement {
+private fun il65Parser.UnconditionaljumpContext.toAst(): IStatement {
 
     val address = integerliteral()?.toAst()?.intvalue
     val identifier =
-            if(identifier()!=null) identifier()?.toAst(withPosition)
-            else scoped_identifier()?.toAst(withPosition)
+            if(identifier()!=null) identifier()?.toAst()
+            else scoped_identifier()?.toAst()
 
-    val jump = Jump(address, identifier)
-    jump.position = toPosition(withPosition)
-    return jump
+    return Jump(address, identifier, toPosition())
 }
 
 
-private fun il65Parser.LabeldefContext.toAst(withPosition: Boolean): IStatement {
-    val lbl = Label(this.children[0].text)
-    lbl.position = toPosition(withPosition)
-    return lbl
-}
+private fun il65Parser.LabeldefContext.toAst(): IStatement =
+        Label(children[0].text, toPosition())
 
 
-private fun il65Parser.SubroutineContext.toAst(withPosition: Boolean) : Subroutine {
-    val sub = Subroutine(identifier().text,
-            if(sub_params()==null) emptyList() else sub_params().toAst(),
-            if(sub_returns()==null) emptyList() else sub_returns().toAst(),
+private fun il65Parser.SubroutineContext.toAst() : Subroutine {
+    return Subroutine(identifier().text,
+            if(sub_params() ==null) emptyList() else sub_params().toAst(),
+            if(sub_returns() ==null) emptyList() else sub_returns().toAst(),
             sub_address()?.integerliteral()?.toAst()?.intvalue,
-            if(statement_block()==null) mutableListOf() else statement_block().toAst(withPosition))
-    sub.position = toPosition(withPosition)
-    return sub
+            if(statement_block() ==null) mutableListOf() else statement_block().toAst(),
+            toPosition())
 }
 
 
 private fun il65Parser.Sub_paramsContext.toAst(): List<SubroutineParameter> =
         sub_param().map {
-            SubroutineParameter(it.identifier().text, it.register()?.toAst(), it.statusflag()?.toAst())
+            SubroutineParameter(it.identifier().text, it.register()?.toAst(), it.statusflag()?.toAst(), it.toPosition())
         }
 
 
 private fun il65Parser.Sub_returnsContext.toAst(): List<SubroutineReturnvalue> =
         sub_return().map {
             val isClobber = it.childCount==2 && it.children[1].text == "?"
-            SubroutineReturnvalue(it.register()?.toAst(), it.statusflag()?.toAst(), isClobber)
+            SubroutineReturnvalue(it.register()?.toAst(), it.statusflag()?.toAst(), isClobber, it.toPosition())
         }
 
 
-private fun il65Parser.Assign_targetContext.toAst(withPosition: Boolean) : AssignTarget {
+private fun il65Parser.Assign_targetContext.toAst() : AssignTarget {
     val register = register()?.toAst()
     val identifier = identifier()
-    val result = if(identifier!=null)
-        AssignTarget(register, identifier.toAst(withPosition))
+    return if(identifier!=null)
+        AssignTarget(register, identifier.toAst(), toPosition())
     else
-        AssignTarget(register, scoped_identifier()?.toAst(withPosition))
-    result.position = toPosition(withPosition)
-    return result
+        AssignTarget(register, scoped_identifier()?.toAst(), toPosition())
 }
 
 
@@ -1396,29 +1331,16 @@ private fun il65Parser.StatusflagContext.toAst() = Statusflag.valueOf(text)
 private fun il65Parser.DatatypeContext.toAst() = DataType.valueOf(text.toUpperCase())
 
 
-private fun il65Parser.ArrayspecContext.toAst(withPosition: Boolean) : ArraySpec {
-    val spec = ArraySpec(
-            expression(0).toAst(withPosition),
-            if (expression().size > 1) expression(1).toAst(withPosition) else null)
-    spec.position = toPosition(withPosition)
-    return spec
-}
+private fun il65Parser.ArrayspecContext.toAst() : ArraySpec =
+        ArraySpec(expression(0).toAst(), if (expression().size > 1) expression(1).toAst() else null, toPosition())
 
 
-private fun il65Parser.DirectiveContext.toAst(withPosition: Boolean) : Directive {
-    val dir = Directive(directivename.text, directivearg().map { it.toAst(withPosition) })
-    dir.position = toPosition(withPosition)
-    return dir
-}
+private fun il65Parser.DirectiveContext.toAst() : Directive =
+        Directive(directivename.text, directivearg().map { it.toAst() }, toPosition())
 
 
-private fun il65Parser.DirectiveargContext.toAst(withPosition: Boolean) : DirectiveArg {
-    val darg = DirectiveArg(stringliteral()?.text,
-            identifier()?.text,
-            integerliteral()?.toAst()?.intvalue)
-    darg.position = toPosition(withPosition)
-    return darg
-}
+private fun il65Parser.DirectiveargContext.toAst() : DirectiveArg =
+        DirectiveArg(stringliteral()?.text, identifier()?.text, integerliteral()?.toAst()?.intvalue, toPosition())
 
 
 private fun il65Parser.IntegerliteralContext.toAst(): ByteOrWordLiteral {
@@ -1453,91 +1375,67 @@ private fun il65Parser.IntegerliteralContext.toAst(): ByteOrWordLiteral {
 }
 
 
-private fun il65Parser.ExpressionContext.toAst(withPosition: Boolean) : IExpression {
+private fun il65Parser.ExpressionContext.toAst() : IExpression {
 
     val litval = literalvalue()
     if(litval!=null) {
         val booleanlit = litval.booleanliteral()?.toAst()
-        val value =
-                if(booleanlit!=null)
-                    LiteralValue(bytevalue = if(booleanlit) 1 else 0)
-                else {
-                    val intLit = litval.integerliteral()?.toAst()
-                    if(intLit!=null) {
-                        when(intLit.datatype) {
-                            DataType.BYTE -> LiteralValue(bytevalue = intLit.intvalue.toShort())
-                            DataType.WORD -> LiteralValue(wordvalue = intLit.intvalue)
-                            else -> throw FatalAstException("invalid datatype for integer literal")
-                        }
-                    } else {
-                        LiteralValue(null, null,
-                                litval.floatliteral()?.toAst(),
-                                litval.stringliteral()?.text,
-                                litval.arrayliteral()?.toAst(withPosition))
-                    }
+        return if(booleanlit!=null) {
+            LiteralValue.fromBoolean(booleanlit, litval.toPosition())
+        }
+        else {
+            val intLit = litval.integerliteral()?.toAst()
+            when {
+                intLit!=null -> when(intLit.datatype) {
+                    DataType.BYTE -> LiteralValue(DataType.BYTE, bytevalue = intLit.intvalue.toShort(), position = litval.toPosition())
+                    DataType.WORD -> LiteralValue(DataType.WORD, wordvalue = intLit.intvalue, position = litval.toPosition())
+                    else -> throw FatalAstException("invalid datatype for integer literal")
                 }
-        value.position = litval.toPosition(withPosition)
-        return value
+                litval.floatliteral()!=null -> LiteralValue(DataType.FLOAT, floatvalue = litval.floatliteral().toAst(), position = litval.toPosition())
+                litval.stringliteral()!=null -> LiteralValue(DataType.STR, strvalue = litval.stringliteral().text, position = litval.toPosition())
+                litval.arrayliteral()!=null -> LiteralValue(DataType.ARRAY, arrayvalue = litval.arrayliteral()?.toAst(), position = litval.toPosition())  // @todo byte/word array difference?
+                else -> throw FatalAstException("invalid parsed literal")
+            }
+        }
     }
 
-    if(register()!=null) {
-        val reg = RegisterExpr(register().toAst())
-        reg.position = register().toPosition(withPosition)
-        return reg
-    }
+    if(register()!=null)
+        return RegisterExpr(register().toAst(), register().toPosition())
 
     if(identifier()!=null)
-        return identifier().toAst(withPosition)
+        return identifier().toAst()
 
     if(scoped_identifier()!=null)
-        return scoped_identifier().toAst(withPosition)
+        return scoped_identifier().toAst()
 
-    if(bop!=null) {
-        val expr = BinaryExpression(left.toAst(withPosition),
-                bop.text,
-                right.toAst(withPosition))
-        expr.position = toPosition(withPosition)
-        return expr
-    }
+    if(bop!=null)
+        return BinaryExpression(left.toAst(), bop.text, right.toAst(), toPosition())
 
-    if(prefix!=null) {
-        val expr = PrefixExpression(prefix.text,
-                expression(0).toAst(withPosition))
-        expr.position = toPosition(withPosition)
-        return expr
-    }
+    if(prefix!=null)
+        return PrefixExpression(prefix.text, expression(0).toAst(), toPosition())
 
-    val funcall = functioncall()?.toAst(withPosition)
+    val funcall = functioncall()?.toAst()
     if(funcall!=null) return funcall
 
-    if (rangefrom!=null && rangeto!=null) {
-        val rexp = RangeExpr(rangefrom.toAst(withPosition), rangeto.toAst(withPosition))
-        rexp.position = toPosition(withPosition)
-        return rexp
-    }
+    if (rangefrom!=null && rangeto!=null)
+        return RangeExpr(rangefrom.toAst(), rangeto.toAst(), toPosition())
 
     if(childCount==3 && children[0].text=="(" && children[2].text==")")
-        return expression(0).toAst(withPosition)        // expression within ( )
+        return expression(0).toAst()        // expression within ( )
 
     throw FatalAstException(text)
 }
 
 
-private fun il65Parser.Expression_listContext.toAst(withPosition: Boolean) = expression().map{ it.toAst(withPosition) }
+private fun il65Parser.Expression_listContext.toAst() = expression().map{ it.toAst() }
 
 
-private fun il65Parser.IdentifierContext.toAst(withPosition: Boolean) : IdentifierReference {
-    val ident = IdentifierReference(listOf(text))
-    ident.position = toPosition(withPosition)
-    return ident
-}
+private fun il65Parser.IdentifierContext.toAst() : IdentifierReference =
+        IdentifierReference(listOf(text), toPosition())
 
 
-private fun il65Parser.Scoped_identifierContext.toAst(withPosition: Boolean) : IdentifierReference {
-    val ident = IdentifierReference(NAME().map { it.text })
-    ident.position = toPosition(withPosition)
-    return ident
-}
+private fun il65Parser.Scoped_identifierContext.toAst() : IdentifierReference =
+        IdentifierReference(NAME().map { it.text }, toPosition())
 
 
 private fun il65Parser.FloatliteralContext.toAst() = text.toDouble()
@@ -1550,31 +1448,27 @@ private fun il65Parser.BooleanliteralContext.toAst() = when(text) {
 }
 
 
-private fun il65Parser.ArrayliteralContext.toAst(withPosition: Boolean) =
-        expression().asSequence().map { it.toAst(withPosition) }.toMutableList()
+private fun il65Parser.ArrayliteralContext.toAst() =
+        expression().asSequence().map { it.toAst() }.toMutableList()
 
 
-private fun il65Parser.If_stmtContext.toAst(withPosition: Boolean): IfStatement {
-    val condition = expression().toAst(withPosition)
-    val statements = statement_block()?.toAst(withPosition) ?: listOf(statement().toAst(withPosition))
-    val elsepart = else_part()?.toAst(withPosition) ?: emptyList()
-    val result = IfStatement(condition, statements, elsepart)
-    result.position = toPosition(withPosition)
-    return result
+private fun il65Parser.If_stmtContext.toAst(): IfStatement {
+    val condition = expression().toAst()
+    val statements = statement_block()?.toAst() ?: listOf(statement().toAst())
+    val elsepart = else_part()?.toAst() ?: emptyList()
+    return IfStatement(condition, statements, elsepart, toPosition())
 }
 
-private fun il65Parser.Else_partContext.toAst(withPosition: Boolean): List<IStatement> {
-    return statement_block()?.toAst(withPosition) ?: listOf(statement().toAst(withPosition))
+private fun il65Parser.Else_partContext.toAst(): List<IStatement> {
+    return statement_block()?.toAst() ?: listOf(statement().toAst())
 }
 
 
-private fun il65Parser.Branch_stmtContext.toAst(withPosition: Boolean): IStatement {
-    val branchcondition = branchcondition().toAst(withPosition)
-    val statements = statement_block()?.toAst(withPosition) ?: listOf(statement().toAst(withPosition))
-    val elsepart = else_part()?.toAst(withPosition) ?: emptyList()
-    val result = BranchStatement(branchcondition, statements, elsepart)
-    result.position = toPosition(withPosition)
-    return result
+private fun il65Parser.Branch_stmtContext.toAst(): IStatement {
+    val branchcondition = branchcondition().toAst()
+    val statements = statement_block()?.toAst() ?: listOf(statement().toAst())
+    val elsepart = else_part()?.toAst() ?: emptyList()
+    return BranchStatement(branchcondition, statements, elsepart, toPosition())
 }
 
-private fun il65Parser.BranchconditionContext.toAst(withPosition: Boolean) = BranchCondition.valueOf(text.substringAfter('_').toUpperCase())
+private fun il65Parser.BranchconditionContext.toAst() = BranchCondition.valueOf(text.substringAfter('_').toUpperCase())

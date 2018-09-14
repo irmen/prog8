@@ -82,9 +82,8 @@ class ExpressionOptimizer(private val globalNamespace: INameScope) : IAstProcess
                 decl.datatype == DataType.FLOAT -> {
                     // vardecl: for float vars, promote constant integer initialization values to floats
                     val literal = decl.value as? LiteralValue
-                    if (literal != null && literal.isInteger) {
-                        val newValue = LiteralValue(floatvalue = literal.asNumericValue!!.toDouble())
-                        newValue.position = literal.position
+                    if (literal != null && (literal.type == DataType.BYTE || literal.type==DataType.WORD)) {
+                        val newValue = LiteralValue(DataType.FLOAT, floatvalue = literal.asNumericValue!!.toDouble(), position = literal.position)
                         decl.value = newValue
                     }
                 }
@@ -93,8 +92,7 @@ class ExpressionOptimizer(private val globalNamespace: INameScope) : IAstProcess
                     val literal = decl.value as? LiteralValue
                     if (literal != null && literal.isString && literal.strvalue?.length == 1) {
                         val petscii = Petscii.encodePetscii(literal.strvalue)[0]
-                        val newValue = LiteralValue(bytevalue = petscii)
-                        newValue.position = literal.position
+                        val newValue = LiteralValue(DataType.BYTE, bytevalue = petscii, position = literal.position)
                         decl.value = newValue
                     }
                 }
@@ -137,41 +135,39 @@ class ExpressionOptimizer(private val globalNamespace: INameScope) : IAstProcess
             val subexpr = expr.expression
             if (subexpr is LiteralValue) {
                 // process prefixed literal values (such as -3, not true)
-                val result = when {
+                return when {
                     expr.operator == "+" -> subexpr
                     expr.operator == "-" -> when {
                         subexpr.asIntegerValue!= null -> {
                             optimizationsDone++
-                            LiteralValue.optimalNumeric(-subexpr.asIntegerValue)
+                            LiteralValue.optimalNumeric(-subexpr.asIntegerValue, subexpr.position)
                         }
                         subexpr.floatvalue != null -> {
                             optimizationsDone++
-                            LiteralValue(floatvalue = -subexpr.floatvalue)
+                            LiteralValue(DataType.FLOAT, floatvalue = -subexpr.floatvalue, position = subexpr.position)
                         }
                         else -> throw ExpressionError("can only take negative of int or float", subexpr.position)
                     }
                     expr.operator == "~" -> when {
                         subexpr.asIntegerValue != null -> {
                             optimizationsDone++
-                            LiteralValue.optimalNumeric(subexpr.asIntegerValue.inv())
+                            LiteralValue.optimalNumeric(subexpr.asIntegerValue.inv(), subexpr.position)
                         }
                         else -> throw ExpressionError("can only take bitwise inversion of int", subexpr.position)
                     }
                     expr.operator == "not" -> when {
                         subexpr.asIntegerValue != null -> {
                             optimizationsDone++
-                            LiteralValue(bytevalue = if (subexpr.asIntegerValue == 0) 1 else 0)
+                            LiteralValue.fromBoolean(subexpr.asIntegerValue == 0, subexpr.position)
                         }
                         subexpr.floatvalue != null -> {
                             optimizationsDone++
-                            LiteralValue(bytevalue = if (subexpr.floatvalue == 0.0) 1 else 0)
+                            LiteralValue.fromBoolean(subexpr.floatvalue == 0.0, subexpr.position)
                         }
                         else -> throw ExpressionError("can not take logical not of $subexpr", subexpr.position)
                     }
                     else -> throw ExpressionError(expr.operator, subexpr.position)
                 }
-                result.position = subexpr.position
-                return result
             }
             return expr
         } catch (ax: AstException) {
@@ -212,31 +208,29 @@ class ExpressionOptimizer(private val globalNamespace: INameScope) : IAstProcess
             val to = range.to.constValue(globalNamespace)
             if (from != null && to != null) {
                 when {
-                    from.isWord || to.isWord -> {
+                    from.type==DataType.WORD || to.type==DataType.WORD -> {
                         // range on word value boundaries
                         val rangeValue = from.asIntegerValue!!.rangeTo(to.asIntegerValue!!)
                         if (rangeValue.last - rangeValue.first > 65535) {
                             throw ExpressionError("amount of values in range exceeds 65535", range.position)
                         }
-                        return LiteralValue(arrayvalue = rangeValue.map {
-                            val v = LiteralValue(wordvalue = it)
-                            v.position = range.position
+                        return LiteralValue(DataType.ARRAY_W, arrayvalue = rangeValue.map {
+                            val v = LiteralValue(DataType.WORD, wordvalue = it, position = range.position)
                             v.parent = range.parent
                             v
-                        }.toMutableList())
+                        }.toMutableList(), position = from.position)
                     }
-                    from.isByte && to.isByte -> {
+                    from.type==DataType.BYTE && to.type==DataType.BYTE -> {
                         // range on byte value  boundaries
                         val rangeValue = from.bytevalue!!.rangeTo(to.bytevalue!!)
                         if (rangeValue.last - rangeValue.first > 65535) {
                             throw ExpressionError("amount of values in range exceeds 65535", range.position)
                         }
-                        return LiteralValue(arrayvalue = rangeValue.map {
-                            val v = LiteralValue(bytevalue = it.toShort())
-                            v.position = range.position
+                        return LiteralValue(DataType.ARRAY, arrayvalue = rangeValue.map {
+                            val v = LiteralValue(DataType.BYTE, bytevalue = it.toShort(), position = range.position)
                             v.parent = range.parent
                             v
-                        }.toMutableList())
+                        }.toMutableList(), position = from.position)
                     }
                     from.strvalue != null && to.strvalue != null -> {
                         // char range
@@ -244,8 +238,7 @@ class ExpressionOptimizer(private val globalNamespace: INameScope) : IAstProcess
                         if (rangevalue.last - rangevalue.first > 65535) {
                             throw ExpressionError("amount of characters in range exceeds 65535", range.position)
                         }
-                        val newval = LiteralValue(strvalue = rangevalue.toList().joinToString(""))
-                        newval.position = range.position
+                        val newval = LiteralValue(DataType.STR, strvalue = rangevalue.toList().joinToString(""), position = range.position)
                         newval.parent = range.parent
                         return newval
                     }
@@ -297,9 +290,7 @@ class ConstExprEvaluator {
 
     private fun comparenotequal(left: LiteralValue, right: LiteralValue): LiteralValue {
         val leq = compareequal(left, right)
-        val litval = LiteralValue(bytevalue = if (leq.bytevalue == 1.toShort()) 0 else 1)
-        litval.position = left.position
-        return litval
+        return LiteralValue.fromBoolean(leq.bytevalue == 1.toShort(), left.position)
     }
 
     private fun compareequal(left: LiteralValue, right: LiteralValue): LiteralValue {
@@ -319,186 +310,138 @@ class ConstExprEvaluator {
             right.arrayvalue!=null -> right.arrayvalue
             else -> throw FatalAstException("missing literal value")
         }
-        val litval = LiteralValue(bytevalue = if (leftvalue == rightvalue) 1 else 0)
-        litval.position = left.position
-        return litval
+        return LiteralValue.fromBoolean(leftvalue == rightvalue, left.position)
     }
 
     private fun comparegreaterequal(left: LiteralValue, right: LiteralValue): LiteralValue {
         val error = "cannot compute $left >= $right"
-        val litval = when {
+        return when {
             left.asIntegerValue!=null -> when {
-                right.asIntegerValue!=null -> LiteralValue(
-                        bytevalue = if (left.asIntegerValue >= right.asIntegerValue) 1 else 0)
-                right.floatvalue!=null -> LiteralValue(
-                        bytevalue = if (left.asIntegerValue >= right.floatvalue) 1 else 0)
+                right.asIntegerValue!=null -> LiteralValue.fromBoolean(left.asIntegerValue >= right.asIntegerValue, left.position)
+                right.floatvalue!=null -> LiteralValue.fromBoolean(left.asIntegerValue >= right.floatvalue, left.position)
                 else -> throw ExpressionError(error, left.position)
             }
             left.floatvalue!=null -> when {
-                right.asIntegerValue!=null -> LiteralValue(
-                        bytevalue = if (left.floatvalue >= right.asIntegerValue) 1 else 0)
-                right.floatvalue!=null -> LiteralValue(
-                        bytevalue = if (left.floatvalue >= right.floatvalue) 1 else 0)
+                right.asIntegerValue!=null -> LiteralValue.fromBoolean(left.floatvalue >= right.asIntegerValue, left.position)
+                right.floatvalue!=null -> LiteralValue.fromBoolean(left.floatvalue >= right.floatvalue, left.position)
                 else -> throw ExpressionError(error, left.position)
             }
             else -> throw ExpressionError(error, left.position)
         }
-        litval.position = left.position
-        return litval
     }
 
     private fun comparelessequal(left: LiteralValue, right: LiteralValue): LiteralValue {
         val error = "cannot compute $left >= $right"
-        val litval = when {
+        return when {
             left.asIntegerValue!=null -> when {
-                right.asIntegerValue!=null -> LiteralValue(
-                        bytevalue = if (left.asIntegerValue <= right.asIntegerValue) 1 else 0)
-                right.floatvalue!=null -> LiteralValue(
-                        bytevalue = if (left.asIntegerValue <= right.floatvalue) 1 else 0)
+                right.asIntegerValue!=null -> LiteralValue.fromBoolean(left.asIntegerValue <= right.asIntegerValue, left.position)
+                right.floatvalue!=null -> LiteralValue.fromBoolean(left.asIntegerValue <= right.floatvalue, left.position)
                 else -> throw ExpressionError(error, left.position)
             }
             left.floatvalue!=null -> when {
-                right.asIntegerValue!=null -> LiteralValue(
-                        bytevalue = if (left.floatvalue <= right.asIntegerValue) 1 else 0)
-                right.floatvalue!=null -> LiteralValue(
-                        bytevalue = if (left.floatvalue <= right.floatvalue) 1 else 0)
+                right.asIntegerValue!=null -> LiteralValue.fromBoolean(left.floatvalue <= right.asIntegerValue, left.position)
+                right.floatvalue!=null -> LiteralValue.fromBoolean(left.floatvalue <= right.floatvalue, left.position)
                 else -> throw ExpressionError(error, left.position)
             }
             else -> throw ExpressionError(error, left.position)
         }
-        litval.position = left.position
-        return litval
     }
 
     private fun comparegreater(left: LiteralValue, right: LiteralValue): LiteralValue {
         val leq = comparelessequal(left, right)
-        val litval = LiteralValue(bytevalue = if (leq.bytevalue == 1.toShort()) 0 else 1)
-        litval.position = left.position
-        return litval
+        return LiteralValue.fromBoolean(leq.bytevalue == 1.toShort(), left.position)
     }
 
     private fun compareless(left: LiteralValue, right: LiteralValue): LiteralValue {
         val leq = comparegreaterequal(left, right)
-        val litval = LiteralValue(bytevalue = if (leq.bytevalue == 1.toShort()) 0 else 1)
-        litval.position = left.position
-        return litval
+        return LiteralValue.fromBoolean(leq.bytevalue == 1.toShort(), left.position)
     }
 
     private fun logicalxor(left: LiteralValue, right: LiteralValue): LiteralValue {
         val error = "cannot compute $left locical-bitxor $right"
-        val litval = when {
+        return when {
             left.asIntegerValue!=null -> when {
-                right.asIntegerValue!=null -> LiteralValue(
-                        bytevalue = if ((left.asIntegerValue != 0).xor(right.asIntegerValue != 0)) 1 else 0)
-                right.floatvalue!=null -> LiteralValue(
-                        bytevalue = if ((left.asIntegerValue != 0).xor(right.floatvalue != 0.0)) 1 else 0)
+                right.asIntegerValue!=null -> LiteralValue.fromBoolean((left.asIntegerValue != 0) xor (right.asIntegerValue != 0), left.position)
+                right.floatvalue!=null -> LiteralValue.fromBoolean((left.asIntegerValue != 0) xor (right.floatvalue != 0.0), left.position)
                 else -> throw ExpressionError(error, left.position)
             }
             left.floatvalue!=null -> when {
-                right.asIntegerValue!=null -> LiteralValue(
-                        bytevalue = if ((left.floatvalue != 0.0).xor(right.asIntegerValue != 0)) 1 else 0)
-                right.floatvalue!=null -> LiteralValue(
-                        bytevalue = if ((left.floatvalue != 0.0).xor(right.floatvalue != 0.0)) 1 else 0)
+                right.asIntegerValue!=null -> LiteralValue.fromBoolean((left.floatvalue != 0.0) xor (right.asIntegerValue != 0), left.position)
+                right.floatvalue!=null -> LiteralValue.fromBoolean((left.floatvalue != 0.0) xor (right.floatvalue != 0.0), left.position)
                 else -> throw ExpressionError(error, left.position)
             }
             else -> throw ExpressionError(error, left.position)
         }
-        litval.position = left.position
-        return litval
     }
 
     private fun logicalor(left: LiteralValue, right: LiteralValue): LiteralValue {
         val error = "cannot compute $left locical-or $right"
-        val litval = when {
+        return when {
             left.asIntegerValue!=null -> when {
-                right.asIntegerValue!=null -> LiteralValue(
-                        bytevalue = if (left.asIntegerValue != 0 || right.asIntegerValue != 0) 1 else 0)
-                right.floatvalue!=null -> LiteralValue(
-                        bytevalue = if (left.asIntegerValue != 0 || right.floatvalue != 0.0) 1 else 0)
+                right.asIntegerValue!=null -> LiteralValue.fromBoolean(left.asIntegerValue != 0 || right.asIntegerValue != 0, left.position)
+                right.floatvalue!=null -> LiteralValue.fromBoolean(left.asIntegerValue != 0 || right.floatvalue != 0.0, left.position)
                 else -> throw ExpressionError(error, left.position)
             }
             left.floatvalue!=null -> when {
-                right.asIntegerValue!=null -> LiteralValue(
-                        bytevalue = if (left.floatvalue != 0.0 || right.asIntegerValue != 0) 1 else 0)
-                right.floatvalue!=null -> LiteralValue(
-                        bytevalue = if (left.floatvalue != 0.0 || right.floatvalue != 0.0) 1 else 0)
+                right.asIntegerValue!=null -> LiteralValue.fromBoolean(left.floatvalue != 0.0 || right.asIntegerValue != 0, left.position)
+                right.floatvalue!=null -> LiteralValue.fromBoolean(left.floatvalue != 0.0 || right.floatvalue != 0.0, left.position)
                 else -> throw ExpressionError(error, left.position)
             }
             else -> throw ExpressionError(error, left.position)
         }
-        litval.position = left.position
-        return litval
     }
 
     private fun logicaland(left: LiteralValue, right: LiteralValue): LiteralValue {
         val error = "cannot compute $left locical-and $right"
-        val litval = when {
+        return when {
             left.asIntegerValue!=null -> when {
-                right.asIntegerValue!=null -> LiteralValue(
-                        bytevalue = if (left.asIntegerValue != 0 && right.asIntegerValue != 0) 1 else 0)
-                right.floatvalue!=null -> LiteralValue(
-                        bytevalue = if (left.asIntegerValue != 0 && right.floatvalue != 0.0) 1 else 0)
+                right.asIntegerValue!=null -> LiteralValue.fromBoolean(left.asIntegerValue != 0 && right.asIntegerValue != 0, left.position)
+                right.floatvalue!=null -> LiteralValue.fromBoolean(left.asIntegerValue != 0 && right.floatvalue != 0.0, left.position)
                 else -> throw ExpressionError(error, left.position)
             }
             left.floatvalue!=null -> when {
-                right.asIntegerValue!=null -> LiteralValue(
-                        bytevalue = if (left.floatvalue != 0.0 && right.asIntegerValue != 0) 1 else 0)
-                right.floatvalue!=null -> LiteralValue(
-                        bytevalue = if (left.floatvalue != 0.0 && right.floatvalue != 0.0) 1 else 0)
+                right.asIntegerValue!=null -> LiteralValue.fromBoolean(left.floatvalue != 0.0 && right.asIntegerValue != 0, left.position)
+                right.floatvalue!=null -> LiteralValue.fromBoolean(left.floatvalue != 0.0 && right.floatvalue != 0.0, left.position)
                 else -> throw ExpressionError(error, left.position)
             }
             else -> throw ExpressionError(error, left.position)
         }
-        litval.position = left.position
-        return litval
     }
 
     private fun bitwisexor(left: LiteralValue, right: LiteralValue): LiteralValue {
-        if(left.isByte) {
+        if(left.type==DataType.BYTE) {
             if(right.asIntegerValue!=null) {
-                val litval = LiteralValue(bytevalue = (left.bytevalue!!.toInt() xor (right.asIntegerValue and 255)).toShort())
-                litval.position = left.position
-                return litval
+                return LiteralValue(DataType.BYTE, bytevalue = (left.bytevalue!!.toInt() xor (right.asIntegerValue and 255)).toShort(), position = left.position)
             }
-        } else if(left.isWord) {
+        } else if(left.type==DataType.WORD) {
             if(right.asIntegerValue!=null) {
-                val litval = LiteralValue(wordvalue = left.wordvalue!! xor right.asIntegerValue)
-                litval.position = left.position
-                return litval
+                return LiteralValue(DataType.WORD, wordvalue = left.wordvalue!! xor right.asIntegerValue, position = left.position)
             }
         }
         throw ExpressionError("cannot calculate $left ^ $right", left.position)
     }
 
     private fun bitwiseor(left: LiteralValue, right: LiteralValue): LiteralValue {
-        if(left.isByte) {
+        if(left.type==DataType.BYTE) {
             if(right.asIntegerValue!=null) {
-                val litval = LiteralValue(bytevalue = (left.bytevalue!!.toInt() or (right.asIntegerValue and 255)).toShort())
-                litval.position = left.position
-                return litval
+                return LiteralValue(DataType.BYTE, bytevalue = (left.bytevalue!!.toInt() or (right.asIntegerValue and 255)).toShort(), position = left.position)
             }
-        } else if(left.isWord) {
+        } else if(left.type==DataType.WORD) {
             if(right.asIntegerValue!=null) {
-                val litval = LiteralValue(wordvalue = left.wordvalue!! or right.asIntegerValue)
-                litval.position = left.position
-                return litval
+                return LiteralValue(DataType.WORD, wordvalue = left.wordvalue!! or right.asIntegerValue, position = left.position)
             }
         }
         throw ExpressionError("cannot calculate $left | $right", left.position)
     }
 
     private fun bitwiseand(left: LiteralValue, right: LiteralValue): LiteralValue {
-        if(left.isByte) {
+        if(left.type==DataType.BYTE) {
             if(right.asIntegerValue!=null) {
-                val litval = LiteralValue(bytevalue = (left.bytevalue!!.toInt() or (right.asIntegerValue and 255)).toShort())
-                litval.position = left.position
-                return litval
+                return LiteralValue(DataType.BYTE, bytevalue = (left.bytevalue!!.toInt() or (right.asIntegerValue and 255)).toShort(), position = left.position)
             }
-        } else if(left.isWord) {
+        } else if(left.type==DataType.WORD) {
             if(right.asIntegerValue!=null) {
-                val litval = LiteralValue(wordvalue = left.wordvalue!! or right.asIntegerValue)
-                litval.position = left.position
-                return litval
+                return LiteralValue(DataType.WORD, wordvalue = left.wordvalue!! or right.asIntegerValue, position = left.position)
             }
         }
         throw ExpressionError("cannot calculate $left & $right", left.position)
@@ -506,119 +449,110 @@ class ConstExprEvaluator {
 
     private fun power(left: LiteralValue, right: LiteralValue): LiteralValue {
         val error = "cannot calculate $left ** $right"
-        val litval = when {
+        return when {
             left.asIntegerValue!=null -> when {
-                right.asIntegerValue!=null -> LiteralValue(wordvalue = left.asIntegerValue.toDouble().pow(right.asIntegerValue).toInt())
-                right.floatvalue!=null -> LiteralValue(floatvalue = left.asIntegerValue.toDouble().pow(right.floatvalue))
+                // @todo BYTE?
+                right.asIntegerValue!=null -> LiteralValue(DataType.WORD, wordvalue = left.asIntegerValue.toDouble().pow(right.asIntegerValue).toInt(), position = left.position)
+                right.floatvalue!=null -> LiteralValue(DataType.FLOAT, floatvalue = left.asIntegerValue.toDouble().pow(right.floatvalue), position = left.position)
                 else -> throw ExpressionError(error, left.position)
             }
             left.floatvalue!=null -> when {
-                right.asIntegerValue!=null -> LiteralValue(floatvalue = left.floatvalue.pow(right.asIntegerValue))
-                right.floatvalue!=null -> LiteralValue(floatvalue = left.floatvalue.pow(right.floatvalue))
+                right.asIntegerValue!=null -> LiteralValue(DataType.FLOAT, floatvalue = left.floatvalue.pow(right.asIntegerValue), position = left.position)
+                right.floatvalue!=null -> LiteralValue(DataType.FLOAT, floatvalue = left.floatvalue.pow(right.floatvalue), position = left.position)
                 else -> throw ExpressionError(error, left.position)
             }
             else -> throw ExpressionError(error, left.position)
         }
-        litval.position = left.position
-        return litval
     }
 
     private fun plus(left: LiteralValue, right: LiteralValue): LiteralValue {
         val error = "cannot add $left and $right"
-        val litval = when {
+        return when {
             left.asIntegerValue!=null -> when {
-                right.asIntegerValue!=null -> LiteralValue.optimalNumeric(left.asIntegerValue + right.asIntegerValue)
-                right.floatvalue!=null -> LiteralValue(floatvalue = left.asIntegerValue + right.floatvalue)
+                right.asIntegerValue!=null -> LiteralValue.optimalNumeric(left.asIntegerValue + right.asIntegerValue, left.position)
+                right.floatvalue!=null -> LiteralValue(DataType.FLOAT, floatvalue = left.asIntegerValue + right.floatvalue, position = left.position)
                 else -> throw ExpressionError(error, left.position)
             }
             left.floatvalue!=null -> when {
-                right.asIntegerValue!=null -> LiteralValue(floatvalue = left.floatvalue + right.asIntegerValue)
-                right.floatvalue!=null -> LiteralValue(floatvalue = left.floatvalue + right.floatvalue)
+                right.asIntegerValue!=null -> LiteralValue(DataType.FLOAT, floatvalue = left.floatvalue + right.asIntegerValue, position = left.position)
+                right.floatvalue!=null -> LiteralValue(DataType.FLOAT, floatvalue = left.floatvalue + right.floatvalue, position = left.position)
                 else -> throw ExpressionError(error, left.position)
             }
             else -> throw ExpressionError(error, left.position)
         }
-        litval.position = left.position
-        return litval
     }
 
     private fun minus(left: LiteralValue, right: LiteralValue): LiteralValue {
         val error = "cannot subtract $left and $right"
-        val litval = when {
+        return when {
             left.asIntegerValue!=null -> when {
-                right.asIntegerValue!=null -> LiteralValue.optimalNumeric(left.asIntegerValue - right.asIntegerValue)
-                right.floatvalue!=null -> LiteralValue(floatvalue = left.asIntegerValue - right.floatvalue)
+                right.asIntegerValue!=null -> LiteralValue.optimalNumeric(left.asIntegerValue - right.asIntegerValue, left.position)
+                right.floatvalue!=null -> LiteralValue(DataType.FLOAT, floatvalue = left.asIntegerValue - right.floatvalue, position = left.position)
                 else -> throw ExpressionError(error, left.position)
             }
             left.floatvalue!=null -> when {
-                right.asIntegerValue!=null -> LiteralValue(floatvalue = left.floatvalue - right.asIntegerValue)
-                right.floatvalue!=null -> LiteralValue(floatvalue = left.floatvalue - right.floatvalue)
+                right.asIntegerValue!=null -> LiteralValue(DataType.FLOAT, floatvalue = left.floatvalue - right.asIntegerValue, position = left.position)
+                right.floatvalue!=null -> LiteralValue(DataType.FLOAT, floatvalue = left.floatvalue - right.floatvalue, position = left.position)
                 else -> throw ExpressionError(error, left.position)
             }
             else -> throw ExpressionError(error, left.position)
         }
-        litval.position = left.position
-        return litval
     }
 
     private fun multiply(left: LiteralValue, right: LiteralValue): LiteralValue {
         val error = "cannot multiply $left and $right"
-        val litval = when {
+        return when {
             left.asIntegerValue!=null -> when {
-                right.asIntegerValue!=null -> LiteralValue.optimalNumeric(left.asIntegerValue * right.asIntegerValue)
-                right.floatvalue!=null -> LiteralValue(floatvalue = left.asIntegerValue * right.floatvalue)
+                right.asIntegerValue!=null -> LiteralValue.optimalNumeric(left.asIntegerValue * right.asIntegerValue, left.position)
+                right.floatvalue!=null -> LiteralValue(DataType.FLOAT, floatvalue = left.asIntegerValue * right.floatvalue, position = left.position)
                 right.strvalue!=null -> {
                     if(right.strvalue.length * left.asIntegerValue > 65535) throw ExpressionError("string too large", left.position)
-                    LiteralValue(strvalue = right.strvalue.repeat(left.asIntegerValue))
+                    LiteralValue(DataType.STR, strvalue = right.strvalue.repeat(left.asIntegerValue), position = left.position)
                 }
                 else -> throw ExpressionError(error, left.position)
             }
             left.floatvalue!=null -> when {
-                right.asIntegerValue!=null -> LiteralValue(floatvalue = left.floatvalue * right.asIntegerValue)
-                right.floatvalue!=null -> LiteralValue(floatvalue = left.floatvalue * right.floatvalue)
+                right.asIntegerValue!=null -> LiteralValue(DataType.FLOAT, floatvalue = left.floatvalue * right.asIntegerValue, position = left.position)
+                right.floatvalue!=null -> LiteralValue(DataType.FLOAT, floatvalue = left.floatvalue * right.floatvalue, position = left.position)
                 else -> throw ExpressionError(error, left.position)
             }
             left.strvalue!=null -> when {
                 right.asIntegerValue!=null -> {
                     if(left.strvalue.length * right.asIntegerValue > 65535) throw ExpressionError("string too large", left.position)
-                    LiteralValue(strvalue = left.strvalue.repeat(right.asIntegerValue))
+                    LiteralValue(DataType.STR, strvalue = left.strvalue.repeat(right.asIntegerValue), position = left.position)
                 }
                 else -> throw ExpressionError(error, left.position)
             }
             else -> throw ExpressionError(error, left.position)
         }
-        litval.position = left.position
-        return litval
     }
 
     private fun divide(left: LiteralValue, right: LiteralValue): LiteralValue {
         val error = "cannot divide $left by $right"
-        val litval = when {
+        return when {
             left.asIntegerValue!=null -> when {
                 right.asIntegerValue!=null -> {
                     if(right.asIntegerValue==0) throw ExpressionError("attempt to divide by zero", left.position)
-                    LiteralValue.optimalNumeric(left.asIntegerValue / right.asIntegerValue)
+                    LiteralValue.optimalNumeric(left.asIntegerValue / right.asIntegerValue, left.position)
                 }
                 right.floatvalue!=null -> {
                     if(right.floatvalue==0.0) throw ExpressionError("attempt to divide by zero", left.position)
-                    LiteralValue(floatvalue = left.asIntegerValue / right.floatvalue)
+                    LiteralValue(DataType.FLOAT, floatvalue = left.asIntegerValue / right.floatvalue, position = left.position)
                 }
                 else -> throw ExpressionError(error, left.position)
             }
             left.floatvalue!=null -> when {
                 right.asIntegerValue!=null -> {
                     if(right.asIntegerValue==0) throw ExpressionError("attempt to divide by zero", left.position)
-                    LiteralValue(floatvalue = left.floatvalue / right.asIntegerValue)
+                    LiteralValue(DataType.FLOAT, floatvalue = left.floatvalue / right.asIntegerValue, position = left.position)
                 }
                 right.floatvalue!=null -> {
                     if(right.floatvalue==0.0) throw ExpressionError("attempt to divide by zero", left.position)
-                    LiteralValue(floatvalue = left.floatvalue / right.floatvalue)
+                    LiteralValue(DataType.FLOAT, floatvalue = left.floatvalue / right.floatvalue, position = left.position)
                 }
                 else -> throw ExpressionError(error, left.position)
             }
             else -> throw ExpressionError(error, left.position)
         }
-        litval.position = left.position
-        return litval
     }
 }

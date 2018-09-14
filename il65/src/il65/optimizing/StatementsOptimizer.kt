@@ -80,11 +80,11 @@ class StatementOptimizer(private val globalNamespace: INameScope) : IAstProcesso
             return if(constvalue.asBooleanValue){
                 // always true -> keep only if-part
                 println("${ifStatement.position} Warning: condition is always true")
-                AnonymousStatementList(ifStatement.parent, ifStatement.statements)
+                AnonymousStatementList(ifStatement.parent, ifStatement.statements, ifStatement.position)
             } else {
                 // always false -> keep only else-part
                 println("${ifStatement.position} Warning: condition is always false")
-                AnonymousStatementList(ifStatement.parent, ifStatement.elsepart)
+                AnonymousStatementList(ifStatement.parent, ifStatement.elsepart, ifStatement.position)
             }
         }
         return ifStatement

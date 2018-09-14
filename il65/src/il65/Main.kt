@@ -42,8 +42,7 @@ fun main(args: Array<String>) {
                 if(outputType==null) OutputType.PRG else OutputType.valueOf(outputType),
                 if(launcherType==null) LauncherType.BASIC else LauncherType.valueOf(launcherType),
                 if(zpType==null) ZeropageType.KERNALSAFE else ZeropageType.valueOf(zpType),
-                options.contains(DirectiveArg(null, "enable_floats", null))
-        )
+                options.any{ it.name=="enable_floats"})
 
 
         // perform syntax checks and optimizations

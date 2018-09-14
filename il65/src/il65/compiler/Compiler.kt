@@ -109,7 +109,7 @@ class Compiler(private val options: CompilationOptions) {
     }
 
 
-    class VarGatherer(val stackvmProg: StackVmProgram): IAstProcessor {
+    class VarGatherer(private val stackvmProg: StackVmProgram): IAstProcessor {
         // collect all the VarDecls to make them into one global list
         override fun process(decl: VarDecl): IStatement {
             if(decl.type == VarDeclType.MEMORY)
@@ -122,7 +122,7 @@ class Compiler(private val options: CompilationOptions) {
         }
     }
 
-    class StatementTranslator(val stackvmProg: StackVmProgram, val namespace: INameScope): IAstProcessor {
+    class StatementTranslator(private val stackvmProg: StackVmProgram, private val namespace: INameScope): IAstProcessor {
         var stmtUniqueSequenceNr = 0
             private set
 
@@ -269,16 +269,16 @@ class Compiler(private val options: CompilationOptions) {
                 }
                 else -> {
                     val lv = expr.constValue(namespace) ?: throw CompilerException("constant expression required, not $expr")
-                    when {
-                        lv.isString -> stackvmProg.instruction("push \"${lv.strvalue}\"")
-                        lv.isByte -> stackvmProg.instruction("push b:${lv.bytevalue!!.toString(16)}")
-                        lv.isWord -> stackvmProg.instruction("push w:${lv.wordvalue!!.toString(16)}")
-                        lv.isFloat -> stackvmProg.instruction("push f:${lv.floatvalue}")
-                        lv.isArray -> {
+                    when(lv.type) {
+                        DataType.BYTE -> stackvmProg.instruction("push b:${lv.bytevalue!!.toString(16)}")
+                        DataType.WORD -> stackvmProg.instruction("push w:${lv.wordvalue!!.toString(16)}")
+                        DataType.FLOAT -> stackvmProg.instruction("push f:${lv.floatvalue}")
+                        DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> stackvmProg.instruction("push \"${lv.strvalue}\"")
+                        DataType.ARRAY, DataType.ARRAY_W -> {
                             lv.arrayvalue?.forEach { translate(it) }
                             stackvmProg.instruction("array w:${lv.arrayvalue!!.size.toString(16)}")
                         }
-                        else -> throw CompilerException("expression constvalue invalid type $lv")
+                        DataType.MATRIX -> TODO("matrix type")
                     }
                 }
             }
@@ -448,11 +448,11 @@ class StackVmProgram(val name: String) {
                 throw AssertionError("Should be only VAR or CONST variables")
             }
             val litval = v.value.value as LiteralValue
-            val litvalStr = when {
-                litval.isByte -> litval.bytevalue!!.toString(16)
-                litval.isWord -> litval.wordvalue!!.toString(16)
-                litval.isFloat -> litval.floatvalue.toString()
-                litval.isString -> "\"${litval.strvalue}\""
+            val litvalStr = when(litval.type) {
+                DataType.BYTE -> litval.bytevalue!!.toString(16)
+                DataType.WORD -> litval.wordvalue!!.toString(16)
+                DataType.FLOAT -> litval.floatvalue.toString()
+                DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> "\"${litval.strvalue}\""
                 else -> TODO("non-scalar value")
             }
             val line = "${v.key} ${v.value.datatype.toString().toLowerCase()} $litvalStr"

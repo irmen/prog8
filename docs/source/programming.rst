@@ -469,8 +469,8 @@ sum(x)
 	Sum of the values in the non-scalar (array or matrix) value x
 
 len(x)
-    Number of values in the non-scalar (array or matrix) value x.
-    (This is different from the number of *bytes* in memory if the datatype isn't byte)
+    Number of values in the array or matrix value x, or the number of characters in a string (excluding the size or 0-byte).
+    Note: this can be different from the number of *bytes* in memory if the datatype isn't a byte.
 
 lsb(x)
     Get the least significant byte of the word x.

@@ -32,7 +32,7 @@ fun importModule(filePath: Path) : Module {
     // tokens.commentTokens().forEach { println(it) }
 
     // convert to Ast
-    val moduleAst = parseTree.toAst(moduleName,true)
+    val moduleAst = parseTree.toAst(moduleName)
     importedModules[moduleAst.name] = moduleAst
 
     // process imports
@@ -60,7 +60,7 @@ fun importModule(filePath: Path) : Module {
 
 
 fun discoverImportedModule(name: String, importedFrom: Path, position: Position?): Path {
-    val fileName = name + ".ill"
+    val fileName = "$name.ill"
     val locations = mutableListOf(Paths.get(importedFrom.parent.toString()))
 
     val propPath = System.getProperty("il65.libdir")
