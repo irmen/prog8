@@ -1,6 +1,7 @@
 package il65.functions
 
 import il65.ast.*
+import javax.xml.crypto.Data
 import kotlin.math.abs
 import kotlin.math.floor
 
@@ -12,6 +13,43 @@ val BuiltinFunctionNames = setOf(
         "max", "min", "avg", "sum", "len", "any", "all", "lsb", "msb")
 
 val BuiltinFunctionsWithoutSideEffects = BuiltinFunctionNames - setOf("P_carry", "P_irqd")
+
+fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespace: INameScope): DataType? {
+    fun integerDatatypeFromArg(arg: IExpression): DataType {
+        val dt = arg.resultingDatatype(namespace)
+        return when(dt) {
+            DataType.BYTE -> DataType.BYTE
+            DataType.WORD -> DataType.WORD
+            DataType.FLOAT -> DataType.WORD
+            else -> throw FatalAstException("fuction $function can only return a numeric value")
+        }
+    }
+
+    fun datatypeFromListArg(arglist: IExpression): DataType {
+        if(arglist is LiteralValue) {
+            if(arglist.type==DataType.ARRAY || arglist.type==DataType.ARRAY_W || arglist.type==DataType.MATRIX) {
+                val dt = arglist.arrayvalue!!.map {it.resultingDatatype(namespace)}
+                if(dt.any { it!=DataType.BYTE && it!=DataType.WORD && it!=DataType.FLOAT}) {
+                    throw FatalAstException("fuction $function only accepts array of numeric values")
+                }
+                if(dt.any { it==DataType.FLOAT }) return DataType.FLOAT
+                if(dt.any { it==DataType.WORD }) return DataType.WORD
+                return DataType.BYTE
+            }
+        }
+        throw FatalAstException("function requires one argument which is an array $function")
+    }
+
+    return when (function) {
+        "sin", "cos", "tan", "asin", "acos", "atan", "log", "log10", "sqrt", "rad", "deg", "avg" -> DataType.FLOAT
+        "len", "lsb", "msb", "any", "all" -> DataType.BYTE
+        "rol", "rol2", "ror", "ror2", "P_carry", "P_irqd" -> null // no return value so no datatype
+        "abs" -> args.single().resultingDatatype(namespace)
+        "max", "min", "sum" -> datatypeFromListArg(args.single())
+        "round", "floor", "ceil", "lsl", "lsr" -> integerDatatypeFromArg(args.single())
+        else -> throw FatalAstException("invalid builtin function $function")
+    }
+}
 
 
 class NotConstArgumentException: AstException("not a const argument to a built-in function")
@@ -135,7 +173,6 @@ fun builtinAbs(args: List<IExpression>, position: Position, namespace:INameScope
 }
 
 
-// todo different functions for byte/word params/results?
 fun builtinLsb(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
         = oneIntArgOutputInt(args, position, namespace) { x: Int -> x and 255 }
 

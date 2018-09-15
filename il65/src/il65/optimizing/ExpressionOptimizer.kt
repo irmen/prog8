@@ -46,6 +46,7 @@ fun Module.optimizeExpressions(globalNamespace: INameScope) {
         x & 0 -> 0
         X ^ 0 -> X
 
+    todo expression optimization: remove redundant builtin function calls
     todo expression optimization: reduce expression nesting / flattening of parenthesis
     todo expression optimization: simplify logical expression when a term makes it always true or false (1 or 0)
     todo expression optimization: optimize some simple multiplications into shifts  (A*8 -> A<<3,  A/4 -> A>>2)
@@ -451,8 +452,7 @@ class ConstExprEvaluator {
         val error = "cannot calculate $left ** $right"
         return when {
             left.asIntegerValue!=null -> when {
-                // @todo BYTE?
-                right.asIntegerValue!=null -> LiteralValue(DataType.WORD, wordvalue = left.asIntegerValue.toDouble().pow(right.asIntegerValue).toInt(), position = left.position)
+                right.asIntegerValue!=null -> LiteralValue.optimalNumeric(left.asIntegerValue.toDouble().pow(right.asIntegerValue), left.position)
                 right.floatvalue!=null -> LiteralValue(DataType.FLOAT, floatvalue = left.asIntegerValue.toDouble().pow(right.floatvalue), position = left.position)
                 else -> throw ExpressionError(error, left.position)
             }

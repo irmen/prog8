@@ -162,7 +162,7 @@ class Compiler(private val options: CompilationOptions) {
                     is BranchStatement -> translate(stmt)
                     is Directive, is VarDecl, is Subroutine -> {}   // skip this, already processed these.
                     is InlineAssembly -> throw CompilerException("inline assembly is not supported by the StackVM")
-                    else -> TODO("translate statement $stmt")
+                    else -> TODO("translate statement $stmt to stackvm")
                 }
             }
         }
@@ -256,7 +256,7 @@ class Compiler(private val options: CompilationOptions) {
                     } else {
                         when(target) {
                             is Subroutine -> stackvmProg.instruction("call ${target.scopedname}")
-                            else -> TODO("non-builtin function call to $target")
+                            else -> TODO("non-builtin-function call to $target")
                         }
                     }
                 }
@@ -525,7 +525,7 @@ class AssemblyResult(val name: String) {
     }
 
     fun generateBreakpointList(): String {
-        // todo build breakpoint list!
+        // todo build breakpoint list
 /*
     def generate_breakpoint_list(self, program_filename: str) -> str:
         breakpoints = []

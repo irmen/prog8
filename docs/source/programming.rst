@@ -59,15 +59,15 @@ Code
 	- label definition
 
 Subroutine
-	Defines a piece of code that can be called by its name from different locations in your code.
-	It accepts parameters and can return result values.
-	It can define its own variables but it's not possible to define subroutines nested in other subroutines.
-	To keep things simple, you can only define subroutines inside code blocks from a module.
+    Defines a piece of code that can be called by its name from different locations in your code.
+    It accepts parameters and can return result values.
+    It can define its own variables, and it is even possible to define subroutines nested inside other subroutines.
+    Their contents is scoped accordingly.
 
 Label
-	This is a named position in your code where you can jump to from another place.
-	You can jump to it with a jump statement elsewhere. It is also possible to use a
-	subroutine call to a label (but without parameters and return value).
+    This is a named position in your code where you can jump to from another place.
+    You can jump to it with a jump statement elsewhere. It is also possible to use a
+    subroutine call to a label (but without parameters and return value).
 
 
 Scope
@@ -370,6 +370,8 @@ Their definition, using the sub statement, includes the specification of the req
 For now, only register based parameters are supported (A, X, Y and paired registers,
 the carry status bit SC and the interrupt disable bit SI as specials).
 For subroutine return values, the special SZ register is also available, it means the zero status bit.
+
+Subroutines can be defined in a Block, but also nested inside another subroutine. Everything is scoped accordingly.
 
 
 Calling a subroutine

@@ -754,7 +754,7 @@ class Program (prog: MutableList<Instruction>,
 class StackVm(val traceOutputFile: String?) {
     private val mem = Memory()
     private val evalstack = MyStack<Value>()   // evaluation stack
-    private val callstack = MyStack<Instruction>()    // subroutine call stack        (@todo maybe use evalstack as well for this?)
+    private val callstack = MyStack<Instruction>()    // subroutine call stack
     private var variables = mutableMapOf<String, Value>()     // all variables (set of all vars used by all blocks/subroutines) key = their fully scoped name
     private var carry: Boolean = false
     private var program = listOf<Instruction>()

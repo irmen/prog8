@@ -735,7 +735,7 @@ data class LiteralValue(val type: DataType,
             DataType.FLOAT -> if(floatvalue==null) throw FatalAstException("literal value missing floatvalue")
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> if(strvalue==null) throw FatalAstException("literal value missing strvalue")
             DataType.ARRAY, DataType.ARRAY_W -> if(arrayvalue==null) throw FatalAstException("literal value missing arrayvalue")
-            DataType.MATRIX -> TODO("matrix literalvalue")
+            DataType.MATRIX -> TODO("matrix literalvalue? for now, arrays are good enough for this")
         }
         if(bytevalue==null && wordvalue==null && floatvalue==null && arrayvalue==null && strvalue==null)
             throw FatalAstException("literal value without actual value")
@@ -987,7 +987,7 @@ class FunctionCall(override var target: IdentifierReference,
             if(target.nameInSource[0] == "P_carry" || target.nameInSource[0]=="P_irqd") {
                 return null // these have no return value
             }
-            return DataType.BYTE        // @todo table lookup to determine result type of builtin function call
+            return builtinFunctionReturnType(target.nameInSource[0], this.arglist, namespace)
         }
         else if(stmt is Subroutine) {
             if(stmt.returnvalues.isEmpty()) {
@@ -1004,7 +1004,6 @@ class FunctionCall(override var target: IdentifierReference,
         }
         TODO("datatype of functioncall to $stmt")
     }
-
 }
 
 
@@ -1393,7 +1392,8 @@ private fun il65Parser.ExpressionContext.toAst() : IExpression {
                 }
                 litval.floatliteral()!=null -> LiteralValue(DataType.FLOAT, floatvalue = litval.floatliteral().toAst(), position = litval.toPosition())
                 litval.stringliteral()!=null -> LiteralValue(DataType.STR, strvalue = litval.stringliteral().text, position = litval.toPosition())
-                litval.arrayliteral()!=null -> LiteralValue(DataType.ARRAY, arrayvalue = litval.arrayliteral()?.toAst(), position = litval.toPosition())  // @todo byte/word array difference?
+                litval.arrayliteral()!=null -> LiteralValue(DataType.ARRAY, arrayvalue = litval.arrayliteral()?.toAst(), position = litval.toPosition())
+                // @todo byte/word array difference needed for literal array values?
                 else -> throw FatalAstException("invalid parsed literal")
             }
         }

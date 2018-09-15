@@ -53,9 +53,7 @@ class Zeropage(private val options: CompilationOptions) {
 
         val size =
             if(vardecl.arrayspec!=null) {
-                if(vardecl.position!=null)
-                    print(vardecl.position)
-                println(" warning: allocating a large value (array) in zeropage")
+                println("${vardecl.position} warning: allocating a large value (array) in zeropage")
                 val y = (vardecl.arrayspec.y as? LiteralValue)?.asIntegerValue
                 if(y==null) {
                     // 1 dimensional array
@@ -78,9 +76,7 @@ class Zeropage(private val options: CompilationOptions) {
                     DataType.WORD -> 2
                     DataType.FLOAT -> {
                         if (options.floats) {
-                            if(vardecl.position!=null)
-                                print(vardecl.position)
-                            println(" warning: allocating a large value (float) in zeropage")
+                            println("${vardecl.position} warning: allocating a large value (float) in zeropage")
                             5
                         } else throw CompilerException("floating point option not enabled")
                     }

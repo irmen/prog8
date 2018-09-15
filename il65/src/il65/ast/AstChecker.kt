@@ -81,10 +81,6 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
             checkResult.add(SyntaxError(msg, subroutine.position))
         }
 
-//        // subroutines may only be defined directly inside a block    @todo NAH, why should we restrict that?
-//        if(subroutine.parent !is Block)
-//            err("subroutines can only be defined in a block (not in other scopes)")
-
         if(BuiltinFunctionNames.contains(subroutine.name))
             err("cannot redefine a built-in function")
 

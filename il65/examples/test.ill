@@ -22,12 +22,15 @@
 }
 
 ~ main $c003  {
+    const byte [2,3] cmatrix1 = [1,2,3,4,5,255]
   word lsb1 = lsb($ea31)
   word msb1 = msb($ea31)
   byte lsb2 = lsb($ea31)
   byte msb2 = msb($ea31)
   word lsb3 = lsb($ea)
   word msb3 = msb($ea)
+  const byte matrixsize = len(cmatrix1)
+  const byte matrixsize2 = len(not_main.cmatrix1)
 
   const word len1 = len([1,2,3,wa1, wa2, ws1, all1])
   const word wa1 = ceil(abs(-999.22))
@@ -140,7 +143,7 @@
 	}
 
 	if(6==6) {
-		A=sin(X)        ; @todo should give error of float loss of precision
+		A=lsb(sin(X))
 		X=max([1,233,Y])
 		X=min([1,2,Y])
 		X=lsl(12)
