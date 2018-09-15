@@ -367,9 +367,9 @@ Defining a subroutine
 
 Subroutines are parts of the code that can be repeatedly invoked using a subroutine call from elsewhere.
 Their definition, using the sub statement, includes the specification of the required input- and output parameters.
-For now, only register based parameters are supported (A, X, Y and paired registers,
-the carry status bit SC and the interrupt disable bit SI as specials).
-For subroutine return values, the special SZ register is also available, it means the zero status bit.
+For now, only register based parameters are supported (A, X, Y and paired registers AX, AY and XY,
+and various flags of the status register P: Pc (carry), Pz (zero), Pn (negative), Pv (overflow).
+For subroutine return values, it is the same (registers, status flags).
 
 Subroutines can be defined in a Block, but also nested inside another subroutine. Everything is scoped accordingly.
 

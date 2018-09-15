@@ -11,6 +11,7 @@ import java.util.regex.Pattern
 import javax.swing.Timer
 import kotlin.math.max
 import kotlin.math.pow
+import kotlin.system.exitProcess
 
 enum class Opcode {
 
@@ -65,6 +66,12 @@ enum class Opcode {
     INV,
     LSB,
     MSB,
+
+    // numeric type conversions not covered by other opcodes
+    B2WORD,         // convert a byte into a word where it is the lower eight bits $00xx
+    MSB2WORD,       // convert a byte into a word where it is the upper eight bits $xx00
+    B2FLOAT,        // convert byte into floating point
+    W2FLOAT,        // convert word into floating point
 
     // logical operations
     AND,
@@ -1221,6 +1228,38 @@ class StackVm(val traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 evalstack.push(second.compareNotEqual(top))
             }
+            Opcode.B2WORD -> {
+                val byte = evalstack.pop()
+                if(byte.type==DataType.BYTE) {
+                    evalstack.push(Value(DataType.WORD, byte.integerValue()))
+                } else {
+                    throw VmExecutionException("attempt to make a word from a non-byte value $byte")
+                }
+            }
+            Opcode.MSB2WORD -> {
+                val byte = evalstack.pop()
+                if(byte.type==DataType.BYTE) {
+                    evalstack.push(Value(DataType.WORD, byte.integerValue() * 256))
+                } else {
+                    throw VmExecutionException("attempt to make a word from a non-byte value $byte")
+                }
+            }
+            Opcode.B2FLOAT -> {
+                val byte = evalstack.pop()
+                if(byte.type==DataType.BYTE) {
+                    evalstack.push(Value(DataType.FLOAT, byte.integerValue()))
+                } else {
+                    throw VmExecutionException("attempt to make a float from a non-byte value $byte")
+                }
+            }
+            Opcode.W2FLOAT -> {
+                val byte = evalstack.pop()
+                if(byte.type==DataType.WORD) {
+                    evalstack.push(Value(DataType.FLOAT, byte.integerValue()))
+                } else {
+                    throw VmExecutionException("attempt to make a float from a non-word value $byte")
+                }
+            }
             else -> throw VmExecutionException("unimplemented opcode: ${ins.opcode}")
         }
 
@@ -1235,6 +1274,13 @@ class StackVm(val traceOutputFile: String?) {
 
 
 fun main(args: Array<String>) {
+    println("\nStackVM by Irmen de Jong (irmen@razorvine.net)")
+    println("This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html\n")
+    if(args.size != 1) {
+        System.err.println("requires one argument: name of stackvm sourcecode file")
+        exitProcess(1)
+    }
+
     val program = Program.load(args.first())
     val vm = StackVm(traceOutputFile = null)
     val dialog = ScreenDialog()

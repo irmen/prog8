@@ -11,19 +11,18 @@ import kotlin.system.exitProcess
 
 
 fun main(args: Array<String>) {
+    println("\nIL65 compiler by Irmen de Jong (irmen@razorvine.net)")
+    println("This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html\n")
+    if(args.size != 1) {
+        System.err.println("requires one argument: name of module file")
+        exitProcess(1)
+    }
+
+    val startTime = System.currentTimeMillis()
+    val filepath = Paths.get(args[0]).normalize()
+
     try {
-        println("\nIL65 compiler by Irmen de Jong (irmen@razorvine.net)")
-        println("This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html\n")
-
         // import main module and process additional imports
-
-        if(args.size != 1) {
-            System.err.println("module filename argument missing")
-            exitProcess(1)
-        }
-
-        val startTime = System.currentTimeMillis()
-        val filepath = Paths.get(args[0]).normalize()
         val moduleAst = importModule(filepath)
         moduleAst.linkParents()
         val globalNameSpaceBeforeOptimization = moduleAst.definingScope()
