@@ -300,6 +300,7 @@ class Compiler(private val options: CompilationOptions) {
                 "-" -> "sub"
                 "*" -> "mul"
                 "/" -> "div"
+                "%" -> "remainder"
                 "**" -> "pow"
                 "&" -> "bitand"
                 "|" -> "bitor"

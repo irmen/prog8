@@ -9,8 +9,7 @@ import java.io.PrintWriter
 import java.util.*
 import java.util.regex.Pattern
 import javax.swing.Timer
-import kotlin.math.max
-import kotlin.math.pow
+import kotlin.math.*
 import kotlin.system.exitProcess
 
 enum class Opcode {
@@ -34,6 +33,7 @@ enum class Opcode {
     SUB,
     MUL,
     DIV,
+    REMAINDER,
     POW,
     NEG,
     SHL,
@@ -305,6 +305,13 @@ class Value(val type: DataType, private val numericvalue: Number?, val stringval
         val v1 = numericValue()
         val v2 = other.numericValue()
         val result = v1.toDouble() / v2.toDouble()
+        return Value(type, result)
+    }
+
+    fun remainder(other: Value): Value? {
+        val v1 = numericValue()
+        val v2 = other.numericValue()
+        val result = v1.toDouble() % v2.toDouble()
         return Value(type, result)
     }
 
@@ -904,6 +911,10 @@ class StackVm(val traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 evalstack.push(second.div(top))
             }
+            Opcode.REMAINDER -> {
+                val (top, second) = evalstack.pop2()
+                evalstack.push(second.remainder(top))
+            }
             Opcode.POW -> {
                 val (top, second) = evalstack.pop2()
                 evalstack.push(second.pow(top))
@@ -1033,6 +1044,9 @@ class StackVm(val traceOutputFile: String?) {
                             else -> throw VmExecutionException("cannot get length of $value")
                         }
                     }
+                    Syscall.FUNC_SIN -> evalstack.push(Value(DataType.FLOAT, sin(evalstack.pop().numericValue().toDouble())))
+                    Syscall.FUNC_COS -> evalstack.push(Value(DataType.FLOAT, cos(evalstack.pop().numericValue().toDouble())))
+                    Syscall.FUNC_ROUND -> evalstack.push(Value(DataType.WORD, evalstack.pop().numericValue().toDouble().roundToInt()))
                     // todo: implement remaining functions
                     else -> throw VmExecutionException("unimplemented syscall $syscall")
                 }

@@ -11,6 +11,7 @@ class ConstExprEvaluator {
             "-" -> minus(left, right)
             "*" -> multiply(left, right)
             "/" -> divide(left, right)
+            "%" -> remainder(left, right)
             "**" -> power(left, right)
             "&" -> bitwiseand(left, right)
             "|" -> bitwiseor(left, right)
@@ -296,6 +297,35 @@ class ConstExprEvaluator {
                 right.floatvalue!=null -> {
                     if(right.floatvalue==0.0) throw ExpressionError("attempt to divide by zero", left.position)
                     LiteralValue(DataType.FLOAT, floatvalue = left.floatvalue / right.floatvalue, position = left.position)
+                }
+                else -> throw ExpressionError(error, left.position)
+            }
+            else -> throw ExpressionError(error, left.position)
+        }
+    }
+
+    private fun remainder(left: LiteralValue, right: LiteralValue): LiteralValue {
+        val error = "cannot compute remainder of $left by $right"
+        return when {
+            left.asIntegerValue!=null -> when {
+                right.asIntegerValue!=null -> {
+                    if(right.asIntegerValue==0) throw ExpressionError("attempt to divide by zero", left.position)
+                    LiteralValue.optimalNumeric(left.asIntegerValue % right.asIntegerValue, left.position)
+                }
+                right.floatvalue!=null -> {
+                    if(right.floatvalue==0.0) throw ExpressionError("attempt to divide by zero", left.position)
+                    LiteralValue(DataType.FLOAT, floatvalue = left.asIntegerValue % right.floatvalue, position = left.position)
+                }
+                else -> throw ExpressionError(error, left.position)
+            }
+            left.floatvalue!=null -> when {
+                right.asIntegerValue!=null -> {
+                    if(right.asIntegerValue==0) throw ExpressionError("attempt to divide by zero", left.position)
+                    LiteralValue(DataType.FLOAT, floatvalue = left.floatvalue % right.asIntegerValue, position = left.position)
+                }
+                right.floatvalue!=null -> {
+                    if(right.floatvalue==0.0) throw ExpressionError("attempt to divide by zero", left.position)
+                    LiteralValue(DataType.FLOAT, floatvalue = left.floatvalue % right.floatvalue, position = left.position)
                 }
                 else -> throw ExpressionError(error, left.position)
             }

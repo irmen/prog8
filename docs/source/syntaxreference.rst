@@ -316,9 +316,8 @@ address-of: ``#``
 	Takes the address of the symbol following it:   ``word  address =  #somevar``
 
 
-arithmetic: ``+``  ``-``  ``*``  ``/``  ``//``  ``**``  ``%``
+arithmetic: ``+``  ``-``  ``*``  ``/``  ``**``  ``%``
 	``+``, ``-``, ``*``, ``/`` are the familiar arithmetic operations.
-	``//`` means *integer division* even when the operands are floating point values:  ``9.5 // 2.5`` is 3 (and not 3.8)
 	``**`` is the power operator: ``3 ** 5`` is equal to 3*3*3*3*3 and is 243.
 	``%`` is the remainder operator: ``25 % 7`` is 4.
 
@@ -329,7 +328,7 @@ bitwise arithmetic: ``&``  ``|``  ``^``  ``~``
 assignment: ``=``
 	Sets the target on the LHS (left hand side) of the operator to the value of the expression on the RHS (right hand side).
 
-augmented assignment: ``+=``  ``-=``  ``*=``  ``/=``  ``//=``  ``**=``  ``&=``  ``|=``  ``^=``
+augmented assignment: ``+=``  ``-=``  ``*=``  ``/=``  ``**=``  ``&=``  ``|=``  ``^=``
 	Syntactic sugar; ``A += X`` is equivalent to ``A = A + X``
 
 postfix increment and decrement: ``++``  ``--``
