@@ -7,7 +7,7 @@ import kotlin.math.floor
 
 val BuiltinFunctionNames = setOf(
         "P_carry", "P_irqd", "rol", "ror", "rol2", "ror2", "lsl", "lsr",
-        "sin", "cos", "abs", "acos", "asin", "tan", "atan",
+        "sin", "cos", "abs", "acos", "asin", "tan", "atan", "rnd", "rndw", "rndf",
         "log", "log10", "sqrt", "rad", "deg", "round", "floor", "ceil",
         "max", "min", "avg", "sum", "len", "any", "all", "lsb", "msb")
 
@@ -40,8 +40,9 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
     }
 
     return when (function) {
-        "sin", "cos", "tan", "asin", "acos", "atan", "log", "log10", "sqrt", "rad", "deg", "avg" -> DataType.FLOAT
-        "len", "lsb", "msb", "any", "all" -> DataType.BYTE
+        "sin", "cos", "tan", "asin", "acos", "atan", "log", "log10", "sqrt", "rad", "deg", "avg", "rndf" -> DataType.FLOAT
+        "len", "lsb", "msb", "any", "all", "rnd" -> DataType.BYTE
+        "rndw" -> DataType.WORD
         "rol", "rol2", "ror", "ror2", "P_carry", "P_irqd" -> null // no return value so no datatype
         "abs" -> args.single().resultingDatatype(namespace)
         "max", "min", "sum" -> datatypeFromListArg(args.single())

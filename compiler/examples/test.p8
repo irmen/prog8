@@ -19,6 +19,7 @@
     const float round1 =  len([1,2,3])
     const float sin1 =  len([1,2,3])
     float cos1 =  len([1,2,3])
+
 }
 
 ~ main $c003  {
@@ -41,7 +42,7 @@
   const byte wa2b= abs(-99.w)
   const byte wa2c = abs(-99)
   const word wa2d = abs(-999)
-  const float wa3 = abs(-1.23456)
+  float wa3 = abs(-1.23456)
   const float wa4 = abs(-133)
   const float avg1 = avg([-1.23456, 99999])
   const float sum1 = sum([-1.23456, 99999])
@@ -58,6 +59,15 @@
 
   const word min1 = min([1,2,3,99+22])
     word dinges = round(not_main.len1)
+
+    wa3 = rnd()
+    wa3 = rndw()
+    wa3 = rndf(22)
+
+    A += 8
+    A += rnd()
+    A =A+ rnd()
+
 
 	A = X>2
 	X = Y>Y
@@ -177,11 +187,12 @@
     blerp3 = blerp2
     A=blerp2
     A=$02
-    A=$002
-    A=$00ff
+    ;A=$02.w     ; @todo error word/byte
+    ;A=$002      ; @todo error word/byte
+    ;A=$00ff     ; @todo error word/byte
     A=%11001100
-    A=%0010011001
-    A=99.w
+    ; A=%0010011001   ;@todo error word/byte
+    ; A=99.w  ; @todo error word/byte
     XY=blerp1
     X=blerp2
     return

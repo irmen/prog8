@@ -118,7 +118,8 @@ enum class Opcode {
     CLC,        // clear carry status flag  NOTE: is mostly fake, carry flag is not affected by any numeric operations
     NOP,
     BREAK,      // breakpoint
-    TERMINATE   // end the program
+    TERMINATE,  // end the program
+    _LINE       // record source file line number
 }
 
 enum class Syscall(val callNr: Short) {
@@ -131,10 +132,6 @@ enum class Syscall(val callNr: Short) {
     GFX_PIXEL(16),              // plot a pixel at (x,y,color) pushed on stack in that order
     GFX_CLEARSCR(17),           // clear the screen with color pushed on stack
     GFX_TEXT(18),               // write text on screen at (x,y,color,text) pushed on stack in that order
-    RANDOM(19),                 // push a random byte on the stack
-    RANDOM_W(20),               // push a random word on the stack
-    RANDOM_F(21),               // push a random float on the stack (between 0.0 and 1.0)
-
 
     FUNC_P_CARRY(100),
     FUNC_P_IRQD(101),
@@ -167,8 +164,10 @@ enum class Syscall(val callNr: Short) {
     FUNC_ANY(128),
     FUNC_ALL(129),
     FUNC_LSB(130),
-    FUNC_MSB(131)
-
+    FUNC_MSB(131),
+    FUNC_RND(132),                // push a random byte on the stack
+    FUNC_RNDW(133),               // push a random word on the stack
+    FUNC_RNDF(134)                // push a random float on the stack (between 0.0 and 1.0)
 }
 
 class Memory {
@@ -575,6 +574,7 @@ class Program (prog: MutableList<Instruction>,
                     val opcode=Opcode.valueOf(parts[0].toUpperCase())
                     val args = if(parts.size==2) parts[1] else null
                     val instruction = when(opcode) {
+                        Opcode._LINE -> Instruction(opcode, Value(DataType.STR, null, stringvalue = args))
                         Opcode.JUMP, Opcode.CALL, Opcode.BMI, Opcode.BPL,
                         Opcode.BEQ, Opcode.BNE, Opcode.BCS, Opcode.BCC -> {
                             if(args!!.startsWith('$')) {
@@ -608,7 +608,7 @@ class Program (prog: MutableList<Instruction>,
                         labels[nextInstructionLabelname] = instruction
                         nextInstructionLabelname = ""
                     }
-                }
+                } else throw VmExecutionException("syntax error at line ${lineNr+1}")
             }
         }
 
@@ -770,6 +770,7 @@ class StackVm(val traceOutputFile: String?) {
     private lateinit var currentIns: Instruction
     private lateinit var canvas: BitmapScreenPanel
     private val rnd = Random()
+    private var sourceLine = ""
 
     fun load(program: Program, canvas: BitmapScreenPanel) {
         this.program = program.program
@@ -809,7 +810,11 @@ class StackVm(val traceOutputFile: String?) {
                     throw VmExecutionException("too many nested/recursive calls")
             } catch (bp: VmBreakpointException) {
                 currentIns = currentIns.next
+                println("breakpoint encountered, source line: $sourceLine")
                 throw bp
+            } catch (es: EmptyStackException) {
+                System.err.println("stack error!  source line: $sourceLine")
+                throw es
             }
         }
         val time = System.currentTimeMillis()-start
@@ -1012,16 +1017,16 @@ class StackVm(val traceOutputFile: String?) {
                         val (y, x) = evalstack.pop2()
                         canvas.writeText(x.integerValue(), y.integerValue(), text.stringvalue!!, color.integerValue())
                     }
-                    Syscall.RANDOM -> evalstack.push(Value(DataType.BYTE, rnd.nextInt() and 255))
-                    Syscall.RANDOM_W -> evalstack.push(Value(DataType.WORD, rnd.nextInt() and 65535))
-                    Syscall.RANDOM_F -> evalstack.push(Value(DataType.FLOAT, rnd.nextDouble()))
+                    Syscall.FUNC_RND -> evalstack.push(Value(DataType.BYTE, rnd.nextInt() and 255))
+                    Syscall.FUNC_RNDW -> evalstack.push(Value(DataType.WORD, rnd.nextInt() and 65535))
+                    Syscall.FUNC_RNDF -> evalstack.push(Value(DataType.FLOAT, rnd.nextDouble()))
                     else -> throw VmExecutionException("unimplemented syscall $syscall")
                 }
             }
 
             Opcode.SEC -> carry = true
             Opcode.CLC -> carry = false
-            Opcode.TERMINATE -> throw VmTerminationException("execution terminated")
+            Opcode.TERMINATE -> throw VmTerminationException("terminate instruction")
             Opcode.BREAK -> throw VmBreakpointException()
 
             Opcode.INC_MEM -> {
@@ -1129,7 +1134,11 @@ class StackVm(val traceOutputFile: String?) {
             Opcode.BMI -> return if(evalstack.pop().numericValue().toDouble()<0.0) ins.next else ins.nextAlt!!
             Opcode.BPL -> return if(evalstack.pop().numericValue().toDouble()>=0.0) ins.next else ins.nextAlt!!
             Opcode.CALL -> callstack.push(ins.nextAlt)
-            Opcode.RETURN -> return callstack.pop()
+            Opcode.RETURN -> {
+                if(callstack.empty())
+                    throw VmTerminationException("return instruction with empty call stack")
+                return callstack.pop()
+            }
             Opcode.PUSH_VAR -> {
                 val varname = ins.arg!!.stringvalue ?: throw VmExecutionException("${ins.opcode} expects string argument (the variable name)")
                 val variable = variables[varname] ?: throw VmExecutionException("unknown variable: $varname")
@@ -1262,6 +1271,9 @@ class StackVm(val traceOutputFile: String?) {
                     throw VmExecutionException("attempt to make a float from a non-word value $byte")
                 }
             }
+            Opcode._LINE -> {
+                sourceLine = ins.arg!!.stringvalue!!
+            }
             else -> throw VmExecutionException("unimplemented opcode: ${ins.opcode}")
         }
 
@@ -1292,12 +1304,15 @@ fun main(args: Array<String>) {
         dialog.isVisible = true
         dialog.start()
 
-        val programTimer = Timer(10) { _ ->
+        val programTimer = Timer(10) { a ->
             try {
                 vm.step()
             } catch(bp: VmBreakpointException) {
                 println("Breakpoint: execution halted. Press enter to resume.")
                 readLine()
+            } catch (tx: VmTerminationException) {
+                println("Execution halted: ${tx.message}")
+                (a.source as Timer).stop()
             }
         }
         programTimer.start()

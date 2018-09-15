@@ -486,6 +486,15 @@ any(x)
 all(x)
 	1 ('true') if all of the values in the non-scalar (array or matrix) value x are 'true' (not zero), else 0 ('false')
 
+rnd()
+    returns a pseudo-random byte from 0..255
+
+rndw()
+    returns a pseudo-random word from 0..65535
+
+rndf()
+    returns a pseudo-random float between 0.0 and 1.0
+
 lsl(x)
     Shift the bits in x (byte or word) one position to the left.
     Bit 0 is set to 0 (and the highest bit is shifted into the status register's Carry flag)

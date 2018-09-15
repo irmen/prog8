@@ -142,7 +142,10 @@ class Compiler(private val options: CompilationOptions) {
             when(directive.directive) {
                 "%asminclude" -> throw CompilerException("can't use %asminclude in stackvm")
                 "%asmbinary" -> throw CompilerException("can't use %asmbinary in stackvm")
-                "%breakpoint" -> stackvmProg.instruction("break")
+                "%breakpoint" -> {
+                    stackvmProg.line(directive.position)
+                    stackvmProg.instruction("break")
+                }
             }
             return super.process(directive)
         }
@@ -154,7 +157,7 @@ class Compiler(private val options: CompilationOptions) {
                     is AnonymousStatementList -> translate(stmt.statements)
                     is Label -> translate(stmt)
                     is Return -> translate(stmt)
-                    is Assignment -> translate(stmt)
+                    is Assignment -> translate(stmt)        // normal and augmented assignments
                     is PostIncrDecr -> translate(stmt)
                     is Jump -> translate(stmt)
                     is FunctionCallStatement -> translate(stmt)
@@ -179,6 +182,7 @@ class Compiler(private val options: CompilationOptions) {
              * _stmt_999_continue:
              *      ...
              */
+            stackvmProg.line(branch.position)
             val labelElse = makeLabel("else")
             val labelContinue = makeLabel("continue")
             val opcode = when(branch.condition) {
@@ -220,6 +224,7 @@ class Compiler(private val options: CompilationOptions) {
              * _stmt_999_continue:
              *      ...
              */
+            stackvmProg.line(stmt.position)
             translate(stmt.condition)
             val labelElse = makeLabel("else")
             val labelContinue = makeLabel("continue")
@@ -255,7 +260,9 @@ class Compiler(private val options: CompilationOptions) {
                         stackvmProg.instruction("syscall FUNC_${expr.target.nameInSource[0].toUpperCase()}")  // call builtin function
                     } else {
                         when(target) {
-                            is Subroutine -> stackvmProg.instruction("call ${target.scopedname}")
+                            is Subroutine -> {
+                                stackvmProg.instruction("call ${target.scopedname}")
+                            }
                             else -> TODO("non-builtin-function call to $target")
                         }
                     }
@@ -263,7 +270,9 @@ class Compiler(private val options: CompilationOptions) {
                 is IdentifierReference -> {
                     val target = expr.targetStatement(namespace)
                     when(target) {
-                        is VarDecl -> stackvmProg.instruction("push_var ${target.scopedname}")
+                        is VarDecl -> {
+                            stackvmProg.instruction("push_var ${target.scopedname}")
+                        }
                         else -> throw CompilerException("expression identifierref should be a vardef, not $target")
                     }
                 }
@@ -309,6 +318,7 @@ class Compiler(private val options: CompilationOptions) {
         }
 
         private fun translate(stmt: FunctionCallStatement) {
+            stackvmProg.line(stmt.position)
             val targetStmt = stmt.target.targetStatement(namespace)!!
             if(targetStmt is BuiltinFunctionStatementPlaceholder) {
                 stmt.arglist.forEach { translate(it) }
@@ -337,10 +347,12 @@ class Compiler(private val options: CompilationOptions) {
                             else -> throw CompilerException("invalid jump target type ${target::class}")
                         }
                     }
+            stackvmProg.line(stmt.position)
             stackvmProg.instruction(instr)
         }
 
         private fun translate(stmt: PostIncrDecr) {
+            stackvmProg.line(stmt.position)
             if(stmt.target.register!=null) {
                 when(stmt.operator) {
                     "++" -> stackvmProg.instruction("inc_var ${stmt.target.register}")
@@ -356,7 +368,33 @@ class Compiler(private val options: CompilationOptions) {
         }
 
         private fun translate(stmt: Assignment) {
+            stackvmProg.line(stmt.position)
             translate(stmt.value)
+            val valueDt = stmt.value.resultingDatatype(namespace)
+            val targetDt = stmt.target.determineDatatype(namespace, stmt)
+            if(valueDt!=targetDt) {
+                // convert value to target datatype if possible
+                when(targetDt) {
+                    DataType.BYTE -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
+                    DataType.WORD -> {
+                        if(valueDt==DataType.BYTE)
+                            stackvmProg.instruction("b2word")
+                        else
+                            throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
+                    }
+                    DataType.FLOAT -> {
+                        when (valueDt) {
+                            DataType.BYTE -> stackvmProg.instruction("b2float")
+                            DataType.WORD -> stackvmProg.instruction("w2float")
+                            else -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
+                        }
+                    }
+                    DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
+                    DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
+                    // todo: maybe if you assign byte or word to array/matrix, clear it with that value?
+                }
+            }
+
             if(stmt.aug_op!=null) {
                 // augmented assignment
                 if(stmt.target.identifier!=null) {
@@ -402,6 +440,7 @@ class Compiler(private val options: CompilationOptions) {
             if(stmt.values.isNotEmpty()) {
                 TODO("return with value(s) not yet supported: $stmt")
             }
+            stackvmProg.line(stmt.position)
             stackvmProg.instruction("return")
         }
 
@@ -471,6 +510,10 @@ class StackVmProgram(val name: String) {
 
     fun label(name: String) {
         instructions.add("$name:")
+    }
+
+    fun line(position: Position) {
+        instructions.add("    _line ${position.line} ${position.file}")
     }
 }
 
