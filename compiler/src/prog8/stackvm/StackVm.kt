@@ -119,15 +119,15 @@ enum class Opcode {
     NOP,
     BREAK,      // breakpoint
     TERMINATE,  // end the program
-    _LINE       // record source file line number
+    LINE        // record source file line number
 }
 
 enum class Syscall(val callNr: Short) {
-    WRITE_MEMCHR(10),           // print a single char from the memory
-    WRITE_MEMSTR(11),           // print a 0-terminated petscii string from the memory
+    WRITE_MEMCHR(10),           // print a single char from the memory address popped from stack
+    WRITE_MEMSTR(11),           // print a 0-terminated petscii string from the memory address popped from stack
     WRITE_NUM(12),              // pop from the evaluation stack and print it as a number
     WRITE_CHAR(13),             // pop from the evaluation stack and print it as a single petscii character
-    WRITE_VAR(14),              // print the number or string from the given variable
+    WRITE_STR(14),              // pop from the evaluation stack and print it as a string
     INPUT_VAR(15),              // user input a string into a variable
     GFX_PIXEL(16),              // plot a pixel at (x,y,color) pushed on stack in that order
     GFX_CLEARSCR(17),           // clear the screen with color pushed on stack
@@ -488,24 +488,16 @@ class Value(val type: DataType, private val numericvalue: Number?, val stringval
 
 data class Instruction(val opcode: Opcode,
                        val arg: Value? = null,
-                       val callArgs: List<Value>? = emptyList(),
-                       val callArgsAllocations: List<String> = emptyList(),
                        val callLabel: String? = null)
 {
     lateinit var next: Instruction
     var nextAlt: Instruction? = null
 
-    init {
-        if(callLabel!=null) {
-            if(callArgs!!.size != callArgsAllocations.size)
-                throw VmExecutionException("for $opcode the callArgsAllocations size is not the same as the callArgs size")
-        }
-    }
     override fun toString(): String {
         return if(callLabel==null)
             "$opcode  $arg"
         else
-            "$opcode  $callLabel  $callArgs  $callArgsAllocations"
+            "$opcode  $callLabel  $arg"
     }
 }
 
@@ -571,10 +563,11 @@ class Program (prog: MutableList<Instruction>,
                     nextInstructionLabelname = line.substring(0, line.length-1)
                 } else if(line.startsWith(' ')) {
                     val parts = line.trimStart().split(splitpattern, limit = 2)
-                    val opcode=Opcode.valueOf(parts[0].toUpperCase())
+                    val opcodeStr = parts[0].toUpperCase()
+                    val opcode=Opcode.valueOf(if(opcodeStr.startsWith('_')) opcodeStr.substring(1) else opcodeStr)
                     val args = if(parts.size==2) parts[1] else null
                     val instruction = when(opcode) {
-                        Opcode._LINE -> Instruction(opcode, Value(DataType.STR, null, stringvalue = args))
+                        Opcode.LINE -> Instruction(opcode, Value(DataType.STR, null, stringvalue = args))
                         Opcode.JUMP, Opcode.CALL, Opcode.BMI, Opcode.BPL,
                         Opcode.BEQ, Opcode.BNE, Opcode.BCS, Opcode.BCC -> {
                             if(args!!.startsWith('$')) {
@@ -592,11 +585,8 @@ class Program (prog: MutableList<Instruction>,
                             Instruction(opcode, Value(DataType.STR, null, withoutQuotes))
                         }
                         Opcode.SYSCALL -> {
-                            val syscallparts = args!!.split(' ')
-                            val call = Syscall.valueOf(syscallparts[0])
-                            val callValue = if(syscallparts.size==2) getArgValue(syscallparts[1]) else null
-                            val callValues = if(callValue==null) emptyList() else listOf(callValue)
-                            Instruction(opcode, Value(DataType.BYTE, call.callNr), callValues)
+                            val call = Syscall.valueOf(args!!)
+                            Instruction(opcode, Value(DataType.BYTE, call.callNr))
                         }
                         else -> {
                             // println("INSTR $opcode at $lineNr  args=$args")
@@ -815,6 +805,9 @@ class StackVm(val traceOutputFile: String?) {
             } catch (es: EmptyStackException) {
                 System.err.println("stack error!  source line: $sourceLine")
                 throw es
+            } catch (x: RuntimeException) {
+                System.err.println("runtime error!  source line: $sourceLine")
+                throw x
             }
         }
         val time = System.currentTimeMillis()-start
@@ -975,21 +968,31 @@ class StackVm(val traceOutputFile: String?) {
                 val callId = ins.arg!!.integerValue().toShort()
                 val syscall = Syscall.values().first { it.callNr == callId }
                 when (syscall) {
-                    Syscall.WRITE_MEMCHR -> print(Petscii.decodePetscii(listOf(mem.getByte(ins.callArgs!![0].integerValue())), true))
-                    Syscall.WRITE_MEMSTR -> print(mem.getString(ins.callArgs!![0].integerValue()))
-                    Syscall.WRITE_NUM -> print(evalstack.pop().numericValue())
-                    Syscall.WRITE_CHAR -> print(Petscii.decodePetscii(listOf(evalstack.pop().integerValue().toShort()), true))
-                    Syscall.WRITE_VAR -> {
-                        val varname = ins.callArgs!![0].stringvalue ?: throw VmExecutionException("$syscall expects string argument (the variable name)")
-                        val variable = variables[varname] ?: throw VmExecutionException("unknown variable: $varname")
-                        when(variable.type) {
-                            DataType.BYTE, DataType.WORD, DataType.FLOAT -> print(variable.numericValue())
-                            DataType.STR -> print(variable.stringvalue)
-                            else -> throw VmExecutionException("invalid datatype")
+                    Syscall.WRITE_MEMCHR -> {
+                        val address = evalstack.pop().integerValue()
+                        print(Petscii.decodePetscii(listOf(mem.getByte(address)), true))
+                    }
+                    Syscall.WRITE_MEMSTR -> {
+                        val address = evalstack.pop().integerValue()
+                        print(mem.getString(address))
+                    }
+                    Syscall.WRITE_NUM -> {
+                        print(evalstack.pop().numericValue())
+                    }
+                    Syscall.WRITE_CHAR -> {
+                        print(Petscii.decodePetscii(listOf(evalstack.pop().integerValue().toShort()), true))
+                    }
+                    Syscall.WRITE_STR -> {
+                        val value = evalstack.pop()
+                        when(value.type){
+                            DataType.BYTE, DataType.WORD, DataType.FLOAT -> print(value.numericValue())
+                            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> print(value.stringvalue)
+                            DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX -> print(value.arrayvalue)
                         }
                     }
                     Syscall.INPUT_VAR -> {
-                        val varname = ins.callArgs!![0].stringvalue ?: throw VmExecutionException("$syscall expects string argument (the variable name)")
+                        // TODO: replace with regular INPUT_STR that simply puts a str on the stack (1 argument: the max. length of the input)
+                        val varname = ins.callLabel ?: throw VmExecutionException("$syscall expects string argument (the variable name)")
                         val variable = variables[varname] ?: throw VmExecutionException("unknown variable: $varname")
                         val input = readLine() ?: throw VmExecutionException("expected user input")
                         val value = when(variable.type) {
@@ -1020,6 +1023,17 @@ class StackVm(val traceOutputFile: String?) {
                     Syscall.FUNC_RND -> evalstack.push(Value(DataType.BYTE, rnd.nextInt() and 255))
                     Syscall.FUNC_RNDW -> evalstack.push(Value(DataType.WORD, rnd.nextInt() and 65535))
                     Syscall.FUNC_RNDF -> evalstack.push(Value(DataType.FLOAT, rnd.nextDouble()))
+                    Syscall.FUNC_LEN -> {
+                        val value = evalstack.pop()
+                        when(value.type) {
+                            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS ->
+                                evalstack.push(Value(DataType.WORD, value.stringvalue!!.length))
+                            DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX ->
+                                evalstack.push(Value(DataType.WORD, value.arrayvalue!!.size))
+                            else -> throw VmExecutionException("cannot get length of $value")
+                        }
+                    }
+                    // todo: implement remaining functions
                     else -> throw VmExecutionException("unimplemented syscall $syscall")
                 }
             }
@@ -1271,7 +1285,7 @@ class StackVm(val traceOutputFile: String?) {
                     throw VmExecutionException("attempt to make a float from a non-word value $byte")
                 }
             }
-            Opcode._LINE -> {
+            Opcode.LINE -> {
                 sourceLine = ins.arg!!.stringvalue!!
             }
             else -> throw VmExecutionException("unimplemented opcode: ${ins.opcode}")

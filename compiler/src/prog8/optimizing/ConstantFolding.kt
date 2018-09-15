@@ -30,8 +30,8 @@ class ConstantFolding(private val globalNamespace: INameScope) : IAstProcessor {
         val result = super.process(decl)
 
         if(decl.type==VarDeclType.CONST || decl.type==VarDeclType.VAR) {
-            when {
-                decl.datatype == DataType.FLOAT -> {
+            when(decl.datatype) {
+                DataType.FLOAT -> {
                     // vardecl: for float vars, promote constant integer initialization values to floats
                     val literal = decl.value as? LiteralValue
                     if (literal != null && (literal.type == DataType.BYTE || literal.type==DataType.WORD)) {
@@ -39,7 +39,7 @@ class ConstantFolding(private val globalNamespace: INameScope) : IAstProcessor {
                         decl.value = newValue
                     }
                 }
-                decl.datatype == DataType.BYTE || decl.datatype == DataType.WORD -> {
+                DataType.BYTE, DataType.WORD -> {
                     // vardecl: for byte/word vars, convert char/string of length 1 initialization values to integer
                     val literal = decl.value as? LiteralValue
                     if (literal != null && literal.isString && literal.strvalue?.length == 1) {
@@ -48,6 +48,42 @@ class ConstantFolding(private val globalNamespace: INameScope) : IAstProcessor {
                         decl.value = newValue
                     }
                 }
+                DataType.MATRIX -> {
+                    (decl.value as LiteralValue).let {
+                        val intvalue = it.asIntegerValue
+                        if(intvalue!=null) {
+                            // replace the single int value by a properly sized array to fill the matrix.
+                            val size = decl.arrayspec!!.size()
+                            if(size!=null) {
+                                val newArray = Array<IExpression>(size) { _ -> LiteralValue(DataType.BYTE, bytevalue = intvalue.toShort(), position = it.position) }
+                                decl.value = LiteralValue(DataType.ARRAY, arrayvalue = newArray, position = it.position)
+                            } else {
+                                addError(SyntaxError("matrix size spec should be constant integer values", it.position))
+                            }
+                        }
+                    }
+                }
+                DataType.ARRAY, DataType.ARRAY_W -> {
+                    (decl.value as LiteralValue).let {
+                        val intvalue = it.asIntegerValue
+                        if(intvalue!=null) {
+                            // replace the single int value by a properly sized array to fill the array with.
+                            val size = decl.arrayspec!!.size()
+                            if(size!=null) {
+                                val newArray = Array<IExpression>(size) { _ ->
+                                    if (decl.datatype == DataType.ARRAY)
+                                        LiteralValue(DataType.BYTE, bytevalue = intvalue.toShort(), position = it.position)
+                                    else
+                                        LiteralValue(DataType.WORD, wordvalue = intvalue, position = it.position)
+                                }
+                                decl.value = LiteralValue(decl.datatype, arrayvalue = newArray, position=it.position)
+                            } else {
+                                addError(SyntaxError("array size should be a constant integer value", it.position))
+                            }
+                        }
+                    }
+                }
+                else -> return result
             }
         }
         return result
@@ -170,7 +206,7 @@ class ConstantFolding(private val globalNamespace: INameScope) : IAstProcessor {
                             val v = LiteralValue(DataType.WORD, wordvalue = it, position = range.position)
                             v.parent = range.parent
                             v
-                        }.toMutableList(), position = from.position)
+                        }.toTypedArray(), position = from.position)
                     }
                     from.type==DataType.BYTE && to.type==DataType.BYTE -> {
                         // range on byte value  boundaries
@@ -182,7 +218,7 @@ class ConstantFolding(private val globalNamespace: INameScope) : IAstProcessor {
                             val v = LiteralValue(DataType.BYTE, bytevalue = it.toShort(), position = range.position)
                             v.parent = range.parent
                             v
-                        }.toMutableList(), position = from.position)
+                        }.toTypedArray(), position = from.position)
                     }
                     from.strvalue != null && to.strvalue != null -> {
                         // char range
@@ -206,9 +242,9 @@ class ConstantFolding(private val globalNamespace: INameScope) : IAstProcessor {
 
     override fun process(literalValue: LiteralValue): LiteralValue {
         if(literalValue.arrayvalue!=null) {
-            val newArray = literalValue.arrayvalue.map { it.process(this) }
-            literalValue.arrayvalue.clear()
-            literalValue.arrayvalue.addAll(newArray)
+            val newArray = literalValue.arrayvalue.map { it.process(this) }.toTypedArray()
+            val newValue = LiteralValue(literalValue.type, arrayvalue = newArray, position = literalValue.position)
+            return super.process(newValue)
         }
         return super.process(literalValue)
     }

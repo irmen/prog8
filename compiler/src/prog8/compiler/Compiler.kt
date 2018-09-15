@@ -257,7 +257,8 @@ class Compiler(private val options: CompilationOptions) {
                     val target = expr.target.targetStatement(namespace)
                     if(target is BuiltinFunctionStatementPlaceholder) {
                         // call to a builtin function
-                        stackvmProg.instruction("syscall FUNC_${expr.target.nameInSource[0].toUpperCase()}")  // call builtin function
+                        val funcname = expr.target.nameInSource[0].toUpperCase()
+                        createFunctionCall(funcname)  // call builtin function
                     } else {
                         when(target) {
                             is Subroutine -> {
@@ -279,8 +280,8 @@ class Compiler(private val options: CompilationOptions) {
                 else -> {
                     val lv = expr.constValue(namespace) ?: throw CompilerException("constant expression required, not $expr")
                     when(lv.type) {
-                        DataType.BYTE -> stackvmProg.instruction("push b:${lv.bytevalue!!.toString(16)}")
-                        DataType.WORD -> stackvmProg.instruction("push w:${lv.wordvalue!!.toString(16)}")
+                        DataType.BYTE -> stackvmProg.instruction("push b:%02x".format(lv.bytevalue!!))
+                        DataType.WORD -> stackvmProg.instruction("push w:%04x".format(lv.wordvalue!!))
                         DataType.FLOAT -> stackvmProg.instruction("push f:${lv.floatvalue}")
                         DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> stackvmProg.instruction("push \"${lv.strvalue}\"")
                         DataType.ARRAY, DataType.ARRAY_W -> {
@@ -322,7 +323,8 @@ class Compiler(private val options: CompilationOptions) {
             val targetStmt = stmt.target.targetStatement(namespace)!!
             if(targetStmt is BuiltinFunctionStatementPlaceholder) {
                 stmt.arglist.forEach { translate(it) }
-                stackvmProg.instruction("syscall FUNC_${stmt.target.nameInSource[0].toUpperCase()}")  // call builtin function
+                val funcname = stmt.target.nameInSource[0].toUpperCase()
+                createFunctionCall(funcname)  // call builtin function
                 return
             }
 
@@ -333,6 +335,13 @@ class Compiler(private val options: CompilationOptions) {
             }
             stmt.arglist.forEach { translate(it) }
             stackvmProg.instruction("call $targetname")
+        }
+
+        private fun createFunctionCall(funcname: String) {
+            if (funcname.startsWith("_VM_"))
+                stackvmProg.instruction("syscall ${funcname.substring(4)}")  // call builtin function
+            else
+                stackvmProg.instruction("syscall FUNC_$funcname")
         }
 
         private fun translate(stmt: Jump) {

@@ -6,6 +6,13 @@ import prog8.ast.IStatement
 import prog8.ast.Module
 import prog8.parser.ParsingFailedError
 
+/**
+ * TODO: array, matrix, string and float constants should be put into a constant-pool
+ * so that they're only stored once instead of replicated everywhere.
+ * Note that initial constant folding of them is fine: it's needed to be able to
+ * optimize the expressions. But as a final step, they should be consolidated again
+ */
+
 fun Module.constantFold(globalNamespace: INameScope) {
     val optimizer = ConstantFolding(globalNamespace)
     try {

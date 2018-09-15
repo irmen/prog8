@@ -217,6 +217,14 @@ class ConstExprEvaluator {
                 right.floatvalue!=null -> LiteralValue(DataType.FLOAT, floatvalue = left.floatvalue + right.floatvalue, position = left.position)
                 else -> throw ExpressionError(error, left.position)
             }
+            left.strvalue!=null -> when {
+                right.strvalue!=null -> {
+                    val newStr = left.strvalue + right.strvalue
+                    if(newStr.length > 255) throw ExpressionError("string too long", left.position)
+                    LiteralValue(DataType.STR, strvalue = newStr, position = left.position)
+                }
+                else -> throw ExpressionError(error, left.position)
+            }
             else -> throw ExpressionError(error, left.position)
         }
     }
@@ -245,7 +253,7 @@ class ConstExprEvaluator {
                 right.asIntegerValue!=null -> LiteralValue.optimalNumeric(left.asIntegerValue * right.asIntegerValue, left.position)
                 right.floatvalue!=null -> LiteralValue(DataType.FLOAT, floatvalue = left.asIntegerValue * right.floatvalue, position = left.position)
                 right.strvalue!=null -> {
-                    if(right.strvalue.length * left.asIntegerValue > 65535) throw ExpressionError("string too large", left.position)
+                    if(right.strvalue.length * left.asIntegerValue > 255) throw ExpressionError("string too long", left.position)
                     LiteralValue(DataType.STR, strvalue = right.strvalue.repeat(left.asIntegerValue), position = left.position)
                 }
                 else -> throw ExpressionError(error, left.position)
@@ -257,7 +265,7 @@ class ConstExprEvaluator {
             }
             left.strvalue!=null -> when {
                 right.asIntegerValue!=null -> {
-                    if(left.strvalue.length * right.asIntegerValue > 65535) throw ExpressionError("string too large", left.position)
+                    if(left.strvalue.length * right.asIntegerValue > 255) throw ExpressionError("string too long", left.position)
                     LiteralValue(DataType.STR, strvalue = left.strvalue.repeat(right.asIntegerValue), position = left.position)
                 }
                 else -> throw ExpressionError(error, left.position)

@@ -491,6 +491,20 @@ class ArraySpec(var x: IExpression, var y: IExpression?, override val position: 
         x = x.process(processor)
         y = y?.process(processor)
     }
+
+    override fun toString(): String {
+        return("ArraySpec(x: $x, y: $y, pos=$position)")
+    }
+
+    fun size() : Int? {
+        if(y==null) {
+            return (x as? LiteralValue)?.asIntegerValue
+        } else {
+            val sizeX = (x as? LiteralValue)?.asIntegerValue ?: return null
+            val sizeY = (y as? LiteralValue)?.asIntegerValue ?: return null
+            return sizeX * sizeY
+        }
+    }
 }
 
 
@@ -696,13 +710,13 @@ private data class ByteOrWordLiteral(val intvalue: Int, val datatype: DataType) 
     fun asByte() = ByteOrWordLiteral(intvalue, DataType.BYTE)
 }
 
-data class LiteralValue(val type: DataType,
-                        val bytevalue: Short? = null,
-                        val wordvalue: Int? = null,
-                        val floatvalue: Double? = null,
-                        val strvalue: String? = null,
-                        val arrayvalue: MutableList<IExpression>? = null,
-                        override val position: Position) : IExpression {
+class LiteralValue(val type: DataType,
+                   val bytevalue: Short? = null,
+                   val wordvalue: Int? = null,
+                   val floatvalue: Double? = null,
+                   val strvalue: String? = null,
+                   val arrayvalue: Array<IExpression>? = null,
+                   override val position: Position) : IExpression {
     override lateinit var parent: Node
     override fun referencesIdentifier(name: String) = arrayvalue?.any { it.referencesIdentifier(name) } ?: false
 
@@ -720,7 +734,7 @@ data class LiteralValue(val type: DataType,
                     // note: we cheat a little here and allow negative integers during expression evaluations
                     in -128..255 -> LiteralValue(DataType.BYTE, bytevalue = floatval.toShort(), position = position)
                     in -32768..65535 -> LiteralValue(DataType.WORD, wordvalue = floatval.toInt(), position = position)
-                    else -> throw FatalAstException("integer overflow: $floatval")
+                    else -> LiteralValue(DataType.FLOAT, floatvalue = floatval, position = position)
                 }
             } else {
                 LiteralValue(DataType.FLOAT, floatvalue = floatval, position = position)
@@ -733,7 +747,9 @@ data class LiteralValue(val type: DataType,
             DataType.BYTE -> if(bytevalue==null) throw FatalAstException("literal value missing bytevalue")
             DataType.WORD -> if(wordvalue==null) throw FatalAstException("literal value missing wordvalue")
             DataType.FLOAT -> if(floatvalue==null) throw FatalAstException("literal value missing floatvalue")
-            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> if(strvalue==null) throw FatalAstException("literal value missing strvalue")
+            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
+                if(strvalue==null) throw FatalAstException("literal value missing strvalue")
+            }
             DataType.ARRAY, DataType.ARRAY_W -> if(arrayvalue==null) throw FatalAstException("literal value missing arrayvalue")
             DataType.MATRIX -> TODO("matrix literalvalue? for now, arrays are good enough for this")
         }
@@ -982,7 +998,7 @@ class FunctionCall(override var target: IdentifierReference,
         val constVal = constValue(namespace, false)
         if(constVal!=null)
             return constVal.resultingDatatype(namespace)
-        val stmt = target.targetStatement(namespace)
+        val stmt = target.targetStatement(namespace) ?: return null
         if(stmt is BuiltinFunctionStatementPlaceholder) {
             if(target.nameInSource[0] == "P_carry" || target.nameInSource[0]=="P_irqd") {
                 return null // these have no return value
@@ -1448,8 +1464,8 @@ private fun prog8Parser.BooleanliteralContext.toAst() = when(text) {
 }
 
 
-private fun prog8Parser.ArrayliteralContext.toAst() =
-        expression().asSequence().map { it.toAst() }.toMutableList()
+private fun prog8Parser.ArrayliteralContext.toAst() : Array<IExpression> =
+        expression().map { it.toAst() }.toTypedArray()
 
 
 private fun prog8Parser.If_stmtContext.toAst(): IfStatement {

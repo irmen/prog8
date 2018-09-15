@@ -165,7 +165,7 @@ Values will usually be part of an expression or assignment statement::
 	byte  counter  = 42	; variable of size 8 bits, with initial value 42
 
 
-Array and Matrix (2-dimensional array) types are also supported in a limited way::
+Array and Matrix (2-dimensional array) types are also supported like this::
 
 	byte[4]  array = [1, 2, 3, 4]     ; initialize the array
 	byte[99] array = 255              ; initialize array with all 255's [255, 255, 255, 255, ...]
@@ -229,14 +229,20 @@ in hexadecimal and in binary notation.
 Strings
 ^^^^^^^
 
-Strings are a sequence of characters enclosed in ``"`` quotes.
+Strings are a sequence of characters enclosed in ``"`` quotes. The length is limited to 255 characters.
 They're stored and treated much the same as a byte array,
 but they have some special properties because they are considered to be *text*.
 Strings in your source code files will be encoded (translated from ASCII/UTF-8) into either CBM PETSCII or C-64 screencodes.
 PETSCII is the default choice. If you need screencodes (also called 'poke' codes) instead,
 you have to use the ``str_s`` variants of the string type identifier.
 If you assign a string literal of length 1 to a non-string variable, it is treated as a *byte* value instead
-with has the PETSCII value of that single character,
+with has the PETSCII value of that single character.
+
+.. caution::
+    It's probably best that you don't change strings after they're created.
+    This is because if your program exits and is restarted (without loading it again),
+    it will then operate on the changed strings instead of the original ones.
+    The same is true for arrays and matrixes by the way.
 
 
 Floating point numbers
@@ -255,7 +261,7 @@ Initial values across multiple runs of the program
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The initial values of your variables will be restored automatically when the program is (re)started,
-*except for string variables*. It is assumed these are left unchanged by the program.
+*except for string variables, arrays and matrices*. It is assumed these are left unchanged by the program.
 If you do modify them in-place, you should take care yourself that they work as
 expected when the program is restarted.
 
@@ -292,11 +298,6 @@ You can also create loops by using the ``goto`` statement, but this should usual
 Conditional Execution
 ---------------------
 
-.. todo::
-	eventually allow local variable definitions inside the sub blocks but for now,
-	they have to use the same variables as the block the ``if`` statement itself is in.
-
-
 Conditional execution means that the flow of execution changes based on certiain conditions,
 rather than having fixed gotos or subroutine calls::
 
@@ -323,6 +324,12 @@ This allows you to write a conditional jump or block execution directly acting o
 The eight branching instructions of the CPU each have an if-equivalent:
 ``if_cs``, ``if_cc``, ``if_eq``, ``if_ne``, ``if_pl``, ``if_mi``, ``if_vs`` and ``if_vc``.
 So ``if_cc goto target`` will directly translate into the single CPU instruction ``BCC target``.
+
+.. note::
+    For now, the symbols used or declared in the statement block(s) are shared with
+    the same scope the if statement itself is in.
+    Maybe in the future this will be a separate nested scope, but for now, that is
+    only possible when defining a subroutine.
 
 
 Assignments

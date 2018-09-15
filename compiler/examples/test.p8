@@ -24,6 +24,16 @@
 
 ~ main $c003  {
     const byte [2,3] cmatrix1 = [1,2,3,4,5,255]
+    const word[1000] constarray1000 = 99.w
+    const byte[4] constarray1 = 99
+    byte[20] array2_20 = 199
+    byte[3] array3_3 = [1,2,3]
+
+    word zzzzz=len(cmatrix1)
+    word qqqqq=len(constarray1000)
+    byte Qzzzzz=len(cmatrix1)
+    byte Qqqqqq=len(constarray1)
+
   word lsb1 = lsb($ea31)
   word msb1 = msb($ea31)
   byte lsb2 = lsb($ea31)
@@ -56,6 +66,8 @@
   const word all3 = all([wa1, wa2, ws1, all1])
 
   const word max1 = max([-1,-2,3.33,99+22])
+  const str greeting = "Hello world!"
+  str greeting2 = "Hello world 2!"
 
   const word min1 = min([1,2,3,99+22])
     word dinges = round(not_main.len1)
@@ -63,6 +75,21 @@
     wa3 = rnd()
     wa3 = rndw()
     wa3 = rndf(22)
+
+    _vm_write_memchr($a000)
+    _vm_write_memstr($a000)
+    _vm_write_num(wa3)
+    _vm_write_char(wa2c)
+    _vm_write_str(greeting)
+    _vm_write_str(greeting2)
+    _vm_write_str(greeting2)
+    _vm_write_str(wa3)
+    ; greeting2 = _vm_input_var(len(greeting2))
+    _vm_gfx_clearscr(6)
+    _vm_gfx_pixel(10, 20, 1)
+    _vm_gfx_pixel(11, 21, 2)
+    _vm_gfx_pixel(12, 22, 3)
+    _vm_gfx_text(50,100,7,"Ahoy!")
 
     A += 8
     A += rnd()
@@ -96,6 +123,8 @@
   const float blerp2 = zwop / 2.22
   const byte equal = 4==4
   const byte equal2 = (4+hopla)>0
+  byte[10] array10 = 22
+  byte[1000] array1000 = 33
 
     ; goto 64738
 
@@ -116,7 +145,7 @@
   byte equalQQ = 4==4
   const byte equalQQ2 = (4+hopla)>0
   const str string1 = "hallo"
-  str string2 = "doei"
+  str string2 = "doei dat was het weer"+"sdfdsf"*5
 
   equalQQ++
   AX++
@@ -127,7 +156,10 @@
   equalQQ= len("abcdef")
   equalQQ= len([1,2,3])
   equalQQ= len(string1)
+  equalQQ= lsb(len(string2))
   equalQQ= len(string2)
+  ;equalQQ = len(array10)       ; @todo muust work byte
+  ; equalQQ = len(array1000)    ; @todo must fail word
   P_carry(1)
   P_irqd(0)
 

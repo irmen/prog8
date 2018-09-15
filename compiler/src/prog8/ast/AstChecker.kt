@@ -385,12 +385,12 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         }
     }
 
-    private fun checkValueTypeAndRange(datatype: DataType, arrayspec: ArraySpec?, value: LiteralValue) : Boolean {
+    private fun checkValueTypeAndRange(targetDt: DataType, arrayspec: ArraySpec?, value: LiteralValue) : Boolean {
         fun err(msg: String) : Boolean {
             checkResult.add(ExpressionError(msg, value.position))
             return false
         }
-        when (datatype) {
+        when (targetDt) {
             DataType.FLOAT -> {
                 val number = value.floatvalue
                         ?: return err("floating point value expected")
@@ -416,32 +416,33 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
                 val str = value.strvalue
                         ?: return err("string value expected")
-                if (str.isEmpty() || str.length > 65535)
-                    return err("string length must be 1..65535")
+                if (str.isEmpty() || str.length > 255)
+                    return err("string length must be 1 to 255")
             }
             DataType.ARRAY -> {
                 // value may be either a single byte, or a byte array
                 if(value.type==DataType.ARRAY) {
+                    if(arrayspec!=null) {
+                        // arrayspec is not always known when checking
+                        val constX = arrayspec.x.constValue(namespace)
+                        if(constX?.asIntegerValue==null)
+                            return err("array size specifier must be constant integer value")
+                        val expectedSize = constX.asIntegerValue
+                        if (value.arrayvalue!!.size != expectedSize)
+                            return err("initializer array size mismatch (expecting $expectedSize, got ${value.arrayvalue.size})")
+                    }
                     for (av in value.arrayvalue!!) {
-                        if(arrayspec!=null) {
-                            // arrayspec is not always known when checking
-                            val expectedSize = arrayspec.x.constValue(namespace)?.asIntegerValue
-                            if (value.arrayvalue.size != expectedSize)
-                                return err("initializer array size mismatch (expecting $expectedSize, got ${value.arrayvalue.size})")
-                        }
-
                         if(av is LiteralValue) {
                             val number = av.bytevalue
                                     ?: return err("array must be all bytes")
                             if (number < 0 || number > 255)
-                                return err("value '$number' in byte array is out of range for unsigned byte")
+                                return err("value '$number' in array is out of range for unsigned byte")
                         } else if(av is RegisterExpr) {
                             if(av.register!=Register.A && av.register!=Register.X && av.register!=Register.Y)
                                 return err("register '$av' in byte array is not a single register")
                         } else {
                             TODO("check array value $av")
                         }
-
                     }
                 } else {
                     val number = value.bytevalue ?: return if (value.floatvalue!=null)
@@ -455,26 +456,30 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
             DataType.ARRAY_W -> {
                 // value may be either a single word, or a word array
                 if(value.type==DataType.ARRAY || value.type==DataType.ARRAY_W) {
+                    if(arrayspec!=null) {
+                        // arrayspec is not always known when checking
+                        val constX = arrayspec.x.constValue(namespace)
+                        if(constX?.asIntegerValue==null)
+                            return err("array size specifier must be constant integer value")
+                        val expectedSize = constX.asIntegerValue
+                        if (value.arrayvalue!!.size != expectedSize)
+                            return err("initializer array size mismatch (expecting $expectedSize, got ${value.arrayvalue.size})")
+                    }
                     for (av in value.arrayvalue!!) {
-                        val number = (av as LiteralValue).asIntegerValue   // both byte and word are acceptable
-                                ?: return err("array must be all words")
-
-                        if(arrayspec!=null) {
-                            // arrayspec is not always known when checking
-                            val expectedSize = arrayspec.x.constValue(namespace)?.asIntegerValue
-                            if (value.arrayvalue.size != expectedSize)
-                                return err("initializer array size mismatch (expecting $expectedSize, got ${value.arrayvalue.size})")
+                        if(av is LiteralValue) {
+                            val number = av.asIntegerValue
+                                    ?: return err("array must be all integers")
+                            if (number < 0 || number > 65535)
+                                return err("value '$number' in array is out of range for unsigned word")
+                        } else {
+                            TODO("check array value $av")
                         }
-
-                        if (number < 0 || number > 65535)
-                            return err("value '$number' in word array is out of range for unsigned word")
                     }
                 } else {
-                    val number = value.asIntegerValue   // both byte and word are acceptable
-                            ?: return if (value.floatvalue!=null)
-                                err("unsigned word integer value expected instead of float; possible loss of precision")
-                            else
-                                err("unsigned word integer value expected")
+                    val number = value.asIntegerValue ?: return if (value.floatvalue!=null)
+                        err("unsigned byte or word integer value expected instead of float; possible loss of precision")
+                    else
+                        err("unsigned byte or word integer value expected")
                     if (number < 0 || number > 65535)
                         return err("value '$number' out of range for unsigned word")
                 }
@@ -485,12 +490,14 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                     for (av in value.arrayvalue!!) {
                         val number = (av as LiteralValue).bytevalue
                                 ?: return err("array must be all bytes")
+                        val constX = arrayspec!!.x.constValue(namespace)
+                        val constY = arrayspec.y!!.constValue(namespace)
+                        if(constX?.asIntegerValue==null || constY?.asIntegerValue==null)
+                            return err("matrix size specifiers must be constant integer values")
 
-                        val expectedSizeX = arrayspec!!.x.constValue(namespace)?.asIntegerValue!!
-                        val expectedSizeY = arrayspec.y!!.constValue(namespace)?.asIntegerValue!!
-                        val expectedSize = expectedSizeX * expectedSizeY
+                        val expectedSize = constX.asIntegerValue * constY.asIntegerValue
                         if (value.arrayvalue.size != expectedSize)
-                            return err("initializer array size mismatch (expecting $expectedSize, got ${value.arrayvalue.size})")
+                            return err("initializer matrix size mismatch (expecting $expectedSize, got ${value.arrayvalue.size} elements)")
 
                         if (number < 0 || number > 255)
                             return err("value '$number' in byte array is out of range for unsigned byte")

@@ -9,9 +9,15 @@ val BuiltinFunctionNames = setOf(
         "P_carry", "P_irqd", "rol", "ror", "rol2", "ror2", "lsl", "lsr",
         "sin", "cos", "abs", "acos", "asin", "tan", "atan", "rnd", "rndw", "rndf",
         "log", "log10", "sqrt", "rad", "deg", "round", "floor", "ceil",
-        "max", "min", "avg", "sum", "len", "any", "all", "lsb", "msb")
+        "max", "min", "avg", "sum", "len", "any", "all", "lsb", "msb",
+        "_vm_write_memchr", "_vm_write_memstr", "_vm_write_num", "_vm_write_char",
+        "_vm_write_str", "_vm_input_var", "_vm_gfx_clearscr", "_vm_gfx_pixel", "_vm_gfx_text"
+        )
 
-val BuiltinFunctionsWithoutSideEffects = BuiltinFunctionNames - setOf("P_carry", "P_irqd")
+
+val BuiltinFunctionsWithoutSideEffects = BuiltinFunctionNames - setOf("P_carry", "P_irqd",
+        "_vm_write_memchr", "_vm_write_memstr", "_vm_write_num", "_vm_write_char",
+        "_vm_write_str", "_vm_gfx_clearscr", "_vm_gfx_pixel", "_vm_gfx_text")
 
 fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespace: INameScope): DataType? {
     fun integerDatatypeFromArg(arg: IExpression): DataType {
@@ -41,12 +47,36 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
 
     return when (function) {
         "sin", "cos", "tan", "asin", "acos", "atan", "log", "log10", "sqrt", "rad", "deg", "avg", "rndf" -> DataType.FLOAT
-        "len", "lsb", "msb", "any", "all", "rnd" -> DataType.BYTE
+        "lsb", "msb", "any", "all", "rnd" -> DataType.BYTE
         "rndw" -> DataType.WORD
         "rol", "rol2", "ror", "ror2", "P_carry", "P_irqd" -> null // no return value so no datatype
         "abs" -> args.single().resultingDatatype(namespace)
         "max", "min", "sum" -> datatypeFromListArg(args.single())
         "round", "floor", "ceil", "lsl", "lsr" -> integerDatatypeFromArg(args.single())
+        "len" -> {
+            // len of a str is always 1..255 so always a byte,
+            // len of other things is assumed to need a word (even though the actual length could be less than 256)
+            val arg = args.single()
+            when(arg) {
+                is IdentifierReference -> {
+                    val stmt = arg.targetStatement(namespace)
+                    when(stmt) {
+                        is VarDecl -> {
+                            val value = stmt.value
+                            if(value is LiteralValue) {
+                                if(value.isString) return DataType.BYTE        // strings are 1..255
+                            }
+                        }
+                    }
+                    DataType.WORD   // assume other lengths are words for now.
+                }
+                is LiteralValue -> throw FatalAstException("len of literalvalue should have been const-folded away already")
+                else -> DataType.WORD
+            }
+        }
+        "_vm_write_memchr", "_vm_write_memstr", "_vm_write_num", "_vm_write_char",
+        "_vm_write_str", "_vm_gfx_clearscr", "_vm_gfx_pixel", "_vm_gfx_text" -> null  // no return value for these
+        "_vm_input_var" -> DataType.STR
         else -> throw FatalAstException("invalid builtin function $function")
     }
 }
@@ -214,7 +244,7 @@ fun builtinLen(args: List<IExpression>, position: Position, namespace:INameScope
     return when(argument.type) {
         DataType.ARRAY, DataType.ARRAY_W -> numericLiteral(argument.arrayvalue!!.size, args[0].position)
         DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> numericLiteral(argument.strvalue!!.length, args[0].position)
-        else -> throw FatalAstException("len of weird argument ${args[0]}")
+        else -> throw SyntaxError("len of weird argument ${args[0]}", position)
     }
 }
 
