@@ -19,3 +19,5 @@ parsetab.py
 .pytest_cache/
 docs/build
 out/
+**/*.interp
+**/*.tokens

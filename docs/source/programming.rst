@@ -15,7 +15,7 @@ Program
 	Consists of one or more *modules*.
 
 Module
-	A file on disk with the ``.ill`` suffix. It contains *directives* and *code blocks*.
+	A file on disk with the ``.p8`` suffix. It contains *directives* and *code blocks*.
 	Whitespace and indentation in the source code are arbitrary and can be tabs or spaces or both.
 	You can also add *comments* to the source code.
 	One moudule file can *import* others, and also import *library modules*.
@@ -246,7 +246,7 @@ Floats are stored in the 5-byte 'MFLPT' format that is used on CBM machines,
 and also most float operations are specific to the Commodore-64.
 This is because routines in the C-64 BASIC and KERNAL ROMs are used for that.
 So floating point operations will only work if the C-64 BASIC ROM (and KERNAL ROM)
-are banked in (and your code imports the ``c64lib.ill``)
+are banked in (and your code imports the ``c64lib.p8``)
 
 The largest 5-byte MFLPT float that can be stored is: **1.7014118345e+38**   (negative: **-1.7014118345e+38**)
 

@@ -7,7 +7,7 @@ Syntax Reference
 Module file
 -----------
 
-This is a file with the ``.ill`` suffix, containing *directives* and *code blocks*, described below.
+This is a file with the ``.p8`` suffix, containing *directives* and *code blocks*, described below.
 The file is a text file wich can also contain:
 
 Lines, whitespace, indentation

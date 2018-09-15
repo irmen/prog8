@@ -60,7 +60,7 @@ fun importModule(filePath: Path) : Module {
 
 
 fun discoverImportedModule(name: String, importedFrom: Path, position: Position?): Path {
-    val fileName = "$name.ill"
+    val fileName = "$name.p8"
     val locations = mutableListOf(Paths.get(importedFrom.parent.toString()))
 
     val propPath = System.getProperty("prog8.libdir")

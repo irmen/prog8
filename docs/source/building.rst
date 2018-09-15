@@ -35,7 +35,7 @@ that assembles it into the final program.
 Module source code files
 ------------------------
 
-A module source file is a text file with the ``.ill`` suffix, containing the program's source code.
+A module source file is a text file with the ``.p8`` suffix, containing the program's source code.
 It consists of compilation options and other directives, imports of other modules,
 and source code for one or more code blocks.
 
