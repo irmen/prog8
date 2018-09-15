@@ -1,16 +1,16 @@
-IL65 documentation - |version|
-==============================
+Prog8 documentation - |version|
+===============================
 
 .. image:: _static/logo.jpg
     :align: center
-    :alt: IL65 logo
+    :alt: Prog8 logo
 
-.. index:: what is IL65
+.. index:: what is Prog8
 
-What is IL65?
--------------
+What is Prog8?
+--------------
 
-IL65 is an experimental compiled programming language targeting the 8-bit
+This is an experimental compiled programming language targeting the 8-bit
 `6502 <https://en.wikipedia.org/wiki/MOS_Technology_6502>`_ /
 `6510 <https://en.wikipedia.org/wiki/MOS_Technology_6510>`_ microprocessor.
 This CPU is from the late 1970's and early 1980's and was used in many home computers from that era,
@@ -19,7 +19,7 @@ The language aims to provide many conveniences over raw assembly code (even when
 while still being low level enough to create high performance programs.
 
 
-IL65 is copyright © Irmen de Jong (irmen@razorvine.net | http://www.razorvine.net).
+Prog8 is copyright © Irmen de Jong (irmen@razorvine.net | http://www.razorvine.net).
 
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 

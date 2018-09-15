@@ -7,19 +7,19 @@ What is a "Program" anyway?
 
 A "complete runnable program" is a compiled, assembled, and linked together single unit.
 It contains all of the program's code and data and has a certain file format that
-allows it to be loaded directly on the target system.   IL65 currently has no built-in
+allows it to be loaded directly on the target system.   Prog8 currently has no built-in
 support for programs that exceed 64 Kb of memory, nor for multi-part loaders.
 
 For the Commodore-64, most programs will have a tiny BASIC launcher that does a SYS into the generated machine code.
 This way the user can load it as any other program and simply RUN it to start. (This is a regular ".prg" program).
-Il65 can create those, but it is also possible to output plain binary programs
+Prog8 can create those, but it is also possible to output plain binary programs
 that can be loaded into memory anywhere.
 
 
 Compiling program code
 ----------------------
 
-Compilation of program code is done by telling the IL65 compiler to compile a main source code module file.
+Compilation of program code is done by telling the Prog8 compiler to compile a main source code module file.
 Other modules that this code needs will be loaded and processed via imports from within that file.
 The compiler will link everything together into one output program at the end.
 
@@ -39,8 +39,8 @@ A module source file is a text file with the ``.ill`` suffix, containing the pro
 It consists of compilation options and other directives, imports of other modules,
 and source code for one or more code blocks.
 
-IL65 has a couple of *LIBRARY* modules that are defined in special internal files provided by the compiler:
-``c64lib``, ``il65lib``, ``mathlib``.
+Prog8 has a couple of *LIBRARY* modules that are defined in special internal files provided by the compiler:
+``c64lib``, ``prog8lib``, ``mathlib``.
 You should not overwrite these or reuse their names.
 
 
@@ -55,7 +55,7 @@ There's support for using the monitor and debugging capabilities of the rather e
 The ``%breakpoint`` directive (see :ref:`directives`) in the source code instructs the compiler to put
 a *breakpoint* at that position. Some systems use a BRK instruction for this, but
 this will usually halt the machine altogether instead of just suspending execution.
-IL65 issues a NOP instruction instead and creates a 'virtual' breakpoint at this position.
+Prog8 issues a NOP instruction instead and creates a 'virtual' breakpoint at this position.
 All breakpoints are then written to a file called "programname.vice-mon-list",
 which is meant to be used by the Vice emulator.
 It contains a series of commands for Vice's monitor, including source labels and the breakpoint settings.

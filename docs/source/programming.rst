@@ -1,8 +1,8 @@
 .. _programstructure:
 
-===================
-Programming in IL65
-===================
+====================
+Programming in Prog8
+====================
 
 This chapter describes a high level overview of the elements that make up a program.
 Details about the syntax can be found in the :ref:`syntaxreference` chapter.
@@ -35,7 +35,7 @@ Directive
 
 Code block
 	A block of actual program code. It defines a *scope* (also known as 'namespace') and
-	can contain IL65 *code*, *variable declarations* and *subroutines*.
+	can contain Prog8 *code*, *variable declarations* and *subroutines*.
 	More details about this below: :ref:`blocks`.
 
 Variable declarations
@@ -45,7 +45,7 @@ Variable declarations
 	is fixed and is determined at compile time.
 	Variable declarations tend to appear at the top of the code block that uses them.
 	They define the name and type of the variable, and its initial value.
-	IL65 supports a small list of data types, including special 'memory mapped' types
+	Prog8 supports a small list of data types, including special 'memory mapped' types
 	that don't allocate storage but instead point to a fixed location in the address space.
 
 Code
@@ -75,7 +75,7 @@ Scope
 	This prevents name collisions (or 'namespace pollution'), because the name of the scope
 	is needed as prefix to be able to access the symbols in it.
 	Anything *inside* the scope can refer to symbols in the same scope without using a prefix.
-	There are three scopes in IL65:
+	There are three scopes in Prog8:
 
 	- global (no prefix)
 	- code block
@@ -351,7 +351,7 @@ Arithmetic expressions are expressions that calculate a numeric result (integer 
 Many common arithmetic operators can be used and follow the regular precedence rules.
 
 Logical expressions are expressions that calculate a boolean result, true or false
-(which in IL65 will effectively be a 1 or 0 integer value).
+(which in Prog8 will effectively be a 1 or 0 integer value).
 
 You can use parentheses to group parts of an expresion to change the precedence.
 Usually the normal precedence rules apply (``*`` goes before ``+`` etc.) but subexpressions

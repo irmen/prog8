@@ -108,7 +108,7 @@ Directives
 
 	Level: block.
         This directive can only be used inside a block.
-        The assembler will include the file as binary bytes at this point, il65 will not process this at all.
+        The assembler will include the file as binary bytes at this point, prog8 will not process this at all.
         The optional offset and length can be used to select a particular piece of the file.
 
 .. data:: %asminclude "<filename>", scopelabel
@@ -116,7 +116,7 @@ Directives
 	Level: block.
         This directive can only be used inside a block.
         The assembler will include the file as raw assembly source text at this point,
-        il65 will not process this at all, with one exception: the labels.
+        prog8 will not process this at all, with one exception: the labels.
         The scopelabel argument will be used as a prefix to access the labels from the included source code,
         otherwise you would risk symbol redefinitions or duplications.
 
@@ -130,7 +130,7 @@ Directives
 	Level: block, subroutine.
 	Declares that there is *inline assembly code* in the lines enclosed by the curly braces.
 	This code will be written as-is into the generated output file.
-	The assembler syntax used should be for the 3rd party cross assembler tool that IL65 uses.
+	The assembler syntax used should be for the 3rd party cross assembler tool that Prog8 uses.
 	Note that the start and end markers are both *double curly braces* to minimize the chance
 	that the inline assembly itself contains either of those. If it does contain a ``}}``,
  	the parsing of the inline assembler block will end prematurely and cause compilation errors.
@@ -139,7 +139,7 @@ Directives
 Identifiers
 -----------
 
-Naming things in IL65 is done via valid *identifiers*. They start with a letter or underscore,
+Naming things in Prog8 is done via valid *identifiers*. They start with a letter or underscore,
 and after that, a combination of letters, numbers, or underscores. Examples of valid identifiers::
 
 	a
@@ -154,7 +154,7 @@ Code blocks
 -----------
 
 A named block of actual program code. Itefines a *scope* (also known as 'namespace') and
-can contain IL65 *code*, *directives*, *variable declarations* and *subroutines*::
+can contain Prog8 *code*, *directives*, *variable declarations* and *subroutines*::
 
     ~ <blockname> [<address>] {
         <directives>
@@ -221,7 +221,7 @@ Various examples::
 Data types
 ^^^^^^^^^^
 
-IL65 supports the following data types:
+Prog8 supports the following data types:
 
 ===============  =======================  =================  =========================================
 type identifier  type                     storage size       example var declaration and literal value

@@ -2,7 +2,7 @@
 Target system specification
 ***************************
 
-IL65 targets the following hardware:
+Prog8 targets the following hardware:
 
 - 8 bit MOS 6502/6510 CPU
 - 64 Kb addressable memory (RAM or ROM)
@@ -19,7 +19,7 @@ Physical address space layout
 -----------------------------
 
 The 6502 CPU can address 64 kilobyte of memory.
-Most of the 64 kilobyte address space can be used by IL65 programs.
+Most of the 64 kilobyte address space can be used by Prog8 programs.
 This is a hard limit: there is no built-in support for RAM expansions or bank switching.
 
 
@@ -41,10 +41,10 @@ reserved address    in use for
 ==================  =======================
 ``$00``             data direction (CPU hw)
 ``$01``             bank select (CPU hw)
-``$02``             IL65 scratch variable
-``$03``             IL65 scratch variable
-``$fb - $fc``       IL65 scratch variable
-``$fd - $fe``       IL65 scratch variable
+``$02``             internal scratch variable
+``$03``             internal scratch variable
+``$fb - $fc``       internal scratch variable
+``$fd - $fe``       internal scratch variable
 ``$fffa - $fffb``   NMI vector (CPU hw)
 ``$fffc - $fffd``   RESET vector (CPU hw)
 ``$fffe - $ffff``   IRQ vector (CPU hw)
@@ -57,7 +57,7 @@ For example, the Commodore-64 has:
 - memory-mapped I/O registers, for the video and sound chips, and the CIA's. Occupying ``$d000``--``$dfff``.
 - RAM areas that are used for screen graphics and sprite data:  usually at ``$0400``--``$07ff``.
 
-IL65 programs can access all of those special memory locations but it will have a special meaning.
+Prog8 programs can access all of those special memory locations but it will have a special meaning.
 
 
 .. _zeropage:
@@ -74,7 +74,7 @@ Theoretically they can all be used in a program, with the follwoing limitations:
   and overwriting them will probably crash the machine. It is possible to use all of these
   yourself, but only if the program takes over the entire system (and seizes control from the regular kernal).
   This means it can no longer use (most) BASIC and kernal routines from ROM.
-- it's more convenient and safe to let IL65 allocate these addresses for you and just
+- it's more convenient and safe to let the compiler allocate these addresses for you and just
   use symbolic names in the program code.
 
 .. todo::
@@ -82,7 +82,7 @@ Theoretically they can all be used in a program, with the follwoing limitations:
     ``zeropage`` modifier keyword on vardecl perhaps?
 
 
-IL65 knows what addresses are safe to use in the various ZP handling configurations.
+Prog8 knows what addresses are safe to use in the various ZP handling configurations.
 It will use the free ZP addresses to place its ZP variables in,
 until they're all used up. If instructed to output a program that takes over the entire
 machine, (almost) all of the ZP addresses are suddenly available and will be used.
@@ -132,7 +132,7 @@ Additional arguments can be passed via memory locations as well ofcourse.
 But you'll have to be careful when dealing with chained or even recursive calls then,
 because there's a big risk of overwriting those memory locations.
 
-In IL65 the "caller saves" principle applies to calling subroutines.
+In Prog8 the "caller saves" principle applies to calling subroutines.
 This means the code that calls a subroutine that clobbers certain
 registers (``A``, ``X`` or ``Y``), is responsible for storing and restoring the original values if
 those values are needed by the rest of the code.

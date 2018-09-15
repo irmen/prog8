@@ -17,18 +17,18 @@ IF_XX::
 
 (no else:)::
 
-                    if[_!XX] [<expression>] goto il65_if_999_end          ; !XX being the conditional inverse of XX
+                    if[_!XX] [<expression>] goto prog8_if_999_end          ; !XX being the conditional inverse of XX
                     .... (true part)
-    il65_if_999_end ; code continues after this
+    prog8_if_999_end ; code continues after this
 
 
 (with else)::
 
-                    if[_XX] [<expression>] goto il65_if_999
+                    if[_XX] [<expression>] goto prog8_if_999
                     ... (else part)
-                    goto il65_if_999_end
-    il65_if_999     ... (true part)
-    il65_if_999_end ; code continues after this
+                    goto prog8_if_999_end
+    prog8_if_999     ... (true part)
+    prog8_if_999_end ; code continues after this
 
 
 IF  X  <COMPARISON>  Y
@@ -50,14 +50,14 @@ While::
 
 ==> DESUGARING ==>::
 
-        goto il65_while_999_check    ; jump to the check
-    il65_while_999
+        goto prog8_while_999_check    ; jump to the check
+    prog8_while_999
         ... (code)
-        goto  il65_while_999          ;continue
-        goto  il65_while_999_end      ;break
-    il65_while_999_check
-            if[_XX] <expression> goto il65_while_999  ; loop condition
-    il65_while_999_end      ; code continues after this
+        goto  prog8_while_999          ;continue
+        goto  prog8_while_999_end      ;break
+    prog8_while_999_check
+            if[_XX] <expression> goto prog8_while_999  ; loop condition
+    prog8_while_999_end      ; code continues after this
 
 
 Repeat::
@@ -70,12 +70,12 @@ Repeat::
 
 ==> DESUGARING ==>::
 
-    il65_repeat_999
+    prog8_repeat_999
             ... (code)
-            goto il65_repeat_999          ;continue
-            goto il65_repeat_999_end      ;break
-            if[_!XX] <expression> goto il65_repeat_999        ; loop condition via conditional inverse of XX
-    il65_repeat_999_end         ; code continues after this
+            goto prog8_repeat_999          ;continue
+            goto prog8_repeat_999_end      ;break
+            if[_!XX] <expression> goto prog8_repeat_999        ; loop condition via conditional inverse of XX
+    prog8_repeat_999_end         ; code continues after this
 
 
 For::
@@ -94,18 +94,18 @@ For::
 
             loopvar = <from_expression>
             compare loopvar, <to_expression>
-            if_ge goto il65_for_999_end       ; loop condition
+            if_ge goto prog8_for_999_end       ; loop condition
             step = <step_expression>        ; (store only if step < -1 or step > 1)
-    il65_for_999
-            goto il65_for_999_end        ;break
-            goto il65_for_999_loop       ;continue
+    prog8_for_999
+            goto prog8_for_999_end        ;break
+            goto prog8_for_999_loop       ;continue
             ....  (code)
-    il65_for_999_loop
+    prog8_for_999_loop
             loopvar += step         ; (if step > 1 or step < -1)
             loopvar++               ; (if step == 1)
             loopvar--               ; (if step == -1)
-            goto il65_for_999         ; continue the loop
-    il65_for_999_end        ; code continues after this
+            goto prog8_for_999         ; continue the loop
+    prog8_for_999_end        ; code continues after this
 
 
 

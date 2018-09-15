@@ -16,7 +16,6 @@
 __pycache__/
 parser.out
 parsetab.py
-!/il65/lib/*
 .pytest_cache/
 docs/build
 out/
