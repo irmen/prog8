@@ -15,7 +15,7 @@ private val importedModules : HashMap<String, Module> = hashMapOf()
 
 
 fun importModule(filePath: Path) : Module {
-    println("importing '${filePath.fileName}'  (from ${filePath.parent})...")
+    println("importing '${filePath.fileName}'  (from '${filePath.parent}')")
     if(!Files.isReadable(filePath))
         throw ParsingFailedError("No such file: $filePath")
 

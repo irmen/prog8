@@ -5,22 +5,9 @@ import il65.functions.BuiltinFunctionNames
 import il65.functions.BuiltinFunctionsWithoutSideEffects
 
 
-fun Module.optimizeStatements(globalNamespace: INameScope, allScopedSymbolDefinitions: MutableMap<String, IStatement>) {
-    val optimizer = StatementOptimizer(globalNamespace)
-    this.process(optimizer)
-    optimizer.removeUnusedNodes(globalNamespace.usedNames(), allScopedSymbolDefinitions)
-    if(optimizer.optimizationsDone==0)
-        println("[${this.name}] 0 statement optimizations performed")
-
-    while(optimizer.optimizationsDone>0) {
-        println("[${this.name}] ${optimizer.optimizationsDone} statement optimizations performed")
-        optimizer.reset()
-        this.process(optimizer)
-    }
-    this.linkParents()  // re-link in final configuration
-}
-
 /*
+    todo remove if statements with empty statement blocks
+    todo replace if statements with only else block
     todo statement optimization: create augmented assignment from assignment that only refers to its lvalue (A=A+10, A=4*A, ...)
     todo statement optimization: X+=1, X-=1  --> X++/X--  ,
     todo remove statements that have no effect  X=X , X+=0, X-=0, X*=1, X/=1, X//=1, A |= 0, A ^= 0, A<<=0, etc etc
@@ -36,10 +23,6 @@ class StatementOptimizer(private val globalNamespace: INameScope) : IAstProcesso
         private set
 
     private var statementsToRemove = mutableListOf<IStatement>()
-
-    fun reset() {
-        optimizationsDone = 0
-    }
 
     override fun process(functionCall: FunctionCall): IExpression {
         val target = globalNamespace.lookup(functionCall.target.nameInSource, functionCall)
@@ -100,6 +83,8 @@ class StatementOptimizer(private val globalNamespace: INameScope) : IAstProcesso
     }
 
     fun removeUnusedNodes(usedNames: Set<String>, allScopedSymbolDefinitions: MutableMap<String, IStatement>) {
+        val symbolsToRemove = mutableListOf<String>()
+
         for ((name, value) in allScopedSymbolDefinitions) {
             if(!usedNames.contains(name)) {
                 val parentScope = value.parent as INameScope
@@ -109,8 +94,13 @@ class StatementOptimizer(private val globalNamespace: INameScope) : IAstProcesso
                 if(value is Block)
                     println("${value.position} Info: block '$localname' is never used")
                 parentScope.removeStatement(value)
+                symbolsToRemove.add(name)
                 optimizationsDone++
             }
+        }
+
+        for(name in symbolsToRemove) {
+            allScopedSymbolDefinitions.remove(name)
         }
 
         for(stmt in statementsToRemove) {

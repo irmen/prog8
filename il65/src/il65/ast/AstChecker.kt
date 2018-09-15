@@ -226,19 +226,6 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
     }
 
     /**
-     * check if condition
-     */
-    override fun process(ifStatement: IfStatement): IStatement {
-        val constvalue = ifStatement.condition.constValue(namespace)
-        if(constvalue!=null) {
-            val msg = if (constvalue.asBooleanValue) "condition is always true" else "condition is always false"
-            println("${ifStatement.position} Warning: $msg")
-        }
-
-        return super.process(ifStatement)
-    }
-
-    /**
      * check the arguments of the directive
      */
     override fun process(directive: Directive): IStatement {
@@ -452,7 +439,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                             if(av.register!=Register.A && av.register!=Register.X && av.register!=Register.Y)
                                 return err("register '$av' in byte array is not a single register")
                         } else {
-                            TODO("array value $av")
+                            TODO("check array value $av")
                         }
 
                     }

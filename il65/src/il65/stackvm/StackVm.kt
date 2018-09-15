@@ -130,9 +130,10 @@ enum class Syscall(val callNr: Short) {
     INPUT_VAR(15),              // user input a string into a variable
     GFX_PIXEL(16),              // plot a pixel at (x,y,color) pushed on stack in that order
     GFX_CLEARSCR(17),           // clear the screen with color pushed on stack
-    GFX_TEXT(18),               // write text on screen at (x,y,text,color) pushed on stack in that order
+    GFX_TEXT(18),               // write text on screen at (x,y,color,text) pushed on stack in that order
     RANDOM(19),                 // push a random byte on the stack
     RANDOM_W(20),               // push a random word on the stack
+    RANDOM_F(21),               // push a random float on the stack (between 0.0 and 1.0)
 
 
     FUNC_P_CARRY(100),
@@ -598,7 +599,7 @@ class Program (prog: MutableList<Instruction>,
                             Instruction(opcode, Value(DataType.BYTE, call.callNr), callValues)
                         }
                         else -> {
-                            println("INSTR $opcode at $lineNr  args=$args")  // TODO weg
+                            // println("INSTR $opcode at $lineNr  args=$args")
                             Instruction(opcode, getArgValue(args))
                         }
                     }
@@ -1006,13 +1007,14 @@ class StackVm(val traceOutputFile: String?) {
                         canvas.clearScreen(color.integerValue())
                     }
                     Syscall.GFX_TEXT -> {
-                        val color = evalstack.pop()
                         val text = evalstack.pop()
+                        val color = evalstack.pop()
                         val (y, x) = evalstack.pop2()
                         canvas.writeText(x.integerValue(), y.integerValue(), text.stringvalue!!, color.integerValue())
                     }
                     Syscall.RANDOM -> evalstack.push(Value(DataType.BYTE, rnd.nextInt() and 255))
                     Syscall.RANDOM_W -> evalstack.push(Value(DataType.WORD, rnd.nextInt() and 65535))
+                    Syscall.RANDOM_F -> evalstack.push(Value(DataType.FLOAT, rnd.nextDouble()))
                     else -> throw VmExecutionException("unimplemented syscall $syscall")
                 }
             }

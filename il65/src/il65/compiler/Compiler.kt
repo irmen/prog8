@@ -88,7 +88,7 @@ data class Mflpt5(val b0: Short, val b1: Short, val b2: Short, val b3: Short, va
 
 class Compiler(private val options: CompilationOptions) {
     fun compile(module: Module) : StackVmProgram {
-        println("\nCompiling parsed source code to stackvmProg code...")
+        println("\nCreating stackVM code...")
 
         val namespace = module.definingScope()
 
@@ -423,7 +423,7 @@ class StackVmProgram(val name: String) {
         }
 
     fun optimize() {
-        println("\nOptimizing stackvmProg code...")
+        println("\nOptimizing stackVM code...")
         // todo optimize stackvm code
     }
 

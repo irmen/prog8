@@ -4,8 +4,9 @@ import java.nio.file.Paths
 import il65.ast.*
 import il65.parser.*
 import il65.compiler.*
-import il65.optimizing.optimizeExpressions
+import il65.optimizing.constantFold
 import il65.optimizing.optimizeStatements
+import il65.optimizing.simplifyExpressions
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -23,9 +24,10 @@ fun main(args: Array<String>) {
 
     try {
         // import main module and process additional imports
+        println("Parsing...")
         val moduleAst = importModule(filepath)
         moduleAst.linkParents()
-        val globalNameSpaceBeforeOptimization = moduleAst.definingScope()
+        var namespace = moduleAst.definingScope()
 
         // determine special compiler options
 
@@ -46,16 +48,25 @@ fun main(args: Array<String>) {
 
         // perform syntax checks and optimizations
         moduleAst.checkIdentifiers()
-        moduleAst.optimizeExpressions(globalNameSpaceBeforeOptimization)
-        moduleAst.checkValid(globalNameSpaceBeforeOptimization, compilerOptions)          // check if tree is valid
-        val allScopedSymbolDefinitions = moduleAst.checkIdentifiers()
-        moduleAst.optimizeStatements(globalNameSpaceBeforeOptimization, allScopedSymbolDefinitions)
-        StatementReorderer().process(moduleAst)                         // reorder statements to please the compiler later
-        val globalNamespaceAfterOptimize = moduleAst.definingScope()    // create it again, it could have changed in the meantime
-        moduleAst.checkValid(globalNamespaceAfterOptimize, compilerOptions)          // check if final tree is valid
-        moduleAst.checkRecursion(globalNamespaceAfterOptimize)      // check if there are recursive subroutine calls
 
-        // globalNamespaceAfterOptimize.debugPrint()
+        println("Optimizing...")
+        moduleAst.constantFold(namespace)
+        moduleAst.checkValid(namespace, compilerOptions)          // check if tree is valid
+        val allScopedSymbolDefinitions = moduleAst.checkIdentifiers()
+        while(true) {
+            // keep optimizing expressions and statements until no more steps remain
+            val optsDone1 = moduleAst.simplifyExpressions(namespace)
+            val optsDone2 = moduleAst.optimizeStatements(namespace, allScopedSymbolDefinitions)
+            if(optsDone1 + optsDone2 == 0)
+                break
+        }
+
+        StatementReorderer().process(moduleAst)     // reorder statements to please the compiler later
+        namespace = moduleAst.definingScope()       // create it again, it could have changed in the meantime
+        moduleAst.checkValid(namespace, compilerOptions)          // check if final tree is valid
+        moduleAst.checkRecursion(namespace)         // check if there are recursive subroutine calls
+
+        // namespace.debugPrint()
 
         // compile the syntax tree into stackvmProg form, and optimize that
         val compiler = Compiler(compilerOptions)
