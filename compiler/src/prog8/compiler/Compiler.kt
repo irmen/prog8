@@ -122,367 +122,373 @@ class Compiler(private val options: CompilationOptions) {
         }
     }
 
-    class StatementTranslator(private val stackvmProg: StackVmProgram, private val namespace: INameScope): IAstProcessor {
-        var stmtUniqueSequenceNr = 0
-            private set
+}
 
-        override fun process(subroutine: Subroutine): IStatement {
-            stackvmProg.label(subroutine.scopedname)
-            translate(subroutine.statements)
-            return super.process(subroutine)
-        }
+private class StatementTranslator(private val stackvmProg: StackVmProgram, private val namespace: INameScope): IAstProcessor {
+    var stmtUniqueSequenceNr = 0
+        private set
 
-        override fun process(block: Block): IStatement {
-            stackvmProg.label(block.scopedname)
-            translate(block.statements)
-            return super.process(block)
-        }
+    override fun process(subroutine: Subroutine): IStatement {
+        stackvmProg.label(subroutine.scopedname)
+        translate(subroutine.statements)
+        return super.process(subroutine)
+    }
 
-        override fun process(directive: Directive): IStatement {
-            when(directive.directive) {
-                "%asminclude" -> throw CompilerException("can't use %asminclude in stackvm")
-                "%asmbinary" -> throw CompilerException("can't use %asmbinary in stackvm")
-                "%breakpoint" -> {
-                    stackvmProg.line(directive.position)
-                    stackvmProg.instruction("break")
-                }
-            }
-            return super.process(directive)
-        }
+    override fun process(block: Block): IStatement {
+        stackvmProg.label(block.scopedname)
+        translate(block.statements)
+        return super.process(block)
+    }
 
-        private fun translate(statements: List<IStatement>) {
-            for (stmt: IStatement in statements) {
-                stmtUniqueSequenceNr++
-                when (stmt) {
-                    is AnonymousStatementList -> translate(stmt.statements)
-                    is Label -> translate(stmt)
-                    is Return -> translate(stmt)
-                    is Assignment -> translate(stmt)        // normal and augmented assignments
-                    is PostIncrDecr -> translate(stmt)
-                    is Jump -> translate(stmt)
-                    is FunctionCallStatement -> translate(stmt)
-                    is IfStatement -> translate(stmt)
-                    is BranchStatement -> translate(stmt)
-                    is Break -> translate(stmt)
-                    is Continue -> translate(stmt)
-                    is ForLoop -> translate(stmt)
-                    is Directive, is VarDecl, is Subroutine -> {}   // skip this, already processed these.
-                    is InlineAssembly -> throw CompilerException("inline assembly is not supported by the StackVM")
-                    else -> TODO("translate statement $stmt to stackvm")
-                }
+    override fun process(directive: Directive): IStatement {
+        when(directive.directive) {
+            "%asminclude" -> throw CompilerException("can't use %asminclude in stackvm")
+            "%asmbinary" -> throw CompilerException("can't use %asmbinary in stackvm")
+            "%breakpoint" -> {
+                stackvmProg.line(directive.position)
+                stackvmProg.instruction("break")
             }
         }
+        return super.process(directive)
+    }
 
-
-        private fun translate(stmt: Continue) {
-            stackvmProg.line(stmt.position)
-            stackvmProg.instruction("continue")
-        }
-
-        private fun translate(stmt: Break) {
-            stackvmProg.line(stmt.position)
-            stackvmProg.instruction("break")
-        }
-
-        private fun translate(branch: BranchStatement) {
-            /*
-             * A branch: IF_CC { stuff } else { other_stuff }
-             * Which is translated into:
-             *      BCS _stmt_999_else
-             *      stuff
-             *      JUMP _stmt_999_continue
-             * _stmt_999_else:
-             *      other_stuff     ;; optional
-             * _stmt_999_continue:
-             *      ...
-             */
-            stackvmProg.line(branch.position)
-            val labelElse = makeLabel("else")
-            val labelContinue = makeLabel("continue")
-            val opcode = when(branch.condition) {
-                BranchCondition.CS -> "bcc"
-                BranchCondition.CC -> "bcs"
-                BranchCondition.EQ -> "bne"
-                BranchCondition.NE -> "beq"
-                BranchCondition.VS -> "bvc"
-                BranchCondition.VC -> "bvs"
-                BranchCondition.MI -> "bpl"
-                BranchCondition.PL -> "bmi"
-            }
-            if(branch.elsepart.isEmpty()) {
-                stackvmProg.instruction("$opcode $labelContinue")
-                translate(branch.statements)
-                stackvmProg.label(labelContinue)
-            } else {
-                stackvmProg.instruction("$opcode $labelElse")
-                translate(branch.statements)
-                stackvmProg.instruction("jump $labelContinue")
-                stackvmProg.label(labelElse)
-                translate(branch.elsepart)
-                stackvmProg.label(labelContinue)
+    private fun translate(statements: List<IStatement>) {
+        for (stmt: IStatement in statements) {
+            stmtUniqueSequenceNr++
+            when (stmt) {
+                is AnonymousStatementList -> translate(stmt.statements)
+                is Label -> translate(stmt)
+                is Return -> translate(stmt)
+                is Assignment -> translate(stmt)        // normal and augmented assignments
+                is PostIncrDecr -> translate(stmt)
+                is Jump -> translate(stmt)
+                is FunctionCallStatement -> translate(stmt)
+                is IfStatement -> translate(stmt)
+                is BranchStatement -> translate(stmt)
+                is Break -> translate(stmt)
+                is Continue -> translate(stmt)
+                is ForLoop -> translate(stmt)
+                is Directive, is VarDecl, is Subroutine -> {}   // skip this, already processed these.
+                is InlineAssembly -> throw CompilerException("inline assembly is not supported by the StackVM")
+                else -> TODO("translate statement $stmt to stackvm")
             }
         }
+    }
 
-        private fun makeLabel(postfix: String): String = "_prog8stmt_${stmtUniqueSequenceNr}_$postfix"
 
-        private fun translate(stmt: IfStatement) {
-            /*
-             * An IF statement: IF (condition-expression) { stuff } else { other_stuff }
-             * Which is translated into:
-             *      <condition-expression evaluation>
-             *      BEQ _stmt_999_else
-             *      stuff
-             *      JUMP _stmt_999_continue
-             * _stmt_999_else:
-             *      other_stuff     ;; optional
-             * _stmt_999_continue:
-             *      ...
-             */
-            stackvmProg.line(stmt.position)
-            translate(stmt.condition)
-            val labelElse = makeLabel("else")
-            val labelContinue = makeLabel("continue")
-            if(stmt.elsepart.isEmpty()) {
-                stackvmProg.instruction("beq $labelContinue")
-                translate(stmt.statements)
-                stackvmProg.label(labelContinue)
-            } else {
-                stackvmProg.instruction("beq $labelElse")
-                translate(stmt.statements)
-                stackvmProg.instruction("jump $labelContinue")
-                stackvmProg.label(labelElse)
-                translate(stmt.elsepart)
-                stackvmProg.label(labelContinue)
-            }
+    private fun translate(stmt: Continue) {
+        stackvmProg.line(stmt.position)
+        stackvmProg.instruction("continue")
+    }
+
+    private fun translate(stmt: Break) {
+        stackvmProg.line(stmt.position)
+        stackvmProg.instruction("break")
+    }
+
+    private fun translate(branch: BranchStatement) {
+        /*
+         * A branch: IF_CC { stuff } else { other_stuff }
+         * Which is translated into:
+         *      BCS _stmt_999_else
+         *      stuff
+         *      JUMP _stmt_999_continue
+         * _stmt_999_else:
+         *      other_stuff     ;; optional
+         * _stmt_999_continue:
+         *      ...
+         */
+        stackvmProg.line(branch.position)
+        val labelElse = makeLabel("else")
+        val labelContinue = makeLabel("continue")
+        val opcode = when(branch.condition) {
+            BranchCondition.CS -> "bcc"
+            BranchCondition.CC -> "bcs"
+            BranchCondition.EQ -> "bne"
+            BranchCondition.NE -> "beq"
+            BranchCondition.VS -> "bvc"
+            BranchCondition.VC -> "bvs"
+            BranchCondition.MI -> "bpl"
+            BranchCondition.PL -> "bmi"
         }
+        if(branch.elsepart.isEmpty()) {
+            stackvmProg.instruction("$opcode $labelContinue")
+            translate(branch.statements)
+            stackvmProg.label(labelContinue)
+        } else {
+            stackvmProg.instruction("$opcode $labelElse")
+            translate(branch.statements)
+            stackvmProg.instruction("jump $labelContinue")
+            stackvmProg.label(labelElse)
+            translate(branch.elsepart)
+            stackvmProg.label(labelContinue)
+        }
+    }
 
-        private fun translate(expr: IExpression) {
-            when(expr) {
-                is RegisterExpr -> {
-                    stackvmProg.instruction("push_var ${expr.register}")
-                }
-                is BinaryExpression -> {
-                    translate(expr.left)
-                    translate(expr.right)
-                    translateBinaryOperator(expr.operator)
-                }
-                is FunctionCall -> {
-                    expr.arglist.forEach { translate(it) }
-                    val target = expr.target.targetStatement(namespace)
-                    if(target is BuiltinFunctionStatementPlaceholder) {
-                        // call to a builtin function
-                        val funcname = expr.target.nameInSource[0].toUpperCase()
-                        createFunctionCall(funcname)  // call builtin function
-                    } else {
-                        when(target) {
-                            is Subroutine -> {
-                                stackvmProg.instruction("call ${target.scopedname}")
-                            }
-                            else -> TODO("non-builtin-function call to $target")
-                        }
-                    }
-                }
-                is IdentifierReference -> {
-                    val target = expr.targetStatement(namespace)
+    private fun makeLabel(postfix: String): String = "_prog8stmt_${stmtUniqueSequenceNr}_$postfix"
+
+    private fun translate(stmt: IfStatement) {
+        /*
+         * An IF statement: IF (condition-expression) { stuff } else { other_stuff }
+         * Which is translated into:
+         *      <condition-expression evaluation>
+         *      BEQ _stmt_999_else
+         *      stuff
+         *      JUMP _stmt_999_continue
+         * _stmt_999_else:
+         *      other_stuff     ;; optional
+         * _stmt_999_continue:
+         *      ...
+         */
+        stackvmProg.line(stmt.position)
+        translate(stmt.condition)
+        val labelElse = makeLabel("else")
+        val labelContinue = makeLabel("continue")
+        if(stmt.elsepart.isEmpty()) {
+            stackvmProg.instruction("beq $labelContinue")
+            translate(stmt.statements)
+            stackvmProg.label(labelContinue)
+        } else {
+            stackvmProg.instruction("beq $labelElse")
+            translate(stmt.statements)
+            stackvmProg.instruction("jump $labelContinue")
+            stackvmProg.label(labelElse)
+            translate(stmt.elsepart)
+            stackvmProg.label(labelContinue)
+        }
+    }
+
+    private fun translate(expr: IExpression) {
+        when(expr) {
+            is RegisterExpr -> {
+                stackvmProg.instruction("push_var ${expr.register}")
+            }
+            is BinaryExpression -> {
+                translate(expr.left)
+                translate(expr.right)
+                translateBinaryOperator(expr.operator)
+            }
+            is FunctionCall -> {
+                expr.arglist.forEach { translate(it) }
+                val target = expr.target.targetStatement(namespace)
+                if(target is BuiltinFunctionStatementPlaceholder) {
+                    // call to a builtin function
+                    val funcname = expr.target.nameInSource[0].toUpperCase()
+                    createFunctionCall(funcname)  // call builtin function
+                } else {
                     when(target) {
-                        is VarDecl -> {
-                            stackvmProg.instruction("push_var ${target.scopedname}")
+                        is Subroutine -> {
+                            stackvmProg.instruction("call ${target.scopedname}")
                         }
-                        else -> throw CompilerException("expression identifierref should be a vardef, not $target")
-                    }
-                }
-                is RangeExpr -> {
-                    TODO("TRANSLATE $expr")      // todo
-                }
-                else -> {
-                    val lv = expr.constValue(namespace) ?: throw CompilerException("constant expression required, not $expr")
-                    when(lv.type) {
-                        DataType.BYTE -> stackvmProg.instruction("push b:%02x".format(lv.bytevalue!!))
-                        DataType.WORD -> stackvmProg.instruction("push w:%04x".format(lv.wordvalue!!))
-                        DataType.FLOAT -> stackvmProg.instruction("push f:${lv.floatvalue}")
-                        DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> stackvmProg.instruction("push \"${lv.strvalue}\"")
-                        DataType.ARRAY, DataType.ARRAY_W -> {
-                            lv.arrayvalue?.forEach { translate(it) }
-                            stackvmProg.instruction("array w:${lv.arrayvalue!!.size.toString(16)}")
-                        }
-                        DataType.MATRIX -> TODO("matrix type")
+                        else -> TODO("non-builtin-function call to $target")
                     }
                 }
             }
+            is IdentifierReference -> {
+                val target = expr.targetStatement(namespace)
+                when(target) {
+                    is VarDecl -> {
+                        stackvmProg.instruction("push_var ${target.scopedname}")
+                    }
+                    else -> throw CompilerException("expression identifierref should be a vardef, not $target")
+                }
+            }
+            is RangeExpr -> {
+                TODO("TRANSLATE $expr")      // todo
+            }
+            else -> {
+                val lv = expr.constValue(namespace) ?: throw CompilerException("constant expression required, not $expr")
+                when(lv.type) {
+                    DataType.BYTE -> stackvmProg.instruction("push b:%02x".format(lv.bytevalue!!))
+                    DataType.WORD -> stackvmProg.instruction("push w:%04x".format(lv.wordvalue!!))
+                    DataType.FLOAT -> stackvmProg.instruction("push f:${lv.floatvalue}")
+                    DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> stackvmProg.instruction("push \"${lv.strvalue}\"")
+                    DataType.ARRAY, DataType.ARRAY_W -> {
+                        lv.arrayvalue?.forEach { translate(it) }
+                        stackvmProg.instruction("array w:${lv.arrayvalue!!.size.toString(16)}")
+                    }
+                    DataType.MATRIX -> TODO("matrix type")
+                }
+            }
         }
+    }
 
-        private fun translateBinaryOperator(operator: String) {
-            val instruction = when(operator) {
-                "+" -> "add"
-                "-" -> "sub"
-                "*" -> "mul"
-                "/" -> "div"
-                "%" -> "remainder"
-                "**" -> "pow"
-                "&" -> "bitand"
-                "|" -> "bitor"
-                "^" -> "bitxor"
-                "and" -> "and"
-                "or" -> "or"
-                "xor" -> "xor"
-                "<" -> "less"
-                ">" -> "greater"
-                "<=" -> "lesseq"
-                ">=" -> "greatereq"
-                "==" -> "equal"
-                "!=" -> "notequal"
-                else -> throw FatalAstException("const evaluation for invalid operator $operator")
-            }
-            stackvmProg.instruction(instruction)
+    private fun translateBinaryOperator(operator: String) {
+        val instruction = when(operator) {
+            "+" -> "add"
+            "-" -> "sub"
+            "*" -> "mul"
+            "/" -> "div"
+            "%" -> "remainder"
+            "**" -> "pow"
+            "&" -> "bitand"
+            "|" -> "bitor"
+            "^" -> "bitxor"
+            "and" -> "and"
+            "or" -> "or"
+            "xor" -> "xor"
+            "<" -> "less"
+            ">" -> "greater"
+            "<=" -> "lesseq"
+            ">=" -> "greatereq"
+            "==" -> "equal"
+            "!=" -> "notequal"
+            else -> throw FatalAstException("const evaluation for invalid operator $operator")
         }
+        stackvmProg.instruction(instruction)
+    }
 
-        private fun translate(stmt: FunctionCallStatement) {
-            stackvmProg.line(stmt.position)
-            val targetStmt = stmt.target.targetStatement(namespace)!!
-            if(targetStmt is BuiltinFunctionStatementPlaceholder) {
-                stmt.arglist.forEach { translate(it) }
-                val funcname = stmt.target.nameInSource[0].toUpperCase()
-                createFunctionCall(funcname)  // call builtin function
-                return
-            }
-
-            val targetname = when(targetStmt) {
-                is Label -> targetStmt.scopedname
-                is Subroutine -> targetStmt.scopedname
-                else -> throw AstException("invalid call target node type: ${targetStmt::class}")
-            }
+    private fun translate(stmt: FunctionCallStatement) {
+        stackvmProg.line(stmt.position)
+        val targetStmt = stmt.target.targetStatement(namespace)!!
+        if(targetStmt is BuiltinFunctionStatementPlaceholder) {
             stmt.arglist.forEach { translate(it) }
-            stackvmProg.instruction("call $targetname")
+            val funcname = stmt.target.nameInSource[0].toUpperCase()
+            createFunctionCall(funcname)  // call builtin function
+            return
         }
 
-        private fun createFunctionCall(funcname: String) {
-            if (funcname.startsWith("_VM_"))
-                stackvmProg.instruction("syscall ${funcname.substring(4)}")  // call builtin function
-            else
-                stackvmProg.instruction("syscall FUNC_$funcname")
+        val targetname = when(targetStmt) {
+            is Label -> targetStmt.scopedname
+            is Subroutine -> targetStmt.scopedname
+            else -> throw AstException("invalid call target node type: ${targetStmt::class}")
         }
+        stmt.arglist.forEach { translate(it) }
+        stackvmProg.instruction("call $targetname")
+    }
 
-        private fun translate(stmt: Jump) {
-            val instr =
-                    if(stmt.address!=null) {
-                        "jump \$${stmt.address.toString(16)}"
-                    } else {
-                        val target = stmt.identifier!!.targetStatement(namespace)!!
-                        when(target) {
-                            is Label -> "jump ${target.scopedname}"
-                            is Subroutine -> "jump ${target.scopedname}"
-                            else -> throw CompilerException("invalid jump target type ${target::class}")
-                        }
-                    }
-            stackvmProg.line(stmt.position)
-            stackvmProg.instruction(instr)
-        }
+    private fun createFunctionCall(funcname: String) {
+        if (funcname.startsWith("_VM_"))
+            stackvmProg.instruction("syscall ${funcname.substring(4)}")  // call builtin function
+        else
+            stackvmProg.instruction("syscall FUNC_$funcname")
+    }
 
-        private fun translate(stmt: PostIncrDecr) {
-            stackvmProg.line(stmt.position)
-            if(stmt.target.register!=null) {
-                when(stmt.operator) {
-                    "++" -> stackvmProg.instruction("inc_var ${stmt.target.register}")
-                    "--" -> stackvmProg.instruction("dec_var ${stmt.target.register}")
-                }
-            } else {
-                val targetStatement = stmt.target.identifier!!.targetStatement(namespace) as VarDecl
-                when(stmt.operator) {
-                    "++" -> stackvmProg.instruction("inc_var ${targetStatement.scopedname}")
-                    "--" -> stackvmProg.instruction("dec_var ${targetStatement.scopedname}")
-                }
-            }
-        }
-
-        private fun translate(stmt: Assignment) {
-            stackvmProg.line(stmt.position)
-            translate(stmt.value)
-            val valueDt = stmt.value.resultingDatatype(namespace)
-            val targetDt = stmt.target.determineDatatype(namespace, stmt)
-            if(valueDt!=targetDt) {
-                // convert value to target datatype if possible
-                when(targetDt) {
-                    DataType.BYTE -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
-                    DataType.WORD -> {
-                        if(valueDt==DataType.BYTE)
-                            stackvmProg.instruction("b2word")
-                        else
-                            throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
-                    }
-                    DataType.FLOAT -> {
-                        when (valueDt) {
-                            DataType.BYTE -> stackvmProg.instruction("b2float")
-                            DataType.WORD -> stackvmProg.instruction("w2float")
-                            else -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
-                        }
-                    }
-                    DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
-                    DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
-                    // todo: maybe if you assign byte or word to array/matrix, clear it with that value?
-                }
-            }
-
-            if(stmt.aug_op!=null) {
-                // augmented assignment
-                if(stmt.target.identifier!=null) {
-                    val target = stmt.target.identifier!!.targetStatement(namespace)!!
+    private fun translate(stmt: Jump) {
+        val instr =
+                if(stmt.address!=null) {
+                    "jump \$${stmt.address.toString(16)}"
+                } else {
+                    val target = stmt.identifier!!.targetStatement(namespace)!!
                     when(target) {
-                        is VarDecl -> stackvmProg.instruction("push_var ${target.scopedname}")
-                        else -> throw CompilerException("invalid assignment target type ${target::class}")
+                        is Label -> "jump ${target.scopedname}"
+                        is Subroutine -> "jump ${target.scopedname}"
+                        else -> throw CompilerException("invalid jump target type ${target::class}")
                     }
-                } else if(stmt.target.register!=null) {
-                    stackvmProg.instruction("push_var ${stmt.target.register}")
                 }
-                translateAugAssignOperator(stmt.aug_op)
-            }
+        stackvmProg.line(stmt.position)
+        stackvmProg.instruction(instr)
+    }
 
-            // pop the result value back into the assignment target
+    private fun translate(stmt: PostIncrDecr) {
+        stackvmProg.line(stmt.position)
+        if(stmt.target.register!=null) {
+            when(stmt.operator) {
+                "++" -> stackvmProg.instruction("inc_var ${stmt.target.register}")
+                "--" -> stackvmProg.instruction("dec_var ${stmt.target.register}")
+            }
+        } else {
+            val targetStatement = stmt.target.identifier!!.targetStatement(namespace) as VarDecl
+            when(stmt.operator) {
+                "++" -> stackvmProg.instruction("inc_var ${targetStatement.scopedname}")
+                "--" -> stackvmProg.instruction("dec_var ${targetStatement.scopedname}")
+            }
+        }
+    }
+
+    private fun translate(stmt: Assignment) {
+        stackvmProg.line(stmt.position)
+        translate(stmt.value)
+        val valueDt = stmt.value.resultingDatatype(namespace)
+        val targetDt = stmt.target.determineDatatype(namespace, stmt)
+        if(valueDt!=targetDt) {
+            // convert value to target datatype if possible
+            when(targetDt) {
+                DataType.BYTE -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
+                DataType.WORD -> {
+                    if(valueDt==DataType.BYTE)
+                        stackvmProg.instruction("b2word")
+                    else
+                        throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
+                }
+                DataType.FLOAT -> {
+                    when (valueDt) {
+                        DataType.BYTE -> stackvmProg.instruction("b2float")
+                        DataType.WORD -> stackvmProg.instruction("w2float")
+                        else -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
+                    }
+                }
+                DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
+                DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
+                // todo: maybe if you assign byte or word to array/matrix, clear it with that value?
+            }
+        }
+
+        if(stmt.aug_op!=null) {
+            // augmented assignment
             if(stmt.target.identifier!=null) {
                 val target = stmt.target.identifier!!.targetStatement(namespace)!!
                 when(target) {
-                    is VarDecl -> stackvmProg.instruction("pop_var ${target.scopedname}")
+                    is VarDecl -> stackvmProg.instruction("push_var ${target.scopedname}")
                     else -> throw CompilerException("invalid assignment target type ${target::class}")
                 }
             } else if(stmt.target.register!=null) {
-                stackvmProg.instruction("pop_var ${stmt.target.register}")
+                stackvmProg.instruction("push_var ${stmt.target.register}")
             }
+            translateAugAssignOperator(stmt.aug_op)
         }
 
-        private fun translateAugAssignOperator(aug_op: String) {
-            val instruction = when(aug_op) {
-                "+=" -> "add"
-                "-=" -> "sub"
-                "/=" -> "div"
-                "*=" -> "mul"
-                "**=" -> "pow"
-                "&=" -> "bitand"
-                "|=" -> "bitor"
-                "^=" -> "bitxor"
-                else -> throw CompilerException("invalid aug assignment operator $aug_op")
+        // pop the result value back into the assignment target
+        if(stmt.target.identifier!=null) {
+            val target = stmt.target.identifier!!.targetStatement(namespace)!!
+            when(target) {
+                is VarDecl -> stackvmProg.instruction("pop_var ${target.scopedname}")
+                else -> throw CompilerException("invalid assignment target type ${target::class}")
             }
-            stackvmProg.instruction(instruction)
+        } else if(stmt.target.register!=null) {
+            stackvmProg.instruction("pop_var ${stmt.target.register}")
         }
+    }
 
-        private fun translate(stmt: Return) {
-            if(stmt.values.isNotEmpty()) {
-                TODO("return with value(s) not yet supported: $stmt")
-            }
-            stackvmProg.line(stmt.position)
-            stackvmProg.instruction("return")
+    private fun translateAugAssignOperator(aug_op: String) {
+        val instruction = when(aug_op) {
+            "+=" -> "add"
+            "-=" -> "sub"
+            "/=" -> "div"
+            "*=" -> "mul"
+            "**=" -> "pow"
+            "&=" -> "bitand"
+            "|=" -> "bitor"
+            "^=" -> "bitxor"
+            else -> throw CompilerException("invalid aug assignment operator $aug_op")
         }
+        stackvmProg.instruction(instruction)
+    }
 
-        private fun translate(stmt: Label) {
-            stackvmProg.label(stmt.scopedname)
+    private fun translate(stmt: Return) {
+        if(stmt.values.isNotEmpty()) {
+            TODO("return with value(s) not yet supported: $stmt")
         }
+        stackvmProg.line(stmt.position)
+        stackvmProg.instruction("return")
+    }
+
+    private fun translate(stmt: Label) {
+        stackvmProg.label(stmt.scopedname)
+    }
 
 
-        private fun translate(loop: ForLoop) {
-            stackvmProg.line(loop.position)
-            println("@TODO: translate FOR LOOP $loop")            // @todo  FOR LOOP
+    private fun translate(loop: ForLoop) {
+        stackvmProg.line(loop.position)
+        if(loop.loopRegister!=null) {
+            val reg = loop.loopRegister
+            println("@TODO translate for loop (register $reg)")     // TODO
+        } else {
+            val loopvar = (loop.loopVar!!.targetStatement(namespace) as VarDecl)
+            println("@TODO translate for loop (variable $loopvar)") // TODO
         }
     }
 }
-
 
 
 class StackVmProgram(val name: String) {

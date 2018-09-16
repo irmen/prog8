@@ -5,6 +5,7 @@ import prog8.compiler.Mflpt5
 import prog8.compiler.Petscii
 import java.awt.EventQueue
 import java.io.File
+import java.io.PrintStream
 import java.io.PrintWriter
 import java.util.*
 import java.util.regex.Pattern
@@ -133,41 +134,41 @@ enum class Syscall(val callNr: Short) {
     GFX_CLEARSCR(17),           // clear the screen with color pushed on stack
     GFX_TEXT(18),               // write text on screen at (x,y,color,text) pushed on stack in that order
 
-    FUNC_P_CARRY(100),
-    FUNC_P_IRQD(101),
-    FUNC_ROL(102),
-    FUNC_ROR(103),
-    FUNC_ROL2(104),
-    FUNC_ROR2(105),
-    FUNC_LSL(106),
-    FUNC_LSR(107),
-    FUNC_SIN(108),
-    FUNC_COS(109),
-    FUNC_ABS(110),
-    FUNC_ACOS(111),
-    FUNC_ASIN(112),
-    FUNC_TAN(113),
-    FUNC_ATAN(114),
-    FUNC_LOG(115),
-    FUNC_LOG10(116),
-    FUNC_SQRT(117),
-    FUNC_RAD(118),
-    FUNC_DEG(119),
-    FUNC_ROUND(120),
-    FUNC_FLOOR(121),
-    FUNC_CEIL(122),
-    FUNC_MAX(123),
-    FUNC_MIN(124),
-    FUNC_AVG(125),
-    FUNC_SUM(126),
-    FUNC_LEN(127),
-    FUNC_ANY(128),
-    FUNC_ALL(129),
-    FUNC_LSB(130),
-    FUNC_MSB(131),
-    FUNC_RND(132),                // push a random byte on the stack
-    FUNC_RNDW(133),               // push a random word on the stack
-    FUNC_RNDF(134)                // push a random float on the stack (between 0.0 and 1.0)
+    FUNC_P_CARRY(64),
+    FUNC_P_IRQD(65),
+    FUNC_ROL(66),
+    FUNC_ROR(67),
+    FUNC_ROL2(68),
+    FUNC_ROR2(69),
+    FUNC_LSL(70),
+    FUNC_LSR(71),
+    FUNC_SIN(72),
+    FUNC_COS(73),
+    FUNC_ABS(74),
+    FUNC_ACOS(75),
+    FUNC_ASIN(76),
+    FUNC_TAN(77),
+    FUNC_ATAN(78),
+    FUNC_LOG(79),
+    FUNC_LOG10(80),
+    FUNC_SQRT(81),
+    FUNC_RAD(82),
+    FUNC_DEG(83),
+    FUNC_ROUND(84),
+    FUNC_FLOOR(85),
+    FUNC_CEIL(86),
+    FUNC_MAX(87),
+    FUNC_MIN(88),
+    FUNC_AVG(89),
+    FUNC_SUM(90),
+    FUNC_LEN(91),
+    FUNC_ANY(92),
+    FUNC_ALL(93),
+    FUNC_LSB(94),
+    FUNC_MSB(95),
+    FUNC_RND(96),                // push a random byte on the stack
+    FUNC_RNDW(97),               // push a random word on the stack
+    FUNC_RNDF(98)                // push a random float on the stack (between 0.0 and 1.0)
 }
 
 class Memory {
@@ -259,7 +260,15 @@ class Value(val type: DataType, private val numericvalue: Number?, val stringval
     }
 
     override fun toString(): String {
-        return "$type: $numericvalue $stringvalue"
+        return when(type) {
+            DataType.BYTE -> "%02x".format(byteval)
+            DataType.WORD -> "%04x".format(wordval)
+            DataType.FLOAT -> floatval.toString()
+            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> "\"$stringvalue\""
+            DataType.ARRAY -> TODO("array")
+            DataType.ARRAY_W -> TODO("word array")
+            DataType.MATRIX -> TODO("matrix")
+        }
     }
 
     fun numericValue(): Number {
@@ -493,7 +502,7 @@ class Value(val type: DataType, private val numericvalue: Number?, val stringval
 }
 
 
-data class Instruction(val opcode: Opcode,
+open class Instruction(val opcode: Opcode,
                        val arg: Value? = null,
                        val callLabel: String? = null)
 {
@@ -501,13 +510,29 @@ data class Instruction(val opcode: Opcode,
     var nextAlt: Instruction? = null
 
     override fun toString(): String {
-        return if(callLabel==null)
-            "$opcode  $arg"
-        else
-            "$opcode  $callLabel  $arg"
+        val argStr = arg?.toString() ?: ""
+        val result =
+                when {
+                    opcode==Opcode.SYSCALL -> {
+                        val syscall = Syscall.values().find { it.callNr==arg!!.numericValue() }
+                        "syscall $syscall"
+                    }
+                    callLabel==null -> "${opcode.toString().toLowerCase()} $argStr"
+                    else -> "${opcode.toString().toLowerCase()} $callLabel $argStr"
+                }
+                .trimEnd()
+
+        if(opcode==Opcode.LINE)
+            return "    _$result"
+        return "    $result"
     }
 }
 
+class Label(val name: String) : Instruction(opcode = Opcode.NOP) {
+    override fun toString(): String {
+        return "$name:"
+    }
+}
 
 private class VmExecutionException(msg: String?) : Exception(msg)
 
@@ -527,8 +552,9 @@ private class MyStack<T> : Stack<T>() {
     }
 }
 
-class Program (prog: MutableList<Instruction>,
-               labels: Map<String, Instruction>,
+class Program (val name: String,
+               prog: MutableList<Instruction>,
+               val labels: Map<String, Instruction>,
                val variables: Map<String, Value>,
                val memory: Map<Int, List<Value>>)
 {
@@ -554,7 +580,7 @@ class Program (prog: MutableList<Instruction>,
                 }
                 else throw VmExecutionException("syntax error at line ${lineNr+1}")
             }
-            return Program(instructions, labels, vars, memory)
+            return Program(filename, instructions, labels, vars, memory)
         }
 
         private fun loadInstructions(lines: Iterator<IndexedValue<String>>): Pair<MutableList<Instruction>, Map<String, Instruction>> {
@@ -706,10 +732,10 @@ class Program (prog: MutableList<Instruction>,
         prog.add(Instruction(Opcode.TERMINATE))
         prog.add(Instruction(Opcode.NOP))
         program = prog
-        connect(labels)
+        connect()
     }
 
-    private fun connect(labels: Map<String, Instruction>) {
+    private fun connect() {
         val it1 = program.iterator()
         val it2 = program.iterator()
         it2.next()
@@ -752,6 +778,30 @@ class Program (prog: MutableList<Instruction>,
                 else -> instr.next = nextInstr
             }
         }
+    }
+
+    fun print(out: PrintStream) {
+        out.println("; stackVM program code for '$name'")
+        out.println("%memory")
+        if(memory.isNotEmpty()) {
+            TODO("print out initial memory load")
+        }
+        out.println("%end_memory")
+        out.println("%variables")
+        for (variable in variables) {
+            val valuestr = variable.value.toString()
+            out.println("${variable.key} ${variable.value.type.toString().toLowerCase()} $valuestr")
+        }
+        out.println("%end_variables")
+        out.println("%instructions")
+        val labels = this.labels.entries.associateBy({it.value}) {it.key}
+        for(instr in this.program) {
+            val label = labels[instr]
+            if(label!=null)
+                out.println("$label:")
+            out.println(instr)
+        }
+        out.println("%end_instructions")
     }
 }
 
@@ -1324,6 +1374,8 @@ fun main(args: Array<String>) {
     }
 
     val program = Program.load(args.first())
+    program.print(System.out)
+
     val vm = StackVm(traceOutputFile = null)
     val dialog = ScreenDialog()
     vm.load(program, dialog.canvas)
