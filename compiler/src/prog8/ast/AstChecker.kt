@@ -68,6 +68,47 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         }
     }
 
+    override fun process(forLoop: ForLoop): IStatement {
+        if(!forLoop.iterable.isIterable) {
+            checkResult.add(ExpressionError("can only loop over an iterable type", forLoop.position))
+        } else {
+            val iterableDt = forLoop.iterable.resultingDatatype(namespace)
+            if (forLoop.loopRegister != null) {
+                // loop register
+                when (forLoop.loopRegister) {
+                    Register.A, Register.X, Register.Y -> {
+                        if (iterableDt != DataType.BYTE)
+                            checkResult.add(ExpressionError("register can only loop over bytes", forLoop.position))
+                    }
+                    Register.AX, Register.AY, Register.XY -> {
+                        if (iterableDt != DataType.BYTE)
+                            checkResult.add(ExpressionError("register pair can only loop over words", forLoop.position))
+                    }
+                }
+            } else {
+                // loop variable
+                val loopvar = forLoop.loopVar!!.targetStatement(namespace) as? VarDecl
+                if(loopvar==null || loopvar.type==VarDeclType.CONST) {
+                    checkResult.add(SyntaxError("for loop requires a variable to loop with", forLoop.position))
+
+                } else {
+                    when (loopvar.datatype) {
+                        DataType.BYTE -> {
+                            if(iterableDt!=DataType.BYTE)
+                                checkResult.add(ExpressionError("can only loop over bytes", forLoop.position))
+                        }
+                        DataType.WORD -> {
+                            if(iterableDt!=DataType.BYTE && iterableDt!=DataType.WORD)
+                                checkResult.add(ExpressionError("can only loop over bytes or words", forLoop.position))
+                        }
+                        else -> checkResult.add(ExpressionError("loop variable must be byte or word type", forLoop.position))
+                    }
+                }
+            }
+        }
+        return super.process(forLoop)
+    }
+
     override fun process(jump: Jump): IStatement {
         if(jump.identifier!=null) {
             val targetStatement = checkFunctionOrLabelExists(jump.identifier, jump)

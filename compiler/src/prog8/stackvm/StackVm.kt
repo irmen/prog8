@@ -637,7 +637,7 @@ class Program (prog: MutableList<Instruction>,
                     "byte" -> Value(DataType.BYTE, valueStr.toShort(16))
                     "word" -> Value(DataType.WORD, valueStr.toInt(16))
                     "float" -> Value(DataType.FLOAT, valueStr.toDouble())
-                    "str" -> {
+                    "str", "str_p", "str_s", "str_ps" -> {
                         if(valueStr.startsWith('"') && valueStr.endsWith('"'))
                             Value(DataType.STR, null, unescape(valueStr.substring(1, valueStr.length-1)))
                         else

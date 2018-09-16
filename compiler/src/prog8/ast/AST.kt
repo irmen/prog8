@@ -663,6 +663,7 @@ data class AssignTarget(val register: Register?, val identifier: IdentifierRefer
 
 
 interface IExpression: Node {
+    val isIterable: Boolean
     fun constValue(namespace: INameScope): LiteralValue?
     fun process(processor: IAstProcessor): IExpression
     fun referencesIdentifier(name: String): Boolean
@@ -684,6 +685,7 @@ class PrefixExpression(val operator: String, var expression: IExpression, overri
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String) = expression.referencesIdentifier(name)
     override fun resultingDatatype(namespace: INameScope): DataType? = expression.resultingDatatype(namespace)
+    override val isIterable = false
 }
 
 
@@ -716,6 +718,7 @@ class BinaryExpression(var left: IExpression, val operator: String, var right: I
             else -> throw FatalAstException("resulting datatype check for invalid operator $operator")
         }
     }
+    override val isIterable = false
 
     private fun arithmeticOpDt(leftDt: DataType, rightDt: DataType): DataType {
         return when(leftDt) {
@@ -827,6 +830,11 @@ class LiteralValue(val type: DataType,
     }
 
     override fun resultingDatatype(namespace: INameScope) = type
+    override val isIterable = when(type) {
+        DataType.BYTE, DataType.WORD, DataType.FLOAT -> false
+        DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> true
+        DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX -> true
+    }
 }
 
 
@@ -859,6 +867,8 @@ class RangeExpr(var from: IExpression,
             else -> DataType.BYTE
         }
     }
+
+    override val isIterable = true
 
     override fun toString(): String {
         return "RangeExpr(from $from, to $to, step $step, pos=$position)"
@@ -913,6 +923,7 @@ class RegisterExpr(val register: Register, override val position: Position) : IE
     override fun constValue(namespace: INameScope): LiteralValue? = null
     override fun process(processor: IAstProcessor) = this
     override fun referencesIdentifier(name: String): Boolean  = false
+    override val isIterable = false
 
     override fun toString(): String {
         return "RegisterExpr(register=$register, pos=$position)"
@@ -967,6 +978,11 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
             throw FatalAstException("cannot get datatype from identifier reference ${this}, pos=$position")
         }
     }
+
+    override val isIterable: Boolean
+        get() {
+            TODO("iterable identifierref?")
+        }
 }
 
 
@@ -1102,6 +1118,11 @@ class FunctionCall(override var target: IdentifierReference,
         }
         TODO("datatype of functioncall to $stmt")
     }
+
+    override val isIterable: Boolean
+            get() {
+                TODO("iterable function call result?")
+            }
 }
 
 
@@ -1605,6 +1626,10 @@ class ForLoop(val loopRegister: Register?,
     }
 
     override fun process(processor: IAstProcessor) = processor.process(this)
+
+    override fun toString(): String {
+        return "ForLoop(loopVar: $loopVar, loopReg: $loopRegister, iterable: $iterable, pos=$position)"
+    }
 }
 
 

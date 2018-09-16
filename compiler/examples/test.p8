@@ -42,18 +42,8 @@ sub start() -> () {
     for X in 3 to 100 step 3/3 {
         A=44
         continue
-        continue
-        continue
-        break
-        break
         break
         A=99
-    }
-
-    for X in AX {
-        A=44
-        break
-        continue
     }
 
 loop:

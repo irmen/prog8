@@ -478,7 +478,7 @@ class Compiler(private val options: CompilationOptions) {
 
         private fun translate(loop: ForLoop) {
             stackvmProg.line(loop.position)
-            println("@TODO: translate FOR LOOP")            // @todo  FOR LOOP
+            println("@TODO: translate FOR LOOP $loop")            // @todo  FOR LOOP
         }
     }
 }
