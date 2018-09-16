@@ -39,7 +39,7 @@ class StatementOptimizer(private val globalNamespace: INameScope) : IAstProcesso
         if(functionCall.target.nameInSource.size==1 && BuiltinFunctionNames.contains(functionCall.target.nameInSource[0])) {
             val functionName = functionCall.target.nameInSource[0]
             if (BuiltinFunctionsWithoutSideEffects.contains(functionName)) {
-                println("${functionCall.position} Warning: statement has no effect (function return value is discarded)")
+                printWarning("statement has no effect (function return value is discarded)", functionCall.position)
                 statementsToRemove.add(functionCall)
             }
         }
@@ -62,11 +62,11 @@ class StatementOptimizer(private val globalNamespace: INameScope) : IAstProcesso
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue){
                 // always true -> keep only if-part
-                println("${ifStatement.position} Warning: condition is always true")
+                printWarning("condition is always true", ifStatement.position)
                 AnonymousStatementList(ifStatement.parent, ifStatement.statements, ifStatement.position)
             } else {
                 // always false -> keep only else-part
-                println("${ifStatement.position} Warning: condition is always false")
+                printWarning("condition is always false", ifStatement.position)
                 AnonymousStatementList(ifStatement.parent, ifStatement.elsepart, ifStatement.position)
             }
         }

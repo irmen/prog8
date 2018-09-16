@@ -11,12 +11,30 @@ import prog8.parser.ParsingFailedError
 fun Module.checkValid(globalNamespace: INameScope, compilerOptions: CompilationOptions) {
     val checker = AstChecker(globalNamespace, compilerOptions)
     this.process(checker)
-    val checkResult = checker.result()
-    checkResult.forEach {
-        System.err.println(it)
+    printErrors(checker.result(), name)
+}
+
+
+fun printErrors(errors: List<Any>, moduleName: String) {
+    val reportedMessages = mutableSetOf<String>()
+    errors.forEach {
+        val msg = it.toString()
+        if(!reportedMessages.contains(msg)) {
+            System.err.println(msg)
+            reportedMessages.add(msg)
+        }
     }
-    if(checkResult.isNotEmpty())
-        throw ParsingFailedError("There are ${checkResult.size} errors in module '$name'.")
+    if(reportedMessages.isNotEmpty())
+        throw ParsingFailedError("There are ${reportedMessages.size} errors in module '$moduleName'.")
+}
+
+
+fun printWarning(msg: String, position: Position, detailInfo: String?=null) {
+    print("$position Warning: $msg")
+    if(detailInfo==null)
+        print("\n")
+    else
+        println(": $detailInfo")
 }
 
 
@@ -169,7 +187,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                     checkResult.add(ExpressionError("assignment source ${assignment.value} is no value or has no proper datatype", assignment.value.position))
             }
             else {
-                checkAssignmentCompatible(targetDatatype, sourceDatatype, assignment.position)
+                checkAssignmentCompatible(targetDatatype, sourceDatatype, assignment.value, assignment.position)
             }
         }
 
@@ -198,17 +216,18 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
 
         when(decl.type) {
             VarDeclType.VAR, VarDeclType.CONST -> {
-                when(decl.value) {
-                    null -> {
-                        err("var/const declaration needs a compile-time constant initializer value")
-                        return super.process(decl)
-                    }
-                    !is LiteralValue -> {
-                        err("var/const declaration needs a compile-time constant initializer value, found: ${decl.value!!::class.simpleName}")
+                if (decl.value == null) {
+                    err("var/const declaration needs a compile-time constant initializer value")
+                    return super.process(decl)
+                }
+                when {
+                    decl.value is RangeExpr -> checkValueTypeAndRange(decl.datatype, decl.arrayspec, decl.value as RangeExpr)
+                    decl.value is LiteralValue -> checkValueTypeAndRange(decl.datatype, decl.arrayspec, decl.value as LiteralValue)
+                    else -> {
+                        err("var/const declaration needs a compile-time constant initializer value, or range, instead found: ${decl.value!!::class.simpleName}")
                         return super.process(decl)
                     }
                 }
-                checkValueTypeAndRange(decl.datatype, decl.arrayspec, decl.value as LiteralValue)
             }
             VarDeclType.MEMORY -> {
                 if(decl.value !is LiteralValue) {
@@ -307,17 +326,34 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         super.process(range)
         val from = range.from.constValue(namespace)
         val to = range.to.constValue(namespace)
+        var step = 0
+        if(range.step!=null) {
+            val stepLv = range.step?.constValue(namespace) ?: LiteralValue(DataType.BYTE, 1, position = range.position)
+            if (stepLv.asIntegerValue == null || stepLv.asIntegerValue == 0) {
+                err("range step must be an integer != 0")
+                return range
+            }
+            step = stepLv.asIntegerValue
+        }
         if(from!=null && to != null) {
             when {
                 from.asIntegerValue!=null && to.asIntegerValue!=null -> {
-                    if(from.asIntegerValue > to.asIntegerValue)
-                        err("range from is larger than to value")
+                    if(from.asIntegerValue == to.asIntegerValue)
+                        printWarning("range contains just a single value", range.position)
+                    else if(from.asIntegerValue < to.asIntegerValue && step<0)
+                        err("ascending range requires step > 0")
+                    else if(from.asIntegerValue > to.asIntegerValue && step>0)
+                        err("descending range requires step < 0")
                 }
                 from.strvalue!=null && to.strvalue!=null -> {
                     if(from.strvalue.length!=1 || to.strvalue.length!=1)
                         err("range from and to must be a single character")
-                    if(from.strvalue[0] > to.strvalue[0])
-                        err("range from is larger than to value")
+                    if(from.strvalue[0] == to.strvalue[0])
+                        printWarning("range contains just a single character", range.position)
+                    else if(from.strvalue[0] < to.strvalue[0] && step<0)
+                        err("ascending range requires step > 0")
+                    else if(from.strvalue[0] > to.strvalue[0] && step<0)
+                        err("descending range requires step < 0")
                 }
                 else -> err("range expression must be over integers or over characters")
             }
@@ -385,6 +421,49 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         }
     }
 
+
+    private fun checkValueTypeAndRange(targetDt: DataType, arrayspec: ArraySpec?, range: RangeExpr) : Boolean {
+        val from = range.from.constValue(namespace)
+        val to = range.to.constValue(namespace)
+        if(from==null || to==null) {
+            checkResult.add(SyntaxError("range from and to values must be constants", range.position))
+            return false
+        }
+
+        when(targetDt) {
+            DataType.BYTE, DataType.WORD, DataType.FLOAT -> {
+                checkResult.add(SyntaxError("can't assign a range to a scalar type", range.position))
+                return false
+            }
+            DataType.STR,
+            DataType.STR_P,
+            DataType.STR_S,
+            DataType.STR_PS -> {
+                // range check bytes (chars)
+                if(!from.isString || !to.isString) {
+                    checkResult.add(ExpressionError("range for string must have single characters from and to values", range.position))
+                    return false
+                }
+                val rangeSize=range.size()
+                if(rangeSize!=null && (rangeSize<1 || rangeSize>255)) {
+                    checkResult.add(ExpressionError("size of range for string must be 1..255, instead of $rangeSize", range.position))
+                    return false
+                }
+                return true
+            }
+            DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX -> {
+                // range and length check bytes
+                val expectedSize = arrayspec!!.size()
+                val rangeSize=range.size()
+                if(rangeSize!=null && rangeSize != expectedSize) {
+                    checkResult.add(ExpressionError("range size doesn't match array/matrix size, expected $expectedSize found $rangeSize", range.position))
+                    return false
+                }
+                return true
+            }
+        }
+    }
+
     private fun checkValueTypeAndRange(targetDt: DataType, arrayspec: ArraySpec?, value: LiteralValue) : Boolean {
         fun err(msg: String) : Boolean {
             checkResult.add(ExpressionError(msg, value.position))
@@ -441,9 +520,13 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                             if(av.register!=Register.A && av.register!=Register.X && av.register!=Register.Y)
                                 return err("register '$av' in byte array is not a single register")
                         } else {
-                            TODO("check array value $av")
+                            val avDt = av.resultingDatatype(namespace)
+                            if(avDt!=DataType.BYTE)
+                                return err("array must be all bytes")
                         }
                     }
+                } else if(value.type==DataType.ARRAY_W) {
+                    return err("initialization value must be an array of bytes")
                 } else {
                     val number = value.bytevalue ?: return if (value.floatvalue!=null)
                         err("unsigned byte integer value expected instead of float; possible loss of precision")
@@ -472,7 +555,9 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                             if (number < 0 || number > 65535)
                                 return err("value '$number' in array is out of range for unsigned word")
                         } else {
-                            TODO("check array value $av")
+                            val avDt = av.resultingDatatype(namespace)
+                            if(avDt!=DataType.BYTE && avDt!=DataType.WORD)
+                                return err("array must be all integers")
                         }
                     }
                 } else {
@@ -513,7 +598,14 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         return true
     }
 
-    private fun checkAssignmentCompatible(targetDatatype: DataType, sourceDatatype: DataType, position: Position) : Boolean {
+    private fun checkAssignmentCompatible(targetDatatype: DataType,
+                                          sourceDatatype: DataType,
+                                          sourceValue: IExpression,
+                                          position: Position) : Boolean {
+
+        if(sourceValue is RangeExpr)
+            return checkValueTypeAndRange(targetDatatype, null, sourceValue)
+
         val result =  when(targetDatatype) {
             DataType.BYTE -> sourceDatatype==DataType.BYTE
             DataType.WORD -> sourceDatatype==DataType.BYTE || sourceDatatype==DataType.WORD

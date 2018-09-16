@@ -4,7 +4,9 @@ import prog8.functions.*
 import prog8.parser.prog8Parser
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
+import prog8.compiler.Petscii
 import java.nio.file.Paths
+import kotlin.math.abs
 import kotlin.math.floor
 
 
@@ -180,8 +182,7 @@ interface IAstProcessor {
 
     fun process(forLoop: ForLoop): IStatement {
         forLoop.loopVar?.process(this)
-        forLoop.range = forLoop.range.process(this)
-        forLoop.step = forLoop.step?.process(this)
+        forLoop.iterable = forLoop.iterable.process(this)
         forLoop.body = forLoop.body.asSequence().map {it.process(this)}.toMutableList()
         return forLoop
     }
@@ -829,13 +830,17 @@ class LiteralValue(val type: DataType,
 }
 
 
-class RangeExpr(var from: IExpression, var to: IExpression, override val position: Position) : IExpression {
+class RangeExpr(var from: IExpression,
+                var to: IExpression,
+                var step: IExpression?,
+                override val position: Position) : IExpression {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
         from.linkParents(this)
         to.linkParents(this)
+        step?.linkParents(this)
     }
 
     override fun constValue(namespace: INameScope): LiteralValue? = null
@@ -852,6 +857,47 @@ class RangeExpr(var from: IExpression, var to: IExpression, override val positio
             fromDt==DataType.STR_S || toDt==DataType.STR_S -> DataType.STR_S
             fromDt==DataType.STR_PS || toDt==DataType.STR_PS -> DataType.STR_PS
             else -> DataType.BYTE
+        }
+    }
+
+    override fun toString(): String {
+        return "RangeExpr(from $from, to $to, step $step, pos=$position)"
+    }
+
+    fun size(): Int? {
+        val fromLv = (from as? LiteralValue)
+        val toLv = (to as? LiteralValue)
+        if(fromLv==null || toLv==null)
+            return null
+        return toKotlinRange().count()
+    }
+
+    fun toKotlinRange(): IntProgression {
+        val fromLv = from as LiteralValue
+        val toLv = to as LiteralValue
+        val fromVal: Int
+        val toVal: Int
+        if(fromLv.isString && toLv.isString) {
+            // string range -> int range over petscii values
+            fromVal = Petscii.encodePetscii(fromLv.strvalue!!, true)[0].toInt()
+            toVal = Petscii.encodePetscii(toLv.strvalue!!, true)[0].toInt()
+        } else {
+            // integer range
+            fromVal = (from as LiteralValue).asIntegerValue!!
+            toVal = (to as LiteralValue).asIntegerValue!!
+        }
+        val stepVal = (step as? LiteralValue)?.asIntegerValue ?: 1
+        return when {
+            fromVal <= toVal -> when {
+                stepVal <= 0 -> IntRange.EMPTY
+                stepVal == 1 -> fromVal..toVal
+                else -> fromVal..toVal step stepVal
+            }
+            else -> when {
+                stepVal >= 0 -> IntRange.EMPTY
+                stepVal == -1 -> fromVal downTo toVal
+                else -> fromVal downTo toVal step abs(stepVal)
+            }
         }
     }
 }
@@ -1448,8 +1494,12 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
                 }
                 litval.floatliteral()!=null -> LiteralValue(DataType.FLOAT, floatvalue = litval.floatliteral().toAst(), position = litval.toPosition())
                 litval.stringliteral()!=null -> LiteralValue(DataType.STR, strvalue = litval.stringliteral().text, position = litval.toPosition())
-                litval.arrayliteral()!=null -> LiteralValue(DataType.ARRAY, arrayvalue = litval.arrayliteral()?.toAst(), position = litval.toPosition())
-                // @todo byte/word array difference needed for literal array values?
+                litval.arrayliteral()!=null -> {
+                    val array = litval.arrayliteral()?.toAst()
+                    // byte/word array type difference is not determined here.
+                    // the ConstantFolder takes care of that and converts the type if needed.
+                    LiteralValue(DataType.ARRAY, arrayvalue = array, position = litval.toPosition())
+                }
                 else -> throw FatalAstException("invalid parsed literal")
             }
         }
@@ -1473,8 +1523,9 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
     val funcall = functioncall()?.toAst()
     if(funcall!=null) return funcall
 
-    if (rangefrom!=null && rangeto!=null)
-        return RangeExpr(rangefrom.toAst(), rangeto.toAst(), toPosition())
+    if (rangefrom!=null && rangeto!=null) {
+        return RangeExpr(rangefrom.toAst(), rangeto.toAst(), rangestep?.toAst(), toPosition())
+    }
 
     if(childCount==3 && children[0].text=="(" && children[2].text==")")
         return expression(0).toAst()        // expression within ( )
@@ -1533,17 +1584,15 @@ private fun prog8Parser.BranchconditionContext.toAst() = BranchCondition.valueOf
 private fun prog8Parser.ForloopContext.toAst(): ForLoop {
     val loopregister = register()?.toAst()
     val loopvar = identifier()?.toAst()
-    val range = range_expr.toAst()
-    val step = if(for_step==null) null else for_step.toAst()
+    val iterable = expression()!!.toAst()
     val body = loop_statement_block().toAst()
-    return ForLoop(loopregister, loopvar, range, step, body, toPosition())
+    return ForLoop(loopregister, loopvar, iterable, body, toPosition())
 }
 
 
 class ForLoop(val loopRegister: Register?,
               val loopVar: IdentifierReference?,
-              var range: IExpression,
-              var step: IExpression?,
+              var iterable: IExpression,
               var body: MutableList<IStatement>,
               override val position: Position) : IStatement {
     override lateinit var parent: Node
@@ -1551,8 +1600,7 @@ class ForLoop(val loopRegister: Register?,
     override fun linkParents(parent: Node) {
         this.parent=parent
         loopVar?.linkParents(this)
-        range.linkParents(this)
-        step?.linkParents(this)
+        iterable.linkParents(this)
         body.forEach { it.linkParents(this) }
     }
 

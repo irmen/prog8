@@ -1,9 +1,6 @@
 package prog8.compiler
 
-import prog8.ast.DataType
-import prog8.ast.LiteralValue
-import prog8.ast.VarDecl
-import prog8.ast.VarDeclType
+import prog8.ast.*
 
 
 class Zeropage(private val options: CompilationOptions) {
@@ -53,7 +50,7 @@ class Zeropage(private val options: CompilationOptions) {
 
         val size =
             if(vardecl.arrayspec!=null) {
-                println("${vardecl.position} warning: allocating a large value (array) in zeropage")
+                printWarning("allocating a large value (array) in zeropage", vardecl.position)
                 val y = (vardecl.arrayspec.y as? LiteralValue)?.asIntegerValue
                 if(y==null) {
                     // 1 dimensional array
@@ -76,7 +73,7 @@ class Zeropage(private val options: CompilationOptions) {
                     DataType.WORD -> 2
                     DataType.FLOAT -> {
                         if (options.floats) {
-                            println("${vardecl.position} warning: allocating a large value (float) in zeropage")
+                            printWarning("allocating a large value (float) in zeropage", vardecl.position)
                             5
                         } else throw CompilerException("floating point option not enabled")
                     }

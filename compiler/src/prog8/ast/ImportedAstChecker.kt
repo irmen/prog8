@@ -1,7 +1,5 @@
 package prog8.ast
 
-import prog8.parser.ParsingFailedError
-
 
 /**
  * Checks that are specific for imported modules.
@@ -11,12 +9,7 @@ fun Module.checkImportedValid() {
     val checker = ImportedAstChecker()
     this.linkParents()
     this.process(checker)
-    val result = checker.result()
-    result.forEach {
-        System.err.println(it)
-    }
-    if(result.isNotEmpty())
-        throw ParsingFailedError("There are ${result.size} errors in imported module '$name'.")
+    printErrors(checker.result(), name)
 }
 
 
@@ -39,7 +32,7 @@ class ImportedAstChecker : IAstProcessor {
             val stmt = sourceStmt.process(this)
             if(stmt is Directive && stmt.parent is Module) {
                 if(moduleLevelDirectives.contains(stmt.directive)) {
-                    println("${stmt.position} Warning: ignoring module directive because it was imported: ${stmt.directive}")
+                    printWarning("ignoring module directive because it was imported", stmt.position, stmt.directive)
                     continue
                 }
             }

@@ -6,6 +6,8 @@ class Petscii {
         // decoding:  from Petscii/Screencodes (0-255) to unicode
         // character tables used from https://github.com/dj51d/cbmcodecs
 
+        // todo: paste the actual unicode symbols after it in the comment for easy copy-pasting
+
         private val decodingPetsciiLowercase = arrayOf(
                 '\ufffe',    //  0x00 -> UNDEFINED
                 '\ufffe',    //  0x01 -> UNDEFINED
@@ -262,7 +264,7 @@ class Petscii {
                 '\u259d',    //  0xFC -> QUADRANT UPPER RIGHT
                 '\u2518',    //  0xFD -> BOX DRAWINGS LIGHT UP AND LEFT
                 '\u2598',    //  0xFE -> QUADRANT UPPER LEFT
-                '\u2592'    //  0xFF -> MEDIUM SHADE
+                '\u2592'     //  0xFF -> MEDIUM SHADE
         )
 
         private val decodingPetsciiUppercase = arrayOf(
@@ -780,7 +782,7 @@ class Petscii {
                 '\ufffe',    //  0xFC -> UNDEFINED
                 '\ufffe',    //  0xFD -> UNDEFINED
                 '\ufffe',    //  0xFE -> UNDEFINED
-                '\ufffe'    //  0xFF -> UNDEFINED
+                '\ufffe'     //  0xFF -> UNDEFINED
         )
 
         private val decodingScreencodeUppercase = arrayOf(
@@ -1039,7 +1041,7 @@ class Petscii {
                 '\ufffe',    //  0xFC -> UNDEFINED
                 '\ufffe',    //  0xFD -> UNDEFINED
                 '\ufffe',    //  0xFE -> UNDEFINED
-                '\ufffe'    //  0xFF -> UNDEFINED
+                '\ufffe'     //  0xFF -> UNDEFINED
         )
 
         // encoding:  from unicode to Petscii/Screencodes (0-255)

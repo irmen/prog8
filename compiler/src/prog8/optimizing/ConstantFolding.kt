@@ -4,7 +4,7 @@ import prog8.ast.*
 import prog8.compiler.Petscii
 
 
-class ConstantFolding(private val globalNamespace: INameScope) : IAstProcessor {
+class ConstantFolding(private val namespace: INameScope) : IAstProcessor {
     var optimizationsDone: Int = 0
     var errors : MutableList<AstException> = mutableListOf()
 
@@ -49,7 +49,7 @@ class ConstantFolding(private val globalNamespace: INameScope) : IAstProcessor {
                     }
                 }
                 DataType.MATRIX -> {
-                    (decl.value as LiteralValue).let {
+                    (decl.value as? LiteralValue)?.let {
                         val intvalue = it.asIntegerValue
                         if(intvalue!=null) {
                             // replace the single int value by a properly sized array to fill the matrix.
@@ -64,7 +64,7 @@ class ConstantFolding(private val globalNamespace: INameScope) : IAstProcessor {
                     }
                 }
                 DataType.ARRAY, DataType.ARRAY_W -> {
-                    (decl.value as LiteralValue).let {
+                    (decl.value as? LiteralValue)?.let {
                         val intvalue = it.asIntegerValue
                         if(intvalue!=null) {
                             // replace the single int value by a properly sized array to fill the array with.
@@ -94,7 +94,7 @@ class ConstantFolding(private val globalNamespace: INameScope) : IAstProcessor {
      */
     override fun process(identifier: IdentifierReference): IExpression {
         return try {
-            identifier.constValue(globalNamespace) ?: identifier
+            identifier.constValue(namespace) ?: identifier
         } catch (ax: AstException) {
             addError(ax)
             identifier
@@ -104,7 +104,7 @@ class ConstantFolding(private val globalNamespace: INameScope) : IAstProcessor {
     override fun process(functionCall: FunctionCall): IExpression {
         return try {
             super.process(functionCall)
-            functionCall.constValue(globalNamespace) ?: functionCall
+            functionCall.constValue(namespace) ?: functionCall
         } catch (ax: AstException) {
             addError(ax)
             functionCall
@@ -174,8 +174,8 @@ class ConstantFolding(private val globalNamespace: INameScope) : IAstProcessor {
             super.process(expr)
 
             val evaluator = ConstExprEvaluator()
-            val leftconst = expr.left.constValue(globalNamespace)
-            val rightconst = expr.right.constValue(globalNamespace)
+            val leftconst = expr.left.constValue(namespace)
+            val rightconst = expr.right.constValue(namespace)
             return when {
                 leftconst != null && rightconst != null -> {
                     optimizationsDone++
@@ -190,60 +190,27 @@ class ConstantFolding(private val globalNamespace: INameScope) : IAstProcessor {
     }
 
     override fun process(range: RangeExpr): IExpression {
-        return try {
-            super.process(range)
-            val from = range.from.constValue(globalNamespace)
-            val to = range.to.constValue(globalNamespace)
-            if (from != null && to != null) {
-                when {
-                    from.type==DataType.WORD || to.type==DataType.WORD -> {
-                        // range on word value boundaries
-                        val rangeValue = from.asIntegerValue!!.rangeTo(to.asIntegerValue!!)
-                        if (rangeValue.last - rangeValue.first > 65535) {
-                            throw ExpressionError("amount of values in range exceeds 65535", range.position)
-                        }
-                        return LiteralValue(DataType.ARRAY_W, arrayvalue = rangeValue.map {
-                            val v = LiteralValue(DataType.WORD, wordvalue = it, position = range.position)
-                            v.parent = range.parent
-                            v
-                        }.toTypedArray(), position = from.position)
-                    }
-                    from.type==DataType.BYTE && to.type==DataType.BYTE -> {
-                        // range on byte value  boundaries
-                        val rangeValue = from.bytevalue!!.rangeTo(to.bytevalue!!)
-                        if (rangeValue.last - rangeValue.first > 65535) {
-                            throw ExpressionError("amount of values in range exceeds 65535", range.position)
-                        }
-                        return LiteralValue(DataType.ARRAY, arrayvalue = rangeValue.map {
-                            val v = LiteralValue(DataType.BYTE, bytevalue = it.toShort(), position = range.position)
-                            v.parent = range.parent
-                            v
-                        }.toTypedArray(), position = from.position)
-                    }
-                    from.strvalue != null && to.strvalue != null -> {
-                        // char range
-                        val rangevalue = from.strvalue[0].rangeTo(to.strvalue[0])
-                        if (rangevalue.last - rangevalue.first > 65535) {
-                            throw ExpressionError("amount of characters in range exceeds 65535", range.position)
-                        }
-                        val newval = LiteralValue(DataType.STR, strvalue = rangevalue.toList().joinToString(""), position = range.position)
-                        newval.parent = range.parent
-                        return newval
-                    }
-                    else -> AstException("range on weird datatype")
-                }
-            }
-            return range
-        } catch (ax: AstException) {
-            addError(ax)
-            range
-        }
+        range.from = range.from.process(this)
+        range.to = range.to.process(this)
+        range.step = range.step?.process(this)
+        return super.process(range)
     }
 
     override fun process(literalValue: LiteralValue): LiteralValue {
         if(literalValue.arrayvalue!=null) {
             val newArray = literalValue.arrayvalue.map { it.process(this) }.toTypedArray()
-            val newValue = LiteralValue(literalValue.type, arrayvalue = newArray, position = literalValue.position)
+            // determine if the values are all bytes or that we need a word array instead
+            var arrayDt = DataType.ARRAY
+            for (expr in newArray) {
+                val valueDt = expr.resultingDatatype(namespace)
+                if(valueDt==DataType.BYTE)
+                    continue
+                else {
+                    arrayDt = DataType.ARRAY_W
+                    break
+                }
+            }
+            val newValue = LiteralValue(arrayDt, arrayvalue = newArray, position = literalValue.position)
             return super.process(newValue)
         }
         return super.process(literalValue)

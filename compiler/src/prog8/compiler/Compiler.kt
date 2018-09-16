@@ -291,6 +291,9 @@ class Compiler(private val options: CompilationOptions) {
                         else -> throw CompilerException("expression identifierref should be a vardef, not $target")
                     }
                 }
+                is RangeExpr -> {
+                    TODO("TRANSLATE $expr")      // todo
+                }
                 else -> {
                     val lv = expr.constValue(namespace) ?: throw CompilerException("constant expression required, not $expr")
                     when(lv.type) {
@@ -475,7 +478,7 @@ class Compiler(private val options: CompilationOptions) {
 
         private fun translate(loop: ForLoop) {
             stackvmProg.line(loop.position)
-            println("@TODO: translate FOR LOOP")            // @todo
+            println("@TODO: translate FOR LOOP")            // @todo  FOR LOOP
         }
     }
 }

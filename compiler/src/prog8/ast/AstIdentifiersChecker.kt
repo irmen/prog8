@@ -1,7 +1,6 @@
 package prog8.ast
 
 import prog8.functions.BuiltinFunctionNames
-import prog8.parser.ParsingFailedError
 
 /**
  * Checks the validity of all identifiers (no conflicts)
@@ -12,12 +11,7 @@ import prog8.parser.ParsingFailedError
 fun Module.checkIdentifiers(): MutableMap<String, IStatement> {
     val checker = AstIdentifiersChecker()
     this.process(checker)
-    val checkResult = checker.result()
-    checkResult.forEach {
-        System.err.println(it)
-    }
-    if(checkResult.isNotEmpty())
-        throw ParsingFailedError("There are ${checkResult.size} errors in module '$name'.")
+    printErrors(checker.result(), name)
     return checker.symbols
 }
 

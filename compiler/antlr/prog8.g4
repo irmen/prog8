@@ -121,7 +121,7 @@ expression :
 	| left = expression bop = '&' right = expression
 	| left = expression bop = '^' right = expression
 	| left = expression bop = '|' right = expression
-	| rangefrom = expression 'to' rangeto = expression	// can't create separate rule due to mutual left-recursion
+	| rangefrom = expression 'to' rangeto = expression ('step' rangestep = expression)?	// can't create separate rule due to mutual left-recursion
 	| left = expression bop = 'and' right = expression
 	| left = expression bop = 'or' right = expression
 	| left = expression bop = 'xor' right = expression
@@ -216,7 +216,7 @@ branchcondition: 'if_cs' | 'if_cc' | 'if_eq' | 'if_ne' | 'if_pl' | 'if_mi' | 'if
 
 
 forloop :
-    'for' (register | identifier) 'in' range_expr=expression ('step' for_step=expression)? EOL? loop_statement_block EOL
+    'for' (register | identifier) 'in' expression EOL? loop_statement_block EOL
     ;
 
 loop_statement_block :

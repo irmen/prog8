@@ -1,7 +1,5 @@
 package prog8.ast
 
-import prog8.parser.ParsingFailedError
-
 /**
  * Checks for the occurrence of recursive subroutine calls
  */
@@ -9,12 +7,7 @@ import prog8.parser.ParsingFailedError
 fun Module.checkRecursion(namespace: INameScope) {
     val checker = AstRecursionChecker(namespace)
     this.process(checker)
-    val checkResult = checker.result()
-    checkResult.forEach {
-        System.err.println(it)
-    }
-    if(checkResult.isNotEmpty())
-        throw ParsingFailedError("There are ${checkResult.size} errors in module '$name'.")
+    printErrors(checker.result(), name)
 }
 
 
