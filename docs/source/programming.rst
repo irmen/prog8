@@ -182,6 +182,8 @@ for instance.
     There must be a way to tell the compiler which variables you require to be in Zeropage:
     ``zeropage`` modifier keyword on vardecl perhaps?
 
+    option to omit the array size on the vardecl if an initialization array value is given?
+
 
 Variables that represent CPU hardware registers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

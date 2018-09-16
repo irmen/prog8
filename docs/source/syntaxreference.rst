@@ -260,9 +260,14 @@ type identifier  type                     storage size       example var declara
 - When a binary number has 9 to 16 digits, for example ``%1100110011``, it is seen as a ``word`` otherwise as a ``byte``.
 - You can force a byte value into a word value by adding the ``.w`` datatype suffix to the number: ``$2a.w`` is equivalent to ``$002a``.
 
-**@todo pointers/addresses?  (as opposed to normal WORDs)**
 
-**@todo signed integers (byte and word)?**
+.. todo::
+
+    omit the array size in the var decl if an initialization array is given?
+
+    **@todo pointers/addresses?  (as opposed to normal WORDs)**
+
+    **@todo signed integers (byte and word)?**
 
 
 Memory mapped variables
@@ -279,10 +284,12 @@ Constants
 ^^^^^^^^^
 
 All variables can be assigned new values unless you use the ``const`` keyword.
-The initial value will now be evaluated at compile time (it must be a compile time constant expression)
-and no storage is allocated for the constant::
+The initial value will now be evaluated at compile time (it must be a compile time constant expression).
+Storage is allocated only for the constant values that remain a the end of this process and that
+require it (floats, strings, arrays, matrices)::
 
 	const  byte  max_age = 99
+	const  str   someName = "Peter"
 
 
 Reserved names
@@ -306,7 +313,7 @@ If used in the place of a literal value, it expands into the actual array of val
 
 
 .. todo::
-	this may be used later in the for-loop as well.  Add 'step' to range expression as well?
+	this may be used later in the for-loop as well.  Add 'step' to range expression?
 
 
 Operators
