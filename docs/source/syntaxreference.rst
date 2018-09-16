@@ -444,11 +444,14 @@ Loops
 
 for loop
 ^^^^^^^^
-.. todo:: not implemented yet, for now you can use the if statement with gotos to implement a for-loop.
+
+The loop variable must be a register or a variable defined in the local scope.
+The expression that you loop over can be anything that supports iteration (such as ranges like ``0 to 100``,
+array variables and strings).
 
 ::
 
-	for  <loopvar>  in  <range>  [ step <amount> ]   {
+	for  <loopvar>  in  <expression>  [ step <amount> ]   {
 		; do something...
 		break		; break out of the loop
 		continue	; immediately enter next iteration

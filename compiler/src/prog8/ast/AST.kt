@@ -169,6 +169,22 @@ interface IAstProcessor {
         postIncrDecr.target = postIncrDecr.target.process(this)
         return postIncrDecr
     }
+
+    fun process(contStmt: Continue): IStatement {
+        return contStmt
+    }
+
+    fun process(breakStmt: Break): IStatement {
+        return breakStmt
+    }
+
+    fun process(forLoop: ForLoop): IStatement {
+        forLoop.loopVar?.process(this)
+        forLoop.range = forLoop.range.process(this)
+        forLoop.step = forLoop.step?.process(this)
+        forLoop.body = forLoop.body.asSequence().map {it.process(this)}.toMutableList()
+        return forLoop
+    }
 }
 
 
@@ -475,6 +491,26 @@ class Return(var values: List<IExpression>, override val position: Position) : I
     override fun toString(): String {
         return "Return(values: $values, pos=$position)"
     }
+}
+
+class Continue(override val position: Position) : IStatement {
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent=parent
+    }
+
+    override fun process(processor: IAstProcessor) = processor.process(this)
+}
+
+class Break(override val position: Position) : IStatement {
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent=parent
+    }
+
+    override fun process(processor: IAstProcessor) = processor.process(this)
 }
 
 
@@ -1257,8 +1293,12 @@ private fun prog8Parser.StatementContext.toAst() : IStatement {
     val branchstmt = branch_stmt()?.toAst()
     if(branchstmt!=null) return branchstmt
 
-    throw FatalAstException("unprocessed source text: $text")
+    val forloop = forloop()?.toAst()
+    if(forloop!=null) return forloop
+
+    throw FatalAstException("unprocessed source text (are we missing ast conversion rules for parser elements?): $text")
 }
+
 
 private fun prog8Parser.Functioncall_stmtContext.toAst(): IStatement {
     val location =
@@ -1480,7 +1520,7 @@ private fun prog8Parser.Else_partContext.toAst(): List<IStatement> {
 }
 
 
-private fun prog8Parser.Branch_stmtContext.toAst(): IStatement {
+private fun prog8Parser.Branch_stmtContext.toAst(): BranchStatement {
     val branchcondition = branchcondition().toAst()
     val statements = statement_block()?.toAst() ?: listOf(statement().toAst())
     val elsepart = else_part()?.toAst() ?: emptyList()
@@ -1488,3 +1528,52 @@ private fun prog8Parser.Branch_stmtContext.toAst(): IStatement {
 }
 
 private fun prog8Parser.BranchconditionContext.toAst() = BranchCondition.valueOf(text.substringAfter('_').toUpperCase())
+
+
+private fun prog8Parser.ForloopContext.toAst(): ForLoop {
+    val loopregister = register()?.toAst()
+    val loopvar = identifier()?.toAst()
+    val range = range_expr.toAst()
+    val step = if(for_step==null) null else for_step.toAst()
+    val body = loop_statement_block().toAst()
+    return ForLoop(loopregister, loopvar, range, step, body, toPosition())
+}
+
+
+class ForLoop(val loopRegister: Register?,
+              val loopVar: IdentifierReference?,
+              var range: IExpression,
+              var step: IExpression?,
+              var body: MutableList<IStatement>,
+              override val position: Position) : IStatement {
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent=parent
+        loopVar?.linkParents(this)
+        range.linkParents(this)
+        step?.linkParents(this)
+        body.forEach { it.linkParents(this) }
+    }
+
+    override fun process(processor: IAstProcessor) = processor.process(this)
+}
+
+
+private fun prog8Parser.ContinuestmtContext.toAst() = Continue(toPosition())
+
+private fun prog8Parser.BreakstmtContext.toAst() = Break(toPosition())
+
+private fun prog8Parser.Loop_statement_blockContext.toAst() : MutableList<IStatement> {
+    return statement_in_loopblock().asSequence().map {it.toAst()}.toMutableList()
+}
+
+private fun prog8Parser.Statement_in_loopblockContext.toAst(): IStatement {
+    val breakstmt = breakstmt()?.toAst()
+    if(breakstmt!=null) return breakstmt
+
+    val contstmt = continuestmt()?.toAst()
+    if(contstmt!=null) return contstmt
+
+    return this.statement().toAst()
+}

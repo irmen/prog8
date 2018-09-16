@@ -65,8 +65,10 @@ statement :
 	| inlineasm
 	| labeldef
 	| returnstmt
-	// @todo forloop, whileloop, repeatloop
+	| forloop
+	// @todo whileloop, repeatloop
 	;
+
 
 labeldef :  identifier ':'  ;
 
@@ -119,7 +121,7 @@ expression :
 	| left = expression bop = '&' right = expression
 	| left = expression bop = '^' right = expression
 	| left = expression bop = '|' right = expression
-	| rangefrom = expression 'to' rangeto = expression	// create separate rule once for-loops are here?
+	| rangefrom = expression 'to' rangeto = expression	// can't create separate rule due to mutual left-recursion
 	| left = expression bop = 'and' right = expression
 	| left = expression bop = 'or' right = expression
 	| left = expression bop = 'xor' right = expression
@@ -146,6 +148,10 @@ expression_list :
 	;
 
 returnstmt : 'return' expression_list? ;
+
+breakstmt : 'break';
+
+continuestmt: 'continue';
 
 identifier :  NAME ;
 
@@ -207,3 +213,20 @@ else_part :  'else' EOL? (statement | statement_block) ;   // statement is const
 branch_stmt : branchcondition EOL? (statement | statement_block) EOL? else_part? EOL ;
 
 branchcondition: 'if_cs' | 'if_cc' | 'if_eq' | 'if_ne' | 'if_pl' | 'if_mi' | 'if_vs' | 'if_vc' ;
+
+
+forloop :
+    'for' (register | identifier) 'in' range_expr=expression ('step' for_step=expression)? EOL? loop_statement_block EOL
+    ;
+
+loop_statement_block :
+	'{' EOL
+		(statement_in_loopblock | EOL) *
+	'}'
+	;
+
+statement_in_loopblock :
+    statement
+    | breakstmt
+    | continuestmt
+    ;

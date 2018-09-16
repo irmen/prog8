@@ -163,11 +163,25 @@ class Compiler(private val options: CompilationOptions) {
                     is FunctionCallStatement -> translate(stmt)
                     is IfStatement -> translate(stmt)
                     is BranchStatement -> translate(stmt)
+                    is Break -> translate(stmt)
+                    is Continue -> translate(stmt)
+                    is ForLoop -> translate(stmt)
                     is Directive, is VarDecl, is Subroutine -> {}   // skip this, already processed these.
                     is InlineAssembly -> throw CompilerException("inline assembly is not supported by the StackVM")
                     else -> TODO("translate statement $stmt to stackvm")
                 }
             }
+        }
+
+
+        private fun translate(stmt: Continue) {
+            stackvmProg.line(stmt.position)
+            stackvmProg.instruction("continue")
+        }
+
+        private fun translate(stmt: Break) {
+            stackvmProg.line(stmt.position)
+            stackvmProg.instruction("break")
         }
 
         private fun translate(branch: BranchStatement) {
@@ -456,6 +470,12 @@ class Compiler(private val options: CompilationOptions) {
 
         private fun translate(stmt: Label) {
             stackvmProg.label(stmt.scopedname)
+        }
+
+
+        private fun translate(loop: ForLoop) {
+            stackvmProg.line(loop.position)
+            println("@TODO: translate FOR LOOP")            // @todo
         }
     }
 }
