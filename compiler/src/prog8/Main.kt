@@ -1,13 +1,15 @@
 package prog8
 
-import java.nio.file.Paths
 import prog8.ast.*
-import prog8.parser.*
 import prog8.compiler.*
 import prog8.optimizing.constantFold
 import prog8.optimizing.optimizeStatements
 import prog8.optimizing.simplifyExpressions
+import prog8.parser.ParsingFailedError
+import prog8.parser.importModule
 import java.io.File
+import java.io.PrintStream
+import java.nio.file.Paths
 import kotlin.system.exitProcess
 
 
@@ -74,10 +76,10 @@ fun main(args: Array<String>) {
         intermediate.optimize()
 
         val stackVmFilename =  intermediate.name + "_stackvm.txt"
-        val stackvmFile = File(stackVmFilename).printWriter()
-        intermediate.toTextLines().forEach { stackvmFile.println(it) }
+        val stackvmFile = PrintStream(File(stackVmFilename), "utf-8")
+        intermediate.writeAsText(stackvmFile)
         stackvmFile.close()
-        println("StackVM intermediary code written to $stackVmFilename")
+        println("StackVM program code written to '$stackVmFilename'")
 
 //        val assembly = stackvmProg.compileToAssembly()
 //

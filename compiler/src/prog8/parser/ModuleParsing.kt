@@ -1,10 +1,10 @@
 package prog8.parser
 
 import org.antlr.v4.runtime.CharStreams
+import prog8.ast.*
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import prog8.ast.*
 
 
 class ParsingFailedError(override var message: String) : Exception(message)

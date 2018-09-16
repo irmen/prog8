@@ -5,6 +5,7 @@ import prog8.ast.Position
 import prog8.ast.VarDecl
 import prog8.ast.VarDeclType
 import prog8.compiler.*
+import prog8.compiler.target.c64.*
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.closeTo
 import org.hamcrest.Matchers.equalTo
@@ -114,7 +115,7 @@ private val dummypos = Position("test", 0, 0, 0)
 class TestZeropage {
     @Test
     fun testNames() {
-        val zp = Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, false))
+        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, false))
 
         assertFailsWith<AssertionError> {
             zp.allocate(VarDecl(VarDeclType.MEMORY, DataType.BYTE, null, "", null, dummypos))
@@ -131,27 +132,27 @@ class TestZeropage {
 
     @Test
     fun testZpFloatEnable() {
-        val zp = Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, false))
+        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, false))
         assertFailsWith<CompilerException> {
             zp.allocate(VarDecl(VarDeclType.VAR, DataType.FLOAT, null, "", null, dummypos))
         }
-        val zp2 = Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, true))
+        val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, true))
         zp2.allocate(VarDecl(VarDeclType.VAR, DataType.FLOAT, null, "", null, dummypos))
     }
 
     @Test
     fun testFreeSpaces() {
-        val zp1 = Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, true))
+        val zp1 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, true))
         assertEquals(23, zp1.available())
-        val zp2 = Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.KERNALSAFE, true))
+        val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.KERNALSAFE, true))
         assertEquals(71, zp2.available())
-        val zp3 = Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, true))
+        val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, true))
         assertEquals(239, zp3.available())
     }
 
     @Test
     fun testBasicsafeAllocation() {
-        val zp = Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, true))
+        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, true))
         assertEquals(23, zp.available())
 
         zp.allocate(VarDecl(VarDeclType.VAR, DataType.FLOAT, null, "", null, dummypos))
@@ -175,7 +176,7 @@ class TestZeropage {
 
     @Test
     fun testFullAllocation() {
-        val zp = Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, true))
+        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, true))
         assertEquals(239, zp.available())
         val loc = zp.allocate(VarDecl(VarDeclType.VAR, DataType.FLOAT, null, "", null, dummypos))
         assertTrue(loc > 3)
@@ -212,7 +213,7 @@ class TestZeropage {
         //  free = (0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0d, 0x0e,
         //          0x12, 0x2a, 0x52, 0x94, 0x95, 0xa7, 0xa8, 0xa9, 0xaa,
         //          0xb5, 0xb6, 0xf7, 0xf8, 0xf9, 0xfa))
-        val zp = Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, true))
+        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, true))
         assertEquals(23, zp.available())
         assertEquals(0x04, zp.allocate(VarDecl(VarDeclType.VAR, DataType.FLOAT, null, "", null, dummypos)))
         assertEquals(0x09, zp.allocate(VarDecl(VarDeclType.VAR, DataType.BYTE, null, "", null, dummypos)))

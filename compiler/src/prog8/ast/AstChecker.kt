@@ -74,6 +74,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         } else {
             val iterableDt = forLoop.iterable.resultingDatatype(namespace)
             if (forLoop.loopRegister != null) {
+                printWarning("using a register as loop variable is risky (it could get clobbered in the body)", forLoop.position)
                 // loop register
                 when (forLoop.loopRegister) {
                     Register.A, Register.X, Register.Y -> {

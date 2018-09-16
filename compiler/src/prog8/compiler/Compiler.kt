@@ -1,17 +1,11 @@
 package prog8.compiler
 
 import prog8.ast.*
-import kotlin.experimental.and
-import kotlin.math.absoluteValue
-import kotlin.math.pow
-import kotlin.system.exitProcess
+import prog8.stackvm.*
+import java.io.PrintStream
 
 
 class CompilerException(message: String?) : Exception(message)
-
-// 5-byte cbm MFLPT format limitations:
-const val FLOAT_MAX_POSITIVE = 1.7014118345e+38
-const val FLOAT_MAX_NEGATIVE = -1.7014118345e+38
 
 
 fun Number.toHex(): String {
@@ -28,62 +22,73 @@ fun Number.toHex(): String {
 }
 
 
-data class Mflpt5(val b0: Short, val b1: Short, val b2: Short, val b3: Short, val b4: Short) {
 
-    companion object {
-        val zero = Mflpt5(0, 0,0,0,0)
-        fun fromNumber(num: Number): Mflpt5 {
-            // see https://en.wikipedia.org/wiki/Microsoft_Binary_Format
-            // and https://sourceforge.net/p/acme-crossass/code-0/62/tree/trunk/ACME_Lib/cbm/mflpt.a
-            // and https://en.wikipedia.org/wiki/IEEE_754-1985
+class StackVmProgram(val name: String) {
+    private val instructions = mutableListOf<Instruction>()
+    private val variables = mutableMapOf<String, Value>()
+    private val memory = mutableMapOf<Int, List<Value>>()
+    private val labels = mutableMapOf<String, Instruction>()
+    val numVariables: Int
+        get() {return variables.size}
+    val numInstructions: Int
+        get() {return instructions.size}
 
-            val flt = num.toDouble()
-            if(flt < FLOAT_MAX_NEGATIVE || flt > FLOAT_MAX_POSITIVE)
-                throw CompilerException("floating point number out of 5-byte mflpt range: $this")
-            if(flt==0.0)
-                return zero
+    fun optimize() {
+        println("\nOptimizing stackVM code...")
 
-            val sign = if(flt<0.0) 0x80L else 0x00L
-            var exponent = 128 + 32	// 128 is cbm's bias, 32 is this algo's bias
-            var mantissa = flt.absoluteValue
-
-            // if mantissa is too large, shift right and adjust exponent
-            while(mantissa >= 0x100000000) {
-                mantissa /= 2.0
-                exponent ++
-            }
-            // if mantissa is too small, shift left and adjust exponent
-            while(mantissa < 0x80000000) {
-                mantissa *= 2.0
-                exponent --
-            }
-
-            return when {
-                exponent<0 -> zero  // underflow, use zero instead
-                exponent>255 -> throw CompilerException("floating point overflow: $this")
-                exponent==0 -> zero
-                else -> {
-                    val mantLong = mantissa.toLong()
-                    Mflpt5(
-                            exponent.toShort(),
-                            (mantLong.and(0x7f000000L) ushr 24).or(sign).toShort(),
-                            (mantLong.and(0x00ff0000L) ushr 16).toShort(),
-                            (mantLong.and(0x0000ff00L) ushr 8).toShort(),
-                            (mantLong.and(0x000000ffL)).toShort())
-                }
-            }
-        }
+        this.instructions.removeIf { it.opcode==Opcode.NOP && it !is LabelInstr }     // remove nops (that are not a label)
+        // todo optimize stackvm code
     }
 
-    fun toDouble(): Double {
-        if(this == zero) return 0.0
-        val exp = b0 - 128
-        val sign = (b1.and(0x80)) > 0
-        val number = 0x80000000L.or(b1.toLong() shl 24).or(b2.toLong() shl 16).or(b3.toLong() shl 8).or(b4.toLong())
-        val result = number.toDouble() * (2.0).pow(exp) / 0x100000000
-        return if(sign) -result else result
+    fun blockvar(scopedname: String, decl: VarDecl) {
+        val value = when(decl.datatype) {
+            DataType.BYTE, DataType.WORD, DataType.FLOAT -> Value(decl.datatype, (decl.value as LiteralValue).asNumericValue)
+            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> Value(decl.datatype, null, (decl.value as LiteralValue).strvalue)
+            DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX -> TODO("array/matrix variable values")
+        }
+        variables[scopedname] = value
+    }
+
+    fun writeAsText(out: PrintStream) {
+        Program(name, instructions, labels, variables, memory).print(out)
+    }
+
+    fun instr(opcode: Opcode, arg: Value? = null, callLabel: String? = null) {
+        instructions.add(Instruction(opcode, arg, callLabel))
+    }
+
+    fun label(labelname: String) {
+        val instr = LabelInstr(labelname)
+        instructions.add(instr)
+        labels[labelname] = instr
+    }
+
+    fun line(position: Position) {
+        instructions.add(Instruction(Opcode.LINE, Value(DataType.STR, null, "${position.line} ${position.file}")))
     }
 }
+
+enum class OutputType {
+    RAW,
+    PRG
+}
+
+enum class LauncherType {
+    BASIC,
+    NONE
+}
+
+enum class ZeropageType {
+    BASICSAFE,
+    KERNALSAFE,
+    FULL
+}
+
+
+data class CompilationOptions(val output: OutputType,
+                              val launcher: LauncherType,
+                              val zeropage: ZeropageType,
+                              val floats: Boolean)
 
 
 class Compiler(private val options: CompilationOptions) {
@@ -91,19 +96,17 @@ class Compiler(private val options: CompilationOptions) {
         println("\nCreating stackVM code...")
 
         val namespace = module.definingScope()
-
         val intermediate = StackVmProgram(module.name)
-        namespace.debugPrint()
 
         // create the pool of all variables used in all blocks and scopes
         val varGather = VarGatherer(intermediate)
         varGather.process(module)
-        println("Number of allocated variables and constants: ${intermediate.variables.size} (${intermediate.variablesMemSize} bytes)")
+        println("Number of allocated variables and constants: ${intermediate.numVariables}")
 
         val translator = StatementTranslator(intermediate, namespace)
         translator.process(module)
         println("Number of source statements: ${translator.stmtUniqueSequenceNr}")
-        println("Number of vm instructions: ${intermediate.instructions.size}")
+        println("Number of vm instructions: ${intermediate.numInstructions}")
 
         return intermediate
     }
@@ -146,7 +149,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
             "%asmbinary" -> throw CompilerException("can't use %asmbinary in stackvm")
             "%breakpoint" -> {
                 stackvmProg.line(directive.position)
-                stackvmProg.instruction("break")
+                stackvmProg.instr(Opcode.BREAKPOINT)
             }
         }
         return super.process(directive)
@@ -178,12 +181,12 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
 
     private fun translate(stmt: Continue) {
         stackvmProg.line(stmt.position)
-        stackvmProg.instruction("continue")
+        TODO("translate CONTINUE")
     }
 
     private fun translate(stmt: Break) {
         stackvmProg.line(stmt.position)
-        stackvmProg.instruction("break")
+        TODO("translate BREAK")
     }
 
     private fun translate(branch: BranchStatement) {
@@ -202,23 +205,23 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
         val labelElse = makeLabel("else")
         val labelContinue = makeLabel("continue")
         val opcode = when(branch.condition) {
-            BranchCondition.CS -> "bcc"
-            BranchCondition.CC -> "bcs"
-            BranchCondition.EQ -> "bne"
-            BranchCondition.NE -> "beq"
-            BranchCondition.VS -> "bvc"
-            BranchCondition.VC -> "bvs"
-            BranchCondition.MI -> "bpl"
-            BranchCondition.PL -> "bmi"
+            BranchCondition.CS -> Opcode.BCC
+            BranchCondition.CC -> Opcode.BCS
+            BranchCondition.EQ -> Opcode.BNE
+            BranchCondition.NE -> Opcode.BEQ
+            BranchCondition.VS -> TODO("Opcode.BVC")
+            BranchCondition.VC -> TODO("Opcode.BVS")
+            BranchCondition.MI -> Opcode.BPL
+            BranchCondition.PL -> Opcode.BMI
         }
         if(branch.elsepart.isEmpty()) {
-            stackvmProg.instruction("$opcode $labelContinue")
+            stackvmProg.instr(opcode, callLabel = labelContinue)
             translate(branch.statements)
             stackvmProg.label(labelContinue)
         } else {
-            stackvmProg.instruction("$opcode $labelElse")
+            stackvmProg.instr(opcode, callLabel = labelElse)
             translate(branch.statements)
-            stackvmProg.instruction("jump $labelContinue")
+            stackvmProg.instr(Opcode.JUMP, callLabel = labelContinue)
             stackvmProg.label(labelElse)
             translate(branch.elsepart)
             stackvmProg.label(labelContinue)
@@ -245,13 +248,13 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
         val labelElse = makeLabel("else")
         val labelContinue = makeLabel("continue")
         if(stmt.elsepart.isEmpty()) {
-            stackvmProg.instruction("beq $labelContinue")
+            stackvmProg.instr(Opcode.BEQ, callLabel = labelContinue)
             translate(stmt.statements)
             stackvmProg.label(labelContinue)
         } else {
-            stackvmProg.instruction("beq $labelElse")
+            stackvmProg.instr(Opcode.BEQ, callLabel = labelElse)
             translate(stmt.statements)
-            stackvmProg.instruction("jump $labelContinue")
+            stackvmProg.instr(Opcode.JUMP, callLabel = labelContinue)
             stackvmProg.label(labelElse)
             translate(stmt.elsepart)
             stackvmProg.label(labelContinue)
@@ -261,7 +264,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
     private fun translate(expr: IExpression) {
         when(expr) {
             is RegisterExpr -> {
-                stackvmProg.instruction("push_var ${expr.register}")
+                stackvmProg.instr(Opcode.PUSH_VAR, Value(DataType.STR, null, expr.register.toString()))
             }
             is BinaryExpression -> {
                 translate(expr.left)
@@ -278,7 +281,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
                 } else {
                     when(target) {
                         is Subroutine -> {
-                            stackvmProg.instruction("call ${target.scopedname}")
+                            stackvmProg.instr(Opcode.CALL, callLabel = target.scopedname)
                         }
                         else -> TODO("non-builtin-function call to $target")
                     }
@@ -288,24 +291,24 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
                 val target = expr.targetStatement(namespace)
                 when(target) {
                     is VarDecl -> {
-                        stackvmProg.instruction("push_var ${target.scopedname}")
+                        stackvmProg.instr(Opcode.PUSH_VAR, Value(DataType.STR, null, target.scopedname))
                     }
                     else -> throw CompilerException("expression identifierref should be a vardef, not $target")
                 }
             }
             is RangeExpr -> {
-                TODO("TRANSLATE $expr")      // todo
+                TODO("TRANSLATE range $expr")      // todo
             }
             else -> {
                 val lv = expr.constValue(namespace) ?: throw CompilerException("constant expression required, not $expr")
                 when(lv.type) {
-                    DataType.BYTE -> stackvmProg.instruction("push b:%02x".format(lv.bytevalue!!))
-                    DataType.WORD -> stackvmProg.instruction("push w:%04x".format(lv.wordvalue!!))
-                    DataType.FLOAT -> stackvmProg.instruction("push f:${lv.floatvalue}")
-                    DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> stackvmProg.instruction("push \"${lv.strvalue}\"")
+                    DataType.BYTE -> stackvmProg.instr(Opcode.PUSH, Value(DataType.BYTE, lv.bytevalue))
+                    DataType.WORD -> stackvmProg.instr(Opcode.PUSH, Value(DataType.WORD, lv.wordvalue))
+                    DataType.FLOAT -> stackvmProg.instr(Opcode.PUSH, Value(DataType.FLOAT, lv.floatvalue))
+                    DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> stackvmProg.instr(Opcode.PUSH, Value(DataType.STR,null, lv.strvalue))
                     DataType.ARRAY, DataType.ARRAY_W -> {
                         lv.arrayvalue?.forEach { translate(it) }
-                        stackvmProg.instruction("array w:${lv.arrayvalue!!.size.toString(16)}")
+                        stackvmProg.instr(Opcode.ARRAY, Value(DataType.WORD, lv.arrayvalue!!.size))
                     }
                     DataType.MATRIX -> TODO("matrix type")
                 }
@@ -314,28 +317,28 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
     }
 
     private fun translateBinaryOperator(operator: String) {
-        val instruction = when(operator) {
-            "+" -> "add"
-            "-" -> "sub"
-            "*" -> "mul"
-            "/" -> "div"
-            "%" -> "remainder"
-            "**" -> "pow"
-            "&" -> "bitand"
-            "|" -> "bitor"
-            "^" -> "bitxor"
-            "and" -> "and"
-            "or" -> "or"
-            "xor" -> "xor"
-            "<" -> "less"
-            ">" -> "greater"
-            "<=" -> "lesseq"
-            ">=" -> "greatereq"
-            "==" -> "equal"
-            "!=" -> "notequal"
+        val opcode = when(operator) {
+            "+" -> Opcode.ADD
+            "-" -> Opcode.SUB
+            "*" -> Opcode.MUL
+            "/" -> Opcode.DIV
+            "%" -> Opcode.REMAINDER
+            "**" -> Opcode.POW
+            "&" -> Opcode.BITAND
+            "|" -> Opcode.BITOR
+            "^" -> Opcode.BITXOR
+            "and" -> Opcode.AND
+            "or" -> Opcode.OR
+            "xor" -> Opcode.XOR
+            "<" -> Opcode.LESS
+            ">" -> Opcode.GREATER
+            "<=" -> Opcode.LESSEQ
+            ">=" -> Opcode.GREATEREQ
+            "==" -> Opcode.EQUAL
+            "!=" -> Opcode.NOTEQUAL
             else -> throw FatalAstException("const evaluation for invalid operator $operator")
         }
-        stackvmProg.instruction(instruction)
+        stackvmProg.instr(opcode)
     }
 
     private fun translate(stmt: FunctionCallStatement) {
@@ -354,44 +357,50 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
             else -> throw AstException("invalid call target node type: ${targetStmt::class}")
         }
         stmt.arglist.forEach { translate(it) }
-        stackvmProg.instruction("call $targetname")
+        stackvmProg.instr(Opcode.CALL, callLabel = targetname)
     }
 
     private fun createFunctionCall(funcname: String) {
-        if (funcname.startsWith("_VM_"))
-            stackvmProg.instruction("syscall ${funcname.substring(4)}")  // call builtin function
-        else
-            stackvmProg.instruction("syscall FUNC_$funcname")
+        val function = (
+                if (funcname.startsWith("_VM_"))
+                    funcname.substring(4)
+                else
+                    "FUNC_$funcname"
+                ).toUpperCase()
+        val callNr = Syscall.valueOf(function).callNr
+        stackvmProg.instr(Opcode.SYSCALL, Value(DataType.BYTE, callNr))
     }
 
     private fun translate(stmt: Jump) {
-        val instr =
-                if(stmt.address!=null) {
-                    "jump \$${stmt.address.toString(16)}"
-                } else {
-                    val target = stmt.identifier!!.targetStatement(namespace)!!
-                    when(target) {
-                        is Label -> "jump ${target.scopedname}"
-                        is Subroutine -> "jump ${target.scopedname}"
-                        else -> throw CompilerException("invalid jump target type ${target::class}")
-                    }
-                }
+        var jumpAddress: Value? = null
+        var jumpLabel: String? = null
+
+        if(stmt.address!=null) {
+            jumpAddress = Value(DataType.WORD, stmt.address)
+        } else {
+            val target = stmt.identifier!!.targetStatement(namespace)!!
+            jumpLabel = when(target) {
+                is Label -> target.scopedname
+                is Subroutine -> target.scopedname
+                else -> throw CompilerException("invalid jump target type ${target::class}")
+            }
+        }
         stackvmProg.line(stmt.position)
-        stackvmProg.instruction(instr)
+        stackvmProg.instr(Opcode.JUMP, jumpAddress, jumpLabel)
     }
 
     private fun translate(stmt: PostIncrDecr) {
         stackvmProg.line(stmt.position)
         if(stmt.target.register!=null) {
             when(stmt.operator) {
-                "++" -> stackvmProg.instruction("inc_var ${stmt.target.register}")
-                "--" -> stackvmProg.instruction("dec_var ${stmt.target.register}")
+                "++" -> stackvmProg.instr(Opcode.INC_VAR, Value(DataType.STR, null, stmt.target.register.toString()))
+                "--" -> stackvmProg.instr(Opcode.DEC_VAR, Value(DataType.STR, null, stmt.target.register.toString()))
             }
         } else {
             val targetStatement = stmt.target.identifier!!.targetStatement(namespace) as VarDecl
             when(stmt.operator) {
-                "++" -> stackvmProg.instruction("inc_var ${targetStatement.scopedname}")
-                "--" -> stackvmProg.instruction("dec_var ${targetStatement.scopedname}")
+                "++" -> stackvmProg.instr(Opcode.INC_VAR, Value(DataType.STR, null, targetStatement.scopedname))
+                "--" -> stackvmProg.instr(Opcode.DEC_VAR, Value(DataType.STR, null, targetStatement.scopedname))
             }
         }
     }
@@ -407,14 +416,14 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
                 DataType.BYTE -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                 DataType.WORD -> {
                     if(valueDt==DataType.BYTE)
-                        stackvmProg.instruction("b2word")
+                        stackvmProg.instr(Opcode.B2WORD)
                     else
                         throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                 }
                 DataType.FLOAT -> {
                     when (valueDt) {
-                        DataType.BYTE -> stackvmProg.instruction("b2float")
-                        DataType.WORD -> stackvmProg.instruction("w2float")
+                        DataType.BYTE -> stackvmProg.instr(Opcode.B2FLOAT)
+                        DataType.WORD -> stackvmProg.instr(Opcode.W2FLOAT)
                         else -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                     }
                 }
@@ -429,11 +438,11 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
             if(stmt.target.identifier!=null) {
                 val target = stmt.target.identifier!!.targetStatement(namespace)!!
                 when(target) {
-                    is VarDecl -> stackvmProg.instruction("push_var ${target.scopedname}")
+                    is VarDecl -> stackvmProg.instr(Opcode.PUSH_VAR, Value(DataType.STR, null, target.scopedname))
                     else -> throw CompilerException("invalid assignment target type ${target::class}")
                 }
             } else if(stmt.target.register!=null) {
-                stackvmProg.instruction("push_var ${stmt.target.register}")
+                stackvmProg.instr(Opcode.PUSH_VAR, Value(DataType.STR, null, stmt.target.register.toString()))
             }
             translateAugAssignOperator(stmt.aug_op)
         }
@@ -442,27 +451,27 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
         if(stmt.target.identifier!=null) {
             val target = stmt.target.identifier!!.targetStatement(namespace)!!
             when(target) {
-                is VarDecl -> stackvmProg.instruction("pop_var ${target.scopedname}")
+                is VarDecl -> stackvmProg.instr(Opcode.POP_VAR, Value(DataType.STR, null, target.scopedname))
                 else -> throw CompilerException("invalid assignment target type ${target::class}")
             }
         } else if(stmt.target.register!=null) {
-            stackvmProg.instruction("pop_var ${stmt.target.register}")
+            stackvmProg.instr(Opcode.POP_VAR, Value(DataType.STR, null, stmt.target.register.toString()))
         }
     }
 
     private fun translateAugAssignOperator(aug_op: String) {
-        val instruction = when(aug_op) {
-            "+=" -> "add"
-            "-=" -> "sub"
-            "/=" -> "div"
-            "*=" -> "mul"
-            "**=" -> "pow"
-            "&=" -> "bitand"
-            "|=" -> "bitor"
-            "^=" -> "bitxor"
+        val opcode = when(aug_op) {
+            "+=" -> Opcode.ADD
+            "-=" -> Opcode.SUB
+            "/=" -> Opcode.DIV
+            "*=" -> Opcode.MUL
+            "**=" -> Opcode.POW
+            "&=" -> Opcode.BITAND
+            "|=" -> Opcode.BITOR
+            "^=" -> Opcode.BITXOR
             else -> throw CompilerException("invalid aug assignment operator $aug_op")
         }
-        stackvmProg.instruction(instruction)
+        stackvmProg.instr(opcode)
     }
 
     private fun translate(stmt: Return) {
@@ -470,161 +479,32 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
             TODO("return with value(s) not yet supported: $stmt")
         }
         stackvmProg.line(stmt.position)
-        stackvmProg.instruction("return")
+        stackvmProg.instr(Opcode.RETURN)
     }
 
     private fun translate(stmt: Label) {
         stackvmProg.label(stmt.scopedname)
     }
 
-
     private fun translate(loop: ForLoop) {
         stackvmProg.line(loop.position)
         if(loop.loopRegister!=null) {
             val reg = loop.loopRegister
-            println("@TODO translate for loop (register $reg)")     // TODO
+            if(loop.iterable is RangeExpr) {
+                val range = (loop.iterable as RangeExpr).toKotlinRange()
+                if(range.isEmpty())
+                    throw CompilerException("loop over empty range")
+                if(range.step==1) {
+                    println("@todo for loop, register, range, step 1")      // todo
+                } else {
+                    TODO("loop over range with step != 1")
+                }
+            } else {
+                TODO("loop over something else as a Range: ${loop.iterable}")
+            }
         } else {
             val loopvar = (loop.loopVar!!.targetStatement(namespace) as VarDecl)
             println("@TODO translate for loop (variable $loopvar)") // TODO
         }
-    }
-}
-
-
-class StackVmProgram(val name: String) {
-
-    val variables = mutableMapOf<String, VarDecl>()
-    val instructions = mutableListOf<String>()
-    val variablesMemSize: Int
-        get() {
-            return variables.values.fold(0) { acc, vardecl -> acc+vardecl.memorySize}
-        }
-
-    fun optimize() {
-        println("\nOptimizing stackVM code...")
-        // todo optimize stackvm code
-    }
-
-    fun compileToAssembly(): AssemblyResult {
-        println("\nGenerating assembly code from stackvmProg code... ")
-        // todo generate 6502 assembly
-        return AssemblyResult(name)
-    }
-
-    fun blockvar(scopedname: String, decl: VarDecl) {
-        variables[scopedname] = decl
-    }
-
-    fun toTextLines() : List<String> {
-        val result = mutableListOf("; stackvm program code for: $name")
-        result.add("%memory")
-        // todo memory lines for initial memory initialization
-        result.add("%end_memory")
-        result.add("%variables")
-        for(v in variables) {
-            if (!(v.value.type == VarDeclType.VAR || v.value.type == VarDeclType.CONST)) {
-                throw AssertionError("Should be only VAR or CONST variables")
-            }
-            val litval = v.value.value as LiteralValue
-            val litvalStr = when(litval.type) {
-                DataType.BYTE -> litval.bytevalue!!.toString(16)
-                DataType.WORD -> litval.wordvalue!!.toString(16)
-                DataType.FLOAT -> litval.floatvalue.toString()
-                DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> "\"${litval.strvalue}\""
-                else -> TODO("non-scalar value")
-            }
-            val line = "${v.key} ${v.value.datatype.toString().toLowerCase()} $litvalStr"
-            result.add(line)
-        }
-        result.add("%end_variables")
-        result.add("%instructions")
-        result.addAll(instructions)
-        result.add("%end_instructions")
-        return result
-    }
-
-    fun instruction(s: String) {
-        instructions.add("    $s")
-    }
-
-    fun label(name: String) {
-        instructions.add("$name:")
-    }
-
-    fun line(position: Position) {
-        instructions.add("    _line ${position.line} ${position.file}")
-    }
-}
-
-enum class OutputType {
-    RAW,
-    PRG
-}
-
-enum class LauncherType {
-    BASIC,
-    NONE
-}
-
-enum class ZeropageType {
-    BASICSAFE,
-    KERNALSAFE,
-    FULL
-}
-
-
-data class CompilationOptions(val output: OutputType,
-                              val launcher: LauncherType,
-                              val zeropage: ZeropageType,
-                              val floats: Boolean)
-
-
-class AssemblyResult(val name: String) {
-    fun assemble(options: CompilationOptions, inputfilename: String, outputfilename: String) {
-        println("\nGenerating machine code program...")
-
-        val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "-Wall", "-Wno-strict-bool",
-            "--dump-labels", "--vice-labels", "-l", "$outputfilename.vice-mon-list",
-            "--no-monitor", "--output", outputfilename, inputfilename)
-
-        when(options.output) {
-            OutputType.PRG -> {
-                command.add("--cbm-prg")
-                println("\nCreating C-64 prg.")
-            }
-            OutputType.RAW -> {
-                command.add("--nostart")
-                println("\nCreating raw binary.")
-            }
-        }
-
-        val proc = ProcessBuilder(command).inheritIO().start()
-        val result = proc.waitFor()
-        if(result!=0) {
-            System.err.println("assembler failed with returncode $result")
-            exitProcess(result)
-        }
-    }
-
-    fun generateBreakpointList(): String {
-        // todo build breakpoint list
-/*
-    def generate_breakpoint_list(self, program_filename: str) -> str:
-        breakpoints = []
-        vice_mon_file = program_filename + ".vice-mon-list"
-        with open(vice_mon_file, "rU") as f:
-            for line in f:
-                match = re.fullmatch(r"al (?P<address>\w+) \S+_prog8_breakpoint_\d+.?", line, re.DOTALL)
-                if match:
-                    breakpoints.append("$" + match.group("address"))
-        with open(vice_mon_file, "at") as f:
-            print("; vice monitor breakpoint list now follows", file=f)
-            print("; {:d} breakpoints have been defined here".format(len(breakpoints)), file=f)
-            print("del", file=f)
-            for b in breakpoints:
-                print("break", b, file=f)
-        return vice_mon_file
- */
-        return "monitorfile.txt"
     }
 }

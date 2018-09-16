@@ -1,8 +1,10 @@
 package prog8.stackvm
 
-import javax.swing.*
 import java.awt.*
 import java.awt.image.BufferedImage
+import javax.swing.JButton
+import javax.swing.JFrame
+import javax.swing.JPanel
 import javax.swing.Timer
 
 

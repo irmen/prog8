@@ -1,7 +1,7 @@
 package prog8.optimizing
 
 import prog8.ast.*
-import prog8.compiler.Petscii
+import prog8.compiler.target.c64.Petscii
 
 
 class ConstantFolding(private val namespace: INameScope) : IAstProcessor {

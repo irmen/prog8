@@ -1,10 +1,10 @@
 package prog8.ast
 
-import prog8.functions.*
-import prog8.parser.prog8Parser
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
-import prog8.compiler.Petscii
+import prog8.compiler.target.c64.Petscii
+import prog8.functions.*
+import prog8.parser.prog8Parser
 import java.nio.file.Paths
 import kotlin.math.abs
 import kotlin.math.floor

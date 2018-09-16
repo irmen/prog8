@@ -1,12 +1,11 @@
 package prog8.stackvm
 
 import prog8.ast.DataType
-import prog8.compiler.Mflpt5
-import prog8.compiler.Petscii
+import prog8.compiler.target.c64.Petscii
+import prog8.compiler.target.c64.Mflpt5
 import java.awt.EventQueue
 import java.io.File
 import java.io.PrintStream
-import java.io.PrintWriter
 import java.util.*
 import java.util.regex.Pattern
 import javax.swing.Timer
@@ -118,7 +117,7 @@ enum class Opcode {
     SEC,        // set carry status flag  NOTE: is mostly fake, carry flag is not affected by any numeric operations
     CLC,        // clear carry status flag  NOTE: is mostly fake, carry flag is not affected by any numeric operations
     NOP,
-    BREAK,      // breakpoint
+    BREAKPOINT, // breakpoint
     TERMINATE,  // end the program
     LINE        // record source file line number
 }
@@ -228,7 +227,7 @@ class Memory {
 }
 
 
-class Value(val type: DataType, private val numericvalue: Number?, val stringvalue: String?=null, val arrayvalue: IntArray?=null) {
+class Value(val type: DataType, numericvalue: Number?, val stringvalue: String?=null, val arrayvalue: IntArray?=null) {
     private var byteval: Short? = null
     private var wordval: Int? = null
     private var floatval: Double? = null
@@ -251,7 +250,7 @@ class Value(val type: DataType, private val numericvalue: Number?, val stringval
             DataType.ARRAY -> {
                 asBooleanValue = arrayvalue!!.isNotEmpty()
             }
-            DataType.STR -> {
+            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
                 if(stringvalue==null) throw VmExecutionException("expect stringvalue for STR type")
                 asBooleanValue = stringvalue.isNotEmpty()
             }
@@ -261,9 +260,9 @@ class Value(val type: DataType, private val numericvalue: Number?, val stringval
 
     override fun toString(): String {
         return when(type) {
-            DataType.BYTE -> "%02x".format(byteval)
-            DataType.WORD -> "%04x".format(wordval)
-            DataType.FLOAT -> floatval.toString()
+            DataType.BYTE -> "b:%02x".format(byteval)
+            DataType.WORD -> "w:%04x".format(wordval)
+            DataType.FLOAT -> "f:$floatval"
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> "\"$stringvalue\""
             DataType.ARRAY -> TODO("array")
             DataType.ARRAY_W -> TODO("word array")
@@ -513,6 +512,7 @@ open class Instruction(val opcode: Opcode,
         val argStr = arg?.toString() ?: ""
         val result =
                 when {
+                    opcode==Opcode.LINE -> "_line ${arg!!.stringvalue}"
                     opcode==Opcode.SYSCALL -> {
                         val syscall = Syscall.values().find { it.callNr==arg!!.numericValue() }
                         "syscall $syscall"
@@ -522,13 +522,11 @@ open class Instruction(val opcode: Opcode,
                 }
                 .trimEnd()
 
-        if(opcode==Opcode.LINE)
-            return "    _$result"
         return "    $result"
     }
 }
 
-class Label(val name: String) : Instruction(opcode = Opcode.NOP) {
+class LabelInstr(val name: String) : Instruction(opcode = Opcode.NOP) {
     override fun toString(): String {
         return "$name:"
     }
@@ -547,7 +545,7 @@ private class MyStack<T> : Stack<T>() {
 
     fun pop2() : Pair<T, T> = Pair(pop(), pop())
 
-    fun printTop(amount: Int, output: PrintWriter) {
+    fun printTop(amount: Int, output: PrintStream) {
         peek(amount).reversed().forEach { output.println("  $it") }
     }
 }
@@ -659,10 +657,12 @@ class Program (val name: String,
                 if(line=="%end_variables")
                     return vars
                 val (name, type, valueStr) = line.split(splitpattern, limit = 3)
+                if(valueStr[0] !='"' && valueStr[1]!=':')
+                    throw VmExecutionException("missing value type character")
                 val value = when(type) {
-                    "byte" -> Value(DataType.BYTE, valueStr.toShort(16))
-                    "word" -> Value(DataType.WORD, valueStr.toInt(16))
-                    "float" -> Value(DataType.FLOAT, valueStr.toDouble())
+                    "byte" -> Value(DataType.BYTE, valueStr.substring(2).toShort(16))
+                    "word" -> Value(DataType.WORD, valueStr.substring(2).toInt(16))
+                    "float" -> Value(DataType.FLOAT, valueStr.substring(2).toDouble())
                     "str", "str_p", "str_s", "str_ps" -> {
                         if(valueStr.startsWith('"') && valueStr.endsWith('"'))
                             Value(DataType.STR, null, unescape(valueStr.substring(1, valueStr.length-1)))
@@ -780,7 +780,7 @@ class Program (val name: String,
         }
     }
 
-    fun print(out: PrintStream) {
+    fun print(out: PrintStream, embeddedLabels: Boolean=true) {
         out.println("; stackVM program code for '$name'")
         out.println("%memory")
         if(memory.isNotEmpty()) {
@@ -796,10 +796,13 @@ class Program (val name: String,
         out.println("%instructions")
         val labels = this.labels.entries.associateBy({it.value}) {it.key}
         for(instr in this.program) {
-            val label = labels[instr]
-            if(label!=null)
-                out.println("$label:")
-            out.println(instr)
+            if(!embeddedLabels) {
+                val label = labels[instr]
+                if (label != null)
+                    out.println("$label:")
+            } else {
+                out.println(instr)
+            }
         }
         out.println("%end_instructions")
     }
@@ -813,7 +816,7 @@ class StackVm(val traceOutputFile: String?) {
     private var variables = mutableMapOf<String, Value>()     // all variables (set of all vars used by all blocks/subroutines) key = their fully scoped name
     private var carry: Boolean = false
     private var program = listOf<Instruction>()
-    private var traceOutput = if(traceOutputFile!=null) File(traceOutputFile).printWriter() else null
+    private var traceOutput = if(traceOutputFile!=null) PrintStream(File(traceOutputFile), "utf-8") else null
     private lateinit var currentIns: Instruction
     private lateinit var canvas: BitmapScreenPanel
     private val rnd = Random()
@@ -1105,7 +1108,7 @@ class StackVm(val traceOutputFile: String?) {
             Opcode.SEC -> carry = true
             Opcode.CLC -> carry = false
             Opcode.TERMINATE -> throw VmTerminationException("terminate instruction")
-            Opcode.BREAK -> throw VmBreakpointException()
+            Opcode.BREAKPOINT -> throw VmBreakpointException()
 
             Opcode.INC_MEM -> {
                 val addr = ins.arg!!.integerValue()
@@ -1374,8 +1377,6 @@ fun main(args: Array<String>) {
     }
 
     val program = Program.load(args.first())
-    program.print(System.out)
-
     val vm = StackVm(traceOutputFile = null)
     val dialog = ScreenDialog()
     vm.load(program, dialog.canvas)

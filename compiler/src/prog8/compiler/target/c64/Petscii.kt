@@ -1,4 +1,6 @@
-package prog8.compiler
+package prog8.compiler.target.c64
+
+import prog8.compiler.CompilerException
 
 class Petscii {
     companion object {

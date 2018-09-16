@@ -39,11 +39,10 @@ sub start() -> () {
     float time = 0.0
     _vm_gfx_clearscr(0)
 
-    for X in 3 to 100 step 3/3 {
-        A=44
+    for X in 3 to 100  {
+        A=X
         continue
         break
-        A=99
     }
 
 loop:
