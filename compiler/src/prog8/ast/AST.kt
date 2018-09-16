@@ -879,12 +879,14 @@ class RangeExpr(var from: IExpression,
         val toLv = (to as? LiteralValue)
         if(fromLv==null || toLv==null)
             return null
-        return toKotlinRange().count()
+        return toConstantIntegerRange()?.count()
     }
 
-    fun toKotlinRange(): IntProgression {
-        val fromLv = from as LiteralValue
-        val toLv = to as LiteralValue
+    fun toConstantIntegerRange(): IntProgression? {
+        val fromLv = from as? LiteralValue
+        val toLv = to as? LiteralValue
+        if(fromLv==null || toLv==null)
+            return null         // non-constant range
         val fromVal: Int
         val toVal: Int
         if(fromLv.isString && toLv.isString) {

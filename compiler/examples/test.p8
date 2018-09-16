@@ -39,10 +39,21 @@ sub start() -> () {
     float time = 0.0
     _vm_gfx_clearscr(0)
 
-    for X in 3 to 100  {
-        A=X
-        continue
-        break
+    for XY in 0 to 300 step 3 {
+        _vm_gfx_pixel(XY, 2, XY)
+        _vm_gfx_pixel(XY+1, 2, XY)
+        _vm_gfx_pixel(XY, 3, XY)
+        _vm_gfx_pixel(XY+1, 3, XY)
+        ; continue
+        ; break
+    }
+    for XY in 315 to 0 step -3 {
+        _vm_gfx_pixel(XY, 6, XY)
+        _vm_gfx_pixel(XY+1, 6, XY)
+        _vm_gfx_pixel(XY, 7, XY)
+        _vm_gfx_pixel(XY+1, 7, XY)
+        ; continue
+        ; break
     }
 
 loop:

@@ -82,7 +82,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                             checkResult.add(ExpressionError("register can only loop over bytes", forLoop.position))
                     }
                     Register.AX, Register.AY, Register.XY -> {
-                        if (iterableDt != DataType.BYTE)
+                        if (iterableDt != DataType.WORD && iterableDt != DataType.BYTE)
                             checkResult.add(ExpressionError("register pair can only loop over words", forLoop.position))
                     }
                 }

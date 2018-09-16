@@ -15,7 +15,7 @@ import kotlin.system.exitProcess
 enum class Opcode {
 
     // pushing values on the (evaluation) stack
-    PUSH,           // push constant byte value
+    PUSH,           // push constant value (any type)
     PUSH_MEM,       // push byte value from memory to stack
     PUSH_MEM_W,     // push word value from memory to stack
     PUSH_MEM_F,     // push float value from memory to stack
@@ -1208,13 +1208,21 @@ class StackVm(val traceOutputFile: String?) {
             }
 
             Opcode.JUMP -> {}   // do nothing; the next instruction is wired up already to the jump target
-            Opcode.BCS -> return if(carry) ins.next else ins.nextAlt!!
-            Opcode.BCC -> return if(carry) ins.nextAlt!! else ins.next
-            Opcode.BEQ -> return if(evalstack.pop().numericValue().toDouble()==0.0) ins.next else ins.nextAlt!!
-            Opcode.BNE -> return if(evalstack.pop().numericValue().toDouble()!=0.0) ins.next else ins.nextAlt!!
-            Opcode.BMI -> return if(evalstack.pop().numericValue().toDouble()<0.0) ins.next else ins.nextAlt!!
-            Opcode.BPL -> return if(evalstack.pop().numericValue().toDouble()>=0.0) ins.next else ins.nextAlt!!
-            Opcode.CALL -> callstack.push(ins.nextAlt)
+            Opcode.BCS ->
+                return if(carry) ins.next else ins.nextAlt!!
+            Opcode.BCC ->
+                return if(carry) ins.nextAlt!! else ins.next
+            Opcode.BEQ ->
+                return if(evalstack.pop().numericValue().toDouble()==0.0) ins.next else ins.nextAlt!!
+            Opcode.BNE ->
+                return if(evalstack.pop().numericValue().toDouble()!=0.0) ins.next else ins.nextAlt!!
+            Opcode.BMI ->
+                return if(evalstack.pop().numericValue().toDouble()<0.0) ins.next else ins.nextAlt!!
+            Opcode.BPL -> {
+                return if (evalstack.pop().numericValue().toDouble() >= 0.0) ins.next else ins.nextAlt!!
+            }
+            Opcode.CALL ->
+                callstack.push(ins.nextAlt)
             Opcode.RETURN -> {
                 if(callstack.empty())
                     throw VmTerminationException("return instruction with empty call stack")

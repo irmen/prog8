@@ -3,6 +3,8 @@ package prog8.compiler
 import prog8.ast.*
 import prog8.stackvm.*
 import java.io.PrintStream
+import javax.xml.crypto.Data
+import kotlin.math.abs
 
 
 class CompilerException(message: String?) : Exception(message)
@@ -491,20 +493,112 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
         if(loop.loopRegister!=null) {
             val reg = loop.loopRegister
             if(loop.iterable is RangeExpr) {
-                val range = (loop.iterable as RangeExpr).toKotlinRange()
-                if(range.isEmpty())
-                    throw CompilerException("loop over empty range")
-                if(range.step==1) {
-                    println("@todo for loop, register, range, step 1")      // todo
+                val range = (loop.iterable as RangeExpr).toConstantIntegerRange()
+                if(range!=null) {
+                    if (range.isEmpty())
+                        throw CompilerException("loop over empty range")
+                    val varDt =
+                            when (reg) {
+                                Register.A, Register.X, Register.Y -> {
+                                    if (range.first < 0 || range.first > 255 || range.last < 0 || range.last > 255)
+                                        throw CompilerException("range out of bounds for register")
+                                    DataType.BYTE
+                                }
+                                Register.AX, Register.AY, Register.XY -> {
+                                    if (range.first < 0 || range.first > 65535 || range.last < 0 || range.last > 65535)
+                                        throw CompilerException("range out of bounds for register")
+                                    DataType.WORD
+                                }
+                            }
+                    translateForConstantRange(reg.toString(), varDt, range, loop.body)
                 } else {
-                    TODO("loop over range with step != 1")
+                    TODO("loop over non-constant range: ${loop.iterable}")
                 }
             } else {
                 TODO("loop over something else as a Range: ${loop.iterable}")
             }
         } else {
             val loopvar = (loop.loopVar!!.targetStatement(namespace) as VarDecl)
-            println("@TODO translate for loop (variable $loopvar)") // TODO
+            if(loop.iterable is RangeExpr) {
+                val range = (loop.iterable as RangeExpr).toConstantIntegerRange()
+                if(range!=null) {
+                    if (range.isEmpty())
+                        throw CompilerException("loop over empty range")
+                    when (loopvar.datatype) {
+                        DataType.BYTE -> {
+                            if (range.first < 0 || range.first > 255 || range.last < 0 || range.last > 255)
+                                throw CompilerException("range out of bounds for byte")
+                        }
+                        DataType.WORD -> {
+                            if (range.first < 0 || range.first > 65535 || range.last < 0 || range.last > 65535)
+                                throw CompilerException("range out of bounds for word")
+                        }
+                        else -> throw CompilerException("range must be byte or word")
+                    }
+                    translateForConstantRange(loopvar.scopedname, loopvar.datatype, range, loop.body)
+                } else {
+                    TODO("loop over non-constant range: ${loop.iterable}")
+                }
+            } else {
+                TODO("loop over something else as a Range: ${loop.iterable}")
+            }
         }
+    }
+
+    private fun translateForConstantRange(varname: String, varDt: DataType, range: IntProgression, body: MutableList<IStatement>) {
+        /**
+         * for LV in start..last { body }
+         * (and we already know that the range is not empty)
+         * (also we know that the range's last value is really the exact last occurring value of the range)
+         *   ->
+         *      LV = start
+         * loop:
+         *      ..body..
+         *      ..break statement:  goto break
+         *      ..continue statement: goto continue
+         *      ..
+         * continue:
+         *      LV++  (if step=1)  or LV+=step  (if step > 1)
+         *      LV--  (if step=-11)  or LV-=abs(step)  (if step < 1)
+         *      if LV!=last goto loop   ; if last > 0
+         *      if LV>=0 goto loop      ; if last==0
+         * break:
+         *
+         */
+        val loopLabel = makeLabel("loop")
+        val continueLabel = makeLabel("continue")
+        val breakLabel = makeLabel("break")
+        val varValue = Value(DataType.STR, null, varname)
+        stackvmProg.instr(Opcode.PUSH, Value(varDt, range.first))
+        stackvmProg.instr(Opcode.POP_VAR, varValue)
+        stackvmProg.label(loopLabel)
+        translate(body)
+        stackvmProg.label(continueLabel)
+        when {
+            range.step==1 -> stackvmProg.instr(Opcode.INC_VAR, varValue)
+            range.step==-1 -> stackvmProg.instr(Opcode.DEC_VAR, varValue)
+            range.step>1 -> {
+                stackvmProg.instr(Opcode.PUSH_VAR, varValue)
+                stackvmProg.instr(Opcode.PUSH, Value(varDt, range.step))
+                stackvmProg.instr(Opcode.ADD)
+                stackvmProg.instr(Opcode.POP_VAR, varValue)
+            }
+            range.step<1 -> {
+                stackvmProg.instr(Opcode.PUSH_VAR, varValue)
+                stackvmProg.instr(Opcode.PUSH, Value(varDt, abs(range.step)))
+                stackvmProg.instr(Opcode.SUB)
+                stackvmProg.instr(Opcode.POP_VAR, varValue)
+            }
+        }
+        if(range.last>0) {
+            stackvmProg.instr(Opcode.PUSH, Value(varDt, range.last))
+            stackvmProg.instr(Opcode.PUSH_VAR, varValue)
+            stackvmProg.instr(Opcode.SUB)
+            stackvmProg.instr(Opcode.BNE, callLabel = loopLabel)
+        } else {
+            stackvmProg.instr(Opcode.PUSH_VAR, varValue)
+            stackvmProg.instr(Opcode.BNE, callLabel = loopLabel)
+        }
+        stackvmProg.label(breakLabel)
     }
 }
