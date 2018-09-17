@@ -69,6 +69,8 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
     }
 
     override fun process(forLoop: ForLoop): IStatement {
+        if(forLoop.body.isEmpty())
+            printWarning("for loop body is empty", forLoop.position)
         if(!forLoop.iterable.isIterable) {
             checkResult.add(ExpressionError("can only loop over an iterable type", forLoop.position))
         } else {
@@ -78,11 +80,16 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                 // loop register
                 when (forLoop.loopRegister) {
                     Register.A, Register.X, Register.Y -> {
-                        if (iterableDt != DataType.BYTE)
+                        if (iterableDt != DataType.BYTE && iterableDt!=DataType.ARRAY && iterableDt!=DataType.MATRIX &&
+                                iterableDt != DataType.STR && iterableDt != DataType.STR_P &&
+                                iterableDt != DataType.STR_S && iterableDt != DataType.STR_PS)
                             checkResult.add(ExpressionError("register can only loop over bytes", forLoop.position))
                     }
                     Register.AX, Register.AY, Register.XY -> {
-                        if (iterableDt != DataType.WORD && iterableDt != DataType.BYTE)
+                        if (iterableDt != DataType.WORD && iterableDt != DataType.BYTE &&
+                                iterableDt != DataType.STR && iterableDt != DataType.STR_P &&
+                                iterableDt != DataType.STR_S && iterableDt != DataType.STR_PS &&
+                                iterableDt !=DataType.ARRAY && iterableDt!=DataType.ARRAY_W && iterableDt!=DataType.MATRIX)
                             checkResult.add(ExpressionError("register pair can only loop over words", forLoop.position))
                     }
                 }
@@ -95,11 +102,14 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                 } else {
                     when (loopvar.datatype) {
                         DataType.BYTE -> {
-                            if(iterableDt!=DataType.BYTE)
+                            if(iterableDt!=DataType.BYTE && iterableDt!=DataType.ARRAY && iterableDt!=DataType.MATRIX &&
+                                    iterableDt != DataType.STR && iterableDt != DataType.STR_P &&
+                                    iterableDt != DataType.STR_S && iterableDt != DataType.STR_PS)
                                 checkResult.add(ExpressionError("can only loop over bytes", forLoop.position))
                         }
                         DataType.WORD -> {
-                            if(iterableDt!=DataType.BYTE && iterableDt!=DataType.WORD)
+                            if(iterableDt!=DataType.BYTE && iterableDt!=DataType.WORD &&
+                                    iterableDt !=DataType.ARRAY && iterableDt!=DataType.ARRAY_W && iterableDt!=DataType.MATRIX)
                                 checkResult.add(ExpressionError("can only loop over bytes or words", forLoop.position))
                         }
                         else -> checkResult.add(ExpressionError("loop variable must be byte or word type", forLoop.position))

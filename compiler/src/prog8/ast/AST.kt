@@ -898,7 +898,8 @@ class RangeExpr(var from: IExpression,
             fromVal = (from as LiteralValue).asIntegerValue!!
             toVal = (to as LiteralValue).asIntegerValue!!
         }
-        val stepVal = (step as? LiteralValue)?.asIntegerValue ?: 1
+        val stepLv = step as? LiteralValue ?: return null
+        val stepVal = stepLv.asIntegerValue ?: 1
         return when {
             fromVal <= toVal -> when {
                 stepVal <= 0 -> IntRange.EMPTY
@@ -981,10 +982,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         }
     }
 
-    override val isIterable: Boolean
-        get() {
-            TODO("iterable identifierref?")
-        }
+    override val isIterable: Boolean = true     // should be checked by caller by actually looking up the symbol
 }
 
 

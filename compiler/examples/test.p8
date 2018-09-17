@@ -34,6 +34,7 @@ sub start() -> () {
     _vm_write_str(vs3)
     _vm_write_str(vs4)
 
+    byte lv = 0
     word tx = 0
     word ty = 12 % 5
     float time = 0.0

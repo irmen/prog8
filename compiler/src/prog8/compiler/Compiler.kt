@@ -3,7 +3,6 @@ package prog8.compiler
 import prog8.ast.*
 import prog8.stackvm.*
 import java.io.PrintStream
-import javax.xml.crypto.Data
 import kotlin.math.abs
 
 
@@ -489,42 +488,31 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
     }
 
     private fun translate(loop: ForLoop) {
+        if(loop.body.isEmpty()) return
         stackvmProg.line(loop.position)
+        val loopVarName: String
+        val loopVarDt: DataType
+
         if(loop.loopRegister!=null) {
             val reg = loop.loopRegister
-            if(loop.iterable is RangeExpr) {
-                val range = (loop.iterable as RangeExpr).toConstantIntegerRange()
-                if(range!=null) {
-                    if (range.isEmpty())
-                        throw CompilerException("loop over empty range")
-                    val varDt =
-                            when (reg) {
-                                Register.A, Register.X, Register.Y -> {
-                                    if (range.first < 0 || range.first > 255 || range.last < 0 || range.last > 255)
-                                        throw CompilerException("range out of bounds for register")
-                                    DataType.BYTE
-                                }
-                                Register.AX, Register.AY, Register.XY -> {
-                                    if (range.first < 0 || range.first > 65535 || range.last < 0 || range.last > 65535)
-                                        throw CompilerException("range out of bounds for register")
-                                    DataType.WORD
-                                }
-                            }
-                    translateForConstantRange(reg.toString(), varDt, range, loop.body)
-                } else {
-                    TODO("loop over non-constant range: ${loop.iterable}")
-                }
-            } else {
-                TODO("loop over something else as a Range: ${loop.iterable}")
+            loopVarName = reg.toString()
+            loopVarDt = when (reg) {
+                Register.A, Register.X, Register.Y -> DataType.BYTE
+                Register.AX, Register.AY, Register.XY -> DataType.WORD
             }
         } else {
             val loopvar = (loop.loopVar!!.targetStatement(namespace) as VarDecl)
-            if(loop.iterable is RangeExpr) {
-                val range = (loop.iterable as RangeExpr).toConstantIntegerRange()
-                if(range!=null) {
+            loopVarName = loopvar.scopedname
+            loopVarDt = loopvar.datatype
+        }
+
+        if(loop.iterable is RangeExpr) {
+            val range = (loop.iterable as RangeExpr).toConstantIntegerRange()
+            when {
+                range!=null -> {
                     if (range.isEmpty())
                         throw CompilerException("loop over empty range")
-                    when (loopvar.datatype) {
+                    when (loopVarDt) {
                         DataType.BYTE -> {
                             if (range.first < 0 || range.first > 255 || range.last < 0 || range.last > 255)
                                 throw CompilerException("range out of bounds for byte")
@@ -535,21 +523,35 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
                         }
                         else -> throw CompilerException("range must be byte or word")
                     }
-                    translateForConstantRange(loopvar.scopedname, loopvar.datatype, range, loop.body)
-                } else {
-                    TODO("loop over non-constant range: ${loop.iterable}")
+                    translateForOverConstantRange(loopVarName, loopVarDt, range, loop.body)
                 }
-            } else {
-                TODO("loop over something else as a Range: ${loop.iterable}")
+                loop.loopRegister!=null ->
+                    translateForOverVariableRange(null, loop.loopRegister, loopVarDt, loop.iterable as RangeExpr, loop.body)
+                else ->
+                    translateForOverVariableRange(loopVarName, null, loopVarDt, loop.iterable as RangeExpr, loop.body)
+            }
+        } else {
+            val litVal = loop.iterable as? LiteralValue
+            val ident = loop.iterable as? IdentifierReference
+            when {
+                litVal?.strvalue != null -> {
+                    TODO("loop over string $litVal")
+                }
+                ident!=null -> {
+                    val symbol = ident.targetStatement(namespace)
+                    TODO("loop over symbol: ${ident.nameInSource} -> $symbol")
+                }
+                else -> throw CompilerException("loopvar is something strange ${loop.iterable}")
             }
         }
     }
 
-    private fun translateForConstantRange(varname: String, varDt: DataType, range: IntProgression, body: MutableList<IStatement>) {
+    private fun translateForOverConstantRange(varname: String, varDt: DataType, range: IntProgression, body: MutableList<IStatement>) {
         /**
          * for LV in start..last { body }
          * (and we already know that the range is not empty)
          * (also we know that the range's last value is really the exact last occurring value of the range)
+         * (and finally, start and last are constant integer values)
          *   ->
          *      LV = start
          * loop:
@@ -599,6 +601,68 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
             stackvmProg.instr(Opcode.PUSH_VAR, varValue)
             stackvmProg.instr(Opcode.BNE, callLabel = loopLabel)
         }
+        stackvmProg.label(breakLabel)
+    }
+
+    private fun translateForOverVariableRange(varname: String?, register: Register?, varDt: DataType, range: RangeExpr, body: MutableList<IStatement>) {
+        /**
+         * for LV in start..last { body }
+         * (and we already know that the range is not empty)
+         * (also we know that the range's last value is really the exact last occurring value of the range)
+         * (and finally, start and last are constant integer values)
+         *   ->
+         *      LV = start
+         * loop:
+         *      ..body..
+         *      ..break statement:  goto break
+         *      ..continue statement: goto continue
+         *      ..
+         * continue:
+         *      LV++  (if step is not given, and is therefore 1)
+         *      LV += step (if step is given)
+         *      if LV<=last goto loop
+         * break:
+         *
+         */
+        val assignmentTarget =
+                if(varname!=null)
+                    AssignTarget(null, IdentifierReference(listOf(varname), range.position), range.position)
+                else
+                    AssignTarget(register, null, range.position)
+
+        val startAssignment = Assignment(assignmentTarget, null, range.from, range.position)
+        var stepIncrement: PostIncrDecr? = null
+        var stepAddition: Assignment? = null
+        if(range.step==null)
+            stepIncrement = PostIncrDecr(assignmentTarget, "++", range.position)
+        else
+            stepAddition = Assignment(
+                assignmentTarget,
+                "+=",
+                range.step ?: LiteralValue(DataType.BYTE, 1, position = range.position),
+                range.position
+            )
+        translate(startAssignment)
+
+        val loopLabel = makeLabel("loop")
+        val continueLabel = makeLabel("continue")
+        val breakLabel = makeLabel("break")
+        stackvmProg.label(loopLabel)
+        translate(body)
+        stackvmProg.label(continueLabel)
+        if(stepAddition!=null)
+            translate(stepAddition)
+        if(stepIncrement!=null)
+            translate(stepIncrement)
+
+        val comparison = BinaryExpression(
+                if(varname!=null)
+                    IdentifierReference(listOf(varname), range.position)
+                else
+                    RegisterExpr(register!!, range.position)
+                ,"<=", range.to, range.position)
+        translate(comparison)
+        stackvmProg.instr(Opcode.BNE, callLabel = loopLabel)
         stackvmProg.label(breakLabel)
     }
 }
