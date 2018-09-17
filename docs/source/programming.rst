@@ -443,11 +443,14 @@ tan(x)
 atan(x)
 	Arctangent.
 
-log(x)
-	Natural logarithm.
+ln(x)
+	Natural logarithm (base E).
+
+log2(x)
+    Base 2 logarithm.
 
 log10(x)
-	Base-10 logarithm.
+	Base 10 logarithm.
 
 sqrt(x)
 	Square root.

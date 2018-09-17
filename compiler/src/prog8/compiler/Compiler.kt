@@ -183,11 +183,15 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
     private fun translate(stmt: Continue) {
         stackvmProg.line(stmt.position)
         TODO("translate CONTINUE")
+        // *      ..continue statement: goto continue
+        // we somehow have to know what the correct 'continue' label is
     }
 
     private fun translate(stmt: Break) {
         stackvmProg.line(stmt.position)
         TODO("translate BREAK")
+        // *      ..break statement:  goto break
+        // we somehow have to know what the correct 'break' label is
     }
 
     private fun translate(branch: BranchStatement) {

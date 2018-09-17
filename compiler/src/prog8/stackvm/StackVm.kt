@@ -128,46 +128,42 @@ enum class Syscall(val callNr: Short) {
     WRITE_NUM(12),              // pop from the evaluation stack and print it as a number
     WRITE_CHAR(13),             // pop from the evaluation stack and print it as a single petscii character
     WRITE_STR(14),              // pop from the evaluation stack and print it as a string
-    INPUT_VAR(15),              // user input a string into a variable
+    INPUT_STR(15),              // user input a string onto the stack, with max length (truncated) given by value on stack
     GFX_PIXEL(16),              // plot a pixel at (x,y,color) pushed on stack in that order
     GFX_CLEARSCR(17),           // clear the screen with color pushed on stack
     GFX_TEXT(18),               // write text on screen at (x,y,color,text) pushed on stack in that order
 
     FUNC_P_CARRY(64),
     FUNC_P_IRQD(65),
-    FUNC_ROL(66),
-    FUNC_ROR(67),
-    FUNC_ROL2(68),
-    FUNC_ROR2(69),
-    FUNC_LSL(70),
-    FUNC_LSR(71),
-    FUNC_SIN(72),
-    FUNC_COS(73),
-    FUNC_ABS(74),
-    FUNC_ACOS(75),
-    FUNC_ASIN(76),
-    FUNC_TAN(77),
-    FUNC_ATAN(78),
-    FUNC_LOG(79),
-    FUNC_LOG10(80),
-    FUNC_SQRT(81),
-    FUNC_RAD(82),
-    FUNC_DEG(83),
-    FUNC_ROUND(84),
-    FUNC_FLOOR(85),
-    FUNC_CEIL(86),
-    FUNC_MAX(87),
-    FUNC_MIN(88),
-    FUNC_AVG(89),
-    FUNC_SUM(90),
-    FUNC_LEN(91),
-    FUNC_ANY(92),
-    FUNC_ALL(93),
-    FUNC_LSB(94),
-    FUNC_MSB(95),
-    FUNC_RND(96),                // push a random byte on the stack
-    FUNC_RNDW(97),               // push a random word on the stack
-    FUNC_RNDF(98)                // push a random float on the stack (between 0.0 and 1.0)
+    FUNC_SIN(66),
+    FUNC_COS(67),
+    FUNC_ABS(68),
+    FUNC_ACOS(69),
+    FUNC_ASIN(70),
+    FUNC_TAN(71),
+    FUNC_ATAN(72),
+    FUNC_LN(73),
+    FUNC_LOG2(74),
+    FUNC_LOG10(75),
+    FUNC_SQRT(76),
+    FUNC_RAD(77),
+    FUNC_DEG(78),
+    FUNC_ROUND(79),
+    FUNC_FLOOR(80),
+    FUNC_CEIL(81),
+    FUNC_MAX(82),
+    FUNC_MIN(83),
+    FUNC_AVG(84),
+    FUNC_SUM(85),
+    FUNC_LEN(86),
+    FUNC_ANY(87),
+    FUNC_ALL(88),
+    FUNC_RND(89),                // push a random byte on the stack
+    FUNC_RNDW(90),               // push a random word on the stack
+    FUNC_RNDF(91)                // push a random float on the stack (between 0.0 and 1.0)
+
+    // note: not all builtin functions of the Prog8 language are present as functions:
+    // some of them are already opcodes (such as MSB and ROL)!
 }
 
 class Memory {
@@ -814,7 +810,8 @@ class StackVm(val traceOutputFile: String?) {
     private val evalstack = MyStack<Value>()   // evaluation stack
     private val callstack = MyStack<Instruction>()    // subroutine call stack
     private var variables = mutableMapOf<String, Value>()     // all variables (set of all vars used by all blocks/subroutines) key = their fully scoped name
-    private var carry: Boolean = false
+    private var P_carry: Boolean = false
+    private var P_irqd: Boolean = false
     private var program = listOf<Instruction>()
     private var traceOutput = if(traceOutputFile!=null) PrintStream(File(traceOutputFile), "utf-8") else null
     private lateinit var currentIns: Instruction
@@ -924,7 +921,7 @@ class StackVm(val traceOutputFile: String?) {
             Opcode.ARRAY -> {
                 val amount = ins.arg!!.integerValue()
                 val array = mutableListOf<Int>()
-                for (i in 0..amount) {
+                for (i in 1..amount) {
                     val value = evalstack.pop()
                     if(value.type!=DataType.BYTE && value.type!=DataType.WORD)
                         throw VmExecutionException("array requires values to be all byte/word")
@@ -986,8 +983,8 @@ class StackVm(val traceOutputFile: String?) {
             }
             Opcode.ROL -> {
                 val v = evalstack.pop()
-                val (result, newCarry) = v.rol(carry)
-                this.carry = newCarry
+                val (result, newCarry) = v.rol(P_carry)
+                this.P_carry = newCarry
                 evalstack.push(result)
             }
             Opcode.ROL2 -> {
@@ -996,8 +993,8 @@ class StackVm(val traceOutputFile: String?) {
             }
             Opcode.ROR -> {
                 val v = evalstack.pop()
-                val (result, newCarry) = v.ror(carry)
-                this.carry = newCarry
+                val (result, newCarry) = v.ror(P_carry)
+                this.P_carry = newCarry
                 evalstack.push(result)
             }
             Opcode.ROR2 -> {
@@ -1054,19 +1051,10 @@ class StackVm(val traceOutputFile: String?) {
                             DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX -> print(value.arrayvalue)
                         }
                     }
-                    Syscall.INPUT_VAR -> {
-                        // TODO: replace with regular INPUT_STR that simply puts a str on the stack (1 argument: the max. length of the input)
-                        val varname = ins.callLabel ?: throw VmExecutionException("$syscall expects string argument (the variable name)")
-                        val variable = variables[varname] ?: throw VmExecutionException("unknown variable: $varname")
-                        val input = readLine() ?: throw VmExecutionException("expected user input")
-                        val value = when(variable.type) {
-                            DataType.BYTE -> Value(DataType.BYTE, input.toShort())
-                            DataType.WORD -> Value(DataType.WORD, input.toInt())
-                            DataType.FLOAT -> Value(DataType.FLOAT, input.toDouble())
-                            DataType.STR -> Value(DataType.STR, null, input)
-                            else -> throw VmExecutionException("invalid datatype")
-                        }
-                        variables[varname] = value
+                    Syscall.INPUT_STR -> {
+                        val maxlen = evalstack.pop().integerValue()
+                        val input = readLine()?.substring(0, maxlen)  ?: ""
+                        evalstack.push(Value(DataType.STR, null, input))
                     }
                     Syscall.GFX_PIXEL -> {
                         // plot pixel at (x, y, color) from stack
@@ -1100,13 +1088,93 @@ class StackVm(val traceOutputFile: String?) {
                     Syscall.FUNC_SIN -> evalstack.push(Value(DataType.FLOAT, sin(evalstack.pop().numericValue().toDouble())))
                     Syscall.FUNC_COS -> evalstack.push(Value(DataType.FLOAT, cos(evalstack.pop().numericValue().toDouble())))
                     Syscall.FUNC_ROUND -> evalstack.push(Value(DataType.WORD, evalstack.pop().numericValue().toDouble().roundToInt()))
-                    // todo: implement remaining functions
+                    Syscall.FUNC_P_CARRY -> P_carry = evalstack.pop().asBooleanValue
+                    Syscall.FUNC_P_IRQD -> P_irqd = evalstack.pop().asBooleanValue
+                    Syscall.FUNC_ABS -> {
+                        val value = evalstack.pop()
+                        val absValue=
+                            when(value.type) {
+                                DataType.BYTE -> Value(DataType.BYTE, value.numericValue())
+                                DataType.WORD -> Value(DataType.WORD, value.numericValue())
+                                DataType.FLOAT -> Value(DataType.FLOAT, value.numericValue())
+                                else -> throw VmExecutionException("cannot get abs of $value")
+                            }
+                        evalstack.push(absValue)
+                    }
+                    Syscall.FUNC_ACOS -> evalstack.push(Value(DataType.FLOAT, acos(evalstack.pop().numericValue().toDouble())))
+                    Syscall.FUNC_ASIN -> evalstack.push(Value(DataType.FLOAT, asin(evalstack.pop().numericValue().toDouble())))
+                    Syscall.FUNC_TAN -> evalstack.push(Value(DataType.FLOAT, tan(evalstack.pop().numericValue().toDouble())))
+                    Syscall.FUNC_ATAN -> evalstack.push(Value(DataType.FLOAT, atan(evalstack.pop().numericValue().toDouble())))
+                    Syscall.FUNC_LN -> evalstack.push(Value(DataType.FLOAT, ln(evalstack.pop().numericValue().toDouble())))
+                    Syscall.FUNC_LOG2 -> evalstack.push(Value(DataType.FLOAT, log2(evalstack.pop().numericValue().toDouble())))
+                    Syscall.FUNC_LOG10 -> evalstack.push(Value(DataType.FLOAT, log10(evalstack.pop().numericValue().toDouble())))
+                    Syscall.FUNC_SQRT -> evalstack.push(Value(DataType.FLOAT, sqrt(evalstack.pop().numericValue().toDouble())))
+                    Syscall.FUNC_RAD -> evalstack.push(Value(DataType.FLOAT, Math.toRadians(evalstack.pop().numericValue().toDouble())))
+                    Syscall.FUNC_DEG -> evalstack.push(Value(DataType.FLOAT, Math.toDegrees(evalstack.pop().numericValue().toDouble())))
+                    Syscall.FUNC_FLOOR -> {
+                        val value = evalstack.pop()
+                        val result =
+                                when(value.type) {
+                                    DataType.BYTE -> Value(DataType.BYTE, value.numericValue())
+                                    DataType.WORD -> Value(DataType.WORD, value.numericValue())
+                                    DataType.FLOAT -> Value(DataType.WORD, floor(value.numericValue().toDouble()))
+                                    else -> throw VmExecutionException("cannot get floor of $value")
+                                }
+                        evalstack.push(result)
+                    }
+                    Syscall.FUNC_CEIL -> {
+                        val value = evalstack.pop()
+                        val result =
+                                when(value.type) {
+                                    DataType.BYTE -> Value(DataType.BYTE, value.numericValue())
+                                    DataType.WORD -> Value(DataType.WORD, value.numericValue())
+                                    DataType.FLOAT -> Value(DataType.WORD, ceil(value.numericValue().toDouble()))
+                                    else -> throw VmExecutionException("cannot get ceil of $value")
+                                }
+                        evalstack.push(result)
+                    }
+                    Syscall.FUNC_MAX -> {
+                        val array = evalstack.pop()
+                        val dt =
+                                when {
+                                    array.type==DataType.ARRAY -> DataType.BYTE
+                                    array.type==DataType.ARRAY_W -> DataType.WORD
+                                    else -> throw VmExecutionException("invalid array datatype $array")
+                                }
+                        evalstack.push(Value(dt, array.arrayvalue!!.max()))
+                    }
+                    Syscall.FUNC_MIN -> {
+                        val array = evalstack.pop()
+                        val dt =
+                                when {
+                                    array.type==DataType.ARRAY -> DataType.BYTE
+                                    array.type==DataType.ARRAY_W -> DataType.WORD
+                                    else -> throw VmExecutionException("invalid array datatype $array")
+                                }
+                        evalstack.push(Value(dt, array.arrayvalue!!.min()))
+                    }
+                    Syscall.FUNC_AVG -> {
+                        val array = evalstack.pop()
+                        evalstack.push(Value(DataType.FLOAT, array.arrayvalue!!.average()))
+                    }
+                    Syscall.FUNC_SUM -> {
+                        val array = evalstack.pop()
+                        evalstack.push(Value(DataType.WORD, array.arrayvalue!!.sum()))
+                    }
+                    Syscall.FUNC_ANY -> {
+                        val array = evalstack.pop()
+                        evalstack.push(Value(DataType.BYTE, if(array.arrayvalue!!.any{ v -> v != 0}) 1 else 0))
+                    }
+                    Syscall.FUNC_ALL -> {
+                        val array = evalstack.pop()
+                        evalstack.push(Value(DataType.BYTE, if(array.arrayvalue!!.all{ v -> v != 0}) 1 else 0))
+                    }
                     else -> throw VmExecutionException("unimplemented syscall $syscall")
                 }
             }
 
-            Opcode.SEC -> carry = true
-            Opcode.CLC -> carry = false
+            Opcode.SEC -> P_carry = true
+            Opcode.CLC -> P_carry = false
             Opcode.TERMINATE -> throw VmTerminationException("terminate instruction")
             Opcode.BREAKPOINT -> throw VmBreakpointException()
 
@@ -1157,30 +1225,30 @@ class StackVm(val traceOutputFile: String?) {
             Opcode.ROL_MEM -> {
                 val addr = ins.arg!!.integerValue()
                 val value = Value(DataType.BYTE, mem.getByte(addr))
-                val (newValue, newCarry) = value.rol(carry)
+                val (newValue, newCarry) = value.rol(P_carry)
                 mem.setByte(addr, newValue.integerValue().toShort())
-                carry = newCarry
+                P_carry = newCarry
             }
             Opcode.ROL_MEM_W -> {
                 val addr = ins.arg!!.integerValue()
                 val value = Value(DataType.WORD, mem.getWord(addr))
-                val (newValue, newCarry) = value.rol(carry)
+                val (newValue, newCarry) = value.rol(P_carry)
                 mem.setWord(addr, newValue.integerValue())
-                carry = newCarry
+                P_carry = newCarry
             }
             Opcode.ROR_MEM -> {
                 val addr = ins.arg!!.integerValue()
                 val value = Value(DataType.BYTE, mem.getByte(addr))
-                val (newValue, newCarry) = value.ror(carry)
+                val (newValue, newCarry) = value.ror(P_carry)
                 mem.setByte(addr, newValue.integerValue().toShort())
-                carry = newCarry
+                P_carry = newCarry
             }
             Opcode.ROR_MEM_W -> {
                 val addr = ins.arg!!.integerValue()
                 val value = Value(DataType.WORD, mem.getWord(addr))
-                val (newValue, newCarry) = value.ror(carry)
+                val (newValue, newCarry) = value.ror(P_carry)
                 mem.setWord(addr, newValue.integerValue())
-                carry = newCarry
+                P_carry = newCarry
             }
             Opcode.ROL2_MEM -> {
                 val addr = ins.arg!!.integerValue()
@@ -1209,9 +1277,9 @@ class StackVm(val traceOutputFile: String?) {
 
             Opcode.JUMP -> {}   // do nothing; the next instruction is wired up already to the jump target
             Opcode.BCS ->
-                return if(carry) ins.next else ins.nextAlt!!
+                return if(P_carry) ins.next else ins.nextAlt!!
             Opcode.BCC ->
-                return if(carry) ins.nextAlt!! else ins.next
+                return if(P_carry) ins.nextAlt!! else ins.next
             Opcode.BEQ ->
                 return if(evalstack.pop().numericValue().toDouble()==0.0) ins.next else ins.nextAlt!!
             Opcode.BNE ->
@@ -1253,16 +1321,16 @@ class StackVm(val traceOutputFile: String?) {
             Opcode.ROL_VAR -> {
                 val varname = ins.arg!!.stringvalue ?: throw VmExecutionException("${ins.opcode} expects string argument (the variable name)")
                 val variable = variables[varname] ?: throw VmExecutionException("unknown variable: $varname")
-                val (newValue, newCarry) = variable.rol(carry)
+                val (newValue, newCarry) = variable.rol(P_carry)
                 variables[varname] = newValue
-                carry = newCarry
+                P_carry = newCarry
             }
             Opcode.ROR_VAR -> {
                 val varname = ins.arg!!.stringvalue ?: throw VmExecutionException("${ins.opcode} expects string argument (the variable name)")
                 val variable = variables[varname] ?: throw VmExecutionException("unknown variable: $varname")
-                val (newValue, newCarry) = variable.ror(carry)
+                val (newValue, newCarry) = variable.ror(P_carry)
                 variables[varname] = newValue
-                carry = newCarry
+                P_carry = newCarry
             }
             Opcode.ROL2_VAR -> {
                 val varname = ins.arg!!.stringvalue ?: throw VmExecutionException("${ins.opcode} expects string argument (the variable name)")

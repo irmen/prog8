@@ -26,7 +26,9 @@ loop:
     push_var main.textcolor
     syscall GFX_PIXEL
 ;    syscall WRITE_VAR "input.prompt"
-;    syscall INPUT_VAR "input.result"
+;    push  b:10
+;    syscall INPUT_STR
+;    pop_var input.result
 ;    syscall WRITE_VAR "input.result"
 ;    push b:8d
 ;    syscall WRITE_CHAR

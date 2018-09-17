@@ -497,8 +497,8 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                     return false
                 }
                 val rangeSize=range.size()
-                if(rangeSize!=null && (rangeSize<1 || rangeSize>255)) {
-                    checkResult.add(ExpressionError("size of range for string must be 1..255, instead of $rangeSize", range.position))
+                if(rangeSize!=null && (rangeSize<0 || rangeSize>255)) {
+                    checkResult.add(ExpressionError("size of range for string must be 0..255, instead of $rangeSize", range.position))
                     return false
                 }
                 return true

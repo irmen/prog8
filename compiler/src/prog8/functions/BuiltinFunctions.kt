@@ -1,17 +1,16 @@
 package prog8.functions
 
 import prog8.ast.*
-import kotlin.math.abs
-import kotlin.math.floor
+import kotlin.math.log2
 
 
 val BuiltinFunctionNames = setOf(
         "P_carry", "P_irqd", "rol", "ror", "rol2", "ror2", "lsl", "lsr",
         "sin", "cos", "abs", "acos", "asin", "tan", "atan", "rnd", "rndw", "rndf",
-        "log", "log10", "sqrt", "rad", "deg", "round", "floor", "ceil",
+        "ln", "log2", "log10", "sqrt", "rad", "deg", "round", "floor", "ceil",
         "max", "min", "avg", "sum", "len", "any", "all", "lsb", "msb",
         "_vm_write_memchr", "_vm_write_memstr", "_vm_write_num", "_vm_write_char",
-        "_vm_write_str", "_vm_input_var", "_vm_gfx_clearscr", "_vm_gfx_pixel", "_vm_gfx_text"
+        "_vm_write_str", "_vm_input_str", "_vm_gfx_clearscr", "_vm_gfx_pixel", "_vm_gfx_text"
         )
 
 
@@ -46,15 +45,25 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
     }
 
     return when (function) {
-        "sin", "cos", "tan", "asin", "acos", "atan", "log", "log10", "sqrt", "rad", "deg", "avg", "rndf" -> DataType.FLOAT
+        "sin", "cos", "tan", "asin", "acos", "atan", "ln", "log2", "log10", "sqrt", "rad", "deg", "avg", "rndf" -> DataType.FLOAT
         "lsb", "msb", "any", "all", "rnd" -> DataType.BYTE
         "rndw" -> DataType.WORD
         "rol", "rol2", "ror", "ror2", "P_carry", "P_irqd" -> null // no return value so no datatype
         "abs" -> args.single().resultingDatatype(namespace)
-        "max", "min", "sum" -> datatypeFromListArg(args.single())
+        "max", "min" -> datatypeFromListArg(args.single())
         "round", "floor", "ceil", "lsl", "lsr" -> integerDatatypeFromArg(args.single())
+        "sum" -> {
+            val dt=datatypeFromListArg(args.single())
+            when(dt) {
+                DataType.BYTE, DataType.WORD -> DataType.WORD
+                DataType.FLOAT -> DataType.FLOAT
+                DataType.ARRAY, DataType.ARRAY_W -> DataType.WORD
+                DataType.MATRIX -> DataType.BYTE
+                else -> throw FatalAstException("cannot sum over type $dt")
+            }
+        }
         "len" -> {
-            // len of a str is always 1..255 so always a byte,
+            // len of a str is always 0..255 so always a byte,
             // len of other things is assumed to need a word (even though the actual length could be less than 256)
             val arg = args.single()
             when(arg) {
@@ -64,7 +73,7 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
                         is VarDecl -> {
                             val value = stmt.value
                             if(value is LiteralValue) {
-                                if(value.isString) return DataType.BYTE        // strings are 1..255
+                                if(value.isString) return DataType.BYTE        // strings are 0..255
                             }
                         }
                     }
@@ -76,7 +85,7 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
         }
         "_vm_write_memchr", "_vm_write_memstr", "_vm_write_num", "_vm_write_char",
         "_vm_write_str", "_vm_gfx_clearscr", "_vm_gfx_pixel", "_vm_gfx_text" -> null  // no return value for these
-        "_vm_input_var" -> DataType.STR
+        "_vm_input_str" -> DataType.STR
         else -> throw FatalAstException("invalid builtin function $function")
     }
 }
@@ -173,8 +182,11 @@ fun builtinTan(args: List<IExpression>, position: Position, namespace:INameScope
 fun builtinAtan(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
         = oneDoubleArg(args, position, namespace, Math::atan)
 
-fun builtinLog(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
+fun builtinLn(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
         = oneDoubleArg(args, position, namespace, Math::log)
+
+fun builtinLog2(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
+        = oneDoubleArg(args, position, namespace, ::log2)
 
 fun builtinLog10(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
         = oneDoubleArg(args, position, namespace, Math::log10)
@@ -196,8 +208,8 @@ fun builtinAbs(args: List<IExpression>, position: Position, namespace:INameScope
     val constval = args[0].constValue(namespace) ?: throw NotConstArgumentException()
     val number = constval.asNumericValue
     return when (number) {
-        is Int, is Byte, is Short -> numericLiteral(abs(number.toInt()), args[0].position)
-        is Double -> numericLiteral(abs(number.toDouble()), args[0].position)
+        is Int, is Byte, is Short -> numericLiteral(Math.abs(number.toInt()), args[0].position)
+        is Double -> numericLiteral(Math.abs(number.toDouble()), args[0].position)
         else -> throw SyntaxError("abs requires one numeric argument", position)
     }
 }
@@ -258,7 +270,7 @@ fun builtinAll(args: List<IExpression>, position: Position, namespace:INameScope
 private fun numericLiteral(value: Number, position: Position): LiteralValue {
     val floatNum=value.toDouble()
     val tweakedValue: Number =
-            if(floatNum==floor(floatNum) && floatNum in -32768..65535)
+            if(floatNum==Math.floor(floatNum) && floatNum in -32768..65535)
                 floatNum.toInt()  // we have an integer disguised as a float.
             else
                 floatNum
