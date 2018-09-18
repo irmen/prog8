@@ -3,6 +3,7 @@ package prog8.compiler
 import prog8.ast.*
 import prog8.stackvm.*
 import java.io.PrintStream
+import java.util.*
 import kotlin.math.abs
 
 
@@ -132,6 +133,9 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
     var stmtUniqueSequenceNr = 0
         private set
 
+    val breakStmtLabelStack : Stack<String> = Stack()
+    val continueStmtLabelStack : Stack<String> = Stack()
+
     override fun process(subroutine: Subroutine): IStatement {
         stackvmProg.label(subroutine.scopedname)
         translate(subroutine.statements)
@@ -182,16 +186,18 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
 
     private fun translate(stmt: Continue) {
         stackvmProg.line(stmt.position)
-        TODO("translate CONTINUE")
-        // *      ..continue statement: goto continue
-        // we somehow have to know what the correct 'continue' label is
+        if(continueStmtLabelStack.empty())
+            throw CompilerException("continue outside of loop statement block")
+        val label = continueStmtLabelStack.peek()
+        stackvmProg.instr(Opcode.JUMP, null, label)
     }
 
     private fun translate(stmt: Break) {
         stackvmProg.line(stmt.position)
-        TODO("translate BREAK")
-        // *      ..break statement:  goto break
-        // we somehow have to know what the correct 'break' label is
+        if(breakStmtLabelStack.empty())
+            throw CompilerException("break outside of loop statement block")
+        val label = breakStmtLabelStack.peek()
+        stackvmProg.instr(Opcode.JUMP, null, label)
     }
 
     private fun translate(branch: BranchStatement) {
@@ -532,7 +538,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
                 loop.loopRegister!=null ->
                     translateForOverVariableRange(null, loop.loopRegister, loopVarDt, loop.iterable as RangeExpr, loop.body)
                 else ->
-                    translateForOverVariableRange(loopVarName, null, loopVarDt, loop.iterable as RangeExpr, loop.body)
+                    translateForOverVariableRange(loop.loopVar!!.nameInSource, null, loopVarDt, loop.iterable as RangeExpr, loop.body)
             }
         } else {
             val litVal = loop.iterable as? LiteralValue
@@ -574,6 +580,9 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
         val loopLabel = makeLabel("loop")
         val continueLabel = makeLabel("continue")
         val breakLabel = makeLabel("break")
+        continueStmtLabelStack.push(continueLabel)
+        breakStmtLabelStack.push(breakLabel)
+
         val varValue = Value(DataType.STR, null, varname)
         stackvmProg.instr(Opcode.PUSH, Value(varDt, range.first))
         stackvmProg.instr(Opcode.POP_VAR, varValue)
@@ -606,9 +615,13 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
             stackvmProg.instr(Opcode.BNE, callLabel = loopLabel)
         }
         stackvmProg.label(breakLabel)
+        stackvmProg.instr(Opcode.NOP)
+
+        breakStmtLabelStack.pop()
+        continueStmtLabelStack.pop()
     }
 
-    private fun translateForOverVariableRange(varname: String?, register: Register?, varDt: DataType, range: RangeExpr, body: MutableList<IStatement>) {
+    private fun translateForOverVariableRange(varname: List<String>?, register: Register?, varDt: DataType, range: RangeExpr, body: MutableList<IStatement>) {
         /**
          * for LV in start..last { body }
          * (and we already know that the range is not empty)
@@ -628,29 +641,42 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
          * break:
          *
          */
-        val assignmentTarget =
-                if(varname!=null)
-                    AssignTarget(null, IdentifierReference(listOf(varname), range.position), range.position)
-                else
-                    AssignTarget(register, null, range.position)
+        fun makeAssignmentTarget(): AssignTarget {
+            return if(varname!=null)
+                AssignTarget(null, IdentifierReference(varname, range.position), range.position)
+            else
+                AssignTarget(register, null, range.position)
+        }
 
+        var assignmentTarget = makeAssignmentTarget()
         val startAssignment = Assignment(assignmentTarget, null, range.from, range.position)
+        startAssignment.linkParents(range.parent)
+
         var stepIncrement: PostIncrDecr? = null
         var stepAddition: Assignment? = null
-        if(range.step==null)
+        if(range.step==null) {
+            assignmentTarget = makeAssignmentTarget()
             stepIncrement = PostIncrDecr(assignmentTarget, "++", range.position)
-        else
+            stepIncrement.linkParents(range.parent)
+        }
+        else {
+            assignmentTarget = makeAssignmentTarget()
             stepAddition = Assignment(
-                assignmentTarget,
-                "+=",
-                range.step ?: LiteralValue(DataType.BYTE, 1, position = range.position),
-                range.position
+                    assignmentTarget,
+                    "+=",
+                    range.step ?: LiteralValue(DataType.BYTE, 1, position = range.position),
+                    range.position
             )
+            stepAddition.linkParents(range.parent)
+        }
         translate(startAssignment)
 
         val loopLabel = makeLabel("loop")
         val continueLabel = makeLabel("continue")
         val breakLabel = makeLabel("break")
+        continueStmtLabelStack.push(continueLabel)
+        breakStmtLabelStack.push(breakLabel)
+
         stackvmProg.label(loopLabel)
         translate(body)
         stackvmProg.label(continueLabel)
@@ -661,12 +687,17 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
 
         val comparison = BinaryExpression(
                 if(varname!=null)
-                    IdentifierReference(listOf(varname), range.position)
+                    IdentifierReference(varname, range.position)
                 else
                     RegisterExpr(register!!, range.position)
                 ,"<=", range.to, range.position)
+        comparison.linkParents(range.parent)
         translate(comparison)
         stackvmProg.instr(Opcode.BNE, callLabel = loopLabel)
         stackvmProg.label(breakLabel)
+        stackvmProg.instr(Opcode.NOP)
+
+        breakStmtLabelStack.pop()
+        continueStmtLabelStack.pop()
     }
 }

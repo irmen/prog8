@@ -153,7 +153,8 @@ Variables and values
 --------------------
 
 Variables are named values that can change during the execution of the program.
-When declaring a variable it is required to specify the initial value it should get.
+When declaring a numeric variable it is possible to specify the initial value, if you don't want it to be zero.
+For other data types it is required to specify that initial value it should get.
 Values will usually be part of an expression or assignment statement::
 
 	12345			; integer number
@@ -290,7 +291,9 @@ The resulting value is simply a 16 bit word. Example::
 Loops
 -----
 
-The *for*-loop is used to iterate over a range of values. Iteration is done in steps of 1, but you can change this.
+The *for*-loop is used to let a variable (or register) iterate over a range of values. Iteration is done in steps of 1, but you can change this.
+The loop variable must be declared as byte or word earlier. Floating point iteration is not supported.
+
 The *while*-loop is used to repeat a piece of code while a certain condition is still true.
 The *repeat--until* loop is used to repeat a piece of code until a certain condition is true.
 
@@ -491,6 +494,10 @@ lsb(x)
 
 msb(x)
     Get the most significant byte of the word x.
+
+flt(x)
+    Explicitly convert the number x to a floating point number.
+    Usually this is done automatically but sometimes it may be required to force this.
 
 any(x)
 	1 ('true') if any of the values in the non-scalar (array or matrix) value x is 'true' (not zero), else 0 ('false')

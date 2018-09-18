@@ -655,7 +655,7 @@ data class AssignTarget(val register: Register?, val identifier: IdentifierRefer
                 Register.AX, Register.AY, Register.XY -> DataType.WORD
             }
 
-        val symbol = namespace.lookup(identifier!!.nameInSource, stmt)
+        val symbol = namespace.lookup(identifier!!.nameInSource, stmt) ?: throw FatalAstException("symbol lookup failed: ${identifier!!.nameInSource}")
         if(symbol is VarDecl) return symbol.datatype
         throw FatalAstException("cannot determine datatype of assignment target $this")
     }
@@ -729,8 +729,7 @@ class BinaryExpression(var left: IExpression, val operator: String, var right: I
                 else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
             }
             DataType.WORD -> when(rightDt) {
-                DataType.BYTE -> DataType.BYTE
-                DataType.WORD -> DataType.WORD
+                DataType.BYTE, DataType.WORD -> DataType.WORD
                 DataType.FLOAT -> DataType.FLOAT
                 else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
             }
@@ -1057,6 +1056,7 @@ class FunctionCall(override var target: IdentifierReference,
                 "len" -> builtinLen(arglist, position, namespace)
                 "lsb" -> builtinLsb(arglist, position, namespace)
                 "msb" -> builtinMsb(arglist, position, namespace)
+                "flt" -> builtinFlt(arglist, position, namespace)
                 "any" -> builtinAny(arglist, position, namespace)
                 "all" -> builtinAll(arglist, position, namespace)
                 "floor" -> builtinFloor(arglist, position, namespace)
@@ -1109,10 +1109,14 @@ class FunctionCall(override var target: IdentifierReference,
                 return null     // no return value
             }
             if(stmt.returnvalues.size==1) {
-                return when(stmt.returnvalues[0].register) {
-                    Register.A, Register.X, Register.Y -> DataType.BYTE
-                    Register.AX, Register.AY, Register.XY -> DataType.WORD
-                    else -> TODO("return type for non-register result from subroutine $stmt")
+                if(stmt.returnvalues[0].register!=null) {
+                    return when(stmt.returnvalues[0].register!!) {
+                        Register.A, Register.X, Register.Y -> DataType.BYTE
+                        Register.AX, Register.AY, Register.XY -> DataType.WORD
+                    }
+                } else if(stmt.returnvalues[0].statusflag!=null) {
+                    val flag = stmt.returnvalues[0].statusflag!!
+                    TODO("return value in status flag $flag")
                 }
             }
             TODO("return type for subroutine with multiple return values $stmt")
@@ -1122,7 +1126,7 @@ class FunctionCall(override var target: IdentifierReference,
 
     override val isIterable: Boolean
             get() {
-                TODO("iterable function call result?")
+                TODO("isIterable of function call result")
             }
 }
 
@@ -1363,6 +1367,12 @@ private fun prog8Parser.StatementContext.toAst() : IStatement {
 
     val forloop = forloop()?.toAst()
     if(forloop!=null) return forloop
+
+    val breakstmt = breakstmt()?.toAst()
+    if(breakstmt!=null) return breakstmt
+
+    val continuestmt = continuestmt()?.toAst()
+    if(continuestmt!=null) return continuestmt
 
     throw FatalAstException("unprocessed source text (are we missing ast conversion rules for parser elements?): $text")
 }
@@ -1607,7 +1617,7 @@ private fun prog8Parser.ForloopContext.toAst(): ForLoop {
     val loopregister = register()?.toAst()
     val loopvar = identifier()?.toAst()
     val iterable = expression()!!.toAst()
-    val body = loop_statement_block().toAst()
+    val body = statement_block().toAst()
     return ForLoop(loopregister, loopvar, iterable, body, toPosition())
 }
 
@@ -1637,17 +1647,3 @@ class ForLoop(val loopRegister: Register?,
 private fun prog8Parser.ContinuestmtContext.toAst() = Continue(toPosition())
 
 private fun prog8Parser.BreakstmtContext.toAst() = Break(toPosition())
-
-private fun prog8Parser.Loop_statement_blockContext.toAst() : MutableList<IStatement> {
-    return statement_in_loopblock().asSequence().map {it.toAst()}.toMutableList()
-}
-
-private fun prog8Parser.Statement_in_loopblockContext.toAst(): IStatement {
-    val breakstmt = breakstmt()?.toAst()
-    if(breakstmt!=null) return breakstmt
-
-    val contstmt = continuestmt()?.toAst()
-    if(contstmt!=null) return contstmt
-
-    return this.statement().toAst()
-}

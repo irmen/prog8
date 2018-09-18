@@ -66,6 +66,8 @@ statement :
 	| labeldef
 	| returnstmt
 	| forloop
+	| breakstmt
+	| continuestmt
 	// @todo whileloop, repeatloop
 	;
 
@@ -216,17 +218,5 @@ branchcondition: 'if_cs' | 'if_cc' | 'if_eq' | 'if_ne' | 'if_pl' | 'if_mi' | 'if
 
 
 forloop :
-    'for' (register | identifier) 'in' expression EOL? loop_statement_block EOL
-    ;
-
-loop_statement_block :
-	'{' EOL
-		(statement_in_loopblock | EOL) *
-	'}'
-	;
-
-statement_in_loopblock :
-    statement
-    | breakstmt
-    | continuestmt
+    'for' (register | identifier) 'in' expression EOL? statement_block EOL
     ;

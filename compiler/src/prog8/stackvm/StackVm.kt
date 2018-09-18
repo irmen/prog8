@@ -160,7 +160,8 @@ enum class Syscall(val callNr: Short) {
     FUNC_ALL(88),
     FUNC_RND(89),                // push a random byte on the stack
     FUNC_RNDW(90),               // push a random word on the stack
-    FUNC_RNDF(91)                // push a random float on the stack (between 0.0 and 1.0)
+    FUNC_RNDF(91),               // push a random float on the stack (between 0.0 and 1.0)
+    FUNC_FLT(92)
 
     // note: not all builtin functions of the Prog8 language are present as functions:
     // some of them are already opcodes (such as MSB and ROL)!
@@ -581,13 +582,14 @@ class Program (val name: String,
             val instructions = mutableListOf<Instruction>()
             val labels = mutableMapOf<String, Instruction>()
             val splitpattern = Pattern.compile("\\s+")
-            var nextInstructionLabelname = ""
+            val nextInstructionLabels = Stack<String>()     // more than one label can occur on the same line
+
             while(true) {
                 val (lineNr, line) = lines.next()
                 if(line=="%end_instructions")
                     return Pair(instructions, labels)
                 if(!line.startsWith(' ') && line.endsWith(':')) {
-                    nextInstructionLabelname = line.substring(0, line.length-1)
+                    nextInstructionLabels.push(line.substring(0, line.length-1))
                 } else if(line.startsWith(' ')) {
                     val parts = line.trimStart().split(splitpattern, limit = 2)
                     val opcodeStr = parts[0].toUpperCase()
@@ -621,9 +623,9 @@ class Program (val name: String,
                         }
                     }
                     instructions.add(instruction)
-                    if(nextInstructionLabelname.isNotEmpty()) {
-                        labels[nextInstructionLabelname] = instruction
-                        nextInstructionLabelname = ""
+                    while(nextInstructionLabels.isNotEmpty()) {
+                        val label = nextInstructionLabels.pop()
+                        labels[label] = instruction
                     }
                 } else throw VmExecutionException("syntax error at line ${lineNr+1}")
             }
@@ -844,8 +846,8 @@ class StackVm(val traceOutputFile: String?) {
 
     fun step() {
         // step is invoked every 1/100 sec
-        // we execute 5000 instructions in one go so we end up doing 500.000 instructions per second
-        val instructionsPerStep = 5000
+        // we execute 10k instructions in one go so we end up doing 1 million vm instructions per second
+        val instructionsPerStep = 10000
         val start = System.currentTimeMillis()
         for(i:Int in 0..instructionsPerStep) {
             try {
@@ -1111,6 +1113,7 @@ class StackVm(val traceOutputFile: String?) {
                     Syscall.FUNC_SQRT -> evalstack.push(Value(DataType.FLOAT, sqrt(evalstack.pop().numericValue().toDouble())))
                     Syscall.FUNC_RAD -> evalstack.push(Value(DataType.FLOAT, Math.toRadians(evalstack.pop().numericValue().toDouble())))
                     Syscall.FUNC_DEG -> evalstack.push(Value(DataType.FLOAT, Math.toDegrees(evalstack.pop().numericValue().toDouble())))
+                    Syscall.FUNC_FLT -> evalstack.push(Value(DataType.FLOAT, evalstack.pop().numericValue().toDouble()))
                     Syscall.FUNC_FLOOR -> {
                         val value = evalstack.pop()
                         val result =

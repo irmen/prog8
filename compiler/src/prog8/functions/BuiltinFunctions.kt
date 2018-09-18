@@ -8,7 +8,7 @@ val BuiltinFunctionNames = setOf(
         "P_carry", "P_irqd", "rol", "ror", "rol2", "ror2", "lsl", "lsr",
         "sin", "cos", "abs", "acos", "asin", "tan", "atan", "rnd", "rndw", "rndf",
         "ln", "log2", "log10", "sqrt", "rad", "deg", "round", "floor", "ceil",
-        "max", "min", "avg", "sum", "len", "any", "all", "lsb", "msb",
+        "max", "min", "avg", "sum", "len", "any", "all", "lsb", "msb", "flt",
         "_vm_write_memchr", "_vm_write_memstr", "_vm_write_num", "_vm_write_char",
         "_vm_write_str", "_vm_input_str", "_vm_gfx_clearscr", "_vm_gfx_pixel", "_vm_gfx_text"
         )
@@ -45,7 +45,8 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
     }
 
     return when (function) {
-        "sin", "cos", "tan", "asin", "acos", "atan", "ln", "log2", "log10", "sqrt", "rad", "deg", "avg", "rndf" -> DataType.FLOAT
+        "sin", "cos", "tan", "asin", "acos", "atan", "ln", "log2", "log10",
+            "sqrt", "rad", "deg", "avg", "rndf", "flt" -> DataType.FLOAT
         "lsb", "msb", "any", "all", "rnd" -> DataType.BYTE
         "rndw" -> DataType.WORD
         "rol", "rol2", "ror", "ror2", "P_carry", "P_irqd" -> null // no return value so no datatype
@@ -199,6 +200,16 @@ fun builtinRad(args: List<IExpression>, position: Position, namespace:INameScope
 
 fun builtinDeg(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
         = oneDoubleArg(args, position, namespace, Math::toDegrees)
+
+fun builtinFlt(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue {
+    // 1 numeric arg, convert to float
+    if(args.size!=1)
+        throw SyntaxError("flt requires one numeric argument", position)
+
+    val constval = args[0].constValue(namespace) ?: throw NotConstArgumentException()
+    val number = constval.asNumericValue ?: throw SyntaxError("flt requires one numeric argument", position)
+    return LiteralValue(DataType.FLOAT, floatvalue = number.toDouble(), position = position)
+}
 
 fun builtinAbs(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue {
     // 1 arg, type = float or int, result type= same as argument type

@@ -178,8 +178,9 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                     .map {(it as InlineAssembly).assembly}
                     .count { it.contains(" rts") || it.contains("\trts") ||
                              it.contains(" jmp") || it.contains("\tjmp")}
-            if(amount==0 )
-                err("subroutine must have at least one 'return' or 'goto' in it (or 'rts' / 'jmp' in case of %asm)")
+            if(amount==0 && subroutine.returnvalues.isNotEmpty())
+                err("subroutine has result value(s) and thus must have at least one 'return' or 'goto' in it (or 'rts' / 'jmp' in case of %asm)")
+                // @todo validate return values versus subroutine signature
             }
         }
 
@@ -266,10 +267,22 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
             err("float var/const declaration, but floating point is not enabled via options")
         }
 
+        // for now, variables can only be declared in a block or subroutine (not in a loop statement block)  @todo fix this
+        if(decl.parent !is Block && decl.parent !is Subroutine) {
+            err ("variables must be declared at block or subroutine level")
+        }
+
         when(decl.type) {
             VarDeclType.VAR, VarDeclType.CONST -> {
                 if (decl.value == null) {
-                    err("var/const declaration needs a compile-time constant initializer value")
+                    if(decl.datatype == DataType.BYTE || decl.datatype==DataType.WORD || decl.datatype==DataType.FLOAT) {
+                        // initialize numeric var with value zero by default.
+                        val litVal = LiteralValue(DataType.BYTE, 0, position = decl.position)
+                        litVal.parent = decl
+                        decl.value = litVal
+                    } else {
+                        err("var/const declaration needs a compile-time constant initializer value for this type")
+                    }
                     return super.process(decl)
                 }
                 when {
@@ -523,10 +536,14 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         }
         when (targetDt) {
             DataType.FLOAT -> {
-                val number = value.floatvalue
-                        ?: return err("floating point value expected")
+                val number = when(value.type) {
+                    DataType.BYTE -> value.bytevalue!!.toDouble()
+                    DataType.WORD -> value.wordvalue!!.toDouble()
+                    DataType.FLOAT -> value.floatvalue!!
+                    else -> return err("numeric value expected")
+                }
                 if (number > 1.7014118345e+38 || number < -1.7014118345e+38)
-                    return err("floating point value '$number' out of range for MFLPT format")
+                    return err("value '$number' out of range for MFLPT format")
             }
             DataType.BYTE -> {
                 val number = value.asIntegerValue ?: return if (value.floatvalue!=null)
