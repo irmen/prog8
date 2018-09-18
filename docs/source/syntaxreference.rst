@@ -323,8 +323,9 @@ address-of: ``#``
 	Takes the address of the symbol following it:   ``word  address =  #somevar``
 
 
-arithmetic: ``+``  ``-``  ``*``  ``/``  ``**``  ``%``
+arithmetic: ``+``  ``-``  ``*``  ``/``  ``//`` ``**``  ``%``
 	``+``, ``-``, ``*``, ``/`` are the familiar arithmetic operations.
+    ``//`` is the floor-divide, the division resulting in a whole number rounded towards minus infinity.
 	``**`` is the power operator: ``3 ** 5`` is equal to 3*3*3*3*3 and is 243.
 	``%`` is the remainder operator: ``25 % 7`` is 4.
 

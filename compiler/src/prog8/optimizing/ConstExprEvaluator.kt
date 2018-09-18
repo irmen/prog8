@@ -1,6 +1,7 @@
 package prog8.optimizing
 
 import prog8.ast.*
+import kotlin.math.floor
 import kotlin.math.pow
 
 class ConstExprEvaluator {
@@ -11,6 +12,7 @@ class ConstExprEvaluator {
             "-" -> minus(left, right)
             "*" -> multiply(left, right)
             "/" -> divide(left, right)
+            "//" -> floordivide(left, right)
             "%" -> remainder(left, right)
             "**" -> power(left, right)
             "&" -> bitwiseand(left, right)
@@ -297,6 +299,35 @@ class ConstExprEvaluator {
                 right.floatvalue!=null -> {
                     if(right.floatvalue==0.0) throw ExpressionError("attempt to divide by zero", left.position)
                     LiteralValue(DataType.FLOAT, floatvalue = left.floatvalue / right.floatvalue, position = left.position)
+                }
+                else -> throw ExpressionError(error, left.position)
+            }
+            else -> throw ExpressionError(error, left.position)
+        }
+    }
+
+    private fun floordivide(left: LiteralValue, right: LiteralValue): LiteralValue {
+        val error = "cannot floordivide $left by $right"
+        return when {
+            left.asIntegerValue!=null -> when {
+                right.asIntegerValue!=null -> {
+                    if(right.asIntegerValue==0) throw ExpressionError("attempt to divide by zero", left.position)
+                    LiteralValue.optimalInteger(left.asIntegerValue / right.asIntegerValue, left.position)
+                }
+                right.floatvalue!=null -> {
+                    if(right.floatvalue==0.0) throw ExpressionError("attempt to divide by zero", left.position)
+                    LiteralValue.optimalInteger(left.asIntegerValue / right.floatvalue, left.position)
+                }
+                else -> throw ExpressionError(error, left.position)
+            }
+            left.floatvalue!=null -> when {
+                right.asIntegerValue!=null -> {
+                    if(right.asIntegerValue==0) throw ExpressionError("attempt to divide by zero", left.position)
+                    LiteralValue.optimalInteger(left.floatvalue / right.asIntegerValue, left.position)
+                }
+                right.floatvalue!=null -> {
+                    if(right.floatvalue==0.0) throw ExpressionError("attempt to divide by zero", left.position)
+                    LiteralValue.optimalInteger(left.floatvalue / right.floatvalue, left.position)
                 }
                 else -> throw ExpressionError(error, left.position)
             }

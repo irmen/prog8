@@ -333,6 +333,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
             "-" -> Opcode.SUB
             "*" -> Opcode.MUL
             "/" -> Opcode.DIV
+            "//" -> Opcode.FLOORDIV
             "%" -> Opcode.REMAINDER
             "**" -> Opcode.POW
             "&" -> Opcode.BITAND
@@ -475,6 +476,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
             "+=" -> Opcode.ADD
             "-=" -> Opcode.SUB
             "/=" -> Opcode.DIV
+            "//=" -> Opcode.FLOORDIV
             "*=" -> Opcode.MUL
             "**=" -> Opcode.POW
             "&=" -> Opcode.BITAND

@@ -94,7 +94,10 @@ class ConstantFolding(private val namespace: INameScope) : IAstProcessor {
      */
     override fun process(identifier: IdentifierReference): IExpression {
         return try {
-            identifier.constValue(namespace) ?: identifier
+            val cval = identifier.constValue(namespace) ?: return identifier
+            val copy = LiteralValue(cval.type, cval.bytevalue, cval.wordvalue, cval.floatvalue, cval.strvalue, cval.arrayvalue, identifier.position)
+            copy.parent = identifier.parent
+            return copy
         } catch (ax: AstException) {
             addError(ax)
             identifier

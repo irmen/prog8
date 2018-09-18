@@ -205,7 +205,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
 
     /**
      * Assignment target must be register, or a variable name
-     * for constant-value assignments, check the datatype as well
+     * Also check data type compatibility
      */
     override fun process(assignment: Assignment): IStatement {
         if(assignment.target.identifier!=null) {
@@ -225,6 +225,21 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                     return super.process(assignment)
                 }
             }
+        }
+
+        if(assignment.aug_op!=null) {
+            // check augmented assignment:
+            // A /= 3  -> check is if it was A = A / 3
+            val target: IExpression =
+                    if(assignment.target.register!=null)
+                        RegisterExpr(assignment.target.register!!, assignment.target.position)
+                    else
+                        assignment.target.identifier!!
+            val expression = BinaryExpression(target, assignment.aug_op.substringBeforeLast('='), assignment.value, assignment.position)
+            expression.linkParents(assignment.parent)
+            val assignment2 = Assignment(assignment.target, null, expression, assignment.position)
+            assignment2.linkParents(assignment.parent)
+            return process(assignment2)
         }
 
         val targetDatatype = assignment.target.determineDatatype(namespace, assignment)

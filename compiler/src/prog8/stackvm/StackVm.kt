@@ -33,6 +33,7 @@ enum class Opcode {
     SUB,
     MUL,
     DIV,
+    FLOORDIV,
     REMAINDER,
     POW,
     NEG,
@@ -310,7 +311,17 @@ class Value(val type: DataType, numericvalue: Number?, val stringvalue: String?=
         val v1 = numericValue()
         val v2 = other.numericValue()
         val result = v1.toDouble() / v2.toDouble()
-        return Value(type, result)
+        return Value(DataType.FLOAT, result)
+    }
+
+    fun floordiv(other: Value): Value {
+        val v1 = numericValue()
+        val v2 = other.numericValue()
+        val result = (v1.toDouble() / v2.toDouble()).toInt()
+        return if(this.type==DataType.BYTE)
+            Value(DataType.BYTE, (result and 255).toShort())
+        else
+            Value(DataType.WORD, result and 65535)
     }
 
     fun remainder(other: Value): Value? {
@@ -324,7 +335,7 @@ class Value(val type: DataType, numericvalue: Number?, val stringvalue: String?=
         val v1 = numericValue()
         val v2 = other.numericValue()
         val result = v1.toDouble().pow(v2.toDouble())
-        return Value(type, result)
+        return Value(type, result)      // @todo datatype?
     }
 
     fun shl(): Value {
@@ -962,6 +973,10 @@ class StackVm(val traceOutputFile: String?) {
             Opcode.DIV -> {
                 val (top, second) = evalstack.pop2()
                 evalstack.push(second.div(top))
+            }
+            Opcode.FLOORDIV -> {
+                val (top, second) = evalstack.pop2()
+                evalstack.push(second.floordiv(top))
             }
             Opcode.REMAINDER -> {
                 val (top, second) = evalstack.pop2()

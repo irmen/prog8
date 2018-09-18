@@ -701,13 +701,17 @@ class BinaryExpression(var left: IExpression, val operator: String, var right: I
     // binary expression should actually have been optimized away into a single value, before const value was requested...
     override fun constValue(namespace: INameScope): LiteralValue? = null
 
+    override val isIterable = false
+
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String) = left.referencesIdentifier(name) || right.referencesIdentifier(name)
     override fun resultingDatatype(namespace: INameScope): DataType? {
         val leftDt = left.resultingDatatype(namespace)
         val rightDt = right.resultingDatatype(namespace)
         return when(operator) {
-            "+", "-", "*", "/", "**" -> if(leftDt==null || rightDt==null) null else arithmeticOpDt(leftDt, rightDt)
+            "+", "-", "*", "**" -> if(leftDt==null || rightDt==null) null else arithmeticOpDt(leftDt, rightDt)
+            "/" -> if(leftDt==null || rightDt==null) null else DataType.FLOAT
+            "//" -> if(leftDt==null || rightDt==null) null else integerDivisionOpDt(leftDt, rightDt)
             "&" -> leftDt
             "|" -> leftDt
             "^" -> leftDt
@@ -718,7 +722,24 @@ class BinaryExpression(var left: IExpression, val operator: String, var right: I
             else -> throw FatalAstException("resulting datatype check for invalid operator $operator")
         }
     }
-    override val isIterable = false
+
+    private fun integerDivisionOpDt(leftDt: DataType, rightDt: DataType): DataType {
+        return when(leftDt) {
+            DataType.BYTE -> when(rightDt) {
+                DataType.BYTE, DataType.WORD, DataType.FLOAT -> DataType.BYTE
+                else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+            }
+            DataType.WORD -> when(rightDt) {
+                DataType.BYTE, DataType.WORD, DataType.FLOAT -> DataType.WORD
+                else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+            }
+            DataType.FLOAT -> when(rightDt) {
+                DataType.BYTE, DataType.WORD, DataType.FLOAT -> DataType.WORD
+                else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+            }
+            else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+        }
+    }
 
     private fun arithmeticOpDt(leftDt: DataType, rightDt: DataType): DataType {
         return when(leftDt) {
@@ -777,6 +798,14 @@ class LiteralValue(val type: DataType,
                 }
             } else {
                 LiteralValue(DataType.FLOAT, floatvalue = floatval, position = position)
+            }
+        }
+
+        fun optimalInteger(value: Number, position: Position): LiteralValue {
+            return when (value) {
+                // note: we cheat a little here and allow negative integers during expression evaluations
+                in -128..255 -> LiteralValue(DataType.BYTE, bytevalue = value.toShort(), position = position)
+                else -> LiteralValue(DataType.WORD, wordvalue = value.toInt(), position = position)
             }
         }
     }
