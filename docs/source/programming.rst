@@ -68,7 +68,8 @@ Label
     This is a named position in your code where you can jump to from another place.
     You can jump to it with a jump statement elsewhere. It is also possible to use a
     subroutine call to a label (but without parameters and return value).
-
+    Labels can only be defined in a block or in another subroutine, so you can't define a label
+    inside a loop statement block for instance.
 
 Scope
 	Also known as 'namespace', this is a named box around the symbols defined in it.
@@ -298,6 +299,11 @@ The *while*-loop is used to repeat a piece of code while a certain condition is 
 The *repeat--until* loop is used to repeat a piece of code until a certain condition is true.
 
 You can also create loops by using the ``goto`` statement, but this should usually be avoided.
+
+.. attention::
+    The value of the loop variable or register after executing the loop *is undefined*. Don't use it immediately
+    after the loop without first assigning a new value to it!
+    (this is an optimization issue to avoid having to deal with mostly useless post-loop logic to adjust the loop variable's value)
 
 
 Conditional Execution

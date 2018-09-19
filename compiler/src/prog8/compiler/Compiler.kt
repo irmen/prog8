@@ -1,5 +1,6 @@
 package prog8.compiler
 
+import jdk.nashorn.internal.ir.JumpStatement
 import prog8.ast.*
 import prog8.stackvm.*
 import java.io.PrintStream
@@ -388,14 +389,16 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
         var jumpAddress: Value? = null
         var jumpLabel: String? = null
 
-        if(stmt.address!=null) {
-            jumpAddress = Value(DataType.WORD, stmt.address)
-        } else {
-            val target = stmt.identifier!!.targetStatement(namespace)!!
-            jumpLabel = when(target) {
-                is Label -> target.scopedname
-                is Subroutine -> target.scopedname
-                else -> throw CompilerException("invalid jump target type ${target::class}")
+        when {
+            stmt.generatedLabel!=null -> jumpLabel = stmt.generatedLabel
+            stmt.address!=null -> jumpAddress = Value(DataType.WORD, stmt.address)
+            else -> {
+                val target = stmt.identifier!!.targetStatement(namespace)!!
+                jumpLabel = when(target) {
+                    is Label -> target.scopedname
+                    is Subroutine -> target.scopedname
+                    else -> throw CompilerException("invalid jump target type ${target::class}")
+                }
             }
         }
         stackvmProg.line(stmt.position)
@@ -521,27 +524,34 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
 
         if(loop.iterable is RangeExpr) {
             val range = (loop.iterable as RangeExpr).toConstantIntegerRange()
-            when {
-                range!=null -> {
-                    if (range.isEmpty())
-                        throw CompilerException("loop over empty range")
-                    when (loopVarDt) {
-                        DataType.BYTE -> {
-                            if (range.first < 0 || range.first > 255 || range.last < 0 || range.last > 255)
-                                throw CompilerException("range out of bounds for byte")
-                        }
-                        DataType.WORD -> {
-                            if (range.first < 0 || range.first > 65535 || range.last < 0 || range.last > 65535)
-                                throw CompilerException("range out of bounds for word")
-                        }
-                        else -> throw CompilerException("range must be byte or word")
+            if(range!=null) {
+                // loop over a range with constant start, last and step values
+                if (range.isEmpty())
+                    throw CompilerException("loop over empty range should have been optimized away")
+                else if (range.count()==1)
+                    throw CompilerException("loop over just 1 value should have been optimized away")
+                if((range.last-range.first) % range.step != 0)
+                    throw CompilerException("range first and last must be inclusive")
+                when (loopVarDt) {
+                    DataType.BYTE -> {
+                        if (range.first < 0 || range.first > 255 || range.last < 0 || range.last > 255)
+                            throw CompilerException("range out of bounds for byte")
                     }
-                    translateForOverConstantRange(loopVarName, loopVarDt, range, loop.body)
+                    DataType.WORD -> {
+                        if (range.first < 0 || range.first > 65535 || range.last < 0 || range.last > 65535)
+                            throw CompilerException("range out of bounds for word")
+                    }
+                    else -> throw CompilerException("range must be byte or word")
                 }
-                loop.loopRegister!=null ->
+                translateForOverConstantRange(loopVarName, loopVarDt, range, loop.body)
+            } else {
+                // loop over a range where one or more of the start, last or step values is not a constant
+                if(loop.loopRegister!=null) {
                     translateForOverVariableRange(null, loop.loopRegister, loopVarDt, loop.iterable as RangeExpr, loop.body)
-                else ->
+                }
+                else {
                     translateForOverVariableRange(loop.loopVar!!.nameInSource, null, loopVarDt, loop.iterable as RangeExpr, loop.body)
+                }
             }
         } else {
             val litVal = loop.iterable as? LiteralValue
@@ -562,7 +572,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
     private fun translateForOverConstantRange(varname: String, varDt: DataType, range: IntProgression, body: MutableList<IStatement>) {
         /**
          * for LV in start..last { body }
-         * (and we already know that the range is not empty)
+         * (and we already know that the range is not empty, and first and last are exactly inclusive.)
          * (also we know that the range's last value is really the exact last occurring value of the range)
          * (and finally, start and last are constant integer values)
          *   ->
@@ -573,16 +583,16 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
          *      ..continue statement: goto continue
          *      ..
          * continue:
-         *      LV++  (if step=1)  or LV+=step  (if step > 1)
-         *      LV--  (if step=-11)  or LV-=abs(step)  (if step < 1)
-         *      if LV!=last goto loop   ; if last > 0
-         *      if LV>=0 goto loop      ; if last==0
+         *      LV++  (if step=1)   /   LV += step  (if step > 1)
+         *      LV--  (if step=-1)  /   LV -= abs(step)  (if step < 1)
+         *      if LV!=(last+step) goto loop
          * break:
-         *
+         *      nop
          */
         val loopLabel = makeLabel("loop")
         val continueLabel = makeLabel("continue")
         val breakLabel = makeLabel("break")
+
         continueStmtLabelStack.push(continueLabel)
         breakStmtLabelStack.push(breakLabel)
 
@@ -608,17 +618,16 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
                 stackvmProg.instr(Opcode.POP_VAR, varValue)
             }
         }
-        if(range.last>0) {
-            stackvmProg.instr(Opcode.PUSH, Value(varDt, range.last))
-            stackvmProg.instr(Opcode.PUSH_VAR, varValue)
-            stackvmProg.instr(Opcode.SUB)
-            stackvmProg.instr(Opcode.BNE, callLabel = loopLabel)
-        } else {
-            stackvmProg.instr(Opcode.PUSH_VAR, varValue)
-            stackvmProg.instr(Opcode.BNE, callLabel = loopLabel)
-        }
+
+        // TODO: optimize edge cases if last value = 255 or 0 (for bytes) etc. to avoid  PUSH / SUB opcodes and make use of the wrapping around of the value.
+        stackvmProg.instr(Opcode.PUSH, Value(varDt, range.last+range.step))
+        stackvmProg.instr(Opcode.PUSH_VAR, varValue)
+        stackvmProg.instr(Opcode.SUB)
+        stackvmProg.instr(Opcode.BNE, callLabel = loopLabel)
+
         stackvmProg.label(breakLabel)
         stackvmProg.instr(Opcode.NOP)
+        // note: ending value of loop register / variable is *undefined* after this point!
 
         breakStmtLabelStack.pop()
         continueStmtLabelStack.pop()
@@ -627,22 +636,26 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
     private fun translateForOverVariableRange(varname: List<String>?, register: Register?, varDt: DataType, range: RangeExpr, body: MutableList<IStatement>) {
         /**
          * for LV in start..last { body }
-         * (and we already know that the range is not empty)
-         * (also we know that the range's last value is really the exact last occurring value of the range)
-         * (and finally, start and last are constant integer values)
+         * (where at least one of the start, last, step values is not a constant)
+         * (so we can't make any static assumptions about them)
          *   ->
          *      LV = start
          * loop:
+         *      if (step > 0) {
+         *          if(LV>last) goto break
+         *      } else {
+         *          if(LV<last) goto break
+         *      }
          *      ..body..
          *      ..break statement:  goto break
          *      ..continue statement: goto continue
          *      ..
          * continue:
-         *      LV++  (if step is not given, and is therefore 1)
-         *      LV += step (if step is given)
-         *      if LV<=last goto loop
+         *      LV ++  / LV--  (if step =1 or step=-1)
+         *      LV += step   (otherwise)
+         *      goto loop
          * break:
-         *
+         *      nop
          */
         fun makeAssignmentTarget(): AssignTarget {
             return if(varname!=null)
@@ -651,54 +664,72 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
                 AssignTarget(register, null, range.position)
         }
 
-        var assignmentTarget = makeAssignmentTarget()
-        val startAssignment = Assignment(assignmentTarget, null, range.from, range.position)
+        val startAssignment = Assignment(makeAssignmentTarget(), null, range.from, range.position)
         startAssignment.linkParents(range.parent)
-
-        var stepIncrement: PostIncrDecr? = null
-        var stepAddition: Assignment? = null
-        if(range.step==null) {
-            assignmentTarget = makeAssignmentTarget()
-            stepIncrement = PostIncrDecr(assignmentTarget, "++", range.position)
-            stepIncrement.linkParents(range.parent)
-        }
-        else {
-            assignmentTarget = makeAssignmentTarget()
-            stepAddition = Assignment(
-                    assignmentTarget,
-                    "+=",
-                    range.step ?: LiteralValue(DataType.BYTE, 1, position = range.position),
-                    range.position
-            )
-            stepAddition.linkParents(range.parent)
-        }
         translate(startAssignment)
 
         val loopLabel = makeLabel("loop")
         val continueLabel = makeLabel("continue")
         val breakLabel = makeLabel("break")
+        val literalStepValue = (range.step as? LiteralValue)?.asNumericValue?.toInt()
+
         continueStmtLabelStack.push(continueLabel)
         breakStmtLabelStack.push(breakLabel)
 
+        TODO("fix this code generated")
         stackvmProg.label(loopLabel)
+        if(literalStepValue!=null) {
+            val loopVar =
+                    if(varname!=null)
+                        IdentifierReference(varname, range.position)
+                    else
+                        RegisterExpr(register!!, range.position)
+
+            val condition =
+                    if(literalStepValue > 0) {
+                        // if LV > last  goto break
+                        BinaryExpression(loopVar,">", range.to, range.position)
+                    } else {
+                        // if LV < last  goto break
+                        BinaryExpression(loopVar,"<", range.to, range.position)
+                    }
+            val ifstmt = IfStatement(condition,
+                    listOf(Jump(null, null, breakLabel, range.position)),
+                    emptyList(),
+                    range.position)
+            ifstmt.linkParents(range.parent)
+            translate(ifstmt)
+        } else {
+            // generate code for the whole if statement
+            TODO("code for non-constant step comparison")
+        }
+
         translate(body)
         stackvmProg.label(continueLabel)
-        if(stepAddition!=null)
-            translate(stepAddition)
-        if(stepIncrement!=null)
-            translate(stepIncrement)
+        when (literalStepValue) {
+            1 -> {
+                // LV++
+                val postIncr = PostIncrDecr(makeAssignmentTarget(), "++", range.position)
+                postIncr.linkParents(range.parent)
+                translate(postIncr)
+            }
+            -1 -> {
+                // LV--
+                val postIncr = PostIncrDecr(makeAssignmentTarget(), "--", range.position)
+                postIncr.linkParents(range.parent)
+                translate(postIncr)
+            }
+            else -> {
+                // LV += step
+                val addAssignment = Assignment(makeAssignmentTarget(), "+=", range.step, range.position)
+                addAssignment.linkParents(range.parent)
+                translate(addAssignment)
+            }
+        }
 
-        val comparison = BinaryExpression(
-                if(varname!=null)
-                    IdentifierReference(varname, range.position)
-                else
-                    RegisterExpr(register!!, range.position)
-                ,"<=", range.to, range.position)
-        comparison.linkParents(range.parent)
-        translate(comparison)
-        stackvmProg.instr(Opcode.BNE, callLabel = loopLabel)
         stackvmProg.label(breakLabel)
         stackvmProg.instr(Opcode.NOP)
+        // note: ending value of loop register / variable is *undefined* after this point!
 
         breakStmtLabelStack.pop()
         continueStmtLabelStack.pop()

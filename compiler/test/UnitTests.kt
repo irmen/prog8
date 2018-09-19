@@ -1,9 +1,5 @@
 package prog8tests
 
-import prog8.ast.DataType
-import prog8.ast.Position
-import prog8.ast.VarDecl
-import prog8.ast.VarDeclType
 import prog8.compiler.*
 import prog8.compiler.target.c64.*
 import org.hamcrest.MatcherAssert.assertThat
@@ -11,6 +7,8 @@ import org.hamcrest.Matchers.closeTo
 import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import prog8.ast.*
+import prog8.stackvm.Value
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -289,5 +287,57 @@ class TestPetscii {
         assertThat(Petscii.decodeScreencode(listOf(0x17, 0x1c, 0x53, 0x5e)), equalTo("W£♥π"))
         assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodeScreencode(listOf(-1)) }
         assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodeScreencode(listOf(256)) }
+    }
+
+    @Test
+    fun testLiteralValueComparisons() {
+        val ten = LiteralValue(DataType.WORD, wordvalue=10, position=Position("", 0 ,0 ,0))
+        val nine = LiteralValue(DataType.BYTE, bytevalue=9, position=Position("", 0 ,0 ,0))
+        assertTrue(ten == ten)
+        assertFalse(ten == nine)
+        assertFalse(ten != ten)
+        assertTrue(ten != nine)
+
+        assertTrue(ten > nine)
+        assertTrue(ten >= nine)
+        assertTrue(ten >= ten)
+        assertFalse(ten > ten)
+
+        assertFalse(ten < nine)
+        assertFalse(ten <= nine)
+        assertTrue(ten <= ten)
+        assertFalse(ten < ten)
+
+        val abc = LiteralValue(DataType.STR, strvalue = "abc", position=Position("", 0 ,0 ,0))
+        val abd = LiteralValue(DataType.STR, strvalue = "abd", position=Position("", 0 ,0 ,0))
+        assertTrue(abc==abc)
+        assertTrue(abc!=abd)
+        assertFalse(abc!=abc)
+        assertTrue(abc < abd)
+        assertTrue(abc <= abd)
+        assertFalse(abd <= abc)
+        assertTrue(abd >= abc)
+        assertTrue(abd > abc)
+        assertFalse(abc > abd)
+    }
+
+    @Test
+    fun testStackvmValueComparisons() {
+        val ten = Value(DataType.FLOAT, 10)
+        val nine = Value(DataType.WORD, 9)
+        assertTrue(ten == ten)
+        assertFalse(ten == nine)
+        assertFalse(ten != ten)
+        assertTrue(ten != nine)
+
+        assertTrue(ten > nine)
+        assertTrue(ten >= nine)
+        assertTrue(ten >= ten)
+        assertFalse(ten > ten)
+
+        assertFalse(ten < nine)
+        assertFalse(ten <= nine)
+        assertTrue(ten <= ten)
+        assertFalse(ten < ten)
     }
 }

@@ -286,6 +286,16 @@ class Value(val type: DataType, numericvalue: Number?, val stringvalue: String?=
         }
     }
 
+    override fun equals(other: Any?): Boolean {
+        if(other==null || other !is Value)
+            return false
+        return compareTo(other)==0
+    }
+
+    operator fun compareTo(other: Value): Int {
+        return numericValue().toDouble().compareTo(other.numericValue().toDouble())
+    }
+
     fun add(other: Value): Value {
         val v1 = numericValue()
         val v2 = other.numericValue()
@@ -499,13 +509,6 @@ class Value(val type: DataType, numericvalue: Number?, val stringvalue: String?=
             else -> throw VmExecutionException("not can only work on byte/word")
         }
     }
-
-    fun compareLess(other: Value) = Value(DataType.BYTE, if(this.numericValue().toDouble() < other.numericValue().toDouble()) 1 else 0)
-    fun compareGreater(other: Value) = Value(DataType.BYTE, if(this.numericValue().toDouble() > other.numericValue().toDouble()) 1 else 0)
-    fun compareLessEq(other: Value) = Value(DataType.BYTE, if(this.numericValue().toDouble() <= other.numericValue().toDouble()) 1 else 0)
-    fun compareGreaterEq(other: Value) = Value(DataType.BYTE, if(this.numericValue().toDouble() >= other.numericValue().toDouble()) 1 else 0)
-    fun compareEqual(other: Value) = Value(DataType.BYTE, if(this.numericValue() == other.numericValue()) 1 else 0)
-    fun compareNotEqual(other: Value) = Value(DataType.BYTE, if(this.numericValue() != other.numericValue()) 1 else 0)
 }
 
 
@@ -1392,27 +1395,27 @@ class StackVm(val traceOutputFile: String?) {
             }
             Opcode.LESS -> {
                 val (top, second) = evalstack.pop2()
-                evalstack.push(second.compareLess(top))
+                evalstack.push(Value(DataType.BYTE, if(second < top) 1 else 0))
             }
             Opcode.GREATER -> {
                 val (top, second) = evalstack.pop2()
-                evalstack.push(second.compareGreater(top))
+                evalstack.push(Value(DataType.BYTE, if(second > top) 1 else 0))
             }
             Opcode.LESSEQ -> {
                 val (top, second) = evalstack.pop2()
-                evalstack.push(second.compareLessEq(top))
+                evalstack.push(Value(DataType.BYTE, if(second <= top) 1 else 0))
             }
             Opcode.GREATEREQ -> {
                 val (top, second) = evalstack.pop2()
-                evalstack.push(second.compareGreaterEq(top))
+                evalstack.push(Value(DataType.BYTE, if(second >= top) 1 else 0))
             }
             Opcode.EQUAL -> {
                 val (top, second) = evalstack.pop2()
-                evalstack.push(second.compareEqual(top))
+                evalstack.push(Value(DataType.BYTE, if(second == top) 1 else 0))
             }
             Opcode.NOTEQUAL -> {
                 val (top, second) = evalstack.pop2()
-                evalstack.push(second.compareNotEqual(top))
+                evalstack.push(Value(DataType.BYTE, if(second != top) 1 else 0))
             }
             Opcode.B2WORD -> {
                 val byte = evalstack.pop()

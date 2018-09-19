@@ -1,56 +1,34 @@
-%output prg
-%launcher basic
-%option enable_floats
 
 ~ main {
 
 sub start() -> () {
 
-    if(X) goto yesx
-    else goto nox
+    byte i
 
+    byte from = 250
+    byte last = 255
 
-yesx:
-
-    if(X) {
-        A=0
-        goto yesx       ;; @todo fix undefined symbol error
-        return
-    } else {
-        A=1
-        goto nox
+    for i in from to last  {
+        _vm_write_num(i)
+        _vm_write_char($8d)
     }
 
-    return
+;    _vm_write_char($8d)
+;    _vm_write_num(i)
+;    _vm_write_char($8d)
+;    _vm_write_char($8d)
+;
+;    from = 8
+;    last = 0
+;
+;    for i in from to last step -1 {
+;        _vm_write_num(i)
+;        _vm_write_char($8d)
+;    }
+;
+;    _vm_write_char($8d)
+;    _vm_write_num(i)
+;    _vm_write_char($8d)
 
-        sub bla() -> () {
-            return
-            sub fooz() -> () {
-                return
-            }
-
-            sub fooz2() -> () {
-                return
-            }
-            return
-
-        }
-
-        A=45
-
-nox:
-    word i
-
-    for i in 10 to 20 {
-        if(i>12) goto fout   ;; @todo fix undefined symbol error
-        break
-        continue
-
-
-        bla()   ;; @todo fix undefined symbol error
-    }
-
-fout:
-    return
 }
 }

@@ -428,7 +428,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         super.process(range)
         val from = range.from.constValue(namespace)
         val to = range.to.constValue(namespace)
-        var step = 0
+        var step = 1
         if(range.step!=null) {
             val stepLv = range.step?.constValue(namespace) ?: LiteralValue(DataType.BYTE, 1, position = range.position)
             if (stepLv.asIntegerValue == null || stepLv.asIntegerValue == 0) {
@@ -441,10 +441,10 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
             when {
                 from.asIntegerValue!=null && to.asIntegerValue!=null -> {
                     if(from.asIntegerValue == to.asIntegerValue)
-                        printWarning("range contains just a single value", range.position)
-                    else if(from.asIntegerValue < to.asIntegerValue && step<0)
+                        err("range is just a single value - don't use a loop here, use an assignment")  // TODO optimize this away automatically in the statement optimizer
+                    else if(from.asIntegerValue < to.asIntegerValue && step<=0)
                         err("ascending range requires step > 0")
-                    else if(from.asIntegerValue > to.asIntegerValue && step>0)
+                    else if(from.asIntegerValue > to.asIntegerValue && step>=0)
                         err("descending range requires step < 0")
                 }
                 from.strvalue!=null && to.strvalue!=null -> {
@@ -452,9 +452,9 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                         err("range from and to must be a single character")
                     if(from.strvalue[0] == to.strvalue[0])
                         printWarning("range contains just a single character", range.position)
-                    else if(from.strvalue[0] < to.strvalue[0] && step<0)
+                    else if(from.strvalue[0] < to.strvalue[0] && step<=0)
                         err("ascending range requires step > 0")
-                    else if(from.strvalue[0] > to.strvalue[0] && step<0)
+                    else if(from.strvalue[0] > to.strvalue[0] && step>=0)
                         err("descending range requires step < 0")
                 }
                 else -> err("range expression must be over integers or over characters")

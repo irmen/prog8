@@ -1,7 +1,6 @@
 package prog8.optimizing
 
 import prog8.ast.*
-import kotlin.math.floor
 import kotlin.math.pow
 
 class ConstExprEvaluator {
@@ -21,83 +20,14 @@ class ConstExprEvaluator {
             "and" -> logicaland(left, right)
             "or" -> logicalor(left, right)
             "xor" -> logicalxor(left, right)
-            "<" -> compareless(left, right)
-            ">" -> comparegreater(left, right)
-            "<=" -> comparelessequal(left, right)
-            ">=" -> comparegreaterequal(left, right)
-            "==" -> compareequal(left, right)
-            "!=" -> comparenotequal(left, right)
+            "<" -> LiteralValue.fromBoolean(left < right, left.position)
+            ">" -> LiteralValue.fromBoolean(left > right, left.position)
+            "<=" -> LiteralValue.fromBoolean(left <= right, left.position)
+            ">=" -> LiteralValue.fromBoolean(left >= right, left.position)
+            "==" -> LiteralValue.fromBoolean(left == right, left.position)
+            "!=" -> LiteralValue.fromBoolean(left != right, left.position)
             else -> throw FatalAstException("const evaluation for invalid operator $operator")
         }
-    }
-
-    private fun comparenotequal(left: LiteralValue, right: LiteralValue): LiteralValue {
-        val leq = compareequal(left, right)
-        return LiteralValue.fromBoolean(leq.bytevalue == 1.toShort(), left.position)
-    }
-
-    private fun compareequal(left: LiteralValue, right: LiteralValue): LiteralValue {
-        val leftvalue: Any = when {
-            left.bytevalue!=null -> left.bytevalue
-            left.wordvalue!=null -> left.wordvalue
-            left.floatvalue!=null -> left.floatvalue
-            left.strvalue!=null -> left.strvalue
-            left.arrayvalue!=null -> left.arrayvalue
-            else -> throw FatalAstException("missing literal value")
-        }
-        val rightvalue: Any = when {
-            right.bytevalue!=null -> right.bytevalue
-            right.wordvalue!=null -> right.wordvalue
-            right.floatvalue!=null -> right.floatvalue
-            right.strvalue!=null -> right.strvalue
-            right.arrayvalue!=null -> right.arrayvalue
-            else -> throw FatalAstException("missing literal value")
-        }
-        return LiteralValue.fromBoolean(leftvalue == rightvalue, left.position)
-    }
-
-    private fun comparegreaterequal(left: LiteralValue, right: LiteralValue): LiteralValue {
-        val error = "cannot compute $left >= $right"
-        return when {
-            left.asIntegerValue!=null -> when {
-                right.asIntegerValue!=null -> LiteralValue.fromBoolean(left.asIntegerValue >= right.asIntegerValue, left.position)
-                right.floatvalue!=null -> LiteralValue.fromBoolean(left.asIntegerValue >= right.floatvalue, left.position)
-                else -> throw ExpressionError(error, left.position)
-            }
-            left.floatvalue!=null -> when {
-                right.asIntegerValue!=null -> LiteralValue.fromBoolean(left.floatvalue >= right.asIntegerValue, left.position)
-                right.floatvalue!=null -> LiteralValue.fromBoolean(left.floatvalue >= right.floatvalue, left.position)
-                else -> throw ExpressionError(error, left.position)
-            }
-            else -> throw ExpressionError(error, left.position)
-        }
-    }
-
-    private fun comparelessequal(left: LiteralValue, right: LiteralValue): LiteralValue {
-        val error = "cannot compute $left >= $right"
-        return when {
-            left.asIntegerValue!=null -> when {
-                right.asIntegerValue!=null -> LiteralValue.fromBoolean(left.asIntegerValue <= right.asIntegerValue, left.position)
-                right.floatvalue!=null -> LiteralValue.fromBoolean(left.asIntegerValue <= right.floatvalue, left.position)
-                else -> throw ExpressionError(error, left.position)
-            }
-            left.floatvalue!=null -> when {
-                right.asIntegerValue!=null -> LiteralValue.fromBoolean(left.floatvalue <= right.asIntegerValue, left.position)
-                right.floatvalue!=null -> LiteralValue.fromBoolean(left.floatvalue <= right.floatvalue, left.position)
-                else -> throw ExpressionError(error, left.position)
-            }
-            else -> throw ExpressionError(error, left.position)
-        }
-    }
-
-    private fun comparegreater(left: LiteralValue, right: LiteralValue): LiteralValue {
-        val leq = comparelessequal(left, right)
-        return LiteralValue.fromBoolean(leq.bytevalue == 1.toShort(), left.position)
-    }
-
-    private fun compareless(left: LiteralValue, right: LiteralValue): LiteralValue {
-        val leq = comparegreaterequal(left, right)
-        return LiteralValue.fromBoolean(leq.bytevalue == 1.toShort(), left.position)
     }
 
     private fun logicalxor(left: LiteralValue, right: LiteralValue): LiteralValue {

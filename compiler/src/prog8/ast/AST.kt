@@ -655,7 +655,7 @@ data class AssignTarget(val register: Register?, val identifier: IdentifierRefer
                 Register.AX, Register.AY, Register.XY -> DataType.WORD
             }
 
-        val symbol = namespace.lookup(identifier!!.nameInSource, stmt) ?: throw FatalAstException("symbol lookup failed: ${identifier!!.nameInSource}")
+        val symbol = namespace.lookup(identifier!!.nameInSource, stmt) ?: throw FatalAstException("symbol lookup failed: ${identifier.nameInSource}")
         if(symbol is VarDecl) return symbol.datatype
         throw FatalAstException("cannot determine datatype of assignment target $this")
     }
@@ -781,6 +781,8 @@ class LiteralValue(val type: DataType,
     override fun referencesIdentifier(name: String) = arrayvalue?.any { it.referencesIdentifier(name) } ?: false
 
     val isString = type==DataType.STR || type==DataType.STR_P || type==DataType.STR_S || type==DataType.STR_PS
+    val isNumeric = type==DataType.BYTE || type==DataType.WORD || type==DataType.FLOAT
+    val isArray = type==DataType.ARRAY || type==DataType.ARRAY_W || type==DataType.MATRIX
 
     companion object {
         fun fromBoolean(bool: Boolean, position: Position) =
@@ -863,12 +865,39 @@ class LiteralValue(val type: DataType,
         DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> true
         DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX -> true
     }
+
+    override fun hashCode(): Int {
+        val bh = bytevalue?.hashCode() ?: 0x10001234
+        val wh = wordvalue?.hashCode() ?: 0x01002345
+        val fh = floatvalue?.hashCode() ?: 0x00103456
+        val sh = strvalue?.hashCode() ?: 0x00014567
+        val ah = arrayvalue?.hashCode() ?: 0x11119876
+        return bh xor wh xor fh xor sh xor ah xor type.hashCode()
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if(other==null || other !is LiteralValue)
+            return false
+        return compareTo(other)==0
+    }
+
+    operator fun compareTo(other: LiteralValue): Int {
+        val numLeft = asNumericValue?.toDouble()
+        val numRight = other.asNumericValue?.toDouble()
+        if(numLeft!=null && numRight!=null)
+            return numLeft.compareTo(numRight)
+
+        if(strvalue!=null && other.strvalue!=null)
+            return strvalue.compareTo(other.strvalue)
+
+        throw ExpressionError("cannot compare type $type with ${other.type}", other.position)
+    }
 }
 
 
 class RangeExpr(var from: IExpression,
                 var to: IExpression,
-                var step: IExpression?,
+                var step: IExpression,
                 override val position: Position) : IExpression {
     override lateinit var parent: Node
 
@@ -876,7 +905,7 @@ class RangeExpr(var from: IExpression,
         this.parent = parent
         from.linkParents(this)
         to.linkParents(this)
-        step?.linkParents(this)
+        step.linkParents(this)
     }
 
     override fun constValue(namespace: INameScope): LiteralValue? = null
@@ -926,8 +955,7 @@ class RangeExpr(var from: IExpression,
             fromVal = (from as LiteralValue).asIntegerValue!!
             toVal = (to as LiteralValue).asIntegerValue!!
         }
-        val stepLv = step as? LiteralValue ?: return null
-        val stepVal = stepLv.asIntegerValue ?: 1
+        val stepVal = (step as? LiteralValue)?.asIntegerValue ?: 1
         return when {
             fromVal <= toVal -> when {
                 stepVal <= 0 -> IntRange.EMPTY
@@ -1030,7 +1058,10 @@ class PostIncrDecr(var target: AssignTarget, val operator: String, override val 
 }
 
 
-class Jump(val address: Int?, val identifier: IdentifierReference?, override val position: Position) : IStatement {
+class Jump(val address: Int?,
+           val identifier: IdentifierReference?,
+           val generatedLabel: String?,
+           override val position: Position) : IStatement {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -1041,7 +1072,7 @@ class Jump(val address: Int?, val identifier: IdentifierReference?, override val
     override fun process(processor: IAstProcessor) = processor.process(this)
 
     override fun toString(): String {
-        return "Jump(addr: $address, identifier: $identifier, target:  pos=$position)"
+        return "Jump(addr: $address, identifier: $identifier, label: $generatedLabel;  pos=$position)"
     }
 }
 
@@ -1445,7 +1476,7 @@ private fun prog8Parser.UnconditionaljumpContext.toAst(): IStatement {
             if(identifier()!=null) identifier()?.toAst()
             else scoped_identifier()?.toAst()
 
-    return Jump(address, identifier, toPosition())
+    return Jump(address, identifier, null, toPosition())
 }
 
 
@@ -1585,7 +1616,8 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
     if(funcall!=null) return funcall
 
     if (rangefrom!=null && rangeto!=null) {
-        return RangeExpr(rangefrom.toAst(), rangeto.toAst(), rangestep?.toAst(), toPosition())
+        val step = rangestep?.toAst() ?: LiteralValue(DataType.BYTE, 1, position = toPosition())
+        return RangeExpr(rangefrom.toAst(), rangeto.toAst(), step, toPosition())
     }
 
     if(childCount==3 && children[0].text=="(" && children[2].text==")")
