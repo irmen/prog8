@@ -367,9 +367,6 @@ public class prog8Parser extends Parser {
 		public InlineasmContext inlineasm() {
 			return getRuleContext(InlineasmContext.class,0);
 		}
-		public LabeldefContext labeldef() {
-			return getRuleContext(LabeldefContext.class,0);
-		}
 		public ReturnstmtContext returnstmt() {
 			return getRuleContext(ReturnstmtContext.class,0);
 		}
@@ -381,6 +378,9 @@ public class prog8Parser extends Parser {
 		}
 		public ContinuestmtContext continuestmt() {
 			return getRuleContext(ContinuestmtContext.class,0);
+		}
+		public LabeldefContext labeldef() {
+			return getRuleContext(LabeldefContext.class,0);
 		}
 		public StatementContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
@@ -497,35 +497,35 @@ public class prog8Parser extends Parser {
 				enterOuterAlt(_localctx, 15);
 				{
 				setState(133);
-				labeldef();
+				returnstmt();
 				}
 				break;
 			case 16:
 				enterOuterAlt(_localctx, 16);
 				{
 				setState(134);
-				returnstmt();
+				forloop();
 				}
 				break;
 			case 17:
 				enterOuterAlt(_localctx, 17);
 				{
 				setState(135);
-				forloop();
+				breakstmt();
 				}
 				break;
 			case 18:
 				enterOuterAlt(_localctx, 18);
 				{
 				setState(136);
-				breakstmt();
+				continuestmt();
 				}
 				break;
 			case 19:
 				enterOuterAlt(_localctx, 19);
 				{
 				setState(137);
-				continuestmt();
+				labeldef();
 				}
 				break;
 			}
@@ -3496,9 +3496,9 @@ public class prog8Parser extends Parser {
 		"\2\2y\u008d\5\16\b\2z\u008d\5\24\13\2{\u008d\5\22\n\2|\u008d\5\26\f\2"+
 		"}\u008d\5\30\r\2~\u008d\5\36\20\2\177\u008d\5 \21\2\u0080\u008d\5\f\7"+
 		"\2\u0081\u008d\5$\23\2\u0082\u008d\5*\26\2\u0083\u008d\5Z.\2\u0084\u008d"+
-		"\5^\60\2\u0085\u008d\5L\'\2\u0086\u008d\5J&\2\u0087\u008d\5\n\6\2\u0088"+
-		"\u008d\5.\30\2\u0089\u008d\5b\62\2\u008a\u008d\5\60\31\2\u008b\u008d\5"+
-		"\62\32\2\u008cy\3\2\2\2\u008cz\3\2\2\2\u008c{\3\2\2\2\u008c|\3\2\2\2\u008c"+
+		"\5^\60\2\u0085\u008d\5L\'\2\u0086\u008d\5J&\2\u0087\u008d\5.\30\2\u0088"+
+		"\u008d\5b\62\2\u0089\u008d\5\60\31\2\u008a\u008d\5\62\32\2\u008b\u008d"+
+		"\5\n\6\2\u008cy\3\2\2\2\u008cz\3\2\2\2\u008c{\3\2\2\2\u008c|\3\2\2\2\u008c"+
 		"}\3\2\2\2\u008c~\3\2\2\2\u008c\177\3\2\2\2\u008c\u0080\3\2\2\2\u008c\u0081"+
 		"\3\2\2\2\u008c\u0082\3\2\2\2\u008c\u0083\3\2\2\2\u008c\u0084\3\2\2\2\u008c"+
 		"\u0085\3\2\2\2\u008c\u0086\3\2\2\2\u008c\u0087\3\2\2\2\u008c\u0088\3\2"+

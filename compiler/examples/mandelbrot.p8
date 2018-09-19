@@ -17,12 +17,13 @@
         word plotx
         byte ploty
 
+        _vm_write_str("Calculating Mandelbrot fractal, have patience...\n")
         _vm_gfx_clearscr(11)
 
         for pixely in 0 to height {         ; @todo 255 as upper limit doesn't work it overflows the loop
             for pixelx in 0 to width {
-                xx=flt(pixelx)/width/3+0.2       ; @todo fix division to return float always, add // integer division
-                yy=flt(pixely)/height/3.6+0.4
+                xx=pixelx/width/3+0.2
+                yy=pixely/height/3.6+0.4
 
                 x=0.0
                 y=0.0

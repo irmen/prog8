@@ -116,6 +116,7 @@ class Compiler(private val options: CompilationOptions) {
 
     class VarGatherer(private val stackvmProg: StackVmProgram): IAstProcessor {
         // collect all the VarDecls to make them into one global list
+        // @todo maybe keep the block structure intact and allocate them per block? this is needed eventually for the actual 6502 code generation so...
         override fun process(decl: VarDecl): IStatement {
             if(decl.type == VarDeclType.MEMORY)
                 TODO("stackVm doesn't support memory vars for now")

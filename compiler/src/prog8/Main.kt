@@ -15,7 +15,10 @@ import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
     println("\nProg8 compiler by Irmen de Jong (irmen@razorvine.net)")
-    println("This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html\n")
+    // @todo software license string
+    // println("This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html\n")
+    println("**** This is a prerelease version. Please do not distribute! ****\n")
+
     if(args.size != 1) {
         System.err.println("requires one argument: name of module file")
         exitProcess(1)

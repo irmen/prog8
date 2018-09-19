@@ -139,9 +139,18 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
             checkResult.add(SyntaxError("block memory address must be valid integer 0..\$ffff", block.position))
         }
 
-        checkSubroutinesPrecededByReturnOrJump(block.statements)
+        checkSubroutinesPrecededByReturnOrJumpAndFollowedByLabelOrSub(block.statements)
         return super.process(block)
     }
+
+    override fun process(label: Label): IStatement {
+        // scope check
+        if(label.parent !is Block && label.parent !is Subroutine) {
+            checkResult.add(SyntaxError("Labels can only be defined in the scope of a block or within another subroutine", label.position))
+        }
+        return super.process(label)
+    }
+
 
     /**
      * Check subroutine definition
@@ -166,7 +175,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
             err("return registers should be unique")
 
         super.process(subroutine)
-        checkSubroutinesPrecededByReturnOrJump(subroutine.statements)
+        checkSubroutinesPrecededByReturnOrJumpAndFollowedByLabelOrSub(subroutine.statements)
 
         // subroutine must contain at least one 'return' or 'goto'
         // (or if it has an asm block, that must contain a 'rts' or 'jmp')
@@ -184,12 +193,24 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
             }
         }
 
+        // scope check
+        if(subroutine.parent !is Block && subroutine.parent !is Subroutine) {
+            err("subroutines can only be defined in the scope of a block or within another subroutine")
+        }
+
         return subroutine
     }
 
-    private fun checkSubroutinesPrecededByReturnOrJump(statements: MutableList<IStatement>) {
+    private fun checkSubroutinesPrecededByReturnOrJumpAndFollowedByLabelOrSub(statements: MutableList<IStatement>) {
+        // @todo hmm, or move all the subroutines at the end of the block? (no fall-through execution)
         var preceding: IStatement = BuiltinFunctionStatementPlaceholder
+        var checkNext = false
         for (stmt in statements) {
+            if(checkNext) {
+                if(stmt !is Label && stmt !is Subroutine)
+                    checkResult.add(SyntaxError("preceding subroutine definition at line ${preceding.position.line} should be followed here by a label, another subroutine statement, or nothing", stmt.position))
+                return
+            }
             if(stmt is Subroutine) {
                 if(preceding !is Return
                         && preceding !is Jump
@@ -198,6 +219,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                         && preceding !is BuiltinFunctionStatementPlaceholder) {
                     checkResult.add(SyntaxError("subroutine definition should be preceded by a return, jump, vardecl, or another subroutine statement", stmt.position))
                 }
+                checkNext=true
             }
             preceding = stmt
         }

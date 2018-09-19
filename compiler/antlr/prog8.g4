@@ -63,11 +63,11 @@ statement :
 	| branch_stmt
 	| subroutine
 	| inlineasm
-	| labeldef
 	| returnstmt
 	| forloop
 	| breakstmt
 	| continuestmt
+	| labeldef
 	// @todo whileloop, repeatloop
 	;
 

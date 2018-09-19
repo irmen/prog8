@@ -6,33 +6,51 @@
 
 sub start() -> () {
 
-        const word width = 159
-        const word height = 127
-        word pixelx
-        byte pixely
-        float xx
-        float yy
-        float x = 4999.999
-        float y
-        float x2
-        byte iter
-        word plotx = 40000
-        byte ploty
+    if(X) goto yesx
+    else goto nox
 
-    ;yy = pixelx/width/3+0.2       ; @todo fix division to return float always, add // integer division
-    ;xx = flt(pixelx)/width/3+0.2       ; @todo fix division to return float always, add // integer division
 
-    _vm_write_num(plotx)
-    _vm_write_char($8d)
-    plotx //= 3      ; @todo fix division to return float always, add // integer division
-    _vm_write_num(plotx)
-    _vm_write_char($8d)
+yesx:
 
-    x2 = x/33.33       ; @todo fix division to return float always, add // integer division
-    _vm_write_num(x2)
-    _vm_write_char($8d)
-    x2 = x//33.33       ; @todo fix division to return float always, add // integer division
-    _vm_write_num(x2)
-    _vm_write_char($8d)
+    if(X) {
+        A=0
+        goto yesx       ;; @todo fix undefined symbol error
+        return
+    } else {
+        A=1
+        goto nox
+    }
+
+    return
+
+        sub bla() -> () {
+            return
+            sub fooz() -> () {
+                return
+            }
+
+            sub fooz2() -> () {
+                return
+            }
+            return
+
+        }
+
+        A=45
+
+nox:
+    word i
+
+    for i in 10 to 20 {
+        if(i>12) goto fout   ;; @todo fix undefined symbol error
+        break
+        continue
+
+
+        bla()   ;; @todo fix undefined symbol error
+    }
+
+fout:
+    return
 }
 }
