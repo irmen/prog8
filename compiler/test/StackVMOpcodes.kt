@@ -1040,12 +1040,12 @@ class TestStackVmOpcodes {
     }
 
     @Test
-    fun testBEQ() {
+    fun testBZ() {
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH, Value(DataType.WORD, 1)),
-                Instruction(Opcode.BEQ, callLabel = "label"),
+                Instruction(Opcode.BZ, callLabel = "label"),
                 Instruction(Opcode.PUSH, Value(DataType.WORD, 0)),
-                Instruction(Opcode.BEQ, callLabel = "label"),
+                Instruction(Opcode.BZ, callLabel = "label"),
                 Instruction(Opcode.LINE, Value(DataType.STR, null, stringvalue = "string1")),
                 Instruction(Opcode.TERMINATE),
                 Instruction(Opcode.LINE, Value(DataType.STR, null, stringvalue = "string2")))
@@ -1060,12 +1060,12 @@ class TestStackVmOpcodes {
     }
 
     @Test
-    fun testBNE() {
+    fun testBNZ() {
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH, Value(DataType.WORD, 0)),
-                Instruction(Opcode.BNE, callLabel = "label"),
+                Instruction(Opcode.BNZ, callLabel = "label"),
                 Instruction(Opcode.PUSH, Value(DataType.WORD, 1)),
-                Instruction(Opcode.BNE, callLabel = "label"),
+                Instruction(Opcode.BNZ, callLabel = "label"),
                 Instruction(Opcode.LINE, Value(DataType.STR, null, stringvalue = "string1")),
                 Instruction(Opcode.TERMINATE),
                 Instruction(Opcode.LINE, Value(DataType.STR, null, stringvalue = "string2")))
@@ -1080,14 +1080,14 @@ class TestStackVmOpcodes {
     }
 
     @Test
-    fun testBMI() {
+    fun testBNEG() {
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH, Value(DataType.WORD, 0)),
-                Instruction(Opcode.BMI, callLabel = "label"),
+                Instruction(Opcode.BNEG, callLabel = "label"),
                 Instruction(Opcode.PUSH, Value(DataType.WORD, 1)),
-                Instruction(Opcode.BMI, callLabel = "label"),
+                Instruction(Opcode.BNEG, callLabel = "label"),
                 Instruction(Opcode.PUSH, Value(DataType.FLOAT, -99)),
-                Instruction(Opcode.BMI, callLabel = "label"),
+                Instruction(Opcode.BNEG, callLabel = "label"),
                 Instruction(Opcode.LINE, Value(DataType.STR, null, stringvalue = "string1")),
                 Instruction(Opcode.TERMINATE),
                 Instruction(Opcode.LINE, Value(DataType.STR, null, stringvalue = "string2")))
@@ -1104,12 +1104,12 @@ class TestStackVmOpcodes {
     }
 
     @Test
-    fun testBPL() {
+    fun testBPOS() {
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH, Value(DataType.FLOAT, -99)),
-                Instruction(Opcode.BPL, callLabel = "label"),
+                Instruction(Opcode.BPOS, callLabel = "label"),
                 Instruction(Opcode.PUSH, Value(DataType.WORD, 0)),
-                Instruction(Opcode.BPL, callLabel = "label"),
+                Instruction(Opcode.BPOS, callLabel = "label"),
                 Instruction(Opcode.LINE, Value(DataType.STR, null, stringvalue = "string1")),
                 Instruction(Opcode.TERMINATE),
                 Instruction(Opcode.LINE, Value(DataType.STR, null, stringvalue = "string2")))

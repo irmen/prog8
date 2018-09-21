@@ -324,10 +324,10 @@ address-of: ``#``
 
 
 arithmetic: ``+``  ``-``  ``*``  ``/``  ``//`` ``**``  ``%``
-	``+``, ``-``, ``*``, ``/`` are the familiar arithmetic operations.
+    ``+``, ``-``, ``*``, ``/`` are the familiar arithmetic operations.
     ``//`` is the floor-divide, the division resulting in a whole number rounded towards minus infinity.
-	``**`` is the power operator: ``3 ** 5`` is equal to 3*3*3*3*3 and is 243.
-	``%`` is the remainder operator: ``25 % 7`` is 4.
+    ``**`` is the power operator: ``3 ** 5`` is equal to 3*3*3*3*3 and is 243.
+    ``%`` is the remainder operator: ``25 % 7`` is 4.
 
 
 bitwise arithmetic: ``&``  ``|``  ``^``  ``~``
@@ -496,7 +496,7 @@ repeat--until loop
 Conditional Execution and Jumps
 -------------------------------
 
-unconditional jump
+Unconditional jump
 ^^^^^^^^^^^^^^^^^^
 
 To jump to another part of the program, you use a ``goto`` statement with an addres or the name
@@ -544,3 +544,4 @@ where <statements> can be just a single statement for instance just a ``goto``, 
 
 The XX corresponds to one of the eigth branching instructions so the possibilities are:
 ``if_cs``, ``if_cc``, ``if_eq``, ``if_ne``, ``if_pl``, ``if_mi``, ``if_vs`` and ``if_vc``.
+It can also be one of the four aliases that are easier to read: ``if_z``, ``if_nz``, ``if_pos`` and ``if_neg``.

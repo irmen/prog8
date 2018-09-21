@@ -98,10 +98,10 @@ enum class Opcode {
     JUMP,
     BCS,
     BCC,
-    BEQ,        // branch if value on top of stack is zero
-    BNE,        // branch if value on top of stack is not zero
-    BMI,        // branch if value on top of stack < 0
-    BPL,        // branch if value on top of stack >= 0
+    BZ,          // branch if value on top of stack is zero
+    BNZ,         // branch if value on top of stack is not zero
+    BNEG,        // branch if value on top of stack < 0
+    BPOS,        // branch if value on top of stack >= 0
     // BVS,      // status flag V (overflow) not implemented
     // BVC,      // status flag V (overflow) not implemented
 
@@ -621,8 +621,8 @@ class Program (val name: String,
                     val args = if(parts.size==2) parts[1] else null
                     val instruction = when(opcode) {
                         Opcode.LINE -> Instruction(opcode, Value(DataType.STR, null, stringvalue = args))
-                        Opcode.JUMP, Opcode.CALL, Opcode.BMI, Opcode.BPL,
-                        Opcode.BEQ, Opcode.BNE, Opcode.BCS, Opcode.BCC -> {
+                        Opcode.JUMP, Opcode.CALL, Opcode.BNEG, Opcode.BPOS,
+                        Opcode.BZ, Opcode.BNZ, Opcode.BCS, Opcode.BCC -> {
                             if(args!!.startsWith('$')) {
                                 Instruction(opcode, Value(DataType.WORD, args.substring(1).toInt(16)))
                             } else {
@@ -777,7 +777,7 @@ class Program (val name: String,
                         instr.next = target
                     }
                 }
-                Opcode.BCC, Opcode.BCS, Opcode.BEQ, Opcode.BNE, Opcode.BMI, Opcode.BPL -> {
+                Opcode.BCC, Opcode.BCS, Opcode.BZ, Opcode.BNZ, Opcode.BNEG, Opcode.BPOS -> {
                     if(instr.callLabel==null) {
                         throw VmExecutionException("stackVm doesn't support branch to memory address")
                     } else {
@@ -1324,13 +1324,13 @@ class StackVm(val traceOutputFile: String?) {
                 return if(P_carry) ins.next else ins.nextAlt!!
             Opcode.BCC ->
                 return if(P_carry) ins.nextAlt!! else ins.next
-            Opcode.BEQ ->
+            Opcode.BZ ->
                 return if(evalstack.pop().numericValue().toDouble()==0.0) ins.next else ins.nextAlt!!
-            Opcode.BNE ->
+            Opcode.BNZ ->
                 return if(evalstack.pop().numericValue().toDouble()!=0.0) ins.next else ins.nextAlt!!
-            Opcode.BMI ->
+            Opcode.BNEG ->
                 return if(evalstack.pop().numericValue().toDouble()<0.0) ins.next else ins.nextAlt!!
-            Opcode.BPL -> {
+            Opcode.BPOS -> {
                 return if (evalstack.pop().numericValue().toDouble() >= 0.0) ins.next else ins.nextAlt!!
             }
             Opcode.CALL ->

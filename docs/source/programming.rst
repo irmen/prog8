@@ -332,8 +332,21 @@ if you run into this type of assembler error.
 
 There is a special form of the if-statement that immediately translates into one of the 6502's branching instructions.
 This allows you to write a conditional jump or block execution directly acting on the current values of the CPU's status register bits.
-The eight branching instructions of the CPU each have an if-equivalent:
-``if_cs``, ``if_cc``, ``if_eq``, ``if_ne``, ``if_pl``, ``if_mi``, ``if_vs`` and ``if_vc``.
+The eight branching instructions of the CPU each have an if-equivalent (and there are some easier to understand aliases):
+
+====================== =====================
+condition              meaning
+====================== =====================
+``if_cs``              if carry status is set
+``if_cc``              if carry status is clear
+``if_vs``              if overflow status is set
+``if_vc``              if overflow status is clear
+``if_eq`` / ``if_z``   if result is equal to zero
+``if_ne`` / ``if_nz``  if result is not equal to zero
+``if_pl`` / ``if_pos`` if result is 'plus' (>= zero)
+``if_mi`` / ``if_neg`` if result is 'minus' (< zero)
+====================== =====================
+
 So ``if_cc goto target`` will directly translate into the single CPU instruction ``BCC target``.
 
 .. note::

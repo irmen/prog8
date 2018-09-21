@@ -45,11 +45,15 @@ enum class BranchCondition {
     CS,
     CC,
     EQ,
+    Z,
     NE,
+    NZ,
     VS,
     VC,
     MI,
-    PL
+    NEG,
+    PL,
+    POS
 }
 
 

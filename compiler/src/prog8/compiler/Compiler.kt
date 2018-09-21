@@ -207,37 +207,38 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
          * Which is translated into:
          *      BCS _stmt_999_else
          *      stuff
-         *      JUMP _stmt_999_continue
+         *      JUMP _stmt_999_end
          * _stmt_999_else:
          *      other_stuff     ;; optional
-         * _stmt_999_continue:
-         *      ...
+         * _stmt_999_end:
+         *      nop
          */
         stackvmProg.line(branch.position)
         val labelElse = makeLabel("else")
-        val labelContinue = makeLabel("continue")
+        val labelEnd = makeLabel("end")
         val opcode = when(branch.condition) {
             BranchCondition.CS -> Opcode.BCC
             BranchCondition.CC -> Opcode.BCS
-            BranchCondition.EQ -> Opcode.BNE
-            BranchCondition.NE -> Opcode.BEQ
+            BranchCondition.EQ, BranchCondition.Z -> Opcode.BNZ
+            BranchCondition.NE, BranchCondition.NZ -> Opcode.BZ
             BranchCondition.VS -> TODO("Opcode.BVC")
             BranchCondition.VC -> TODO("Opcode.BVS")
-            BranchCondition.MI -> Opcode.BPL
-            BranchCondition.PL -> Opcode.BMI
+            BranchCondition.MI, BranchCondition.NEG -> Opcode.BPOS
+            BranchCondition.PL, BranchCondition.POS -> Opcode.BNEG
         }
         if(branch.elsepart.isEmpty()) {
-            stackvmProg.instr(opcode, callLabel = labelContinue)
+            stackvmProg.instr(opcode, callLabel = labelEnd)
             translate(branch.statements)
-            stackvmProg.label(labelContinue)
+            stackvmProg.label(labelEnd)
         } else {
             stackvmProg.instr(opcode, callLabel = labelElse)
             translate(branch.statements)
-            stackvmProg.instr(Opcode.JUMP, callLabel = labelContinue)
+            stackvmProg.instr(Opcode.JUMP, callLabel = labelEnd)
             stackvmProg.label(labelElse)
             translate(branch.elsepart)
-            stackvmProg.label(labelContinue)
+            stackvmProg.label(labelEnd)
         }
+        stackvmProg.instr(Opcode.NOP)
     }
 
     private fun makeLabel(postfix: String): String = "_prog8stmt_${stmtUniqueSequenceNr}_$postfix"
@@ -247,30 +248,39 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
          * An IF statement: IF (condition-expression) { stuff } else { other_stuff }
          * Which is translated into:
          *      <condition-expression evaluation>
-         *      BEQ _stmt_999_else
+         *      BZ _stmt_999_else
          *      stuff
-         *      JUMP _stmt_999_continue
+         *      JUMP _stmt_999_end
          * _stmt_999_else:
          *      other_stuff     ;; optional
-         * _stmt_999_continue:
-         *      ...
+         * _stmt_999_end:
+         *      nop
+         *
+         *  or when there is no else block:
+         *      <condition-expression evaluation>
+         *      BNZ _stmt_999_end
+         *      stuff
+         * _stmt_999_end:
+         *      nop
+         *
          */
         stackvmProg.line(stmt.position)
         translate(stmt.condition)
-        val labelElse = makeLabel("else")
-        val labelContinue = makeLabel("continue")
+        val labelEnd = makeLabel("end")
         if(stmt.elsepart.isEmpty()) {
-            stackvmProg.instr(Opcode.BEQ, callLabel = labelContinue)
+            stackvmProg.instr(Opcode.BNZ, callLabel = labelEnd)
             translate(stmt.statements)
-            stackvmProg.label(labelContinue)
+            stackvmProg.label(labelEnd)
         } else {
-            stackvmProg.instr(Opcode.BEQ, callLabel = labelElse)
+            val labelElse = makeLabel("else")
+            stackvmProg.instr(Opcode.BZ, callLabel = labelElse)
             translate(stmt.statements)
-            stackvmProg.instr(Opcode.JUMP, callLabel = labelContinue)
+            stackvmProg.instr(Opcode.JUMP, callLabel = labelEnd)
             stackvmProg.label(labelElse)
             translate(stmt.elsepart)
-            stackvmProg.label(labelContinue)
+            stackvmProg.label(labelEnd)
         }
+        stackvmProg.instr(Opcode.NOP)
     }
 
     private fun translate(expr: IExpression) {
@@ -622,7 +632,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
         stackvmProg.instr(Opcode.PUSH, Value(varDt, range.last+range.step))
         stackvmProg.instr(Opcode.PUSH_VAR, varValue)
         stackvmProg.instr(Opcode.SUB)
-        stackvmProg.instr(Opcode.BNE, callLabel = loopLabel)
+        stackvmProg.instr(Opcode.BNZ, callLabel = loopLabel)
 
         stackvmProg.label(breakLabel)
         stackvmProg.instr(Opcode.NOP)
@@ -675,7 +685,6 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
         continueStmtLabelStack.push(continueLabel)
         breakStmtLabelStack.push(breakLabel)
 
-        TODO("fix this code generated")
         stackvmProg.label(loopLabel)
         if(literalStepValue!=null) {
             val loopVar =
@@ -703,28 +712,30 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
             TODO("code for non-constant step comparison")
         }
 
-        translate(body)
-        stackvmProg.label(continueLabel)
-        when (literalStepValue) {
-            1 -> {
-                // LV++
-                val postIncr = PostIncrDecr(makeAssignmentTarget(), "++", range.position)
-                postIncr.linkParents(range.parent)
-                translate(postIncr)
-            }
-            -1 -> {
-                // LV--
-                val postIncr = PostIncrDecr(makeAssignmentTarget(), "--", range.position)
-                postIncr.linkParents(range.parent)
-                translate(postIncr)
-            }
-            else -> {
-                // LV += step
-                val addAssignment = Assignment(makeAssignmentTarget(), "+=", range.step, range.position)
-                addAssignment.linkParents(range.parent)
-                translate(addAssignment)
-            }
-        }
+        stackvmProg.label("body_goes_here") // todo weg
+
+//        translate(body)
+//        stackvmProg.label(continueLabel)
+//        when (literalStepValue) {
+//            1 -> {
+//                // LV++
+//                val postIncr = PostIncrDecr(makeAssignmentTarget(), "++", range.position)
+//                postIncr.linkParents(range.parent)
+//                translate(postIncr)
+//            }
+//            -1 -> {
+//                // LV--
+//                val postIncr = PostIncrDecr(makeAssignmentTarget(), "--", range.position)
+//                postIncr.linkParents(range.parent)
+//                translate(postIncr)
+//            }
+//            else -> {
+//                // LV += step
+//                val addAssignment = Assignment(makeAssignmentTarget(), "+=", range.step, range.position)
+//                addAssignment.linkParents(range.parent)
+//                translate(addAssignment)
+//            }
+//        }
 
         stackvmProg.label(breakLabel)
         stackvmProg.instr(Opcode.NOP)
