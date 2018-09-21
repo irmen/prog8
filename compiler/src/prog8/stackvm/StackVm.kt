@@ -3,14 +3,11 @@ package prog8.stackvm
 import prog8.ast.DataType
 import prog8.compiler.target.c64.Petscii
 import prog8.compiler.target.c64.Mflpt5
-import java.awt.EventQueue
 import java.io.File
 import java.io.PrintStream
 import java.util.*
 import java.util.regex.Pattern
-import javax.swing.Timer
 import kotlin.math.*
-import kotlin.system.exitProcess
 
 enum class Opcode {
 
@@ -237,15 +234,11 @@ class Value(val type: DataType, numericvalue: Number?, val stringvalue: String?=
     init {
         when(type) {
             DataType.BYTE -> {
-                byteval = numericvalue!!.toShort()
-                if(byteval!! <0 || byteval!! > 255)
-                    throw VmExecutionException("byte value overflow: $byteval")
+                byteval = (numericvalue!!.toInt() and 255).toShort()        // byte wrap around 0..255
                 asBooleanValue = byteval != (0.toShort())
             }
             DataType.WORD -> {
-                wordval = numericvalue!!.toInt()
-                if(wordval!! <0 || wordval!! > 65535)
-                    throw VmExecutionException("word value overflow: $wordval")
+                wordval = numericvalue!!.toInt() and 65535      // word wrap around 0..65535
                 asBooleanValue = wordval != 0
             }
             DataType.FLOAT -> {
@@ -362,17 +355,17 @@ class Value(val type: DataType, numericvalue: Number?, val stringvalue: String?=
         val v1 = numericValue()
         val v2 = other.numericValue()
         val result = v1.toDouble().pow(v2.toDouble())
-        return Value(type, result)      // @todo datatype?
+        return Value(type, result)      // @todo datatype of pow is now always float, maybe allow byte/word results as well
     }
 
     fun shl(): Value {
         val v = integerValue()
-        return Value(type, v.shl(1))
+        return Value(type, v shl 1)
     }
 
     fun shr(): Value {
         val v = integerValue()
-        return Value(type, v.ushr(1))
+        return Value(type, v ushr 1)
     }
 
     fun rol(carry: Boolean): Pair<Value, Boolean> {
@@ -1491,41 +1484,5 @@ class StackVm(val traceOutputFile: String?) {
         }
 
         return ins.next
-    }
-}
-
-
-fun main(args: Array<String>) {
-    println("\nProg8 StackVM by Irmen de Jong (irmen@razorvine.net)")
-    // @todo software license string
-    // println("This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html\n")
-    println("**** This is a prerelease version. Please do not distribute! ****\n")
-
-    if(args.size != 1) {
-        System.err.println("requires one argument: name of stackvm sourcecode file")
-        exitProcess(1)
-    }
-
-    val program = Program.load(args.first())
-    val vm = StackVm(traceOutputFile = null)
-    val dialog = ScreenDialog()
-    vm.load(program, dialog.canvas)
-    EventQueue.invokeLater {
-        dialog.pack()
-        dialog.isVisible = true
-        dialog.start()
-
-        val programTimer = Timer(10) { a ->
-            try {
-                vm.step()
-            } catch(bp: VmBreakpointException) {
-                println("Breakpoint: execution halted. Press enter to resume.")
-                readLine()
-            } catch (tx: VmTerminationException) {
-                println("Execution halted: ${tx.message}")
-                (a.source as Timer).stop()
-            }
-        }
-        programTimer.start()
     }
 }

@@ -597,17 +597,16 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.NEG)
         )
         vm.load(makeProg(ins2), null)
-        assertFailsWith<VmExecutionException> {
-            vm.step(2)
-        }
+        vm.step(2)
+        assertEquals(Value(DataType.WORD, 64302), vm.evalstack.pop())
+
         val ins3 = mutableListOf(
                 Instruction(Opcode.PUSH, Value(DataType.BYTE, 12)),
                 Instruction(Opcode.NEG)
         )
         vm.load(makeProg(ins3), null)
-        assertFailsWith<VmExecutionException> {
-            vm.step(2)
-        }
+        vm.step(2)
+        assertEquals(Value(DataType.BYTE, 244), vm.evalstack.pop())
     }
 
     @Test

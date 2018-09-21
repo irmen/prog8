@@ -16,6 +16,8 @@ import prog8.functions.BuiltinFunctionsWithoutSideEffects
     todo analyse for unreachable code and remove that (f.i. code after goto or return that has no label so can never be jumped to)
     todo merge sequence of assignments into one (as long as the value is a constant and the target not a MEMORY type!)
     todo report more always true/always false conditions
+    todo inline subroutines that are only called once
+    todo inline subroutines that are "sufficiently small"
 */
 
 class StatementOptimizer(private val globalNamespace: INameScope) : IAstProcessor {
