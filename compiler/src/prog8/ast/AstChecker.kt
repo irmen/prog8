@@ -430,7 +430,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         val to = range.to.constValue(namespace)
         var step = 1
         if(range.step!=null) {
-            val stepLv = range.step?.constValue(namespace) ?: LiteralValue(DataType.BYTE, 1, position = range.position)
+            val stepLv = range.step.constValue(namespace) ?: LiteralValue(DataType.BYTE, 1, position = range.position)
             if (stepLv.asIntegerValue == null || stepLv.asIntegerValue == 0) {
                 err("range step must be an integer != 0")
                 return range

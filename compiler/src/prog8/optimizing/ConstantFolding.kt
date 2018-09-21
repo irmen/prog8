@@ -195,7 +195,7 @@ class ConstantFolding(private val namespace: INameScope) : IAstProcessor {
     override fun process(range: RangeExpr): IExpression {
         range.from = range.from.process(this)
         range.to = range.to.process(this)
-        range.step = range.step?.process(this)
+        range.step = range.step.process(this)
         return super.process(range)
     }
 

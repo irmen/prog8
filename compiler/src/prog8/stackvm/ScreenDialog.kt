@@ -10,12 +10,12 @@ import javax.swing.Timer
 
 class BitmapScreenPanel : JPanel() {
 
-    private val image = BufferedImage(ScreenWidth, ScreenHeight, BufferedImage.TYPE_INT_ARGB)
+    private val image = BufferedImage(SCREENWIDTH, SCREENHEIGHT, BufferedImage.TYPE_INT_ARGB)
     private val g2d = image.graphics as Graphics2D
 
 
     init {
-        val size = Dimension(image.width * Scaling, image.height * Scaling)
+        val size = Dimension(image.width * SCALING, image.height * SCALING)
         minimumSize = size
         maximumSize = size
         preferredSize = size
@@ -32,7 +32,7 @@ class BitmapScreenPanel : JPanel() {
 
     fun clearScreen(color: Int) {
         g2d.background = palette[color and 15]
-        g2d.clearRect(0, 0, BitmapScreenPanel.ScreenWidth, BitmapScreenPanel.ScreenHeight)
+        g2d.clearRect(0, 0, BitmapScreenPanel.SCREENWIDTH, BitmapScreenPanel.SCREENHEIGHT)
     }
     fun setPixel(x: Int, y: Int, color: Int) {
         image.setRGB(x, y, palette[color and 15].rgb)
@@ -44,9 +44,9 @@ class BitmapScreenPanel : JPanel() {
     }
 
     companion object {
-        const val ScreenWidth = 320
-        const val ScreenHeight = 256
-        const val Scaling = 3
+        const val SCREENWIDTH = 320
+        const val SCREENHEIGHT = 256
+        const val SCALING = 3
         val palette = listOf(         // this is Pepto's Commodore-64 palette  http://www.pepto.de/projects/colorvic/
                 Color(0x000000),  // 0 = black
                 Color(0xFFFFFF),  // 1 = white
@@ -93,19 +93,19 @@ class ScreenDialog : JFrame() {
 
         // the borders (top, left, right, bottom)
         val borderTop = JPanel().apply {
-            preferredSize = Dimension(BitmapScreenPanel.Scaling * (BitmapScreenPanel.ScreenWidth+2*borderWidth), BitmapScreenPanel.Scaling * borderWidth)
+            preferredSize = Dimension(BitmapScreenPanel.SCALING * (BitmapScreenPanel.SCREENWIDTH+2*borderWidth), BitmapScreenPanel.SCALING * borderWidth)
             background = BitmapScreenPanel.palette[14]
         }
         val borderBottom = JPanel().apply {
-            preferredSize =Dimension(BitmapScreenPanel.Scaling * (BitmapScreenPanel.ScreenWidth+2*borderWidth), BitmapScreenPanel.Scaling * borderWidth)
+            preferredSize =Dimension(BitmapScreenPanel.SCALING * (BitmapScreenPanel.SCREENWIDTH+2*borderWidth), BitmapScreenPanel.SCALING * borderWidth)
             background = BitmapScreenPanel.palette[14]
         }
         val borderLeft = JPanel().apply {
-            preferredSize =Dimension(BitmapScreenPanel.Scaling * borderWidth, BitmapScreenPanel.Scaling * BitmapScreenPanel.ScreenHeight)
+            preferredSize =Dimension(BitmapScreenPanel.SCALING * borderWidth, BitmapScreenPanel.SCALING * BitmapScreenPanel.SCREENHEIGHT)
             background = BitmapScreenPanel.palette[14]
         }
         val borderRight = JPanel().apply {
-            preferredSize =Dimension(BitmapScreenPanel.Scaling * borderWidth, BitmapScreenPanel.Scaling * BitmapScreenPanel.ScreenHeight)
+            preferredSize =Dimension(BitmapScreenPanel.SCALING * borderWidth, BitmapScreenPanel.SCALING * BitmapScreenPanel.SCREENHEIGHT)
             background = BitmapScreenPanel.palette[14]
         }
         c = GridBagConstraints()

@@ -117,6 +117,8 @@ enum class Opcode {
     SWAP,
     SEC,        // set carry status flag  NOTE: is mostly fake, carry flag is not affected by any numeric operations
     CLC,        // clear carry status flag  NOTE: is mostly fake, carry flag is not affected by any numeric operations
+    SEI,        // set irq-disable status flag
+    CLI,        // clear irq-disable status flag
     NOP,
     BREAKPOINT, // breakpoint
     TERMINATE,  // end the program
@@ -134,8 +136,6 @@ enum class Syscall(val callNr: Short) {
     GFX_CLEARSCR(17),           // clear the screen with color pushed on stack
     GFX_TEXT(18),               // write text on screen at (x,y,color,text) pushed on stack in that order
 
-    FUNC_P_CARRY(64),
-    FUNC_P_IRQD(65),
     FUNC_SIN(66),
     FUNC_COS(67),
     FUNC_ABS(68),
@@ -162,10 +162,9 @@ enum class Syscall(val callNr: Short) {
     FUNC_RND(89),                // push a random byte on the stack
     FUNC_RNDW(90),               // push a random word on the stack
     FUNC_RNDF(91),               // push a random float on the stack (between 0.0 and 1.0)
-    FUNC_FLT(92)
 
     // note: not all builtin functions of the Prog8 language are present as functions:
-    // some of them are already opcodes (such as MSB and ROL)!
+    // some of them are already opcodes (such as MSB and ROL and FLT)!
 }
 
 class Memory {
@@ -181,13 +180,13 @@ class Memory {
     }
 
     fun getWord(address: Int): Int {
-        return 256*mem[address] + mem[address+1]
+        return mem[address] + 256*mem[address+1]
     }
 
     fun setWord(address: Int, value: Int) {
         if(value<0 || value>65535) throw VmExecutionException("word value not 0..65535")
-        mem[address] = (value / 256).toShort()
-        mem[address+1] = value.and(255).toShort()
+        mem[address] = value.and(255).toShort()
+        mem[address+1] = (value / 256).toShort()
     }
 
     fun setFloat(address: Int, value: Double) {
@@ -222,6 +221,10 @@ class Memory {
         }
         return Petscii.decodePetscii(petscii, true)
     }
+
+    fun clear() {
+        for(i in 0..65535) mem[i]=0
+    }
 }
 
 
@@ -234,18 +237,22 @@ class Value(val type: DataType, numericvalue: Number?, val stringvalue: String?=
     init {
         when(type) {
             DataType.BYTE -> {
-                byteval = (numericvalue!!.toInt() and 255).toShort()
+                byteval = numericvalue!!.toShort()
+                if(byteval!! <0 || byteval!! > 255)
+                    throw VmExecutionException("byte value overflow: $byteval")
                 asBooleanValue = byteval != (0.toShort())
             }
             DataType.WORD -> {
-                wordval = numericvalue!!.toInt() and 65535
+                wordval = numericvalue!!.toInt()
+                if(wordval!! <0 || wordval!! > 65535)
+                    throw VmExecutionException("word value overflow: $wordval")
                 asBooleanValue = wordval != 0
             }
             DataType.FLOAT -> {
                 floatval = numericvalue!!.toDouble()
                 asBooleanValue = floatval != 0.0
             }
-            DataType.ARRAY -> {
+            DataType.ARRAY, DataType.ARRAY_W -> {
                 asBooleanValue = arrayvalue!!.isNotEmpty()
             }
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
@@ -262,9 +269,9 @@ class Value(val type: DataType, numericvalue: Number?, val stringvalue: String?=
             DataType.WORD -> "w:%04x".format(wordval)
             DataType.FLOAT -> "f:$floatval"
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> "\"$stringvalue\""
-            DataType.ARRAY -> TODO("array")
-            DataType.ARRAY_W -> TODO("word array")
-            DataType.MATRIX -> TODO("matrix")
+            DataType.ARRAY -> TODO("tostring array")
+            DataType.ARRAY_W -> TODO("tostring word array")
+            DataType.MATRIX -> TODO("tostring matrix")
         }
     }
 
@@ -286,13 +293,23 @@ class Value(val type: DataType, numericvalue: Number?, val stringvalue: String?=
         }
     }
 
+    override fun hashCode(): Int {
+        val bh = byteval?.hashCode() ?: 0x10001234
+        val wh = wordval?.hashCode() ?: 0x01002345
+        val fh = floatval?.hashCode() ?: 0x00103456
+        val ah = arrayvalue?.hashCode() ?: 0x11119876
+        return bh xor wh xor fh xor ah xor type.hashCode()
+    }
+
     override fun equals(other: Any?): Boolean {
         if(other==null || other !is Value)
             return false
-        return compareTo(other)==0
+        return compareTo(other)==0      // note: datatype doesn't matter
     }
 
     operator fun compareTo(other: Value): Int {
+        if(stringvalue!=null && other.stringvalue!=null)
+            return stringvalue.compareTo(other.stringvalue)
         return numericValue().toDouble().compareTo(other.numericValue().toDouble())
     }
 
@@ -446,21 +463,21 @@ class Value(val type: DataType, numericvalue: Number?, val stringvalue: String?=
     fun bitand(other: Value): Value {
         val v1 = integerValue()
         val v2 = other.integerValue()
-        val result = v1.and(v2)
+        val result = v1 and v2
         return Value(type, result)
     }
 
     fun bitor(other: Value): Value {
         val v1 = integerValue()
         val v2 = other.integerValue()
-        val result = v1.or(v2)
+        val result = v1 or v2
         return Value(type, result)
     }
 
     fun bitxor(other: Value): Value {
         val v1 = integerValue()
         val v2 = other.integerValue()
-        val result = v1.xor(v2)
+        val result = v1 xor v2
         return Value(type, result)
     }
 
@@ -470,16 +487,16 @@ class Value(val type: DataType, numericvalue: Number?, val stringvalue: String?=
 
     fun inv(): Value {
         return when(type) {
-            DataType.BYTE -> Value(DataType.BYTE, byteval!!.toInt().inv())
-            DataType.WORD -> Value(DataType.WORD, wordval!!.inv())
-            else -> throw VmExecutionException("not can only work on byte/word")
+            DataType.BYTE -> Value(DataType.BYTE, byteval!!.toInt().inv() and 255)
+            DataType.WORD -> Value(DataType.WORD, wordval!!.inv() and 65535)
+            else -> throw VmExecutionException("inv can only work on byte/word")
         }
     }
 
     fun inc(): Value {
         return when(type) {
-            DataType.BYTE -> Value(DataType.BYTE, (byteval!! + 1).and(255))
-            DataType.WORD -> Value(DataType.WORD, (wordval!! + 1).and(65535))
+            DataType.BYTE -> Value(DataType.BYTE, (byteval!! + 1) and 255)
+            DataType.WORD -> Value(DataType.WORD, (wordval!! + 1) and 65535)
             DataType.FLOAT -> Value(DataType.FLOAT, floatval!! + 1)
             else -> throw VmExecutionException("inc can only work on byte/word/float")
         }
@@ -487,8 +504,8 @@ class Value(val type: DataType, numericvalue: Number?, val stringvalue: String?=
 
     fun dec(): Value {
         return when(type) {
-            DataType.BYTE -> Value(DataType.BYTE, (byteval!! - 1).and(255))
-            DataType.WORD -> Value(DataType.WORD, (wordval!! - 1).and(65535))
+            DataType.BYTE -> Value(DataType.BYTE, (byteval!! - 1) and 255)
+            DataType.WORD -> Value(DataType.WORD, (wordval!! - 1) and 65535)
             DataType.FLOAT -> Value(DataType.FLOAT, floatval!! - 1)
             else -> throw VmExecutionException("dec can only work on byte/word/float")
         }
@@ -496,7 +513,7 @@ class Value(val type: DataType, numericvalue: Number?, val stringvalue: String?=
 
     fun lsb(): Value {
         return when(type) {
-            DataType.BYTE -> Value(DataType.BYTE, byteval!!.toInt() and 255)
+            DataType.BYTE -> Value(DataType.BYTE, byteval!!)
             DataType.WORD -> Value(DataType.WORD, wordval!! and 255)
             else -> throw VmExecutionException("not can only work on byte/word")
         }
@@ -504,7 +521,7 @@ class Value(val type: DataType, numericvalue: Number?, val stringvalue: String?=
 
     fun msb(): Value {
         return when(type) {
-            DataType.BYTE -> Value(DataType.BYTE, byteval!!.toInt() ushr 8 and 255)
+            DataType.BYTE -> Value(DataType.BYTE, 0)
             DataType.WORD -> Value(DataType.WORD, wordval!! ushr 8 and 255)
             else -> throw VmExecutionException("not can only work on byte/word")
         }
@@ -543,13 +560,13 @@ class LabelInstr(val name: String) : Instruction(opcode = Opcode.NOP) {
     }
 }
 
-private class VmExecutionException(msg: String?) : Exception(msg)
+class VmExecutionException(msg: String?) : Exception(msg)
 
-private class VmTerminationException(msg: String?) : Exception(msg)
+class VmTerminationException(msg: String?) : Exception(msg)
 
-private class VmBreakpointException : Exception("breakpoint")
+class VmBreakpointException : Exception("breakpoint")
 
-private class MyStack<T> : Stack<T>() {
+class MyStack<T> : Stack<T>() {
     fun peek(amount: Int) : List<T> {
         return this.toList().subList(max(0, size-amount), size)
     }
@@ -822,48 +839,56 @@ class Program (val name: String,
 
 
 class StackVm(val traceOutputFile: String?) {
-    private val mem = Memory()
-    private val evalstack = MyStack<Value>()   // evaluation stack
-    private val callstack = MyStack<Instruction>()    // subroutine call stack
-    private var variables = mutableMapOf<String, Value>()     // all variables (set of all vars used by all blocks/subroutines) key = their fully scoped name
-    private var P_carry: Boolean = false
-    private var P_irqd: Boolean = false
+    val mem = Memory()
+    val evalstack = MyStack<Value>()   // evaluation stack
+    val callstack = MyStack<Instruction>()    // subroutine call stack
+    var sourceLine = ""     // meta info about current line in source file
+        private set
+    var P_carry: Boolean = false
+        private set
+    var P_irqd: Boolean = false
+        private set
+    var variables = mutableMapOf<String, Value>()     // all variables (set of all vars used by all blocks/subroutines) key = their fully scoped name
+        private set
     private var program = listOf<Instruction>()
     private var traceOutput = if(traceOutputFile!=null) PrintStream(File(traceOutputFile), "utf-8") else null
     private lateinit var currentIns: Instruction
-    private lateinit var canvas: BitmapScreenPanel
+    private var canvas: BitmapScreenPanel? = null
     private val rnd = Random()
-    private var sourceLine = ""
 
-    fun load(program: Program, canvas: BitmapScreenPanel) {
+    fun load(program: Program, canvas: BitmapScreenPanel?) {
         this.program = program.program
         this.canvas = canvas
-        this.variables = program.variables.toMutableMap()
+        variables = program.variables.toMutableMap()
         if(this.variables.contains("A") ||
-                this.variables.contains("X") ||
-                this.variables.contains("Y") ||
-                this.variables.contains("XY") ||
-                this.variables.contains("AX") ||
-                this.variables.contains("AY"))
+                variables.contains("X") ||
+                variables.contains("Y") ||
+                variables.contains("XY") ||
+                variables.contains("AX") ||
+                variables.contains("AY"))
             throw VmExecutionException("program contains variable(s) for the reserved registers A,X,...")
         // define the 'registers'
-        this.variables["A"] = Value(DataType.BYTE, 0)
-        this.variables["X"] = Value(DataType.BYTE, 0)
-        this.variables["Y"] = Value(DataType.BYTE, 0)
-        this.variables["AX"] = Value(DataType.WORD, 0)
-        this.variables["AY"] = Value(DataType.WORD, 0)
-        this.variables["XY"] = Value(DataType.WORD, 0)
+        variables["A"] = Value(DataType.BYTE, 0)
+        variables["X"] = Value(DataType.BYTE, 0)
+        variables["Y"] = Value(DataType.BYTE, 0)
+        variables["AX"] = Value(DataType.WORD, 0)
+        variables["AY"] = Value(DataType.WORD, 0)
+        variables["XY"] = Value(DataType.WORD, 0)
 
         initMemory(program.memory)
+        evalstack.clear()
+        callstack.clear()
+        P_carry = false
+        P_irqd = false
+        sourceLine = ""
         currentIns = this.program[0]
     }
 
-    fun step() {
+    fun step(instructionCount: Int = 10000) {
         // step is invoked every 1/100 sec
         // we execute 10k instructions in one go so we end up doing 1 million vm instructions per second
-        val instructionsPerStep = 10000
         val start = System.currentTimeMillis()
-        for(i:Int in 0..instructionsPerStep) {
+        for(i:Int in 1..instructionCount) {
             try {
                 currentIns = dispatch(currentIns)
 
@@ -890,6 +915,7 @@ class StackVm(val traceOutputFile: String?) {
     }
 
     private fun initMemory(memory: Map<Int, List<Value>>) {
+        mem.clear()
         for (meminit in memory) {
             var address = meminit.key
             for (value in meminit.value) {
@@ -936,14 +962,19 @@ class StackVm(val traceOutputFile: String?) {
             Opcode.DUP -> evalstack.push(evalstack.peek())
             Opcode.ARRAY -> {
                 val amount = ins.arg!!.integerValue()
+                if(amount<=0)
+                    throw VmExecutionException("array size must be > 0")
                 val array = mutableListOf<Int>()
+                var arrayDt = DataType.ARRAY
                 for (i in 1..amount) {
                     val value = evalstack.pop()
                     if(value.type!=DataType.BYTE && value.type!=DataType.WORD)
                         throw VmExecutionException("array requires values to be all byte/word")
-                    array.add(value.integerValue())
+                    if(value.type==DataType.WORD)
+                        arrayDt = DataType.ARRAY_W
+                    array.add(0, value.integerValue())
                 }
-                evalstack.push(Value(DataType.ARRAY, null, arrayvalue =  array.toIntArray()))
+                evalstack.push(Value(arrayDt, null, arrayvalue =  array.toIntArray()))
             }
             Opcode.DISCARD -> evalstack.pop()
             Opcode.SWAP -> {
@@ -1080,17 +1111,17 @@ class StackVm(val traceOutputFile: String?) {
                         // plot pixel at (x, y, color) from stack
                         val color = evalstack.pop()
                         val (y, x) = evalstack.pop2()
-                        canvas.setPixel(x.integerValue(), y.integerValue(), color.integerValue())
+                        canvas?.setPixel(x.integerValue(), y.integerValue(), color.integerValue())
                     }
                     Syscall.GFX_CLEARSCR -> {
                         val color = evalstack.pop()
-                        canvas.clearScreen(color.integerValue())
+                        canvas?.clearScreen(color.integerValue())
                     }
                     Syscall.GFX_TEXT -> {
                         val text = evalstack.pop()
                         val color = evalstack.pop()
                         val (y, x) = evalstack.pop2()
-                        canvas.writeText(x.integerValue(), y.integerValue(), text.stringvalue!!, color.integerValue())
+                        canvas?.writeText(x.integerValue(), y.integerValue(), text.stringvalue!!, color.integerValue())
                     }
                     Syscall.FUNC_RND -> evalstack.push(Value(DataType.BYTE, rnd.nextInt() and 255))
                     Syscall.FUNC_RNDW -> evalstack.push(Value(DataType.WORD, rnd.nextInt() and 65535))
@@ -1108,8 +1139,6 @@ class StackVm(val traceOutputFile: String?) {
                     Syscall.FUNC_SIN -> evalstack.push(Value(DataType.FLOAT, sin(evalstack.pop().numericValue().toDouble())))
                     Syscall.FUNC_COS -> evalstack.push(Value(DataType.FLOAT, cos(evalstack.pop().numericValue().toDouble())))
                     Syscall.FUNC_ROUND -> evalstack.push(Value(DataType.WORD, evalstack.pop().numericValue().toDouble().roundToInt()))
-                    Syscall.FUNC_P_CARRY -> P_carry = evalstack.pop().asBooleanValue
-                    Syscall.FUNC_P_IRQD -> P_irqd = evalstack.pop().asBooleanValue
                     Syscall.FUNC_ABS -> {
                         val value = evalstack.pop()
                         val absValue=
@@ -1131,7 +1160,6 @@ class StackVm(val traceOutputFile: String?) {
                     Syscall.FUNC_SQRT -> evalstack.push(Value(DataType.FLOAT, sqrt(evalstack.pop().numericValue().toDouble())))
                     Syscall.FUNC_RAD -> evalstack.push(Value(DataType.FLOAT, Math.toRadians(evalstack.pop().numericValue().toDouble())))
                     Syscall.FUNC_DEG -> evalstack.push(Value(DataType.FLOAT, Math.toDegrees(evalstack.pop().numericValue().toDouble())))
-                    Syscall.FUNC_FLT -> evalstack.push(Value(DataType.FLOAT, evalstack.pop().numericValue().toDouble()))
                     Syscall.FUNC_FLOOR -> {
                         val value = evalstack.pop()
                         val result =
@@ -1196,6 +1224,8 @@ class StackVm(val traceOutputFile: String?) {
 
             Opcode.SEC -> P_carry = true
             Opcode.CLC -> P_carry = false
+            Opcode.SEI -> P_irqd = true
+            Opcode.CLI -> P_irqd = false
             Opcode.TERMINATE -> throw VmTerminationException("terminate instruction")
             Opcode.BREAKPOINT -> throw VmBreakpointException()
 

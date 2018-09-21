@@ -1,6 +1,5 @@
 package prog8.compiler
 
-import jdk.nashorn.internal.ir.JumpStatement
 import prog8.ast.*
 import prog8.stackvm.*
 import java.io.PrintStream
