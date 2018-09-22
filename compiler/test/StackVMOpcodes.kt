@@ -14,27 +14,21 @@ import kotlin.test.*
 
 @todo opcodes still to be unit-tested:
 
-    SHL,
     SHL_MEM,
     SHL_MEM_W,
     SHL_VAR,
-    SHR,
     SHR_MEM,
     SHR_MEM_W,
     SHR_VAR,
-    ROL,
     ROL_MEM,
     ROL_MEM_W,
     ROL_VAR,
-    ROR,
     ROR_MEM,
     ROR_MEM_W,
     ROR_VAR,
-    ROL2,
     ROL2_MEM,
     ROL2_MEM_W,
     ROL2_VAR,
-    ROR2,
     ROR2_MEM,
     ROR2_MEM_W,
     ROR2_VAR,
@@ -405,14 +399,12 @@ class TestStackVmOpcodes {
     @Test
     fun testBitand() {
         val values = listOf(
-                Value(DataType.FLOAT, 0x000f),
                 Value(DataType.WORD, 0b0011001011110001),
                 Value(DataType.BYTE, 0b10011111),
                 Value(DataType.BYTE, 0b11111101))
         val expected = listOf(
                 Value(DataType.BYTE, 0b10011101),
-                Value(DataType.WORD, 0b0000000010010001),
-                Value(DataType.FLOAT, 1))
+                Value(DataType.WORD, 0b0000000010010001))
         val operator = Opcode.BITAND
 
         testBinaryOperator(values, operator, expected)
@@ -421,14 +413,12 @@ class TestStackVmOpcodes {
     @Test
     fun testBitor() {
         val values = listOf(
-                Value(DataType.FLOAT, 0xfff0),
                 Value(DataType.WORD, 0b0011001011100000),
                 Value(DataType.BYTE, 0b00011101),
                 Value(DataType.BYTE, 0b10010001))
         val expected = listOf(
                 Value(DataType.BYTE, 0b10011101),
-                Value(DataType.WORD, 0b0011001011111101),
-                Value(DataType.FLOAT, 65533.0))
+                Value(DataType.WORD, 0b0011001011111101))
         val operator = Opcode.BITOR
 
         testBinaryOperator(values, operator, expected)
@@ -437,14 +427,12 @@ class TestStackVmOpcodes {
     @Test
     fun testBitxor() {
         val values = listOf(
-                Value(DataType.FLOAT, 0xfff0),
                 Value(DataType.WORD, 0b0011001011100000),
                 Value(DataType.BYTE, 0b00011101),
                 Value(DataType.BYTE, 0b10010001))
         val expected = listOf(
                 Value(DataType.BYTE, 0b10001100),
-                Value(DataType.WORD, 0b0011001001101100),
-                Value(DataType.FLOAT, 52636.0))
+                Value(DataType.WORD, 0b0011001001101100))
         val operator = Opcode.BITXOR
 
         testBinaryOperator(values, operator, expected)
@@ -1182,6 +1170,319 @@ class TestStackVmOpcodes {
         assertEquals("called", vm.sourceLine)
         vm.step(1)
         assertEquals("returned", vm.sourceLine)
+    }
+
+    @Test
+    fun testSHR() {
+        val ins = mutableListOf(
+                Instruction(Opcode.PUSH, Value(DataType.FLOAT, 9.99)),
+                Instruction(Opcode.PUSH, Value(DataType.WORD, 3)),
+                Instruction(Opcode.PUSH, Value(DataType.WORD, 61005)),
+                Instruction(Opcode.PUSH, Value(DataType.BYTE, 3)),
+                Instruction(Opcode.PUSH, Value(DataType.BYTE, 249)),
+                Instruction(Opcode.SHR),        // 124
+                Instruction(Opcode.DISCARD),
+                Instruction(Opcode.SHR),        // 1
+                Instruction(Opcode.SHR),        // 0
+                Instruction(Opcode.SHR),        // 0
+                Instruction(Opcode.DISCARD),
+                Instruction(Opcode.SHR),        // 30502
+                Instruction(Opcode.DISCARD),
+                Instruction(Opcode.SHR),        // 1
+                Instruction(Opcode.SHR),        // 0
+                Instruction(Opcode.SHR),        // 0
+                Instruction(Opcode.DISCARD),
+                Instruction(Opcode.SHR)         // error
+        )
+        vm.load(makeProg(ins), null)
+        vm.step(6)
+        assertEquals(Value(DataType.BYTE, 124), vm.evalstack.peek())
+        vm.step(2)
+        assertEquals(Value(DataType.BYTE, 1), vm.evalstack.peek())
+        vm.step(2)
+        assertEquals(Value(DataType.BYTE, 0), vm.evalstack.peek())
+        vm.step(2)
+        assertEquals(Value(DataType.WORD, 30502), vm.evalstack.peek())
+        vm.step(2)
+        assertEquals(Value(DataType.WORD, 1), vm.evalstack.peek())
+        vm.step(2)
+        assertEquals(Value(DataType.WORD, 0), vm.evalstack.peek())
+        vm.step(1)
+        assertEquals(Value(DataType.FLOAT, 9.99), vm.evalstack.peek())
+        assertFailsWith<VmExecutionException> {
+            vm.step(1)      // float shift error
+        }
+    }
+
+    @Test
+    fun testSHL() {
+        val ins = mutableListOf(
+                Instruction(Opcode.PUSH, Value(DataType.FLOAT, 9.99)),
+                Instruction(Opcode.PUSH, Value(DataType.WORD, 3)),
+                Instruction(Opcode.PUSH, Value(DataType.WORD, 61005)),
+                Instruction(Opcode.PUSH, Value(DataType.BYTE, 3)),
+                Instruction(Opcode.PUSH, Value(DataType.BYTE, 249)),
+                Instruction(Opcode.SHL),        // 242
+                Instruction(Opcode.DISCARD),
+                Instruction(Opcode.SHL),        // 6
+                Instruction(Opcode.DISCARD),
+                Instruction(Opcode.SHL),        // 56474
+                Instruction(Opcode.DISCARD),
+                Instruction(Opcode.SHL),        // 6
+                Instruction(Opcode.DISCARD),
+                Instruction(Opcode.SHL)         // error
+        )
+        vm.load(makeProg(ins), null)
+        vm.step(6)
+        assertEquals(Value(DataType.BYTE, 242), vm.evalstack.peek())
+        vm.step(2)
+        assertEquals(Value(DataType.BYTE, 6), vm.evalstack.peek())
+        vm.step(2)
+        assertEquals(Value(DataType.WORD, 56474), vm.evalstack.peek())
+        vm.step(2)
+        assertEquals(Value(DataType.WORD, 6), vm.evalstack.peek())
+        vm.step(1)
+        assertEquals(Value(DataType.FLOAT, 9.99), vm.evalstack.peek())
+        assertFailsWith<VmExecutionException> {
+            vm.step(1)      // float shift error
+        }
+    }
+
+    @Test
+    fun testROR() {
+        // 9/17-bit rotation right (using carry)
+        val ins = mutableListOf(
+                Instruction(Opcode.PUSH, Value(DataType.BYTE, 0b10010011)),
+                Instruction(Opcode.ROR),        // 0b01001001   c=1
+                Instruction(Opcode.ROR),        // 0b10100100   c=1
+                Instruction(Opcode.ROR),        // 0b11010010   c=0
+                Instruction(Opcode.ROR),        // 0b01101001   c=0
+                Instruction(Opcode.ROR),        // 0b00110100   c=1
+                Instruction(Opcode.ROR),        // 0b10011010   c=0
+                Instruction(Opcode.ROR),        // 0b01001101   c=0
+                Instruction(Opcode.ROR),        // 0b00100110   c=1
+                Instruction(Opcode.ROR)         // 0b10010011   c=0  (original value after 9 rors)
+        )
+        vm.load(makeProg(ins), null)
+        vm.step(2)
+        assertEquals(Value(DataType.BYTE, 0b01001001), vm.evalstack.peek())
+        assertTrue(vm.P_carry)
+        vm.step(1)
+        assertEquals(Value(DataType.BYTE, 0b10100100), vm.evalstack.peek())
+        assertTrue(vm.P_carry)
+        vm.step(1)
+        assertEquals(Value(DataType.BYTE, 0b11010010), vm.evalstack.peek())
+        assertFalse(vm.P_carry)
+        vm.step(1)
+        assertEquals(Value(DataType.BYTE, 0b01101001), vm.evalstack.peek())
+        assertFalse(vm.P_carry)
+        vm.step(5)
+        assertEquals(Value(DataType.BYTE, 0b10010011), vm.evalstack.peek())
+        assertFalse(vm.P_carry)
+
+        val ins2 = mutableListOf(
+                Instruction(Opcode.CLC),
+                Instruction(Opcode.PUSH, Value(DataType.WORD, 0b1001001100001101)),
+                Instruction(Opcode.ROR),        // 0b0100100110000110   c=1
+                Instruction(Opcode.ROR),        // 0b1010010011000011   c=0
+                Instruction(Opcode.ROR),
+                Instruction(Opcode.ROR),
+                Instruction(Opcode.ROR),
+                Instruction(Opcode.ROR),
+                Instruction(Opcode.ROR),
+                Instruction(Opcode.ROR),
+                Instruction(Opcode.ROR),
+                Instruction(Opcode.ROR),
+                Instruction(Opcode.ROR),
+                Instruction(Opcode.ROR),
+                Instruction(Opcode.ROR),
+                Instruction(Opcode.ROR),
+                Instruction(Opcode.ROR),
+                Instruction(Opcode.ROR),
+                Instruction(Opcode.ROR)         // 0b1001001100001101   c=0  (original value after 17 rors)
+        )
+        vm.load(makeProg(ins2), null)
+        vm.step(3)
+        assertEquals(Value(DataType.WORD, 0b0100100110000110), vm.evalstack.peek())
+        assertTrue(vm.P_carry)
+        vm.step(1)
+        assertEquals(Value(DataType.WORD, 0b1010010011000011), vm.evalstack.peek())
+        assertFalse(vm.P_carry)
+        vm.step(15)
+        assertEquals(Value(DataType.WORD, 0b1001001100001101), vm.evalstack.peek())
+        assertFalse(vm.P_carry)
+    }
+
+    @Test
+    fun testROL() {
+        // 9/17-bit rotation left (using carry)
+        val ins = mutableListOf(
+                Instruction(Opcode.PUSH, Value(DataType.BYTE, 0b10010011)),
+                Instruction(Opcode.ROL),        // 0b00100110   c=1
+                Instruction(Opcode.ROL),        // 0b01001101   c=0
+                Instruction(Opcode.ROL),        // 0b10011010   c=0
+                Instruction(Opcode.ROL),        // 0b00110100   c=1
+                Instruction(Opcode.ROL),        // 0b01101001   c=0
+                Instruction(Opcode.ROL),        // 0b11010010   c=0
+                Instruction(Opcode.ROL),        // 0b10100100   c=1
+                Instruction(Opcode.ROL),        // 0b01001001   c=1
+                Instruction(Opcode.ROL)         // 0b10010011   c=0  (original value after 9 rors)
+        )
+        vm.load(makeProg(ins), null)
+        vm.step(2)
+        assertEquals(Value(DataType.BYTE, 0b00100110), vm.evalstack.peek())
+        assertTrue(vm.P_carry)
+        vm.step(1)
+        assertEquals(Value(DataType.BYTE, 0b01001101), vm.evalstack.peek())
+        assertFalse(vm.P_carry)
+        vm.step(1)
+        assertEquals(Value(DataType.BYTE, 0b10011010), vm.evalstack.peek())
+        assertFalse(vm.P_carry)
+        vm.step(1)
+        assertEquals(Value(DataType.BYTE, 0b00110100), vm.evalstack.peek())
+        assertTrue(vm.P_carry)
+        vm.step(5)
+        assertEquals(Value(DataType.BYTE, 0b10010011), vm.evalstack.peek())
+        assertFalse(vm.P_carry)
+
+        val ins2 = mutableListOf(
+                Instruction(Opcode.CLC),
+                Instruction(Opcode.PUSH, Value(DataType.WORD, 0b1001001100001101)),
+                Instruction(Opcode.ROL),        // 0b0010011000011010   c=1
+                Instruction(Opcode.ROL),        // 0b0100110000110101   c=0
+                Instruction(Opcode.ROL),
+                Instruction(Opcode.ROL),
+                Instruction(Opcode.ROL),
+                Instruction(Opcode.ROL),
+                Instruction(Opcode.ROL),
+                Instruction(Opcode.ROL),
+                Instruction(Opcode.ROL),
+                Instruction(Opcode.ROL),
+                Instruction(Opcode.ROL),
+                Instruction(Opcode.ROL),
+                Instruction(Opcode.ROL),
+                Instruction(Opcode.ROL),
+                Instruction(Opcode.ROL),
+                Instruction(Opcode.ROL),
+                Instruction(Opcode.ROL)         // 0b1001001100001101   c=0  (original value after 17 rors)
+        )
+        vm.load(makeProg(ins2), null)
+        vm.step(3)
+        assertEquals(Value(DataType.WORD, 0b0010011000011010), vm.evalstack.peek())
+        assertTrue(vm.P_carry)
+        vm.step(1)
+        assertEquals(Value(DataType.WORD, 0b0100110000110101), vm.evalstack.peek())
+        assertFalse(vm.P_carry)
+        vm.step(15)
+        assertEquals(Value(DataType.WORD, 0b1001001100001101), vm.evalstack.peek())
+        assertFalse(vm.P_carry)
+    }
+
+    @Test
+    fun testROR2() {
+        // 8/16-bit rotation right
+        val ins = mutableListOf(
+                Instruction(Opcode.PUSH, Value(DataType.BYTE, 0b10010011)),
+                Instruction(Opcode.ROR2),        // 0b11001001
+                Instruction(Opcode.ROR2),        // 0b11100100
+                Instruction(Opcode.ROR2),        // 0b01110010
+                Instruction(Opcode.ROR2),
+                Instruction(Opcode.ROR2),
+                Instruction(Opcode.ROR2),
+                Instruction(Opcode.ROR2),
+                Instruction(Opcode.ROR2)         // 0b10010011  (original value after 8 rors)
+        )
+        vm.load(makeProg(ins), null)
+        vm.step(2)
+        assertEquals(Value(DataType.BYTE, 0b11001001), vm.evalstack.peek())
+        assertFalse(vm.P_carry)
+        vm.step(1)
+        assertEquals(Value(DataType.BYTE, 0b11100100), vm.evalstack.peek())
+        vm.step(1)
+        assertEquals(Value(DataType.BYTE, 0b01110010), vm.evalstack.peek())
+        vm.step(5)
+        assertEquals(Value(DataType.BYTE, 0b10010011), vm.evalstack.peek())
+
+        val ins2 = mutableListOf(
+                Instruction(Opcode.PUSH, Value(DataType.WORD, 0b1001001100001101)),
+                Instruction(Opcode.ROR2),        // 0b1100100110000110
+                Instruction(Opcode.ROR2),        // 0b0110010011000011
+                Instruction(Opcode.ROR2),
+                Instruction(Opcode.ROR2),
+                Instruction(Opcode.ROR2),
+                Instruction(Opcode.ROR2),
+                Instruction(Opcode.ROR2),
+                Instruction(Opcode.ROR2),
+                Instruction(Opcode.ROR2),
+                Instruction(Opcode.ROR2),
+                Instruction(Opcode.ROR2),
+                Instruction(Opcode.ROR2),
+                Instruction(Opcode.ROR2),
+                Instruction(Opcode.ROR2),
+                Instruction(Opcode.ROR2),
+                Instruction(Opcode.ROR2)         // 0b1001001100001101  (original value after 16 rors)
+        )
+        vm.load(makeProg(ins2), null)
+        vm.step(2)
+        assertEquals(Value(DataType.WORD, 0b1100100110000110), vm.evalstack.peek())
+        assertFalse(vm.P_carry)
+        vm.step(1)
+        assertEquals(Value(DataType.WORD, 0b0110010011000011), vm.evalstack.peek())
+        vm.step(14)
+        assertEquals(Value(DataType.WORD, 0b1001001100001101), vm.evalstack.peek())
+    }
+
+    @Test
+    fun testROL2() {
+        // 8/16-bit rotation left
+        val ins = mutableListOf(
+                Instruction(Opcode.PUSH, Value(DataType.BYTE, 0b10010011)),
+                Instruction(Opcode.ROL2),        // 0b00100111
+                Instruction(Opcode.ROL2),        // 0b01001110
+                Instruction(Opcode.ROL2),
+                Instruction(Opcode.ROL2),
+                Instruction(Opcode.ROL2),
+                Instruction(Opcode.ROL2),
+                Instruction(Opcode.ROL2),
+                Instruction(Opcode.ROL2)         // 0b10010011 (original value after 8 rols)
+        )
+        vm.load(makeProg(ins), null)
+        vm.step(2)
+        assertEquals(Value(DataType.BYTE, 0b00100111), vm.evalstack.peek())
+        assertFalse(vm.P_carry)
+        vm.step(1)
+        assertEquals(Value(DataType.BYTE, 0b01001110), vm.evalstack.peek())
+        vm.step(6)
+        assertEquals(Value(DataType.BYTE, 0b10010011), vm.evalstack.peek())
+
+        val ins2 = mutableListOf(
+                Instruction(Opcode.PUSH, Value(DataType.WORD, 0b1001001100001101)),
+                Instruction(Opcode.ROL2),        // 0b0010011000011011
+                Instruction(Opcode.ROL2),        // 0b0100110000110110
+                Instruction(Opcode.ROL2),
+                Instruction(Opcode.ROL2),
+                Instruction(Opcode.ROL2),
+                Instruction(Opcode.ROL2),
+                Instruction(Opcode.ROL2),
+                Instruction(Opcode.ROL2),
+                Instruction(Opcode.ROL2),
+                Instruction(Opcode.ROL2),
+                Instruction(Opcode.ROL2),
+                Instruction(Opcode.ROL2),
+                Instruction(Opcode.ROL2),
+                Instruction(Opcode.ROL2),
+                Instruction(Opcode.ROL2),
+                Instruction(Opcode.ROL2)         // 0b1001001100001101  (original value after 16 rols)
+        )
+        vm.load(makeProg(ins2), null)
+        vm.step(2)
+        assertEquals(Value(DataType.WORD, 0b0010011000011011), vm.evalstack.peek())
+        assertFalse(vm.P_carry)
+        vm.step(1)
+        assertEquals(Value(DataType.WORD, 0b0100110000110110), vm.evalstack.peek())
+        assertFalse(vm.P_carry)
+        vm.step(14)
+        assertEquals(Value(DataType.WORD, 0b1001001100001101), vm.evalstack.peek())
     }
 
     private fun testComparisonOperator(values: List<Value>, expected: List<Int>, operator: Opcode) {

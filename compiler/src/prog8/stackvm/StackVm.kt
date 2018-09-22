@@ -281,7 +281,7 @@ class Value(val type: DataType, numericvalue: Number?, val stringvalue: String?=
         return when(type) {
             DataType.BYTE -> byteval!!.toInt()
             DataType.WORD-> wordval!!
-            DataType.FLOAT -> floatval!!.toInt()
+            DataType.FLOAT -> throw VmExecutionException("float to integer loss of precision")
             else -> throw VmExecutionException("invalid datatype for integer value: $type")
         }
     }
