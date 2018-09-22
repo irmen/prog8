@@ -212,6 +212,9 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
          *      other_stuff     ;; optional
          * _stmt_999_end:
          *      nop
+         *
+         * @todo generate more efficient bytecode for the form with just jumps: if_xx goto .. [else goto ..] ?
+         *  -> this should translate into just a single branch opcode per goto
          */
         stackvmProg.line(branch.position)
         val labelElse = makeLabel("else")
@@ -258,17 +261,18 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
          *
          *  or when there is no else block:
          *      <condition-expression evaluation>
-         *      BNZ _stmt_999_end
+         *      BZ _stmt_999_end
          *      stuff
          * _stmt_999_end:
          *      nop
          *
+         * @todo generate more efficient bytecode for the form with just jumps: if(..) goto .. [else goto ..]
          */
         stackvmProg.line(stmt.position)
         translate(stmt.condition)
         val labelEnd = makeLabel("end")
         if(stmt.elsepart.isEmpty()) {
-            stackvmProg.instr(Opcode.BNZ, callLabel = labelEnd)
+            stackvmProg.instr(Opcode.BZ, callLabel = labelEnd)
             translate(stmt.statements)
             stackvmProg.label(labelEnd)
         } else {
@@ -319,7 +323,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
                 }
             }
             is RangeExpr -> {
-                TODO("TRANSLATE range $expr")      // todo
+                TODO("TRANSLATE range $expr")
             }
             else -> {
                 val lv = expr.constValue(namespace) ?: throw CompilerException("constant expression required, not $expr")
@@ -540,7 +544,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
                 else if (range.count()==1)
                     throw CompilerException("loop over just 1 value should have been optimized away")
                 if((range.last-range.first) % range.step != 0)
-                    throw CompilerException("range first and last must be inclusive")
+                    throw CompilerException("range first and last must be exactly inclusive")
                 when (loopVarDt) {
                     DataType.BYTE -> {
                         if (range.first < 0 || range.first > 255 || range.last < 0 || range.last > 255)
@@ -660,9 +664,17 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
          *      ..continue statement: goto continue
          *      ..
          * continue:
-         *      LV ++  / LV--  (if step =1 or step=-1)
-         *      LV += step   (otherwise)
-         *      goto loop
+         *
+         *      (if we know step is a constant:)
+         *      step == 1 ->
+         *          LV++
+         *          if_nz goto loop     ;; acts as overflow check
+         *      step == -1 ->
+         *          LV--
+         *          @todo some condition to check for not overflow , jump to loop
+         *      (not constant or other step:
+         *          LV += step      ; @todo implement overflow on the appropriate arithmetic operations
+         *          if_vc goto loop    ;; not overflowed
          * break:
          *      nop
          */
@@ -687,6 +699,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
 
         stackvmProg.label(loopLabel)
         if(literalStepValue!=null) {
+            // Step is a constant. We can optimize some stuff!
             val loopVar =
                     if(varname!=null)
                         IdentifierReference(varname, range.position)
@@ -708,34 +721,49 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
             ifstmt.linkParents(range.parent)
             translate(ifstmt)
         } else {
-            // generate code for the whole if statement
-            TODO("code for non-constant step comparison")
+            // Step is a variable. We can't optimize anything...
+            TODO("code for non-constant step comparison of LV")
         }
 
-        stackvmProg.label("body_goes_here") // todo weg
+        translate(body)
+        stackvmProg.label(continueLabel)
+        val lvTarget = makeAssignmentTarget()
+        lvTarget.linkParents(range.parent)
+        val targetStatement: VarDecl? =
+                if(lvTarget.identifier!=null) {
+                    lvTarget.identifier.targetStatement(namespace) as VarDecl
+                } else {
+                    null
+                }
 
-//        translate(body)
-//        stackvmProg.label(continueLabel)
-//        when (literalStepValue) {
-//            1 -> {
-//                // LV++
-//                val postIncr = PostIncrDecr(makeAssignmentTarget(), "++", range.position)
-//                postIncr.linkParents(range.parent)
-//                translate(postIncr)
-//            }
-//            -1 -> {
-//                // LV--
-//                val postIncr = PostIncrDecr(makeAssignmentTarget(), "--", range.position)
-//                postIncr.linkParents(range.parent)
-//                translate(postIncr)
-//            }
-//            else -> {
-//                // LV += step
-//                val addAssignment = Assignment(makeAssignmentTarget(), "+=", range.step, range.position)
-//                addAssignment.linkParents(range.parent)
-//                translate(addAssignment)
-//            }
-//        }
+        when (literalStepValue) {
+            1 -> {
+                // LV++
+                val postIncr = PostIncrDecr(lvTarget, "++", range.position)
+                postIncr.linkParents(range.parent)
+                translate(postIncr)
+                if(lvTarget.register!=null)
+                    stackvmProg.instr(Opcode.PUSH_VAR, Value(DataType.STR, null, stringvalue=lvTarget.register.toString()))
+                else
+                    stackvmProg.instr(Opcode.PUSH_VAR, Value(DataType.STR, null, stringvalue=targetStatement!!.scopedname))
+                val branch = BranchStatement(
+                        BranchCondition.NZ,
+                        listOf(Jump(null, null, loopLabel, range.position)),
+                        emptyList(), range.position)
+                branch.linkParents(range.parent)
+                translate(branch)
+            }
+            -1 -> {
+                // LV--
+                val postIncr = PostIncrDecr(makeAssignmentTarget(), "--", range.position)
+                postIncr.linkParents(range.parent)
+                translate(postIncr)
+                TODO("signed numbers and/or special condition still needed for decreasing for loop. Try increasing loop and/or constant loop values instead? At: ${range.position}")
+            }
+            else -> {
+                TODO("non-literal-const or other-than-one step increment code At: ${range.position}")
+            }
+        }
 
         stackvmProg.label(breakLabel)
         stackvmProg.instr(Opcode.NOP)
