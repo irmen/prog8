@@ -65,10 +65,11 @@ statement :
 	| inlineasm
 	| returnstmt
 	| forloop
+	| whileloop
+	| repeatloop
 	| breakstmt
 	| continuestmt
 	| labeldef
-	// @todo whileloop, repeatloop
 	;
 
 
@@ -207,7 +208,7 @@ sub_returns : '?' | ( sub_return (',' sub_return)* ) ;
 sub_return: (register | statusflag) '?'? ;
 
 
-if_stmt :  'if' '(' expression ')' EOL? (statement | statement_block) EOL? else_part? EOL ; // statement is constrained later
+if_stmt :  'if' expression EOL? (statement | statement_block) EOL? else_part? EOL ; // statement is constrained later
 
 else_part :  'else' EOL? (statement | statement_block) ;   // statement is constrained later
 
@@ -217,6 +218,8 @@ branch_stmt : branchcondition EOL? (statement | statement_block) EOL? else_part?
 branchcondition: 'if_cs' | 'if_cc' | 'if_eq' | 'if_z' | 'if_ne' | 'if_nz' | 'if_pl' | 'if_pos' | 'if_mi' | 'if_neg' | 'if_vs' | 'if_vc' ;
 
 
-forloop :
-    'for' (register | identifier) 'in' expression EOL? statement_block EOL
-    ;
+forloop :  'for' (register | identifier) 'in' expression EOL? statement_block ;
+
+whileloop:  'while' expression EOL? (statement | statement_block) ;
+
+repeatloop:  'repeat' (statement | statement_block) EOL? 'until' expression ;

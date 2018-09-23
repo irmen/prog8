@@ -190,6 +190,18 @@ interface IAstProcessor {
         forLoop.body = forLoop.body.asSequence().map {it.process(this)}.toMutableList()
         return forLoop
     }
+
+    fun process(whileLoop: WhileLoop): IStatement {
+        whileLoop.condition = whileLoop.condition.process(this)
+        whileLoop.statements = whileLoop.statements.map { it.process(this) }
+        return whileLoop
+    }
+
+    fun process(repeatLoop: RepeatLoop): IStatement {
+        repeatLoop.untilCondition = repeatLoop.untilCondition.process(this)
+        repeatLoop.statements = repeatLoop.statements.map { it.process(this) }
+        return repeatLoop
+    }
 }
 
 
@@ -1314,6 +1326,58 @@ class BranchStatement(var condition: BranchCondition,
 }
 
 
+class ForLoop(val loopRegister: Register?,
+              val loopVar: IdentifierReference?,
+              var iterable: IExpression,
+              var body: MutableList<IStatement>,
+              override val position: Position) : IStatement {
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent=parent
+        loopVar?.linkParents(this)
+        iterable.linkParents(this)
+        body.forEach { it.linkParents(this) }
+    }
+
+    override fun process(processor: IAstProcessor) = processor.process(this)
+
+    override fun toString(): String {
+        return "ForLoop(loopVar: $loopVar, loopReg: $loopRegister, iterable: $iterable, pos=$position)"
+    }
+}
+
+
+class WhileLoop(var condition: IExpression,
+                var statements: List<IStatement>,
+                override val position: Position) : IStatement {
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        condition.linkParents(this)
+        statements.forEach { it.linkParents(this) }
+    }
+
+    override fun process(processor: IAstProcessor): IStatement = processor.process(this)
+}
+
+
+class RepeatLoop(var statements: List<IStatement>,
+                 var untilCondition: IExpression,
+                 override val position: Position) : IStatement {
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        untilCondition.linkParents(this)
+        statements.forEach { it.linkParents(this) }
+    }
+
+    override fun process(processor: IAstProcessor): IStatement = processor.process(this)
+}
+
+
 /***************** Antlr Extension methods to create AST ****************/
 
 fun prog8Parser.ModuleContext.toAst(name: String) : Module =
@@ -1431,6 +1495,12 @@ private fun prog8Parser.StatementContext.toAst() : IStatement {
 
     val forloop = forloop()?.toAst()
     if(forloop!=null) return forloop
+
+    val repeatloop = repeatloop()?.toAst()
+    if(repeatloop!=null) return repeatloop
+
+    val whileloop = whileloop()?.toAst()
+    if(whileloop!=null) return whileloop
 
     val breakstmt = breakstmt()?.toAst()
     if(breakstmt!=null) return breakstmt
@@ -1687,28 +1757,20 @@ private fun prog8Parser.ForloopContext.toAst(): ForLoop {
 }
 
 
-class ForLoop(val loopRegister: Register?,
-              val loopVar: IdentifierReference?,
-              var iterable: IExpression,
-              var body: MutableList<IStatement>,
-              override val position: Position) : IStatement {
-    override lateinit var parent: Node
-
-    override fun linkParents(parent: Node) {
-        this.parent=parent
-        loopVar?.linkParents(this)
-        iterable.linkParents(this)
-        body.forEach { it.linkParents(this) }
-    }
-
-    override fun process(processor: IAstProcessor) = processor.process(this)
-
-    override fun toString(): String {
-        return "ForLoop(loopVar: $loopVar, loopReg: $loopRegister, iterable: $iterable, pos=$position)"
-    }
-}
-
-
 private fun prog8Parser.ContinuestmtContext.toAst() = Continue(toPosition())
 
 private fun prog8Parser.BreakstmtContext.toAst() = Break(toPosition())
+
+
+private fun prog8Parser.WhileloopContext.toAst(): WhileLoop {
+    val condition = expression().toAst()
+    val statements = statement_block()?.toAst() ?: listOf(statement().toAst())
+    return WhileLoop(condition, statements, toPosition())
+}
+
+
+private fun prog8Parser.RepeatloopContext.toAst(): RepeatLoop {
+    val untilCondition = expression().toAst()
+    val statements = statement_block()?.toAst() ?: listOf(statement().toAst())
+    return RepeatLoop(statements, untilCondition, toPosition())
+}

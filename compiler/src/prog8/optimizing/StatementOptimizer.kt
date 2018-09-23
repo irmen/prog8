@@ -75,6 +75,40 @@ class StatementOptimizer(private val globalNamespace: INameScope) : IAstProcesso
         return ifStatement
     }
 
+    override fun process(whileLoop: WhileLoop): IStatement {
+        super.process(whileLoop)
+        val constvalue = whileLoop.condition.constValue(globalNamespace)
+        if(constvalue!=null) {
+            return if(constvalue.asBooleanValue){
+                // always true
+                printWarning("condition is always true", whileLoop.position)
+                whileLoop
+            } else {
+                // always false -> ditch whole statement
+                printWarning("condition is always false", whileLoop.position)
+                AnonymousStatementList(whileLoop.parent, emptyList(), whileLoop.position)
+            }
+        }
+        return whileLoop
+    }
+
+    override fun process(repeatLoop: RepeatLoop): IStatement {
+        super.process(repeatLoop)
+        val constvalue = repeatLoop.untilCondition.constValue(globalNamespace)
+        if(constvalue!=null) {
+            return if(constvalue.asBooleanValue){
+                // always true -> keep only the statement block
+                printWarning("condition is always true", repeatLoop.position)
+                AnonymousStatementList(repeatLoop.parent, repeatLoop.statements, repeatLoop.position)
+            } else {
+                // always false
+                printWarning("condition is always false", repeatLoop.position)
+                repeatLoop
+            }
+        }
+        return repeatLoop
+    }
+
     private fun used(stmt: IStatement) {
         val scopedName = when (stmt) {
             is Label -> stmt.scopedname

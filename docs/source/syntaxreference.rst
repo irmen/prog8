@@ -457,7 +457,7 @@ The loop variable must be a register or a variable defined in the local scope.
 The expression that you loop over can be anything that supports iteration (such as ranges like ``0 to 100``,
 array variables and strings).
 
-::
+You can use a single statement, or a statement block like in the example below::
 
 	for  <loopvar>  in  <expression>  [ step <amount> ]   {
 		; do something...
@@ -468,9 +468,9 @@ array variables and strings).
 
 while loop
 ^^^^^^^^^^
-.. todo:: not implemented yet, for now you can use the if statement with gotos to implement a while-loop.
 
-::
+As long as the condition is true (1), repeat the given statement(s).
+You can use a single statement, or a statement block like in the example below::
 
 	while  <condition>  {
 		; do something...
@@ -479,12 +479,11 @@ while loop
 	}
 
 
-
 repeat--until loop
 ^^^^^^^^^^^^^^^^^^
-.. todo:: not implemented yet, for now you can use the if statement with gotos to implement a repeat-loop.
 
-::
+Until the given condition is true (1), repeat the given statement(s).
+You can use a single statement, or a statement block like in the example below::
 
 	repeat  {
 		; do something...
@@ -515,11 +514,11 @@ Conditional execution
 
 With the 'if' / 'else' statement you can execute code depending on the value of a condition::
 
-	if  ( <expression> )  <statements>  [else  <statements> ]
+	if  <expression>  <statements>  [else  <statements> ]
 
 where <statements> can be just a single statement for instance just a ``goto``, or it can be a block such as this::
 
-	if  ( <expression> ) {
+	if  <expression> {
 		<statements>
 	} else {
 	  	<alternative statements>

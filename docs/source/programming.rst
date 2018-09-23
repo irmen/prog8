@@ -312,19 +312,19 @@ Conditional Execution
 Conditional execution means that the flow of execution changes based on certiain conditions,
 rather than having fixed gotos or subroutine calls::
 
-	if (A > 4) goto overflow
+	if A>4 goto overflow
 
-	if (X == 3) Y = 4
-	if (X == 3) Y = 4 else A = 2
+	if X==3  Y = 4
+	if X==3  Y = 4 else  A = 2
 
-	if (X == 5) {
+	if X==5 {
 		Y = 99
 	} else {
 		A = 3
 	}
 
 
-Conditional jumps (``if (condition) goto label``) are compiled using 6502's branching instructions (such as ``bne`` and ``bcc``) so
+Conditional jumps (``if condition goto label``) are compiled using 6502's branching instructions (such as ``bne`` and ``bcc``) so
 the rather strict limit on how *far* it can jump applies. The compiler itself can't figure this
 out unfortunately, so it is entirely possible to create code that cannot be assembled successfully.
 You'll have to restructure your gotos in the code (place target labels closer to the branch)

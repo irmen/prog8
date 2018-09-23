@@ -177,6 +177,8 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
                 is Break -> translate(stmt)
                 is Continue -> translate(stmt)
                 is ForLoop -> translate(stmt)
+                is WhileLoop -> translate(stmt)
+                is RepeatLoop -> translate(stmt)
                 is Directive, is VarDecl, is Subroutine -> {}   // skip this, already processed these.
                 is InlineAssembly -> throw CompilerException("inline assembly is not supported by the StackVM")
                 else -> TODO("translate statement $stmt to stackvm")
@@ -647,7 +649,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
     }
 
     private fun translateForOverVariableRange(varname: List<String>?, register: Register?, varDt: DataType, range: RangeExpr, body: MutableList<IStatement>) {
-        /**
+        /*
          * for LV in start..last { body }
          * (where at least one of the start, last, step values is not a constant)
          * (so we can't make any static assumptions about them)
@@ -769,6 +771,71 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
         stackvmProg.instr(Opcode.NOP)
         // note: ending value of loop register / variable is *undefined* after this point!
 
+        breakStmtLabelStack.pop()
+        continueStmtLabelStack.pop()
+    }
+
+    private fun translate(stmt: WhileLoop)
+    {
+        /*
+         *  while condition { statements... }  ->
+         *
+         *      goto continue
+         *  loop:
+         *      statements
+         *      break -> goto break
+         *      continue -> goto condition
+         *  continue:
+         *      <evaluate condition>
+         *      bnz loop
+         *  break:
+         *      nop
+         */
+        val loopLabel = makeLabel("loop")
+        val breakLabel = makeLabel("break")
+        val continueLabel = makeLabel("continue")
+        breakStmtLabelStack.push(breakLabel)
+        continueStmtLabelStack.push(continueLabel)
+        stackvmProg.instr(Opcode.JUMP, callLabel = continueLabel)
+        stackvmProg.label(loopLabel)
+        translate(stmt.statements)
+        stackvmProg.label(continueLabel)
+        translate(stmt.condition)
+        stackvmProg.instr(Opcode.BNZ, callLabel = loopLabel)
+        stackvmProg.label(breakLabel)
+        stackvmProg.instr(Opcode.NOP)
+        breakStmtLabelStack.pop()
+        continueStmtLabelStack.pop()
+
+    }
+
+    private fun translate(stmt: RepeatLoop)
+    {
+        /*
+         *  repeat { statements... }  until condition  ->
+         *
+         *  loop:
+         *      statements
+         *      break -> goto break
+         *      continue -> goto condition
+         *  condition:
+         *      <evaluate untilCondition>
+         *      bz goto loop
+         *  break:
+         *      nop
+         */
+        val loopLabel = makeLabel("loop")
+        val continueLabel = makeLabel("continue")
+        val breakLabel = makeLabel("break")
+        breakStmtLabelStack.push(breakLabel)
+        continueStmtLabelStack.push(continueLabel)
+        stackvmProg.label(loopLabel)
+        translate(stmt.statements)
+        stackvmProg.label(continueLabel)
+        translate(stmt.untilCondition)
+        stackvmProg.instr(Opcode.BZ, callLabel = loopLabel)
+        stackvmProg.label(breakLabel)
+        stackvmProg.instr(Opcode.NOP)
         breakStmtLabelStack.pop()
         continueStmtLabelStack.pop()
     }
