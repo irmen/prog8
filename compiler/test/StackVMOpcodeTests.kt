@@ -344,8 +344,8 @@ class TestStackVmOpcodes {
                 Value(DataType.BYTE, 40)
         )
         val expected = listOf(
-                Value(DataType.FLOAT, 3999.0/40.0),
-                Value(DataType.FLOAT, 42.25/(3999.0/40.0)))
+                Value(DataType.WORD, 99),
+                Value(DataType.FLOAT, 42.25/99))
         val operator = Opcode.DIV
 
         testBinaryOperator(values, operator, expected)
@@ -354,13 +354,13 @@ class TestStackVmOpcodes {
     @Test
     fun testFloorDiv() {
         val values = listOf(
-                Value(DataType.FLOAT, 42.25),
+                Value(DataType.FLOAT, 4000.25),
                 Value(DataType.WORD, 3999),
                 Value(DataType.BYTE, 40)
         )
         val expected = listOf(
-                Value(DataType.WORD, floor(3999.0/40.0)),
-                Value(DataType.WORD, floor(42.25/floor(3999.0/40.0))))
+                Value(DataType.WORD, 99),
+                Value(DataType.FLOAT, 40.0))
         val operator = Opcode.FLOORDIV
 
         testBinaryOperator(values, operator, expected)
@@ -833,10 +833,6 @@ class TestStackVmOpcodes {
     @Test
     fun testLess() {
         val values = listOf(
-                Value(DataType.STR, null, stringvalue = "hello"),
-                Value(DataType.STR, null, stringvalue = "hello"),  // 0
-                Value(DataType.STR, null, stringvalue = "abc"),
-                Value(DataType.STR, null, stringvalue = "abd"),  // 1
                 Value(DataType.BYTE, 0),
                 Value(DataType.BYTE, 1),        // 1
                 Value(DataType.BYTE, 1),
@@ -852,17 +848,21 @@ class TestStackVmOpcodes {
                 Value(DataType.BYTE, 21),
                 Value(DataType.FLOAT, 21.0001)      // 1
         )
-        val expected = listOf(0, 1, 1, 0, 1, 1, 0, 0, 1)
+        val expected = listOf(1, 0, 1, 1, 0, 0, 1)
         testComparisonOperator(values, expected, Opcode.LESS)
+
+        val valuesInvalid = listOf(
+                Value(DataType.STR, null, stringvalue = "hello"),
+                Value(DataType.STR, null, stringvalue = "hello")
+        )
+        assertFailsWith<VmExecutionException> {
+            testComparisonOperator(valuesInvalid, listOf(0), Opcode.LESS)  // can't compare strings
+        }
     }
 
     @Test
     fun testLessEq() {
         val values = listOf(
-                Value(DataType.STR, null, stringvalue = "hello"),
-                Value(DataType.STR, null, stringvalue = "hello"),  // 1
-                Value(DataType.STR, null, stringvalue = "abc"),
-                Value(DataType.STR, null, stringvalue = "abd"),  // 1
                 Value(DataType.BYTE, 0),
                 Value(DataType.BYTE, 1),        // 1
                 Value(DataType.BYTE, 1),
@@ -878,17 +878,21 @@ class TestStackVmOpcodes {
                 Value(DataType.BYTE, 22),
                 Value(DataType.FLOAT, 21.999)      // 0
         )
-        val expected = listOf(1,1,1,1,0,1,1,1,0)
+        val expected = listOf(1,1,0,1,1,1,0)
         testComparisonOperator(values, expected, Opcode.LESSEQ)
+
+        val valuesInvalid = listOf(
+                Value(DataType.STR, null, stringvalue = "hello"),
+                Value(DataType.STR, null, stringvalue = "hello")
+        )
+        assertFailsWith<VmExecutionException> {
+            testComparisonOperator(valuesInvalid, listOf(0), Opcode.LESSEQ)  // can't compare strings
+        }
     }
 
     @Test
     fun testGreater() {
         val values = listOf(
-                Value(DataType.STR, null, stringvalue = "hello"),
-                Value(DataType.STR, null, stringvalue = "hello"),  // 0
-                Value(DataType.STR, null, stringvalue = "abd"),
-                Value(DataType.STR, null, stringvalue = "abc"),  // 1
                 Value(DataType.BYTE, 0),
                 Value(DataType.BYTE, 1),        // 0
                 Value(DataType.BYTE, 1),
@@ -904,17 +908,21 @@ class TestStackVmOpcodes {
                 Value(DataType.BYTE, 21),
                 Value(DataType.FLOAT, 20.9999)      // 1
         )
-        val expected = listOf(0, 1, 0, 0, 1, 0, 1, 0, 1)
+        val expected = listOf(0, 0, 1, 0, 1, 0, 1)
         testComparisonOperator(values, expected, Opcode.GREATER)
+
+        val valuesInvalid = listOf(
+                Value(DataType.STR, null, stringvalue = "hello"),
+                Value(DataType.STR, null, stringvalue = "hello")
+        )
+        assertFailsWith<VmExecutionException> {
+            testComparisonOperator(valuesInvalid, listOf(0), Opcode.GREATER)  // can't compare strings
+        }
     }
 
     @Test
     fun testGreaterEq() {
         val values = listOf(
-                Value(DataType.STR, null, stringvalue = "hello"),
-                Value(DataType.STR, null, stringvalue = "hello"),  // 1
-                Value(DataType.STR, null, stringvalue = "abd"),
-                Value(DataType.STR, null, stringvalue = "abc"),  // 1
                 Value(DataType.BYTE, 0),
                 Value(DataType.BYTE, 1),        // 0
                 Value(DataType.BYTE, 1),
@@ -930,17 +938,21 @@ class TestStackVmOpcodes {
                 Value(DataType.BYTE, 22),
                 Value(DataType.FLOAT, 21.999)      // 1
         )
-        val expected = listOf(1,1,0,1,1,0,0,1,1)
+        val expected = listOf(0,1,1,0,0,1,1)
         testComparisonOperator(values, expected, Opcode.GREATEREQ)
+
+        val valuesInvalid = listOf(
+                Value(DataType.STR, null, stringvalue = "hello"),
+                Value(DataType.STR, null, stringvalue = "hello")
+        )
+        assertFailsWith<VmExecutionException> {
+            testComparisonOperator(valuesInvalid, listOf(0), Opcode.GREATEREQ)  // can't compare strings
+        }
     }
 
     @Test
     fun testEqual() {
         val values = listOf(
-                Value(DataType.STR, null, stringvalue = "hello"),
-                Value(DataType.STR, null, stringvalue = "hello"),  // 1
-                Value(DataType.STR, null, stringvalue = "abd"),
-                Value(DataType.STR, null, stringvalue = "abc"),  // 0
                 Value(DataType.BYTE, 0),
                 Value(DataType.BYTE, 1),        // 0
                 Value(DataType.BYTE, 1),
@@ -956,17 +968,21 @@ class TestStackVmOpcodes {
                 Value(DataType.BYTE, 22),
                 Value(DataType.FLOAT, 21.999)      // 0
         )
-        val expected = listOf(1,0,0,1,0,0,1,1,0)
+        val expected = listOf(0,1,0,0,1,1,0)
         testComparisonOperator(values, expected, Opcode.EQUAL)
+
+        val valuesInvalid = listOf(
+                Value(DataType.STR, null, stringvalue = "hello"),
+                Value(DataType.STR, null, stringvalue = "hello")
+        )
+        assertFailsWith<VmExecutionException> {
+            testComparisonOperator(valuesInvalid, listOf(0), Opcode.EQUAL)  // can't compare strings
+        }
     }
 
     @Test
     fun testNotEqual() {
         val values = listOf(
-                Value(DataType.STR, null, stringvalue = "hello"),
-                Value(DataType.STR, null, stringvalue = "hello"),  // 0
-                Value(DataType.STR, null, stringvalue = "abd"),
-                Value(DataType.STR, null, stringvalue = "abc"),  // 1
                 Value(DataType.BYTE, 0),
                 Value(DataType.BYTE, 1),        // 1
                 Value(DataType.BYTE, 1),
@@ -982,8 +998,16 @@ class TestStackVmOpcodes {
                 Value(DataType.BYTE, 22),
                 Value(DataType.FLOAT, 21.999)      // 1
         )
-        val expected = listOf(0,1,1,0,1,1,0,0,1)
+        val expected = listOf(1,0,1,1,0,0,1)
         testComparisonOperator(values, expected, Opcode.NOTEQUAL)
+
+        val valuesInvalid = listOf(
+                Value(DataType.STR, null, stringvalue = "hello"),
+                Value(DataType.STR, null, stringvalue = "hello")
+        )
+        assertFailsWith<VmExecutionException> {
+            testComparisonOperator(valuesInvalid, listOf(0), Opcode.NOTEQUAL)  // can't compare strings
+        }
     }
 
     @Test

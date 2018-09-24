@@ -161,7 +161,7 @@ enum class Syscall(val callNr: Short) {
     FUNC_RNDF(91),               // push a random float on the stack (between 0.0 and 1.0)
 
     // note: not all builtin functions of the Prog8 language are present as functions:
-    // some of them are already opcodes (such as MSB and ROL and FLT)!
+    // some of them are already opcodes (such as MSB, LSB, LSL, LSR, ROL, ROR, ROL2, ROR2, and FLT)!
 }
 
 class Memory {
@@ -301,61 +301,130 @@ class Value(val type: DataType, numericvalue: Number?, val stringvalue: String?=
     }
 
     operator fun compareTo(other: Value): Int {
-        if(stringvalue!=null && other.stringvalue!=null)
-            return stringvalue.compareTo(other.stringvalue)
-        return numericValue().toDouble().compareTo(other.numericValue().toDouble())
+        return when(type) {
+            DataType.BYTE, DataType.WORD, DataType.FLOAT -> {
+                when(other.type) {
+                    DataType.BYTE, DataType.WORD, DataType.FLOAT -> {
+                        numericValue().toDouble().compareTo(other.numericValue().toDouble())
+                    }
+                    else -> throw VmExecutionException("comparison can only be done between two numeric values")
+                }
+            }
+            else -> throw VmExecutionException("comparison can only be done between two numeric values")
+        }
+    }
+
+    private fun arithResult(leftDt: DataType, result: Number, rightDt: DataType, op: String): Value {
+        if(result.toDouble() < 0 ) {
+            return when(leftDt) {
+                DataType.BYTE -> {
+                    // BYTE can become WORD if right operand is WORD, or when value is too large for byte
+                    when(rightDt) {
+                        DataType.BYTE -> Value(DataType.BYTE, result.toInt() and 255)
+                        DataType.WORD -> Value(DataType.WORD, result.toInt() and 65535)
+                        DataType.FLOAT -> throw VmExecutionException("floating point loss of precision")
+                        else -> throw VmExecutionException("$op on non-numeric result type")
+                    }
+                }
+                DataType.WORD -> Value(DataType.WORD, result.toInt() and 65535)
+                DataType.FLOAT -> Value(DataType.FLOAT, result)
+                else -> throw VmExecutionException("$op on non-numeric type")
+            }
+        }
+
+        return when(leftDt) {
+            DataType.BYTE -> {
+                // BYTE can become WORD if right operand is WORD, or when value is too large for byte
+                if(result.toDouble() >= 256)
+                    return Value(DataType.WORD, result)
+                when(rightDt) {
+                    DataType.BYTE -> Value(DataType.BYTE, result)
+                    DataType.WORD -> Value(DataType.WORD, result)
+                    DataType.FLOAT -> throw VmExecutionException("floating point loss of precision")
+                    else -> throw VmExecutionException("$op on non-numeric result type")
+                }
+            }
+            DataType.WORD -> Value(DataType.WORD, result)
+            DataType.FLOAT -> Value(DataType.FLOAT, result)
+            else -> throw VmExecutionException("$op on non-numeric type")
+        }
     }
 
     fun add(other: Value): Value {
+        if(other.type == DataType.FLOAT && (type!=DataType.FLOAT))
+            throw VmExecutionException("floating point loss of precision on type $type")
         val v1 = numericValue()
         val v2 = other.numericValue()
         val result = v1.toDouble() + v2.toDouble()
-        return Value(type, result)
+        return arithResult(type, result, other.type, "add")
     }
 
     fun sub(other: Value): Value {
+        if(other.type == DataType.FLOAT && (type!=DataType.FLOAT))
+            throw VmExecutionException("floating point loss of precision on type $type")
         val v1 = numericValue()
         val v2 = other.numericValue()
         val result = v1.toDouble() - v2.toDouble()
-        return Value(type, result)
+        return arithResult(type, result, other.type, "sub")
     }
 
     fun mul(other: Value): Value {
+        if(other.type == DataType.FLOAT && (type!=DataType.FLOAT))
+            throw VmExecutionException("floating point loss of precision on type $type")
         val v1 = numericValue()
         val v2 = other.numericValue()
         val result = v1.toDouble() * v2.toDouble()
-        return Value(type, result)
+        return arithResult(type, result, other.type, "mul")
     }
 
     fun div(other: Value): Value {
+        if(other.type == DataType.FLOAT && (type!=DataType.FLOAT))
+            throw VmExecutionException("floating point loss of precision on type $type")
         val v1 = numericValue()
         val v2 = other.numericValue()
+        if(v2.toDouble()==0.0) {
+            if (type == DataType.BYTE)
+                return Value(DataType.BYTE, 255)
+            else if(type == DataType.WORD)
+                return Value(DataType.WORD, 65535)
+        }
         val result = v1.toDouble() / v2.toDouble()
-        return Value(DataType.FLOAT, result)
+        // NOTE: integer division returns integer result!
+        return when(type) {
+            DataType.BYTE -> Value(DataType.BYTE, result)
+            DataType.WORD -> Value(DataType.WORD, result)
+            DataType.FLOAT -> Value(DataType.FLOAT, result)
+            else -> throw VmExecutionException("div on non-numeric type")
+        }
     }
 
     fun floordiv(other: Value): Value {
+        if(other.type == DataType.FLOAT && (type!=DataType.FLOAT))
+            throw VmExecutionException("floating point loss of precision on type $type")
         val v1 = numericValue()
         val v2 = other.numericValue()
-        val result = (v1.toDouble() / v2.toDouble()).toInt()
-        return if(this.type==DataType.BYTE)
-            Value(DataType.BYTE, (result and 255).toShort())
-        else
-            Value(DataType.WORD, result and 65535)
+        val result = floor(v1.toDouble() / v2.toDouble())
+        // NOTE: integer division returns integer result!
+        return when(type) {
+            DataType.BYTE -> Value(DataType.BYTE, result)
+            DataType.WORD -> Value(DataType.WORD, result)
+            DataType.FLOAT -> Value(DataType.FLOAT, result)
+            else -> throw VmExecutionException("div on non-numeric type")
+        }
     }
 
     fun remainder(other: Value): Value? {
         val v1 = numericValue()
         val v2 = other.numericValue()
         val result = v1.toDouble() % v2.toDouble()
-        return Value(type, result)
+        return arithResult(type, result, other.type, "remainder")
     }
 
     fun pow(other: Value): Value {
         val v1 = numericValue()
         val v2 = other.numericValue()
         val result = v1.toDouble().pow(v2.toDouble())
-        return Value(type, result)      // @todo datatype of pow is now always float, maybe allow byte/word results as well
+        return arithResult(type, result, other.type,"pow")
     }
 
     fun shl(): Value {

@@ -264,10 +264,11 @@ The largest 5-byte MFLPT float that can be stored is: **1.7014118345e+38**   (ne
 Initial values across multiple runs of the program
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The initial values of your variables will be restored automatically when the program is (re)started,
-*except for string variables, arrays and matrices*. It is assumed these are left unchanged by the program.
-If you do modify them in-place, you should take care yourself that they work as
-expected when the program is restarted.
+.. todo::
+    The initial values of your variables will be restored automatically when the program is (re)started,
+    *except for string variables, arrays and matrices*. It is assumed these are left unchanged by the program.
+    If you do modify them in-place, you should take care yourself that they work as
+    expected when the program is restarted.
 
 
 
@@ -363,26 +364,45 @@ Assignment statements assign a single value to a target variable or memory locat
 Augmented assignments (such as ``A += X``) are also available, but these are just shorthands
 for normal assignments (``A = A + X``).
 
+.. attention::
+    **Data type conversion (in assignments):**
+    When assigning a value with a 'smaller' datatype to a register or variable with a 'larger' datatype,
+    the value will be automatically converted to the target datatype:  byte --> word --> float.
+    So assigning a byte to a word variable, or a word to a floating point variable, is fine.
+    The reverse is *not* true: it is *not* possible to assign a value of a 'larger' datatype to
+    a variable of a smaller datatype without an explicit conversion. Otherwise you'll get an error telling you
+    that there is a loss of precision. You can use builtin functions such as ``round`` and ``lsb`` to convert
+    to a smaller datatype.
 
 Expressions
 -----------
 
 In most places where a number or other value is expected, you can use just the number, or a constant expression.
-The expression is parsed and evaluated by the compiler itself at compile time, and the (constant) resulting value is used in its place.
+If possible, the expression is parsed and evaluated by the compiler itself at compile time, and the (constant) resulting value is used in its place.
+Expressions that cannot be compile-time evaluated will result in code that calculates them at runtime.
 Expressions can contain procedure and function calls.
 There are various built-in functions such as sin(), cos(), min(), max() that can be used in expressions (see :ref:`builtinfunctions`).
 You can also reference idendifiers defined elsewhere in your code.
-The compiler will evaluate the expression if it is a constant, and just use the resulting value from then on.
-Expressions that cannot be compile-time evaluated will result in code that calculates them at runtime.
+
+.. attention::
+    **Data type conversion (during calculations):**
+    BYTE values used in arithmetic expressions (calculations) will be automatically converted into WORD values
+    if the calculation needs that to store the resulting value. Once a WORD value is used, all other results will be WORDs as well
+    (there's no automatic conversion of WORD into BYTE).
+    *There is never an automatic conversion into floating point values, and the compiler will NOT issue a warning for this.*
+    If you require float precision, you'll have to first convert into a floating point explicitly using the ``flt`` builtin function.
+    For example, this means that if you divide two integer values (say: ``32500 / 99``) the result will be the integer floor
+    division (328) rather than the floating point result (328.2828282828283). If you need the full precision,
+    you'll have to write ``flt(32500) / 99`` (or if they're constants, simply ``32500.0 / 99``), to make sure the
+    first operand is a floating point value.
 
 
 Arithmetic and Logical expressions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Arithmetic expressions are expressions that calculate a numeric result (integer or floating point).
 Many common arithmetic operators can be used and follow the regular precedence rules.
-
-Logical expressions are expressions that calculate a boolean result, true or false
-(which in Prog8 will effectively be a 1 or 0 integer value).
+Logical expressions are expressions that calculate a boolean result: true or false
+(which in reality are just a 1 or 0 integer value).
 
 You can use parentheses to group parts of an expresion to change the precedence.
 Usually the normal precedence rules apply (``*`` goes before ``+`` etc.) but subexpressions
@@ -516,7 +536,7 @@ msb(x)
 
 flt(x)
     Explicitly convert the number x to a floating point number.
-    Usually this is done automatically but sometimes it may be required to force this.
+    This is required if you want calculations to have floating point precision when the values aren't float already.
 
 any(x)
 	1 ('true') if any of the values in the non-scalar (array or matrix) value x is 'true' (not zero), else 0 ('false')
@@ -536,12 +556,12 @@ rndf()
 lsl(x)
     Shift the bits in x (byte or word) one position to the left.
     Bit 0 is set to 0 (and the highest bit is shifted into the status register's Carry flag)
-    Modifies in-place but also returns the new value.
+    Modifies in-place, doesn't return a value (so can't be used in an expression).
 
 lsr(x)
     Shift the bits in x (byte or word) one position to the right.
     The highest bit is set to 0 (and bit 0 is shifted into the status register's Carry flag)
-    Modifies in-place but also returns the new value.
+    Modifies in-place, doesn't return a value (so can't be used in an expression).
 
 rol(x)
     Rotate the bits in x (byte or word) one position to the left.
@@ -574,3 +594,6 @@ P_carry(bit)
 P_irqd(bit)
     Set (or clear) the CPU status register Interrupt Disable flag. No result value.
     (translated into ``SEI`` or ``CLI`` cpu instruction)
+
+
+@todo remove P_carry and P_irqd as functions and turn them into assignments instead (allowing only 0 or 1 as value)

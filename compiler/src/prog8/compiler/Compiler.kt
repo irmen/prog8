@@ -303,9 +303,9 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
                 expr.arglist.forEach { translate(it) }
                 val target = expr.target.targetStatement(namespace)
                 if(target is BuiltinFunctionStatementPlaceholder) {
-                    // call to a builtin function
-                    val funcname = expr.target.nameInSource[0].toUpperCase()
-                    createFunctionCall(funcname)  // call builtin function
+                    // call to a builtin function (some will just be an opcode!)
+                    val funcname = expr.target.nameInSource[0]
+                    translateFunctionCall(funcname, expr.arglist)
                 } else {
                     when(target) {
                         is Subroutine -> {
@@ -344,6 +344,31 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
         }
     }
 
+    private fun translateFunctionCall(funcname: String, args: List<IExpression>) {
+        // some functions are implemented as vm opcodes
+        when (funcname) {
+            "flt" -> {
+                // 1 argument, type determines the exact opcode to use
+                val arg = args.single()
+                when (arg.resultingDatatype(namespace)) {
+                    DataType.BYTE -> stackvmProg.instr(Opcode.B2FLOAT)
+                    DataType.WORD -> stackvmProg.instr(Opcode.W2FLOAT)
+                    DataType.FLOAT -> stackvmProg.instr(Opcode.NOP)
+                    else -> throw CompilerException("wrong datatype for flt()")
+                }
+            }
+            "msb" -> stackvmProg.instr(Opcode.MSB)
+            "lsb" -> stackvmProg.instr(Opcode.LSB)
+            "lsl" -> stackvmProg.instr(Opcode.SHL)
+            "lsr" -> stackvmProg.instr(Opcode.SHR)
+            "rol" -> stackvmProg.instr(Opcode.ROL)
+            "ror" -> stackvmProg.instr(Opcode.ROR)
+            "rol2" -> stackvmProg.instr(Opcode.ROL2)
+            "ror2" -> stackvmProg.instr(Opcode.ROR2)
+            else -> createSyscall(funcname)  // call builtin function
+        }
+    }
+
     private fun translateBinaryOperator(operator: String) {
         val opcode = when(operator) {
             "+" -> Opcode.ADD
@@ -375,8 +400,8 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
         val targetStmt = stmt.target.targetStatement(namespace)!!
         if(targetStmt is BuiltinFunctionStatementPlaceholder) {
             stmt.arglist.forEach { translate(it) }
-            val funcname = stmt.target.nameInSource[0].toUpperCase()
-            createFunctionCall(funcname)  // call builtin function
+            val funcname = stmt.target.nameInSource[0]
+            translateFunctionCall(funcname, stmt.arglist)
             return
         }
 
@@ -389,9 +414,9 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
         stackvmProg.instr(Opcode.CALL, callLabel = targetname)
     }
 
-    private fun createFunctionCall(funcname: String) {
+    private fun createSyscall(funcname: String) {
         val function = (
-                if (funcname.startsWith("_VM_"))
+                if (funcname.startsWith("_vm_"))
                     funcname.substring(4)
                 else
                     "FUNC_$funcname"
@@ -724,7 +749,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
             translate(ifstmt)
         } else {
             // Step is a variable. We can't optimize anything...
-            TODO("code for non-constant step comparison of LV")
+            TODO("for loop with non-constant step comparison of LV")
         }
 
         translate(body)
@@ -760,7 +785,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
                 val postIncr = PostIncrDecr(makeAssignmentTarget(), "--", range.position)
                 postIncr.linkParents(range.parent)
                 translate(postIncr)
-                TODO("signed numbers and/or special condition still needed for decreasing for loop. Try increasing loop and/or constant loop values instead? At: ${range.position}")
+                TODO("signed numbers and/or special condition are needed for decreasing for loop. Try an increasing loop and/or constant loop values instead? At: ${range.position}")
             }
             else -> {
                 TODO("non-literal-const or other-than-one step increment code At: ${range.position}")

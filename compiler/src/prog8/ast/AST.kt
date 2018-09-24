@@ -1137,14 +1137,8 @@ class FunctionCall(override var target: IdentifierReference,
                 "all" -> builtinAll(arglist, position, namespace)
                 "floor" -> builtinFloor(arglist, position, namespace)
                 "ceil" -> builtinCeil(arglist, position, namespace)
-                "lsl" -> builtinLsl(arglist, position, namespace)
-                "lsr" -> builtinLsr(arglist, position, namespace)
-                "rol" -> throw ExpressionError("builtin function rol can't be used in expressions because it doesn't return a value", position)
-                "rol2" -> throw ExpressionError("builtin function rol2 can't be used in expressions because it doesn't return a value", position)
-                "ror" -> throw ExpressionError("builtin function ror can't be used in expressions because it doesn't return a value", position)
-                "ror2" -> throw ExpressionError("builtin function ror2 can't be used in expressions because it doesn't return a value", position)
-                "P_carry" -> throw ExpressionError("builtin function P_carry can't be used in expressions because it doesn't return a value", position)
-                "P_irqd" -> throw ExpressionError("builtin function P_irqd can't be used in expressions because it doesn't return a value", position)
+                "lsl", "lsr", "rol", "rol2", "ror", "ror2", "P_carry", "P_irqd" ->
+                    throw ExpressionError("builtin function ${target.nameInSource[0]} can't be used in expressions because it doesn't return a value", position)
                 else -> null
             }
             if(withDatatypeCheck) {

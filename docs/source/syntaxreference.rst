@@ -319,8 +319,9 @@ If used in the place of a literal value, it expands into the actual array of val
 Operators
 ---------
 
-address-of: ``#``
-	Takes the address of the symbol following it:   ``word  address =  #somevar``
+.. todo::
+    address-of: ``#``
+	    Takes the address of the symbol following it:   ``word  address =  #somevar``
 
 
 arithmetic: ``+``  ``-``  ``*``  ``/``  ``//`` ``**``  ``%``

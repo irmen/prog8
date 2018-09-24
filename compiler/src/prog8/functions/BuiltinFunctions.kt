@@ -14,7 +14,8 @@ val BuiltinFunctionNames = setOf(
         )
 
 
-val BuiltinFunctionsWithoutSideEffects = BuiltinFunctionNames - setOf("P_carry", "P_irqd",
+val BuiltinFunctionsWithoutSideEffects = BuiltinFunctionNames - setOf(
+        "P_carry", "P_irqd", "lsl", "lsr", "rol", "ror", "rol2", "ror2",
         "_vm_write_memchr", "_vm_write_memstr", "_vm_write_num", "_vm_write_char",
         "_vm_write_str", "_vm_gfx_clearscr", "_vm_gfx_pixel", "_vm_gfx_text")
 
@@ -231,12 +232,6 @@ fun builtinLsb(args: List<IExpression>, position: Position, namespace:INameScope
 
 fun builtinMsb(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
         = oneIntArgOutputInt(args, position, namespace) { x: Int -> x ushr 8 and 255}
-
-fun builtinLsl(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
-        = oneIntArgOutputInt(args, position, namespace) { x: Int -> x shl 1 }
-
-fun builtinLsr(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
-        = oneIntArgOutputInt(args, position, namespace) { x: Int -> x ushr 1 }
 
 fun builtinMin(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
         = collectionArgOutputNumber(args, position, namespace) { it.min()!! }
