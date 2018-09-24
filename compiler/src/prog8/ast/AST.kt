@@ -1137,7 +1137,7 @@ class FunctionCall(override var target: IdentifierReference,
                 "all" -> builtinAll(arglist, position, namespace)
                 "floor" -> builtinFloor(arglist, position, namespace)
                 "ceil" -> builtinCeil(arglist, position, namespace)
-                "lsl", "lsr", "rol", "rol2", "ror", "ror2", "P_carry", "P_irqd" ->
+                "lsl", "lsr", "rol", "rol2", "ror", "ror2", "set_carry", "clear_carry", "set_irqd", "clear_irqd" ->
                     throw ExpressionError("builtin function ${target.nameInSource[0]} can't be used in expressions because it doesn't return a value", position)
                 else -> null
             }
@@ -1169,7 +1169,8 @@ class FunctionCall(override var target: IdentifierReference,
             return constVal.resultingDatatype(namespace)
         val stmt = target.targetStatement(namespace) ?: return null
         if(stmt is BuiltinFunctionStatementPlaceholder) {
-            if(target.nameInSource[0] == "P_carry" || target.nameInSource[0]=="P_irqd") {
+            if(target.nameInSource[0] == "set_carry" || target.nameInSource[0]=="set_irqd" ||
+                    target.nameInSource[0] == "clear_carry" || target.nameInSource[0]=="clear_irqd") {
                 return null // these have no return value
             }
             return builtinFunctionReturnType(target.nameInSource[0], this.arglist, namespace)

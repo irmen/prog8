@@ -8,8 +8,11 @@ sub start() -> () {
     float f
     word ww = $55aa
 
-    ; P_carry(1)  @todo function -> assignment
-    ; P_irqd(1)   @todo function -> assignment
+    set_carry()
+    clear_carry()
+    set_irqd()
+    clear_irqd()
+
     f=flt(i)
     i = msb(ww)
     i = lsb(ww)

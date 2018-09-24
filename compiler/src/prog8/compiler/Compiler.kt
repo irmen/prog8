@@ -365,6 +365,10 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
             "ror" -> stackvmProg.instr(Opcode.ROR)
             "rol2" -> stackvmProg.instr(Opcode.ROL2)
             "ror2" -> stackvmProg.instr(Opcode.ROR2)
+            "set_carry" -> stackvmProg.instr(Opcode.SEC)
+            "clear_carry" -> stackvmProg.instr(Opcode.CLC)
+            "set_irqd" -> stackvmProg.instr(Opcode.SEI)
+            "clear_irqd" -> stackvmProg.instr(Opcode.CLI)
             else -> createSyscall(funcname)  // call builtin function
         }
     }

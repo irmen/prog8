@@ -587,13 +587,10 @@ ror2(x)
     It uses some extra logic to not consider the carry flag as extra rotation bit.
     Modifies in-place, doesn't return a value (so can't be used in an expression).
 
-P_carry(bit)
+set_carry()  /  clear_carry()
     Set (or clear) the CPU status register Carry flag. No result value.
     (translated into ``SEC`` or ``CLC`` cpu instruction)
 
-P_irqd(bit)
+set_irqd()  / clear_irqd()
     Set (or clear) the CPU status register Interrupt Disable flag. No result value.
     (translated into ``SEI`` or ``CLI`` cpu instruction)
-
-
-@todo remove P_carry and P_irqd as functions and turn them into assignments instead (allowing only 0 or 1 as value)

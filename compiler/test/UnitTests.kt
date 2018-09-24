@@ -1,13 +1,13 @@
 package prog8tests
 
-import prog8.compiler.*
-import prog8.compiler.target.c64.*
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.closeTo
 import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.ast.*
+import prog8.compiler.*
+import prog8.compiler.target.c64.*
 import prog8.stackvm.Value
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

@@ -506,16 +506,10 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
     private fun checkBuiltinFunctionCall(call: IFunctionCall, position: Position) {
         if(call.target.nameInSource.size==1 && BuiltinFunctionNames.contains(call.target.nameInSource[0])) {
             val functionName = call.target.nameInSource[0]
-            if(functionName=="P_carry" || functionName=="P_irqd") {
-                // these functions allow only 0 or 1 as argument
-                if(call.arglist.size!=1 || call.arglist[0] !is LiteralValue) {
-                    checkResult.add(SyntaxError("$functionName requires one argument, 0 or 1", position))
-                } else {
-                    val value = call.arglist[0] as LiteralValue
-                    if(value.asIntegerValue==null || value.asIntegerValue < 0 || value.asIntegerValue > 1) {
-                        checkResult.add(SyntaxError("$functionName requires one argument, 0 or 1", position))
-                    }
-                }
+            if(functionName=="set_carry" || functionName=="set_irqd" || functionName=="clear_carry" || functionName=="clear_irqd") {
+                // these functions have zero arguments
+                if(call.arglist.isNotEmpty())
+                    checkResult.add(SyntaxError("$functionName has zero arguments", position))
             }
         }
     }

@@ -2,8 +2,12 @@ package prog8tests
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import prog8.ast.*
-import prog8.stackvm.*
+import prog8.ast.DataType
+import prog8.ast.ExpressionError
+import prog8.ast.LiteralValue
+import prog8.ast.Position
+import prog8.stackvm.Value
+import prog8.stackvm.VmExecutionException
 import kotlin.test.*
 
 

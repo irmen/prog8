@@ -5,7 +5,7 @@ import kotlin.math.log2
 
 
 val BuiltinFunctionNames = setOf(
-        "P_carry", "P_irqd", "rol", "ror", "rol2", "ror2", "lsl", "lsr",
+        "set_carry", "clear_carry", "set_irqd", "clear_irqd", "rol", "ror", "rol2", "ror2", "lsl", "lsr",
         "sin", "cos", "abs", "acos", "asin", "tan", "atan", "rnd", "rndw", "rndf",
         "ln", "log2", "log10", "sqrt", "rad", "deg", "round", "floor", "ceil",
         "max", "min", "avg", "sum", "len", "any", "all", "lsb", "msb", "flt",
@@ -13,11 +13,11 @@ val BuiltinFunctionNames = setOf(
         "_vm_write_str", "_vm_input_str", "_vm_gfx_clearscr", "_vm_gfx_pixel", "_vm_gfx_text"
         )
 
-
 val BuiltinFunctionsWithoutSideEffects = BuiltinFunctionNames - setOf(
-        "P_carry", "P_irqd", "lsl", "lsr", "rol", "ror", "rol2", "ror2",
+        "set_carry", "clear_carry", "set_irqd", "clear_irqd", "lsl", "lsr", "rol", "ror", "rol2", "ror2",
         "_vm_write_memchr", "_vm_write_memstr", "_vm_write_num", "_vm_write_char",
         "_vm_write_str", "_vm_gfx_clearscr", "_vm_gfx_pixel", "_vm_gfx_text")
+
 
 fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespace: INameScope): DataType? {
     fun integerDatatypeFromArg(arg: IExpression): DataType {
@@ -50,10 +50,10 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
             "sqrt", "rad", "deg", "avg", "rndf", "flt" -> DataType.FLOAT
         "lsb", "msb", "any", "all", "rnd" -> DataType.BYTE
         "rndw" -> DataType.WORD
-        "rol", "rol2", "ror", "ror2", "P_carry", "P_irqd" -> null // no return value so no datatype
+        "rol", "rol2", "ror", "ror2", "lsl", "lsr", "set_carry", "clear_carry", "set_irqd", "clear_irqd" -> null // no return value so no datatype
         "abs" -> args.single().resultingDatatype(namespace)
         "max", "min" -> datatypeFromListArg(args.single())
-        "round", "floor", "ceil", "lsl", "lsr" -> integerDatatypeFromArg(args.single())
+        "round", "floor", "ceil" -> integerDatatypeFromArg(args.single())
         "sum" -> {
             val dt=datatypeFromListArg(args.single())
             when(dt) {

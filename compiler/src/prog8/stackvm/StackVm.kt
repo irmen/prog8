@@ -1,8 +1,8 @@
 package prog8.stackvm
 
 import prog8.ast.DataType
-import prog8.compiler.target.c64.Petscii
 import prog8.compiler.target.c64.Mflpt5
+import prog8.compiler.target.c64.Petscii
 import java.io.File
 import java.io.PrintStream
 import java.util.*

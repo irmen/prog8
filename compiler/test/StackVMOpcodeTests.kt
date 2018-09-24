@@ -1,12 +1,12 @@
 package prog8tests
 
 import org.hamcrest.MatcherAssert.assertThat
-import org.hamcrest.Matchers.*
+import org.hamcrest.Matchers.empty
+import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import prog8.ast.*
+import prog8.ast.DataType
 import prog8.stackvm.*
-import kotlin.math.floor
 import kotlin.test.*
 
 
