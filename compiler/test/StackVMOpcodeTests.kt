@@ -523,6 +523,32 @@ class TestStackVmOpcodes {
     }
 
     @Test
+    fun testNot() {
+        val values = listOf(
+                Value(DataType.STR, null, ""),
+                Value(DataType.STR, null, "hello"),
+                Value(DataType.FLOAT, 0.0),
+                Value(DataType.FLOAT, 300.33),
+                Value(DataType.WORD, 0),
+                Value(DataType.WORD, 5000),
+                Value(DataType.BYTE, 0),
+                Value(DataType.BYTE, 20))
+        val expected = listOf(
+                Value(DataType.BYTE, 0),
+                Value(DataType.BYTE, 1),
+                Value(DataType.BYTE, 0),
+                Value(DataType.BYTE, 1),
+                Value(DataType.BYTE, 0),
+                Value(DataType.BYTE, 1),
+                Value(DataType.BYTE, 0),
+                Value(DataType.BYTE, 1)
+                )
+        val operator = Opcode.NOT
+
+        testUnaryOperator(values, operator, expected)
+    }
+
+    @Test
     fun testInc() {
         val values = listOf(
                 Value(DataType.FLOAT, 2022.5),

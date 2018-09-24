@@ -75,6 +75,7 @@ enum class Opcode {
     AND,
     OR,
     XOR,
+    NOT,
 
     // increment, decrement
     INC,
@@ -546,6 +547,7 @@ class Value(val type: DataType, numericvalue: Number?, val stringvalue: String?=
     fun and(other: Value) = Value(DataType.BYTE, if(this.asBooleanValue && other.asBooleanValue) 1 else 0)
     fun or(other: Value) = Value(DataType.BYTE, if(this.asBooleanValue || other.asBooleanValue) 1 else 0)
     fun xor(other: Value) = Value(DataType.BYTE, if(this.asBooleanValue xor other.asBooleanValue) 1 else 0)
+    fun not() = Value(DataType.BYTE, if(this.asBooleanValue) 0 else 1)
 
     fun inv(): Value {
         return when(type) {
@@ -1484,6 +1486,10 @@ class StackVm(val traceOutputFile: String?) {
             Opcode.XOR -> {
                 val (top, second) = evalstack.pop2()
                 evalstack.push(second.xor(top))
+            }
+            Opcode.NOT -> {
+                val value = evalstack.pop()
+                evalstack.push(value.not())
             }
             Opcode.LESS -> {
                 val (top, second) = evalstack.pop2()

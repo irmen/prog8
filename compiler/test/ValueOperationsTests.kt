@@ -197,6 +197,29 @@ class TestStackVmValue {
         assertEquals(DataType.WORD, r.type)
         assertEquals(33, r.integerValue())
     }
+
+    @Test
+    fun testNoAutoFloatConversion() {
+        assertFailsWith<VmExecutionException> {
+            Value(DataType.BYTE, 233).add(Value(DataType.FLOAT, 1.234))
+        }
+        assertFailsWith<VmExecutionException> {
+            Value(DataType.WORD, 233).add(Value(DataType.FLOAT, 1.234))
+        }
+        assertFailsWith<VmExecutionException> {
+            Value(DataType.BYTE, 233).mul(Value(DataType.FLOAT, 1.234))
+        }
+        assertFailsWith<VmExecutionException> {
+            Value(DataType.WORD, 233).mul(Value(DataType.FLOAT, 1.234))
+        }
+        assertFailsWith<VmExecutionException> {
+            Value(DataType.BYTE, 233).div(Value(DataType.FLOAT, 1.234))
+        }
+        assertFailsWith<VmExecutionException> {
+            Value(DataType.WORD, 233).div(Value(DataType.FLOAT, 1.234))
+        }
+        val result = Value(DataType.FLOAT, 233.333).add(Value(DataType.FLOAT, 1.234))
+    }
 }
 
 

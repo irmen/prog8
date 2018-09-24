@@ -294,6 +294,10 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
             is RegisterExpr -> {
                 stackvmProg.instr(Opcode.PUSH_VAR, Value(DataType.STR, null, expr.register.toString()))
             }
+            is PrefixExpression -> {
+                translate(expr.expression)
+                translatePrefixOperator(expr.operator)
+            }
             is BinaryExpression -> {
                 translate(expr.left)
                 translate(expr.right)
@@ -395,6 +399,17 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
             "==" -> Opcode.EQUAL
             "!=" -> Opcode.NOTEQUAL
             else -> throw FatalAstException("const evaluation for invalid operator $operator")
+        }
+        stackvmProg.instr(opcode)
+    }
+
+    private fun translatePrefixOperator(operator: String) {
+        val opcode = when(operator) {
+            "+" -> Opcode.NOP
+            "-" -> Opcode.NEG
+            "~" -> Opcode.INV
+            "not" -> Opcode.NOT
+            else -> throw FatalAstException("const evaluation for invalid prefix operator $operator")
         }
         stackvmProg.instr(opcode)
     }
