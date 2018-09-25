@@ -372,7 +372,7 @@ for normal assignments (``A = A + X``).
     The reverse is *not* true: it is *not* possible to assign a value of a 'larger' datatype to
     a variable of a smaller datatype without an explicit conversion. Otherwise you'll get an error telling you
     that there is a loss of precision. You can use builtin functions such as ``round`` and ``lsb`` to convert
-    to a smaller datatype.
+    to a smaller datatype, or revert to integer arithmetic.
 
 Expressions
 -----------
@@ -385,13 +385,18 @@ There are various built-in functions such as sin(), cos(), min(), max() that can
 You can also reference idendifiers defined elsewhere in your code.
 
 .. attention::
-    **Data type conversion (during calculations):**
+    **Data type conversion (during calculations) and floating point handling:**
+
     BYTE values used in arithmetic expressions (calculations) will be automatically converted into WORD values
     if the calculation needs that to store the resulting value. Once a WORD value is used, all other results will be WORDs as well
     (there's no automatic conversion of WORD into BYTE).
-    *There is never an automatic conversion into floating point values, and the compiler will NOT issue a warning for this.*
-    If you require float precision, you'll have to first convert into a floating point explicitly using the ``flt`` builtin function.
-    For example, this means that if you divide two integer values (say: ``32500 / 99``) the result will be the integer floor
+
+    When a floating point value is used in a calculation, the result will be a floating point, and byte or word values
+    will be automatically converted into floats in this case. The compiler will issue a warning though when this happens, because floating
+    point calculations are very slow and possibly unintended!
+
+    Calculations with integers will not result in floating point values;
+    if you divide two integer values (say: ``32500 / 99``) the result will be the integer floor
     division (328) rather than the floating point result (328.2828282828283). If you need the full precision,
     you'll have to write ``flt(32500) / 99`` (or if they're constants, simply ``32500.0 / 99``), to make sure the
     first operand is a floating point value.

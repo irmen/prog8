@@ -289,6 +289,15 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
         stackvmProg.instr(Opcode.NOP)
     }
 
+    private fun checkForFloatPrecisionProblem(left: IExpression, right: IExpression) {
+        val leftDt = left.resultingDatatype(namespace)
+        val rightDt = right.resultingDatatype(namespace)
+        if (leftDt == DataType.BYTE || leftDt == DataType.WORD) {
+            if(rightDt==DataType.FLOAT)
+                printWarning("byte or word value implicitly converted to float. Suggestion: use explicit flt() conversion or revert to integer arithmetic", left.position)
+        }
+    }
+
     private fun translate(expr: IExpression) {
         when(expr) {
             is RegisterExpr -> {
@@ -299,6 +308,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
                 translatePrefixOperator(expr.operator)
             }
             is BinaryExpression -> {
+                checkForFloatPrecisionProblem(expr.left, expr.right)
                 translate(expr.left)
                 translate(expr.right)
                 translateBinaryOperator(expr.operator)

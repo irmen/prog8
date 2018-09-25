@@ -25,11 +25,9 @@
 
         flt(44)
         for pixely in yoffset to yoffset+height-1 {
-            ; yy = (pixely-yoffset)/height/3.6+0.4        ; @todo compiler float error
             yy = flt((pixely-yoffset))/height/3.6+0.4
 
             for pixelx in xoffset to xoffset+width-1 {
-                ; xx = (pixelx-xoffset)/width/3+0.2       ; @todo compiler float error
                 xx = flt((pixelx-xoffset))/width/3+0.2
 
                 x = 0.0

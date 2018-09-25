@@ -4,41 +4,26 @@
 
 sub start() -> () {
 
-    byte i=2
-    float f
-    word ww = $55aa
+    byte i
 
-    set_carry()
-    clear_carry()
-    set_irqd()
-    clear_irqd()
-
-    f=flt(i)
-    i = msb(ww)
-    i = lsb(ww)
-    lsl(i)
-    lsr(i)
-    rol(i)
-    ror(i)
-    rol2(i)
-    ror2(i)
+    float yy
+    word pixely
+    word yoffset
+    word height
 
 
-
-    while i<10 {
-        _vm_write_num(i)
-        _vm_write_char($8d)
-        i++
-    }
-
-    _vm_write_char($8d)
-
-    i=2
-    repeat {
-        _vm_write_num(i)
-        _vm_write_char($8d)
-        i++
-    } until i>10
+    ; @todo expression must not result in float but in word
+    yy = flt(height+1.1)
+    pixely = height / 100
+    ;yy = height- 1.1
+    ;yy = height*1.1
+    ;yy = height/3.6
+    ;yy = height//3.6
+    ;yy = height**3.6
+    ;yy = height%3.6
+    ;yy = height/3.6+0.4
+    ;yy = 2/height/3.6+0.4
+    ;yy = (pixely-yoffset)/height/3.6+0.4
 
 }
 }

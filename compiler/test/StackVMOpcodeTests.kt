@@ -1178,7 +1178,7 @@ class TestStackVmOpcodes {
 
     @Test
     fun testReturn() {
-        // @todo only tests return with zero return values
+        // @todo this only tests return with zero return values for now.
         val ins = mutableListOf(
                 Instruction(Opcode.RETURN),
                 Instruction(Opcode.TERMINATE),
@@ -1199,7 +1199,7 @@ class TestStackVmOpcodes {
 
     @Test
     fun testCall() {
-        // @todo only tests call with zero parameters
+        // @todo this only tests call with zero parameters for now.
         val ins = mutableListOf(
                 Instruction(Opcode.CALL, callLabel = "label"),
                 Instruction(Opcode.LINE, Value(DataType.STR, null, stringvalue = "returned")),

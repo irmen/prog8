@@ -725,8 +725,7 @@ class BinaryExpression(var left: IExpression, val operator: String, var right: I
         val leftDt = left.resultingDatatype(namespace)
         val rightDt = right.resultingDatatype(namespace)
         return when(operator) {
-            "+", "-", "*", "**", "%" -> if(leftDt==null || rightDt==null) null else arithmeticOpDt(leftDt, rightDt)
-            "/" -> if(leftDt==null || rightDt==null) null else DataType.FLOAT
+            "+", "-", "*", "**", "/", "%" -> if(leftDt==null || rightDt==null) null else arithmeticOpDt(leftDt, rightDt)
             "//" -> if(leftDt==null || rightDt==null) null else integerDivisionOpDt(leftDt, rightDt)
             "&" -> leftDt
             "|" -> leftDt
