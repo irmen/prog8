@@ -602,15 +602,23 @@ open class Instruction(val opcode: Opcode,
 
     override fun toString(): String {
         val argStr = arg?.toString() ?: ""
+        val opcodesWithVarArgument = setOf(
+                Opcode.INC_VAR, Opcode.DEC_VAR,
+                Opcode.SHR_VAR, Opcode.SHL_VAR, Opcode.ROL_VAR, Opcode.ROR_VAR,
+                Opcode.ROL2_VAR, Opcode.ROR2_VAR, Opcode.POP_VAR, Opcode.PUSH_VAR)
         val result =
                 when {
-                    opcode==Opcode.LINE -> "_line ${arg!!.stringvalue}"
+                    opcode==Opcode.LINE -> "_line  ${arg!!.stringvalue}"
                     opcode==Opcode.SYSCALL -> {
                         val syscall = Syscall.values().find { it.callNr==arg!!.numericValue() }
-                        "syscall $syscall"
+                        "syscall  $syscall"
                     }
-                    callLabel==null -> "${opcode.toString().toLowerCase()} $argStr"
-                    else -> "${opcode.toString().toLowerCase()} $callLabel $argStr"
+                    opcodesWithVarArgument.contains(opcode) -> {
+                        // opcodes that manipulate a variable
+                        "${opcode.toString().toLowerCase()}  ${argStr.substring(1, argStr.length-1)}"
+                    }
+                    callLabel==null -> "${opcode.toString().toLowerCase()}  $argStr"
+                    else -> "${opcode.toString().toLowerCase()}  $callLabel  $argStr"
                 }
                 .trimEnd()
 
@@ -883,7 +891,7 @@ class Program (val name: String,
         out.println("%variables")
         for (variable in variables) {
             val valuestr = variable.value.toString()
-            out.println("${variable.key} ${variable.value.type.toString().toLowerCase()} $valuestr")
+            out.println("${variable.key}  ${variable.value.type.toString().toLowerCase()}  $valuestr")
         }
         out.println("%end_variables")
         out.println("%instructions")
