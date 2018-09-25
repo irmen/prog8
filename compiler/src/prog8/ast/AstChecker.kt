@@ -421,6 +421,17 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         return super.process(literalValue)
     }
 
+    override fun process(expr: BinaryExpression): IExpression {
+        when(expr.operator){
+            "/", "//", "%" -> {
+                val numeric = expr.right.constValue(namespace)?.asNumericValue?.toDouble()
+                if(numeric==0.0)
+                    checkResult.add(ExpressionError("division by zero", expr.right.position))
+            }
+        }
+        return super.process(expr)
+    }
+
     override fun process(range: RangeExpr): IExpression {
         fun err(msg: String) {
             checkResult.add(SyntaxError(msg, range.position))

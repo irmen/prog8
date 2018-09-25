@@ -207,27 +207,31 @@ class ConstExprEvaluator {
         }
     }
 
+
+    private fun divideByZeroError(pos: Position): Unit = throw ExpressionError("division by zero", pos)
+
+
     private fun divide(left: LiteralValue, right: LiteralValue): LiteralValue {
         val error = "cannot divide $left by $right"
         return when {
             left.asIntegerValue!=null -> when {
                 right.asIntegerValue!=null -> {
-                    if(right.asIntegerValue==0) throw ExpressionError("attempt to divide by zero", left.position)
+                    if(right.asIntegerValue==0) divideByZeroError(right.position)
                     LiteralValue.optimalNumeric(left.asIntegerValue / right.asIntegerValue, left.position)
                 }
                 right.floatvalue!=null -> {
-                    if(right.floatvalue==0.0) throw ExpressionError("attempt to divide by zero", left.position)
+                    if(right.floatvalue==0.0) divideByZeroError(right.position)
                     LiteralValue(DataType.FLOAT, floatvalue = left.asIntegerValue / right.floatvalue, position = left.position)
                 }
                 else -> throw ExpressionError(error, left.position)
             }
             left.floatvalue!=null -> when {
                 right.asIntegerValue!=null -> {
-                    if(right.asIntegerValue==0) throw ExpressionError("attempt to divide by zero", left.position)
+                    if(right.asIntegerValue==0) divideByZeroError(right.position)
                     LiteralValue(DataType.FLOAT, floatvalue = left.floatvalue / right.asIntegerValue, position = left.position)
                 }
                 right.floatvalue!=null -> {
-                    if(right.floatvalue==0.0) throw ExpressionError("attempt to divide by zero", left.position)
+                    if(right.floatvalue==0.0) divideByZeroError(right.position)
                     LiteralValue(DataType.FLOAT, floatvalue = left.floatvalue / right.floatvalue, position = left.position)
                 }
                 else -> throw ExpressionError(error, left.position)
@@ -241,22 +245,22 @@ class ConstExprEvaluator {
         return when {
             left.asIntegerValue!=null -> when {
                 right.asIntegerValue!=null -> {
-                    if(right.asIntegerValue==0) throw ExpressionError("attempt to divide by zero", left.position)
+                    if(right.asIntegerValue==0) divideByZeroError(right.position)
                     LiteralValue.optimalInteger(left.asIntegerValue / right.asIntegerValue, left.position)
                 }
                 right.floatvalue!=null -> {
-                    if(right.floatvalue==0.0) throw ExpressionError("attempt to divide by zero", left.position)
+                    if(right.floatvalue==0.0) divideByZeroError(right.position)
                     LiteralValue.optimalInteger(left.asIntegerValue / right.floatvalue, left.position)
                 }
                 else -> throw ExpressionError(error, left.position)
             }
             left.floatvalue!=null -> when {
                 right.asIntegerValue!=null -> {
-                    if(right.asIntegerValue==0) throw ExpressionError("attempt to divide by zero", left.position)
+                    if(right.asIntegerValue==0) divideByZeroError(right.position)
                     LiteralValue.optimalInteger(left.floatvalue / right.asIntegerValue, left.position)
                 }
                 right.floatvalue!=null -> {
-                    if(right.floatvalue==0.0) throw ExpressionError("attempt to divide by zero", left.position)
+                    if(right.floatvalue==0.0) divideByZeroError(right.position)
                     LiteralValue.optimalInteger(left.floatvalue / right.floatvalue, left.position)
                 }
                 else -> throw ExpressionError(error, left.position)
@@ -270,22 +274,22 @@ class ConstExprEvaluator {
         return when {
             left.asIntegerValue!=null -> when {
                 right.asIntegerValue!=null -> {
-                    if(right.asIntegerValue==0) throw ExpressionError("attempt to divide by zero", left.position)
+                    if(right.asIntegerValue==0) divideByZeroError(right.position)
                     LiteralValue.optimalNumeric(left.asIntegerValue % right.asIntegerValue, left.position)
                 }
                 right.floatvalue!=null -> {
-                    if(right.floatvalue==0.0) throw ExpressionError("attempt to divide by zero", left.position)
+                    if(right.floatvalue==0.0) divideByZeroError(right.position)
                     LiteralValue(DataType.FLOAT, floatvalue = left.asIntegerValue % right.floatvalue, position = left.position)
                 }
                 else -> throw ExpressionError(error, left.position)
             }
             left.floatvalue!=null -> when {
                 right.asIntegerValue!=null -> {
-                    if(right.asIntegerValue==0) throw ExpressionError("attempt to divide by zero", left.position)
+                    if(right.asIntegerValue==0) divideByZeroError(right.position)
                     LiteralValue(DataType.FLOAT, floatvalue = left.floatvalue % right.asIntegerValue, position = left.position)
                 }
                 right.floatvalue!=null -> {
-                    if(right.floatvalue==0.0) throw ExpressionError("attempt to divide by zero", left.position)
+                    if(right.floatvalue==0.0) divideByZeroError(right.position)
                     LiteralValue(DataType.FLOAT, floatvalue = left.floatvalue % right.floatvalue, position = left.position)
                 }
                 else -> throw ExpressionError(error, left.position)

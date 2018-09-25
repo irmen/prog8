@@ -1,7 +1,6 @@
 package prog8.optimizing
 
-import prog8.ast.IAstProcessor
-import prog8.ast.INameScope
+import prog8.ast.*
 
 /*
     todo simplify expression terms:
@@ -43,27 +42,98 @@ import prog8.ast.INameScope
         X**-2 -> 1.0/X/X
         X**-3 -> 1.0/X/X/X
         X << 0 -> X
-        X | 0 -> X
-        x & 0 -> 0
-        X ^ 0 -> X
         X*Y - X  ->  X*(Y-1)
         -X + A ->  A - X
         -X - A -> -(X+A)
         X % 1 -> constant 0 (if X is byte/word)
-        X % 2 -> X and 255 (byte)  X and 65535 (word)
+        X % 2 -> X and 1 (if X is byte/word)
 
 
     todo expression optimization: remove redundant builtin function calls
-    todo expression optimization: simplify logical expression when a term makes it always true or false (1 or 0)
     todo expression optimization: optimize some simple multiplications into shifts  (A*8 -> A<<3,  A/4 -> A>>2)
     todo optimize addition with self into shift 1  (A+=A -> A<<=1)
     todo expression optimization: common (sub) expression elimination (turn common expressions into single subroutine call)
-    todo remove or simplify logical aug assigns like A |= 0, A |= true, A |= false  (or perhaps turn them into byte values first?)
 
  */
 
-class SimplifyExpressions(namespace: INameScope) : IAstProcessor {
+class SimplifyExpressions(private val namespace: INameScope) : IAstProcessor {
     var optimizationsDone: Int = 0
 
-    // @todo build this optimizer
+    override fun process(assignment: Assignment): IStatement {
+        if(assignment.aug_op!=null) {
+            throw AstException("augmented assignments should have been converted to normal assignments before this optimizer")
+        }
+        return super.process(assignment)
+    }
+
+    override fun process(expr: BinaryExpression): IExpression {
+        super.process(expr)
+        val leftVal = expr.left.constValue(namespace)
+        val rightVal = expr.right.constValue(namespace)
+        val constTrue = LiteralValue.fromBoolean(true, expr.position)
+        val constFalse = LiteralValue.fromBoolean(false, expr.position)
+
+        // simplify logical expressions when a term is constant and determines the outcome
+        when(expr.operator) {
+            "or" -> {
+                if((leftVal!=null && leftVal.asBooleanValue) || (rightVal!=null && rightVal.asBooleanValue)) {
+                    optimizationsDone++
+                    return constTrue
+                }
+                if(leftVal!=null && !leftVal.asBooleanValue) {
+                    optimizationsDone++
+                    return expr.right
+                }
+                if(rightVal!=null && !rightVal.asBooleanValue) {
+                    optimizationsDone++
+                    return expr.left
+                }
+            }
+            "and" -> {
+                if((leftVal!=null && !leftVal.asBooleanValue) || (rightVal!=null && !rightVal.asBooleanValue)) {
+                    optimizationsDone++
+                    return constFalse
+                }
+                if(leftVal!=null && leftVal.asBooleanValue) {
+                    optimizationsDone++
+                    return expr.right
+                }
+                if(rightVal!=null && rightVal.asBooleanValue) {
+                    optimizationsDone++
+                    return expr.left
+                }
+            }
+            "xor" -> {
+                if(leftVal!=null && !leftVal.asBooleanValue) {
+                    optimizationsDone++
+                    return expr.right
+                }
+                if(rightVal!=null && !rightVal.asBooleanValue) {
+                    optimizationsDone++
+                    return expr.left
+                }
+                if(leftVal!=null && leftVal.asBooleanValue) {
+                    optimizationsDone++
+                    return PrefixExpression("not", expr.right, expr.right.position)
+                }
+                if(rightVal!=null && rightVal.asBooleanValue) {
+                    optimizationsDone++
+                    return PrefixExpression("not", expr.left, expr.left.position)
+                }
+            }
+            "|", "^" -> {
+                if(leftVal!=null && !leftVal.asBooleanValue)
+                    return expr.right
+                if(rightVal!=null && !rightVal.asBooleanValue)
+                    return expr.left
+            }
+            "&" -> {
+                if(leftVal!=null && !leftVal.asBooleanValue)
+                    return constFalse
+                if(rightVal!=null && !rightVal.asBooleanValue)
+                    return constFalse
+            }
+        }
+        return expr
+    }
 }
