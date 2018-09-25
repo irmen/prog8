@@ -438,7 +438,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
             when {
                 from.asIntegerValue!=null && to.asIntegerValue!=null -> {
                     if(from.asIntegerValue == to.asIntegerValue)
-                        err("range is just a single value - don't use a loop here, use an assignment")  // TODO optimize this away automatically in the statement optimizer
+                        printWarning("range is just a single value, don't use a loop here", range.position)
                     else if(from.asIntegerValue < to.asIntegerValue && step<=0)
                         err("ascending range requires step > 0")
                     else if(from.asIntegerValue > to.asIntegerValue && step>=0)

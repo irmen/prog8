@@ -54,7 +54,6 @@ import prog8.ast.INameScope
 
 
     todo expression optimization: remove redundant builtin function calls
-    todo expression optimization: reduce expression nesting / flattening of parenthesis
     todo expression optimization: simplify logical expression when a term makes it always true or false (1 or 0)
     todo expression optimization: optimize some simple multiplications into shifts  (A*8 -> A<<3,  A/4 -> A>>2)
     todo optimize addition with self into shift 1  (A+=A -> A<<=1)

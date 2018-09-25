@@ -333,6 +333,10 @@ class AnonymousStatementList(override var parent: Node,
                              var statements: List<IStatement>,
                              override val position: Position) : IStatement {
 
+    init {
+        linkParents(parent)
+    }
+
     override fun linkParents(parent: Node) {
         this.parent = parent
         statements.forEach { it.linkParents(this) }
