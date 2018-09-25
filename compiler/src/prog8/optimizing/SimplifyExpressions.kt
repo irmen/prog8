@@ -1,57 +1,19 @@
 package prog8.optimizing
 
 import prog8.ast.*
+import kotlin.math.abs
 
 /*
     todo simplify expression terms:
-        X*0 -> 0
-        X*1 -> X
-        X*2 -> X << 1
-        X*3 -> X + (X << 1)
-        X*4 -> X << 2
-        X*5 -> X + (X << 2)
-        X*6 -> (X<<1) + (X << 2)
-        X*7 -> X + (X<<1) + (X << 2)
-        X*8 -> X << 3
-        X*9 -> X + (X<<3)
-        X*10 -> (X<<1) + (X<<3)
 
-        X/1, X//1, X**1 -> just X
-        X/2, X//2 -> X >> 1  (if X is byte or word)
-        X/4, X//4 -> X >> 2  (if X is byte or word)
-        X/8, X//8 -> X >> 3 (if X is byte or word)
-        X/16, X//16 -> X >> 4 (if X is byte or word)
-        X/32, X//32 -> X >> 5 (if X is byte or word)
-        X/64, X//64 -> X >> 6 (if X is byte or word)
-        X/128, X//128 -> X >> 7 (if X is byte or word)
-        X / (n>=256) -> 0 (if x is byte)    X >> 8  (if X is word)
-        X // (n>=256) -> 0 (if x is byte)    X >> 8  (if X is word)
-
-        X+X -> X << 1
-        X << n << m  ->  X << (n+m)
-
-        1**X -> 1
-        0**X -> 0
-        X*-1 -> unary prefix -X
-        X**0 -> 1
-        X**1 -> X
-        X**2 -> X*X
-        X**3 -> X*X*X
-        X**0.5 -> sqrt(X)
-        X**-1 -> 1.0/X
-        X**-2 -> 1.0/X/X
-        X**-3 -> 1.0/X/X/X
-        X << 0 -> X
         X*Y - X  ->  X*(Y-1)
+        X*Y - Y  ->  Y*(X-1)
         -X + A ->  A - X
-        -X - A -> -(X+A)
+        X+ (-A) -> X - A
         X % 1 -> constant 0 (if X is byte/word)
         X % 2 -> X and 1 (if X is byte/word)
 
-
     todo expression optimization: remove redundant builtin function calls
-    todo expression optimization: optimize some simple multiplications into shifts  (A*8 -> A<<3,  A/4 -> A>>2)
-    todo optimize addition with self into shift 1  (A+=A -> A<<=1)
     todo expression optimization: common (sub) expression elimination (turn common expressions into single subroutine call)
 
  */
@@ -122,18 +84,264 @@ class SimplifyExpressions(private val namespace: INameScope) : IAstProcessor {
                 }
             }
             "|", "^" -> {
-                if(leftVal!=null && !leftVal.asBooleanValue)
+                if(leftVal!=null && !leftVal.asBooleanValue) {
+                    optimizationsDone++
                     return expr.right
-                if(rightVal!=null && !rightVal.asBooleanValue)
+                }
+                if(rightVal!=null && !rightVal.asBooleanValue) {
+                    optimizationsDone++
                     return expr.left
+                }
             }
             "&" -> {
-                if(leftVal!=null && !leftVal.asBooleanValue)
+                if(leftVal!=null && !leftVal.asBooleanValue) {
+                    optimizationsDone++
                     return constFalse
-                if(rightVal!=null && !rightVal.asBooleanValue)
+                }
+                if(rightVal!=null && !rightVal.asBooleanValue) {
+                    optimizationsDone++
                     return constFalse
+                }
+            }
+            "*" -> return optimizeMultiplication(expr, leftVal, rightVal)
+            "/", "//" -> return optimizeDivision(expr, leftVal, rightVal)
+            "+" -> return optimizeAdd(expr, leftVal, rightVal)
+            "-" -> return optimizeSub(expr, leftVal, rightVal)
+            "**" -> return optimizePower(expr, leftVal, rightVal)
+        }
+        return expr
+    }
+
+    private data class ReorderedAssociativeBinaryExpr(val expr: BinaryExpression, val leftVal: LiteralValue?, val rightVal: LiteralValue?)
+
+    private fun reorderAssociative(expr: BinaryExpression, leftVal: LiteralValue?): ReorderedAssociativeBinaryExpr {
+        val associativeOperators = setOf("+", "*", "&", "|", "^", "or", "and", "xor", "==", "!=")
+        if(associativeOperators.contains(expr.operator) && leftVal!=null) {
+            // swap left and right so that right is always the constant
+            val tmp = expr.left
+            expr.left = expr.right
+            expr.right = tmp
+            optimizationsDone++
+            return ReorderedAssociativeBinaryExpr(expr, expr.right.constValue(namespace), leftVal)
+        }
+        return ReorderedAssociativeBinaryExpr(expr, leftVal, expr.right.constValue(namespace))
+    }
+
+    private fun optimizeAdd(pexpr: BinaryExpression, pleftVal: LiteralValue?, prightVal: LiteralValue?): IExpression {
+        if(pleftVal==null && prightVal==null)
+            return pexpr
+
+        val (expr, _, rightVal) = reorderAssociative(pexpr, pleftVal)
+        if(rightVal!=null) {
+            // right value is a constant, see if we can optimize
+            val rightConst: LiteralValue = rightVal
+            when(rightConst.asNumericValue?.toDouble()) {
+                0.0 -> {
+                    // left
+                    optimizationsDone++
+                    return expr.left
+                }
             }
         }
+        // no need to check for left val constant (because of associativity)
+
+        return expr
+    }
+
+    private fun optimizeSub(expr: BinaryExpression, leftVal: LiteralValue?, rightVal: LiteralValue?): IExpression {
+        if(leftVal==null && rightVal==null)
+            return expr
+
+        if(rightVal!=null) {
+            // right value is a constant, see if we can optimize
+            val rightConst: LiteralValue = rightVal
+            when(rightConst.asNumericValue?.toDouble()) {
+                0.0 -> {
+                    // left
+                    optimizationsDone++
+                    return expr.left
+                }
+            }
+        }
+        if(leftVal!=null) {
+            // left value is a constant, see if we can optimize
+            when(leftVal.asNumericValue?.toDouble()) {
+                0.0 -> {
+                    // -right
+                    optimizationsDone++
+                    return PrefixExpression("-", expr.right, expr.position)
+                }
+            }
+        }
+
+        return expr
+    }
+
+    private fun optimizePower(expr: BinaryExpression, leftVal: LiteralValue?, rightVal: LiteralValue?): IExpression {
+        if(leftVal==null && rightVal==null)
+            return expr
+
+        if(rightVal!=null) {
+            // right value is a constant, see if we can optimize
+            val rightConst: LiteralValue = rightVal
+            when(rightConst.asNumericValue?.toDouble()) {
+                -3.0 -> {
+                    // -1/(left*left*left)
+                    optimizationsDone++
+                    return BinaryExpression(LiteralValue(DataType.FLOAT, floatvalue = -1.0, position = expr.position), "/",
+                            BinaryExpression(expr.left, "*", BinaryExpression(expr.left, "*", expr.left, expr.position), expr.position),
+                            expr.position)
+                }
+                -2.0 -> {
+                    // -1/(left*left)
+                    optimizationsDone++
+                    return BinaryExpression(LiteralValue(DataType.FLOAT, floatvalue = -1.0, position = expr.position), "/",
+                            BinaryExpression(expr.left, "*", expr.left, expr.position),
+                            expr.position)
+                }
+                -1.0 -> {
+                    // -1/left
+                    optimizationsDone++
+                    return BinaryExpression(LiteralValue(DataType.FLOAT, floatvalue = -1.0, position = expr.position), "/",
+                            expr.left, expr.position)
+                }
+                0.0 -> {
+                    // 1
+                    optimizationsDone++
+                    return LiteralValue.fromNumber(1, rightConst.type, expr.position)
+                }
+                0.5 -> {
+                    // sqrt(left)
+                    optimizationsDone++
+                    return FunctionCall(IdentifierReference(listOf("sqrt"), expr.position), listOf(expr.left), expr.position)
+                }
+                1.0 -> {
+                    // left
+                    optimizationsDone++
+                    return expr.left
+                }
+                2.0 -> {
+                    // left*left
+                    optimizationsDone++
+                    return BinaryExpression(expr.left, "*", expr.left, expr.position)
+                }
+                3.0 -> {
+                    // left*left*left
+                    optimizationsDone++
+                    return BinaryExpression(expr.left, "*", BinaryExpression(expr.left, "*", expr.left, expr.position), expr.position)
+                }
+            }
+        }
+        if(leftVal!=null) {
+            // left value is a constant, see if we can optimize
+            when(leftVal.asNumericValue?.toDouble()) {
+                -1.0 -> {
+                    // -1
+                    optimizationsDone++
+                    return LiteralValue(DataType.FLOAT, floatvalue = -1.0, position = expr.position)
+                }
+                0.0 -> {
+                    // 0
+                    optimizationsDone++
+                    return LiteralValue.fromNumber(0, leftVal.type, expr.position)
+                }
+                1.0 -> {
+                    //1
+                    optimizationsDone++
+                    return LiteralValue.fromNumber(1, leftVal.type, expr.position)
+                }
+
+            }
+        }
+
+        return expr
+    }
+
+    private fun optimizeDivision(expr: BinaryExpression, leftVal: LiteralValue?, rightVal: LiteralValue?): IExpression {
+        if(leftVal==null && rightVal==null)
+            return expr
+
+        if(rightVal!=null) {
+            // right value is a constant, see if we can optimize
+            val rightConst: LiteralValue = rightVal
+            when(rightConst.asNumericValue?.toDouble()) {
+                -1.0 -> {
+                    //  '/' -> -left, '//' -> -ceil(left)
+                    optimizationsDone++
+                    when(expr.operator) {
+                        "/" -> return PrefixExpression("-", expr.left, expr.position)
+                        "//" -> return PrefixExpression("-",
+                                FunctionCall(IdentifierReference(listOf("ceil"), expr.position), listOf(expr.left), expr.position),
+                                expr.position)
+                    }
+                }
+                1.0 -> {
+                    //  '/' -> left, '//' -> floor(left)
+                    optimizationsDone++
+                    when(expr.operator) {
+                        "/" -> return expr.left
+                        "//" -> return FunctionCall(IdentifierReference(listOf("floor"), expr.position), listOf(expr.left), expr.position)
+                    }
+                }
+            }
+
+            if (expr.left.resultingDatatype(namespace) == DataType.BYTE) {
+                if(abs(rightConst.asNumericValue!!.toDouble()) >= 256.0) {
+                    optimizationsDone++
+                    return LiteralValue(DataType.BYTE, 0, position = expr.position)
+                }
+            }
+            else if (expr.left.resultingDatatype(namespace) == DataType.WORD) {
+                if(abs(rightConst.asNumericValue!!.toDouble()) >= 65536.0) {
+                    optimizationsDone++
+                    return LiteralValue(DataType.BYTE, 0, position = expr.position)
+                }
+            }
+        }
+
+        if(leftVal!=null) {
+            // left value is a constant, see if we can optimize
+            when(leftVal.asNumericValue?.toDouble()) {
+                0.0 -> {
+                    // 0
+                    optimizationsDone++
+                    return LiteralValue.fromNumber(0, leftVal.type, expr.position)
+                }
+            }
+        }
+
+        return expr
+    }
+
+    private fun optimizeMultiplication(pexpr: BinaryExpression, pleftVal: LiteralValue?, prightVal: LiteralValue?): IExpression {
+        if(pleftVal==null && prightVal==null)
+            return pexpr
+
+        val (expr, _, rightVal) = reorderAssociative(pexpr, pleftVal)
+        if(rightVal!=null) {
+            // right value is a constant, see if we can optimize
+            val leftValue: IExpression = expr.left
+            val rightConst: LiteralValue = rightVal
+            when(rightConst.asNumericValue?.toDouble()) {
+                -1.0 -> {
+                    // -left
+                    optimizationsDone++
+                    return PrefixExpression("-", leftValue, expr.position)
+                }
+                0.0 -> {
+                    // 0
+                    optimizationsDone++
+                    return LiteralValue.fromNumber(0, rightConst.type, expr.position)
+                }
+                1.0 -> {
+                    // left
+                    optimizationsDone++
+                    return expr.left
+                }
+            }
+        }
+        // no need to check for left val constant (because of associativity)
+
         return expr
     }
 }

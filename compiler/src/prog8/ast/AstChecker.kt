@@ -268,6 +268,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         val constVal = assignment.value.constValue(namespace)
         if(constVal!=null) {
             checkValueTypeAndRange(targetDatatype, null, assignment.value as LiteralValue)
+            // todo: fix crash here when assignment value is a functioncall sounch as round()
         } else {
             val sourceDatatype: DataType? = assignment.value.resultingDatatype(namespace)
             if(sourceDatatype==null) {

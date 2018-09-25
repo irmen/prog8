@@ -111,10 +111,10 @@ private fun oneDoubleArgOutputInt(args: List<IExpression>, position: Position, n
     if(args.size!=1)
         throw SyntaxError("built-in function requires one floating point argument", position)
     val constval = args[0].constValue(namespace) ?: throw NotConstArgumentException()
-    if(constval.type!=DataType.FLOAT)
-        throw SyntaxError("built-in function requires one floating point argument", position)
-
-    val float = constval.asNumericValue?.toDouble()!!
+    val float: Double = when(constval.type) {
+        DataType.BYTE, DataType.WORD, DataType.FLOAT -> constval.asNumericValue!!.toDouble()
+        else -> throw SyntaxError("built-in function requires one floating point argument", position)
+    }
     return numericLiteral(function(float).toInt(), args[0].position)
 }
 

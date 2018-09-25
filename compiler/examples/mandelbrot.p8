@@ -23,7 +23,6 @@
         _vm_gfx_clearscr(11)
         _vm_gfx_text(5, 5, 7, "Calculating Mandelbrot Fractal...")
 
-        flt(44)
         for pixely in yoffset to yoffset+height-1 {
             yy = flt((pixely-yoffset))/height/3.6+0.4
 

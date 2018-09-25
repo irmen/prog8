@@ -807,6 +807,15 @@ class LiteralValue(val type: DataType,
         fun fromBoolean(bool: Boolean, position: Position) =
                 LiteralValue(DataType.BYTE, bytevalue = if(bool) 1 else 0, position=position)
 
+        fun fromNumber(value: Number, type: DataType, position: Position) : LiteralValue {
+            return when(type) {
+                DataType.BYTE -> LiteralValue(type, bytevalue = value.toShort(), position = position)
+                DataType.WORD -> LiteralValue(type, wordvalue = value.toInt(), position = position)
+                DataType.FLOAT -> LiteralValue(type, floatvalue = value.toDouble(), position = position)
+                else -> throw FatalAstException("non numeric datatype")
+            }
+        }
+
         fun optimalNumeric(value: Number, position: Position): LiteralValue {
             val floatval = value.toDouble()
             return if(floatval == floor(floatval)  && floatval in -32768..65535) {
