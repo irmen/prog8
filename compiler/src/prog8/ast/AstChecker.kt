@@ -267,8 +267,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         val targetDatatype = assignment.target.determineDatatype(namespace, assignment)
         val constVal = assignment.value.constValue(namespace)
         if(constVal!=null) {
-            checkValueTypeAndRange(targetDatatype, null, assignment.value as LiteralValue)
-            // todo: fix crash here when assignment value is a functioncall sounch as round()
+            checkValueTypeAndRange(targetDatatype, null, constVal)
         } else {
             val sourceDatatype: DataType? = assignment.value.resultingDatatype(namespace)
             if(sourceDatatype==null) {
@@ -587,17 +586,17 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
             }
             DataType.BYTE -> {
                 val number = value.asIntegerValue ?: return if (value.floatvalue!=null)
-                    err("unsigned byte integer value expected instead of float; possible loss of precision")
+                    err("unsigned byte value expected instead of float; possible loss of precision")
                 else
-                    err("unsigned byte integer value expected")
+                    err("unsigned byte value expected")
                 if (number < 0 || number > 255)
                     return err("value '$number' out of range for unsigned byte")
             }
             DataType.WORD -> {
                 val number = value.asIntegerValue ?: return if (value.floatvalue!=null)
-                    err("unsigned word integer value expected instead of float; possible loss of precision")
+                    err("unsigned word value expected instead of float; possible loss of precision")
                 else
-                    err("unsigned word integer value expected")
+                    err("unsigned word value expected")
                 if (number < 0 || number > 65535)
                     return err("value '$number' out of range for unsigned word")
             }
@@ -638,9 +637,9 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                     return err("initialization value must be an array of bytes")
                 } else {
                     val number = value.bytevalue ?: return if (value.floatvalue!=null)
-                        err("unsigned byte integer value expected instead of float; possible loss of precision")
+                        err("unsigned byte value expected instead of float; possible loss of precision")
                     else
-                        err("unsigned byte integer value expected")
+                        err("unsigned byte value expected")
                     if (number < 0 || number > 255)
                         return err("value '$number' out of range for unsigned byte")
                 }
@@ -671,9 +670,9 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                     }
                 } else {
                     val number = value.asIntegerValue ?: return if (value.floatvalue!=null)
-                        err("unsigned byte or word integer value expected instead of float; possible loss of precision")
+                        err("unsigned byte or word value expected instead of float; possible loss of precision")
                     else
-                        err("unsigned byte or word integer value expected")
+                        err("unsigned byte or word value expected")
                     if (number < 0 || number > 65535)
                         return err("value '$number' out of range for unsigned word")
                 }
@@ -698,7 +697,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                     }
                 } else {
                     val number = value.bytevalue
-                            ?: return err("unsigned byte integer value expected")
+                            ?: return err("unsigned byte value expected")
                     if (number < 0 || number > 255)
                         return err("value '$number' out of range for unsigned byte")
                 }
@@ -734,7 +733,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         if(sourceDatatype==DataType.WORD && targetDatatype==DataType.BYTE)
             checkResult.add(ExpressionError("cannot assign word to byte, use msb() or lsb()?", position))
         else if(sourceDatatype==DataType.FLOAT && (targetDatatype==DataType.BYTE || targetDatatype==DataType.WORD))
-            checkResult.add(ExpressionError("cannot assign float to ${targetDatatype.toString().toLowerCase()}; possible loss of precision. Suggestion: round the value or revert to integer arithmetic", position))
+            checkResult.add(ExpressionError("cannot assign float to ${targetDatatype.toString().toLowerCase()}; possible loss of precision. Suggestion: round the value or revert to byte/word arithmetic", position))
         else
             checkResult.add(ExpressionError("cannot assign ${sourceDatatype.toString().toLowerCase()} to ${targetDatatype.toString().toLowerCase()}", position))
 

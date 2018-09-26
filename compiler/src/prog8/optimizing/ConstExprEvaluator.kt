@@ -208,7 +208,8 @@ class ConstExprEvaluator {
     }
 
 
-    private fun divideByZeroError(pos: Position): Unit = throw ExpressionError("division by zero", pos)
+    private fun divideByZeroError(pos: Position): Unit =
+            throw ExpressionError("division by zero", pos)
 
 
     private fun divide(left: LiteralValue, right: LiteralValue): LiteralValue {

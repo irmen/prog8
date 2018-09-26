@@ -24,10 +24,10 @@
         _vm_gfx_text(5, 5, 7, "Calculating Mandelbrot Fractal...")
 
         for pixely in yoffset to yoffset+height-1 {
-            yy = flt((pixely-yoffset))/height/3.6+0.4
+            yy = flt((pixely-yoffset))/height/3.6+0.4          ; @todo why is /height/3.6 not const-folded???
 
             for pixelx in xoffset to xoffset+width-1 {
-                xx = flt((pixelx-xoffset))/width/3+0.2
+                xx = flt((pixelx-xoffset))/width/3+0.2      ; @todo why is /width/3 not const-folded???
 
                 x = 0.0
                 y = 0.0

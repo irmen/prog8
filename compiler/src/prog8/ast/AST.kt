@@ -729,7 +729,7 @@ class BinaryExpression(var left: IExpression, val operator: String, var right: I
         val leftDt = left.resultingDatatype(namespace)
         val rightDt = right.resultingDatatype(namespace)
         return when(operator) {
-            "+", "-", "*", "**", "/", "%" -> if(leftDt==null || rightDt==null) null else arithmeticOpDt(leftDt, rightDt)
+            "+", "-", "*", "**", "%" -> if(leftDt==null || rightDt==null) null else arithmeticOpDt(leftDt, rightDt)
             "//" -> if(leftDt==null || rightDt==null) null else integerDivisionOpDt(leftDt, rightDt)
             "&" -> leftDt
             "|" -> leftDt
@@ -738,6 +738,28 @@ class BinaryExpression(var left: IExpression, val operator: String, var right: I
             "<", ">",
             "<=", ">=",
             "==", "!=" -> DataType.BYTE
+            "/" -> {
+                val rightNum = right.constValue(namespace)?.asNumericValue?.toDouble()
+                if(rightNum!=null) {
+                    when(leftDt) {
+                        DataType.BYTE ->
+                            when(rightDt) {
+                                DataType.BYTE -> DataType.BYTE
+                                DataType.WORD -> if(rightNum <= -256 || rightNum >= 256) DataType.BYTE else DataType.WORD
+                                DataType.FLOAT -> if(rightNum <= -256 || rightNum >= 256) DataType.BYTE else DataType.FLOAT
+                                else -> throw FatalAstException("invalid rightDt $rightDt")
+                            }
+                        DataType.WORD ->
+                            when(rightDt) {
+                                DataType.BYTE, DataType.WORD -> DataType.WORD
+                                DataType.FLOAT -> if(rightNum <= -65536 || rightNum >= 65536) DataType.WORD else DataType.FLOAT
+                                else -> throw FatalAstException("invalid rightDt $rightDt")
+                            }
+                        DataType.FLOAT -> DataType.FLOAT
+                        else -> throw FatalAstException("invalid leftDt $leftDt")
+                    }
+                } else if(leftDt==null || rightDt==null) null else arithmeticOpDt(leftDt, rightDt)
+            }
             else -> throw FatalAstException("resulting datatype check for invalid operator $operator")
         }
     }
@@ -784,10 +806,8 @@ class BinaryExpression(var left: IExpression, val operator: String, var right: I
     }
 }
 
-private data class ByteOrWordLiteral(val intvalue: Int, val datatype: DataType) {
-    fun asWord() = ByteOrWordLiteral(intvalue, DataType.WORD)
-    fun asByte() = ByteOrWordLiteral(intvalue, DataType.BYTE)
-}
+private data class NumericLiteral(val number: Number, val datatype: DataType)
+
 
 class LiteralValue(val type: DataType,
                    val bytevalue: Short? = null,
@@ -835,7 +855,8 @@ class LiteralValue(val type: DataType,
             return when (value) {
                 // note: we cheat a little here and allow negative integers during expression evaluations
                 in -128..255 -> LiteralValue(DataType.BYTE, bytevalue = value.toShort(), position = position)
-                else -> LiteralValue(DataType.WORD, wordvalue = value.toInt(), position = position)
+                in -32768..65535 -> LiteralValue(DataType.WORD, wordvalue = value.toInt(), position = position)
+                else -> throw FatalAstException("integer overflow: $value")
             }
         }
     }
@@ -1412,7 +1433,7 @@ private fun prog8Parser.ModulestatementContext.toAst() : IStatement {
 
 
 private fun prog8Parser.BlockContext.toAst() : IStatement =
-        Block(identifier().text, integerliteral()?.toAst()?.intvalue, statement_block().toAst(), toPosition())
+        Block(identifier().text, integerliteral()?.toAst()?.number?.toInt(), statement_block().toAst(), toPosition())
 
 
 private fun prog8Parser.Statement_blockContext.toAst(): MutableList<IStatement> =
@@ -1552,7 +1573,7 @@ private fun prog8Parser.ReturnstmtContext.toAst() : IStatement {
 
 private fun prog8Parser.UnconditionaljumpContext.toAst(): IStatement {
 
-    val address = integerliteral()?.toAst()?.intvalue
+    val address = integerliteral()?.toAst()?.number?.toInt()
     val identifier =
             if(identifier()!=null) identifier()?.toAst()
             else scoped_identifier()?.toAst()
@@ -1569,7 +1590,7 @@ private fun prog8Parser.SubroutineContext.toAst() : Subroutine {
     return Subroutine(identifier().text,
             if(sub_params() ==null) emptyList() else sub_params().toAst(),
             if(sub_returns() ==null) emptyList() else sub_returns().toAst(),
-            sub_address()?.integerliteral()?.toAst()?.intvalue,
+            sub_address()?.integerliteral()?.toAst()?.number?.toInt(),
             if(statement_block() ==null) mutableListOf() else statement_block().toAst(),
             toPosition())
 }
@@ -1614,17 +1635,20 @@ private fun prog8Parser.DirectiveContext.toAst() : Directive =
 
 
 private fun prog8Parser.DirectiveargContext.toAst() : DirectiveArg =
-        DirectiveArg(stringliteral()?.text, identifier()?.text, integerliteral()?.toAst()?.intvalue, toPosition())
+        DirectiveArg(stringliteral()?.text, identifier()?.text, integerliteral()?.toAst()?.number?.toInt(), toPosition())
 
 
-private fun prog8Parser.IntegerliteralContext.toAst(): ByteOrWordLiteral {
-    fun makeLiteral(text: String, radix: Int, forceWord: Boolean): ByteOrWordLiteral {
+private fun prog8Parser.IntegerliteralContext.toAst(): NumericLiteral {
+    fun makeLiteral(text: String, radix: Int, forceWord: Boolean): NumericLiteral {
         val integer: Int
         var datatype = DataType.BYTE
         if(radix==10) {
             integer = text.toInt()
-            if(integer in 256..65535)
-                datatype = DataType.WORD
+            datatype = when(integer) {
+                in 0..255 -> DataType.BYTE
+                in 256..65535 -> DataType.WORD
+                else -> DataType.FLOAT
+            }
         } else if(radix==2) {
             if(text.length>8)
                 datatype = DataType.WORD
@@ -1636,7 +1660,7 @@ private fun prog8Parser.IntegerliteralContext.toAst(): ByteOrWordLiteral {
         } else {
             throw FatalAstException("invalid radix")
         }
-        return ByteOrWordLiteral(integer, if(forceWord) DataType.WORD else datatype)
+        return NumericLiteral(integer, if(forceWord) DataType.WORD else datatype)
     }
     val terminal: TerminalNode = children[0] as TerminalNode
     val integerPart = this.intpart.text
@@ -1661,9 +1685,10 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
             val intLit = litval.integerliteral()?.toAst()
             when {
                 intLit!=null -> when(intLit.datatype) {
-                    DataType.BYTE -> LiteralValue(DataType.BYTE, bytevalue = intLit.intvalue.toShort(), position = litval.toPosition())
-                    DataType.WORD -> LiteralValue(DataType.WORD, wordvalue = intLit.intvalue, position = litval.toPosition())
-                    else -> throw FatalAstException("invalid datatype for integer literal")
+                    DataType.BYTE -> LiteralValue(DataType.BYTE, bytevalue = intLit.number.toShort(), position = litval.toPosition())
+                    DataType.WORD -> LiteralValue(DataType.WORD, wordvalue = intLit.number.toInt(), position = litval.toPosition())
+                    DataType.FLOAT -> LiteralValue(DataType.FLOAT, floatvalue= intLit.number.toDouble(), position = litval.toPosition())
+                    else -> throw FatalAstException("invalid datatype for numeric literal")
                 }
                 litval.floatliteral()!=null -> LiteralValue(DataType.FLOAT, floatvalue = litval.floatliteral().toAst(), position = litval.toPosition())
                 litval.stringliteral()!=null -> LiteralValue(DataType.STR, strvalue = litval.stringliteral().text, position = litval.toPosition())

@@ -294,7 +294,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
         val rightDt = right.resultingDatatype(namespace)
         if (leftDt == DataType.BYTE || leftDt == DataType.WORD) {
             if(rightDt==DataType.FLOAT)
-                printWarning("byte or word value implicitly converted to float. Suggestion: use explicit flt() conversion or revert to integer arithmetic", left.position)
+                printWarning("byte or word value implicitly converted to float. Suggestion: use explicit flt() conversion or revert to byte/word arithmetic", left.position)
         }
     }
 
