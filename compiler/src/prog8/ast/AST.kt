@@ -709,7 +709,7 @@ class PrefixExpression(val operator: String, var expression: IExpression, overri
 }
 
 
-class BinaryExpression(var left: IExpression, val operator: String, var right: IExpression, override val position: Position) : IExpression {
+class BinaryExpression(var left: IExpression, var operator: String, var right: IExpression, override val position: Position) : IExpression {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {

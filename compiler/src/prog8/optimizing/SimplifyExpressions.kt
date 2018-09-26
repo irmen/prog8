@@ -115,7 +115,6 @@ class SimplifyExpressions(private val namespace: INameScope) : IAstProcessor {
     private data class ReorderedAssociativeBinaryExpr(val expr: BinaryExpression, val leftVal: LiteralValue?, val rightVal: LiteralValue?)
 
     private fun reorderAssociative(expr: BinaryExpression, leftVal: LiteralValue?): ReorderedAssociativeBinaryExpr {
-        val associativeOperators = setOf("+", "*", "&", "|", "^", "or", "and", "xor", "==", "!=")
         if(associativeOperators.contains(expr.operator) && leftVal!=null) {
             // swap left and right so that right is always the constant
             val tmp = expr.left

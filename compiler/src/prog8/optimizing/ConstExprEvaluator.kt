@@ -3,6 +3,10 @@ package prog8.optimizing
 import prog8.ast.*
 import kotlin.math.pow
 
+
+val associativeOperators = setOf("+", "*", "&", "|", "^", "or", "and", "xor", "==", "!=")
+
+
 class ConstExprEvaluator {
 
     fun evaluate(left: LiteralValue, operator: String, right: LiteralValue): IExpression {
