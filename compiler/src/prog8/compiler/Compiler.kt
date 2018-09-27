@@ -118,12 +118,10 @@ class Compiler(private val options: CompilationOptions) {
         // collect all the VarDecls to make them into one global list
         // @todo maybe keep the block structure intact and allocate them per block? this is needed eventually for the actual 6502 code generation so...
         override fun process(decl: VarDecl): IStatement {
-            if(decl.type == VarDeclType.MEMORY)
-                TODO("stackVm doesn't support memory vars for now")
-
             if (decl.type == VarDeclType.VAR) {
                 stackvmProg.blockvar(decl.scopedname, decl)
             }
+            // MEMORY variables are memory mapped and thus need no storage at all
             return super.process(decl)
         }
     }
@@ -333,7 +331,21 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
                 val target = expr.targetStatement(namespace)
                 when(target) {
                     is VarDecl -> {
-                        stackvmProg.instr(Opcode.PUSH_VAR, Value(DataType.STR, null, target.scopedname))
+                        when(target.type) {
+                            VarDeclType.VAR ->
+                                stackvmProg.instr(Opcode.PUSH_VAR, Value(DataType.STR, null, target.scopedname))
+                            VarDeclType.CONST ->
+                                throw CompilerException("const ref should have been const-folded away")
+                            VarDeclType.MEMORY -> {
+                                when(target.datatype){
+                                    DataType.BYTE -> stackvmProg.instr(Opcode.PUSH_MEM, Value(DataType.WORD, (target.value as LiteralValue).asNumericValue))
+                                    DataType.WORD -> stackvmProg.instr(Opcode.PUSH_MEM_W, Value(DataType.WORD, (target.value as LiteralValue).asNumericValue))
+                                    DataType.FLOAT -> stackvmProg.instr(Opcode.PUSH_MEM_F, Value(DataType.WORD, (target.value as LiteralValue).asNumericValue))
+                                    else -> TODO("invalid datatype for memory variable expression: $target")
+                                }
+                            }
+                        }
+
                     }
                     else -> throw CompilerException("expression identifierref should be a vardef, not $target")
                 }

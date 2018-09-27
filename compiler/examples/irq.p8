@@ -1,13 +1,16 @@
+%option enable_floats
+
 ~ main {
 
+    memory byte jiffyclockHi = $a0
+    memory byte jiffyclockMid = $a1
+    memory byte jiffyclockLo = $a2
+
+
 sub start() -> () {
-
-    byte jiffyclockHi = $a0
-    byte jiffyclockMid = $a1
-    byte jiffyclockLo = $a2
-
-    _vm_gfx_pixel(2,2,jiffyclockHi)
-    _vm_gfx_pixel(4,2,jiffyclockMid)
-    _vm_gfx_pixel(6,2,jiffyclockLo)
+    _vm_gfx_pixel(jiffyclockLo,190,jiffyclockHi)
+    _vm_gfx_pixel(jiffyclockLo,191,jiffyclockMid)
+    _vm_gfx_pixel(jiffyclockLo,192,jiffyclockLo)
+    return
 }
 }

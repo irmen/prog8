@@ -364,6 +364,10 @@ Assignment statements assign a single value to a target variable or memory locat
 Augmented assignments (such as ``A += X``) are also available, but these are just shorthands
 for normal assignments (``A = A + X``).
 
+Only register variables and variables of type byte, word and float can be assigned a new value.
+It's not possible to set a new value to string or array variables etc, because they get allocated
+a fixed amount of memory which will not change.
+
 .. attention::
     **Data type conversion (in assignments):**
     When assigning a value with a 'smaller' datatype to a register or variable with a 'larger' datatype,

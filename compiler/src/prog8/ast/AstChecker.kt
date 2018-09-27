@@ -712,19 +712,13 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                                           position: Position) : Boolean {
 
         if(sourceValue is RangeExpr)
-            return checkValueTypeAndRange(targetDatatype, null, sourceValue)
+            checkResult.add(SyntaxError("can't assign a range value", position))
 
         val result =  when(targetDatatype) {
             DataType.BYTE -> sourceDatatype==DataType.BYTE
             DataType.WORD -> sourceDatatype==DataType.BYTE || sourceDatatype==DataType.WORD
             DataType.FLOAT -> sourceDatatype==DataType.BYTE || sourceDatatype==DataType.WORD || sourceDatatype==DataType.FLOAT
-            DataType.STR -> sourceDatatype==DataType.STR
-            DataType.STR_P -> sourceDatatype==DataType.STR_P
-            DataType.STR_S -> sourceDatatype==DataType.STR_S
-            DataType.STR_PS -> sourceDatatype==DataType.STR_PS
-            DataType.ARRAY -> sourceDatatype==DataType.ARRAY
-            DataType.ARRAY_W -> sourceDatatype==DataType.ARRAY_W
-            DataType.MATRIX -> sourceDatatype==DataType.MATRIX
+            else -> checkResult.add(SyntaxError("cannot assign new value to variable of type $targetDatatype", position))
         }
 
         if(result)

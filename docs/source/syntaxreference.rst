@@ -335,7 +335,8 @@ bitwise arithmetic: ``&``  ``|``  ``^``  ``~``
 	``&`` is bitwise and, ``|`` is bitwise or, ``^`` is bitwise xor, ``~`` is bitwise invert (this one is an unary operator)
 
 assignment: ``=``
-	Sets the target on the LHS (left hand side) of the operator to the value of the expression on the RHS (right hand side).
+    Sets the target on the LHS (left hand side) of the operator to the value of the expression on the RHS (right hand side).
+    Note that an assignment sometimes is not possible or supported.
 
 augmented assignment: ``+=``  ``-=``  ``*=``  ``/=``  ``**=``  ``&=``  ``|=``  ``^=``
 	Syntactic sugar; ``A += X`` is equivalent to ``A = A + X``
