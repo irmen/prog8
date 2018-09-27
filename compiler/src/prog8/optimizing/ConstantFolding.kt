@@ -172,13 +172,13 @@ class ConstantFolding(private val namespace: INameScope) : IAstProcessor {
      * Compile-time constant sub expressions will be evaluated on the spot.
      * For instance, "9 * (4 + 2)" will be optimized into the integer literal 54.
      *
-     * More complex: dealing with associative operators:
-     * if our operator is +,-,*,/  THEN:
-     *    if one of our operands is a const, THEN:
-     *       if the other operand is also a binary expression THEN:
-     *          if its operator is in the same group as our operator (+ and -,  * and /) THEN:
-     *              if one of its operands is a const THEN:
-     *                  reorder the expression by lifting out the calculation on the 2 consts.  (so that it can be const-folded later)
+     * More complex stuff: reordering to group constants:
+     * If one of our operands is a Constant,
+     *   and the other operand is a Binary expression,
+     *   and one of ITS operands is a Constant,
+     *   and ITS other operand is NOT a Constant,
+     *   ...it may be possible to rewrite the expression to group the two Constants together,
+     *      to allow them to be const-folded away.
      */
     override fun process(expr: BinaryExpression): IExpression {
         return try {
@@ -186,31 +186,20 @@ class ConstantFolding(private val namespace: INameScope) : IAstProcessor {
             val leftconst = expr.left.constValue(namespace)
             val rightconst = expr.right.constValue(namespace)
 
-            // check associative operators and const operands
-            if(setOf("+", "-", "*", "/").contains(expr.operator)) {
-                val subExpr: BinaryExpression? = when {
-                    leftconst!=null -> expr.right as? BinaryExpression
-                    rightconst!=null -> expr.left as? BinaryExpression
-                    else -> null
-                }
-                if(subExpr!=null) {
-                    val sameGroupOperator =
-                            when (expr.operator) {
-                                "+", "-" -> subExpr.operator == "+" || subExpr.operator == "-"
-                                "*", "/" -> subExpr.operator == "*" || subExpr.operator == "/"
-                                else -> false
-                            }
-                    if (sameGroupOperator) {
-                        val subleftconst = subExpr.left.constValue(namespace)
-                        val subrightconst = subExpr.right.constValue(namespace)
-                        if (subleftconst != null || subrightconst != null) {
-                            // reorder!
-                            return reorderAssociativeConst(expr, subExpr, leftconst!=null, rightconst!=null, subleftconst!=null, subrightconst!=null)
-                        }
-                    }
-                }
+            val subExpr: BinaryExpression? = when {
+                leftconst!=null -> expr.right as? BinaryExpression
+                rightconst!=null -> expr.left as? BinaryExpression
+                else -> null
             }
-
+            if(subExpr!=null) {
+                val subleftconst = subExpr.left.constValue(namespace)
+                val subrightconst = subExpr.right.constValue(namespace)
+                if ((subleftconst != null && subrightconst == null) || (subleftconst==null && subrightconst!=null))
+                    // try reordering.
+                    return groupTwoConstsTogether(expr, subExpr,
+                            leftconst!=null, rightconst!=null,
+                            subleftconst!=null, subrightconst!=null)
+            }
 
             // const fold when both operands are a const
             val evaluator = ConstExprEvaluator()
@@ -227,16 +216,17 @@ class ConstantFolding(private val namespace: INameScope) : IAstProcessor {
         }
     }
 
-    private fun reorderAssociativeConst(expr: BinaryExpression,
-                                        subExpr: BinaryExpression,
-                                        leftIsConst: Boolean,
-                                        rightIsConst: Boolean,
-                                        subleftIsConst: Boolean,
-                                        subrightIsConst: Boolean): IExpression {
+    private fun groupTwoConstsTogether(expr: BinaryExpression,
+                                       subExpr: BinaryExpression,
+                                       leftIsConst: Boolean,
+                                       rightIsConst: Boolean,
+                                       subleftIsConst: Boolean,
+                                       subrightIsConst: Boolean): IExpression
+    {
+        // @todo this implements only a small set of possible reorderings for now
 
         if(expr.operator==subExpr.operator) {
             // both operators are the same.
-
             // If + or *,  we can simply swap the const of expr and Var in subexpr.
             if(expr.operator=="+" || expr.operator=="*") {
                 if(leftIsConst) {
@@ -280,10 +270,11 @@ class ConstantFolding(private val namespace: INameScope) : IAstProcessor {
                 return expr
             }
 
-            // todo: other combinations of operators and constants
+            // todo: other cases where both operators are identical
             return expr
         } else {
-            return expr         // TODO reorder when operators are not identical
+            // todo: other combinations of operators and constants (with different operator in subexpr)
+            return expr
         }
     }
 

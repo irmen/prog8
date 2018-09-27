@@ -117,10 +117,10 @@ enum class Opcode {
     CLC,        // clear carry status flag  NOTE: is mostly fake, carry flag is not affected by any numeric operations
     SEI,        // set irq-disable status flag
     CLI,        // clear irq-disable status flag
-    NOP,
+    NOP,        // do nothing
     BREAKPOINT, // breakpoint
     TERMINATE,  // end the program
-    LINE        // record source file line number
+    LINE        // track source file line number
 }
 
 enum class Syscall(val callNr: Short) {
@@ -162,7 +162,7 @@ enum class Syscall(val callNr: Short) {
     FUNC_RNDF(91),               // push a random float on the stack (between 0.0 and 1.0)
 
     // note: not all builtin functions of the Prog8 language are present as functions:
-    // some of them are already opcodes (such as MSB, LSB, LSL, LSR, ROL, ROR, ROL2, ROR2, and FLT)!
+    // some of them are straight opcodes (such as MSB, LSB, LSL, LSR, ROL, ROR, ROL2, ROR2, and FLT)!
 }
 
 class Memory {
