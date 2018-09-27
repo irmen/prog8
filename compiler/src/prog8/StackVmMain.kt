@@ -17,9 +17,11 @@ fun main(args: Array<String>) {
     }
 
     val program = Program.load(args.first())
+    //val irqProgram = Program("irq", mutableListOf(), emptyMap(), emptyMap(), emptyMap())
+    val irqProgram = Program.load("irq_stackvm.txt")
     val vm = StackVm(traceOutputFile = null)
     val dialog = ScreenDialog()
-    vm.load(program, dialog.canvas)
+    vm.load(program, irqProgram, dialog.canvas)
     EventQueue.invokeLater {
         dialog.pack()
         dialog.isVisible = true
@@ -36,6 +38,10 @@ fun main(args: Array<String>) {
                 (a.source as Timer).stop()
             }
         }
+
+        val irqTimer = Timer(1000/60) { a -> vm.irq(a.`when`) }
+
         programTimer.start()
+        irqTimer.start()
     }
 }

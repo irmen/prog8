@@ -45,7 +45,7 @@ class BitmapScreenPanel : JPanel() {
 
     companion object {
         const val SCREENWIDTH = 320
-        const val SCREENHEIGHT = 256
+        const val SCREENHEIGHT = 200
         const val SCALING = 3
         val palette = listOf(         // this is Pepto's Commodore-64 palette  http://www.pepto.de/projects/colorvic/
                 Color(0x000000),  // 0 = black

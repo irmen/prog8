@@ -1,7 +1,6 @@
 package prog8.stackvm
 
 import prog8.ast.DataType
-import prog8.compiler.target.c64.Mflpt5
 import prog8.compiler.target.c64.Petscii
 import java.io.File
 import java.io.PrintStream
@@ -163,66 +162,6 @@ enum class Syscall(val callNr: Short) {
 
     // note: not all builtin functions of the Prog8 language are present as functions:
     // some of them are straight opcodes (such as MSB, LSB, LSL, LSR, ROL, ROR, ROL2, ROR2, and FLT)!
-}
-
-class Memory {
-    private val mem = ShortArray(65536)         // shorts because byte is signed and we store values 0..255
-
-    fun getByte(address: Int): Short {
-        return mem[address]
-    }
-
-    fun setByte(address: Int, value: Short) {
-        if(value<0 || value>255) throw VmExecutionException("byte value not 0..255")
-        mem[address] = value
-    }
-
-    fun getWord(address: Int): Int {
-        return mem[address] + 256*mem[address+1]
-    }
-
-    fun setWord(address: Int, value: Int) {
-        if(value<0 || value>65535) throw VmExecutionException("word value not 0..65535")
-        mem[address] = value.and(255).toShort()
-        mem[address+1] = (value / 256).toShort()
-    }
-
-    fun setFloat(address: Int, value: Double) {
-        val mflpt5 = Mflpt5.fromNumber(value)
-        mem[address] = mflpt5.b0
-        mem[address+1] = mflpt5.b1
-        mem[address+2] = mflpt5.b2
-        mem[address+3] = mflpt5.b3
-        mem[address+4] = mflpt5.b4
-    }
-
-    fun getFloat(address: Int): Double {
-        return Mflpt5(mem[address], mem[address+1], mem[address+2], mem[address+3], mem[address+4]).toDouble()
-    }
-
-    fun setString(address: Int, str: String) {
-        // lowercase PETSCII
-        val petscii = Petscii.encodePetscii(str, true)
-        var addr = address
-        for (c in petscii) mem[addr++] = c
-        mem[addr] = 0
-    }
-
-    fun getString(strAddress: Int): String {
-        // lowercase PETSCII
-        val petscii = mutableListOf<Short>()
-        var addr = strAddress
-        while(true) {
-            val byte = mem[addr++]
-            if(byte==0.toShort()) break
-            petscii.add(byte)
-        }
-        return Petscii.decodePetscii(petscii, true)
-    }
-
-    fun clear() {
-        for(i in 0..65535) mem[i]=0
-    }
 }
 
 
@@ -912,10 +851,6 @@ class Program (val name: String,
 
 class StackVm(val traceOutputFile: String?) {
     val mem = Memory()
-    val evalstack = MyStack<Value>()   // evaluation stack
-    val callstack = MyStack<Instruction>()    // subroutine call stack
-    var sourceLine = ""     // meta info about current line in source file
-        private set
     var P_carry: Boolean = false
         private set
     var P_irqd: Boolean = false
@@ -923,22 +858,39 @@ class StackVm(val traceOutputFile: String?) {
     var variables = mutableMapOf<String, Value>()     // all variables (set of all vars used by all blocks/subroutines) key = their fully scoped name
         private set
     private var program = listOf<Instruction>()
+    private var irqProgram = listOf<Instruction>()
+    var evalstack = MyStack<Value>()
+        private set
+    var callstack = MyStack<Instruction>()
+        private set
     private var traceOutput = if(traceOutputFile!=null) PrintStream(File(traceOutputFile), "utf-8") else null
-    private lateinit var currentIns: Instruction
     private var canvas: BitmapScreenPanel? = null
     private val rnd = Random()
+    private val bootTime = System.currentTimeMillis()
+    private lateinit var currentIns: Instruction
+    var sourceLine: String = ""
+        private set
 
-    fun load(program: Program, canvas: BitmapScreenPanel?) {
+    fun load(program: Program, irqProgram: Program?, canvas: BitmapScreenPanel?) {
         this.program = program.program
+        this.irqProgram = irqProgram?.program ?: mutableListOf(Instruction(Opcode.NOP))
         this.canvas = canvas
         variables = program.variables.toMutableMap()
-        if(this.variables.contains("A") ||
+        irqCurrentVariables = irqProgram?.variables?.toMutableMap() ?: mutableMapOf()
+        if(variables.contains("A") ||
                 variables.contains("X") ||
                 variables.contains("Y") ||
                 variables.contains("XY") ||
                 variables.contains("AX") ||
                 variables.contains("AY"))
             throw VmExecutionException("program contains variable(s) for the reserved registers A,X,...")
+        if(irqCurrentVariables.contains("A") ||
+                irqCurrentVariables.contains("X") ||
+                irqCurrentVariables.contains("Y") ||
+                irqCurrentVariables.contains("XY") ||
+                irqCurrentVariables.contains("AX") ||
+                irqCurrentVariables.contains("AY"))
+            throw VmExecutionException("irqProgram contains variable(s) for the reserved registers A,X,...")
         // define the 'registers'
         variables["A"] = Value(DataType.BYTE, 0)
         variables["X"] = Value(DataType.BYTE, 0)
@@ -946,14 +898,24 @@ class StackVm(val traceOutputFile: String?) {
         variables["AX"] = Value(DataType.WORD, 0)
         variables["AY"] = Value(DataType.WORD, 0)
         variables["XY"] = Value(DataType.WORD, 0)
+        irqCurrentVariables["A"] = Value(DataType.BYTE, 0)
+        irqCurrentVariables["X"] = Value(DataType.BYTE, 0)
+        irqCurrentVariables["Y"] = Value(DataType.BYTE, 0)
+        irqCurrentVariables["AX"] = Value(DataType.WORD, 0)
+        irqCurrentVariables["AY"] = Value(DataType.WORD, 0)
+        irqCurrentVariables["XY"] = Value(DataType.WORD, 0)
 
         initMemory(program.memory)
         evalstack.clear()
         callstack.clear()
+        irqEvalStack.clear()
+        irqCallStack.clear()
         P_carry = false
         P_irqd = false
         sourceLine = ""
+        irqCurrentLine = ""
         currentIns = this.program[0]
+        irqCurrentIns = this.irqProgram[0]
     }
 
     fun step(instructionCount: Int = 10000) {
@@ -1567,5 +1529,56 @@ class StackVm(val traceOutputFile: String?) {
         }
 
         return ins.next
+    }
+
+    fun irq(timestamp: Long) {
+        // 60hz IRQ handling
+        if(P_irqd)
+            return      // interrupt is disabled
+
+        P_irqd=true
+        swapIrqExecutionContexts(true)
+
+        val jiffies = min((timestamp-bootTime)*60/1000, 24*3600*60-1)
+        // update the C-64 60hz jiffy clock in the ZP addresses:
+        mem.setByte(0x00a0, (jiffies ushr 16).toShort())
+        mem.setByte(0x00a1, (jiffies ushr 8 and 255).toShort())
+        mem.setByte(0x00a2, (jiffies and 255).toShort())
+
+        try {
+            // execute the irq routine
+            this.step(Int.MAX_VALUE)
+        } catch(vmt: VmTerminationException) {
+            // irq routine ended
+        }
+
+        if(evalstack.isNotEmpty())
+            throw VmExecutionException("irq: eval stack is not empty at exit from irq program")
+        if(callstack.isNotEmpty())
+            throw VmExecutionException("irq: call stack is not empty at exit from irq program")
+        swapIrqExecutionContexts(false)
+        P_irqd=false
+    }
+
+    private lateinit var irqCurrentIns: Instruction
+    private var irqCurrentVariables =  mutableMapOf<String, Value>()
+    private var irqCurrentLine: String = ""
+    private var irqEvalStack = MyStack<Value>()
+    private var irqCallStack = MyStack<Instruction>()
+    private var irqCarry = false
+
+    private fun swapIrqExecutionContexts(startingIrq: Boolean) {
+        irqCarry = P_carry.also { P_carry = irqCarry }
+        irqProgram = program.also { program = irqProgram }
+        irqCurrentIns = currentIns.also { currentIns = irqCurrentIns }
+        irqCurrentVariables = variables.also {variables = irqCurrentVariables }
+        irqCurrentLine = sourceLine.also { sourceLine = irqCurrentLine }
+        irqEvalStack = evalstack.also { evalstack = irqEvalStack }
+        irqCallStack = callstack.also { callstack = irqCallStack }
+        if(startingIrq) {
+            currentIns = program.first()
+            sourceLine = ""
+            P_carry = false
+        }
     }
 }
