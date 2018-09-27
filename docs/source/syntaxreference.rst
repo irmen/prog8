@@ -436,7 +436,7 @@ and not specifying a code block::
 .. data:: proc_parameters
 
         comma separated list of "<parametername>:<register>" pairs specifying the input parameters.
-        You can omit the parameter names as long as the arguments "line up".
+        You can omit these parameter names in subroutine calls, as long as the arguments "line up".
 
 .. data:: proc_results
 

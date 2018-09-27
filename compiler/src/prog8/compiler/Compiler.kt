@@ -103,12 +103,11 @@ class Compiler(private val options: CompilationOptions) {
         // create the pool of all variables used in all blocks and scopes
         val varGather = VarGatherer(intermediate)
         varGather.process(module)
-        println("Number of allocated variables and constants: ${intermediate.numVariables}")
+        println(" ${intermediate.numVariables} allocated variables and constants")
 
         val translator = StatementTranslator(intermediate, namespace)
         translator.process(module)
-        println("Number of source statements: ${translator.stmtUniqueSequenceNr}")
-        println("Number of vm instructions: ${intermediate.numInstructions}")
+        println(" ${translator.stmtUniqueSequenceNr} source statements,  ${intermediate.numInstructions} resulting instructions")
 
         return intermediate
     }

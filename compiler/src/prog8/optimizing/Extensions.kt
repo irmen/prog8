@@ -22,7 +22,7 @@ fun Module.constantFold(globalNamespace: INameScope) {
     }
 
     while(optimizer.errors.isEmpty() && optimizer.optimizationsDone>0) {
-        println("[${this.name}] ${optimizer.optimizationsDone} constant folds performed")
+        println("[${this.name}] Debug: ${optimizer.optimizationsDone} constant folds performed")
         optimizer.optimizationsDone = 0
         this.process(optimizer)
     }
@@ -41,7 +41,7 @@ fun Module.optimizeStatements(globalNamespace: INameScope, allScopedSymbolDefini
     this.process(optimizer)
     optimizer.removeUnusedNodes(globalNamespace.usedNames(), allScopedSymbolDefinitions)
     if(optimizer.optimizationsDone > 0)
-        println("[${this.name}] ${optimizer.optimizationsDone} statement optimizations performed")
+        println("[${this.name}] Debug: ${optimizer.optimizationsDone} statement optimizations performed")
     this.linkParents()  // re-link in final configuration
     return optimizer.optimizationsDone
 }
@@ -50,6 +50,6 @@ fun Module.simplifyExpressions(namespace: INameScope) : Int {
     val optimizer = SimplifyExpressions(namespace)
     this.process(optimizer)
     if(optimizer.optimizationsDone > 0)
-        println("[${this.name}] ${optimizer.optimizationsDone} expression optimizations performed")
+        println("[${this.name}] Debug: ${optimizer.optimizationsDone} expression optimizations performed")
     return optimizer.optimizationsDone
 }

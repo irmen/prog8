@@ -142,7 +142,7 @@ sub	GIVAYF		(lo: Y, hi: A) -> (?)	= $b391
 
 sub	FREADUY		(ubyte: Y) -> (?)	= $b3a2		; 8 bit unsigned Y -> float in fac1
 sub	FREADSA		(sbyte: A) -> (?)	= $bc3c		; 8 bit signed A -> float in fac1
-sub	FREADSTR	(len: A) -> (?)		= $b7b5		; str -> fac1, $22/23 must point to string, A=string length
+sub	FREADSTR	(length: A) -> (?)	= $b7b5		; str -> fac1, $22/23 must point to string, A=string length
 sub	FPRINTLN	() -> (?)		= $aabc		; print string of fac1, on one line (= with newline)
 sub	FOUT		() -> (AY, X?)		= $bddd		; fac1 -> string, address returned in AY ($0100)
 

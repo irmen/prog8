@@ -65,6 +65,9 @@ class AstIdentifiersChecker : IAstProcessor {
             // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", subroutine.position))
         } else {
+            if(subroutine.parameters.any { BuiltinFunctionNames.contains(it.name) })
+                checkResult.add(NameError("builtin function name cannot be used as parameter", subroutine.position))
+
             val scopedName = subroutine.scopedname
             val existing = symbols[scopedName]
             if (existing != null) {
