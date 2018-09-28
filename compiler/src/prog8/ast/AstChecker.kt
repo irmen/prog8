@@ -38,11 +38,6 @@ fun printWarning(msg: String, position: Position, detailInfo: String?=null) {
 }
 
 
-/**
- * todo check subroutine call parameters against signature
- * todo check subroutine return values against the call's result assignments
- */
-
 class AstChecker(private val namespace: INameScope, private val compilerOptions: CompilationOptions) : IAstProcessor {
     private val checkResult: MutableList<AstException> = mutableListOf()
 
@@ -62,10 +57,22 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
 
         // there must be a 'main' block with a 'start' subroutine for the program entry point.
         val mainBlock = module.statements.singleOrNull { it is Block && it.name=="main" } as? Block?
-        val startSub = mainBlock?.subScopes()?.get("start")
+        val startSub = mainBlock?.subScopes()?.get("start") as? Subroutine
         if(startSub==null) {
             checkResult.add(SyntaxError("missing program entrypoint ('start' subroutine in 'main' block)", module.position))
+        } else {
+            if(startSub.parameters.isNotEmpty() || startSub.returnvalues.isNotEmpty())
+                checkResult.add(SyntaxError("program entrypoint subroutine can't have parameters and/or return values", module.position))
         }
+    }
+
+    override fun process(returnStmt: Return): IStatement {
+        val expectedReturnValues = (returnStmt.definingScope() as? Subroutine)?.returnvalues ?: emptyList()
+        if(expectedReturnValues.size != returnStmt.values.size)
+            checkResult.add(SyntaxError("number of return values doesn't match subroutine return spec", returnStmt.position))
+
+        // @todo: check return value types versus sub return spec
+        return super.process(returnStmt)
     }
 
     override fun process(forLoop: ForLoop): IStatement {
@@ -479,6 +486,12 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         val targetStatement = checkFunctionOrLabelExists(functionCall.target, stmtOfExpression)
         if(targetStatement!=null)
             checkBuiltinFunctionCall(functionCall, functionCall.position)
+
+        if(targetStatement is Label && functionCall.arglist.isNotEmpty())
+            checkResult.add(SyntaxError("cannot use arguments when calling a label", functionCall.position))
+
+        // todo check subroutine call parameters against signature
+
         return super.process(functionCall)
     }
 
@@ -486,6 +499,12 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         val targetStatement = checkFunctionOrLabelExists(functionCall.target, functionCall)
         if(targetStatement!=null)
             checkBuiltinFunctionCall(functionCall, functionCall.position)
+
+        if(targetStatement is Label && functionCall.arglist.isNotEmpty())
+            checkResult.add(SyntaxError("cannot use arguments when calling a label", functionCall.position))
+
+        // todo check subroutine call parameters against signature
+
         return super.process(functionCall)
     }
 

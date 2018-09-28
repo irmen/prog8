@@ -202,6 +202,11 @@ interface IAstProcessor {
         repeatLoop.statements = repeatLoop.statements.map { it.process(this) }
         return repeatLoop
     }
+
+    fun process(returnStmt: Return): IStatement {
+        returnStmt.values = returnStmt.values.map { it.process(this) }
+        return returnStmt
+    }
 }
 
 
@@ -271,7 +276,7 @@ interface INameScope {
     fun subScopes() = statements.asSequence().filter { it is INameScope }.map { it as INameScope }.associate { it.name to it }
 
     fun labelsAndVariables() = statements.asSequence().filter { it is Label || it is VarDecl }
-            .associate {((it as? Label)?.name ?: (it as? VarDecl)?.name) to it }
+            .associate {((it as? Label)?.name ?: (it as? VarDecl)?.name)!! to it }
 
     fun lookup(scopedName: List<String>, statement: Node) : IStatement? {
         if(scopedName.size>1) {
@@ -504,10 +509,7 @@ class Return(var values: List<IExpression>, override val position: Position) : I
         values.forEach {it.linkParents(this)}
     }
 
-    override fun process(processor: IAstProcessor): IStatement {
-        values = values.map { it.process(processor) }
-        return this
-    }
+    override fun process(processor: IAstProcessor) = processor.process(this)
 
     override fun toString(): String {
         return "Return(values: $values, pos=$position)"
@@ -1225,6 +1227,9 @@ class FunctionCall(override var target: IdentifierReference,
             }
             TODO("return type for subroutine with multiple return values $stmt")
         }
+        else if(stmt is Label) {
+            return null
+        }
         TODO("datatype of functioncall to $stmt")
     }
 
@@ -1301,6 +1306,12 @@ data class SubroutineParameter(val name: String,
 
     override fun linkParents(parent: Node) {
         this.parent = parent
+    }
+
+    val type = when(register) {
+        Register.A, Register.X, Register.Y -> DataType.BYTE
+        Register.AX, Register.AY, Register.XY -> DataType.WORD
+        null -> DataType.BYTE
     }
 }
 
@@ -1562,16 +1573,16 @@ private fun prog8Parser.FunctioncallContext.toAst(): FunctionCall {
 }
 
 
-private fun prog8Parser.InlineasmContext.toAst(): IStatement =
+private fun prog8Parser.InlineasmContext.toAst() =
         InlineAssembly(INLINEASMBLOCK().text, toPosition())
 
 
-private fun prog8Parser.ReturnstmtContext.toAst() : IStatement {
+private fun prog8Parser.ReturnstmtContext.toAst() : Return {
     val values = expression_list()
     return Return(values?.toAst() ?: emptyList(), toPosition())
 }
 
-private fun prog8Parser.UnconditionaljumpContext.toAst(): IStatement {
+private fun prog8Parser.UnconditionaljumpContext.toAst(): Jump {
 
     val address = integerliteral()?.toAst()?.number?.toInt()
     val identifier =

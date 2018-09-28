@@ -311,17 +311,15 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
                 translateBinaryOperator(expr.operator)
             }
             is FunctionCall -> {
-                expr.arglist.forEach { translate(it) }
                 val target = expr.target.targetStatement(namespace)
                 if(target is BuiltinFunctionStatementPlaceholder) {
                     // call to a builtin function (some will just be an opcode!)
+                    expr.arglist.forEach { translate(it) }
                     val funcname = expr.target.nameInSource[0]
                     translateFunctionCall(funcname, expr.arglist)
                 } else {
                     when(target) {
-                        is Subroutine -> {
-                            stackvmProg.instr(Opcode.CALL, callLabel = target.scopedname)
-                        }
+                        is Subroutine -> translateSubroutineCall(target, expr.arglist, expr.parent)
                         else -> TODO("non-builtin-function call to $target")
                     }
                 }
@@ -369,6 +367,26 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
         }
     }
 
+    private fun translate(stmt: FunctionCallStatement) {
+        stackvmProg.line(stmt.position)
+        val targetStmt = stmt.target.targetStatement(namespace)!!
+        if(targetStmt is BuiltinFunctionStatementPlaceholder) {
+            stmt.arglist.forEach { translate(it) }
+            val funcname = stmt.target.nameInSource[0]
+            translateFunctionCall(funcname, stmt.arglist)
+            return
+        }
+
+        when(targetStmt) {
+            is Label ->
+                stackvmProg.instr(Opcode.CALL, callLabel = targetStmt.scopedname)
+            is Subroutine ->
+                translateSubroutineCall(targetStmt, stmt.arglist, stmt)
+            else ->
+                throw AstException("invalid call target node type: ${targetStmt::class}")
+        }
+    }
+
     private fun translateFunctionCall(funcname: String, args: List<IExpression>) {
         // some functions are implemented as vm opcodes
         when (funcname) {
@@ -396,6 +414,22 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
             "clear_irqd" -> stackvmProg.instr(Opcode.CLI)
             else -> createSyscall(funcname)  // call builtin function
         }
+    }
+
+    fun translateSubroutineCall(subroutine: Subroutine, arguments: List<IExpression>, parent: Node) {
+        // setup the arguments: simply put them into the register vars
+        // @todo support other types of parameters beside just registers
+        for(param in arguments.zip(subroutine.parameters)) {
+            val assign = Assignment(
+                    AssignTarget(param.second.register, null, param.first.position),
+                    null,
+                    param.first,
+                    param.first.position
+            )
+            assign.linkParents(parent)
+            translate(assign)
+        }
+        stackvmProg.instr(Opcode.CALL, callLabel=subroutine.scopedname)
     }
 
     private fun translateBinaryOperator(operator: String) {
@@ -433,25 +467,6 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
             else -> throw FatalAstException("const evaluation for invalid prefix operator $operator")
         }
         stackvmProg.instr(opcode)
-    }
-
-    private fun translate(stmt: FunctionCallStatement) {
-        stackvmProg.line(stmt.position)
-        val targetStmt = stmt.target.targetStatement(namespace)!!
-        if(targetStmt is BuiltinFunctionStatementPlaceholder) {
-            stmt.arglist.forEach { translate(it) }
-            val funcname = stmt.target.nameInSource[0]
-            translateFunctionCall(funcname, stmt.arglist)
-            return
-        }
-
-        val targetname = when(targetStmt) {
-            is Label -> targetStmt.scopedname
-            is Subroutine -> targetStmt.scopedname
-            else -> throw AstException("invalid call target node type: ${targetStmt::class}")
-        }
-        stmt.arglist.forEach { translate(it) }
-        stackvmProg.instr(Opcode.CALL, callLabel = targetname)
     }
 
     private fun createSyscall(funcname: String) {
@@ -572,8 +587,18 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram, priva
     }
 
     private fun translate(stmt: Return) {
-        if(stmt.values.isNotEmpty()) {
-            TODO("return with value(s) not yet supported: $stmt")
+        val returnvalues = (stmt.definingScope() as? Subroutine)?.returnvalues ?: emptyList()
+        for(value in stmt.values.zip(returnvalues)) {
+            // assign the return values to the proper result registers
+            // @todo support other things than just result registers
+            val assign = Assignment(
+                    AssignTarget(value.second.register, null, stmt.position),
+                    null,
+                    value.first,
+                    stmt.position
+            )
+            assign.linkParents(stmt.parent)
+            translate(assign)
         }
         stackvmProg.line(stmt.position)
         stackvmProg.instr(Opcode.RETURN)

@@ -1,32 +1,18 @@
 %option enable_floats
 
-%import c64lib
-%import mathlib
-%import prog8lib
-
 ~ main {
-
 sub start() -> () {
 
-    const word yoffset=100
-    const float height=20.2
-    word pixely
-    float yy
-    float v
-
-    yy = 11.0-(v-22.0)
-    yy = 11.0-(22.0-v)
-    yy = (v-22.0)-11.0
-    yy = (22.0-v)-11.0
-
-    yy = 11.0/(v/22.0)
-    yy = 11.0/(22.0/v)
-    yy = (v/22.0)/11.0
-    yy = (22.0/v)/11.0
+    A = calcIt(12345, 99)
+    ;A = 99/5 + lsb(12345)
+    _vm_write_num(A)
+    _vm_write_char($8d)
+    return
 
 }
 
-sub printIt(length: XY, control: A) -> (A) {
-    return 42  ; length / control
+sub calcIt(length: XY, control: A) -> (Y) {
+
+    return control/5 +lsb(length)
 }
 }

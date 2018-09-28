@@ -144,6 +144,13 @@ class StatementOptimizer(private val globalNamespace: INameScope) : IAstProcesso
                 // we chose to just print the blocks that aren't used.
                 if(value is Block)
                     println("${value.position} Info: block '$localname' is never used")
+                if(value is VarDecl) {
+                    val scope = value.definingScope() as? Subroutine
+                    if(scope!=null && scope.parameters.any { it.name==localname})
+                        println("${value.position} Info: parameter '$localname' is never used")
+                    else
+                        println("${value.position} Info: variable '$localname' is never used")
+                }
                 parentScope.removeStatement(value)
                 symbolsToRemove.add(name)
                 optimizationsDone++

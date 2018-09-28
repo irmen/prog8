@@ -5,6 +5,7 @@ import prog8.functions.BuiltinFunctionNames
 /**
  * Checks the validity of all identifiers (no conflicts)
  * Also builds a list of all (scoped) symbol definitions
+ * Also makes sure that subroutine's parameters also become local variable decls in the subroutine's scope.
  * Finally, it also makes sure the datatype of all Var decls is set correctly.
  */
 
@@ -65,7 +66,7 @@ class AstIdentifiersChecker : IAstProcessor {
             // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", subroutine.position))
         } else {
-            if(subroutine.parameters.any { BuiltinFunctionNames.contains(it.name) })
+            if (subroutine.parameters.any { BuiltinFunctionNames.contains(it.name) })
                 checkResult.add(NameError("builtin function name cannot be used as parameter", subroutine.position))
 
             val scopedName = subroutine.scopedname
@@ -75,6 +76,24 @@ class AstIdentifiersChecker : IAstProcessor {
             } else {
                 symbols[scopedName] = subroutine
             }
+
+            // check that there are no local variables that redefine the subroutine's parameters
+            val definedNames = subroutine.labelsAndVariables()
+            val paramNames = subroutine.parameters.map { it.name }
+            val definedNamesCorrespondingToParameters = definedNames.filter { paramNames.contains(it.key) }
+            for(name in definedNamesCorrespondingToParameters) {
+                if(name.value.position != subroutine.position)
+                    nameError(name.key, name.value.position, subroutine)
+            }
+
+            // inject subroutine params as local variables (if they're not there yet)
+            subroutine.parameters
+                    .filter { !definedNames.containsKey(it.name) }
+                    .forEach {
+                        val vardecl = VarDecl(VarDeclType.VAR, it.type, null, it.name, null, subroutine.position)
+                        vardecl.linkParents(subroutine)
+                        subroutine.statements.add(0, vardecl)
+                    }
         }
         return super.process(subroutine)
     }

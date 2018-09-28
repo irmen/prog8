@@ -1390,7 +1390,8 @@ class StackVm(val traceOutputFile: String?) {
                 val value = evalstack.pop()
                 val varname = ins.arg!!.stringvalue ?: throw VmExecutionException("${ins.opcode} expects string argument (the variable name)")
                 val variable = variables[varname] ?: throw VmExecutionException("unknown variable: $varname")
-                if(variable.type!=value.type) throw VmExecutionException("value datatype ${value.type} is not the same as variable datatype ${variable.type}")
+                if(variable.type!=value.type)
+                    throw VmExecutionException("value datatype ${value.type} is not the same as variable datatype ${variable.type} for var $varname")
                 variables[varname] = value
             }
             Opcode.SHL_VAR -> {
