@@ -11,6 +11,15 @@ import prog8.stackvm.VmExecutionException
 import kotlin.test.*
 
 
+private fun sameValueAndType(v1: Value, v2: Value): Boolean {
+    return v1.type==v2.type && v1==v2
+}
+
+private fun sameValueAndType(lv1: LiteralValue, lv2: LiteralValue): Boolean {
+    return lv1.type==lv2.type && lv1==lv2
+}
+
+
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestStackVmValue {
 
@@ -24,7 +33,7 @@ class TestStackVmValue {
         assertFalse(v<v)
         assertFalse(v>v)
 
-        assertEquals(Value(DataType.BYTE, 100), Value(DataType.BYTE, 100))
+        assertTrue(sameValueAndType(Value(DataType.BYTE, 100), Value(DataType.BYTE, 100)))
     }
 
     @Test
@@ -39,6 +48,16 @@ class TestStackVmValue {
         assertEquals(Value(DataType.FLOAT, 22239.0), Value(DataType.WORD, 22239))
         assertEquals(Value(DataType.FLOAT, 9.99), Value(DataType.FLOAT, 9.99))
 
+        assertTrue(sameValueAndType(Value(DataType.BYTE, 100), Value(DataType.BYTE, 100)))
+        assertFalse(sameValueAndType(Value(DataType.BYTE, 100), Value(DataType.WORD, 100)))
+        assertFalse(sameValueAndType(Value(DataType.BYTE, 100), Value(DataType.FLOAT, 100)))
+        assertFalse(sameValueAndType(Value(DataType.WORD, 254), Value(DataType.BYTE, 254)))
+        assertTrue(sameValueAndType(Value(DataType.WORD, 12345), Value(DataType.WORD, 12345)))
+        assertFalse(sameValueAndType(Value(DataType.WORD, 12345), Value(DataType.FLOAT, 12345)))
+        assertFalse(sameValueAndType(Value(DataType.FLOAT, 100.0), Value(DataType.BYTE, 100)))
+        assertFalse(sameValueAndType(Value(DataType.FLOAT, 22239.0), Value(DataType.WORD, 22239)))
+        assertTrue(sameValueAndType(Value(DataType.FLOAT, 9.99), Value(DataType.FLOAT, 9.99)))
+
         assertNotEquals(Value(DataType.BYTE, 100), Value(DataType.BYTE, 101))
         assertNotEquals(Value(DataType.BYTE, 100), Value(DataType.WORD, 101))
         assertNotEquals(Value(DataType.BYTE, 100), Value(DataType.FLOAT, 101))
@@ -49,11 +68,21 @@ class TestStackVmValue {
         assertNotEquals(Value(DataType.FLOAT, 9.99), Value(DataType.WORD, 9))
         assertNotEquals(Value(DataType.FLOAT, 9.99), Value(DataType.FLOAT, 9.0))
 
+        assertFalse(sameValueAndType(Value(DataType.BYTE, 100), Value(DataType.BYTE, 101)))
+        assertFalse(sameValueAndType(Value(DataType.BYTE, 100), Value(DataType.WORD, 101)))
+        assertFalse(sameValueAndType(Value(DataType.BYTE, 100), Value(DataType.FLOAT, 101)))
+        assertFalse(sameValueAndType(Value(DataType.WORD, 245), Value(DataType.BYTE, 246)))
+        assertFalse(sameValueAndType(Value(DataType.WORD, 12345), Value(DataType.WORD, 12346)))
+        assertFalse(sameValueAndType(Value(DataType.WORD, 12345), Value(DataType.FLOAT, 12346)))
+        assertFalse(sameValueAndType(Value(DataType.FLOAT, 9.99), Value(DataType.BYTE, 9)))
+        assertFalse(sameValueAndType(Value(DataType.FLOAT, 9.99), Value(DataType.WORD, 9)))
+        assertFalse(sameValueAndType(Value(DataType.FLOAT, 9.99), Value(DataType.FLOAT, 9.0)))
+
         assertFailsWith<VmExecutionException> {
-            assertEquals(Value(DataType.STR, null, "hello"), Value(DataType.STR, null, "hello"))
+            assertTrue(sameValueAndType(Value(DataType.STR, null, "hello"), Value(DataType.STR, null, "hello")))
         }
         assertFailsWith<VmExecutionException> {
-            assertEquals(Value(DataType.ARRAY, null, arrayvalue = intArrayOf(1,2,3)), Value(DataType.ARRAY, null, arrayvalue = intArrayOf(1,2,3)))
+            assertTrue(sameValueAndType(Value(DataType.ARRAY, null, arrayvalue = intArrayOf(1,2,3)), Value(DataType.ARRAY, null, arrayvalue = intArrayOf(1,2,3))))
         }
     }
 
@@ -238,7 +267,7 @@ class TestParserLiteralValue {
         assertFalse(v < v)
         assertFalse(v > v)
 
-        assertEquals(LiteralValue(DataType.WORD, wordvalue = 12345, position = dummyPos), LiteralValue(DataType.WORD, wordvalue = 12345, position = dummyPos))
+        assertTrue(sameValueAndType(LiteralValue(DataType.WORD, wordvalue = 12345, position = dummyPos), LiteralValue(DataType.WORD, wordvalue = 12345, position = dummyPos)))
     }
 
     @Test
@@ -253,6 +282,16 @@ class TestParserLiteralValue {
         assertEquals(LiteralValue(DataType.FLOAT, floatvalue=22239.0, position=dummyPos), LiteralValue(DataType.WORD,wordvalue=22239, position=dummyPos))
         assertEquals(LiteralValue(DataType.FLOAT, floatvalue=9.99, position=dummyPos), LiteralValue(DataType.FLOAT, floatvalue=9.99, position=dummyPos))
 
+        assertTrue(sameValueAndType(LiteralValue(DataType.BYTE, 100, position=dummyPos), LiteralValue(DataType.BYTE, 100, position=dummyPos)))
+        assertFalse(sameValueAndType(LiteralValue(DataType.BYTE, 100, position=dummyPos), LiteralValue(DataType.WORD, wordvalue=100, position=dummyPos)))
+        assertFalse(sameValueAndType(LiteralValue(DataType.BYTE, 100, position=dummyPos), LiteralValue(DataType.FLOAT, floatvalue=100.0, position=dummyPos)))
+        assertFalse(sameValueAndType(LiteralValue(DataType.WORD, wordvalue=254, position=dummyPos), LiteralValue(DataType.BYTE, 254, position=dummyPos)))
+        assertTrue(sameValueAndType(LiteralValue(DataType.WORD, wordvalue=12345, position=dummyPos), LiteralValue(DataType.WORD, wordvalue=12345, position=dummyPos)))
+        assertFalse(sameValueAndType(LiteralValue(DataType.WORD, wordvalue=12345, position=dummyPos), LiteralValue(DataType.FLOAT, floatvalue=12345.0, position=dummyPos)))
+        assertFalse(sameValueAndType(LiteralValue(DataType.FLOAT, floatvalue=100.0, position=dummyPos), LiteralValue(DataType.BYTE, 100, position=dummyPos)))
+        assertFalse(sameValueAndType(LiteralValue(DataType.FLOAT, floatvalue=22239.0, position=dummyPos), LiteralValue(DataType.WORD,wordvalue=22239, position=dummyPos)))
+        assertTrue(sameValueAndType(LiteralValue(DataType.FLOAT, floatvalue=9.99, position=dummyPos), LiteralValue(DataType.FLOAT, floatvalue=9.99, position=dummyPos)))
+
         assertNotEquals(LiteralValue(DataType.BYTE, 100, position=dummyPos), LiteralValue(DataType.BYTE, 101, position=dummyPos))
         assertNotEquals(LiteralValue(DataType.BYTE, 100, position=dummyPos), LiteralValue(DataType.WORD, wordvalue=101, position=dummyPos))
         assertNotEquals(LiteralValue(DataType.BYTE, 100, position=dummyPos), LiteralValue(DataType.FLOAT, floatvalue=101.0, position=dummyPos))
@@ -263,8 +302,18 @@ class TestParserLiteralValue {
         assertNotEquals(LiteralValue(DataType.FLOAT, floatvalue=9.99, position=dummyPos), LiteralValue(DataType.WORD, wordvalue=9, position=dummyPos))
         assertNotEquals(LiteralValue(DataType.FLOAT, floatvalue=9.99, position=dummyPos), LiteralValue(DataType.FLOAT, floatvalue=9.0, position=dummyPos))
 
-        assertEquals(LiteralValue(DataType.STR, strvalue = "hello", position=dummyPos), LiteralValue(DataType.STR, strvalue="hello", position=dummyPos))
-        assertNotEquals(LiteralValue(DataType.STR, strvalue = "hello", position=dummyPos), LiteralValue(DataType.STR, strvalue="bye", position=dummyPos))
+        assertFalse(sameValueAndType(LiteralValue(DataType.BYTE, 100, position=dummyPos), LiteralValue(DataType.BYTE, 101, position=dummyPos)))
+        assertFalse(sameValueAndType(LiteralValue(DataType.BYTE, 100, position=dummyPos), LiteralValue(DataType.WORD, wordvalue=101, position=dummyPos)))
+        assertFalse(sameValueAndType(LiteralValue(DataType.BYTE, 100, position=dummyPos), LiteralValue(DataType.FLOAT, floatvalue=101.0, position=dummyPos)))
+        assertFalse(sameValueAndType(LiteralValue(DataType.WORD, wordvalue=245, position=dummyPos), LiteralValue(DataType.BYTE, 246, position=dummyPos)))
+        assertFalse(sameValueAndType(LiteralValue(DataType.WORD, wordvalue=12345, position=dummyPos), LiteralValue(DataType.WORD, wordvalue=12346, position=dummyPos)))
+        assertFalse(sameValueAndType(LiteralValue(DataType.WORD, wordvalue=12345, position=dummyPos), LiteralValue(DataType.FLOAT, floatvalue=12346.0, position=dummyPos)))
+        assertFalse(sameValueAndType(LiteralValue(DataType.FLOAT, floatvalue=9.99, position=dummyPos), LiteralValue(DataType.BYTE, 9, position=dummyPos)))
+        assertFalse(sameValueAndType(LiteralValue(DataType.FLOAT, floatvalue=9.99, position=dummyPos), LiteralValue(DataType.WORD, wordvalue=9, position=dummyPos)))
+        assertFalse(sameValueAndType(LiteralValue(DataType.FLOAT, floatvalue=9.99, position=dummyPos), LiteralValue(DataType.FLOAT, floatvalue=9.0, position=dummyPos)))
+
+        assertTrue(sameValueAndType(LiteralValue(DataType.STR, strvalue = "hello", position=dummyPos), LiteralValue(DataType.STR, strvalue="hello", position=dummyPos)))
+        assertFalse(sameValueAndType(LiteralValue(DataType.STR, strvalue = "hello", position=dummyPos), LiteralValue(DataType.STR, strvalue="bye", position=dummyPos)))
 
         val lvOne = LiteralValue(DataType.BYTE, 1, position=dummyPos)
         val lvTwo = LiteralValue(DataType.BYTE, 2, position=dummyPos)

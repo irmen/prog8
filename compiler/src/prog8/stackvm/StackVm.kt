@@ -517,7 +517,7 @@ class Value(val type: DataType, numericvalue: Number?, val stringvalue: String?=
     fun lsb(): Value {
         return when(type) {
             DataType.BYTE -> Value(DataType.BYTE, byteval!!)
-            DataType.WORD -> Value(DataType.WORD, wordval!! and 255)
+            DataType.WORD -> Value(DataType.BYTE, wordval!! and 255)
             else -> throw VmExecutionException("not can only work on byte/word")
         }
     }
@@ -525,7 +525,7 @@ class Value(val type: DataType, numericvalue: Number?, val stringvalue: String?=
     fun msb(): Value {
         return when(type) {
             DataType.BYTE -> Value(DataType.BYTE, 0)
-            DataType.WORD -> Value(DataType.WORD, wordval!! ushr 8 and 255)
+            DataType.WORD -> Value(DataType.BYTE, wordval!! ushr 8 and 255)
             else -> throw VmExecutionException("not can only work on byte/word")
         }
     }

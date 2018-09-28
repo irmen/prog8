@@ -17,9 +17,9 @@ fun main(args: Array<String>) {
     }
 
     val program = Program.load(args.first())
-    //val irqProgram = Program("irq", mutableListOf(), emptyMap(), emptyMap(), emptyMap())
-    val irqProgram = Program.load("irq_stackvm.txt")
-    val vm = StackVm(traceOutputFile = null)
+    val irqProgram = Program("irq", mutableListOf(), emptyMap(), emptyMap(), emptyMap())
+    //val irqProgram = Program.load("irq_stackvm.txt")
+    val vm = StackVm(traceOutputFile = "stackvm.log")
     val dialog = ScreenDialog()
     vm.load(program, irqProgram, dialog.canvas)
     EventQueue.invokeLater {
