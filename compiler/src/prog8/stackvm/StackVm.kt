@@ -592,14 +592,14 @@ class MyStack<T> : Stack<T>() {
 class Program (val name: String,
                prog: MutableList<Instruction>,
                val labels: Map<String, Instruction>,
-               val variables: Map<String, Value>,
+               val variables: Map<String, Map<String, Value>>,
                val memory: Map<Int, List<Value>>)
 {
     companion object {
         fun load(filename: String): Program {
             val lines = File(filename).readLines().withIndex().iterator()
             var memory = mapOf<Int, List<Value>>()
-            var vars = mapOf<String, Value>()
+            var vars = mapOf<String, Map<String, Value>>()
             var instructions = mutableListOf<Instruction>()
             var labels = mapOf<String, Instruction>()
             while(lines.hasNext()) {
@@ -689,8 +689,8 @@ class Program (val name: String,
             }
         }
 
-        private fun loadVars(lines: Iterator<IndexedValue<String>>): Map<String, Value> {
-            val vars = mutableMapOf<String, Value>()
+        private fun loadVars(lines: Iterator<IndexedValue<String>>): Map<String, Map<String, Value>> {
+            val vars = mutableMapOf<String, MutableMap<String, Value>>()
             val splitpattern = Pattern.compile("\\s+")
             while(true) {
                 val (lineNr, line) = lines.next()
@@ -711,7 +711,10 @@ class Program (val name: String,
                     }
                     else -> throw VmExecutionException("invalid datatype at line ${lineNr+1}")
                 }
-                vars[name] = value
+                val blockname = name.substringBefore('.')
+                val blockvars = vars[blockname] ?: mutableMapOf()
+                vars[blockname] = blockvars
+                blockvars[name] = value
             }
         }
 
@@ -828,7 +831,8 @@ class Program (val name: String,
         }
         out.println("%end_memory")
         out.println("%variables")
-        for (variable in variables) {
+        // just flatten all block vars into one global list for now...
+        for(variable in variables.flatMap { e->e.value.entries}) {
             val valuestr = variable.value.toString()
             out.println("${variable.key}  ${variable.value.type.toString().toLowerCase()}  $valuestr")
         }
@@ -874,7 +878,9 @@ class StackVm(private var traceOutputFile: String?) {
     fun load(program: Program, canvas: BitmapScreenPanel?) {
         this.program = program.program
         this.canvas = canvas
-        variables = program.variables.toMutableMap()
+        for(variable in program.variables.flatMap { e->e.value.entries })
+            variables[variable.key] = variable.value
+
         if(variables.contains("A") ||
                 variables.contains("X") ||
                 variables.contains("Y") ||

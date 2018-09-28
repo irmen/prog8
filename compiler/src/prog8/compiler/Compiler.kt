@@ -27,7 +27,7 @@ fun Number.toHex(): String {
 
 class StackVmProgram(val name: String) {
     private val instructions = mutableListOf<Instruction>()
-    private val variables = mutableMapOf<String, Value>()
+    private val variables = mutableMapOf<String, MutableMap<String, Value>>()
     private val memory = mutableMapOf<Int, List<Value>>()
     private val labels = mutableMapOf<String, Instruction>()
     val numVariables: Int
@@ -48,7 +48,12 @@ class StackVmProgram(val name: String) {
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> Value(decl.datatype, null, (decl.value as LiteralValue).strvalue)
             DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX -> TODO("array/matrix variable values")
         }
-        variables[scopedname] = value
+
+        // We keep the block structure intact: vars are stored per block. This is needed eventually for the actual 6502 code generation later...
+        val blockname = scopedname.substringBefore('.')
+        val blockvars = variables[blockname] ?: mutableMapOf()
+        variables[blockname] = blockvars
+        blockvars[scopedname] = value
     }
 
     fun writeAsText(out: PrintStream) {
@@ -115,11 +120,9 @@ class Compiler(private val options: CompilationOptions) {
 
     class VarGatherer(private val stackvmProg: StackVmProgram): IAstProcessor {
         // collect all the VarDecls to make them into one global list
-        // @todo maybe keep the block structure intact and allocate them per block? this is needed eventually for the actual 6502 code generation so...
         override fun process(decl: VarDecl): IStatement {
-            if (decl.type == VarDeclType.VAR) {
+            if (decl.type == VarDeclType.VAR)
                 stackvmProg.blockvar(decl.scopedname, decl)
-            }
             // MEMORY variables are memory mapped and thus need no storage at all
             return super.process(decl)
         }

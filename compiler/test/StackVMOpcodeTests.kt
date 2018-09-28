@@ -44,7 +44,16 @@ class TestStackVmOpcodes {
                  vars: Map<String, Value>?=null,
                  labels: Map<String, Instruction>?=null,
                  mem: Map<Int, List<Value>>?=null) : Program {
-        return Program("test", ins, labels ?: mapOf(), vars ?: mapOf(), mem ?: mapOf())
+
+        val blockvars = mutableMapOf<String, MutableMap<String, Value>>()
+        if(vars!=null) {
+            for (blockvar in vars) {
+                val blockname = blockvar.key.substringBefore('.')
+                val variables = blockvars.getValue(blockname)
+                variables[blockvar.key] = blockvar.value
+            }
+        }
+        return Program("test", ins, labels ?: mapOf(), blockvars, mem ?: mapOf())
     }
 
     @Test
