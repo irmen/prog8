@@ -849,7 +849,7 @@ class Program (val name: String,
 }
 
 
-class StackVm(val traceOutputFile: String?) {
+class StackVm(private var traceOutputFile: String?) {
     val mem = Memory()
     var P_carry: Boolean = false
         private set
@@ -857,26 +857,24 @@ class StackVm(val traceOutputFile: String?) {
         private set
     var variables = mutableMapOf<String, Value>()     // all variables (set of all vars used by all blocks/subroutines) key = their fully scoped name
         private set
-    private var program = listOf<Instruction>()
-    private var irqProgram = listOf<Instruction>()
     var evalstack = MyStack<Value>()
         private set
     var callstack = MyStack<Instruction>()
         private set
+    private var program = listOf<Instruction>()
     private var traceOutput = if(traceOutputFile!=null) PrintStream(File(traceOutputFile), "utf-8") else null
     private var canvas: BitmapScreenPanel? = null
     private val rnd = Random()
     private val bootTime = System.currentTimeMillis()
     private lateinit var currentIns: Instruction
+    private var irqStartInstruction: Instruction? = null        // set to first instr of irq routine, if any
     var sourceLine: String = ""
         private set
 
-    fun load(program: Program, irqProgram: Program?, canvas: BitmapScreenPanel?) {
+    fun load(program: Program, canvas: BitmapScreenPanel?) {
         this.program = program.program
-        this.irqProgram = irqProgram?.program ?: mutableListOf(Instruction(Opcode.NOP))
         this.canvas = canvas
         variables = program.variables.toMutableMap()
-        irqCurrentVariables = irqProgram?.variables?.toMutableMap() ?: mutableMapOf()
         if(variables.contains("A") ||
                 variables.contains("X") ||
                 variables.contains("Y") ||
@@ -884,13 +882,6 @@ class StackVm(val traceOutputFile: String?) {
                 variables.contains("AX") ||
                 variables.contains("AY"))
             throw VmExecutionException("program contains variable(s) for the reserved registers A,X,...")
-        if(irqCurrentVariables.contains("A") ||
-                irqCurrentVariables.contains("X") ||
-                irqCurrentVariables.contains("Y") ||
-                irqCurrentVariables.contains("XY") ||
-                irqCurrentVariables.contains("AX") ||
-                irqCurrentVariables.contains("AY"))
-            throw VmExecutionException("irqProgram contains variable(s) for the reserved registers A,X,...")
         // define the 'registers'
         variables["A"] = Value(DataType.BYTE, 0)
         variables["X"] = Value(DataType.BYTE, 0)
@@ -898,24 +889,15 @@ class StackVm(val traceOutputFile: String?) {
         variables["AX"] = Value(DataType.WORD, 0)
         variables["AY"] = Value(DataType.WORD, 0)
         variables["XY"] = Value(DataType.WORD, 0)
-        irqCurrentVariables["A"] = Value(DataType.BYTE, 0)
-        irqCurrentVariables["X"] = Value(DataType.BYTE, 0)
-        irqCurrentVariables["Y"] = Value(DataType.BYTE, 0)
-        irqCurrentVariables["AX"] = Value(DataType.WORD, 0)
-        irqCurrentVariables["AY"] = Value(DataType.WORD, 0)
-        irqCurrentVariables["XY"] = Value(DataType.WORD, 0)
 
         initMemory(program.memory)
         evalstack.clear()
         callstack.clear()
-        irqEvalStack.clear()
-        irqCallStack.clear()
         P_carry = false
         P_irqd = false
         sourceLine = ""
-        irqCurrentLine = ""
         currentIns = this.program[0]
-        irqCurrentIns = this.irqProgram[0]
+        irqStartInstruction = program.labels["irq.irq"]
     }
 
     fun step(instructionCount: Int = 10000) {
@@ -1546,40 +1528,48 @@ class StackVm(val traceOutputFile: String?) {
         mem.setByte(0x00a1, (jiffies ushr 8 and 255).toShort())
         mem.setByte(0x00a2, (jiffies and 255).toShort())
 
-        try {
-            // execute the irq routine
-            this.step(Int.MAX_VALUE)
-        } catch(vmt: VmTerminationException) {
-            // irq routine ended
+        if(irqStartInstruction!=null) {
+            try {
+                // execute the irq routine
+                this.step(Int.MAX_VALUE)
+            } catch (vmt: VmTerminationException) {
+                // irq routine ended
+            }
         }
 
-        if(evalstack.isNotEmpty())
-            throw VmExecutionException("irq: eval stack is not empty at exit from irq program")
-        if(callstack.isNotEmpty())
-            throw VmExecutionException("irq: call stack is not empty at exit from irq program")
         swapIrqExecutionContexts(false)
         P_irqd=false
     }
 
-    private lateinit var irqCurrentIns: Instruction
-    private var irqCurrentVariables =  mutableMapOf<String, Value>()
-    private var irqCurrentLine: String = ""
-    private var irqEvalStack = MyStack<Value>()
-    private var irqCallStack = MyStack<Instruction>()
-    private var irqCarry = false
+    private var irqStoredEvalStack = MyStack<Value>()
+    private var irqStoredCallStack = MyStack<Instruction>()
+    private var irqStoredCarry = false
+    private var irqStoredTraceOutputFile: String? = null
+    private var irqStoredMainInstruction: Instruction = Instruction(Opcode.TERMINATE)
 
     private fun swapIrqExecutionContexts(startingIrq: Boolean) {
-        irqCarry = P_carry.also { P_carry = irqCarry }
-        irqProgram = program.also { program = irqProgram }
-        irqCurrentIns = currentIns.also { currentIns = irqCurrentIns }
-        irqCurrentVariables = variables.also {variables = irqCurrentVariables }
-        irqCurrentLine = sourceLine.also { sourceLine = irqCurrentLine }
-        irqEvalStack = evalstack.also { evalstack = irqEvalStack }
-        irqCallStack = callstack.also { callstack = irqCallStack }
         if(startingIrq) {
-            currentIns = program.first()
-            sourceLine = ""
+            irqStoredMainInstruction = currentIns
+            irqStoredCallStack = callstack
+            irqStoredEvalStack = evalstack
+            irqStoredCarry = P_carry
+            irqStoredTraceOutputFile = traceOutputFile
+
+            currentIns = irqStartInstruction ?: Instruction(Opcode.RETURN)
+            callstack = MyStack()
+            evalstack = MyStack()
             P_carry = false
+            traceOutputFile = null
+        } else {
+            if(evalstack.isNotEmpty())
+                throw VmExecutionException("irq: eval stack is not empty at exit from irq program")
+            if(callstack.isNotEmpty())
+                throw VmExecutionException("irq: call stack is not empty at exit from irq program")
+            currentIns = irqStoredMainInstruction
+            callstack = irqStoredCallStack
+            evalstack = irqStoredEvalStack
+            P_carry = irqStoredCarry
+            traceOutputFile = irqStoredTraceOutputFile
         }
     }
 }

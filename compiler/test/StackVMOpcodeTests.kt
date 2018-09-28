@@ -50,7 +50,7 @@ class TestStackVmOpcodes {
     @Test
     fun testInitAndNop() {
         val ins = mutableListOf(Instruction(Opcode.NOP))
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         assertEquals(6, vm.variables.size)
         assertTrue(vm.variables.containsKey("XY"))
         assertTrue(vm.variables.containsKey("A"))
@@ -65,7 +65,7 @@ class TestStackVmOpcodes {
     @Test
     fun testBreakpoint() {
         val ins = mutableListOf(Instruction(Opcode.BREAKPOINT))
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         assertFailsWith<VmBreakpointException> {
             vm.step()
         }
@@ -76,7 +76,7 @@ class TestStackVmOpcodes {
     @Test
     fun testLine() {
         val ins = mutableListOf(Instruction(Opcode.LINE, Value(DataType.STR, null, "line 99")))
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         assertEquals("", vm.sourceLine)
         vm.step(1)
         assertEquals("line 99", vm.sourceLine)
@@ -85,7 +85,7 @@ class TestStackVmOpcodes {
     @Test
     fun testSECandSEIandCLCandCLI() {
         val ins = mutableListOf(Instruction(Opcode.SEC), Instruction(Opcode.SEI), Instruction(Opcode.CLC), Instruction(Opcode.CLI))
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         assertFalse(vm.P_carry)
         assertFalse(vm.P_irqd)
         vm.step(1)
@@ -105,7 +105,7 @@ class TestStackVmOpcodes {
     @Test
     fun testPush() {
         val ins = mutableListOf(Instruction(Opcode.PUSH, Value(DataType.FLOAT, 42.999)))
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         assertThat(vm.evalstack, empty())
         vm.step(1)
         assertEquals(1, vm.evalstack.size)
@@ -122,7 +122,7 @@ class TestStackVmOpcodes {
         val mem=mapOf(0x2000 to listOf(Value(DataType.WORD, 0x42ea)),
                 0x3000 to listOf(Value(DataType.WORD, 0x42ea)),
                 0x4000 to listOf(Value(DataType.FLOAT, 42.25)))
-        vm.load(makeProg(ins, mem=mem), null, null)
+        vm.load(makeProg(ins, mem=mem), null)
         assertEquals(0xea, vm.mem.getByte(0x2000))
         assertEquals(0x42, vm.mem.getByte(0x2001))
         assertEquals(0xea, vm.mem.getByte(0x3000))
@@ -141,7 +141,7 @@ class TestStackVmOpcodes {
     @Test
     fun testPushVar() {
         val ins = mutableListOf(Instruction(Opcode.PUSH_VAR, Value(DataType.STR, null, "varname")))
-        vm.load(makeProg(ins, mapOf("varname" to Value(DataType.FLOAT, 42.999))), null, null)
+        vm.load(makeProg(ins, mapOf("varname" to Value(DataType.FLOAT, 42.999))), null)
         assertEquals(7, vm.variables.size)
         assertTrue(vm.variables.containsKey("varname"))
         assertTrue(vm.variables.containsKey("XY"))
@@ -159,7 +159,7 @@ class TestStackVmOpcodes {
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH, Value(DataType.FLOAT, 42.999)),
                 Instruction(Opcode.DUP))
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         assertThat(vm.evalstack, empty())
         vm.step(2)
         assertEquals(2, vm.evalstack.size)
@@ -174,7 +174,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.PUSH, Value(DataType.WORD, 9999)),
                 Instruction(Opcode.SWAP)
         )
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         assertThat(vm.evalstack, empty())
         vm.step(3)
         assertEquals(2, vm.evalstack.size)
@@ -188,7 +188,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.PUSH, Value(DataType.FLOAT, 42.999)),
                 Instruction(Opcode.PUSH, Value(DataType.FLOAT, 3.1415)),
                 Instruction(Opcode.DISCARD))
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         assertThat(vm.evalstack, empty())
         vm.step(2)
         assertEquals(2, vm.evalstack.size)
@@ -204,7 +204,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.PUSH, Value(DataType.WORD, 222)),
                 Instruction(Opcode.PUSH, Value(DataType.WORD, 333)),
                 Instruction(Opcode.ARRAY, Value(DataType.WORD, 2)))
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         assertThat(vm.evalstack, empty())
         vm.step(4)
         assertEquals(2, vm.evalstack.size)
@@ -218,7 +218,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.PUSH, Value(DataType.BYTE, 22)),
                 Instruction(Opcode.PUSH, Value(DataType.BYTE, 33)),
                 Instruction(Opcode.ARRAY, Value(DataType.WORD, 2)))
-        vm.load(makeProg(ins2), null, null)
+        vm.load(makeProg(ins2), null)
         assertThat(vm.evalstack, empty())
         vm.step(4)
         assertEquals(2, vm.evalstack.size)
@@ -232,7 +232,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.PUSH, Value(DataType.WORD, 222)),
                 Instruction(Opcode.PUSH, Value(DataType.FLOAT, 333.33)),
                 Instruction(Opcode.ARRAY, Value(DataType.WORD, 2)))
-        vm.load(makeProg(ins3), null, null)
+        vm.load(makeProg(ins3), null)
         assertFailsWith<VmExecutionException> {
             vm.step(4)
         }
@@ -247,7 +247,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.POP_MEM, Value(DataType.WORD, 0x2000)),
                 Instruction(Opcode.POP_MEM, Value(DataType.WORD, 0x3000)),
                 Instruction(Opcode.POP_MEM, Value(DataType.WORD, 0x4000)))
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         assertEquals(0, vm.mem.getWord(0x2000))
         assertEquals(0, vm.mem.getWord(0x3000))
         assertEquals(0.0, vm.mem.getFloat(0x4000))
@@ -274,7 +274,7 @@ class TestStackVmOpcodes {
                 "var2" to Value(DataType.WORD, 0),
                 "var3" to Value(DataType.FLOAT, 0)
                 )
-        vm.load(makeProg(ins, vars), null, null)
+        vm.load(makeProg(ins, vars), null)
         assertEquals(9, vm.variables.size)
         vm.step(6)
         assertEquals(Value(DataType.BYTE, 123), vm.variables["var1"])
@@ -287,7 +287,7 @@ class TestStackVmOpcodes {
         val vars2 = mapOf(
                 "var1" to Value(DataType.BYTE, 0)
         )
-        vm.load(makeProg(ins2, vars2), null, null)
+        vm.load(makeProg(ins2, vars2), null)
         assertEquals(7, vm.variables.size)
         assertFailsWith<VmExecutionException> {
             vm.step(2)
@@ -597,7 +597,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.NEG),
                 Instruction(Opcode.NEG)
         )
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         assertThat(vm.evalstack, empty())
         vm.step(2)
         assertEquals(1, vm.evalstack.size)
@@ -610,7 +610,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.PUSH, Value(DataType.WORD, 1234)),
                 Instruction(Opcode.NEG)
         )
-        vm.load(makeProg(ins2), null, null)
+        vm.load(makeProg(ins2), null)
         vm.step(2)
         assertEquals(Value(DataType.WORD, 64302), vm.evalstack.pop())
 
@@ -618,7 +618,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.PUSH, Value(DataType.BYTE, 12)),
                 Instruction(Opcode.NEG)
         )
-        vm.load(makeProg(ins3), null, null)
+        vm.load(makeProg(ins3), null)
         vm.step(2)
         assertEquals(Value(DataType.BYTE, 244), vm.evalstack.pop())
     }
@@ -632,7 +632,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.INV),
                 Instruction(Opcode.INV)
         )
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         assertThat(vm.evalstack, empty())
         vm.step(3)
         assertEquals(2, vm.evalstack.size)
@@ -645,7 +645,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.PUSH, Value(DataType.FLOAT, 1234.33)),
                 Instruction(Opcode.INV)
         )
-        vm.load(makeProg(ins2), null, null)
+        vm.load(makeProg(ins2), null)
         assertFailsWith<VmExecutionException> {
             vm.step(2)
         }
@@ -661,7 +661,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.LSB),
                 Instruction(Opcode.LSB)
         )
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         vm.step(4)
         assertEquals(Value(DataType.BYTE, 0x31), vm.evalstack.pop())
         vm.step(1)
@@ -681,7 +681,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.MSB),
                 Instruction(Opcode.MSB)
         )
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         vm.step(4)
         assertEquals(Value(DataType.BYTE, 0xea), vm.evalstack.pop())
         vm.step(1)
@@ -699,7 +699,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.B2WORD),
                 Instruction(Opcode.B2WORD)
         )
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         vm.step(3)
         assertEquals(Value(DataType.WORD, 0x0045), vm.evalstack.pop())
         assertFailsWith<VmExecutionException> {
@@ -715,7 +715,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.MSB2WORD),
                 Instruction(Opcode.MSB2WORD)
         )
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         vm.step(3)
         assertEquals(Value(DataType.WORD, 0x4500), vm.evalstack.pop())
         assertFailsWith<VmExecutionException> {
@@ -731,7 +731,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.B2FLOAT),
                 Instruction(Opcode.B2FLOAT)
         )
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         vm.step(3)
         assertEquals(Value(DataType.FLOAT, 123.0), vm.evalstack.pop())
         assertFailsWith<VmExecutionException> {
@@ -747,7 +747,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.W2FLOAT),
                 Instruction(Opcode.W2FLOAT)
         )
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         vm.step(3)
         assertEquals(Value(DataType.FLOAT, 12345.0), vm.evalstack.pop())
         assertFailsWith<VmExecutionException> {
@@ -765,7 +765,7 @@ class TestStackVmOpcodes {
         )
         val mem=mapOf(0x2000 to listOf(Value(DataType.BYTE, 100), Value(DataType.BYTE, 255)),
                 0x3000 to listOf(Value(DataType.WORD, 0x42ea), Value(DataType.WORD, 0xffff)))
-        vm.load(makeProg(ins, mem=mem), null, null)
+        vm.load(makeProg(ins, mem=mem), null)
         vm.step(4)
         assertEquals(101, vm.mem.getByte(0x2000))
         assertEquals(0, vm.mem.getByte(0x2001))
@@ -782,7 +782,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.INC_VAR, Value(DataType.STR, null, "var2")))
         val vars = mapOf("var1" to Value(DataType.WORD, 65534),
                 "var2" to Value(DataType.BYTE, 254))
-        vm.load(makeProg(ins, vars = vars), null, null)
+        vm.load(makeProg(ins, vars = vars), null)
         vm.step(2)
         assertEquals(Value(DataType.WORD, 65535), vm.variables["var1"])
         assertEquals(Value(DataType.BYTE, 255), vm.variables["var2"])
@@ -800,7 +800,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.DEC_VAR, Value(DataType.STR, null, "var2")))
         val vars = mapOf("var1" to Value(DataType.WORD,1),
                 "var2" to Value(DataType.BYTE, 1))
-        vm.load(makeProg(ins, vars = vars), null, null)
+        vm.load(makeProg(ins, vars = vars), null)
         vm.step(2)
         assertEquals(Value(DataType.WORD, 0), vm.variables["var1"])
         assertEquals(Value(DataType.BYTE, 0), vm.variables["var2"])
@@ -819,7 +819,7 @@ class TestStackVmOpcodes {
         )
         val mem=mapOf(0x2000 to listOf(Value(DataType.BYTE, 100), Value(DataType.BYTE, 0)),
                 0x3000 to listOf(Value(DataType.WORD, 0x42ea), Value(DataType.WORD, 0)))
-        vm.load(makeProg(ins, mem=mem), null, null)
+        vm.load(makeProg(ins, mem=mem), null)
         vm.step(4)
         assertEquals(99, vm.mem.getByte(0x2000))
         assertEquals(255, vm.mem.getByte(0x2001))
@@ -838,7 +838,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.PUSH, Value(DataType.WORD, 25544)),
                 Instruction(Opcode.SYSCALL, Value(DataType.BYTE, Syscall.FUNC_SIN.callNr))
         )
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         vm.step(4)
 
         val rndb1 = vm.evalstack.pop()
@@ -1047,7 +1047,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.TERMINATE),
                 Instruction(Opcode.LINE, Value(DataType.STR, null, stringvalue = "string2")))
         val labels = mapOf("label" to ins.last())   // points to the second LINE instruction
-        vm.load(makeProg(ins, labels=labels), null, null)
+        vm.load(makeProg(ins, labels=labels), null)
         vm.step(2)
         assertEquals("", vm.sourceLine)
         vm.step(3)
@@ -1067,7 +1067,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.TERMINATE),
                 Instruction(Opcode.LINE, Value(DataType.STR, null, stringvalue = "string2")))
         val labels = mapOf("label" to ins.last())   // points to the second LINE instruction
-        vm.load(makeProg(ins, labels=labels), null, null)
+        vm.load(makeProg(ins, labels=labels), null)
         assertFalse(vm.P_carry)
         vm.step(2)
         assertEquals("", vm.sourceLine)
@@ -1088,7 +1088,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.TERMINATE),
                 Instruction(Opcode.LINE, Value(DataType.STR, null, stringvalue = "string2")))
         val labels = mapOf("label" to ins.last())   // points to the second LINE instruction
-        vm.load(makeProg(ins, labels=labels), null, null)
+        vm.load(makeProg(ins, labels=labels), null)
         vm.step(2)
         assertEquals("", vm.sourceLine)
         vm.step(3)
@@ -1108,7 +1108,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.TERMINATE),
                 Instruction(Opcode.LINE, Value(DataType.STR, null, stringvalue = "string2")))
         val labels = mapOf("label" to ins.last())   // points to the second LINE instruction
-        vm.load(makeProg(ins, labels=labels), null, null)
+        vm.load(makeProg(ins, labels=labels), null)
         vm.step(2)
         assertEquals("", vm.sourceLine)
         vm.step(3)
@@ -1130,7 +1130,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.TERMINATE),
                 Instruction(Opcode.LINE, Value(DataType.STR, null, stringvalue = "string2")))
         val labels = mapOf("label" to ins.last())   // points to the second LINE instruction
-        vm.load(makeProg(ins, labels=labels), null, null)
+        vm.load(makeProg(ins, labels=labels), null)
         vm.step(2)
         assertEquals("", vm.sourceLine)
         vm.step(2)
@@ -1152,7 +1152,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.TERMINATE),
                 Instruction(Opcode.LINE, Value(DataType.STR, null, stringvalue = "string2")))
         val labels = mapOf("label" to ins.last())   // points to the second LINE instruction
-        vm.load(makeProg(ins, labels=labels), null, null)
+        vm.load(makeProg(ins, labels=labels), null)
         vm.step(2)
         assertEquals("", vm.sourceLine)
         vm.step(3)
@@ -1169,7 +1169,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.TERMINATE),
                 Instruction(Opcode.LINE, Value(DataType.STR, null, stringvalue = "string2")))
         val labels = mapOf("label" to ins.last())   // points to the second LINE instruction
-        vm.load(makeProg(ins, labels=labels), null, null)
+        vm.load(makeProg(ins, labels=labels), null)
         vm.step(2)
         assertEquals("string2", vm.sourceLine)
         assertEquals(0, vm.callstack.size)
@@ -1184,7 +1184,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.TERMINATE),
                 Instruction(Opcode.LINE, Value(DataType.STR, null, stringvalue = "string1"))
         )
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         assertFailsWith<VmTerminationException> {
             vm.step(1)
         }
@@ -1208,7 +1208,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.RETURN)
         )
         val labels = mapOf("label" to ins[3])   // points to the LINE instruction
-        vm.load(makeProg(ins, labels = labels), null, null)
+        vm.load(makeProg(ins, labels = labels), null)
         vm.step(1)
         assertEquals("", vm.sourceLine)
         assertEquals(1, vm.callstack.size)
@@ -1244,7 +1244,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.DISCARD),
                 Instruction(Opcode.SHR)         // error
         )
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         vm.step(6)
         assertEquals(Value(DataType.BYTE, 124), vm.evalstack.peek())
         vm.step(2)
@@ -1282,7 +1282,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.DISCARD),
                 Instruction(Opcode.SHL)         // error
         )
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         vm.step(6)
         assertEquals(Value(DataType.BYTE, 242), vm.evalstack.peek())
         vm.step(2)
@@ -1313,7 +1313,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.ROR),        // 0b00100110   c=1
                 Instruction(Opcode.ROR)         // 0b10010011   c=0  (original value after 9 rors)
         )
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         vm.step(2)
         assertEquals(Value(DataType.BYTE, 0b01001001), vm.evalstack.peek())
         assertTrue(vm.P_carry)
@@ -1351,7 +1351,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.ROR),
                 Instruction(Opcode.ROR)         // 0b1001001100001101   c=0  (original value after 17 rors)
         )
-        vm.load(makeProg(ins2), null, null)
+        vm.load(makeProg(ins2), null)
         vm.step(3)
         assertEquals(Value(DataType.WORD, 0b0100100110000110), vm.evalstack.peek())
         assertTrue(vm.P_carry)
@@ -1378,7 +1378,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.ROL),        // 0b01001001   c=1
                 Instruction(Opcode.ROL)         // 0b10010011   c=0  (original value after 9 rors)
         )
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         vm.step(2)
         assertEquals(Value(DataType.BYTE, 0b00100110), vm.evalstack.peek())
         assertTrue(vm.P_carry)
@@ -1416,7 +1416,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.ROL),
                 Instruction(Opcode.ROL)         // 0b1001001100001101   c=0  (original value after 17 rors)
         )
-        vm.load(makeProg(ins2), null, null)
+        vm.load(makeProg(ins2), null)
         vm.step(3)
         assertEquals(Value(DataType.WORD, 0b0010011000011010), vm.evalstack.peek())
         assertTrue(vm.P_carry)
@@ -1442,7 +1442,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.ROR2),
                 Instruction(Opcode.ROR2)         // 0b10010011  (original value after 8 rors)
         )
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         vm.step(2)
         assertEquals(Value(DataType.BYTE, 0b11001001), vm.evalstack.peek())
         assertFalse(vm.P_carry)
@@ -1472,7 +1472,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.ROR2),
                 Instruction(Opcode.ROR2)         // 0b1001001100001101  (original value after 16 rors)
         )
-        vm.load(makeProg(ins2), null, null)
+        vm.load(makeProg(ins2), null)
         vm.step(2)
         assertEquals(Value(DataType.WORD, 0b1100100110000110), vm.evalstack.peek())
         assertFalse(vm.P_carry)
@@ -1496,7 +1496,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.ROL2),
                 Instruction(Opcode.ROL2)         // 0b10010011 (original value after 8 rols)
         )
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         vm.step(2)
         assertEquals(Value(DataType.BYTE, 0b00100111), vm.evalstack.peek())
         assertFalse(vm.P_carry)
@@ -1524,7 +1524,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.ROL2),
                 Instruction(Opcode.ROL2)         // 0b1001001100001101  (original value after 16 rols)
         )
-        vm.load(makeProg(ins2), null, null)
+        vm.load(makeProg(ins2), null)
         vm.step(2)
         assertEquals(Value(DataType.WORD, 0b0010011000011011), vm.evalstack.peek())
         assertFalse(vm.P_carry)
@@ -1544,7 +1544,7 @@ class TestStackVmOpcodes {
             ins.add(Instruction(Opcode.PUSH, vars.next()))
             ins.add(Instruction(operator))
         }
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         for(expectedValue in expected) {
             vm.step(3)
             assertEquals(Value(DataType.BYTE, expectedValue), vm.evalstack.pop())
@@ -1558,7 +1558,7 @@ class TestStackVmOpcodes {
             ins.add(Instruction(Opcode.PUSH, value))
         for (i in 1 until values.size)
             ins.add(Instruction(operator))
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         vm.step(values.size)
         assertEquals(values.size, vm.evalstack.size)
         for (expectedVal in expected) {
@@ -1579,7 +1579,7 @@ class TestStackVmOpcodes {
             ins.add(Instruction(operator))
             ins.add(Instruction(Opcode.DISCARD))
         }
-        vm.load(makeProg(ins), null, null)
+        vm.load(makeProg(ins), null)
         vm.step(values.size)
         assertEquals(values.size, vm.evalstack.size)
         for (expectedVal in expected) {

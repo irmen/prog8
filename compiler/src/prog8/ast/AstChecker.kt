@@ -62,7 +62,16 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
             checkResult.add(SyntaxError("missing program entrypoint ('start' subroutine in 'main' block)", module.position))
         } else {
             if(startSub.parameters.isNotEmpty() || startSub.returnvalues.isNotEmpty())
-                checkResult.add(SyntaxError("program entrypoint subroutine can't have parameters and/or return values", module.position))
+                checkResult.add(SyntaxError("program entrypoint subroutine can't have parameters and/or return values", startSub.position))
+        }
+
+        // there can be an optional 'irq' block with a 'irq' subroutine in it,
+        // which will be used as the 60hz irq routine in the vm if it's present.
+        val irqBlock = module.statements.singleOrNull { it is Block && it.name=="irq" } as? Block?
+        val irqSub = irqBlock?.subScopes()?.get("irq") as? Subroutine
+        if(irqSub!=null) {
+            if(irqSub.parameters.isNotEmpty() || irqSub.returnvalues.isNotEmpty())
+                checkResult.add(SyntaxError("irq entrypoint subroutine can't have parameters and/or return values", irqSub.position))
         }
     }
 

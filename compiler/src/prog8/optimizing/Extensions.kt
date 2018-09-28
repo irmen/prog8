@@ -2,7 +2,6 @@ package prog8.optimizing
 
 import prog8.ast.AstException
 import prog8.ast.INameScope
-import prog8.ast.IStatement
 import prog8.ast.Module
 import prog8.parser.ParsingFailedError
 
@@ -36,10 +35,9 @@ fun Module.constantFold(globalNamespace: INameScope) {
 }
 
 
-fun Module.optimizeStatements(globalNamespace: INameScope, allScopedSymbolDefinitions: MutableMap<String, IStatement>): Int {
+fun Module.optimizeStatements(globalNamespace: INameScope): Int {
     val optimizer = StatementOptimizer(globalNamespace)
     this.process(optimizer)
-    optimizer.removeUnusedNodes(globalNamespace.usedNames(), allScopedSymbolDefinitions)
     if(optimizer.optimizationsDone > 0)
         println("[${this.name}] Debug: ${optimizer.optimizationsDone} statement optimizations performed")
     this.linkParents()  // re-link in final configuration

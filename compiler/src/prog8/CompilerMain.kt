@@ -61,7 +61,7 @@ fun main(args: Array<String>) {
         while(true) {
             // keep optimizing expressions and statements until no more steps remain
             val optsDone1 = moduleAst.simplifyExpressions(namespace)
-            val optsDone2 = moduleAst.optimizeStatements(namespace, allScopedSymbolDefinitions)
+            val optsDone2 = moduleAst.optimizeStatements(namespace)
             if(optsDone1 + optsDone2 == 0)
                 break
         }

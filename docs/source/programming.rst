@@ -135,6 +135,14 @@ Program Start and Entry Point
 Your program must have a single entry point where code execution begins.
 The compiler expects a ``start`` subroutine in the ``main`` block for this,
 taking no parameters and having no return value.
+
+.. sidebar::
+    60hz IRQ entry point
+
+    When running the generated code on the StackVm virtual machine,
+    it will use the ``irq`` subroutine in the ``irq`` block for the
+    60hz irq routine. This is optional.
+
 As any subroutine, it has to end with a ``return`` statement (or a ``goto`` call)::
 
 	~ main {
@@ -144,10 +152,14 @@ As any subroutine, it has to end with a ``return`` statement (or a ``goto`` call
 	    }
 	}
 
+
 The ``main`` module is always relocated to the start of your programs
 address space, and the ``start`` subroutine (the entrypoint) will be on the
 first address. This will also be the address that the BASIC loader program (if generated)
 calls with the SYS statement.
+
+
+
 
 
 Variables and values

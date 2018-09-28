@@ -269,8 +269,6 @@ interface INameScope {
     val position: Position
     var statements: MutableList<IStatement>
 
-    fun usedNames(): Set<String>
-
     fun registerUsedName(name: String)
 
     fun subScopes() = statements.asSequence().filter { it is INameScope }.map { it as INameScope }.associate { it.name to it }
@@ -364,7 +362,6 @@ object BuiltinFunctionScopePlaceholder : INameScope {
     override val name = "<<builtin-functions-scope-placeholder>>"
     override val position = Position("<<placeholder>>", 0, 0, 0)
     override var statements = mutableListOf<IStatement>()
-    override fun usedNames(): Set<String> = throw NotImplementedError("not implemented on sub-scopes")
     override fun registerUsedName(name: String) = throw NotImplementedError("not implemented on sub-scopes")
 }
 
@@ -395,10 +392,7 @@ class Module(override val name: String,
     }
 
     override fun definingScope(): INameScope = GlobalNamespace("<<<global>>>", statements, position)
-    override fun usedNames(): Set<String> = throw NotImplementedError("not implemented on sub-scopes")
     override fun registerUsedName(name: String) = throw NotImplementedError("not implemented on sub-scopes")
-
-
 }
 
 
@@ -407,8 +401,6 @@ private class GlobalNamespace(override val name: String,
                               override val position: Position) : INameScope {
 
     private val scopedNamesUsed: MutableSet<String> = mutableSetOf("main", "main.start")      // main and main.start are always used
-
-    override fun usedNames(): Set<String>  = scopedNamesUsed
 
     override fun lookup(scopedName: List<String>, statement: Node): IStatement? {
         if(BuiltinFunctionNames.contains(scopedName.last())) {
@@ -459,7 +451,6 @@ class Block(override val name: String,
         return "Block(name=$name, address=$address, ${statements.size} statements)"
     }
 
-    override fun usedNames(): Set<String> = throw NotImplementedError("not implemented on sub-scopes")
     override fun registerUsedName(name: String) = throw NotImplementedError("not implemented on sub-scopes")
 }
 
@@ -1203,32 +1194,32 @@ class FunctionCall(override var target: IdentifierReference,
         if(constVal!=null)
             return constVal.resultingDatatype(namespace)
         val stmt = target.targetStatement(namespace) ?: return null
-        if(stmt is BuiltinFunctionStatementPlaceholder) {
-            if(target.nameInSource[0] == "set_carry" || target.nameInSource[0]=="set_irqd" ||
-                    target.nameInSource[0] == "clear_carry" || target.nameInSource[0]=="clear_irqd") {
-                return null // these have no return value
-            }
-            return builtinFunctionReturnType(target.nameInSource[0], this.arglist, namespace)
-        }
-        else if(stmt is Subroutine) {
-            if(stmt.returnvalues.isEmpty()) {
-                return null     // no return value
-            }
-            if(stmt.returnvalues.size==1) {
-                if(stmt.returnvalues[0].register!=null) {
-                    return when(stmt.returnvalues[0].register!!) {
-                        Register.A, Register.X, Register.Y -> DataType.BYTE
-                        Register.AX, Register.AY, Register.XY -> DataType.WORD
-                    }
-                } else if(stmt.returnvalues[0].statusflag!=null) {
-                    val flag = stmt.returnvalues[0].statusflag!!
-                    TODO("return value in status flag $flag")
+        when (stmt) {
+            is BuiltinFunctionStatementPlaceholder -> {
+                if(target.nameInSource[0] == "set_carry" || target.nameInSource[0]=="set_irqd" ||
+                        target.nameInSource[0] == "clear_carry" || target.nameInSource[0]=="clear_irqd") {
+                    return null // these have no return value
                 }
+                return builtinFunctionReturnType(target.nameInSource[0], this.arglist, namespace)
             }
-            TODO("return type for subroutine with multiple return values $stmt")
-        }
-        else if(stmt is Label) {
-            return null
+            is Subroutine -> {
+                if(stmt.returnvalues.isEmpty()) {
+                    return null     // no return value
+                }
+                if(stmt.returnvalues.size==1) {
+                    if(stmt.returnvalues[0].register!=null) {
+                        return when(stmt.returnvalues[0].register!!) {
+                            Register.A, Register.X, Register.Y -> DataType.BYTE
+                            Register.AX, Register.AY, Register.XY -> DataType.WORD
+                        }
+                    } else if(stmt.returnvalues[0].statusflag!=null) {
+                        val flag = stmt.returnvalues[0].statusflag!!
+                        TODO("return value in status flag $flag")
+                    }
+                }
+                TODO("return type for subroutine with multiple return values $stmt")
+            }
+            is Label -> return null
         }
         TODO("datatype of functioncall to $stmt")
     }
@@ -1293,7 +1284,6 @@ class Subroutine(override val name: String,
         return "Subroutine(name=$name, address=$address, parameters=$parameters, returnvalues=$returnvalues, ${statements.size} statements)"
     }
 
-    override fun usedNames(): Set<String> = throw NotImplementedError("not implemented on sub-scopes")
     override fun registerUsedName(name: String) = throw NotImplementedError("not implemented on sub-scopes")
 }
 
@@ -1653,23 +1643,26 @@ private fun prog8Parser.IntegerliteralContext.toAst(): NumericLiteral {
     fun makeLiteral(text: String, radix: Int, forceWord: Boolean): NumericLiteral {
         val integer: Int
         var datatype = DataType.BYTE
-        if(radix==10) {
-            integer = text.toInt()
-            datatype = when(integer) {
-                in 0..255 -> DataType.BYTE
-                in 256..65535 -> DataType.WORD
-                else -> DataType.FLOAT
+        when (radix) {
+            10 -> {
+                integer = text.toInt()
+                datatype = when(integer) {
+                    in 0..255 -> DataType.BYTE
+                    in 256..65535 -> DataType.WORD
+                    else -> DataType.FLOAT
+                }
             }
-        } else if(radix==2) {
-            if(text.length>8)
-                datatype = DataType.WORD
-            integer = text.toInt(2)
-        } else if(radix==16) {
-            if(text.length>2)
-                datatype = DataType.WORD
-            integer = text.toInt(16)
-        } else {
-            throw FatalAstException("invalid radix")
+            2 -> {
+                if(text.length>8)
+                    datatype = DataType.WORD
+                integer = text.toInt(2)
+            }
+            16 -> {
+                if(text.length>2)
+                    datatype = DataType.WORD
+                integer = text.toInt(16)
+            }
+            else -> throw FatalAstException("invalid radix")
         }
         return NumericLiteral(integer, if(forceWord) DataType.WORD else datatype)
     }

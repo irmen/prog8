@@ -3,7 +3,7 @@ package prog8.compiler
 import prog8.ast.*
 
 
-abstract class Zeropage(protected val options: CompilationOptions) {
+abstract class Zeropage(private val options: CompilationOptions) {
 
     private val allocations = mutableMapOf<Int, Pair<String, DataType>>()
     val free = mutableListOf<Int>()     // subclasses must set this to the appropriate free locations.

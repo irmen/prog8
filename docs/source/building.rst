@@ -25,11 +25,19 @@ The compiler will link everything together into one output program at the end.
 
 The compiler is invoked with the command:
 
-	``$ @todo``
+    ``$ ./compile.sh modulefile.p8``
 
-It produces an assembly source code file which in turn will (automatically) be passed to
-the `64tass <https://sourceforge.net/projects/tass64/>`_ cross assembler tool
-that assembles it into the final program.
+For now, it produces intermediate code for the stack-based "StackVM" virtual machine. You can run this code
+with the command:
+
+    ``$ ./stackvm.sh modulefile_stackvm.txt``
+
+
+.. todo::
+    ... Real assembler output ...
+    It produces an assembly source code file which in turn will (automatically) be passed to
+    the `64tass <https://sourceforge.net/projects/tass64/>`_ cross assembler tool
+    that assembles it into the final program.
 
 
 Module source code files
