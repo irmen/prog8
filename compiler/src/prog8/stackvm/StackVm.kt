@@ -477,15 +477,9 @@ class StackVm(private var traceOutputFile: String?) {
                         val value = evalstack.pop()
                         when(value.type){
                             DataType.BYTE, DataType.WORD, DataType.FLOAT -> print(value.numericValue())
-                            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
-                                TODO("print stringvalue")
-                            }
-                            DataType.ARRAY, DataType.ARRAY_W -> {
-                                TODO("print array value")
-                            }
-                            DataType.MATRIX -> {
-                                TODO("print matrix value")
-                            }
+                            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> print(heap.get(value.heapId).str)
+                            DataType.ARRAY, DataType.ARRAY_W -> print(heap.get(value.heapId).array!!.toList())
+                            DataType.MATRIX -> print(heap.get(value.heapId).array!!.toList())
                         }
                     }
                     Syscall.INPUT_STR -> {
@@ -513,17 +507,7 @@ class StackVm(private var traceOutputFile: String?) {
                     Syscall.FUNC_RND -> evalstack.push(Value(DataType.BYTE, rnd.nextInt() and 255))
                     Syscall.FUNC_RNDW -> evalstack.push(Value(DataType.WORD, rnd.nextInt() and 65535))
                     Syscall.FUNC_RNDF -> evalstack.push(Value(DataType.FLOAT, rnd.nextDouble()))
-                    Syscall.FUNC_LEN -> {
-                        val value = evalstack.pop()
-                        TODO("func_len")
-//                        when(value.type) {
-//                            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS ->
-//                                evalstack.push(Value(DataType.WORD, value.stringvalue!!.length))
-//                            DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX ->
-//                                evalstack.push(Value(DataType.WORD, value.arrayvalue!!.size))
-//                            else -> throw VmExecutionException("cannot get length of $value")
-//                        }
-                    }
+                    Syscall.FUNC_LEN -> throw VmExecutionException("len() should have been const-folded away everywhere (it's not possible on non-const values)")
                     Syscall.FUNC_SIN -> evalstack.push(Value(DataType.FLOAT, sin(evalstack.pop().numericValue().toDouble())))
                     Syscall.FUNC_COS -> evalstack.push(Value(DataType.FLOAT, cos(evalstack.pop().numericValue().toDouble())))
                     Syscall.FUNC_ROUND -> evalstack.push(Value(DataType.WORD, evalstack.pop().numericValue().toDouble().roundToInt()))

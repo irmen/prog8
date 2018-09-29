@@ -1070,7 +1070,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
                 ?: throw UndefinedSymbolError(this)
         val vardecl = node as? VarDecl
         if(vardecl==null) {
-            throw ExpressionError("name should be a constant, instead of: ${node::class.simpleName}", position)
+            throw ExpressionError("name must be a constant, instead of: ${node::class.simpleName}", position)
         } else if(vardecl.type!=VarDeclType.CONST) {
             return null
         }

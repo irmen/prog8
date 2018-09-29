@@ -184,14 +184,14 @@ class AstChecker(private val namespace: INameScope,
 
         val uniqueNames = subroutine.parameters.asSequence().map { it.name }.toSet()
         if(uniqueNames.size!=subroutine.parameters.size)
-            err("parameter names should be unique")
+            err("parameter names must be unique")
         val uniqueParamRegs = subroutine.parameters.asSequence().map {it.register}.toSet()
         if(uniqueParamRegs.size!=subroutine.parameters.size)
-            err("parameter registers should be unique")
+            err("parameter registers must be unique")
         val uniqueResultRegisters = subroutine.returnvalues.asSequence().filter{it.register!=null}.map {it.register.toString()}.toMutableSet()
         uniqueResultRegisters.addAll(subroutine.returnvalues.asSequence().filter{it.statusflag!=null}.map{it.statusflag.toString()}.toList())
         if(uniqueResultRegisters.size!=subroutine.returnvalues.size)
-            err("return registers should be unique")
+            err("return registers must be unique")
 
         super.process(subroutine)
         checkSubroutinesPrecededByReturnOrJumpAndFollowedByLabelOrSub(subroutine.statements)
@@ -227,7 +227,7 @@ class AstChecker(private val namespace: INameScope,
         for (stmt in statements) {
             if(checkNext) {
                 if(stmt !is Label && stmt !is Subroutine)
-                    checkResult.add(SyntaxError("preceding subroutine definition at line ${preceding.position.line} should be followed here by a label, another subroutine statement, or nothing", stmt.position))
+                    checkResult.add(SyntaxError("preceding subroutine definition at line ${preceding.position.line} must be followed here by a label, another subroutine statement, or nothing", stmt.position))
                 return
             }
             if(stmt is Subroutine) {
@@ -236,7 +236,7 @@ class AstChecker(private val namespace: INameScope,
                         && preceding !is Subroutine
                         && preceding !is VarDecl
                         && preceding !is BuiltinFunctionStatementPlaceholder) {
-                    checkResult.add(SyntaxError("subroutine definition should be preceded by a return, jump, vardecl, or another subroutine statement", stmt.position))
+                    checkResult.add(SyntaxError("subroutine definition must be preceded by a return, jump, vardecl, or another subroutine statement", stmt.position))
                 }
                 checkNext=true
             }
@@ -437,7 +437,20 @@ class AstChecker(private val namespace: INameScope,
             checkResult.add(SyntaxError("floating point value used, but floating point is not enabled via options", literalValue.position))
         }
         checkValueTypeAndRange(literalValue.type, null, literalValue, heap)
-        return super.process(literalValue)
+
+        val lv = super.process(literalValue)
+        when(lv.type) {
+            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
+                if(lv.heapId==null)
+                    throw FatalAstException("string should have been moved to heap at ${lv.position}")
+            }
+            DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX -> {
+                if(lv.heapId==null)
+                    throw FatalAstException("array/matrix should have been moved to heap at ${lv.position}")
+            }
+            else -> {}
+        }
+        return lv
     }
 
     override fun process(expr: BinaryExpression): IExpression {
@@ -639,14 +652,14 @@ class AstChecker(private val namespace: INameScope,
             DataType.ARRAY -> {
                 // value may be either a single byte, or a byte array (of all constant values)
                 if(value.type==DataType.ARRAY) {
-                    val array = heap.get(value.heapId!!).array!!
+                    val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).array!!.size
                     if(arrayspec!=null) {
                         val constX = arrayspec.x.constValue(namespace, heap)
                         if(constX?.asIntegerValue==null)
                             return err("array size specifier must be constant integer value")
                         val expectedSize = constX.asIntegerValue
-                        if (array.size != expectedSize)
-                            return err("initializer array size mismatch (expecting $expectedSize, got ${array.size})")
+                        if (arraySize != expectedSize)
+                            return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
                     }
                 } else if(value.type==DataType.ARRAY_W) {
                     return err("initialization value must be an array of bytes")
@@ -662,15 +675,15 @@ class AstChecker(private val namespace: INameScope,
             DataType.ARRAY_W -> {
                 // value may be either a single word, or a word array
                 if(value.type==DataType.ARRAY || value.type==DataType.ARRAY_W) {
-                    val array = heap.get(value.heapId!!).array!!
+                    val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).array!!.size
                     if(arrayspec!=null) {
                         // arrayspec is not always known when checking
                         val constX = arrayspec.x.constValue(namespace, heap)
                         if(constX?.asIntegerValue==null)
                             return err("array size specifier must be constant integer value")
                         val expectedSize = constX.asIntegerValue
-                        if (array.size != expectedSize)
-                            return err("initializer array size mismatch (expecting $expectedSize, got ${array.size})")
+                        if (arraySize != expectedSize)
+                            return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
                     }
                 } else {
                     val number = value.asIntegerValue ?: return if (value.floatvalue!=null)

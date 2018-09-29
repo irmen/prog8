@@ -415,8 +415,16 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                     DataType.BYTE -> stackvmProg.instr(Opcode.PUSH, Value(DataType.BYTE, lv.bytevalue!!))
                     DataType.WORD -> stackvmProg.instr(Opcode.PUSH, Value(DataType.WORD, lv.wordvalue!!))
                     DataType.FLOAT -> stackvmProg.instr(Opcode.PUSH, Value(DataType.FLOAT, lv.floatvalue!!))
-                    DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
-                    DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX -> stackvmProg.instr(Opcode.PUSH, Value(lv.type, lv.heapId!!))
+                    DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
+                        if(lv.heapId==null)
+                            throw CompilerException("string should have been moved into heap   ${lv.position}")
+                        stackvmProg.instr(Opcode.PUSH, Value(lv.type, lv.heapId))
+                    }
+                    DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX -> {
+                        if(lv.heapId==null)
+                            throw CompilerException("array/matrix should have been moved into heap  ${lv.position}")
+                        stackvmProg.instr(Opcode.PUSH, Value(lv.type, lv.heapId))
+                    }
                 }
             }
         }

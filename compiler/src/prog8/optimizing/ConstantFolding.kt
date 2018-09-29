@@ -59,7 +59,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                                 val newArray = Array<IExpression>(size) { _ -> LiteralValue(DataType.BYTE, bytevalue = intvalue.toShort(), position = it.position) }
                                 decl.value = LiteralValue(DataType.ARRAY, arrayvalue = newArray, position = it.position)
                             } else {
-                                addError(SyntaxError("matrix size spec should be constant integer values", it.position))
+                                addError(SyntaxError("matrix size spec must be constant integer values", it.position))
                             }
                         }
                     }
@@ -79,7 +79,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                                 }
                                 decl.value = LiteralValue(decl.datatype, arrayvalue = newArray, position=it.position)
                             } else {
-                                addError(SyntaxError("array size should be a constant integer value", it.position))
+                                addError(SyntaxError("array size must be a constant integer value", it.position))
                             }
                         }
                     }
@@ -317,7 +317,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                 val array = newArray.map {
                     val litval = it as? LiteralValue
                     if(litval==null) {
-                        addError(ExpressionError("array elements must all be constants", literalValue.position))
+                        addError(ExpressionError("array/matrix can contain only constant values", literalValue.position))
                         return super.process(literalValue)
                     }
                     if(litval.bytevalue==null && litval.wordvalue==null) {
@@ -340,6 +340,8 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                 val heapId = heap.add(arrayDt, array)
                 val newValue = LiteralValue(arrayDt, heapId=heapId, position = literalValue.position)
                 return super.process(newValue)
+            } else {
+                addError(ExpressionError("array/matrix can contain only constant values", literalValue.position))
             }
 
             val newValue = LiteralValue(arrayDt, arrayvalue = newArray, position = literalValue.position)
