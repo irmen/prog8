@@ -87,7 +87,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
     override fun process(forLoop: ForLoop): IStatement {
         if(forLoop.body.isEmpty())
             printWarning("for loop body is empty", forLoop.position)
-        if(!forLoop.iterable.isIterable) {
+        if(!forLoop.iterable.isIterable(namespace)) {
             checkResult.add(ExpressionError("can only loop over an iterable type", forLoop.position))
         } else {
             val iterableDt = forLoop.iterable.resultingDatatype(namespace)

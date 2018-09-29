@@ -56,6 +56,7 @@ enum class BranchCondition {
     POS
 }
 
+val IterableDatatypes = setOf(DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS, DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX)
 
 class FatalAstException (override var message: String) : Exception(message)
 
@@ -676,7 +677,7 @@ data class AssignTarget(val register: Register?, val identifier: IdentifierRefer
 
 
 interface IExpression: Node {
-    val isIterable: Boolean
+    fun isIterable(namespace: INameScope): Boolean
     fun constValue(namespace: INameScope): LiteralValue?
     fun process(processor: IAstProcessor): IExpression
     fun referencesIdentifier(name: String): Boolean
@@ -698,7 +699,7 @@ class PrefixExpression(val operator: String, var expression: IExpression, overri
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String) = expression.referencesIdentifier(name)
     override fun resultingDatatype(namespace: INameScope): DataType? = expression.resultingDatatype(namespace)
-    override val isIterable = false
+    override fun isIterable(namespace: INameScope) = false
 }
 
 
@@ -713,9 +714,7 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
 
     // binary expression should actually have been optimized away into a single value, before const value was requested...
     override fun constValue(namespace: INameScope): LiteralValue? = null
-
-    override val isIterable = false
-
+    override fun isIterable(namespace: INameScope) = false
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String) = left.referencesIdentifier(name) || right.referencesIdentifier(name)
     override fun resultingDatatype(namespace: INameScope): DataType? {
@@ -898,15 +897,20 @@ class LiteralValue(val type: DataType,
     override fun process(processor: IAstProcessor) = processor.process(this)
 
     override fun toString(): String {
-        return "LiteralValue(byte=$bytevalue, word=$wordvalue, float=$floatvalue, str=$strvalue, array=$arrayvalue pos=$position)"
+        val vstr = when(type) {
+            DataType.BYTE -> "byte:$bytevalue"
+            DataType.WORD -> "word:$wordvalue"
+            DataType.FLOAT -> "float:$floatvalue"
+            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS-> "str:$strvalue"
+            DataType.ARRAY, DataType.ARRAY_W -> "array:$arrayvalue"
+            DataType.MATRIX -> "matrix:$arrayvalue"
+        }
+        return "LiteralValue($vstr)"
     }
 
     override fun resultingDatatype(namespace: INameScope) = type
-    override val isIterable = when(type) {
-        DataType.BYTE, DataType.WORD, DataType.FLOAT -> false
-        DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> true
-        DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX -> true
-    }
+
+    override fun isIterable(namespace: INameScope): Boolean = IterableDatatypes.contains(type)
 
     override fun hashCode(): Int {
         val bh = bytevalue?.hashCode() ?: 0x10001234
@@ -951,6 +955,7 @@ class RangeExpr(var from: IExpression,
     }
 
     override fun constValue(namespace: INameScope): LiteralValue? = null
+    override fun isIterable(namespace: INameScope) = true
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String): Boolean  = from.referencesIdentifier(name) || to.referencesIdentifier(name)
     override fun resultingDatatype(namespace: INameScope): DataType? {
@@ -966,9 +971,6 @@ class RangeExpr(var from: IExpression,
             else -> DataType.BYTE
         }
     }
-
-    override val isIterable = true
-
     override fun toString(): String {
         return "RangeExpr(from $from, to $to, step $step, pos=$position)"
     }
@@ -1024,8 +1026,7 @@ class RegisterExpr(val register: Register, override val position: Position) : IE
     override fun constValue(namespace: INameScope): LiteralValue? = null
     override fun process(processor: IAstProcessor) = this
     override fun referencesIdentifier(name: String): Boolean  = false
-    override val isIterable = false
-
+    override fun isIterable(namespace: INameScope) = false
     override fun toString(): String {
         return "RegisterExpr(register=$register, pos=$position)"
     }
@@ -1080,7 +1081,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         }
     }
 
-    override val isIterable: Boolean = true     // should be checked by caller by actually looking up the symbol
+    override fun isIterable(namespace: INameScope): Boolean  = IterableDatatypes.contains(resultingDatatype(namespace))
 }
 
 
@@ -1224,10 +1225,9 @@ class FunctionCall(override var target: IdentifierReference,
         TODO("datatype of functioncall to $stmt")
     }
 
-    override val isIterable: Boolean
-            get() {
-                TODO("isIterable of function call result")
-            }
+    override fun isIterable(namespace: INameScope) : Boolean {
+        TODO("isIterable of function call result")
+    }
 }
 
 
