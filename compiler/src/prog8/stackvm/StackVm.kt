@@ -483,9 +483,11 @@ class StackVm(private var traceOutputFile: String?) {
                         }
                     }
                     Syscall.INPUT_STR -> {
-                        val maxlen = evalstack.pop().integerValue()
-                        val input = readLine()?.substring(0, maxlen)  ?: ""
-                        TODO("input_str opcode should put the string in a given heap location (overwriting old string)")
+                        val variable = evalstack.pop()
+                        val value = heap.get(variable.heapId)
+                        val maxlen = value.str!!.length
+                        val input = readLine() ?: ""
+                        heap.update(variable.heapId, input.padEnd(maxlen, '\u0000').substring(0, maxlen))
                     }
                     Syscall.GFX_PIXEL -> {
                         // plot pixel at (x, y, color) from stack
@@ -556,45 +558,69 @@ class StackVm(private var traceOutputFile: String?) {
                     }
                     Syscall.FUNC_MAX -> {
                         val iterable = evalstack.pop()
-                        val dt =
-                                when(iterable.type) {
-                                    DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
-                                    DataType.ARRAY, DataType.MATRIX -> DataType.BYTE
-                                    DataType.ARRAY_W -> DataType.WORD
-                                    else -> throw VmExecutionException("uniterable value $iterable")
-                                }
-                        TODO("func_max on array/matrix/string")
+                        val value = heap.get(iterable.heapId)
+                        val resultDt = when(iterable.type) {
+                            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> DataType.BYTE
+                            DataType.ARRAY, DataType.MATRIX -> DataType.BYTE
+                            DataType.ARRAY_W -> DataType.WORD
+                            else -> throw VmExecutionException("uniterable value $iterable")
+                        }
+                        if(value.str!=null) {
+                            val result = Petscii.encodePetscii(value.str.max().toString(), true)[0]
+                            evalstack.push(Value(DataType.BYTE, result))
+                        } else {
+                            val result = value.array!!.max() ?: 0
+                            evalstack.push(Value(resultDt, result))
+                        }
                     }
                     Syscall.FUNC_MIN -> {
                         val iterable = evalstack.pop()
-                        val dt =
-                                when(iterable.type) {
-                                    DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
-                                    DataType.ARRAY, DataType.MATRIX -> DataType.BYTE
-                                    DataType.ARRAY_W -> DataType.WORD
-                                    else -> throw VmExecutionException("uniterable value $iterable")
-                                }
-                        TODO("func_min on array/matrix/string")
+                        val value = heap.get(iterable.heapId)
+                        val resultDt = when(iterable.type) {
+                            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> DataType.BYTE
+                            DataType.ARRAY, DataType.MATRIX -> DataType.BYTE
+                            DataType.ARRAY_W -> DataType.WORD
+                            else -> throw VmExecutionException("uniterable value $iterable")
+                        }
+                        if(value.str!=null) {
+                            val result = Petscii.encodePetscii(value.str.min().toString(), true)[0]
+                            evalstack.push(Value(DataType.BYTE, result))
+                        } else {
+                            val result = value.array!!.min() ?: 0
+                            evalstack.push(Value(resultDt, result))
+                        }
                     }
                     Syscall.FUNC_AVG -> {
                         val iterable = evalstack.pop()
-                        TODO("func_avg")
-//                        evalstack.push(Value(DataType.FLOAT, array.arrayvalue!!.average()))
+                        val value = heap.get(iterable.heapId)
+                        if(value.str!=null)
+                            evalstack.push(Value(DataType.FLOAT, Petscii.encodePetscii(value.str, true).average()))
+                        else
+                            evalstack.push(Value(DataType.FLOAT, value.array!!.average()))
                     }
                     Syscall.FUNC_SUM -> {
                         val iterable = evalstack.pop()
-                        TODO("func_sum")
-//                        evalstack.push(Value(DataType.WORD, array.arrayvalue!!.sum()))
+                        val value = heap.get(iterable.heapId)
+                        if(value.str!=null)
+                            evalstack.push(Value(DataType.WORD, Petscii.encodePetscii(value.str, true).sum()))
+                        else
+                            evalstack.push(Value(DataType.WORD, value.array!!.sum()))
                     }
                     Syscall.FUNC_ANY -> {
                         val iterable = evalstack.pop()
-                        TODO("func_any")
-//                        evalstack.push(Value(DataType.BYTE, if(array.arrayvalue!!.any{ v -> v != 0}) 1 else 0))
+                        val value = heap.get(iterable.heapId)
+                        if (value.str != null)
+                            evalstack.push(Value(DataType.BYTE, if (Petscii.encodePetscii(value.str, true).any { c -> c != 0.toShort() }) 1 else 0))
+                        else
+                            evalstack.push(Value(DataType.BYTE, if (value.array!!.any{v->v!=0}) 1 else 0))
                     }
                     Syscall.FUNC_ALL -> {
                         val iterable = evalstack.pop()
-                        TODO("func_all")
-//                        evalstack.push(Value(DataType.BYTE, if(array.arrayvalue!!.all{ v -> v != 0}) 1 else 0))
+                        val value = heap.get(iterable.heapId)
+                        if (value.str != null)
+                            evalstack.push(Value(DataType.BYTE, if (Petscii.encodePetscii(value.str, true).all { c -> c != 0.toShort() }) 1 else 0))
+                        else
+                            evalstack.push(Value(DataType.BYTE, if (value.array!!.all{v->v!=0}) 1 else 0))
                     }
                     else -> throw VmExecutionException("unimplemented syscall $syscall")
                 }

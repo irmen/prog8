@@ -43,6 +43,17 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
                 return DataType.BYTE
             }
         }
+        if(arglist is IdentifierReference) {
+            val dt = arglist.resultingDatatype(namespace, heap)
+            return when(dt) {
+                DataType.BYTE, DataType.WORD, DataType.FLOAT,
+                DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> dt
+                DataType.ARRAY -> DataType.BYTE
+                DataType.ARRAY_W -> DataType.WORD
+                DataType.MATRIX -> DataType.BYTE
+                null -> throw FatalAstException("function requires one argument which is an array $function")
+            }
+        }
         throw FatalAstException("function requires one argument which is an array $function")
     }
 
@@ -53,7 +64,16 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
         "rndw" -> DataType.WORD
         "rol", "rol2", "ror", "ror2", "lsl", "lsr", "set_carry", "clear_carry", "set_irqd", "clear_irqd" -> null // no return value so no datatype
         "abs" -> args.single().resultingDatatype(namespace, heap)
-        "max", "min" -> datatypeFromListArg(args.single())
+        "max", "min" -> {
+            val dt = datatypeFromListArg(args.single())
+            when(dt) {
+                DataType.BYTE, DataType.WORD, DataType.FLOAT -> dt
+                DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> DataType.BYTE
+                DataType.ARRAY -> DataType.BYTE
+                DataType.ARRAY_W -> DataType.WORD
+                DataType.MATRIX -> DataType.BYTE
+            }
+        }
         "round", "floor", "ceil" -> integerDatatypeFromArg(args.single())
         "sum" -> {
             val dt=datatypeFromListArg(args.single())
@@ -61,8 +81,8 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
                 DataType.BYTE, DataType.WORD -> DataType.WORD
                 DataType.FLOAT -> DataType.FLOAT
                 DataType.ARRAY, DataType.ARRAY_W -> DataType.WORD
-                DataType.MATRIX -> DataType.BYTE
-                else -> throw FatalAstException("cannot sum over type $dt")
+                DataType.MATRIX -> DataType.WORD
+                DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> DataType.WORD
             }
         }
         "len" -> {
@@ -135,13 +155,7 @@ private fun collectionArgOutputNumber(args: List<IExpression>, position: Positio
                                       function: (arg: Collection<Double>)->Number): LiteralValue {
     if(args.size!=1)
         throw SyntaxError("builtin function requires one non-scalar argument", position)
-    var iterable = args[0].constValue(namespace, heap)
-    if(iterable==null) {
-        if(args[0] !is IdentifierReference)
-            throw SyntaxError("function over weird argument ${args[0]}", position)
-        iterable = ((args[0] as IdentifierReference).targetStatement(namespace) as? VarDecl)?.value?.constValue(namespace, heap)
-                ?: throw SyntaxError("function over weird argument ${args[0]}", position)
-    }
+    var iterable = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
 
     val result = if(iterable.arrayvalue != null) {
         val constants = iterable.arrayvalue!!.map { it.constValue(namespace, heap)?.asNumericValue }
@@ -160,13 +174,7 @@ private fun collectionArgOutputBoolean(args: List<IExpression>, position: Positi
                                        function: (arg: Collection<Double>)->Boolean): LiteralValue {
     if(args.size!=1)
         throw SyntaxError("builtin function requires one non-scalar argument", position)
-    var iterable = args[0].constValue(namespace, heap)
-    if(iterable==null) {
-        if(args[0] !is IdentifierReference)
-            throw SyntaxError("function over weird argument ${args[0]}", position)
-        iterable = ((args[0] as IdentifierReference).targetStatement(namespace) as? VarDecl)?.value?.constValue(namespace, heap)
-                ?: throw SyntaxError("function over weird argument ${args[0]}", position)
-    }
+    var iterable = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
 
     val result = if(iterable.arrayvalue != null) {
         val constants = iterable.arrayvalue!!.map { it.constValue(namespace, heap)?.asNumericValue }
@@ -268,13 +276,7 @@ fun builtinSum(args: List<IExpression>, position: Position, namespace:INameScope
 fun builtinAvg(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
     if(args.size!=1)
         throw SyntaxError("avg requires array/matrix argument", position)
-    var iterable = args[0].constValue(namespace, heap)
-    if(iterable==null) {
-        if(args[0] !is IdentifierReference)
-            throw SyntaxError("avg over weird argument ${args[0]}", position)
-        iterable = ((args[0] as IdentifierReference).targetStatement(namespace) as? VarDecl)?.value?.constValue(namespace, heap)
-                ?: throw SyntaxError("avg over weird argument ${args[0]}", position)
-    }
+    var iterable = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
 
     val result = if(iterable.arrayvalue!=null) {
         val constants = iterable.arrayvalue!!.map { it.constValue(namespace, heap)?.asNumericValue }

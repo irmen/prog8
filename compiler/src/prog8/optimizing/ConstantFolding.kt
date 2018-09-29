@@ -317,7 +317,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                 val array = newArray.map {
                     val litval = it as? LiteralValue
                     if(litval==null) {
-                        addError(ExpressionError("array/matrix can contain only constant values", literalValue.position))
+                        addError(ExpressionError("array/matrix literal can contain only constant values", literalValue.position))
                         return super.process(literalValue)
                     }
                     if(litval.bytevalue==null && litval.wordvalue==null) {
@@ -341,7 +341,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                 val newValue = LiteralValue(arrayDt, heapId=heapId, position = literalValue.position)
                 return super.process(newValue)
             } else {
-                addError(ExpressionError("array/matrix can contain only constant values", literalValue.position))
+                addError(ExpressionError("array/matrix literal can contain only constant values", literalValue.position))
             }
 
             val newValue = LiteralValue(arrayDt, arrayvalue = newArray, position = literalValue.position)

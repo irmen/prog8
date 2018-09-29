@@ -25,7 +25,7 @@ fun Number.toHex(): String {
 
 
 class HeapValues {
-    class HeapValue(val type: DataType, val str: String?, val array: IntArray?) {
+    data class HeapValue(val type: DataType, val str: String?, val array: IntArray?) {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (javaClass != other?.javaClass) return false
@@ -60,6 +60,31 @@ class HeapValues {
         // arrays are never shared
         heap.add(HeapValue(type, null, array))
         return heap.size-1
+    }
+
+    fun update(heapId: Int, str: String) {
+        when(heap[heapId].type){
+            DataType.STR,
+            DataType.STR_P,
+            DataType.STR_S,
+            DataType.STR_PS -> {
+                if(heap[heapId].str!!.length!=str.length)
+                    throw IllegalArgumentException("heap string length mismatch")
+                heap[heapId] = heap[heapId].copy(str=str)
+            }
+            else-> throw IllegalArgumentException("heap data type mismatch")
+        }
+    }
+
+    fun update(heapId: Int, array: IntArray) {
+        when(heap[heapId].type){
+            DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX -> {
+                if(heap[heapId].array!!.size != array.size)
+                    throw IllegalArgumentException("heap array length mismatch")
+                heap[heapId] = heap[heapId].copy(array=array)
+            }
+            else-> throw IllegalArgumentException("heap data type mismatch")
+        }
     }
 
     fun get(heapId: Int): HeapValue = heap[heapId]
