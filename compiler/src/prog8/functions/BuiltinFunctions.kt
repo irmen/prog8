@@ -1,6 +1,7 @@
 package prog8.functions
 
 import prog8.ast.*
+import prog8.compiler.HeapValues
 import kotlin.math.log2
 
 
@@ -19,9 +20,9 @@ val BuiltinFunctionsWithoutSideEffects = BuiltinFunctionNames - setOf(
         "_vm_write_str", "_vm_gfx_clearscr", "_vm_gfx_pixel", "_vm_gfx_text")
 
 
-fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespace: INameScope): DataType? {
+fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespace: INameScope, heap: HeapValues): DataType? {
     fun integerDatatypeFromArg(arg: IExpression): DataType {
-        val dt = arg.resultingDatatype(namespace)
+        val dt = arg.resultingDatatype(namespace, heap)
         return when(dt) {
             DataType.BYTE -> DataType.BYTE
             DataType.WORD -> DataType.WORD
@@ -33,7 +34,7 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
     fun datatypeFromListArg(arglist: IExpression): DataType {
         if(arglist is LiteralValue) {
             if(arglist.type==DataType.ARRAY || arglist.type==DataType.ARRAY_W || arglist.type==DataType.MATRIX) {
-                val dt = arglist.arrayvalue!!.map {it.resultingDatatype(namespace)}
+                val dt = arglist.arrayvalue!!.map {it.resultingDatatype(namespace, heap)}
                 if(dt.any { it!=DataType.BYTE && it!=DataType.WORD && it!=DataType.FLOAT}) {
                     throw FatalAstException("fuction $function only accepts array of numeric values")
                 }
@@ -51,7 +52,7 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
         "lsb", "msb", "any", "all", "rnd" -> DataType.BYTE
         "rndw" -> DataType.WORD
         "rol", "rol2", "ror", "ror2", "lsl", "lsr", "set_carry", "clear_carry", "set_irqd", "clear_irqd" -> null // no return value so no datatype
-        "abs" -> args.single().resultingDatatype(namespace)
+        "abs" -> args.single().resultingDatatype(namespace, heap)
         "max", "min" -> datatypeFromListArg(args.single())
         "round", "floor", "ceil" -> integerDatatypeFromArg(args.single())
         "sum" -> {
@@ -96,10 +97,10 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
 class NotConstArgumentException: AstException("not a const argument to a built-in function")
 
 
-private fun oneDoubleArg(args: List<IExpression>, position: Position, namespace:INameScope, function: (arg: Double)->Number): LiteralValue {
+private fun oneDoubleArg(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues, function: (arg: Double)->Number): LiteralValue {
     if(args.size!=1)
         throw SyntaxError("built-in function requires one floating point argument", position)
-    val constval = args[0].constValue(namespace) ?: throw NotConstArgumentException()
+    val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
     if(constval.type!=DataType.FLOAT)
         throw SyntaxError("built-in function requires one floating point argument", position)
 
@@ -107,10 +108,10 @@ private fun oneDoubleArg(args: List<IExpression>, position: Position, namespace:
     return numericLiteral(function(float), args[0].position)
 }
 
-private fun oneDoubleArgOutputInt(args: List<IExpression>, position: Position, namespace:INameScope, function: (arg: Double)->Number): LiteralValue {
+private fun oneDoubleArgOutputInt(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues, function: (arg: Double)->Number): LiteralValue {
     if(args.size!=1)
         throw SyntaxError("built-in function requires one floating point argument", position)
-    val constval = args[0].constValue(namespace) ?: throw NotConstArgumentException()
+    val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
     val float: Double = when(constval.type) {
         DataType.BYTE, DataType.WORD, DataType.FLOAT -> constval.asNumericValue!!.toDouble()
         else -> throw SyntaxError("built-in function requires one floating point argument", position)
@@ -118,10 +119,10 @@ private fun oneDoubleArgOutputInt(args: List<IExpression>, position: Position, n
     return numericLiteral(function(float).toInt(), args[0].position)
 }
 
-private fun oneIntArgOutputInt(args: List<IExpression>, position: Position, namespace:INameScope, function: (arg: Int)->Number): LiteralValue {
+private fun oneIntArgOutputInt(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues, function: (arg: Int)->Number): LiteralValue {
     if(args.size!=1)
         throw SyntaxError("built-in function requires one integer argument", position)
-    val constval = args[0].constValue(namespace) ?: throw NotConstArgumentException()
+    val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
     if(constval.type!=DataType.BYTE && constval.type!=DataType.WORD)
         throw SyntaxError("built-in function requires one integer argument", position)
 
@@ -129,95 +130,117 @@ private fun oneIntArgOutputInt(args: List<IExpression>, position: Position, name
     return numericLiteral(function(integer).toInt(), args[0].position)
 }
 
-private fun collectionArgOutputNumber(args: List<IExpression>, position: Position, namespace:INameScope,
+private fun collectionArgOutputNumber(args: List<IExpression>, position: Position,
+                                      namespace:INameScope, heap: HeapValues,
                                       function: (arg: Collection<Double>)->Number): LiteralValue {
     if(args.size!=1)
         throw SyntaxError("builtin function requires one non-scalar argument", position)
-    val iterable = args[0].constValue(namespace)
-    if(iterable?.arrayvalue == null)
-        throw SyntaxError("builtin function requires one non-scalar argument", position)
-    val constants = iterable.arrayvalue.map { it.constValue(namespace)?.asNumericValue }
-    if(constants.contains(null))
-        throw NotConstArgumentException()
-    val result = function(constants.map { it!!.toDouble() }).toDouble()
+    var iterable = args[0].constValue(namespace, heap)
+    if(iterable==null) {
+        if(args[0] !is IdentifierReference)
+            throw SyntaxError("function over weird argument ${args[0]}", position)
+        iterable = ((args[0] as IdentifierReference).targetStatement(namespace) as? VarDecl)?.value?.constValue(namespace, heap)
+                ?: throw SyntaxError("function over weird argument ${args[0]}", position)
+    }
+
+    val result = if(iterable.arrayvalue != null) {
+        val constants = iterable.arrayvalue!!.map { it.constValue(namespace, heap)?.asNumericValue }
+        if(constants.contains(null))
+            throw NotConstArgumentException()
+        function(constants.map { it!!.toDouble() }).toDouble()
+    } else {
+        val array = heap.get(iterable.heapId!!).array ?: throw SyntaxError("function requires array/matrix argument", position)
+        function(array.map { it.toDouble() })
+    }
     return numericLiteral(result, args[0].position)
 }
 
-private fun collectionArgOutputBoolean(args: List<IExpression>, position: Position, namespace:INameScope,
+private fun collectionArgOutputBoolean(args: List<IExpression>, position: Position,
+                                       namespace:INameScope, heap: HeapValues,
                                        function: (arg: Collection<Double>)->Boolean): LiteralValue {
     if(args.size!=1)
         throw SyntaxError("builtin function requires one non-scalar argument", position)
-    val iterable = args[0].constValue(namespace)
-    if(iterable?.arrayvalue == null)
-        throw SyntaxError("builtin function requires one non-scalar argument", position)
-    val constants = iterable.arrayvalue.map { it.constValue(namespace)?.asNumericValue }
-    if(constants.contains(null))
-        throw NotConstArgumentException()
-    val result = function(constants.map { it?.toDouble()!! })
+    var iterable = args[0].constValue(namespace, heap)
+    if(iterable==null) {
+        if(args[0] !is IdentifierReference)
+            throw SyntaxError("function over weird argument ${args[0]}", position)
+        iterable = ((args[0] as IdentifierReference).targetStatement(namespace) as? VarDecl)?.value?.constValue(namespace, heap)
+                ?: throw SyntaxError("function over weird argument ${args[0]}", position)
+    }
+
+    val result = if(iterable.arrayvalue != null) {
+        val constants = iterable.arrayvalue!!.map { it.constValue(namespace, heap)?.asNumericValue }
+        if(constants.contains(null))
+            throw NotConstArgumentException()
+        function(constants.map { it!!.toDouble() })
+    } else {
+        val array = heap.get(iterable.heapId!!).array ?: throw SyntaxError("function requires array/matrix argument", position)
+        function(array.map { it.toDouble() })
+    }
     return LiteralValue.fromBoolean(result, position)
 }
 
-fun builtinRound(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
-        = oneDoubleArgOutputInt(args, position, namespace, Math::round)
+fun builtinRound(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
+        = oneDoubleArgOutputInt(args, position, namespace, heap, Math::round)
 
-fun builtinFloor(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
-        = oneDoubleArgOutputInt(args, position, namespace, Math::floor)
+fun builtinFloor(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
+        = oneDoubleArgOutputInt(args, position, namespace, heap, Math::floor)
 
-fun builtinCeil(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
-        = oneDoubleArgOutputInt(args, position, namespace, Math::ceil)
+fun builtinCeil(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
+        = oneDoubleArgOutputInt(args, position, namespace, heap, Math::ceil)
 
-fun builtinSin(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
-        = oneDoubleArg(args, position, namespace, Math::sin)
+fun builtinSin(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
+        = oneDoubleArg(args, position, namespace, heap, Math::sin)
 
-fun builtinCos(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
-        = oneDoubleArg(args, position, namespace, Math::cos)
+fun builtinCos(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
+        = oneDoubleArg(args, position, namespace, heap, Math::cos)
 
-fun builtinAcos(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
-        = oneDoubleArg(args, position, namespace, Math::acos)
+fun builtinAcos(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
+        = oneDoubleArg(args, position, namespace, heap, Math::acos)
 
-fun builtinAsin(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
-        = oneDoubleArg(args, position, namespace, Math::asin)
+fun builtinAsin(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
+        = oneDoubleArg(args, position, namespace, heap, Math::asin)
 
-fun builtinTan(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
-        = oneDoubleArg(args, position, namespace, Math::tan)
+fun builtinTan(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
+        = oneDoubleArg(args, position, namespace, heap, Math::tan)
 
-fun builtinAtan(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
-        = oneDoubleArg(args, position, namespace, Math::atan)
+fun builtinAtan(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
+        = oneDoubleArg(args, position, namespace, heap, Math::atan)
 
-fun builtinLn(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
-        = oneDoubleArg(args, position, namespace, Math::log)
+fun builtinLn(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
+        = oneDoubleArg(args, position, namespace, heap, Math::log)
 
-fun builtinLog2(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
-        = oneDoubleArg(args, position, namespace, ::log2)
+fun builtinLog2(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
+        = oneDoubleArg(args, position, namespace, heap, ::log2)
 
-fun builtinLog10(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
-        = oneDoubleArg(args, position, namespace, Math::log10)
+fun builtinLog10(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
+        = oneDoubleArg(args, position, namespace, heap, Math::log10)
 
-fun builtinSqrt(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
-        = oneDoubleArg(args, position, namespace, Math::sqrt)
+fun builtinSqrt(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
+        = oneDoubleArg(args, position, namespace, heap, Math::sqrt)
 
-fun builtinRad(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
-        = oneDoubleArg(args, position, namespace, Math::toRadians)
+fun builtinRad(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
+        = oneDoubleArg(args, position, namespace, heap, Math::toRadians)
 
-fun builtinDeg(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
-        = oneDoubleArg(args, position, namespace, Math::toDegrees)
+fun builtinDeg(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
+        = oneDoubleArg(args, position, namespace, heap, Math::toDegrees)
 
-fun builtinFlt(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue {
+fun builtinFlt(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
     // 1 numeric arg, convert to float
     if(args.size!=1)
         throw SyntaxError("flt requires one numeric argument", position)
 
-    val constval = args[0].constValue(namespace) ?: throw NotConstArgumentException()
+    val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
     val number = constval.asNumericValue ?: throw SyntaxError("flt requires one numeric argument", position)
     return LiteralValue(DataType.FLOAT, floatvalue = number.toDouble(), position = position)
 }
 
-fun builtinAbs(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue {
+fun builtinAbs(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
     // 1 arg, type = float or int, result type= same as argument type
     if(args.size!=1)
         throw SyntaxError("abs requires one numeric argument", position)
 
-    val constval = args[0].constValue(namespace) ?: throw NotConstArgumentException()
+    val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
     val number = constval.asNumericValue
     return when (number) {
         is Int, is Byte, is Short -> numericLiteral(Math.abs(number.toInt()), args[0].position)
@@ -227,50 +250,73 @@ fun builtinAbs(args: List<IExpression>, position: Position, namespace:INameScope
 }
 
 
-fun builtinLsb(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
-        = oneIntArgOutputInt(args, position, namespace) { x: Int -> x and 255 }
+fun builtinLsb(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
+        = oneIntArgOutputInt(args, position, namespace, heap) { x: Int -> x and 255 }
 
-fun builtinMsb(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
-        = oneIntArgOutputInt(args, position, namespace) { x: Int -> x ushr 8 and 255}
+fun builtinMsb(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
+        = oneIntArgOutputInt(args, position, namespace, heap) { x: Int -> x ushr 8 and 255}
 
-fun builtinMin(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
-        = collectionArgOutputNumber(args, position, namespace) { it.min()!! }
+fun builtinMin(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
+        = collectionArgOutputNumber(args, position, namespace, heap) { it.min()!! }
 
-fun builtinMax(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
-        = collectionArgOutputNumber(args, position, namespace) { it.max()!! }
+fun builtinMax(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
+        = collectionArgOutputNumber(args, position, namespace, heap) { it.max()!! }
 
-fun builtinSum(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
-        = collectionArgOutputNumber(args, position, namespace) { it.sum() }
+fun builtinSum(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
+        = collectionArgOutputNumber(args, position, namespace, heap) { it.sum() }
 
-fun builtinAvg(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue {
+fun builtinAvg(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
     if(args.size!=1)
-        throw SyntaxError("avg requires one non-scalar argument", position)
-    val iterable = args[0].constValue(namespace)
-    if(iterable?.arrayvalue == null)
-        throw SyntaxError("avg requires one non-scalar argument", position)
-    val constants = iterable.arrayvalue.map { it.constValue(namespace)?.asNumericValue }
-    if(constants.contains(null))
-        throw NotConstArgumentException()
-    val result = (constants.map { it!!.toDouble() }).average()
+        throw SyntaxError("avg requires array/matrix argument", position)
+    var iterable = args[0].constValue(namespace, heap)
+    if(iterable==null) {
+        if(args[0] !is IdentifierReference)
+            throw SyntaxError("avg over weird argument ${args[0]}", position)
+        iterable = ((args[0] as IdentifierReference).targetStatement(namespace) as? VarDecl)?.value?.constValue(namespace, heap)
+                ?: throw SyntaxError("avg over weird argument ${args[0]}", position)
+    }
+
+    val result = if(iterable.arrayvalue!=null) {
+        val constants = iterable.arrayvalue!!.map { it.constValue(namespace, heap)?.asNumericValue }
+        if (constants.contains(null))
+            throw NotConstArgumentException()
+        (constants.map { it!!.toDouble() }).average()
+    }
+    else {
+        val array = heap.get(iterable.heapId!!).array ?: throw SyntaxError("avg requires array/matrix argument", position)
+        array.average()
+    }
     return numericLiteral(result, args[0].position)
 }
 
-fun builtinLen(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue {
+fun builtinLen(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
     if(args.size!=1)
         throw SyntaxError("len requires one argument", position)
-    val argument = args[0].constValue(namespace) ?: throw NotConstArgumentException()
+    var argument = args[0].constValue(namespace, heap)
+    if(argument==null) {
+        if(args[0] !is IdentifierReference)
+            throw SyntaxError("len over weird argument ${args[0]}", position)
+        argument = ((args[0] as IdentifierReference).targetStatement(namespace) as? VarDecl)?.value?.constValue(namespace, heap)
+                ?: throw SyntaxError("len over weird argument ${args[0]}", position)
+    }
     return when(argument.type) {
-        DataType.ARRAY, DataType.ARRAY_W -> numericLiteral(argument.arrayvalue!!.size, args[0].position)
-        DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> numericLiteral(argument.strvalue!!.length, args[0].position)
+        DataType.ARRAY, DataType.ARRAY_W -> {
+            val arraySize = argument.arrayvalue?.size ?: heap.get(argument.heapId!!).array!!.size
+            numericLiteral(arraySize, args[0].position)
+        }
+        DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
+            val str = argument.strvalue ?: heap.get(argument.heapId!!).str!!
+            numericLiteral(str.length, args[0].position)
+        }
         else -> throw SyntaxError("len of weird argument ${args[0]}", position)
     }
 }
 
-fun builtinAny(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
-        = collectionArgOutputBoolean(args, position, namespace) { it.any { v -> v != 0.0} }
+fun builtinAny(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
+        = collectionArgOutputBoolean(args, position, namespace, heap) { it.any { v -> v != 0.0} }
 
-fun builtinAll(args: List<IExpression>, position: Position, namespace:INameScope): LiteralValue
-        = collectionArgOutputBoolean(args, position, namespace) { it.all { v -> v != 0.0} }
+fun builtinAll(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
+        = collectionArgOutputBoolean(args, position, namespace, heap) { it.all { v -> v != 0.0} }
 
 
 private fun numericLiteral(value: Number, position: Position): LiteralValue {

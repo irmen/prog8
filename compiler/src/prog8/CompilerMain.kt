@@ -55,27 +55,28 @@ fun main(args: Array<String>) {
         moduleAst.checkIdentifiers()
 
         println("Optimizing...")
-        moduleAst.constantFold(namespace)
-        moduleAst.checkValid(namespace, compilerOptions)          // check if tree is valid
+        val heap = HeapValues()
+        moduleAst.constantFold(namespace, heap)
+        moduleAst.checkValid(namespace, compilerOptions, heap)          // check if tree is valid
         val allScopedSymbolDefinitions = moduleAst.checkIdentifiers()
         while(true) {
             // keep optimizing expressions and statements until no more steps remain
-            val optsDone1 = moduleAst.simplifyExpressions(namespace)
-            val optsDone2 = moduleAst.optimizeStatements(namespace)
+            val optsDone1 = moduleAst.simplifyExpressions(namespace, heap)
+            val optsDone2 = moduleAst.optimizeStatements(namespace, heap)
             if(optsDone1 + optsDone2 == 0)
                 break
         }
 
         StatementReorderer().process(moduleAst)     // reorder statements to please the compiler later
         namespace = moduleAst.definingScope()       // create it again, it could have changed in the meantime
-        moduleAst.checkValid(namespace, compilerOptions)          // check if final tree is valid
+        moduleAst.checkValid(namespace, compilerOptions, heap)          // check if final tree is valid
         moduleAst.checkRecursion(namespace)         // check if there are recursive subroutine calls
 
         // namespace.debugPrint()
 
         // compile the syntax tree into stackvmProg form, and optimize that
         val compiler = Compiler(compilerOptions)
-        val intermediate = compiler.compile(moduleAst)
+        val intermediate = compiler.compile(moduleAst, heap)
         intermediate.optimize()
 
         val stackVmFilename =  intermediate.name + "_stackvm.txt"

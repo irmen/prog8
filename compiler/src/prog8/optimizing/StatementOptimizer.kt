@@ -1,6 +1,7 @@
 package prog8.optimizing
 
 import prog8.ast.*
+import prog8.compiler.HeapValues
 import prog8.functions.BuiltinFunctionNames
 import prog8.functions.BuiltinFunctionsWithoutSideEffects
 
@@ -9,6 +10,7 @@ import prog8.functions.BuiltinFunctionsWithoutSideEffects
     todo remove unused blocks
     todo remove unused variables
     todo remove unused subroutines
+    todo remove unused strings and arrays from the heap
     todo remove if statements with empty statement blocks
     todo replace if statements with only else block
     todo statement optimization: create augmented assignment from assignment that only refers to its lvalue (A=A+10, A=4*A, ...)
@@ -23,7 +25,7 @@ import prog8.functions.BuiltinFunctionsWithoutSideEffects
     todo inline subroutines that are "sufficiently small"
 */
 
-class StatementOptimizer(private val globalNamespace: INameScope) : IAstProcessor {
+class StatementOptimizer(private val globalNamespace: INameScope, private val heap: HeapValues) : IAstProcessor {
     var optimizationsDone: Int = 0
         private set
 
@@ -43,7 +45,7 @@ class StatementOptimizer(private val globalNamespace: INameScope) : IAstProcesso
 
     override fun process(ifStatement: IfStatement): IStatement {
         super.process(ifStatement)
-        val constvalue = ifStatement.condition.constValue(globalNamespace)
+        val constvalue = ifStatement.condition.constValue(globalNamespace, heap)
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue){
                 // always true -> keep only if-part
@@ -75,7 +77,7 @@ class StatementOptimizer(private val globalNamespace: INameScope) : IAstProcesso
 
     override fun process(whileLoop: WhileLoop): IStatement {
         super.process(whileLoop)
-        val constvalue = whileLoop.condition.constValue(globalNamespace)
+        val constvalue = whileLoop.condition.constValue(globalNamespace, heap)
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue){
                 // always true
@@ -92,7 +94,7 @@ class StatementOptimizer(private val globalNamespace: INameScope) : IAstProcesso
 
     override fun process(repeatLoop: RepeatLoop): IStatement {
         super.process(repeatLoop)
-        val constvalue = repeatLoop.untilCondition.constValue(globalNamespace)
+        val constvalue = repeatLoop.untilCondition.constValue(globalNamespace, heap)
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue){
                 // always true -> keep only the statement block

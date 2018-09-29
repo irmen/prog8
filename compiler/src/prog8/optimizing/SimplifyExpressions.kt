@@ -1,6 +1,7 @@
 package prog8.optimizing
 
 import prog8.ast.*
+import prog8.compiler.HeapValues
 import kotlin.math.abs
 
 /*
@@ -18,7 +19,7 @@ import kotlin.math.abs
 
  */
 
-class SimplifyExpressions(private val namespace: INameScope) : IAstProcessor {
+class SimplifyExpressions(private val namespace: INameScope, private val heap: HeapValues) : IAstProcessor {
     var optimizationsDone: Int = 0
 
     override fun process(assignment: Assignment): IStatement {
@@ -30,8 +31,8 @@ class SimplifyExpressions(private val namespace: INameScope) : IAstProcessor {
 
     override fun process(expr: BinaryExpression): IExpression {
         super.process(expr)
-        val leftVal = expr.left.constValue(namespace)
-        val rightVal = expr.right.constValue(namespace)
+        val leftVal = expr.left.constValue(namespace, heap)
+        val rightVal = expr.right.constValue(namespace, heap)
         val constTrue = LiteralValue.fromBoolean(true, expr.position)
         val constFalse = LiteralValue.fromBoolean(false, expr.position)
 
@@ -121,9 +122,9 @@ class SimplifyExpressions(private val namespace: INameScope) : IAstProcessor {
             expr.left = expr.right
             expr.right = tmp
             optimizationsDone++
-            return ReorderedAssociativeBinaryExpr(expr, expr.right.constValue(namespace), leftVal)
+            return ReorderedAssociativeBinaryExpr(expr, expr.right.constValue(namespace, heap), leftVal)
         }
-        return ReorderedAssociativeBinaryExpr(expr, leftVal, expr.right.constValue(namespace))
+        return ReorderedAssociativeBinaryExpr(expr, leftVal, expr.right.constValue(namespace, heap))
     }
 
     private fun optimizeAdd(pexpr: BinaryExpression, pleftVal: LiteralValue?, prightVal: LiteralValue?): IExpression {
@@ -284,13 +285,13 @@ class SimplifyExpressions(private val namespace: INameScope) : IAstProcessor {
                 }
             }
 
-            if (expr.left.resultingDatatype(namespace) == DataType.BYTE) {
+            if (expr.left.resultingDatatype(namespace, heap) == DataType.BYTE) {
                 if(abs(rightConst.asNumericValue!!.toDouble()) >= 256.0) {
                     optimizationsDone++
                     return LiteralValue(DataType.BYTE, 0, position = expr.position)
                 }
             }
-            else if (expr.left.resultingDatatype(namespace) == DataType.WORD) {
+            else if (expr.left.resultingDatatype(namespace, heap) == DataType.WORD) {
                 if(abs(rightConst.asNumericValue!!.toDouble()) >= 65536.0) {
                     optimizationsDone++
                     return LiteralValue(DataType.BYTE, 0, position = expr.position)

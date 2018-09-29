@@ -1,6 +1,7 @@
 package prog8.ast
 
 import prog8.compiler.CompilationOptions
+import prog8.compiler.HeapValues
 import prog8.functions.BuiltinFunctionNames
 import prog8.parser.ParsingFailedError
 
@@ -8,8 +9,8 @@ import prog8.parser.ParsingFailedError
  * General checks on the Ast
  */
 
-fun Module.checkValid(globalNamespace: INameScope, compilerOptions: CompilationOptions) {
-    val checker = AstChecker(globalNamespace, compilerOptions)
+fun Module.checkValid(globalNamespace: INameScope, compilerOptions: CompilationOptions, heap: HeapValues) {
+    val checker = AstChecker(globalNamespace, compilerOptions, heap)
     this.process(checker)
     printErrors(checker.result(), name)
 }
@@ -38,7 +39,9 @@ fun printWarning(msg: String, position: Position, detailInfo: String?=null) {
 }
 
 
-class AstChecker(private val namespace: INameScope, private val compilerOptions: CompilationOptions) : IAstProcessor {
+class AstChecker(private val namespace: INameScope,
+                 private val compilerOptions: CompilationOptions,
+                 private val heap: HeapValues) : IAstProcessor {
     private val checkResult: MutableList<AstException> = mutableListOf()
 
     fun result(): List<AstException> {
@@ -87,10 +90,10 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
     override fun process(forLoop: ForLoop): IStatement {
         if(forLoop.body.isEmpty())
             printWarning("for loop body is empty", forLoop.position)
-        if(!forLoop.iterable.isIterable(namespace)) {
+        if(!forLoop.iterable.isIterable(namespace, heap)) {
             checkResult.add(ExpressionError("can only loop over an iterable type", forLoop.position))
         } else {
-            val iterableDt = forLoop.iterable.resultingDatatype(namespace)
+            val iterableDt = forLoop.iterable.resultingDatatype(namespace, heap)
             if (forLoop.loopRegister != null) {
                 printWarning("using a register as loop variable is risky (it could get clobbered in the body)", forLoop.position)
                 // loop register
@@ -281,11 +284,11 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         }
 
         val targetDatatype = assignment.target.determineDatatype(namespace, assignment)
-        val constVal = assignment.value.constValue(namespace)
+        val constVal = assignment.value.constValue(namespace, heap)
         if(constVal!=null) {
-            checkValueTypeAndRange(targetDatatype, null, constVal)
+            checkValueTypeAndRange(targetDatatype, null, constVal, heap)
         } else {
-            val sourceDatatype: DataType? = assignment.value.resultingDatatype(namespace)
+            val sourceDatatype: DataType? = assignment.value.resultingDatatype(namespace, heap)
             if(sourceDatatype==null) {
                 if(assignment.value is FunctionCall)
                     checkResult.add(ExpressionError("function call doesn't return a value to use in assignment", assignment.value.position))
@@ -340,7 +343,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                 }
                 when {
                     decl.value is RangeExpr -> checkValueTypeAndRange(decl.datatype, decl.arrayspec, decl.value as RangeExpr)
-                    decl.value is LiteralValue -> checkValueTypeAndRange(decl.datatype, decl.arrayspec, decl.value as LiteralValue)
+                    decl.value is LiteralValue -> checkValueTypeAndRange(decl.datatype, decl.arrayspec, decl.value as LiteralValue, heap)
                     else -> {
                         err("var/const declaration needs a compile-time constant initializer value, or range, instead found: ${decl.value!!::class.simpleName}")
                         return super.process(decl)
@@ -433,14 +436,14 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         if(!compilerOptions.floats && literalValue.type==DataType.FLOAT) {
             checkResult.add(SyntaxError("floating point value used, but floating point is not enabled via options", literalValue.position))
         }
-        checkValueTypeAndRange(literalValue.type, null, literalValue)
+        checkValueTypeAndRange(literalValue.type, null, literalValue, heap)
         return super.process(literalValue)
     }
 
     override fun process(expr: BinaryExpression): IExpression {
         when(expr.operator){
             "/", "//", "%" -> {
-                val numeric = expr.right.constValue(namespace)?.asNumericValue?.toDouble()
+                val numeric = expr.right.constValue(namespace, heap)?.asNumericValue?.toDouble()
                 if(numeric==0.0)
                     checkResult.add(ExpressionError("division by zero", expr.right.position))
             }
@@ -453,9 +456,9 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
             checkResult.add(SyntaxError(msg, range.position))
         }
         super.process(range)
-        val from = range.from.constValue(namespace)
-        val to = range.to.constValue(namespace)
-        val stepLv = range.step.constValue(namespace) ?: LiteralValue(DataType.BYTE, 1, position = range.position)
+        val from = range.from.constValue(namespace, heap)
+        val to = range.to.constValue(namespace, heap)
+        val stepLv = range.step.constValue(namespace, heap) ?: LiteralValue(DataType.BYTE, 1, position = range.position)
         if (stepLv.asIntegerValue == null || stepLv.asIntegerValue == 0) {
             err("range step must be an integer != 0")
             return range
@@ -555,8 +558,8 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
 
 
     private fun checkValueTypeAndRange(targetDt: DataType, arrayspec: ArraySpec?, range: RangeExpr) : Boolean {
-        val from = range.from.constValue(namespace)
-        val to = range.to.constValue(namespace)
+        val from = range.from.constValue(namespace, heap)
+        val to = range.to.constValue(namespace, heap)
         if(from==null || to==null) {
             checkResult.add(SyntaxError("range from and to values must be constants", range.position))
             return false
@@ -596,7 +599,7 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
         }
     }
 
-    private fun checkValueTypeAndRange(targetDt: DataType, arrayspec: ArraySpec?, value: LiteralValue) : Boolean {
+    private fun checkValueTypeAndRange(targetDt: DataType, arrayspec: ArraySpec?, value: LiteralValue, heap: HeapValues) : Boolean {
         fun err(msg: String) : Boolean {
             checkResult.add(ExpressionError(msg, value.position))
             return false
@@ -629,37 +632,21 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
                     return err("value '$number' out of range for unsigned word")
             }
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
-                val str = value.strvalue
-                        ?: return err("string value expected")
+                val str = value.strvalue ?: heap.get(value.heapId!!).str!!
                 if (str.isEmpty() || str.length > 255)
                     return err("string length must be 1 to 255")
             }
             DataType.ARRAY -> {
-                // value may be either a single byte, or a byte array
+                // value may be either a single byte, or a byte array (of all constant values)
                 if(value.type==DataType.ARRAY) {
+                    val array = heap.get(value.heapId!!).array!!
                     if(arrayspec!=null) {
-                        // arrayspec is not always known when checking
-                        val constX = arrayspec.x.constValue(namespace)
+                        val constX = arrayspec.x.constValue(namespace, heap)
                         if(constX?.asIntegerValue==null)
                             return err("array size specifier must be constant integer value")
                         val expectedSize = constX.asIntegerValue
-                        if (value.arrayvalue!!.size != expectedSize)
-                            return err("initializer array size mismatch (expecting $expectedSize, got ${value.arrayvalue.size})")
-                    }
-                    for (av in value.arrayvalue!!) {
-                        if(av is LiteralValue) {
-                            val number = av.bytevalue
-                                    ?: return err("array must be all bytes")
-                            if (number < 0 || number > 255)
-                                return err("value '$number' in array is out of range for unsigned byte")
-                        } else if(av is RegisterExpr) {
-                            if(av.register!=Register.A && av.register!=Register.X && av.register!=Register.Y)
-                                return err("register '$av' in byte array is not a single register")
-                        } else {
-                            val avDt = av.resultingDatatype(namespace)
-                            if(avDt!=DataType.BYTE)
-                                return err("array must be all bytes")
-                        }
+                        if (array.size != expectedSize)
+                            return err("initializer array size mismatch (expecting $expectedSize, got ${array.size})")
                     }
                 } else if(value.type==DataType.ARRAY_W) {
                     return err("initialization value must be an array of bytes")
@@ -675,26 +662,15 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
             DataType.ARRAY_W -> {
                 // value may be either a single word, or a word array
                 if(value.type==DataType.ARRAY || value.type==DataType.ARRAY_W) {
+                    val array = heap.get(value.heapId!!).array!!
                     if(arrayspec!=null) {
                         // arrayspec is not always known when checking
-                        val constX = arrayspec.x.constValue(namespace)
+                        val constX = arrayspec.x.constValue(namespace, heap)
                         if(constX?.asIntegerValue==null)
                             return err("array size specifier must be constant integer value")
                         val expectedSize = constX.asIntegerValue
-                        if (value.arrayvalue!!.size != expectedSize)
-                            return err("initializer array size mismatch (expecting $expectedSize, got ${value.arrayvalue.size})")
-                    }
-                    for (av in value.arrayvalue!!) {
-                        if(av is LiteralValue) {
-                            val number = av.asIntegerValue
-                                    ?: return err("array must be all integers")
-                            if (number < 0 || number > 65535)
-                                return err("value '$number' in array is out of range for unsigned word")
-                        } else {
-                            val avDt = av.resultingDatatype(namespace)
-                            if(avDt!=DataType.BYTE && avDt!=DataType.WORD)
-                                return err("array must be all integers")
-                        }
+                        if (array.size != expectedSize)
+                            return err("initializer array size mismatch (expecting $expectedSize, got ${array.size})")
                     }
                 } else {
                     val number = value.asIntegerValue ?: return if (value.floatvalue!=null)
@@ -708,21 +684,14 @@ class AstChecker(private val namespace: INameScope, private val compilerOptions:
             DataType.MATRIX -> {
                 // value can only be a single byte, or a byte array (which represents the matrix)
                 if(value.type==DataType.ARRAY) {
-                    for (av in value.arrayvalue!!) {
-                        val number = (av as LiteralValue).bytevalue
-                                ?: return err("array must be all bytes")
-                        val constX = arrayspec!!.x.constValue(namespace)
-                        val constY = arrayspec.y!!.constValue(namespace)
-                        if(constX?.asIntegerValue==null || constY?.asIntegerValue==null)
-                            return err("matrix size specifiers must be constant integer values")
-
-                        val expectedSize = constX.asIntegerValue * constY.asIntegerValue
-                        if (value.arrayvalue.size != expectedSize)
-                            return err("initializer matrix size mismatch (expecting $expectedSize, got ${value.arrayvalue.size} elements)")
-
-                        if (number < 0 || number > 255)
-                            return err("value '$number' in byte array is out of range for unsigned byte")
-                    }
+                    val constX = arrayspec!!.x.constValue(namespace, heap)
+                    val constY = arrayspec.y!!.constValue(namespace, heap)
+                    if(constX?.asIntegerValue==null || constY?.asIntegerValue==null)
+                        return err("matrix size specifiers must be constant integer values")
+                    val matrix = heap.get(value.heapId!!).array!!
+                    val expectedSize = constX.asIntegerValue * constY.asIntegerValue
+                    if (matrix.size != expectedSize)
+                        return err("initializer matrix size mismatch (expecting $expectedSize, got ${matrix.size} elements)")
                 } else {
                     val number = value.bytevalue
                             ?: return err("unsigned byte value expected")

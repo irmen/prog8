@@ -77,13 +77,18 @@ class TestStackVmValue {
         assertFalse(sameValueAndType(Value(DataType.FLOAT, 9.99), Value(DataType.BYTE, 9)))
         assertFalse(sameValueAndType(Value(DataType.FLOAT, 9.99), Value(DataType.WORD, 9)))
         assertFalse(sameValueAndType(Value(DataType.FLOAT, 9.99), Value(DataType.FLOAT, 9.0)))
+    }
 
-        assertFailsWith<VmExecutionException> {
-            assertTrue(sameValueAndType(Value(DataType.STR, null, "hello"), Value(DataType.STR, null, "hello")))
-        }
-        assertFailsWith<VmExecutionException> {
-            assertTrue(sameValueAndType(Value(DataType.ARRAY, null, arrayvalue = intArrayOf(1,2,3)), Value(DataType.ARRAY, null, arrayvalue = intArrayOf(1,2,3))))
-        }
+    @Test
+    fun testEqualsAndNotEqualsHeapTypes()
+    {
+        assertTrue(sameValueAndType(Value(DataType.STR, 999), Value(DataType.STR, 999)))
+        assertFalse(sameValueAndType(Value(DataType.STR, 999), Value(DataType.STR_P, 999)))
+        assertFalse(sameValueAndType(Value(DataType.STR, 999), Value(DataType.STR, 222)))
+
+        assertTrue(sameValueAndType(Value(DataType.ARRAY_W, 999), Value(DataType.ARRAY_W, 999)))
+        assertFalse(sameValueAndType(Value(DataType.ARRAY_W, 999), Value(DataType.MATRIX, 999)))
+        assertFalse(sameValueAndType(Value(DataType.ARRAY_W, 999), Value(DataType.ARRAY_W, 222)))
     }
 
     @Test

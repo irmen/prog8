@@ -1,10 +1,11 @@
 package prog8.optimizing
 
 import prog8.ast.*
+import prog8.compiler.HeapValues
 import prog8.compiler.target.c64.Petscii
 
 
-class ConstantFolding(private val namespace: INameScope) : IAstProcessor {
+class ConstantFolding(private val namespace: INameScope, private val heap: HeapValues) : IAstProcessor {
     var optimizationsDone: Int = 0
     var errors : MutableList<AstException> = mutableListOf()
 
@@ -94,8 +95,8 @@ class ConstantFolding(private val namespace: INameScope) : IAstProcessor {
      */
     override fun process(identifier: IdentifierReference): IExpression {
         return try {
-            val cval = identifier.constValue(namespace) ?: return identifier
-            val copy = LiteralValue(cval.type, cval.bytevalue, cval.wordvalue, cval.floatvalue, cval.strvalue, cval.arrayvalue, identifier.position)
+            val cval = identifier.constValue(namespace, heap) ?: return identifier
+            val copy = LiteralValue(cval.type, cval.bytevalue, cval.wordvalue, cval.floatvalue, cval.strvalue, cval.arrayvalue, position=identifier.position)
             copy.parent = identifier.parent
             return copy
         } catch (ax: AstException) {
@@ -107,7 +108,7 @@ class ConstantFolding(private val namespace: INameScope) : IAstProcessor {
     override fun process(functionCall: FunctionCall): IExpression {
         return try {
             super.process(functionCall)
-            functionCall.constValue(namespace) ?: functionCall
+            functionCall.constValue(namespace, heap) ?: functionCall
         } catch (ax: AstException) {
             addError(ax)
             functionCall
@@ -183,8 +184,8 @@ class ConstantFolding(private val namespace: INameScope) : IAstProcessor {
     override fun process(expr: BinaryExpression): IExpression {
         return try {
             super.process(expr)
-            val leftconst = expr.left.constValue(namespace)
-            val rightconst = expr.right.constValue(namespace)
+            val leftconst = expr.left.constValue(namespace, heap)
+            val rightconst = expr.right.constValue(namespace, heap)
 
             val subExpr: BinaryExpression? = when {
                 leftconst!=null -> expr.right as? BinaryExpression
@@ -192,8 +193,8 @@ class ConstantFolding(private val namespace: INameScope) : IAstProcessor {
                 else -> null
             }
             if(subExpr!=null) {
-                val subleftconst = subExpr.left.constValue(namespace)
-                val subrightconst = subExpr.right.constValue(namespace)
+                val subleftconst = subExpr.left.constValue(namespace, heap)
+                val subrightconst = subExpr.right.constValue(namespace, heap)
                 if ((subleftconst != null && subrightconst == null) || (subleftconst==null && subrightconst!=null))
                     // try reordering.
                     return groupTwoConstsTogether(expr, subExpr,
@@ -286,12 +287,23 @@ class ConstantFolding(private val namespace: INameScope) : IAstProcessor {
     }
 
     override fun process(literalValue: LiteralValue): LiteralValue {
-        if(literalValue.arrayvalue!=null) {
+        if(literalValue.strvalue!=null) {
+            // intern the string; move it into the heap
+            if(literalValue.strvalue.length !in 1..255)
+                addError(ExpressionError("string literal length must be between 1 and 255", literalValue.position))
+            else {
+                val heapId = heap.add(literalValue.type, literalValue.strvalue)     // TODO: we don't know the actual string type yet, STR != STR_P etc...
+                val newValue = LiteralValue(literalValue.type, heapId = heapId, position = literalValue.position)
+                return super.process(newValue)
+            }
+        } else if(literalValue.arrayvalue!=null) {
             val newArray = literalValue.arrayvalue.map { it.process(this) }.toTypedArray()
             // determine if the values are all bytes or that we need a word array instead
             var arrayDt = DataType.ARRAY
+            var allElementsAreConstant = true
             for (expr in newArray) {
-                val valueDt = expr.resultingDatatype(namespace)
+                allElementsAreConstant = allElementsAreConstant and (expr is LiteralValue)
+                val valueDt = expr.resultingDatatype(namespace, heap)
                 if(valueDt==DataType.BYTE)
                     continue
                 else {
@@ -299,6 +311,37 @@ class ConstantFolding(private val namespace: INameScope) : IAstProcessor {
                     break
                 }
             }
+
+            // if the values are all constants, the array is moved to the heap
+            if(allElementsAreConstant) {
+                val array = newArray.map {
+                    val litval = it as? LiteralValue
+                    if(litval==null) {
+                        addError(ExpressionError("array elements must all be constants", literalValue.position))
+                        return super.process(literalValue)
+                    }
+                    if(litval.bytevalue==null && litval.wordvalue==null) {
+                        if(arrayDt==DataType.ARRAY)
+                            addError(ExpressionError("byte array elements must all be integers 0..255", literalValue.position))
+                        else
+                            addError(ExpressionError("word array elements must all be integers 0..65535", literalValue.position))
+                        return super.process(literalValue)
+                    }
+                    val integer = litval.asIntegerValue!!
+                    if(arrayDt==DataType.ARRAY && integer !in 0..255) {
+                        addError(ExpressionError("byte array elements must all be integers 0..255", literalValue.position))
+                        return super.process(literalValue)
+                    } else if(arrayDt==DataType.ARRAY_W && integer !in 0..65535) {
+                        addError(ExpressionError("word array elements must all be integers 0..65535", literalValue.position))
+                        return super.process(literalValue)
+                    }
+                    integer
+                }.toIntArray()
+                val heapId = heap.add(arrayDt, array)
+                val newValue = LiteralValue(arrayDt, heapId=heapId, position = literalValue.position)
+                return super.process(newValue)
+            }
+
             val newValue = LiteralValue(arrayDt, arrayvalue = newArray, position = literalValue.position)
             return super.process(newValue)
         }

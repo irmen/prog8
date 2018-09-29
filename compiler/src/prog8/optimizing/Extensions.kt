@@ -3,17 +3,12 @@ package prog8.optimizing
 import prog8.ast.AstException
 import prog8.ast.INameScope
 import prog8.ast.Module
+import prog8.compiler.HeapValues
 import prog8.parser.ParsingFailedError
 
-/**
- * TODO: array, matrix, string and float constants should be put into a constant-pool,
- * so that they're only stored once instead of replicated everywhere.
- * Note that initial constant folding of them is fine: it's needed to be able to
- * optimize the expressions. But as a final step, they should be consolidated again
- */
 
-fun Module.constantFold(globalNamespace: INameScope) {
-    val optimizer = ConstantFolding(globalNamespace)
+fun Module.constantFold(globalNamespace: INameScope, heap: HeapValues) {
+    val optimizer = ConstantFolding(globalNamespace, heap)
     try {
         this.process(optimizer)
     } catch (ax: AstException) {
@@ -35,8 +30,8 @@ fun Module.constantFold(globalNamespace: INameScope) {
 }
 
 
-fun Module.optimizeStatements(globalNamespace: INameScope): Int {
-    val optimizer = StatementOptimizer(globalNamespace)
+fun Module.optimizeStatements(globalNamespace: INameScope, heap: HeapValues): Int {
+    val optimizer = StatementOptimizer(globalNamespace, heap)
     this.process(optimizer)
     if(optimizer.optimizationsDone > 0)
         println("[${this.name}] Debug: ${optimizer.optimizationsDone} statement optimizations performed")
@@ -44,8 +39,8 @@ fun Module.optimizeStatements(globalNamespace: INameScope): Int {
     return optimizer.optimizationsDone
 }
 
-fun Module.simplifyExpressions(namespace: INameScope) : Int {
-    val optimizer = SimplifyExpressions(namespace)
+fun Module.simplifyExpressions(namespace: INameScope, heap: HeapValues) : Int {
+    val optimizer = SimplifyExpressions(namespace, heap)
     this.process(optimizer)
     if(optimizer.optimizationsDone > 0)
         println("[${this.name}] Debug: ${optimizer.optimizationsDone} expression optimizations performed")

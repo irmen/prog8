@@ -184,7 +184,7 @@ class ConstExprEvaluator {
     }
 
     private fun multiply(left: LiteralValue, right: LiteralValue): LiteralValue {
-        val error = "cannot multiply $left and $right"
+        val error = "cannot multiply ${left.type} and ${right.type}"
         return when {
             left.asIntegerValue!=null -> when {
                 right.asIntegerValue!=null -> LiteralValue.optimalNumeric(left.asIntegerValue * right.asIntegerValue, left.position)
@@ -198,13 +198,6 @@ class ConstExprEvaluator {
             left.floatvalue!=null -> when {
                 right.asIntegerValue!=null -> LiteralValue(DataType.FLOAT, floatvalue = left.floatvalue * right.asIntegerValue, position = left.position)
                 right.floatvalue!=null -> LiteralValue(DataType.FLOAT, floatvalue = left.floatvalue * right.floatvalue, position = left.position)
-                else -> throw ExpressionError(error, left.position)
-            }
-            left.strvalue!=null -> when {
-                right.asIntegerValue!=null -> {
-                    if(left.strvalue.length * right.asIntegerValue > 255) throw ExpressionError("string too long", left.position)
-                    LiteralValue(DataType.STR, strvalue = left.strvalue.repeat(right.asIntegerValue), position = left.position)
-                }
                 else -> throw ExpressionError(error, left.position)
             }
             else -> throw ExpressionError(error, left.position)

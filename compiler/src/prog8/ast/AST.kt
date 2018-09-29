@@ -2,6 +2,7 @@ package prog8.ast
 
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
+import prog8.compiler.HeapValues
 import prog8.compiler.target.c64.Petscii
 import prog8.functions.*
 import prog8.parser.prog8Parser
@@ -677,11 +678,11 @@ data class AssignTarget(val register: Register?, val identifier: IdentifierRefer
 
 
 interface IExpression: Node {
-    fun isIterable(namespace: INameScope): Boolean
-    fun constValue(namespace: INameScope): LiteralValue?
+    fun isIterable(namespace: INameScope, heap: HeapValues): Boolean
+    fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue?
     fun process(processor: IAstProcessor): IExpression
     fun referencesIdentifier(name: String): Boolean
-    fun resultingDatatype(namespace: INameScope): DataType?
+    fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType?
 }
 
 
@@ -695,11 +696,11 @@ class PrefixExpression(val operator: String, var expression: IExpression, overri
         expression.linkParents(this)
     }
 
-    override fun constValue(namespace: INameScope): LiteralValue? = null
+    override fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue? = null
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String) = expression.referencesIdentifier(name)
-    override fun resultingDatatype(namespace: INameScope): DataType? = expression.resultingDatatype(namespace)
-    override fun isIterable(namespace: INameScope) = false
+    override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? = expression.resultingDatatype(namespace, heap)
+    override fun isIterable(namespace: INameScope, heap: HeapValues) = false
 }
 
 
@@ -713,13 +714,13 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
     }
 
     // binary expression should actually have been optimized away into a single value, before const value was requested...
-    override fun constValue(namespace: INameScope): LiteralValue? = null
-    override fun isIterable(namespace: INameScope) = false
+    override fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue? = null
+    override fun isIterable(namespace: INameScope, heap: HeapValues) = false
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String) = left.referencesIdentifier(name) || right.referencesIdentifier(name)
-    override fun resultingDatatype(namespace: INameScope): DataType? {
-        val leftDt = left.resultingDatatype(namespace)
-        val rightDt = right.resultingDatatype(namespace)
+    override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? {
+        val leftDt = left.resultingDatatype(namespace, heap)
+        val rightDt = right.resultingDatatype(namespace, heap)
         return when(operator) {
             "+", "-", "*", "**", "%" -> if(leftDt==null || rightDt==null) null else arithmeticOpDt(leftDt, rightDt)
             "//" -> if(leftDt==null || rightDt==null) null else integerDivisionOpDt(leftDt, rightDt)
@@ -731,7 +732,7 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
             "<=", ">=",
             "==", "!=" -> DataType.BYTE
             "/" -> {
-                val rightNum = right.constValue(namespace)?.asNumericValue?.toDouble()
+                val rightNum = right.constValue(namespace, heap)?.asNumericValue?.toDouble()
                 if(rightNum!=null) {
                     when(leftDt) {
                         DataType.BYTE ->
@@ -807,8 +808,10 @@ class LiteralValue(val type: DataType,
                    val floatvalue: Double? = null,
                    val strvalue: String? = null,
                    val arrayvalue: Array<IExpression>? = null,
+                   val heapId: Int? =null,
                    override val position: Position) : IExpression {
     override lateinit var parent: Node
+
     override fun referencesIdentifier(name: String) = arrayvalue?.any { it.referencesIdentifier(name) } ?: false
 
     val isString = type==DataType.STR || type==DataType.STR_P || type==DataType.STR_S || type==DataType.STR_PS
@@ -858,13 +861,13 @@ class LiteralValue(val type: DataType,
             DataType.BYTE -> if(bytevalue==null) throw FatalAstException("literal value missing bytevalue")
             DataType.WORD -> if(wordvalue==null) throw FatalAstException("literal value missing wordvalue")
             DataType.FLOAT -> if(floatvalue==null) throw FatalAstException("literal value missing floatvalue")
-            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
-                if(strvalue==null) throw FatalAstException("literal value missing strvalue")
-            }
-            DataType.ARRAY, DataType.ARRAY_W -> if(arrayvalue==null) throw FatalAstException("literal value missing arrayvalue")
+            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS ->
+                if(strvalue==null && heapId==null) throw FatalAstException("literal value missing strvalue/heapId")
+            DataType.ARRAY, DataType.ARRAY_W ->
+                if(arrayvalue==null && heapId==null) throw FatalAstException("literal value missing arrayvalue/heapId")
             DataType.MATRIX -> TODO("matrix literalvalue? for now, arrays are good enough for this")
         }
-        if(bytevalue==null && wordvalue==null && floatvalue==null && arrayvalue==null && strvalue==null)
+        if(bytevalue==null && wordvalue==null && floatvalue==null && arrayvalue==null && strvalue==null && heapId==null)
             throw FatalAstException("literal value without actual value")
     }
 
@@ -893,7 +896,7 @@ class LiteralValue(val type: DataType,
         arrayvalue?.forEach {it.linkParents(this)}
     }
 
-    override fun constValue(namespace: INameScope): LiteralValue?  = this
+    override fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue?  = this
     override fun process(processor: IAstProcessor) = processor.process(this)
 
     override fun toString(): String {
@@ -901,16 +904,25 @@ class LiteralValue(val type: DataType,
             DataType.BYTE -> "byte:$bytevalue"
             DataType.WORD -> "word:$wordvalue"
             DataType.FLOAT -> "float:$floatvalue"
-            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS-> "str:$strvalue"
-            DataType.ARRAY, DataType.ARRAY_W -> "array:$arrayvalue"
-            DataType.MATRIX -> "matrix:$arrayvalue"
+            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS-> {
+                if(heapId!=null) "str:#$heapId"
+                else "str:$strvalue"
+            }
+            DataType.ARRAY, DataType.ARRAY_W -> {
+                if(heapId!=null) "array:#$heapId"
+                else "array:$arrayvalue"
+            }
+            DataType.MATRIX -> {
+                if(heapId!=null) "matrix:#$heapId"
+                else "matrix:$arrayvalue"
+            }
         }
         return "LiteralValue($vstr)"
     }
 
-    override fun resultingDatatype(namespace: INameScope) = type
+    override fun resultingDatatype(namespace: INameScope, heap: HeapValues) = type
 
-    override fun isIterable(namespace: INameScope): Boolean = IterableDatatypes.contains(type)
+    override fun isIterable(namespace: INameScope, heap: HeapValues): Boolean = IterableDatatypes.contains(type)
 
     override fun hashCode(): Int {
         val bh = bytevalue?.hashCode() ?: 0x10001234
@@ -954,13 +966,13 @@ class RangeExpr(var from: IExpression,
         step.linkParents(this)
     }
 
-    override fun constValue(namespace: INameScope): LiteralValue? = null
-    override fun isIterable(namespace: INameScope) = true
+    override fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue? = null
+    override fun isIterable(namespace: INameScope, heap: HeapValues) = true
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String): Boolean  = from.referencesIdentifier(name) || to.referencesIdentifier(name)
-    override fun resultingDatatype(namespace: INameScope): DataType? {
-        val fromDt=from.resultingDatatype(namespace)
-        val toDt=to.resultingDatatype(namespace)
+    override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? {
+        val fromDt=from.resultingDatatype(namespace, heap)
+        val toDt=to.resultingDatatype(namespace, heap)
         return when {
             fromDt==null || toDt==null -> null
             fromDt==DataType.WORD || toDt==DataType.WORD -> DataType.WORD
@@ -1023,15 +1035,15 @@ class RegisterExpr(val register: Register, override val position: Position) : IE
         this.parent = parent
     }
 
-    override fun constValue(namespace: INameScope): LiteralValue? = null
+    override fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue? = null
     override fun process(processor: IAstProcessor) = this
     override fun referencesIdentifier(name: String): Boolean  = false
-    override fun isIterable(namespace: INameScope) = false
+    override fun isIterable(namespace: INameScope, heap: HeapValues) = false
     override fun toString(): String {
         return "RegisterExpr(register=$register, pos=$position)"
     }
 
-    override fun resultingDatatype(namespace: INameScope): DataType? {
+    override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? {
         return when(register){
             Register.A, Register.X, Register.Y -> DataType.BYTE
             Register.AX, Register.AY, Register.XY -> DataType.WORD
@@ -1053,7 +1065,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         this.parent = parent
     }
 
-    override fun constValue(namespace: INameScope): LiteralValue? {
+    override fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue? {
         val node = namespace.lookup(nameInSource, this)
                 ?: throw UndefinedSymbolError(this)
         val vardecl = node as? VarDecl
@@ -1062,7 +1074,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         } else if(vardecl.type!=VarDeclType.CONST) {
             return null
         }
-        return vardecl.value?.constValue(namespace)
+        return vardecl.value?.constValue(namespace, heap)
     }
 
     override fun toString(): String {
@@ -1072,7 +1084,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String): Boolean  = nameInSource.last() == name   // @todo is this correct all the time?
 
-    override fun resultingDatatype(namespace: INameScope): DataType? {
+    override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? {
         val targetStmt = targetStatement(namespace)
         if(targetStmt is VarDecl) {
             return targetStmt.datatype
@@ -1081,7 +1093,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         }
     }
 
-    override fun isIterable(namespace: INameScope): Boolean  = IterableDatatypes.contains(resultingDatatype(namespace))
+    override fun isIterable(namespace: INameScope, heap: HeapValues): Boolean  = IterableDatatypes.contains(resultingDatatype(namespace, heap))
 }
 
 
@@ -1131,45 +1143,45 @@ class FunctionCall(override var target: IdentifierReference,
         arglist.forEach { it.linkParents(this) }
     }
 
-    override fun constValue(namespace: INameScope) = constValue(namespace, true)
+    override fun constValue(namespace: INameScope, heap: HeapValues) = constValue(namespace, heap, true)
 
-    private fun constValue(namespace: INameScope, withDatatypeCheck: Boolean): LiteralValue? {
+    private fun constValue(namespace: INameScope, heap: HeapValues, withDatatypeCheck: Boolean): LiteralValue? {
         // if the function is a built-in function and the args are consts, should try to const-evaluate!
         if(target.nameInSource.size>1) return null
         try {
             val resultValue = when (target.nameInSource[0]) {
-                "sin" -> builtinSin(arglist, position, namespace)
-                "cos" -> builtinCos(arglist, position, namespace)
-                "abs" -> builtinAbs(arglist, position, namespace)
-                "acos" -> builtinAcos(arglist, position, namespace)
-                "asin" -> builtinAsin(arglist, position, namespace)
-                "tan" -> builtinTan(arglist, position, namespace)
-                "atan" -> builtinAtan(arglist, position, namespace)
-                "ln" -> builtinLn(arglist, position, namespace)
-                "log2" -> builtinLog2(arglist, position, namespace)
-                "log10" -> builtinLog10(arglist, position, namespace)
-                "sqrt" -> builtinSqrt(arglist, position, namespace)
-                "max" -> builtinMax(arglist, position, namespace)
-                "min" -> builtinMin(arglist, position, namespace)
-                "round" -> builtinRound(arglist, position, namespace)
-                "rad" -> builtinRad(arglist, position, namespace)
-                "deg" -> builtinDeg(arglist, position, namespace)
-                "sum" -> builtinSum(arglist, position, namespace)
-                "avg" -> builtinAvg(arglist, position, namespace)
-                "len" -> builtinLen(arglist, position, namespace)
-                "lsb" -> builtinLsb(arglist, position, namespace)
-                "msb" -> builtinMsb(arglist, position, namespace)
-                "flt" -> builtinFlt(arglist, position, namespace)
-                "any" -> builtinAny(arglist, position, namespace)
-                "all" -> builtinAll(arglist, position, namespace)
-                "floor" -> builtinFloor(arglist, position, namespace)
-                "ceil" -> builtinCeil(arglist, position, namespace)
+                "sin" -> builtinSin(arglist, position, namespace, heap)
+                "cos" -> builtinCos(arglist, position, namespace, heap)
+                "abs" -> builtinAbs(arglist, position, namespace, heap)
+                "acos" -> builtinAcos(arglist, position, namespace, heap)
+                "asin" -> builtinAsin(arglist, position, namespace, heap)
+                "tan" -> builtinTan(arglist, position, namespace, heap)
+                "atan" -> builtinAtan(arglist, position, namespace, heap)
+                "ln" -> builtinLn(arglist, position, namespace, heap)
+                "log2" -> builtinLog2(arglist, position, namespace, heap)
+                "log10" -> builtinLog10(arglist, position, namespace, heap)
+                "sqrt" -> builtinSqrt(arglist, position, namespace, heap)
+                "max" -> builtinMax(arglist, position, namespace, heap)
+                "min" -> builtinMin(arglist, position, namespace, heap)
+                "round" -> builtinRound(arglist, position, namespace, heap)
+                "rad" -> builtinRad(arglist, position, namespace, heap)
+                "deg" -> builtinDeg(arglist, position, namespace, heap)
+                "sum" -> builtinSum(arglist, position, namespace, heap)
+                "avg" -> builtinAvg(arglist, position, namespace, heap)
+                "len" -> builtinLen(arglist, position, namespace, heap)
+                "lsb" -> builtinLsb(arglist, position, namespace, heap)
+                "msb" -> builtinMsb(arglist, position, namespace, heap)
+                "flt" -> builtinFlt(arglist, position, namespace, heap)
+                "any" -> builtinAny(arglist, position, namespace, heap)
+                "all" -> builtinAll(arglist, position, namespace, heap)
+                "floor" -> builtinFloor(arglist, position, namespace, heap)
+                "ceil" -> builtinCeil(arglist, position, namespace, heap)
                 "lsl", "lsr", "rol", "rol2", "ror", "ror2", "set_carry", "clear_carry", "set_irqd", "clear_irqd" ->
                     throw ExpressionError("builtin function ${target.nameInSource[0]} can't be used in expressions because it doesn't return a value", position)
                 else -> null
             }
             if(withDatatypeCheck) {
-                val resultDt = this.resultingDatatype(namespace)
+                val resultDt = this.resultingDatatype(namespace, heap)
                 if(resultValue==null || resultDt == resultValue.type)
                     return resultValue
                 throw FatalAstException("evaluated const expression result value doesn't match expected datatype $resultDt, pos=$position")
@@ -1190,10 +1202,10 @@ class FunctionCall(override var target: IdentifierReference,
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String): Boolean = target.referencesIdentifier(name) || arglist.any{it.referencesIdentifier(name)}
 
-    override fun resultingDatatype(namespace: INameScope): DataType? {
-        val constVal = constValue(namespace, false)
+    override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? {
+        val constVal = constValue(namespace, heap,false)
         if(constVal!=null)
-            return constVal.resultingDatatype(namespace)
+            return constVal.resultingDatatype(namespace, heap)
         val stmt = target.targetStatement(namespace) ?: return null
         when (stmt) {
             is BuiltinFunctionStatementPlaceholder -> {
@@ -1201,7 +1213,7 @@ class FunctionCall(override var target: IdentifierReference,
                         target.nameInSource[0] == "clear_carry" || target.nameInSource[0]=="clear_irqd") {
                     return null // these have no return value
                 }
-                return builtinFunctionReturnType(target.nameInSource[0], this.arglist, namespace)
+                return builtinFunctionReturnType(target.nameInSource[0], this.arglist, namespace, heap)
             }
             is Subroutine -> {
                 if(stmt.returnvalues.isEmpty()) {
@@ -1225,7 +1237,7 @@ class FunctionCall(override var target: IdentifierReference,
         TODO("datatype of functioncall to $stmt")
     }
 
-    override fun isIterable(namespace: INameScope) : Boolean {
+    override fun isIterable(namespace: INameScope, heap: HeapValues) : Boolean {
         TODO("isIterable of function call result")
     }
 }
