@@ -13,7 +13,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
 
     fun addError(x: AstException) {
         // check that we don't add the same error more than once
-        if(!reportedErrorMessages.contains(x.toString())) {
+        if(x.toString() !in reportedErrorMessages) {
             reportedErrorMessages.add(x.toString())
             errors.add(x)
         }

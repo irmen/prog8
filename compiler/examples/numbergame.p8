@@ -2,14 +2,15 @@
 
 ~ main {
     sub start() -> () {
-        str   name    = "?" * 20
-        str   guess   = "?" * 20
+        str   name    = "                    "
+        str   guess   = "0000000000"
         byte  secretnumber = 0
         byte  attempts_left = 10
 
         ; greeting
+        _vm_write_str("Let's play a number guessing game!\n")
         _vm_write_str("Enter your name: ")
-        ; _vm_input_str(name)
+        _vm_input_str(name)
         _vm_write_char($8d)
         _vm_write_char($8d)
         _vm_write_str("Hello, ")
@@ -17,8 +18,16 @@
         _vm_write_char($2e)
         _vm_write_char($8d)
 
+        secretnumber = make_number()
         return
 
+
+    sub make_number() -> (X) {
+        byte number
+        number = rnd()
+        return rnd()
+        return number
+    }
 ;        ; create a secret random number from 1-100
 ;        c64.RNDA(0)             ; fac = rnd(0)
 ;        c64.MUL10()             ; fac *= 10

@@ -5,19 +5,86 @@ import prog8.compiler.HeapValues
 import kotlin.math.log2
 
 
-val BuiltinFunctionNames = setOf(
-        "set_carry", "clear_carry", "set_irqd", "clear_irqd", "rol", "ror", "rol2", "ror2", "lsl", "lsr",
-        "sin", "cos", "abs", "acos", "asin", "tan", "atan", "rnd", "rndw", "rndf",
-        "ln", "log2", "log10", "sqrt", "rad", "deg", "round", "floor", "ceil",
-        "max", "min", "avg", "sum", "len", "any", "all", "lsb", "msb", "flt",
-        "_vm_write_memchr", "_vm_write_memstr", "_vm_write_num", "_vm_write_char",
-        "_vm_write_str", "_vm_input_str", "_vm_gfx_clearscr", "_vm_gfx_pixel", "_vm_gfx_text"
-        )
+class FunctionSignature(val pure: Boolean,      // does it have side effects?
+                        val parameters: List<SubroutineParameter>,
+                        val returnvalues: List<SubroutineReturnvalue>,
+                        val type: DataType?,
+                        val expressionFunc: ((args: List<IExpression>, position: Position, namespace: INameScope, heap: HeapValues) -> LiteralValue)?) {
+    companion object {
+        private val dummyPos = Position("dummy", 0, 0, 0)
 
-val BuiltinFunctionsWithoutSideEffects = BuiltinFunctionNames - setOf(
-        "set_carry", "clear_carry", "set_irqd", "clear_irqd", "lsl", "lsr", "rol", "ror", "rol2", "ror2",
-        "_vm_write_memchr", "_vm_write_memstr", "_vm_write_num", "_vm_write_char",
-        "_vm_write_str", "_vm_gfx_clearscr", "_vm_gfx_pixel", "_vm_gfx_text")
+        fun sig(pure: Boolean,
+                args: List<String>,
+                hasReturnValue: Boolean,
+                type: DataType?,
+                expressionFunc: ((args: List<IExpression>, position: Position, namespace: INameScope, heap: HeapValues) -> LiteralValue)? = null
+        ) : FunctionSignature {
+            if(!hasReturnValue && expressionFunc!=null)
+                throw IllegalArgumentException("can't have expression func when hasReturnValue is false")
+            return FunctionSignature(pure,
+                    args.map { SubroutineParameter(it, null, null, dummyPos) },
+                    if(hasReturnValue)
+                        listOf(SubroutineReturnvalue(null, null, false, dummyPos))
+                    else
+                        emptyList(),
+                    type,
+                    expressionFunc
+                    )
+        }
+    }
+}
+
+
+val BuiltinFunctions = mapOf(
+    "set_carry"     to FunctionSignature.sig(false, emptyList(), false, null),
+    "clear_carry"   to FunctionSignature.sig(false, emptyList(), false, null),
+    "set_irqd"      to FunctionSignature.sig(false, emptyList(), false, null),
+    "clear_irqd"    to FunctionSignature.sig(false, emptyList(), false, null),
+    "rol"           to FunctionSignature.sig(false, listOf("item"), false, null),
+    "ror"           to FunctionSignature.sig(false, listOf("item"), false, null),
+    "rol2"          to FunctionSignature.sig(false, listOf("item"), false, null),
+    "ror2"          to FunctionSignature.sig(false, listOf("item"), false, null),
+    "lsl"           to FunctionSignature.sig(false, listOf("item"), false, null),
+    "lsr"           to FunctionSignature.sig(false, listOf("item"), false, null),
+    "sin"           to FunctionSignature.sig(true, listOf("rads"), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::sin) },
+    "cos"           to FunctionSignature.sig(true, listOf("rads"), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::cos) },
+    "acos"          to FunctionSignature.sig(true, listOf("rads"), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::acos) },
+    "asin"          to FunctionSignature.sig(true, listOf("rads"), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::asin) },
+    "tan"           to FunctionSignature.sig(true, listOf("rads"), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::tan) },
+    "atan"          to FunctionSignature.sig(true, listOf("rads"), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::atan) },
+    "rnd"           to FunctionSignature.sig(true, emptyList(), true, DataType.BYTE),
+    "rndw"          to FunctionSignature.sig(true, emptyList(), true, DataType.WORD),
+    "rndf"          to FunctionSignature.sig(true, emptyList(), true, DataType.FLOAT),
+    "ln"            to FunctionSignature.sig(true, listOf("value"), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::log) },
+    "log2"          to FunctionSignature.sig(true, listOf("value"), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, ::log2) },
+    "log10"         to FunctionSignature.sig(true, listOf("value"), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::log10) },
+    "sqrt"          to FunctionSignature.sig(true, listOf("value"), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::sqrt) },
+    "rad"           to FunctionSignature.sig(true, listOf("value"), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::toRadians) },
+    "deg"           to FunctionSignature.sig(true, listOf("value"), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::toDegrees) },
+    "avg"           to FunctionSignature.sig(true, listOf("values"), true, DataType.FLOAT, ::builtinAvg),
+    "abs"           to FunctionSignature.sig(true, listOf("value"), true, null, ::builtinAbs),        // type depends on arg
+    "round"         to FunctionSignature.sig(true, listOf("value"), true, null) { a, p, n, h -> oneDoubleArgOutputInt(a, p, n, h, Math::round) },   // type depends on arg
+    "floor"         to FunctionSignature.sig(true, listOf("value"), true, null) { a, p, n, h -> oneDoubleArgOutputInt(a, p, n, h, Math::floor) },   // type depends on arg
+    "ceil"          to FunctionSignature.sig(true, listOf("value"), true, null) { a, p, n, h -> oneDoubleArgOutputInt(a, p, n, h, Math::ceil) },    // type depends on arg
+    "max"           to FunctionSignature.sig(true, listOf("values"), true, null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.max()!! }},        // type depends on args
+    "min"           to FunctionSignature.sig(true, listOf("values"), true, null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.min()!! }},        // type depends on args
+    "sum"           to FunctionSignature.sig(true, listOf("values"), true, null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.sum() }},        // type depends on args
+    "len"           to FunctionSignature.sig(true, listOf("values"), true,  null, ::builtinLen),        // type depends on args
+    "any"           to FunctionSignature.sig(true, listOf("values"), true, DataType.BYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.any { v -> v != 0.0} }},
+    "all"           to FunctionSignature.sig(true, listOf("values"), true, DataType.BYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.all { v -> v != 0.0} }},
+    "lsb"           to FunctionSignature.sig(true, listOf("value"), true, DataType.BYTE) { a, p, n, h -> oneIntArgOutputInt(a, p, n, h) { x: Int -> x and 255 }},
+    "msb"           to FunctionSignature.sig(true, listOf("value"), true, DataType.BYTE) { a, p, n, h -> oneIntArgOutputInt(a, p, n, h) { x: Int -> x ushr 8 and 255}},
+    "flt"           to FunctionSignature.sig(true, listOf("value"), true, DataType.FLOAT, ::builtinFlt),
+    "_vm_write_memchr"  to FunctionSignature.sig(false, emptyList(), false, null),
+    "_vm_write_memstr"  to FunctionSignature.sig(false, emptyList(), false, null),
+    "_vm_write_num"     to FunctionSignature.sig(false, emptyList(), false, null),
+    "_vm_write_char"    to FunctionSignature.sig(false, emptyList(), false, null),
+    "_vm_write_str"     to FunctionSignature.sig(false, emptyList(), false, null),
+    "_vm_input_str"     to FunctionSignature.sig(false, emptyList(), false, null),
+    "_vm_gfx_clearscr"  to FunctionSignature.sig(false, emptyList(), false, null),
+    "_vm_gfx_pixel"     to FunctionSignature.sig(false, emptyList(), false, null),
+    "_vm_gfx_text"      to FunctionSignature.sig(false, emptyList(), false, null)
+)
 
 
 fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespace: INameScope, heap: HeapValues): DataType? {
@@ -57,12 +124,14 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
         throw FatalAstException("function requires one argument which is an array $function")
     }
 
+    val func = BuiltinFunctions[function]!!
+    if(func.returnvalues.isEmpty())
+        return null
+    if(func.type!=null)
+        return func.type
+    // function has return values, but the return type depends on the arguments
+
     return when (function) {
-        "sin", "cos", "tan", "asin", "acos", "atan", "ln", "log2", "log10",
-            "sqrt", "rad", "deg", "avg", "rndf", "flt" -> DataType.FLOAT
-        "lsb", "msb", "any", "all", "rnd" -> DataType.BYTE
-        "rndw" -> DataType.WORD
-        "rol", "rol2", "ror", "ror2", "lsl", "lsr", "set_carry", "clear_carry", "set_irqd", "clear_irqd" -> null // no return value so no datatype
         "abs" -> args.single().resultingDatatype(namespace, heap)
         "max", "min" -> {
             val dt = datatypeFromListArg(args.single())
@@ -106,10 +175,7 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
                 else -> DataType.WORD
             }
         }
-        "_vm_write_memchr", "_vm_write_memstr", "_vm_write_num", "_vm_write_char",
-        "_vm_write_str", "_vm_gfx_clearscr", "_vm_gfx_pixel", "_vm_gfx_text" -> null  // no return value for these
-        "_vm_input_str" -> DataType.STR
-        else -> throw FatalAstException("invalid builtin function $function")
+        else -> throw FatalAstException("unknown result type for builtin function $function")
     }
 }
 
@@ -155,11 +221,11 @@ private fun collectionArgOutputNumber(args: List<IExpression>, position: Positio
                                       function: (arg: Collection<Double>)->Number): LiteralValue {
     if(args.size!=1)
         throw SyntaxError("builtin function requires one non-scalar argument", position)
-    var iterable = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
+    val iterable = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
 
     val result = if(iterable.arrayvalue != null) {
-        val constants = iterable.arrayvalue!!.map { it.constValue(namespace, heap)?.asNumericValue }
-        if(constants.contains(null))
+        val constants = iterable.arrayvalue.map { it.constValue(namespace, heap)?.asNumericValue }
+        if(null in constants)
             throw NotConstArgumentException()
         function(constants.map { it!!.toDouble() }).toDouble()
     } else {
@@ -174,11 +240,11 @@ private fun collectionArgOutputBoolean(args: List<IExpression>, position: Positi
                                        function: (arg: Collection<Double>)->Boolean): LiteralValue {
     if(args.size!=1)
         throw SyntaxError("builtin function requires one non-scalar argument", position)
-    var iterable = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
+    val iterable = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
 
     val result = if(iterable.arrayvalue != null) {
-        val constants = iterable.arrayvalue!!.map { it.constValue(namespace, heap)?.asNumericValue }
-        if(constants.contains(null))
+        val constants = iterable.arrayvalue.map { it.constValue(namespace, heap)?.asNumericValue }
+        if(null in constants)
             throw NotConstArgumentException()
         function(constants.map { it!!.toDouble() })
     } else {
@@ -188,52 +254,7 @@ private fun collectionArgOutputBoolean(args: List<IExpression>, position: Positi
     return LiteralValue.fromBoolean(result, position)
 }
 
-fun builtinRound(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
-        = oneDoubleArgOutputInt(args, position, namespace, heap, Math::round)
-
-fun builtinFloor(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
-        = oneDoubleArgOutputInt(args, position, namespace, heap, Math::floor)
-
-fun builtinCeil(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
-        = oneDoubleArgOutputInt(args, position, namespace, heap, Math::ceil)
-
-fun builtinSin(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
-        = oneDoubleArg(args, position, namespace, heap, Math::sin)
-
-fun builtinCos(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
-        = oneDoubleArg(args, position, namespace, heap, Math::cos)
-
-fun builtinAcos(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
-        = oneDoubleArg(args, position, namespace, heap, Math::acos)
-
-fun builtinAsin(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
-        = oneDoubleArg(args, position, namespace, heap, Math::asin)
-
-fun builtinTan(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
-        = oneDoubleArg(args, position, namespace, heap, Math::tan)
-
-fun builtinAtan(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
-        = oneDoubleArg(args, position, namespace, heap, Math::atan)
-
-fun builtinLn(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
-        = oneDoubleArg(args, position, namespace, heap, Math::log)
-
-fun builtinLog2(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
-        = oneDoubleArg(args, position, namespace, heap, ::log2)
-
-fun builtinLog10(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
-        = oneDoubleArg(args, position, namespace, heap, Math::log10)
-
-fun builtinSqrt(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
-        = oneDoubleArg(args, position, namespace, heap, Math::sqrt)
-
-fun builtinRad(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
-        = oneDoubleArg(args, position, namespace, heap, Math::toRadians)
-
-fun builtinDeg(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
-        = oneDoubleArg(args, position, namespace, heap, Math::toDegrees)
-
-fun builtinFlt(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
+private fun builtinFlt(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
     // 1 numeric arg, convert to float
     if(args.size!=1)
         throw SyntaxError("flt requires one numeric argument", position)
@@ -243,7 +264,7 @@ fun builtinFlt(args: List<IExpression>, position: Position, namespace:INameScope
     return LiteralValue(DataType.FLOAT, floatvalue = number.toDouble(), position = position)
 }
 
-fun builtinAbs(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
+private fun builtinAbs(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
     // 1 arg, type = float or int, result type= same as argument type
     if(args.size!=1)
         throw SyntaxError("abs requires one numeric argument", position)
@@ -257,30 +278,14 @@ fun builtinAbs(args: List<IExpression>, position: Position, namespace:INameScope
     }
 }
 
-
-fun builtinLsb(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
-        = oneIntArgOutputInt(args, position, namespace, heap) { x: Int -> x and 255 }
-
-fun builtinMsb(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
-        = oneIntArgOutputInt(args, position, namespace, heap) { x: Int -> x ushr 8 and 255}
-
-fun builtinMin(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
-        = collectionArgOutputNumber(args, position, namespace, heap) { it.min()!! }
-
-fun builtinMax(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
-        = collectionArgOutputNumber(args, position, namespace, heap) { it.max()!! }
-
-fun builtinSum(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
-        = collectionArgOutputNumber(args, position, namespace, heap) { it.sum() }
-
-fun builtinAvg(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
+private fun builtinAvg(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
     if(args.size!=1)
         throw SyntaxError("avg requires array/matrix argument", position)
-    var iterable = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
+    val iterable = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
 
     val result = if(iterable.arrayvalue!=null) {
-        val constants = iterable.arrayvalue!!.map { it.constValue(namespace, heap)?.asNumericValue }
-        if (constants.contains(null))
+        val constants = iterable.arrayvalue.map { it.constValue(namespace, heap)?.asNumericValue }
+        if (null in constants)
             throw NotConstArgumentException()
         (constants.map { it!!.toDouble() }).average()
     }
@@ -291,7 +296,7 @@ fun builtinAvg(args: List<IExpression>, position: Position, namespace:INameScope
     return numericLiteral(result, args[0].position)
 }
 
-fun builtinLen(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
+private fun builtinLen(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
     if(args.size!=1)
         throw SyntaxError("len requires one argument", position)
     var argument = args[0].constValue(namespace, heap)
@@ -313,13 +318,6 @@ fun builtinLen(args: List<IExpression>, position: Position, namespace:INameScope
         else -> throw SyntaxError("len of weird argument ${args[0]}", position)
     }
 }
-
-fun builtinAny(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
-        = collectionArgOutputBoolean(args, position, namespace, heap) { it.any { v -> v != 0.0} }
-
-fun builtinAll(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue
-        = collectionArgOutputBoolean(args, position, namespace, heap) { it.all { v -> v != 0.0} }
-
 
 private fun numericLiteral(value: Number, position: Position): LiteralValue {
     val floatNum=value.toDouble()

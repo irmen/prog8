@@ -18,7 +18,7 @@ class StatementReorderer: IAstProcessor {
         val varDecls = module.statements.filter { it is VarDecl }
         module.statements.removeAll(varDecls)
         module.statements.addAll(0, varDecls)
-        val directives = module.statements.filter {it is Directive && directivesToMove.contains(it.directive)}
+        val directives = module.statements.filter {it is Directive && it.directive in directivesToMove}
         module.statements.removeAll(directives)
         module.statements.addAll(0, directives)
         super.process(module)
@@ -33,7 +33,7 @@ class StatementReorderer: IAstProcessor {
         val varDecls = block.statements.filter { it is VarDecl }
         block.statements.removeAll(varDecls)
         block.statements.addAll(0, varDecls)
-        val directives = block.statements.filter {it is Directive && directivesToMove.contains(it.directive)}
+        val directives = block.statements.filter {it is Directive && it.directive in directivesToMove}
         block.statements.removeAll(directives)
         block.statements.addAll(0, directives)
         return super.process(block)
@@ -43,7 +43,7 @@ class StatementReorderer: IAstProcessor {
         val varDecls = subroutine.statements.filter { it is VarDecl }
         subroutine.statements.removeAll(varDecls)
         subroutine.statements.addAll(0, varDecls)
-        val directives = subroutine.statements.filter {it is Directive && directivesToMove.contains(it.directive)}
+        val directives = subroutine.statements.filter {it is Directive && it.directive in directivesToMove}
         subroutine.statements.removeAll(directives)
         subroutine.statements.addAll(0, directives)
         return super.process(subroutine)

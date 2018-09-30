@@ -4,7 +4,9 @@ import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
 import prog8.compiler.HeapValues
 import prog8.compiler.target.c64.Petscii
-import prog8.functions.*
+import prog8.functions.BuiltinFunctions
+import prog8.functions.NotConstArgumentException
+import prog8.functions.builtinFunctionReturnType
 import prog8.parser.prog8Parser
 import java.nio.file.Paths
 import kotlin.math.abs
@@ -367,8 +369,7 @@ object BuiltinFunctionScopePlaceholder : INameScope {
     override fun registerUsedName(name: String) = throw NotImplementedError("not implemented on sub-scopes")
 }
 
-object BuiltinFunctionStatementPlaceholder : IStatement {
-    override val position = Position("<<placeholder>>", 0, 0, 0)
+class BuiltinFunctionStatementPlaceholder(val name: String, override val position: Position) : IStatement {
     override var parent: Node = ParentSentinel
     override fun linkParents(parent: Node) {}
     override fun process(processor: IAstProcessor): IStatement = this
@@ -405,7 +406,7 @@ private class GlobalNamespace(override val name: String,
     private val scopedNamesUsed: MutableSet<String> = mutableSetOf("main", "main.start")      // main and main.start are always used
 
     override fun lookup(scopedName: List<String>, statement: Node): IStatement? {
-        if(BuiltinFunctionNames.contains(scopedName.last())) {
+        if(scopedName.last() in BuiltinFunctions) {
             // builtin functions always exist, return a dummy statement for them
             val builtinPlaceholder = Label("builtin::${scopedName.last()}", statement.position)
             builtinPlaceholder.parent = ParentSentinel
@@ -428,7 +429,7 @@ private class GlobalNamespace(override val name: String,
     override fun registerUsedName(name: String) {
         // make sure to also register each scope separately
         scopedNamesUsed.add(name)
-        if(name.contains('.'))
+        if('.' in name)
             registerUsedName(name.substringBeforeLast('.'))
     }
 }
@@ -922,7 +923,7 @@ class LiteralValue(val type: DataType,
 
     override fun resultingDatatype(namespace: INameScope, heap: HeapValues) = type
 
-    override fun isIterable(namespace: INameScope, heap: HeapValues): Boolean = IterableDatatypes.contains(type)
+    override fun isIterable(namespace: INameScope, heap: HeapValues): Boolean = type in IterableDatatypes
 
     override fun hashCode(): Int {
         val bh = bytevalue?.hashCode() ?: 0x10001234
@@ -1056,8 +1057,8 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     override lateinit var parent: Node
 
     fun targetStatement(namespace: INameScope) =
-        if(nameInSource.size==1 && BuiltinFunctionNames.contains(nameInSource[0]))
-            BuiltinFunctionStatementPlaceholder
+        if(nameInSource.size==1 && nameInSource[0] in BuiltinFunctions)
+            BuiltinFunctionStatementPlaceholder(nameInSource[0], position)
         else
             namespace.lookup(nameInSource, this)
 
@@ -1093,7 +1094,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         }
     }
 
-    override fun isIterable(namespace: INameScope, heap: HeapValues): Boolean  = IterableDatatypes.contains(resultingDatatype(namespace, heap))
+    override fun isIterable(namespace: INameScope, heap: HeapValues): Boolean  = resultingDatatype(namespace, heap) in IterableDatatypes
 }
 
 
@@ -1149,37 +1150,16 @@ class FunctionCall(override var target: IdentifierReference,
         // if the function is a built-in function and the args are consts, should try to const-evaluate!
         if(target.nameInSource.size>1) return null
         try {
-            val resultValue = when (target.nameInSource[0]) {
-                "sin" -> builtinSin(arglist, position, namespace, heap)
-                "cos" -> builtinCos(arglist, position, namespace, heap)
-                "abs" -> builtinAbs(arglist, position, namespace, heap)
-                "acos" -> builtinAcos(arglist, position, namespace, heap)
-                "asin" -> builtinAsin(arglist, position, namespace, heap)
-                "tan" -> builtinTan(arglist, position, namespace, heap)
-                "atan" -> builtinAtan(arglist, position, namespace, heap)
-                "ln" -> builtinLn(arglist, position, namespace, heap)
-                "log2" -> builtinLog2(arglist, position, namespace, heap)
-                "log10" -> builtinLog10(arglist, position, namespace, heap)
-                "sqrt" -> builtinSqrt(arglist, position, namespace, heap)
-                "max" -> builtinMax(arglist, position, namespace, heap)
-                "min" -> builtinMin(arglist, position, namespace, heap)
-                "round" -> builtinRound(arglist, position, namespace, heap)
-                "rad" -> builtinRad(arglist, position, namespace, heap)
-                "deg" -> builtinDeg(arglist, position, namespace, heap)
-                "sum" -> builtinSum(arglist, position, namespace, heap)
-                "avg" -> builtinAvg(arglist, position, namespace, heap)
-                "len" -> builtinLen(arglist, position, namespace, heap)
-                "lsb" -> builtinLsb(arglist, position, namespace, heap)
-                "msb" -> builtinMsb(arglist, position, namespace, heap)
-                "flt" -> builtinFlt(arglist, position, namespace, heap)
-                "any" -> builtinAny(arglist, position, namespace, heap)
-                "all" -> builtinAll(arglist, position, namespace, heap)
-                "floor" -> builtinFloor(arglist, position, namespace, heap)
-                "ceil" -> builtinCeil(arglist, position, namespace, heap)
-                "lsl", "lsr", "rol", "rol2", "ror", "ror2", "set_carry", "clear_carry", "set_irqd", "clear_irqd" ->
+            var resultValue: LiteralValue? = null
+            val func = BuiltinFunctions[target.nameInSource[0]]
+            if(func!=null) {
+                val exprfunc = func.expressionFunc
+                if(exprfunc!=null)
+                    resultValue = exprfunc(arglist, position, namespace, heap)
+                else if(func.returnvalues.isEmpty())
                     throw ExpressionError("builtin function ${target.nameInSource[0]} can't be used in expressions because it doesn't return a value", position)
-                else -> null
             }
+
             if(withDatatypeCheck) {
                 val resultDt = this.resultingDatatype(namespace, heap)
                 if(resultValue==null || resultDt == resultValue.type)
@@ -1234,12 +1214,10 @@ class FunctionCall(override var target: IdentifierReference,
             }
             is Label -> return null
         }
-        TODO("datatype of functioncall to $stmt")
+        return null     // calling something we don't recognise...
     }
 
-    override fun isIterable(namespace: INameScope, heap: HeapValues) : Boolean {
-        TODO("isIterable of function call result")
-    }
+    override fun isIterable(namespace: INameScope, heap: HeapValues) = resultingDatatype(namespace, heap) in IterableDatatypes
 }
 
 

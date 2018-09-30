@@ -178,7 +178,7 @@ class TestZeropage {
         assertEquals(239, zp.available())
         val loc = zp.allocate(VarDecl(VarDeclType.VAR, DataType.FLOAT, null, "", null, dummypos))
         assertTrue(loc > 3)
-        assertFalse(zp.free.contains(loc))
+        assertFalse(loc in zp.free)
         val num = zp.available() / 5
         val rest = zp.available() % 5
 

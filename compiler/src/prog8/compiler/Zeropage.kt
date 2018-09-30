@@ -70,12 +70,6 @@ abstract class Zeropage(private val options: CompilationOptions) {
         return location
     }
 
-    private fun loneByte(location: Int): Boolean {
-        return free.contains(location) && !free.contains(location-1) && !free.contains(location+1)
-    }
-
-    private fun sequentialFree(location: Int, size: Int): Boolean {
-        return free.containsAll((location until location+size).toList())
-    }
-
+    private fun loneByte(location: Int) = location in free && location-1 !in free && location+1 !in free
+    private fun sequentialFree(location: Int, size: Int) = free.containsAll((location until location+size).toList())
 }

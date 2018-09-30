@@ -43,10 +43,10 @@ class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
                     0x12, 0x2a, 0x52, 0x94, 0x95, 0xa7, 0xa8, 0xa9, 0xaa,
                     0xb5, 0xb6, 0xf7, 0xf8, 0xf9, 0xfa))
         }
-        assert(!free.contains(SCRATCH_B1))
-        assert(!free.contains(SCRATCH_B2))
-        assert(!free.contains(SCRATCH_W1))
-        assert(!free.contains(SCRATCH_W2))
+        assert(SCRATCH_B1 !in free)
+        assert(SCRATCH_B2 !in free)
+        assert(SCRATCH_W1 !in free)
+        assert(SCRATCH_W2 !in free)
     }
 }
 

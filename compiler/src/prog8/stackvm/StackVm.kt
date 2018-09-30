@@ -184,7 +184,7 @@ open class Instruction(val opcode: Opcode,
                         val syscall = Syscall.values().find { it.callNr==arg!!.numericValue() }
                         "syscall  $syscall"
                     }
-                    opcodesWithVarArgument.contains(opcode) -> {
+                    opcode in opcodesWithVarArgument -> {
                         // opcodes that manipulate a variable
                         "${opcode.toString().toLowerCase()}  $callLabel"
                     }
@@ -253,12 +253,8 @@ class StackVm(private var traceOutputFile: String?) {
         for(variable in program.variables.flatMap { e->e.value.entries })
             variables[variable.key] = variable.value
 
-        if(variables.contains("A") ||
-                variables.contains("X") ||
-                variables.contains("Y") ||
-                variables.contains("XY") ||
-                variables.contains("AX") ||
-                variables.contains("AY"))
+        if("A" in variables || "X" in variables || "Y" in variables ||
+                "XY" in variables || "AX" in variables ||"AY" in variables)
             throw VmExecutionException("program contains variable(s) for the reserved registers A,X,...")
         // define the 'registers'
         variables["A"] = Value(DataType.BYTE, 0)

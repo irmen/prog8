@@ -63,7 +63,7 @@ class Program (val name: String,
                     DataType.ARRAY_W,
                     DataType.MATRIX -> {
                         val numbers = it.third.substring(1, it.third.length-1).split(',')
-                        val intarray = numbers.map{it.trim().toInt()}.toIntArray()
+                        val intarray = numbers.map{number->number.trim().toInt()}.toIntArray()
                         heap.add(it.second, intarray)
                     }
                     else -> throw VmExecutionException("invalid heap value type $it.second")
@@ -151,7 +151,7 @@ class Program (val name: String,
                 if(line=="%end_variables")
                     return vars
                 val (name, typeStr, valueStr) = line.split(splitpattern, limit = 3)
-                if(valueStr[0] !='"' && !valueStr.contains(':'))
+                if(valueStr[0] !='"' && ':' !in valueStr)
                     throw VmExecutionException("missing value type character")
                 val type = DataType.valueOf(typeStr.toUpperCase())
                 val value = when(type) {

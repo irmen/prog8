@@ -51,13 +51,14 @@ fun main(args: Array<String>) {
                 options.any{ it.name=="enable_floats"})
 
 
-        // perform syntax checks and optimizations
-        moduleAst.checkIdentifiers()
-
-        println("Optimizing...")
+        // perform initial syntax checks and constant folding
         val heap = HeapValues()
+        moduleAst.checkIdentifiers()
         moduleAst.constantFold(namespace, heap)
         moduleAst.checkValid(namespace, compilerOptions, heap)          // check if tree is valid
+
+        // optimize the parse tree
+        println("Optimizing...")
         val allScopedSymbolDefinitions = moduleAst.checkIdentifiers()
         while(true) {
             // keep optimizing expressions and statements until no more steps remain

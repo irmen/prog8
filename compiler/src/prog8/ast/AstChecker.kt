@@ -2,7 +2,7 @@ package prog8.ast
 
 import prog8.compiler.CompilationOptions
 import prog8.compiler.HeapValues
-import prog8.functions.BuiltinFunctionNames
+import prog8.functions.BuiltinFunctions
 import prog8.parser.ParsingFailedError
 
 /**
@@ -20,7 +20,7 @@ fun printErrors(errors: List<Any>, moduleName: String) {
     val reportedMessages = mutableSetOf<String>()
     errors.forEach {
         val msg = it.toString()
-        if(!reportedMessages.contains(msg)) {
+        if(msg !in reportedMessages) {
             System.err.println(msg)
             reportedMessages.add(msg)
         }
@@ -179,7 +179,7 @@ class AstChecker(private val namespace: INameScope,
             checkResult.add(SyntaxError(msg, subroutine.position))
         }
 
-        if(BuiltinFunctionNames.contains(subroutine.name))
+        if(subroutine.name in BuiltinFunctions)
             err("cannot redefine a built-in function")
 
         val uniqueNames = subroutine.parameters.asSequence().map { it.name }.toSet()
@@ -204,8 +204,7 @@ class AstChecker(private val namespace: INameScope,
                     .asSequence()
                     .filter { it is InlineAssembly }
                     .map {(it as InlineAssembly).assembly}
-                    .count { it.contains(" rts") || it.contains("\trts") ||
-                             it.contains(" jmp") || it.contains("\tjmp")}
+                    .count { "rts" in it || "\trts" in it || "jmp" in it || "\tjmp" in it }
             if(amount==0 && subroutine.returnvalues.isNotEmpty())
                 err("subroutine has result value(s) and thus must have at least one 'return' or 'goto' in it (or 'rts' / 'jmp' in case of %asm)")
                 // @todo validate return values versus subroutine signature
@@ -222,7 +221,7 @@ class AstChecker(private val namespace: INameScope,
 
     private fun checkSubroutinesPrecededByReturnOrJumpAndFollowedByLabelOrSub(statements: MutableList<IStatement>) {
         // @todo hmm, or move all the subroutines at the end of the block? (no fall-through execution)
-        var preceding: IStatement = BuiltinFunctionStatementPlaceholder
+        var preceding: IStatement = BuiltinFunctionStatementPlaceholder("dummy", Position("<<dummy>>", 0, 0,0 ))
         var checkNext = false
         for (stmt in statements) {
             if(checkNext) {
@@ -510,27 +509,32 @@ class AstChecker(private val namespace: INameScope,
 
         val targetStatement = checkFunctionOrLabelExists(functionCall.target, stmtOfExpression)
         if(targetStatement!=null)
-            checkBuiltinFunctionCall(functionCall, functionCall.position)
-
-        if(targetStatement is Label && functionCall.arglist.isNotEmpty())
-            checkResult.add(SyntaxError("cannot use arguments when calling a label", functionCall.position))
-
-        // todo check subroutine call parameters against signature
-
+            checkFunctionCall(targetStatement, functionCall.arglist, functionCall.position)
         return super.process(functionCall)
     }
 
     override fun process(functionCall: FunctionCallStatement): IStatement {
         val targetStatement = checkFunctionOrLabelExists(functionCall.target, functionCall)
         if(targetStatement!=null)
-            checkBuiltinFunctionCall(functionCall, functionCall.position)
-
-        if(targetStatement is Label && functionCall.arglist.isNotEmpty())
-            checkResult.add(SyntaxError("cannot use arguments when calling a label", functionCall.position))
-
-        // todo check subroutine call parameters against signature
-
+            checkFunctionCall(targetStatement, functionCall.arglist, functionCall.position)
         return super.process(functionCall)
+    }
+
+    private fun checkFunctionCall(target: IStatement, args: List<IExpression>, position: Position) {
+        if(target is Label && args.isNotEmpty())
+            checkResult.add(SyntaxError("cannot use arguments when calling a label", position))
+
+        if(target is BuiltinFunctionStatementPlaceholder) {
+            // it's a cal to a builtin function.
+            // todo make the signature checking similar to when calling a user-defined function
+            if(target.name=="set_carry" || target.name=="set_irqd" || target.name=="clear_carry" || target.name=="clear_irqd") {
+                // these functions have zero arguments
+                if(args.isNotEmpty())
+                    checkResult.add(SyntaxError("${target.name} has zero arguments", position))
+            }
+        } else {
+            // @todo check call (params against signature) to user function
+        }
     }
 
     override fun process(postIncrDecr: PostIncrDecr): IStatement {
@@ -557,18 +561,6 @@ class AstChecker(private val namespace: INameScope,
         checkResult.add(SyntaxError("undefined function or subroutine: ${target.nameInSource.joinToString(".")}", statement.position))
         return null
     }
-
-    private fun checkBuiltinFunctionCall(call: IFunctionCall, position: Position) {
-        if(call.target.nameInSource.size==1 && BuiltinFunctionNames.contains(call.target.nameInSource[0])) {
-            val functionName = call.target.nameInSource[0]
-            if(functionName=="set_carry" || functionName=="set_irqd" || functionName=="clear_carry" || functionName=="clear_irqd") {
-                // these functions have zero arguments
-                if(call.arglist.isNotEmpty())
-                    checkResult.add(SyntaxError("$functionName has zero arguments", position))
-            }
-        }
-    }
-
 
     private fun checkValueTypeAndRange(targetDt: DataType, arrayspec: ArraySpec?, range: RangeExpr) : Boolean {
         val from = range.from.constValue(namespace, heap)

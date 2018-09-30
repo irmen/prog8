@@ -1,6 +1,6 @@
 package prog8.ast
 
-import prog8.functions.BuiltinFunctionNames
+import prog8.functions.BuiltinFunctions
 
 /**
  * Checks the validity of all identifiers (no conflicts)
@@ -47,7 +47,7 @@ class AstIdentifiersChecker : IAstProcessor {
         decl.datatypeErrors.forEach { checkResult.add(it) }
 
         // now check the identifier
-        if(BuiltinFunctionNames.contains(decl.name))
+        if(decl.name in BuiltinFunctions)
             // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", decl.position))
 
@@ -62,11 +62,11 @@ class AstIdentifiersChecker : IAstProcessor {
     }
 
     override fun process(subroutine: Subroutine): IStatement {
-        if(BuiltinFunctionNames.contains(subroutine.name)) {
+        if(subroutine.name in BuiltinFunctions) {
             // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", subroutine.position))
         } else {
-            if (subroutine.parameters.any { BuiltinFunctionNames.contains(it.name) })
+            if (subroutine.parameters.any { it.name in BuiltinFunctions })
                 checkResult.add(NameError("builtin function name cannot be used as parameter", subroutine.position))
 
             val scopedName = subroutine.scopedname
@@ -80,7 +80,7 @@ class AstIdentifiersChecker : IAstProcessor {
             // check that there are no local variables that redefine the subroutine's parameters
             val definedNames = subroutine.labelsAndVariables()
             val paramNames = subroutine.parameters.map { it.name }
-            val definedNamesCorrespondingToParameters = definedNames.filter { paramNames.contains(it.key) }
+            val definedNamesCorrespondingToParameters = definedNames.filter { it.key in paramNames }
             for(name in definedNamesCorrespondingToParameters) {
                 if(name.value.position != subroutine.position)
                     nameError(name.key, name.value.position, subroutine)
@@ -99,7 +99,7 @@ class AstIdentifiersChecker : IAstProcessor {
     }
 
     override fun process(label: Label): IStatement {
-        if(BuiltinFunctionNames.contains(label.name)) {
+        if(label.name in BuiltinFunctions) {
             // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", label.position))
         } else {

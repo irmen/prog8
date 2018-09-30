@@ -2,8 +2,7 @@ package prog8.optimizing
 
 import prog8.ast.*
 import prog8.compiler.HeapValues
-import prog8.functions.BuiltinFunctionNames
-import prog8.functions.BuiltinFunctionsWithoutSideEffects
+import prog8.functions.BuiltinFunctions
 
 
 /*
@@ -30,11 +29,12 @@ class StatementOptimizer(private val globalNamespace: INameScope, private val he
         private set
 
     private var statementsToRemove = mutableListOf<IStatement>()
+    private val pureBuiltinFunctions = BuiltinFunctions.filter { it.value.pure }
 
     override fun process(functionCall: FunctionCallStatement): IStatement {
-        if(functionCall.target.nameInSource.size==1 && BuiltinFunctionNames.contains(functionCall.target.nameInSource[0])) {
+        if(functionCall.target.nameInSource.size==1 && functionCall.target.nameInSource[0] in BuiltinFunctions) {
             val functionName = functionCall.target.nameInSource[0]
-            if (BuiltinFunctionsWithoutSideEffects.contains(functionName)) {
+            if (functionName in pureBuiltinFunctions) {
                 printWarning("statement has no effect (function return value is discarded)", functionCall.position)
                 statementsToRemove.add(functionCall)
             }
