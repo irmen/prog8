@@ -7,14 +7,15 @@ import kotlin.math.log2
 
 class FunctionSignature(val pure: Boolean,      // does it have side effects?
                         val parameters: List<SubroutineParameter>,
-                        val returnvalues: List<SubroutineReturnvalue>,
+                        val paramTypesVariable: Boolean,
+                        val returnvalues: List<DataType>,
                         val type: DataType?,
                         val expressionFunc: ((args: List<IExpression>, position: Position, namespace: INameScope, heap: HeapValues) -> LiteralValue)?) {
     companion object {
         private val dummyPos = Position("dummy", 0, 0, 0)
 
         fun sig(pure: Boolean,
-                args: List<String>,
+                args: List<Pair<String, DataType?>>,
                 hasReturnValue: Boolean,
                 type: DataType?,
                 expressionFunc: ((args: List<IExpression>, position: Position, namespace: INameScope, heap: HeapValues) -> LiteralValue)? = null
@@ -22,9 +23,10 @@ class FunctionSignature(val pure: Boolean,      // does it have side effects?
             if(!hasReturnValue && expressionFunc!=null)
                 throw IllegalArgumentException("can't have expression func when hasReturnValue is false")
             return FunctionSignature(pure,
-                    args.map { SubroutineParameter(it, null, null, dummyPos) },
-                    if(hasReturnValue)
-                        listOf(SubroutineReturnvalue(null, null, false, dummyPos))
+                    args.map { SubroutineParameter(it.first, it.second ?: DataType.BYTE, dummyPos) },
+                    args.any { it.second==null },
+                    if(hasReturnValue && type!=null)
+                        listOf(type)
                     else
                         emptyList(),
                     type,
@@ -40,41 +42,41 @@ val BuiltinFunctions = mapOf(
     "clear_carry"   to FunctionSignature.sig(false, emptyList(), false, null),
     "set_irqd"      to FunctionSignature.sig(false, emptyList(), false, null),
     "clear_irqd"    to FunctionSignature.sig(false, emptyList(), false, null),
-    "rol"           to FunctionSignature.sig(false, listOf("item"), false, null),
-    "ror"           to FunctionSignature.sig(false, listOf("item"), false, null),
-    "rol2"          to FunctionSignature.sig(false, listOf("item"), false, null),
-    "ror2"          to FunctionSignature.sig(false, listOf("item"), false, null),
-    "lsl"           to FunctionSignature.sig(false, listOf("item"), false, null),
-    "lsr"           to FunctionSignature.sig(false, listOf("item"), false, null),
-    "sin"           to FunctionSignature.sig(true, listOf("rads"), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::sin) },
-    "cos"           to FunctionSignature.sig(true, listOf("rads"), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::cos) },
-    "acos"          to FunctionSignature.sig(true, listOf("rads"), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::acos) },
-    "asin"          to FunctionSignature.sig(true, listOf("rads"), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::asin) },
-    "tan"           to FunctionSignature.sig(true, listOf("rads"), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::tan) },
-    "atan"          to FunctionSignature.sig(true, listOf("rads"), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::atan) },
+    "rol"           to FunctionSignature.sig(false, listOf(Pair("item", null)), false, null),
+    "ror"           to FunctionSignature.sig(false, listOf(Pair("item", null)), false, null),
+    "rol2"          to FunctionSignature.sig(false, listOf(Pair("item", null)), false, null),
+    "ror2"          to FunctionSignature.sig(false, listOf(Pair("item", null)), false, null),
+    "lsl"           to FunctionSignature.sig(false, listOf(Pair("item", null)), false, null),
+    "lsr"           to FunctionSignature.sig(false, listOf(Pair("item", null)), false, null),
+    "sin"           to FunctionSignature.sig(true, listOf(Pair("rads", DataType.FLOAT)), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::sin) },
+    "cos"           to FunctionSignature.sig(true, listOf(Pair("rads", DataType.FLOAT)), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::cos) },
+    "acos"          to FunctionSignature.sig(true, listOf(Pair("rads", DataType.FLOAT)), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::acos) },
+    "asin"          to FunctionSignature.sig(true, listOf(Pair("rads", DataType.FLOAT)), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::asin) },
+    "tan"           to FunctionSignature.sig(true, listOf(Pair("rads", DataType.FLOAT)), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::tan) },
+    "atan"          to FunctionSignature.sig(true, listOf(Pair("rads", DataType.FLOAT)), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::atan) },
     "rnd"           to FunctionSignature.sig(true, emptyList(), true, DataType.BYTE),
     "rndw"          to FunctionSignature.sig(true, emptyList(), true, DataType.WORD),
     "rndf"          to FunctionSignature.sig(true, emptyList(), true, DataType.FLOAT),
-    "ln"            to FunctionSignature.sig(true, listOf("value"), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::log) },
-    "log2"          to FunctionSignature.sig(true, listOf("value"), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, ::log2) },
-    "log10"         to FunctionSignature.sig(true, listOf("value"), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::log10) },
-    "sqrt"          to FunctionSignature.sig(true, listOf("value"), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::sqrt) },
-    "rad"           to FunctionSignature.sig(true, listOf("value"), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::toRadians) },
-    "deg"           to FunctionSignature.sig(true, listOf("value"), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::toDegrees) },
-    "avg"           to FunctionSignature.sig(true, listOf("values"), true, DataType.FLOAT, ::builtinAvg),
-    "abs"           to FunctionSignature.sig(true, listOf("value"), true, null, ::builtinAbs),        // type depends on arg
-    "round"         to FunctionSignature.sig(true, listOf("value"), true, null) { a, p, n, h -> oneDoubleArgOutputInt(a, p, n, h, Math::round) },   // type depends on arg
-    "floor"         to FunctionSignature.sig(true, listOf("value"), true, null) { a, p, n, h -> oneDoubleArgOutputInt(a, p, n, h, Math::floor) },   // type depends on arg
-    "ceil"          to FunctionSignature.sig(true, listOf("value"), true, null) { a, p, n, h -> oneDoubleArgOutputInt(a, p, n, h, Math::ceil) },    // type depends on arg
-    "max"           to FunctionSignature.sig(true, listOf("values"), true, null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.max()!! }},        // type depends on args
-    "min"           to FunctionSignature.sig(true, listOf("values"), true, null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.min()!! }},        // type depends on args
-    "sum"           to FunctionSignature.sig(true, listOf("values"), true, null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.sum() }},        // type depends on args
-    "len"           to FunctionSignature.sig(true, listOf("values"), true,  null, ::builtinLen),        // type depends on args
-    "any"           to FunctionSignature.sig(true, listOf("values"), true, DataType.BYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.any { v -> v != 0.0} }},
-    "all"           to FunctionSignature.sig(true, listOf("values"), true, DataType.BYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.all { v -> v != 0.0} }},
-    "lsb"           to FunctionSignature.sig(true, listOf("value"), true, DataType.BYTE) { a, p, n, h -> oneIntArgOutputInt(a, p, n, h) { x: Int -> x and 255 }},
-    "msb"           to FunctionSignature.sig(true, listOf("value"), true, DataType.BYTE) { a, p, n, h -> oneIntArgOutputInt(a, p, n, h) { x: Int -> x ushr 8 and 255}},
-    "flt"           to FunctionSignature.sig(true, listOf("value"), true, DataType.FLOAT, ::builtinFlt),
+    "ln"            to FunctionSignature.sig(true, listOf(Pair("value", DataType.FLOAT)), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::log) },
+    "log2"          to FunctionSignature.sig(true, listOf(Pair("value", DataType.FLOAT)), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, ::log2) },
+    "log10"         to FunctionSignature.sig(true, listOf(Pair("value", DataType.FLOAT)), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::log10) },
+    "sqrt"          to FunctionSignature.sig(true, listOf(Pair("value", DataType.FLOAT)), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::sqrt) },
+    "rad"           to FunctionSignature.sig(true, listOf(Pair("value", DataType.FLOAT)), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::toRadians) },
+    "deg"           to FunctionSignature.sig(true, listOf(Pair("value", DataType.FLOAT)), true, DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::toDegrees) },
+    "avg"           to FunctionSignature.sig(true, listOf(Pair("values", null)), true, DataType.FLOAT, ::builtinAvg),
+    "abs"           to FunctionSignature.sig(true, listOf(Pair("value", null)), true, null, ::builtinAbs),        // type depends on arg
+    "round"         to FunctionSignature.sig(true, listOf(Pair("value", DataType.FLOAT)), true, null) { a, p, n, h -> oneDoubleArgOutputInt(a, p, n, h, Math::round) },   // type depends on arg
+    "floor"         to FunctionSignature.sig(true, listOf(Pair("value", DataType.FLOAT)), true, null) { a, p, n, h -> oneDoubleArgOutputInt(a, p, n, h, Math::floor) },   // type depends on arg
+    "ceil"          to FunctionSignature.sig(true, listOf(Pair("value", DataType.FLOAT)), true, null) { a, p, n, h -> oneDoubleArgOutputInt(a, p, n, h, Math::ceil) },    // type depends on arg
+    "max"           to FunctionSignature.sig(true, listOf(Pair("values", null)), true, null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.max()!! }},        // type depends on args
+    "min"           to FunctionSignature.sig(true, listOf(Pair("values", null)), true, null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.min()!! }},        // type depends on args
+    "sum"           to FunctionSignature.sig(true, listOf(Pair("values", null)), true, null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.sum() }},        // type depends on args
+    "len"           to FunctionSignature.sig(true, listOf(Pair("values", null)), true,  null, ::builtinLen),        // type depends on args
+    "any"           to FunctionSignature.sig(true, listOf(Pair("values", null)), true, DataType.BYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.any { v -> v != 0.0} }},
+    "all"           to FunctionSignature.sig(true, listOf(Pair("values", null)), true, DataType.BYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.all { v -> v != 0.0} }},
+    "lsb"           to FunctionSignature.sig(true, listOf(Pair("value", DataType.WORD)), true, DataType.BYTE) { a, p, n, h -> oneIntArgOutputInt(a, p, n, h) { x: Int -> x and 255 }},
+    "msb"           to FunctionSignature.sig(true, listOf(Pair("value", DataType.WORD)), true, DataType.BYTE) { a, p, n, h -> oneIntArgOutputInt(a, p, n, h) { x: Int -> x ushr 8 and 255}},
+    "flt"           to FunctionSignature.sig(true, listOf(Pair("value", null)), true, DataType.FLOAT, ::builtinFlt),
     "_vm_write_memchr"  to FunctionSignature.sig(false, emptyList(), false, null),
     "_vm_write_memstr"  to FunctionSignature.sig(false, emptyList(), false, null),
     "_vm_write_num"     to FunctionSignature.sig(false, emptyList(), false, null),

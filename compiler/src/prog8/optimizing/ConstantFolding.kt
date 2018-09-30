@@ -49,45 +49,36 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                         decl.value = newValue
                     }
                 }
-                DataType.MATRIX -> {
-                    (decl.value as? LiteralValue)?.let {
-                        val intvalue = it.asIntegerValue
-                        if(intvalue!=null) {
-                            // replace the single int value by a properly sized array to fill the matrix.
-                            val size = decl.arrayspec!!.size()
-                            if(size!=null) {
-                                val newArray = Array<IExpression>(size) { _ -> LiteralValue(DataType.BYTE, bytevalue = intvalue.toShort(), position = it.position) }
-                                decl.value = LiteralValue(DataType.ARRAY, arrayvalue = newArray, position = it.position)
-                            } else {
-                                addError(SyntaxError("matrix size spec must be constant integer values", it.position))
-                            }
-                        }
-                    }
-                }
-                DataType.ARRAY, DataType.ARRAY_W -> {
-                    (decl.value as? LiteralValue)?.let {
-                        val intvalue = it.asIntegerValue
-                        if(intvalue!=null) {
-                            // replace the single int value by a properly sized array to fill the array with.
-                            val size = decl.arrayspec!!.size()
-                            if(size!=null) {
-                                val newArray = Array<IExpression>(size) { _ ->
-                                    if (decl.datatype == DataType.ARRAY)
-                                        LiteralValue(DataType.BYTE, bytevalue = intvalue.toShort(), position = it.position)
-                                    else
-                                        LiteralValue(DataType.WORD, wordvalue = intvalue, position = it.position)
-                                }
-                                decl.value = LiteralValue(decl.datatype, arrayvalue = newArray, position=it.position)
-                            } else {
-                                addError(SyntaxError("array size must be a constant integer value", it.position))
-                            }
-                        }
+                DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX -> {
+                    val litval = decl.value as? LiteralValue
+                    val size = decl.arrayspec!!.size()
+                    if (size != null) {
+                        val fillvalue = if (litval == null) 0 else litval.asIntegerValue ?: 0
+                        val fillArray = IntArray(size) { _ -> fillvalue }
+                        val heapId = heap.add(decl.datatype, fillArray)
+                        val valType = if(decl.datatype==DataType.MATRIX) DataType.ARRAY else decl.datatype
+                        decl.value = LiteralValue(valType, heapId = heapId, position = litval?.position ?: decl.position)
                     }
                 }
                 else -> return result
             }
         }
         return result
+    }
+
+    private fun createArrayInitValue(decl: VarDecl, intvalue: Int, position: Position) {
+        val size = decl.arrayspec!!.size()
+        if (size != null) {
+            val newArray = Array<IExpression>(size) { _ ->
+                if (decl.datatype == DataType.ARRAY)
+                    LiteralValue(DataType.BYTE, bytevalue = intvalue.toShort(), position = position)
+                else
+                    LiteralValue(DataType.WORD, wordvalue = intvalue, position = position)
+            }
+            decl.value = LiteralValue(decl.datatype, arrayvalue = newArray, position = position)
+        } else {
+            addError(SyntaxError("array size must be a constant integer value", position))
+        }
     }
 
     /**

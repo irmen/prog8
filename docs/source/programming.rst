@@ -146,7 +146,7 @@ taking no parameters and having no return value.
 As any subroutine, it has to end with a ``return`` statement (or a ``goto`` call)::
 
 	~ main {
-	    sub start () -> ()  {
+	    sub start ()  {
 	        ; program entrypoint code here
 	        return
 	    }
@@ -438,36 +438,23 @@ Defining a subroutine
 ^^^^^^^^^^^^^^^^^^^^^
 
 Subroutines are parts of the code that can be repeatedly invoked using a subroutine call from elsewhere.
-Their definition, using the sub statement, includes the specification of the required input- and output parameters.
-For now, only register based parameters are supported (A, X, Y and paired registers AX, AY and XY,
-and various flags of the status register P: Pc (carry), Pz (zero), Pn (negative), Pv (overflow).
-For subroutine return values, it is the same (registers, status flags).
-
+Their definition, using the ``sub`` statement, includes the specification of the required input- and output parameters.
 Subroutines can be defined in a Block, but also nested inside another subroutine. Everything is scoped accordingly.
+
+.. todo::
+    re-introduce register based params and return values.
+    For now, only register based parameters are supported (A, X, Y and paired registers AX, AY and XY,
+    and various flags of the status register P: Pc (carry), Pz (zero), Pn (negative), Pv (overflow).
+    For subroutine return values, it is the same (registers, status flags).
 
 
 Calling a subroutine
 ^^^^^^^^^^^^^^^^^^^^
 
-The output variables must occur in the correct sequence of return registers as specified
-in the subroutine's definiton. It is possible to not specify any of them but the compiler
-will issue a warning then if the result values of a subroutine call are discarded.
-If you don't have a variable to store the output register in, it's then required
-to list the register itself instead as output variable.
-
-Arguments should match the subroutine definition. You are allowed to omit the parameter names.
-If no definition is available (because you're directly calling memory or a label or something else),
-you can freely add arguments (but in this case they all have to be named).
-
-To jump to a subroutine (without returning), prefix the subroutine call with the word 'goto'.
-Unlike gotos in other languages, here it take arguments as well, because it
-essentially is the same as calling a subroutine and only doing something different when it's finished.
-
-**Register preserving calls:** use the ``!`` followed by a combination of A, X and Y (or followed
-by nothing, which is the same as AXY) to tell the compiler you want to preserve the origial
-value of the given registers after the subroutine call.  Otherwise, the subroutine may just
-as well clobber all three registers. Preserving the original values does result in some
-stack manipulation code to be inserted for every call like this, which can be quite slow.
+The arguments in parentheses after the function name, should match the parameters in the subroutine definition.
+The output variables must occur in the correct sequence of return values as specified
+in the subroutine's definiton. It is possible to not store the return values but the compiler
+will issue a warning then telling you the result values of a subroutine call are discarded.
 
 .. caution::
     Note that *recursive* subroutine calls are not supported at this time.

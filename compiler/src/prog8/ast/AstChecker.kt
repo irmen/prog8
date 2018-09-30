@@ -185,13 +185,6 @@ class AstChecker(private val namespace: INameScope,
         val uniqueNames = subroutine.parameters.asSequence().map { it.name }.toSet()
         if(uniqueNames.size!=subroutine.parameters.size)
             err("parameter names must be unique")
-        val uniqueParamRegs = subroutine.parameters.asSequence().map {it.register}.toSet()
-        if(uniqueParamRegs.size!=subroutine.parameters.size)
-            err("parameter registers must be unique")
-        val uniqueResultRegisters = subroutine.returnvalues.asSequence().filter{it.register!=null}.map {it.register.toString()}.toMutableSet()
-        uniqueResultRegisters.addAll(subroutine.returnvalues.asSequence().filter{it.statusflag!=null}.map{it.statusflag.toString()}.toList())
-        if(uniqueResultRegisters.size!=subroutine.returnvalues.size)
-            err("return registers must be unique")
 
         super.process(subroutine)
         checkSubroutinesPrecededByReturnOrJumpAndFollowedByLabelOrSub(subroutine.statements)
@@ -330,13 +323,14 @@ class AstChecker(private val namespace: INameScope,
         when(decl.type) {
             VarDeclType.VAR, VarDeclType.CONST -> {
                 if (decl.value == null) {
-                    if(decl.datatype == DataType.BYTE || decl.datatype==DataType.WORD || decl.datatype==DataType.FLOAT) {
-                        // initialize numeric var with value zero by default.
-                        val litVal = LiteralValue(DataType.BYTE, 0, position = decl.position)
-                        litVal.parent = decl
-                        decl.value = litVal
-                    } else {
-                        err("var/const declaration needs a compile-time constant initializer value for this type")
+                    when {
+                        decl.datatype == DataType.BYTE || decl.datatype==DataType.WORD || decl.datatype==DataType.FLOAT -> {
+                            // initialize numeric var with value zero by default.
+                            val litVal = LiteralValue(DataType.BYTE, 0, position = decl.position)
+                            litVal.parent = decl
+                            decl.value = litVal
+                        }
+                        else -> err("var/const declaration needs a compile-time constant initializer value for this type")
                     }
                     return super.process(decl)
                 }
@@ -688,7 +682,7 @@ class AstChecker(private val namespace: INameScope,
             }
             DataType.MATRIX -> {
                 // value can only be a single byte, or a byte array (which represents the matrix)
-                if(value.type==DataType.ARRAY) {
+                if(value.type==DataType.ARRAY || value.type==DataType.MATRIX) {
                     val constX = arrayspec!!.x.constValue(namespace, heap)
                     val constY = arrayspec.y!!.constValue(namespace, heap)
                     if(constX?.asIntegerValue==null || constY?.asIntegerValue==null)

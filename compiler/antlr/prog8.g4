@@ -162,8 +162,6 @@ scoped_identifier :  NAME ('.' NAME)+ ;
 
 register :  'A' | 'X' | 'Y' | 'AX' | 'AY' | 'XY' ;
 
-statusflag : 'Pc' | 'Pz' | 'Pn' | 'Pv' ;
-
 integerliteral :  intpart=(DEC_INTEGER | HEX_INTEGER | BIN_INTEGER) wordsuffix? ;
 
 wordsuffix : '.w' ;
@@ -188,8 +186,10 @@ inlineasm :  '%asm' INLINEASMBLOCK;
 
 
 subroutine :
-	'sub' identifier '(' sub_params? ')' '->' '(' sub_returns? ')'  (sub_address | (statement_block EOL))
+	'sub' identifier '(' sub_params? ')' sub_return_part?  (sub_address | (statement_block EOL))
 	;
+
+sub_return_part : '->' sub_returns  ;
 
 statement_block :
 	'{' EOL
@@ -201,11 +201,9 @@ sub_address : '=' integerliteral ;
 
 sub_params : sub_param (',' sub_param)* ;
 
-sub_param: identifier ':' (register | statusflag);
+sub_param: identifier ':' datatype;
 
-sub_returns : '?' | ( sub_return (',' sub_return)* ) ;
-
-sub_return: (register | statusflag) '?'? ;
+sub_returns : datatype (',' datatype)*  ;
 
 
 if_stmt :  'if' expression EOL? (statement | statement_block) EOL? else_part? EOL ; // statement is constrained later

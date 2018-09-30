@@ -411,42 +411,39 @@ Subroutine definitions
 
 The syntax is::
 
-        sub   <identifier>  ([proc_parameters]) -> ([proc_results])  {
+        sub   <identifier>  ( [parameters] )  [ -> returnvalues ]  {
                 ... statements ...
         }
 
         ; example:
-        sub  triple_something (amount: X) -> A  {
+        sub  triple_something (amount: word) -> word  {
         	return  X * 3
         }
 
 The open curly brace must immediately follow the subroutine result specification on the same line,
 and can have nothing following it. The close curly brace must be on its own line as well.
 
-Pre-defined subroutines that are available on specific memory addresses
-(in system ROM for instance) can be defined by assigning the routine's memory address to the sub,
-and not specifying a code block::
+.. todo::
+    Pre-defined subroutines that are available on specific memory addresses
+    (in system ROM for instance) can be defined by assigning the routine's memory address to the sub,
+    and not specifying a code block::
 
-	sub  <identifier>  ([proc_parameters]) -> ([proc_results])  = <address>
+        sub  <identifier>  ([proc_parameters]) -> [proc_results]  = <address>
 
-	; example:
-	sub  CLOSE  (logical: A) -> (A?, X?, Y?)  = $FFC3
+        ; example:
+        sub  CLOSE  (logical: A) -> (A?, X?, Y?)  = $FFC3
 
 
-.. data:: proc_parameters
+.. data:: parameters
 
-        comma separated list of "<parametername>:<register>" pairs specifying the input parameters.
-        You can omit these parameter names in subroutine calls, as long as the arguments "line up".
+        Comma separated list of "<parametername>:<datatype>" pairs specifying the input parameters.
+        Can be empty.
 
 .. data:: proc_results
 
-        comma separated list of <register> names specifying in which register(s) the output is returned.
-        If the register name ends with a '?', that means the register doesn't contain a real return value but
-        is clobbered in the process so the original value it had before calling the sub is no longer valid.
-        This is not immediately useful for your own code, but the compiler needs this information to
-        emit the correct assembly code to preserve the cpu registers if needed when the call is made.
-        For convenience: a single '?' als the result spec is shorthand for ``A?, X?, Y?`` ("I don't know
-        what the changed registers are, assume the worst")
+        Comma separated list of result value datatypes.
+        A subroutine without return values must omit the whole part with the arrow
+        after the parameter list.
 
 
 Loops

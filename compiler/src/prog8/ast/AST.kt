@@ -864,9 +864,8 @@ class LiteralValue(val type: DataType,
             DataType.FLOAT -> if(floatvalue==null) throw FatalAstException("literal value missing floatvalue")
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS ->
                 if(strvalue==null && heapId==null) throw FatalAstException("literal value missing strvalue/heapId")
-            DataType.ARRAY, DataType.ARRAY_W ->
+            DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX ->
                 if(arrayvalue==null && heapId==null) throw FatalAstException("literal value missing arrayvalue/heapId")
-            DataType.MATRIX -> TODO("matrix literalvalue? for now, arrays are good enough for this")
         }
         if(bytevalue==null && wordvalue==null && floatvalue==null && arrayvalue==null && strvalue==null && heapId==null)
             throw FatalAstException("literal value without actual value")
@@ -1196,20 +1195,10 @@ class FunctionCall(override var target: IdentifierReference,
                 return builtinFunctionReturnType(target.nameInSource[0], this.arglist, namespace, heap)
             }
             is Subroutine -> {
-                if(stmt.returnvalues.isEmpty()) {
+                if(stmt.returnvalues.isEmpty())
                     return null     // no return value
-                }
-                if(stmt.returnvalues.size==1) {
-                    if(stmt.returnvalues[0].register!=null) {
-                        return when(stmt.returnvalues[0].register!!) {
-                            Register.A, Register.X, Register.Y -> DataType.BYTE
-                            Register.AX, Register.AY, Register.XY -> DataType.WORD
-                        }
-                    } else if(stmt.returnvalues[0].statusflag!=null) {
-                        val flag = stmt.returnvalues[0].statusflag!!
-                        TODO("return value in status flag $flag")
-                    }
-                }
+                if(stmt.returnvalues.size==1)
+                    return stmt.returnvalues[0]
                 TODO("return type for subroutine with multiple return values $stmt")
             }
             is Label -> return null
@@ -1253,7 +1242,7 @@ class InlineAssembly(val assembly: String, override val position: Position) : IS
 
 class Subroutine(override val name: String,
                  val parameters: List<SubroutineParameter>,
-                 val returnvalues: List<SubroutineReturnvalue>,
+                 val returnvalues: List<DataType>,
                  val address: Int?,
                  override var statements: MutableList<IStatement>,
                  override val position: Position) : IStatement, INameScope {
@@ -1264,7 +1253,6 @@ class Subroutine(override val name: String,
     override fun linkParents(parent: Node) {
         this.parent = parent
         parameters.forEach { it.linkParents(this) }
-        returnvalues.forEach { it.linkParents(this) }
         statements.forEach { it.linkParents(this) }
     }
 
@@ -1279,27 +1267,8 @@ class Subroutine(override val name: String,
 
 
 data class SubroutineParameter(val name: String,
-                               val register: Register?,
-                               val statusflag: Statusflag?,
+                               val type: DataType,
                                override val position: Position) : Node {
-    override lateinit var parent: Node
-
-    override fun linkParents(parent: Node) {
-        this.parent = parent
-    }
-
-    val type = when(register) {
-        Register.A, Register.X, Register.Y -> DataType.BYTE
-        Register.AX, Register.AY, Register.XY -> DataType.WORD
-        null -> DataType.BYTE
-    }
-}
-
-
-data class SubroutineReturnvalue(val register: Register?,
-                                 val statusflag: Statusflag?,
-                                 val clobbered: Boolean,
-                                 override val position: Position) : Node {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -1580,23 +1549,21 @@ private fun prog8Parser.LabeldefContext.toAst(): IStatement =
 private fun prog8Parser.SubroutineContext.toAst() : Subroutine {
     return Subroutine(identifier().text,
             if(sub_params() ==null) emptyList() else sub_params().toAst(),
-            if(sub_returns() ==null) emptyList() else sub_returns().toAst(),
+            if(sub_return_part() == null) emptyList() else sub_return_part().toAst(),
             sub_address()?.integerliteral()?.toAst()?.number?.toInt(),
             if(statement_block() ==null) mutableListOf() else statement_block().toAst(),
             toPosition())
 }
 
+private fun prog8Parser.Sub_return_partContext.toAst(): List<DataType> {
+    val returns = sub_returns() ?: return emptyList()
+    return returns.datatype().map { it.toAst() }
+}
+
 
 private fun prog8Parser.Sub_paramsContext.toAst(): List<SubroutineParameter> =
         sub_param().map {
-            SubroutineParameter(it.identifier().text, it.register()?.toAst(), it.statusflag()?.toAst(), it.toPosition())
-        }
-
-
-private fun prog8Parser.Sub_returnsContext.toAst(): List<SubroutineReturnvalue> =
-        sub_return().map {
-            val isClobber = it.childCount==2 && it.children[1].text == "?"
-            SubroutineReturnvalue(it.register()?.toAst(), it.statusflag()?.toAst(), isClobber, it.toPosition())
+            SubroutineParameter(it.identifier().text, it.datatype().toAst(), it.toPosition())
         }
 
 
@@ -1611,8 +1578,6 @@ private fun prog8Parser.Assign_targetContext.toAst() : AssignTarget {
 
 
 private fun prog8Parser.RegisterContext.toAst() = Register.valueOf(text.toUpperCase())
-
-private fun prog8Parser.StatusflagContext.toAst() = Statusflag.valueOf(text)
 
 private fun prog8Parser.DatatypeContext.toAst() = DataType.valueOf(text.toUpperCase())
 

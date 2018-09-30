@@ -505,17 +505,8 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
     }
 
     fun translateSubroutineCall(subroutine: Subroutine, arguments: List<IExpression>, parent: Node) {
-        // setup the arguments: simply put them into the register vars
-        // @todo support other types of parameters beside just registers
         for(param in arguments.zip(subroutine.parameters)) {
-            val assign = Assignment(
-                    AssignTarget(param.second.register, null, param.first.position),
-                    null,
-                    param.first,
-                    param.first.position
-            )
-            assign.linkParents(parent)
-            translate(assign)
+            // @todo push params onto stack in correct order
         }
         stackvmProg.instr(Opcode.CALL, callLabel=subroutine.scopedname)
     }
@@ -677,16 +668,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
     private fun translate(stmt: Return) {
         val returnvalues = (stmt.definingScope() as? Subroutine)?.returnvalues ?: emptyList()
         for(value in stmt.values.zip(returnvalues)) {
-            // assign the return values to the proper result registers
-            // @todo support other things than just result registers
-            val assign = Assignment(
-                    AssignTarget(value.second.register, null, stmt.position),
-                    null,
-                    value.first,
-                    stmt.position
-            )
-            assign.linkParents(stmt.parent)
-            translate(assign)
+            // @todo assign the return values to the proper return variables
         }
         stackvmProg.line(stmt.position)
         stackvmProg.instr(Opcode.RETURN)
