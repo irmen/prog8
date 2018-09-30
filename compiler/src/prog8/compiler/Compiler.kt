@@ -24,6 +24,32 @@ fun Number.toHex(): String {
 }
 
 
+fun String.unescape(): String {
+    val result = mutableListOf<Char>()
+    val iter = this.iterator()
+    while(iter.hasNext()) {
+        val c = iter.nextChar()
+        if(c=='\\') {
+            val ec = iter.nextChar()
+            result.add(when(ec) {
+                '\\' -> '\\'
+                'b' -> '\b'
+                'n' -> '\n'
+                'r' -> '\r'
+                't' -> '\t'
+                'u' -> {
+                    "${iter.nextChar()}${iter.nextChar()}${iter.nextChar()}${iter.nextChar()}".toInt(16).toChar()
+                }
+                else -> throw VmExecutionException("invalid escape char: $ec")
+            })
+        } else {
+            result.add(c)
+        }
+    }
+    return result.joinToString("")
+}
+
+
 class HeapValues {
     data class HeapValue(val type: DataType, val str: String?, val array: IntArray?) {
         override fun equals(other: Any?): Boolean {

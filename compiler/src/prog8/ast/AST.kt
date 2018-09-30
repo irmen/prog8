@@ -4,6 +4,7 @@ import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
 import prog8.compiler.HeapValues
 import prog8.compiler.target.c64.Petscii
+import prog8.compiler.unescape
 import prog8.functions.BuiltinFunctions
 import prog8.functions.NotConstArgumentException
 import prog8.functions.builtinFunctionReturnType
@@ -1644,6 +1645,7 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
                 }
                 litval.floatliteral()!=null -> LiteralValue(DataType.FLOAT, floatvalue = litval.floatliteral().toAst(), position = litval.toPosition())
                 litval.stringliteral()!=null -> LiteralValue(DataType.STR, strvalue = litval.stringliteral().text, position = litval.toPosition())
+                litval.charliteral()!=null -> LiteralValue(DataType.BYTE, bytevalue = Petscii.encodePetscii(litval.charliteral().text.unescape(), true)[0], position = litval.toPosition())
                 litval.arrayliteral()!=null -> {
                     val array = litval.arrayliteral()?.toAst()
                     // byte/word array type difference is not determined here.

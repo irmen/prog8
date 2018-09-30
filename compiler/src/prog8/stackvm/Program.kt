@@ -2,6 +2,7 @@ package prog8.stackvm
 
 import prog8.ast.DataType
 import prog8.compiler.HeapValues
+import prog8.compiler.unescape
 import java.io.File
 import java.io.PrintStream
 import java.util.*
@@ -58,7 +59,7 @@ class Program (val name: String,
                     DataType.STR,
                     DataType.STR_P,
                     DataType.STR_S,
-                    DataType.STR_PS -> heap.add(it.second, unescape(it.third.substring(1, it.third.length-1)))
+                    DataType.STR_PS -> heap.add(it.second, it.third.substring(1, it.third.length-1).unescape())
                     DataType.ARRAY,
                     DataType.ARRAY_W,
                     DataType.MATRIX -> {
@@ -184,31 +185,6 @@ class Program (val name: String,
                 vars[blockname] = blockvars
                 blockvars[name] = value
             }
-        }
-
-        private fun unescape(st: String): String {
-            val result = mutableListOf<Char>()
-            val iter = st.iterator()
-            while(iter.hasNext()) {
-                val c = iter.nextChar()
-                if(c=='\\') {
-                    val ec = iter.nextChar()
-                    result.add(when(ec) {
-                        '\\' -> '\\'
-                        'b' -> '\b'
-                        'n' -> '\n'
-                        'r' -> '\r'
-                        't' -> '\t'
-                        'u' -> {
-                            "${iter.nextChar()}${iter.nextChar()}${iter.nextChar()}${iter.nextChar()}".toInt(16).toChar()
-                        }
-                        else -> throw VmExecutionException("invalid escape char: $ec")
-                    })
-                } else {
-                    result.add(c)
-                }
-            }
-            return result.joinToString("")
         }
 
         private fun loadMemory(lines: Iterator<IndexedValue<String>>, memory: MutableMap<Int, List<Value>>): Map<Int, List<Value>> {

@@ -252,6 +252,9 @@ type identifier  type                     storage size       example var declara
 
 **binary numbers:** you can use a percent prefix to write binary numbers: ``%10010011``
 
+**character values:** you can use a single character in quotes like this ``'a'`` for the Petscii byte value of that character.
+
+
 **``byte`` versus ``word`` values:**
 
 - When an integer value ranges from 0..255 the compiler sees it as a ``byte``.

@@ -174,6 +174,7 @@ Values will usually be part of an expression or assignment statement::
 	$aa43			; hex integer number
 	%100101			; binary integer number
 	"Hi, I am a string"	; text string
+	'a'             ; petscii value (byte) for the letter a
 	-33.456e52		; floating point number
 
 	byte  counter  = 42	; variable of size 8 bits, with initial value 42
@@ -236,6 +237,8 @@ Integers
 
 Integers are 8 or 16 bit numbers and can be written in normal decimal notation,
 in hexadecimal and in binary notation.
+A single character in single quotes such as ``'a'`` is translated into a byte integer,
+which is the Petscii value for that character.
 
 .. todo::
     Right now only unsinged integers are supported (0-255 for byte types, 0-65535 for word types)

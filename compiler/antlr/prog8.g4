@@ -41,6 +41,15 @@ INLINEASMBLOCK :
 	}
 	;
 
+SINGLECHAR :
+	'\'' ( STRING_ESCAPE_SEQ | ~[\\\r\n\f"] ) '\''
+	{
+		// get rid of the enclosing quotes
+		String s = getText();
+		setText(s.substring(1, s.length() - 1));
+	}
+	;
+
 
 module :  (modulestatement | EOL)* EOF ;
 
@@ -172,6 +181,8 @@ arrayliteral :  '[' expression (',' expression)* ']' ;
 
 stringliteral :  STRING ;
 
+charliteral : SINGLECHAR ;
+
 floatliteral :  FLOAT_NUMBER ;
 
 literalvalue :
@@ -179,6 +190,7 @@ literalvalue :
 	| booleanliteral
 	| arrayliteral
 	| stringliteral
+	| charliteral
 	| floatliteral
 	;
 
