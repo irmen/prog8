@@ -83,7 +83,10 @@ class AstChecker(private val namespace: INameScope,
         if(expectedReturnValues.size != returnStmt.values.size)
             checkResult.add(SyntaxError("number of return values doesn't match subroutine return spec", returnStmt.position))
 
-        // @todo: check return value types versus sub return spec
+        for (rv in expectedReturnValues.withIndex().zip(returnStmt.values)) {
+            if(rv.first.value!=rv.second.resultingDatatype(namespace, heap))
+                checkResult.add(ExpressionError("type of return value ${rv.first.index+1} doesn't match subroutine return type ${rv.first.value}", rv.second.position))
+        }
         return super.process(returnStmt)
     }
 
@@ -193,14 +196,13 @@ class AstChecker(private val namespace: INameScope,
         // (or if it has an asm block, that must contain a 'rts' or 'jmp')
         if(subroutine.statements.count { it is Return || it is Jump } == 0) {
             if(subroutine.address==null) {
-            val amount = subroutine.statements
-                    .asSequence()
-                    .filter { it is InlineAssembly }
-                    .map {(it as InlineAssembly).assembly}
-                    .count { "rts" in it || "\trts" in it || "jmp" in it || "\tjmp" in it }
-            if(amount==0 && subroutine.returnvalues.isNotEmpty())
-                err("subroutine has result value(s) and thus must have at least one 'return' or 'goto' in it (or 'rts' / 'jmp' in case of %asm)")
-                // @todo validate return values versus subroutine signature
+                val amount = subroutine.statements
+                        .asSequence()
+                        .filter { it is InlineAssembly }
+                        .map { (it as InlineAssembly).assembly }
+                        .count { "rts" in it || "\trts" in it || "jmp" in it || "\tjmp" in it }
+                if (amount == 0 && subroutine.returnvalues.isNotEmpty())
+                    err("subroutine has result value(s) and thus must have at least one 'return' or 'goto' in it (or 'rts' / 'jmp' in case of %asm)")
             }
         }
 
@@ -519,15 +521,25 @@ class AstChecker(private val namespace: INameScope,
             checkResult.add(SyntaxError("cannot use arguments when calling a label", position))
 
         if(target is BuiltinFunctionStatementPlaceholder) {
-            // it's a cal to a builtin function.
-            // todo make the signature checking similar to when calling a user-defined function
-            if(target.name=="set_carry" || target.name=="set_irqd" || target.name=="clear_carry" || target.name=="clear_irqd") {
-                // these functions have zero arguments
-                if(args.isNotEmpty())
-                    checkResult.add(SyntaxError("${target.name} has zero arguments", position))
+            // it's a call to a builtin function.
+            val func = BuiltinFunctions[target.name]!!
+            if(args.size!=func.parameters.size)
+                checkResult.add(SyntaxError("invalid number of parameters", position))
+            else {
+                for (arg in args.withIndex().zip(func.parameters)) {
+                    if(arg.first.value.resultingDatatype(namespace, heap) !in arg.second.possibleDatatypes)
+                        checkResult.add(SyntaxError("argument ${arg.first.index+1} has invalid type, expected ${arg.second.possibleDatatypes}", position))
+                }
             }
-        } else {
-            // @todo check call (params against signature) to user function
+        } else if(target is Subroutine) {
+            if(args.size!=target.parameters.size)
+                checkResult.add(SyntaxError("invalid number of parameters", position))
+            else {
+                for (arg in args.withIndex().zip(target.parameters)) {
+                    if(arg.first.value.resultingDatatype(namespace, heap) != arg.second.type)
+                        checkResult.add(SyntaxError("argument ${arg.first.index+1} has invalid type, expected ${arg.second.type}", position))
+                }
+            }
         }
     }
 

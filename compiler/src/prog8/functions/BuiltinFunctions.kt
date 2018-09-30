@@ -6,7 +6,7 @@ import kotlin.math.log2
 
 
 
-class BuiltinFunctionParam(val name: String, possibleDatatypes: List<DataType>)
+class BuiltinFunctionParam(val name: String, val possibleDatatypes: List<DataType>)
 
 class FunctionSignature(val pure: Boolean,      // does it have side effects?
                         val parameters: List<BuiltinFunctionParam>,
@@ -67,15 +67,6 @@ val BuiltinFunctions = mapOf(
 
 
 fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespace: INameScope, heap: HeapValues): DataType? {
-    fun integerDatatypeFromArg(arg: IExpression): DataType {
-        val dt = arg.resultingDatatype(namespace, heap)
-        return when(dt) {
-            DataType.BYTE -> DataType.BYTE
-            DataType.WORD -> DataType.WORD
-            DataType.FLOAT -> DataType.WORD
-            else -> throw FatalAstException("fuction $function can only return a numeric value")
-        }
-    }
 
     fun datatypeFromListArg(arglist: IExpression): DataType {
         if(arglist is LiteralValue) {
@@ -119,7 +110,15 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
                 DataType.MATRIX -> DataType.BYTE
             }
         }
-        "round", "floor", "ceil" -> integerDatatypeFromArg(args.single())
+        "round", "floor", "ceil" -> {
+            val dt=args.single().resultingDatatype(namespace, heap)
+            when(dt) {
+                DataType.BYTE -> DataType.BYTE
+                DataType.WORD -> DataType.WORD
+                DataType.FLOAT -> DataType.WORD
+                else -> null
+            }
+        }
         "sum" -> {
             val dt=datatypeFromListArg(args.single())
             when(dt) {
@@ -205,8 +204,15 @@ private fun collectionArgOutputNumber(args: List<IExpression>, position: Positio
             throw NotConstArgumentException()
         function(constants.map { it!!.toDouble() }).toDouble()
     } else {
-        val array = heap.get(iterable.heapId!!).array ?: throw SyntaxError("function requires array/matrix argument", position)
-        function(array.map { it.toDouble() })
+        when(iterable.type) {
+            DataType.BYTE, DataType.WORD, DataType.FLOAT -> throw SyntaxError("function expects an iterable type", position)
+            else -> {
+                if(iterable.heapId==null)
+                    throw FatalAstException("iterable value should be on the heap")
+                val array = heap.get(iterable.heapId).array ?: throw SyntaxError("function expects an iterable type", position)
+                function(array.map { it.toDouble() })
+            }
+        }
     }
     return numericLiteral(result, args[0].position)
 }
