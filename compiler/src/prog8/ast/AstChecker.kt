@@ -201,8 +201,12 @@ class AstChecker(private val namespace: INameScope,
                         .filter { it is InlineAssembly }
                         .map { (it as InlineAssembly).assembly }
                         .count { "rts" in it || "\trts" in it || "jmp" in it || "\tjmp" in it }
-                if (amount == 0 && subroutine.returnvalues.isNotEmpty())
-                    err("subroutine has result value(s) and thus must have at least one 'return' or 'goto' in it (or 'rts' / 'jmp' in case of %asm)")
+                if (amount == 0) {
+                    if(subroutine.returnvalues.isNotEmpty())
+                        err("subroutine has result value(s) and thus must have at least one 'return' or 'goto' in it (or 'rts' / 'jmp' in case of %asm)")
+                    // if there's no return statement, we add the implicit one at the end.
+                    subroutine.statements.add(Return(emptyList(), subroutine.position))
+                }
             }
         }
 
@@ -530,7 +534,7 @@ class AstChecker(private val namespace: INameScope,
             else {
                 for (arg in args.withIndex().zip(func.parameters)) {
                     if(arg.first.value.resultingDatatype(namespace, heap) !in arg.second.possibleDatatypes)
-                        checkResult.add(SyntaxError("argument ${arg.first.index+1} has invalid type, expected ${arg.second.possibleDatatypes}", position))
+                        checkResult.add(ExpressionError("argument ${arg.first.index+1} has invalid type, expected ${arg.second.possibleDatatypes}", position))
                 }
             }
         } else if(target is Subroutine) {
@@ -539,7 +543,7 @@ class AstChecker(private val namespace: INameScope,
             else {
                 for (arg in args.withIndex().zip(target.parameters)) {
                     if(arg.first.value.resultingDatatype(namespace, heap) != arg.second.type)
-                        checkResult.add(SyntaxError("argument ${arg.first.index+1} has invalid type, expected ${arg.second.type}", position))
+                        checkResult.add(ExpressionError("argument ${arg.first.index+1} has invalid type, expected ${arg.second.type}", position))
                 }
             }
         }

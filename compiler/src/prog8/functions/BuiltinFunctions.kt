@@ -68,6 +68,12 @@ val BuiltinFunctions = mapOf(
                                                         BuiltinFunctionParam("x", listOf(DataType.BYTE, DataType.WORD)),
                                                         BuiltinFunctionParam("y", listOf(DataType.BYTE, DataType.WORD)),
                                                         BuiltinFunctionParam("color", listOf(DataType.BYTE))), null),
+    "_vm_gfx_line"     to FunctionSignature(false, listOf(
+                                                        BuiltinFunctionParam("x1", listOf(DataType.BYTE, DataType.WORD)),
+                                                        BuiltinFunctionParam("y1", listOf(DataType.BYTE, DataType.WORD)),
+                                                        BuiltinFunctionParam("x2", listOf(DataType.BYTE, DataType.WORD)),
+                                                        BuiltinFunctionParam("y2", listOf(DataType.BYTE, DataType.WORD)),
+                                                        BuiltinFunctionParam("color", listOf(DataType.BYTE))), null),
     "_vm_gfx_text"      to FunctionSignature(false, listOf(
                                                         BuiltinFunctionParam("x", listOf(DataType.BYTE, DataType.WORD)),
                                                         BuiltinFunctionParam("y", listOf(DataType.BYTE, DataType.WORD)),

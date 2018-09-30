@@ -37,11 +37,16 @@ class BitmapScreenPanel : JPanel() {
     fun setPixel(x: Int, y: Int, color: Int) {
         image.setRGB(x, y, palette[color and 15].rgb)
     }
+    fun drawLine(x1: Int, y1: Int, x2: Int, y2: Int, color: Int) {
+        g2d.color = palette[color and 15]
+        g2d.drawLine(x1, y1, x2, y2)
+    }
     fun writeText(x: Int, y: Int, text: String, color: Int) {
         g2d.font = Font(Font.MONOSPACED, Font.PLAIN, 10)
         g2d.color = palette[color and 15]
         g2d.drawString(text, x, y + g2d.font.size - 1)
     }
+
 
     companion object {
         const val SCREENWIDTH = 320

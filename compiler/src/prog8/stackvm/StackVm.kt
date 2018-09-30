@@ -131,6 +131,7 @@ enum class Syscall(val callNr: Short) {
     GFX_PIXEL(16),              // plot a pixel at (x,y,color) pushed on stack in that order
     GFX_CLEARSCR(17),           // clear the screen with color pushed on stack
     GFX_TEXT(18),               // write text on screen at (x,y,color,text) pushed on stack in that order
+    GFX_LINE(19),               // draw line on screen at (x1,y1,x2,y2,color) pushed on stack in that order
 
     FUNC_SIN(66),
     FUNC_COS(67),
@@ -277,9 +278,9 @@ class StackVm(private var traceOutputFile: String?) {
         irqStartInstruction = program.labels["irq.irq"]
     }
 
-    fun step(instructionCount: Int = 10000) {
+    fun step(instructionCount: Int = 5000) {
         // step is invoked every 1/100 sec
-        // we execute 10k instructions in one go so we end up doing 1 million vm instructions per second
+        // we execute 5k instructions in one go so we end up doing 0.5 million vm instructions per second
         val start = System.currentTimeMillis()
         for(i:Int in 1..instructionCount) {
             try {
@@ -493,6 +494,13 @@ class StackVm(private var traceOutputFile: String?) {
                         val color = evalstack.pop()
                         val (y, x) = evalstack.pop2()
                         canvas?.setPixel(x.integerValue(), y.integerValue(), color.integerValue())
+                    }
+                    Syscall.GFX_LINE -> {
+                        // draw line at (x1, y1, x2, y2, color) from stack
+                        val color = evalstack.pop()
+                        val (y2, x2) = evalstack.pop2()
+                        val (y1, x1) = evalstack.pop2()
+                        canvas?.drawLine(x1.integerValue(), y1.integerValue(), x2.integerValue(), y2.integerValue(), color.integerValue())
                     }
                     Syscall.GFX_CLEARSCR -> {
                         val color = evalstack.pop()
