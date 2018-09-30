@@ -220,6 +220,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
 
     override fun process(subroutine: Subroutine): IStatement {
         stackvmProg.label(subroutine.scopedname)
+        // note: the caller has already written the arguments into the subroutine's parameter variables.
         translate(subroutine.statements)
         return super.process(subroutine)
     }
@@ -403,7 +404,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                     translateFunctionCall(funcname, expr.arglist)
                 } else {
                     when(target) {
-                        is Subroutine -> translateSubroutineCall(target, expr.arglist, expr.parent)
+                        is Subroutine -> translateSubroutineCall(target, expr.arglist)
                         else -> TODO("non-builtin-function call to $target")
                     }
                 }
@@ -468,8 +469,12 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
         when(targetStmt) {
             is Label ->
                 stackvmProg.instr(Opcode.CALL, callLabel = targetStmt.scopedname)
-            is Subroutine ->
-                translateSubroutineCall(targetStmt, stmt.arglist, stmt)
+            is Subroutine -> {
+                translateSubroutineCall(targetStmt, stmt.arglist)
+                // make sure we clean up the unused result values from the stack.
+                for(rv in targetStmt.returnvalues)
+                    stackvmProg.instr(Opcode.DISCARD)
+            }
             else ->
                 throw AstException("invalid call target node type: ${targetStmt::class}")
         }
@@ -504,9 +509,11 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
         }
     }
 
-    fun translateSubroutineCall(subroutine: Subroutine, arguments: List<IExpression>, parent: Node) {
-        for(param in arguments.zip(subroutine.parameters)) {
-            // @todo push params onto stack in correct order
+    private fun translateSubroutineCall(subroutine: Subroutine, arguments: List<IExpression>) {
+        // evaluate the arguments and assign them into the subroutine's argument variables.
+        for(arg in arguments.zip(subroutine.parameters)) {
+            translate(arg.first)
+            stackvmProg.instr(Opcode.POP_VAR, callLabel = subroutine.scopedname+"."+arg.second.name)
         }
         stackvmProg.instr(Opcode.CALL, callLabel=subroutine.scopedname)
     }
@@ -666,9 +673,9 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
     }
 
     private fun translate(stmt: Return) {
-        val returnvalues = (stmt.definingScope() as? Subroutine)?.returnvalues ?: emptyList()
-        for(value in stmt.values.zip(returnvalues)) {
-            // @todo assign the return values to the proper return variables
+        // put the return values on the stack, in reversed order. The caller will process them.
+        for(value in stmt.values.reversed()) {
+            translate(value)
         }
         stackvmProg.line(stmt.position)
         stackvmProg.instr(Opcode.RETURN)

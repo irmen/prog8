@@ -1,81 +1,46 @@
 %output prg
 
 ~ main {
-    sub start() -> () {
+    sub start()  {
         str   name    = "                    "
-        str   guess   = "0000000000"
-        byte  secretnumber = 0
-        byte  attempts_left = 10
+        str   guess   = "000000"
+        byte  guessednumber
+        byte  secretnumber
+        byte  attempts_left
 
-        ; greeting
         _vm_write_str("Let's play a number guessing game!\n")
         _vm_write_str("Enter your name: ")
         _vm_input_str(name)
-        _vm_write_char($8d)
-        _vm_write_char($8d)
-        _vm_write_str("Hello, ")
+        _vm_write_str("\nHello, ")
         _vm_write_str(name)
-        _vm_write_char($2e)
-        _vm_write_char($8d)
+        _vm_write_str(".\nI am thinking of a number from 1 to 100! You'll have to guess it!\n")
 
-        secretnumber = make_number()
+        secretnumber = rnd() % 100
+
+        for attempts_left in 10 to 1 step -1 {
+            _vm_write_str("\nYou have ")
+            _vm_write_num(attempts_left)
+            _vm_write_str(" guess")
+            if attempts_left>1  _vm_write_str("es")
+            _vm_write_str(" left. What is your next guess? ")
+            _vm_input_str(guess)
+            guessednumber = str2byte(guess)
+            if guessednumber==secretnumber {
+                _vm_write_str("\nYou guessed it, impressive!\n")
+                _vm_write_str("Thanks for playing.\n")
+                return
+            } else {
+                _vm_write_str("That is too ")
+                if guessednumber<secretnumber
+                    _vm_write_str("low!\n")
+                else
+                    _vm_write_str("high!\n")
+            }
+        }
+
+        _vm_write_str("\nToo bad! My number was: ")
+        _vm_write_num(secretnumber)
+        _vm_write_str(".\n")
         return
-
-
-    sub make_number() -> (X) {
-        byte number
-        number = rnd()
-        return rnd()
-        return number
-    }
-;        ; create a secret random number from 1-100
-;        c64.RNDA(0)             ; fac = rnd(0)
-;        c64.MUL10()             ; fac *= 10
-;        c64.MUL10()             ; .. and now *100
-;        c64.FADDH()             ; add 0.5..
-;        c64.FADDH()             ;   and again, so +1 total
-;        AY = c64flt.GETADRAY()
-;        secretnumber = A
-;        ;A=math.randbyte()
-;        ;A+=c64.RASTER
-;        ;A-=c64.TIME_LO
-;        ;X,secretnumber=math.divmod_bytes(A, 99)
-;
-;        c64scr.print_string("I am thinking of a number from 1 to 100!You'll have to guess it!\n")
-;
-;ask_guess:
-;        c64scr.print_string("\nYou have ")
-;        c64scr.print_byte_decimal(attempts_left)
-;        c64scr.print_string(" guess")
-;        if(attempts_left>0) c64scr.print_string("es")
-;
-;        c64scr.print_string(" left.\nWhat is your next guess? ")
-;        Y = c64scr.input_chars(guess)
-;        c64.CHROUT("\n")
-;        freadstr_arg = guess
-;        c64.FREADSTR(A)
-;        AY = c64flt.GETADRAY()
-;        if(A==secretnumber) {
-;            c64scr.print_string("\nThat's my number, impressive!\n")
-;            goto goodbye
-;        }
-;        c64scr.print_string("That is too ")
-;        if(A > secretnumber)
-;            c64scr.print_string("low!\n")
-;        else
-;            c64scr.print_string("high!\n")
-;
-;        attempts_left--
-;        if(attempts_left>0) goto ask_guess
-;        ; more efficient:  if_nz goto ask_guess
-;
-;        ; game over.
-;        c64scr.print_string("\nToo bad! It was: ")
-;        c64scr.print_byte_decimal(secretnumber)
-;        c64.CHROUT("\n")
-;
-;goodbye:
-;        c64scr.print_string("\nThanks for playing. Bye!\n")
-;        return
     }
 }

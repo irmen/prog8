@@ -37,13 +37,6 @@ enum class Register {
     XY
 }
 
-enum class Statusflag {
-    Pc,
-    Pz,
-    Pv,
-    Pn
-}
-
 enum class BranchCondition {
     CS,
     CC,

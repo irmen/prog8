@@ -54,15 +54,26 @@ val BuiltinFunctions = mapOf(
     "clear_carry" to FunctionSignature(false, emptyList(), null),
     "set_irqd"    to FunctionSignature(false, emptyList(), null),
     "clear_irqd"  to FunctionSignature(false, emptyList(), null),
-    "_vm_write_memchr"  to FunctionSignature(false, emptyList(), null),
-    "_vm_write_memstr"  to FunctionSignature(false, emptyList(), null),
-    "_vm_write_num"     to FunctionSignature(false, emptyList(), null),
-    "_vm_write_char"    to FunctionSignature(false, emptyList(), null),
-    "_vm_write_str"     to FunctionSignature(false, emptyList(), null),
-    "_vm_input_str"     to FunctionSignature(false, emptyList(), null),
-    "_vm_gfx_clearscr"  to FunctionSignature(false, emptyList(), null),
-    "_vm_gfx_pixel"     to FunctionSignature(false, emptyList(), null),
-    "_vm_gfx_text"      to FunctionSignature(false, emptyList(), null)
+    "str2byte"    to FunctionSignature(true, listOf(BuiltinFunctionParam("string", listOf(DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS))), DataType.BYTE),
+    "str2word"    to FunctionSignature(true, listOf(BuiltinFunctionParam("string", listOf(DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS))), DataType.WORD),
+    "str2float"   to FunctionSignature(true, listOf(BuiltinFunctionParam("string", listOf(DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS))), DataType.FLOAT),
+    "_vm_write_memchr"  to FunctionSignature(false, listOf(BuiltinFunctionParam("address", listOf(DataType.WORD))), null),
+    "_vm_write_memstr"  to FunctionSignature(false, listOf(BuiltinFunctionParam("address", listOf(DataType.WORD))), null),
+    "_vm_write_num"     to FunctionSignature(false, listOf(BuiltinFunctionParam("number", listOf(DataType.BYTE, DataType.WORD, DataType.FLOAT))), null),
+    "_vm_write_char"    to FunctionSignature(false, listOf(BuiltinFunctionParam("char", listOf(DataType.BYTE))), null),
+    "_vm_write_str"     to FunctionSignature(false, listOf(BuiltinFunctionParam("string", listOf(DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS))), null),
+    "_vm_input_str"     to FunctionSignature(false, listOf(BuiltinFunctionParam("intovar", listOf(DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS))), null),
+    "_vm_gfx_clearscr"  to FunctionSignature(false, listOf(BuiltinFunctionParam("color", listOf(DataType.BYTE))), null),
+    "_vm_gfx_pixel"     to FunctionSignature(false, listOf(
+                                                        BuiltinFunctionParam("x", listOf(DataType.BYTE, DataType.WORD)),
+                                                        BuiltinFunctionParam("y", listOf(DataType.BYTE, DataType.WORD)),
+                                                        BuiltinFunctionParam("color", listOf(DataType.BYTE))), null),
+    "_vm_gfx_text"      to FunctionSignature(false, listOf(
+                                                        BuiltinFunctionParam("x", listOf(DataType.BYTE, DataType.WORD)),
+                                                        BuiltinFunctionParam("y", listOf(DataType.BYTE, DataType.WORD)),
+                                                        BuiltinFunctionParam("color", listOf(DataType.BYTE)),
+                                                        BuiltinFunctionParam("text", listOf(DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS))),
+                                                        null)
 )
 
 

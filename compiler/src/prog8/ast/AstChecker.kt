@@ -513,6 +513,8 @@ class AstChecker(private val namespace: INameScope,
         val targetStatement = checkFunctionOrLabelExists(functionCall.target, functionCall)
         if(targetStatement!=null)
             checkFunctionCall(targetStatement, functionCall.arglist, functionCall.position)
+        if(targetStatement is Subroutine && targetStatement.returnvalues.isNotEmpty())
+            printWarning("result value of subroutine call is discarded", functionCall.position)
         return super.process(functionCall)
     }
 
@@ -524,7 +526,7 @@ class AstChecker(private val namespace: INameScope,
             // it's a call to a builtin function.
             val func = BuiltinFunctions[target.name]!!
             if(args.size!=func.parameters.size)
-                checkResult.add(SyntaxError("invalid number of parameters", position))
+                checkResult.add(SyntaxError("invalid number of arguments", position))
             else {
                 for (arg in args.withIndex().zip(func.parameters)) {
                     if(arg.first.value.resultingDatatype(namespace, heap) !in arg.second.possibleDatatypes)
@@ -533,7 +535,7 @@ class AstChecker(private val namespace: INameScope,
             }
         } else if(target is Subroutine) {
             if(args.size!=target.parameters.size)
-                checkResult.add(SyntaxError("invalid number of parameters", position))
+                checkResult.add(SyntaxError("invalid number of arguments", position))
             else {
                 for (arg in args.withIndex().zip(target.parameters)) {
                     if(arg.first.value.resultingDatatype(namespace, heap) != arg.second.type)

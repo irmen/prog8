@@ -158,6 +158,9 @@ enum class Syscall(val callNr: Short) {
     FUNC_RND(89),                // push a random byte on the stack
     FUNC_RNDW(90),               // push a random word on the stack
     FUNC_RNDF(91),               // push a random float on the stack (between 0.0 and 1.0)
+    FUNC_STR2BYTE(92),
+    FUNC_STR2WORD(93),
+    FUNC_STR2FLOAT(94)
 
     // note: not all builtin functions of the Prog8 language are present as functions:
     // some of them are straight opcodes (such as MSB, LSB, LSL, LSR, ROL, ROR, ROL2, ROR2, and FLT)!
@@ -618,7 +621,24 @@ class StackVm(private var traceOutputFile: String?) {
                         else
                             evalstack.push(Value(DataType.BYTE, if (value.array!!.all{v->v!=0}) 1 else 0))
                     }
-                    else -> throw VmExecutionException("unimplemented syscall $syscall")
+                    Syscall.FUNC_STR2BYTE -> {
+                        val strvar = evalstack.pop()
+                        val str = heap.get(strvar.heapId)
+                        val y = str.str!!.trim().trimEnd('\u0000')
+                        evalstack.push(Value(DataType.BYTE, y.toShort()))
+                    }
+                    Syscall.FUNC_STR2WORD -> {
+                        val strvar = evalstack.pop()
+                        val str = heap.get(strvar.heapId)
+                        val y = str.str!!.trim().trimEnd('\u0000')
+                        evalstack.push(Value(DataType.BYTE, y.toInt()))
+                    }
+                    Syscall.FUNC_STR2FLOAT -> {
+                        val strvar = evalstack.pop()
+                        val str = heap.get(strvar.heapId)
+                        val y = str.str!!.trim().trimEnd('\u0000')
+                        evalstack.push(Value(DataType.BYTE, y.toDouble()))
+                    }
                 }
             }
 
