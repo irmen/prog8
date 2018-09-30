@@ -1152,11 +1152,11 @@ class FunctionCall(override var target: IdentifierReference,
             var resultValue: LiteralValue? = null
             val func = BuiltinFunctions[target.nameInSource[0]]
             if(func!=null) {
-                val exprfunc = func.expressionFunc
+                val exprfunc = func.constExpressionFunc
                 if(exprfunc!=null)
                     resultValue = exprfunc(arglist, position, namespace, heap)
-                else if(func.returnvalues.isEmpty())
-                    throw ExpressionError("builtin function ${target.nameInSource[0]} can't be used in expressions because it doesn't return a value", position)
+                else if(func.returntype==null)
+                    throw ExpressionError("builtin function ${target.nameInSource[0]} can't be used here because it doesn't return a value", position)
             }
 
             if(withDatatypeCheck) {
