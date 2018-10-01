@@ -417,9 +417,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
 
     private fun translate(expr: IExpression) {
         when(expr) {
-            is RegisterExpr -> {
-                stackvmProg.instr(Opcode.PUSH_VAR, callLabel = expr.register.toString())
-            }
+            is RegisterExpr -> stackvmProg.instr(Opcode.PUSH_VAR, callLabel = expr.register.toString())
             is PrefixExpression -> {
                 translate(expr.expression)
                 translatePrefixOperator(expr.operator)
@@ -444,29 +442,8 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                     }
                 }
             }
-            is IdentifierReference -> {
-                val target = expr.targetStatement(namespace)
-                when(target) {
-                    is VarDecl -> {
-                        when(target.type) {
-                            VarDeclType.VAR ->
-                                stackvmProg.instr(Opcode.PUSH_VAR, callLabel = target.scopedname)
-                            VarDeclType.CONST ->
-                                throw CompilerException("const ref should have been const-folded away")
-                            VarDeclType.MEMORY -> {
-                                when(target.datatype){
-                                    DataType.BYTE -> stackvmProg.instr(Opcode.PUSH_MEM, Value(DataType.WORD, (target.value as LiteralValue).asNumericValue!!))
-                                    DataType.WORD -> stackvmProg.instr(Opcode.PUSH_MEM_W, Value(DataType.WORD, (target.value as LiteralValue).asNumericValue!!))
-                                    DataType.FLOAT -> stackvmProg.instr(Opcode.PUSH_MEM_F, Value(DataType.WORD, (target.value as LiteralValue).asNumericValue!!))
-                                    else -> TODO("invalid datatype for memory variable expression: $target")
-                                }
-                            }
-                        }
-
-                    }
-                    else -> throw CompilerException("expression identifierref should be a vardef, not $target")
-                }
-            }
+            is IdentifierReference -> translate(expr)
+            is ArrayIndexedExpression -> translate(expr)
             is RangeExpr -> {
                 TODO("TRANSLATE range $expr")
             }
@@ -488,6 +465,30 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                     }
                 }
             }
+        }
+    }
+
+    private fun translate(identifierRef: IdentifierReference) {
+        val target = identifierRef.targetStatement(namespace)
+        when (target) {
+            is VarDecl -> {
+                when (target.type) {
+                    VarDeclType.VAR ->
+                        stackvmProg.instr(Opcode.PUSH_VAR, callLabel = target.scopedname)
+                    VarDeclType.CONST ->
+                        throw CompilerException("const ref should have been const-folded away")
+                    VarDeclType.MEMORY -> {
+                        when (target.datatype) {
+                            DataType.BYTE -> stackvmProg.instr(Opcode.PUSH_MEM, Value(DataType.WORD, (target.value as LiteralValue).asNumericValue!!))
+                            DataType.WORD -> stackvmProg.instr(Opcode.PUSH_MEM_W, Value(DataType.WORD, (target.value as LiteralValue).asNumericValue!!))
+                            DataType.FLOAT -> stackvmProg.instr(Opcode.PUSH_MEM_F, Value(DataType.WORD, (target.value as LiteralValue).asNumericValue!!))
+                            else -> TODO("invalid datatype for memory variable expression: $target")
+                        }
+                    }
+                }
+
+            }
+            else -> throw CompilerException("expression identifierref should be a vardef, not $target")
         }
     }
 
@@ -589,6 +590,33 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
         }
         stackvmProg.instr(opcode)
     }
+
+    private fun translate(arrayindexed: ArrayIndexedExpression) {
+        val variable = arrayindexed.identifier?.targetStatement(namespace) as? VarDecl
+        val variableName =
+                if(arrayindexed.register!=null) {
+                    val reg=arrayindexed.register
+                    if(reg==Register.A || reg==Register.X || reg==Register.Y)
+                        throw CompilerException("requires register pair")
+                    if(arrayindexed.array.y!=null)
+                        throw CompilerException("when using an address, can only use one index dimension")
+                    reg.toString()
+                } else {
+                    variable!!.scopedname
+                }
+        translate(arrayindexed.array.x)
+        val y = arrayindexed.array.y
+        if(y!=null) {
+            // calc matrix index  i=y*columns+x
+            // (the const-folding will have removed this for us when both x and y are constants)
+            translate(y)
+            stackvmProg.instr(Opcode.PUSH, Value(DataType.BYTE, (variable!!.arrayspec!!.x as LiteralValue).asIntegerValue!!))
+            stackvmProg.instr(Opcode.MUL)
+            stackvmProg.instr(Opcode.ADD)
+        }
+        stackvmProg.instr(Opcode.PUSH_INDEXED_VAR, callLabel = variableName)
+    }
+
 
     private fun createSyscall(funcname: String) {
         val function = (

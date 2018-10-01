@@ -315,8 +315,17 @@ If used in the place of a literal value, it expands into the actual array of val
 	byte[100] array = 100 to 199     ; initialize array with [100, 101, ..., 198, 199]
 
 
-.. todo::
-	this may be used later in the for-loop as well.  Add 'step' to range expression?
+Array indexing
+^^^^^^^^^^^^^^
+
+Strings, arrays and matrixes form a sequence of values. You can access the individual values by
+indexing into the array.
+Syntax is familiar with brackets:  ``arrayvar[x]`` or ``matrixvar[x, y]`` ::
+
+    array[2]        ; the third byte in the array (index is 0-based)
+    matrix[4,2]     ; the byte at the 5th column and 3rd row in the matrix
+    string[4]       ; the fifth character (=byte) in the string
+
 
 
 Operators
@@ -374,14 +383,6 @@ range creation:  ``to``
 		}
 
 
-.. todo::
-    array indexing:  ``[`` *index* ``]``
-        When put after a sequence type (array, string or matrix) it means to point to the given element in that sequence::
-
-            array[2]		; the third byte in the array (index is 0-based)
-            matrix[4,2]		; the byte at the 5th column and 3rd row in the matrix
-
-
 precedence grouping in expressions, or subroutine parameter list:  ``(`` *expression* ``)``
 	Parentheses are used to group parts of an expression to change the order of evaluation.
 	(the subexpression inside the parentheses will be evaluated first):
@@ -427,14 +428,8 @@ The open curly brace must immediately follow the subroutine result specification
 and can have nothing following it. The close curly brace must be on its own line as well.
 
 .. todo::
-    Pre-defined subroutines that are available on specific memory addresses
-    (in system ROM for instance) can be defined by assigning the routine's memory address to the sub,
-    and not specifying a code block::
-
-        sub  <identifier>  ([proc_parameters]) -> [proc_results]  = <address>
-
-        ; example:
-        sub  CLOSE  (logical: A) -> (A?, X?, Y?)  = $FFC3
+    asmsub with assigning memory address to refer to predefined ROM subroutines
+    asmsub with a regular body to precisely control what registers are used to call the subroutine
 
 
 .. data:: parameters

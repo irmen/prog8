@@ -216,6 +216,12 @@ interface IAstProcessor {
     fun process(asmSubroutine: AsmSubroutine): IStatement {
         return asmSubroutine
     }
+
+    fun process(arrayIndexedExpression: ArrayIndexedExpression): IExpression {
+        arrayIndexedExpression.identifier?.process(this)
+        arrayIndexedExpression.array.process(this)
+        return arrayIndexedExpression
+    }
 }
 
 
@@ -804,6 +810,39 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
         }
     }
 }
+
+class ArrayIndexedExpression(val identifier: IdentifierReference?,
+                             val register: Register?,
+                             var array: ArraySpec,
+                             override val position: Position) : IExpression {
+    override lateinit var parent: Node
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        identifier?.linkParents(this)
+        array.linkParents(this)
+    }
+
+    override fun isIterable(namespace: INameScope, heap: HeapValues) = false
+    override fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue? = null
+    override fun process(processor: IAstProcessor): IExpression = processor.process(this)
+    override fun referencesIdentifier(name: String) = identifier?.referencesIdentifier(name) ?: false
+
+    override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? {
+        if (register != null)
+            return DataType.BYTE
+        val target = identifier?.targetStatement(namespace)
+        if (target is VarDecl) {
+            return when (target.datatype) {
+                DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> DataType.BYTE
+                DataType.ARRAY, DataType.MATRIX -> DataType.BYTE
+                DataType.ARRAY_W -> DataType.WORD
+                else -> null
+            }
+        }
+        throw FatalAstException("cannot get indexed element on $target")
+    }
+}
+
 
 private data class NumericLiteral(val number: Number, val datatype: DataType)
 
@@ -1755,7 +1794,17 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
     if(childCount==3 && children[0].text=="(" && children[2].text==")")
         return expression(0).toAst()        // expression within ( )
 
+    if(arrayindexed()!=null)
+        return arrayindexed().toAst()
+
     throw FatalAstException(text)
+}
+
+private fun prog8Parser.ArrayindexedContext.toAst(): IExpression {
+    return ArrayIndexedExpression(identifier()?.toAst() ?: scoped_identifier()?.toAst(),
+            register()?.toAst(),
+            arrayspec().toAst(),
+            toPosition())
 }
 
 

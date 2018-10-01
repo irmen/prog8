@@ -123,7 +123,6 @@ postincrdecr :  assign_target  operator = ('++' | '--') ;
 
 expression :
 	'(' expression ')'
-	| expression arrayspec
 	| functioncall
 	| prefix = ('+'|'-'|'~') expression
 	| left = expression bop = '**' right = expression
@@ -143,7 +142,13 @@ expression :
 	| register
 	| identifier
 	| scoped_identifier
+	| arrayindexed
 	;
+
+
+arrayindexed :
+    (identifier | scoped_identifier | register) arrayspec
+    ;
 
 
 functioncall :

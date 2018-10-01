@@ -290,7 +290,7 @@ class AstChecker(private val namespace: INameScope,
                 if(assignment.value is FunctionCall)
                     checkResult.add(ExpressionError("function call doesn't return a value to use in assignment", assignment.value.position))
                 else
-                    checkResult.add(ExpressionError("assignment source ${assignment.value} is no value or has no proper datatype", assignment.value.position))
+                    checkResult.add(ExpressionError("assignment value is invalid or has no proper datatype", assignment.value.position))
             }
             else {
                 checkAssignmentCompatible(targetDatatype, sourceDatatype, assignment.value, assignment.position)
@@ -559,6 +559,34 @@ class AstChecker(private val namespace: INameScope,
             }
         }
         return super.process(postIncrDecr)
+    }
+
+    override fun process(arrayIndexedExpression: ArrayIndexedExpression): IExpression {
+        val reg=arrayIndexedExpression.register
+        if(reg==null) {
+            val target = arrayIndexedExpression.identifier!!.targetStatement(namespace)
+            if(target is VarDecl) {
+                if(target.datatype==DataType.BYTE || target.datatype==DataType.WORD || target.datatype==DataType.FLOAT)
+                    checkResult.add(SyntaxError("array indexing requires an iterable variable", arrayIndexedExpression.position))
+                val arraysize = target.arrayspec?.size()
+                if(arraysize!=null) {
+                    // check out of bounds
+                    if((arrayIndexedExpression.array.y as? LiteralValue)?.asIntegerValue != null) {
+                        throw FatalAstException("constant y dimension of index should have been const-folded with x into one value")
+                    }
+                    val index = (arrayIndexedExpression.array.x as? LiteralValue)?.asIntegerValue
+                    if(index!=null && (index<0 || index>=arraysize))
+                        checkResult.add(ExpressionError("array index out of bounds", arrayIndexedExpression.array.position))
+                }
+            } else
+                checkResult.add(SyntaxError("array indexing requires a variable to act upon", arrayIndexedExpression.position))
+        } else if(reg==Register.A || reg==Register.X || reg==Register.Y) {
+            checkResult.add(SyntaxError("array indexing on registers requires register pair variable", arrayIndexedExpression.position))
+        } else if(arrayIndexedExpression.array.y!=null) {
+            checkResult.add(SyntaxError("array indexing on registers can only use one index dimension", arrayIndexedExpression.position))
+        }
+
+        return super.process(arrayIndexedExpression)
     }
 
     private fun checkFunctionOrLabelExists(target: IdentifierReference, statement: IStatement): IStatement? {

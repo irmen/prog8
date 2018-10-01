@@ -182,11 +182,15 @@ Values will usually be part of an expression or assignment statement::
 
 Array and Matrix (2-dimensional array) types are also supported like this::
 
-	byte[4]  array = [1, 2, 3, 4]     ; initialize the array
-	byte[99] array = 255              ; initialize array with all 255's [255, 255, 255, 255, ...]
-	byte[100] array = 100 to 199      ; initialize array with [100, 101, ..., 198, 199]
-	byte[2,3] matrix = 1              ; a matrix of 2*3=6 bytes all with value 1
-	byte[2,3] matrix = [1,2,3,4,5,6]  ; a 2*3 matrix with value |(1,2)  (3,4)  (5,6)|
+    byte[4]  array = [1, 2, 3, 4]     ; initialize the array
+    byte[99] array = 255              ; initialize array with all 255's [255, 255, 255, 255, ...]
+    byte[100] array = 100 to 199      ; initialize array with [100, 101, ..., 198, 199]
+    byte[2,3] matrix = 1              ; a matrix of 2*3=6 bytes all with value 1
+    byte[2,3] matrix = [1,2,3,4,5,6]  ; a 2*3 matrix with value |(1,2)  (3,4)  (5,6)|
+
+    value = array[3]            ; the fourth value in the array (index is 0-based)
+    value = matrix[4,2]         ; the byte at the 5th column and 3rd row in the matrix
+    char = string[4]            ; the fifth character (=byte) in the string
 
 
 Note that the various keywords for the data type and variable type (``byte``, ``word``, ``const``, etc.)

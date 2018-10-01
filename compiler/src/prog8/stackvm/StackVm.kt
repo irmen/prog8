@@ -93,6 +93,9 @@ enum class Opcode {
     EQUAL,
     NOTEQUAL,
 
+    // array access
+    PUSH_INDEXED_VAR,
+
     // branching
     JUMP,
     BCS,
@@ -904,6 +907,23 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.LINE -> {
                 sourceLine = ins.callLabel!!
+            }
+            Opcode.PUSH_INDEXED_VAR -> {
+                val index = evalstack.pop().integerValue()
+                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                if(variable.type==DataType.WORD) {
+                    // assume the variable is a pointer (address) and get the byte value from that memory location
+                    evalstack.push(Value(DataType.BYTE, mem.getByte(variable.integerValue())))
+                } else {
+                    // get indexed element from the array
+                    val array = heap.get(variable.heapId)
+                    val result = array.array!![index]
+                    when(array.type) {
+                        DataType.ARRAY, DataType.MATRIX -> evalstack.push(Value(DataType.BYTE, result))
+                        DataType.ARRAY_W -> evalstack.push(Value(DataType.WORD, result))
+                        else -> throw VmExecutionException("not a proper array/matrix var")
+                    }
+                }
             }
             else -> throw VmExecutionException("unimplemented opcode: ${ins.opcode}")
         }

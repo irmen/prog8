@@ -340,6 +340,23 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
         }
         return super.process(literalValue)
     }
+
+    override fun process(arrayIndexedExpression: ArrayIndexedExpression): IExpression {
+        if(arrayIndexedExpression.array.y!=null) {
+            if(arrayIndexedExpression.array.size()!=null) {
+                // both x and y are known
+                // calculate the 2-dimension index i = y*columns + x
+                if(arrayIndexedExpression.identifier!=null) {
+                    val x = (arrayIndexedExpression.array.x as LiteralValue).asIntegerValue!!
+                    val y = (arrayIndexedExpression.array.y as LiteralValue).asIntegerValue!!
+                    val variable = arrayIndexedExpression.identifier.targetStatement(namespace) as VarDecl
+                    val index = x + y*(variable.arrayspec!!.x as LiteralValue).asIntegerValue!!
+                    arrayIndexedExpression.array = ArraySpec(LiteralValue.optimalInteger(index, arrayIndexedExpression.array.position), null, arrayIndexedExpression.array.position)
+                }
+            }
+        }
+        return super.process(arrayIndexedExpression)
+    }
 }
 
 
