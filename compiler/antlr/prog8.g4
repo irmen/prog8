@@ -71,6 +71,7 @@ statement :
 	| if_stmt
 	| branch_stmt
 	| subroutine
+	| asmsubroutine
 	| inlineasm
 	| returnstmt
 	| forloop
@@ -171,6 +172,8 @@ scoped_identifier :  NAME ('.' NAME)+ ;
 
 register :  'A' | 'X' | 'Y' | 'AX' | 'AY' | 'XY' ;
 
+statusregister :  'Pc' | 'Pz' | 'Pn' | 'Pv' ;
+
 integerliteral :  intpart=(DEC_INTEGER | HEX_INTEGER | BIN_INTEGER) wordsuffix? ;
 
 wordsuffix : '.w' ;
@@ -198,7 +201,7 @@ inlineasm :  '%asm' INLINEASMBLOCK;
 
 
 subroutine :
-	'sub' identifier '(' sub_params? ')' sub_return_part?  (sub_address | (statement_block EOL))
+	'sub' identifier '(' sub_params? ')' sub_return_part?  (statement_block EOL)
 	;
 
 sub_return_part : '->' sub_returns  ;
@@ -209,13 +212,29 @@ statement_block :
 	'}'
 	;
 
-sub_address : '=' integerliteral ;
 
-sub_params : sub_param (',' sub_param)* ;
+sub_params :  sub_param (',' sub_param)* ;
 
-sub_param: identifier ':' datatype;
+sub_param :  identifier ':' datatype;
 
-sub_returns : datatype (',' datatype)*  ;
+sub_returns :  datatype (',' datatype)*  ;
+
+asmsubroutine :
+    'asmsub' identifier '(' asmsub_params? ')'
+    '->' 'clobbers' '(' clobber? ')' '->' '(' asmsub_returns? ')' (asmsub_address  | statement_block )
+    ;
+
+asmsub_address :  '=' address=integerliteral  ;
+
+asmsub_params :  asmsub_param (',' asmsub_param)* ;
+
+asmsub_param :  identifier ':' datatype '@' (register | statusregister);
+
+clobber :  register (',' register)* ;
+
+asmsub_returns :  asmsub_return (',' asmsub_return)* ;
+
+asmsub_return :  datatype '@' (register | statusregister) ;
 
 
 if_stmt :  'if' expression EOL? (statement | statement_block) EOL? else_part? EOL ; // statement is constrained later

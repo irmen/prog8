@@ -38,6 +38,13 @@ enum class Register {
     XY
 }
 
+enum class Statusflag {
+    Pc,
+    Pz,
+    Pv,
+    Pn
+}
+
 enum class BranchCondition {
     CS,
     CC,
@@ -204,6 +211,10 @@ interface IAstProcessor {
     fun process(returnStmt: Return): IStatement {
         returnStmt.values = returnStmt.values.map { it.process(this) }
         return returnStmt
+    }
+
+    fun process(asmSubroutine: AsmSubroutine): IStatement {
+        return asmSubroutine
     }
 }
 
@@ -1237,7 +1248,6 @@ class InlineAssembly(val assembly: String, override val position: Position) : IS
 class Subroutine(override val name: String,
                  val parameters: List<SubroutineParameter>,
                  val returnvalues: List<DataType>,
-                 val address: Int?,
                  override var statements: MutableList<IStatement>,
                  override val position: Position) : IStatement, INameScope {
     override lateinit var parent: Node
@@ -1253,18 +1263,56 @@ class Subroutine(override val name: String,
     override fun process(processor: IAstProcessor) = processor.process(this)
 
     override fun toString(): String {
-        return "Subroutine(name=$name, address=$address, parameters=$parameters, returnvalues=$returnvalues, ${statements.size} statements)"
+        return "Subroutine(name=$name, parameters=$parameters, returnvalues=$returnvalues, ${statements.size} statements)"
     }
 
     override fun registerUsedName(name: String) = throw NotImplementedError("not implemented on sub-scopes")
 }
 
 
-data class SubroutineParameter(val name: String,
+open class SubroutineParameter(val name: String,
                                val type: DataType,
                                override val position: Position) : Node {
     override lateinit var parent: Node
 
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+    }
+}
+
+
+// @todo merge this with normal Subroutine?
+class AsmSubroutine(val name: String,
+                    val address: Int?,
+                    val params: List<AsmSubroutineParameter>,
+                    val returns: List<AsmSubroutineReturn>,
+                    val clobbers: Set<Register>,
+                    val statements: MutableList<IStatement>,
+                    override val position: Position) : IStatement {
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        params.forEach { it.linkParents(this) }
+        returns.forEach { it.linkParents(this) }
+        statements.forEach { it.linkParents(this) }
+    }
+
+    override fun process(processor: IAstProcessor) = processor.process(this)
+}
+
+class AsmSubroutineParameter(name: String,
+                             type: DataType,
+                             val register: Register?,
+                             val statusflag: Statusflag?,
+                             position: Position) : SubroutineParameter(name, type, position)
+
+
+class AsmSubroutineReturn(val type: DataType,
+                          val register: Register?,
+                          val statusflag: Statusflag?,
+                          override val position: Position): Node {
+    override lateinit var parent: Node
     override fun linkParents(parent: Node) {
         this.parent = parent
     }
@@ -1490,8 +1538,37 @@ private fun prog8Parser.StatementContext.toAst() : IStatement {
     val continuestmt = continuestmt()?.toAst()
     if(continuestmt!=null) return continuestmt
 
+    val asmsubstmt = asmsubroutine()?.toAst()
+    if(asmsubstmt!=null) return asmsubstmt
+
     throw FatalAstException("unprocessed source text (are we missing ast conversion rules for parser elements?): $text")
 }
+
+
+private fun prog8Parser.AsmsubroutineContext.toAst(): IStatement {
+    val name = identifier().text
+    val address = asmsub_address()?.address?.toAst()?.number?.toInt()
+    val params = asmsub_params()?.toAst() ?: emptyList()
+    val returns = asmsub_returns()?.toAst() ?: emptyList()
+    val clobbers = clobber()?.toAst() ?: emptySet()
+    val statements = statement_block()?.toAst() ?: mutableListOf()
+    return AsmSubroutine(name, address, params, returns, clobbers, statements, toPosition())
+}
+
+
+private fun prog8Parser.ClobberContext.toAst(): Set<Register>
+        = this.register().asSequence().map { it.toAst() }.toSet()
+
+
+private fun prog8Parser.Asmsub_returnsContext.toAst(): List<AsmSubroutineReturn>
+        = asmsub_return().map { AsmSubroutineReturn(it.datatype().toAst(), it.register()?.toAst(), it.statusregister()?.toAst(), toPosition()) }
+
+
+private fun prog8Parser.Asmsub_paramsContext.toAst(): List<AsmSubroutineParameter>
+        = asmsub_param().map { AsmSubroutineParameter(it.identifier().text, it.datatype().toAst(), it.register()?.toAst(), it.statusregister()?.toAst(), toPosition()) }
+
+
+private fun prog8Parser.StatusregisterContext.toAst() = Statusflag.valueOf(text)
 
 
 private fun prog8Parser.Functioncall_stmtContext.toAst(): IStatement {
@@ -1526,12 +1603,8 @@ private fun prog8Parser.ReturnstmtContext.toAst() : Return {
 }
 
 private fun prog8Parser.UnconditionaljumpContext.toAst(): Jump {
-
     val address = integerliteral()?.toAst()?.number?.toInt()
-    val identifier =
-            if(identifier()!=null) identifier()?.toAst()
-            else scoped_identifier()?.toAst()
-
+    val identifier = identifier()?.toAst() ?: scoped_identifier()?.toAst()
     return Jump(address, identifier, null, toPosition())
 }
 
@@ -1542,10 +1615,9 @@ private fun prog8Parser.LabeldefContext.toAst(): IStatement =
 
 private fun prog8Parser.SubroutineContext.toAst() : Subroutine {
     return Subroutine(identifier().text,
-            if(sub_params() ==null) emptyList() else sub_params().toAst(),
-            if(sub_return_part() == null) emptyList() else sub_return_part().toAst(),
-            sub_address()?.integerliteral()?.toAst()?.number?.toInt(),
-            if(statement_block() ==null) mutableListOf() else statement_block().toAst(),
+            sub_params()?.toAst() ?: emptyList(),
+            sub_return_part()?.toAst() ?: emptyList(),
+            statement_block()?.toAst() ?: mutableListOf(),
             toPosition())
 }
 

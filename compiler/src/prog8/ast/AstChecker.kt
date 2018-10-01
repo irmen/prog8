@@ -195,18 +195,16 @@ class AstChecker(private val namespace: INameScope,
         // subroutine must contain at least one 'return' or 'goto'
         // (or if it has an asm block, that must contain a 'rts' or 'jmp')
         if(subroutine.statements.count { it is Return || it is Jump } == 0) {
-            if(subroutine.address==null) {
-                val amount = subroutine.statements
-                        .asSequence()
-                        .filter { it is InlineAssembly }
-                        .map { (it as InlineAssembly).assembly }
-                        .count { "rts" in it || "\trts" in it || "jmp" in it || "\tjmp" in it }
-                if (amount == 0) {
-                    if(subroutine.returnvalues.isNotEmpty())
-                        err("subroutine has result value(s) and thus must have at least one 'return' or 'goto' in it (or 'rts' / 'jmp' in case of %asm)")
-                    // if there's no return statement, we add the implicit one at the end.
-                    subroutine.statements.add(Return(emptyList(), subroutine.position))
-                }
+            val amount = subroutine.statements
+                    .asSequence()
+                    .filter { it is InlineAssembly }
+                    .map { (it as InlineAssembly).assembly }
+                    .count { "rts" in it || "\trts" in it || "jmp" in it || "\tjmp" in it }
+            if (amount == 0) {
+                if(subroutine.returnvalues.isNotEmpty())
+                    err("subroutine has result value(s) and thus must have at least one 'return' or 'goto' in it (or 'rts' / 'jmp' in case of %asm)")
+                // if there's no return statement, we add the implicit one at the end.
+                subroutine.statements.add(Return(emptyList(), subroutine.position))
             }
         }
 
@@ -224,7 +222,7 @@ class AstChecker(private val namespace: INameScope,
         var checkNext = false
         for (stmt in statements) {
             if(checkNext) {
-                if(stmt !is Label && stmt !is Subroutine)
+                if(stmt !is Label && stmt !is Subroutine && stmt !is AsmSubroutine)
                     checkResult.add(SyntaxError("preceding subroutine definition at line ${preceding.position.line} must be followed here by a label, another subroutine statement, or nothing", stmt.position))
                 return
             }
@@ -232,6 +230,7 @@ class AstChecker(private val namespace: INameScope,
                 if(preceding !is Return
                         && preceding !is Jump
                         && preceding !is Subroutine
+                        && preceding !is AsmSubroutine
                         && preceding !is VarDecl
                         && preceding !is BuiltinFunctionStatementPlaceholder) {
                     checkResult.add(SyntaxError("subroutine definition must be preceded by a return, jump, vardecl, or another subroutine statement", stmt.position))
@@ -315,10 +314,6 @@ class AstChecker(private val namespace: INameScope,
                 decl.arrayspec?.x?.referencesIdentifier(decl.name) == true ||
                 decl.arrayspec?.y?.referencesIdentifier(decl.name) == true) {
             err("recursive var declaration")
-        }
-
-        if(!compilerOptions.floats && decl.datatype==DataType.FLOAT) {
-            err("float var/const declaration, but floating point is not enabled via options")
         }
 
         // for now, variables can only be declared in a block or subroutine (not in a loop statement block)  @todo fix this
