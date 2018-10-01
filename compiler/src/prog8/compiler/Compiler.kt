@@ -51,18 +51,19 @@ fun String.unescape(): String {
 
 
 class HeapValues {
-    data class HeapValue(val type: DataType, val str: String?, val array: IntArray?) {
+    data class HeapValue(val type: DataType, val str: String?, val array: IntArray?, val doubleArray: DoubleArray?) {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (javaClass != other?.javaClass) return false
             other as HeapValue
-            return type==other.type && str==other.str && Arrays.equals(array, other.array)
+            return type==other.type && str==other.str && Arrays.equals(array, other.array) && Arrays.equals(doubleArray, other.doubleArray)
         }
 
         override fun hashCode(): Int {
             var result = type.hashCode()
             result = 31 * result + (str?.hashCode() ?: 0)
             result = 31 * result + (array?.let { Arrays.hashCode(it) } ?: 0)
+            result = 31 * result + (doubleArray?.let { Arrays.hashCode(it) } ?: 0)
             return result
         }
     }
@@ -74,7 +75,7 @@ class HeapValues {
             throw IllegalArgumentException("string length must be 1-255")
 
         // strings are 'interned' and shared if they're the same
-        val value = HeapValue(type, str, null)
+        val value = HeapValue(type, str, null, null)
         val existing = heap.indexOf(value)
         if(existing>=0)
             return existing
@@ -84,7 +85,13 @@ class HeapValues {
 
     fun add(type: DataType, array: IntArray): Int {
         // arrays are never shared
-        heap.add(HeapValue(type, null, array))
+        heap.add(HeapValue(type, null, array, null))
+        return heap.size-1
+    }
+
+    fun add(type: DataType, darray: DoubleArray): Int {
+        // arrays are never shared
+        heap.add(HeapValue(type, null, null, darray))
         return heap.size-1
     }
 
@@ -102,21 +109,15 @@ class HeapValues {
         }
     }
 
-    fun update(heapId: Int, array: IntArray) {
-        when(heap[heapId].type){
-            DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX -> {
-                if(heap[heapId].array!!.size != array.size)
-                    throw IllegalArgumentException("heap array length mismatch")
-                heap[heapId] = heap[heapId].copy(array=array)
-            }
-            else-> throw IllegalArgumentException("heap data type mismatch")
-        }
+    fun update(heapId: Int, heapval: HeapValue) {
+        heap[heapId] = heapval
     }
 
     fun get(heapId: Int): HeapValue = heap[heapId]
 
     fun allStrings() = heap.asSequence().withIndex().filter { it.value.str!=null }.toList()
     fun allArrays() = heap.asSequence().withIndex().filter { it.value.array!=null }.toList()
+    fun allDoubleArrays() = heap.asSequence().withIndex().filter { it.value.doubleArray!=null }.toList()
 }
 
 
@@ -146,7 +147,7 @@ class StackVmProgram(val name: String, val heap: HeapValues) {
                     throw CompilerException("string should already be in the heap")
                 Value(decl.datatype, litval.heapId)
             }
-            DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX -> {
+            DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX -> {
                 val litval = (decl.value as LiteralValue)
                 if(litval.heapId==null)
                     throw CompilerException("array/matrix should already be in the heap")
@@ -458,7 +459,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                             throw CompilerException("string should have been moved into heap   ${lv.position}")
                         stackvmProg.instr(Opcode.PUSH, Value(lv.type, lv.heapId))
                     }
-                    DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX -> {
+                    DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX -> {
                         if(lv.heapId==null)
                             throw CompilerException("array/matrix should have been moved into heap  ${lv.position}")
                         stackvmProg.instr(Opcode.PUSH, Value(lv.type, lv.heapId))
@@ -688,7 +689,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                     }
                 }
                 DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
-                DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
+                DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                 // todo: maybe if you assign byte or word to array/matrix, clear it with that value?
             }
         }
@@ -799,18 +800,21 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                 }
             }
         } else {
-            val litVal = loop.iterable as? LiteralValue
-            val ident = loop.iterable as? IdentifierReference
-            when {
-                litVal?.strvalue != null -> {
-                    TODO("loop over string $litVal")
-                }
-                ident!=null -> {
-                    val symbol = ident.targetStatement(namespace)
-                    TODO("loop over symbol: ${ident.nameInSource} -> $symbol")
-                }
-                else -> throw CompilerException("loopvar is something strange ${loop.iterable}")
+            val iterableValue: LiteralValue?
+            if(loop.iterable is LiteralValue) {
+                if (!loop.iterable.isIterable(namespace, heap))
+                    throw CompilerException("loop over something that isn't iterable ${loop.iterable}")
+                iterableValue = loop.iterable as LiteralValue
+            } else if(loop.iterable is IdentifierReference) {
+                val idRef = loop.iterable as IdentifierReference
+                iterableValue = ((idRef.targetStatement(namespace) as? VarDecl)?.value as? LiteralValue)
+                if(iterableValue!=null && !iterableValue.isIterable(namespace, heap))
+                    throw CompilerException("loop over something that isn't iterable ${loop.iterable}")
+            } else {
+                throw CompilerException("loopvar is something strange ${loop.iterable}")
             }
+
+            TODO("LOOP OVER ITERABLE VALUE (array/matrix/string) $iterableValue")
         }
     }
 

@@ -2,6 +2,8 @@ package prog8.ast
 
 import prog8.compiler.CompilationOptions
 import prog8.compiler.HeapValues
+import prog8.compiler.target.c64.FLOAT_MAX_NEGATIVE
+import prog8.compiler.target.c64.FLOAT_MAX_POSITIVE
 import prog8.functions.BuiltinFunctions
 import prog8.parser.ParsingFailedError
 
@@ -111,7 +113,7 @@ class AstChecker(private val namespace: INameScope,
                         if (iterableDt != DataType.WORD && iterableDt != DataType.BYTE &&
                                 iterableDt != DataType.STR && iterableDt != DataType.STR_P &&
                                 iterableDt != DataType.STR_S && iterableDt != DataType.STR_PS &&
-                                iterableDt !=DataType.ARRAY && iterableDt!=DataType.ARRAY_W && iterableDt!=DataType.MATRIX)
+                                iterableDt !=DataType.ARRAY && iterableDt!=DataType.ARRAY_W && iterableDt!=DataType.ARRAY_F && iterableDt!=DataType.MATRIX)
                             checkResult.add(ExpressionError("register pair can only loop over words", forLoop.position))
                     }
                 }
@@ -127,13 +129,16 @@ class AstChecker(private val namespace: INameScope,
                             if(iterableDt!=DataType.BYTE && iterableDt!=DataType.ARRAY && iterableDt!=DataType.MATRIX &&
                                     iterableDt != DataType.STR && iterableDt != DataType.STR_P &&
                                     iterableDt != DataType.STR_S && iterableDt != DataType.STR_PS)
-                                checkResult.add(ExpressionError("can only loop over bytes", forLoop.position))
+                                checkResult.add(ExpressionError("byte loop variable can only loop over bytes", forLoop.position))
                         }
                         DataType.WORD -> {
                             if(iterableDt!=DataType.BYTE && iterableDt!=DataType.WORD &&
-                                    iterableDt !=DataType.ARRAY && iterableDt!=DataType.ARRAY_W && iterableDt!=DataType.MATRIX)
-                                checkResult.add(ExpressionError("can only loop over bytes or words", forLoop.position))
+                                    iterableDt !=DataType.ARRAY && iterableDt!=DataType.ARRAY_W && iterableDt!=DataType.MATRIX &&
+                                    iterableDt != DataType.STR && iterableDt != DataType.STR_P &&
+                                    iterableDt != DataType.STR_S && iterableDt != DataType.STR_PS)
+                                checkResult.add(ExpressionError("word loop variable can only loop over bytes or words", forLoop.position))
                         }
+                        // there's no support for a floating-point loop variable
                         else -> checkResult.add(ExpressionError("loop variable must be byte or word type", forLoop.position))
                     }
                 }
@@ -331,7 +336,7 @@ class AstChecker(private val namespace: INameScope,
                             litVal.parent = decl
                             decl.value = litVal
                         }
-                        else -> err("var/const declaration needs a compile-time constant initializer value for this type")
+                        else -> err("var/const declaration needs a compile-time constant initializer value for this type")  // const fold should have provided it!
                     }
                     return super.process(decl)
                 }
@@ -438,11 +443,11 @@ class AstChecker(private val namespace: INameScope,
                 if(lv.heapId==null)
                     throw FatalAstException("string should have been moved to heap at ${lv.position}")
             }
-            DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX -> {
+            DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX -> {
                 if(lv.heapId==null)
                     throw FatalAstException("array/matrix should have been moved to heap at ${lv.position}")
             }
-            else -> {}
+            DataType.BYTE, DataType.WORD, DataType.FLOAT -> {}
         }
         return lv
     }
@@ -626,7 +631,7 @@ class AstChecker(private val namespace: INameScope,
                 }
                 return true
             }
-            DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX -> {
+            DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX -> {
                 // range and length check bytes
                 val expectedSize = arrayspec!!.size()
                 val rangeSize=range.size()
@@ -721,17 +726,39 @@ class AstChecker(private val namespace: INameScope,
                         return err("value '$number' out of range for unsigned word")
                 }
             }
+            DataType.ARRAY_F -> {
+                // value may be either a single float, or a float array
+                if(value.type==DataType.ARRAY || value.type==DataType.ARRAY_W || value.type==DataType.ARRAY_F) {
+                    val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).doubleArray!!.size
+                    if(arrayspec!=null) {
+                        // arrayspec is not always known when checking
+                        val constX = arrayspec.x.constValue(namespace, heap)
+                        if(constX?.asIntegerValue==null)
+                            return err("array size specifier must be constant integer value")
+                        val expectedSize = constX.asIntegerValue
+                        if (arraySize != expectedSize)
+                            return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
+                    }
+                } else {
+                    val number = value.asNumericValue!!.toDouble()
+                    if (number < FLOAT_MAX_NEGATIVE || number > FLOAT_MAX_POSITIVE)
+                        return err("value '$number' out of range for mfplt5 floating point")
+                }
+            }
             DataType.MATRIX -> {
                 // value can only be a single byte, or a byte array (which represents the matrix)
                 if(value.type==DataType.ARRAY || value.type==DataType.MATRIX) {
-                    val constX = arrayspec!!.x.constValue(namespace, heap)
-                    val constY = arrayspec.y!!.constValue(namespace, heap)
-                    if(constX?.asIntegerValue==null || constY?.asIntegerValue==null)
-                        return err("matrix size specifiers must be constant integer values")
-                    val matrix = heap.get(value.heapId!!).array!!
-                    val expectedSize = constX.asIntegerValue * constY.asIntegerValue
-                    if (matrix.size != expectedSize)
-                        return err("initializer matrix size mismatch (expecting $expectedSize, got ${matrix.size} elements)")
+                    if(arrayspec!=null) {
+                        // arrayspec is not always known when checking
+                        val constX = arrayspec.x.constValue(namespace, heap)
+                        val constY = arrayspec.y!!.constValue(namespace, heap)
+                        if (constX?.asIntegerValue == null || constY?.asIntegerValue == null)
+                            return err("matrix size specifiers must be constant integer values")
+                        val matrix = heap.get(value.heapId!!).array!!
+                        val expectedSize = constX.asIntegerValue * constY.asIntegerValue
+                        if (matrix.size != expectedSize)
+                            return err("initializer matrix size mismatch (expecting $expectedSize, got ${matrix.size} elements)")
+                    }
                 } else {
                     val number = value.bytevalue
                             ?: return err("unsigned byte value expected")

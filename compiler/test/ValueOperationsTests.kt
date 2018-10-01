@@ -86,9 +86,17 @@ class TestStackVmValue {
         assertFalse(sameValueAndType(Value(DataType.STR, 999), Value(DataType.STR_P, 999)))
         assertFalse(sameValueAndType(Value(DataType.STR, 999), Value(DataType.STR, 222)))
 
+        assertTrue(sameValueAndType(Value(DataType.ARRAY, 99), Value(DataType.ARRAY, 99)))
+        assertFalse(sameValueAndType(Value(DataType.ARRAY, 99), Value(DataType.MATRIX, 99)))
+        assertFalse(sameValueAndType(Value(DataType.ARRAY, 99), Value(DataType.ARRAY, 22)))
+
         assertTrue(sameValueAndType(Value(DataType.ARRAY_W, 999), Value(DataType.ARRAY_W, 999)))
         assertFalse(sameValueAndType(Value(DataType.ARRAY_W, 999), Value(DataType.MATRIX, 999)))
         assertFalse(sameValueAndType(Value(DataType.ARRAY_W, 999), Value(DataType.ARRAY_W, 222)))
+
+        assertTrue(sameValueAndType(Value(DataType.ARRAY_F, 999), Value(DataType.ARRAY_F, 999)))
+        assertFalse(sameValueAndType(Value(DataType.ARRAY_F, 999), Value(DataType.ARRAY_W, 999)))
+        assertFalse(sameValueAndType(Value(DataType.ARRAY_F, 999), Value(DataType.ARRAY_F, 222)))
     }
 
     @Test

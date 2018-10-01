@@ -235,6 +235,7 @@ type identifier  type                     storage size       example var declara
                                                              stored in 5-byte cbm MFLPT format
 ``byte[x]``      unsigned byte array      x bytes            ``byte[4] myvar = [1, 2, 3, 4]``
 ``word[x]``      unsigned word array      2*x bytes          ``word[4] myvar = [1, 2, 3, 4]``
+``float[x]``     floating-point array     5*x bytes          ``float[4] myvar = [1.1, 2.2, 3.3, 4.4]``
 ``byte[x,y]``    unsigned byte matrix     x*y bytes          ``byte[40,25] myvar = @todo``
                                                              word-matrix not supported
 ``str``          string (petscii)         varies             ``str myvar = "hello."``
@@ -450,9 +451,9 @@ Loops
 for loop
 ^^^^^^^^
 
-The loop variable must be a register or a variable defined in the local scope.
+The loop variable must be a register or a byte/word variable defined in the local scope.
 The expression that you loop over can be anything that supports iteration (such as ranges like ``0 to 100``,
-array variables and strings).
+array variables and strings) *except* floating-point arrays (because a floating-point loop variable is not supported).
 
 You can use a single statement, or a statement block like in the example below::
 

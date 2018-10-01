@@ -180,7 +180,8 @@ Values will usually be part of an expression or assignment statement::
 	byte  counter  = 42	; variable of size 8 bits, with initial value 42
 
 
-Array and Matrix (2-dimensional array) types are also supported like this::
+Array and Matrix (2-dimensional array) types are also supported.
+Arrays can be made of bytes, words and floats. Matrixes can oly be made of bytes::
 
     byte[4]  array = [1, 2, 3, 4]     ; initialize the array
     byte[99] array = 255              ; initialize array with all 255's [255, 255, 255, 255, ...]
@@ -313,7 +314,8 @@ Loops
 -----
 
 The *for*-loop is used to let a variable (or register) iterate over a range of values. Iteration is done in steps of 1, but you can change this.
-The loop variable must be declared as byte or word earlier. Floating point iteration is not supported.
+The loop variable must be declared as byte or word earlier. Floating point iteration is not supported,
+if you want to loop over a floating-point array, use a loop with an integer index variable instead.
 
 The *while*-loop is used to repeat a piece of code while a certain condition is still true.
 The *repeat--until* loop is used to repeat a piece of code until a certain condition is true.

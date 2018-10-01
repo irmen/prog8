@@ -3,6 +3,7 @@ package prog8.ast
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
 import prog8.compiler.HeapValues
+import prog8.compiler.target.c64.Mflpt5
 import prog8.compiler.target.c64.Petscii
 import prog8.compiler.unescape
 import prog8.functions.BuiltinFunctions
@@ -26,6 +27,7 @@ enum class DataType {
     STR_PS,
     ARRAY,
     ARRAY_W,
+    ARRAY_F,
     MATRIX
 }
 
@@ -60,7 +62,9 @@ enum class BranchCondition {
     POS
 }
 
-val IterableDatatypes = setOf(DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS, DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX)
+val IterableDatatypes = setOf(
+        DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
+        DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX)
 
 class FatalAstException (override var message: String) : Exception(message)
 
@@ -599,8 +603,9 @@ class VarDecl(val type: VarDeclType,
         else -> when (declaredDatatype) {
             DataType.BYTE -> DataType.ARRAY
             DataType.WORD -> DataType.ARRAY_W
+            DataType.FLOAT -> DataType.ARRAY_F
             else -> {
-                datatypeErrors.add(SyntaxError("array can only contain bytes or words", position))
+                datatypeErrors.add(SyntaxError("array can only contain bytes/words/floats", position))
                 DataType.BYTE
             }
         }
@@ -620,7 +625,7 @@ class VarDecl(val type: VarDeclType,
         get() = when(datatype) {
             DataType.BYTE -> 1
             DataType.WORD -> 2
-            DataType.FLOAT -> 5   // MFLPT5
+            DataType.FLOAT -> Mflpt5.MemorySize
             DataType.STR,
             DataType.STR_P,
             DataType.STR_S,
@@ -635,6 +640,10 @@ class VarDecl(val type: VarDeclType,
             DataType.ARRAY_W -> {
                 val aX = arrayspec?.x as? LiteralValue ?: throw ExpressionError("need constant value expression for arrayspec", position)
                 2*aX.asIntegerValue!!
+            }
+            DataType.ARRAY_F -> {
+                val aX = arrayspec?.x as? LiteralValue ?: throw ExpressionError("need constant value expression for arrayspec", position)
+                Mflpt5.MemorySize*aX.asIntegerValue!!
             }
             DataType.MATRIX -> {
                 val aX = arrayspec?.x as? LiteralValue ?: throw ExpressionError("need constant value expression for arrayspec", position)
@@ -833,10 +842,11 @@ class ArrayIndexedExpression(val identifier: IdentifierReference?,
         val target = identifier?.targetStatement(namespace)
         if (target is VarDecl) {
             return when (target.datatype) {
+                DataType.BYTE, DataType.WORD, DataType.FLOAT -> null
                 DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> DataType.BYTE
                 DataType.ARRAY, DataType.MATRIX -> DataType.BYTE
                 DataType.ARRAY_W -> DataType.WORD
-                else -> null
+                DataType.ARRAY_F -> DataType.FLOAT
             }
         }
         throw FatalAstException("cannot get indexed element on $target")
@@ -861,7 +871,7 @@ class LiteralValue(val type: DataType,
 
     val isString = type==DataType.STR || type==DataType.STR_P || type==DataType.STR_S || type==DataType.STR_PS
     val isNumeric = type==DataType.BYTE || type==DataType.WORD || type==DataType.FLOAT
-    val isArray = type==DataType.ARRAY || type==DataType.ARRAY_W || type==DataType.MATRIX
+    val isArray = type==DataType.ARRAY || type==DataType.ARRAY_W || type==DataType.ARRAY_F || type==DataType.MATRIX
 
     companion object {
         fun fromBoolean(bool: Boolean, position: Position) =
@@ -908,7 +918,7 @@ class LiteralValue(val type: DataType,
             DataType.FLOAT -> if(floatvalue==null) throw FatalAstException("literal value missing floatvalue")
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS ->
                 if(strvalue==null && heapId==null) throw FatalAstException("literal value missing strvalue/heapId")
-            DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX ->
+            DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX ->
                 if(arrayvalue==null && heapId==null) throw FatalAstException("literal value missing arrayvalue/heapId")
         }
         if(bytevalue==null && wordvalue==null && floatvalue==null && arrayvalue==null && strvalue==null && heapId==null)
@@ -952,7 +962,7 @@ class LiteralValue(val type: DataType,
                 if(heapId!=null) "str:#$heapId"
                 else "str:$strvalue"
             }
-            DataType.ARRAY, DataType.ARRAY_W -> {
+            DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F -> {
                 if(heapId!=null) "array:#$heapId"
                 else "array:$arrayvalue"
             }

@@ -54,6 +54,8 @@ class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
 data class Mflpt5(val b0: Short, val b1: Short, val b2: Short, val b3: Short, val b4: Short) {
 
     companion object {
+        const val MemorySize = 5
+
         val zero = Mflpt5(0, 0,0,0,0)
         fun fromNumber(num: Number): Mflpt5 {
             // see https://en.wikipedia.org/wiki/Microsoft_Binary_Format

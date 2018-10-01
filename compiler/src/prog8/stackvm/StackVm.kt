@@ -483,6 +483,7 @@ class StackVm(private var traceOutputFile: String?) {
                             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> print(heap.get(value.heapId).str)
                             DataType.ARRAY, DataType.ARRAY_W -> print(heap.get(value.heapId).array!!.toList())
                             DataType.MATRIX -> print(heap.get(value.heapId).array!!.toList())
+                            DataType.ARRAY_F -> print(heap.get(value.heapId).doubleArray!!.toList())
                         }
                     }
                     Syscall.INPUT_STR -> {
@@ -573,7 +574,8 @@ class StackVm(private var traceOutputFile: String?) {
                             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> DataType.BYTE
                             DataType.ARRAY, DataType.MATRIX -> DataType.BYTE
                             DataType.ARRAY_W -> DataType.WORD
-                            else -> throw VmExecutionException("uniterable value $iterable")
+                            DataType.ARRAY_F -> DataType.FLOAT
+                            DataType.BYTE, DataType.WORD, DataType.FLOAT -> throw VmExecutionException("uniterable value $iterable")
                         }
                         if(value.str!=null) {
                             val result = Petscii.encodePetscii(value.str.max().toString(), true)[0]
@@ -590,7 +592,8 @@ class StackVm(private var traceOutputFile: String?) {
                             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> DataType.BYTE
                             DataType.ARRAY, DataType.MATRIX -> DataType.BYTE
                             DataType.ARRAY_W -> DataType.WORD
-                            else -> throw VmExecutionException("uniterable value $iterable")
+                            DataType.ARRAY_F -> DataType.FLOAT
+                            DataType.BYTE, DataType.WORD, DataType.FLOAT -> throw VmExecutionException("uniterable value $iterable")
                         }
                         if(value.str!=null) {
                             val result = Petscii.encodePetscii(value.str.min().toString(), true)[0]
@@ -917,11 +920,17 @@ class StackVm(private var traceOutputFile: String?) {
                 } else {
                     // get indexed element from the array
                     val array = heap.get(variable.heapId)
-                    val result = array.array!![index]
                     when(array.type) {
-                        DataType.ARRAY, DataType.MATRIX -> evalstack.push(Value(DataType.BYTE, result))
-                        DataType.ARRAY_W -> evalstack.push(Value(DataType.WORD, result))
-                        else -> throw VmExecutionException("not a proper array/matrix var")
+                        DataType.ARRAY, DataType.MATRIX -> evalstack.push(Value(DataType.BYTE, array.array!![index]))
+                        DataType.ARRAY_W -> evalstack.push(Value(DataType.WORD, array.array!![index]))
+                        DataType.ARRAY_F -> evalstack.push(Value(DataType.FLOAT, array.doubleArray!![index]))
+                        DataType.BYTE,
+                        DataType.WORD,
+                        DataType.FLOAT,
+                        DataType.STR,
+                        DataType.STR_P,
+                        DataType.STR_S,
+                        DataType.STR_PS -> throw VmExecutionException("not a proper array/matrix var")
                     }
                 }
             }

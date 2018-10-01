@@ -33,17 +33,17 @@ val BuiltinFunctions = mapOf(
     "sqrt"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::sqrt) },
     "rad"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::toRadians) },
     "deg"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::toDegrees) },
-    "avg"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", listOf(DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX))), DataType.FLOAT, ::builtinAvg),
+    "avg"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", listOf(DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX))), DataType.FLOAT, ::builtinAvg),
     "abs"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.FLOAT))), DataType.FLOAT, ::builtinAbs),
     "round"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.FLOAT))), null) { a, p, n, h -> oneDoubleArgOutputInt(a, p, n, h, Math::round) },   // type depends on arg
     "floor"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.FLOAT))), null) { a, p, n, h -> oneDoubleArgOutputInt(a, p, n, h, Math::floor) },   // type depends on arg
     "ceil"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.FLOAT))), null) { a, p, n, h -> oneDoubleArgOutputInt(a, p, n, h, Math::ceil) },    // type depends on arg
-    "max"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", listOf(DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX))), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.max()!! }},        // type depends on args
-    "min"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", listOf(DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX))), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.min()!! }},        // type depends on args
-    "sum"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", listOf(DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX))), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.sum() }},        // type depends on args
-    "len"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", listOf(DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS, DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX))), null, ::builtinLen),        // type depends on args
-    "any"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", listOf(DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX))), DataType.BYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.any { v -> v != 0.0} }},
-    "all"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", listOf(DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX))), DataType.BYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.all { v -> v != 0.0} }},
+    "max"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", listOf(DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX))), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.max()!! }},        // type depends on args
+    "min"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", listOf(DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX))), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.min()!! }},        // type depends on args
+    "sum"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", listOf(DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX))), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.sum() }},        // type depends on args
+    "len"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", listOf(DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS, DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX))), null, ::builtinLen),        // type depends on args
+    "any"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", listOf(DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX))), DataType.BYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.any { v -> v != 0.0} }},
+    "all"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", listOf(DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX))), DataType.BYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.all { v -> v != 0.0} }},
     "lsb"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.WORD))), DataType.BYTE) { a, p, n, h -> oneIntArgOutputInt(a, p, n, h) { x: Int -> x and 255 }},
     "msb"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.WORD))), DataType.BYTE) { a, p, n, h -> oneIntArgOutputInt(a, p, n, h) { x: Int -> x ushr 8 and 255}},
     "flt"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.BYTE, DataType.WORD))), DataType.FLOAT, ::builtinFlt),
@@ -87,7 +87,7 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
 
     fun datatypeFromListArg(arglist: IExpression): DataType {
         if(arglist is LiteralValue) {
-            if(arglist.type==DataType.ARRAY || arglist.type==DataType.ARRAY_W || arglist.type==DataType.MATRIX) {
+            if(arglist.type==DataType.ARRAY || arglist.type==DataType.ARRAY_W || arglist.type==DataType.ARRAY_F || arglist.type==DataType.MATRIX) {
                 val dt = arglist.arrayvalue!!.map {it.resultingDatatype(namespace, heap)}
                 if(dt.any { it!=DataType.BYTE && it!=DataType.WORD && it!=DataType.FLOAT}) {
                     throw FatalAstException("fuction $function only accepts array of numeric values")
@@ -104,6 +104,7 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
                 DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> dt
                 DataType.ARRAY -> DataType.BYTE
                 DataType.ARRAY_W -> DataType.WORD
+                DataType.ARRAY_F -> DataType.FLOAT
                 DataType.MATRIX -> DataType.BYTE
                 null -> throw FatalAstException("function requires one argument which is an array $function")
             }
@@ -124,6 +125,7 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
                 DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> DataType.BYTE
                 DataType.ARRAY -> DataType.BYTE
                 DataType.ARRAY_W -> DataType.WORD
+                DataType.ARRAY_F -> DataType.FLOAT
                 DataType.MATRIX -> DataType.BYTE
             }
         }
@@ -142,6 +144,7 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
                 DataType.BYTE, DataType.WORD -> DataType.WORD
                 DataType.FLOAT -> DataType.FLOAT
                 DataType.ARRAY, DataType.ARRAY_W -> DataType.WORD
+                DataType.ARRAY_F -> DataType.FLOAT
                 DataType.MATRIX -> DataType.WORD
                 DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> DataType.WORD
             }
@@ -306,15 +309,21 @@ private fun builtinLen(args: List<IExpression>, position: Position, namespace:IN
                 ?: throw SyntaxError("len over weird argument ${args[0]}", position)
     }
     return when(argument.type) {
-        DataType.ARRAY, DataType.ARRAY_W -> {
+        DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX -> {
             val arraySize = argument.arrayvalue?.size ?: heap.get(argument.heapId!!).array!!.size
+            numericLiteral(arraySize, args[0].position)
+        }
+        DataType.ARRAY_F -> {
+            val arraySize = argument.arrayvalue?.size ?: heap.get(argument.heapId!!).doubleArray!!.size
             numericLiteral(arraySize, args[0].position)
         }
         DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
             val str = argument.strvalue ?: heap.get(argument.heapId!!).str!!
             numericLiteral(str.length, args[0].position)
         }
-        else -> throw SyntaxError("len of weird argument ${args[0]}", position)
+        DataType.BYTE,
+        DataType.WORD,
+        DataType.FLOAT -> throw SyntaxError("len of weird argument ${args[0]}", position)
     }
 }
 

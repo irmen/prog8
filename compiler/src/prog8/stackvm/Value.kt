@@ -74,7 +74,8 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
             return false
         if(type==other.type) {
             return when (type) {
-                DataType.STR, DataType.STR_S, DataType.STR_P, DataType.STR_PS, DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX -> heapId==other.heapId
+                DataType.STR, DataType.STR_S, DataType.STR_P, DataType.STR_PS,
+                DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX -> heapId==other.heapId
                 DataType.BYTE, DataType.WORD, DataType.FLOAT -> compareTo(other)==0
             }
         }

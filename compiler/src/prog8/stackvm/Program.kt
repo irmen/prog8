@@ -67,7 +67,12 @@ class Program (val name: String,
                         val intarray = numbers.map{number->number.trim().toInt()}.toIntArray()
                         heap.add(it.second, intarray)
                     }
-                    else -> throw VmExecutionException("invalid heap value type $it.second")
+                    DataType.ARRAY_F -> {
+                        val numbers = it.third.substring(1, it.third.length-1).split(',')
+                        val doublearray = numbers.map{number->number.trim().toDouble()}.toDoubleArray()
+                        heap.add(it.second, doublearray)
+                    }
+                    DataType.BYTE, DataType.WORD, DataType.FLOAT -> throw VmExecutionException("invalid heap value type ${it.second}")
                 }
             }
         }
@@ -172,6 +177,7 @@ class Program (val name: String,
                     }
                     DataType.ARRAY,
                     DataType.ARRAY_W,
+                    DataType.ARRAY_F,
                     DataType.MATRIX -> {
                         if(!valueStr.startsWith("heap:"))
                             throw VmExecutionException("invalid array/matrix value, should be a heap reference")
@@ -280,6 +286,9 @@ class Program (val name: String,
         }
         heap.allArrays().forEach {
             out.println("${it.index}  ${it.value.type.toString().toLowerCase()}  ${it.value.array!!.toList()}")
+        }
+        heap.allDoubleArrays().forEach {
+            out.println("${it.index}  ${it.value.type.toString().toLowerCase()}  ${it.value.doubleArray!!.toList()}")
         }
         out.println("%end_heap")
         out.println("%variables")
