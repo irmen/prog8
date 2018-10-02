@@ -5,6 +5,7 @@ import prog8.compiler.HeapValues
 import prog8.compiler.target.c64.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.FLOAT_MAX_POSITIVE
 import prog8.compiler.target.c64.Petscii
+import kotlin.math.floor
 
 
 class ConstantFolding(private val namespace: INameScope, private val heap: HeapValues) : IAstProcessor {
@@ -381,6 +382,43 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
             }
         }
         return super.process(arrayIndexedExpression)
+    }
+
+    override fun process(assignment: Assignment): IStatement {
+        super.process(assignment)
+        val lv = assignment.value as? LiteralValue
+        if(lv!=null) {
+            val targetDt = assignment.target.determineDatatype(namespace, heap, assignment)
+            // see if we can promote/convert a literal value to the required datatype
+            when(targetDt) {
+                DataType.WORD -> {
+                    if(lv.type==DataType.BYTE)
+                        assignment.value = LiteralValue(DataType.WORD, wordvalue = lv.asIntegerValue, position=lv.position)
+                    else if(lv.type==DataType.FLOAT) {
+                        val d = lv.floatvalue!!
+                        if(floor(d)==d && d in 0..65535) {
+                            assignment.value = LiteralValue(DataType.WORD, wordvalue=floor(d).toInt(), position=lv.position)
+                        }
+                    }
+                }
+                DataType.FLOAT -> {
+                    if(lv.isNumeric)
+                        assignment.value = LiteralValue(DataType.FLOAT, floatvalue= lv.asNumericValue?.toDouble(), position=lv.position)
+                }
+                DataType.BYTE -> {
+                    if(lv.type==DataType.WORD && lv.asIntegerValue in 0..255) {
+                        assignment.value = LiteralValue(DataType.BYTE, lv.asIntegerValue?.toShort(), position=lv.position)
+                    } else if(lv.type==DataType.FLOAT) {
+                        val d = lv.floatvalue!!
+                        if(floor(d)==d && d in 0..255) {
+                            assignment.value = LiteralValue(DataType.BYTE, floor(d).toShort(), position=lv.position)
+                        }
+                    }
+                }
+                else -> {}
+            }
+        }
+        return assignment
     }
 }
 
