@@ -217,10 +217,6 @@ interface IAstProcessor {
         return returnStmt
     }
 
-    fun process(asmSubroutine: AsmSubroutine): IStatement {
-        return asmSubroutine
-    }
-
     fun process(arrayIndexedExpression: ArrayIndexedExpression): IExpression {
         arrayIndexedExpression.identifier?.process(this)
         arrayIndexedExpression.array.process(this)
@@ -1314,14 +1310,19 @@ class InlineAssembly(val assembly: String, override val position: Position) : IS
 }
 
 
+class RegisterOrStatusflag(val register: Register?, val statusflag: Statusflag?)
+
 class Subroutine(override val name: String,
                  val parameters: List<SubroutineParameter>,
                  val returnvalues: List<DataType>,
+                 val asmParameterRegisters: List<RegisterOrStatusflag>,
+                 val asmReturnvaluesRegisters: List<RegisterOrStatusflag>,
+                 val asmClobbers: Set<Register>,
+                 val asmAddress: Int?,
                  override var statements: MutableList<IStatement>,
                  override val position: Position) : IStatement, INameScope {
     override lateinit var parent: Node
     val scopedname: String by lazy { makeScopedName(name).joinToString(".") }
-
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -1332,7 +1333,7 @@ class Subroutine(override val name: String,
     override fun process(processor: IAstProcessor) = processor.process(this)
 
     override fun toString(): String {
-        return "Subroutine(name=$name, parameters=$parameters, returnvalues=$returnvalues, ${statements.size} statements)"
+        return "Subroutine(name=$name, parameters=$parameters, returnvalues=$returnvalues, ${statements.size} statements, address=$asmAddress)"
     }
 
     override fun registerUsedName(name: String) = throw NotImplementedError("not implemented on sub-scopes")
@@ -1348,45 +1349,6 @@ open class SubroutineParameter(val name: String,
         this.parent = parent
     }
 }
-
-
-// @todo merge this with normal Subroutine?
-class AsmSubroutine(val name: String,
-                    val address: Int?,
-                    val params: List<AsmSubroutineParameter>,
-                    val returns: List<AsmSubroutineReturn>,
-                    val clobbers: Set<Register>,
-                    val statements: MutableList<IStatement>,
-                    override val position: Position) : IStatement {
-    override lateinit var parent: Node
-
-    override fun linkParents(parent: Node) {
-        this.parent = parent
-        params.forEach { it.linkParents(this) }
-        returns.forEach { it.linkParents(this) }
-        statements.forEach { it.linkParents(this) }
-    }
-
-    override fun process(processor: IAstProcessor) = processor.process(this)
-}
-
-class AsmSubroutineParameter(name: String,
-                             type: DataType,
-                             val register: Register?,
-                             val statusflag: Statusflag?,
-                             position: Position) : SubroutineParameter(name, type, position)
-
-
-class AsmSubroutineReturn(val type: DataType,
-                          val register: Register?,
-                          val statusflag: Statusflag?,
-                          override val position: Position): Node {
-    override lateinit var parent: Node
-    override fun linkParents(parent: Node) {
-        this.parent = parent
-    }
-}
-
 
 class IfStatement(var condition: IExpression,
                   var statements: List<IStatement>,
@@ -1619,11 +1581,25 @@ private fun prog8Parser.AsmsubroutineContext.toAst(): IStatement {
     val address = asmsub_address()?.address?.toAst()?.number?.toInt()
     val params = asmsub_params()?.toAst() ?: emptyList()
     val returns = asmsub_returns()?.toAst() ?: emptyList()
+    val normalParameters = params.map { SubroutineParameter(it.name, it.type, it.position) }
+    val normalReturnvalues = returns.map { it.type }
+    val paramRegisters = params.map { RegisterOrStatusflag(it.register, it.statusflag) }
+    val returnRegisters = returns.map { RegisterOrStatusflag(it.register, it.statusflag) }
     val clobbers = clobber()?.toAst() ?: emptySet()
     val statements = statement_block()?.toAst() ?: mutableListOf()
-    return AsmSubroutine(name, address, params, returns, clobbers, statements, toPosition())
+    return Subroutine(name, normalParameters, normalReturnvalues, paramRegisters, returnRegisters, clobbers, address, statements, toPosition())
 }
 
+private class AsmSubroutineParameter(name: String,
+                             type: DataType,
+                             val register: Register?,
+                             val statusflag: Statusflag?,
+                             position: Position) : SubroutineParameter(name, type, position)
+
+private class AsmSubroutineReturn(val type: DataType,
+                          val register: Register?,
+                          val statusflag: Statusflag?,
+                          val position: Position)
 
 private fun prog8Parser.ClobberContext.toAst(): Set<Register>
         = this.register().asSequence().map { it.toAst() }.toSet()
@@ -1686,6 +1662,10 @@ private fun prog8Parser.SubroutineContext.toAst() : Subroutine {
     return Subroutine(identifier().text,
             sub_params()?.toAst() ?: emptyList(),
             sub_return_part()?.toAst() ?: emptyList(),
+            emptyList(),
+            emptyList(),
+            emptySet(),
+            null,
             statement_block()?.toAst() ?: mutableListOf(),
             toPosition())
 }

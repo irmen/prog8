@@ -246,18 +246,14 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
     val continueStmtLabelStack : Stack<String> = Stack()
 
     override fun process(subroutine: Subroutine): IStatement {
-        stackvmProg.label(subroutine.scopedname)
-        // note: the caller has already written the arguments into the subroutine's parameter variables.
-        translate(subroutine.statements)
-        return super.process(subroutine)
-    }
-
-    override fun process(asmSubroutine: AsmSubroutine): IStatement {
-        if(asmSubroutine.statements.isNotEmpty()) {
-            stackvmProg.label(asmSubroutine.makeScopedName(asmSubroutine.name).joinToString("."))
-            translate(asmSubroutine.statements)
+        if(subroutine.asmAddress==null) {
+            stackvmProg.label(subroutine.scopedname)
+            // note: the caller has already written the arguments into the subroutine's parameter variables.
+            translate(subroutine.statements)
+        } else {
+            throw CompilerException("kernel subroutines (with memory address and no body) are not supported by StackVM: $subroutine")
         }
-        return super.process(asmSubroutine)
+        return super.process(subroutine)
     }
 
     override fun process(block: Block): IStatement {
@@ -297,7 +293,6 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                 is WhileLoop -> translate(stmt)
                 is RepeatLoop -> translate(stmt)
                 is Directive, is VarDecl, is Subroutine -> {}   // skip this, already processed these.
-                is AsmSubroutine -> {}
                 is InlineAssembly -> throw CompilerException("inline assembly is not supported by the StackVM")
                 else -> TODO("translate statement $stmt to stackvm")
             }

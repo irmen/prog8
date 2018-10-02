@@ -82,8 +82,9 @@ class AstChecker(private val namespace: INameScope,
 
     override fun process(returnStmt: Return): IStatement {
         val expectedReturnValues = (returnStmt.definingScope() as? Subroutine)?.returnvalues ?: emptyList()
-        if(expectedReturnValues.size != returnStmt.values.size)
+        if(expectedReturnValues.size != returnStmt.values.size) {
             checkResult.add(SyntaxError("number of return values doesn't match subroutine return spec", returnStmt.position))
+        }
 
         for (rv in expectedReturnValues.withIndex().zip(returnStmt.values)) {
             if(rv.first.value!=rv.second.resultingDatatype(namespace, heap))
@@ -210,10 +211,14 @@ class AstChecker(private val namespace: INameScope,
                     .map { (it as InlineAssembly).assembly }
                     .count { "rts" in it || "\trts" in it || "jmp" in it || "\tjmp" in it }
             if (amount == 0) {
-                if(subroutine.returnvalues.isNotEmpty())
-                    err("subroutine has result value(s) and thus must have at least one 'return' or 'goto' in it (or 'rts' / 'jmp' in case of %asm)")
-                // if there's no return statement, we add the implicit one at the end.
-                subroutine.statements.add(Return(emptyList(), subroutine.position))
+                if(subroutine.returnvalues.isNotEmpty()) {
+                    // for asm subroutines with an address, no statement check is possible.
+                    if(subroutine.asmAddress==null)
+                        err("subroutine has result value(s) and thus must have at least one 'return' or 'goto' in it (or 'rts' / 'jmp' in case of %asm)")
+                }
+                // if there's no return statement, we add the implicit one at the end, but only if it's not a kernel routine.
+                if(subroutine.asmAddress==null)
+                    subroutine.statements.add(Return(emptyList(), subroutine.position))
             }
         }
 
@@ -231,7 +236,7 @@ class AstChecker(private val namespace: INameScope,
         var checkNext = false
         for (stmt in statements) {
             if(checkNext) {
-                if(stmt !is Label && stmt !is Subroutine && stmt !is AsmSubroutine)
+                if(stmt !is Label && stmt !is Subroutine)
                     checkResult.add(SyntaxError("preceding subroutine definition at line ${preceding.position.line} must be followed here by a label, another subroutine statement, or nothing", stmt.position))
                 return
             }
@@ -239,7 +244,6 @@ class AstChecker(private val namespace: INameScope,
                 if(preceding !is Return
                         && preceding !is Jump
                         && preceding !is Subroutine
-                        && preceding !is AsmSubroutine
                         && preceding !is VarDecl
                         && preceding !is BuiltinFunctionStatementPlaceholder) {
                     checkResult.add(SyntaxError("subroutine definition must be preceded by a return, jump, vardecl, or another subroutine statement", stmt.position))

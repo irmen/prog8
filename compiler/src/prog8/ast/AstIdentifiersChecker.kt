@@ -86,14 +86,16 @@ class AstIdentifiersChecker : IAstProcessor {
                     nameError(name.key, name.value.position, subroutine)
             }
 
-            // inject subroutine params as local variables (if they're not there yet)
-            subroutine.parameters
-                    .filter { !definedNames.containsKey(it.name) }
-                    .forEach {
-                        val vardecl = VarDecl(VarDeclType.VAR, it.type, null, it.name, null, subroutine.position)
-                        vardecl.linkParents(subroutine)
-                        subroutine.statements.add(0, vardecl)
-                    }
+            // inject subroutine params as local variables (if they're not there yet) (for non-kernel subroutines)
+            if(subroutine.asmAddress==null) {
+                subroutine.parameters
+                        .filter { !definedNames.containsKey(it.name) }
+                        .forEach {
+                            val vardecl = VarDecl(VarDeclType.VAR, it.type, null, it.name, null, subroutine.position)
+                            vardecl.linkParents(subroutine)
+                            subroutine.statements.add(0, vardecl)
+                        }
+            }
         }
         return super.process(subroutine)
     }
