@@ -134,7 +134,7 @@ enum class Syscall(val callNr: Short) {
     INPUT_STR(15),              // user input a string onto the stack, with max length (truncated) given by value on stack
     GFX_PIXEL(16),              // plot a pixel at (x,y,color) pushed on stack in that order
     GFX_CLEARSCR(17),           // clear the screen with color pushed on stack
-    GFX_TEXT(18),               // write text on screen at (x,y,color,text) pushed on stack in that order
+    GFX_TEXT(18),               // write text on screen at cursor position (x,y,color,text) pushed on stack in that order  (pixel pos= x*8, y*8)
     GFX_LINE(19),               // draw line on screen at (x1,y1,x2,y2,color) pushed on stack in that order
 
     FUNC_SIN(66),
@@ -514,9 +514,9 @@ class StackVm(private var traceOutputFile: String?) {
                     Syscall.GFX_TEXT -> {
                         val textPtr = evalstack.pop()
                         val color = evalstack.pop()
-                        val (y, x) = evalstack.pop2()
+                        val (cy, cx) = evalstack.pop2()
                         val text = heap.get(textPtr.heapId)
-                        canvas?.writeText(x.integerValue(), y.integerValue(), text.str!!, color.integerValue())
+                        canvas?.writeText(8*cx.integerValue(), 8*cy.integerValue(), text.str!!, color.integerValue())
                     }
                     Syscall.FUNC_RND -> evalstack.push(Value(DataType.BYTE, rnd.nextInt() and 255))
                     Syscall.FUNC_RNDW -> evalstack.push(Value(DataType.WORD, rnd.nextInt() and 65535))

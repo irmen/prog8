@@ -8,7 +8,7 @@
     sub start()  {
 
         _vm_gfx_clearscr(0)
-        _vm_gfx_text(5, 5, 7, "Swirl !!!")
+        _vm_gfx_text(2, 2, 7, "Swirl !!!")
 
         float x
         float y

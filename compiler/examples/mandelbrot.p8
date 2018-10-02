@@ -7,7 +7,7 @@
         const word width = 320 // 2
         const word height = 256 // 2
         const word xoffset = 40
-        const word yoffset = 20
+        const word yoffset = 30
         word pixelx
         byte pixely
         float xx
@@ -21,7 +21,7 @@
         byte ploty
 
         _vm_gfx_clearscr(11)
-        _vm_gfx_text(5, 5, 7, "Calculating Mandelbrot Fractal...")
+        _vm_gfx_text(2, 1, 7, "Calculating Mandelbrot Fractal...")
 
         for pixely in yoffset to yoffset+height-1 {
             yy = flt((pixely-yoffset))/height/3.6+0.4
@@ -46,13 +46,13 @@
             }
         }
 
-        _vm_gfx_text(110, 160, 7, "Finished!")
+        _vm_gfx_text(11, 21, 7, "Finished!")
     }
 
 }
 
 
-; ---- 60hz irq handling routine------
+; ---- some weird testing 60hz irq handling routine------
 
 ~ irq {
 

@@ -111,6 +111,13 @@ Usually it is omitted, and the compiler will automatically choose the location (
 the previous block in memory).
 The address must be >= ``$0200`` (because ``$00``--``$ff`` is the ZP and ``$100``--``$200`` is the cpu stack).
 
+.. sidebar::
+    Scoped access to symbols / "dotted names"
+
+    Every symbol is 'public' and can be accessed from elsewhere given its full "dotted name".
+    So, accessing a variable ``counter`` defined in subroutine ``worker`` in block ``main``,
+    can be done from anywhere by using ``main.worker.counter``.
+
 A block is also a *scope* in your program so the symbols in the block don't clash with
 symbols of the same name defined elsewhere in the same file or in another file.
 You can refer to the symbols in a particular block by using a *dotted name*: ``blockname.symbolname``.
@@ -118,7 +125,6 @@ Labels inside a subroutine are appended again to that; ``blockname.subroutinenam
 A symbol name that's not a dotted name is searched for in the current scope, if it's not found there,
 one scope higher, and so on until it is found.
 
-Every symbol is 'public' and can be accessed from elsewhere given its dotted name.
 
 
 **The special "ZP" ZeroPage block**
