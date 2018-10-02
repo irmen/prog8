@@ -926,13 +926,13 @@ class StackVm(private var traceOutputFile: String?) {
                         DataType.ARRAY, DataType.MATRIX -> evalstack.push(Value(DataType.BYTE, array.array!![index]))
                         DataType.ARRAY_W -> evalstack.push(Value(DataType.WORD, array.array!![index]))
                         DataType.ARRAY_F -> evalstack.push(Value(DataType.FLOAT, array.doubleArray!![index]))
-                        DataType.BYTE,
-                        DataType.WORD,
-                        DataType.FLOAT,
                         DataType.STR,
                         DataType.STR_P,
                         DataType.STR_S,
-                        DataType.STR_PS -> throw VmExecutionException("not a proper array/matrix var")      // todo: allow strings
+                        DataType.STR_PS -> evalstack.push(Value(DataType.BYTE, Petscii.encodePetscii(array.str!![index].toString(), true)[0]))
+                        DataType.BYTE,
+                        DataType.WORD,
+                        DataType.FLOAT -> throw VmExecutionException("not a proper array/matrix var")
                     }
                 }
             }
@@ -965,13 +965,19 @@ class StackVm(private var traceOutputFile: String?) {
                                 throw VmExecutionException("writing a non-float value into float array")
                             array.doubleArray!![index] = value.numericValue().toDouble()
                         }
-                        DataType.BYTE,
-                        DataType.WORD,
-                        DataType.FLOAT,
                         DataType.STR,
                         DataType.STR_P,
                         DataType.STR_S,
-                        DataType.STR_PS -> throw VmExecutionException("not a proper array/matrix var")      // todo: allow strings
+                        DataType.STR_PS -> {
+                            if(value.type!=DataType.BYTE)
+                                throw VmExecutionException("writing a non-byte value into a string")
+                            val chars = array.str!!.toCharArray()
+                            chars[index] = Petscii.decodePetscii(listOf(value.integerValue().toShort()), true)[0]
+                            heap.update(variable.heapId, chars.joinToString(""))
+                        }
+                        DataType.BYTE,
+                        DataType.WORD,
+                        DataType.FLOAT -> throw VmExecutionException("not a proper array/matrix var")
                     }
                 }
             }

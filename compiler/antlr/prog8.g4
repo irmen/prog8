@@ -163,7 +163,7 @@ functioncall_stmt :
 
 
 expression_list :
-	expression (',' expression)*
+	expression (',' EOL? expression)*
 	;
 
 returnstmt : 'return' expression_list? ;
@@ -186,7 +186,7 @@ wordsuffix : '.w' ;
 
 booleanliteral :  'true' | 'false' ;
 
-arrayliteral :  '[' expression (',' expression)* ']' ;
+arrayliteral :  '[' EOL? expression (',' EOL? expression)* EOL? ']' ;
 
 stringliteral :  STRING ;
 
@@ -219,11 +219,11 @@ statement_block :
 	;
 
 
-sub_params :  sub_param (',' sub_param)* ;
+sub_params :  sub_param (',' EOL? sub_param)* ;
 
 sub_param :  identifier ':' datatype;
 
-sub_returns :  datatype (',' datatype)*  ;
+sub_returns :  datatype (',' EOL? datatype)*  ;
 
 asmsubroutine :
     'asmsub' identifier '(' asmsub_params? ')'
@@ -232,13 +232,13 @@ asmsubroutine :
 
 asmsub_address :  '=' address=integerliteral  ;
 
-asmsub_params :  asmsub_param (',' asmsub_param)* ;
+asmsub_params :  asmsub_param (',' EOL? asmsub_param)* ;
 
 asmsub_param :  identifier ':' datatype '@' (register | statusregister);
 
 clobber :  register (',' register)* ;
 
-asmsub_returns :  asmsub_return (',' asmsub_return)* ;
+asmsub_returns :  asmsub_return (',' EOL? asmsub_return)* ;
 
 asmsub_return :  datatype '@' (register | statusregister) ;
 

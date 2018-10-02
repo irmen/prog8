@@ -1258,7 +1258,7 @@ class FunctionCall(override var target: IdentifierReference,
     override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? {
         val constVal = constValue(namespace, heap,false)
         if(constVal!=null)
-            return constVal.resultingDatatype(namespace, heap)
+            return constVal.type
         val stmt = target.targetStatement(namespace) ?: return null
         when (stmt) {
             is BuiltinFunctionStatementPlaceholder -> {

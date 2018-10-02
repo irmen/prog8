@@ -95,6 +95,10 @@ class AstChecker(private val namespace: INameScope,
     override fun process(forLoop: ForLoop): IStatement {
         if(forLoop.body.isEmpty())
             printWarning("for loop body is empty", forLoop.position)
+
+        if(forLoop.iterable is LiteralValue)
+            checkResult.add(SyntaxError("currently not possible to loop over a literal value directly, use a variable instead", forLoop.position))      // todo loop over literals
+
         if(!forLoop.iterable.isIterable(namespace, heap)) {
             checkResult.add(ExpressionError("can only loop over an iterable type", forLoop.position))
         } else {

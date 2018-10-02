@@ -17,7 +17,7 @@
     const word height = 200
 
     float[6] xcoor = [-1.0, 1.0, 1.0, 0.5, 0.2, -1.0]
-    float[6] ycoor = [1.0, 1.0, -1.0, -0.3, -0.6, -1.0]
+    float[6] ycoor = [0.2, 1.0, -1.0, -0.3, -0.6, -1.0]
 
     float[len(xcoor)] rotatedx
     float[len(ycoor)] rotatedy
@@ -69,8 +69,10 @@
         }
 
         for i in 0 to len(xcoor)-2 {
-            _vm_gfx_line(toscreenx(rotatedx[i]), toscreeny(rotatedy[i]), toscreenx(rotatedx[i+1]), toscreeny(rotatedy[i+1]), i+7)
+            _vm_gfx_line(toscreenx(rotatedx[i]), toscreeny(rotatedy[i]),
+                         toscreenx(rotatedx[i+1]), toscreeny(rotatedy[i+1]), i+7)
         }
-        _vm_gfx_line(toscreenx(rotatedx[len(xcoor)-1]), toscreeny(rotatedy[len(xcoor)-1]), toscreenx(rotatedx[0]), toscreeny(rotatedy[0]), 14)
+        _vm_gfx_line(toscreenx(rotatedx[len(xcoor)-1]), toscreeny(rotatedy[len(xcoor)-1]),
+                     toscreenx(rotatedx[0]), toscreeny(rotatedy[0]), 14)
     }
 }

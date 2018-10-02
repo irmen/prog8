@@ -821,22 +821,109 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                 }
             }
         } else {
-            val iterableValue: LiteralValue?
-            if(loop.iterable is LiteralValue) {
-                if (!loop.iterable.isIterable(namespace, heap))
-                    throw CompilerException("loop over something that isn't iterable ${loop.iterable}")
-                iterableValue = loop.iterable as LiteralValue
-            } else if(loop.iterable is IdentifierReference) {
-                val idRef = loop.iterable as IdentifierReference
-                iterableValue = ((idRef.targetStatement(namespace) as? VarDecl)?.value as? LiteralValue)
-                if(iterableValue!=null && !iterableValue.isIterable(namespace, heap))
-                    throw CompilerException("loop over something that isn't iterable ${loop.iterable}")
-            } else {
-                throw CompilerException("loopvar is something strange ${loop.iterable}")
+            // ok, must be a literalvalue
+            val iterableValue: LiteralValue
+            when {
+                loop.iterable is LiteralValue -> {
+                    TODO("loop over literal value (move literal to auto-generated heap variable)")
+                }
+                loop.iterable is IdentifierReference -> {
+                    val idRef = loop.iterable as IdentifierReference
+                    val vardecl = (idRef.targetStatement(namespace) as VarDecl)
+                    iterableValue = vardecl.value as LiteralValue
+                    if(!iterableValue.isIterable(namespace, heap))
+                        throw CompilerException("loop over something that isn't iterable ${loop.iterable}")
+                }
+                else -> throw CompilerException("loopvar is something strange ${loop.iterable}")
             }
-
-            TODO("LOOP OVER ITERABLE VALUE (array/matrix/string) $iterableValue")
+            translateForOverIterableVar(loop, loopVarDt, iterableValue)
         }
+    }
+
+    private fun translateForOverIterableVar(loop: ForLoop, varDt: DataType, iterableValue: LiteralValue) {
+        if(varDt==DataType.BYTE && iterableValue.type !in setOf(DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS, DataType.ARRAY, DataType.MATRIX))
+            throw CompilerException("loop variable type doesn't match iterableValue type (byte)")
+        else if(varDt==DataType.WORD && iterableValue.type != DataType.ARRAY_W)
+            throw CompilerException("loop variable type doesn't match iterableValue type (word)")
+        else if(varDt==DataType.FLOAT && iterableValue.type != DataType.ARRAY_F)
+            throw CompilerException("loop variable type doesn't match iterableValue type (float)")
+        val numElements: Int
+        val indexVar: String
+        when(iterableValue.type) {
+            DataType.BYTE,
+            DataType.WORD,
+            DataType.FLOAT -> throw CompilerException("non-iterableValue type")
+            DataType.STR,
+            DataType.STR_P,
+            DataType.STR_S,
+            DataType.STR_PS -> {
+                numElements = iterableValue.strvalue?.length ?: heap.get(iterableValue.heapId!!).str!!.length
+                indexVar = if(numElements>255) "XY" else "X"
+            }
+            DataType.ARRAY,
+            DataType.ARRAY_W,
+            DataType.MATRIX -> {
+                numElements = iterableValue.arrayvalue?.size ?: heap.get(iterableValue.heapId!!).array!!.size
+                indexVar = if(numElements>255) "XY" else "X"
+            }
+            DataType.ARRAY_F -> {
+                numElements = iterableValue.arrayvalue?.size ?: heap.get(iterableValue.heapId!!).doubleArray!!.size
+                indexVar = if(numElements>255) "XY" else "X"
+            }
+        }
+
+        if(indexVar=="X" && loop.loopRegister!=null && loop.loopRegister in setOf(Register.X, Register.AX, Register.XY))
+            throw CompilerException("loopVar cannot use X register because it is needed as internal index")
+        if(indexVar=="XY" && loop.loopRegister!=null && loop.loopRegister in setOf(Register.X, Register.AX, Register.Y, Register.AY, Register.XY))
+            throw CompilerException("loopVar cannot use X and Y registers because they are needed as internal index")
+
+        /**
+         *      indexVar = 0
+         * loop:
+         *      LV = iterableValue[indexVar]
+         *      ..body..
+         *      ..break statement:  goto break
+         *      ..continue statement: goto continue
+         *      ..
+         * continue:
+         *      IV++
+         *      if IV!=numElements goto loop
+         * break:
+         *      nop
+         */
+        val loopLabel = makeLabel("loop")
+        val continueLabel = makeLabel("continue")
+        val breakLabel = makeLabel("break")
+
+        continueStmtLabelStack.push(continueLabel)
+        breakStmtLabelStack.push(breakLabel)
+
+        stackvmProg.instr(Opcode.PUSH, Value(if(numElements<=255) DataType.BYTE else DataType.WORD, 0))
+        stackvmProg.instr(Opcode.POP_VAR, callLabel = indexVar)
+        stackvmProg.label(loopLabel)
+        val assignTarget = if(loop.loopRegister!=null)
+            AssignTarget(loop.loopRegister, null, null, loop.position)
+        else
+            AssignTarget(null, loop.loopVar, null, loop.position)
+        val arrayspec = ArraySpec(RegisterExpr(Register.valueOf(indexVar), loop.position), null, loop.position)
+        val assignLv = Assignment(assignTarget, null, ArrayIndexedExpression(loop.iterable as IdentifierReference, null, arrayspec, loop.position), loop.position)
+        assignLv.linkParents(loop.parent)
+        translate(assignLv)
+        translate(loop.body)
+        stackvmProg.label(continueLabel)
+        stackvmProg.instr(Opcode.INC_VAR, callLabel = indexVar)
+
+        // TODO: optimize edge cases if last value = 255 or 0 (for bytes) etc. to avoid  PUSH / SUB opcodes and make use of the wrapping around of the value.
+        stackvmProg.instr(Opcode.PUSH, Value(varDt, numElements))
+        stackvmProg.instr(Opcode.PUSH_VAR, callLabel = indexVar)
+        stackvmProg.instr(Opcode.SUB)
+        stackvmProg.instr(Opcode.BNZ, callLabel = loopLabel)
+
+        stackvmProg.label(breakLabel)
+        stackvmProg.instr(Opcode.NOP)
+
+        breakStmtLabelStack.pop()
+        continueStmtLabelStack.pop()
     }
 
     private fun translateForOverConstantRange(varname: String, varDt: DataType, range: IntProgression, body: MutableList<IStatement>) {
