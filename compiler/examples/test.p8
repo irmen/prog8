@@ -27,30 +27,36 @@ sub start() {
     byte i
     word w
 
-    for i in 0 to 2 {
-        _vm_write_num(farray5[i])
-        _vm_write_char('\n')
-    }
+    ;warray3[1] = warray3[1] + 1
+    warray3[1] += 1
+    ;warray3[1] ++
 
-    for w in [1,2,3777] {          ;@todo loop over array literal
-        _vm_write_num(w)
-        _vm_write_char('\n')
-    }
 
-    for i in barray3 {          ; @todo loop over symbol
-        _vm_write_num(i)
-        _vm_write_char('\n')
-    }
 
-    for i in "hello" {          ; @todo loop over string
-        _vm_write_num(i)
-        _vm_write_char('\n')
-    }
+;    for i in 0 to 2 {
+;        _vm_write_num(farray5[i])
+;        _vm_write_char('\n')
+;    }
 
-        for w in "hello" {          ; @todo loop over string
-            _vm_write_num(w)
-            _vm_write_char('\n')
-        }
+;    for w in [1,2,3777] {          ;@todo loop over array literal
+;        _vm_write_num(w)
+;        _vm_write_char('\n')
+;    }
+;
+;    for i in barray3 {          ; @todo loop over symbol
+;        _vm_write_num(i)
+;        _vm_write_char('\n')
+;    }
+;
+;    for i in "hello" {          ; @todo loop over string
+;        _vm_write_num(i)
+;        _vm_write_char('\n')
+;    }
+;
+;        for w in "hello" {          ; @todo loop over string
+;            _vm_write_num(w)
+;            _vm_write_char('\n')
+;        }
 
     return
 

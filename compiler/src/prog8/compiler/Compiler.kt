@@ -444,7 +444,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                 }
             }
             is IdentifierReference -> translate(expr)
-            is ArrayIndexedExpression -> translate(expr)
+            is ArrayIndexedExpression -> translate(expr, false)
             is RangeExpr -> {
                 TODO("TRANSLATE range $expr")
             }
@@ -592,7 +592,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
         stackvmProg.instr(opcode)
     }
 
-    private fun translate(arrayindexed: ArrayIndexedExpression) {
+    private fun translate(arrayindexed: ArrayIndexedExpression, write: Boolean) {
         val variable = arrayindexed.identifier?.targetStatement(namespace) as? VarDecl
         val variableName =
                 if(arrayindexed.register!=null) {
@@ -615,7 +615,11 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
             stackvmProg.instr(Opcode.MUL)
             stackvmProg.instr(Opcode.ADD)
         }
-        stackvmProg.instr(Opcode.PUSH_INDEXED_VAR, callLabel = variableName)
+
+        if(write)
+            stackvmProg.instr(Opcode.WRITE_INDEXED_VAR, callLabel = variableName)
+        else
+            stackvmProg.instr(Opcode.READ_INDEXED_VAR, callLabel = variableName)
     }
 
 
@@ -652,17 +656,29 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
 
     private fun translate(stmt: PostIncrDecr) {
         stackvmProg.line(stmt.position)
-        if(stmt.target.register!=null) {
-            when(stmt.operator) {
+        when {
+            stmt.target.register!=null -> when(stmt.operator) {
                 "++" -> stackvmProg.instr(Opcode.INC_VAR, callLabel = stmt.target.register.toString())
                 "--" -> stackvmProg.instr(Opcode.DEC_VAR, callLabel = stmt.target.register.toString())
             }
-        } else {
-            val targetStatement = stmt.target.identifier!!.targetStatement(namespace) as VarDecl
-            when(stmt.operator) {
-                "++" -> stackvmProg.instr(Opcode.INC_VAR, callLabel = targetStatement.scopedname)
-                "--" -> stackvmProg.instr(Opcode.DEC_VAR, callLabel = targetStatement.scopedname)
+            stmt.target.identifier!=null -> {
+                val targetStatement = stmt.target.identifier!!.targetStatement(namespace) as VarDecl
+                when(stmt.operator) {
+                    "++" -> stackvmProg.instr(Opcode.INC_VAR, callLabel = targetStatement.scopedname)
+                    "--" -> stackvmProg.instr(Opcode.DEC_VAR, callLabel = targetStatement.scopedname)
+                }
             }
+            stmt.target.arrayindexed!=null -> {
+                // todo: generate more efficient bytecode for this?
+                translate(stmt.target.arrayindexed!!, false)
+                stackvmProg.instr(Opcode.PUSH, Value(stmt.target.arrayindexed!!.resultingDatatype(namespace, heap)!!, 1))
+                when(stmt.operator) {
+                    "++" -> stackvmProg.instr(Opcode.ADD)
+                    "--" -> stackvmProg.instr(Opcode.SUB)
+                }
+                translate(stmt.target.arrayindexed!!, true)
+            }
+            else -> throw CompilerException("very strange postincrdecr")
         }
     }
 
@@ -670,7 +686,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
         stackvmProg.line(stmt.position)
         translate(stmt.value)
         val valueDt = stmt.value.resultingDatatype(namespace, heap)
-        val targetDt = stmt.target.determineDatatype(namespace, stmt)
+        val targetDt = stmt.target.determineDatatype(namespace, heap, stmt)
         if(valueDt!=targetDt) {
             // convert value to target datatype if possible
             when(targetDt) {
@@ -696,27 +712,32 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
 
         if(stmt.aug_op!=null) {
             // augmented assignment
-            if(stmt.target.identifier!=null) {
-                val target = stmt.target.identifier!!.targetStatement(namespace)!!
-                when(target) {
-                    is VarDecl -> stackvmProg.instr(Opcode.PUSH_VAR, callLabel = target.scopedname)
-                    else -> throw CompilerException("invalid assignment target type ${target::class}")
+            when {
+                stmt.target.identifier!=null -> {
+                    val target = stmt.target.identifier!!.targetStatement(namespace)!!
+                    when(target) {
+                        is VarDecl -> stackvmProg.instr(Opcode.PUSH_VAR, callLabel = target.scopedname)
+                        else -> throw CompilerException("invalid assignment target type ${target::class}")
+                    }
                 }
-            } else if(stmt.target.register!=null) {
-                stackvmProg.instr(Opcode.PUSH_VAR, callLabel = stmt.target.register.toString())
+                stmt.target.register!=null -> stackvmProg.instr(Opcode.PUSH_VAR, callLabel = stmt.target.register.toString())
+                stmt.target.arrayindexed!=null -> translate(stmt.target.arrayindexed!!, false)
             }
+
             translateAugAssignOperator(stmt.aug_op)
         }
 
         // pop the result value back into the assignment target
-        if(stmt.target.identifier!=null) {
-            val target = stmt.target.identifier!!.targetStatement(namespace)!!
-            when(target) {
-                is VarDecl -> stackvmProg.instr(Opcode.POP_VAR, callLabel =  target.scopedname)
-                else -> throw CompilerException("invalid assignment target type ${target::class}")
+        when {
+            stmt.target.identifier!=null -> {
+                val target = stmt.target.identifier!!.targetStatement(namespace)!!
+                when(target) {
+                    is VarDecl -> stackvmProg.instr(Opcode.POP_VAR, callLabel =  target.scopedname)
+                    else -> throw CompilerException("invalid assignment target type ${target::class}")
+                }
             }
-        } else if(stmt.target.register!=null) {
-            stackvmProg.instr(Opcode.POP_VAR, callLabel = stmt.target.register.toString())
+            stmt.target.register!=null -> stackvmProg.instr(Opcode.POP_VAR, callLabel = stmt.target.register.toString())
+            stmt.target.arrayindexed!=null -> translate(stmt.target.arrayindexed!!, true)     // write value to it
         }
     }
 
@@ -915,9 +936,9 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
          */
         fun makeAssignmentTarget(): AssignTarget {
             return if(varname!=null)
-                AssignTarget(null, IdentifierReference(varname, range.position), range.position)
+                AssignTarget(null, IdentifierReference(varname, range.position), null, range.position)
             else
-                AssignTarget(register, null, range.position)
+                AssignTarget(register, null, null, range.position)
         }
 
         val startAssignment = Assignment(makeAssignmentTarget(), null, range.from, range.position)
@@ -970,6 +991,8 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                 } else {
                     null
                 }
+                // todo deal with target.arrayindexed?
+
 
         when (literalStepValue) {
             1 -> {

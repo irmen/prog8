@@ -226,6 +226,12 @@ interface IAstProcessor {
         arrayIndexedExpression.array.process(this)
         return arrayIndexedExpression
     }
+
+    fun process(assignTarget: AssignTarget): AssignTarget {
+        assignTarget.arrayindexed?.process(this)
+        assignTarget.identifier?.process(this)
+        return assignTarget
+    }
 }
 
 
@@ -674,25 +680,39 @@ class Assignment(var target: AssignTarget, val aug_op : String?, var value: IExp
     }
 }
 
-data class AssignTarget(val register: Register?, val identifier: IdentifierReference?, override val position: Position) : Node {
+data class AssignTarget(val register: Register?,
+                        val identifier: IdentifierReference?,
+                        val arrayindexed: ArrayIndexedExpression?,
+                        override val position: Position) : Node {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
         identifier?.linkParents(this)
+        arrayindexed?.linkParents(this)
     }
 
-    fun process(processor: IAstProcessor) = this
+    fun process(processor: IAstProcessor) = processor.process(this)
 
-    fun determineDatatype(namespace: INameScope, stmt: IStatement): DataType {
+    fun determineDatatype(namespace: INameScope, heap: HeapValues, stmt: IStatement): DataType {
         if(register!=null)
             return when(register){
                 Register.A, Register.X, Register.Y -> DataType.BYTE
                 Register.AX, Register.AY, Register.XY -> DataType.WORD
             }
 
-        val symbol = namespace.lookup(identifier!!.nameInSource, stmt) ?: throw FatalAstException("symbol lookup failed: ${identifier.nameInSource}")
-        if(symbol is VarDecl) return symbol.datatype
+        if(identifier!=null) {
+            val symbol = namespace.lookup(identifier.nameInSource, stmt)
+                    ?: throw FatalAstException("symbol lookup failed: ${identifier.nameInSource}")
+            if (symbol is VarDecl) return symbol.datatype
+        }
+
+        if(arrayindexed!=null) {
+            val dt = arrayindexed.resultingDatatype(namespace, heap)
+            if(dt!=null)
+                return dt
+        }
+
         throw FatalAstException("cannot determine datatype of assignment target $this")
     }
 }
@@ -1685,10 +1705,12 @@ private fun prog8Parser.Sub_paramsContext.toAst(): List<SubroutineParameter> =
 private fun prog8Parser.Assign_targetContext.toAst() : AssignTarget {
     val register = register()?.toAst()
     val identifier = identifier()
-    return if(identifier!=null)
-        AssignTarget(register, identifier.toAst(), toPosition())
-    else
-        AssignTarget(register, scoped_identifier()?.toAst(), toPosition())
+    return when {
+        register!=null -> AssignTarget(register, null, null, toPosition())
+        identifier!=null -> AssignTarget(null, identifier.toAst(), null, toPosition())
+        arrayindexed()!=null -> AssignTarget(null, null, arrayindexed().toAst(), toPosition())
+        else -> AssignTarget(null, scoped_identifier()?.toAst(), null, toPosition())
+    }
 }
 
 
@@ -1810,7 +1832,7 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
     throw FatalAstException(text)
 }
 
-private fun prog8Parser.ArrayindexedContext.toAst(): IExpression {
+private fun prog8Parser.ArrayindexedContext.toAst(): ArrayIndexedExpression {
     return ArrayIndexedExpression(identifier()?.toAst() ?: scoped_identifier()?.toAst(),
             register()?.toAst(),
             arrayspec().toAst(),

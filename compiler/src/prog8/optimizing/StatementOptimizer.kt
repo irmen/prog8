@@ -67,7 +67,7 @@ class StatementOptimizer(private val globalNamespace: INameScope, private val he
             if(range.size()==1) {
                 // for loop over a (constant) range of just a single value-- optimize the loop away
                 // loopvar/reg = range value , follow by block
-                val assignment = Assignment(AssignTarget(forLoop.loopRegister, forLoop.loopVar, forLoop.position), null, range.from, forLoop.position)
+                val assignment = Assignment(AssignTarget(forLoop.loopRegister, forLoop.loopVar, null, forLoop.position), null, range.from, forLoop.position)
                 forLoop.body.add(0, assignment)
                 return AnonymousStatementList(forLoop.parent, forLoop.body, forLoop.position)
             }

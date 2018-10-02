@@ -251,6 +251,8 @@ class AstChecker(private val namespace: INameScope,
      * Also check data type compatibility
      */
     override fun process(assignment: Assignment): IStatement {
+        // todo deal with target.arrayindexed
+
         if(assignment.target.identifier!=null) {
             val targetName = assignment.target.identifier!!.nameInSource
             val targetSymbol = namespace.lookup(targetName, assignment)
@@ -276,8 +278,13 @@ class AstChecker(private val namespace: INameScope,
             val target: IExpression =
                     if(assignment.target.register!=null)
                         RegisterExpr(assignment.target.register!!, assignment.target.position)
-                    else
+                    else if(assignment.target.identifier!=null)
                         assignment.target.identifier!!
+                    else if(assignment.target.arrayindexed!=null) {
+                        // todo deal with target.arrayindexed
+                        assignment.target.arrayindexed!!
+                    } else throw FatalAstException("strange assignment")
+
             val expression = BinaryExpression(target, assignment.aug_op.substringBeforeLast('='), assignment.value, assignment.position)
             expression.linkParents(assignment.parent)
             val assignment2 = Assignment(assignment.target, null, expression, assignment.position)
@@ -285,7 +292,7 @@ class AstChecker(private val namespace: INameScope,
             return process(assignment2)
         }
 
-        val targetDatatype = assignment.target.determineDatatype(namespace, assignment)
+        val targetDatatype = assignment.target.determineDatatype(namespace, heap, assignment)
         val constVal = assignment.value.constValue(namespace, heap)
         if(constVal!=null) {
             checkValueTypeAndRange(targetDatatype, null, constVal, heap)
@@ -550,7 +557,7 @@ class AstChecker(private val namespace: INameScope,
     }
 
     override fun process(postIncrDecr: PostIncrDecr): IStatement {
-        if(postIncrDecr.target.register==null) {
+        if(postIncrDecr.target.identifier!=null) {
             val targetName = postIncrDecr.target.identifier!!.nameInSource
             val target = namespace.lookup(targetName, postIncrDecr)
             if(target==null) {
@@ -562,6 +569,8 @@ class AstChecker(private val namespace: INameScope,
                     checkResult.add(SyntaxError("can only increment or decrement a byte/float/word variable", postIncrDecr.position))
                 }
             }
+        } else if(postIncrDecr.target.arrayindexed!=null) {
+            // todo deal with target.arrayindexed
         }
         return super.process(postIncrDecr)
     }

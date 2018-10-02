@@ -117,6 +117,7 @@ assign_target:
 	register
 	| identifier
 	| scoped_identifier
+	| arrayindexed
 	;
 
 postincrdecr :  assign_target  operator = ('++' | '--') ;

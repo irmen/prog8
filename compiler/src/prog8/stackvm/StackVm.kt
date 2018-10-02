@@ -94,7 +94,8 @@ enum class Opcode {
     NOTEQUAL,
 
     // array access
-    PUSH_INDEXED_VAR,
+    READ_INDEXED_VAR,
+    WRITE_INDEXED_VAR,
 
     // branching
     JUMP,
@@ -911,7 +912,8 @@ class StackVm(private var traceOutputFile: String?) {
             Opcode.LINE -> {
                 sourceLine = ins.callLabel!!
             }
-            Opcode.PUSH_INDEXED_VAR -> {
+            Opcode.READ_INDEXED_VAR -> {
+                // put the value of variable[index] onto the stack
                 val index = evalstack.pop().integerValue()
                 val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
                 if(variable.type==DataType.WORD) {
@@ -930,7 +932,46 @@ class StackVm(private var traceOutputFile: String?) {
                         DataType.STR,
                         DataType.STR_P,
                         DataType.STR_S,
-                        DataType.STR_PS -> throw VmExecutionException("not a proper array/matrix var")
+                        DataType.STR_PS -> throw VmExecutionException("not a proper array/matrix var")      // todo: allow strings
+                    }
+                }
+            }
+            Opcode.WRITE_INDEXED_VAR -> {
+                // store value on the stack in variable[index]  (index is on the stack as well)
+                val index = evalstack.pop().integerValue()
+                val value = evalstack.pop()
+                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                if(variable.type==DataType.WORD) {
+                    // assume the variable is a pointer (address) and write the byte value to that memory location
+                    if(value.type!=DataType.BYTE)
+                        throw VmExecutionException("writing a non-byte value to memory location")
+                    mem.setByte(variable.integerValue(), value.integerValue().toShort())
+                } else {
+                    // set indexed element in the array
+                    val array = heap.get(variable.heapId)
+                    when(array.type) {
+                        DataType.ARRAY, DataType.MATRIX -> {
+                            if(value.type!=DataType.BYTE)
+                                throw VmExecutionException("writing a non-byte value into byte array/matrix")
+                            array.array!![index] = value.integerValue()
+                        }
+                        DataType.ARRAY_W -> {
+                            if(value.type!=DataType.WORD)
+                                throw VmExecutionException("writing a non-word value into word array")
+                            array.array!![index] = value.integerValue()
+                        }
+                        DataType.ARRAY_F -> {
+                            if(value.type!=DataType.FLOAT)
+                                throw VmExecutionException("writing a non-float value into float array")
+                            array.doubleArray!![index] = value.numericValue().toDouble()
+                        }
+                        DataType.BYTE,
+                        DataType.WORD,
+                        DataType.FLOAT,
+                        DataType.STR,
+                        DataType.STR_P,
+                        DataType.STR_S,
+                        DataType.STR_PS -> throw VmExecutionException("not a proper array/matrix var")      // todo: allow strings
                     }
                 }
             }

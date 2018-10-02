@@ -107,7 +107,7 @@ class Program (val name: String,
                         Opcode.INC_VAR, Opcode.DEC_VAR,
                         Opcode.SHR_VAR, Opcode.SHL_VAR, Opcode.ROL_VAR, Opcode.ROR_VAR,
                         Opcode.ROL2_VAR, Opcode.ROR2_VAR, Opcode.POP_VAR, Opcode.PUSH_VAR,
-                        Opcode.PUSH_INDEXED_VAR -> {
+                        Opcode.READ_INDEXED_VAR, Opcode.WRITE_INDEXED_VAR -> {
                             val withoutQuotes =
                                     if(args!!.startsWith('"') && args.endsWith('"'))
                                         args.substring(1, args.length-1) else args

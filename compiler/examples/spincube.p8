@@ -16,81 +16,61 @@
     const word width = 320
     const word height = 200
 
-    float x1 = -1.0
-    float y1 = 1.0
+    float[6] xcoor = [-1.0, 1.0, 1.0, 0.5, 0.2, -1.0]
+    float[6] ycoor = [1.0, 1.0, -1.0, -0.3, -0.6, -1.0]
 
-    float x2 = 1.0
-    float y2 = 1.0
-
-    float x3 = 1.0
-    float y3 = -1.0
-
-    float x4 = -1.0
-    float y4 = -1.0
-
-
-    float rx1
-    float rx2
-    float rx3
-    float rx4
-    float ry1
-    float ry2
-    float ry3
-    float ry4
+    float[len(xcoor)] rotatedx
+    float[len(ycoor)] rotatedy
 
     sub start()  {
-        float t
-        _vm_gfx_clearscr(0)
+        byte i
 
         while(1) {
             if irq.time_changed {
                 irq.time_changed = 0
                 _vm_gfx_clearscr(0)
-                _vm_gfx_text(130, 80, 5, "Spin !!!")
-                t = flt(irq.global_time) / 60.0
-                rotate_all(t)
-                plot_pixels()
+                _vm_gfx_text(120, 40, 5, "Spin to Win !!!")
+
+                for i in 0 to width//10 {
+                    _vm_gfx_line(i*2+100, 100, i*10, 199, 6)
+                }
+
+                rotate_points(flt(irq.global_time) / 30.0)
+                draw_lines()
             }
         }
     }
 
-    sub rotate_all(t: float) {
-        rx1 = x1 * cos(t) - y1 * sin(t)
-        ry1 = x1 * sin(t) + y1 * cos(t)
+    sub rotate_points(t: float) {
 
-        rx2 = x2 * cos(t) - y2 * sin(t)
-        ry2 = x2 * sin(t) + y2 * cos(t)
+        ; rotate around origin (0,0) and zoom a bit
+        byte i
+        float zoom
+        zoom = (0.6 + sin(t*1.4)/2.2)
 
-        rx3 = x3 * cos(t) - y3 * sin(t)
-        ry3 = x3 * sin(t) + y3 * cos(t)
-
-        rx4 = x4 * cos(t) - y4 * sin(t)
-        ry4 = x4 * sin(t) + y4 * cos(t)
+        for i in 0 to len(xcoor)-1 {
+            rotatedx[i] = xcoor[i] * cos(t) - ycoor[i] * sin(t)
+            rotatedy[i] = xcoor[i] * sin(t) + ycoor[i] * cos(t)
+            rotatedx[i] *= zoom
+            rotatedy[i] *= zoom
+        }
     }
 
 
-    sub plot_pixels() {
-        word sx1
-        word sx2
-        word sx3
-        word sx4
-        word sy1
-        word sy2
-        word sy3
-        word sy4
+    sub draw_lines() {
+        byte i
 
-        sx1 = floor(rx1 * height/3 + width/2)
-        sx2 = floor(rx2 * height/3 + width/2)
-        sx3 = floor(rx3 * height/3 + width/2)
-        sx4 = floor(rx4 * height/3 + width/2)
-        sy1 = floor(ry1 * height/3 + height/2)
-        sy2 = floor(ry2 * height/3 + height/2)
-        sy3 = floor(ry3 * height/3 + height/2)
-        sy4 = floor(ry4 * height/3 + height/2)
+        sub toscreenx(x: float) -> word {
+            return floor(x * height/3 + width /2)
+        }
 
-        _vm_gfx_line(sx1, sy1, sx2, sy2, 1)
-        _vm_gfx_line(sx2, sy2, sx3, sy3, 7)
-        _vm_gfx_line(sx3, sy3, sx4, sy4, 10)
-        _vm_gfx_line(sx4, sy4, sx1, sy1, 14)
+        sub toscreeny(y: float) -> word {
+            return floor(y * height/3 + height /2)
+        }
+
+        for i in 0 to len(xcoor)-2 {
+            _vm_gfx_line(toscreenx(rotatedx[i]), toscreeny(rotatedy[i]), toscreenx(rotatedx[i+1]), toscreeny(rotatedy[i+1]), i+7)
+        }
+        _vm_gfx_line(toscreenx(rotatedx[len(xcoor)-1]), toscreeny(rotatedy[len(xcoor)-1]), toscreenx(rotatedx[0]), toscreeny(rotatedy[0]), 14)
     }
 }
