@@ -537,7 +537,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                     translateFunctionCall(funcname, expr.arglist)
                 } else {
                     when(target) {
-                        is Subroutine -> translateSubroutineCall(target, expr.arglist)
+                        is Subroutine -> translateSubroutineCall(target, expr.arglist, expr.position)
                         else -> TODO("non-builtin-function call to $target")
                     }
                 }
@@ -608,7 +608,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
             is Label ->
                 stackvmProg.instr(Opcode.CALL, callLabel = targetStmt.scopedname)
             is Subroutine -> {
-                translateSubroutineCall(targetStmt, stmt.arglist)
+                translateSubroutineCall(targetStmt, stmt.arglist, stmt.position)
                 // make sure we clean up the unused result values from the stack.
                 for(rv in targetStmt.returnvalues) {
                     val opcode=opcodeDiscard(rv)
@@ -649,8 +649,9 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
         }
     }
 
-    private fun translateSubroutineCall(subroutine: Subroutine, arguments: List<IExpression>) {
+    private fun translateSubroutineCall(subroutine: Subroutine, arguments: List<IExpression>, callPosition: Position) {
         // evaluate the arguments and assign them into the subroutine's argument variables.
+        stackvmProg.line(callPosition)
         for(arg in arguments.zip(subroutine.parameters)) {
             translate(arg.first)
             val opcode=opcodePopvar(arg.second.type)

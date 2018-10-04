@@ -85,6 +85,8 @@ class Program (val name: String,
 
             while(true) {
                 val (lineNr, line) = lines.next()
+                if(line.isEmpty())
+                    continue
                 if(line=="%end_instructions")
                     return Pair(instructions, labels)
                 if(!line.startsWith(' ') && line.endsWith(':')) {
@@ -219,6 +221,7 @@ class Program (val name: String,
     val program: List<Instruction>
 
     init {
+        prog.add(LabelInstr("____program_end"))
         prog.add(Instruction(Opcode.TERMINATE))
         prog.add(Instruction(Opcode.NOP))
         program = prog

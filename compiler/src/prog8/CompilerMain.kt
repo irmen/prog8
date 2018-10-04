@@ -55,6 +55,7 @@ fun main(args: Array<String>) {
         val heap = HeapValues()
         moduleAst.checkIdentifiers()
         moduleAst.constantFold(namespace, heap)
+        StatementReorderer().process(moduleAst)     // reorder statements to please the compiler later
         moduleAst.checkValid(namespace, compilerOptions, heap)          // check if tree is valid
 
         // optimize the parse tree
@@ -68,7 +69,6 @@ fun main(args: Array<String>) {
                 break
         }
 
-        StatementReorderer().process(moduleAst)     // reorder statements to please the compiler later
         namespace = moduleAst.definingScope()       // create it again, it could have changed in the meantime
         moduleAst.checkValid(namespace, compilerOptions, heap)          // check if final tree is valid
         moduleAst.checkRecursion(namespace)         // check if there are recursive subroutine calls

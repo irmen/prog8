@@ -171,7 +171,6 @@ class AstChecker(private val namespace: INameScope,
             checkResult.add(SyntaxError("block memory address must be valid integer 0..\$ffff", block.position))
         }
 
-        checkSubroutinesPrecededByReturnOrJumpAndFollowedByLabelOrSub(block.statements)
         return super.process(block)
     }
 
@@ -200,7 +199,6 @@ class AstChecker(private val namespace: INameScope,
             err("parameter names must be unique")
 
         super.process(subroutine)
-        checkSubroutinesPrecededByReturnOrJumpAndFollowedByLabelOrSub(subroutine.statements)
 
         // subroutine must contain at least one 'return' or 'goto'
         // (or if it has an asm block, that must contain a 'rts' or 'jmp')
@@ -228,30 +226,6 @@ class AstChecker(private val namespace: INameScope,
         }
 
         return subroutine
-    }
-
-    private fun checkSubroutinesPrecededByReturnOrJumpAndFollowedByLabelOrSub(statements: MutableList<IStatement>) {
-        // @todo hmm, or move all the subroutines at the end of the block? (no fall-through execution)
-        var preceding: IStatement = BuiltinFunctionStatementPlaceholder("dummy", Position("<<dummy>>", 0, 0,0 ))
-        var checkNext = false
-        for (stmt in statements) {
-            if(checkNext) {
-                if(stmt !is Label && stmt !is Subroutine)
-                    checkResult.add(SyntaxError("preceding subroutine definition at line ${preceding.position.line} must be followed here by a label, another subroutine statement, or nothing", stmt.position))
-                return
-            }
-            if(stmt is Subroutine) {
-                if(preceding !is Return
-                        && preceding !is Jump
-                        && preceding !is Subroutine
-                        && preceding !is VarDecl
-                        && preceding !is BuiltinFunctionStatementPlaceholder) {
-                    checkResult.add(SyntaxError("subroutine definition must be preceded by a return, jump, vardecl, or another subroutine statement", stmt.position))
-                }
-                checkNext=true
-            }
-            preceding = stmt
-        }
     }
 
     /**
@@ -336,7 +310,7 @@ class AstChecker(private val namespace: INameScope,
             err("recursive var declaration")
         }
 
-        // for now, variables can only be declared in a block or subroutine (not in a loop statement block)  @todo fix this
+        // for now, variables can only be declared in a block or subroutine (not in a loop statement block)  @todo fix this (anonymous namescope)
         if(decl.parent !is Block && decl.parent !is Subroutine) {
             err ("variables must be declared at block or subroutine level")
         }

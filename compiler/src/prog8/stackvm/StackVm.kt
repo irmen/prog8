@@ -231,7 +231,7 @@ open class Instruction(val opcode: Opcode,
 
 class LabelInstr(val name: String) : Instruction(opcode = Opcode.NOP) {
     override fun toString(): String {
-        return "$name:"
+        return "\n$name:"
     }
 }
 
