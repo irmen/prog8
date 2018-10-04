@@ -81,10 +81,10 @@ enum class Opcode {
     W2FLOAT,        // convert word into floating point
 
     // logical operations
-    AND,            // todo b/w/f ?
-    OR,             // todo b/w/f ?
-    XOR,            // todo b/w/f ?
-    NOT,            // todo b/w/f ?
+    AND,            // todo b/w  (convert float to byte)
+    OR,             // todo b/w  (convert float to byte)
+    XOR,            // todo b/w  (convert float to byte)
+    NOT,            // todo b/w  (convert float to byte)
 
     // increment, decrement
     INC,

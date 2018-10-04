@@ -520,13 +520,13 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
             }
             is PrefixExpression -> {
                 translate(expr.expression)
-                translatePrefixOperator(expr.operator)
+                translatePrefixOperator(expr.operator, expr.expression.resultingDatatype(namespace, heap))
             }
             is BinaryExpression -> {
                 checkForFloatPrecisionProblem(expr.left, expr.right)
                 translate(expr.left)
                 translate(expr.right)
-                translateBinaryOperator(expr.operator)
+                translateBinaryOperator(expr.operator, expr.left.resultingDatatype(namespace, heap), expr.right.resultingDatatype(namespace, heap))
             }
             is FunctionCall -> {
                 val target = expr.target.targetStatement(namespace)
@@ -659,8 +659,14 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
         stackvmProg.instr(Opcode.CALL, callLabel=subroutine.scopedname)
     }
 
-    private fun translateBinaryOperator(operator: String) {
+    private fun translateBinaryOperator(operator: String, leftDt: DataType?, rightDt: DataType?) {
+        if(leftDt==null || rightDt==null)
+            throw CompilerException("left and/or right operand datatype not known")
+        val validDt = setOf(DataType.BYTE, DataType.WORD, DataType.FLOAT)
+        if(leftDt !in validDt || rightDt !in validDt)
+            throw CompilerException("invalid datatype(s) for operand(s)")
         val opcode = when(operator) {
+            // todo variants depending on leftdt/rightdt (b/w/f)
             "+" -> Opcode.ADD
             "-" -> Opcode.SUB
             "*" -> Opcode.MUL
@@ -685,12 +691,14 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
         stackvmProg.instr(opcode)
     }
 
-    private fun translatePrefixOperator(operator: String) {
+    private fun translatePrefixOperator(operator: String, operandDt: DataType?) {
+        if(operandDt==null)
+            throw CompilerException("operand datatype not known")
         val opcode = when(operator) {
             "+" -> Opcode.NOP
-            "-" -> Opcode.NEG
-            "~" -> Opcode.INV
-            "not" -> Opcode.NOT
+            "-" -> Opcode.NEG       // todo b/w/f
+            "~" -> Opcode.INV       // todo b/w
+            "not" -> Opcode.NOT     // todo b/w (convert float to byte)
             else -> throw FatalAstException("const evaluation for invalid prefix operator $operator")
         }
         stackvmProg.instr(opcode)
