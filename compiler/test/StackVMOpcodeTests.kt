@@ -114,8 +114,17 @@ class TestStackVmOpcodes {
     }
 
     @Test
+    fun testPushWrongDt() {
+        val ins = mutableListOf(Instruction(Opcode.PUSH, Value(DataType.WORD, 4299)))
+        vm.load(makeProg(ins), null)
+        assertFailsWith<VmExecutionException> {
+            vm.step(1)
+        }
+    }
+
+    @Test
     fun testPush() {
-        val ins = mutableListOf(Instruction(Opcode.PUSH, Value(DataType.FLOAT, 42.999)))
+        val ins = mutableListOf(Instruction(Opcode.PUSH_F, Value(DataType.FLOAT, 42.999)))
         vm.load(makeProg(ins), null)
         assertThat(vm.evalstack, empty())
         vm.step(1)
@@ -151,7 +160,7 @@ class TestStackVmOpcodes {
 
     @Test
     fun testPushVar() {
-        val ins = mutableListOf(Instruction(Opcode.PUSH_VAR, callLabel = "varname"))
+        val ins = mutableListOf(Instruction(Opcode.PUSH_VAR_F, callLabel = "varname"))
         vm.load(makeProg(ins, mapOf("varname" to Value(DataType.FLOAT, 42.999))), null)
         assertEquals(7, vm.variables.size)
         assertTrue(vm.variables.containsKey("varname"))
@@ -166,39 +175,11 @@ class TestStackVmOpcodes {
     }
 
     @Test
-    fun testDup() {
-        val ins = mutableListOf(
-                Instruction(Opcode.PUSH, Value(DataType.FLOAT, 42.999)),
-                Instruction(Opcode.DUP))
-        vm.load(makeProg(ins), null)
-        assertThat(vm.evalstack, empty())
-        vm.step(2)
-        assertEquals(2, vm.evalstack.size)
-        assertEquals(Value(DataType.FLOAT, 42.999), vm.evalstack.pop())
-        assertEquals(Value(DataType.FLOAT, 42.999), vm.evalstack.pop())
-    }
-
-    @Test
-    fun testSwap() {
-        val ins = mutableListOf(
-                Instruction(Opcode.PUSH, Value(DataType.BYTE, 123)),
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 9999)),
-                Instruction(Opcode.SWAP)
-        )
-        vm.load(makeProg(ins), null)
-        assertThat(vm.evalstack, empty())
-        vm.step(3)
-        assertEquals(2, vm.evalstack.size)
-        assertEquals(Value(DataType.BYTE, 123), vm.evalstack.pop())
-        assertEquals(Value(DataType.WORD, 9999), vm.evalstack.pop())
-    }
-
-    @Test
     fun testDiscard() {
         val ins = mutableListOf(
-                Instruction(Opcode.PUSH, Value(DataType.FLOAT, 42.999)),
-                Instruction(Opcode.PUSH, Value(DataType.FLOAT, 3.1415)),
-                Instruction(Opcode.DISCARD))
+                Instruction(Opcode.PUSH_F, Value(DataType.FLOAT, 42.999)),
+                Instruction(Opcode.PUSH_F, Value(DataType.FLOAT, 3.1415)),
+                Instruction(Opcode.DISCARD_F))
         vm.load(makeProg(ins), null)
         assertThat(vm.evalstack, empty())
         vm.step(2)
@@ -211,12 +192,12 @@ class TestStackVmOpcodes {
     @Test
     fun testPopMem() {
         val ins = mutableListOf(
-                Instruction(Opcode.PUSH, Value(DataType.FLOAT, 42.25)),
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 0x42ea)),
+                Instruction(Opcode.PUSH_F, Value(DataType.FLOAT, 42.25)),
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 0x42ea)),
                 Instruction(Opcode.PUSH, Value(DataType.BYTE, 123)),
                 Instruction(Opcode.POP_MEM, Value(DataType.WORD, 0x2000)),
-                Instruction(Opcode.POP_MEM, Value(DataType.WORD, 0x3000)),
-                Instruction(Opcode.POP_MEM, Value(DataType.WORD, 0x4000)))
+                Instruction(Opcode.POP_MEM_W, Value(DataType.WORD, 0x3000)),
+                Instruction(Opcode.POP_MEM_F, Value(DataType.WORD, 0x4000)))
         vm.load(makeProg(ins), null)
         assertEquals(0, vm.mem.getWord(0x2000))
         assertEquals(0, vm.mem.getWord(0x3000))
@@ -233,12 +214,12 @@ class TestStackVmOpcodes {
     @Test
     fun testPopVar() {
         val ins = mutableListOf(
-                Instruction(Opcode.PUSH, Value(DataType.FLOAT, 42.25)),
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 0x42ea)),
+                Instruction(Opcode.PUSH_F, Value(DataType.FLOAT, 42.25)),
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 0x42ea)),
                 Instruction(Opcode.PUSH, Value(DataType.BYTE, 123)),
                 Instruction(Opcode.POP_VAR, callLabel = "var1"),
-                Instruction(Opcode.POP_VAR, callLabel = "var2"),
-                Instruction(Opcode.POP_VAR, callLabel = "var3"))
+                Instruction(Opcode.POP_VAR_W, callLabel = "var2"),
+                Instruction(Opcode.POP_VAR_F, callLabel = "var3"))
         val vars = mapOf(
                 "var1" to Value(DataType.BYTE, 0),
                 "var2" to Value(DataType.WORD, 0),
@@ -252,8 +233,8 @@ class TestStackVmOpcodes {
         assertEquals(Value(DataType.FLOAT, 42.25), vm.variables["var3"])
 
         val ins2 = mutableListOf(
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 0x42ea)),
-                Instruction(Opcode.POP_VAR, callLabel = "var1"))
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 0x42ea)),
+                Instruction(Opcode.POP_VAR_W, callLabel = "var1"))
         val vars2 = mapOf(
                 "var1" to Value(DataType.BYTE, 0)
         )
@@ -505,65 +486,89 @@ class TestStackVmOpcodes {
                 Value(DataType.BYTE, 20))
         val expected = listOf(
                 Value(DataType.BYTE, 0),
-                Value(DataType.BYTE, 1),
                 Value(DataType.BYTE, 0),
                 Value(DataType.BYTE, 1),
                 Value(DataType.BYTE, 0),
                 Value(DataType.BYTE, 1),
                 Value(DataType.BYTE, 0),
+                Value(DataType.BYTE, 1),
                 Value(DataType.BYTE, 0)
                 )
         val operator = Opcode.NOT
 
-        testUnaryOperator(values, operator, expected)
+        testUnaryOperator(values, operator, expected, listOf(DataType.BYTE, DataType.BYTE,DataType.BYTE,DataType.BYTE,DataType.BYTE,DataType.BYTE,DataType.BYTE,DataType.BYTE))
     }
 
     @Test
     fun testInc() {
         val values = listOf(
-                Value(DataType.FLOAT, 2022.5),
-                Value(DataType.WORD, 65535),
-                Value(DataType.WORD, 999),
                 Value(DataType.BYTE, 255),
                 Value(DataType.BYTE, 99)
         )
         val expected = listOf(
-                Value(DataType.BYTE, 100),
                 Value(DataType.BYTE, 0),
-                Value(DataType.WORD, 1000),
+                Value(DataType.BYTE, 100)
+        )
+        testUnaryOperator(values, Opcode.INC, expected)
+
+        val valuesw = listOf(
+                Value(DataType.WORD, 65535),
+                Value(DataType.WORD, 999)
+        )
+        val expectedw = listOf(
                 Value(DataType.WORD, 0),
+                Value(DataType.WORD, 1000)
+        )
+        testUnaryOperator(valuesw, Opcode.INC_W, expectedw)
+
+        val valuesf = listOf(
+                Value(DataType.FLOAT, -1.0),
+                Value(DataType.FLOAT, 2022.5)
+        )
+        val expectedf = listOf(
+                Value(DataType.FLOAT, 0.0),
                 Value(DataType.FLOAT, 2023.5)
         )
-        val operator = Opcode.INC
-        testUnaryOperator(values, operator, expected)
+        testUnaryOperator(valuesf, Opcode.INC_F, expectedf)
     }
 
     @Test
     fun testDec() {
         val values = listOf(
-                Value(DataType.FLOAT, 0.5),
-                Value(DataType.FLOAT, 123.456),
-                Value(DataType.WORD, 1000),
-                Value(DataType.WORD, 0),
                 Value(DataType.BYTE, 100),
                 Value(DataType.BYTE, 0)
         )
         val expected = listOf(
-                Value(DataType.BYTE, 255),
                 Value(DataType.BYTE, 99),
-                Value(DataType.WORD, 65535),
-                Value(DataType.WORD, 999),
-                Value(DataType.FLOAT, 122.456),
-                Value(DataType.FLOAT, -0.5)
+                Value(DataType.BYTE, 255)
         )
-        val operator = Opcode.DEC
-        testUnaryOperator(values, operator, expected)
+        testUnaryOperator(values, Opcode.DEC, expected)
+
+        val valuesw = listOf(
+                Value(DataType.WORD, 1000),
+                Value(DataType.WORD, 0)
+        )
+        val expectedw = listOf(
+                Value(DataType.WORD, 999),
+                Value(DataType.WORD, 65535)
+        )
+        testUnaryOperator(valuesw, Opcode.DEC_W, expectedw)
+
+        val valuesf = listOf(
+                Value(DataType.FLOAT, 0.5),
+                Value(DataType.FLOAT, 123.456)
+        )
+        val expectedf = listOf(
+                Value(DataType.FLOAT, -0.5),
+                Value(DataType.FLOAT, 122.456)
+        )
+        testUnaryOperator(valuesf, Opcode.DEC_F, expectedf)
     }
 
     @Test
     fun testNeg() {
         val ins = mutableListOf(
-                Instruction(Opcode.PUSH, Value(DataType.FLOAT, 123.456)),
+                Instruction(Opcode.PUSH_F, Value(DataType.FLOAT, 123.456)),
                 Instruction(Opcode.NEG),
                 Instruction(Opcode.NEG)
         )
@@ -577,7 +582,7 @@ class TestStackVmOpcodes {
         assertEquals(Value(DataType.FLOAT, 123.456), vm.evalstack.peek())
 
         val ins2 = mutableListOf(
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 1234)),
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 1234)),
                 Instruction(Opcode.NEG)
         )
         vm.load(makeProg(ins2), null)
@@ -597,7 +602,7 @@ class TestStackVmOpcodes {
     fun testInv() {
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH, Value(DataType.BYTE, 123)),
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 4044)),
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 4044)),
                 Instruction(Opcode.INV),
                 Instruction(Opcode.INV),
                 Instruction(Opcode.INV)
@@ -612,7 +617,7 @@ class TestStackVmOpcodes {
         assertEquals(Value(DataType.BYTE, 0x84), vm.evalstack.pop())
 
         val ins2 = mutableListOf(
-                Instruction(Opcode.PUSH, Value(DataType.FLOAT, 1234.33)),
+                Instruction(Opcode.PUSH_W, Value(DataType.FLOAT, 1234.33)),         // todo should crash
                 Instruction(Opcode.INV)
         )
         vm.load(makeProg(ins2), null)
@@ -624,9 +629,9 @@ class TestStackVmOpcodes {
     @Test
     fun testLsb() {
         val ins = mutableListOf(
-                Instruction(Opcode.PUSH, Value(DataType.FLOAT, 1.23)),
+                Instruction(Opcode.PUSH_F, Value(DataType.FLOAT, 1.23)),
                 Instruction(Opcode.PUSH, Value(DataType.BYTE, 0x45)),
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 0xea31)),
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 0xea31)),
                 Instruction(Opcode.LSB),
                 Instruction(Opcode.LSB),
                 Instruction(Opcode.LSB)
@@ -644,9 +649,9 @@ class TestStackVmOpcodes {
     @Test
     fun testMsb() {
         val ins = mutableListOf(
-                Instruction(Opcode.PUSH, Value(DataType.FLOAT, 1.23)),
+                Instruction(Opcode.PUSH_F, Value(DataType.FLOAT, 1.23)),
                 Instruction(Opcode.PUSH, Value(DataType.BYTE, 0x45)),
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 0xea31)),
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 0xea31)),
                 Instruction(Opcode.MSB),
                 Instruction(Opcode.MSB),
                 Instruction(Opcode.MSB)
@@ -664,7 +669,7 @@ class TestStackVmOpcodes {
     @Test
     fun testB2Word() {
         val ins = mutableListOf(
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 0xea31)),
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 0xea31)),
                 Instruction(Opcode.PUSH, Value(DataType.BYTE, 0x45)),
                 Instruction(Opcode.B2WORD),
                 Instruction(Opcode.B2WORD)
@@ -680,7 +685,7 @@ class TestStackVmOpcodes {
     @Test
     fun testMSB2Word() {
         val ins = mutableListOf(
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 0xea31)),
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 0xea31)),
                 Instruction(Opcode.PUSH, Value(DataType.BYTE, 0x45)),
                 Instruction(Opcode.MSB2WORD),
                 Instruction(Opcode.MSB2WORD)
@@ -696,7 +701,7 @@ class TestStackVmOpcodes {
     @Test
     fun testB2Float() {
         val ins = mutableListOf(
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 0xea31)),
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 0xea31)),
                 Instruction(Opcode.PUSH, Value(DataType.BYTE, 123)),
                 Instruction(Opcode.B2FLOAT),
                 Instruction(Opcode.B2FLOAT)
@@ -713,7 +718,7 @@ class TestStackVmOpcodes {
     fun testW2Float() {
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH, Value(DataType.BYTE, 11)),
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 12345)),
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 12345)),
                 Instruction(Opcode.W2FLOAT),
                 Instruction(Opcode.W2FLOAT)
         )
@@ -726,75 +731,53 @@ class TestStackVmOpcodes {
     }
 
     @Test
-    fun testIncMemAndIncMemW() {
-        val ins = mutableListOf(
-                Instruction(Opcode.INC_MEM, Value(DataType.WORD, 0x2000)),
-                Instruction(Opcode.INC_MEM, Value(DataType.WORD, 0x2001)),
-                Instruction(Opcode.INC_MEM_W, Value(DataType.WORD, 0x3000)),
-                Instruction(Opcode.INC_MEM_W, Value(DataType.WORD, 0x3002))
-        )
-        val mem=mapOf(0x2000 to listOf(Value(DataType.BYTE, 100), Value(DataType.BYTE, 255)),
-                0x3000 to listOf(Value(DataType.WORD, 0x42ea), Value(DataType.WORD, 0xffff)))
-        vm.load(makeProg(ins, mem=mem), null)
-        vm.step(4)
-        assertEquals(101, vm.mem.getByte(0x2000))
-        assertEquals(0, vm.mem.getByte(0x2001))
-        assertEquals(0x42eb, vm.mem.getWord(0x3000))
-        assertEquals(0, vm.mem.getWord(0x3002))
-    }
-
-    @Test
     fun testIncVar() {
         val ins = mutableListOf(
-                Instruction(Opcode.INC_VAR, callLabel ="var1"),
+                Instruction(Opcode.INC_VAR_W, callLabel ="var1"),
                 Instruction(Opcode.INC_VAR, callLabel ="var2"),
-                Instruction(Opcode.INC_VAR, callLabel ="var1"),
-                Instruction(Opcode.INC_VAR, callLabel ="var2"))
+                Instruction(Opcode.INC_VAR_F, callLabel ="var3"),
+                Instruction(Opcode.INC_VAR_W, callLabel ="var1"),
+                Instruction(Opcode.INC_VAR, callLabel ="var2"),
+                Instruction(Opcode.INC_VAR_F, callLabel ="var3")
+                )
         val vars = mapOf("var1" to Value(DataType.WORD, 65534),
-                "var2" to Value(DataType.BYTE, 254))
+                "var2" to Value(DataType.BYTE, 254),
+                "var3" to Value(DataType.FLOAT, -1.5)
+                )
         vm.load(makeProg(ins, vars = vars), null)
-        vm.step(2)
+        vm.step(3)
         assertEquals(Value(DataType.WORD, 65535), vm.variables["var1"])
         assertEquals(Value(DataType.BYTE, 255), vm.variables["var2"])
-        vm.step(2)
+        assertEquals(Value(DataType.FLOAT, -0.5), vm.variables["var3"])
+        vm.step(3)
         assertEquals(Value(DataType.WORD, 0), vm.variables["var1"])
         assertEquals(Value(DataType.BYTE, 0), vm.variables["var2"])
+        assertEquals(Value(DataType.FLOAT, 0.5), vm.variables["var3"])
     }
 
     @Test
     fun testDecVar() {
         val ins = mutableListOf(
-                Instruction(Opcode.DEC_VAR, callLabel = "var1"),
+                Instruction(Opcode.DEC_VAR_W, callLabel = "var1"),
                 Instruction(Opcode.DEC_VAR, callLabel = "var2"),
-                Instruction(Opcode.DEC_VAR, callLabel = "var1"),
-                Instruction(Opcode.DEC_VAR, callLabel = "var2"))
+                Instruction(Opcode.DEC_VAR_F, callLabel = "var3"),
+                Instruction(Opcode.DEC_VAR_W, callLabel = "var1"),
+                Instruction(Opcode.DEC_VAR, callLabel = "var2"),
+                Instruction(Opcode.DEC_VAR_F, callLabel = "var3")
+        )
         val vars = mapOf("var1" to Value(DataType.WORD,1),
-                "var2" to Value(DataType.BYTE, 1))
+                "var2" to Value(DataType.BYTE, 1),
+                "var3" to Value(DataType.FLOAT, 1.5)
+                )
         vm.load(makeProg(ins, vars = vars), null)
-        vm.step(2)
+        vm.step(3)
         assertEquals(Value(DataType.WORD, 0), vm.variables["var1"])
         assertEquals(Value(DataType.BYTE, 0), vm.variables["var2"])
-        vm.step(2)
+        assertEquals(Value(DataType.FLOAT, 0.5), vm.variables["var3"])
+        vm.step(3)
         assertEquals(Value(DataType.WORD, 65535), vm.variables["var1"])
         assertEquals(Value(DataType.BYTE, 255), vm.variables["var2"])
-    }
-
-    @Test
-    fun testDecMemAndDecMemW() {
-        val ins = mutableListOf(
-                Instruction(Opcode.DEC_MEM, Value(DataType.WORD, 0x2000)),
-                Instruction(Opcode.DEC_MEM, Value(DataType.WORD, 0x2001)),
-                Instruction(Opcode.DEC_MEM_W, Value(DataType.WORD, 0x3000)),
-                Instruction(Opcode.DEC_MEM_W, Value(DataType.WORD, 0x3002))
-        )
-        val mem=mapOf(0x2000 to listOf(Value(DataType.BYTE, 100), Value(DataType.BYTE, 0)),
-                0x3000 to listOf(Value(DataType.WORD, 0x42ea), Value(DataType.WORD, 0)))
-        vm.load(makeProg(ins, mem=mem), null)
-        vm.step(4)
-        assertEquals(99, vm.mem.getByte(0x2000))
-        assertEquals(255, vm.mem.getByte(0x2001))
-        assertEquals(0x42e9, vm.mem.getWord(0x3000))
-        assertEquals(65535, vm.mem.getWord(0x3002))
+        assertEquals(Value(DataType.FLOAT, -0.5), vm.variables["var3"])
     }
 
     @Test
@@ -805,7 +788,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.SYSCALL, Value(DataType.BYTE, Syscall.FUNC_RND.callNr)),
                 Instruction(Opcode.SYSCALL, Value(DataType.BYTE, Syscall.FUNC_RND.callNr)),
 
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 25544)),
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 25544)),
                 Instruction(Opcode.SYSCALL, Value(DataType.BYTE, Syscall.FUNC_SIN.callNr))
         )
         vm.load(makeProg(ins), null)
@@ -1050,9 +1033,9 @@ class TestStackVmOpcodes {
     @Test
     fun testBZ() {
         val ins = mutableListOf(
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 1)),
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 1)),
                 Instruction(Opcode.BZ, callLabel = "label"),
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 0)),
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 0)),
                 Instruction(Opcode.BZ, callLabel = "label"),
                 Instruction(Opcode.LINE, callLabel = "string1"),
                 Instruction(Opcode.TERMINATE),
@@ -1070,9 +1053,9 @@ class TestStackVmOpcodes {
     @Test
     fun testBNZ() {
         val ins = mutableListOf(
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 0)),
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 0)),
                 Instruction(Opcode.BNZ, callLabel = "label"),
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 1)),
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 1)),
                 Instruction(Opcode.BNZ, callLabel = "label"),
                 Instruction(Opcode.LINE, callLabel = "string1"),
                 Instruction(Opcode.TERMINATE),
@@ -1090,11 +1073,11 @@ class TestStackVmOpcodes {
     @Test
     fun testBNEG() {
         val ins = mutableListOf(
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 0)),
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 0)),
                 Instruction(Opcode.BNEG, callLabel = "label"),
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 1)),
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 1)),
                 Instruction(Opcode.BNEG, callLabel = "label"),
-                Instruction(Opcode.PUSH, Value(DataType.FLOAT, -99)),
+                Instruction(Opcode.PUSH_F, Value(DataType.FLOAT, -99)),
                 Instruction(Opcode.BNEG, callLabel = "label"),
                 Instruction(Opcode.LINE, callLabel = "string1"),
                 Instruction(Opcode.TERMINATE),
@@ -1114,9 +1097,9 @@ class TestStackVmOpcodes {
     @Test
     fun testBPOS() {
         val ins = mutableListOf(
-                Instruction(Opcode.PUSH, Value(DataType.FLOAT, -99)),
+                Instruction(Opcode.PUSH_F, Value(DataType.FLOAT, -99)),
                 Instruction(Opcode.BPOS, callLabel = "label"),
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 0)),
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 0)),
                 Instruction(Opcode.BPOS, callLabel = "label"),
                 Instruction(Opcode.LINE, callLabel = "string1"),
                 Instruction(Opcode.TERMINATE),
@@ -1195,9 +1178,9 @@ class TestStackVmOpcodes {
     @Test
     fun testSHR() {
         val ins = mutableListOf(
-                Instruction(Opcode.PUSH, Value(DataType.FLOAT, 9.99)),
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 3)),
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 61005)),
+                Instruction(Opcode.PUSH_F, Value(DataType.FLOAT, 9.99)),
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 3)),
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 61005)),
                 Instruction(Opcode.PUSH, Value(DataType.BYTE, 3)),
                 Instruction(Opcode.PUSH, Value(DataType.BYTE, 249)),
                 Instruction(Opcode.SHR),        // 124
@@ -1207,12 +1190,12 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.SHR),        // 0
                 Instruction(Opcode.DISCARD),
                 Instruction(Opcode.SHR),        // 30502
-                Instruction(Opcode.DISCARD),
+                Instruction(Opcode.DISCARD_W),
                 Instruction(Opcode.SHR),        // 1
                 Instruction(Opcode.SHR),        // 0
                 Instruction(Opcode.SHR),        // 0
-                Instruction(Opcode.DISCARD),
-                Instruction(Opcode.SHR)         // error
+                Instruction(Opcode.DISCARD_W),
+                Instruction(Opcode.SHR)         // error on float
         )
         vm.load(makeProg(ins), null)
         vm.step(6)
@@ -1237,9 +1220,9 @@ class TestStackVmOpcodes {
     @Test
     fun testSHL() {
         val ins = mutableListOf(
-                Instruction(Opcode.PUSH, Value(DataType.FLOAT, 9.99)),
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 3)),
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 61005)),
+                Instruction(Opcode.PUSH_F, Value(DataType.FLOAT, 9.99)),
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 3)),
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 61005)),
                 Instruction(Opcode.PUSH, Value(DataType.BYTE, 3)),
                 Instruction(Opcode.PUSH, Value(DataType.BYTE, 249)),
                 Instruction(Opcode.SHL),        // 242
@@ -1247,10 +1230,10 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.SHL),        // 6
                 Instruction(Opcode.DISCARD),
                 Instruction(Opcode.SHL),        // 56474
-                Instruction(Opcode.DISCARD),
+                Instruction(Opcode.DISCARD_W),
                 Instruction(Opcode.SHL),        // 6
-                Instruction(Opcode.DISCARD),
-                Instruction(Opcode.SHL)         // error
+                Instruction(Opcode.DISCARD_W),
+                Instruction(Opcode.SHL)         // error on float
         )
         vm.load(makeProg(ins), null)
         vm.step(6)
@@ -1302,7 +1285,7 @@ class TestStackVmOpcodes {
 
         val ins2 = mutableListOf(
                 Instruction(Opcode.CLC),
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 0b1001001100001101)),
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 0b1001001100001101)),
                 Instruction(Opcode.ROR),        // 0b0100100110000110   c=1
                 Instruction(Opcode.ROR),        // 0b1010010011000011   c=0
                 Instruction(Opcode.ROR),
@@ -1367,7 +1350,7 @@ class TestStackVmOpcodes {
 
         val ins2 = mutableListOf(
                 Instruction(Opcode.CLC),
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 0b1001001100001101)),
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 0b1001001100001101)),
                 Instruction(Opcode.ROL),        // 0b0010011000011010   c=1
                 Instruction(Opcode.ROL),        // 0b0100110000110101   c=0
                 Instruction(Opcode.ROL),
@@ -1424,7 +1407,7 @@ class TestStackVmOpcodes {
         assertEquals(Value(DataType.BYTE, 0b10010011), vm.evalstack.peek())
 
         val ins2 = mutableListOf(
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 0b1001001100001101)),
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 0b1001001100001101)),
                 Instruction(Opcode.ROR2),        // 0b1100100110000110
                 Instruction(Opcode.ROR2),        // 0b0110010011000011
                 Instruction(Opcode.ROR2),
@@ -1476,7 +1459,7 @@ class TestStackVmOpcodes {
         assertEquals(Value(DataType.BYTE, 0b10010011), vm.evalstack.peek())
 
         val ins2 = mutableListOf(
-                Instruction(Opcode.PUSH, Value(DataType.WORD, 0b1001001100001101)),
+                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 0b1001001100001101)),
                 Instruction(Opcode.ROL2),        // 0b0010011000011011
                 Instruction(Opcode.ROL2),        // 0b0100110000110110
                 Instruction(Opcode.ROL2),
@@ -1505,13 +1488,36 @@ class TestStackVmOpcodes {
         assertEquals(Value(DataType.WORD, 0b1001001100001101), vm.evalstack.peek())
     }
 
+
+    private fun discardOpcode(dt: DataType): Opcode {
+        return when(dt) {
+            DataType.BYTE -> Opcode.DISCARD
+            DataType.WORD -> Opcode.DISCARD_W
+            DataType.FLOAT -> Opcode.DISCARD_F
+            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
+            DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX -> Opcode.DISCARD_W
+        }
+    }
+
+    private fun pushOpcode(dt: DataType): Opcode {
+        return when (dt) {
+            DataType.BYTE -> Opcode.PUSH
+            DataType.WORD -> Opcode.PUSH_W
+            DataType.FLOAT -> Opcode.PUSH_F
+            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
+            DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX -> Opcode.PUSH_W
+        }
+    }
+
     private fun testComparisonOperator(values: List<Value>, expected: List<Int>, operator: Opcode) {
         assertEquals(values.size, expected.size*2)
         val ins = mutableListOf<Instruction>()
         val vars = values.iterator()
         while(vars.hasNext()) {
-            ins.add(Instruction(Opcode.PUSH, vars.next()))
-            ins.add(Instruction(Opcode.PUSH, vars.next()))
+            var nextvar = vars.next()
+            ins.add(Instruction(pushOpcode(nextvar.type), nextvar))
+            nextvar = vars.next()
+            ins.add(Instruction(pushOpcode(nextvar.type), nextvar))
             ins.add(Instruction(operator))
         }
         vm.load(makeProg(ins), null)
@@ -1524,8 +1530,9 @@ class TestStackVmOpcodes {
     private fun testBinaryOperator(valuesToPush: List<Value>, operator: Opcode, expected: List<Value>) {
         assertEquals(valuesToPush.size, expected.size+1)
         val ins = mutableListOf<Instruction>()
-        for (value in valuesToPush)
-            ins.add(Instruction(Opcode.PUSH, value))
+        for (value in valuesToPush) {
+            ins.add(Instruction(pushOpcode(value.type), value))
+        }
         for (i in 1 until valuesToPush.size)
             ins.add(Instruction(operator))
         vm.load(makeProg(ins), null)
@@ -1540,19 +1547,23 @@ class TestStackVmOpcodes {
         }
     }
 
-    private fun testUnaryOperator(valuesToPush: List<Value>, operator: Opcode, expected: List<Value>) {
+    private fun testUnaryOperator(valuesToPush: List<Value>, operator: Opcode, expected: List<Value>, expectedTypes: List<DataType>?=null) {
         assertEquals(valuesToPush.size, expected.size)
+        val typesExpected = expectedTypes?.reversed() ?: expected.reversed().map{it.type}
+
         val ins = mutableListOf<Instruction>()
-        for (value in valuesToPush)
-            ins.add(Instruction(Opcode.PUSH, value))
-        for (i in 1..valuesToPush.size) {
+        for (value in valuesToPush) {
+            ins.add(Instruction(pushOpcode(value.type), value))
+        }
+        for (type in typesExpected) {
             ins.add(Instruction(operator))
-            ins.add(Instruction(Opcode.DISCARD))
+            ins.add(Instruction(discardOpcode(type)))
         }
         vm.load(makeProg(ins), null)
         vm.step(valuesToPush.size)
         assertEquals(valuesToPush.size, vm.evalstack.size)
-        for (expectedVal in expected) {
+
+        for (expectedVal in expected.reversed()) {
             vm.step(1)
             assertEquals(expectedVal, vm.evalstack.peek())
             vm.step(1)

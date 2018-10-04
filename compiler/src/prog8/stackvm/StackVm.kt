@@ -11,55 +11,66 @@ import kotlin.math.*
 enum class Opcode {
 
     // pushing values on the (evaluation) stack
-    PUSH,           // push constant value (any type)
+    PUSH,           // push byte value
+    PUSH_W,         // push word value   (or 'address' of string / array / matrix)
+    PUSH_F,         // push float value
     PUSH_MEM,       // push byte value from memory to stack
     PUSH_MEM_W,     // push word value from memory to stack
     PUSH_MEM_F,     // push float value from memory to stack
-    PUSH_VAR,       // push a variable
-    DUP,            // push topmost value once again
+    PUSH_VAR,       // push byte variable
+    PUSH_VAR_W,     // push word variable
+    PUSH_VAR_F,     // push float variable
 
     // popping values off the (evaluation) stack, possibly storing them in another location
-    DISCARD,        // discard top value
-    POP_MEM,        // pop value into destination memory address
-    POP_VAR,        // pop value into variable
+    DISCARD,        // discard top byte value
+    DISCARD_W,      // discard top word value
+    DISCARD_F,      // discard top float value
+    POP_MEM,        // pop byte value into destination memory address
+    POP_MEM_W,      // pop word value into destination memory address
+    POP_MEM_F,      // pop float value into destination memory address
+    POP_VAR,        // pop byte value into variable
+    POP_VAR_W,      // pop word value into variable
+    POP_VAR_F,      // pop float value into variable
 
-    // numeric and bitwise arithmetic
-    ADD,
-    SUB,
-    MUL,
-    DIV,
-    FLOORDIV,
-    REMAINDER,
-    POW,
-    NEG,
-    SHL,
+    // numeric arithmetic
+    ADD,            // todo b/w/f
+    SUB,            // todo b/w/f
+    MUL,            // todo b/w/f
+    DIV,            // todo b/w/f
+    FLOORDIV,       // todo b/w/f
+    REMAINDER,      // todo b/w/f
+    POW,            // todo b/w/f
+    NEG,            // todo b/w/f
+
+    // bit shifts and bitwise arithmetic
+    SHL,            // todo b/w
     SHL_MEM,
     SHL_MEM_W,
-    SHL_VAR,
-    SHR,
+    SHL_VAR,        // todo b/w
+    SHR,            // todo b/w
     SHR_MEM,
     SHR_MEM_W,
-    SHR_VAR,
-    ROL,
+    SHR_VAR,        // todo b/w
+    ROL,            // todo b/w
     ROL_MEM,
     ROL_MEM_W,
-    ROL_VAR,
-    ROR,
+    ROL_VAR,        // todo b/w
+    ROR,            // todo b/w
     ROR_MEM,
     ROR_MEM_W,
-    ROR_VAR,
-    ROL2,
+    ROR_VAR,        // todo b/w
+    ROL2,           // todo b/w
     ROL2_MEM,
     ROL2_MEM_W,
-    ROL2_VAR,
-    ROR2,
+    ROL2_VAR,       // todo b/w
+    ROR2,           // todo b/w
     ROR2_MEM,
     ROR2_MEM_W,
-    ROR2_VAR,
-    BITAND,
-    BITOR,
-    BITXOR,
-    INV,
+    ROR2_VAR,       // todo b/w
+    BITAND,         // todo b/w
+    BITOR,          // todo b/w
+    BITXOR,         // todo b/w
+    INV,            // todo b/w
     LSB,
     MSB,
 
@@ -70,32 +81,40 @@ enum class Opcode {
     W2FLOAT,        // convert word into floating point
 
     // logical operations
-    AND,
-    OR,
-    XOR,
-    NOT,
+    AND,            // todo b/w/f ?
+    OR,             // todo b/w/f ?
+    XOR,            // todo b/w/f ?
+    NOT,            // todo b/w/f ?
 
     // increment, decrement
     INC,
-    INC_MEM,
-    INC_MEM_W,
+    INC_W,
+    INC_F,
     INC_VAR,
+    INC_VAR_W,
+    INC_VAR_F,
     DEC,
-    DEC_MEM,
-    DEC_MEM_W,
+    DEC_W,
+    DEC_F,
     DEC_VAR,
+    DEC_VAR_W,
+    DEC_VAR_F,
 
     // comparisons
-    LESS,
-    GREATER,
-    LESSEQ,
-    GREATEREQ,
-    EQUAL,
-    NOTEQUAL,
+    LESS,           // todo b/w/f ?
+    GREATER,        // todo b/w/f ?
+    LESSEQ,         // todo b/w/f ?
+    GREATEREQ,      // todo b/w/f ?
+    EQUAL,          // todo b/w/f ?
+    NOTEQUAL,       // todo b/w/f ?
 
     // array access
     READ_INDEXED_VAR,
+    READ_INDEXED_VAR_W,
+    READ_INDEXED_VAR_F,
     WRITE_INDEXED_VAR,
+    WRITE_INDEXED_VAR_W,
+    WRITE_INDEXED_VAR_F,
 
     // branching
     JUMP,
@@ -114,7 +133,6 @@ enum class Opcode {
     SYSCALL,
 
     // misc
-    SWAP,
     SEC,        // set carry status flag  NOTE: is mostly fake, carry flag is not affected by any numeric operations
     CLC,        // clear carry status flag  NOTE: is mostly fake, carry flag is not affected by any numeric operations
     SEI,        // set irq-disable status flag
@@ -124,6 +142,16 @@ enum class Opcode {
     TERMINATE,  // end the program
     LINE        // track source file line number
 }
+
+val opcodesWithVarArgument = setOf(
+        Opcode.INC_VAR, Opcode.INC_VAR_W, Opcode.DEC_VAR, Opcode.DEC_VAR_W,
+        Opcode.SHR_VAR, Opcode.SHL_VAR, Opcode.ROL_VAR, Opcode.ROR_VAR,
+        Opcode.ROL2_VAR, Opcode.ROR2_VAR,
+        Opcode.POP_VAR, Opcode.POP_VAR_W, Opcode.POP_VAR_F,
+        Opcode.PUSH_VAR, Opcode.PUSH_VAR_W, Opcode.PUSH_VAR_F,
+        Opcode.READ_INDEXED_VAR, Opcode.READ_INDEXED_VAR_W, Opcode.READ_INDEXED_VAR_F,
+        Opcode.WRITE_INDEXED_VAR, Opcode.WRITE_INDEXED_VAR_W, Opcode.WRITE_INDEXED_VAR_F
+        )
 
 enum class Syscall(val callNr: Short) {
     WRITE_MEMCHR(10),           // print a single char from the memory address popped from stack
@@ -181,10 +209,6 @@ open class Instruction(val opcode: Opcode,
 
     override fun toString(): String {
         val argStr = arg?.toString() ?: ""
-        val opcodesWithVarArgument = setOf(
-                Opcode.INC_VAR, Opcode.DEC_VAR,
-                Opcode.SHR_VAR, Opcode.SHL_VAR, Opcode.ROL_VAR, Opcode.ROR_VAR,
-                Opcode.ROL2_VAR, Opcode.ROR2_VAR, Opcode.POP_VAR, Opcode.PUSH_VAR)
         val result =
                 when {
                     opcode==Opcode.LINE -> "_line  $callLabel"
@@ -341,11 +365,36 @@ class StackVm(private var traceOutputFile: String?) {
         }
     }
 
+    private fun checkDt(value: Value?, expected: DataType) {
+        if(value==null)
+            throw VmExecutionException("expected value")
+        if(value.type!=expected)
+            throw VmExecutionException("expected $expected value, found ${value.type}")
+    }
+
+    private fun checkDt(value: Value?, expected: Set<DataType>) {
+        if(value==null)
+            throw VmExecutionException("expected value")
+        if(value.type !in expected)
+            throw VmExecutionException("incompatible type found ${value.type}")
+    }
+
     private fun dispatch(ins: Instruction) : Instruction {
         traceOutput?.println("\n$ins")
         when (ins.opcode) {
             Opcode.NOP -> {}
-            Opcode.PUSH -> evalstack.push(ins.arg)
+            Opcode.PUSH -> {
+                checkDt(ins.arg, DataType.BYTE)
+                evalstack.push(ins.arg)
+            }
+            Opcode.PUSH_W -> {
+                checkDt(ins.arg, setOf(DataType.WORD, DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS, DataType.MATRIX))
+                evalstack.push(ins.arg)
+            }
+            Opcode.PUSH_F -> {
+                checkDt(ins.arg, DataType.FLOAT)
+                evalstack.push(ins.arg)
+            }
             Opcode.PUSH_MEM -> {
                 val address = ins.arg!!.integerValue()
                 evalstack.push(Value(DataType.BYTE, mem.getByte(address)))
@@ -358,305 +407,161 @@ class StackVm(private var traceOutputFile: String?) {
                 val address = ins.arg!!.integerValue()
                 evalstack.push(Value(DataType.FLOAT, mem.getFloat(address)))
             }
-            Opcode.DUP -> evalstack.push(evalstack.peek())
-            Opcode.DISCARD -> evalstack.pop()
-            Opcode.SWAP -> {
-                val (top, second) = evalstack.pop2()
-                evalstack.push(top)
-                evalstack.push(second)
+            Opcode.DISCARD -> {
+                val value = evalstack.pop()
+                checkDt(value, DataType.BYTE)
+            }
+            Opcode.DISCARD_W -> {
+                val value = evalstack.pop()
+                checkDt(value, DataType.WORD)
+            }
+            Opcode.DISCARD_F -> {
+                val value = evalstack.pop()
+                checkDt(value, DataType.FLOAT)
             }
             Opcode.POP_MEM -> {
                 val value = evalstack.pop()
+                checkDt(value, DataType.BYTE)
                 val address = ins.arg!!.integerValue()
-                when (value.type) {
-                    DataType.BYTE -> mem.setByte(address, value.integerValue().toShort())
-                    DataType.WORD -> mem.setWord(address, value.integerValue())
-                    DataType.FLOAT -> mem.setFloat(address, value.numericValue().toDouble())
-                    else -> throw VmExecutionException("can only manipulate byte/word/float on stack")
-                }
+                mem.setByte(address, value.integerValue().toShort())
+            }
+            Opcode.POP_MEM_W -> {
+                val value = evalstack.pop()
+                checkDt(value, DataType.WORD)
+                val address = ins.arg!!.integerValue()
+                mem.setWord(address, value.integerValue())
+            }
+            Opcode.POP_MEM_F -> {
+                val value = evalstack.pop()
+                checkDt(value, DataType.FLOAT)
+                val address = ins.arg!!.integerValue()
+                mem.setFloat(address, value.numericValue().toDouble())
             }
             Opcode.ADD -> {
                 val (top, second) = evalstack.pop2()
+                // todo b/w/f
                 evalstack.push(second.add(top))
             }
             Opcode.SUB -> {
                 val (top, second) = evalstack.pop2()
+                // todo b/w/f
                 evalstack.push(second.sub(top))
             }
             Opcode.MUL -> {
                 val (top, second) = evalstack.pop2()
+                // todo b/w/f
                 evalstack.push(second.mul(top))
             }
             Opcode.DIV -> {
                 val (top, second) = evalstack.pop2()
+                // todo b/w/f
                 evalstack.push(second.div(top))
             }
             Opcode.FLOORDIV -> {
                 val (top, second) = evalstack.pop2()
+                // todo b/w/f
                 evalstack.push(second.floordiv(top))
             }
             Opcode.REMAINDER -> {
                 val (top, second) = evalstack.pop2()
+                // todo b/w/f
                 evalstack.push(second.remainder(top))
             }
             Opcode.POW -> {
                 val (top, second) = evalstack.pop2()
+                // todo b/w/f
                 evalstack.push(second.pow(top))
             }
             Opcode.NEG -> {
                 val v = evalstack.pop()
+                // todo b/w/f
                 evalstack.push(v.neg())
             }
             Opcode.SHL -> {
                 val v = evalstack.pop()
+                // todo b/w
                 evalstack.push(v.shl())
             }
             Opcode.SHR -> {
                 val v = evalstack.pop()
+                // todo b/w
                 evalstack.push(v.shr())
             }
             Opcode.ROL -> {
                 val v = evalstack.pop()
+                // todo b/w
                 val (result, newCarry) = v.rol(P_carry)
                 this.P_carry = newCarry
                 evalstack.push(result)
             }
             Opcode.ROL2 -> {
                 val v = evalstack.pop()
+                // todo b/w
                 evalstack.push(v.rol2())
             }
             Opcode.ROR -> {
                 val v = evalstack.pop()
+                // todo b/w
                 val (result, newCarry) = v.ror(P_carry)
                 this.P_carry = newCarry
                 evalstack.push(result)
             }
             Opcode.ROR2 -> {
                 val v = evalstack.pop()
+                // todo b/w
                 evalstack.push(v.ror2())
             }
             Opcode.BITAND -> {
                 val (top, second) = evalstack.pop2()
+                // todo b/w
                 evalstack.push(second.bitand(top))
             }
             Opcode.BITOR -> {
                 val (top, second) = evalstack.pop2()
+                // todo b/w
                 evalstack.push(second.bitor(top))
             }
             Opcode.BITXOR -> {
                 val (top, second) = evalstack.pop2()
+                // todo b/w
                 evalstack.push(second.bitxor(top))
             }
             Opcode.INV -> {
                 val v = evalstack.pop()
+                // todo b/w
                 evalstack.push(v.inv())
             }
             Opcode.INC -> {
                 val v = evalstack.pop()
+                checkDt(v, DataType.BYTE)
+                evalstack.push(v.inc())
+            }
+            Opcode.INC_W -> {
+                val v = evalstack.pop()
+                checkDt(v, DataType.WORD)
+                evalstack.push(v.inc())
+            }
+            Opcode.INC_F -> {
+                val v = evalstack.pop()
+                checkDt(v, DataType.FLOAT)
                 evalstack.push(v.inc())
             }
             Opcode.DEC -> {
                 val v = evalstack.pop()
+                checkDt(v, DataType.BYTE)
                 evalstack.push(v.dec())
             }
-            Opcode.SYSCALL -> {
-                val callId = ins.arg!!.integerValue().toShort()
-                val syscall = Syscall.values().first { it.callNr == callId }
-                when (syscall) {
-                    Syscall.WRITE_MEMCHR -> {
-                        val address = evalstack.pop().integerValue()
-                        print(Petscii.decodePetscii(listOf(mem.getByte(address)), true))
-                    }
-                    Syscall.WRITE_MEMSTR -> {
-                        val address = evalstack.pop().integerValue()
-                        print(mem.getString(address))
-                    }
-                    Syscall.WRITE_NUM -> {
-                        print(evalstack.pop().numericValue())
-                    }
-                    Syscall.WRITE_CHAR -> {
-                        print(Petscii.decodePetscii(listOf(evalstack.pop().integerValue().toShort()), true))
-                    }
-                    Syscall.WRITE_STR -> {
-                        val value = evalstack.pop()
-                        when(value.type){
-                            DataType.BYTE, DataType.WORD, DataType.FLOAT -> print(value.numericValue())
-                            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> print(heap.get(value.heapId).str)
-                            DataType.ARRAY, DataType.ARRAY_W -> print(heap.get(value.heapId).array!!.toList())
-                            DataType.MATRIX -> print(heap.get(value.heapId).array!!.toList())
-                            DataType.ARRAY_F -> print(heap.get(value.heapId).doubleArray!!.toList())
-                        }
-                    }
-                    Syscall.INPUT_STR -> {
-                        val variable = evalstack.pop()
-                        val value = heap.get(variable.heapId)
-                        val maxlen = value.str!!.length
-                        val input = readLine() ?: ""
-                        heap.update(variable.heapId, input.padEnd(maxlen, '\u0000').substring(0, maxlen))
-                    }
-                    Syscall.GFX_PIXEL -> {
-                        // plot pixel at (x, y, color) from stack
-                        val color = evalstack.pop()
-                        val (y, x) = evalstack.pop2()
-                        canvas?.setPixel(x.integerValue(), y.integerValue(), color.integerValue())
-                    }
-                    Syscall.GFX_LINE -> {
-                        // draw line at (x1, y1, x2, y2, color) from stack
-                        val color = evalstack.pop()
-                        val (y2, x2) = evalstack.pop2()
-                        val (y1, x1) = evalstack.pop2()
-                        canvas?.drawLine(x1.integerValue(), y1.integerValue(), x2.integerValue(), y2.integerValue(), color.integerValue())
-                    }
-                    Syscall.GFX_CLEARSCR -> {
-                        val color = evalstack.pop()
-                        canvas?.clearScreen(color.integerValue())
-                    }
-                    Syscall.GFX_TEXT -> {
-                        val textPtr = evalstack.pop()
-                        val color = evalstack.pop()
-                        val (cy, cx) = evalstack.pop2()
-                        val text = heap.get(textPtr.heapId)
-                        canvas?.writeText(8*cx.integerValue(), 8*cy.integerValue(), text.str!!, color.integerValue())
-                    }
-                    Syscall.FUNC_RND -> evalstack.push(Value(DataType.BYTE, rnd.nextInt() and 255))
-                    Syscall.FUNC_RNDW -> evalstack.push(Value(DataType.WORD, rnd.nextInt() and 65535))
-                    Syscall.FUNC_RNDF -> evalstack.push(Value(DataType.FLOAT, rnd.nextDouble()))
-                    Syscall.FUNC_LEN -> throw VmExecutionException("len() should have been const-folded away everywhere (it's not possible on non-const values)")
-                    Syscall.FUNC_SIN -> evalstack.push(Value(DataType.FLOAT, sin(evalstack.pop().numericValue().toDouble())))
-                    Syscall.FUNC_COS -> evalstack.push(Value(DataType.FLOAT, cos(evalstack.pop().numericValue().toDouble())))
-                    Syscall.FUNC_ROUND -> evalstack.push(Value(DataType.WORD, evalstack.pop().numericValue().toDouble().roundToInt()))
-                    Syscall.FUNC_ABS -> {
-                        val value = evalstack.pop()
-                        val absValue=
-                            when(value.type) {
-                                DataType.BYTE -> Value(DataType.BYTE, value.numericValue())
-                                DataType.WORD -> Value(DataType.WORD, value.numericValue())
-                                DataType.FLOAT -> Value(DataType.FLOAT, value.numericValue())
-                                else -> throw VmExecutionException("cannot get abs of $value")
-                            }
-                        evalstack.push(absValue)
-                    }
-                    Syscall.FUNC_ACOS -> evalstack.push(Value(DataType.FLOAT, acos(evalstack.pop().numericValue().toDouble())))
-                    Syscall.FUNC_ASIN -> evalstack.push(Value(DataType.FLOAT, asin(evalstack.pop().numericValue().toDouble())))
-                    Syscall.FUNC_TAN -> evalstack.push(Value(DataType.FLOAT, tan(evalstack.pop().numericValue().toDouble())))
-                    Syscall.FUNC_ATAN -> evalstack.push(Value(DataType.FLOAT, atan(evalstack.pop().numericValue().toDouble())))
-                    Syscall.FUNC_LN -> evalstack.push(Value(DataType.FLOAT, ln(evalstack.pop().numericValue().toDouble())))
-                    Syscall.FUNC_LOG2 -> evalstack.push(Value(DataType.FLOAT, log2(evalstack.pop().numericValue().toDouble())))
-                    Syscall.FUNC_LOG10 -> evalstack.push(Value(DataType.FLOAT, log10(evalstack.pop().numericValue().toDouble())))
-                    Syscall.FUNC_SQRT -> evalstack.push(Value(DataType.FLOAT, sqrt(evalstack.pop().numericValue().toDouble())))
-                    Syscall.FUNC_RAD -> evalstack.push(Value(DataType.FLOAT, Math.toRadians(evalstack.pop().numericValue().toDouble())))
-                    Syscall.FUNC_DEG -> evalstack.push(Value(DataType.FLOAT, Math.toDegrees(evalstack.pop().numericValue().toDouble())))
-                    Syscall.FUNC_FLOOR -> {
-                        val value = evalstack.pop()
-                        val result =
-                                when(value.type) {
-                                    DataType.BYTE -> Value(DataType.BYTE, value.numericValue())
-                                    DataType.WORD -> Value(DataType.WORD, value.numericValue())
-                                    DataType.FLOAT -> Value(DataType.WORD, floor(value.numericValue().toDouble()))
-                                    else -> throw VmExecutionException("cannot get floor of $value")
-                                }
-                        evalstack.push(result)
-                    }
-                    Syscall.FUNC_CEIL -> {
-                        val value = evalstack.pop()
-                        val result =
-                                when(value.type) {
-                                    DataType.BYTE -> Value(DataType.BYTE, value.numericValue())
-                                    DataType.WORD -> Value(DataType.WORD, value.numericValue())
-                                    DataType.FLOAT -> Value(DataType.WORD, ceil(value.numericValue().toDouble()))
-                                    else -> throw VmExecutionException("cannot get ceil of $value")
-                                }
-                        evalstack.push(result)
-                    }
-                    Syscall.FUNC_MAX -> {
-                        val iterable = evalstack.pop()
-                        val value = heap.get(iterable.heapId)
-                        val resultDt = when(iterable.type) {
-                            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> DataType.BYTE
-                            DataType.ARRAY, DataType.MATRIX -> DataType.BYTE
-                            DataType.ARRAY_W -> DataType.WORD
-                            DataType.ARRAY_F -> DataType.FLOAT
-                            DataType.BYTE, DataType.WORD, DataType.FLOAT -> throw VmExecutionException("uniterable value $iterable")
-                        }
-                        if(value.str!=null) {
-                            val result = Petscii.encodePetscii(value.str.max().toString(), true)[0]
-                            evalstack.push(Value(DataType.BYTE, result))
-                        } else {
-                            val result = value.array!!.max() ?: 0
-                            evalstack.push(Value(resultDt, result))
-                        }
-                    }
-                    Syscall.FUNC_MIN -> {
-                        val iterable = evalstack.pop()
-                        val value = heap.get(iterable.heapId)
-                        val resultDt = when(iterable.type) {
-                            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> DataType.BYTE
-                            DataType.ARRAY, DataType.MATRIX -> DataType.BYTE
-                            DataType.ARRAY_W -> DataType.WORD
-                            DataType.ARRAY_F -> DataType.FLOAT
-                            DataType.BYTE, DataType.WORD, DataType.FLOAT -> throw VmExecutionException("uniterable value $iterable")
-                        }
-                        if(value.str!=null) {
-                            val result = Petscii.encodePetscii(value.str.min().toString(), true)[0]
-                            evalstack.push(Value(DataType.BYTE, result))
-                        } else {
-                            val result = value.array!!.min() ?: 0
-                            evalstack.push(Value(resultDt, result))
-                        }
-                    }
-                    Syscall.FUNC_AVG -> {
-                        val iterable = evalstack.pop()
-                        val value = heap.get(iterable.heapId)
-                        if(value.str!=null)
-                            evalstack.push(Value(DataType.FLOAT, Petscii.encodePetscii(value.str, true).average()))
-                        else
-                            evalstack.push(Value(DataType.FLOAT, value.array!!.average()))
-                    }
-                    Syscall.FUNC_SUM -> {
-                        val iterable = evalstack.pop()
-                        val value = heap.get(iterable.heapId)
-                        if(value.str!=null)
-                            evalstack.push(Value(DataType.WORD, Petscii.encodePetscii(value.str, true).sum()))
-                        else
-                            evalstack.push(Value(DataType.WORD, value.array!!.sum()))
-                    }
-                    Syscall.FUNC_ANY -> {
-                        val iterable = evalstack.pop()
-                        val value = heap.get(iterable.heapId)
-                        if (value.str != null)
-                            evalstack.push(Value(DataType.BYTE, if (Petscii.encodePetscii(value.str, true).any { c -> c != 0.toShort() }) 1 else 0))
-                        else
-                            evalstack.push(Value(DataType.BYTE, if (value.array!!.any{v->v!=0}) 1 else 0))
-                    }
-                    Syscall.FUNC_ALL -> {
-                        val iterable = evalstack.pop()
-                        val value = heap.get(iterable.heapId)
-                        if (value.str != null)
-                            evalstack.push(Value(DataType.BYTE, if (Petscii.encodePetscii(value.str, true).all { c -> c != 0.toShort() }) 1 else 0))
-                        else
-                            evalstack.push(Value(DataType.BYTE, if (value.array!!.all{v->v!=0}) 1 else 0))
-                    }
-                    Syscall.FUNC_STR2BYTE -> {
-                        val strvar = evalstack.pop()
-                        val str = heap.get(strvar.heapId)
-                        val y = str.str!!.trim().trimEnd('\u0000')
-                        evalstack.push(Value(DataType.BYTE, y.toShort()))
-                    }
-                    Syscall.FUNC_STR2WORD -> {
-                        val strvar = evalstack.pop()
-                        val str = heap.get(strvar.heapId)
-                        val y = str.str!!.trim().trimEnd('\u0000')
-                        evalstack.push(Value(DataType.BYTE, y.toInt()))
-                    }
-                    Syscall.FUNC_STR2FLOAT -> {
-                        val strvar = evalstack.pop()
-                        val str = heap.get(strvar.heapId)
-                        val y = str.str!!.trim().trimEnd('\u0000')
-                        evalstack.push(Value(DataType.BYTE, y.toDouble()))
-                    }
-                }
+            Opcode.DEC_W -> {
+                val v = evalstack.pop()
+                checkDt(v, DataType.WORD)
+                evalstack.push(v.dec())
             }
-
+            Opcode.DEC_F -> {
+                val v = evalstack.pop()
+                checkDt(v, DataType.FLOAT)
+                evalstack.push(v.dec())
+            }
+            Opcode.SYSCALL -> dispatchSyscall(ins)
             Opcode.SEC -> P_carry = true
             Opcode.CLC -> P_carry = false
             Opcode.SEI -> P_irqd = true
@@ -664,26 +569,6 @@ class StackVm(private var traceOutputFile: String?) {
             Opcode.TERMINATE -> throw VmTerminationException("terminate instruction")
             Opcode.BREAKPOINT -> throw VmBreakpointException()
 
-            Opcode.INC_MEM -> {
-                val addr = ins.arg!!.integerValue()
-                val newValue = Value(DataType.BYTE, mem.getByte(addr)).inc()
-                mem.setByte(addr, newValue.integerValue().toShort())
-            }
-            Opcode.INC_MEM_W -> {
-                val addr = ins.arg!!.integerValue()
-                val newValue = Value(DataType.WORD, mem.getWord(addr)).inc()
-                mem.setWord(addr, newValue.integerValue())
-            }
-            Opcode.DEC_MEM -> {
-                val addr = ins.arg!!.integerValue()
-                val newValue = Value(DataType.BYTE, mem.getByte(addr)).dec()
-                mem.setByte(addr, newValue.integerValue().toShort())
-            }
-            Opcode.DEC_MEM_W -> {
-                val addr = ins.arg!!.integerValue()
-                val newValue = Value(DataType.WORD, mem.getWord(addr)).dec()
-                mem.setWord(addr, newValue.integerValue())
-            }
             Opcode.SHL_MEM -> {
                 val addr = ins.arg!!.integerValue()
                 val value = Value(DataType.BYTE, mem.getByte(addr))
@@ -783,202 +668,295 @@ class StackVm(private var traceOutputFile: String?) {
                 return callstack.pop()
             }
             Opcode.PUSH_VAR -> {
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
-                evalstack.push(variable)
+                val value = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                checkDt(value, DataType.BYTE)
+                evalstack.push(value)
+            }
+            Opcode.PUSH_VAR_W -> {
+                val value = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                checkDt(value, DataType.WORD)
+                evalstack.push(value)
+            }
+            Opcode.PUSH_VAR_F -> {
+                val value = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                checkDt(value, DataType.FLOAT)
+                evalstack.push(value)
             }
             Opcode.POP_VAR -> {
                 val value = evalstack.pop()
+                checkDt(value, DataType.BYTE)
                 val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
-                if(variable.type!=value.type)
-                    throw VmExecutionException("value datatype ${value.type} is not the same as variable datatype ${variable.type} for var ${ins.callLabel}")
+                checkDt(variable, DataType.BYTE)
+                variables[ins.callLabel!!] = value
+            }
+            Opcode.POP_VAR_W -> {
+                val value = evalstack.pop()
+                checkDt(value, DataType.WORD)
+                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                checkDt(variable, DataType.WORD)
+                variables[ins.callLabel!!] = value
+            }
+            Opcode.POP_VAR_F -> {
+                val value = evalstack.pop()
+                checkDt(value, DataType.FLOAT)
+                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                checkDt(variable, DataType.FLOAT)
                 variables[ins.callLabel!!] = value
             }
             Opcode.SHL_VAR -> {
                 val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                // todo b/w
                 variables[ins.callLabel!!] = variable.shl()
             }
             Opcode.SHR_VAR -> {
                 val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                // todo b/w
                 variables[ins.callLabel!!] = variable.shr()
             }
             Opcode.ROL_VAR -> {
                 val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                // todo b/w
                 val (newValue, newCarry) = variable.rol(P_carry)
                 variables[ins.callLabel!!] = newValue
                 P_carry = newCarry
             }
             Opcode.ROR_VAR -> {
                 val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                // todo b/w
                 val (newValue, newCarry) = variable.ror(P_carry)
                 variables[ins.callLabel!!] = newValue
                 P_carry = newCarry
             }
             Opcode.ROL2_VAR -> {
                 val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                // todo b/w
                 variables[ins.callLabel!!] = variable.rol2()
             }
             Opcode.ROR2_VAR -> {
                 val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                // todo b/w
                 variables[ins.callLabel!!] = variable.ror2()
             }
             Opcode.INC_VAR -> {
                 val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                checkDt(variable, DataType.BYTE)
+                variables[ins.callLabel!!] = variable.inc()
+            }
+            Opcode.INC_VAR_W -> {
+                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                checkDt(variable, DataType.WORD)
+                variables[ins.callLabel!!] = variable.inc()
+            }
+            Opcode.INC_VAR_F -> {
+                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                checkDt(variable, DataType.FLOAT)
                 variables[ins.callLabel!!] = variable.inc()
             }
             Opcode.DEC_VAR -> {
                 val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                checkDt(variable, DataType.BYTE)
+                variables[ins.callLabel!!] = variable.dec()
+            }
+            Opcode.DEC_VAR_W -> {
+                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                checkDt(variable, DataType.WORD)
+                variables[ins.callLabel!!] = variable.dec()
+            }
+            Opcode.DEC_VAR_F -> {
+                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                checkDt(variable, DataType.FLOAT)
                 variables[ins.callLabel!!] = variable.dec()
             }
             Opcode.LSB -> {
                 val v = evalstack.pop()
+                checkDt(v, DataType.WORD)
                 evalstack.push(v.lsb())
             }
             Opcode.MSB -> {
                 val v = evalstack.pop()
+                checkDt(v, DataType.WORD)
                 evalstack.push(v.msb())
             }
             Opcode.AND -> {
                 val (top, second) = evalstack.pop2()
+                // todo b/w
                 evalstack.push(second.and(top))
             }
             Opcode.OR -> {
                 val (top, second) = evalstack.pop2()
+                // todo b/w
                 evalstack.push(second.or(top))
             }
             Opcode.XOR -> {
                 val (top, second) = evalstack.pop2()
+                // todo b/w
                 evalstack.push(second.xor(top))
             }
             Opcode.NOT -> {
                 val value = evalstack.pop()
+                // todo b/w
                 evalstack.push(value.not())
             }
             Opcode.LESS -> {
                 val (top, second) = evalstack.pop2()
+                // todo b/w/f?
                 evalstack.push(Value(DataType.BYTE, if(second < top) 1 else 0))
             }
             Opcode.GREATER -> {
                 val (top, second) = evalstack.pop2()
+                // todo b/w/f?
                 evalstack.push(Value(DataType.BYTE, if(second > top) 1 else 0))
             }
             Opcode.LESSEQ -> {
                 val (top, second) = evalstack.pop2()
+                // todo b/w/f?
                 evalstack.push(Value(DataType.BYTE, if(second <= top) 1 else 0))
             }
             Opcode.GREATEREQ -> {
                 val (top, second) = evalstack.pop2()
+                // todo b/w/f?
                 evalstack.push(Value(DataType.BYTE, if(second >= top) 1 else 0))
             }
             Opcode.EQUAL -> {
                 val (top, second) = evalstack.pop2()
+                // todo b/w/f?
                 evalstack.push(Value(DataType.BYTE, if(second == top) 1 else 0))
             }
             Opcode.NOTEQUAL -> {
                 val (top, second) = evalstack.pop2()
+                // todo b/w/f?
                 evalstack.push(Value(DataType.BYTE, if(second != top) 1 else 0))
             }
             Opcode.B2WORD -> {
                 val byte = evalstack.pop()
-                if(byte.type==DataType.BYTE) {
-                    evalstack.push(Value(DataType.WORD, byte.integerValue()))
-                } else {
-                    throw VmExecutionException("attempt to make a word from a non-byte value $byte")
-                }
+                checkDt(byte, DataType.BYTE)
+                evalstack.push(Value(DataType.WORD, byte.integerValue()))
             }
             Opcode.MSB2WORD -> {
                 val byte = evalstack.pop()
-                if(byte.type==DataType.BYTE) {
-                    evalstack.push(Value(DataType.WORD, byte.integerValue() * 256))
-                } else {
-                    throw VmExecutionException("attempt to make a word from a non-byte value $byte")
-                }
+                checkDt(byte, DataType.BYTE)
+                evalstack.push(Value(DataType.WORD, byte.integerValue() * 256))
             }
             Opcode.B2FLOAT -> {
                 val byte = evalstack.pop()
-                if(byte.type==DataType.BYTE) {
-                    evalstack.push(Value(DataType.FLOAT, byte.integerValue()))
-                } else {
-                    throw VmExecutionException("attempt to make a float from a non-byte value $byte")
-                }
+                checkDt(byte, DataType.BYTE)
+                evalstack.push(Value(DataType.FLOAT, byte.integerValue()))
             }
             Opcode.W2FLOAT -> {
                 val byte = evalstack.pop()
-                if(byte.type==DataType.WORD) {
-                    evalstack.push(Value(DataType.FLOAT, byte.integerValue()))
-                } else {
-                    throw VmExecutionException("attempt to make a float from a non-word value $byte")
-                }
+                checkDt(byte, DataType.WORD)
+                evalstack.push(Value(DataType.FLOAT, byte.integerValue()))
             }
             Opcode.LINE -> {
                 sourceLine = ins.callLabel!!
             }
             Opcode.READ_INDEXED_VAR -> {
-                // put the value of variable[index] onto the stack
+                // put the byte value of variable[index] onto the stack
                 val index = evalstack.pop().integerValue()
                 val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
                 if(variable.type==DataType.WORD) {
                     // assume the variable is a pointer (address) and get the byte value from that memory location
                     evalstack.push(Value(DataType.BYTE, mem.getByte(variable.integerValue())))
                 } else {
-                    // get indexed element from the array
+                    // get indexed byte element from the array
                     val array = heap.get(variable.heapId)
                     when(array.type) {
                         DataType.ARRAY, DataType.MATRIX -> evalstack.push(Value(DataType.BYTE, array.array!![index]))
-                        DataType.ARRAY_W -> evalstack.push(Value(DataType.WORD, array.array!![index]))
-                        DataType.ARRAY_F -> evalstack.push(Value(DataType.FLOAT, array.doubleArray!![index]))
-                        DataType.STR,
-                        DataType.STR_P,
-                        DataType.STR_S,
-                        DataType.STR_PS -> evalstack.push(Value(DataType.BYTE, Petscii.encodePetscii(array.str!![index].toString(), true)[0]))
-                        DataType.BYTE,
-                        DataType.WORD,
-                        DataType.FLOAT -> throw VmExecutionException("not a proper array/matrix var")
+                        DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> evalstack.push(Value(DataType.BYTE, Petscii.encodePetscii(array.str!![index].toString(), true)[0]))
+                        else -> throw VmExecutionException("not a proper array/matrix/string variable with byte elements")
                     }
                 }
             }
+            Opcode.READ_INDEXED_VAR_W -> {
+                // put the word value of variable[index] onto the stack
+                val index = evalstack.pop().integerValue()
+                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                if(variable.type==DataType.WORD) {
+                    // assume the variable is a pointer (address) and get the word value from that memory location
+                    evalstack.push(Value(DataType.WORD, mem.getWord(variable.integerValue())))
+                } else {
+                    // get indexed word element from the array
+                    val array = heap.get(variable.heapId)
+                    if(array.type!=DataType.ARRAY_W)
+                        throw VmExecutionException("not a proper array var with word elements")
+                    evalstack.push(Value(DataType.WORD, array.array!![index]))
+                }
+            }
+            Opcode.READ_INDEXED_VAR_F -> {
+                // put the f;pat value of variable[index] onto the stack
+                val index = evalstack.pop().integerValue()
+                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                if(variable.type==DataType.WORD) {
+                    // assume the variable is a pointer (address) and get the float value from that memory location
+                    evalstack.push(Value(DataType.WORD, mem.getFloat(variable.integerValue())))
+                } else {
+                    // get indexed float element from the array
+                    val array = heap.get(variable.heapId)
+                    if(array.type!=DataType.ARRAY_F)
+                        throw VmExecutionException("not a proper array var with float elements")
+                    evalstack.push(Value(DataType.FLOAT, array.doubleArray!![index]))
+                }
+            }
             Opcode.WRITE_INDEXED_VAR -> {
-                // store value on the stack in variable[index]  (index is on the stack as well)
+                // store byte value on the stack in variable[index]  (index is on the stack as well)
                 val index = evalstack.pop().integerValue()
                 val value = evalstack.pop()
+                checkDt(value, DataType.BYTE)
                 val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
                 if(variable.type==DataType.WORD) {
                     // assume the variable is a pointer (address) and write the byte value to that memory location
-                    if(value.type!=DataType.BYTE)
-                        throw VmExecutionException("writing a non-byte value to memory location")
                     mem.setByte(variable.integerValue(), value.integerValue().toShort())
                 } else {
-                    // set indexed element in the array
+                    // set indexed byte element in the array
                     val array = heap.get(variable.heapId)
                     when(array.type) {
                         DataType.ARRAY, DataType.MATRIX -> {
-                            if(value.type!=DataType.BYTE)
-                                throw VmExecutionException("writing a non-byte value into byte array/matrix")
                             array.array!![index] = value.integerValue()
-                        }
-                        DataType.ARRAY_W -> {
-                            if(value.type!=DataType.WORD)
-                                throw VmExecutionException("writing a non-word value into word array")
-                            array.array!![index] = value.integerValue()
-                        }
-                        DataType.ARRAY_F -> {
-                            if(value.type!=DataType.FLOAT)
-                                throw VmExecutionException("writing a non-float value into float array")
-                            array.doubleArray!![index] = value.numericValue().toDouble()
                         }
                         DataType.STR,
                         DataType.STR_P,
                         DataType.STR_S,
                         DataType.STR_PS -> {
-                            if(value.type!=DataType.BYTE)
-                                throw VmExecutionException("writing a non-byte value into a string")
                             val chars = array.str!!.toCharArray()
                             chars[index] = Petscii.decodePetscii(listOf(value.integerValue().toShort()), true)[0]
                             heap.update(variable.heapId, chars.joinToString(""))
                         }
-                        DataType.BYTE,
-                        DataType.WORD,
-                        DataType.FLOAT -> throw VmExecutionException("not a proper array/matrix var")
+                        else -> throw VmExecutionException("not a proper array/matrix/string var with byte elements")
                     }
+                }
+            }
+            Opcode.WRITE_INDEXED_VAR_W -> {
+                // store word value on the stack in variable[index]  (index is on the stack as well)
+                val index = evalstack.pop().integerValue()
+                val value = evalstack.pop()
+                checkDt(value, DataType.WORD)
+                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                if(variable.type==DataType.WORD) {
+                    // assume the variable is a pointer (address) and write the word value to that memory location
+                    mem.setWord(variable.integerValue(), value.integerValue())
+                } else {
+                    // set indexed word element in the array
+                    val array = heap.get(variable.heapId)
+                    if(array.type!=DataType.ARRAY_W)
+                        throw VmExecutionException("not a proper array var with word elements")
+                    array.array!![index] = value.integerValue()
+                }
+            }
+            Opcode.WRITE_INDEXED_VAR_F -> {
+                // store float value on the stack in variable[index]  (index is on the stack as well)
+                val index = evalstack.pop().integerValue()
+                val value = evalstack.pop()
+                checkDt(value, DataType.FLOAT)
+                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                if(variable.type==DataType.WORD) {
+                    // assume the variable is a pointer (address) and write the float value to that memory location
+                    mem.setFloat(variable.integerValue(), value.numericValue().toDouble())
+                } else {
+                    // set indexed float element in the array
+                    val array = heap.get(variable.heapId)
+                    if(array.type!=DataType.ARRAY_F)
+                        throw VmExecutionException("not a proper array var with float elements")
+                    array.doubleArray!![index] = value.numericValue().toDouble()
                 }
             }
             else -> throw VmExecutionException("unimplemented opcode: ${ins.opcode}")
@@ -990,6 +968,204 @@ class StackVm(private var traceOutputFile: String?) {
         }
 
         return ins.next
+    }
+
+    private fun dispatchSyscall(ins: Instruction) {
+        val callId = ins.arg!!.integerValue().toShort()
+        val syscall = Syscall.values().first { it.callNr == callId }
+        when (syscall) {
+            Syscall.WRITE_MEMCHR -> {
+                val address = evalstack.pop().integerValue()
+                print(Petscii.decodePetscii(listOf(mem.getByte(address)), true))
+            }
+            Syscall.WRITE_MEMSTR -> {
+                val address = evalstack.pop().integerValue()
+                print(mem.getString(address))
+            }
+            Syscall.WRITE_NUM -> {
+                print(evalstack.pop().numericValue())
+            }
+            Syscall.WRITE_CHAR -> {
+                print(Petscii.decodePetscii(listOf(evalstack.pop().integerValue().toShort()), true))
+            }
+            Syscall.WRITE_STR -> {
+                val value = evalstack.pop()
+                when(value.type){
+                    DataType.BYTE, DataType.WORD, DataType.FLOAT -> print(value.numericValue())
+                    DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> print(heap.get(value.heapId).str)
+                    DataType.ARRAY, DataType.ARRAY_W -> print(heap.get(value.heapId).array!!.toList())
+                    DataType.MATRIX -> print(heap.get(value.heapId).array!!.toList())
+                    DataType.ARRAY_F -> print(heap.get(value.heapId).doubleArray!!.toList())
+                }
+            }
+            Syscall.INPUT_STR -> {
+                val variable = evalstack.pop()
+                val value = heap.get(variable.heapId)
+                val maxlen = value.str!!.length
+                val input = readLine() ?: ""
+                heap.update(variable.heapId, input.padEnd(maxlen, '\u0000').substring(0, maxlen))
+            }
+            Syscall.GFX_PIXEL -> {
+                // plot pixel at (x, y, color) from stack
+                val color = evalstack.pop()
+                val (y, x) = evalstack.pop2()
+                canvas?.setPixel(x.integerValue(), y.integerValue(), color.integerValue())
+            }
+            Syscall.GFX_LINE -> {
+                // draw line at (x1, y1, x2, y2, color) from stack
+                val color = evalstack.pop()
+                val (y2, x2) = evalstack.pop2()
+                val (y1, x1) = evalstack.pop2()
+                canvas?.drawLine(x1.integerValue(), y1.integerValue(), x2.integerValue(), y2.integerValue(), color.integerValue())
+            }
+            Syscall.GFX_CLEARSCR -> {
+                val color = evalstack.pop()
+                canvas?.clearScreen(color.integerValue())
+            }
+            Syscall.GFX_TEXT -> {
+                val textPtr = evalstack.pop()
+                val color = evalstack.pop()
+                val (cy, cx) = evalstack.pop2()
+                val text = heap.get(textPtr.heapId)
+                canvas?.writeText(8*cx.integerValue(), 8*cy.integerValue(), text.str!!, color.integerValue())
+            }
+            Syscall.FUNC_RND -> evalstack.push(Value(DataType.BYTE, rnd.nextInt() and 255))
+            Syscall.FUNC_RNDW -> evalstack.push(Value(DataType.WORD, rnd.nextInt() and 65535))
+            Syscall.FUNC_RNDF -> evalstack.push(Value(DataType.FLOAT, rnd.nextDouble()))
+            Syscall.FUNC_LEN -> throw VmExecutionException("len() should have been const-folded away everywhere (it's not possible on non-const values)")
+            Syscall.FUNC_SIN -> evalstack.push(Value(DataType.FLOAT, sin(evalstack.pop().numericValue().toDouble())))
+            Syscall.FUNC_COS -> evalstack.push(Value(DataType.FLOAT, cos(evalstack.pop().numericValue().toDouble())))
+            Syscall.FUNC_ROUND -> evalstack.push(Value(DataType.WORD, evalstack.pop().numericValue().toDouble().roundToInt()))
+            Syscall.FUNC_ABS -> {
+                val value = evalstack.pop()
+                val absValue=
+                        when(value.type) {
+                            DataType.BYTE -> Value(DataType.BYTE, value.numericValue())
+                            DataType.WORD -> Value(DataType.WORD, value.numericValue())
+                            DataType.FLOAT -> Value(DataType.FLOAT, value.numericValue())
+                            else -> throw VmExecutionException("cannot get abs of $value")
+                        }
+                evalstack.push(absValue)
+            }
+            Syscall.FUNC_ACOS -> evalstack.push(Value(DataType.FLOAT, acos(evalstack.pop().numericValue().toDouble())))
+            Syscall.FUNC_ASIN -> evalstack.push(Value(DataType.FLOAT, asin(evalstack.pop().numericValue().toDouble())))
+            Syscall.FUNC_TAN -> evalstack.push(Value(DataType.FLOAT, tan(evalstack.pop().numericValue().toDouble())))
+            Syscall.FUNC_ATAN -> evalstack.push(Value(DataType.FLOAT, atan(evalstack.pop().numericValue().toDouble())))
+            Syscall.FUNC_LN -> evalstack.push(Value(DataType.FLOAT, ln(evalstack.pop().numericValue().toDouble())))
+            Syscall.FUNC_LOG2 -> evalstack.push(Value(DataType.FLOAT, log2(evalstack.pop().numericValue().toDouble())))
+            Syscall.FUNC_LOG10 -> evalstack.push(Value(DataType.FLOAT, log10(evalstack.pop().numericValue().toDouble())))
+            Syscall.FUNC_SQRT -> evalstack.push(Value(DataType.FLOAT, sqrt(evalstack.pop().numericValue().toDouble())))
+            Syscall.FUNC_RAD -> evalstack.push(Value(DataType.FLOAT, Math.toRadians(evalstack.pop().numericValue().toDouble())))
+            Syscall.FUNC_DEG -> evalstack.push(Value(DataType.FLOAT, Math.toDegrees(evalstack.pop().numericValue().toDouble())))
+            Syscall.FUNC_FLOOR -> {
+                val value = evalstack.pop()
+                val result =
+                        when(value.type) {
+                            DataType.BYTE -> Value(DataType.BYTE, value.numericValue())
+                            DataType.WORD -> Value(DataType.WORD, value.numericValue())
+                            DataType.FLOAT -> Value(DataType.WORD, floor(value.numericValue().toDouble()))
+                            else -> throw VmExecutionException("cannot get floor of $value")
+                        }
+                evalstack.push(result)
+            }
+            Syscall.FUNC_CEIL -> {
+                val value = evalstack.pop()
+                val result =
+                        when(value.type) {
+                            DataType.BYTE -> Value(DataType.BYTE, value.numericValue())
+                            DataType.WORD -> Value(DataType.WORD, value.numericValue())
+                            DataType.FLOAT -> Value(DataType.WORD, ceil(value.numericValue().toDouble()))
+                            else -> throw VmExecutionException("cannot get ceil of $value")
+                        }
+                evalstack.push(result)
+            }
+            Syscall.FUNC_MAX -> {
+                val iterable = evalstack.pop()
+                val value = heap.get(iterable.heapId)
+                val resultDt = when(iterable.type) {
+                    DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> DataType.BYTE
+                    DataType.ARRAY, DataType.MATRIX -> DataType.BYTE
+                    DataType.ARRAY_W -> DataType.WORD
+                    DataType.ARRAY_F -> DataType.FLOAT
+                    DataType.BYTE, DataType.WORD, DataType.FLOAT -> throw VmExecutionException("uniterable value $iterable")
+                }
+                if(value.str!=null) {
+                    val result = Petscii.encodePetscii(value.str.max().toString(), true)[0]
+                    evalstack.push(Value(DataType.BYTE, result))
+                } else {
+                    val result = value.array!!.max() ?: 0
+                    evalstack.push(Value(resultDt, result))
+                }
+            }
+            Syscall.FUNC_MIN -> {
+                val iterable = evalstack.pop()
+                val value = heap.get(iterable.heapId)
+                val resultDt = when(iterable.type) {
+                    DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> DataType.BYTE
+                    DataType.ARRAY, DataType.MATRIX -> DataType.BYTE
+                    DataType.ARRAY_W -> DataType.WORD
+                    DataType.ARRAY_F -> DataType.FLOAT
+                    DataType.BYTE, DataType.WORD, DataType.FLOAT -> throw VmExecutionException("uniterable value $iterable")
+                }
+                if(value.str!=null) {
+                    val result = Petscii.encodePetscii(value.str.min().toString(), true)[0]
+                    evalstack.push(Value(DataType.BYTE, result))
+                } else {
+                    val result = value.array!!.min() ?: 0
+                    evalstack.push(Value(resultDt, result))
+                }
+            }
+            Syscall.FUNC_AVG -> {
+                val iterable = evalstack.pop()
+                val value = heap.get(iterable.heapId)
+                if(value.str!=null)
+                    evalstack.push(Value(DataType.FLOAT, Petscii.encodePetscii(value.str, true).average()))
+                else
+                    evalstack.push(Value(DataType.FLOAT, value.array!!.average()))
+            }
+            Syscall.FUNC_SUM -> {
+                val iterable = evalstack.pop()
+                val value = heap.get(iterable.heapId)
+                if(value.str!=null)
+                    evalstack.push(Value(DataType.WORD, Petscii.encodePetscii(value.str, true).sum()))
+                else
+                    evalstack.push(Value(DataType.WORD, value.array!!.sum()))
+            }
+            Syscall.FUNC_ANY -> {
+                val iterable = evalstack.pop()
+                val value = heap.get(iterable.heapId)
+                if (value.str != null)
+                    evalstack.push(Value(DataType.BYTE, if (Petscii.encodePetscii(value.str, true).any { c -> c != 0.toShort() }) 1 else 0))
+                else
+                    evalstack.push(Value(DataType.BYTE, if (value.array!!.any{v->v!=0}) 1 else 0))
+            }
+            Syscall.FUNC_ALL -> {
+                val iterable = evalstack.pop()
+                val value = heap.get(iterable.heapId)
+                if (value.str != null)
+                    evalstack.push(Value(DataType.BYTE, if (Petscii.encodePetscii(value.str, true).all { c -> c != 0.toShort() }) 1 else 0))
+                else
+                    evalstack.push(Value(DataType.BYTE, if (value.array!!.all{v->v!=0}) 1 else 0))
+            }
+            Syscall.FUNC_STR2BYTE -> {
+                val strvar = evalstack.pop()
+                val str = heap.get(strvar.heapId)
+                val y = str.str!!.trim().trimEnd('\u0000')
+                evalstack.push(Value(DataType.BYTE, y.toShort()))
+            }
+            Syscall.FUNC_STR2WORD -> {
+                val strvar = evalstack.pop()
+                val str = heap.get(strvar.heapId)
+                val y = str.str!!.trim().trimEnd('\u0000')
+                evalstack.push(Value(DataType.BYTE, y.toInt()))
+            }
+            Syscall.FUNC_STR2FLOAT -> {
+                val strvar = evalstack.pop()
+                val str = heap.get(strvar.heapId)
+                val y = str.str!!.trim().trimEnd('\u0000')
+                evalstack.push(Value(DataType.BYTE, y.toDouble()))
+            }
+        }
     }
 
     fun irq(timestamp: Long) {
