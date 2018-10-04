@@ -629,18 +629,14 @@ class TestStackVmOpcodes {
     @Test
     fun testLsb() {
         val ins = mutableListOf(
-                Instruction(Opcode.PUSH_F, Value(DataType.FLOAT, 1.23)),
                 Instruction(Opcode.PUSH, Value(DataType.BYTE, 0x45)),
                 Instruction(Opcode.PUSH_W, Value(DataType.WORD, 0xea31)),
-                Instruction(Opcode.LSB),
                 Instruction(Opcode.LSB),
                 Instruction(Opcode.LSB)
         )
         vm.load(makeProg(ins), null)
-        vm.step(4)
+        vm.step(3)
         assertEquals(Value(DataType.BYTE, 0x31), vm.evalstack.pop())
-        vm.step(1)
-        assertEquals(Value(DataType.BYTE, 0x45), vm.evalstack.pop())
         assertFailsWith<VmExecutionException> {
             vm.step(1)
         }
@@ -649,18 +645,14 @@ class TestStackVmOpcodes {
     @Test
     fun testMsb() {
         val ins = mutableListOf(
-                Instruction(Opcode.PUSH_F, Value(DataType.FLOAT, 1.23)),
                 Instruction(Opcode.PUSH, Value(DataType.BYTE, 0x45)),
                 Instruction(Opcode.PUSH_W, Value(DataType.WORD, 0xea31)),
-                Instruction(Opcode.MSB),
                 Instruction(Opcode.MSB),
                 Instruction(Opcode.MSB)
         )
         vm.load(makeProg(ins), null)
-        vm.step(4)
+        vm.step(3)
         assertEquals(Value(DataType.BYTE, 0xea), vm.evalstack.pop())
-        vm.step(1)
-        assertEquals(Value(DataType.BYTE, 0), vm.evalstack.pop())
         assertFailsWith<VmExecutionException> {
             vm.step(1)
         }
