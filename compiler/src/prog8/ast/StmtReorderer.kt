@@ -1,6 +1,8 @@
 package prog8.ast
 
-class StatementReorderer: IAstProcessor {
+import prog8.compiler.HeapValues
+
+class StatementReorderer(private val namespace: INameScope, private val heap: HeapValues): IAstProcessor {
     // Reorders the statements in a way the compiler needs.
     // - 'main' block must be the very first statement.
     // - in every scope:
@@ -12,8 +14,10 @@ class StatementReorderer: IAstProcessor {
     // - all other subroutines will be moved to the end of their block.
 
     private val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%address", "%option")
+    private val vardeclsToAdd = mutableMapOf<INameScope, MutableList<VarDecl>>()
 
     override fun process(module: Module) {
+        super.process(module)
         val mainBlock = module.statements.single { it is Block && it.name=="main" }
         module.statements.remove(mainBlock)
         module.statements.add(0, mainBlock)
@@ -23,7 +27,13 @@ class StatementReorderer: IAstProcessor {
         val directives = module.statements.filter {it is Directive && it.directive in directivesToMove}
         module.statements.removeAll(directives)
         module.statements.addAll(0, directives)
-        super.process(module)
+
+        // add any new vardecls
+        for(decl in vardeclsToAdd)
+            for(d in decl.value) {
+                d.linkParents(decl.key as Node)
+                decl.key.statements.add(0, d)
+            }
     }
 
     override fun process(block: Block): IStatement {
@@ -48,7 +58,7 @@ class StatementReorderer: IAstProcessor {
 
         // make sure there is a 'return' in front of the first subroutine
         // (if it isn't the first statement in the block itself, and isn't the program's entrypoint)
-        if(block.statements.size > numSubroutinesAtEnd) {
+        if(numSubroutinesAtEnd>0 && block.statements.size > (numSubroutinesAtEnd+1)) {
             val firstSub = block.statements[block.statements.size - numSubroutinesAtEnd] as Subroutine
             if(firstSub.name != "start" && block.name != "main") {
                 val stmtBeforeFirstSub = block.statements[block.statements.size - numSubroutinesAtEnd - 1]
@@ -73,12 +83,34 @@ class StatementReorderer: IAstProcessor {
     }
 
     override fun process(subroutine: Subroutine): IStatement {
+        super.process(subroutine)
         val varDecls = subroutine.statements.filter { it is VarDecl }
         subroutine.statements.removeAll(varDecls)
         subroutine.statements.addAll(0, varDecls)
         val directives = subroutine.statements.filter {it is Directive && it.directive in directivesToMove}
         subroutine.statements.removeAll(directives)
         subroutine.statements.addAll(0, directives)
-        return super.process(subroutine)
+        return subroutine
+    }
+
+    override fun process(decl: VarDecl): IStatement {
+        super.process(decl)
+        if(decl.type==VarDeclType.VAR || decl.type==VarDeclType.CONST) {
+            if(decl.value!=null && decl.value?.constValue(namespace, heap)==null) {
+                // the value assigned to the variable isn't a constant.
+                // replace the var decl with an assignment and add a new vardecl with the default constant value.
+                val scope = decl.definingScope()
+                if(scope !in vardeclsToAdd)
+                    vardeclsToAdd[scope] = mutableListOf()
+                vardeclsToAdd[scope]!!.add(decl.asDefaultValueDecl())
+                return Assignment(
+                        AssignTarget(null, IdentifierReference(decl.scopedname.split("."), decl.position), null, decl.position),
+                        null,
+                        decl.value!!,
+                        decl.position
+                )
+            }
+        }
+        return decl
     }
 }

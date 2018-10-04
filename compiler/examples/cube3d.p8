@@ -53,38 +53,22 @@
         ; rotate around origin (0,0,0)
 
         ; set up the 3d rotation matrix values
-        float cosa
-        float sina
-        float cosb
-        float sinb
-        float cosc
-        float sinc
-        float Axx
-        float Axy
-        float Axz
-        float Ayx
-        float Ayy
-        float Ayz
-        float Azx
-        float Azy
-        float Azz
+        float cosa = cos(t)
+        float sina = sin(t)
+        float cosb = cos(t*0.33)
+        float sinb = sin(t*0.33)
+        float cosc = cos(t*0.78)
+        float sinc = sin(t*0.78)
 
-        cosa = cos(t)
-        sina = sin(t)
-        cosb = cos(t*0.33)
-        sinb = sin(t*0.33)
-        cosc = cos(t*0.78)
-        sinc = sin(t*0.78)
-
-        Axx = cosa*cosb
-        Axy = cosa*sinb*sinc - sina*cosc
-        Axz = cosa*sinb*cosc + sina*sinc
-        Ayx = sina*cosb
-        Ayy = sina*sinb*sinc + cosa*cosc
-        Ayz = sina*sinb*cosc - cosa*sinc
-        Azx = -sinb
-        Azy = cosb*sinc
-        Azz = cosb*cosc
+        float Axx = cosa*cosb
+        float Axy = cosa*sinb*sinc - sina*cosc
+        float Axz = cosa*sinb*cosc + sina*sinc
+        float Ayx = sina*cosb
+        float Ayy = sina*sinb*sinc + cosa*cosc
+        float Ayz = sina*sinb*cosc - cosa*sinc
+        float Azx = -sinb
+        float Azy = cosb*sinc
+        float Azz = cosb*cosc
 
         for i in 0 to len(xcoor)-1 {
             rotatedx[i] = Axx*xcoor[i] + Axy*ycoor[i] + Axz*zcoor[i]

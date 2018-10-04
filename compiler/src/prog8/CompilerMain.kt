@@ -55,7 +55,7 @@ fun main(args: Array<String>) {
         val heap = HeapValues()
         moduleAst.checkIdentifiers()
         moduleAst.constantFold(namespace, heap)
-        StatementReorderer().process(moduleAst)     // reorder statements to please the compiler later
+        StatementReorderer(namespace, heap).process(moduleAst)     // reorder statements to please the compiler later
         moduleAst.checkValid(namespace, compilerOptions, heap)          // check if tree is valid
 
         // optimize the parse tree

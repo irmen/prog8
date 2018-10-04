@@ -674,7 +674,7 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.PUSH_VAR_W -> {
                 val value = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
-                checkDt(value, DataType.WORD)
+                checkDt(value, setOf(DataType.WORD, DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS, DataType.MATRIX))
                 evalstack.push(value)
             }
             Opcode.PUSH_VAR_F -> {
@@ -691,7 +691,7 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.POP_VAR_W -> {
                 val value = evalstack.pop()
-                checkDt(value, DataType.WORD)
+                checkDt(value, setOf(DataType.WORD, DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS, DataType.MATRIX))
                 val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
                 checkDt(variable, DataType.WORD)
                 variables[ins.callLabel!!] = value

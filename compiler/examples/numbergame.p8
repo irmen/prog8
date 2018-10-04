@@ -5,7 +5,6 @@
         str   name    = "                    "
         str   guess   = "000000"
         byte  guessednumber
-        byte  secretnumber
         byte  attempts_left
 
         _vm_write_str("Let's play a number guessing game!\n")
@@ -15,7 +14,7 @@
         _vm_write_str(name)
         _vm_write_str(".\nI am thinking of a number from 1 to 100! You'll have to guess it!\n")
 
-        secretnumber = rnd() % 100
+        byte secretnumber = rnd() % 100
 
         for attempts_left in 10 to 1 step -1 {
             _vm_write_str("\nYou have ")

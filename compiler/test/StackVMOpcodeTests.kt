@@ -247,383 +247,166 @@ class TestStackVmOpcodes {
 
     @Test
     fun testAdd() {
-        val values = listOf(
-                Value(DataType.FLOAT, 42.25),
-                Value(DataType.WORD, 4000),
-                Value(DataType.BYTE, 40))
-        val expected = listOf(
-                Value(DataType.WORD, 4000+40),
-                Value(DataType.FLOAT, 42.25+(4000+40)))
-        val operator = Opcode.ADD
-
-        testBinaryOperator(values, operator, expected)
+        testBinaryOperator(Value(DataType.WORD, 4000), Opcode.ADD, Value(DataType.BYTE, 40), Value(DataType.WORD, 4000+40))
+        testBinaryOperator(Value(DataType.WORD, 4000+40), Opcode.ADD, Value(DataType.WORD, 123), Value(DataType.WORD, 4000+40+123))
+        assertFailsWith<VmExecutionException> {
+            testBinaryOperator(Value(DataType.WORD, 4000 + 40), Opcode.ADD, Value(DataType.FLOAT, 42.25), Value(DataType.FLOAT, 42.25 + (4000 + 40)))
+        }
     }
 
     @Test
     fun testSub() {
-        val values = listOf(
-                Value(DataType.FLOAT, 42.25),
-                Value(DataType.WORD, 4000),
-                Value(DataType.BYTE, 40))
-        val expected = listOf(
-                Value(DataType.WORD, 4000-40),
-                Value(DataType.FLOAT, 42.25-(4000-40)))
-        val operator = Opcode.SUB
-
-        testBinaryOperator(values, operator, expected)
+        testBinaryOperator(Value(DataType.WORD, 4000), Opcode.SUB, Value(DataType.BYTE, 40), Value(DataType.WORD, 4000-40))
+        testBinaryOperator(Value(DataType.WORD, 4000), Opcode.SUB, Value(DataType.WORD, 123), Value(DataType.WORD, 4000-123))
+        assertFailsWith<VmExecutionException> {
+            testBinaryOperator(Value(DataType.WORD, 4000 - 40), Opcode.SUB, Value(DataType.FLOAT, 42.25), Value(DataType.FLOAT, 42.25 - (4000 - 40)))
+        }
     }
 
     @Test
     fun testMul() {
-        val values = listOf(
-                Value(DataType.FLOAT, 42.2533),
-                Value(DataType.WORD, 401),
-                Value(DataType.BYTE, 4))
-        val expected = listOf(
-                Value(DataType.WORD, 401*4),
-                Value(DataType.FLOAT, 42.2533*(401*4)))
-        val operator = Opcode.MUL
-
-        testBinaryOperator(values, operator, expected)
+        testBinaryOperator(Value(DataType.WORD, 401), Opcode.MUL, Value(DataType.BYTE, 4), Value(DataType.WORD, 401*4))
+        testBinaryOperator(Value(DataType.WORD, 401), Opcode.MUL, Value(DataType.WORD, 4), Value(DataType.WORD, 401*4))
+        assertFailsWith<VmExecutionException> {
+            testBinaryOperator(Value(DataType.WORD, 401 * 4), Opcode.MUL, Value(DataType.FLOAT, 42.2533), Value(DataType.FLOAT, 42.2533 * (401 * 4)))
+        }
     }
 
     @Test
     fun testDiv() {
-        val values = listOf(
-                Value(DataType.FLOAT, 42.25),
-                Value(DataType.WORD, 3999),
-                Value(DataType.BYTE, 40)
-        )
-        val expected = listOf(
-                Value(DataType.WORD, 99),
-                Value(DataType.FLOAT, 42.25/99))
-        val operator = Opcode.DIV
-
-        testBinaryOperator(values, operator, expected)
+        testBinaryOperator(Value(DataType.WORD, 3999), Opcode.DIV, Value(DataType.BYTE, 40), Value(DataType.WORD, 99))
+        testBinaryOperator(Value(DataType.WORD, 3999), Opcode.DIV, Value(DataType.WORD, 40), Value(DataType.WORD, 99))
+        testBinaryOperator(Value(DataType.FLOAT, 42.25), Opcode.DIV, Value(DataType.WORD, 99), Value(DataType.FLOAT, 42.25/99))
+        assertFailsWith<VmExecutionException> {
+            testBinaryOperator(Value(DataType.WORD, 3333), Opcode.DIV, Value(DataType.FLOAT, 2.22), Value(DataType.FLOAT, 3333 / 2.22))
+        }
     }
 
     @Test
     fun testFloorDiv() {
-        val values = listOf(
-                Value(DataType.FLOAT, 4000.25),
-                Value(DataType.WORD, 3999),
-                Value(DataType.BYTE, 40)
-        )
-        val expected = listOf(
-                Value(DataType.WORD, 99),
-                Value(DataType.FLOAT, 40.0))
-        val operator = Opcode.FLOORDIV
-
-        testBinaryOperator(values, operator, expected)
+        testBinaryOperator(Value(DataType.WORD, 3999), Opcode.FLOORDIV, Value(DataType.BYTE, 99), Value(DataType.WORD, 40))
+        testBinaryOperator(Value(DataType.WORD, 3999), Opcode.FLOORDIV, Value(DataType.WORD, 99), Value(DataType.WORD, 40))
+        testBinaryOperator(Value(DataType.FLOAT, 4000.25), Opcode.FLOORDIV, Value(DataType.BYTE, 40), Value(DataType.FLOAT, 100.0))
     }
 
     @Test
     fun testPow() {
-        val values = listOf(
-                Value(DataType.FLOAT, 1.1),
-                Value(DataType.WORD, 3),
-                Value(DataType.BYTE, 4)
-        )
-        val expected = listOf(
-                Value(DataType.WORD, 81),
-                Value(DataType.FLOAT, 2253.2402360440274))
-        val operator = Opcode.POW
-
-        testBinaryOperator(values, operator, expected)
+        testBinaryOperator(Value(DataType.WORD, 3), Opcode.POW, Value(DataType.BYTE, 4), Value(DataType.WORD, 81))
+        testBinaryOperator(Value(DataType.WORD, 3), Opcode.POW, Value(DataType.WORD, 4), Value(DataType.WORD, 81))
+        testBinaryOperator(Value(DataType.FLOAT, 1.1), Opcode.POW, Value(DataType.BYTE, 81), Value(DataType.FLOAT, 2253.2402360440274))
     }
 
     @Test
     fun testRemainder() {
-        val values = listOf(
-                Value(DataType.FLOAT, 2022.5),
-                Value(DataType.WORD, 500),
-                Value(DataType.BYTE, 29)
-        )
-        val expected = listOf(
-                Value(DataType.BYTE, 7),
-                Value(DataType.FLOAT, 6.5))
-        val operator = Opcode.REMAINDER
-
-        testBinaryOperator(values, operator, expected)
+        testBinaryOperator(Value(DataType.WORD, 500), Opcode.REMAINDER, Value(DataType.BYTE, 29), Value(DataType.BYTE, 7))
+        testBinaryOperator(Value(DataType.WORD, 500), Opcode.REMAINDER, Value(DataType.WORD, 29), Value(DataType.BYTE, 7))
+        testBinaryOperator(Value(DataType.FLOAT, 2022.5), Opcode.REMAINDER, Value(DataType.BYTE, 7), Value(DataType.FLOAT, 6.5))
     }
 
     @Test
     fun testBitand() {
-        val values = listOf(
-                Value(DataType.WORD, 0b0011001011110001),
-                Value(DataType.BYTE, 0b10011111),
-                Value(DataType.BYTE, 0b11111101))
-        val expected = listOf(
-                Value(DataType.BYTE, 0b10011101),
-                Value(DataType.WORD, 0b0000000010010001))
-        val operator = Opcode.BITAND
-
-        testBinaryOperator(values, operator, expected)
+        testBinaryOperator(Value(DataType.BYTE, 0b10011111), Opcode.BITAND, Value(DataType.BYTE, 0b11111101), Value(DataType.BYTE, 0b10011101))
+        testBinaryOperator(Value(DataType.WORD, 0b0011001011110001), Opcode.BITAND, Value(DataType.BYTE, 0b10011101), Value(DataType.WORD, 0b0000000010010001))
     }
 
     @Test
     fun testBitor() {
-        val values = listOf(
-                Value(DataType.WORD, 0b0011001011100000),
-                Value(DataType.BYTE, 0b00011101),
-                Value(DataType.BYTE, 0b10010001))
-        val expected = listOf(
-                Value(DataType.BYTE, 0b10011101),
-                Value(DataType.WORD, 0b0011001011111101))
-        val operator = Opcode.BITOR
-
-        testBinaryOperator(values, operator, expected)
+        testBinaryOperator(Value(DataType.BYTE, 0b00011101), Opcode.BITOR, Value(DataType.BYTE, 0b10010001), Value(DataType.BYTE, 0b10011101))
+        testBinaryOperator(Value(DataType.WORD, 0b0011001011100000), Opcode.BITOR, Value(DataType.BYTE, 0b10011101), Value(DataType.WORD, 0b0011001011111101))
     }
 
     @Test
     fun testBitxor() {
-        val values = listOf(
-                Value(DataType.WORD, 0b0011001011100000),
-                Value(DataType.BYTE, 0b00011101),
-                Value(DataType.BYTE, 0b10010001))
-        val expected = listOf(
-                Value(DataType.BYTE, 0b10001100),
-                Value(DataType.WORD, 0b0011001001101100))
-        val operator = Opcode.BITXOR
-
-        testBinaryOperator(values, operator, expected)
+        testBinaryOperator(Value(DataType.BYTE, 0b00011101), Opcode.BITXOR, Value(DataType.BYTE, 0b10010001), Value(DataType.BYTE, 0b10001100))
+        testBinaryOperator(Value(DataType.WORD, 0b0011001011100000), Opcode.BITXOR, Value(DataType.BYTE, 0b10001100), Value(DataType.WORD, 0b0011001001101100))
     }
 
     @Test
     fun testAnd() {
-        val values = listOf(
-                Value(DataType.ARRAY, 111),
-                Value(DataType.BYTE, 0),
-                Value(DataType.WORD, 0),
-                Value(DataType.STR, 222),
-                Value(DataType.STR, 333),
-                Value(DataType.ARRAY, 444),
-                Value(DataType.FLOAT, 300.33),
-                Value(DataType.WORD, 5000),
-                Value(DataType.BYTE, 200),
-                Value(DataType.BYTE, 1))
-        val expected = listOf(
-                Value(DataType.BYTE, 1),
-                Value(DataType.BYTE, 1),
-                Value(DataType.BYTE, 1),
-                Value(DataType.BYTE, 1),
-                Value(DataType.BYTE, 1),
-                Value(DataType.BYTE, 1),
-                Value(DataType.BYTE, 0),
-                Value(DataType.BYTE, 0),
-                Value(DataType.BYTE, 0))
-        val operator = Opcode.AND
-
-        testBinaryOperator(values, operator, expected)
+        testBinaryOperator(Value(DataType.BYTE, 200), Opcode.AND, Value(DataType.BYTE, 1), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.BYTE, 200), Opcode.AND, Value(DataType.BYTE, 0), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.BYTE, 0), Opcode.AND, Value(DataType.BYTE, 101), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.WORD, 200), Opcode.AND, Value(DataType.WORD, 13455), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.WORD, 200), Opcode.AND, Value(DataType.WORD, 0), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.WORD, 0), Opcode.AND, Value(DataType.WORD, 101), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.FLOAT, 200.22), Opcode.AND, Value(DataType.FLOAT, 13455.55), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.FLOAT, 200.22), Opcode.AND, Value(DataType.FLOAT, 0.0), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.FLOAT, 0.0), Opcode.AND, Value(DataType.FLOAT, 101.11), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.STR, 222), Opcode.AND, Value(DataType.STR, 333), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.ARRAY, 444), Opcode.AND, Value(DataType.ARRAY, 444), Value(DataType.BYTE, 1))
     }
 
     @Test
     fun testOr() {
-        val values = listOf(
-                Value(DataType.BYTE, 0),
-                Value(DataType.WORD, 0),
-                Value(DataType.STR, 222),
-                Value(DataType.STR, 333),
-                Value(DataType.ARRAY, 444),
-                Value(DataType.FLOAT, 0),
-                Value(DataType.WORD, 1),
-                Value(DataType.WORD, 0),
-                Value(DataType.BYTE, 0),
-                Value(DataType.BYTE, 0))
-        val expected = listOf(
-                Value(DataType.BYTE, 0),
-                Value(DataType.BYTE, 0),
-                Value(DataType.BYTE, 1),
-                Value(DataType.BYTE, 1),
-                Value(DataType.BYTE, 1),
-                Value(DataType.BYTE, 1),
-                Value(DataType.BYTE, 1),
-                Value(DataType.BYTE, 1),
-                Value(DataType.BYTE, 1))
-        val operator = Opcode.OR
-
-        testBinaryOperator(values, operator, expected)
+        testBinaryOperator(Value(DataType.BYTE, 200), Opcode.OR, Value(DataType.BYTE, 1), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.BYTE, 200), Opcode.OR, Value(DataType.BYTE, 0), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.BYTE, 0), Opcode.OR, Value(DataType.BYTE, 0), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.WORD, 200), Opcode.OR, Value(DataType.WORD, 13455), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.WORD, 200), Opcode.OR, Value(DataType.WORD, 0), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.WORD, 0), Opcode.OR, Value(DataType.WORD, 0), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.FLOAT, 200.22), Opcode.OR, Value(DataType.FLOAT, 13455.55), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.FLOAT, 200.22), Opcode.OR, Value(DataType.FLOAT, 0.0), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.FLOAT, 0.0), Opcode.OR, Value(DataType.FLOAT, 0.0), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.STR, 222), Opcode.OR, Value(DataType.STR, 333), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.ARRAY, 444), Opcode.OR, Value(DataType.ARRAY, 444), Value(DataType.BYTE, 1))
     }
 
     @Test
     fun testXor() {
-        val values = listOf(
-                Value(DataType.ARRAY, 111),
-                Value(DataType.BYTE, 1),
-                Value(DataType.WORD, 0),
-                Value(DataType.STR, 222),
-                Value(DataType.STR, 333),
-                Value(DataType.ARRAY, 444),
-                Value(DataType.FLOAT, 300.33),
-                Value(DataType.WORD, 5000),
-                Value(DataType.BYTE, 0),
-                Value(DataType.BYTE, 20))
-        val expected = listOf(
-                Value(DataType.BYTE, 1),
-                Value(DataType.BYTE, 0),
-                Value(DataType.BYTE, 1),
-                Value(DataType.BYTE, 0),
-                Value(DataType.BYTE, 1),
-                Value(DataType.BYTE, 0),
-                Value(DataType.BYTE, 0),
-                Value(DataType.BYTE, 1),
-                Value(DataType.BYTE, 0))
-        val operator = Opcode.XOR
-
-        testBinaryOperator(values, operator, expected)
+        testBinaryOperator(Value(DataType.BYTE, 200), Opcode.XOR, Value(DataType.BYTE, 1), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.BYTE, 200), Opcode.XOR, Value(DataType.BYTE, 0), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.BYTE, 0), Opcode.XOR, Value(DataType.BYTE, 0), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.WORD, 200), Opcode.XOR, Value(DataType.WORD, 13455), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.WORD, 200), Opcode.XOR, Value(DataType.WORD, 0), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.WORD, 0), Opcode.XOR, Value(DataType.WORD, 0), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.FLOAT, 200.22), Opcode.XOR, Value(DataType.FLOAT, 13455.55), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.FLOAT, 200.22), Opcode.XOR, Value(DataType.FLOAT, 0.0), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.FLOAT, 0.0), Opcode.XOR, Value(DataType.FLOAT, 0.0), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.STR, 222), Opcode.XOR, Value(DataType.STR, 333), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.ARRAY, 444), Opcode.XOR, Value(DataType.ARRAY, 444), Value(DataType.BYTE, 0))
     }
 
     @Test
     fun testNot() {
-        val values = listOf(
-                Value(DataType.STR, 111),
-                Value(DataType.STR, 222),
-                Value(DataType.FLOAT, 0.0),
-                Value(DataType.FLOAT, 300.33),
-                Value(DataType.WORD, 0),
-                Value(DataType.WORD, 5000),
-                Value(DataType.BYTE, 0),
-                Value(DataType.BYTE, 20))
-        val expected = listOf(
-                Value(DataType.BYTE, 0),
-                Value(DataType.BYTE, 0),
-                Value(DataType.BYTE, 1),
-                Value(DataType.BYTE, 0),
-                Value(DataType.BYTE, 1),
-                Value(DataType.BYTE, 0),
-                Value(DataType.BYTE, 1),
-                Value(DataType.BYTE, 0)
-                )
-        val operator = Opcode.NOT
-
-        testUnaryOperator(values, operator, expected, listOf(DataType.BYTE, DataType.BYTE,DataType.BYTE,DataType.BYTE,DataType.BYTE,DataType.BYTE,DataType.BYTE,DataType.BYTE))
+        testUnaryOperator(Value(DataType.BYTE, 0), Opcode.NOT, Value(DataType.BYTE, 1))
+        testUnaryOperator(Value(DataType.BYTE, 20), Opcode.NOT, Value(DataType.BYTE, 0))
+        testUnaryOperator(Value(DataType.WORD, 0), Opcode.NOT, Value(DataType.BYTE, 1))
+        testUnaryOperator(Value(DataType.WORD, 5000), Opcode.NOT, Value(DataType.BYTE, 0))
+        testUnaryOperator(Value(DataType.FLOAT, 0.0), Opcode.NOT, Value(DataType.BYTE, 1))
+        testUnaryOperator(Value(DataType.FLOAT, 5000.0), Opcode.NOT, Value(DataType.BYTE, 0))
     }
 
     @Test
     fun testInc() {
-        val values = listOf(
-                Value(DataType.BYTE, 255),
-                Value(DataType.BYTE, 99)
-        )
-        val expected = listOf(
-                Value(DataType.BYTE, 0),
-                Value(DataType.BYTE, 100)
-        )
-        testUnaryOperator(values, Opcode.INC, expected)
-
-        val valuesw = listOf(
-                Value(DataType.WORD, 65535),
-                Value(DataType.WORD, 999)
-        )
-        val expectedw = listOf(
-                Value(DataType.WORD, 0),
-                Value(DataType.WORD, 1000)
-        )
-        testUnaryOperator(valuesw, Opcode.INC_W, expectedw)
-
-        val valuesf = listOf(
-                Value(DataType.FLOAT, -1.0),
-                Value(DataType.FLOAT, 2022.5)
-        )
-        val expectedf = listOf(
-                Value(DataType.FLOAT, 0.0),
-                Value(DataType.FLOAT, 2023.5)
-        )
-        testUnaryOperator(valuesf, Opcode.INC_F, expectedf)
+        testUnaryOperator(Value(DataType.BYTE, 255), Opcode.INC, Value(DataType.BYTE, 0))
+        testUnaryOperator(Value(DataType.BYTE, 99), Opcode.INC, Value(DataType.BYTE, 100))
+        testUnaryOperator(Value(DataType.WORD, 65535), Opcode.INC_W, Value(DataType.WORD, 0))
+        testUnaryOperator(Value(DataType.WORD, 999), Opcode.INC_W, Value(DataType.WORD, 1000))
+        testUnaryOperator(Value(DataType.FLOAT, -1.0), Opcode.INC_F, Value(DataType.FLOAT, 0.0))
+        testUnaryOperator(Value(DataType.FLOAT, 2022.5), Opcode.INC_F, Value(DataType.FLOAT, 2023.5))
     }
 
     @Test
     fun testDec() {
-        val values = listOf(
-                Value(DataType.BYTE, 100),
-                Value(DataType.BYTE, 0)
-        )
-        val expected = listOf(
-                Value(DataType.BYTE, 99),
-                Value(DataType.BYTE, 255)
-        )
-        testUnaryOperator(values, Opcode.DEC, expected)
-
-        val valuesw = listOf(
-                Value(DataType.WORD, 1000),
-                Value(DataType.WORD, 0)
-        )
-        val expectedw = listOf(
-                Value(DataType.WORD, 999),
-                Value(DataType.WORD, 65535)
-        )
-        testUnaryOperator(valuesw, Opcode.DEC_W, expectedw)
-
-        val valuesf = listOf(
-                Value(DataType.FLOAT, 0.5),
-                Value(DataType.FLOAT, 123.456)
-        )
-        val expectedf = listOf(
-                Value(DataType.FLOAT, -0.5),
-                Value(DataType.FLOAT, 122.456)
-        )
-        testUnaryOperator(valuesf, Opcode.DEC_F, expectedf)
+        testUnaryOperator(Value(DataType.BYTE, 100), Opcode.DEC, Value(DataType.BYTE, 99))
+        testUnaryOperator(Value(DataType.BYTE, 0), Opcode.DEC, Value(DataType.BYTE, 255))
+        testUnaryOperator(Value(DataType.WORD, 1000), Opcode.DEC_W, Value(DataType.WORD, 999))
+        testUnaryOperator(Value(DataType.WORD, 0), Opcode.DEC_W, Value(DataType.WORD, 65535))
+        testUnaryOperator(Value(DataType.FLOAT, 0.5), Opcode.DEC_F, Value(DataType.FLOAT, -0.5))
+        testUnaryOperator(Value(DataType.FLOAT, 2022.5), Opcode.DEC_F, Value(DataType.FLOAT, 2021.5))
     }
 
     @Test
     fun testNeg() {
-        val ins = mutableListOf(
-                Instruction(Opcode.PUSH_F, Value(DataType.FLOAT, 123.456)),
-                Instruction(Opcode.NEG),
-                Instruction(Opcode.NEG)
-        )
-        vm.load(makeProg(ins), null)
-        assertThat(vm.evalstack, empty())
-        vm.step(2)
-        assertEquals(1, vm.evalstack.size)
-        assertEquals(Value(DataType.FLOAT, -123.456), vm.evalstack.peek())
-        vm.step(1)
-        assertEquals(1, vm.evalstack.size)
-        assertEquals(Value(DataType.FLOAT, 123.456), vm.evalstack.peek())
-
-        val ins2 = mutableListOf(
-                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 1234)),
-                Instruction(Opcode.NEG)
-        )
-        vm.load(makeProg(ins2), null)
-        vm.step(2)
-        assertEquals(Value(DataType.WORD, 64302), vm.evalstack.pop())
-
-        val ins3 = mutableListOf(
-                Instruction(Opcode.PUSH, Value(DataType.BYTE, 12)),
-                Instruction(Opcode.NEG)
-        )
-        vm.load(makeProg(ins3), null)
-        vm.step(2)
-        assertEquals(Value(DataType.BYTE, 244), vm.evalstack.pop())
+        testUnaryOperator(Value(DataType.BYTE, 12), Opcode.NEG, Value(DataType.BYTE, 244))
+        testUnaryOperator(Value(DataType.WORD, 1234), Opcode.NEG, Value(DataType.WORD, 64302))
+        testUnaryOperator(Value(DataType.FLOAT, 123.456), Opcode.NEG, Value(DataType.FLOAT, -123.456))
     }
 
     @Test
     fun testInv() {
-        val ins = mutableListOf(
-                Instruction(Opcode.PUSH, Value(DataType.BYTE, 123)),
-                Instruction(Opcode.PUSH_W, Value(DataType.WORD, 4044)),
-                Instruction(Opcode.INV),
-                Instruction(Opcode.INV),
-                Instruction(Opcode.INV)
-        )
-        vm.load(makeProg(ins), null)
-        assertThat(vm.evalstack, empty())
-        vm.step(3)
-        assertEquals(2, vm.evalstack.size)
-        assertEquals(Value(DataType.WORD, 0xf033), vm.evalstack.pop())
-        vm.step(1)
-        assertEquals(1, vm.evalstack.size)
-        assertEquals(Value(DataType.BYTE, 0x84), vm.evalstack.pop())
-
-        val ins2 = mutableListOf(
-                Instruction(Opcode.PUSH_W, Value(DataType.FLOAT, 1234.33)),         // todo should crash
-                Instruction(Opcode.INV)
-        )
-        vm.load(makeProg(ins2), null)
-        assertFailsWith<VmExecutionException> {
-            vm.step(2)
-        }
+        testUnaryOperator(Value(DataType.BYTE, 123), Opcode.INV, Value(DataType.BYTE, 0x84))
+        testUnaryOperator(Value(DataType.WORD, 4044), Opcode.INV, Value(DataType.WORD, 0xf033))
     }
 
     @Test
@@ -1480,17 +1263,6 @@ class TestStackVmOpcodes {
         assertEquals(Value(DataType.WORD, 0b1001001100001101), vm.evalstack.peek())
     }
 
-
-    private fun discardOpcode(dt: DataType): Opcode {
-        return when(dt) {
-            DataType.BYTE -> Opcode.DISCARD
-            DataType.WORD -> Opcode.DISCARD_W
-            DataType.FLOAT -> Opcode.DISCARD_F
-            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
-            DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX -> Opcode.DISCARD_W
-        }
-    }
-
     private fun pushOpcode(dt: DataType): Opcode {
         return when (dt) {
             DataType.BYTE -> Opcode.PUSH
@@ -1519,50 +1291,27 @@ class TestStackVmOpcodes {
         }
     }
 
-    private fun testBinaryOperator(valuesToPush: List<Value>, operator: Opcode, expected: List<Value>) {
-        assertEquals(valuesToPush.size, expected.size+1)
-        val ins = mutableListOf<Instruction>()
-        for (value in valuesToPush) {
-            ins.add(Instruction(pushOpcode(value.type), value))
-        }
-        for (i in 1 until valuesToPush.size)
-            ins.add(Instruction(operator))
-        vm.load(makeProg(ins), null)
-        vm.step(valuesToPush.size)
-        assertEquals(valuesToPush.size, vm.evalstack.size)
-        for (expectedVal in expected) {
-            vm.step(1)
-            assertEquals(expectedVal, vm.evalstack.peek())
-        }
-        assertFailsWith<VmTerminationException> {
-            vm.step(1)
-        }
+    private fun testBinaryOperator(left: Value, operator: Opcode, right: Value, result: Value) {
+        val program=makeProg(mutableListOf(
+                Instruction(pushOpcode(left.type), left),
+                Instruction(pushOpcode(right.type), right),
+                Instruction(operator)
+        ))
+        vm.load(program, null)
+        vm.step(3)
+        assertEquals(1, vm.evalstack.size)
+        assertEquals(result, vm.evalstack.pop())
     }
 
-    private fun testUnaryOperator(valuesToPush: List<Value>, operator: Opcode, expected: List<Value>, expectedTypes: List<DataType>?=null) {
-        assertEquals(valuesToPush.size, expected.size)
-        val typesExpected = expectedTypes?.reversed() ?: expected.reversed().map{it.type}
-
-        val ins = mutableListOf<Instruction>()
-        for (value in valuesToPush) {
-            ins.add(Instruction(pushOpcode(value.type), value))
-        }
-        for (type in typesExpected) {
-            ins.add(Instruction(operator))
-            ins.add(Instruction(discardOpcode(type)))
-        }
-        vm.load(makeProg(ins), null)
-        vm.step(valuesToPush.size)
-        assertEquals(valuesToPush.size, vm.evalstack.size)
-
-        for (expectedVal in expected.reversed()) {
-            vm.step(1)
-            assertEquals(expectedVal, vm.evalstack.peek())
-            vm.step(1)
-        }
-        assertTrue(vm.evalstack.empty())
-        assertFailsWith<VmTerminationException> {
-            vm.step(1)
-        }
+    private fun testUnaryOperator(value: Value, operator: Opcode, result: Value) {
+        val program=makeProg(mutableListOf(
+                Instruction(pushOpcode(value.type), value),
+                Instruction(operator)
+        ))
+        vm.load(program, null)
+        vm.step(2)
+        assertEquals(1, vm.evalstack.size)
+        assertEquals(result, vm.evalstack.pop())
     }
+
 }

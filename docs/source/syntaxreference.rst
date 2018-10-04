@@ -199,7 +199,7 @@ Variable declarations
 
 Variables should be declared with their exact type and size so the compiler can allocate storage
 for them. You must give them an initial value as well. That value can be a simple literal value,
-or a (constant) expression. The syntax is::
+or an expression. The syntax is::
 
 	<datatype>   <variable name>   [ = <initial value> ]
 

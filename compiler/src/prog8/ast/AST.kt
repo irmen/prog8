@@ -585,7 +585,7 @@ enum class VarDeclType {
 }
 
 class VarDecl(val type: VarDeclType,
-              declaredDatatype: DataType,
+              private val declaredDatatype: DataType,
               val arrayspec: ArraySpec?,
               val name: String,
               var value: IExpression?,
@@ -623,39 +623,19 @@ class VarDecl(val type: VarDeclType,
     override fun process(processor: IAstProcessor) = processor.process(this)
 
     val scopedname: String by lazy { makeScopedName(name).joinToString(".") }
-    val memorySize: Int
-        get() = when(datatype) {
-            DataType.BYTE -> 1
-            DataType.WORD -> 2
-            DataType.FLOAT -> Mflpt5.MemorySize
-            DataType.STR,
-            DataType.STR_P,
-            DataType.STR_S,
-            DataType.STR_PS -> {
-                val lv = value as? LiteralValue ?: throw ExpressionError("need constant initializer value expression", position)
-                lv.strvalue!!.length + 1
-            }
-            DataType.ARRAY -> {
-                val aX = arrayspec?.x as? LiteralValue ?: throw ExpressionError("need constant value expression for arrayspec", position)
-                aX.asIntegerValue!!
-            }
-            DataType.ARRAY_W -> {
-                val aX = arrayspec?.x as? LiteralValue ?: throw ExpressionError("need constant value expression for arrayspec", position)
-                2*aX.asIntegerValue!!
-            }
-            DataType.ARRAY_F -> {
-                val aX = arrayspec?.x as? LiteralValue ?: throw ExpressionError("need constant value expression for arrayspec", position)
-                Mflpt5.MemorySize*aX.asIntegerValue!!
-            }
-            DataType.MATRIX -> {
-                val aX = arrayspec?.x as? LiteralValue ?: throw ExpressionError("need constant value expression for arrayspec", position)
-                val aY = arrayspec.y as? LiteralValue ?: throw ExpressionError("need constant value expression for arrayspec", position)
-                aX.asIntegerValue!! * aY.asIntegerValue!!
-            }
-        }
 
     override fun toString(): String {
         return "VarDecl(name=$name, vartype=$type, datatype=$datatype, value=$value, pos=$position)"
+    }
+
+    fun asDefaultValueDecl(): VarDecl {
+        val constValue = when(declaredDatatype) {
+            DataType.BYTE -> LiteralValue(DataType.BYTE, 0, position=position)
+            DataType.WORD -> LiteralValue(DataType.WORD, wordvalue=0, position=position)
+            DataType.FLOAT -> LiteralValue(DataType.FLOAT, floatvalue=0.0, position=position)
+            else -> throw FatalAstException("can only set a default value for a numeric type")
+        }
+        return VarDecl(type, declaredDatatype, arrayspec, name, constValue, position)
     }
 }
 
