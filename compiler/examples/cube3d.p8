@@ -84,11 +84,11 @@
         byte e_to
 
         sub toscreenx(x: float, z: float) -> word {
-            return floor(x/(4.2+z) * height) + width // 2
+            return floor(x/(4.2+z) * flt(height)) + width // 2
         }
 
         sub toscreeny(y: float, z: float) -> word {
-            return floor(y/(4.2+z) * height) + height // 2
+            return floor(y/(4.2+z) * flt(height)) + height // 2
         }
 
         ; draw all edges of the object

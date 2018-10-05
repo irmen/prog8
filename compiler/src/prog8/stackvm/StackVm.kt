@@ -103,10 +103,10 @@ enum class Opcode {
     BITXOR_W,
     INV,
     INV_W,
+
+    // numeric type conversions
     LSB,
     MSB,
-
-    // numeric type conversions not covered by other opcodes
     B2WORD,         // convert a byte into a word where it is the lower eight bits $00xx
     MSB2WORD,       // convert a byte into a word where it is the upper eight bits $xx00
     B2FLOAT,        // convert byte into floating point
