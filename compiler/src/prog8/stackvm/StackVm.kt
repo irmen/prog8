@@ -33,14 +33,30 @@ enum class Opcode {
     POP_VAR_F,      // pop float value into variable
 
     // numeric arithmetic
-    ADD,            // todo b/w/f
-    SUB,            // todo b/w/f
-    MUL,            // todo b/w/f
-    DIV,            // todo b/w/f
-    FLOORDIV,       // todo b/w/f
-    REMAINDER,      // todo b/w/f
-    POW,            // todo b/w/f
-    NEG,            // todo b/w/f
+    ADD_B,
+    ADD_W,
+    ADD_F,
+    SUB_B,
+    SUB_W,
+    SUB_F,
+    MUL_B,
+    MUL_W,
+    MUL_F,
+    DIV_B,
+    DIV_W,
+    DIV_F,
+    FLOORDIV_B,
+    FLOORDIV_W,
+    FLOORDIV_F,
+    REMAINDER_B,
+    REMAINDER_W,
+    REMAINDER_F,
+    POW_B,
+    POW_W,
+    POW_F,
+    NEG_B,
+    NEG_W,
+    NEG_F,
 
     // bit shifts and bitwise arithmetic
     SHL,
@@ -470,44 +486,145 @@ class StackVm(private var traceOutputFile: String?) {
                 val address = ins.arg!!.integerValue()
                 mem.setFloat(address, value.numericValue().toDouble())
             }
-            Opcode.ADD -> {
+            Opcode.ADD_B -> {
                 val (top, second) = evalstack.pop2()
-                // todo b/w/f
+                checkDt(top, DataType.BYTE)
+                checkDt(second, DataType.BYTE)
                 evalstack.push(second.add(top))
             }
-            Opcode.SUB -> {
+            Opcode.ADD_W -> {
                 val (top, second) = evalstack.pop2()
-                // todo b/w/f
+                checkDt(top, DataType.WORD)
+                checkDt(second, DataType.WORD)
+                evalstack.push(second.add(top))
+            }
+            Opcode.ADD_F -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.FLOAT)
+                checkDt(second, DataType.FLOAT)
+                evalstack.push(second.add(top))
+            }
+            Opcode.SUB_B -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.BYTE)
+                checkDt(second, DataType.BYTE)
                 evalstack.push(second.sub(top))
             }
-            Opcode.MUL -> {
+            Opcode.SUB_W -> {
                 val (top, second) = evalstack.pop2()
-                // todo b/w/f
+                checkDt(top, DataType.WORD)
+                checkDt(second, DataType.WORD)
+                evalstack.push(second.sub(top))
+            }
+            Opcode.SUB_F -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.FLOAT)
+                checkDt(second, DataType.FLOAT)
+                evalstack.push(second.sub(top))
+            }
+            Opcode.MUL_B -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.BYTE)
+                checkDt(second, DataType.BYTE)
                 evalstack.push(second.mul(top))
             }
-            Opcode.DIV -> {
+            Opcode.MUL_W -> {
                 val (top, second) = evalstack.pop2()
-                // todo b/w/f
+                checkDt(top, DataType.WORD)
+                checkDt(second, DataType.WORD)
+                evalstack.push(second.mul(top))
+            }
+            Opcode.MUL_F -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.FLOAT)
+                checkDt(second, DataType.FLOAT)
+                evalstack.push(second.mul(top))
+            }
+            Opcode.DIV_B -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.BYTE)
+                checkDt(second, DataType.BYTE)
                 evalstack.push(second.div(top))
             }
-            Opcode.FLOORDIV -> {
+            Opcode.DIV_W -> {
                 val (top, second) = evalstack.pop2()
-                // todo b/w/f
+                checkDt(top, DataType.WORD)
+                checkDt(second, DataType.WORD)
+                evalstack.push(second.div(top))
+            }
+            Opcode.DIV_F -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.FLOAT)
+                checkDt(second, DataType.FLOAT)
+                evalstack.push(second.div(top))
+            }
+            Opcode.FLOORDIV_B -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.BYTE)
+                checkDt(second, DataType.BYTE)
                 evalstack.push(second.floordiv(top))
             }
-            Opcode.REMAINDER -> {
+            Opcode.FLOORDIV_W -> {
                 val (top, second) = evalstack.pop2()
-                // todo b/w/f
+                checkDt(top, DataType.WORD)
+                checkDt(second, DataType.WORD)
+                evalstack.push(second.floordiv(top))
+            }
+            Opcode.FLOORDIV_F -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.FLOAT)
+                checkDt(second, DataType.FLOAT)
+                evalstack.push(second.floordiv(top))
+            }
+            Opcode.REMAINDER_B -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.BYTE)
+                checkDt(second, DataType.BYTE)
                 evalstack.push(second.remainder(top))
             }
-            Opcode.POW -> {
+            Opcode.REMAINDER_W -> {
                 val (top, second) = evalstack.pop2()
-                // todo b/w/f
+                checkDt(top, DataType.WORD)
+                checkDt(second, DataType.WORD)
+                evalstack.push(second.remainder(top))
+            }
+            Opcode.REMAINDER_F -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.FLOAT)
+                checkDt(second, DataType.FLOAT)
+                evalstack.push(second.remainder(top))
+            }
+            Opcode.POW_B -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.BYTE)
+                checkDt(second, DataType.BYTE)
                 evalstack.push(second.pow(top))
             }
-            Opcode.NEG -> {
+            Opcode.POW_W -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.WORD)
+                checkDt(second, DataType.WORD)
+                evalstack.push(second.pow(top))
+            }
+            Opcode.POW_F -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.FLOAT)
+                checkDt(second, DataType.FLOAT)
+                evalstack.push(second.pow(top))
+            }
+            Opcode.NEG_B -> {
                 val v = evalstack.pop()
-                // todo b/w/f
+                checkDt(v, DataType.BYTE)
+                evalstack.push(v.neg())
+            }
+            Opcode.NEG_W -> {
+                val v = evalstack.pop()
+                checkDt(v, DataType.WORD)
+                evalstack.push(v.neg())
+            }
+            Opcode.NEG_F -> {
+                val v = evalstack.pop()
+                checkDt(v, DataType.FLOAT)
                 evalstack.push(v.neg())
             }
             Opcode.SHL -> {

@@ -138,106 +138,25 @@ class TestStackVmValue {
     }
 
     @Test
-    fun testArithmeticByteFirstOperand() {
-        var r = Value(DataType.BYTE, 100).add(Value(DataType.BYTE, 120))
-        assertEquals(DataType.BYTE, r.type)
-        assertEquals(220, r.integerValue())
-
-        r = Value(DataType.BYTE, 100).add(Value(DataType.BYTE, 199))
-        assertEquals(DataType.WORD, r.type)
-        assertEquals(299, r.integerValue())
-
-        r = Value(DataType.BYTE, 100).sub(Value(DataType.BYTE, 88))
-        assertEquals(DataType.BYTE, r.type)
-        assertEquals(12, r.integerValue())
-
-        r = Value(DataType.BYTE, 100).sub(Value(DataType.BYTE, 188))
-        assertEquals(DataType.BYTE, r.type)
-        assertEquals(168, r.integerValue())
-
-        r = Value(DataType.BYTE, 5).mul(Value(DataType.BYTE, 33))
-        assertEquals(DataType.BYTE, r.type)
-        assertEquals(165, r.integerValue())
-
-        r = Value(DataType.BYTE, 22).mul(Value(DataType.BYTE, 33))
-        assertEquals(DataType.WORD, r.type)
-        assertEquals(726, r.integerValue())
-
-        r = Value(DataType.BYTE, 233).div(Value(DataType.BYTE, 12))
-        assertEquals(DataType.BYTE, r.type)
-        assertEquals(19, r.integerValue())
-
-        r = Value(DataType.BYTE, 233).div(Value(DataType.BYTE, 0))
-        assertEquals(DataType.BYTE, r.type)
-        assertEquals(255, r.integerValue())
-
-        r = Value(DataType.BYTE, 233).floordiv(Value(DataType.BYTE, 19))
-        assertEquals(DataType.BYTE, r.type)
-        assertEquals(12, r.integerValue())
-
-
-        r = Value(DataType.BYTE, 100).add(Value(DataType.WORD, 120))
-        assertEquals(DataType.WORD, r.type)
-        assertEquals(220, r.integerValue())
-
-        r = Value(DataType.BYTE, 100).add(Value(DataType.WORD, 199))
-        assertEquals(DataType.WORD, r.type)
-        assertEquals(299, r.integerValue())
-
-        r = Value(DataType.BYTE, 100).sub(Value(DataType.WORD, 88))
-        assertEquals(DataType.WORD, r.type)
-        assertEquals(12, r.integerValue())
-
-        r = Value(DataType.BYTE, 100).sub(Value(DataType.WORD, 188))
-        assertEquals(DataType.WORD, r.type)
-        assertEquals(65448, r.integerValue())
-
-        r = Value(DataType.BYTE, 5).mul(Value(DataType.WORD, 33))
-        assertEquals(DataType.WORD, r.type)
-        assertEquals(165, r.integerValue())
-
-        r = Value(DataType.BYTE, 22).mul(Value(DataType.WORD, 33))
-        assertEquals(DataType.WORD, r.type)
-        assertEquals(726, r.integerValue())
-
-        r = Value(DataType.BYTE, 233).div(Value(DataType.WORD, 12))
-        assertEquals(DataType.BYTE, r.type)
-        assertEquals(19, r.integerValue())
-
-        r = Value(DataType.BYTE, 233).div(Value(DataType.WORD, 0))
-        assertEquals(DataType.BYTE, r.type)
-        assertEquals(255, r.integerValue())
-
-        r = Value(DataType.BYTE, 233).floordiv(Value(DataType.WORD, 19))
-        assertEquals(DataType.BYTE, r.type)
-        assertEquals(12, r.integerValue())
-    }
-
-    @Test
-    fun testArithmeticWordFirstOperand() {
-        var r = Value(DataType.WORD, 100).add(Value(DataType.BYTE, 120))
-        assertEquals(DataType.WORD, r.type)
-        assertEquals(220, r.integerValue())
-
-        r = Value(DataType.WORD, 100).div(Value(DataType.BYTE, 10))
-        assertEquals(DataType.WORD, r.type)
-        assertEquals(10, r.integerValue())
-
-        r = Value(DataType.WORD, 100).div(Value(DataType.BYTE, 0))
-        assertEquals(DataType.WORD, r.type)
-        assertEquals(65535, r.integerValue())
-
-        r = Value(DataType.WORD, 100).div(Value(DataType.WORD, 0))
-        assertEquals(DataType.WORD, r.type)
-        assertEquals(65535, r.integerValue())
-
-        r = Value(DataType.WORD, 33445).floordiv(Value(DataType.WORD, 123))
-        assertEquals(DataType.WORD, r.type)
-        assertEquals(271, r.integerValue())
-
-        r = Value(DataType.WORD, 33445).floordiv(Value(DataType.WORD, 999))
-        assertEquals(DataType.WORD, r.type)
-        assertEquals(33, r.integerValue())
+    fun testNoDtConversion() {
+        assertFailsWith<VmExecutionException> {
+            Value(DataType.WORD, 100).add(Value(DataType.BYTE, 120))
+        }
+        assertFailsWith<VmExecutionException> {
+            Value(DataType.BYTE, 100).add(Value(DataType.WORD, 120))
+        }
+        assertFailsWith<VmExecutionException> {
+            Value(DataType.FLOAT, 100.22).add(Value(DataType.WORD, 120))
+        }
+        assertFailsWith<VmExecutionException> {
+            Value(DataType.WORD, 1002).add(Value(DataType.FLOAT, 120.22))
+        }
+        assertFailsWith<VmExecutionException> {
+            Value(DataType.FLOAT, 100.22).add(Value(DataType.BYTE, 120))
+        }
+        assertFailsWith<VmExecutionException> {
+            Value(DataType.BYTE, 12).add(Value(DataType.FLOAT, 120.22))
+        }
     }
 
     @Test

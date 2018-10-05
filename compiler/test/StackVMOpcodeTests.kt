@@ -253,60 +253,65 @@ class TestStackVmOpcodes {
 
     @Test
     fun testAdd() {
-        testBinaryOperator(Value(DataType.WORD, 4000), Opcode.ADD, Value(DataType.BYTE, 40), Value(DataType.WORD, 4000+40))
-        testBinaryOperator(Value(DataType.WORD, 4000+40), Opcode.ADD, Value(DataType.WORD, 123), Value(DataType.WORD, 4000+40+123))
+        testBinaryOperator(Value(DataType.BYTE, 140), Opcode.ADD_B, Value(DataType.BYTE, 222), Value(DataType.BYTE, 106))
+        testBinaryOperator(Value(DataType.BYTE, 40), Opcode.ADD_B, Value(DataType.BYTE, 122), Value(DataType.BYTE, 162))
+        testBinaryOperator(Value(DataType.WORD, 4000), Opcode.ADD_W, Value(DataType.WORD, 40), Value(DataType.WORD, 4040))
+        testBinaryOperator(Value(DataType.WORD, 24000), Opcode.ADD_W, Value(DataType.WORD, 55000), Value(DataType.WORD, 13464))
+        testBinaryOperator(Value(DataType.FLOAT, 4000.0), Opcode.ADD_F, Value(DataType.FLOAT, 123.22), Value(DataType.FLOAT, 4123.22))
         assertFailsWith<VmExecutionException> {
-            testBinaryOperator(Value(DataType.WORD, 4000 + 40), Opcode.ADD, Value(DataType.FLOAT, 42.25), Value(DataType.FLOAT, 42.25 + (4000 + 40)))
+            testBinaryOperator(Value(DataType.WORD, 4000 + 40), Opcode.ADD_W, Value(DataType.FLOAT, 42.25), Value(DataType.FLOAT, 42.25 + (4000 + 40)))
         }
     }
 
     @Test
     fun testSub() {
-        testBinaryOperator(Value(DataType.WORD, 4000), Opcode.SUB, Value(DataType.BYTE, 40), Value(DataType.WORD, 4000-40))
-        testBinaryOperator(Value(DataType.WORD, 4000), Opcode.SUB, Value(DataType.WORD, 123), Value(DataType.WORD, 4000-123))
+        testBinaryOperator(Value(DataType.BYTE, 250), Opcode.SUB_B, Value(DataType.BYTE, 70), Value(DataType.BYTE, 180))
+        testBinaryOperator(Value(DataType.WORD, 4000), Opcode.SUB_W, Value(DataType.WORD, 123), Value(DataType.WORD, 4000-123))
+        testBinaryOperator(Value(DataType.FLOAT, 123.44), Opcode.SUB_F, Value(DataType.FLOAT, 23.44), Value(DataType.FLOAT, 100.0))
         assertFailsWith<VmExecutionException> {
-            testBinaryOperator(Value(DataType.WORD, 4000 - 40), Opcode.SUB, Value(DataType.FLOAT, 42.25), Value(DataType.FLOAT, 42.25 - (4000 - 40)))
+            testBinaryOperator(Value(DataType.WORD, 4000 - 40), Opcode.SUB_W, Value(DataType.FLOAT, 42.25), Value(DataType.FLOAT, 42.25 - (4000 - 40)))
         }
     }
 
     @Test
     fun testMul() {
-        testBinaryOperator(Value(DataType.WORD, 401), Opcode.MUL, Value(DataType.BYTE, 4), Value(DataType.WORD, 401*4))
-        testBinaryOperator(Value(DataType.WORD, 401), Opcode.MUL, Value(DataType.WORD, 4), Value(DataType.WORD, 401*4))
+        testBinaryOperator(Value(DataType.BYTE, 41), Opcode.MUL_B, Value(DataType.BYTE, 4), Value(DataType.BYTE, 164))
+        testBinaryOperator(Value(DataType.WORD, 401), Opcode.MUL_W, Value(DataType.WORD, 4), Value(DataType.WORD, 401*4))
+        testBinaryOperator(Value(DataType.FLOAT, 40.1), Opcode.MUL_F, Value(DataType.FLOAT, 2.4), Value(DataType.FLOAT, 96.24))
         assertFailsWith<VmExecutionException> {
-            testBinaryOperator(Value(DataType.WORD, 401 * 4), Opcode.MUL, Value(DataType.FLOAT, 42.2533), Value(DataType.FLOAT, 42.2533 * (401 * 4)))
+            testBinaryOperator(Value(DataType.WORD, 401 * 4), Opcode.MUL_W, Value(DataType.FLOAT, 42.2533), Value(DataType.FLOAT, 42.2533 * (401 * 4)))
         }
     }
 
     @Test
     fun testDiv() {
-        testBinaryOperator(Value(DataType.WORD, 3999), Opcode.DIV, Value(DataType.BYTE, 40), Value(DataType.WORD, 99))
-        testBinaryOperator(Value(DataType.WORD, 3999), Opcode.DIV, Value(DataType.WORD, 40), Value(DataType.WORD, 99))
-        testBinaryOperator(Value(DataType.FLOAT, 42.25), Opcode.DIV, Value(DataType.WORD, 99), Value(DataType.FLOAT, 42.25/99))
+        testBinaryOperator(Value(DataType.BYTE, 250), Opcode.DIV_B, Value(DataType.BYTE, 12), Value(DataType.BYTE, 20))
+        testBinaryOperator(Value(DataType.WORD, 3999), Opcode.DIV_W, Value(DataType.WORD, 40), Value(DataType.WORD, 99))
+        testBinaryOperator(Value(DataType.FLOAT, 42.25), Opcode.DIV_F, Value(DataType.FLOAT, 99.0), Value(DataType.FLOAT, 42.25/99.0))
         assertFailsWith<VmExecutionException> {
-            testBinaryOperator(Value(DataType.WORD, 3333), Opcode.DIV, Value(DataType.FLOAT, 2.22), Value(DataType.FLOAT, 3333 / 2.22))
+            testBinaryOperator(Value(DataType.WORD, 3333), Opcode.DIV_W, Value(DataType.FLOAT, 2.22), Value(DataType.FLOAT, 3333 / 2.22))
         }
     }
 
     @Test
     fun testFloorDiv() {
-        testBinaryOperator(Value(DataType.WORD, 3999), Opcode.FLOORDIV, Value(DataType.BYTE, 99), Value(DataType.WORD, 40))
-        testBinaryOperator(Value(DataType.WORD, 3999), Opcode.FLOORDIV, Value(DataType.WORD, 99), Value(DataType.WORD, 40))
-        testBinaryOperator(Value(DataType.FLOAT, 4000.25), Opcode.FLOORDIV, Value(DataType.BYTE, 40), Value(DataType.FLOAT, 100.0))
+        testBinaryOperator(Value(DataType.BYTE, 244), Opcode.FLOORDIV_B, Value(DataType.BYTE, 33), Value(DataType.BYTE, 7))
+        testBinaryOperator(Value(DataType.WORD, 3999), Opcode.FLOORDIV_W, Value(DataType.WORD, 99), Value(DataType.WORD, 40))
+        testBinaryOperator(Value(DataType.FLOAT, 4000.25), Opcode.FLOORDIV_F, Value(DataType.FLOAT, 40.2), Value(DataType.FLOAT, 99.0))
     }
 
     @Test
     fun testPow() {
-        testBinaryOperator(Value(DataType.WORD, 3), Opcode.POW, Value(DataType.BYTE, 4), Value(DataType.WORD, 81))
-        testBinaryOperator(Value(DataType.WORD, 3), Opcode.POW, Value(DataType.WORD, 4), Value(DataType.WORD, 81))
-        testBinaryOperator(Value(DataType.FLOAT, 1.1), Opcode.POW, Value(DataType.BYTE, 81), Value(DataType.FLOAT, 2253.2402360440274))
+        testBinaryOperator(Value(DataType.BYTE, 3), Opcode.POW_B, Value(DataType.BYTE, 4), Value(DataType.BYTE, 81))
+        testBinaryOperator(Value(DataType.WORD, 3), Opcode.POW_W, Value(DataType.WORD, 4), Value(DataType.WORD, 81))
+        testBinaryOperator(Value(DataType.FLOAT, 1.1), Opcode.POW_F, Value(DataType.FLOAT, 81.0), Value(DataType.FLOAT, 2253.2402360440274))
     }
 
     @Test
     fun testRemainder() {
-        testBinaryOperator(Value(DataType.WORD, 500), Opcode.REMAINDER, Value(DataType.BYTE, 29), Value(DataType.BYTE, 7))
-        testBinaryOperator(Value(DataType.WORD, 500), Opcode.REMAINDER, Value(DataType.WORD, 29), Value(DataType.BYTE, 7))
-        testBinaryOperator(Value(DataType.FLOAT, 2022.5), Opcode.REMAINDER, Value(DataType.BYTE, 7), Value(DataType.FLOAT, 6.5))
+        testBinaryOperator(Value(DataType.BYTE, 250), Opcode.REMAINDER_B, Value(DataType.BYTE, 29), Value(DataType.BYTE, 18))
+        testBinaryOperator(Value(DataType.WORD, 500), Opcode.REMAINDER_W, Value(DataType.WORD, 29), Value(DataType.WORD, 7))
+        testBinaryOperator(Value(DataType.FLOAT, 2022.5), Opcode.REMAINDER_F, Value(DataType.FLOAT, 7.0), Value(DataType.FLOAT, 6.5))
     }
 
     @Test
@@ -387,9 +392,9 @@ class TestStackVmOpcodes {
 
     @Test
     fun testNeg() {
-        testUnaryOperator(Value(DataType.BYTE, 12), Opcode.NEG, Value(DataType.BYTE, 244))
-        testUnaryOperator(Value(DataType.WORD, 1234), Opcode.NEG, Value(DataType.WORD, 64302))
-        testUnaryOperator(Value(DataType.FLOAT, 123.456), Opcode.NEG, Value(DataType.FLOAT, -123.456))
+        testUnaryOperator(Value(DataType.BYTE, 12), Opcode.NEG_B, Value(DataType.BYTE, 244))
+        testUnaryOperator(Value(DataType.WORD, 1234), Opcode.NEG_W, Value(DataType.WORD, 64302))
+        testUnaryOperator(Value(DataType.FLOAT, 123.456), Opcode.NEG_F, Value(DataType.FLOAT, -123.456))
     }
 
     @Test

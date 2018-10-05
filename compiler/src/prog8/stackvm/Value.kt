@@ -97,17 +97,11 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
     }
 
     private fun arithResult(leftDt: DataType, result: Number, rightDt: DataType, op: String): Value {
+        if(leftDt!=rightDt)
+            throw VmExecutionException("left and right datatypes are not the same")
         if(result.toDouble() < 0 ) {
             return when(leftDt) {
-                DataType.BYTE -> {
-                    // BYTE can become WORD if right operand is WORD, or when value is too large for byte
-                    when(rightDt) {
-                        DataType.BYTE -> Value(DataType.BYTE, result.toInt() and 255)
-                        DataType.WORD -> Value(DataType.WORD, result.toInt() and 65535)
-                        DataType.FLOAT -> throw VmExecutionException("floating point loss of precision")
-                        else -> throw VmExecutionException("$op on non-numeric result type")
-                    }
-                }
+                DataType.BYTE -> Value(DataType.BYTE, result.toInt() and 255)
                 DataType.WORD -> Value(DataType.WORD, result.toInt() and 65535)
                 DataType.FLOAT -> Value(DataType.FLOAT, result)
                 else -> throw VmExecutionException("$op on non-numeric type")
@@ -115,22 +109,8 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
         }
 
         return when(leftDt) {
-            DataType.BYTE -> {
-                // BYTE can become WORD if right operand is WORD, or when value is too large for byte
-                if(result.toDouble() >= 256 && rightDt!=DataType.FLOAT)
-                    return Value(DataType.WORD, result)
-                when(rightDt) {
-                    DataType.BYTE -> Value(DataType.BYTE, result)
-                    DataType.WORD -> Value(DataType.WORD, result)
-                    DataType.FLOAT -> throw VmExecutionException("floating point loss of precision on byte")
-                    else -> throw VmExecutionException("$op on non-numeric result type")
-                }
-            }
-            DataType.WORD -> {
-                if(rightDt==DataType.FLOAT)
-                    throw VmExecutionException("floating point loss of precision on word")
-                Value(DataType.WORD, result)
-            }
+            DataType.BYTE -> Value(DataType.BYTE, result.toInt() and 255)
+            DataType.WORD -> Value(DataType.WORD, result.toInt() and 65535)
             DataType.FLOAT -> Value(DataType.FLOAT, result)
             else -> throw VmExecutionException("$op on non-numeric type")
         }
