@@ -47,6 +47,8 @@ val BuiltinFunctions = mapOf(
     "lsb"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.WORD))), DataType.BYTE) { a, p, n, h -> oneIntArgOutputInt(a, p, n, h) { x: Int -> x and 255 }},
     "msb"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.WORD))), DataType.BYTE) { a, p, n, h -> oneIntArgOutputInt(a, p, n, h) { x: Int -> x ushr 8 and 255}},
     "flt"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.BYTE, DataType.WORD))), DataType.FLOAT, ::builtinFlt),
+    "wrd"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.BYTE))), DataType.WORD, ::builtinWrd),
+    "wrdhi"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.BYTE))), DataType.WORD, ::builtinWrdHi),
     "rnd"         to FunctionSignature(true, emptyList(), DataType.BYTE),
     "rndw"        to FunctionSignature(true, emptyList(), DataType.WORD),
     "rndf"        to FunctionSignature(true, emptyList(), DataType.FLOAT),
@@ -264,6 +266,28 @@ private fun builtinFlt(args: List<IExpression>, position: Position, namespace:IN
     val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
     val number = constval.asNumericValue ?: throw SyntaxError("flt requires one numeric argument", position)
     return LiteralValue(DataType.FLOAT, floatvalue = number.toDouble(), position = position)
+}
+
+private fun builtinWrd(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
+    // 1 byte arg, convert to word
+    if(args.size!=1)
+        throw SyntaxError("wrd requires one numeric argument", position)
+
+    val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
+    if(constval.type!=DataType.BYTE)
+        throw SyntaxError("wrd requires one byte argument", position)
+    return LiteralValue(DataType.WORD, wordvalue = constval.bytevalue!!.toInt(), position = position)
+}
+
+private fun builtinWrdHi(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
+    // 1 byte arg, convert to word (in hi byte)
+    if(args.size!=1)
+        throw SyntaxError("wrdhi requires one numeric argument", position)
+
+    val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
+    if(constval.type!=DataType.BYTE)
+        throw SyntaxError("wrdhi requires one byte argument", position)
+    return LiteralValue(DataType.WORD, wordvalue = constval.bytevalue!!.toInt() shl 8, position = position)
 }
 
 private fun builtinAbs(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {

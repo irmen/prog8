@@ -826,6 +826,8 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
             }
             "msb" -> stackvmProg.instr(Opcode.MSB)
             "lsb" -> stackvmProg.instr(Opcode.LSB)
+            "wrd" -> stackvmProg.instr(Opcode.B2WORD)
+            "wrdhi" -> stackvmProg.instr(Opcode.MSB2WORD)
             "lsl" -> {
                 val arg = args.single()
                 when (arg.resultingDatatype(namespace, heap)) {

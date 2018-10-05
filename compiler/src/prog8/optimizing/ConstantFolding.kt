@@ -278,11 +278,134 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                 }
                 return expr
             }
-
-            // todo: other cases where both operators are identical
             return expr
+
         } else {
-            // todo: other combinations of operators and constants (with different operator in subexpr)
+
+            if(expr.operator=="/" && subExpr.operator=="*") {
+                optimizationsDone++
+                if(leftIsConst) {
+                    return if(subleftIsConst) {
+                        // C1/(C2*V) -> (C1/C2)/V
+                        BinaryExpression(
+                                BinaryExpression(expr.left, "/", subExpr.left, subExpr.position),
+                                "/",
+                                subExpr.right, expr.position)
+                    } else {
+                        // C1/(V*C2) -> (C1/C2)/V
+                        BinaryExpression(
+                                BinaryExpression(expr.left, "/", subExpr.right, subExpr.position),
+                                "/",
+                                subExpr.left, expr.position)
+                    }
+                } else {
+                    return if(subleftIsConst) {
+                        // (C1*V)/C2 -> (C1/C2)*V
+                        BinaryExpression(
+                                BinaryExpression(subExpr.left, "/", expr.right, subExpr.position),
+                                "*",
+                                subExpr.right, expr.position)
+                    } else {
+                        // (V*C1)/C2 -> (C1/C2)*V
+                        BinaryExpression(
+                                BinaryExpression(subExpr.right, "/", expr.right, subExpr.position),
+                                "*",
+                                subExpr.left, expr.position)
+                    }
+                }
+            } else if(expr.operator=="*" && subExpr.operator=="/") {
+                optimizationsDone++
+                if(leftIsConst) {
+                    return if(subleftIsConst) {
+                        // C1*(C2/V) -> (C1*C2)/V
+                        BinaryExpression(
+                                BinaryExpression(expr.left, "*", subExpr.left, subExpr.position),
+                                "/",
+                                subExpr.right, expr.position)
+                    } else {
+                        // C1*(V/C2) -> (C1/C2)*V
+                        BinaryExpression(
+                                BinaryExpression(expr.left, "/", subExpr.right, subExpr.position),
+                                "*",
+                                subExpr.left, expr.position)
+                    }
+                } else {
+                    return if(subleftIsConst) {
+                        // (C1/V)*C2 -> (C1*C2)/V
+                        BinaryExpression(
+                                BinaryExpression(subExpr.left, "*", expr.right, subExpr.position),
+                                "/",
+                                subExpr.right, expr.position)
+                    } else {
+                        // (V/C1)*C2 -> (C2/C1)*V
+                        BinaryExpression(
+                                BinaryExpression(subExpr.right, "/", expr.right, subExpr.position),
+                                "*",
+                                subExpr.left, expr.position)
+                    }
+                }
+            } else if(expr.operator=="+" && subExpr.operator=="-") {
+                if(leftIsConst){
+                    return if(subleftIsConst){
+                        // c1+(c2-v)  ->  (c1+c2)-v
+                        BinaryExpression(
+                                BinaryExpression(expr.left, "+", subExpr.left, subExpr.position),
+                                "-",
+                                subExpr.right, expr.position)
+                    } else {
+                        // c1+(v-c2)  ->  v+(c1-c2)
+                        BinaryExpression(
+                                BinaryExpression(expr.left, "-", subExpr.right, subExpr.position),
+                                "+",
+                                subExpr.left, expr.position)
+                    }
+                } else {
+                    return if(subleftIsConst) {
+                        // (c1-v)+c2  ->  (c1+c2)-v
+                        BinaryExpression(
+                                BinaryExpression(subExpr.left, "+", expr.right, subExpr.position),
+                                "-",
+                                subExpr.right, expr.position)
+                    } else {
+                        // (v-c1)+c2  ->  v+(c2-c1)
+                        BinaryExpression(
+                                BinaryExpression(expr.right, "-", subExpr.right, subExpr.position),
+                                "+",
+                                subExpr.left, expr.position)
+                    }
+                }
+            } else if(expr.operator=="-" && subExpr.operator=="+") {
+                if(leftIsConst) {
+                    return if(subleftIsConst) {
+                        // c1-(c2+v)  ->  (c1-c2)-v
+                        BinaryExpression(
+                                BinaryExpression(expr.left, "-", subExpr.left, subExpr.position),
+                                "-",
+                                subExpr.right, expr.position)
+                    } else {
+                        // c1-(v+c2)  ->  (c1-c2)-v
+                        BinaryExpression(
+                                BinaryExpression(expr.left, "-", subExpr.right, subExpr.position),
+                                "-",
+                                subExpr.left, expr.position)
+                    }
+                } else {
+                    return if(subleftIsConst) {
+                        // (c1+v)-c2  ->  v+(c1-c2)
+                        BinaryExpression(
+                                BinaryExpression(subExpr.left, "-", expr.right, subExpr.position),
+                                "+",
+                                subExpr.right, expr.position)
+                    } else {
+                        // (v+c1)-c2  ->  v+(c1-c2)
+                        BinaryExpression(
+                                BinaryExpression(subExpr.right, "-", expr.right, subExpr.position),
+                                "+",
+                                subExpr.left, expr.position)
+                    }
+                }
+            }
+
             return expr
         }
     }

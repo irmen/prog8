@@ -561,6 +561,14 @@ flt(x)
     Explicitly convert the number x to a floating point number.
     This is required if you want calculations to have floating point precision when the values aren't float already.
 
+wrd(x)
+    Explicitly convert the byte x to a word.
+    This is required if you want calculations to have word precision when the values are bytes.
+
+wrdhi(x)
+    Explicitly convert the byte x to a word, where x will be the high byte (msb) in the word.
+    This can be useful in calculations with word precision when the values are bytes.
+
 any(x)
 	1 ('true') if any of the values in the non-scalar (array or matrix) value x is 'true' (not zero), else 0 ('false')
 

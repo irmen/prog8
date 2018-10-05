@@ -39,7 +39,7 @@
             _vm_gfx_text(14, 5, 5, "Spin to Win !!!")
 
             for i in 0 to width//10 {
-                _vm_gfx_line(i*2+width//2-width//10, 130, i*10, 199, 6)
+                _vm_gfx_line(i*2+width//2-width//10, 130, i*10.w, 199, 6)
             }
 
             rotate_vertices(flt(irq.global_time) / 30.0)

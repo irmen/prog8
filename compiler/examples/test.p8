@@ -6,16 +6,18 @@
 
 sub start() {
 
-    const byte b1 = 20//7
-    const word w1 = 20//7
-    const float f1 = 20/7
+    const float c1 = 11.11
+    const float c2 = 22.22
+    float v
+    float r
+    byte x
+    word w
 
-    _vm_write_num(b1)
-    _vm_write_char('\n')
-    _vm_write_num(w1)
-    _vm_write_char('\n')
-    _vm_write_num(f1)
-    _vm_write_char('\n')
+    r=flt(x)
+    w=wrd(x)
+    w=wrdhi(x)
+
+
     return
 
 }
