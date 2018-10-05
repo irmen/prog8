@@ -134,8 +134,6 @@ class StackVmProgram(val name: String, val heap: HeapValues) {
     fun optimize() {
         println("\nOptimizing stackVM code...")
 
-        this.instructions.removeIf { it.opcode==Opcode.NOP && it !is LabelInstr }     // remove nops (that are not a label)
-
         // - push value followed by a data type conversion -> push the value in the correct type and remove the conversion
         // - push somthing followed by a discard -> remove both
 
@@ -152,33 +150,32 @@ class StackVmProgram(val name: String, val heap: HeapValues) {
         )
 
         val instructionsToReplace = mutableMapOf<Int, Instruction>()
-        val instructionsToRemove = mutableListOf<Int>()
 
-        this.instructions.withIndex().windowed(2).forEach {
+        this.instructions.asSequence().withIndex().windowed(2).toList().forEach {
             if(it[1].value.opcode in typeConversionOpcodes) {
                 when(it[0].value.opcode) {
                     Opcode.PUSH -> when (it[1].value.opcode) {
-                        Opcode.LSB -> instructionsToRemove.add(it[1].index)
+                        Opcode.LSB -> instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
                         Opcode.MSB -> throw CompilerException("msb of a byte")
                         Opcode.B2WORD -> {
                             val ins = Instruction(Opcode.PUSH_W, Value(DataType.WORD, it[0].value.arg!!.integerValue()))
                             instructionsToReplace[it[0].index] = ins
-                            instructionsToRemove.add(it[1].index)
+                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
                         }
                         Opcode.MSB2WORD -> {
                             val ins = Instruction(Opcode.PUSH_W, Value(DataType.WORD, 256 * it[0].value.arg!!.integerValue()))
                             instructionsToReplace[it[0].index] = ins
-                            instructionsToRemove.add(it[1].index)
+                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
                         }
                         Opcode.B2FLOAT -> {
                             val ins = Instruction(Opcode.PUSH_F, Value(DataType.FLOAT, it[0].value.arg!!.integerValue().toDouble()))
                             instructionsToReplace[it[0].index] = ins
-                            instructionsToRemove.add(it[1].index)
+                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
                         }
                         Opcode.W2FLOAT -> throw CompilerException("invalid conversion following a byte")
                         Opcode.DISCARD -> {
-                            instructionsToRemove.add(it[0].index)
-                            instructionsToRemove.add(it[1].index)
+                            instructionsToReplace[it[0].index] = Instruction(Opcode.NOP)
+                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
                         }
                         Opcode.DISCARD_W, Opcode.DISCARD_F -> throw CompilerException("invalid discard type following a byte")
                         else -> {}
@@ -187,12 +184,12 @@ class StackVmProgram(val name: String, val heap: HeapValues) {
                         Opcode.LSB -> {
                             val ins = Instruction(Opcode.PUSH, Value(DataType.BYTE, it[0].value.arg!!.integerValue() and 255))
                             instructionsToReplace[it[0].index] = ins
-                            instructionsToRemove.add(it[1].index)
+                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
                         }
                         Opcode.MSB -> {
                             val ins = Instruction(Opcode.PUSH, Value(DataType.BYTE, it[0].value.arg!!.integerValue() ushr 8 and 255))
                             instructionsToReplace[it[0].index] = ins
-                            instructionsToRemove.add(it[1].index)
+                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
                         }
                         Opcode.B2WORD,
                         Opcode.MSB2WORD,
@@ -200,11 +197,11 @@ class StackVmProgram(val name: String, val heap: HeapValues) {
                         Opcode.W2FLOAT -> {
                             val ins = Instruction(Opcode.PUSH_F, Value(DataType.FLOAT, it[0].value.arg!!.integerValue().toDouble()))
                             instructionsToReplace[it[0].index] = ins
-                            instructionsToRemove.add(it[1].index)
+                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
                         }
                         Opcode.DISCARD_W -> {
-                            instructionsToRemove.add(it[0].index)
-                            instructionsToRemove.add(it[1].index)
+                            instructionsToReplace[it[0].index] = Instruction(Opcode.NOP)
+                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
                         }
                         Opcode.DISCARD, Opcode.DISCARD_F -> throw CompilerException("invalid discard type following a byte")
                         else -> {}
@@ -217,8 +214,8 @@ class StackVmProgram(val name: String, val heap: HeapValues) {
                         Opcode.B2FLOAT,
                         Opcode.W2FLOAT -> throw CompilerException("invalid conversion following a float")
                         Opcode.DISCARD_F -> {
-                            instructionsToRemove.add(it[0].index)
-                            instructionsToRemove.add(it[1].index)
+                            instructionsToReplace[it[0].index] = Instruction(Opcode.NOP)
+                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
                         }
                         Opcode.DISCARD, Opcode.DISCARD_W -> throw CompilerException("invalid discard type following a float")
                         else -> {}
@@ -230,8 +227,8 @@ class StackVmProgram(val name: String, val heap: HeapValues) {
                     Opcode.PUSH_MEM_W,
                     Opcode.PUSH_MEM_F -> when (it[1].value.opcode) {
                         Opcode.DISCARD_F, Opcode.DISCARD_W, Opcode.DISCARD -> {
-                            instructionsToRemove.add(it[0].index)
-                            instructionsToRemove.add(it[1].index)
+                            instructionsToReplace[it[0].index] = Instruction(Opcode.NOP)
+                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
                         }
                         else -> {}
                     }
@@ -244,9 +241,8 @@ class StackVmProgram(val name: String, val heap: HeapValues) {
             instructions[rins.key] = rins.value
         }
 
-        for(ins in instructionsToRemove.reversed()) {
-            instructions.removeAt(ins)
-        }
+        // remove nops (that are not a label)
+        this.instructions.removeIf { it.opcode==Opcode.NOP && it !is LabelInstr }
 
         // todo optimize stackvm code more
     }
