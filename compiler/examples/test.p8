@@ -4,22 +4,18 @@
 
 ~ main {
 
-    X=0
-
-    word mainvar = 44*Y
-
-    return
-
-
 sub start() {
 
-    A=99
+    const byte b1 = 20//7
+    const word w1 = 20//7
+    const float f1 = 20/7
 
-    byte bvar = 4*X
-    word wvar = 44*XY
-    float fvar = 128.34+XY
-
-    A=100
+    _vm_write_num(b1)
+    _vm_write_char('\n')
+    _vm_write_num(w1)
+    _vm_write_char('\n')
+    _vm_write_num(f1)
+    _vm_write_char('\n')
     return
 
 }

@@ -215,7 +215,8 @@ class ConstExprEvaluator {
             left.asIntegerValue!=null -> when {
                 right.asIntegerValue!=null -> {
                     if(right.asIntegerValue==0) divideByZeroError(right.position)
-                    LiteralValue.optimalNumeric(left.asIntegerValue / right.asIntegerValue, left.position)
+                    val result = left.asIntegerValue.toDouble() / right.asIntegerValue.toDouble()
+                    LiteralValue.optimalNumeric(result, left.position)
                 }
                 right.floatvalue!=null -> {
                     if(right.floatvalue==0.0) divideByZeroError(right.position)
@@ -273,7 +274,7 @@ class ConstExprEvaluator {
             left.asIntegerValue!=null -> when {
                 right.asIntegerValue!=null -> {
                     if(right.asIntegerValue==0) divideByZeroError(right.position)
-                    LiteralValue.optimalNumeric(left.asIntegerValue % right.asIntegerValue, left.position)
+                    LiteralValue.optimalNumeric(left.asIntegerValue.toDouble() % right.asIntegerValue.toDouble(), left.position)
                 }
                 right.floatvalue!=null -> {
                     if(right.floatvalue==0.0) divideByZeroError(right.position)

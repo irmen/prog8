@@ -14,7 +14,6 @@ import kotlin.math.abs
         X % 1 -> constant 0 (if X is byte/word)
         X % 2 -> X and 1 (if X is byte/word)
 
-    todo expression optimization: remove redundant builtin function calls
     todo expression optimization: common (sub) expression elimination (turn common expressions into single subroutine call)
 
  */

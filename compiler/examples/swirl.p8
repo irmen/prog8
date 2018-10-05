@@ -25,9 +25,9 @@
     }
 
     sub screenx(x: float) -> word {
-        return floor(x * width/4.1) + width // 2
+        return floor(x * flt(width)/4.1) + width // 2            ; @todo const-fold  x*y/z
     }
     sub screeny(y: float) -> word {
-        return floor(y * height/4.1) + height // 2
+        return floor(y * flt(height)/4.1) + height // 2          ; @todo const-fold  x*y/z
     }
 }

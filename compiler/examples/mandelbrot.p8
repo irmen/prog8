@@ -27,15 +27,15 @@
             yy = flt((pixely-yoffset))/height/3.6+0.4
 
             for pixelx in xoffset to xoffset+width-1 {
-                xx = flt((pixelx-xoffset))/width/3+0.2
+                xx = flt((pixelx-xoffset))/width/3.0+0.2
 
                 x = 0.0
                 y = 0.0
                 xsquared = 0
                 ysquared = 0
                 iter = 0
-                while (iter<32 and xsquared+ysquared<4) {
-                    y = x*y*2 + yy
+                while (iter<32 and xsquared+ysquared<4.0) {
+                    y = x*y*2.0 + yy
                     x = xsquared - ysquared + xx
                     xsquared = x*x
                     ysquared = y*y

@@ -521,12 +521,43 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
         stackvmProg.instr(Opcode.NOP)
     }
 
-    private fun checkForFloatPrecisionProblem(left: IExpression, right: IExpression) {
-        val leftDt = left.resultingDatatype(namespace, heap)
-        val rightDt = right.resultingDatatype(namespace, heap)
-        if (leftDt == DataType.BYTE || leftDt == DataType.WORD) {
-            if(rightDt==DataType.FLOAT)
-                printWarning("byte or word value implicitly converted to float. Suggestion: use explicit flt() conversion or revert to byte/word arithmetic", left.position)
+    private fun commonDatatype(leftDt: DataType, rightDt: DataType, leftpos: Position, rightpos: Position): DataType {
+        // byte + byte -> byte
+        // byte + word -> word
+        // word + byte -> word
+        // word + word -> word
+        // a combination with a float will be float (but give a warning about this!)
+
+        val floatWarning = "byte or word value implicitly converted to float. Suggestion: use explicit flt() conversion, a float number, or revert to byte/word arithmetic"
+
+        return when(leftDt) {
+            DataType.BYTE -> {
+                when(rightDt) {
+                    DataType.BYTE -> DataType.BYTE
+                    DataType.WORD -> DataType.WORD
+                    DataType.FLOAT -> {
+                        printWarning(floatWarning, leftpos)
+                        DataType.FLOAT
+                    }
+                    else -> throw CompilerException("non-numeric datatype $rightDt")
+                }
+            }
+            DataType.WORD -> {
+                when(rightDt) {
+                    DataType.BYTE, DataType.WORD -> DataType.WORD
+                    DataType.FLOAT -> {
+                        printWarning(floatWarning, leftpos)
+                        DataType.FLOAT
+                    }
+                    else -> throw CompilerException("non-numeric datatype $rightDt")
+                }
+            }
+            DataType.FLOAT -> {
+                if(rightDt!=DataType.FLOAT)
+                    printWarning(floatWarning, rightpos)
+                DataType.FLOAT
+            }
+            else -> throw CompilerException("non-numeric datatype $leftDt")
         }
     }
 
@@ -541,10 +572,16 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                 translatePrefixOperator(expr.operator, expr.expression.resultingDatatype(namespace, heap))
             }
             is BinaryExpression -> {
-                checkForFloatPrecisionProblem(expr.left, expr.right)
+                val leftDt = expr.left.resultingDatatype(namespace, heap)!!
+                val rightDt = expr.right.resultingDatatype(namespace, heap)!!
+                val commonDt = commonDatatype(leftDt, rightDt, expr.left.position, expr.right.position)
                 translate(expr.left)
+                if(leftDt!=commonDt)
+                    convertType(leftDt, commonDt)
                 translate(expr.right)
-                translateBinaryOperator(expr.operator, expr.left.resultingDatatype(namespace, heap), expr.right.resultingDatatype(namespace, heap))
+                if(rightDt!=commonDt)
+                    convertType(rightDt, commonDt)
+                translateBinaryOperator(expr.operator, commonDt)
             }
             is FunctionCall -> {
                 val target = expr.target.targetStatement(namespace)
@@ -583,6 +620,33 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                     }
                 }
             }
+        }
+    }
+
+    private fun convertType(givenDt: DataType, targetDt: DataType) {
+        // only WIDENS a type, never NARROWS
+        if(givenDt==targetDt)
+            return
+        if(givenDt!=DataType.BYTE && givenDt!=DataType.WORD && givenDt!=DataType.FLOAT)
+            throw CompilerException("converting a non-numeric $givenDt")
+        if(targetDt!=DataType.BYTE && targetDt!=DataType.WORD && targetDt!=DataType.FLOAT)
+            throw CompilerException("converting to non-numeric $targetDt")
+        when(givenDt) {
+            DataType.BYTE -> when(targetDt) {
+                DataType.WORD -> stackvmProg.instr(Opcode.B2WORD)
+                DataType.FLOAT -> stackvmProg.instr(Opcode.B2FLOAT)
+                else -> {}
+            }
+            DataType.WORD -> when(targetDt) {
+                DataType.BYTE -> throw CompilerException("narrowing type")
+                DataType.FLOAT -> stackvmProg.instr(Opcode.W2FLOAT)
+                else -> {}
+            }
+            DataType.FLOAT -> when(targetDt) {
+                DataType.BYTE, DataType.WORD -> throw CompilerException("narrowing type")
+                else -> {}
+            }
+            else -> {}
         }
     }
 
@@ -720,17 +784,13 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
         stackvmProg.instr(Opcode.CALL, callLabel=subroutine.scopedname)
     }
 
-    private fun translateBinaryOperator(operator: String, leftDt: DataType?, rightDt: DataType?) {
-        if(leftDt==null || rightDt==null)
-            throw CompilerException("left and/or right operand datatype not known")
+    private fun translateBinaryOperator(operator: String, dt: DataType) {
         val validDt = setOf(DataType.BYTE, DataType.WORD, DataType.FLOAT)
-        if(leftDt !in validDt || rightDt !in validDt)
-            throw CompilerException("invalid datatype(s) for operand(s)")
-        if(leftDt!=rightDt)
-            throw CompilerException("operands have different datatypes")
+        if(dt !in validDt)
+            throw CompilerException("invalid datatype for operator: $dt")
         val opcode = when(operator) {
             "+" -> {
-                when(leftDt) {
+                when(dt) {
                     DataType.BYTE -> Opcode.ADD_B
                     DataType.WORD -> Opcode.ADD_W
                     DataType.FLOAT -> Opcode.ADD_F
@@ -738,7 +798,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                 }
             }
             "-" -> {
-                when(leftDt) {
+                when(dt) {
                     DataType.BYTE -> Opcode.SUB_B
                     DataType.WORD -> Opcode.SUB_W
                     DataType.FLOAT -> Opcode.SUB_F
@@ -746,7 +806,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                 }
             }
             "*" -> {
-                when(leftDt) {
+                when(dt) {
                     DataType.BYTE -> Opcode.MUL_B
                     DataType.WORD -> Opcode.MUL_W
                     DataType.FLOAT -> Opcode.MUL_F
@@ -754,7 +814,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                 }
             }
             "/" -> {
-                when(leftDt) {
+                when(dt) {
                     DataType.BYTE -> Opcode.DIV_B
                     DataType.WORD -> Opcode.DIV_W
                     DataType.FLOAT -> Opcode.DIV_F
@@ -762,7 +822,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                 }
             }
             "//" -> {
-                when(leftDt) {
+                when(dt) {
                     DataType.BYTE -> Opcode.FLOORDIV_B
                     DataType.WORD -> Opcode.FLOORDIV_W
                     DataType.FLOAT -> Opcode.FLOORDIV_F
@@ -770,7 +830,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                 }
             }
             "%" -> {
-                when(leftDt) {
+                when(dt) {
                     DataType.BYTE -> Opcode.REMAINDER_B
                     DataType.WORD -> Opcode.REMAINDER_W
                     DataType.FLOAT -> Opcode.REMAINDER_F
@@ -778,7 +838,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                 }
             }
             "**" -> {
-                when(leftDt) {
+                when(dt) {
                     DataType.BYTE -> Opcode.POW_B
                     DataType.WORD -> Opcode.POW_W
                     DataType.FLOAT -> Opcode.POW_F
@@ -786,49 +846,49 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                 }
             }
             "&" -> {
-                when(leftDt) {
+                when(dt) {
                     DataType.BYTE -> Opcode.BITAND
                     DataType.WORD -> Opcode.BITAND_W
                     else -> throw CompilerException("only byte/word possible")
                 }
             }
             "|" -> {
-                when(leftDt) {
+                when(dt) {
                     DataType.BYTE -> Opcode.BITOR
                     DataType.WORD -> Opcode.BITOR_W
                     else -> throw CompilerException("only byte/word possible")
                 }
             }
             "^" -> {
-                when(leftDt) {
+                when(dt) {
                     DataType.BYTE -> Opcode.BITXOR
                     DataType.WORD -> Opcode.BITXOR_W
                     else -> throw CompilerException("only byte/word possible")
                 }
             }
             "and" -> {
-                when(leftDt) {
+                when(dt) {
                     DataType.BYTE -> Opcode.AND
                     DataType.WORD -> Opcode.AND_W
                     else -> throw CompilerException("only byte/word possible")
                 }
             }
             "or" -> {
-                when(leftDt) {
+                when(dt) {
                     DataType.BYTE -> Opcode.OR
                     DataType.WORD -> Opcode.OR_W
                     else -> throw CompilerException("only byte/word possible")
                 }
             }
             "xor" -> {
-                when(leftDt) {
+                when(dt) {
                     DataType.BYTE -> Opcode.XOR
                     DataType.WORD -> Opcode.XOR_W
                     else -> throw CompilerException("only byte/word possible")
                 }
             }
             "<" -> {
-                when(leftDt) {
+                when(dt) {
                     DataType.BYTE -> Opcode.LESS
                     DataType.WORD -> Opcode.LESS_W
                     DataType.FLOAT -> Opcode.LESS_F
@@ -836,7 +896,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                 }
             }
             ">" -> {
-                when(leftDt) {
+                when(dt) {
                     DataType.BYTE -> Opcode.GREATER
                     DataType.WORD -> Opcode.GREATER_W
                     DataType.FLOAT -> Opcode.GREATER_F
@@ -844,7 +904,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                 }
             }
             "<=" -> {
-                when(leftDt) {
+                when(dt) {
                     DataType.BYTE -> Opcode.LESSEQ
                     DataType.WORD -> Opcode.LESSEQ_W
                     DataType.FLOAT -> Opcode.LESSEQ_F
@@ -852,7 +912,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                 }
             }
             ">=" -> {
-                when(leftDt) {
+                when(dt) {
                     DataType.BYTE -> Opcode.GREATEREQ
                     DataType.WORD -> Opcode.GREATEREQ_W
                     DataType.FLOAT -> Opcode.GREATEREQ_F
@@ -860,7 +920,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                 }
             }
             "==" -> {
-                when (leftDt) {
+                when (dt) {
                     DataType.BYTE -> Opcode.EQUAL
                     DataType.WORD -> Opcode.EQUAL_W
                     DataType.FLOAT -> Opcode.EQUAL_F
@@ -868,7 +928,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                 }
             }
             "!=" -> {
-                when (leftDt) {
+                when (dt) {
                     DataType.BYTE -> Opcode.NOTEQUAL
                     DataType.WORD -> Opcode.NOTEQUAL_W
                     DataType.FLOAT -> Opcode.NOTEQUAL_F
