@@ -17,21 +17,27 @@ import kotlin.test.*
     SHL_MEM,
     SHL_MEM_W,
     SHL_VAR,
+    SHL_VAR_W,
     SHR_MEM,
     SHR_MEM_W,
     SHR_VAR,
+    SHR_VAR_W,
     ROL_MEM,
     ROL_MEM_W,
     ROL_VAR,
+    ROL_VAR_W,
     ROR_MEM,
     ROR_MEM_W,
     ROR_VAR,
+    ROR_VAR_W,
     ROL2_MEM,
     ROL2_MEM_W,
     ROL2_VAR,
+    ROL2_VAR_W,
     ROR2_MEM,
     ROR2_MEM_W,
     ROR2_VAR,
+    ROR2_VAR_W
 
 **/
 
@@ -306,19 +312,19 @@ class TestStackVmOpcodes {
     @Test
     fun testBitand() {
         testBinaryOperator(Value(DataType.BYTE, 0b10011111), Opcode.BITAND, Value(DataType.BYTE, 0b11111101), Value(DataType.BYTE, 0b10011101))
-        testBinaryOperator(Value(DataType.WORD, 0b0011001011110001), Opcode.BITAND, Value(DataType.BYTE, 0b10011101), Value(DataType.WORD, 0b0000000010010001))
+        testBinaryOperator(Value(DataType.WORD, 0b0011001011110001), Opcode.BITAND_W, Value(DataType.WORD, 0b1110000010011101), Value(DataType.WORD, 0b0010000010010001))
     }
 
     @Test
     fun testBitor() {
         testBinaryOperator(Value(DataType.BYTE, 0b00011101), Opcode.BITOR, Value(DataType.BYTE, 0b10010001), Value(DataType.BYTE, 0b10011101))
-        testBinaryOperator(Value(DataType.WORD, 0b0011001011100000), Opcode.BITOR, Value(DataType.BYTE, 0b10011101), Value(DataType.WORD, 0b0011001011111101))
+        testBinaryOperator(Value(DataType.WORD, 0b0011001011100000), Opcode.BITOR_W, Value(DataType.WORD, 0b1000000010011101), Value(DataType.WORD, 0b1011001011111101))
     }
 
     @Test
     fun testBitxor() {
         testBinaryOperator(Value(DataType.BYTE, 0b00011101), Opcode.BITXOR, Value(DataType.BYTE, 0b10010001), Value(DataType.BYTE, 0b10001100))
-        testBinaryOperator(Value(DataType.WORD, 0b0011001011100000), Opcode.BITXOR, Value(DataType.BYTE, 0b10001100), Value(DataType.WORD, 0b0011001001101100))
+        testBinaryOperator(Value(DataType.WORD, 0b0011001011100000), Opcode.BITXOR_W, Value(DataType.WORD, 0b1000000010001100), Value(DataType.WORD, 0b1011001001101100))
     }
 
     @Test
@@ -326,14 +332,9 @@ class TestStackVmOpcodes {
         testBinaryOperator(Value(DataType.BYTE, 200), Opcode.AND, Value(DataType.BYTE, 1), Value(DataType.BYTE, 1))
         testBinaryOperator(Value(DataType.BYTE, 200), Opcode.AND, Value(DataType.BYTE, 0), Value(DataType.BYTE, 0))
         testBinaryOperator(Value(DataType.BYTE, 0), Opcode.AND, Value(DataType.BYTE, 101), Value(DataType.BYTE, 0))
-        testBinaryOperator(Value(DataType.WORD, 200), Opcode.AND, Value(DataType.WORD, 13455), Value(DataType.BYTE, 1))
-        testBinaryOperator(Value(DataType.WORD, 200), Opcode.AND, Value(DataType.WORD, 0), Value(DataType.BYTE, 0))
-        testBinaryOperator(Value(DataType.WORD, 0), Opcode.AND, Value(DataType.WORD, 101), Value(DataType.BYTE, 0))
-        testBinaryOperator(Value(DataType.FLOAT, 200.22), Opcode.AND, Value(DataType.FLOAT, 13455.55), Value(DataType.BYTE, 1))
-        testBinaryOperator(Value(DataType.FLOAT, 200.22), Opcode.AND, Value(DataType.FLOAT, 0.0), Value(DataType.BYTE, 0))
-        testBinaryOperator(Value(DataType.FLOAT, 0.0), Opcode.AND, Value(DataType.FLOAT, 101.11), Value(DataType.BYTE, 0))
-        testBinaryOperator(Value(DataType.STR, 222), Opcode.AND, Value(DataType.STR, 333), Value(DataType.BYTE, 1))
-        testBinaryOperator(Value(DataType.ARRAY, 444), Opcode.AND, Value(DataType.ARRAY, 444), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.WORD, 200), Opcode.AND_W, Value(DataType.WORD, 13455), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.WORD, 200), Opcode.AND_W, Value(DataType.WORD, 0), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.WORD, 0), Opcode.AND_W, Value(DataType.WORD, 101), Value(DataType.BYTE, 0))
     }
 
     @Test
@@ -341,14 +342,9 @@ class TestStackVmOpcodes {
         testBinaryOperator(Value(DataType.BYTE, 200), Opcode.OR, Value(DataType.BYTE, 1), Value(DataType.BYTE, 1))
         testBinaryOperator(Value(DataType.BYTE, 200), Opcode.OR, Value(DataType.BYTE, 0), Value(DataType.BYTE, 1))
         testBinaryOperator(Value(DataType.BYTE, 0), Opcode.OR, Value(DataType.BYTE, 0), Value(DataType.BYTE, 0))
-        testBinaryOperator(Value(DataType.WORD, 200), Opcode.OR, Value(DataType.WORD, 13455), Value(DataType.BYTE, 1))
-        testBinaryOperator(Value(DataType.WORD, 200), Opcode.OR, Value(DataType.WORD, 0), Value(DataType.BYTE, 1))
-        testBinaryOperator(Value(DataType.WORD, 0), Opcode.OR, Value(DataType.WORD, 0), Value(DataType.BYTE, 0))
-        testBinaryOperator(Value(DataType.FLOAT, 200.22), Opcode.OR, Value(DataType.FLOAT, 13455.55), Value(DataType.BYTE, 1))
-        testBinaryOperator(Value(DataType.FLOAT, 200.22), Opcode.OR, Value(DataType.FLOAT, 0.0), Value(DataType.BYTE, 1))
-        testBinaryOperator(Value(DataType.FLOAT, 0.0), Opcode.OR, Value(DataType.FLOAT, 0.0), Value(DataType.BYTE, 0))
-        testBinaryOperator(Value(DataType.STR, 222), Opcode.OR, Value(DataType.STR, 333), Value(DataType.BYTE, 1))
-        testBinaryOperator(Value(DataType.ARRAY, 444), Opcode.OR, Value(DataType.ARRAY, 444), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.WORD, 200), Opcode.OR_W, Value(DataType.WORD, 13455), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.WORD, 200), Opcode.OR_W, Value(DataType.WORD, 0), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.WORD, 0), Opcode.OR_W, Value(DataType.WORD, 0), Value(DataType.BYTE, 0))
     }
 
     @Test
@@ -356,24 +352,17 @@ class TestStackVmOpcodes {
         testBinaryOperator(Value(DataType.BYTE, 200), Opcode.XOR, Value(DataType.BYTE, 1), Value(DataType.BYTE, 0))
         testBinaryOperator(Value(DataType.BYTE, 200), Opcode.XOR, Value(DataType.BYTE, 0), Value(DataType.BYTE, 1))
         testBinaryOperator(Value(DataType.BYTE, 0), Opcode.XOR, Value(DataType.BYTE, 0), Value(DataType.BYTE, 0))
-        testBinaryOperator(Value(DataType.WORD, 200), Opcode.XOR, Value(DataType.WORD, 13455), Value(DataType.BYTE, 0))
-        testBinaryOperator(Value(DataType.WORD, 200), Opcode.XOR, Value(DataType.WORD, 0), Value(DataType.BYTE, 1))
-        testBinaryOperator(Value(DataType.WORD, 0), Opcode.XOR, Value(DataType.WORD, 0), Value(DataType.BYTE, 0))
-        testBinaryOperator(Value(DataType.FLOAT, 200.22), Opcode.XOR, Value(DataType.FLOAT, 13455.55), Value(DataType.BYTE, 0))
-        testBinaryOperator(Value(DataType.FLOAT, 200.22), Opcode.XOR, Value(DataType.FLOAT, 0.0), Value(DataType.BYTE, 1))
-        testBinaryOperator(Value(DataType.FLOAT, 0.0), Opcode.XOR, Value(DataType.FLOAT, 0.0), Value(DataType.BYTE, 0))
-        testBinaryOperator(Value(DataType.STR, 222), Opcode.XOR, Value(DataType.STR, 333), Value(DataType.BYTE, 0))
-        testBinaryOperator(Value(DataType.ARRAY, 444), Opcode.XOR, Value(DataType.ARRAY, 444), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.WORD, 200), Opcode.XOR_W, Value(DataType.WORD, 13455), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.WORD, 200), Opcode.XOR_W, Value(DataType.WORD, 0), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.WORD, 0), Opcode.XOR_W, Value(DataType.WORD, 0), Value(DataType.BYTE, 0))
     }
 
     @Test
     fun testNot() {
         testUnaryOperator(Value(DataType.BYTE, 0), Opcode.NOT, Value(DataType.BYTE, 1))
         testUnaryOperator(Value(DataType.BYTE, 20), Opcode.NOT, Value(DataType.BYTE, 0))
-        testUnaryOperator(Value(DataType.WORD, 0), Opcode.NOT, Value(DataType.BYTE, 1))
-        testUnaryOperator(Value(DataType.WORD, 5000), Opcode.NOT, Value(DataType.BYTE, 0))
-        testUnaryOperator(Value(DataType.FLOAT, 0.0), Opcode.NOT, Value(DataType.BYTE, 1))
-        testUnaryOperator(Value(DataType.FLOAT, 5000.0), Opcode.NOT, Value(DataType.BYTE, 0))
+        testUnaryOperator(Value(DataType.WORD, 0), Opcode.NOT_W, Value(DataType.BYTE, 1))
+        testUnaryOperator(Value(DataType.WORD, 5000), Opcode.NOT_W, Value(DataType.BYTE, 0))
     }
 
     @Test
@@ -406,7 +395,7 @@ class TestStackVmOpcodes {
     @Test
     fun testInv() {
         testUnaryOperator(Value(DataType.BYTE, 123), Opcode.INV, Value(DataType.BYTE, 0x84))
-        testUnaryOperator(Value(DataType.WORD, 4044), Opcode.INV, Value(DataType.WORD, 0xf033))
+        testUnaryOperator(Value(DataType.WORD, 4044), Opcode.INV_W, Value(DataType.WORD, 0xf033))
     }
 
     @Test
@@ -586,182 +575,74 @@ class TestStackVmOpcodes {
 
     @Test
     fun testLess() {
-        val values = listOf(
-                Value(DataType.BYTE, 0),
-                Value(DataType.BYTE, 1),        // 1
-                Value(DataType.BYTE, 1),
-                Value(DataType.BYTE, 1),        // 0
-                Value(DataType.BYTE, 2),
-                Value(DataType.WORD, 20),       // 1
-                Value(DataType.WORD, 20),
-                Value(DataType.BYTE, 21),      // 1
-                Value(DataType.WORD, 21),
-                Value(DataType.BYTE, 21),      // 0
-                Value(DataType.BYTE, 21),
-                Value(DataType.FLOAT, 21),      // 0
-                Value(DataType.BYTE, 21),
-                Value(DataType.FLOAT, 21.0001)      // 1
-        )
-        val expected = listOf(1, 0, 1, 1, 0, 0, 1)
-        testComparisonOperator(values, expected, Opcode.LESS)
-
-        val valuesInvalid = listOf(
-                Value(DataType.STR, 333),
-                Value(DataType.STR, 333)
-        )
-        assertFailsWith<VmExecutionException> {
-            testComparisonOperator(valuesInvalid, listOf(0), Opcode.LESS)  // can't order strings
-        }
+        testBinaryOperator(Value(DataType.BYTE, 0), Opcode.LESS, Value(DataType.BYTE, 1), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.BYTE, 1), Opcode.LESS, Value(DataType.BYTE, 1), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.WORD, 2), Opcode.LESS_W, Value(DataType.WORD, 20), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.WORD, 20), Opcode.LESS_W, Value(DataType.WORD, 21), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.WORD, 21), Opcode.LESS_W, Value(DataType.WORD, 21), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.WORD, 21), Opcode.LESS_W, Value(DataType.WORD, 21), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.FLOAT, 21.0), Opcode.LESS_F, Value(DataType.FLOAT, 21.0), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.FLOAT, 21.0), Opcode.LESS_F, Value(DataType.FLOAT, 21.001), Value(DataType.BYTE, 1))
     }
 
     @Test
     fun testLessEq() {
-        val values = listOf(
-                Value(DataType.BYTE, 0),
-                Value(DataType.BYTE, 1),        // 1
-                Value(DataType.BYTE, 1),
-                Value(DataType.BYTE, 1),        // 1
-                Value(DataType.BYTE, 21),
-                Value(DataType.WORD, 20),       // 0
-                Value(DataType.WORD, 20),
-                Value(DataType.BYTE, 21),      // 1
-                Value(DataType.WORD, 21),
-                Value(DataType.BYTE, 22),      // 1
-                Value(DataType.BYTE, 21),
-                Value(DataType.FLOAT, 21),      // 1
-                Value(DataType.BYTE, 22),
-                Value(DataType.FLOAT, 21.999)      // 0
-        )
-        val expected = listOf(1,1,0,1,1,1,0)
-        testComparisonOperator(values, expected, Opcode.LESSEQ)
-
-        val valuesInvalid = listOf(
-                Value(DataType.STR, 333),
-                Value(DataType.STR, 333)
-        )
-        assertFailsWith<VmExecutionException> {
-            testComparisonOperator(valuesInvalid, listOf(0), Opcode.LESSEQ)  // can't order strings
-        }
+        testBinaryOperator(Value(DataType.BYTE, 0), Opcode.LESSEQ, Value(DataType.BYTE, 1), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.BYTE, 1), Opcode.LESSEQ, Value(DataType.BYTE, 1), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.WORD, 2), Opcode.LESSEQ_W, Value(DataType.WORD, 20), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.WORD, 20), Opcode.LESSEQ_W, Value(DataType.WORD, 21), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.WORD, 21), Opcode.LESSEQ_W, Value(DataType.WORD, 21), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.WORD, 21), Opcode.LESSEQ_W, Value(DataType.WORD, 20), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.FLOAT, 21.0), Opcode.LESSEQ_F, Value(DataType.FLOAT, 21.0), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.FLOAT, 21.0), Opcode.LESSEQ_F, Value(DataType.FLOAT, 20.999), Value(DataType.BYTE, 0))
     }
 
     @Test
     fun testGreater() {
-        val values = listOf(
-                Value(DataType.BYTE, 0),
-                Value(DataType.BYTE, 1),        // 0
-                Value(DataType.BYTE, 1),
-                Value(DataType.BYTE, 1),        // 0
-                Value(DataType.BYTE, 20),
-                Value(DataType.WORD, 2),       // 1
-                Value(DataType.WORD, 20),
-                Value(DataType.BYTE, 21),      // 0
-                Value(DataType.WORD, 21),
-                Value(DataType.BYTE, 20),      // 1
-                Value(DataType.BYTE, 21),
-                Value(DataType.FLOAT, 21),      // 0
-                Value(DataType.BYTE, 21),
-                Value(DataType.FLOAT, 20.9999)      // 1
-        )
-        val expected = listOf(0, 0, 1, 0, 1, 0, 1)
-        testComparisonOperator(values, expected, Opcode.GREATER)
-
-        val valuesInvalid = listOf(
-                Value(DataType.STR, 333),
-                Value(DataType.STR, 333)
-        )
-        assertFailsWith<VmExecutionException> {
-            testComparisonOperator(valuesInvalid, listOf(0), Opcode.GREATER)  // can't order strings
-        }
+        testBinaryOperator(Value(DataType.BYTE, 0), Opcode.GREATER, Value(DataType.BYTE, 1), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.BYTE, 1), Opcode.GREATER, Value(DataType.BYTE, 1), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.WORD, 2), Opcode.GREATER_W, Value(DataType.WORD, 20), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.WORD, 20), Opcode.GREATER_W, Value(DataType.WORD, 21), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.WORD, 21), Opcode.GREATER_W, Value(DataType.WORD, 20), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.WORD, 21), Opcode.GREATER_W, Value(DataType.WORD, 21), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.FLOAT, 21.0), Opcode.GREATER_F, Value(DataType.FLOAT, 21.0), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.FLOAT, 21.0), Opcode.GREATER_F, Value(DataType.FLOAT, 20.999), Value(DataType.BYTE, 1))
     }
 
     @Test
     fun testGreaterEq() {
-        val values = listOf(
-                Value(DataType.BYTE, 0),
-                Value(DataType.BYTE, 1),        // 0
-                Value(DataType.BYTE, 1),
-                Value(DataType.BYTE, 1),        // 1
-                Value(DataType.BYTE, 21),
-                Value(DataType.WORD, 20),       // 1
-                Value(DataType.WORD, 20),
-                Value(DataType.BYTE, 21),      // 0
-                Value(DataType.WORD, 21),
-                Value(DataType.BYTE, 22),      // 0
-                Value(DataType.BYTE, 21),
-                Value(DataType.FLOAT, 21),      // 1
-                Value(DataType.BYTE, 22),
-                Value(DataType.FLOAT, 21.999)      // 1
-        )
-        val expected = listOf(0,1,1,0,0,1,1)
-        testComparisonOperator(values, expected, Opcode.GREATEREQ)
-
-        val valuesInvalid = listOf(
-                Value(DataType.STR, 333),
-                Value(DataType.STR, 333)
-        )
-        assertFailsWith<VmExecutionException> {
-            testComparisonOperator(valuesInvalid, listOf(0), Opcode.GREATEREQ)  // can't order strings
-        }
+        testBinaryOperator(Value(DataType.BYTE, 0), Opcode.GREATEREQ, Value(DataType.BYTE, 1), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.BYTE, 1), Opcode.GREATEREQ, Value(DataType.BYTE, 1), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.WORD, 2), Opcode.GREATEREQ_W, Value(DataType.WORD, 20), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.WORD, 20), Opcode.GREATEREQ_W, Value(DataType.WORD, 21), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.WORD, 21), Opcode.GREATEREQ_W, Value(DataType.WORD, 20), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.WORD, 21), Opcode.GREATEREQ_W, Value(DataType.WORD, 21), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.FLOAT, 21.0), Opcode.GREATEREQ_F, Value(DataType.FLOAT, 21.0), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.FLOAT, 21.0), Opcode.GREATEREQ_F, Value(DataType.FLOAT, 21.001), Value(DataType.BYTE, 0))
     }
 
     @Test
     fun testEqual() {
-        val values = listOf(
-                Value(DataType.BYTE, 0),
-                Value(DataType.BYTE, 1),        // 0
-                Value(DataType.BYTE, 1),
-                Value(DataType.BYTE, 1),        // 1
-                Value(DataType.BYTE, 21),
-                Value(DataType.WORD, 20),       // 0
-                Value(DataType.WORD, 20),
-                Value(DataType.BYTE, 21),      // 0
-                Value(DataType.WORD, 21),
-                Value(DataType.BYTE, 21),      // 1
-                Value(DataType.BYTE, 21),
-                Value(DataType.FLOAT, 21),      // 1
-                Value(DataType.BYTE, 22),
-                Value(DataType.FLOAT, 21.999)      // 0
-        )
-        val expected = listOf(0,1,0,0,1,1,0)
-        testComparisonOperator(values, expected, Opcode.EQUAL)
-
-        val valuesInvalid = listOf(
-                Value(DataType.STR, 111),
-                Value(DataType.STR, 222),       // 0
-                Value(DataType.STR, 333),
-                Value(DataType.STR, 333)        // 1
-        )
-        testComparisonOperator(valuesInvalid, listOf(0, 1), Opcode.EQUAL)
+        testBinaryOperator(Value(DataType.BYTE, 0), Opcode.EQUAL, Value(DataType.BYTE, 1), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.BYTE, 1), Opcode.EQUAL, Value(DataType.BYTE, 1), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.WORD, 2), Opcode.EQUAL_W, Value(DataType.WORD, 20), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.WORD, 20), Opcode.EQUAL_W, Value(DataType.WORD, 21), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.WORD, 21), Opcode.EQUAL_W, Value(DataType.WORD, 20), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.WORD, 21), Opcode.EQUAL_W, Value(DataType.WORD, 21), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.FLOAT, 21.0), Opcode.EQUAL_F, Value(DataType.FLOAT, 21.0), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.FLOAT, 21.0), Opcode.EQUAL_F, Value(DataType.FLOAT, 21.001), Value(DataType.BYTE, 0))
     }
 
     @Test
     fun testNotEqual() {
-        val values = listOf(
-                Value(DataType.BYTE, 0),
-                Value(DataType.BYTE, 1),        // 1
-                Value(DataType.BYTE, 1),
-                Value(DataType.BYTE, 1),        // 0
-                Value(DataType.BYTE, 21),
-                Value(DataType.WORD, 20),       // 1
-                Value(DataType.WORD, 20),
-                Value(DataType.BYTE, 21),      // 1
-                Value(DataType.WORD, 21),
-                Value(DataType.BYTE, 21),      // 0
-                Value(DataType.BYTE, 21),
-                Value(DataType.FLOAT, 21),      // 0
-                Value(DataType.BYTE, 22),
-                Value(DataType.FLOAT, 21.999)      // 1
-        )
-        val expected = listOf(1,0,1,1,0,0,1)
-        testComparisonOperator(values, expected, Opcode.NOTEQUAL)
-
-        val valuesInvalid = listOf(
-                Value(DataType.STR, 111),
-                Value(DataType.STR, 222),       // 1
-                Value(DataType.STR, 333),
-                Value(DataType.STR, 333)        // 0
-        )
-        testComparisonOperator(valuesInvalid, listOf(1, 0), Opcode.NOTEQUAL)
+        testBinaryOperator(Value(DataType.BYTE, 0), Opcode.NOTEQUAL, Value(DataType.BYTE, 1), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.BYTE, 1), Opcode.NOTEQUAL, Value(DataType.BYTE, 1), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.WORD, 2), Opcode.NOTEQUAL_W, Value(DataType.WORD, 20), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.WORD, 20), Opcode.NOTEQUAL_W, Value(DataType.WORD, 21), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.WORD, 21), Opcode.NOTEQUAL_W, Value(DataType.WORD, 20), Value(DataType.BYTE, 1))
+        testBinaryOperator(Value(DataType.WORD, 21), Opcode.NOTEQUAL_W, Value(DataType.WORD, 21), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.FLOAT, 21.0), Opcode.NOTEQUAL_F, Value(DataType.FLOAT, 21.0), Value(DataType.BYTE, 0))
+        testBinaryOperator(Value(DataType.FLOAT, 21.0), Opcode.NOTEQUAL_F, Value(DataType.FLOAT, 21.001), Value(DataType.BYTE, 1))
     }
 
     @Test
@@ -964,11 +845,11 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.SHR),        // 0
                 Instruction(Opcode.SHR),        // 0
                 Instruction(Opcode.DISCARD),
-                Instruction(Opcode.SHR),        // 30502
+                Instruction(Opcode.SHR_W),        // 30502
                 Instruction(Opcode.DISCARD_W),
-                Instruction(Opcode.SHR),        // 1
-                Instruction(Opcode.SHR),        // 0
-                Instruction(Opcode.SHR),        // 0
+                Instruction(Opcode.SHR_W),        // 1
+                Instruction(Opcode.SHR_W),        // 0
+                Instruction(Opcode.SHR_W),        // 0
                 Instruction(Opcode.DISCARD_W),
                 Instruction(Opcode.SHR)         // error on float
         )
@@ -1004,11 +885,11 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.DISCARD),
                 Instruction(Opcode.SHL),        // 6
                 Instruction(Opcode.DISCARD),
-                Instruction(Opcode.SHL),        // 56474
+                Instruction(Opcode.SHL_W),        // 56474
                 Instruction(Opcode.DISCARD_W),
-                Instruction(Opcode.SHL),        // 6
+                Instruction(Opcode.SHL_W),        // 6
                 Instruction(Opcode.DISCARD_W),
-                Instruction(Opcode.SHL)         // error on float
+                Instruction(Opcode.SHL_W)         // error on float
         )
         vm.load(makeProg(ins), null)
         vm.step(6)
@@ -1061,23 +942,23 @@ class TestStackVmOpcodes {
         val ins2 = mutableListOf(
                 Instruction(Opcode.CLC),
                 Instruction(Opcode.PUSH_W, Value(DataType.WORD, 0b1001001100001101)),
-                Instruction(Opcode.ROR),        // 0b0100100110000110   c=1
-                Instruction(Opcode.ROR),        // 0b1010010011000011   c=0
-                Instruction(Opcode.ROR),
-                Instruction(Opcode.ROR),
-                Instruction(Opcode.ROR),
-                Instruction(Opcode.ROR),
-                Instruction(Opcode.ROR),
-                Instruction(Opcode.ROR),
-                Instruction(Opcode.ROR),
-                Instruction(Opcode.ROR),
-                Instruction(Opcode.ROR),
-                Instruction(Opcode.ROR),
-                Instruction(Opcode.ROR),
-                Instruction(Opcode.ROR),
-                Instruction(Opcode.ROR),
-                Instruction(Opcode.ROR),
-                Instruction(Opcode.ROR)         // 0b1001001100001101   c=0  (original value after 17 rors)
+                Instruction(Opcode.ROR_W),        // 0b0100100110000110   c=1
+                Instruction(Opcode.ROR_W),        // 0b1010010011000011   c=0
+                Instruction(Opcode.ROR_W),
+                Instruction(Opcode.ROR_W),
+                Instruction(Opcode.ROR_W),
+                Instruction(Opcode.ROR_W),
+                Instruction(Opcode.ROR_W),
+                Instruction(Opcode.ROR_W),
+                Instruction(Opcode.ROR_W),
+                Instruction(Opcode.ROR_W),
+                Instruction(Opcode.ROR_W),
+                Instruction(Opcode.ROR_W),
+                Instruction(Opcode.ROR_W),
+                Instruction(Opcode.ROR_W),
+                Instruction(Opcode.ROR_W),
+                Instruction(Opcode.ROR_W),
+                Instruction(Opcode.ROR_W)         // 0b1001001100001101   c=0  (original value after 17 rors)
         )
         vm.load(makeProg(ins2), null)
         vm.step(3)
@@ -1126,23 +1007,23 @@ class TestStackVmOpcodes {
         val ins2 = mutableListOf(
                 Instruction(Opcode.CLC),
                 Instruction(Opcode.PUSH_W, Value(DataType.WORD, 0b1001001100001101)),
-                Instruction(Opcode.ROL),        // 0b0010011000011010   c=1
-                Instruction(Opcode.ROL),        // 0b0100110000110101   c=0
-                Instruction(Opcode.ROL),
-                Instruction(Opcode.ROL),
-                Instruction(Opcode.ROL),
-                Instruction(Opcode.ROL),
-                Instruction(Opcode.ROL),
-                Instruction(Opcode.ROL),
-                Instruction(Opcode.ROL),
-                Instruction(Opcode.ROL),
-                Instruction(Opcode.ROL),
-                Instruction(Opcode.ROL),
-                Instruction(Opcode.ROL),
-                Instruction(Opcode.ROL),
-                Instruction(Opcode.ROL),
-                Instruction(Opcode.ROL),
-                Instruction(Opcode.ROL)         // 0b1001001100001101   c=0  (original value after 17 rors)
+                Instruction(Opcode.ROL_W),        // 0b0010011000011010   c=1
+                Instruction(Opcode.ROL_W),        // 0b0100110000110101   c=0
+                Instruction(Opcode.ROL_W),
+                Instruction(Opcode.ROL_W),
+                Instruction(Opcode.ROL_W),
+                Instruction(Opcode.ROL_W),
+                Instruction(Opcode.ROL_W),
+                Instruction(Opcode.ROL_W),
+                Instruction(Opcode.ROL_W),
+                Instruction(Opcode.ROL_W),
+                Instruction(Opcode.ROL_W),
+                Instruction(Opcode.ROL_W),
+                Instruction(Opcode.ROL_W),
+                Instruction(Opcode.ROL_W),
+                Instruction(Opcode.ROL_W),
+                Instruction(Opcode.ROL_W),
+                Instruction(Opcode.ROL_W)         // 0b1001001100001101   c=0  (original value after 17 rors)
         )
         vm.load(makeProg(ins2), null)
         vm.step(3)
@@ -1183,22 +1064,22 @@ class TestStackVmOpcodes {
 
         val ins2 = mutableListOf(
                 Instruction(Opcode.PUSH_W, Value(DataType.WORD, 0b1001001100001101)),
-                Instruction(Opcode.ROR2),        // 0b1100100110000110
-                Instruction(Opcode.ROR2),        // 0b0110010011000011
-                Instruction(Opcode.ROR2),
-                Instruction(Opcode.ROR2),
-                Instruction(Opcode.ROR2),
-                Instruction(Opcode.ROR2),
-                Instruction(Opcode.ROR2),
-                Instruction(Opcode.ROR2),
-                Instruction(Opcode.ROR2),
-                Instruction(Opcode.ROR2),
-                Instruction(Opcode.ROR2),
-                Instruction(Opcode.ROR2),
-                Instruction(Opcode.ROR2),
-                Instruction(Opcode.ROR2),
-                Instruction(Opcode.ROR2),
-                Instruction(Opcode.ROR2)         // 0b1001001100001101  (original value after 16 rors)
+                Instruction(Opcode.ROR2_W),        // 0b1100100110000110
+                Instruction(Opcode.ROR2_W),        // 0b0110010011000011
+                Instruction(Opcode.ROR2_W),
+                Instruction(Opcode.ROR2_W),
+                Instruction(Opcode.ROR2_W),
+                Instruction(Opcode.ROR2_W),
+                Instruction(Opcode.ROR2_W),
+                Instruction(Opcode.ROR2_W),
+                Instruction(Opcode.ROR2_W),
+                Instruction(Opcode.ROR2_W),
+                Instruction(Opcode.ROR2_W),
+                Instruction(Opcode.ROR2_W),
+                Instruction(Opcode.ROR2_W),
+                Instruction(Opcode.ROR2_W),
+                Instruction(Opcode.ROR2_W),
+                Instruction(Opcode.ROR2_W)         // 0b1001001100001101  (original value after 16 rors)
         )
         vm.load(makeProg(ins2), null)
         vm.step(2)
@@ -1235,22 +1116,22 @@ class TestStackVmOpcodes {
 
         val ins2 = mutableListOf(
                 Instruction(Opcode.PUSH_W, Value(DataType.WORD, 0b1001001100001101)),
-                Instruction(Opcode.ROL2),        // 0b0010011000011011
-                Instruction(Opcode.ROL2),        // 0b0100110000110110
-                Instruction(Opcode.ROL2),
-                Instruction(Opcode.ROL2),
-                Instruction(Opcode.ROL2),
-                Instruction(Opcode.ROL2),
-                Instruction(Opcode.ROL2),
-                Instruction(Opcode.ROL2),
-                Instruction(Opcode.ROL2),
-                Instruction(Opcode.ROL2),
-                Instruction(Opcode.ROL2),
-                Instruction(Opcode.ROL2),
-                Instruction(Opcode.ROL2),
-                Instruction(Opcode.ROL2),
-                Instruction(Opcode.ROL2),
-                Instruction(Opcode.ROL2)         // 0b1001001100001101  (original value after 16 rols)
+                Instruction(Opcode.ROL2_W),        // 0b0010011000011011
+                Instruction(Opcode.ROL2_W),        // 0b0100110000110110
+                Instruction(Opcode.ROL2_W),
+                Instruction(Opcode.ROL2_W),
+                Instruction(Opcode.ROL2_W),
+                Instruction(Opcode.ROL2_W),
+                Instruction(Opcode.ROL2_W),
+                Instruction(Opcode.ROL2_W),
+                Instruction(Opcode.ROL2_W),
+                Instruction(Opcode.ROL2_W),
+                Instruction(Opcode.ROL2_W),
+                Instruction(Opcode.ROL2_W),
+                Instruction(Opcode.ROL2_W),
+                Instruction(Opcode.ROL2_W),
+                Instruction(Opcode.ROL2_W),
+                Instruction(Opcode.ROL2_W)         // 0b1001001100001101  (original value after 16 rols)
         )
         vm.load(makeProg(ins2), null)
         vm.step(2)
@@ -1270,24 +1151,6 @@ class TestStackVmOpcodes {
             DataType.FLOAT -> Opcode.PUSH_F
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
             DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX -> Opcode.PUSH_W
-        }
-    }
-
-    private fun testComparisonOperator(values: List<Value>, expected: List<Int>, operator: Opcode) {
-        assertEquals(values.size, expected.size*2)
-        val ins = mutableListOf<Instruction>()
-        val vars = values.iterator()
-        while(vars.hasNext()) {
-            var nextvar = vars.next()
-            ins.add(Instruction(pushOpcode(nextvar.type), nextvar))
-            nextvar = vars.next()
-            ins.add(Instruction(pushOpcode(nextvar.type), nextvar))
-            ins.add(Instruction(operator))
-        }
-        vm.load(makeProg(ins), null)
-        for(expectedValue in expected) {
-            vm.step(3)
-            assertEquals(Value(DataType.BYTE, expectedValue), vm.evalstack.pop())
         }
     }
 

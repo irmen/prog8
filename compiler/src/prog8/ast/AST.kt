@@ -3,7 +3,6 @@ package prog8.ast
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
 import prog8.compiler.HeapValues
-import prog8.compiler.target.c64.Mflpt5
 import prog8.compiler.target.c64.Petscii
 import prog8.compiler.unescape
 import prog8.functions.BuiltinFunctions

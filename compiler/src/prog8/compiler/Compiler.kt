@@ -635,12 +635,54 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
             }
             "msb" -> stackvmProg.instr(Opcode.MSB)
             "lsb" -> stackvmProg.instr(Opcode.LSB)
-            "lsl" -> stackvmProg.instr(Opcode.SHL)
-            "lsr" -> stackvmProg.instr(Opcode.SHR)
-            "rol" -> stackvmProg.instr(Opcode.ROL)
-            "ror" -> stackvmProg.instr(Opcode.ROR)
-            "rol2" -> stackvmProg.instr(Opcode.ROL2)
-            "ror2" -> stackvmProg.instr(Opcode.ROR2)
+            "lsl" -> {
+                val arg = args.single()
+                when (arg.resultingDatatype(namespace, heap)) {
+                    DataType.BYTE -> stackvmProg.instr(Opcode.SHL)
+                    DataType.WORD -> stackvmProg.instr(Opcode.SHL_W)
+                    else -> throw CompilerException("wrong datatype")
+                }
+            }
+            "lsr" -> {
+                val arg = args.single()
+                when (arg.resultingDatatype(namespace, heap)) {
+                    DataType.BYTE -> stackvmProg.instr(Opcode.SHR)
+                    DataType.WORD -> stackvmProg.instr(Opcode.SHR_W)
+                    else -> throw CompilerException("wrong datatype")
+                }
+            }
+            "rol" -> {
+                val arg = args.single()
+                when (arg.resultingDatatype(namespace, heap)) {
+                    DataType.BYTE -> stackvmProg.instr(Opcode.ROL)
+                    DataType.WORD -> stackvmProg.instr(Opcode.ROL_W)
+                    else -> throw CompilerException("wrong datatype")
+                }
+            }
+            "ror" -> {
+                val arg = args.single()
+                when (arg.resultingDatatype(namespace, heap)) {
+                    DataType.BYTE -> stackvmProg.instr(Opcode.ROR)
+                    DataType.WORD -> stackvmProg.instr(Opcode.ROR_W)
+                    else -> throw CompilerException("wrong datatype")
+                }
+            }
+            "rol2" -> {
+                val arg = args.single()
+                when (arg.resultingDatatype(namespace, heap)) {
+                    DataType.BYTE -> stackvmProg.instr(Opcode.ROL2)
+                    DataType.WORD -> stackvmProg.instr(Opcode.ROL2_W)
+                    else -> throw CompilerException("wrong datatype")
+                }
+            }
+            "ror2" -> {
+                val arg = args.single()
+                when (arg.resultingDatatype(namespace, heap)) {
+                    DataType.BYTE -> stackvmProg.instr(Opcode.ROR2)
+                    DataType.WORD -> stackvmProg.instr(Opcode.ROR2_W)
+                    else -> throw CompilerException("wrong datatype")
+                }
+            }
             "set_carry" -> stackvmProg.instr(Opcode.SEC)
             "clear_carry" -> stackvmProg.instr(Opcode.CLC)
             "set_irqd" -> stackvmProg.instr(Opcode.SEI)
@@ -666,6 +708,8 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
         val validDt = setOf(DataType.BYTE, DataType.WORD, DataType.FLOAT)
         if(leftDt !in validDt || rightDt !in validDt)
             throw CompilerException("invalid datatype(s) for operand(s)")
+        if(leftDt!=rightDt)
+            throw CompilerException("operands have different datatypes")
         val opcode = when(operator) {
             // todo variants depending on leftdt/rightdt (b/w/f)
             "+" -> Opcode.ADD
@@ -675,18 +719,96 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
             "//" -> Opcode.FLOORDIV
             "%" -> Opcode.REMAINDER
             "**" -> Opcode.POW
-            "&" -> Opcode.BITAND
-            "|" -> Opcode.BITOR
-            "^" -> Opcode.BITXOR
-            "and" -> Opcode.AND
-            "or" -> Opcode.OR
-            "xor" -> Opcode.XOR
-            "<" -> Opcode.LESS
-            ">" -> Opcode.GREATER
-            "<=" -> Opcode.LESSEQ
-            ">=" -> Opcode.GREATEREQ
-            "==" -> Opcode.EQUAL
-            "!=" -> Opcode.NOTEQUAL
+            "&" -> {
+                when(leftDt) {
+                    DataType.BYTE -> Opcode.BITAND
+                    DataType.WORD -> Opcode.BITAND_W
+                    else -> throw CompilerException("only byte/word possible")
+                }
+            }
+            "|" -> {
+                when(leftDt) {
+                    DataType.BYTE -> Opcode.BITOR
+                    DataType.WORD -> Opcode.BITOR_W
+                    else -> throw CompilerException("only byte/word possible")
+                }
+            }
+            "^" -> {
+                when(leftDt) {
+                    DataType.BYTE -> Opcode.BITXOR
+                    DataType.WORD -> Opcode.BITXOR_W
+                    else -> throw CompilerException("only byte/word possible")
+                }
+            }
+            "and" -> {
+                when(leftDt) {
+                    DataType.BYTE -> Opcode.AND
+                    DataType.WORD -> Opcode.AND_W
+                    else -> throw CompilerException("only byte/word possible")
+                }
+            }
+            "or" -> {
+                when(leftDt) {
+                    DataType.BYTE -> Opcode.OR
+                    DataType.WORD -> Opcode.OR_W
+                    else -> throw CompilerException("only byte/word possible")
+                }
+            }
+            "xor" -> {
+                when(leftDt) {
+                    DataType.BYTE -> Opcode.XOR
+                    DataType.WORD -> Opcode.XOR_W
+                    else -> throw CompilerException("only byte/word possible")
+                }
+            }
+            "<" -> {
+                when(leftDt) {
+                    DataType.BYTE -> Opcode.LESS
+                    DataType.WORD -> Opcode.LESS_W
+                    DataType.FLOAT -> Opcode.LESS_F
+                    else -> throw CompilerException("only byte/word/lfoat possible")
+                }
+            }
+            ">" -> {
+                when(leftDt) {
+                    DataType.BYTE -> Opcode.GREATER
+                    DataType.WORD -> Opcode.GREATER_W
+                    DataType.FLOAT -> Opcode.GREATER_F
+                    else -> throw CompilerException("only byte/word/lfoat possible")
+                }
+            }
+            "<=" -> {
+                when(leftDt) {
+                    DataType.BYTE -> Opcode.LESSEQ
+                    DataType.WORD -> Opcode.LESSEQ_W
+                    DataType.FLOAT -> Opcode.LESSEQ_F
+                    else -> throw CompilerException("only byte/word/lfoat possible")
+                }
+            }
+            ">=" -> {
+                when(leftDt) {
+                    DataType.BYTE -> Opcode.GREATEREQ
+                    DataType.WORD -> Opcode.GREATEREQ_W
+                    DataType.FLOAT -> Opcode.GREATEREQ_F
+                    else -> throw CompilerException("only byte/word/lfoat possible")
+                }
+            }
+            "==" -> {
+                when (leftDt) {
+                    DataType.BYTE -> Opcode.EQUAL
+                    DataType.WORD -> Opcode.EQUAL_W
+                    DataType.FLOAT -> Opcode.EQUAL_F
+                    else -> throw CompilerException("only byte/word/lfoat possible")
+                }
+            }
+            "!=" -> {
+                when (leftDt) {
+                    DataType.BYTE -> Opcode.NOTEQUAL
+                    DataType.WORD -> Opcode.NOTEQUAL_W
+                    DataType.FLOAT -> Opcode.NOTEQUAL_F
+                    else -> throw CompilerException("only byte/word/lfoat possible")
+                }
+            }
             else -> throw FatalAstException("const evaluation for invalid operator $operator")
         }
         stackvmProg.instr(opcode)
@@ -698,8 +820,20 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
         val opcode = when(operator) {
             "+" -> Opcode.NOP
             "-" -> Opcode.NEG       // todo b/w/f
-            "~" -> Opcode.INV       // todo b/w
-            "not" -> Opcode.NOT     // todo b/w (convert float to byte)
+            "~" -> {
+                when(operandDt) {
+                    DataType.BYTE -> Opcode.INV
+                    DataType.WORD -> Opcode.INV_W
+                    else -> throw CompilerException("only byte/word possible")
+                }
+            }
+            "not" -> {
+                when(operandDt) {
+                    DataType.BYTE -> Opcode.NOT
+                    DataType.WORD -> Opcode.NOT_W
+                    else -> throw CompilerException("only byte/word possible")
+                }
+            }
             else -> throw FatalAstException("const evaluation for invalid prefix operator $operator")
         }
         stackvmProg.instr(opcode)
@@ -844,7 +978,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                 stmt.target.arrayindexed!=null -> translate(stmt.target.arrayindexed!!, false)
             }
 
-            translateAugAssignOperator(stmt.aug_op)
+            translateAugAssignOperator(stmt.aug_op, stmt.value.resultingDatatype(namespace, heap))
         }
 
         // pop the result value back into the assignment target
@@ -867,7 +1001,12 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
         }
     }
 
-    private fun translateAugAssignOperator(aug_op: String) {
+    private fun translateAugAssignOperator(aug_op: String, valueDt: DataType?) {
+        if(valueDt==null)
+            throw CompilerException("value datatype not known")
+        val validDt = setOf(DataType.BYTE, DataType.WORD, DataType.FLOAT)
+        if(valueDt !in validDt)
+            throw CompilerException("invalid datatype(s) for operand(s)")
         val opcode = when(aug_op) {
             "+=" -> Opcode.ADD
             "-=" -> Opcode.SUB
@@ -875,9 +1014,27 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
             "//=" -> Opcode.FLOORDIV
             "*=" -> Opcode.MUL
             "**=" -> Opcode.POW
-            "&=" -> Opcode.BITAND
-            "|=" -> Opcode.BITOR
-            "^=" -> Opcode.BITXOR
+            "&=" -> {
+                when(valueDt) {
+                    DataType.BYTE -> Opcode.BITAND
+                    DataType.WORD -> Opcode.BITAND_W
+                    else -> throw CompilerException("only byte/word possible")
+                }
+            }
+            "|=" -> {
+                when(valueDt) {
+                    DataType.BYTE -> Opcode.BITOR
+                    DataType.WORD -> Opcode.BITOR_W
+                    else -> throw CompilerException("only byte/word possible")
+                }
+            }
+            "^=" -> {
+                when(valueDt) {
+                    DataType.BYTE -> Opcode.BITXOR
+                    DataType.WORD -> Opcode.BITXOR_W
+                    else -> throw CompilerException("only byte/word possible")
+                }
+            }
             else -> throw CompilerException("invalid aug assignment operator $aug_op")
         }
         stackvmProg.instr(opcode)

@@ -43,34 +43,50 @@ enum class Opcode {
     NEG,            // todo b/w/f
 
     // bit shifts and bitwise arithmetic
-    SHL,            // todo b/w
+    SHL,
+    SHL_W,
     SHL_MEM,
     SHL_MEM_W,
-    SHL_VAR,        // todo b/w
-    SHR,            // todo b/w
+    SHL_VAR,
+    SHL_VAR_W,
+    SHR,
+    SHR_W,
     SHR_MEM,
     SHR_MEM_W,
-    SHR_VAR,        // todo b/w
-    ROL,            // todo b/w
+    SHR_VAR,
+    SHR_VAR_W,
+    ROL,
+    ROL_W,
     ROL_MEM,
     ROL_MEM_W,
-    ROL_VAR,        // todo b/w
-    ROR,            // todo b/w
+    ROL_VAR,
+    ROL_VAR_W,
+    ROR,
+    ROR_W,
     ROR_MEM,
     ROR_MEM_W,
-    ROR_VAR,        // todo b/w
-    ROL2,           // todo b/w
+    ROR_VAR,
+    ROR_VAR_W,
+    ROL2,
+    ROL2_W,
     ROL2_MEM,
     ROL2_MEM_W,
-    ROL2_VAR,       // todo b/w
-    ROR2,           // todo b/w
+    ROL2_VAR,
+    ROL2_VAR_W,
+    ROR2,
+    ROR2_W,
     ROR2_MEM,
     ROR2_MEM_W,
-    ROR2_VAR,       // todo b/w
-    BITAND,         // todo b/w
-    BITOR,          // todo b/w
-    BITXOR,         // todo b/w
-    INV,            // todo b/w
+    ROR2_VAR,
+    ROR2_VAR_W,
+    BITAND,
+    BITAND_W,
+    BITOR,
+    BITOR_W,
+    BITXOR,
+    BITXOR_W,
+    INV,
+    INV_W,
     LSB,
     MSB,
 
@@ -81,10 +97,14 @@ enum class Opcode {
     W2FLOAT,        // convert word into floating point
 
     // logical operations
-    AND,            // todo b/w  (convert float to byte)
-    OR,             // todo b/w  (convert float to byte)
-    XOR,            // todo b/w  (convert float to byte)
-    NOT,            // todo b/w  (convert float to byte)
+    AND,
+    AND_W,
+    OR,
+    OR_W,
+    XOR,
+    XOR_W,
+    NOT,
+    NOT_W,
 
     // increment, decrement
     INC,
@@ -101,12 +121,24 @@ enum class Opcode {
     DEC_VAR_F,
 
     // comparisons
-    LESS,           // todo b/w/f ?
-    GREATER,        // todo b/w/f ?
-    LESSEQ,         // todo b/w/f ?
-    GREATEREQ,      // todo b/w/f ?
-    EQUAL,          // todo b/w/f ?
-    NOTEQUAL,       // todo b/w/f ?
+    LESS,
+    LESS_W,
+    LESS_F,
+    GREATER,
+    GREATER_W,
+    GREATER_F,
+    LESSEQ,
+    LESSEQ_W,
+    LESSEQ_F,
+    GREATEREQ,
+    GREATEREQ_W,
+    GREATEREQ_F,
+    EQUAL,
+    EQUAL_W,
+    EQUAL_F,
+    NOTEQUAL,
+    NOTEQUAL_W,
+    NOTEQUAL_F,
 
     // array access
     READ_INDEXED_VAR,
@@ -145,8 +177,9 @@ enum class Opcode {
 
 val opcodesWithVarArgument = setOf(
         Opcode.INC_VAR, Opcode.INC_VAR_W, Opcode.DEC_VAR, Opcode.DEC_VAR_W,
-        Opcode.SHR_VAR, Opcode.SHL_VAR, Opcode.ROL_VAR, Opcode.ROR_VAR,
-        Opcode.ROL2_VAR, Opcode.ROR2_VAR,
+        Opcode.SHR_VAR, Opcode.SHR_VAR_W, Opcode.SHL_VAR, Opcode.SHL_VAR_W,
+        Opcode.ROL_VAR, Opcode.ROL_VAR_W, Opcode.ROR_VAR, Opcode.ROR_VAR_W,
+        Opcode.ROL2_VAR, Opcode.ROL2_VAR_W, Opcode.ROR2_VAR, Opcode.ROR2_VAR_W,
         Opcode.POP_VAR, Opcode.POP_VAR_W, Opcode.POP_VAR_F,
         Opcode.PUSH_VAR, Opcode.PUSH_VAR_W, Opcode.PUSH_VAR_F,
         Opcode.READ_INDEXED_VAR, Opcode.READ_INDEXED_VAR_W, Opcode.READ_INDEXED_VAR_F,
@@ -479,56 +512,116 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.SHL -> {
                 val v = evalstack.pop()
-                // todo b/w
+                checkDt(v, DataType.BYTE)
+                evalstack.push(v.shl())
+            }
+            Opcode.SHL_W -> {
+                val v = evalstack.pop()
+                checkDt(v, DataType.WORD)
                 evalstack.push(v.shl())
             }
             Opcode.SHR -> {
                 val v = evalstack.pop()
-                // todo b/w
+                checkDt(v, DataType.BYTE)
+                evalstack.push(v.shr())
+            }
+            Opcode.SHR_W -> {
+                val v = evalstack.pop()
+                checkDt(v, DataType.WORD)
                 evalstack.push(v.shr())
             }
             Opcode.ROL -> {
                 val v = evalstack.pop()
-                // todo b/w
+                checkDt(v, DataType.BYTE)
+                val (result, newCarry) = v.rol(P_carry)
+                this.P_carry = newCarry
+                evalstack.push(result)
+            }
+            Opcode.ROL_W -> {
+                val v = evalstack.pop()
+                checkDt(v, DataType.WORD)
                 val (result, newCarry) = v.rol(P_carry)
                 this.P_carry = newCarry
                 evalstack.push(result)
             }
             Opcode.ROL2 -> {
                 val v = evalstack.pop()
-                // todo b/w
+                checkDt(v, DataType.BYTE)
+                evalstack.push(v.rol2())
+            }
+            Opcode.ROL2_W -> {
+                val v = evalstack.pop()
+                checkDt(v, DataType.WORD)
                 evalstack.push(v.rol2())
             }
             Opcode.ROR -> {
                 val v = evalstack.pop()
-                // todo b/w
+                checkDt(v, DataType.BYTE)
+                val (result, newCarry) = v.ror(P_carry)
+                this.P_carry = newCarry
+                evalstack.push(result)
+            }
+            Opcode.ROR_W -> {
+                val v = evalstack.pop()
+                checkDt(v, DataType.WORD)
                 val (result, newCarry) = v.ror(P_carry)
                 this.P_carry = newCarry
                 evalstack.push(result)
             }
             Opcode.ROR2 -> {
                 val v = evalstack.pop()
-                // todo b/w
+                checkDt(v, DataType.BYTE)
+                evalstack.push(v.ror2())
+            }
+            Opcode.ROR2_W -> {
+                val v = evalstack.pop()
+                checkDt(v, DataType.WORD)
                 evalstack.push(v.ror2())
             }
             Opcode.BITAND -> {
                 val (top, second) = evalstack.pop2()
-                // todo b/w
+                checkDt(top, DataType.BYTE)
+                checkDt(second, DataType.BYTE)
+                evalstack.push(second.bitand(top))
+            }
+            Opcode.BITAND_W -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.WORD)
+                checkDt(second, DataType.WORD)
                 evalstack.push(second.bitand(top))
             }
             Opcode.BITOR -> {
                 val (top, second) = evalstack.pop2()
-                // todo b/w
+                checkDt(top, DataType.BYTE)
+                checkDt(second, DataType.BYTE)
+                evalstack.push(second.bitor(top))
+            }
+            Opcode.BITOR_W -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.WORD)
+                checkDt(second, DataType.WORD)
                 evalstack.push(second.bitor(top))
             }
             Opcode.BITXOR -> {
                 val (top, second) = evalstack.pop2()
-                // todo b/w
+                checkDt(top, DataType.BYTE)
+                checkDt(second, DataType.BYTE)
+                evalstack.push(second.bitxor(top))
+            }
+            Opcode.BITXOR_W -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.WORD)
+                checkDt(second, DataType.WORD)
                 evalstack.push(second.bitxor(top))
             }
             Opcode.INV -> {
                 val v = evalstack.pop()
-                // todo b/w
+                checkDt(v, DataType.BYTE)
+                evalstack.push(v.inv())
+            }
+            Opcode.INV_W -> {
+                val v = evalstack.pop()
+                checkDt(v, DataType.WORD)
                 evalstack.push(v.inv())
             }
             Opcode.INC -> {
@@ -705,36 +798,70 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.SHL_VAR -> {
                 val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
-                // todo b/w
+                checkDt(variable, DataType.BYTE)
+                variables[ins.callLabel!!] = variable.shl()
+            }
+            Opcode.SHL_VAR_W -> {
+                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                checkDt(variable, DataType.WORD)
                 variables[ins.callLabel!!] = variable.shl()
             }
             Opcode.SHR_VAR -> {
                 val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
-                // todo b/w
+                checkDt(variable, DataType.BYTE)
+                variables[ins.callLabel!!] = variable.shr()
+            }
+            Opcode.SHR_VAR_W -> {
+                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                checkDt(variable, DataType.WORD)
                 variables[ins.callLabel!!] = variable.shr()
             }
             Opcode.ROL_VAR -> {
                 val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
-                // todo b/w
+                checkDt(variable, DataType.BYTE)
+                val (newValue, newCarry) = variable.rol(P_carry)
+                variables[ins.callLabel!!] = newValue
+                P_carry = newCarry
+            }
+            Opcode.ROL_VAR_W -> {
+                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                checkDt(variable, DataType.WORD)
                 val (newValue, newCarry) = variable.rol(P_carry)
                 variables[ins.callLabel!!] = newValue
                 P_carry = newCarry
             }
             Opcode.ROR_VAR -> {
                 val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
-                // todo b/w
+                checkDt(variable, DataType.BYTE)
+                val (newValue, newCarry) = variable.ror(P_carry)
+                variables[ins.callLabel!!] = newValue
+                P_carry = newCarry
+            }
+            Opcode.ROR_VAR_W -> {
+                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                checkDt(variable, DataType.WORD)
                 val (newValue, newCarry) = variable.ror(P_carry)
                 variables[ins.callLabel!!] = newValue
                 P_carry = newCarry
             }
             Opcode.ROL2_VAR -> {
                 val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
-                // todo b/w
+                checkDt(variable, DataType.BYTE)
+                variables[ins.callLabel!!] = variable.rol2()
+            }
+            Opcode.ROL2_VAR_W -> {
+                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                checkDt(variable, DataType.WORD)
                 variables[ins.callLabel!!] = variable.rol2()
             }
             Opcode.ROR2_VAR -> {
                 val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
-                // todo b/w
+                checkDt(variable, DataType.BYTE)
+                variables[ins.callLabel!!] = variable.ror2()
+            }
+            Opcode.ROR2_VAR_W -> {
+                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                checkDt(variable, DataType.WORD)
                 variables[ins.callLabel!!] = variable.ror2()
             }
             Opcode.INC_VAR -> {
@@ -779,52 +906,156 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.AND -> {
                 val (top, second) = evalstack.pop2()
-                // todo b/w
+                checkDt(top, DataType.BYTE)
+                checkDt(second, DataType.BYTE)
+                evalstack.push(second.and(top))
+            }
+            Opcode.AND_W -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.WORD)
+                checkDt(second, DataType.WORD)
                 evalstack.push(second.and(top))
             }
             Opcode.OR -> {
                 val (top, second) = evalstack.pop2()
-                // todo b/w
+                checkDt(top, DataType.BYTE)
+                checkDt(second, DataType.BYTE)
+                evalstack.push(second.or(top))
+            }
+            Opcode.OR_W -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.WORD)
+                checkDt(second, DataType.WORD)
                 evalstack.push(second.or(top))
             }
             Opcode.XOR -> {
                 val (top, second) = evalstack.pop2()
-                // todo b/w
+                checkDt(top, DataType.BYTE)
+                checkDt(second, DataType.BYTE)
+                evalstack.push(second.xor(top))
+            }
+            Opcode.XOR_W -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.WORD)
+                checkDt(second, DataType.WORD)
                 evalstack.push(second.xor(top))
             }
             Opcode.NOT -> {
                 val value = evalstack.pop()
-                // todo b/w
+                checkDt(value, DataType.BYTE)
+                evalstack.push(value.not())
+            }
+            Opcode.NOT_W -> {
+                val value = evalstack.pop()
+                checkDt(value, DataType.WORD)
                 evalstack.push(value.not())
             }
             Opcode.LESS -> {
                 val (top, second) = evalstack.pop2()
-                // todo b/w/f?
+                checkDt(top, DataType.BYTE)
+                checkDt(second, DataType.BYTE)
+                evalstack.push(Value(DataType.BYTE, if(second < top) 1 else 0))
+            }
+            Opcode.LESS_W -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.WORD)
+                checkDt(second, DataType.WORD)
+                evalstack.push(Value(DataType.BYTE, if(second < top) 1 else 0))
+            }
+            Opcode.LESS_F -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.FLOAT)
+                checkDt(second, DataType.FLOAT)
                 evalstack.push(Value(DataType.BYTE, if(second < top) 1 else 0))
             }
             Opcode.GREATER -> {
                 val (top, second) = evalstack.pop2()
-                // todo b/w/f?
+                checkDt(top, DataType.BYTE)
+                checkDt(second, DataType.BYTE)
+                evalstack.push(Value(DataType.BYTE, if(second > top) 1 else 0))
+            }
+            Opcode.GREATER_W -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.WORD)
+                checkDt(second, DataType.WORD)
+                evalstack.push(Value(DataType.BYTE, if(second > top) 1 else 0))
+            }
+            Opcode.GREATER_F -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.FLOAT)
+                checkDt(second, DataType.FLOAT)
                 evalstack.push(Value(DataType.BYTE, if(second > top) 1 else 0))
             }
             Opcode.LESSEQ -> {
                 val (top, second) = evalstack.pop2()
-                // todo b/w/f?
+                checkDt(top, DataType.BYTE)
+                checkDt(second, DataType.BYTE)
+                evalstack.push(Value(DataType.BYTE, if(second <= top) 1 else 0))
+            }
+            Opcode.LESSEQ_W -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.WORD)
+                checkDt(second, DataType.WORD)
+                evalstack.push(Value(DataType.BYTE, if(second <= top) 1 else 0))
+            }
+            Opcode.LESSEQ_F -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.FLOAT)
+                checkDt(second, DataType.FLOAT)
                 evalstack.push(Value(DataType.BYTE, if(second <= top) 1 else 0))
             }
             Opcode.GREATEREQ -> {
                 val (top, second) = evalstack.pop2()
-                // todo b/w/f?
+                checkDt(top, DataType.BYTE)
+                checkDt(second, DataType.BYTE)
+                evalstack.push(Value(DataType.BYTE, if(second >= top) 1 else 0))
+            }
+            Opcode.GREATEREQ_W -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.WORD)
+                checkDt(second, DataType.WORD)
+                evalstack.push(Value(DataType.BYTE, if(second >= top) 1 else 0))
+            }
+            Opcode.GREATEREQ_F -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.FLOAT)
+                checkDt(second, DataType.FLOAT)
                 evalstack.push(Value(DataType.BYTE, if(second >= top) 1 else 0))
             }
             Opcode.EQUAL -> {
                 val (top, second) = evalstack.pop2()
-                // todo b/w/f?
+                checkDt(top, DataType.BYTE)
+                checkDt(second, DataType.BYTE)
+                evalstack.push(Value(DataType.BYTE, if(second == top) 1 else 0))
+            }
+            Opcode.EQUAL_W -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.WORD)
+                checkDt(second, DataType.WORD)
+                evalstack.push(Value(DataType.BYTE, if(second == top) 1 else 0))
+            }
+            Opcode.EQUAL_F -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.FLOAT)
+                checkDt(second, DataType.FLOAT)
                 evalstack.push(Value(DataType.BYTE, if(second == top) 1 else 0))
             }
             Opcode.NOTEQUAL -> {
                 val (top, second) = evalstack.pop2()
-                // todo b/w/f?
+                checkDt(top, DataType.BYTE)
+                checkDt(second, DataType.BYTE)
+                evalstack.push(Value(DataType.BYTE, if(second != top) 1 else 0))
+            }
+            Opcode.NOTEQUAL_W -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.WORD)
+                checkDt(second, DataType.WORD)
+                evalstack.push(Value(DataType.BYTE, if(second != top) 1 else 0))
+            }
+            Opcode.NOTEQUAL_F -> {
+                val (top, second) = evalstack.pop2()
+                checkDt(top, DataType.FLOAT)
+                checkDt(second, DataType.FLOAT)
                 evalstack.push(Value(DataType.BYTE, if(second != top) 1 else 0))
             }
             Opcode.B2WORD -> {
