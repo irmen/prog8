@@ -90,7 +90,7 @@ Scope
 Blocks, Scopes, and accessing Symbols
 -------------------------------------
 
-Blocks are the separate pieces of code and data of your program. They are combined
+**Blocks** are the top level separate pieces of code and data of your program. They are combined
 into a single output program.  No code or data can occur outside a block. Here's an example::
 
 	~ main $c000 {
@@ -111,6 +111,18 @@ Usually it is omitted, and the compiler will automatically choose the location (
 the previous block in memory).
 The address must be >= ``$0200`` (because ``$00``--``$ff`` is the ZP and ``$100``--``$200`` is the cpu stack).
 
+**The special "ZP" ZeroPage block**
+
+Blocks named "ZP" are treated a bit differently: they refer to the ZeroPage.
+The contents of every block with that name (this one may occur multiple times) are merged into one.
+Its start address is always set to ``$04``, because ``$00 - $01`` are used by the hardware
+and ``$02 - $03`` are reserved as general purpose scratch registers.
+
+
+.. _scopes:
+
+**Scopes**
+
 .. sidebar::
     Scoped access to symbols / "dotted names"
 
@@ -118,21 +130,16 @@ The address must be >= ``$0200`` (because ``$00``--``$ff`` is the ZP and ``$100`
     So, accessing a variable ``counter`` defined in subroutine ``worker`` in block ``main``,
     can be done from anywhere by using ``main.worker.counter``.
 
-A block is also a *scope* in your program so the symbols in the block don't clash with
-symbols of the same name defined elsewhere in the same file or in another file.
-You can refer to the symbols in a particular block by using a *dotted name*: ``blockname.symbolname``.
-Labels inside a subroutine are appended again to that; ``blockname.subroutinename.label``.
-A symbol name that's not a dotted name is searched for in the current scope, if it's not found there,
-one scope higher, and so on until it is found.
+*Symbols* are names defined in a certain *scope*. Inside the same scope, you can refer
+to them by their 'short' name directly.  If the symbol is not found in the same scope,
+the enclosing scope is searched for it, and so on, until the symbol is found.
 
+Scopes are created using several statements:
 
-
-**The special "ZP" ZeroPage block**
-
-Blocks named "ZP" are treated a bit differently: they refer to the ZeroPage.
-The contents of every block with that name (this one may occur multiple times) are merged into one.
-Its start address is always set to ``$04``, because ``$00 - $01`` are used by the hardware
-and ``$02 - $03`` are reserved as general purpose scratch registers.
+- blocks  (top-level named scope)
+- subroutines   (nested named scopes)
+- for, while, repeat loops   (anonymous scope)
+- if statements and branching conditionals    (anonymous scope)
 
 
 Program Start and Entry Point
@@ -172,6 +179,7 @@ Variables and values
 --------------------
 
 Variables are named values that can change during the execution of the program.
+They can be defined inside any scope (blocks, subroutines, for loops, etc.) See :ref:`Scopes <scopes>`.
 When declaring a numeric variable it is possible to specify the initial value, if you don't want it to be zero.
 For other data types it is required to specify that initial value it should get.
 Values will usually be part of an expression or assignment statement::

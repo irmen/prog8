@@ -1,33 +1,27 @@
 %option enable_floats
 
 ~ main {
+    const word width = 320 // 2
+    const word height = 256 // 2
+    const word xoffset = 40
+    const word yoffset = 30
 
     sub start()  {
-
-        const word width = 320 // 2
-        const word height = 256 // 2
-        const word xoffset = 40
-        const word yoffset = 30
-        word pixelx
-        byte pixely
-        float xx
-        float yy
-        float x
-        float y
-        float xsquared
-        float ysquared
-        byte iter
-        word plotx
-        byte ploty
-
         _vm_gfx_clearscr(11)
         _vm_gfx_text(2, 1, 1, "Calculating Mandelbrot Fractal...")
 
+        byte pixely     ; @todo allow defining loopvar INSIDE loop scope ("for byte pixely in ...")
         for pixely in yoffset to yoffset+height-1 {
-            yy = flt((pixely-yoffset))/height/3.6+0.4
+            float yy = flt((pixely-yoffset))/height/3.6+0.4
 
+            word pixelx  ; @todo allow defining loopvar INSIDE loop scope ("for word pixelx in ...")
             for pixelx in xoffset to xoffset+width-1 {
-                xx = flt((pixelx-xoffset))/width/3.0+0.2
+                float xx = flt((pixelx-xoffset))/width/3.0+0.2
+                float xsquared
+                float ysquared
+                float x
+                float y
+                byte iter  ; @todo re-initialize variable when entering scope
 
                 x = 0.0
                 y = 0.0

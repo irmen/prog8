@@ -275,19 +275,21 @@ class AstChecker(private val namespace: INameScope,
         }
 
         val targetDatatype = assignment.target.determineDatatype(namespace, heap, assignment)
-        val constVal = assignment.value.constValue(namespace, heap)
-        if(constVal!=null) {
-            checkValueTypeAndRange(targetDatatype, null, constVal, heap)
-        } else {
-            val sourceDatatype: DataType? = assignment.value.resultingDatatype(namespace, heap)
-            if(sourceDatatype==null) {
-                if(assignment.value is FunctionCall)
-                    checkResult.add(ExpressionError("function call doesn't return a value to use in assignment", assignment.value.position))
-                else
-                    checkResult.add(ExpressionError("assignment value is invalid or has no proper datatype", assignment.value.position))
-            }
-            else {
-                checkAssignmentCompatible(targetDatatype, sourceDatatype, assignment.value, assignment.position)
+        if(targetDatatype!=null) {
+            val constVal = assignment.value.constValue(namespace, heap)
+            if(constVal!=null) {
+                checkValueTypeAndRange(targetDatatype, null, constVal, heap)
+            } else {
+                val sourceDatatype: DataType? = assignment.value.resultingDatatype(namespace, heap)
+                if(sourceDatatype==null) {
+                    if(assignment.value is FunctionCall)
+                        checkResult.add(ExpressionError("function call doesn't return a value to use in assignment", assignment.value.position))
+                    else
+                        checkResult.add(ExpressionError("assignment value is invalid or has no proper datatype", assignment.value.position))
+                }
+                else {
+                    checkAssignmentCompatible(targetDatatype, sourceDatatype, assignment.value, assignment.position)
+                }
             }
         }
 
@@ -308,11 +310,6 @@ class AstChecker(private val namespace: INameScope,
                 decl.arrayspec?.x?.referencesIdentifier(decl.name) == true ||
                 decl.arrayspec?.y?.referencesIdentifier(decl.name) == true) {
             err("recursive var declaration")
-        }
-
-        // for now, variables can only be declared in a block or subroutine (not in a loop statement block)  @todo fix this (anonymous namescope)
-        if(decl.parent !is Block && decl.parent !is Subroutine) {
-            err ("variables must be declared at block or subroutine level")
         }
 
         when(decl.type) {

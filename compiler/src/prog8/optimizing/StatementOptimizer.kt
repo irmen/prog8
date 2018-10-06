@@ -50,11 +50,11 @@ class StatementOptimizer(private val globalNamespace: INameScope, private val he
             return if(constvalue.asBooleanValue){
                 // always true -> keep only if-part
                 printWarning("condition is always true", ifStatement.position)
-                AnonymousStatementList(ifStatement.parent, ifStatement.statements, ifStatement.position)
+                ifStatement.truepart
             } else {
                 // always false -> keep only else-part
                 printWarning("condition is always false", ifStatement.position)
-                AnonymousStatementList(ifStatement.parent, ifStatement.elsepart, ifStatement.position)
+                ifStatement.elsepart
             }
         }
         return ifStatement
@@ -68,8 +68,8 @@ class StatementOptimizer(private val globalNamespace: INameScope, private val he
                 // for loop over a (constant) range of just a single value-- optimize the loop away
                 // loopvar/reg = range value , follow by block
                 val assignment = Assignment(AssignTarget(forLoop.loopRegister, forLoop.loopVar, null, forLoop.position), null, range.from, forLoop.position)
-                forLoop.body.add(0, assignment)
-                return AnonymousStatementList(forLoop.parent, forLoop.body, forLoop.position)
+                forLoop.body.statements.add(0, assignment)
+                return forLoop.body
             }
         }
         return forLoop
@@ -86,7 +86,7 @@ class StatementOptimizer(private val globalNamespace: INameScope, private val he
             } else {
                 // always false -> ditch whole statement
                 printWarning("condition is always false", whileLoop.position)
-                AnonymousStatementList(whileLoop.parent, emptyList(), whileLoop.position)
+                AnonymousScope(mutableListOf(), whileLoop.position)
             }
         }
         return whileLoop
@@ -99,7 +99,7 @@ class StatementOptimizer(private val globalNamespace: INameScope, private val he
             return if(constvalue.asBooleanValue){
                 // always true -> keep only the statement block
                 printWarning("condition is always true", repeatLoop.position)
-                AnonymousStatementList(repeatLoop.parent, repeatLoop.statements, repeatLoop.position)
+                repeatLoop.body
             } else {
                 // always false
                 printWarning("condition is always false", repeatLoop.position)

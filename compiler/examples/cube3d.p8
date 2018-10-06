@@ -29,9 +29,6 @@
     float[len(ycoor)] rotatedy
     float[len(zcoor)] rotatedz
 
-    ; general index var
-    byte i
-
     sub start()  {
         if irq.time_changed {
             irq.time_changed = 0
@@ -39,6 +36,7 @@
             _vm_gfx_text(8, 6, 1, "Spin")
             _vm_gfx_text(29, 11, 1, "to Win !")
 
+            byte i
             for i in 0 to width//10 {
                 _vm_gfx_line(i*2+width//2-width//10, 130, i*10.w, 199, 6)
             }
@@ -71,6 +69,7 @@
         float Azy = cosb*sinc
         float Azz = cosb*cosc
 
+        byte i
         for i in 0 to len(xcoor)-1 {
             rotatedx[i] = Axx*xcoor[i] + Axy*ycoor[i] + Axz*zcoor[i]
             rotatedy[i] = Ayx*xcoor[i] + Ayy*ycoor[i] + Ayz*zcoor[i]
@@ -80,9 +79,6 @@
 
 
     sub draw_edges() {
-        word edge
-        byte e_from
-        byte e_to
 
         sub toscreenx(x: float, z: float) -> word {
             return floor(x/(4.2+z) * flt(height)) + width // 2
@@ -93,35 +89,34 @@
         }
 
         ; draw all edges of the object
+        word edge
         for edge in edges {
-            e_from = msb(edge)
-            e_to = lsb(edge)
+            byte e_from = msb(edge)
+            byte e_to = lsb(edge)
             _vm_gfx_line(toscreenx(rotatedx[e_from], rotatedz[e_from]), toscreeny(rotatedy[e_from], rotatedz[e_from]),
                          toscreenx(rotatedx[e_to], rotatedz[e_to]), toscreeny(rotatedy[e_to], rotatedz[e_to]), e_from+e_to)
         }
 
         ; accentuate the vertices a bit with small boxes
-        word sx
-        word sy
-        byte col
+        byte i
         for i in 0 to len(xcoor)-1 {
-            sx = toscreenx(rotatedx[i], rotatedz[i])
-            sy = toscreeny(rotatedy[i], rotatedz[i])
-            col=i+2
-            _vm_gfx_pixel(sx-1, sy-1, col)
-            _vm_gfx_pixel(sx, sy-1, col)
-            _vm_gfx_pixel(sx+1, sy-1, col)
-            _vm_gfx_pixel(sx-1, sy, col)
-            _vm_gfx_pixel(sx, sy, col)
-            _vm_gfx_pixel(sx+1, sy, col)
-            _vm_gfx_pixel(sx-1, sy+1, col)
-            _vm_gfx_pixel(sx, sy+1, col)
-            _vm_gfx_pixel(sx+1, sy+1, col)
+            word sx = toscreenx(rotatedx[i], rotatedz[i])
+            word sy = toscreeny(rotatedy[i], rotatedz[i])
+            byte color=i+2
+            _vm_gfx_pixel(sx-1, sy-1, color)
+            _vm_gfx_pixel(sx, sy-1, color)
+            _vm_gfx_pixel(sx+1, sy-1, color)
+            _vm_gfx_pixel(sx-1, sy, color)
+            _vm_gfx_pixel(sx, sy, color)
+            _vm_gfx_pixel(sx+1, sy, color)
+            _vm_gfx_pixel(sx-1, sy+1, color)
+            _vm_gfx_pixel(sx, sy+1, color)
+            _vm_gfx_pixel(sx+1, sy+1, color)
 
-            _vm_gfx_pixel(sx, sy-2, col)
-            _vm_gfx_pixel(sx+2, sy, col)
-            _vm_gfx_pixel(sx, sy+2, col)
-            _vm_gfx_pixel(sx-2, sy, col)
+            _vm_gfx_pixel(sx, sy-2, color)
+            _vm_gfx_pixel(sx+2, sy, color)
+            _vm_gfx_pixel(sx, sy+2, color)
+            _vm_gfx_pixel(sx-2, sy, color)
         }
     }
 }

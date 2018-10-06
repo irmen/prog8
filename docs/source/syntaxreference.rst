@@ -236,8 +236,7 @@ type identifier  type                     storage size       example var declara
 ``byte[x]``      unsigned byte array      x bytes            ``byte[4] myvar = [1, 2, 3, 4]``
 ``word[x]``      unsigned word array      2*x bytes          ``word[4] myvar = [1, 2, 3, 4]``
 ``float[x]``     floating-point array     5*x bytes          ``float[4] myvar = [1.1, 2.2, 3.3, 4.4]``
-``byte[x,y]``    unsigned byte matrix     x*y bytes          ``byte[40,25] myvar = @todo``
-                                                             word-matrix not supported
+``byte[x,y]``    unsigned byte matrix     x*y bytes          ``byte[40,25] myvar = 255``
 ``str``          string (petscii)         varies             ``str myvar = "hello."``
                                                              implicitly terminated by a 0-byte
 ``str_p``        pascal-string (petscii)  varies             ``str_p myvar = "hello."``

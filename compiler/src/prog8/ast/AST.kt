@@ -148,14 +148,14 @@ interface IAstProcessor {
 
     fun process(ifStatement: IfStatement): IStatement {
         ifStatement.condition = ifStatement.condition.process(this)
-        ifStatement.statements = ifStatement.statements.map { it.process(this) }
-        ifStatement.elsepart = ifStatement.elsepart.map { it.process(this) }
+        ifStatement.truepart = ifStatement.truepart.process(this)
+        ifStatement.elsepart = ifStatement.elsepart.process(this)
         return ifStatement
     }
 
     fun process(branchStatement: BranchStatement): IStatement {
-        branchStatement.statements = branchStatement.statements.map { it.process(this) }
-        branchStatement.elsepart = branchStatement.elsepart.map { it.process(this) }
+        branchStatement.truepart = branchStatement.truepart.process(this)
+        branchStatement.elsepart = branchStatement.elsepart.process(this)
         return branchStatement
     }
 
@@ -195,19 +195,19 @@ interface IAstProcessor {
     fun process(forLoop: ForLoop): IStatement {
         forLoop.loopVar?.process(this)
         forLoop.iterable = forLoop.iterable.process(this)
-        forLoop.body = forLoop.body.asSequence().map {it.process(this)}.toMutableList()
+        forLoop.body = forLoop.body.process(this)
         return forLoop
     }
 
     fun process(whileLoop: WhileLoop): IStatement {
         whileLoop.condition = whileLoop.condition.process(this)
-        whileLoop.statements = whileLoop.statements.map { it.process(this) }
+        whileLoop.body = whileLoop.body.process(this)
         return whileLoop
     }
 
     fun process(repeatLoop: RepeatLoop): IStatement {
         repeatLoop.untilCondition = repeatLoop.untilCondition.process(this)
-        repeatLoop.statements = repeatLoop.statements.map { it.process(this) }
+        repeatLoop.body = repeatLoop.body.process(this)
         return repeatLoop
     }
 
@@ -226,6 +226,11 @@ interface IAstProcessor {
         assignTarget.arrayindexed?.process(this)
         assignTarget.identifier?.process(this)
         return assignTarget
+    }
+
+    fun process(scope: AnonymousScope): AnonymousScope {
+        scope.statements = scope.statements.asSequence().map { it.process(this) }.toMutableList()
+        return scope
     }
 }
 
@@ -288,10 +293,32 @@ interface INameScope {
     val name: String
     val position: Position
     var statements: MutableList<IStatement>
+    val parent: Node
 
-    fun registerUsedName(name: String)
+    fun linkParents(parent: Node)
 
-    fun subScopes() = statements.asSequence().filter { it is INameScope }.map { it as INameScope }.associate { it.name to it }
+    fun subScopes(): Map<String, INameScope> {
+        val subscopes = mutableMapOf<String, INameScope>()
+        for(stmt in statements) {
+            when(stmt) {
+                is INameScope -> subscopes[stmt.name] = stmt
+                is ForLoop -> subscopes[stmt.body.name] = stmt.body
+                is RepeatLoop -> subscopes[stmt.body.name] = stmt.body
+                is WhileLoop -> subscopes[stmt.body.name] = stmt.body
+                is BranchStatement -> {
+                    subscopes[stmt.truepart.name] = stmt.truepart
+                    if(!stmt.elsepart.isEmpty())
+                        subscopes[stmt.elsepart.name] = stmt.elsepart
+                }
+                is IfStatement -> {
+                    subscopes[stmt.truepart.name] = stmt.truepart
+                    if(!stmt.elsepart.isEmpty())
+                        subscopes[stmt.elsepart.name] = stmt.elsepart
+                }
+            }
+        }
+        return subscopes
+    }
 
     fun labelsAndVariables() = statements.asSequence().filter { it is Label || it is VarDecl }
             .associate {((it as? Label)?.name ?: (it as? VarDecl)?.name)!! to it }
@@ -345,30 +372,8 @@ interface INameScope {
         val removed = statements.remove(statement)
         if(!removed) throw AstException("node to remove wasn't found")
     }
-}
 
-
-/**
- * Inserted into the Ast in place of modified nodes (not inserted directly as a parser result)
- * It can hold zero or more replacement statements that have to be inserted at that point.
- */
-class AnonymousStatementList(override var parent: Node,
-                             var statements: List<IStatement>,
-                             override val position: Position) : IStatement {
-
-    init {
-        linkParents(parent)
-    }
-
-    override fun linkParents(parent: Node) {
-        this.parent = parent
-        statements.forEach { it.linkParents(this) }
-    }
-
-    override fun process(processor: IAstProcessor): IStatement {
-        statements = statements.map { it.process(processor) }
-        return this
-    }
+    fun isEmpty() = statements.isEmpty()
 }
 
 
@@ -382,7 +387,8 @@ object BuiltinFunctionScopePlaceholder : INameScope {
     override val name = "<<builtin-functions-scope-placeholder>>"
     override val position = Position("<<placeholder>>", 0, 0, 0)
     override var statements = mutableListOf<IStatement>()
-    override fun registerUsedName(name: String) = throw NotImplementedError("not implemented on sub-scopes")
+    override var parent: Node = ParentSentinel
+    override fun linkParents(parent: Node) {}
 }
 
 class BuiltinFunctionStatementPlaceholder(val name: String, override val position: Position) : IStatement {
@@ -411,15 +417,14 @@ class Module(override val name: String,
     }
 
     override fun definingScope(): INameScope = GlobalNamespace("<<<global>>>", statements, position)
-    override fun registerUsedName(name: String) = throw NotImplementedError("not implemented on sub-scopes")
 }
 
 
 private class GlobalNamespace(override val name: String,
                               override var statements: MutableList<IStatement>,
                               override val position: Position) : INameScope {
-
-    private val scopedNamesUsed: MutableSet<String> = mutableSetOf("main", "main.start")      // main and main.start are always used
+    override var parent = ParentSentinel
+    override fun linkParents(parent: Node) {}
 
     override fun lookup(scopedName: List<String>, statement: Node): IStatement? {
         if(scopedName.last() in BuiltinFunctions) {
@@ -429,24 +434,11 @@ private class GlobalNamespace(override val name: String,
             return builtinPlaceholder
         }
         val stmt = super.lookup(scopedName, statement)
-        if(stmt!=null) {
-            val targetScopedName = when(stmt) {
-                is Label -> stmt.scopedname
-                is VarDecl -> stmt.scopedname
-                is Block -> stmt.scopedname
-                is Subroutine -> stmt.scopedname
-                else -> throw NameError("wrong identifier target: $stmt", stmt.position)
-            }
-            registerUsedName(targetScopedName)
+        return when (stmt) {
+            is Label, is VarDecl, is Block, is Subroutine -> stmt
+            null -> null
+            else -> throw NameError("wrong identifier target: $stmt", stmt.position)
         }
-        return stmt
-    }
-
-    override fun registerUsedName(name: String) {
-        // make sure to also register each scope separately
-        scopedNamesUsed.add(name)
-        if('.' in name)
-            registerUsedName(name.substringBeforeLast('.'))
     }
 }
 
@@ -469,8 +461,6 @@ class Block(override val name: String,
     override fun toString(): String {
         return "Block(name=$name, address=$address, ${statements.size} statements)"
     }
-
-    override fun registerUsedName(name: String) = throw NotImplementedError("not implemented on sub-scopes")
 }
 
 
@@ -669,7 +659,7 @@ data class AssignTarget(val register: Register?,
 
     fun process(processor: IAstProcessor) = processor.process(this)
 
-    fun determineDatatype(namespace: INameScope, heap: HeapValues, stmt: IStatement): DataType {
+    fun determineDatatype(namespace: INameScope, heap: HeapValues, stmt: IStatement): DataType? {
         if(register!=null)
             return when(register){
                 Register.A, Register.X, Register.Y -> DataType.BYTE
@@ -677,8 +667,7 @@ data class AssignTarget(val register: Register?,
             }
 
         if(identifier!=null) {
-            val symbol = namespace.lookup(identifier.nameInSource, stmt)
-                    ?: throw FatalAstException("symbol lookup failed: ${identifier.nameInSource}")
+            val symbol = namespace.lookup(identifier.nameInSource, stmt) ?: return null
             if (symbol is VarDecl) return symbol.datatype
         }
 
@@ -1291,6 +1280,27 @@ class InlineAssembly(val assembly: String, override val position: Position) : IS
 
 class RegisterOrStatusflag(val register: Register?, val statusflag: Statusflag?)
 
+class AnonymousScope(override var statements: MutableList<IStatement>,
+                     override val position: Position) : INameScope, IStatement {
+    override val name: String
+    override lateinit var parent: Node
+
+    init {
+        name = "<<<anonymous-$sequenceNumber>>>"
+        sequenceNumber++
+    }
+
+    companion object {
+        private var sequenceNumber = 1
+    }
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        statements.forEach { it.linkParents(this) }
+    }
+    override fun process(processor: IAstProcessor) = processor.process(this)
+}
+
 class Subroutine(override val name: String,
                  val parameters: List<SubroutineParameter>,
                  val returnvalues: List<DataType>,
@@ -1314,8 +1324,6 @@ class Subroutine(override val name: String,
     override fun toString(): String {
         return "Subroutine(name=$name, parameters=$parameters, returnvalues=$returnvalues, ${statements.size} statements, address=$asmAddress)"
     }
-
-    override fun registerUsedName(name: String) = throw NotImplementedError("not implemented on sub-scopes")
 }
 
 
@@ -1330,16 +1338,16 @@ open class SubroutineParameter(val name: String,
 }
 
 class IfStatement(var condition: IExpression,
-                  var statements: List<IStatement>,
-                  var elsepart: List<IStatement>,
+                  var truepart: AnonymousScope,
+                  var elsepart: AnonymousScope,
                   override val position: Position) : IStatement {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
         condition.linkParents(this)
-        statements.forEach { it.linkParents(this) }
-        elsepart.forEach { it.linkParents(this) }
+        truepart.linkParents(this)
+        elsepart.linkParents(this)
     }
 
     override fun process(processor: IAstProcessor): IStatement = processor.process(this)
@@ -1347,29 +1355,25 @@ class IfStatement(var condition: IExpression,
 
 
 class BranchStatement(var condition: BranchCondition,
-                      var statements: List<IStatement>,
-                      var elsepart: List<IStatement>,
+                      var truepart: AnonymousScope,
+                      var elsepart: AnonymousScope,
                       override val position: Position) : IStatement {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
-        statements.forEach { it.linkParents(this) }
-        elsepart.forEach { it.linkParents(this) }
+        truepart.linkParents(this)
+        elsepart.linkParents(this)
     }
 
     override fun process(processor: IAstProcessor): IStatement = processor.process(this)
-
-    override fun toString(): String {
-        return "Branch(cond: $condition, ${statements.size} stmts, ${elsepart.size} else-stmts, pos=$position)"
-    }
 }
 
 
 class ForLoop(val loopRegister: Register?,
               val loopVar: IdentifierReference?,
               var iterable: IExpression,
-              var body: MutableList<IStatement>,
+              var body: AnonymousScope,
               override val position: Position) : IStatement {
     override lateinit var parent: Node
 
@@ -1377,7 +1381,7 @@ class ForLoop(val loopRegister: Register?,
         this.parent=parent
         loopVar?.linkParents(this)
         iterable.linkParents(this)
-        body.forEach { it.linkParents(this) }
+        body.linkParents(this)
     }
 
     override fun process(processor: IAstProcessor) = processor.process(this)
@@ -1389,21 +1393,21 @@ class ForLoop(val loopRegister: Register?,
 
 
 class WhileLoop(var condition: IExpression,
-                var statements: List<IStatement>,
+                var body: AnonymousScope,
                 override val position: Position) : IStatement {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
         condition.linkParents(this)
-        statements.forEach { it.linkParents(this) }
+        body.linkParents(this)
     }
 
     override fun process(processor: IAstProcessor): IStatement = processor.process(this)
 }
 
 
-class RepeatLoop(var statements: List<IStatement>,
+class RepeatLoop(var body: AnonymousScope,
                  var untilCondition: IExpression,
                  override val position: Position) : IStatement {
     override lateinit var parent: Node
@@ -1411,7 +1415,7 @@ class RepeatLoop(var statements: List<IStatement>,
     override fun linkParents(parent: Node) {
         this.parent = parent
         untilCondition.linkParents(this)
-        statements.forEach { it.linkParents(this) }
+        body.linkParents(this)
     }
 
     override fun process(processor: IAstProcessor): IStatement = processor.process(this)
@@ -1826,21 +1830,25 @@ private fun prog8Parser.ArrayliteralContext.toAst() : Array<IExpression> =
 
 private fun prog8Parser.If_stmtContext.toAst(): IfStatement {
     val condition = expression().toAst()
-    val statements = statement_block()?.toAst() ?: listOf(statement().toAst())
-    val elsepart = else_part()?.toAst() ?: emptyList()
-    return IfStatement(condition, statements, elsepart, toPosition())
+    val trueStatements = statement_block()?.toAst() ?: mutableListOf(statement().toAst())
+    val elseStatements = else_part()?.toAst() ?: mutableListOf()
+    val trueScope = AnonymousScope(trueStatements, statement_block()?.toPosition() ?: statement().toPosition())
+    val elseScope = AnonymousScope(elseStatements, else_part()?.toPosition() ?: toPosition())
+    return IfStatement(condition, trueScope, elseScope, toPosition())
 }
 
-private fun prog8Parser.Else_partContext.toAst(): List<IStatement> {
-    return statement_block()?.toAst() ?: listOf(statement().toAst())
+private fun prog8Parser.Else_partContext.toAst(): MutableList<IStatement> {
+    return statement_block()?.toAst() ?: mutableListOf(statement().toAst())
 }
 
 
 private fun prog8Parser.Branch_stmtContext.toAst(): BranchStatement {
     val branchcondition = branchcondition().toAst()
-    val statements = statement_block()?.toAst() ?: listOf(statement().toAst())
-    val elsepart = else_part()?.toAst() ?: emptyList()
-    return BranchStatement(branchcondition, statements, elsepart, toPosition())
+    val trueStatements = statement_block()?.toAst() ?: mutableListOf(statement().toAst())
+    val elseStatements = else_part()?.toAst() ?: mutableListOf()
+    val trueScope = AnonymousScope(trueStatements, statement_block()?.toPosition() ?: statement().toPosition())
+    val elseScope = AnonymousScope(elseStatements, else_part()?.toPosition() ?: toPosition())
+    return BranchStatement(branchcondition, trueScope, elseScope, toPosition())
 }
 
 private fun prog8Parser.BranchconditionContext.toAst() = BranchCondition.valueOf(text.substringAfter('_').toUpperCase())
@@ -1850,8 +1858,8 @@ private fun prog8Parser.ForloopContext.toAst(): ForLoop {
     val loopregister = register()?.toAst()
     val loopvar = identifier()?.toAst()
     val iterable = expression()!!.toAst()
-    val body = statement_block().toAst()
-    return ForLoop(loopregister, loopvar, iterable, body, toPosition())
+    val scope = AnonymousScope(statement_block().toAst(), statement_block().toPosition())
+    return ForLoop(loopregister, loopvar, iterable, scope, toPosition())
 }
 
 
@@ -1862,13 +1870,15 @@ private fun prog8Parser.BreakstmtContext.toAst() = Break(toPosition())
 
 private fun prog8Parser.WhileloopContext.toAst(): WhileLoop {
     val condition = expression().toAst()
-    val statements = statement_block()?.toAst() ?: listOf(statement().toAst())
-    return WhileLoop(condition, statements, toPosition())
+    val statements = statement_block()?.toAst() ?: mutableListOf(statement().toAst())
+    val scope = AnonymousScope(statements, statement_block()?.toPosition() ?: statement().toPosition())
+    return WhileLoop(condition, scope, toPosition())
 }
 
 
 private fun prog8Parser.RepeatloopContext.toAst(): RepeatLoop {
     val untilCondition = expression().toAst()
-    val statements = statement_block()?.toAst() ?: listOf(statement().toAst())
-    return RepeatLoop(statements, untilCondition, toPosition())
+    val statements = statement_block()?.toAst() ?: mutableListOf(statement().toAst())
+    val scope = AnonymousScope(statements, statement_block()?.toPosition() ?: statement().toPosition())
+    return RepeatLoop(scope, untilCondition, toPosition())
 }

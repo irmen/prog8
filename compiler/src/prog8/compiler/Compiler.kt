@@ -387,7 +387,6 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
         for (stmt: IStatement in statements) {
             stmtUniqueSequenceNr++
             when (stmt) {
-                is AnonymousStatementList -> translate(stmt.statements)
                 is Label -> translate(stmt)
                 is Return -> translate(stmt)
                 is Assignment -> translate(stmt)        // normal and augmented assignments
@@ -401,6 +400,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                 is ForLoop -> translate(stmt)
                 is WhileLoop -> translate(stmt)
                 is RepeatLoop -> translate(stmt)
+                is AnonymousScope -> translate(stmt)
                 is Directive, is VarDecl, is Subroutine -> {}   // skip this, already processed these.
                 is InlineAssembly -> throw CompilerException("inline assembly is not supported by the StackVM")
                 else -> TODO("translate statement $stmt to stackvm")
@@ -574,11 +574,11 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
         }
         if(branch.elsepart.isEmpty()) {
             stackvmProg.instr(opcode, callLabel = labelEnd)
-            translate(branch.statements)
+            translate(branch.truepart)
             stackvmProg.label(labelEnd)
         } else {
             stackvmProg.instr(opcode, callLabel = labelElse)
-            translate(branch.statements)
+            translate(branch.truepart)
             stackvmProg.instr(Opcode.JUMP, callLabel = labelEnd)
             stackvmProg.label(labelElse)
             translate(branch.elsepart)
@@ -616,12 +616,12 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
         val labelEnd = makeLabel("end")
         if(stmt.elsepart.isEmpty()) {
             stackvmProg.instr(Opcode.BZ, callLabel = labelEnd)
-            translate(stmt.statements)
+            translate(stmt.truepart)
             stackvmProg.label(labelEnd)
         } else {
             val labelElse = makeLabel("else")
             stackvmProg.instr(Opcode.BZ, callLabel = labelElse)
-            translate(stmt.statements)
+            translate(stmt.truepart)
             stackvmProg.instr(Opcode.JUMP, callLabel = labelEnd)
             stackvmProg.label(labelElse)
             translate(stmt.elsepart)
@@ -1209,7 +1209,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                     val target = stmt.target.identifier!!.targetStatement(namespace)!!
                     when(target) {
                         is VarDecl -> {
-                            val opcode = opcodePushvar(stmt.target.determineDatatype(namespace, heap, stmt))
+                            val opcode = opcodePushvar(stmt.target.determineDatatype(namespace, heap, stmt)!!)
                             stackvmProg.instr(opcode, callLabel = target.scopedname)
                         }
                         else -> throw CompilerException("invalid assignment target type ${target::class}")
@@ -1231,7 +1231,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                 val target = stmt.target.identifier!!.targetStatement(namespace)!!
                 when(target) {
                     is VarDecl -> {
-                        val opcode = opcodePopvar(stmt.target.determineDatatype(namespace, heap, stmt))
+                        val opcode = opcodePopvar(stmt.target.determineDatatype(namespace, heap, stmt)!!)
                         stackvmProg.instr(opcode, callLabel =  target.scopedname)
                     }
                     else -> throw CompilerException("invalid assignment target type ${target::class}")
@@ -1383,10 +1383,10 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
             } else {
                 // loop over a range where one or more of the start, last or step values is not a constant
                 if(loop.loopRegister!=null) {
-                    translateForOverVariableRange(null, loop.loopRegister, loopVarDt, loop.iterable as RangeExpr, loop.body)
+                    translateForOverVariableRange(null, loop.loopRegister, loop.iterable as RangeExpr, loop.body)
                 }
                 else {
-                    translateForOverVariableRange(loop.loopVar!!.nameInSource, null, loopVarDt, loop.iterable as RangeExpr, loop.body)
+                    translateForOverVariableRange(loop.loopVar!!.nameInSource, null, loop.iterable as RangeExpr, loop.body)
                 }
             }
         } else {
@@ -1496,7 +1496,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
         continueStmtLabelStack.pop()
     }
 
-    private fun translateForOverConstantRange(varname: String, varDt: DataType, range: IntProgression, body: MutableList<IStatement>) {
+    private fun translateForOverConstantRange(varname: String, varDt: DataType, range: IntProgression, body: AnonymousScope) {
         /**
          * for LV in start..last { body }
          * (and we already know that the range is not empty, and first and last are exactly inclusive.)
@@ -1559,7 +1559,8 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
         continueStmtLabelStack.pop()
     }
 
-    private fun translateForOverVariableRange(varname: List<String>?, register: Register?, varDt: DataType, range: RangeExpr, body: MutableList<IStatement>) {
+    private fun translateForOverVariableRange(varname: List<String>?, register: Register?,
+                                              range: RangeExpr, body: AnonymousScope) {
         /*
          * for LV in start..last { body }
          * (where at least one of the start, last, step values is not a constant)
@@ -1628,8 +1629,8 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                         BinaryExpression(loopVar,"<", range.to, range.position)
                     }
             val ifstmt = IfStatement(condition,
-                    listOf(Jump(null, null, breakLabel, range.position)),
-                    emptyList(),
+                    AnonymousScope(mutableListOf(Jump(null, null, breakLabel, range.position)), range.position),
+                    AnonymousScope(mutableListOf(), range.position),
                     range.position)
             ifstmt.linkParents(range.parent)
             translate(ifstmt)
@@ -1665,8 +1666,9 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                 }
                 val branch = BranchStatement(
                         BranchCondition.NZ,
-                        listOf(Jump(null, null, loopLabel, range.position)),
-                        emptyList(), range.position)
+                        AnonymousScope(mutableListOf(Jump(null, null, loopLabel, range.position)), range.position),
+                        AnonymousScope(mutableListOf(), range.position),
+                        range.position)
                 branch.linkParents(range.parent)
                 translate(branch)
             }
@@ -1689,6 +1691,8 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
         breakStmtLabelStack.pop()
         continueStmtLabelStack.pop()
     }
+
+    private fun translate(scope: AnonymousScope)  = translate(scope.statements)
 
     private fun translate(stmt: WhileLoop)
     {
@@ -1714,7 +1718,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
         continueStmtLabelStack.push(continueLabel)
         stackvmProg.instr(Opcode.JUMP, callLabel = continueLabel)
         stackvmProg.label(loopLabel)
-        translate(stmt.statements)
+        translate(stmt.body)
         stackvmProg.label(continueLabel)
         translate(stmt.condition)
         stackvmProg.instr(Opcode.BNZ, callLabel = loopLabel)
@@ -1747,7 +1751,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
         breakStmtLabelStack.push(breakLabel)
         continueStmtLabelStack.push(continueLabel)
         stackvmProg.label(loopLabel)
-        translate(stmt.statements)
+        translate(stmt.body)
         stackvmProg.label(continueLabel)
         translate(stmt.untilCondition)
         stackvmProg.instr(Opcode.BZ, callLabel = loopLabel)
