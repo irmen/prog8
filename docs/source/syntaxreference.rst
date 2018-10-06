@@ -450,17 +450,33 @@ Loops
 for loop
 ^^^^^^^^
 
-The loop variable must be a register or a byte/word variable defined in the local scope.
+The loop variable must be a register or a byte/word variable. It must be defined in the local scope (to reuse
+an existing variable), or you can declare it in the for loop directly to make a new one that is only visible
+in the body of the for loop.
 The expression that you loop over can be anything that supports iteration (such as ranges like ``0 to 100``,
 array variables and strings) *except* floating-point arrays (because a floating-point loop variable is not supported).
 
 You can use a single statement, or a statement block like in the example below::
 
-	for  <loopvar>  in  <expression>  [ step <amount> ]   {
+	for [byte | word]  <loopvar>  in  <expression>  [ step <amount> ]   {
 		; do something...
 		break		; break out of the loop
 		continue	; immediately enter next iteration
 	}
+
+For example, this is a for loop using the existing byte variable ``i`` to loop over a certain range of numbers::
+
+    for i in 20 to 155 {
+        ; do something
+    }
+
+And this is a loop over the values of the array ``fibonacci_numbers`` where the loop variable is declared in the loop itself::
+
+    word[20] fibonacci_numbers = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181]
+
+    for word fibnr in fibonacci_numbers {
+        ; do something
+    }
 
 
 while loop

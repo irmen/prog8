@@ -328,8 +328,9 @@ Loops
 -----
 
 The *for*-loop is used to let a variable (or register) iterate over a range of values. Iteration is done in steps of 1, but you can change this.
-The loop variable must be declared as byte or word earlier. Floating point iteration is not supported,
-if you want to loop over a floating-point array, use a loop with an integer index variable instead.
+The loop variable can be declared as byte or word earlier so you can reuse it for multiple occasions,
+or you can declare one directly in the for statement which will only be visible in the for loop body.
+Iterating with a floating point variable is not supported. If you want to loop over a floating-point array, use a loop with an integer index variable instead.
 
 The *while*-loop is used to repeat a piece of code while a certain condition is still true.
 The *repeat--until* loop is used to repeat a piece of code until a certain condition is true.

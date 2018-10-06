@@ -367,12 +367,6 @@ interface INameScope {
         printNames(0, this)
     }
 
-    fun removeStatement(statement: IStatement) {
-        // remove a statement (most likely because it is never referenced such as a subroutine)
-        val removed = statements.remove(statement)
-        if(!removed) throw AstException("node to remove wasn't found")
-    }
-
     fun isEmpty() = statements.isEmpty()
 }
 
@@ -1371,6 +1365,7 @@ class BranchStatement(var condition: BranchCondition,
 
 
 class ForLoop(val loopRegister: Register?,
+              val decltype: DataType?,
               val loopVar: IdentifierReference?,
               var iterable: IExpression,
               var body: AnonymousScope,
@@ -1379,7 +1374,7 @@ class ForLoop(val loopRegister: Register?,
 
     override fun linkParents(parent: Node) {
         this.parent=parent
-        loopVar?.linkParents(this)
+        loopVar?.linkParents(if(decltype==null) this else body)
         iterable.linkParents(this)
         body.linkParents(this)
     }
@@ -1856,10 +1851,11 @@ private fun prog8Parser.BranchconditionContext.toAst() = BranchCondition.valueOf
 
 private fun prog8Parser.ForloopContext.toAst(): ForLoop {
     val loopregister = register()?.toAst()
+    val datatype = datatype()?.toAst()
     val loopvar = identifier()?.toAst()
     val iterable = expression()!!.toAst()
     val scope = AnonymousScope(statement_block().toAst(), statement_block().toPosition())
-    return ForLoop(loopregister, loopvar, iterable, scope, toPosition())
+    return ForLoop(loopregister, datatype, loopvar, iterable, scope, toPosition())
 }
 
 

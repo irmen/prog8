@@ -1198,6 +1198,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                 }
                 DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                 DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
+                null -> throw CompilerException("could not determine targetdt")
                 // todo: maybe if you assign byte or word to array/matrix, clear it with that value?
             }
         }
@@ -1474,10 +1475,10 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
         val assignTarget = if(loop.loopRegister!=null)
             AssignTarget(loop.loopRegister, null, null, loop.position)
         else
-            AssignTarget(null, loop.loopVar, null, loop.position)
+            AssignTarget(null, loop.loopVar!!.copy(), null, loop.position)
         val arrayspec = ArraySpec(RegisterExpr(Register.valueOf(indexVar), loop.position), null, loop.position)
-        val assignLv = Assignment(assignTarget, null, ArrayIndexedExpression(loop.iterable as IdentifierReference, null, arrayspec, loop.position), loop.position)
-        assignLv.linkParents(loop.parent)
+        val assignLv = Assignment(assignTarget, null, ArrayIndexedExpression((loop.iterable as IdentifierReference).copy(), null, arrayspec, loop.position), loop.position)
+        assignLv.linkParents(loop.body)
         translate(assignLv)
         translate(loop.body)
         stackvmProg.label(continueLabel)

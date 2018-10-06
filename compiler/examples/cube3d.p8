@@ -69,8 +69,7 @@
         float Azy = cosb*sinc
         float Azz = cosb*cosc
 
-        byte i
-        for i in 0 to len(xcoor)-1 {
+        for byte i in 0 to len(xcoor)-1 {
             rotatedx[i] = Axx*xcoor[i] + Axy*ycoor[i] + Axz*zcoor[i]
             rotatedy[i] = Ayx*xcoor[i] + Ayy*ycoor[i] + Ayz*zcoor[i]
             rotatedz[i] = Azx*xcoor[i] + Azy*ycoor[i] + Azz*zcoor[i]
@@ -89,8 +88,7 @@
         }
 
         ; draw all edges of the object
-        word edge
-        for edge in edges {
+        for word edge in edges {
             byte e_from = msb(edge)
             byte e_to = lsb(edge)
             _vm_gfx_line(toscreenx(rotatedx[e_from], rotatedz[e_from]), toscreeny(rotatedy[e_from], rotatedz[e_from]),
@@ -98,8 +96,7 @@
         }
 
         ; accentuate the vertices a bit with small boxes
-        byte i
-        for i in 0 to len(xcoor)-1 {
+        for byte i in 0 to len(xcoor)-1 {
             word sx = toscreenx(rotatedx[i], rotatedz[i])
             word sy = toscreeny(rotatedy[i], rotatedz[i])
             byte color=i+2

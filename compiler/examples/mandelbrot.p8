@@ -10,12 +10,10 @@
         _vm_gfx_clearscr(11)
         _vm_gfx_text(2, 1, 1, "Calculating Mandelbrot Fractal...")
 
-        byte pixely     ; @todo allow defining loopvar INSIDE loop scope ("for byte pixely in ...")
-        for pixely in yoffset to yoffset+height-1 {
+        for byte pixely in yoffset to yoffset+height-1 {
             float yy = flt((pixely-yoffset))/height/3.6+0.4
 
-            word pixelx  ; @todo allow defining loopvar INSIDE loop scope ("for word pixelx in ...")
-            for pixelx in xoffset to xoffset+width-1 {
+            for word pixelx in xoffset to xoffset+width-1 {
                 float xx = flt((pixelx-xoffset))/width/3.0+0.2
                 float xsquared
                 float ysquared

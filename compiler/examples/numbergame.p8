@@ -11,8 +11,7 @@
         _vm_write_str(name)
         _vm_write_str(".\nI am thinking of a number from 1 to 100! You'll have to guess it!\n")
 
-        byte  attempts_left
-        for attempts_left in 10 to 1 step -1 {
+        for byte attempts_left in 10 to 1 step -1 {
             _vm_write_str("\nYou have ")
             _vm_write_num(attempts_left)
             _vm_write_str(" guess")

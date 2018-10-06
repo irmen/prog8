@@ -115,4 +115,29 @@ class AstIdentifiersChecker : IAstProcessor {
         }
         return super.process(label)
     }
+
+    override fun process(forLoop: ForLoop): IStatement {
+        // if the for loop as a decltype, it means to declare the loopvar inside the loop body
+        // rather than reusing an already declared loopvar from an outer scope.
+        if(forLoop.loopRegister!=null && forLoop.decltype!=null) {
+            checkResult.add(SyntaxError("register loop variables cannot be explicitly declared with a datatype", forLoop.position))
+        } else {
+            val loopVar = forLoop.loopVar!!
+            val varName = loopVar.nameInSource.last()
+            when (forLoop.decltype) {
+                DataType.BYTE, DataType.WORD -> {
+                    val existing = if(forLoop.body.isEmpty()) null else forLoop.body.lookup(loopVar.nameInSource, forLoop.body.statements.first())
+                    if(existing==null) {
+                        val vardecl = VarDecl(VarDeclType.VAR, forLoop.decltype, null, varName, null, loopVar.position)
+                        vardecl.linkParents(forLoop.body)
+                        forLoop.body.statements.add(0, vardecl)
+                        forLoop.loopVar.parent = forLoop.body   // loopvar 'is defined in the body'
+                    }
+                }
+                null -> {}
+                else -> checkResult.add(SyntaxError("loop variables can only be a byte or word", forLoop.position))
+            }
+        }
+        return super.process(forLoop)
+    }
 }
