@@ -56,11 +56,17 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                     val litval = decl.value as? LiteralValue
                     val size = decl.arrayspec!!.size()
                     if(litval!=null && litval.isArray) {
-                        // array initializer value is an array already, keep as-is
+                        // array initializer value is an array already, keep as-is (or convert to WORDs if needed)
                         if(litval.heapId!=null) {
                             if (decl.datatype == DataType.MATRIX && litval.type != DataType.MATRIX) {
                                 val array = heap.get(litval.heapId).copy(type = DataType.MATRIX)
                                 heap.update(litval.heapId, array)
+                            } else if(decl.datatype==DataType.ARRAY_W && litval.type == DataType.ARRAY) {
+                                val array = heap.get(litval.heapId)
+                                if(array.array!=null) {
+                                    heap.update(litval.heapId, HeapValues.HeapValue(DataType.ARRAY_W, null, array.array, null))
+                                    decl.value = LiteralValue(decl.datatype, heapId = litval.heapId, position = litval.position)
+                                }
                             }
                         }
                     } else if (size != null) {
