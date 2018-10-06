@@ -389,6 +389,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
             when (stmt) {
                 is Label -> translate(stmt)
                 is Return -> translate(stmt)
+                is VariableInitializationAssignment -> translate(stmt)        // for initializing vars in a scope
                 is Assignment -> translate(stmt)        // normal and augmented assignments
                 is PostIncrDecr -> translate(stmt)
                 is Jump -> translate(stmt)
@@ -1172,6 +1173,13 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
             }
             else -> throw CompilerException("very strange postincrdecr")
         }
+    }
+
+
+    private fun translate(stmt: VariableInitializationAssignment) {
+        // this is an assignment to initialize a variable's value in the scope.
+        // the compiler can perhaps optimize this phase.
+        translate(stmt as Assignment)
     }
 
     private fun translate(stmt: Assignment) {

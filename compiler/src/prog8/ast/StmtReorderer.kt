@@ -95,21 +95,22 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
 
     override fun process(decl: VarDecl): IStatement {
         super.process(decl)
-        if(decl.type==VarDeclType.VAR || decl.type==VarDeclType.CONST) {
-            if(decl.value!=null && decl.value?.constValue(namespace, heap)==null) {
-                // the value assigned to the variable isn't a constant.
-                // replace the var decl with an assignment and add a new vardecl with the default constant value.
-                val scope = decl.definingScope()
-                if(scope !in vardeclsToAdd)
-                    vardeclsToAdd[scope] = mutableListOf()
-                vardeclsToAdd[scope]!!.add(decl.asDefaultValueDecl())
-                return Assignment(
-                        AssignTarget(null, IdentifierReference(decl.scopedname.split("."), decl.position), null, decl.position),
-                        null,
-                        decl.value!!,
-                        decl.position
-                )
-            }
+        if(decl.type!=VarDeclType.VAR || decl.value==null)
+            return decl
+
+        // for variables that are not on the heap (so: byte, word, float),
+        // replace the var decl with an assignment and add a new vardecl with the default constant value.
+        if(decl.datatype == DataType.BYTE || decl.datatype==DataType.WORD || decl.datatype==DataType.FLOAT) {
+            val scope = decl.definingScope()
+            if(scope !in vardeclsToAdd)
+                vardeclsToAdd[scope] = mutableListOf()
+            vardeclsToAdd[scope]!!.add(decl.asDefaultValueDecl())
+            return VariableInitializationAssignment(
+                    AssignTarget(null, IdentifierReference(decl.scopedname.split("."), decl.position), null, decl.position),
+                    null,
+                    decl.value!!,
+                    decl.position
+            )
         }
         return decl
     }

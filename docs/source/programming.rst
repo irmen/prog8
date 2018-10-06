@@ -298,12 +298,15 @@ The largest 5-byte MFLPT float that can be stored is: **1.7014118345e+38**   (ne
 Initial values across multiple runs of the program
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. todo::
-    The initial values of your variables will be restored automatically when the program is (re)started,
-    *except for string variables, arrays and matrices*. It is assumed these are left unchanged by the program.
-    If you do modify them in-place, you should take care yourself that they work as
-    expected when the program is restarted.
+When declaring values with an initial value, this value will be set into the variable each time
+the program reaches the declaration again. This can be in loops, multiple subroutine calls,
+or even multiple invocations of the entire program.
 
+This only works for simple types, *and not for string variables, arrays and matrices*.
+It is assumed these are left unchanged by the program.
+If you do modify them in-place, you should take care yourself that they work as
+expected when the program is restarted.
+(This is an optimization choice to avoid having to store two copies of every string and array)
 
 
 Indirect addressing and address-of

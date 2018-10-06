@@ -36,8 +36,7 @@
             _vm_gfx_text(8, 6, 1, "Spin")
             _vm_gfx_text(29, 11, 1, "to Win !")
 
-            byte i
-            for i in 0 to width//10 {
+            for byte i in 0 to width//10 {
                 _vm_gfx_line(i*2+width//2-width//10, 130, i*10.w, 199, 6)
             }
 
@@ -109,7 +108,6 @@
             _vm_gfx_pixel(sx-1, sy+1, color)
             _vm_gfx_pixel(sx, sy+1, color)
             _vm_gfx_pixel(sx+1, sy+1, color)
-
             _vm_gfx_pixel(sx, sy-2, color)
             _vm_gfx_pixel(sx+2, sy, color)
             _vm_gfx_pixel(sx, sy+2, color)

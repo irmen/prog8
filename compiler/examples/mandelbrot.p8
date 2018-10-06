@@ -15,17 +15,13 @@
 
             for word pixelx in xoffset to xoffset+width-1 {
                 float xx = flt((pixelx-xoffset))/width/3.0+0.2
-                float xsquared
-                float ysquared
-                float x
-                float y
-                byte iter  ; @todo re-initialize variable when entering scope
 
-                x = 0.0
-                y = 0.0
-                xsquared = 0
-                ysquared = 0
-                iter = 0
+                float xsquared = 0.0
+                float ysquared = 0.0
+                float x = 0.0
+                float y = 0.0
+                byte iter = 0
+
                 while (iter<32 and xsquared+ysquared<4.0) {
                     y = x*y*2.0 + yy
                     x = xsquared - ysquared + xx
@@ -37,10 +33,8 @@
                 _vm_gfx_pixel(pixelx, pixely, iter)
             }
         }
-
         _vm_gfx_text(11, 21, 1, "Finished!")
     }
-
 }
 
 

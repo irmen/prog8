@@ -623,7 +623,7 @@ class VarDecl(val type: VarDeclType,
 }
 
 
-class Assignment(var target: AssignTarget, val aug_op : String?, var value: IExpression, override val position: Position) : IStatement {
+open class Assignment(var target: AssignTarget, val aug_op : String?, var value: IExpression, override val position: Position) : IStatement {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -638,6 +638,12 @@ class Assignment(var target: AssignTarget, val aug_op : String?, var value: IExp
         return("Assignment(augop: $aug_op, target: $target, value: $value, pos=$position)")
     }
 }
+
+// This is a special class so the compiler can see if the assignments are for initializing the vars in the scope,
+// or just a regular assignment. It may optimize the initialization step from this.
+class VariableInitializationAssignment(target: AssignTarget, aug_op: String?, value: IExpression, position: Position)
+    : Assignment(target, aug_op, value, position)
+
 
 data class AssignTarget(val register: Register?,
                         val identifier: IdentifierReference?,
