@@ -1,5 +1,7 @@
 package prog8.stackvm
 
+import prog8.compiler.target.c64.Charset
+import prog8.compiler.target.c64.Petscii
 import java.awt.*
 import java.awt.image.BufferedImage
 import javax.swing.JButton
@@ -12,7 +14,6 @@ class BitmapScreenPanel : JPanel() {
 
     private val image = BufferedImage(SCREENWIDTH, SCREENHEIGHT, BufferedImage.TYPE_INT_ARGB)
     private val g2d = image.graphics as Graphics2D
-
 
     init {
         val size = Dimension(image.width * SCALING, image.height * SCALING)
@@ -42,9 +43,22 @@ class BitmapScreenPanel : JPanel() {
         g2d.drawLine(x1, y1, x2, y2)
     }
     fun writeText(x: Int, y: Int, text: String, color: Int) {
-        g2d.font = Font(Font.MONOSPACED, Font.PLAIN, 10)
-        g2d.color = palette[color and 15]
-        g2d.drawString(text, x, y + g2d.font.size - 1)
+        if(color!=1) {
+            TODO("text can only be white for now")
+        }
+        var xx=x
+        var yy=y
+        for(sc in Petscii.encodeScreencode(text, true)) {
+            setChar(xx, yy, sc)
+            xx++
+            if(xx>=(SCREENWIDTH/8)) {
+                yy++
+                xx=0
+            }
+        }
+    }
+    fun setChar(x: Int, y: Int, screenCode: Short) {
+        g2d.drawImage(Charset.shiftedChars[screenCode.toInt()], 8*x, 8*y , null)
     }
 
 

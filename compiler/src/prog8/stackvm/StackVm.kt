@@ -1375,7 +1375,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val color = evalstack.pop()
                 val (cy, cx) = evalstack.pop2()
                 val text = heap.get(textPtr.heapId)
-                canvas?.writeText(8*cx.integerValue(), 8*cy.integerValue(), text.str!!, color.integerValue())
+                canvas?.writeText(cx.integerValue(), cy.integerValue(), text.str!!, color.integerValue())
             }
             Syscall.FUNC_RND -> evalstack.push(Value(DataType.BYTE, rnd.nextInt() and 255))
             Syscall.FUNC_RNDW -> evalstack.push(Value(DataType.WORD, rnd.nextInt() and 65535))

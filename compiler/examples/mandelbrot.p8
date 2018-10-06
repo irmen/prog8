@@ -21,7 +21,7 @@
         byte ploty
 
         _vm_gfx_clearscr(11)
-        _vm_gfx_text(2, 1, 7, "Calculating Mandelbrot Fractal...")
+        _vm_gfx_text(2, 1, 1, "Calculating Mandelbrot Fractal...")
 
         for pixely in yoffset to yoffset+height-1 {
             yy = flt((pixely-yoffset))/height/3.6+0.4
@@ -46,7 +46,7 @@
             }
         }
 
-        _vm_gfx_text(11, 21, 7, "Finished!")
+        _vm_gfx_text(11, 21, 1, "Finished!")
     }
 
 }
