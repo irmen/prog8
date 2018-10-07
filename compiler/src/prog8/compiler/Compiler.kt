@@ -135,9 +135,16 @@ class StackVmProgram(val name: String, val heap: HeapValues) {
 
     fun optimize() {
         println("\nOptimizing stackVM code...")
+        optimizeDataConversionAndUselessDiscards()
+        // todo optimize stackvm code more
 
+        // remove nops (that are not a label)
+        this.instructions.removeIf { it.opcode==Opcode.NOP && it !is LabelInstr }
+    }
+
+    private fun optimizeDataConversionAndUselessDiscards() {
         // - push value followed by a data type conversion -> push the value in the correct type and remove the conversion
-        // - push somthing followed by a discard -> remove both
+        // - push something followed by a discard -> remove both
 
         val typeConversionOpcodes = setOf(
                 Opcode.LSB,
@@ -242,11 +249,6 @@ class StackVmProgram(val name: String, val heap: HeapValues) {
         for(rins in instructionsToReplace) {
             instructions[rins.key] = rins.value
         }
-
-        // remove nops (that are not a label)
-        this.instructions.removeIf { it.opcode==Opcode.NOP && it !is LabelInstr }
-
-        // todo optimize stackvm code more
     }
 
     fun blockvar(scopedname: String, decl: VarDecl) {
@@ -329,7 +331,7 @@ class Compiler(private val options: CompilationOptions) {
 
         val translator = StatementTranslator(intermediate, namespace, heap)
         translator.process(module)
-        println(" ${translator.stmtUniqueSequenceNr} source statements,  ${intermediate.numInstructions} resulting instructions")
+        println(" ${intermediate.numInstructions} vm instructions")
 
         return intermediate
     }
@@ -350,7 +352,7 @@ class Compiler(private val options: CompilationOptions) {
 private class StatementTranslator(private val stackvmProg: StackVmProgram,
                                   private val namespace: INameScope,
                                   private val heap: HeapValues): IAstProcessor {
-    var stmtUniqueSequenceNr = 0
+    var generatedLabelSequenceNumber = 0
         private set
 
     val breakStmtLabelStack : Stack<String> = Stack()
@@ -387,7 +389,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
 
     private fun translate(statements: List<IStatement>) {
         for (stmt: IStatement in statements) {
-            stmtUniqueSequenceNr++
+            generatedLabelSequenceNumber++
             when (stmt) {
                 is Label -> translate(stmt)
                 is Return -> translate(stmt)
@@ -592,7 +594,10 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
         stackvmProg.instr(Opcode.NOP)
     }
 
-    private fun makeLabel(postfix: String): String = "_prog8stmt_${stmtUniqueSequenceNr}_$postfix"
+    private fun makeLabel(postfix: String): String {
+        generatedLabelSequenceNumber++
+        return "_prog8stmt_${generatedLabelSequenceNumber}_$postfix"
+    }
 
     private fun translate(stmt: IfStatement) {
         /*

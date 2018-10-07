@@ -307,12 +307,12 @@ interface INameScope {
                 is WhileLoop -> subscopes[stmt.body.name] = stmt.body
                 is BranchStatement -> {
                     subscopes[stmt.truepart.name] = stmt.truepart
-                    if(!stmt.elsepart.isEmpty())
+                    if(stmt.elsepart.isNotEmpty())
                         subscopes[stmt.elsepart.name] = stmt.elsepart
                 }
                 is IfStatement -> {
                     subscopes[stmt.truepart.name] = stmt.truepart
-                    if(!stmt.elsepart.isEmpty())
+                    if(stmt.elsepart.isNotEmpty())
                         subscopes[stmt.elsepart.name] = stmt.elsepart
                 }
             }
@@ -368,6 +368,13 @@ interface INameScope {
     }
 
     fun isEmpty() = statements.isEmpty()
+    fun isNotEmpty() = statements.isNotEmpty()
+
+    fun remove(stmt: IStatement) {
+        val removed = statements.remove(stmt)
+        if(!removed)
+            throw FatalAstException("stmt to remove wasn't found in scope")
+    }
 }
 
 
@@ -1153,7 +1160,7 @@ class PostIncrDecr(var target: AssignTarget, val operator: String, override val 
 
 class Jump(val address: Int?,
            val identifier: IdentifierReference?,
-           val generatedLabel: String?,
+           val generatedLabel: String?,             // used in code generation scenarios
            override val position: Position) : IStatement {
     override lateinit var parent: Node
 

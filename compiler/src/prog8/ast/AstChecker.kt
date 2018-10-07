@@ -83,7 +83,13 @@ class AstChecker(private val namespace: INameScope,
     override fun process(returnStmt: Return): IStatement {
         val expectedReturnValues = (returnStmt.definingScope() as? Subroutine)?.returnvalues ?: emptyList()
         if(expectedReturnValues.size != returnStmt.values.size) {
-            checkResult.add(SyntaxError("number of return values doesn't match subroutine return spec", returnStmt.position))
+            // if the return value is a function call, check the result of that call instead
+            if(returnStmt.values.size==1 && returnStmt.values[0] is FunctionCall) {
+                val dt = (returnStmt.values[0] as FunctionCall).resultingDatatype(namespace, heap)
+                if(dt!=null && expectedReturnValues.isEmpty())
+                    checkResult.add(SyntaxError("number of return values doesn't match subroutine return spec", returnStmt.position))
+            } else
+                checkResult.add(SyntaxError("number of return values doesn't match subroutine return spec", returnStmt.position))
         }
 
         for (rv in expectedReturnValues.withIndex().zip(returnStmt.values)) {
@@ -176,8 +182,8 @@ class AstChecker(private val namespace: INameScope,
 
     override fun process(label: Label): IStatement {
         // scope check
-        if(label.parent !is Block && label.parent !is Subroutine) {
-            checkResult.add(SyntaxError("Labels can only be defined in the scope of a block or within another subroutine", label.position))
+        if(label.parent !is Block && label.parent !is Subroutine && label.parent !is AnonymousScope) {
+            checkResult.add(SyntaxError("Labels can only be defined in the scope of a block, a loop body, or within another subroutine", label.position))
         }
         return super.process(label)
     }

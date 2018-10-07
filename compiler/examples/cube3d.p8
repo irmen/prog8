@@ -30,21 +30,21 @@
     float[len(zcoor)] rotatedz
 
     sub start()  {
-        if irq.time_changed {
-            irq.time_changed = 0
-            _vm_gfx_clearscr(0)
-            _vm_gfx_text(8, 6, 1, "Spin")
-            _vm_gfx_text(29, 11, 1, "to Win !")
+        while(1) {
+            if irq.time_changed {
+                irq.time_changed = 0
+                _vm_gfx_clearscr(0)
+                _vm_gfx_text(8, 6, 1, "Spin")
+                _vm_gfx_text(29, 11, 1, "to Win !")
 
-            for byte i in 0 to width//10 {
-                _vm_gfx_line(i*2+width//2-width//10, 130, i*10.w, 199, 6)
+                for byte i in 0 to width//10 {
+                    _vm_gfx_line(i*2+width//2-width//10, 130, i*10.w, 199, 6)
+                }
+
+                rotate_vertices(flt(irq.global_time) / 30.0)
+                draw_edges()
             }
-
-            rotate_vertices(flt(irq.global_time) / 30.0)
-            draw_edges()
-
         }
-        goto start
     }
 
     sub rotate_vertices(t: float) {

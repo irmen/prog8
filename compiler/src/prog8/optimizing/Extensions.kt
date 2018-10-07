@@ -33,9 +33,14 @@ fun Module.constantFold(globalNamespace: INameScope, heap: HeapValues) {
 fun Module.optimizeStatements(globalNamespace: INameScope, heap: HeapValues): Int {
     val optimizer = StatementOptimizer(globalNamespace, heap)
     this.process(optimizer)
+    for(stmt in optimizer.statementsToRemove) {
+        val scope=stmt.definingScope()
+        scope.remove(stmt)
+    }
+    this.linkParents()  // re-link in final configuration
+
     if(optimizer.optimizationsDone > 0)
         println("[${this.name}] Debug: ${optimizer.optimizationsDone} statement optimizations performed")
-    this.linkParents()  // re-link in final configuration
     return optimizer.optimizationsDone
 }
 

@@ -4,12 +4,17 @@
 
 ~ main {
 
-    byte[10,5] barray = 0
-
 sub start() {
-    X=barray[2,3]
-    barray[3,3]=X
 
+    repeat {
+        _vm_write_str("333\n")
+    } until(1)
+
+    repeat {
+        _vm_write_str("444\n")
+    } until (0)
+
+    return
 
 }
 
