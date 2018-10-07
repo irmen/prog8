@@ -259,12 +259,9 @@ class AstChecker(private val namespace: INameScope,
         }
 
         // it is not possible to assign a new array to something.
-        // currently, it's also not possible to assign a new string to a string variable.
         when(assignment.value.resultingDatatype(namespace, heap)) {
-            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS ->
-                checkResult.add(SyntaxError("it's not possible to reassign a string", assignment.position))       // todo allow reassigning strings
             DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX ->
-                checkResult.add(SyntaxError("it's not possible to reassign an array", assignment.position))
+                checkResult.add(SyntaxError("it's not possible to assign an array literal value to something, use it as a variable decl initializer instead", assignment.position))
             else -> {}
         }
 
@@ -708,6 +705,8 @@ class AstChecker(private val namespace: INameScope,
                     return err("value '$number' out of range for unsigned word")
             }
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
+                if(!value.isString)
+                    return err("string value expected")
                 val str = value.strvalue ?: heap.get(value.heapId!!).str!!
                 if (str.isEmpty() || str.length > 255)
                     return err("string length must be 1 to 255")
@@ -818,6 +817,10 @@ class AstChecker(private val namespace: INameScope,
             DataType.BYTE -> sourceDatatype==DataType.BYTE
             DataType.WORD -> sourceDatatype==DataType.BYTE || sourceDatatype==DataType.WORD
             DataType.FLOAT -> sourceDatatype==DataType.BYTE || sourceDatatype==DataType.WORD || sourceDatatype==DataType.FLOAT
+            DataType.STR -> sourceDatatype==DataType.STR
+            DataType.STR_S -> sourceDatatype==DataType.STR_S
+            DataType.STR_P -> sourceDatatype==DataType.STR_P
+            DataType.STR_PS -> sourceDatatype==DataType.STR_PS
             else -> checkResult.add(SyntaxError("cannot assign new value to variable of type $targetDatatype", position))
         }
 

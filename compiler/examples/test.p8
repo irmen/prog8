@@ -6,13 +6,14 @@
 
 sub start() {
 
-    repeat {
-        _vm_write_str("333\n")
-    } until(1)
+    str s1 = "hello"
+    str s2 = "bye"
 
-    repeat {
-        _vm_write_str("444\n")
-    } until (0)
+    _vm_write_str(s1)
+    s1 = s2
+    _vm_write_str(s1)
+    s1 = "ciao"
+    _vm_write_str(s1)
 
     return
 
