@@ -468,6 +468,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
             DataType.ARRAY -> Opcode.READ_INDEXED_VAR
             DataType.ARRAY_W -> Opcode.READ_INDEXED_VAR_W
             DataType.ARRAY_F -> Opcode.READ_INDEXED_VAR_F
+            DataType.MATRIX -> Opcode.READ_INDEXED_VAR
             else -> throw CompilerException("invalid dt for indexed $dt")
         }
     }
@@ -477,6 +478,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
             DataType.ARRAY -> Opcode.WRITE_INDEXED_VAR
             DataType.ARRAY_W -> Opcode.WRITE_INDEXED_VAR_W
             DataType.ARRAY_F -> Opcode.WRITE_INDEXED_VAR_F
+            DataType.MATRIX -> Opcode.WRITE_INDEXED_VAR
             else -> throw CompilerException("invalid dt for indexed $dt")
         }
     }
@@ -1110,10 +1112,18 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
             stackvmProg.instr(Opcode.ADD_W)
         }
 
-        if(write)
-            stackvmProg.instr(opcodeWriteindexedvar(variable!!.datatype), callLabel = variableName)
-        else
-            stackvmProg.instr(opcodeReadindexedvar(variable!!.datatype), callLabel = variableName)
+        if(variable!=null) {
+            if (write)
+                stackvmProg.instr(opcodeWriteindexedvar(variable.datatype), callLabel = variableName)
+            else
+                stackvmProg.instr(opcodeReadindexedvar(variable.datatype), callLabel = variableName)
+        } else {
+            // register indexed
+            if (write)
+                stackvmProg.instr(opcodeWriteindexedvar(DataType.ARRAY), callLabel = arrayindexed.register!!.toString())
+            else
+                stackvmProg.instr(opcodeReadindexedvar(DataType.ARRAY), callLabel = arrayindexed.register!!.toString())
+        }
     }
 
     private fun createSyscall(funcname: String) {

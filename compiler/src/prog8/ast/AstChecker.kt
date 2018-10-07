@@ -233,8 +233,6 @@ class AstChecker(private val namespace: INameScope,
      * Also check data type compatibility
      */
     override fun process(assignment: Assignment): IStatement {
-        // todo deal with target.arrayindexed
-
         if(assignment.target.identifier!=null) {
             val targetName = assignment.target.identifier!!.nameInSource
             val targetSymbol = namespace.lookup(targetName, assignment)
@@ -273,7 +271,6 @@ class AstChecker(private val namespace: INameScope,
                     else if(assignment.target.identifier!=null)
                         assignment.target.identifier!!
                     else if(assignment.target.arrayindexed!=null) {
-                        // todo deal with target.arrayindexed
                         assignment.target.arrayindexed!!
                     } else throw FatalAstException("strange assignment")
 
@@ -575,7 +572,21 @@ class AstChecker(private val namespace: INameScope,
                 }
             }
         } else if(postIncrDecr.target.arrayindexed!=null) {
-            // todo deal with target.arrayindexed
+            val indexedRegister = postIncrDecr.target.arrayindexed?.register
+            if(indexedRegister!=null) {
+                if(indexedRegister==Register.A || indexedRegister==Register.X || indexedRegister==Register.Y)
+                    checkResult.add(SyntaxError("array indexing on registers requires register pair variable", postIncrDecr.position))
+            } else {
+                val target = postIncrDecr.target.arrayindexed?.identifier?.targetStatement(namespace)
+                if(target==null) {
+                    checkResult.add(SyntaxError("undefined symbol", postIncrDecr.position))
+                }
+                else {
+                    val dt = (target as VarDecl).datatype
+                    if(dt!=DataType.ARRAY && dt!=DataType.ARRAY_W && dt!=DataType.ARRAY_F)
+                        checkResult.add(SyntaxError("can only increment or decrement a byte/float/word", postIncrDecr.position))
+                }
+            }
         }
         return super.process(postIncrDecr)
     }
