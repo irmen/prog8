@@ -254,9 +254,19 @@ class AstChecker(private val namespace: INameScope,
             }
         }
 
+        // it is not possible to assign a new array to something.
+        // currently, it's also not possible to assign a new string to a string variable.
+        when(assignment.value.resultingDatatype(namespace, heap)) {
+            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS ->
+                checkResult.add(SyntaxError("it's not possible to reassign a string", assignment.position))       // todo allow reassigning strings
+            DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX ->
+                checkResult.add(SyntaxError("it's not possible to reassign an array", assignment.position))
+            else -> {}
+        }
+
         if(assignment.aug_op!=null) {
             // check augmented assignment:
-            // A /= 3  -> check is if it was A = A / 3
+            // A /= 3  -> check as if it was A = A / 3
             val target: IExpression =
                     if(assignment.target.register!=null)
                         RegisterExpr(assignment.target.register!!, assignment.target.position)
@@ -278,7 +288,13 @@ class AstChecker(private val namespace: INameScope,
         if(targetDatatype!=null) {
             val constVal = assignment.value.constValue(namespace, heap)
             if(constVal!=null) {
-                checkValueTypeAndRange(targetDatatype, null, constVal, heap)
+                val arrayspec = if(assignment.target.identifier!=null) {
+                    val targetVar = namespace.lookup(assignment.target.identifier!!.nameInSource, assignment) as? VarDecl
+                    targetVar?.arrayspec
+                } else null
+                checkValueTypeAndRange(targetDatatype,
+                        arrayspec ?: ArraySpec(LiteralValue.optimalInteger(-1, assignment.position), null, assignment.position),
+                        constVal, heap)
             } else {
                 val sourceDatatype: DataType? = assignment.value.resultingDatatype(namespace, heap)
                 if(sourceDatatype==null) {
@@ -312,6 +328,12 @@ class AstChecker(private val namespace: INameScope,
             err("recursive var declaration")
         }
 
+        // CONST can only occur on simple types (byte, word, float)
+        if(decl.type==VarDeclType.CONST) {
+            if (decl.datatype != DataType.BYTE && decl.datatype != DataType.WORD && decl.datatype != DataType.FLOAT)
+                err("const modifier can only be used on simple types (byte, word, float)")
+        }
+
         when(decl.type) {
             VarDeclType.VAR, VarDeclType.CONST -> {
                 if (decl.value == null) {
@@ -328,7 +350,9 @@ class AstChecker(private val namespace: INameScope,
                 }
                 when {
                     decl.value is RangeExpr -> checkValueTypeAndRange(decl.datatype, decl.arrayspec, decl.value as RangeExpr)
-                    decl.value is LiteralValue -> checkValueTypeAndRange(decl.datatype, decl.arrayspec, decl.value as LiteralValue, heap)
+                    decl.value is LiteralValue -> checkValueTypeAndRange(decl.datatype,
+                            decl.arrayspec ?: ArraySpec(LiteralValue.optimalInteger(-2, decl.position), null, decl.position),
+                            decl.value as LiteralValue, heap)
                     else -> {
                         err("var/const declaration needs a compile-time constant initializer value, or range, instead found: ${decl.value!!::class.simpleName}")
                         return super.process(decl)
@@ -421,7 +445,9 @@ class AstChecker(private val namespace: INameScope,
         if(!compilerOptions.floats && literalValue.type==DataType.FLOAT) {
             checkResult.add(SyntaxError("floating point value used, but floating point is not enabled via options", literalValue.position))
         }
-        checkValueTypeAndRange(literalValue.type, null, literalValue, heap)
+        checkValueTypeAndRange(literalValue.type,
+                ArraySpec(LiteralValue.optimalInteger(-3, literalValue.position), null, literalValue.position),
+                literalValue, heap)
 
         val lv = super.process(literalValue)
         when(lv.type) {
@@ -632,7 +658,7 @@ class AstChecker(private val namespace: INameScope,
         }
     }
 
-    private fun checkValueTypeAndRange(targetDt: DataType, arrayspec: ArraySpec?, value: LiteralValue, heap: HeapValues) : Boolean {
+    private fun checkValueTypeAndRange(targetDt: DataType, arrayspec: ArraySpec, value: LiteralValue, heap: HeapValues) : Boolean {
         fun err(msg: String) : Boolean {
             checkResult.add(ExpressionError(msg, value.position))
             return false
@@ -673,7 +699,8 @@ class AstChecker(private val namespace: INameScope,
                 // value may be either a single byte, or a byte array (of all constant values)
                 if(value.type==DataType.ARRAY) {
                     val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).array!!.size
-                    if(arrayspec!=null) {
+                    val arraySpecSize = arrayspec.size()
+                    if(arraySpecSize!=null && arraySpecSize>0) {
                         val constX = arrayspec.x.constValue(namespace, heap)
                         if(constX?.asIntegerValue==null)
                             return err("array size specifier must be constant integer value")
@@ -696,7 +723,8 @@ class AstChecker(private val namespace: INameScope,
                 // value may be either a single word, or a word array
                 if(value.type==DataType.ARRAY || value.type==DataType.ARRAY_W) {
                     val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).array!!.size
-                    if(arrayspec!=null) {
+                    val arraySpecSize = arrayspec.size()
+                    if(arraySpecSize!=null && arraySpecSize>0) {
                         // arrayspec is not always known when checking
                         val constX = arrayspec.x.constValue(namespace, heap)
                         if(constX?.asIntegerValue==null)
@@ -717,8 +745,9 @@ class AstChecker(private val namespace: INameScope,
             DataType.ARRAY_F -> {
                 // value may be either a single float, or a float array
                 if(value.type==DataType.ARRAY || value.type==DataType.ARRAY_W || value.type==DataType.ARRAY_F) {
-                    val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).doubleArray!!.size
-                    if(arrayspec!=null) {
+                    val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).arraysize
+                    val arraySpecSize = arrayspec.size()
+                    if(arraySpecSize!=null && arraySpecSize>0) {
                         // arrayspec is not always known when checking
                         val constX = arrayspec.x.constValue(namespace, heap)
                         if(constX?.asIntegerValue==null)
@@ -728,16 +757,18 @@ class AstChecker(private val namespace: INameScope,
                             return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
                     }
                 } else {
-                    val number = value.asNumericValue!!.toDouble()
-                    if (number < FLOAT_MAX_NEGATIVE || number > FLOAT_MAX_POSITIVE)
+                    val number = value.asNumericValue?.toDouble()
+                    if(number==null)
+                        return err("expected numerical value")
+                    else if (number < FLOAT_MAX_NEGATIVE || number > FLOAT_MAX_POSITIVE)
                         return err("value '$number' out of range for mfplt5 floating point")
                 }
             }
             DataType.MATRIX -> {
                 // value can only be a single byte, or a byte array (which represents the matrix)
                 if(value.type==DataType.ARRAY || value.type==DataType.MATRIX) {
-                    if(arrayspec!=null) {
-                        // arrayspec is not always known when checking
+                    val arraySpecSize = arrayspec.size()
+                    if(arraySpecSize!=null && arraySpecSize>0) {
                         val constX = arrayspec.x.constValue(namespace, heap)
                         val constY = arrayspec.y!!.constValue(namespace, heap)
                         if (constX?.asIntegerValue == null || constY?.asIntegerValue == null)

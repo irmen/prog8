@@ -66,6 +66,8 @@ class HeapValues {
             result = 31 * result + (doubleArray?.let { Arrays.hashCode(it) } ?: 0)
             return result
         }
+
+        val arraysize: Int = array?.size ?: doubleArray?.size ?: 0
     }
 
     private val heap = mutableListOf<HeapValue>()
@@ -1204,10 +1206,10 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                         else -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                     }
                 }
+                // todo: maybe if you assign byte or word to array/matrix, clear it with that value?
                 DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                 DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                 null -> throw CompilerException("could not determine targetdt")
-                // todo: maybe if you assign byte or word to array/matrix, clear it with that value?
             }
         }
 

@@ -105,14 +105,17 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
     }
 
     /**
-     * replace identifiers that refer to const value, with the value itself
+     * replace identifiers that refer to const value, with the value itself (if it's a simple type)
      */
     override fun process(identifier: IdentifierReference): IExpression {
         return try {
             val cval = identifier.constValue(namespace, heap) ?: return identifier
-            val copy = LiteralValue(cval.type, cval.bytevalue, cval.wordvalue, cval.floatvalue, cval.strvalue, cval.arrayvalue, position=identifier.position)
-            copy.parent = identifier.parent
-            return copy
+            return if(cval.isNumeric) {
+                val copy = LiteralValue(cval.type, cval.bytevalue, cval.wordvalue, cval.floatvalue, cval.strvalue, cval.arrayvalue, position = identifier.position)
+                copy.parent = identifier.parent
+                copy
+            } else
+                identifier
         } catch (ax: AstException) {
             addError(ax)
             identifier

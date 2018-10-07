@@ -288,11 +288,9 @@ Constants
 
 All variables can be assigned new values unless you use the ``const`` keyword.
 The initial value will now be evaluated at compile time (it must be a compile time constant expression).
-Storage is allocated only for the constant values that remain a the end of this process and that
-require it (floats, strings, arrays, matrices)::
+This is only valid for the simple numeric types (byte, word, float)::
 
 	const  byte  max_age = 99
-	const  str   someName = "Peter"
 
 
 Reserved names

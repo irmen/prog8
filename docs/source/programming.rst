@@ -233,7 +233,7 @@ Special types: const and memory-mapped
 When using ``const``, the value of the 'variable' can no longer be changed.
 You'll have to specify the initial value expression. This value is then used
 by the compiler everywhere you refer to the constant (and no storage is allocated
-for the constant itself).
+for the constant itself). This is only valid for the simple numeric types (byte, word, float).
 
 When using ``memory``, the variable will point to specific location in memory,
 rather than being newly allocated. The initial value (mandatory) must be a valid
