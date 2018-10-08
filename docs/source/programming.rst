@@ -60,7 +60,7 @@ Code
 
 Subroutine
     Defines a piece of code that can be called by its name from different locations in your code.
-    It accepts parameters and can return result values.
+    It accepts parameters and can return a value (optional).
     It can define its own variables, and it is even possible to define subroutines nested inside other subroutines.
     Their contents is scoped accordingly.
 
@@ -465,22 +465,15 @@ Defining a subroutine
 ^^^^^^^^^^^^^^^^^^^^^
 
 Subroutines are parts of the code that can be repeatedly invoked using a subroutine call from elsewhere.
-Their definition, using the ``sub`` statement, includes the specification of the required input- and output parameters.
+Their definition, using the ``sub`` statement, includes the specification of the required parameters and return value.
 Subroutines can be defined in a Block, but also nested inside another subroutine. Everything is scoped accordingly.
-
-.. todo::
-    re-introduce register based params and return values.
-    For now, only register based parameters are supported (A, X, Y and paired registers AX, AY and XY,
-    and various flags of the status register P: Pc (carry), Pz (zero), Pn (negative), Pv (overflow).
-    For subroutine return values, it is the same (registers, status flags).
 
 
 Calling a subroutine
 ^^^^^^^^^^^^^^^^^^^^
 
 The arguments in parentheses after the function name, should match the parameters in the subroutine definition.
-The output variables must occur in the correct sequence of return values as specified
-in the subroutine's definiton. It is possible to not store the return values but the compiler
+It is possible to not store the return value but the compiler
 will issue a warning then telling you the result values of a subroutine call are discarded.
 
 .. caution::

@@ -398,13 +398,10 @@ You call a subroutine like this::
         [ result = ]  subroutinename_or_address ( [argument...] )
 
         ; example:
-        outputvar1, outputvar2  =  subroutine ( arg1, arg2, arg3 )
+        resultvariable  =  subroutine ( arg1, arg2, arg3 )
 
 Arguments are separated by commas. The argument list can also be empty if the subroutine
 takes no parameters.
-If the subroutine returns one or more result values, you must use an assignment statement
-to store those values somewhere. If the subroutine has no result values, you must
-omit the assignment.
 
 
 
@@ -413,7 +410,7 @@ Subroutine definitions
 
 The syntax is::
 
-        sub   <identifier>  ( [parameters] )  [ -> returnvalues ]  {
+        sub   <identifier>  ( [parameters] )  [ -> returntype ]  {
                 ... statements ...
         }
 
@@ -424,22 +421,12 @@ The syntax is::
 
 The open curly brace must immediately follow the subroutine result specification on the same line,
 and can have nothing following it. The close curly brace must be on its own line as well.
+The parameters is a (possibly empty) comma separated list of "<parametername>: <datatype>" pairs specifying the input parameters.
+The return type has to be specified if the subroutine returns a value.
 
 .. todo::
     asmsub with assigning memory address to refer to predefined ROM subroutines
     asmsub with a regular body to precisely control what registers are used to call the subroutine
-
-
-.. data:: parameters
-
-        Comma separated list of "<parametername>:<datatype>" pairs specifying the input parameters.
-        Can be empty.
-
-.. data:: proc_results
-
-        Comma separated list of result value datatypes.
-        A subroutine without return values must omit the whole part with the arrow
-        after the parameter list.
 
 
 Loops
