@@ -473,7 +473,12 @@ class AstChecker(private val namespace: INameScope,
                         directive.args[0].name != "basicsafe" &&
                         directive.args[0].name != "kernalsafe" &&
                         directive.args[0].name != "full")
-                    err("invalid zp directive style, expected basicsafe, kernalsafe, or full")
+                    err("invalid zp type, expected basicsafe, kernalsafe, or full")
+            }
+            "%zpreserved" -> {
+                if(directive.parent !is Module) err("this directive may only occur at module level")
+                if(directive.args.size!=2 || directive.args[0].int==null || directive.args[1].int==null)
+                    err("requires two addresses (start, end)")
             }
             "%address" -> {
                 if(directive.parent !is Module) err("this directive may only occur at module level")

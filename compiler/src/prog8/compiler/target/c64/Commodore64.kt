@@ -47,6 +47,9 @@ class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
         assert(SCRATCH_B2 !in free)
         assert(SCRATCH_W1 !in free)
         assert(SCRATCH_W2 !in free)
+
+        for(reserved in options.zpReserved)
+            reserve(reserved)
     }
 }
 

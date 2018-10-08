@@ -27,7 +27,7 @@ class ImportedAstChecker : IAstProcessor {
         super.process(module)
         val newStatements : MutableList<IStatement> = mutableListOf()
 
-        val moduleLevelDirectives = listOf("%output", "%launcher", "%zeropage", "%address")
+        val moduleLevelDirectives = listOf("%output", "%launcher", "%zeropage", "%zpreserved", "%address")
         for (sourceStmt in module.statements) {
             val stmt = sourceStmt.process(this)
             if(stmt is Directive && stmt.parent is Module) {

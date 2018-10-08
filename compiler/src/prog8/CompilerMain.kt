@@ -9,6 +9,7 @@ import prog8.parser.ParsingFailedError
 import prog8.parser.importModule
 import java.io.File
 import java.io.PrintStream
+import java.lang.IllegalArgumentException
 import java.nio.file.Paths
 import kotlin.system.exitProcess
 
@@ -41,13 +42,27 @@ fun main(args: Array<String>) {
                 as? Directive)?.args?.single()?.name?.toUpperCase()
         val launcherType = (moduleAst.statements.singleOrNull { it is Directive && it.directive=="%launcher"}
                 as? Directive)?.args?.single()?.name?.toUpperCase()
-        val zpType = (moduleAst.statements.singleOrNull { it is Directive && it.directive=="%zeropage"}
+        val zpoption: String? = (moduleAst.statements.singleOrNull { it is Directive && it.directive=="%zeropage"}
                 as? Directive)?.args?.single()?.name?.toUpperCase()
+        val zpType: ZeropageType =
+                    if(zpoption==null)
+                        ZeropageType.KERNALSAFE
+                    else
+                        try {
+                            ZeropageType.valueOf(zpoption)
+                        } catch(x: IllegalArgumentException) {
+                            ZeropageType.KERNALSAFE
+                            // error will be printed by the astchecker
+                        }
+        val zpReserved = moduleAst.statements
+                .filter{it is Directive && it.directive=="%zpreserved"}
+                .map{ (it as Directive).args }
+                .map{ it[0].int!! .. it[1].int!! }
 
         val compilerOptions = CompilationOptions(
                 if(outputType==null) OutputType.PRG else OutputType.valueOf(outputType),
                 if(launcherType==null) LauncherType.BASIC else LauncherType.valueOf(launcherType),
-                if(zpType==null) ZeropageType.KERNALSAFE else ZeropageType.valueOf(zpType),
+                zpType, zpReserved,
                 options.any{ it.name=="enable_floats"})
 
 

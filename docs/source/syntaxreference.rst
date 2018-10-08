@@ -73,6 +73,12 @@ Directives
 
     Also read :ref:`zeropage`.
 
+.. data:: %zpreserved <fromaddress>,<toaddress>
+
+    Level: module.
+    Global setting, can occur multiple times. It allows you to reserve or 'block' a part of the zeropage so
+    that it will not be used by the compiler.
+
 
 .. data:: %address <address>
 

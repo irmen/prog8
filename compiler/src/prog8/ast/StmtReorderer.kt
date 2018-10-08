@@ -6,14 +6,14 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
     // Reorders the statements in a way the compiler needs.
     // - 'main' block must be the very first statement.
     // - in every scope:
-    //      -- the directives '%output', '%launcher', '%zeropage', '%address' and '%option' will come first.
+    //      -- the directives '%output', '%launcher', '%zeropage', '%zpreserved', '%address' and '%option' will come first.
     //      -- all vardecls then follow.
     //      -- the remaining statements then follow in their original order.
     //
     // - the 'start' subroutine in the 'main' block will be moved to the top immediately following the directives.
     // - all other subroutines will be moved to the end of their block.
 
-    private val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%address", "%option")
+    private val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%zpreserved", "%address", "%option")
     private val vardeclsToAdd = mutableMapOf<INameScope, MutableList<VarDecl>>()
 
     override fun process(module: Module) {

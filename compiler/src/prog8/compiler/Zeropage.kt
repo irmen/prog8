@@ -64,6 +64,8 @@ abstract class Zeropage(private val options: CompilationOptions) {
         throw CompilerException("ERROR: no free space in ZP to allocate $size sequential bytes")
     }
 
+    protected fun reserve(range: IntRange) = free.removeAll(range)
+
     private fun makeAllocation(location: Int, size: Int, datatype: DataType, name: String?): Int {
         free.removeAll(location until location+size)
         allocations[location] = Pair(name ?: "<unnamed>", datatype)
