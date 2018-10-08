@@ -1240,11 +1240,11 @@ class FunctionCall(override var target: IdentifierReference,
                 return builtinFunctionReturnType(target.nameInSource[0], this.arglist, namespace, heap)
             }
             is Subroutine -> {
-                if(stmt.returnvalues.isEmpty())
+                if(stmt.returntypes.isEmpty())
                     return null     // no return value
-                if(stmt.returnvalues.size==1)
-                    return stmt.returnvalues[0]
-                TODO("return type for subroutine with multiple return values $stmt")
+                if(stmt.returntypes.size==1)
+                    return stmt.returntypes[0]
+                return null     // has multiple return types...
             }
             is Label -> return null
         }
@@ -1308,13 +1308,17 @@ class AnonymousScope(override var statements: MutableList<IStatement>,
     override fun process(processor: IAstProcessor) = processor.process(this)
 }
 
+
+// the subroutine class covers both the normal user-defined subroutines,
+// and also the predefined/ROM/register-based subroutines.
 class Subroutine(override val name: String,
                  val parameters: List<SubroutineParameter>,
-                 val returnvalues: List<DataType>,
+                 val returntypes: List<DataType>,
                  val asmParameterRegisters: List<RegisterOrStatusflag>,
                  val asmReturnvaluesRegisters: List<RegisterOrStatusflag>,
                  val asmClobbers: Set<Register>,
                  val asmAddress: Int?,
+                 val isAsmSubroutine: Boolean,
                  override var statements: MutableList<IStatement>,
                  override val position: Position) : IStatement, INameScope {
     override lateinit var parent: Node
@@ -1329,7 +1333,7 @@ class Subroutine(override val name: String,
     override fun process(processor: IAstProcessor) = processor.process(this)
 
     override fun toString(): String {
-        return "Subroutine(name=$name, parameters=$parameters, returnvalues=$returnvalues, ${statements.size} statements, address=$asmAddress)"
+        return "Subroutine(name=$name, parameters=$parameters, returntypes=$returntypes, ${statements.size} statements, address=$asmAddress)"
     }
 }
 
@@ -1578,7 +1582,8 @@ private fun prog8Parser.AsmsubroutineContext.toAst(): IStatement {
     val returnRegisters = returns.map { RegisterOrStatusflag(it.register, it.statusflag) }
     val clobbers = clobber()?.toAst() ?: emptySet()
     val statements = statement_block()?.toAst() ?: mutableListOf()
-    return Subroutine(name, normalParameters, normalReturnvalues, paramRegisters, returnRegisters, clobbers, address, statements, toPosition())
+    return Subroutine(name, normalParameters, normalReturnvalues,
+            paramRegisters, returnRegisters, clobbers, address, true, statements, toPosition())
 }
 
 private class AsmSubroutineParameter(name: String,
@@ -1657,6 +1662,7 @@ private fun prog8Parser.SubroutineContext.toAst() : Subroutine {
             emptyList(),
             emptySet(),
             null,
+            false,
             statement_block()?.toAst() ?: mutableListOf(),
             toPosition())
 }

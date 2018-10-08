@@ -66,7 +66,7 @@ class AstChecker(private val namespace: INameScope,
         if(startSub==null) {
             checkResult.add(SyntaxError("missing program entrypoint ('start' subroutine in 'main' block)", module.position))
         } else {
-            if(startSub.parameters.isNotEmpty() || startSub.returnvalues.isNotEmpty())
+            if(startSub.parameters.isNotEmpty() || startSub.returntypes.isNotEmpty())
                 checkResult.add(SyntaxError("program entrypoint subroutine can't have parameters and/or return values", startSub.position))
         }
 
@@ -75,13 +75,13 @@ class AstChecker(private val namespace: INameScope,
         val irqBlock = module.statements.singleOrNull { it is Block && it.name=="irq" } as? Block?
         val irqSub = irqBlock?.subScopes()?.get("irq") as? Subroutine
         if(irqSub!=null) {
-            if(irqSub.parameters.isNotEmpty() || irqSub.returnvalues.isNotEmpty())
+            if(irqSub.parameters.isNotEmpty() || irqSub.returntypes.isNotEmpty())
                 checkResult.add(SyntaxError("irq entrypoint subroutine can't have parameters and/or return values", irqSub.position))
         }
     }
 
     override fun process(returnStmt: Return): IStatement {
-        val expectedReturnValues = (returnStmt.definingScope() as? Subroutine)?.returnvalues ?: emptyList()
+        val expectedReturnValues = (returnStmt.definingScope() as? Subroutine)?.returntypes ?: emptyList()
         if(expectedReturnValues.size != returnStmt.values.size) {
             // if the return value is a function call, check the result of that call instead
             if(returnStmt.values.size==1 && returnStmt.values[0] is FunctionCall) {
@@ -94,7 +94,7 @@ class AstChecker(private val namespace: INameScope,
 
         for (rv in expectedReturnValues.withIndex().zip(returnStmt.values)) {
             if(rv.first.value!=rv.second.resultingDatatype(namespace, heap))
-                checkResult.add(ExpressionError("type of return value ${rv.first.index+1} doesn't match subroutine return type ${rv.first.value}", rv.second.position))
+                checkResult.add(ExpressionError("type of return value #${rv.first.index+1} doesn't match subroutine return type ${rv.first.value}", rv.second.position))
         }
         return super.process(returnStmt)
     }
@@ -206,6 +206,10 @@ class AstChecker(private val namespace: INameScope,
 
         super.process(subroutine)
 
+        // user-defined subroutines can only have zero or one return type
+        if(!subroutine.isAsmSubroutine && subroutine.returntypes.size>1)
+            err("subroutine has more than one return value")
+
         // subroutine must contain at least one 'return' or 'goto'
         // (or if it has an asm block, that must contain a 'rts' or 'jmp')
         if(subroutine.statements.count { it is Return || it is Jump } == 0) {
@@ -215,7 +219,7 @@ class AstChecker(private val namespace: INameScope,
                     .map { (it as InlineAssembly).assembly }
                     .count { "rts" in it || "\trts" in it || "jmp" in it || "\tjmp" in it }
             if (amount == 0) {
-                if(subroutine.returnvalues.isNotEmpty()) {
+                if(subroutine.returntypes.isNotEmpty()) {
                     // for asm subroutines with an address, no statement check is possible.
                     if(subroutine.asmAddress==null)
                         err("subroutine has result value(s) and thus must have at least one 'return' or 'goto' in it (or 'rts' / 'jmp' in case of %asm)")
@@ -231,6 +235,77 @@ class AstChecker(private val namespace: INameScope,
             err("subroutines can only be defined in the scope of a block or within another subroutine")
         }
 
+        if(subroutine.isAsmSubroutine) {
+            if(subroutine.asmParameterRegisters.size != subroutine.parameters.size)
+                err("number of asm parameter registers is not the same as number of parameters")
+            if(subroutine.asmReturnvaluesRegisters.size != subroutine.returntypes.size)
+                err("number of return registers is not the same as number of return values")
+            for(param in subroutine.parameters.zip(subroutine.asmParameterRegisters)) {
+                if(param.second.register==Register.A || param.second.register==Register.X ||
+                        param.second.register==Register.Y || param.second.statusflag!=null) {
+                    if(param.first.type!=DataType.BYTE)
+                        err("parameter '${param.first.name}' should be byte")
+                }
+                if(param.second.register==Register.AX || param.second.register==Register.AY ||
+                        param.second.register==Register.XY) {
+                    if(param.first.type==DataType.BYTE || param.first.type==DataType.FLOAT)
+                        err("parameter '${param.first.name}' should be word/str/array")
+                }
+            }
+            for(ret in subroutine.returntypes.withIndex().zip(subroutine.asmReturnvaluesRegisters)) {
+                if(ret.second.register==Register.A || ret.second.register==Register.X ||
+                        ret.second.register==Register.Y || ret.second.statusflag!=null) {
+                    if(ret.first.value!=DataType.BYTE)
+                        err("return value #${ret.first.index+1} should be byte")
+                }
+                if(ret.second.register==Register.AX || ret.second.register==Register.AY ||
+                        ret.second.register==Register.XY) {
+                    if(ret.first.value==DataType.BYTE || ret.first.value==DataType.FLOAT)
+                        err("return value #${ret.first.index+1} should be byte")
+                }
+            }
+
+            val regCounts = mutableMapOf<Register, Int>().withDefault { 0 }
+            val statusflagCounts = mutableMapOf<Statusflag, Int>().withDefault { 0 }
+            fun countRegisters(from: Iterable<RegisterOrStatusflag>) {
+                regCounts.clear()
+                statusflagCounts.clear()
+                for(p in from) {
+                    if (p.register != null) {
+                        when(p.register) {
+                            Register.A, Register.X, Register.Y -> regCounts[p.register] = regCounts.getValue(p.register) + 1
+                            Register.AX -> {
+                                regCounts[Register.A] = regCounts.getValue(Register.A) + 1
+                                regCounts[Register.X] = regCounts.getValue(Register.X) + 1
+                            }
+                            Register.AY -> {
+                                regCounts[Register.A] = regCounts.getValue(Register.A) + 1
+                                regCounts[Register.Y] = regCounts.getValue(Register.Y) + 1
+                            }
+                            Register.XY -> {
+                                regCounts[Register.X] = regCounts.getValue(Register.X) + 1
+                                regCounts[Register.Y] = regCounts.getValue(Register.Y) + 1
+                            }
+                        }
+                    }
+                    else if(p.statusflag!=null)
+                        statusflagCounts[p.statusflag] = statusflagCounts.getValue(p.statusflag) + 1
+                }
+            }
+            countRegisters(subroutine.asmParameterRegisters)
+            if(regCounts.any{it.value>1})
+                err("a register is used multiple times in the parameters")
+            if(statusflagCounts.any{it.value>1})
+                err("a status flag is used multiple times in the parameters")
+            countRegisters(subroutine.asmReturnvaluesRegisters)
+            if(regCounts.any{it.value>1})
+                err("a register is used multiple times in the return values")
+            if(statusflagCounts.any{it.value>1})
+                err("a status flag is used multiple times in the return values")
+
+            if(subroutine.asmClobbers.intersect(regCounts.keys).isNotEmpty())
+                err("a return register is also in the clobber list")
+        }
         return subroutine
     }
 
@@ -299,7 +374,7 @@ class AstChecker(private val namespace: INameScope,
                 val sourceDatatype: DataType? = assignment.value.resultingDatatype(namespace, heap)
                 if(sourceDatatype==null) {
                     if(assignment.value is FunctionCall)
-                        checkResult.add(ExpressionError("function call doesn't return a value to use in assignment", assignment.value.position))
+                        checkResult.add(ExpressionError("function call doesn't return a suitable value to use in assignment", assignment.value.position))
                     else
                         checkResult.add(ExpressionError("assignment value is invalid or has no proper datatype", assignment.value.position))
                 }
@@ -529,8 +604,9 @@ class AstChecker(private val namespace: INameScope,
         val targetStatement = checkFunctionOrLabelExists(functionCall.target, functionCall)
         if(targetStatement!=null)
             checkFunctionCall(targetStatement, functionCall.arglist, functionCall.position)
-        if(targetStatement is Subroutine && targetStatement.returnvalues.isNotEmpty())
-            printWarning("result value of subroutine call is discarded", functionCall.position)
+        if(targetStatement is Subroutine && targetStatement.returntypes.isNotEmpty())
+            if(!targetStatement.isAsmSubroutine)
+                printWarning("result value of subroutine call is discarded", functionCall.position)
         return super.process(functionCall)
     }
 

@@ -866,7 +866,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
             is Subroutine -> {
                 translateSubroutineCall(targetStmt, stmt.arglist, stmt.position)
                 // make sure we clean up the unused result values from the stack.
-                for(rv in targetStmt.returnvalues) {
+                for(rv in targetStmt.returntypes) {
                     val opcode=opcodeDiscard(rv)
                     stackvmProg.instr(opcode)
                 }
