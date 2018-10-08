@@ -98,6 +98,10 @@ class Program (val name: String,
                     val args = if(parts.size==2) parts[1] else null
                     val instruction = when(opcode) {
                         Opcode.LINE -> Instruction(opcode, null, callLabel = args)
+                        Opcode.COPY_VAR, Opcode.COPY_VAR_W, Opcode.COPY_VAR_F -> {
+                            val (v1, v2) = args!!.split(splitpattern, limit = 2)
+                            Instruction(opcode, null, v1, v2)
+                        }
                         Opcode.JUMP, Opcode.CALL, Opcode.BNEG, Opcode.BPOS,
                         Opcode.BZ, Opcode.BNZ, Opcode.BCS, Opcode.BCC -> {
                             if(args!!.startsWith('$')) {

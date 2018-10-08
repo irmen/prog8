@@ -72,6 +72,8 @@ class HeapValues {
 
     private val heap = mutableListOf<HeapValue>()
 
+    fun size(): Int = heap.size
+
     fun add(type: DataType, str: String): Int {
         if (str.isEmpty() || str.length > 255)
             throw IllegalArgumentException("string length must be 1-255")
@@ -129,17 +131,70 @@ class StackVmProgram(val name: String, val heap: HeapValues) {
     private val memory = mutableMapOf<Int, List<Value>>()
     private val labels = mutableMapOf<String, Instruction>()
     val numVariables: Int
-        get() {return variables.size}
+        get() {return variables.flatMap { it -> it.value.keys }.size}
     val numInstructions: Int
-        get() {return instructions.size}
+        get() {return instructions.filter { it.opcode!=Opcode.LINE }.size}
 
     fun optimize() {
-        println("\nOptimizing stackVM code...")
+        println("Optimizing stackVM code...")
         optimizeDataConversionAndUselessDiscards()
+        optimizeVariableCopying()
+        optimizeMultipleSequentialLineInstrs()
         // todo optimize stackvm code more
 
         // remove nops (that are not a label)
         this.instructions.removeIf { it.opcode==Opcode.NOP && it !is LabelInstr }
+    }
+
+    private fun optimizeMultipleSequentialLineInstrs() {
+        val instructionsToReplace = mutableMapOf<Int, Instruction>()
+
+        instructions.asSequence().withIndex().windowed(2).toList().forEach {
+            if(it[0].value.opcode==Opcode.LINE && it[1].value.opcode==Opcode.LINE)
+                instructionsToReplace[it[0].index] = Instruction(Opcode.NOP)
+        }
+
+        for(rins in instructionsToReplace) {
+            instructions[rins.key] = rins.value
+        }
+    }
+
+    private fun optimizeVariableCopying() {
+        val instructionsToReplace = mutableMapOf<Int, Instruction>()
+
+        instructions.asSequence().withIndex().windowed(2).toList().forEach {
+            when(it[0].value.opcode) {
+                Opcode.PUSH_VAR ->
+                    if(it[1].value.opcode==Opcode.POP_VAR) {
+                        if(it[0].value.callLabel!=it[1].value.callLabel)
+                            instructionsToReplace[it[0].index] = Instruction(Opcode.COPY_VAR, null, it[0].value.callLabel, it[1].value.callLabel)
+                        else
+                            instructionsToReplace[it[0].index] = Instruction(Opcode.NOP)
+                        instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
+                    }
+                Opcode.PUSH_VAR_W ->
+                    if(it[1].value.opcode==Opcode.POP_VAR_W) {
+                        if(it[0].value.callLabel!=it[1].value.callLabel)
+                            instructionsToReplace[it[0].index] = Instruction(Opcode.COPY_VAR_W, null, it[0].value.callLabel, it[1].value.callLabel)
+                        else
+                            instructionsToReplace[it[0].index] = Instruction(Opcode.NOP)
+                        instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
+                    }
+                Opcode.PUSH_VAR_F ->
+                    if(it[1].value.opcode==Opcode.POP_VAR_F) {
+                        if(it[0].value.callLabel!=it[1].value.callLabel)
+                            instructionsToReplace[it[0].index] = Instruction(Opcode.COPY_VAR_F, null, it[0].value.callLabel, it[1].value.callLabel)
+                        else
+                            instructionsToReplace[it[0].index] = Instruction(Opcode.NOP)
+                        instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
+                    }
+                else -> {}
+            }
+        }
+
+        for(rins in instructionsToReplace) {
+            instructions[rins.key] = rins.value
+        }
     }
 
     private fun optimizeDataConversionAndUselessDiscards() {
@@ -327,11 +382,9 @@ class Compiler(private val options: CompilationOptions) {
         // create the heap of all variables used in all blocks and scopes
         val varGather = VarGatherer(intermediate)
         varGather.process(module)
-        println(" ${intermediate.numVariables} allocated variables and constants")
 
         val translator = StatementTranslator(intermediate, namespace, heap)
         translator.process(module)
-        println(" ${intermediate.numInstructions} vm instructions")
 
         return intermediate
     }
@@ -361,6 +414,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
     override fun process(subroutine: Subroutine): IStatement {
         if(subroutine.asmAddress==null) {
             stackvmProg.label(subroutine.scopedname)
+            stackvmProg.line(subroutine.position)
             // note: the caller has already written the arguments into the subroutine's parameter variables.
             translate(subroutine.statements)
         } else {
@@ -371,6 +425,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
 
     override fun process(block: Block): IStatement {
         stackvmProg.label(block.scopedname)
+        stackvmProg.line(block.position)
         translate(block.statements)
         return super.process(block)
     }

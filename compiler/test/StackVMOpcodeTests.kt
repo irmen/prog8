@@ -252,6 +252,32 @@ class TestStackVmOpcodes {
     }
 
     @Test
+    fun testCopyVar() {
+        val ins = mutableListOf(
+                Instruction(Opcode.COPY_VAR, null, "bvar1", "bvar2"),
+                Instruction(Opcode.COPY_VAR_W, null, "wvar1", "wvar2"),
+                Instruction(Opcode.COPY_VAR_F, null, "fvar1", "fvar2"),
+                Instruction(Opcode.COPY_VAR_W, null, "wvar1", "bvar2"))
+        val vars = mapOf(
+                "bvar1" to Value(DataType.BYTE, 1),
+                "bvar2" to Value(DataType.BYTE, 2),
+                "wvar1" to Value(DataType.WORD, 1111),
+                "wvar2" to Value(DataType.WORD, 2222),
+                "fvar1" to Value(DataType.FLOAT, 11.11),
+                "fvar2" to Value(DataType.FLOAT, 22.22)
+        )
+        vm.load(makeProg(ins, vars), null)
+        assertEquals(12, vm.variables.size)
+        vm.step(3)
+        assertEquals(Value(DataType.BYTE, 1), vm.variables["bvar2"])
+        assertEquals(Value(DataType.WORD, 1111), vm.variables["wvar2"])
+        assertEquals(Value(DataType.FLOAT, 11.11), vm.variables["fvar2"])
+        assertFailsWith<VmExecutionException> {
+            vm.step(1)
+        }
+    }
+
+    @Test
     fun testAdd() {
         testBinaryOperator(Value(DataType.BYTE, 140), Opcode.ADD_B, Value(DataType.BYTE, 222), Value(DataType.BYTE, 106))
         testBinaryOperator(Value(DataType.BYTE, 40), Opcode.ADD_B, Value(DataType.BYTE, 122), Value(DataType.BYTE, 162))

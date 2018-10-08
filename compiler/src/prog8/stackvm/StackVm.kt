@@ -32,6 +32,11 @@ enum class Opcode {
     POP_VAR_W,      // pop word value into variable
     POP_VAR_F,      // pop float value into variable
 
+    // optimized copying of one var to another (replaces push+pop)
+    COPY_VAR,
+    COPY_VAR_W,
+    COPY_VAR_F,
+
     // numeric arithmetic
     ADD_B,
     ADD_W,
@@ -198,6 +203,7 @@ val opcodesWithVarArgument = setOf(
         Opcode.ROL2_VAR, Opcode.ROL2_VAR_W, Opcode.ROR2_VAR, Opcode.ROR2_VAR_W,
         Opcode.POP_VAR, Opcode.POP_VAR_W, Opcode.POP_VAR_F,
         Opcode.PUSH_VAR, Opcode.PUSH_VAR_W, Opcode.PUSH_VAR_F,
+        Opcode.COPY_VAR, Opcode.COPY_VAR_W, Opcode.COPY_VAR_F,
         Opcode.READ_INDEXED_VAR, Opcode.READ_INDEXED_VAR_W, Opcode.READ_INDEXED_VAR_F,
         Opcode.WRITE_INDEXED_VAR, Opcode.WRITE_INDEXED_VAR_W, Opcode.WRITE_INDEXED_VAR_F
         )
@@ -251,7 +257,8 @@ enum class Syscall(val callNr: Short) {
 
 open class Instruction(val opcode: Opcode,
                        val arg: Value? = null,
-                       val callLabel: String? = null)
+                       val callLabel: String? = null,
+                       val callLabel2: String? = null)
 {
     lateinit var next: Instruction
     var nextAlt: Instruction? = null
@@ -267,7 +274,7 @@ open class Instruction(val opcode: Opcode,
                     }
                     opcode in opcodesWithVarArgument -> {
                         // opcodes that manipulate a variable
-                        "${opcode.toString().toLowerCase()}  $callLabel"
+                        "${opcode.toString().toLowerCase()}  ${callLabel?:""}  ${callLabel2?:""}".trimEnd()
                     }
                     callLabel==null -> "${opcode.toString().toLowerCase()}  $argStr"
                     else -> "${opcode.toString().toLowerCase()}  $callLabel  $argStr"
@@ -905,6 +912,27 @@ class StackVm(private var traceOutputFile: String?) {
                 val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
                 checkDt(variable, setOf(DataType.WORD, DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS))
                 variables[ins.callLabel!!] = value
+            }
+            Opcode.COPY_VAR -> {
+                val source = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val dest = variables[ins.callLabel2] ?: throw VmExecutionException("unknown variable: ${ins.callLabel2}")
+                checkDt(source, DataType.BYTE)
+                checkDt(dest, DataType.BYTE)
+                variables[ins.callLabel2!!] = source
+            }
+            Opcode.COPY_VAR_W -> {
+                val source = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val dest = variables[ins.callLabel2] ?: throw VmExecutionException("unknown variable: ${ins.callLabel2}")
+                checkDt(source, setOf(DataType.WORD, DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS))
+                checkDt(dest, setOf(DataType.WORD, DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS))
+                variables[ins.callLabel2!!] = source
+            }
+            Opcode.COPY_VAR_F -> {
+                val source = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val dest = variables[ins.callLabel2] ?: throw VmExecutionException("unknown variable: ${ins.callLabel2}")
+                checkDt(source, DataType.FLOAT)
+                checkDt(dest, DataType.FLOAT)
+                variables[ins.callLabel2!!] = source
             }
             Opcode.POP_VAR_F -> {
                 val value = evalstack.pop()

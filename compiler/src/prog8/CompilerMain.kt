@@ -79,6 +79,9 @@ fun main(args: Array<String>) {
         val compiler = Compiler(compilerOptions)
         val intermediate = compiler.compile(moduleAst, heap)
         intermediate.optimize()
+        println("Debug: ${intermediate.numVariables} allocated variables and constants")
+        println("Debug: ${heap.size()} heap values")
+        println("Debug: ${intermediate.numInstructions} vm instructions")
 
         val stackVmFilename =  intermediate.name + "_stackvm.txt"
         val stackvmFile = PrintStream(File(stackVmFilename), "utf-8")
