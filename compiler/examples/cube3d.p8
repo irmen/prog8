@@ -1,8 +1,8 @@
 %option enable_floats
 
 ~ irq {
-    word global_time
-    byte time_changed
+    uword global_time
+    ubyte time_changed
 
     sub irq() {
         global_time++
@@ -13,8 +13,8 @@
 
 ~ main {
 
-    const word width = 320
-    const word height = 200
+    const uword width = 320
+    const uword height = 200
 
     ; vertices
     float[8] xcoor = [ -1.0, -1.0, -1.0, -1.0,  1.0,  1.0,  1.0, 1.0 ]
@@ -22,7 +22,7 @@
     float[8] zcoor = [ -1.0,  1.0, -1.0,  1.0, -1.0,  1.0, -1.0, 1.0 ]
 
     ; edges (msb=from vertex, lsb=to vertex)
-    word[12] edges = [$0001, $0103, $0302, $0200, $0405, $0507, $0706, $0604, $0004, $0105, $0206, $0307]
+    uword[12] edges = [$0001, $0103, $0302, $0200, $0405, $0507, $0706, $0604, $0004, $0105, $0206, $0307]
 
     ; storage for rotated coordinates
     float[len(xcoor)] rotatedx
@@ -37,7 +37,7 @@
                 _vm_gfx_text(8, 6, 1, "Spin")
                 _vm_gfx_text(29, 11, 1, "to Win !")
 
-                for byte i in 0 to width//10 {
+                for ubyte i in 0 to width//10 {
                     _vm_gfx_line(i*2+width//2-width//10, 130, i*10.w, 199, 6)
                 }
 
@@ -68,7 +68,7 @@
         float Azy = cosb*sinc
         float Azz = cosb*cosc
 
-        for byte i in 0 to len(xcoor)-1 {
+        for ubyte i in 0 to len(xcoor)-1 {
             rotatedx[i] = Axx*xcoor[i] + Axy*ycoor[i] + Axz*zcoor[i]
             rotatedy[i] = Ayx*xcoor[i] + Ayy*ycoor[i] + Ayz*zcoor[i]
             rotatedz[i] = Azx*xcoor[i] + Azy*ycoor[i] + Azz*zcoor[i]
@@ -87,18 +87,18 @@
         }
 
         ; draw all edges of the object
-        for word edge in edges {
-            byte e_from = msb(edge)
-            byte e_to = lsb(edge)
+        for uword edge in edges {
+            ubyte e_from = msb(edge)
+            ubyte e_to = lsb(edge)
             _vm_gfx_line(toscreenx(rotatedx[e_from], rotatedz[e_from]), toscreeny(rotatedy[e_from], rotatedz[e_from]),
                          toscreenx(rotatedx[e_to], rotatedz[e_to]), toscreeny(rotatedy[e_to], rotatedz[e_to]), e_from+e_to)
         }
 
         ; accentuate the vertices a bit with small boxes
-        for byte i in 0 to len(xcoor)-1 {
+        for ubyte i in 0 to len(xcoor)-1 {
             word sx = toscreenx(rotatedx[i], rotatedz[i])
             word sy = toscreeny(rotatedy[i], rotatedz[i])
-            byte color=i+2
+            ubyte color=i+2
             _vm_gfx_pixel(sx-1, sy-1, color)
             _vm_gfx_pixel(sx, sy-1, color)
             _vm_gfx_pixel(sx+1, sy-1, color)

@@ -103,7 +103,7 @@ constdecl: 'const' varinitializer ;
 
 memoryvardecl: 'memory' varinitializer;
 
-datatype:  'byte' | 'word' | 'float' | 'str' | 'str_p' | 'str_s' | 'str_ps' ;
+datatype:  'ubyte' | 'byte' | 'uword' | 'word' | 'float' | 'str' | 'str_p' | 'str_s' | 'str_ps' ;
 
 arrayspec:  '[' expression (',' expression)? ']' ;
 

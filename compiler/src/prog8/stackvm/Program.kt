@@ -60,9 +60,9 @@ class Program (val name: String,
                     DataType.STR_P,
                     DataType.STR_S,
                     DataType.STR_PS -> heap.add(it.second, it.third.substring(1, it.third.length-1).unescape())
-                    DataType.ARRAY,
-                    DataType.ARRAY_W,
-                    DataType.MATRIX -> {
+                    DataType.ARRAY_UB, DataType.ARRAY_B,
+                    DataType.ARRAY_UW, DataType.ARRAY_W,
+                    DataType.MATRIX_UB, DataType.MATRIX_B -> {
                         val numbers = it.third.substring(1, it.third.length-1).split(',')
                         val intarray = numbers.map{number->number.trim().toInt()}.toIntArray()
                         heap.add(it.second, intarray)
@@ -72,7 +72,7 @@ class Program (val name: String,
                         val doublearray = numbers.map{number->number.trim().toDouble()}.toDoubleArray()
                         heap.add(it.second, doublearray)
                     }
-                    DataType.BYTE, DataType.WORD, DataType.FLOAT -> throw VmExecutionException("invalid heap value type ${it.second}")
+                    DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT -> throw VmExecutionException("invalid heap value type ${it.second}")
                 }
             }
         }
@@ -98,14 +98,14 @@ class Program (val name: String,
                     val args = if(parts.size==2) parts[1] else null
                     val instruction = when(opcode) {
                         Opcode.LINE -> Instruction(opcode, null, callLabel = args)
-                        Opcode.COPY_VAR, Opcode.COPY_VAR_W, Opcode.COPY_VAR_F -> {
+                        Opcode.COPY_VAR_BYTE, Opcode.COPY_VAR_WORD, Opcode.COPY_VAR_FLOAT -> {
                             val (v1, v2) = args!!.split(splitpattern, limit = 2)
                             Instruction(opcode, null, v1, v2)
                         }
                         Opcode.JUMP, Opcode.CALL, Opcode.BNEG, Opcode.BPOS,
                         Opcode.BZ, Opcode.BNZ, Opcode.BCS, Opcode.BCC -> {
                             if(args!!.startsWith('$')) {
-                                Instruction(opcode, Value(DataType.WORD, args.substring(1).toInt(16)))
+                                Instruction(opcode, Value(DataType.UWORD, args.substring(1).toInt(16)))
                             } else {
                                 Instruction(opcode, callLabel = args)
                             }
@@ -119,7 +119,7 @@ class Program (val name: String,
                         }
                         Opcode.SYSCALL -> {
                             val call = Syscall.valueOf(args!!)
-                            Instruction(opcode, Value(DataType.BYTE, call.callNr))
+                            Instruction(opcode, Value(DataType.UBYTE, call.callNr))
                         }
                         else -> {
                             Instruction(opcode, getArgValue(args, heap))
@@ -142,8 +142,8 @@ class Program (val name: String,
             }
             val (type, valueStr) = args.split(':')
             return when(type) {
-                "b" -> Value(DataType.BYTE, valueStr.toShort(16))
-                "w" -> Value(DataType.WORD, valueStr.toInt(16))
+                "b" -> Value(DataType.UBYTE, valueStr.toShort(16))
+                "w" -> Value(DataType.UWORD, valueStr.toInt(16))
                 "f" -> Value(DataType.FLOAT, valueStr.toDouble())
                 "heap" -> {
                     val heapId = valueStr.toInt()
@@ -165,7 +165,9 @@ class Program (val name: String,
                     throw VmExecutionException("missing value type character")
                 val type = DataType.valueOf(typeStr.toUpperCase())
                 val value = when(type) {
+                    DataType.UBYTE -> Value(DataType.UBYTE, valueStr.substring(2).toShort(16))
                     DataType.BYTE -> Value(DataType.BYTE, valueStr.substring(2).toShort(16))
+                    DataType.UWORD -> Value(DataType.UWORD, valueStr.substring(2).toInt(16))
                     DataType.WORD -> Value(DataType.WORD, valueStr.substring(2).toInt(16))
                     DataType.FLOAT -> Value(DataType.FLOAT, valueStr.substring(2).toDouble())
                     DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
@@ -178,10 +180,13 @@ class Program (val name: String,
                             Value(type, heapId)
                         }
                     }
-                    DataType.ARRAY,
+                    DataType.ARRAY_UB,
+                    DataType.ARRAY_B,
+                    DataType.ARRAY_UW,
                     DataType.ARRAY_W,
                     DataType.ARRAY_F,
-                    DataType.MATRIX -> {
+                    DataType.MATRIX_UB,
+                    DataType.MATRIX_B -> {
                         if(!valueStr.startsWith("heap:"))
                             throw VmExecutionException("invalid array/matrix value, should be a heap reference")
                         else {
@@ -211,8 +216,8 @@ class Program (val name: String,
                     val values = mutableListOf<Value>()
                     valueStrings.forEach {
                         when(it.length) {
-                            2 -> values.add(Value(DataType.BYTE, it.toShort(16)))
-                            4 -> values.add(Value(DataType.WORD, it.toInt(16)))
+                            2 -> values.add(Value(DataType.UBYTE, it.toShort(16)))
+                            4 -> values.add(Value(DataType.UWORD, it.toInt(16)))
                             else -> throw VmExecutionException("invalid value at line $lineNr+1")
                         }
                     }

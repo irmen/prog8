@@ -38,33 +38,33 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                 DataType.FLOAT -> {
                     // vardecl: for float vars, promote constant integer initialization values to floats
                     val literal = decl.value as? LiteralValue
-                    if (literal != null && (literal.type == DataType.BYTE || literal.type==DataType.WORD)) {
+                    if (literal != null && literal.type in IntegerDatatypes) {
                         val newValue = LiteralValue(DataType.FLOAT, floatvalue = literal.asNumericValue!!.toDouble(), position = literal.position)
                         decl.value = newValue
                     }
                 }
-                DataType.BYTE, DataType.WORD -> {
+                in IntegerDatatypes -> {
                     // vardecl: for byte/word vars, convert char/string of length 1 initialization values to integer
                     val literal = decl.value as? LiteralValue
                     if (literal != null && literal.isString && literal.strvalue?.length == 1) {
                         val petscii = Petscii.encodePetscii(literal.strvalue)[0]
-                        val newValue = LiteralValue(DataType.BYTE, bytevalue = petscii, position = literal.position)
+                        val newValue = LiteralValue(DataType.UBYTE, bytevalue = petscii, position = literal.position)
                         decl.value = newValue
                     }
                 }
-                DataType.ARRAY, DataType.ARRAY_W, DataType.MATRIX -> {
+                DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.MATRIX_UB, DataType.MATRIX_B -> {
                     val litval = decl.value as? LiteralValue
                     val size = decl.arrayspec!!.size()
                     if(litval!=null && litval.isArray) {
                         // array initializer value is an array already, keep as-is (or convert to WORDs if needed)
                         if(litval.heapId!=null) {
-                            if (decl.datatype == DataType.MATRIX && litval.type != DataType.MATRIX) {
-                                val array = heap.get(litval.heapId).copy(type = DataType.MATRIX)
+                            if (decl.datatype == DataType.MATRIX_UB && litval.type != DataType.MATRIX_UB) {
+                                val array = heap.get(litval.heapId).copy(type = DataType.MATRIX_UB)
                                 heap.update(litval.heapId, array)
-                            } else if(decl.datatype==DataType.ARRAY_W && litval.type == DataType.ARRAY) {
+                            } else if(decl.datatype==DataType.ARRAY_UW && litval.type == DataType.ARRAY_UB) {
                                 val array = heap.get(litval.heapId)
                                 if(array.array!=null) {
-                                    heap.update(litval.heapId, HeapValues.HeapValue(DataType.ARRAY_W, null, array.array, null))
+                                    heap.update(litval.heapId, HeapValues.HeapValue(DataType.ARRAY_UW, null, array.array, null))
                                     decl.value = LiteralValue(decl.datatype, heapId = litval.heapId, position = litval.position)
                                 }
                             }
@@ -426,6 +426,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
         return super.process(range)
     }
 
+    // todo datatypes
     override fun process(literalValue: LiteralValue): LiteralValue {
         if(literalValue.strvalue!=null) {
             // intern the string; move it into the heap
@@ -438,9 +439,9 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
             }
         } else if(literalValue.arrayvalue!=null) {
             val newArray = literalValue.arrayvalue.map { it.process(this) }.toTypedArray()
-            var arrayDt = DataType.ARRAY
-            if(newArray.any { it.resultingDatatype(namespace, heap) == DataType.WORD })
-                arrayDt = DataType.ARRAY_W
+            var arrayDt = DataType.ARRAY_UB
+            if(newArray.any { it.resultingDatatype(namespace, heap) == DataType.UWORD })
+                arrayDt = DataType.ARRAY_UW
             if(newArray.any { it.resultingDatatype(namespace, heap) == DataType.FLOAT })
                 arrayDt = DataType.ARRAY_F
 
@@ -452,7 +453,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                     addError(ExpressionError("array/matrix literal can contain only constant values", literalValue.position))
                     return super.process(literalValue)
                 }
-                if(arrayDt==DataType.ARRAY || arrayDt==DataType.MATRIX) {
+                if(arrayDt==DataType.ARRAY_UB || arrayDt==DataType.MATRIX_UB) {
                     // all values should be bytes
                     val integerArray = litArray.map { (it as LiteralValue).bytevalue }
                     if(integerArray.any { it==null || it.toInt() !in 0..255 }) {
@@ -463,7 +464,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                     val heapId = heap.add(arrayDt, array)
                     val newValue = LiteralValue(arrayDt, heapId=heapId, position = literalValue.position)
                     return super.process(newValue)
-                } else if(arrayDt==DataType.ARRAY_W) {
+                } else if(arrayDt==DataType.ARRAY_UW) {
                     // all values should be bytes or words
                     val integerArray = litArray.map { (it as LiteralValue).asIntegerValue }
                     if(integerArray.any {it==null || it !in 0..65535 }) {
@@ -472,7 +473,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                     }
                     val array = integerArray.filterNotNull().toIntArray()
                     val heapId = heap.add(arrayDt, array)
-                    val newValue = LiteralValue(DataType.ARRAY_W, heapId=heapId, position = literalValue.position)
+                    val newValue = LiteralValue(DataType.ARRAY_UW, heapId=heapId, position = literalValue.position)
                     return super.process(newValue)
                 } else if(arrayDt==DataType.ARRAY_F) {
                     // all values should be bytes, words or floats
@@ -523,13 +524,13 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
             val targetDt = assignment.target.determineDatatype(namespace, heap, assignment)
             // see if we can promote/convert a literal value to the required datatype
             when(targetDt) {
-                DataType.WORD -> {
-                    if(lv.type==DataType.BYTE)
-                        assignment.value = LiteralValue(DataType.WORD, wordvalue = lv.asIntegerValue, position=lv.position)
+                DataType.UWORD -> {
+                    if(lv.type==DataType.UBYTE)
+                        assignment.value = LiteralValue(DataType.UWORD, wordvalue = lv.asIntegerValue, position=lv.position)
                     else if(lv.type==DataType.FLOAT) {
                         val d = lv.floatvalue!!
                         if(floor(d)==d && d in 0..65535) {
-                            assignment.value = LiteralValue(DataType.WORD, wordvalue=floor(d).toInt(), position=lv.position)
+                            assignment.value = LiteralValue(DataType.UWORD, wordvalue=floor(d).toInt(), position=lv.position)
                         }
                     }
                 }
@@ -537,13 +538,13 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                     if(lv.isNumeric)
                         assignment.value = LiteralValue(DataType.FLOAT, floatvalue= lv.asNumericValue?.toDouble(), position=lv.position)
                 }
-                DataType.BYTE -> {
-                    if(lv.type==DataType.WORD && lv.asIntegerValue in 0..255) {
-                        assignment.value = LiteralValue(DataType.BYTE, lv.asIntegerValue?.toShort(), position=lv.position)
+                DataType.UBYTE -> {
+                    if(lv.type==DataType.UWORD && lv.asIntegerValue in 0..255) {
+                        assignment.value = LiteralValue(DataType.UBYTE, lv.asIntegerValue?.toShort(), position=lv.position)
                     } else if(lv.type==DataType.FLOAT) {
                         val d = lv.floatvalue!!
                         if(floor(d)==d && d in 0..255) {
-                            assignment.value = LiteralValue(DataType.BYTE, floor(d).toShort(), position=lv.position)
+                            assignment.value = LiteralValue(DataType.UBYTE, floor(d).toShort(), position=lv.position)
                         }
                     }
                 }

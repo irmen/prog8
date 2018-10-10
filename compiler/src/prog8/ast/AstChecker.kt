@@ -115,17 +115,13 @@ class AstChecker(private val namespace: INameScope,
                 // loop register
                 when (forLoop.loopRegister) {
                     Register.A, Register.X, Register.Y -> {
-                        if (iterableDt != DataType.BYTE && iterableDt!=DataType.ARRAY && iterableDt!=DataType.MATRIX &&
-                                iterableDt != DataType.STR && iterableDt != DataType.STR_P &&
-                                iterableDt != DataType.STR_S && iterableDt != DataType.STR_PS)
+                        if (iterableDt != DataType.UBYTE && iterableDt!=DataType.ARRAY_UB && iterableDt!=DataType.MATRIX_UB && iterableDt !in StringDatatypes)
                             checkResult.add(ExpressionError("register can only loop over bytes", forLoop.position))
                     }
                     Register.AX, Register.AY, Register.XY -> {
-                        if (iterableDt != DataType.WORD && iterableDt != DataType.BYTE &&
-                                iterableDt != DataType.STR && iterableDt != DataType.STR_P &&
-                                iterableDt != DataType.STR_S && iterableDt != DataType.STR_PS &&
-                                iterableDt !=DataType.ARRAY && iterableDt!=DataType.ARRAY_W && iterableDt!=DataType.ARRAY_F && iterableDt!=DataType.MATRIX)
-                            checkResult.add(ExpressionError("register pair can only loop over words", forLoop.position))
+                        if (iterableDt != DataType.UWORD && iterableDt != DataType.UBYTE && iterableDt !in StringDatatypes &&
+                                iterableDt !=DataType.ARRAY_UB && iterableDt!=DataType.ARRAY_UW && iterableDt!=DataType.MATRIX_UB)
+                            checkResult.add(ExpressionError("register pair can only loop over bytes or words", forLoop.position))
                     }
                 }
             } else {
@@ -136,17 +132,13 @@ class AstChecker(private val namespace: INameScope,
 
                 } else {
                     when (loopvar.datatype) {
-                        DataType.BYTE -> {
-                            if(iterableDt!=DataType.BYTE && iterableDt!=DataType.ARRAY && iterableDt!=DataType.MATRIX &&
-                                    iterableDt != DataType.STR && iterableDt != DataType.STR_P &&
-                                    iterableDt != DataType.STR_S && iterableDt != DataType.STR_PS)
+                        DataType.UBYTE -> {
+                            if(iterableDt!=DataType.UBYTE && iterableDt!=DataType.ARRAY_UB && iterableDt!=DataType.MATRIX_UB && iterableDt !in StringDatatypes)
                                 checkResult.add(ExpressionError("byte loop variable can only loop over bytes", forLoop.position))
                         }
-                        DataType.WORD -> {
-                            if(iterableDt!=DataType.BYTE && iterableDt!=DataType.WORD &&
-                                    iterableDt !=DataType.ARRAY && iterableDt!=DataType.ARRAY_W && iterableDt!=DataType.MATRIX &&
-                                    iterableDt != DataType.STR && iterableDt != DataType.STR_P &&
-                                    iterableDt != DataType.STR_S && iterableDt != DataType.STR_PS)
+                        DataType.UWORD -> {
+                            if(iterableDt!=DataType.UBYTE && iterableDt!=DataType.UWORD && iterableDt !in StringDatatypes &&
+                                    iterableDt !=DataType.ARRAY_UB && iterableDt!=DataType.ARRAY_UW && iterableDt!=DataType.MATRIX_UB)
                                 checkResult.add(ExpressionError("word loop variable can only loop over bytes or words", forLoop.position))
                         }
                         // there's no support for a floating-point loop variable
@@ -243,25 +235,26 @@ class AstChecker(private val namespace: INameScope,
             for(param in subroutine.parameters.zip(subroutine.asmParameterRegisters)) {
                 if(param.second.register==Register.A || param.second.register==Register.X ||
                         param.second.register==Register.Y || param.second.statusflag!=null) {
-                    if(param.first.type!=DataType.BYTE)
-                        err("parameter '${param.first.name}' should be byte")
+                    if(param.first.type!=DataType.UBYTE)
+                        err("parameter '${param.first.name}' should be ubyte")
                 }
                 if(param.second.register==Register.AX || param.second.register==Register.AY ||
                         param.second.register==Register.XY) {
-                    if(param.first.type==DataType.BYTE || param.first.type==DataType.FLOAT)
-                        err("parameter '${param.first.name}' should be word/str/array")
+                    if(param.first.type!=DataType.UWORD && param.first.type !in StringDatatypes && param.first.type !in ArrayDatatypes)
+                        err("parameter '${param.first.name}' should be uword/str/array")
                 }
             }
             for(ret in subroutine.returntypes.withIndex().zip(subroutine.asmReturnvaluesRegisters)) {
                 if(ret.second.register==Register.A || ret.second.register==Register.X ||
                         ret.second.register==Register.Y || ret.second.statusflag!=null) {
-                    if(ret.first.value!=DataType.BYTE)
-                        err("return value #${ret.first.index+1} should be byte")
+                    if(ret.first.value!=DataType.UBYTE)
+                        err("return value #${ret.first.index+1} should be ubyte")
                 }
                 if(ret.second.register==Register.AX || ret.second.register==Register.AY ||
                         ret.second.register==Register.XY) {
-                    if(ret.first.value==DataType.BYTE || ret.first.value==DataType.FLOAT)
-                        err("return value #${ret.first.index+1} should be byte")
+                    if(ret.first.value!=DataType.UWORD && ret.first.value != DataType.UBYTE &&
+                            ret.first.value !in StringDatatypes && ret.first.value !in ArrayDatatypes)
+                        err("return value #${ret.first.index+1} should be uword/ubyte/string/array")
                 }
             }
 
@@ -334,11 +327,8 @@ class AstChecker(private val namespace: INameScope,
         }
 
         // it is not possible to assign a new array to something.
-        when(assignment.value.resultingDatatype(namespace, heap)) {
-            DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX ->
-                checkResult.add(SyntaxError("it's not possible to assign an array literal value to something, use it as a variable decl initializer instead", assignment.position))
-            else -> {}
-        }
+        if(assignment.value.resultingDatatype(namespace, heap) in ArrayDatatypes)
+            checkResult.add(SyntaxError("it's not possible to assign an array literal value to something, use it as a variable decl initializer instead", assignment.position))
 
         if(assignment.aug_op!=null) {
             // check augmented assignment:
@@ -405,17 +395,17 @@ class AstChecker(private val namespace: INameScope,
 
         // CONST can only occur on simple types (byte, word, float)
         if(decl.type==VarDeclType.CONST) {
-            if (decl.datatype != DataType.BYTE && decl.datatype != DataType.WORD && decl.datatype != DataType.FLOAT)
-                err("const modifier can only be used on simple types (byte, word, float)")
+            if (decl.datatype !in NumericDatatypes)
+                err("const modifier can only be used on numeric types (byte, word, float)")
         }
 
         when(decl.type) {
             VarDeclType.VAR, VarDeclType.CONST -> {
                 if (decl.value == null) {
                     when {
-                        decl.datatype == DataType.BYTE || decl.datatype==DataType.WORD || decl.datatype==DataType.FLOAT -> {
+                        decl.datatype in NumericDatatypes -> {
                             // initialize numeric var with value zero by default.
-                            val litVal = LiteralValue(DataType.BYTE, 0, position = decl.position)
+                            val litVal = LiteralValue(DataType.UBYTE, 0, position = decl.position)
                             litVal.parent = decl
                             decl.value = litVal
                         }
@@ -531,15 +521,15 @@ class AstChecker(private val namespace: INameScope,
 
         val lv = super.process(literalValue)
         when(lv.type) {
-            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
+            in StringDatatypes -> {
                 if(lv.heapId==null)
                     throw FatalAstException("string should have been moved to heap at ${lv.position}")
             }
-            DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX -> {
+            in ArrayDatatypes -> {
                 if(lv.heapId==null)
                     throw FatalAstException("array/matrix should have been moved to heap at ${lv.position}")
             }
-            DataType.BYTE, DataType.WORD, DataType.FLOAT -> {}
+            else -> {}
         }
         return lv
     }
@@ -562,7 +552,7 @@ class AstChecker(private val namespace: INameScope,
         super.process(range)
         val from = range.from.constValue(namespace, heap)
         val to = range.to.constValue(namespace, heap)
-        val stepLv = range.step.constValue(namespace, heap) ?: LiteralValue(DataType.BYTE, 1, position = range.position)
+        val stepLv = range.step.constValue(namespace, heap) ?: LiteralValue(DataType.UBYTE, 1, position = range.position)
         if (stepLv.asIntegerValue == null || stepLv.asIntegerValue == 0) {
             err("range step must be an integer != 0")
             return range
@@ -651,7 +641,7 @@ class AstChecker(private val namespace: INameScope,
             } else {
                 if(target !is VarDecl || target.type==VarDeclType.CONST) {
                     checkResult.add(SyntaxError("can only increment or decrement a variable", postIncrDecr.position))
-                } else if(target.datatype!=DataType.FLOAT && target.datatype!=DataType.WORD && target.datatype!=DataType.BYTE) {
+                } else if(target.datatype !in NumericDatatypes) {
                     checkResult.add(SyntaxError("can only increment or decrement a byte/float/word variable", postIncrDecr.position))
                 }
             }
@@ -667,7 +657,7 @@ class AstChecker(private val namespace: INameScope,
                 }
                 else {
                     val dt = (target as VarDecl).datatype
-                    if(dt!=DataType.ARRAY && dt!=DataType.ARRAY_W && dt!=DataType.ARRAY_F)
+                    if(dt !in NumericDatatypes)
                         checkResult.add(SyntaxError("can only increment or decrement a byte/float/word", postIncrDecr.position))
                 }
             }
@@ -680,7 +670,7 @@ class AstChecker(private val namespace: INameScope,
         if(reg==null) {
             val target = arrayIndexedExpression.identifier!!.targetStatement(namespace)
             if(target is VarDecl) {
-                if(target.datatype==DataType.BYTE || target.datatype==DataType.WORD || target.datatype==DataType.FLOAT)
+                if(target.datatype !in IterableDatatypes)
                     checkResult.add(SyntaxError("array indexing requires an iterable variable", arrayIndexedExpression.position))
                 val arraysize = target.arrayspec?.size()
                 if(arraysize!=null) {
@@ -720,14 +710,11 @@ class AstChecker(private val namespace: INameScope,
         }
 
         when(targetDt) {
-            DataType.BYTE, DataType.WORD, DataType.FLOAT -> {
+            in NumericDatatypes -> {
                 checkResult.add(SyntaxError("can't assign a range to a scalar type", range.position))
                 return false
             }
-            DataType.STR,
-            DataType.STR_P,
-            DataType.STR_S,
-            DataType.STR_PS -> {
+            in StringDatatypes -> {
                 // range check bytes (chars)
                 if(!from.isString || !to.isString) {
                     checkResult.add(ExpressionError("range for string must have single characters from and to values", range.position))
@@ -740,7 +727,7 @@ class AstChecker(private val namespace: INameScope,
                 }
                 return true
             }
-            DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX -> {
+            in ArrayDatatypes -> {
                 // range and length check bytes
                 val expectedSize = arrayspec!!.size()
                 val rangeSize=range.size()
@@ -750,6 +737,7 @@ class AstChecker(private val namespace: INameScope,
                 }
                 return true
             }
+            else -> throw FatalAstException("invalid targetDt")
         }
     }
 
@@ -761,15 +749,15 @@ class AstChecker(private val namespace: INameScope,
         when (targetDt) {
             DataType.FLOAT -> {
                 val number = when(value.type) {
-                    DataType.BYTE -> value.bytevalue!!.toDouble()
-                    DataType.WORD -> value.wordvalue!!.toDouble()
+                    DataType.UBYTE, DataType.BYTE -> value.bytevalue!!.toDouble()
+                    DataType.UWORD, DataType.WORD -> value.wordvalue!!.toDouble()
                     DataType.FLOAT -> value.floatvalue!!
                     else -> return err("numeric value expected")
                 }
                 if (number > 1.7014118345e+38 || number < -1.7014118345e+38)
                     return err("value '$number' out of range for MFLPT format")
             }
-            DataType.BYTE -> {
+            DataType.UBYTE -> {
                 val number = value.asIntegerValue ?: return if (value.floatvalue!=null)
                     err("unsigned byte value expected instead of float; possible loss of precision")
                 else
@@ -777,13 +765,29 @@ class AstChecker(private val namespace: INameScope,
                 if (number < 0 || number > 255)
                     return err("value '$number' out of range for unsigned byte")
             }
-            DataType.WORD -> {
+            DataType.BYTE -> {
+                val number = value.asIntegerValue ?: return if (value.floatvalue!=null)
+                    err("byte value expected instead of float; possible loss of precision")
+                else
+                    err("byte value expected")
+                if (number < -128 || number > 127)
+                    return err("value '$number' out of range for byte")
+            }
+            DataType.UWORD -> {
                 val number = value.asIntegerValue ?: return if (value.floatvalue!=null)
                     err("unsigned word value expected instead of float; possible loss of precision")
                 else
                     err("unsigned word value expected")
                 if (number < 0 || number > 65535)
                     return err("value '$number' out of range for unsigned word")
+            }
+            DataType.WORD -> {
+                val number = value.asIntegerValue ?: return if (value.floatvalue!=null)
+                    err("word value expected instead of float; possible loss of precision")
+                else
+                    err("word value expected")
+                if (number < -32768 || number > 32767)
+                    return err("value '$number' out of range for word")
             }
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
                 if(!value.isString)
@@ -792,9 +796,9 @@ class AstChecker(private val namespace: INameScope,
                 if (str.isEmpty() || str.length > 255)
                     return err("string length must be 1 to 255")
             }
-            DataType.ARRAY -> {
+            DataType.ARRAY_UB, DataType.ARRAY_B -> {
                 // value may be either a single byte, or a byte array (of all constant values)
-                if(value.type==DataType.ARRAY) {
+                if(value.type==DataType.ARRAY_UB || value.type==DataType.ARRAY_B) {
                     val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).array!!.size
                     val arraySpecSize = arrayspec.size()
                     if(arraySpecSize!=null && arraySpecSize>0) {
@@ -805,20 +809,29 @@ class AstChecker(private val namespace: INameScope,
                         if (arraySize != expectedSize)
                             return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
                     }
-                } else if(value.type==DataType.ARRAY_W) {
+                } else if(value.type==DataType.ARRAY_UW || value.type==DataType.ARRAY_W) {
                     return err("initialization value must be an array of bytes")
                 } else {
-                    val number = value.bytevalue ?: return if (value.floatvalue!=null)
-                        err("unsigned byte value expected instead of float; possible loss of precision")
-                    else
-                        err("unsigned byte value expected")
-                    if (number < 0 || number > 255)
-                        return err("value '$number' out of range for unsigned byte")
+                    if(targetDt==DataType.ARRAY_UB) {
+                        val number = value.bytevalue ?: return if (value.floatvalue != null)
+                            err("unsigned byte value expected instead of float; possible loss of precision")
+                        else
+                            err("unsigned byte value expected")
+                        if (number < 0 || number > 255)
+                            return err("value '$number' out of range for unsigned byte")
+                    } else {
+                        val number = value.bytevalue ?: return if (value.floatvalue != null)
+                            err("byte value expected instead of float; possible loss of precision")
+                        else
+                            err("byte value expected")
+                        if (number < -128 || number > 127)
+                            return err("value '$number' out of range for byte")
+                    }
                 }
             }
-            DataType.ARRAY_W -> {
+            DataType.ARRAY_UW, DataType.ARRAY_W -> {
                 // value may be either a single word, or a word array
-                if(value.type==DataType.ARRAY || value.type==DataType.ARRAY_W) {
+                if(value.type==DataType.ARRAY_UB || value.type==DataType.ARRAY_UW || value.type==DataType.ARRAY_B || value.type==DataType.ARRAY_W) {
                     val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).array!!.size
                     val arraySpecSize = arrayspec.size()
                     if(arraySpecSize!=null && arraySpecSize>0) {
@@ -831,17 +844,26 @@ class AstChecker(private val namespace: INameScope,
                             return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
                     }
                 } else {
-                    val number = value.asIntegerValue ?: return if (value.floatvalue!=null)
-                        err("unsigned byte or word value expected instead of float; possible loss of precision")
-                    else
-                        err("unsigned byte or word value expected")
-                    if (number < 0 || number > 65535)
-                        return err("value '$number' out of range for unsigned word")
+                    if(targetDt==DataType.ARRAY_UW) {
+                        val number = value.asIntegerValue ?: return if (value.floatvalue != null)
+                            err("unsigned byte or word value expected instead of float; possible loss of precision")
+                        else
+                            err("unsigned byte or word value expected")
+                        if (number < 0 || number > 65535)
+                            return err("value '$number' out of range for unsigned word")
+                    } else {
+                        val number = value.asIntegerValue ?: return if (value.floatvalue != null)
+                            err("byte or word value expected instead of float; possible loss of precision")
+                        else
+                            err("byte or word value expected")
+                        if (number < -32768 || number > 32767)
+                            return err("value '$number' out of range for word")
+                    }
                 }
             }
             DataType.ARRAY_F -> {
                 // value may be either a single float, or a float array
-                if(value.type==DataType.ARRAY || value.type==DataType.ARRAY_W || value.type==DataType.ARRAY_F) {
+                if(value.type==DataType.ARRAY_UB || value.type==DataType.ARRAY_UW || value.type==DataType.ARRAY_F) {
                     val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).arraysize
                     val arraySpecSize = arrayspec.size()
                     if(arraySpecSize!=null && arraySpecSize>0) {
@@ -861,9 +883,9 @@ class AstChecker(private val namespace: INameScope,
                         return err("value '$number' out of range for mfplt5 floating point")
                 }
             }
-            DataType.MATRIX -> {
+            DataType.MATRIX_UB, DataType.MATRIX_B -> {
                 // value can only be a single byte, or a byte array (which represents the matrix)
-                if(value.type==DataType.ARRAY || value.type==DataType.MATRIX) {
+                if(value.type==DataType.ARRAY_UB || value.type==DataType.ARRAY_B || value.type==DataType.MATRIX_UB || value.type==DataType.MATRIX_B) {
                     val arraySpecSize = arrayspec.size()
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         val constX = arrayspec.x.constValue(namespace, heap)
@@ -876,10 +898,17 @@ class AstChecker(private val namespace: INameScope,
                             return err("initializer matrix size mismatch (expecting $expectedSize, got ${matrix.size} elements)")
                     }
                 } else {
-                    val number = value.bytevalue
-                            ?: return err("unsigned byte value expected")
-                    if (number < 0 || number > 255)
-                        return err("value '$number' out of range for unsigned byte")
+                    if(targetDt==DataType.MATRIX_UB) {
+                        val number = value.bytevalue
+                                ?: return err("unsigned byte value expected")
+                        if (number < 0 || number > 255)
+                            return err("value '$number' out of range for unsigned byte")
+                    } else {
+                        val number = value.bytevalue
+                                ?: return err("byte value expected")
+                        if (number < -128 || number > 127)
+                            return err("value '$number' out of range for byte")
+                    }
                 }
             }
         }
@@ -896,8 +925,10 @@ class AstChecker(private val namespace: INameScope,
 
         val result =  when(targetDatatype) {
             DataType.BYTE -> sourceDatatype==DataType.BYTE
+            DataType.UBYTE -> sourceDatatype==DataType.UBYTE
             DataType.WORD -> sourceDatatype==DataType.BYTE || sourceDatatype==DataType.WORD
-            DataType.FLOAT -> sourceDatatype==DataType.BYTE || sourceDatatype==DataType.WORD || sourceDatatype==DataType.FLOAT
+            DataType.UWORD -> sourceDatatype==DataType.UBYTE || sourceDatatype==DataType.UWORD
+            DataType.FLOAT -> sourceDatatype in NumericDatatypes
             DataType.STR -> sourceDatatype==DataType.STR
             DataType.STR_S -> sourceDatatype==DataType.STR_S
             DataType.STR_P -> sourceDatatype==DataType.STR_P
@@ -908,9 +939,9 @@ class AstChecker(private val namespace: INameScope,
         if(result)
             return true
 
-        if(sourceDatatype==DataType.WORD && targetDatatype==DataType.BYTE)
+        if((sourceDatatype==DataType.UWORD || sourceDatatype==DataType.WORD) && (targetDatatype==DataType.UBYTE || targetDatatype==DataType.BYTE))
             checkResult.add(ExpressionError("cannot assign word to byte, use msb() or lsb()?", position))
-        else if(sourceDatatype==DataType.FLOAT && (targetDatatype==DataType.BYTE || targetDatatype==DataType.WORD))
+        else if(sourceDatatype==DataType.FLOAT && targetDatatype in IntegerDatatypes)
             checkResult.add(ExpressionError("cannot assign float to ${targetDatatype.toString().toLowerCase()}; possible loss of precision. Suggestion: round the value or revert to byte/word arithmetic", position))
         else
             checkResult.add(ExpressionError("cannot assign ${sourceDatatype.toString().toLowerCase()} to ${targetDatatype.toString().toLowerCase()}", position))

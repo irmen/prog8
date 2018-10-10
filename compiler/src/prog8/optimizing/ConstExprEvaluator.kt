@@ -86,39 +86,39 @@ class ConstExprEvaluator {
     }
 
     private fun bitwisexor(left: LiteralValue, right: LiteralValue): LiteralValue {
-        if(left.type== DataType.BYTE) {
+        if(left.type== DataType.UBYTE) {
             if(right.asIntegerValue!=null) {
-                return LiteralValue(DataType.BYTE, bytevalue = (left.bytevalue!!.toInt() xor (right.asIntegerValue and 255)).toShort(), position = left.position)
+                return LiteralValue(DataType.UBYTE, bytevalue = (left.bytevalue!!.toInt() xor (right.asIntegerValue and 255)).toShort(), position = left.position)
             }
-        } else if(left.type== DataType.WORD) {
+        } else if(left.type== DataType.UWORD) {
             if(right.asIntegerValue!=null) {
-                return LiteralValue(DataType.WORD, wordvalue = left.wordvalue!! xor right.asIntegerValue, position = left.position)
+                return LiteralValue(DataType.UWORD, wordvalue = left.wordvalue!! xor right.asIntegerValue, position = left.position)
             }
         }
         throw ExpressionError("cannot calculate $left ^ $right", left.position)
     }
 
     private fun bitwiseor(left: LiteralValue, right: LiteralValue): LiteralValue {
-        if(left.type== DataType.BYTE) {
+        if(left.type== DataType.UBYTE) {
             if(right.asIntegerValue!=null) {
-                return LiteralValue(DataType.BYTE, bytevalue = (left.bytevalue!!.toInt() or (right.asIntegerValue and 255)).toShort(), position = left.position)
+                return LiteralValue(DataType.UBYTE, bytevalue = (left.bytevalue!!.toInt() or (right.asIntegerValue and 255)).toShort(), position = left.position)
             }
-        } else if(left.type== DataType.WORD) {
+        } else if(left.type== DataType.UWORD) {
             if(right.asIntegerValue!=null) {
-                return LiteralValue(DataType.WORD, wordvalue = left.wordvalue!! or right.asIntegerValue, position = left.position)
+                return LiteralValue(DataType.UWORD, wordvalue = left.wordvalue!! or right.asIntegerValue, position = left.position)
             }
         }
         throw ExpressionError("cannot calculate $left | $right", left.position)
     }
 
     private fun bitwiseand(left: LiteralValue, right: LiteralValue): LiteralValue {
-        if(left.type== DataType.BYTE) {
+        if(left.type== DataType.UBYTE) {
             if(right.asIntegerValue!=null) {
-                return LiteralValue(DataType.BYTE, bytevalue = (left.bytevalue!!.toInt() or (right.asIntegerValue and 255)).toShort(), position = left.position)
+                return LiteralValue(DataType.UBYTE, bytevalue = (left.bytevalue!!.toInt() or (right.asIntegerValue and 255)).toShort(), position = left.position)
             }
-        } else if(left.type== DataType.WORD) {
+        } else if(left.type== DataType.UWORD) {
             if(right.asIntegerValue!=null) {
-                return LiteralValue(DataType.WORD, wordvalue = left.wordvalue!! or right.asIntegerValue, position = left.position)
+                return LiteralValue(DataType.UWORD, wordvalue = left.wordvalue!! or right.asIntegerValue, position = left.position)
             }
         }
         throw ExpressionError("cannot calculate $left & $right", left.position)

@@ -17,17 +17,22 @@ import kotlin.math.floor
 /**************************** AST Data classes ****************************/
 
 enum class DataType {
+    UBYTE,
     BYTE,
+    UWORD,
     WORD,
     FLOAT,
     STR,
     STR_P,
     STR_S,
     STR_PS,
-    ARRAY,
+    ARRAY_UB,
+    ARRAY_B,
+    ARRAY_UW,
     ARRAY_W,
     ARRAY_F,
-    MATRIX
+    MATRIX_UB,
+    MATRIX_B
 }
 
 enum class Register {
@@ -63,7 +68,15 @@ enum class BranchCondition {
 
 val IterableDatatypes = setOf(
         DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
-        DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX)
+        DataType.ARRAY_UB, DataType.ARRAY_B,
+        DataType.ARRAY_UW, DataType.ARRAY_W,
+        DataType.ARRAY_F, DataType.MATRIX_UB, DataType.MATRIX_B)
+
+val StringDatatypes = setOf(DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS)
+val NumericDatatypes = setOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT)
+val IntegerDatatypes = setOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD)
+val ArrayDatatypes = setOf(DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX_UB, DataType.MATRIX_B)
+
 
 class FatalAstException (override var message: String) : Exception(message)
 
@@ -586,19 +599,22 @@ class VarDecl(val type: VarDeclType,
     val datatype = when {
         arrayspec == null -> declaredDatatype
         arrayspec.y != null -> when (declaredDatatype) {
-            DataType.BYTE -> DataType.MATRIX
+            DataType.UBYTE -> DataType.MATRIX_UB
+            DataType.BYTE -> DataType.MATRIX_B
             else -> {
                 datatypeErrors.add(SyntaxError("matrix can only contain bytes", position))
-                DataType.BYTE
+                DataType.UBYTE
             }
         }
         else -> when (declaredDatatype) {
-            DataType.BYTE -> DataType.ARRAY
+            DataType.UBYTE -> DataType.ARRAY_UB
+            DataType.BYTE -> DataType.ARRAY_B
+            DataType.UWORD -> DataType.ARRAY_UW
             DataType.WORD -> DataType.ARRAY_W
             DataType.FLOAT -> DataType.ARRAY_F
             else -> {
                 datatypeErrors.add(SyntaxError("array can only contain bytes/words/floats", position))
-                DataType.BYTE
+                DataType.UBYTE
             }
         }
     }
@@ -620,7 +636,9 @@ class VarDecl(val type: VarDeclType,
 
     fun asDefaultValueDecl(): VarDecl {
         val constValue = when(declaredDatatype) {
+            DataType.UBYTE -> LiteralValue(DataType.UBYTE, 0, position=position)
             DataType.BYTE -> LiteralValue(DataType.BYTE, 0, position=position)
+            DataType.UWORD -> LiteralValue(DataType.UWORD, wordvalue=0, position=position)
             DataType.WORD -> LiteralValue(DataType.WORD, wordvalue=0, position=position)
             DataType.FLOAT -> LiteralValue(DataType.FLOAT, floatvalue=0.0, position=position)
             else -> throw FatalAstException("can only set a default value for a numeric type")
@@ -669,8 +687,8 @@ data class AssignTarget(val register: Register?,
     fun determineDatatype(namespace: INameScope, heap: HeapValues, stmt: IStatement): DataType? {
         if(register!=null)
             return when(register){
-                Register.A, Register.X, Register.Y -> DataType.BYTE
-                Register.AX, Register.AY, Register.XY -> DataType.WORD
+                Register.A, Register.X, Register.Y -> DataType.UBYTE
+                Register.AX, Register.AY, Register.XY -> DataType.UWORD
             }
 
         if(identifier!=null) {
@@ -742,21 +760,42 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
             "and", "or", "xor",
             "<", ">",
             "<=", ">=",
-            "==", "!=" -> DataType.BYTE
+            "==", "!=" -> DataType.UBYTE
             "/" -> {
                 val rightNum = right.constValue(namespace, heap)?.asNumericValue?.toDouble()
                 if(rightNum!=null) {
                     when(leftDt) {
+                        DataType.UBYTE ->
+                            when(rightDt) {
+                                DataType.UBYTE -> DataType.UBYTE
+                                DataType.BYTE -> DataType.BYTE
+                                DataType.UWORD -> if(rightNum >= 256) DataType.UBYTE else DataType.UWORD
+                                DataType.WORD -> {
+                                    if(rightNum < 0)
+                                        if(rightNum<-256) DataType.UBYTE else DataType.WORD
+                                    else
+                                        if(rightNum>256) DataType.UBYTE else DataType.UWORD
+                                }
+                                DataType.FLOAT -> if(rightNum <= -256 || rightNum >= 256) DataType.UBYTE else DataType.FLOAT
+                                else -> throw FatalAstException("invalid rightDt $rightDt")
+                            }
                         DataType.BYTE ->
                             when(rightDt) {
-                                DataType.BYTE -> DataType.BYTE
-                                DataType.WORD -> if(rightNum <= -256 || rightNum >= 256) DataType.BYTE else DataType.WORD
+                                DataType.UBYTE, DataType.BYTE -> DataType.BYTE
+                                DataType.UWORD, DataType.WORD -> if(rightNum <= -256 || rightNum >= 256) DataType.BYTE else DataType.WORD
                                 DataType.FLOAT -> if(rightNum <= -256 || rightNum >= 256) DataType.BYTE else DataType.FLOAT
+                                else -> throw FatalAstException("invalid rightDt $rightDt")
+                            }
+                        DataType.UWORD ->
+                            when(rightDt) {
+                                DataType.UBYTE, DataType.UWORD -> DataType.UWORD
+                                DataType.BYTE, DataType.WORD -> DataType.WORD
+                                DataType.FLOAT -> if(rightNum <= -65536 || rightNum >= 65536) DataType.UWORD else DataType.FLOAT
                                 else -> throw FatalAstException("invalid rightDt $rightDt")
                             }
                         DataType.WORD ->
                             when(rightDt) {
-                                DataType.BYTE, DataType.WORD -> DataType.WORD
+                                DataType.UBYTE, DataType.UWORD, DataType.BYTE, DataType.WORD -> DataType.WORD
                                 DataType.FLOAT -> if(rightNum <= -65536 || rightNum >= 65536) DataType.WORD else DataType.FLOAT
                                 else -> throw FatalAstException("invalid rightDt $rightDt")
                             }
@@ -771,16 +810,26 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
 
     private fun integerDivisionOpDt(leftDt: DataType, rightDt: DataType): DataType {
         return when(leftDt) {
-            DataType.BYTE -> when(rightDt) {
+            DataType.UBYTE -> when(rightDt) {
+                DataType.UBYTE, DataType.UWORD -> DataType.UBYTE
                 DataType.BYTE, DataType.WORD, DataType.FLOAT -> DataType.BYTE
                 else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
             }
-            DataType.WORD -> when(rightDt) {
+            DataType.BYTE -> when(rightDt) {
+                in NumericDatatypes -> DataType.BYTE
+                else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+            }
+            DataType.UWORD -> when(rightDt) {
+                DataType.UBYTE, DataType.UWORD -> DataType.UWORD
                 DataType.BYTE, DataType.WORD, DataType.FLOAT -> DataType.WORD
                 else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
             }
+            DataType.WORD -> when(rightDt) {
+                in NumericDatatypes -> DataType.WORD
+                else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+            }
             DataType.FLOAT -> when(rightDt) {
-                DataType.BYTE, DataType.WORD, DataType.FLOAT -> DataType.WORD
+                in NumericDatatypes -> DataType.WORD
                 else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
             }
             else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
@@ -789,21 +838,33 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
 
     private fun arithmeticOpDt(leftDt: DataType, rightDt: DataType): DataType {
         return when(leftDt) {
-            DataType.BYTE -> when(rightDt) {
+            DataType.UBYTE -> when(rightDt) {
+                DataType.UBYTE -> DataType.UBYTE
                 DataType.BYTE -> DataType.BYTE
+                DataType.UWORD -> DataType.UWORD
                 DataType.WORD -> DataType.WORD
                 DataType.FLOAT -> DataType.FLOAT
                 else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
             }
-            DataType.WORD -> when(rightDt) {
+            DataType.BYTE -> when(rightDt) {
+                DataType.BYTE, DataType.UBYTE -> DataType.BYTE
+                DataType.WORD, DataType.UWORD -> DataType.WORD
+                DataType.FLOAT -> DataType.FLOAT
+                else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+            }
+            DataType.UWORD -> when(rightDt) {
+                DataType.UBYTE, DataType.UWORD -> DataType.UWORD
                 DataType.BYTE, DataType.WORD -> DataType.WORD
                 DataType.FLOAT -> DataType.FLOAT
                 else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
             }
-            DataType.FLOAT -> when(rightDt) {
-                DataType.BYTE -> DataType.FLOAT
-                DataType.WORD -> DataType.FLOAT
+            DataType.WORD -> when(rightDt) {
+                DataType.BYTE, DataType.UBYTE, DataType.WORD, DataType.UWORD -> DataType.WORD
                 DataType.FLOAT -> DataType.FLOAT
+                else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+            }
+            DataType.FLOAT -> when(rightDt) {
+                in NumericDatatypes -> DataType.FLOAT
                 else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
             }
             else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
@@ -829,15 +890,18 @@ class ArrayIndexedExpression(val identifier: IdentifierReference?,
 
     override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? {
         if (register != null)
-            return DataType.BYTE
+            return DataType.UBYTE
         val target = identifier?.targetStatement(namespace)
         if (target is VarDecl) {
             return when (target.datatype) {
-                DataType.BYTE, DataType.WORD, DataType.FLOAT -> null
-                DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> DataType.BYTE
-                DataType.ARRAY, DataType.MATRIX -> DataType.BYTE
+                in NumericDatatypes -> null
+                in StringDatatypes -> DataType.UBYTE
+                DataType.ARRAY_UB, DataType.MATRIX_UB -> DataType.UBYTE
+                DataType.ARRAY_B, DataType.MATRIX_B -> DataType.BYTE
+                DataType.ARRAY_UW -> DataType.UWORD
                 DataType.ARRAY_W -> DataType.WORD
                 DataType.ARRAY_F -> DataType.FLOAT
+                else -> throw FatalAstException("invalid dt")
             }
         }
         throw FatalAstException("cannot get indexed element on $target")
@@ -860,18 +924,18 @@ class LiteralValue(val type: DataType,
 
     override fun referencesIdentifier(name: String) = arrayvalue?.any { it.referencesIdentifier(name) } ?: false
 
-    val isString = type==DataType.STR || type==DataType.STR_P || type==DataType.STR_S || type==DataType.STR_PS
-    val isNumeric = type==DataType.BYTE || type==DataType.WORD || type==DataType.FLOAT
-    val isArray = type==DataType.ARRAY || type==DataType.ARRAY_W || type==DataType.ARRAY_F || type==DataType.MATRIX
+    val isString = type in StringDatatypes
+    val isNumeric = type in NumericDatatypes
+    val isArray = type in ArrayDatatypes
 
     companion object {
         fun fromBoolean(bool: Boolean, position: Position) =
-                LiteralValue(DataType.BYTE, bytevalue = if(bool) 1 else 0, position=position)
+                LiteralValue(DataType.UBYTE, bytevalue = if(bool) 1 else 0, position=position)
 
         fun fromNumber(value: Number, type: DataType, position: Position) : LiteralValue {
             return when(type) {
-                DataType.BYTE -> LiteralValue(type, bytevalue = value.toShort(), position = position)
-                DataType.WORD -> LiteralValue(type, wordvalue = value.toInt(), position = position)
+                DataType.UBYTE, DataType.BYTE -> LiteralValue(type, bytevalue = value.toShort(), position = position)
+                DataType.UWORD, DataType.WORD -> LiteralValue(type, wordvalue = value.toInt(), position = position)
                 DataType.FLOAT -> LiteralValue(type, floatvalue = value.toDouble(), position = position)
                 else -> throw FatalAstException("non numeric datatype")
             }
@@ -882,9 +946,10 @@ class LiteralValue(val type: DataType,
             return if(floatval == floor(floatval)  && floatval in -32768..65535) {
                 // the floating point value is actually an integer.
                 when (floatval) {
-                    // note: we cheat a little here and allow negative integers during expression evaluations
-                    in -128..255 -> LiteralValue(DataType.BYTE, bytevalue = floatval.toShort(), position = position)
-                    in -32768..65535 -> LiteralValue(DataType.WORD, wordvalue = floatval.toInt(), position = position)
+                    in 0..255 -> LiteralValue(DataType.UBYTE, bytevalue=floatval.toShort(), position = position)
+                    in -128..127 -> LiteralValue(DataType.BYTE, bytevalue=floatval.toShort(), position = position)
+                    in 0..65535 -> LiteralValue(DataType.UWORD, wordvalue = floatval.toInt(), position = position)
+                    in -32768..32767 -> LiteralValue(DataType.WORD, wordvalue = floatval.toInt(), position = position)
                     else -> LiteralValue(DataType.FLOAT, floatvalue = floatval, position = position)
                 }
             } else {
@@ -894,9 +959,9 @@ class LiteralValue(val type: DataType,
 
         fun optimalInteger(value: Number, position: Position): LiteralValue {
             return when (value) {
-                // note: we cheat a little here and allow negative integers during expression evaluations
-                in -128..255 -> LiteralValue(DataType.BYTE, bytevalue = value.toShort(), position = position)
-                in -32768..65535 -> LiteralValue(DataType.WORD, wordvalue = value.toInt(), position = position)
+                in 0..255 -> LiteralValue(DataType.UBYTE, bytevalue=value.toShort(), position = position)
+                in -128..127 -> LiteralValue(DataType.BYTE, bytevalue=value.toShort(), position = position)
+                in 0..65535 -> LiteralValue(DataType.UWORD, wordvalue = value.toInt(), position = position)
                 else -> throw FatalAstException("integer overflow: $value")
             }
         }
@@ -904,12 +969,12 @@ class LiteralValue(val type: DataType,
 
     init {
         when(type){
-            DataType.BYTE -> if(bytevalue==null) throw FatalAstException("literal value missing bytevalue")
-            DataType.WORD -> if(wordvalue==null) throw FatalAstException("literal value missing wordvalue")
+            DataType.UBYTE, DataType.BYTE -> if(bytevalue==null) throw FatalAstException("literal value missing bytevalue")
+            DataType.UWORD, DataType.WORD -> if(wordvalue==null) throw FatalAstException("literal value missing wordvalue")
             DataType.FLOAT -> if(floatvalue==null) throw FatalAstException("literal value missing floatvalue")
-            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS ->
+            in StringDatatypes ->
                 if(strvalue==null && heapId==null) throw FatalAstException("literal value missing strvalue/heapId")
-            DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX ->
+            in ArrayDatatypes ->
                 if(arrayvalue==null && heapId==null) throw FatalAstException("literal value missing arrayvalue/heapId")
         }
         if(bytevalue==null && wordvalue==null && floatvalue==null && arrayvalue==null && strvalue==null && heapId==null)
@@ -946,18 +1011,20 @@ class LiteralValue(val type: DataType,
 
     override fun toString(): String {
         val vstr = when(type) {
+            DataType.UBYTE -> "ubyte:$bytevalue"
             DataType.BYTE -> "byte:$bytevalue"
+            DataType.UWORD -> "uword:$wordvalue"
             DataType.WORD -> "word:$wordvalue"
             DataType.FLOAT -> "float:$floatvalue"
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS-> {
                 if(heapId!=null) "str:#$heapId"
                 else "str:$strvalue"
             }
-            DataType.ARRAY, DataType.ARRAY_W, DataType.ARRAY_F -> {
+            DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F -> {
                 if(heapId!=null) "array:#$heapId"
                 else "array:$arrayvalue"
             }
-            DataType.MATRIX -> {
+            DataType.MATRIX_UB, DataType.MATRIX_B -> {
                 if(heapId!=null) "matrix:#$heapId"
                 else "matrix:$arrayvalue"
             }
@@ -1020,12 +1087,15 @@ class RangeExpr(var from: IExpression,
         val toDt=to.resultingDatatype(namespace, heap)
         return when {
             fromDt==null || toDt==null -> null
+            fromDt==DataType.UBYTE && toDt==DataType.UBYTE -> DataType.UBYTE
+            fromDt==DataType.UWORD && toDt==DataType.UWORD -> DataType.UWORD
+            fromDt==DataType.STR && toDt==DataType.STR -> DataType.STR
+            fromDt==DataType.STR_P && toDt==DataType.STR_P -> DataType.STR_P
+            fromDt==DataType.STR_S && toDt==DataType.STR_S -> DataType.STR_S
+            fromDt==DataType.STR_PS && toDt==DataType.STR_PS -> DataType.STR_PS
             fromDt==DataType.WORD || toDt==DataType.WORD -> DataType.WORD
-            fromDt==DataType.STR || toDt==DataType.STR -> DataType.STR
-            fromDt==DataType.STR_P || toDt==DataType.STR_P -> DataType.STR_P
-            fromDt==DataType.STR_S || toDt==DataType.STR_S -> DataType.STR_S
-            fromDt==DataType.STR_PS || toDt==DataType.STR_PS -> DataType.STR_PS
-            else -> DataType.BYTE
+            fromDt==DataType.BYTE || toDt==DataType.BYTE -> DataType.UBYTE
+            else -> DataType.UBYTE
         }
     }
     override fun toString(): String {
@@ -1090,8 +1160,8 @@ class RegisterExpr(val register: Register, override val position: Position) : IE
 
     override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? {
         return when(register){
-            Register.A, Register.X, Register.Y -> DataType.BYTE
-            Register.AX, Register.AY, Register.XY -> DataType.WORD
+            Register.A, Register.X, Register.Y -> DataType.UBYTE
+            Register.AX, Register.AY, Register.XY -> DataType.UWORD
         }
     }
 }
@@ -1711,29 +1781,31 @@ private fun prog8Parser.DirectiveargContext.toAst() : DirectiveArg =
 private fun prog8Parser.IntegerliteralContext.toAst(): NumericLiteral {
     fun makeLiteral(text: String, radix: Int, forceWord: Boolean): NumericLiteral {
         val integer: Int
-        var datatype = DataType.BYTE
+        var datatype = DataType.UBYTE
         when (radix) {
             10 -> {
                 integer = text.toInt()
                 datatype = when(integer) {
-                    in 0..255 -> DataType.BYTE
-                    in 256..65535 -> DataType.WORD
+                    in 0..255 -> DataType.UBYTE
+                    in -128..127 -> DataType.BYTE
+                    in 0..65535 -> DataType.UWORD
+                    in -32768..32767 -> DataType.WORD
                     else -> DataType.FLOAT
                 }
             }
             2 -> {
                 if(text.length>8)
-                    datatype = DataType.WORD
+                    datatype = DataType.UWORD
                 integer = text.toInt(2)
             }
             16 -> {
                 if(text.length>2)
-                    datatype = DataType.WORD
+                    datatype = DataType.UWORD
                 integer = text.toInt(16)
             }
             else -> throw FatalAstException("invalid radix")
         }
-        return NumericLiteral(integer, if(forceWord) DataType.WORD else datatype)
+        return NumericLiteral(integer, if(forceWord) DataType.UWORD else datatype)
     }
     val terminal: TerminalNode = children[0] as TerminalNode
     val integerPart = this.intpart.text
@@ -1758,19 +1830,21 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
             val intLit = litval.integerliteral()?.toAst()
             when {
                 intLit!=null -> when(intLit.datatype) {
+                    DataType.UBYTE -> LiteralValue(DataType.UBYTE, bytevalue = intLit.number.toShort(), position = litval.toPosition())
                     DataType.BYTE -> LiteralValue(DataType.BYTE, bytevalue = intLit.number.toShort(), position = litval.toPosition())
+                    DataType.UWORD -> LiteralValue(DataType.UWORD, wordvalue = intLit.number.toInt(), position = litval.toPosition())
                     DataType.WORD -> LiteralValue(DataType.WORD, wordvalue = intLit.number.toInt(), position = litval.toPosition())
                     DataType.FLOAT -> LiteralValue(DataType.FLOAT, floatvalue= intLit.number.toDouble(), position = litval.toPosition())
                     else -> throw FatalAstException("invalid datatype for numeric literal")
                 }
                 litval.floatliteral()!=null -> LiteralValue(DataType.FLOAT, floatvalue = litval.floatliteral().toAst(), position = litval.toPosition())
                 litval.stringliteral()!=null -> LiteralValue(DataType.STR, strvalue = litval.stringliteral().text, position = litval.toPosition())
-                litval.charliteral()!=null -> LiteralValue(DataType.BYTE, bytevalue = Petscii.encodePetscii(litval.charliteral().text.unescape(), true)[0], position = litval.toPosition())
+                litval.charliteral()!=null -> LiteralValue(DataType.UBYTE, bytevalue = Petscii.encodePetscii(litval.charliteral().text.unescape(), true)[0], position = litval.toPosition())
                 litval.arrayliteral()!=null -> {
                     val array = litval.arrayliteral()?.toAst()
                     // byte/word array type difference is not determined here.
                     // the ConstantFolder takes care of that and converts the type if needed.
-                    LiteralValue(DataType.ARRAY, arrayvalue = array, position = litval.toPosition())
+                    LiteralValue(DataType.ARRAY_UB, arrayvalue = array, position = litval.toPosition())
                 }
                 else -> throw FatalAstException("invalid parsed literal")
             }
@@ -1796,7 +1870,7 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
     if(funcall!=null) return funcall
 
     if (rangefrom!=null && rangeto!=null) {
-        val step = rangestep?.toAst() ?: LiteralValue(DataType.BYTE, 1, position = toPosition())
+        val step = rangestep?.toAst() ?: LiteralValue(DataType.UBYTE, 1, position = toPosition())
         return RangeExpr(rangefrom.toAst(), rangeto.toAst(), step, toPosition())
     }
 

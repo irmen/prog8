@@ -125,7 +125,7 @@ class AstIdentifiersChecker : IAstProcessor {
             val loopVar = forLoop.loopVar!!
             val varName = loopVar.nameInSource.last()
             when (forLoop.decltype) {
-                DataType.BYTE, DataType.WORD -> {
+                DataType.UBYTE, DataType.UWORD -> {
                     val existing = if(forLoop.body.isEmpty()) null else forLoop.body.lookup(loopVar.nameInSource, forLoop.body.statements.first())
                     if(existing==null) {
                         val vardecl = VarDecl(VarDeclType.VAR, forLoop.decltype, null, varName, null, loopVar.position)

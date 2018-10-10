@@ -2,15 +2,15 @@
 
 ~ main {
 
-    const word width = 320
-    const word height = 200
+    const uword width = 320
+    const uword height = 200
 
     sub start()  {
 
         _vm_gfx_clearscr(0)
 
         float t
-        byte color
+        ubyte color
 
         while(1) {
             float x = sin(t*1.01) + cos(t*1.1234)
@@ -21,10 +21,10 @@
         }
     }
 
-    sub screenx(x: float) -> word {
+    sub screenx(x: float) -> uword {
         return floor(x * flt(width)/4.1) + width // 2
     }
-    sub screeny(y: float) -> word {
+    sub screeny(y: float) -> uword {
         return floor(y * flt(height)/4.1) + height // 2
     }
 }

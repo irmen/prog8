@@ -21,22 +21,22 @@ abstract class Zeropage(private val options: CompilationOptions) {
                 if(y==null) {
                     // 1 dimensional array
                     when(vardecl.datatype) {
-                        DataType.BYTE -> (vardecl.arrayspec.x as LiteralValue).asIntegerValue!!
-                        DataType.WORD -> (vardecl.arrayspec.x as LiteralValue).asIntegerValue!! * 2
+                        DataType.UBYTE -> (vardecl.arrayspec.x as LiteralValue).asIntegerValue!!
+                        DataType.UWORD -> (vardecl.arrayspec.x as LiteralValue).asIntegerValue!! * 2
                         DataType.FLOAT -> (vardecl.arrayspec.x as LiteralValue).asIntegerValue!! *  5
                         else -> throw CompilerException("array can only be of byte, word, float")
                     }
                 } else {
                     // 2 dimensional matrix (only bytes for now)
                     when(vardecl.datatype) {
-                        DataType.BYTE -> (vardecl.arrayspec.x as LiteralValue).asIntegerValue!! * y
+                        DataType.UBYTE -> (vardecl.arrayspec.x as LiteralValue).asIntegerValue!! * y
                         else -> throw CompilerException("matrix can only contain bytes")
                     }
                 }
             } else {
                 when (vardecl.datatype) {
-                    DataType.BYTE -> 1
-                    DataType.WORD -> 2
+                    DataType.UBYTE -> 1
+                    DataType.UWORD -> 2
                     DataType.FLOAT -> {
                         if (options.floats) {
                             printWarning("allocating a large value (float) in zeropage", vardecl.position)

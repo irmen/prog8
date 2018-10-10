@@ -284,16 +284,16 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
                 }
             }
 
-            if (expr.left.resultingDatatype(namespace, heap) == DataType.BYTE) {
+            if (expr.left.resultingDatatype(namespace, heap) == DataType.UBYTE) {
                 if(abs(rightConst.asNumericValue!!.toDouble()) >= 256.0) {
                     optimizationsDone++
-                    return LiteralValue(DataType.BYTE, 0, position = expr.position)
+                    return LiteralValue(DataType.UBYTE, 0, position = expr.position)
                 }
             }
-            else if (expr.left.resultingDatatype(namespace, heap) == DataType.WORD) {
+            else if (expr.left.resultingDatatype(namespace, heap) == DataType.UWORD) {
                 if(abs(rightConst.asNumericValue!!.toDouble()) >= 65536.0) {
                     optimizationsDone++
-                    return LiteralValue(DataType.BYTE, 0, position = expr.position)
+                    return LiteralValue(DataType.UBYTE, 0, position = expr.position)
                 }
             }
         }
