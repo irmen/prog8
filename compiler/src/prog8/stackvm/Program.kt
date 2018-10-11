@@ -142,8 +142,10 @@ class Program (val name: String,
             }
             val (type, valueStr) = args.split(':')
             return when(type) {
-                "b" -> Value(DataType.UBYTE, valueStr.toShort(16))
-                "w" -> Value(DataType.UWORD, valueStr.toInt(16))
+                "b" -> Value(DataType.BYTE, valueStr.toShort(16))
+                "ub" -> Value(DataType.UBYTE, valueStr.toShort(16))
+                "w" -> Value(DataType.WORD, valueStr.toInt(16))
+                "uw" -> Value(DataType.UWORD, valueStr.toInt(16))
                 "f" -> Value(DataType.FLOAT, valueStr.toDouble())
                 "heap" -> {
                     val heapId = valueStr.toInt()
@@ -165,9 +167,9 @@ class Program (val name: String,
                     throw VmExecutionException("missing value type character")
                 val type = DataType.valueOf(typeStr.toUpperCase())
                 val value = when(type) {
-                    DataType.UBYTE -> Value(DataType.UBYTE, valueStr.substring(2).toShort(16))
+                    DataType.UBYTE -> Value(DataType.UBYTE, valueStr.substring(3).toShort(16))
                     DataType.BYTE -> Value(DataType.BYTE, valueStr.substring(2).toShort(16))
-                    DataType.UWORD -> Value(DataType.UWORD, valueStr.substring(2).toInt(16))
+                    DataType.UWORD -> Value(DataType.UWORD, valueStr.substring(3).toInt(16))
                     DataType.WORD -> Value(DataType.WORD, valueStr.substring(2).toInt(16))
                     DataType.FLOAT -> Value(DataType.FLOAT, valueStr.substring(2).toDouble())
                     DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {

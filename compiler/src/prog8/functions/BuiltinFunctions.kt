@@ -35,13 +35,13 @@ val BuiltinFunctions = mapOf(
     "deg"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::toDegrees) },
     "avg"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes.toList())), DataType.FLOAT, ::builtinAvg),
     "abs"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.FLOAT))), DataType.FLOAT, ::builtinAbs),
-    "round"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.FLOAT))), null) { a, p, n, h -> oneDoubleArgOutputInt(a, p, n, h, Math::round) },   // type depends on arg
-    "floor"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.FLOAT))), null) { a, p, n, h -> oneDoubleArgOutputInt(a, p, n, h, Math::floor) },   // type depends on arg
-    "ceil"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.FLOAT))), null) { a, p, n, h -> oneDoubleArgOutputInt(a, p, n, h, Math::ceil) },    // type depends on arg
+    "round"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.FLOAT))), DataType.WORD) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::round) },
+    "floor"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.FLOAT))), DataType.WORD) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::floor) },
+    "ceil"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.FLOAT))), DataType.WORD) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::ceil) },
     "max"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes.toList())), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.max()!! }},        // type depends on args
     "min"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes.toList())), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.min()!! }},        // type depends on args
     "sum"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes.toList())), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.sum() }},        // type depends on args
-    "len"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", IterableDatatypes.toList())), null, ::builtinLen),        // type depends on args
+    "len"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", IterableDatatypes.toList())), DataType.UWORD, ::builtinLen),
     "any"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes.toList())), DataType.UBYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.any { v -> v != 0.0} }},
     "all"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes.toList())), DataType.UBYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.all { v -> v != 0.0} }},
     "lsb"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, n, h -> oneIntArgOutputInt(a, p, n, h) { x: Int -> x and 255 }},
@@ -142,17 +142,6 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
                 DataType.MATRIX_B -> DataType.BYTE
             }
         }
-        "round", "floor", "ceil" -> {
-            val dt=args.single().resultingDatatype(namespace, heap)
-            when(dt) {
-                DataType.UBYTE -> DataType.UBYTE
-                DataType.BYTE -> DataType.BYTE
-                DataType.UWORD -> DataType.UWORD
-                DataType.WORD -> DataType.WORD
-                DataType.FLOAT -> DataType.WORD
-                else -> null
-            }
-        }
         "sum" -> {
             val dt=datatypeFromListArg(args.single())
             when(dt) {
@@ -165,27 +154,6 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
                 DataType.MATRIX_UB -> DataType.UWORD
                 DataType.MATRIX_B -> DataType.WORD
                 DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> DataType.UWORD
-            }
-        }
-        "len" -> {
-            // len of a str is always 0..255 so always a byte,
-            // len of other things is assumed to need a word (even though the actual length could be less than 256)
-            val arg = args.single()
-            when(arg) {
-                is IdentifierReference -> {
-                    val stmt = arg.targetStatement(namespace)
-                    when(stmt) {
-                        is VarDecl -> {
-                            val value = stmt.value
-                            if(value is LiteralValue) {
-                                if(value.isString) return DataType.UBYTE        // strings are 0..255
-                            }
-                        }
-                    }
-                    DataType.UWORD   // assume other lengths are words for now.
-                }
-                is LiteralValue -> throw FatalAstException("len of literalvalue should have been const-folded away already")
-                else -> DataType.UWORD
             }
         }
         else -> throw FatalAstException("unknown result type for builtin function $function")
@@ -207,15 +175,13 @@ private fun oneDoubleArg(args: List<IExpression>, position: Position, namespace:
     return numericLiteral(function(float), args[0].position)
 }
 
-private fun oneDoubleArgOutputInt(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues, function: (arg: Double)->Number): LiteralValue {
+private fun oneDoubleArgOutputWord(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues, function: (arg: Double)->Number): LiteralValue {
     if(args.size!=1)
         throw SyntaxError("built-in function requires one floating point argument", position)
     val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
-    val float: Double = when(constval.type) {
-        DataType.UBYTE, DataType.UWORD, DataType.FLOAT -> constval.asNumericValue!!.toDouble()
-        else -> throw SyntaxError("built-in function requires one floating point argument", position)
-    }
-    return numericLiteral(function(float).toInt(), args[0].position)
+    if(constval.type!=DataType.FLOAT)
+        throw SyntaxError("built-in function requires one floating point argument", position)
+    return LiteralValue(DataType.WORD, wordvalue=function(constval.asNumericValue!!.toDouble()).toInt(), position=args[0].position)
 }
 
 private fun oneIntArgOutputInt(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues, function: (arg: Int)->Number): LiteralValue {
@@ -384,15 +350,15 @@ private fun builtinLen(args: List<IExpression>, position: Position, namespace:IN
     return when(argument.type) {
         DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.MATRIX_UB, DataType.MATRIX_B -> {
             val arraySize = argument.arrayvalue?.size ?: heap.get(argument.heapId!!).array!!.size
-            numericLiteral(arraySize, args[0].position)
+            LiteralValue(DataType.UWORD, wordvalue=arraySize, position=args[0].position)
         }
         DataType.ARRAY_F -> {
             val arraySize = argument.arrayvalue?.size ?: heap.get(argument.heapId!!).doubleArray!!.size
-            numericLiteral(arraySize, args[0].position)
+            LiteralValue(DataType.UWORD, wordvalue=arraySize, position=args[0].position)
         }
         DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
             val str = argument.strvalue ?: heap.get(argument.heapId!!).str!!
-            numericLiteral(str.length, args[0].position)
+            LiteralValue(DataType.UWORD, wordvalue=str.length, position=args[0].position)
         }
         DataType.UBYTE, DataType.BYTE,
         DataType.UWORD, DataType.WORD,

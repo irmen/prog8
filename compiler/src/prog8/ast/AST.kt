@@ -1062,6 +1062,70 @@ class LiteralValue(val type: DataType,
 
         throw ExpressionError("cannot compare type $type with ${other.type}", other.position)
     }
+
+    fun intoDatatype(targettype: DataType): LiteralValue {
+        if(type==targettype)
+            return this
+        when(type) {
+            DataType.UBYTE -> {
+                if(targettype==DataType.BYTE && bytevalue!! <= 127)
+                    return LiteralValue(targettype, bytevalue=bytevalue, position=position)
+                if(targettype==DataType.WORD || targettype==DataType.UWORD)
+                    return LiteralValue(targettype, wordvalue=bytevalue!!.toInt(), position=position)
+                if(targettype==DataType.FLOAT)
+                    return LiteralValue(targettype, floatvalue=bytevalue!!.toDouble(), position=position)
+            }
+            DataType.BYTE -> {
+                if(targettype==DataType.UBYTE && bytevalue!! >= 0)
+                    return LiteralValue(targettype, bytevalue=bytevalue, position=position)
+                if(targettype==DataType.UWORD && bytevalue!! >= 0)
+                    return LiteralValue(targettype, wordvalue=bytevalue.toInt(), position=position)
+                if(targettype==DataType.WORD)
+                    return LiteralValue(targettype, wordvalue=bytevalue!!.toInt(), position=position)
+                if(targettype==DataType.FLOAT)
+                    return LiteralValue(targettype, floatvalue=bytevalue!!.toDouble(), position=position)
+            }
+            DataType.UWORD -> {
+                if(targettype==DataType.BYTE && wordvalue!! <= 127)
+                    return LiteralValue(targettype, bytevalue=wordvalue.toShort(), position=position)
+                if(targettype==DataType.UBYTE && wordvalue!! <= 255)
+                    return LiteralValue(targettype, bytevalue=wordvalue.toShort(), position=position)
+                if(targettype==DataType.WORD && wordvalue!! <= 32767)
+                    return LiteralValue(targettype, wordvalue=wordvalue, position=position)
+                if(targettype==DataType.FLOAT)
+                    return LiteralValue(targettype, floatvalue=wordvalue!!.toDouble(), position=position)
+            }
+            DataType.WORD -> {
+                if(targettype==DataType.BYTE && wordvalue!! in -128..127)
+                    return LiteralValue(targettype, bytevalue=wordvalue.toShort(), position=position)
+                if(targettype==DataType.UBYTE && wordvalue!! in 0..255)
+                    return LiteralValue(targettype, bytevalue=wordvalue.toShort(), position=position)
+                if(targettype==DataType.UWORD && wordvalue!! >=0)
+                    return LiteralValue(targettype, wordvalue=wordvalue, position=position)
+                if(targettype==DataType.FLOAT)
+                    return LiteralValue(targettype, floatvalue=wordvalue!!.toDouble(), position=position)
+            }
+            DataType.FLOAT -> {
+                if(floor(floatvalue!!)==floatvalue) {
+                    val value = floatvalue.toInt()
+                    if (targettype == DataType.BYTE && value in -128..127)
+                        return LiteralValue(targettype, bytevalue = value.toShort(), position = position)
+                    if (targettype == DataType.UBYTE && value in 0..255)
+                        return LiteralValue(targettype, bytevalue = value.toShort(), position = position)
+                    if (targettype == DataType.WORD && value in -32768..32767)
+                        return LiteralValue(targettype, wordvalue = value, position = position)
+                    if (targettype == DataType.UWORD && value in 0..65535)
+                        return LiteralValue(targettype, wordvalue = value, position = position)
+                }
+            }
+            DataType.STR, DataType.STR_P,  DataType.STR_S, DataType.STR_PS -> {
+                if(targettype in StringDatatypes)
+                    return this
+            }
+            else -> {}
+        }
+        throw FatalAstException("invalid type conversion from $this to $targettype")
+    }
 }
 
 

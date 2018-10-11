@@ -18,19 +18,27 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
     init {
         when(type) {
             DataType.UBYTE -> {
-                byteval = (numericvalueOrHeapId.toInt() and 255).toShort()        // ubyte wrap around 0..255
+                if(numericvalueOrHeapId.toInt() !in 0..255)
+                    throw VmExecutionException("value out of range: $numericvalueOrHeapId")
+                byteval = numericvalueOrHeapId.toShort()
                 asBooleanValue = byteval != (0.toShort())
             }
             DataType.BYTE -> {
-                byteval = limitByte(numericvalueOrHeapId.toInt())
+                if(numericvalueOrHeapId.toInt() !in -128..127)
+                    throw VmExecutionException("value out of range: $numericvalueOrHeapId")
+                byteval = numericvalueOrHeapId.toShort()
                 asBooleanValue = byteval != (0.toShort())
             }
             DataType.UWORD -> {
-                wordval = numericvalueOrHeapId.toInt() and 65535      // uword wrap around 0..65535
+                if(numericvalueOrHeapId.toInt() !in 0..65535)
+                    throw VmExecutionException("value out of range: $numericvalueOrHeapId")
+                wordval = numericvalueOrHeapId.toInt()
                 asBooleanValue = wordval != 0
             }
             DataType.WORD -> {
-                wordval = limitWord(numericvalueOrHeapId.toInt())
+                if(numericvalueOrHeapId.toInt() !in -32768..32767)
+                    throw VmExecutionException("value out of range: $numericvalueOrHeapId")
+                wordval = numericvalueOrHeapId.toInt()
                 asBooleanValue = wordval != 0
             }
             DataType.FLOAT -> {
@@ -46,35 +54,22 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
         }
     }
 
-    companion object {
-        fun limitByte(value: Int): Short {
-            var bval: Int
-            if(value < 0) {
-                bval = -(abs(value) and 127)
-                if(bval==0) bval=-128
-            }
-            else
-                bval = value and 127
-            return bval.toShort()
-        }
-        fun limitWord(value: Int): Int {
-            var bval: Int
-            if(value < 0) {
-                bval = -(abs(value) and 32767)
-                if(bval==0) bval=-32768
-            }
-            else
-                bval = value and 32767
-            return bval
-        }
-    }
-
     override fun toString(): String {
         return when(type) {
             DataType.UBYTE -> "ub:%02x".format(byteval)
-            DataType.BYTE -> "b:%02x".format(byteval)
+            DataType.BYTE -> {
+                if(byteval!!<0)
+                    "b:-%02x".format(abs(byteval!!.toInt()))
+                else
+                    "b:%02x".format(byteval)
+            }
             DataType.UWORD -> "uw:%04x".format(wordval)
-            DataType.WORD -> "w:%04x".format(wordval)
+            DataType.WORD -> {
+                if(wordval!!<0)
+                    "w:-%04x".format(abs(wordval!!))
+                else
+                    "w:%04x".format(wordval)
+            }
             DataType.FLOAT -> "f:$floatval"
             else -> "heap:$heapId"
         }
@@ -125,8 +120,8 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
         if(result.toDouble() < 0 ) {
             return when(leftDt) {
                 DataType.UBYTE, DataType.UWORD -> throw VmExecutionException("arithmetic error: cannot store a negative value in a $leftDt")
-                DataType.BYTE -> Value(DataType.BYTE, limitByte(result.toInt()))
-                DataType.WORD -> Value(DataType.WORD, limitWord(result.toInt()))
+                DataType.BYTE -> Value(DataType.BYTE, result.toInt())
+                DataType.WORD -> Value(DataType.WORD, result.toInt())
                 DataType.FLOAT -> Value(DataType.FLOAT, result)
                 else -> throw VmExecutionException("$op on non-numeric type")
             }
@@ -134,9 +129,9 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
 
         return when(leftDt) {
             DataType.UBYTE -> Value(DataType.UBYTE, result.toInt() and 255)
-            DataType.BYTE -> Value(DataType.BYTE, limitByte(result.toInt()))
+            DataType.BYTE -> Value(DataType.BYTE, result.toInt())
             DataType.UWORD -> Value(DataType.UWORD, result.toInt() and 65535)
-            DataType.WORD -> Value(DataType.WORD, limitWord(result.toInt()))
+            DataType.WORD -> Value(DataType.WORD, result.toInt())
             DataType.FLOAT -> Value(DataType.FLOAT, result)
             else -> throw VmExecutionException("$op on non-numeric type")
         }
@@ -221,12 +216,20 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
 
     fun shl(): Value {
         val v = integerValue()
-        return Value(type, v shl 1)
+        if(type==DataType.UBYTE)
+            return Value(type, (v shl 1) and 255)
+        if(type==DataType.UWORD)
+            return Value(type, (v shl 1) and 65535)
+        throw VmExecutionException("invalid type for shl: $type")
     }
 
     fun shr(): Value {
         val v = integerValue()
-        return Value(type, v ushr 1)
+        if(type==DataType.UBYTE)
+            return Value(type, (v ushr 1) and 255)
+        if(type==DataType.UWORD)
+            return Value(type, (v ushr 1) and 65535)
+        throw VmExecutionException("invalid type for shr: $type")
     }
 
     fun rol(carry: Boolean): Pair<Value, Boolean> {
@@ -307,8 +310,8 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
 
     fun neg(): Value {
         return when(type) {
-            DataType.UBYTE -> Value(DataType.UBYTE, -(byteval!!))
-            DataType.UWORD -> Value(DataType.UWORD, -(wordval!!))
+            DataType.BYTE -> Value(DataType.BYTE, -(byteval!!))
+            DataType.WORD -> Value(DataType.WORD, -(wordval!!))
             DataType.FLOAT -> Value(DataType.FLOAT, -(floatval)!!)
             else -> throw VmExecutionException("neg can only work on byte/word/float")
         }

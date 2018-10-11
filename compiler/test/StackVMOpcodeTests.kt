@@ -141,27 +141,51 @@ class TestStackVmOpcodes {
     @Test
     fun testPushMem() {
         val ins = mutableListOf(
-                Instruction(Opcode.PUSH_MEM_BYTE, Value(DataType.UWORD, 0x2000)),
-                Instruction(Opcode.PUSH_MEM_WORD, Value(DataType.UWORD, 0x3000)),
-                Instruction(Opcode.PUSH_MEM_FLOAT, Value(DataType.UWORD, 0x4000))
+                Instruction(Opcode.PUSH_MEM_B, Value(DataType.UWORD, 0x2000)),
+                Instruction(Opcode.PUSH_MEM_UB, Value(DataType.UWORD, 0x3000)),
+                Instruction(Opcode.PUSH_MEM_W, Value(DataType.UWORD, 0x4000)),
+                Instruction(Opcode.PUSH_MEM_UW, Value(DataType.UWORD, 0x5000)),
+                Instruction(Opcode.PUSH_MEM_FLOAT, Value(DataType.UWORD, 0x6000))
         )
-        val mem=mapOf(0x2000 to listOf(Value(DataType.UWORD, 0x42ea)),
-                0x3000 to listOf(Value(DataType.UWORD, 0x42ea)),
-                0x4000 to listOf(Value(DataType.FLOAT, 42.25)))
+        val mem=mapOf(0x2000 to listOf(Value(DataType.UWORD, 0xc2ca)),
+                0x3000 to listOf(Value(DataType.UWORD, 0xc2ca)),
+                0x4000 to listOf(Value(DataType.UWORD, 0xc2ca)),
+                0x5000 to listOf(Value(DataType.UWORD, 0xc2ca)),
+                0x6000 to listOf(Value(DataType.FLOAT, 42.25)))
         vm.load(makeProg(ins, mem=mem), null)
-        assertEquals(0xea, vm.mem.getByte(0x2000))
-        assertEquals(0x42, vm.mem.getByte(0x2001))
-        assertEquals(0xea, vm.mem.getByte(0x3000))
-        assertEquals(0x42, vm.mem.getByte(0x3001))
-        assertEquals(0x42ea, vm.mem.getWord(0x2000))
-        assertEquals(0x42ea, vm.mem.getWord(0x3000))
-        assertEquals(42.25, vm.mem.getFloat(0x4000))
+        assertEquals(0xca, vm.mem.getUByte(0x2000))
+        assertEquals(0xc2, vm.mem.getUByte(0x2001))
+        assertEquals(0xca, vm.mem.getUByte(0x3000))
+        assertEquals(0xc2, vm.mem.getUByte(0x3001))
+        assertEquals(0xca, vm.mem.getUByte(0x4000))
+        assertEquals(0xc2, vm.mem.getUByte(0x4001))
+        assertEquals(0xca, vm.mem.getUByte(0x5000))
+        assertEquals(0xc2, vm.mem.getUByte(0x5001))
+        assertEquals(-54, vm.mem.getSByte(0x2000))
+        assertEquals(-62, vm.mem.getSByte(0x2001))
+        assertEquals(-54, vm.mem.getSByte(0x3000))
+        assertEquals(-62, vm.mem.getSByte(0x3001))
+        assertEquals(-54, vm.mem.getSByte(0x4000))
+        assertEquals(-62, vm.mem.getSByte(0x4001))
+        assertEquals(-54, vm.mem.getSByte(0x5000))
+        assertEquals(-62, vm.mem.getSByte(0x5001))
+        assertEquals(0xc2ca, vm.mem.getUWord(0x2000))
+        assertEquals(0xc2ca, vm.mem.getUWord(0x3000))
+        assertEquals(0xc2ca, vm.mem.getUWord(0x4000))
+        assertEquals(0xc2ca, vm.mem.getUWord(0x5000))
+        assertEquals(-15670, vm.mem.getSWord(0x2000))
+        assertEquals(-15670, vm.mem.getSWord(0x3000))
+        assertEquals(-15670, vm.mem.getSWord(0x4000))
+        assertEquals(-15670, vm.mem.getSWord(0x5000))
+        assertEquals(42.25, vm.mem.getFloat(0x6000))
         assertThat(vm.evalstack, empty())
-        vm.step(3)
-        assertEquals(3, vm.evalstack.size)
+        vm.step(5)
+        assertEquals(5, vm.evalstack.size)
         assertEquals(Value(DataType.FLOAT, 42.25), vm.evalstack.pop())
-        assertEquals(Value(DataType.UWORD, 0x42ea), vm.evalstack.pop())
-        assertEquals(Value(DataType.UBYTE, 0xea), vm.evalstack.pop())
+        assertEquals(Value(DataType.UWORD, 0xc2ca), vm.evalstack.pop())
+        assertEquals(Value(DataType.WORD, -15670), vm.evalstack.pop())
+        assertEquals(Value(DataType.UBYTE, 0xca), vm.evalstack.pop())
+        assertEquals(Value(DataType.BYTE, -54), vm.evalstack.pop())
     }
 
     @Test
@@ -199,20 +223,32 @@ class TestStackVmOpcodes {
     fun testPopMem() {
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH_FLOAT, Value(DataType.FLOAT, 42.25)),
-                Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 0x42ea)),
-                Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 123)),
-                Instruction(Opcode.POP_MEM_BYTE, Value(DataType.UWORD, 0x2000)),
-                Instruction(Opcode.POP_MEM_WORD, Value(DataType.UWORD, 0x3000)),
+                Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 0xc2ca)),
+                Instruction(Opcode.PUSH_WORD, Value(DataType.WORD, -23456)),
+                Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 177)),
+                Instruction(Opcode.PUSH_BYTE, Value(DataType.BYTE, -55)),
+                Instruction(Opcode.POP_MEM_B, Value(DataType.UWORD, 0x2000)),
+                Instruction(Opcode.POP_MEM_UB, Value(DataType.UWORD, 0x2001)),
+                Instruction(Opcode.POP_MEM_W, Value(DataType.UWORD, 0x3000)),
+                Instruction(Opcode.POP_MEM_UW, Value(DataType.UWORD, 0x3002)),
                 Instruction(Opcode.POP_MEM_FLOAT, Value(DataType.UWORD, 0x4000)))
         vm.load(makeProg(ins), null)
-        assertEquals(0, vm.mem.getWord(0x2000))
-        assertEquals(0, vm.mem.getWord(0x3000))
+        assertEquals(0, vm.mem.getUWord(0x2000))
+        assertEquals(0, vm.mem.getUWord(0x2001))
+        assertEquals(0, vm.mem.getUWord(0x3000))
+        assertEquals(0, vm.mem.getUWord(0x3002))
         assertEquals(0.0, vm.mem.getFloat(0x4000))
         assertThat(vm.evalstack, empty())
-        vm.step(6)
+        vm.step(11)
         assertThat(vm.evalstack, empty())
-        assertEquals(123, vm.mem.getByte(0x2000))
-        assertEquals(0x42ea, vm.mem.getWord(0x3000))
+        assertEquals(201, vm.mem.getUByte(0x2000))
+        assertEquals(177, vm.mem.getUByte(0x2001))
+        assertEquals(-55, vm.mem.getSByte(0x2000))
+        assertEquals(-79, vm.mem.getSByte(0x2001))
+        assertEquals(42080, vm.mem.getUWord(0x3000))
+        assertEquals(0xc2ca, vm.mem.getUWord(0x3002))
+        assertEquals(-23456, vm.mem.getSWord(0x3000))
+        assertEquals(-15670, vm.mem.getSWord(0x3002))
         assertEquals(42.25, vm.mem.getFloat(0x4000))
     }
 
@@ -418,15 +454,27 @@ class TestStackVmOpcodes {
 
     @Test
     fun testNeg() {
-        testUnaryOperator(Value(DataType.UBYTE, 12), Opcode.NEG_B, Value(DataType.UBYTE, 244))
-        testUnaryOperator(Value(DataType.UWORD, 1234), Opcode.NEG_W, Value(DataType.UWORD, 64302))
+        testUnaryOperator(Value(DataType.BYTE, 12), Opcode.NEG_B, Value(DataType.BYTE, -12))
+        testUnaryOperator(Value(DataType.WORD, 1234), Opcode.NEG_W, Value(DataType.WORD, -1234))
         testUnaryOperator(Value(DataType.FLOAT, 123.456), Opcode.NEG_F, Value(DataType.FLOAT, -123.456))
+        assertFailsWith<VmExecutionException> {
+            testUnaryOperator(Value(DataType.UBYTE, 12), Opcode.NEG_B, Value(DataType.UBYTE, 244))
+        }
+        assertFailsWith<VmExecutionException> {
+            testUnaryOperator(Value(DataType.UWORD, 1234), Opcode.NEG_W, Value(DataType.UWORD, 64302))
+        }
     }
 
     @Test
     fun testInv() {
         testUnaryOperator(Value(DataType.UBYTE, 123), Opcode.INV_BYTE, Value(DataType.UBYTE, 0x84))
         testUnaryOperator(Value(DataType.UWORD, 4044), Opcode.INV_WORD, Value(DataType.UWORD, 0xf033))
+        assertFailsWith<VmExecutionException> {
+            testUnaryOperator(Value(DataType.BYTE, 123), Opcode.INV_BYTE, Value(DataType.BYTE, 0x84))
+        }
+        assertFailsWith<VmExecutionException> {
+            testUnaryOperator(Value(DataType.WORD, 4044), Opcode.INV_WORD, Value(DataType.WORD, 0xf033))
+        }
     }
 
     @Test
@@ -464,10 +512,26 @@ class TestStackVmOpcodes {
     @Test
     fun testB2Word() {
         val ins = mutableListOf(
-                Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 0xea31)),
-                Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 0x45)),
+                Instruction(Opcode.PUSH_WORD, Value(DataType.WORD, 0x7a31)),
+                Instruction(Opcode.PUSH_BYTE, Value(DataType.BYTE, 127)),
                 Instruction(Opcode.B2WORD),
                 Instruction(Opcode.B2WORD)
+        )
+        vm.load(makeProg(ins), null)
+        vm.step(3)
+        assertEquals(Value(DataType.WORD, 127), vm.evalstack.pop())
+        assertFailsWith<VmExecutionException> {
+            vm.step(1)
+        }
+    }
+
+    @Test
+    fun testUB2Uword() {
+        val ins = mutableListOf(
+                Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 0xea31)),
+                Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 0x45)),
+                Instruction(Opcode.UB2UWORD),
+                Instruction(Opcode.UB2UWORD)
         )
         vm.load(makeProg(ins), null)
         vm.step(3)
@@ -496,14 +560,30 @@ class TestStackVmOpcodes {
     @Test
     fun testB2Float() {
         val ins = mutableListOf(
-                Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 0xea31)),
-                Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 123)),
+                Instruction(Opcode.PUSH_WORD, Value(DataType.WORD, 0x7a31)),
+                Instruction(Opcode.PUSH_BYTE, Value(DataType.BYTE, 127)),
                 Instruction(Opcode.B2FLOAT),
                 Instruction(Opcode.B2FLOAT)
         )
         vm.load(makeProg(ins), null)
         vm.step(3)
-        assertEquals(Value(DataType.FLOAT, 123.0), vm.evalstack.pop())
+        assertEquals(Value(DataType.FLOAT, 127.0), vm.evalstack.pop())
+        assertFailsWith<VmExecutionException> {
+            vm.step(1)
+        }
+    }
+
+    @Test
+    fun testUB2Float() {
+        val ins = mutableListOf(
+                Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 0xea31)),
+                Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 177)),
+                Instruction(Opcode.UB2FLOAT),
+                Instruction(Opcode.UB2FLOAT)
+        )
+        vm.load(makeProg(ins), null)
+        vm.step(3)
+        assertEquals(Value(DataType.FLOAT, 177.0), vm.evalstack.pop())
         assertFailsWith<VmExecutionException> {
             vm.step(1)
         }
@@ -512,14 +592,30 @@ class TestStackVmOpcodes {
     @Test
     fun testW2Float() {
         val ins = mutableListOf(
-                Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 11)),
-                Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 12345)),
+                Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 177)),
+                Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 52345)),
                 Instruction(Opcode.W2FLOAT),
                 Instruction(Opcode.W2FLOAT)
         )
         vm.load(makeProg(ins), null)
         vm.step(3)
-        assertEquals(Value(DataType.FLOAT, 12345.0), vm.evalstack.pop())
+        assertEquals(Value(DataType.FLOAT, 52345.0), vm.evalstack.pop())
+        assertFailsWith<VmExecutionException> {
+            vm.step(1)
+        }
+    }
+
+    @Test
+    fun testUW2Float() {
+        val ins = mutableListOf(
+                Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 177)),
+                Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 52345)),
+                Instruction(Opcode.UW2FLOAT),
+                Instruction(Opcode.UW2FLOAT)
+        )
+        vm.load(makeProg(ins), null)
+        vm.step(3)
+        assertEquals(Value(DataType.FLOAT, 52345.0), vm.evalstack.pop())
         assertFailsWith<VmExecutionException> {
             vm.step(1)
         }

@@ -44,7 +44,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                     }
                 }
                 in IntegerDatatypes -> {
-                    // vardecl: for byte/word vars, convert char/string of length 1 initialization values to integer
+                    // vardecl: for byte/word vars, convert char/string of length 1 initialization values to ubyte integer
                     val literal = decl.value as? LiteralValue
                     if (literal != null && literal.isString && literal.strvalue?.length == 1) {
                         val petscii = Petscii.encodePetscii(literal.strvalue)[0]
@@ -426,7 +426,6 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
         return super.process(range)
     }
 
-    // todo datatypes
     override fun process(literalValue: LiteralValue): LiteralValue {
         if(literalValue.strvalue!=null) {
             // intern the string; move it into the heap
@@ -439,11 +438,23 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
             }
         } else if(literalValue.arrayvalue!=null) {
             val newArray = literalValue.arrayvalue.map { it.process(this) }.toTypedArray()
-            var arrayDt = DataType.ARRAY_UB
-            if(newArray.any { it.resultingDatatype(namespace, heap) == DataType.UWORD })
-                arrayDt = DataType.ARRAY_UW
-            if(newArray.any { it.resultingDatatype(namespace, heap) == DataType.FLOAT })
-                arrayDt = DataType.ARRAY_F
+            val arrayDt =
+                    if(newArray.any { it.resultingDatatype(namespace, heap) == DataType.FLOAT })
+                        DataType.ARRAY_F
+                    else {
+                        if (newArray.any { it.resultingDatatype(namespace, heap) in setOf(DataType.BYTE, DataType.WORD) }) {
+                            // we have signed values
+                            if (newArray.any { it.resultingDatatype(namespace, heap) == DataType.WORD })
+                                DataType.ARRAY_W
+                            else
+                                DataType.ARRAY_B
+                        } else {
+                            // only unsigned values
+                            if (newArray.any { it.resultingDatatype(namespace, heap) == DataType.UWORD })
+                                DataType.ARRAY_UW
+                            else DataType.ARRAY_UB
+                        }
+                    }
 
             // if the values are all constants, the array is moved to the heap
             val allElementsAreConstant = newArray.fold(true) { c, expr-> c and (expr is LiteralValue)}
@@ -454,10 +465,21 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                     return super.process(literalValue)
                 }
                 if(arrayDt==DataType.ARRAY_UB || arrayDt==DataType.MATRIX_UB) {
+                    // all values should be ubytes
+                    val integerArray = litArray.map { (it as LiteralValue).bytevalue }
+                    if (integerArray.any { it == null || it.toInt() !in 0..255 }) {
+                        addError(ExpressionError("byte array elements must all be integers 0..255", literalValue.position))
+                        return super.process(literalValue)
+                    }
+                    val array = integerArray.mapNotNull { it?.toInt() }.toIntArray()
+                    val heapId = heap.add(arrayDt, array)
+                    val newValue = LiteralValue(arrayDt, heapId = heapId, position = literalValue.position)
+                    return super.process(newValue)
+                } else if(arrayDt==DataType.ARRAY_B || arrayDt==DataType.MATRIX_B) {
                     // all values should be bytes
                     val integerArray = litArray.map { (it as LiteralValue).bytevalue }
-                    if(integerArray.any { it==null || it.toInt() !in 0..255 }) {
-                        addError(ExpressionError("byte array elements must all be integers 0..255", literalValue.position))
+                    if(integerArray.any { it==null || it.toInt() !in -128..127 }) {
+                        addError(ExpressionError("byte array elements must all be integers -128..127", literalValue.position))
                         return super.process(literalValue)
                     }
                     val array = integerArray.mapNotNull { it?.toInt() }.toIntArray()
@@ -474,6 +496,17 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                     val array = integerArray.filterNotNull().toIntArray()
                     val heapId = heap.add(arrayDt, array)
                     val newValue = LiteralValue(DataType.ARRAY_UW, heapId=heapId, position = literalValue.position)
+                    return super.process(newValue)
+                } else if(arrayDt==DataType.ARRAY_W) {
+                    // all values should be bytes or words
+                    val integerArray = litArray.map { (it as LiteralValue).asIntegerValue }
+                    if(integerArray.any {it==null || it !in -32768..32767 }) {
+                        addError(ExpressionError("word array elements must all be integers -32768..32767", literalValue.position))
+                        return super.process(literalValue)
+                    }
+                    val array = integerArray.filterNotNull().toIntArray()
+                    val heapId = heap.add(arrayDt, array)
+                    val newValue = LiteralValue(DataType.ARRAY_W, heapId=heapId, position = literalValue.position)
                     return super.process(newValue)
                 } else if(arrayDt==DataType.ARRAY_F) {
                     // all values should be bytes, words or floats

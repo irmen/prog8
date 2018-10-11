@@ -200,102 +200,126 @@ class StackVmProgram(val name: String, val heap: HeapValues) {
     private fun optimizeDataConversionAndUselessDiscards() {
         // - push value followed by a data type conversion -> push the value in the correct type and remove the conversion
         // - push something followed by a discard -> remove both
+        val instructionsToReplace = mutableMapOf<Int, Instruction>()
+
+        fun optimizeDiscardAfterPush(index0: Int, index1: Int, ins1: Instruction) {
+            if (ins1.opcode == Opcode.DISCARD_FLOAT || ins1.opcode == Opcode.DISCARD_WORD || ins1.opcode == Opcode.DISCARD_BYTE) {
+                instructionsToReplace[index0] = Instruction(Opcode.NOP)
+                instructionsToReplace[index1] = Instruction(Opcode.NOP)
+            }
+        }
+
+        fun optimizeFloatConversion(index0: Int, index1: Int, ins1: Instruction) {
+            when (ins1.opcode) {
+                Opcode.LSB,
+                Opcode.MSB,
+                Opcode.B2WORD,
+                Opcode.UB2UWORD,
+                Opcode.MSB2WORD,
+                Opcode.B2FLOAT,
+                Opcode.UB2FLOAT,
+                Opcode.UW2FLOAT,
+                Opcode.W2FLOAT -> throw CompilerException("invalid conversion following a float")
+                Opcode.DISCARD_FLOAT -> {
+                    instructionsToReplace[index0] = Instruction(Opcode.NOP)
+                    instructionsToReplace[index1] = Instruction(Opcode.NOP)
+                }
+                Opcode.DISCARD_BYTE, Opcode.DISCARD_WORD -> throw CompilerException("invalid discard type following a float")
+                else -> throw CompilerException("invalid conversion opcode ${ins1.opcode}")
+            }
+        }
+
+        fun optimizeWordConversion(index0: Int, ins0: Instruction, index1: Int, ins1: Instruction) {
+            when (ins1.opcode) {
+                Opcode.LSB -> {
+                    val ins = Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, ins0.arg!!.integerValue() and 255))
+                    instructionsToReplace[index0] = ins
+                    instructionsToReplace[index1] = Instruction(Opcode.NOP)
+                }
+                Opcode.MSB -> {
+                    val ins = Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, ins0.arg!!.integerValue() ushr 8 and 255))
+                    instructionsToReplace[index0] = ins
+                    instructionsToReplace[index1] = Instruction(Opcode.NOP)
+                }
+                Opcode.B2WORD,
+                Opcode.UB2UWORD,
+                Opcode.MSB2WORD,
+                Opcode.B2FLOAT,
+                Opcode.UB2FLOAT -> throw CompilerException("invalid conversion following a word")
+                Opcode.W2FLOAT, Opcode.UW2FLOAT -> {
+                    val ins = Instruction(Opcode.PUSH_FLOAT, Value(DataType.FLOAT, ins0.arg!!.integerValue().toDouble()))
+                    instructionsToReplace[index0] = ins
+                    instructionsToReplace[index1] = Instruction(Opcode.NOP)
+                }
+                Opcode.DISCARD_WORD -> {
+                    instructionsToReplace[index0] = Instruction(Opcode.NOP)
+                    instructionsToReplace[index1] = Instruction(Opcode.NOP)
+                }
+                Opcode.DISCARD_BYTE, Opcode.DISCARD_FLOAT -> throw CompilerException("invalid discard type following a byte")
+                else -> throw CompilerException("invalid conversion opcode ${ins1.opcode}")
+            }
+        }
+
+        fun optimizeByteConversion(index0: Int, ins0: Instruction, index1: Int, ins1: Instruction) {
+            when (ins1.opcode) {
+                Opcode.LSB -> instructionsToReplace[index1] = Instruction(Opcode.NOP)
+                Opcode.MSB -> throw CompilerException("msb of a byte")
+                Opcode.UB2UWORD -> {
+                    val ins = Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, ins0.arg!!.integerValue()))
+                    instructionsToReplace[index0] = ins
+                    instructionsToReplace[index1] = Instruction(Opcode.NOP)
+                }
+                Opcode.B2WORD -> {
+                    val ins = Instruction(Opcode.PUSH_WORD, Value(DataType.WORD, ins0.arg!!.integerValue()))
+                    instructionsToReplace[index0] = ins
+                    instructionsToReplace[index1] = Instruction(Opcode.NOP)
+                }
+                Opcode.MSB2WORD -> {
+                    val ins = Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 256 * ins0.arg!!.integerValue()))
+                    instructionsToReplace[index0] = ins
+                    instructionsToReplace[index1] = Instruction(Opcode.NOP)
+                }
+                Opcode.B2FLOAT, Opcode.UB2FLOAT -> {
+                    val ins = Instruction(Opcode.PUSH_FLOAT, Value(DataType.FLOAT, ins0.arg!!.integerValue().toDouble()))
+                    instructionsToReplace[index0] = ins
+                    instructionsToReplace[index1] = Instruction(Opcode.NOP)
+                }
+                Opcode.W2FLOAT, Opcode.UW2FLOAT -> throw CompilerException("invalid conversion following a byte")
+                Opcode.DISCARD_BYTE -> {
+                    instructionsToReplace[index0] = Instruction(Opcode.NOP)
+                    instructionsToReplace[index1] = Instruction(Opcode.NOP)
+                }
+                Opcode.DISCARD_WORD, Opcode.DISCARD_FLOAT -> throw CompilerException("invalid discard type following a byte")
+                else -> throw CompilerException("invalid conversion opcode ${ins1.opcode}")
+            }
+        }
 
         val typeConversionOpcodes = setOf(
                 Opcode.LSB,
                 Opcode.MSB,
                 Opcode.B2WORD,
+                Opcode.UB2UWORD,
                 Opcode.MSB2WORD,
                 Opcode.B2FLOAT,
+                Opcode.UB2FLOAT,
                 Opcode.W2FLOAT,
+                Opcode.UW2FLOAT,
                 Opcode.DISCARD_BYTE,
                 Opcode.DISCARD_WORD,
                 Opcode.DISCARD_FLOAT
         )
-
-        val instructionsToReplace = mutableMapOf<Int, Instruction>()
-
         this.instructions.asSequence().withIndex().windowed(2).toList().forEach {
             if(it[1].value.opcode in typeConversionOpcodes) {
                 when(it[0].value.opcode) {
-                    Opcode.PUSH_BYTE -> when (it[1].value.opcode) {
-                        Opcode.LSB -> instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
-                        Opcode.MSB -> throw CompilerException("msb of a byte")
-                        Opcode.B2WORD -> {
-                            val ins = Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, it[0].value.arg!!.integerValue()))
-                            instructionsToReplace[it[0].index] = ins
-                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
-                        }
-                        Opcode.MSB2WORD -> {
-                            val ins = Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 256 * it[0].value.arg!!.integerValue()))
-                            instructionsToReplace[it[0].index] = ins
-                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
-                        }
-                        Opcode.B2FLOAT -> {
-                            val ins = Instruction(Opcode.PUSH_FLOAT, Value(DataType.FLOAT, it[0].value.arg!!.integerValue().toDouble()))
-                            instructionsToReplace[it[0].index] = ins
-                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
-                        }
-                        Opcode.W2FLOAT -> throw CompilerException("invalid conversion following a byte")
-                        Opcode.DISCARD_BYTE -> {
-                            instructionsToReplace[it[0].index] = Instruction(Opcode.NOP)
-                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
-                        }
-                        Opcode.DISCARD_WORD, Opcode.DISCARD_FLOAT -> throw CompilerException("invalid discard type following a byte")
-                        else -> {}
-                    }
-                    Opcode.PUSH_WORD -> when (it[1].value.opcode) {
-                        Opcode.LSB -> {
-                            val ins = Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, it[0].value.arg!!.integerValue() and 255))
-                            instructionsToReplace[it[0].index] = ins
-                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
-                        }
-                        Opcode.MSB -> {
-                            val ins = Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, it[0].value.arg!!.integerValue() ushr 8 and 255))
-                            instructionsToReplace[it[0].index] = ins
-                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
-                        }
-                        Opcode.B2WORD,
-                        Opcode.MSB2WORD,
-                        Opcode.B2FLOAT -> throw CompilerException("invalid conversion following a word")
-                        Opcode.W2FLOAT -> {
-                            val ins = Instruction(Opcode.PUSH_FLOAT, Value(DataType.FLOAT, it[0].value.arg!!.integerValue().toDouble()))
-                            instructionsToReplace[it[0].index] = ins
-                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
-                        }
-                        Opcode.DISCARD_WORD -> {
-                            instructionsToReplace[it[0].index] = Instruction(Opcode.NOP)
-                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
-                        }
-                        Opcode.DISCARD_BYTE, Opcode.DISCARD_FLOAT -> throw CompilerException("invalid discard type following a byte")
-                        else -> {}
-                    }
-                    Opcode.PUSH_FLOAT -> when (it[1].value.opcode) {
-                        Opcode.LSB,
-                        Opcode.MSB,
-                        Opcode.B2WORD,
-                        Opcode.MSB2WORD,
-                        Opcode.B2FLOAT,
-                        Opcode.W2FLOAT -> throw CompilerException("invalid conversion following a float")
-                        Opcode.DISCARD_FLOAT -> {
-                            instructionsToReplace[it[0].index] = Instruction(Opcode.NOP)
-                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
-                        }
-                        Opcode.DISCARD_BYTE, Opcode.DISCARD_WORD -> throw CompilerException("invalid discard type following a float")
-                        else -> {}
-                    }
+                    Opcode.PUSH_BYTE -> optimizeByteConversion(it[0].index, it[0].value, it[1].index, it[1].value)
+                    Opcode.PUSH_WORD -> optimizeWordConversion(it[0].index, it[0].value, it[1].index, it[1].value)
+                    Opcode.PUSH_FLOAT -> optimizeFloatConversion(it[0].index, it[1].index, it[1].value)
                     Opcode.PUSH_VAR_FLOAT,
                     Opcode.PUSH_VAR_WORD,
                     Opcode.PUSH_VAR_BYTE,
-                    Opcode.PUSH_MEM_BYTE,
-                    Opcode.PUSH_MEM_WORD,
-                    Opcode.PUSH_MEM_FLOAT -> when (it[1].value.opcode) {
-                        Opcode.DISCARD_FLOAT, Opcode.DISCARD_WORD, Opcode.DISCARD_BYTE -> {
-                            instructionsToReplace[it[0].index] = Instruction(Opcode.NOP)
-                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
-                        }
-                        else -> {}
-                    }
+                    Opcode.PUSH_MEM_B, Opcode.PUSH_MEM_UB,
+                    Opcode.PUSH_MEM_W, Opcode.PUSH_MEM_UW,
+                    Opcode.PUSH_MEM_FLOAT -> optimizeDiscardAfterPush(it[0].index, it[1].index, it[1].value)
                     else -> {}
                 }
             }
@@ -817,9 +841,9 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
             else -> {
                 val lv = expr.constValue(namespace, heap) ?: throw CompilerException("constant expression required, not $expr")
                 when(lv.type) {
-                    DataType.UBYTE, DataType.BYTE -> stackvmProg.instr(Opcode.PUSH_BYTE, Value(DataType.UBYTE, lv.bytevalue!!))
-                    DataType.UWORD, DataType.WORD -> stackvmProg.instr(Opcode.PUSH_WORD, Value(DataType.UWORD, lv.wordvalue!!))
-                    DataType.FLOAT -> stackvmProg.instr(Opcode.PUSH_FLOAT, Value(DataType.FLOAT, lv.floatvalue!!))
+                    DataType.UBYTE, DataType.BYTE -> stackvmProg.instr(Opcode.PUSH_BYTE, Value(lv.type, lv.bytevalue!!))
+                    DataType.UWORD, DataType.WORD -> stackvmProg.instr(Opcode.PUSH_WORD, Value(lv.type, lv.wordvalue!!))
+                    DataType.FLOAT -> stackvmProg.instr(Opcode.PUSH_FLOAT, Value(lv.type, lv.floatvalue!!))
                     DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
                         if(lv.heapId==null)
                             throw CompilerException("string should have been moved into heap   ${lv.position}")
@@ -847,7 +871,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
         when(givenDt) {
             DataType.UBYTE -> when(targetDt) {
                 DataType.UWORD, DataType.WORD -> stackvmProg.instr(Opcode.UB2UWORD)
-                DataType.FLOAT -> stackvmProg.instr(Opcode.B2FLOAT)
+                DataType.FLOAT -> stackvmProg.instr(Opcode.UB2FLOAT)
                 else -> {}
             }
             DataType.BYTE -> when(targetDt) {
@@ -883,8 +907,10 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                         throw CompilerException("const ref should have been const-folded away")
                     VarDeclType.MEMORY -> {
                         when (target.datatype) {
-                            DataType.UBYTE -> stackvmProg.instr(Opcode.PUSH_MEM_BYTE, Value(DataType.UWORD, (target.value as LiteralValue).asNumericValue!!))
-                            DataType.UWORD -> stackvmProg.instr(Opcode.PUSH_MEM_WORD, Value(DataType.UWORD, (target.value as LiteralValue).asNumericValue!!))
+                            DataType.UBYTE -> stackvmProg.instr(Opcode.PUSH_MEM_UB, Value(DataType.UWORD, (target.value as LiteralValue).asNumericValue!!))
+                            DataType.BYTE-> stackvmProg.instr(Opcode.PUSH_MEM_B, Value(DataType.UWORD, (target.value as LiteralValue).asNumericValue!!))
+                            DataType.UWORD -> stackvmProg.instr(Opcode.PUSH_MEM_UW, Value(DataType.UWORD, (target.value as LiteralValue).asNumericValue!!))
+                            DataType.WORD -> stackvmProg.instr(Opcode.PUSH_MEM_W, Value(DataType.UWORD, (target.value as LiteralValue).asNumericValue!!))
                             DataType.FLOAT -> stackvmProg.instr(Opcode.PUSH_MEM_FLOAT, Value(DataType.UWORD, (target.value as LiteralValue).asNumericValue!!))
                             else -> TODO("invalid datatype for memory variable expression: $target")
                         }
@@ -929,8 +955,10 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
                 // 1 argument, type determines the exact opcode to use
                 val arg = args.single()
                 when (arg.resultingDatatype(namespace, heap)) {
-                    DataType.UBYTE -> stackvmProg.instr(Opcode.B2FLOAT)
-                    DataType.UWORD -> stackvmProg.instr(Opcode.W2FLOAT)
+                    DataType.UBYTE -> stackvmProg.instr(Opcode.UB2FLOAT)
+                    DataType.BYTE -> stackvmProg.instr(Opcode.B2FLOAT)
+                    DataType.UWORD -> stackvmProg.instr(Opcode.UW2FLOAT)
+                    DataType.WORD -> stackvmProg.instr(Opcode.W2FLOAT)
                     DataType.FLOAT -> stackvmProg.instr(Opcode.NOP)
                     else -> throw CompilerException("wrong datatype for flt()")
                 }

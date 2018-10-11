@@ -2,27 +2,60 @@ package prog8.stackvm
 
 import prog8.compiler.target.c64.Mflpt5
 import prog8.compiler.target.c64.Petscii
+import kotlin.math.abs
 
 class Memory {
     private val mem = ShortArray(65536)         // shorts because byte is signed and we store values 0..255
 
-    fun getByte(address: Int): Short {
+    fun getUByte(address: Int): Short {
         return mem[address]
     }
 
-    fun setByte(address: Int, value: Short) {
-        if(value<0 || value>255) throw VmExecutionException("byte value not 0..255")
+    fun getSByte(address: Int): Short {
+        val ubyte = getUByte(address)
+        if(ubyte <= 127)
+            return ubyte
+        return (-((ubyte.toInt() xor 255)+1)).toShort()   // 2's complement
+    }
+
+    fun setUByte(address: Int, value: Short) {
+        if(value !in 0..255)
+            throw VmExecutionException("ubyte value out of range")
         mem[address] = value
     }
 
-    fun getWord(address: Int): Int {
+    fun setSByte(address: Int, value: Short) {
+        if(value !in -128..127) throw VmExecutionException("byte value out of range")
+        if(value>=0)
+            setUByte(address, value)
+        else
+            setUByte(address, ((abs(value.toInt()) xor 255)+1).toShort())        // 2's complement
+    }
+
+    fun getUWord(address: Int): Int {
         return mem[address] + 256*mem[address+1]
     }
 
-    fun setWord(address: Int, value: Int) {
-        if(value<0 || value>65535) throw VmExecutionException("word value not 0..65535")
+    fun getSWord(address: Int): Int {
+        val uword = getUWord(address)
+        if(uword <= 32767)
+            return uword
+        return -((uword xor 65535)+1)   // 2's complement
+    }
+
+    fun setUWord(address: Int, value: Int) {
+        if(value !in 0..65535)
+            throw VmExecutionException("uword value out of range")
         mem[address] = value.and(255).toShort()
         mem[address+1] = (value / 256).toShort()
+    }
+
+    fun setSWord(address: Int, value: Int) {
+        if(value !in -32768..32767) throw VmExecutionException("word value out of range")
+        if(value>=0)
+            setUWord(address, value)
+        else
+            setUWord(address, (abs(value) xor 65535)+1)        // 2's complement
     }
 
     fun setFloat(address: Int, value: Double) {
