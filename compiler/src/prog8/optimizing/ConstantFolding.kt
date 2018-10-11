@@ -1,6 +1,7 @@
 package prog8.optimizing
 
 import prog8.ast.*
+import prog8.compiler.CompilerException
 import prog8.compiler.HeapValues
 import prog8.compiler.target.c64.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.FLOAT_MAX_POSITIVE
@@ -54,6 +55,8 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                 }
                 DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.MATRIX_UB, DataType.MATRIX_B -> {
                     val litval = decl.value as? LiteralValue
+                    if(litval?.type==DataType.FLOAT)
+                        errors.add(ExpressionError("array requires only integers here", litval.position))
                     val size = decl.arrayspec!!.size()
                     if(litval!=null && litval.isArray) {
                         // array initializer value is an array already, keep as-is (or convert to WORDs if needed)
@@ -67,11 +70,36 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                                     heap.update(litval.heapId, HeapValues.HeapValue(DataType.ARRAY_UW, null, array.array, null))
                                     decl.value = LiteralValue(decl.datatype, heapId = litval.heapId, position = litval.position)
                                 }
+                            } else if(decl.datatype==DataType.ARRAY_W && litval.type == DataType.ARRAY_B) {
+                                val array = heap.get(litval.heapId)
+                                if(array.array!=null) {
+                                    heap.update(litval.heapId, HeapValues.HeapValue(DataType.ARRAY_W, null, array.array, null))
+                                    decl.value = LiteralValue(decl.datatype, heapId = litval.heapId, position = litval.position)
+                                }
                             }
                         }
                     } else if (size != null) {
                         // array initializer is empty or a single int, and we know the size; create the array.
                         val fillvalue = if (litval == null) 0 else litval.asIntegerValue ?: 0
+                        when(decl.datatype){
+                            DataType.ARRAY_UB, DataType.MATRIX_UB -> {
+                                if(fillvalue !in 0..255)
+                                    errors.add(ExpressionError("ubyte value overflow", litval?.position ?: decl.position))
+                            }
+                            DataType.ARRAY_B, DataType.MATRIX_B -> {
+                                if(fillvalue !in -128..127)
+                                    errors.add(ExpressionError("byte value overflow", litval?.position ?: decl.position))
+                            }
+                            DataType.ARRAY_UW -> {
+                                if(fillvalue !in 0..65535)
+                                    errors.add(ExpressionError("uword value overflow", litval?.position ?: decl.position))
+                            }
+                            DataType.ARRAY_W -> {
+                                if(fillvalue !in -32768..32767)
+                                    errors.add(ExpressionError("word value overflow", litval?.position ?: decl.position))
+                            }
+                            else -> {}
+                        }
                         val fillArray = IntArray(size) { _ -> fillvalue }
                         val heapId = heap.add(decl.datatype, fillArray)
                         decl.value = LiteralValue(decl.datatype, heapId = heapId, position = litval?.position ?: decl.position)
@@ -93,9 +121,13 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                     } else  if (size != null) {
                         // array initializer is empty or a single int, and we know the size; create the array.
                         val fillvalue = if (litval == null) 0.0 else litval.asNumericValue?.toDouble() ?: 0.0
-                        val fillArray = DoubleArray(size) { _ -> fillvalue }
-                        val heapId = heap.add(decl.datatype, fillArray)
-                        decl.value = LiteralValue(decl.datatype, heapId = heapId, position = litval?.position ?: decl.position)
+                        if(fillvalue< FLOAT_MAX_NEGATIVE || fillvalue> FLOAT_MAX_POSITIVE)
+                            errors.add(ExpressionError("float value overflow", litval?.position ?: decl.position))
+                        else {
+                            val fillArray = DoubleArray(size) { _ -> fillvalue }
+                            val heapId = heap.add(decl.datatype, fillArray)
+                            decl.value = LiteralValue(decl.datatype, heapId = heapId, position = litval?.position ?: decl.position)
+                        }
                     }
                 }
                 else -> return result
@@ -437,98 +469,61 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                 return super.process(newValue)
             }
         } else if(literalValue.arrayvalue!=null) {
-            val newArray = literalValue.arrayvalue.map { it.process(this) }.toTypedArray()
-            val arrayDt =
-                    if(newArray.any { it.resultingDatatype(namespace, heap) == DataType.FLOAT })
-                        DataType.ARRAY_F
-                    else {
-                        if (newArray.any { it.resultingDatatype(namespace, heap) in setOf(DataType.BYTE, DataType.WORD) }) {
-                            // we have signed values
-                            if (newArray.any { it.resultingDatatype(namespace, heap) == DataType.WORD })
-                                DataType.ARRAY_W
-                            else
-                                DataType.ARRAY_B
-                        } else {
-                            // only unsigned values
-                            if (newArray.any { it.resultingDatatype(namespace, heap) == DataType.UWORD })
-                                DataType.ARRAY_UW
-                            else DataType.ARRAY_UB
-                        }
-                    }
-
-            // if the values are all constants, the array is moved to the heap
-            val allElementsAreConstant = newArray.fold(true) { c, expr-> c and (expr is LiteralValue)}
-            if(allElementsAreConstant) {
-                val litArray = newArray.map{ it as? LiteralValue }
-                if(null in litArray) {
-                    addError(ExpressionError("array/matrix literal can contain only constant values", literalValue.position))
-                    return super.process(literalValue)
-                }
-                if(arrayDt==DataType.ARRAY_UB || arrayDt==DataType.MATRIX_UB) {
-                    // all values should be ubytes
-                    val integerArray = litArray.map { (it as LiteralValue).bytevalue }
-                    if (integerArray.any { it == null || it.toInt() !in 0..255 }) {
-                        addError(ExpressionError("byte array elements must all be integers 0..255", literalValue.position))
-                        return super.process(literalValue)
-                    }
-                    val array = integerArray.mapNotNull { it?.toInt() }.toIntArray()
-                    val heapId = heap.add(arrayDt, array)
-                    val newValue = LiteralValue(arrayDt, heapId = heapId, position = literalValue.position)
-                    return super.process(newValue)
-                } else if(arrayDt==DataType.ARRAY_B || arrayDt==DataType.MATRIX_B) {
-                    // all values should be bytes
-                    val integerArray = litArray.map { (it as LiteralValue).bytevalue }
-                    if(integerArray.any { it==null || it.toInt() !in -128..127 }) {
-                        addError(ExpressionError("byte array elements must all be integers -128..127", literalValue.position))
-                        return super.process(literalValue)
-                    }
-                    val array = integerArray.mapNotNull { it?.toInt() }.toIntArray()
-                    val heapId = heap.add(arrayDt, array)
-                    val newValue = LiteralValue(arrayDt, heapId=heapId, position = literalValue.position)
-                    return super.process(newValue)
-                } else if(arrayDt==DataType.ARRAY_UW) {
-                    // all values should be bytes or words
-                    val integerArray = litArray.map { (it as LiteralValue).asIntegerValue }
-                    if(integerArray.any {it==null || it !in 0..65535 }) {
-                        addError(ExpressionError("word array elements must all be integers 0..65535", literalValue.position))
-                        return super.process(literalValue)
-                    }
-                    val array = integerArray.filterNotNull().toIntArray()
-                    val heapId = heap.add(arrayDt, array)
-                    val newValue = LiteralValue(DataType.ARRAY_UW, heapId=heapId, position = literalValue.position)
-                    return super.process(newValue)
-                } else if(arrayDt==DataType.ARRAY_W) {
-                    // all values should be bytes or words
-                    val integerArray = litArray.map { (it as LiteralValue).asIntegerValue }
-                    if(integerArray.any {it==null || it !in -32768..32767 }) {
-                        addError(ExpressionError("word array elements must all be integers -32768..32767", literalValue.position))
-                        return super.process(literalValue)
-                    }
-                    val array = integerArray.filterNotNull().toIntArray()
-                    val heapId = heap.add(arrayDt, array)
-                    val newValue = LiteralValue(DataType.ARRAY_W, heapId=heapId, position = literalValue.position)
-                    return super.process(newValue)
-                } else if(arrayDt==DataType.ARRAY_F) {
-                    // all values should be bytes, words or floats
-                    val doubleArray = litArray.map { (it as LiteralValue).asNumericValue?.toDouble() }
-                    if(doubleArray.any { it==null || it !in FLOAT_MAX_NEGATIVE..FLOAT_MAX_POSITIVE }) {
-                        addError(ExpressionError("float array elements must all be floats in the acceptable range", literalValue.position))
-                        return super.process(literalValue)
-                    }
-                    val array = doubleArray.filterNotNull().toDoubleArray()
-                    val heapId = heap.add(arrayDt, array)
-                    val newValue = LiteralValue(DataType.ARRAY_F, heapId=heapId, position = literalValue.position)
-                    return super.process(newValue)
-                }
-            } else {
-                addError(ExpressionError("array/matrix literal can contain only constant values", literalValue.position))
-            }
-
-            val newValue = LiteralValue(arrayDt, arrayvalue = newArray, position = literalValue.position)
-            return super.process(newValue)
+            return moveArrayToHeap(literalValue)
         }
 
         return super.process(literalValue)
+    }
+
+    private fun moveArrayToHeap(arraylit: LiteralValue): LiteralValue {
+        val array: Array<IExpression> = arraylit.arrayvalue!!.map { it.process(this) }.toTypedArray()
+        val allElementsAreConstant = array.fold(true) { c, expr-> c and (expr is LiteralValue)}
+        if(!allElementsAreConstant) {
+            addError(ExpressionError("array/matrix literal can contain only constant values", arraylit.position))
+            return arraylit
+        } else {
+            val valuesInArray = array.map { it.constValue(namespace, heap)!!.asNumericValue!! }
+            val integerArray = valuesInArray.map{it.toInt()}.toIntArray()
+            val doubleArray = valuesInArray.map{it.toDouble()}.toDoubleArray()
+            val typesInArray: Set<DataType> = array.mapNotNull { it.resultingDatatype(namespace, heap) }.toSet()
+            val arrayDt =
+                    if(DataType.FLOAT in typesInArray)
+                        DataType.ARRAY_F
+                    else if(DataType.WORD in typesInArray) {
+                        if(DataType.UWORD in typesInArray)
+                            DataType.ARRAY_F
+                        else
+                            DataType.ARRAY_W
+                    } else {
+                        val maxValue = integerArray.max()!!
+                        val minValue = integerArray.min()!!
+                        if (minValue >= 0) {
+                            // unsigned
+                            if (maxValue <= 255)
+                                DataType.ARRAY_UB
+                            else
+                                DataType.ARRAY_UW
+                        } else {
+                            // signed
+                            if (maxValue <= 127)
+                                DataType.ARRAY_B
+                            else
+                                DataType.ARRAY_W
+                        }
+                    }
+
+            val heapId = when(arrayDt) {
+                DataType.ARRAY_UB,
+                DataType.ARRAY_B,
+                DataType.ARRAY_UW,
+                DataType.ARRAY_W,
+                DataType.MATRIX_UB,
+                DataType.MATRIX_B -> heap.add(arrayDt, integerArray)
+                DataType.ARRAY_F -> heap.add(arrayDt, doubleArray)
+                else -> throw CompilerException("invalid array type")
+            }
+            return LiteralValue(arrayDt, heapId = heapId, position = arraylit.position)
+        }
     }
 
     override fun process(arrayIndexedExpression: ArrayIndexedExpression): IExpression {

@@ -560,6 +560,13 @@ class ArraySpec(var x: IExpression, var y: IExpression?, override val position: 
         y?.linkParents(this)
     }
 
+    companion object {
+        fun forArray(v: LiteralValue, heap: HeapValues): ArraySpec {
+            val arraySize = v.arrayvalue?.size ?: heap.get(v.heapId!!).arraysize
+            return ArraySpec(LiteralValue.optimalInteger(arraySize, v.position), null, v.position)
+        }
+    }
+
     fun process(processor: IAstProcessor) {
         x = x.process(processor)
         y = y?.process(processor)
@@ -1042,7 +1049,12 @@ class LiteralValue(val type: DataType,
         val fh = floatvalue?.hashCode() ?: 0x00103456
         val sh = strvalue?.hashCode() ?: 0x00014567
         val ah = arrayvalue?.hashCode() ?: 0x11119876
-        return bh xor wh xor fh xor sh xor ah xor type.hashCode()
+        var hash = bh * 31 xor wh
+        hash = hash*31 xor fh
+        hash = hash*31 xor sh
+        hash = hash*31 xor ah
+        hash = hash*31 xor type.hashCode()
+        return hash
     }
 
     override fun equals(other: Any?): Boolean {
@@ -1906,7 +1918,7 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
                 litval.charliteral()!=null -> LiteralValue(DataType.UBYTE, bytevalue = Petscii.encodePetscii(litval.charliteral().text.unescape(), true)[0], position = litval.toPosition())
                 litval.arrayliteral()!=null -> {
                     val array = litval.arrayliteral()?.toAst()
-                    // byte/word array type difference is not determined here.
+                    // the actual type of the array can not yet be determined here (missing namespace & heap)
                     // the ConstantFolder takes care of that and converts the type if needed.
                     LiteralValue(DataType.ARRAY_UB, arrayvalue = array, position = litval.toPosition())
                 }

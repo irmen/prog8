@@ -415,9 +415,15 @@ class AstChecker(private val namespace: INameScope,
                 }
                 when {
                     decl.value is RangeExpr -> checkValueTypeAndRange(decl.datatype, decl.arrayspec, decl.value as RangeExpr)
-                    decl.value is LiteralValue -> checkValueTypeAndRange(decl.datatype,
-                            decl.arrayspec ?: ArraySpec(LiteralValue.optimalInteger(-2, decl.position), null, decl.position),
-                            decl.value as LiteralValue, heap)
+                    decl.value is LiteralValue -> {
+                        val arraySpec = decl.arrayspec ?: (
+                                if((decl.value as LiteralValue).isArray)
+                                    ArraySpec.forArray(decl.value as LiteralValue, heap)
+                                else
+                                    ArraySpec(LiteralValue.optimalInteger(-2, decl.position), null, decl.position)
+                                )
+                        checkValueTypeAndRange(decl.datatype, arraySpec, decl.value as LiteralValue, heap)
+                    }
                     else -> {
                         err("var/const declaration needs a compile-time constant initializer value, or range, instead found: ${decl.value!!::class.simpleName}")
                         return super.process(decl)
@@ -515,9 +521,12 @@ class AstChecker(private val namespace: INameScope,
         if(!compilerOptions.floats && literalValue.type==DataType.FLOAT) {
             checkResult.add(SyntaxError("floating point value used, but floating point is not enabled via options", literalValue.position))
         }
-        checkValueTypeAndRange(literalValue.type,
-                ArraySpec(LiteralValue.optimalInteger(-3, literalValue.position), null, literalValue.position),
-                literalValue, heap)
+        val arrayspec =
+                if(literalValue.isArray)
+                    ArraySpec.forArray(literalValue, heap)
+                else
+                    ArraySpec(LiteralValue.optimalInteger(-3, literalValue.position), null, literalValue.position)
+        checkValueTypeAndRange(literalValue.type, arrayspec, literalValue, heap)
 
         val lv = super.process(literalValue)
         when(lv.type) {
@@ -798,7 +807,7 @@ class AstChecker(private val namespace: INameScope,
             }
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
                 // value may be either a single byte, or a byte array (of all constant values)
-                if(value.type==DataType.ARRAY_UB || value.type==DataType.ARRAY_B) {
+                if(value.type==targetDt) {
                     val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).array!!.size
                     val arraySpecSize = arrayspec.size()
                     if(arraySpecSize!=null && arraySpecSize>0) {
@@ -808,66 +817,34 @@ class AstChecker(private val namespace: INameScope,
                         val expectedSize = constX.asIntegerValue
                         if (arraySize != expectedSize)
                             return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
-                    }
-                } else if(value.type==DataType.ARRAY_UW || value.type==DataType.ARRAY_W) {
-                    return err("initialization value must be an array of bytes")
-                } else {
-                    if(targetDt==DataType.ARRAY_UB) {
-                        val number = value.bytevalue ?: return if (value.floatvalue != null)
-                            err("unsigned byte value expected instead of float; possible loss of precision")
-                        else
-                            err("unsigned byte value expected")
-                        if (number < 0 || number > 255)
-                            return err("value '$number' out of range for unsigned byte")
-                    } else {
-                        val number = value.bytevalue ?: return if (value.floatvalue != null)
-                            err("byte value expected instead of float; possible loss of precision")
-                        else
-                            err("byte value expected")
-                        if (number < -128 || number > 127)
-                            return err("value '$number' out of range for byte")
+                        return true
                     }
                 }
+                return err("invalid array initialization value ${value.type}, expected $targetDt")
             }
             DataType.ARRAY_UW, DataType.ARRAY_W -> {
                 // value may be either a single word, or a word array
-                if(value.type==DataType.ARRAY_UB || value.type==DataType.ARRAY_UW || value.type==DataType.ARRAY_B || value.type==DataType.ARRAY_W) {
+                if(value.type==targetDt) {
                     val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).array!!.size
                     val arraySpecSize = arrayspec.size()
                     if(arraySpecSize!=null && arraySpecSize>0) {
-                        // arrayspec is not always known when checking
                         val constX = arrayspec.x.constValue(namespace, heap)
                         if(constX?.asIntegerValue==null)
                             return err("array size specifier must be constant integer value")
                         val expectedSize = constX.asIntegerValue
                         if (arraySize != expectedSize)
                             return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
-                    }
-                } else {
-                    if(targetDt==DataType.ARRAY_UW) {
-                        val number = value.asIntegerValue ?: return if (value.floatvalue != null)
-                            err("unsigned byte or word value expected instead of float; possible loss of precision")
-                        else
-                            err("unsigned byte or word value expected")
-                        if (number < 0 || number > 65535)
-                            return err("value '$number' out of range for unsigned word")
-                    } else {
-                        val number = value.asIntegerValue ?: return if (value.floatvalue != null)
-                            err("byte or word value expected instead of float; possible loss of precision")
-                        else
-                            err("byte or word value expected")
-                        if (number < -32768 || number > 32767)
-                            return err("value '$number' out of range for word")
+                        return true
                     }
                 }
+                return err("invalid array initialization value ${value.type}, expected $targetDt")
             }
             DataType.ARRAY_F -> {
                 // value may be either a single float, or a float array
-                if(value.type==DataType.ARRAY_UB || value.type==DataType.ARRAY_UW || value.type==DataType.ARRAY_F) {
-                    val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).arraysize
+                if(value.type==targetDt) {
+                    val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).doubleArray!!.size
                     val arraySpecSize = arrayspec.size()
                     if(arraySpecSize!=null && arraySpecSize>0) {
-                        // arrayspec is not always known when checking
                         val constX = arrayspec.x.constValue(namespace, heap)
                         if(constX?.asIntegerValue==null)
                             return err("array size specifier must be constant integer value")
@@ -875,17 +852,20 @@ class AstChecker(private val namespace: INameScope,
                         if (arraySize != expectedSize)
                             return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
                     }
-                } else {
-                    val number = value.asNumericValue?.toDouble()
-                    if(number==null)
-                        return err("expected numerical value")
-                    else if (number < FLOAT_MAX_NEGATIVE || number > FLOAT_MAX_POSITIVE)
-                        return err("value '$number' out of range for mfplt5 floating point")
+                    // check if the floating point values are all within range
+                    val doubles = if(value.arrayvalue!=null)
+                        value.arrayvalue.map {it.constValue(namespace, heap)?.asNumericValue!!.toDouble()}.toDoubleArray()
+                    else
+                        heap.get(value.heapId!!).doubleArray!!
+                    if(doubles.any { it < FLOAT_MAX_NEGATIVE || it> FLOAT_MAX_POSITIVE})
+                        return err("floating point value overflow")
+                    return true
                 }
+                return err("invalid array initialization value ${value.type}, expected $targetDt")
             }
             DataType.MATRIX_UB, DataType.MATRIX_B -> {
                 // value can only be a single byte, or a byte array (which represents the matrix)
-                if(value.type==DataType.ARRAY_UB || value.type==DataType.ARRAY_B || value.type==DataType.MATRIX_UB || value.type==DataType.MATRIX_B) {
+                if(value.type==targetDt) {
                     val arraySpecSize = arrayspec.size()
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         val constX = arrayspec.x.constValue(namespace, heap)
@@ -897,19 +877,8 @@ class AstChecker(private val namespace: INameScope,
                         if (matrix.size != expectedSize)
                             return err("initializer matrix size mismatch (expecting $expectedSize, got ${matrix.size} elements)")
                     }
-                } else {
-                    if(targetDt==DataType.MATRIX_UB) {
-                        val number = value.bytevalue
-                                ?: return err("unsigned byte value expected")
-                        if (number < 0 || number > 255)
-                            return err("value '$number' out of range for unsigned byte")
-                    } else {
-                        val number = value.bytevalue
-                                ?: return err("byte value expected")
-                        if (number < -128 || number > 127)
-                            return err("value '$number' out of range for byte")
-                    }
                 }
+                return err("invalid matrix initialization value $value")
             }
         }
         return true
