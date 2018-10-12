@@ -510,6 +510,36 @@ class TestStackVmOpcodes {
     }
 
     @Test
+    fun testB2Ub() {
+        val ins = mutableListOf(
+                Instruction(Opcode.PUSH_BYTE, Value(DataType.BYTE, -88)),
+                Instruction(Opcode.PUSH_BYTE, Value(DataType.BYTE, 127)),
+                Instruction(Opcode.B2UB),
+                Instruction(Opcode.B2UB)
+        )
+        vm.load(makeProg(ins), null)
+        vm.step(3)
+        assertEquals(Value(DataType.UBYTE, 127), vm.evalstack.pop())
+        vm.step(1)
+        assertEquals(Value(DataType.UBYTE, 168), vm.evalstack.pop())
+    }
+
+    @Test
+    fun testUB2b() {
+        val ins = mutableListOf(
+                Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 168)),
+                Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 127)),
+                Instruction(Opcode.UB2B),
+                Instruction(Opcode.UB2B)
+        )
+        vm.load(makeProg(ins), null)
+        vm.step(3)
+        assertEquals(Value(DataType.BYTE, 127), vm.evalstack.pop())
+        vm.step(1)
+        assertEquals(Value(DataType.BYTE, -88), vm.evalstack.pop())
+    }
+
+    @Test
     fun testB2Word() {
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH_WORD, Value(DataType.WORD, 0x7a31)),
@@ -703,11 +733,17 @@ class TestStackVmOpcodes {
     @Test
     fun testLess() {
         testBinaryOperator(Value(DataType.UBYTE, 0), Opcode.LESS_UB, Value(DataType.UBYTE, 1), Value(DataType.UBYTE, 1))
-        testBinaryOperator(Value(DataType.UBYTE, 1), Opcode.LESS_UB, Value(DataType.UBYTE, 1), Value(DataType.UBYTE, 0))
+        testBinaryOperator(Value(DataType.UBYTE, 0), Opcode.LESS_UB, Value(DataType.UBYTE, 1), Value(DataType.UBYTE, 1))
+        testBinaryOperator(Value(DataType.BYTE, 1), Opcode.LESS_B, Value(DataType.BYTE, 1), Value(DataType.UBYTE, 0))
+        testBinaryOperator(Value(DataType.BYTE, -2), Opcode.LESS_B, Value(DataType.BYTE, 1), Value(DataType.UBYTE, 1))
+
         testBinaryOperator(Value(DataType.UWORD, 2), Opcode.LESS_UW, Value(DataType.UWORD, 20), Value(DataType.UBYTE, 1))
         testBinaryOperator(Value(DataType.UWORD, 20), Opcode.LESS_UW, Value(DataType.UWORD, 21), Value(DataType.UBYTE, 1))
         testBinaryOperator(Value(DataType.UWORD, 21), Opcode.LESS_UW, Value(DataType.UWORD, 21), Value(DataType.UBYTE, 0))
         testBinaryOperator(Value(DataType.UWORD, 21), Opcode.LESS_UW, Value(DataType.UWORD, 21), Value(DataType.UBYTE, 0))
+        testBinaryOperator(Value(DataType.WORD, 21), Opcode.LESS_W, Value(DataType.WORD, 21), Value(DataType.UBYTE, 0))
+        testBinaryOperator(Value(DataType.WORD, -2), Opcode.LESS_W, Value(DataType.WORD, 1), Value(DataType.UBYTE, 1))
+
         testBinaryOperator(Value(DataType.FLOAT, 21.0), Opcode.LESS_F, Value(DataType.FLOAT, 21.0), Value(DataType.UBYTE, 0))
         testBinaryOperator(Value(DataType.FLOAT, 21.0), Opcode.LESS_F, Value(DataType.FLOAT, 21.001), Value(DataType.UBYTE, 1))
     }
@@ -716,10 +752,16 @@ class TestStackVmOpcodes {
     fun testLessEq() {
         testBinaryOperator(Value(DataType.UBYTE, 0), Opcode.LESSEQ_UB, Value(DataType.UBYTE, 1), Value(DataType.UBYTE, 1))
         testBinaryOperator(Value(DataType.UBYTE, 1), Opcode.LESSEQ_UB, Value(DataType.UBYTE, 1), Value(DataType.UBYTE, 1))
+        testBinaryOperator(Value(DataType.BYTE, 1), Opcode.LESSEQ_B, Value(DataType.BYTE, 1), Value(DataType.UBYTE, 1))
+        testBinaryOperator(Value(DataType.BYTE, -2), Opcode.LESSEQ_B, Value(DataType.BYTE, 1), Value(DataType.UBYTE, 1))
+
         testBinaryOperator(Value(DataType.UWORD, 2), Opcode.LESSEQ_UW, Value(DataType.UWORD, 20), Value(DataType.UBYTE, 1))
         testBinaryOperator(Value(DataType.UWORD, 20), Opcode.LESSEQ_UW, Value(DataType.UWORD, 21), Value(DataType.UBYTE, 1))
         testBinaryOperator(Value(DataType.UWORD, 21), Opcode.LESSEQ_UW, Value(DataType.UWORD, 21), Value(DataType.UBYTE, 1))
         testBinaryOperator(Value(DataType.UWORD, 21), Opcode.LESSEQ_UW, Value(DataType.UWORD, 20), Value(DataType.UBYTE, 0))
+        testBinaryOperator(Value(DataType.WORD, 21), Opcode.LESSEQ_W, Value(DataType.WORD, 20), Value(DataType.UBYTE, 0))
+        testBinaryOperator(Value(DataType.WORD, -2), Opcode.LESSEQ_W, Value(DataType.WORD, 1), Value(DataType.UBYTE, 1))
+
         testBinaryOperator(Value(DataType.FLOAT, 21.0), Opcode.LESSEQ_F, Value(DataType.FLOAT, 21.0), Value(DataType.UBYTE, 1))
         testBinaryOperator(Value(DataType.FLOAT, 21.0), Opcode.LESSEQ_F, Value(DataType.FLOAT, 20.999), Value(DataType.UBYTE, 0))
     }
@@ -728,10 +770,16 @@ class TestStackVmOpcodes {
     fun testGreater() {
         testBinaryOperator(Value(DataType.UBYTE, 0), Opcode.GREATER_UB, Value(DataType.UBYTE, 1), Value(DataType.UBYTE, 0))
         testBinaryOperator(Value(DataType.UBYTE, 1), Opcode.GREATER_UB, Value(DataType.UBYTE, 1), Value(DataType.UBYTE, 0))
+        testBinaryOperator(Value(DataType.BYTE, 1), Opcode.GREATER_B, Value(DataType.BYTE, -1), Value(DataType.UBYTE, 1))
+        testBinaryOperator(Value(DataType.BYTE, -1), Opcode.GREATER_B, Value(DataType.BYTE, 1), Value(DataType.UBYTE, 0))
+
         testBinaryOperator(Value(DataType.UWORD, 2), Opcode.GREATER_UW, Value(DataType.UWORD, 20), Value(DataType.UBYTE, 0))
         testBinaryOperator(Value(DataType.UWORD, 20), Opcode.GREATER_UW, Value(DataType.UWORD, 21), Value(DataType.UBYTE, 0))
         testBinaryOperator(Value(DataType.UWORD, 21), Opcode.GREATER_UW, Value(DataType.UWORD, 20), Value(DataType.UBYTE, 1))
         testBinaryOperator(Value(DataType.UWORD, 21), Opcode.GREATER_UW, Value(DataType.UWORD, 21), Value(DataType.UBYTE, 0))
+        testBinaryOperator(Value(DataType.WORD, 21), Opcode.GREATER_W, Value(DataType.WORD, -21), Value(DataType.UBYTE, 1))
+        testBinaryOperator(Value(DataType.WORD, -2), Opcode.GREATER_W, Value(DataType.WORD, 21), Value(DataType.UBYTE, 0))
+
         testBinaryOperator(Value(DataType.FLOAT, 21.0), Opcode.GREATER_F, Value(DataType.FLOAT, 21.0), Value(DataType.UBYTE, 0))
         testBinaryOperator(Value(DataType.FLOAT, 21.0), Opcode.GREATER_F, Value(DataType.FLOAT, 20.999), Value(DataType.UBYTE, 1))
     }
@@ -740,10 +788,16 @@ class TestStackVmOpcodes {
     fun testGreaterEq() {
         testBinaryOperator(Value(DataType.UBYTE, 0), Opcode.GREATEREQ_UB, Value(DataType.UBYTE, 1), Value(DataType.UBYTE, 0))
         testBinaryOperator(Value(DataType.UBYTE, 1), Opcode.GREATEREQ_UB, Value(DataType.UBYTE, 1), Value(DataType.UBYTE, 1))
+        testBinaryOperator(Value(DataType.BYTE, 1), Opcode.GREATEREQ_B, Value(DataType.BYTE, 1), Value(DataType.UBYTE, 1))
+        testBinaryOperator(Value(DataType.BYTE, -11), Opcode.GREATEREQ_B, Value(DataType.BYTE, 11), Value(DataType.UBYTE, 0))
+
         testBinaryOperator(Value(DataType.UWORD, 2), Opcode.GREATEREQ_UW, Value(DataType.UWORD, 20), Value(DataType.UBYTE, 0))
         testBinaryOperator(Value(DataType.UWORD, 20), Opcode.GREATEREQ_UW, Value(DataType.UWORD, 21), Value(DataType.UBYTE, 0))
         testBinaryOperator(Value(DataType.UWORD, 21), Opcode.GREATEREQ_UW, Value(DataType.UWORD, 20), Value(DataType.UBYTE, 1))
         testBinaryOperator(Value(DataType.UWORD, 21), Opcode.GREATEREQ_UW, Value(DataType.UWORD, 21), Value(DataType.UBYTE, 1))
+        testBinaryOperator(Value(DataType.WORD, 21), Opcode.GREATEREQ_W, Value(DataType.WORD, 21), Value(DataType.UBYTE, 1))
+        testBinaryOperator(Value(DataType.WORD, -21), Opcode.GREATEREQ_W, Value(DataType.WORD, 21), Value(DataType.UBYTE, 0))
+
         testBinaryOperator(Value(DataType.FLOAT, 21.0), Opcode.GREATEREQ_F, Value(DataType.FLOAT, 21.0), Value(DataType.UBYTE, 1))
         testBinaryOperator(Value(DataType.FLOAT, 21.0), Opcode.GREATEREQ_F, Value(DataType.FLOAT, 21.001), Value(DataType.UBYTE, 0))
     }

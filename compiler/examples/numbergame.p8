@@ -18,7 +18,7 @@
             if attempts_left>1  _vm_write_str("es")
             _vm_write_str(" left. What is your next guess? ")
             _vm_input_str(guess)
-            ubyte guessednumber = str2byte(guess)
+            ubyte guessednumber = str2ubyte(guess)
             if guessednumber==secretnumber {
                 _vm_write_str("\nYou guessed it, impressive!\n")
                 _vm_write_str("Thanks for playing.\n")

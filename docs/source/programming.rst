@@ -567,15 +567,21 @@ flt(x)
     This is required if you want calculations to have floating point precision when the values aren't float already.
 
 wrd(x)
-    Explicitly convert the byte x to a word.
-    This is required if you want calculations to have word precision when the values are bytes.
+    Explicitly convert the value x to a signed word (sign extended).
+    This is required if you want calculations to have word precision when the values are different types.
 
-wrdhi(x)
-    Explicitly convert the byte x to a word, where x will be the high byte (msb) in the word.
-    This can be useful in calculations with word precision when the values are bytes.
+uwrd(x)
+    Explicitly convert the byte x to an unsigned word.
+    This is required if you want calculations to have unsigned word precision when the values are different types.
+
+b2ub(x)
+    Convert signed byte to unsinged byte. Uses 2's complement if dealing with a negative number.
+
+ub2b(x)
+    Convert an unsigned byte to a signed byte. Uses 2's complement to deal with negative numbers.
 
 any(x)
-	1 ('true') if any of the values in the non-scalar (array or matrix) value x is 'true' (not zero), else 0 ('false')
+    1 ('true') if any of the values in the non-scalar (array or matrix) value x is 'true' (not zero), else 0 ('false')
 
 all(x)
 	1 ('true') if all of the values in the non-scalar (array or matrix) value x are 'true' (not zero), else 0 ('false')
@@ -590,10 +596,16 @@ rndf()
     returns a pseudo-random float between 0.0 and 1.0
 
 str2byte(s)
-    converts string s into the numeric value that s represents (byte).
+    converts string s into the numeric value that s represents (signed byte).
+
+str2ubyte(s)
+    converts string s into the numeric value that s represents (unsigned byte).
 
 str2word(s)
-    converts string s into the numeric value that s represents (word).
+    converts string s into the numeric value that s represents (signed word).
+
+str2uword(s)
+    converts string s into the numeric value that s represents (unsigned word).
 
 str2float(s)
     converts string s into the numeric value that s represents (float).

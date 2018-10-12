@@ -93,8 +93,9 @@ class AstChecker(private val namespace: INameScope,
         }
 
         for (rv in expectedReturnValues.withIndex().zip(returnStmt.values)) {
-            if(rv.first.value!=rv.second.resultingDatatype(namespace, heap))
-                checkResult.add(ExpressionError("type of return value #${rv.first.index+1} doesn't match subroutine return type ${rv.first.value}", rv.second.position))
+            val valueDt=rv.second.resultingDatatype(namespace, heap)
+            if(rv.first.value!=valueDt)
+                checkResult.add(ExpressionError("type $valueDt of return value #${rv.first.index+1} doesn't match subroutine return type ${rv.first.value}", rv.second.position))
         }
         return super.process(returnStmt)
     }

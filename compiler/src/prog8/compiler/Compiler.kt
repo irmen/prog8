@@ -950,6 +950,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
 
     private fun translateFunctionCall(funcname: String, args: List<IExpression>) {
         // some functions are implemented as vm opcodes
+        // note: the arguments of the call have already been translated and put on the eval stack!
         when (funcname) {
             "flt" -> {
                 // 1 argument, type determines the exact opcode to use
@@ -965,8 +966,8 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
             }
             "msb" -> stackvmProg.instr(Opcode.MSB)
             "lsb" -> stackvmProg.instr(Opcode.LSB)
-            "wrd" -> stackvmProg.instr(Opcode.B2WORD)
-            "wrdhi" -> stackvmProg.instr(Opcode.MSB2WORD)
+            "b2ub" -> stackvmProg.instr(Opcode.B2UB)
+            "ub2b" -> stackvmProg.instr(Opcode.UB2B)
             "lsl" -> {
                 val arg = args.single()
                 when (arg.resultingDatatype(namespace, heap)) {

@@ -119,7 +119,14 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
             throw VmExecutionException("left and right datatypes are not the same")
         if(result.toDouble() < 0 ) {
             return when(leftDt) {
-                DataType.UBYTE, DataType.UWORD -> throw VmExecutionException("arithmetic error: cannot store a negative value in a $leftDt")
+                DataType.UBYTE, DataType.UWORD -> {
+                    // storing a negative number in an unsigned one is done by storing the 2's complement instead
+                    val number = abs(result.toDouble().toInt())
+                    if(leftDt==DataType.UBYTE)
+                        Value(DataType.UBYTE, (number xor 255) +1)
+                    else
+                        Value(DataType.UBYTE, (number xor 65535) +1)
+                }
                 DataType.BYTE -> Value(DataType.BYTE, result.toInt())
                 DataType.WORD -> Value(DataType.WORD, result.toInt())
                 DataType.FLOAT -> Value(DataType.FLOAT, result)

@@ -35,6 +35,16 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
         val constTrue = LiteralValue.fromBoolean(true, expr.position)
         val constFalse = LiteralValue.fromBoolean(false, expr.position)
 
+        val leftDt = expr.left.resultingDatatype(namespace, heap)
+        val rightDt = expr.right.resultingDatatype(namespace, heap)
+        if(leftDt!=null && rightDt!=null && leftDt!=rightDt) {
+            // try to convert a datatype into the other
+            if(adjustDatatypes(expr, leftVal, leftDt, rightVal, rightDt)) {
+                optimizationsDone++
+                return expr
+            }
+        }
+
         // simplify logical expressions when a term is constant and determines the outcome
         when(expr.operator) {
             "or" -> {
@@ -110,6 +120,87 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
             "**" -> return optimizePower(expr, leftVal, rightVal)
         }
         return expr
+    }
+
+    private fun adjustDatatypes(expr: BinaryExpression,
+                                leftConstVal: LiteralValue?, leftDt: DataType,
+                                rightConstVal: LiteralValue?, rightDt: DataType): Boolean {
+
+        fun adjust(value: LiteralValue, targetDt: DataType): Pair<Boolean, LiteralValue>{
+            if(value.type==targetDt)
+                return Pair(false, value)
+            when(value.type) {
+                DataType.UBYTE -> {
+                    if (targetDt == DataType.BYTE) {
+                        if(value.bytevalue!! < 127)
+                            return Pair(true, LiteralValue(targetDt, value.bytevalue, position=value.position))
+                    }
+                    else if (targetDt == DataType.UWORD || targetDt == DataType.WORD)
+                        return Pair(true, LiteralValue(targetDt, wordvalue = value.bytevalue!!.toInt(), position=value.position))
+                }
+                DataType.BYTE -> {
+                    if (targetDt == DataType.UBYTE) {
+                        if(value.bytevalue!! >= 0)
+                            return Pair(true, LiteralValue(targetDt, value.bytevalue, position=value.position))
+                    }
+                    else if (targetDt == DataType.UWORD) {
+                        if(value.bytevalue!! >= 0)
+                            return Pair(true, LiteralValue(targetDt, wordvalue=value.bytevalue.toInt(), position=value.position))
+                    }
+                    else if (targetDt == DataType.WORD) return Pair(true, LiteralValue(targetDt, wordvalue=value.bytevalue!!.toInt(), position=value.position))
+                }
+                DataType.UWORD -> {
+                    if (targetDt == DataType.UBYTE) {
+                        if(value.wordvalue!! <= 255)
+                            return Pair(true, LiteralValue(targetDt, value.wordvalue.toShort(), position=value.position))
+                    }
+                    else if (targetDt == DataType.BYTE) {
+                        if(value.wordvalue!! <= 127)
+                            return Pair(true, LiteralValue(targetDt, value.wordvalue.toShort(), position=value.position))
+                    }
+                    else if (targetDt == DataType.WORD) {
+                        if(value.wordvalue!! <= 32767)
+                            return Pair(true, LiteralValue(targetDt, wordvalue=value.wordvalue, position=value.position))
+                    }
+                }
+                DataType.WORD -> {
+                    if (targetDt == DataType.UBYTE) {
+                        if(value.wordvalue!! in 0..255)
+                            return Pair(true, LiteralValue(targetDt, value.wordvalue.toShort(), position=value.position))
+                    }
+                    else if (targetDt == DataType.BYTE) {
+                        if(value.wordvalue!! in -128..127)
+                            return Pair(true, LiteralValue(targetDt, value.wordvalue.toShort(), position=value.position))
+                    }
+                    else if (targetDt == DataType.UWORD) {
+                        if(value.wordvalue!! >= 0)
+                            return Pair(true, LiteralValue(targetDt, value.wordvalue.toShort(), position=value.position))
+                    }
+                }
+                else -> {}
+            }
+            return Pair(false, value)
+        }
+
+        if(leftConstVal==null && rightConstVal!=null) {
+            val (adjusted, newValue) = adjust(rightConstVal, leftDt)
+            if(adjusted) {
+                expr.right = newValue
+                optimizationsDone++
+                return true
+            }
+            return false
+        } else if(leftConstVal!=null && rightConstVal==null) {
+            val (adjusted, newValue) = adjust(leftConstVal, rightDt)
+            if(adjusted) {
+                expr.left = newValue
+                optimizationsDone++
+                return true
+            }
+            return false
+        } else {
+            throw AstException("binary expression with 2 const values should have been evaluated")
+        }
     }
 
     private data class ReorderedAssociativeBinaryExpr(val expr: BinaryExpression, val leftVal: LiteralValue?, val rightVal: LiteralValue?)

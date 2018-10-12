@@ -37,7 +37,7 @@
                 _vm_gfx_text(8, 6, 1, "Spin")
                 _vm_gfx_text(29, 11, 1, "to Win !")
 
-                for ubyte i in 0 to width//10 {
+                for uword i in 0 to width//10 {
                     _vm_gfx_line(i*2+width//2-width//10, 130, i*10.w, 199, 6)
                 }
 

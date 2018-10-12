@@ -983,6 +983,7 @@ class LiteralValue(val type: DataType,
                 if(strvalue==null && heapId==null) throw FatalAstException("literal value missing strvalue/heapId")
             in ArrayDatatypes ->
                 if(arrayvalue==null && heapId==null) throw FatalAstException("literal value missing arrayvalue/heapId")
+            else -> throw FatalAstException("invalid type $type")
         }
         if(bytevalue==null && wordvalue==null && floatvalue==null && arrayvalue==null && strvalue==null && heapId==null)
             throw FatalAstException("literal value without actual value")

@@ -21,10 +21,10 @@
         }
     }
 
-    sub screenx(x: float) -> uword {
+    sub screenx(x: float) -> word {
         return floor(x * flt(width)/4.1) + width // 2
     }
-    sub screeny(y: float) -> uword {
+    sub screeny(y: float) -> word {
         return floor(y * flt(height)/4.1) + height // 2
     }
 }

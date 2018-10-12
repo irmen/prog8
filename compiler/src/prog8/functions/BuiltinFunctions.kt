@@ -6,7 +6,7 @@ import kotlin.math.log2
 
 
 
-class BuiltinFunctionParam(val name: String, val possibleDatatypes: List<DataType>)
+class BuiltinFunctionParam(val name: String, val possibleDatatypes: Set<DataType>)
 
 class FunctionSignature(val pure: Boolean,      // does it have side effects?
                         val parameters: List<BuiltinFunctionParam>,
@@ -15,43 +15,42 @@ class FunctionSignature(val pure: Boolean,      // does it have side effects?
 
 
 val BuiltinFunctions = mapOf(
-    "rol"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", listOf(DataType.UBYTE, DataType.UWORD))), null),
-    "ror"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", listOf(DataType.UBYTE, DataType.UWORD))), null),
-    "rol2"        to FunctionSignature(false, listOf(BuiltinFunctionParam("item", listOf(DataType.UBYTE, DataType.UWORD))), null),
-    "ror2"        to FunctionSignature(false, listOf(BuiltinFunctionParam("item", listOf(DataType.UBYTE, DataType.UWORD))), null),
-    "lsl"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", listOf(DataType.UBYTE, DataType.UWORD))), null),
-    "lsr"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", listOf(DataType.UBYTE, DataType.UWORD))), null),
-    "sin"         to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", listOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::sin) },
-    "cos"         to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", listOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::cos) },
-    "acos"        to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", listOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::acos) },
-    "asin"        to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", listOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::asin) },
-    "tan"         to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", listOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::tan) },
-    "atan"        to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", listOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::atan) },
-    "ln"          to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::log) },
-    "log2"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, ::log2) },
-    "log10"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::log10) },
-    "sqrt"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::sqrt) },
-    "rad"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::toRadians) },
-    "deg"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::toDegrees) },
-    "avg"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes.toList())), DataType.FLOAT, ::builtinAvg),
-    "abs"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.FLOAT))), DataType.FLOAT, ::builtinAbs),
-    "round"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.FLOAT))), DataType.WORD) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::round) },
-    "floor"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.FLOAT))), DataType.WORD) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::floor) },
-    "ceil"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.FLOAT))), DataType.WORD) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::ceil) },
-    "max"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes.toList())), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.max()!! }},        // type depends on args
-    "min"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes.toList())), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.min()!! }},        // type depends on args
-    "sum"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes.toList())), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.sum() }},        // type depends on args
-    "len"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", IterableDatatypes.toList())), DataType.UWORD, ::builtinLen),
-    "any"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes.toList())), DataType.UBYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.any { v -> v != 0.0} }},
-    "all"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes.toList())), DataType.UBYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.all { v -> v != 0.0} }},
-    "lsb"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, n, h -> oneIntArgOutputInt(a, p, n, h) { x: Int -> x and 255 }},
-    "msb"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, n, h -> oneIntArgOutputInt(a, p, n, h) { x: Int -> x ushr 8 and 255}},
-    "flt"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", NumericDatatypes.toList())), DataType.FLOAT, ::builtinFlt),
-    "uwrd"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.UBYTE, DataType.BYTE, DataType.WORD))), DataType.UWORD, ::builtinUwrd),
-    "wrd"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD))), DataType.WORD, ::builtinWrd),
-    "uwrdhi"      to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.UBYTE, DataType.BYTE))), DataType.UWORD, ::builtinWrdHi),
-    "b2ub"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.BYTE))), DataType.UBYTE, ::builtinB2ub),
-    "ub2b"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", listOf(DataType.UBYTE))), DataType.BYTE, ::builtinUb2b),
+    "rol"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
+    "ror"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
+    "rol2"        to FunctionSignature(false, listOf(BuiltinFunctionParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
+    "ror2"        to FunctionSignature(false, listOf(BuiltinFunctionParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
+    "lsl"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
+    "lsr"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
+    "sin"         to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::sin) },
+    "cos"         to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::cos) },
+    "acos"        to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::acos) },
+    "asin"        to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::asin) },
+    "tan"         to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::tan) },
+    "atan"        to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::atan) },
+    "ln"          to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::log) },
+    "log2"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, ::log2) },
+    "log10"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::log10) },
+    "sqrt"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::sqrt) },
+    "rad"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::toRadians) },
+    "deg"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::toDegrees) },
+    "avg"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.FLOAT, ::builtinAvg),
+    "abs"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT, ::builtinAbs),
+    "round"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.WORD) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::round) },
+    "floor"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.WORD) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::floor) },
+    "ceil"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.WORD) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::ceil) },
+    "max"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.max()!! }},        // type depends on args
+    "min"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.min()!! }},        // type depends on args
+    "sum"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.sum() }},        // type depends on args
+    "len"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", IterableDatatypes)), DataType.UWORD, ::builtinLen),
+    "any"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.any { v -> v != 0.0} }},
+    "all"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.all { v -> v != 0.0} }},
+    "lsb"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, n, h -> oneIntArgOutputInt(a, p, n, h) { x: Int -> x and 255 }},
+    "msb"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, n, h -> oneIntArgOutputInt(a, p, n, h) { x: Int -> x ushr 8 and 255}},
+    "flt"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", NumericDatatypes)), DataType.FLOAT, ::builtinFlt),
+    "uwrd"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.UBYTE, DataType.BYTE, DataType.WORD))), DataType.UWORD, ::builtinUwrd),
+    "wrd"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD))), DataType.WORD, ::builtinWrd),
+    "b2ub"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.BYTE))), DataType.UBYTE, ::builtinB2ub),
+    "ub2b"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.UBYTE))), DataType.BYTE, ::builtinUb2b),
     "rnd"         to FunctionSignature(true, emptyList(), DataType.UBYTE),
     "rndw"        to FunctionSignature(true, emptyList(), DataType.UWORD),
     "rndf"        to FunctionSignature(true, emptyList(), DataType.FLOAT),
@@ -59,33 +58,33 @@ val BuiltinFunctions = mapOf(
     "clear_carry" to FunctionSignature(false, emptyList(), null),
     "set_irqd"    to FunctionSignature(false, emptyList(), null),
     "clear_irqd"  to FunctionSignature(false, emptyList(), null),
-    "str2byte"    to FunctionSignature(true, listOf(BuiltinFunctionParam("string", StringDatatypes.toList())), DataType.BYTE),
-    "str2ubyte"   to FunctionSignature(true, listOf(BuiltinFunctionParam("string", StringDatatypes.toList())), DataType.UBYTE),
-    "str2word"    to FunctionSignature(true, listOf(BuiltinFunctionParam("string", StringDatatypes.toList())), DataType.WORD),
-    "str2uword"   to FunctionSignature(true, listOf(BuiltinFunctionParam("string", StringDatatypes.toList())), DataType.UWORD),
-    "str2float"   to FunctionSignature(true, listOf(BuiltinFunctionParam("string", StringDatatypes.toList())), DataType.FLOAT),
-    "_vm_write_memchr"  to FunctionSignature(false, listOf(BuiltinFunctionParam("address", listOf(DataType.UWORD))), null),
-    "_vm_write_memstr"  to FunctionSignature(false, listOf(BuiltinFunctionParam("address", listOf(DataType.UWORD))), null),
-    "_vm_write_num"     to FunctionSignature(false, listOf(BuiltinFunctionParam("number", NumericDatatypes.toList())), null),
-    "_vm_write_char"    to FunctionSignature(false, listOf(BuiltinFunctionParam("char", listOf(DataType.UBYTE))), null),
-    "_vm_write_str"     to FunctionSignature(false, listOf(BuiltinFunctionParam("string", StringDatatypes.toList())), null),
-    "_vm_input_str"     to FunctionSignature(false, listOf(BuiltinFunctionParam("intovar", StringDatatypes.toList())), null),
-    "_vm_gfx_clearscr"  to FunctionSignature(false, listOf(BuiltinFunctionParam("color", listOf(DataType.UBYTE))), null),
+    "str2byte"    to FunctionSignature(true, listOf(BuiltinFunctionParam("string", StringDatatypes)), DataType.BYTE),
+    "str2ubyte"   to FunctionSignature(true, listOf(BuiltinFunctionParam("string", StringDatatypes)), DataType.UBYTE),
+    "str2word"    to FunctionSignature(true, listOf(BuiltinFunctionParam("string", StringDatatypes)), DataType.WORD),
+    "str2uword"   to FunctionSignature(true, listOf(BuiltinFunctionParam("string", StringDatatypes)), DataType.UWORD),
+    "str2float"   to FunctionSignature(true, listOf(BuiltinFunctionParam("string", StringDatatypes)), DataType.FLOAT),
+    "_vm_write_memchr"  to FunctionSignature(false, listOf(BuiltinFunctionParam("address", setOf(DataType.UWORD))), null),
+    "_vm_write_memstr"  to FunctionSignature(false, listOf(BuiltinFunctionParam("address", setOf(DataType.UWORD))), null),
+    "_vm_write_num"     to FunctionSignature(false, listOf(BuiltinFunctionParam("number", NumericDatatypes)), null),
+    "_vm_write_char"    to FunctionSignature(false, listOf(BuiltinFunctionParam("char", setOf(DataType.UBYTE))), null),
+    "_vm_write_str"     to FunctionSignature(false, listOf(BuiltinFunctionParam("string", StringDatatypes)), null),
+    "_vm_input_str"     to FunctionSignature(false, listOf(BuiltinFunctionParam("intovar", StringDatatypes)), null),
+    "_vm_gfx_clearscr"  to FunctionSignature(false, listOf(BuiltinFunctionParam("color", setOf(DataType.UBYTE))), null),
     "_vm_gfx_pixel"     to FunctionSignature(false, listOf(
-                                                        BuiltinFunctionParam("x", IntegerDatatypes.toList()),
-                                                        BuiltinFunctionParam("y", IntegerDatatypes.toList()),
-                                                        BuiltinFunctionParam("color", IntegerDatatypes.toList())), null),
+                                                        BuiltinFunctionParam("x", IntegerDatatypes),
+                                                        BuiltinFunctionParam("y", IntegerDatatypes),
+                                                        BuiltinFunctionParam("color", IntegerDatatypes)), null),
     "_vm_gfx_line"     to FunctionSignature(false, listOf(
-                                                        BuiltinFunctionParam("x1", IntegerDatatypes.toList()),
-                                                        BuiltinFunctionParam("y1", IntegerDatatypes.toList()),
-                                                        BuiltinFunctionParam("x2", IntegerDatatypes.toList()),
-                                                        BuiltinFunctionParam("y2", IntegerDatatypes.toList()),
-                                                        BuiltinFunctionParam("color", IntegerDatatypes.toList())), null),
+                                                        BuiltinFunctionParam("x1", IntegerDatatypes),
+                                                        BuiltinFunctionParam("y1", IntegerDatatypes),
+                                                        BuiltinFunctionParam("x2", IntegerDatatypes),
+                                                        BuiltinFunctionParam("y2", IntegerDatatypes),
+                                                        BuiltinFunctionParam("color", IntegerDatatypes)), null),
     "_vm_gfx_text"      to FunctionSignature(false, listOf(
-                                                        BuiltinFunctionParam("x", IntegerDatatypes.toList()),
-                                                        BuiltinFunctionParam("y", IntegerDatatypes.toList()),
-                                                        BuiltinFunctionParam("color", IntegerDatatypes.toList()),
-                                                        BuiltinFunctionParam("text", StringDatatypes.toList())),
+                                                        BuiltinFunctionParam("x", IntegerDatatypes),
+                                                        BuiltinFunctionParam("y", IntegerDatatypes),
+                                                        BuiltinFunctionParam("color", IntegerDatatypes),
+                                                        BuiltinFunctionParam("text", StringDatatypes)),
                                                         null)
 )
 
@@ -272,17 +271,6 @@ private fun builtinUwrd(args: List<IExpression>, position: Position, namespace:I
     return LiteralValue(DataType.UWORD, wordvalue = constval.bytevalue!!.toInt(), position = position)
 }
 
-private fun builtinWrdHi(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
-    // 1 arg, convert to word (in hi byte)
-    if(args.size!=1)
-        throw SyntaxError("wrdhi requires one numeric argument", position)
-
-    val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
-    if(constval.type!=DataType.UBYTE)
-        throw SyntaxError("wrdhi requires one byte argument", position)
-    return LiteralValue(DataType.UWORD, wordvalue = constval.bytevalue!!.toInt() shl 8, position = position)
-}
-
 private fun builtinB2ub(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
     // 1 byte arg, convert to ubyte
     if(args.size!=1)
@@ -291,7 +279,7 @@ private fun builtinB2ub(args: List<IExpression>, position: Position, namespace:I
     val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
     if(constval.type!=DataType.BYTE)
         throw SyntaxError("b2ub requires one argument of type byte", position)
-    return LiteralValue(DataType.UBYTE, bytevalue=constval.bytevalue!!, position = position)
+    return LiteralValue(DataType.UBYTE, bytevalue=(constval.bytevalue!!.toInt() and 255).toShort(), position = position)
 }
 
 private fun builtinUb2b(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
@@ -302,7 +290,7 @@ private fun builtinUb2b(args: List<IExpression>, position: Position, namespace:I
     val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
     if(constval.type!=DataType.UBYTE)
         throw SyntaxError("ub2b requires one argument of type ubyte", position)
-    return LiteralValue(DataType.BYTE, bytevalue=constval.bytevalue!!, position = position)
+    return LiteralValue(DataType.BYTE, bytevalue=(constval.bytevalue!!.toInt() and 255).toShort(), position = position)
 }
 
 private fun builtinAbs(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {

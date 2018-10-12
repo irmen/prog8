@@ -1,6 +1,8 @@
 package prog8.stackvm
 
-import prog8.ast.*
+import prog8.ast.DataType
+import prog8.ast.IterableDatatypes
+import prog8.ast.NumericDatatypes
 import prog8.compiler.HeapValues
 import prog8.compiler.target.c64.Petscii
 import java.io.File
@@ -130,7 +132,9 @@ enum class Opcode {
     // numeric type conversions
     LSB,
     MSB,
-    B2WORD,         // convert a byte into a word where it is the lower eight bits $00xx with sign extension
+    B2UB,
+    UB2B,
+    B2WORD,         // convert a byte into a word where it is the lower eight bits $ssxx with sign extension
     UB2UWORD,       // convert a byte into a word where it is the lower eight bits $00xx
     MSB2WORD,       // convert a byte into a word where it is the upper eight bits $xx00
     B2FLOAT,        // convert byte into floating point
@@ -284,9 +288,13 @@ enum class Syscall(val callNr: Short) {
     FUNC_RND(89),                // push a random byte on the stack
     FUNC_RNDW(90),               // push a random word on the stack
     FUNC_RNDF(91),               // push a random float on the stack (between 0.0 and 1.0)
-    FUNC_STR2BYTE(92),
-    FUNC_STR2WORD(93),
-    FUNC_STR2FLOAT(94)
+    FUNC_WRD(92),
+    FUNC_UWRD(93),
+    FUNC_STR2BYTE(100),
+    FUNC_STR2UBYTE(101),
+    FUNC_STR2WORD(102),
+    FUNC_STR2UWORD(103),
+    FUNC_STR2FLOAT(104)
 
     // note: not all builtin functions of the Prog8 language are present as functions:
     // some of them are straight opcodes (such as MSB, LSB, LSL, LSR, ROL_BYTE, ROR, ROL2, ROR2, and FLT)!
@@ -1064,7 +1072,7 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.PUSH_VAR_WORD -> {
                 val value = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
-                checkDt(value, setOf(DataType.UWORD, DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F, DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS, DataType.MATRIX_UB))
+                checkDt(value, setOf(DataType.UWORD, DataType.WORD, DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F, DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS, DataType.MATRIX_UB))
                 evalstack.push(value)
             }
             Opcode.PUSH_VAR_FLOAT -> {
@@ -1452,6 +1460,19 @@ class StackVm(private var traceOutputFile: String?) {
                 checkDt(second, DataType.FLOAT)
                 evalstack.push(Value(DataType.UBYTE, if(second != top) 1 else 0))
             }
+            Opcode.B2UB -> {
+                val byte = evalstack.pop()
+                checkDt(byte, DataType.BYTE)
+                evalstack.push(Value(DataType.UBYTE, byte.integerValue() and 255))
+            }
+            Opcode.UB2B -> {
+                val byte = evalstack.pop()
+                checkDt(byte, DataType.UBYTE)
+                if(byte.integerValue() > 127) {
+                    evalstack.push(Value(DataType.BYTE, -((byte.integerValue() xor 255) + 1)))
+                } else
+                    evalstack.push(Value(DataType.BYTE, byte.integerValue()))
+            }
             Opcode.B2WORD -> {
                 val byte = evalstack.pop()
                 checkDt(byte, DataType.BYTE)
@@ -1787,19 +1808,67 @@ class StackVm(private var traceOutputFile: String?) {
                 val strvar = evalstack.pop()
                 val str = heap.get(strvar.heapId)
                 val y = str.str!!.trim().trimEnd('\u0000')
-                evalstack.push(Value(DataType.UBYTE, y.toShort()))
+                evalstack.push(Value(DataType.BYTE, y.toShort()))
+            }
+            Syscall.FUNC_STR2UBYTE -> {
+                val strvar = evalstack.pop()
+                val str = heap.get(strvar.heapId)
+                val y = str.str!!.trim().trimEnd('\u0000')
+                val number = (y.toInt() and 255).toShort()
+                evalstack.push(Value(DataType.UBYTE, number))
             }
             Syscall.FUNC_STR2WORD -> {
                 val strvar = evalstack.pop()
                 val str = heap.get(strvar.heapId)
                 val y = str.str!!.trim().trimEnd('\u0000')
-                evalstack.push(Value(DataType.UBYTE, y.toInt()))
+                evalstack.push(Value(DataType.WORD, y.toInt()))
+            }
+            Syscall.FUNC_STR2UWORD -> {
+                val strvar = evalstack.pop()
+                val str = heap.get(strvar.heapId)
+                val y = str.str!!.trim().trimEnd('\u0000')
+                val number = y.toInt() and 65535
+                evalstack.push(Value(DataType.UWORD, number))
             }
             Syscall.FUNC_STR2FLOAT -> {
                 val strvar = evalstack.pop()
                 val str = heap.get(strvar.heapId)
                 val y = str.str!!.trim().trimEnd('\u0000')
-                evalstack.push(Value(DataType.UBYTE, y.toDouble()))
+                evalstack.push(Value(DataType.FLOAT, y.toDouble()))
+            }
+            Syscall.FUNC_WRD -> {
+                val value = evalstack.pop()
+                checkDt(value, setOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD))
+                when(value.type) {
+                    DataType.UBYTE, DataType.BYTE -> evalstack.push(Value(DataType.WORD, value.integerValue()))
+                    DataType.UWORD -> {
+                        val v2=
+                            if(value.integerValue() <= 32767)
+                                Value(DataType.WORD, value.integerValue())
+                            else
+                                Value(DataType.WORD, -((value.integerValue() xor 65535)+1))
+                        evalstack.push(v2)
+                    }
+                    DataType.WORD -> evalstack.push(value)
+                    else -> {}
+                }
+            }
+            Syscall.FUNC_UWRD -> {
+                val value = evalstack.pop()
+                checkDt(value, setOf(DataType.UBYTE, DataType.BYTE, DataType.WORD))
+                when(value.type) {
+                    DataType.UBYTE -> evalstack.push(Value(DataType.UWORD, value.integerValue()))
+                    DataType.UWORD -> evalstack.push(value)
+                    DataType.BYTE, DataType.WORD -> {
+                        val v2 =
+                                if(value.integerValue()>=0)
+                                    Value(DataType.UWORD, value.integerValue())
+                                else
+                                    Value(DataType.UWORD, (abs(value.integerValue()) xor 65535)+1)
+                        evalstack.push(v2)
+                    }
+                    else -> {}
+                }
             }
         }
     }

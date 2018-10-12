@@ -9,7 +9,6 @@ import prog8.parser.ParsingFailedError
 import prog8.parser.importModule
 import java.io.File
 import java.io.PrintStream
-import java.lang.IllegalArgumentException
 import java.nio.file.Paths
 import kotlin.system.exitProcess
 
