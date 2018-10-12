@@ -912,7 +912,7 @@ class AstChecker(private val namespace: INameScope,
         if((sourceDatatype==DataType.UWORD || sourceDatatype==DataType.WORD) && (targetDatatype==DataType.UBYTE || targetDatatype==DataType.BYTE))
             checkResult.add(ExpressionError("cannot assign word to byte, use msb() or lsb()?", position))
         else if(sourceDatatype==DataType.FLOAT && targetDatatype in IntegerDatatypes)
-            checkResult.add(ExpressionError("cannot assign float to ${targetDatatype.toString().toLowerCase()}; possible loss of precision. Suggestion: round the value or revert to byte/word arithmetic", position))
+            checkResult.add(ExpressionError("cannot assign float to ${targetDatatype.toString().toLowerCase()}; possible loss of precision. Suggestion: round the value or revert to integer arithmetic", position))
         else
             checkResult.add(ExpressionError("cannot assign ${sourceDatatype.toString().toLowerCase()} to ${targetDatatype.toString().toLowerCase()}", position))
 

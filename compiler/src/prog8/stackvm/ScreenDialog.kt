@@ -3,14 +3,15 @@ package prog8.stackvm
 import prog8.compiler.target.c64.Charset
 import prog8.compiler.target.c64.Petscii
 import java.awt.*
+import java.awt.event.KeyEvent
+import java.awt.event.KeyListener
 import java.awt.image.BufferedImage
-import javax.swing.JButton
 import javax.swing.JFrame
 import javax.swing.JPanel
 import javax.swing.Timer
 
 
-class BitmapScreenPanel : JPanel() {
+class BitmapScreenPanel : KeyListener, JPanel() {
 
     private val image = BufferedImage(SCREENWIDTH, SCREENHEIGHT, BufferedImage.TYPE_INT_ARGB)
     private val g2d = image.graphics as Graphics2D
@@ -21,6 +22,19 @@ class BitmapScreenPanel : JPanel() {
         maximumSize = size
         preferredSize = size
         clearScreen(6)
+        isFocusable = true
+        requestFocusInWindow()
+        addKeyListener(this)
+    }
+
+    override fun keyTyped(p0: KeyEvent?) {}
+
+    override fun keyPressed(p0: KeyEvent?) {
+        println("pressed: $p0.k")
+    }
+
+    override fun keyReleased(p0: KeyEvent?) {
+        println("released: $p0")
     }
 
     override fun paint(graphics: Graphics?) {
@@ -90,7 +104,6 @@ class BitmapScreenPanel : JPanel() {
 
 class ScreenDialog : JFrame() {
     val canvas = BitmapScreenPanel()
-    private val buttonQuit = JButton("Quit")
 
     init {
         val borderWidth = 16
@@ -98,17 +111,6 @@ class ScreenDialog : JFrame() {
         layout = GridBagLayout()
         defaultCloseOperation = JFrame.EXIT_ON_CLOSE
         isResizable = false
-
-        val buttonBar = JPanel()
-        buttonBar.add(buttonQuit)
-
-        var c = GridBagConstraints()
-        // the button bar
-        c.gridx = 0
-        c.gridy = 0
-        c.gridwidth = 3
-        c.anchor = GridBagConstraints.LINE_END
-        add(buttonBar, c)
 
         // the borders (top, left, right, bottom)
         val borderTop = JPanel().apply {
@@ -127,7 +129,7 @@ class ScreenDialog : JFrame() {
             preferredSize =Dimension(BitmapScreenPanel.SCALING * borderWidth, BitmapScreenPanel.SCALING * BitmapScreenPanel.SCREENHEIGHT)
             background = BitmapScreenPanel.palette[14]
         }
-        c = GridBagConstraints()
+        var c = GridBagConstraints()
         c.gridx=0; c.gridy=1; c.gridwidth=3
         add(borderTop, c)
         c = GridBagConstraints()
@@ -144,9 +146,7 @@ class ScreenDialog : JFrame() {
         c.gridx = 1; c.gridy = 2
         add(canvas, c)
 
-        getRootPane().defaultButton = buttonQuit
-        buttonQuit.addActionListener { _ -> onOK() }
-
+        canvas.requestFocusInWindow()
     }
 
     fun start() {

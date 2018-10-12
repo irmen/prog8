@@ -740,7 +740,7 @@ private class StatementTranslator(private val stackvmProg: StackVmProgram,
         // word + word -> word
         // a combination with a float will be float (but give a warning about this!)
 
-        val floatWarning = "byte or word value implicitly converted to float. Suggestion: use explicit flt() conversion, a float number, or revert to byte/word arithmetic"
+        val floatWarning = "byte or word value implicitly converted to float. Suggestion: use explicit flt() conversion, a float number, or revert to integer arithmetic"
 
         return when(leftDt) {
             DataType.UBYTE -> {

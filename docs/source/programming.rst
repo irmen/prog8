@@ -216,8 +216,6 @@ for instance.
     There must be a way to tell the compiler which variables you require to be in Zeropage:
     ``zeropage`` modifier keyword on vardecl perhaps?
 
-    option to omit the array size on the vardecl if an initialization array value is given?
-
 
 Variables that represent CPU hardware registers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -259,9 +257,9 @@ in hexadecimal and in binary notation.
 A single character in single quotes such as ``'a'`` is translated into a byte integer,
 which is the Petscii value for that character.
 
-.. todo::
-    Right now only unsinged integers are supported (0-255 for byte types, 0-65535 for word types)
-    @todo maybe signed integers (-128..127  and -32768..32767) will be added later
+Unsigned integers are in the range 0-255 for unsigned byte types, and 0-65535 for unsigned word types.
+The signed integers integers are in the range -128..127 for bytes,
+and -32768..32767 for words.
 
 
 Strings
@@ -273,7 +271,7 @@ but they have some special properties because they are considered to be *text*.
 Strings in your source code files will be encoded (translated from ASCII/UTF-8) into either CBM PETSCII or C-64 screencodes.
 PETSCII is the default choice. If you need screencodes (also called 'poke' codes) instead,
 you have to use the ``str_s`` variants of the string type identifier.
-If you assign a string literal of length 1 to a non-string variable, it is treated as a *byte* value instead
+If you assign a string literal of length 1 to a non-string variable, it is treated as an *unsigned byte* value instead
 with has the PETSCII value of that single character.
 
 .. caution::

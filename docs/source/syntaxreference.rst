@@ -232,17 +232,22 @@ Prog8 supports the following data types:
 ===============  =======================  =================  =========================================
 type identifier  type                     storage size       example var declaration and literal value
 ===============  =======================  =================  =========================================
-``byte``         unsigned byte            1 byte = 8 bits    ``byte myvar = $8f``
+``byte``         signed byte              1 byte = 8 bits    ``byte myvar = -22``
+``ubyte``        unsigned byte            1 byte = 8 bits    ``ubyte myvar = $8f``
 --               boolean                  1 byte = 8 bits    ``byte myvar = true`` or ``byte myvar == false``
                                                              The true and false are actually just aliases
                                                              for the byte values 1 and 0.
-``word``         unsigned word            2 bytes = 16 bits  ``word myvar = $8fee``
+``word``         signed word              2 bytes = 16 bits  ``word myvar = -12345``
+``uword``        unsigned word            2 bytes = 16 bits  ``uword myvar = $8fee``
 ``float``        floating-point           5 bytes = 40 bits  ``float myvar = 1.2345``
                                                              stored in 5-byte cbm MFLPT format
-``byte[x]``      unsigned byte array      x bytes            ``byte[4] myvar = [1, 2, 3, 4]``
-``word[x]``      unsigned word array      2*x bytes          ``word[4] myvar = [1, 2, 3, 4]``
+``byte[x]``      signed byte array        x bytes            ``byte[4] myvar = [1, 2, 3, 4]``
+``ubyte[x]``     unsigned byte array      x bytes            ``ubyte[4] myvar = [1, 2, 3, 4]``
+``word[x]``      signed word array        2*x bytes          ``word[4] myvar = [1, 2, 3, 4]``
+``uword[x]``     unsigned word array      2*x bytes          ``uword[4] myvar = [1, 2, 3, 4]``
 ``float[x]``     floating-point array     5*x bytes          ``float[4] myvar = [1.1, 2.2, 3.3, 4.4]``
-``byte[x,y]``    unsigned byte matrix     x*y bytes          ``byte[40,25] myvar = 255``
+``byte[x,y]``    signed byte matrix       x*y bytes          ``byte[40,25] myvar = 100``
+``ubyte[x,y]``   unsigned byte matrix     x*y bytes          ``ubyte[40,25] myvar = 255``
 ``str``          string (petscii)         varies             ``str myvar = "hello."``
                                                              implicitly terminated by a 0-byte
 ``str_p``        pascal-string (petscii)  varies             ``str_p myvar = "hello."``
@@ -263,8 +268,8 @@ type identifier  type                     storage size       example var declara
 
 **``byte`` versus ``word`` values:**
 
-- When an integer value ranges from 0..255 the compiler sees it as a ``byte``.
-- When an integer value ranges from 256..65535 the compiler sees it as a ``word``.
+- When an integer value ranges from 0..255 the compiler sees it as a ``ubyte``.  For -128..127 it's a ``byte``.
+- When an integer value ranges from 256..65535 the compiler sees it as a ``uword``.  For -32768..32767 it's a ``word``.
 - When a hex number has 3 or 4 digits, for example ``$0004``, it is seen as a ``word`` otherwise as a ``byte``.
 - When a binary number has 9 to 16 digits, for example ``%1100110011``, it is seen as a ``word`` otherwise as a ``byte``.
 - You can force a byte value into a word value by adding the ``.w`` datatype suffix to the number: ``$2a.w`` is equivalent to ``$002a``.
@@ -275,8 +280,6 @@ type identifier  type                     storage size       example var declara
     omit the array size in the var decl if an initialization array is given?
 
     **@todo pointers/addresses?  (as opposed to normal WORDs)**
-
-    **@todo signed integers (byte and word)?**
 
 
 Memory mapped variables

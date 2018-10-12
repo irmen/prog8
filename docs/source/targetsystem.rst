@@ -124,35 +124,18 @@ The following 6502 CPU hardware registers are directly usable in program code (a
 - the status register (P) carry flag and interrupt disable flag can be written via a couple of special
   builtin functions (``set_carry()``, ``clear_carry()``, ``set_irqd()``,  ``clear_irqd()``)
 
+However, you must assume that the 3 hardware registers ``A``, ``X`` and ``Y``
+are volatile. Their values cannot be depended upon, the compiler will use them as required.
 
 
 Subroutine Calling Conventions
 ------------------------------
 
-Subroutine arguments and results are passed via registers.
+**Kernel/asm subroutines:**
+Arguments and results are passed via registers.
 Sometimes the status register's Carry flag is used as well (as a boolean flag).
-Additional arguments can be passed via memory locations as well ofcourse.
-But you'll have to be careful when dealing with chained or even recursive calls then,
-because there's a big risk of overwriting those memory locations.
 
-In Prog8 the "caller saves" principle applies to calling subroutines.
-This means the code that calls a subroutine that clobbers certain
-registers (``A``, ``X`` or ``Y``), is responsible for storing and restoring the original values if
-those values are needed by the rest of the code.
+**Normal user defined subroutines:**
+Arguments and result values are passed via global variables stored in memory.
+*These are not allocated on a stack* so it is not possible to create recursive calls.
 
-Normally, registers are *not* preserved when calling a subroutine or when a certian
-operations are performed. Most calls will be simply a few instructions to load the
-values in the registers and then a ``JSR`` or ``JMP``.
-
-By using the ``%saveregisters`` directive in a block, you can tell the
-compiler to preserve all registers. This does generate a lot of extra code that puts
-original values on the stack and gets them off the stack again once the subroutine is done.
-In this case however you don't have to worry about ``A``, ``X`` and ``Y`` losing their original values
-and you can essentially treat them as three local variables instead of scratch data.
-
-You can also use a ``!`` on a single subroutine call to preserve register values, instead of
-setting this behavior for the entire block. 
-
-.. important::
-    Basically, you should assume that the 3 hardware registers ``A``, ``X`` and ``Y``
-    are volatile. Their values cannot be depended upon, unless you explicitly make sure otherwise.
