@@ -4,25 +4,33 @@ import prog8.ast.DataType
 import prog8.compiler.HeapValues
 import prog8.compiler.unescape
 import java.io.File
-import java.io.PrintStream
 import java.util.*
 import java.util.regex.Pattern
 
 class Program (val name: String,
-               prog: MutableList<Instruction>,
+               val program: MutableList<Instruction>,
+               val variables: Map<String, Value>,
                val labels: Map<String, Instruction>,
-               val variables: Map<String, Map<String, Value>>,
                val memory: Map<Int, List<Value>>,
                val heap: HeapValues)
 {
+    init {
+        // add end of program marker and some sentinel instructions, to correctly connect all others
+        program.add(LabelInstr("____program_end"))
+        program.add(Instruction(Opcode.TERMINATE))
+        program.add(Instruction(Opcode.NOP))
+        connect()
+    }
+
     companion object {
         fun load(filename: String): Program {
             val lines = File(filename).readLines().withIndex().iterator()
             val memory = mutableMapOf<Int, List<Value>>()
-            val vars = mutableMapOf<String, MutableMap<String, Value>>()
-            var instructions = mutableListOf<Instruction>()
-            var labels = mapOf<String, Instruction>()
             val heap = HeapValues()
+            val program = mutableListOf<Instruction>()
+            val variables = mutableMapOf<String, Value>()
+            val labels = mutableMapOf<String, Instruction>()
+
             while(lines.hasNext()) {
                 val (lineNr, line) = lines.next()
                 if(line.startsWith(';') || line.isEmpty())
@@ -31,16 +39,33 @@ class Program (val name: String,
                     loadMemory(lines, memory)
                 else if(line=="%heap")
                     loadHeap(lines, heap)
-                else if(line=="%variables")
-                    loadVars(lines, vars)
-                else if(line=="%instructions") {
-                    val (insResult, labelResult) = loadInstructions(lines, heap)
-                    instructions = insResult
-                    labels = labelResult
-                }
+                else if(line.startsWith("%block "))
+                    loadBlock(lines, heap, program, variables, labels)
                 else throw VmExecutionException("syntax error at line ${lineNr + 1}")
             }
-            return Program(filename, instructions, labels, vars, memory, heap)
+            return Program(filename, program, variables, labels, memory, heap)
+        }
+
+        private fun loadBlock(lines: Iterator<IndexedValue<String>>,
+                              heap: HeapValues,
+                              program: MutableList<Instruction>,
+                              variables: MutableMap<String, Value>,
+                              labels: MutableMap<String, Instruction>)
+        {
+            while(true) {
+                val (lineNr, line) = lines.next()
+                if(line.isEmpty())
+                    continue
+                else if(line=="%end_block")
+                    return
+                else if(line=="%variables")
+                    loadVars(lines, variables)
+                else if(line=="%instructions") {
+                    val (blockInstructions, blockLabels) = loadInstructions(lines, heap)
+                    program.addAll(blockInstructions)
+                    labels.putAll(blockLabels)
+                }
+            }
         }
 
         private fun loadHeap(lines: Iterator<IndexedValue<String>>, heap: HeapValues) {
@@ -156,7 +181,7 @@ class Program (val name: String,
         }
 
         private fun loadVars(lines: Iterator<IndexedValue<String>>,
-                             vars: MutableMap<String, MutableMap<String, Value>>): Map<String, Map<String, Value>> {
+                             vars: MutableMap<String, Value>): Map<String, Value> {
             val splitpattern = Pattern.compile("\\s+")
             while(true) {
                 val (lineNr, line) = lines.next()
@@ -197,10 +222,7 @@ class Program (val name: String,
                         }
                     }
                 }
-                val blockname = name.substringBefore('.')
-                val blockvars = vars[blockname] ?: mutableMapOf()
-                vars[blockname] = blockvars
-                blockvars[name] = value
+                vars[name] = value
             }
         }
 
@@ -229,15 +251,6 @@ class Program (val name: String,
         }
     }
 
-    val program: List<Instruction>
-
-    init {
-        prog.add(LabelInstr("____program_end"))
-        prog.add(Instruction(Opcode.TERMINATE))
-        prog.add(Instruction(Opcode.NOP))
-        program = prog
-        connect()
-    }
 
     private fun connect() {
         val it1 = program.iterator()
@@ -282,44 +295,5 @@ class Program (val name: String,
                 else -> instr.next = nextInstr
             }
         }
-    }
-
-    fun print(out: PrintStream, embeddedLabels: Boolean=true) {
-        out.println("; stackVM program code for '$name'")
-        out.println("%memory")
-        if(memory.isNotEmpty()) {
-            TODO("print out initial memory load")
-        }
-        out.println("%end_memory")
-        out.println("%heap")
-        heap.allStrings().forEach {
-            out.println("${it.index}  ${it.value.type.toString().toLowerCase()}  \"${it.value.str}\"")
-        }
-        heap.allArrays().forEach {
-            out.println("${it.index}  ${it.value.type.toString().toLowerCase()}  ${it.value.array!!.toList()}")
-        }
-        heap.allDoubleArrays().forEach {
-            out.println("${it.index}  ${it.value.type.toString().toLowerCase()}  ${it.value.doubleArray!!.toList()}")
-        }
-        out.println("%end_heap")
-        out.println("%variables")
-        // just flatten all block vars into one global list for now...
-        for(variable in variables.flatMap { e->e.value.entries}) {
-            val valuestr = variable.value.toString()
-            out.println("${variable.key}  ${variable.value.type.toString().toLowerCase()}  $valuestr")
-        }
-        out.println("%end_variables")
-        out.println("%instructions")
-        val labels = this.labels.entries.associateBy({it.value}) {it.key}
-        for(instr in this.program) {
-            if(!embeddedLabels) {
-                val label = labels[instr]
-                if (label != null)
-                    out.println("$label:")
-            } else {
-                out.println(instr)
-            }
-        }
-        out.println("%end_instructions")
     }
 }

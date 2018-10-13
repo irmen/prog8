@@ -31,3 +31,11 @@ sub start() {
 }
 
 }
+
+
+~ block2 $c000 {
+
+    str derp="hello"
+    byte v =44
+    return
+}

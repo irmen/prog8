@@ -99,7 +99,7 @@ fun main(args: Array<String>) {
 
         val stackVmFilename =  intermediate.name + "_stackvm.txt"
         val stackvmFile = PrintStream(File(stackVmFilename), "utf-8")
-        intermediate.writeAsText(stackvmFile)
+        intermediate.writeCode(stackvmFile)
         stackvmFile.close()
         println("StackVM program code written to '$stackVmFilename'")
 

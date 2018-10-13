@@ -50,18 +50,8 @@ class TestStackVmOpcodes {
                  vars: Map<String, Value>?=null,
                  labels: Map<String, Instruction>?=null,
                  mem: Map<Int, List<Value>>?=null) : Program {
-
-        val blockvars = mutableMapOf<String, MutableMap<String, Value>>()
-        if(vars!=null) {
-            for (blockvar in vars) {
-                val blockname = blockvar.key.substringBefore('.')
-                val variables = blockvars[blockname] ?: mutableMapOf()
-                blockvars[blockname] = variables
-                variables[blockvar.key] = blockvar.value
-            }
-        }
         val heap = HeapValues()
-        return Program("test", ins, labels ?: mapOf(), blockvars, mem ?: mapOf(), heap)
+        return Program("test", ins, vars ?: mapOf(), labels ?: mapOf(), mem ?: mapOf(), heap)
     }
 
     @Test
@@ -251,7 +241,6 @@ class TestStackVmOpcodes {
         assertEquals(-15670, vm.mem.getSWord(0x3002))
         assertEquals(42.25, vm.mem.getFloat(0x4000))
     }
-
 
     @Test
     fun testPopVar() {

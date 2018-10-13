@@ -384,9 +384,7 @@ class StackVm(private var traceOutputFile: String?) {
         this.heap = program.heap
         this.canvas = canvas
         canvas?.requestFocusInWindow()
-        variables.clear()
-        for(variable in program.variables.flatMap { e->e.value.entries })
-            variables[variable.key] = variable.value
+        variables = program.variables.toMutableMap()
 
         if("A" in variables || "X" in variables || "Y" in variables ||
                 "XY" in variables || "AX" in variables ||"AY" in variables)

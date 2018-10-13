@@ -25,15 +25,28 @@ class TestCompiler {
         assertEquals("10", 10.toHex())
         assertEquals("10", 10.99.toHex())
         assertEquals("15", 15.toHex())
-        assertEquals("$10", 16.toHex())
+        assertEquals("\$10", 16.toHex())
         assertEquals("\$ff", 255.toHex())
-        assertEquals("$0100", 256.toHex())
-        assertEquals("$4e5c", 20060.toHex())
+        assertEquals("\$0100", 256.toHex())
+        assertEquals("\$4e5c", 20060.toHex())
+        assertEquals("\$c382", 50050.toHex())
         assertEquals("\$ffff", 65535.toHex())
         assertEquals("\$ffff", 65535L.toHex())
+        assertEquals("0", 0.toHex())
+        assertEquals("-1", (-1).toHex())
+        assertEquals("-1", (-1.234).toHex())
+        assertEquals("-10", (-10).toHex())
+        assertEquals("-10", (-10.99).toHex())
+        assertEquals("-15", (-15).toHex())
+        assertEquals("-\$10", (-16).toHex())
+        assertEquals("-\$ff", (-255).toHex())
+        assertEquals("-\$0100", (-256).toHex())
+        assertEquals("-\$4e5c", (-20060).toHex())
+        assertEquals("-\$c382", (-50050).toHex())
+        assertEquals("-\$ffff", (-65535).toHex())
+        assertEquals("-\$ffff", (-65535L).toHex())
         assertFailsWith<CompilerException> { 65536.toHex()  }
-        assertFailsWith<CompilerException> { (-1).toHex()  }
-        assertFailsWith<CompilerException> { (-1.99).toHex()  }
+        assertFailsWith<CompilerException> { 65536L.toHex()  }
     }
 
 
