@@ -1,16 +1,16 @@
 package prog8.compiler.target.c64
 
 import prog8.compiler.*
-import prog8.stackvm.Program
+import java.awt.Color
+import java.awt.image.BufferedImage
+import javax.imageio.ImageIO
 import kotlin.math.absoluteValue
 import kotlin.math.pow
-import kotlin.system.exitProcess
 
 
 // 5-byte cbm MFLPT format limitations:
 const val FLOAT_MAX_POSITIVE = 1.7014118345e+38
 const val FLOAT_MAX_NEGATIVE = -1.7014118345e+38
-
 
 
 class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
@@ -113,60 +113,34 @@ data class Mflpt5(val b0: Short, val b1: Short, val b2: Short, val b3: Short, va
     }
 }
 
+object Charset {
+    private val normalImg = ImageIO.read(javaClass.getResource("/charset/c64/charset-normal.png"))
+    private val shiftedImg = ImageIO.read(javaClass.getResource("/charset/c64/charset-shifted.png"))
 
-fun compileToAssembly(program: Program): AssemblyResult {
-    println("\nGenerating assembly code from stackvmProg code... ")
-    // todo generate 6502 assembly
-    return AssemblyResult(program.name)
-}
+    private fun scanChars(img: BufferedImage): Array<BufferedImage> {
 
+        val transparent = BufferedImage(img.width, img.height, BufferedImage.TYPE_INT_ARGB)
+        transparent.createGraphics().drawImage(img, 0, 0, null)
 
-class AssemblyResult(val name: String) {
-    fun assemble(options: CompilationOptions, inputfilename: String, outputfilename: String) {
-        println("\nGenerating machine code program...")
-
-        val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "-Wall", "-Wno-strict-bool",
-                "--dump-labels", "--vice-labels", "-l", "$outputfilename.vice-mon-list",
-                "--no-monitor", "--output", outputfilename, inputfilename)
-
-        when(options.output) {
-            OutputType.PRG -> {
-                command.add("--cbm-prg")
-                println("\nCreating C-64 prg.")
-            }
-            OutputType.RAW -> {
-                command.add("--nostart")
-                println("\nCreating raw binary.")
+        val black = Color(0,0,0).rgb
+        val nopixel = Color(0,0,0,0).rgb
+        for(y in 0 until transparent.height) {
+            for(x in 0 until transparent.width) {
+                val col = transparent.getRGB(x, y)
+                if(col==black)
+                    transparent.setRGB(x, y, nopixel)
             }
         }
 
-        val proc = ProcessBuilder(command).inheritIO().start()
-        val result = proc.waitFor()
-        if(result!=0) {
-            System.err.println("assembler failed with returncode $result")
-            exitProcess(result)
+        val numColumns = transparent.width / 8
+        val charImages = (0..255).map {
+            val charX = it % numColumns
+            val charY = it/ numColumns
+            transparent.getSubimage(charX*8, charY*8, 8, 8)
         }
+        return charImages.toTypedArray()
     }
 
-    fun generateBreakpointList(): String {
-        // todo build breakpoint list
-/*
-    def generate_breakpoint_list(self, program_filename: str) -> str:
-        breakpoints = []
-        vice_mon_file = program_filename + ".vice-mon-list"
-        with open(vice_mon_file, "rU") as f:
-            for line in f:
-                match = re.fullmatch(r"al (?P<address>\w+) \S+_prog8_breakpoint_\d+.?", line, re.DOTALL)
-                if match:
-                    breakpoints.append("$" + match.group("address"))
-        with open(vice_mon_file, "at") as f:
-            print("; vice monitor breakpoint list now follows", file=f)
-            print("; {:d} breakpoints have been defined here".format(len(breakpoints)), file=f)
-            print("del", file=f)
-            for b in breakpoints:
-                print("break", b, file=f)
-        return vice_mon_file
- */
-        return "monitorfile.txt"
-    }
+    val normalChars = scanChars(normalImg)
+    val shiftedChars = scanChars(shiftedImg)
 }

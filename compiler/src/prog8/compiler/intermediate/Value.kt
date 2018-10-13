@@ -1,8 +1,9 @@
-package prog8.stackvm
+package prog8.compiler.intermediate
 
 import prog8.ast.DataType
 import prog8.ast.IterableDatatypes
 import prog8.ast.NumericDatatypes
+import prog8.stackvm.VmExecutionException
 import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.pow
@@ -123,9 +124,9 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
                     // storing a negative number in an unsigned one is done by storing the 2's complement instead
                     val number = abs(result.toDouble().toInt())
                     if(leftDt==DataType.UBYTE)
-                        Value(DataType.UBYTE, (number xor 255) +1)
+                        Value(DataType.UBYTE, (number xor 255) + 1)
                     else
-                        Value(DataType.UBYTE, (number xor 65535) +1)
+                        Value(DataType.UBYTE, (number xor 65535) + 1)
                 }
                 DataType.BYTE -> Value(DataType.BYTE, result.toInt())
                 DataType.WORD -> Value(DataType.WORD, result.toInt())

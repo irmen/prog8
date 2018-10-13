@@ -6,6 +6,9 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.ast.DataType
 import prog8.compiler.HeapValues
+import prog8.compiler.intermediate.Instruction
+import prog8.compiler.intermediate.Opcode
+import prog8.compiler.intermediate.Value
 import prog8.stackvm.*
 import kotlin.test.*
 
@@ -317,7 +320,7 @@ class TestStackVmOpcodes {
     @Test
     fun testSub() {
         testBinaryOperator(Value(DataType.UBYTE, 250), Opcode.SUB_UB, Value(DataType.UBYTE, 70), Value(DataType.UBYTE, 180))
-        testBinaryOperator(Value(DataType.UWORD, 4000), Opcode.SUB_UW, Value(DataType.UWORD, 123), Value(DataType.UWORD, 4000-123))
+        testBinaryOperator(Value(DataType.UWORD, 4000), Opcode.SUB_UW, Value(DataType.UWORD, 123), Value(DataType.UWORD, 4000 - 123))
         testBinaryOperator(Value(DataType.FLOAT, 123.44), Opcode.SUB_F, Value(DataType.FLOAT, 23.44), Value(DataType.FLOAT, 100.0))
         assertFailsWith<VmExecutionException> {
             testBinaryOperator(Value(DataType.UWORD, 4000 - 40), Opcode.SUB_UW, Value(DataType.FLOAT, 42.25), Value(DataType.FLOAT, 42.25 - (4000 - 40)))
@@ -327,7 +330,7 @@ class TestStackVmOpcodes {
     @Test
     fun testMul() {
         testBinaryOperator(Value(DataType.UBYTE, 41), Opcode.MUL_UB, Value(DataType.UBYTE, 4), Value(DataType.UBYTE, 164))
-        testBinaryOperator(Value(DataType.UWORD, 401), Opcode.MUL_UW, Value(DataType.UWORD, 4), Value(DataType.UWORD, 401*4))
+        testBinaryOperator(Value(DataType.UWORD, 401), Opcode.MUL_UW, Value(DataType.UWORD, 4), Value(DataType.UWORD, 401 * 4))
         testBinaryOperator(Value(DataType.FLOAT, 40.1), Opcode.MUL_F, Value(DataType.FLOAT, 2.4), Value(DataType.FLOAT, 96.24))
         assertFailsWith<VmExecutionException> {
             testBinaryOperator(Value(DataType.UWORD, 401 * 4), Opcode.MUL_UW, Value(DataType.FLOAT, 42.2533), Value(DataType.FLOAT, 42.2533 * (401 * 4)))
@@ -338,7 +341,7 @@ class TestStackVmOpcodes {
     fun testDiv() {
         testBinaryOperator(Value(DataType.UBYTE, 250), Opcode.DIV_UB, Value(DataType.UBYTE, 12), Value(DataType.UBYTE, 20))
         testBinaryOperator(Value(DataType.UWORD, 3999), Opcode.DIV_UW, Value(DataType.UWORD, 40), Value(DataType.UWORD, 99))
-        testBinaryOperator(Value(DataType.FLOAT, 42.25), Opcode.DIV_F, Value(DataType.FLOAT, 99.0), Value(DataType.FLOAT, 42.25/99.0))
+        testBinaryOperator(Value(DataType.FLOAT, 42.25), Opcode.DIV_F, Value(DataType.FLOAT, 99.0), Value(DataType.FLOAT, 42.25 / 99.0))
         assertFailsWith<VmExecutionException> {
             testBinaryOperator(Value(DataType.UWORD, 3333), Opcode.DIV_UW, Value(DataType.FLOAT, 2.22), Value(DataType.FLOAT, 3333 / 2.22))
         }
@@ -643,12 +646,12 @@ class TestStackVmOpcodes {
     @Test
     fun testIncVar() {
         val ins = mutableListOf(
-                Instruction(Opcode.INC_VAR_UW, callLabel ="var1"),
-                Instruction(Opcode.INC_VAR_UB, callLabel ="var2"),
-                Instruction(Opcode.INC_VAR_F, callLabel ="var3"),
-                Instruction(Opcode.INC_VAR_UW, callLabel ="var1"),
-                Instruction(Opcode.INC_VAR_UB, callLabel ="var2"),
-                Instruction(Opcode.INC_VAR_F, callLabel ="var3")
+                Instruction(Opcode.INC_VAR_UW, callLabel = "var1"),
+                Instruction(Opcode.INC_VAR_UB, callLabel = "var2"),
+                Instruction(Opcode.INC_VAR_F, callLabel = "var3"),
+                Instruction(Opcode.INC_VAR_UW, callLabel = "var1"),
+                Instruction(Opcode.INC_VAR_UB, callLabel = "var2"),
+                Instruction(Opcode.INC_VAR_F, callLabel = "var3")
                 )
         val vars = mapOf("var1" to Value(DataType.UWORD, 65534),
                 "var2" to Value(DataType.UBYTE, 254),
@@ -675,7 +678,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.DEC_VAR_UB, callLabel = "var2"),
                 Instruction(Opcode.DEC_VAR_F, callLabel = "var3")
         )
-        val vars = mapOf("var1" to Value(DataType.UWORD,1),
+        val vars = mapOf("var1" to Value(DataType.UWORD, 1),
                 "var2" to Value(DataType.UBYTE, 1),
                 "var3" to Value(DataType.FLOAT, 1.5)
                 )

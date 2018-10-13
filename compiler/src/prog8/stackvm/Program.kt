@@ -2,6 +2,7 @@ package prog8.stackvm
 
 import prog8.ast.DataType
 import prog8.compiler.HeapValues
+import prog8.compiler.intermediate.*
 import prog8.compiler.unescape
 import java.io.File
 import java.util.*

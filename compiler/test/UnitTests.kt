@@ -8,7 +8,7 @@ import org.junit.jupiter.api.TestInstance
 import prog8.ast.*
 import prog8.compiler.*
 import prog8.compiler.target.c64.*
-import prog8.stackvm.Value
+import prog8.compiler.intermediate.Value
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse

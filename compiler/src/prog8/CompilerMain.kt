@@ -2,6 +2,7 @@ package prog8
 
 import prog8.ast.*
 import prog8.compiler.*
+import prog8.compiler.target.c64.AsmGen
 import prog8.optimizing.constantFold
 import prog8.optimizing.optimizeStatements
 import prog8.optimizing.simplifyExpressions
@@ -103,15 +104,13 @@ fun main(args: Array<String>) {
         stackvmFile.close()
         println("StackVM program code written to '$stackVmFilename'")
 
-//        val assembly = stackvmProg.compileToAssembly()
-//
-//        assembly.assemble(compilerOptions, "input", "output")
-//        val monitorfile = assembly.generateBreakpointList()
+        val assembly = AsmGen(compilerOptions).compileToAssembly(intermediate)
+        assembly.assemble(compilerOptions)
 
         val endTime = System.currentTimeMillis()
-        println("\nTotal compilation time: ${(endTime-startTime)/1000.0} sec.")
+        println("\nTotal compilation+assemble time: ${(endTime-startTime)/1000.0} sec.")
 
-//        // start the vice emulator
+//        // todo start the vice emulator
 //        val program = "foo"
 //        val cmdline = listOf("x64", "-moncommands", monitorfile,
 //                "-autostartprgmode", "1", "-autostart-warp", "-autostart", program)

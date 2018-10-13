@@ -1,10 +1,11 @@
-package prog8.compiler
+package prog8.compiler.intermediate
 
 import prog8.ast.DataType
 import prog8.ast.LiteralValue
 import prog8.ast.Position
 import prog8.ast.VarDecl
-import prog8.stackvm.*
+import prog8.compiler.CompilerException
+import prog8.compiler.HeapValues
 import java.io.PrintStream
 
 

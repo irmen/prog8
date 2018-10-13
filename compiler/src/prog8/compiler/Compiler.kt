@@ -1,6 +1,9 @@
 package prog8.compiler
 
 import prog8.ast.*
+import prog8.compiler.intermediate.IntermediateProgram
+import prog8.compiler.intermediate.Opcode
+import prog8.compiler.intermediate.Value
 import prog8.stackvm.*
 import java.util.*
 import kotlin.math.abs
@@ -1394,7 +1397,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         continueStmtLabelStack.push(continueLabel)
         breakStmtLabelStack.push(breakLabel)
 
-        val zero = Value(if(numElements<=255) DataType.UBYTE else DataType.UWORD, 0)
+        val zero = Value(if (numElements <= 255) DataType.UBYTE else DataType.UWORD, 0)
         prog.instr(opcodePush(zero.type), zero)
         prog.instr(opcodePopvar(zero.type), callLabel = indexVar)
         prog.label(loopLabel)
@@ -1473,7 +1476,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         }
 
         // TODO: optimize edge cases if last value = 255 or 0 (for bytes) etc. to avoid  PUSH_BYTE / SUB opcodes and make use of the wrapping around of the value.
-        prog.instr(opcodePush(varDt), Value(varDt, range.last+range.step))
+        prog.instr(opcodePush(varDt), Value(varDt, range.last + range.step))
         prog.instr(opcodePushvar(varDt), callLabel = varname)
         prog.instr(opcodeSub(varDt))
         prog.instr(Opcode.BNZ, callLabel = loopLabel)
