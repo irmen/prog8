@@ -421,6 +421,8 @@ class Module(override val name: String,
         this.parent=parent
     }
 
+    var loadAddress: Int = 0        // can be set with the %address directive
+
     fun linkParents() {
         parent = ParentSentinel
         statements.forEach {it.linkParents(this)}

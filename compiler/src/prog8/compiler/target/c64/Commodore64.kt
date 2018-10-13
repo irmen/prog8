@@ -12,6 +12,9 @@ import kotlin.math.pow
 const val FLOAT_MAX_POSITIVE = 1.7014118345e+38
 const val FLOAT_MAX_NEGATIVE = -1.7014118345e+38
 
+const val BASIC_LOAD_ADDRESS = 0x0801
+const val RAW_LOAD_ADDRESS = 0xc000
+
 
 class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
 

@@ -16,6 +16,16 @@ sub start() {
     word wv2
     uword uwv2
 
+    X=X
+    X=X
+    Y=Y
+    X=A
+    A=Y
+    A=ubvar
+    AX=XY
+    XY=XY
+    AY=uwvar
+    XY=uwvar
 
     bv2 = ub2b(ubvar)
     ubv2 = b2ub(bvar)

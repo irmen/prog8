@@ -88,7 +88,7 @@ Directives
 	- default for ``raw`` output is ``$c000``
 	- default for ``prg`` output is ``$0801``
 	- cannot be changed if you select ``prg`` with a ``basic`` launcher;
-	  then it is always ``$081d`` (immediately after the BASIC program), and the BASIC program itself is always at ``$0801``.
+	  then it is always ``$081e`` (immediately after the BASIC program), and the BASIC program itself is always at ``$0801``.
 	  This is because the C64 expects BASIC programs to start at this address.
 
 

@@ -9,9 +9,9 @@ import prog8.compiler.HeapValues
 import java.io.PrintStream
 
 
-class IntermediateProgram(val name: String, val heap: HeapValues) {
+class IntermediateProgram(val name: String, var loadAddress: Int, val heap: HeapValues) {
 
-    private class ProgramBlock(val scopedname: String, val address: Int?) {
+    class ProgramBlock(val scopedname: String, val shortname: String, var address: Int?) {
         val instructions = mutableListOf<Instruction>()
         val variables = mutableMapOf<String, Value>()
         val labels = mutableMapOf<String, Instruction>()
@@ -20,10 +20,16 @@ class IntermediateProgram(val name: String, val heap: HeapValues) {
             get() { return variables.size }
         val numInstructions: Int
             get() { return instructions.filter { it.opcode!= Opcode.LINE }.size }
+
+        fun getIns(idx: Int): Instruction {
+            if(idx>=0 && idx <instructions.size)
+                return instructions[idx]
+            return Instruction(Opcode.NOP)
+        }
     }
 
-    private val blocks = mutableListOf<ProgramBlock>()
-    private val memory = mutableMapOf<Int, List<Value>>()
+    val blocks = mutableListOf<ProgramBlock>()
+    val memory = mutableMapOf<Int, List<Value>>()
     private lateinit var currentBlock: ProgramBlock
 
     val numVariables: Int
@@ -273,8 +279,8 @@ class IntermediateProgram(val name: String, val heap: HeapValues) {
         currentBlock.instructions.add(Instruction(Opcode.LINE, callLabel = "${position.line} ${position.file}"))
     }
 
-    fun newBlock(scopedname: String, address: Int?) {
-        currentBlock = ProgramBlock(scopedname, address)
+    fun newBlock(scopedname: String, shortname: String, address: Int?) {
+        currentBlock = ProgramBlock(scopedname, shortname, address)
         blocks.add(currentBlock)
     }
 

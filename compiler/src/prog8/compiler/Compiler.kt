@@ -159,7 +159,7 @@ class Compiler(private val options: CompilationOptions) {
         println("\nCreating stackVM code...")
 
         val namespace = module.definingScope()
-        val program = IntermediateProgram(module.name, heap)
+        val program = IntermediateProgram(module.name, module.loadAddress, heap)
 
         val translator = StatementTranslator(program, namespace, heap)
         translator.process(module)
@@ -178,7 +178,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
     val continueStmtLabelStack : Stack<String> = Stack()
 
     override fun process(block: Block): IStatement {
-        prog.newBlock(block.scopedname, block.address)
+        prog.newBlock(block.scopedname, block.name, block.address)
         processVariables(block)
         prog.label(block.scopedname)
         prog.line(block.position)

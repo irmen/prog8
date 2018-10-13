@@ -42,6 +42,8 @@ fun main(args: Array<String>) {
                 as? Directive)?.args?.single()?.name?.toUpperCase()
         val launcherType = (moduleAst.statements.singleOrNull { it is Directive && it.directive=="%launcher"}
                 as? Directive)?.args?.single()?.name?.toUpperCase()
+        moduleAst.loadAddress = (moduleAst.statements.singleOrNull { it is Directive && it.directive=="%address"}
+                as? Directive)?.args?.single()?.int ?: 0
         val zpoption: String? = (moduleAst.statements.singleOrNull { it is Directive && it.directive=="%zeropage"}
                 as? Directive)?.args?.single()?.name?.toUpperCase()
         val zpType: ZeropageType =
