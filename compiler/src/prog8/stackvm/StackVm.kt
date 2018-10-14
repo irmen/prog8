@@ -1349,6 +1349,20 @@ class StackVm(private var traceOutputFile: String?) {
                     array.doubleArray!![index] = value.numericValue().toDouble()
                 }
             }
+            Opcode.RSAVE -> {
+                evalstack.push(Value(DataType.UBYTE, if(P_irqd) 1 else 0))
+                evalstack.push(Value(DataType.UBYTE, if(P_carry) 1 else 0))
+                evalstack.push(variables["X"])
+                evalstack.push(variables["Y"])
+                evalstack.push(variables["A"])
+            }
+            Opcode.RRESTORE -> {
+                variables["A"] = evalstack.pop()
+                variables["X"] = evalstack.pop()
+                variables["Y"] = evalstack.pop()
+                P_carry = evalstack.pop().asBooleanValue
+                P_irqd = evalstack.pop().asBooleanValue
+            }
             //else -> throw VmExecutionException("unimplemented opcode: ${ins.opcode}")
         }
 

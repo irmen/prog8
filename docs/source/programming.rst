@@ -649,3 +649,11 @@ set_carry()  /  clear_carry()
 set_irqd()  / clear_irqd()
     Set (or clear) the CPU status register Interrupt Disable flag. No result value.
     (translated into ``SEI`` or ``CLI`` cpu instruction)
+
+rsave()
+    Saves the CPU registers and the status flags.
+    You can now more or less 'safely' use the registers directly, until you
+    restore them again so the generated code can carry on normally.
+
+rrestore()
+    Restores the CPU registers and the status flags from previously saved values.

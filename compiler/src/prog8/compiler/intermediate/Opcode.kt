@@ -221,6 +221,8 @@ enum class Opcode {
     CLC,        // clear carry status flag  NOTE: is mostly fake, carry flag is not affected by any numeric operations
     SEI,        // set irq-disable status flag
     CLI,        // clear irq-disable status flag
+    RSAVE,      // save all internal registers and status flags
+    RRESTORE,   // restore all internal registers and status flags
     NOP,        // do nothing
     BREAKPOINT, // breakpoint
     TERMINATE,  // end the program

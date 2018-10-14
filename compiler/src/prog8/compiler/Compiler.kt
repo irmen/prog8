@@ -769,6 +769,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             "clear_carry" -> prog.instr(Opcode.CLC)
             "set_irqd" -> prog.instr(Opcode.SEI)
             "clear_irqd" -> prog.instr(Opcode.CLI)
+            "rsave" -> prog.instr(Opcode.RSAVE)
+            "rrestore" -> prog.instr(Opcode.RRESTORE)
             else -> createSyscall(funcname)  // call builtin function
         }
     }

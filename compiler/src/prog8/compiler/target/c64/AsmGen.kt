@@ -108,13 +108,15 @@ class AsmGen(val options: CompilationOptions) {
         when(ins.opcode) {
             Opcode.LINE -> out("\t; src line: ${ins.callLabel}")
             Opcode.NOP -> out("\tnop")      // shouldn't be present anymore though
+            Opcode.TERMINATE -> out("\tbrk\t; terminate!")
             Opcode.SEC -> out("\tsec")
             Opcode.CLC -> out("\tclc")
             Opcode.SEI -> out("\tsei")
             Opcode.CLI -> out("\tcli")
-            Opcode.TERMINATE -> out("\tbrk\t; terminate!")
             Opcode.B2UB -> {}       // is a no-op, just carry on with the byte as-is
             Opcode.UB2B -> {}       // is a no-op, just carry on with the byte as-is
+            Opcode.RSAVE -> out("\tphp\n\tpha\n\ttxa\n\tpha\n\ttya\n\tpha")
+            Opcode.RRESTORE -> out("\tpla\n\ttay\n\tpla\n\ttax\n\tpla\n\tplp")
             Opcode.PUSH_BYTE -> {
                 // check if we load a register (X, Y) with constant value
                 val nextIns = block.getIns(insIdx+1)

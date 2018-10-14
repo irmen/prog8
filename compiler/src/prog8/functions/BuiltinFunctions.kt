@@ -54,6 +54,8 @@ val BuiltinFunctions = mapOf(
     "rnd"         to FunctionSignature(true, emptyList(), DataType.UBYTE),
     "rndw"        to FunctionSignature(true, emptyList(), DataType.UWORD),
     "rndf"        to FunctionSignature(true, emptyList(), DataType.FLOAT),
+    "rsave"       to FunctionSignature(false, emptyList(), null),
+    "rrestore"    to FunctionSignature(false, emptyList(), null),
     "set_carry"   to FunctionSignature(false, emptyList(), null),
     "clear_carry" to FunctionSignature(false, emptyList(), null),
     "set_irqd"    to FunctionSignature(false, emptyList(), null),
