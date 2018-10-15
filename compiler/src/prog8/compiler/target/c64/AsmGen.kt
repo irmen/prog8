@@ -1,13 +1,10 @@
 package prog8.compiler.target.c64
 
-import prog8.compiler.CompilationOptions
-import prog8.compiler.LauncherType
-import prog8.compiler.OutputType
+import prog8.compiler.*
 import prog8.compiler.intermediate.Instruction
 import prog8.compiler.intermediate.IntermediateProgram
 import prog8.compiler.intermediate.LabelInstr
 import prog8.compiler.intermediate.Opcode
-import prog8.compiler.toHex
 import java.io.File
 import java.util.*
 
@@ -67,6 +64,11 @@ class AsmGen(val options: CompilationOptions) {
         // todo zeropage if it's there
         for(block in program.blocks)
             out("\tjsr  ${block.scopedname}._prog8_init")
+        out("\tlda  #0")
+        out("\ttay")
+        out("\ttax")
+        out("\tdex\t; init estack pointer to \$ff")
+        out("\tclc")
         out("\tjmp  main.start\t; jump to program entrypoint")
     }
 
@@ -94,6 +96,63 @@ class AsmGen(val options: CompilationOptions) {
 
     private val registerStrings = setOf("A", "X", "Y", "AX", "AY", "XY")
 
+
+    // note: to put stuff on the stack, we use Absolute,X  addressing mode which is 3 bytes / 4 cycles
+    // possible space optimization is to use zeropage (indirect),Y  which is 2 bytes, but 5 cycles
+
+    private fun pushByte(byte: Int, out: (String) -> Unit) {
+        out("\tlda  #${byte.toHex()}")
+        out("\tsta  ${ESTACK_LO.toHex()},x")
+        out("\tdex")
+    }
+
+    private fun pushMemByte(address: Int, out: (String) -> Unit) {
+        out("\tlda  ${address.toHex()}")
+        out("\tsta  ${ESTACK_LO.toHex()},x")
+        out("\tdex")
+    }
+
+    private fun pushVarByte(name: String, out: (String) -> Unit) {
+        out("\tlda  $name")
+        out("\tsta  ${ESTACK_LO.toHex()},x")
+        out("\tdex")
+    }
+
+    private fun pushWord(word: Int, out: (String) -> Unit) {
+        out("\tlda  #<${word.toHex()}")
+        out("\tsta  ${ESTACK_LO.toHex()},x")
+        out("\tlda  #>${word.toHex()}")
+        out("\tsta  ${ESTACK_HI.toHex()},x")
+        out("\tdex")
+    }
+
+    private fun pushMemWord(address: Int, out: (String) -> Unit) {
+        out("\tlda  ${address.toHex()}")
+        out("\tsta  ${ESTACK_LO.toHex()},x")
+        out("\tlda  ${(address+1).toHex()}")
+        out("\tsta  ${ESTACK_HI.toHex()},x")
+        out("\tdex")
+    }
+
+    private fun pushVarWord(name: String, out: (String) -> Unit) {
+        out("\tlda  $name")
+        out("\tsta  ${ESTACK_LO.toHex()},x")
+        out("\tlda  $name+1")
+        out("\tsta  ${ESTACK_HI.toHex()},x")
+        out("\tdex")
+    }
+
+    private fun popByteA(out: (String) -> Unit) {
+        out("\tinx")
+        out("\tlda  ${ESTACK_LO.toHex()},x")
+    }
+
+    private fun popWordAY(out: (String) -> Unit) {
+        out("\tinx")
+        out("\tlda  ${ESTACK_LO.toHex()},x")
+        out("\tldy  ${ESTACK_HI.toHex()},x")
+    }
+
     private fun ins2asm(out: (String) -> Unit, insIdx: Int, ins: Instruction, block: IntermediateProgram.ProgramBlock): Int {
         if(ins is LabelInstr) {
             if(ins.name==block.shortname)
@@ -102,7 +161,6 @@ class AsmGen(val options: CompilationOptions) {
                 out(ins.name.substring(block.shortname.length+1))
             else
                 out(ins.name)
-            out("\trts")    // todo weg
             return 0
         }
         when(ins.opcode) {
@@ -113,87 +171,246 @@ class AsmGen(val options: CompilationOptions) {
             Opcode.CLC -> out("\tclc")
             Opcode.SEI -> out("\tsei")
             Opcode.CLI -> out("\tcli")
+            Opcode.RETURN -> out("\trts")       // todo is return really this simple?
             Opcode.B2UB -> {}       // is a no-op, just carry on with the byte as-is
             Opcode.UB2B -> {}       // is a no-op, just carry on with the byte as-is
             Opcode.RSAVE -> out("\tphp\n\tpha\n\ttxa\n\tpha\n\ttya\n\tpha")
             Opcode.RRESTORE -> out("\tpla\n\ttay\n\tpla\n\ttax\n\tpla\n\tplp")
-            Opcode.PUSH_BYTE -> {
-                // check if we load a register (X, Y) with constant value
-                val nextIns = block.getIns(insIdx+1)
-                if(nextIns.opcode==Opcode.POP_VAR_BYTE && nextIns.callLabel in registerStrings) {
-                    out("\tld${nextIns.callLabel!!.toLowerCase()}  #${ins.arg!!.integerValue().toHex()}")
-                    return 1    // skip 1
-                }
-                // todo push_byte
-            }
-            Opcode.PUSH_WORD -> {
-                // check if we load a register (AX, AY, XY) with constant value
-                val nextIns = block.getIns(insIdx+1)
-                if(nextIns.opcode==Opcode.POP_VAR_WORD && nextIns.callLabel in registerStrings) {
-                    val regs = nextIns.callLabel!!.toLowerCase()
-                    val value = ins.arg!!.integerValue().toHex()
-                    out("\tld${regs[0]}  #<$value")
-                    out("\tld${regs[1]}  #>$value")
-                    return 1    // skip 1
-                }
-                // todo push_word
-            }
+            Opcode.DISCARD_BYTE -> out("\tinx")                     // remove 1 (2) bytes from stack
+            Opcode.DISCARD_WORD -> out("\tinx")                     // remove 2 bytes from stack
+            Opcode.DISCARD_FLOAT -> out("\tinx\n\tinx\n\tinx")      // remove 5 (6) bytes from stack
             Opcode.COPY_VAR_BYTE -> {
-                if(ins.callLabel2 in registerStrings) {
-                    if(ins.callLabel in registerStrings) {
-                        // copying register -> register
-                        when {
-                            ins.callLabel == "A" -> out("\tta${ins.callLabel2!!.toLowerCase()}")
-                            ins.callLabel == "X" -> if (ins.callLabel2 == "Y") {
-                                // 6502 doesn't have txy
-                                out("\ttxa\n\ttay")
-                            } else out("\ttxa")
-                            ins.callLabel == "Y" -> if (ins.callLabel2 == "X") {
-                                // 6502 doesn't have tyx
-                                out("\ttya\n\ttax")
-                            } else out("\ttya")
+                when {
+                    ins.callLabel2 in registerStrings -> {
+                        if(ins.callLabel in registerStrings) {
+                            // copying register -> register
+                            when {
+                                ins.callLabel == "A" -> out("\tta${ins.callLabel2!!.toLowerCase()}")
+                                ins.callLabel == "X" ->
+                                    if (ins.callLabel2 == "Y")
+                                        out("\ttxa\n\ttay")    // 6502 doesn't have txy
+                                    else
+                                        out("\ttxa")
+                                ins.callLabel == "Y" ->
+                                    if (ins.callLabel2 == "X")
+                                        out("\ttya\n\ttax")   // 6502 doesn't have tyx
+                                    else
+                                        out("\ttya")
+                            }
+                            return 0
                         }
-                        return 0
+                        // var -> reg
+                        out("\tld${ins.callLabel2!!.toLowerCase()}  ${ins.callLabel}")
                     }
+                    ins.callLabel in registerStrings ->
+                        // reg -> var
+                        out("\tst${ins.callLabel!!.toLowerCase()}  ${ins.callLabel2}")
+                    else ->
+                        // var -> var
+                        out("\tlda  ${ins.callLabel}\n\tsta  ${ins.callLabel2}")
                 }
-                // todo copy_var_byte
             }
             Opcode.COPY_VAR_WORD -> {
-                if(ins.callLabel2 in registerStrings) {
-                    if(ins.callLabel in registerStrings) {
-                        // copying registerpair -> registerpair
-                        when {
-                            ins.callLabel == "AX" -> when (ins.callLabel2) {
-                                "AY" -> out("\ttxy")
-                                "XY" -> out("\tpha\n\ttxa\n\ttay\n\tpla\n\ttax")
+                when {
+                    ins.callLabel2 in registerStrings -> {
+                        if(ins.callLabel in registerStrings) {
+                            // copying registerpair -> registerpair
+                            when {
+                                ins.callLabel == "AX" -> when (ins.callLabel2) {
+                                    "AY" -> out("\ttxy")
+                                    "XY" -> out("\tpha\n\ttxa\n\ttay\n\tpla\n\ttax")
+                                }
+                                ins.callLabel == "AY" -> when (ins.callLabel2) {
+                                    "AX" -> out("\tpha\n\ttya\n\ttax\n\tpla")
+                                    "XY" -> out("\ttax")
+                                }
+                                ins.callLabel == "XY" -> when (ins.callLabel2) {
+                                    "AX" -> out("\ttxa\n\tpha\n\ttya\n\ttax\n\tpla")
+                                    "AY" -> out("\ttxa")
+                                }
                             }
-                            ins.callLabel == "AY" -> when (ins.callLabel2) {
-                                "AX" -> out("\tpha\n\ttya\n\ttax\n\tpla")
-                                "XY" -> out("\ttax")
-                            }
-                            ins.callLabel == "XY" -> when (ins.callLabel2) {
-                                "AX" -> out("\ttxa\n\tpha\n\ttya\n\ttax\n\tpla")
-                                "AY" -> out("\ttxa")
-                            }
+                            return 0
                         }
-                        return 0
+                        // wvar  -> regpair
+                        val regpair = ins.callLabel2!!.toLowerCase()
+                        out("\tld${regpair[0]}  ${ins.callLabel}")
+                        out("\tld${regpair[1]}  ${ins.callLabel}+1")
+                    }
+                    ins.callLabel in registerStrings -> {
+                        // regpair->wvar
+                        val regpair = ins.callLabel!!.toLowerCase()
+                        out("\tst${regpair[0]}  ${ins.callLabel2}")
+                        out("\tst${regpair[1]}  ${ins.callLabel2}+1")
+                    }
+                    else -> {
+                        // wvar->wvar
+                        out("\tlda  ${ins.callLabel}\n\tsta  ${ins.callLabel2}")
+                        out("\tlda  ${ins.callLabel}+1\n\tsta  ${ins.callLabel2}+1")
                     }
                 }
-                // todo copy_var_byte
             }
-            else-> {}
-//            Opcode.PUSH_FLOAT -> TODO()
-//            Opcode.PUSH_MEM_B -> TODO()
-//            Opcode.PUSH_MEM_UB -> TODO()
-//            Opcode.PUSH_MEM_W -> TODO()
-//            Opcode.PUSH_MEM_UW -> TODO()
-//            Opcode.PUSH_MEM_FLOAT -> TODO()
-//            Opcode.PUSH_VAR_BYTE -> TODO()
-//            Opcode.PUSH_VAR_WORD -> TODO()
-//            Opcode.PUSH_VAR_FLOAT -> TODO()
-//            Opcode.DISCARD_BYTE -> TODO()
-//            Opcode.DISCARD_WORD -> TODO()
-//            Opcode.DISCARD_FLOAT -> TODO()
+            Opcode.PUSH_BYTE -> {
+                val nextIns = block.getIns(insIdx+1)
+                if(nextIns==Opcode.DISCARD_BYTE)
+                    throw CompilerException("discard after push should have been removed")
+                if(nextIns.opcode==Opcode.POP_VAR_BYTE) {
+                    if(nextIns.callLabel in registerStrings) {
+                        // load a register with constant value
+                        out("\tld${nextIns.callLabel!!.toLowerCase()}  #${ins.arg!!.integerValue().toHex()}")
+                        return 1    // skip 1
+                    }
+                    // load a variable with a constant value
+                    out("\tlda  #${ins.arg!!.integerValue().toHex()}")
+                    out("\tsta  ${nextIns.callLabel}")
+                    return 1    // skip 1
+                }
+                if(nextIns.opcode==Opcode.POP_MEM_B || nextIns.opcode==Opcode.POP_MEM_UB) {
+                    // memory location = constant value
+                    out("\tlda  #${ins.arg!!.integerValue().toHex()}")
+                    out("\tsta  ${nextIns.arg!!.integerValue().toHex()}")
+                    return 1    // skip 1
+                }
+                // byte onto stack
+                pushByte(ins.arg!!.integerValue(), out)
+            }
+            Opcode.PUSH_MEM_UB, Opcode.PUSH_MEM_B -> {
+                val nextIns = block.getIns(insIdx+1)
+                if(nextIns==Opcode.DISCARD_BYTE)
+                    throw CompilerException("discard after push should have been removed")
+                if(nextIns.opcode==Opcode.POP_VAR_BYTE) {
+                    if(nextIns.callLabel in registerStrings) {
+                        // load a register with memory location
+                        out("\tld${nextIns.callLabel!!.toLowerCase()}  ${ins.arg!!.integerValue().toHex()}")
+                        return 1    // skip 1
+                    }
+                    // load var with mem b
+                    out("\tlda  ${ins.arg!!.integerValue().toHex()}\n\tsta  ${nextIns.callLabel}")
+                    return 1    // skip 1
+                }
+                if(nextIns.opcode==Opcode.POP_MEM_B || nextIns.opcode==Opcode.POP_MEM_UB) {
+                    // copy byte from mem -> mem
+                    out("\tlda  ${ins.arg!!.integerValue().toHex()}\n\tsta  ${nextIns.arg!!.integerValue().toHex()}")
+                    return 1    // skip 1
+                }
+                // byte from memory onto stack
+                pushMemByte(ins.arg!!.integerValue(), out)
+            }
+            Opcode.PUSH_VAR_BYTE -> {
+                val nextIns = block.getIns(insIdx+1)
+                if(nextIns==Opcode.DISCARD_BYTE)
+                    throw CompilerException("discard after push should have been removed")
+                if(nextIns.opcode==Opcode.POP_VAR_BYTE)
+                    throw CompilerException("push var+pop var should have been replaced by copy var")
+                if(nextIns.opcode==Opcode.POP_MEM_B || nextIns.opcode==Opcode.POP_MEM_UB) {
+                    // copy byte from var -> mem
+                    out("\tlda  ${ins.callLabel}\n\tsta  ${nextIns.arg!!.integerValue().toHex()}")
+                    return 1    // skip 1
+                }
+                // byte from variable onto stack
+                pushVarByte(ins.callLabel!!, out)
+            }
+            Opcode.PUSH_WORD -> {
+                val nextIns = block.getIns(insIdx+1)
+                if(nextIns==Opcode.DISCARD_WORD)
+                    throw CompilerException("discard after push should have been removed")
+                if(nextIns.opcode==Opcode.POP_VAR_WORD) {
+                    val value = ins.arg!!.integerValue()
+                    if(nextIns.callLabel in registerStrings) {
+                        // we load a register (AX, AY, XY) with constant value
+                        val regs = nextIns.callLabel!!.toLowerCase()
+                        out("\tld${regs[0]}  #<${value.toHex()}")
+                        out("\tld${regs[1]}  #>${value.toHex()}")
+                        return 1    // skip 1
+                    }
+                    // load a word variable with a constant value
+                    out("\tlda  #<${value.toHex()}")
+                    out("\tsta  ${nextIns.callLabel}")
+                    out("\tlda  #>${value.toHex()}")
+                    out("\tsta  ${nextIns.callLabel}+1")
+                    return 1    // skip 1
+                }
+                if(nextIns.opcode==Opcode.POP_MEM_W || nextIns.opcode==Opcode.POP_MEM_UW) {
+                    // we're loading a word into memory
+                    out("\tlda  #<${ins.arg!!.integerValue().toHex()}")
+                    out("\tsta  ${nextIns.arg!!.integerValue().toHex()}")
+                    out("\tlda  #>${ins.arg.integerValue().toHex()}")
+                    out("\tsta  ${(nextIns.arg.integerValue()+1).toHex()}")
+                    return 1    // skip 1
+                }
+                pushWord(ins.arg!!.integerValue(), out)
+            }
+            Opcode.PUSH_MEM_UW, Opcode.PUSH_MEM_W -> {
+                val nextIns = block.getIns(insIdx+1)
+                if(nextIns==Opcode.DISCARD_WORD)
+                    throw CompilerException("discard after push should have been removed")
+                if(nextIns.opcode==Opcode.POP_VAR_WORD) {
+                    if(nextIns.callLabel in registerStrings) {
+                        // load a register (AX, AY, XY) with word from memory
+                        val regs = nextIns.callLabel!!.toLowerCase()
+                        val value = ins.arg!!.integerValue()
+                        out("\tld${regs[0]}  ${value.toHex()}")
+                        out("\tld${regs[1]}  ${(value + 1).toHex()}")
+                        return 1    // skip 1
+                    }
+                    // load var with mem word
+                    out("\tlda  ${ins.arg!!.integerValue().toHex()}")
+                    out("\tsta  ${nextIns.callLabel}")
+                    out("\tlda  ${(ins.arg.integerValue()+1).toHex()}")
+                    out("\tsta  ${nextIns.callLabel}+1")
+                    return 1    // skip 1
+                }
+                if(nextIns.opcode==Opcode.POP_MEM_W || nextIns.opcode==Opcode.POP_MEM_UW) {
+                    // copy word mem->mem
+                    out("\tlda  ${ins.arg!!.integerValue().toHex()}")
+                    out("\tsta  ${nextIns.arg!!.integerValue().toHex()}")
+                    out("\tlda  ${(ins.arg.integerValue()+1).toHex()}")
+                    out("\tsta  ${(nextIns.arg.integerValue()+1).toHex()}")
+                    return 1    // skip 1
+                }
+                // word from memory onto stack
+                pushMemWord(ins.arg!!.integerValue(), out)
+            }
+            Opcode.PUSH_VAR_WORD -> {
+                val nextIns = block.getIns(insIdx+1)
+                if(nextIns==Opcode.DISCARD_FLOAT)
+                    throw CompilerException("discard after push should have been removed")
+                if(nextIns.opcode==Opcode.POP_VAR_WORD)
+                    throw CompilerException("push var+pop var should have been replaced by copy var")
+                if(nextIns.opcode==Opcode.POP_MEM_W || nextIns.opcode==Opcode.POP_MEM_UW) {
+                    // copy word from var -> mem
+                    out("\tlda  ${ins.callLabel}\n\tsta  ${nextIns.arg!!.integerValue().toHex()}")
+                    return 1    // skip 1
+                }
+                // word from memory onto stack
+                pushVarWord(ins.callLabel!!, out)
+            }
+            Opcode.PUSH_FLOAT -> {
+                val nextIns = block.getIns(insIdx+1)
+                if(nextIns==Opcode.DISCARD_FLOAT)
+                    throw CompilerException("discard after push should have been removed")
+                if(!options.floats)
+                    throw CompilerException("floats not enabled")
+                TODO("push float")
+            }
+            Opcode.PUSH_VAR_FLOAT -> {
+                val nextIns = block.getIns(insIdx+1)
+                if(nextIns==Opcode.DISCARD_FLOAT)
+                    throw CompilerException("discard after push should have been removed")
+                if(nextIns.opcode==Opcode.POP_VAR_FLOAT)
+                    throw CompilerException("push var+pop var should have been replaced by copy var")
+                if(!options.floats)
+                    throw CompilerException("floats not enabled")
+                TODO("push var float")
+            }
+            Opcode.PUSH_MEM_FLOAT -> {
+                val nextIns = block.getIns(insIdx+1)
+                if(nextIns==Opcode.DISCARD_FLOAT)
+                    throw CompilerException("discard after push should have been removed")
+                if(!options.floats)
+                    throw CompilerException("floats not enabled")
+                TODO("push mem float")
+            }
+            else-> TODO("asm for $ins")
 //            Opcode.POP_MEM_B -> TODO()
 //            Opcode.POP_MEM_UB -> TODO()
 //            Opcode.POP_MEM_W -> TODO()
@@ -202,9 +419,27 @@ class AsmGen(val options: CompilationOptions) {
 //            Opcode.POP_VAR_BYTE -> TODO()
 //            Opcode.POP_VAR_WORD -> TODO()
 //            Opcode.POP_VAR_FLOAT -> TODO()
-//            Opcode.COPY_VAR_BYTE -> TODO()
-//            Opcode.COPY_VAR_WORD -> TODO()
 //            Opcode.COPY_VAR_FLOAT -> TODO()
+//            Opcode.INC_B -> TODO()
+//            Opcode.INC_UB -> TODO()
+//            Opcode.INC_W -> TODO()
+//            Opcode.INC_UW -> TODO()
+//            Opcode.INC_F -> TODO()
+//            Opcode.INC_VAR_B -> TODO()
+//            Opcode.INC_VAR_UB -> TODO()
+//            Opcode.INC_VAR_W -> TODO()
+//            Opcode.INC_VAR_UW -> TODO()
+//            Opcode.INC_VAR_F -> TODO()
+//            Opcode.DEC_B -> TODO()
+//            Opcode.DEC_UB -> TODO()
+//            Opcode.DEC_W -> TODO()
+//            Opcode.DEC_UW -> TODO()
+//            Opcode.DEC_F -> TODO()
+//            Opcode.DEC_VAR_B -> TODO()
+//            Opcode.DEC_VAR_UB -> TODO()
+//            Opcode.DEC_VAR_W -> TODO()
+//            Opcode.DEC_VAR_UW -> TODO()
+//            Opcode.DEC_VAR_F -> TODO()
 //            Opcode.ADD_UB -> TODO()
 //            Opcode.ADD_B -> TODO()
 //            Opcode.ADD_UW -> TODO()
@@ -304,26 +539,6 @@ class AsmGen(val options: CompilationOptions) {
 //            Opcode.XOR_WORD -> TODO()
 //            Opcode.NOT_BYTE -> TODO()
 //            Opcode.NOT_WORD -> TODO()
-//            Opcode.INC_B -> TODO()
-//            Opcode.INC_UB -> TODO()
-//            Opcode.INC_W -> TODO()
-//            Opcode.INC_UW -> TODO()
-//            Opcode.INC_F -> TODO()
-//            Opcode.INC_VAR_B -> TODO()
-//            Opcode.INC_VAR_UB -> TODO()
-//            Opcode.INC_VAR_W -> TODO()
-//            Opcode.INC_VAR_UW -> TODO()
-//            Opcode.INC_VAR_F -> TODO()
-//            Opcode.DEC_B -> TODO()
-//            Opcode.DEC_UB -> TODO()
-//            Opcode.DEC_W -> TODO()
-//            Opcode.DEC_UW -> TODO()
-//            Opcode.DEC_F -> TODO()
-//            Opcode.DEC_VAR_B -> TODO()
-//            Opcode.DEC_VAR_UB -> TODO()
-//            Opcode.DEC_VAR_W -> TODO()
-//            Opcode.DEC_VAR_UW -> TODO()
-//            Opcode.DEC_VAR_F -> TODO()
 //            Opcode.LESS_B -> TODO()
 //            Opcode.LESS_UB -> TODO()
 //            Opcode.LESS_W -> TODO()
@@ -364,7 +579,6 @@ class AsmGen(val options: CompilationOptions) {
 //            Opcode.BNEG -> TODO()
 //            Opcode.BPOS -> TODO()
 //            Opcode.CALL -> TODO()
-//            Opcode.RETURN -> TODO()
 //            Opcode.SYSCALL -> TODO()
 //            Opcode.BREAKPOINT -> TODO()
         }

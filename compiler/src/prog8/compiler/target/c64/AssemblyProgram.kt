@@ -52,6 +52,6 @@ class AssemblyProgram(val name: String) {
         breakpoints.add(0, "; vice monitor breakpoint list now follows")
         breakpoints.add(1, "; $num breakpoints have been defined")
         breakpoints.add(2, "del")
-        File(viceMonListFile).appendText(breakpoints.joinToString("\n"))
+        File(viceMonListFile).appendText(breakpoints.joinToString("\n")+"\n")
     }
 }

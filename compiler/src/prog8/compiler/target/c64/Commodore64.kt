@@ -15,6 +15,10 @@ const val FLOAT_MAX_NEGATIVE = -1.7014118345e+38
 const val BASIC_LOAD_ADDRESS = 0x0801
 const val RAW_LOAD_ADDRESS = 0xc000
 
+// the 2*256 byte evaluation stack (on which bytes, words, and even floats are stored during calculations)
+const val ESTACK_LO = 0xce00        //  $ce00-$ceff inclusive
+const val ESTACK_HI = 0xcf00        //  $cf00-$cfff inclusive
+
 
 class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
 

@@ -1,9 +1,6 @@
 package prog8.compiler.intermediate
 
-import prog8.ast.DataType
-import prog8.ast.LiteralValue
-import prog8.ast.Position
-import prog8.ast.VarDecl
+import prog8.ast.*
 import prog8.compiler.CompilerException
 import prog8.compiler.HeapValues
 import java.io.PrintStream
@@ -246,6 +243,8 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
     }
 
     fun variable(scopedname: String, decl: VarDecl) {
+        if(decl.type!=VarDeclType.VAR)
+            return      // const and memory variables don't require storage
         val value = when(decl.datatype) {
             DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT -> Value(decl.datatype, (decl.value as LiteralValue).asNumericValue!!)
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {

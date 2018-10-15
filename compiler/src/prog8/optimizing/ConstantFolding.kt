@@ -553,28 +553,58 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
             // see if we can promote/convert a literal value to the required datatype
             when(targetDt) {
                 DataType.UWORD -> {
+                    // we can convert to UWORD: any UBYTE, BYTE/WORD that are >=0, FLOAT that's an integer 0..65535
                     if(lv.type==DataType.UBYTE)
+                        assignment.value = LiteralValue(DataType.UWORD, wordvalue = lv.asIntegerValue, position=lv.position)
+                    else if(lv.type==DataType.BYTE && lv.bytevalue!!>=0)
+                        assignment.value = LiteralValue(DataType.UWORD, wordvalue = lv.asIntegerValue, position=lv.position)
+                    else if(lv.type==DataType.WORD && lv.bytevalue!!>=0)
                         assignment.value = LiteralValue(DataType.UWORD, wordvalue = lv.asIntegerValue, position=lv.position)
                     else if(lv.type==DataType.FLOAT) {
                         val d = lv.floatvalue!!
-                        if(floor(d)==d && d in 0..65535) {
+                        if(floor(d)==d && d in 0..65535)
                             assignment.value = LiteralValue(DataType.UWORD, wordvalue=floor(d).toInt(), position=lv.position)
-                        }
+                    }
+                }
+                DataType.UBYTE -> {
+                    // we can convert to UBYTE: UWORD <=255, BYTE >=0, FLOAT that's an integer 0..255
+                    if(lv.type==DataType.UWORD && lv.wordvalue!! <= 255)
+                        assignment.value = LiteralValue(DataType.UBYTE, lv.wordvalue.toShort(), position=lv.position)
+                    else if(lv.type==DataType.BYTE && lv.bytevalue!! >=0)
+                        assignment.value = LiteralValue(DataType.UBYTE, lv.bytevalue.toShort(), position=lv.position)
+                    else if(lv.type==DataType.FLOAT) {
+                        val d = lv.floatvalue!!
+                        if(floor(d)==d && d in 0..255)
+                            assignment.value = LiteralValue(DataType.UBYTE, floor(d).toShort(), position=lv.position)
+                    }
+                }
+                DataType.BYTE -> {
+                    // we can convert to BYTE: UWORD/UBYTE <= 127, FLOAT that's an integer 0..127
+                    if(lv.type==DataType.UWORD && lv.wordvalue!! <= 127)
+                        assignment.value = LiteralValue(DataType.BYTE, lv.wordvalue.toShort(), position=lv.position)
+                    else if(lv.type==DataType.UBYTE && lv.bytevalue!! <= 127)
+                        assignment.value = LiteralValue(DataType.BYTE, lv.bytevalue, position=lv.position)
+                    else if(lv.type==DataType.FLOAT) {
+                        val d = lv.floatvalue!!
+                        if(floor(d)==d && d in 0..127)
+                            assignment.value = LiteralValue(DataType.BYTE, floor(d).toShort(), position=lv.position)
+                    }
+                }
+                DataType.WORD -> {
+                    // we can convert to WORD: any UBYTE/BYTE, UWORD <= 32767, FLOAT that's an integer -32768..32767
+                    if(lv.type==DataType.UBYTE || lv.type==DataType.BYTE)
+                        assignment.value = LiteralValue(DataType.WORD, lv.bytevalue!!, position=lv.position)
+                    else if(lv.type==DataType.UWORD && lv.wordvalue!! <= 32767)
+                        assignment.value = LiteralValue(DataType.WORD, wordvalue=lv.wordvalue, position=lv.position)
+                    else if(lv.type==DataType.FLOAT) {
+                        val d = lv.floatvalue!!
+                        if(floor(d)==d && d in -32768..32767)
+                            assignment.value = LiteralValue(DataType.BYTE, floor(d).toShort(), position=lv.position)
                     }
                 }
                 DataType.FLOAT -> {
                     if(lv.isNumeric)
                         assignment.value = LiteralValue(DataType.FLOAT, floatvalue= lv.asNumericValue?.toDouble(), position=lv.position)
-                }
-                DataType.UBYTE -> {
-                    if(lv.type==DataType.UWORD && lv.asIntegerValue in 0..255) {
-                        assignment.value = LiteralValue(DataType.UBYTE, lv.asIntegerValue?.toShort(), position=lv.position)
-                    } else if(lv.type==DataType.FLOAT) {
-                        val d = lv.floatvalue!!
-                        if(floor(d)==d && d in 0..255) {
-                            assignment.value = LiteralValue(DataType.UBYTE, floor(d).toShort(), position=lv.position)
-                        }
-                    }
                 }
                 else -> {}
             }

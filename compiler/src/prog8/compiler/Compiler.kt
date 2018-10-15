@@ -187,7 +187,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
     }
 
     private fun processVariables(scope: INameScope) {
-        for(variable in scope.statements.asSequence().filter {it is VarDecl}.map { it as VarDecl })
+        for(variable in scope.statements.asSequence().filter {it is VarDecl && it.type==VarDeclType.VAR}.map { it as VarDecl })
             prog.variable(variable.scopedname, variable)
         for(subscope in scope.subScopes())
             processVariables(subscope.value)
@@ -340,6 +340,19 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
             DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F, DataType.MATRIX_UB,
             DataType.ARRAY_B, DataType.ARRAY_W, DataType.MATRIX_B -> Opcode.POP_VAR_WORD
+        }
+    }
+
+    private fun opcodePopmem(dt: DataType): Opcode {
+        return when (dt) {
+            DataType.UBYTE -> Opcode.POP_MEM_UB
+            DataType.BYTE -> Opcode.POP_MEM_B
+            DataType.UWORD -> Opcode.POP_MEM_UW
+            DataType.WORD -> Opcode.POP_MEM_W
+            DataType.FLOAT -> Opcode.POP_MEM_FLOAT
+            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
+            DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F, DataType.MATRIX_UB,
+            DataType.ARRAY_B, DataType.ARRAY_W, DataType.MATRIX_B -> Opcode.POP_MEM_UW
         }
     }
 
@@ -1109,7 +1122,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         if(valueDt!=targetDt) {
             // convert value to target datatype if possible
             when(targetDt) {
-                DataType.UBYTE, DataType.BYTE -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
+                DataType.UBYTE, DataType.BYTE ->
+                    throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                 DataType.UWORD, DataType.WORD -> {
                     when (valueDt) {
                         DataType.UBYTE -> prog.instr(Opcode.UB2UWORD)
@@ -1161,13 +1175,21 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         when {
             stmt.target.identifier!=null -> {
                 val target = stmt.target.identifier!!.targetStatement(namespace)!!
-                when(target) {
-                    is VarDecl -> {
-                        val opcode = opcodePopvar(stmt.target.determineDatatype(namespace, heap, stmt)!!)
-                        prog.instr(opcode, callLabel =  target.scopedname)
+                if (target is VarDecl) {
+                    when(target.type) {
+                        VarDeclType.VAR -> {
+                            val opcode = opcodePopvar(stmt.target.determineDatatype(namespace, heap, stmt)!!)
+                            prog.instr(opcode, callLabel = target.scopedname)
+                        }
+                        VarDeclType.MEMORY -> {
+                            val opcode = opcodePopmem(stmt.target.determineDatatype(namespace, heap, stmt)!!)
+                            val address = target.value?.constValue(namespace, heap)!!.asIntegerValue!!
+                            prog.instr(opcode, Value(DataType.UWORD, address))
+                        }
+                        VarDeclType.CONST -> throw CompilerException("cannot assign to const")
                     }
-                    else -> throw CompilerException("invalid assignment target type ${target::class}")
                 }
+                else throw CompilerException("invalid assignment target type ${target::class}")
             }
             stmt.target.register!=null -> {
                 val opcode=opcodePopvar(stmt.target.register!!)

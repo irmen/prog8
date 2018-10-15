@@ -107,8 +107,10 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
             vardeclsToAdd[scope]!!.add(decl.asDefaultValueDecl())
             val declvalue = decl.value!!
             val value =
-                    if(declvalue is LiteralValue)
-                        declvalue.intoDatatype(decl.datatype)
+                    if(declvalue is LiteralValue) {
+                        val converted = declvalue.intoDatatype(decl.datatype)
+                        converted ?: declvalue
+                    }
                     else
                         declvalue
             return VariableInitializationAssignment(

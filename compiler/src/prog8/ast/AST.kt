@@ -1078,7 +1078,7 @@ class LiteralValue(val type: DataType,
         throw ExpressionError("cannot compare type $type with ${other.type}", other.position)
     }
 
-    fun intoDatatype(targettype: DataType): LiteralValue {
+    fun intoDatatype(targettype: DataType): LiteralValue? {
         if(type==targettype)
             return this
         when(type) {
@@ -1139,7 +1139,7 @@ class LiteralValue(val type: DataType,
             }
             else -> {}
         }
-        throw FatalAstException("invalid type conversion from $this to $targettype")
+        return null    // invalid type conversion from $this to $targettype
     }
 }
 

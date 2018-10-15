@@ -1,51 +1,53 @@
 %option enable_floats
 
-
 ~ main {
 
 sub start() {
 
-    byte  bvar = -88
-    ubyte ubvar = 222
-    word wvar = -12345
-    uword uwvar = 55555
+    memory ubyte mub = $c400
+    memory ubyte mub2 = $c401
+    memory uword muw = $c500
+    memory uword muw2 = $c502
+    memory byte mb = $c000
+    memory word mw = $c002
+
+    byte b
+    ubyte ub = $c4
+    ubyte ub2 = $c4
+    uword uw = $c500
+    uword uw2 = $c502
+    word ww
 
 
-    byte bv2
-    ubyte ubv2
-    word wv2
-    uword uwv2
+    mub=5
+    muw=4444
+    mb=-100
+    mw=-23333
 
-    X=X
-    X=X
-    Y=Y
-    X=A
-    A=Y
-    A=ubvar
-    AX=XY
-    XY=XY
-    AY=uwvar
-    XY=uwvar
 
-    bv2 = ub2b(ubvar)
-    ubv2 = b2ub(bvar)
-    wv2 = wrd(uwvar)
-    uwv2 = uwrd(wvar)
-    wv2 = wrd(ubvar)
-    wv2 = wrd(bvar)
-    uwv2 = uwrd(ubvar)
-    uwv2 = uwrd(bvar)
+;    b++
+;    A++
+;    XY++
+;    mub++
+;    ub++
+;    uw++
+;    ww++
+;    mb++
+;    mw++
+;
+;    b--
+;    A--
+;    XY--
+;    mub--
+;    ub--
+;    uw--
+;    ww--
+;    mb--
+;    mw--
+
 
     return
 
 }
 
-}
-
-
-~ block2 $c000 {
-
-    str derp="hello"
-    byte v =44
-    return
 }
