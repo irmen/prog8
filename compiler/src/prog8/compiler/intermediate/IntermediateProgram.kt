@@ -8,11 +8,13 @@ import java.io.PrintStream
 
 class IntermediateProgram(val name: String, var loadAddress: Int, val heap: HeapValues) {
 
-    class ProgramBlock(val scopedname: String, val shortname: String, var address: Int?) {
-        val instructions = mutableListOf<Instruction>()
-        val variables = mutableMapOf<String, Value>()
-        val labels = mutableMapOf<String, Instruction>()
-
+    class ProgramBlock(val scopedname: String,
+                       val shortname: String,
+                       var address: Int?,
+                       val instructions: MutableList<Instruction> = mutableListOf(),
+                       val variables: MutableMap<String, Value> = mutableMapOf(),
+                       val labels: MutableMap<String, Instruction> = mutableMapOf())
+    {
         val numVariables: Int
             get() { return variables.size }
         val numInstructions: Int

@@ -866,20 +866,24 @@ class AstChecker(private val namespace: INameScope,
             }
             DataType.MATRIX_UB, DataType.MATRIX_B -> {
                 // value can only be a single byte, or a byte array (which represents the matrix)
-                if(value.type==targetDt) {
+                if(value.type==targetDt ||
+                        (targetDt==DataType.MATRIX_UB && value.type==DataType.ARRAY_UB) ||
+                        (targetDt==DataType.MATRIX_B && value.type==DataType.ARRAY_B)) {
                     val arraySpecSize = arrayspec.size()
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         val constX = arrayspec.x.constValue(namespace, heap)
-                        val constY = arrayspec.y!!.constValue(namespace, heap)
-                        if (constX?.asIntegerValue == null || constY?.asIntegerValue == null)
+                        val constY = arrayspec.y?.constValue(namespace, heap)
+                        if (constX?.asIntegerValue == null || (constY!=null && constY?.asIntegerValue == null))
                             return err("matrix size specifiers must be constant integer values")
                         val matrix = heap.get(value.heapId!!).array!!
-                        val expectedSize = constX.asIntegerValue * constY.asIntegerValue
+                        val expectedSize =
+                                if(constY==null) constX.asIntegerValue  else constX.asIntegerValue * constY.asIntegerValue!!
                         if (matrix.size != expectedSize)
                             return err("initializer matrix size mismatch (expecting $expectedSize, got ${matrix.size} elements)")
+                        return true
                     }
                 }
-                return err("invalid matrix initialization value $value")
+                return err("invalid matrix initialization value of type ${value.type} - expecting byte array")
             }
         }
         return true

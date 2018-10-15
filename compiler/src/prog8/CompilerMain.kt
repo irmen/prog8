@@ -106,7 +106,7 @@ fun main(args: Array<String>) {
         stackvmFile.close()
         println("StackVM program code written to '$stackVmFilename'")
 
-        val assembly = AsmGen(compilerOptions).compileToAssembly(intermediate)
+        val assembly = AsmGen(compilerOptions, intermediate, heap).compileToAssembly()
         assembly.assemble(compilerOptions)
 
         val endTime = System.currentTimeMillis()

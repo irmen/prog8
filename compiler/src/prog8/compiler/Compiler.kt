@@ -1111,6 +1111,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
     private fun translate(stmt: VariableInitializationAssignment) {
         // this is an assignment to initialize a variable's value in the scope.
         // the compiler can perhaps optimize this phase.
+        // todo: optimize variable init by keeping track of the block of init values so it can be copied as a whole
         translate(stmt as Assignment)
     }
 
