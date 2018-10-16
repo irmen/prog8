@@ -4,7 +4,8 @@ import prog8.compiler.HeapValues
 
 class StatementReorderer(private val namespace: INameScope, private val heap: HeapValues): IAstProcessor {
     // Reorders the statements in a way the compiler needs.
-    // - 'main' block must be the very first statement.
+    // - 'main' block must be the very first statement UNLESS it has an address set.
+    // - blocks are ordered by address, where blocks without address are put at the end.
     // - in every scope:
     //      -- the directives '%output', '%launcher', '%zeropage', '%zpreserved', '%address' and '%option' will come first.
     //      -- all vardecls then follow.
@@ -18,9 +19,15 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
 
     override fun process(module: Module) {
         super.process(module)
+
+        val (blocks, other) = module.statements.partition { it is Block }
+        module.statements = other.plus(blocks.sortedBy { (it as Block).address ?: Int.MAX_VALUE }).toMutableList()
+
         val mainBlock = module.statements.single { it is Block && it.name=="main" }
-        module.statements.remove(mainBlock)
-        module.statements.add(0, mainBlock)
+        if((mainBlock as Block).address==null) {
+            module.statements.remove(mainBlock)
+            module.statements.add(0, mainBlock)
+        }
         val varDecls = module.statements.filter { it is VarDecl }
         module.statements.removeAll(varDecls)
         module.statements.addAll(0, varDecls)

@@ -28,12 +28,14 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                         if(it.callLabel!=null) symname(it.callLabel, block) else null,
                         if(it.callLabel2!=null) symname(it.callLabel2, block) else null)
             }.toMutableList()
+            val newConstants = block.integerConstants.map { symname(it.key, block) to it.value }.toMap().toMutableMap()
             newblocks.add(IntermediateProgram.ProgramBlock(
                     block.scopedname,
                     block.shortname,
                     block.address,
                     newinstructions,
                     newvars,
+                    newConstants,
                     newlabels))
         }
         program.blocks.clear()
@@ -58,7 +60,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         output = File("${program.name}.asm").printWriter()
         output.use {
             header()
-            for(block in program.blocks)        // todo sort by address (if specified) (blocks w/o address go LAST)
+            for(block in program.blocks)
                 block2asm(block)
         }
 
@@ -140,6 +142,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             out("* = ${block.address?.toHex()}")
         }
         out("${block.shortname}\t.proc\n")
+        out("\n; constants/memdefs/kernel subroutines")
+        memdefs2asm(block)
         out("\n; variables")
         vardecls2asm(block)
         out("")
@@ -152,6 +156,12 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 skip--
         }
         out("\n\t.pend\n")
+    }
+
+    private fun memdefs2asm(block: IntermediateProgram.ProgramBlock) {
+        for(m in block.integerConstants) {
+            out("\t${m.key} = ${m.value.toHex()}")
+        }
     }
 
     private fun vardecls2asm(block: IntermediateProgram.ProgramBlock) {

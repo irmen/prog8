@@ -13,6 +13,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                        var address: Int?,
                        val instructions: MutableList<Instruction> = mutableListOf(),
                        val variables: MutableMap<String, Value> = mutableMapOf(),
+                       val integerConstants: MutableMap<String, Int> = mutableMapOf(),
                        val labels: MutableMap<String, Instruction> = mutableMapOf())
     {
         val numVariables: Int
@@ -245,25 +246,31 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
     }
 
     fun variable(scopedname: String, decl: VarDecl) {
-        if(decl.type!=VarDeclType.VAR)
-            return      // const and memory variables don't require storage
-        val value = when(decl.datatype) {
-            DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT -> Value(decl.datatype, (decl.value as LiteralValue).asNumericValue!!)
-            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
-                val litval = (decl.value as LiteralValue)
-                if(litval.heapId==null)
-                    throw CompilerException("string should already be in the heap")
-                Value(decl.datatype, litval.heapId)
+        when(decl.type) {
+            VarDeclType.VAR -> {
+                val value = when(decl.datatype) {
+                    DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT -> Value(decl.datatype, (decl.value as LiteralValue).asNumericValue!!)
+                    DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
+                        val litval = (decl.value as LiteralValue)
+                        if(litval.heapId==null)
+                            throw CompilerException("string should already be in the heap")
+                        Value(decl.datatype, litval.heapId)
+                    }
+                    DataType.ARRAY_B, DataType.ARRAY_W, DataType.MATRIX_B, DataType.MATRIX_UB,
+                    DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F -> {
+                        val litval = (decl.value as LiteralValue)
+                        if(litval.heapId==null)
+                            throw CompilerException("array/matrix should already be in the heap")
+                        Value(decl.datatype, litval.heapId)
+                    }
+                }
+                currentBlock.variables[scopedname] = value
             }
-            DataType.ARRAY_B, DataType.ARRAY_W, DataType.MATRIX_B, DataType.MATRIX_UB,
-            DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F -> {
-                val litval = (decl.value as LiteralValue)
-                if(litval.heapId==null)
-                    throw CompilerException("array/matrix should already be in the heap")
-                Value(decl.datatype, litval.heapId)
+            VarDeclType.CONST -> {}     // constants are all folded away
+            VarDeclType.MEMORY -> {
+                currentBlock.integerConstants[scopedname] = (decl.value as LiteralValue).asIntegerValue!!
             }
         }
-        currentBlock.variables[scopedname] = value
     }
 
     fun instr(opcode: Opcode, arg: Value? = null, callLabel: String? = null) {
@@ -278,6 +285,10 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
 
     fun line(position: Position) {
         currentBlock.instructions.add(Instruction(Opcode.LINE, callLabel = "${position.line} ${position.file}"))
+    }
+
+    fun symbolDef(name: String, value: Int) {
+        currentBlock.integerConstants[name] = value
     }
 
     fun newBlock(scopedname: String, shortname: String, address: Int?) {

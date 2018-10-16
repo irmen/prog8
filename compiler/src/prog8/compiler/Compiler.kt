@@ -187,7 +187,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
     }
 
     private fun processVariables(scope: INameScope) {
-        for(variable in scope.statements.asSequence().filter {it is VarDecl && it.type==VarDeclType.VAR}.map { it as VarDecl })
+        for(variable in scope.statements.asSequence().filter {it is VarDecl }.map { it as VarDecl })
             prog.variable(variable.scopedname, variable)
         for(subscope in scope.subScopes())
             processVariables(subscope.value)
@@ -199,8 +199,13 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             prog.line(subroutine.position)
             // note: the caller has already written the arguments into the subroutine's parameter variables.
             translate(subroutine.statements)
-        } else if(subroutine.isNotEmpty())
-            throw CompilerException("kernel subroutines (with memory address) can't have a body: $subroutine")
+        } else {
+            // asmsub
+            if(subroutine.isNotEmpty())
+                throw CompilerException("kernel subroutines (with memory address) can't have a body: $subroutine")
+
+            prog.symbolDef(subroutine.scopedname, subroutine.asmAddress)
+        }
         return super.process(subroutine)
     }
 
