@@ -226,7 +226,8 @@ enum class Opcode {
     NOP,        // do nothing
     BREAKPOINT, // breakpoint
     TERMINATE,  // end the program
-    LINE        // track source file line number
+    LINE,       // track source file line number
+    INLINE_ASSEMBLY         // container to hold inline raw assembly code
 }
 
 val opcodesWithVarArgument = setOf(

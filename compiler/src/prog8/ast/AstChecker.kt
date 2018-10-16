@@ -486,7 +486,7 @@ class AstChecker(private val namespace: INameScope,
                 if(directive.parent !is Module) err("this directive may only occur at module level")
                 if(directive.args.size!=1 || directive.args[0].name==null)
                     err("invalid import directive, expected module name argument")
-                if(directive.args[0].name == (directive.parent as Module).name)
+                if(directive.args[0].name == (directive.parent as? Module)?.name)
                     err("invalid import directive, cannot import itself")
             }
             "%breakpoint" -> {

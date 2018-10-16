@@ -1363,6 +1363,7 @@ class StackVm(private var traceOutputFile: String?) {
                 P_carry = evalstack.pop().asBooleanValue
                 P_irqd = evalstack.pop().asBooleanValue
             }
+            Opcode.INLINE_ASSEMBLY -> throw VmExecutionException("stackVm doesn't support executing inline assembly code")
             //else -> throw VmExecutionException("unimplemented opcode: ${ins.opcode}")
         }
 

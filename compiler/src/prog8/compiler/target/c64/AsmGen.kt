@@ -49,7 +49,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         }
     }
 
-    private fun out(str: String) = output.println(str)
+    private fun out(str: String?) = output.println(str)
 
     fun compileToAssembly(): AssemblyProgram {
         println("\nGenerating assembly code from intermediate code... ")
@@ -58,7 +58,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         output = File("${program.name}.asm").printWriter()
         output.use {
             header()
-            for(block in program.blocks)
+            for(block in program.blocks)        // todo sort by address (if specified) (blocks w/o address go LAST)
                 block2asm(block)
         }
 
@@ -108,10 +108,12 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 out("\t.null  $9e, format(' %d ', _prog8_entrypoint), $3a, $8f, ' prog8 by idj'")
                 out("+\t.word  0")
                 out("_prog8_entrypoint\t; assembly code starts here\n")
+                out("\tjsr  c64utils.init_system")
             }
             options.output == OutputType.PRG -> {
                 out("; ---- program without sys call ----")
                 out("* = ${program.loadAddress.toHex()}\n")
+                out("\tjsr  c64utils.init_system")
             }
             options.output == OutputType.RAW -> {
                 out("; ---- raw assembler program ----")
@@ -119,10 +121,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             }
         }
 
-        out("\tlda  #0")
-        out("\ttay")
-        out("\ttax")
-        out("\tdex\t; init estack pointer to \$ff")
+        out("\tldx  #\$ff\t; init estack pointer")
         out("\tclc")
         out("\tjmp  main.start\t; jump to program entrypoint")
         out("")
@@ -621,6 +620,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 }
                 pushFloat(ins.arg!!.integerValue().toHex())
             }
+            Opcode.INLINE_ASSEMBLY -> out(ins.callLabel)        // All of the inline assembly is stored in the calllabel property.
             else-> TODO("asm for $ins")
 //            Opcode.POP_MEM_B -> TODO()
 //            Opcode.POP_MEM_UB -> TODO()

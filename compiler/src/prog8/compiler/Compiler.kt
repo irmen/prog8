@@ -199,9 +199,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             prog.line(subroutine.position)
             // note: the caller has already written the arguments into the subroutine's parameter variables.
             translate(subroutine.statements)
-        } else {
-            throw CompilerException("kernel subroutines (with memory address and no body) are not supported by StackVM: $subroutine")
-        }
+        } else if(subroutine.isNotEmpty())
+            throw CompilerException("kernel subroutines (with memory address) can't have a body: $subroutine")
         return super.process(subroutine)
     }
 
@@ -237,7 +236,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 is RepeatLoop -> translate(stmt)
                 is AnonymousScope -> translate(stmt)
                 is Directive, is VarDecl, is Subroutine -> {}   // skip this, already processed these.
-                is InlineAssembly -> throw CompilerException("inline assembly is not supported by the StackVM")
+                is InlineAssembly -> translate(stmt)
                 else -> TODO("translate statement $stmt to stackvm")
             }
         }
@@ -388,6 +387,10 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             DataType.WORD -> Opcode.INC_VAR_W
             else -> throw CompilerException("can't inc type $dt")
         }
+    }
+
+    private fun translate(stmt: InlineAssembly) {
+        prog.instr(Opcode.INLINE_ASSEMBLY, callLabel = stmt.assembly)
     }
 
     private fun translate(stmt: Continue) {
