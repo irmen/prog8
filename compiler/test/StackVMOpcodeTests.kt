@@ -425,26 +425,6 @@ class TestStackVmOpcodes {
     }
 
     @Test
-    fun testInc() {
-        testUnaryOperator(Value(DataType.UBYTE, 255), Opcode.INC_UB, Value(DataType.UBYTE, 0))
-        testUnaryOperator(Value(DataType.UBYTE, 99), Opcode.INC_UB, Value(DataType.UBYTE, 100))
-        testUnaryOperator(Value(DataType.UWORD, 65535), Opcode.INC_UW, Value(DataType.UWORD, 0))
-        testUnaryOperator(Value(DataType.UWORD, 999), Opcode.INC_UW, Value(DataType.UWORD, 1000))
-        testUnaryOperator(Value(DataType.FLOAT, -1.0), Opcode.INC_F, Value(DataType.FLOAT, 0.0))
-        testUnaryOperator(Value(DataType.FLOAT, 2022.5), Opcode.INC_F, Value(DataType.FLOAT, 2023.5))
-    }
-
-    @Test
-    fun testDec() {
-        testUnaryOperator(Value(DataType.UBYTE, 100), Opcode.DEC_UB, Value(DataType.UBYTE, 99))
-        testUnaryOperator(Value(DataType.UBYTE, 0), Opcode.DEC_UB, Value(DataType.UBYTE, 255))
-        testUnaryOperator(Value(DataType.UWORD, 1000), Opcode.DEC_UW, Value(DataType.UWORD, 999))
-        testUnaryOperator(Value(DataType.UWORD, 0), Opcode.DEC_UW, Value(DataType.UWORD, 65535))
-        testUnaryOperator(Value(DataType.FLOAT, 0.5), Opcode.DEC_F, Value(DataType.FLOAT, -0.5))
-        testUnaryOperator(Value(DataType.FLOAT, 2022.5), Opcode.DEC_F, Value(DataType.FLOAT, 2021.5))
-    }
-
-    @Test
     fun testNeg() {
         testUnaryOperator(Value(DataType.BYTE, 12), Opcode.NEG_B, Value(DataType.BYTE, -12))
         testUnaryOperator(Value(DataType.WORD, 1234), Opcode.NEG_W, Value(DataType.WORD, -1234))

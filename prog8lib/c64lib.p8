@@ -7,80 +7,80 @@
 
 
 ~ c64 {
-		memory  byte  SCRATCH_ZP1	= $02		; scratch register #1 in ZP
-		memory  byte  SCRATCH_ZP2	= $03		; scratch register #2 in ZP
-		memory  word  SCRATCH_ZPWORD1	= $fb		; scratch word in ZP ($fb/$fc)
-		memory  word  SCRATCH_ZPWORD2	= $fd		; scratch word in ZP ($fd/$fe)
+		memory  ubyte  SCRATCH_ZP1	= $02		; scratch register #1 in ZP
+		memory  ubyte  SCRATCH_ZP2	= $03		; scratch register #2 in ZP
+		memory  uword  SCRATCH_ZPWORD1	= $fb		; scratch word in ZP ($fb/$fc)
+		memory  uword  SCRATCH_ZPWORD2	= $fd		; scratch word in ZP ($fd/$fe)
 
 
-		memory  byte  TIME_HI		= $a0		; software jiffy clock, hi byte
-		memory  byte  TIME_MID		= $a1		;  .. mid byte
-		memory  byte  TIME_LO		= $a2		;    .. lo byte. Updated by IRQ every 1/60 sec
-		memory  byte  STKEY		= $91		; various keyboard statuses (updated by IRQ)
-		memory  byte  SFDX		= $cb		; current key pressed (matrix value) (updated by IRQ)
+		memory  ubyte  TIME_HI		= $a0		; software jiffy clock, hi byte
+		memory  ubyte  TIME_MID		= $a1		;  .. mid byte
+		memory  ubyte  TIME_LO		= $a2		;    .. lo byte. Updated by IRQ every 1/60 sec
+		memory  ubyte  STKEY		= $91		; various keyboard statuses (updated by IRQ)
+		memory  ubyte  SFDX		= $cb		; current key pressed (matrix value) (updated by IRQ)
 
-		memory  byte  COLOR		= $0286		; cursor color
-		memory  byte  HIBASE		= $0288		; screen base address / 256 (hi-byte of screen memory address)
-		memory  word  CINV		= $0314		; IRQ vector
-		memory  word  NMI_VEC		= $FFFA		; 6502 nmi vector, determined by the kernal if banked in
-		memory  word  RESET_VEC		= $FFFC		; 6502 reset vector, determined by the kernal if banked in
-		memory  word  IRQ_VEC		= $FFFE		; 6502 interrupt vector, determined by the kernal if banked in
+		memory  ubyte  COLOR		= $0286		; cursor color
+		memory  ubyte  HIBASE		= $0288		; screen base address / 256 (hi-byte of screen memory address)
+		memory  uword  CINV		= $0314		; IRQ vector
+		memory  uword  NMI_VEC		= $FFFA		; 6502 nmi vector, determined by the kernal if banked in
+		memory  uword  RESET_VEC		= $FFFC		; 6502 reset vector, determined by the kernal if banked in
+		memory  uword  IRQ_VEC		= $FFFE		; 6502 interrupt vector, determined by the kernal if banked in
 
-		memory  byte[40, 25]  Screen	= $0400		; default character screen matrix
-		memory  byte[40, 25]  Colors	= $d800		; character screen colors
+		memory  ubyte[40, 25]  Screen	= $0400		; default character screen matrix
+		memory  ubyte[40, 25]  Colors	= $d800		; character screen colors
 
 
 ; ---- VIC-II registers ----
 
-		memory  byte SP0X		= $d000
-		memory  byte SP0Y		= $d001
-		memory  byte SP1X		= $d002
-		memory  byte SP1Y		= $d003
-		memory  byte SP2X		= $d004
-		memory  byte SP2Y		= $d005
-		memory  byte SP3X		= $d006
-		memory  byte SP3Y		= $d007
-		memory  byte SP4X		= $d008
-		memory  byte SP4Y		= $d009
-		memory  byte SP5X		= $d00a
-		memory  byte SP5Y		= $d00b
-		memory  byte SP6X		= $d00c
-		memory  byte SP6Y		= $d00d
-		memory  byte SP7X		= $d00e
-		memory  byte SP7Y		= $d00f
+		memory  ubyte SP0X		= $d000
+		memory  ubyte SP0Y		= $d001
+		memory  ubyte SP1X		= $d002
+		memory  ubyte SP1Y		= $d003
+		memory  ubyte SP2X		= $d004
+		memory  ubyte SP2Y		= $d005
+		memory  ubyte SP3X		= $d006
+		memory  ubyte SP3Y		= $d007
+		memory  ubyte SP4X		= $d008
+		memory  ubyte SP4Y		= $d009
+		memory  ubyte SP5X		= $d00a
+		memory  ubyte SP5Y		= $d00b
+		memory  ubyte SP6X		= $d00c
+		memory  ubyte SP6Y		= $d00d
+		memory  ubyte SP7X		= $d00e
+		memory  ubyte SP7Y		= $d00f
 
-		memory  byte MSIGX		= $d010
-		memory  byte SCROLY		= $d011
-		memory  byte RASTER		= $d012
-		memory  byte LPENX		= $d013
-		memory  byte LPENY		= $d014
-		memory  byte SPENA		= $d015
-		memory  byte SCROLX		= $d016
-		memory  byte YXPAND		= $d017
-		memory  byte VMCSB		= $d018
-		memory  byte VICIRQ		= $d019
-		memory  byte IREQMASK		= $d01a
-		memory  byte SPBGPR		= $d01b
-		memory  byte SPMC		= $d01c
-		memory  byte XXPAND		= $d01d
-		memory  byte SPSPCL		= $d01e
-		memory  byte SPBGCL		= $d01f
+		memory  ubyte MSIGX		= $d010
+		memory  ubyte SCROLY		= $d011
+		memory  ubyte RASTER		= $d012
+		memory  ubyte LPENX		= $d013
+		memory  ubyte LPENY		= $d014
+		memory  ubyte SPENA		= $d015
+		memory  ubyte SCROLX		= $d016
+		memory  ubyte YXPAND		= $d017
+		memory  ubyte VMCSB		= $d018
+		memory  ubyte VICIRQ		= $d019
+		memory  ubyte IREQMASK		= $d01a
+		memory  ubyte SPBGPR		= $d01b
+		memory  ubyte SPMC		= $d01c
+		memory  ubyte XXPAND		= $d01d
+		memory  ubyte SPSPCL		= $d01e
+		memory  ubyte SPBGCL		= $d01f
 
-		memory  byte EXTCOL		= $d020		; border color
-		memory  byte BGCOL0		= $d021		; screen color
-		memory  byte BGCOL1		= $d022
-		memory  byte BGCOL2		= $d023
-		memory  byte BGCOL4		= $d024
-		memory  byte SPMC0		= $d025
-		memory  byte SPMC1		= $d026
-		memory  byte SP0COL		= $d027
-		memory  byte SP1COL		= $d028
-		memory  byte SP2COL		= $d029
-		memory  byte SP3COL		= $d02a
-		memory  byte SP4COL		= $d02b
-		memory  byte SP5COL		= $d02c
-		memory  byte SP6COL		= $d02d
-		memory  byte SP7COL		= $d02e
+		memory  ubyte EXTCOL		= $d020		; border color
+		memory  ubyte BGCOL0		= $d021		; screen color
+		memory  ubyte BGCOL1		= $d022
+		memory  ubyte BGCOL2		= $d023
+		memory  ubyte BGCOL4		= $d024
+		memory  ubyte SPMC0		= $d025
+		memory  ubyte SPMC1		= $d026
+		memory  ubyte SP0COL		= $d027
+		memory  ubyte SP1COL		= $d028
+		memory  ubyte SP2COL		= $d029
+		memory  ubyte SP3COL		= $d02a
+		memory  ubyte SP4COL		= $d02b
+		memory  ubyte SP5COL		= $d02c
+		memory  ubyte SP6COL		= $d02d
+		memory  ubyte SP7COL		= $d02e
 
 ; ---- end of VIC-II registers ----
 

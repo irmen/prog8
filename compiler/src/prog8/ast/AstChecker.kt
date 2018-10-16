@@ -544,6 +544,16 @@ class AstChecker(private val namespace: INameScope,
         return lv
     }
 
+    override fun process(expr: PrefixExpression): IExpression {
+        if(expr.operator=="-") {
+            val dt = expr.resultingDatatype(namespace, heap)
+            if (dt != DataType.BYTE && dt != DataType.WORD && dt != DataType.FLOAT) {
+                checkResult.add(ExpressionError("can only take negative of a signed number type", expr.position))
+            }
+        }
+        return super.process(expr)
+    }
+
     override fun process(expr: BinaryExpression): IExpression {
         when(expr.operator){
             "/", "//", "%" -> {

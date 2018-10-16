@@ -39,6 +39,11 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
 
     fun optimize() {
         println("Optimizing stackVM code...")
+        // remove nops (that are not a label)
+        for (blk in blocks) {
+            blk.instructions.removeIf { it.opcode== Opcode.NOP && it !is LabelInstr }
+        }
+
         optimizeDataConversionAndUselessDiscards()
         optimizeVariableCopying()
         optimizeMultipleSequentialLineInstrs()

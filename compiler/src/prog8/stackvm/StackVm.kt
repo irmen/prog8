@@ -633,56 +633,6 @@ class StackVm(private var traceOutputFile: String?) {
                 checkDt(v, DataType.UWORD)
                 evalstack.push(v.inv())
             }
-            Opcode.INC_B -> {
-                val v = evalstack.pop()
-                checkDt(v, DataType.BYTE)
-                evalstack.push(v.inc())
-            }
-            Opcode.INC_UB -> {
-                val v = evalstack.pop()
-                checkDt(v, DataType.UBYTE)
-                evalstack.push(v.inc())
-            }
-            Opcode.INC_W -> {
-                val v = evalstack.pop()
-                checkDt(v, DataType.WORD)
-                evalstack.push(v.inc())
-            }
-            Opcode.INC_UW -> {
-                val v = evalstack.pop()
-                checkDt(v, DataType.UWORD)
-                evalstack.push(v.inc())
-            }
-            Opcode.INC_F -> {
-                val v = evalstack.pop()
-                checkDt(v, DataType.FLOAT)
-                evalstack.push(v.inc())
-            }
-            Opcode.DEC_UB -> {
-                val v = evalstack.pop()
-                checkDt(v, DataType.UBYTE)
-                evalstack.push(v.dec())
-            }
-            Opcode.DEC_B -> {
-                val v = evalstack.pop()
-                checkDt(v, DataType.BYTE)
-                evalstack.push(v.dec())
-            }
-            Opcode.DEC_UW -> {
-                val v = evalstack.pop()
-                checkDt(v, DataType.UWORD)
-                evalstack.push(v.dec())
-            }
-            Opcode.DEC_W -> {
-                val v = evalstack.pop()
-                checkDt(v, DataType.WORD)
-                evalstack.push(v.dec())
-            }
-            Opcode.DEC_F -> {
-                val v = evalstack.pop()
-                checkDt(v, DataType.FLOAT)
-                evalstack.push(v.dec())
-            }
             Opcode.SYSCALL -> dispatchSyscall(ins)
             Opcode.SEC -> P_carry = true
             Opcode.CLC -> P_carry = false

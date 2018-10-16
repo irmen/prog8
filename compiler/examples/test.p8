@@ -1,29 +1,5 @@
 %import c64utils
-
-~ block2 $4000 {
-    return
-}
-
-~ block3 $3000 {
-    return
-}
-
-~ blockNoAddr1 {
-    return
-}
-
-~ blockNoAddr2 {
-    return
-}
-
-~ block4 $6000 {
-    return
-}
-
-~ blockNoAddr3 {
-    return
-}
-
+%import mathlib
 
 ~ main  {
 
@@ -33,10 +9,29 @@ sub start() {
     const ubyte border_color = 2
     const ubyte cursor_color = 7
 
-    c64.BGCOL0 = screen_color
-    c64.EXTCOL = border_color
-    c64.COLOR = cursor_color
+    ubyte ubb
+    uword uww
+    byte color
+    byte color2
+
+    AX=XY
+    uww=XY
+    AY=uww
+
+    A++
+    X++
+    ;AY++
+
+    A = ~X
+    A = not Y
+    ubb = ~ubb
+    uww = ~uww
+    color2 = ~color
+    uww = not uww
+
     return
+
+
 }
 
 }

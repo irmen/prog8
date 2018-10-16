@@ -13,7 +13,7 @@ class AssemblyProgram(val name: String) {
         println("Generating machine code program...")
 
         val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "-Wall", "-Wno-strict-bool",
-                "--dump-labels", "--vice-labels", "-l", viceMonListFile, "--no-monitor")
+                "-Werror", "--dump-labels", "--vice-labels", "-l", viceMonListFile, "--no-monitor")
 
         val outFile = when(options.output) {
             OutputType.PRG -> {

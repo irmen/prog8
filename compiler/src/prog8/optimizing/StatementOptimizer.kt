@@ -13,7 +13,7 @@ import prog8.functions.BuiltinFunctions
     todo remove if statements with empty statement blocks
     todo replace if statements with only else block
     todo statement optimization: create augmented assignment from assignment that only refers to its lvalue (A=A+10, A=4*A, ...)
-    todo statement optimization: X+=1, X-=1  --> X++/X--  ,
+    todo statement optimization: X+=1, X-=1  --> X++/X--  (to 3? 4? incs/decs in a row after that use arithmetic)
     todo remove statements that have no effect  X=X , X+=0, X-=0, X*=1, X/=1, X//=1, A |= 0, A ^= 0, A<<=0, etc etc
     todo optimize addition with self into shift 1  (A+=A -> A<<=1)
     todo assignment optimization: optimize some simple multiplications and divisions into shifts  (A*=2 -> lsl(A), X=X/2 -> lsr(X) )
