@@ -311,6 +311,10 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         out("\tdex")
     }
 
+    private fun replaceByteA() {
+        out("\tsta  ${(ESTACK_LO+1).toHex()},x")
+    }
+
     private fun pushMemByte(address: Int) {
         out("\tlda  ${address.toHex()}")
         out("\tsta  ${ESTACK_LO.toHex()},x")
@@ -336,6 +340,12 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         out("\ttya")
         out("\tsta  ${ESTACK_HI.toHex()},x")
         out("\tdex")
+    }
+
+    private fun replaceWordAY() {
+        out("\tsta  ${(ESTACK_LO+1).toHex()},x")
+        out("\ttya")
+        out("\tsta  ${(ESTACK_HI+1).toHex()},x")
     }
 
     private fun pushMemWord(address: Int) {
@@ -373,14 +383,38 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
     }
 
     private fun popByteA() {
+        // for operations that remove a value from the stack
         out("\tinx")
         out("\tlda  ${ESTACK_LO.toHex()},x")
     }
 
+    private fun peekByteA() {
+        // for operations that modify a value on the stack
+        out("\tlda  ${(ESTACK_LO+1).toHex()},x")
+    }
+
+    private fun peekByte2A() {
+        // for operations that modify a value on the stack, 1 under the top
+        out("\tlda  ${(ESTACK_LO+2).toHex()},x")
+    }
+
     private fun popWordAY() {
+        // for operations that remove a value from the stack
         out("\ninx")
         out("\tlda  ${ESTACK_LO.toHex()},x")
         out("\tldy  ${ESTACK_HI.toHex()},x")
+    }
+
+    private fun peekWordAY() {
+        // for operations that modify a value on the stack
+        out("\tlda  ${(ESTACK_LO+1).toHex()},x")
+        out("\tldy  ${(ESTACK_HI+1).toHex()},x")
+    }
+
+    private fun peekWord2AY() {
+        // for operations that modify a value on the stack, 1 under the top
+        out("\tlda  ${(ESTACK_LO+2).toHex()},x")
+        out("\tldy  ${(ESTACK_HI+2).toHex()},x")
     }
 
     private fun instr2asm(insIdx: Int, ins: Instruction, block: IntermediateProgram.ProgramBlock): Int {
@@ -676,16 +710,16 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 out("\tdec  ${ins.callLabel}")
             }
             Opcode.ADD_UB, Opcode.ADD_B -> {
-                out("\tlda  ${(ESTACK_LO+2).toHex()},x")
+                peekByte2A()
                 out("\tclc\n\tadc  ${(ESTACK_LO+1).toHex()},x")
-                out("\tsta  ${(ESTACK_LO+2).toHex()},x")
                 out("\tinx")
+                replaceByteA()
             }
             Opcode.SUB_UB, Opcode.SUB_B -> {
-                out("\tlda  ${(ESTACK_LO+2).toHex()},x")
+                peekByte2A()
                 out("\tsec\n\tsbc  ${(ESTACK_LO+1).toHex()},x")
-                out("\tsta  ${(ESTACK_LO+2).toHex()},x")
                 out("\tinx")
+                replaceByteA()
             }
             Opcode.POP_MEM_UB, Opcode.POP_MEM_B -> {
                 popByteA()
@@ -703,25 +737,42 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 out("\tsty  ${ins.callLabel}+1")
             }
             Opcode.NEG_B -> {
-                popByteA()
+                peekByteA()
                 out("\teor  #\$ff")
                 out("\tsec\n\tadc  #0")
-                pushByteA()
+                replaceByteA()
             }
-            Opcode.INV_BYTE, Opcode.NOT_BYTE -> {
-                popByteA()
+            Opcode.INV_BYTE -> {
+                peekByteA()
                 out("\teor  #\$ff")
-                pushByteA()
+                replaceByteA()
             }
-            Opcode.INV_WORD, Opcode.NOT_WORD -> {
-                popWordAY()
+            Opcode.INV_WORD -> {
+                out("\tlda  ${(ESTACK_LO+1).toHex()},x")
                 out("\teor  #\$ff")
-                out("\tpha")
-                out("\ttya")
+                out("\tlda  ${(ESTACK_HI+1).toHex()},x")
                 out("\teor  #\$ff")
-                out("\ttay")
-                out("\tpla")
-                pushWordAY()
+                out("\tsta  ${(ESTACK_LO+1).toHex()},x")
+                out("\tsta  ${(ESTACK_HI+1).toHex()},x")
+            }
+            Opcode.NOT_BYTE -> {
+                peekByteA()
+                out("\tbeq  +")
+                out("\tlda  #0")
+                out("\tbeq  ++")
+                out("+\tlda  #1")
+                out("++")
+                replaceByteA()
+            }
+            Opcode.NOT_WORD -> {
+                out("\tlda  ${(ESTACK_LO+1).toHex()},x")
+                out("\tora  ${(ESTACK_HI+1).toHex()},x")
+                out("\tbeq  +")
+                out("\tlda  #0")
+                out("\tbeq  ++")
+                out("+\tlda  #1")
+                out("++\tsta  ${(ESTACK_LO+1).toHex()},x")
+                out("\tsta  ${(ESTACK_HI+1).toHex()},x")
             }
 
             else-> TODO("asm for $ins")

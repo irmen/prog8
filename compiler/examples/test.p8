@@ -20,7 +20,7 @@ sub start() {
 
     A++
     X++
-    ;AY++
+    AY++
 
     A = ~X
     A = not Y
