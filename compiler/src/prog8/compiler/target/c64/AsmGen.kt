@@ -73,11 +73,28 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
     }
 
     private fun symname(scoped: String, block: IntermediateProgram.ProgramBlock): String {
-        val name = if (scoped.startsWith("${block.shortname}.")) scoped.substring(block.shortname.length+1) else scoped
-        val validName = name.replace("<<<", "prog8_").replace(">>>", "")
-        if(validName=="-")
+        if(' ' in scoped)
+            return scoped
+
+        val blockLocal: Boolean
+        var name = if (scoped.startsWith("${block.shortname}.")) {
+            blockLocal = true
+            scoped.substring(block.shortname.length+1)
+        } else {
+            blockLocal = false
+            scoped
+        }
+        name = name.replace("<<<", "prog8_").replace(">>>", "")
+        if(name=="-")
             return "-"
-        return validName.replace("-", "").replace(".", "_")
+        if(blockLocal)
+            name = name.replace(".", "_")
+        else {
+            val parts = name.split(".", limit=2)
+            if(parts.size>1)
+                name = "${parts[0]}.${parts[1].replace(".", "_")}"
+        }
+        return name.replace("-", "")
     }
 
 
@@ -311,6 +328,12 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         out("\tdex")
     }
 
+    private fun pushByteY() {
+        out("\ttya")
+        out("\tsta  ${ESTACK_LO.toHex()},x")
+        out("\tdex")
+    }
+
     private fun replaceByteA() {
         out("\tsta  ${(ESTACK_LO+1).toHex()},x")
     }
@@ -388,6 +411,12 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         out("\tlda  ${ESTACK_LO.toHex()},x")
     }
 
+    private fun popByteY() {
+        // for operations that remove a value from the stack
+        out("\tinx")
+        out("\tldy  ${ESTACK_LO.toHex()},x")
+    }
+
     private fun peekByteA() {
         // for operations that modify a value on the stack
         out("\tlda  ${(ESTACK_LO+1).toHex()},x")
@@ -435,8 +464,9 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.CLC -> out("\tclc")
             Opcode.SEI -> out("\tsei")
             Opcode.CLI -> out("\tcli")
-            Opcode.RETURN -> out("\trts")       // todo is return really this simple?
             Opcode.JUMP -> out("\tjmp  ${ins.callLabel}")
+            Opcode.CALL -> out("\tjsr  ${ins.callLabel}")
+            Opcode.RETURN -> out("\trts")       // todo is return really this simple?
             Opcode.B2UB -> {}       // is a no-op, just carry on with the byte as-is
             Opcode.UB2B -> {}       // is a no-op, just carry on with the byte as-is
             Opcode.RSAVE -> out("\tphp\n\tpha\n\ttxa\n\tpha\n\ttya\n\tpha")
@@ -573,8 +603,12 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     return 1    // skip 1
                 }
                 // byte from variable onto stack
-                TODO("can be register")
-                pushVarByte(ins.callLabel!!)
+                when(ins.callLabel) {
+                    "A" -> pushByteA()
+                    "X" -> throw CompilerException("makes no sense to push X it's used as a stack pointer itself")
+                    "Y" -> pushByteY()
+                    else -> pushVarByte(ins.callLabel!!)
+                }
             }
             Opcode.PUSH_WORD -> {
                 val nextIns = block.getIns(insIdx+1)
@@ -649,8 +683,12 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     return 1    // skip 1
                 }
                 // word from memory onto stack
-                TODO("can be register")
-                pushVarWord(ins.callLabel!!)
+                when(ins.callLabel) {
+                    "AX" -> TODO()
+                    "AY" -> TODO()
+                    "XY" -> TODO()
+                    else -> pushVarWord(ins.callLabel!!)
+                }
             }
             Opcode.PUSH_FLOAT -> {
                 val nextIns = block.getIns(insIdx+1)
@@ -702,12 +740,43 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 pushFloat(ins.arg!!.integerValue().toHex())
             }
             Opcode.INC_VAR_UB, Opcode.INC_VAR_B -> {
-                TODO("can be register")
-                out("\tinc  ${ins.callLabel}")
+                when(ins.callLabel) {
+                    "A" -> out("\tclc\n\tadc  #1")
+                    "X" -> out("\tinx")
+                    "Y" -> out("\tiny")
+                    else -> out("\tinc  ${ins.callLabel}")
+                }
+            }
+            Opcode.INC_VAR_UW -> {
+                when(ins.callLabel) {
+                    "AX" -> {
+                        out("\tclc\n\tadc  #1")
+                        out("\tbne  +")
+                        out("\tinx")
+                        out("+")
+                    }
+                    "AY" -> {
+                        out("\tclc\n\tadc  #1")
+                        out("\tbne  +")
+                        out("\tiny")
+                        out("+")
+                    }
+                    "XY" -> {
+                        out("\tinx")
+                        out("\tbne  +")
+                        out("\tiny")
+                        out("+")
+                    }
+                    else -> TODO("inc_var_uw $ins")
+                }
             }
             Opcode.DEC_VAR_UB, Opcode.DEC_VAR_B -> {
-                TODO("can be register")
-                out("\tdec  ${ins.callLabel}")
+                when(ins.callLabel) {
+                    "A" -> out("\tsec\n\tsbc  #1")
+                    "X" -> out("\tdex")
+                    "Y" -> out("\tdey")
+                    else -> out("\tdec  ${ins.callLabel}")
+                }
             }
             Opcode.ADD_UB, Opcode.ADD_B -> {
                 peekByte2A()
@@ -726,15 +795,50 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 out("\tsta  ${ins.arg!!.integerValue().toHex()}")
             }
             Opcode.POP_VAR_BYTE -> {
-                popByteA()
-                TODO("can be register")
-                out("\tsta  ${ins.callLabel}")
+                when(ins.callLabel) {
+                    "A" -> popByteA()
+                    "X" -> throw CompilerException("makes no sense to pop X it's used as a stack pointer itself")
+                    "Y" -> popByteY()
+                    else -> {
+                        popByteA()
+                        out("\tsta  ${ins.callLabel}")
+                    }
+                }
             }
             Opcode.POP_VAR_WORD -> {
-                popWordAY()
-                TODO("can be register")
-                out("\tsta  ${ins.callLabel}")
-                out("\tsty  ${ins.callLabel}+1")
+                when(ins.callLabel) {
+                    "AX" -> throw CompilerException("makes no sense to pop X it's used as a stack pointer itself")
+                    "AY" -> TODO()
+                    "XY" -> throw CompilerException("makes no sense to pop X it's used as a stack pointer itself")
+                    else -> {
+                        popWordAY()
+                        out("\tsta  ${ins.callLabel}")
+                        out("\tsty  ${ins.callLabel}+1")
+                    }
+                }
+            }
+            Opcode.DEC_VAR_UW -> {
+                when(ins.callLabel) {
+                    "AX" -> {
+                        out("\tcmp  #0")
+                        out("\tbne  +")
+                        out("\tdex")
+                        out("+\tsec\n\tsbc  #1")
+                    }
+                    "AY" -> {
+                        out("\tcmp  #0")
+                        out("\tbne  +")
+                        out("\tdey")
+                        out("+\tsec\n\tsbc  #1")
+                    }
+                    "XY" -> {
+                        out("\ttxa")
+                        out("\tbne  +")
+                        out("\tdey")
+                        out("+\tdex")
+                    }
+                    else -> TODO("dec_var_uw $ins")
+                }
             }
             Opcode.NEG_B -> {
                 peekByteA()
@@ -761,7 +865,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 out("\tlda  #0")
                 out("\tbeq  ++")
                 out("+\tlda  #1")
-                out("++")
+                out("+")
                 replaceByteA()
             }
             Opcode.NOT_WORD -> {
@@ -771,7 +875,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 out("\tlda  #0")
                 out("\tbeq  ++")
                 out("+\tlda  #1")
-                out("++\tsta  ${(ESTACK_LO+1).toHex()},x")
+                out("+\tsta  ${(ESTACK_LO+1).toHex()},x")
                 out("\tsta  ${(ESTACK_HI+1).toHex()},x")
             }
 
@@ -783,10 +887,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 //            Opcode.POP_VAR_FLOAT -> TODO()
 //            Opcode.COPY_VAR_FLOAT -> TODO()
 //            Opcode.INC_VAR_W -> TODO()
-//            Opcode.INC_VAR_UW -> TODO()
 //            Opcode.INC_VAR_F -> TODO()
 //            Opcode.DEC_VAR_W -> TODO()
-//            Opcode.DEC_VAR_UW -> TODO()
 //            Opcode.DEC_VAR_F -> TODO()
 //            Opcode.ADD_UW -> TODO()
 //            Opcode.ADD_W -> TODO()
@@ -916,7 +1018,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 //            Opcode.BNZ -> TODO()
 //            Opcode.BNEG -> TODO()
 //            Opcode.BPOS -> TODO()
-//            Opcode.CALL -> TODO()
 //            Opcode.SYSCALL -> TODO()
 //            Opcode.BREAKPOINT -> TODO()
         }
