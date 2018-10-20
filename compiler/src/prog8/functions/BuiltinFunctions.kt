@@ -5,7 +5,6 @@ import prog8.compiler.HeapValues
 import kotlin.math.log2
 
 
-
 class BuiltinFunctionParam(val name: String, val possibleDatatypes: Set<DataType>)
 
 class FunctionSignature(val pure: Boolean,      // does it have side effects?
@@ -15,12 +14,18 @@ class FunctionSignature(val pure: Boolean,      // does it have side effects?
 
 
 val BuiltinFunctions = mapOf(
+        // this set of function have no return value and operate in-place:
     "rol"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
     "ror"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
     "rol2"        to FunctionSignature(false, listOf(BuiltinFunctionParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
     "ror2"        to FunctionSignature(false, listOf(BuiltinFunctionParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
     "lsl"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
     "lsr"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
+        // these few have a return value depending on the argument list:
+    "max"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.max()!! }},        // type depends on args
+    "min"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.min()!! }},        // type depends on args
+    "sum"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.sum() }},        // type depends on args
+        // normal functions follow:
     "sin"         to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::sin) },
     "cos"         to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::cos) },
     "acos"        to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::acos) },
@@ -38,9 +43,6 @@ val BuiltinFunctions = mapOf(
     "round"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.WORD) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::round) },
     "floor"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.WORD) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::floor) },
     "ceil"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.WORD) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::ceil) },
-    "max"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.max()!! }},        // type depends on args
-    "min"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.min()!! }},        // type depends on args
-    "sum"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.sum() }},        // type depends on args
     "len"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", IterableDatatypes)), DataType.UWORD, ::builtinLen),
     "any"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.any { v -> v != 0.0} }},
     "all"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.all { v -> v != 0.0} }},
@@ -65,24 +67,24 @@ val BuiltinFunctions = mapOf(
     "str2word"    to FunctionSignature(true, listOf(BuiltinFunctionParam("string", StringDatatypes)), DataType.WORD),
     "str2uword"   to FunctionSignature(true, listOf(BuiltinFunctionParam("string", StringDatatypes)), DataType.UWORD),
     "str2float"   to FunctionSignature(true, listOf(BuiltinFunctionParam("string", StringDatatypes)), DataType.FLOAT),
-    "_vm_write_memchr"  to FunctionSignature(false, listOf(BuiltinFunctionParam("address", setOf(DataType.UWORD))), null),
-    "_vm_write_memstr"  to FunctionSignature(false, listOf(BuiltinFunctionParam("address", setOf(DataType.UWORD))), null),
-    "_vm_write_num"     to FunctionSignature(false, listOf(BuiltinFunctionParam("number", NumericDatatypes)), null),
-    "_vm_write_char"    to FunctionSignature(false, listOf(BuiltinFunctionParam("char", setOf(DataType.UBYTE))), null),
-    "_vm_write_str"     to FunctionSignature(false, listOf(BuiltinFunctionParam("string", StringDatatypes)), null),
-    "_vm_input_str"     to FunctionSignature(false, listOf(BuiltinFunctionParam("intovar", StringDatatypes)), null),
-    "_vm_gfx_clearscr"  to FunctionSignature(false, listOf(BuiltinFunctionParam("color", setOf(DataType.UBYTE))), null),
-    "_vm_gfx_pixel"     to FunctionSignature(false, listOf(
+    "vm_write_memchr"  to FunctionSignature(false, listOf(BuiltinFunctionParam("address", setOf(DataType.UWORD))), null),
+    "vm_write_memstr"  to FunctionSignature(false, listOf(BuiltinFunctionParam("address", setOf(DataType.UWORD))), null),
+    "vm_write_num"     to FunctionSignature(false, listOf(BuiltinFunctionParam("number", NumericDatatypes)), null),
+    "vm_write_char"    to FunctionSignature(false, listOf(BuiltinFunctionParam("char", setOf(DataType.UBYTE))), null),
+    "vm_write_str"     to FunctionSignature(false, listOf(BuiltinFunctionParam("string", StringDatatypes)), null),
+    "vm_input_str"     to FunctionSignature(false, listOf(BuiltinFunctionParam("intovar", StringDatatypes)), null),
+    "vm_gfx_clearscr"  to FunctionSignature(false, listOf(BuiltinFunctionParam("color", setOf(DataType.UBYTE))), null),
+    "vm_gfx_pixel"     to FunctionSignature(false, listOf(
                                                         BuiltinFunctionParam("x", IntegerDatatypes),
                                                         BuiltinFunctionParam("y", IntegerDatatypes),
                                                         BuiltinFunctionParam("color", IntegerDatatypes)), null),
-    "_vm_gfx_line"     to FunctionSignature(false, listOf(
+    "vm_gfx_line"     to FunctionSignature(false, listOf(
                                                         BuiltinFunctionParam("x1", IntegerDatatypes),
                                                         BuiltinFunctionParam("y1", IntegerDatatypes),
                                                         BuiltinFunctionParam("x2", IntegerDatatypes),
                                                         BuiltinFunctionParam("y2", IntegerDatatypes),
                                                         BuiltinFunctionParam("color", IntegerDatatypes)), null),
-    "_vm_gfx_text"      to FunctionSignature(false, listOf(
+    "vm_gfx_text"      to FunctionSignature(false, listOf(
                                                         BuiltinFunctionParam("x", IntegerDatatypes),
                                                         BuiltinFunctionParam("y", IntegerDatatypes),
                                                         BuiltinFunctionParam("color", IntegerDatatypes),
@@ -157,7 +159,7 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
                 DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> DataType.UWORD
             }
         }
-        else -> throw FatalAstException("unknown result type for builtin function $function")
+        else -> return null
     }
 }
 

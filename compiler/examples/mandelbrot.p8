@@ -7,8 +7,8 @@
     const uword yoffset = 30
 
     sub start()  {
-        _vm_gfx_clearscr(11)
-        _vm_gfx_text(2, 1, 1, "Calculating Mandelbrot Fractal...")
+        vm_gfx_clearscr(11)
+        vm_gfx_text(2, 1, 1, "Calculating Mandelbrot Fractal...")
 
         for ubyte pixely in yoffset to yoffset+height-1 {
             float yy = flt((pixely-yoffset))/height/3.6+0.4
@@ -30,10 +30,10 @@
                     iter++
                 }
 
-                _vm_gfx_pixel(pixelx, pixely, iter)
+                vm_gfx_pixel(pixelx, pixely, iter)
             }
         }
-        _vm_gfx_text(11, 21, 1, "Finished!")
+        vm_gfx_text(11, 21, 1, "Finished!")
     }
 }
 
@@ -47,9 +47,9 @@
     memory ubyte jiffyclockLo = $a2
 
 sub irq()  {
-    _vm_gfx_pixel(jiffyclockLo,190,jiffyclockHi)
-    _vm_gfx_pixel(jiffyclockLo,191,jiffyclockMid)
-    _vm_gfx_pixel(jiffyclockLo,192,jiffyclockLo)
+    vm_gfx_pixel(jiffyclockLo,190,jiffyclockHi)
+    vm_gfx_pixel(jiffyclockLo,191,jiffyclockMid)
+    vm_gfx_pixel(jiffyclockLo,192,jiffyclockLo)
     return
 }
 }

@@ -15,16 +15,16 @@ import kotlin.math.*
 
 
 enum class Syscall(val callNr: Short) {
-    WRITE_MEMCHR(10),           // print a single char from the memory address popped from stack
-    WRITE_MEMSTR(11),           // print a 0-terminated petscii string from the memory address popped from stack
-    WRITE_NUM(12),              // pop from the evaluation stack and print it as a number
-    WRITE_CHAR(13),             // pop from the evaluation stack and print it as a single petscii character
-    WRITE_STR(14),              // pop from the evaluation stack and print it as a string
-    INPUT_STR(15),              // user input a string onto the stack, with max length (truncated) given by value on stack
-    GFX_PIXEL(16),              // plot a pixel at (x,y,color) pushed on stack in that order
-    GFX_CLEARSCR(17),           // clear the screen with color pushed on stack
-    GFX_TEXT(18),               // write text on screen at cursor position (x,y,color,text) pushed on stack in that order  (pixel pos= x*8, y*8)
-    GFX_LINE(19),               // draw line on screen at (x1,y1,x2,y2,color) pushed on stack in that order
+    VM_WRITE_MEMCHR(10),           // print a single char from the memory address popped from stack
+    VM_WRITE_MEMSTR(11),           // print a 0-terminated petscii string from the memory address popped from stack
+    VM_WRITE_NUM(12),              // pop from the evaluation stack and print it as a number
+    VM_WRITE_CHAR(13),             // pop from the evaluation stack and print it as a single petscii character
+    VM_WRITE_STR(14),              // pop from the evaluation stack and print it as a string
+    VM_INPUT_STR(15),              // user input a string onto the stack, with max length (truncated) given by value on stack
+    VM_GFX_PIXEL(16),              // plot a pixel at (x,y,color) pushed on stack in that order
+    VM_GFX_CLEARSCR(17),           // clear the screen with color pushed on stack
+    VM_GFX_TEXT(18),               // write text on screen at cursor position (x,y,color,text) pushed on stack in that order  (pixel pos= x*8, y*8)
+    VM_GFX_LINE(19),               // draw line on screen at (x1,y1,x2,y2,color) pushed on stack in that order
 
     FUNC_SIN(66),
     FUNC_COS(67),
@@ -64,6 +64,18 @@ enum class Syscall(val callNr: Short) {
     // some of them are straight opcodes (such as MSB, LSB, LSL, LSR, ROL_BYTE, ROR, ROL2, ROR2, and FLT)!
 }
 
+val syscallsForStackVm = setOf(
+        Syscall.VM_WRITE_MEMCHR,
+        Syscall.VM_WRITE_MEMSTR,
+        Syscall.VM_WRITE_NUM,
+        Syscall.VM_WRITE_CHAR,
+        Syscall.VM_WRITE_STR,
+        Syscall.VM_INPUT_STR,
+        Syscall.VM_GFX_PIXEL,
+        Syscall.VM_GFX_CLEARSCR,
+        Syscall.VM_GFX_TEXT,
+        Syscall.VM_GFX_LINE
+)
 
 class VmExecutionException(msg: String?) : Exception(msg)
 
@@ -1329,21 +1341,21 @@ class StackVm(private var traceOutputFile: String?) {
         val callId = ins.arg!!.integerValue().toShort()
         val syscall = Syscall.values().first { it.callNr == callId }
         when (syscall) {
-            Syscall.WRITE_MEMCHR -> {
+            Syscall.VM_WRITE_MEMCHR -> {
                 val address = evalstack.pop().integerValue()
                 print(Petscii.decodePetscii(listOf(mem.getUByte(address)), true))
             }
-            Syscall.WRITE_MEMSTR -> {
+            Syscall.VM_WRITE_MEMSTR -> {
                 val address = evalstack.pop().integerValue()
                 print(mem.getString(address))
             }
-            Syscall.WRITE_NUM -> {
+            Syscall.VM_WRITE_NUM -> {
                 print(evalstack.pop().numericValue())
             }
-            Syscall.WRITE_CHAR -> {
+            Syscall.VM_WRITE_CHAR -> {
                 print(Petscii.decodePetscii(listOf(evalstack.pop().integerValue().toShort()), true))
             }
-            Syscall.WRITE_STR -> {
+            Syscall.VM_WRITE_STR -> {
                 val value = evalstack.pop()
                 when(value.type){
                     DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT -> print(value.numericValue())
@@ -1353,31 +1365,31 @@ class StackVm(private var traceOutputFile: String?) {
                     DataType.ARRAY_F -> print(heap.get(value.heapId).doubleArray!!.toList())
                 }
             }
-            Syscall.INPUT_STR -> {
+            Syscall.VM_INPUT_STR -> {
                 val variable = evalstack.pop()
                 val value = heap.get(variable.heapId)
                 val maxlen = value.str!!.length
                 val input = readLine() ?: ""
                 heap.update(variable.heapId, input.padEnd(maxlen, '\u0000').substring(0, maxlen))
             }
-            Syscall.GFX_PIXEL -> {
+            Syscall.VM_GFX_PIXEL -> {
                 // plot pixel at (x, y, color) from stack
                 val color = evalstack.pop()
                 val (y, x) = evalstack.pop2()
                 canvas?.setPixel(x.integerValue(), y.integerValue(), color.integerValue())
             }
-            Syscall.GFX_LINE -> {
+            Syscall.VM_GFX_LINE -> {
                 // draw line at (x1, y1, x2, y2, color) from stack
                 val color = evalstack.pop()
                 val (y2, x2) = evalstack.pop2()
                 val (y1, x1) = evalstack.pop2()
                 canvas?.drawLine(x1.integerValue(), y1.integerValue(), x2.integerValue(), y2.integerValue(), color.integerValue())
             }
-            Syscall.GFX_CLEARSCR -> {
+            Syscall.VM_GFX_CLEARSCR -> {
                 val color = evalstack.pop()
                 canvas?.clearScreen(color.integerValue())
             }
-            Syscall.GFX_TEXT -> {
+            Syscall.VM_GFX_TEXT -> {
                 val textPtr = evalstack.pop()
                 val color = evalstack.pop()
                 val (cy, cx) = evalstack.pop2()

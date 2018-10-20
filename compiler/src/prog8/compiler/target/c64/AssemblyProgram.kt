@@ -42,11 +42,11 @@ class AssemblyProgram(val name: String) {
     private fun generateBreakpointList() {
         // builds list of breakpoints, appends to monitor list file
         val breakpoints = mutableListOf<String>()
-        val pattern = Regex("""al (\w+) \S+_prog8_breakpoint_\d+.?""")      // todo what's with the _prog8_breakpoint_? how to find breakpoint?
+        val pattern = Regex("""al (\w+) \S+_prog8_breakpoint_\d+.?""")      // gather breakpoints by the source label that's generated for them
         for(line in File(viceMonListFile).readLines()) {
             val match = pattern.matchEntire(line)
             if(match!=null)
-            breakpoints.add("break \$" + match.groupValues[0])        // todo check
+            breakpoints.add("break \$" + match.groupValues[0])        // todo check this
         }
         val num = breakpoints.size
         breakpoints.add(0, "; vice monitor breakpoint list now follows")

@@ -1,8 +1,10 @@
 package prog8.compiler.target.c64
 
 import prog8.ast.DataType
+import prog8.ast.StringDatatypes
 import prog8.compiler.*
 import prog8.compiler.intermediate.*
+import prog8.stackvm.syscallsForStackVm
 import java.io.File
 import java.io.PrintWriter
 import java.util.*
@@ -15,6 +17,7 @@ class AssemblyError(msg: String) : RuntimeException(msg)
 class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, val heap: HeapValues) {
     private val globalFloatConsts = mutableMapOf<Double, String>()
     private lateinit var output: PrintWriter
+    private var breakpointCounter = 0
 
     init {
         // Because 64tass understands scoped names via .proc / .block,
@@ -638,7 +641,10 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     out("\tsta  ${(nextIns.arg.integerValue()+1).toHex()}")
                     return 1    // skip 1
                 }
-                pushWord(ins.arg!!.integerValue())
+                if(ins.arg!!.type in StringDatatypes) {
+                    TODO("strings from heap")
+                }
+                pushWord(ins.arg.integerValue())
             }
             Opcode.PUSH_MEM_UW, Opcode.PUSH_MEM_W -> {
                 val nextIns = block.getIns(insIdx+1)
@@ -878,12 +884,40 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 out("+\tsta  ${(ESTACK_LO+1).toHex()},x")
                 out("\tsta  ${(ESTACK_HI+1).toHex()},x")
             }
+            Opcode.SYSCALL -> {
+                if(ins.arg!!.numericValue() in syscallsForStackVm.map { it.callNr })
+                    throw CompilerException("cannot translate vm syscalls to real assembly calls - use *real* subroutine calls instead. Syscall ${ins.arg.numericValue()}")
+                TODO("syscall $ins")
+            }
+            Opcode.BREAKPOINT -> {
+                breakpointCounter++
+                out("_prog8_breakpoint_$breakpointCounter\tnop")
+            }
+            Opcode.BCS -> out("\tbcs  ${ins.callLabel}")
+            Opcode.BCC -> out("\tbcc  ${ins.callLabel}")
+            Opcode.BZ -> out("\tbeq  ${ins.callLabel}")
+            Opcode.BNZ -> out("\tbne  ${ins.callLabel}")
+            Opcode.BNEG -> out("\tbmi  ${ins.callLabel}")
+            Opcode.BPOS -> out("\tbpl  ${ins.callLabel}")
+            Opcode.POP_MEM_W, Opcode.POP_MEM_UW -> {
+                popWordAY()
+                out("\tsta  ${ins.callLabel}")
+                out("\tsty  ${ins.callLabel}+1")
+            }
+            Opcode.SHL_BYTE -> out("\tasl  ${ESTACK_LO.toHex()},x")
+            Opcode.SHR_BYTE -> out("\tlsr  ${ESTACK_LO.toHex()},x")
+            Opcode.ROL_BYTE -> out("\trol  ${ESTACK_LO.toHex()},x")   // 9-bit rotate (w/carry)
+            Opcode.ROR_BYTE -> out("\tror  ${ESTACK_LO.toHex()},x")   // 9-bit rotate (w/carry)
+            Opcode.ROL2_BYTE -> out("\tcmp  #$80\n\trol")   // 8-bit rotate
+            Opcode.ROR2_BYTE -> {   // 8 bit rotate
+                out("\tlsr  a")
+                out("\tbcc  +")
+                out("\tora  #$80")
+                out("+")
+            }
 
             else-> TODO("asm for $ins")
-//            Opcode.POP_MEM_W -> TODO()
-//            Opcode.POP_MEM_UW -> TODO()
 //            Opcode.POP_MEM_FLOAT -> TODO()
-//            Opcode.POP_VAR_WORD -> TODO()
 //            Opcode.POP_VAR_FLOAT -> TODO()
 //            Opcode.COPY_VAR_FLOAT -> TODO()
 //            Opcode.INC_VAR_W -> TODO()
@@ -923,37 +957,31 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 //            Opcode.POW_F -> TODO()
 //            Opcode.NEG_W -> TODO()
 //            Opcode.NEG_F -> TODO()
-//            Opcode.SHL_BYTE -> TODO()
 //            Opcode.SHL_WORD -> TODO()
 //            Opcode.SHL_MEM_BYTE -> TODO()
 //            Opcode.SHL_MEM_WORD -> TODO()
 //            Opcode.SHL_VAR_BYTE -> TODO()
 //            Opcode.SHL_VAR_WORD -> TODO()
-//            Opcode.SHR_BYTE -> TODO()
 //            Opcode.SHR_WORD -> TODO()
 //            Opcode.SHR_MEM_BYTE -> TODO()
 //            Opcode.SHR_MEM_WORD -> TODO()
 //            Opcode.SHR_VAR_BYTE -> TODO()
 //            Opcode.SHR_VAR_WORD -> TODO()
-//            Opcode.ROL_BYTE -> TODO()
 //            Opcode.ROL_WORD -> TODO()
 //            Opcode.ROL_MEM_BYTE -> TODO()
 //            Opcode.ROL_MEM_WORD -> TODO()
 //            Opcode.ROL_VAR_BYTE -> TODO()
 //            Opcode.ROL_VAR_WORD -> TODO()
-//            Opcode.ROR_BYTE -> TODO()
 //            Opcode.ROR_WORD -> TODO()
 //            Opcode.ROR_MEM_BYTE -> TODO()
 //            Opcode.ROR_MEM_WORD -> TODO()
 //            Opcode.ROR_VAR_BYTE -> TODO()
 //            Opcode.ROR_VAR_WORD -> TODO()
-//            Opcode.ROL2_BYTE -> TODO()
 //            Opcode.ROL2_WORD -> TODO()
 //            Opcode.ROL2_MEM_BYTE -> TODO()
 //            Opcode.ROL2_MEM_WORD -> TODO()
 //            Opcode.ROL2_VAR_BYTE -> TODO()
 //            Opcode.ROL2_VAR_WORD -> TODO()
-//            Opcode.ROR2_BYTE -> TODO()
 //            Opcode.ROR2_WORD -> TODO()
 //            Opcode.ROR2_MEM_BYTE -> TODO()
 //            Opcode.ROR2_MEM_WORD -> TODO()
@@ -1012,14 +1040,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 //            Opcode.WRITE_INDEXED_VAR_BYTE -> TODO()
 //            Opcode.WRITE_INDEXED_VAR_WORD -> TODO()
 //            Opcode.WRITE_INDEXED_VAR_FLOAT -> TODO()
-//            Opcode.BCS -> TODO()
-//            Opcode.BCC -> TODO()
-//            Opcode.BZ -> TODO()
-//            Opcode.BNZ -> TODO()
-//            Opcode.BNEG -> TODO()
-//            Opcode.BPOS -> TODO()
-//            Opcode.SYSCALL -> TODO()
-//            Opcode.BREAKPOINT -> TODO()
         }
         return 0
     }

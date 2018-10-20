@@ -335,13 +335,12 @@ class AstChecker(private val namespace: INameScope,
             // check augmented assignment:
             // A /= 3  -> check as if it was A = A / 3
             val target: IExpression =
-                    if(assignment.target.register!=null)
-                        RegisterExpr(assignment.target.register!!, assignment.target.position)
-                    else if(assignment.target.identifier!=null)
-                        assignment.target.identifier!!
-                    else if(assignment.target.arrayindexed!=null) {
-                        assignment.target.arrayindexed!!
-                    } else throw FatalAstException("strange assignment")
+                    when {
+                        assignment.target.register!=null -> RegisterExpr(assignment.target.register!!, assignment.target.position)
+                        assignment.target.identifier!=null -> assignment.target.identifier!!
+                        assignment.target.arrayindexed!=null -> assignment.target.arrayindexed!!
+                        else -> throw FatalAstException("strange assignment")
+                    }
 
             val expression = BinaryExpression(target, assignment.aug_op.substringBeforeLast('='), assignment.value, assignment.position)
             expression.linkParents(assignment.parent)
@@ -883,7 +882,7 @@ class AstChecker(private val namespace: INameScope,
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         val constX = arrayspec.x.constValue(namespace, heap)
                         val constY = arrayspec.y?.constValue(namespace, heap)
-                        if (constX?.asIntegerValue == null || (constY!=null && constY?.asIntegerValue == null))
+                        if (constX?.asIntegerValue == null || (constY!=null && constY.asIntegerValue == null))
                             return err("matrix size specifiers must be constant integer values")
                         val matrix = heap.get(value.heapId!!).array!!
                         val expectedSize =

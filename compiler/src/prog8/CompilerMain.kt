@@ -57,9 +57,11 @@ fun main(args: Array<String>) {
                             // error will be printed by the astchecker
                         }
         val zpReserved = moduleAst.statements
+                .asSequence()
                 .filter{it is Directive && it.directive=="%zpreserved"}
                 .map{ (it as Directive).args }
                 .map{ it[0].int!! .. it[1].int!! }
+                .toList()
 
         val compilerOptions = CompilationOptions(
                 if(outputType==null) OutputType.PRG else OutputType.valueOf(outputType),

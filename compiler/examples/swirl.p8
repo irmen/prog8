@@ -7,7 +7,7 @@
 
     sub start()  {
 
-        _vm_gfx_clearscr(0)
+        vm_gfx_clearscr(0)
 
         float t
         ubyte color
@@ -15,7 +15,7 @@
         while(1) {
             float x = sin(t*1.01) + cos(t*1.1234)
             float y = cos(t) + sin(t*0.03456)
-            _vm_gfx_pixel(screenx(x), screeny(y), color//16)
+            vm_gfx_pixel(screenx(x), screeny(y), color//16)
             t  += 0.01
             color++
         }

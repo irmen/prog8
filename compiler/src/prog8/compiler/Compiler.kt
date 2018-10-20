@@ -593,7 +593,6 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 val target = expr.target.targetStatement(namespace)
                 if(target is BuiltinFunctionStatementPlaceholder) {
                     // call to a builtin function (some will just be an opcode!)
-                    expr.arglist.forEach { translate(it) }
                     val funcname = expr.target.nameInSource[0]
                     translateFunctionCall(funcname, expr.arglist)
                 } else {
@@ -696,7 +695,6 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         prog.line(stmt.position)
         val targetStmt = stmt.target.targetStatement(namespace)!!
         if(targetStmt is BuiltinFunctionStatementPlaceholder) {
-            stmt.arglist.forEach { translate(it) }
             val funcname = stmt.target.nameInSource[0]
             translateFunctionCall(funcname, stmt.arglist)
             return
@@ -720,9 +718,9 @@ private class StatementTranslator(private val prog: IntermediateProgram,
 
     private fun translateFunctionCall(funcname: String, args: List<IExpression>) {
         // some functions are implemented as vm opcodes
-        // note: the arguments of the call have already been translated and put on the eval stack!
+        args.forEach { translate(it) }  // place function argument(s) on the stack
         when (funcname) {
-            "flt" -> {
+            "flt" -> {  // todo: this is translated ok!
                 // 1 argument, type determines the exact opcode to use
                 val arg = args.single()
                 when (arg.resultingDatatype(namespace, heap)) {
@@ -734,64 +732,82 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     else -> throw CompilerException("wrong datatype for flt()")
                 }
             }
-            "msb" -> prog.instr(Opcode.MSB)
-            "lsb" -> prog.instr(Opcode.LSB)
-            "b2ub" -> prog.instr(Opcode.B2UB)
-            "ub2b" -> prog.instr(Opcode.UB2B)
+            "msb" -> prog.instr(Opcode.MSB)     // todo: is translated ok!
+            "lsb" -> prog.instr(Opcode.LSB)     // todo: is translated ok!
+            "b2ub" -> prog.instr(Opcode.B2UB)   // todo: is translated ok!
+            "ub2b" -> prog.instr(Opcode.UB2B)   // todo: is translated ok!
             "lsl" -> {
                 val arg = args.single()
-                when (arg.resultingDatatype(namespace, heap)) {
+                val dt = arg.resultingDatatype(namespace, heap)
+                when (dt) {
                     DataType.UBYTE -> prog.instr(Opcode.SHL_BYTE)
                     DataType.UWORD -> prog.instr(Opcode.SHL_WORD)
                     else -> throw CompilerException("wrong datatype")
                 }
+                // this function doesn't return a value on the stack so we pop it directly into the argument register/variable again
+                popValueIntoTarget(AssignTarget.fromExpr(arg), dt)
             }
             "lsr" -> {
                 val arg = args.single()
-                when (arg.resultingDatatype(namespace, heap)) {
+                val dt = arg.resultingDatatype(namespace, heap)
+                when (dt) {
                     DataType.UBYTE -> prog.instr(Opcode.SHR_BYTE)
                     DataType.UWORD -> prog.instr(Opcode.SHR_WORD)
                     else -> throw CompilerException("wrong datatype")
                 }
+                // this function doesn't return a value on the stack so we pop it directly into the argument register/variable again
+                popValueIntoTarget(AssignTarget.fromExpr(arg), dt)
             }
             "rol" -> {
                 val arg = args.single()
-                when (arg.resultingDatatype(namespace, heap)) {
+                val dt = arg.resultingDatatype(namespace, heap)
+                when (dt) {
                     DataType.UBYTE -> prog.instr(Opcode.ROL_BYTE)
                     DataType.UWORD -> prog.instr(Opcode.ROL_WORD)
                     else -> throw CompilerException("wrong datatype")
                 }
+                // this function doesn't return a value on the stack so we pop it directly into the argument register/variable again
+                popValueIntoTarget(AssignTarget.fromExpr(arg), dt)
             }
             "ror" -> {
                 val arg = args.single()
-                when (arg.resultingDatatype(namespace, heap)) {
+                val dt = arg.resultingDatatype(namespace, heap)
+                when (dt) {
                     DataType.UBYTE, DataType.BYTE -> prog.instr(Opcode.ROR_BYTE)
                     DataType.UWORD, DataType.WORD -> prog.instr(Opcode.ROR_WORD)
                     else -> throw CompilerException("wrong datatype")
                 }
+                // this function doesn't return a value on the stack so we pop it directly into the argument register/variable again
+                popValueIntoTarget(AssignTarget.fromExpr(arg), dt)
             }
             "rol2" -> {
                 val arg = args.single()
-                when (arg.resultingDatatype(namespace, heap)) {
+                val dt = arg.resultingDatatype(namespace, heap)
+                when (dt) {
                     DataType.UBYTE, DataType.BYTE -> prog.instr(Opcode.ROL2_BYTE)
                     DataType.UWORD, DataType.WORD -> prog.instr(Opcode.ROL2_WORD)
                     else -> throw CompilerException("wrong datatype")
                 }
+                // this function doesn't return a value on the stack so we pop it directly into the argument register/variable again
+                popValueIntoTarget(AssignTarget.fromExpr(arg), dt)
             }
             "ror2" -> {
                 val arg = args.single()
-                when (arg.resultingDatatype(namespace, heap)) {
+                val dt = arg.resultingDatatype(namespace, heap)
+                when (dt) {
                     DataType.UBYTE, DataType.BYTE -> prog.instr(Opcode.ROR2_BYTE)
                     DataType.UWORD, DataType.WORD -> prog.instr(Opcode.ROR2_WORD)
                     else -> throw CompilerException("wrong datatype")
                 }
+                // this function doesn't return a value on the stack so we pop it directly into the argument register/variable again
+                popValueIntoTarget(AssignTarget.fromExpr(arg), dt)
             }
-            "set_carry" -> prog.instr(Opcode.SEC)
-            "clear_carry" -> prog.instr(Opcode.CLC)
-            "set_irqd" -> prog.instr(Opcode.SEI)
-            "clear_irqd" -> prog.instr(Opcode.CLI)
-            "rsave" -> prog.instr(Opcode.RSAVE)
-            "rrestore" -> prog.instr(Opcode.RRESTORE)
+            "set_carry" -> prog.instr(Opcode.SEC)       // todo: compiled ok!!
+            "clear_carry" -> prog.instr(Opcode.CLC)// todo: compiled ok!!
+            "set_irqd" -> prog.instr(Opcode.SEI)// todo: compiled ok!!
+            "clear_irqd" -> prog.instr(Opcode.CLI)// todo: compiled ok!!
+            "rsave" -> prog.instr(Opcode.RSAVE)// todo: compiled ok!!
+            "rrestore" -> prog.instr(Opcode.RRESTORE)// todo: compiled ok!!
             else -> createSyscall(funcname)  // call builtin function
         }
     }
@@ -1056,8 +1072,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
 
     private fun createSyscall(funcname: String) {
         val function = (
-                if (funcname.startsWith("_vm_"))
-                    funcname.substring(4)
+                if (funcname.startsWith("vm_"))
+                    funcname
                 else
                     "FUNC_$funcname"
                 ).toUpperCase()
@@ -1181,30 +1197,34 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         }
 
         // pop the result value back into the assignment target
+        val datatype = stmt.target.determineDatatype(namespace, heap, stmt)!!
+        popValueIntoTarget(stmt.target, datatype)
+    }
+
+    private fun popValueIntoTarget(assignTarget: AssignTarget, datatype: DataType) {
         when {
-            stmt.target.identifier!=null -> {
-                val target = stmt.target.identifier!!.targetStatement(namespace)!!
+            assignTarget.identifier != null -> {
+                val target = assignTarget.identifier.targetStatement(namespace)!!
                 if (target is VarDecl) {
-                    when(target.type) {
+                    when (target.type) {
                         VarDeclType.VAR -> {
-                            val opcode = opcodePopvar(stmt.target.determineDatatype(namespace, heap, stmt)!!)
+                            val opcode = opcodePopvar(datatype)
                             prog.instr(opcode, callLabel = target.scopedname)
                         }
                         VarDeclType.MEMORY -> {
-                            val opcode = opcodePopmem(stmt.target.determineDatatype(namespace, heap, stmt)!!)
+                            val opcode = opcodePopmem(datatype)
                             val address = target.value?.constValue(namespace, heap)!!.asIntegerValue!!
                             prog.instr(opcode, Value(DataType.UWORD, address))
                         }
                         VarDeclType.CONST -> throw CompilerException("cannot assign to const")
                     }
-                }
-                else throw CompilerException("invalid assignment target type ${target::class}")
+                } else throw CompilerException("invalid assignment target type ${target::class}")
             }
-            stmt.target.register!=null -> {
-                val opcode=opcodePopvar(stmt.target.register!!)
-                prog.instr(opcode, callLabel = stmt.target.register.toString())
+            assignTarget.register != null -> {
+                val opcode = opcodePopvar(assignTarget.register)
+                prog.instr(opcode, callLabel = assignTarget.register.toString())
             }
-            stmt.target.arrayindexed!=null -> translate(stmt.target.arrayindexed!!, true)     // write value to it
+            assignTarget.arrayindexed != null -> translate(assignTarget.arrayindexed, true)     // write value to it
         }
     }
 

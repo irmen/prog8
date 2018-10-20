@@ -54,7 +54,7 @@ class Program (val name: String,
                               labels: MutableMap<String, Instruction>)
         {
             while(true) {
-                val (lineNr, line) = lines.next()
+                val (_, line) = lines.next()
                 if(line.isEmpty())
                     continue
                 else if(line=="%end_block")
@@ -73,7 +73,7 @@ class Program (val name: String,
             val splitpattern = Pattern.compile("\\s+")
             val heapvalues = mutableListOf<Triple<Int, DataType, String>>()
             while(true) {
-                val (lineNr, line) = lines.next()
+                val (_, line) = lines.next()
                 if (line == "%end_heap")
                     break
                 val parts = line.split(splitpattern, limit=3)
@@ -185,7 +185,7 @@ class Program (val name: String,
                              vars: MutableMap<String, Value>): Map<String, Value> {
             val splitpattern = Pattern.compile("\\s+")
             while(true) {
-                val (lineNr, line) = lines.next()
+                val (_, line) = lines.next()
                 if(line=="%end_variables")
                     return vars
                 val (name, typeStr, valueStr) = line.split(splitpattern, limit = 3)

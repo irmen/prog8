@@ -33,12 +33,12 @@
         while(1) {
             if irq.time_changed {
                 irq.time_changed = 0
-                _vm_gfx_clearscr(0)
-                _vm_gfx_text(8, 6, 1, "Spin")
-                _vm_gfx_text(29, 11, 1, "to Win !")
+                vm_gfx_clearscr(0)
+                vm_gfx_text(8, 6, 1, "Spin")
+                vm_gfx_text(29, 11, 1, "to Win !")
 
                 for uword i in 0 to width//10 {
-                    _vm_gfx_line(i*2+width//2-width//10, 130, i*10.w, 199, 6)
+                    vm_gfx_line(i*2+width//2-width//10, 130, i*10.w, 199, 6)
                 }
 
                 rotate_vertices(flt(irq.global_time) / 30.0)
@@ -90,7 +90,7 @@
         for uword edge in edges {
             ubyte e_from = msb(edge)
             ubyte e_to = lsb(edge)
-            _vm_gfx_line(toscreenx(rotatedx[e_from], rotatedz[e_from]), toscreeny(rotatedy[e_from], rotatedz[e_from]),
+            vm_gfx_line(toscreenx(rotatedx[e_from], rotatedz[e_from]), toscreeny(rotatedy[e_from], rotatedz[e_from]),
                          toscreenx(rotatedx[e_to], rotatedz[e_to]), toscreeny(rotatedy[e_to], rotatedz[e_to]), e_from+e_to)
         }
 
@@ -99,19 +99,19 @@
             word sx = toscreenx(rotatedx[i], rotatedz[i])
             word sy = toscreeny(rotatedy[i], rotatedz[i])
             ubyte color=i+2
-            _vm_gfx_pixel(sx-1, sy-1, color)
-            _vm_gfx_pixel(sx, sy-1, color)
-            _vm_gfx_pixel(sx+1, sy-1, color)
-            _vm_gfx_pixel(sx-1, sy, color)
-            _vm_gfx_pixel(sx, sy, color)
-            _vm_gfx_pixel(sx+1, sy, color)
-            _vm_gfx_pixel(sx-1, sy+1, color)
-            _vm_gfx_pixel(sx, sy+1, color)
-            _vm_gfx_pixel(sx+1, sy+1, color)
-            _vm_gfx_pixel(sx, sy-2, color)
-            _vm_gfx_pixel(sx+2, sy, color)
-            _vm_gfx_pixel(sx, sy+2, color)
-            _vm_gfx_pixel(sx-2, sy, color)
+            vm_gfx_pixel(sx-1, sy-1, color)
+            vm_gfx_pixel(sx, sy-1, color)
+            vm_gfx_pixel(sx+1, sy-1, color)
+            vm_gfx_pixel(sx-1, sy, color)
+            vm_gfx_pixel(sx, sy, color)
+            vm_gfx_pixel(sx+1, sy, color)
+            vm_gfx_pixel(sx-1, sy+1, color)
+            vm_gfx_pixel(sx, sy+1, color)
+            vm_gfx_pixel(sx+1, sy+1, color)
+            vm_gfx_pixel(sx, sy-2, color)
+            vm_gfx_pixel(sx+2, sy, color)
+            vm_gfx_pixel(sx, sy+2, color)
+            vm_gfx_pixel(sx-2, sy, color)
         }
     }
 }

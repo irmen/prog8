@@ -693,6 +693,17 @@ data class AssignTarget(val register: Register?,
 
     fun process(processor: IAstProcessor) = processor.process(this)
 
+    companion object {
+        fun fromExpr(expr: IExpression): AssignTarget {
+            return when (expr) {
+                is RegisterExpr -> AssignTarget(expr.register, null, null, expr.position)
+                is IdentifierReference -> AssignTarget(null, expr, null, expr.position)
+                is ArrayIndexedExpression -> AssignTarget(null, null, expr, expr.position)
+                else -> throw FatalAstException("invalid expression object $expr")
+            }
+        }
+    }
+
     fun determineDatatype(namespace: INameScope, heap: HeapValues, stmt: IStatement): DataType? {
         if(register!=null)
             return when(register){

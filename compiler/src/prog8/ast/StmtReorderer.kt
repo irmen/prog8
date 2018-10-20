@@ -21,7 +21,7 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
         super.process(module)
 
         val (blocks, other) = module.statements.partition { it is Block }
-        module.statements = other.plus(blocks.sortedBy { (it as Block).address ?: Int.MAX_VALUE }).toMutableList()
+        module.statements = other.asSequence().plus(blocks.sortedBy { (it as Block).address ?: Int.MAX_VALUE }).toMutableList()
 
         val mainBlock = module.statements.single { it is Block && it.name=="main" }
         if((mainBlock as Block).address==null) {
