@@ -1,7 +1,7 @@
 package prog8.compiler.target.c64
 
 import prog8.ast.DataType
-import prog8.ast.StringDatatypes
+import prog8.ast.Register
 import prog8.compiler.*
 import prog8.compiler.intermediate.*
 import prog8.stackvm.syscallsForStackVm
@@ -11,12 +11,15 @@ import java.util.*
 import kotlin.math.abs
 
 
+private val registerStrings = Register.values().map{it.toString()}.toSet()
+
 class AssemblyError(msg: String) : RuntimeException(msg)
 
 
 class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, val heap: HeapValues) {
     private val globalFloatConsts = mutableMapOf<Double, String>()
     private lateinit var output: PrintWriter
+    private lateinit var block: IntermediateProgram.ProgramBlock
     private var breakpointCounter = 0
 
     init {
@@ -68,8 +71,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         output = File("${program.name}.asm").printWriter()
         output.use {
             header()
-            for(block in program.blocks)
-                block2asm(block)
+            for(b in program.blocks)
+                block2asm(b)
         }
 
         return AssemblyProgram(program.name)
@@ -98,16 +101,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 name = "${parts[0]}.${parts[1].replace(".", "_")}"
         }
         return name.replace("-", "")
-    }
-
-
-    private fun copyFloat(source: String, target: String) {
-        // todo: optimize this to bulk copy all floats in the same loop
-        out("\tldy #4")
-        out("-\tlda  $source,y")
-        out("\tsta  $target,y")
-        out("\tdey")
-        out("\tbpl  -")
     }
 
     private fun makeFloatFill(flt: Mflpt5): String {
@@ -166,7 +159,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         }
     }
 
-    private fun block2asm(block: IntermediateProgram.ProgramBlock) {
+    private fun block2asm(blk: IntermediateProgram.ProgramBlock) {
+        block = blk
         out("\n; ---- block: '${block.shortname}' ----")
         if(block.address!=null) {
             out(".cerror * > ${block.address?.toHex()}, 'block address overlaps by ', *-${block.address?.toHex()},' bytes'")
@@ -179,12 +173,15 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         vardecls2asm(block)
         out("")
 
-        var skip = 0
-        for(ins in block.instructions.withIndex()) {
-            if(skip==0)
-                skip = instr2asm(ins.index, ins.value, block)
-            else
-                skip--
+        val instructionPatternWindowSize = 6
+        var processed = 0
+        for(ins in block.instructions.windowed(instructionPatternWindowSize, partialWindows = true)) {
+            if(processed==0) {
+                processed = instr2asm(ins)
+                if(processed == 0)
+                    throw CompilerException("no asm translation found for instruction pattern: $ins")
+            }
+            processed--
         }
         out("\n\t.pend\n")
     }
@@ -315,239 +312,416 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         else throw AssemblyError("invalid array type")
     }
 
-    private val registerStrings = setOf("A", "X", "Y", "AX", "AY", "XY")
-
-
     // note: to put stuff on the stack, we use Absolute,X  addressing mode which is 3 bytes / 4 cycles
     // possible space optimization is to use zeropage (indirect),Y  which is 2 bytes, but 5 cycles
 
-    private fun pushByte(byte: Int) {
-        out("\tlda  #${byte.toHex()}")
-        pushByteA()
-    }
-
-    private fun pushByteA() {
-        out("\tsta  ${ESTACK_LO.toHex()},x")
-        out("\tdex")
-    }
-
-    private fun pushByteY() {
-        out("\ttya")
-        out("\tsta  ${ESTACK_LO.toHex()},x")
-        out("\tdex")
-    }
-
-    private fun replaceByteA() {
-        out("\tsta  ${(ESTACK_LO+1).toHex()},x")
-    }
-
-    private fun pushMemByte(address: Int) {
-        out("\tlda  ${address.toHex()}")
-        out("\tsta  ${ESTACK_LO.toHex()},x")
-        out("\tdex")
-    }
-
-    private fun pushVarByte(name: String) {
-        out("\tlda  $name")
-        out("\tsta  ${ESTACK_LO.toHex()},x")
-        out("\tdex")
-    }
-
-    private fun pushWord(word: Int) {
-        out("\tlda  #<${word.toHex()}")
-        out("\tsta  ${ESTACK_LO.toHex()},x")
-        out("\tlda  #<${word.toHex()}")
-        out("\tsta  ${ESTACK_HI.toHex()},x")
-        out("\tdex")
-    }
-
-    private fun pushWordAY() {
-        out("\tsta  ${ESTACK_LO.toHex()},x")
-        out("\ttya")
-        out("\tsta  ${ESTACK_HI.toHex()},x")
-        out("\tdex")
-    }
-
-    private fun replaceWordAY() {
-        out("\tsta  ${(ESTACK_LO+1).toHex()},x")
-        out("\ttya")
-        out("\tsta  ${(ESTACK_HI+1).toHex()},x")
-    }
-
-    private fun pushMemWord(address: Int) {
-        out("\tlda  ${address.toHex()}")
-        out("\tsta  ${ESTACK_LO.toHex()},x")
-        out("\tlda  ${(address+1).toHex()}")
-        out("\tsta  ${ESTACK_HI.toHex()},x")
-        out("\tdex")
-    }
-
-    private fun pushVarWord(name: String) {
-        out("\tlda  $name")
-        out("\tsta  ${ESTACK_LO.toHex()},x")
-        out("\tlda  $name+1")
-        out("\tsta  ${ESTACK_HI.toHex()},x")
-        out("\tdex")
-    }
-
-    private fun pushFloat(label: String) {
-        // todo this is too large for inline, make a subroutine
-        out("\tlda  $label")
-        out("\tsta  ${ESTACK_LO.toHex()},x")
-        out("\tlda  $label+1")
-        out("\tsta  ${ESTACK_HI.toHex()},x")
-        out("\tdex")
-        out("\tlda  $label+2")
-        out("\tsta  ${ESTACK_LO.toHex()},x")
-        out("\tlda  $label+3")
-        out("\tsta  ${ESTACK_HI.toHex()},x")
-        out("\tdex")
-        out("\tlda  $label+4")
-        out("\tsta  ${ESTACK_LO.toHex()},x")
-        // 6th byte is not used for floats
-        out("\tdex")
-    }
-
-    private fun popByteA() {
-        // for operations that remove a value from the stack
-        out("\tinx")
-        out("\tlda  ${ESTACK_LO.toHex()},x")
-    }
-
-    private fun popByteY() {
-        // for operations that remove a value from the stack
-        out("\tinx")
-        out("\tldy  ${ESTACK_LO.toHex()},x")
-    }
-
-    private fun peekByteA() {
-        // for operations that modify a value on the stack
-        out("\tlda  ${(ESTACK_LO+1).toHex()},x")
-    }
-
-    private fun peekByte2A() {
-        // for operations that modify a value on the stack, 1 under the top
-        out("\tlda  ${(ESTACK_LO+2).toHex()},x")
-    }
-
-    private fun popWordAY() {
-        // for operations that remove a value from the stack
-        out("\ninx")
-        out("\tlda  ${ESTACK_LO.toHex()},x")
-        out("\tldy  ${ESTACK_HI.toHex()},x")
-    }
-
-    private fun peekWordAY() {
-        // for operations that modify a value on the stack
-        out("\tlda  ${(ESTACK_LO+1).toHex()},x")
-        out("\tldy  ${(ESTACK_HI+1).toHex()},x")
-    }
-
-    private fun peekWord2AY() {
-        // for operations that modify a value on the stack, 1 under the top
-        out("\tlda  ${(ESTACK_LO+2).toHex()},x")
-        out("\tldy  ${(ESTACK_HI+2).toHex()},x")
-    }
-
-    private fun instr2asm(insIdx: Int, ins: Instruction, block: IntermediateProgram.ProgramBlock): Int {
-        if(ins is LabelInstr) {
-            if(ins.name==block.shortname)
-                return 0
-            if(ins.name.startsWith("${block.shortname}."))
-                out(ins.name.substring(block.shortname.length+1))
-            else
-                out(ins.name)
+    private fun instr2asm(ins: List<Instruction>): Int {
+        // find best patterns (matching the most of the lines, then with the smallest weight)
+        val fragments = findPatterns(ins).sortedWith(compareBy({it.segmentSize}, {it.prio}))
+        if(fragments.isEmpty()) {
+            val firstIns = ins[0]
+            val singleAsm = simpleInstr2Asm(firstIns)
+            if(singleAsm != null) {
+                if(singleAsm.isNotEmpty()) {
+                    for(line in singleAsm.split('|')) {
+                        val trimmed = if(line.startsWith(' ')) "\t"+line.trim() else line.trim()
+                        out(trimmed)
+                    }
+                }
+                return 1
+            }
             return 0
         }
-        when(ins.opcode) {
-            Opcode.LINE -> out("\t; src line: ${ins.callLabel}")
-            Opcode.NOP -> out("\tnop")      // shouldn't be present anymore though
-            Opcode.TERMINATE -> out("\tbrk\t; terminate!")
-            Opcode.SEC -> out("\tsec")
-            Opcode.CLC -> out("\tclc")
-            Opcode.SEI -> out("\tsei")
-            Opcode.CLI -> out("\tcli")
-            Opcode.JUMP -> out("\tjmp  ${ins.callLabel}")
-            Opcode.CALL -> out("\tjsr  ${ins.callLabel}")
-            Opcode.RETURN -> out("\trts")       // todo is return really this simple?
-            Opcode.B2UB -> {}       // is a no-op, just carry on with the byte as-is
-            Opcode.UB2B -> {}       // is a no-op, just carry on with the byte as-is
-            Opcode.RSAVE -> out("\tphp\n\tpha\n\ttxa\n\tpha\n\ttya\n\tpha")
-            Opcode.RRESTORE -> out("\tpla\n\ttay\n\tpla\n\ttax\n\tpla\n\tplp")
-            Opcode.DISCARD_BYTE -> out("\tinx")                     // remove 1 (2) bytes from stack
-            Opcode.DISCARD_WORD -> out("\tinx")                     // remove 2 bytes from stack
-            Opcode.DISCARD_FLOAT -> out("\tinx\n\tinx\n\tinx")      // remove 5 (6) bytes from stack
-            Opcode.INLINE_ASSEMBLY -> out(ins.callLabel)        // All of the inline assembly is stored in the calllabel property.
+        val best = fragments[0]
+        if(best.asm.isNotEmpty()) {
+            for (line in best.asm.split('|')) {
+                val trimmed = if (line.startsWith(' ')) "\t" + line.trim() else line.trim()
+                out(trimmed)
+            }
+        }
+        return best.segmentSize
+    }
+
+    private fun simpleInstr2Asm(ins: Instruction): String? {
+        // a label 'instruction' is simply translated into a asm label
+        if(ins is LabelInstr) {
+            if(ins.name==block.shortname)
+                return ""
+            return if(ins.name.startsWith("${block.shortname}."))
+                ins.name.substring(block.shortname.length+1)
+            else
+                ins.name
+        }
+
+        // simple opcodes that are translated directly into one or a few asm instructions
+        return when(ins.opcode) {
+            Opcode.LINE -> " ;\tsrc line: ${ins.callLabel}"
+            Opcode.NOP -> " nop"      // shouldn't be present anymore though
+            Opcode.TERMINATE -> " brk"
+            Opcode.SEC -> " sec"
+            Opcode.CLC -> " clc"
+            Opcode.SEI -> " sei"
+            Opcode.CLI -> " cli"
+            Opcode.JUMP -> " jmp  ${ins.callLabel}"
+            Opcode.CALL -> " jsr  ${ins.callLabel}"
+            Opcode.RETURN -> " rts"
+            Opcode.B2UB -> ""   // is a no-op, just carry on with the byte as-is
+            Opcode.UB2B -> ""   // is a no-op, just carry on with the byte as-is
+            Opcode.RSAVE -> " php |  pha |  txa |  pha |  tya |  pha"
+            Opcode.RRESTORE -> " pla |  tay |  pla |  tax |  pla |  plp"
+            Opcode.DISCARD_BYTE -> " inx"
+            Opcode.DISCARD_WORD -> " inx"
+            Opcode.DISCARD_FLOAT -> " inx |  inx |  inx"
+            Opcode.INLINE_ASSEMBLY -> ins.callLabel ?: ""        // All of the inline assembly is stored in the calllabel property.
             Opcode.COPY_VAR_BYTE -> {
                 when {
                     ins.callLabel2 in registerStrings -> {
-                        if(ins.callLabel in registerStrings) {
-                            // copying register -> register
-                            when {
-                                ins.callLabel == "A" -> out("\tta${ins.callLabel2!!.toLowerCase()}")
-                                ins.callLabel == "X" ->
-                                    if (ins.callLabel2 == "Y")
-                                        out("\ttxa\n\ttay")    // 6502 doesn't have txy
-                                    else
-                                        out("\ttxa")
-                                ins.callLabel == "Y" ->
-                                    if (ins.callLabel2 == "X")
-                                        out("\ttya\n\ttax")   // 6502 doesn't have tyx
-                                    else
-                                        out("\ttya")
+                        val reg2 = ins.callLabel2!!.toLowerCase()
+                        if (ins.callLabel in registerStrings) {
+                            val reg1 = ins.callLabel!!.toLowerCase()
+                            // register -> register
+                            return when {
+                                reg1 == "a" -> " ta$reg2"
+                                reg2 == "a" -> " t${reg1}a"
+                                else -> " t${reg1}a |  ta$reg2"   // 6502 doesn't have tyx/txy
                             }
-                            return 0
                         }
                         // var -> reg
-                        out("\tld${ins.callLabel2!!.toLowerCase()}  ${ins.callLabel}")
+                        return " ld${ins.callLabel2.toLowerCase()}  ${ins.callLabel}"
                     }
                     ins.callLabel in registerStrings ->
                         // reg -> var
-                        out("\tst${ins.callLabel!!.toLowerCase()}  ${ins.callLabel2}")
+                        return " st${ins.callLabel!!.toLowerCase()}  ${ins.callLabel2}"
                     else ->
                         // var -> var
-                        out("\tlda  ${ins.callLabel}\n\tsta  ${ins.callLabel2}")
+                        return " lda  ${ins.callLabel}\n\tsta  ${ins.callLabel2}"
                 }
             }
             Opcode.COPY_VAR_WORD -> {
                 when {
                     ins.callLabel2 in registerStrings -> {
-                        if(ins.callLabel in registerStrings) {
+                        if (ins.callLabel in registerStrings) {
                             // copying registerpair -> registerpair
                             when {
-                                ins.callLabel == "AX" -> when (ins.callLabel2) {
-                                    "AY" -> out("\ttxy")
-                                    "XY" -> out("\tpha\n\ttxa\n\ttay\n\tpla\n\ttax")
+                                ins.callLabel == "AX" -> return when (ins.callLabel2) {
+                                    "AY" -> " txy"
+                                    "XY" -> " stx  ${C64Zeropage.SCRATCH_B1.toHex()} |  tax  |  ldy ${C64Zeropage.SCRATCH_B1.toHex()}"
+                                    else -> ""
                                 }
-                                ins.callLabel == "AY" -> when (ins.callLabel2) {
-                                    "AX" -> out("\tpha\n\ttya\n\ttax\n\tpla")
-                                    "XY" -> out("\ttax")
+                                ins.callLabel == "AY" -> return when (ins.callLabel2) {
+                                    "AX" -> " sty  ${C64Zeropage.SCRATCH_B1.toHex()} |  ldx ${C64Zeropage.SCRATCH_B1.toHex()}"
+                                    "XY" -> " tax"
+                                    else -> ""
                                 }
-                                ins.callLabel == "XY" -> when (ins.callLabel2) {
-                                    "AX" -> out("\ttxa\n\tpha\n\ttya\n\ttax\n\tpla")
-                                    "AY" -> out("\ttxa")
+                                else /* XY */ -> return when (ins.callLabel2) {
+                                    "AX" -> " txa |  sty  ${C64Zeropage.SCRATCH_B1.toHex()} |  ldx  ${C64Zeropage.SCRATCH_B1.toHex()}"
+                                    "AY" -> " txa"
+                                    else -> ""
                                 }
                             }
-                            return 0
                         }
                         // wvar  -> regpair
                         val regpair = ins.callLabel2!!.toLowerCase()
-                        out("\tld${regpair[0]}  ${ins.callLabel}")
-                        out("\tld${regpair[1]}  ${ins.callLabel}+1")
+                        return " ld${regpair[0]}  ${ins.callLabel} |  ld${regpair[1]}  ${ins.callLabel}+1"
                     }
                     ins.callLabel in registerStrings -> {
                         // regpair->wvar
                         val regpair = ins.callLabel!!.toLowerCase()
-                        out("\tst${regpair[0]}  ${ins.callLabel2}")
-                        out("\tst${regpair[1]}  ${ins.callLabel2}+1")
+                        return " st${regpair[0]}  ${ins.callLabel2} |  st${regpair[1]}  ${ins.callLabel2}+1"
                     }
                     else -> {
                         // wvar->wvar
-                        out("\tlda  ${ins.callLabel}\n\tsta  ${ins.callLabel2}")
-                        out("\tlda  ${ins.callLabel}+1\n\tsta  ${ins.callLabel2}+1")
+                        return " lda  ${ins.callLabel} |  sta  ${ins.callLabel2} | " +
+                               " lda  ${ins.callLabel}+1 |  sta  ${ins.callLabel2}+1"
                     }
                 }
             }
+            Opcode.INC_VAR_UB, Opcode.INC_VAR_B -> {
+                when (ins.callLabel) {
+                    "A" -> " clc |  adc  #1"
+                    "X" -> " inx"
+                    "Y" -> " iny"
+                    else -> " inc  ${ins.callLabel}"
+                }
+            }
+            Opcode.INC_VAR_UW -> {
+                when (ins.callLabel) {
+                    "AX" -> " clc |  adc  #1 |  bne  + |  inx |+"
+                    "AY" -> " clc |  adc  #1 |  bne  + |  iny |+"
+                    "XY" -> " inx |  bne  + |  iny  |+"
+                    else -> TODO("inc_var_uw $ins")
+                }
+            }
+            Opcode.DEC_VAR_UB, Opcode.DEC_VAR_B -> {
+                when (ins.callLabel) {
+                    "A" -> " sec |  sbc  #1"
+                    "X" -> " dex"
+                    "Y" -> " dey"
+                    else -> " dec  ${ins.callLabel}"
+                }
+            }
+            Opcode.ADD_UB, Opcode.ADD_B -> {
+                " lda  ${(ESTACK_LO + 2).toHex()},x | " +
+                " clc |  adc  ${(ESTACK_LO + 1).toHex()},x |  inx" +
+                " sta  ${(ESTACK_LO + 1).toHex()},x"
+            }
+            Opcode.SUB_UB, Opcode.SUB_B -> {
+                " lda  ${(ESTACK_LO + 2).toHex()},x | " +
+                " sec |  sbc  ${(ESTACK_LO + 1).toHex()},x |  inx" +
+                " sta  ${(ESTACK_LO + 1).toHex()},x"
+            }
+            Opcode.POP_MEM_UB, Opcode.POP_MEM_B -> {
+                " inx |  lda  ${ESTACK_LO.toHex()},x " +
+                " sta  ${ins.arg!!.integerValue().toHex()}"
+            }
+            Opcode.POP_MEM_W, Opcode.POP_MEM_UW -> {
+                " inx |  lda  ${ESTACK_LO.toHex()},x |  ldy  ${ESTACK_HI.toHex()},x | " +
+                " sta  ${ins.callLabel} |  sty  ${ins.callLabel}+1"
+            }
+            Opcode.POP_VAR_BYTE -> {
+                when (ins.callLabel) {
+                    "X" -> throw CompilerException("makes no sense to pop X it's used as a stack pointer itself")
+                    "A" -> " inx |  lda  ${ESTACK_LO.toHex()},x"
+                    "Y" -> " inx |  ldy  ${ESTACK_LO.toHex()},x"
+                    else -> " inx |  lda  ${ESTACK_LO.toHex()},x |  sta  ${ins.callLabel}"
+                }
+            }
+            Opcode.POP_VAR_WORD -> {
+                when (ins.callLabel) {
+                    "AX" -> throw CompilerException("makes no sense to pop X it's used as a stack pointer itself")
+                    "XY" -> throw CompilerException("makes no sense to pop X it's used as a stack pointer itself")
+                    "AY" -> " inx |  lda  ${ESTACK_LO.toHex()},x |  ldy  ${ESTACK_HI.toHex()},x"
+                    else -> " inx |  lda  ${ESTACK_LO.toHex()},x |  ldy  ${ESTACK_HI.toHex()},x |  sta  ${ins.callLabel} |  sty  ${ins.callLabel}+1"
+                }
+            }
+            Opcode.DEC_VAR_UW -> {
+                when (ins.callLabel) {
+                    "AX" -> " cmp  #0 |  bne  + |  dex |+ |  sec |  sbc  #1"
+                    "AY" -> " cmp  #0 |  bne  + |  dey |+ |  sec |  sbc  #1"
+                    "XY" -> " txa |  bne + |  dey |+ | dex"
+                    else -> TODO("dec_var_uw $ins")
+                }
+            }
+            Opcode.NEG_B -> {
+                " lda  ${(ESTACK_LO+1).toHex()},x |" +
+                " eor  #\$ff |  sec |  adc  #0 | " +
+                " sta  ${(ESTACK_LO+1).toHex()},x"
+            }
+            Opcode.INV_BYTE -> {
+                " lda  ${(ESTACK_LO+1).toHex()},x | " +
+                " eor  #\$ff | " +
+                " sta  ${(ESTACK_LO+1).toHex()},x"
+            }
+            Opcode.INV_WORD -> {
+                " lda  ${(ESTACK_LO + 1).toHex()},x |  eor  #\$ff |  sta  ${(ESTACK_LO+1).toHex()},x | " +
+                " lda  ${(ESTACK_HI + 1).toHex()},x |  eor  #\$ff |  sta  ${(ESTACK_HI+1).toHex()},x | "
+            }
+            Opcode.NOT_BYTE -> {
+                " lda  ${(ESTACK_LO+1)},x " +
+                " beq  + |  lda  #0 |  beq ++ |+ |  lda  #1 |+ | " +
+                " sta  ${(ESTACK_LO+1)},x"
+            }
+            Opcode.NOT_WORD -> {
+                " lda  ${(ESTACK_LO + 1).toHex()},x |  ora  ${(ESTACK_HI + 1).toHex()},x | " +
+                " beq  + |  lda  #0 | beq  ++ |+ |  lda  #1 |+ | "+
+                " sta  ${(ESTACK_LO + 1).toHex()},x |  sta  ${(ESTACK_HI + 1).toHex()},x"
+            }
+            Opcode.SYSCALL -> {
+                if (ins.arg!!.numericValue() in syscallsForStackVm.map { it.callNr })
+                    throw CompilerException("cannot translate vm syscalls to real assembly calls - use *real* subroutine calls instead. Syscall ${ins.arg.numericValue()}")
+                TODO("syscall $ins")
+            }
+            Opcode.BREAKPOINT -> {
+                breakpointCounter++
+                "_prog8_breakpoint_$breakpointCounter\tnop"
+            }
+            Opcode.BCS -> " bcs  ${ins.callLabel}"
+            Opcode.BCC -> " bcc  ${ins.callLabel}"
+            Opcode.BZ -> " beq  ${ins.callLabel}"
+            Opcode.BNZ -> " bne  ${ins.callLabel}"
+            Opcode.BNEG -> " bmi  ${ins.callLabel}"
+            Opcode.BPOS -> " bpl  ${ins.callLabel}"
+            else -> null
+        }
+    }
+
+    private fun findPatterns(segment: List<Instruction>): List<AsmFragment> {
+        val opcodes = segment.map { it.opcode }
+        val result = mutableListOf<AsmFragment>()
+
+        if((opcodes[0]==Opcode.PUSH_VAR_BYTE && opcodes[2]==Opcode.POP_VAR_BYTE) ||
+                (opcodes[0]==Opcode.PUSH_VAR_WORD && opcodes[2]==Opcode.POP_VAR_WORD)) {
+            if (segment[0].callLabel == segment[2].callLabel) {
+                val fragment = sameVarOperation(segment[0].callLabel!!, segment[1])
+                if (fragment != null) {
+                    fragment.segmentSize = 3
+                    result.add(fragment)
+                }
+            }
+        }
+        else if((opcodes[0]==Opcode.PUSH_MEM_UB && opcodes[2]==Opcode.POP_MEM_UB) ||
+                (opcodes[0]==Opcode.PUSH_MEM_UW && opcodes[2]==Opcode.POP_MEM_UW)) {
+            if(segment[0].arg==segment[2].arg) {
+                val fragment = sameMemOperation(segment[0].arg!!.integerValue(), segment[1])
+                if(fragment!=null) {
+                    fragment.segmentSize = 3
+                    result.add(fragment)
+                }
+            }
+        }
+        else if((opcodes[0]==Opcode.PUSH_BYTE && opcodes[1]==Opcode.READ_INDEXED_VAR_BYTE &&
+                        opcodes[3]==Opcode.PUSH_BYTE && opcodes[4]==Opcode.WRITE_INDEXED_VAR_BYTE) ||
+                (opcodes[0]==Opcode.PUSH_BYTE && opcodes[1]==Opcode.READ_INDEXED_VAR_WORD &&
+                        opcodes[3]==Opcode.PUSH_BYTE && opcodes[4]==Opcode.WRITE_INDEXED_VAR_WORD)) {
+            if(segment[0].arg==segment[3].arg && segment[1].callLabel==segment[4].callLabel) {
+                val fragment = sameIndexedVarOperation(segment[1].callLabel!!, segment[0].arg!!.integerValue(), segment[2])
+                if(fragment!=null){
+                    fragment.segmentSize = 5
+                    result.add(fragment)
+                }
+            }
+        }
+        for(pattern in patterns.filter { opcodes.subList(0, it.sequence.size) == it.sequence  }) {
+            val asm = pattern.asm(segment)
+            if(asm!=null)
+                result.add(AsmFragment(asm, pattern.prio, pattern.sequence.size))
+        }
+        return result
+    }
+
+    private fun sameIndexedVarOperation(variable: String, index: Int, ins: Instruction): AsmFragment? {
+        val idx = index.toHex()
+        return when(ins.opcode) {
+            Opcode.SHL_BYTE -> AsmFragment(" txa |  ldx  #$idx |  asl  $variable,x |  tax", 10)
+            Opcode.SHR_BYTE -> AsmFragment(" txa |  ldx  #$idx |  lsr  $variable,x |  tax", 10)
+            Opcode.SHL_WORD -> AsmFragment(" txa |  ldx  #$idx |  asl  $variable,x |  rol  $variable+1,x |  tax", 10)
+            Opcode.SHR_WORD -> AsmFragment(" txa |  ldx  #$idx |  lsr  $variable+1,x |  ror  $variable,x |  tax", 10)
+            Opcode.ROL_BYTE -> AsmFragment(" txa |  ldx  #$idx |  rol  $variable,x |  tax", 10)
+            Opcode.ROR_BYTE -> AsmFragment(" txa |  ldx  #$idx |  ror  $variable,x |  tax", 10)
+            Opcode.ROL_WORD -> AsmFragment(" txa |  ldx  #$idx |  rol  $variable,x |  rol  $variable+1,x |  tax", 10)
+            Opcode.ROR_WORD -> AsmFragment(" txa |  ldx  #$idx |  ror  $variable+1,x |  ror  $variable,x |  tax", 10)
+            Opcode.ROL2_BYTE -> AsmFragment(" stx  ${C64Zeropage.SCRATCH_B1} |  ldx  #$idx |  lda  $variable,x |  cmp  #\$80 |  rol  $variable,x |  ldx  ${C64Zeropage.SCRATCH_B1}", 10)
+            Opcode.ROR2_BYTE -> AsmFragment(" stx  ${C64Zeropage.SCRATCH_B1} |  ldx  #$idx |  lda  $variable,x |  lsr  a |  bcc  + |  ora  #\$80 |+ |  sta  $variable,x |  ldx  ${C64Zeropage.SCRATCH_B1}", 10)
+            else -> null
+        }
+    }
+
+    private fun sameMemOperation(address: Int, ins: Instruction): AsmFragment? {
+        val addr = address.toHex()
+        val addrHi = (address+1).toHex()
+        return when(ins.opcode) {
+            Opcode.SHL_BYTE -> AsmFragment(" asl  $addr", 10)
+            Opcode.SHR_BYTE -> AsmFragment(" lsr  $addr", 10)
+            Opcode.SHL_WORD -> AsmFragment(" asl  $addr |  rol  $addrHi", 10)
+            Opcode.SHR_WORD -> AsmFragment(" lsr  $addrHi |  ror  $addr", 10)
+            Opcode.ROL_BYTE -> AsmFragment(" rol  $addr", 10)
+            Opcode.ROR_BYTE -> AsmFragment(" ror  $addr", 10)
+            Opcode.ROL_WORD -> AsmFragment(" rol  $addr |  rol  $addrHi", 10)
+            Opcode.ROR_WORD -> AsmFragment(" ror  $addrHi |  ror  $addr", 10)
+            Opcode.ROL2_BYTE -> AsmFragment(" lda  $addr |  cmp  #\$80 |  rol  $addr", 10)
+            Opcode.ROR2_BYTE -> AsmFragment(" lda  $addr |  lsr  a |  bcc  + |  ora  #\$80 |+ |  sta  $addr", 10)
+            else -> null
+        }
+    }
+
+    private fun sameVarOperation(variable: String, ins: Instruction): AsmFragment? {
+        return when(ins.opcode) {
+            Opcode.SHL_BYTE -> {
+                when (variable) {
+                    "A" -> AsmFragment(" asl  a", 10)
+                    "X" -> AsmFragment(" txa |  asl  a |  tax", 10)
+                    "Y" -> AsmFragment(" tya |  asl  a |  tay", 10)
+                    else -> AsmFragment(" asl  $variable", 10)
+                }
+            }
+            Opcode.SHR_BYTE -> {
+                when (variable) {
+                    "A" -> AsmFragment(" lsr  a", 10)
+                    "X" -> AsmFragment(" txa |  lsr  a |  tax", 10)
+                    "Y" -> AsmFragment(" tya |  lsr  a |  tay", 10)
+                    else -> AsmFragment(" lsr  $variable", 10)
+                }
+            }
+            Opcode.SHL_WORD -> {
+                when(variable) {
+                    "AX" -> AsmFragment(" asl  a |  tay |  txa |  rol  a |  tax  |  tya ", 10)
+                    "AY" -> AsmFragment(" sty  ${C64Zeropage.SCRATCH_B1.toHex()} |  asl  a |  rol  ${C64Zeropage.SCRATCH_B1.toHex()} |  ldy  ${C64Zeropage.SCRATCH_B1.toHex()} ", 10)
+                    "XY" -> AsmFragment(" sty  ${C64Zeropage.SCRATCH_B1.toHex()} |  txa |  asl  a |  rol  ${C64Zeropage.SCRATCH_B1.toHex()} |  ldy  ${C64Zeropage.SCRATCH_B1.toHex()} |  tax", 10)
+                    else -> AsmFragment(" asl  $variable |  rol  $variable+1", 10)
+                }
+            }
+            Opcode.SHR_WORD -> {
+                when(variable) {
+                    "AX" -> AsmFragment(" tay |  txa |  lsr  a |  tax  |  tya |  ror  a", 10)
+                    "AY" -> AsmFragment(" sty  ${C64Zeropage.SCRATCH_B1.toHex()} |  lsr  ${C64Zeropage.SCRATCH_B1.toHex()} |  ror  a |  ldy  ${C64Zeropage.SCRATCH_B1.toHex()} ", 10)
+                    "XY" -> AsmFragment(" sty  ${C64Zeropage.SCRATCH_B1.toHex()} |  lsr  ${C64Zeropage.SCRATCH_B1.toHex()} |  txa |  ror a  | tax  | ldy  ${C64Zeropage.SCRATCH_B1.toHex()}", 10)
+                    else -> AsmFragment(" lsr  $variable+1 |  ror  $variable", 10)
+                }
+            }
+            Opcode.ROL_BYTE -> {
+                when (variable) {
+                    "A" -> AsmFragment(" rol  a", 10)
+                    "X" -> AsmFragment(" txa |  rol  a |  tax", 10)
+                    "Y" -> AsmFragment(" tya |  rol  a |  tay", 10)
+                    else -> AsmFragment(" rol  $variable", 10)
+                }
+            }
+            Opcode.ROR_BYTE -> {
+                when (variable) {
+                    "A" -> AsmFragment(" ror  a", 10)
+                    "X" -> AsmFragment(" txa |  ror  a |  tax", 10)
+                    "Y" -> AsmFragment(" tya |  ror  a |  tay", 10)
+                    else -> AsmFragment(" ror  $variable", 10)
+                }
+            }
+            Opcode.ROL_WORD -> {
+                when(variable) {
+                    "AX" -> AsmFragment(" rol  a |  tay |  txa |  rol  a |  tax  |  tya ", 10)
+                    "AY" -> AsmFragment(" sty  ${C64Zeropage.SCRATCH_B1} |  rol  a |  rol  ${C64Zeropage.SCRATCH_B1} |  ldy  ${C64Zeropage.SCRATCH_B1} ", 10)
+                    "XY" -> AsmFragment(" sty  ${C64Zeropage.SCRATCH_B1} |  txa |  rol  a |  rol  ${C64Zeropage.SCRATCH_B1} |  ldy  ${C64Zeropage.SCRATCH_B1} |  tax", 10)
+                    else -> AsmFragment(" rol  $variable |  rol  $variable+1", 10)
+                }
+            }
+            Opcode.ROR_WORD -> {
+                when(variable) {
+                    "AX" -> AsmFragment(" tay |  txa |  ror  a |  tax  |  tya |  ror  a", 10)
+                    "AY" -> AsmFragment(" sty  ${C64Zeropage.SCRATCH_B1} |  ror  ${C64Zeropage.SCRATCH_B1} |  ror  a |  ldy  ${C64Zeropage.SCRATCH_B1} ", 10)
+                    "XY" -> AsmFragment(" sty  ${C64Zeropage.SCRATCH_B1} |  ror  ${C64Zeropage.SCRATCH_B1} |  txa |  ror a  | tax  | ldy  ${C64Zeropage.SCRATCH_B1}", 10)
+                    else -> AsmFragment(" ror  $variable+1 |  ror  $variable", 10)
+                }
+            }
+            Opcode.ROL2_BYTE -> {       // 8-bit rol
+                when (variable) {
+                    "A" -> AsmFragment(" cmp  #$80 |  rol  a", 10)
+                    "X" -> AsmFragment(" txa |  cmp  #$80 |  rol  a |  tax", 10)
+                    "Y" -> AsmFragment(" tya |  cmp  #$80 |  rol  a |  tay", 10)
+                    else -> AsmFragment(" lda  $variable |  cmp  #$80  | rol  $variable", 10)
+                }
+            }
+            Opcode.ROR2_BYTE -> {       // 8-bit ror
+                when (variable) {
+                    "A" -> AsmFragment(" lsr  a | bcc  + |  ora  #\$80  |+", 10)
+                    "X" -> AsmFragment(" txa |  lsr  a |  bcc  + |  ora  #\$80  |+ |  tax", 10)
+                    "Y" -> AsmFragment(" tya |  lsr  a |  bcc  + |  ora  #\$80  |+ |  tay", 10)
+                    else -> AsmFragment(" lda  $variable |  lsr  a |  bcc  + |  ora  #\$80 |+ |  sta  $variable", 10)
+                }
+            }
+            else -> null
+        }
+    }
+
+    class AsmFragment(val asm: String, val prio: Int, var segmentSize: Int=0)
+
+    class AsmPattern(val sequence: List<Opcode>, val prio: Int, val asm: (List<Instruction>)->String?)
+
+
+    private val patterns = listOf<AsmPattern>(
+    )
+
+
+/*
+    private fun oldinstr2asm(insIdx: Int, ins: Instruction, block: IntermediateProgram.ProgramBlock): Int {
+        when(ins.opcode) {
             Opcode.PUSH_BYTE -> {
                 val nextIns = block.getIns(insIdx+1)
                 if(nextIns==Opcode.DISCARD_BYTE)
@@ -745,302 +919,11 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 }
                 pushFloat(ins.arg!!.integerValue().toHex())
             }
-            Opcode.INC_VAR_UB, Opcode.INC_VAR_B -> {
-                when(ins.callLabel) {
-                    "A" -> out("\tclc\n\tadc  #1")
-                    "X" -> out("\tinx")
-                    "Y" -> out("\tiny")
-                    else -> out("\tinc  ${ins.callLabel}")
-                }
-            }
-            Opcode.INC_VAR_UW -> {
-                when(ins.callLabel) {
-                    "AX" -> {
-                        out("\tclc\n\tadc  #1")
-                        out("\tbne  +")
-                        out("\tinx")
-                        out("+")
-                    }
-                    "AY" -> {
-                        out("\tclc\n\tadc  #1")
-                        out("\tbne  +")
-                        out("\tiny")
-                        out("+")
-                    }
-                    "XY" -> {
-                        out("\tinx")
-                        out("\tbne  +")
-                        out("\tiny")
-                        out("+")
-                    }
-                    else -> TODO("inc_var_uw $ins")
-                }
-            }
-            Opcode.DEC_VAR_UB, Opcode.DEC_VAR_B -> {
-                when(ins.callLabel) {
-                    "A" -> out("\tsec\n\tsbc  #1")
-                    "X" -> out("\tdex")
-                    "Y" -> out("\tdey")
-                    else -> out("\tdec  ${ins.callLabel}")
-                }
-            }
-            Opcode.ADD_UB, Opcode.ADD_B -> {
-                peekByte2A()
-                out("\tclc\n\tadc  ${(ESTACK_LO+1).toHex()},x")
-                out("\tinx")
-                replaceByteA()
-            }
-            Opcode.SUB_UB, Opcode.SUB_B -> {
-                peekByte2A()
-                out("\tsec\n\tsbc  ${(ESTACK_LO+1).toHex()},x")
-                out("\tinx")
-                replaceByteA()
-            }
-            Opcode.POP_MEM_UB, Opcode.POP_MEM_B -> {
-                popByteA()
-                out("\tsta  ${ins.arg!!.integerValue().toHex()}")
-            }
-            Opcode.POP_VAR_BYTE -> {
-                when(ins.callLabel) {
-                    "A" -> popByteA()
-                    "X" -> throw CompilerException("makes no sense to pop X it's used as a stack pointer itself")
-                    "Y" -> popByteY()
-                    else -> {
-                        popByteA()
-                        out("\tsta  ${ins.callLabel}")
-                    }
-                }
-            }
-            Opcode.POP_VAR_WORD -> {
-                when(ins.callLabel) {
-                    "AX" -> throw CompilerException("makes no sense to pop X it's used as a stack pointer itself")
-                    "AY" -> TODO()
-                    "XY" -> throw CompilerException("makes no sense to pop X it's used as a stack pointer itself")
-                    else -> {
-                        popWordAY()
-                        out("\tsta  ${ins.callLabel}")
-                        out("\tsty  ${ins.callLabel}+1")
-                    }
-                }
-            }
-            Opcode.DEC_VAR_UW -> {
-                when(ins.callLabel) {
-                    "AX" -> {
-                        out("\tcmp  #0")
-                        out("\tbne  +")
-                        out("\tdex")
-                        out("+\tsec\n\tsbc  #1")
-                    }
-                    "AY" -> {
-                        out("\tcmp  #0")
-                        out("\tbne  +")
-                        out("\tdey")
-                        out("+\tsec\n\tsbc  #1")
-                    }
-                    "XY" -> {
-                        out("\ttxa")
-                        out("\tbne  +")
-                        out("\tdey")
-                        out("+\tdex")
-                    }
-                    else -> TODO("dec_var_uw $ins")
-                }
-            }
-            Opcode.NEG_B -> {
-                peekByteA()
-                out("\teor  #\$ff")
-                out("\tsec\n\tadc  #0")
-                replaceByteA()
-            }
-            Opcode.INV_BYTE -> {
-                peekByteA()
-                out("\teor  #\$ff")
-                replaceByteA()
-            }
-            Opcode.INV_WORD -> {
-                out("\tlda  ${(ESTACK_LO+1).toHex()},x")
-                out("\teor  #\$ff")
-                out("\tlda  ${(ESTACK_HI+1).toHex()},x")
-                out("\teor  #\$ff")
-                out("\tsta  ${(ESTACK_LO+1).toHex()},x")
-                out("\tsta  ${(ESTACK_HI+1).toHex()},x")
-            }
-            Opcode.NOT_BYTE -> {
-                peekByteA()
-                out("\tbeq  +")
-                out("\tlda  #0")
-                out("\tbeq  ++")
-                out("+\tlda  #1")
-                out("+")
-                replaceByteA()
-            }
-            Opcode.NOT_WORD -> {
-                out("\tlda  ${(ESTACK_LO+1).toHex()},x")
-                out("\tora  ${(ESTACK_HI+1).toHex()},x")
-                out("\tbeq  +")
-                out("\tlda  #0")
-                out("\tbeq  ++")
-                out("+\tlda  #1")
-                out("+\tsta  ${(ESTACK_LO+1).toHex()},x")
-                out("\tsta  ${(ESTACK_HI+1).toHex()},x")
-            }
-            Opcode.SYSCALL -> {
-                if(ins.arg!!.numericValue() in syscallsForStackVm.map { it.callNr })
-                    throw CompilerException("cannot translate vm syscalls to real assembly calls - use *real* subroutine calls instead. Syscall ${ins.arg.numericValue()}")
-                TODO("syscall $ins")
-            }
-            Opcode.BREAKPOINT -> {
-                breakpointCounter++
-                out("_prog8_breakpoint_$breakpointCounter\tnop")
-            }
-            Opcode.BCS -> out("\tbcs  ${ins.callLabel}")
-            Opcode.BCC -> out("\tbcc  ${ins.callLabel}")
-            Opcode.BZ -> out("\tbeq  ${ins.callLabel}")
-            Opcode.BNZ -> out("\tbne  ${ins.callLabel}")
-            Opcode.BNEG -> out("\tbmi  ${ins.callLabel}")
-            Opcode.BPOS -> out("\tbpl  ${ins.callLabel}")
-            Opcode.POP_MEM_W, Opcode.POP_MEM_UW -> {
-                popWordAY()
-                out("\tsta  ${ins.callLabel}")
-                out("\tsty  ${ins.callLabel}+1")
-            }
-            Opcode.SHL_BYTE -> out("\tasl  ${ESTACK_LO.toHex()},x")
-            Opcode.SHR_BYTE -> out("\tlsr  ${ESTACK_LO.toHex()},x")
-            Opcode.ROL_BYTE -> out("\trol  ${ESTACK_LO.toHex()},x")   // 9-bit rotate (w/carry)
-            Opcode.ROR_BYTE -> out("\tror  ${ESTACK_LO.toHex()},x")   // 9-bit rotate (w/carry)
-            Opcode.ROL2_BYTE -> out("\tcmp  #$80\n\trol")   // 8-bit rotate
-            Opcode.ROR2_BYTE -> {   // 8 bit rotate
-                out("\tlsr  a")
-                out("\tbcc  +")
-                out("\tora  #$80")
-                out("+")
-            }
 
             else-> TODO("asm for $ins")
-//            Opcode.POP_MEM_FLOAT -> TODO()
-//            Opcode.POP_VAR_FLOAT -> TODO()
-//            Opcode.COPY_VAR_FLOAT -> TODO()
-//            Opcode.INC_VAR_W -> TODO()
-//            Opcode.INC_VAR_F -> TODO()
-//            Opcode.DEC_VAR_W -> TODO()
-//            Opcode.DEC_VAR_F -> TODO()
-//            Opcode.ADD_UW -> TODO()
-//            Opcode.ADD_W -> TODO()
-//            Opcode.ADD_F -> TODO()
-//            Opcode.SUB_UW -> TODO()
-//            Opcode.SUB_W -> TODO()
-//            Opcode.SUB_F -> TODO()
-//            Opcode.MUL_UB -> TODO()
-//            Opcode.MUL_B -> TODO()
-//            Opcode.MUL_UW -> TODO()
-//            Opcode.MUL_W -> TODO()
-//            Opcode.MUL_F -> TODO()
-//            Opcode.DIV_UB -> TODO()
-//            Opcode.DIV_B -> TODO()
-//            Opcode.DIV_UW -> TODO()
-//            Opcode.DIV_W -> TODO()
-//            Opcode.DIV_F -> TODO()
-//            Opcode.FLOORDIV_UB -> TODO()
-//            Opcode.FLOORDIV_B -> TODO()
-//            Opcode.FLOORDIV_UW -> TODO()
-//            Opcode.FLOORDIV_W -> TODO()
-//            Opcode.FLOORDIV_F -> TODO()
-//            Opcode.REMAINDER_UB -> TODO()
-//            Opcode.REMAINDER_B -> TODO()
-//            Opcode.REMAINDER_UW -> TODO()
-//            Opcode.REMAINDER_W -> TODO()
-//            Opcode.REMAINDER_F -> TODO()
-//            Opcode.POW_UB -> TODO()
-//            Opcode.POW_B -> TODO()
-//            Opcode.POW_UW -> TODO()
-//            Opcode.POW_W -> TODO()
-//            Opcode.POW_F -> TODO()
-//            Opcode.NEG_W -> TODO()
-//            Opcode.NEG_F -> TODO()
-//            Opcode.SHL_WORD -> TODO()
-//            Opcode.SHL_MEM_BYTE -> TODO()
-//            Opcode.SHL_MEM_WORD -> TODO()
-//            Opcode.SHL_VAR_BYTE -> TODO()
-//            Opcode.SHL_VAR_WORD -> TODO()
-//            Opcode.SHR_WORD -> TODO()
-//            Opcode.SHR_MEM_BYTE -> TODO()
-//            Opcode.SHR_MEM_WORD -> TODO()
-//            Opcode.SHR_VAR_BYTE -> TODO()
-//            Opcode.SHR_VAR_WORD -> TODO()
-//            Opcode.ROL_WORD -> TODO()
-//            Opcode.ROL_MEM_BYTE -> TODO()
-//            Opcode.ROL_MEM_WORD -> TODO()
-//            Opcode.ROL_VAR_BYTE -> TODO()
-//            Opcode.ROL_VAR_WORD -> TODO()
-//            Opcode.ROR_WORD -> TODO()
-//            Opcode.ROR_MEM_BYTE -> TODO()
-//            Opcode.ROR_MEM_WORD -> TODO()
-//            Opcode.ROR_VAR_BYTE -> TODO()
-//            Opcode.ROR_VAR_WORD -> TODO()
-//            Opcode.ROL2_WORD -> TODO()
-//            Opcode.ROL2_MEM_BYTE -> TODO()
-//            Opcode.ROL2_MEM_WORD -> TODO()
-//            Opcode.ROL2_VAR_BYTE -> TODO()
-//            Opcode.ROL2_VAR_WORD -> TODO()
-//            Opcode.ROR2_WORD -> TODO()
-//            Opcode.ROR2_MEM_BYTE -> TODO()
-//            Opcode.ROR2_MEM_WORD -> TODO()
-//            Opcode.ROR2_VAR_BYTE -> TODO()
-//            Opcode.ROR2_VAR_WORD -> TODO()
-//            Opcode.BITAND_BYTE -> TODO()
-//            Opcode.BITAND_WORD -> TODO()
-//            Opcode.BITOR_BYTE -> TODO()
-//            Opcode.BITOR_WORD -> TODO()
-//            Opcode.BITXOR_BYTE -> TODO()
-//            Opcode.BITXOR_WORD -> TODO()
-//            Opcode.LSB -> TODO()
-//            Opcode.MSB -> TODO()
-//            Opcode.B2WORD -> TODO()
-//            Opcode.UB2UWORD -> TODO()
-//            Opcode.MSB2WORD -> TODO()
-//            Opcode.B2FLOAT -> TODO()
-//            Opcode.UB2FLOAT -> TODO()
-//            Opcode.W2FLOAT -> TODO()
-//            Opcode.UW2FLOAT -> TODO()
-//            Opcode.AND_BYTE -> TODO()
-//            Opcode.AND_WORD -> TODO()
-//            Opcode.OR_BYTE -> TODO()
-//            Opcode.OR_WORD -> TODO()
-//            Opcode.XOR_BYTE -> TODO()
-//            Opcode.XOR_WORD -> TODO()
-//            Opcode.LESS_B -> TODO()
-//            Opcode.LESS_UB -> TODO()
-//            Opcode.LESS_W -> TODO()
-//            Opcode.LESS_UW -> TODO()
-//            Opcode.LESS_F -> TODO()
-//            Opcode.GREATER_B -> TODO()
-//            Opcode.GREATER_UB -> TODO()
-//            Opcode.GREATER_W -> TODO()
-//            Opcode.GREATER_UW -> TODO()
-//            Opcode.GREATER_F -> TODO()
-//            Opcode.LESSEQ_B -> TODO()
-//            Opcode.LESSEQ_UB -> TODO()
-//            Opcode.LESSEQ_W -> TODO()
-//            Opcode.LESSEQ_UW -> TODO()
-//            Opcode.LESSEQ_F -> TODO()
-//            Opcode.GREATEREQ_B -> TODO()
-//            Opcode.GREATEREQ_UB -> TODO()
-//            Opcode.GREATEREQ_W -> TODO()
-//            Opcode.GREATEREQ_UW -> TODO()
-//            Opcode.GREATEREQ_F -> TODO()
-//            Opcode.EQUAL_BYTE -> TODO()
-//            Opcode.EQUAL_WORD -> TODO()
-//            Opcode.EQUAL_F -> TODO()
-//            Opcode.NOTEQUAL_BYTE -> TODO()
-//            Opcode.NOTEQUAL_WORD -> TODO()
-//            Opcode.NOTEQUAL_F -> TODO()
-//            Opcode.READ_INDEXED_VAR_BYTE -> TODO()
-//            Opcode.READ_INDEXED_VAR_WORD -> TODO()
-//            Opcode.READ_INDEXED_VAR_FLOAT -> TODO()
-//            Opcode.WRITE_INDEXED_VAR_BYTE -> TODO()
-//            Opcode.WRITE_INDEXED_VAR_WORD -> TODO()
-//            Opcode.WRITE_INDEXED_VAR_FLOAT -> TODO()
         }
         return 0
     }
+
+    */
 }
