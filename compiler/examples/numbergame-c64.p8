@@ -1,16 +1,17 @@
 %output prg
 %import c64lib
+%import c64utils
 %import mathlib
 
 ~ main {
-    sub start() -> () {
-        str   name    = "?" * 80
-        str   guess   = "?" * 80
-        byte  secretnumber = 0
-        byte  attempts_left = 10
-        memory word freadstr_arg = $22		; argument for FREADSTR
+    sub start()  {
+        str   name    = "????????????????????????????????????????"
+        str   guess   = "??????????"
+        ubyte  secretnumber = 0
+        ubyte  attempts_left = 10
+        memory uword freadstr_arg = $22		; argument for FREADSTR
 
-        c64.init_system()
+        c64utils.init_system()
         c64.VMCSB |= 2		; activate lowercase charset
 
         ; greeting

@@ -1,5 +1,9 @@
 package prog8.compiler.target.c64
 
+// note: to put stuff on the stack, we use Absolute,X  addressing mode which is 3 bytes / 4 cycles
+// possible space optimization is to use zeropage (indirect),Y  which is 2 bytes, but 5 cycles
+
+
 import prog8.ast.DataType
 import prog8.ast.Register
 import prog8.compiler.*
@@ -312,9 +316,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         else throw AssemblyError("invalid array type")
     }
 
-    // note: to put stuff on the stack, we use Absolute,X  addressing mode which is 3 bytes / 4 cycles
-    // possible space optimization is to use zeropage (indirect),Y  which is 2 bytes, but 5 cycles
-
     private fun instr2asm(ins: List<Instruction>): Int {
         // find best patterns (matching the most of the lines, then with the smallest weight)
         val fragments = findPatterns(ins).sortedWith(compareBy({it.segmentSize}, {it.prio}))
@@ -373,6 +374,13 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.DISCARD_WORD -> " inx"
             Opcode.DISCARD_FLOAT -> " inx |  inx |  inx"
             Opcode.INLINE_ASSEMBLY -> ins.callLabel ?: ""        // All of the inline assembly is stored in the calllabel property.
+            Opcode.PUSH_BYTE -> {
+                " lda  #${ins.arg!!.integerValue().toHex()} |  sta  $ESTACK_LO,x |  dex"
+            }
+            Opcode.PUSH_WORD -> {
+                val value = ins.arg!!.integerValue().toHex()
+                " lda  #<$value |  sta  $ESTACK_LO,x |  lda  #>$value |  sta  $ESTACK_HI,x |  dex"
+            }
             Opcode.COPY_VAR_BYTE -> {
                 when {
                     ins.callLabel2 in registerStrings -> {
@@ -574,34 +582,94 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 (opcodes[0]==Opcode.PUSH_BYTE && opcodes[1]==Opcode.READ_INDEXED_VAR_WORD &&
                         opcodes[3]==Opcode.PUSH_BYTE && opcodes[4]==Opcode.WRITE_INDEXED_VAR_WORD)) {
             if(segment[0].arg==segment[3].arg && segment[1].callLabel==segment[4].callLabel) {
-                val fragment = sameIndexedVarOperation(segment[1].callLabel!!, segment[0].arg!!.integerValue(), segment[2])
+                val fragment = sameConstantIndexedVarOperation(segment[1].callLabel!!, segment[0].arg!!.integerValue(), segment[2])
                 if(fragment!=null){
                     fragment.segmentSize = 5
                     result.add(fragment)
                 }
             }
         }
-        for(pattern in patterns.filter { opcodes.subList(0, it.sequence.size) == it.sequence  }) {
-            val asm = pattern.asm(segment)
-            if(asm!=null)
-                result.add(AsmFragment(asm, pattern.prio, pattern.sequence.size))
+        else if((opcodes[0]==Opcode.PUSH_VAR_BYTE && opcodes[1]==Opcode.READ_INDEXED_VAR_BYTE &&
+                        opcodes[3]==Opcode.PUSH_VAR_BYTE && opcodes[4]==Opcode.WRITE_INDEXED_VAR_BYTE) ||
+                (opcodes[0]==Opcode.PUSH_VAR_BYTE && opcodes[1]==Opcode.READ_INDEXED_VAR_WORD &&
+                        opcodes[3]==Opcode.PUSH_VAR_BYTE && opcodes[4]==Opcode.WRITE_INDEXED_VAR_WORD)) {
+            if(segment[0].callLabel==segment[3].callLabel && segment[1].callLabel==segment[4].callLabel) {
+                val fragment = sameIndexedVarOperation(segment[1].callLabel!!, segment[0].callLabel!!, segment[2])
+                if(fragment!=null){
+                    fragment.segmentSize = 5
+                    result.add(fragment)
+                }
+            }
         }
+
+        for(pattern in patterns.filter { it.sequence.size <= segment.size}) {
+            if(pattern.sequence == opcodes.subList(0, pattern.sequence.size)) {
+                val asm = pattern.asm(segment)
+                if(asm!=null)
+                    result.add(AsmFragment(asm, pattern.prio, pattern.sequence.size))
+            }
+        }
+
         return result
     }
 
-    private fun sameIndexedVarOperation(variable: String, index: Int, ins: Instruction): AsmFragment? {
-        val idx = index.toHex()
+    private fun sameConstantIndexedVarOperation(variable: String, index: Int, ins: Instruction): AsmFragment? {
         return when(ins.opcode) {
-            Opcode.SHL_BYTE -> AsmFragment(" txa |  ldx  #$idx |  asl  $variable,x |  tax", 10)
-            Opcode.SHR_BYTE -> AsmFragment(" txa |  ldx  #$idx |  lsr  $variable,x |  tax", 10)
-            Opcode.SHL_WORD -> AsmFragment(" txa |  ldx  #$idx |  asl  $variable,x |  rol  $variable+1,x |  tax", 10)
-            Opcode.SHR_WORD -> AsmFragment(" txa |  ldx  #$idx |  lsr  $variable+1,x |  ror  $variable,x |  tax", 10)
-            Opcode.ROL_BYTE -> AsmFragment(" txa |  ldx  #$idx |  rol  $variable,x |  tax", 10)
-            Opcode.ROR_BYTE -> AsmFragment(" txa |  ldx  #$idx |  ror  $variable,x |  tax", 10)
-            Opcode.ROL_WORD -> AsmFragment(" txa |  ldx  #$idx |  rol  $variable,x |  rol  $variable+1,x |  tax", 10)
-            Opcode.ROR_WORD -> AsmFragment(" txa |  ldx  #$idx |  ror  $variable+1,x |  ror  $variable,x |  tax", 10)
-            Opcode.ROL2_BYTE -> AsmFragment(" stx  ${C64Zeropage.SCRATCH_B1} |  ldx  #$idx |  lda  $variable,x |  cmp  #\$80 |  rol  $variable,x |  ldx  ${C64Zeropage.SCRATCH_B1}", 10)
-            Opcode.ROR2_BYTE -> AsmFragment(" stx  ${C64Zeropage.SCRATCH_B1} |  ldx  #$idx |  lda  $variable,x |  lsr  a |  bcc  + |  ora  #\$80 |+ |  sta  $variable,x |  ldx  ${C64Zeropage.SCRATCH_B1}", 10)
+            Opcode.SHL_BYTE -> AsmFragment(" asl  $variable+$index", 8)
+            Opcode.SHR_BYTE -> AsmFragment(" lsr  $variable+$index", 8)
+            Opcode.SHL_WORD -> AsmFragment(" asl  $variable+$index |  rol  $variable+$index+1", 8)
+            Opcode.SHR_WORD -> AsmFragment(" lsr  $variable+$index+1,x |  ror  $variable+$index", 8)
+            Opcode.ROL_BYTE -> AsmFragment(" rol  $variable+$index", 8)
+            Opcode.ROR_BYTE -> AsmFragment(" ror  $variable+$index", 8)
+            Opcode.ROL_WORD -> AsmFragment(" rol  $variable+$index |  rol  $variable+$index+1", 8)
+            Opcode.ROR_WORD -> AsmFragment(" ror  $variable+$index+1 |  ror  $variable+$index", 8)
+            Opcode.ROL2_BYTE -> AsmFragment(" lda  $variable+$index |  cmp  #\$80 |  rol  $variable+$index", 8)
+            Opcode.ROR2_BYTE -> AsmFragment(" lda  $variable+$index |  lsr  a |  bcc  + |  ora  #\$80 |+ |  sta  $variable+$index", 10)
+            Opcode.ROL2_WORD -> AsmFragment(" asl  $variable+$index |  rol  $variable+$index+1 |  bcc  + |  inc  $variable+$index |+",20)
+            Opcode.ROR2_WORD -> AsmFragment(" lsr  $variable+$index+1 |  ror  $variable+$index |  bcc  + |  lda  $variable+$index+1 |  ora  #\$80 |  sta  $variable+$index+1 |+", 30)
+            else -> null
+        }
+    }
+
+    private fun sameIndexedVarOperation(variable: String, indexVar: String, ins: Instruction): AsmFragment? {
+        val saveX = " stx  ${C64Zeropage.SCRATCH_B1} |"         // todo optimize to TXA when possible
+        val restoreX = " | ldx  ${C64Zeropage.SCRATCH_B1}"
+        var loadX = ""
+        var loadXWord = ""
+
+        when(indexVar) {
+            "X" -> {
+                loadXWord = " txa |  asl a |  tax |"
+            }
+            "Y" -> {
+                loadX = " tya |  tax |"
+                loadXWord = " tya |  asl a |  tax |"
+            }
+            "A" -> {
+                loadX = " tax |"
+                loadXWord = " asl a |  tax |"
+            }
+            "AX", "AY", "XY" -> throw AssemblyError("cannot index with word/registerpair")
+            else -> {
+                // the indexvar is a real variable, not a register
+                loadX = " ldx  $indexVar |"
+                loadXWord = " lda  $indexVar |  asl  a |  tax |"
+            }
+        }
+
+        return when (ins.opcode) {
+            Opcode.SHL_BYTE -> AsmFragment("$saveX $loadX  asl  $variable,x  $restoreX", 10)
+            Opcode.SHR_BYTE -> AsmFragment("$saveX $loadX  lsr  $variable,x  $restoreX", 10)
+            Opcode.SHL_WORD -> AsmFragment("$saveX $loadXWord  asl  $variable,x |  rol  $variable+1,x  $restoreX", 10)
+            Opcode.SHR_WORD -> AsmFragment("$saveX $loadXWord  lsr  $variable+1,x |  ror  $variable,x  $restoreX", 10)
+            Opcode.ROL_BYTE -> AsmFragment("$saveX $loadX  rol  $variable,x  $restoreX", 10)
+            Opcode.ROR_BYTE -> AsmFragment("$saveX $loadX  ror  $variable,x  $restoreX", 10)
+            Opcode.ROL_WORD -> AsmFragment("$saveX $loadXWord  rol  $variable,x |  rol  $variable+1,x  $restoreX", 10)
+            Opcode.ROR_WORD -> AsmFragment("$saveX $loadXWord  ror  $variable+1,x |  ror  $variable,x  $restoreX", 10)
+            Opcode.ROL2_BYTE -> AsmFragment("$saveX $loadX  lda  $variable,x |  cmp  #\$80 |  rol  $variable,x  $restoreX", 10)
+            Opcode.ROR2_BYTE -> AsmFragment("$saveX $loadX  lda  $variable,x |  lsr  a |  bcc  + |  ora  #\$80 |+ |  sta  $variable,x  $restoreX", 10)
+            Opcode.ROL2_WORD -> AsmFragment("$saveX $loadXWord  asl  $variable,x |  rol  $variable+1,x |  bcc  + |  inc  $variable,x  |+  $restoreX", 30)
+            Opcode.ROR2_WORD -> AsmFragment("$saveX $loadXWord  lsr  $variable+1,x |  ror  $variable,x |  bcc  + |  lda  $variable+1,x |  ora  #\$80 |  sta  $variable+1,x |+  $restoreX", 30)
             else -> null
         }
     }
@@ -620,6 +688,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.ROR_WORD -> AsmFragment(" ror  $addrHi |  ror  $addr", 10)
             Opcode.ROL2_BYTE -> AsmFragment(" lda  $addr |  cmp  #\$80 |  rol  $addr", 10)
             Opcode.ROR2_BYTE -> AsmFragment(" lda  $addr |  lsr  a |  bcc  + |  ora  #\$80 |+ |  sta  $addr", 10)
+            Opcode.ROL2_WORD -> AsmFragment(" lda  $addr |  cmp #\$80 |  rol  $addr |  rol  $addrHi", 10)
+            Opcode.ROR2_WORD -> AsmFragment(" lsr  $addrHi |  ror  $addr |  bcc  + |  lda  $addrHi |  ora  #$80 |  sta  $addrHi |+", 20)
             else -> null
         }
     }
@@ -692,10 +762,10 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             }
             Opcode.ROL2_BYTE -> {       // 8-bit rol
                 when (variable) {
-                    "A" -> AsmFragment(" cmp  #$80 |  rol  a", 10)
-                    "X" -> AsmFragment(" txa |  cmp  #$80 |  rol  a |  tax", 10)
-                    "Y" -> AsmFragment(" tya |  cmp  #$80 |  rol  a |  tay", 10)
-                    else -> AsmFragment(" lda  $variable |  cmp  #$80  | rol  $variable", 10)
+                    "A" -> AsmFragment(" cmp  #\$80 |  rol  a", 10)
+                    "X" -> AsmFragment(" txa |  cmp  #\$80 |  rol  a |  tax", 10)
+                    "Y" -> AsmFragment(" tya |  cmp  #\$80 |  rol  a |  tay", 10)
+                    else -> AsmFragment(" lda  $variable |  cmp  #\$80  | rol  $variable", 10)
                 }
             }
             Opcode.ROR2_BYTE -> {       // 8-bit ror
@@ -706,6 +776,23 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     else -> AsmFragment(" lda  $variable |  lsr  a |  bcc  + |  ora  #\$80 |+ |  sta  $variable", 10)
                 }
             }
+            Opcode.ROL2_WORD -> {
+                when(variable) {
+                    "AX" -> AsmFragment(" cmp  #\$80 |  rol  a |  tay |  txa |  rol  a |  tax |  tya", 10)
+                    "AY" -> AsmFragment(" sty  ${C64Zeropage.SCRATCH_B1} |  cmp  #\$80 |  rol  a |  rol  ${C64Zeropage.SCRATCH_B1} |  ldy  ${C64Zeropage.SCRATCH_B1} ", 10)
+                    "XY" -> AsmFragment(" sty  ${C64Zeropage.SCRATCH_B1} |  txa |  cmp  #\$80 |  rol  a |  rol  ${C64Zeropage.SCRATCH_B1} |  ldy  ${C64Zeropage.SCRATCH_B1} |  tax", 10)
+                    else -> AsmFragment(" lda  $variable |  cmp #\$80 |  rol  $variable |  rol  $variable+1", 10)
+                }
+            }
+            Opcode.ROR2_WORD -> {
+                // todo: ror2_word is very slow; it requires a library routine
+                when(variable) {
+                    "AX" -> AsmFragment(" sta  ${C64Zeropage.SCRATCH_W1} |  stx  ${C64Zeropage.SCRATCH_W1+1}  |  jsr  prog8_lib.ror2_word |  lda  ${C64Zeropage.SCRATCH_W1} |  ldx  ${C64Zeropage.SCRATCH_W1+1}", 20)
+                    "AY" -> AsmFragment(" sta  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1}  |  jsr  prog8_lib.ror2_word |  lda  ${C64Zeropage.SCRATCH_W1} |  ldy  ${C64Zeropage.SCRATCH_W1+1}", 20)
+                    "XY" -> AsmFragment(" stx  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1}  |  jsr  prog8_lib.ror2_word |  ldx  ${C64Zeropage.SCRATCH_W1} |  ldy  ${C64Zeropage.SCRATCH_W1+1}", 20)
+                    else -> AsmFragment(" lda  $variable |  sta  ${C64Zeropage.SCRATCH_W1} |  lda  $variable+1 |  sta  ${C64Zeropage.SCRATCH_W1+1} |  jsr prog8_lib.ror2_word |  lda  ${C64Zeropage.SCRATCH_W1} |  sta  $variable |  lda  ${C64Zeropage.SCRATCH_W1+1} |  sta  $variable+1", 30)
+                }
+            }
             else -> null
         }
     }
@@ -714,216 +801,28 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 
     class AsmPattern(val sequence: List<Opcode>, val prio: Int, val asm: (List<Instruction>)->String?)
 
-
-    private val patterns = listOf<AsmPattern>(
+    private val patterns = listOf(
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.POP_VAR_BYTE), 10) { segment ->
+                when (segment[1].callLabel) {
+                    "A", "X", "Y" -> " ld${segment[1].callLabel!!.toLowerCase()}  #${segment[0].arg!!.integerValue().toHex()}"
+                    else -> null
+                }
+            },
+            AsmPattern(listOf(Opcode.PUSH_WORD, Opcode.POP_VAR_WORD), 10) { segment ->
+                val number = segment[0].arg!!.integerValue().toHex()
+                when (segment[1].callLabel) {
+                    "AX" -> " lda  #<$number |  ldx  #>$number"
+                    "AY" -> " lda  #<$number |  ldy  #>$number"
+                    "XY" -> " ldx  #<$number |  ldy  #>$number"
+                    else -> null
+                }
+            },
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.POP_VAR_BYTE), 10) { segment ->
+                val index = segment[0].arg!!.integerValue()
+                when (segment[2].callLabel) {
+                    "A", "X", "Y" -> " ld${segment[2].callLabel!!.toLowerCase()}  ${segment[1].callLabel}+$index"
+                    else -> null
+                }
+            }
     )
-
-
-/*
-    private fun oldinstr2asm(insIdx: Int, ins: Instruction, block: IntermediateProgram.ProgramBlock): Int {
-        when(ins.opcode) {
-            Opcode.PUSH_BYTE -> {
-                val nextIns = block.getIns(insIdx+1)
-                if(nextIns==Opcode.DISCARD_BYTE)
-                    throw CompilerException("discard after push should have been removed")
-                if(nextIns.opcode==Opcode.POP_VAR_BYTE) {
-                    if(nextIns.callLabel in registerStrings) {
-                        // load a register with constant value
-                        out("\tld${nextIns.callLabel!!.toLowerCase()}  #${ins.arg!!.integerValue().toHex()}")
-                        return 1    // skip 1
-                    }
-                    // load a variable with a constant value
-                    out("\tlda  #${ins.arg!!.integerValue().toHex()}")
-                    out("\tsta  ${nextIns.callLabel}")
-                    return 1    // skip 1
-                }
-                if(nextIns.opcode==Opcode.POP_MEM_B || nextIns.opcode==Opcode.POP_MEM_UB) {
-                    // memory location = constant value
-                    out("\tlda  #${ins.arg!!.integerValue().toHex()}")
-                    out("\tsta  ${nextIns.arg!!.integerValue().toHex()}")
-                    return 1    // skip 1
-                }
-                // byte onto stack
-                pushByte(ins.arg!!.integerValue())
-            }
-            Opcode.PUSH_MEM_UB, Opcode.PUSH_MEM_B -> {
-                val nextIns = block.getIns(insIdx+1)
-                if(nextIns==Opcode.DISCARD_BYTE)
-                    throw CompilerException("discard after push should have been removed")
-                if(nextIns.opcode==Opcode.POP_VAR_BYTE) {
-                    if(nextIns.callLabel in registerStrings) {
-                        // load a register with memory location
-                        out("\tld${nextIns.callLabel!!.toLowerCase()}  ${ins.arg!!.integerValue().toHex()}")
-                        return 1    // skip 1
-                    }
-                    // load var with mem b
-                    out("\tlda  ${ins.arg!!.integerValue().toHex()}\n\tsta  ${nextIns.callLabel}")
-                    return 1    // skip 1
-                }
-                if(nextIns.opcode==Opcode.POP_MEM_B || nextIns.opcode==Opcode.POP_MEM_UB) {
-                    // copy byte from mem -> mem
-                    out("\tlda  ${ins.arg!!.integerValue().toHex()}\n\tsta  ${nextIns.arg!!.integerValue().toHex()}")
-                    return 1    // skip 1
-                }
-                // byte from memory onto stack
-                pushMemByte(ins.arg!!.integerValue())
-            }
-            Opcode.PUSH_VAR_BYTE -> {
-                val nextIns = block.getIns(insIdx+1)
-                if(nextIns==Opcode.DISCARD_BYTE)
-                    throw CompilerException("discard after push should have been removed")
-                if(nextIns.opcode==Opcode.POP_VAR_BYTE)
-                    throw CompilerException("push var+pop var should have been replaced by copy var")
-                if(nextIns.opcode==Opcode.POP_MEM_B || nextIns.opcode==Opcode.POP_MEM_UB) {
-                    // copy byte from var -> mem
-                    out("\tlda  ${ins.callLabel}\n\tsta  ${nextIns.arg!!.integerValue().toHex()}")
-                    return 1    // skip 1
-                }
-                // byte from variable onto stack
-                when(ins.callLabel) {
-                    "A" -> pushByteA()
-                    "X" -> throw CompilerException("makes no sense to push X it's used as a stack pointer itself")
-                    "Y" -> pushByteY()
-                    else -> pushVarByte(ins.callLabel!!)
-                }
-            }
-            Opcode.PUSH_WORD -> {
-                val nextIns = block.getIns(insIdx+1)
-                if(nextIns==Opcode.DISCARD_WORD)
-                    throw CompilerException("discard after push should have been removed")
-                if(nextIns.opcode==Opcode.POP_VAR_WORD) {
-                    val value = ins.arg!!.integerValue()
-                    if(nextIns.callLabel in registerStrings) {
-                        // we load a register (AX, AY, XY) with constant value
-                        val regs = nextIns.callLabel!!.toLowerCase()
-                        out("\tld${regs[0]}  #<${value.toHex()}")
-                        out("\tld${regs[1]}  #>${value.toHex()}")
-                        return 1    // skip 1
-                    }
-                    // load a word variable with a constant value
-                    out("\tlda  #<${value.toHex()}")
-                    out("\tsta  ${nextIns.callLabel}")
-                    out("\tlda  #>${value.toHex()}")
-                    out("\tsta  ${nextIns.callLabel}+1")
-                    return 1    // skip 1
-                }
-                if(nextIns.opcode==Opcode.POP_MEM_W || nextIns.opcode==Opcode.POP_MEM_UW) {
-                    // we're loading a word into memory
-                    out("\tlda  #<${ins.arg!!.integerValue().toHex()}")
-                    out("\tsta  ${nextIns.arg!!.integerValue().toHex()}")
-                    out("\tlda  #>${ins.arg.integerValue().toHex()}")
-                    out("\tsta  ${(nextIns.arg.integerValue()+1).toHex()}")
-                    return 1    // skip 1
-                }
-                if(ins.arg!!.type in StringDatatypes) {
-                    TODO("strings from heap")
-                }
-                pushWord(ins.arg.integerValue())
-            }
-            Opcode.PUSH_MEM_UW, Opcode.PUSH_MEM_W -> {
-                val nextIns = block.getIns(insIdx+1)
-                if(nextIns==Opcode.DISCARD_WORD)
-                    throw CompilerException("discard after push should have been removed")
-                if(nextIns.opcode==Opcode.POP_VAR_WORD) {
-                    if(nextIns.callLabel in registerStrings) {
-                        // load a register (AX, AY, XY) with word from memory
-                        val regs = nextIns.callLabel!!.toLowerCase()
-                        val value = ins.arg!!.integerValue()
-                        out("\tld${regs[0]}  ${value.toHex()}")
-                        out("\tld${regs[1]}  ${(value + 1).toHex()}")
-                        return 1    // skip 1
-                    }
-                    // load var with mem word
-                    out("\tlda  ${ins.arg!!.integerValue().toHex()}")
-                    out("\tsta  ${nextIns.callLabel}")
-                    out("\tlda  ${(ins.arg.integerValue()+1).toHex()}")
-                    out("\tsta  ${nextIns.callLabel}+1")
-                    return 1    // skip 1
-                }
-                if(nextIns.opcode==Opcode.POP_MEM_W || nextIns.opcode==Opcode.POP_MEM_UW) {
-                    // copy word mem->mem
-                    out("\tlda  ${ins.arg!!.integerValue().toHex()}")
-                    out("\tsta  ${nextIns.arg!!.integerValue().toHex()}")
-                    out("\tlda  ${(ins.arg.integerValue()+1).toHex()}")
-                    out("\tsta  ${(nextIns.arg.integerValue()+1).toHex()}")
-                    return 1    // skip 1
-                }
-                // word from memory onto stack
-                pushMemWord(ins.arg!!.integerValue())
-            }
-            Opcode.PUSH_VAR_WORD -> {
-                val nextIns = block.getIns(insIdx+1)
-                if(nextIns==Opcode.DISCARD_FLOAT)
-                    throw CompilerException("discard after push should have been removed")
-                if(nextIns.opcode==Opcode.POP_VAR_WORD)
-                    throw CompilerException("push var+pop var should have been replaced by copy var")
-                if(nextIns.opcode==Opcode.POP_MEM_W || nextIns.opcode==Opcode.POP_MEM_UW) {
-                    // copy word from var -> mem
-                    out("\tlda  ${ins.callLabel}\n\tsta  ${nextIns.arg!!.integerValue().toHex()}")
-                    return 1    // skip 1
-                }
-                // word from memory onto stack
-                when(ins.callLabel) {
-                    "AX" -> TODO()
-                    "AY" -> TODO()
-                    "XY" -> TODO()
-                    else -> pushVarWord(ins.callLabel!!)
-                }
-            }
-            Opcode.PUSH_FLOAT -> {
-                val nextIns = block.getIns(insIdx+1)
-                if(nextIns==Opcode.DISCARD_FLOAT)
-                    throw CompilerException("discard after push should have been removed")
-                if(!options.floats)
-                    throw CompilerException("floats not enabled")
-                val float = ins.arg!!.numericValue().toDouble()
-                val label = globalFloatConsts[float]!!
-                if(nextIns.opcode==Opcode.POP_MEM_FLOAT) {
-                    // set a float in memory to a constant float value
-                    copyFloat(label, nextIns.arg!!.integerValue().toHex())
-                    return 1
-                } else if(nextIns.opcode==Opcode.POP_VAR_FLOAT) {
-                    // set a variable to a constant float value
-                    copyFloat(label, nextIns.callLabel!!)
-                    return 1
-                }
-                pushFloat(label)
-            }
-            Opcode.PUSH_VAR_FLOAT -> {
-                val nextIns = block.getIns(insIdx+1)
-                if(nextIns==Opcode.DISCARD_FLOAT)
-                    throw CompilerException("discard after push should have been removed")
-                if(nextIns.opcode==Opcode.POP_VAR_FLOAT)
-                    throw CompilerException("push var+pop var should have been replaced by copy var")
-                if(!options.floats)
-                    throw CompilerException("floats not enabled")
-                if(nextIns.opcode==Opcode.POP_MEM_FLOAT) {
-                    copyFloat(ins.callLabel!!, nextIns.arg!!.integerValue().toHex())        // copy var float to memory
-                    return 1
-                }
-                pushFloat(ins.callLabel!!)
-            }
-            Opcode.PUSH_MEM_FLOAT -> {
-                val nextIns = block.getIns(insIdx+1)
-                if(nextIns==Opcode.DISCARD_FLOAT)
-                    throw CompilerException("discard after push should have been removed")
-                if(!options.floats)
-                    throw CompilerException("floats not enabled")
-                if(nextIns.opcode==Opcode.POP_VAR_FLOAT) {
-                    copyFloat(ins.arg!!.integerValue().toHex(), nextIns.callLabel!!)        // copy memory float to var
-                    return 1
-                }
-                if(nextIns.opcode==Opcode.POP_MEM_FLOAT) {
-                    copyFloat(ins.arg!!.integerValue().toHex(), nextIns.arg!!.integerValue().toHex())        // copy memory float to memory float
-                    return 1
-                }
-                pushFloat(ins.arg!!.integerValue().toHex())
-            }
-
-            else-> TODO("asm for $ins")
-        }
-        return 0
-    }
-
-    */
 }

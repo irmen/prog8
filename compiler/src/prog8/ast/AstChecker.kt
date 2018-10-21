@@ -409,7 +409,7 @@ class AstChecker(private val namespace: INameScope,
                             litVal.parent = decl
                             decl.value = litVal
                         }
-                        else -> err("var/const declaration needs a compile-time constant initializer value for this type")  // const fold should have provided it!
+                        else -> err("var/const declaration needs a compile-time constant initializer value for type ${decl.datatype}")  // const fold should have provided it!
                     }
                     return super.process(decl)
                 }

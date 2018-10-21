@@ -69,6 +69,12 @@ fun main(args: Array<String>) {
                 zpType, zpReserved,
                 options.any{ it.name=="enable_floats"})
 
+        if(compilerOptions.launcher==LauncherType.BASIC && compilerOptions.output!=OutputType.PRG)
+            throw ParsingFailedError("${moduleAst.position} BASIC launcher requires output type PRG.")
+        if(compilerOptions.output==OutputType.PRG || compilerOptions.launcher==LauncherType.BASIC) {
+            if(namespace.lookup(listOf("c64utils"), moduleAst.statements.first())==null)
+                throw ParsingFailedError("${moduleAst.position} When using output type PRG and/or laucher BASIC, the 'c64utils' module must be imported.")
+        }
 
         // perform initial syntax checks and constant folding
         val heap = HeapValues()

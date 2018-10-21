@@ -14,8 +14,9 @@ open class Instruction(val opcode: Opcode,
         val argStr = arg?.toString() ?: ""
         val result =
                 when {
-                    opcode== Opcode.LINE -> "_line  $callLabel"
-                    opcode== Opcode.SYSCALL -> {
+                    opcode==Opcode.LINE -> "_line  $callLabel"
+                    opcode==Opcode.INLINE_ASSEMBLY -> "inline_assembly"
+                    opcode==Opcode.SYSCALL -> {
                         val syscall = Syscall.values().find { it.callNr==arg!!.numericValue() }
                         "syscall  $syscall"
                     }

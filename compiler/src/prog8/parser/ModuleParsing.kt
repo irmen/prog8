@@ -37,6 +37,9 @@ fun importModule(filePath: Path) : Module {
 
     // process imports
     val lines = moduleAst.statements.toMutableList()
+    // always import the prog8 compiler library
+    if(!moduleAst.position.file.startsWith("prog8lib."))
+        lines.add(0, Directive("%import", listOf(DirectiveArg(null, "prog8lib", null, moduleAst.position)), moduleAst.position))
     val imports = lines
             .asSequence()
             .mapIndexed { i, it -> Pair(i, it) }

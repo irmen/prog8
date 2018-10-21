@@ -1,3 +1,5 @@
+%import c64utils
+
 ~ main {
     sub start()  {
         str   name    = "                    "

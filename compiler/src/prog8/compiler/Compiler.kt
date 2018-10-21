@@ -4,7 +4,8 @@ import prog8.ast.*
 import prog8.compiler.intermediate.IntermediateProgram
 import prog8.compiler.intermediate.Opcode
 import prog8.compiler.intermediate.Value
-import prog8.stackvm.*
+import prog8.stackvm.Syscall
+import prog8.stackvm.VmExecutionException
 import java.util.*
 import kotlin.math.abs
 
