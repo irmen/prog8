@@ -45,6 +45,11 @@ class AstChecker(private val namespace: INameScope,
                  private val compilerOptions: CompilationOptions,
                  private val heap: HeapValues) : IAstProcessor {
     private val checkResult: MutableList<AstException> = mutableListOf()
+    private val heapStringSentinel: Int
+    init {
+        val stringSentinel = heap.allStrings().firstOrNull {it.value.str==""}
+        heapStringSentinel = stringSentinel?.index ?: heap.add(DataType.STR, "")
+    }
 
     fun result(): List<AstException> {
         return checkResult
@@ -402,14 +407,18 @@ class AstChecker(private val namespace: INameScope,
         when(decl.type) {
             VarDeclType.VAR, VarDeclType.CONST -> {
                 if (decl.value == null) {
-                    when {
-                        decl.datatype in NumericDatatypes -> {
-                            // initialize numeric var with value zero by default.
-                            val litVal = LiteralValue(DataType.UBYTE, 0, position = decl.position)
-                            litVal.parent = decl
-                            decl.value = litVal
-                        }
-                        else -> err("var/const declaration needs a compile-time constant initializer value for type ${decl.datatype}")  // const fold should have provided it!
+                    if (decl.datatype in NumericDatatypes) {
+                        // initialize numeric var with value zero by default.
+                        val litVal = LiteralValue(DataType.UBYTE, 0, position = decl.position)
+                        litVal.parent = decl
+                        decl.value = litVal
+                    }
+                    else if(decl.type==VarDeclType.VAR) {
+                        val litVal = LiteralValue(decl.datatype, heapId = heapStringSentinel, position=decl.position)    // point to the sentinel heap value instead
+                        litVal.parent=decl
+                        decl.value = litVal
+                    } else {
+                        err("var/const declaration needs a compile-time constant initializer value for type ${decl.datatype}") // const fold should have provided it!
                     }
                     return super.process(decl)
                 }
@@ -812,15 +821,17 @@ class AstChecker(private val namespace: INameScope,
                 if(!value.isString)
                     return err("string value expected")
                 val str = value.strvalue ?: heap.get(value.heapId!!).str!!
-                if (str.isEmpty() || str.length > 255)
-                    return err("string length must be 1 to 255")
+                if (str.length > 255)
+                    return err("string length must be 0-255")
             }
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
                 // value may be either a single byte, or a byte array (of all constant values)
                 if(value.type==targetDt) {
-                    val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).array!!.size
                     val arraySpecSize = arrayspec.size()
+                    val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).arraysize
                     if(arraySpecSize!=null && arraySpecSize>0) {
+                        if(arraySpecSize<1 || arraySpecSize>256)
+                            return err("byte array length must be 1-256")
                         val constX = arrayspec.x.constValue(namespace, heap)
                         if(constX?.asIntegerValue==null)
                             return err("array size specifier must be constant integer value")
@@ -829,15 +840,18 @@ class AstChecker(private val namespace: INameScope,
                             return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
                         return true
                     }
+                    return err("invalid byte array size, must be 1-256")
                 }
-                return err("invalid array initialization value ${value.type}, expected $targetDt")
+                return err("invalid byte array initialization value ${value.type}, expected $targetDt")
             }
             DataType.ARRAY_UW, DataType.ARRAY_W -> {
                 // value may be either a single word, or a word array
                 if(value.type==targetDt) {
-                    val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).array!!.size
                     val arraySpecSize = arrayspec.size()
+                    val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).arraysize
                     if(arraySpecSize!=null && arraySpecSize>0) {
+                        if(arraySpecSize<1 || arraySpecSize>128)
+                            return err("word array length must be 1-128")
                         val constX = arrayspec.x.constValue(namespace, heap)
                         if(constX?.asIntegerValue==null)
                             return err("array size specifier must be constant integer value")
@@ -846,8 +860,9 @@ class AstChecker(private val namespace: INameScope,
                             return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
                         return true
                     }
+                    return err("invalid word array size, must be 1-128")
                 }
-                return err("invalid array initialization value ${value.type}, expected $targetDt")
+                return err("invalid word array initialization value ${value.type}, expected $targetDt")
             }
             DataType.ARRAY_F -> {
                 // value may be either a single float, or a float array
@@ -855,13 +870,17 @@ class AstChecker(private val namespace: INameScope,
                     val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).doubleArray!!.size
                     val arraySpecSize = arrayspec.size()
                     if(arraySpecSize!=null && arraySpecSize>0) {
+                        if(arraySpecSize < 1 || arraySpecSize>51)
+                            return err("float array length must be 1-51")
                         val constX = arrayspec.x.constValue(namespace, heap)
                         if(constX?.asIntegerValue==null)
                             return err("array size specifier must be constant integer value")
                         val expectedSize = constX.asIntegerValue
                         if (arraySize != expectedSize)
                             return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
-                    }
+                    } else
+                        return err("invalid float array size, must be 1-51")
+
                     // check if the floating point values are all within range
                     val doubles = if(value.arrayvalue!=null)
                         value.arrayvalue.map {it.constValue(namespace, heap)?.asNumericValue!!.toDouble()}.toDoubleArray()
@@ -871,7 +890,7 @@ class AstChecker(private val namespace: INameScope,
                         return err("floating point value overflow")
                     return true
                 }
-                return err("invalid array initialization value ${value.type}, expected $targetDt")
+                return err("invalid float array initialization value ${value.type}, expected $targetDt")
             }
             DataType.MATRIX_UB, DataType.MATRIX_B -> {
                 // value can only be a single byte, or a byte array (which represents the matrix)
@@ -880,6 +899,8 @@ class AstChecker(private val namespace: INameScope,
                         (targetDt==DataType.MATRIX_B && value.type==DataType.ARRAY_B)) {
                     val arraySpecSize = arrayspec.size()
                     if(arraySpecSize!=null && arraySpecSize>0) {
+                        if(arraySpecSize<1 || arraySpecSize>256)
+                            return err("invalid matrix size, must be 1-256")
                         val constX = arrayspec.x.constValue(namespace, heap)
                         val constY = arrayspec.y?.constValue(namespace, heap)
                         if (constX?.asIntegerValue == null || (constY!=null && constY.asIntegerValue == null))
@@ -891,6 +912,7 @@ class AstChecker(private val namespace: INameScope,
                             return err("initializer matrix size mismatch (expecting $expectedSize, got ${matrix.size} elements)")
                         return true
                     }
+                    return err("invalid matrix size, must be 1-256")
                 }
                 return err("invalid matrix initialization value of type ${value.type} - expecting byte array")
             }

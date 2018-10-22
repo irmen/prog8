@@ -43,7 +43,7 @@ val BuiltinFunctions = mapOf(
     "round"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.WORD) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::round) },
     "floor"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.WORD) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::floor) },
     "ceil"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.WORD) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::ceil) },
-    "len"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", IterableDatatypes)), DataType.UWORD, ::builtinLen),
+    "len"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", IterableDatatypes)), DataType.UBYTE, ::builtinLen),
     "any"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.any { v -> v != 0.0} }},
     "all"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.all { v -> v != 0.0} }},
     "lsb"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, n, h -> oneIntArgOutputInt(a, p, n, h) { x: Int -> x and 255 }},
@@ -336,16 +336,18 @@ private fun builtinLen(args: List<IExpression>, position: Position, namespace:IN
     if(argument==null) {
         if(args[0] !is IdentifierReference)
             throw SyntaxError("len over weird argument ${args[0]}", position)
-        argument = ((args[0] as IdentifierReference).targetStatement(namespace) as? VarDecl)?.value?.constValue(namespace, heap)
-                ?: throw SyntaxError("len over weird argument ${args[0]}", position)
+        val target = (args[0] as IdentifierReference).targetStatement(namespace)
+        val argValue = (target as? VarDecl)?.value
+        argument = argValue?.constValue(namespace, heap)
+                ?: throw NotConstArgumentException()
     }
     return when(argument.type) {
         DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.MATRIX_UB, DataType.MATRIX_B -> {
-            val arraySize = argument.arrayvalue?.size ?: heap.get(argument.heapId!!).array!!.size
+            val arraySize = argument.arrayvalue?.size ?: heap.get(argument.heapId!!).arraysize
             LiteralValue(DataType.UWORD, wordvalue=arraySize, position=args[0].position)
         }
         DataType.ARRAY_F -> {
-            val arraySize = argument.arrayvalue?.size ?: heap.get(argument.heapId!!).doubleArray!!.size
+            val arraySize = argument.arrayvalue?.size ?: heap.get(argument.heapId!!).arraysize
             LiteralValue(DataType.UWORD, wordvalue=arraySize, position=args[0].position)
         }
         DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {

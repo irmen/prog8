@@ -81,8 +81,8 @@ class HeapValues {
     fun size(): Int = heap.size
 
     fun add(type: DataType, str: String): Int {
-        if (str.isEmpty() || str.length > 255)
-            throw IllegalArgumentException("string length must be 1-255")
+        if (str.length > 255)
+            throw IllegalArgumentException("string length must be 0-255")
 
         // strings are 'interned' and shared if they're the same
         val value = HeapValue(type, str, null, null)
@@ -1416,11 +1416,11 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             DataType.ARRAY_UB, DataType.ARRAY_B,
             DataType.ARRAY_UW, DataType.ARRAY_W,
             DataType.MATRIX_UB, DataType.MATRIX_B -> {
-                numElements = iterableValue.arrayvalue?.size ?: heap.get(iterableValue.heapId!!).array!!.size
+                numElements = iterableValue.arrayvalue?.size ?: heap.get(iterableValue.heapId!!).arraysize
                 indexVar = if(numElements>255) "XY" else "X"
             }
             DataType.ARRAY_F -> {
-                numElements = iterableValue.arrayvalue?.size ?: heap.get(iterableValue.heapId!!).doubleArray!!.size
+                numElements = iterableValue.arrayvalue?.size ?: heap.get(iterableValue.heapId!!).arraysize
                 indexVar = if(numElements>255) "XY" else "X"
             }
         }

@@ -184,14 +184,14 @@ When declaring a numeric variable it is possible to specify the initial value, i
 For other data types it is required to specify that initial value it should get.
 Values will usually be part of an expression or assignment statement::
 
-	12345			; integer number
-	$aa43			; hex integer number
-	%100101			; binary integer number
-	"Hi, I am a string"	; text string
-	'a'             ; petscii value (byte) for the letter a
-	-33.456e52		; floating point number
+    12345                 ; integer number
+    $aa43                 ; hex integer number
+    %100101               ; binary integer number
+    "Hi, I am a string"   ; text string
+    'a'                   ; petscii value (byte) for the letter a
+    -33.456e52            ; floating point number
 
-	byte  counter  = 42	; variable of size 8 bits, with initial value 42
+    byte  counter  = 42   ; variable of size 8 bits, with initial value 42
 
 
 Array and Matrix (2-dimensional array) types are also supported.
@@ -207,9 +207,14 @@ Arrays can be made of bytes, words and floats. Matrixes can oly be made of bytes
     value = matrix[4,2]         ; the byte at the 5th column and 3rd row in the matrix
     char = string[4]            ; the fifth character (=byte) in the string
 
+.. note::
+    Right now, the array and matrix size should be small enough to be indexable by a single byte index.
+    This means byte arrays and matrixes should be <= 256 elements, word arrays <= 128 elements, and float
+    arrays <= 51 elements.  This limit may be lifted in a future version.
+
 
 Note that the various keywords for the data type and variable type (``byte``, ``word``, ``const``, etc.)
-cannot be used as *identifiers* elsewhere. You can't make a variable, block or subroutine with the name ``byte``
+can't be used as *identifiers* elsewhere. You can't make a variable, block or subroutine with the name ``byte``
 for instance.
 
 .. todo::
@@ -342,6 +347,7 @@ You can also create loops by using the ``goto`` statement, but this should usual
     The value of the loop variable or register after executing the loop *is undefined*. Don't use it immediately
     after the loop without first assigning a new value to it!
     (this is an optimization issue to avoid having to deal with mostly useless post-loop logic to adjust the loop variable's value)
+    Loop variables that are declared inline are scoped in the loop body so they're not accessible at all after the loop finishes.
 
 
 Conditional Execution

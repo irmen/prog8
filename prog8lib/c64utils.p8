@@ -264,7 +264,7 @@ asmsub  GETADRAY  () -> clobbers(X) -> (uword @ AY)  {
 }
 
 
-asmsub  copy_mflt  (source: uword @ XY) -> clobbers(A,Y) -> ()  {
+asmsub  copy_mflt  (source: uword @ XY) -> clobbers(A) -> ()  {
 	; ---- copy a 5 byte MFLT floating point variable to another place
 	;      input: X/Y = source address,  c64.SCRATCH_ZPWORD1 = destination address
 	%asm {{
@@ -364,7 +364,7 @@ asmsub  float_sub_SW1_from_XY  (mflt: uword @ XY) -> clobbers(A,X,Y) -> ()  {
 	; ---- this block contains (character) Screen and text I/O related functions ----
 
 
-asmsub  clear_screen (char: ubyte @ A, color: ubyte @ Y) -> clobbers() -> ()  {
+asmsub  clear_screen (char: ubyte @ A, color: ubyte @ Y) -> clobbers(A,X) -> ()  {
 	; ---- clear the character screen with the given fill character and character color.
 	;      (assumes screen is at $0400, could be altered in the future with self-modifying code)
 	;       @todo some byte var to set the SCREEN ADDR HI BYTE
@@ -607,7 +607,7 @@ _scroll_screen  ; scroll the screen memory
 
 
 
-asmsub  print_string (address: uword @ XY) -> clobbers(A,Y) -> ()  {
+asmsub  print_string (text: str @ XY) -> clobbers(A,Y) -> ()  {
 	; ---- print null terminated string from X/Y
 	; note: the compiler contains an optimization that will replace
 	;       a call to this subroutine with a string argument of just one char,
@@ -626,7 +626,7 @@ asmsub  print_string (address: uword @ XY) -> clobbers(A,Y) -> ()  {
 }
 
 
-asmsub  print_pstring  (address: uword @ XY) -> clobbers(A,X) -> (ubyte @ Y)  {
+asmsub  print_pstring  (text: str_p @ XY) -> clobbers(A,X) -> (ubyte @ Y)  {
 	; ---- print pstring (length as first byte) from X/Y, returns str len in Y
 	%asm {{
 		stx  c64.SCRATCH_ZP1

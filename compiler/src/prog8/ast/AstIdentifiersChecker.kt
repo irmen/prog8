@@ -87,6 +87,9 @@ class AstIdentifiersChecker : IAstProcessor {
             }
 
             // inject subroutine params as local variables (if they're not there yet) (for non-kernel subroutines)
+            // NOTE:
+            // - numeric types BYTE and WORD and FLOAT are passed by value;
+            // - strings, arrays, matrices are passed by reference (their 16-bit address is passed as an uword parameter)
             if(subroutine.asmAddress==null) {
                 subroutine.parameters
                         .filter { !definedNames.containsKey(it.name) }

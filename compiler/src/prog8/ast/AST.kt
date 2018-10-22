@@ -565,7 +565,7 @@ class ArraySpec(var x: IExpression, var y: IExpression?, override val position: 
     companion object {
         fun forArray(v: LiteralValue, heap: HeapValues): ArraySpec {
             val arraySize = v.arrayvalue?.size ?: heap.get(v.heapId!!).arraysize
-            return ArraySpec(LiteralValue.optimalInteger(arraySize, v.position), null, v.position)
+            return ArraySpec(LiteralValue.optimalNumeric(arraySize, v.position), null, v.position)
         }
     }
 
@@ -1012,6 +1012,7 @@ class LiteralValue(val type: DataType,
     val asIntegerValue: Int? = when {
         bytevalue!=null -> bytevalue.toInt()
         wordvalue!=null -> wordvalue
+        floatvalue!=null -> floor(floatvalue).toInt()
         else -> null
     }
 
