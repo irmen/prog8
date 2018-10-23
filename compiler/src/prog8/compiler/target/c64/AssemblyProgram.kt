@@ -12,8 +12,8 @@ class AssemblyProgram(val name: String) {
     fun assemble(options: CompilationOptions) {
         println("Generating machine code program...")
 
-        val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "-Wall", "-Wno-strict-bool",
-                "-Werror", "--dump-labels", "--vice-labels", "-l", viceMonListFile, "--no-monitor")
+        val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch", "-Wall", "-Wno-strict-bool", "-Wlong-branch",
+                "-Werror", "-Wno-error=long-branch", "--dump-labels", "--vice-labels", "-l", viceMonListFile, "--no-monitor")
 
         val outFile = when(options.output) {
             OutputType.PRG -> {

@@ -232,3 +232,28 @@ val opcodesWithVarArgument = setOf(
         Opcode.READ_INDEXED_VAR_BYTE, Opcode.READ_INDEXED_VAR_WORD, Opcode.READ_INDEXED_VAR_FLOAT,
         Opcode.WRITE_INDEXED_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_WORD, Opcode.WRITE_INDEXED_VAR_FLOAT
 )
+
+val pushOpcodes = setOf(
+        Opcode.PUSH_BYTE,
+        Opcode.PUSH_WORD,
+        Opcode.PUSH_FLOAT,
+        Opcode.PUSH_MEM_B,
+        Opcode.PUSH_MEM_UB,
+        Opcode.PUSH_MEM_W,
+        Opcode.PUSH_MEM_UW,
+        Opcode.PUSH_MEM_FLOAT,
+        Opcode.PUSH_VAR_BYTE,
+        Opcode.PUSH_VAR_WORD,
+        Opcode.PUSH_VAR_FLOAT
+)
+
+val popOpcodes = setOf(
+        Opcode.POP_MEM_B,
+        Opcode.POP_MEM_UB,
+        Opcode.POP_MEM_W,
+        Opcode.POP_MEM_UW,
+        Opcode.POP_MEM_FLOAT,
+        Opcode.POP_VAR_BYTE,
+        Opcode.POP_VAR_WORD,
+        Opcode.POP_VAR_FLOAT
+)

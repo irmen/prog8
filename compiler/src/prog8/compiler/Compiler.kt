@@ -381,6 +381,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             DataType.BYTE -> Opcode.DEC_VAR_B
             DataType.UWORD -> Opcode.DEC_VAR_UW
             DataType.WORD -> Opcode.DEC_VAR_W
+            DataType.FLOAT -> Opcode.DEC_VAR_F
             else -> throw CompilerException("can't dec type $dt")
         }
     }
@@ -391,6 +392,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             DataType.BYTE -> Opcode.INC_VAR_B
             DataType.UWORD -> Opcode.INC_VAR_UW
             DataType.WORD -> Opcode.INC_VAR_W
+            DataType.FLOAT -> Opcode.INC_VAR_F
             else -> throw CompilerException("can't inc type $dt")
         }
     }

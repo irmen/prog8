@@ -320,27 +320,36 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         // find best patterns (matching the most of the lines, then with the smallest weight)
         val fragments = findPatterns(ins).sortedWith(compareBy({it.segmentSize}, {it.prio}))
         if(fragments.isEmpty()) {
+            // we didn't find any matching patterns (complex multi-instruction fragments), try simple ones
             val firstIns = ins[0]
             val singleAsm = simpleInstr2Asm(firstIns)
             if(singleAsm != null) {
-                if(singleAsm.isNotEmpty()) {
-                    for(line in singleAsm.split('|')) {
-                        val trimmed = if(line.startsWith(' ')) "\t"+line.trim() else line.trim()
-                        out(trimmed)
-                    }
-                }
+                outputAsmFragment(singleAsm)
                 return 1
             }
             return 0
         }
         val best = fragments[0]
-        if(best.asm.isNotEmpty()) {
-            for (line in best.asm.split('|')) {
-                val trimmed = if (line.startsWith(' ')) "\t" + line.trim() else line.trim()
-                out(trimmed)
+        outputAsmFragment(best.asm)
+        return best.segmentSize
+    }
+
+    private fun outputAsmFragment(singleAsm: String) {
+        if (singleAsm.isNotEmpty()) {
+            when {
+                singleAsm.startsWith("@inline@") -> out(singleAsm.substring(8))
+                '\n' in singleAsm -> for (line in singleAsm.split('\n')) {
+                    if (line.isNotEmpty()) {
+                        val trimmed = if (line.startsWith(' ')) "\t" + line.trim() else line.trim()
+                        out(trimmed)
+                    }
+                }
+                else -> for (line in singleAsm.split('|')) {
+                    val trimmed = if (line.startsWith(' ')) "\t" + line.trim() else line.trim()
+                    out(trimmed)
+                }
             }
         }
-        return best.segmentSize
     }
 
     private fun simpleInstr2Asm(ins: Instruction): String? {
@@ -373,14 +382,98 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.DISCARD_BYTE -> " inx"
             Opcode.DISCARD_WORD -> " inx"
             Opcode.DISCARD_FLOAT -> " inx |  inx |  inx"
-            Opcode.INLINE_ASSEMBLY -> ins.callLabel ?: ""        // All of the inline assembly is stored in the calllabel property.
+            Opcode.INLINE_ASSEMBLY ->  "@inline@" + (ins.callLabel ?: "")      // All of the inline assembly is stored in the calllabel property.
+            Opcode.SYSCALL -> {
+                if (ins.arg!!.numericValue() in syscallsForStackVm.map { it.callNr })
+                    throw CompilerException("cannot translate vm syscalls to real assembly calls - use *real* subroutine calls instead. Syscall ${ins.arg.numericValue()}")
+                TODO("syscall $ins")
+            }
+            Opcode.BREAKPOINT -> {
+                breakpointCounter++
+                "_prog8_breakpoint_$breakpointCounter\tnop"
+            }
+
             Opcode.PUSH_BYTE -> {
-                " lda  #${ins.arg!!.integerValue().toHex()} |  sta  $ESTACK_LO,x |  dex"
+                " lda  #${ins.arg!!.integerValue().toHex()} |  sta  ${ESTACK_LO.toHex()},x |  dex"
             }
             Opcode.PUSH_WORD -> {
                 val value = ins.arg!!.integerValue().toHex()
-                " lda  #<$value |  sta  $ESTACK_LO,x |  lda  #>$value |  sta  $ESTACK_HI,x |  dex"
+                " lda  #<$value |  sta  ${ESTACK_LO.toHex()},x |  lda  #>$value |  sta  ${ESTACK_HI.toHex()},x |  dex"
             }
+            Opcode.PUSH_FLOAT -> {
+                val floatConst = globalFloatConsts[ins.arg!!.numericValue().toDouble()] ?: throw AssemblyError("should have a global float const for number ${ins.arg}")
+                " lda  #<$floatConst |  ldy  #>$floatConst |  jsr  prog8_lib.push_float"
+            }
+            Opcode.PUSH_VAR_BYTE -> {
+                when(ins.callLabel) {
+                    "X" -> throw CompilerException("makes no sense to push X, it's used as a stack pointer itself")
+                    "A" -> " sta  ${ESTACK_LO.toHex()},x |  dex"
+                    "Y" -> " tya |  sta  ${ESTACK_LO.toHex()},x |  dex"
+                    else -> " lda  ${ins.callLabel} |  sta  ${ESTACK_LO.toHex()},x |  dex"
+                }
+            }
+            Opcode.PUSH_VAR_WORD -> {
+                when (ins.callLabel) {
+                    "AX" -> throw CompilerException("makes no sense to push X, it's used as a stack pointer itself")
+                    "XY" -> throw CompilerException("makes no sense to push X, it's used as a stack pointer itself")
+                    "AY" -> " sta  ${ESTACK_LO.toHex()},x |  pha |  tya |  sta  ${ESTACK_HI.toHex()},x |  pla |  dex"
+                    else -> " lda  ${ins.callLabel} |  ldy  ${ins.callLabel}+1 |  sta  ${ESTACK_LO.toHex()},x |  pha |  tya |  sta  ${ESTACK_HI.toHex()},x |  pla |  dex"
+                }
+            }
+            Opcode.PUSH_VAR_FLOAT -> " lda  #<${ins.callLabel} |  ldy  #>${ins.callLabel}|  jsr  prog8_lib.push_float"
+            Opcode.PUSH_MEM_B, Opcode.PUSH_MEM_UB -> {
+                """
+                lda  ${ins.arg!!.integerValue().toHex()}
+                sta  ${ESTACK_LO.toHex()},x
+                dex
+                """
+            }
+            Opcode.PUSH_MEM_W, Opcode.PUSH_MEM_UW -> {
+                """
+                lda  ${ins.arg!!.integerValue().toHex()}
+                sta  ${ESTACK_LO.toHex()},x
+                lda  ${(ins.arg.integerValue()+1).toHex()}
+                sta  ${ESTACK_HI.toHex()},x
+                dex
+                """
+            }
+
+            Opcode.POP_MEM_B, Opcode.POP_MEM_UB -> {
+                """
+                inx
+                lda  ${ESTACK_LO.toHex()},x
+                sta  ${ins.arg!!.integerValue().toHex()}
+                """
+            }
+            Opcode.POP_MEM_W, Opcode.POP_MEM_UW -> {
+                """
+                inx
+                lda  ${ESTACK_LO.toHex()},x
+                sta  ${ins.arg!!.integerValue().toHex()}
+                lda  ${ESTACK_HI.toHex()},x
+                sta  ${(ins.arg.integerValue()+1).toHex()}
+                """
+            }
+            Opcode.POP_VAR_BYTE -> {
+                when (ins.callLabel) {
+                    "X" -> throw CompilerException("makes no sense to pop X, it's used as a stack pointer itself")
+                    "A" -> " inx |  lda  ${ESTACK_LO.toHex()},x"
+                    "Y" -> " inx |  ldy  ${ESTACK_LO.toHex()},x"
+                    else -> " inx |  lda  ${ESTACK_LO.toHex()},x |  sta  ${ins.callLabel}"
+                }
+            }
+            Opcode.POP_VAR_WORD -> {
+                when (ins.callLabel) {
+                    "AX" -> throw CompilerException("makes no sense to pop X, it's used as a stack pointer itself")
+                    "XY" -> throw CompilerException("makes no sense to pop X, it's used as a stack pointer itself")
+                    "AY" -> " inx |  lda  ${ESTACK_LO.toHex()},x |  ldy  ${ESTACK_HI.toHex()},x"
+                    else -> " inx |  lda  ${ESTACK_LO.toHex()},x |  ldy  ${ESTACK_HI.toHex()},x |  sta  ${ins.callLabel} |  sty  ${ins.callLabel}+1"
+                }
+            }
+            Opcode.POP_VAR_FLOAT -> {
+                " lda  #<${ins.callLabel} |  ldy  #>${ins.callLabel} |  jsr  prog8_lib.pop_var_float"
+            }
+
             Opcode.COPY_VAR_BYTE -> {
                 when {
                     ins.callLabel2 in registerStrings -> {
@@ -444,6 +537,20 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     }
                 }
             }
+            Opcode.COPY_VAR_FLOAT -> {
+                """
+                lda  #<${ins.callLabel}
+                ldy  #>${ins.callLabel}
+                sta  ${C64Zeropage.SCRATCH_W1}
+                sty  ${C64Zeropage.SCRATCH_W1+1}
+                lda  #<${ins.callLabel2}
+                ldy  #>${ins.callLabel2}
+                sta  ${C64Zeropage.SCRATCH_W2}
+                sty  ${C64Zeropage.SCRATCH_W2+1}
+                jsr  prog8_lib.copy_float
+                """
+            }
+
             Opcode.INC_VAR_UB, Opcode.INC_VAR_B -> {
                 when (ins.callLabel) {
                     "A" -> " clc |  adc  #1"
@@ -457,8 +564,15 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     "AX" -> " clc |  adc  #1 |  bne  + |  inx |+"
                     "AY" -> " clc |  adc  #1 |  bne  + |  iny |+"
                     "XY" -> " inx |  bne  + |  iny  |+"
-                    else -> TODO("inc_var_uw $ins")
+                    else -> " inc  ${ins.callLabel} |  bne  + |  inc  ${ins.callLabel}+1 |+"
                 }
+            }
+            Opcode.INC_VAR_F -> {
+                """
+                lda  #<${ins.callLabel}
+                ldy  #>${ins.callLabel}
+                jsr  prog8_lib.inc_var_f
+                """
             }
             Opcode.DEC_VAR_UB, Opcode.DEC_VAR_B -> {
                 when (ins.callLabel) {
@@ -468,87 +582,137 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     else -> " dec  ${ins.callLabel}"
                 }
             }
-            Opcode.ADD_UB, Opcode.ADD_B -> {
-                " lda  ${(ESTACK_LO + 2).toHex()},x | " +
-                " clc |  adc  ${(ESTACK_LO + 1).toHex()},x |  inx" +
-                " sta  ${(ESTACK_LO + 1).toHex()},x"
-            }
-            Opcode.SUB_UB, Opcode.SUB_B -> {
-                " lda  ${(ESTACK_LO + 2).toHex()},x | " +
-                " sec |  sbc  ${(ESTACK_LO + 1).toHex()},x |  inx" +
-                " sta  ${(ESTACK_LO + 1).toHex()},x"
-            }
-            Opcode.POP_MEM_UB, Opcode.POP_MEM_B -> {
-                " inx |  lda  ${ESTACK_LO.toHex()},x " +
-                " sta  ${ins.arg!!.integerValue().toHex()}"
-            }
-            Opcode.POP_MEM_W, Opcode.POP_MEM_UW -> {
-                " inx |  lda  ${ESTACK_LO.toHex()},x |  ldy  ${ESTACK_HI.toHex()},x | " +
-                " sta  ${ins.callLabel} |  sty  ${ins.callLabel}+1"
-            }
-            Opcode.POP_VAR_BYTE -> {
-                when (ins.callLabel) {
-                    "X" -> throw CompilerException("makes no sense to pop X it's used as a stack pointer itself")
-                    "A" -> " inx |  lda  ${ESTACK_LO.toHex()},x"
-                    "Y" -> " inx |  ldy  ${ESTACK_LO.toHex()},x"
-                    else -> " inx |  lda  ${ESTACK_LO.toHex()},x |  sta  ${ins.callLabel}"
-                }
-            }
-            Opcode.POP_VAR_WORD -> {
-                when (ins.callLabel) {
-                    "AX" -> throw CompilerException("makes no sense to pop X it's used as a stack pointer itself")
-                    "XY" -> throw CompilerException("makes no sense to pop X it's used as a stack pointer itself")
-                    "AY" -> " inx |  lda  ${ESTACK_LO.toHex()},x |  ldy  ${ESTACK_HI.toHex()},x"
-                    else -> " inx |  lda  ${ESTACK_LO.toHex()},x |  ldy  ${ESTACK_HI.toHex()},x |  sta  ${ins.callLabel} |  sty  ${ins.callLabel}+1"
-                }
-            }
             Opcode.DEC_VAR_UW -> {
                 when (ins.callLabel) {
                     "AX" -> " cmp  #0 |  bne  + |  dex |+ |  sec |  sbc  #1"
                     "AY" -> " cmp  #0 |  bne  + |  dey |+ |  sec |  sbc  #1"
                     "XY" -> " txa |  bne + |  dey |+ | dex"
-                    else -> TODO("dec_var_uw $ins")
+                    else -> " lda  ${ins.callLabel} |  bne  + |  dec  ${ins.callLabel}+1 |+ |  dec  ${ins.callLabel}"
                 }
             }
+            Opcode.DEC_VAR_F -> {
+                """
+                lda  #<${ins.callLabel}
+                ldy  #>${ins.callLabel}
+                jsr  prog8_lib.dec_var_f
+                """
+            }
             Opcode.NEG_B -> {
-                " lda  ${(ESTACK_LO+1).toHex()},x |" +
-                " eor  #\$ff |  sec |  adc  #0 | " +
-                " sta  ${(ESTACK_LO+1).toHex()},x"
+                """
+                lda  ${(ESTACK_LO+1).toHex()},x
+                eor  #255
+                sec
+                adc  #0
+                sta  ${(ESTACK_LO+1).toHex()},x
+                """
             }
             Opcode.INV_BYTE -> {
-                " lda  ${(ESTACK_LO+1).toHex()},x | " +
-                " eor  #\$ff | " +
-                " sta  ${(ESTACK_LO+1).toHex()},x"
+                """
+                lda  ${(ESTACK_LO + 1).toHex()},x
+                eor  #255
+                sta  ${(ESTACK_LO + 1).toHex()},x
+                """
             }
             Opcode.INV_WORD -> {
-                " lda  ${(ESTACK_LO + 1).toHex()},x |  eor  #\$ff |  sta  ${(ESTACK_LO+1).toHex()},x | " +
-                " lda  ${(ESTACK_HI + 1).toHex()},x |  eor  #\$ff |  sta  ${(ESTACK_HI+1).toHex()},x | "
+                """
+                lda  ${(ESTACK_LO + 1).toHex()},x
+                eor  #255
+                sta  ${(ESTACK_LO+1).toHex()},x
+                lda  ${(ESTACK_HI + 1).toHex()},x
+                eor  #255
+                sta  ${(ESTACK_HI+1).toHex()},x
+                """
             }
             Opcode.NOT_BYTE -> {
-                " lda  ${(ESTACK_LO+1)},x " +
-                " beq  + |  lda  #0 |  beq ++ |+ |  lda  #1 |+ | " +
-                " sta  ${(ESTACK_LO+1)},x"
+                """
+                lda  ${(ESTACK_LO+1).toHex()},x
+                beq  +
+                lda  #0
+                beq ++
++               lda  #1
++               sta  ${(ESTACK_LO+1).toHex()},x
+                """
             }
             Opcode.NOT_WORD -> {
-                " lda  ${(ESTACK_LO + 1).toHex()},x |  ora  ${(ESTACK_HI + 1).toHex()},x | " +
-                " beq  + |  lda  #0 | beq  ++ |+ |  lda  #1 |+ | "+
-                " sta  ${(ESTACK_LO + 1).toHex()},x |  sta  ${(ESTACK_HI + 1).toHex()},x"
+                """
+                lda  ${(ESTACK_LO + 1).toHex()},x
+                ora  ${(ESTACK_HI + 1).toHex()},x
+                beq  +
+                lda  #0
+                beq  ++
++               lda  #1
++               sta  ${(ESTACK_LO + 1).toHex()},x |  sta  ${(ESTACK_HI + 1).toHex()},x
+                """
             }
-            Opcode.SYSCALL -> {
-                if (ins.arg!!.numericValue() in syscallsForStackVm.map { it.callNr })
-                    throw CompilerException("cannot translate vm syscalls to real assembly calls - use *real* subroutine calls instead. Syscall ${ins.arg.numericValue()}")
-                TODO("syscall $ins")
-            }
-            Opcode.BREAKPOINT -> {
-                breakpointCounter++
-                "_prog8_breakpoint_$breakpointCounter\tnop"
-            }
+
             Opcode.BCS -> " bcs  ${ins.callLabel}"
             Opcode.BCC -> " bcc  ${ins.callLabel}"
             Opcode.BZ -> " beq  ${ins.callLabel}"
             Opcode.BNZ -> " bne  ${ins.callLabel}"
             Opcode.BNEG -> " bmi  ${ins.callLabel}"
             Opcode.BPOS -> " bpl  ${ins.callLabel}"
+            Opcode.UB2FLOAT -> " jsr  prog8_lib.ub2float"
+            Opcode.B2FLOAT -> " jsr  prog8_lib.b2float"
+            Opcode.UW2FLOAT -> " jsr  prog8_lib.uw2float"
+            Opcode.W2FLOAT -> " jsr  prog8_lib.w2float"
+
+            Opcode.DIV_UB -> "  jsr  prog8_lib.div_ub"
+            Opcode.DIV_B -> "  jsr  prog8_lib.div_b"
+            Opcode.DIV_F -> "  jsr  prog8_lib.div_f"
+            Opcode.DIV_W -> "  jsr  prog8_lib.div_w"
+            Opcode.DIV_UW -> "  jsr  prog8_lib.div_uw"
+            Opcode.ADD_UB, Opcode.ADD_B -> {
+                """
+                lda  ${(ESTACK_LO + 2).toHex()},x
+                clc
+                adc  ${(ESTACK_LO + 1).toHex()},x
+                inx
+                sta  ${(ESTACK_LO + 1).toHex()},x
+                """
+            }
+            Opcode.SUB_UB, Opcode.SUB_B -> {
+                """
+                lda  ${(ESTACK_LO + 2).toHex()},x
+                sec
+                sbc  ${(ESTACK_LO + 1).toHex()},x
+                inx
+                sta  ${(ESTACK_LO + 1).toHex()},x
+                """
+            }
+            Opcode.ADD_F -> "  jsr  prog8_lib.add_f"
+            Opcode.ADD_W -> "  jsr  prog8_lib.add_w"    // todo or inline rather
+            Opcode.ADD_UW -> "  jsr  prog8_lib.add_uw"  // todo or inline rather
+            Opcode.SUB_F -> "  jsr  prog8_lib.sub_f"
+            Opcode.SUB_W -> "  jsr  prog8_lib.sub_w"    // todo or inline rather
+            Opcode.SUB_UW -> "  jsr  prog8_lib.sub_uw"    // todo or inline rather
+            Opcode.MUL_F -> "  jsr  prog8_lib.mul_f"
+            Opcode.MUL_B -> "  jsr  prog8_lib.mul_b"
+            Opcode.MUL_UB -> "  jsr  prog8_lib.mul_ub"
+            Opcode.MUL_W -> "  jsr  prog8_lib.mul_w"
+            Opcode.MUL_UW -> "  jsr  prog8_lib.mul_uw"
+            Opcode.LESS_UB -> "  jsr  prog8_lib.less_ub"
+            Opcode.LESS_B -> "  jsr  prog8_lib.less_b"
+            Opcode.LESS_UW -> "  jsr  prog8_lib.less_uw"
+            Opcode.LESS_W -> "  jsr  prog8_lib.less_w"
+            Opcode.LESS_F -> "  jsr  prog8_lib.less_f"
+
+            Opcode.AND_BYTE -> {
+                """
+                lda  ${(ESTACK_LO + 2).toHex()},x
+                and  ${(ESTACK_LO + 1).toHex()},x
+                inx
+                sta  ${(ESTACK_LO + 1).toHex()},x
+                """
+            }
+            Opcode.OR_BYTE -> {
+                """
+                lda  ${(ESTACK_LO + 2).toHex()},x
+                ora  ${(ESTACK_LO + 1).toHex()},x
+                inx
+                sta  ${(ESTACK_LO + 1).toHex()},x
+                """
+            }
+
             else -> null
         }
     }
@@ -557,7 +721,72 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         val opcodes = segment.map { it.opcode }
         val result = mutableListOf<AsmFragment>()
 
-        if((opcodes[0]==Opcode.PUSH_VAR_BYTE && opcodes[2]==Opcode.POP_VAR_BYTE) ||
+        // check for regular 'assignments'  (a push immediately followed by a pop)
+        if(opcodes[0] in pushOpcodes && opcodes[1] in popOpcodes) {
+            when(opcodes[0]) {
+                Opcode.PUSH_BYTE -> when(opcodes[1]) {
+                    Opcode.POP_VAR_BYTE -> {
+                        result.add(AsmFragment(
+                                " lda  #${segment[0].arg!!.integerValue().toHex()} |  sta  ${segment[1].callLabel}",
+                                10, 2))
+                    }
+                    else -> TODO("pop byte ${segment[1]}")
+                }
+                Opcode.PUSH_WORD -> when(opcodes[1]) {
+                    Opcode.POP_VAR_WORD -> {
+                        result.add(AsmFragment(
+                                """
+                                lda  #<${segment[0].arg!!.integerValue().toHex()}
+                                sta  ${segment[1].callLabel}
+                                lda  #>${segment[0].arg!!.integerValue().toHex()}
+                                sta  ${segment[1].callLabel}+1
+                                """,
+                                10, 2))
+                    }
+                    else -> TODO("pop word ${segment[1]}")
+                }
+                Opcode.PUSH_FLOAT -> {
+                    val floatConst = globalFloatConsts[segment[0].arg!!.numericValue().toDouble()] ?: throw AssemblyError("should have a global float const for number ${segment[0].arg}")
+                    result.add(AsmFragment(
+                        """
+                        lda  #<$floatConst
+                        ldy  #>$floatConst
+                        sta  ${C64Zeropage.SCRATCH_W1}
+                        sty  ${C64Zeropage.SCRATCH_W1+1}
+                        lda  #<${segment[1].callLabel}
+                        ldy  #>${segment[1].callLabel}
+                        sta  ${C64Zeropage.SCRATCH_W2}
+                        sty  ${C64Zeropage.SCRATCH_W2+1}
+                        jsr  prog8_lib.copy_float
+                        """, 10,2))
+                }
+                Opcode.PUSH_MEM_B -> TODO("assignment  ${segment[0]}  -->  ${segment[1]}")
+                Opcode.PUSH_MEM_UB -> TODO("assignment  ${segment[0]}  -->  ${segment[1]}")
+                Opcode.PUSH_MEM_W -> TODO("assignment  ${segment[0]}  -->  ${segment[1]}")
+                Opcode.PUSH_MEM_UW -> TODO("assignment  ${segment[0]}  -->  ${segment[1]}")
+                Opcode.PUSH_MEM_FLOAT -> TODO("assignment  ${segment[0]}  -->  ${segment[1]}")
+                Opcode.PUSH_VAR_BYTE -> {
+                    if(opcodes[1] == Opcode.POP_VAR_BYTE)
+                        throw AssemblyError("push+pop var byte should have been changed into COPY_VAR_BYTE opcode")
+                    else TODO("assignment  ${segment[0]}  -->  ${segment[1]}")
+                }
+                Opcode.PUSH_VAR_WORD -> {
+                    if(opcodes[1] == Opcode.POP_VAR_WORD)
+                        throw AssemblyError("push+pop var word should have been changed into COPY_VAR_WORD opcode")
+                    else TODO("assignment  ${segment[0]}  -->  ${segment[1]}")
+                }
+                Opcode.PUSH_VAR_FLOAT -> {
+                    if(opcodes[1] == Opcode.POP_VAR_FLOAT)
+                        throw AssemblyError("push+pop var float should have been changed into COPY_VAR_FLOAT opcode")
+                    else TODO("assignment  ${segment[0]}  -->  ${segment[1]}")
+                }
+                else -> throw AssemblyError("strange push opcode ${segment[0]}")
+            }
+        }
+
+        // check for operations that modify a single value, by putting it on the stack (and popping it afterwards)
+
+        else if((opcodes[0]==Opcode.PUSH_VAR_BYTE && opcodes[2]==Opcode.POP_VAR_BYTE) ||
                 (opcodes[0]==Opcode.PUSH_VAR_WORD && opcodes[2]==Opcode.POP_VAR_WORD)) {
             if (segment[0].callLabel == segment[2].callLabel) {
                 val fragment = sameVarOperation(segment[0].callLabel!!, segment[1])
@@ -634,11 +863,12 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
     private fun sameIndexedVarOperation(variable: String, indexVar: String, ins: Instruction): AsmFragment? {
         val saveX = " stx  ${C64Zeropage.SCRATCH_B1} |"         // todo optimize to TXA when possible
         val restoreX = " | ldx  ${C64Zeropage.SCRATCH_B1}"
-        var loadX = ""
-        var loadXWord = ""
+        val loadXWord: String
+        val loadX: String
 
         when(indexVar) {
             "X" -> {
+                loadX = ""
                 loadXWord = " txa |  asl a |  tax |"
             }
             "Y" -> {

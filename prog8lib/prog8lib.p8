@@ -26,5 +26,51 @@ ror2_word
 		sta  SCRATCH_ZPWORD1+1
 +		rts
 
+
+
+; @todo:  stubs for now
+
+ub2float
+		rts
+
+uw2float
+		rts
+
+push_float
+		rts
+
+pop_var_float
+		rts
+
+copy_float
+		rts
+
+inc_var_f
+		rts
+                
+dec_var_f
+		rts
+
+div_f
+		rts
+
+add_f
+		rts
+
+sub_f
+		rts
+
+mul_f
+		rts
+
+sub_uw
+		rts
+
+less_ub
+		rts
+
+less_f
+		rts
+
 	}}
 }
