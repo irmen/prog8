@@ -763,6 +763,10 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
         right.linkParents(this)
     }
 
+    override fun toString(): String {
+        return "[$left $operator $right]"
+    }
+
     // binary expression should actually have been optimized away into a single value, before const value was requested...
     override fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue? = null
     override fun isIterable(namespace: INameScope, heap: HeapValues) = false
@@ -962,18 +966,17 @@ class LiteralValue(val type: DataType,
         }
 
         fun optimalNumeric(value: Number, position: Position): LiteralValue {
-            val floatval = value.toDouble()
-            return if(floatval == floor(floatval)  && floatval in -32768..65535) {
-                // the floating point value is actually an integer.
-                when (floatval) {
-                    in 0..255 -> LiteralValue(DataType.UBYTE, bytevalue=floatval.toShort(), position = position)
-                    in -128..127 -> LiteralValue(DataType.BYTE, bytevalue=floatval.toShort(), position = position)
-                    in 0..65535 -> LiteralValue(DataType.UWORD, wordvalue = floatval.toInt(), position = position)
-                    in -32768..32767 -> LiteralValue(DataType.WORD, wordvalue = floatval.toInt(), position = position)
-                    else -> LiteralValue(DataType.FLOAT, floatvalue = floatval, position = position)
-                }
+            return if(value is Double) {
+                LiteralValue(DataType.FLOAT, floatvalue = value, position = position)
             } else {
-                LiteralValue(DataType.FLOAT, floatvalue = floatval, position = position)
+                val intval = value.toInt()
+                when (intval) {
+                    in 0..255 -> LiteralValue(DataType.UBYTE, bytevalue=intval.toShort(), position = position)
+                    in -128..127 -> LiteralValue(DataType.BYTE, bytevalue=intval.toShort(), position = position)
+                    in 0..65535 -> LiteralValue(DataType.UWORD, wordvalue = intval, position = position)
+                    in -32768..32767 -> LiteralValue(DataType.WORD, wordvalue = intval, position = position)
+                    else -> LiteralValue(DataType.FLOAT, floatvalue = intval.toDouble(), position = position)
+                }
             }
         }
 
@@ -1012,7 +1015,7 @@ class LiteralValue(val type: DataType,
     val asIntegerValue: Int? = when {
         bytevalue!=null -> bytevalue.toInt()
         wordvalue!=null -> wordvalue
-        floatvalue!=null -> floor(floatvalue).toInt()
+        // don't round a float value, otherwise code will not detect that it's not an integer
         else -> null
     }
 

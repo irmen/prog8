@@ -14,7 +14,8 @@ import kotlin.math.abs
         X % 1 -> constant 0 (if X is byte/word)
         X % 2 -> X and 1 (if X is byte/word)
 
-    todo expression optimization: common (sub) expression elimination (turn common expressions into single subroutine call)
+
+    todo expression optimization: common (sub) expression elimination (turn common expressions into single subroutine call + introduce variable to hold it)
 
  */
 
@@ -199,7 +200,7 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
             }
             return false
         } else {
-            throw AstException("binary expression with 2 const values should have been evaluated")
+            return false
         }
     }
 

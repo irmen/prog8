@@ -229,6 +229,10 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
      *   and ITS other operand is NOT a Constant,
      *   ...it may be possible to rewrite the expression to group the two Constants together,
      *      to allow them to be const-folded away.
+     *
+     *  examples include:
+     *        (X / c1) * c2  ->  X / (c2/c1)
+     *        (X + c1) - c2  ->  X + (c1-c2)
      */
     override fun process(expr: BinaryExpression): IExpression {
         return try {
@@ -244,11 +248,12 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
             if(subExpr!=null) {
                 val subleftconst = subExpr.left.constValue(namespace, heap)
                 val subrightconst = subExpr.right.constValue(namespace, heap)
-                if ((subleftconst != null && subrightconst == null) || (subleftconst==null && subrightconst!=null))
+                if ((subleftconst != null && subrightconst == null) || (subleftconst==null && subrightconst!=null)) {
                     // try reordering.
                     return groupTwoConstsTogether(expr, subExpr,
-                            leftconst!=null, rightconst!=null,
-                            subleftconst!=null, subrightconst!=null)
+                            leftconst != null, rightconst != null,
+                            subleftconst != null, subrightconst != null)
+                }
             }
 
             // const fold when both operands are a const
@@ -298,30 +303,33 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
             if(expr.operator=="-" || expr.operator=="/") {
                 optimizationsDone++
                 if(leftIsConst) {
-                    if(subleftIsConst) {
+                    return if(subleftIsConst) {
                         val tmp = subExpr.right
                         subExpr.right = subExpr.left
                         subExpr.left = expr.left
                         expr.left = tmp
                         expr.operator = if(expr.operator=="-") "+" else "*"
+                        expr
                     } else
-                        return BinaryExpression(
+                        BinaryExpression(
                                 BinaryExpression(expr.left, if(expr.operator=="-") "+" else "*", subExpr.right, subExpr.position),
                                 expr.operator, subExpr.left, expr.position)
                 } else {
-                    if(subleftIsConst)
-                        expr.right = subExpr.right.also {subExpr.right = expr.right}
-                    else
-                        return BinaryExpression(
+                    return if(subleftIsConst) {
+                        expr.right = subExpr.right.also { subExpr.right = expr.right }
+                        expr
+                    } else
+                        BinaryExpression(
                                 subExpr.left, expr.operator,
                                 BinaryExpression(expr.right, if(expr.operator=="-") "+" else "*", subExpr.right, subExpr.position),
                                 expr.position)
                 }
-                return expr
             }
             return expr
 
-        } else {
+        }
+        else
+        {
 
             if(expr.operator=="/" && subExpr.operator=="*") {
                 optimizationsDone++
@@ -354,7 +362,8 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                                 subExpr.left, expr.position)
                     }
                 }
-            } else if(expr.operator=="*" && subExpr.operator=="/") {
+            }
+            else if(expr.operator=="*" && subExpr.operator=="/") {
                 optimizationsDone++
                 if(leftIsConst) {
                     return if(subleftIsConst) {
@@ -385,7 +394,9 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                                 subExpr.left, expr.position)
                     }
                 }
-            } else if(expr.operator=="+" && subExpr.operator=="-") {
+            }
+            else if(expr.operator=="+" && subExpr.operator=="-") {
+                optimizationsDone++
                 if(leftIsConst){
                     return if(subleftIsConst){
                         // c1+(c2-v)  ->  (c1+c2)-v
@@ -415,7 +426,9 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                                 subExpr.left, expr.position)
                     }
                 }
-            } else if(expr.operator=="-" && subExpr.operator=="+") {
+            }
+            else if(expr.operator=="-" && subExpr.operator=="+") {
+                optimizationsDone++
                 if(leftIsConst) {
                     return if(subleftIsConst) {
                         // c1-(c2+v)  ->  (c1-c2)-v
