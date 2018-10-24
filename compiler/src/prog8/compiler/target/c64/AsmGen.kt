@@ -8,6 +8,7 @@ import prog8.ast.DataType
 import prog8.ast.Register
 import prog8.compiler.*
 import prog8.compiler.intermediate.*
+import prog8.stackvm.Syscall
 import prog8.stackvm.syscallsForStackVm
 import java.io.File
 import java.io.PrintWriter
@@ -391,58 +392,58 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.SYSCALL -> {
                 if (ins.arg!!.numericValue() in syscallsForStackVm.map { it.callNr })
                     throw CompilerException("cannot translate vm syscalls to real assembly calls - use *real* subroutine calls instead. Syscall ${ins.arg.numericValue()}")
-                TODO("syscall $ins")
+                val call = Syscall.values().find { it.callNr==ins.arg.numericValue() }
+                " jsr  prog8_lib.${call.toString().toLowerCase()}"
             }
             Opcode.BREAKPOINT -> {
                 breakpointCounter++
                 "_prog8_breakpoint_$breakpointCounter\tnop"
             }
 
-            // todo weer aanzetten?
-//            Opcode.PUSH_BYTE -> {
-//                " lda  #${ins.arg!!.integerValue().toHex()} |  sta  ${ESTACK_LO.toHex()},x |  dex"
-//            }
-//            Opcode.PUSH_WORD -> {
-//                val value = ins.arg!!.integerValue().toHex()
-//                " lda  #<$value |  sta  ${ESTACK_LO.toHex()},x |  lda  #>$value |  sta  ${ESTACK_HI.toHex()},x |  dex"
-//            }
-//            Opcode.PUSH_FLOAT -> {
-//                val floatConst = getFloatConst(ins.arg)
-//                " lda  #<$floatConst |  ldy  #>$floatConst |  jsr  prog8_lib.push_float"
-//            }
-//            Opcode.PUSH_VAR_BYTE -> {
-//                when(ins.callLabel) {
-//                    "X" -> throw CompilerException("makes no sense to push X, it's used as a stack pointer itself")
-//                    "A" -> " sta  ${ESTACK_LO.toHex()},x |  dex"
-//                    "Y" -> " tya |  sta  ${ESTACK_LO.toHex()},x |  dex"
-//                    else -> " lda  ${ins.callLabel} |  sta  ${ESTACK_LO.toHex()},x |  dex"
-//                }
-//            }
-//            Opcode.PUSH_VAR_WORD -> {
-//                when (ins.callLabel) {
-//                    "AX" -> throw CompilerException("makes no sense to push X, it's used as a stack pointer itself")
-//                    "XY" -> throw CompilerException("makes no sense to push X, it's used as a stack pointer itself")
-//                    "AY" -> " sta  ${ESTACK_LO.toHex()},x |  pha |  tya |  sta  ${ESTACK_HI.toHex()},x |  pla |  dex"
-//                    else -> " lda  ${ins.callLabel} |  ldy  ${ins.callLabel}+1 |  sta  ${ESTACK_LO.toHex()},x |  pha |  tya |  sta  ${ESTACK_HI.toHex()},x |  pla |  dex"
-//                }
-//            }
-//            Opcode.PUSH_VAR_FLOAT -> " lda  #<${ins.callLabel} |  ldy  #>${ins.callLabel}|  jsr  prog8_lib.push_float"
-//            Opcode.PUSH_MEM_B, Opcode.PUSH_MEM_UB -> {
-//                """
-//                lda  ${ins.arg!!.integerValue().toHex()}
-//                sta  ${ESTACK_LO.toHex()},x
-//                dex
-//                """
-//            }
-//            Opcode.PUSH_MEM_W, Opcode.PUSH_MEM_UW -> {
-//                """
-//                lda  ${ins.arg!!.integerValue().toHex()}
-//                sta  ${ESTACK_LO.toHex()},x
-//                lda  ${(ins.arg.integerValue()+1).toHex()}
-//                sta  ${ESTACK_HI.toHex()},x
-//                dex
-//                """
-//            }
+            Opcode.PUSH_BYTE -> {
+                " lda  #${ins.arg!!.integerValue().toHex()} |  sta  ${ESTACK_LO.toHex()},x |  dex"
+            }
+            Opcode.PUSH_WORD -> {
+                val value = ins.arg!!.integerValue().toHex()
+                " lda  #<$value |  sta  ${ESTACK_LO.toHex()},x |  lda  #>$value |  sta  ${ESTACK_HI.toHex()},x |  dex"
+            }
+            Opcode.PUSH_FLOAT -> {
+                val floatConst = getFloatConst(ins.arg!!)
+                " lda  #<$floatConst |  ldy  #>$floatConst |  jsr  prog8_lib.push_float"
+            }
+            Opcode.PUSH_VAR_BYTE -> {
+                when(ins.callLabel) {
+                    "X" -> throw CompilerException("makes no sense to push X, it's used as a stack pointer itself")
+                    "A" -> " sta  ${ESTACK_LO.toHex()},x |  dex"
+                    "Y" -> " tya |  sta  ${ESTACK_LO.toHex()},x |  dex"
+                    else -> " lda  ${ins.callLabel} |  sta  ${ESTACK_LO.toHex()},x |  dex"
+                }
+            }
+            Opcode.PUSH_VAR_WORD -> {
+                when (ins.callLabel) {
+                    "AX" -> throw CompilerException("makes no sense to push X, it's used as a stack pointer itself")
+                    "XY" -> throw CompilerException("makes no sense to push X, it's used as a stack pointer itself")
+                    "AY" -> " sta  ${ESTACK_LO.toHex()},x |  pha |  tya |  sta  ${ESTACK_HI.toHex()},x |  pla |  dex"
+                    else -> " lda  ${ins.callLabel} |  ldy  ${ins.callLabel}+1 |  sta  ${ESTACK_LO.toHex()},x |  pha |  tya |  sta  ${ESTACK_HI.toHex()},x |  pla |  dex"
+                }
+            }
+            Opcode.PUSH_VAR_FLOAT -> " lda  #<${ins.callLabel} |  ldy  #>${ins.callLabel}|  jsr  prog8_lib.push_float"
+            Opcode.PUSH_MEM_B, Opcode.PUSH_MEM_UB -> {
+                """
+                lda  ${ins.arg!!.integerValue().toHex()}
+                sta  ${ESTACK_LO.toHex()},x
+                dex
+                """
+            }
+            Opcode.PUSH_MEM_W, Opcode.PUSH_MEM_UW -> {
+                """
+                lda  ${ins.arg!!.integerValue().toHex()}
+                sta  ${ESTACK_LO.toHex()},x
+                lda  ${(ins.arg.integerValue()+1).toHex()}
+                sta  ${ESTACK_HI.toHex()},x
+                dex
+                """
+            }
 
             Opcode.POP_MEM_B, Opcode.POP_MEM_UB -> {
                 """
@@ -635,6 +636,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${(ESTACK_LO+1).toHex()},x
                 """
             }
+            Opcode.NEG_F -> " jsr  prog8_lib.neg_f"
             Opcode.INV_BYTE -> {
                 """
                 lda  ${(ESTACK_LO + 1).toHex()},x
@@ -768,7 +770,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 
         // check for operations that modify a single value, by putting it on the stack (and popping it afterwards)
         if((opcodes[0]==Opcode.PUSH_VAR_BYTE && opcodes[2]==Opcode.POP_VAR_BYTE) ||
-                (opcodes[0]==Opcode.PUSH_VAR_WORD && opcodes[2]==Opcode.POP_VAR_WORD)) {
+                (opcodes[0]==Opcode.PUSH_VAR_WORD && opcodes[2]==Opcode.POP_VAR_WORD) ||
+                (opcodes[0]==Opcode.PUSH_VAR_FLOAT && opcodes[2]==Opcode.POP_VAR_FLOAT)) {
             if (segment[0].callLabel == segment[2].callLabel) {
                 val fragment = sameVarOperation(segment[0].callLabel!!, segment[1])
                 if (fragment != null) {
@@ -778,7 +781,10 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             }
         }
         else if((opcodes[0]==Opcode.PUSH_MEM_UB && opcodes[2]==Opcode.POP_MEM_UB) ||
-                (opcodes[0]==Opcode.PUSH_MEM_UW && opcodes[2]==Opcode.POP_MEM_UW)) {
+                (opcodes[0]==Opcode.PUSH_MEM_B && opcodes[2]==Opcode.POP_MEM_B) ||
+                (opcodes[0]==Opcode.PUSH_MEM_UW && opcodes[2]==Opcode.POP_MEM_UW) ||
+                (opcodes[0]==Opcode.PUSH_MEM_W && opcodes[2]==Opcode.POP_MEM_W) ||
+                (opcodes[0]==Opcode.PUSH_MEM_FLOAT && opcodes[2]==Opcode.POP_MEM_FLOAT)) {
             if(segment[0].arg==segment[2].arg) {
                 val fragment = sameMemOperation(segment[0].arg!!.integerValue(), segment[1])
                 if(fragment!=null) {
@@ -1004,6 +1010,9 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     else -> AsmFragment(" lda  $variable |  sta  ${C64Zeropage.SCRATCH_W1} |  lda  $variable+1 |  sta  ${C64Zeropage.SCRATCH_W1+1} |  jsr prog8_lib.ror2_word |  lda  ${C64Zeropage.SCRATCH_W1} |  sta  $variable |  lda  ${C64Zeropage.SCRATCH_W1+1} |  sta  $variable+1", 30)
                 }
             }
+//            Opcode.SYSCALL -> {
+//                TODO("optimize SYSCALL $ins in-place on variable $variable")
+//            }
             else -> null
         }
     }
@@ -1182,6 +1191,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
 
+            // @todo add all indexed assignment forms
 
             // assignment: var = bytearray[index]
             AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.POP_VAR_BYTE)) { segment ->
