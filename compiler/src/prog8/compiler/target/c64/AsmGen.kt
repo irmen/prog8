@@ -352,6 +352,10 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         }
     }
 
+    private fun getFloatConst(value: Value): String =
+            globalFloatConsts[value.numericValue().toDouble()]
+                    ?: throw AssemblyError("should have a global float const for number $value")
+
     private fun simpleInstr2Asm(ins: Instruction): String? {
         // a label 'instruction' is simply translated into a asm label
         if(ins is LabelInstr) {
@@ -393,17 +397,18 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 "_prog8_breakpoint_$breakpointCounter\tnop"
             }
 
-            Opcode.PUSH_BYTE -> {
-                " lda  #${ins.arg!!.integerValue().toHex()} |  sta  ${ESTACK_LO.toHex()},x |  dex"
-            }
-            Opcode.PUSH_WORD -> {
-                val value = ins.arg!!.integerValue().toHex()
-                " lda  #<$value |  sta  ${ESTACK_LO.toHex()},x |  lda  #>$value |  sta  ${ESTACK_HI.toHex()},x |  dex"
-            }
-            Opcode.PUSH_FLOAT -> {
-                val floatConst = globalFloatConsts[ins.arg!!.numericValue().toDouble()] ?: throw AssemblyError("should have a global float const for number ${ins.arg}")
-                " lda  #<$floatConst |  ldy  #>$floatConst |  jsr  prog8_lib.push_float"
-            }
+            // todo weer aanzetten?
+//            Opcode.PUSH_BYTE -> {
+//                " lda  #${ins.arg!!.integerValue().toHex()} |  sta  ${ESTACK_LO.toHex()},x |  dex"
+//            }
+//            Opcode.PUSH_WORD -> {
+//                val value = ins.arg!!.integerValue().toHex()
+//                " lda  #<$value |  sta  ${ESTACK_LO.toHex()},x |  lda  #>$value |  sta  ${ESTACK_HI.toHex()},x |  dex"
+//            }
+//            Opcode.PUSH_FLOAT -> {
+//                val floatConst = getFloatConst(ins.arg)
+//                " lda  #<$floatConst |  ldy  #>$floatConst |  jsr  prog8_lib.push_float"
+//            }
             Opcode.PUSH_VAR_BYTE -> {
                 when(ins.callLabel) {
                     "X" -> throw CompilerException("makes no sense to push X, it's used as a stack pointer itself")
@@ -721,72 +726,15 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         val opcodes = segment.map { it.opcode }
         val result = mutableListOf<AsmFragment>()
 
-        // check for regular 'assignments'  (a push immediately followed by a pop)
-        if(opcodes[0] in pushOpcodes && opcodes[1] in popOpcodes) {
-            when(opcodes[0]) {
-                Opcode.PUSH_BYTE -> when(opcodes[1]) {
-                    Opcode.POP_VAR_BYTE -> {
-                        result.add(AsmFragment(
-                                " lda  #${segment[0].arg!!.integerValue().toHex()} |  sta  ${segment[1].callLabel}",
-                                10, 2))
-                    }
-                    else -> TODO("pop byte ${segment[1]}")
-                }
-                Opcode.PUSH_WORD -> when(opcodes[1]) {
-                    Opcode.POP_VAR_WORD -> {
-                        result.add(AsmFragment(
-                                """
-                                lda  #<${segment[0].arg!!.integerValue().toHex()}
-                                sta  ${segment[1].callLabel}
-                                lda  #>${segment[0].arg!!.integerValue().toHex()}
-                                sta  ${segment[1].callLabel}+1
-                                """,
-                                10, 2))
-                    }
-                    else -> TODO("pop word ${segment[1]}")
-                }
-                Opcode.PUSH_FLOAT -> {
-                    val floatConst = globalFloatConsts[segment[0].arg!!.numericValue().toDouble()] ?: throw AssemblyError("should have a global float const for number ${segment[0].arg}")
-                    result.add(AsmFragment(
-                        """
-                        lda  #<$floatConst
-                        ldy  #>$floatConst
-                        sta  ${C64Zeropage.SCRATCH_W1}
-                        sty  ${C64Zeropage.SCRATCH_W1+1}
-                        lda  #<${segment[1].callLabel}
-                        ldy  #>${segment[1].callLabel}
-                        sta  ${C64Zeropage.SCRATCH_W2}
-                        sty  ${C64Zeropage.SCRATCH_W2+1}
-                        jsr  prog8_lib.copy_float
-                        """, 10,2))
-                }
-                Opcode.PUSH_MEM_B -> TODO("assignment  ${segment[0]}  -->  ${segment[1]}")
-                Opcode.PUSH_MEM_UB -> TODO("assignment  ${segment[0]}  -->  ${segment[1]}")
-                Opcode.PUSH_MEM_W -> TODO("assignment  ${segment[0]}  -->  ${segment[1]}")
-                Opcode.PUSH_MEM_UW -> TODO("assignment  ${segment[0]}  -->  ${segment[1]}")
-                Opcode.PUSH_MEM_FLOAT -> TODO("assignment  ${segment[0]}  -->  ${segment[1]}")
-                Opcode.PUSH_VAR_BYTE -> {
-                    if(opcodes[1] == Opcode.POP_VAR_BYTE)
-                        throw AssemblyError("push+pop var byte should have been changed into COPY_VAR_BYTE opcode")
-                    else TODO("assignment  ${segment[0]}  -->  ${segment[1]}")
-                }
-                Opcode.PUSH_VAR_WORD -> {
-                    if(opcodes[1] == Opcode.POP_VAR_WORD)
-                        throw AssemblyError("push+pop var word should have been changed into COPY_VAR_WORD opcode")
-                    else TODO("assignment  ${segment[0]}  -->  ${segment[1]}")
-                }
-                Opcode.PUSH_VAR_FLOAT -> {
-                    if(opcodes[1] == Opcode.POP_VAR_FLOAT)
-                        throw AssemblyError("push+pop var float should have been changed into COPY_VAR_FLOAT opcode")
-                    else TODO("assignment  ${segment[0]}  -->  ${segment[1]}")
-                }
-                else -> throw AssemblyError("strange push opcode ${segment[0]}")
-            }
+        // check for direct var assignments that should have been converted into COPY_VAR_XXX opcodes
+        if((opcodes[0]==Opcode.PUSH_VAR_BYTE && opcodes[1]==Opcode.POP_VAR_BYTE) ||
+                (opcodes[0]==Opcode.PUSH_VAR_WORD && opcodes[1]==Opcode.POP_VAR_WORD) ||
+                (opcodes[0]==Opcode.PUSH_VAR_FLOAT && opcodes[1]==Opcode.POP_VAR_FLOAT)) {
+            throw AssemblyError("push+pop var should have been changed into COPY_VAR_XXX opcode")
         }
 
         // check for operations that modify a single value, by putting it on the stack (and popping it afterwards)
-
-        else if((opcodes[0]==Opcode.PUSH_VAR_BYTE && opcodes[2]==Opcode.POP_VAR_BYTE) ||
+        if((opcodes[0]==Opcode.PUSH_VAR_BYTE && opcodes[2]==Opcode.POP_VAR_BYTE) ||
                 (opcodes[0]==Opcode.PUSH_VAR_WORD && opcodes[2]==Opcode.POP_VAR_WORD)) {
             if (segment[0].callLabel == segment[2].callLabel) {
                 val fragment = sameVarOperation(segment[0].callLabel!!, segment[1])
@@ -1032,26 +980,115 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
     class AsmPattern(val sequence: List<Opcode>, val prio: Int, val asm: (List<Instruction>)->String?)
 
     private val patterns = listOf(
+
+            // assignment: var = byte
             AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.POP_VAR_BYTE), 10) { segment ->
                 when (segment[1].callLabel) {
-                    "A", "X", "Y" -> " ld${segment[1].callLabel!!.toLowerCase()}  #${segment[0].arg!!.integerValue().toHex()}"
-                    else -> null
+                    "A", "X", "Y" ->
+                        " ld${segment[1].callLabel!!.toLowerCase()}  #${segment[0].arg!!.integerValue().toHex()}"
+                    else ->
+                        " lda  #${segment[0].arg!!.integerValue().toHex()} |  sta  ${segment[1].callLabel}"
                 }
             },
+
+            // assignment: mem = byte/ubyte
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.POP_MEM_B), 10) { segment ->
+                " lda  #${segment[0].arg!!.integerValue().toHex()} |  sta  ${segment[1].arg!!.integerValue().toHex()}"
+            },
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.POP_MEM_UB), 9) { segment ->
+                " lda  #${segment[0].arg!!.integerValue().toHex()} |  sta  ${segment[1].arg!!.integerValue().toHex()}"
+            },
+
+            // assignment: var = word
             AsmPattern(listOf(Opcode.PUSH_WORD, Opcode.POP_VAR_WORD), 10) { segment ->
                 val number = segment[0].arg!!.integerValue().toHex()
                 when (segment[1].callLabel) {
                     "AX" -> " lda  #<$number |  ldx  #>$number"
                     "AY" -> " lda  #<$number |  ldy  #>$number"
                     "XY" -> " ldx  #<$number |  ldy  #>$number"
-                    else -> null
+                    else ->
+                        """
+                        lda  #<${segment[0].arg!!.integerValue().toHex()}
+                        sta  ${segment[1].callLabel}
+                        lda  #>${segment[0].arg!!.integerValue().toHex()}
+                        sta  ${segment[1].callLabel}+1
+                        """
                 }
             },
+
+            // assignment: mem = word/uword
+            AsmPattern(listOf(Opcode.PUSH_WORD, Opcode.POP_MEM_W), 10) { segment ->
+                """
+                lda  #<${segment[0].arg!!.integerValue().toHex()}
+                sta  ${segment[1].arg!!.integerValue().toHex()}
+                lda  #>${segment[0].arg!!.integerValue().toHex()}
+                sta  ${(segment[1].arg!!.integerValue()+1).toHex()}
+                """
+            },
+            AsmPattern(listOf(Opcode.PUSH_WORD, Opcode.POP_MEM_UW), 9) { segment ->
+                """
+                lda  #<${segment[0].arg!!.integerValue().toHex()}
+                sta  ${segment[1].arg!!.integerValue().toHex()}
+                lda  #>${segment[0].arg!!.integerValue().toHex()}
+                sta  ${(segment[1].arg!!.integerValue()+1).toHex()}
+                """
+            },
+
+            // assignment: var = float
+            AsmPattern(listOf(Opcode.PUSH_FLOAT, Opcode.POP_VAR_FLOAT), 10) { segment ->
+                val floatConst = getFloatConst(segment[0].arg!!)
+                """
+                lda  #<$floatConst
+                ldy  #>$floatConst
+                sta  ${C64Zeropage.SCRATCH_W1}
+                sty  ${C64Zeropage.SCRATCH_W1+1}
+                lda  #<${segment[1].callLabel}
+                ldy  #>${segment[1].callLabel}
+                sta  ${C64Zeropage.SCRATCH_W2}
+                sty  ${C64Zeropage.SCRATCH_W2+1}
+                jsr  prog8_lib.copy_float
+                """
+            },
+
+            // assignment: mem = float
+            AsmPattern(listOf(Opcode.PUSH_FLOAT, Opcode.POP_MEM_FLOAT), 10) { segment ->
+                val floatConst = getFloatConst(segment[0].arg!!)
+                """
+                lda  #<$floatConst
+                ldy  #>$floatConst
+                sta  ${C64Zeropage.SCRATCH_W1}
+                sty  ${C64Zeropage.SCRATCH_W1+1}
+                lda  #<${segment[1].arg!!.integerValue().toHex()}
+                ldy  #>${segment[1].arg!!.integerValue().toHex()}
+                sta  ${C64Zeropage.SCRATCH_W2}
+                sty  ${C64Zeropage.SCRATCH_W2+1}
+                jsr  prog8_lib.copy_float
+                """
+            },
+
+            // assignment: mem = floatvar
+            AsmPattern(listOf(Opcode.PUSH_VAR_FLOAT, Opcode.POP_MEM_FLOAT), 10) { segment ->
+                """
+                lda  #<${segment[0].callLabel}
+                ldy  #>${segment[0].callLabel}
+                sta  ${C64Zeropage.SCRATCH_W1}
+                sty  ${C64Zeropage.SCRATCH_W1+1}
+                lda  #<${segment[1].arg!!.integerValue().toHex()}
+                ldy  #>${segment[1].arg!!.integerValue().toHex()}
+                sta  ${C64Zeropage.SCRATCH_W2}
+                sty  ${C64Zeropage.SCRATCH_W2+1}
+                jsr  prog8_lib.copy_float
+                """
+            },
+
+            // assignment: var = bytearray[index]
             AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.POP_VAR_BYTE), 10) { segment ->
                 val index = segment[0].arg!!.integerValue()
                 when (segment[2].callLabel) {
-                    "A", "X", "Y" -> " ld${segment[2].callLabel!!.toLowerCase()}  ${segment[1].callLabel}+$index"
-                    else -> null
+                    "A", "X", "Y" ->
+                        " ld${segment[2].callLabel!!.toLowerCase()}  ${segment[1].callLabel}+$index"
+                    else ->
+                        TODO("assign byte to array indexed")
                 }
             }
     )

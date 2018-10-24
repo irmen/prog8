@@ -27,9 +27,9 @@ class Memory {
     fun setSByte(address: Int, value: Short) {
         if(value !in -128..127) throw VmExecutionException("byte value out of range")
         if(value>=0)
-            setUByte(address, value)
+            mem[address] = value
         else
-            setUByte(address, ((abs(value.toInt()) xor 255)+1).toShort())        // 2's complement
+            mem[address] = ((abs(value.toInt()) xor 255)+1).toShort()        // 2's complement
     }
 
     fun getUWord(address: Int): Int {

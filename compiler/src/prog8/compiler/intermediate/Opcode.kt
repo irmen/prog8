@@ -7,9 +7,9 @@ enum class Opcode {
     PUSH_WORD,       // push word value   (or 'address' of string / array / matrix)
     PUSH_FLOAT,      // push float value
     PUSH_MEM_B,      // push byte value from memory to stack
-    PUSH_MEM_UB,     // push byte value from memory to stack
+    PUSH_MEM_UB,     // push unsigned byte value from memory to stack
     PUSH_MEM_W,      // push word value from memory to stack
-    PUSH_MEM_UW,     // push word value from memory to stack
+    PUSH_MEM_UW,     // push unsigned word value from memory to stack
     PUSH_MEM_FLOAT,  // push float value from memory to stack
     PUSH_VAR_BYTE,   // push byte variable (ubyte, byte)
     PUSH_VAR_WORD,   // push word variable (uword, word)
