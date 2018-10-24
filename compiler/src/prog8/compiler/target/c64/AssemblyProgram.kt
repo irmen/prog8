@@ -46,7 +46,7 @@ class AssemblyProgram(val name: String) {
         for(line in File(viceMonListFile).readLines()) {
             val match = pattern.matchEntire(line)
             if(match!=null)
-            breakpoints.add("break \$" + match.groupValues[0])        // todo check this
+            breakpoints.add("break \$" + match.groupValues[1])
         }
         val num = breakpoints.size
         breakpoints.add(0, "; vice monitor breakpoint list now follows")

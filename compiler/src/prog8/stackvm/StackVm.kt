@@ -812,6 +812,21 @@ class StackVm(private var traceOutputFile: String?) {
                 checkDt(dest, DataType.FLOAT)
                 variables[ins.callLabel2!!] = source
             }
+            Opcode.COPY_MEM_BYTE -> {
+                val sourceAddr = ins.arg!!.integerValue()
+                val destAddr = ins.arg2!!.integerValue()
+                mem.setUByte(destAddr, mem.getUByte(sourceAddr))
+            }
+            Opcode.COPY_MEM_WORD -> {
+                val sourceAddr = ins.arg!!.integerValue()
+                val destAddr = ins.arg2!!.integerValue()
+                mem.setUWord(destAddr, mem.getUWord(sourceAddr))
+            }
+            Opcode.COPY_MEM_FLOAT -> {
+                val sourceAddr = ins.arg!!.integerValue()
+                val destAddr = ins.arg2!!.integerValue()
+                mem.setFloat(destAddr, mem.getFloat(sourceAddr))
+            }
             Opcode.POP_VAR_FLOAT -> {
                 val value = evalstack.pop()
                 checkDt(value, DataType.FLOAT)

@@ -126,7 +126,13 @@ class Program (val name: String,
                         Opcode.LINE -> Instruction(opcode, null, callLabel = args)
                         Opcode.COPY_VAR_BYTE, Opcode.COPY_VAR_WORD, Opcode.COPY_VAR_FLOAT -> {
                             val (v1, v2) = args!!.split(splitpattern, limit = 2)
-                            Instruction(opcode, null, v1, v2)
+                            Instruction(opcode, null, null, v1, v2)
+                        }
+                        Opcode.COPY_MEM_BYTE, Opcode.COPY_MEM_WORD, Opcode.COPY_MEM_FLOAT -> {
+                            val (v1, v2) = args!!.split(splitpattern, limit = 2)
+                            val address1 = getArgValue(v1, heap)
+                            val address2 = getArgValue(v2, heap)
+                            Instruction(opcode, address1, address2)
                         }
                         Opcode.JUMP, Opcode.CALL, Opcode.BNEG, Opcode.BPOS,
                         Opcode.BZ, Opcode.BNZ, Opcode.BCS, Opcode.BCC -> {

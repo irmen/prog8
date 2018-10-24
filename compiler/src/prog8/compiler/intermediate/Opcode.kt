@@ -32,6 +32,9 @@ enum class Opcode {
     COPY_VAR_BYTE,
     COPY_VAR_WORD,
     COPY_VAR_FLOAT,
+    COPY_MEM_BYTE,
+    COPY_MEM_WORD,
+    COPY_MEM_FLOAT,
 
     // numeric arithmetic
     ADD_UB,

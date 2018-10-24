@@ -606,7 +606,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                 DataType.WORD -> {
                     // we can convert to WORD: any UBYTE/BYTE, UWORD <= 32767, FLOAT that's an integer -32768..32767
                     if(lv.type==DataType.UBYTE || lv.type==DataType.BYTE)
-                        assignment.value = LiteralValue(DataType.WORD, lv.bytevalue!!, position=lv.position)
+                        assignment.value = LiteralValue(DataType.WORD, wordvalue=lv.bytevalue!!.toInt(), position=lv.position)
                     else if(lv.type==DataType.UWORD && lv.wordvalue!! <= 32767)
                         assignment.value = LiteralValue(DataType.WORD, wordvalue=lv.wordvalue, position=lv.position)
                     else if(lv.type==DataType.FLOAT) {
