@@ -931,7 +931,7 @@ class AstChecker(private val namespace: INameScope,
         val result =  when(targetDatatype) {
             DataType.BYTE -> sourceDatatype==DataType.BYTE
             DataType.UBYTE -> sourceDatatype==DataType.UBYTE
-            DataType.WORD -> sourceDatatype==DataType.BYTE || sourceDatatype==DataType.WORD
+            DataType.WORD -> sourceDatatype==DataType.BYTE || sourceDatatype==DataType.UBYTE || sourceDatatype==DataType.WORD
             DataType.UWORD -> sourceDatatype==DataType.UBYTE || sourceDatatype==DataType.UWORD
             DataType.FLOAT -> sourceDatatype in NumericDatatypes
             DataType.STR -> sourceDatatype==DataType.STR

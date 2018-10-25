@@ -98,6 +98,8 @@ class TestStackVmOpcodes {
         vm.load(makeProg(ins), null)
         assertFalse(vm.P_carry)
         assertFalse(vm.P_irqd)
+        assertFalse(vm.P_negative)
+        assertFalse(vm.P_zero)
         vm.step(1)
         assertTrue(vm.P_carry)
         assertFalse(vm.P_irqd)
@@ -862,17 +864,19 @@ class TestStackVmOpcodes {
     fun testBZ() {
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 1)),
+                Instruction(Opcode.TEST),
                 Instruction(Opcode.BZ, callLabel = "label"),
                 Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 0)),
+                Instruction(Opcode.TEST),
                 Instruction(Opcode.BZ, callLabel = "label"),
                 Instruction(Opcode.LINE, callLabel = "string1"),
                 Instruction(Opcode.TERMINATE),
                 Instruction(Opcode.LINE, callLabel = "string2"))
         val labels = mapOf("label" to ins.last())   // points to the second LINE instruction
         vm.load(makeProg(ins, labels=labels), null)
-        vm.step(2)
-        assertEquals("", vm.sourceLine)
         vm.step(3)
+        assertEquals("", vm.sourceLine)
+        vm.step(4)
         assertEquals("string2", vm.sourceLine)
         assertEquals(0, vm.callstack.size)
         assertEquals(0, vm.evalstack.size)
@@ -882,17 +886,19 @@ class TestStackVmOpcodes {
     fun testBNZ() {
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 0)),
+                Instruction(Opcode.TEST),
                 Instruction(Opcode.BNZ, callLabel = "label"),
                 Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 1)),
+                Instruction(Opcode.TEST),
                 Instruction(Opcode.BNZ, callLabel = "label"),
                 Instruction(Opcode.LINE, callLabel = "string1"),
                 Instruction(Opcode.TERMINATE),
                 Instruction(Opcode.LINE, callLabel = "string2"))
         val labels = mapOf("label" to ins.last())   // points to the second LINE instruction
         vm.load(makeProg(ins, labels=labels), null)
-        vm.step(2)
-        assertEquals("", vm.sourceLine)
         vm.step(3)
+        assertEquals("", vm.sourceLine)
+        vm.step(4)
         assertEquals("string2", vm.sourceLine)
         assertEquals(0, vm.callstack.size)
         assertEquals(0, vm.evalstack.size)
@@ -902,21 +908,24 @@ class TestStackVmOpcodes {
     fun testBNEG() {
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 0)),
+                Instruction(Opcode.TEST),
                 Instruction(Opcode.BNEG, callLabel = "label"),
                 Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 1)),
+                Instruction(Opcode.TEST),
                 Instruction(Opcode.BNEG, callLabel = "label"),
                 Instruction(Opcode.PUSH_FLOAT, Value(DataType.FLOAT, -99)),
+                Instruction(Opcode.TEST),
                 Instruction(Opcode.BNEG, callLabel = "label"),
                 Instruction(Opcode.LINE, callLabel = "string1"),
                 Instruction(Opcode.TERMINATE),
                 Instruction(Opcode.LINE, callLabel = "string2"))
         val labels = mapOf("label" to ins.last())   // points to the second LINE instruction
         vm.load(makeProg(ins, labels=labels), null)
-        vm.step(2)
-        assertEquals("", vm.sourceLine)
-        vm.step(2)
+        vm.step(3)
         assertEquals("", vm.sourceLine)
         vm.step(3)
+        assertEquals("", vm.sourceLine)
+        vm.step(4)
         assertEquals("string2", vm.sourceLine)
         assertEquals(0, vm.callstack.size)
         assertEquals(0, vm.evalstack.size)
@@ -926,17 +935,19 @@ class TestStackVmOpcodes {
     fun testBPOS() {
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH_FLOAT, Value(DataType.FLOAT, -99)),
+                Instruction(Opcode.TEST),
                 Instruction(Opcode.BPOS, callLabel = "label"),
                 Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 0)),
+                Instruction(Opcode.TEST),
                 Instruction(Opcode.BPOS, callLabel = "label"),
                 Instruction(Opcode.LINE, callLabel = "string1"),
                 Instruction(Opcode.TERMINATE),
                 Instruction(Opcode.LINE, callLabel = "string2"))
         val labels = mapOf("label" to ins.last())   // points to the second LINE instruction
         vm.load(makeProg(ins, labels=labels), null)
-        vm.step(2)
-        assertEquals("", vm.sourceLine)
         vm.step(3)
+        assertEquals("", vm.sourceLine)
+        vm.step(4)
         assertEquals("string2", vm.sourceLine)
         assertEquals(0, vm.callstack.size)
         assertEquals(0, vm.evalstack.size)

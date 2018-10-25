@@ -18,10 +18,9 @@ import prog8.functions.BuiltinFunctions
     todo optimize addition with self into shift 1  (A+=A -> A<<=1)
     todo assignment optimization: optimize some simple multiplications and divisions into shifts  (A*=2 -> lsl(A), X=X/2 -> lsr(X) )
     todo analyse for unreachable code and remove that (f.i. code after goto or return that has no label so can never be jumped to)
-    todo merge sequence of assignments into one (as long as the value is a constant and the target not a MEMORY type!)
+    todo merge sequence of assignments into one to avoid repeated value loads (as long as the value is a constant and the target not a MEMORY type!)
     todo report more always true/always false conditions
-    todo inline subroutines that are only called once
-    todo inline subroutines that are "sufficiently small"
+    todo (optionally?) inline subroutines that are "sufficiently small" (=VERY small, say 0-3 statements, otherwise code size will explode and short branches will suffer)
 */
 
 class StatementOptimizer(private val namespace: INameScope, private val heap: HeapValues) : IAstProcessor {

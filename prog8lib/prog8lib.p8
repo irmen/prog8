@@ -29,6 +29,7 @@ ror2_word
 
 
 ; @todo:  stubs for now
+; @todo:  move float operations to their own library (only included when floats are enabled)
 
 ub2float
 		rts
@@ -63,6 +64,9 @@ sub_f
 mul_f
 		rts
 
+neg_f
+		rts
+
 sub_uw
 		rts
 
@@ -72,5 +76,73 @@ less_ub
 less_f
 		rts
 
+		
+func_sin
+		rts
+func_cos
+		rts
+func_abs
+		rts
+func_acos
+		rts
+func_asin
+		rts
+func_tan
+		rts
+func_atan
+		rts
+func_ln
+		rts
+func_log2
+		rts
+func_log10
+		rts
+func_sqrt
+		rts
+func_rad
+		rts
+func_deg
+		rts
+func_round
+		rts
+func_floor
+		rts
+func_ceil
+		rts
+func_max
+		rts
+func_min
+		rts
+func_avg
+		rts
+func_sum
+		rts
+func_len
+		rts
+func_any
+		rts
+func_all
+		rts
+func_rnd
+		rts
+func_rndw
+		rts
+func_rndf
+		rts
+func_wrd
+		rts
+func_uwrd
+		rts
+func_str2byte
+		rts
+func_str2ubyte
+		rts
+func_str2word
+		rts
+func_str2uword
+		rts
+func_str2float
+		rts
+    
 	}}
 }

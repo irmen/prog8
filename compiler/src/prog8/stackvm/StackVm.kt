@@ -100,6 +100,10 @@ class StackVm(private var traceOutputFile: String?) {
     val mem = Memory()
     var P_carry: Boolean = false
         private set
+    var P_negative: Boolean = false
+        private set
+    var P_zero: Boolean = false
+        private set
     var P_irqd: Boolean = false
         private set
     var variables = mutableMapOf<String, Value>()     // all variables (set of all vars used by all blocks/subroutines) key = their fully scoped name
@@ -739,13 +743,18 @@ class StackVm(private var traceOutputFile: String?) {
             Opcode.BCC ->
                 return if(P_carry) ins.nextAlt!! else ins.next
             Opcode.BZ ->
-                return if(evalstack.pop().numericValue().toDouble()==0.0) ins.next else ins.nextAlt!!
+                return if(P_zero) ins.next else ins.nextAlt!!
             Opcode.BNZ ->
-                return if(evalstack.pop().numericValue().toDouble()!=0.0) ins.next else ins.nextAlt!!
+                return if(P_zero) ins.nextAlt!! else ins.next
             Opcode.BNEG ->
-                return if(evalstack.pop().numericValue().toDouble()<0.0) ins.next else ins.nextAlt!!
-            Opcode.BPOS -> {
-                return if (evalstack.pop().numericValue().toDouble() >= 0.0) ins.next else ins.nextAlt!!
+                return if(P_negative) ins.next else ins.nextAlt!!
+            Opcode.BPOS ->
+                return if(P_negative) ins.nextAlt!! else ins.next
+            Opcode.BVS, Opcode.BVC -> throw VmExecutionException("stackVM doesn't support the overflow flag")
+            Opcode.TEST -> {
+                val value=evalstack.pop().numericValue().toDouble()
+                P_zero = value == 0.0
+                P_negative = value < 0.0
             }
             Opcode.CALL ->
                 callstack.push(ins.nextAlt)
@@ -1329,6 +1338,8 @@ class StackVm(private var traceOutputFile: String?) {
             Opcode.RSAVE -> {
                 evalstack.push(Value(DataType.UBYTE, if(P_irqd) 1 else 0))
                 evalstack.push(Value(DataType.UBYTE, if(P_carry) 1 else 0))
+                evalstack.push(Value(DataType.UBYTE, if(P_negative) 1 else 0))
+                evalstack.push(Value(DataType.UBYTE, if(P_zero) 1 else 0))
                 evalstack.push(variables["X"])
                 evalstack.push(variables["Y"])
                 evalstack.push(variables["A"])
@@ -1337,6 +1348,8 @@ class StackVm(private var traceOutputFile: String?) {
                 variables["A"] = evalstack.pop()
                 variables["X"] = evalstack.pop()
                 variables["Y"] = evalstack.pop()
+                P_zero = evalstack.pop().asBooleanValue
+                P_negative = evalstack.pop().asBooleanValue
                 P_carry = evalstack.pop().asBooleanValue
                 P_irqd = evalstack.pop().asBooleanValue
             }

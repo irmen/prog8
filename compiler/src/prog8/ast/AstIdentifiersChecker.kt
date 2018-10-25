@@ -120,18 +120,20 @@ class AstIdentifiersChecker : IAstProcessor {
     }
 
     override fun process(forLoop: ForLoop): IStatement {
-        // if the for loop as a decltype, it means to declare the loopvar inside the loop body
+        // if the for loop has a decltype, it means to declare the loopvar inside the loop body
         // rather than reusing an already declared loopvar from an outer scope.
-        if(forLoop.loopRegister!=null && forLoop.decltype!=null) {
-            checkResult.add(SyntaxError("register loop variables cannot be explicitly declared with a datatype", forLoop.position))
-        } else {
-            val loopVar = forLoop.loopVar!!
-            val varName = loopVar.nameInSource.last()
+        if(forLoop.loopRegister!=null) {
+            if(forLoop.decltype!=null)
+                checkResult.add(SyntaxError("register loop variables cannot be explicitly declared with a datatype", forLoop.position))
+            if(forLoop.loopRegister == Register.X || forLoop.loopRegister==Register.XY || forLoop.loopRegister==Register.AX)
+                checkResult.add(SyntaxError("it's not possible to write to the X register because it's used as an internal pointer", forLoop.position))
+        } else if(forLoop.loopVar!=null) {
+            val varName = forLoop.loopVar.nameInSource.last()
             when (forLoop.decltype) {
                 DataType.UBYTE, DataType.UWORD -> {
-                    val existing = if(forLoop.body.isEmpty()) null else forLoop.body.lookup(loopVar.nameInSource, forLoop.body.statements.first())
+                    val existing = if(forLoop.body.isEmpty()) null else forLoop.body.lookup(forLoop.loopVar.nameInSource, forLoop.body.statements.first())
                     if(existing==null) {
-                        val vardecl = VarDecl(VarDeclType.VAR, forLoop.decltype, null, varName, null, loopVar.position)
+                        val vardecl = VarDecl(VarDeclType.VAR, forLoop.decltype, null, varName, null, forLoop.loopVar.position)
                         vardecl.linkParents(forLoop.body)
                         forLoop.body.statements.add(0, vardecl)
                         forLoop.loopVar.parent = forLoop.body   // loopvar 'is defined in the body'
@@ -142,5 +144,11 @@ class AstIdentifiersChecker : IAstProcessor {
             }
         }
         return super.process(forLoop)
+    }
+
+    override fun process(assignTarget: AssignTarget): AssignTarget {
+        if(assignTarget.register==Register.X || assignTarget.register==Register.AX || assignTarget.register==Register.XY)
+            checkResult.add(SyntaxError("it's not possible to write to the X register because it's used as an internal pointer", assignTarget.position))
+        return super.process(assignTarget)
     }
 }
