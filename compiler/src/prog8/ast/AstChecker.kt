@@ -330,6 +330,12 @@ class AstChecker(private val namespace: INameScope,
                     return super.process(assignment)
                 }
             }
+        } else if(assignment.target.arrayindexed!=null) {
+            if(assignment.target.arrayindexed!!.register!=null) {
+                val value = assignment.value
+                if (value is ArrayIndexedExpression && value.register in setOf(Register.AX, Register.AY, Register.XY))
+                    checkResult.add(SyntaxError("reading AND writing from registerpair arrays not supported due to register overlap", assignment.position))
+            }
         }
 
         // it is not possible to assign a new array to something.
@@ -440,6 +446,25 @@ class AstChecker(private val namespace: INameScope,
                 }
             }
             VarDeclType.MEMORY -> {
+                if(decl.arrayspec!=null) {
+                    val arraySize = decl.arrayspec.size() ?: 1
+                    when(decl.datatype) {
+                        DataType.ARRAY_B, DataType.ARRAY_UB ->
+                            if(arraySize > 256)
+                                err("byte array length must be 1-256")
+                        DataType.ARRAY_W, DataType.ARRAY_UW ->
+                            if(arraySize > 128)
+                                err("word array length must be 1-128")
+                        DataType.ARRAY_F ->
+                            if(arraySize > 51)
+                                err("float array length must be 1-51")
+                        DataType.MATRIX_B, DataType.MATRIX_UB ->
+                            if(arraySize > 256)
+                                err("invalid matrix size, must be 1-256")
+                        else -> {}
+                    }
+                }
+
                 if(decl.value !is LiteralValue) {
                     err("value of memory var decl is not a literal (it is a ${decl.value!!::class.simpleName}).", decl.value?.position)
                 } else {

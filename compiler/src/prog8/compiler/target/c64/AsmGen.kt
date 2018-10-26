@@ -173,7 +173,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             out("* = ${block.address?.toHex()}")
         }
         out("${block.shortname}\t.proc\n")
-        out("\n; constants/memdefs/kernel subroutines")
+        out("\n; memdefs and kernel subroutines")
         memdefs2asm(block)
         out("\n; variables")
         vardecls2asm(block)
@@ -713,11 +713,11 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             }
             Opcode.ADD_F -> "  jsr  prog8_lib.add_f"
-            Opcode.ADD_W -> "  jsr  prog8_lib.add_w"    // todo or inline rather
-            Opcode.ADD_UW -> "  jsr  prog8_lib.add_uw"  // todo or inline rather
+            Opcode.ADD_W -> "  jsr  prog8_lib.add_w"    // todo or inline?
+            Opcode.ADD_UW -> "  jsr  prog8_lib.add_uw"  // todo or inline?
             Opcode.SUB_F -> "  jsr  prog8_lib.sub_f"
-            Opcode.SUB_W -> "  jsr  prog8_lib.sub_w"    // todo or inline rather
-            Opcode.SUB_UW -> "  jsr  prog8_lib.sub_uw"    // todo or inline rather
+            Opcode.SUB_W -> "  jsr  prog8_lib.sub_w"    // todo or inline?
+            Opcode.SUB_UW -> "  jsr  prog8_lib.sub_uw"    // todo or inline?
             Opcode.MUL_F -> "  jsr  prog8_lib.mul_f"
             Opcode.MUL_B -> "  jsr  prog8_lib.mul_b"
             Opcode.MUL_UB -> "  jsr  prog8_lib.mul_ub"
@@ -835,16 +835,16 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         return when(ins.opcode) {
             Opcode.SHL_BYTE -> AsmFragment(" asl  $variable+$index", 8)
             Opcode.SHR_BYTE -> AsmFragment(" lsr  $variable+$index", 8)
-            Opcode.SHL_WORD -> AsmFragment(" asl  $variable+$index |  rol  $variable+$index+1", 8)
-            Opcode.SHR_WORD -> AsmFragment(" lsr  $variable+$index+1,x |  ror  $variable+$index", 8)
+            Opcode.SHL_WORD -> AsmFragment(" asl  $variable+$index |  rol  $variable+${index+1}", 8)
+            Opcode.SHR_WORD -> AsmFragment(" lsr  $variable+${index+1},x |  ror  $variable+$index", 8)
             Opcode.ROL_BYTE -> AsmFragment(" rol  $variable+$index", 8)
             Opcode.ROR_BYTE -> AsmFragment(" ror  $variable+$index", 8)
-            Opcode.ROL_WORD -> AsmFragment(" rol  $variable+$index |  rol  $variable+$index+1", 8)
-            Opcode.ROR_WORD -> AsmFragment(" ror  $variable+$index+1 |  ror  $variable+$index", 8)
+            Opcode.ROL_WORD -> AsmFragment(" rol  $variable+$index |  rol  $variable+${index+1}", 8)
+            Opcode.ROR_WORD -> AsmFragment(" ror  $variable+${index+1} |  ror  $variable+$index", 8)
             Opcode.ROL2_BYTE -> AsmFragment(" lda  $variable+$index |  cmp  #\$80 |  rol  $variable+$index", 8)
             Opcode.ROR2_BYTE -> AsmFragment(" lda  $variable+$index |  lsr  a |  bcc  + |  ora  #\$80 |+ |  sta  $variable+$index", 10)
-            Opcode.ROL2_WORD -> AsmFragment(" asl  $variable+$index |  rol  $variable+$index+1 |  bcc  + |  inc  $variable+$index |+",20)
-            Opcode.ROR2_WORD -> AsmFragment(" lsr  $variable+$index+1 |  ror  $variable+$index |  bcc  + |  lda  $variable+$index+1 |  ora  #\$80 |  sta  $variable+$index+1 |+", 30)
+            Opcode.ROL2_WORD -> AsmFragment(" asl  $variable+$index |  rol  $variable+${index+1} |  bcc  + |  inc  $variable+$index |+",20)
+            Opcode.ROR2_WORD -> AsmFragment(" lsr  $variable+${index+1} |  ror  $variable+$index |  bcc  + |  lda  $variable+${index+1} |  ora  #\$80 |  sta  $variable+${index+1} |+", 30)
             else -> null
         }
     }
@@ -1038,13 +1038,17 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             // assignment: mem = bytevar/ubytevar
             AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.POP_MEM_B)) { segment ->
                 when(segment[0].callLabel) {
-                    "A", "X", "Y" -> TODO("$segment")
+                    "A" -> " sta  ${segment[1].arg!!.integerValue().toHex()}"
+                    "X" -> " stx  ${segment[1].arg!!.integerValue().toHex()}"
+                    "Y" -> " sty  ${segment[1].arg!!.integerValue().toHex()}"
                     else -> " lda  ${segment[0].callLabel} |  sta  ${segment[1].arg!!.integerValue().toHex()}"
                 }
             },
             AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.POP_MEM_UB)) { segment ->
                 when(segment[0].callLabel) {
-                    "A", "X", "Y" -> TODO("$segment")
+                    "A" -> " sta  ${segment[1].arg!!.integerValue().toHex()}"
+                    "X" -> " stx  ${segment[1].arg!!.integerValue().toHex()}"
+                    "Y" -> " sty  ${segment[1].arg!!.integerValue().toHex()}"
                     else -> " lda  ${segment[0].callLabel} |  sta  ${segment[1].arg!!.integerValue().toHex()}"
                 }
             },
@@ -1092,9 +1096,9 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             // assignment: mem = wordvar/uwordvar
             AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.POP_MEM_W)) { segment ->
                 when(segment[0].callLabel) {
-                    "AX" -> TODO("$segment")
-                    "AY" -> TODO("$segment")
-                    "XY" -> TODO("$segment")
+                    "AX" -> " sta  ${segment[1].arg!!.integerValue().toHex()} |  stx  ${(segment[1].arg!!.integerValue()+1).toHex()}"
+                    "AY" -> " sta  ${segment[1].arg!!.integerValue().toHex()} |  sty  ${(segment[1].arg!!.integerValue()+1).toHex()}"
+                    "XY" -> " stx  ${segment[1].arg!!.integerValue().toHex()} |  sty  ${(segment[1].arg!!.integerValue()+1).toHex()}"
                     else ->
                         """
                         lda  ${segment[0].callLabel}
@@ -1106,9 +1110,9 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             },
             AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.POP_MEM_UW)) { segment ->
                 when(segment[0].callLabel) {
-                    "AX" -> TODO("$segment")
-                    "AY" -> TODO("$segment")
-                    "XY" -> TODO("$segment")
+                    "AX" -> " sta  ${segment[1].arg!!.integerValue().toHex()} |  stx  ${(segment[1].arg!!.integerValue()+1).toHex()}"
+                    "AY" -> " sta  ${segment[1].arg!!.integerValue().toHex()} |  sty  ${(segment[1].arg!!.integerValue()+1).toHex()}"
+                    "XY" -> " stx  ${segment[1].arg!!.integerValue().toHex()} |  sty  ${(segment[1].arg!!.integerValue()+1).toHex()}"
                     else ->
                         """
                         lda  ${segment[0].callLabel}
@@ -1232,7 +1236,24 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             // assignment: uwordvar = ubytevar
             AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.UB2UWORD, Opcode.POP_VAR_WORD)) { segment ->
                 when(segment[0].callLabel) {
-                    "A", "X", "Y" -> TODO("$segment")
+                    "A" -> when(segment[2].callLabel) {
+                        "AX" -> " ldx  #0"
+                        "AY" -> " ldy  #0"
+                        "XY" -> " tax |  ldy  #0"
+                        else -> " sta  ${segment[2].callLabel} |  lda  #0 |  sta  ${segment[2].callLabel}+1"
+                    }
+                    "X" -> when(segment[2].callLabel) {
+                        "AX" -> " txa |  ldx  #0"
+                        "AY" -> " txa |  ldy  #0"
+                        "XY" -> " ldy  #0"
+                        else -> " stx  ${segment[2].callLabel} |  lda  #0 |  sta  ${segment[2].callLabel}+1"
+                    }
+                    "Y" -> when(segment[2].callLabel) {
+                        "AX" -> " tya |  ldx  #0"
+                        "AY" -> " tya |  ldy  #0"
+                        "XY" -> " tya |  tax |  ldy  #0"
+                        else -> " sty  ${segment[2].callLabel} |  lda  #0 |  sta  ${segment[2].callLabel}+1"
+                    }
                     else ->
                         when(segment[2].callLabel) {
                             "AX" -> " lda  ${segment[0].callLabel} |  ldx  #0"
@@ -1244,41 +1265,25 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             },
             // assignment: wordvar = bytevar (sign extended)
             AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.B2WORD, Opcode.POP_VAR_WORD)) { segment ->
-                when(segment[0].callLabel) {
-                    "A", "X", "Y" -> TODO("$segment")
-                    else ->
-                        when(segment[2].callLabel) {
-                            "AX" -> TODO(" $segment")
-                            "AY" -> TODO(" $segment")
-                            "XY" -> TODO(" $segment")
-                            else ->
-                                """
-                        lda  ${segment[0].callLabel}
-                        sta  ${segment[2].callLabel}
-                        ora  #$7f
-                        bmi  +
-                        lda  #0
-+                       sta  ${segment[2].callLabel}+1
                 """
-                        }
-                }
+                lda  ${segment[0].callLabel}
+                sta  ${segment[2].callLabel}
+                ora  #$7f
+                bmi  +
+                lda  #0
++               sta  ${segment[2].callLabel}+1
+                """
             },
             // assignment: wordvar = membyte (sign extended)
             AsmPattern(listOf(Opcode.PUSH_MEM_B, Opcode.B2WORD, Opcode.POP_VAR_WORD)) { segment ->
-                when(segment[2].callLabel) {
-                    "AX" -> TODO("$segment")
-                    "AY" -> TODO("$segment")
-                    "XY" -> TODO("$segment")
-                    else ->
-                        """
-                        lda  ${segment[0].arg!!.integerValue().toHex()}
-                        sta  ${segment[2].callLabel}
-                        ora  #$7f
-                        bmi  +
-                        lda  #0
-+                       sta  ${segment[2].callLabel}+1
-                        """
-                }
+                """
+                lda  ${segment[0].arg!!.integerValue().toHex()}
+                sta  ${segment[2].callLabel}
+                ora  #$7f
+                bmi  +
+                lda  #0
++               sta  ${segment[2].callLabel}+1
+                """
             },
             // assignment: uwordvar = mem ubyte
             AsmPattern(listOf(Opcode.PUSH_MEM_UB, Opcode.UB2UWORD, Opcode.POP_VAR_WORD)) { segment ->
@@ -1293,9 +1298,9 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.UB2UWORD, Opcode.POP_VAR_WORD)) { segment ->
                 val index = segment[0].arg!!.integerValue().toHex()
                 when(segment[1].callLabel) {
-                    "AX" -> TODO("$segment")
-                    "AY" -> TODO("$segment")
-                    "XY" -> TODO("$segment")
+                    "AX" -> " sta  ${C64Zeropage.SCRATCH_W1} |  stx  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  sta  ${segment[3].callLabel} |  lda  #0 |  sta  ${segment[3].callLabel}+1"
+                    "AY" -> " sta  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  sta  ${segment[3].callLabel} |  lda  #0 |  sta  ${segment[3].callLabel}+1"
+                    "XY" -> " stx  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  sta  ${segment[3].callLabel} |  lda  #0 |  sta  ${segment[3].callLabel}+1"
                     else ->
                         when(segment[3].callLabel) {
                             "AX" -> " lda  ${segment[1].callLabel}+$index |  ldx  #0"
@@ -1307,28 +1312,28 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             },
             // assignment: mem uword = ubytearray[index_byte]
             AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.UB2UWORD, Opcode.POP_MEM_UW)) { segment ->
-                val index = segment[0].arg!!.integerValue().toHex()
-                """
-                lda  ${segment[1].callLabel}+$index
-                ldy  ${segment[1].callLabel}+$index+1
-                sta  ${segment[3].arg!!.integerValue().toHex()}
-                sty  ${(segment[3].arg!!.integerValue()+1).toHex()}
-                """
+                val index = segment[0].arg!!.integerValue()
+                when(segment[1].callLabel) {
+                    "AX" -> " sta  ${C64Zeropage.SCRATCH_W1} |  stx  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  sta  ${segment[3].arg!!.integerValue().toHex()} |  lda  #0 |  sta  ${(segment[3].arg!!.integerValue()+1).toHex()}"
+                    "AY" -> " sta  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  sta  ${segment[3].arg!!.integerValue().toHex()} |  lda  #0 |  sta  ${(segment[3].arg!!.integerValue()+1).toHex()}"
+                    "XY" -> " stx  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  sta  ${segment[3].arg!!.integerValue().toHex()} |  lda  #0 |  sta  ${(segment[3].arg!!.integerValue()+1).toHex()}"
+                    else ->
+                        """
+                        lda  ${segment[1].callLabel}+$index
+                        ldy  ${segment[1].callLabel}+${index+1}
+                        sta  ${segment[3].arg!!.integerValue().toHex()}
+                        sty  ${(segment[3].arg!!.integerValue()+1).toHex()}
+                        """
+                }
             },
             // assignment: (u)wordvar = (u)wordarray[index_byte]
             AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_WORD, Opcode.POP_VAR_WORD)) { segment ->
                 val index = segment[0].arg!!.integerValue()*2
-                when(segment[1].callLabel) {
-                    "AX" -> TODO("$segment")
-                    "AY" -> TODO("$segment")
-                    "XY" -> TODO("$segment")
-                    else ->
-                        when(segment[2].callLabel) {
-                            "AX" -> " lda  ${segment[1].callLabel}+$index |  ldx  ${segment[1].callLabel}+$index+1"
-                            "AY" -> " lda  ${segment[1].callLabel}+$index |  ldy  ${segment[1].callLabel}+$index+1"
-                            "XY" -> " ldx  ${segment[1].callLabel}+$index |  ldy  ${segment[1].callLabel}+$index+1"
-                            else -> " lda  ${segment[1].callLabel}+$index |  sta  ${segment[2].callLabel} |  lda  ${segment[1].callLabel}+$index+1,x |  sta  ${segment[2].callLabel}+1"
-                        }
+                when(segment[2].callLabel) {
+                    "AX" -> " lda  ${segment[1].callLabel}+$index |  ldx  ${segment[1].callLabel}+${index+1}"
+                    "AY" -> " lda  ${segment[1].callLabel}+$index |  ldy  ${segment[1].callLabel}+${index+1}"
+                    "XY" -> " ldx  ${segment[1].callLabel}+$index |  ldy  ${segment[1].callLabel}+${index+1}"
+                    else -> " lda  ${segment[1].callLabel}+$index |  sta  ${segment[2].callLabel} |  lda  ${segment[1].callLabel}+${index+1} |  sta  ${segment[2].callLabel}+1"
                 }
             },
 
@@ -1376,16 +1381,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             // assignment: bytearray[idxbyte] = membyte
             AsmPattern(listOf(Opcode.PUSH_MEM_B, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_BYTE)) { segment ->
                 val index = segment[1].arg!!.integerValue()
-                when(segment[2].callLabel) {
-                    "AX" -> TODO("$segment")
-                    "AY" -> TODO("$segment")
-                    "XY" -> TODO("$segment")
-                    else ->
-                        """
-                        lda  ${segment[0].arg!!.integerValue().toHex()}
-                        sta  ${segment[2].callLabel}+$index
-                        """
-                }
+                " lda  ${segment[0].arg!!.integerValue().toHex()} |  sta  ${segment[2].callLabel}+$index "
             },
             // assignment: bytearray[idxbyte] = memubyte
             AsmPattern(listOf(Opcode.PUSH_MEM_UB, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_BYTE)) { segment ->
@@ -1400,111 +1396,47 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             // assignment: wordarray[idxbyte] = word
             AsmPattern(listOf(Opcode.PUSH_WORD, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
                 val index = segment[1].arg!!.integerValue()*2
-                when(segment[2].callLabel) {
-                    "AX" -> TODO("$segment")
-                    "AY" -> TODO("$segment")
-                    "XY" -> TODO("$segment")
-                    else ->
-                        """
-                        lda  #<${segment[0].arg!!.integerValue().toHex()}
-                        ldy  #>${segment[0].arg!!.integerValue().toHex()}
-                        sta  ${segment[2].callLabel}+$index
-                        sty  ${segment[2].callLabel}+$index+1
-                        """
-                }
+                """
+                lda  #<${segment[0].arg!!.integerValue().toHex()}
+                ldy  #>${segment[0].arg!!.integerValue().toHex()}
+                sta  ${segment[2].callLabel}+$index
+                sty  ${segment[2].callLabel}+${index+1}
+                """
             },
             // assignment: wordarray[idxbyte] = wordvar
             AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
                 val index = segment[1].arg!!.integerValue()*2
                 when(segment[0].callLabel) {
-                    "AX" -> " sta  ${segment[2].callLabel}+$index |  stx  ${segment[2].callLabel}+$index+1"
-                    "AY" -> " sta  ${segment[2].callLabel}+$index |  sty  ${segment[2].callLabel}+$index+1"
-                    "XY" -> " stx  ${segment[2].callLabel}+$index |  sty  ${segment[2].callLabel}+$index+1"
+                    "AX" -> " sta  ${segment[2].callLabel}+$index |  stx  ${segment[2].callLabel}+${index+1}"
+                    "AY" -> " sta  ${segment[2].callLabel}+$index |  sty  ${segment[2].callLabel}+${index+1}"
+                    "XY" -> " stx  ${segment[2].callLabel}+$index |  sty  ${segment[2].callLabel}+${index+1}"
                     else ->
                         """
                         lda  ${segment[0].callLabel}
                         ldy  ${segment[0].callLabel}+1
                         sta  ${segment[2].callLabel}+$index
-                        sty  ${segment[2].callLabel}+$index+1
+                        sty  ${segment[2].callLabel}+${index+1}
                         """
                 }
             },
             // assignment: wordarray[idxbyte] = memword
             AsmPattern(listOf(Opcode.PUSH_MEM_W, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
                 val index = segment[1].arg!!.integerValue()*2
-                when(segment[2].callLabel) {
-                    "AX" -> TODO("$segment")
-                    "AY" -> TODO("$segment")
-                    "XY" -> TODO("$segment")
-                    else ->
-                        """
-                        lda  ${segment[0].arg!!.integerValue().toHex()}
-                        ldy  ${segment[0].arg!!.integerValue().toHex()}+1
-                        sta  ${segment[2].callLabel}+$index
-                        sty  ${segment[2].callLabel}+$index+1
-                        """
-                }
+                """
+                lda  ${segment[0].arg!!.integerValue().toHex()}
+                ldy  ${(segment[0].arg!!.integerValue()+1).toHex()}
+                sta  ${segment[2].callLabel}+$index
+                sty  ${segment[2].callLabel}+${index+1}
+                """
             },
             // assignment: wordarray[idxbyte] = memuword (=same as above)
             AsmPattern(listOf(Opcode.PUSH_MEM_UW, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
                 val index = segment[1].arg!!.integerValue()*2
-                when(segment[2].callLabel) {
-                    "AX" -> TODO("$segment")
-                    "AY" -> TODO("$segment")
-                    "XY" -> TODO("$segment")
-                    else ->
-                        """
-                        lda  ${segment[0].arg!!.integerValue().toHex()}
-                        ldy  ${segment[0].arg!!.integerValue().toHex()}+1
-                        sta  ${segment[2].callLabel}+$index
-                        sty  ${segment[2].callLabel}+$index+1
-                        """
-                }
-            },
-            // assignment: floatarray[idxbyte] = float
-            AsmPattern(listOf(Opcode.PUSH_FLOAT, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_FLOAT)) { segment ->
-                val floatConst = getFloatConst(segment[0].arg!!)
-                val index = segment[1].arg!!.integerValue() * Mflpt5.MemorySize
                 """
-                lda  #<$floatConst
-                ldy  #>$floatConst
-                sta  ${C64Zeropage.SCRATCH_W1}
-                sty  ${C64Zeropage.SCRATCH_W1+1}
-                lda  #<(${segment[2].callLabel}+$index)
-                ldy  #>(${segment[2].callLabel}+$index+1)
-                sta  ${C64Zeropage.SCRATCH_W2}
-                sty  ${C64Zeropage.SCRATCH_W2+1}
-                jsr  prog8_lib.copy_float
-                """
-            },
-            // assignment: floatarray[idxbyte] = floatvar
-            AsmPattern(listOf(Opcode.PUSH_VAR_FLOAT, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_FLOAT)) { segment ->
-                val index = segment[1].arg!!.integerValue() * Mflpt5.MemorySize
-                """
-                lda  #<${segment[0].callLabel}
-                ldy  #>${segment[0].callLabel}
-                sta  ${C64Zeropage.SCRATCH_W1}
-                sty  ${C64Zeropage.SCRATCH_W1+1}
-                lda  #<(${segment[2].callLabel}+$index)
-                ldy  #>(${segment[2].callLabel}+$index+1)
-                sta  ${C64Zeropage.SCRATCH_W2}
-                sty  ${C64Zeropage.SCRATCH_W2+1}
-                jsr  prog8_lib.copy_float
-                """
-            },
-            // assignment: floatarray[idxbyte] = memfloat
-            AsmPattern(listOf(Opcode.PUSH_MEM_FLOAT, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_FLOAT)) { segment ->
-                val index = segment[1].arg!!.integerValue() * Mflpt5.MemorySize
-                """
-                lda  #<${segment[0].arg!!.integerValue().toHex()}
-                ldy  #>${segment[0].arg!!.integerValue().toHex()}
-                sta  ${C64Zeropage.SCRATCH_W1}
-                sty  ${C64Zeropage.SCRATCH_W1+1}
-                lda  #<(${segment[2].callLabel}+$index)
-                ldy  #>(${segment[2].callLabel}+$index+1)
-                sta  ${C64Zeropage.SCRATCH_W2}
-                sty  ${C64Zeropage.SCRATCH_W2+1}
-                jsr  prog8_lib.copy_float
+                lda  ${segment[0].arg!!.integerValue().toHex()}
+                ldy  ${(segment[0].arg!!.integerValue()+1).toHex()}
+                sta  ${segment[2].callLabel}+$index
+                sty  ${segment[2].callLabel}+${index+1}
                 """
             },
 
@@ -1512,9 +1444,24 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.POP_VAR_BYTE)) { segment ->
                 val index = segment[0].arg!!.integerValue()
                 when(segment[1].callLabel) {
-                    "AX" -> TODO("$segment")
-                    "AY" -> TODO("$segment")
-                    "XY" -> TODO("$segment")
+                    "AX" -> when(segment[2].callLabel) {
+                        "A" -> " sta  ${C64Zeropage.SCRATCH_W1} |  stx  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y"
+                        "X" -> " sta  ${C64Zeropage.SCRATCH_W1} |  stx  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  tax"
+                        "Y" -> " sta  ${C64Zeropage.SCRATCH_W1} |  stx  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  tay"
+                        else -> " sta  ${C64Zeropage.SCRATCH_W1} |  stx  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  sta  ${segment[2].callLabel}"
+                    }
+                    "AY" -> when(segment[2].callLabel) {
+                        "A" -> " sta  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y"
+                        "X" -> " sta  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  tax"
+                        "Y" -> " sta  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  tay"
+                        else -> " sta  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  sta  ${segment[2].callLabel}"
+                    }
+                    "XY" -> when(segment[2].callLabel) {
+                        "A" -> " stx  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y"
+                        "X" -> " stx  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  tax"
+                        "Y" -> " stx  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  tay"
+                        else -> " stx  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  sta  ${segment[2].callLabel}"
+                    }
                     else ->
                         when (segment[2].callLabel) {
                             "A", "X", "Y" ->
@@ -1550,33 +1497,21 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             // assignment: mem(u)word = (u)wordarray[index]
             AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_WORD, Opcode.POP_MEM_W)) { segment ->
                 val index = segment[0].arg!!.integerValue()*2
-                when(segment[1].callLabel) {
-                    "AX" -> TODO("$segment")
-                    "AY" -> TODO("$segment")
-                    "XY" -> TODO("$segment")
-                    else ->
-                        """
-                        lda  ${segment[1].callLabel}+$index
-                        ldy  ${segment[1].callLabel}+1+$index
-                        sta  ${segment[2].arg!!.integerValue().toHex()}
-                        sty  ${(segment[2].arg!!.integerValue()+1).toHex()}
-                        """
-                }
+                """
+                lda  ${segment[1].callLabel}+$index
+                ldy  ${segment[1].callLabel}+1+$index
+                sta  ${segment[2].arg!!.integerValue().toHex()}
+                sty  ${(segment[2].arg!!.integerValue()+1).toHex()}
+                """
             },
             AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_WORD, Opcode.POP_MEM_UW)) { segment ->
                 val index = segment[0].arg!!.integerValue()*2
-                when(segment[1].callLabel) {
-                    "AX" -> TODO("$segment")
-                    "AY" -> TODO("$segment")
-                    "XY" -> TODO("$segment")
-                    else ->
-                        """
-                        lda  ${segment[1].callLabel}+$index
-                        ldy  ${segment[1].callLabel}+1+$index
-                        sta  ${segment[2].arg!!.integerValue().toHex()}
-                        sty  ${(segment[2].arg!!.integerValue()+1).toHex()}
-                        """
-                }
+                """
+                lda  ${segment[1].callLabel}+$index
+                ldy  ${segment[1].callLabel}+1+$index
+                sta  ${segment[2].arg!!.integerValue().toHex()}
+                sty  ${(segment[2].arg!!.integerValue()+1).toHex()}
+                """
             },
 
             // assignment: bytearray2[index2] = bytearray1[index1]
@@ -1584,9 +1519,39 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 val index1 = segment[0].arg!!.integerValue()
                 val index2 = segment[2].arg!!.integerValue()
                 when(segment[1].callLabel) {
-                    "AX" -> TODO("$segment")
-                    "AY" -> TODO("$segment")
-                    "XY" -> TODO("$segment")
+                    "AX" -> when(segment[3].callLabel) {
+                        "AX", "AY", "XY" -> throw AssemblyError("reading AND writing from registerpair arrays not supported due to register overlap")
+                        else ->
+                            """
+                            sta  ${C64Zeropage.SCRATCH_W1}
+                            stx  ${C64Zeropage.SCRATCH_W1+1}
+                            ldy  #$index1
+                            lda  (${C64Zeropage.SCRATCH_W1}),y
+                            sta  ${segment[3].callLabel}+$index2
+                            """
+                    }
+                    "AY" -> when(segment[3].callLabel) {
+                        "AX", "AY", "XY" -> throw AssemblyError("reading AND writing from registerpair arrays not supported due to register overlap")
+                        else ->
+                            """
+                            sta  ${C64Zeropage.SCRATCH_W1}
+                            sty  ${C64Zeropage.SCRATCH_W1+1}
+                            ldy  #$index1
+                            lda  (${C64Zeropage.SCRATCH_W1}),y
+                            sta  ${segment[3].callLabel}+$index2
+                            """
+                    }
+                    "XY" -> when(segment[3].callLabel) {
+                        "AX", "AY", "XY" -> throw AssemblyError("reading AND writing from registerpair arrays not supported due to register overlap")
+                        else ->
+                            """
+                            stx  ${C64Zeropage.SCRATCH_W1}
+                            sty  ${C64Zeropage.SCRATCH_W1+1}
+                            ldy  #$index1
+                            lda  (${C64Zeropage.SCRATCH_W1}),y
+                            sta  ${segment[3].callLabel}+$index2
+                            """
+                    }
                     else ->
                         when(segment[3].callLabel) {
                             "AX" -> " sta  ${C64Zeropage.SCRATCH_W1} |  stx  ${C64Zeropage.SCRATCH_W1+1} |  lda  ${segment[1].callLabel}+$index1 |  ldy  #$index2 |  sta  (${C64Zeropage.SCRATCH_W1}),y"
@@ -1600,24 +1565,211 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_WORD, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment->
                 val index1 = segment[0].arg!!.integerValue()*2
                 val index2 = segment[2].arg!!.integerValue()*2
-                when(segment[1].callLabel) {
-                    "AX" -> TODO("$segment")
-                    "AY" -> TODO("$segment")
-                    "XY" -> TODO("$segment")
-                    else ->
-                        when(segment[3].callLabel) {
-                            "AX" -> TODO("$segment")
-                            "AY" -> TODO("$segment")
-                            "XY" -> TODO("$segment")
-                            else ->
-                                """
-                                lda  ${segment[1].callLabel}+$index1
-                                ldy  ${segment[1].callLabel}+$index1+1
-                                sta  ${segment[3].callLabel}+$index2
-                                sty  ${segment[3].callLabel}+$index2+1
-                                """
-                        }
+                """
+                lda  ${segment[1].callLabel}+$index1
+                ldy  ${segment[1].callLabel}+${index1+1}
+                sta  ${segment[3].callLabel}+$index2
+                sty  ${segment[3].callLabel}+${index2+1}
+                """
+            },
+
+            // assignment: float = ubytevar
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.UB2FLOAT, Opcode.POP_VAR_FLOAT)) { segment->
+                val loadByte = when(segment[0].callLabel) {
+                    "A" -> ""
+                    "X" -> "txa"
+                    "Y" -> "tya"
+                    else -> "lda  ${segment[0].callLabel}"
                 }
+                """
+                $loadByte
+                ldx  #<${segment[2].callLabel}
+                ldy  #>${segment[2].callLabel}
+                jsr  prog8_lib.ub2float
+                """
+            },
+            // assignment: float = bytevar
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.B2FLOAT, Opcode.POP_VAR_FLOAT)) { segment->
+                val loadByte = when(segment[0].callLabel) {
+                    "A" -> ""
+                    "X" -> "txa"
+                    "Y" -> "tya"
+                    else -> "lda  ${segment[0].callLabel}"
+                }
+                """
+                $loadByte
+                ldx  #<${segment[2].callLabel}
+                ldy  #>${segment[2].callLabel}
+                jsr  prog8_lib.b2float
+                """
+            },
+            // assignment: float = uwordvar
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.UW2FLOAT, Opcode.POP_VAR_FLOAT)) { segment->
+                when (segment[0].callLabel) {
+                    "AX" ->
+                        """
+                        sta  ${C64Zeropage.SCRATCH_W1}
+                        stx  ${C64Zeropage.SCRATCH_W1+1}
+                        ldx  #<${segment[2].callLabel}
+                        ldy  #>${segment[2].callLabel}
+                        jsr  prog8_lib.uw2float
+                        """
+                    "AY" ->
+                        """
+                        sta  ${C64Zeropage.SCRATCH_W1}
+                        sty  ${C64Zeropage.SCRATCH_W1+1}
+                        ldx  #<${segment[2].callLabel}
+                        ldy  #>${segment[2].callLabel}
+                        jsr  prog8_lib.uw2float
+                        """
+                    "XY" ->
+                        """
+                        stx  ${C64Zeropage.SCRATCH_W1}
+                        sty  ${C64Zeropage.SCRATCH_W1+1}
+                        ldx  #<${segment[2].callLabel}
+                        ldy  #>${segment[2].callLabel}
+                        jsr  prog8_lib.uw2float
+                        """
+                    else ->
+                        """
+                        lda  ${segment[0].callLabel}
+                        sta  ${C64Zeropage.SCRATCH_W1}
+                        lda  ${segment[0].callLabel}+1
+                        sta  ${C64Zeropage.SCRATCH_W1+1}
+                        ldx  #<${segment[2].callLabel}
+                        ldy  #>${segment[2].callLabel}
+                        jsr  prog8_lib.uw2float
+                        """
+                }
+            },
+            // assignment: float = wordvar
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.W2FLOAT, Opcode.POP_VAR_FLOAT)) { segment ->
+                when (segment[0].callLabel) {
+                    "AX" ->
+                        """
+                        sta  ${C64Zeropage.SCRATCH_W1}
+                        stx  ${C64Zeropage.SCRATCH_W1+1}
+                        ldx  #<${segment[2].callLabel}
+                        ldy  #>${segment[2].callLabel}
+                        jsr  prog8_lib.w2float
+                        """
+                    "AY" ->
+                        """
+                        sta  ${C64Zeropage.SCRATCH_W1}
+                        sty  ${C64Zeropage.SCRATCH_W1+1}
+                        ldx  #<${segment[2].callLabel}
+                        ldy  #>${segment[2].callLabel}
+                        jsr  prog8_lib.w2float
+                        """
+                    "XY" ->
+                        """
+                        stx  ${C64Zeropage.SCRATCH_W1}
+                        sty  ${C64Zeropage.SCRATCH_W1+1}
+                        ldx  #<${segment[2].callLabel}
+                        ldy  #>${segment[2].callLabel}
+                        jsr  prog8_lib.w2float
+                        """
+                    else ->
+                        """
+                        lda  ${segment[0].callLabel}
+                        sta  ${C64Zeropage.SCRATCH_W1}
+                        lda  ${segment[0].callLabel}+1
+                        sta  ${C64Zeropage.SCRATCH_W1+1}
+                        ldx  #<${segment[2].callLabel}
+                        ldy  #>${segment[2].callLabel}
+                        jsr  prog8_lib.w2float
+                        """
+                }
+            },
+
+            // assignment: float = mem byte
+            AsmPattern(listOf(Opcode.PUSH_MEM_B, Opcode.B2FLOAT, Opcode.POP_VAR_FLOAT)) { segment->
+                """
+                lda  ${segment[0].arg!!.integerValue().toHex()}
+                ldx  #<${segment[2].callLabel}
+                ldy  #>${segment[2].callLabel}
+                jsr  prog8_lib.b2float
+                """
+            },
+            // assignment: float = mem ubyte
+            AsmPattern(listOf(Opcode.PUSH_MEM_UB, Opcode.UB2FLOAT, Opcode.POP_VAR_FLOAT)) { segment->
+                """
+                lda  ${segment[0].arg!!.integerValue().toHex()}
+                ldx  #<${segment[2].callLabel}
+                ldy  #>${segment[2].callLabel}
+                jsr  prog8_lib.ub2float
+                """
+            },
+            // assignment: float = mem word
+            AsmPattern(listOf(Opcode.PUSH_MEM_W, Opcode.W2FLOAT, Opcode.POP_VAR_FLOAT)) { segment ->
+                """
+                lda  ${segment[0].arg!!.integerValue().toHex()}
+                sta  ${C64Zeropage.SCRATCH_W1}
+                lda  ${(segment[0].arg!!.integerValue()+1).toHex()}
+                sta  ${C64Zeropage.SCRATCH_W1+1}
+                ldx  #<${segment[2].callLabel}
+                ldy  #>${segment[2].callLabel}
+                jsr  prog8_lib.w2float
+                """
+            },
+            // assignment: float = mem uword
+            AsmPattern(listOf(Opcode.PUSH_MEM_UW, Opcode.UW2FLOAT, Opcode.POP_VAR_FLOAT)) { segment ->
+                """
+                lda  ${segment[0].arg!!.integerValue().toHex()}
+                sta  ${C64Zeropage.SCRATCH_W1}
+                lda  ${(segment[0].arg!!.integerValue()+1).toHex()}
+                sta  ${C64Zeropage.SCRATCH_W1+1}
+                ldx  #<${segment[2].callLabel}
+                ldy  #>${segment[2].callLabel}
+                jsr  prog8_lib.uw2float
+                """
+            },
+
+            // assignment: floatarray[idxbyte] = float
+            AsmPattern(listOf(Opcode.PUSH_FLOAT, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_FLOAT)) { segment ->
+                val floatConst = getFloatConst(segment[0].arg!!)
+                val index = segment[1].arg!!.integerValue() * Mflpt5.MemorySize
+                """
+                lda  #<$floatConst
+                ldy  #>$floatConst
+                sta  ${C64Zeropage.SCRATCH_W1}
+                sty  ${C64Zeropage.SCRATCH_W1+1}
+                lda  #<(${segment[2].callLabel}+$index)
+                ldy  #>(${segment[2].callLabel}+$index)
+                sta  ${C64Zeropage.SCRATCH_W2}
+                sty  ${C64Zeropage.SCRATCH_W2+1}
+                jsr  prog8_lib.copy_float
+                """
+            },
+            // assignment: floatarray[idxbyte] = floatvar
+            AsmPattern(listOf(Opcode.PUSH_VAR_FLOAT, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_FLOAT)) { segment ->
+                val index = segment[1].arg!!.integerValue() * Mflpt5.MemorySize
+                """
+                lda  #<${segment[0].callLabel}
+                ldy  #>${segment[0].callLabel}
+                sta  ${C64Zeropage.SCRATCH_W1}
+                sty  ${C64Zeropage.SCRATCH_W1+1}
+                lda  #<(${segment[2].callLabel}+$index)
+                ldy  #>(${segment[2].callLabel}+$index)
+                sta  ${C64Zeropage.SCRATCH_W2}
+                sty  ${C64Zeropage.SCRATCH_W2+1}
+                jsr  prog8_lib.copy_float
+                """
+            },
+            // assignment: floatarray[idxbyte] = memfloat
+            AsmPattern(listOf(Opcode.PUSH_MEM_FLOAT, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_FLOAT)) { segment ->
+                val index = segment[1].arg!!.integerValue() * Mflpt5.MemorySize
+                """
+                lda  #<${segment[0].arg!!.integerValue().toHex()}
+                ldy  #>${segment[0].arg!!.integerValue().toHex()}
+                sta  ${C64Zeropage.SCRATCH_W1}
+                sty  ${C64Zeropage.SCRATCH_W1+1}
+                lda  #<(${segment[2].callLabel}+$index)
+                ldy  #>(${segment[2].callLabel}+$index)
+                sta  ${C64Zeropage.SCRATCH_W2}
+                sty  ${C64Zeropage.SCRATCH_W2+1}
+                jsr  prog8_lib.copy_float
+                """
             }
 
     )

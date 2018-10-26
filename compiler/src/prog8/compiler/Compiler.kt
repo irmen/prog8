@@ -1167,8 +1167,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     when (valueDt) {
                         DataType.UBYTE -> prog.instr(Opcode.UB2FLOAT)
                         DataType.BYTE -> prog.instr(Opcode.B2FLOAT)
-                        DataType.UWORD -> prog.instr(Opcode.W2FLOAT)
-                        DataType.WORD -> prog.instr(Opcode.UW2FLOAT)
+                        DataType.UWORD -> prog.instr(Opcode.UW2FLOAT)
+                        DataType.WORD -> prog.instr(Opcode.W2FLOAT)
                         else -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                     }
                 }
