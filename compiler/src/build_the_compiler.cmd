@@ -1,6 +1,6 @@
 mkdir compiled_java
 
-java -jar ../antlr/lib/antlr-4.7.1-complete.jar -o ./prog8/parser -no-listener -no-visitor -package prog8.parser ../antlr/prog8.g4
+java -jar ../antlr/lib/antlr-4.7.1-complete.jar -o ./prog8/parser -Xexact-output-dir -no-listener -no-visitor -package prog8.parser ../antlr/prog8.g4
 
 @dir /b /S src *.java > sources.txt
 javac  -verbose -d compiled_java -cp ../antlr/lib/antlr-runtime-4.7.1.jar @sources.txt
