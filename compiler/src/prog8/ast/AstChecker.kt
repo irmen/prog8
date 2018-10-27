@@ -459,8 +459,8 @@ class AstChecker(private val namespace: INameScope,
                             if(arraySize > 51)
                                 err("float arrayspec length must be 1-51")
                         DataType.MATRIX_B, DataType.MATRIX_UB ->
-                            if(arraySize > 256)
-                                err("invalid matrix size, must be 1-256")
+                            if(arraySize > 32768)
+                                err("invalid matrix size, must be 1-32768")
                         else -> {}
                     }
                 }
@@ -936,8 +936,8 @@ class AstChecker(private val namespace: INameScope,
                         (targetDt==DataType.MATRIX_B && value.type==DataType.ARRAY_B)) {
                     val arraySpecSize = arrayspec.size()
                     if(arraySpecSize!=null && arraySpecSize>0) {
-                        if(arraySpecSize<1 || arraySpecSize>256)
-                            return err("invalid matrix size, must be 1-256")
+                        if(arraySpecSize<1 || arraySpecSize>32768)
+                            return err("invalid matrix size, must be 1-32768")
                         val constX = arrayspec.x.constValue(namespace, heap)
                         val constY = arrayspec.y?.constValue(namespace, heap)
                         if (constX?.asIntegerValue == null || (constY!=null && constY.asIntegerValue == null))
@@ -949,7 +949,7 @@ class AstChecker(private val namespace: INameScope,
                             return err("initializer matrix size mismatch (expecting $expectedSize, got ${matrix.size} elements)")
                         return true
                     }
-                    return err("invalid matrix size, must be 1-256")
+                    return err("invalid matrix size, must be 1-32768")
                 }
                 return err("invalid matrix initialization value of type ${value.type} - expecting byte arrayspec")
             }

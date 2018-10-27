@@ -50,12 +50,26 @@ sub start() {
 
 
 ; all possible assignments to a BYTE VARIABLE
+
+assignments:
     A = 42
     A = Y
+    A = X
+    Y = X
     A = ub
+    X = ub
+    Y = ub
     A = mubyte
+    X = mubyte
+    Y = mubyte
     A = ubarr1[2]
+    X = ubarr1[2]
+    Y = ubarr1[2]
     A = ubmatrix1[1,2]
+    X = ubmatrix1[1,2]
+    Y = ubmatrix1[1,2]
+
+
 
 
 

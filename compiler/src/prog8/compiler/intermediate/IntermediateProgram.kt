@@ -79,54 +79,47 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                 when (it[0].value.opcode) {
                     Opcode.PUSH_VAR_BYTE ->
                         if (it[1].value.opcode == Opcode.POP_VAR_BYTE) {
-                            if (it[0].value.callLabel != it[1].value.callLabel)
-                                instructionsToReplace[it[0].index] = Instruction(Opcode.COPY_VAR_BYTE, null, null, it[0].value.callLabel, it[1].value.callLabel)
-                            else
+                            if (it[0].value.callLabel == it[1].value.callLabel) {
                                 instructionsToReplace[it[0].index] = Instruction(Opcode.NOP)
-                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
+                                instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
+                            }
                         }
                     Opcode.PUSH_VAR_WORD ->
                         if (it[1].value.opcode == Opcode.POP_VAR_WORD) {
-                            if (it[0].value.callLabel != it[1].value.callLabel)
-                                instructionsToReplace[it[0].index] = Instruction(Opcode.COPY_VAR_WORD, null, null, it[0].value.callLabel, it[1].value.callLabel)
-                            else
+                            if (it[0].value.callLabel == it[1].value.callLabel) {
                                 instructionsToReplace[it[0].index] = Instruction(Opcode.NOP)
-                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
+                                instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
+                            }
                         }
                     Opcode.PUSH_VAR_FLOAT ->
                         if (it[1].value.opcode == Opcode.POP_VAR_FLOAT) {
-                            if (it[0].value.callLabel != it[1].value.callLabel)
-                                instructionsToReplace[it[0].index] = Instruction(Opcode.COPY_VAR_FLOAT, null, null, it[0].value.callLabel, it[1].value.callLabel)
-                            else
+                            if (it[0].value.callLabel == it[1].value.callLabel) {
                                 instructionsToReplace[it[0].index] = Instruction(Opcode.NOP)
-                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
+                                instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
+                            }
                         }
                     Opcode.PUSH_MEM_B, Opcode.PUSH_MEM_UB ->
-                        if(it[1].value.opcode == Opcode.POP_MEM_B || it[1].value.opcode == Opcode.POP_MEM_UB) {
-                            if(it[0].value.arg != it[1].value.arg)
-                                instructionsToReplace[it[0].index] = Instruction(Opcode.COPY_MEM_BYTE, it[0].value.arg, it[1].value.arg)
-                            else
+                        if(it[1].value.opcode == Opcode.POP_MEM_BYTE) {
+                            if(it[0].value.arg == it[1].value.arg) {
                                 instructionsToReplace[it[0].index] = Instruction(Opcode.NOP)
-                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
+                                instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
+                            }
                         }
                     Opcode.PUSH_MEM_W, Opcode.PUSH_MEM_UW ->
-                        if(it[1].value.opcode == Opcode.POP_MEM_W || it[1].value.opcode == Opcode.POP_MEM_UW) {
-                            if(it[0].value.arg != it[1].value.arg)
-                                instructionsToReplace[it[0].index] = Instruction(Opcode.COPY_MEM_WORD, it[0].value.arg, it[1].value.arg)
-                            else
+                        if(it[1].value.opcode == Opcode.POP_MEM_WORD) {
+                            if(it[0].value.arg == it[1].value.arg) {
                                 instructionsToReplace[it[0].index] = Instruction(Opcode.NOP)
-                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
+                                instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
+                            }
                         }
                     Opcode.PUSH_MEM_FLOAT ->
                         if(it[1].value.opcode == Opcode.POP_MEM_FLOAT) {
-                            if(it[0].value.arg != it[1].value.arg)
-                                instructionsToReplace[it[0].index] = Instruction(Opcode.COPY_MEM_FLOAT, it[0].value.arg, it[1].value.arg)
-                            else
+                            if(it[0].value.arg == it[1].value.arg) {
                                 instructionsToReplace[it[0].index] = Instruction(Opcode.NOP)
-                            instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
+                                instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
+                            }
                         }
-                    else -> {
-                    }
+                    else -> {}
                 }
             }
 

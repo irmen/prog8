@@ -218,30 +218,24 @@ class StackVm(private var traceOutputFile: String?) {
         }
     }
 
-    private fun checkDt(value: Value?, expected: DataType) {
-        if(value==null)
-            throw VmExecutionException("expected value")
-        if(value.type!=expected)
-            throw VmExecutionException("expected $expected value, found ${value.type}")
-    }
-
-    private fun checkDt(value: Value?, expected: Set<DataType>) {
+    private fun checkDt(value: Value?, vararg expected: DataType) {
         if(value==null)
             throw VmExecutionException("expected value")
         if(value.type !in expected)
-            throw VmExecutionException("incompatible type found ${value.type}")
+            throw VmExecutionException("incompatible type ${value.type}")
     }
+
 
     private fun dispatch(ins: Instruction) : Instruction {
         traceOutput?.println("\n$ins")
         when (ins.opcode) {
             Opcode.NOP -> {}
             Opcode.PUSH_BYTE -> {
-                checkDt(ins.arg, setOf(DataType.UBYTE, DataType.BYTE))
+                checkDt(ins.arg, DataType.UBYTE, DataType.BYTE)
                 evalstack.push(ins.arg)
             }
             Opcode.PUSH_WORD -> {
-                checkDt(ins.arg, setOf(DataType.UWORD, DataType.WORD) + IterableDatatypes)
+                checkDt(ins.arg, *(setOf(DataType.UWORD, DataType.WORD) + IterableDatatypes).toTypedArray())
                 evalstack.push(ins.arg)
             }
             Opcode.PUSH_FLOAT -> {
@@ -280,29 +274,23 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = evalstack.pop()
                 checkDt(value, DataType.FLOAT)
             }
-            Opcode.POP_MEM_UB -> {
+            Opcode.POP_MEM_BYTE -> {
                 val value = evalstack.pop()
-                checkDt(value, DataType.UBYTE)
+                checkDt(value, DataType.BYTE, DataType.UBYTE)
                 val address = ins.arg!!.integerValue()
-                mem.setUByte(address, value.integerValue().toShort())
+                if(value.type==DataType.BYTE)
+                    mem.setSByte(address, value.integerValue().toShort())
+                else
+                    mem.setUByte(address, value.integerValue().toShort())
             }
-            Opcode.POP_MEM_B -> {
+            Opcode.POP_MEM_WORD -> {
                 val value = evalstack.pop()
-                checkDt(value, DataType.BYTE)
+                checkDt(value, DataType.WORD, DataType.UWORD)
                 val address = ins.arg!!.integerValue()
-                mem.setSByte(address, value.integerValue().toShort())
-            }
-            Opcode.POP_MEM_UW -> {
-                val value = evalstack.pop()
-                checkDt(value, DataType.UWORD)
-                val address = ins.arg!!.integerValue()
-                mem.setUWord(address, value.integerValue())
-            }
-            Opcode.POP_MEM_W -> {
-                val value = evalstack.pop()
-                checkDt(value, DataType.WORD)
-                val address = ins.arg!!.integerValue()
-                mem.setSWord(address, value.integerValue())
+                if(value.type==DataType.WORD)
+                    mem.setSWord(address, value.integerValue())
+                else
+                    mem.setUWord(address, value.integerValue())
             }
             Opcode.POP_MEM_FLOAT -> {
                 val value = evalstack.pop()
@@ -765,12 +753,12 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.PUSH_VAR_BYTE -> {
                 val value = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
-                checkDt(value, setOf(DataType.UBYTE, DataType.BYTE))
+                checkDt(value, DataType.UBYTE, DataType.BYTE)
                 evalstack.push(value)
             }
             Opcode.PUSH_VAR_WORD -> {
                 val value = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
-                checkDt(value, setOf(DataType.UWORD, DataType.WORD, DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F, DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS, DataType.MATRIX_UB))
+                checkDt(value, *(setOf(DataType.UWORD, DataType.WORD) + IterableDatatypes).toTypedArray())
                 evalstack.push(value)
             }
             Opcode.PUSH_VAR_FLOAT -> {
@@ -780,61 +768,21 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.POP_VAR_BYTE -> {
                 val value = evalstack.pop()
-                checkDt(value, setOf(DataType.UBYTE, DataType.BYTE))
+                checkDt(value, DataType.UBYTE, DataType.BYTE)
                 val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
-                checkDt(variable, setOf(DataType.UBYTE, DataType.BYTE))
+                checkDt(variable, DataType.UBYTE, DataType.BYTE)
                 if(value.type!=variable.type)
                     throw VmExecutionException("datatype mismatch")
                 variables[ins.callLabel!!] = value
             }
             Opcode.POP_VAR_WORD -> {
                 val value = evalstack.pop()
-                checkDt(value, setOf(DataType.UWORD, DataType.WORD, DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS))
+                checkDt(value, DataType.UWORD, DataType.WORD, DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS)
                 val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
-                checkDt(variable, setOf(DataType.UWORD, DataType.WORD, DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS))
+                checkDt(variable, DataType.UWORD, DataType.WORD, DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS)
                 if(value.type!=variable.type)
                     throw VmExecutionException("datatype mismatch")
                 variables[ins.callLabel!!] = value
-            }
-            Opcode.COPY_VAR_BYTE -> {
-                val source = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
-                val dest = variables[ins.callLabel2] ?: throw VmExecutionException("unknown variable: ${ins.callLabel2}")
-                checkDt(source, setOf(DataType.UBYTE, DataType.BYTE))
-                checkDt(dest, setOf(DataType.UBYTE, DataType.BYTE))
-                if(dest.type!=source.type)
-                    throw VmExecutionException("datatype mismatch")
-                variables[ins.callLabel2!!] = source
-            }
-            Opcode.COPY_VAR_WORD -> {
-                val source = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
-                val dest = variables[ins.callLabel2] ?: throw VmExecutionException("unknown variable: ${ins.callLabel2}")
-                checkDt(source, setOf(DataType.UWORD, DataType.WORD, DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS))
-                checkDt(dest, setOf(DataType.UWORD, DataType.WORD, DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS))
-                if(dest.type!=source.type)
-                    throw VmExecutionException("datatype mismatch")
-                variables[ins.callLabel2!!] = source
-            }
-            Opcode.COPY_VAR_FLOAT -> {
-                val source = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
-                val dest = variables[ins.callLabel2] ?: throw VmExecutionException("unknown variable: ${ins.callLabel2}")
-                checkDt(source, DataType.FLOAT)
-                checkDt(dest, DataType.FLOAT)
-                variables[ins.callLabel2!!] = source
-            }
-            Opcode.COPY_MEM_BYTE -> {
-                val sourceAddr = ins.arg!!.integerValue()
-                val destAddr = ins.arg2!!.integerValue()
-                mem.setUByte(destAddr, mem.getUByte(sourceAddr))
-            }
-            Opcode.COPY_MEM_WORD -> {
-                val sourceAddr = ins.arg!!.integerValue()
-                val destAddr = ins.arg2!!.integerValue()
-                mem.setUWord(destAddr, mem.getUWord(sourceAddr))
-            }
-            Opcode.COPY_MEM_FLOAT -> {
-                val sourceAddr = ins.arg!!.integerValue()
-                val destAddr = ins.arg2!!.integerValue()
-                mem.setFloat(destAddr, mem.getFloat(sourceAddr))
             }
             Opcode.POP_VAR_FLOAT -> {
                 val value = evalstack.pop()
@@ -1275,7 +1223,7 @@ class StackVm(private var traceOutputFile: String?) {
                 // store byte value on the stack in variable[index]  (index is on the stack as well)
                 val index = evalstack.pop().integerValue()
                 val value = evalstack.pop()
-                checkDt(value, setOf(DataType.UBYTE, DataType.BYTE))
+                checkDt(value, DataType.UBYTE, DataType.BYTE)
                 val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
                 if(variable.type==DataType.UWORD) {
                     // assume the variable is a pointer (address) and write the byte value to that memory location
@@ -1302,7 +1250,7 @@ class StackVm(private var traceOutputFile: String?) {
                 // store word value on the stack in variable[index]  (index is on the stack as well)
                 val index = evalstack.pop().integerValue()
                 val value = evalstack.pop()
-                checkDt(value, setOf(DataType.UWORD, DataType.WORD))
+                checkDt(value, DataType.UWORD, DataType.WORD)
                 val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
                 if(variable.type==DataType.UWORD) {
                     // assume the variable is a pointer (address) and write the word value to that memory location
@@ -1570,7 +1518,7 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Syscall.FUNC_WRD -> {
                 val value = evalstack.pop()
-                checkDt(value, setOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD))
+                checkDt(value, DataType.UBYTE, DataType.BYTE, DataType.UWORD)
                 when(value.type) {
                     DataType.UBYTE, DataType.BYTE -> evalstack.push(Value(DataType.WORD, value.integerValue()))
                     DataType.UWORD -> {
@@ -1587,7 +1535,7 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Syscall.FUNC_UWRD -> {
                 val value = evalstack.pop()
-                checkDt(value, setOf(DataType.UBYTE, DataType.BYTE, DataType.WORD))
+                checkDt(value, DataType.UBYTE, DataType.BYTE, DataType.WORD)
                 when(value.type) {
                     DataType.UBYTE -> evalstack.push(Value(DataType.UWORD, value.integerValue()))
                     DataType.UWORD -> evalstack.push(value)

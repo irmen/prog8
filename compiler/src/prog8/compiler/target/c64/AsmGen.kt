@@ -445,14 +445,14 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 //                """
 //            }
 
-            Opcode.POP_MEM_B, Opcode.POP_MEM_UB -> {
+            Opcode.POP_MEM_BYTE -> {
                 """
                 inx
                 lda  ${ESTACK_LO.toHex()},x
                 sta  ${ins.arg!!.integerValue().toHex()}
                 """
             }
-            Opcode.POP_MEM_W, Opcode.POP_MEM_UW -> {
+            Opcode.POP_MEM_WORD -> {
                 """
                 inx
                 lda  ${ESTACK_LO.toHex()},x
@@ -479,102 +479,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             }
             Opcode.POP_VAR_FLOAT -> {
                 " lda  #<${ins.callLabel} |  ldy  #>${ins.callLabel} |  jsr  prog8_lib.pop_var_float"
-            }
-
-            Opcode.COPY_VAR_BYTE -> {
-                when {
-                    ins.callLabel2 in registerStrings -> {
-                        val reg2 = ins.callLabel2!!.toLowerCase()
-                        if (ins.callLabel in registerStrings) {
-                            val reg1 = ins.callLabel!!.toLowerCase()
-                            // register -> register
-                            return when {
-                                reg1 == "a" -> " ta$reg2"
-                                reg2 == "a" -> " t${reg1}a"
-                                else -> " t${reg1}a |  ta$reg2"   // 6502 doesn't have tyx/txy
-                            }
-                        }
-                        // var -> reg
-                        return " ld${ins.callLabel2.toLowerCase()}  ${ins.callLabel}"
-                    }
-                    ins.callLabel in registerStrings ->
-                        // reg -> var
-                        return " st${ins.callLabel!!.toLowerCase()}  ${ins.callLabel2}"
-                    else ->
-                        // var -> var
-                        return " lda  ${ins.callLabel} |  sta  ${ins.callLabel2}"
-                }
-            }
-            Opcode.COPY_VAR_WORD -> {
-                when {
-                    ins.callLabel2 in registerStrings -> {
-                        if (ins.callLabel in registerStrings) {
-                            // copying registerpair -> registerpair
-                            when {
-                                ins.callLabel == "AX" -> return when (ins.callLabel2) {
-                                    "AY" -> " txy"
-                                    "XY" -> " stx  ${C64Zeropage.SCRATCH_B1.toHex()} |  tax  |  ldy ${C64Zeropage.SCRATCH_B1.toHex()}"
-                                    else -> ""
-                                }
-                                ins.callLabel == "AY" -> return when (ins.callLabel2) {
-                                    "AX" -> " sty  ${C64Zeropage.SCRATCH_B1.toHex()} |  ldx ${C64Zeropage.SCRATCH_B1.toHex()}"
-                                    "XY" -> " tax"
-                                    else -> ""
-                                }
-                                else /* XY */ -> return when (ins.callLabel2) {
-                                    "AX" -> " txa |  sty  ${C64Zeropage.SCRATCH_B1.toHex()} |  ldx  ${C64Zeropage.SCRATCH_B1.toHex()}"
-                                    "AY" -> " txa"
-                                    else -> ""
-                                }
-                            }
-                        }
-                        // wvar  -> regpair
-                        val regpair = ins.callLabel2!!.toLowerCase()
-                        return " ld${regpair[0]}  ${ins.callLabel} |  ld${regpair[1]}  ${ins.callLabel}+1"
-                    }
-                    ins.callLabel in registerStrings -> {
-                        // regpair->wvar
-                        val regpair = ins.callLabel!!.toLowerCase()
-                        return " st${regpair[0]}  ${ins.callLabel2} |  st${regpair[1]}  ${ins.callLabel2}+1"
-                    }
-                    else -> {
-                        // wvar->wvar
-                        return " lda  ${ins.callLabel} |  sta  ${ins.callLabel2} | " +
-                               " lda  ${ins.callLabel}+1 |  sta  ${ins.callLabel2}+1"
-                    }
-                }
-            }
-            Opcode.COPY_VAR_FLOAT -> {
-                """
-                lda  #<${ins.callLabel}
-                ldy  #>${ins.callLabel}
-                sta  ${C64Zeropage.SCRATCH_W1}
-                sty  ${C64Zeropage.SCRATCH_W1+1}
-                lda  #<${ins.callLabel2}
-                ldy  #>${ins.callLabel2}
-                jsr  prog8_lib.copy_float
-                """
-            }
-
-            Opcode.COPY_MEM_BYTE -> " lda  ${ins.arg!!.integerValue().toHex()} |  sta  ${ins.arg2!!.integerValue().toHex()}"
-            Opcode.COPY_MEM_WORD -> {
-                """
-                lda  ${ins.arg!!.integerValue().toHex()}
-                sta  ${ins.arg2!!.integerValue().toHex()}
-                lda  ${(ins.arg.integerValue()+1).toHex()}
-                sta  ${(ins.arg2.integerValue()+1).toHex()}
-                """
-            }
-            Opcode.COPY_MEM_FLOAT -> {
-                """
-                lda  #<${ins.arg!!.integerValue().toHex()}
-                ldy  #>${ins.arg.integerValue().toHex()}
-                sta  ${C64Zeropage.SCRATCH_W1}
-                sty  ${C64Zeropage.SCRATCH_W1+1}
-                lda  #<${ins.arg2!!.integerValue().toHex()}
-                ldy  #>${ins.arg2.integerValue().toHex()}
-                jsr  prog8_lib.copy_float
-                """
             }
 
             Opcode.INC_VAR_UB, Opcode.INC_VAR_B -> {
@@ -750,22 +654,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         val opcodes = segment.map { it.opcode }
         val result = mutableListOf<AsmFragment>()
 
-        // check for direct var assignments that should have been converted into COPY_VAR_XXX opcodes
-        if((opcodes[0]==Opcode.PUSH_VAR_BYTE && opcodes[1]==Opcode.POP_VAR_BYTE) ||
-                (opcodes[0]==Opcode.PUSH_VAR_WORD && opcodes[1]==Opcode.POP_VAR_WORD) ||
-                (opcodes[0]==Opcode.PUSH_VAR_FLOAT && opcodes[1]==Opcode.POP_VAR_FLOAT) ||
-                (opcodes[0]==Opcode.PUSH_MEM_B && opcodes[1]==Opcode.POP_MEM_B) ||
-                (opcodes[0]==Opcode.PUSH_MEM_B && opcodes[1]==Opcode.POP_MEM_UB) ||
-                (opcodes[0]==Opcode.PUSH_MEM_UB && opcodes[1]==Opcode.POP_MEM_B) ||
-                (opcodes[0]==Opcode.PUSH_MEM_UB && opcodes[1]==Opcode.POP_MEM_UB) ||
-                (opcodes[0]==Opcode.PUSH_MEM_W && opcodes[1]==Opcode.POP_MEM_W) ||
-                (opcodes[0]==Opcode.PUSH_MEM_W && opcodes[1]==Opcode.POP_MEM_UW) ||
-                (opcodes[0]==Opcode.PUSH_MEM_UW && opcodes[1]==Opcode.POP_MEM_W) ||
-                (opcodes[0]==Opcode.PUSH_MEM_UW && opcodes[1]==Opcode.POP_MEM_UW) ||
-                (opcodes[0]==Opcode.PUSH_MEM_FLOAT && opcodes[1]==Opcode.POP_MEM_FLOAT)) {
-            throw AssemblyError("push+pop var/mem should have been changed into COPY_VAR_XXX opcode")
-        }
-
         // check for operations that modify a single value, by putting it on the stack (and popping it afterwards)
         if((opcodes[0]==Opcode.PUSH_VAR_BYTE && opcodes[2]==Opcode.POP_VAR_BYTE) ||
                 (opcodes[0]==Opcode.PUSH_VAR_WORD && opcodes[2]==Opcode.POP_VAR_WORD) ||
@@ -778,10 +666,10 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 }
             }
         }
-        else if((opcodes[0]==Opcode.PUSH_MEM_UB && opcodes[2]==Opcode.POP_MEM_UB) ||
-                (opcodes[0]==Opcode.PUSH_MEM_B && opcodes[2]==Opcode.POP_MEM_B) ||
-                (opcodes[0]==Opcode.PUSH_MEM_UW && opcodes[2]==Opcode.POP_MEM_UW) ||
-                (opcodes[0]==Opcode.PUSH_MEM_W && opcodes[2]==Opcode.POP_MEM_W) ||
+        else if((opcodes[0]==Opcode.PUSH_MEM_UB && opcodes[2]==Opcode.POP_MEM_BYTE) ||
+                (opcodes[0]==Opcode.PUSH_MEM_B && opcodes[2]==Opcode.POP_MEM_BYTE) ||
+                (opcodes[0]==Opcode.PUSH_MEM_UW && opcodes[2]==Opcode.POP_MEM_WORD) ||
+                (opcodes[0]==Opcode.PUSH_MEM_W && opcodes[2]==Opcode.POP_MEM_WORD) ||
                 (opcodes[0]==Opcode.PUSH_MEM_FLOAT && opcodes[2]==Opcode.POP_MEM_FLOAT)) {
             if(segment[0].arg==segment[2].arg) {
                 val fragment = sameMemOperation(segment[0].arg!!.integerValue(), segment[1])
@@ -1022,7 +910,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
     private val patterns = listOf(
 
             // ----------- assignment to BYTE VARIABLE ----------------
-            // note: var=var is done via COPY_VAR_BYTE opcode elsewhere.
+            // @todo var=var
             // var = bytevalue
             AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.POP_VAR_BYTE)) { segment ->
                 when (segment[1].callLabel) {
@@ -1030,6 +918,39 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                         " ld${segment[1].callLabel!!.toLowerCase()}  #${segment[0].arg!!.integerValue().toHex()}"
                     else ->
                         " lda  #${segment[0].arg!!.integerValue().toHex()} |  sta  ${segment[1].callLabel}"
+                }
+            },
+            // var = other var
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.POP_VAR_BYTE)) { segment ->
+                when(segment[1].callLabel) {
+                    "A" ->
+                        when(segment[0].callLabel) {
+                            "A" -> null
+                            "X" -> "  txa"
+                            "Y" -> "  tya"
+                            else -> "  lda  ${segment[0].callLabel}"
+                        }
+                    "X" ->
+                        when(segment[0].callLabel) {
+                            "A" -> "  tax"
+                            "X" -> null
+                            "Y" -> "  tya |  tax"
+                            else -> "  ldx  ${segment[0].callLabel}"
+                        }
+                    "Y" ->
+                        when(segment[0].callLabel) {
+                            "A" -> "  tay"
+                            "X" -> "  txa |  tay"
+                            "Y" -> null
+                            else -> "  ldy  ${segment[0].callLabel}"
+                        }
+                    else ->
+                        when(segment[0].callLabel) {
+                            "A" -> "  sta  ${segment[1].callLabel}"
+                            "X" -> "  stx  ${segment[1].callLabel}"
+                            "Y" -> "  sty  ${segment[1].callLabel}"
+                            else -> "  lda  ${segment[0].callLabel} |  sta ${segment[1].callLabel}"
+                        }
                 }
             },
             // var = mem (u)byte
@@ -1083,24 +1004,13 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 
 
             // ----------- assignment to MEMORY BYTE ----------------
-            // note: mem=mem is done via COPY_MEM_BYTE opcode elsewhere.
+            // @todo  mem=mem
             // mem = (u)byte value
-            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.POP_MEM_B)) { segment ->
-                " lda  #${segment[0].arg!!.integerValue().toHex()} |  sta  ${segment[1].arg!!.integerValue().toHex()}"
-            },
-            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.POP_MEM_UB)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.POP_MEM_BYTE)) { segment ->
                 " lda  #${segment[0].arg!!.integerValue().toHex()} |  sta  ${segment[1].arg!!.integerValue().toHex()}"
             },
             // mem = (u)bytevar
-            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.POP_MEM_B)) { segment ->
-                when(segment[0].callLabel) {
-                    "A" -> " sta  ${segment[1].arg!!.integerValue().toHex()}"
-                    "X" -> " stx  ${segment[1].arg!!.integerValue().toHex()}"
-                    "Y" -> " sty  ${segment[1].arg!!.integerValue().toHex()}"
-                    else -> " lda  ${segment[0].callLabel} |  sta  ${segment[1].arg!!.integerValue().toHex()}"
-                }
-            },
-            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.POP_MEM_UB)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.POP_MEM_BYTE)) { segment ->
                 when(segment[0].callLabel) {
                     "A" -> " sta  ${segment[1].arg!!.integerValue().toHex()}"
                     "X" -> " stx  ${segment[1].arg!!.integerValue().toHex()}"
@@ -1109,7 +1019,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 }
             },
             // mem = (u)bytearray[indexvalue]
-            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.POP_MEM_B)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.POP_MEM_BYTE)) { segment ->
                 val address = segment[2].arg!!.integerValue().toHex()
                 val index = segment[0].arg!!.integerValue()
                 when(segment[1].callLabel) {
@@ -1119,20 +1029,11 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     else ->  " lda  ${segment[1].callLabel}+$index |  sta  $address"
                 }
             },
-            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.POP_MEM_UB)) { segment ->
-                val address = segment[2].arg!!.integerValue().toHex()
-                val index = segment[0].arg!!.integerValue()
-                when(segment[1].callLabel) {
-                    "AX" -> " sta  ${C64Zeropage.SCRATCH_W1} |  stx  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  sta  $address"
-                    "AY" -> " sta  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  sta  $address"
-                    "XY" -> " stx  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  sta  $address"
-                    else ->  " lda  ${segment[1].callLabel}+$index |  sta  $address"
-                }
-            },
+
 
 
             // ----------- assignment to WORD VARIABLE ----------------
-            // note: var=var is done via COPY_VAR_WORD opcode elsewhere.
+            // @todo var=var
             // var = wordvalue
             AsmPattern(listOf(Opcode.PUSH_WORD, Opcode.POP_VAR_WORD)) { segment ->
                 val number = segment[0].arg!!.integerValue().toHex()
@@ -1276,17 +1177,9 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 
 
             // ----------- assignment to MEMORY WORD ----------------
-            // note: mem=mem is done via COPY_MEM_WORD opcode elsewhere.
+            // @todo  mem=mem
             // mem = (u)word value
-            AsmPattern(listOf(Opcode.PUSH_WORD, Opcode.POP_MEM_W)) { segment ->
-                """
-                lda  #<${segment[0].arg!!.integerValue().toHex()}
-                sta  ${segment[1].arg!!.integerValue().toHex()}
-                lda  #>${segment[0].arg!!.integerValue().toHex()}
-                sta  ${(segment[1].arg!!.integerValue()+1).toHex()}
-                """
-            },
-            AsmPattern(listOf(Opcode.PUSH_WORD, Opcode.POP_MEM_UW)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_WORD, Opcode.POP_MEM_WORD)) { segment ->
                 """
                 lda  #<${segment[0].arg!!.integerValue().toHex()}
                 sta  ${segment[1].arg!!.integerValue().toHex()}
@@ -1295,21 +1188,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // mem = (u)word var
-            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.POP_MEM_W)) { segment ->
-                when(segment[0].callLabel) {
-                    "AX" -> " sta  ${segment[1].arg!!.integerValue().toHex()} |  stx  ${(segment[1].arg!!.integerValue()+1).toHex()}"
-                    "AY" -> " sta  ${segment[1].arg!!.integerValue().toHex()} |  sty  ${(segment[1].arg!!.integerValue()+1).toHex()}"
-                    "XY" -> " stx  ${segment[1].arg!!.integerValue().toHex()} |  sty  ${(segment[1].arg!!.integerValue()+1).toHex()}"
-                    else ->
-                        """
-                        lda  ${segment[0].callLabel}
-                        sta  ${segment[1].arg!!.integerValue().toHex()}
-                        lda  ${segment[0].callLabel}+1
-                        sta  ${(segment[1].arg!!.integerValue()+1).toHex()}
-                        """
-                }
-            },
-            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.POP_MEM_UW)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.POP_MEM_WORD)) { segment ->
                 when(segment[0].callLabel) {
                     "AX" -> " sta  ${segment[1].arg!!.integerValue().toHex()} |  stx  ${(segment[1].arg!!.integerValue()+1).toHex()}"
                     "AY" -> " sta  ${segment[1].arg!!.integerValue().toHex()} |  sty  ${(segment[1].arg!!.integerValue()+1).toHex()}"
@@ -1324,16 +1203,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 }
             },
             // mem = (u)wordarray[indexvalue]
-            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_WORD, Opcode.POP_MEM_W)) { segment ->
-                val index = segment[0].arg!!.integerValue()*2
-                """
-                lda  ${segment[1].callLabel}+$index
-                ldy  ${segment[1].callLabel}+1+$index
-                sta  ${segment[2].arg!!.integerValue().toHex()}
-                sty  ${(segment[2].arg!!.integerValue()+1).toHex()}
-                """
-            },
-            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_WORD, Opcode.POP_MEM_UW)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_WORD, Opcode.POP_MEM_WORD)) { segment ->
                 val index = segment[0].arg!!.integerValue()*2
                 """
                 lda  ${segment[1].callLabel}+$index
@@ -1343,7 +1213,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // assignment: mem uword = ubytearray[index_byte]
-            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.UB2UWORD, Opcode.POP_MEM_UW)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.UB2UWORD, Opcode.POP_MEM_WORD)) { segment ->
                 val index = segment[0].arg!!.integerValue()
                 when(segment[1].callLabel) {
                     "AX" -> " sta  ${C64Zeropage.SCRATCH_W1} |  stx  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  sta  ${segment[3].arg!!.integerValue().toHex()} |  lda  #0 |  sta  ${(segment[3].arg!!.integerValue()+1).toHex()}"

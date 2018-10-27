@@ -350,14 +350,12 @@ private class StatementTranslator(private val prog: IntermediateProgram,
 
     private fun opcodePopmem(dt: DataType): Opcode {
         return when (dt) {
-            DataType.UBYTE -> Opcode.POP_MEM_UB
-            DataType.BYTE -> Opcode.POP_MEM_B
-            DataType.UWORD -> Opcode.POP_MEM_UW
-            DataType.WORD -> Opcode.POP_MEM_W
+            DataType.UBYTE, DataType.BYTE -> Opcode.POP_MEM_BYTE
+            DataType.UWORD, DataType.WORD -> Opcode.POP_MEM_WORD
             DataType.FLOAT -> Opcode.POP_MEM_FLOAT
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
             DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F, DataType.MATRIX_UB,
-            DataType.ARRAY_B, DataType.ARRAY_W, DataType.MATRIX_B -> Opcode.POP_MEM_UW
+            DataType.ARRAY_B, DataType.ARRAY_W, DataType.MATRIX_B -> Opcode.POP_MEM_WORD
         }
     }
 

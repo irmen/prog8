@@ -222,10 +222,10 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.PUSH_WORD, Value(DataType.WORD, -23456)),
                 Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 177)),
                 Instruction(Opcode.PUSH_BYTE, Value(DataType.BYTE, -55)),
-                Instruction(Opcode.POP_MEM_B, Value(DataType.UWORD, 0x2000)),
-                Instruction(Opcode.POP_MEM_UB, Value(DataType.UWORD, 0x2001)),
-                Instruction(Opcode.POP_MEM_W, Value(DataType.UWORD, 0x3000)),
-                Instruction(Opcode.POP_MEM_UW, Value(DataType.UWORD, 0x3002)),
+                Instruction(Opcode.POP_MEM_BYTE, Value(DataType.UWORD, 0x2000)),
+                Instruction(Opcode.POP_MEM_BYTE, Value(DataType.UWORD, 0x2001)),
+                Instruction(Opcode.POP_MEM_WORD, Value(DataType.UWORD, 0x3000)),
+                Instruction(Opcode.POP_MEM_WORD, Value(DataType.UWORD, 0x3002)),
                 Instruction(Opcode.POP_MEM_FLOAT, Value(DataType.UWORD, 0x4000)))
         vm.load(makeProg(ins), null)
         assertEquals(0, vm.mem.getUWord(0x2000))
@@ -279,51 +279,6 @@ class TestStackVmOpcodes {
         assertFailsWith<VmExecutionException> {
             vm.step(2)
         }
-    }
-
-    @Test
-    fun testCopyVar() {
-        val ins = mutableListOf(
-                Instruction(Opcode.COPY_VAR_BYTE, null, null, "bvar1", "bvar2"),
-                Instruction(Opcode.COPY_VAR_WORD, null, null, "wvar1", "wvar2"),
-                Instruction(Opcode.COPY_VAR_FLOAT, null, null, "fvar1", "fvar2"),
-                Instruction(Opcode.COPY_VAR_WORD, null, null, "wvar1", "bvar2"))
-        val vars = mapOf(
-                "bvar1" to Value(DataType.UBYTE, 1),
-                "bvar2" to Value(DataType.UBYTE, 2),
-                "wvar1" to Value(DataType.UWORD, 1111),
-                "wvar2" to Value(DataType.UWORD, 2222),
-                "fvar1" to Value(DataType.FLOAT, 11.11),
-                "fvar2" to Value(DataType.FLOAT, 22.22)
-        )
-        vm.load(makeProg(ins, vars), null)
-        assertEquals(12, vm.variables.size)
-        vm.step(3)
-        assertEquals(Value(DataType.UBYTE, 1), vm.variables["bvar2"])
-        assertEquals(Value(DataType.UWORD, 1111), vm.variables["wvar2"])
-        assertEquals(Value(DataType.FLOAT, 11.11), vm.variables["fvar2"])
-        assertFailsWith<VmExecutionException> {
-            vm.step(1)
-        }
-    }
-
-    @Test
-    fun testCopyMem() {
-        val ins = mutableListOf(
-                Instruction(Opcode.COPY_MEM_BYTE, Value(DataType.UWORD, 0xc000), Value(DataType.UWORD, 0xc001)),
-                Instruction(Opcode.COPY_MEM_WORD, Value(DataType.UWORD, 0xc100), Value(DataType.UWORD, 0xc102)),
-                Instruction(Opcode.COPY_MEM_FLOAT, Value(DataType.UWORD, 0xc200), Value(DataType.UWORD, 0xc300)))
-        val mem=mapOf(0xc000 to listOf(Value(DataType.UBYTE, 0x45)),
-                0xc100 to listOf(Value(DataType.UWORD, 0xc2ca)),
-                0xc200 to listOf(Value(DataType.FLOAT, 42.25)))
-        vm.load(makeProg(ins, mem=mem), null)
-        assertEquals(0, vm.mem.getUByte(0xc001))
-        assertEquals(0, vm.mem.getUWord(0xc102))
-        assertEquals(0.0, vm.mem.getFloat(0xc300))
-        vm.step(3)
-        assertEquals(0x45, vm.mem.getUByte(0xc001))
-        assertEquals(0xc2ca, vm.mem.getUWord(0xc102))
-        assertEquals(42.25, vm.mem.getFloat(0xc300))
     }
 
     @Test

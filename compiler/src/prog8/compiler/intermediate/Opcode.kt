@@ -19,22 +19,12 @@ enum class Opcode {
     DISCARD_BYTE,    // discard top byte value
     DISCARD_WORD,    // discard top word value
     DISCARD_FLOAT,   // discard top float value
-    POP_MEM_B,       // pop byte value into destination memory address
-    POP_MEM_UB,      // pop byte value into destination memory address
-    POP_MEM_W,       // pop word value into destination memory address
-    POP_MEM_UW,      // pop word value into destination memory address
+    POP_MEM_BYTE,    // pop (u)byte value into destination memory address
+    POP_MEM_WORD,    // pop (u)word value into destination memory address
     POP_MEM_FLOAT,   // pop float value into destination memory address
-    POP_VAR_BYTE,    // pop byte value into variable (byte, ubyte)
-    POP_VAR_WORD,    // pop word value into variable (word, uword)
+    POP_VAR_BYTE,    // pop (u)byte value into variable
+    POP_VAR_WORD,    // pop (u)word value into variable
     POP_VAR_FLOAT,   // pop float value into variable
-
-    // optimized copying of one var to another (replaces push+pop)
-    COPY_VAR_BYTE,
-    COPY_VAR_WORD,
-    COPY_VAR_FLOAT,
-    COPY_MEM_BYTE,
-    COPY_MEM_WORD,
-    COPY_MEM_FLOAT,
 
     // numeric arithmetic
     ADD_UB,
@@ -233,32 +223,6 @@ val opcodesWithVarArgument = setOf(
         Opcode.ROL2_VAR_BYTE, Opcode.ROL2_VAR_WORD, Opcode.ROR2_VAR_BYTE, Opcode.ROR2_VAR_WORD,
         Opcode.POP_VAR_BYTE, Opcode.POP_VAR_WORD, Opcode.POP_VAR_FLOAT,
         Opcode.PUSH_VAR_BYTE, Opcode.PUSH_VAR_WORD, Opcode.PUSH_VAR_FLOAT,
-        Opcode.COPY_VAR_BYTE, Opcode.COPY_VAR_WORD, Opcode.COPY_VAR_FLOAT,
         Opcode.READ_INDEXED_VAR_BYTE, Opcode.READ_INDEXED_VAR_WORD, Opcode.READ_INDEXED_VAR_FLOAT,
         Opcode.WRITE_INDEXED_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_WORD, Opcode.WRITE_INDEXED_VAR_FLOAT
-)
-
-val pushOpcodes = setOf(
-        Opcode.PUSH_BYTE,
-        Opcode.PUSH_WORD,
-        Opcode.PUSH_FLOAT,
-        Opcode.PUSH_MEM_B,
-        Opcode.PUSH_MEM_UB,
-        Opcode.PUSH_MEM_W,
-        Opcode.PUSH_MEM_UW,
-        Opcode.PUSH_MEM_FLOAT,
-        Opcode.PUSH_VAR_BYTE,
-        Opcode.PUSH_VAR_WORD,
-        Opcode.PUSH_VAR_FLOAT
-)
-
-val popOpcodes = setOf(
-        Opcode.POP_MEM_B,
-        Opcode.POP_MEM_UB,
-        Opcode.POP_MEM_W,
-        Opcode.POP_MEM_UW,
-        Opcode.POP_MEM_FLOAT,
-        Opcode.POP_VAR_BYTE,
-        Opcode.POP_VAR_WORD,
-        Opcode.POP_VAR_FLOAT
 )
