@@ -100,7 +100,7 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
             if(arglist.type==DataType.ARRAY_UB || arglist.type==DataType.ARRAY_UW || arglist.type==DataType.ARRAY_F || arglist.type==DataType.MATRIX_UB) {
                 val dt = arglist.arrayvalue!!.map {it.resultingDatatype(namespace, heap)}
                 if(dt.any { it!=DataType.UBYTE && it!=DataType.UWORD && it!=DataType.FLOAT}) {
-                    throw FatalAstException("fuction $function only accepts array of numeric values")
+                    throw FatalAstException("fuction $function only accepts arrayspec of numeric values")
                 }
                 if(dt.any { it==DataType.FLOAT }) return DataType.FLOAT
                 if(dt.any { it==DataType.UWORD }) return DataType.UWORD
@@ -119,10 +119,10 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
                 DataType.ARRAY_F -> DataType.FLOAT
                 DataType.MATRIX_UB -> DataType.UBYTE
                 DataType.MATRIX_B -> DataType.BYTE
-                null -> throw FatalAstException("function requires one argument which is an array $function")
+                null -> throw FatalAstException("function requires one argument which is an arrayspec $function")
             }
         }
-        throw FatalAstException("function requires one argument which is an array $function")
+        throw FatalAstException("function requires one argument which is an arrayspec $function")
     }
 
     val func = BuiltinFunctions[function]!!
@@ -237,7 +237,7 @@ private fun collectionArgOutputBoolean(args: List<IExpression>, position: Positi
             throw NotConstArgumentException()
         function(constants.map { it!!.toDouble() })
     } else {
-        val array = heap.get(iterable.heapId!!).array ?: throw SyntaxError("function requires array/matrix argument", position)
+        val array = heap.get(iterable.heapId!!).array ?: throw SyntaxError("function requires arrayspec/matrix argument", position)
         function(array.map { it.toDouble() })
     }
     return LiteralValue.fromBoolean(result, position)
@@ -313,7 +313,7 @@ private fun builtinAbs(args: List<IExpression>, position: Position, namespace:IN
 
 private fun builtinAvg(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
     if(args.size!=1)
-        throw SyntaxError("avg requires array/matrix argument", position)
+        throw SyntaxError("avg requires arrayspec/matrix argument", position)
     val iterable = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
 
     val result = if(iterable.arrayvalue!=null) {
@@ -323,7 +323,7 @@ private fun builtinAvg(args: List<IExpression>, position: Position, namespace:IN
         (constants.map { it!!.toDouble() }).average()
     }
     else {
-        val array = heap.get(iterable.heapId!!).array ?: throw SyntaxError("avg requires array/matrix argument", position)
+        val array = heap.get(iterable.heapId!!).array ?: throw SyntaxError("avg requires arrayspec/matrix argument", position)
         array.average()
     }
     return numericLiteral(result, args[0].position)

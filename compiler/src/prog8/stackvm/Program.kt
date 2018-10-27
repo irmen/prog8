@@ -222,7 +222,7 @@ class Program (val name: String,
                     DataType.MATRIX_UB,
                     DataType.MATRIX_B -> {
                         if(!valueStr.startsWith("heap:"))
-                            throw VmExecutionException("invalid array/matrix value, should be a heap reference")
+                            throw VmExecutionException("invalid arrayspec/matrix value, should be a heap reference")
                         else {
                             val heapId = valueStr.substring(5).toInt()
                             Value(type, heapId)

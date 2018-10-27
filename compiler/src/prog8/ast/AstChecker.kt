@@ -247,7 +247,7 @@ class AstChecker(private val namespace: INameScope,
                 if(param.second.register==Register.AX || param.second.register==Register.AY ||
                         param.second.register==Register.XY) {
                     if(param.first.type!=DataType.UWORD && param.first.type !in StringDatatypes && param.first.type !in ArrayDatatypes)
-                        err("parameter '${param.first.name}' should be uword/str/array")
+                        err("parameter '${param.first.name}' should be uword/str/arrayspec")
                 }
             }
             for(ret in subroutine.returntypes.withIndex().zip(subroutine.asmReturnvaluesRegisters)) {
@@ -260,7 +260,7 @@ class AstChecker(private val namespace: INameScope,
                         ret.second.register==Register.XY) {
                     if(ret.first.value!=DataType.UWORD && ret.first.value != DataType.UBYTE &&
                             ret.first.value !in StringDatatypes && ret.first.value !in ArrayDatatypes)
-                        err("return value #${ret.first.index+1} should be uword/ubyte/string/array")
+                        err("return value #${ret.first.index+1} should be uword/ubyte/string/arrayspec")
                 }
             }
 
@@ -338,9 +338,9 @@ class AstChecker(private val namespace: INameScope,
             }
         }
 
-        // it is not possible to assign a new array to something.
+        // it is not possible to assign a new arrayspec to something.
         if(assignment.value.resultingDatatype(namespace, heap) in ArrayDatatypes)
-            checkResult.add(SyntaxError("it's not possible to assign an array literal value to something, use it as a variable decl initializer instead", assignment.position))
+            checkResult.add(SyntaxError("it's not possible to assign an arrayspec literal value to something, use it as a variable decl initializer instead", assignment.position))
 
         if(assignment.aug_op!=null) {
             // check augmented assignment:
@@ -451,13 +451,13 @@ class AstChecker(private val namespace: INameScope,
                     when(decl.datatype) {
                         DataType.ARRAY_B, DataType.ARRAY_UB ->
                             if(arraySize > 256)
-                                err("byte array length must be 1-256")
+                                err("byte arrayspec length must be 1-256")
                         DataType.ARRAY_W, DataType.ARRAY_UW ->
                             if(arraySize > 128)
-                                err("word array length must be 1-128")
+                                err("word arrayspec length must be 1-128")
                         DataType.ARRAY_F ->
                             if(arraySize > 51)
-                                err("float array length must be 1-51")
+                                err("float arrayspec length must be 1-51")
                         DataType.MATRIX_B, DataType.MATRIX_UB ->
                             if(arraySize > 256)
                                 err("invalid matrix size, must be 1-256")
@@ -570,7 +570,7 @@ class AstChecker(private val namespace: INameScope,
             }
             in ArrayDatatypes -> {
                 if(lv.heapId==null)
-                    throw FatalAstException("array/matrix should have been moved to heap at ${lv.position}")
+                    throw FatalAstException("arrayspec/matrix should have been moved to heap at ${lv.position}")
             }
             else -> {}
         }
@@ -702,7 +702,7 @@ class AstChecker(private val namespace: INameScope,
             val indexedRegister = postIncrDecr.target.arrayindexed?.register
             if(indexedRegister!=null) {
                 if(indexedRegister==Register.A || indexedRegister==Register.X || indexedRegister==Register.Y)
-                    checkResult.add(SyntaxError("array indexing on registers requires register pair variable", postIncrDecr.position))
+                    checkResult.add(SyntaxError("arrayspec indexing on registers requires register pair variable", postIncrDecr.position))
             } else {
                 val target = postIncrDecr.target.arrayindexed?.identifier?.targetStatement(namespace)
                 if(target==null) {
@@ -724,24 +724,36 @@ class AstChecker(private val namespace: INameScope,
             val target = arrayIndexedExpression.identifier!!.targetStatement(namespace)
             if(target is VarDecl) {
                 if(target.datatype !in IterableDatatypes)
-                    checkResult.add(SyntaxError("array indexing requires an iterable variable", arrayIndexedExpression.position))
+                    checkResult.add(SyntaxError("arrayspec indexing requires an iterable variable", arrayIndexedExpression.position))
                 val arraysize = target.arrayspec?.size()
                 if(arraysize!=null) {
                     // check out of bounds
-                    if((arrayIndexedExpression.array.y as? LiteralValue)?.asIntegerValue != null) {
+                    if((arrayIndexedExpression.arrayspec.y as? LiteralValue)?.asIntegerValue != null) {
                         throw FatalAstException("constant y dimension of index should have been const-folded with x into one value")
                     }
-                    val index = (arrayIndexedExpression.array.x as? LiteralValue)?.asIntegerValue
+                    val index = (arrayIndexedExpression.arrayspec.x as? LiteralValue)?.asIntegerValue
                     if(index!=null && (index<0 || index>=arraysize))
-                        checkResult.add(ExpressionError("array index out of bounds", arrayIndexedExpression.array.position))
+                        checkResult.add(ExpressionError("arrayspec index out of bounds", arrayIndexedExpression.arrayspec.position))
                 }
             } else
-                checkResult.add(SyntaxError("array indexing requires a variable to act upon", arrayIndexedExpression.position))
+                checkResult.add(SyntaxError("arrayspec indexing requires a variable to act upon", arrayIndexedExpression.position))
         } else if(reg==Register.A || reg==Register.X || reg==Register.Y) {
-            checkResult.add(SyntaxError("array indexing on registers requires register pair variable", arrayIndexedExpression.position))
-        } else if(arrayIndexedExpression.array.y!=null) {
-            checkResult.add(SyntaxError("array indexing on registers can only use one index dimension", arrayIndexedExpression.position))
+            checkResult.add(SyntaxError("arrayspec indexing on registers requires register pair variable", arrayIndexedExpression.position))
+        } else if(arrayIndexedExpression.arrayspec.y!=null) {
+            checkResult.add(SyntaxError("arrayspec indexing on registers can only use one index dimension", arrayIndexedExpression.position))
         }
+
+        // check index value 0..255
+        val regx = (arrayIndexedExpression.arrayspec.x as? RegisterExpr)?.register
+        val regy = (arrayIndexedExpression.arrayspec.y as? RegisterExpr)?.register
+        if((regx in setOf(Register.AX, Register.AY, Register.XY)) ||
+                (regy in setOf(Register.AX, Register.AY, Register.XY))) {
+            checkResult.add(SyntaxError("array indexing is limited to byte size 0..255", arrayIndexedExpression.position))
+        }
+        val dtx = arrayIndexedExpression.arrayspec.x.resultingDatatype(namespace, heap)
+        val dty = arrayIndexedExpression.arrayspec.y?.resultingDatatype(namespace, heap)
+        if(dtx!=DataType.UBYTE && dtx!=DataType.BYTE || (dty!=null && dty != DataType.UBYTE && dty != DataType.BYTE))
+            checkResult.add(SyntaxError("array indexing is limited to byte size 0..255", arrayIndexedExpression.position))
 
         return super.process(arrayIndexedExpression)
     }
@@ -785,7 +797,7 @@ class AstChecker(private val namespace: INameScope,
                 val expectedSize = arrayspec!!.size()
                 val rangeSize=range.size()
                 if(rangeSize!=null && rangeSize != expectedSize) {
-                    checkResult.add(ExpressionError("range size doesn't match array/matrix size, expected $expectedSize found $rangeSize", range.position))
+                    checkResult.add(ExpressionError("range size doesn't match arrayspec/matrix size, expected $expectedSize found $rangeSize", range.position))
                     return false
                 }
                 return true
@@ -850,61 +862,61 @@ class AstChecker(private val namespace: INameScope,
                     return err("string length must be 0-255")
             }
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
-                // value may be either a single byte, or a byte array (of all constant values)
+                // value may be either a single byte, or a byte arrayspec (of all constant values)
                 if(value.type==targetDt) {
                     val arraySpecSize = arrayspec.size()
                     val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).arraysize
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize<1 || arraySpecSize>256)
-                            return err("byte array length must be 1-256")
+                            return err("byte arrayspec length must be 1-256")
                         val constX = arrayspec.x.constValue(namespace, heap)
                         if(constX?.asIntegerValue==null)
-                            return err("array size specifier must be constant integer value")
+                            return err("arrayspec size specifier must be constant integer value")
                         val expectedSize = constX.asIntegerValue
                         if (arraySize != expectedSize)
-                            return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
+                            return err("initializer arrayspec size mismatch (expecting $expectedSize, got $arraySize)")
                         return true
                     }
-                    return err("invalid byte array size, must be 1-256")
+                    return err("invalid byte arrayspec size, must be 1-256")
                 }
-                return err("invalid byte array initialization value ${value.type}, expected $targetDt")
+                return err("invalid byte arrayspec initialization value ${value.type}, expected $targetDt")
             }
             DataType.ARRAY_UW, DataType.ARRAY_W -> {
-                // value may be either a single word, or a word array
+                // value may be either a single word, or a word arrayspec
                 if(value.type==targetDt) {
                     val arraySpecSize = arrayspec.size()
                     val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).arraysize
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize<1 || arraySpecSize>128)
-                            return err("word array length must be 1-128")
+                            return err("word arrayspec length must be 1-128")
                         val constX = arrayspec.x.constValue(namespace, heap)
                         if(constX?.asIntegerValue==null)
-                            return err("array size specifier must be constant integer value")
+                            return err("arrayspec size specifier must be constant integer value")
                         val expectedSize = constX.asIntegerValue
                         if (arraySize != expectedSize)
-                            return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
+                            return err("initializer arrayspec size mismatch (expecting $expectedSize, got $arraySize)")
                         return true
                     }
-                    return err("invalid word array size, must be 1-128")
+                    return err("invalid word arrayspec size, must be 1-128")
                 }
-                return err("invalid word array initialization value ${value.type}, expected $targetDt")
+                return err("invalid word arrayspec initialization value ${value.type}, expected $targetDt")
             }
             DataType.ARRAY_F -> {
-                // value may be either a single float, or a float array
+                // value may be either a single float, or a float arrayspec
                 if(value.type==targetDt) {
                     val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).doubleArray!!.size
                     val arraySpecSize = arrayspec.size()
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize < 1 || arraySpecSize>51)
-                            return err("float array length must be 1-51")
+                            return err("float arrayspec length must be 1-51")
                         val constX = arrayspec.x.constValue(namespace, heap)
                         if(constX?.asIntegerValue==null)
-                            return err("array size specifier must be constant integer value")
+                            return err("arrayspec size specifier must be constant integer value")
                         val expectedSize = constX.asIntegerValue
                         if (arraySize != expectedSize)
-                            return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
+                            return err("initializer arrayspec size mismatch (expecting $expectedSize, got $arraySize)")
                     } else
-                        return err("invalid float array size, must be 1-51")
+                        return err("invalid float arrayspec size, must be 1-51")
 
                     // check if the floating point values are all within range
                     val doubles = if(value.arrayvalue!=null)
@@ -915,10 +927,10 @@ class AstChecker(private val namespace: INameScope,
                         return err("floating point value overflow")
                     return true
                 }
-                return err("invalid float array initialization value ${value.type}, expected $targetDt")
+                return err("invalid float arrayspec initialization value ${value.type}, expected $targetDt")
             }
             DataType.MATRIX_UB, DataType.MATRIX_B -> {
-                // value can only be a single byte, or a byte array (which represents the matrix)
+                // value can only be a single byte, or a byte arrayspec (which represents the matrix)
                 if(value.type==targetDt ||
                         (targetDt==DataType.MATRIX_UB && value.type==DataType.ARRAY_UB) ||
                         (targetDt==DataType.MATRIX_B && value.type==DataType.ARRAY_B)) {
@@ -939,7 +951,7 @@ class AstChecker(private val namespace: INameScope,
                     }
                     return err("invalid matrix size, must be 1-256")
                 }
-                return err("invalid matrix initialization value of type ${value.type} - expecting byte array")
+                return err("invalid matrix initialization value of type ${value.type} - expecting byte arrayspec")
             }
         }
         return true

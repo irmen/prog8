@@ -1229,13 +1229,13 @@ class StackVm(private var traceOutputFile: String?) {
                     // assume the variable is a pointer (address) and get the ubyte value from that memory location
                     evalstack.push(Value(DataType.UBYTE, mem.getUByte(variable.integerValue())))
                 } else {
-                    // get indexed byte element from the array
+                    // get indexed byte element from the arrayspec
                     val array = heap.get(variable.heapId)
                     when(array.type) {
                         DataType.ARRAY_UB, DataType.MATRIX_UB -> evalstack.push(Value(DataType.UBYTE, array.array!![index]))
                         DataType.ARRAY_B, DataType.MATRIX_B -> evalstack.push(Value(DataType.BYTE, array.array!![index]))
                         DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> evalstack.push(Value(DataType.UBYTE, Petscii.encodePetscii(array.str!![index].toString(), true)[0]))
-                        else -> throw VmExecutionException("not a proper array/matrix/string variable with byte elements")
+                        else -> throw VmExecutionException("not a proper arrayspec/matrix/string variable with byte elements")
                     }
                 }
             }
@@ -1247,12 +1247,12 @@ class StackVm(private var traceOutputFile: String?) {
                     // assume the variable is a pointer (address) and get the word value from that memory location
                     evalstack.push(Value(DataType.UWORD, mem.getUWord(variable.integerValue())))
                 } else {
-                    // get indexed word element from the array
+                    // get indexed word element from the arrayspec
                     val array = heap.get(variable.heapId)
                     when(array.type){
                         DataType.ARRAY_UW -> evalstack.push(Value(DataType.UWORD, array.array!![index]))
                         DataType.ARRAY_W -> evalstack.push(Value(DataType.WORD, array.array!![index]))
-                        else -> throw VmExecutionException("not a proper array var with word elements")
+                        else -> throw VmExecutionException("not a proper arrayspec var with word elements")
                     }
                 }
             }
@@ -1264,10 +1264,10 @@ class StackVm(private var traceOutputFile: String?) {
                     // assume the variable is a pointer (address) and get the float value from that memory location
                     evalstack.push(Value(DataType.UWORD, mem.getFloat(variable.integerValue())))
                 } else {
-                    // get indexed float element from the array
+                    // get indexed float element from the arrayspec
                     val array = heap.get(variable.heapId)
                     if(array.type!=DataType.ARRAY_F)
-                        throw VmExecutionException("not a proper array var with float elements")
+                        throw VmExecutionException("not a proper arrayspec var with float elements")
                     evalstack.push(Value(DataType.FLOAT, array.doubleArray!![index]))
                 }
             }
@@ -1281,7 +1281,7 @@ class StackVm(private var traceOutputFile: String?) {
                     // assume the variable is a pointer (address) and write the byte value to that memory location
                     mem.setUByte(variable.integerValue(), value.integerValue().toShort())
                 } else {
-                    // set indexed byte element in the array
+                    // set indexed byte element in the arrayspec
                     val array = heap.get(variable.heapId)
                     when(array.type) {
                         DataType.ARRAY_UB, DataType.MATRIX_UB -> array.array!![index] = value.integerValue()
@@ -1294,7 +1294,7 @@ class StackVm(private var traceOutputFile: String?) {
                             chars[index] = Petscii.decodePetscii(listOf(value.integerValue().toShort()), true)[0]
                             heap.update(variable.heapId, chars.joinToString(""))
                         }
-                        else -> throw VmExecutionException("not a proper array/matrix/string var with byte elements")
+                        else -> throw VmExecutionException("not a proper arrayspec/matrix/string var with byte elements")
                     }
                 }
             }
@@ -1308,12 +1308,12 @@ class StackVm(private var traceOutputFile: String?) {
                     // assume the variable is a pointer (address) and write the word value to that memory location
                     mem.setUWord(variable.integerValue(), value.integerValue())
                 } else {
-                    // set indexed word element in the array
+                    // set indexed word element in the arrayspec
                     val array = heap.get(variable.heapId)
                     when(array.type) {
                         DataType.ARRAY_UW -> array.array!![index] = value.integerValue()
                         DataType.ARRAY_W -> array.array!![index] = value.integerValue()
-                        else -> throw VmExecutionException("not a proper array var with word elements")
+                        else -> throw VmExecutionException("not a proper arrayspec var with word elements")
                     }
 
                 }
@@ -1328,10 +1328,10 @@ class StackVm(private var traceOutputFile: String?) {
                     // assume the variable is a pointer (address) and write the float value to that memory location
                     mem.setFloat(variable.integerValue(), value.numericValue().toDouble())
                 } else {
-                    // set indexed float element in the array
+                    // set indexed float element in the arrayspec
                     val array = heap.get(variable.heapId)
                     if(array.type!=DataType.ARRAY_F)
-                        throw VmExecutionException("not a proper array var with float elements")
+                        throw VmExecutionException("not a proper arrayspec var with float elements")
                     array.doubleArray!![index] = value.numericValue().toDouble()
                 }
             }

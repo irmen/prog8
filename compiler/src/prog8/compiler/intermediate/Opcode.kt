@@ -4,7 +4,7 @@ enum class Opcode {
 
     // pushing values on the (evaluation) stack
     PUSH_BYTE,       // push byte value
-    PUSH_WORD,       // push word value   (or 'address' of string / array / matrix)
+    PUSH_WORD,       // push word value   (or 'address' of string / arrayspec / matrix)
     PUSH_FLOAT,      // push float value
     PUSH_MEM_B,      // push byte value from memory to stack
     PUSH_MEM_UB,     // push unsigned byte value from memory to stack
@@ -187,7 +187,7 @@ enum class Opcode {
     NOTEQUAL_WORD,
     NOTEQUAL_F,
 
-    // array access
+    // arrayspec access
     READ_INDEXED_VAR_BYTE,
     READ_INDEXED_VAR_WORD,
     READ_INDEXED_VAR_FLOAT,

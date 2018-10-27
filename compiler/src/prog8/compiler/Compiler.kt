@@ -628,7 +628,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F, DataType.MATRIX_UB,
                     DataType.ARRAY_B, DataType.ARRAY_W, DataType.MATRIX_B -> {
                         if(lv.heapId==null)
-                            throw CompilerException("array/matrix should have been moved into heap  ${lv.position}")
+                            throw CompilerException("arrayspec/matrix should have been moved into heap  ${lv.position}")
                         prog.instr(Opcode.PUSH_WORD, Value(lv.type, lv.heapId))
                     }
                 }
@@ -1046,14 +1046,14 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     val reg=arrayindexed.register
                     if(reg==Register.A || reg==Register.X || reg==Register.Y)
                         throw CompilerException("requires register pair")
-                    if(arrayindexed.array.y!=null)
+                    if(arrayindexed.arrayspec.y!=null)
                         throw CompilerException("when using an address, can only use one index dimension")
                     reg.toString()
                 } else {
                     variable!!.scopedname
                 }
-        translate(arrayindexed.array.x)
-        val y = arrayindexed.array.y
+        translate(arrayindexed.arrayspec.x)
+        val y = arrayindexed.arrayspec.y
         if(y!=null) {
             // calc matrix index  i=y*columns+x
             // (the const-folding will have removed this for us when both x and y are constants)
@@ -1172,7 +1172,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                         else -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                     }
                 }
-                // todo: maybe if you assign byte or word to array/matrix, clear it with that value?
+                // todo: maybe if you assign byte or word to arrayspec/matrix, clear it with that value?
                 DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                 DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W,
                 DataType.ARRAY_F, DataType.MATRIX_UB, DataType.MATRIX_B -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
