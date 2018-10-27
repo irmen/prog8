@@ -312,7 +312,9 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             DataType.ARRAY_UW, DataType.ARRAY_W -> Opcode.READ_INDEXED_VAR_WORD
             DataType.ARRAY_F -> Opcode.READ_INDEXED_VAR_FLOAT
             DataType.MATRIX_UB, DataType.MATRIX_B -> Opcode.READ_INDEXED_VAR_BYTE
-            else -> throw CompilerException("invalid dt for indexed $dt")
+            DataType.STR, DataType.STR_S -> Opcode.READ_INDEXED_VAR_BYTE
+            DataType.STR_P, DataType.STR_PS -> throw CompilerException("cannot access pascal-string type $dt with index")
+            else -> throw CompilerException("invalid dt for indexed access $dt")
         }
     }
 
@@ -322,7 +324,9 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             DataType.ARRAY_UW, DataType.ARRAY_W -> Opcode.WRITE_INDEXED_VAR_WORD
             DataType.ARRAY_F -> Opcode.WRITE_INDEXED_VAR_FLOAT
             DataType.MATRIX_UB, DataType.MATRIX_B -> Opcode.WRITE_INDEXED_VAR_BYTE
-            else -> throw CompilerException("invalid dt for indexed $dt")
+            DataType.STR, DataType.STR_S -> Opcode.WRITE_INDEXED_VAR_BYTE
+            DataType.STR_P, DataType.STR_PS -> throw CompilerException("cannot access pascal-string type $dt with index")
+            else -> throw CompilerException("invalid dt for indexed access $dt")
         }
     }
 

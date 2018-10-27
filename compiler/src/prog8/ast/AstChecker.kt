@@ -702,7 +702,7 @@ class AstChecker(private val namespace: INameScope,
             val indexedRegister = postIncrDecr.target.arrayindexed?.register
             if(indexedRegister!=null) {
                 if(indexedRegister==Register.A || indexedRegister==Register.X || indexedRegister==Register.Y)
-                    checkResult.add(SyntaxError("arrayspec indexing on registers requires register pair variable", postIncrDecr.position))
+                    checkResult.add(SyntaxError("indexing on registers requires register pair variable", postIncrDecr.position))
             } else {
                 val target = postIncrDecr.target.arrayindexed?.identifier?.targetStatement(namespace)
                 if(target==null) {
@@ -724,7 +724,7 @@ class AstChecker(private val namespace: INameScope,
             val target = arrayIndexedExpression.identifier!!.targetStatement(namespace)
             if(target is VarDecl) {
                 if(target.datatype !in IterableDatatypes)
-                    checkResult.add(SyntaxError("arrayspec indexing requires an iterable variable", arrayIndexedExpression.position))
+                    checkResult.add(SyntaxError("indexing requires an iterable variable", arrayIndexedExpression.position))
                 val arraysize = target.arrayspec?.size()
                 if(arraysize!=null) {
                     // check out of bounds
@@ -734,13 +734,21 @@ class AstChecker(private val namespace: INameScope,
                     val index = (arrayIndexedExpression.arrayspec.x as? LiteralValue)?.asIntegerValue
                     if(index!=null && (index<0 || index>=arraysize))
                         checkResult.add(ExpressionError("arrayspec index out of bounds", arrayIndexedExpression.arrayspec.position))
+                } else if(target.datatype in StringDatatypes) {
+                    // check string lengths
+                    (arrayIndexedExpression.arrayspec.y as? LiteralValue)?.asIntegerValue
+                    val heapId = (target.value as LiteralValue).heapId!!
+                    val stringLen = heap.get(heapId).str!!.length
+                    val index = (arrayIndexedExpression.arrayspec.x as? LiteralValue)?.asIntegerValue
+                    if(index!=null && (index<0 || index>=stringLen))
+                        checkResult.add(ExpressionError("index out of bounds", arrayIndexedExpression.arrayspec.position))
                 }
             } else
-                checkResult.add(SyntaxError("arrayspec indexing requires a variable to act upon", arrayIndexedExpression.position))
+                checkResult.add(SyntaxError("indexing requires a variable to act upon", arrayIndexedExpression.position))
         } else if(reg==Register.A || reg==Register.X || reg==Register.Y) {
-            checkResult.add(SyntaxError("arrayspec indexing on registers requires register pair variable", arrayIndexedExpression.position))
+            checkResult.add(SyntaxError("indexing on registers requires register pair variable", arrayIndexedExpression.position))
         } else if(arrayIndexedExpression.arrayspec.y!=null) {
-            checkResult.add(SyntaxError("arrayspec indexing on registers can only use one index dimension", arrayIndexedExpression.position))
+            checkResult.add(SyntaxError("indexing on registers can only use one index dimension", arrayIndexedExpression.position))
         }
 
         // check index value 0..255

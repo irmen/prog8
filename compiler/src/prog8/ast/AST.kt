@@ -67,7 +67,7 @@ enum class BranchCondition {
 }
 
 val IterableDatatypes = setOf(
-        DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
+        DataType.STR, DataType.STR_S,       // note: the STR_P/STR_PS types aren't iterable because they store their length as the first byte
         DataType.ARRAY_UB, DataType.ARRAY_B,
         DataType.ARRAY_UW, DataType.ARRAY_W,
         DataType.ARRAY_F, DataType.MATRIX_UB, DataType.MATRIX_B)
