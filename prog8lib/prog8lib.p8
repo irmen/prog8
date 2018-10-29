@@ -34,7 +34,13 @@ ror2_word
 ub2float
 		rts
 
+b2float
+		rts
+
 uw2float
+		rts
+
+w2float
 		rts
 
 push_float

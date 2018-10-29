@@ -25,10 +25,6 @@ open class Instruction(val opcode: Opcode,
                         // opcodes that manipulate a variable
                         "${opcode.toString().toLowerCase()}  ${callLabel?:""}  ${callLabel2?:""}".trimEnd()
                     }
-                    opcode in setOf(Opcode.COPY_MEM_BYTE, Opcode.COPY_MEM_WORD, Opcode.COPY_MEM_FLOAT) -> {
-                        // opcodes with two (address) args
-                        "${opcode.toString().toLowerCase()}  $arg  $arg2"
-                    }
                     callLabel==null -> "${opcode.toString().toLowerCase()}  $argStr"
                     else -> "${opcode.toString().toLowerCase()}  $callLabel  $argStr"
                 }

@@ -67,7 +67,7 @@ enum class BranchCondition {
 }
 
 val IterableDatatypes = setOf(
-        DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
+        DataType.STR, DataType.STR_S,       // note: the STR_P/STR_PS types aren't iterable because they store their length as the first byte
         DataType.ARRAY_UB, DataType.ARRAY_B,
         DataType.ARRAY_UW, DataType.ARRAY_W,
         DataType.ARRAY_F, DataType.MATRIX_UB, DataType.MATRIX_B)
@@ -231,7 +231,7 @@ interface IAstProcessor {
 
     fun process(arrayIndexedExpression: ArrayIndexedExpression): IExpression {
         arrayIndexedExpression.identifier?.process(this)
-        arrayIndexedExpression.array.process(this)
+        arrayIndexedExpression.arrayspec.process(this)
         return arrayIndexedExpression
     }
 
@@ -622,7 +622,7 @@ class VarDecl(val type: VarDeclType,
             DataType.WORD -> DataType.ARRAY_W
             DataType.FLOAT -> DataType.ARRAY_F
             else -> {
-                datatypeErrors.add(SyntaxError("array can only contain bytes/words/floats", position))
+                datatypeErrors.add(SyntaxError("arrayspec can only contain bytes/words/floats", position))
                 DataType.UBYTE
             }
         }
@@ -898,13 +898,13 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
 
 class ArrayIndexedExpression(val identifier: IdentifierReference?,
                              val register: Register?,
-                             var array: ArraySpec,
+                             var arrayspec: ArraySpec,
                              override val position: Position) : IExpression {
     override lateinit var parent: Node
     override fun linkParents(parent: Node) {
         this.parent = parent
         identifier?.linkParents(this)
-        array.linkParents(this)
+        arrayspec.linkParents(this)
     }
 
     override fun isIterable(namespace: INameScope, heap: HeapValues) = false
@@ -929,6 +929,10 @@ class ArrayIndexedExpression(val identifier: IdentifierReference?,
             }
         }
         throw FatalAstException("cannot get indexed element on $target")
+    }
+
+    override fun toString(): String {
+        return "ArrayIndexed(ident=$identifier, reg=$register, arrayspec=$arrayspec; pos=$position)"
     }
 }
 
@@ -1046,8 +1050,8 @@ class LiteralValue(val type: DataType,
                 else "str:$strvalue"
             }
             DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F -> {
-                if(heapId!=null) "array:#$heapId"
-                else "array:$arrayvalue"
+                if(heapId!=null) "arrayspec:#$heapId"
+                else "arrayspec:$arrayvalue"
             }
             DataType.MATRIX_UB, DataType.MATRIX_B -> {
                 if(heapId!=null) "matrix:#$heapId"
@@ -1936,7 +1940,7 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
                 litval.charliteral()!=null -> LiteralValue(DataType.UBYTE, bytevalue = Petscii.encodePetscii(litval.charliteral().text.unescape(), true)[0], position = litval.toPosition())
                 litval.arrayliteral()!=null -> {
                     val array = litval.arrayliteral()?.toAst()
-                    // the actual type of the array can not yet be determined here (missing namespace & heap)
+                    // the actual type of the arrayspec can not yet be determined here (missing namespace & heap)
                     // the ConstantFolder takes care of that and converts the type if needed.
                     LiteralValue(DataType.ARRAY_UB, arrayvalue = array, position = litval.toPosition())
                 }

@@ -7,10 +7,10 @@
 
 sub start() {
 
-    ubyte pixely = 255
-    ubyte ub = 0
     byte b = 99
     byte b2 = 100
+    ubyte ub = 255
+    ubyte ub2 = 0
     word w = 999
     word w2 = 3
     uword uw = 40000
@@ -33,7 +33,6 @@ sub start() {
     ubyte[2,3] ubmatrix1
     ubyte[2,3] ubmatrix2
 
-
     memory byte mbyte = $c000
     memory byte mbyte2 = $d000
     memory ubyte mubyte = $c001
@@ -44,156 +43,138 @@ sub start() {
     memory uword muword2 = $d004
     memory float mfloat = $c006
     memory float mfloat2 = $d006
+    memory byte[3] mbarr1 = $e000
+    memory ubyte[3] mubarr1 = $e100
+    memory word[3] mwarr1 = $e100
+    memory uword[3] muwarr1 = $e100
 
-;label:
+    str  string = "hello"
+    str_p stringp = "hello"
+
+
+; all possible assignments to a BYTE VARIABLE (not array)
+
+byte_assignment_to_register:
+    A = 42
+    A = X
+    A = ub
+    A = mubyte
+    A = AY[4]
+    A = ubarr1[2]
+    A = string[4]
+    A = string[X]
+    A = string[b]
+    A = string[ub]
+    A = ubarr1[X]
+    A = ubarr1[b]
+    A = ubarr1[ub]
+    A = AY[Y]
+    A = AY[b]
+    A = AY[ub]
+    A = ubmatrix1[1,2]
+    ;A = ubmatrix1[1,Y]  ;  todo via evaluation
+    A = ubmatrix1[X,2]  ;  todo via evaluation     TODO fix error   constant y dimension of index should have been const-folded with x into one value
+    ;A = ubmatrix1[X,Y]  ;  todo via evaluation
+    ;A = ubmatrix1[1,b2]  ;  todo via evaluation
+    ;A = ubmatrix1[X,b2]  ;  todo via evaluation
+    A = ubmatrix1[b2,2]     ; todo FIX ERROR   constant y dimension of index should have been const-folded with x into one value
+    ;A = ubmatrix1[b2,X]  ;  todo via evaluation
+    ;A = ubmatrix1[b,b2]  ;  todo via evaluation
+    ;A = ubmatrix1[ub,ub2]  ;  todo via evaluation
+
+;byte_assignment_to_bytevar:
+;    b = 42
+;    b = b2
+;    b = mbyte
+;    b = barr1[2]
+;    b = bmatrix1[1,2]
 ;
-;    while A>99 {
-;        X=22
-;    }
+;    ub = 42
+;    ub = X
+;    ub = ub2
+;    ub = mubyte
+;    ub = ubarr1[2]
+;    ub = ubmatrix1[1,2]
+;    ub = string[4]
+;    ub = AY[4]
 ;
-;    repeat {
-;        X=22
-;    } until A>99
 ;
-;    for X in 0 to 99 {
-;        Y=33
-;    }
+;; all possible assignments to a WORD VARIABLE (not array)
 ;
-;    for ubyte derp in 2 to 44 {
-;        X=44
-;    }
+;word_assignment_to_registerpair:
+;    AY = 42
+;    AY = 42.w
+;    AY = 42555
+;    AY = X
+;    AY = XY
+;    AY = ub
+;    AY = mubyte
+;    AY = ubarr1[2]
+;    AY = ubmatrix1[1,2]
+;    AY = string[4]
+;    AY = uw
+;    AY = muword
+;    AY = uwarr1[2]
+;    AY = string[4]
+;    AY = XY[4]
 ;
-;    if A<22 goto label
+;;word_assignment_to_wordvar:
+;    w = -42
+;    w = -42.w
+;    w = -12345
+;    w = X
+;    w = b2
+;    w = ub2
+;    w = w2
+;    w = mbyte
+;    w = mubyte
+;    w = mword
+;    w = barr1[2]
+;    w = ubarr1[2]
+;    w = warr1[2]
+;    w = bmatrix1[1,2]
+;    w = ubmatrix1[1,2]
+;    w = string[4]
+;    w = AY[4]
 ;
-;    if X<22 {
-;        A=99
-;    } else {
-;        Y=42
-;    }
-
-    Y=42
-    AY=42
-    AY=42555
-    Y = ub
-    AY= ub
-    AY= uw
-
-    Y = mubyte
-    AY = mubyte
-    AY = muword
-
-    Y = ubarr1[2]
-    AY = ubarr1[2]
-    AY = uwarr1[2]
-
-    barr1[2]=42
-    ubarr1[2]=42
-    warr1[2]=12555
-    uwarr1[2]=42555
-    farr1[2]=42.5678
-
-    ubarr1[2]=X
-    uwarr1[2]=XY
-    ; farr1[2]=XY     ; @todo
-
-    barr1[2] = b
-    ubarr1[2] = ub
-    warr1[2] = w
-    uwarr1[2] = uw
-    farr1[2] = fl1
-
-    barr1[2] = mbyte
-    ubarr1[2] = mubyte
-    warr1[2] = mword
-    uwarr1[2] = muword
-    farr1[2] = mfloat
-
-    b= barr1[2]
-    ub = ubarr1[2]
-    w = warr1[2]
-    uw = uwarr1[2]
-    ; fl1 = farr1[2]   ; @todo
-
-    mbyte= barr1[2]
-    mubyte = ubarr1[2]
-    mword = warr1[2]
-    muword = uwarr1[2]
-    ; mfloat = farr1[2]   ; @todo
-
-    barr1[2] = barr2[3]
-    ubarr1[2] = ubarr2[3]
-    warr1[2] = warr2[3]
-    uwarr1[2] = uwarr2[3]
-    ; farr1[2] = farr2[3]  ; @todo
-
-
-    XY[2]=42
-    XY[2] = ub
-    XY[2] = mubyte
-    ub = XY[2]
-    uw = XY[2]
-    ;fl1 = XY[2]    ; @todo
-    mubyte = XY[2]
-    muword = XY[2]
-    ;mfloat = XY[2]    ; @todo
-    XY[2] = AY[3]       ; @todo wat is de output hiervan???
-
-
-
-    b = 1
-    ub = 1
-    w = 1
-    uw = 1
-    fl1 = 2.345
-
-    b = b2
-    ub = pixely
-    w = b2
-    w = w2
-    w = ub
-    uw = ub
-    uw = uw2
-    ;fl1 = ub       ; @todo
-    ;fl1 = b2       ; @todo
-    ;fl1 = uw2      ; @todo
-    ;fl1 = w2       ; @todo
-    fl1 = fl2
-
-    b = mbyte
-    ub = mubyte
-    w = mword
-    w = mbyte
-    w = mubyte
-    uw = mubyte
-    uw = muword
-    fl1 = mfloat
-    ;fl1 = mbyte    ; @todo
-    ;fl1 = mword    ; @todo
-    ;fl1 = mubyte   ; @todo
-    ;fl1 = muword   ; @todo
-
-    mbyte = 1
-    mubyte = 1
-    mword = 1
-    muword = 1
-    mfloat = 3.456
-
-    %breakpoint
-
-    mbyte = b
-    mubyte = ub
-    mword = w
-    muword = uw
-    mfloat = fl2
-
-    %breakpoint
-
-    mbyte = mbyte2
-    mubyte = mubyte2
-    mword = mword2
-    muword = muword2
-    mfloat = mfloat2
-
+;    uw = 42
+;    uw = 42.w
+;    uw = 42555
+;    uw = X
+;    uw = AY
+;    uw = ub2
+;    uw = uw2
+;    uw = mubyte
+;    uw = muword
+;    uw = ubarr1[2]
+;    uw = uwarr1[2]
+;    uw = ubmatrix1[1,2]
+;    uw = string[4]
+;    uw = AY[4]
+;
+;
+;; all possible assignments to a FLOAT VARIABLE
+;float_assignment_to_floatvar:
+;    fl1 = 34
+;    fl1 = 34555.w
+;    fl1 = 3.33e22
+;    fl1 = X
+;    fl1 = AY
+;    fl1 = b2
+;    fl1 = ub2
+;    fl1 = w2
+;    fl1 = uw2
+;    fl1 = mbyte
+;    fl1 = mubyte
+;    fl1 = mword
+;    fl1 = muword
+;    fl1 = barr1[2]
+;    fl1 = ubarr1[2]
+;    fl1 = warr1[2]
+;    fl1 = uwarr1[2]
+;    fl1 = bmatrix1[1,2]
+;    fl1 = ubmatrix1[1,2]
+;    fl1 = string[4]
 
     return
 }

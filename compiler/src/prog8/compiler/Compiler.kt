@@ -312,7 +312,9 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             DataType.ARRAY_UW, DataType.ARRAY_W -> Opcode.READ_INDEXED_VAR_WORD
             DataType.ARRAY_F -> Opcode.READ_INDEXED_VAR_FLOAT
             DataType.MATRIX_UB, DataType.MATRIX_B -> Opcode.READ_INDEXED_VAR_BYTE
-            else -> throw CompilerException("invalid dt for indexed $dt")
+            DataType.STR, DataType.STR_S -> Opcode.READ_INDEXED_VAR_BYTE
+            DataType.STR_P, DataType.STR_PS -> throw CompilerException("cannot access pascal-string type $dt with index")
+            else -> throw CompilerException("invalid dt for indexed access $dt")
         }
     }
 
@@ -322,7 +324,9 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             DataType.ARRAY_UW, DataType.ARRAY_W -> Opcode.WRITE_INDEXED_VAR_WORD
             DataType.ARRAY_F -> Opcode.WRITE_INDEXED_VAR_FLOAT
             DataType.MATRIX_UB, DataType.MATRIX_B -> Opcode.WRITE_INDEXED_VAR_BYTE
-            else -> throw CompilerException("invalid dt for indexed $dt")
+            DataType.STR, DataType.STR_S -> Opcode.WRITE_INDEXED_VAR_BYTE
+            DataType.STR_P, DataType.STR_PS -> throw CompilerException("cannot access pascal-string type $dt with index")
+            else -> throw CompilerException("invalid dt for indexed access $dt")
         }
     }
 
@@ -350,14 +354,12 @@ private class StatementTranslator(private val prog: IntermediateProgram,
 
     private fun opcodePopmem(dt: DataType): Opcode {
         return when (dt) {
-            DataType.UBYTE -> Opcode.POP_MEM_UB
-            DataType.BYTE -> Opcode.POP_MEM_B
-            DataType.UWORD -> Opcode.POP_MEM_UW
-            DataType.WORD -> Opcode.POP_MEM_W
+            DataType.UBYTE, DataType.BYTE -> Opcode.POP_MEM_BYTE
+            DataType.UWORD, DataType.WORD -> Opcode.POP_MEM_WORD
             DataType.FLOAT -> Opcode.POP_MEM_FLOAT
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
             DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F, DataType.MATRIX_UB,
-            DataType.ARRAY_B, DataType.ARRAY_W, DataType.MATRIX_B -> Opcode.POP_MEM_UW
+            DataType.ARRAY_B, DataType.ARRAY_W, DataType.MATRIX_B -> Opcode.POP_MEM_WORD
         }
     }
 
@@ -628,7 +630,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F, DataType.MATRIX_UB,
                     DataType.ARRAY_B, DataType.ARRAY_W, DataType.MATRIX_B -> {
                         if(lv.heapId==null)
-                            throw CompilerException("array/matrix should have been moved into heap  ${lv.position}")
+                            throw CompilerException("arrayspec/matrix should have been moved into heap  ${lv.position}")
                         prog.instr(Opcode.PUSH_WORD, Value(lv.type, lv.heapId))
                     }
                 }
@@ -1046,14 +1048,14 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     val reg=arrayindexed.register
                     if(reg==Register.A || reg==Register.X || reg==Register.Y)
                         throw CompilerException("requires register pair")
-                    if(arrayindexed.array.y!=null)
+                    if(arrayindexed.arrayspec.y!=null)
                         throw CompilerException("when using an address, can only use one index dimension")
                     reg.toString()
                 } else {
                     variable!!.scopedname
                 }
-        translate(arrayindexed.array.x)
-        val y = arrayindexed.array.y
+        translate(arrayindexed.arrayspec.x)
+        val y = arrayindexed.arrayspec.y
         if(y!=null) {
             // calc matrix index  i=y*columns+x
             // (the const-folding will have removed this for us when both x and y are constants)
@@ -1167,12 +1169,12 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     when (valueDt) {
                         DataType.UBYTE -> prog.instr(Opcode.UB2FLOAT)
                         DataType.BYTE -> prog.instr(Opcode.B2FLOAT)
-                        DataType.UWORD -> prog.instr(Opcode.W2FLOAT)
-                        DataType.WORD -> prog.instr(Opcode.UW2FLOAT)
+                        DataType.UWORD -> prog.instr(Opcode.UW2FLOAT)
+                        DataType.WORD -> prog.instr(Opcode.W2FLOAT)
                         else -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                     }
                 }
-                // todo: maybe if you assign byte or word to array/matrix, clear it with that value?
+                // todo: maybe if you assign byte or word to arrayspec/matrix, clear it with that value?
                 DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                 DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W,
                 DataType.ARRAY_F, DataType.MATRIX_UB, DataType.MATRIX_B -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")

@@ -200,17 +200,19 @@ Arrays can be made of bytes, words and floats. Matrixes can oly be made of bytes
     byte[4]  array = [1, 2, 3, 4]     ; initialize the array
     byte[99] array = 255              ; initialize array with all 255's [255, 255, 255, 255, ...]
     byte[100] array = 100 to 199      ; initialize array with [100, 101, ..., 198, 199]
-    byte[2,3] matrix = 1              ; a matrix of 2*3=6 bytes all with value 1
     byte[2,3] matrix = [1,2,3,4,5,6]  ; a 2*3 matrix with value |(1,2)  (3,4)  (5,6)|
+    ubyte[2,3] matrix = 255           ; a matrix of 2*3=6 unsigned bytes all with value 255
 
     value = array[3]            ; the fourth value in the array (index is 0-based)
     value = matrix[4,2]         ; the byte at the 5th column and 3rd row in the matrix
     char = string[4]            ; the fifth character (=byte) in the string
 
 .. note::
-    Right now, the array and matrix size should be small enough to be indexable by a single byte index.
-    This means byte arrays and matrixes should be <= 256 elements, word arrays <= 128 elements, and float
-    arrays <= 51 elements.  This limit may be lifted in a future version.
+    Right now, the array should be small enough to be indexable by a single byte index.
+    This means byte arrays should be <= 256 elements, word arrays <= 128 elements, and float
+    arrays <= 51 elements.  This limit may or may not be lifted in a future version.
+    Matrixes can be indexed in each dimension only by a byte as well, this also means
+    their maximum size is 65536 elements (bytes).
 
 
 Note that the various keywords for the data type and variable type (``byte``, ``word``, ``const``, etc.)

@@ -124,16 +124,6 @@ class Program (val name: String,
                     val args = if(parts.size==2) parts[1] else null
                     val instruction = when(opcode) {
                         Opcode.LINE -> Instruction(opcode, null, callLabel = args)
-                        Opcode.COPY_VAR_BYTE, Opcode.COPY_VAR_WORD, Opcode.COPY_VAR_FLOAT -> {
-                            val (v1, v2) = args!!.split(splitpattern, limit = 2)
-                            Instruction(opcode, null, null, v1, v2)
-                        }
-                        Opcode.COPY_MEM_BYTE, Opcode.COPY_MEM_WORD, Opcode.COPY_MEM_FLOAT -> {
-                            val (v1, v2) = args!!.split(splitpattern, limit = 2)
-                            val address1 = getArgValue(v1, heap)
-                            val address2 = getArgValue(v2, heap)
-                            Instruction(opcode, address1, address2)
-                        }
                         Opcode.JUMP, Opcode.CALL, Opcode.BNEG, Opcode.BPOS,
                         Opcode.BZ, Opcode.BNZ, Opcode.BCS, Opcode.BCC -> {
                             if(args!!.startsWith('$')) {
@@ -222,7 +212,7 @@ class Program (val name: String,
                     DataType.MATRIX_UB,
                     DataType.MATRIX_B -> {
                         if(!valueStr.startsWith("heap:"))
-                            throw VmExecutionException("invalid array/matrix value, should be a heap reference")
+                            throw VmExecutionException("invalid arrayspec/matrix value, should be a heap reference")
                         else {
                             val heapId = valueStr.substring(5).toInt()
                             Value(type, heapId)
