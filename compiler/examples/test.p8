@@ -56,28 +56,36 @@ byte_assignment_to_register:
     A = X
     A = ub2
     A = mubyte2
-    A = ubarr1[2]
     A = string[4]
     A = string[X]
     A = string[b]
     A = string[ub]
+    A = string[mbyte2]
+    A = string[mubyte2]
+    A = ubarr1[2]
     A = ubarr1[X]
     A = ubarr1[b]
     A = ubarr1[ub]
+    A = ubarr1[mbyte2]
+    A = ubarr1[mubyte2]
 
 ubyte_assignment_to_ubytevar:
     ub = 42
     ub = X
     ub = ub2
     ub = mubyte2
-    ub = ubarr1[2]
     ub = string[4]
     ub = string[X]
     ub = string[b]
     ub = string[ub]
+    ub = string[mbyte2]
+    ub = string[mubyte2]
+    ub = ubarr1[2]
     ub = ubarr1[X]
     ub = ubarr1[b]
     ub = ubarr1[ub]
+    ub = ubarr1[mbyte2]
+    ub = ubarr1[mubyte2]
 
 
 ubyte_assignment_to_ubytemem:
@@ -85,14 +93,18 @@ ubyte_assignment_to_ubytemem:
     mubyte = X
     mubyte = ub2
     mubyte = mubyte2
-    mubyte = ubarr1[2]
     mubyte = string[4]
     mubyte = string[X]
     mubyte = string[b]
     mubyte = string[ub]
+    mubyte = string[mbyte2]
+    mubyte = string[mubyte2]
+    mubyte = ubarr1[2]
     mubyte = ubarr1[X]
     mubyte = ubarr1[b]
     mubyte = ubarr1[ub]
+    mubyte = ubarr1[mbyte2]
+    mubyte = ubarr1[mubyte2]
 
 byte_assignment_to_bytevar:
     b = -42
@@ -102,6 +114,8 @@ byte_assignment_to_bytevar:
     b = barr1[X]
     b = barr1[b]
     b = barr1[ub]
+    b = barr1[mbyte2]
+    b = barr1[mubyte2]
 
 
 byte_assignment_to_bytemem:
@@ -112,6 +126,8 @@ byte_assignment_to_bytemem:
     mbyte = barr1[X]
     mbyte = barr1[b]
     mbyte = barr1[ub]
+    mbyte = barr1[mbyte2]
+    mbyte = barr1[mubyte2]
 
 
 ubyte_assignment_to_ubytearray:
@@ -119,85 +135,126 @@ ubyte_assignment_to_ubytearray:
     ubarr2[3] = X
     ubarr2[3] = ub2
     ubarr2[3] = mubyte2
-    ubarr2[3] = ubarr1[2]
     ubarr2[3] = string[4]
     ubarr2[3] = string[X]
     ubarr2[3] = string[b]
     ubarr2[3] = string[ub]
+    ubarr2[3] = string[mbyte2]
+    ubarr2[3] = string[mubyte2]
+    ubarr2[3] = ubarr1[2]
     ubarr2[3] = ubarr1[X]
     ubarr2[3] = ubarr1[b]
     ubarr2[3] = ubarr1[ub]
+    ubarr2[3] = ubarr1[mbyte2]
+    ubarr2[3] = ubarr1[mubyte2]
     string[4] = 42
     string[4] = 'B'
     string[4] = X
     string[4] = ub2
     string[4] = mubyte2
     string[4] = ubarr1[2]
+    string[4] = ubarr1[X]
+    string[4] = ubarr1[ub]
+    string[4] = ubarr1[mubyte2]
     string[4] = string[3]
+    string[4] = string[Y]
+    string[4] = string[ub2]
+    string[4] = string[mbyte2]
+    string[4] = string[mubyte2]
 
 
     ubarr2[Y] = 42
     ubarr2[Y] = X
     ubarr2[Y] = ub2
     ubarr2[Y] = mubyte2
-    ubarr2[Y] = ubarr1[2]
     ubarr2[Y] = string[4]
     ubarr2[Y] = string[X]
     ubarr2[Y] = string[b]
     ubarr2[Y] = string[ub]
+    ubarr2[Y] = string[mbyte2]
+    ubarr2[Y] = string[mubyte2]
+    ubarr2[Y] = ubarr1[2]
     ubarr2[Y] = ubarr1[X]
     ubarr2[Y] = ubarr1[b]
     ubarr2[Y] = ubarr1[ub]
+    ubarr2[Y] = ubarr1[mbyte2]
+    ubarr2[Y] = ubarr1[mubyte2]
     string[Y] = 42
     string[Y] = 'B'
     string[Y] = X
     string[Y] = ub2
     string[Y] = mubyte2
     string[Y] = ubarr1[2]
+    string[Y] = ubarr1[Y]
+    string[Y] = ubarr1[ub2]
+    string[Y] = ubarr1[mubyte2]
     string[Y] = string[Y]
+    string[Y] = string[ub2]
+    string[Y] = string[mbyte2]
+    string[Y] = string[mubyte2]
 
 
         ubarr2[ub2] = 42
         ubarr2[ub2] = X
         ubarr2[ub2] = ub2
         ubarr2[ub2] = mubyte2
-        ubarr2[ub2] = ubarr1[2]
         ubarr2[ub2] = string[4]
         ubarr2[ub2] = string[X]
         ubarr2[ub2] = string[b]
         ubarr2[ub2] = string[ub]
+        ubarr2[ub2] = string[mbyte2]
+        ubarr2[ub2] = string[mubyte2]
+        ubarr2[ub2] = ubarr1[2]
         ubarr2[ub2] = ubarr1[X]
         ubarr2[ub2] = ubarr1[b]
         ubarr2[ub2] = ubarr1[ub]
+        ubarr2[ub2] = ubarr1[mbyte2]
+        ubarr2[ub2] = ubarr1[mubyte2]
         string[ub2] = 42
         string[ub2] = 'B'
         string[ub2] = X
         string[ub2] = ub2
         string[ub2] = mubyte2
         string[ub2] = ubarr1[2]
+        string[ub2] = ubarr1[Y]
+        string[ub2] = ubarr1[ub2]
+        string[ub2] = ubarr1[mubyte2]
+        string[ub2] = string[Y]
         string[ub2] = string[ub2]
+        string[ub2] = string[mbyte2]
+        string[ub2] = string[mubyte2]
 
     ubarr2[mubyte2] = 42
     ubarr2[mubyte2] = X
     ubarr2[mubyte2] = ub2
     ubarr2[mubyte2] = mubyte2
-    ubarr2[mubyte2] = ubarr1[2]
     ubarr2[mubyte2] = string[4]
-    ubarr2[mubyte2] = string[X]
-    ubarr2[mubyte2] = string[b]
-    ubarr2[mubyte2] = string[ub]
-    ubarr2[mubyte2] = ubarr1[X]
-    ubarr2[mubyte2] = ubarr1[b]
-    ubarr2[mubyte2] = ubarr1[ub]
+    ubarr2[mubyte2] = ubarr1[2]
     string[mubyte2] = 42
     string[mubyte2] = 'B'
     string[mubyte2] = X
     string[mubyte2] = ub2
     string[mubyte2] = mubyte2
     string[mubyte2] = ubarr1[2]
-    string[mubyte2] = string[mubyte2]
 
-    ubarr1[ubarr2[X]] = ubarr2[ubarr1[Y]]   ; todo via evaluation
+    ubarr2[mubyte2] = string[X]            ;;todo via evaluation
+    ubarr2[mubyte2] = string[b]             ;todo via evaluation
+    ubarr2[mubyte2] = string[ub]            ;todo via evaluation
+    ubarr2[mubyte2] = string[mbyte2]       ;todo via evaluation
+    ubarr2[mubyte2] = string[mubyte2]      ;todo via evaluation
+    ubarr2[mubyte2] = ubarr1[X]        ;todo via evaluation
+    ubarr2[mubyte2] = ubarr1[b]         ;todo via evaluation
+    ubarr2[mubyte2] = ubarr1[ub]        ;todo via evaluation
+    ubarr2[mubyte2] = ubarr1[mbyte2]    ;todo via evaluation
+    ubarr2[mubyte2] = ubarr1[mubyte2]   ;todo via evaluation
+    string[mubyte2] = ubarr1[Y]        ;todo via evaluation
+    string[mubyte2] = ubarr1[b]        ;todo via evaluation
+    string[mubyte2] = ubarr1[ub2]       ;todo via evaluation
+    string[mubyte2] = ubarr1[mbyte2]   ;todo via evaluation
+    string[mubyte2] = ubarr1[mubyte2]   ;todo via evaluation
+    string[mubyte2] = string[mubyte2]   ;todo via evaluation
+
+    ubarr1[ubarr2[X]] = ubarr2[ubarr1[Y]]   ; todo via evaluation-- check generated asm...
 
 
 
