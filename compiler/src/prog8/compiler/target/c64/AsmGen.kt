@@ -913,6 +913,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
     class AsmPattern(val sequence: List<Opcode>, val altSequence: List<Opcode>?=null, val asm: (List<Instruction>)->String?)
 
     private fun loadAFromIndexedByVar(idxVarInstr: Instruction, readArrayInstr: Instruction): String {
+        // A =  readArrayInstr [ idxVarInstr ]
         val setupPtr: String
         val loadByte: String
         when (readArrayInstr.callLabel) {
@@ -967,8 +968,60 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         return "$setupPtr | $loadByte"
     }
 
-    private fun storeAToIndexedByVar(idxVarInstr: Instruction, readArrayInstr: Instruction): String {
-        TODO("storeAToIndexedByVar  $readArrayInstr [ $idxVarInstr ]")
+    private fun storeAToIndexedByVar(idxVarInstr: Instruction, writeArrayInstr: Instruction): String {
+        // writeArrayInstr [ idxVarInstr ] =  A
+        val setupPtr: String
+        val storeByte: String
+        when(writeArrayInstr.callLabel) {
+            "AX" -> {
+                setupPtr = "sta  ${C64Zeropage.SCRATCH_W1} |  stx  ${C64Zeropage.SCRATCH_W1 + 1} "
+                storeByte= when (idxVarInstr.callLabel) {
+                    "A" -> "tay |  sta  (${C64Zeropage.SCRATCH_W1}),y"
+                    "X" -> "stx  ${C64Zeropage.SCRATCH_B1} |  ldy  ${C64Zeropage.SCRATCH_B1}  |  sta  (${C64Zeropage.SCRATCH_W1}),y"
+                    "Y" -> "sta  (${C64Zeropage.SCRATCH_W1}),y"
+                    else -> "ldy  ${idxVarInstr.callLabel} |  sta  (${C64Zeropage.SCRATCH_W1}),y"
+                }
+            }
+            "AY" -> {
+                setupPtr = "sta  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1 + 1} "
+                storeByte= when (idxVarInstr.callLabel) {
+                    "A" -> "tay |  sta  (${C64Zeropage.SCRATCH_W1}),y"
+                    "X" -> "stx  ${C64Zeropage.SCRATCH_B1} |  ldy  ${C64Zeropage.SCRATCH_B1}  |  sta  (${C64Zeropage.SCRATCH_W1}),y"
+                    "Y" -> "sta  (${C64Zeropage.SCRATCH_W1}),y"
+                    else -> "ldy  ${idxVarInstr.callLabel} |  sta  (${C64Zeropage.SCRATCH_W1}),y"
+                }
+            }
+            "XY" -> {
+                setupPtr = "stx  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1 + 1} "
+                storeByte= when (idxVarInstr.callLabel) {
+                    "A" -> "tay |  sta  (${C64Zeropage.SCRATCH_W1}),y"
+                    "X" -> "stx  ${C64Zeropage.SCRATCH_B1} |  ldy  ${C64Zeropage.SCRATCH_B1}  |  sta  (${C64Zeropage.SCRATCH_W1}),y"
+                    "Y" -> "sta  (${C64Zeropage.SCRATCH_W1}),y"
+                    else -> "ldy  ${idxVarInstr.callLabel} |  sta  (${C64Zeropage.SCRATCH_W1}),y"
+                }
+            }
+            else -> {
+                when (idxVarInstr.callLabel) {
+                    "A" -> {
+                        setupPtr = ""
+                        storeByte = "tay |  sta  ${writeArrayInstr.callLabel},y"
+                    }
+                    "X" -> {
+                        setupPtr = ""
+                        storeByte = "sta  ${C64Zeropage.SCRATCH_B1} |  ldy  ${C64Zeropage.SCRATCH_B1} |  sta  ${writeArrayInstr.callLabel},y"
+                    }
+                    "Y" -> {
+                        setupPtr = ""
+                        storeByte = "sta  ${writeArrayInstr.callLabel},y"
+                    }
+                    else -> {
+                        setupPtr = ""
+                        storeByte = "ldy  ${idxVarInstr.callLabel} |  sta  ${writeArrayInstr.callLabel},y"
+                    }
+                }
+            }
+        }
+        return "$setupPtr | $storeByte"
     }
 
     private val patterns = listOf(
@@ -1219,6 +1272,57 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 val index2 = segment[2].arg!!.integerValue()
                 " $loadByteA |  sta  ${segment[3].callLabel}+$index2"
             },
+            // (u)bytearray[idxvar] = (u)bytevar
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.PUSH_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_BYTE)) { segment ->
+                val storeA = storeAToIndexedByVar(segment[1], segment[2])
+                when(segment[0].callLabel) {
+                    "A" -> " $storeA"
+                    "X" -> " txa |  $storeA"
+                    "Y" -> " tya |  $storeA"
+                    else -> " lda  ${segment[0].callLabel} |  $storeA"
+                }
+            },
+            // (u)bytearray[idxvar] = mem (u)byte
+            AsmPattern(
+                    listOf(Opcode.PUSH_MEM_UB, Opcode.PUSH_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_BYTE),
+                    listOf(Opcode.PUSH_MEM_B, Opcode.PUSH_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_BYTE)) { segment ->
+                val storeA = storeAToIndexedByVar(segment[1], segment[2])
+                " lda  ${segment[0].arg!!.integerValue().toHex()} |  $storeA"
+            },
+            // (u)bytearray2[idxvar] = (u)bytearray1[index]
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.PUSH_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_BYTE)) { segment ->
+                val storeA = storeAToIndexedByVar(segment[2], segment[3])
+                val index1 = segment[0].arg!!.integerValue()
+                val loadValue = when (segment[1].callLabel) {
+                    "AX" -> """
+                            sta  ${C64Zeropage.SCRATCH_W1}
+                            stx  ${C64Zeropage.SCRATCH_W1 + 1}
+                            ldy  #$index1
+                            lda  (${C64Zeropage.SCRATCH_W1}),y
+                            """
+                    "AY" -> """
+                            sta  ${C64Zeropage.SCRATCH_W1}
+                            sty  ${C64Zeropage.SCRATCH_W1 + 1}
+                            ldy  #$index1
+                            lda  (${C64Zeropage.SCRATCH_W1}),y
+                            """
+                    "XY" -> """
+                            stx  ${C64Zeropage.SCRATCH_W1}
+                            sty  ${C64Zeropage.SCRATCH_W1 + 1}
+                            ldy  #$index1
+                            lda  (${C64Zeropage.SCRATCH_W1}),y
+                            """
+                    else -> " lda  ${segment[1].callLabel}+$index1 "
+                }
+                " $loadValue |  $storeA "
+            },
+            // (u)bytearray2[idxvar2] = (u)bytearray1[idxvar1]
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.PUSH_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_BYTE)) { segment ->
+                val loadA = loadAFromIndexedByVar(segment[0], segment[1])
+                val storeA = storeAToIndexedByVar(segment[2], segment[3])
+                " $loadA |  $storeA"
+            },
+
 
 
             // ----------- assignment to WORD VARIABLE ----------------
@@ -1666,26 +1770,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 
             // ---- @todo assignment to arrays follow below ----------
 
-
-//            // assignment: bytearray[memory (u)byte] = byte
-//            AsmPattern(
-//                    listOf(Opcode.PUSH_BYTE, Opcode.PUSH_MEM_B, Opcode.WRITE_INDEXED_VAR_BYTE),
-//                    listOf(Opcode.PUSH_BYTE, Opcode.PUSH_MEM_UB, Opcode.WRITE_INDEXED_VAR_BYTE)) { segment ->
-//                TODO("$segment")
-//            },
-//
-
-//            // assignment: bytearray[idxvar] = bytevar
-//            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.PUSH_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_BYTE)) { segment ->
-//                TODO("$segment")
-//            },
-//
-//            // assignment: bytearray[mem (u)byte] = bytevar
-//            AsmPattern(
-//                    listOf(Opcode.PUSH_VAR_BYTE, Opcode.PUSH_MEM_B, Opcode.WRITE_INDEXED_VAR_BYTE),
-//                    listOf(Opcode.PUSH_VAR_BYTE, Opcode.PUSH_MEM_UB, Opcode.WRITE_INDEXED_VAR_BYTE)) { segment ->
-//                TODO("$segment")
-//            },
 
 //            // assignment: wordarray[idxbyte] = word
 //            AsmPattern(listOf(Opcode.PUSH_WORD, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
