@@ -914,114 +914,22 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 
     private fun loadAFromIndexedByVar(idxVarInstr: Instruction, readArrayInstr: Instruction): String {
         // A =  readArrayInstr [ idxVarInstr ]
-        val setupPtr: String
-        val loadByte: String
-        when (readArrayInstr.callLabel) {
-            "AX" -> {
-                setupPtr = "sta  ${C64Zeropage.SCRATCH_W1} |  stx  ${C64Zeropage.SCRATCH_W1 + 1} "
-                loadByte = when (idxVarInstr.callLabel) {
-                    "A" -> "tay |  lda  (${C64Zeropage.SCRATCH_W1}),y"
-                    "X" -> "txa |  tay |  lda  (${C64Zeropage.SCRATCH_W1}),y"
-                    "Y" -> "lda  (${C64Zeropage.SCRATCH_W1}),y"
-                    else -> "ldy  ${idxVarInstr.callLabel} |  lda  (${C64Zeropage.SCRATCH_W1}),y"
-                }
-            }
-            "AY" -> {
-                setupPtr = " sta  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1 + 1} "
-                loadByte = when (idxVarInstr.callLabel) {
-                    "A" -> "tay |  lda  (${C64Zeropage.SCRATCH_W1}),y"
-                    "X" -> "txa |  tay |  lda  (${C64Zeropage.SCRATCH_W1}),y"
-                    "Y" -> "lda  (${C64Zeropage.SCRATCH_W1}),y"
-                    else -> "ldy  ${idxVarInstr.callLabel} |  lda  (${C64Zeropage.SCRATCH_W1}),y"
-                }
-            }
-            "XY" -> {
-                setupPtr = " stx  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1 + 1} "
-                loadByte = when (idxVarInstr.callLabel) {
-                    "A" -> "tay |  lda  (${C64Zeropage.SCRATCH_W1}),y"
-                    "X" -> "txa |  tay |  lda  (${C64Zeropage.SCRATCH_W1}),y"
-                    "Y" -> "lda  (${C64Zeropage.SCRATCH_W1}),y"
-                    else -> "ldy  ${idxVarInstr.callLabel} |  lda  (${C64Zeropage.SCRATCH_W1}),y"
-                }
-            }
-            else -> {
-                when (idxVarInstr.callLabel) {
-                    "A" -> {
-                        setupPtr = ""
-                        loadByte = "tay |  lda  ${readArrayInstr.callLabel},y"
-                    }
-                    "X" -> {
-                        setupPtr = ""
-                        loadByte = "txa |  tay |  lda  ${readArrayInstr.callLabel},y"
-                    }
-                    "Y" -> {
-                        setupPtr = ""
-                        loadByte = "lda  ${readArrayInstr.callLabel},y"
-                    }
-                    else -> {
-                        setupPtr = ""
-                        loadByte = "ldy  ${idxVarInstr.callLabel} |  lda  ${readArrayInstr.callLabel},y"
-                    }
-                }
-            }
+        return when (idxVarInstr.callLabel) {
+            "A" -> " tay |  lda  ${readArrayInstr.callLabel},y"
+            "X" -> " txa |  tay |  lda  ${readArrayInstr.callLabel},y"
+            "Y" -> " lda  ${readArrayInstr.callLabel},y"
+            else -> " ldy  ${idxVarInstr.callLabel} |  lda  ${readArrayInstr.callLabel},y"
         }
-        return "$setupPtr | $loadByte"
     }
 
     private fun storeAToIndexedByVar(idxVarInstr: Instruction, writeArrayInstr: Instruction): String {
         // writeArrayInstr [ idxVarInstr ] =  A
-        val setupPtr: String
-        val storeByte: String
-        when(writeArrayInstr.callLabel) {
-            "AX" -> {
-                setupPtr = "sta  ${C64Zeropage.SCRATCH_W1} |  stx  ${C64Zeropage.SCRATCH_W1 + 1} "
-                storeByte= when (idxVarInstr.callLabel) {
-                    "A" -> "tay |  sta  (${C64Zeropage.SCRATCH_W1}),y"
-                    "X" -> "stx  ${C64Zeropage.SCRATCH_B1} |  ldy  ${C64Zeropage.SCRATCH_B1}  |  sta  (${C64Zeropage.SCRATCH_W1}),y"
-                    "Y" -> "sta  (${C64Zeropage.SCRATCH_W1}),y"
-                    else -> "ldy  ${idxVarInstr.callLabel} |  sta  (${C64Zeropage.SCRATCH_W1}),y"
-                }
-            }
-            "AY" -> {
-                setupPtr = "sta  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1 + 1} "
-                storeByte= when (idxVarInstr.callLabel) {
-                    "A" -> "tay |  sta  (${C64Zeropage.SCRATCH_W1}),y"
-                    "X" -> "stx  ${C64Zeropage.SCRATCH_B1} |  ldy  ${C64Zeropage.SCRATCH_B1}  |  sta  (${C64Zeropage.SCRATCH_W1}),y"
-                    "Y" -> "sta  (${C64Zeropage.SCRATCH_W1}),y"
-                    else -> "ldy  ${idxVarInstr.callLabel} |  sta  (${C64Zeropage.SCRATCH_W1}),y"
-                }
-            }
-            "XY" -> {
-                setupPtr = "stx  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1 + 1} "
-                storeByte= when (idxVarInstr.callLabel) {
-                    "A" -> "tay |  sta  (${C64Zeropage.SCRATCH_W1}),y"
-                    "X" -> "stx  ${C64Zeropage.SCRATCH_B1} |  ldy  ${C64Zeropage.SCRATCH_B1}  |  sta  (${C64Zeropage.SCRATCH_W1}),y"
-                    "Y" -> "sta  (${C64Zeropage.SCRATCH_W1}),y"
-                    else -> "ldy  ${idxVarInstr.callLabel} |  sta  (${C64Zeropage.SCRATCH_W1}),y"
-                }
-            }
-            else -> {
-                when (idxVarInstr.callLabel) {
-                    "A" -> {
-                        setupPtr = ""
-                        storeByte = "tay |  sta  ${writeArrayInstr.callLabel},y"
-                    }
-                    "X" -> {
-                        setupPtr = ""
-                        storeByte = "sta  ${C64Zeropage.SCRATCH_B1} |  ldy  ${C64Zeropage.SCRATCH_B1} |  sta  ${writeArrayInstr.callLabel},y"
-                    }
-                    "Y" -> {
-                        setupPtr = ""
-                        storeByte = "sta  ${writeArrayInstr.callLabel},y"
-                    }
-                    else -> {
-                        setupPtr = ""
-                        storeByte = "ldy  ${idxVarInstr.callLabel} |  sta  ${writeArrayInstr.callLabel},y"
-                    }
-                }
-            }
+        return when (idxVarInstr.callLabel) {
+            "A" -> " tay |  sta  ${writeArrayInstr.callLabel},y"
+            "X" -> " sta  ${C64Zeropage.SCRATCH_B1} |  ldy  ${C64Zeropage.SCRATCH_B1} |  sta  ${writeArrayInstr.callLabel},y"
+            "Y" -> " sta  ${writeArrayInstr.callLabel},y"
+            else -> " ldy  ${idxVarInstr.callLabel} |  sta  ${writeArrayInstr.callLabel},y"
         }
-        return "$setupPtr | $storeByte"
     }
 
     private val patterns = listOf(
@@ -1081,32 +989,11 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             // var = (u)bytearray[index]
             AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.POP_VAR_BYTE)) { segment ->
                 val index = segment[0].arg!!.integerValue()
-                when(segment[1].callLabel) {
-                    "AX" -> when(segment[2].callLabel) {
-                        "A" -> " sta  ${C64Zeropage.SCRATCH_W1} |  stx  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y"
-                        "X" -> " sta  ${C64Zeropage.SCRATCH_W1} |  stx  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  tax"
-                        "Y" -> " sta  ${C64Zeropage.SCRATCH_W1} |  stx  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  tay"
-                        else -> " sta  ${C64Zeropage.SCRATCH_W1} |  stx  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  sta  ${segment[2].callLabel}"
-                    }
-                    "AY" -> when(segment[2].callLabel) {
-                        "A" -> " sta  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y"
-                        "X" -> " sta  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  tax"
-                        "Y" -> " sta  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  tay"
-                        else -> " sta  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  sta  ${segment[2].callLabel}"
-                    }
-                    "XY" -> when(segment[2].callLabel) {
-                        "A" -> " stx  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y"
-                        "X" -> " stx  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  tax"
-                        "Y" -> " stx  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  tay"
-                        else -> " stx  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  sta  ${segment[2].callLabel}"
-                    }
+                when (segment[2].callLabel) {
+                    "A", "X", "Y" ->
+                        " ld${segment[2].callLabel!!.toLowerCase()}  ${segment[1].callLabel}+$index"
                     else ->
-                        when (segment[2].callLabel) {
-                            "A", "X", "Y" ->
-                                " ld${segment[2].callLabel!!.toLowerCase()}  ${segment[1].callLabel}+$index"
-                            else ->
-                                " lda  ${segment[1].callLabel}+$index |  sta  ${segment[2].callLabel}"
-                        }
+                        " lda  ${segment[1].callLabel}+$index |  sta  ${segment[2].callLabel}"
                 }
             },
             // var = (u)bytearray[indexvar]
@@ -1115,7 +1002,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 when(segment[2].callLabel) {
                     "A" -> " $loadByteA"
                     "X" -> " $loadByteA |  tax"
-                    "Y" -> " $loadByteA |  tya"
+                    "Y" -> " $loadByteA |  tay"
                     else -> " $loadByteA |  sta  ${segment[2].callLabel}"
                 }
             },
@@ -1145,12 +1032,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.POP_MEM_BYTE)) { segment ->
                 val address = segment[2].arg!!.integerValue().toHex()
                 val index = segment[0].arg!!.integerValue()
-                when(segment[1].callLabel) {
-                    "AX" -> " sta  ${C64Zeropage.SCRATCH_W1} |  stx  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  sta  $address"
-                    "AY" -> " sta  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  sta  $address"
-                    "XY" -> " stx  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  sta  $address"
-                    else ->  " lda  ${segment[1].callLabel}+$index |  sta  $address"
-                }
+                " lda  ${segment[1].callLabel}+$index |  sta  $address"
             },
             // mem = (u)bytearray[indexvar]
             AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.POP_MEM_BYTE)) { segment->
@@ -1164,42 +1046,16 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_BYTE)) { segment ->
                 val index = segment[1].arg!!.integerValue()
                 val value = segment[0].arg!!.integerValue().toHex()
-                when(segment[2].callLabel) {
-                    "AX" -> " sta  ${C64Zeropage.SCRATCH_W1} |  stx  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  #$value |  sta  (${C64Zeropage.SCRATCH_W1}),y"
-                    "AY" -> " sta  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  #$value |  sta  (${C64Zeropage.SCRATCH_W1}),y"
-                    "XY" -> " stx  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  #$value |  sta  (${C64Zeropage.SCRATCH_W1}),y"
-                    else -> " lda  #$value |  sta  ${segment[2].callLabel}+$index"
-                }
+                " lda  #$value |  sta  ${segment[2].callLabel}+$index"
             },
             // bytearray[index] = (u)bytevar
             AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_BYTE)) { segment ->
                 val index = segment[1].arg!!.integerValue()
-                val saveValue: String
-                val loadValue: String
                 when(segment[0].callLabel) {
-                    "A" -> {
-                        saveValue = ""
-                        loadValue = ""
-                    }
-                    "X" -> {
-                        saveValue = ""
-                        loadValue = "txa"
-                    }
-                    "Y" -> {
-                        // TODO optimize to tya if array is a variable instead of registerpair
-                        saveValue = "sty  ${C64Zeropage.SCRATCH_B1}"
-                        loadValue = "lda  ${C64Zeropage.SCRATCH_B1}"
-                    }
-                    else -> {
-                        saveValue = ""
-                        loadValue = "lda  ${segment[0].callLabel}"
-                    }
-                }
-                when(segment[2].callLabel) {
-                    "AX" -> " $saveValue |  sta  ${C64Zeropage.SCRATCH_W1} |  stx  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  $loadValue |  sta  (${C64Zeropage.SCRATCH_W1}),y"
-                    "AY" -> " $saveValue |  sta  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  $loadValue |  sta  (${C64Zeropage.SCRATCH_W1}),y"
-                    "XY" -> " $saveValue |  stx  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  $loadValue |  sta  (${C64Zeropage.SCRATCH_W1}),y"
-                    else -> " $loadValue |  sta  ${segment[2].callLabel}+$index"
+                    "A" -> " sta  ${segment[2].callLabel}+$index"
+                    "X" -> " stx  ${segment[2].callLabel}+$index"
+                    "Y" -> " sty  ${segment[2].callLabel}+$index"
+                    else -> " lda  ${segment[0].callLabel} |  sta  ${segment[2].callLabel}+$index"
                 }
             },
             // bytearray[index] = mem(u)byte
@@ -1207,12 +1063,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     listOf(Opcode.PUSH_MEM_B, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_BYTE),
                     listOf(Opcode.PUSH_MEM_UB, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_BYTE)) { segment ->
                 val index = segment[1].arg!!.integerValue()
-                when(segment[2].callLabel) {
-                    "AX" -> " sta  ${C64Zeropage.SCRATCH_W1} |  stx  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  ${segment[0].arg!!.integerValue().toHex()} |  sta  (${C64Zeropage.SCRATCH_W1}),y"
-                    "AY" -> " sta  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  ${segment[0].arg!!.integerValue().toHex()} |  sta  (${C64Zeropage.SCRATCH_W1}),y"
-                    "XY" -> " stx  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  ${segment[0].arg!!.integerValue().toHex()} |  sta  (${C64Zeropage.SCRATCH_W1}),y"
-                    else -> " lda  ${segment[0].arg!!.integerValue().toHex()} |  sta  ${segment[2].callLabel}+$index"
-                }
+                " lda  ${segment[0].arg!!.integerValue().toHex()} |  sta  ${segment[2].callLabel}+$index"
             },
             // bytearray[index var] = (u)byte value
             AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.PUSH_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_BYTE)) { segment ->
@@ -1223,48 +1074,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_BYTE)) { segment->
                 val index1 = segment[0].arg!!.integerValue()
                 val index2 = segment[2].arg!!.integerValue()
-                when(segment[1].callLabel) {
-                    "AX" -> when(segment[3].callLabel) {
-                        "AX", "AY", "XY" -> throw AssemblyError("reading AND writing from registerpair arrays not supported due to register overlap")
-                        else ->
-                            """
-                            sta  ${C64Zeropage.SCRATCH_W1}
-                            stx  ${C64Zeropage.SCRATCH_W1+1}
-                            ldy  #$index1
-                            lda  (${C64Zeropage.SCRATCH_W1}),y
-                            sta  ${segment[3].callLabel}+$index2
-                            """
-                    }
-                    "AY" -> when(segment[3].callLabel) {
-                        "AX", "AY", "XY" -> throw AssemblyError("reading AND writing from registerpair arrays not supported due to register overlap")
-                        else ->
-                            """
-                            sta  ${C64Zeropage.SCRATCH_W1}
-                            sty  ${C64Zeropage.SCRATCH_W1+1}
-                            ldy  #$index1
-                            lda  (${C64Zeropage.SCRATCH_W1}),y
-                            sta  ${segment[3].callLabel}+$index2
-                            """
-                    }
-                    "XY" -> when(segment[3].callLabel) {
-                        "AX", "AY", "XY" -> throw AssemblyError("reading AND writing from registerpair arrays not supported due to register overlap")
-                        else ->
-                            """
-                            stx  ${C64Zeropage.SCRATCH_W1}
-                            sty  ${C64Zeropage.SCRATCH_W1+1}
-                            ldy  #$index1
-                            lda  (${C64Zeropage.SCRATCH_W1}),y
-                            sta  ${segment[3].callLabel}+$index2
-                            """
-                    }
-                    else ->
-                        when(segment[3].callLabel) {
-                            "AX" -> " sta  ${C64Zeropage.SCRATCH_W1} |  stx  ${C64Zeropage.SCRATCH_W1+1} |  lda  ${segment[1].callLabel}+$index1 |  ldy  #$index2 |  sta  (${C64Zeropage.SCRATCH_W1}),y"
-                            "AY" -> " sta  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  lda  ${segment[1].callLabel}+$index1 |  ldy  #$index2 |  sta  (${C64Zeropage.SCRATCH_W1}),y"
-                            "XY" -> " stx  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  lda  ${segment[1].callLabel}+$index1 |  ldy  #$index2 |  sta  (${C64Zeropage.SCRATCH_W1}),y"
-                            else -> " lda  ${segment[1].callLabel}+$index1 |  sta  ${segment[3].callLabel}+$index2"
-                        }
-                }
+                " lda  ${segment[1].callLabel}+$index1 |  sta  ${segment[3].callLabel}+$index2"
             },
             // (u)bytearray2[index2] = (u)bytearray[indexvar]
             AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_BYTE)) { segment ->
@@ -1293,28 +1103,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.PUSH_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_BYTE)) { segment ->
                 val storeA = storeAToIndexedByVar(segment[2], segment[3])
                 val index1 = segment[0].arg!!.integerValue()
-                val loadValue = when (segment[1].callLabel) {
-                    "AX" -> """
-                            sta  ${C64Zeropage.SCRATCH_W1}
-                            stx  ${C64Zeropage.SCRATCH_W1 + 1}
-                            ldy  #$index1
-                            lda  (${C64Zeropage.SCRATCH_W1}),y
-                            """
-                    "AY" -> """
-                            sta  ${C64Zeropage.SCRATCH_W1}
-                            sty  ${C64Zeropage.SCRATCH_W1 + 1}
-                            ldy  #$index1
-                            lda  (${C64Zeropage.SCRATCH_W1}),y
-                            """
-                    "XY" -> """
-                            stx  ${C64Zeropage.SCRATCH_W1}
-                            sty  ${C64Zeropage.SCRATCH_W1 + 1}
-                            ldy  #$index1
-                            lda  (${C64Zeropage.SCRATCH_W1}),y
-                            """
-                    else -> " lda  ${segment[1].callLabel}+$index1 "
-                }
-                " $loadValue |  $storeA "
+                " lda  ${segment[1].callLabel}+$index1 |  $storeA"
             },
             // (u)bytearray2[idxvar2] = (u)bytearray1[idxvar1]
             AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.PUSH_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_BYTE)) { segment ->
@@ -1462,17 +1251,11 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             // var = ubytearray[index_byte]
             AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.UB2UWORD, Opcode.POP_VAR_WORD)) { segment ->
                 val index = segment[0].arg!!.integerValue().toHex()
-                when(segment[1].callLabel) {
-                    "AX" -> " sta  ${C64Zeropage.SCRATCH_W1} |  stx  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  sta  ${segment[3].callLabel} |  lda  #0 |  sta  ${segment[3].callLabel}+1"
-                    "AY" -> " sta  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  sta  ${segment[3].callLabel} |  lda  #0 |  sta  ${segment[3].callLabel}+1"
-                    "XY" -> " stx  ${C64Zeropage.SCRATCH_W1} |  sty  ${C64Zeropage.SCRATCH_W1+1} |  ldy  #$index |  lda  (${C64Zeropage.SCRATCH_W1}),y |  sta  ${segment[3].callLabel} |  lda  #0 |  sta  ${segment[3].callLabel}+1"
-                    else ->
-                        when(segment[3].callLabel) {
-                            "AX" -> " lda  ${segment[1].callLabel}+$index |  ldx  #0"
-                            "AY" -> " lda  ${segment[1].callLabel}+$index |  ldy  #0"
-                            "XY" -> " ldx  ${segment[1].callLabel}+$index |  ldy  #0"
-                            else -> " lda  ${segment[1].callLabel}+$index |  sta  ${segment[3].callLabel} |  lda  #0 |  sta  ${segment[3].callLabel}+1"
-                        }
+                when(segment[3].callLabel) {
+                    "AX" -> " lda  ${segment[1].callLabel}+$index |  ldx  #0"
+                    "AY" -> " lda  ${segment[1].callLabel}+$index |  ldy  #0"
+                    "XY" -> " ldx  ${segment[1].callLabel}+$index |  ldy  #0"
+                    else -> " lda  ${segment[1].callLabel}+$index |  sta  ${segment[3].callLabel} |  lda  #0 |  sta  ${segment[3].callLabel}+1"
                 }
             },
             // var = bytearray[index_byte]  (sign extended)

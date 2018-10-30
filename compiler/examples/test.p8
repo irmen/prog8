@@ -50,12 +50,12 @@ sub start() {
 
 ; all possible assignments to a BYTE VARIABLE (not array)
 
+
 byte_assignment_to_register:
     A = 42
     A = X
     A = ub2
     A = mubyte2
-    A = AY[4]
     A = ubarr1[2]
     A = string[4]
     A = string[X]
@@ -64,16 +64,12 @@ byte_assignment_to_register:
     A = ubarr1[X]
     A = ubarr1[b]
     A = ubarr1[ub]
-    A = AY[Y]
-    A = AY[b]
-    A = AY[ub]
 
 ubyte_assignment_to_ubytevar:
     ub = 42
     ub = X
     ub = ub2
     ub = mubyte2
-    ub = AY[4]
     ub = ubarr1[2]
     ub = string[4]
     ub = string[X]
@@ -82,9 +78,6 @@ ubyte_assignment_to_ubytevar:
     ub = ubarr1[X]
     ub = ubarr1[b]
     ub = ubarr1[ub]
-    ub = AY[Y]
-    ub = AY[b]
-    ub = AY[ub]
 
 
 ubyte_assignment_to_ubytemem:
@@ -92,7 +85,6 @@ ubyte_assignment_to_ubytemem:
     mubyte = X
     mubyte = ub2
     mubyte = mubyte2
-    mubyte = AY[4]
     mubyte = ubarr1[2]
     mubyte = string[4]
     mubyte = string[X]
@@ -101,9 +93,6 @@ ubyte_assignment_to_ubytemem:
     mubyte = ubarr1[X]
     mubyte = ubarr1[b]
     mubyte = ubarr1[ub]
-    mubyte = AY[Y]
-    mubyte = AY[b]
-    mubyte = AY[ub]
 
 byte_assignment_to_bytevar:
     b = -42
@@ -130,7 +119,6 @@ ubyte_assignment_to_ubytearray:
     ubarr2[3] = X
     ubarr2[3] = ub2
     ubarr2[3] = mubyte2
-    ubarr2[3] = AY[4]
     ubarr2[3] = ubarr1[2]
     ubarr2[3] = string[4]
     ubarr2[3] = string[X]
@@ -139,27 +127,11 @@ ubyte_assignment_to_ubytearray:
     ubarr2[3] = ubarr1[X]
     ubarr2[3] = ubarr1[b]
     ubarr2[3] = ubarr1[ub]
-    ubarr2[3] = AY[Y]
-    ubarr2[3] = AY[b]
-    ubarr2[3] = AY[ub]
-    AY[3] = 42
-    AY[3] = X
-    AY[3] = ub2
-    AY[3] = mubyte2
-    AY[3] = ubarr1[2]
-    AY[3] = string[4]
-    AY[3] = string[X]
-    AY[3] = string[b]
-    AY[3] = string[ub]
-    AY[3] = ubarr1[X]
-    AY[3] = ubarr1[b]
-    AY[3] = ubarr1[ub]
     string[4] = 42
     string[4] = 'B'
     string[4] = X
     string[4] = ub2
     string[4] = mubyte2
-    string[4] = AY[4]
     string[4] = ubarr1[2]
     string[4] = string[3]
 
@@ -168,7 +140,6 @@ ubyte_assignment_to_ubytearray:
     ubarr2[Y] = X
     ubarr2[Y] = ub2
     ubarr2[Y] = mubyte2
-    ubarr2[Y] = AY[4]
     ubarr2[Y] = ubarr1[2]
     ubarr2[Y] = string[4]
     ubarr2[Y] = string[X]
@@ -177,27 +148,11 @@ ubyte_assignment_to_ubytearray:
     ubarr2[Y] = ubarr1[X]
     ubarr2[Y] = ubarr1[b]
     ubarr2[Y] = ubarr1[ub]
-    ubarr2[Y] = AY[Y]
-    ubarr2[Y] = AY[b]
-    ubarr2[Y] = AY[ub]
-    AY[Y] = 42
-    AY[Y] = X
-    AY[Y] = ub2
-    AY[Y] = mubyte2
-    AY[Y] = ubarr1[2]
-    AY[Y] = string[4]
-    AY[Y] = string[X]
-    AY[Y] = string[b]
-    AY[Y] = string[ub]
-    AY[Y] = ubarr1[X]
-    AY[Y] = ubarr1[b]
-    AY[Y] = ubarr1[ub]
     string[Y] = 42
     string[Y] = 'B'
     string[Y] = X
     string[Y] = ub2
     string[Y] = mubyte2
-    string[Y] = AY[4]
     string[Y] = ubarr1[2]
     string[Y] = string[Y]
 
@@ -206,7 +161,6 @@ ubyte_assignment_to_ubytearray:
         ubarr2[ub2] = X
         ubarr2[ub2] = ub2
         ubarr2[ub2] = mubyte2
-        ubarr2[ub2] = AY[4]
         ubarr2[ub2] = ubarr1[2]
         ubarr2[ub2] = string[4]
         ubarr2[ub2] = string[X]
@@ -215,27 +169,11 @@ ubyte_assignment_to_ubytearray:
         ubarr2[ub2] = ubarr1[X]
         ubarr2[ub2] = ubarr1[b]
         ubarr2[ub2] = ubarr1[ub]
-        ubarr2[ub2] = AY[Y]
-        ubarr2[ub2] = AY[b]
-        ubarr2[ub2] = AY[ub]
-        AY[ub2] = 42
-        AY[ub2] = X
-        AY[ub2] = ub2
-        AY[ub2] = mubyte2
-        AY[ub2] = ubarr1[2]
-        AY[ub2] = string[4]
-        AY[ub2] = string[X]
-        AY[ub2] = string[b]
-        AY[ub2] = string[ub]
-        AY[ub2] = ubarr1[X]
-        AY[ub2] = ubarr1[b]
-        AY[ub2] = ubarr1[ub]
         string[ub2] = 42
         string[ub2] = 'B'
         string[ub2] = X
         string[ub2] = ub2
         string[ub2] = mubyte2
-        string[ub2] = AY[4]
         string[ub2] = ubarr1[2]
         string[ub2] = string[ub2]
 
@@ -243,7 +181,6 @@ ubyte_assignment_to_ubytearray:
     ubarr2[mubyte2] = X
     ubarr2[mubyte2] = ub2
     ubarr2[mubyte2] = mubyte2
-    ubarr2[mubyte2] = AY[4]
     ubarr2[mubyte2] = ubarr1[2]
     ubarr2[mubyte2] = string[4]
     ubarr2[mubyte2] = string[X]
@@ -252,27 +189,11 @@ ubyte_assignment_to_ubytearray:
     ubarr2[mubyte2] = ubarr1[X]
     ubarr2[mubyte2] = ubarr1[b]
     ubarr2[mubyte2] = ubarr1[ub]
-    ubarr2[mubyte2] = AY[Y]
-    ubarr2[mubyte2] = AY[b]
-    ubarr2[mubyte2] = AY[ub]
-    AY[mubyte2] = 42
-    AY[mubyte2] = X
-    AY[mubyte2] = ub2
-    AY[mubyte2] = mubyte2
-    AY[mubyte2] = ubarr1[2]
-    AY[mubyte2] = string[4]
-    AY[mubyte2] = string[X]
-    AY[mubyte2] = string[b]
-    AY[mubyte2] = string[ub]
-    AY[mubyte2] = ubarr1[X]
-    AY[mubyte2] = ubarr1[b]
-    AY[mubyte2] = ubarr1[ub]
     string[mubyte2] = 42
     string[mubyte2] = 'B'
     string[mubyte2] = X
     string[mubyte2] = ub2
     string[mubyte2] = mubyte2
-    string[mubyte2] = AY[4]
     string[mubyte2] = ubarr1[2]
     string[mubyte2] = string[mubyte2]
 

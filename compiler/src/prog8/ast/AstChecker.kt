@@ -738,9 +738,8 @@ class AstChecker(private val namespace: INameScope,
                 }
             } else
                 checkResult.add(SyntaxError("indexing requires a variable to act upon", arrayIndexedExpression.position))
-        } else if(reg==Register.A || reg==Register.X || reg==Register.Y) {
-            checkResult.add(SyntaxError("indexing on registers requires register pair variable", arrayIndexedExpression.position))
-        }
+        } else
+            checkResult.add(SyntaxError("indexing on register variable is not possible, use a regular array variable instead", arrayIndexedExpression.position))
 
         // check index value 0..255
         val regx = (arrayIndexedExpression.arrayspec.x as? RegisterExpr)?.register
