@@ -1055,9 +1055,9 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 // store A in target
                 val storeByte = when(segment[2].callLabel) {
                     "A" -> ""
-                    "X" -> " tax"
-                    "Y" -> " tya"
-                    else -> " sta  ${segment[2].callLabel}"
+                    "X" -> "tax"
+                    "Y" -> "tya"
+                    else -> "sta  ${segment[2].callLabel}"
                 }
 
                 " $setupPtr | $loadByte | $storeByte"

@@ -150,7 +150,7 @@ class ScreenDialog : JFrame() {
     }
 
     fun start() {
-        val repaintTimer = Timer(1000 / 60) { _ -> repaint() }
+        val repaintTimer = Timer(1000 / 60) { repaint() }
         repaintTimer.start()
     }
 }
