@@ -28,10 +28,6 @@ sub start() {
     uword[5] uwarr2
     float[5] farr1
     float[5] farr2
-    byte[2,3] bmatrix1
-    byte[2,3] bmatrix2
-    ubyte[2,3] ubmatrix1
-    ubyte[2,3] ubmatrix2
 
     memory byte mbyte = $c000
     memory byte mbyte2 = $d000
@@ -71,16 +67,6 @@ byte_assignment_to_register:
     A = AY[Y]
     A = AY[b]
     A = AY[ub]
-    A = ubmatrix1[1,2]
-    ;A = ubmatrix1[1,Y]  ;  todo via evaluation
-    ;A = ubmatrix1[X,2]  ;  todo via evaluation
-    ;A = ubmatrix1[X,Y]  ;  todo via evaluation
-    ;A = ubmatrix1[1,b2]  ;  todo via evaluation
-    ;A = ubmatrix1[X,b2]  ;  todo via evaluation
-    ;A = ubmatrix1[b2,2]  ;  todo via evaluation
-    ;A = ubmatrix1[b2,X]  ;  todo via evaluation
-    ;A = ubmatrix1[b,b2]  ;  todo via evaluation
-    ;A = ubmatrix1[ub,ub2]  ;  todo via evaluation
 
 ubyte_assignment_to_ubytevar:
     ub = 42
@@ -99,16 +85,6 @@ ubyte_assignment_to_ubytevar:
     ub = AY[Y]
     ub = AY[b]
     ub = AY[ub]
-    ub = ubmatrix1[1,2]
-    ;ub = ubmatrix1[1,Y]  ;  todo via evaluation
-    ;ub = ubmatrix1[X,2]  ;  todo via evaluation
-    ;ub = ubmatrix1[X,Y]  ;  todo via evaluation
-    ;ub = ubmatrix1[1,b2]  ;  todo via evaluation
-    ;ub = ubmatrix1[X,b2]  ;  todo via evaluation
-    ;ub = ubmatrix1[b2,2]  ;  todo via evaluation
-    ;ub = ubmatrix1[b2,X]  ;  todo via evaluation
-    ;ub = ubmatrix1[b,b2]  ;  todo via evaluation
-    ;ub = ubmatrix1[ub,ub2]  ;  todo via evaluation
 
 
 ubyte_assignment_to_ubytemem:
@@ -128,16 +104,6 @@ ubyte_assignment_to_ubytemem:
     mubyte = AY[Y]
     mubyte = AY[b]
     mubyte = AY[ub]
-    mubyte = ubmatrix1[1,2]
-    ;mubyte = ubmatrix1[1,Y]  ;  todo via evaluation
-    ;mubyte = ubmatrix1[X,2]  ;  todo via evaluation
-    ;mubyte = ubmatrix1[X,Y]  ;  todo via evaluation
-    ;mubyte = ubmatrix1[1,b2]  ;  todo via evaluation
-    ;mubyte = ubmatrix1[X,b2]  ;  todo via evaluation
-    ;mubyte = ubmatrix1[b2,2]  ;  todo via evaluation
-    ;mubyte = ubmatrix1[b2,X]  ;  todo via evaluation
-    ;mubyte = ubmatrix1[b,b2]  ;  todo via evaluation
-    ;mubyte = ubmatrix1[ub,ub2]  ;  todo via evaluation
 
 byte_assignment_to_bytevar:
     b = -42
@@ -147,16 +113,6 @@ byte_assignment_to_bytevar:
     b = barr1[X]
     b = barr1[b]
     b = barr1[ub]
-    b = bmatrix1[1,2]
-    ;b = bmatrix1[1,Y]  ;  todo via evaluation
-    ;b = bmatrix1[X,2]  ;  todo via evaluation
-    ;b = bmatrix1[X,Y]  ;  todo via evaluation
-    ;b = bmatrix1[1,b2]  ;  todo via evaluation
-    ;b = bmatrix1[X,b2]  ;  todo via evaluation
-    ;b = bmatrix1[b2,2]  ;  todo via evaluation
-    ;b = bmatrix1[b2,X]  ;  todo via evaluation
-    ;b = bmatrix1[b,b2]  ;  todo via evaluation
-    ;b = bmatrix1[ub,ub2]  ;  todo via evaluation
 
 
 byte_assignment_to_bytemem:
@@ -167,16 +123,6 @@ byte_assignment_to_bytemem:
     mbyte = barr1[X]
     mbyte = barr1[b]
     mbyte = barr1[ub]
-    mbyte = bmatrix1[1,2]
-    ;mbyte = bmatrix1[1,Y]  ;  todo via evaluation
-    ;mbyte = bmatrix1[X,2]  ;  todo via evaluation
-    ;mbyte = bmatrix1[X,Y]  ;  todo via evaluation
-    ;mbyte = bmatrix1[1,b2]  ;  todo via evaluation
-    ;mbyte = bmatrix1[X,b2]  ;  todo via evaluation
-    ;mbyte = bmatrix1[b2,2]  ;  todo via evaluation
-    ;mbyte = bmatrix1[b2,X]  ;  todo via evaluation
-    ;mbyte = bmatrix1[b,b2]  ;  todo via evaluation
-    ;mbyte = bmatrix1[ub,ub2]  ;  todo via evaluation
 
 
 ubyte_assignment_to_ubytearray:
@@ -208,7 +154,6 @@ ubyte_assignment_to_ubytearray:
     AY[3] = ubarr1[X]
     AY[3] = ubarr1[b]
     AY[3] = ubarr1[ub]
-    AY[3] = ubmatrix1[1,2]
     string[4] = 42
     string[4] = 'B'
     string[4] = X
@@ -217,16 +162,6 @@ ubyte_assignment_to_ubytearray:
     string[4] = AY[4]
     string[4] = ubarr1[2]
     string[4] = string[3]
-    ubarr2[3] = ubmatrix1[1,2]
-    ;ubarr2[3] = ubmatrix1[1,Y]  ;  todo via evaluation
-    ;ubarr2[3] = ubmatrix1[X,2]  ;  todo via evaluation
-    ;ubarr2[3] = ubmatrix1[X,Y]  ;  todo via evaluation
-    ;ubarr2[3] = ubmatrix1[1,b2]  ;  todo via evaluation
-    ;ubarr2[3] = ubmatrix1[X,b2]  ;  todo via evaluation
-    ;ubarr2[3] = ubmatrix1[b2,2]  ;  todo via evaluation
-    ;ubarr2[3] = ubmatrix1[b2,X]  ;  todo via evaluation
-    ;ubarr2[3] = ubmatrix1[b,b2]  ;  todo via evaluation
-    ;ubarr2[3] = ubmatrix1[ub,ub2]  ;  todo via evaluation
 
 
     ubarr2[Y] = 42
@@ -257,7 +192,6 @@ ubyte_assignment_to_ubytearray:
     AY[Y] = ubarr1[X]
     AY[Y] = ubarr1[b]
     AY[Y] = ubarr1[ub]
-    AY[Y] = ubmatrix1[1,2]
     string[Y] = 42
     string[Y] = 'B'
     string[Y] = X
@@ -266,18 +200,8 @@ ubyte_assignment_to_ubytearray:
     string[Y] = AY[4]
     string[Y] = ubarr1[2]
     string[Y] = string[Y]
-    ubarr2[Y] = ubmatrix1[1,2]
-    ;ubarr2[Y] = ubmatrix1[1,Y]  ;  todo via evaluation
-    ;ubarr2[Y] = ubmatrix1[X,2]  ;  todo via evaluation
-    ;ubarr2[Y] = ubmatrix1[X,Y]  ;  todo via evaluation
-    ;ubarr2[Y] = ubmatrix1[1,b2]  ;  todo via evaluation
-    ;ubarr2[Y] = ubmatrix1[X,b2]  ;  todo via evaluation
-    ;ubarr2[Y] = ubmatrix1[b2,2]  ;  todo via evaluation
-    ;ubarr2[Y] = ubmatrix1[b2,X]  ;  todo via evaluation
-    ;ubarr2[Y] = ubmatrix1[b,b2]  ;  todo via evaluation
-    ;ubarr2[Y] = ubmatrix1[ub,ub2]  ;  todo via evaluation
-    
-    
+
+
         ubarr2[ub2] = 42
         ubarr2[ub2] = X
         ubarr2[ub2] = ub2
@@ -306,7 +230,6 @@ ubyte_assignment_to_ubytearray:
         AY[ub2] = ubarr1[X]
         AY[ub2] = ubarr1[b]
         AY[ub2] = ubarr1[ub]
-        AY[ub2] = ubmatrix1[1,2]
         string[ub2] = 42
         string[ub2] = 'B'
         string[ub2] = X
@@ -315,16 +238,6 @@ ubyte_assignment_to_ubytearray:
         string[ub2] = AY[4]
         string[ub2] = ubarr1[2]
         string[ub2] = string[ub2]
-        ubarr2[ub2] = ubmatrix1[1,2]
-        ;ubarr2[ub2] = ubmatrix1[1,Y]  ;  todo via evaluation
-        ;ubarr2[ub2] = ubmatrix1[X,2]  ;  todo via evaluation
-        ;ubarr2[ub2] = ubmatrix1[X,Y]  ;  todo via evaluation
-        ;ubarr2[ub2] = ubmatrix1[1,b2]  ;  todo via evaluation
-        ;ubarr2[ub2] = ubmatrix1[X,b2]  ;  todo via evaluation
-        ;ubarr2[ub2] = ubmatrix1[b2,2]  ;  todo via evaluation
-        ;ubarr2[ub2] = ubmatrix1[b2,X]  ;  todo via evaluation
-        ;ubarr2[ub2] = ubmatrix1[b,b2]  ;  todo via evaluation
-        ;ubarr2[ub2] = ubmatrix1[ub,ub2]  ;  todo via evaluation
 
     ubarr2[mubyte2] = 42
     ubarr2[mubyte2] = X
@@ -354,7 +267,6 @@ ubyte_assignment_to_ubytearray:
     AY[mubyte2] = ubarr1[X]
     AY[mubyte2] = ubarr1[b]
     AY[mubyte2] = ubarr1[ub]
-    AY[mubyte2] = ubmatrix1[1,2]
     string[mubyte2] = 42
     string[mubyte2] = 'B'
     string[mubyte2] = X
@@ -363,21 +275,11 @@ ubyte_assignment_to_ubytearray:
     string[mubyte2] = AY[4]
     string[mubyte2] = ubarr1[2]
     string[mubyte2] = string[mubyte2]
-    ubarr2[mubyte2] = ubmatrix1[1,2]
-    ;ubarr2[mubyte2] = ubmatrix1[1,Y]  ;  todo via evaluation
-    ;ubarr2[mubyte2] = ubmatrix1[X,2]  ;  todo via evaluation
-    ;ubarr2[mubyte2] = ubmatrix1[X,Y]  ;  todo via evaluation
-    ;ubarr2[mubyte2] = ubmatrix1[1,b2]  ;  todo via evaluation
-    ;ubarr2[mubyte2] = ubmatrix1[X,b2]  ;  todo via evaluation
-    ;ubarr2[mubyte2] = ubmatrix1[b2,2]  ;  todo via evaluation
-    ;ubarr2[mubyte2] = ubmatrix1[b2,X]  ;  todo via evaluation
-    ;ubarr2[mubyte2] = ubmatrix1[b,b2]  ;  todo via evaluation
-    ;ubarr2[mubyte2] = ubmatrix1[ub,ub2]  ;  todo via evaluation
 
     ubarr1[ubarr2[X]] = ubarr2[ubarr1[Y]]   ; todo via evaluation
 
 
-        
+
 byte_assignment_to_bytearray:
 ; @todo
 
@@ -395,7 +297,6 @@ byte_assignment_to_bytearray:
 ;    AY = ub
 ;    AY = mubyte
 ;    AY = ubarr1[2]
-;    AY = ubmatrix1[1,2]
 ;    AY = string[4]
 ;    AY = uw
 ;    AY = muword
@@ -417,8 +318,6 @@ byte_assignment_to_bytearray:
 ;    w = barr1[2]
 ;    w = ubarr1[2]
 ;    w = warr1[2]
-;    w = bmatrix1[1,2]
-;    w = ubmatrix1[1,2]
 ;    w = string[4]
 ;    w = AY[4]
 ;
@@ -433,7 +332,6 @@ byte_assignment_to_bytearray:
 ;    uw = muword
 ;    uw = ubarr1[2]
 ;    uw = uwarr1[2]
-;    uw = ubmatrix1[1,2]
 ;    uw = string[4]
 ;    uw = AY[4]
 ;
@@ -457,8 +355,6 @@ byte_assignment_to_bytearray:
 ;    fl1 = ubarr1[2]
 ;    fl1 = warr1[2]
 ;    fl1 = uwarr1[2]
-;    fl1 = bmatrix1[1,2]
-;    fl1 = ubmatrix1[1,2]
 ;    fl1 = string[4]
 
     return

@@ -217,7 +217,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     for (chunk in bytes.chunked(16))
                         out("\t.byte  " + chunk.joinToString())
                 }
-                DataType.ARRAY_UB, DataType.MATRIX_UB -> {
+                DataType.ARRAY_UB -> {
                     // unsigned integer byte arrayspec
                     val data = makeArrayFillDataUnsigned(v.second)
                     if (data.size <= 16)
@@ -228,7 +228,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                             out("\t.byte  " + chunk.joinToString())
                     }
                 }
-                DataType.ARRAY_B, DataType.MATRIX_B -> {
+                DataType.ARRAY_B -> {
                     // signed integer byte arrayspec
                     val data = makeArrayFillDataSigned(v.second)
                     if (data.size <= 16)
@@ -299,7 +299,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 
     private fun makeArrayFillDataUnsigned(value: Value): List<String> {
         val array = heap.get(value.heapId).array!!
-        return if (value.type == DataType.ARRAY_UB || value.type == DataType.ARRAY_UW || value.type == DataType.MATRIX_UB)
+        return if (value.type == DataType.ARRAY_UB || value.type == DataType.ARRAY_UW)
             array.map { "$"+it.toString(16).padStart(2, '0') }
         else
             throw AssemblyError("invalid arrayspec type")
@@ -307,7 +307,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 
     private fun makeArrayFillDataSigned(value: Value): List<String> {
         val array = heap.get(value.heapId).array!!
-        return if (value.type == DataType.ARRAY_B || value.type == DataType.ARRAY_W || value.type == DataType.MATRIX_B) {
+        return if (value.type == DataType.ARRAY_B || value.type == DataType.ARRAY_W) {
             array.map {
                 if(it>=0)
                     "$"+it.toString(16).padStart(2, '0')

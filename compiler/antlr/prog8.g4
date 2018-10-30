@@ -105,7 +105,7 @@ memoryvardecl: 'memory' varinitializer;
 
 datatype:  'ubyte' | 'byte' | 'uword' | 'word' | 'float' | 'str' | 'str_p' | 'str_s' | 'str_ps' ;
 
-arrayspec:  '[' expression (',' expression)? ']' ;
+arrayspec:  '[' expression ']' ;
 
 assignment :  assign_target '=' expression ;
 

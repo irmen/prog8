@@ -25,9 +25,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
 
     override fun process(decl: VarDecl): IStatement {
         // the initializer value can't refer to the variable itself (recursive definition)
-        if(decl.value?.referencesIdentifier(decl.name) == true||
-                decl.arrayspec?.x?.referencesIdentifier(decl.name) == true ||
-                decl.arrayspec?.y?.referencesIdentifier(decl.name) == true) {
+        if(decl.value?.referencesIdentifier(decl.name) == true || decl.arrayspec?.x?.referencesIdentifier(decl.name) == true) {
             errors.add(ExpressionError("recursive var declaration", decl.position))
             return decl
         }
@@ -53,7 +51,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                         decl.value = newValue
                     }
                 }
-                DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.MATRIX_UB, DataType.MATRIX_B -> {
+                DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
                     val litval = decl.value as? LiteralValue
                     if(litval?.type==DataType.FLOAT)
                         errors.add(ExpressionError("arrayspec requires only integers here", litval.position))
@@ -61,10 +59,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                     if(litval!=null && litval.isArray) {
                         // arrayspec initializer value is an arrayspec already, keep as-is (or convert to WORDs if needed)
                         if(litval.heapId!=null) {
-                            if (decl.datatype == DataType.MATRIX_UB && litval.type != DataType.MATRIX_UB) {
-                                val array = heap.get(litval.heapId).copy(type = DataType.MATRIX_UB)
-                                heap.update(litval.heapId, array)
-                            } else if(decl.datatype==DataType.ARRAY_UW && litval.type == DataType.ARRAY_UB) {
+                            if(decl.datatype==DataType.ARRAY_UW && litval.type == DataType.ARRAY_UB) {
                                 val array = heap.get(litval.heapId)
                                 if(array.array!=null) {
                                     heap.update(litval.heapId, HeapValues.HeapValue(DataType.ARRAY_UW, null, array.array, null))
@@ -82,11 +77,11 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                         // arrayspec initializer is empty or a single int, and we know the size; create the arrayspec.
                         val fillvalue = if (litval == null) 0 else litval.asIntegerValue ?: 0
                         when(decl.datatype){
-                            DataType.ARRAY_UB, DataType.MATRIX_UB -> {
+                            DataType.ARRAY_UB -> {
                                 if(fillvalue !in 0..255)
                                     errors.add(ExpressionError("ubyte value overflow", litval?.position ?: decl.position))
                             }
-                            DataType.ARRAY_B, DataType.MATRIX_B -> {
+                            DataType.ARRAY_B -> {
                                 if(fillvalue !in -128..127)
                                     errors.add(ExpressionError("byte value overflow", litval?.position ?: decl.position))
                             }
@@ -492,7 +487,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
         val array: Array<IExpression> = arraylit.arrayvalue!!.map { it.process(this) }.toTypedArray()
         val allElementsAreConstant = array.fold(true) { c, expr-> c and (expr is LiteralValue)}
         if(!allElementsAreConstant) {
-            addError(ExpressionError("arrayspec/matrix literal can contain only constant values", arraylit.position))
+            addError(ExpressionError("array literal can contain only constant values", arraylit.position))
             return arraylit
         } else {
             val valuesInArray = array.map { it.constValue(namespace, heap)!!.asNumericValue!! }
@@ -529,33 +524,12 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                 DataType.ARRAY_UB,
                 DataType.ARRAY_B,
                 DataType.ARRAY_UW,
-                DataType.ARRAY_W,
-                DataType.MATRIX_UB,
-                DataType.MATRIX_B -> heap.add(arrayDt, integerArray)
+                DataType.ARRAY_W -> heap.add(arrayDt, integerArray)
                 DataType.ARRAY_F -> heap.add(arrayDt, doubleArray)
                 else -> throw CompilerException("invalid arrayspec type")
             }
             return LiteralValue(arrayDt, heapId = heapId, position = arraylit.position)
         }
-    }
-
-    override fun process(arrayIndexedExpression: ArrayIndexedExpression): IExpression {
-        if(arrayIndexedExpression.arrayspec.y!=null) {
-            if(arrayIndexedExpression.arrayspec.size()!=null) {
-                // both x and y are known
-                // calculate the 2-dimension index i = y*columns + x
-                if(arrayIndexedExpression.identifier!=null) {
-                    val x = (arrayIndexedExpression.arrayspec.x as LiteralValue).asIntegerValue!!
-                    val y = (arrayIndexedExpression.arrayspec.y as LiteralValue).asIntegerValue!!
-                    val variable = arrayIndexedExpression.identifier.targetStatement(namespace) as? VarDecl
-                    if(variable!=null) {
-                        val index = x + y * (variable.arrayspec!!.x as LiteralValue).asIntegerValue!!
-                        arrayIndexedExpression.arrayspec = ArraySpec(LiteralValue.optimalInteger(index, arrayIndexedExpression.arrayspec.position), null, arrayIndexedExpression.arrayspec.position)
-                    }
-                }
-            }
-        }
-        return super.process(arrayIndexedExpression)
     }
 
     override fun process(assignment: Assignment): IStatement {

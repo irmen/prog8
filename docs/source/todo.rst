@@ -14,24 +14,15 @@ Allows us to create pre calculated sine tables and such.
 Memory Block Operations
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-@todo matrix,list,string memory block operations:
-
-- matrix type operations (whole matrix, per row, per column, individual row/column)
-  operations: set, get, copy (from another matrix with the same dimensions, or list with same length),
-  shift-N (up, down, left, right, and diagonals, meant for scrolling)
-  rotate-N (up, down, left, right, and diagonals, meant for scrolling)
-  clear (set whole matrix to the given value, default 0)
+@todo list,string memory block operations:
 
 - list operations (whole list, individual element)
   operations: set, get, copy (from another list with the same length), shift-N(left,right), rotate-N(left,right)
   clear (set whole list to the given value, default 0)
 
-- list and matrix operations ofcourse work identical on vars and on memory mapped vars of these types.
+- list operations ofcourse work identical on vars and on memory mapped vars of these types.
 
 - strings: identical operations as on lists.
-
-- matrix with row-interleave can only be a memory mapped variable and can be used to directly
-  access a rectangular area within another piece of memory - such as a rectangle on the (character) screen
 
 these should call (or emit inline) optimized pieces of assembly code, so they run as fast as possible
 

@@ -1288,8 +1288,8 @@ class TestStackVmOpcodes {
             DataType.UWORD, DataType.WORD -> Opcode.PUSH_WORD
             DataType.FLOAT -> Opcode.PUSH_FLOAT
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
-            DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F, DataType.MATRIX_UB,
-            DataType.ARRAY_B, DataType.ARRAY_W, DataType.MATRIX_B -> Opcode.PUSH_WORD
+            DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F,
+            DataType.ARRAY_B, DataType.ARRAY_W -> Opcode.PUSH_WORD
         }
     }
 

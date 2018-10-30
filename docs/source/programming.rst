@@ -194,17 +194,13 @@ Values will usually be part of an expression or assignment statement::
     byte  counter  = 42   ; variable of size 8 bits, with initial value 42
 
 
-Array and Matrix (2-dimensional array) types are also supported.
-Arrays can be made of bytes, words and floats. Matrixes can oly be made of bytes::
+Array types are also supported. They can be made of bytes, words and floats::
 
     byte[4]  array = [1, 2, 3, 4]     ; initialize the array
     byte[99] array = 255              ; initialize array with all 255's [255, 255, 255, 255, ...]
     byte[100] array = 100 to 199      ; initialize array with [100, 101, ..., 198, 199]
-    byte[2,3] matrix = [1,2,3,4,5,6]  ; a 2*3 matrix with value |(1,2)  (3,4)  (5,6)|
-    ubyte[2,3] matrix = 255           ; a matrix of 2*3=6 unsigned bytes all with value 255
 
     value = array[3]            ; the fourth value in the array (index is 0-based)
-    value = matrix[4,2]         ; the byte at the 5th column and 3rd row in the matrix
     char = string[4]            ; the fifth character (=byte) in the string
 
 .. note::
@@ -285,7 +281,7 @@ with has the PETSCII value of that single character.
     It's probably best that you don't change strings after they're created.
     This is because if your program exits and is restarted (without loading it again),
     it will then operate on the changed strings instead of the original ones.
-    The same is true for arrays and matrixes by the way.
+    The same is true for arrays by the way.
 
 
 Floating point numbers
@@ -547,19 +543,19 @@ deg(x)
 	Radians to degrees.
 
 max(x)
-	Maximum of the values in the non-scalar (array or matrix) value x
+	Maximum of the values in the array value x
 
 min(x)
-	Minimum of the values in the non-scalar (array or matrix) value x
+	Minimum of the values in the array value x
 
 avg(x)
-	Average of the values in the non-scalar (array or matrix) value x
+	Average of the values in the array value x
 
 sum(x)
-	Sum of the values in the non-scalar (array or matrix) value x
+	Sum of the values in the array value x
 
 len(x)
-    Number of values in the array or matrix value x, or the number of characters in a string (excluding the size or 0-byte).
+    Number of values in the array value x, or the number of characters in a string (excluding the size or 0-byte).
     Note: this can be different from the number of *bytes* in memory if the datatype isn't a byte.
 
 lsb(x)
@@ -587,10 +583,10 @@ ub2b(x)
     Convert an unsigned byte to a signed byte. Uses 2's complement to deal with negative numbers.
 
 any(x)
-    1 ('true') if any of the values in the non-scalar (array or matrix) value x is 'true' (not zero), else 0 ('false')
+    1 ('true') if any of the values in the array value x is 'true' (not zero), else 0 ('false')
 
 all(x)
-	1 ('true') if all of the values in the non-scalar (array or matrix) value x are 'true' (not zero), else 0 ('false')
+	1 ('true') if all of the values in the array value x are 'true' (not zero), else 0 ('false')
 
 rnd()
     returns a pseudo-random byte from 0..255

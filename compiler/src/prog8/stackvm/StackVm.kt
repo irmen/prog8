@@ -1180,10 +1180,10 @@ class StackVm(private var traceOutputFile: String?) {
                     // get indexed byte element from the arrayspec
                     val array = heap.get(variable.heapId)
                     when(array.type) {
-                        DataType.ARRAY_UB, DataType.MATRIX_UB -> evalstack.push(Value(DataType.UBYTE, array.array!![index]))
-                        DataType.ARRAY_B, DataType.MATRIX_B -> evalstack.push(Value(DataType.BYTE, array.array!![index]))
+                        DataType.ARRAY_UB-> evalstack.push(Value(DataType.UBYTE, array.array!![index]))
+                        DataType.ARRAY_B -> evalstack.push(Value(DataType.BYTE, array.array!![index]))
                         DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> evalstack.push(Value(DataType.UBYTE, Petscii.encodePetscii(array.str!![index].toString(), true)[0]))
-                        else -> throw VmExecutionException("not a proper arrayspec/matrix/string variable with byte elements")
+                        else -> throw VmExecutionException("not a proper array/string variable with byte elements")
                     }
                 }
             }
@@ -1232,8 +1232,8 @@ class StackVm(private var traceOutputFile: String?) {
                     // set indexed byte element in the arrayspec
                     val array = heap.get(variable.heapId)
                     when(array.type) {
-                        DataType.ARRAY_UB, DataType.MATRIX_UB -> array.array!![index] = value.integerValue()
-                        DataType.ARRAY_B, DataType.MATRIX_B -> array.array!![index] = value.integerValue()
+                        DataType.ARRAY_UB -> array.array!![index] = value.integerValue()
+                        DataType.ARRAY_B -> array.array!![index] = value.integerValue()
                         DataType.STR,
                         DataType.STR_P,
                         DataType.STR_S,
@@ -1242,7 +1242,7 @@ class StackVm(private var traceOutputFile: String?) {
                             chars[index] = Petscii.decodePetscii(listOf(value.integerValue().toShort()), true)[0]
                             heap.update(variable.heapId, chars.joinToString(""))
                         }
-                        else -> throw VmExecutionException("not a proper arrayspec/matrix/string var with byte elements")
+                        else -> throw VmExecutionException("not a proper array/string var with byte elements")
                     }
                 }
             }
@@ -1337,7 +1337,6 @@ class StackVm(private var traceOutputFile: String?) {
                     DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT -> print(value.numericValue())
                     DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> print(heap.get(value.heapId).str)
                     DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> print(heap.get(value.heapId).array!!.toList())
-                    DataType.MATRIX_UB, DataType.MATRIX_B -> print(heap.get(value.heapId).array!!.toList())
                     DataType.ARRAY_F -> print(heap.get(value.heapId).doubleArray!!.toList())
                 }
             }
@@ -1417,8 +1416,8 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(iterable.heapId)
                 val resultDt = when(iterable.type) {
                     DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> DataType.UBYTE
-                    DataType.ARRAY_UB, DataType.MATRIX_UB -> DataType.UBYTE
-                    DataType.ARRAY_B, DataType.MATRIX_B -> DataType.BYTE
+                    DataType.ARRAY_UB -> DataType.UBYTE
+                    DataType.ARRAY_B -> DataType.BYTE
                     DataType.ARRAY_UW -> DataType.UWORD
                     DataType.ARRAY_W -> DataType.WORD
                     DataType.ARRAY_F -> DataType.FLOAT
@@ -1437,8 +1436,8 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(iterable.heapId)
                 val resultDt = when(iterable.type) {
                     DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> DataType.UBYTE
-                    DataType.ARRAY_UB, DataType.MATRIX_UB -> DataType.UBYTE
-                    DataType.ARRAY_B, DataType.MATRIX_B -> DataType.BYTE
+                    DataType.ARRAY_UB -> DataType.UBYTE
+                    DataType.ARRAY_B -> DataType.BYTE
                     DataType.ARRAY_UW -> DataType.UWORD
                     DataType.ARRAY_W -> DataType.WORD
                     DataType.ARRAY_F -> DataType.FLOAT

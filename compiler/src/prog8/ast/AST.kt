@@ -30,9 +30,7 @@ enum class DataType {
     ARRAY_B,
     ARRAY_UW,
     ARRAY_W,
-    ARRAY_F,
-    MATRIX_UB,
-    MATRIX_B
+    ARRAY_F
 }
 
 enum class Register {
@@ -70,12 +68,12 @@ val IterableDatatypes = setOf(
         DataType.STR, DataType.STR_S,       // note: the STR_P/STR_PS types aren't iterable because they store their length as the first byte
         DataType.ARRAY_UB, DataType.ARRAY_B,
         DataType.ARRAY_UW, DataType.ARRAY_W,
-        DataType.ARRAY_F, DataType.MATRIX_UB, DataType.MATRIX_B)
+        DataType.ARRAY_F)
 
 val StringDatatypes = setOf(DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS)
 val NumericDatatypes = setOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT)
 val IntegerDatatypes = setOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD)
-val ArrayDatatypes = setOf(DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F, DataType.MATRIX_UB, DataType.MATRIX_B)
+val ArrayDatatypes = setOf(DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F)
 
 
 class FatalAstException (override var message: String) : Exception(message)
@@ -553,40 +551,30 @@ class Break(override val position: Position) : IStatement {
 }
 
 
-class ArraySpec(var x: IExpression, var y: IExpression?, override val position: Position) : Node {
+class ArraySpec(var x: IExpression, override val position: Position) : Node {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
         x.linkParents(this)
-        y?.linkParents(this)
     }
 
     companion object {
         fun forArray(v: LiteralValue, heap: HeapValues): ArraySpec {
             val arraySize = v.arrayvalue?.size ?: heap.get(v.heapId!!).arraysize
-            return ArraySpec(LiteralValue.optimalNumeric(arraySize, v.position), null, v.position)
+            return ArraySpec(LiteralValue.optimalNumeric(arraySize, v.position), v.position)
         }
     }
 
     fun process(processor: IAstProcessor) {
         x = x.process(processor)
-        y = y?.process(processor)
     }
 
     override fun toString(): String {
-        return("ArraySpec(x: $x, y: $y, pos=$position)")
+        return("ArraySpec($x, pos=$position)")
     }
 
-    fun size() : Int? {
-        if(y==null) {
-            return (x as? LiteralValue)?.asIntegerValue
-        } else {
-            val sizeX = (x as? LiteralValue)?.asIntegerValue ?: return null
-            val sizeY = (y as? LiteralValue)?.asIntegerValue ?: return null
-            return sizeX * sizeY
-        }
-    }
+    fun size() = (x as? LiteralValue)?.asIntegerValue
 }
 
 
@@ -605,29 +593,19 @@ class VarDecl(val type: VarDeclType,
     override lateinit var parent: Node
 
     val datatypeErrors = mutableListOf<SyntaxError>()       // don't crash at init time, report them in the AstChecker
-    val datatype = when {
-        arrayspec == null -> declaredDatatype
-        arrayspec.y != null -> when (declaredDatatype) {
-            DataType.UBYTE -> DataType.MATRIX_UB
-            DataType.BYTE -> DataType.MATRIX_B
-            else -> {
-                datatypeErrors.add(SyntaxError("matrix can only contain bytes", position))
-                DataType.UBYTE
+    val datatype =
+            if (arrayspec == null) declaredDatatype
+            else when (declaredDatatype) {
+                DataType.UBYTE -> DataType.ARRAY_UB
+                DataType.BYTE -> DataType.ARRAY_B
+                DataType.UWORD -> DataType.ARRAY_UW
+                DataType.WORD -> DataType.ARRAY_W
+                DataType.FLOAT -> DataType.ARRAY_F
+                else -> {
+                    datatypeErrors.add(SyntaxError("array can only contain bytes/words/floats", position))
+                    DataType.UBYTE
+                }
             }
-        }
-        else -> when (declaredDatatype) {
-            DataType.UBYTE -> DataType.ARRAY_UB
-            DataType.BYTE -> DataType.ARRAY_B
-            DataType.UWORD -> DataType.ARRAY_UW
-            DataType.WORD -> DataType.ARRAY_W
-            DataType.FLOAT -> DataType.ARRAY_F
-            else -> {
-                datatypeErrors.add(SyntaxError("arrayspec can only contain bytes/words/floats", position))
-                DataType.UBYTE
-            }
-        }
-    }
-
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -920,8 +898,8 @@ class ArrayIndexedExpression(val identifier: IdentifierReference?,
             return when (target.datatype) {
                 in NumericDatatypes -> null
                 in StringDatatypes -> DataType.UBYTE
-                DataType.ARRAY_UB, DataType.MATRIX_UB -> DataType.UBYTE
-                DataType.ARRAY_B, DataType.MATRIX_B -> DataType.BYTE
+                DataType.ARRAY_UB -> DataType.UBYTE
+                DataType.ARRAY_B -> DataType.BYTE
                 DataType.ARRAY_UW -> DataType.UWORD
                 DataType.ARRAY_W -> DataType.WORD
                 DataType.ARRAY_F -> DataType.FLOAT
@@ -1052,10 +1030,6 @@ class LiteralValue(val type: DataType,
             DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F -> {
                 if(heapId!=null) "arrayspec:#$heapId"
                 else "arrayspec:$arrayvalue"
-            }
-            DataType.MATRIX_UB, DataType.MATRIX_B -> {
-                if(heapId!=null) "matrix:#$heapId"
-                else "matrix:$arrayvalue"
             }
         }
         return "LiteralValue($vstr)"
@@ -1865,7 +1839,7 @@ private fun prog8Parser.DatatypeContext.toAst() = DataType.valueOf(text.toUpperC
 
 
 private fun prog8Parser.ArrayspecContext.toAst() : ArraySpec =
-        ArraySpec(expression(0).toAst(), if (expression().size > 1) expression(1).toAst() else null, toPosition())
+        ArraySpec(expression().toAst(), toPosition())
 
 
 private fun prog8Parser.DirectiveContext.toAst() : Directive =

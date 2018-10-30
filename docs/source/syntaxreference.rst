@@ -219,8 +219,6 @@ Various examples::
     word        address = #counter
     byte[5]     values  = [11, 22, 33, 44, 55]
     byte[5]     values  = 255           ; initialize with five 255 bytes
-    byte[5][6]  empty_matrix = 0        ; initialize with 30 zero bytes
-    byte[2][3]  other_matrix = [1,2,3,4,5,6]   ; 2*3 matrix with value | (1,2)  (3,4)  (5,6) |
 
 
 
@@ -246,8 +244,6 @@ type identifier  type                     storage size       example var declara
 ``word[x]``      signed word array        2*x bytes          ``word[4] myvar = [1, 2, 3, 4]``
 ``uword[x]``     unsigned word array      2*x bytes          ``uword[4] myvar = [1, 2, 3, 4]``
 ``float[x]``     floating-point array     5*x bytes          ``float[4] myvar = [1.1, 2.2, 3.3, 4.4]``
-``byte[x,y]``    signed byte matrix       x*y bytes          ``byte[40,25] myvar = 100``
-``ubyte[x,y]``   unsigned byte matrix     x*y bytes          ``ubyte[40,25] myvar = 255``
 ``str``          string (petscii)         varies             ``str myvar = "hello."``
                                                              implicitly terminated by a 0-byte
 ``str_p``        pascal-string (petscii)  varies             ``str_p myvar = "hello."``
@@ -325,12 +321,10 @@ If used in the place of a literal value, it expands into the actual array of val
 Array indexing
 ^^^^^^^^^^^^^^
 
-Strings, arrays and matrixes form a sequence of values. You can access the individual values by
-indexing into the array.
-Syntax is familiar with brackets:  ``arrayvar[x]`` or ``matrixvar[x, y]`` ::
+Strings and arrays are a sequence of values. You can access the individual values by indexing.
+Syntax is familiar with brackets:  ``arrayvar[x]`` ::
 
     array[2]        ; the third byte in the array (index is 0-based)
-    matrix[4,2]     ; the byte at the 5th column and 3rd row in the matrix
     string[4]       ; the fifth character (=byte) in the string
 
 

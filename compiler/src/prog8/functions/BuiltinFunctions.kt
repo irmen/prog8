@@ -97,7 +97,7 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
 
     fun datatypeFromListArg(arglist: IExpression): DataType {
         if(arglist is LiteralValue) {
-            if(arglist.type==DataType.ARRAY_UB || arglist.type==DataType.ARRAY_UW || arglist.type==DataType.ARRAY_F || arglist.type==DataType.MATRIX_UB) {
+            if(arglist.type==DataType.ARRAY_UB || arglist.type==DataType.ARRAY_UW || arglist.type==DataType.ARRAY_F) {
                 val dt = arglist.arrayvalue!!.map {it.resultingDatatype(namespace, heap)}
                 if(dt.any { it!=DataType.UBYTE && it!=DataType.UWORD && it!=DataType.FLOAT}) {
                     throw FatalAstException("fuction $function only accepts arrayspec of numeric values")
@@ -117,8 +117,6 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
                 DataType.ARRAY_UW -> DataType.UWORD
                 DataType.ARRAY_W -> DataType.WORD
                 DataType.ARRAY_F -> DataType.FLOAT
-                DataType.MATRIX_UB -> DataType.UBYTE
-                DataType.MATRIX_B -> DataType.BYTE
                 null -> throw FatalAstException("function requires one argument which is an arrayspec $function")
             }
         }
@@ -141,8 +139,6 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
                 DataType.ARRAY_UW -> DataType.UWORD
                 DataType.ARRAY_W -> DataType.WORD
                 DataType.ARRAY_F -> DataType.FLOAT
-                DataType.MATRIX_UB -> DataType.UBYTE
-                DataType.MATRIX_B -> DataType.BYTE
             }
         }
         "sum" -> {
@@ -154,8 +150,6 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
                 DataType.ARRAY_UB, DataType.ARRAY_UW -> DataType.UWORD
                 DataType.ARRAY_B, DataType.ARRAY_W -> DataType.WORD
                 DataType.ARRAY_F -> DataType.FLOAT
-                DataType.MATRIX_UB -> DataType.UWORD
-                DataType.MATRIX_B -> DataType.WORD
                 DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> DataType.UWORD
             }
         }
@@ -237,7 +231,7 @@ private fun collectionArgOutputBoolean(args: List<IExpression>, position: Positi
             throw NotConstArgumentException()
         function(constants.map { it!!.toDouble() })
     } else {
-        val array = heap.get(iterable.heapId!!).array ?: throw SyntaxError("function requires arrayspec/matrix argument", position)
+        val array = heap.get(iterable.heapId!!).array ?: throw SyntaxError("function requires array argument", position)
         function(array.map { it.toDouble() })
     }
     return LiteralValue.fromBoolean(result, position)
@@ -313,7 +307,7 @@ private fun builtinAbs(args: List<IExpression>, position: Position, namespace:IN
 
 private fun builtinAvg(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
     if(args.size!=1)
-        throw SyntaxError("avg requires arrayspec/matrix argument", position)
+        throw SyntaxError("avg requires array argument", position)
     val iterable = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
 
     val result = if(iterable.arrayvalue!=null) {
@@ -323,7 +317,7 @@ private fun builtinAvg(args: List<IExpression>, position: Position, namespace:IN
         (constants.map { it!!.toDouble() }).average()
     }
     else {
-        val array = heap.get(iterable.heapId!!).array ?: throw SyntaxError("avg requires arrayspec/matrix argument", position)
+        val array = heap.get(iterable.heapId!!).array ?: throw SyntaxError("avg requires array argument", position)
         array.average()
     }
     return numericLiteral(result, args[0].position)
@@ -342,7 +336,7 @@ private fun builtinLen(args: List<IExpression>, position: Position, namespace:IN
                 ?: throw NotConstArgumentException()
     }
     return when(argument.type) {
-        DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.MATRIX_UB, DataType.MATRIX_B -> {
+        DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
             val arraySize = argument.arrayvalue?.size ?: heap.get(argument.heapId!!).arraysize
             LiteralValue(DataType.UWORD, wordvalue=arraySize, position=args[0].position)
         }

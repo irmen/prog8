@@ -87,8 +87,7 @@ class Program (val name: String,
                     DataType.STR_S,
                     DataType.STR_PS -> heap.add(it.second, it.third.substring(1, it.third.length-1).unescape())
                     DataType.ARRAY_UB, DataType.ARRAY_B,
-                    DataType.ARRAY_UW, DataType.ARRAY_W,
-                    DataType.MATRIX_UB, DataType.MATRIX_B -> {
+                    DataType.ARRAY_UW, DataType.ARRAY_W -> {
                         val numbers = it.third.substring(1, it.third.length-1).split(',')
                         val intarray = numbers.map{number->number.trim().toInt()}.toIntArray()
                         heap.add(it.second, intarray)
@@ -208,11 +207,9 @@ class Program (val name: String,
                     DataType.ARRAY_B,
                     DataType.ARRAY_UW,
                     DataType.ARRAY_W,
-                    DataType.ARRAY_F,
-                    DataType.MATRIX_UB,
-                    DataType.MATRIX_B -> {
+                    DataType.ARRAY_F -> {
                         if(!valueStr.startsWith("heap:"))
-                            throw VmExecutionException("invalid arrayspec/matrix value, should be a heap reference")
+                            throw VmExecutionException("invalid array value, should be a heap reference")
                         else {
                             val heapId = valueStr.substring(5).toInt()
                             Value(type, heapId)

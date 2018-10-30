@@ -254,8 +254,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             DataType.UWORD, DataType.WORD -> Opcode.PUSH_WORD
             DataType.FLOAT -> Opcode.PUSH_FLOAT
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
-            DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F, DataType.MATRIX_UB,
-            DataType.ARRAY_B, DataType.ARRAY_W, DataType.MATRIX_B -> Opcode.PUSH_WORD
+            DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F,
+            DataType.ARRAY_B, DataType.ARRAY_W -> Opcode.PUSH_WORD
         }
     }
 
@@ -287,8 +287,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             DataType.UWORD, DataType.WORD -> Opcode.PUSH_VAR_WORD
             DataType.FLOAT -> Opcode.PUSH_VAR_FLOAT
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
-            DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F, DataType.MATRIX_UB,
-            DataType.ARRAY_B, DataType.ARRAY_W, DataType.MATRIX_B -> Opcode.PUSH_VAR_WORD
+            DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F,
+            DataType.ARRAY_B, DataType.ARRAY_W -> Opcode.PUSH_VAR_WORD
         }
     }
 
@@ -311,7 +311,6 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             DataType.ARRAY_UB, DataType.ARRAY_B -> Opcode.READ_INDEXED_VAR_BYTE
             DataType.ARRAY_UW, DataType.ARRAY_W -> Opcode.READ_INDEXED_VAR_WORD
             DataType.ARRAY_F -> Opcode.READ_INDEXED_VAR_FLOAT
-            DataType.MATRIX_UB, DataType.MATRIX_B -> Opcode.READ_INDEXED_VAR_BYTE
             DataType.STR, DataType.STR_S -> Opcode.READ_INDEXED_VAR_BYTE
             DataType.STR_P, DataType.STR_PS -> throw CompilerException("cannot access pascal-string type $dt with index")
             else -> throw CompilerException("invalid dt for indexed access $dt")
@@ -323,7 +322,6 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             DataType.ARRAY_UB, DataType.ARRAY_B -> Opcode.WRITE_INDEXED_VAR_BYTE
             DataType.ARRAY_UW, DataType.ARRAY_W -> Opcode.WRITE_INDEXED_VAR_WORD
             DataType.ARRAY_F -> Opcode.WRITE_INDEXED_VAR_FLOAT
-            DataType.MATRIX_UB, DataType.MATRIX_B -> Opcode.WRITE_INDEXED_VAR_BYTE
             DataType.STR, DataType.STR_S -> Opcode.WRITE_INDEXED_VAR_BYTE
             DataType.STR_P, DataType.STR_PS -> throw CompilerException("cannot access pascal-string type $dt with index")
             else -> throw CompilerException("invalid dt for indexed access $dt")
@@ -336,8 +334,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             DataType.UWORD, DataType.WORD -> Opcode.DISCARD_WORD
             DataType.FLOAT -> Opcode.DISCARD_FLOAT
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
-            DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F, DataType.MATRIX_UB,
-            DataType.ARRAY_B, DataType.ARRAY_W, DataType.MATRIX_B -> Opcode.DISCARD_WORD
+            DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F,
+            DataType.ARRAY_B, DataType.ARRAY_W -> Opcode.DISCARD_WORD
         }
     }
 
@@ -347,8 +345,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             DataType.UWORD, DataType.WORD -> Opcode.POP_VAR_WORD
             DataType.FLOAT -> Opcode.POP_VAR_FLOAT
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
-            DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F, DataType.MATRIX_UB,
-            DataType.ARRAY_B, DataType.ARRAY_W, DataType.MATRIX_B -> Opcode.POP_VAR_WORD
+            DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F,
+            DataType.ARRAY_B, DataType.ARRAY_W -> Opcode.POP_VAR_WORD
         }
     }
 
@@ -358,8 +356,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             DataType.UWORD, DataType.WORD -> Opcode.POP_MEM_WORD
             DataType.FLOAT -> Opcode.POP_MEM_FLOAT
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
-            DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F, DataType.MATRIX_UB,
-            DataType.ARRAY_B, DataType.ARRAY_W, DataType.MATRIX_B -> Opcode.POP_MEM_WORD
+            DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F,
+            DataType.ARRAY_B, DataType.ARRAY_W -> Opcode.POP_MEM_WORD
         }
     }
 
@@ -627,10 +625,10 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                             throw CompilerException("string should have been moved into heap   ${lv.position}")
                         prog.instr(Opcode.PUSH_WORD, Value(lv.type, lv.heapId))
                     }
-                    DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F, DataType.MATRIX_UB,
-                    DataType.ARRAY_B, DataType.ARRAY_W, DataType.MATRIX_B -> {
+                    DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F,
+                    DataType.ARRAY_B, DataType.ARRAY_W -> {
                         if(lv.heapId==null)
-                            throw CompilerException("arrayspec/matrix should have been moved into heap  ${lv.position}")
+                            throw CompilerException("array should have been moved into heap  ${lv.position}")
                         prog.instr(Opcode.PUSH_WORD, Value(lv.type, lv.heapId))
                     }
                 }
@@ -1048,22 +1046,11 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     val reg=arrayindexed.register
                     if(reg==Register.A || reg==Register.X || reg==Register.Y)
                         throw CompilerException("requires register pair")
-                    if(arrayindexed.arrayspec.y!=null)
-                        throw CompilerException("when using an address, can only use one index dimension")
                     reg.toString()
                 } else {
                     variable!!.scopedname
                 }
         translate(arrayindexed.arrayspec.x)
-        val y = arrayindexed.arrayspec.y
-        if(y!=null) {
-            // calc matrix index  i=y*columns+x
-            // (the const-folding will have removed this for us when both x and y are constants)
-            translate(y)
-            prog.instr(Opcode.PUSH_BYTE, Value(DataType.UWORD, (variable!!.arrayspec!!.x as LiteralValue).asIntegerValue!!))
-            prog.instr(Opcode.MUL_UW)
-            prog.instr(Opcode.ADD_UW)
-        }
 
         if(variable!=null) {
             if (write)
@@ -1174,10 +1161,9 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                         else -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                     }
                 }
-                // todo: maybe if you assign byte or word to arrayspec/matrix, clear it with that value?
+                // todo: maybe if you assign byte or word to arrayspec, clear it with that value?
                 DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
-                DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W,
-                DataType.ARRAY_F, DataType.MATRIX_UB, DataType.MATRIX_B -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
+                DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                 null -> throw CompilerException("could not determine targetdt")
             }
         }
@@ -1402,7 +1388,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
     }
 
     private fun translateForOverIterableVar(loop: ForLoop, loopvarDt: DataType, iterableValue: LiteralValue) {
-        if(loopvarDt==DataType.UBYTE && iterableValue.type !in setOf(DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS, DataType.ARRAY_UB, DataType.MATRIX_UB))
+        if(loopvarDt==DataType.UBYTE && iterableValue.type !in setOf(DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS, DataType.ARRAY_UB))
             throw CompilerException("loop variable type doesn't match iterableValue type")
         else if(loopvarDt==DataType.UWORD && iterableValue.type != DataType.ARRAY_UW)
             throw CompilerException("loop variable type doesn't match iterableValue type")
@@ -1422,8 +1408,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 indexVar = if(numElements>255) "XY" else "X"
             }
             DataType.ARRAY_UB, DataType.ARRAY_B,
-            DataType.ARRAY_UW, DataType.ARRAY_W,
-            DataType.MATRIX_UB, DataType.MATRIX_B -> {
+            DataType.ARRAY_UW, DataType.ARRAY_W -> {
                 numElements = iterableValue.arrayvalue?.size ?: heap.get(iterableValue.heapId!!).arraysize
                 indexVar = if(numElements>255) "XY" else "X"
             }
@@ -1467,7 +1452,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             AssignTarget(loop.loopRegister, null, null, loop.position)
         else
             AssignTarget(null, loop.loopVar!!.copy(), null, loop.position)
-        val arrayspec = ArraySpec(RegisterExpr(Register.valueOf(indexVar), loop.position), null, loop.position)
+        val arrayspec = ArraySpec(RegisterExpr(Register.valueOf(indexVar), loop.position), loop.position)
         val assignLv = Assignment(assignTarget, null, ArrayIndexedExpression((loop.iterable as IdentifierReference).copy(), null, arrayspec, loop.position), loop.position)
         assignLv.linkParents(loop.body)
         translate(assignLv)

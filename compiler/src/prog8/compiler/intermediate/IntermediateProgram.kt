@@ -278,11 +278,11 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                             throw CompilerException("string should already be in the heap")
                         Value(decl.datatype, litval.heapId)
                     }
-                    DataType.ARRAY_B, DataType.ARRAY_W, DataType.MATRIX_B, DataType.MATRIX_UB,
+                    DataType.ARRAY_B, DataType.ARRAY_W,
                     DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F -> {
                         val litval = (decl.value as LiteralValue)
                         if(litval.heapId==null)
-                            throw CompilerException("arrayspec/matrix should already be in the heap")
+                            throw CompilerException("array should already be in the heap")
                         Value(decl.datatype, litval.heapId)
                     }
                 }
