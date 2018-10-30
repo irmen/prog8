@@ -730,10 +730,10 @@ class AstChecker(private val namespace: INameScope,
                 val arraysize = target.arrayspec?.size()
                 if(arraysize!=null) {
                     // check out of bounds
-                    if((arrayIndexedExpression.arrayspec.y as? LiteralValue)?.asIntegerValue != null) {
+                    val index = (arrayIndexedExpression.arrayspec.x as? LiteralValue)?.asIntegerValue
+                    if(index != null && (arrayIndexedExpression.arrayspec.y as? LiteralValue)?.asIntegerValue != null) {
                         throw FatalAstException("constant y dimension of index should have been const-folded with x into one value ${arrayIndexedExpression.arrayspec.position}")
                     }
-                    val index = (arrayIndexedExpression.arrayspec.x as? LiteralValue)?.asIntegerValue
                     if(index!=null && (index<0 || index>=arraysize))
                         checkResult.add(ExpressionError("arrayspec index out of bounds", arrayIndexedExpression.arrayspec.position))
                 } else if(target.datatype in StringDatatypes) {
