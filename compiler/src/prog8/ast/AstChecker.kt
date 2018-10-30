@@ -413,18 +413,20 @@ class AstChecker(private val namespace: INameScope,
         when(decl.type) {
             VarDeclType.VAR, VarDeclType.CONST -> {
                 if (decl.value == null) {
-                    if (decl.datatype in NumericDatatypes) {
-                        // initialize numeric var with value zero by default.
-                        val litVal = LiteralValue(DataType.UBYTE, 0, position = decl.position)
-                        litVal.parent = decl
-                        decl.value = litVal
-                    }
-                    else if(decl.type==VarDeclType.VAR) {
-                        val litVal = LiteralValue(decl.datatype, heapId = heapStringSentinel, position=decl.position)    // point to the sentinel heap value instead
-                        litVal.parent=decl
-                        decl.value = litVal
-                    } else {
-                        err("var/const declaration needs a compile-time constant initializer value for type ${decl.datatype}") // const fold should have provided it!
+                    when {
+                        decl.datatype in NumericDatatypes -> {
+                            // initialize numeric var with value zero by default.
+                            val litVal = LiteralValue(DataType.UBYTE, 0, position = decl.position)
+                            litVal.parent = decl
+                            decl.value = litVal
+                        }
+                        decl.type==VarDeclType.VAR -> {
+                            val litVal = LiteralValue(decl.datatype, heapId = heapStringSentinel, position=decl.position)    // point to the sentinel heap value instead
+                            litVal.parent=decl
+                            decl.value = litVal
+                        }
+                        else -> err("var/const declaration needs a compile-time constant initializer value for type ${decl.datatype}")
+                        // const fold should have provided it!
                     }
                     return super.process(decl)
                 }

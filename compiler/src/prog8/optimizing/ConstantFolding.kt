@@ -100,7 +100,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                             }
                             else -> {}
                         }
-                        val fillArray = IntArray(size) { _ -> fillvalue }
+                        val fillArray = IntArray(size) { fillvalue }
                         val heapId = heap.add(decl.datatype, fillArray)
                         decl.value = LiteralValue(decl.datatype, heapId = heapId, position = litval?.position ?: decl.position)
                     }
@@ -124,7 +124,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                         if(fillvalue< FLOAT_MAX_NEGATIVE || fillvalue> FLOAT_MAX_POSITIVE)
                             errors.add(ExpressionError("float value overflow", litval?.position ?: decl.position))
                         else {
-                            val fillArray = DoubleArray(size) { _ -> fillvalue }
+                            val fillArray = DoubleArray(size) { fillvalue }
                             val heapId = heap.add(decl.datatype, fillArray)
                             decl.value = LiteralValue(decl.datatype, heapId = heapId, position = litval?.position ?: decl.position)
                         }
@@ -575,7 +575,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                         assignment.value = LiteralValue(DataType.UWORD, wordvalue = lv.asIntegerValue, position=lv.position)
                     else if(lv.type==DataType.FLOAT) {
                         val d = lv.floatvalue!!
-                        if(floor(d)==d && d in 0..65535)
+                        if(floor(d)==d && d>=0 && d<=65535)
                             assignment.value = LiteralValue(DataType.UWORD, wordvalue=floor(d).toInt(), position=lv.position)
                     }
                 }
@@ -587,7 +587,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                         assignment.value = LiteralValue(DataType.UBYTE, lv.bytevalue.toShort(), position=lv.position)
                     else if(lv.type==DataType.FLOAT) {
                         val d = lv.floatvalue!!
-                        if(floor(d)==d && d in 0..255)
+                        if(floor(d)==d && d >=0 && d<=255)
                             assignment.value = LiteralValue(DataType.UBYTE, floor(d).toShort(), position=lv.position)
                     }
                 }
@@ -599,7 +599,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                         assignment.value = LiteralValue(DataType.BYTE, lv.bytevalue, position=lv.position)
                     else if(lv.type==DataType.FLOAT) {
                         val d = lv.floatvalue!!
-                        if(floor(d)==d && d in 0..127)
+                        if(floor(d)==d && d>=0 && d<=127)
                             assignment.value = LiteralValue(DataType.BYTE, floor(d).toShort(), position=lv.position)
                     }
                 }
@@ -611,7 +611,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                         assignment.value = LiteralValue(DataType.WORD, wordvalue=lv.wordvalue, position=lv.position)
                     else if(lv.type==DataType.FLOAT) {
                         val d = lv.floatvalue!!
-                        if(floor(d)==d && d in -32768..32767)
+                        if(floor(d)==d && d>=-32768 && d<=32767)
                             assignment.value = LiteralValue(DataType.BYTE, floor(d).toShort(), position=lv.position)
                     }
                 }

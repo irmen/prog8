@@ -363,7 +363,7 @@ private fun builtinLen(args: List<IExpression>, position: Position, namespace:IN
 private fun numericLiteral(value: Number, position: Position): LiteralValue {
     val floatNum=value.toDouble()
     val tweakedValue: Number =
-            if(floatNum==Math.floor(floatNum) && floatNum in -32768..65535)
+            if(floatNum==Math.floor(floatNum) && (floatNum>=-32768 && floatNum<=65535))
                 floatNum.toInt()  // we have an integer disguised as a float.
             else
                 floatNum
