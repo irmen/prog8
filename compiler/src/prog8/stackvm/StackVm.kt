@@ -1144,11 +1144,6 @@ class StackVm(private var traceOutputFile: String?) {
                 checkDt(ubyte, DataType.UBYTE)
                 evalstack.push(Value(DataType.UWORD, ubyte.integerValue()))
             }
-            Opcode.MSB2WORD -> {
-                val byte = evalstack.pop()
-                checkDt(byte, DataType.UBYTE)
-                evalstack.push(Value(DataType.UWORD, byte.integerValue() * 256))
-            }
             Opcode.B2FLOAT -> {
                 val byte = evalstack.pop()
                 checkDt(byte, DataType.BYTE)

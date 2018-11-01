@@ -147,7 +147,6 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                 Opcode.MSB,
                 Opcode.B2WORD,
                 Opcode.UB2UWORD,
-                Opcode.MSB2WORD,
                 Opcode.B2FLOAT,
                 Opcode.UB2FLOAT,
                 Opcode.UW2FLOAT,
@@ -175,7 +174,6 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                 }
                 Opcode.B2WORD,
                 Opcode.UB2UWORD,
-                Opcode.MSB2WORD,
                 Opcode.B2FLOAT,
                 Opcode.UB2FLOAT -> throw CompilerException("invalid conversion following a word")
                 Opcode.W2FLOAT, Opcode.UW2FLOAT -> {
@@ -206,11 +204,6 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                     instructionsToReplace[index0] = ins
                     instructionsToReplace[index1] = Instruction(Opcode.NOP)
                 }
-                Opcode.MSB2WORD -> {
-                    val ins = Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 256 * ins0.arg!!.integerValue()))
-                    instructionsToReplace[index0] = ins
-                    instructionsToReplace[index1] = Instruction(Opcode.NOP)
-                }
                 Opcode.B2FLOAT, Opcode.UB2FLOAT -> {
                     val ins = Instruction(Opcode.PUSH_FLOAT, Value(DataType.FLOAT, ins0.arg!!.integerValue().toDouble()))
                     instructionsToReplace[index0] = ins
@@ -234,7 +227,6 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                     Opcode.MSB,
                     Opcode.B2WORD,
                     Opcode.UB2UWORD,
-                    Opcode.MSB2WORD,
                     Opcode.B2FLOAT,
                     Opcode.UB2FLOAT,
                     Opcode.W2FLOAT,

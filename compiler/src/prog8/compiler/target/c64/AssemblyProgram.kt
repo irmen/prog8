@@ -10,8 +10,6 @@ class AssemblyProgram(val name: String) {
     private val viceMonListFile = "$name.vice-mon-list"
 
     fun assemble(options: CompilationOptions) {
-        println("Generating machine code program...")
-
         val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch", "-Wall", "-Wno-strict-bool", "-Wlong-branch",
                 "-Werror", "-Wno-error=long-branch", "--dump-labels", "--vice-labels", "-l", viceMonListFile, "--no-monitor")
 

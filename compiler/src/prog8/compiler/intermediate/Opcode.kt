@@ -119,7 +119,6 @@ enum class Opcode {
     UB2B,
     B2WORD,         // convert a byte into a word where it is the lower eight bits $ssxx with sign extension
     UB2UWORD,       // convert a byte into a word where it is the lower eight bits $00xx
-    MSB2WORD,       // convert a byte into a word where it is the upper eight bits $xx00
     B2FLOAT,        // convert byte into floating point
     UB2FLOAT,       // convert unsigned byte into floating point
     W2FLOAT,        // convert word into floating point

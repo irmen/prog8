@@ -520,22 +520,6 @@ class TestStackVmOpcodes {
     }
 
     @Test
-    fun testMSB2Word() {
-        val ins = mutableListOf(
-                Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 0xea31)),
-                Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 0x45)),
-                Instruction(Opcode.MSB2WORD),
-                Instruction(Opcode.MSB2WORD)
-        )
-        vm.load(makeProg(ins), null)
-        vm.step(3)
-        assertEquals(Value(DataType.UWORD, 0x4500), vm.evalstack.pop())
-        assertFailsWith<VmExecutionException> {
-            vm.step(1)
-        }
-    }
-
-    @Test
     fun testB2Float() {
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH_WORD, Value(DataType.WORD, 0x7a31)),
