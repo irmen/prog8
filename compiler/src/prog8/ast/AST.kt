@@ -693,8 +693,7 @@ data class AssignTarget(val register: Register?,
             if(dt!=null)
                 return dt
         }
-
-        throw FatalAstException("cannot determine datatype of assignment target $this")
+        return null
     }
 }
 
@@ -897,7 +896,7 @@ class ArrayIndexedExpression(val identifier: IdentifierReference?,
                 else -> throw FatalAstException("invalid dt")
             }
         }
-        throw FatalAstException("cannot get indexed element on $target")
+        return null
     }
 
     override fun toString(): String {

@@ -350,6 +350,65 @@ byte_assignment_to_bytearray:
 ;    barr1[ubarr2[X]] = barr2[ubarr1[Y]]   ; todo via evaluation-- check generated asm...
 
 
+byte_assignment_to_membytearray:
+
+    mbarr1[3] = 42
+    mbarr1[3] = b2
+    mbarr1[3] = mbyte2
+    mbarr1[3] = barr1[2]
+    mbarr1[3] = barr1[X]
+    mbarr1[3] = barr1[b]
+    mbarr1[3] = barr1[ub]
+    mbarr1[3] = barr1[mbyte2]
+    mbarr1[3] = barr1[mubyte2]
+
+    mbarr1[Y] = 42
+    mbarr1[Y] = b2
+    mbarr1[Y] = mbyte2
+    mbarr1[Y] = barr1[2]
+    mbarr1[Y] = barr1[X]
+    mbarr1[Y] = barr1[b]
+    mbarr1[Y] = barr1[ub]
+    mbarr1[Y] = barr1[mbyte2]
+    mbarr1[Y] = barr1[mubyte2]
+
+        mbarr1[b2] = 42
+        mbarr1[b2] = b2
+        mbarr1[b2] = mbyte2
+        mbarr1[b2] = barr1[2]
+        mbarr1[b2] = barr1[X]
+        mbarr1[b2] = barr1[b]
+        mbarr1[b2] = barr1[ub]
+        mbarr1[b2] = barr1[mbyte2]
+        mbarr1[b2] = barr1[mubyte2]
+
+        mbarr1[ub2] = 42
+        mbarr1[ub2] = b2
+        mbarr1[ub2] = mbyte2
+        mbarr1[ub2] = barr1[2]
+        mbarr1[ub2] = barr1[X]
+        mbarr1[ub2] = barr1[b]
+        mbarr1[ub2] = barr1[ub]
+        mbarr1[ub2] = barr1[mbyte2]
+        mbarr1[ub2] = barr1[mubyte2]
+
+    mbarr1[mubyte2] = 42
+    mbarr1[mubyte2] = b2
+    mbarr1[mubyte2] = mbyte2
+    mbarr1[mubyte2] = barr1[2]
+
+;    mbarr1[mubyte2] = string[X]            ;;todo via evaluation
+;    mbarr1[mubyte2] = string[b]             ;todo via evaluation
+;    mbarr1[mubyte2] = string[ub]            ;todo via evaluation
+;    mbarr1[mubyte2] = string[mbyte2]       ;todo via evaluation
+;    mbarr1[mubyte2] = string[mubyte2]      ;todo via evaluation
+;    mbarr1[mubyte2] = ubarr1[X]        ;todo via evaluation
+;    mbarr1[mubyte2] = ubarr1[b]         ;todo via evaluation
+;    mbarr1[mubyte2] = ubarr1[ub]        ;todo via evaluation
+;    mbarr1[mubyte2] = ubarr1[mbyte2]    ;todo via evaluation
+;    mbarr1[mubyte2] = ubarr1[mubyte2]   ;todo via evaluation
+;    mbarr1[ubarr2[X]] = barr2[ubarr1[Y]]   ; todo via evaluation-- check generated asm...
+
 
 
 
@@ -368,21 +427,21 @@ uword_assignment_to_uwordvar:
     uw = string[4]
     uw = ubarr1[2]
     uw = uwarr1[2]
-    ;uw = string[X]          ; todo via evaluation
-    ;uw = string[b]         ; todo via evaluation
-    ;uw = string[ub]            ; todo via evaluation
-    ;uw = string[mbyte2]    ; todo via evaluation
-    ;uw = string[mubyte2]   ; todo via evaluation
-;    uw = ubarr1[X]          ;; todo via evaluation
-;    uw = ubarr1[b]          ;; todo via evaluation
-;    uw = ubarr1[ub]         ; todo via evaluation
-;    uw = ubarr1[mbyte2]     ; todo via evaluation
-;    uw = ubarr1[mubyte2]    ; todo via evaluation
-;    uw = uwarr1[X]      ; todo via evaluation
-;    uw = uwarr1[b]      ; todo via evaluation
-;    uw = uwarr1[ub]     ; todo via evaluation
-;    uw = uwarr1[mbyte2]     ; todo via evaluation
-;    uw = uwarr1[mubyte2]        ; todo via evaluation
+    uw = string[X]
+    uw = string[b]
+    uw = string[ub]
+    uw = string[mbyte2]
+    uw = string[mubyte2]
+    uw = ubarr1[X]
+    uw = ubarr1[b]
+    uw = ubarr1[ub]
+    uw = ubarr1[mbyte2]
+    uw = ubarr1[mubyte2]
+    uw = uwarr1[X]
+    uw = uwarr1[b]
+    uw = uwarr1[ub]
+    uw = uwarr1[mbyte2]
+    uw = uwarr1[mubyte2]
 
 
 uword_assignment_to_uwordmem:
@@ -397,21 +456,21 @@ uword_assignment_to_uwordmem:
     muword = string[4]
     muword = ubarr1[2]
     muword = uwarr1[2]
-;    muword = string[X]      ; todo via evaluation
-;    muword = string[b]     ; todo via evaluation
-;    muword = string[ub]     ; todo via evaluation
-;    muword = string[mbyte2]     ; todo via evaluation
-;    muword = string[mubyte2]     ; todo via evaluation
-;    muword = ubarr1[X]     ; todo via evaluation
-;    muword = ubarr1[b]     ; todo via evaluation
-;    muword = ubarr1[ub]     ; todo via evaluation
-;    muword = ubarr1[mbyte2]     ; todo via evaluation
-;    muword = ubarr1[mubyte2]     ; todo via evaluation
-;    muword = uwarr1[X]     ; todo via evaluation
-;    muword = uwarr1[b]     ; todo via evaluation
-;    muword = uwarr1[ub]     ; todo via evaluation
-;    muword = uwarr1[mbyte2]     ; todo via evaluation
-;    muword = uwarr1[mubyte2]     ; todo via evaluation
+;    muword = string[X]
+;    muword = string[b]
+;    muword = string[ub]
+;    muword = string[mbyte2]
+;    muword = string[mubyte2]
+;    muword = ubarr1[X]
+;    muword = ubarr1[b]
+;    muword = ubarr1[ub]
+;    muword = ubarr1[mbyte2]
+;    muword = ubarr1[mubyte2]
+;    muword = uwarr1[X]
+;    muword = uwarr1[b]
+;    muword = uwarr1[ub]
+;    muword = uwarr1[mbyte2]
+;    muword = uwarr1[mubyte2]
 
 
 uword_assignment_to_uwordarray:
@@ -521,26 +580,29 @@ word_assignment_to_wordvar:
     w = barr1[2]
     w = warr1[2]
 
-;    w = string[X]          ; todo via evaluation
-;    w = string[b]         ; todo via evaluation
-;    w = string[ub]            ; todo via evaluation
-;    w = string[mbyte2]    ; todo via evaluation
-;    w = string[mubyte2]   ; todo via evaluation
-;    w = barr1[X]          ;; todo via evaluation
-;    w = ubarr1[X]          ;; todo via evaluation
-;    w = barr1[b]          ;; todo via evaluation
-;    w = ubarr1[b]          ;; todo via evaluation
-;    w = barr1[ub]         ; todo via evaluation
-;    w = ubarr1[ub]         ; todo via evaluation
-;    w = barr1[mbyte2]     ; todo via evaluation
-;    w = ubarr1[mbyte2]     ; todo via evaluation
-;    w = barr1[mubyte2]    ; todo via evaluation
-;    w = ubarr1[mubyte2]    ; todo via evaluation
-;    w = warr1[X]      ; todo via evaluation
-;    w = warr1[b]      ; todo via evaluation
-;    w = warr1[ub]     ; todo via evaluation
-;    w = warr1[mbyte2]     ; todo via evaluation
-;    w = warr1[mubyte2]        ; todo via evaluation
+    w = string[X]
+    w = string[b]
+    w = string[ub]
+    w = string[mbyte2]
+    w = string[mubyte2]
+
+
+; @todo these:
+    w = barr1[X]
+    w = ubarr1[X]
+    w = barr1[b]
+    w = ubarr1[b]
+    w = barr1[ub]
+    w = ubarr1[ub]
+    w = barr1[mbyte2]
+    w = ubarr1[mbyte2]
+    w = barr1[mubyte2]
+    w = ubarr1[mubyte2]
+    w = warr1[X]
+    w = warr1[b]
+    w = warr1[ub]
+    w = warr1[mbyte2]
+    w = warr1[mubyte2]
 
 
 word_assignment_to_wordmem:
@@ -559,26 +621,31 @@ word_assignment_to_wordmem:
     mword = barr1[2]
     mword = warr1[2]
 
-    ; mword = string[X]          ; todo via evaluation
-    ; mword = string[b]         ; todo via evaluation
-    ; mword = string[ub]            ; todo via evaluation
-    ; mword = string[mbyte2]    ; todo via evaluation
-    ; mword = string[mubyte2]   ; todo via evaluation
-    ; mword = barr1[X]          ;; todo via evaluation
-    ; mword = ubarr1[X]          ;; todo via evaluation
-    ; mword = barr1[b]          ;; todo via evaluation
-    ; mword = ubarr1[b]          ;; todo via evaluation
-    ; mword = barr1[ub]         ; todo via evaluation
-    ; mword = ubarr1[ub]         ; todo via evaluation
-    ; mword = barr1[mbyte2]     ; todo via evaluation
-    ; mword = ubarr1[mbyte2]     ; todo via evaluation
-    ; mword = barr1[mubyte2]    ; todo via evaluation
-    ; mword = ubarr1[mubyte2]    ; todo via evaluation
-    ; mword = warr1[X]      ; todo via evaluation
-    ; mword = warr1[b]      ; todo via evaluation
-    ; mword = warr1[ub]     ; todo via evaluation
-    ; mword = warr1[mbyte2]     ; todo via evaluation
-    ; mword = warr1[mubyte2]        ; todo via evaluation
+
+; @todo these:
+    mword = string[X]
+    mword = string[b]
+    mword = string[ub]
+    mword = string[mbyte2]
+    mword = string[mubyte2]
+    mword = barr1[X]
+    mword = ubarr1[X]
+    mword = barr1[b]
+    mword = ubarr1[b]
+    mword = barr1[ub]
+    mword = ubarr1[ub]
+    mword = barr1[mbyte2]
+    mword = ubarr1[mbyte2]
+    mword = barr1[mubyte2]
+    mword = ubarr1[mubyte2]
+    mword = warr1[X]
+    mword = warr1[b]
+    mword = warr1[ub]
+    mword = warr1[mbyte2]
+    mword = warr1[mubyte2]
+
+
+; @todo assignment to word array
 
 
 ;; all possible assignments to a FLOAT VARIABLE
