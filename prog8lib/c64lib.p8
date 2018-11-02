@@ -23,11 +23,11 @@
 		memory  ubyte  HIBASE		= $0288		; screen base address / 256 (hi-byte of screen memory address)
 		memory  uword  CINV		= $0314		; IRQ vector
 		memory  uword  NMI_VEC		= $FFFA		; 6502 nmi vector, determined by the kernal if banked in
-		memory  uword  RESET_VEC		= $FFFC		; 6502 reset vector, determined by the kernal if banked in
+		memory  uword  RESET_VEC	= $FFFC		; 6502 reset vector, determined by the kernal if banked in
 		memory  uword  IRQ_VEC		= $FFFE		; 6502 interrupt vector, determined by the kernal if banked in
 
-		memory  ubyte[40, 25]  Screen	= $0400		; default character screen matrix
-		memory  ubyte[40, 25]  Colors	= $d800		; character screen colors
+		const   uword  Screen		= $0400		; default character screen matrix
+		const   uword  Colors		= $d800		; character screen colors
 
 
 ; ---- VIC-II registers ----
