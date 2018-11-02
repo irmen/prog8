@@ -292,20 +292,6 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         }
     }
 
-    private fun opcodePushvar(reg: Register): Opcode {
-        return when(reg) {
-            Register.A, Register.X, Register.Y -> Opcode.PUSH_VAR_BYTE
-            Register.AX, Register.AY, Register.XY -> Opcode.PUSH_VAR_WORD
-        }
-    }
-
-    private fun opcodePopvar(reg: Register): Opcode {
-        return when(reg) {
-            Register.A, Register.X, Register.Y -> Opcode.POP_VAR_BYTE
-            Register.AX, Register.AY, Register.XY -> Opcode.POP_VAR_WORD
-        }
-    }
-
     private fun opcodeReadindexedvar(dt: DataType): Opcode {
         return when (dt)  {
             DataType.ARRAY_UB, DataType.ARRAY_B -> Opcode.READ_INDEXED_VAR_BYTE
@@ -358,20 +344,6 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
             DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F,
             DataType.ARRAY_B, DataType.ARRAY_W -> Opcode.POP_MEM_WORD
-        }
-    }
-
-    private fun opcodeDecvar(reg: Register): Opcode {
-        return when(reg) {
-            Register.A, Register.X, Register.Y -> Opcode.DEC_VAR_UB
-            Register.AX, Register.AY, Register.XY -> Opcode.DEC_VAR_UW
-        }
-    }
-
-    private fun opcodeIncvar(reg: Register): Opcode {
-        return when(reg) {
-            Register.A, Register.X, Register.Y -> Opcode.INC_VAR_UB
-            Register.AX, Register.AY, Register.XY -> Opcode.INC_VAR_UW
         }
     }
 
@@ -577,8 +549,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
     private fun translate(expr: IExpression) {
         when(expr) {
             is RegisterExpr -> {
-                val opcode = opcodePushvar(expr.register)
-                prog.instr(opcode, callLabel = expr.register.toString())
+                prog.instr(Opcode.PUSH_VAR_BYTE, callLabel = expr.register.toString())
             }
             is PrefixExpression -> {
                 translate(expr.expression)
@@ -1040,30 +1011,12 @@ private class StatementTranslator(private val prog: IntermediateProgram,
     }
 
     private fun translate(arrayindexed: ArrayIndexedExpression, write: Boolean) {
-        val variable = arrayindexed.identifier?.targetStatement(namespace) as? VarDecl
-        val variableName =
-                if(arrayindexed.register!=null) {
-                    val reg=arrayindexed.register
-                    if(reg==Register.A || reg==Register.X || reg==Register.Y)
-                        throw CompilerException("requires register pair")
-                    reg.toString()
-                } else {
-                    variable!!.scopedname
-                }
+        val variable = arrayindexed.identifier?.targetStatement(namespace) as VarDecl
         translate(arrayindexed.arrayspec.x)
-
-        if(variable!=null) {
-            if (write)
-                prog.instr(opcodeWriteindexedvar(variable.datatype), callLabel = variableName)
-            else
-                prog.instr(opcodeReadindexedvar(variable.datatype), callLabel = variableName)
-        } else {
-            // register indexed
-            if (write)
-                prog.instr(opcodeWriteindexedvar(DataType.ARRAY_UB), callLabel = arrayindexed.register!!.toString())
-            else
-                prog.instr(opcodeReadindexedvar(DataType.ARRAY_UB), callLabel = arrayindexed.register!!.toString())
-        }
+        if (write)
+            prog.instr(opcodeWriteindexedvar(variable.datatype), callLabel = variable.scopedname)
+        else
+            prog.instr(opcodeReadindexedvar(variable.datatype), callLabel = variable.scopedname)
     }
 
     private fun createSyscall(funcname: String) {
@@ -1101,8 +1054,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         prog.line(stmt.position)
         when {
             stmt.target.register!=null -> when(stmt.operator) {
-                "++" -> prog.instr(opcodeIncvar(stmt.target.register!!), callLabel = stmt.target.register.toString())
-                "--" -> prog.instr(opcodeDecvar(stmt.target.register!!), callLabel = stmt.target.register.toString())
+                "++" -> prog.instr(Opcode.INC_VAR_UB, callLabel = stmt.target.register.toString())
+                "--" -> prog.instr(Opcode.DEC_VAR_UB, callLabel = stmt.target.register.toString())
             }
             stmt.target.identifier!=null -> {
                 val targetStatement = stmt.target.identifier!!.targetStatement(namespace) as VarDecl
@@ -1181,10 +1134,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                         else -> throw CompilerException("invalid assignment target type ${target::class}")
                     }
                 }
-                stmt.target.register!=null -> {
-                    val opcode= opcodePushvar(stmt.target.register!!)
-                    prog.instr(opcode, callLabel = stmt.target.register.toString())
-                }
+                stmt.target.register!=null -> prog.instr(Opcode.PUSH_VAR_BYTE, callLabel = stmt.target.register.toString())
                 stmt.target.arrayindexed!=null -> translate(stmt.target.arrayindexed!!, false)
             }
 
@@ -1215,10 +1165,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     }
                 } else throw CompilerException("invalid assignment target type ${target::class}")
             }
-            assignTarget.register != null -> {
-                val opcode = opcodePopvar(assignTarget.register)
-                prog.instr(opcode, callLabel = assignTarget.register.toString())
-            }
+            assignTarget.register != null -> prog.instr(Opcode.POP_VAR_BYTE, callLabel = assignTarget.register.toString())
             assignTarget.arrayindexed != null -> translate(assignTarget.arrayindexed, true)     // write value to it
         }
     }
@@ -1326,10 +1273,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         if(loop.loopRegister!=null) {
             val reg = loop.loopRegister
             loopVarName = reg.toString()
-            loopVarDt = when (reg) {
-                Register.A, Register.X, Register.Y -> DataType.UBYTE
-                Register.AX, Register.AY, Register.XY -> DataType.UWORD
-            }
+            loopVarDt = DataType.UBYTE
         } else {
             val loopvar = (loop.loopVar!!.targetStatement(namespace) as VarDecl)
             loopVarName = loopvar.scopedname
@@ -1395,7 +1339,6 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         else if(loopvarDt==DataType.FLOAT && iterableValue.type != DataType.ARRAY_F)
             throw CompilerException("loop variable type doesn't match iterableValue type")
         val numElements: Int
-        val indexVar: String
         when(iterableValue.type) {
             DataType.UBYTE, DataType.BYTE,
             DataType.UWORD, DataType.WORD,
@@ -1405,23 +1348,21 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             DataType.STR_S,
             DataType.STR_PS -> {
                 numElements = iterableValue.strvalue?.length ?: heap.get(iterableValue.heapId!!).str!!.length
-                indexVar = if(numElements>255) "XY" else "X"
+                if(numElements>255) throw CompilerException("string length > 255")
             }
             DataType.ARRAY_UB, DataType.ARRAY_B,
             DataType.ARRAY_UW, DataType.ARRAY_W -> {
                 numElements = iterableValue.arrayvalue?.size ?: heap.get(iterableValue.heapId!!).arraysize
-                indexVar = if(numElements>255) "XY" else "X"
+                if(numElements>255) throw CompilerException("string length > 255")
             }
             DataType.ARRAY_F -> {
                 numElements = iterableValue.arrayvalue?.size ?: heap.get(iterableValue.heapId!!).arraysize
-                indexVar = if(numElements>255) "XY" else "X"
+                if(numElements>255) throw CompilerException("string length > 255")
             }
         }
 
-        if(indexVar=="X" && loop.loopRegister!=null && loop.loopRegister in setOf(Register.X, Register.AX, Register.XY))
+        if(loop.loopRegister!=null && loop.loopRegister==Register.X)
             throw CompilerException("loopVar cannot use X register because it is needed as internal index")
-        if(indexVar=="XY" && loop.loopRegister!=null && loop.loopRegister in setOf(Register.X, Register.AX, Register.Y, Register.AY, Register.XY))
-            throw CompilerException("loopVar cannot use X and Y registers because they are needed as internal index")
 
         /**
          *      indexVar = 0
@@ -1446,23 +1387,23 @@ private class StatementTranslator(private val prog: IntermediateProgram,
 
         val zero = Value(if (numElements <= 255) DataType.UBYTE else DataType.UWORD, 0)
         prog.instr(opcodePush(zero.type), zero)
-        prog.instr(opcodePopvar(zero.type), callLabel = indexVar)
+        prog.instr(opcodePopvar(zero.type), callLabel = "X")
         prog.label(loopLabel)
         val assignTarget = if(loop.loopRegister!=null)
             AssignTarget(loop.loopRegister, null, null, loop.position)
         else
             AssignTarget(null, loop.loopVar!!.copy(), null, loop.position)
-        val arrayspec = ArraySpec(RegisterExpr(Register.valueOf(indexVar), loop.position), loop.position)
-        val assignLv = Assignment(assignTarget, null, ArrayIndexedExpression((loop.iterable as IdentifierReference).copy(), null, arrayspec, loop.position), loop.position)
+        val arrayspec = ArraySpec(RegisterExpr(Register.X, loop.position), loop.position)
+        val assignLv = Assignment(assignTarget, null, ArrayIndexedExpression((loop.iterable as IdentifierReference).copy(), arrayspec, loop.position), loop.position)
         assignLv.linkParents(loop.body)
         translate(assignLv)
         translate(loop.body)
         prog.label(continueLabel)
-        prog.instr(opcodeIncvar(zero.type), callLabel = indexVar)
+        prog.instr(opcodeIncvar(zero.type), callLabel = "X")
 
         // TODO: optimize edge cases if last value = 255 or 0 (for bytes) etc. to avoid  PUSH_BYTE / SUB opcodes and make use of the wrapping around of the value.
         prog.instr(opcodePush(zero.type), Value(zero.type, numElements))
-        prog.instr(opcodePushvar(zero.type), callLabel = indexVar)
+        prog.instr(opcodePushvar(zero.type), callLabel = "X")
         prog.instr(opcodeSub(zero.type))
         prog.instr(Opcode.TEST)
         prog.instr(Opcode.BNZ, callLabel = loopLabel)
@@ -1638,7 +1579,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 postIncr.linkParents(range.parent)
                 translate(postIncr)
                 if(lvTarget.register!=null)
-                    prog.instr(opcodePushvar(lvTarget.register), callLabel =lvTarget.register.toString())
+                    prog.instr(Opcode.PUSH_VAR_BYTE, callLabel =lvTarget.register.toString())
                 else {
                     val opcode = opcodePushvar(targetStatement!!.datatype)
                     prog.instr(opcode, callLabel = targetStatement.scopedname)

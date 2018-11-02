@@ -120,12 +120,12 @@ Directly Usable Registers
 The following 6502 CPU hardware registers are directly usable in program code (and are reserved symbols):
 
 - ``A``, ``X``, ``Y``  the three main cpu registers (8 bits)
-- ``AX``, ``AY``, ``XY`` surrogate 16-bit registers: LSB-order (lo/hi) combined register pairs
 - the status register (P) carry flag and interrupt disable flag can be written via a couple of special
   builtin functions (``set_carry()``, ``clear_carry()``, ``set_irqd()``,  ``clear_irqd()``)
 
 However, you must assume that the 3 hardware registers ``A``, ``X`` and ``Y``
 are volatile. Their values cannot be depended upon, the compiler will use them as required.
+Even simple assignments may require modification of one or more of the registers (for instance, when using arrays).
 
 
 Subroutine Calling Conventions

@@ -61,8 +61,7 @@ class TestStackVmOpcodes {
     fun testInitAndNop() {
         val ins = mutableListOf(Instruction(Opcode.NOP))
         vm.load(makeProg(ins), null)
-        assertEquals(6, vm.variables.size)
-        assertTrue(vm.variables.containsKey("XY"))
+        assertEquals(3, vm.variables.size)
         assertTrue(vm.variables.containsKey("A"))
         vm.step(1)
         assertThat(vm.callstack, empty())
@@ -187,9 +186,8 @@ class TestStackVmOpcodes {
     fun testPushVar() {
         val ins = mutableListOf(Instruction(Opcode.PUSH_VAR_FLOAT, callLabel = "varname"))
         vm.load(makeProg(ins, mapOf("varname" to Value(DataType.FLOAT, 42.999))), null)
-        assertEquals(7, vm.variables.size)
+        assertEquals(4, vm.variables.size)
         assertTrue(vm.variables.containsKey("varname"))
-        assertTrue(vm.variables.containsKey("XY"))
         assertTrue(vm.variables.containsKey("A"))
         assertEquals(Value(DataType.FLOAT, 42.999), vm.variables["varname"])
         assertThat(vm.evalstack, empty())
@@ -262,7 +260,7 @@ class TestStackVmOpcodes {
                 "var3" to Value(DataType.FLOAT, 0)
                 )
         vm.load(makeProg(ins, vars), null)
-        assertEquals(9, vm.variables.size)
+        assertEquals(6, vm.variables.size)
         vm.step(6)
         assertEquals(Value(DataType.UBYTE, 123), vm.variables["var1"])
         assertEquals(Value(DataType.UWORD, 0x42ea), vm.variables["var2"])
@@ -275,7 +273,7 @@ class TestStackVmOpcodes {
                 "var1" to Value(DataType.UBYTE, 0)
         )
         vm.load(makeProg(ins2, vars2), null)
-        assertEquals(7, vm.variables.size)
+        assertEquals(4, vm.variables.size)
         assertFailsWith<VmExecutionException> {
             vm.step(2)
         }

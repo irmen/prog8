@@ -36,10 +36,7 @@ enum class DataType {
 enum class Register {
     A,
     X,
-    Y,
-    AX,
-    AY,
-    XY
+    Y
 }
 
 enum class Statusflag {
@@ -684,10 +681,7 @@ data class AssignTarget(val register: Register?,
 
     fun determineDatatype(namespace: INameScope, heap: HeapValues, stmt: IStatement): DataType? {
         if(register!=null)
-            return when(register){
-                Register.A, Register.X, Register.Y -> DataType.UBYTE
-                Register.AX, Register.AY, Register.XY -> DataType.UWORD
-            }
+            return DataType.UBYTE
 
         if(identifier!=null) {
             val symbol = namespace.lookup(identifier.nameInSource, stmt) ?: return null
@@ -875,7 +869,6 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
 }
 
 class ArrayIndexedExpression(val identifier: IdentifierReference?,
-                             val register: Register?,
                              var arrayspec: ArraySpec,
                              override val position: Position) : IExpression {
     override lateinit var parent: Node
@@ -891,8 +884,6 @@ class ArrayIndexedExpression(val identifier: IdentifierReference?,
     override fun referencesIdentifier(name: String) = identifier?.referencesIdentifier(name) ?: false
 
     override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? {
-        if (register != null)
-            return DataType.UBYTE
         val target = identifier?.targetStatement(namespace)
         if (target is VarDecl) {
             return when (target.datatype) {
@@ -910,7 +901,7 @@ class ArrayIndexedExpression(val identifier: IdentifierReference?,
     }
 
     override fun toString(): String {
-        return "ArrayIndexed(ident=$identifier, reg=$register, arrayspec=$arrayspec; pos=$position)"
+        return "ArrayIndexed(ident=$identifier, arrayspec=$arrayspec; pos=$position)"
     }
 }
 
@@ -1230,12 +1221,7 @@ class RegisterExpr(val register: Register, override val position: Position) : IE
         return "RegisterExpr(register=$register, pos=$position)"
     }
 
-    override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? {
-        return when(register){
-            Register.A, Register.X, Register.Y -> DataType.UBYTE
-            Register.AX, Register.AY, Register.XY -> DataType.UWORD
-        }
-    }
+    override fun resultingDatatype(namespace: INameScope, heap: HeapValues) = DataType.UBYTE
 }
 
 
@@ -1957,7 +1943,6 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
 
 private fun prog8Parser.ArrayindexedContext.toAst(): ArrayIndexedExpression {
     return ArrayIndexedExpression(identifier()?.toAst() ?: scoped_identifier()?.toAst(),
-            register()?.toAst(),
             arrayspec().toAst(),
             toPosition())
 }

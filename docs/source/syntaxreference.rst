@@ -303,8 +303,9 @@ Reserved names
 
 The following names are reserved, they have a special meaning::
 
-	A    X    Y              ; 6502 hardware registers
-	AX   AY   XY             ; 16-bit pseudo register pairs
+	A     X    Y              ; 6502 hardware registers
+	Pc    Pz   Pn  Pv         ; 6502 status register flags
+	true  false              ; boolean values 1 and 0
 
 
 Range expression

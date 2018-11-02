@@ -148,7 +148,7 @@ expression :
 
 
 arrayindexed :
-    (identifier | scoped_identifier | register) arrayspec
+    (identifier | scoped_identifier ) arrayspec
     ;
 
 
@@ -176,7 +176,7 @@ identifier :  NAME ;
 
 scoped_identifier :  NAME ('.' NAME)+ ;
 
-register :  'A' | 'X' | 'Y' | 'AX' | 'AY' | 'XY' ;
+register :  'A' | 'X' | 'Y' ;
 
 statusregister :  'Pc' | 'Pz' | 'Pn' | 'Pv' ;
 

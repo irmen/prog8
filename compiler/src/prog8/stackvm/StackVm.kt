@@ -130,16 +130,12 @@ class StackVm(private var traceOutputFile: String?) {
         canvas?.requestFocusInWindow()
         variables = program.variables.toMutableMap()
 
-        if("A" in variables || "X" in variables || "Y" in variables ||
-                "XY" in variables || "AX" in variables ||"AY" in variables)
-            throw VmExecutionException("program contains variable(s) for the reserved registers A,X,...")
+        if("A" in variables || "X" in variables || "Y" in variables)
+            throw VmExecutionException("program contains variable(s) for the reserved registers A/X/Y")
         // define the 'registers'
         variables["A"] = Value(DataType.UBYTE, 0)
         variables["X"] = Value(DataType.UBYTE, 0)
         variables["Y"] = Value(DataType.UBYTE, 0)
-        variables["AX"] = Value(DataType.UWORD, 0)
-        variables["AY"] = Value(DataType.UWORD, 0)
-        variables["XY"] = Value(DataType.UWORD, 0)
 
         initMemory(program.memory)
         evalstack.clear()

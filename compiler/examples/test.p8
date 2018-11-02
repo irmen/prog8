@@ -355,40 +355,12 @@ byte_assignment_to_bytearray:
 
 ; all possible assignments to a UWORD VARIABLE (not array)
 
-uword_assignment_to_registerpair:
-    AY = 42
-    AY = 42.w
-    AY = 42555
-    AY = X
-    AY = XY
-    AY = ub2
-    AY = mubyte2
-    AY = string[4]
-    AY = ubarr1[2]
-    ;AY = uwarr1[X]                        ; todo via evaluation
-    ;AY = string[X]                  ; todo via evaluation
-    ;AY = string[b]              ; todo via evaluation
-    ;AY = string[ub]              ; todo via evaluation
-    ;AY = string[mbyte2]              ; todo via evaluation
-    ;AY = string[mubyte2]              ; todo via evaluation
-    ;AY = ubarr1[X]                        ; todo via evaluation
-    ;AY = ubarr1[b]                   ; todo via evaluation
-    ;AY = ubarr1[ub]                  ; todo via evaluation
-    ;AY = ubarr1[mbyte2]                  ; todo via evaluation
-    ;AY = ubarr1[mubyte2]                 ; todo via evaluation
-    ;AY = uwarr1[X]                        ; todo via evaluation
-    ;AY = uwarr1[b]              ; todo via evaluation
-    ;AY = uwarr1[ub]              ; todo via evaluation
-    ;AY = uwarr1[mbyte2]              ; todo via evaluation
-    ;AY = uwarr1[mubyte2]              ; todo via evaluation
-
 
 uword_assignment_to_uwordvar:
     uw = 42
     uw = 42.w
     uw = 42555
     uw = X
-    uw = XY
     uw = ub2
     uw = uw2
     uw = mubyte2
@@ -418,7 +390,6 @@ uword_assignment_to_uwordmem:
     muword = 42.w
     muword = 42555
     muword = X
-    muword = XY
     muword = ub2
     muword = uw2
     muword = mubyte2
@@ -448,7 +419,6 @@ uword_assignment_to_uwordarray:
     uwarr1[2] = 42.w
     uwarr1[2] = 42555
     uwarr1[2] = X
-    uwarr1[2] = XY
     uwarr1[2] = ub2
     uwarr1[2] = uw2
     uwarr1[2] = mubyte2
@@ -461,7 +431,6 @@ uword_assignment_to_uwordarray:
         uwarr1[Y] = 42.w
         uwarr1[Y] = 42555
         uwarr1[Y] = X
-        uwarr1[Y] = XY
         uwarr1[Y] = ub2
         uwarr1[Y] = uw2
         uwarr1[Y] = mubyte2
@@ -474,7 +443,6 @@ uword_assignment_to_uwordarray:
     uwarr1[b] = 42.w
     uwarr1[b] = 42555
     uwarr1[b] = X
-    uwarr1[b] = XY
     uwarr1[b] = ub2
     uwarr1[b] = uw2
     uwarr1[b] = mubyte2
@@ -487,7 +455,6 @@ uword_assignment_to_uwordarray:
     uwarr1[ub] = 42.w
     uwarr1[ub] = 42555
     uwarr1[ub] = X
-    uwarr1[ub] = XY
     uwarr1[ub] = ub2
     uwarr1[ub] = uw2
     uwarr1[ub] = mubyte2
@@ -500,7 +467,6 @@ uword_assignment_to_uwordarray:
         uwarr1[mbyte2] = 42.w
         uwarr1[mbyte2] = 42555
         uwarr1[mbyte2] = X
-        uwarr1[mbyte2] = XY
         uwarr1[mbyte2] = ub2
         uwarr1[mbyte2] = uw2
         uwarr1[mbyte2] = mubyte2
@@ -513,7 +479,6 @@ uword_assignment_to_uwordarray:
         uwarr1[mubyte2] = 42.w
         uwarr1[mubyte2] = 42555
         uwarr1[mubyte2] = X
-        uwarr1[mubyte2] = XY
         uwarr1[mubyte2] = ub2
         uwarr1[mubyte2] = uw2
         uwarr1[mubyte2] = mubyte2
@@ -622,7 +587,6 @@ float_assignment_to_floatvar:
     fl1 = 34555.w
     fl1 = 3.33e22
     fl1 = X
-    fl1 = AY
     fl1 = b2
     fl1 = ub2
     fl1 = w2
@@ -667,7 +631,6 @@ float_assignment_to_floatmem:
     mfloat = 34555.w
     mfloat = 3.33e22
     mfloat = X
-    mfloat = AY
     mfloat = b2
     mfloat = ub2
     mfloat = w2

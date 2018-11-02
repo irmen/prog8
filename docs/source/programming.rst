@@ -224,8 +224,7 @@ Variables that represent CPU hardware registers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following variables are reserved
-and map directly (read/write) to a CPU hardware register: ``A``, ``X``, ``Y``, ``AX``, ``AY``, ``XY``  (the 2-letter ones
-are a pseudo 16-bit 'register' by pairing two 8-bit registers).
+and map directly (read/write) to a CPU hardware register: ``A``, ``X``, ``Y``.
 
 
 Special types: const and memory-mapped
@@ -318,10 +317,7 @@ It can be used for example to work with the *address* of a memory mapped variabl
 the value it holds.  You could take the address of a string as well, but that is redundant:
 the compiler already treats those as a value that you manipulate via its address.
 For most other types this prefix is not supported and will result in a compilation error.
-The resulting value is simply a 16 bit word. Example::
-
-	AX = #somevar
-
+The resulting value is simply a 16 bit word.
 
 .. todo::
     This is not yet implemented.

@@ -125,8 +125,8 @@ class AstIdentifiersChecker : IAstProcessor {
         if(forLoop.loopRegister!=null) {
             if(forLoop.decltype!=null)
                 checkResult.add(SyntaxError("register loop variables cannot be explicitly declared with a datatype", forLoop.position))
-            if(forLoop.loopRegister == Register.X || forLoop.loopRegister==Register.XY || forLoop.loopRegister==Register.AX)
-                printWarning("possible problem writing to the X register, because it's used as an internal pointer", forLoop.position)
+            if(forLoop.loopRegister == Register.X)
+                printWarning("writing to the X register is dangerous, because it's used as an internal pointer", forLoop.position)
         } else if(forLoop.loopVar!=null) {
             val varName = forLoop.loopVar.nameInSource.last()
             when (forLoop.decltype) {
@@ -147,8 +147,8 @@ class AstIdentifiersChecker : IAstProcessor {
     }
 
     override fun process(assignTarget: AssignTarget): AssignTarget {
-        if(assignTarget.register==Register.X || assignTarget.register==Register.AX || assignTarget.register==Register.XY)
-            printWarning("possible problem writing to the X register, because it's used as an internal pointer", assignTarget.position)
+        if(assignTarget.register==Register.X)
+            printWarning("writing to the X register is dangerous, because it's used as an internal pointer", assignTarget.position)
         return super.process(assignTarget)
     }
 }

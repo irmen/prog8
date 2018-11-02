@@ -119,17 +119,8 @@ class AstChecker(private val namespace: INameScope,
             if (forLoop.loopRegister != null) {
                 printWarning("using a register as loop variable is risky (it could get clobbered in the body)", forLoop.position)
                 // loop register
-                when (forLoop.loopRegister) {
-                    Register.A, Register.X, Register.Y -> {
-                        if (iterableDt != DataType.UBYTE && iterableDt!=DataType.ARRAY_UB && iterableDt !in StringDatatypes)
-                            checkResult.add(ExpressionError("register can only loop over bytes", forLoop.position))
-                    }
-                    Register.AX, Register.AY, Register.XY -> {
-                        if (iterableDt != DataType.UWORD && iterableDt != DataType.UBYTE && iterableDt !in StringDatatypes &&
-                                iterableDt !=DataType.ARRAY_UB && iterableDt!=DataType.ARRAY_UW)
-                            checkResult.add(ExpressionError("register pair can only loop over bytes or words", forLoop.position))
-                    }
-                }
+                if (iterableDt != DataType.UBYTE && iterableDt!=DataType.ARRAY_UB && iterableDt !in StringDatatypes)
+                    checkResult.add(ExpressionError("register can only loop over bytes", forLoop.position))
             } else {
                 // loop variable
                 val loopvar = forLoop.loopVar!!.targetStatement(namespace) as? VarDecl
@@ -239,28 +230,15 @@ class AstChecker(private val namespace: INameScope,
             if(subroutine.asmReturnvaluesRegisters.size != subroutine.returntypes.size)
                 err("number of return registers is not the same as number of return values")
             for(param in subroutine.parameters.zip(subroutine.asmParameterRegisters)) {
-                if(param.second.register==Register.A || param.second.register==Register.X ||
-                        param.second.register==Register.Y || param.second.statusflag!=null) {
+                if(param.second.register!=null || param.second.statusflag!=null) {
                     if(param.first.type!=DataType.UBYTE)
                         err("parameter '${param.first.name}' should be ubyte")
                 }
-                if(param.second.register==Register.AX || param.second.register==Register.AY ||
-                        param.second.register==Register.XY) {
-                    if(param.first.type!=DataType.UWORD && param.first.type !in StringDatatypes && param.first.type !in ArrayDatatypes)
-                        err("parameter '${param.first.name}' should be uword/str/arrayspec")
-                }
             }
             for(ret in subroutine.returntypes.withIndex().zip(subroutine.asmReturnvaluesRegisters)) {
-                if(ret.second.register==Register.A || ret.second.register==Register.X ||
-                        ret.second.register==Register.Y || ret.second.statusflag!=null) {
+                if(ret.second.register!=null || ret.second.statusflag!=null) {
                     if(ret.first.value!=DataType.UBYTE)
                         err("return value #${ret.first.index+1} should be ubyte")
-                }
-                if(ret.second.register==Register.AX || ret.second.register==Register.AY ||
-                        ret.second.register==Register.XY) {
-                    if(ret.first.value!=DataType.UWORD && ret.first.value != DataType.UBYTE &&
-                            ret.first.value !in StringDatatypes && ret.first.value !in ArrayDatatypes)
-                        err("return value #${ret.first.index+1} should be uword/ubyte/string/arrayspec")
                 }
             }
 
@@ -270,23 +248,8 @@ class AstChecker(private val namespace: INameScope,
                 regCounts.clear()
                 statusflagCounts.clear()
                 for(p in from) {
-                    if (p.register != null) {
-                        when(p.register) {
-                            Register.A, Register.X, Register.Y -> regCounts[p.register] = regCounts.getValue(p.register) + 1
-                            Register.AX -> {
-                                regCounts[Register.A] = regCounts.getValue(Register.A) + 1
-                                regCounts[Register.X] = regCounts.getValue(Register.X) + 1
-                            }
-                            Register.AY -> {
-                                regCounts[Register.A] = regCounts.getValue(Register.A) + 1
-                                regCounts[Register.Y] = regCounts.getValue(Register.Y) + 1
-                            }
-                            Register.XY -> {
-                                regCounts[Register.X] = regCounts.getValue(Register.X) + 1
-                                regCounts[Register.Y] = regCounts.getValue(Register.Y) + 1
-                            }
-                        }
-                    }
+                    if (p.register != null)
+                        regCounts[p.register] = regCounts.getValue(p.register) + 1
                     else if(p.statusflag!=null)
                         statusflagCounts[p.statusflag] = statusflagCounts.getValue(p.statusflag) + 1
                 }
@@ -329,12 +292,6 @@ class AstChecker(private val namespace: INameScope,
                     checkResult.add(ExpressionError("cannot assign new value to a constant", assignment.position))
                     return super.process(assignment)
                 }
-            }
-        } else if(assignment.target.arrayindexed!=null) {
-            if(assignment.target.arrayindexed!!.register!=null) {
-                val value = assignment.value
-                if (value is ArrayIndexedExpression && value.register in setOf(Register.AX, Register.AY, Register.XY))
-                    checkResult.add(SyntaxError("reading AND writing from registerpair arrays not supported due to register overlap", assignment.position))
             }
         }
 
@@ -696,56 +653,43 @@ class AstChecker(private val namespace: INameScope,
                 }
             }
         } else if(postIncrDecr.target.arrayindexed!=null) {
-            val indexedRegister = postIncrDecr.target.arrayindexed?.register
-            if(indexedRegister!=null) {
-                if(indexedRegister==Register.A || indexedRegister==Register.X || indexedRegister==Register.Y)
-                    checkResult.add(SyntaxError("indexing on registers requires register pair variable", postIncrDecr.position))
-            } else {
-                val target = postIncrDecr.target.arrayindexed?.identifier?.targetStatement(namespace)
-                if(target==null) {
-                    checkResult.add(SyntaxError("undefined symbol", postIncrDecr.position))
-                }
-                else {
-                    val dt = (target as VarDecl).datatype
-                    if(dt !in NumericDatatypes)
-                        checkResult.add(SyntaxError("can only increment or decrement a byte/float/word", postIncrDecr.position))
-                }
+            val target = postIncrDecr.target.arrayindexed?.identifier?.targetStatement(namespace)
+            if(target==null) {
+                checkResult.add(SyntaxError("undefined symbol", postIncrDecr.position))
+            }
+            else {
+                val dt = (target as VarDecl).datatype
+                if(dt !in NumericDatatypes)
+                    checkResult.add(SyntaxError("can only increment or decrement a byte/float/word", postIncrDecr.position))
             }
         }
         return super.process(postIncrDecr)
     }
 
     override fun process(arrayIndexedExpression: ArrayIndexedExpression): IExpression {
-        val reg=arrayIndexedExpression.register
-        if(reg==null) {
-            val target = arrayIndexedExpression.identifier!!.targetStatement(namespace)
-            if(target is VarDecl) {
-                if(target.datatype !in IterableDatatypes)
-                    checkResult.add(SyntaxError("indexing requires an iterable variable", arrayIndexedExpression.position))
-                val arraysize = target.arrayspec?.size()
-                if(arraysize!=null) {
-                    // check out of bounds
-                    val index = (arrayIndexedExpression.arrayspec.x as? LiteralValue)?.asIntegerValue
-                    if(index!=null && (index<0 || index>=arraysize))
-                        checkResult.add(ExpressionError("arrayspec index out of bounds", arrayIndexedExpression.arrayspec.position))
-                } else if(target.datatype in StringDatatypes) {
-                    // check string lengths
-                    val heapId = (target.value as LiteralValue).heapId!!
-                    val stringLen = heap.get(heapId).str!!.length
-                    val index = (arrayIndexedExpression.arrayspec.x as? LiteralValue)?.asIntegerValue
-                    if(index!=null && (index<0 || index>=stringLen))
-                        checkResult.add(ExpressionError("index out of bounds", arrayIndexedExpression.arrayspec.position))
-                }
-            } else
-                checkResult.add(SyntaxError("indexing requires a variable to act upon", arrayIndexedExpression.position))
+        val target = arrayIndexedExpression.identifier!!.targetStatement(namespace)
+        if(target is VarDecl) {
+            if(target.datatype !in IterableDatatypes)
+                checkResult.add(SyntaxError("indexing requires an iterable variable", arrayIndexedExpression.position))
+            val arraysize = target.arrayspec?.size()
+            if(arraysize!=null) {
+                // check out of bounds
+                val index = (arrayIndexedExpression.arrayspec.x as? LiteralValue)?.asIntegerValue
+                if(index!=null && (index<0 || index>=arraysize))
+                    checkResult.add(ExpressionError("arrayspec index out of bounds", arrayIndexedExpression.arrayspec.position))
+            } else if(target.datatype in StringDatatypes) {
+                // check string lengths
+                val heapId = (target.value as LiteralValue).heapId!!
+                val stringLen = heap.get(heapId).str!!.length
+                val index = (arrayIndexedExpression.arrayspec.x as? LiteralValue)?.asIntegerValue
+                if(index!=null && (index<0 || index>=stringLen))
+                    checkResult.add(ExpressionError("index out of bounds", arrayIndexedExpression.arrayspec.position))
+            }
         } else
-            checkResult.add(SyntaxError("indexing on register variable is not possible, use a regular array variable instead", arrayIndexedExpression.position))
+            checkResult.add(SyntaxError("indexing requires a variable to act upon", arrayIndexedExpression.position))
 
         // check index value 0..255
         val regx = (arrayIndexedExpression.arrayspec.x as? RegisterExpr)?.register
-        if((regx in setOf(Register.AX, Register.AY, Register.XY))) {
-            checkResult.add(SyntaxError("array indexing is limited to byte size 0..255", arrayIndexedExpression.position))
-        }
         val dtx = arrayIndexedExpression.arrayspec.x.resultingDatatype(namespace, heap)
         if(dtx!=DataType.UBYTE && dtx!=DataType.BYTE)
             checkResult.add(SyntaxError("array indexing is limited to byte size 0..255", arrayIndexedExpression.position))
