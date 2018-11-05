@@ -587,7 +587,6 @@ word_assignment_to_wordvar:
     w = string[mubyte2]
 
 
-; @todo these:
     w = barr1[X]
     w = ubarr1[X]
     w = barr1[b]
@@ -622,7 +621,6 @@ word_assignment_to_wordmem:
     mword = warr1[2]
 
 
-; @todo these:
     mword = string[X]
     mword = string[b]
     mword = string[ub]
@@ -645,7 +643,114 @@ word_assignment_to_wordmem:
     mword = warr1[mubyte2]
 
 
-; @todo assignment to word array
+; @todo these:    (can re-use most of uword?)
+word_assignment_to_wordarray:
+    warr2[2] = -42
+    warr2[2] = -42.w
+    warr2[2] = 12555
+    warr2[2] = X
+    warr2[2] = ub2
+    warr2[2] = b2
+    warr2[2] = w2
+    warr2[2] = mubyte2
+    warr2[2] = mbyte2
+    warr2[2] = mword2
+    warr2[2] = string[4]
+    warr2[2] = ubarr1[2]
+    warr2[2] = barr1[2]
+    warr2[2] = warr1[2]
+
+    warr2[Y] = -42
+    warr2[Y] = -42.w
+    warr2[Y] = 12555
+    warr2[Y] = X
+    warr2[Y] = ub2
+    warr2[Y] = b2
+    warr2[Y] = w2
+    warr2[Y] = mubyte2
+    warr2[Y] = mbyte2
+    warr2[Y] = mword2
+    warr2[Y] = string[4]
+    warr2[Y] = ubarr1[2]
+    warr2[Y] = barr1[2]
+    warr2[Y] = warr1[2]
+
+    warr2[b] = -42
+    warr2[b] = -42.w
+    warr2[b] = 12555
+    warr2[b] = X
+    warr2[b] = ub2
+    warr2[b] = b2
+    warr2[b] = w2
+    warr2[b] = mubyte2
+    warr2[b] = mbyte2
+    warr2[b] = mword2
+    warr2[b] = string[4]
+    warr2[b] = ubarr1[2]
+    warr2[b] = barr1[2]
+    warr2[b] = warr1[2]
+
+    warr2[ub] = -42
+    warr2[ub] = -42.w
+    warr2[ub] = 14255
+    warr2[ub] = X
+    warr2[ub] = ub2
+    warr2[ub] = b2
+    warr2[ub] = w2
+    warr2[ub] = mubyte2
+    warr2[ub] = mbyte2
+    warr2[ub] = mword2
+    warr2[ub] = string[4]
+    warr2[ub] = ubarr1[2]
+    warr2[ub] = barr1[2]
+    warr2[ub] = warr1[2]
+
+    warr2[mbyte2] = -42
+    warr2[mbyte2] = -42.w
+    warr2[mbyte2] = 12555
+    warr2[mbyte2] = X
+    warr2[mbyte2] = ub2
+    warr2[mbyte2] = b2
+    warr2[mbyte2] = w2
+    warr2[mbyte2] = mubyte2
+    warr2[mbyte2] = mbyte2
+    warr2[mbyte2] = mword2
+    warr2[mbyte2] = string[4]
+    warr2[mbyte2] = ubarr1[2]
+    warr2[mbyte2] = barr1[2]
+    warr2[mbyte2] = warr1[2]
+
+    warr2[mubyte2] = -42
+    warr2[mubyte2] = -42.w
+    warr2[mubyte2] = 12555
+    warr2[mubyte2] = X
+    warr2[mubyte2] = ub2
+    warr2[mubyte2] = b2
+    warr2[mubyte2] = w2
+    warr2[mubyte2] = mubyte2
+    warr2[mubyte2] = mbyte2
+    warr2[mubyte2] = mword2
+    warr2[mubyte2] = string[4]
+    warr2[mubyte2] = ubarr1[2]
+    warr2[mubyte2] = barr1[2]
+    warr2[mubyte2] = warr1[2]
+
+
+;   warr1[2] = string[X]      ; todo via evaluation
+;   warr1[2] = string[b]     ; todo via evaluation
+;   warr1[2] = string[ub]     ; todo via evaluation
+;   warr1[2] = string[mbyte2]     ; todo via evaluation
+;   warr1[2] = string[mubyte2]     ; todo via evaluation
+;   warr1[2] = barr1[X]     ; todo via evaluation
+;   warr1[2] = barr1[b]     ; todo via evaluation
+;   warr1[2] = barr1[ub]     ; todo via evaluation
+;   warr1[2] = barr1[mbyte2]     ; todo via evaluation
+;   warr1[2] = barr1[mubyte2]     ; todo via evaluation
+;   warr1[2] = warr1[X]     ; todo via evaluation
+;   warr1[2] = warr1[b]     ; todo via evaluation
+;   warr1[2] = warr1[ub]     ; todo via evaluation
+;   warr1[2] = warr1[mbyte2]     ; todo via evaluation
+;   warr1[2] = warr1[mubyte2]     ; todo via evaluation
 
 
 ;; all possible assignments to a FLOAT VARIABLE
