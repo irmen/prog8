@@ -15,7 +15,11 @@ private val importedModules : HashMap<String, Module> = hashMapOf()
 
 
 fun importModule(filePath: Path) : Module {
-    println("importing '${filePath.fileName}'  (from '${filePath.parent}')")
+    print("importing '${filePath.fileName}'")
+    if(filePath.parent!=null)
+        println(" (from '${filePath.parent}')")
+    else
+        println("")
     if(!Files.isReadable(filePath))
         throw ParsingFailedError("No such file: $filePath")
 
@@ -28,7 +32,7 @@ fun importModule(filePath: Path) : Module {
     if(parser.numberOfSyntaxErrors > 0)
         throw ParsingFailedError("There are ${parser.numberOfSyntaxErrors} syntax errors in '${filePath.fileName}'.")
 
-    // TODO the comments:
+    // You can do something with the parsed comments:
     // tokens.commentTokens().forEach { println(it) }
 
     // convert to Ast

@@ -20,12 +20,6 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
             get() { return variables.size }
         val numInstructions: Int
             get() { return instructions.filter { it.opcode!= Opcode.LINE }.size }
-
-        fun getIns(idx: Int): Instruction {
-            if(idx>=0 && idx <instructions.size)
-                return instructions[idx]
-            return Instruction(Opcode.NOP)
-        }
     }
 
     val blocks = mutableListOf<ProgramBlock>()

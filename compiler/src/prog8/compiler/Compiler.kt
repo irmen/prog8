@@ -180,7 +180,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
 
     override fun process(block: Block): IStatement {
         prog.newBlock(block.scopedname, block.name, block.address)
-        processVariables(block)
+        processVariables(block)         // @todo optimize initializations with same value: load the value only once
         prog.label(block.scopedname)
         prog.line(block.position)
         translate(block.statements)
@@ -698,7 +698,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         // some functions are implemented as vm opcodes
         args.forEach { translate(it) }  // place function argument(s) on the stack
         when (funcname) {
-            "flt" -> {  // todo: this is translated ok!
+            "flt" -> {
                 // 1 argument, type determines the exact opcode to use
                 val arg = args.single()
                 when (arg.resultingDatatype(namespace, heap)) {
@@ -710,10 +710,10 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     else -> throw CompilerException("wrong datatype for flt()")
                 }
             }
-            "msb" -> prog.instr(Opcode.MSB)     // todo: is translated ok!
-            "lsb" -> prog.instr(Opcode.LSB)     // todo: is translated ok!
-            "b2ub" -> prog.instr(Opcode.B2UB)   // todo: is translated ok!
-            "ub2b" -> prog.instr(Opcode.UB2B)   // todo: is translated ok!
+            "msb" -> prog.instr(Opcode.MSB)
+            "lsb" -> prog.instr(Opcode.LSB)
+            "b2ub" -> prog.instr(Opcode.B2UB)
+            "ub2b" -> prog.instr(Opcode.UB2B)
             "lsl" -> {
                 val arg = args.single()
                 val dt = arg.resultingDatatype(namespace, heap)
@@ -780,12 +780,12 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 // this function doesn't return a value on the stack so we pop it directly into the argument register/variable again
                 popValueIntoTarget(AssignTarget.fromExpr(arg), dt)
             }
-            "set_carry" -> prog.instr(Opcode.SEC)       // todo: compiled ok!!
-            "clear_carry" -> prog.instr(Opcode.CLC)// todo: compiled ok!!
-            "set_irqd" -> prog.instr(Opcode.SEI)// todo: compiled ok!!
-            "clear_irqd" -> prog.instr(Opcode.CLI)// todo: compiled ok!!
-            "rsave" -> prog.instr(Opcode.RSAVE)// todo: compiled ok!!
-            "rrestore" -> prog.instr(Opcode.RRESTORE)// todo: compiled ok!!
+            "set_carry" -> prog.instr(Opcode.SEC)
+            "clear_carry" -> prog.instr(Opcode.CLC)
+            "set_irqd" -> prog.instr(Opcode.SEI)
+            "clear_irqd" -> prog.instr(Opcode.CLI)
+            "rsave" -> prog.instr(Opcode.RSAVE)
+            "rrestore" -> prog.instr(Opcode.RRESTORE)
             else -> createSyscall(funcname)  // call builtin function
         }
     }
@@ -1556,7 +1556,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             translate(ifstmt)
         } else {
             // Step is a variable. We can't optimize anything...
-            TODO("for loop with non-constant step comparison of LV")
+            TODO("for loop with non-constant step comparison of LV, at: ${range.position}")
         }
 
         translate(body)

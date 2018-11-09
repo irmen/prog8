@@ -110,7 +110,7 @@ class AstChecker(private val namespace: INameScope,
             printWarning("for loop body is empty", forLoop.position)
 
         if(forLoop.iterable is LiteralValue)
-            checkResult.add(SyntaxError("currently not possible to loop over a literal value directly, use a variable instead", forLoop.position))      // todo loop over literals
+            checkResult.add(SyntaxError("currently not possible to loop over a literal value directly, use a variable instead", forLoop.position))      // todo loop over literals (by creating a generated variable)
 
         if(!forLoop.iterable.isIterable(namespace, heap)) {
             checkResult.add(ExpressionError("can only loop over an iterable type", forLoop.position))
@@ -689,7 +689,6 @@ class AstChecker(private val namespace: INameScope,
             checkResult.add(SyntaxError("indexing requires a variable to act upon", arrayIndexedExpression.position))
 
         // check index value 0..255
-        val regx = (arrayIndexedExpression.arrayspec.x as? RegisterExpr)?.register
         val dtx = arrayIndexedExpression.arrayspec.x.resultingDatatype(namespace, heap)
         if(dtx!=DataType.UBYTE && dtx!=DataType.BYTE)
             checkResult.add(SyntaxError("array indexing is limited to byte size 0..255", arrayIndexedExpression.position))

@@ -15,8 +15,6 @@ import java.util.*
 import kotlin.math.abs
 
 
-private val registerStrings = Register.values().map{it.toString()}.toSet()
-
 class AssemblyError(msg: String) : RuntimeException(msg)
 
 
@@ -780,7 +778,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
     }
 
     private fun sameIndexedVarOperation(variable: String, indexVar: String, ins: Instruction): AsmFragment? {
-        val saveX = " stx  ${C64Zeropage.SCRATCH_B1} |"         // todo optimize to TXA when possible
+        val saveX = " stx  ${C64Zeropage.SCRATCH_B1} |"
         val restoreX = " | ldx  ${C64Zeropage.SCRATCH_B1}"
         val loadXWord: String
         val loadX: String
@@ -806,17 +804,17 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         }
 
         return when (ins.opcode) {
-            Opcode.SHL_BYTE -> AsmFragment("$saveX $loadX  asl  $variable,x  $restoreX", 10)
-            Opcode.SHR_BYTE -> AsmFragment("$saveX $loadX  lsr  $variable,x  $restoreX", 10)
+            Opcode.SHL_BYTE -> AsmFragment(" txa |  $loadX  asl  $variable,x |  tax", 10)
+            Opcode.SHR_BYTE -> AsmFragment(" txa |  $loadX  lsr  $variable,x |  tax", 10)
             Opcode.SHL_WORD -> AsmFragment("$saveX $loadXWord  asl  $variable,x |  rol  $variable+1,x  $restoreX", 10)
             Opcode.SHR_WORD -> AsmFragment("$saveX $loadXWord  lsr  $variable+1,x |  ror  $variable,x  $restoreX", 10)
-            Opcode.ROL_BYTE -> AsmFragment("$saveX $loadX  rol  $variable,x  $restoreX", 10)
-            Opcode.ROR_BYTE -> AsmFragment("$saveX $loadX  ror  $variable,x  $restoreX", 10)
+            Opcode.ROL_BYTE -> AsmFragment(" txa |  $loadX  rol  $variable,x |  tax", 10)
+            Opcode.ROR_BYTE -> AsmFragment(" txa |  $loadX  ror  $variable,x |  tax", 10)
             Opcode.ROL_WORD -> AsmFragment("$saveX $loadXWord  rol  $variable,x |  rol  $variable+1,x  $restoreX", 10)
             Opcode.ROR_WORD -> AsmFragment("$saveX $loadXWord  ror  $variable+1,x |  ror  $variable,x  $restoreX", 10)
             Opcode.ROL2_BYTE -> AsmFragment("$saveX $loadX  lda  $variable,x |  cmp  #\$80 |  rol  $variable,x  $restoreX", 10)
             Opcode.ROR2_BYTE -> AsmFragment("$saveX $loadX  lda  $variable,x |  lsr  a |  bcc  + |  ora  #\$80 |+ |  sta  $variable,x  $restoreX", 10)
-            Opcode.ROL2_WORD -> AsmFragment("$saveX $loadXWord  asl  $variable,x |  rol  $variable+1,x |  bcc  + |  inc  $variable,x  |+  $restoreX", 30)
+            Opcode.ROL2_WORD -> AsmFragment(" txa |  $loadXWord  asl  $variable,x |  rol  $variable+1,x |  bcc  + |  inc  $variable,x  |+  |  tax", 30)
             Opcode.ROR2_WORD -> AsmFragment("$saveX $loadXWord  lsr  $variable+1,x |  ror  $variable,x |  bcc  + |  lda  $variable+1,x |  ora  #\$80 |  sta  $variable+1,x |+  $restoreX", 30)
             else -> null
         }

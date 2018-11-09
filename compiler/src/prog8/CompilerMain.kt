@@ -20,13 +20,22 @@ fun main(args: Array<String>) {
     // println("This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html\n")
     println("**** This is a prerelease version. Please do not distribute! ****\n")
 
-    if(args.size != 1) {
-        System.err.println("requires one argument: name of module file")
-        exitProcess(1)
+    if(args.isEmpty() || args.size >2)
+        usage()
+
+    var startEmu = false
+    var moduleFile = ""
+    for (arg in args) {
+        if(arg=="--emu")
+            startEmu = true
+        else if(!arg.startsWith("--"))
+            moduleFile = arg
     }
+    if(moduleFile.isNullOrBlank())
+        usage()
 
     val startTime = System.currentTimeMillis()
-    val filepath = Paths.get(args[0]).normalize()
+    val filepath = Paths.get(moduleFile).normalize()
 
     try {
         // import main module and process additional imports
@@ -85,7 +94,7 @@ fun main(args: Array<String>) {
 
         // optimize the parse tree
         println("Optimizing...")
-        val allScopedSymbolDefinitions = moduleAst.checkIdentifiers()
+        val allScopedSymbolDefinitions = moduleAst.checkIdentifiers()       // useful for checking symbol usage later?
         while(true) {
             // keep optimizing expressions and statements until no more steps remain
             val optsDone1 = moduleAst.simplifyExpressions(namespace, heap)
@@ -120,14 +129,25 @@ fun main(args: Array<String>) {
         val endTime = System.currentTimeMillis()
         println("\nTotal compilation+assemble time: ${(endTime-startTime)/1000.0} sec.")
 
-//        // todo start the vice emulator
-//        val program = "foo"
-//        val cmdline = listOf("x64", "-moncommands", monitorfile,
-//                "-autostartprgmode", "1", "-autostart-warp", "-autostart", program)
-//        ProcessBuilder(cmdline).inheritIO().start()
-
     } catch (px: ParsingFailedError) {
         System.err.println(px.message)
         exitProcess(1)
     }
+
+
+    if(startEmu) {
+        println("\nStarting C64 emulator...")
+        val program = "foo"
+        val monitorfile = "foo.mon_list"
+        val cmdline = listOf("x64", "-moncommands", monitorfile,
+                "-autostartprgmode", "1", "-autostart-warp", "-autostart", program)
+        ProcessBuilder(cmdline).inheritIO().start()
+    }
+}
+
+private fun usage() {
+    System.err.println("Missing argument(s):")
+    System.err.println("    [--emu]      auto-start the C64 emulator after successful compilation")
+    System.err.println("    modulefile   main module file to compile")
+    exitProcess(1)
 }
