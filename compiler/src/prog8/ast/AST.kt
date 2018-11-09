@@ -39,6 +39,12 @@ enum class Register {
     Y
 }
 
+enum class Registerpair {
+    AX,
+    AY,
+    XY
+}       // only used in parameter and return value specs in asm subroutines
+
 enum class Statusflag {
     Pc,
     Pz,
@@ -1716,11 +1722,13 @@ private fun prog8Parser.AsmsubroutineContext.toAst(): IStatement {
 private class AsmSubroutineParameter(name: String,
                              type: DataType,
                              val register: Register?,
+                             val registerpair: Registerpair?,
                              val statusflag: Statusflag?,
                              position: Position) : SubroutineParameter(name, type, position)
 
 private class AsmSubroutineReturn(val type: DataType,
                           val register: Register?,
+                          val registerpair: Registerpair?,
                           val statusflag: Statusflag?,
                           val position: Position)
 
@@ -1729,11 +1737,11 @@ private fun prog8Parser.ClobberContext.toAst(): Set<Register>
 
 
 private fun prog8Parser.Asmsub_returnsContext.toAst(): List<AsmSubroutineReturn>
-        = asmsub_return().map { AsmSubroutineReturn(it.datatype().toAst(), it.register()?.toAst(), it.statusregister()?.toAst(), toPosition()) }
+        = asmsub_return().map { AsmSubroutineReturn(it.datatype().toAst(), it.register()?.toAst(), it.registerpair()?.toAst(), it.statusregister()?.toAst(), toPosition()) }
 
 
 private fun prog8Parser.Asmsub_paramsContext.toAst(): List<AsmSubroutineParameter>
-        = asmsub_param().map { AsmSubroutineParameter(it.identifier().text, it.datatype().toAst(), it.register()?.toAst(), it.statusregister()?.toAst(), toPosition()) }
+        = asmsub_param().map { AsmSubroutineParameter(it.identifier().text, it.datatype().toAst(), it.register()?.toAst(), it.registerpair()?.toAst(), it.statusregister()?.toAst(), toPosition()) }
 
 
 private fun prog8Parser.StatusregisterContext.toAst() = Statusflag.valueOf(text)
@@ -1819,6 +1827,8 @@ private fun prog8Parser.Assign_targetContext.toAst() : AssignTarget {
 
 
 private fun prog8Parser.RegisterContext.toAst() = Register.valueOf(text.toUpperCase())
+
+private fun prog8Parser.RegisterpairContext.toAst() = Registerpair.valueOf(text.toUpperCase())
 
 private fun prog8Parser.DatatypeContext.toAst() = DataType.valueOf(text.toUpperCase())
 
