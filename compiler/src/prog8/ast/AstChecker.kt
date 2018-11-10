@@ -230,16 +230,26 @@ class AstChecker(private val namespace: INameScope,
             if(subroutine.asmReturnvaluesRegisters.size != subroutine.returntypes.size)
                 err("number of return registers is not the same as number of return values")
             for(param in subroutine.parameters.zip(subroutine.asmParameterRegisters)) {
-                if(param.second.register!=null || param.second.statusflag!=null) {
+                if(param.second.registerOrPair in setOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y))
                     if(param.first.type!=DataType.UBYTE)
                         err("parameter '${param.first.name}' should be ubyte")
-                }
+                else if(param.second.registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY))
+                    if(param.first.type!=DataType.UWORD)
+                        err("parameter '${param.first.name}' should be uword")
+                else if(param.second.statusflag!=null)
+                    if(param.first.type!=DataType.UBYTE)
+                        err("parameter '${param.first.name}' should be ubyte")
             }
             for(ret in subroutine.returntypes.withIndex().zip(subroutine.asmReturnvaluesRegisters)) {
-                if(ret.second.register!=null || ret.second.statusflag!=null) {
+                if(ret.second.registerOrPair in setOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y))
                     if(ret.first.value!=DataType.UBYTE)
                         err("return value #${ret.first.index+1} should be ubyte")
-                }
+                else if(ret.second.registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY))
+                    if(ret.first.value!=DataType.UWORD)
+                        err("return value #${ret.first.index+1} should be uword")
+                else if(ret.second.statusflag!=null)
+                    if(ret.first.value!=DataType.UBYTE)
+                        err("return value #${ret.first.index+1} should be ubyte")
             }
 
             val regCounts = mutableMapOf<Register, Int>().withDefault { 0 }
@@ -248,10 +258,26 @@ class AstChecker(private val namespace: INameScope,
                 regCounts.clear()
                 statusflagCounts.clear()
                 for(p in from) {
-                    if (p.register != null)
-                        regCounts[p.register] = regCounts.getValue(p.register) + 1
-                    else if(p.statusflag!=null)
-                        statusflagCounts[p.statusflag] = statusflagCounts.getValue(p.statusflag) + 1
+                    when(p.registerOrPair) {
+                        RegisterOrPair.A -> regCounts[Register.A]=regCounts.getValue(Register.A)+1
+                        RegisterOrPair.X -> regCounts[Register.X]=regCounts.getValue(Register.X)+1
+                        RegisterOrPair.Y -> regCounts[Register.Y]=regCounts.getValue(Register.Y)+1
+                        RegisterOrPair.AX -> {
+                            regCounts[Register.A]=regCounts.getValue(Register.A)+1
+                            regCounts[Register.X]=regCounts.getValue(Register.X)+1
+                        }
+                        RegisterOrPair.AY -> {
+                            regCounts[Register.A]=regCounts.getValue(Register.A)+1
+                            regCounts[Register.Y]=regCounts.getValue(Register.Y)+1
+                        }
+                        RegisterOrPair.XY -> {
+                            regCounts[Register.X]=regCounts.getValue(Register.X)+1
+                            regCounts[Register.Y]=regCounts.getValue(Register.Y)+1
+                        }
+                        null ->
+                            if(p.statusflag!=null)
+                                statusflagCounts[p.statusflag] = statusflagCounts.getValue(p.statusflag) + 1
+                    }
                 }
             }
             countRegisters(subroutine.asmParameterRegisters)

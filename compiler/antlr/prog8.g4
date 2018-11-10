@@ -178,7 +178,7 @@ scoped_identifier :  NAME ('.' NAME)+ ;
 
 register :  'A' | 'X' | 'Y' ;
 
-registerpair :  'AX' | 'AY' | 'XY' ;
+registerorpair :  'A' | 'X' | 'Y' | 'AX' | 'AY' | 'XY' ;          // only used in subroutine params and returnvalues
 
 statusregister :  'Pc' | 'Pz' | 'Pn' | 'Pv' ;
 
@@ -236,13 +236,13 @@ asmsub_address :  '=' address=integerliteral  ;
 
 asmsub_params :  asmsub_param (',' EOL? asmsub_param)* ;
 
-asmsub_param :  identifier ':' datatype '@' (register | registerpair | statusregister);
+asmsub_param :  identifier ':' datatype '@' (registerorpair | statusregister);
 
 clobber :  register (',' register)* ;
 
 asmsub_returns :  asmsub_return (',' EOL? asmsub_return)* ;
 
-asmsub_return :  datatype '@' (register | registerpair | statusregister) ;
+asmsub_return :  datatype '@' (registerorpair | statusregister) ;
 
 
 if_stmt :  'if' expression EOL? (statement | statement_block) EOL? else_part? EOL ; // statement is constrained later

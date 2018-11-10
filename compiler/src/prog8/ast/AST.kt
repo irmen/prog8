@@ -39,7 +39,10 @@ enum class Register {
     Y
 }
 
-enum class Registerpair {
+enum class RegisterOrPair {
+    A,
+    X,
+    Y,
     AX,
     AY,
     XY
@@ -1418,7 +1421,7 @@ class InlineAssembly(val assembly: String, override val position: Position) : IS
 }
 
 
-class RegisterOrStatusflag(val register: Register?, val statusflag: Statusflag?)
+class RegisterOrStatusflag(val registerOrPair: RegisterOrPair?, val statusflag: Statusflag?)
 
 class AnonymousScope(override var statements: MutableList<IStatement>,
                      override val position: Position) : INameScope, IStatement {
@@ -1711,8 +1714,8 @@ private fun prog8Parser.AsmsubroutineContext.toAst(): IStatement {
     val returns = asmsub_returns()?.toAst() ?: emptyList()
     val normalParameters = params.map { SubroutineParameter(it.name, it.type, it.position) }
     val normalReturnvalues = returns.map { it.type }
-    val paramRegisters = params.map { RegisterOrStatusflag(it.register, it.statusflag) }
-    val returnRegisters = returns.map { RegisterOrStatusflag(it.register, it.statusflag) }
+    val paramRegisters = params.map { RegisterOrStatusflag(it.registerOrPair, it.statusflag) }
+    val returnRegisters = returns.map { RegisterOrStatusflag(it.registerOrPair, it.statusflag) }
     val clobbers = clobber()?.toAst() ?: emptySet()
     val statements = statement_block()?.toAst() ?: mutableListOf()
     return Subroutine(name, normalParameters, normalReturnvalues,
@@ -1721,14 +1724,12 @@ private fun prog8Parser.AsmsubroutineContext.toAst(): IStatement {
 
 private class AsmSubroutineParameter(name: String,
                              type: DataType,
-                             val register: Register?,
-                             val registerpair: Registerpair?,
+                             val registerOrPair: RegisterOrPair?,
                              val statusflag: Statusflag?,
                              position: Position) : SubroutineParameter(name, type, position)
 
 private class AsmSubroutineReturn(val type: DataType,
-                          val register: Register?,
-                          val registerpair: Registerpair?,
+                          val registerOrPair: RegisterOrPair?,
                           val statusflag: Statusflag?,
                           val position: Position)
 
@@ -1737,11 +1738,11 @@ private fun prog8Parser.ClobberContext.toAst(): Set<Register>
 
 
 private fun prog8Parser.Asmsub_returnsContext.toAst(): List<AsmSubroutineReturn>
-        = asmsub_return().map { AsmSubroutineReturn(it.datatype().toAst(), it.register()?.toAst(), it.registerpair()?.toAst(), it.statusregister()?.toAst(), toPosition()) }
+        = asmsub_return().map { AsmSubroutineReturn(it.datatype().toAst(), it.registerorpair()?.toAst(), it.statusregister()?.toAst(), toPosition()) }
 
 
 private fun prog8Parser.Asmsub_paramsContext.toAst(): List<AsmSubroutineParameter>
-        = asmsub_param().map { AsmSubroutineParameter(it.identifier().text, it.datatype().toAst(), it.register()?.toAst(), it.registerpair()?.toAst(), it.statusregister()?.toAst(), toPosition()) }
+        = asmsub_param().map { AsmSubroutineParameter(it.identifier().text, it.datatype().toAst(), it.registerorpair()?.toAst(), it.statusregister()?.toAst(), toPosition()) }
 
 
 private fun prog8Parser.StatusregisterContext.toAst() = Statusflag.valueOf(text)
@@ -1828,9 +1829,9 @@ private fun prog8Parser.Assign_targetContext.toAst() : AssignTarget {
 
 private fun prog8Parser.RegisterContext.toAst() = Register.valueOf(text.toUpperCase())
 
-private fun prog8Parser.RegisterpairContext.toAst() = Registerpair.valueOf(text.toUpperCase())
-
 private fun prog8Parser.DatatypeContext.toAst() = DataType.valueOf(text.toUpperCase())
+
+private fun prog8Parser.RegisterorpairContext.toAst() = RegisterOrPair.valueOf(text.toUpperCase())
 
 
 private fun prog8Parser.ArrayspecContext.toAst() : ArraySpec =
