@@ -196,8 +196,9 @@ class AstChecker(private val namespace: INameScope,
         super.process(subroutine)
 
         // user-defined subroutines can only have zero or one return type
+        // (multiple return values are only allowed for asm subs)
         if(!subroutine.isAsmSubroutine && subroutine.returntypes.size>1)
-            err("subroutine has more than one return value")
+            err("subroutines can only have one return value")
 
         // subroutine must contain at least one 'return' or 'goto'
         // (or if it has an asm block, that must contain a 'rts' or 'jmp')
@@ -357,8 +358,15 @@ class AstChecker(private val namespace: INameScope,
             } else {
                 val sourceDatatype: DataType? = assignment.value.resultingDatatype(namespace, heap)
                 if(sourceDatatype==null) {
-                    if(assignment.value is FunctionCall)
-                        checkResult.add(ExpressionError("function call doesn't return a suitable value to use in assignment", assignment.value.position))
+                    if(assignment.value is FunctionCall) {
+                        // a functioncall COULD return multiple values (from an asm subroutine), treat that differently
+                        val stmt = (assignment.value as FunctionCall).target.targetStatement(namespace)
+                        if(stmt is Subroutine && stmt.returntypes.size>1) {
+                            checkResult.add(ExpressionError("subroutine returning multiple values", assignment.value.position))     // TODO check this
+                        }
+                        else
+                            checkResult.add(ExpressionError("function call doesn't return a suitable value to use in assignment", assignment.value.position))
+                    }
                     else
                         checkResult.add(ExpressionError("assignment value is invalid or has no proper datatype", assignment.value.position))
                 }
@@ -633,8 +641,7 @@ class AstChecker(private val namespace: INameScope,
         if(targetStatement!=null)
             checkFunctionCall(targetStatement, functionCall.arglist, functionCall.position)
         if(targetStatement is Subroutine && targetStatement.returntypes.isNotEmpty())
-            if(!targetStatement.isAsmSubroutine)
-                printWarning("result value of subroutine call is discarded", functionCall.position)
+            printWarning("result value of subroutine call is discarded", functionCall.position)
         return super.process(functionCall)
     }
 

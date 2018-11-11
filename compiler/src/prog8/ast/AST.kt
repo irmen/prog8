@@ -1380,7 +1380,7 @@ class FunctionCall(override var target: IdentifierReference,
                     return null     // no return value
                 if(stmt.returntypes.size==1)
                     return stmt.returntypes[0]
-                return null     // has multiple return types...
+                return null     // has multiple return types... so not a single resulting datatype possible
             }
             is Label -> return null
         }
@@ -1447,6 +1447,7 @@ class AnonymousScope(override var statements: MutableList<IStatement>,
 
 // the subroutine class covers both the normal user-defined subroutines,
 // and also the predefined/ROM/register-based subroutines.
+// (multiple return types can only occur for the latter type)
 class Subroutine(override val name: String,
                  val parameters: List<SubroutineParameter>,
                  val returntypes: List<DataType>,
