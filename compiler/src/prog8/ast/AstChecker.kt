@@ -303,22 +303,31 @@ class AstChecker(private val namespace: INameScope,
      * Also check data type compatibility
      */
     override fun process(assignment: Assignment): IStatement {
-        if(assignment.target.identifier!=null) {
-            val targetName = assignment.target.identifier!!.nameInSource
+        var resultingAssignment = assignment
+        for (target in assignment.targets) {
+            resultingAssignment = processAssignmentTarget(resultingAssignment, target)
+        }
+        return super.process(resultingAssignment)
+    }
+
+    private fun processAssignmentTarget(assignment: Assignment, target: AssignTarget): Assignment {
+        if(target.identifier!=null) {
+            val targetName = target.identifier.nameInSource
             val targetSymbol = namespace.lookup(targetName, assignment)
             when {
                 targetSymbol == null -> {
                     checkResult.add(ExpressionError("undefined symbol: ${targetName.joinToString(".")}", assignment.position))
-                    return super.process(assignment)
+                    return assignment
                 }
                 targetSymbol !is VarDecl -> {
                     checkResult.add(SyntaxError("assignment LHS must be register or variable", assignment.position))
-                    return super.process(assignment)
+                    return assignment
                 }
                 targetSymbol.type == VarDeclType.CONST -> {
                     checkResult.add(ExpressionError("cannot assign new value to a constant", assignment.position))
-                    return super.process(assignment)
+                    return assignment
                 }
+                else -> {}
             }
         }
 
@@ -329,27 +338,27 @@ class AstChecker(private val namespace: INameScope,
         if(assignment.aug_op!=null) {
             // check augmented assignment:
             // A /= 3  -> check as if it was A = A / 3
-            val target: IExpression =
+            val newTarget: IExpression =
                     when {
-                        assignment.target.register!=null -> RegisterExpr(assignment.target.register!!, assignment.target.position)
-                        assignment.target.identifier!=null -> assignment.target.identifier!!
-                        assignment.target.arrayindexed!=null -> assignment.target.arrayindexed!!
+                        target.register!=null -> RegisterExpr(target.register, target.position)
+                        target.identifier!=null -> target.identifier
+                        target.arrayindexed!=null -> target.arrayindexed
                         else -> throw FatalAstException("strange assignment")
                     }
 
-            val expression = BinaryExpression(target, assignment.aug_op.substringBeforeLast('='), assignment.value, assignment.position)
+            val expression = BinaryExpression(newTarget, assignment.aug_op.substringBeforeLast('='), assignment.value, assignment.position)
             expression.linkParents(assignment.parent)
-            val assignment2 = Assignment(assignment.target, null, expression, assignment.position)
+            val assignment2 = Assignment(listOf(target), null, expression, assignment.position)
             assignment2.linkParents(assignment.parent)
-            return process(assignment2)
+            return assignment2
         }
 
-        val targetDatatype = assignment.target.determineDatatype(namespace, heap, assignment)
+        val targetDatatype = target.determineDatatype(namespace, heap, assignment)
         if(targetDatatype!=null) {
             val constVal = assignment.value.constValue(namespace, heap)
             if(constVal!=null) {
-                val arrayspec = if(assignment.target.identifier!=null) {
-                    val targetVar = namespace.lookup(assignment.target.identifier!!.nameInSource, assignment) as? VarDecl
+                val arrayspec = if(target.identifier!=null) {
+                    val targetVar = namespace.lookup(target.identifier.nameInSource, assignment) as? VarDecl
                     targetVar?.arrayspec
                 } else null
                 checkValueTypeAndRange(targetDatatype,
@@ -375,8 +384,7 @@ class AstChecker(private val namespace: INameScope,
                 }
             }
         }
-
-        return super.process(assignment)
+        return assignment
     }
 
 

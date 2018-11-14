@@ -536,7 +536,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
         super.process(assignment)
         val lv = assignment.value as? LiteralValue
         if(lv!=null) {
-            val targetDt = assignment.target.determineDatatype(namespace, heap, assignment)
+            val targetDt = assignment.singleTarget?.determineDatatype(namespace, heap, assignment)
             // see if we can promote/convert a literal value to the required datatype
             when(targetDt) {
                 DataType.UWORD -> {

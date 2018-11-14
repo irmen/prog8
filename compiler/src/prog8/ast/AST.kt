@@ -191,7 +191,7 @@ interface IAstProcessor {
     }
 
     fun process(assignment: Assignment): IStatement {
-        assignment.target = assignment.target.process(this)
+        assignment.targets = assignment.targets.map { it.process(this) }
         assignment.value = assignment.value.process(this)
         return assignment
     }
@@ -641,26 +641,31 @@ class VarDecl(val type: VarDeclType,
 }
 
 
-open class Assignment(var target: AssignTarget, val aug_op : String?, var value: IExpression, override val position: Position) : IStatement {
+open class Assignment(var targets: List<AssignTarget>, val aug_op : String?, var value: IExpression, override val position: Position) : IStatement {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
-        target.linkParents(this)
+        targets.forEach { it.linkParents(this) }
         value.linkParents(this)
     }
 
     override fun process(processor: IAstProcessor) = processor.process(this)
 
     override fun toString(): String {
-        return("Assignment(augop: $aug_op, target: $target, value: $value, pos=$position)")
+        return("Assignment(augop: $aug_op, targets: $targets, value: $value, pos=$position)")
     }
+
+    val singleTarget: AssignTarget?
+        get() {
+            return targets.singleOrNull()  // common case
+        }
 }
 
 // This is a special class so the compiler can see if the assignments are for initializing the vars in the scope,
 // or just a regular assignment. It may optimize the initialization step from this.
 class VariableInitializationAssignment(target: AssignTarget, aug_op: String?, value: IExpression, position: Position)
-    : Assignment(target, aug_op, value, position)
+    : Assignment(listOf(target), aug_op, value, position)
 
 
 data class AssignTarget(val register: Register?,
@@ -1645,11 +1650,11 @@ private fun prog8Parser.StatementContext.toAst() : IStatement {
     }
 
     assignment()?.let {
-        return Assignment(it.assign_target().toAst(),null, it.expression().toAst(), it.toPosition())
+        return Assignment(it.assign_targets().toAst(), null, it.expression().toAst(), it.toPosition())
     }
 
     augassignment()?.let {
-        return Assignment(it.assign_target().toAst(),
+        return Assignment(listOf(it.assign_target().toAst()),
                 it.operator.text,
                 it.expression().toAst(),
                 it.toPosition())
@@ -1706,6 +1711,8 @@ private fun prog8Parser.StatementContext.toAst() : IStatement {
 
     throw FatalAstException("unprocessed source text (are we missing ast conversion rules for parser elements?): $text")
 }
+
+private fun prog8Parser.Assign_targetsContext.toAst(): List<AssignTarget> = assign_target().map { it.toAst() }
 
 
 private fun prog8Parser.AsmsubroutineContext.toAst(): IStatement {

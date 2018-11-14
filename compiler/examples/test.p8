@@ -7,11 +7,13 @@
 
 sub start() {
 
-    ubyte derp
+    ubyte v1
+    ubyte v2
 
 
-    derp=foo()
-    derp=c64.GETADR()
+    v1=foo()
+    v1 , v2 =c64.GETADR()
+
     return
 }
 

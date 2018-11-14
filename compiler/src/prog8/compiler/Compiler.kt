@@ -1089,10 +1089,11 @@ private class StatementTranslator(private val prog: IntermediateProgram,
     }
 
     private fun translate(stmt: Assignment) {
+        val assignTarget= stmt.singleTarget ?: throw CompilerException("cannot use assignment to multiple assignment targets ${stmt.position}")
         prog.line(stmt.position)
         translate(stmt.value)
         val valueDt = stmt.value.resultingDatatype(namespace, heap)
-        val targetDt = stmt.target.determineDatatype(namespace, heap, stmt)
+        val targetDt = assignTarget.determineDatatype(namespace, heap, stmt)
         if(valueDt!=targetDt) {
             // convert value to target datatype if possible
             when(targetDt) {
@@ -1124,26 +1125,26 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         if(stmt.aug_op!=null) {
             // augmented assignment
             when {
-                stmt.target.identifier!=null -> {
-                    val target = stmt.target.identifier!!.targetStatement(namespace)!!
+                assignTarget.identifier!=null -> {
+                    val target = assignTarget.identifier.targetStatement(namespace)!!
                     when(target) {
                         is VarDecl -> {
-                            val opcode = opcodePushvar(stmt.target.determineDatatype(namespace, heap, stmt)!!)
+                            val opcode = opcodePushvar(assignTarget.determineDatatype(namespace, heap, stmt)!!)
                             prog.instr(opcode, callLabel = target.scopedname)
                         }
                         else -> throw CompilerException("invalid assignment target type ${target::class}")
                     }
                 }
-                stmt.target.register!=null -> prog.instr(Opcode.PUSH_VAR_BYTE, callLabel = stmt.target.register.toString())
-                stmt.target.arrayindexed!=null -> translate(stmt.target.arrayindexed!!, false)
+                assignTarget.register!=null -> prog.instr(Opcode.PUSH_VAR_BYTE, callLabel = assignTarget.register.toString())
+                assignTarget.arrayindexed!=null -> translate(assignTarget.arrayindexed, false)
             }
 
             translateAugAssignOperator(stmt.aug_op, stmt.value.resultingDatatype(namespace, heap))
         }
 
         // pop the result value back into the assignment target
-        val datatype = stmt.target.determineDatatype(namespace, heap, stmt)!!
-        popValueIntoTarget(stmt.target, datatype)
+        val datatype = assignTarget.determineDatatype(namespace, heap, stmt)!!
+        popValueIntoTarget(assignTarget, datatype)
     }
 
     private fun popValueIntoTarget(assignTarget: AssignTarget, datatype: DataType) {
@@ -1394,7 +1395,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         else
             AssignTarget(null, loop.loopVar!!.copy(), null, loop.position)
         val arrayspec = ArraySpec(RegisterExpr(Register.X, loop.position), loop.position)
-        val assignLv = Assignment(assignTarget, null, ArrayIndexedExpression((loop.iterable as IdentifierReference).copy(), arrayspec, loop.position), loop.position)
+        val assignLv = Assignment(listOf(assignTarget), null, ArrayIndexedExpression((loop.iterable as IdentifierReference).copy(), arrayspec, loop.position), loop.position)
         assignLv.linkParents(loop.body)
         translate(assignLv)
         translate(loop.body)
@@ -1519,7 +1520,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 AssignTarget(register, null, null, range.position)
         }
 
-        val startAssignment = Assignment(makeAssignmentTarget(), null, range.from, range.position)
+        val startAssignment = Assignment(listOf(makeAssignmentTarget()), null, range.from, range.position)
         startAssignment.linkParents(range.parent)
         translate(startAssignment)
 

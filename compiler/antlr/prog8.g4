@@ -107,7 +107,9 @@ datatype:  'ubyte' | 'byte' | 'uword' | 'word' | 'float' | 'str' | 'str_p' | 'st
 
 arrayspec:  '[' expression ']' ;
 
-assignment :  assign_target '=' expression ;
+assignment :  assign_targets '=' expression ;
+
+assign_targets : assign_target (',' assign_target)* ;
 
 augassignment :
 	assign_target operator=('+=' | '-=' | '/=' | '//=' | '*=' | '**=' | '&=' | '|=' | '^=') expression
