@@ -709,6 +709,16 @@ data class AssignTarget(val register: Register?,
         }
         return null
     }
+
+    fun shortString(): String {
+        if(register!=null)
+            return register.toString()
+        if(identifier!=null)
+            return identifier.nameInSource.last()
+        if(arrayindexed!=null)
+            return arrayindexed.identifier!!.nameInSource.last()
+        return "???"
+    }
 }
 
 

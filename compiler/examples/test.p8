@@ -9,10 +9,18 @@ sub start() {
 
     ubyte v1
     ubyte v2
+    float f2
+    uword address
 
 
     v1=foo()
-    v1 , v2 =c64.GETADR()
+    X, Y =c64.GETADR()
+    v1, v2 =c64.GETADR()
+    address  =c64.MEMBOT(1, 0.w)
+    address  =c64.IOBASE()
+    A = c64.CHRIN()
+    X = c64.CHRIN()
+    v1 = c64.CHRIN()
 
     return
 }

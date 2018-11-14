@@ -1089,7 +1089,46 @@ private class StatementTranslator(private val prog: IntermediateProgram,
     }
 
     private fun translate(stmt: Assignment) {
-        val assignTarget= stmt.singleTarget ?: throw CompilerException("cannot use assignment to multiple assignment targets ${stmt.position}")
+        val assignTarget= stmt.singleTarget
+
+        if(assignTarget==null) {
+            // we're dealing with multiple return values
+            val targetStmt = (stmt.value as? FunctionCall)?.target?.targetStatement(namespace)
+            if(targetStmt is Subroutine && targetStmt.isAsmSubroutine) {
+                // we're dealing with the one case where multiple assignment targets are allowed: a call to an asmsub with multiple return values
+                // for now, we only support multiple return values as long as they're returned in registers as well.
+                if(targetStmt.asmReturnvaluesRegisters.isEmpty())
+                    throw CompilerException("we only support multiple return values / assignment when the asmsub returns values in registers")
+                // if the result registers are not assigned in the exact same registers, or in variables, we need some code
+                if(stmt.targets.all{it.register!=null}) {
+                    val resultRegisters = mutableListOf<Register>()
+                    for(x in targetStmt.asmReturnvaluesRegisters) {
+                        when(x.registerOrPair) {
+                            RegisterOrPair.A -> resultRegisters.add(Register.A)
+                            RegisterOrPair.X -> resultRegisters.add(Register.X)
+                            RegisterOrPair.Y -> resultRegisters.add(Register.Y)
+                            RegisterOrPair.AX -> {
+                                resultRegisters.add(Register.A)
+                                resultRegisters.add(Register.X)
+                            }
+                            RegisterOrPair.AY -> {
+                                resultRegisters.add(Register.A)
+                                resultRegisters.add(Register.Y)
+                            }
+                            RegisterOrPair.XY -> {
+                                resultRegisters.add(Register.X)
+                                resultRegisters.add(Register.Y)
+                            }
+                        }
+                    }
+                    TODO("$resultRegisters")
+                } else {
+                    TODO("store results from registers ${targetStmt.asmReturnvaluesRegisters}")
+                }
+            } else throw CompilerException("can only use multiple assignment targets on an asmsub call")
+            return
+        }
+
         prog.line(stmt.position)
         translate(stmt.value)
         val valueDt = stmt.value.resultingDatatype(namespace, heap)
