@@ -459,6 +459,10 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             }
 
+            Opcode.PUSH_REGAY_WORD -> {
+                " sta  ${ESTACK_LO.toHex()},x |  tya |  sta  ${ESTACK_HI.toHex()},x |  dex "
+            }
+
             Opcode.READ_INDEXED_VAR_BYTE -> {           // @todo is this correct?
                 """
                 ldy  ${(ESTACK_LO+1).toHex()},x
@@ -998,8 +1002,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             """
 
     private val patterns = listOf(
-            // -------------- simple conversions ----------------
-
             // ----------- assignment to BYTE VARIABLE ----------------
             // var = (u)bytevalue
             AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.POP_VAR_BYTE)) { segment ->
@@ -2434,10 +2436,56 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 ldy  #>${hexVal(segment[2])}
                 jsr  prog8_lib.copy_float
                 """
+            },
+
+
+            // ---------- some special operations ------------------
+            // var word = AY register pair
+            AsmPattern(listOf(Opcode.PUSH_REGAY_WORD, Opcode.POP_VAR_WORD)) { segment ->
+                """
+                sta  ${segment[1].callLabel}
+                sty  ${segment[1].callLabel}+1
+                """
+            },
+            // var word = AX register pair
+            AsmPattern(listOf(Opcode.PUSH_REGAX_WORD, Opcode.POP_VAR_WORD)) { segment ->
+                """
+                sta  ${segment[1].callLabel}
+                stx  ${segment[1].callLabel}+1
+                """
+            },
+            // var word = XY register pair
+            AsmPattern(listOf(Opcode.PUSH_REGXY_WORD, Opcode.POP_VAR_WORD)) { segment ->
+                """
+                stx  ${segment[1].callLabel}
+                sty  ${segment[1].callLabel}+1
+                """
+            },
+            // mem word = AY register pair
+            AsmPattern(listOf(Opcode.PUSH_REGAY_WORD, Opcode.POP_MEM_WORD)) { segment ->
+                """
+                sta  ${hexVal(segment[1])}
+                sty  ${hexValPlusOne(segment[1])}
+                """
+            },
+            // mem word = AX register pair
+            AsmPattern(listOf(Opcode.PUSH_REGAX_WORD, Opcode.POP_MEM_WORD)) { segment ->
+                """
+                sta  ${hexVal(segment[1])}
+                stx  ${hexValPlusOne(segment[1])}
+                """
+            },
+            // mem word = XY register pair
+            AsmPattern(listOf(Opcode.PUSH_REGXY_WORD, Opcode.POP_MEM_WORD)) { segment ->
+                """
+                stx  ${hexVal(segment[1])}
+                sty  ${hexValPlusOne(segment[1])}
+                """
             }
 
 
-//            // assignment: floatarray[idxbyte] = float
+
+//            // @todo assignment: floatarray[idxbyte] = float
 //            AsmPattern(listOf(Opcode.PUSH_FLOAT, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_FLOAT)) { segment ->
 //                val floatConst = getFloatConst(segment[0].arg!!)
 //                val index = intVal(segment[1]) * Mflpt5.MemorySize
@@ -2451,7 +2499,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 //                jsr  prog8_lib.copy_float
 //                """
 //            },
-//            // assignment: floatarray[idxbyte] = floatvar
+//            // @todo assignment: floatarray[idxbyte] = floatvar
 //            AsmPattern(listOf(Opcode.PUSH_VAR_FLOAT, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_FLOAT)) { segment ->
 //                val index = intVal(segment[1]) * Mflpt5.MemorySize
 //                """
@@ -2464,7 +2512,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 //                jsr  prog8_lib.copy_float
 //                """
 //            },
-//            // assignment: floatarray[idxbyte] = memfloat
+//            // @todo assignment: floatarray[idxbyte] = memfloat
 //            AsmPattern(listOf(Opcode.PUSH_MEM_FLOAT, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_FLOAT)) { segment ->
 //                val index = intVal(segment[1]) * Mflpt5.MemorySize
 //                """

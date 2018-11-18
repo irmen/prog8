@@ -394,7 +394,6 @@ interface INameScope {
     }
 }
 
-
 private object ParentSentinel : Node {
     override val position = Position("<<sentinel>>", 0, 0, 0)
     override var parent: Node = this
@@ -1436,7 +1435,7 @@ class InlineAssembly(val assembly: String, override val position: Position) : IS
 }
 
 
-class RegisterOrStatusflag(val registerOrPair: RegisterOrPair?, val statusflag: Statusflag?)
+data class RegisterOrStatusflag(val registerOrPair: RegisterOrPair?, val statusflag: Statusflag?)
 
 class AnonymousScope(override var statements: MutableList<IStatement>,
                      override val position: Position) : INameScope, IStatement {
@@ -1591,8 +1590,6 @@ class RepeatLoop(var body: AnonymousScope,
 fun prog8Parser.ModuleContext.toAst(name: String) : Module =
         Module(name, modulestatement().asSequence().map { it.toAst() }.toMutableList(), toPosition())
 
-
-/************** Helper extension methods (private) ************/
 
 private fun ParserRuleContext.toPosition() : Position {
     val file = Paths.get(this.start.inputStream.sourceName).fileName.toString()
@@ -2055,4 +2052,29 @@ private fun prog8Parser.RepeatloopContext.toAst(): RepeatLoop {
     val statements = statement_block()?.toAst() ?: mutableListOf(statement().toAst())
     val scope = AnonymousScope(statements, statement_block()?.toPosition() ?: statement().toPosition())
     return RepeatLoop(scope, untilCondition, toPosition())
+}
+
+
+internal fun registerSet(asmReturnvaluesRegisters: Iterable<RegisterOrStatusflag>): Set<Register> {
+    val resultRegisters = mutableSetOf<Register>()
+    for(x in asmReturnvaluesRegisters) {
+        when(x.registerOrPair) {
+            RegisterOrPair.A -> resultRegisters.add(Register.A)
+            RegisterOrPair.X -> resultRegisters.add(Register.X)
+            RegisterOrPair.Y -> resultRegisters.add(Register.Y)
+            RegisterOrPair.AX -> {
+                resultRegisters.add(Register.A)
+                resultRegisters.add(Register.X)
+            }
+            RegisterOrPair.AY -> {
+                resultRegisters.add(Register.A)
+                resultRegisters.add(Register.Y)
+            }
+            RegisterOrPair.XY -> {
+                resultRegisters.add(Register.X)
+                resultRegisters.add(Register.Y)
+            }
+        }
+    }
+    return resultRegisters
 }

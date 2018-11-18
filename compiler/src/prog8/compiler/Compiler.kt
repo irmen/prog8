@@ -792,13 +792,18 @@ private class StatementTranslator(private val prog: IntermediateProgram,
 
     private fun translateSubroutineCall(subroutine: Subroutine, arguments: List<IExpression>, callPosition: Position) {
         // evaluate the arguments and assign them into the subroutine's argument variables.
-        prog.line(callPosition)
-        for(arg in arguments.zip(subroutine.parameters)) {
-            translate(arg.first)
-            val opcode=opcodePopvar(arg.second.type)
-            prog.instr(opcode, callLabel = subroutine.scopedname+"."+arg.second.name)
+
+        if(subroutine.asmReturnvaluesRegisters.isNotEmpty()) {
+            TODO("call asmsub by loading registers instead")
+        } else {
+            prog.line(callPosition)
+            for (arg in arguments.zip(subroutine.parameters)) {
+                translate(arg.first)
+                val opcode = opcodePopvar(arg.second.type)
+                prog.instr(opcode, callLabel = subroutine.scopedname + "." + arg.second.name)
+            }
         }
-        prog.instr(Opcode.CALL, callLabel=subroutine.scopedname)
+        prog.instr(Opcode.CALL, callLabel = subroutine.scopedname)
     }
 
     private fun translateBinaryOperator(operator: String, dt: DataType) {
@@ -1080,7 +1085,6 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         }
     }
 
-
     private fun translate(stmt: VariableInitializationAssignment) {
         // this is an assignment to initialize a variable's value in the scope.
         // the compiler can perhaps optimize this phase.
@@ -1089,48 +1093,16 @@ private class StatementTranslator(private val prog: IntermediateProgram,
     }
 
     private fun translate(stmt: Assignment) {
-        val assignTarget= stmt.singleTarget
+        prog.line(stmt.position)
+        translate(stmt.value)
 
+        val assignTarget= stmt.singleTarget
         if(assignTarget==null) {
             // we're dealing with multiple return values
-            val targetStmt = (stmt.value as? FunctionCall)?.target?.targetStatement(namespace)
-            if(targetStmt is Subroutine && targetStmt.isAsmSubroutine) {
-                // we're dealing with the one case where multiple assignment targets are allowed: a call to an asmsub with multiple return values
-                // for now, we only support multiple return values as long as they're returned in registers as well.
-                if(targetStmt.asmReturnvaluesRegisters.isEmpty())
-                    throw CompilerException("we only support multiple return values / assignment when the asmsub returns values in registers")
-                // if the result registers are not assigned in the exact same registers, or in variables, we need some code
-                if(stmt.targets.all{it.register!=null}) {
-                    val resultRegisters = mutableListOf<Register>()
-                    for(x in targetStmt.asmReturnvaluesRegisters) {
-                        when(x.registerOrPair) {
-                            RegisterOrPair.A -> resultRegisters.add(Register.A)
-                            RegisterOrPair.X -> resultRegisters.add(Register.X)
-                            RegisterOrPair.Y -> resultRegisters.add(Register.Y)
-                            RegisterOrPair.AX -> {
-                                resultRegisters.add(Register.A)
-                                resultRegisters.add(Register.X)
-                            }
-                            RegisterOrPair.AY -> {
-                                resultRegisters.add(Register.A)
-                                resultRegisters.add(Register.Y)
-                            }
-                            RegisterOrPair.XY -> {
-                                resultRegisters.add(Register.X)
-                                resultRegisters.add(Register.Y)
-                            }
-                        }
-                    }
-                    TODO("$resultRegisters")
-                } else {
-                    TODO("store results from registers ${targetStmt.asmReturnvaluesRegisters}")
-                }
-            } else throw CompilerException("can only use multiple assignment targets on an asmsub call")
+            translateMultiReturnAssignment(stmt)
             return
         }
 
-        prog.line(stmt.position)
-        translate(stmt.value)
         val valueDt = stmt.value.resultingDatatype(namespace, heap)
         val targetDt = assignTarget.determineDatatype(namespace, heap, stmt)
         if(valueDt!=targetDt) {
@@ -1181,9 +1153,88 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             translateAugAssignOperator(stmt.aug_op, stmt.value.resultingDatatype(namespace, heap))
         }
 
+        if(stmt.value is FunctionCall) {
+            val sub = (stmt.value as FunctionCall).target.targetStatement(namespace)
+            if(sub is Subroutine && sub.asmReturnvaluesRegisters.isNotEmpty()) {
+                // the subroutine call returns its values in registers
+                storeRegisterIntoTarget(sub.asmReturnvaluesRegisters.single(), assignTarget, stmt)
+                return
+            }
+        }
+
         // pop the result value back into the assignment target
         val datatype = assignTarget.determineDatatype(namespace, heap, stmt)!!
         popValueIntoTarget(assignTarget, datatype)
+    }
+
+    private fun translateMultiReturnAssignment(stmt: Assignment) {
+        val targetStmt = (stmt.value as? FunctionCall)?.target?.targetStatement(namespace)
+        if(targetStmt is Subroutine && targetStmt.isAsmSubroutine) {
+            // we're dealing with the one case where multiple assignment targets are allowed: a call to an asmsub with multiple return values
+            // for now, we only support multiple return values as long as they're returned in registers as well.
+            if(targetStmt.asmReturnvaluesRegisters.isEmpty())
+                throw CompilerException("we only support multiple return values / assignment when the asmsub returns values in registers")
+            // if the result registers are not assigned in the exact same registers, or in variables, we need some code
+            if(stmt.targets.all{it.register!=null}) {
+                val resultRegisters = registerSet(targetStmt.asmReturnvaluesRegisters)
+                if(stmt.targets.size!=resultRegisters.size)
+                    throw CompilerException("asmsub number of return values doesn't match number of assignment targets ${stmt.position}")
+                val targetRegs = stmt.targets.filter {it.register!=null}.map{it.register}.toSet()
+                if(resultRegisters!=targetRegs)
+                    throw CompilerException("asmsub return registers don't match assignment target registers ${stmt.position}")
+                // output is in registers already, no need to emit any asm code
+            } else {
+                // output is in registers but has to be stored somewhere
+                for(result in targetStmt.asmReturnvaluesRegisters.zip(stmt.targets))
+                    storeRegisterIntoTarget(result.first, result.second, stmt)
+            }
+        } else throw CompilerException("can only use multiple assignment targets on an asmsub call")
+    }
+
+    private fun storeRegisterIntoTarget(registerOrStatus: RegisterOrStatusflag, target: AssignTarget, parent: IStatement) {
+        if(registerOrStatus.statusflag!=null)
+            return
+        when(registerOrStatus.registerOrPair){
+            RegisterOrPair.A -> {
+                val assignment = Assignment(listOf(target), null, RegisterExpr(Register.A, target.position), target.position)
+                assignment.linkParents(parent)
+                translate(assignment)
+            }
+            RegisterOrPair.X -> {
+                val assignment = Assignment(listOf(target), null, RegisterExpr(Register.X, target.position), target.position)
+                assignment.linkParents(parent)
+                translate(assignment)
+            }
+            RegisterOrPair.Y -> {
+                val assignment = Assignment(listOf(target), null, RegisterExpr(Register.Y, target.position), target.position)
+                assignment.linkParents(parent)
+                translate(assignment)
+            }
+            RegisterOrPair.AX -> {
+                // deal with register pair AX:  target = A + X*256
+                val targetDt = target.determineDatatype(namespace, heap, parent)
+                if(targetDt!=DataType.UWORD)
+                    throw CompilerException("invalid target datatype for registerpair $targetDt")
+                prog.instr(Opcode.PUSH_REGAX_WORD)
+                popValueIntoTarget(target, targetDt)
+            }
+            RegisterOrPair.AY -> {
+                // deal with register pair AY:  target = A + Y*256
+                val targetDt = target.determineDatatype(namespace, heap, parent)
+                if(targetDt!=DataType.UWORD)
+                    throw CompilerException("invalid target datatype for registerpair $targetDt")
+                prog.instr(Opcode.PUSH_REGAY_WORD)
+                popValueIntoTarget(target, targetDt)
+            }
+            RegisterOrPair.XY -> {
+                // deal with register pair XY:  target = X + Y*256
+                val targetDt = target.determineDatatype(namespace, heap, parent)
+                if(targetDt!=DataType.UWORD)
+                    throw CompilerException("invalid target datatype for registerpair $targetDt")
+                prog.instr(Opcode.PUSH_REGXY_WORD)
+                popValueIntoTarget(target, targetDt)
+            }
+        }
     }
 
     private fun popValueIntoTarget(assignTarget: AssignTarget, datatype: DataType) {

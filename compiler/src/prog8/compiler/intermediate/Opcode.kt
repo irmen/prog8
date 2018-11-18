@@ -14,6 +14,9 @@ enum class Opcode {
     PUSH_VAR_BYTE,   // push byte variable (ubyte, byte)
     PUSH_VAR_WORD,   // push word variable (uword, word)
     PUSH_VAR_FLOAT,  // push float variable
+    PUSH_REGAX_WORD, // push registers A/X as a 16-bit word
+    PUSH_REGAY_WORD, // push registers A/Y as a 16-bit word
+    PUSH_REGXY_WORD, // push registers X/Y as a 16-bit word
 
     // popping values off the (evaluation) stack, possibly storing them in another location
     DISCARD_BYTE,    // discard top byte value

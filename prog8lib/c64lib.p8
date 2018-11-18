@@ -120,18 +120,18 @@ asmsub	MOVEF		() -> clobbers(A,X) -> ()			= $bc0f		; copy fac1 to fac2
 asmsub	FTOMEMXY	(mflpt: uword @ XY) -> clobbers(A,Y) -> ()	= $bbd4		; store fac1 to memory  X/Y as 5-byte mflpt
 
 ; fac1-> signed word in Y/A (might throw ILLEGAL QUANTITY)
-; (use c64flt.FTOSWRDAY to get A/Y output; lo/hi switched to normal order)
+; (tip: use c64flt.FTOSWRDAY to get A/Y output; lo/hi switched to normal little endian order)
 asmsub	FTOSWORDYA	() -> clobbers(X) -> (ubyte @ Y, ubyte @ A)	= $b1aa
 
 ; fac1 -> unsigned word in Y/A (might throw ILLEGAL QUANTITY) (result also in $14/15)
-; (use c64flt.GETADRAY to get A/Y output; lo/hi switched to normal order)
+; (tip: use c64flt.GETADRAY to get A/Y output; lo/hi switched to normal little endian order)
 asmsub	GETADR		() -> clobbers(X) -> (ubyte @ Y, ubyte @ A)	= $b7f7
 
 asmsub	QINT		() -> clobbers(A,X,Y) -> ()			= $bc9b		; fac1 -> 4-byte signed integer in 98-101 ($62-$65), with the MSB FIRST.
 asmsub	AYINT		() -> clobbers(A,X,Y) -> ()			= $b1bf		; fac1-> signed word in 100-101 ($64-$65) MSB FIRST. (might throw ILLEGAL QUANTITY)
 
 ; signed word in Y/A -> float in fac1
-; (use c64flt.GIVAYFAY to use A/Y input; lo/hi switched to normal order)
+; (tip: use c64flt.GIVAYFAY to use A/Y input; lo/hi switched to normal order)
 ; there is also c64flt.GIVUAYF - unsigned word in A/Y (lo/hi) to fac1
 ; there is also c64flt.FREADS32  that reads from 98-101 ($62-$65) MSB FIRST
 ; there is also c64flt.FREADUS32  that reads from 98-101 ($62-$65) MSB FIRST
@@ -169,7 +169,7 @@ asmsub	ABS		() -> clobbers() -> ()				= $bc58		; fac1 = ABS(fac1)
 asmsub	SQR		() -> clobbers(A,X,Y) -> ()			= $bf71		; fac1 = SQRT(fac1)
 asmsub	EXP		() -> clobbers(A,X,Y) -> ()			= $bfed		; fac1 = EXP(fac1)  (e ** fac1)
 asmsub	NEGOP		() -> clobbers(A) -> ()				= $bfb4		; switch the sign of fac1
-asmsub	RND		() -> clobbers(A,X,Y) -> ()			= $e097		; fac1 = RND()   (use RNDA instead)
+asmsub	RND		() -> clobbers(A,X,Y) -> ()			= $e097		; fac1 = RND()   (tip: use RNDA instead)
 asmsub	RNDA		(acc: ubyte @ A) -> clobbers(A,X,Y) -> ()	= $e09a		; fac1 = RND(A)
 asmsub	COS		() -> clobbers(A,X,Y) -> ()			= $e264		; fac1 = COS(fac1)
 asmsub	SIN		() -> clobbers(A,X,Y) -> ()			= $e26b		; fac1 = SIN(fac1)
@@ -229,7 +229,7 @@ asmsub	CLALL    () -> clobbers(A,X) -> ()			= $FFE7		; (via 812 ($32C)) close al
 asmsub	UDTIM    () -> clobbers(A,X) -> ()			= $FFEA		; update the software clock
 asmsub	SCREEN   () -> clobbers() -> (ubyte @ X, ubyte @ Y)	= $FFED		; read number of screen rows and columns
 asmsub	PLOT     (dir: ubyte @ Pc, col: ubyte @ Y, row: ubyte @ X) -> clobbers() -> (ubyte @ X, ubyte @ Y)	= $FFF0		; read/set position of cursor on screen
-asmsub	IOBASE   () -> clobbers() -> (ubyte @ X, ubyte @ Y)	= $FFF3		; read base address of I/O devices
+asmsub	IOBASE   () -> clobbers() -> (uword @ XY)		= $FFF3		; read base address of I/O devices
 
 ; ---- end of C64 kernal routines ----
 

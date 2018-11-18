@@ -177,7 +177,6 @@ class AstChecker(private val namespace: INameScope,
         return super.process(label)
     }
 
-
     /**
      * Check subroutine definition
      */
@@ -300,9 +299,32 @@ class AstChecker(private val namespace: INameScope,
 
     /**
      * Assignment target must be register, or a variable name
-     * Also check data type compatibility
+     * Also check data type compatibility and number of values
      */
     override fun process(assignment: Assignment): IStatement {
+
+        // assigning from a functioncall COULD return multiple values (from an asm subroutine)
+        val stmt = (assignment.value as FunctionCall).target.targetStatement(namespace)
+        if(stmt is Subroutine && stmt.returntypes.size>1) {
+            if(stmt.isAsmSubroutine) {
+                if(stmt.returntypes.size != assignment.targets.size)
+                    checkResult.add(ExpressionError("number of return values doesn't match number of assignment targets", assignment.value.position))
+                else {
+                    if(assignment.targets.all{it.register!=null}) {
+                        val returnRegisters = registerSet(stmt.asmReturnvaluesRegisters)
+                        val targetRegisters = assignment.targets.filter { it.register != null }.map { it.register }.toSet()
+                        if (returnRegisters != targetRegisters)
+                            checkResult.add(ExpressionError("asmsub return registers $returnRegisters don't match assignment target registers", assignment.position))
+                    }
+                    for(thing in stmt.returntypes.zip(assignment.targets)) {
+                        if(thing.second.determineDatatype(namespace, heap, assignment)!=thing.first)
+                            checkResult.add(ExpressionError("return type mismatch for target ${thing.second.shortString()}", assignment.value.position))
+                    }
+                }
+            } else
+                checkResult.add(ExpressionError("only asmsub subroutines can return multiple values", assignment.value.position))
+        }
+
         var resultingAssignment = assignment
         for (target in assignment.targets) {
             resultingAssignment = processAssignmentTarget(resultingAssignment, target)
@@ -367,31 +389,15 @@ class AstChecker(private val namespace: INameScope,
             } else {
                 val sourceDatatype: DataType? = assignment.value.resultingDatatype(namespace, heap)
                 if(sourceDatatype==null) {
-                    if(assignment.value is FunctionCall) {
-                        // a functioncall COULD return multiple values (from an asm subroutine), treat that differently
-                        val stmt = (assignment.value as FunctionCall).target.targetStatement(namespace)
-                        if(stmt is Subroutine && stmt.returntypes.size>1) {
-                            if(stmt.isAsmSubroutine) {
-                                if(stmt.returntypes.size != assignment.targets.size)
-                                    checkResult.add(ExpressionError("number of return values doesn't match number of assignment targets", assignment.value.position))
-                                else {
-                                    for(thing in stmt.returntypes.zip(assignment.targets)) {
-                                        if(thing.second.determineDatatype(namespace, heap, assignment)!=thing.first)
-                                            checkResult.add(ExpressionError("return type mismatch for target ${thing.second.shortString()}", assignment.value.position))
-                                    }
-                                }
-                            } else
-                                checkResult.add(ExpressionError("only asmsub subroutines can return multiple values", assignment.value.position))
-                        }
-                        else
+                    if(assignment.targets.size<=1) {
+                        if (assignment.value is FunctionCall)
                             checkResult.add(ExpressionError("function call doesn't return a suitable value to use in assignment", assignment.value.position))
+                        else
+                            checkResult.add(ExpressionError("assignment value is invalid or has no proper datatype", assignment.value.position))
                     }
-                    else
-                        checkResult.add(ExpressionError("assignment value is invalid or has no proper datatype", assignment.value.position))
                 }
-                else {
+                else
                     checkAssignmentCompatible(targetDatatype, sourceDatatype, assignment.value, assignment.position)
-                }
             }
         }
         return assignment
