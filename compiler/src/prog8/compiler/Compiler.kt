@@ -1,6 +1,8 @@
 package prog8.compiler
 
+import com.sun.org.apache.xalan.internal.xsltc.cmdline.Compile
 import prog8.ast.*
+import prog8.ast.RegisterOrPair.*
 import prog8.compiler.intermediate.IntermediateProgram
 import prog8.compiler.intermediate.Opcode
 import prog8.compiler.intermediate.Value
@@ -792,11 +794,109 @@ private class StatementTranslator(private val prog: IntermediateProgram,
 
     private fun translateSubroutineCall(subroutine: Subroutine, arguments: List<IExpression>, callPosition: Position) {
         // evaluate the arguments and assign them into the subroutine's argument variables.
+        prog.line(callPosition)
 
-        if(subroutine.asmReturnvaluesRegisters.isNotEmpty()) {
-            TODO("call asmsub by loading registers instead")
+        if(subroutine.asmParameterRegisters.isNotEmpty()) {
+            if(subroutine.parameters.size!=subroutine.asmParameterRegisters.size)
+                throw CompilerException("no support for mix of register and non-register subroutine arguments")
+
+            // only register arguments (or status-flag bits)
+            var carryParam: Boolean? = null
+            for(arg in arguments.zip(subroutine.asmParameterRegisters)) {
+                if(arg.second.statusflag!=null) {
+                    if(arg.second.statusflag==Statusflag.Pc)
+                        carryParam = arg.first.constValue(namespace, heap)!!.asBooleanValue
+                    else
+                        throw CompilerException("no support for status flag parameter: ${arg.second.statusflag}")
+                } else {
+                    when (arg.second.registerOrPair!!) {
+                        A -> {
+                            val assign = Assignment(listOf(AssignTarget(Register.A, null, null, callPosition)), null, arg.first, callPosition)
+                            assign.linkParents(subroutine.parent)
+                            translate(assign)
+                        }
+                        X -> {
+                            // TODO: save X on stack & restore after call
+                            val assign = Assignment(listOf(AssignTarget(Register.X, null, null, callPosition)), null, arg.first, callPosition)
+                            assign.linkParents(subroutine.parent)
+                            translate(assign)
+                        }
+                        Y -> {
+                            val assign = Assignment(listOf(AssignTarget(Register.Y, null, null, callPosition)), null, arg.first, callPosition)
+                            assign.linkParents(subroutine.parent)
+                            translate(assign)
+                        }
+                        AX -> {
+                            // TODO: save X on stack & restore after call
+                            val valueA: IExpression
+                            val valueX: IExpression
+                            val paramDt = arg.first.resultingDatatype(namespace, heap)
+                            if(paramDt==DataType.UBYTE) {
+                                valueA=arg.first
+                                valueX=LiteralValue.optimalInteger(0, callPosition)
+                                val assignA = Assignment(listOf(AssignTarget(Register.A, null, null, callPosition)), null, valueA, callPosition)
+                                val assignX = Assignment(listOf(AssignTarget(Register.X, null, null, callPosition)), null, valueX, callPosition)
+                                assignA.linkParents(subroutine.parent)
+                                assignX.linkParents(subroutine.parent)
+                                translate(assignA)
+                                translate(assignX)
+                            } else if(paramDt==DataType.UWORD) {
+                                translate(arg.first)
+                                prog.instr(Opcode.POP_REGAX_WORD)
+                            } else
+                                throw CompilerException("don't know how to pass register parameter of type $paramDt")
+                        }
+                        AY -> {
+                            val valueA: IExpression
+                            val valueY: IExpression
+                            val paramDt = arg.first.resultingDatatype(namespace, heap)
+                            if(paramDt==DataType.UBYTE) {
+                                valueA=arg.first
+                                valueY=LiteralValue.optimalInteger(0, callPosition)
+                                val assignA = Assignment(listOf(AssignTarget(Register.A, null, null, callPosition)), null, valueA, callPosition)
+                                val assignY = Assignment(listOf(AssignTarget(Register.Y, null, null, callPosition)), null, valueY, callPosition)
+                                assignA.linkParents(subroutine.parent)
+                                assignY.linkParents(subroutine.parent)
+                                translate(assignA)
+                                translate(assignY)
+                            } else if(paramDt==DataType.UWORD) {
+                                translate(arg.first)
+                                prog.instr(Opcode.POP_REGAY_WORD)
+                            } else
+                                throw CompilerException("don't know how to pass register parameter of type $paramDt")
+                        }
+                        XY -> {
+                            // TODO: save X on stack & restore after call
+                            val valueX: IExpression
+                            val valueY: IExpression
+                            val paramDt = arg.first.resultingDatatype(namespace, heap)
+                            if(paramDt==DataType.UBYTE) {
+                                valueX=arg.first
+                                valueY=LiteralValue.optimalInteger(0, callPosition)
+                                val assignX = Assignment(listOf(AssignTarget(Register.X, null, null, callPosition)), null, valueX, callPosition)
+                                val assignY = Assignment(listOf(AssignTarget(Register.Y, null, null, callPosition)), null, valueY, callPosition)
+                                assignX.linkParents(subroutine.parent)
+                                assignY.linkParents(subroutine.parent)
+                                translate(assignX)
+                                translate(assignY)
+                            } else if(paramDt==DataType.UWORD) {
+                                translate(arg.first)
+                                prog.instr(Opcode.POP_REGXY_WORD)
+                            } else
+                                throw CompilerException("don't know how to pass register parameter of type $paramDt")
+                        }
+                    }
+                }
+            }
+
+            // carry is set last, to avoid clobbering it when loading the other parameters
+            when(carryParam) {
+                true -> prog.instr(Opcode.SEC)
+                false -> prog.instr(Opcode.CLC)
+            }
+
         } else {
-            prog.line(callPosition)
+            // only regular (non-register) arguments
             for (arg in arguments.zip(subroutine.parameters)) {
                 translate(arg.first)
                 val opcode = opcodePopvar(arg.second.type)
@@ -1195,22 +1295,22 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         if(registerOrStatus.statusflag!=null)
             return
         when(registerOrStatus.registerOrPair){
-            RegisterOrPair.A -> {
+            A -> {
                 val assignment = Assignment(listOf(target), null, RegisterExpr(Register.A, target.position), target.position)
                 assignment.linkParents(parent)
                 translate(assignment)
             }
-            RegisterOrPair.X -> {
+            X -> {
                 val assignment = Assignment(listOf(target), null, RegisterExpr(Register.X, target.position), target.position)
                 assignment.linkParents(parent)
                 translate(assignment)
             }
-            RegisterOrPair.Y -> {
+            Y -> {
                 val assignment = Assignment(listOf(target), null, RegisterExpr(Register.Y, target.position), target.position)
                 assignment.linkParents(parent)
                 translate(assignment)
             }
-            RegisterOrPair.AX -> {
+            AX -> {
                 // deal with register pair AX:  target = A + X*256
                 val targetDt = target.determineDatatype(namespace, heap, parent)
                 if(targetDt!=DataType.UWORD)
@@ -1218,7 +1318,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 prog.instr(Opcode.PUSH_REGAX_WORD)
                 popValueIntoTarget(target, targetDt)
             }
-            RegisterOrPair.AY -> {
+            AY -> {
                 // deal with register pair AY:  target = A + Y*256
                 val targetDt = target.determineDatatype(namespace, heap, parent)
                 if(targetDt!=DataType.UWORD)
@@ -1226,7 +1326,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 prog.instr(Opcode.PUSH_REGAY_WORD)
                 popValueIntoTarget(target, targetDt)
             }
-            RegisterOrPair.XY -> {
+            XY -> {
                 // deal with register pair XY:  target = X + Y*256
                 val targetDt = target.determineDatatype(namespace, heap, parent)
                 if(targetDt!=DataType.UWORD)

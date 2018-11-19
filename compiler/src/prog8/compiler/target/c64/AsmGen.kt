@@ -462,6 +462,11 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.PUSH_REGAY_WORD -> {
                 " sta  ${ESTACK_LO.toHex()},x |  tya |  sta  ${ESTACK_HI.toHex()},x |  dex "
             }
+            Opcode.POP_REGAX_WORD -> throw AssemblyError("cannot load X register from stack because it's used as the stack pointer itself")
+            Opcode.POP_REGXY_WORD -> throw AssemblyError("cannot load X register from stack because it's used as the stack pointer itself")
+            Opcode.POP_REGAY_WORD -> {
+                " inx |  lda  ${ESTACK_LO.toHex()},x |  ldy  ${ESTACK_HI.toHex()},x "
+            }
 
             Opcode.READ_INDEXED_VAR_BYTE -> {           // @todo is this correct?
                 """
@@ -2440,18 +2445,18 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 
 
             // ---------- some special operations ------------------
-            // var word = AY register pair
-            AsmPattern(listOf(Opcode.PUSH_REGAY_WORD, Opcode.POP_VAR_WORD)) { segment ->
-                """
-                sta  ${segment[1].callLabel}
-                sty  ${segment[1].callLabel}+1
-                """
-            },
             // var word = AX register pair
             AsmPattern(listOf(Opcode.PUSH_REGAX_WORD, Opcode.POP_VAR_WORD)) { segment ->
                 """
                 sta  ${segment[1].callLabel}
                 stx  ${segment[1].callLabel}+1
+                """
+            },
+            // var word = AY register pair
+            AsmPattern(listOf(Opcode.PUSH_REGAY_WORD, Opcode.POP_VAR_WORD)) { segment ->
+                """
+                sta  ${segment[1].callLabel}
+                sty  ${segment[1].callLabel}+1
                 """
             },
             // var word = XY register pair
@@ -2461,18 +2466,18 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sty  ${segment[1].callLabel}+1
                 """
             },
-            // mem word = AY register pair
-            AsmPattern(listOf(Opcode.PUSH_REGAY_WORD, Opcode.POP_MEM_WORD)) { segment ->
-                """
-                sta  ${hexVal(segment[1])}
-                sty  ${hexValPlusOne(segment[1])}
-                """
-            },
             // mem word = AX register pair
             AsmPattern(listOf(Opcode.PUSH_REGAX_WORD, Opcode.POP_MEM_WORD)) { segment ->
                 """
                 sta  ${hexVal(segment[1])}
                 stx  ${hexValPlusOne(segment[1])}
+                """
+            },
+            // mem word = AY register pair
+            AsmPattern(listOf(Opcode.PUSH_REGAY_WORD, Opcode.POP_MEM_WORD)) { segment ->
+                """
+                sta  ${hexVal(segment[1])}
+                sty  ${hexValPlusOne(segment[1])}
                 """
             },
             // mem word = XY register pair
@@ -2481,7 +2486,54 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 stx  ${hexVal(segment[1])}
                 sty  ${hexValPlusOne(segment[1])}
                 """
+            },
+
+            // AX register pair = word value
+            AsmPattern(listOf(Opcode.PUSH_WORD, Opcode.POP_REGAX_WORD)) { segment ->
+                val value = hexVal(segment[0])
+                " lda  #<$value |  ldx  #>$value"
+            },
+            // AY register pair = word value
+            AsmPattern(listOf(Opcode.PUSH_WORD, Opcode.POP_REGAY_WORD)) { segment ->
+                val value = hexVal(segment[0])
+                " lda  #<$value |  ldy  #>$value"
+            },
+            // XY register pair = word value
+            AsmPattern(listOf(Opcode.PUSH_WORD, Opcode.POP_REGXY_WORD)) { segment ->
+                val value = hexVal(segment[0])
+                " ldx  #<$value |  ldy  #>$value"
+            },
+            // AX register pair = word var
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.POP_REGAX_WORD)) { segment ->
+                " lda  #<${segment[0].callLabel} |  ldx  #>${segment[0].callLabel}"
+            },
+            // AY register pair = word var
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.POP_REGAY_WORD)) { segment ->
+                " lda  #<${segment[0].callLabel} |  ldy  #>${segment[0].callLabel}"
+            },
+            // XY register pair = word var
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.POP_REGXY_WORD)) { segment ->
+                " ldx  #<${segment[0].callLabel} |  ldy  #>${segment[0].callLabel}"
+            },
+            // AX register pair = mem word
+            AsmPattern(
+                    listOf(Opcode.PUSH_MEM_UW, Opcode.POP_REGAX_WORD),
+                    listOf(Opcode.PUSH_MEM_W, Opcode.POP_REGAX_WORD)) { segment ->
+                " lda  ${hexVal(segment[0])} |  ldx  ${hexValPlusOne(segment[0])}"
+            },
+            // AY register pair = mem word
+            AsmPattern(
+                    listOf(Opcode.PUSH_MEM_UW, Opcode.POP_REGAY_WORD),
+                    listOf(Opcode.PUSH_MEM_W, Opcode.POP_REGAY_WORD)) { segment ->
+                " lda  ${hexVal(segment[0])} |  ldy  ${hexValPlusOne(segment[0])}"
+            },
+            // XY register pair = mem word
+            AsmPattern(
+                    listOf(Opcode.PUSH_MEM_UW, Opcode.POP_REGXY_WORD),
+                    listOf(Opcode.PUSH_MEM_W, Opcode.POP_REGXY_WORD)) { segment ->
+                " ldx  ${hexVal(segment[0])} |  ldy  ${hexValPlusOne(segment[0])}"
             }
+
 
 
 

@@ -304,25 +304,27 @@ class AstChecker(private val namespace: INameScope,
     override fun process(assignment: Assignment): IStatement {
 
         // assigning from a functioncall COULD return multiple values (from an asm subroutine)
-        val stmt = (assignment.value as FunctionCall).target.targetStatement(namespace)
-        if(stmt is Subroutine && stmt.returntypes.size>1) {
-            if(stmt.isAsmSubroutine) {
-                if(stmt.returntypes.size != assignment.targets.size)
-                    checkResult.add(ExpressionError("number of return values doesn't match number of assignment targets", assignment.value.position))
-                else {
-                    if(assignment.targets.all{it.register!=null}) {
-                        val returnRegisters = registerSet(stmt.asmReturnvaluesRegisters)
-                        val targetRegisters = assignment.targets.filter { it.register != null }.map { it.register }.toSet()
-                        if (returnRegisters != targetRegisters)
-                            checkResult.add(ExpressionError("asmsub return registers $returnRegisters don't match assignment target registers", assignment.position))
+        if(assignment.value is FunctionCall) {
+            val stmt = (assignment.value as FunctionCall).target.targetStatement(namespace)
+            if (stmt is Subroutine && stmt.returntypes.size > 1) {
+                if (stmt.isAsmSubroutine) {
+                    if (stmt.returntypes.size != assignment.targets.size)
+                        checkResult.add(ExpressionError("number of return values doesn't match number of assignment targets", assignment.value.position))
+                    else {
+                        if (assignment.targets.all { it.register != null }) {
+                            val returnRegisters = registerSet(stmt.asmReturnvaluesRegisters)
+                            val targetRegisters = assignment.targets.filter { it.register != null }.map { it.register }.toSet()
+                            if (returnRegisters != targetRegisters)
+                                checkResult.add(ExpressionError("asmsub return registers $returnRegisters don't match assignment target registers", assignment.position))
+                        }
+                        for (thing in stmt.returntypes.zip(assignment.targets)) {
+                            if (thing.second.determineDatatype(namespace, heap, assignment) != thing.first)
+                                checkResult.add(ExpressionError("return type mismatch for target ${thing.second.shortString()}", assignment.value.position))
+                        }
                     }
-                    for(thing in stmt.returntypes.zip(assignment.targets)) {
-                        if(thing.second.determineDatatype(namespace, heap, assignment)!=thing.first)
-                            checkResult.add(ExpressionError("return type mismatch for target ${thing.second.shortString()}", assignment.value.position))
-                    }
-                }
-            } else
-                checkResult.add(ExpressionError("only asmsub subroutines can return multiple values", assignment.value.position))
+                } else
+                    checkResult.add(ExpressionError("only asmsub subroutines can return multiple values", assignment.value.position))
+            }
         }
 
         var resultingAssignment = assignment

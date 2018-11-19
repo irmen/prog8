@@ -777,6 +777,21 @@ class StackVm(private var traceOutputFile: String?) {
                 val y=variables["Y"]!!.integerValue()
                 evalstack.push(Value(DataType.UWORD, y*256+x))
             }
+            Opcode.POP_REGAX_WORD -> {
+                val value=evalstack.pop().integerValue()
+                variables["A"] = Value(DataType.UBYTE, value and 255)
+                variables["X"] = Value(DataType.UBYTE, value shr 8)
+            }
+            Opcode.POP_REGAY_WORD -> {
+                val value=evalstack.pop().integerValue()
+                variables["A"] = Value(DataType.UBYTE, value and 255)
+                variables["Y"] = Value(DataType.UBYTE, value shr 8)
+            }
+            Opcode.POP_REGXY_WORD -> {
+                val value=evalstack.pop().integerValue()
+                variables["X"] = Value(DataType.UBYTE, value and 255)
+                variables["Y"] = Value(DataType.UBYTE, value shr 8)
+            }
             Opcode.POP_VAR_BYTE -> {
                 val value = evalstack.pop()
                 checkDt(value, DataType.UBYTE, DataType.BYTE)

@@ -16,7 +16,12 @@ sub start() {
     byte b1
 
 
-    ;v1=foo()       ; @todo fix return type value error see sub
+    ;v1=foo()
+
+    address  =c64.MEMBOT(1, 40000.w)   ; ok!
+    address  =c64.MEMBOT(1, address)   ; ok!
+    address  =c64.MEMBOT(1, memaddr)   ; ok!i
+    ;address  =c64.MEMBOT(1, wordarray[1])   ; @todo nice error about loading X register from stack
 
     A, Y =c64.GETADR()      ; ok!
     Y, A =c64.GETADR()      ; ok!
@@ -24,7 +29,6 @@ sub start() {
     memaddr = c64flt.GETADRAY() ; ok!
     wordarray[1] = c64flt.GETADRAY() ; ok!
     v1, v2 =c64.GETADR()    ; ok!
-    address  =c64.MEMBOT(1, 0.w)   ; ok !
     address  =c64.IOBASE() ; ok!
     A = c64.CHRIN()   ; ok !
     X = c64.CHRIN()  ; ok !
@@ -34,8 +38,8 @@ sub start() {
 }
 
 
-sub foo() -> ubyte {
-    return 1            ; @todo not ubyte but byte (if sub returns byte)
+sub foo() -> byte {
+    return 1            ; @todo fix error: '1' as byte literal (not ubyte)
 }
 
 

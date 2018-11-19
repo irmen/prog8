@@ -28,6 +28,9 @@ enum class Opcode {
     POP_VAR_BYTE,    // pop (u)byte value into variable
     POP_VAR_WORD,    // pop (u)word value into variable
     POP_VAR_FLOAT,   // pop float value into variable
+    POP_REGAX_WORD,  // pop uword from stack into A/X registers
+    POP_REGAY_WORD,  // pop uword from stack into A/Y registers
+    POP_REGXY_WORD,  // pop uword from stack into X/Y registers
 
     // numeric arithmetic
     ADD_UB,
