@@ -6,6 +6,7 @@
 *.directory
 *.prg
 *.asm
+*.bin
 *.labels.txt
 *.vice-mon-list
 docs/build

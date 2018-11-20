@@ -49,6 +49,9 @@ push_float
 pop_var_float
 		rts
 
+pop_mem_float
+		rts
+
 copy_float
 		rts
 
@@ -73,13 +76,42 @@ mul_f
 neg_f
 		rts
 
-sub_uw
-		rts
-
 less_ub
+		rts
+		
+less_b
 		rts
 
 less_f
+		rts
+
+		
+add_w
+		rts	; @todo inline?
+add_uw
+		rts	; @todo inline?
+		
+sub_w
+		rts	; @todo inline?
+sub_uw
+		rts	; @todo inline?
+
+mul_b
+		rts
+mul_ub
+		rts
+mul_w
+		rts
+mul_uw
+		rts
+
+div_b
+		rts
+div_ub
+		rts
+div_w
+		rts
+div_uw
 		rts
 
 		

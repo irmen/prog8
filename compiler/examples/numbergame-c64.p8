@@ -16,8 +16,8 @@
 
         ; greeting
         c64scr.print_string("Enter your name: ")
-        Y = c64scr.input_chars(name)
-        c64.CHROUT("\n")
+        Y = c64scr.input_chars(name)        ; @todo fix argument type check
+        c64.CHROUT("\n")        ; @todo fix argument type check
         c64.CHROUT("\n")
         c64scr.print_string("Hello, ")
         c64scr.print_string(name)
@@ -30,7 +30,7 @@
         c64.MUL10()             ; .. and now *100
         c64.FADDH()             ; add 0.5..
         c64.FADDH()             ;   and again, so +1 total
-        AY = c64flt.GETADRAY()
+        A, Y = c64flt.GETADRAY()
         secretnumber = A
         ;A=math.randbyte()
         ;A+=c64.RASTER
@@ -50,7 +50,7 @@ ask_guess:
         c64.CHROUT("\n")
         freadstr_arg = guess
         c64.FREADSTR(A)
-        AY = c64flt.GETADRAY()
+        A, Y = c64flt.GETADRAY()
         if(A==secretnumber) {
             c64scr.print_string("\nThat's my number, impressive!\n")
             goto goodbye

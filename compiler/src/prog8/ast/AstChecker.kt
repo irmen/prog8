@@ -86,7 +86,7 @@ class AstChecker(private val namespace: INameScope,
     }
 
     override fun process(returnStmt: Return): IStatement {
-        val expectedReturnValues = (returnStmt.definingScope() as? Subroutine)?.returntypes ?: emptyList()
+        val expectedReturnValues = returnStmt.definingSubroutine()?.returntypes ?: emptyList()
         if(expectedReturnValues.size != returnStmt.values.size) {
             // if the return value is a function call, check the result of that call instead
             if(returnStmt.values.size==1 && returnStmt.values[0] is FunctionCall) {

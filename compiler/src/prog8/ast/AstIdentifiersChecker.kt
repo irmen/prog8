@@ -154,8 +154,22 @@ class AstIdentifiersChecker : IAstProcessor {
 
     override fun process(returnStmt: Return): IStatement {
         if(returnStmt.values.isNotEmpty()) {
-            println("CHECK $returnStmt")    // TODO adjust return value literalvalue datatype to subroutine's definition
-            returnStmt.definingScope()
+            // possibly adjust any literal values returned, into the desired returning data type
+            val subroutine = returnStmt.definingSubroutine()!!
+            val newValues = mutableListOf<IExpression>()
+            for(returnvalue in returnStmt.values.zip(subroutine.returntypes)) {
+                val lval = returnvalue.first as? LiteralValue
+                if(lval!=null) {
+                    val adjusted = lval.intoDatatype(returnvalue.second)
+                    if(adjusted!=null && adjusted !== lval)
+                        newValues.add(adjusted)
+                    else
+                        newValues.add(lval)
+                }
+                else
+                    newValues.add(returnvalue.first)
+            }
+            returnStmt.values = newValues
         }
         return super.process(returnStmt)
     }

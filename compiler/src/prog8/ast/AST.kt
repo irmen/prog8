@@ -533,6 +533,19 @@ class Return(var values: List<IExpression>, override val position: Position) : I
     override fun toString(): String {
         return "Return(values: $values, pos=$position)"
     }
+
+    fun definingSubroutine(): Subroutine? {
+        var scope = definingScope()
+        while(scope !is GlobalNamespace) {
+            if(scope is Subroutine)
+                return scope
+            val parent = scope.parent
+            if(parent is Subroutine)
+                return parent
+            scope = parent.definingScope()
+        }
+        return null
+    }
 }
 
 class Continue(override val position: Position) : IStatement {
