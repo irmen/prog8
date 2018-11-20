@@ -6,7 +6,7 @@ import prog8.functions.BuiltinFunctions
  * Checks the validity of all identifiers (no conflicts)
  * Also builds a list of all (scoped) symbol definitions
  * Also makes sure that subroutine's parameters also become local variable decls in the subroutine's scope.
- * Finally, it also makes sure the datatype of all Var decls is set correctly.
+ * Finally, it also makes sure the datatype of all Var decls and sub Return values is set correctly.
  */
 
 fun Module.checkIdentifiers(): MutableMap<String, IStatement> {
@@ -150,5 +150,13 @@ class AstIdentifiersChecker : IAstProcessor {
         if(assignTarget.register==Register.X)
             printWarning("writing to the X register is dangerous, because it's used as an internal pointer", assignTarget.position)
         return super.process(assignTarget)
+    }
+
+    override fun process(returnStmt: Return): IStatement {
+        if(returnStmt.values.isNotEmpty()) {
+            println("CHECK $returnStmt")    // TODO adjust return value literalvalue datatype to subroutine's definition
+            returnStmt.definingScope()
+        }
+        return super.process(returnStmt)
     }
 }
