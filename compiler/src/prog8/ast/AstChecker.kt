@@ -635,14 +635,16 @@ class AstChecker(private val namespace: INameScope,
                     else if(from.asIntegerValue > to.asIntegerValue && step>=0)
                         err("descending range requires step < 0")
                 }
-                from.strvalue!=null && to.strvalue!=null -> {
-                    if(from.strvalue.length!=1 || to.strvalue.length!=1)
+                from.isString && to.isString -> {
+                    val fromString = from.strvalue(heap)
+                    val toString = to.strvalue(heap)
+                    if(fromString.length!=1 || toString.length!=1)
                         err("range from and to must be a single character")
-                    if(from.strvalue[0] == to.strvalue[0])
+                    if(fromString[0] == toString[0])
                         printWarning("range contains just a single character", range.position)
-                    else if(from.strvalue[0] < to.strvalue[0] && step<=0)
+                    else if(fromString[0] < toString[0] && step<=0)
                         err("ascending range requires step > 0")
-                    else if(from.strvalue[0] > to.strvalue[0] && step>=0)
+                    else if(fromString[0] > toString[0] && step>=0)
                         err("descending range requires step < 0")
                 }
                 else -> err("range expression must be over integers or over characters")
@@ -683,7 +685,7 @@ class AstChecker(private val namespace: INameScope,
             else {
                 for (arg in args.withIndex().zip(func.parameters)) {
                     if(arg.first.value.resultingDatatype(namespace, heap) !in arg.second.possibleDatatypes)
-                        checkResult.add(ExpressionError("argument ${arg.first.index+1} has invalid type, expected ${arg.second.possibleDatatypes}", position))
+                        checkResult.add(ExpressionError("builtin function argument ${arg.first.index+1} has invalid type, expected ${arg.second.possibleDatatypes}", position))
                 }
             }
         } else if(target is Subroutine) {
@@ -691,8 +693,9 @@ class AstChecker(private val namespace: INameScope,
                 checkResult.add(SyntaxError("invalid number of arguments", position))
             else {
                 for (arg in args.withIndex().zip(target.parameters)) {
-                    if(arg.first.value.resultingDatatype(namespace, heap) != arg.second.type)
-                        checkResult.add(ExpressionError("argument ${arg.first.index+1} has invalid type, expected ${arg.second.type}", position))
+                    val argDt = arg.first.value.resultingDatatype(namespace, heap)
+                    if(argDt!=null && !argDt.assignableTo(arg.second.type))
+                        checkResult.add(ExpressionError("subroutine argument ${arg.first.index+1} has invalid type, expected ${arg.second.type}", position))
 
                     if(target.asmParameterRegisters[arg.first.index].registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.XY, RegisterOrPair.X)) {
                         if(arg.first.value !is LiteralValue && arg.first.value !is IdentifierReference)
@@ -787,7 +790,7 @@ class AstChecker(private val namespace: INameScope,
                     checkResult.add(ExpressionError("range for string must have single characters from and to values", range.position))
                     return false
                 }
-                val rangeSize=range.size()
+                val rangeSize=range.size(heap)
                 if(rangeSize!=null && (rangeSize<0 || rangeSize>255)) {
                     checkResult.add(ExpressionError("size of range for string must be 0..255, instead of $rangeSize", range.position))
                     return false
@@ -797,7 +800,7 @@ class AstChecker(private val namespace: INameScope,
             in ArrayDatatypes -> {
                 // range and length check bytes
                 val expectedSize = arrayspec!!.size()
-                val rangeSize=range.size()
+                val rangeSize=range.size(heap)
                 if(rangeSize!=null && rangeSize != expectedSize) {
                     checkResult.add(ExpressionError("range size doesn't match array size, expected $expectedSize found $rangeSize", range.position))
                     return false
@@ -859,7 +862,7 @@ class AstChecker(private val namespace: INameScope,
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
                 if(!value.isString)
                     return err("string value expected")
-                val str = value.strvalue ?: heap.get(value.heapId!!).str!!
+                val str = value.strvalue(heap)
                 if (str.length > 255)
                     return err("string length must be 0-255")
             }

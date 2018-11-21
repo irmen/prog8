@@ -45,8 +45,8 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                 in IntegerDatatypes -> {
                     // vardecl: for byte/word vars, convert char/string of length 1 initialization values to ubyte integer
                     val literal = decl.value as? LiteralValue
-                    if (literal != null && literal.isString && literal.strvalue?.length == 1) {
-                        val petscii = Petscii.encodePetscii(literal.strvalue)[0]
+                    if (literal != null && literal.isString && literal.strvalue(heap).length == 1) {
+                        val petscii = Petscii.encodePetscii(literal.strvalue(heap))[0]
                         val newValue = LiteralValue(DataType.UBYTE, bytevalue = petscii, position = literal.position)
                         decl.value = newValue
                     }
@@ -138,7 +138,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
         return try {
             val cval = identifier.constValue(namespace, heap) ?: return identifier
             return if(cval.isNumeric) {
-                val copy = LiteralValue(cval.type, cval.bytevalue, cval.wordvalue, cval.floatvalue, cval.strvalue, cval.arrayvalue, position = identifier.position)
+                val copy = LiteralValue(cval.type, cval.bytevalue, cval.wordvalue, cval.floatvalue, null, cval.arrayvalue, position = identifier.position)
                 copy.parent = identifier.parent
                 copy
             } else
@@ -256,7 +256,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
             return when {
                 leftconst != null && rightconst != null -> {
                     optimizationsDone++
-                    evaluator.evaluate(leftconst, expr.operator, rightconst)
+                    evaluator.evaluate(leftconst, expr.operator, rightconst, heap)
                 }
                 else -> expr
             }
@@ -467,12 +467,12 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
     }
 
     override fun process(literalValue: LiteralValue): LiteralValue {
-        if(literalValue.strvalue!=null) {
+        if(literalValue.isString) {
             // intern the string; move it into the heap
-            if(literalValue.strvalue.length !in 1..255)
+            if(literalValue.strvalue(heap).length !in 1..255)
                 addError(ExpressionError("string literal length must be between 1 and 255", literalValue.position))
             else {
-                val heapId = heap.add(literalValue.type, literalValue.strvalue)     // TODO: we don't know the actual string type yet, STR != STR_P etc...
+                val heapId = heap.add(literalValue.type, literalValue.strvalue(heap))     // TODO: we don't know the actual string type yet, STR != STR_P etc...
                 val newValue = LiteralValue(literalValue.type, heapId = heapId, position = literalValue.position)
                 return super.process(newValue)
             }
@@ -540,7 +540,8 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
             // see if we can promote/convert a literal value to the required datatype
             when(targetDt) {
                 DataType.UWORD -> {
-                    // we can convert to UWORD: any UBYTE, BYTE/WORD that are >=0, FLOAT that's an integer 0..65535
+                    // we can convert to UWORD: any UBYTE, BYTE/WORD that are >=0, FLOAT that's an integer 0..65535,
+                    //     STR of length 1 (take the character's byte value)
                     if(lv.type==DataType.UBYTE)
                         assignment.value = LiteralValue(DataType.UWORD, wordvalue = lv.asIntegerValue, position=lv.position)
                     else if(lv.type==DataType.BYTE && lv.bytevalue!!>=0)
@@ -552,9 +553,17 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                         if(floor(d)==d && d>=0 && d<=65535)
                             assignment.value = LiteralValue(DataType.UWORD, wordvalue=floor(d).toInt(), position=lv.position)
                     }
+                    else if(lv.type in StringDatatypes) {
+                        val str = lv.strvalue(heap)
+                        if(str.length==1) {
+                            val petscii = Petscii.encodePetscii(str)[0]
+                            assignment.value = LiteralValue(DataType.UWORD, wordvalue = petscii.toInt(), position = lv.position)
+                        }
+                    }
                 }
                 DataType.UBYTE -> {
-                    // we can convert to UBYTE: UWORD <=255, BYTE >=0, FLOAT that's an integer 0..255
+                    // we can convert to UBYTE: UWORD <=255, BYTE >=0, FLOAT that's an integer 0..255,
+                    //     STR of length 1 (take the character's byte value)
                     if(lv.type==DataType.UWORD && lv.wordvalue!! <= 255)
                         assignment.value = LiteralValue(DataType.UBYTE, lv.wordvalue.toShort(), position=lv.position)
                     else if(lv.type==DataType.BYTE && lv.bytevalue!! >=0)
@@ -563,6 +572,13 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                         val d = lv.floatvalue!!
                         if(floor(d)==d && d >=0 && d<=255)
                             assignment.value = LiteralValue(DataType.UBYTE, floor(d).toShort(), position=lv.position)
+                    }
+                    else if(lv.type in StringDatatypes) {
+                        val str = lv.strvalue(heap)
+                        if(str.length==1) {
+                            val petscii = Petscii.encodePetscii(str)[0]
+                            assignment.value = LiteralValue(DataType.UBYTE, bytevalue = petscii, position = lv.position)
+                        }
                     }
                 }
                 DataType.BYTE -> {
@@ -578,7 +594,8 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                     }
                 }
                 DataType.WORD -> {
-                    // we can convert to WORD: any UBYTE/BYTE, UWORD <= 32767, FLOAT that's an integer -32768..32767
+                    // we can convert to WORD: any UBYTE/BYTE, UWORD <= 32767, FLOAT that's an integer -32768..32767,
+                    //     STR of length 1 (take the character's byte value)
                     if(lv.type==DataType.UBYTE || lv.type==DataType.BYTE)
                         assignment.value = LiteralValue(DataType.WORD, wordvalue=lv.bytevalue!!.toInt(), position=lv.position)
                     else if(lv.type==DataType.UWORD && lv.wordvalue!! <= 32767)
@@ -587,6 +604,13 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                         val d = lv.floatvalue!!
                         if(floor(d)==d && d>=-32768 && d<=32767)
                             assignment.value = LiteralValue(DataType.BYTE, floor(d).toShort(), position=lv.position)
+                    }
+                    else if(lv.type in StringDatatypes) {
+                        val str = lv.strvalue(heap)
+                        if(str.length==1) {
+                            val petscii = Petscii.encodePetscii(str)[0]
+                            assignment.value = LiteralValue(DataType.WORD, wordvalue= petscii.toInt(), position = lv.position)
+                        }
                     }
                 }
                 DataType.FLOAT -> {

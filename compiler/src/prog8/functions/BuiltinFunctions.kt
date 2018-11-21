@@ -345,7 +345,7 @@ private fun builtinLen(args: List<IExpression>, position: Position, namespace:IN
             LiteralValue(DataType.UWORD, wordvalue=arraySize, position=args[0].position)
         }
         DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
-            val str = argument.strvalue ?: heap.get(argument.heapId!!).str!!
+            val str = argument.strvalue(heap)
             LiteralValue(DataType.UWORD, wordvalue=str.length, position=args[0].position)
         }
         DataType.UBYTE, DataType.BYTE,

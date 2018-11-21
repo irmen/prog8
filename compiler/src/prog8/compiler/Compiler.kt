@@ -1,6 +1,5 @@
 package prog8.compiler
 
-import com.sun.org.apache.xalan.internal.xsltc.cmdline.Compile
 import prog8.ast.*
 import prog8.ast.RegisterOrPair.*
 import prog8.compiler.intermediate.IntermediateProgram
@@ -1470,7 +1469,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         }
 
         if(loop.iterable is RangeExpr) {
-            val range = (loop.iterable as RangeExpr).toConstantIntegerRange()
+            val range = (loop.iterable as RangeExpr).toConstantIntegerRange(heap)
             if(range!=null) {
                 // loop over a range with constant start, last and step values
                 if (range.isEmpty())
@@ -1536,7 +1535,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             DataType.STR_P,
             DataType.STR_S,
             DataType.STR_PS -> {
-                numElements = iterableValue.strvalue?.length ?: heap.get(iterableValue.heapId!!).str!!.length
+                numElements = iterableValue.strvalue(heap).length
                 if(numElements>255) throw CompilerException("string length > 255")
             }
             DataType.ARRAY_UB, DataType.ARRAY_B,

@@ -30,7 +30,25 @@ enum class DataType {
     ARRAY_B,
     ARRAY_UW,
     ARRAY_W,
-    ARRAY_F
+    ARRAY_F;
+
+    fun assignableTo(type: DataType) =
+            when(this) {
+                UBYTE -> type in NumericDatatypes
+                BYTE -> type in NumericDatatypes
+                UWORD -> type in NumericDatatypes
+                WORD -> type in NumericDatatypes
+                FLOAT -> type in NumericDatatypes
+                STR -> type == STR || type==STR_S || type == UWORD
+                STR_P -> type == STR_P || type==STR_PS || type == UWORD
+                STR_S -> type == STR || type==STR_S || type == UWORD
+                STR_PS -> type == STR_P || type==STR_PS || type == UWORD
+                ARRAY_UB -> type == UWORD
+                ARRAY_B -> type == UWORD
+                ARRAY_UW -> type == UWORD
+                ARRAY_W -> type == UWORD
+                ARRAY_F -> type == UWORD
+            }
 }
 
 enum class Register {
@@ -948,11 +966,12 @@ class LiteralValue(val type: DataType,
                    val bytevalue: Short? = null,
                    val wordvalue: Int? = null,
                    val floatvalue: Double? = null,
-                   val strvalue: String? = null,
+                   strvalue: String? = null,
                    val arrayvalue: Array<IExpression>? = null,
                    val heapId: Int? =null,
                    override val position: Position) : IExpression {
     override lateinit var parent: Node
+    private val initialstrvalue = strvalue
 
     override fun referencesIdentifier(name: String) = arrayvalue?.any { it.referencesIdentifier(name) } ?: false
 
@@ -1004,12 +1023,12 @@ class LiteralValue(val type: DataType,
             DataType.UWORD, DataType.WORD -> if(wordvalue==null) throw FatalAstException("literal value missing wordvalue")
             DataType.FLOAT -> if(floatvalue==null) throw FatalAstException("literal value missing floatvalue")
             in StringDatatypes ->
-                if(strvalue==null && heapId==null) throw FatalAstException("literal value missing strvalue/heapId")
+                if(initialstrvalue==null && heapId==null) throw FatalAstException("literal value missing strvalue/heapId")
             in ArrayDatatypes ->
                 if(arrayvalue==null && heapId==null) throw FatalAstException("literal value missing arrayvalue/heapId")
             else -> throw FatalAstException("invalid type $type")
         }
-        if(bytevalue==null && wordvalue==null && floatvalue==null && arrayvalue==null && strvalue==null && heapId==null)
+        if(bytevalue==null && wordvalue==null && floatvalue==null && arrayvalue==null && initialstrvalue==null && heapId==null)
             throw FatalAstException("literal value without actual value")
     }
 
@@ -1031,7 +1050,7 @@ class LiteralValue(val type: DataType,
             (floatvalue!=null && floatvalue != 0.0) ||
             (bytevalue!=null && bytevalue != 0.toShort()) ||
             (wordvalue!=null && wordvalue != 0) ||
-            (strvalue!=null && strvalue.isNotEmpty()) ||
+            (initialstrvalue!=null && initialstrvalue.isNotEmpty()) ||
             (arrayvalue != null && arrayvalue.isNotEmpty())
 
     override fun linkParents(parent: Node) {
@@ -1051,7 +1070,7 @@ class LiteralValue(val type: DataType,
             DataType.FLOAT -> "float:$floatvalue"
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS-> {
                 if(heapId!=null) "str:#$heapId"
-                else "str:$strvalue"
+                else "str:$initialstrvalue"
             }
             DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F -> {
                 if(heapId!=null) "arrayspec:#$heapId"
@@ -1069,7 +1088,7 @@ class LiteralValue(val type: DataType,
         val bh = bytevalue?.hashCode() ?: 0x10001234
         val wh = wordvalue?.hashCode() ?: 0x01002345
         val fh = floatvalue?.hashCode() ?: 0x00103456
-        val sh = strvalue?.hashCode() ?: 0x00014567
+        val sh = initialstrvalue?.hashCode() ?: 0x00014567
         val ah = arrayvalue?.hashCode() ?: 0x11119876
         var hash = bh * 31 xor wh
         hash = hash*31 xor fh
@@ -1091,8 +1110,8 @@ class LiteralValue(val type: DataType,
         if(numLeft!=null && numRight!=null)
             return numLeft.compareTo(numRight)
 
-        if(strvalue!=null && other.strvalue!=null)
-            return strvalue.compareTo(other.strvalue)
+        if(initialstrvalue!=null && other.initialstrvalue!=null)
+            return initialstrvalue.compareTo(other.initialstrvalue)
 
         throw ExpressionError("cannot compare type $type with ${other.type}", other.position)
     }
@@ -1160,6 +1179,12 @@ class LiteralValue(val type: DataType,
         }
         return null    // invalid type conversion from $this to $targettype
     }
+
+    fun strvalue(heap: HeapValues): String {
+        if(initialstrvalue!=null)
+            return initialstrvalue
+        return heap.get(heapId!!).str!!
+    }
 }
 
 
@@ -1200,15 +1225,15 @@ class RangeExpr(var from: IExpression,
         return "RangeExpr(from $from, to $to, step $step, pos=$position)"
     }
 
-    fun size(): Int? {
+    fun size(heap: HeapValues): Int? {
         val fromLv = (from as? LiteralValue)
         val toLv = (to as? LiteralValue)
         if(fromLv==null || toLv==null)
             return null
-        return toConstantIntegerRange()?.count()
+        return toConstantIntegerRange(heap)?.count()
     }
 
-    fun toConstantIntegerRange(): IntProgression? {
+    fun toConstantIntegerRange(heap: HeapValues): IntProgression? {
         val fromLv = from as? LiteralValue
         val toLv = to as? LiteralValue
         if(fromLv==null || toLv==null)
@@ -1217,8 +1242,8 @@ class RangeExpr(var from: IExpression,
         val toVal: Int
         if(fromLv.isString && toLv.isString) {
             // string range -> int range over petscii values
-            fromVal = Petscii.encodePetscii(fromLv.strvalue!!, true)[0].toInt()
-            toVal = Petscii.encodePetscii(toLv.strvalue!!, true)[0].toInt()
+            fromVal = Petscii.encodePetscii(fromLv.strvalue(heap), true)[0].toInt()
+            toVal = Petscii.encodePetscii(toLv.strvalue(heap), true)[0].toInt()
         } else {
             // integer range
             fromVal = (from as LiteralValue).asIntegerValue!!

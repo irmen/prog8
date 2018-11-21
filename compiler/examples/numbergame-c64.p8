@@ -10,19 +10,23 @@
         ubyte  secretnumber = 0
         ubyte  attempts_left = 10
         memory uword freadstr_arg = $22		; argument for FREADSTR
+        uword testword
 
+        testword  = guess       ; @todo fix str addrss
+        testword = "sadfsafsdf"     ; @todo fix str address
+        secretnumber = "\n"   ; @todo fix argument conversion to UBYTE
         c64utils.init_system()
         c64.VMCSB |= 2		; activate lowercase charset
 
         ; greeting
         c64scr.print_string("Enter your name: ")
-        Y = c64scr.input_chars(name)        ; @todo fix argument type check
-        c64.CHROUT("\n")        ; @todo fix argument type check
-        c64.CHROUT("\n")
+        Y = c64scr.input_chars(name)
+        c64.CHROUT("\n")        ; @todo fix argument conversion to UBYTE
+        c64.CHROUT("\n")        ; @todo fix argument conversion to UBYTE
         c64scr.print_string("Hello, ")
         c64scr.print_string(name)
-        c64.CHROUT(".")
-        c64.CHROUT("\n")
+        c64.CHROUT(".")     ; @todo fix argument conversion to UBYTE
+        c64.CHROUT("\n")    ; @todo fix argument conversion to UBYTE
 
         ; create a secret random number from 1-100
         c64.RNDA(0)             ; fac = rnd(0)
@@ -30,7 +34,7 @@
         c64.MUL10()             ; .. and now *100
         c64.FADDH()             ; add 0.5..
         c64.FADDH()             ;   and again, so +1 total
-        A, Y = c64flt.GETADRAY()
+        A, Y = c64flt.GETADRAY()        ; @todo fix return value type check
         secretnumber = A
         ;A=math.randbyte()
         ;A+=c64.RASTER
@@ -47,10 +51,10 @@ ask_guess:
 
         c64scr.print_string(" left.\nWhat is your next guess? ")
         Y = c64scr.input_chars(guess)
-        c64.CHROUT("\n")
-        freadstr_arg = guess
+        c64.CHROUT("\n")        ; @todo fix argument conversion to UBYTE
+        freadstr_arg = guess    ; @todo put string's adress in uword variable
         c64.FREADSTR(A)
-        A, Y = c64flt.GETADRAY()
+        A, Y = c64flt.GETADRAY()    ; @todo fix return value type check
         if(A==secretnumber) {
             c64scr.print_string("\nThat's my number, impressive!\n")
             goto goodbye
@@ -68,7 +72,7 @@ ask_guess:
         ; game over.
         c64scr.print_string("\nToo bad! It was: ")
         c64scr.print_byte_decimal(secretnumber)
-        c64.CHROUT("\n")
+        c64.CHROUT("\n")    ; @todo fix argument conversion to UBYTE
 
 goodbye:
         c64scr.print_string("\nThanks for playing. Bye!\n")

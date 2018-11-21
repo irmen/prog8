@@ -1,6 +1,7 @@
 package prog8.optimizing
 
 import prog8.ast.*
+import prog8.compiler.HeapValues
 import kotlin.math.pow
 
 
@@ -9,11 +10,11 @@ val associativeOperators = setOf("+", "*", "&", "|", "^", "or", "and", "xor", "=
 
 class ConstExprEvaluator {
 
-    fun evaluate(left: LiteralValue, operator: String, right: LiteralValue): IExpression {
+    fun evaluate(left: LiteralValue, operator: String, right: LiteralValue, heap: HeapValues): IExpression {
         return when(operator) {
-            "+" -> plus(left, right)
+            "+" -> plus(left, right, heap)
             "-" -> minus(left, right)
-            "*" -> multiply(left, right)
+            "*" -> multiply(left, right, heap)
             "/" -> divide(left, right)
             "//" -> floordivide(left, right)
             "%" -> remainder(left, right)
@@ -141,7 +142,7 @@ class ConstExprEvaluator {
         }
     }
 
-    private fun plus(left: LiteralValue, right: LiteralValue): LiteralValue {
+    private fun plus(left: LiteralValue, right: LiteralValue, heap: HeapValues): LiteralValue {
         val error = "cannot add $left and $right"
         return when {
             left.asIntegerValue!=null -> when {
@@ -154,9 +155,9 @@ class ConstExprEvaluator {
                 right.floatvalue!=null -> LiteralValue(DataType.FLOAT, floatvalue = left.floatvalue + right.floatvalue, position = left.position)
                 else -> throw ExpressionError(error, left.position)
             }
-            left.strvalue!=null -> when {
-                right.strvalue!=null -> {
-                    val newStr = left.strvalue + right.strvalue
+            left.isString -> when {
+                right.isString -> {
+                    val newStr = left.strvalue(heap) + right.strvalue(heap)
                     if(newStr.length > 255) throw ExpressionError("string too long", left.position)
                     LiteralValue(DataType.STR, strvalue = newStr, position = left.position)
                 }
@@ -183,15 +184,15 @@ class ConstExprEvaluator {
         }
     }
 
-    private fun multiply(left: LiteralValue, right: LiteralValue): LiteralValue {
+    private fun multiply(left: LiteralValue, right: LiteralValue, heap: HeapValues): LiteralValue {
         val error = "cannot multiply ${left.type} and ${right.type}"
         return when {
             left.asIntegerValue!=null -> when {
                 right.asIntegerValue!=null -> LiteralValue.optimalNumeric(left.asIntegerValue * right.asIntegerValue, left.position)
                 right.floatvalue!=null -> LiteralValue(DataType.FLOAT, floatvalue = left.asIntegerValue * right.floatvalue, position = left.position)
-                right.strvalue!=null -> {
-                    if(right.strvalue.length * left.asIntegerValue > 255) throw ExpressionError("string too long", left.position)
-                    LiteralValue(DataType.STR, strvalue = right.strvalue.repeat(left.asIntegerValue), position = left.position)
+                right.isString -> {
+                    if(right.strvalue(heap).length * left.asIntegerValue > 255) throw ExpressionError("string too long", left.position)
+                    LiteralValue(DataType.STR, strvalue = right.strvalue(heap).repeat(left.asIntegerValue), position = left.position)
                 }
                 else -> throw ExpressionError(error, left.position)
             }
