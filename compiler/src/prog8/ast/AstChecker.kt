@@ -693,6 +693,11 @@ class AstChecker(private val namespace: INameScope,
                 for (arg in args.withIndex().zip(target.parameters)) {
                     if(arg.first.value.resultingDatatype(namespace, heap) != arg.second.type)
                         checkResult.add(ExpressionError("argument ${arg.first.index+1} has invalid type, expected ${arg.second.type}", position))
+
+                    if(target.asmParameterRegisters[arg.first.index].registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.XY, RegisterOrPair.X)) {
+                        if(arg.first.value !is LiteralValue && arg.first.value !is IdentifierReference)
+                            printWarning("calling a subroutine that expects X as a parameter is problematic, more so when providing complex arguments. If you see a compiler error/crash about this later, try to simplify this call", position)
+                    }
                 }
             }
         }
