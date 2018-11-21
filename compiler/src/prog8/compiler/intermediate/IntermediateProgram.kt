@@ -313,7 +313,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         out.println("%end_memory")
         out.println("%heap")
         heap.allStrings().forEach {
-            out.println("${it.index}  ${it.value.type.toString().toLowerCase()}  \"${it.value.str}\"")
+            out.println("${it.index}  ${it.value.type.toString().toLowerCase()}  \"${escape(it.value.str!!)}\"")
         }
         heap.allArrays().forEach {
             out.println("${it.index}  ${it.value.type.toString().toLowerCase()}  ${it.value.array!!.toList()}")

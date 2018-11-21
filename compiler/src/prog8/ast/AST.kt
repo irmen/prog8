@@ -4,7 +4,6 @@ import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
 import prog8.compiler.HeapValues
 import prog8.compiler.target.c64.Petscii
-import prog8.compiler.unescape
 import prog8.functions.BuiltinFunctions
 import prog8.functions.NotConstArgumentException
 import prog8.functions.builtinFunctionReturnType
@@ -1959,8 +1958,8 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
                     else -> throw FatalAstException("invalid datatype for numeric literal")
                 }
                 litval.floatliteral()!=null -> LiteralValue(DataType.FLOAT, floatvalue = litval.floatliteral().toAst(), position = litval.toPosition())
-                litval.stringliteral()!=null -> LiteralValue(DataType.STR, strvalue = litval.stringliteral().text, position = litval.toPosition())
-                litval.charliteral()!=null -> LiteralValue(DataType.UBYTE, bytevalue = Petscii.encodePetscii(litval.charliteral().text.unescape(), true)[0], position = litval.toPosition())
+                litval.stringliteral()!=null -> LiteralValue(DataType.STR, strvalue = unescape(litval.stringliteral().text, litval.toPosition()), position = litval.toPosition())
+                litval.charliteral()!=null -> LiteralValue(DataType.UBYTE, bytevalue = Petscii.encodePetscii(unescape(litval.charliteral().text, litval.toPosition()), true)[0], position = litval.toPosition())
                 litval.arrayliteral()!=null -> {
                     val array = litval.arrayliteral()?.toAst()
                     // the actual type of the arrayspec can not yet be determined here (missing namespace & heap)
@@ -2003,6 +2002,7 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
 
     throw FatalAstException(text)
 }
+
 
 private fun prog8Parser.ArrayindexedContext.toAst(): ArrayIndexedExpression {
     return ArrayIndexedExpression(identifier()?.toAst() ?: scoped_identifier()?.toAst(),
@@ -2115,4 +2115,30 @@ internal fun registerSet(asmReturnvaluesRegisters: Iterable<RegisterOrStatusflag
         }
     }
     return resultRegisters
+}
+
+
+internal fun escape(str: String) = str.replace("\t", "\\t").replace("\n", "\\n").replace("\r", "\\r")
+
+internal fun unescape(str: String, position: Position): String {
+    val result = mutableListOf<Char>()
+    val iter = str.iterator()
+    while(iter.hasNext()) {
+        val c = iter.nextChar()
+        if(c=='\\') {
+            val ec = iter.nextChar()
+            result.add(when(ec) {
+                '\\' -> '\\'
+                'n' -> '\n'
+                'r' -> '\r'
+                'u' -> {
+                    "${iter.nextChar()}${iter.nextChar()}${iter.nextChar()}${iter.nextChar()}".toInt(16).toChar()
+                }
+                else -> throw AstException("$position invalid escape char in string: \\$ec")
+            })
+        } else {
+            result.add(c)
+        }
+    }
+    return result.joinToString("")
 }

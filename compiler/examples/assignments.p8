@@ -48,6 +48,33 @@ sub start() {
     str_p stringp = "hello"
 
 
+; some string assignments
+
+        str   stringvar   = "??????????\n\n\nnext line\r\r\rnext line after carriagereturn"
+        ubyte  secretnumber = 0
+        memory uword freadstr_arg = $22		; argument for FREADSTR
+        uword testword
+        ubyte char1 = "@"
+        ubyte char2 = "\n"
+        ubyte char3 = "\r"
+        ubyte char1b = '@'
+        ubyte char2b = '\n'
+        ubyte char3b = '\r'
+
+        testword = '@'
+        testword = '\n'
+        freadstr_arg = '@'
+        freadstr_arg = '\n'
+        secretnumber = '@'
+        secretnumber = '\r'
+
+        testword  = stringvar       ; @todo fix str address assignment
+        testword = "stringstring"     ; @todo fix str address assignment
+        freadstr_arg = stringvar        ; @todo fix str address assignment
+        freadstr_arg = "stringstring"       ; @todo fix str address assignment
+        secretnumber = "stringstring2222"   ; @todo fix str address assignment
+
+
 ; all possible assignments to a BYTE VARIABLE (not array)
 
 

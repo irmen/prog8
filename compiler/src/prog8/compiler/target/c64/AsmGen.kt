@@ -5,7 +5,7 @@ package prog8.compiler.target.c64
 
 
 import prog8.ast.DataType
-import prog8.ast.Register
+import prog8.ast.escape
 import prog8.compiler.*
 import prog8.compiler.intermediate.*
 import prog8.stackvm.Syscall
@@ -235,7 +235,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 DataType.STR_PS -> {
                     val rawStr = heap.get(v.second.heapId).str!!
                     val bytes = encodeStr(rawStr, v.second.type).map { "$" + it.toString(16).padStart(2, '0') }
-                    out("${v.first}\t; ${v.second.type} \"$rawStr\"")
+                    out("${v.first}\t; ${v.second.type} \"${escape(rawStr)}\"")
                     for (chunk in bytes.chunked(16))
                         out("\t.byte  " + chunk.joinToString())
                 }

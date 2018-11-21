@@ -1,13 +1,15 @@
 // Generated from /home/irmen/Projects/prog8/compiler/antlr/prog8.g4 by ANTLR 4.7
 package prog8.parser;
-import org.antlr.v4.runtime.atn.*;
-import org.antlr.v4.runtime.dfa.DFA;
+
 import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.misc.*;
-import org.antlr.v4.runtime.tree.*;
+import org.antlr.v4.runtime.atn.ATN;
+import org.antlr.v4.runtime.atn.ATNDeserializer;
+import org.antlr.v4.runtime.atn.ParserATNSimulator;
+import org.antlr.v4.runtime.atn.PredictionContextCache;
+import org.antlr.v4.runtime.dfa.DFA;
+import org.antlr.v4.runtime.tree.TerminalNode;
+
 import java.util.List;
-import java.util.Iterator;
-import java.util.ArrayList;
 
 @SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast"})
 public class prog8Parser extends Parser {
@@ -17,85 +19,85 @@ public class prog8Parser extends Parser {
 	protected static final PredictionContextCache _sharedContextCache =
 		new PredictionContextCache();
 	public static final int
-		T__0=1, T__1=2, T__2=3, T__3=4, T__4=5, T__5=6, T__6=7, T__7=8, T__8=9, 
-		T__9=10, T__10=11, T__11=12, T__12=13, T__13=14, T__14=15, T__15=16, T__16=17, 
-		T__17=18, T__18=19, T__19=20, T__20=21, T__21=22, T__22=23, T__23=24, 
-		T__24=25, T__25=26, T__26=27, T__27=28, T__28=29, T__29=30, T__30=31, 
-		T__31=32, T__32=33, T__33=34, T__34=35, T__35=36, T__36=37, T__37=38, 
-		T__38=39, T__39=40, T__40=41, T__41=42, T__42=43, T__43=44, T__44=45, 
-		T__45=46, T__46=47, T__47=48, T__48=49, T__49=50, T__50=51, T__51=52, 
-		T__52=53, T__53=54, T__54=55, T__55=56, T__56=57, T__57=58, T__58=59, 
-		T__59=60, T__60=61, T__61=62, T__62=63, T__63=64, T__64=65, T__65=66, 
-		T__66=67, T__67=68, T__68=69, T__69=70, T__70=71, T__71=72, T__72=73, 
-		T__73=74, T__74=75, T__75=76, T__76=77, T__77=78, T__78=79, T__79=80, 
-		T__80=81, T__81=82, T__82=83, T__83=84, T__84=85, T__85=86, T__86=87, 
-		T__87=88, T__88=89, T__89=90, T__90=91, T__91=92, T__92=93, T__93=94, 
-		T__94=95, T__95=96, T__96=97, T__97=98, T__98=99, T__99=100, T__100=101, 
-		T__101=102, T__102=103, T__103=104, T__104=105, T__105=106, T__106=107, 
-		LINECOMMENT=108, COMMENT=109, WS=110, EOL=111, NAME=112, DEC_INTEGER=113, 
-		HEX_INTEGER=114, BIN_INTEGER=115, FLOAT_NUMBER=116, STRING=117, INLINEASMBLOCK=118, 
+		T__0=1, T__1=2, T__2=3, T__3=4, T__4=5, T__5=6, T__6=7, T__7=8, T__8=9,
+		T__9=10, T__10=11, T__11=12, T__12=13, T__13=14, T__14=15, T__15=16, T__16=17,
+		T__17=18, T__18=19, T__19=20, T__20=21, T__21=22, T__22=23, T__23=24,
+		T__24=25, T__25=26, T__26=27, T__27=28, T__28=29, T__29=30, T__30=31,
+		T__31=32, T__32=33, T__33=34, T__34=35, T__35=36, T__36=37, T__37=38,
+		T__38=39, T__39=40, T__40=41, T__41=42, T__42=43, T__43=44, T__44=45,
+		T__45=46, T__46=47, T__47=48, T__48=49, T__49=50, T__50=51, T__51=52,
+		T__52=53, T__53=54, T__54=55, T__55=56, T__56=57, T__57=58, T__58=59,
+		T__59=60, T__60=61, T__61=62, T__62=63, T__63=64, T__64=65, T__65=66,
+		T__66=67, T__67=68, T__68=69, T__69=70, T__70=71, T__71=72, T__72=73,
+		T__73=74, T__74=75, T__75=76, T__76=77, T__77=78, T__78=79, T__79=80,
+		T__80=81, T__81=82, T__82=83, T__83=84, T__84=85, T__85=86, T__86=87,
+		T__87=88, T__88=89, T__89=90, T__90=91, T__91=92, T__92=93, T__93=94,
+		T__94=95, T__95=96, T__96=97, T__97=98, T__98=99, T__99=100, T__100=101,
+		T__101=102, T__102=103, T__103=104, T__104=105, T__105=106, T__106=107,
+		LINECOMMENT=108, COMMENT=109, WS=110, EOL=111, NAME=112, DEC_INTEGER=113,
+		HEX_INTEGER=114, BIN_INTEGER=115, FLOAT_NUMBER=116, STRING=117, INLINEASMBLOCK=118,
 		SINGLECHAR=119;
 	public static final int
-		RULE_module = 0, RULE_modulestatement = 1, RULE_block = 2, RULE_statement = 3, 
-		RULE_labeldef = 4, RULE_unconditionaljump = 5, RULE_directive = 6, RULE_directivearg = 7, 
-		RULE_vardecl = 8, RULE_varinitializer = 9, RULE_constdecl = 10, RULE_memoryvardecl = 11, 
-		RULE_datatype = 12, RULE_arrayspec = 13, RULE_assignment = 14, RULE_assign_targets = 15, 
-		RULE_augassignment = 16, RULE_assign_target = 17, RULE_postincrdecr = 18, 
-		RULE_expression = 19, RULE_arrayindexed = 20, RULE_functioncall = 21, 
-		RULE_functioncall_stmt = 22, RULE_expression_list = 23, RULE_returnstmt = 24, 
-		RULE_breakstmt = 25, RULE_continuestmt = 26, RULE_identifier = 27, RULE_scoped_identifier = 28, 
-		RULE_register = 29, RULE_registerorpair = 30, RULE_statusregister = 31, 
-		RULE_integerliteral = 32, RULE_wordsuffix = 33, RULE_booleanliteral = 34, 
-		RULE_arrayliteral = 35, RULE_stringliteral = 36, RULE_charliteral = 37, 
-		RULE_floatliteral = 38, RULE_literalvalue = 39, RULE_inlineasm = 40, RULE_subroutine = 41, 
-		RULE_sub_return_part = 42, RULE_statement_block = 43, RULE_sub_params = 44, 
-		RULE_sub_param = 45, RULE_sub_returns = 46, RULE_asmsubroutine = 47, RULE_asmsub_address = 48, 
-		RULE_asmsub_params = 49, RULE_asmsub_param = 50, RULE_clobber = 51, RULE_asmsub_returns = 52, 
-		RULE_asmsub_return = 53, RULE_if_stmt = 54, RULE_else_part = 55, RULE_branch_stmt = 56, 
+		RULE_module = 0, RULE_modulestatement = 1, RULE_block = 2, RULE_statement = 3,
+		RULE_labeldef = 4, RULE_unconditionaljump = 5, RULE_directive = 6, RULE_directivearg = 7,
+		RULE_vardecl = 8, RULE_varinitializer = 9, RULE_constdecl = 10, RULE_memoryvardecl = 11,
+		RULE_datatype = 12, RULE_arrayspec = 13, RULE_assignment = 14, RULE_assign_targets = 15,
+		RULE_augassignment = 16, RULE_assign_target = 17, RULE_postincrdecr = 18,
+		RULE_expression = 19, RULE_arrayindexed = 20, RULE_functioncall = 21,
+		RULE_functioncall_stmt = 22, RULE_expression_list = 23, RULE_returnstmt = 24,
+		RULE_breakstmt = 25, RULE_continuestmt = 26, RULE_identifier = 27, RULE_scoped_identifier = 28,
+		RULE_register = 29, RULE_registerorpair = 30, RULE_statusregister = 31,
+		RULE_integerliteral = 32, RULE_wordsuffix = 33, RULE_booleanliteral = 34,
+		RULE_arrayliteral = 35, RULE_stringliteral = 36, RULE_charliteral = 37,
+		RULE_floatliteral = 38, RULE_literalvalue = 39, RULE_inlineasm = 40, RULE_subroutine = 41,
+		RULE_sub_return_part = 42, RULE_statement_block = 43, RULE_sub_params = 44,
+		RULE_sub_param = 45, RULE_sub_returns = 46, RULE_asmsubroutine = 47, RULE_asmsub_address = 48,
+		RULE_asmsub_params = 49, RULE_asmsub_param = 50, RULE_clobber = 51, RULE_asmsub_returns = 52,
+		RULE_asmsub_return = 53, RULE_if_stmt = 54, RULE_else_part = 55, RULE_branch_stmt = 56,
 		RULE_branchcondition = 57, RULE_forloop = 58, RULE_whileloop = 59, RULE_repeatloop = 60;
 	public static final String[] ruleNames = {
-		"module", "modulestatement", "block", "statement", "labeldef", "unconditionaljump", 
-		"directive", "directivearg", "vardecl", "varinitializer", "constdecl", 
-		"memoryvardecl", "datatype", "arrayspec", "assignment", "assign_targets", 
-		"augassignment", "assign_target", "postincrdecr", "expression", "arrayindexed", 
-		"functioncall", "functioncall_stmt", "expression_list", "returnstmt", 
-		"breakstmt", "continuestmt", "identifier", "scoped_identifier", "register", 
-		"registerorpair", "statusregister", "integerliteral", "wordsuffix", "booleanliteral", 
-		"arrayliteral", "stringliteral", "charliteral", "floatliteral", "literalvalue", 
-		"inlineasm", "subroutine", "sub_return_part", "statement_block", "sub_params", 
-		"sub_param", "sub_returns", "asmsubroutine", "asmsub_address", "asmsub_params", 
-		"asmsub_param", "clobber", "asmsub_returns", "asmsub_return", "if_stmt", 
-		"else_part", "branch_stmt", "branchcondition", "forloop", "whileloop", 
+		"module", "modulestatement", "block", "statement", "labeldef", "unconditionaljump",
+		"directive", "directivearg", "vardecl", "varinitializer", "constdecl",
+		"memoryvardecl", "datatype", "arrayspec", "assignment", "assign_targets",
+		"augassignment", "assign_target", "postincrdecr", "expression", "arrayindexed",
+		"functioncall", "functioncall_stmt", "expression_list", "returnstmt",
+		"breakstmt", "continuestmt", "identifier", "scoped_identifier", "register",
+		"registerorpair", "statusregister", "integerliteral", "wordsuffix", "booleanliteral",
+		"arrayliteral", "stringliteral", "charliteral", "floatliteral", "literalvalue",
+		"inlineasm", "subroutine", "sub_return_part", "statement_block", "sub_params",
+		"sub_param", "sub_returns", "asmsubroutine", "asmsub_address", "asmsub_params",
+		"asmsub_param", "clobber", "asmsub_returns", "asmsub_return", "if_stmt",
+		"else_part", "branch_stmt", "branchcondition", "forloop", "whileloop",
 		"repeatloop"
 	};
 
 	private static final String[] _LITERAL_NAMES = {
-		null, "'~'", "':'", "'goto'", "'%output'", "'%launcher'", "'%zeropage'", 
-		"'%zpreserved'", "'%address'", "'%import'", "'%breakpoint'", "'%asminclude'", 
-		"'%asmbinary'", "'%option'", "','", "'='", "'const'", "'memory'", "'ubyte'", 
-		"'byte'", "'uword'", "'word'", "'float'", "'str'", "'str_p'", "'str_s'", 
-		"'str_ps'", "'['", "']'", "'+='", "'-='", "'/='", "'//='", "'*='", "'**='", 
-		"'&='", "'|='", "'^='", "'++'", "'--'", "'('", "')'", "'+'", "'-'", "'**'", 
-		"'*'", "'/'", "'//'", "'%'", "'<'", "'>'", "'<='", "'>='", "'=='", "'!='", 
-		"'&'", "'^'", "'|'", "'to'", "'step'", "'and'", "'or'", "'xor'", "'not'", 
-		"'return'", "'break'", "'continue'", "'.'", "'A'", "'X'", "'Y'", "'AX'", 
-		"'AY'", "'XY'", "'Pc'", "'Pz'", "'Pn'", "'Pv'", "'.w'", "'true'", "'false'", 
-		"'%asm'", "'sub'", "'->'", "'{'", "'}'", "'asmsub'", "'clobbers'", "'@'", 
-		"'if'", "'else'", "'if_cs'", "'if_cc'", "'if_eq'", "'if_z'", "'if_ne'", 
-		"'if_nz'", "'if_pl'", "'if_pos'", "'if_mi'", "'if_neg'", "'if_vs'", "'if_vc'", 
+		null, "'~'", "':'", "'goto'", "'%output'", "'%launcher'", "'%zeropage'",
+		"'%zpreserved'", "'%address'", "'%import'", "'%breakpoint'", "'%asminclude'",
+		"'%asmbinary'", "'%option'", "','", "'='", "'const'", "'memory'", "'ubyte'",
+		"'byte'", "'uword'", "'word'", "'float'", "'str'", "'str_p'", "'str_s'",
+		"'str_ps'", "'['", "']'", "'+='", "'-='", "'/='", "'//='", "'*='", "'**='",
+		"'&='", "'|='", "'^='", "'++'", "'--'", "'('", "')'", "'+'", "'-'", "'**'",
+		"'*'", "'/'", "'//'", "'%'", "'<'", "'>'", "'<='", "'>='", "'=='", "'!='",
+		"'&'", "'^'", "'|'", "'to'", "'step'", "'and'", "'or'", "'xor'", "'not'",
+		"'return'", "'break'", "'continue'", "'.'", "'A'", "'X'", "'Y'", "'AX'",
+		"'AY'", "'XY'", "'Pc'", "'Pz'", "'Pn'", "'Pv'", "'.w'", "'true'", "'false'",
+		"'%asm'", "'sub'", "'->'", "'{'", "'}'", "'asmsub'", "'clobbers'", "'@'",
+		"'if'", "'else'", "'if_cs'", "'if_cc'", "'if_eq'", "'if_z'", "'if_ne'",
+		"'if_nz'", "'if_pl'", "'if_pos'", "'if_mi'", "'if_neg'", "'if_vs'", "'if_vc'",
 		"'for'", "'in'", "'while'", "'repeat'", "'until'"
 	};
 	private static final String[] _SYMBOLIC_NAMES = {
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		"LINECOMMENT", "COMMENT", "WS", "EOL", "NAME", "DEC_INTEGER", "HEX_INTEGER", 
+		null, null, null, null, null, null, null, null, null, null, null, null,
+		null, null, null, null, null, null, null, null, null, null, null, null,
+		null, null, null, null, null, null, null, null, null, null, null, null,
+		null, null, null, null, null, null, null, null, null, null, null, null,
+		null, null, null, null, null, null, null, null, null, null, null, null,
+		null, null, null, null, null, null, null, null, null, null, null, null,
+		null, null, null, null, null, null, null, null, null, null, null, null,
+		null, null, null, null, null, null, null, null, null, null, null, null,
+		null, null, null, null, null, null, null, null, null, null, null, null,
+		"LINECOMMENT", "COMMENT", "WS", "EOL", "NAME", "DEC_INTEGER", "HEX_INTEGER",
 		"BIN_INTEGER", "FLOAT_NUMBER", "STRING", "INLINEASMBLOCK", "SINGLECHAR"
 	};
 	public static final Vocabulary VOCABULARY = new VocabularyImpl(_LITERAL_NAMES, _SYMBOLIC_NAMES);
@@ -1675,7 +1677,7 @@ public class prog8Parser extends Parser {
 						}
 						break;
 					}
-					} 
+					}
 				}
 				setState(307);
 				_errHandler.sync(this);
@@ -2090,7 +2092,7 @@ public class prog8Parser extends Parser {
 			{
 			setState(355);
 			match(NAME);
-			setState(358); 
+			setState(358);
 			_errHandler.sync(this);
 			_alt = 1;
 			do {
@@ -2108,7 +2110,7 @@ public class prog8Parser extends Parser {
 				default:
 					throw new NoViableAltException(this);
 				}
-				setState(360); 
+				setState(360);
 				_errHandler.sync(this);
 				_alt = getInterpreter().adaptivePredict(_input,26,_ctx);
 			} while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER );

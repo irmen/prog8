@@ -6,7 +6,6 @@ import prog8.compiler.intermediate.IntermediateProgram
 import prog8.compiler.intermediate.Opcode
 import prog8.compiler.intermediate.Value
 import prog8.stackvm.Syscall
-import prog8.stackvm.VmExecutionException
 import java.util.*
 import kotlin.math.abs
 
@@ -28,32 +27,6 @@ fun Number.toHex(): String {
         in 0 until 0x10000 -> "$"+integer.toString(16).padStart(4,'0')
         else -> throw CompilerException("number too large for 16 bits $this")
     }
-}
-
-
-fun String.unescape(): String {
-    val result = mutableListOf<Char>()
-    val iter = this.iterator()
-    while(iter.hasNext()) {
-        val c = iter.nextChar()
-        if(c=='\\') {
-            val ec = iter.nextChar()
-            result.add(when(ec) {
-                '\\' -> '\\'
-                'b' -> '\b'
-                'n' -> '\n'
-                'r' -> '\r'
-                't' -> '\t'
-                'u' -> {
-                    "${iter.nextChar()}${iter.nextChar()}${iter.nextChar()}${iter.nextChar()}".toInt(16).toChar()
-                }
-                else -> throw VmExecutionException("invalid escape char: $ec")
-            })
-        } else {
-            result.add(c)
-        }
-    }
-    return result.joinToString("")
 }
 
 
@@ -181,7 +154,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
 
     override fun process(block: Block): IStatement {
         prog.newBlock(block.scopedname, block.name, block.address)
-        processVariables(block)         // @todo optimize initializations with same value: load the value only once
+        processVariables(block)         // @todo optimize initializations with same value: load the value only once  (sort on initalization value, datatype   ?)
         prog.label(block.scopedname)
         prog.line(block.position)
         translate(block.statements)

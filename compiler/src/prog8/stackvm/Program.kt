@@ -3,7 +3,6 @@ package prog8.stackvm
 import prog8.ast.DataType
 import prog8.compiler.HeapValues
 import prog8.compiler.intermediate.*
-import prog8.compiler.unescape
 import java.io.File
 import java.util.*
 import java.util.regex.Pattern
@@ -85,7 +84,7 @@ class Program (val name: String,
                     DataType.STR,
                     DataType.STR_P,
                     DataType.STR_S,
-                    DataType.STR_PS -> heap.add(it.second, it.third.substring(1, it.third.length-1).unescape())
+                    DataType.STR_PS -> heap.add(it.second, it.third.substring(1, it.third.length-1))
                     DataType.ARRAY_UB, DataType.ARRAY_B,
                     DataType.ARRAY_UW, DataType.ARRAY_W -> {
                         val numbers = it.third.substring(1, it.third.length-1).split(',')

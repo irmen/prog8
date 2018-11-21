@@ -16,25 +16,30 @@ sub start() {
     byte b1
 
 
-        str   stringvar   = "??????????"
+        str   stringvar   = "??????????\n\n\nnext line\r\r\rnext line after carriagereturn"
         ubyte  secretnumber = 0
         memory uword freadstr_arg = $22		; argument for FREADSTR
         uword testword
         ubyte char1 = "@"
-        ubyte char2 = "\n"      ; @todo escapechar
-        ubyte char3 = "\t"      ; @todo escapechar
+        ubyte char2 = "\n"
+        ubyte char3 = "\r"
+        ubyte char1b = '@'
+        ubyte char2b = '\n'
+        ubyte char3b = '\r'
 
-        ;testword  = stringvar       ; @todo fix str address
-        ;testword = "sadfsafsdf"     ; @todo fix str address
-        testword = "@"     ; @todo fix argument conversion to UBYTE
-        testword = "\n"     ; @todo fix argument conversion to UBYTE (escapechar)
-        ;freadstr_arg = stringvar
-        ;freadstr_arg = "asdfasdfasdfasdf"
-        freadstr_arg = "@"     ; @todo fix argument conversion to UBYTE
-        freadstr_arg = "\n"     ; @todo fix argument conversion to UBYTE (escapechar)
-        secretnumber = "@"   ; @todo fix argument conversion to UBYTE
-        secretnumber = "\n"   ; @todo fix argument conversion to UBYTE (escapechar)
-        ;secretnumber = "asdfsdf"
+        testword = '@'
+        testword = '\n'
+        freadstr_arg = '@'
+        freadstr_arg = '\n'
+        secretnumber = '@'
+        secretnumber = '\r'
+
+        testword  = stringvar       ; @todo fix str address assignment
+        testword = "stringstring"     ; @todo fix str address assignment
+        freadstr_arg = stringvar        ; @todo fix str address assignment
+        freadstr_arg = "stringstring"       ; @todo fix str address assignment
+        secretnumber = "stringstring2222"   ; @todo fix str address assignment
+
 
 
     address  =c64.MEMBOT(1, 40000.w)   ; ok!
