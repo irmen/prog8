@@ -207,8 +207,6 @@ Array types are also supported. They can be made of bytes, words and floats::
     Right now, the array should be small enough to be indexable by a single byte index.
     This means byte arrays should be <= 256 elements, word arrays <= 128 elements, and float
     arrays <= 51 elements.  This limit may or may not be lifted in a future version.
-    Matrixes can be indexed in each dimension only by a byte as well, this also means
-    their maximum size is 65536 elements (bytes).
 
 
 Note that the various keywords for the data type and variable type (``byte``, ``word``, ``const``, etc.)
@@ -300,7 +298,7 @@ When declaring values with an initial value, this value will be set into the var
 the program reaches the declaration again. This can be in loops, multiple subroutine calls,
 or even multiple invocations of the entire program.
 
-This only works for simple types, *and not for string variables, arrays and matrices*.
+This only works for simple types, *and not for string variables and arrays*.
 It is assumed these are left unchanged by the program.
 If you do modify them in-place, you should take care yourself that they work as
 expected when the program is restarted.

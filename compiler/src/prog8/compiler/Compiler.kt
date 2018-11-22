@@ -1180,10 +1180,41 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             when(targetDt) {
                 DataType.UBYTE, DataType.BYTE ->
                     throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
-                DataType.UWORD, DataType.WORD -> {
+                DataType.WORD -> {
                     when (valueDt) {
                         DataType.UBYTE -> prog.instr(Opcode.UB2UWORD)
                         DataType.BYTE -> prog.instr(Opcode.B2WORD)
+                        else -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
+                    }
+                }
+                DataType.UWORD -> {
+                    when (valueDt) {
+                        DataType.UBYTE -> prog.instr(Opcode.UB2UWORD)
+                        DataType.BYTE -> prog.instr(Opcode.B2WORD)
+                        DataType.STR, DataType.STR_S -> {
+                            when(stmt.value) {
+                                is LiteralValue -> {
+                                    val lv = stmt.value as  LiteralValue
+                                    prog.removeLastInstruction()
+                                    prog.instr(Opcode.PUSH_ADDR_STR, Value(lv.type, lv.heapId!!))
+                                }
+                                is IdentifierReference -> {
+                                    val vardecl = (stmt.value as IdentifierReference).targetStatement(namespace) as VarDecl
+                                    prog.removeLastInstruction()
+                                    prog.instr(Opcode.PUSH_ADDR_HEAPVAR, callLabel = vardecl.scopedname)
+                                }
+                                else -> throw CompilerException("can only take address of a literal string value or a string/array variable")
+                            }
+                        }
+                        DataType.ARRAY_B, DataType.ARRAY_UB, DataType.ARRAY_W, DataType.ARRAY_UW, DataType.ARRAY_F -> {
+                            if (stmt.value is IdentifierReference) {
+                                val vardecl = (stmt.value as IdentifierReference).targetStatement(namespace) as VarDecl
+                                prog.removeLastInstruction()
+                                prog.instr(Opcode.PUSH_ADDR_HEAPVAR, callLabel = vardecl.scopedname)
+                            }
+                            else
+                                throw CompilerException("can only take address of a literal string value or a string/array variable")
+                        }
                         else -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                     }
                 }

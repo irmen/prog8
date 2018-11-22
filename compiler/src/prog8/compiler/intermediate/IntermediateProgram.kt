@@ -295,6 +295,10 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         currentBlock.instructions.add(Instruction(Opcode.LINE, callLabel = "${position.line} ${position.file}"))
     }
 
+    fun removeLastInstruction() {
+        currentBlock.instructions.removeAt(currentBlock.instructions.lastIndex)
+    }
+
     fun symbolDef(name: String, value: Int) {
         currentBlock.integerConstants[name] = value
     }

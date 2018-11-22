@@ -338,26 +338,36 @@ class AstChecker(private val namespace: INameScope,
         if(target.identifier!=null) {
             val targetName = target.identifier.nameInSource
             val targetSymbol = namespace.lookup(targetName, assignment)
-            when {
-                targetSymbol == null -> {
+            when (targetSymbol) {
+                null -> {
                     checkResult.add(ExpressionError("undefined symbol: ${targetName.joinToString(".")}", assignment.position))
                     return assignment
                 }
-                targetSymbol !is VarDecl -> {
+                !is VarDecl -> {
                     checkResult.add(SyntaxError("assignment LHS must be register or variable", assignment.position))
                     return assignment
                 }
-                targetSymbol.type == VarDeclType.CONST -> {
-                    checkResult.add(ExpressionError("cannot assign new value to a constant", assignment.position))
-                    return assignment
+                else -> {
+                    if(targetSymbol.type == VarDeclType.CONST) {
+                        checkResult.add(ExpressionError("cannot assign new value to a constant", assignment.position))
+                        return assignment
+                    }
+                    if(assignment.value.resultingDatatype(namespace, heap) in ArrayDatatypes) {
+                        if(targetSymbol.datatype==DataType.UWORD)
+                            return assignment   // array can be assigned to UWORD (it's address should be taken as the value then)
+                    }
                 }
-                else -> {}
             }
         }
 
-        // it is not possible to assign a new arrayspec to something.
-        if(assignment.value.resultingDatatype(namespace, heap) in ArrayDatatypes)
-            checkResult.add(SyntaxError("it's not possible to assign an arrayspec literal value to something, use it as a variable decl initializer instead", assignment.position))
+        // it is only possible to assign an array to something that is an UWORD or UWORD array (in which case the address of the array value is used as the value)
+        if(assignment.value.resultingDatatype(namespace, heap) in ArrayDatatypes) {
+            // the UWORD case has been handled above already, check for UWORD array
+            val arrayVar = target.arrayindexed?.identifier?.targetStatement(namespace)
+            if(arrayVar is VarDecl && arrayVar.datatype==DataType.ARRAY_UW)
+                return assignment
+            checkResult.add(SyntaxError("it's not possible to assign an array to something other than an UWORD, use it as a variable decl initializer instead", assignment.position))
+        }
 
         if(assignment.aug_op!=null) {
             // check augmented assignment:
@@ -844,10 +854,12 @@ class AstChecker(private val namespace: INameScope,
                     return err("value '$number' out of range for byte")
             }
             DataType.UWORD -> {
+                if(value.isString || value.isArray)     // string or array are assignable to uword; their memory address is used.
+                    return true
                 val number = value.asIntegerValue ?: return if (value.floatvalue!=null)
                     err("unsigned word value expected instead of float; possible loss of precision")
                 else
-                    err("unsigned word value expected")
+                    err("unsigned word value or address expected")
                 if (number < 0 || number > 65535)
                     return err("value '$number' out of range for unsigned word")
             }
@@ -950,7 +962,7 @@ class AstChecker(private val namespace: INameScope,
             DataType.BYTE -> sourceDatatype==DataType.BYTE
             DataType.UBYTE -> sourceDatatype==DataType.UBYTE
             DataType.WORD -> sourceDatatype==DataType.BYTE || sourceDatatype==DataType.UBYTE || sourceDatatype==DataType.WORD
-            DataType.UWORD -> sourceDatatype==DataType.UBYTE || sourceDatatype==DataType.UWORD
+            DataType.UWORD -> sourceDatatype in setOf(DataType.UBYTE, DataType.UWORD, DataType.STR, DataType.STR_S) || sourceDatatype in ArrayDatatypes
             DataType.FLOAT -> sourceDatatype in NumericDatatypes
             DataType.STR -> sourceDatatype==DataType.STR
             DataType.STR_S -> sourceDatatype==DataType.STR_S

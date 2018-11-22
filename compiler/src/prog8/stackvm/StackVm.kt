@@ -1323,6 +1323,19 @@ class StackVm(private var traceOutputFile: String?) {
                 P_irqd = evalstack.pop().asBooleanValue
             }
             Opcode.INLINE_ASSEMBLY -> throw VmExecutionException("stackVm doesn't support executing inline assembly code")
+            Opcode.PUSH_ADDR_HEAPVAR -> {
+                val heapId = variables[ins.callLabel]!!.heapId
+                if(heapId<=0)
+                    throw VmExecutionException("expected variable on heap")
+                evalstack.push(Value(DataType.UWORD, heapId))       // push the "address" of the string or array variable
+            }
+            Opcode.PUSH_ADDR_STR -> {
+                val heapId = ins.arg!!.heapId
+                if(heapId<=0)
+                    throw VmExecutionException("expected string to be on heap")
+                evalstack.push(Value(DataType.UWORD, heapId))       // push the "address" of the string
+            }
+
             //else -> throw VmExecutionException("unimplemented opcode: ${ins.opcode}")
         }
 

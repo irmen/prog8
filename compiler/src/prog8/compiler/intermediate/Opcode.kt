@@ -17,6 +17,8 @@ enum class Opcode {
     PUSH_REGAX_WORD, // push registers A/X as a 16-bit word
     PUSH_REGAY_WORD, // push registers A/Y as a 16-bit word
     PUSH_REGXY_WORD, // push registers X/Y as a 16-bit word
+    PUSH_ADDR_STR,   // push the address of the string value (literal)
+    PUSH_ADDR_HEAPVAR,  // push the address of the variable that's on the heap (string or array)
 
     // popping values off the (evaluation) stack, possibly storing them in another location
     DISCARD_BYTE,    // discard top byte value
@@ -227,7 +229,7 @@ val opcodesWithVarArgument = setOf(
         Opcode.ROL_VAR_BYTE, Opcode.ROL_VAR_WORD, Opcode.ROR_VAR_BYTE, Opcode.ROR_VAR_WORD,
         Opcode.ROL2_VAR_BYTE, Opcode.ROL2_VAR_WORD, Opcode.ROR2_VAR_BYTE, Opcode.ROR2_VAR_WORD,
         Opcode.POP_VAR_BYTE, Opcode.POP_VAR_WORD, Opcode.POP_VAR_FLOAT,
-        Opcode.PUSH_VAR_BYTE, Opcode.PUSH_VAR_WORD, Opcode.PUSH_VAR_FLOAT,
+        Opcode.PUSH_VAR_BYTE, Opcode.PUSH_VAR_WORD, Opcode.PUSH_VAR_FLOAT, Opcode.PUSH_ADDR_HEAPVAR,
         Opcode.READ_INDEXED_VAR_BYTE, Opcode.READ_INDEXED_VAR_WORD, Opcode.READ_INDEXED_VAR_FLOAT,
         Opcode.WRITE_INDEXED_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_WORD, Opcode.WRITE_INDEXED_VAR_FLOAT
 )
