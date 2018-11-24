@@ -87,14 +87,14 @@ fun main(args: Array<String>) {
 
         // perform initial syntax checks and constant folding
         val heap = HeapValues()
-        moduleAst.checkIdentifiers()
+        moduleAst.checkIdentifiers(heap)
         moduleAst.constantFold(namespace, heap)
         StatementReorderer(namespace, heap).process(moduleAst)     // reorder statements to please the compiler later
         moduleAst.checkValid(namespace, compilerOptions, heap)          // check if tree is valid
 
         // optimize the parse tree
         println("Optimizing...")
-        val allScopedSymbolDefinitions = moduleAst.checkIdentifiers()       // useful for checking symbol usage later?
+        val allScopedSymbolDefinitions = moduleAst.checkIdentifiers(heap)       // useful for checking symbol usage later?
         while(true) {
             // keep optimizing expressions and statements until no more steps remain
             val optsDone1 = moduleAst.simplifyExpressions(namespace, heap)

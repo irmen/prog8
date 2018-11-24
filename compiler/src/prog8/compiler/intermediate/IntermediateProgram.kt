@@ -312,18 +312,20 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         out.println("; stackVM program code for '$name'")
         out.println("%memory")
         if(memory.isNotEmpty()) {
-            TODO("print out initial memory load")
+            TODO("output initial memory values")
         }
         out.println("%end_memory")
         out.println("%heap")
-        heap.allStrings().forEach {
-            out.println("${it.index}  ${it.value.type.toString().toLowerCase()}  \"${escape(it.value.str!!)}\"")
-        }
-        heap.allArrays().forEach {
-            out.println("${it.index}  ${it.value.type.toString().toLowerCase()}  ${it.value.array!!.toList()}")
-        }
-        heap.allDoubleArrays().forEach {
-            out.println("${it.index}  ${it.value.type.toString().toLowerCase()}  ${it.value.doubleArray!!.toList()}")
+        heap.allEntries().forEach {
+            when {
+                it.value.str!=null ->
+                    out.println("${it.index}  ${it.value.type.toString().toLowerCase()}  \"${escape(it.value.str!!)}\"")
+                it.value.array!=null ->
+                    out.println("${it.index}  ${it.value.type.toString().toLowerCase()}  ${it.value.array!!.toList()}")
+                it.value.doubleArray!=null ->
+                    out.println("${it.index}  ${it.value.type.toString().toLowerCase()}  ${it.value.doubleArray!!.toList()}")
+                else -> throw CompilerException("invalid heap entry $it")
+            }
         }
         out.println("%end_heap")
         for(blk in blocks) {

@@ -47,7 +47,7 @@ class AstChecker(private val namespace: INameScope,
     private val checkResult: MutableList<AstException> = mutableListOf()
     private val heapStringSentinel: Int
     init {
-        val stringSentinel = heap.allStrings().firstOrNull {it.value.str==""}
+        val stringSentinel = heap.allEntries().firstOrNull {it.value.str==""}
         heapStringSentinel = stringSentinel?.index ?: heap.add(DataType.STR, "")
     }
 

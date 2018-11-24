@@ -1,5 +1,6 @@
 package prog8.ast
 
+import prog8.compiler.HeapValues
 import prog8.functions.BuiltinFunctions
 
 /**
@@ -9,15 +10,29 @@ import prog8.functions.BuiltinFunctions
  * Finally, it also makes sure the datatype of all Var decls and sub Return values is set correctly.
  */
 
-fun Module.checkIdentifiers(): MutableMap<String, IStatement> {
-    val checker = AstIdentifiersChecker()
+fun Module.checkIdentifiers(heap: HeapValues): MutableMap<String, IStatement> {
+    val checker = AstIdentifiersChecker(heap)
     this.process(checker)
+
+    // add any anonymous variables for heap values that are used, and replace literalvalue by identifierref
+    for (variable in checker.anonymousVariablesFromHeap) {
+        val scope = variable.first.definingScope()
+        scope.statements.add(variable.second)
+        val parent = variable.first.parent
+        when {
+            parent is Assignment && parent.value === variable.first -> {
+                parent.value = IdentifierReference(listOf("auto_heap_value_${variable.first.heapId}"), variable.first.position)
+            }
+            else -> TODO("replace literalvalue by identifierref $variable")
+        }
+    }
+
     printErrors(checker.result(), name)
     return checker.symbols
 }
 
 
-class AstIdentifiersChecker : IAstProcessor {
+class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
     private val checkResult: MutableList<AstException> = mutableListOf()
 
     var symbols: MutableMap<String, IStatement> = mutableMapOf()
@@ -86,18 +101,20 @@ class AstIdentifiersChecker : IAstProcessor {
                     nameError(name.key, name.value.position, subroutine)
             }
 
-            // inject subroutine params as local variables (if they're not there yet) (for non-kernel subroutines)
+            // inject subroutine params as local variables (if they're not there yet) (for non-kernel subroutines and non-asm parameters)
             // NOTE:
             // - numeric types BYTE and WORD and FLOAT are passed by value;
             // - strings, arrays, matrices are passed by reference (their 16-bit address is passed as an uword parameter)
             if(subroutine.asmAddress==null) {
-                subroutine.parameters
-                        .filter { !definedNames.containsKey(it.name) }
-                        .forEach {
-                            val vardecl = VarDecl(VarDeclType.VAR, it.type, null, it.name, null, subroutine.position)
-                            vardecl.linkParents(subroutine)
-                            subroutine.statements.add(0, vardecl)
-                        }
+                if(subroutine.asmParameterRegisters.isEmpty()) {
+                    subroutine.parameters
+                            .filter { !definedNames.containsKey(it.name) }
+                            .forEach {
+                                val vardecl = VarDecl(VarDeclType.VAR, it.type, null, it.name, null, subroutine.position)
+                                vardecl.linkParents(subroutine)
+                                subroutine.statements.add(0, vardecl)
+                            }
+                }
             }
         }
         return super.process(subroutine)
@@ -172,5 +189,18 @@ class AstIdentifiersChecker : IAstProcessor {
             returnStmt.values = newValues
         }
         return super.process(returnStmt)
+    }
+
+
+    internal val anonymousVariablesFromHeap = mutableSetOf<Pair<LiteralValue, VarDecl>>()
+
+    override fun process(literalValue: LiteralValue): LiteralValue {
+        if(literalValue.heapId!=null && literalValue.parent !is VarDecl) {
+            // a literal value that's not declared as a variable, which refers to something on the heap.
+            // we need to introduce an auto-generated variable for this to be able to refer to the value!
+            val variable = VarDecl(VarDeclType.VAR, literalValue.type, null, "auto_heap_value_${literalValue.heapId}", literalValue, literalValue.position)
+            anonymousVariablesFromHeap.add(Pair(literalValue, variable))
+        }
+        return super.process(literalValue)
     }
 }

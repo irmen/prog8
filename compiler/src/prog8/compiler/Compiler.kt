@@ -99,9 +99,7 @@ class HeapValues {
 
     fun get(heapId: Int): HeapValue = heap[heapId]
 
-    fun allStrings() = heap.asSequence().withIndex().filter { it.value.str!=null }.toList()
-    fun allArrays() = heap.asSequence().withIndex().filter { it.value.array!=null }.toList()
-    fun allDoubleArrays() = heap.asSequence().withIndex().filter { it.value.doubleArray!=null }.toList()
+    fun allEntries() = heap.withIndex().toList()
 }
 
 

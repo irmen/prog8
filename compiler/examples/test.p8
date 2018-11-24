@@ -21,9 +21,9 @@ sub start() {
         ubyte  secretnumber = 0
         memory uword freadstr_arg = $22		; argument for FREADSTR
         uword testword
-        ubyte char1 = "@"
-        ubyte char2 = "\n"
-        ubyte char3 = "\r"
+        ubyte char1 = "@"       ; @todo don't put this on the heap
+        ubyte char2 = "\n"; @todo don't put this on the heap
+        ubyte char3 = "\r"; @todo don't put this on the heap
         ubyte char1b = '@'
         ubyte char2b = '\n'
         ubyte char3b = '\r'
@@ -45,10 +45,12 @@ sub start() {
         wordarray[b1] = wordarray
         wordarray[mb1] = stringvar
         wordarray[mb1] = wordarray
-        ; testword = "stringstring"       ; @todo asmgen for this
-        ; freadstr_arg = "stringstring"     ; @todo asmgen for this
-        ; freadstr_arg = "stringstring2222"     ; @todo asmgen for this
-        ; wordarray[1] = "stringstring"     ; @todo asmgen for this
+        testword = "stringstring"       ; @todo asmgen for this
+        freadstr_arg = "stringstring"     ; @todo asmgen for this
+        freadstr_arg = "stringstring2222"     ; @todo asmgen for this
+        wordarray[1] = "stringstring"     ; @todo asmgen for this
+        wordarray[b1] = "stringstring"     ; @todo asmgen for this
+        wordarray[mb1] = "stringstring"     ; @todo asmgen for this
 
 
 

@@ -12,7 +12,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
     private var byteval: Short? = null
     private var wordval: Int? = null
     private var floatval: Double? = null
-    var heapId: Int = 0
+    var heapId: Int = -1
         private set
     val asBooleanValue: Boolean
 
@@ -47,8 +47,8 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
                 asBooleanValue = floatval != 0.0
             }
             else -> {
-                if(numericvalueOrHeapId !is Int)
-                    throw VmExecutionException("for non-numeric types, the value should be an integer heapId")
+                if(numericvalueOrHeapId !is Int || numericvalueOrHeapId<0)
+                    throw VmExecutionException("for non-numeric types, the value should be a integer heapId >= 0")
                 heapId = numericvalueOrHeapId
                 asBooleanValue=true
             }
