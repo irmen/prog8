@@ -13,8 +13,10 @@ sub start() {
     uword address
     memory uword memaddr = $c000
     uword[2] wordarray
+    ubyte[2] ubytearray
     byte b1
     memory byte mb1 = $c991
+    memory ubyte mub1 = $c992
 
 
         str   stringvar   = "??????????\n\n\nnext line\r\r\rnext line after carriagereturn"
@@ -70,8 +72,31 @@ sub start() {
 ;    Y = c64.CHRIN()  ; ok!
 ;    v1 = c64.CHRIN()    ; ok !
 
+
+        c64.CHROUT(X)
+        c64.CHROUT(b1)          ; @todo fix compiler crash   expression identifierref should be a vardef, not null
+        c64.CHROUT(char1)       ; @todo fix compiler crash   "
+        c64.CHROUT(mb1)         ; @todo fix compiler crash   "
+        c64.CHROUT(mub1)            ; @todo fix compiler crash   "
+        c64.CHROUT(ubytearray[1])       ; @todo fix compiler crash  null cannot be cast to non-null type prog8.ast.VarDecl
+        c64.CHROUT(ubytearray[X])       ; @todo fix compiler crash    "
+        c64.CHROUT(wordarray[1])        ; @todo fix compiler crash     "
+
+    testsub(X)          ; @todo fix compiler crash
+    testsub(b1)        ; @todo fix compiler crash
+    testsub(char1)     ; @todo fix compiler crash
+    testsub(mb1)       ; @todo fix compiler crash
+    testsub(mub1)      ; @todo fix compiler crash
+    testsub(ubytearray[1])      ; @todo fix compiler crash
+    testsub(ubytearray[X])     ; @todo fix compiler crash
+    testsub(wordarray[1])      ; @todo fix compiler crash
+
     return
 }
 
+
+sub testsub(arg: ubyte) {
+    return
+}
 
 }

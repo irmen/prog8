@@ -36,6 +36,7 @@ fun main(args: Array<String>) {
 
     val startTime = System.currentTimeMillis()
     val filepath = Paths.get(moduleFile).normalize()
+    val programname: String
 
     try {
         // import main module and process additional imports
@@ -125,6 +126,7 @@ fun main(args: Array<String>) {
 
         val assembly = AsmGen(compilerOptions, intermediate, heap).compileToAssembly()
         assembly.assemble(compilerOptions)
+        programname = assembly.name
 
         val endTime = System.currentTimeMillis()
         println("\nTotal compilation+assemble time: ${(endTime-startTime)/1000.0} sec.")
@@ -137,10 +139,9 @@ fun main(args: Array<String>) {
 
     if(startEmu) {
         println("\nStarting C64 emulator...")
-        val program = "foo"
-        val monitorfile = "foo.mon_list"
+        val monitorfile = "$programname.mon_list"
         val cmdline = listOf("x64", "-moncommands", monitorfile,
-                "-autostartprgmode", "1", "-autostart-warp", "-autostart", program)
+                "-autostartprgmode", "1", "-autostart-warp", "-autostart", programname+".prg")
         ProcessBuilder(cmdline).inheritIO().start()
     }
 }
