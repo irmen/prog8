@@ -42,15 +42,6 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                         decl.value = newValue
                     }
                 }
-                in IntegerDatatypes -> {
-                    // vardecl: for byte/word vars, convert char/string of length 1 initialization values to ubyte integer
-                    val literal = decl.value as? LiteralValue
-                    if (literal != null && literal.isString && literal.strvalue(heap).length == 1) {
-                        val petscii = Petscii.encodePetscii(literal.strvalue(heap), true)[0]
-                        val newValue = LiteralValue(DataType.UBYTE, bytevalue = petscii, position = literal.position)
-                        decl.value = newValue
-                    }
-                }
                 DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
                     val litval = decl.value as? LiteralValue
                     if(litval?.type==DataType.FLOAT)

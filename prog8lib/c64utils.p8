@@ -611,7 +611,7 @@ asmsub  print_string (text: str @ XY) -> clobbers(A,Y) -> ()  {
 	; ---- print null terminated string from X/Y
 	; note: the compiler contains an optimization that will replace
 	;       a call to this subroutine with a string argument of just one char,
-	;       by just one call to c64.CHROUT of that single char.
+	;       by just one call to c64.CHROUT of that single char.    @todo do this
 	%asm {{
 		stx  c64.SCRATCH_ZP1
 		sty  c64.SCRATCH_ZP2

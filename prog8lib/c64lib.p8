@@ -26,9 +26,9 @@
 		memory  uword  RESET_VEC	= $FFFC		; 6502 reset vector, determined by the kernal if banked in
 		memory  uword  IRQ_VEC		= $FFFE		; 6502 interrupt vector, determined by the kernal if banked in
 
-		const   uword  Screen		= $0400		; default character screen matrix
-		const   uword  Colors		= $d800		; character screen colors
-
+		const   uword  Screen		= $0400		; default character screen matrix    @todo matrix/array? needs to support array size > 255
+		const   uword  Colors		= $d800		; character screen colors    @todo matrix/array? needs to support array size > 255
+ 
 
 ; ---- VIC-II registers ----
 
