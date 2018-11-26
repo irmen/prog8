@@ -628,6 +628,38 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.BVS -> " bvs  ${ins.callLabel}"
             Opcode.BZ -> " beq  ${ins.callLabel}"
             Opcode.BNZ -> " bne  ${ins.callLabel}"
+            Opcode.JZ -> {
+                """
+                inx
+                lda  ${(ESTACK_LO).toHex()},x
+                beq  ${ins.callLabel}
+                """
+            }
+            Opcode.JZW -> {
+                """
+                inx
+                lda  ${(ESTACK_LO).toHex()},x
+                beq  ${ins.callLabel}
+                lda  ${(ESTACK_HI).toHex()},x
+                beq  ${ins.callLabel}
+                """
+            }
+            Opcode.JNZ -> {
+                """
+                inx
+                lda  ${(ESTACK_LO).toHex()},x
+                bne  ${ins.callLabel}
+                """
+            }
+            Opcode.JNZW -> {
+                """
+                inx
+                lda  ${(ESTACK_LO).toHex()},x
+                bne  ${ins.callLabel}
+                lda  ${(ESTACK_HI).toHex()},x
+                bne  ${ins.callLabel}
+                """
+            }
             Opcode.UB2FLOAT -> " jsr  prog8_lib.ub2float"
             Opcode.B2FLOAT -> " jsr  prog8_lib.b2float"
             Opcode.UW2FLOAT -> " jsr  prog8_lib.uw2float"
@@ -660,17 +692,17 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${(ESTACK_LO + 1).toHex()},x
                 """
             }
+            Opcode.ADD_W -> "  jsr  prog8_lib.add_w"    // todo inline?
+            Opcode.ADD_UW -> "  jsr  prog8_lib.add_uw"  // todo inline?
             Opcode.ADD_F -> "  jsr  prog8_lib.add_f"
-            Opcode.ADD_W -> "  jsr  prog8_lib.add_w"    // todo or inline?
-            Opcode.ADD_UW -> "  jsr  prog8_lib.add_uw"  // todo or inline?
+            Opcode.SUB_W -> "  jsr  prog8_lib.sub_w"    // todo inline?
+            Opcode.SUB_UW -> "  jsr  prog8_lib.sub_uw"    // todo inline?
             Opcode.SUB_F -> "  jsr  prog8_lib.sub_f"
-            Opcode.SUB_W -> "  jsr  prog8_lib.sub_w"    // todo or inline?
-            Opcode.SUB_UW -> "  jsr  prog8_lib.sub_uw"    // todo or inline?
-            Opcode.MUL_F -> "  jsr  prog8_lib.mul_f"
             Opcode.MUL_B -> "  jsr  prog8_lib.mul_b"
             Opcode.MUL_UB -> "  jsr  prog8_lib.mul_ub"
             Opcode.MUL_W -> "  jsr  prog8_lib.mul_w"
             Opcode.MUL_UW -> "  jsr  prog8_lib.mul_uw"
+            Opcode.MUL_F -> "  jsr  prog8_lib.mul_f"
             Opcode.LESS_UB -> "  jsr  prog8_lib.less_ub"
             Opcode.LESS_B -> "  jsr  prog8_lib.less_b"
             Opcode.LESS_UW -> "  jsr  prog8_lib.less_uw"

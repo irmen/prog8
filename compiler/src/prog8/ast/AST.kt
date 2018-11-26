@@ -161,12 +161,12 @@ interface IAstProcessor {
     }
 
     fun process(functionCall: FunctionCall): IExpression {
-        functionCall.arglist = functionCall.arglist.map { it.process(this) }
+        functionCall.arglist = functionCall.arglist.map { it.process(this) }.toMutableList()
         return functionCall
     }
 
     fun process(functionCall: FunctionCallStatement): IStatement {
-        functionCall.arglist = functionCall.arglist.map { it.process(this) }
+        functionCall.arglist = functionCall.arglist.map { it.process(this) }.toMutableList()
         return functionCall
     }
 
@@ -319,7 +319,7 @@ interface IStatement : Node {
 
 interface IFunctionCall {
     var target: IdentifierReference
-    var arglist: List<IExpression>
+    var arglist: MutableList<IExpression>
 }
 
 
@@ -1100,7 +1100,17 @@ class LiteralValue(val type: DataType,
     override fun equals(other: Any?): Boolean {
         if(other==null || other !is LiteralValue)
             return false
-        return compareTo(other)==0
+        if(isNumeric && other.isNumeric)
+            return asNumericValue?.toDouble()==other.asNumericValue?.toDouble()
+        if(isArray && other.isArray)
+            return arrayvalue!!.contentEquals(other.arrayvalue!!) && heapId==other.heapId
+        if(isString && other.isString)
+            return initialstrvalue==other.initialstrvalue && heapId==other.heapId
+
+        if(type!=other.type)
+            return false
+
+        return compareTo(other) == 0
     }
 
     operator fun compareTo(other: LiteralValue): Int {
@@ -1112,7 +1122,7 @@ class LiteralValue(val type: DataType,
         if(initialstrvalue!=null && other.initialstrvalue!=null)
             return initialstrvalue.compareTo(other.initialstrvalue)
 
-        throw ExpressionError("cannot compare type $type with ${other.type}", other.position)
+        throw ExpressionError("cannot order compare type $type with ${other.type}", other.position)
     }
 
     fun intoDatatype(targettype: DataType): LiteralValue? {
@@ -1365,7 +1375,7 @@ class Jump(val address: Int?,
 
 
 class FunctionCall(override var target: IdentifierReference,
-                   override var arglist: List<IExpression>,
+                   override var arglist: MutableList<IExpression>,
                    override val position: Position) : IExpression, IFunctionCall {
     override lateinit var parent: Node
 
@@ -1443,7 +1453,7 @@ class FunctionCall(override var target: IdentifierReference,
 
 
 class FunctionCallStatement(override var target: IdentifierReference,
-                            override var arglist: List<IExpression>,
+                            override var arglist: MutableList<IExpression>,
                             override val position: Position) : IStatement, IFunctionCall {
     override lateinit var parent: Node
 
@@ -1805,9 +1815,9 @@ private fun prog8Parser.Functioncall_stmtContext.toAst(): IStatement {
             if(identifier()!=null) identifier()?.toAst()
             else scoped_identifier()?.toAst()
     return if(expression_list() ==null)
-        FunctionCallStatement(location!!, emptyList(), toPosition())
+        FunctionCallStatement(location!!, mutableListOf(), toPosition())
     else
-        FunctionCallStatement(location!!, expression_list().toAst(), toPosition())
+        FunctionCallStatement(location!!, expression_list().toAst().toMutableList(), toPosition())
 }
 
 
@@ -1816,9 +1826,9 @@ private fun prog8Parser.FunctioncallContext.toAst(): FunctionCall {
             if(identifier()!=null) identifier()?.toAst()
             else scoped_identifier()?.toAst()
     return if(expression_list() ==null)
-        FunctionCall(location!!, emptyList(), toPosition())
+        FunctionCall(location!!, mutableListOf(), toPosition())
     else
-        FunctionCall(location!!, expression_list().toAst(), toPosition())
+        FunctionCall(location!!, expression_list().toAst().toMutableList(), toPosition())
 }
 
 

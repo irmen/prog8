@@ -155,8 +155,7 @@ enum class Opcode {
     DEC_VAR_F,
 
     // comparisons
-    // @todo the comparisons (apart from TEST) push the result back on the stack. Optimize this to work with processor flags exclusively. This does mean you can no longer use a logical boolean result as a byte 0/1 value ?
-    TEST,           // pop top value from stack and test it. Sets cpu flags (zero, negative, overflow) accordingly.
+    // @todo the comparisons push the result back on the stack. Optimize this to work with just processor flags? This does mean you can no longer use a logical boolean result as a byte 0/1 value ?
     LESS_B,
     LESS_UB,
     LESS_W,
@@ -202,6 +201,12 @@ enum class Opcode {
     BPOS,      // branch if not negative flag
     BVS,       // branch if overflow flag
     BVC,       // branch if not overflow flag
+    // branching, based on value on the stack (which is consumed)
+    JZ,         // branch if value is zero (byte)
+    JNZ,        // branch if value is not zero (byte)
+    JZW,         // branch if value is zero (word)
+    JNZW,        // branch if value is not zero (word)
+
 
     // subroutine calling
     CALL,

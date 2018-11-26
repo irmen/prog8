@@ -304,7 +304,7 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
                 0.5 -> {
                     // sqrt(left)
                     optimizationsDone++
-                    return FunctionCall(IdentifierReference(listOf("sqrt"), expr.position), listOf(expr.left), expr.position)
+                    return FunctionCall(IdentifierReference(listOf("sqrt"), expr.position), mutableListOf(expr.left), expr.position)
                 }
                 1.0 -> {
                     // left
@@ -362,7 +362,7 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
                     when(expr.operator) {
                         "/" -> return PrefixExpression("-", expr.left, expr.position)
                         "//" -> return PrefixExpression("-",
-                                FunctionCall(IdentifierReference(listOf("ceil"), expr.position), listOf(expr.left), expr.position),
+                                FunctionCall(IdentifierReference(listOf("ceil"), expr.position), mutableListOf(expr.left), expr.position),
                                 expr.position)
                     }
                 }
@@ -371,7 +371,7 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
                     optimizationsDone++
                     when(expr.operator) {
                         "/" -> return expr.left
-                        "//" -> return FunctionCall(IdentifierReference(listOf("floor"), expr.position), listOf(expr.left), expr.position)
+                        "//" -> return FunctionCall(IdentifierReference(listOf("floor"), expr.position), mutableListOf(expr.left), expr.position)
                     }
                 }
             }

@@ -251,11 +251,12 @@ class TestParserLiteralValue {
         val lvOneR = LiteralValue(DataType.UBYTE, 1, position=dummyPos)
         val lvTwoR = LiteralValue(DataType.UBYTE, 2, position=dummyPos)
         val lvThreeR = LiteralValue(DataType.UBYTE, 3, position=dummyPos)
+        val lvFour= LiteralValue(DataType.UBYTE, 4, position=dummyPos)
         val lv1 = LiteralValue(DataType.ARRAY_UB, arrayvalue = arrayOf(lvOne, lvTwo, lvThree), position=dummyPos)
         val lv2 = LiteralValue(DataType.ARRAY_UB, arrayvalue = arrayOf(lvOneR, lvTwoR, lvThreeR), position=dummyPos)
-        assertFailsWith<ExpressionError> {
-            assertEquals(lv1, lv2)
-        }
+        val lv3 = LiteralValue(DataType.ARRAY_UB, arrayvalue = arrayOf(lvOneR, lvTwoR, lvFour), position=dummyPos)
+        assertEquals(lv1, lv2)
+        assertNotEquals(lv1, lv3)
     }
 
     @Test

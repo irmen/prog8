@@ -23,7 +23,11 @@ fun Module.checkIdentifiers(heap: HeapValues): MutableMap<String, IStatement> {
             parent is Assignment && parent.value === variable.first -> {
                 parent.value = IdentifierReference(listOf("auto_heap_value_${variable.first.heapId}"), variable.first.position)
             }
-            else -> TODO("replace literalvalue by identifierref $variable")
+            parent is IFunctionCall -> {
+                val parameterPos = parent.arglist.indexOf(variable.first)
+                parent.arglist[parameterPos] = IdentifierReference(listOf("auto_heap_value_${variable.first.heapId}"), variable.first.position)
+            }
+            else -> TODO("replace literalvalue by identifierref $variable  (in $parent)")
         }
     }
 

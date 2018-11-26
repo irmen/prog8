@@ -123,7 +123,8 @@ class Program (val name: String,
                     val instruction = when(opcode) {
                         Opcode.LINE -> Instruction(opcode, null, callLabel = args)
                         Opcode.JUMP, Opcode.CALL, Opcode.BNEG, Opcode.BPOS,
-                        Opcode.BZ, Opcode.BNZ, Opcode.BCS, Opcode.BCC -> {
+                        Opcode.BZ, Opcode.BNZ, Opcode.BCS, Opcode.BCC,
+                        Opcode.JZ, Opcode.JNZ, Opcode.JZW, Opcode.JNZW -> {
                             if(args!!.startsWith('$')) {
                                 Instruction(opcode, Value(DataType.UWORD, args.substring(1).toInt(16)))
                             } else {
@@ -265,7 +266,7 @@ class Program (val name: String,
                         instr.next = target
                     }
                 }
-                Opcode.BCC, Opcode.BCS, Opcode.BZ, Opcode.BNZ, Opcode.BNEG, Opcode.BPOS -> {
+                Opcode.BCC, Opcode.BCS, Opcode.BZ, Opcode.BNZ, Opcode.BNEG, Opcode.BPOS, Opcode.JZ, Opcode.JNZ, Opcode.JZW, Opcode.JNZW -> {
                     if(instr.callLabel==null) {
                         throw VmExecutionException("stackVm doesn't support branch to memory address")
                     } else {

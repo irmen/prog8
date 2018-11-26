@@ -437,14 +437,12 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         translate(stmt.condition)
         val labelEnd = makeLabel("end")
         if(stmt.elsepart.isEmpty()) {
-            prog.instr(Opcode.TEST)
-            prog.instr(Opcode.BZ, callLabel = labelEnd)
+            prog.instr(Opcode.JZ, callLabel = labelEnd)         // TODO JZW???
             translate(stmt.truepart)
             prog.label(labelEnd)
         } else {
             val labelElse = makeLabel("else")
-            prog.instr(Opcode.TEST)
-            prog.instr(Opcode.BZ, callLabel = labelElse)
+            prog.instr(Opcode.JZ, callLabel = labelElse)        // TODO JZW???
             translate(stmt.truepart)
             prog.instr(Opcode.JUMP, callLabel = labelEnd)
             prog.label(labelElse)
@@ -1595,8 +1593,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         prog.instr(opcodePush(zero.type), Value(zero.type, numElements))
         prog.instr(opcodePushvar(zero.type), callLabel = "X")
         prog.instr(opcodeSub(zero.type))
-        prog.instr(Opcode.TEST)
-        prog.instr(Opcode.BNZ, callLabel = loopLabel)
+        prog.instr(Opcode.JNZ, callLabel = loopLabel)   // TODO JNZW???
 
         prog.label(breakLabel)
         prog.instr(Opcode.NOP)
@@ -1658,8 +1655,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         prog.instr(opcodePush(varDt), Value(varDt, range.last + range.step))
         prog.instr(opcodePushvar(varDt), callLabel = varname)
         prog.instr(opcodeSub(varDt))
-        prog.instr(Opcode.TEST)
-        prog.instr(Opcode.BNZ, callLabel = loopLabel)
+        prog.instr(Opcode.JNZ, callLabel = loopLabel)       // TODO JNZW???
 
         prog.label(breakLabel)
         prog.instr(Opcode.NOP)
@@ -1816,8 +1812,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
          *      continue -> goto condition
          *  continue:
          *      <evaluate condition>
-         *      test
-         *      bnz loop
+         *      jnz loop
          *  break:
          *      nop
          */
@@ -1832,8 +1827,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         translate(stmt.body)
         prog.label(continueLabel)
         translate(stmt.condition)
-        prog.instr(Opcode.TEST)
-        prog.instr(Opcode.BNZ, callLabel = loopLabel)
+        prog.instr(Opcode.JNZ, callLabel = loopLabel)       // TODO JNZW???
         prog.label(breakLabel)
         prog.instr(Opcode.NOP)
         breakStmtLabelStack.pop()
@@ -1852,8 +1846,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
          *      continue -> goto condition
          *  condition:
          *      <evaluate untilCondition>
-         *      test
-         *      bz goto loop
+         *      jz goto loop
          *  break:
          *      nop
          */
@@ -1867,8 +1860,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         translate(stmt.body)
         prog.label(continueLabel)
         translate(stmt.untilCondition)
-        prog.instr(Opcode.TEST)
-        prog.instr(Opcode.BZ, callLabel = loopLabel)
+        prog.instr(Opcode.JZ, callLabel = loopLabel)            // TODO JZW???
         prog.label(breakLabel)
         prog.instr(Opcode.NOP)
         breakStmtLabelStack.pop()
