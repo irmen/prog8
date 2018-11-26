@@ -780,18 +780,18 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     when (arg.second.registerOrPair!!) {
                         A -> {
                             val assign = Assignment(listOf(AssignTarget(Register.A, null, null, callPosition)), null, arg.first, callPosition)
-                            assign.linkParents(subroutine.parent)
+                            assign.linkParents(arguments[0].parent)
                             translate(assign)
                         }
                         X -> {
                             // TODO: save X on stack & restore after call
                             val assign = Assignment(listOf(AssignTarget(Register.X, null, null, callPosition)), null, arg.first, callPosition)
-                            assign.linkParents(subroutine.parent)
+                            assign.linkParents(arguments[0].parent)
                             translate(assign)
                         }
                         Y -> {
                             val assign = Assignment(listOf(AssignTarget(Register.Y, null, null, callPosition)), null, arg.first, callPosition)
-                            assign.linkParents(subroutine.parent)
+                            assign.linkParents(arguments[0].parent)
                             translate(assign)
                         }
                         AX -> {
@@ -804,8 +804,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                                 valueX=LiteralValue.optimalInteger(0, callPosition)
                                 val assignA = Assignment(listOf(AssignTarget(Register.A, null, null, callPosition)), null, valueA, callPosition)
                                 val assignX = Assignment(listOf(AssignTarget(Register.X, null, null, callPosition)), null, valueX, callPosition)
-                                assignA.linkParents(subroutine.parent)
-                                assignX.linkParents(subroutine.parent)
+                                assignA.linkParents(arguments[0].parent)
+                                assignX.linkParents(arguments[0].parent)
                                 translate(assignA)
                                 translate(assignX)
                             } else if(paramDt==DataType.UWORD) {
@@ -823,8 +823,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                                 valueY=LiteralValue.optimalInteger(0, callPosition)
                                 val assignA = Assignment(listOf(AssignTarget(Register.A, null, null, callPosition)), null, valueA, callPosition)
                                 val assignY = Assignment(listOf(AssignTarget(Register.Y, null, null, callPosition)), null, valueY, callPosition)
-                                assignA.linkParents(subroutine.parent)
-                                assignY.linkParents(subroutine.parent)
+                                assignA.linkParents(arguments[0].parent)
+                                assignY.linkParents(arguments[0].parent)
                                 translate(assignA)
                                 translate(assignY)
                             } else if(paramDt==DataType.UWORD) {
@@ -843,8 +843,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                                 valueY=LiteralValue.optimalInteger(0, callPosition)
                                 val assignX = Assignment(listOf(AssignTarget(Register.X, null, null, callPosition)), null, valueX, callPosition)
                                 val assignY = Assignment(listOf(AssignTarget(Register.Y, null, null, callPosition)), null, valueY, callPosition)
-                                assignX.linkParents(subroutine.parent)
-                                assignY.linkParents(subroutine.parent)
+                                assignX.linkParents(arguments[0].parent)
+                                assignY.linkParents(arguments[0].parent)
                                 translate(assignX)
                                 translate(assignY)
                             } else if(paramDt==DataType.UWORD) {

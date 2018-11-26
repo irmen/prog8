@@ -18,30 +18,30 @@ sub start() {
     word[10] wordarray
 
     c64.CHROUT(X)
-    c64.CHROUT(b1)          ; @todo fix compiler crash   expression identifierref should be a vardef, not null
-    c64.CHROUT(ub1)          ; @todo fix compiler crash   expression identifierref should be a vardef, not null
-    c64.CHROUT(mb1)         ; @todo fix compiler crash   "
-    c64.CHROUT(mub1)            ; @todo fix compiler crash   "
-    c64.CHROUT(bytearray[1])       ; @todo fix compiler crash  null cannot be cast to non-null type prog8.ast.VarDecl
-    c64.CHROUT(ubytearray[1])       ; @todo fix compiler crash  null cannot be cast to non-null type prog8.ast.VarDecl
-    c64.CHROUT(membytearray[1])       ; @todo fix compiler crash  null cannot be cast to non-null type prog8.ast.VarDecl
-    c64.CHROUT(memubytearray[1])       ; @todo fix compiler crash  null cannot be cast to non-null type prog8.ast.VarDecl
-    c64.CHROUT(ubytearray[X])       ; @todo fix compiler crash    "
-    c64.CHROUT(memubytearray[X])       ; @todo fix compiler crash    "
-    c64.CHROUT(wordarray[1])        ; @todo fix compiler crash     "
+    c64.CHROUT(ub1)
+    c64.CHROUT(mub1)
+    c64.CHROUT(ubytearray[1])
+    c64.CHROUT(memubytearray[1])
+    c64.CHROUT(ubytearray[X])
+    c64.CHROUT(memubytearray[X])
+    c64.CHROUT(b1)          ; @todo fix compiler crash   incompatible data types
+    c64.CHROUT(mb1)         ; @todo fix compiler crash   incompatible data types
+    c64.CHROUT(bytearray[1])       ; @todo fix compiler crash   incompatible data types
+    c64.CHROUT(membytearray[1])     ; @todo fix compiler crash   incompatible data types
+    c64.CHROUT(wordarray[1])        ; @todo fix compiler crash   incompatible data types
 
-    testsub(X)          ; @todo fix compiler crash
-    testsub(b1)        ; @todo fix compiler crash
-    testsub(ub1)     ; @todo fix compiler crash
-    testsub(mb1)       ; @todo fix compiler crash
-    testsub(mub1)      ; @todo fix compiler crash
-    testsub(bytearray[1])      ; @todo fix compiler crash
-    testsub(ubytearray[1])      ; @todo fix compiler crash
-    testsub(membytearray[1])      ; @todo fix compiler crash
-    testsub(memubytearray[1])      ; @todo fix compiler crash
-    testsub(ubytearray[X])     ; @todo fix compiler crash
-    testsub(memubytearray[X])     ; @todo fix compiler crash
-    testsub(wordarray[1])      ; @todo fix compiler crash
+    testsub(X)
+    testsub(ub1)
+    testsub(mub1)
+    testsub(ubytearray[1])
+    testsub(memubytearray[1])
+    testsub(ubytearray[X])
+    testsub(memubytearray[X])
+    testsub(b1)        ; @todo should give datatype error
+    testsub(mb1)       ; @todo should give datatype error
+    testsub(bytearray[1])      ; @todo should give datatype error
+    testsub(membytearray[1])  ; @todo should give datatype error
+    testsub(wordarray[1])     ; @todo should give datatype error
 
     return
 }
