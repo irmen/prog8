@@ -31,22 +31,22 @@ enum class DataType {
     ARRAY_W,
     ARRAY_F;
 
-    fun assignableTo(type: DataType) =
+    fun assignableTo(targetType: DataType) =
             when(this) {
-                UBYTE -> type in NumericDatatypes
-                BYTE -> type in NumericDatatypes
-                UWORD -> type in NumericDatatypes
-                WORD -> type in NumericDatatypes
-                FLOAT -> type in NumericDatatypes
-                STR -> type == STR || type==STR_S || type == UWORD
-                STR_P -> type == STR_P || type==STR_PS || type == UWORD
-                STR_S -> type == STR || type==STR_S || type == UWORD
-                STR_PS -> type == STR_P || type==STR_PS || type == UWORD
-                ARRAY_UB -> type == UWORD
-                ARRAY_B -> type == UWORD
-                ARRAY_UW -> type == UWORD
-                ARRAY_W -> type == UWORD
-                ARRAY_F -> type == UWORD
+                UBYTE -> targetType == UBYTE || targetType == UWORD || targetType == FLOAT
+                BYTE -> targetType == BYTE || targetType == WORD || targetType == FLOAT
+                UWORD -> targetType == UWORD || targetType == FLOAT
+                WORD -> targetType == WORD || targetType == FLOAT
+                FLOAT -> targetType == FLOAT
+                STR -> targetType == STR || targetType==STR_S || targetType == UWORD
+                STR_P -> targetType == STR_P || targetType==STR_PS || targetType == UWORD
+                STR_S -> targetType == STR || targetType==STR_S || targetType == UWORD
+                STR_PS -> targetType == STR_P || targetType==STR_PS || targetType == UWORD
+                ARRAY_UB -> targetType == UWORD
+                ARRAY_B -> targetType == UWORD
+                ARRAY_UW -> targetType == UWORD
+                ARRAY_W -> targetType == UWORD
+                ARRAY_F -> targetType == UWORD
             }
 }
 

@@ -24,11 +24,6 @@ sub start() {
     c64.CHROUT(memubytearray[1])
     c64.CHROUT(ubytearray[X])
     c64.CHROUT(memubytearray[X])
-    c64.CHROUT(b1)          ; @todo fix compiler crash   incompatible data types
-    c64.CHROUT(mb1)         ; @todo fix compiler crash   incompatible data types
-    c64.CHROUT(bytearray[1])       ; @todo fix compiler crash   incompatible data types
-    c64.CHROUT(membytearray[1])     ; @todo fix compiler crash   incompatible data types
-    c64.CHROUT(wordarray[1])        ; @todo fix compiler crash   incompatible data types
 
     testsub(X)
     testsub(ub1)
@@ -37,11 +32,6 @@ sub start() {
     testsub(memubytearray[1])
     testsub(ubytearray[X])
     testsub(memubytearray[X])
-    testsub(b1)        ; @todo should give datatype error
-    testsub(mb1)       ; @todo should give datatype error
-    testsub(bytearray[1])      ; @todo should give datatype error
-    testsub(membytearray[1])  ; @todo should give datatype error
-    testsub(wordarray[1])     ; @todo should give datatype error
 
     return
 }
