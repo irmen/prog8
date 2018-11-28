@@ -810,7 +810,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                                 translate(arg.first)
                                 prog.instr(Opcode.POP_REGAX_WORD)
                             } else
-                                throw CompilerException("don't know how to pass register parameter of type $paramDt")
+                                TODO("pass parameter of type $paramDt in registers ${arg.second.registerOrPair}")
                         }
                         AY -> {
                             val valueA: IExpression
@@ -829,7 +829,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                                 translate(arg.first)
                                 prog.instr(Opcode.POP_REGAY_WORD)
                             } else
-                                throw CompilerException("don't know how to pass register parameter of type $paramDt")
+                                TODO("pass parameter of type $paramDt in registers ${arg.second.registerOrPair}")
                         }
                         XY -> {
                             // TODO: save X on stack & restore after call
@@ -849,7 +849,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                                 translate(arg.first)
                                 prog.instr(Opcode.POP_REGXY_WORD)
                             } else
-                                throw CompilerException("don't know how to pass register parameter of type $paramDt")
+                                TODO("pass parameter of type $paramDt in registers ${arg.second.registerOrPair}")
                         }
                     }
                 }
