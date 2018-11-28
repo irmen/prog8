@@ -26,3 +26,5 @@ parsetab.py
 .pytest_cache/
 compiler/src/prog8_kotlin.jar
 compiler/src/compiled_java
+.attach_pid*
+
