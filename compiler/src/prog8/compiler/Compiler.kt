@@ -414,8 +414,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
          * An IF statement: IF (condition-expression) { stuff } else { other_stuff }
          * Which is translated into:
          *      <condition-expression evaluation>
-         *      TEST
-         *      BZ _stmt_999_else
+         *      JZ/JZW _stmt_999_else
          *      stuff
          *      JUMP _stmt_999_end
          * _stmt_999_else:
@@ -425,8 +424,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
          *
          *  or when there is no else block:
          *      <condition-expression evaluation>
-         *      TEST
-         *      BZ _stmt_999_end
+         *      JZ/JZW _stmt_999_end
          *      stuff
          * _stmt_999_end:
          *      nop
@@ -435,14 +433,19 @@ private class StatementTranslator(private val prog: IntermediateProgram,
          */
         prog.line(stmt.position)
         translate(stmt.condition)
+        val conditionJumpOpcode = when(stmt.condition.resultingDatatype(namespace, heap)) {
+            DataType.UBYTE, DataType.BYTE -> Opcode.JZ
+            DataType.UWORD, DataType.WORD -> Opcode.JZW
+            else -> throw CompilerException("invalid condition datatype (expected byte or word) $stmt")
+        }
         val labelEnd = makeLabel("end")
         if(stmt.elsepart.isEmpty()) {
-            prog.instr(Opcode.JZ, callLabel = labelEnd)         // TODO JZW???
+            prog.instr(conditionJumpOpcode, callLabel = labelEnd)
             translate(stmt.truepart)
             prog.label(labelEnd)
         } else {
             val labelElse = makeLabel("else")
-            prog.instr(Opcode.JZ, callLabel = labelElse)        // TODO JZW???
+            prog.instr(conditionJumpOpcode, callLabel = labelElse)
             translate(stmt.truepart)
             prog.instr(Opcode.JUMP, callLabel = labelEnd)
             prog.label(labelElse)
@@ -1593,7 +1596,10 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         prog.instr(opcodePush(zero.type), Value(zero.type, numElements))
         prog.instr(opcodePushvar(zero.type), callLabel = "X")
         prog.instr(opcodeSub(zero.type))
-        prog.instr(Opcode.JNZ, callLabel = loopLabel)   // TODO JNZW???
+        if(zero.type==DataType.UWORD)
+            prog.instr(Opcode.JNZW, callLabel = loopLabel)
+        else
+            prog.instr(Opcode.JNZ, callLabel = loopLabel)
 
         prog.label(breakLabel)
         prog.instr(Opcode.NOP)
@@ -1655,8 +1661,12 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         prog.instr(opcodePush(varDt), Value(varDt, range.last + range.step))
         prog.instr(opcodePushvar(varDt), callLabel = varname)
         prog.instr(opcodeSub(varDt))
-        prog.instr(Opcode.JNZ, callLabel = loopLabel)       // TODO JNZW???
-
+        val loopvarJumpOpcode = when(varDt) {
+            DataType.UBYTE, DataType.BYTE -> Opcode.JNZ
+            DataType.UWORD, DataType.WORD -> Opcode.JNZW
+            else -> throw CompilerException("invalid loop var datatype (expected byte or word) $varDt of var $varname")
+        }
+        prog.instr(loopvarJumpOpcode, callLabel = loopLabel)
         prog.label(breakLabel)
         prog.instr(Opcode.NOP)
         // note: ending value of loop register / variable is *undefined* after this point!
@@ -1812,7 +1822,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
          *      continue -> goto condition
          *  continue:
          *      <evaluate condition>
-         *      jnz loop
+         *      jnz/jnzw loop
          *  break:
          *      nop
          */
@@ -1827,7 +1837,12 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         translate(stmt.body)
         prog.label(continueLabel)
         translate(stmt.condition)
-        prog.instr(Opcode.JNZ, callLabel = loopLabel)       // TODO JNZW???
+        val conditionJumpOpcode = when(stmt.condition.resultingDatatype(namespace, heap)) {
+            DataType.UBYTE, DataType.BYTE -> Opcode.JNZ
+            DataType.UWORD, DataType.WORD -> Opcode.JNZW
+            else -> throw CompilerException("invalid condition datatype (expected byte or word) $stmt")
+        }
+        prog.instr(conditionJumpOpcode, callLabel = loopLabel)
         prog.label(breakLabel)
         prog.instr(Opcode.NOP)
         breakStmtLabelStack.pop()
@@ -1846,7 +1861,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
          *      continue -> goto condition
          *  condition:
          *      <evaluate untilCondition>
-         *      jz goto loop
+         *      jz/jzw goto loop
          *  break:
          *      nop
          */
@@ -1860,7 +1875,12 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         translate(stmt.body)
         prog.label(continueLabel)
         translate(stmt.untilCondition)
-        prog.instr(Opcode.JZ, callLabel = loopLabel)            // TODO JZW???
+        val conditionJumpOpcode = when(stmt.untilCondition.resultingDatatype(namespace, heap)) {
+            DataType.UBYTE, DataType.BYTE -> Opcode.JZ
+            DataType.UWORD, DataType.WORD -> Opcode.JZW
+            else -> throw CompilerException("invalid condition datatype (expected byte or word) $stmt")
+        }
+        prog.instr(conditionJumpOpcode, callLabel = loopLabel)
         prog.label(breakLabel)
         prog.instr(Opcode.NOP)
         breakStmtLabelStack.pop()

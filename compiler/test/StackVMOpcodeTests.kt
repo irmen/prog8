@@ -42,6 +42,8 @@ import kotlin.test.*
     ROR2_VAR,
     ROR2_VAR_W
 
+ and several others.
+
 **/
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -651,7 +653,7 @@ class TestStackVmOpcodes {
         assertEquals(DataType.UBYTE, rndb2.type)
         assertEquals(DataType.UWORD, rndw.type)
         assertEquals(DataType.FLOAT, rndf.type)
-        assertNotEquals(rndb1.integerValue(), rndb2.integerValue())
+        assertNotEquals(rndb1.integerValue(), rndb2.integerValue()) // this *sometimes* fails when the two random numbers are the same by pure chance
         assertTrue(rndf.numericValue().toDouble() > 0.0 && rndf.numericValue().toDouble() < 1.0)
 
         vm.step(2)
@@ -892,7 +894,6 @@ class TestStackVmOpcodes {
 
     @Test
     fun testReturn() {
-        // @todo this only tests return with zero return values for now.
         val ins = mutableListOf(
                 Instruction(Opcode.RETURN),
                 Instruction(Opcode.TERMINATE),
@@ -913,7 +914,6 @@ class TestStackVmOpcodes {
 
     @Test
     fun testCall() {
-        // @todo this only tests call with zero parameters for now.
         val ins = mutableListOf(
                 Instruction(Opcode.CALL, callLabel = "label"),
                 Instruction(Opcode.LINE, callLabel = "returned"),

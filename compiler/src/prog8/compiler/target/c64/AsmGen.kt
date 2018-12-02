@@ -207,6 +207,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             if(processed==0) {
                 processed = instr2asm(ins)
                 if(processed == 0)
+                    // the instructions are not recognised yet and can't be translated into assembly
                     throw CompilerException("no asm translation found for instruction pattern: $ins")
             }
             processed--
@@ -458,6 +459,9 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 dex
                 """
             }
+            Opcode.PUSH_MEM_FLOAT -> {
+                " lda  #<${hexVal(ins)} |  ldy  #>${hexVal(ins)}|  jsr  prog8_lib.push_float"
+            }
 
             Opcode.PUSH_REGAY_WORD -> {
                 " sta  ${ESTACK_LO.toHex()},x |  tya |  sta  ${ESTACK_HI.toHex()},x |  dex "
@@ -468,37 +472,30 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 " inx |  lda  ${ESTACK_LO.toHex()},x |  ldy  ${ESTACK_HI.toHex()},x "
             }
 
-            Opcode.READ_INDEXED_VAR_BYTE -> {           // @todo is this correct?
+            Opcode.READ_INDEXED_VAR_BYTE -> {
+                TODO("$ins")
+            }
+            Opcode.READ_INDEXED_VAR_WORD -> {
+                TODO("$ins")
+            }
+            Opcode.READ_INDEXED_VAR_FLOAT -> {
                 """
-                ldy  ${(ESTACK_LO+1).toHex()},x
-                lda  ${ins.callLabel},y
-                sta  ${(ESTACK_LO+1).toHex()},x
+                lda  #<${ins.callLabel}
+                ldy  #>${ins.callLabel}
+                jsr  prog8_lib.push_float_from_indexed_var
                 """
             }
-            Opcode.READ_INDEXED_VAR_WORD -> {           // @todo correct this
-                """
-                ldy  ${(ESTACK_LO+1).toHex()},x
-                lda  ${ins.callLabel},y
-                sta  ${(ESTACK_LO+1).toHex()},x
-                """
+            Opcode.WRITE_INDEXED_VAR_BYTE -> {
+                TODO("$ins")
             }
-
-            Opcode.WRITE_INDEXED_VAR_BYTE -> {      // @todo is this correct?
-                """
-                inx
-                ldy  ${ESTACK_LO.toHex()},x
-                inx
-                lda  ${ESTACK_LO.toHex()},x
-                sta  ${ins.callLabel},y
-                """
+            Opcode.WRITE_INDEXED_VAR_WORD -> {
+                TODO("$ins")
             }
-            Opcode.WRITE_INDEXED_VAR_WORD -> {      // @todo correct this
+            Opcode.WRITE_INDEXED_VAR_FLOAT -> {
                 """
-                inx
-                ldy  ${ESTACK_LO.toHex()},x
-                inx
-                lda  ${ESTACK_LO.toHex()},x
-                sta  ${ins.callLabel},y
+                lda  #<${ins.callLabel}
+                ldy  #>${ins.callLabel}
+                jsr  prog8_lib.pop_float_to_indexed_var
                 """
             }
             Opcode.POP_MEM_BYTE -> {
@@ -1015,7 +1012,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
         }
     }
-
 
     private fun storeAToIndexedByVar(idxVarInstr: Instruction, writeArrayInstr: Instruction): String {
         // writeArrayInstr [ idxVarInstr ] =  A
@@ -2516,7 +2512,60 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 jsr  prog8_lib.copy_float
                 """
             },
-
+            // floatarray[idxbyte] = float
+            AsmPattern(listOf(Opcode.PUSH_FLOAT, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_FLOAT)) { segment ->
+                val floatConst = getFloatConst(segment[0].arg!!)
+                val index = intVal(segment[1]) * Mflpt5.MemorySize
+                """
+                lda  #<$floatConst
+                ldy  #>$floatConst
+                sta  ${C64Zeropage.SCRATCH_W1}
+                sty  ${C64Zeropage.SCRATCH_W1+1}
+                lda  #<(${segment[2].callLabel}+$index)
+                ldy  #>(${segment[2].callLabel}+$index)
+                jsr  prog8_lib.copy_float
+                """
+            },
+            // floatarray[idxbyte] = floatvar
+            AsmPattern(listOf(Opcode.PUSH_VAR_FLOAT, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_FLOAT)) { segment ->
+                val index = intVal(segment[1]) * Mflpt5.MemorySize
+                """
+                lda  #<${segment[0].callLabel}
+                ldy  #>${segment[0].callLabel}
+                sta  ${C64Zeropage.SCRATCH_W1}
+                sty  ${C64Zeropage.SCRATCH_W1+1}
+                lda  #<(${segment[2].callLabel}+$index)
+                ldy  #>(${segment[2].callLabel}+$index)
+                jsr  prog8_lib.copy_float
+                """
+            },
+            //  floatarray[idxbyte] = memfloat
+            AsmPattern(listOf(Opcode.PUSH_MEM_FLOAT, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_FLOAT)) { segment ->
+                val index = intVal(segment[1]) * Mflpt5.MemorySize
+                """
+                lda  #<${hexVal(segment[0])}
+                ldy  #>${hexVal(segment[0])}
+                sta  ${C64Zeropage.SCRATCH_W1}
+                sty  ${C64Zeropage.SCRATCH_W1+1}
+                lda  #<(${segment[2].callLabel}+$index)
+                ldy  #>(${segment[2].callLabel}+$index)
+                jsr  prog8_lib.copy_float
+                """
+            },
+            //  floatarray[idx2] = floatarray[idx1]
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_FLOAT, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_FLOAT)) { segment ->
+                val index1 = intVal(segment[0]) * Mflpt5.MemorySize
+                val index2 = intVal(segment[2]) * Mflpt5.MemorySize
+                """
+                lda  #<(${segment[1].callLabel}+$index1)
+                ldy  #>(${segment[1].callLabel}+$index1)
+                sta  ${C64Zeropage.SCRATCH_W1}
+                sty  ${C64Zeropage.SCRATCH_W1+1}
+                lda  #<(${segment[3].callLabel}+$index2)
+                ldy  #>(${segment[3].callLabel}+$index2)
+                jsr  prog8_lib.copy_float
+                """
+            },
 
             // ---------- some special operations ------------------
             // var word = AX register pair
@@ -2607,50 +2656,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     listOf(Opcode.PUSH_MEM_W, Opcode.POP_REGXY_WORD)) { segment ->
                 " ldx  ${hexVal(segment[0])} |  ldy  ${hexValPlusOne(segment[0])}"
             }
-
-
-
-
-//            // @todo assignment: floatarray[idxbyte] = float
-//            AsmPattern(listOf(Opcode.PUSH_FLOAT, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_FLOAT)) { segment ->
-//                val floatConst = getFloatConst(segment[0].arg!!)
-//                val index = intVal(segment[1]) * Mflpt5.MemorySize
-//                """
-//                lda  #<$floatConst
-//                ldy  #>$floatConst
-//                sta  ${C64Zeropage.SCRATCH_W1}
-//                sty  ${C64Zeropage.SCRATCH_W1+1}
-//                lda  #<(${segment[2].callLabel}+$index)
-//                ldy  #>(${segment[2].callLabel}+$index)
-//                jsr  prog8_lib.copy_float
-//                """
-//            },
-//            // @todo assignment: floatarray[idxbyte] = floatvar
-//            AsmPattern(listOf(Opcode.PUSH_VAR_FLOAT, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_FLOAT)) { segment ->
-//                val index = intVal(segment[1]) * Mflpt5.MemorySize
-//                """
-//                lda  #<${segment[0].callLabel}
-//                ldy  #>${segment[0].callLabel}
-//                sta  ${C64Zeropage.SCRATCH_W1}
-//                sty  ${C64Zeropage.SCRATCH_W1+1}
-//                lda  #<(${segment[2].callLabel}+$index)
-//                ldy  #>(${segment[2].callLabel}+$index)
-//                jsr  prog8_lib.copy_float
-//                """
-//            },
-//            // @todo assignment: floatarray[idxbyte] = memfloat
-//            AsmPattern(listOf(Opcode.PUSH_MEM_FLOAT, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_FLOAT)) { segment ->
-//                val index = intVal(segment[1]) * Mflpt5.MemorySize
-//                """
-//                lda  #<${hexVal(segment[0])}
-//                ldy  #>${hexVal(segment[0])}
-//                sta  ${C64Zeropage.SCRATCH_W1}
-//                sty  ${C64Zeropage.SCRATCH_W1+1}
-//                lda  #<(${segment[2].callLabel}+$index)
-//                ldy  #>(${segment[2].callLabel}+$index)
-//                jsr  prog8_lib.copy_float
-//                """
-//            }
 
     )
 

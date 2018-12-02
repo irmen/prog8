@@ -1324,7 +1324,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     }
 
     override fun process(processor: IAstProcessor) = processor.process(this)
-    override fun referencesIdentifier(name: String): Boolean  = nameInSource.last() == name   // @todo is this correct all the time?
+    override fun referencesIdentifier(name: String): Boolean = nameInSource.last() == name   // @todo is this correct all the time?
 
     override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? {
         val targetStmt = targetStatement(namespace)
