@@ -13,7 +13,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                        var address: Int?,
                        val instructions: MutableList<Instruction> = mutableListOf(),
                        val variables: MutableMap<String, Value> = mutableMapOf(),
-                       val integerConstants: MutableMap<String, Int> = mutableMapOf(),
+                       val memoryPointers: MutableMap<String, Pair<Int, DataType>> = mutableMapOf(),
                        val labels: MutableMap<String, Instruction> = mutableMapOf())
     {
         val numVariables: Int
@@ -276,7 +276,10 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
             }
             VarDeclType.CONST -> {}     // constants are all folded away
             VarDeclType.MEMORY -> {
-                currentBlock.integerConstants[scopedname] = (decl.value as LiteralValue).asIntegerValue!!
+                val lv = decl.value as LiteralValue
+                if(lv.type!=DataType.UWORD && lv.type!=DataType.UBYTE)
+                    throw CompilerException("expected integer memory address $lv")
+                currentBlock.memoryPointers[scopedname] = Pair(lv.asIntegerValue!!, decl.datatype)
             }
         }
     }
@@ -299,8 +302,8 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         currentBlock.instructions.removeAt(currentBlock.instructions.lastIndex)
     }
 
-    fun symbolDef(name: String, value: Int) {
-        currentBlock.integerConstants[name] = value
+    fun memoryPointer(name: String, address: Int, datatype: DataType) {
+        currentBlock.memoryPointers[name] = Pair(address, datatype)
     }
 
     fun newBlock(scopedname: String, shortname: String, address: Int?) {
@@ -337,6 +340,11 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                 out.println("${variable.key}  ${variable.value.type.toString().toLowerCase()}  $valuestr")
             }
             out.println("%end_variables")
+            out.println("%memorypointers")
+            for(iconst in blk.memoryPointers) {
+                out.println("${iconst.key}  ${iconst.value.second.toString().toLowerCase()}  uw:${iconst.value.first.toString(16)}")
+            }
+            out.println("%end_memorypointers")
             out.println("%instructions")
             val labels = blk.labels.entries.associateBy({it.value}) {it.key}
             for(instr in blk.instructions) {

@@ -104,6 +104,8 @@ class StackVm(private var traceOutputFile: String?) {
         private set
     var variables = mutableMapOf<String, Value>()     // all variables (set of all vars used by all blocks/subroutines) key = their fully scoped name
         private set
+    var memoryPointers = mutableMapOf<String, Pair<Int, DataType>>()        // all named pointers
+        private set
     var evalstack = MyStack<Value>()
         private set
     var callstack = MyStack<Instruction>()
@@ -125,6 +127,7 @@ class StackVm(private var traceOutputFile: String?) {
         this.canvas = canvas
         canvas?.requestFocusInWindow()
         variables = program.variables.toMutableMap()
+        memoryPointers = program.memoryPointers.toMutableMap()
 
         if("A" in variables || "X" in variables || "Y" in variables)
             throw VmExecutionException("program contains variable(s) for the reserved registers A/X/Y")
@@ -217,6 +220,15 @@ class StackVm(private var traceOutputFile: String?) {
             throw VmExecutionException("incompatible type ${value.type}")
     }
 
+
+    private fun getVar(name: String): Value {
+        val result = variables[name]
+        if(result!=null)
+            return result
+        if(name in memoryPointers)
+            throw VmExecutionException("variable is memory-mapped: $name = ${memoryPointers[name]}")
+        throw VmExecutionException("unknown variable: $name")
+    }
 
     private fun dispatch(ins: Instruction) : Instruction {
         traceOutput?.println("\n$ins")
@@ -749,17 +761,17 @@ class StackVm(private var traceOutputFile: String?) {
                 return callstack.pop()
             }
             Opcode.PUSH_VAR_BYTE -> {
-                val value = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val value = getVar(ins.callLabel!!)
                 checkDt(value, DataType.UBYTE, DataType.BYTE)
                 evalstack.push(value)
             }
             Opcode.PUSH_VAR_WORD -> {
-                val value = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val value = getVar(ins.callLabel!!)
                 checkDt(value, *(setOf(DataType.UWORD, DataType.WORD) + IterableDatatypes).toTypedArray())
                 evalstack.push(value)
             }
             Opcode.PUSH_VAR_FLOAT -> {
-                val value = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val value = getVar(ins.callLabel!!)
                 checkDt(value, DataType.FLOAT)
                 evalstack.push(value)
             }
@@ -796,145 +808,145 @@ class StackVm(private var traceOutputFile: String?) {
             Opcode.POP_VAR_BYTE -> {
                 val value = evalstack.pop()
                 checkDt(value, DataType.UBYTE, DataType.BYTE)
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.UBYTE, DataType.BYTE)
                 if(value.type!=variable.type)
                     throw VmExecutionException("datatype mismatch")
-                variables[ins.callLabel!!] = value
+                variables[ins.callLabel] = value
             }
             Opcode.POP_VAR_WORD -> {
                 val value = evalstack.pop()
                 checkDt(value, DataType.UWORD, DataType.WORD, DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS)
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.UWORD, DataType.WORD, DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS)
                 if(value.type!=variable.type)
                     throw VmExecutionException("datatype mismatch")
-                variables[ins.callLabel!!] = value
+                variables[ins.callLabel] = value
             }
             Opcode.POP_VAR_FLOAT -> {
                 val value = evalstack.pop()
                 checkDt(value, DataType.FLOAT)
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.FLOAT)
-                variables[ins.callLabel!!] = value
+                variables[ins.callLabel] = value
             }
             Opcode.SHL_VAR_BYTE -> {
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.UBYTE)
-                variables[ins.callLabel!!] = variable.shl()
+                variables[ins.callLabel] =variable.shl()
             }
             Opcode.SHL_VAR_WORD -> {
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.UWORD)
-                variables[ins.callLabel!!] = variable.shl()
+                variables[ins.callLabel] =variable.shl()
             }
             Opcode.SHR_VAR_BYTE -> {
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.UBYTE)
-                variables[ins.callLabel!!] = variable.shr()
+                variables[ins.callLabel] =variable.shr()
             }
             Opcode.SHR_VAR_WORD -> {
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.UWORD)
-                variables[ins.callLabel!!] = variable.shr()
+                variables[ins.callLabel] =variable.shr()
             }
             Opcode.ROL_VAR_BYTE -> {
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.UBYTE)
                 val (newValue, newCarry) = variable.rol(P_carry)
-                variables[ins.callLabel!!] = newValue
+                variables[ins.callLabel] =newValue
                 P_carry = newCarry
             }
             Opcode.ROL_VAR_WORD -> {
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.UWORD)
                 val (newValue, newCarry) = variable.rol(P_carry)
-                variables[ins.callLabel!!] = newValue
+                variables[ins.callLabel] =newValue
                 P_carry = newCarry
             }
             Opcode.ROR_VAR_BYTE -> {
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.UBYTE)
                 val (newValue, newCarry) = variable.ror(P_carry)
-                variables[ins.callLabel!!] = newValue
+                variables[ins.callLabel] =newValue
                 P_carry = newCarry
             }
             Opcode.ROR_VAR_WORD -> {
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.UWORD)
                 val (newValue, newCarry) = variable.ror(P_carry)
-                variables[ins.callLabel!!] = newValue
+                variables[ins.callLabel] =newValue
                 P_carry = newCarry
             }
             Opcode.ROL2_VAR_BYTE -> {
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.UBYTE)
-                variables[ins.callLabel!!] = variable.rol2()
+                variables[ins.callLabel] =variable.rol2()
             }
             Opcode.ROL2_VAR_WORD -> {
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.UWORD)
-                variables[ins.callLabel!!] = variable.rol2()
+                variables[ins.callLabel] =variable.rol2()
             }
             Opcode.ROR2_VAR_BYTE -> {
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.UBYTE)
-                variables[ins.callLabel!!] = variable.ror2()
+                variables[ins.callLabel] =variable.ror2()
             }
             Opcode.ROR2_VAR_WORD -> {
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.UWORD)
-                variables[ins.callLabel!!] = variable.ror2()
+                variables[ins.callLabel] =variable.ror2()
             }
             Opcode.INC_VAR_UB -> {
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.UBYTE)
-                variables[ins.callLabel!!] = variable.inc()
+                variables[ins.callLabel] =variable.inc()
             }
             Opcode.INC_VAR_B -> {
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.BYTE)
-                variables[ins.callLabel!!] = variable.inc()
+                variables[ins.callLabel] =variable.inc()
             }
             Opcode.INC_VAR_UW -> {
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.UWORD)
-                variables[ins.callLabel!!] = variable.inc()
+                variables[ins.callLabel] =variable.inc()
             }
             Opcode.INC_VAR_W -> {
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.WORD)
-                variables[ins.callLabel!!] = variable.inc()
+                variables[ins.callLabel] =variable.inc()
             }
             Opcode.INC_VAR_F -> {
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.FLOAT)
-                variables[ins.callLabel!!] = variable.inc()
+                variables[ins.callLabel] =variable.inc()
             }
             Opcode.DEC_VAR_UB -> {
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.UBYTE)
-                variables[ins.callLabel!!] = variable.dec()
+                variables[ins.callLabel] =variable.dec()
             }
             Opcode.DEC_VAR_B -> {
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.BYTE)
-                variables[ins.callLabel!!] = variable.dec()
+                variables[ins.callLabel] =variable.dec()
             }
             Opcode.DEC_VAR_UW -> {
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.UWORD)
-                variables[ins.callLabel!!] = variable.dec()
+                variables[ins.callLabel] =variable.dec()
             }
             Opcode.DEC_VAR_W -> {
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.WORD)
-                variables[ins.callLabel!!] = variable.dec()
+                variables[ins.callLabel] =variable.dec()
             }
             Opcode.DEC_VAR_F -> {
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.FLOAT)
-                variables[ins.callLabel!!] = variable.dec()
+                variables[ins.callLabel] =variable.dec()
             }
             Opcode.LSB -> {
                 val v = evalstack.pop()
@@ -1194,7 +1206,7 @@ class StackVm(private var traceOutputFile: String?) {
             Opcode.READ_INDEXED_VAR_BYTE -> {
                 // put the byte value of variable[index] onto the stack
                 val index = evalstack.pop().integerValue()
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 if(variable.type==DataType.UWORD) {
                     // assume the variable is a pointer (address) and get the ubyte value from that memory location
                     evalstack.push(Value(DataType.UBYTE, mem.getUByte(variable.integerValue())))
@@ -1212,7 +1224,7 @@ class StackVm(private var traceOutputFile: String?) {
             Opcode.READ_INDEXED_VAR_WORD -> {
                 // put the word value of variable[index] onto the stack
                 val index = evalstack.pop().integerValue()
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 if(variable.type==DataType.UWORD) {
                     // assume the variable is a pointer (address) and get the word value from that memory location
                     evalstack.push(Value(DataType.UWORD, mem.getUWord(variable.integerValue())))
@@ -1229,7 +1241,7 @@ class StackVm(private var traceOutputFile: String?) {
             Opcode.READ_INDEXED_VAR_FLOAT -> {
                 // put the f;pat value of variable[index] onto the stack
                 val index = evalstack.pop().integerValue()
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
+                val variable = getVar(ins.callLabel!!)
                 if(variable.type==DataType.UWORD) {
                     // assume the variable is a pointer (address) and get the float value from that memory location
                     evalstack.push(Value(DataType.UWORD, mem.getFloat(variable.integerValue())))
@@ -1246,25 +1258,44 @@ class StackVm(private var traceOutputFile: String?) {
                 val index = evalstack.pop().integerValue()
                 val value = evalstack.pop()
                 checkDt(value, DataType.UBYTE, DataType.BYTE)
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
-                if(variable.type==DataType.UWORD) {
-                    // assume the variable is a pointer (address) and write the byte value to that memory location
-                    mem.setUByte(variable.integerValue(), value.integerValue().toShort())
+                val varname = ins.callLabel!!
+                val memloc = memoryPointers[varname]
+                if(memloc!=null) {
+                    // variable is the name of a pointer, write the byte value to that memory location
+                    if(value.type==DataType.UBYTE) {
+                        if(memloc.second!=DataType.ARRAY_UB)
+                            throw VmExecutionException("invalid memory pointer type $memloc")
+                        mem.setUByte(memloc.first, value.integerValue().toShort())
+                    }
+                    else {
+                        if(memloc.second!=DataType.ARRAY_B)
+                            throw VmExecutionException("invalid memory pointer type $memloc")
+                        mem.setSByte(memloc.first, value.integerValue().toShort())
+                    }
                 } else {
-                    // set indexed byte element in the arrayspec
-                    val array = heap.get(variable.heapId)
-                    when(array.type) {
-                        DataType.ARRAY_UB -> array.array!![index] = value.integerValue()
-                        DataType.ARRAY_B -> array.array!![index] = value.integerValue()
-                        DataType.STR,
-                        DataType.STR_P,
-                        DataType.STR_S,
-                        DataType.STR_PS -> {
-                            val chars = array.str!!.toCharArray()
-                            chars[index] = Petscii.decodePetscii(listOf(value.integerValue().toShort()), true)[0]
-                            heap.update(variable.heapId, chars.joinToString(""))
+                    val variable = getVar(varname)
+                    if (variable.type == DataType.UWORD) {
+                        // assume the variable is a pointer (address) and write the byte value to that memory location
+                        if(value.type==DataType.UBYTE)
+                            mem.setUByte(variable.integerValue(), value.integerValue().toShort())
+                        else
+                            mem.setSByte(variable.integerValue(), value.integerValue().toShort())
+                    } else {
+                        // set indexed byte element in the arrayspec
+                        val array = heap.get(variable.heapId)
+                        when (array.type) {
+                            DataType.ARRAY_UB -> array.array!![index] = value.integerValue()
+                            DataType.ARRAY_B -> array.array!![index] = value.integerValue()
+                            DataType.STR,
+                            DataType.STR_P,
+                            DataType.STR_S,
+                            DataType.STR_PS -> {
+                                val chars = array.str!!.toCharArray()
+                                chars[index] = Petscii.decodePetscii(listOf(value.integerValue().toShort()), true)[0]
+                                heap.update(variable.heapId, chars.joinToString(""))
+                            }
+                            else -> throw VmExecutionException("not a proper array/string var with byte elements")
                         }
-                        else -> throw VmExecutionException("not a proper array/string var with byte elements")
                     }
                 }
             }
@@ -1273,19 +1304,37 @@ class StackVm(private var traceOutputFile: String?) {
                 val index = evalstack.pop().integerValue()
                 val value = evalstack.pop()
                 checkDt(value, DataType.UWORD, DataType.WORD)
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
-                if(variable.type==DataType.UWORD) {
-                    // assume the variable is a pointer (address) and write the word value to that memory location
-                    mem.setUWord(variable.integerValue(), value.integerValue())
-                } else {
-                    // set indexed word element in the arrayspec
-                    val array = heap.get(variable.heapId)
-                    when(array.type) {
-                        DataType.ARRAY_UW -> array.array!![index] = value.integerValue()
-                        DataType.ARRAY_W -> array.array!![index] = value.integerValue()
-                        else -> throw VmExecutionException("not a proper arrayspec var with word elements")
+                val varname = ins.callLabel!!
+                val memloc = memoryPointers[varname]
+                if(memloc!=null) {
+                    // variable is the name of a pointer, write the word value to that memory location
+                    if(value.type==DataType.UWORD) {
+                        if(memloc.second!=DataType.ARRAY_UW)
+                            throw VmExecutionException("invalid memory pointer type $memloc")
+                        mem.setUWord(memloc.first, value.integerValue())
                     }
-
+                    else {
+                        if(memloc.second!=DataType.ARRAY_W)
+                            throw VmExecutionException("invalid memory pointer type $memloc")
+                        mem.setSWord(memloc.first, value.integerValue())
+                    }
+                } else {
+                    val variable = getVar(varname)
+                    if (variable.type == DataType.UWORD) {
+                        // assume the variable is a pointer (address) and write the word value to that memory location
+                        if(value.type==DataType.UWORD)
+                            mem.setUWord(variable.integerValue(), value.integerValue())
+                        else
+                            mem.setSWord(variable.integerValue(), value.integerValue())
+                    } else {
+                        // set indexed word element in the arrayspec
+                        val array = heap.get(variable.heapId)
+                        when (array.type) {
+                            DataType.ARRAY_UW -> array.array!![index] = value.integerValue()
+                            DataType.ARRAY_W -> array.array!![index] = value.integerValue()
+                            else -> throw VmExecutionException("not a proper arrayspec var with word elements")
+                        }
+                    }
                 }
             }
             Opcode.WRITE_INDEXED_VAR_FLOAT -> {
@@ -1293,16 +1342,25 @@ class StackVm(private var traceOutputFile: String?) {
                 val index = evalstack.pop().integerValue()
                 val value = evalstack.pop()
                 checkDt(value, DataType.FLOAT)
-                val variable = variables[ins.callLabel] ?: throw VmExecutionException("unknown variable: ${ins.callLabel}")
-                if(variable.type==DataType.UWORD) {
-                    // assume the variable is a pointer (address) and write the float value to that memory location
-                    mem.setFloat(variable.integerValue(), value.numericValue().toDouble())
+                val varname = ins.callLabel!!
+                val memloc = memoryPointers[varname]
+                if(memloc!=null) {
+                    // variable is the name of a pointer, write the float value to that memory location
+                    if(memloc.second!=DataType.ARRAY_F)
+                        throw VmExecutionException("invalid memory pointer type $memloc")
+                    mem.setFloat(memloc.first, value.numericValue().toDouble())
                 } else {
-                    // set indexed float element in the arrayspec
-                    val array = heap.get(variable.heapId)
-                    if(array.type!=DataType.ARRAY_F)
-                        throw VmExecutionException("not a proper arrayspec var with float elements")
-                    array.doubleArray!![index] = value.numericValue().toDouble()
+                    val variable = getVar(varname)
+                    if (variable.type == DataType.UWORD) {
+                        // assume the variable is a pointer (address) and write the float value to that memory location
+                        mem.setFloat(variable.integerValue(), value.numericValue().toDouble())
+                    } else {
+                        // set indexed float element in the arrayspec
+                        val array = heap.get(variable.heapId)
+                        if (array.type != DataType.ARRAY_F)
+                            throw VmExecutionException("not a proper arrayspec var with float elements")
+                        array.doubleArray!![index] = value.numericValue().toDouble()
+                    }
                 }
             }
             Opcode.RSAVE -> {

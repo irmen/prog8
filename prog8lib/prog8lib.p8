@@ -45,8 +45,14 @@ w2float
 
 push_float
 		rts
+		
+push_float_from_indexed_var
+		rts
 
 pop_var_float
+		rts
+		
+pop_float_to_indexed_var
 		rts
 
 pop_mem_float

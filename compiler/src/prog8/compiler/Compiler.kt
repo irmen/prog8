@@ -177,7 +177,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             if(subroutine.isNotEmpty())
                 throw CompilerException("kernel subroutines (with memory address) can't have a body: $subroutine")
 
-            prog.symbolDef(subroutine.scopedname, subroutine.asmAddress)
+            prog.memoryPointer(subroutine.scopedname, subroutine.asmAddress, DataType.UBYTE)        // the datatype is a bit of a dummy in this case
         }
         return super.process(subroutine)
     }
@@ -555,9 +555,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             }
             is IdentifierReference -> translate(expr)
             is ArrayIndexedExpression -> translate(expr, false)
-            is RangeExpr -> {
-                TODO("TRANSLATE range $expr")
-            }
+            is RangeExpr -> throw CompilerException("it's not possible to just have a range expression that has to be translated")
             else -> {
                 val lv = expr.constValue(namespace, heap) ?: throw CompilerException("constant expression required, not $expr")
                 when(lv.type) {
@@ -800,59 +798,68 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                             val valueA: IExpression
                             val valueX: IExpression
                             val paramDt = arg.first.resultingDatatype(namespace, heap)
-                            if(paramDt==DataType.UBYTE) {
-                                valueA=arg.first
-                                valueX=LiteralValue.optimalInteger(0, callPosition)
-                                val assignA = Assignment(listOf(AssignTarget(Register.A, null, null, callPosition)), null, valueA, callPosition)
-                                val assignX = Assignment(listOf(AssignTarget(Register.X, null, null, callPosition)), null, valueX, callPosition)
-                                assignA.linkParents(arguments[0].parent)
-                                assignX.linkParents(arguments[0].parent)
-                                translate(assignA)
-                                translate(assignX)
-                            } else if(paramDt==DataType.UWORD) {
-                                translate(arg.first)
-                                prog.instr(Opcode.POP_REGAX_WORD)
-                            } else
-                                TODO("pass parameter of type $paramDt in registers ${arg.second.registerOrPair}")
+                            when (paramDt) {
+                                DataType.UBYTE -> {
+                                    valueA=arg.first
+                                    valueX=LiteralValue.optimalInteger(0, callPosition)
+                                    val assignA = Assignment(listOf(AssignTarget(Register.A, null, null, callPosition)), null, valueA, callPosition)
+                                    val assignX = Assignment(listOf(AssignTarget(Register.X, null, null, callPosition)), null, valueX, callPosition)
+                                    assignA.linkParents(arguments[0].parent)
+                                    assignX.linkParents(arguments[0].parent)
+                                    translate(assignA)
+                                    translate(assignX)
+                                }
+                                DataType.UWORD -> {
+                                    translate(arg.first)
+                                    prog.instr(Opcode.POP_REGAX_WORD)
+                                }
+                                else -> TODO("pass parameter of type $paramDt in registers ${arg.second.registerOrPair}")
+                            }
                         }
                         AY -> {
                             val valueA: IExpression
                             val valueY: IExpression
                             val paramDt = arg.first.resultingDatatype(namespace, heap)
-                            if(paramDt==DataType.UBYTE) {
-                                valueA=arg.first
-                                valueY=LiteralValue.optimalInteger(0, callPosition)
-                                val assignA = Assignment(listOf(AssignTarget(Register.A, null, null, callPosition)), null, valueA, callPosition)
-                                val assignY = Assignment(listOf(AssignTarget(Register.Y, null, null, callPosition)), null, valueY, callPosition)
-                                assignA.linkParents(arguments[0].parent)
-                                assignY.linkParents(arguments[0].parent)
-                                translate(assignA)
-                                translate(assignY)
-                            } else if(paramDt==DataType.UWORD) {
-                                translate(arg.first)
-                                prog.instr(Opcode.POP_REGAY_WORD)
-                            } else
-                                TODO("pass parameter of type $paramDt in registers ${arg.second.registerOrPair}")
+                            when (paramDt) {
+                                DataType.UBYTE -> {
+                                    valueA=arg.first
+                                    valueY=LiteralValue.optimalInteger(0, callPosition)
+                                    val assignA = Assignment(listOf(AssignTarget(Register.A, null, null, callPosition)), null, valueA, callPosition)
+                                    val assignY = Assignment(listOf(AssignTarget(Register.Y, null, null, callPosition)), null, valueY, callPosition)
+                                    assignA.linkParents(arguments[0].parent)
+                                    assignY.linkParents(arguments[0].parent)
+                                    translate(assignA)
+                                    translate(assignY)
+                                }
+                                DataType.UWORD -> {
+                                    translate(arg.first)
+                                    prog.instr(Opcode.POP_REGAY_WORD)
+                                }
+                                else -> TODO("pass parameter of type $paramDt in registers ${arg.second.registerOrPair}")
+                            }
                         }
                         XY -> {
                             // TODO: save X on stack & restore after call
                             val valueX: IExpression
                             val valueY: IExpression
                             val paramDt = arg.first.resultingDatatype(namespace, heap)
-                            if(paramDt==DataType.UBYTE) {
-                                valueX=arg.first
-                                valueY=LiteralValue.optimalInteger(0, callPosition)
-                                val assignX = Assignment(listOf(AssignTarget(Register.X, null, null, callPosition)), null, valueX, callPosition)
-                                val assignY = Assignment(listOf(AssignTarget(Register.Y, null, null, callPosition)), null, valueY, callPosition)
-                                assignX.linkParents(arguments[0].parent)
-                                assignY.linkParents(arguments[0].parent)
-                                translate(assignX)
-                                translate(assignY)
-                            } else if(paramDt==DataType.UWORD) {
-                                translate(arg.first)
-                                prog.instr(Opcode.POP_REGXY_WORD)
-                            } else
-                                TODO("pass parameter of type $paramDt in registers ${arg.second.registerOrPair}")
+                            when (paramDt) {
+                                DataType.UBYTE -> {
+                                    valueX=arg.first
+                                    valueY=LiteralValue.optimalInteger(0, callPosition)
+                                    val assignX = Assignment(listOf(AssignTarget(Register.X, null, null, callPosition)), null, valueX, callPosition)
+                                    val assignY = Assignment(listOf(AssignTarget(Register.Y, null, null, callPosition)), null, valueY, callPosition)
+                                    assignX.linkParents(arguments[0].parent)
+                                    assignY.linkParents(arguments[0].parent)
+                                    translate(assignX)
+                                    translate(assignY)
+                                }
+                                DataType.UWORD -> {
+                                    translate(arg.first)
+                                    prog.instr(Opcode.POP_REGXY_WORD)
+                                }
+                                else -> TODO("pass parameter of type $paramDt in registers ${arg.second.registerOrPair}")
+                            }
                         }
                     }
                 }
@@ -1226,7 +1233,6 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                         else -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                     }
                 }
-                // todo: maybe if you assign byte or word to arrayspec, clear it with that value?
                 DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                 DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                 null -> throw CompilerException("could not determine targetdt")
@@ -1793,7 +1799,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 val postIncr = PostIncrDecr(makeAssignmentTarget(), "--", range.position)
                 postIncr.linkParents(range.parent)
                 translate(postIncr)
-                TODO("signed numbers and/or special condition are needed for decreasing for loop. Try an increasing loop and/or constant loop values instead? At: ${range.position}")
+                TODO("signed numbers and/or special condition are needed for decreasing for loop. Try an increasing loop and/or constant loop values instead? At: ${range.position}")   // fix with signed numbers
             }
             else -> {
                 TODO("non-literal-const or other-than-one step increment code At: ${range.position}")

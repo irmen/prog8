@@ -755,7 +755,7 @@ class AstChecker(private val namespace: INameScope,
                 // check out of bounds
                 val index = (arrayIndexedExpression.arrayspec.x as? LiteralValue)?.asIntegerValue
                 if(index!=null && (index<0 || index>=arraysize))
-                    checkResult.add(ExpressionError("arrayspec index out of bounds", arrayIndexedExpression.arrayspec.position))
+                    checkResult.add(ExpressionError("array index out of bounds", arrayIndexedExpression.arrayspec.position))
             } else if(target.datatype in StringDatatypes) {
                 // check string lengths
                 val heapId = (target.value as LiteralValue).heapId!!
@@ -896,9 +896,9 @@ class AstChecker(private val namespace: INameScope,
                             return err("initializer arrayspec size mismatch (expecting $expectedSize, got $arraySize)")
                         return true
                     }
-                    return err("invalid byte arrayspec size, must be 1-256")
+                    return err("invalid byte array size, must be 1-256")
                 }
-                return err("invalid byte arrayspec initialization value ${value.type}, expected $targetDt")
+                return err("invalid byte array initialization value ${value.type}, expected $targetDt")
             }
             DataType.ARRAY_UW, DataType.ARRAY_W -> {
                 // value may be either a single word, or a word arrayspec

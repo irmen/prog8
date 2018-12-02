@@ -10,6 +10,7 @@ import java.util.regex.Pattern
 class Program (val name: String,
                val program: MutableList<Instruction>,
                val variables: Map<String, Value>,
+               val memoryPointers: Map<String, Pair<Int, DataType>>,
                val labels: Map<String, Instruction>,
                val memory: Map<Int, List<Value>>,
                val heap: HeapValues)
@@ -29,6 +30,7 @@ class Program (val name: String,
             val heap = HeapValues()
             val program = mutableListOf<Instruction>()
             val variables = mutableMapOf<String, Value>()
+            val memoryPointers = mutableMapOf<String, Pair<Int, DataType>>()
             val labels = mutableMapOf<String, Instruction>()
 
             while(lines.hasNext()) {
@@ -40,16 +42,17 @@ class Program (val name: String,
                 else if(line=="%heap")
                     loadHeap(lines, heap)
                 else if(line.startsWith("%block "))
-                    loadBlock(lines, heap, program, variables, labels)
+                    loadBlock(lines, heap, program, variables, memoryPointers, labels)
                 else throw VmExecutionException("syntax error at line ${lineNr + 1}")
             }
-            return Program(filename, program, variables, labels, memory, heap)
+            return Program(filename, program, variables, memoryPointers, labels, memory, heap)
         }
 
         private fun loadBlock(lines: Iterator<IndexedValue<String>>,
                               heap: HeapValues,
                               program: MutableList<Instruction>,
                               variables: MutableMap<String, Value>,
+                              memoryPointers: MutableMap<String, Pair<Int, DataType>>,
                               labels: MutableMap<String, Instruction>)
         {
             while(true) {
@@ -60,6 +63,8 @@ class Program (val name: String,
                     return
                 else if(line=="%variables")
                     loadVars(lines, variables)
+                else if(line=="%memorypointers")
+                    loadMemoryPointers(lines, memoryPointers, heap)
                 else if(line=="%instructions") {
                     val (blockInstructions, blockLabels) = loadInstructions(lines, heap)
                     program.addAll(blockInstructions)
@@ -177,12 +182,12 @@ class Program (val name: String,
         }
 
         private fun loadVars(lines: Iterator<IndexedValue<String>>,
-                             vars: MutableMap<String, Value>): Map<String, Value> {
+                             vars: MutableMap<String, Value>) {
             val splitpattern = Pattern.compile("\\s+")
             while(true) {
                 val (_, line) = lines.next()
                 if(line=="%end_variables")
-                    return vars
+                    return
                 val (name, typeStr, valueStr) = line.split(splitpattern, limit = 3)
                 if(valueStr[0] !='"' && ':' !in valueStr)
                     throw VmExecutionException("missing value type character")
@@ -217,6 +222,23 @@ class Program (val name: String,
                     }
                 }
                 vars[name] = value
+            }
+        }
+
+        private fun loadMemoryPointers(lines: Iterator<IndexedValue<String>>,
+                                       pointers: MutableMap<String, Pair<Int, DataType>>,
+                                       heap: HeapValues) {
+            val splitpattern = Pattern.compile("\\s+")
+            while(true) {
+                val (_, line) = lines.next()
+                if(line=="%end_memorypointers")
+                    return
+                val (name, typeStr, valueStr) = line.split(splitpattern, limit = 3)
+                if(valueStr[0] !='"' && ':' !in valueStr)
+                    throw VmExecutionException("missing value type character")
+                val type = DataType.valueOf(typeStr.toUpperCase())
+                val value = getArgValue(valueStr, heap)!!.integerValue()
+                pointers[name] = Pair(value, type)
             }
         }
 

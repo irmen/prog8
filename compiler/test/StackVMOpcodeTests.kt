@@ -51,12 +51,13 @@ class TestStackVmOpcodes {
 
     private val vm = StackVm(null)
 
-    fun makeProg(ins: MutableList<Instruction>,
+    private fun makeProg(ins: MutableList<Instruction>,
                  vars: Map<String, Value>?=null,
+                 memoryPointers: Map<String, Pair<Int, DataType>>?=null,
                  labels: Map<String, Instruction>?=null,
                  mem: Map<Int, List<Value>>?=null) : Program {
         val heap = HeapValues()
-        return Program("test", ins, vars ?: mapOf(), labels ?: mapOf(), mem ?: mapOf(), heap)
+        return Program("test", ins, vars ?: mapOf(), memoryPointers ?: mapOf(), labels ?: mapOf(), mem ?: mapOf(), heap)
     }
 
     @Test

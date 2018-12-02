@@ -42,7 +42,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                             callLabel2 = if (it.callLabel2 != null) symname(it.callLabel2, block) else null)
                 }
             }.toMutableList()
-            val newConstants = block.integerConstants.map { symname(it.key, block) to it.value }.toMap().toMutableMap()
+            val newConstants = block.memoryPointers.map { symname(it.key, block) to it.value }.toMap().toMutableMap()
             newblocks.add(IntermediateProgram.ProgramBlock(
                     block.scopedname,
                     block.shortname,
@@ -216,8 +216,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
     }
 
     private fun memdefs2asm(block: IntermediateProgram.ProgramBlock) {
-        for(m in block.integerConstants) {
-            out("\t${m.key} = ${m.value.toHex()}")
+        for(m in block.memoryPointers) {
+            out("\t${m.key} = ${m.value.first.toHex()}")
         }
     }
 
@@ -473,10 +473,10 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             }
 
             Opcode.READ_INDEXED_VAR_BYTE -> {
-                TODO("$ins")
+                TODO("$ins")        // byte[i]
             }
             Opcode.READ_INDEXED_VAR_WORD -> {
-                TODO("$ins")
+                TODO("$ins")        // word[i]
             }
             Opcode.READ_INDEXED_VAR_FLOAT -> {
                 """
@@ -486,10 +486,10 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             }
             Opcode.WRITE_INDEXED_VAR_BYTE -> {
-                TODO("$ins")
+                TODO("$ins")        // byte[i]=...
             }
             Opcode.WRITE_INDEXED_VAR_WORD -> {
-                TODO("$ins")
+                TODO("$ins")        // word[i]=...
             }
             Opcode.WRITE_INDEXED_VAR_FLOAT -> {
                 """

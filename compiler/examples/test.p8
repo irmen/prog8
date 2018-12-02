@@ -27,31 +27,34 @@ sub start() {
 ;    }
 
 
-    float[10]  farr
-    float f = 3.3
-    memory float mflt = $c000
-    memory float[10] mfarr = $d000
-    ubyte i=3
+    ubyte bv = 99
+    word wv = 14443
+    float fv = 3.14
+    memory ubyte mb = $c000
+    memory word mw = $c100
+    memory float mf = $c200
+    memory ubyte[10] mba = $d000
+    memory word[10] mwa = $d100
+    memory float[10] mfa = $d200
+    memory str mstr = $d300
+    memory str_p mstrp = $d300
+    memory str_s mstrs = $d300
+    memory str_ps mstrps = $d300
 
-    mflt = 55.44            ; @todo fix memory variables for stackvm???! (or proper error)
-    mfarr[2] = 44.44        ; @todo fix memory variables for stackvm???! (or proper error)
-
-    farr[2] = 4.44
-    farr[2] = f
-    farr[2] = mflt
-    farr[2] = farr[3]
-    farr[2] = mfarr[3]
-    farr[Y] = 4.44
-    farr[Y] = f
-    farr[Y] = mflt
-    farr[Y] = farr[3]
-    farr[Y] = mfarr[3]
-    farr[i] = 4.44
-    farr[i] = f
-    farr[i] = mflt
-    farr[i] = farr[3]
-    farr[i] = mfarr[3]
-
+    mb = 5
+    mb = Y
+    mb = bv
+    mw = 22334
+    mw = wv
+    mf = 4.45
+    mf = fv
+    mba[9] = 5
+    mba[9] = Y
+    mba[9] = bv
+    mwa[9] = 22334
+    mwa[9] = wv
+    mfa[9] = 5.667
+    mfa[9] = fv
 
     return
 }
