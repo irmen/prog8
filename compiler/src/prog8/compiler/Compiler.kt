@@ -813,7 +813,11 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                                     translate(arg.first)
                                     prog.instr(Opcode.POP_REGAX_WORD)
                                 }
-                                else -> TODO("pass parameter of type $paramDt in registers ${arg.second.registerOrPair}")
+                                DataType.STR, DataType.STR_S -> {
+                                    pushStringAddress(arg.first, false)     // TODO with or without remove last opcode??
+                                    prog.instr(Opcode.POP_REGAX_WORD)
+                                }
+                                else -> TODO("pass parameter of type $paramDt in registers AX at $callPosition")
                             }
                         }
                         AY -> {
@@ -835,7 +839,11 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                                     translate(arg.first)
                                     prog.instr(Opcode.POP_REGAY_WORD)
                                 }
-                                else -> TODO("pass parameter of type $paramDt in registers ${arg.second.registerOrPair}")
+                                DataType.STR, DataType.STR_S -> {
+                                    pushStringAddress(arg.first, false)     // TODO with or without remove last opcode??
+                                    prog.instr(Opcode.POP_REGAY_WORD)
+                                }
+                                else -> TODO("pass parameter of type $paramDt in registers AY at $callPosition")
                             }
                         }
                         XY -> {
@@ -858,7 +866,11 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                                     translate(arg.first)
                                     prog.instr(Opcode.POP_REGXY_WORD)
                                 }
-                                else -> TODO("pass parameter of type $paramDt in registers ${arg.second.registerOrPair}")
+                                DataType.STR, DataType.STR_S -> {
+                                    pushStringAddress(arg.first, false)     // TODO with or without remove last opcode??
+                                    prog.instr(Opcode.POP_REGXY_WORD)
+                                }
+                                else -> TODO("pass parameter of type $paramDt in registers XY at $callPosition")
                             }
                         }
                     }
@@ -1197,21 +1209,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     when (valueDt) {
                         DataType.UBYTE -> prog.instr(Opcode.UB2UWORD)
                         DataType.BYTE -> prog.instr(Opcode.B2WORD)
-                        DataType.STR, DataType.STR_S -> {
-                            when(stmt.value) {
-                                is LiteralValue -> {
-                                    val lv = stmt.value as  LiteralValue
-                                    prog.removeLastInstruction()
-                                    prog.instr(Opcode.PUSH_ADDR_STR, Value(lv.type, lv.heapId!!))
-                                }
-                                is IdentifierReference -> {
-                                    val vardecl = (stmt.value as IdentifierReference).targetStatement(namespace) as VarDecl
-                                    prog.removeLastInstruction()
-                                    prog.instr(Opcode.PUSH_ADDR_HEAPVAR, callLabel = vardecl.scopedname)
-                                }
-                                else -> throw CompilerException("can only take address of a literal string value or a string/array variable")
-                            }
-                        }
+                        DataType.STR, DataType.STR_S -> pushStringAddress(stmt.value, true)
                         DataType.ARRAY_B, DataType.ARRAY_UB, DataType.ARRAY_W, DataType.ARRAY_UW, DataType.ARRAY_F -> {
                             if (stmt.value is IdentifierReference) {
                                 val vardecl = (stmt.value as IdentifierReference).targetStatement(namespace) as VarDecl
@@ -1271,6 +1269,21 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         // pop the result value back into the assignment target
         val datatype = assignTarget.determineDatatype(namespace, heap, stmt)!!
         popValueIntoTarget(assignTarget, datatype)
+    }
+
+    private fun pushStringAddress(value: IExpression, removeLastOpcode: Boolean) {
+        when (value) {
+            is LiteralValue -> {
+                if(removeLastOpcode) prog.removeLastInstruction()
+                prog.instr(Opcode.PUSH_ADDR_STR, Value(value.type, value.heapId!!))
+            }
+            is IdentifierReference -> {
+                val vardecl = value.targetStatement(namespace) as VarDecl
+                if(removeLastOpcode) prog.removeLastInstruction()
+                prog.instr(Opcode.PUSH_ADDR_HEAPVAR, callLabel = vardecl.scopedname)
+            }
+            else -> throw CompilerException("can only take address of a literal string value or a string/array variable")
+        }
     }
 
     private fun translateMultiReturnAssignment(stmt: Assignment) {
@@ -1559,7 +1572,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         }
 
         if(loop.loopRegister!=null && loop.loopRegister==Register.X)
-            throw CompilerException("loopVar cannot use X register because it is needed as internal index")
+            throw CompilerException("loopVar cannot use X register because that is used as internal stack pointer")
 
         /**
          *      indexVar = 0
@@ -1570,8 +1583,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
          *      ..continue statement: goto continue
          *      ..
          * continue:
-         *      IV++
-         *      if IV!=numElements goto loop
+         *      indexVar++
+         *      if indexVar!=numElements goto loop
          * break:
          *      nop
          */
@@ -1584,7 +1597,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
 
         val zero = Value(if (numElements <= 255) DataType.UBYTE else DataType.UWORD, 0)
         prog.instr(opcodePush(zero.type), zero)
-        prog.instr(opcodePopvar(zero.type), callLabel = "X")
+        prog.instr(opcodePopvar(zero.type), callLabel = "Y")
         prog.label(loopLabel)
         val assignTarget = if(loop.loopRegister!=null)
             AssignTarget(loop.loopRegister, null, null, loop.position)
@@ -1596,11 +1609,11 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         translate(assignLv)
         translate(loop.body)
         prog.label(continueLabel)
-        prog.instr(opcodeIncvar(zero.type), callLabel = "X")
+        prog.instr(opcodeIncvar(zero.type), callLabel = "Y")
 
         // TODO: optimize edge cases if last value = 255 or 0 (for bytes) etc. to avoid  PUSH_BYTE / SUB opcodes and make use of the wrapping around of the value.
         prog.instr(opcodePush(zero.type), Value(zero.type, numElements))
-        prog.instr(opcodePushvar(zero.type), callLabel = "X")
+        prog.instr(opcodePushvar(zero.type), callLabel = "Y")
         prog.instr(opcodeSub(zero.type))
         if(zero.type==DataType.UWORD)
             prog.instr(Opcode.JNZW, callLabel = loopLabel)

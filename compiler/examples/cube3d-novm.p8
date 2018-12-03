@@ -93,6 +93,8 @@
             ubyte e_from = msb(edge)
             ubyte e_to = lsb(edge)
 
+            float xxxx=rotatedx[msb(edge)]      ; @todo weg
+
             word x1 = toscreenx(rotatedx[e_from], rotatedz[e_from])
             word y1 = toscreeny(rotatedy[e_from], rotatedz[e_from])
             word x2 = toscreenx(rotatedx[e_to], rotatedz[e_to])

@@ -18,7 +18,7 @@ import kotlin.math.abs
 class AssemblyError(msg: String) : RuntimeException(msg)
 
 
-class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, val heap: HeapValues) {
+class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, val heap: HeapValues, val trace: Boolean) {
     private val globalFloatConsts = mutableMapOf<Double, String>()
     private val assemblyLines = mutableListOf<String>()
     private lateinit var block: IntermediateProgram.ProgramBlock
@@ -203,15 +203,19 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 
         val instructionPatternWindowSize = 6
         var processed = 0
-        for(ins in block.instructions.windowed(instructionPatternWindowSize, partialWindows = true)) {
-            if(processed==0) {
+
+        if(trace) println("BLOCK: ${block.scopedname}  ${block.address ?: ""}")
+        for (ins in block.instructions.windowed(instructionPatternWindowSize, partialWindows = true)) {
+            if(trace) println("\t${ins[0].toString().trim()}")
+            if (processed == 0) {
                 processed = instr2asm(ins)
-                if(processed == 0)
-                    // the instructions are not recognised yet and can't be translated into assembly
+                if (processed == 0)
+                // the instructions are not recognised yet and can't be translated into assembly
                     throw CompilerException("no asm translation found for instruction pattern: $ins")
             }
             processed--
         }
+        if (trace) println("END BLOCK: ${block.scopedname}")
         out("\n\t.pend\n")
     }
 
@@ -473,10 +477,22 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             }
 
             Opcode.READ_INDEXED_VAR_BYTE -> {
-                TODO("$ins")        // byte[i]
+                """
+                ldy  ${(ESTACK_LO+1).toHex()},x
+                lda  ${ins.callLabel},y
+                sta  ${(ESTACK_LO+1).toHex()},x
+                """
             }
             Opcode.READ_INDEXED_VAR_WORD -> {
-                TODO("$ins")        // word[i]
+                """
+                lda  ${(ESTACK_LO+1).toHex()},x
+                asl  a
+                tay
+                lda  ${ins.callLabel},y
+                sta  ${(ESTACK_LO+1).toHex()},x
+                lda  ${ins.callLabel}+1,y
+                sta  ${(ESTACK_HI+1).toHex()},x
+                """
             }
             Opcode.READ_INDEXED_VAR_FLOAT -> {
                 """
@@ -486,10 +502,26 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             }
             Opcode.WRITE_INDEXED_VAR_BYTE -> {
-                TODO("$ins")        // byte[i]=...
+                """
+                inx
+                lda  ${ESTACK_LO.toHex()},x
+                inx
+                ldy  ${ESTACK_LO.toHex()},x
+                sta  ${ins.callLabel},y
+                """
             }
             Opcode.WRITE_INDEXED_VAR_WORD -> {
-                TODO("$ins")        // word[i]=...
+                """
+                inx
+                inx
+                lda  ${ESTACK_LO.toHex()},x
+                asl  a
+                tay
+                lda  ${(ESTACK_LO-1).toHex()},x
+                sta  ${ins.callLabel},y
+                lda  ${(ESTACK_HI-1).toHex()},x
+                sta  ${ins.callLabel}+1,y
+                """
             }
             Opcode.WRITE_INDEXED_VAR_FLOAT -> {
                 """
@@ -2655,7 +2687,26 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     listOf(Opcode.PUSH_MEM_UW, Opcode.POP_REGXY_WORD),
                     listOf(Opcode.PUSH_MEM_W, Opcode.POP_REGXY_WORD)) { segment ->
                 " ldx  ${hexVal(segment[0])} |  ldy  ${hexValPlusOne(segment[0])}"
+            },
+
+
+            // byte var = lsb(word var)
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.LSB, Opcode.POP_VAR_BYTE)) { segment ->
+                " lda  #<${segment[0].callLabel} |  sta  ${segment[2].callLabel}"
+            },
+            // byte var = msb(word var)
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.MSB, Opcode.POP_VAR_BYTE)) { segment ->
+                " lda  #>${segment[0].callLabel} |  sta  ${segment[2].callLabel}"
+            },
+            // push lsb(word var)
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.LSB)) { segment ->
+                " lda  #<${segment[0].callLabel} |  sta  ${ESTACK_LO.toHex()},x |  dex "
+            },
+            // push msb(word var)
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.MSB)) { segment ->
+                " lda  #>${segment[0].callLabel} |  sta  ${ESTACK_LO.toHex()},x |  dex "
             }
+
 
     )
 

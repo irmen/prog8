@@ -10,6 +10,7 @@ import prog8.parser.ParsingFailedError
 import prog8.parser.importModule
 import java.io.File
 import java.io.PrintStream
+import java.lang.Exception
 import java.nio.file.Paths
 import kotlin.system.exitProcess
 
@@ -24,10 +25,13 @@ fun main(args: Array<String>) {
         usage()
 
     var startEmu = false
+    var asmTrace = false
     var moduleFile = ""
     for (arg in args) {
         if(arg=="--emu")
             startEmu = true
+        else if(arg=="--asmtrace")
+            asmTrace = true
         else if(!arg.startsWith("--"))
             moduleFile = arg
     }
@@ -124,7 +128,7 @@ fun main(args: Array<String>) {
         stackvmFile.close()
         println("StackVM program code written to '$stackVmFilename'")
 
-        val assembly = AsmGen(compilerOptions, intermediate, heap).compileToAssembly()
+        val assembly = AsmGen(compilerOptions, intermediate, heap, asmTrace).compileToAssembly()
         assembly.assemble(compilerOptions)
         programname = assembly.name
 
@@ -134,8 +138,15 @@ fun main(args: Array<String>) {
     } catch (px: ParsingFailedError) {
         System.err.println(px.message)
         exitProcess(1)
+    } catch (x: Exception) {
+        println("\n* internal error *")
+        System.out.flush()
+        throw x
+    } catch (x: NotImplementedError) {
+        println("\n* internal error: missing feature/code *")
+        System.out.flush()
+        throw x
     }
-
 
     if(startEmu) {
         println("\nStarting C64 emulator...")
@@ -148,7 +159,8 @@ fun main(args: Array<String>) {
 
 private fun usage() {
     System.err.println("Missing argument(s):")
-    System.err.println("    [--emu]      auto-start the C64 emulator after successful compilation")
-    System.err.println("    modulefile   main module file to compile")
+    System.err.println("    [--emu]       auto-start the C64 emulator after successful compilation")
+    System.err.println("    [--asmtrace]  print trace output of the AsmGen for debugging purposes")
+    System.err.println("    modulefile    main module file to compile")
     exitProcess(1)
 }
