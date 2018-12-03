@@ -136,14 +136,20 @@ fun main(args: Array<String>) {
         println("\nTotal compilation+assemble time: ${(endTime-startTime)/1000.0} sec.")
 
     } catch (px: ParsingFailedError) {
+        System.err.print("\u001b[91m")  // bright red
         System.err.println(px.message)
+        System.err.print("\u001b[0m")  // reset
         exitProcess(1)
     } catch (x: Exception) {
+        print("\u001b[91m")  // bright red
         println("\n* internal error *")
+        print("\u001b[0m")  // reset
         System.out.flush()
         throw x
     } catch (x: NotImplementedError) {
+        print("\u001b[91m")  // bright red
         println("\n* internal error: missing feature/code *")
+        print("\u001b[0m")  // reset
         System.out.flush()
         throw x
     }
