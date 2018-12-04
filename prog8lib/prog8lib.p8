@@ -82,15 +82,6 @@ mul_f
 neg_f
 		rts
 
-less_ub
-		rts
-		
-less_b
-		rts
-
-less_f
-		rts
-
 		
 add_w
 		rts	; @todo inline?
@@ -120,7 +111,92 @@ div_w
 div_uw
 		rts
 
+remainder_b
+		rts
+remainder_ub
+		rts
+remainder_w
+		rts
+remainder_uw
+		rts
+remainder_f
+		rts
 		
+equal_ub
+		rts
+	
+equal_b
+		rts
+
+equal_w
+		rts
+
+equal_uw
+		rts
+
+equal_f
+		rts
+
+less_ub
+		rts
+	
+less_b
+		rts
+
+less_w
+		rts
+
+less_uw
+		rts
+
+less_f
+		rts
+
+lesseq_ub
+		rts
+	
+lesseq_b
+		rts
+
+lesseq_w
+		rts
+
+lesseq_uw
+		rts
+
+lesseq_f
+		rts
+	
+greater_ub
+		rts
+	
+greater_b
+		rts
+
+greater_w
+		rts
+
+greater_uw
+		rts
+
+greater_f
+		rts
+	
+greatereq_ub
+		rts
+	
+greatereq_b
+		rts
+
+greatereq_w
+		rts
+
+greatereq_uw
+		rts
+
+greatereq_f
+		rts
+
 func_sin
 		rts
 func_cos

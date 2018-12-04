@@ -21,7 +21,7 @@ abstract class Zeropage(private val options: CompilationOptions) {
                     DataType.UBYTE -> (vardecl.arrayspec.x as LiteralValue).asIntegerValue!!
                     DataType.UWORD -> (vardecl.arrayspec.x as LiteralValue).asIntegerValue!! * 2
                     DataType.FLOAT -> (vardecl.arrayspec.x as LiteralValue).asIntegerValue!! *  5
-                    else -> throw CompilerException("arrayspec can only be of byte, word, float")
+                    else -> throw CompilerException("array can only be of byte, word, float")
                 }
             } else {
                 when (vardecl.datatype) {

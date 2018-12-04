@@ -1,7 +1,6 @@
 %output prg
 %import c64lib
 %import c64utils
-%import mathlib
 
 ~ main {
     sub start()  {
@@ -28,7 +27,7 @@
         c64.MUL10()             ; .. and now *100
         c64.FADDH()             ; add 0.5..
         c64.FADDH()             ;   and again, so +1 total
-        A, Y = c64flt.GETADRAY()        ; @todo fix return value type check "cannot assign word to byte, use msb() or lsb()"
+        A, Y = c64flt.GETADRAY()
         secretnumber = A
 
         c64scr.print_string("I am thinking of a number from 1 to 100!You'll have to guess it!\n")
@@ -44,7 +43,7 @@ ask_guess:
         c64.CHROUT('\n')
         freadstr_arg = guess
         c64.FREADSTR(A)
-        A, Y = c64flt.GETADRAY()    ; @todo fix return value type check "cannot assign word to byte, use msb() or lsb()"
+        A, Y = c64flt.GETADRAY()
         if(A==secretnumber) {
             c64scr.print_string("\nThat's my number, impressive!\n")
             goto goodbye

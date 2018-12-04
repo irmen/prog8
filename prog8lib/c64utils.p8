@@ -648,7 +648,7 @@ asmsub  print_pstring  (text: str_p @ XY) -> clobbers(A,X) -> (ubyte @ Y)  {
 asmsub  print_byte_decimal0  (value: ubyte @ A) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the byte in A in decimal form, with left padding 0s (3 positions total)
 	%asm {{
-		jsr  byte2decimal
+		jsr  c64utils.byte2decimal
 		pha
 		tya
 		jsr  c64.CHROUT
@@ -663,7 +663,7 @@ asmsub  print_byte_decimal0  (value: ubyte @ A) -> clobbers(A,X,Y) -> ()  {
 asmsub  print_byte_decimal  (value: ubyte @ A) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the byte in A in decimal form, without left padding 0s
 	%asm {{
-		jsr  byte2decimal
+		jsr  c64utils.byte2decimal
 		pha
 		cpy  #'0'
 		bne  _print_hundreds
@@ -689,7 +689,7 @@ asmsub  print_byte_hex  (prefix: ubyte @ Pc, value: ubyte @ A) -> clobbers(A,X,Y
 		lda  #'$'
 		jsr  c64.CHROUT
 		pla
-+		jsr  byte2hex
++		jsr  c64utils.byte2hex
 		txa
 		jsr  c64.CHROUT
 		tya
@@ -716,16 +716,16 @@ asmsub  print_word_decimal0  (dataword: uword @ XY) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the (unsigned) word in X/Y in decimal form, with left padding 0s (5 positions total)
 	; @todo shorter in loop form?
 	%asm {{
-		jsr  word2decimal
-		lda  word2decimal_output
+		jsr  c64utils.word2decimal
+		lda  c64utils.word2decimal_output
 		jsr  c64.CHROUT
-		lda  word2decimal_output+1
+		lda  c64utils.word2decimal_output+1
 		jsr  c64.CHROUT
-		lda  word2decimal_output+2
+		lda  c64utils.word2decimal_output+2
 		jsr  c64.CHROUT
-		lda  word2decimal_output+3
+		lda  c64utils.word2decimal_output+3
 		jsr  c64.CHROUT
-		lda  word2decimal_output+4
+		lda  c64utils.word2decimal_output+4
 		jmp  c64.CHROUT
 	}}
 }
@@ -734,27 +734,27 @@ asmsub  print_word_decimal0  (dataword: uword @ XY) -> clobbers(A,X,Y) -> ()  {
 asmsub  print_word_decimal  (dataword: uword @ XY) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the word in X/Y in decimal form, without left padding 0s
 	%asm {{
-		jsr  word2decimal
+		jsr  c64utils.word2decimal
 		ldy  #0
-		lda  word2decimal_output
+		lda  c64utils.word2decimal_output
 		cmp  #'0'
 		bne  _pr_decimal
 		iny
-		lda  word2decimal_output+1
+		lda  c64utils.word2decimal_output+1
 		cmp  #'0'
 		bne  _pr_decimal
 		iny
-		lda  word2decimal_output+2
+		lda  c64utils.word2decimal_output+2
 		cmp  #'0'
 		bne  _pr_decimal
 		iny
-		lda  word2decimal_output+3
+		lda  c64utils.word2decimal_output+3
 		cmp  #'0'
 		bne  _pr_decimal
 		iny
 
 _pr_decimal
-		lda  word2decimal_output,y
+		lda  c64utils.word2decimal_output,y
 		jsr  c64.CHROUT
 		iny
 		cpy  #5

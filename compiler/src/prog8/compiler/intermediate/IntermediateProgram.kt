@@ -274,8 +274,8 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                 }
                 currentBlock.variables[scopedname] = value
             }
-            VarDeclType.CONST -> {}     // constants are all folded away
-            VarDeclType.MEMORY -> {
+            VarDeclType.MEMORY, VarDeclType.CONST -> {
+                // note that constants are all folded away, but assembly code may still refer to them
                 val lv = decl.value as LiteralValue
                 if(lv.type!=DataType.UWORD && lv.type!=DataType.UBYTE)
                     throw CompilerException("expected integer memory address $lv")

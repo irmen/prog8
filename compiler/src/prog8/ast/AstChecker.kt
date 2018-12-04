@@ -413,7 +413,7 @@ class AstChecker(private val namespace: INameScope,
                     }
                 }
                 else
-                    checkAssignmentCompatible(targetDatatype, sourceDatatype, assignment.value, assignment.position)
+                    checkAssignmentCompatible(targetDatatype, sourceDatatype, assignment.value, assignment.targets, assignment.position)
             }
         }
         return assignment
@@ -482,13 +482,13 @@ class AstChecker(private val namespace: INameScope,
                     when(decl.datatype) {
                         DataType.ARRAY_B, DataType.ARRAY_UB ->
                             if(arraySize > 256)
-                                err("byte arrayspec length must be 1-256")
+                                err("byte array length must be 1-256")
                         DataType.ARRAY_W, DataType.ARRAY_UW ->
                             if(arraySize > 128)
-                                err("word arrayspec length must be 1-128")
+                                err("word array length must be 1-128")
                         DataType.ARRAY_F ->
                             if(arraySize > 51)
-                                err("float arrayspec length must be 1-51")
+                                err("float array length must be 1-51")
                         else -> {}
                     }
                 }
@@ -891,13 +891,13 @@ class AstChecker(private val namespace: INameScope,
                     val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).arraysize
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize<1 || arraySpecSize>256)
-                            return err("byte arrayspec length must be 1-256")
+                            return err("byte array length must be 1-256")
                         val constX = arrayspec.x.constValue(namespace, heap)
                         if(constX?.asIntegerValue==null)
-                            return err("arrayspec size specifier must be constant integer value")
+                            return err("array size specifier must be constant integer value")
                         val expectedSize = constX.asIntegerValue
                         if (arraySize != expectedSize)
-                            return err("initializer arrayspec size mismatch (expecting $expectedSize, got $arraySize)")
+                            return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
                         return true
                     }
                     return err("invalid byte array size, must be 1-256")
@@ -911,18 +911,18 @@ class AstChecker(private val namespace: INameScope,
                     val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).arraysize
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize<1 || arraySpecSize>128)
-                            return err("word arrayspec length must be 1-128")
+                            return err("word array length must be 1-128")
                         val constX = arrayspec.x.constValue(namespace, heap)
                         if(constX?.asIntegerValue==null)
-                            return err("arrayspec size specifier must be constant integer value")
+                            return err("array size specifier must be constant integer value")
                         val expectedSize = constX.asIntegerValue
                         if (arraySize != expectedSize)
-                            return err("initializer arrayspec size mismatch (expecting $expectedSize, got $arraySize)")
+                            return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
                         return true
                     }
-                    return err("invalid word arrayspec size, must be 1-128")
+                    return err("invalid word array size, must be 1-128")
                 }
-                return err("invalid word arrayspec initialization value ${value.type}, expected $targetDt")
+                return err("invalid word array initialization value ${value.type}, expected $targetDt")
             }
             DataType.ARRAY_F -> {
                 // value may be either a single float, or a float arrayspec
@@ -931,15 +931,15 @@ class AstChecker(private val namespace: INameScope,
                     val arraySpecSize = arrayspec.size()
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize < 1 || arraySpecSize>51)
-                            return err("float arrayspec length must be 1-51")
+                            return err("float array length must be 1-51")
                         val constX = arrayspec.x.constValue(namespace, heap)
                         if(constX?.asIntegerValue==null)
-                            return err("arrayspec size specifier must be constant integer value")
+                            return err("array size specifier must be constant integer value")
                         val expectedSize = constX.asIntegerValue
                         if (arraySize != expectedSize)
-                            return err("initializer arrayspec size mismatch (expecting $expectedSize, got $arraySize)")
+                            return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
                     } else
-                        return err("invalid float arrayspec size, must be 1-51")
+                        return err("invalid float array size, must be 1-51")
 
                     // check if the floating point values are all within range
                     val doubles = if(value.arrayvalue!=null)
@@ -950,7 +950,7 @@ class AstChecker(private val namespace: INameScope,
                         return err("floating point value overflow")
                     return true
                 }
-                return err("invalid float arrayspec initialization value ${value.type}, expected $targetDt")
+                return err("invalid float array initialization value ${value.type}, expected $targetDt")
             }
         }
         return true
@@ -959,6 +959,7 @@ class AstChecker(private val namespace: INameScope,
     private fun checkAssignmentCompatible(targetDatatype: DataType,
                                           sourceDatatype: DataType,
                                           sourceValue: IExpression,
+                                          assignTargets: List<AssignTarget>,
                                           position: Position) : Boolean {
 
         if(sourceValue is RangeExpr)
@@ -980,8 +981,12 @@ class AstChecker(private val namespace: INameScope,
         if(result)
             return true
 
-        if((sourceDatatype==DataType.UWORD || sourceDatatype==DataType.WORD) && (targetDatatype==DataType.UBYTE || targetDatatype==DataType.BYTE))
-            checkResult.add(ExpressionError("cannot assign word to byte, use msb() or lsb()?", position))
+        if((sourceDatatype==DataType.UWORD || sourceDatatype==DataType.WORD) && (targetDatatype==DataType.UBYTE || targetDatatype==DataType.BYTE)) {
+            if(assignTargets.size==2 && assignTargets[0].register!=null && assignTargets[1].register!=null)
+                return true // for asm subroutine calls that return a (U)WORD that's going to be stored into two BYTES (registers), we make an exception.
+            else
+                checkResult.add(ExpressionError("cannot assign word to byte, use msb() or lsb()?", position))
+        }
         else if(sourceDatatype==DataType.FLOAT && targetDatatype in IntegerDatatypes)
             checkResult.add(ExpressionError("cannot assign float to ${targetDatatype.toString().toLowerCase()}; possible loss of precision. Suggestion: round the value or revert to integer arithmetic", position))
         else

@@ -619,10 +619,10 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             }
             Opcode.INV_WORD -> {
                 """
-                lda  ${(ESTACK_LO + 1).toHex()},x
+                lda  ${(ESTACK_LO+1).toHex()},x
                 eor  #255
                 sta  ${(ESTACK_LO+1).toHex()},x
-                lda  ${(ESTACK_HI + 1).toHex()},x
+                lda  ${(ESTACK_HI+1).toHex()},x
                 eor  #255
                 sta  ${(ESTACK_HI+1).toHex()},x
                 """
@@ -732,11 +732,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.MUL_W -> "  jsr  prog8_lib.mul_w"
             Opcode.MUL_UW -> "  jsr  prog8_lib.mul_uw"
             Opcode.MUL_F -> "  jsr  prog8_lib.mul_f"
-            Opcode.LESS_UB -> "  jsr  prog8_lib.less_ub"
-            Opcode.LESS_B -> "  jsr  prog8_lib.less_b"
-            Opcode.LESS_UW -> "  jsr  prog8_lib.less_uw"
-            Opcode.LESS_W -> "  jsr  prog8_lib.less_w"
-            Opcode.LESS_F -> "  jsr  prog8_lib.less_f"
 
             Opcode.AND_BYTE -> {
                 """
@@ -754,6 +749,39 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${(ESTACK_LO + 1).toHex()},x
                 """
             }
+            Opcode.REMAINDER_B -> "  jsr prog8_lib.remainder_b"
+            Opcode.REMAINDER_UB -> "  jsr prog8_lib.remainder_ub"
+            Opcode.REMAINDER_W -> "  jsr prog8_lib.remainder_w"
+            Opcode.REMAINDER_UW -> "  jsr prog8_lib.remainder_uw"
+            Opcode.REMAINDER_F -> "  jsr prog8_lib.remainder_f"
+
+            Opcode.GREATER_B -> "  jsr prog8_lib.greater_b"
+            Opcode.GREATER_UB -> "  jsr prog8_lib.greater_ub"
+            Opcode.GREATER_W -> "  jsr prog8_lib.greater_w"
+            Opcode.GREATER_UW -> "  jsr prog8_lib.greater_uw"
+            Opcode.GREATER_F -> "  jsr prog8_lib.greater_f"
+
+            Opcode.GREATEREQ_B -> "  jsr prog8_lib.greatereq_b"
+            Opcode.GREATEREQ_UB -> "  jsr prog8_lib.greatereq_ub"
+            Opcode.GREATEREQ_W -> "  jsr prog8_lib.greatereq_w"
+            Opcode.GREATEREQ_UW -> "  jsr prog8_lib.greatereq_uw"
+            Opcode.GREATEREQ_F -> "  jsr prog8_lib.greatereq_f"
+
+            Opcode.EQUAL_BYTE -> "  jsr prog8_lib.equal_b"
+            Opcode.EQUAL_WORD -> "  jsr prog8_lib.equal_w"
+            Opcode.EQUAL_F -> "  jsr prog8_lib.equal_f"
+
+            Opcode.LESS_UB -> "  jsr  prog8_lib.less_ub"
+            Opcode.LESS_B -> "  jsr  prog8_lib.less_b"
+            Opcode.LESS_UW -> "  jsr  prog8_lib.less_uw"
+            Opcode.LESS_W -> "  jsr  prog8_lib.less_w"
+            Opcode.LESS_F -> "  jsr  prog8_lib.less_f"
+
+            Opcode.LESSEQ_UB -> "  jsr  prog8_lib.lesseq_ub"
+            Opcode.LESSEQ_B -> "  jsr  prog8_lib.lesseq_b"
+            Opcode.LESSEQ_UW -> "  jsr  prog8_lib.lesseq_uw"
+            Opcode.LESSEQ_W -> "  jsr  prog8_lib.lesseq_w"
+            Opcode.LESSEQ_F -> "  jsr  prog8_lib.lesseq_f"
 
             else -> null
         }
@@ -830,6 +858,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
     }
 
     private fun sameConstantIndexedVarOperation(variable: String, index: Int, ins: Instruction): AsmFragment? {
+        // an in place operation that consists of a push-value / op / push-index-value / pop-into-indexed-var
         return when(ins.opcode) {
             Opcode.SHL_BYTE -> AsmFragment(" asl  $variable+$index", 8)
             Opcode.SHR_BYTE -> AsmFragment(" lsr  $variable+$index", 8)
@@ -848,6 +877,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
     }
 
     private fun sameIndexedVarOperation(variable: String, indexVar: String, ins: Instruction): AsmFragment? {
+        // an in place operation that consists of a push-value / op / push-index-var / pop-into-indexed-var
         val saveX = " stx  ${C64Zeropage.SCRATCH_B1} |"
         val restoreX = " | ldx  ${C64Zeropage.SCRATCH_B1}"
         val loadXWord: String
@@ -891,6 +921,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
     }
 
     private fun sameMemOperation(address: Int, ins: Instruction): AsmFragment? {
+        // an in place operation that consists of a push-mem / op / pop-mem sequence
         val addr = address.toHex()
         val addrHi = (address+1).toHex()
         return when(ins.opcode) {
@@ -911,6 +942,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
     }
 
     private fun sameVarOperation(variable: String, ins: Instruction): AsmFragment? {
+        // an in place operation that consists of a push-var / op / pop-var
         return when(ins.opcode) {
             Opcode.SHL_BYTE -> {
                 when (variable) {
@@ -2705,9 +2737,28 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             // push msb(word var)
             AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.MSB)) { segment ->
                 " lda  #>${segment[0].callLabel} |  sta  ${ESTACK_LO.toHex()},x |  dex "
+            },
+
+            // set a register pair to a certain memory address (of a variable)
+            AsmPattern(listOf(Opcode.PUSH_ADDR_HEAPVAR, Opcode.POP_REGAX_WORD)) { segment ->
+                " lda  #<${segment[0].callLabel} |  ldx  #>${segment[0].callLabel} "
+            },
+            AsmPattern(listOf(Opcode.PUSH_ADDR_HEAPVAR, Opcode.POP_REGAY_WORD)) { segment ->
+                " lda  #<${segment[0].callLabel} |  ldy  #>${segment[0].callLabel} "
+            },
+            AsmPattern(listOf(Opcode.PUSH_ADDR_HEAPVAR, Opcode.POP_REGXY_WORD)) { segment ->
+                " ldx  #<${segment[0].callLabel} |  ldy  #>${segment[0].callLabel} "
+            },
+            // set a register pair to a certain memory address (of a literal string value)
+            AsmPattern(listOf(Opcode.PUSH_ADDR_STR, Opcode.POP_REGAX_WORD)) { segment ->
+                TODO("$segment")
+            },
+            AsmPattern(listOf(Opcode.PUSH_ADDR_STR, Opcode.POP_REGAY_WORD)) { segment ->
+                TODO("$segment")
+            },
+            AsmPattern(listOf(Opcode.PUSH_ADDR_STR, Opcode.POP_REGXY_WORD)) { segment ->
+                TODO("$segment")
             }
-
-
     )
 
 }
