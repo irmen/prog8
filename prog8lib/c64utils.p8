@@ -21,6 +21,7 @@ asmsub  init_system  () -> clobbers(A,X,Y) -> ()  {
 	; All three registers set to 0, status flags cleared.
 	%asm {{
 		sei
+		jsr  determine_start_rnd_seed
 		cld
 		lda  #%00101111
 		sta  $00
@@ -41,6 +42,18 @@ asmsub  init_system  () -> clobbers(A,X,Y) -> ()  {
 		clv
 		cli
 		rts
+		
+determine_start_rnd_seed
+		lda  c64.TIME_HI
+		adc  c64.TIME_MID
+		adc  c64.TIME_LO
+		ldy  c64.RASTER
+		sta  start_rnd_seed
+		sty  start_rnd_seed+1
+		rts
+		
+start_rnd_seed	.word	$2c9e
+
 	}}
 }
 
@@ -354,6 +367,52 @@ asmsub  float_sub_SW1_from_XY  (mflt: uword @ XY) -> clobbers(A,X,Y) -> ()  {
 		ldy  c64.SCRATCH_ZP2
 		jmp  c64.FTOMEMXY	; float XY = fac1
 	}}
+}
+
+sub  print_float  (value: float) {
+	; ---- prints the floating point value (without a newline) using basic rom routines. 
+	;      clobbers no registers.
+	%asm {{
+		pha
+		tya
+		pha
+		txa
+		pha
+		lda  #<print_float_value
+		ldy  #>print_float_value
+		jsr  c64.MOVFM		; load float into fac1
+		jsr  c64.FOUT		; fac1 to string in A/Y
+		jsr  c64.STROUT		; print string in A/Y
+		pla
+		tax
+		pla
+		tay
+		pla
+		rts
+	}}
+}
+
+sub  print_float_ln  (value: float) {
+	; ---- prints the floating point value (with a newline at the end) using basic rom routines
+	;      clobbers no registers.
+	%asm {{
+		pha
+		tya
+		pha
+		txa
+		pha
+		lda  #<print_float_ln_value
+		ldy  #>print_float_ln_value
+		jsr  c64.MOVFM		; load float into fac1
+		jsr  c64.FPRINTLN	; print fac1 with newline
+		pla
+		tax
+		pla
+		tay
+		pla
+		rts
+	}}
+        
 }
 
 }  ; ------ end of block c64flt

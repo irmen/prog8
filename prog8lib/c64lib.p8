@@ -141,7 +141,7 @@ asmsub	GIVAYF		(lo: ubyte @ Y, hi: ubyte @ A) -> clobbers(A,X,Y) -> ()	= $b391
 asmsub	FREADUY		(unsigned: ubyte @ Y) -> clobbers(A,X,Y) -> ()	= $b3a2		; 8 bit unsigned Y -> float in fac1
 asmsub	FREADSA		(signed: ubyte @ A) -> clobbers(A,X,Y) -> ()	= $bc3c		; 8 bit signed A -> float in fac1
 asmsub	FREADSTR	(length: ubyte @ A) -> clobbers(A,X,Y) -> ()	= $b7b5		; str -> fac1, $22/23 must point to string, A=string length
-asmsub	FPRINTLN	() -> clobbers(A,X,Y) -> ()			= $aabc		; print string of fac1, on one line (= with newline)
+asmsub	FPRINTLN	() -> clobbers(A,X,Y) -> ()			= $aabc		; print string of fac1, on one line (= with newline)  (consider FOUT + STROUT as well)
 asmsub	FOUT		() -> clobbers(X) -> (uword @ AY)		= $bddd		; fac1 -> string, address returned in AY ($0100)
 
 asmsub	FADDH		() -> clobbers(A,X,Y) -> ()			= $b849		; fac1 += 0.5, for rounding- call this before INT
@@ -169,8 +169,8 @@ asmsub	ABS		() -> clobbers() -> ()				= $bc58		; fac1 = ABS(fac1)
 asmsub	SQR		() -> clobbers(A,X,Y) -> ()			= $bf71		; fac1 = SQRT(fac1)
 asmsub	EXP		() -> clobbers(A,X,Y) -> ()			= $bfed		; fac1 = EXP(fac1)  (e ** fac1)
 asmsub	NEGOP		() -> clobbers(A) -> ()				= $bfb4		; switch the sign of fac1
-asmsub	RND		() -> clobbers(A,X,Y) -> ()			= $e097		; fac1 = RND()   (tip: use RNDA instead)
-asmsub	RNDA		(acc: ubyte @ A) -> clobbers(A,X,Y) -> ()	= $e09a		; fac1 = RND(A)
+asmsub	RND		() -> clobbers(A,X,Y) -> ()			= $e097		; fac1 = RND()   (tip: use RNDA instead) pseudo random number generator
+asmsub	RNDA		(acc: ubyte @ A) -> clobbers(A,X,Y) -> ()	= $e09a		; fac1 = RND(A)  pseudo random number generator
 asmsub	COS		() -> clobbers(A,X,Y) -> ()			= $e264		; fac1 = COS(fac1)
 asmsub	SIN		() -> clobbers(A,X,Y) -> ()			= $e26b		; fac1 = SIN(fac1)
 asmsub	TAN		() -> clobbers(A,X,Y) -> ()			= $e2b4		; fac1 = TAN(fac1)
@@ -189,6 +189,7 @@ asmsub	HOMECRSR	() -> clobbers(A,X,Y) -> ()		= $E566		; cursor to top left of sc
 
 ; ---- C64 kernal routines ----
 
+asmsub  STROUT   (strptr: uword @ AY) -> clobbers(A, X, Y) -> ()	= $AB1E		; print null-terminated string (a bit slow, see if you can use c64scr.print_string instead)
 asmsub	IRQDFRT  () -> clobbers(A,X,Y) -> ()			= $EA31		; default IRQ routine
 asmsub	IRQDFEND () -> clobbers(A,X,Y) -> ()			= $EA81		; default IRQ end/cleanup
 asmsub	CINT     () -> clobbers(A,X,Y) -> ()			= $FF81		; (alias: SCINIT) initialize screen editor and video chip

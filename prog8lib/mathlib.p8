@@ -171,6 +171,34 @@ remainder = SCRATCH_ZP1
 	}}
 }
 
+asmsub  randseed  (seed: uword @ AY) -> clobbers() -> ()  {
+	; ---- reset the random seeds for the byte and word random generators
+	;      default starting values are:  A=$2c Y=$9e  
+	%asm {{
+		sta  randword._seed
+		sty  randword._seed+1
+		tya
+		clc
+		sbc  #100
+		sta  randbyte._seed
+		rts
+	}}
+}
+
+asmsub  randseedr  () -> clobbers() -> ()  {
+	; ---- initializes the byte and word random generators with the 'random' seed
+	;      that was stored when the program started. This can be used if you don't
+	;      want your program to use the same random number sequence every time it is loaded or runs.
+	%asm {{
+		lda  c64utils.start_rnd_seed
+		ldy  c64utils.start_rnd_seed+1
+		jsr  math.randseed
+		ora  #$80		; make negative
+		jsr  c64.RNDA		; reseed the float rng using the (negative) number in A
+		rts
+	}}
+}
+
 
 asmsub  randbyte  () -> clobbers() -> (ubyte @ A)  {
 	; ---- 8-bit pseudo random number generator into A
@@ -185,7 +213,7 @@ asmsub  randbyte  () -> clobbers() -> (ubyte @ A)  {
 +		sta  _seed
 		rts
 
-		_seed		.byte  $3a
+_seed		.byte  $3a
 _magic		.byte  $1d
 _magiceors	.byte  $1d, $2b, $2d, $4d, $5f, $63, $65, $69
 		.byte  $71, $87, $8d, $a9, $c3, $cf, $e7, $f5

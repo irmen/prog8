@@ -11,6 +11,8 @@
 		memory  ubyte  SCRATCH_ZP2	= $03		; scratch register #2 in ZP
 		memory  uword  SCRATCH_ZPWORD1	= $fb		; scratch word in ZP ($fb/$fc)
 		memory  uword  SCRATCH_ZPWORD2	= $fd		; scratch word in ZP ($fd/$fe)
+		const   uword  ESTACK_LO	= $ce00
+		const   uword  ESTACK_HI	= $cf00
 
 
 	%asm {{
@@ -28,7 +30,7 @@ ror2_word
 
 
 
-; @todo:  stubs for now
+; @todo:  implement stubs!
 ; @todo:  move float operations to their own library (only included when floats are enabled)
 
 ub2float
@@ -44,12 +46,57 @@ w2float
 		rts
 
 push_float
+		; ---- push mflpt5 in A/Y onto stack 
+		; (taking 3 stack positions = 6 bytes of which 1 is padding)
+		sta  SCRATCH_ZPWORD1
+		sty  SCRATCH_ZPWORD1+1
+		ldy  #0
+		lda  SCRATCH_ZPWORD1,y
+		sta  ESTACK_LO,x
+		iny
+		lda  SCRATCH_ZPWORD1,y
+		sta  ESTACK_HI,x
+		dex
+		iny
+		lda  SCRATCH_ZPWORD1,y
+		sta  ESTACK_LO,x
+		iny
+		lda  SCRATCH_ZPWORD1,y
+		sta  ESTACK_HI,x
+		dex
+		iny
+		lda  SCRATCH_ZPWORD1,y
+		sta  ESTACK_LO,x
+		dex
 		rts
+		
 		
 push_float_from_indexed_var
 		rts
 
-pop_var_float
+pop_float
+		; ---- pops mflpt5 from stack to memory A/Y		@TODO CHECK ORDER OF POPS
+		; (frees 3 stack positions = 6 bytes of which 1 is padding)
+		sta  SCRATCH_ZPWORD1
+		sty  SCRATCH_ZPWORD1+1
+		ldy  #4
+		inx
+		lda  ESTACK_LO,x
+		sta  SCRATCH_ZPWORD1,y
+		dey
+		inx
+		lda  ESTACK_LO,x
+		sta  SCRATCH_ZPWORD1,y
+		dey
+		lda  ESTACK_HI,x
+		sta  SCRATCH_ZPWORD1,y
+		dey
+		inx
+		lda  ESTACK_LO,x
+		sta  SCRATCH_ZPWORD1,y
+		lda  ESTACK_HI,x
+		dey
+		sta  SCRATCH_ZPWORD1,y
 		rts
 		
 pop_float_to_indexed_var
@@ -59,6 +106,25 @@ pop_mem_float
 		rts
 
 copy_float
+		; -- copies the 5 bytes of the mflt value pointed to by SCRATCH_ZPWORD1, 
+		;    into the 5 bytes pointed to by A/Y.  Clobbers Y.
+		sta  SCRATCH_ZPWORD2
+		sty  SCRATCH_ZPWORD2+1
+		ldy  #0
+		lda  SCRATCH_ZPWORD1,y
+		sta  SCRATCH_ZPWORD2,y
+		iny
+		lda  SCRATCH_ZPWORD1,y
+		sta  SCRATCH_ZPWORD2,y
+		iny
+		lda  SCRATCH_ZPWORD1,y
+		sta  SCRATCH_ZPWORD2,y
+		iny
+		lda  SCRATCH_ZPWORD1,y
+		sta  SCRATCH_ZPWORD2,y
+		iny
+		lda  SCRATCH_ZPWORD1,y
+		sta  SCRATCH_ZPWORD2,y
 		rts
 
 inc_var_f
@@ -243,12 +309,38 @@ func_any
 		rts
 func_all
 		rts
+
 func_rnd
+		; -- put a random ubyte on the estack
+		jsr  math.randbyte
+		sta  ESTACK_LO,x
+		dex
 		rts
+		
 func_rndw
+		; -- put a random uword on the estack
+		jsr  math.randword
+		sta  ESTACK_LO,x
+		tya
+		sta  ESTACK_HI,x
+		dex
 		rts
+
 func_rndf
-		rts
+		; -- put a random floating point value on the stack
+		stx  SCRATCH_ZP1
+		lda  #39
+		jsr  c64.RNDA		; rng into fac1
+		ldx  #<_rndf_rnum5
+		ldy  #>_rndf_rnum5
+		jsr  c64.FTOMEMXY	; fac1 to mem X/Y
+		ldx  SCRATCH_ZP1
+		lda  #<_rndf_rnum5
+		ldy  #>_rndf_rnum5
+		jmp  push_float
+_rndf_rnum5	.fill 5
+
+
 func_wrd
 		rts
 func_uwrd
