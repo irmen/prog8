@@ -161,7 +161,7 @@ class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
                     }
                 }
                 null -> {}
-                else -> checkResult.add(SyntaxError("loop variables can only be a byte or word", forLoop.position))
+                else -> checkResult.add(SyntaxError("loop variables can only be an unsigned byte or unsigned word", forLoop.position))  // TODO loops over signed values
             }
         }
         return super.process(forLoop)

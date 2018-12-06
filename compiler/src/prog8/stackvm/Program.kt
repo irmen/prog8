@@ -1,6 +1,8 @@
 package prog8.stackvm
 
 import prog8.ast.DataType
+import prog8.ast.Position
+import prog8.ast.unescape
 import prog8.compiler.HeapValues
 import prog8.compiler.intermediate.*
 import java.io.File
@@ -89,7 +91,7 @@ class Program (val name: String,
                     DataType.STR,
                     DataType.STR_P,
                     DataType.STR_S,
-                    DataType.STR_PS -> heap.add(it.second, it.third.substring(1, it.third.length-1))
+                    DataType.STR_PS -> heap.add(it.second, unescape(it.third.substring(1, it.third.length-1), Position("<stackvmsource>", 0, 0, 0)))
                     DataType.ARRAY_UB, DataType.ARRAY_B,
                     DataType.ARRAY_UW, DataType.ARRAY_W -> {
                         val numbers = it.third.substring(1, it.third.length-1).split(',')

@@ -561,7 +561,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 " inx |  lda  ${ESTACK_LO.toHex()},x |  ldy  ${ESTACK_HI.toHex()},x |  sta  ${ins.callLabel} |  sty  ${ins.callLabel}+1"
             }
             Opcode.POP_VAR_FLOAT -> {
-                " lda  #<${ins.callLabel} |  ldy  #>${ins.callLabel} |  jsr  prog8_lib.pop_var_float"
+                " lda  #<${ins.callLabel} |  ldy  #>${ins.callLabel} |  jsr  prog8_lib.pop_float"
             }
 
             Opcode.INC_VAR_UB, Opcode.INC_VAR_B -> {
