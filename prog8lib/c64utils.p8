@@ -21,7 +21,6 @@ asmsub  init_system  () -> clobbers(A,X,Y) -> ()  {
 	; All three registers set to 0, status flags cleared.
 	%asm {{
 		sei
-		jsr  determine_start_rnd_seed
 		cld
 		lda  #%00101111
 		sta  $00
@@ -42,18 +41,6 @@ asmsub  init_system  () -> clobbers(A,X,Y) -> ()  {
 		clv
 		cli
 		rts
-		
-determine_start_rnd_seed
-		lda  c64.TIME_HI
-		adc  c64.TIME_MID
-		adc  c64.TIME_LO
-		ldy  c64.RASTER
-		sta  start_rnd_seed
-		sty  start_rnd_seed+1
-		rts
-		
-start_rnd_seed	.word	$2c9e
-
 	}}
 }
 
@@ -100,12 +87,12 @@ hex_digits	.text "0123456789abcdef"	; can probably be reused for other stuff as 
 asmsub  word2hex  (dataword: uword @ XY) -> clobbers(A,X,Y) -> ()  {
 	; ---- convert 16 bit word in X/Y into 4-character hexadecimal string into memory  'word2hex_output'
 	%asm {{
-		stx  c64.SCRATCH_ZP2
+		stx  c64.SCRATCH_ZPREG
 		tya
 		jsr  byte2hex
 		stx  word2hex_output
 		sty  word2hex_output+1
-		lda  c64.SCRATCH_ZP2
+		lda  c64.SCRATCH_ZPREG
 		jsr  byte2hex
 		stx  word2hex_output+2
 		sty  word2hex_output+3
@@ -123,8 +110,8 @@ asmsub  word2bcd  (dataword: uword @ XY) -> clobbers(A,X) -> ()  {
 	; arithmetic is being done in BCD the result is a binary to decimal
 	; conversion.
 	%asm {{
-		stx  c64.SCRATCH_ZP1
-		sty  c64.SCRATCH_ZP2
+		stx  c64.SCRATCH_ZPB1
+		sty  c64.SCRATCH_ZPREG
 		sed				; switch to decimal mode
 		lda  #0				; ensure the result is clear
 		sta  word2bcd_bcdbuff+0
@@ -132,8 +119,8 @@ asmsub  word2bcd  (dataword: uword @ XY) -> clobbers(A,X) -> ()  {
 		sta  word2bcd_bcdbuff+2
 		ldx  #16			; the number of source bits
 
--		asl  c64.SCRATCH_ZP1		; shift out one bit
-		rol  c64.SCRATCH_ZP2
+-		asl  c64.SCRATCH_ZPB1		; shift out one bit
+		rol  c64.SCRATCH_ZPREG
 		lda  word2bcd_bcdbuff+0		; and add into result
 		adc  word2bcd_bcdbuff+0
 		sta  word2bcd_bcdbuff+0
@@ -247,9 +234,9 @@ asmsub  GIVUAYF  (value: uword @ AY) -> clobbers(A,X,Y) -> ()  {
 asmsub  GIVAYFAY  (value: uword @ AY) -> clobbers(A,X,Y) -> ()  {
 	; ---- signed 16 bit word in A/Y (lo/hi) to float in fac1
 	%asm {{
-		sta  c64.SCRATCH_ZP1
+		sta  c64.SCRATCH_ZPB1
 		tya
-		ldy  c64.SCRATCH_ZP1
+		ldy  c64.SCRATCH_ZPB1
 		jmp  c64.GIVAYF		; this uses the inverse order, Y/A
 	}}
 }
@@ -258,9 +245,9 @@ asmsub  FTOSWRDAY  () -> clobbers(X) -> (uword @ AY)  {
 	; ---- fac1 to signed word in A/Y
 	%asm {{
 		jsr  c64.FTOSWORDYA	; note the inverse Y/A order
-		sta  c64.SCRATCH_ZP1
+		sta  c64.SCRATCH_ZPB1
 		tya
-		ldy  c64.SCRATCH_ZP1
+		ldy  c64.SCRATCH_ZPB1
 		rts
 	}}
 }
@@ -269,9 +256,9 @@ asmsub  GETADRAY  () -> clobbers(X) -> (uword @ AY)  {
 	; ---- fac1 to unsigned word in A/Y
 	%asm {{
 		jsr  c64.GETADR		; this uses the inverse order, Y/A
-		sta  c64.SCRATCH_ZP1
+		sta  c64.SCRATCH_ZPB1
 		tya
-		ldy  c64.SCRATCH_ZP1
+		ldy  c64.SCRATCH_ZPB1
 		rts
 	}}
 }
@@ -281,22 +268,22 @@ asmsub  copy_mflt  (source: uword @ XY) -> clobbers(A) -> ()  {
 	; ---- copy a 5 byte MFLT floating point variable to another place
 	;      input: X/Y = source address,  c64.SCRATCH_ZPWORD1 = destination address
 	%asm {{
-		stx  c64.SCRATCH_ZP1
+		stx  c64.SCRATCH_ZPB1
 		sty  c64.SCRATCH_ZPWORD1+1
 		ldy  #0
-		lda  (c64.SCRATCH_ZP1),y
+		lda  (c64.SCRATCH_ZPB1),y
 		sta  (c64.SCRATCH_ZPWORD1),y
 		iny
-		lda  (c64.SCRATCH_ZP1),y
+		lda  (c64.SCRATCH_ZPB1),y
 		sta  (c64.SCRATCH_ZPWORD1),y
 		iny
-		lda  (c64.SCRATCH_ZP1),y
+		lda  (c64.SCRATCH_ZPB1),y
 		sta  (c64.SCRATCH_ZPWORD1),y
 		iny
-		lda  (c64.SCRATCH_ZP1),y
+		lda  (c64.SCRATCH_ZPB1),y
 		sta  (c64.SCRATCH_ZPWORD1),y
 		iny
-		lda  (c64.SCRATCH_ZP1),y
+		lda  (c64.SCRATCH_ZPB1),y
 		sta  (c64.SCRATCH_ZPWORD1),y
 		ldy  c64.SCRATCH_ZPWORD1+1
 		rts
@@ -306,15 +293,15 @@ asmsub  copy_mflt  (source: uword @ XY) -> clobbers(A) -> ()  {
 asmsub  float_add_one  (mflt: uword @ XY) -> clobbers(A,X,Y) -> ()  {
 	; ---- add 1 to the MFLT pointed to by X/Y.  Clobbers A, X, Y
 	%asm {{
-		stx  c64.SCRATCH_ZP1
-		sty  c64.SCRATCH_ZP2
+		stx  c64.SCRATCH_ZPB1
+		sty  c64.SCRATCH_ZPREG
 		txa
 		jsr  c64.MOVFM		; fac1 = float XY
 		lda  #<c64.FL_FONE
 		ldy  #>c64.FL_FONE
 		jsr  c64.FADD		; fac1 += 1
-		ldx  c64.SCRATCH_ZP1
-		ldy  c64.SCRATCH_ZP2
+		ldx  c64.SCRATCH_ZPB1
+		ldy  c64.SCRATCH_ZPREG
 		jmp  c64.FTOMEMXY	; float XY = fac1
 	}}
 }
@@ -322,16 +309,16 @@ asmsub  float_add_one  (mflt: uword @ XY) -> clobbers(A,X,Y) -> ()  {
 asmsub  float_sub_one  (mflt: uword @ XY) -> clobbers(A,X,Y) -> ()  {
 	; ---- subtract 1 from the MFLT pointed to by X/Y.  Clobbers A, X, Y
 	%asm {{
-		stx  c64.SCRATCH_ZP1
-		sty  c64.SCRATCH_ZP2
+		stx  c64.SCRATCH_ZPB1
+		sty  c64.SCRATCH_ZPREG
 		lda  #<c64.FL_FONE
 		ldy  #>c64.FL_FONE
 		jsr  c64.MOVFM		; fac1 = 1
 		txa
-		ldy  c64.SCRATCH_ZP2
+		ldy  c64.SCRATCH_ZPREG
 		jsr  c64.FSUB		; fac1 = float XY - 1
-		ldx  c64.SCRATCH_ZP1
-		ldy  c64.SCRATCH_ZP2
+		ldx  c64.SCRATCH_ZPB1
+		ldy  c64.SCRATCH_ZPREG
 		jmp  c64.FTOMEMXY	; float XY = fac1
 	}}
 }
@@ -339,15 +326,15 @@ asmsub  float_sub_one  (mflt: uword @ XY) -> clobbers(A,X,Y) -> ()  {
 asmsub  float_add_SW1_to_XY  (mflt: uword @ XY) -> clobbers(A,X,Y) -> ()  {
 	; ---- add MFLT pointed to by SCRATCH_ZPWORD1 to the MFLT pointed to by X/Y.  Clobbers A, X, Y
 	%asm {{
-		stx  c64.SCRATCH_ZP1
-		sty  c64.SCRATCH_ZP2
+		stx  c64.SCRATCH_ZPB1
+		sty  c64.SCRATCH_ZPREG
 		txa
 		jsr  c64.MOVFM		; fac1 = float XY
 		lda  c64.SCRATCH_ZPWORD1
 		ldy  c64.SCRATCH_ZPWORD1+1
 		jsr  c64.FADD		; fac1 += SCRATCH_ZPWORD1
-		ldx  c64.SCRATCH_ZP1
-		ldy  c64.SCRATCH_ZP2
+		ldx  c64.SCRATCH_ZPB1
+		ldy  c64.SCRATCH_ZPREG
 		jmp  c64.FTOMEMXY	; float XY = fac1
 	}}
 }
@@ -355,16 +342,16 @@ asmsub  float_add_SW1_to_XY  (mflt: uword @ XY) -> clobbers(A,X,Y) -> ()  {
 asmsub  float_sub_SW1_from_XY  (mflt: uword @ XY) -> clobbers(A,X,Y) -> ()  {
 	; ---- subtract MFLT pointed to by SCRATCH_ZPWORD1 from the MFLT pointed to by X/Y.  Clobbers A, X, Y
 	%asm {{
-		stx  c64.SCRATCH_ZP1
-		sty  c64.SCRATCH_ZP2
+		stx  c64.SCRATCH_ZPB1
+		sty  c64.SCRATCH_ZPREG
 		lda  c64.SCRATCH_ZPWORD1
 		ldy  c64.SCRATCH_ZPWORD1+1
 		jsr  c64.MOVFM		; fac1 = SCRATCH_ZPWORD1
 		txa
-		ldy  c64.SCRATCH_ZP2
+		ldy  c64.SCRATCH_ZPREG
 		jsr  c64.FSUB		; fac1 = float XY - SCRATCH_ZPWORD1
-		ldx  c64.SCRATCH_ZP1
-		ldy  c64.SCRATCH_ZP2
+		ldx  c64.SCRATCH_ZPB1
+		ldy  c64.SCRATCH_ZPREG
 		jmp  c64.FTOMEMXY	; float XY = fac1
 	}}
 }
@@ -430,7 +417,7 @@ asmsub  clear_screen (char: ubyte @ A, color: ubyte @ Y) -> clobbers(A,X) -> () 
 
 	%asm {{
 		sta  _loop + 1      ; self-modifying
-		stx  c64.SCRATCH_ZP1
+		stx  c64.SCRATCH_ZPB1
 		ldx  #0
 _loop           lda  #0
 		sta  c64.Screen,x
@@ -446,7 +433,7 @@ _loop           lda  #0
 		bne  _loop
 
 		lda  _loop+1		; restore A and X
-		ldx  c64.SCRATCH_ZP1
+		ldx  c64.SCRATCH_ZPB1
 		rts
         }}
 
@@ -672,10 +659,10 @@ asmsub  print_string (text: str @ XY) -> clobbers(A,Y) -> ()  {
 	;       a call to this subroutine with a string argument of just one char,
 	;       by just one call to c64.CHROUT of that single char.    @todo do this
 	%asm {{
-		stx  c64.SCRATCH_ZP1
-		sty  c64.SCRATCH_ZP2
+		stx  c64.SCRATCH_ZPB1
+		sty  c64.SCRATCH_ZPREG
 		ldy  #0
--               lda  (c64.SCRATCH_ZP1),y
+-               lda  (c64.SCRATCH_ZPB1),y
 		beq  +
 		jsr  c64.CHROUT
 		iny
@@ -688,14 +675,14 @@ asmsub  print_string (text: str @ XY) -> clobbers(A,Y) -> ()  {
 asmsub  print_pstring  (text: str_p @ XY) -> clobbers(A,X) -> (ubyte @ Y)  {
 	; ---- print pstring (length as first byte) from X/Y, returns str len in Y
 	%asm {{
-		stx  c64.SCRATCH_ZP1
-		sty  c64.SCRATCH_ZP2
+		stx  c64.SCRATCH_ZPB1
+		sty  c64.SCRATCH_ZPREG
 		ldy  #0
-		lda  (c64.SCRATCH_ZP1),y
+		lda  (c64.SCRATCH_ZPB1),y
 		beq  +
 		tax
 -		iny
-		lda  (c64.SCRATCH_ZP1),y
+		lda  (c64.SCRATCH_ZPB1),y
 		jsr  c64.CHROUT
 		dex
 		bne  -
@@ -761,10 +748,10 @@ asmsub print_word_hex  (prefix: ubyte @ Pc, dataword: uword @ XY) -> clobbers(A,
 	; ---- print the (unsigned) word in X/Y in hexadecimal form (4 digits)
 	;      (if Carry is set, a radix prefix '$' is printed as well)
 	%asm {{
-		stx  c64.SCRATCH_ZP1
+		stx  c64.SCRATCH_ZPB1
 		tya
 		jsr  print_byte_hex
-		lda  c64.SCRATCH_ZP1
+		lda  c64.SCRATCH_ZPB1
 		clc
 		jmp  print_byte_hex
 	}}
@@ -828,17 +815,17 @@ asmsub  input_chars  (buffer: uword @ AX) -> clobbers(A) -> (ubyte @ Y)  {
 	;      It assumes the keyboard is selected as I/O channel!!
 
 	%asm {{
-		sta  c64.SCRATCH_ZP1
-		stx  c64.SCRATCH_ZP2
+		sta  c64.SCRATCH_ZPB1
+		stx  c64.SCRATCH_ZPREG
 		ldy  #0				; char counter = 0
 -		jsr  c64.CHRIN
 		cmp  #$0d			; return (ascii 13) pressed?
 		beq  +				; yes, end.
-		sta  (c64.SCRATCH_ZP1),y	; else store char in buffer
+		sta  (c64.SCRATCH_ZPB1),y	; else store char in buffer
 		iny
 		bne  -
 +		lda  #0
-		sta  (c64.SCRATCH_ZP1),y	; finish string with 0 byte
+		sta  (c64.SCRATCH_ZPB1),y	; finish string with 0 byte
 		rts
 
 	}}

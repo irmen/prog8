@@ -12,8 +12,8 @@
 
 ~ math {
 		; note: the following ZP scratch registers must be the same as in c64lib
-		memory  ubyte  SCRATCH_ZP1	= $02		; scratch register #1 in ZP
-		memory  ubyte  SCRATCH_ZP2	= $03		; scratch register #2 in ZP
+		memory  ubyte  SCRATCH_ZPB1	= $02		; scratch byte 1 in ZP
+		memory  ubyte  SCRATCH_ZPREG	= $03		; scratch register in ZP
 		memory  uword  SCRATCH_ZPWORD1	= $fb		; scratch word in ZP ($fb/$fc)
 		memory  uword  SCRATCH_ZPWORD2	= $fd		; scratch word in ZP ($fd/$fe)
 
@@ -22,14 +22,14 @@
 asmsub  multiply_bytes  (byte1: ubyte @ X, byte2: ubyte @ Y) -> clobbers(X) -> (ubyte @ A)  {
 	; ---- multiply 2 bytes, result as byte in A  (signed or unsigned)
 	%asm {{
-		stx  SCRATCH_ZP1
-		sty  SCRATCH_ZP2
+		stx  SCRATCH_ZPB1
+		sty  SCRATCH_ZPREG
 		ldx  #8
 -               asl  a
-		asl  SCRATCH_ZP1
+		asl  SCRATCH_ZPB1
 		bcc  +
 		clc
-		adc  SCRATCH_ZP2
+		adc  SCRATCH_ZPREG
 +               dex
 		bne  -
 		rts
@@ -41,19 +41,19 @@ asmsub  multiply_bytes_16  (byte1: ubyte @ X, byte2: ubyte @ Y) -> clobbers(A) -
 	; ---- multiply 2 bytes, result as word in X/Y (unsigned)
 	%asm {{
 		lda  #0
-_m_with_add	stx  SCRATCH_ZP1
-		sty  SCRATCH_ZP2
+_m_with_add	stx  SCRATCH_ZPB1
+		sty  SCRATCH_ZPREG
 		ldx  #8
-		lsr  SCRATCH_ZP1
+		lsr  SCRATCH_ZPB1
 -               bcc  +
 		clc
-		adc  SCRATCH_ZP2
+		adc  SCRATCH_ZPREG
 +               ror  a
-		ror  SCRATCH_ZP1
+		ror  SCRATCH_ZPB1
 		dex
 		bne  -
 		tay
-		ldx  SCRATCH_ZP1
+		ldx  SCRATCH_ZPB1
 		rts
 	}}
 }
@@ -104,21 +104,21 @@ asmsub  divmod_bytes  (number: ubyte @ X, divisor: ubyte @ Y) -> clobbers() -> (
 	; ---- divide X by Y, result quotient in X, remainder in A   (unsigned)
 	;      division by zero will result in quotient = 255 and remainder = original number
 	%asm {{
-		stx  SCRATCH_ZP1
-		sty  SCRATCH_ZP2
+		stx  SCRATCH_ZPB1
+		sty  SCRATCH_ZPREG
 
 		lda  #0
 		ldx  #8
-		asl  SCRATCH_ZP1
+		asl  SCRATCH_ZPB1
 -		rol  a
-		cmp  SCRATCH_ZP2
+		cmp  SCRATCH_ZPREG
 		bcc  +
-		sbc  SCRATCH_ZP2
-+		rol  SCRATCH_ZP1
+		sbc  SCRATCH_ZPREG
++		rol  SCRATCH_ZPB1
 		dex
 		bne  -
 
-		ldx  SCRATCH_ZP1
+		ldx  SCRATCH_ZPB1
 		rts
 	}}
 }
@@ -130,7 +130,7 @@ asmsub  divmod_words  (divisor: uword @ XY) -> clobbers(A) -> (uword @ XY)  {
 	;      division by zero will result in quotient = 65535 and remainder = divident
 
 	%asm {{
-remainder = SCRATCH_ZP1
+remainder = SCRATCH_ZPB1
 
 		stx  SCRATCH_ZPWORD2
 		sty  SCRATCH_ZPWORD2+1
@@ -171,30 +171,20 @@ remainder = SCRATCH_ZP1
 	}}
 }
 
-asmsub  randseed  (seed: uword @ AY) -> clobbers() -> ()  {
+asmsub  randseed  (seed: uword @ AY) -> clobbers(A, Y) -> ()  {
 	; ---- reset the random seeds for the byte and word random generators
 	;      default starting values are:  A=$2c Y=$9e  
 	%asm {{
 		sta  randword._seed
 		sty  randword._seed+1
-		tya
+		stx  SCRATCH_ZPREG
 		clc
-		sbc  #100
+		adc  #14
 		sta  randbyte._seed
-		rts
-	}}
-}
-
-asmsub  randseedr  () -> clobbers() -> ()  {
-	; ---- initializes the byte and word random generators with the 'random' seed
-	;      that was stored when the program started. This can be used if you don't
-	;      want your program to use the same random number sequence every time it is loaded or runs.
-	%asm {{
-		lda  c64utils.start_rnd_seed
-		ldy  c64utils.start_rnd_seed+1
-		jsr  math.randseed
 		ora  #$80		; make negative
-		jsr  c64.RNDA		; reseed the float rng using the (negative) number in A
+		jsr  c64.FREADSA
+		jsr  c64.RND		; reseed the float rng using the (negative) number in A
+		ldx  SCRATCH_ZPREG
 		rts
 	}}
 }
@@ -218,7 +208,6 @@ _magic		.byte  $1d
 _magiceors	.byte  $1d, $2b, $2d, $4d, $5f, $63, $65, $69
 		.byte  $71, $87, $8d, $a9, $c3, $cf, $e7, $f5
 
- 		;returns  - this comment avoids compiler warning
 	}}
 }
 
@@ -266,7 +255,6 @@ _magic		.word   $3f1d
 _magiceors	.word   $3f1d, $3f81, $3fa5, $3fc5, $4075, $409d, $40cd, $4109
  		.word   $413f, $414b, $4153, $4159, $4193, $4199, $41af, $41bb
 
- 		;returns  - this comment avoids compiler warning
 	}}
 }
 

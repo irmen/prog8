@@ -7,8 +7,8 @@
 
 ~ prog8_lib {
 		; note: the following ZP scratch registers must be the same as in c64lib
-		memory  byte  SCRATCH_ZP1	= $02		; scratch register #1 in ZP
-		memory  byte  SCRATCH_ZP2	= $03		; scratch register #2 in ZP
+		memory  byte  SCRATCH_ZPB1	= $02		; scratch byte 1 in ZP
+		memory  byte  SCRATCH_ZPREG	= $03		; scratch register in ZP
 		memory  word  SCRATCH_ZPWORD1	= $fb		; scratch word in ZP ($fb/$fc)
 		memory  word  SCRATCH_ZPWORD2	= $fd		; scratch word in ZP ($fd/$fe)
 
@@ -33,17 +33,17 @@ jsr_indirect_tmp
 
 
 jsr_indirect_AX
-		sta  SCRATCH_ZP1
-		stx  SCRATCH_ZP2
-		jmp  (SCRATCH_ZP1)
+		sta  SCRATCH_ZPB1
+		stx  SCRATCH_ZPREG
+		jmp  (SCRATCH_ZPB1)
 jsr_indirect_AY
-		sta  SCRATCH_ZP1
-		sty  SCRATCH_ZP2
-		jmp  (SCRATCH_ZP1)
+		sta  SCRATCH_ZPB1
+		sty  SCRATCH_ZPREG
+		jmp  (SCRATCH_ZPB1)
 jsr_indirect_XY
-		stx  SCRATCH_ZP1
-		sty  SCRATCH_ZP2
-		jmp  (SCRATCH_ZP1)
+		stx  SCRATCH_ZPB1
+		sty  SCRATCH_ZPREG
+		jmp  (SCRATCH_ZPB1)
 
 
 ; copy memory UP from (SCRATCH_ZPWORD1) to (SCRATCH_ZPWORD2) of length X/Y (16-bit, X=lo, Y=hi)
@@ -51,7 +51,7 @@ jsr_indirect_XY
 memcopy16_up
 		source = SCRATCH_ZPWORD1
 		dest = SCRATCH_ZPWORD2
-		length = SCRATCH_ZP1   ; (and SCRATCH_ZP2)
+		length = SCRATCH_ZPB1   ; (and SCRATCH_ZPREG)
 
 		stx  length
 		sty  length+1
@@ -91,10 +91,10 @@ memcopy
 
 ; fill memory from (SCRATCH_ZPWORD1), length XY, with value in A.
 ; clobbers X, Y
-memset          stx  SCRATCH_ZP1
-		sty  SCRATCH_ZP2
+memset          stx  SCRATCH_ZPB1
+		sty  SCRATCH_ZPREG
 		ldy  #0
-		ldx  SCRATCH_ZP2
+		ldx  SCRATCH_ZPREG
 		beq  _lastpage
 
 _fullpage	sta  (SCRATCH_ZPWORD1),y
@@ -104,7 +104,7 @@ _fullpage	sta  (SCRATCH_ZPWORD1),y
 		dex
 		bne  _fullpage
 
-_lastpage	ldy  SCRATCH_ZP1
+_lastpage	ldy  SCRATCH_ZPB1
 		beq  +
 -         	dey
 		sta  (SCRATCH_ZPWORD1),y
@@ -122,10 +122,10 @@ memsetw
 		sta  _mod2+1                    ; self-modify
 		sty  _mod2b+1                   ; self-modify
 		ldx  SCRATCH_ZPWORD1
-		stx  SCRATCH_ZP1
+		stx  SCRATCH_ZPB1
 		ldx  SCRATCH_ZPWORD1+1
 		inx
-		stx  SCRATCH_ZP2                ; second page
+		stx  SCRATCH_ZPREG                ; second page
 
 		ldy  #0
 		ldx  SCRATCH_ZPWORD2+1
@@ -134,17 +134,17 @@ memsetw
 _fullpage
 _mod1           lda  #0                         ; self-modified
 		sta  (SCRATCH_ZPWORD1),y        ; first page
-		sta  (SCRATCH_ZP1),y            ; second page
+		sta  (SCRATCH_ZPB1),y            ; second page
 		iny
 _mod1b		lda  #0                         ; self-modified
 		sta  (SCRATCH_ZPWORD1),y        ; first page
-		sta  (SCRATCH_ZP1),y            ; second page
+		sta  (SCRATCH_ZPB1),y            ; second page
 		iny
 		bne  _fullpage
 		inc  SCRATCH_ZPWORD1+1          ; next page pair
 		inc  SCRATCH_ZPWORD1+1          ; next page pair
-		inc  SCRATCH_ZP1+1              ; next page pair
-		inc  SCRATCH_ZP1+1              ; next page pair
+		inc  SCRATCH_ZPB1+1              ; next page pair
+		inc  SCRATCH_ZPB1+1              ; next page pair
 		dex
 		bne  _fullpage
 

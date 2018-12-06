@@ -7,8 +7,8 @@
 
 
 ~ c64 {
-		memory  ubyte  SCRATCH_ZP1	= $02		; scratch register #1 in ZP
-		memory  ubyte  SCRATCH_ZP2	= $03		; scratch register #2 in ZP
+		memory  ubyte  SCRATCH_ZPB1	= $02		; scratch byte 1 in ZP
+		memory  ubyte  SCRATCH_ZPREG	= $03		; scratch register in ZP
 		memory  uword  SCRATCH_ZPWORD1	= $fb		; scratch word in ZP ($fb/$fc)
 		memory  uword  SCRATCH_ZPWORD2	= $fd		; scratch word in ZP ($fd/$fe)
 
@@ -169,8 +169,7 @@ asmsub	ABS		() -> clobbers() -> ()				= $bc58		; fac1 = ABS(fac1)
 asmsub	SQR		() -> clobbers(A,X,Y) -> ()			= $bf71		; fac1 = SQRT(fac1)
 asmsub	EXP		() -> clobbers(A,X,Y) -> ()			= $bfed		; fac1 = EXP(fac1)  (e ** fac1)
 asmsub	NEGOP		() -> clobbers(A) -> ()				= $bfb4		; switch the sign of fac1
-asmsub	RND		() -> clobbers(A,X,Y) -> ()			= $e097		; fac1 = RND()   (tip: use RNDA instead) pseudo random number generator
-asmsub	RNDA		(acc: ubyte @ A) -> clobbers(A,X,Y) -> ()	= $e09a		; fac1 = RND(A)  pseudo random number generator
+asmsub	RND		() -> clobbers(A,X,Y) -> ()			= $e097		; fac1 = RND(fac1) float random number generator
 asmsub	COS		() -> clobbers(A,X,Y) -> ()			= $e264		; fac1 = COS(fac1)
 asmsub	SIN		() -> clobbers(A,X,Y) -> ()			= $e26b		; fac1 = SIN(fac1)
 asmsub	TAN		() -> clobbers(A,X,Y) -> ()			= $e2b4		; fac1 = TAN(fac1)

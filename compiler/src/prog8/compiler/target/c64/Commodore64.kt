@@ -27,7 +27,7 @@ class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
 
     companion object {
         const val SCRATCH_B1 = 0x02
-        const val SCRATCH_B2 = 0x03
+        const val SCRATCH_REG = 0x03    // temp storage for a register
         const val SCRATCH_W1 = 0xfb     // $fb/$fc
         const val SCRATCH_W2 = 0xfd     // $fd/$fe
     }
@@ -54,7 +54,7 @@ class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
                     0xb5, 0xb6, 0xf7, 0xf8, 0xf9, 0xfa))
         }
         assert(SCRATCH_B1 !in free)
-        assert(SCRATCH_B2 !in free)
+        assert(SCRATCH_REG !in free)
         assert(SCRATCH_W1 !in free)
         assert(SCRATCH_W2 !in free)
 

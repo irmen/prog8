@@ -6,14 +6,7 @@
 
     sub start()  {
 
-        ;math.randseed($5566)        ; if you want the exact same number sequence every restart of the program
-        ;math.randseedr()
-
-        c64flt.print_float_ln(rndf())
-        c64flt.print_float_ln(rndf())
-        c64flt.print_float_ln(rndf())
-        return
-
+        math.randseed($2ae4)
 
         ubyte loop
         c64scr.print_string("random bytes:\n")

@@ -6,9 +6,12 @@
 
 
 ~ prog8_lib {
+		; @TODO move all this assembly to a real .asm file instead and include that...
+	
+
 		; note: the following ZP scratch registers must be the same as in c64lib
-		memory  ubyte  SCRATCH_ZP1	= $02		; scratch register #1 in ZP
-		memory  ubyte  SCRATCH_ZP2	= $03		; scratch register #2 in ZP
+		memory  ubyte  SCRATCH_ZPB1	= $02		; scratch byte 1 in ZP
+		memory  ubyte  SCRATCH_ZPREG	= $03		; scratch register in ZP
 		memory  uword  SCRATCH_ZPWORD1	= $fb		; scratch word in ZP ($fb/$fc)
 		memory  uword  SCRATCH_ZPWORD2	= $fd		; scratch word in ZP ($fd/$fe)
 		const   uword  ESTACK_LO	= $ce00
@@ -19,7 +22,7 @@
 
 ; 16-bit rotate right (as opposed to the 6502's usual 17-bit rotate with carry)
 ; the word is placed in SCRATCH_ZPWORD1
-ror2_word	
+ror2_word	.proc
 		lsr  SCRATCH_ZPWORD1+1
 		ror  SCRATCH_ZPWORD1
 		bcc  +
@@ -27,297 +30,495 @@ ror2_word
 		ora  #$80
 		sta  SCRATCH_ZPWORD1+1
 +		rts
+		.pend
 
 
 
 ; @todo:  implement stubs!
 ; @todo:  move float operations to their own library (only included when floats are enabled)
 
-ub2float
+ub2float	.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-b2float
+b2float		.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-uw2float
+uw2float	.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-w2float
+w2float		.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-push_float
+push_float	.proc
 		; ---- push mflpt5 in A/Y onto stack 
 		; (taking 3 stack positions = 6 bytes of which 1 is padding)
 		sta  SCRATCH_ZPWORD1
 		sty  SCRATCH_ZPWORD1+1
 		ldy  #0
-		lda  SCRATCH_ZPWORD1,y
+		lda  (SCRATCH_ZPWORD1),y
 		sta  ESTACK_LO,x
 		iny
-		lda  SCRATCH_ZPWORD1,y
+		lda  (SCRATCH_ZPWORD1),y
 		sta  ESTACK_HI,x
 		dex
 		iny
-		lda  SCRATCH_ZPWORD1,y
+		lda  (SCRATCH_ZPWORD1),y
 		sta  ESTACK_LO,x
 		iny
-		lda  SCRATCH_ZPWORD1,y
+		lda  (SCRATCH_ZPWORD1),y
 		sta  ESTACK_HI,x
 		dex
 		iny
-		lda  SCRATCH_ZPWORD1,y
+		lda  (SCRATCH_ZPWORD1),y
 		sta  ESTACK_LO,x
 		dex
 		rts
+		.pend
 		
 		
-push_float_from_indexed_var
+push_float_from_indexed_var	.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-pop_float
-		; ---- pops mflpt5 from stack to memory A/Y		@TODO CHECK ORDER OF POPS
+pop_float	.proc
+		; ---- pops mflpt5 from stack to memory A/Y
 		; (frees 3 stack positions = 6 bytes of which 1 is padding)
 		sta  SCRATCH_ZPWORD1
 		sty  SCRATCH_ZPWORD1+1
 		ldy  #4
 		inx
 		lda  ESTACK_LO,x
-		sta  SCRATCH_ZPWORD1,y
+		sta  (SCRATCH_ZPWORD1),y
 		dey
 		inx
-		lda  ESTACK_LO,x
-		sta  SCRATCH_ZPWORD1,y
-		dey
 		lda  ESTACK_HI,x
-		sta  SCRATCH_ZPWORD1,y
+		sta  (SCRATCH_ZPWORD1),y
+		dey
+		lda  ESTACK_LO,x
+		sta  (SCRATCH_ZPWORD1),y
 		dey
 		inx
-		lda  ESTACK_LO,x
-		sta  SCRATCH_ZPWORD1,y
 		lda  ESTACK_HI,x
+		sta  (SCRATCH_ZPWORD1),y
 		dey
-		sta  SCRATCH_ZPWORD1,y
+		lda  ESTACK_LO,x
+		sta  (SCRATCH_ZPWORD1),y
 		rts
+		.pend
 		
-pop_float_to_indexed_var
+pop_float_to_indexed_var	.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-pop_mem_float
+pop_mem_float	.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-copy_float
+copy_float	.proc
 		; -- copies the 5 bytes of the mflt value pointed to by SCRATCH_ZPWORD1, 
 		;    into the 5 bytes pointed to by A/Y.  Clobbers Y.
 		sta  SCRATCH_ZPWORD2
 		sty  SCRATCH_ZPWORD2+1
 		ldy  #0
-		lda  SCRATCH_ZPWORD1,y
-		sta  SCRATCH_ZPWORD2,y
+		lda  (SCRATCH_ZPWORD1),y
+		sta  (SCRATCH_ZPWORD2),y
 		iny
-		lda  SCRATCH_ZPWORD1,y
-		sta  SCRATCH_ZPWORD2,y
+		lda  (SCRATCH_ZPWORD1),y
+		sta  (SCRATCH_ZPWORD2),y
 		iny
-		lda  SCRATCH_ZPWORD1,y
-		sta  SCRATCH_ZPWORD2,y
+		lda  (SCRATCH_ZPWORD1),y
+		sta  (SCRATCH_ZPWORD2),y
 		iny
-		lda  SCRATCH_ZPWORD1,y
-		sta  SCRATCH_ZPWORD2,y
+		lda  (SCRATCH_ZPWORD1),y
+		sta  (SCRATCH_ZPWORD2),y
 		iny
-		lda  SCRATCH_ZPWORD1,y
-		sta  SCRATCH_ZPWORD2,y
+		lda  (SCRATCH_ZPWORD1),y
+		sta  (SCRATCH_ZPWORD2),y
 		rts
+		.pend
 
-inc_var_f
+inc_var_f	.proc
 		rts
+		.warn "not implemented"
+		.pend
                 
-dec_var_f
+dec_var_f	.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-div_f
+div_f		.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-add_f
+add_f		.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-sub_f
+sub_f		.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-mul_f
+mul_f		.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-neg_f
+neg_f		.proc
 		rts
+		.warn "not implemented"
+		.pend
 
 		
-add_w
+add_w		.proc
 		rts	; @todo inline?
-add_uw
-		rts	; @todo inline?
+		.warn "not implemented"
+		.pend
 		
-sub_w
+add_uw		.proc
 		rts	; @todo inline?
-sub_uw
-		rts	; @todo inline?
-
-mul_b
-		rts
-mul_ub
-		rts
-mul_w
-		rts
-mul_uw
-		rts
-
-div_b
-		rts
-div_ub
-		rts
-div_w
-		rts
-div_uw
-		rts
-
-remainder_b
-		rts
-remainder_ub
-		rts
-remainder_w
-		rts
-remainder_uw
-		rts
-remainder_f
-		rts
+		.warn "not implemented"
+		.pend
 		
-equal_ub
+sub_w		.proc
+		rts	; @todo inline?
+		.warn "not implemented"
+		.pend
+
+sub_uw		.proc
+		rts	; @todo inline?
+		.warn "not implemented"
+		.pend
+
+mul_b		.proc
 		rts
+		.warn "not implemented"
+		.pend
+		
+mul_ub		.proc
+		rts
+		.warn "not implemented"
+		.pend
+		
+mul_w		.proc
+		rts
+		.warn "not implemented"
+		.pend
+		
+mul_uw		.proc
+		rts
+		.warn "not implemented"
+		.pend
+
+div_b		.proc
+		rts
+		.warn "not implemented"
+		.pend
+		
+div_ub		.proc
+		rts
+		.warn "not implemented"
+		.pend
+		
+div_w		.proc
+		rts
+		.warn "not implemented"
+		.pend
+		
+div_uw		.proc
+		rts
+		.warn "not implemented"
+		.pend
+
+remainder_b	.proc
+		rts
+		.warn "not implemented"
+		.pend
+		
+remainder_ub	.proc
+		rts
+		.warn "not implemented"
+		.pend
+		
+remainder_w	.proc
+		rts
+		.warn "not implemented"
+		.pend
+		
+remainder_uw	.proc
+		rts
+		.warn "not implemented"
+		.pend
+		
+remainder_f	.proc
+		rts
+		.warn "not implemented"
+		.pend
+		
+equal_ub	.proc
+		rts
+		.warn "not implemented"
+		.pend
 	
-equal_b
+equal_b		.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-equal_w
+equal_w		.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-equal_uw
+equal_uw	.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-equal_f
+equal_f		.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-less_ub
+less_ub		.proc
 		rts
+		.warn "not implemented"
+		.pend
 	
-less_b
+less_b		.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-less_w
+less_w		.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-less_uw
+less_uw		.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-less_f
+less_f		.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-lesseq_ub
+lesseq_ub	.proc
 		rts
+		.warn "not implemented"
+		.pend
 	
-lesseq_b
+lesseq_b	.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-lesseq_w
+lesseq_w	.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-lesseq_uw
+lesseq_uw	.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-lesseq_f
+lesseq_f	.proc
 		rts
+		.warn "not implemented"
+		.pend
 	
-greater_ub
+greater_ub	.proc
 		rts
+		.warn "not implemented"
+		.pend
 	
-greater_b
+greater_b	.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-greater_w
+greater_w	.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-greater_uw
+greater_uw	.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-greater_f
+greater_f	.proc
 		rts
+		.warn "not implemented"
+		.pend
 	
-greatereq_ub
+greatereq_ub	.proc
 		rts
+		.warn "not implemented"
+		.pend
 	
-greatereq_b
+greatereq_b	.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-greatereq_w
+greatereq_w	.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-greatereq_uw
+greatereq_uw	.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-greatereq_f
+greatereq_f	.proc
 		rts
+		.warn "not implemented"
+		.pend
 
-func_sin
+func_sin	.proc
 		rts
-func_cos
-		rts
-func_abs
-		rts
-func_acos
-		rts
-func_asin
-		rts
-func_tan
-		rts
-func_atan
-		rts
-func_ln
-		rts
-func_log2
-		rts
-func_log10
-		rts
-func_sqrt
-		rts
-func_rad
-		rts
-func_deg
-		rts
-func_round
-		rts
-func_floor
-		rts
-func_ceil
-		rts
-func_max
-		rts
-func_min
-		rts
-func_avg
-		rts
-func_sum
-		rts
-func_len
-		rts
-func_any
-		rts
-func_all
-		rts
+		.warn "not implemented"
+		.pend
 
-func_rnd
+func_cos	.proc
+		rts
+		.warn "not implemented"
+		.pend
+		
+func_abs	.proc
+		rts
+		.warn "not implemented"
+		.pend
+		
+func_acos	.proc
+		rts
+		.warn "not implemented"
+		.pend
+		
+func_asin	.proc
+		rts
+		.warn "not implemented"
+		.pend
+		
+func_tan	.proc
+		rts
+		.warn "not implemented"
+		.pend
+		
+func_atan	.proc
+		rts
+		.warn "not implemented"
+		.pend
+		
+func_ln		.proc
+		rts
+		.warn "not implemented"
+		.pend
+		
+func_log2	.proc
+		rts
+		.warn "not implemented"
+		.pend
+		
+func_log10	.proc
+		rts
+		.warn "not implemented"
+		.pend
+		
+func_sqrt	.proc
+		rts
+		.warn "not implemented"
+		.pend
+		
+func_rad	.proc
+		rts
+		.warn "not implemented"
+		.pend
+		
+func_deg	.proc
+		rts
+		.warn "not implemented"
+		.pend
+		
+func_round	.proc
+		rts
+		.warn "not implemented"
+		.pend
+		
+func_floor	.proc
+		rts
+		.warn "not implemented"
+		.pend
+		
+func_ceil	.proc
+		rts
+		.warn "not implemented"
+		.pend
+		
+func_max	.proc
+		rts
+		.warn "not implemented--what does it max over???"
+		.pend
+		
+func_min	.proc
+		rts
+		.warn "not implemented--what does it min over???"
+		.pend
+		
+func_avg	.proc
+		rts
+		.warn "not implemented--what does it avg over???"
+		.pend
+		
+func_sum	.proc
+		rts
+		.warn "not implemented--what does it sum over???"
+		.pend
+		
+func_len	.proc
+		rts
+		.warn "not implemented--of what does it take len?"
+		.pend
+		
+func_any	.proc
+		rts
+		.warn "not implemented--of what does it do any?"
+		.pend
+		
+func_all	.proc
+		rts
+		.warn "not implemented--of what does it do all?"
+		.pend
+		
+
+func_rnd	.proc
 		; -- put a random ubyte on the estack
 		jsr  math.randbyte
 		sta  ESTACK_LO,x
 		dex
 		rts
+		.pend
 		
-func_rndw
+func_rndw	.proc
 		; -- put a random uword on the estack
 		jsr  math.randword
 		sta  ESTACK_LO,x
@@ -325,36 +526,60 @@ func_rndw
 		sta  ESTACK_HI,x
 		dex
 		rts
+		.pend
 
-func_rndf
+func_rndf	.proc
 		; -- put a random floating point value on the stack
-		stx  SCRATCH_ZP1
-		lda  #39
-		jsr  c64.RNDA		; rng into fac1
+		stx  SCRATCH_ZPREG
+		lda  #1
+		jsr  c64.FREADSA
+		jsr  c64.RND		; rng into fac1
 		ldx  #<_rndf_rnum5
 		ldy  #>_rndf_rnum5
 		jsr  c64.FTOMEMXY	; fac1 to mem X/Y
-		ldx  SCRATCH_ZP1
+		ldx  SCRATCH_ZPREG
 		lda  #<_rndf_rnum5
 		ldy  #>_rndf_rnum5
 		jmp  push_float
 _rndf_rnum5	.fill 5
+		.pend
 
 
-func_wrd
+func_wrd	.proc
 		rts
-func_uwrd
+		.warn "not implemented"
+		.pend
+
+func_uwrd	.proc
 		rts
-func_str2byte
+		.warn "not implemented"
+		.pend
+
+func_str2byte	.proc
 		rts
-func_str2ubyte
+		.warn "not implemented"
+		.pend
+
+func_str2ubyte	.proc
 		rts
-func_str2word
+		.warn "not implemented"
+		.pend
+
+func_str2word	.proc
 		rts
-func_str2uword
+		.warn "not implemented"
+		.pend
+
+func_str2uword	.proc
 		rts
-func_str2float
+		.warn "not implemented"
+		.pend
+
+func_str2float	.proc
 		rts
+		.warn "not implemented"
+		.pend
+
     
 	}}
 }

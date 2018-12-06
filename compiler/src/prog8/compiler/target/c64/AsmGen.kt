@@ -3,7 +3,6 @@ package prog8.compiler.target.c64
 // note: to put stuff on the stack, we use Absolute,X  addressing mode which is 3 bytes / 4 cycles
 // possible space optimization is to use zeropage (indirect),Y  which is 2 bytes, but 5 cycles
 
-
 import prog8.ast.DataType
 import prog8.ast.escape
 import prog8.compiler.*
@@ -407,8 +406,24 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.JUMP -> " jmp  ${ins.callLabel}"
             Opcode.CALL -> " jsr  ${ins.callLabel}"
             Opcode.RETURN -> " rts"
-            Opcode.RSAVE -> " php |  pha |  txa |  pha |  tya |  pha"
-            Opcode.RRESTORE -> " pla |  tay |  pla |  tax |  pla |  plp"
+            Opcode.RSAVE -> {
+                // save cpu status flag and all registers A, X, Y.
+                // see http://6502.org/tutorials/register_preservation.html
+                """
+                php
+                sta  ${C64Zeropage.SCRATCH_REG}
+                pha
+                txa
+                pha
+                tya
+                pha
+                lda  ${C64Zeropage.SCRATCH_REG}
+                """
+            }
+            Opcode.RRESTORE -> {
+                // restore all registers and cpu status flag
+                " pla |  tay |  pla |  tax |  pla |  plp"
+            }
             Opcode.DISCARD_BYTE -> " inx"
             Opcode.DISCARD_WORD -> " inx"
             Opcode.DISCARD_FLOAT -> " inx |  inx |  inx"
