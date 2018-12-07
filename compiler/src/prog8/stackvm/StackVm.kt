@@ -1126,14 +1126,14 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.EQUAL_BYTE -> {
                 val (top, second) = evalstack.pop2()
-                checkDt(top, DataType.UBYTE)
-                checkDt(second, DataType.UBYTE)
+                checkDt(top, DataType.BYTE, DataType.UBYTE)
+                checkDt(second, DataType.BYTE, DataType.UBYTE)
                 evalstack.push(Value(DataType.UBYTE, if (second == top) 1 else 0))
             }
             Opcode.EQUAL_WORD -> {
                 val (top, second) = evalstack.pop2()
-                checkDt(top, DataType.UWORD)
-                checkDt(second, DataType.UWORD)
+                checkDt(top, DataType.WORD, DataType.UWORD)
+                checkDt(second, DataType.WORD, DataType.UWORD)
                 evalstack.push(Value(DataType.UBYTE, if (second == top) 1 else 0))
             }
             Opcode.EQUAL_F -> {
@@ -1144,14 +1144,14 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.NOTEQUAL_BYTE -> {
                 val (top, second) = evalstack.pop2()
-                checkDt(top, DataType.UBYTE)
-                checkDt(second, DataType.UBYTE)
+                checkDt(top, DataType.BYTE, DataType.UBYTE)
+                checkDt(second, DataType.BYTE, DataType.UBYTE)
                 evalstack.push(Value(DataType.UBYTE, if (second != top) 1 else 0))
             }
             Opcode.NOTEQUAL_WORD -> {
                 val (top, second) = evalstack.pop2()
-                checkDt(top, DataType.UWORD)
-                checkDt(second, DataType.UWORD)
+                checkDt(top, DataType.WORD, DataType.UWORD)
+                checkDt(second, DataType.UWORD, DataType.UWORD)
                 evalstack.push(Value(DataType.UBYTE, if (second != top) 1 else 0))
             }
             Opcode.NOTEQUAL_F -> {

@@ -156,10 +156,10 @@ fun main(args: Array<String>) {
 
     if(startEmu) {
         println("\nStarting C64 emulator...")
-        val monitorfile = "$programname.mon_list"
-        val cmdline = listOf("x64", "-moncommands", monitorfile,
+        val cmdline = listOf("x64", "-moncommands", "$programname.vice-mon-list",
                 "-autostartprgmode", "1", "-autostart-warp", "-autostart", programname+".prg")
-        ProcessBuilder(cmdline).inheritIO().start()
+        val process = ProcessBuilder(cmdline).inheritIO().start()
+        process.waitFor()
     }
 }
 

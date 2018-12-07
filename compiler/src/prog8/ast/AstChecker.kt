@@ -297,6 +297,11 @@ class AstChecker(private val namespace: INameScope,
 
             if(subroutine.asmClobbers.intersect(regCounts.keys).isNotEmpty())
                 err("a return register is also in the clobber list")
+        } else {
+            // TODO: currently, non-asm subroutines can only take numeric arguments
+            if(!subroutine.parameters.all{it.type in NumericDatatypes}) {
+                err("non-asm subroutine can only take numerical parameters (no str/array types) for now")
+            }
         }
         return subroutine
     }

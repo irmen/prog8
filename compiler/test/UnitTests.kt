@@ -154,17 +154,17 @@ class TestZeropage {
     @Test
     fun testFreeSpaces() {
         val zp1 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true))
-        assertEquals(23, zp1.available())
+        assertEquals(22, zp1.available())
         val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), true))
-        assertEquals(71, zp2.available())
+        assertEquals(70, zp2.available())
         val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), true))
-        assertEquals(239, zp3.available())
+        assertEquals(238, zp3.available())
     }
 
     @Test
     fun testReservedSpace() {
         val zp1 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), true))
-        assertEquals(239, zp1.available())
+        assertEquals(238, zp1.available())
         assertTrue(50 in zp1.free)
         assertTrue(100 in zp1.free)
         assertTrue(49 in zp1.free)
@@ -187,7 +187,7 @@ class TestZeropage {
     @Test
     fun testBasicsafeAllocation() {
         val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true))
-        assertEquals(23, zp.available())
+        assertEquals(22, zp.available())
 
         zp.allocate(VarDecl(VarDeclType.VAR, DataType.FLOAT, null, "", null, dummypos))
         assertFailsWith<CompilerException> {
@@ -211,17 +211,17 @@ class TestZeropage {
     @Test
     fun testFullAllocation() {
         val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), true))
-        assertEquals(239, zp.available())
+        assertEquals(238, zp.available())
         val loc = zp.allocate(VarDecl(VarDeclType.VAR, DataType.FLOAT, null, "", null, dummypos))
         assertTrue(loc > 3)
         assertFalse(loc in zp.free)
         val num = zp.available() / 5
         val rest = zp.available() % 5
 
-        for(i in 0..num-4) {
+        for(i in 0..num-5) {
             zp.allocate(VarDecl(VarDeclType.VAR, DataType.FLOAT, null, "", null, dummypos))
         }
-        assertEquals(19,zp.available())
+        assertEquals(23,zp.available())
 
         assertFailsWith<CompilerException> {
             // can't allocate because no more sequential bytes, only fragmented
@@ -234,7 +234,9 @@ class TestZeropage {
         zp.allocate(VarDecl(VarDeclType.VAR, DataType.UWORD, null, "", null, dummypos))
         zp.allocate(VarDecl(VarDeclType.VAR, DataType.UWORD, null, "", null, dummypos))
 
-        assertEquals(1, zp.available())
+        assertEquals(5, zp.available())
+        zp.allocate(VarDecl(VarDeclType.VAR, DataType.UWORD, null, "", null, dummypos))
+        zp.allocate(VarDecl(VarDeclType.VAR, DataType.UWORD, null, "", null, dummypos))
         zp.allocate(VarDecl(VarDeclType.VAR, DataType.UBYTE, null, "", null, dummypos))
         assertFailsWith<CompilerException> {
             // no more space
@@ -244,23 +246,18 @@ class TestZeropage {
 
     @Test
     fun testEfficientAllocation() {
-        //  free = (0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0d, 0x0e,
-        //          0x12, 0x2a, 0x52, 0x94, 0x95, 0xa7, 0xa8, 0xa9, 0xaa,
-        //          0xb5, 0xb6, 0xf7, 0xf8, 0xf9, 0xfa))
         val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(),  true))
-        assertEquals(23, zp.available())
+        assertEquals(22, zp.available())
         assertEquals(0x04, zp.allocate(VarDecl(VarDeclType.VAR, DataType.FLOAT, null, "", null, dummypos)))
         assertEquals(0x09, zp.allocate(VarDecl(VarDeclType.VAR, DataType.UBYTE, null, "", null, dummypos)))
-        assertEquals(0x12, zp.allocate(VarDecl(VarDeclType.VAR, DataType.UBYTE, null, "", null, dummypos)))
         assertEquals(0x0d, zp.allocate(VarDecl(VarDeclType.VAR, DataType.UWORD, null, "", null, dummypos)))
+        assertEquals(0x51, zp.allocate(VarDecl(VarDeclType.VAR, DataType.UWORD, null, "", null, dummypos)))
         assertEquals(0x94, zp.allocate(VarDecl(VarDeclType.VAR, DataType.UWORD, null, "", null, dummypos)))
-        assertEquals(0x2a, zp.allocate(VarDecl(VarDeclType.VAR, DataType.UBYTE, null, "", null, dummypos)))
         assertEquals(0xa7, zp.allocate(VarDecl(VarDeclType.VAR, DataType.UWORD, null, "", null, dummypos)))
         assertEquals(0xa9, zp.allocate(VarDecl(VarDeclType.VAR, DataType.UWORD, null, "", null, dummypos)))
         assertEquals(0xb5, zp.allocate(VarDecl(VarDeclType.VAR, DataType.UWORD, null, "", null, dummypos)))
         assertEquals(0xf7, zp.allocate(VarDecl(VarDeclType.VAR, DataType.UWORD, null, "", null, dummypos)))
         assertEquals(0xf9, zp.allocate(VarDecl(VarDeclType.VAR, DataType.UWORD, null, "", null, dummypos)))
-        assertEquals(0x52, zp.allocate(VarDecl(VarDeclType.VAR, DataType.UBYTE, null, "", null, dummypos)))
         assertEquals(0, zp.available())
     }
 }

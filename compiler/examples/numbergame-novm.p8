@@ -4,13 +4,13 @@
 
 ~ main {
     sub start()  {
-        str   name    = "                    "
-        str   guess   = "000000"
+        str   name    = "????????????????????????????????????????"
+        str   guess   = "??????????"
         ubyte secretnumber = rnd() % 100
 
-        c64.VMCSB = %10111  ; switch lowercase chars
+        c64.VMCSB |= 2  ; switch lowercase chars
         c64scr.print_string("Please introduce yourself: ")
-        Y=c64scr.input_chars(name)
+        c64scr.input_chars(name)
         c64scr.print_string("\n\nHello, ")
         c64scr.print_string(name)
         c64scr.print_string(".\nLet's play a number guessing game.\nI am thinking of a number from 1 to 100!You'll have to guess it!\n")
@@ -21,7 +21,7 @@
             c64scr.print_string(" guess")
             if attempts_left>1  c64scr.print_string("es")
             c64scr.print_string(" left.\nWhat is your next guess? ")
-            Y=c64scr.input_chars(guess)
+            c64scr.input_chars(guess)
             ubyte guessednumber = str2ubyte(guess)
             if guessednumber==secretnumber {
                 c64scr.print_string("\n\nYou guessed it, impressive!\n")

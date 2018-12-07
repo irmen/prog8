@@ -5,16 +5,17 @@
 ~ main {
     sub start()  {
         str   name    = "????????????????????????????????????????"
-        str   guess   = "??????????"
+        str   guessstr   = "??????????"
+        ubyte  guess
         ubyte  secretnumber = 0
         ubyte  attempts_left = 10
         memory uword freadstr_arg = $22		; argument for FREADSTR
         uword testword
 
         ; greeting
-        c64.VMCSB = %10111  ; switch lowercase chars
+        c64.VMCSB |= 2  ; switch lowercase chars
         c64.STROUT("Please introduce yourself: ")
-        Y = c64scr.input_chars(name)
+        c64scr.input_chars(name)
         c64.CHROUT('\n')
         c64.CHROUT('\n')
         c64.STROUT("Hello, ")
@@ -28,7 +29,7 @@
         c64.FADDH()             ; add 0.5..
         c64.FADDH()             ;   and again, so +1 total
         A, Y = c64flt.GETADRAY()
-        secretnumber = A
+        secretnumber = A        ; secret number = rnd()*100+1
 
 ask_guess:
         c64.STROUT("\nYou have ")
@@ -37,17 +38,22 @@ ask_guess:
         if(attempts_left>0) c64.STROUT("es")
 
         c64.STROUT(" left.\nWhat is your next guess? ")
-        Y = c64scr.input_chars(guess)
+        c64scr.input_chars(guessstr)
         c64.CHROUT('\n')
-        freadstr_arg = guess
-        c64.FREADSTR(A)
+        freadstr_arg = guessstr
+        rsave()
+        c64.FREADSTR(Y)
         A, Y = c64flt.GETADRAY()
-        if(A==secretnumber) {
+        guess=A
+        rrestore()
+        c64.EXTCOL=guess    ; @debug
+        c64.BGCOL0=secretnumber ;@debug
+        if(guess==secretnumber) {               ; @todo equal_b doesn't work
             c64.STROUT("\nThat's my number, impressive!\n")
             goto goodbye
         }
         c64.STROUT("\nThat is too ")
-        if(A > secretnumber)
+        if(guess > secretnumber)        ; @todo greater_ub doesn't work?
             c64.STROUT("low!\n")
         else
             c64.STROUT("high!\n")

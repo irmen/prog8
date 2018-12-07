@@ -269,31 +269,72 @@ remainder_f	.proc
 		.warn "not implemented"
 		.pend
 		
-equal_ub	.proc
-		rts
-		.warn "not implemented"
-		.pend
-	
+
 equal_b		.proc
+		; -- are the two bytes on the stack identical?
+		inx
+		lda  ESTACK_LO,x
+		cmp  ESTACK_LO+1,x
+		bne  +
+		lda  #1
+		sta  ESTACK_LO+1,x
 		rts
-		.warn "not implemented"
++		lda  #0
+		sta  ESTACK_LO+1,x
+		rts
 		.pend
 
 equal_w		.proc
+		; -- are the two words on the stack identical?
+		inx
+		lda  ESTACK_LO,x
+		cmp  ESTACK_LO+1,x
+		bne  +
+		lda  ESTACK_HI,x
+		cmp  ESTACK_HI+1,x
+		bne  +
+		txa		; words are equal
+		sta  ESTACK_LO+1,x
 		rts
-		.warn "not implemented"
-		.pend
-
-equal_uw	.proc
++		lda  #0		; words are not equal
+		sta  ESTACK_LO+1,x
 		rts
-		.warn "not implemented"
 		.pend
 
 equal_f		.proc
 		rts
 		.warn "not implemented"
 		.pend
+		
+notequal_b	.proc
+		; -- are the two bytes on the stack different?
+		inx
+		lda  ESTACK_LO,x
+		eor  ESTACK_LO+1,x
+		sta  ESTACK_LO+1,x
+		rts
+		.pend
+		
+notequal_w	.proc
+		; -- are the two words on the stack different?
+		inx
+		lda  ESTACK_LO,x
+		eor  ESTACK_LO+1,x
+		beq  +
+		sta  ESTACK_LO+1,x
+		rts
++		lda  ESTACK_HI,x
+		eor  ESTACK_HI+1,x
+		sta  ESTACK_LO+1,x
+		rts
+		.pend
 
+notequal_f	.proc
+		rts
+		.warn "not implemented"
+		.pend
+
+		
 less_ub		.proc
 		rts
 		.warn "not implemented"
@@ -345,8 +386,14 @@ lesseq_f	.proc
 		.pend
 	
 greater_ub	.proc
+		inx
+		lda  ESTACK_LO,x
+		clc
+		sbc  ESTACK_LO+1,x
+		lda  #0
+		adc  #0
+		sta  ESTACK_LO+1,x
 		rts
-		.warn "not implemented"
 		.pend
 	
 greater_b	.proc

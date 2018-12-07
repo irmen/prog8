@@ -536,7 +536,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                         assignment.value = LiteralValue(DataType.UWORD, wordvalue = lv.asIntegerValue, position=lv.position)
                     else if(lv.type==DataType.BYTE && lv.bytevalue!!>=0)
                         assignment.value = LiteralValue(DataType.UWORD, wordvalue = lv.asIntegerValue, position=lv.position)
-                    else if(lv.type==DataType.WORD && lv.bytevalue!!>=0)
+                    else if(lv.type==DataType.WORD && lv.wordvalue!!>=0)
                         assignment.value = LiteralValue(DataType.UWORD, wordvalue = lv.asIntegerValue, position=lv.position)
                     else if(lv.type==DataType.FLOAT) {
                         val d = lv.floatvalue!!
