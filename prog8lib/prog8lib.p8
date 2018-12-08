@@ -272,40 +272,29 @@ remainder_f	.proc
 
 equal_b		.proc
 		; -- are the two bytes on the stack identical?
-		inx
-		lda  ESTACK_LO,x
-		cmp  ESTACK_LO+1,x
-		bne  +
-		lda  #1
+		lda  ESTACK_LO+1,x
+		cmp  ESTACK_LO+2,x
+		bne  _equal_b_false
+_equal_b_true	lda  #1
+_equal_b_store	inx
 		sta  ESTACK_LO+1,x
 		rts
-+		lda  #0
-		sta  ESTACK_LO+1,x
-		rts
+_equal_b_false	lda  #0
+		beq  _equal_b_store
 		.pend
 
+		
 equal_w		.proc
 		; -- are the two words on the stack identical?
-		inx
-		lda  ESTACK_LO,x
-		cmp  ESTACK_LO+1,x
-		bne  +
-		lda  ESTACK_HI,x
-		cmp  ESTACK_HI+1,x
-		bne  +
-		txa		; words are equal
-		sta  ESTACK_LO+1,x
-		rts
-+		lda  #0		; words are not equal
-		sta  ESTACK_LO+1,x
-		rts
+		lda  ESTACK_LO+1,x
+		cmp  ESTACK_LO+2,x
+		bne  equal_b._equal_b_false
+		lda  ESTACK_HI+1,x
+		cmp  ESTACK_HI+2,x
+		bne  equal_b._equal_b_false
+		beq  equal_b._equal_b_true
 		.pend
 
-equal_f		.proc
-		rts
-		.warn "not implemented"
-		.pend
-		
 notequal_b	.proc
 		; -- are the two bytes on the stack different?
 		inx
@@ -328,19 +317,20 @@ notequal_w	.proc
 		sta  ESTACK_LO+1,x
 		rts
 		.pend
-
-notequal_f	.proc
-		rts
-		.warn "not implemented"
-		.pend
-
 		
 less_ub		.proc
-		rts
-		.warn "not implemented"
+		lda  ESTACK_LO+2,x
+		cmp  ESTACK_LO+1,x
+		bcc  equal_b._equal_b_true
+		bcs  equal_b._equal_b_false
 		.pend
 	
 less_b		.proc
+		rts
+		.warn  "not implemented"
+		.pend
+
+less_uw		.proc
 		rts
 		.warn "not implemented"
 		.pend
@@ -350,27 +340,15 @@ less_w		.proc
 		.warn "not implemented"
 		.pend
 
-less_uw		.proc
-		rts
-		.warn "not implemented"
-		.pend
-
-less_f		.proc
-		rts
-		.warn "not implemented"
-		.pend
-
 lesseq_ub	.proc
-		rts
-		.warn "not implemented"
+		lda  ESTACK_LO+2,x
+		cmp  ESTACK_LO+1,x
+		bcc  equal_b._equal_b_true
+		beq  equal_b._equal_b_true
+		bcs  equal_b._equal_b_false
 		.pend
 	
 lesseq_b	.proc
-		rts
-		.warn "not implemented"
-		.pend
-
-lesseq_w	.proc
 		rts
 		.warn "not implemented"
 		.pend
@@ -379,24 +357,26 @@ lesseq_uw	.proc
 		rts
 		.warn "not implemented"
 		.pend
-
-lesseq_f	.proc
+		
+lesseq_w	.proc
 		rts
 		.warn "not implemented"
 		.pend
-	
+
 greater_ub	.proc
-		inx
-		lda  ESTACK_LO,x
-		clc
-		sbc  ESTACK_LO+1,x
-		lda  #0
-		adc  #0
-		sta  ESTACK_LO+1,x
-		rts
+		lda  ESTACK_LO+2,x
+		cmp  ESTACK_LO+1,x
+		beq  equal_b._equal_b_false
+		bcs  equal_b._equal_b_true
+		bcc  equal_b._equal_b_false
 		.pend
 	
 greater_b	.proc
+		rts
+		.warn  "not implemented"
+		.pend
+
+greater_uw	.proc
 		rts
 		.warn "not implemented"
 		.pend
@@ -405,28 +385,15 @@ greater_w	.proc
 		rts
 		.warn "not implemented"
 		.pend
-
-greater_uw	.proc
-		rts
-		.warn "not implemented"
-		.pend
-
-greater_f	.proc
-		rts
-		.warn "not implemented"
-		.pend
 	
 greatereq_ub	.proc
-		rts
-		.warn "not implemented"
+		lda  ESTACK_LO+2,x
+		cmp  ESTACK_LO+1,x
+		bcs  equal_b._equal_b_true
+		bcc  equal_b._equal_b_false
 		.pend
 	
 greatereq_b	.proc
-		rts
-		.warn "not implemented"
-		.pend
-
-greatereq_w	.proc
 		rts
 		.warn "not implemented"
 		.pend
@@ -436,10 +403,64 @@ greatereq_uw	.proc
 		.warn "not implemented"
 		.pend
 
+greatereq_w	.proc
+		rts
+		.warn "not implemented"
+		.pend
+
+equal_f		.proc
+		; -- are the two mflpt5 numbers on the stack identical?
+		inx
+		inx
+		inx
+		inx
+		lda  ESTACK_LO-3,x
+		cmp  ESTACK_LO,x
+		bne  equal_b._equal_b_false
+		lda  ESTACK_LO-2,x
+		cmp  ESTACK_LO+1,x
+		bne  equal_b._equal_b_false
+		lda  ESTACK_LO-1,x
+		cmp  ESTACK_LO+2,x
+		bne  equal_b._equal_b_false
+		lda  ESTACK_HI-2,x
+		cmp  ESTACK_HI+1,x
+		bne  equal_b._equal_b_false
+		lda  ESTACK_HI-1,x
+		cmp  ESTACK_HI+2,x
+		bne  equal_b._equal_b_false
+		beq  equal_b._equal_b_true
+		.pend
+
+notequal_f	.proc
+		; -- are the two mflpt5 numbers on the stack different?
+		jsr  equal_f
+		eor  #1		; invert the result
+		sta  ESTACK_LO+1,x
+		rts
+		.pend
+
+less_f		.proc
+		rts
+		.warn "not implemented"
+		.pend
+
+lesseq_f	.proc
+		rts
+		.warn "not implemented"
+		.pend
+
+greater_f	.proc
+		rts
+		.warn "not implemented"
+		.pend
+
 greatereq_f	.proc
 		rts
 		.warn "not implemented"
 		.pend
+
+		
 
 func_sin	.proc
 		rts

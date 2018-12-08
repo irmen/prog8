@@ -19,28 +19,72 @@
 
 
         rsave()
-        ub1=100
-        ub2=199
-        c64.STROUT("ub1=100,ub2=199\n")
+        c64scr.print_byte_decimal(X)
+        c64.CHROUT('\n')
         rrestore()
 
-        if ub1==ub2 {
+        ub2=ub1<ub2
+        ub2=ub1<ub2
+        ub2=ub1<ub2
+        ub2=ub1<ub2
+        ub2=ub1>ub2
+        ub2=ub1>ub2
+        ub2=ub1>ub2
+        ub2=ub1>ub2
+        ub2=ub1>ub2
+        ub2=ub1<=ub2
+        ub2=ub1<=ub2
+        ub2=ub1<=ub2
+        ub2=ub1<=ub2
+        ub2=ub1>=ub2
+        ub2=ub1>=ub2
+        ub2=ub1>=ub2
+        ub2=ub1>=ub2
+        ub2=ub1>=ub2
+        rsave()
+
+        ub1=66
+        ub2=199
+        c64.STROUT("ub1=66,ub2=199\n")
+        rrestore()
+
+        if ub1<ub2 {
             rsave()
-            c64.STROUT(" true: ub1==ub2\n")
+            c64.STROUT(" true: ub1<ub2\n")
             rrestore()
         } else {
             rsave()
-            c64.STROUT(" false: ub1==ub2\n")
+            c64.STROUT(" false: ub1<ub2\n")
             rrestore()
         }
 
-        if ub1!=ub2 {
+        if ub1<=ub2 {
             rsave()
-            c64.STROUT(" true: ub1!=ub2\n")
+            c64.STROUT(" true: ub1<=ub2\n")
             rrestore()
         } else {
             rsave()
-            c64.STROUT(" false: ub1!=ub2\n")
+            c64.STROUT(" false: ub1<=ub2\n")
+            rrestore()
+        }
+
+        if ub1>ub2 {
+            rsave()
+            c64.STROUT(" true: ub1>ub2\n")
+            rrestore()
+        } else {
+            rsave()
+            c64.STROUT(" false: ub1>b2\n")
+            rrestore()
+        }
+
+        if ub1>=ub2 {
+            rsave()
+            c64.STROUT(" true: ub1>=ub2\n")
+            rrestore()
+        } else {
+            rsave()
+            c64.STROUT(" false: ub1>=b2\n")
             rrestore()
         }
 
@@ -51,182 +95,96 @@
         c64.STROUT("ub1=ub2=199\n")
         rrestore()
 
-        if ub1==ub2 {
+        if ub1<ub2 {
             rsave()
-            c64.STROUT(" true: ub1==ub2\n")
+            c64.STROUT(" true: ub1<ub2\n")
             rrestore()
         } else {
             rsave()
-            c64.STROUT(" false: ub1==ub2\n")
+            c64.STROUT(" false: ub1<ub2\n")
             rrestore()
         }
 
-        if ub1!=ub2 {
+        if ub1<=ub2 {
             rsave()
-            c64.STROUT(" true: ub1!=ub2\n")
+            c64.STROUT(" true: ub1<=ub2\n")
             rrestore()
         } else {
             rsave()
-            c64.STROUT(" false: ub1!=ub2\n")
+            c64.STROUT(" false: ub1<=ub2\n")
             rrestore()
         }
 
-        rsave()
-        b1=50
-        b2=111
-        c64.STROUT("b1=50,b2=111\n")
-        rrestore()
-
-        if b1==b2 {
+        if ub1>ub2 {
             rsave()
-            c64.STROUT(" true: b1==b2\n")
+            c64.STROUT(" true: ub1>ub2\n")
             rrestore()
         } else {
             rsave()
-            c64.STROUT(" false: b1==b2\n")
+            c64.STROUT(" false: ub1>ub2\n")
             rrestore()
         }
 
-        if b1!=b2 {
+        if ub1>=ub2 {
             rsave()
-            c64.STROUT(" true: b1!=b2\n")
+            c64.STROUT(" true: ub1>=ub2\n")
             rrestore()
         } else {
             rsave()
-            c64.STROUT(" false: b1!=b2\n")
-            rrestore()
-        }
-
-
-        rsave()
-        b1=111
-        b2=111
-        c64.STROUT("b1=b2=111\n")
-        rrestore()
-
-        if b1==b2 {
-            rsave()
-            c64.STROUT(" true: b1==b2\n")
-            rrestore()
-        } else {
-            rsave()
-            c64.STROUT(" false: b1==b2\n")
-            rrestore()
-        }
-
-        if b1!=b2 {
-            rsave()
-            c64.STROUT(" true: b1!=b2\n")
-            rrestore()
-        } else {
-            rsave()
-            c64.STROUT(" false: b1!=b2\n")
-            rrestore()
-        }
-
-
-        rsave()
-        uw1=1234
-        uw2=59999
-        c64.STROUT("uw1=1234,uw2=59999\n")
-        rrestore()
-
-        if uw1==uw2 {
-            rsave()
-            c64.STROUT(" true: uw1==uw2\n")
-            rrestore()
-        } else {
-            rsave()
-            c64.STROUT(" false: uw1==uw2\n")
-            rrestore()
-        }
-
-        if uw1!=uw2 {
-            rsave()
-            c64.STROUT(" true: uw1!=uw2\n")
-            rrestore()
-        } else {
-            rsave()
-            c64.STROUT(" false: uw1!=uw2\n")
+            c64.STROUT(" false: ub1>=ub2\n")
             rrestore()
         }
 
         rsave()
-        uw1=52999
-        uw2=52999
-        c64.STROUT("uw1=uw2=52999\n")
+        ub1=222
+        ub2=88
+        c64.STROUT("ub1=222,ub2=88\n")
         rrestore()
 
-        if uw1==uw2 {
+        if ub1<ub2 {
             rsave()
-            c64.STROUT(" true: uw1==uw2\n")
+            c64.STROUT(" true: ub1<ub2\n")
             rrestore()
         } else {
             rsave()
-            c64.STROUT(" false: uw1==uw2\n")
+            c64.STROUT(" false: ub1<ub2\n")
             rrestore()
         }
 
-        if uw1!=uw2 {
+        if ub1<=ub2 {
             rsave()
-            c64.STROUT(" true: uw1!=uw2\n")
+            c64.STROUT(" true: ub1<=ub2\n")
             rrestore()
         } else {
             rsave()
-            c64.STROUT(" false: uw1!=uw2\n")
+            c64.STROUT(" false: ub1<=ub2\n")
             rrestore()
         }
+
+        if ub1>ub2 {
+            rsave()
+            c64.STROUT(" true: ub1>ub2\n")
+            rrestore()
+        } else {
+            rsave()
+            c64.STROUT(" false: ub1>ub2\n")
+            rrestore()
+        }
+
+        if ub1>=ub2 {
+            rsave()
+            c64.STROUT(" true: ub1>=ub2\n")
+            rrestore()
+        } else {
+            rsave()
+            c64.STROUT(" false: ub1>=ub2\n")
+            rrestore()
+        }
+
 
         rsave()
-        w1=1234
-        w2=-9999
-        c64.STROUT("w1=1234, w2=-9999\n")
+        c64scr.print_byte_decimal(X)
+        c64.CHROUT('\n')
         rrestore()
-
-        if w1==w2 {
-            rsave()
-            c64.STROUT(" true: w1==w2\n")
-            rrestore()
-        } else {
-            rsave()
-            c64.STROUT(" false: w1==w2\n")
-            rrestore()
-        }
-
-        if w1!=w2 {
-            rsave()
-            c64.STROUT(" true: w1!=w2\n")
-            rrestore()
-        } else {
-            rsave()
-            c64.STROUT(" false: w1!=w2\n")
-            rrestore()
-        }
-
-        rsave()
-        w1=44
-        w2=44
-        c64.STROUT("w1=w2=44\n")
-        rrestore()
-
-        if w1==w2 {
-            rsave()
-            c64.STROUT(" true: w1==w2\n")
-            rrestore()
-        } else {
-            rsave()
-            c64.STROUT(" false: w1==w2\n")
-            rrestore()
-        }
-
-        if w1!=w2 {
-            rsave()
-            c64.STROUT(" true: w1!=w2\n")
-            rrestore()
-        } else {
-            rsave()
-            c64.STROUT(" false: w1!=w2\n")
-            rrestore()
-        }
     }
 }
