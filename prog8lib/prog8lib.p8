@@ -272,8 +272,8 @@ remainder_f	.proc
 
 equal_b		.proc
 		; -- are the two bytes on the stack identical?
-		lda  ESTACK_LO+1,x
-		cmp  ESTACK_LO+2,x
+		lda  ESTACK_LO+2,x
+		cmp  ESTACK_LO+1,x
 		bne  _equal_b_false
 _equal_b_true	lda  #1
 _equal_b_store	inx
@@ -286,6 +286,7 @@ _equal_b_false	lda  #0
 		
 equal_w		.proc
 		; -- are the two words on the stack identical?
+		; @todo optimize according to http://www.6502.org/tutorials/compare_beyond.html
 		lda  ESTACK_LO+1,x
 		cmp  ESTACK_LO+2,x
 		bne  equal_b._equal_b_false
@@ -326,8 +327,14 @@ less_ub		.proc
 		.pend
 	
 less_b		.proc
-		rts
-		.warn  "not implemented"
+		; see http://www.6502.org/tutorials/compare_beyond.html
+		lda  ESTACK_LO+2,x
+		sec
+		sbc  ESTACK_LO+1,x
+		bvc  +
+		eor  #$80
++		bmi  equal_b._equal_b_true
+		bpl  equal_b._equal_b_false
 		.pend
 
 less_uw		.proc
@@ -373,7 +380,7 @@ greater_ub	.proc
 	
 greater_b	.proc
 		rts
-		.warn  "not implemented"
+		.warn "not implemented"
 		.pend
 
 greater_uw	.proc
@@ -410,6 +417,7 @@ greatereq_w	.proc
 
 equal_f		.proc
 		; -- are the two mflpt5 numbers on the stack identical?
+		; @todo optimize according to http://www.6502.org/tutorials/compare_beyond.html
 		inx
 		inx
 		inx
