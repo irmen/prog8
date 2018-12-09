@@ -5,19 +5,21 @@
 
     sub start()  {
 
-        uword v1
-        uword v2
+        word v1
+        word v2
         ubyte cr
 
         ; done:
         ; ubyte all 6 comparisons
         ;  byte all 6 comparisons
+        ; uword all 6 comparisons
+        ;  word all 6 comparisons
 
 
 
         ; check stack usage:
         rsave()
-        c64.STROUT("unsigned word ")
+        c64.STROUT("signed word ")
         rrestore()
         rsave()
         c64scr.print_byte_decimal(X)
@@ -64,59 +66,109 @@
 
         rsave()
         v1=20
-        v2=$ea00
-        c64.STROUT("v1=20, v2=$ea00\n")
+        v2=$7a00
+        c64.STROUT("v1=20, v2=$7a00\n")
         rrestore()
         compare()
 
         rsave()
-        v1=$c400
+        v1=$7400
         v2=$22
-        c64.STROUT("v1=$c400, v2=$22\n")
+        c64.STROUT("v1=$7400, v2=$22\n")
         rrestore()
         compare()
 
         rsave()
-        v1=$c400
+        v1=$7400
         v2=$2a00
-        c64.STROUT("v1=$c400, v2=$2a00\n")
+        c64.STROUT("v1=$7400, v2=$2a00\n")
         rrestore()
         compare()
 
         rsave()
-        v1=$c433
+        v1=$7433
         v2=$2a00
-        c64.STROUT("v1=$c433, v2=$2a00\n")
+        c64.STROUT("v1=$7433, v2=$2a00\n")
         rrestore()
         compare()
 
         rsave()
-        v1=$c433
+        v1=$7433
         v2=$2aff
-        c64.STROUT("v1=$c433, v2=$2aff\n")
+        c64.STROUT("v1=$7433, v2=$2aff\n")
         rrestore()
         compare()
 
-;        rsave()
-;        v1=$aabb
-;        v2=$aabb
-;        c64.STROUT("v1 = v2 = aabb\n")
-;        rrestore()
-;        compare()
-;
-;        rsave()
-;        v1=$aa00
-;        v2=$aa00
-;        c64.STROUT("v1 = v2 = aa00\n")
-;        rrestore()
-;        compare()
-;
-;        rsave()
-;        v1=$aa
-;        v2=$aa
-;        c64.STROUT("v1 = v2 = aa\n")
-;        rrestore()
-;        compare()
+        ;  with negative numbers:
+        rsave()
+        v1=-512
+        v2=$00aa
+        c64.STROUT("v1=-512, v2=$00aa\n")
+        rrestore()
+        compare()
+
+        rsave()
+        v1=-512
+        v2=$7a00
+        c64.STROUT("v1=-512, v2=$7a00\n")
+        rrestore()
+        compare()
+
+        rsave()
+        v1=$7400
+        v2=-512
+        c64.STROUT("v1=$7400, v2=-512\n")
+        rrestore()
+        compare()
+
+        rsave()
+        v1=-20000
+        v2=-1000
+        c64.STROUT("v1=-20000, v2=-1000\n")
+        rrestore()
+        compare()
+
+        rsave()
+        v1=-1000
+        v2=-20000
+        c64.STROUT("v1=-1000, v2=-20000\n")
+        rrestore()
+        compare()
+
+        rsave()
+        v1=-1
+        v2=32767
+        c64.STROUT("v1=-1, v2=32767\n")
+        rrestore()
+        compare()
+
+        rsave()
+        v1=32767
+        v2=-1
+        c64.STROUT("v1=32767, v2=-1\n")
+        rrestore()
+        compare()
+
+        rsave()
+        v1=$7abb
+        v2=$7abb
+        c64.STROUT("v1 = v2 = 7abb\n")
+        rrestore()
+        compare()
+
+        rsave()
+        v1=$7a00
+        v2=$7a00
+        c64.STROUT("v1 = v2 = 7a00\n")
+        rrestore()
+        compare()
+
+        rsave()
+        v1=$aa
+        v2=$aa
+        c64.STROUT("v1 = v2 = aa\n")
+        rrestore()
+        compare()
 
     sub compare() {
         rsave()

@@ -270,20 +270,6 @@ remainder_f	.proc
 		.pend
 		
 
-equal_b		.proc
-		; -- are the two bytes on the stack identical?
-		lda  ESTACK_LO+2,x
-		cmp  ESTACK_LO+1,x
-		bne  _equal_b_false
-_equal_b_true	lda  #1
-_equal_b_store	inx
-		sta  ESTACK_LO+1,x
-		rts
-_equal_b_false	lda  #0
-		beq  _equal_b_store
-		.pend
-
-		
 equal_w		.proc
 		; -- are the two words on the stack identical?
 		; @todo optimize according to http://www.6502.org/tutorials/compare_beyond.html
@@ -338,59 +324,120 @@ less_b		.proc
 		.pend
 
 less_uw		.proc
-		rts
-		.warn "not implemented"
+		lda  ESTACK_HI+2,x
+		cmp  ESTACK_HI+1,x
+		bcc  equal_b._equal_b_true
+		bne  equal_b._equal_b_false
+		lda  ESTACK_LO+2,x
+		cmp  ESTACK_LO+1,x
+		bcc  equal_b._equal_b_true
+		bcs  equal_b._equal_b_false
 		.pend
 
 less_w		.proc
+		lda  ESTACK_LO+2,x
+		cmp  ESTACK_LO+1,x
+		lda  ESTACK_HI+2,x
+		sbc  ESTACK_HI+1,x
+		bvc  +
+		eor  #$80
++		bmi  equal_b._equal_b_true
+		bpl  equal_b._equal_b_false
+		.pend
+
+equal_b		.proc
+		; -- are the two bytes on the stack identical?
+		lda  ESTACK_LO+2,x
+		cmp  ESTACK_LO+1,x
+		bne  _equal_b_false
+_equal_b_true	lda  #1
+_equal_b_store	inx
+		sta  ESTACK_LO+1,x
 		rts
-		.warn "not implemented"
+_equal_b_false	lda  #0
+		beq  _equal_b_store
 		.pend
 
 lesseq_ub	.proc
 		lda  ESTACK_LO+2,x
 		cmp  ESTACK_LO+1,x
 		bcc  equal_b._equal_b_true
-		beq  equal_b._equal_b_true
+		beq  equal_b._equal_b_true		; @todo optimize by flipping comparison
 		bcs  equal_b._equal_b_false
 		.pend
 	
 lesseq_b	.proc
-		rts
-		.warn "not implemented"
+		; see http://www.6502.org/tutorials/compare_beyond.html
+		lda  ESTACK_LO+2,x
+		clc
+		sbc  ESTACK_LO+1,x
+		bvc  +
+		eor  #$80
++		bmi  equal_b._equal_b_true
+		bpl  equal_b._equal_b_false
 		.pend
 
 lesseq_uw	.proc
-		rts
-		.warn "not implemented"
+		lda  ESTACK_HI+1,x
+		cmp  ESTACK_HI+2,x
+		bcc  equal_b._equal_b_false
+		bne  equal_b._equal_b_true
+		lda  ESTACK_LO+1,x
+		cmp  ESTACK_LO+2,x
+		bcs  equal_b._equal_b_true
+		bcc  equal_b._equal_b_false
 		.pend
 		
 lesseq_w	.proc
-		rts
-		.warn "not implemented"
+		lda  ESTACK_LO+1,x
+		cmp  ESTACK_LO+2,x
+		lda  ESTACK_HI+1,x
+		sbc  ESTACK_HI+2,x
+		bvc  +
+		eor  #$80
++		bpl  equal_b._equal_b_true
+		bmi  equal_b._equal_b_false
 		.pend
 
 greater_ub	.proc
 		lda  ESTACK_LO+2,x
 		cmp  ESTACK_LO+1,x
 		beq  equal_b._equal_b_false
-		bcs  equal_b._equal_b_true
+		bcs  equal_b._equal_b_true		; @todo optimize by flipping comparison?
 		bcc  equal_b._equal_b_false
 		.pend
 	
 greater_b	.proc
-		rts
-		.warn "not implemented"
+		; see http://www.6502.org/tutorials/compare_beyond.html
+		lda  ESTACK_LO+2,x
+		clc
+		sbc  ESTACK_LO+1,x
+		bvc  +
+		eor  #$80
++		bpl  equal_b._equal_b_true
+		bmi  equal_b._equal_b_false
 		.pend
 
 greater_uw	.proc
-		rts
-		.warn "not implemented"
+		lda  ESTACK_HI+1,x
+		cmp  ESTACK_HI+2,x
+		bcc  equal_b._equal_b_true
+		bne  equal_b._equal_b_false
+		lda  ESTACK_LO+1,x
+		cmp  ESTACK_LO+2,x
+		bcc  equal_b._equal_b_true
+		bcs  equal_b._equal_b_false
 		.pend
 
 greater_w	.proc
-		rts
-		.warn "not implemented"
+		lda  ESTACK_LO+1,x
+		cmp  ESTACK_LO+2,x
+		lda  ESTACK_HI+1,x
+		sbc  ESTACK_HI+2,x
+		bvc  +
+		eor  #$80
++		bmi  equal_b._equal_b_true
+		bpl  equal_b._equal_b_false
 		.pend
 	
 greatereq_ub	.proc
@@ -401,23 +448,40 @@ greatereq_ub	.proc
 		.pend
 	
 greatereq_b	.proc
-		rts
-		.warn "not implemented"
+		; see http://www.6502.org/tutorials/compare_beyond.html
+		lda  ESTACK_LO+2,x
+		sec
+		sbc  ESTACK_LO+1,x
+		bvc  +
+		eor  #$80
++		bpl  equal_b._equal_b_true
+		bmi  equal_b._equal_b_false
 		.pend
 
 greatereq_uw	.proc
-		rts
-		.warn "not implemented"
+		lda  ESTACK_HI+2,x
+		cmp  ESTACK_HI+1,x
+		bcc  equal_b._equal_b_false
+		bne  equal_b._equal_b_true
+		lda  ESTACK_LO+2,x
+		cmp  ESTACK_LO+1,x
+		bcs  equal_b._equal_b_true
+		bcc  equal_b._equal_b_false
 		.pend
 
 greatereq_w	.proc
-		rts
-		.warn "not implemented"
+		lda  ESTACK_LO+2,x
+		cmp  ESTACK_LO+1,x
+		lda  ESTACK_HI+2,x
+		sbc  ESTACK_HI+1,x
+		bvc  +
+		eor  #$80
++		bpl  equal_b._equal_b_true
+		bmi  equal_b._equal_b_false
 		.pend
 
 equal_f		.proc
 		; -- are the two mflpt5 numbers on the stack identical?
-		; @todo optimize according to http://www.6502.org/tutorials/compare_beyond.html
 		inx
 		inx
 		inx
@@ -449,25 +513,67 @@ notequal_f	.proc
 		.pend
 
 less_f		.proc
-		rts
-		.warn "not implemented"
+		; -- is f1 < f2?
+		jsr  compare_floats
+		cmp  #255
+		beq  compare_floats._return_true
+		bne  compare_floats._return_false
 		.pend
+		
 
 lesseq_f	.proc
-		rts
-		.warn "not implemented"
+		; -- is f1 <= f2?
+		jsr  compare_floats
+		cmp  #255
+		beq  compare_floats._return_true
+		cmp  #0
+		beq  compare_floats._return_true
+		bne  compare_floats._return_false
 		.pend
 
 greater_f	.proc
-		rts
-		.warn "not implemented"
+		; -- is f1 > f2?
+		jsr  compare_floats
+		cmp  #1
+		beq  compare_floats._return_true
+		bne  compare_floats._return_false
 		.pend
 
 greatereq_f	.proc
-		rts
-		.warn "not implemented"
+		; -- is f1 >= f2?
+		jsr  compare_floats
+		cmp  #1
+		beq  compare_floats._return_true
+		cmp  #0
+		beq  compare_floats._return_true
+		bne  compare_floats._return_false
 		.pend
 
+compare_floats	.proc
+		lda  #<_flt2
+		ldy  #>_flt2
+		jsr  pop_float
+		lda  #<_flt1
+		ldy  #>_flt1
+		jsr  pop_float
+		lda  #<_flt1
+		ldy  #>_flt1
+		jsr  c64.MOVFM		; fac1 = flt1
+		lda  #<_flt2
+		ldy  #>_flt2
+		stx  SCRATCH_ZPREG
+		jsr  c64.FCOMP		; A = flt1 compared with flt2 (0=equal, 1=flt1>flt2, 255=flt1<flt2)
+		ldx  SCRATCH_ZPREG
+		rts
+_flt1		.fill 5
+_flt2		.fill 5
+_return_false	lda  #0
+_return_result  sta  ESTACK_LO,x
+		dex
+		rts
+_return_true	lda  #1
+		bne  _return_result
+		.pend		
 		
 
 func_sin	.proc

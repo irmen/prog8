@@ -1,6 +1,6 @@
 package prog8.compiler.target.c64
 
-import prog8.compiler.CompilerException
+import java.io.CharConversionException
 
 class Petscii {
     companion object {
@@ -1057,7 +1057,7 @@ class Petscii {
                 val petscii = lookup[it]
                 if(petscii==null) {
                     val case = if(lowercase) "lower" else "upper"
-                    throw CompilerException("no ${case}case Petscii character for '$it'")
+                    throw CharConversionException("no ${case}case Petscii character for '$it'")
                 }
                 petscii.toShort()
             }
@@ -1074,7 +1074,7 @@ class Petscii {
                 val screencode = lookup[it]
                 if(screencode==null) {
                     val case = if(lowercase) "lower" else "upper"
-                    throw CompilerException("no ${case}Screencode character for '$it'")
+                    throw CharConversionException("no ${case}Screencode character for '$it'")
                 }
                 screencode.toShort()
             }

@@ -12,6 +12,7 @@
         ; done:
         ; ubyte all 6 comparisons
         ;  byte all 6 comparisons
+        ; uword all 6 comparisons
 
 
 
@@ -97,26 +98,26 @@
         rrestore()
         compare()
 
-;        rsave()
-;        v1=$aabb
-;        v2=$aabb
-;        c64.STROUT("v1 = v2 = aabb\n")
-;        rrestore()
-;        compare()
-;
-;        rsave()
-;        v1=$aa00
-;        v2=$aa00
-;        c64.STROUT("v1 = v2 = aa00\n")
-;        rrestore()
-;        compare()
-;
-;        rsave()
-;        v1=$aa
-;        v2=$aa
-;        c64.STROUT("v1 = v2 = aa\n")
-;        rrestore()
-;        compare()
+        rsave()
+        v1=$aabb
+        v2=$aabb
+        c64.STROUT("v1 = v2 = aabb\n")
+        rrestore()
+        compare()
+
+        rsave()
+        v1=$aa00
+        v2=$aa00
+        c64.STROUT("v1 = v2 = aa00\n")
+        rrestore()
+        compare()
+
+        rsave()
+        v1=$aa
+        v2=$aa
+        c64.STROUT("v1 = v2 = aa\n")
+        rrestore()
+        compare()
 
     sub compare() {
         rsave()

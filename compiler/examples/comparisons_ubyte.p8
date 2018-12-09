@@ -5,19 +5,18 @@
 
     sub start()  {
 
-        uword v1
-        uword v2
+        ubyte v1
+        ubyte v2
         ubyte cr
 
         ; done:
         ; ubyte all 6 comparisons
-        ;  byte all 6 comparisons
 
 
 
         ; check stack usage:
         rsave()
-        c64.STROUT("unsigned word ")
+        c64.STROUT("unsigned byte ")
         rrestore()
         rsave()
         c64scr.print_byte_decimal(X)
@@ -57,66 +56,27 @@
         ; comparisons:
         rsave()
         v1=20
-        v2=$00aa
-        c64.STROUT("v1=20, v2=$00aa\n")
+        v2=199
+        c64.STROUT("v1=20, v2=199\n")
         rrestore()
         compare()
 
         rsave()
-        v1=20
-        v2=$ea00
-        c64.STROUT("v1=20, v2=$ea00\n")
+        v1=80
+        v2=80
+        c64.STROUT("v1 = v2 = 80\n")
         rrestore()
+
         compare()
 
         rsave()
-        v1=$c400
-        v2=$22
-        c64.STROUT("v1=$c400, v2=$22\n")
+        v1=220
+        v2=10
+        c64.STROUT("v1=220, v2=10\n")
         rrestore()
+
         compare()
 
-        rsave()
-        v1=$c400
-        v2=$2a00
-        c64.STROUT("v1=$c400, v2=$2a00\n")
-        rrestore()
-        compare()
-
-        rsave()
-        v1=$c433
-        v2=$2a00
-        c64.STROUT("v1=$c433, v2=$2a00\n")
-        rrestore()
-        compare()
-
-        rsave()
-        v1=$c433
-        v2=$2aff
-        c64.STROUT("v1=$c433, v2=$2aff\n")
-        rrestore()
-        compare()
-
-;        rsave()
-;        v1=$aabb
-;        v2=$aabb
-;        c64.STROUT("v1 = v2 = aabb\n")
-;        rrestore()
-;        compare()
-;
-;        rsave()
-;        v1=$aa00
-;        v2=$aa00
-;        c64.STROUT("v1 = v2 = aa00\n")
-;        rrestore()
-;        compare()
-;
-;        rsave()
-;        v1=$aa
-;        v2=$aa
-;        c64.STROUT("v1 = v2 = aa\n")
-;        rrestore()
-;        compare()
 
     sub compare() {
         rsave()
