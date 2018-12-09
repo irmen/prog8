@@ -9,17 +9,15 @@ sub start() {
     c64.EXTCOL = 5
     c64.BGCOL0 = 0
     c64.COLOR = 1
-    c64.VMCSB = %10111
+    c64.VMCSB |= 2
 
-    ; use kernel routine to write text (sorry, loops don't work in asm yet)
-    c64.CHROUT('H')
-    c64.CHROUT('e')
-    c64.CHROUT('l')
-    c64.CHROUT('l')
-    c64.CHROUT('o')
-    c64.CHROUT('!')
-    c64.CHROUT('\n')
+    ; use kernel routine to write text
+    c64.STROUT("Hello!\n")
 
+    str question = "How are you?\n"
+    for ubyte c in 0 to len(question) {
+        c64.CHROUT(question[c])
+    }
     return
 }
 

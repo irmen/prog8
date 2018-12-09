@@ -41,11 +41,9 @@ ask_guess:
         c64scr.input_chars(guessstr)
         c64.CHROUT('\n')
         freadstr_arg = guessstr
-        rsave()
         c64.FREADSTR(Y)
         A, Y = c64flt.GETADRAY()
         guess=A
-        rrestore()
         c64.EXTCOL=guess    ; @debug
         c64.BGCOL0=secretnumber ;@debug
         if(guess==secretnumber) {               ; @todo equal_b doesn't work

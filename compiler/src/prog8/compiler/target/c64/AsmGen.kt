@@ -424,6 +424,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 // restore all registers and cpu status flag
                 " pla |  tay |  pla |  tax |  pla |  plp"
             }
+            Opcode.RSAVEX -> " stx  ${C64Zeropage.SCRATCH_REG_X}"
+            Opcode.RRESTOREX -> " ldx  ${C64Zeropage.SCRATCH_REG_X}"
             Opcode.DISCARD_BYTE -> " inx"
             Opcode.DISCARD_WORD -> " inx"
             Opcode.DISCARD_FLOAT -> " inx |  inx |  inx"

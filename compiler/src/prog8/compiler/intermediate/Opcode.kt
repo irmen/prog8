@@ -219,7 +219,9 @@ enum class Opcode {
     SEI,        // set irq-disable status flag
     CLI,        // clear irq-disable status flag
     RSAVE,      // save all internal registers and status flags
+    RSAVEX,     // save just X (the evaluation stack pointer)
     RRESTORE,   // restore all internal registers and status flags
+    RRESTOREX,  // restore just X (the evaluation stack pointer)
     NOP,        // do nothing
     BREAKPOINT, // breakpoint
     TERMINATE,  // end the program

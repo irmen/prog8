@@ -650,6 +650,9 @@ rsave()
     Saves the CPU registers and the status flags.
     You can now more or less 'safely' use the registers directly, until you
     restore them again so the generated code can carry on normally.
+    Note: it's not needed to rsave() before an asm subroutine that clobbers the X register
+    (which is used as the internal evaluation stack pointer).
+    The compiler will take care of this situation automatically.
 
 rrestore()
     Restores the CPU registers and the status flags from previously saved values.

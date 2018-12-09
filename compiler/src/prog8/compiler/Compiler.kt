@@ -763,9 +763,13 @@ private class StatementTranslator(private val prog: IntermediateProgram,
 
     private fun translateSubroutineCall(subroutine: Subroutine, arguments: List<IExpression>, callPosition: Position) {
         // evaluate the arguments and assign them into the subroutine's argument variables.
+        var restoreX = Register.X in subroutine.asmClobbers
         if(subroutine.asmParameterRegisters.isNotEmpty()) {
             if(subroutine.parameters.size!=subroutine.asmParameterRegisters.size)
                 throw CompilerException("no support for mix of register and non-register subroutine arguments")
+
+            if(restoreX)
+                prog.instr(Opcode.RSAVEX)
 
             // only register arguments (or status-flag bits)
             var carryParam: Boolean? = null
@@ -783,7 +787,10 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                             translate(assign)
                         }
                         X -> {
-                            // TODO: save X on stack & restore after call
+                            if(!restoreX) {
+                                prog.instr(Opcode.RSAVEX)
+                                restoreX = true
+                            }
                             val assign = Assignment(listOf(AssignTarget(Register.X, null, null, callPosition)), null, arg.first, callPosition)
                             assign.linkParents(arguments[0].parent)
                             translate(assign)
@@ -794,7 +801,10 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                             translate(assign)
                         }
                         AX -> {
-                            // TODO: save X on stack & restore after call
+                            if(!restoreX) {
+                                prog.instr(Opcode.RSAVEX)
+                                restoreX = true
+                            }
                             val valueA: IExpression
                             val valueX: IExpression
                             val paramDt = arg.first.resultingDatatype(namespace, heap)
@@ -847,7 +857,10 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                             }
                         }
                         XY -> {
-                            // TODO: save X on stack & restore after call
+                            if(!restoreX) {
+                                prog.instr(Opcode.RSAVEX)
+                                restoreX = true
+                            }
                             val valueX: IExpression
                             val valueY: IExpression
                             val paramDt = arg.first.resultingDatatype(namespace, heap)
@@ -882,7 +895,6 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 true -> prog.instr(Opcode.SEC)
                 false -> prog.instr(Opcode.CLC)
             }
-
         } else {
             // only regular (non-register) arguments
             for (arg in arguments.zip(subroutine.parameters)) {
@@ -892,6 +904,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             }
         }
         prog.instr(Opcode.CALL, callLabel = subroutine.scopedname)
+        if(restoreX)
+            prog.instr(Opcode.RRESTOREX)
     }
 
     private fun translateBinaryOperator(operator: String, dt: DataType) {
