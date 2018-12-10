@@ -16,6 +16,11 @@
         c64scr.print_string(".\nLet's play a number guessing game.\nI am thinking of a number from 1 to 100!You'll have to guess it!\n")
 
         for ubyte attempts_left in 10 to 1 step -1 {
+
+
+            c64scr.print_byte_decimal(X)
+            c64.CHROUT('\n')
+
             c64scr.print_string("\nYou have ")
             c64scr.print_byte_decimal(attempts_left)
             c64scr.print_string(" guess")
@@ -23,6 +28,21 @@
             c64scr.print_string(" left.\nWhat is your next guess? ")
             c64scr.input_chars(guess)
             ubyte guessednumber = str2ubyte(guess)
+
+            ; debug info
+            c64scr.print_string(" > attempts left=")
+            c64scr.print_byte_decimal(attempts_left)
+            c64scr.print_string("\n > secretnumber=")
+            c64scr.print_byte_decimal(secretnumber)
+            c64scr.print_string("\n > guess=")
+            c64scr.print_string(guess)
+            c64scr.print_string("\n > guessednumber=")
+            c64scr.print_byte_decimal(guessednumber)
+            c64.CHROUT('\n')
+            c64scr.print_byte_decimal(X)
+            c64.CHROUT('\n')
+
+
             if guessednumber==secretnumber {
                 c64scr.print_string("\n\nYou guessed it, impressive!\n")
                 c64scr.print_string("Thanks for playing, ")

@@ -654,11 +654,13 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 prog.instr(Opcode.CALL, callLabel = targetStmt.scopedname)
             is Subroutine -> {
                 translateSubroutineCall(targetStmt, stmt.arglist, stmt.position)
-                // make sure we clean up the unused result values from the stack.
-                for(rv in targetStmt.returntypes) {
-                    val opcode=opcodeDiscard(rv)
-                    prog.instr(opcode)
-                }
+                // make sure we clean up the unused result values from the stack
+                // only if they're non-register return values!
+                if(targetStmt.asmReturnvaluesRegisters.isEmpty())
+                    for(rv in targetStmt.returntypes) {
+                        val opcode=opcodeDiscard(rv)
+                        prog.instr(opcode)
+                    }
             }
             else ->
                 throw AstException("invalid call target node type: ${targetStmt::class}")

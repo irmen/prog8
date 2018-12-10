@@ -168,6 +168,7 @@ asmsub  word2decimal  (dataword: uword @ XY) -> clobbers(A,X,Y) -> ()  {
 		iny
 		rts
 	}}
+	
 }
 
 
@@ -810,22 +811,22 @@ _pr_decimal
 }
 
 
-asmsub  input_chars  (buffer: uword @ AX) -> clobbers(A) -> (ubyte @ Y)  {
-	; ---- Input a string (max. 80 chars) from the keyboard. Returns length.
-	;      It assumes the keyboard is selected as I/O channel!!
+asmsub  input_chars  (buffer: uword @ AY) -> clobbers(A, X) -> (ubyte @ Y)  {
+	; ---- Input a string (max. 80 chars) from the keyboard. Returns length in Y.
+	;      It assumes the keyboard is selected as I/O channel!
 
 	%asm {{
-		sta  c64.SCRATCH_ZPB1
-		stx  c64.SCRATCH_ZPREG
+		sta  c64.SCRATCH_ZPWORD1
+		sty  c64.SCRATCH_ZPWORD1+1
 		ldy  #0				; char counter = 0
 -		jsr  c64.CHRIN
 		cmp  #$0d			; return (ascii 13) pressed?
 		beq  +				; yes, end.
-		sta  (c64.SCRATCH_ZPB1),y	; else store char in buffer
+		sta  (c64.SCRATCH_ZPWORD1),y	; else store char in buffer
 		iny
 		bne  -
 +		lda  #0
-		sta  (c64.SCRATCH_ZPB1),y	; finish string with 0 byte
+		sta  (c64.SCRATCH_ZPWORD1),y	; finish string with 0 byte
 		rts
 
 	}}

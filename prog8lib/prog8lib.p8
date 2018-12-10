@@ -743,6 +743,15 @@ func_str2byte	.proc
 		.pend
 
 func_str2ubyte	.proc
+		;-- convert string (address on stack) to ubyte number
+		; @todo load address into $22/$23
+		; @todo length of string in A
+		;jsr  c64.FREADSTR		; string to fac1
+		;jsr  c64.GETADR			; fac1 to unsigned word in Y/A
+		inx
+		lda  #99	; @todo
+		sta  ESTACK_LO,x
+		dex
 		rts
 		.warn "not implemented"
 		.pend

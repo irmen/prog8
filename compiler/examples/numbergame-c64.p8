@@ -38,7 +38,7 @@ ask_guess:
         if(attempts_left>0) c64.STROUT("es")
 
         c64.STROUT(" left.\nWhat is your next guess? ")
-        c64scr.input_chars(guessstr)
+        Y=c64scr.input_chars(guessstr)
         c64.CHROUT('\n')
         freadstr_arg = guessstr
         c64.FREADSTR(Y)
@@ -46,12 +46,12 @@ ask_guess:
         guess=A
         c64.EXTCOL=guess    ; @debug
         c64.BGCOL0=secretnumber ;@debug
-        if(guess==secretnumber) {               ; @todo equal_b doesn't work
+        if(guess==secretnumber) {
             c64.STROUT("\nThat's my number, impressive!\n")
             goto goodbye
         }
         c64.STROUT("\nThat is too ")
-        if(guess > secretnumber)        ; @todo greater_ub doesn't work?
+        if(guess > secretnumber)
             c64.STROUT("low!\n")
         else
             c64.STROUT("high!\n")
