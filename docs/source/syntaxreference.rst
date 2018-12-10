@@ -258,6 +258,8 @@ type identifier  type                     storage size       example var declara
 **hexadecimal numbers:** you can use a dollar prefix to write hexadecimal numbers: ``$20ac``
 
 **binary numbers:** you can use a percent prefix to write binary numbers: ``%10010011``
+Note that ``%`` is also the remainder operator so be careful: if you want to take the remainder
+of something with an operand starting with 1 or 0, you'll have to add a space in between.
 
 **character values:** you can use a single character in quotes like this ``'a'`` for the Petscii byte value of that character.
 
@@ -342,7 +344,7 @@ arithmetic: ``+``  ``-``  ``*``  ``/``  ``//`` ``**``  ``%``
     ``+``, ``-``, ``*``, ``/`` are the familiar arithmetic operations.
     ``//`` is the floor-divide, the division resulting in a whole number rounded towards minus infinity.
     ``**`` is the power operator: ``3 ** 5`` is equal to 3*3*3*3*3 and is 243.
-    ``%`` is the remainder operator: ``25 % 7`` is 4.
+    ``%`` is the remainder operator: ``25 % 7`` is 4.  Be careful: without a space, %10 will be parsed as the binary number 2
 
 
 bitwise arithmetic: ``&``  ``|``  ``^``  ``~``

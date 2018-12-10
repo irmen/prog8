@@ -260,7 +260,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             DataType.FLOAT -> Opcode.PUSH_VAR_FLOAT
             DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
             DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F,
-            DataType.ARRAY_B, DataType.ARRAY_W -> Opcode.PUSH_VAR_WORD
+            DataType.ARRAY_B, DataType.ARRAY_W -> Opcode.PUSH_ADDR_HEAPVAR
         }
     }
 
@@ -565,7 +565,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
                         if(lv.heapId==null)
                             throw CompilerException("string should have been moved into heap   ${lv.position}")
-                        prog.instr(Opcode.PUSH_WORD, Value(lv.type, lv.heapId))
+                        prog.instr(Opcode.PUSH_ADDR_HEAPVAR, callLabel = "@todo-string-varname?")    // XXX  push address of string
                     }
                     DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F,
                     DataType.ARRAY_B, DataType.ARRAY_W -> {

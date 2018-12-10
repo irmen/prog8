@@ -2,15 +2,21 @@
 %import c64lib
 %import c64utils
 
+
+; The classic number guessing game.
+; This version uses more low-level subroutines (calls directly into the C64's ROM routines)
+; and instead of a loop (with the added behind the scenes processing), uses absolute jumps.
+; It's less readable I think, but produces a smaller program.
+
+
 ~ main {
     sub start()  {
         str   name    = "????????????????????????????????????????"
-        str   guessstr   = "??????????"
+        str   input   = "??????????"
         ubyte  guess
         ubyte  secretnumber = 0
         ubyte  attempts_left = 10
-        memory uword freadstr_arg = $22		; argument for FREADSTR
-        uword testword
+        memory uword freadstr_arg = $22		; argument for FREADSTR ($22/$23)
 
         ; greeting
         c64.VMCSB |= 2  ; switch lowercase chars
@@ -23,7 +29,7 @@
         c64.STROUT(".\nLet's play a number guessing game.\nI am thinking of a number from 1 to 100!You'll have to guess it!\n")
 
         ; create a secret random number from 1-100
-        c64.RND()               ; fac = random number
+        c64.RND()               ; fac = random number between 0 and 1
         c64.MUL10()             ; fac *= 10
         c64.MUL10()             ; .. and now *100
         c64.FADDH()             ; add 0.5..
@@ -35,30 +41,28 @@ ask_guess:
         c64.STROUT("\nYou have ")
         c64scr.print_byte_decimal(attempts_left)
         c64.STROUT(" guess")
-        if(attempts_left>0) c64.STROUT("es")
+        if(attempts_left>1)
+            c64.STROUT("es")
 
         c64.STROUT(" left.\nWhat is your next guess? ")
-        Y=c64scr.input_chars(guessstr)
+        Y=c64scr.input_chars(input)
         c64.CHROUT('\n')
-        freadstr_arg = guessstr
+        freadstr_arg = input
         c64.FREADSTR(Y)
         A, Y = c64flt.GETADRAY()
         guess=A
-        c64.EXTCOL=guess    ; @debug
-        c64.BGCOL0=secretnumber ;@debug
         if(guess==secretnumber) {
             c64.STROUT("\nThat's my number, impressive!\n")
             goto goodbye
         }
         c64.STROUT("\nThat is too ")
-        if(guess > secretnumber)
+        if(guess < secretnumber)
             c64.STROUT("low!\n")
         else
             c64.STROUT("high!\n")
 
         attempts_left--
-        if(attempts_left>0) goto ask_guess
-        ; more efficient:  if_nz goto ask_guess
+        if_nz goto ask_guess
 
         ; game over.
         c64.STROUT("\nToo bad! It was: ")

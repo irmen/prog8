@@ -41,7 +41,9 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         optimizeDataConversionAndUselessDiscards()
         optimizeVariableCopying()
         optimizeMultipleSequentialLineInstrs()
-        // todo optimize stackvm code more
+        // todo: optimize stackvm code more
+        // todo: stackvm replace rrestorex+rsavex combo by only rrestorex (note: can have label/comment inbetween)
+        // todo: stackvm replace call X + return (without values) combo by a jump X
 
         // remove nops (that are not a label)
         for (blk in blocks) {

@@ -17,8 +17,8 @@ asmsub  init_system  () -> clobbers(A,X,Y) -> ()  {
 	; ---- initializes the machine to a sane starting state
 	; This means that the BASIC, KERNAL and CHARGEN ROMs are banked in,
 	; the VIC, SID and CIA chips are reset, screen is cleared, and the default IRQ is set.
-	; Also a different color scheme is chosen to identify ourselves a little.
-	; All three registers set to 0, status flags cleared.
+	; Also a different color scheme is chosen to identify ourselves a little. 
+	; Uppercase charset is activated, and all three registers set to 0, status flags cleared.
 	%asm {{
 		sei
 		cld

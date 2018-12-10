@@ -487,6 +487,9 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.PUSH_REGAY_WORD -> {
                 " sta  ${ESTACK_LO.toHex()},x |  tya |  sta  ${ESTACK_HI.toHex()},x |  dex "
             }
+            Opcode.PUSH_ADDR_HEAPVAR -> {
+                " lda  #<${ins.callLabel} |  sta  ${ESTACK_LO.toHex()},x |  lda  #>${ins.callLabel} |  sta  ${ESTACK_HI.toHex()},x |  dex"
+            }
             Opcode.POP_REGAX_WORD -> throw AssemblyError("cannot load X register from stack because it's used as the stack pointer itself")
             Opcode.POP_REGXY_WORD -> throw AssemblyError("cannot load X register from stack because it's used as the stack pointer itself")
             Opcode.POP_REGAY_WORD -> {

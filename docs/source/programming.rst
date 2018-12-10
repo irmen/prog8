@@ -186,7 +186,7 @@ Values will usually be part of an expression or assignment statement::
 
     12345                 ; integer number
     $aa43                 ; hex integer number
-    %100101               ; binary integer number
+    %100101               ; binary integer number (% is also remainder operator so be careful)
     "Hi, I am a string"   ; text string
     'a'                   ; petscii value (byte) for the letter a
     -33.456e52            ; floating point number

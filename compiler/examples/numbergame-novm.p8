@@ -1,12 +1,16 @@
 %import c64utils
 %import mathlib
 
+; The classic number guessing game.
+; This version uses mostly high level subroutine calls and loops.
+; It's more readable than the low-level version, but produces a slightly larger program.
 
 ~ main {
+
     sub start()  {
         str   name    = "????????????????????????????????????????"
-        str   guess   = "??????????"
-        ubyte secretnumber = rnd() % 100
+        str   input   = "??????????"
+        ubyte secretnumber = rnd() % 99 + 1     ; random number 1..100
 
         c64.VMCSB |= 2  ; switch lowercase chars
         c64scr.print_string("Please introduce yourself: ")
@@ -17,50 +21,67 @@
 
         for ubyte attempts_left in 10 to 1 step -1 {
 
-
-            c64scr.print_byte_decimal(X)
-            c64.CHROUT('\n')
+; stackptr debugging
+;            c64scr.print_byte_decimal(X)
+;            c64.CHROUT('\n')
 
             c64scr.print_string("\nYou have ")
             c64scr.print_byte_decimal(attempts_left)
             c64scr.print_string(" guess")
-            if attempts_left>1  c64scr.print_string("es")
+            if attempts_left>1
+                c64scr.print_string("es")
             c64scr.print_string(" left.\nWhat is your next guess? ")
-            c64scr.input_chars(guess)
-            ubyte guessednumber = str2ubyte(guess)
+            c64scr.input_chars(input)
+            ubyte guess = str2ubyte(input)
 
-            ; debug info
-            c64scr.print_string(" > attempts left=")
-            c64scr.print_byte_decimal(attempts_left)
-            c64scr.print_string("\n > secretnumber=")
-            c64scr.print_byte_decimal(secretnumber)
-            c64scr.print_string("\n > guess=")
-            c64scr.print_string(guess)
-            c64scr.print_string("\n > guessednumber=")
-            c64scr.print_byte_decimal(guessednumber)
-            c64.CHROUT('\n')
-            c64scr.print_byte_decimal(X)
-            c64.CHROUT('\n')
+; debug info
+;            c64scr.print_string(" > attempts left=")
+;            c64scr.print_byte_decimal(attempts_left)
+;            c64scr.print_string("\n > secretnumber=")
+;            c64scr.print_byte_decimal(secretnumber)
+;            c64scr.print_string("\n > input=")
+;            c64scr.print_string(input)
+;            c64scr.print_string("\n > guess=")
+;            c64scr.print_byte_decimal(guess)
+;            c64.CHROUT('\n')
+;            c64scr.print_byte_decimal(X)    ; stackptr debugging
+;            c64.CHROUT('\n')
 
-
-            if guessednumber==secretnumber {
-                c64scr.print_string("\n\nYou guessed it, impressive!\n")
-                c64scr.print_string("Thanks for playing, ")
-                c64scr.print_string(name)
-                c64scr.print_string(".\n")
-                return
+            if guess==secretnumber {
+                ending(true)
+                return  ; @todo make return ending(true) actually work as well
             } else {
                 c64scr.print_string("\n\nThat is too ")
-                if guessednumber<secretnumber
+                if guess<secretnumber
                     c64scr.print_string("low!\n")
                 else
                     c64scr.print_string("high!\n")
             }
         }
 
-        c64scr.print_string("\nToo bad! My number was: ")
-        c64scr.print_byte_decimal(secretnumber)
-        c64scr.print_string(".\n")
-        return
+;        return 99               ;@todo error message (no return values)
+;        return 99,44         ;@todo error message (no return values)
+;        return ending(false)        ; @todo fix this, actuall needs to CALL ending even though no value is returned
+
+        ending(false)
+        return  ; @todo make return ending(false) actually work as well
+
+
+        sub ending(success: ubyte) {
+            if success
+                c64scr.print_string("\n\nYou guessed it, impressive!\n")
+            else {
+                c64scr.print_string("\nToo bad! My number was: ")
+                c64scr.print_byte_decimal(secretnumber)
+                c64scr.print_string(".\n")
+            }
+            c64scr.print_string("Thanks for playing, ")
+            c64scr.print_string(name)
+            c64scr.print_string(".\n")
+
+;            return 99       ; @todo error message (no return values)
+;            return 99,44       ; @todo error message (no return values)
+;            return 99,44    ; @todo should check number of return values!!
+        }
     }
 }
