@@ -1,118 +1,26 @@
-%import c64utils
-%import mathlib
-%option enable_floats
-
+%output raw
+%launcher none
 
 ~ main {
 
     sub start()  {
+        ending(true)
+        return  ; @todo make return ending(true) actually work as well
 
-        float v1
-        float v2
+        return 99               ;@todo error message (no return values)
+        return 99,44         ;@todo error message (no return values)
+        return ending(false)        ; @todo fix this, actuall needs to CALL ending even though no value is returned
 
-        c64scr.print_byte_decimal(X)
-        c64.CHROUT('\n')
+        sub ending(success: ubyte) {
+            return 99       ; @todo error message (no return values)
+            return 99,44       ; @todo error message (no return values)
+            return 99,44    ; @todo should check number of return values!!
+        }
 
-        v1 = 1.11
-        v2 = 699.99
-        if v1==v2
-            c64.STROUT("error in 1.11==699.99!\n")
-        else
-            c64.STROUT("ok: 1.11 not == 699.99\n")
-
-        if v1!=v2
-            c64.STROUT("ok: 1.11 != 699.99\n")
-        else
-            c64.STROUT("error in 1.11!=699.99!\n")
-
-        if v1<v2
-            c64.STROUT("ok: 1.11 < 699.99\n")
-        else
-            c64.STROUT("error in 1.11<699.99!\n")
-
-        if v1<=v2
-            c64.STROUT("ok: 1.11 <= 699.99\n")
-        else
-            c64.STROUT("error in 1.11<=699.99!\n")
-
-        if v1>v2
-            c64.STROUT("error in 1.11>699.99!\n")
-        else
-            c64.STROUT("ok: 1.11 is not >699.99\n")
-
-        if v1>=v2
-            c64.STROUT("error in 1.11>=699.99!\n")
-        else
-            c64.STROUT("ok: 1.11 is not >=699.99\n")
-
-
-        v1 = 555.5
-        v2 = -22.2
-        if v1==v2
-            c64.STROUT("error in 555.5==-22.2!\n")
-        else
-            c64.STROUT("ok: 555.5 not == -22.2\n")
-
-        if v1!=v2
-            c64.STROUT("ok: 555.5 != -22.2\n")
-        else
-            c64.STROUT("error in 555.5!=-22.2!\n")
-
-        if v1<v2
-            c64.STROUT("error in 555.5<-22.2!\n")
-        else
-            c64.STROUT("ok: 555.5 is not < -22.2\n")
-
-        if v1<=v2
-            c64.STROUT("error in 555.5<=-22.2!\n")
-        else
-            c64.STROUT("ok: 555.5 is not <= -22.2\n")
-
-        if v1>v2
-            c64.STROUT("ok: 555.5 > -22.2\n")
-        else
-            c64.STROUT("error in 555.5>-22.2!\n")
-
-        if v1>=v2
-            c64.STROUT("ok: 555.5 >= -22.2\n")
-        else
-            c64.STROUT("error in 555.5>=-22.2!\n")
-
-        v1 = -22.2
-        v2 = -22.2
-        if v1==v2
-            c64.STROUT("ok: -22.2 == -22.2\n")
-        else
-            c64.STROUT("error in -22.2==-22.2!\n")
-
-        if v1!=v2
-            c64.STROUT("error in -22.2!=-22.2!\n")
-        else
-            c64.STROUT("ok: -22.2 is not != -22.2\n")
-
-        if v1<v2
-            c64.STROUT("error in -22.2<-22.2!\n")
-        else
-            c64.STROUT("ok: -22.2 is not < -22.2\n")
-
-        if v1<=v2
-            c64.STROUT("ok: -22.2 <= -22.2\n")
-        else
-            c64.STROUT("error in -22.2<=-22.2!\n")
-
-        if v1>v2
-            c64.STROUT("error in -22.2>-22.2!\n")
-        else
-            c64.STROUT("ok: -22.2 is not > -22.2\n")
-
-        if v1>=v2
-            c64.STROUT("ok: -22.2 >= -22.2\n")
-        else
-            c64.STROUT("error in -22.2>=-22.2!\n")
-
-        c64scr.print_byte_decimal(X)
-        c64.CHROUT('\n')
-
+        sub ending2() -> ubyte {
+            return
+            return 1
+            return 2, 2     ; @todo error message number of return values
+        }
     }
-
 }
