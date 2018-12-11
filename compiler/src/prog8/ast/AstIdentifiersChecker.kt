@@ -177,6 +177,8 @@ class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
         if(returnStmt.values.isNotEmpty()) {
             // possibly adjust any literal values returned, into the desired returning data type
             val subroutine = returnStmt.definingSubroutine()!!
+            if(subroutine.returntypes.size!=returnStmt.values.size)
+                return returnStmt  // mismatch in number of return values, error will be printed later.
             val newValues = mutableListOf<IExpression>()
             for(returnvalue in returnStmt.values.zip(subroutine.returntypes)) {
                 val lval = returnvalue.first as? LiteralValue

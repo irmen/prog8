@@ -17,7 +17,8 @@
             vm_write_str("\nYou have ")
             vm_write_num(attempts_left)
             vm_write_str(" guess")
-            if attempts_left>1  vm_write_str("es")
+            if attempts_left>1
+                vm_write_str("es")
             vm_write_str(" left. What is your next guess? ")
             vm_input_str(guess)
             ubyte guessednumber = str2ubyte(guess)

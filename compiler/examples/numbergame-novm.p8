@@ -48,8 +48,7 @@
 ;            c64.CHROUT('\n')
 
             if guess==secretnumber {
-                ending(true)
-                return  ; @todo make return ending(true) actually work as well
+                return ending(true)
             } else {
                 c64scr.print_string("\n\nThat is too ")
                 if guess<secretnumber
@@ -59,12 +58,7 @@
             }
         }
 
-;        return 99               ;@todo error message (no return values)
-;        return 99,44         ;@todo error message (no return values)
-;        return ending(false)        ; @todo fix this, actuall needs to CALL ending even though no value is returned
-
-        ending(false)
-        return  ; @todo make return ending(false) actually work as well
+        return ending(false)
 
 
         sub ending(success: ubyte) {
@@ -78,10 +72,6 @@
             c64scr.print_string("Thanks for playing, ")
             c64scr.print_string(name)
             c64scr.print_string(".\n")
-
-;            return 99       ; @todo error message (no return values)
-;            return 99,44       ; @todo error message (no return values)
-;            return 99,44    ; @todo should check number of return values!!
         }
     }
 }

@@ -41,13 +41,53 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         optimizeDataConversionAndUselessDiscards()
         optimizeVariableCopying()
         optimizeMultipleSequentialLineInstrs()
+        optimizeCallReturnIntoJump()
+        optimizeRestoreXSaveXIntoRestoreX()
         // todo: optimize stackvm code more
-        // todo: stackvm replace rrestorex+rsavex combo by only rrestorex (note: can have label/comment inbetween)
-        // todo: stackvm replace call X + return (without values) combo by a jump X
 
+        optimizeRemoveNops()    //  must be done as the last step
+        optimizeMultipleSequentialLineInstrs()      // once more
+        optimizeRemoveNops()    // once more
+    }
+
+    private fun optimizeRemoveNops() {
         // remove nops (that are not a label)
-        for (blk in blocks) {
+        for (blk in blocks)
             blk.instructions.removeIf { it.opcode== Opcode.NOP && it !is LabelInstr }
+    }
+
+    private fun optimizeRestoreXSaveXIntoRestoreX() {
+        // replace rrestorex+rsavex combo by only rrestorex
+        for(blk in blocks) {
+            val instructionsToReplace = mutableMapOf<Int, Instruction>()
+
+            blk.instructions.asSequence().withIndex().filter {it.value.opcode!=Opcode.LINE}.windowed(2).toList().forEach {
+                if(it[0].value.opcode==Opcode.RRESTOREX && it[1].value.opcode==Opcode.RSAVEX) {
+                    instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
+                }
+            }
+
+            for (rins in instructionsToReplace) {
+                blk.instructions[rins.key] = rins.value
+            }
+        }
+    }
+
+    private fun optimizeCallReturnIntoJump() {
+        // replaces call X followed by return, by jump X
+        for(blk in blocks) {
+            val instructionsToReplace = mutableMapOf<Int, Instruction>()
+
+            blk.instructions.asSequence().withIndex().filter {it.value.opcode!=Opcode.LINE}.windowed(2).toList().forEach {
+                if(it[0].value.opcode==Opcode.CALL && it[1].value.opcode==Opcode.RETURN) {
+                    instructionsToReplace[it[1].index] = Instruction(Opcode.JUMP, callLabel = it[0].value.callLabel)
+                    instructionsToReplace[it[0].index] = Instruction(Opcode.NOP)
+                }
+            }
+
+            for (rins in instructionsToReplace) {
+                blk.instructions[rins.key] = rins.value
+            }
         }
     }
 

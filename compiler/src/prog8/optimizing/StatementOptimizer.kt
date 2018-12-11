@@ -67,18 +67,6 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
         return super.process(functionCall)
     }
 
-    override fun process(returnStmt: Return): IStatement {
-        // if the return value is a subroutine call, replace this with a jump to the subroutine
-        if(returnStmt.values.size==1 && returnStmt.values[0] is FunctionCall) {
-            val call = returnStmt.values[0] as FunctionCall
-            if(call.target.targetStatement(namespace) is Subroutine) {
-                optimizationsDone++
-                return Jump(null, call.target, null, call.position)
-            }
-        }
-        return super.process(returnStmt)
-    }
-
     override fun process(ifStatement: IfStatement): IStatement {
         super.process(ifStatement)
         val constvalue = ifStatement.condition.constValue(namespace, heap)

@@ -96,9 +96,9 @@ class AstChecker(private val namespace: INameScope,
             if(returnStmt.values.size==1 && returnStmt.values[0] is FunctionCall) {
                 val dt = (returnStmt.values[0] as FunctionCall).resultingDatatype(namespace, heap)
                 if(dt!=null && expectedReturnValues.isEmpty())
-                    checkResult.add(SyntaxError("number of return values doesn't match subroutine return spec", returnStmt.position))
+                    checkResult.add(SyntaxError("invalid number of return values", returnStmt.position))
             } else
-                checkResult.add(SyntaxError("number of return values doesn't match subroutine return spec", returnStmt.position))
+                checkResult.add(SyntaxError("invalid number of return values", returnStmt.position))
         }
 
         for (rv in expectedReturnValues.withIndex().zip(returnStmt.values)) {
