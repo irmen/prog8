@@ -1,4 +1,4 @@
-; %import c64utils
+%import c64utils
 %option enable_floats
 %output raw
 %launcher none

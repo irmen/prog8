@@ -117,7 +117,7 @@ asmsub	FAREADMEM	() -> clobbers(A,Y) -> ()			= $ba90		; load mflpt value from me
 asmsub	MOVFA		() -> clobbers(A,X) -> ()			= $bbfc		; copy fac2 to fac1
 asmsub	MOVAF		() -> clobbers(A,X) -> ()			= $bc0c		; copy fac1 to fac2  (rounded)
 asmsub	MOVEF		() -> clobbers(A,X) -> ()			= $bc0f		; copy fac1 to fac2
-asmsub	FTOMEMXY	(mflpt: uword @ XY) -> clobbers(A,Y) -> ()	= $bbd4		; store fac1 to memory  X/Y as 5-byte mflpt
+asmsub	MOVMF	(mflpt: uword @ XY) -> clobbers(A,Y) -> ()	= $bbd4		; store fac1 to memory  X/Y as 5-byte mflpt
 
 ; fac1-> signed word in Y/A (might throw ILLEGAL QUANTITY)
 ; (tip: use c64flt.FTOSWRDAY to get A/Y output; lo/hi switched to normal little endian order)
@@ -130,7 +130,7 @@ asmsub	GETADR		() -> clobbers(X) -> (ubyte @ Y, ubyte @ A)	= $b7f7
 asmsub	QINT		() -> clobbers(A,X,Y) -> ()			= $bc9b		; fac1 -> 4-byte signed integer in 98-101 ($62-$65), with the MSB FIRST.
 asmsub	AYINT		() -> clobbers(A,X,Y) -> ()			= $b1bf		; fac1-> signed word in 100-101 ($64-$65) MSB FIRST. (might throw ILLEGAL QUANTITY)
 
-; signed word in Y/A -> float in fac1
+; GIVAYF: signed word in Y/A (note different lsb/msb order) -> float in fac1
 ; (tip: use c64flt.GIVAYFAY to use A/Y input; lo/hi switched to normal order)
 ; there is also c64flt.GIVUAYF - unsigned word in A/Y (lo/hi) to fac1
 ; there is also c64flt.FREADS32  that reads from 98-101 ($62-$65) MSB FIRST

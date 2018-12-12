@@ -12,6 +12,7 @@
 		; note: the following ZP scratch registers must be the same as in c64lib
 		memory  ubyte  SCRATCH_ZPB1	= $02		; scratch byte 1 in ZP
 		memory  ubyte  SCRATCH_ZPREG	= $03		; scratch register in ZP
+		memory  ubyte  SCRATCH_ZPREGX	= $50		; temp storage for X register (stack pointer)
 		memory  uword  SCRATCH_ZPWORD1	= $fb		; scratch word in ZP ($fb/$fc)
 		memory  uword  SCRATCH_ZPWORD2	= $fd		; scratch word in ZP ($fd/$fe)
 		const   uword  ESTACK_LO	= $ce00
@@ -38,23 +39,52 @@ ror2_word	.proc
 ; @todo:  move float operations to their own library (only included when floats are enabled)
 
 ub2float	.proc
+		; -- convert ubyte in SCRATCH_ZPB1 to float at address A/Y
+		;    clobbers A, Y
+		stx  SCRATCH_ZPREGX
+		sta  SCRATCH_ZPWORD2
+		sty  SCRATCH_ZPWORD1+1
+		ldy  SCRATCH_ZPB1
+		jsr  c64.FREADUY
+_fac_to_mem	ldx  SCRATCH_ZPWORD2
+		ldy  SCRATCH_ZPWORD2+1
+		jsr  c64.MOVMF
+		ldx  SCRATCH_ZPREGX
 		rts
-		.warn "not implemented"
 		.pend
 
 b2float		.proc
-		rts
-		.warn "not implemented"
+		; -- convert byte in SCRATCH_ZPB1 to float at address A/Y
+		;    clobbers A, Y
+		stx  SCRATCH_ZPREGX
+		sta  SCRATCH_ZPWORD2
+		sty  SCRATCH_ZPWORD2+1
+		lda  SCRATCH_ZPB1
+		jsr  c64.FREADSA
+		jmp  ub2float._fac_to_mem
 		.pend
 
 uw2float	.proc
-		rts
-		.warn "not implemented"
+		; -- convert uword in SCRATCH_ZPWORD1 to float at address A/Y
+		stx  SCRATCH_ZPREGX
+		sta  SCRATCH_ZPWORD2
+		sty  SCRATCH_ZPWORD2+1
+		lda  SCRATCH_ZPWORD1
+		ldy  SCRATCH_ZPWORD1+1
+		jsr  c64flt.GIVUAYFAY
+		jmp  ub2float._fac_to_mem
 		.pend
 
 w2float		.proc
+		; -- convert word in SCRATCH_ZPWORD1 to float at address A/Y
+		stx  SCRATCH_ZPREGX
+		sta  SCRATCH_ZPWORD2
+		sty  SCRATCH_ZPWORD2+1
+		ldy  SCRATCH_ZPWORD1
+		lda  SCRATCH_ZPWORD1+1
+		jsr  c64.GIVAYF
+		jmp  ub2float._fac_to_mem
 		rts
-		.warn "not implemented"
 		.pend
 
 push_float	.proc
@@ -726,7 +756,7 @@ func_rndf	.proc
 		jsr  c64.RND		; rng into fac1
 		ldx  #<_rndf_rnum5
 		ldy  #>_rndf_rnum5
-		jsr  c64.FTOMEMXY	; fac1 to mem X/Y
+		jsr  c64.MOVMF	; fac1 to mem X/Y
 		ldx  SCRATCH_ZPREG
 		lda  #<_rndf_rnum5
 		ldy  #>_rndf_rnum5
@@ -775,7 +805,9 @@ func_str2byte	.proc
 ;    result += digitvalue
 ;    return result
 
-func_str2ubyte  jmp  func_str2uword
+func_str2ubyte  .proc
+		jmp  func_str2uword
+		.pend
 
 func_str2uword	.proc
 		;-- convert string (address on stack) to uword number

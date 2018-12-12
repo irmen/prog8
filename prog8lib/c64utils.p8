@@ -221,7 +221,7 @@ asmsub  FREADS24AXY  (lo: ubyte @ A, mid: ubyte @ X, hi: ubyte @ Y) -> clobbers(
 	}}
 }
 
-asmsub  GIVUAYF  (value: uword @ AY) -> clobbers(A,X,Y) -> ()  {
+asmsub  GIVUAYFAY  (value: uword @ AY) -> clobbers(A,X,Y) -> ()  {
 	; ---- unsigned 16 bit word in A/Y (lo/hi) to fac1
 	%asm {{
 		sty  $62
@@ -235,9 +235,9 @@ asmsub  GIVUAYF  (value: uword @ AY) -> clobbers(A,X,Y) -> ()  {
 asmsub  GIVAYFAY  (value: uword @ AY) -> clobbers(A,X,Y) -> ()  {
 	; ---- signed 16 bit word in A/Y (lo/hi) to float in fac1
 	%asm {{
-		sta  c64.SCRATCH_ZPB1
+		sta  c64.SCRATCH_ZPREG
 		tya
-		ldy  c64.SCRATCH_ZPB1
+		ldy  c64.SCRATCH_ZPREG
 		jmp  c64.GIVAYF		; this uses the inverse order, Y/A
 	}}
 }
@@ -246,9 +246,9 @@ asmsub  FTOSWRDAY  () -> clobbers(X) -> (uword @ AY)  {
 	; ---- fac1 to signed word in A/Y
 	%asm {{
 		jsr  c64.FTOSWORDYA	; note the inverse Y/A order
-		sta  c64.SCRATCH_ZPB1
+		sta  c64.SCRATCH_ZPREG
 		tya
-		ldy  c64.SCRATCH_ZPB1
+		ldy  c64.SCRATCH_ZPREG
 		rts
 	}}
 }
@@ -303,7 +303,7 @@ asmsub  float_add_one  (mflt: uword @ XY) -> clobbers(A,X,Y) -> ()  {
 		jsr  c64.FADD		; fac1 += 1
 		ldx  c64.SCRATCH_ZPB1
 		ldy  c64.SCRATCH_ZPREG
-		jmp  c64.FTOMEMXY	; float XY = fac1
+		jmp  c64.MOVMF	; float XY = fac1
 	}}
 }
 
@@ -320,7 +320,7 @@ asmsub  float_sub_one  (mflt: uword @ XY) -> clobbers(A,X,Y) -> ()  {
 		jsr  c64.FSUB		; fac1 = float XY - 1
 		ldx  c64.SCRATCH_ZPB1
 		ldy  c64.SCRATCH_ZPREG
-		jmp  c64.FTOMEMXY	; float XY = fac1
+		jmp  c64.MOVMF	; float XY = fac1
 	}}
 }
 
@@ -336,7 +336,7 @@ asmsub  float_add_SW1_to_XY  (mflt: uword @ XY) -> clobbers(A,X,Y) -> ()  {
 		jsr  c64.FADD		; fac1 += SCRATCH_ZPWORD1
 		ldx  c64.SCRATCH_ZPB1
 		ldy  c64.SCRATCH_ZPREG
-		jmp  c64.FTOMEMXY	; float XY = fac1
+		jmp  c64.MOVMF	; float XY = fac1
 	}}
 }
 
@@ -353,7 +353,7 @@ asmsub  float_sub_SW1_from_XY  (mflt: uword @ XY) -> clobbers(A,X,Y) -> ()  {
 		jsr  c64.FSUB		; fac1 = float XY - SCRATCH_ZPWORD1
 		ldx  c64.SCRATCH_ZPB1
 		ldy  c64.SCRATCH_ZPREG
-		jmp  c64.FTOMEMXY	; float XY = fac1
+		jmp  c64.MOVMF	; float XY = fac1
 	}}
 }
 
