@@ -970,8 +970,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     DataType.BYTE -> Opcode.REMAINDER_B
                     DataType.UWORD -> Opcode.REMAINDER_UW
                     DataType.WORD -> Opcode.REMAINDER_W
-                    DataType.FLOAT -> Opcode.REMAINDER_F
-                    else -> throw CompilerException("only byte/word/float possible")
+                    else -> throw CompilerException("only byte/word operands possible")
                 }
             }
             "**" -> {

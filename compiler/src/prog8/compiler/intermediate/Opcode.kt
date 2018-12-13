@@ -64,7 +64,6 @@ enum class Opcode {
     REMAINDER_B,
     REMAINDER_UW,
     REMAINDER_W,
-    REMAINDER_F,
     POW_UB,
     POW_B,
     POW_UW,

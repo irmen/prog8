@@ -2,8 +2,9 @@
 %option enable_floats
 %output raw
 %launcher none
+%address $4000
 
-~ main  {
+~ main {
 
 sub start() {
 

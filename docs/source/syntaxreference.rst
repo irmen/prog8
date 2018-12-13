@@ -345,6 +345,7 @@ arithmetic: ``+``  ``-``  ``*``  ``/``  ``//`` ``**``  ``%``
     ``//`` is the floor-divide, the division resulting in a whole number rounded towards minus infinity.
     ``**`` is the power operator: ``3 ** 5`` is equal to 3*3*3*3*3 and is 243.
     ``%`` is the remainder operator: ``25 % 7`` is 4.  Be careful: without a space, %10 will be parsed as the binary number 2
+    Remainder is only supported on integer operands (not floats).
 
 
 bitwise arithmetic: ``&``  ``|``  ``^``  ``~``

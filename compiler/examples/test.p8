@@ -1,4 +1,5 @@
 %import c64utils
+%option enable_floats
 
 ~ main {
 
@@ -9,64 +10,56 @@
         uword uw1
         word  w1
         float f1
+        float f2
+        float f3
 
-        ub1=0
-        f1=ub1
-        c64.FPRINTLN()
-        ub1=255
-        f1=ub1
-        c64.FPRINTLN()
+
+        f1=22.555
+        f2=15.123
+        f3 = f1+f2
+        c64flt.print_float(f3)
         c64.CHROUT('\n')
 
-        b1=0
-        f1=b1
-        c64.FPRINTLN()
-        b1=-123
-        f1=b1
-        c64.FPRINTLN()
+        f1=22.555
+        f2=15.123
+        f3 = f1-f2
+        c64flt.print_float(f3)
         c64.CHROUT('\n')
 
-        uw1 = 0
-        f1 = uw1
-        c64.FPRINTLN()
-        uw1 = 1
-        f1 = uw1
-        c64.FPRINTLN()
-        uw1 = 255
-        f1 = uw1
-        c64.FPRINTLN()
-        uw1 = 32768
-        f1 = uw1
-        c64.FPRINTLN()
-        uw1 = 65535
-        f1 = uw1
-        c64.FPRINTLN()
-        uw1 = 0
-        f1 = uw1
-        c64.FPRINTLN()
+        f1=22.555
+        f2=15.123
+        f3 = f1*f2
+        c64flt.print_float(f3)
         c64.CHROUT('\n')
 
-        w1 = 1
-        f1 = w1
-        c64.FPRINTLN()
-        w1 = 255
-        f1 = w1
-        c64.FPRINTLN()
-        w1 = 32767
-        f1 = w1
-        c64.FPRINTLN()
-        w1 = -32768
-        f1 = w1
-        c64.FPRINTLN()
-        w1 = -1
-        f1 = w1
-        c64.FPRINTLN()
-        w1 = -255
-        f1 = w1
-        c64.FPRINTLN()
-        w1 = -256
-        f1 = w1
-        c64.FPRINTLN()
+        f1=22.555
+        f2=15.123
+        f3 = f1/f2
+        c64flt.print_float(f3)
+        c64.CHROUT('\n')
+
+        f3 = -f1
+        c64flt.print_float(f3)
+        c64.CHROUT('\n')
+
+        f3++
+        c64flt.print_float(f3)
+        c64.CHROUT('\n')
+        f3++
+        c64flt.print_float(f3)
+        c64.CHROUT('\n')
+        f3++
+        c64flt.print_float(f3)
+        c64.CHROUT('\n')
+        f3--
+        c64flt.print_float(f3)
+        c64.CHROUT('\n')
+        f3--
+        c64flt.print_float(f3)
+        c64.CHROUT('\n')
+        f3--
+        c64flt.print_float(f3)
+        c64.CHROUT('\n')
     }
 }
 

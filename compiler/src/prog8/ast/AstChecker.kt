@@ -623,9 +623,16 @@ class AstChecker(private val namespace: INameScope,
     override fun process(expr: BinaryExpression): IExpression {
         when(expr.operator){
             "/", "//", "%" -> {
-                val numeric = expr.right.constValue(namespace, heap)?.asNumericValue?.toDouble()
-                if(numeric==0.0)
+                val constvalRight = expr.right.constValue(namespace, heap)
+                val divisor = constvalRight?.asNumericValue?.toDouble()
+                if(divisor==0.0)
                     checkResult.add(ExpressionError("division by zero", expr.right.position))
+                if(expr.operator=="%") {
+                    val rightDt = constvalRight?.resultingDatatype(namespace, heap)
+                    val leftDt = expr.left.resultingDatatype(namespace, heap)
+                    if (rightDt == DataType.FLOAT || leftDt == DataType.FLOAT)
+                        checkResult.add(ExpressionError("remainder can only be used on integer operands", expr.right.position))
+                }
             }
         }
         return super.process(expr)

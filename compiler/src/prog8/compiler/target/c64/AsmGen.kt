@@ -567,7 +567,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             }
             Opcode.POP_MEM_FLOAT -> {
-                " lda  ${hexVal(ins)} |  ldy  ${hexValPlusOne(ins)} |  jsr  prog8_lib.pop_mem_float"
+                " lda  ${hexVal(ins)} |  ldy  ${hexValPlusOne(ins)} |  jsr  prog8_lib.pop_float"
             }
             Opcode.POP_VAR_BYTE -> {
                 when (ins.callLabel) {
@@ -773,7 +773,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.REMAINDER_UB -> "  jsr prog8_lib.remainder_ub"
             Opcode.REMAINDER_W -> "  jsr prog8_lib.remainder_w"
             Opcode.REMAINDER_UW -> "  jsr prog8_lib.remainder_uw"
-            Opcode.REMAINDER_F -> "  jsr prog8_lib.remainder_f"
 
             Opcode.GREATER_B -> "  jsr prog8_lib.greater_b"
             Opcode.GREATER_UB -> "  jsr prog8_lib.greater_ub"

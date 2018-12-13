@@ -112,7 +112,7 @@ assignment :  assign_targets '=' expression ;
 assign_targets : assign_target (',' assign_target)* ;
 
 augassignment :
-	assign_target operator=('+=' | '-=' | '/=' | '//=' | '*=' | '**=' | '&=' | '|=' | '^=') expression
+	assign_target operator=('+=' | '-=' | '/=' | '//=' | '*=' | '**=' | '&=' | '|=' | '^=' | '%=' ) expression
 	;
 
 assign_target:

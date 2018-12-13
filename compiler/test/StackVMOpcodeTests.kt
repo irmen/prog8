@@ -340,7 +340,6 @@ class TestStackVmOpcodes {
     fun testRemainder() {
         testBinaryOperator(Value(DataType.UBYTE, 250), Opcode.REMAINDER_UB, Value(DataType.UBYTE, 29), Value(DataType.UBYTE, 18))
         testBinaryOperator(Value(DataType.UWORD, 500), Opcode.REMAINDER_UW, Value(DataType.UWORD, 29), Value(DataType.UWORD, 7))
-        testBinaryOperator(Value(DataType.FLOAT, 2022.5), Opcode.REMAINDER_F, Value(DataType.FLOAT, 7.0), Value(DataType.FLOAT, 6.5))
     }
 
     @Test

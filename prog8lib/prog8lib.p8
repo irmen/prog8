@@ -113,10 +113,26 @@ push_float	.proc
 		rts
 		.pend
 		
-		
-push_float_from_indexed_var	.proc
+
+add_a_to_zpword	.proc
+		; -- add ubyte in A to the uword in SCRATCH_ZPWORD1
 		rts
 		.warn "not implemented"
+		.pend
+	
+push_float_from_indexed_var	.proc
+		; -- push the float from the array at A/Y with index on stack, back on the stack.
+		sta  SCRATCH_ZPWORD1
+		sty  SCRATCH_ZPWORD1+1
+		inx
+		lda  ESTACK_LO,x
+		sta  SCRATCH_ZPB1
+		asl  a
+		asl  a
+		clc
+		adc  SCRATCH_ZPB1
+		jsr  add_a_to_zpword
+		jmp  push_float
 		.pend
 
 pop_float	.proc
@@ -150,11 +166,6 @@ pop_float_to_indexed_var	.proc
 		.warn "not implemented"
 		.pend
 
-pop_mem_float	.proc
-		rts
-		.warn "not implemented"
-		.pend
-
 copy_float	.proc
 		; -- copies the 5 bytes of the mflt value pointed to by SCRATCH_ZPWORD1, 
 		;    into the 5 bytes pointed to by A/Y.  Clobbers Y.
@@ -179,38 +190,118 @@ copy_float	.proc
 		.pend
 
 inc_var_f	.proc
+		; -- add 1 to float pointed to by A/Y
+		sta  SCRATCH_ZPWORD1
+		sty  SCRATCH_ZPWORD1+1
+		stx  SCRATCH_ZPREGX
+		jsr  c64.MOVFM
+		lda  #<c64.FL_FONE
+		ldy  #>c64.FL_FONE
+		jsr  c64.FADD
+		ldx  SCRATCH_ZPWORD1
+		ldy  SCRATCH_ZPWORD1+1
+		jsr  c64.MOVMF
+		ldx  SCRATCH_ZPREGX
 		rts
-		.warn "not implemented"
 		.pend
                 
 dec_var_f	.proc
+		; -- subtract 1 from float pointed to by A/Y
+		sta  SCRATCH_ZPWORD1
+		sty  SCRATCH_ZPWORD1+1
+		stx  SCRATCH_ZPREGX
+		lda  #<c64.FL_FONE
+		ldy  #>c64.FL_FONE
+		jsr  c64.MOVFM
+		lda  SCRATCH_ZPWORD1
+		ldy  SCRATCH_ZPWORD1+1
+		jsr  c64.FSUB
+		ldx  SCRATCH_ZPWORD1
+		ldy  SCRATCH_ZPWORD1+1
+		jsr  c64.MOVMF
+		ldx  SCRATCH_ZPREGX
 		rts
-		.warn "not implemented"
 		.pend
 
+pop_2_floats_f2_in_fac1	.proc
+		; -- pop 2 floats from stack, load the second one in FAC1
+		lda  #<fmath_float2
+		ldy  #>fmath_float2
+		jsr  pop_float
+		lda  #<fmath_float1
+		ldy  #>fmath_float1
+		jsr  pop_float
+		lda  #<fmath_float2
+		ldy  #>fmath_float2
+		jmp  c64.MOVFM
+		.pend
+		
+fmath_float1	.fill  5	; storage for a mflpt5 value
+fmath_float2	.fill  5	; storage for a mflpt5 value
+
+push_fac1_as_result	.proc
+		; -- push the float in FAC1 onto the stack, and return from calculation
+		ldx  #<fmath_float1
+		ldy  #>fmath_float1
+		jsr  c64.MOVMF
+		lda  #<fmath_float1
+		ldy  #>fmath_float1
+		ldx  SCRATCH_ZPREGX
+		jmp  push_float
+		.pend
+		
+		
 div_f		.proc
-		rts
-		.warn "not implemented"
+		; -- push f1/f2 on stack
+		stx  SCRATCH_ZPREGX
+		jsr  pop_2_floats_f2_in_fac1
+		lda  #<fmath_float1
+		ldy  #>fmath_float1
+		jsr  c64.FDIV
+		jmp  push_fac1_as_result
 		.pend
 
 add_f		.proc
-		rts
-		.warn "not implemented"
+		; -- push f1+f2 on stack
+		stx  SCRATCH_ZPREGX
+		jsr  pop_2_floats_f2_in_fac1
+		lda  #<fmath_float1
+		ldy  #>fmath_float1
+		jsr  c64.FADD
+		jmp  push_fac1_as_result
 		.pend
 
 sub_f		.proc
-		rts
-		.warn "not implemented"
+		; -- push f1-f2 on stack
+		stx  SCRATCH_ZPREGX
+		jsr  pop_2_floats_f2_in_fac1
+		lda  #<fmath_float1
+		ldy  #>fmath_float1
+		jsr  c64.FSUB
+		jmp  push_fac1_as_result
 		.pend
 
 mul_f		.proc
-		rts
-		.warn "not implemented"
+		; -- push f1*f2 on stack
+		stx  SCRATCH_ZPREGX
+		jsr  pop_2_floats_f2_in_fac1
+		lda  #<fmath_float1
+		ldy  #>fmath_float1
+		jsr  c64.FMULT
+		jmp  push_fac1_as_result
 		.pend
 
 neg_f		.proc
-		rts
-		.warn "not implemented"
+		; -- push -flt back on stack
+		stx  SCRATCH_ZPREGX
+		lda  #<fmath_float1
+		ldy  #>fmath_float1
+		jsr  pop_float
+		lda  #<fmath_float1
+		ldy  #>fmath_float1
+		jsr  c64.MOVFM
+		jsr  c64.NEGOP
+		jmp  push_fac1_as_result
 		.pend
 
 		
@@ -302,12 +393,6 @@ remainder_uw	.proc
 		.warn "not implemented"
 		.pend
 		
-remainder_f	.proc
-		rts
-		.warn "not implemented"
-		.pend
-		
-
 equal_w		.proc
 		; -- are the two words on the stack identical?
 		; @todo optimize according to http://www.6502.org/tutorials/compare_beyond.html

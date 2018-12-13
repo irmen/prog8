@@ -117,7 +117,7 @@ asmsub	FAREADMEM	() -> clobbers(A,Y) -> ()			= $ba90		; load mflpt value from me
 asmsub	MOVFA		() -> clobbers(A,X) -> ()			= $bbfc		; copy fac2 to fac1
 asmsub	MOVAF		() -> clobbers(A,X) -> ()			= $bc0c		; copy fac1 to fac2  (rounded)
 asmsub	MOVEF		() -> clobbers(A,X) -> ()			= $bc0f		; copy fac1 to fac2
-asmsub	MOVMF	(mflpt: uword @ XY) -> clobbers(A,Y) -> ()	= $bbd4		; store fac1 to memory  X/Y as 5-byte mflpt
+asmsub	MOVMF		(mflpt: uword @ XY) -> clobbers(A,Y) -> ()	= $bbd4		; store fac1 to memory  X/Y as 5-byte mflpt
 
 ; fac1-> signed word in Y/A (might throw ILLEGAL QUANTITY)
 ; (tip: use c64flt.FTOSWRDAY to get A/Y output; lo/hi switched to normal little endian order)
@@ -132,7 +132,7 @@ asmsub	AYINT		() -> clobbers(A,X,Y) -> ()			= $b1bf		; fac1-> signed word in 100
 
 ; GIVAYF: signed word in Y/A (note different lsb/msb order) -> float in fac1
 ; (tip: use c64flt.GIVAYFAY to use A/Y input; lo/hi switched to normal order)
-; there is also c64flt.GIVUAYF - unsigned word in A/Y (lo/hi) to fac1
+; there is also c64flt.GIVUAYFAY - unsigned word in A/Y (lo/hi) to fac1
 ; there is also c64flt.FREADS32  that reads from 98-101 ($62-$65) MSB FIRST
 ; there is also c64flt.FREADUS32  that reads from 98-101 ($62-$65) MSB FIRST
 ; there is also c64flt.FREADS24AXY  that reads signed int24 into fac1 from A/X/Y (lo/mid/hi bytes)
@@ -155,8 +155,8 @@ asmsub	FSUBT		() -> clobbers(A,X,Y) -> ()			= $b853		; fac1 = fac2-fac1   mind t
 asmsub	FSUB		(mflpt: uword @ AY) -> clobbers(A,X,Y) -> ()	= $b850		; fac1 = mflpt from A/Y - fac1
 asmsub	FMULTT 		() -> clobbers(A,X,Y) -> ()			= $ba2b		; fac1 *= fac2
 asmsub	FMULT		(mflpt: uword @ AY) -> clobbers(A,X,Y) -> ()	= $ba28		; fac1 *= mflpt value from A/Y
-asmsub	FDIVT 		() -> clobbers(A,X,Y) -> ()			= $bb12		; fac1 = fac2/fac1   mind the order of the operands
-asmsub	FDIV  		(mflpt: uword @ AY) -> clobbers(A,X,Y) -> ()	= $bb0f		; fac1 = mflpt in A/Y / fac1
+asmsub	FDIVT 		() -> clobbers(A,X,Y) -> ()			= $bb12		; fac1 = fac2/fac1  (remainder in fac2)  mind the order of the operands
+asmsub	FDIV  		(mflpt: uword @ AY) -> clobbers(A,X,Y) -> ()	= $bb0f		; fac1 = mflpt in A/Y / fac1  (remainder in fac2)
 asmsub	FPWRT		() -> clobbers(A,X,Y) -> ()			= $bf7b		; fac1 = fac2 ** fac1
 asmsub	FPWR		(mflpt: uword @ AY) -> clobbers(A,X,Y) -> ()	= $bf78		; fac1 = fac2 ** mflpt from A/Y
 
