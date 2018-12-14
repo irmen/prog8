@@ -1417,20 +1417,15 @@ class StackVm(private var traceOutputFile: String?) {
                 print(Petscii.decodePetscii(listOf(evalstack.pop().integerValue().toShort()), true))
             }
             Syscall.VM_WRITE_STR -> {
-                val value = evalstack.pop()
-                when(value.type){
-                    DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT -> print(value.numericValue())
-                    DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> print(heap.get(value.heapId).str)
-                    DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> print(heap.get(value.heapId).array!!.toList())
-                    DataType.ARRAY_F -> print(heap.get(value.heapId).doubleArray!!.toList())
-                }
+                val heapId = evalstack.pop().integerValue()
+                print(heap.get(heapId).str?.substringBefore('\u0000'))
             }
             Syscall.VM_INPUT_STR -> {
-                val variable = evalstack.pop()
-                val value = heap.get(variable.heapId)
+                val heapId = evalstack.pop().integerValue()
+                val value = heap.get(heapId)
                 val maxlen = value.str!!.length
                 val input = readLine() ?: ""
-                heap.update(variable.heapId, input.padEnd(maxlen, '\u0000').substring(0, maxlen))
+                heap.update(heapId, input.padEnd(maxlen, '\u0000').substring(0, maxlen))
             }
             Syscall.VM_GFX_PIXEL -> {
                 // plot pixel at (x, y, color) from stack
@@ -1575,28 +1570,28 @@ class StackVm(private var traceOutputFile: String?) {
                 evalstack.push(Value(DataType.BYTE, y.toShort()))
             }
             Syscall.FUNC_STR2UBYTE -> {
-                val strvar = evalstack.pop()
-                val str = heap.get(strvar.heapId)
+                val heapId = evalstack.pop().integerValue()
+                val str = heap.get(heapId)
                 val y = str.str!!.trim().trimEnd('\u0000')
                 val number = (y.toInt() and 255).toShort()
                 evalstack.push(Value(DataType.UBYTE, number))
             }
             Syscall.FUNC_STR2WORD -> {
-                val strvar = evalstack.pop()
-                val str = heap.get(strvar.heapId)
+                val heapId = evalstack.pop().integerValue()
+                val str = heap.get(heapId)
                 val y = str.str!!.trim().trimEnd('\u0000')
                 evalstack.push(Value(DataType.WORD, y.toInt()))
             }
             Syscall.FUNC_STR2UWORD -> {
-                val strvar = evalstack.pop()
-                val str = heap.get(strvar.heapId)
+                val heapId = evalstack.pop().integerValue()
+                val str = heap.get(heapId)
                 val y = str.str!!.trim().trimEnd('\u0000')
                 val number = y.toInt() and 65535
                 evalstack.push(Value(DataType.UWORD, number))
             }
             Syscall.FUNC_STR2FLOAT -> {
-                val strvar = evalstack.pop()
-                val str = heap.get(strvar.heapId)
+                val heapId = evalstack.pop().integerValue()
+                val str = heap.get(heapId)
                 val y = str.str!!.trim().trimEnd('\u0000')
                 evalstack.push(Value(DataType.FLOAT, y.toDouble()))
             }

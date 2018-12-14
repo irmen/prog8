@@ -39,7 +39,7 @@
 
 ask_guess:
         c64.STROUT("\nYou have ")
-        c64scr.print_byte_decimal(attempts_left)
+        c64scr.print_ubyte_decimal(attempts_left)
         c64.STROUT(" guess")
         if(attempts_left>1)
             c64.STROUT("es")
@@ -66,7 +66,7 @@ ask_guess:
 
         ; game over.
         c64.STROUT("\nToo bad! It was: ")
-        c64scr.print_byte_decimal(secretnumber)
+        c64scr.print_ubyte_decimal(secretnumber)
         c64.CHROUT('\n')
 
 goodbye:

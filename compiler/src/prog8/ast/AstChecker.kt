@@ -234,26 +234,32 @@ class AstChecker(private val namespace: INameScope,
             if(subroutine.asmReturnvaluesRegisters.size != subroutine.returntypes.size)
                 err("number of return registers is not the same as number of return values")
             for(param in subroutine.parameters.zip(subroutine.asmParameterRegisters)) {
-                if(param.second.registerOrPair in setOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y))
-                    if(param.first.type!=DataType.UBYTE)
+                if(param.second.registerOrPair in setOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y)) {
+                    if (param.first.type != DataType.UBYTE && param.first.type != DataType.BYTE)
+                        err("parameter '${param.first.name}' should be (u)byte")
+                }
+                else if(param.second.registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
+                    if (param.first.type != DataType.UWORD && param.first.type != DataType.WORD && param.first.type !in StringDatatypes && param.first.type !in ArrayDatatypes)
+                        err("parameter '${param.first.name}' should be (u)word/address")
+                }
+                else if(param.second.statusflag!=null) {
+                    if (param.first.type != DataType.UBYTE)
                         err("parameter '${param.first.name}' should be ubyte")
-                else if(param.second.registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY))
-                    if(param.first.type!=DataType.UWORD)
-                        err("parameter '${param.first.name}' should be uword")
-                else if(param.second.statusflag!=null)
-                    if(param.first.type!=DataType.UBYTE)
-                        err("parameter '${param.first.name}' should be ubyte")
+                }
             }
             for(ret in subroutine.returntypes.withIndex().zip(subroutine.asmReturnvaluesRegisters)) {
-                if(ret.second.registerOrPair in setOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y))
-                    if(ret.first.value!=DataType.UBYTE)
-                        err("return value #${ret.first.index+1} should be ubyte")
-                else if(ret.second.registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY))
-                    if(ret.first.value!=DataType.UWORD)
-                        err("return value #${ret.first.index+1} should be uword")
-                else if(ret.second.statusflag!=null)
-                    if(ret.first.value!=DataType.UBYTE)
-                        err("return value #${ret.first.index+1} should be ubyte")
+                if(ret.second.registerOrPair in setOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y)) {
+                    if (ret.first.value != DataType.UBYTE && ret.first.value != DataType.BYTE)
+                        err("return value #${ret.first.index + 1} should be (u)byte")
+                }
+                else if(ret.second.registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
+                    if (ret.first.value != DataType.UWORD && ret.first.value != DataType.WORD && ret.first.value !in StringDatatypes && ret.first.value !in ArrayDatatypes)
+                        err("return value #${ret.first.index + 1} should be (u)word/address")
+                }
+                else if(ret.second.statusflag!=null) {
+                    if (ret.first.value != DataType.UBYTE)
+                        err("return value #${ret.first.index + 1} should be ubyte")
+                }
             }
 
             val regCounts = mutableMapOf<Register, Int>().withDefault { 0 }

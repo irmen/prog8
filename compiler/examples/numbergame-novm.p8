@@ -26,7 +26,7 @@
 ;            c64.CHROUT('\n')
 
             c64scr.print_string("\nYou have ")
-            c64scr.print_byte_decimal(attempts_left)
+            c64scr.print_ubyte_decimal(attempts_left)
             c64scr.print_string(" guess")
             if attempts_left>1
                 c64scr.print_string("es")
@@ -66,7 +66,7 @@
                 c64scr.print_string("\n\nYou guessed it, impressive!\n")
             else {
                 c64scr.print_string("\nToo bad! My number was: ")
-                c64scr.print_byte_decimal(secretnumber)
+                c64scr.print_ubyte_decimal(secretnumber)
                 c64scr.print_string(".\n")
             }
             c64scr.print_string("Thanks for playing, ")

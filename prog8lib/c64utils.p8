@@ -649,7 +649,7 @@ _print_tens	txa
 	}}
 }
 	
-asmsub  print_byte_decimal  (value: ubyte @ A) -> clobbers(A,X,Y) -> ()  {
+asmsub  print_byte_decimal  (value: byte @ A) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the byte in A in decimal form, without left padding 0s
 	%asm {{
 		pha
@@ -745,7 +745,7 @@ _pr_decimal
 	}}
 }
 
-asmsub  print_word_decimal  (value: uword @ AY) -> clobbers(A,X,Y) -> ()  {
+asmsub  print_word_decimal  (value: word @ AY) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the (signed) word in A/Y in decimal form, without left padding 0s
 	%asm {{
 		cpy  #0

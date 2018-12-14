@@ -847,7 +847,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                                     translate(assignA)
                                     translate(assignY)
                                 }
-                                DataType.UWORD -> {
+                                DataType.UWORD, DataType.WORD -> {
                                     translate(arg.first)
                                     prog.instr(Opcode.POP_REGAY_WORD)
                                 }
@@ -1212,7 +1212,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             // convert value to target datatype if possible
             when(targetDt) {
                 DataType.UBYTE, DataType.BYTE ->
-                    throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
+                    if(valueDt!=DataType.BYTE && valueDt!=DataType.UBYTE)
+                        throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                 DataType.WORD -> {
                     when (valueDt) {
                         DataType.UBYTE -> prog.instr(Opcode.UB2UWORD)

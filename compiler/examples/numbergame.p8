@@ -3,7 +3,7 @@
 ~ main {
     sub start()  {
         str   name = "????????????????????????????????????????"
-        str   guessstr = "??????????"
+        str   input = "??????????"
         ubyte secretnumber = rnd() % 100
 
         vm_write_str("Let's play a number guessing game!\n")
@@ -20,15 +20,15 @@
             if attempts_left>1
                 vm_write_str("es")
             vm_write_str(" left. What is your next guess? ")
-            vm_input_str(guess)
-            ubyte guessednumber = str2ubyte(guess)
-            if guessednumber==secretnumber {
+            vm_input_str(input)
+            ubyte guess = str2ubyte(input)
+            if guess==secretnumber {
                 vm_write_str("\nYou guessed it, impressive!\n")
                 vm_write_str("Thanks for playing.\n")
                 return
             } else {
                 vm_write_str("That is too ")
-                if guessednumber<secretnumber
+                if guess<secretnumber
                     vm_write_str("low!\n")
                 else
                     vm_write_str("high!\n")
