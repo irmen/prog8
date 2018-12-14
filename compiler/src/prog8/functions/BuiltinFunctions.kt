@@ -255,7 +255,7 @@ private fun builtinWrd(args: List<IExpression>, position: Position, namespace:IN
     val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
     if(constval.type!=DataType.UBYTE && constval.type!=DataType.BYTE && constval.type!=DataType.UWORD)
         throw SyntaxError("wrd requires one argument of type ubyte, byte or uword", position)
-    return LiteralValue(DataType.WORD, wordvalue = constval.bytevalue!!.toInt(), position = position)
+    return LiteralValue(DataType.WORD, wordvalue = constval.asIntegerValue, position = position)
 }
 
 private fun builtinUwrd(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
@@ -266,7 +266,7 @@ private fun builtinUwrd(args: List<IExpression>, position: Position, namespace:I
     val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
     if(constval.type!=DataType.BYTE && constval.type!=DataType.WORD && constval.type!=DataType.UWORD)
         throw SyntaxError("uwrd requires one argument of type byte, word or uword", position)
-    return LiteralValue(DataType.UWORD, wordvalue = constval.bytevalue!!.toInt(), position = position)
+    return LiteralValue(DataType.UWORD, wordvalue = constval.asIntegerValue!! and 65535, position = position)
 }
 
 private fun builtinB2ub(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
@@ -275,8 +275,8 @@ private fun builtinB2ub(args: List<IExpression>, position: Position, namespace:I
         throw SyntaxError("b2ub requires one byte argument", position)
 
     val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
-    if(constval.type!=DataType.BYTE)
-        throw SyntaxError("b2ub requires one argument of type byte", position)
+    if(constval.type!=DataType.BYTE && constval.type!=DataType.UBYTE)
+        throw SyntaxError("b2ub requires one argument of type byte or ubyte", position)
     return LiteralValue(DataType.UBYTE, bytevalue=(constval.bytevalue!!.toInt() and 255).toShort(), position = position)
 }
 

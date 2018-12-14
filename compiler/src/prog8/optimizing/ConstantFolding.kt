@@ -5,7 +5,6 @@ import prog8.compiler.CompilerException
 import prog8.compiler.HeapValues
 import prog8.compiler.target.c64.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.FLOAT_MAX_POSITIVE
-import prog8.compiler.target.c64.Petscii
 import kotlin.math.floor
 
 

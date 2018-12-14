@@ -7,7 +7,7 @@
 
 ~ prog8_lib {
 		; @TODO move all this assembly to a real .asm file instead and include that...
-	
+
 
 		; note: the following ZP scratch registers must be the same as in c64lib
 		memory  ubyte  SCRATCH_ZPB1	= $02		; scratch byte 1 in ZP
@@ -116,22 +116,33 @@ push_float	.proc
 
 add_a_to_zpword	.proc
 		; -- add ubyte in A to the uword in SCRATCH_ZPWORD1
-		rts
-		.warn "not implemented"
-		.pend
-	
-push_float_from_indexed_var	.proc
-		; -- push the float from the array at A/Y with index on stack, back on the stack.
+		clc
+		adc  SCRATCH_ZPWORD1
 		sta  SCRATCH_ZPWORD1
-		sty  SCRATCH_ZPWORD1+1
+		bvc  +
+		inc  SCRATCH_ZPWORD1+1
++		rts
+		.pend
+
+pop_index_times_5	.proc
 		inx
 		lda  ESTACK_LO,x
 		sta  SCRATCH_ZPB1
 		asl  a
 		asl  a
 		clc
-		adc  SCRATCH_ZPB1
+		adc  SCRATCH_ZPB1	; A*=5
+		rts
+		.pend
+		
+push_float_from_indexed_var	.proc
+		; -- push the float from the array at A/Y with index on stack, onto the stack.
+		sta  SCRATCH_ZPWORD1
+		sty  SCRATCH_ZPWORD1+1
+		jsr  pop_index_times_5
 		jsr  add_a_to_zpword
+		lda  SCRATCH_ZPWORD1
+		ldy  SCRATCH_ZPWORD1+1
 		jmp  push_float
 		.pend
 
@@ -162,8 +173,14 @@ pop_float	.proc
 		.pend
 		
 pop_float_to_indexed_var	.proc
-		rts
-		.warn "not implemented"
+		; -- pop the float on the stack, to the memory in the array at A/Y indexed by the byte on stack
+		sta  SCRATCH_ZPWORD1
+		sty  SCRATCH_ZPWORD1+1
+		jsr  pop_index_times_5
+		jsr  add_a_to_zpword
+		lda  SCRATCH_ZPWORD1
+		ldy  SCRATCH_ZPWORD1+1
+		jmp  pop_float
 		.pend
 
 copy_float	.proc
@@ -306,13 +323,30 @@ neg_f		.proc
 
 		
 add_w		.proc
-		rts	; @todo inline?
-		.warn "not implemented"
+		; -- push word+word
+		.warn "addw"
+		inx
+		clc
+		lda  ESTACK_LO,x
+		adc  ESTACK_LO+1,x
+		sta  ESTACK_LO+1,x
+		lda  ESTACK_HI,x
+		adc  ESTACK_HI+1,x
+		sta  ESTACK_HI+1,x
+		rts
 		.pend
 		
 add_uw		.proc
-		rts	; @todo inline?
-		.warn "not implemented"
+		.warn "add_uw"
+		inx
+		clc
+		lda  ESTACK_LO,x
+		adc  ESTACK_LO+1,x
+		sta  ESTACK_LO+1,x
+		lda  ESTACK_HI,x
+		adc  ESTACK_HI+1,x
+		sta  ESTACK_HI+1,x
+		rts
 		.pend
 		
 sub_w		.proc
@@ -849,16 +883,6 @@ func_rndf	.proc
 _rndf_rnum5	.fill 5
 		.pend
 
-
-func_wrd	.proc
-		rts
-		.warn "not implemented"
-		.pend
-
-func_uwrd	.proc
-		rts
-		.warn "not implemented"
-		.pend
 
 func_str2byte	.proc
 		rts

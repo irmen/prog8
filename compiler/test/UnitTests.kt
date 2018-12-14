@@ -9,6 +9,7 @@ import prog8.ast.*
 import prog8.compiler.*
 import prog8.compiler.intermediate.Value
 import prog8.compiler.target.c64.*
+import java.io.CharConversionException
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -272,8 +273,8 @@ class TestPetscii {
                 listOf<Short>(72, 69, 76, 76, 79, 32, 0xd7, 0xcf, 0xd2, 0xcc, 0xc4, 32, 49, 50, 51, 32, 64, 33, 0x5c)))
         assertThat(Petscii.encodePetscii("\uf11a", true), equalTo(listOf<Short>(0x12)))   // reverse vid
         assertThat(Petscii.encodePetscii("✓", true), equalTo(listOf<Short>(0xfa)))
-        assertFailsWith<CompilerException> { Petscii.encodePetscii("π", true) }
-        assertFailsWith<CompilerException> { Petscii.encodePetscii("♥", true) }
+        assertFailsWith<CharConversionException> { Petscii.encodePetscii("π", true) }
+        assertFailsWith<CharConversionException> { Petscii.encodePetscii("♥", true) }
 
         assertThat(Petscii.decodePetscii(listOf(72, 0xd7, 0x5c, 0xfa, 0x12), true), equalTo("hW£✓\uF11A"))
         assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodePetscii(listOf(-1), true) }
@@ -287,7 +288,7 @@ class TestPetscii {
         assertThat(Petscii.encodePetscii("\uf11a"), equalTo(listOf<Short>(0x12)))   // reverse vid
         assertThat(Petscii.encodePetscii("♥"), equalTo(listOf<Short>(0xd3)))
         assertThat(Petscii.encodePetscii("π"), equalTo(listOf<Short>(0xff)))
-        assertFailsWith<CompilerException> { Petscii.encodePetscii("✓") }
+        assertFailsWith<CharConversionException> { Petscii.encodePetscii("✓") }
 
         assertThat(Petscii.decodePetscii(listOf(72, 0x5c, 0xd3, 0xff)), equalTo("H£♥π"))
         assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodePetscii(listOf(-1)) }
@@ -300,8 +301,8 @@ class TestPetscii {
                 listOf<Short>(0x08, 0x05, 0x0c, 0x0c, 0x0f, 0x20, 0x57, 0x4f, 0x52, 0x4c, 0x44, 0x20, 0x31, 0x32, 0x33, 0x20, 0x00, 0x21, 0x1c)
         ))
         assertThat(Petscii.encodeScreencode("✓", true), equalTo(listOf<Short>(0x7a)))
-        assertFailsWith<CompilerException> { Petscii.encodeScreencode("♥", true) }
-        assertFailsWith<CompilerException> { Petscii.encodeScreencode("π", true) }
+        assertFailsWith<CharConversionException> { Petscii.encodeScreencode("♥", true) }
+        assertFailsWith<CharConversionException> { Petscii.encodeScreencode("π", true) }
 
         assertThat(Petscii.decodeScreencode(listOf(0x08, 0x57, 0x1c, 0x7a), true), equalTo("hW£✓"))
         assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodeScreencode(listOf(-1), true) }
@@ -314,8 +315,8 @@ class TestPetscii {
                 listOf<Short>(0x17, 0x0f, 0x12, 0x0c, 0x04, 0x20, 0x31, 0x32, 0x33, 0x20, 0x00, 0x21, 0x1c)))
         assertThat(Petscii.encodeScreencode("♥"), equalTo(listOf<Short>(0x53)))
         assertThat(Petscii.encodeScreencode("π"), equalTo(listOf<Short>(0x5e)))
-        assertFailsWith<CompilerException> { Petscii.encodeScreencode("✓") }
-        assertFailsWith<CompilerException> { Petscii.encodeScreencode("hello") }
+        assertFailsWith<CharConversionException> { Petscii.encodeScreencode("✓") }
+        assertFailsWith<CharConversionException> { Petscii.encodeScreencode("hello") }
 
         assertThat(Petscii.decodeScreencode(listOf(0x17, 0x1c, 0x53, 0x5e)), equalTo("W£♥π"))
         assertFailsWith<ArrayIndexOutOfBoundsException> { Petscii.decodeScreencode(listOf(-1)) }

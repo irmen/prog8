@@ -19,10 +19,10 @@
 
 
 
-asmsub  multiply_bytes  (byte1: ubyte @ X, byte2: ubyte @ Y) -> clobbers(X) -> (ubyte @ A)  {
+asmsub  multiply_bytes  (byte1: ubyte @ A, byte2: ubyte @ Y) -> clobbers(X) -> (ubyte @ A)  {
 	; ---- multiply 2 bytes, result as byte in A  (signed or unsigned)
 	%asm {{
-		stx  SCRATCH_ZPB1
+		sta  SCRATCH_ZPB1
 		sty  SCRATCH_ZPREG
 		ldx  #8
 -               asl  a
@@ -37,12 +37,12 @@ asmsub  multiply_bytes  (byte1: ubyte @ X, byte2: ubyte @ Y) -> clobbers(X) -> (
 }
 
 
-asmsub  multiply_bytes_16  (byte1: ubyte @ X, byte2: ubyte @ Y) -> clobbers(A) -> (uword @ XY)  {
-	; ---- multiply 2 bytes, result as word in X/Y (unsigned)
+asmsub  multiply_bytes_16  (byte1: ubyte @ A, byte2: ubyte @ Y) -> clobbers(X) -> (uword @ AY)  {
+	; ---- multiply 2 bytes, result as word in A/Y (unsigned)
 	%asm {{
-		lda  #0
-_m_with_add	stx  SCRATCH_ZPB1
+                sta  SCRATCH_ZPB1
 		sty  SCRATCH_ZPREG
+		lda  #0
 		ldx  #8
 		lsr  SCRATCH_ZPB1
 -               bcc  +
@@ -53,26 +53,19 @@ _m_with_add	stx  SCRATCH_ZPB1
 		dex
 		bne  -
 		tay
-		ldx  SCRATCH_ZPB1
+		lda  SCRATCH_ZPB1
 		rts
 	}}
 }
 
-asmsub  multiply_bytes_addA_16  (byte1: ubyte @ X, byte2: ubyte @ Y, add: ubyte @ A) -> clobbers(A) -> (uword @ XY)  {
-	; ---- multiply 2 bytes and add A, result as word in X/Y (unsigned)
-	%asm {{
-		jmp  multiply_bytes_16._m_with_add
-	}}
-}
-
 	word[2]  multiply_words_product = 0
-asmsub  multiply_words  (number: uword @ XY) -> clobbers(A,X) -> ()  {
+asmsub  multiply_words  (number: uword @ AY) -> clobbers(A,X) -> ()  {
 	; ---- multiply two 16-bit words into a 32-bit result
-	;      input: X/Y = first 16-bit number, SCRATCH_ZPWORD1 in ZP = second 16-bit number
+	;      input: A/Y = first 16-bit number, SCRATCH_ZPWORD1 in ZP = second 16-bit number
 	;      output: multiply_words_product  32-bits product, LSB order (low-to-high)
 
 	%asm {{
-		stx  SCRATCH_ZPWORD2
+		sta  SCRATCH_ZPWORD2
 		sty  SCRATCH_ZPWORD2+1
 
 mult16		lda  #$00
@@ -123,16 +116,16 @@ asmsub  divmod_bytes  (number: ubyte @ X, divisor: ubyte @ Y) -> clobbers() -> (
 	}}
 }
 
-asmsub  divmod_words  (divisor: uword @ XY) -> clobbers(A) -> (uword @ XY)  {
+asmsub  divmod_words  (divisor: uword @ AY) -> clobbers(X) -> (uword @ AY)  {
 	; ---- divide two words (16 bit each) into 16 bit results
-	;      input:  SCRATCH_ZPWORD1 in ZP: 16 bit number, X/Y: 16 bit divisor
-	;      output: SCRATCH_ZPWORD1 in ZP: 16 bit result, X/Y: 16 bit remainder
+	;      input:  SCRATCH_ZPWORD1 in ZP: 16 bit number, A/Y: 16 bit divisor
+	;      output: SCRATCH_ZPWORD1 in ZP: 16 bit result, A/Y: 16 bit remainder
 	;      division by zero will result in quotient = 65535 and remainder = divident
 
 	%asm {{
 remainder = SCRATCH_ZPB1
 
-		stx  SCRATCH_ZPWORD2
+		sta  SCRATCH_ZPWORD2
 		sty  SCRATCH_ZPWORD2+1
 		lda  #0	        		;preset remainder to 0
 		sta  remainder
@@ -163,7 +156,7 @@ remainder = SCRATCH_ZPB1
 		lda  remainder+1
 		sta  SCRATCH_ZPWORD2+1
 
-		ldx  SCRATCH_ZPWORD1		; load division result in X/Y
+		lda  SCRATCH_ZPWORD1		; load division result in A/Y
 		ldy  SCRATCH_ZPWORD1+1
 
 		rts
@@ -211,8 +204,8 @@ _magiceors	.byte  $1d, $2b, $2d, $4d, $5f, $63, $65, $69
 	}}
 }
 
-asmsub  randword  () -> clobbers() -> (uword @ XY)  {
-	; ---- 16 bit pseudo random number generator into XY
+asmsub  randword  () -> clobbers() -> (uword @ AY)  {
+	; ---- 16 bit pseudo random number generator into AY
 
 	%asm {{
 		lda  _seed
@@ -230,7 +223,6 @@ _doEor		; high byte is in A
   		lda  _seed
   		eor  _magic	; #<magic	; could be self-modifying code to set new magic
   		sta  _seed
-  		tax
   		ldy  _seed+1
   		rts
 
@@ -246,7 +238,7 @@ _lowZero	lda  _seed+1
 
 _noEor		sta  _seed+1
 		tay
-		ldx  _seed
+		lda  _seed
  		rts
 
 

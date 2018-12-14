@@ -775,6 +775,10 @@ class PrefixExpression(val operator: String, var expression: IExpression, overri
     override fun referencesIdentifier(name: String) = expression.referencesIdentifier(name)
     override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? = expression.resultingDatatype(namespace, heap)
     override fun isIterable(namespace: INameScope, heap: HeapValues) = false
+
+    override fun toString(): String {
+        return "Prefix($operator $expression)"
+    }
 }
 
 
