@@ -897,11 +897,6 @@ func_sum	.proc
 		.warn "sum not implemented--what does it sum over???"
 		.pend
 		
-func_len	.proc
-		rts
-		.warn "len not implemented--of what does it take len?"
-		.pend
-		
 func_any	.proc
 		rts
 		.warn "any not implemented--of what does it do any?"
@@ -912,6 +907,33 @@ func_all	.proc
 		.warn "all not implemented--of what does it do all?"
 		.pend
 		
+func_len_str	.proc
+		; -- push length of 0-terminated string on stack
+		lda  ESTACK_LO+1,x
+		sta  SCRATCH_ZPWORD1
+		lda  ESTACK_HI+1,x
+		sta  SCRATCH_ZPWORD1+1
+		ldy  #0
+-		lda  (SCRATCH_ZPWORD1),y
+		beq  +
+		iny
+		bne  -
++		tya
+		sta  ESTACK_LO+1,x
+		rts
+		.pend
+                
+func_len_strp	.proc
+		; -- push length of pascal-string on stack
+		lda  ESTACK_LO+1,x
+		sta  SCRATCH_ZPWORD1
+		lda  ESTACK_HI+1,x
+		sta  SCRATCH_ZPWORD1+1
+		ldy  #0
+		lda  (SCRATCH_ZPWORD1),y	; first byte is length
+		sta  ESTACK_LO+1,x
+		rts
+		.pend
 
 func_rnd	.proc
 		; -- put a random ubyte on the estack

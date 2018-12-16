@@ -88,7 +88,8 @@ enum class BranchCondition {
 }
 
 val IterableDatatypes = setOf(
-        DataType.STR, DataType.STR_S,       // note: the STR_P/STR_PS types aren't iterable because they store their length as the first byte
+        DataType.STR, DataType.STR_S,
+        DataType.STR_P, DataType.STR_PS,  // note: these are a bit weird they store their length as the first byte
         DataType.ARRAY_UB, DataType.ARRAY_B,
         DataType.ARRAY_UW, DataType.ARRAY_W,
         DataType.ARRAY_F)
@@ -1394,6 +1395,18 @@ class FunctionCall(override var target: IdentifierReference,
     private fun constValue(namespace: INameScope, heap: HeapValues, withDatatypeCheck: Boolean): LiteralValue? {
         // if the function is a built-in function and the args are consts, should try to const-evaluate!
         if(target.nameInSource.size>1) return null
+        if(target.nameInSource[0]=="len" && arglist.size==1) {
+            val arg=arglist[0]
+            if(arg is IdentifierReference) {
+                val target=arg.targetStatement(namespace)
+                if(target!=null) {
+                    if (arg.resultingDatatype(namespace, heap) in StringDatatypes) {
+                        // len on strings should be dynamic, all other cases are a compile-time constant
+                        return null
+                    }
+                }
+            }
+        }
         try {
             var resultValue: LiteralValue? = null
             val func = BuiltinFunctions[target.nameInSource[0]]

@@ -1,6 +1,7 @@
 package prog8.functions
 
 import prog8.ast.*
+import prog8.compiler.CompilerException
 import prog8.compiler.HeapValues
 import kotlin.math.log2
 

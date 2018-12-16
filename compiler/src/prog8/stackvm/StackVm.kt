@@ -46,7 +46,6 @@ enum class Syscall(val callNr: Short) {
     FUNC_MIN(83),
     FUNC_AVG(84),
     FUNC_SUM(85),
-    FUNC_LEN(86),
     FUNC_ANY(87),
     FUNC_ALL(88),
     FUNC_RND(89),                // push a random byte on the stack
@@ -58,7 +57,11 @@ enum class Syscall(val callNr: Short) {
     FUNC_STR2UBYTE(101),
     FUNC_STR2WORD(102),
     FUNC_STR2UWORD(103),
-    FUNC_STR2FLOAT(104)
+    FUNC_STR2FLOAT(104),
+    FUNC_LEN_STR(105),
+    FUNC_LEN_STRP(106),
+    FUNC_LEN_STRS(107),
+    FUNC_LEN_STRPS(108)
 
     // note: not all builtin functions of the Prog8 language are present as functions:
     // some of them are straight opcodes (such as MSB, LSB, LSL, LSR, ROL_BYTE, ROR, ROL2, ROR2, and FLT)!
@@ -1454,7 +1457,11 @@ class StackVm(private var traceOutputFile: String?) {
             Syscall.FUNC_RND -> evalstack.push(Value(DataType.UBYTE, rnd.nextInt() and 255))
             Syscall.FUNC_RNDW -> evalstack.push(Value(DataType.UWORD, rnd.nextInt() and 65535))
             Syscall.FUNC_RNDF -> evalstack.push(Value(DataType.FLOAT, rnd.nextDouble()))
-            Syscall.FUNC_LEN -> throw VmExecutionException("len() should have been const-folded away everywhere (it's not possible on non-const values)")
+            Syscall.FUNC_LEN_STR, Syscall.FUNC_LEN_STRS, Syscall.FUNC_LEN_STRP, Syscall.FUNC_LEN_STRPS -> {
+                val strPtr = evalstack.pop().integerValue()
+                val text = heap.get(strPtr).str!!
+                evalstack.push(Value(DataType.UBYTE, text.length))
+            }
             Syscall.FUNC_SIN -> evalstack.push(Value(DataType.FLOAT, sin(evalstack.pop().numericValue().toDouble())))
             Syscall.FUNC_COS -> evalstack.push(Value(DataType.FLOAT, cos(evalstack.pop().numericValue().toDouble())))
             Syscall.FUNC_ROUND -> evalstack.push(Value(DataType.WORD, evalstack.pop().numericValue().toDouble().roundToInt()))
@@ -1565,7 +1572,7 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Syscall.FUNC_STR2BYTE -> {
                 val strvar = evalstack.pop()
-                val str = heap.get(strvar.heapId)
+                val str = heap.get(strvar.heapId)       // TODO CHECK
                 val y = str.str!!.trim().trimEnd('\u0000')
                 evalstack.push(Value(DataType.BYTE, y.toShort()))
             }

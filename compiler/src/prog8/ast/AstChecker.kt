@@ -716,8 +716,9 @@ class AstChecker(private val namespace: INameScope,
                 checkResult.add(SyntaxError("invalid number of arguments", position))
             else {
                 for (arg in args.withIndex().zip(func.parameters)) {
-                    if(arg.first.value.resultingDatatype(namespace, heap) !in arg.second.possibleDatatypes)
-                        checkResult.add(ExpressionError("builtin function argument ${arg.first.index+1} has invalid type, expected ${arg.second.possibleDatatypes}", position))
+                    val argDt=arg.first.value.resultingDatatype(namespace, heap)
+                    if(argDt !in arg.second.possibleDatatypes)
+                        checkResult.add(ExpressionError("builtin function argument ${arg.first.index+1} has invalid type $argDt, expected ${arg.second.possibleDatatypes}", position))
                 }
             }
         } else if(target is Subroutine) {

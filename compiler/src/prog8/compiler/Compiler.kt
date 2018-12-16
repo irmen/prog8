@@ -671,6 +671,17 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         // some functions are implemented as vm opcodes
         args.forEach { translate(it) }  // place function argument(s) on the stack
         when (funcname) {
+            "len" -> {
+                // 1 argument, type determines the exact syscall to use
+                val arg=args.single()
+                when (arg.resultingDatatype(namespace, heap)) {
+                    DataType.STR -> createSyscall("${funcname}_str")
+                    DataType.STR_P -> createSyscall("${funcname}_strp")
+                    DataType.STR_S -> createSyscall("${funcname}_str")
+                    DataType.STR_PS -> createSyscall("${funcname}_strp")
+                    else -> throw CompilerException("wrong datatype for len()")
+                }
+            }
             "flt" -> {
                 // 1 argument, type determines the exact opcode to use
                 val arg = args.single()
