@@ -17,14 +17,29 @@
         float f2
         float f3
 
-        c64scr.print_byte_decimal(-99)
+
+        b2 = 99
+        w2 = -9999
+        ub2 = 100
+        uw2 = 40000
+        f2 = 3.141592654
+
+        c64.CHROUT('x')
+        c64scr.print_ubyte_decimal(X)
         c64.CHROUT('\n')
-        c64scr.print_byte_decimal(b1)
+        f1 = deg(f2)
+        c64flt.print_float(f1)
         c64.CHROUT('\n')
-        c64scr.print_word_decimal(-9999)
+        c64.CHROUT('x')
+        c64scr.print_ubyte_decimal(X)
         c64.CHROUT('\n')
-        c64scr.print_word_decimal(w1)
+        f1 = rad(f1)
+        c64flt.print_float(f1)
         c64.CHROUT('\n')
+        c64.CHROUT('x')
+        c64scr.print_ubyte_decimal(X)
+        c64.CHROUT('\n')
+
     }
 }
 

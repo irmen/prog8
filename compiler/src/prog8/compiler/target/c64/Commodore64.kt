@@ -28,14 +28,14 @@ class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
     companion object {
         const val SCRATCH_B1 = 0x02
         const val SCRATCH_REG = 0x03    // temp storage for a register
-        const val SCRATCH_REG_X = 0x50    // temp storage for register X (the evaluation stack pointer)
+        const val SCRATCH_REG_X = 0xfa    // temp storage for register X (the evaluation stack pointer)
         const val SCRATCH_W1 = 0xfb     // $fb/$fc
         const val SCRATCH_W2 = 0xfd     // $fd/$fe
     }
 
     init {
         if(options.zeropage== ZeropageType.FULL) {
-            free.addAll(0x04 .. 0xfa)
+            free.addAll(0x04 .. 0xf9)
             free.add(0xff)
             free.removeAll(listOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_REG_X, SCRATCH_W1, SCRATCH_W1+1, SCRATCH_W2, SCRATCH_W2+1))
             free.removeAll(listOf(0xa0, 0xa1, 0xa2, 0x91, 0xc0, 0xc5, 0xcb, 0xf5, 0xf6))        // these are updated by IRQ
@@ -50,8 +50,8 @@ class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
             // add the other free Zp addresses
             // these are valid for the C-64 (when no RS232 I/O is performed):
             free.addAll(listOf(0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0d, 0x0e,
-                    0x51, 0x52, 0x94, 0x95, 0xa7, 0xa8, 0xa9, 0xaa,
-                    0xb5, 0xb6, 0xf7, 0xf8, 0xf9, 0xfa))
+                    0x94, 0x95, 0xa7, 0xa8, 0xa9, 0xaa,
+                    0xb5, 0xb6, 0xf7, 0xf8, 0xf9))
         }
         assert(SCRATCH_B1 !in free)
         assert(SCRATCH_REG !in free)

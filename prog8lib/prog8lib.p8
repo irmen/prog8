@@ -12,7 +12,7 @@
 		; note: the following ZP scratch registers must be the same as in c64lib
 		memory  ubyte  SCRATCH_ZPB1	= $02		; scratch byte 1 in ZP
 		memory  ubyte  SCRATCH_ZPREG	= $03		; scratch register in ZP
-		memory  ubyte  SCRATCH_ZPREGX	= $50		; temp storage for X register (stack pointer)
+		memory  ubyte  SCRATCH_ZPREGX	= $fa		; temp storage for X register (stack pointer)
 		memory  uword  SCRATCH_ZPWORD1	= $fb		; scratch word in ZP ($fb/$fc)
 		memory  uword  SCRATCH_ZPWORD2	= $fd		; scratch word in ZP ($fd/$fe)
 		const   uword  ESTACK_LO	= $ce00
@@ -84,9 +84,48 @@ w2float		.proc
 		lda  SCRATCH_ZPWORD1+1
 		jsr  c64.GIVAYF
 		jmp  ub2float._fac_to_mem
-		rts
+		.pend
+		
+stack_b2float	.proc
+		; -- b2float operating on the stack
+		inx
+		lda  ESTACK_LO,x
+		stx  SCRATCH_ZPREGX
+		jsr  c64.FREADSA
+		jmp  push_fac1_as_result
+		.pend
+		
+stack_w2float	.proc
+		; -- w2float operating on the stack
+		inx
+		ldy  ESTACK_LO,x
+		lda  ESTACK_HI,x
+		stx  SCRATCH_ZPREGX
+		jsr  c64.GIVAYF
+		jmp  push_fac1_as_result
 		.pend
 
+stack_ub2float	.proc
+		; -- ub2float operating on the stack
+		inx
+		lda  ESTACK_LO,x
+		stx  SCRATCH_ZPREGX
+		tay
+		jsr  c64.FREADUY
+		jmp  push_fac1_as_result
+		.pend
+
+stack_uw2float	.proc
+		; -- uw2float operating on the stack
+		inx
+		lda  ESTACK_LO,x
+		ldy  ESTACK_HI,x
+		stx  SCRATCH_ZPREGX
+		jsr  c64flt.GIVUAYFAY
+		jmp  push_fac1_as_result
+		.pend
+
+		
 push_float	.proc
 		; ---- push mflpt5 in A/Y onto stack 
 		; (taking 3 stack positions = 6 bytes of which 1 is padding)
@@ -170,6 +209,16 @@ pop_float	.proc
 		lda  ESTACK_LO,x
 		sta  (SCRATCH_ZPWORD1),y
 		rts
+		.pend
+		
+pop_float_fac1	.proc
+		; -- pops float from stack into FAC1
+		lda  #<fmath_float1
+		ldy  #>fmath_float1
+		jsr  pop_float
+		lda  #<fmath_float1
+		ldy  #>fmath_float1
+		jmp  c64.MOVFM
 		.pend
 		
 pop_float_to_indexed_var	.proc
@@ -270,8 +319,8 @@ push_fac1_as_result	.proc
 		
 div_f		.proc
 		; -- push f1/f2 on stack
-		stx  SCRATCH_ZPREGX
 		jsr  pop_2_floats_f2_in_fac1
+		stx  SCRATCH_ZPREGX
 		lda  #<fmath_float1
 		ldy  #>fmath_float1
 		jsr  c64.FDIV
@@ -280,8 +329,8 @@ div_f		.proc
 
 add_f		.proc
 		; -- push f1+f2 on stack
-		stx  SCRATCH_ZPREGX
 		jsr  pop_2_floats_f2_in_fac1
+		stx  SCRATCH_ZPREGX
 		lda  #<fmath_float1
 		ldy  #>fmath_float1
 		jsr  c64.FADD
@@ -290,8 +339,8 @@ add_f		.proc
 
 sub_f		.proc
 		; -- push f1-f2 on stack
-		stx  SCRATCH_ZPREGX
 		jsr  pop_2_floats_f2_in_fac1
+		stx  SCRATCH_ZPREGX
 		lda  #<fmath_float1
 		ldy  #>fmath_float1
 		jsr  c64.FSUB
@@ -300,8 +349,8 @@ sub_f		.proc
 
 mul_f		.proc
 		; -- push f1*f2 on stack
-		stx  SCRATCH_ZPREGX
 		jsr  pop_2_floats_f2_in_fac1
+		stx  SCRATCH_ZPREGX
 		lda  #<fmath_float1
 		ldy  #>fmath_float1
 		jsr  c64.FMULT
@@ -310,13 +359,8 @@ mul_f		.proc
 
 neg_f		.proc
 		; -- push -flt back on stack
+		jsr  pop_float_fac1
 		stx  SCRATCH_ZPREGX
-		lda  #<fmath_float1
-		ldy  #>fmath_float1
-		jsr  pop_float
-		lda  #<fmath_float1
-		ldy  #>fmath_float1
-		jsr  c64.MOVFM
 		jsr  c64.NEGOP
 		jmp  push_fac1_as_result
 		.pend
@@ -324,7 +368,7 @@ neg_f		.proc
 		
 add_w		.proc
 		; -- push word+word
-		.warn "addw"
+		.warn "addw check correctness"
 		inx
 		clc
 		lda  ESTACK_LO,x
@@ -337,7 +381,7 @@ add_w		.proc
 		.pend
 		
 add_uw		.proc
-		.warn "add_uw"
+		.warn "add_uw check correctness"
 		inx
 		clc
 		lda  ESTACK_LO,x
@@ -356,52 +400,52 @@ sub_w		.proc
 
 sub_uw		.proc
 		rts	; @todo inline?
-		.warn "not implemented"
+		.warn "sub_w not implemented"
 		.pend
 
 mul_b		.proc
 		rts
-		.warn "not implemented"
+		.warn "mul_b not implemented"
 		.pend
 		
 mul_ub		.proc
 		rts
-		.warn "not implemented"
+		.warn "mul_ub not implemented"
 		.pend
 		
 mul_w		.proc
 		rts
-		.warn "not implemented"
+		.warn "mul_w not implemented"
 		.pend
 		
 mul_uw		.proc
 		rts
-		.warn "not implemented"
+		.warn "mul_uw not implemented"
 		.pend
 
 div_b		.proc
 		rts
-		.warn "not implemented"
+		.warn "div_b not implemented"
 		.pend
 		
 div_ub		.proc
 		rts
-		.warn "not implemented"
+		.warn "div_ub not implemented"
 		.pend
 		
 div_w		.proc
 		rts
-		.warn "not implemented"
+		.warn "div_w not implemented"
 		.pend
 		
 div_uw		.proc
 		rts
-		.warn "not implemented"
+		.warn "div_uw not implemented"
 		.pend
 
 remainder_b	.proc
 		rts
-		.warn "not implemented"
+		.warn "remainder_b not implemented"
 		.pend
 		
 remainder_ub	.proc
@@ -419,12 +463,12 @@ remainder_ub	.proc
 		
 remainder_w	.proc
 		rts
-		.warn "not implemented"
+		.warn "remainder_w not implemented"
 		.pend
 		
 remainder_uw	.proc
 		rts
-		.warn "not implemented"
+		.warn "remainder_uw not implemented"
 		.pend
 		
 equal_w		.proc
@@ -707,23 +751,21 @@ greatereq_f	.proc
 		.pend
 
 compare_floats	.proc
-		lda  #<_flt2
-		ldy  #>_flt2
+		lda  #<fmath_float2
+		ldy  #>fmath_float2
 		jsr  pop_float
-		lda  #<_flt1
-		ldy  #>_flt1
+		lda  #<fmath_float1
+		ldy  #>fmath_float1
 		jsr  pop_float
-		lda  #<_flt1
-		ldy  #>_flt1
+		lda  #<fmath_float1
+		ldy  #>fmath_float1
 		jsr  c64.MOVFM		; fac1 = flt1
-		lda  #<_flt2
-		ldy  #>_flt2
+		lda  #<fmath_float2
+		ldy  #>fmath_float2
 		stx  SCRATCH_ZPREG
 		jsr  c64.FCOMP		; A = flt1 compared with flt2 (0=equal, 1=flt1>flt2, 255=flt1<flt2)
 		ldx  SCRATCH_ZPREG
 		rts
-_flt1		.fill 5
-_flt2		.fill 5
 _return_false	lda  #0
 _return_result  sta  ESTACK_LO,x
 		dex
@@ -731,121 +773,143 @@ _return_result  sta  ESTACK_LO,x
 _return_true	lda  #1
 		bne  _return_result
 		.pend		
-		
 
 func_sin	.proc
-		rts
-		.warn "not implemented"
+		; -- push sin(f) back onto stack
+		jsr  pop_float_fac1
+		stx  SCRATCH_ZPREGX
+		jsr  c64.SIN
+		jmp  push_fac1_as_result
 		.pend
 
 func_cos	.proc
-		rts
-		.warn "not implemented"
+		; -- push cos(f) back onto stack
+		jsr  pop_float_fac1
+		stx  SCRATCH_ZPREGX
+		jsr  c64.COS
+		jmp  push_fac1_as_result
 		.pend
 		
 func_abs	.proc
 		rts
-		.warn "not implemented"
+		.warn "abs not implemented"
 		.pend
 		
 func_acos	.proc
 		rts
-		.warn "not implemented"
+		.warn "acos not implemented"
 		.pend
 		
 func_asin	.proc
 		rts
-		.warn "not implemented"
+		.warn "asin not implemented"
 		.pend
 		
 func_tan	.proc
-		rts
-		.warn "not implemented"
+		; -- push tan(f) back onto stack
+		jsr  pop_float_fac1
+		stx  SCRATCH_ZPREGX
+		jsr  c64.TAN
+		jmp  push_fac1_as_result
 		.pend
 		
 func_atan	.proc
 		rts
-		.warn "not implemented"
+		.warn "atan not implemented"
 		.pend
 		
 func_ln		.proc
 		rts
-		.warn "not implemented"
+		.warn "ln not implemented"
 		.pend
 		
 func_log2	.proc
 		rts
-		.warn "not implemented"
+		.warn "log2 not implemented"
 		.pend
 		
 func_log10	.proc
 		rts
-		.warn "not implemented"
+		.warn "log10 not implemented"
 		.pend
 		
 func_sqrt	.proc
-		rts
-		.warn "not implemented"
+		jsr  pop_float_fac1
+		stx  SCRATCH_ZPREGX
+		jsr  c64.SQR
+		jmp  push_fac1_as_result
 		.pend
 		
 func_rad	.proc
-		rts
-		.warn "not implemented"
+		; -- convert degrees to radians (d * pi / 180)
+		jsr  pop_float_fac1
+		stx  SCRATCH_ZPREGX
+		lda  #<_pi_div_180
+		ldy  #>_pi_div_180
+		jsr  c64.FMULT
+		jmp  push_fac1_as_result
+_pi_div_180	.byte 123, 14, 250, 53, 18		; pi / 180
 		.pend
 		
 func_deg	.proc
-		rts
-		.warn "not implemented"
+		; -- convert radians to degrees (d * (1/ pi * 180))
+		jsr  pop_float_fac1
+		stx  SCRATCH_ZPREGX
+		lda  #<_one_over_pi_div_180
+		ldy  #>_one_over_pi_div_180
+		jsr  c64.FMULT
+		jmp  push_fac1_as_result
+_one_over_pi_div_180	.byte 134, 101, 46, 224, 211		; 1 / (pi * 180)
 		.pend
 		
 func_round	.proc
 		rts
-		.warn "not implemented"
+		.warn "round not implemented"
 		.pend
 		
 func_floor	.proc
 		rts
-		.warn "not implemented"
+		.warn "floor not implemented"
 		.pend
 		
 func_ceil	.proc
 		rts
-		.warn "not implemented"
+		.warn "ceil not implemented"
 		.pend
 		
 func_max	.proc
 		rts
-		.warn "not implemented--what does it max over???"
+		.warn "max not implemented--what does it max over???"
 		.pend
 		
 func_min	.proc
 		rts
-		.warn "not implemented--what does it min over???"
+		.warn "min not implemented--what does it min over???"
 		.pend
 		
 func_avg	.proc
 		rts
-		.warn "not implemented--what does it avg over???"
+		.warn "avg not implemented--what does it avg over???"
 		.pend
 		
 func_sum	.proc
 		rts
-		.warn "not implemented--what does it sum over???"
+		.warn "sum not implemented--what does it sum over???"
 		.pend
 		
 func_len	.proc
 		rts
-		.warn "not implemented--of what does it take len?"
+		.warn "len not implemented--of what does it take len?"
 		.pend
 		
 func_any	.proc
 		rts
-		.warn "not implemented--of what does it do any?"
+		.warn "any not implemented--of what does it do any?"
 		.pend
 		
 func_all	.proc
 		rts
-		.warn "not implemented--of what does it do all?"
+		.warn "all not implemented--of what does it do all?"
 		.pend
 		
 
@@ -886,7 +950,7 @@ _rndf_rnum5	.fill 5
 
 func_str2byte	.proc
 		rts
-		.warn "not implemented"
+		.warn "str2byte not implemented"
 		.pend
 
 ; @todo python code for a str-to-ubyte function that doesn't use the basic rom:
@@ -946,12 +1010,12 @@ _strlen2233
 
 func_str2word	.proc
 		rts
-		.warn "not implemented"
+		.warn "str2word not implemented"
 		.pend
 
 func_str2float	.proc
 		rts
-		.warn "not implemented"
+		.warn "str2float not implemented"
 		.pend
 
     

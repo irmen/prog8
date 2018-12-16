@@ -167,6 +167,7 @@ asmsub	SGN		() -> clobbers(A,X,Y) -> ()			= $bc39		; fac1 = SGN(fac1), result of
 asmsub	SIGN		() -> clobbers() -> (ubyte @ A)			= $bc2b		; SIGN(fac1) to A, $ff, $0, $1 for negative, zero, positive
 asmsub	ABS		() -> clobbers() -> ()				= $bc58		; fac1 = ABS(fac1)
 asmsub	SQR		() -> clobbers(A,X,Y) -> ()			= $bf71		; fac1 = SQRT(fac1)
+asmsub	SQRA		() -> clobbers(A,X,Y) -> ()			= $bf74		; fac1 = SQRT(fac2)
 asmsub	EXP		() -> clobbers(A,X,Y) -> ()			= $bfed		; fac1 = EXP(fac1)  (e ** fac1)
 asmsub	NEGOP		() -> clobbers(A) -> ()				= $bfb4		; switch the sign of fac1
 asmsub	RND		() -> clobbers(A,X,Y) -> ()			= $e097		; fac1 = RND(fac1) float random number generator

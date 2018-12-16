@@ -712,10 +712,10 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 bne  ${ins.callLabel}
                 """
             }
-            Opcode.UB2FLOAT -> " jsr  prog8_lib.ub2float"
-            Opcode.B2FLOAT -> " jsr  prog8_lib.b2float"
-            Opcode.UW2FLOAT -> " jsr  prog8_lib.uw2float"
-            Opcode.W2FLOAT -> " jsr  prog8_lib.w2float"
+            Opcode.UB2FLOAT -> " jsr  prog8_lib.stack_ub2float"
+            Opcode.B2FLOAT -> " jsr  prog8_lib.stack_b2float"
+            Opcode.UW2FLOAT -> " jsr  prog8_lib.stack_uw2float"
+            Opcode.W2FLOAT -> " jsr  prog8_lib.stack_w2float"
             Opcode.B2UB -> ""   // is a no-op, just carry on with the byte as-is
             Opcode.UB2B -> ""   // is a no-op, just carry on with the byte as-is
             Opcode.UB2UWORD -> " lda  #0 |  sta  ${ESTACK_HI+1},x"
