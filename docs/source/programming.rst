@@ -495,12 +495,6 @@ cos(x)
 abs(x)
 	Absolute value.
 
-acos(x)
-	Arccosine.
-
-asin(x)
-	Arcsine.
-
 tan(x)
 	Tangent.
 

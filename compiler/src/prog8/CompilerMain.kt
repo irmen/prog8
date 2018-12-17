@@ -13,6 +13,7 @@ import java.io.PrintStream
 import java.lang.Exception
 import java.nio.file.Paths
 import kotlin.system.exitProcess
+import kotlin.system.measureTimeMillis
 
 
 fun main(args: Array<String>) {
@@ -21,9 +22,12 @@ fun main(args: Array<String>) {
     // println("This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html\n")
     println("**** This is a prerelease version. Please do not distribute! ****\n")
 
-    if(args.isEmpty() || args.size >2)
+    if (args.isEmpty() || args.size > 2)
         usage()
+    compileMain(args)
+}
 
+private fun compileMain(args: Array<String>) {
     var startEmu = false
     var asmTrace = false
     var moduleFile = ""
@@ -38,102 +42,113 @@ fun main(args: Array<String>) {
     if(moduleFile.isNullOrBlank())
         usage()
 
-    val startTime = System.currentTimeMillis()
     val filepath = Paths.get(moduleFile).normalize()
-    val programname: String
+    var programname = "?"
 
     try {
-        // import main module and process additional imports
-        println("Parsing...")
-        val moduleAst = importModule(filepath)
-        moduleAst.linkParents()
-        var namespace = moduleAst.definingScope()
+        val totalTime = measureTimeMillis {
+            // import main module and process additional imports
+            println("Parsing...")
+            val moduleAst = importModule(filepath)
+            moduleAst.linkParents()
+            var namespace = moduleAst.definingScope()
 
-        // determine special compiler options
+            // determine special compiler options
 
-        val options = moduleAst.statements.filter { it is Directive && it.directive=="%option" }.flatMap { (it as Directive).args }.toSet()
-        val outputType = (moduleAst.statements.singleOrNull { it is Directive && it.directive=="%output"}
-                as? Directive)?.args?.single()?.name?.toUpperCase()
-        val launcherType = (moduleAst.statements.singleOrNull { it is Directive && it.directive=="%launcher"}
-                as? Directive)?.args?.single()?.name?.toUpperCase()
-        moduleAst.loadAddress = (moduleAst.statements.singleOrNull { it is Directive && it.directive=="%address"}
-                as? Directive)?.args?.single()?.int ?: 0
-        val zpoption: String? = (moduleAst.statements.singleOrNull { it is Directive && it.directive=="%zeropage"}
-                as? Directive)?.args?.single()?.name?.toUpperCase()
-        val zpType: ZeropageType =
-                    if(zpoption==null)
+            val options = moduleAst.statements.filter { it is Directive && it.directive == "%option" }.flatMap { (it as Directive).args }.toSet()
+            val outputType = (moduleAst.statements.singleOrNull { it is Directive && it.directive == "%output" }
+                    as? Directive)?.args?.single()?.name?.toUpperCase()
+            val launcherType = (moduleAst.statements.singleOrNull { it is Directive && it.directive == "%launcher" }
+                    as? Directive)?.args?.single()?.name?.toUpperCase()
+            moduleAst.loadAddress = (moduleAst.statements.singleOrNull { it is Directive && it.directive == "%address" }
+                    as? Directive)?.args?.single()?.int ?: 0
+            val zpoption: String? = (moduleAst.statements.singleOrNull { it is Directive && it.directive == "%zeropage" }
+                    as? Directive)?.args?.single()?.name?.toUpperCase()
+            val zpType: ZeropageType =
+                    if (zpoption == null)
                         ZeropageType.KERNALSAFE
                     else
                         try {
                             ZeropageType.valueOf(zpoption)
-                        } catch(x: IllegalArgumentException) {
+                        } catch (x: IllegalArgumentException) {
                             ZeropageType.KERNALSAFE
                             // error will be printed by the astchecker
                         }
-        val zpReserved = moduleAst.statements
-                .asSequence()
-                .filter{it is Directive && it.directive=="%zpreserved"}
-                .map{ (it as Directive).args }
-                .map{ it[0].int!! .. it[1].int!! }
-                .toList()
+            val zpReserved = moduleAst.statements
+                    .asSequence()
+                    .filter { it is Directive && it.directive == "%zpreserved" }
+                    .map { (it as Directive).args }
+                    .map { it[0].int!!..it[1].int!! }
+                    .toList()
 
-        val compilerOptions = CompilationOptions(
-                if(outputType==null) OutputType.PRG else OutputType.valueOf(outputType),
-                if(launcherType==null) LauncherType.BASIC else LauncherType.valueOf(launcherType),
-                zpType, zpReserved,
-                options.any{ it.name=="enable_floats"})
+            val compilerOptions = CompilationOptions(
+                    if (outputType == null) OutputType.PRG else OutputType.valueOf(outputType),
+                    if (launcherType == null) LauncherType.BASIC else LauncherType.valueOf(launcherType),
+                    zpType, zpReserved,
+                    options.any { it.name == "enable_floats" })
 
-        if(compilerOptions.launcher==LauncherType.BASIC && compilerOptions.output!=OutputType.PRG)
-            throw ParsingFailedError("${moduleAst.position} BASIC launcher requires output type PRG.")
-        if(compilerOptions.output==OutputType.PRG || compilerOptions.launcher==LauncherType.BASIC) {
-            if(namespace.lookup(listOf("c64utils"), moduleAst.statements.first())==null)
-                throw ParsingFailedError("${moduleAst.position} When using output type PRG and/or laucher BASIC, the 'c64utils' module must be imported.")
+            if (compilerOptions.launcher == LauncherType.BASIC && compilerOptions.output != OutputType.PRG)
+                throw ParsingFailedError("${moduleAst.position} BASIC launcher requires output type PRG.")
+            if (compilerOptions.output == OutputType.PRG || compilerOptions.launcher == LauncherType.BASIC) {
+                if (namespace.lookup(listOf("c64utils"), moduleAst.statements.first()) == null)
+                    throw ParsingFailedError("${moduleAst.position} When using output type PRG and/or laucher BASIC, the 'c64utils' module must be imported.")
+            }
+
+            // perform initial syntax checks and constant folding
+            println("Syntax check...")
+            val heap = HeapValues()
+            val time1= measureTimeMillis {
+                moduleAst.checkIdentifiers(heap)
+            }
+            //println(" time1: $time1")
+            val time2 = measureTimeMillis {
+                // @todo this is slow!
+                moduleAst.constantFold(namespace, heap)
+            }
+            //println(" time2: $time2")
+            val time3 = measureTimeMillis {
+                StatementReorderer(namespace, heap).process(moduleAst)     // reorder statements to please the compiler later
+            }
+            //println(" time3: $time3")
+            val time4 = measureTimeMillis {
+                // @todo this is slow!
+                moduleAst.checkValid(namespace, compilerOptions, heap)          // check if tree is valid
+            }
+            //println(" time4: $time4")
+
+            // optimize the parse tree
+            println("Optimizing...")
+            val allScopedSymbolDefinitions = moduleAst.checkIdentifiers(heap)       // useful for checking symbol usage later?
+            while (true) {
+                // keep optimizing expressions and statements until no more steps remain
+                val optsDone1 = moduleAst.simplifyExpressions(namespace, heap)
+                val optsDone2 = moduleAst.optimizeStatements(namespace, heap)
+                if (optsDone1 + optsDone2 == 0)
+                    break
+            }
+
+            namespace = moduleAst.definingScope()       // create it again, it could have changed in the meantime
+            moduleAst.checkValid(namespace, compilerOptions, heap)          // check if final tree is valid
+            moduleAst.checkRecursion(namespace)         // check if there are recursive subroutine calls
+
+            // namespace.debugPrint()
+
+            // compile the syntax tree into stackvmProg form, and optimize that
+            val compiler = Compiler(compilerOptions)
+            val intermediate = compiler.compile(moduleAst, heap)
+            intermediate.optimize()
+
+            val stackVmFilename = intermediate.name + "_stackvm.txt"
+            val stackvmFile = PrintStream(File(stackVmFilename), "utf-8")
+            intermediate.writeCode(stackvmFile)
+            stackvmFile.close()
+            println("StackVM program code written to '$stackVmFilename'")
+
+            val assembly = AsmGen(compilerOptions, intermediate, heap, asmTrace).compileToAssembly()
+            assembly.assemble(compilerOptions)
+            programname = assembly.name
         }
-
-        // perform initial syntax checks and constant folding
-        val heap = HeapValues()
-        moduleAst.checkIdentifiers(heap)
-        moduleAst.constantFold(namespace, heap)
-        StatementReorderer(namespace, heap).process(moduleAst)     // reorder statements to please the compiler later
-        moduleAst.checkValid(namespace, compilerOptions, heap)          // check if tree is valid
-
-        // optimize the parse tree
-        println("Optimizing...")
-        val allScopedSymbolDefinitions = moduleAst.checkIdentifiers(heap)       // useful for checking symbol usage later?
-        while(true) {
-            // keep optimizing expressions and statements until no more steps remain
-            val optsDone1 = moduleAst.simplifyExpressions(namespace, heap)
-            val optsDone2 = moduleAst.optimizeStatements(namespace, heap)
-            if(optsDone1 + optsDone2 == 0)
-                break
-        }
-
-        namespace = moduleAst.definingScope()       // create it again, it could have changed in the meantime
-        moduleAst.checkValid(namespace, compilerOptions, heap)          // check if final tree is valid
-        moduleAst.checkRecursion(namespace)         // check if there are recursive subroutine calls
-
-        // namespace.debugPrint()
-
-        // compile the syntax tree into stackvmProg form, and optimize that
-        val compiler = Compiler(compilerOptions)
-        val intermediate = compiler.compile(moduleAst, heap)
-        intermediate.optimize()
-        println("Debug: ${intermediate.numVariables} allocated variables and constants")
-        println("Debug: ${heap.size()} heap values")
-        println("Debug: ${intermediate.numInstructions} vm instructions")
-
-        val stackVmFilename =  intermediate.name + "_stackvm.txt"
-        val stackvmFile = PrintStream(File(stackVmFilename), "utf-8")
-        intermediate.writeCode(stackvmFile)
-        stackvmFile.close()
-        println("StackVM program code written to '$stackVmFilename'")
-
-        val assembly = AsmGen(compilerOptions, intermediate, heap, asmTrace).compileToAssembly()
-        assembly.assemble(compilerOptions)
-        programname = assembly.name
-
-        val endTime = System.currentTimeMillis()
-        println("\nTotal compilation+assemble time: ${(endTime-startTime)/1000.0} sec.")
+        println("\nTotal compilation+assemble time: ${totalTime / 1000.0} sec.")
 
     } catch (px: ParsingFailedError) {
         System.err.print("\u001b[91m")  // bright red

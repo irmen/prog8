@@ -16,7 +16,6 @@ fun Module.constantFold(globalNamespace: INameScope, heap: HeapValues) {
     }
 
     while(optimizer.errors.isEmpty() && optimizer.optimizationsDone>0) {
-        println("[${this.name}] Debug: ${optimizer.optimizationsDone} constant folds performed")
         optimizer.optimizationsDone = 0
         this.process(optimizer)
     }
@@ -39,15 +38,11 @@ fun Module.optimizeStatements(globalNamespace: INameScope, heap: HeapValues): In
     }
     this.linkParents()  // re-link in final configuration
 
-    if(optimizer.optimizationsDone > 0)
-        println("[${this.name}] Debug: ${optimizer.optimizationsDone} statement optimizations performed")
     return optimizer.optimizationsDone
 }
 
 fun Module.simplifyExpressions(namespace: INameScope, heap: HeapValues) : Int {
     val optimizer = SimplifyExpressions(namespace, heap)
     this.process(optimizer)
-    if(optimizer.optimizationsDone > 0)
-        println("[${this.name}] Debug: ${optimizer.optimizationsDone} expression optimizations performed")
     return optimizer.optimizationsDone
 }

@@ -29,8 +29,6 @@ enum class Syscall(val callNr: Short) {
     FUNC_SIN(66),
     FUNC_COS(67),
     FUNC_ABS(68),
-    FUNC_ACOS(69),
-    FUNC_ASIN(70),
     FUNC_TAN(71),
     FUNC_ATAN(72),
     FUNC_LN(73),
@@ -1496,8 +1494,6 @@ class StackVm(private var traceOutputFile: String?) {
                         }
                 evalstack.push(absValue)
             }
-            Syscall.FUNC_ACOS -> evalstack.push(Value(DataType.FLOAT, acos(evalstack.pop().numericValue().toDouble())))
-            Syscall.FUNC_ASIN -> evalstack.push(Value(DataType.FLOAT, asin(evalstack.pop().numericValue().toDouble())))
             Syscall.FUNC_TAN -> evalstack.push(Value(DataType.FLOAT, tan(evalstack.pop().numericValue().toDouble())))
             Syscall.FUNC_ATAN -> evalstack.push(Value(DataType.FLOAT, atan(evalstack.pop().numericValue().toDouble())))
             Syscall.FUNC_LN -> evalstack.push(Value(DataType.FLOAT, ln(evalstack.pop().numericValue().toDouble())))

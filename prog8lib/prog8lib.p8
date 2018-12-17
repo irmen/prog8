@@ -395,12 +395,12 @@ add_uw		.proc
 		
 sub_w		.proc
 		rts	; @todo inline?
-		.warn "not implemented"
+		.warn "sub_w not implemented"
 		.pend
 
 sub_uw		.proc
 		rts	; @todo inline?
-		.warn "sub_w not implemented"
+		.warn "sub_uw not implemented"
 		.pend
 
 mul_b		.proc
@@ -795,16 +795,6 @@ func_abs	.proc
 		.warn "abs not implemented"
 		.pend
 		
-func_acos	.proc
-		rts
-		.warn "acos not implemented"
-		.pend
-		
-func_asin	.proc
-		rts
-		.warn "asin not implemented"
-		.pend
-		
 func_tan	.proc
 		; -- push tan(f) back onto stack
 		jsr  pop_float_fac1
@@ -862,7 +852,7 @@ func_deg	.proc
 _one_over_pi_div_180	.byte 134, 101, 46, 224, 211		; 1 / (pi * 180)
 		.pend
 		
-func_round	.proc
+func_round	.proc        ; @todo check outcome vs floor/ceil
 		jsr  pop_float_fac1
 		stx  SCRATCH_ZPREGX
 		jsr  c64.FADDH
@@ -875,12 +865,12 @@ func_round	.proc
 		rts
 		.pend
 		
-func_floor	.proc
+func_floor	.proc        ; @todo check outcome vs round/ceil
 		rts
 		.warn "floor not implemented"
 		.pend
 		
-func_ceil	.proc
+func_ceil	.proc     ; @todo check outcome vs floor/round
 		rts
 		.warn "ceil not implemented"
 		.pend

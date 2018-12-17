@@ -97,7 +97,7 @@ class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
             }
 
             // check that there are no local variables that redefine the subroutine's parameters
-            val definedNames = subroutine.labelsAndVariables()
+            val definedNames = subroutine.allLabelsAndVariables()   // TODO this call is slow
             val paramNames = subroutine.parameters.map { it.name }
             val definedNamesCorrespondingToParameters = definedNames.filter { it.key in paramNames }
             for(name in definedNamesCorrespondingToParameters) {

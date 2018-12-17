@@ -355,7 +355,15 @@ interface INameScope {
         return subscopes
     }
 
-    fun labelsAndVariables() = statements.asSequence().filter { it is Label || it is VarDecl }
+    fun getLabelOrVariable(name: String): IStatement? {
+        for (stmt in statements) {
+            if (stmt is Label && stmt.name==name) return stmt
+            if (stmt is VarDecl && stmt.name==name) return stmt
+        }
+        return null
+    }
+
+    fun allLabelsAndVariables() = statements.asSequence().filter { it is Label || it is VarDecl }
             .associate {((it as? Label)?.name ?: (it as? VarDecl)?.name)!! to it }
 
     fun lookup(scopedName: List<String>, statement: Node) : IStatement? {
@@ -368,7 +376,7 @@ interface INameScope {
                     return null
             }
             val foundScope : INameScope = scope!!
-            return foundScope.labelsAndVariables()[scopedName.last()]
+            return foundScope.getLabelOrVariable(scopedName.last())
                     ?:
                     foundScope.subScopes()[scopedName.last()] as IStatement?
         } else {
@@ -376,7 +384,7 @@ interface INameScope {
             var statementScope = statement
             while(statementScope !is ParentSentinel) {
                 val localScope = statementScope.definingScope()
-                val result = localScope.labelsAndVariables()[scopedName[0]]
+                val result = localScope.getLabelOrVariable(scopedName[0])
                 if (result != null)
                     return result
                 val subscope = localScope.subScopes()[scopedName[0]] as IStatement?
@@ -392,7 +400,7 @@ interface INameScope {
     fun debugPrint() {
         fun printNames(indent: Int, namespace: INameScope) {
             println(" ".repeat(4*indent) + "${namespace.name}   ->  ${namespace::class.simpleName} at ${namespace.position}")
-            namespace.labelsAndVariables().forEach {
+            namespace.allLabelsAndVariables().forEach {
                 println(" ".repeat(4 * (1 + indent)) + "${it.key}   ->  ${it.value::class.simpleName} at ${it.value.position}")
             }
             namespace.statements.filter { it is INameScope }.forEach {
