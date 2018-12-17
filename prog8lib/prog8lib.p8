@@ -896,23 +896,134 @@ func_sum	.proc
 		rts
 		.warn "sum not implemented--what does it sum over???"
 		.pend
-		
-func_any	.proc
-		rts
-		.warn "any not implemented--of what does it do any?"
-		.pend
-		
-func_all	.proc
-		rts
-		.warn "all not implemented--of what does it do all?"
-		.pend
-		
-func_len_str	.proc
-		; -- push length of 0-terminated string on stack
+
+peek_address	.proc
+		; -- peek address on stack into SCRATCH_ZPWORD1
 		lda  ESTACK_LO+1,x
 		sta  SCRATCH_ZPWORD1
 		lda  ESTACK_HI+1,x
 		sta  SCRATCH_ZPWORD1+1
+		rts
+		.pend
+
+func_any_b	.proc
+		inx
+		lda  ESTACK_LO,x	; array size
+_entry		sta  _cmp_mod+1		; self-modifying code
+		jsr  peek_address
+		ldy  #0
+-		lda  (SCRATCH_ZPWORD1),y
+		bne  _got_any
+		iny
+_cmp_mod	cpy  #255		; modified
+		bne  -
+		lda  #0
+		sta  ESTACK_LO+1,x
+		rts
+_got_any	lda  #1
+		sta  ESTACK_LO+1,x
+		rts
+		.pend
+		
+func_any_w	.proc
+		inx
+		lda  ESTACK_LO,x	; array size
+		asl  a			; times 2 because of word
+		jmp  func_any_b._entry
+		.pend
+
+func_any_f	.proc
+		inx
+		lda  ESTACK_LO,x	; array size
+		sta  SCRATCH_ZPB1
+		asl  a
+		asl  a
+		clc
+		adc  SCRATCH_ZPB1	; times 5 because of float
+		jmp  func_any_b._entry
+		.pend
+
+func_all_b	.proc
+		inx
+		lda  ESTACK_LO,x	; array size
+		sta  _cmp_mod+1		; self-modifying code
+		jsr  peek_address
+		ldy  #0
+-		lda  (SCRATCH_ZPWORD1),y
+		beq  _got_not_all
+		iny
+_cmp_mod	cpy  #255		; modified
+		bne  -
+		lda  #1
+		sta  ESTACK_LO+1,x
+		rts
+_got_not_all	lda  #0
+		sta  ESTACK_LO+1,x
+		rts
+		.pend
+		
+func_all_w	.proc
+		inx
+		lda  ESTACK_LO,x	; array size
+		asl  a			; times 2 because of word
+		sta  _cmp_mod+1		; self-modifying code
+		jsr  peek_address
+		ldy  #0
+-		lda  (SCRATCH_ZPWORD1),y
+		bne  +
+		iny
+		lda  (SCRATCH_ZPWORD1),y
+		bne  +
+		lda  #0
+		sta  ESTACK_LO+1,x
+		rts
++		iny
+_cmp_mod	cpy  #255		; modified
+		bne  -
+		lda  #1
+		sta  ESTACK_LO+1,x
+		rts
+		.pend
+
+func_all_f	.proc
+		inx
+		lda  ESTACK_LO,x	; array size
+		sta  SCRATCH_ZPB1
+		asl  a
+		asl  a
+		clc
+		adc  SCRATCH_ZPB1	; times 5 because of float
+		sta  _cmp_mod+1		; self-modifying code
+		jsr  peek_address
+		ldy  #0
+-		lda  (SCRATCH_ZPWORD1),y
+		bne  +
+		iny
+		lda  (SCRATCH_ZPWORD1),y
+		bne  +
+		iny
+		lda  (SCRATCH_ZPWORD1),y
+		bne  +
+		iny
+		lda  (SCRATCH_ZPWORD1),y
+		bne  +
+		iny
+		lda  (SCRATCH_ZPWORD1),y
+		bne  +
+		lda  #0
+		sta  ESTACK_LO+1,x
+		rts
++		iny
+_cmp_mod	cpy  #255		; modified
+		bne  -
+		lda  #1
+		sta  ESTACK_LO+1,x
+		rts
+		.pend
+		
+func_len_str	.proc
+		; -- push length of 0-terminated string on stack
+		jsr  peek_address
 		ldy  #0
 -		lda  (SCRATCH_ZPWORD1),y
 		beq  +
@@ -925,10 +1036,7 @@ func_len_str	.proc
                 
 func_len_strp	.proc
 		; -- push length of pascal-string on stack
-		lda  ESTACK_LO+1,x
-		sta  SCRATCH_ZPWORD1
-		lda  ESTACK_HI+1,x
-		sta  SCRATCH_ZPWORD1+1
+		jsr  peek_address
 		ldy  #0
 		lda  (SCRATCH_ZPWORD1),y	; first byte is length
 		sta  ESTACK_LO+1,x

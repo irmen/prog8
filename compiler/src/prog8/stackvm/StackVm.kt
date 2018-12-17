@@ -46,8 +46,6 @@ enum class Syscall(val callNr: Short) {
     FUNC_MIN(83),
     FUNC_AVG(84),
     FUNC_SUM(85),
-    FUNC_ANY(87),
-    FUNC_ALL(88),
     FUNC_RND(89),                // push a random byte on the stack
     FUNC_RNDW(90),               // push a random word on the stack
     FUNC_RNDF(91),               // push a random float on the stack (between 0.0 and 1.0)
@@ -61,7 +59,13 @@ enum class Syscall(val callNr: Short) {
     FUNC_LEN_STR(105),
     FUNC_LEN_STRP(106),
     FUNC_LEN_STRS(107),
-    FUNC_LEN_STRPS(108)
+    FUNC_LEN_STRPS(108),
+    FUNC_ANY_B(109),
+    FUNC_ANY_W(110),
+    FUNC_ANY_F(111),
+    FUNC_ALL_B(112),
+    FUNC_ALL_W(113),
+    FUNC_ALL_F(114)
 
     // note: not all builtin functions of the Prog8 language are present as functions:
     // some of them are straight opcodes (such as MSB, LSB, LSL, LSR, ROL_BYTE, ROR, ROL2, ROR2, and FLT)!
@@ -1554,21 +1558,15 @@ class StackVm(private var traceOutputFile: String?) {
                 else
                     evalstack.push(Value(DataType.UWORD, value.array!!.sum()))
             }
-            Syscall.FUNC_ANY -> {
+            Syscall.FUNC_ANY_B, Syscall.FUNC_ANY_W, Syscall.FUNC_ANY_F -> {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
-                if (value.str != null)
-                    evalstack.push(Value(DataType.UBYTE, if (Petscii.encodePetscii(value.str, true).any { c -> c != 0.toShort() }) 1 else 0))
-                else
-                    evalstack.push(Value(DataType.UBYTE, if (value.array!!.any { v -> v != 0 }) 1 else 0))
+                evalstack.push(Value(DataType.UBYTE, if (value.array!!.any { v -> v != 0 }) 1 else 0))
             }
-            Syscall.FUNC_ALL -> {
+            Syscall.FUNC_ALL_B, Syscall.FUNC_ALL_W, Syscall.FUNC_ALL_F -> {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
-                if (value.str != null)
-                    evalstack.push(Value(DataType.UBYTE, if (Petscii.encodePetscii(value.str, true).all { c -> c != 0.toShort() }) 1 else 0))
-                else
-                    evalstack.push(Value(DataType.UBYTE, if (value.array!!.all { v -> v != 0 }) 1 else 0))
+                evalstack.push(Value(DataType.UBYTE, if (value.array!!.all { v -> v != 0 }) 1 else 0))
             }
             Syscall.FUNC_STR2BYTE -> {
                 val strvar = evalstack.pop()

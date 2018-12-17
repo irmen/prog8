@@ -682,6 +682,27 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     else -> throw CompilerException("wrong datatype for len()")
                 }
             }
+            "any", "all" -> {
+                // 1 array argument, type determines the exact syscall to use
+                val arg=args.single() as IdentifierReference
+                val target=arg.targetStatement(namespace) as VarDecl
+                val length=Value(DataType.UBYTE, target.arrayspec!!.size()!!)
+                when (arg.resultingDatatype(namespace, heap)) {
+                    DataType.ARRAY_B, DataType.ARRAY_UB -> {
+                        prog.instr(Opcode.PUSH_BYTE, length)
+                        createSyscall("${funcname}_b")
+                    }
+                    DataType.ARRAY_W, DataType.ARRAY_UW -> {
+                        prog.instr(Opcode.PUSH_BYTE, length)
+                        createSyscall("${funcname}_w")
+                    }
+                    DataType.ARRAY_F -> {
+                        prog.instr(Opcode.PUSH_BYTE, length)
+                        createSyscall("${funcname}_f")
+                    }
+                    else -> throw CompilerException("wrong datatype for $funcname()")
+                }
+            }
             "flt" -> {
                 // 1 argument, type determines the exact opcode to use
                 val arg = args.single()
