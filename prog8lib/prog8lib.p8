@@ -863,8 +863,16 @@ _one_over_pi_div_180	.byte 134, 101, 46, 224, 211		; 1 / (pi * 180)
 		.pend
 		
 func_round	.proc
+		jsr  pop_float_fac1
+		stx  SCRATCH_ZPREGX
+		jsr  c64.FADDH
+		jsr  c64.FTOSWORDYA
+		ldx  SCRATCH_ZPREGX
+		sta  ESTACK_HI,x
+		tya
+		sta  ESTACK_LO,x
+		dex
 		rts
-		.warn "round not implemented"
 		.pend
 		
 func_floor	.proc
@@ -877,26 +885,6 @@ func_ceil	.proc
 		.warn "ceil not implemented"
 		.pend
 		
-func_max	.proc
-		rts
-		.warn "max not implemented--what does it max over???"
-		.pend
-		
-func_min	.proc
-		rts
-		.warn "min not implemented--what does it min over???"
-		.pend
-		
-func_avg	.proc
-		rts
-		.warn "avg not implemented--what does it avg over???"
-		.pend
-		
-func_sum	.proc
-		rts
-		.warn "sum not implemented--what does it sum over???"
-		.pend
-
 peek_address	.proc
 		; -- peek address on stack into SCRATCH_ZPWORD1
 		lda  ESTACK_LO+1,x

@@ -270,7 +270,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             DataType.ARRAY_UW, DataType.ARRAY_W -> Opcode.READ_INDEXED_VAR_WORD
             DataType.ARRAY_F -> Opcode.READ_INDEXED_VAR_FLOAT
             DataType.STR, DataType.STR_S -> Opcode.READ_INDEXED_VAR_BYTE
-            DataType.STR_P, DataType.STR_PS -> throw CompilerException("cannot access pascal-string type $dt with index")
+            DataType.STR_P, DataType.STR_PS -> throw CompilerException("cannot index on type $dt - use regular 0-terminated str type")
             else -> throw CompilerException("invalid dt for indexed access $dt")
         }
     }
@@ -281,7 +281,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             DataType.ARRAY_UW, DataType.ARRAY_W -> Opcode.WRITE_INDEXED_VAR_WORD
             DataType.ARRAY_F -> Opcode.WRITE_INDEXED_VAR_FLOAT
             DataType.STR, DataType.STR_S -> Opcode.WRITE_INDEXED_VAR_BYTE
-            DataType.STR_P, DataType.STR_PS -> throw CompilerException("cannot access pascal-string type $dt with index")
+            DataType.STR_P, DataType.STR_PS -> throw CompilerException("cannot index on type $dt - use regular 0-terminated str type")
             else -> throw CompilerException("invalid dt for indexed access $dt")
         }
     }
@@ -687,21 +687,29 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 val arg=args.single() as IdentifierReference
                 val target=arg.targetStatement(namespace) as VarDecl
                 val length=Value(DataType.UBYTE, target.arrayspec!!.size()!!)
+                prog.instr(Opcode.PUSH_BYTE, length)
                 when (arg.resultingDatatype(namespace, heap)) {
-                    DataType.ARRAY_B, DataType.ARRAY_UB -> {
-                        prog.instr(Opcode.PUSH_BYTE, length)
-                        createSyscall("${funcname}_b")
-                    }
-                    DataType.ARRAY_W, DataType.ARRAY_UW -> {
-                        prog.instr(Opcode.PUSH_BYTE, length)
-                        createSyscall("${funcname}_w")
-                    }
-                    DataType.ARRAY_F -> {
-                        prog.instr(Opcode.PUSH_BYTE, length)
-                        createSyscall("${funcname}_f")
-                    }
+                    DataType.ARRAY_B, DataType.ARRAY_UB -> createSyscall("${funcname}_b")
+                    DataType.ARRAY_W, DataType.ARRAY_UW -> createSyscall("${funcname}_w")
+                    DataType.ARRAY_F ->  createSyscall("${funcname}_f")
                     else -> throw CompilerException("wrong datatype for $funcname()")
                 }
+            }
+            "min", "max", "avg", "sum" -> {
+                // 1 array argument, type determines the exact syscall to use
+                val arg=args.single() as IdentifierReference
+                val target=arg.targetStatement(namespace) as VarDecl
+                val length=Value(DataType.UBYTE, target.arrayspec!!.size()!!)
+                prog.instr(Opcode.PUSH_BYTE, length)
+                when (arg.resultingDatatype(namespace, heap)) {
+                    DataType.ARRAY_UB -> createSyscall("${funcname}_ub")
+                    DataType.ARRAY_B -> createSyscall("${funcname}_b")
+                    DataType.ARRAY_UW -> createSyscall("${funcname}_uw")
+                    DataType.ARRAY_W -> createSyscall("${funcname}_w")
+                    DataType.ARRAY_F -> createSyscall("${funcname}_f")
+                    else -> throw CompilerException("wrong datatype for $funcname()")
+                }
+
             }
             "flt" -> {
                 // 1 argument, type determines the exact opcode to use
@@ -1596,15 +1604,14 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             throw CompilerException("loop variable type doesn't match iterableValue type")
         else if(loopvarDt==DataType.FLOAT && iterableValue.type != DataType.ARRAY_F)
             throw CompilerException("loop variable type doesn't match iterableValue type")
+
         val numElements: Int
         when(iterableValue.type) {
             DataType.UBYTE, DataType.BYTE,
             DataType.UWORD, DataType.WORD,
             DataType.FLOAT -> throw CompilerException("non-iterableValue type")
-            DataType.STR,
-            DataType.STR_P,
-            DataType.STR_S,
-            DataType.STR_PS -> {
+            DataType.STR_P, DataType.STR_PS -> throw CompilerException("can't iterate string type ${iterableValue.type}")
+            DataType.STR, DataType.STR_S -> {
                 numElements = iterableValue.strvalue(heap).length
                 if(numElements>255) throw CompilerException("string length > 255")
             }
@@ -1651,8 +1658,11 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             AssignTarget(loop.loopRegister, null, null, loop.position)
         else
             AssignTarget(null, loop.loopVar!!.copy(), null, loop.position)
-        val arrayspec = ArraySpec(RegisterExpr(Register.X, loop.position), loop.position)
-        val assignLv = Assignment(listOf(assignTarget), null, ArrayIndexedExpression((loop.iterable as IdentifierReference).copy(), arrayspec, loop.position), loop.position)
+        val arrayspec = ArraySpec(RegisterExpr(Register.Y, loop.position), loop.position)
+        val assignLv = Assignment(
+                listOf(assignTarget), null,
+                ArrayIndexedExpression((loop.iterable as IdentifierReference).copy(), arrayspec, loop.position),
+                loop.position)
         assignLv.linkParents(loop.body)
         translate(assignLv)
         translate(loop.body)

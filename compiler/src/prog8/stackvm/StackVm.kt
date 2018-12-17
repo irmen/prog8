@@ -42,10 +42,6 @@ enum class Syscall(val callNr: Short) {
     FUNC_ROUND(79),
     FUNC_FLOOR(80),
     FUNC_CEIL(81),
-    FUNC_MAX(82),
-    FUNC_MIN(83),
-    FUNC_AVG(84),
-    FUNC_SUM(85),
     FUNC_RND(89),                // push a random byte on the stack
     FUNC_RNDW(90),               // push a random word on the stack
     FUNC_RNDF(91),               // push a random float on the stack (between 0.0 and 1.0)
@@ -65,7 +61,27 @@ enum class Syscall(val callNr: Short) {
     FUNC_ANY_F(111),
     FUNC_ALL_B(112),
     FUNC_ALL_W(113),
-    FUNC_ALL_F(114)
+    FUNC_ALL_F(114),
+    FUNC_MAX_UB(115),
+    FUNC_MAX_B(116),
+    FUNC_MAX_UW(117),
+    FUNC_MAX_W(118),
+    FUNC_MAX_F(119),
+    FUNC_MIN_UB(120),
+    FUNC_MIN_B(121),
+    FUNC_MIN_UW(122),
+    FUNC_MIN_W(123),
+    FUNC_MIN_F(124),
+    FUNC_AVG_UB(125),
+    FUNC_AVG_B(126),
+    FUNC_AVG_UW(127),
+    FUNC_AVG_W(128),
+    FUNC_AVG_F(129),
+    FUNC_SUM_UB(130),
+    FUNC_SUM_B(131),
+    FUNC_SUM_UW(132),
+    FUNC_SUM_W(133),
+    FUNC_SUM_F(134)
 
     // note: not all builtin functions of the Prog8 language are present as functions:
     // some of them are straight opcodes (such as MSB, LSB, LSL, LSR, ROL_BYTE, ROR, ROL2, ROR2, and FLT)!
@@ -951,12 +967,12 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.LSB -> {
                 val v = evalstack.pop()
-                checkDt(v, DataType.UWORD)
+                checkDt(v, DataType.UWORD, DataType.WORD)
                 evalstack.push(v.lsb())
             }
             Opcode.MSB -> {
                 val v = evalstack.pop()
-                checkDt(v, DataType.UWORD)
+                checkDt(v, DataType.UWORD, DataType.WORD)
                 evalstack.push(v.msb())
             }
             Opcode.AND_BYTE -> {
@@ -1452,10 +1468,10 @@ class StackVm(private var traceOutputFile: String?) {
                 canvas?.clearScreen(color.integerValue())
             }
             Syscall.VM_GFX_TEXT -> {
-                val textPtr = evalstack.pop()
+                val textPtr = evalstack.pop().integerValue()
                 val color = evalstack.pop()
                 val (cy, cx) = evalstack.pop2()
-                val text = heap.get(textPtr.heapId)
+                val text = heap.get(textPtr)
                 canvas?.writeText(cx.integerValue(), cy.integerValue(), text.str!!, color.integerValue())
             }
             Syscall.FUNC_RND -> evalstack.push(Value(DataType.UBYTE, rnd.nextInt() and 255))
@@ -1502,61 +1518,85 @@ class StackVm(private var traceOutputFile: String?) {
                     evalstack.push(Value(DataType.WORD, ceil(value.numericValue().toDouble()).toInt()))
                 else throw VmExecutionException("cannot get ceil of $value")
             }
-            Syscall.FUNC_MAX -> {
+            Syscall.FUNC_MAX_UB -> {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
-                val resultDt = when(iterable.type) {
-                    DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> DataType.UBYTE
-                    DataType.ARRAY_UB -> DataType.UBYTE
-                    DataType.ARRAY_B -> DataType.BYTE
-                    DataType.ARRAY_UW -> DataType.UWORD
-                    DataType.ARRAY_W -> DataType.WORD
-                    DataType.ARRAY_F -> DataType.FLOAT
-                    DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT -> throw VmExecutionException("uniterable value $iterable")
-                }
-                if(value.str!=null) {
-                    val result = Petscii.encodePetscii(value.str.max().toString(), true)[0]
-                    evalstack.push(Value(DataType.UBYTE, result))
-                } else {
-                    val result = value.array!!.max() ?: 0
-                    evalstack.push(Value(resultDt, result))
-                }
+                val result = value.array!!.max() ?: 0
+                evalstack.push(Value(DataType.UBYTE, result))
             }
-            Syscall.FUNC_MIN -> {
+            Syscall.FUNC_MAX_B -> {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
-                val resultDt = when(iterable.type) {
-                    DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> DataType.UBYTE
-                    DataType.ARRAY_UB -> DataType.UBYTE
-                    DataType.ARRAY_B -> DataType.BYTE
-                    DataType.ARRAY_UW -> DataType.UWORD
-                    DataType.ARRAY_W -> DataType.WORD
-                    DataType.ARRAY_F -> DataType.FLOAT
-                    DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT -> throw VmExecutionException("uniterable value $iterable")
-                }
-                if(value.str!=null) {
-                    val result = Petscii.encodePetscii(value.str.min().toString(), true)[0]
-                    evalstack.push(Value(DataType.UBYTE, result))
-                } else {
-                    val result = value.array!!.min() ?: 0
-                    evalstack.push(Value(resultDt, result))
-                }
+                val result = value.array!!.max() ?: 0
+                evalstack.push(Value(DataType.BYTE, result))
             }
-            Syscall.FUNC_AVG -> {
+            Syscall.FUNC_MAX_UW -> {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
-                if(value.str!=null)
-                    evalstack.push(Value(DataType.FLOAT, Petscii.encodePetscii(value.str, true).average()))
-                else
-                    evalstack.push(Value(DataType.FLOAT, value.array!!.average()))
+                val result = value.array!!.max() ?: 0
+                evalstack.push(Value(DataType.UWORD, result))
             }
-            Syscall.FUNC_SUM -> {
+            Syscall.FUNC_MAX_W -> {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
-                if(value.str!=null)
-                    evalstack.push(Value(DataType.UWORD, Petscii.encodePetscii(value.str, true).sum()))
-                else
-                    evalstack.push(Value(DataType.UWORD, value.array!!.sum()))
+                val result = value.array!!.max() ?: 0
+                evalstack.push(Value(DataType.WORD, result))
+            }
+            Syscall.FUNC_MAX_F -> {
+                val iterable = evalstack.pop()
+                val value = heap.get(iterable.heapId)
+                val result = value.array!!.max() ?: 0
+                evalstack.push(Value(DataType.FLOAT, result))
+            }
+            Syscall.FUNC_MIN_UB -> {
+                val iterable = evalstack.pop()
+                val value = heap.get(iterable.heapId)
+                val result = value.array!!.min() ?: 0
+                evalstack.push(Value(DataType.UBYTE, result))
+            }
+            Syscall.FUNC_MIN_B -> {
+                val iterable = evalstack.pop()
+                val value = heap.get(iterable.heapId)
+                val result = value.array!!.min() ?: 0
+                evalstack.push(Value(DataType.BYTE, result))
+            }
+            Syscall.FUNC_MIN_UW -> {
+                val iterable = evalstack.pop()
+                val value = heap.get(iterable.heapId)
+                val result = value.array!!.min() ?: 0
+                evalstack.push(Value(DataType.UWORD, result))
+            }
+            Syscall.FUNC_MIN_W -> {
+                val iterable = evalstack.pop()
+                val value = heap.get(iterable.heapId)
+                val result = value.array!!.min() ?: 0
+                evalstack.push(Value(DataType.WORD, result))
+            }
+            Syscall.FUNC_MIN_F -> {
+                val iterable = evalstack.pop()
+                val value = heap.get(iterable.heapId)
+                val result = value.array!!.min() ?: 0
+                evalstack.push(Value(DataType.FLOAT, result))
+            }
+            Syscall.FUNC_AVG_UB, Syscall.FUNC_AVG_B, Syscall.FUNC_AVG_UW, Syscall.FUNC_AVG_W, Syscall.FUNC_AVG_F-> {
+                val iterable = evalstack.pop()
+                val value = heap.get(iterable.heapId)
+                evalstack.push(Value(DataType.FLOAT, value.array!!.average()))
+            }
+            Syscall.FUNC_SUM_UB -> {
+                val iterable = evalstack.pop()
+                val value = heap.get(iterable.heapId)
+                evalstack.push(Value(DataType.UWORD, value.array!!.sum()))
+            }
+            Syscall.FUNC_SUM_B -> {
+                val iterable = evalstack.pop()
+                val value = heap.get(iterable.heapId)
+                evalstack.push(Value(DataType.WORD, value.array!!.sum()))
+            }
+            Syscall.FUNC_SUM_UW, Syscall.FUNC_SUM_W, Syscall.FUNC_SUM_F -> {
+                val iterable = evalstack.pop()
+                val value = heap.get(iterable.heapId)
+                evalstack.push(Value(DataType.FLOAT, value.array!!.sum()))
             }
             Syscall.FUNC_ANY_B, Syscall.FUNC_ANY_W, Syscall.FUNC_ANY_F -> {
                 val iterable = evalstack.pop()

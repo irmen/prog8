@@ -808,6 +808,9 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.LESSEQ_W -> "  jsr  prog8_lib.lesseq_w"
             Opcode.LESSEQ_F -> "  jsr  prog8_lib.lesseq_f"
 
+            Opcode.LSB -> ""
+            Opcode.MSB -> " lda  ${(ESTACK_HI+1).toHex()},x |  sta ${(ESTACK_LO+1).toHex()},x"
+
             else -> null
         }
     }
