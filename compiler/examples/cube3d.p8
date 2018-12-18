@@ -80,11 +80,11 @@
     sub draw_edges() {
 
         sub toscreenx(x: float, z: float) -> word {
-            return floor(x/(4.2+z) * flt(height)) + width // 2
+            return fintw(x/(4.2+z) * flt(height)) + width // 2
         }
 
         sub toscreeny(y: float, z: float) -> word {
-            return floor(y/(4.2+z) * flt(height)) + height // 2
+            return fintw(y/(4.2+z) * flt(height)) + height // 2
         }
 
         ; draw all edges of the object

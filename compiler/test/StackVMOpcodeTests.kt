@@ -324,9 +324,7 @@ class TestStackVmOpcodes {
 
     @Test
     fun testFloorDiv() {
-        testBinaryOperator(Value(DataType.UBYTE, 244), Opcode.FLOORDIV_UB, Value(DataType.UBYTE, 33), Value(DataType.UBYTE, 7))
-        testBinaryOperator(Value(DataType.UWORD, 3999), Opcode.FLOORDIV_UW, Value(DataType.UWORD, 99), Value(DataType.UWORD, 40))
-        testBinaryOperator(Value(DataType.FLOAT, 4000.25), Opcode.FLOORDIV_F, Value(DataType.FLOAT, 40.2), Value(DataType.FLOAT, 99.0))
+        testBinaryOperator(Value(DataType.FLOAT, 4000.25), Opcode.FLOORDIV, Value(DataType.FLOAT, 40.2), Value(DataType.FLOAT, 99.0))
     }
 
     @Test

@@ -427,6 +427,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 val call = Syscall.values().find { it.callNr==ins.arg.numericValue() }
                 when(call) {
                     Syscall.FUNC_WRD, Syscall.FUNC_UWRD -> ""
+                    Syscall.FUNC_STR2UBYTE, Syscall.FUNC_STR2UWORD -> " jsr prog8_lib.func_str2uword"
                     else -> " jsr  prog8_lib.${call.toString().toLowerCase()}"
                 }
             }
@@ -2708,19 +2709,29 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 
             // byte var = lsb(word var)
             AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.LSB, Opcode.POP_VAR_BYTE)) { segment ->
-                " lda  #<${segment[0].callLabel} |  sta  ${segment[2].callLabel}"
+                when(segment[2].callLabel) {
+                    "A" -> " lda  ${segment[0].callLabel}"
+                    "X" -> " ldx  ${segment[0].callLabel}"
+                    "Y" -> " ldy  ${segment[0].callLabel}"
+                    else -> " lda  ${segment[0].callLabel} |  sta  ${segment[2].callLabel}"
+                }
             },
             // byte var = msb(word var)
             AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.MSB, Opcode.POP_VAR_BYTE)) { segment ->
-                " lda  #>${segment[0].callLabel} |  sta  ${segment[2].callLabel}"
+                when(segment[2].callLabel) {
+                    "A" -> " lda  ${segment[0].callLabel}+1"
+                    "X" -> " ldx  ${segment[0].callLabel}+1"
+                    "Y" -> " ldy  ${segment[0].callLabel}+1"
+                    else -> " lda  ${segment[0].callLabel}+1 |  sta  ${segment[2].callLabel}"
+                }
             },
             // push lsb(word var)
             AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.LSB)) { segment ->
-                " lda  #<${segment[0].callLabel} |  sta  ${ESTACK_LO.toHex()},x |  dex "
+                " lda  ${segment[0].callLabel} |  sta  ${ESTACK_LO.toHex()},x |  dex "
             },
             // push msb(word var)
             AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.MSB)) { segment ->
-                " lda  #>${segment[0].callLabel} |  sta  ${ESTACK_LO.toHex()},x |  dex "
+                " lda  ${segment[0].callLabel}+1 |  sta  ${ESTACK_LO.toHex()},x |  dex "
             },
 
             // set a register pair to a certain memory address (of a variable)

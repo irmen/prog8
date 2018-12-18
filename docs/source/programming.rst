@@ -551,6 +551,12 @@ flt(x)
     Explicitly convert the number x to a floating point number.
     This is required if you want calculations to have floating point precision when the values aren't float already.
 
+fintb(x)
+    Take floor of the floating point into a byte value. (no overflow check). Use together with b2ub() to convert into a unsigned byte instead.
+
+fintw(x)
+    Take floor of the floating point into a word value. (no overflow check).
+
 wrd(x)
     Explicitly convert the value x to a signed word (sign extended).
     This is required if you want calculations to have word precision when the values are different types.

@@ -38,9 +38,9 @@ val BuiltinFunctions = mapOf(
     "rad"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::toRadians) },
     "deg"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::toDegrees) },
     "avg"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.FLOAT, ::builtinAvg),
-    "round"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.WORD) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::round) },
-    "floor"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.WORD) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::floor) },
-    "ceil"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.WORD) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::ceil) },
+    "round"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::round) },
+    "floor"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::floor) },
+    "ceil"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::ceil) },
     "len"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", IterableDatatypes)), DataType.UBYTE, ::builtinLen),
     "any"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.any { v -> v != 0.0} }},
     "all"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.all { v -> v != 0.0} }},
@@ -49,6 +49,8 @@ val BuiltinFunctions = mapOf(
     "flt"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", NumericDatatypes)), DataType.FLOAT, ::builtinFlt),
     "uwrd"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.UBYTE, DataType.BYTE, DataType.WORD))), DataType.UWORD, ::builtinUwrd),
     "wrd"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD))), DataType.WORD, ::builtinWrd),
+    "fintb"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.BYTE, ::builtinFintb),
+    "fintw"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.WORD, ::builtinFintw),
     "b2ub"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.BYTE))), DataType.UBYTE, ::builtinB2ub),
     "ub2b"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.UBYTE))), DataType.BYTE, ::builtinUb2b),
     "rnd"         to FunctionSignature(true, emptyList(), DataType.UBYTE),
@@ -243,6 +245,42 @@ private fun builtinFlt(args: List<IExpression>, position: Position, namespace:IN
     val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
     val number = constval.asNumericValue ?: throw SyntaxError("flt requires one numeric argument", position)
     return LiteralValue(DataType.FLOAT, floatvalue = number.toDouble(), position = position)
+}
+
+private fun builtinFintb(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
+    // 1 float arg, convert to byte
+    if(args.size!=1)
+        throw SyntaxError("fintb requires one floating point argument", position)
+
+    val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
+    if(constval.type!=DataType.FLOAT)
+        throw SyntaxError("fintb requires one floating point argument", position)
+    val integer: Short
+    val flt = constval.floatvalue!!
+    integer = when {
+        flt <= -128 -> -128
+        flt >= 127 -> 127
+        else -> flt.toShort()
+    }
+    return LiteralValue(DataType.BYTE, bytevalue = integer, position = position)
+}
+
+private fun builtinFintw(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
+    // 1 float arg, convert to word
+    if(args.size!=1)
+        throw SyntaxError("fintw requires one floating point argument", position)
+
+    val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
+    if(constval.type!=DataType.FLOAT)
+        throw SyntaxError("fintw requires one floating point argument", position)
+    val integer: Int
+    val flt = constval.floatvalue!!
+    integer = when {
+        flt <= -32768 -> -32768
+        flt >= 32767 -> 32767
+        else -> flt.toInt()
+    }
+    return LiteralValue(DataType.WORD, wordvalue = integer, position = position)
 }
 
 private fun builtinWrd(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {

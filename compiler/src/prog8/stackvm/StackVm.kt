@@ -39,6 +39,8 @@ enum class Syscall(val callNr: Short) {
     FUNC_ROUND(79),
     FUNC_FLOOR(80),
     FUNC_CEIL(81),
+    FUNC_FINTB(82),
+    FUNC_FINTW(83),
     FUNC_RND(89),                // push a random byte on the stack
     FUNC_RNDW(90),               // push a random word on the stack
     FUNC_RNDF(91),               // push a random float on the stack (between 0.0 and 1.0)
@@ -442,31 +444,7 @@ class StackVm(private var traceOutputFile: String?) {
                 checkDt(second, DataType.FLOAT)
                 evalstack.push(second.div(top))
             }
-            Opcode.FLOORDIV_UB -> {
-                val (top, second) = evalstack.pop2()
-                checkDt(top, DataType.UBYTE)
-                checkDt(second, DataType.UBYTE)
-                evalstack.push(second.floordiv(top))
-            }
-            Opcode.FLOORDIV_UW -> {
-                val (top, second) = evalstack.pop2()
-                checkDt(top, DataType.UWORD)
-                checkDt(second, DataType.UWORD)
-                evalstack.push(second.floordiv(top))
-            }
-            Opcode.FLOORDIV_B -> {
-                val (top, second) = evalstack.pop2()
-                checkDt(top, DataType.BYTE)
-                checkDt(second, DataType.BYTE)
-                evalstack.push(second.floordiv(top))
-            }
-            Opcode.FLOORDIV_W -> {
-                val (top, second) = evalstack.pop2()
-                checkDt(top, DataType.WORD)
-                checkDt(second, DataType.WORD)
-                evalstack.push(second.floordiv(top))
-            }
-            Opcode.FLOORDIV_F -> {
+            Opcode.FLOORDIV -> {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.FLOAT)
                 checkDt(second, DataType.FLOAT)
@@ -1648,6 +1626,34 @@ class StackVm(private var traceOutputFile: String?) {
                 val str = heap.get(heapId)
                 val y = str.str!!.trim().trimEnd('\u0000')
                 evalstack.push(Value(DataType.FLOAT, y.toDouble()))
+            }
+            Syscall.FUNC_FINTB -> {
+                val value = evalstack.pop()
+                if(value.type in NumericDatatypes) {
+                    val integer: Short
+                    val flt = value.numericValue().toDouble()
+                    integer = when {
+                        flt <= -128 -> -128
+                        flt >= 127 -> 127
+                        else -> flt.toShort()
+                    }
+                    evalstack.push(Value(DataType.BYTE, integer))
+                }
+                else throw VmExecutionException("cannot fintb $value")
+            }
+            Syscall.FUNC_FINTW -> {
+                val value = evalstack.pop()
+                if(value.type in NumericDatatypes) {
+                    val integer: Int
+                    val flt = value.numericValue().toDouble()
+                    integer = when {
+                        flt <= -32768 -> -32768
+                        flt >= 32767 -> 32767
+                        else -> flt.toInt()
+                    }
+                    evalstack.push(Value(DataType.WORD, integer))
+                }
+                else throw VmExecutionException("cannot fintw $value")
             }
             Syscall.FUNC_WRD -> {
                 val value = evalstack.pop()

@@ -10,7 +10,7 @@
         byte v1
         byte v2
 
-        c64scr.print_byte(X)
+        c64scr.print_ubyte(X)
         c64.CHROUT('\n')
 
         v1 = 100
@@ -110,7 +110,7 @@
         else
             c64.STROUT("error in 22>=22!\n")
 
-        c64scr.print_byte(X)
+        c64scr.print_ubyte(X)
         c64.CHROUT('\n')
 
     }

@@ -922,25 +922,59 @@ func_round	.proc
 		jsr  pop_float_fac1
 		stx  SCRATCH_ZPREGX
 		jsr  c64.FADDH
-		jsr  c64.FTOSWORDYA
-		ldx  SCRATCH_ZPREGX
-		sta  ESTACK_HI,x
-		tya
+		jsr  c64.INT
+		jmp  push_fac1_as_result
+		.pend
+		
+func_floor	.proc
+		jsr  pop_float_fac1
+		stx  SCRATCH_ZPREGX
+		jsr  c64.INT
+		jmp  push_fac1_as_result
+		.pend
+		
+func_ceil	.proc
+		; -- ceil: tr = int(f); if tr==f -> return  else return tr+1
+		jsr  pop_float_fac1
+		stx  SCRATCH_ZPREGX
+		lda  #<fmath_float1
+		ldy  #>fmath_float1
+		jsr  c64.MOVMF
+		jsr  c64.INT
+		lda  #<fmath_float1
+		ldy  #>fmath_float1
+		jsr  c64.FCOMP
+		cmp  #0
+		beq  +
+		lda  #<c64.FL_FONE
+		ldy  #>c64.FL_FONE
+		jsr  c64.FADD
++		jmp  push_fac1_as_result
+		.pend
+		
+func_fintb	.proc
+		jsr  pop_float_fac1
+		stx  SCRATCH_ZPREGX
+		jsr  c64.AYINT
+		lda  $65
 		sta  ESTACK_LO,x
 		dex
 		rts
-		.warn  "round check outcome"
 		.pend
 		
-func_floor	.proc        ; @todo check outcome vs round/ceil
+func_fintw	.proc
+		jsr  pop_float_fac1
+		stx  SCRATCH_ZPREGX
+		jsr  c64.AYINT
+		lda  $64
+		sta  ESTACK_HI,x
+		lda  $65
+		sta  ESTACK_LO,x
+		dex
 		rts
-		.warn "floor not implemented"
 		.pend
 		
-func_ceil	.proc     ; @todo check outcome vs floor/round
-		rts
-		.warn "ceil not implemented"
-		.pend
+
 		
 peek_address	.proc
 		; -- peek address on stack into SCRATCH_ZPWORD1
@@ -1123,11 +1157,6 @@ _rndf_rnum5	.fill 5
 		.pend
 
 
-func_str2byte	.proc
-		rts
-		.warn "str2byte not implemented"
-		.pend
-
 ; @todo python code for a str-to-ubyte function that doesn't use the basic rom:
 ;def str2ubyte(s, slen):
 ;    hundreds_map = {
@@ -1153,12 +1182,8 @@ func_str2byte	.proc
 ;    result += digitvalue
 ;    return result
 
-func_str2ubyte  .proc
-		jmp  func_str2uword
-		.pend
-
 func_str2uword	.proc
-		;-- convert string (address on stack) to uword number
+		;-- convert string (address on stack) to uword number (also used by str2ubyte)
 		lda  ESTACK_LO+1,x
 		sta  $22
 		lda  ESTACK_HI+1,x
@@ -1188,6 +1213,11 @@ func_str2word	.proc
 		.warn "str2word not implemented"
 		.pend
 
+func_str2byte	.proc
+		rts
+		.warn "str2byte not implemented"
+		.pend
+		
 func_str2float	.proc
 		rts
 		.warn "str2float not implemented"

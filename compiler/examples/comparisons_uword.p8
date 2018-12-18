@@ -11,7 +11,7 @@
 
         ; check stack usage:
         c64.STROUT("unsigned word ")
-        c64scr.print_byte(X)
+        c64scr.print_ubyte(X)
         c64.CHROUT(' ')
 
         cr=v1==v2
@@ -39,7 +39,7 @@
         cr=v1>=v2
         cr=v1>=v2
 
-        c64scr.print_byte(X)
+        c64scr.print_ubyte(X)
         c64.CHROUT('\n')
 
         ; comparisons:
@@ -88,7 +88,7 @@
         c64.STROUT("v1 = v2 = aa\n")
         compare()
 
-        c64scr.print_byte(X)
+        c64scr.print_ubyte(X)
         c64.CHROUT('\n')
 
         return

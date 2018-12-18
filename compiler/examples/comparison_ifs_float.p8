@@ -10,7 +10,7 @@
         float v1
         float v2
 
-        c64scr.print_byte(X)
+        c64scr.print_ubyte(X)
         c64.CHROUT('\n')
 
         v1 = 1.11
@@ -110,7 +110,7 @@
         else
             c64.STROUT("error in -22.2>=-22.2!\n")
 
-        c64scr.print_byte(X)
+        c64scr.print_ubyte(X)
         c64.CHROUT('\n')
 
     }

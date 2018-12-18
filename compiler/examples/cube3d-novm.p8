@@ -81,19 +81,17 @@
     sub draw_edges() {
 
         sub toscreenx(x: float, z: float) -> word {
-            return floor(x/(4.2+z) * flt(height)) + width // 2
+            return fintw(x/(4.2+z) * flt(height)) + width // 2
         }
 
         sub toscreeny(y: float, z: float) -> word {
-            return floor(y/(4.2+z) * flt(height)) + height // 2
+            return fintw(y/(4.2+z) * flt(height)) + height // 2
         }
 
         ; draw all edges of the object
         for uword edge in edges {
             ubyte e_from = msb(edge)
             ubyte e_to = lsb(edge)
-
-            float xxxx=rotatedx[msb(edge)]      ; @todo weg
 
             word x1 = toscreenx(rotatedx[e_from], rotatedz[e_from])
             word y1 = toscreeny(rotatedy[e_from], rotatedz[e_from])

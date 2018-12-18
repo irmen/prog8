@@ -1007,11 +1007,11 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             }
             "//" -> {
                 when(dt) {
-                    DataType.UBYTE -> Opcode.FLOORDIV_UB
-                    DataType.BYTE -> Opcode.FLOORDIV_B
-                    DataType.UWORD -> Opcode.FLOORDIV_UW
-                    DataType.WORD -> Opcode.FLOORDIV_W
-                    DataType.FLOAT -> Opcode.FLOORDIV_F
+                    DataType.UBYTE -> Opcode.DIV_UB
+                    DataType.BYTE -> Opcode.DIV_B
+                    DataType.UWORD -> Opcode.DIV_UW
+                    DataType.WORD -> Opcode.DIV_W
+                    DataType.FLOAT -> Opcode.FLOORDIV
                     else -> throw CompilerException("only byte/word/float possible")
                 }
             }
@@ -1454,6 +1454,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         if(valueDt !in validDt)
             throw CompilerException("invalid datatype(s) for operand(s)")
         val opcode = when(aug_op) {
+            // @todo ... need more datatypes here?
             "+=" -> {
                 when (valueDt) {
                     DataType.UBYTE -> Opcode.ADD_UB
@@ -1480,9 +1481,9 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             }
             "//=" -> {
                 when (valueDt) {
-                    DataType.UBYTE -> Opcode.FLOORDIV_UB
-                    DataType.UWORD -> Opcode.FLOORDIV_UW
-                    DataType.FLOAT -> Opcode.FLOORDIV_F
+                    DataType.UBYTE -> Opcode.DIV_UB
+                    DataType.UWORD -> Opcode.DIV_UW
+                    DataType.FLOAT -> Opcode.FLOORDIV
                     else -> throw CompilerException("only byte/word/lfoat possible")
                 }
             }
