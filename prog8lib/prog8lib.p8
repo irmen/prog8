@@ -357,6 +357,26 @@ mul_f		.proc
 		jmp  push_fac1_as_result
 		.pend
 
+neg_b		.proc
+		lda  ESTACK_LO+1,x
+		eor  #255
+		clc
+		adc  #1
+		sta  ESTACK_LO+1,x
+		rts
+		.pend
+                
+neg_w		.proc
+		sec
+		lda  #0
+		sbc  ESTACK_LO+1,x
+		sta  ESTACK_LO+1,x
+		lda  #0
+		sbc  ESTACK_HI+1,x
+		sta  ESTACK_HI+1,x
+		rts
+		.pend
+		
 neg_f		.proc
 		; -- push -flt back on stack
 		jsr  pop_float_fac1
@@ -364,24 +384,63 @@ neg_f		.proc
 		jsr  c64.NEGOP
 		jmp  push_fac1_as_result
 		.pend
-
 		
-add_w		.proc
-		; -- push word+word
-		.warn "addw check correctness"
-		inx
-		clc
-		lda  ESTACK_LO,x
-		adc  ESTACK_LO+1,x
+inv_word	.proc
+		lda  ESTACK_LO+1,x
+		eor  #255
 		sta  ESTACK_LO+1,x
-		lda  ESTACK_HI,x
-		adc  ESTACK_HI+1,x
+		lda  ESTACK_HI+1,x
+		eor  #255
 		sta  ESTACK_HI+1,x
 		rts
 		.pend
+
+not_byte	.proc
+		lda  ESTACK_LO+1,x
+		beq  +
+		lda  #0
+		beq ++
++		lda  #1
++		sta  ESTACK_LO+1,x
+		rts
+		.pend
 		
-add_uw		.proc
-		.warn "add_uw check correctness"
+not_word	.proc
+		lda  ESTACK_LO + 1,x
+		ora  ESTACK_HI + 1,x
+		beq  +
+		lda  #0
+		beq  ++
++		lda  #1
++		sta  ESTACK_LO + 1,x
+		sta  ESTACK_HI + 1,x
+		rts
+		.pend
+		
+abs_b		.proc
+		; -- push abs(byte) on stack (as byte)
+		lda  ESTACK_LO+1,x
+		bmi  neg_b
+		rts
+		.pend
+		
+abs_w		.proc
+		; -- push abs(word) on stack (as word)
+		lda  ESTACK_HI+1,x
+		bmi  neg_w
+		rts
+		.pend
+
+abs_f		.proc
+		; -- push abs(float) on stack (as float)
+		jsr  pop_float_fac1
+		stx  SCRATCH_ZPREGX
+		jsr  c64.ABS
+		jmp  push_fac1_as_result
+		.pend
+
+add_w		.proc
+		; -- push word+word / uword+uword
 		inx
 		clc
 		lda  ESTACK_LO,x
@@ -394,13 +453,16 @@ add_uw		.proc
 		.pend
 		
 sub_w		.proc
-		rts	; @todo inline?
-		.warn "sub_w not implemented"
-		.pend
-
-sub_uw		.proc
-		rts	; @todo inline?
-		.warn "sub_uw not implemented"
+		; -- push word-word
+		inx
+		sec
+		lda  ESTACK_LO+1,x
+		sbc  ESTACK_LO,x
+		sta  ESTACK_LO+1,x
+		lda  ESTACK_HI+1,x
+		sbc  ESTACK_HI,x
+		sta  ESTACK_HI+1,x
+		rts
 		.pend
 
 mul_b		.proc
@@ -445,7 +507,7 @@ div_uw		.proc
 
 remainder_b	.proc
 		rts
-		.warn "remainder_b not implemented"
+		.warn "remainder_b via div_b?"
 		.pend
 		
 remainder_ub	.proc
@@ -463,12 +525,12 @@ remainder_ub	.proc
 		
 remainder_w	.proc
 		rts
-		.warn "remainder_w not implemented"
+		.warn "remainder_w not implemented - via div_w"
 		.pend
 		
 remainder_uw	.proc
 		rts
-		.warn "remainder_uw not implemented"
+		.warn "remainder_uw not implemented - via div_uw"
 		.pend
 		
 equal_w		.proc
@@ -788,11 +850,6 @@ func_cos	.proc
 		stx  SCRATCH_ZPREGX
 		jsr  c64.COS
 		jmp  push_fac1_as_result
-		.pend
-		
-func_abs	.proc
-		rts
-		.warn "abs not implemented"
 		.pend
 		
 func_tan	.proc

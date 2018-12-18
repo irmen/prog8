@@ -11,6 +11,10 @@
 
 ~ c64utils {
 
+		const   uword  ESTACK_LO	= $ce00
+		const   uword  ESTACK_HI	= $cf00
+		
+		
 ; ----- utility functions ----
 
 asmsub  init_system  () -> clobbers(A,X,Y) -> ()  {
@@ -613,7 +617,7 @@ asmsub  print_pstring  (text: str_p @ AY) -> clobbers(A,X) -> (ubyte @ Y)  {
 }
 
 
-asmsub  print_ubyte_decimal0  (value: ubyte @ A) -> clobbers(A,X,Y) -> ()  {
+asmsub  print_ubyte0  (value: ubyte @ A) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the ubyte in A in decimal form, with left padding 0s (3 positions total)
 	%asm {{
 		jsr  c64utils.ubyte2decimal
@@ -628,7 +632,7 @@ asmsub  print_ubyte_decimal0  (value: ubyte @ A) -> clobbers(A,X,Y) -> ()  {
 }
 
 
-asmsub  print_ubyte_decimal  (value: ubyte @ A) -> clobbers(A,X,Y) -> ()  {
+asmsub  print_ubyte  (value: ubyte @ A) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the ubyte in A in decimal form, without left padding 0s
 	%asm {{
 		jsr  c64utils.ubyte2decimal
@@ -649,7 +653,7 @@ _print_tens	txa
 	}}
 }
 	
-asmsub  print_byte_decimal  (value: byte @ A) -> clobbers(A,X,Y) -> ()  {
+asmsub  print_byte  (value: byte @ A) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the byte in A in decimal form, without left padding 0s
 	%asm {{
 		pha
@@ -659,7 +663,7 @@ asmsub  print_byte_decimal  (value: byte @ A) -> clobbers(A,X,Y) -> ()  {
 		jsr  c64.CHROUT
 +		pla
 		jsr  c64utils.byte2decimal
-		jmp  print_ubyte_decimal._print_byte_digits
+		jmp  print_ubyte._print_byte_digits
 	}}
 }
 
@@ -694,7 +698,7 @@ asmsub print_uword_hex  (prefix: ubyte @ Pc, value: uword @ AY) -> clobbers(A,X,
 }
 
 
-asmsub  print_uword_decimal0  (value: uword @ AY) -> clobbers(A,X,Y) -> ()  {
+asmsub  print_uword0  (value: uword @ AY) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the uword in A/Y in decimal form, with left padding 0s (5 positions total)
 	; @todo shorter in loop form?
 	%asm {{
@@ -713,7 +717,7 @@ asmsub  print_uword_decimal0  (value: uword @ AY) -> clobbers(A,X,Y) -> ()  {
 }
 
 
-asmsub  print_uword_decimal  (value: uword @ AY) -> clobbers(A,X,Y) -> ()  {
+asmsub  print_uword  (value: uword @ AY) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the uword in A/Y in decimal form, without left padding 0s
 	%asm {{
 		jsr  c64utils.uword2decimal
@@ -745,7 +749,7 @@ _pr_decimal
 	}}
 }
 
-asmsub  print_word_decimal  (value: word @ AY) -> clobbers(A,X,Y) -> ()  {
+asmsub  print_word  (value: word @ AY) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the (signed) word in A/Y in decimal form, without left padding 0s
 	%asm {{
 		cpy  #0
@@ -762,7 +766,7 @@ asmsub  print_word_decimal  (value: word @ AY) -> clobbers(A,X,Y) -> ()  {
 		adc  #1
 		bcc  +
 		iny
-+		jmp  print_uword_decimal
++		jmp  print_uword
 	}}
 }
 
@@ -786,5 +790,81 @@ asmsub  input_chars  (buffer: uword @ AY) -> clobbers(A, X) -> (ubyte @ Y)  {
 
 	}}
 }
+
+asmsub  setchr  (col: ubyte @Y, row: ubyte @A) -> clobbers(A) -> ()  {
+	; ---- set the character in SCRATCH_ZPB1 on the screen matrix at the given position
+	%asm {{
+		sty  c64.SCRATCH_ZPREG
+		asl  a
+		tay
+		lda  _screenrows+1,y
+		sta  _mod+2
+		lda  _screenrows,y
+		clc
+		adc  c64.SCRATCH_ZPREG
+		sta  _mod+1
+		bcc  +
+		inc  _mod+2
++		lda  c64.SCRATCH_ZPB1
+_mod		sta  $ffff		; modified
+		rts
+		
+_screenrows	.word  $0400 + range(0, 1000, 40)
+	}}
+}
+
+asmsub  setclr  (col: ubyte @Y, row: ubyte @A) -> clobbers(A) -> ()  {
+	; ---- set the color in SCRATCH_ZPB1 on the screen matrix at the given position
+	%asm {{
+		sty  c64.SCRATCH_ZPREG
+		asl  a
+		tay
+		lda  _colorrows+1,y
+		sta  _mod+2
+		lda  _colorrows,y
+		clc
+		adc  c64.SCRATCH_ZPREG
+		sta  _mod+1
+		bcc  +
+		inc  _mod+2
++		lda  c64.SCRATCH_ZPB1
+_mod		sta  $ffff		; modified
+		rts
+		
+_colorrows	.word  $d800 + range(0, 1000, 40)
+	}}
+}
+
+		
+sub  setchrclr  (column: ubyte, row: ubyte, char: ubyte, color: ubyte)  {
+	; ---- set char+color at the given position on the screen
+	%asm {{
+		lda  setchrclr_row
+		asl  a
+		tay
+		lda  setchr._screenrows+1,y
+		sta  _charmod+2
+		adc  #$d4
+		sta  _colormod+2
+		lda  setchr._screenrows,y
+		clc
+		adc  setchrclr_column
+		sta  _charmod+1
+		sta  _colormod+1
+		bcc  +
+		inc  _charmod+2
+		inc  _colormod+2
++		lda  setchrclr_char
+_charmod	sta  $ffff		; modified
+		lda  setchrclr_color
+_colormod	sta  $ffff		; modified
+		inx
+		inx
+		inx
+		inx
+		rts
+	}}	
+}
+
 
 }  ; ---- end block c64scr

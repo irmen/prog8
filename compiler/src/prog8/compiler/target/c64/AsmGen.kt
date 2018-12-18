@@ -409,16 +409,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.RSAVE -> {
                 // save cpu status flag and all registers A, X, Y.
                 // see http://6502.org/tutorials/register_preservation.html
-                """
-                php
-                sta  ${C64Zeropage.SCRATCH_REG}
-                pha
-                txa
-                pha
-                tya
-                pha
-                lda  ${C64Zeropage.SCRATCH_REG}
-                """
+                " php |  sta  ${C64Zeropage.SCRATCH_REG} | pha  | txa  | pha  | tya  | pha  | lda  ${C64Zeropage.SCRATCH_REG}"
             }
             Opcode.RRESTORE -> {
                 // restore all registers and cpu status flag
@@ -623,16 +614,12 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 jsr  prog8_lib.dec_var_f
                 """
             }
-            Opcode.NEG_B -> {
-                """
-                lda  ${(ESTACK_LO+1).toHex()},x
-                eor  #255
-                sec
-                adc  #0
-                sta  ${(ESTACK_LO+1).toHex()},x
-                """
-            }
+            Opcode.NEG_B -> " jsr  prog8_lib.neg_b"
+            Opcode.NEG_W -> " jsr  prog8_lib.neg_w"
             Opcode.NEG_F -> " jsr  prog8_lib.neg_f"
+            Opcode.ABS_B -> " jsr  prog8_lib.abs_b"
+            Opcode.ABS_W -> " jsr  prog8_lib.abs_w"
+            Opcode.ABS_F -> " jsr  prog8_lib.abs_f"
             Opcode.INV_BYTE -> {
                 """
                 lda  ${(ESTACK_LO + 1).toHex()},x
@@ -640,38 +627,9 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${(ESTACK_LO + 1).toHex()},x
                 """
             }
-            Opcode.INV_WORD -> {
-                """
-                lda  ${(ESTACK_LO+1).toHex()},x
-                eor  #255
-                sta  ${(ESTACK_LO+1).toHex()},x
-                lda  ${(ESTACK_HI+1).toHex()},x
-                eor  #255
-                sta  ${(ESTACK_HI+1).toHex()},x
-                """
-            }
-            Opcode.NOT_BYTE -> {
-                """
-                lda  ${(ESTACK_LO+1).toHex()},x
-                beq  +
-                lda  #0
-                beq ++
-+               lda  #1
-+               sta  ${(ESTACK_LO+1).toHex()},x
-                """
-            }
-            Opcode.NOT_WORD -> {
-                """
-                lda  ${(ESTACK_LO + 1).toHex()},x
-                ora  ${(ESTACK_HI + 1).toHex()},x
-                beq  +
-                lda  #0
-                beq  ++
-+               lda  #1
-+               sta  ${(ESTACK_LO + 1).toHex()},x |  sta  ${(ESTACK_HI + 1).toHex()},x
-                """
-            }
-
+            Opcode.INV_WORD -> " jsr  prog8_lib.inv_word"
+            Opcode.NOT_BYTE -> " jsr  prog8_lib.not_byte"
+            Opcode.NOT_WORD -> " jsr  prog8_lib.not_word"
             Opcode.BCS -> " bcs  ${ins.callLabel}"
             Opcode.BCC -> " bcc  ${ins.callLabel}"
             Opcode.BNEG -> " bmi  ${ins.callLabel}"
@@ -744,11 +702,9 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${(ESTACK_LO + 1).toHex()},x
                 """
             }
-            Opcode.ADD_W -> "  jsr  prog8_lib.add_w"    // todo inline?
-            Opcode.ADD_UW -> "  jsr  prog8_lib.add_uw"  // todo inline?
+            Opcode.ADD_W, Opcode.ADD_UW -> "  jsr  prog8_lib.add_w"
             Opcode.ADD_F -> "  jsr  prog8_lib.add_f"
-            Opcode.SUB_W -> "  jsr  prog8_lib.sub_w"    // todo inline?
-            Opcode.SUB_UW -> "  jsr  prog8_lib.sub_uw"    // todo inline?
+            Opcode.SUB_W, Opcode.SUB_UW -> "  jsr  prog8_lib.sub_w"
             Opcode.SUB_F -> "  jsr  prog8_lib.sub_f"
             Opcode.MUL_B -> "  jsr  prog8_lib.mul_b"
             Opcode.MUL_UB -> "  jsr  prog8_lib.mul_ub"

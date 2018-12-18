@@ -711,6 +711,17 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 }
 
             }
+            "abs" -> {
+                // 1 argument, type determines the exact opcode to use
+                val arg = args.single()
+                when (arg.resultingDatatype(namespace, heap)) {
+                    DataType.UBYTE, DataType.UWORD -> {}
+                    DataType.BYTE -> prog.instr(Opcode.ABS_B)
+                    DataType.WORD -> prog.instr(Opcode.ABS_W)
+                    DataType.FLOAT -> prog.instr(Opcode.ABS_F)
+                    else -> throw CompilerException("wrong datatype for $funcname()")
+                }
+            }
             "flt" -> {
                 // 1 argument, type determines the exact opcode to use
                 val arg = args.single()

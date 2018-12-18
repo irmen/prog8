@@ -325,6 +325,15 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
         }
     }
 
+    fun abs(): Value {
+        return when(type) {
+            DataType.BYTE -> Value(DataType.BYTE, abs(byteval!!.toInt()))
+            DataType.WORD -> Value(DataType.WORD, abs(wordval!!))
+            DataType.FLOAT -> Value(DataType.FLOAT, abs(floatval!!))
+            else -> throw VmExecutionException("abs can only work on byte/word/float")
+        }
+    }
+
     fun bitand(other: Value): Value {
         val v1 = integerValue()
         val v2 = other.integerValue()

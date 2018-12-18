@@ -72,6 +72,9 @@ enum class Opcode {
     NEG_B,
     NEG_W,
     NEG_F,
+    ABS_B,
+    ABS_W,
+    ABS_F,
 
     // bit shifts and bitwise arithmetic
     SHL_BYTE,

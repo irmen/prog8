@@ -542,6 +542,21 @@ class StackVm(private var traceOutputFile: String?) {
                 checkDt(v, DataType.FLOAT)
                 evalstack.push(v.neg())
             }
+            Opcode.ABS_B -> {
+                val v = evalstack.pop()
+                checkDt(v, DataType.BYTE)
+                evalstack.push(v.abs())
+            }
+            Opcode.ABS_W -> {
+                val v = evalstack.pop()
+                checkDt(v, DataType.WORD)
+                evalstack.push(v.abs())
+            }
+            Opcode.ABS_F -> {
+                val v = evalstack.pop()
+                checkDt(v, DataType.FLOAT)
+                evalstack.push(v.abs())
+            }
             Opcode.SHL_BYTE -> {
                 val v = evalstack.pop()
                 checkDt(v, DataType.UBYTE)

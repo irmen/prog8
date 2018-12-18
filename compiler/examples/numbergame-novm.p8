@@ -22,11 +22,11 @@
         for ubyte attempts_left in 10 to 1 step -1 {
 
 ; stackptr debugging
-;            c64scr.print_byte_decimal(X)
+;            c64scr.print_byte(X)
 ;            c64.CHROUT('\n')
 
             c64scr.print_string("\nYou have ")
-            c64scr.print_ubyte_decimal(attempts_left)
+            c64scr.print_ubyte(attempts_left)
             c64scr.print_string(" guess")
             if attempts_left>1
                 c64scr.print_string("es")
@@ -36,15 +36,15 @@
 
 ; debug info
 ;            c64scr.print_string(" > attempts left=")
-;            c64scr.print_byte_decimal(attempts_left)
+;            c64scr.print_byte(attempts_left)
 ;            c64scr.print_string("\n > secretnumber=")
-;            c64scr.print_byte_decimal(secretnumber)
+;            c64scr.print_byte(secretnumber)
 ;            c64scr.print_string("\n > input=")
 ;            c64scr.print_string(input)
 ;            c64scr.print_string("\n > guess=")
-;            c64scr.print_byte_decimal(guess)
+;            c64scr.print_byte(guess)
 ;            c64.CHROUT('\n')
-;            c64scr.print_byte_decimal(X)    ; stackptr debugging
+;            c64scr.print_byte(X)    ; stackptr debugging
 ;            c64.CHROUT('\n')
 
             if guess==secretnumber {
@@ -66,7 +66,7 @@
                 c64scr.print_string("\n\nYou guessed it, impressive!\n")
             else {
                 c64scr.print_string("\nToo bad! My number was: ")
-                c64scr.print_ubyte_decimal(secretnumber)
+                c64scr.print_ubyte(secretnumber)
                 c64scr.print_string(".\n")
             }
             c64scr.print_string("Thanks for playing, ")

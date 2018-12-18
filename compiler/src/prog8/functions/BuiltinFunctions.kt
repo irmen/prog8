@@ -22,10 +22,11 @@ val BuiltinFunctions = mapOf(
     "ror2"        to FunctionSignature(false, listOf(BuiltinFunctionParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
     "lsl"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
     "lsr"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
-        // these few have a return value depending on the argument list:
+        // these few have a return value depending on the argument(s):
     "max"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.max()!! }},        // type depends on args
     "min"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.min()!! }},        // type depends on args
     "sum"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.sum() }},        // type depends on args
+    "abs"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", NumericDatatypes)), null, ::builtinAbs),      // type depends on argument
         // normal functions follow:
     "sin"         to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::sin) },
     "cos"         to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::cos) },
@@ -38,7 +39,6 @@ val BuiltinFunctions = mapOf(
     "rad"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::toRadians) },
     "deg"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::toDegrees) },
     "avg"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.FLOAT, ::builtinAvg),
-    "abs"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT, ::builtinAbs),
     "round"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.WORD) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::round) },
     "floor"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.WORD) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::floor) },
     "ceil"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.WORD) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::ceil) },
@@ -128,7 +128,7 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
     // function has return values, but the return type depends on the arguments
 
     return when (function) {
-        "max", "min" -> {
+        "max", "min", "abs" -> {
             val dt = datatypeFromListArg(args.single())
             when(dt) {
                 DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT -> dt
