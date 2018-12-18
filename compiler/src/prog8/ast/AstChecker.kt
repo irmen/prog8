@@ -1,5 +1,6 @@
 package prog8.ast
 
+import com.sun.org.apache.xpath.internal.operations.Bool
 import prog8.compiler.CompilationOptions
 import prog8.compiler.HeapValues
 import prog8.compiler.target.c64.FLOAT_MAX_NEGATIVE
@@ -906,6 +907,8 @@ class AstChecker(private val namespace: INameScope,
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
                 // value may be either a single byte, or a byte arrayspec (of all constant values)
                 if(value.type==targetDt) {
+                    if(!checkArrayValues(value, targetDt))
+                        return false
                     val arraySpecSize = arrayspec.size()
                     val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).arraysize
                     if(arraySpecSize!=null && arraySpecSize>0) {
@@ -926,6 +929,8 @@ class AstChecker(private val namespace: INameScope,
             DataType.ARRAY_UW, DataType.ARRAY_W -> {
                 // value may be either a single word, or a word arrayspec
                 if(value.type==targetDt) {
+                    if(!checkArrayValues(value, targetDt))
+                        return false
                     val arraySpecSize = arrayspec.size()
                     val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).arraysize
                     if(arraySpecSize!=null && arraySpecSize>0) {
@@ -946,6 +951,8 @@ class AstChecker(private val namespace: INameScope,
             DataType.ARRAY_F -> {
                 // value may be either a single float, or a float arrayspec
                 if(value.type==targetDt) {
+                    if(!checkArrayValues(value, targetDt))
+                        return false
                     val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).doubleArray!!.size
                     val arraySpecSize = arrayspec.size()
                     if(arraySpecSize!=null && arraySpecSize>0) {
@@ -973,6 +980,30 @@ class AstChecker(private val namespace: INameScope,
             }
         }
         return true
+    }
+
+    private fun checkArrayValues(value: LiteralValue, type: DataType): Boolean {
+        val array = heap.get(value.heapId!!)
+        val correct: Boolean
+        when(type) {
+            DataType.ARRAY_UB -> {
+                correct=array.array!=null && array.array.all { it in 0..255 }
+            }
+            DataType.ARRAY_B -> {
+                correct=array.array!=null && array.array.all { it in -128..127 }
+            }
+            DataType.ARRAY_UW -> {
+                correct=array.array!=null && array.array.all { it in 0..65535 }
+            }
+            DataType.ARRAY_W -> {
+                correct=array.array!=null && array.array.all { it in -32768..32767 }
+            }
+            DataType.ARRAY_F -> correct = array.doubleArray!=null
+            else -> throw AstException("invalid array type $type")
+        }
+        if(!correct)
+            checkResult.add(ExpressionError("array value out of range for type $type", value.position))
+        return correct
     }
 
     private fun checkAssignmentCompatible(targetDatatype: DataType,

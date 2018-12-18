@@ -32,38 +32,22 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
         val result = super.process(decl)
 
         if(decl.type==VarDeclType.CONST || decl.type==VarDeclType.VAR) {
+            val litval = decl.value as? LiteralValue
+            if(litval!=null && litval.isArray)
+                fixupArrayTypeOnHeap(decl, litval)
             when(decl.datatype) {
                 DataType.FLOAT -> {
-                    // vardecl: for float vars, promote constant integer initialization values to floats
-                    val literal = decl.value as? LiteralValue
-                    if (literal != null && literal.type in IntegerDatatypes) {
-                        val newValue = LiteralValue(DataType.FLOAT, floatvalue = literal.asNumericValue!!.toDouble(), position = literal.position)
+                    // vardecl: for scalar float vars, promote constant integer initialization values to floats
+                    if (litval != null && litval.type in IntegerDatatypes) {
+                        val newValue = LiteralValue(DataType.FLOAT, floatvalue = litval.asNumericValue!!.toDouble(), position = litval.position)
                         decl.value = newValue
                     }
                 }
                 DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
-                    val litval = decl.value as? LiteralValue
                     if(litval?.type==DataType.FLOAT)
                         errors.add(ExpressionError("arrayspec requires only integers here", litval.position))
                     val size = decl.arrayspec!!.size()
-                    if(litval!=null && litval.isArray) {
-                        // arrayspec initializer value is an arrayspec already, keep as-is (or convert to WORDs if needed)
-                        if(litval.heapId!=null) {
-                            if(decl.datatype==DataType.ARRAY_UW && litval.type == DataType.ARRAY_UB) {
-                                val array = heap.get(litval.heapId)
-                                if(array.array!=null) {
-                                    heap.update(litval.heapId, HeapValues.HeapValue(DataType.ARRAY_UW, null, array.array, null))
-                                    decl.value = LiteralValue(decl.datatype, heapId = litval.heapId, position = litval.position)
-                                }
-                            } else if(decl.datatype==DataType.ARRAY_W && litval.type == DataType.ARRAY_B) {
-                                val array = heap.get(litval.heapId)
-                                if(array.array!=null) {
-                                    heap.update(litval.heapId, HeapValues.HeapValue(DataType.ARRAY_W, null, array.array, null))
-                                    decl.value = LiteralValue(decl.datatype, heapId = litval.heapId, position = litval.position)
-                                }
-                            }
-                        }
-                    } else if (size != null) {
+                    if ((litval==null || !litval.isArray) && size != null) {
                         // arrayspec initializer is empty or a single int, and we know the size; create the arrayspec.
                         val fillvalue = if (litval == null) 0 else litval.asIntegerValue ?: 0
                         when(decl.datatype){
@@ -91,19 +75,8 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                     }
                 }
                 DataType.ARRAY_F  -> {
-                    val litval = decl.value as? LiteralValue
                     val size = decl.arrayspec!!.size()
-                    if(litval!=null && litval.isArray) {
-                        // arrayspec initializer value is an arrayspec already, make sure to convert to floats
-                        if(litval.heapId!=null) {
-                            val array = heap.get(litval.heapId)
-                            if (array.doubleArray == null) {
-                                val doubleArray = array.array!!.map { it.toDouble() }.toDoubleArray()
-                                heap.update(litval.heapId, HeapValues.HeapValue(DataType.ARRAY_F, null, null, doubleArray))
-                                decl.value = LiteralValue(decl.datatype, heapId = litval.heapId, position = litval.position)
-                            }
-                        }
-                    } else  if (size != null) {
+                    if ((litval==null || !litval.isArray) && size != null) {
                         // arrayspec initializer is empty or a single int, and we know the size; create the arrayspec.
                         val fillvalue = if (litval == null) 0.0 else litval.asNumericValue?.toDouble() ?: 0.0
                         if(fillvalue< FLOAT_MAX_NEGATIVE || fillvalue> FLOAT_MAX_POSITIVE)
@@ -119,6 +92,32 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
             }
         }
         return result
+    }
+
+    private fun fixupArrayTypeOnHeap(decl: VarDecl, litval: LiteralValue) {
+        // fix the type of the array value that's on the heap, to match the vardecl.
+        // notice that checking the bounds of the actual values is not done here, but in the AstChecker later.
+        if(decl.datatype==litval.type)
+            return   // already correct datatype
+        val heapId = litval.heapId!!
+        val array=heap.get(heapId)
+        when(decl.datatype) {
+            DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
+                if(array.array!=null) {
+                    heap.update(heapId, HeapValues.HeapValue(decl.datatype, null, array.array, null))
+                    decl.value = LiteralValue(decl.datatype, heapId=heapId, position = litval.position)
+                }
+            }
+            DataType.ARRAY_F -> {
+                if(array.array!=null) {
+                    // convert a non-float array to floats
+                    val doubleArray = array.array.map { it.toDouble() }.toDoubleArray()
+                    heap.update(heapId, HeapValues.HeapValue(DataType.ARRAY_F, null, null, doubleArray))
+                    decl.value = LiteralValue(decl.datatype, heapId = heapId, position = litval.position)
+                }
+            }
+            else -> throw AstException("invalid array vardecl type")
+        }
     }
 
     /**
@@ -484,14 +483,15 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
             val integerArray = valuesInArray.map{it.toInt()}.toIntArray()
             val doubleArray = valuesInArray.map{it.toDouble()}.toDoubleArray()
             val typesInArray: Set<DataType> = array.mapNotNull { it.resultingDatatype(namespace, heap) }.toSet()
+
+            // Take an educated guess about the array type.
+            // This may be altered (if needed & if possible) to suit an array declaration type later!
+            // Also, the check if all values are valid for the given datatype is done later, in the AstChecker.
             val arrayDt =
                     if(DataType.FLOAT in typesInArray)
                         DataType.ARRAY_F
                     else if(DataType.WORD in typesInArray) {
-                        if(DataType.UWORD in typesInArray)
-                            DataType.ARRAY_F
-                        else
-                            DataType.ARRAY_W
+                        DataType.ARRAY_W
                     } else {
                         val maxValue = integerArray.max()!!
                         val minValue = integerArray.min()!!

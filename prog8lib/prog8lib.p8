@@ -290,7 +290,7 @@ dec_var_f	.proc
 		.pend
 
 pop_2_floats_f2_in_fac1	.proc
-		; -- pop 2 floats from stack, load the second one in FAC1
+		; -- pop 2 floats from stack, load the second one in FAC1 as well
 		lda  #<fmath_float2
 		ldy  #>fmath_float2
 		jsr  pop_float
@@ -1100,6 +1100,67 @@ _cmp_mod	cpy  #255		; modified
 		rts
 		.pend
 		
+func_max_ub	.proc
+		inx
+		rts
+		.warn "todo func_max_ub"
+		.pend
+		
+func_max_b	.proc
+		inx
+		rts
+		.warn "todo func_max_b"
+		.pend
+		
+func_max_uw	.proc
+		inx
+		rts
+		.warn "todo func_max_uw"
+		.pend
+		
+func_max_w	.proc
+		inx
+		rts
+		.warn "todo func_max_w"
+		.pend
+		
+func_max_f	.proc
+		inx
+		rts
+		.warn "todo func_max_f"
+		.pend
+
+func_min_ub	.proc
+		inx
+		rts
+		.warn "todo func_min_ub"
+		.pend
+		
+func_min_b	.proc
+		inx
+		rts
+		.warn "todo func_min_b"
+		.pend
+		
+func_min_uw	.proc
+		inx
+		rts
+		.warn "todo func_min_uw"
+		.pend
+		
+func_min_w	.proc
+		inx
+		rts
+		.warn "todo func_min_w"
+		.pend
+		
+func_min_f	.proc
+		inx
+		rts
+		.warn "todo func_min_f"
+		.pend
+		
+
 func_len_str	.proc
 		; -- push length of 0-terminated string on stack
 		jsr  peek_address
