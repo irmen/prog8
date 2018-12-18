@@ -33,7 +33,6 @@ enum class Syscall(val callNr: Short) {
     FUNC_ATAN(72),
     FUNC_LN(73),
     FUNC_LOG2(74),
-    FUNC_LOG10(75),
     FUNC_SQRT(76),
     FUNC_RAD(77),
     FUNC_DEG(78),
@@ -1513,7 +1512,6 @@ class StackVm(private var traceOutputFile: String?) {
             Syscall.FUNC_ATAN -> evalstack.push(Value(DataType.FLOAT, atan(evalstack.pop().numericValue().toDouble())))
             Syscall.FUNC_LN -> evalstack.push(Value(DataType.FLOAT, ln(evalstack.pop().numericValue().toDouble())))
             Syscall.FUNC_LOG2 -> evalstack.push(Value(DataType.FLOAT, log2(evalstack.pop().numericValue().toDouble())))
-            Syscall.FUNC_LOG10 -> evalstack.push(Value(DataType.FLOAT, log10(evalstack.pop().numericValue().toDouble())))
             Syscall.FUNC_SQRT -> evalstack.push(Value(DataType.FLOAT, sqrt(evalstack.pop().numericValue().toDouble())))
             Syscall.FUNC_RAD -> evalstack.push(Value(DataType.FLOAT, Math.toRadians(evalstack.pop().numericValue().toDouble())))
             Syscall.FUNC_DEG -> evalstack.push(Value(DataType.FLOAT, Math.toDegrees(evalstack.pop().numericValue().toDouble())))

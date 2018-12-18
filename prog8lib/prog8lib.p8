@@ -861,23 +861,32 @@ func_tan	.proc
 		.pend
 		
 func_atan	.proc
-		rts
-		.warn "atan not implemented"
+		; -- push atan(f) back onto stack
+		jsr  pop_float_fac1
+		stx  SCRATCH_ZPREGX
+		jsr  c64.ATN
+		jmp  push_fac1_as_result
 		.pend
 		
 func_ln		.proc
-		rts
-		.warn "ln not implemented"
+		; -- push ln(f) back onto stack
+		jsr  pop_float_fac1
+		stx  SCRATCH_ZPREGX
+		jsr  c64.LOG
+		jmp  push_fac1_as_result
 		.pend
 		
 func_log2	.proc
-		rts
-		.warn "log2 not implemented"
-		.pend
-		
-func_log10	.proc
-		rts
-		.warn "log10 not implemented"
+		; -- push log base 2, ln(f)/ln(2), back onto stack
+		jsr  pop_float_fac1
+		stx  SCRATCH_ZPREGX
+		jsr  c64.LOG
+		jsr  c64.MOVEF
+		lda  #<c64.FL_LOG2
+		ldy  #>c64.FL_LOG2
+		jsr  c64.MOVFM
+		jsr  c64.FDIVT
+		jmp  push_fac1_as_result
 		.pend
 		
 func_sqrt	.proc
@@ -909,7 +918,7 @@ func_deg	.proc
 _one_over_pi_div_180	.byte 134, 101, 46, 224, 211		; 1 / (pi * 180)
 		.pend
 		
-func_round	.proc        ; @todo check outcome vs floor/ceil
+func_round	.proc
 		jsr  pop_float_fac1
 		stx  SCRATCH_ZPREGX
 		jsr  c64.FADDH
@@ -920,6 +929,7 @@ func_round	.proc        ; @todo check outcome vs floor/ceil
 		sta  ESTACK_LO,x
 		dex
 		rts
+		.warn  "round check outcome"
 		.pend
 		
 func_floor	.proc        ; @todo check outcome vs round/ceil

@@ -502,13 +502,10 @@ atan(x)
 	Arctangent.
 
 ln(x)
-	Natural logarithm (base E).
+	Natural logarithm (base e).
 
 log2(x)
     Base 2 logarithm.
-
-log10(x)
-	Base 10 logarithm.
 
 sqrt(x)
 	Square root.
