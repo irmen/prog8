@@ -31,7 +31,7 @@
     float[len(zcoor)] rotatedz
 
     sub start()  {
-        while(1) {
+        while true {
             if irq.time_changed {
                 irq.time_changed = 0
                 vm_gfx_clearscr(0)
@@ -48,7 +48,7 @@
         }
     }
 
-    sub rotate_vertices(t: float) {
+    sub rotate_vertices(float t) {
         ; rotate around origin (0,0,0)
 
         ; set up the 3d rotation matrix values
@@ -79,11 +79,11 @@
 
     sub draw_edges() {
 
-        sub toscreenx(x: float, z: float) -> word {
+        sub toscreenx(float x, float z) -> word {
             return fintw(x/(4.2+z) * flt(height)) + width // 2
         }
 
-        sub toscreeny(y: float, z: float) -> word {
+        sub toscreeny(float y, float z) -> word {
             return fintw(y/(4.2+z) * flt(height)) + height // 2
         }
 

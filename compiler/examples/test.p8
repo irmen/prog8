@@ -1,17 +1,53 @@
 %import c64utils
+%import mathlib
 %option enable_floats
 
 ~ main {
 
+    c64.TIME_HI=1       ; @todo WARNING about 'free' statements in main
+    c64.TIME_MID=0
+    c64.TIME_LO=0
+
+            ;c64scr.PLOT(screenx(x), screeny(y))    ; @todo fix argument calculation???!!!
+
+    sub toscreenx(float x, float z) -> word {
+        return 42
+    }
+
+    asmsub blerp(ubyte x @ A, uword ding @ XY) -> clobbers() -> () {
+
+    }
+
     sub start()  {
 
-        word[3]   wa = [-1000.w,2000.w,3000.w]      ; @todo array data type fix (float->word)
-        word[3]   wa2 = [1000,2000,3000]      ; @todo array data type fix (uword->word)
+        word x = toscreenx(1.22, 3.22)
+        blerp(4, 555)
 
-        byte[3] ba1 = [-1, 2, 3]
-        byte[3] ba2 = [100,101,102]     ; @todo array data type
 
-        ;return b2ub(fintb(x * flt(width)/4.2) + width//2)
+;        const byte width=20
+;        word   w1
+;        byte   b1
+;        ubyte   ub1
+;        float x = 3.45
+;        b1 = fintb(x * flt(width)/4.2) + width//2
+;        c64scr.print_byte(b1)
+;        c64.CHROUT('\n')
+;        b1 = fintb(x/4.2 * flt(width)) + width//2
+;        c64scr.print_byte(b1)
+;        c64.CHROUT('\n')
+;        ub1 = b2ub(fintb(x * flt(width)/4.2) + width//2)
+;        c64scr.print_ubyte(ub1)
+;        c64.CHROUT('\n')
+;        ub1 = b2ub(fintb(x/4.2 * flt(width)) + width//2)
+;        c64scr.print_ubyte(ub1)
+;        c64.CHROUT('\n')
+;        w1 = fintw(x * flt(width)/4.2) + width//2
+;        c64scr.print_word(w1)
+;        c64.CHROUT('\n')
+;        w1 = fintw(x/4.2 * flt(width)) + width//2
+;        c64scr.print_word(w1)
+;        c64.CHROUT('\n')
+        ;uw1 = w2uw(fintw(x * flt(width)/4.2) + width//2)       ; @todo w2uw
 
     }
 }

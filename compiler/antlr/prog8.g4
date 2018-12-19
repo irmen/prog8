@@ -223,9 +223,7 @@ statement_block :
 	;
 
 
-sub_params :  sub_param (',' EOL? sub_param)* ;
-
-sub_param :  identifier ':' datatype;
+sub_params :  vardecl (',' EOL? vardecl)* ;
 
 sub_returns :  datatype (',' EOL? datatype)*  ;
 
@@ -238,7 +236,7 @@ asmsub_address :  '=' address=integerliteral  ;
 
 asmsub_params :  asmsub_param (',' EOL? asmsub_param)* ;
 
-asmsub_param :  identifier ':' datatype '@' (registerorpair | statusregister);
+asmsub_param :  vardecl '@' (registerorpair | statusregister);
 
 clobber :  register (',' register)* ;
 

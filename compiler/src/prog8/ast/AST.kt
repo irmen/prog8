@@ -1829,7 +1829,7 @@ private fun prog8Parser.Asmsub_returnsContext.toAst(): List<AsmSubroutineReturn>
 
 
 private fun prog8Parser.Asmsub_paramsContext.toAst(): List<AsmSubroutineParameter>
-        = asmsub_param().map { AsmSubroutineParameter(it.identifier().text, it.datatype().toAst(), it.registerorpair()?.toAst(), it.statusregister()?.toAst(), toPosition()) }
+        = asmsub_param().map { AsmSubroutineParameter(it.vardecl().identifier().text, it.vardecl().datatype().toAst(), it.registerorpair()?.toAst(), it.statusregister()?.toAst(), toPosition()) }
 
 
 private fun prog8Parser.StatusregisterContext.toAst() = Statusflag.valueOf(text)
@@ -1897,7 +1897,7 @@ private fun prog8Parser.Sub_return_partContext.toAst(): List<DataType> {
 
 
 private fun prog8Parser.Sub_paramsContext.toAst(): List<SubroutineParameter> =
-        sub_param().map {
+        vardecl().map {
             SubroutineParameter(it.identifier().text, it.datatype().toAst(), it.toPosition())
         }
 

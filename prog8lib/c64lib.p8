@@ -9,6 +9,7 @@
 ~ c64 {
 		memory  ubyte  SCRATCH_ZPB1	= $02		; scratch byte 1 in ZP
 		memory  ubyte  SCRATCH_ZPREG	= $03		; scratch register in ZP
+		memory  ubyte  SCRATCH_ZPREGX	= $fa		; temp storage for X register (stack pointer)
 		memory  uword  SCRATCH_ZPWORD1	= $fb		; scratch word in ZP ($fb/$fc)
 		memory  uword  SCRATCH_ZPWORD2	= $fd		; scratch word in ZP ($fd/$fe)
 
@@ -110,14 +111,14 @@
 ; note: for subtraction and division, the left operand is in fac2, the right operand in fac1.
 
 ; checked functions below:
-asmsub	MOVFM		(mflpt: uword @ AY) -> clobbers(A,Y) -> ()	= $bba2		; load mflpt value from memory  in A/Y into fac1
+asmsub	MOVFM		(uword mflpt @ AY) -> clobbers(A,Y) -> ()	= $bba2		; load mflpt value from memory  in A/Y into fac1
 asmsub	FREADMEM	() -> clobbers(A,Y) -> ()			= $bba6		; load mflpt value from memory  in $22/$23 into fac1
-asmsub	CONUPK		(mflpt: uword @ AY) -> clobbers(A,Y) -> ()	= $ba8c		; load mflpt value from memory  in A/Y into fac2
+asmsub	CONUPK		(uword mflpt @ AY) -> clobbers(A,Y) -> ()	= $ba8c		; load mflpt value from memory  in A/Y into fac2
 asmsub	FAREADMEM	() -> clobbers(A,Y) -> ()			= $ba90		; load mflpt value from memory  in $22/$23 into fac2
 asmsub	MOVFA		() -> clobbers(A,X) -> ()			= $bbfc		; copy fac2 to fac1
 asmsub	MOVAF		() -> clobbers(A,X) -> ()			= $bc0c		; copy fac1 to fac2  (rounded)
 asmsub	MOVEF		() -> clobbers(A,X) -> ()			= $bc0f		; copy fac1 to fac2
-asmsub	MOVMF		(mflpt: uword @ XY) -> clobbers(A,Y) -> ()	= $bbd4		; store fac1 to memory  X/Y as 5-byte mflpt
+asmsub	MOVMF		(uword mflpt @ XY) -> clobbers(A,Y) -> ()	= $bbd4		; store fac1 to memory  X/Y as 5-byte mflpt
 
 ; fac1-> signed word in Y/A (might throw ILLEGAL QUANTITY)
 ; (tip: use c64flt.FTOSWRDAY to get A/Y output; lo/hi switched to normal little endian order)
@@ -136,29 +137,29 @@ asmsub	AYINT		() -> clobbers(A,X,Y) -> ()			= $b1bf		; fac1-> signed word in 100
 ; there is also c64flt.FREADS32  that reads from 98-101 ($62-$65) MSB FIRST
 ; there is also c64flt.FREADUS32  that reads from 98-101 ($62-$65) MSB FIRST
 ; there is also c64flt.FREADS24AXY  that reads signed int24 into fac1 from A/X/Y (lo/mid/hi bytes)
-asmsub	GIVAYF		(lo: ubyte @ Y, hi: ubyte @ A) -> clobbers(A,X,Y) -> ()	= $b391
+asmsub	GIVAYF		(ubyte lo @ Y, ubyte hi @ A) -> clobbers(A,X,Y) -> ()	= $b391
 
-asmsub	FREADUY		(unsigned: ubyte @ Y) -> clobbers(A,X,Y) -> ()	= $b3a2		; 8 bit unsigned Y -> float in fac1
-asmsub	FREADSA		(signed: ubyte @ A) -> clobbers(A,X,Y) -> ()	= $bc3c		; 8 bit signed A -> float in fac1
-asmsub	FREADSTR	(length: ubyte @ A) -> clobbers(A,X,Y) -> ()	= $b7b5		; str -> fac1, $22/23 must point to string, A=string length
+asmsub	FREADUY		(ubyte value @ Y) -> clobbers(A,X,Y) -> ()	= $b3a2		; 8 bit unsigned Y -> float in fac1
+asmsub	FREADSA		(byte value @ A) -> clobbers(A,X,Y) -> ()	= $bc3c		; 8 bit signed A -> float in fac1
+asmsub	FREADSTR	(ubyte length @ A) -> clobbers(A,X,Y) -> ()	= $b7b5		; str -> fac1, $22/23 must point to string, A=string length
 asmsub	FPRINTLN	() -> clobbers(A,X,Y) -> ()			= $aabc		; print string of fac1, on one line (= with newline) destroys fac1.  (consider FOUT + STROUT as well)
 asmsub	FOUT		() -> clobbers(X) -> (uword @ AY)		= $bddd		; fac1 -> string, address returned in AY ($0100)
 
 asmsub	FADDH		() -> clobbers(A,X,Y) -> ()			= $b849		; fac1 += 0.5, for rounding- call this before INT
 asmsub	MUL10		() -> clobbers(A,X,Y) -> ()			= $bae2		; fac1 *= 10
 asmsub	DIV10		() -> clobbers(A,X,Y) -> ()			= $bafe		; fac1 /= 10 , CAUTION: result is always positive!
-asmsub	FCOMP		(mflpt: uword @ AY) -> clobbers(X,Y) -> (ubyte @ A) = $bc5b		; A = compare fac1 to mflpt in A/Y, 0=equal 1=fac1 is greater, 255=fac1 is less than
+asmsub	FCOMP		(uword mflpt @ AY) -> clobbers(X,Y) -> (ubyte @ A) = $bc5b		; A = compare fac1 to mflpt in A/Y, 0=equal 1=fac1 is greater, 255=fac1 is less than
 
 asmsub	FADDT		() -> clobbers(A,X,Y) -> ()			= $b86a		; fac1 += fac2
-asmsub	FADD		(mflpt: uword @ AY) -> clobbers(A,X,Y) -> ()	= $b867		; fac1 += mflpt value from A/Y
+asmsub	FADD		(uword mflpt @ AY) -> clobbers(A,X,Y) -> ()	= $b867		; fac1 += mflpt value from A/Y
 asmsub	FSUBT		() -> clobbers(A,X,Y) -> ()			= $b853		; fac1 = fac2-fac1   mind the order of the operands
-asmsub	FSUB		(mflpt: uword @ AY) -> clobbers(A,X,Y) -> ()	= $b850		; fac1 = mflpt from A/Y - fac1
+asmsub	FSUB		(uword mflpt @ AY) -> clobbers(A,X,Y) -> ()	= $b850		; fac1 = mflpt from A/Y - fac1
 asmsub	FMULTT 		() -> clobbers(A,X,Y) -> ()			= $ba2b		; fac1 *= fac2
-asmsub	FMULT		(mflpt: uword @ AY) -> clobbers(A,X,Y) -> ()	= $ba28		; fac1 *= mflpt value from A/Y
+asmsub	FMULT		(uword mflpt @ AY) -> clobbers(A,X,Y) -> ()	= $ba28		; fac1 *= mflpt value from A/Y
 asmsub	FDIVT 		() -> clobbers(A,X,Y) -> ()			= $bb12		; fac1 = fac2/fac1  (remainder in fac2)  mind the order of the operands
-asmsub	FDIV  		(mflpt: uword @ AY) -> clobbers(A,X,Y) -> ()	= $bb0f		; fac1 = mflpt in A/Y / fac1  (remainder in fac2)
+asmsub	FDIV  		(uword mflpt @ AY) -> clobbers(A,X,Y) -> ()	= $bb0f		; fac1 = mflpt in A/Y / fac1  (remainder in fac2)
 asmsub	FPWRT		() -> clobbers(A,X,Y) -> ()			= $bf7b		; fac1 = fac2 ** fac1
-asmsub	FPWR		(mflpt: uword @ AY) -> clobbers(A,X,Y) -> ()	= $bf78		; fac1 = fac2 ** mflpt from A/Y
+asmsub	FPWR		(uword mflpt @ AY) -> clobbers(A,X,Y) -> ()	= $bf78		; fac1 = fac2 ** mflpt from A/Y
 
 asmsub	NOTOP		() -> clobbers(A,X,Y) -> ()			= $aed4		; fac1 = NOT(fac1)
 asmsub	INT		() -> clobbers(A,X,Y) -> ()			= $bccc		; INT() truncates, use FADDH first to round instead of trunc
@@ -189,47 +190,47 @@ asmsub	HOMECRSR	() -> clobbers(A,X,Y) -> ()		= $E566		; cursor to top left of sc
 
 ; ---- C64 kernal routines ----
 
-asmsub  STROUT   (strptr: uword @ AY) -> clobbers(A, X, Y) -> ()	= $AB1E		; print null-terminated string (a bit slow, see if you can use c64scr.print_string instead)
+asmsub	STROUT   (uword strptr @ AY) -> clobbers(A, X, Y) -> ()	= $AB1E		; print null-terminated string (a bit slow, see if you can use c64scr.print_string instead)
 asmsub	IRQDFRT  () -> clobbers(A,X,Y) -> ()			= $EA31		; default IRQ routine
 asmsub	IRQDFEND () -> clobbers(A,X,Y) -> ()			= $EA81		; default IRQ end/cleanup
 asmsub	CINT     () -> clobbers(A,X,Y) -> ()			= $FF81		; (alias: SCINIT) initialize screen editor and video chip
 asmsub	IOINIT   () -> clobbers(A, X) -> ()			= $FF84		; initialize I/O devices (CIA, SID, IRQ)
 asmsub	RAMTAS   () -> clobbers(A,X,Y) -> ()			= $FF87		; initialize RAM, tape buffer, screen
 asmsub	RESTOR   () -> clobbers(A,X,Y) -> ()			= $FF8A		; restore default I/O vectors
-asmsub	VECTOR   (dir: ubyte @ Pc, userptr: uword @ XY) -> clobbers(A,Y) -> ()	= $FF8D		; read/set I/O vector table
-asmsub	SETMSG   (value: ubyte @ A) -> clobbers() -> ()		= $FF90		; set Kernal message control flag
-asmsub	SECOND   (address: ubyte @ A) -> clobbers(A) -> ()	= $FF93		; (alias: LSTNSA) send secondary address after LISTEN
-asmsub	TKSA     (address: ubyte @ A) -> clobbers(A) -> ()	= $FF96		; (alias: TALKSA) send secondary address after TALK
-asmsub	MEMTOP   (dir: ubyte @ Pc, address: uword @ XY) -> clobbers() -> (uword @ XY)	= $FF99		; read/set top of memory  pointer
-asmsub	MEMBOT   (dir: ubyte @ Pc, address: uword @ XY) -> clobbers() -> (uword @ XY)	= $FF9C		; read/set bottom of memory  pointer
+asmsub	VECTOR   (ubyte dir @ Pc, uword userptr @ XY) -> clobbers(A,Y) -> ()	= $FF8D		; read/set I/O vector table
+asmsub	SETMSG   (ubyte value @ A) -> clobbers() -> ()		= $FF90		; set Kernal message control flag
+asmsub	SECOND   (ubyte address @ A) -> clobbers(A) -> ()	= $FF93		; (alias: LSTNSA) send secondary address after LISTEN
+asmsub	TKSA     (ubyte address @ A) -> clobbers(A) -> ()	= $FF96		; (alias: TALKSA) send secondary address after TALK
+asmsub	MEMTOP   (ubyte dir @ Pc, uword address @ XY) -> clobbers() -> (uword @ XY)	= $FF99		; read/set top of memory  pointer
+asmsub	MEMBOT   (ubyte dir @ Pc, uword address @ XY) -> clobbers() -> (uword @ XY)	= $FF9C		; read/set bottom of memory  pointer
 asmsub	SCNKEY   () -> clobbers(A,X,Y) -> ()			= $FF9F		; scan the keyboard
-asmsub	SETTMO   (timeout: ubyte @ A) -> clobbers() -> ()	= $FFA2		; set time-out flag for IEEE bus
+asmsub	SETTMO   (ubyte timeout @ A) -> clobbers() -> ()	= $FFA2		; set time-out flag for IEEE bus
 asmsub	ACPTR    () -> clobbers() -> (ubyte @ A)			= $FFA5		; (alias: IECIN) input byte from serial bus
-asmsub	CIOUT    (databyte: ubyte @ A) -> clobbers() -> ()	= $FFA8		; (alias: IECOUT) output byte to serial bus
+asmsub	CIOUT    (ubyte databyte @ A) -> clobbers() -> ()	= $FFA8		; (alias: IECOUT) output byte to serial bus
 asmsub	UNTLK    () -> clobbers(A) -> ()			= $FFAB		; command serial bus device to UNTALK
 asmsub	UNLSN    () -> clobbers(A) -> ()			= $FFAE		; command serial bus device to UNLISTEN
-asmsub	LISTEN   (device: ubyte @ A) -> clobbers(A) -> ()	= $FFB1		; command serial bus device to LISTEN
-asmsub	TALK     (device: ubyte @ A) -> clobbers(A) -> ()	= $FFB4		; command serial bus device to TALK
+asmsub	LISTEN   (ubyte device @ A) -> clobbers(A) -> ()	= $FFB1		; command serial bus device to LISTEN
+asmsub	TALK     (ubyte device @ A) -> clobbers(A) -> ()	= $FFB4		; command serial bus device to TALK
 asmsub	READST   () -> clobbers() -> (ubyte @ A)			= $FFB7		; read I/O status word
-asmsub	SETLFS   (logical: ubyte @ A, device: ubyte @ X, address: ubyte @ Y) -> clobbers() -> () = $FFBA	; set logical file parameters
-asmsub	SETNAM   (namelen: ubyte @ A, filename: uword @ XY) -> clobbers() -> ()	= $FFBD		; set filename parameters
+asmsub	SETLFS   (ubyte logical @ A, ubyte device @ X, ubyte address @ Y) -> clobbers() -> () = $FFBA	; set logical file parameters
+asmsub	SETNAM   (ubyte namelen @ A, str filename @ XY) -> clobbers() -> ()	= $FFBD		; set filename parameters
 asmsub	OPEN     () -> clobbers(A,X,Y) -> ()			= $FFC0		; (via 794 ($31A)) open a logical file
-asmsub	CLOSE    (logical: ubyte @ A) -> clobbers(A,X,Y) -> ()	= $FFC3		; (via 796 ($31C)) close a logical file
-asmsub	CHKIN    (logical: ubyte @ X) -> clobbers(A,X) -> ()	= $FFC6		; (via 798 ($31E)) define an input channel
-asmsub	CHKOUT   (logical: ubyte @ X) -> clobbers(A,X) -> ()	= $FFC9		; (via 800 ($320)) define an output channel
+asmsub	CLOSE    (ubyte logical @ A) -> clobbers(A,X,Y) -> ()	= $FFC3		; (via 796 ($31C)) close a logical file
+asmsub	CHKIN    (ubyte logical @ X) -> clobbers(A,X) -> ()	= $FFC6		; (via 798 ($31E)) define an input channel
+asmsub	CHKOUT   (ubyte logical @ X) -> clobbers(A,X) -> ()	= $FFC9		; (via 800 ($320)) define an output channel
 asmsub	CLRCHN   () -> clobbers(A,X) -> ()			= $FFCC		; (via 802 ($322)) restore default devices
 asmsub	CHRIN    () -> clobbers(Y) -> (ubyte @ A)		= $FFCF		; (via 804 ($324)) input a character (for keyboard, read a whole line from the screen) A=byte read.
-asmsub	CHROUT   (char: ubyte @ A) -> clobbers() -> ()		= $FFD2		; (via 806 ($326)) output a character
-asmsub	LOAD     (verify: ubyte @ A, address: uword @ XY) -> clobbers() -> (ubyte @Pc, ubyte @ A, ubyte @ X, ubyte @ Y) = $FFD5	; (via 816 ($330)) load from device
-asmsub	SAVE     (zp_startaddr: ubyte @ A, endaddr: uword @ XY) -> clobbers() -> (ubyte @ Pc, ubyte @ A) = $FFD8	; (via 818 ($332)) save to a device
-asmsub	SETTIM   (low: ubyte @ A, middle: ubyte @ X, high: ubyte @ Y) -> clobbers() -> ()	= $FFDB		; set the software clock
+asmsub	CHROUT   (ubyte char @ A) -> clobbers() -> ()		= $FFD2		; (via 806 ($326)) output a character
+asmsub	LOAD     (ubyte verify @ A, uword address @ XY) -> clobbers() -> (ubyte @Pc, ubyte @ A, ubyte @ X, ubyte @ Y) = $FFD5	; (via 816 ($330)) load from device
+asmsub	SAVE     (ubyte zp_startaddr @ A, uword endaddr @ XY) -> clobbers() -> (ubyte @ Pc, ubyte @ A) = $FFD8	; (via 818 ($332)) save to a device
+asmsub	SETTIM   (ubyte low @ A, ubyte middle @ X, ubyte high @ Y) -> clobbers() -> ()	= $FFDB		; set the software clock
 asmsub	RDTIM    () -> clobbers() -> (ubyte @ A, ubyte @ X, ubyte @ Y) = $FFDE	; read the software clock
 asmsub	STOP     () -> clobbers(A,X) -> (ubyte @ Pz, ubyte @ Pc)	= $FFE1		; (via 808 ($328)) check the STOP key
 asmsub	GETIN    () -> clobbers(X,Y) -> (ubyte @ A)		= $FFE4		; (via 810 ($32A)) get a character
 asmsub	CLALL    () -> clobbers(A,X) -> ()			= $FFE7		; (via 812 ($32C)) close all files
 asmsub	UDTIM    () -> clobbers(A,X) -> ()			= $FFEA		; update the software clock
 asmsub	SCREEN   () -> clobbers() -> (ubyte @ X, ubyte @ Y)	= $FFED		; read number of screen rows and columns
-asmsub	PLOT     (dir: ubyte @ Pc, col: ubyte @ Y, row: ubyte @ X) -> clobbers() -> (ubyte @ X, ubyte @ Y)	= $FFF0		; read/set position of cursor on screen
+asmsub	PLOT     (ubyte dir @ Pc, ubyte col @ Y, ubyte row @ X) -> clobbers() -> (ubyte @ X, ubyte @ Y)	= $FFF0		; read/set position of cursor on screen.  See c64scr.PLOT for a 'safe' wrapper that preserves X.
 asmsub	IOBASE   () -> clobbers() -> (uword @ XY)		= $FFF3		; read base address of I/O devices
 
 ; ---- end of C64 kernal routines ----

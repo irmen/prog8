@@ -13,7 +13,7 @@
         float t
         ubyte color
 
-        while(1) {
+        while true {
             float x = sin(t*1.01) + cos(t*1.1234)
             float y = cos(t) + sin(t*0.03456)
             vm_gfx_pixel(screenx(x), screeny(y), color//16)
@@ -22,10 +22,10 @@
         }
     }
 
-    sub screenx(x: float) -> word {
+    sub screenx(float x) -> word {
         return fintw(x * flt(width)/4.1) + width // 2
     }
-    sub screeny(y: float) -> word {
+    sub screeny(float y) -> word {
         return fintw(y * flt(height)/4.1) + height // 2
     }
 }

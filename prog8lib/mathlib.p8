@@ -19,7 +19,7 @@
 
 
 
-asmsub  multiply_bytes  (byte1: ubyte @ A, byte2: ubyte @ Y) -> clobbers(X) -> (ubyte @ A)  {
+asmsub  multiply_bytes  (ubyte byte1 @ A, ubyte byte2 @ Y) -> clobbers(X) -> (ubyte @ A)  {
 	; ---- multiply 2 bytes, result as byte in A  (signed or unsigned)
 	%asm {{
 		sta  SCRATCH_ZPB1
@@ -37,7 +37,7 @@ asmsub  multiply_bytes  (byte1: ubyte @ A, byte2: ubyte @ Y) -> clobbers(X) -> (
 }
 
 
-asmsub  multiply_bytes_16  (byte1: ubyte @ A, byte2: ubyte @ Y) -> clobbers(X) -> (uword @ AY)  {
+asmsub  multiply_bytes_16  (ubyte byte1 @ A, ubyte byte2 @ Y) -> clobbers(X) -> (uword @ AY)  {
 	; ---- multiply 2 bytes, result as word in A/Y (unsigned)
 	%asm {{
                 sta  SCRATCH_ZPB1
@@ -59,7 +59,7 @@ asmsub  multiply_bytes_16  (byte1: ubyte @ A, byte2: ubyte @ Y) -> clobbers(X) -
 }
 
 	word[2]  multiply_words_product = 0
-asmsub  multiply_words  (number: uword @ AY) -> clobbers(A,X) -> ()  {
+asmsub  multiply_words  (uword number @ AY) -> clobbers(A,X) -> ()  {
 	; ---- multiply two 16-bit words into a 32-bit result
 	;      input: A/Y = first 16-bit number, SCRATCH_ZPWORD1 in ZP = second 16-bit number
 	;      output: multiply_words_product  32-bits product, LSB order (low-to-high)
@@ -93,7 +93,7 @@ mult16		lda  #$00
 }
 
 
-asmsub  divmod_bytes  (number: ubyte @ X, divisor: ubyte @ Y) -> clobbers() -> (ubyte @ X, ubyte @ A)  {
+asmsub  divmod_bytes  (ubyte number @ X, ubyte divisor @ Y) -> clobbers() -> (ubyte @ X, ubyte @ A)  {
 	; ---- divide X by Y, result quotient in X, remainder in A   (unsigned)
 	;      division by zero will result in quotient = 255 and remainder = original number
 	%asm {{
@@ -116,7 +116,7 @@ asmsub  divmod_bytes  (number: ubyte @ X, divisor: ubyte @ Y) -> clobbers() -> (
 	}}
 }
 
-asmsub  divmod_words  (divisor: uword @ AY) -> clobbers(X) -> (uword @ AY)  {
+asmsub  divmod_words  (uword divisor @ AY) -> clobbers(X) -> (uword @ AY)  {
 	; ---- divide two words (16 bit each) into 16 bit results
 	;      input:  SCRATCH_ZPWORD1 in ZP: 16 bit number, A/Y: 16 bit divisor
 	;      output: SCRATCH_ZPWORD1 in ZP: 16 bit result, A/Y: 16 bit remainder
@@ -164,7 +164,7 @@ remainder = SCRATCH_ZPB1
 	}}
 }
 
-asmsub  randseed  (seed: uword @ AY) -> clobbers(A, Y) -> ()  {
+asmsub  randseed  (uword seed @ AY) -> clobbers(A, Y) -> ()  {
 	; ---- reset the random seeds for the byte and word random generators
 	;      default starting values are:  A=$2c Y=$9e  
 	%asm {{

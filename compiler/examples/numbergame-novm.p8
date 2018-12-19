@@ -61,7 +61,7 @@
         return ending(false)
 
 
-        sub ending(success: ubyte) {
+        sub ending(ubyte success) {
             if success
                 c64scr.print_string("\n\nYou guessed it, impressive!\n")
             else {

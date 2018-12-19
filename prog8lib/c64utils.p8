@@ -48,7 +48,7 @@ asmsub  init_system  () -> clobbers(A,X,Y) -> ()  {
 	}}
 }
 
-asmsub  ubyte2decimal  (value: ubyte @ A) -> clobbers() -> (ubyte @ Y, ubyte @ X, ubyte @ A)  {
+asmsub  ubyte2decimal  (ubyte value @ A) -> clobbers() -> (ubyte @ Y, ubyte @ X, ubyte @ A)  {
 	; ---- A to decimal string in Y/X/A  (100s in Y, 10s in X, 1s in A)
 	%asm {{
 		ldy  #$2f
@@ -65,7 +65,7 @@ asmsub  ubyte2decimal  (value: ubyte @ A) -> clobbers() -> (ubyte @ Y, ubyte @ X
 	}}
 }
 
-asmsub  byte2decimal  (value: ubyte @ A) -> clobbers() -> (ubyte @ Y, ubyte @ X, ubyte @ A)  {
+asmsub  byte2decimal  (ubyte value @ A) -> clobbers() -> (ubyte @ Y, ubyte @ X, ubyte @ A)  {
 	; ---- A (signed byte) to decimal string in Y/X/A  (100s in Y, 10s in X, 1s in A)
 	;      note: the '-' is not part of the conversion here if it's a negative number
 	%asm {{
@@ -78,7 +78,7 @@ asmsub  byte2decimal  (value: ubyte @ A) -> clobbers() -> (ubyte @ Y, ubyte @ X,
 	}}
 }
 
-asmsub  ubyte2hex  (value: ubyte @ A) -> clobbers(X) -> (ubyte @ A, ubyte @ Y)  {
+asmsub  ubyte2hex  (ubyte value @ A) -> clobbers(X) -> (ubyte @ A, ubyte @ Y)  {
 	; ---- A to hex string in AY (first hex char in A, second hex char in Y)
 	%asm {{
 		pha
@@ -100,7 +100,7 @@ hex_digits	.text "0123456789abcdef"	; can probably be reused for other stuff as 
 
 
 		str  word2hex_output = "1234"   ; 0-terminated, to make printing easier
-asmsub  uword2hex  (value: uword @ AY) -> clobbers(A,X,Y) -> ()  {
+asmsub  uword2hex  (uword value @ AY) -> clobbers(A,X,Y) -> ()  {
 	; ---- convert 16 bit uword in A/Y into 4-character hexadecimal string into memory  'word2hex_output'
 	%asm {{
 		sta  c64.SCRATCH_ZPREG
@@ -117,7 +117,7 @@ asmsub  uword2hex  (value: uword @ AY) -> clobbers(A,X,Y) -> ()  {
 }
 
 		ubyte[3]  word2bcd_bcdbuff = [0, 0, 0]
-asmsub  uword2bcd  (dataword: uword @ AY) -> clobbers(A,X) -> ()  {
+asmsub  uword2bcd  (uword value @ AY) -> clobbers(A,X) -> ()  {
 	; Convert an 16 bit binary value to BCD
 	;
 	; This function converts a 16 bit binary value in A/Y into a 24 bit BCD. It
@@ -155,7 +155,7 @@ asmsub  uword2bcd  (dataword: uword @ AY) -> clobbers(A,X) -> ()  {
 
 
 		ubyte[5]  word2decimal_output = 0
-asmsub  uword2decimal  (dataword: uword @ AY) -> clobbers(A,X,Y) -> ()  {
+asmsub  uword2decimal  (uword value @ AY) -> clobbers(A,X,Y) -> ()  {
 	; ---- convert 16 bit uword in A/Y into decimal string into memory  'word2decimal_output'
 	%asm {{
 		jsr  uword2bcd
@@ -220,7 +220,7 @@ asmsub  FREADUS32  () -> clobbers(A,X,Y) -> ()  {
 	}}
 }
 
-asmsub  FREADS24AXY  (lo: ubyte @ A, mid: ubyte @ X, hi: ubyte @ Y) -> clobbers(A,X,Y) -> ()  {
+asmsub  FREADS24AXY  (ubyte lo @ A, ubyte mid @ X, ubyte hi @ Y) -> clobbers(A,X,Y) -> ()  {
 	; ---- fac1 = signed int24 (A/X/Y contain lo/mid/hi bytes)
 	;      note: there is no FREADU24AXY (unsigned), use FREADUS32 instead.
 	%asm {{
@@ -237,7 +237,7 @@ asmsub  FREADS24AXY  (lo: ubyte @ A, mid: ubyte @ X, hi: ubyte @ Y) -> clobbers(
 	}}
 }
 
-asmsub  GIVUAYFAY  (value: uword @ AY) -> clobbers(A,X,Y) -> ()  {
+asmsub  GIVUAYFAY  (uword value @ AY) -> clobbers(A,X,Y) -> ()  {
 	; ---- unsigned 16 bit word in A/Y (lo/hi) to fac1
 	%asm {{
 		sty  $62
@@ -248,7 +248,7 @@ asmsub  GIVUAYFAY  (value: uword @ AY) -> clobbers(A,X,Y) -> ()  {
 	}}
 }
 
-asmsub  GIVAYFAY  (value: uword @ AY) -> clobbers(A,X,Y) -> ()  {
+asmsub  GIVAYFAY  (uword value @ AY) -> clobbers(A,X,Y) -> ()  {
 	; ---- signed 16 bit word in A/Y (lo/hi) to float in fac1
 	%asm {{
 		sta  c64.SCRATCH_ZPREG
@@ -280,7 +280,7 @@ asmsub  GETADRAY  () -> clobbers(X) -> (uword @ AY)  {
 	}}
 }
 
-sub  print_float  (value: float) {
+sub  print_float  (float value) {
 	; ---- prints the floating point value (without a newline) using basic rom routines. 
 	;      clobbers no registers.
 	;	@todo version that takes A/Y pointer to float instead
@@ -304,7 +304,7 @@ sub  print_float  (value: float) {
 	}}
 }
 
-sub  print_float_ln  (value: float) {
+sub  print_float_ln  (float value) {
 	; ---- prints the floating point value (with a newline at the end) using basic rom routines
 	;      clobbers no registers.
 	;	@todo version that takes A/Y pointer to float instead
@@ -336,7 +336,7 @@ sub  print_float_ln  (value: float) {
 	; ---- this block contains (character) Screen and text I/O related functions ----
 
 
-asmsub  clear_screen (char: ubyte @ A, color: ubyte @ Y) -> clobbers(A,X) -> ()  {
+asmsub  clear_screen (ubyte char @ A, ubyte color @ Y) -> clobbers(A,X) -> ()  {
 	; ---- clear the character screen with the given fill character and character color.
 	;      (assumes screen is at $0400, could be altered in the future with self-modifying code)
 	;       @todo some byte var to set the SCREEN ADDR HI BYTE
@@ -366,7 +366,7 @@ _loop           lda  #0
 }
 
 
-asmsub scroll_left_full  (alsocolors: ubyte @ Pc) -> clobbers(A, X, Y) -> ()  {
+asmsub scroll_left_full  (ubyte alsocolors @ Pc) -> clobbers(A, X, Y) -> ()  {
 	; ---- scroll the whole screen 1 character to the left
 	;      contents of the rightmost column are unchanged, you should clear/refill this yourself
 	;      Carry flag determines if screen color data must be scrolled too
@@ -425,7 +425,7 @@ _scroll_screen  ; scroll the screen memory
 }
 
 
-asmsub scroll_right_full  (alsocolors: ubyte @ Pc) -> clobbers(A,X) -> ()  {
+asmsub scroll_right_full  (ubyte alsocolors @ Pc) -> clobbers(A,X) -> ()  {
 	; ---- scroll the whole screen 1 character to the right
 	;      contents of the leftmost column are unchanged, you should clear/refill this yourself
 	;      Carry flag determines if screen color data must be scrolled too
@@ -476,7 +476,7 @@ _scroll_screen  ; scroll the screen memory
 }
 
 
-asmsub scroll_up_full  (alsocolors: ubyte @ Pc) -> clobbers(A,X) -> ()  {
+asmsub scroll_up_full  (ubyte alsocolors @ Pc) -> clobbers(A,X) -> ()  {
 	; ---- scroll the whole screen 1 character up
 	;      contents of the bottom row are unchanged, you should refill/clear this yourself
 	;      Carry flag determines if screen color data must be scrolled too
@@ -527,7 +527,7 @@ _scroll_screen  ; scroll the screen memory
 }
 
 
-asmsub scroll_down_full  (alsocolors: ubyte @ Pc) -> clobbers(A,X) -> ()  {
+asmsub scroll_down_full  (ubyte alsocolors @ Pc) -> clobbers(A,X) -> ()  {
 	; ---- scroll the whole screen 1 character down
 	;      contents of the top row are unchanged, you should refill/clear this yourself
 	;      Carry flag determines if screen color data must be scrolled too
@@ -579,7 +579,7 @@ _scroll_screen  ; scroll the screen memory
 
 
 
-asmsub  print_string (text: str @ AY) -> clobbers(A,Y) -> ()  {
+asmsub  print_string (str text @ AY) -> clobbers(A,Y) -> ()  {
 	; ---- print null terminated string from A/Y
 	; note: the compiler contains an optimization that will replace
 	;       a call to this subroutine with a string argument of just one char,
@@ -598,7 +598,7 @@ asmsub  print_string (text: str @ AY) -> clobbers(A,Y) -> ()  {
 }
 
 
-asmsub  print_pstring  (text: str_p @ AY) -> clobbers(A,X) -> (ubyte @ Y)  {
+asmsub  print_pstring  (str_p text @ AY) -> clobbers(A,X) -> (ubyte @ Y)  {
 	; ---- print pstring (length as first byte) from A/Y, returns str len in Y
 	%asm {{
 		sta  c64.SCRATCH_ZPB1
@@ -617,7 +617,7 @@ asmsub  print_pstring  (text: str_p @ AY) -> clobbers(A,X) -> (ubyte @ Y)  {
 }
 
 
-asmsub  print_ubyte0  (value: ubyte @ A) -> clobbers(A,X,Y) -> ()  {
+asmsub  print_ubyte0  (ubyte value @ A) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the ubyte in A in decimal form, with left padding 0s (3 positions total)
 	%asm {{
 		jsr  c64utils.ubyte2decimal
@@ -632,7 +632,7 @@ asmsub  print_ubyte0  (value: ubyte @ A) -> clobbers(A,X,Y) -> ()  {
 }
 
 
-asmsub  print_ubyte  (value: ubyte @ A) -> clobbers(A,X,Y) -> ()  {
+asmsub  print_ubyte  (ubyte value @ A) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the ubyte in A in decimal form, without left padding 0s
 	%asm {{
 		jsr  c64utils.ubyte2decimal
@@ -653,7 +653,7 @@ _print_tens	txa
 	}}
 }
 	
-asmsub  print_byte  (value: byte @ A) -> clobbers(A,X,Y) -> ()  {
+asmsub  print_byte  (byte value @ A) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the byte in A in decimal form, without left padding 0s
 	%asm {{
 		pha
@@ -668,7 +668,7 @@ asmsub  print_byte  (value: byte @ A) -> clobbers(A,X,Y) -> ()  {
 }
 
 
-asmsub  print_ubyte_hex  (prefix: ubyte @ Pc, value: ubyte @ A) -> clobbers(A,X,Y) -> ()  {
+asmsub  print_ubyte_hex  (ubyte prefix @ Pc, ubyte value @ A) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the ubyte in A in hex form (if Carry is set, a radix prefix '$' is printed as well)
 	%asm {{
 		bcc  +
@@ -684,7 +684,7 @@ asmsub  print_ubyte_hex  (prefix: ubyte @ Pc, value: ubyte @ A) -> clobbers(A,X,
 }
 
 
-asmsub print_uword_hex  (prefix: ubyte @ Pc, value: uword @ AY) -> clobbers(A,X,Y) -> ()  {
+asmsub print_uword_hex  (ubyte prefix @ Pc, uword value @ AY) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the uword in A/Y in hexadecimal form (4 digits)
 	;      (if Carry is set, a radix prefix '$' is printed as well)
 	%asm {{
@@ -698,7 +698,7 @@ asmsub print_uword_hex  (prefix: ubyte @ Pc, value: uword @ AY) -> clobbers(A,X,
 }
 
 
-asmsub  print_uword0  (value: uword @ AY) -> clobbers(A,X,Y) -> ()  {
+asmsub  print_uword0  (uword value @ AY) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the uword in A/Y in decimal form, with left padding 0s (5 positions total)
 	; @todo shorter in loop form?
 	%asm {{
@@ -717,7 +717,7 @@ asmsub  print_uword0  (value: uword @ AY) -> clobbers(A,X,Y) -> ()  {
 }
 
 
-asmsub  print_uword  (value: uword @ AY) -> clobbers(A,X,Y) -> ()  {
+asmsub  print_uword  (uword value @ AY) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the uword in A/Y in decimal form, without left padding 0s
 	%asm {{
 		jsr  c64utils.uword2decimal
@@ -749,7 +749,7 @@ _pr_decimal
 	}}
 }
 
-asmsub  print_word  (value: word @ AY) -> clobbers(A,X,Y) -> ()  {
+asmsub  print_word  (word value @ AY) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the (signed) word in A/Y in decimal form, without left padding 0s
 	%asm {{
 		cpy  #0
@@ -770,7 +770,7 @@ asmsub  print_word  (value: word @ AY) -> clobbers(A,X,Y) -> ()  {
 	}}
 }
 
-asmsub  input_chars  (buffer: uword @ AY) -> clobbers(A, X) -> (ubyte @ Y)  {
+asmsub  input_chars  (uword buffer @ AY) -> clobbers(A, X) -> (ubyte @ Y)  {
 	; ---- Input a string (max. 80 chars) from the keyboard. Returns length in Y.
 	;      It assumes the keyboard is selected as I/O channel!
 
@@ -791,7 +791,7 @@ asmsub  input_chars  (buffer: uword @ AY) -> clobbers(A, X) -> (ubyte @ Y)  {
 	}}
 }
 
-asmsub  setchr  (col: ubyte @Y, row: ubyte @A) -> clobbers(A) -> ()  {
+asmsub  setchr  (ubyte col @Y, ubyte row @A) -> clobbers(A) -> ()  {
 	; ---- set the character in SCRATCH_ZPB1 on the screen matrix at the given position
 	%asm {{
 		sty  c64.SCRATCH_ZPREG
@@ -813,7 +813,7 @@ _screenrows	.word  $0400 + range(0, 1000, 40)
 	}}
 }
 
-asmsub  setclr  (col: ubyte @Y, row: ubyte @A) -> clobbers(A) -> ()  {
+asmsub  setclr  (ubyte col @Y, ubyte row @A) -> clobbers(A) -> ()  {
 	; ---- set the color in SCRATCH_ZPB1 on the screen matrix at the given position
 	%asm {{
 		sty  c64.SCRATCH_ZPREG
@@ -836,7 +836,7 @@ _colorrows	.word  $d800 + range(0, 1000, 40)
 }
 
 		
-sub  setchrclr  (column: ubyte, row: ubyte, char: ubyte, color: ubyte)  {
+sub  setchrclr  (ubyte column, ubyte row, ubyte char, ubyte color)  {
 	; ---- set char+color at the given position on the screen
 	%asm {{
 		lda  setchrclr_row
@@ -864,6 +864,18 @@ _colormod	sta  $ffff		; modified
 		inx
 		rts
 	}}	
+}
+
+asmsub  PLOT  (ubyte col @ Y, ubyte row @ A) -> clobbers(A) -> () {
+	; ---- safe wrapper around PLOT kernel routine, to save the X register.
+	%asm  {{
+		stx  c64.SCRATCH_ZPREGX
+		tax
+		clc
+		jsr  c64.PLOT
+		ldx  c64.SCRATCH_ZPREGX
+		rts
+	}}
 }
 
 

@@ -11,19 +11,26 @@
         float t
         ubyte color
 
-        while(1) {
-            float x = sin(t) + cos(t*1.1234)
-            float y = cos(t) + sin(t*1.44)
-            c64scr.setchrclr(screenx(x), screeny(y), 81, color)
-            t  += 0.1
+        while true {
+            float x = sin(t)
+            float y = cos(t*1.1356)
+            ubyte xx=screenx(x)
+            ubyte yy=screeny(y)
+
+            c64.COLOR = color
+            c64scr.PLOT(xx,yy)
+            c64.CHROUT('Q')     ;  shift-q = filled circle
+            ; the 3 lines above can be replaced by:  c64scr.setchrclr(xx, yy, 81, color)
+
+            t  += 0.08
             color++
         }
     }
 
-    sub screenx(x: float) -> ubyte {
-        return b2ub(fintb(x * flt(width)/4.2) + width//2)
+    sub screenx(float x) -> ubyte {
+        return b2ub(fintb(x * flt(width)/2.2) + width//2)
     }
-    sub screeny(y: float) -> ubyte {
-        return b2ub(fintb(y * flt(height)/4.2) + height//2)
+    sub screeny(float y) -> ubyte {
+        return b2ub(fintb(y * flt(height)/2.2) + height//2)
     }
 }
