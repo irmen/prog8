@@ -9,11 +9,11 @@
     ; @todo unify the type cast functions...   "wrd(5)"  ->  "5 as word"
 
     sub toscreenx(float x, float z) -> word {
-        return 42
+        return 42 as word
     }
 
     asmsub blerp(ubyte x @ A, uword ding @ XY) -> clobbers() -> () {
-
+        word qq = X as word
     }
 
     sub start()  {

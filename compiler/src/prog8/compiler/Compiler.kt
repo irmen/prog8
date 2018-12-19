@@ -556,6 +556,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             is IdentifierReference -> translate(expr)
             is ArrayIndexedExpression -> translate(expr, false)
             is RangeExpr -> throw CompilerException("it's not possible to just have a range expression that has to be translated")
+            is TypecastExpression -> translate(expr)
             else -> {
                 val lv = expr.constValue(namespace, heap) ?: throw CompilerException("constant expression required, not $expr")
                 when(lv.type) {
@@ -580,6 +581,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
 
     private fun convertType(givenDt: DataType, targetDt: DataType) {
         // only WIDENS a type, never NARROWS
+        // TODO replace by type cast "... as type" ?
         if(givenDt==targetDt)
             return
         if(givenDt !in NumericDatatypes)
@@ -1975,4 +1977,9 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         breakStmtLabelStack.pop()
         continueStmtLabelStack.pop()
     }
+
+    private fun translate(expr: TypecastExpression) {
+        TODO("translate typecast $expr") //To change body of created functions use File | Settings | File Templates.
+    }
+
 }

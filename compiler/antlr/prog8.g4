@@ -146,7 +146,11 @@ expression :
 	| identifier
 	| scoped_identifier
 	| arrayindexed
+	| expression typecast
 	;
+
+
+typecast : 'as' datatype;
 
 
 arrayindexed :
