@@ -80,6 +80,25 @@ class AstChecker(private val namespace: INameScope,
                 checkResult.add(SyntaxError("program entrypoint subroutine can't have parameters and/or return values", startSub.position))
         }
 
+        if(mainBlock!=null) {
+            // the main module cannot contain 'regular' statements (they will never be executed!)
+            for (statement in mainBlock.statements) {
+                val ok = when(statement) {
+                    is Block->true
+                    is Directive->true
+                    is Label->true
+                    is VarDecl->true
+                    is InlineAssembly->true
+                    is INameScope->true
+                    else->false
+                }
+                if(!ok) {
+                    checkResult.add(SyntaxError("main block contains regular statements, this is not allowed (they'll never get executed). Use subroutines.", statement.position))
+                    break
+                }
+            }
+        }
+
         // there can be an optional 'irq' block with a 'irq' subroutine in it,
         // which will be used as the 60hz irq routine in the vm if it's present.
         val irqBlock = module.statements.singleOrNull { it is Block && it.name=="irq" } as? Block?

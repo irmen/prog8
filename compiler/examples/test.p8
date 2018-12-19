@@ -4,11 +4,9 @@
 
 ~ main {
 
-    c64.TIME_HI=1       ; @todo WARNING about 'free' statements in main
-    c64.TIME_MID=0
-    c64.TIME_LO=0
-
             ;c64scr.PLOT(screenx(x), screeny(y))    ; @todo fix argument calculation???!!!
+
+    ; @todo unify the type cast functions...   "wrd(5)"  ->  "5 as word"
 
     sub toscreenx(float x, float z) -> word {
         return 42
