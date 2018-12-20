@@ -422,22 +422,6 @@ class TestStackVmOpcodes {
     }
 
     @Test
-    fun testLsb() {
-        val ins = mutableListOf(
-                Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 0x45)),
-                Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 0xea31)),
-                Instruction(Opcode.LSB),
-                Instruction(Opcode.LSB)
-        )
-        vm.load(makeProg(ins), null)
-        vm.step(3)
-        assertEquals(Value(DataType.UBYTE, 0x31), vm.evalstack.pop())
-        assertFailsWith<VmExecutionException> {
-            vm.step(1)
-        }
-    }
-
-    @Test
     fun testMsb() {
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 0x45)),
@@ -453,13 +437,15 @@ class TestStackVmOpcodes {
         }
     }
 
+    // @todo more conversion tests.
+
     @Test
     fun testB2Ub() {
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH_BYTE, Value(DataType.BYTE, -88)),
                 Instruction(Opcode.PUSH_BYTE, Value(DataType.BYTE, 127)),
-                Instruction(Opcode.B2UB),
-                Instruction(Opcode.B2UB)
+                Instruction(Opcode.CAST_B_TO_UB),
+                Instruction(Opcode.CAST_B_TO_UB)
         )
         vm.load(makeProg(ins), null)
         vm.step(3)
@@ -473,8 +459,8 @@ class TestStackVmOpcodes {
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 168)),
                 Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 127)),
-                Instruction(Opcode.UB2B),
-                Instruction(Opcode.UB2B)
+                Instruction(Opcode.CAST_UB_TO_B),
+                Instruction(Opcode.CAST_UB_TO_B)
         )
         vm.load(makeProg(ins), null)
         vm.step(3)
@@ -488,8 +474,8 @@ class TestStackVmOpcodes {
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH_WORD, Value(DataType.WORD, 0x7a31)),
                 Instruction(Opcode.PUSH_BYTE, Value(DataType.BYTE, 127)),
-                Instruction(Opcode.B2WORD),
-                Instruction(Opcode.B2WORD)
+                Instruction(Opcode.CAST_B_TO_W),
+                Instruction(Opcode.CAST_B_TO_W)
         )
         vm.load(makeProg(ins), null)
         vm.step(3)
@@ -504,8 +490,8 @@ class TestStackVmOpcodes {
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 0xea31)),
                 Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 0x45)),
-                Instruction(Opcode.UB2UWORD),
-                Instruction(Opcode.UB2UWORD)
+                Instruction(Opcode.CAST_UB_TO_UW),
+                Instruction(Opcode.CAST_UB_TO_UW)
         )
         vm.load(makeProg(ins), null)
         vm.step(3)
@@ -520,8 +506,8 @@ class TestStackVmOpcodes {
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH_WORD, Value(DataType.WORD, 0x7a31)),
                 Instruction(Opcode.PUSH_BYTE, Value(DataType.BYTE, 127)),
-                Instruction(Opcode.B2FLOAT),
-                Instruction(Opcode.B2FLOAT)
+                Instruction(Opcode.CAST_B_TO_F),
+                Instruction(Opcode.CAST_B_TO_F)
         )
         vm.load(makeProg(ins), null)
         vm.step(3)
@@ -536,8 +522,8 @@ class TestStackVmOpcodes {
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 0xea31)),
                 Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 177)),
-                Instruction(Opcode.UB2FLOAT),
-                Instruction(Opcode.UB2FLOAT)
+                Instruction(Opcode.CAST_UB_TO_F),
+                Instruction(Opcode.CAST_UB_TO_F)
         )
         vm.load(makeProg(ins), null)
         vm.step(3)
@@ -552,8 +538,8 @@ class TestStackVmOpcodes {
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 177)),
                 Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 52345)),
-                Instruction(Opcode.W2FLOAT),
-                Instruction(Opcode.W2FLOAT)
+                Instruction(Opcode.CAST_W_TO_F),
+                Instruction(Opcode.CAST_W_TO_F)
         )
         vm.load(makeProg(ins), null)
         vm.step(3)
@@ -568,8 +554,8 @@ class TestStackVmOpcodes {
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 177)),
                 Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 52345)),
-                Instruction(Opcode.UW2FLOAT),
-                Instruction(Opcode.UW2FLOAT)
+                Instruction(Opcode.CAST_UW_TO_F),
+                Instruction(Opcode.CAST_UW_TO_F)
         )
         vm.load(makeProg(ins), null)
         vm.step(3)

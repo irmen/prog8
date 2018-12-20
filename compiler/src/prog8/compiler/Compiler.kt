@@ -580,8 +580,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
     }
 
     private fun convertType(givenDt: DataType, targetDt: DataType) {
-        // only WIDENS a type, never NARROWS
-        // TODO replace by type cast "... as type" ?
+        // only WIDENS a type, never NARROWS. To avoid loss of precision.
         if(givenDt==targetDt)
             return
         if(givenDt !in NumericDatatypes)
@@ -590,23 +589,25 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             throw CompilerException("converting $givenDt to non-numeric $targetDt")
         when(givenDt) {
             DataType.UBYTE -> when(targetDt) {
-                DataType.UWORD, DataType.WORD -> prog.instr(Opcode.UB2UWORD)
-                DataType.FLOAT -> prog.instr(Opcode.UB2FLOAT)
+                DataType.UWORD -> prog.instr(Opcode.CAST_UB_TO_UW)
+                DataType.WORD -> prog.instr(Opcode.CAST_UB_TO_W)
+                DataType.FLOAT -> prog.instr(Opcode.CAST_UB_TO_F)
                 else -> {}
             }
             DataType.BYTE -> when(targetDt) {
-                DataType.UWORD, DataType.WORD -> prog.instr(Opcode.B2WORD)
-                DataType.FLOAT -> prog.instr(Opcode.B2FLOAT)
+                DataType.UWORD -> prog.instr(Opcode.CAST_B_TO_UW)
+                DataType.WORD -> prog.instr(Opcode.CAST_B_TO_W)
+                DataType.FLOAT -> prog.instr(Opcode.CAST_B_TO_F)
                 else -> {}
             }
             DataType.UWORD -> when(targetDt) {
                 DataType.UBYTE, DataType.BYTE -> throw CompilerException("narrowing type")
-                DataType.FLOAT -> prog.instr(Opcode.UW2FLOAT)
+                DataType.FLOAT -> prog.instr(Opcode.CAST_UW_TO_F)
                 else -> {}
             }
             DataType.WORD -> when(targetDt) {
                 DataType.UBYTE, DataType.BYTE -> throw CompilerException("narrowing type")
-                DataType.FLOAT -> prog.instr(Opcode.W2FLOAT)
+                DataType.FLOAT -> prog.instr(Opcode.CAST_W_TO_F)
                 else -> {}
             }
             DataType.FLOAT -> if(targetDt in IntegerDatatypes) throw CompilerException("narrowing type")
@@ -724,22 +725,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     else -> throw CompilerException("wrong datatype for $funcname()")
                 }
             }
-            "flt" -> {
-                // 1 argument, type determines the exact opcode to use
-                val arg = args.single()
-                when (arg.resultingDatatype(namespace, heap)) {
-                    DataType.UBYTE -> prog.instr(Opcode.UB2FLOAT)
-                    DataType.BYTE -> prog.instr(Opcode.B2FLOAT)
-                    DataType.UWORD -> prog.instr(Opcode.UW2FLOAT)
-                    DataType.WORD -> prog.instr(Opcode.W2FLOAT)
-                    DataType.FLOAT -> prog.instr(Opcode.NOP)
-                    else -> throw CompilerException("wrong datatype for flt()")
-                }
-            }
             "msb" -> prog.instr(Opcode.MSB)
-            "lsb" -> prog.instr(Opcode.LSB)
-            "b2ub" -> prog.instr(Opcode.B2UB)
-            "ub2b" -> prog.instr(Opcode.UB2B)
+            "lsb" -> TODO("lsb  -> uw2ub or w2ub?")
             "lsl" -> {
                 val arg = args.single()
                 val dt = arg.resultingDatatype(namespace, heap)
@@ -1269,15 +1256,15 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                         throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                 DataType.WORD -> {
                     when (valueDt) {
-                        DataType.UBYTE -> prog.instr(Opcode.UB2UWORD)
-                        DataType.BYTE -> prog.instr(Opcode.B2WORD)
+                        DataType.UBYTE -> prog.instr(Opcode.CAST_UB_TO_W)
+                        DataType.BYTE -> prog.instr(Opcode.CAST_B_TO_W)
                         else -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                     }
                 }
                 DataType.UWORD -> {
                     when (valueDt) {
-                        DataType.UBYTE -> prog.instr(Opcode.UB2UWORD)
-                        DataType.BYTE -> prog.instr(Opcode.B2WORD)
+                        DataType.UBYTE -> prog.instr(Opcode.CAST_UB_TO_UW)
+                        DataType.BYTE -> prog.instr(Opcode.CAST_B_TO_UW)
                         DataType.STR, DataType.STR_S -> pushStringAddress(stmt.value, true)
                         DataType.ARRAY_B, DataType.ARRAY_UB, DataType.ARRAY_W, DataType.ARRAY_UW, DataType.ARRAY_F -> {
                             if (stmt.value is IdentifierReference) {
@@ -1293,10 +1280,10 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 }
                 DataType.FLOAT -> {
                     when (valueDt) {
-                        DataType.UBYTE -> prog.instr(Opcode.UB2FLOAT)
-                        DataType.BYTE -> prog.instr(Opcode.B2FLOAT)
-                        DataType.UWORD -> prog.instr(Opcode.UW2FLOAT)
-                        DataType.WORD -> prog.instr(Opcode.W2FLOAT)
+                        DataType.UBYTE -> prog.instr(Opcode.CAST_UB_TO_F)
+                        DataType.BYTE -> prog.instr(Opcode.CAST_B_TO_F)
+                        DataType.UWORD -> prog.instr(Opcode.CAST_UW_TO_F)
+                        DataType.WORD -> prog.instr(Opcode.CAST_W_TO_F)
                         else -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                     }
                 }
@@ -1979,7 +1966,52 @@ private class StatementTranslator(private val prog: IntermediateProgram,
     }
 
     private fun translate(expr: TypecastExpression) {
-        TODO("translate typecast $expr") //To change body of created functions use File | Settings | File Templates.
+        translate(expr.expression)
+        val sourceDt = expr.expression.resultingDatatype(namespace, heap) ?: throw CompilerException("don't know what type to cast")
+        if(sourceDt==expr.type)
+            return
+
+        when(expr.type) {
+            DataType.UBYTE -> when(sourceDt) {
+                DataType.UBYTE -> {}
+                DataType.BYTE -> prog.instr(Opcode.CAST_B_TO_UB)
+                DataType.UWORD, DataType.WORD -> prog.instr(Opcode.CAST_WRD_TO_UB)
+                DataType.FLOAT -> prog.instr(Opcode.CAST_F_TO_UB)
+                else -> throw CompilerException("invalid cast type $sourceDt")
+            }
+            DataType.BYTE -> when(sourceDt) {
+                DataType.UBYTE -> prog.instr(Opcode.CAST_UB_TO_B)
+                DataType.BYTE -> {}
+                DataType.UWORD, DataType.WORD -> prog.instr(Opcode.CAST_WRD_TO_B)
+                DataType.FLOAT -> prog.instr(Opcode.CAST_F_TO_B)
+                else -> throw CompilerException("invalid cast type $sourceDt")
+            }
+            DataType.UWORD -> when(sourceDt) {
+                DataType.UBYTE -> prog.instr(Opcode.CAST_UB_TO_UW)
+                DataType.BYTE -> prog.instr(Opcode.CAST_B_TO_UW)
+                DataType.UWORD -> {}
+                DataType.WORD -> prog.instr(Opcode.CAST_W_TO_UW)
+                DataType.FLOAT -> prog.instr(Opcode.CAST_F_TO_UW)
+                else -> throw CompilerException("invalid cast type $sourceDt")
+            }
+            DataType.WORD -> when(sourceDt) {
+                DataType.UBYTE -> prog.instr(Opcode.CAST_UB_TO_W)
+                DataType.BYTE -> prog.instr(Opcode.CAST_B_TO_W)
+                DataType.UWORD -> prog.instr(Opcode.CAST_UW_TO_W)
+                DataType.WORD -> {}
+                DataType.FLOAT -> prog.instr(Opcode.CAST_F_TO_W)
+                else -> throw CompilerException("invalid cast type $sourceDt")
+            }
+            DataType.FLOAT -> when(sourceDt) {
+                DataType.UBYTE -> prog.instr(Opcode.CAST_UB_TO_F)
+                DataType.BYTE -> prog.instr(Opcode.CAST_B_TO_F)
+                DataType.UWORD -> prog.instr(Opcode.CAST_UW_TO_F)
+                DataType.WORD -> prog.instr(Opcode.CAST_W_TO_F)
+                DataType.FLOAT -> {}
+                else -> throw CompilerException("invalid cast type $sourceDt")
+            }
+            else -> throw CompilerException("can't typecast to ${expr.type}")
+        }
     }
 
 }

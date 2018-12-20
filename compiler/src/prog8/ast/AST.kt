@@ -995,7 +995,6 @@ class TypecastExpression(var expression: IExpression, var type: DataType, overri
 
     companion object {
         fun typecast(cv: LiteralValue, type: DataType): LiteralValue? {
-            println("CONSTVALUE $cv  ->  $type")
             return when (cv.type) {
                 DataType.UBYTE -> {
                     when (type) {

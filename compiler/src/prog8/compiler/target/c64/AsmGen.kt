@@ -426,7 +426,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     throw CompilerException("cannot translate vm syscalls to real assembly calls - use *real* subroutine calls instead. Syscall ${ins.arg.numericValue()}")
                 val call = Syscall.values().find { it.callNr==ins.arg.numericValue() }
                 when(call) {
-                    Syscall.FUNC_WRD, Syscall.FUNC_UWRD -> ""
                     Syscall.FUNC_STR2UBYTE, Syscall.FUNC_STR2UWORD -> " jsr prog8_lib.func_str2uword"
                     else -> " jsr  prog8_lib.${call.toString().toLowerCase()}"
                 }
@@ -671,14 +670,25 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 bne  ${ins.callLabel}
                 """
             }
-            Opcode.UB2FLOAT -> " jsr  prog8_lib.stack_ub2float"
-            Opcode.B2FLOAT -> " jsr  prog8_lib.stack_b2float"
-            Opcode.UW2FLOAT -> " jsr  prog8_lib.stack_uw2float"
-            Opcode.W2FLOAT -> " jsr  prog8_lib.stack_w2float"
-            Opcode.B2UB -> ""   // is a no-op, just carry on with the byte as-is
-            Opcode.UB2B -> ""   // is a no-op, just carry on with the byte as-is
-            Opcode.UB2UWORD -> " lda  #0 |  sta  ${ESTACK_HI+1},x"
-            Opcode.B2WORD ->  " ${signExtendA("${ESTACK_HI+1},x")}"
+            Opcode.CAST_B_TO_UB -> ""  // is a no-op, just carry on with the byte as-is
+            Opcode.CAST_UB_TO_B -> ""  // is a no-op, just carry on with the byte as-is
+            Opcode.CAST_W_TO_UW -> ""  // is a no-op, just carry on with the word as-is
+            Opcode.CAST_UW_TO_W -> ""  // is a no-op, just carry on with the word as-is
+            Opcode.CAST_WRD_TO_UB -> ""  // is a no-op, just carry on with the lsb of the (u)word as-is
+            Opcode.CAST_WRD_TO_B -> ""  // is a no-op, just carry on with the lsb of the (u)word as-is
+            Opcode.CAST_UB_TO_F -> " jsr  prog8_lib.stack_ub2float"
+            Opcode.CAST_B_TO_F -> " jsr  prog8_lib.stack_b2float"
+            Opcode.CAST_UW_TO_F -> " jsr  prog8_lib.stack_uw2float"
+            Opcode.CAST_W_TO_F -> " jsr  prog8_lib.stack_w2float"
+            Opcode.CAST_UB_TO_UW -> " lda  #0 |  sta  ${ESTACK_HI+1},x"     // clear the msb
+            Opcode.CAST_UB_TO_W -> TODO("ub2w")
+            Opcode.CAST_B_TO_UW -> TODO("b2uw")
+            Opcode.CAST_B_TO_W -> " ${signExtendA("${ESTACK_HI+1},x")}"     // sign extend the lsb   @todo missing an lda???
+            Opcode.CAST_F_TO_UB -> TODO("f2ub")
+            Opcode.CAST_F_TO_B -> TODO("f2b")
+            Opcode.CAST_F_TO_UW -> TODO("f2uw")
+            Opcode.CAST_F_TO_W -> TODO("f2w")
+            Opcode.MSB -> " lda  ${(ESTACK_HI+1).toHex()},x |  sta ${(ESTACK_LO+1).toHex()},x"
 
             Opcode.DIV_UB -> "  jsr  prog8_lib.div_ub"
             Opcode.DIV_B -> "  jsr  prog8_lib.div_b"
@@ -764,9 +774,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.LESSEQ_UW -> "  jsr  prog8_lib.lesseq_uw"
             Opcode.LESSEQ_W -> "  jsr  prog8_lib.lesseq_w"
             Opcode.LESSEQ_F -> "  jsr  prog8_lib.lesseq_f"
-
-            Opcode.LSB -> ""
-            Opcode.MSB -> " lda  ${(ESTACK_HI+1).toHex()},x |  sta ${(ESTACK_LO+1).toHex()},x"
 
             else -> null
         }
@@ -1358,7 +1365,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // var = ubytevar
-            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.UB2UWORD, Opcode.POP_VAR_WORD)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.CAST_UB_TO_UW, Opcode.POP_VAR_WORD)) { segment ->
                 when(segment[0].callLabel) {
                     "A" -> " sta  ${segment[2].callLabel} |  lda  #0 |  sta  ${segment[2].callLabel}+1"
                     "X" -> " stx  ${segment[2].callLabel} |  lda  #0 |  sta  ${segment[2].callLabel}+1"
@@ -1385,7 +1392,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // var = mem ubyte
-            AsmPattern(listOf(Opcode.PUSH_MEM_UB, Opcode.UB2UWORD, Opcode.POP_VAR_WORD)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_MEM_UB, Opcode.CAST_UB_TO_UW, Opcode.POP_VAR_WORD)) { segment ->
                 " lda  ${hexVal(segment[0])} |  sta  ${segment[2].callLabel} |  lda  #0 |  sta  ${segment[2].callLabel}+1"
             },
             // var = mem (u)word
@@ -1400,19 +1407,19 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // var = ubytearray[index_byte]
-            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.UB2UWORD, Opcode.POP_VAR_WORD)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_UB_TO_UW, Opcode.POP_VAR_WORD)) { segment ->
                 val index = hexVal(segment[0])
                 " lda  ${segment[1].callLabel}+$index |  sta  ${segment[3].callLabel} |  lda  #0 |  sta  ${segment[3].callLabel}+1"
             },
             // var = ubytearray[index var]
-            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.UB2UWORD, Opcode.POP_VAR_WORD)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_UB_TO_UW, Opcode.POP_VAR_WORD)) { segment ->
                 val loadA = loadAFromIndexedByVar(segment[0], segment[1])
                 " $loadA |  sta  ${segment[3].callLabel} |  lda  #0 |  sta  ${segment[3].callLabel}+1"
             },
             // var = ubytearray[index mem]
             AsmPattern(
-                    listOf(Opcode.PUSH_MEM_B, Opcode.READ_INDEXED_VAR_BYTE, Opcode.UB2UWORD, Opcode.POP_VAR_WORD),
-                    listOf(Opcode.PUSH_MEM_UB, Opcode.READ_INDEXED_VAR_BYTE, Opcode.UB2UWORD, Opcode.POP_VAR_WORD)) { segment ->
+                    listOf(Opcode.PUSH_MEM_B, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_UB_TO_UW, Opcode.POP_VAR_WORD),
+                    listOf(Opcode.PUSH_MEM_UB, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_UB_TO_UW, Opcode.POP_VAR_WORD)) { segment ->
                 """
                 lda  ${hexVal(segment[0])}
                 sta  ${segment[3].callLabel}
@@ -1458,7 +1465,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // mem uword = ubyte var
-            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.UB2UWORD, Opcode.POP_MEM_WORD)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.CAST_UB_TO_UW, Opcode.POP_MEM_WORD)) { segment ->
                 when(segment[0].callLabel) {
                     "A" -> " sta  ${hexVal(segment[2])} |  lda  #0 |  sta  ${hexValPlusOne(segment[2])}"
                     "X" -> " stx  ${hexVal(segment[2])} |  lda  #0 |  sta  ${hexValPlusOne(segment[2])}"
@@ -1467,7 +1474,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 }
             },
             // mem uword = mem ubyte
-            AsmPattern(listOf(Opcode.PUSH_MEM_UB, Opcode.UB2UWORD, Opcode.POP_MEM_WORD)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_MEM_UB, Opcode.CAST_UB_TO_UW, Opcode.POP_MEM_WORD)) { segment ->
                 """
                 lda  ${hexVal(segment[0])}
                 sta  ${hexVal(segment[2])}
@@ -1495,7 +1502,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // mem uword = ubytearray[index]
-            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.UB2UWORD, Opcode.POP_MEM_WORD)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_UB_TO_UW, Opcode.POP_MEM_WORD)) { segment ->
                 val index = intVal(segment[0])
                 """
                 lda  ${segment[1].callLabel}+$index
@@ -1505,7 +1512,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // mem uword = bytearray[index]  (sign extended)
-            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.B2WORD, Opcode.POP_MEM_WORD)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_B_TO_W, Opcode.POP_MEM_WORD)) { segment ->
                 val index = intVal(segment[0])
                 """
                 lda  ${segment[1].callLabel}+$index
@@ -1514,7 +1521,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // mem uword = bytearray[index var]  (sign extended)
-            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.B2WORD, Opcode.POP_MEM_WORD)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_B_TO_W, Opcode.POP_MEM_WORD)) { segment ->
                 val loadA = loadAFromIndexedByVar(segment[0], segment[1])
                 """
                 $loadA
@@ -1524,8 +1531,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             },
             // mem uword = bytearray[mem (u)byte]  (sign extended)
             AsmPattern(
-                    listOf(Opcode.PUSH_MEM_B, Opcode.READ_INDEXED_VAR_BYTE, Opcode.B2WORD, Opcode.POP_MEM_WORD),
-                    listOf(Opcode.PUSH_MEM_UB, Opcode.READ_INDEXED_VAR_BYTE, Opcode.B2WORD, Opcode.POP_MEM_WORD)) { segment ->
+                    listOf(Opcode.PUSH_MEM_B, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_B_TO_W, Opcode.POP_MEM_WORD),
+                    listOf(Opcode.PUSH_MEM_UB, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_B_TO_W, Opcode.POP_MEM_WORD)) { segment ->
                 """
                 lda  ${hexVal(segment[0])}
                 sta  ${hexVal(segment[3])}
@@ -1533,14 +1540,14 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // mem uword = ubytearray[index var]
-            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.UB2UWORD, Opcode.POP_MEM_WORD)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_UB_TO_UW, Opcode.POP_MEM_WORD)) { segment ->
                 val loadA = loadAFromIndexedByVar(segment[0], segment[1])
                 " $loadA |  sta  ${hexVal(segment[3])} |  lda  #0 |  sta  ${hexValPlusOne(segment[3])}"
             },
             // mem uword = ubytearray[mem (u)bute]
             AsmPattern(
-                    listOf(Opcode.PUSH_MEM_B, Opcode.READ_INDEXED_VAR_BYTE, Opcode.UB2UWORD, Opcode.POP_MEM_WORD),
-                    listOf(Opcode.PUSH_MEM_UB, Opcode.READ_INDEXED_VAR_BYTE, Opcode.UB2UWORD, Opcode.POP_MEM_WORD)) { segment ->
+                    listOf(Opcode.PUSH_MEM_B, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_UB_TO_UW, Opcode.POP_MEM_WORD),
+                    listOf(Opcode.PUSH_MEM_UB, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_UB_TO_UW, Opcode.POP_MEM_WORD)) { segment ->
                 """
                 lda  ${hexVal(segment[0])}
                 sta  ${hexVal(segment[3])}
@@ -1582,7 +1589,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // word var = bytevar (sign extended)
-            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.B2WORD, Opcode.POP_VAR_WORD)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.CAST_B_TO_W, Opcode.POP_VAR_WORD)) { segment ->
                 """
                 lda  ${segment[0].callLabel}
                 sta  ${segment[2].callLabel}
@@ -1590,7 +1597,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // mem word = bytevar (sign extended)
-            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.B2WORD, Opcode.POP_MEM_WORD)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.CAST_B_TO_W, Opcode.POP_MEM_WORD)) { segment ->
                 """
                 lda  ${segment[0].callLabel}
                 sta  ${hexVal(segment[2])}
@@ -1598,7 +1605,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // mem word = mem byte (sign extended)
-            AsmPattern(listOf(Opcode.PUSH_MEM_B, Opcode.B2WORD, Opcode.POP_MEM_WORD)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_MEM_B, Opcode.CAST_B_TO_W, Opcode.POP_MEM_WORD)) { segment ->
                 """
                 lda  ${hexVal(segment[0])}
                 sta  ${hexVal(segment[2])}
@@ -1606,7 +1613,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // var = membyte (sign extended)
-            AsmPattern(listOf(Opcode.PUSH_MEM_B, Opcode.B2WORD, Opcode.POP_VAR_WORD)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_MEM_B, Opcode.CAST_B_TO_W, Opcode.POP_VAR_WORD)) { segment ->
                 """
                 lda  ${hexVal(segment[0])}
                 sta  ${segment[2].callLabel}
@@ -1614,7 +1621,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // var = bytearray[index_byte]  (sign extended)
-            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.B2WORD, Opcode.POP_VAR_WORD)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_B_TO_W, Opcode.POP_VAR_WORD)) { segment ->
                 val index = hexVal(segment[0])
                 """
                 lda  ${segment[1].callLabel}+$index
@@ -1623,7 +1630,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // var = bytearray[index var]  (sign extended)
-            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.B2WORD, Opcode.POP_VAR_WORD)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_B_TO_W, Opcode.POP_VAR_WORD)) { segment ->
                 val loadByteA = loadAFromIndexedByVar(segment[0], segment[1])
                 """
                 $loadByteA
@@ -1633,8 +1640,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             },
             // var = bytearray[mem (u)byte]  (sign extended)
             AsmPattern(
-                    listOf(Opcode.PUSH_MEM_B, Opcode.READ_INDEXED_VAR_BYTE, Opcode.B2WORD, Opcode.POP_VAR_WORD),
-                    listOf(Opcode.PUSH_MEM_UB, Opcode.READ_INDEXED_VAR_BYTE, Opcode.B2WORD, Opcode.POP_VAR_WORD)) { segment ->
+                    listOf(Opcode.PUSH_MEM_B, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_B_TO_W, Opcode.POP_VAR_WORD),
+                    listOf(Opcode.PUSH_MEM_UB, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_B_TO_W, Opcode.POP_VAR_WORD)) { segment ->
                 """
                 lda  ${hexVal(segment[0])}
                 sta  ${segment[3].callLabel}
@@ -1712,7 +1719,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // uwordarray[index] = ubytevar
-            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.UB2UWORD, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.CAST_UB_TO_UW, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
                 val index = intVal(segment[2])*2
                 when(segment[0].callLabel) {
                     "A" -> " sta  ${segment[3].callLabel}+$index |  lda  #0 |  sta  ${segment[3].callLabel}+${index+1}"
@@ -1722,7 +1729,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 }
             },
             // wordarray[index] = bytevar  (extend sign)
-            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.B2WORD, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.CAST_B_TO_W, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
                 val index = intVal(segment[2])*2
                 when(segment[0].callLabel) {
                     "A" ->
@@ -1752,8 +1759,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             },
             // wordarray[index mem] = bytevar  (extend sign)
             AsmPattern(
-                    listOf(Opcode.PUSH_VAR_BYTE, Opcode.B2WORD, Opcode.PUSH_MEM_B, Opcode.WRITE_INDEXED_VAR_WORD),
-                    listOf(Opcode.PUSH_VAR_BYTE, Opcode.B2WORD, Opcode.PUSH_MEM_UB, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
+                    listOf(Opcode.PUSH_VAR_BYTE, Opcode.CAST_B_TO_W, Opcode.PUSH_MEM_B, Opcode.WRITE_INDEXED_VAR_WORD),
+                    listOf(Opcode.PUSH_VAR_BYTE, Opcode.CAST_B_TO_W, Opcode.PUSH_MEM_UB, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
                 when(segment[0].callLabel) {
                     "A" ->
                         """
@@ -1799,8 +1806,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             },
             // wordarray[memory (u)byte] = ubyte mem
             AsmPattern(
-                    listOf(Opcode.PUSH_MEM_B, Opcode.B2WORD, Opcode.PUSH_MEM_B, Opcode.WRITE_INDEXED_VAR_WORD),
-                    listOf(Opcode.PUSH_MEM_B, Opcode.B2WORD, Opcode.PUSH_MEM_UB, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
+                    listOf(Opcode.PUSH_MEM_B, Opcode.CAST_B_TO_W, Opcode.PUSH_MEM_B, Opcode.WRITE_INDEXED_VAR_WORD),
+                    listOf(Opcode.PUSH_MEM_B, Opcode.CAST_B_TO_W, Opcode.PUSH_MEM_UB, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
                 """
                 lda  ${hexVal(segment[2])}
                 asl  a
@@ -1811,7 +1818,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // wordarray[index] = mem byte  (extend sign)
-            AsmPattern(listOf(Opcode.PUSH_MEM_B, Opcode.B2WORD, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_MEM_B, Opcode.CAST_B_TO_W, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
                 val index = intVal(segment[2])*2
                 """
                 lda  ${hexVal(segment[0])}
@@ -1820,7 +1827,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // wordarray2[index2] = bytearray1[index1] (extend sign)
-            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.B2WORD, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment->
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_B_TO_W, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment->
                 val index1 = intVal(segment[0])
                 val index2 = segment[3].arg!!.integerValue()*2
                 """
@@ -1831,8 +1838,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             },
             // wordarray2[mem (u)byte] = bytearray1[index1] (extend sign)
             AsmPattern(
-                    listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.B2WORD, Opcode.PUSH_MEM_B, Opcode.WRITE_INDEXED_VAR_WORD),
-                    listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.B2WORD, Opcode.PUSH_MEM_UB, Opcode.WRITE_INDEXED_VAR_WORD)) { segment->
+                    listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_B_TO_W, Opcode.PUSH_MEM_B, Opcode.WRITE_INDEXED_VAR_WORD),
+                    listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_B_TO_W, Opcode.PUSH_MEM_UB, Opcode.WRITE_INDEXED_VAR_WORD)) { segment->
                 val index1 = intVal(segment[0])
                 """
                 lda  ${hexVal(segment[3])}
@@ -1845,7 +1852,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             },
 
             // wordarray[indexvar]  = byte  var (sign extended)
-            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.B2WORD, Opcode.PUSH_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.CAST_B_TO_W, Opcode.PUSH_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
                 val loadValueOnStack = when(segment[0].callLabel) {
                     "A" -> " pha"
                     "X" -> " txa |  pha"
@@ -1867,7 +1874,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // wordarray[indexvar]  = byte  mem (sign extended)
-            AsmPattern(listOf(Opcode.PUSH_MEM_B, Opcode.B2WORD, Opcode.PUSH_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_MEM_B, Opcode.CAST_B_TO_W, Opcode.PUSH_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
                 val loadIndexY = when(segment[2].callLabel) {
                     "A" -> " asl  a |  tay"
                     "X" -> " txa |  asl  a | tay"
@@ -1892,7 +1899,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // wordarray2[indexvar] = bytearay[index] (sign extended)
-            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.B2WORD, Opcode.PUSH_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment->
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_B_TO_W, Opcode.PUSH_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment->
                 val index = intVal(segment[0])
                 val loadIndex2Y = when(segment[3].callLabel) {
                     "A" -> " asl  a |  tay"
@@ -1925,8 +1932,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 
             // uwordarray[index mem] = ubytevar
             AsmPattern(
-                    listOf(Opcode.PUSH_VAR_BYTE, Opcode.UB2UWORD, Opcode.PUSH_MEM_B, Opcode.WRITE_INDEXED_VAR_WORD),
-                    listOf(Opcode.PUSH_VAR_BYTE, Opcode.UB2UWORD, Opcode.PUSH_MEM_UB, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
+                    listOf(Opcode.PUSH_VAR_BYTE, Opcode.CAST_UB_TO_UW, Opcode.PUSH_MEM_B, Opcode.WRITE_INDEXED_VAR_WORD),
+                    listOf(Opcode.PUSH_VAR_BYTE, Opcode.CAST_UB_TO_UW, Opcode.PUSH_MEM_UB, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
                 when(segment[0].callLabel) {
                     "A" ->
                         """
@@ -1975,8 +1982,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             },
             // uwordarray[index mem] = ubyte mem
             AsmPattern(
-                    listOf(Opcode.PUSH_MEM_UB, Opcode.UB2UWORD, Opcode.PUSH_MEM_B, Opcode.WRITE_INDEXED_VAR_WORD),
-                    listOf(Opcode.PUSH_MEM_UB, Opcode.UB2UWORD, Opcode.PUSH_MEM_UB, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
+                    listOf(Opcode.PUSH_MEM_UB, Opcode.CAST_UB_TO_UW, Opcode.PUSH_MEM_B, Opcode.WRITE_INDEXED_VAR_WORD),
+                    listOf(Opcode.PUSH_MEM_UB, Opcode.CAST_UB_TO_UW, Opcode.PUSH_MEM_UB, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
                 """
                 lda  ${hexVal(segment[2])}
                 asl  a
@@ -1988,7 +1995,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // uwordarray[index] = mem ubyte
-            AsmPattern(listOf(Opcode.PUSH_MEM_UB, Opcode.UB2UWORD, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_MEM_UB, Opcode.CAST_UB_TO_UW, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
                 val index = intVal(segment[2])*2
                 """
                 lda  ${hexVal(segment[0])}
@@ -2018,7 +2025,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // uwordarray2[index2] = ubytearray1[index1]
-            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.UB2UWORD, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment->
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_UB_TO_UW, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment->
                 val index1 = intVal(segment[0])
                 val index2 = segment[3].arg!!.integerValue()*2
                 """
@@ -2051,7 +2058,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 " $loadIndexY |  lda  #<$value |  sta  ${segment[2].callLabel},y |  lda  #>$value |  sta  ${segment[2].callLabel}+1,y"
             },
             // uwordarray[indexvar]  = ubyte  var
-            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.UB2UWORD, Opcode.PUSH_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.CAST_UB_TO_UW, Opcode.PUSH_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
                 val loadValueOnStack = when(segment[0].callLabel) {
                     "A" -> " pha"
                     "X" -> " txa |  pha"
@@ -2087,7 +2094,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 " $loadIndexY |  lda  #<${segment[0].callLabel} |  sta  ${segment[2].callLabel},y |  lda  #>${segment[0].callLabel} |  sta  ${segment[2].callLabel}+1,y"
             },
             // uwordarray[indexvar]  = mem ubyte
-            AsmPattern(listOf(Opcode.PUSH_MEM_UB, Opcode.UB2UWORD, Opcode.PUSH_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_MEM_UB, Opcode.CAST_UB_TO_UW, Opcode.PUSH_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
                 val loadIndexY = when(segment[2].callLabel) {
                     "A" -> " asl  a |  tay"
                     "X" -> " txa |  asl  a | tay"
@@ -2109,7 +2116,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 " $loadIndexY |  lda  ${hexVal(segment[0])} |  sta  ${segment[2].callLabel},y |  lda  ${hexValPlusOne(segment[0])} |  sta  ${segment[2].callLabel}+1,y"
             },
             // uwordarray2[indexvar] = ubytearay[index]
-            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.UB2UWORD, Opcode.PUSH_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment->
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_UB_TO_UW, Opcode.PUSH_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment->
                 val index = intVal(segment[0])
                 val loadIndex2Y = when(segment[3].callLabel) {
                     "A" -> " asl  a |  tay"
@@ -2132,8 +2139,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             },
             // uwordarray2[index mem] = ubytearray1[index1]
             AsmPattern(
-                    listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.UB2UWORD, Opcode.PUSH_MEM_B, Opcode.WRITE_INDEXED_VAR_WORD),
-                    listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.UB2UWORD, Opcode.PUSH_MEM_UB, Opcode.WRITE_INDEXED_VAR_WORD)) { segment->
+                    listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_UB_TO_UW, Opcode.PUSH_MEM_B, Opcode.WRITE_INDEXED_VAR_WORD),
+                    listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_UB_TO_UW, Opcode.PUSH_MEM_UB, Opcode.WRITE_INDEXED_VAR_WORD)) { segment->
                 val index1 = intVal(segment[0])
                 """
                 lda  ${hexVal(segment[3])}
@@ -2164,7 +2171,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 
             // ----------- assignment to FLOAT VARIABLE ----------------
             // floatvar  = ubytevar
-            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.UB2FLOAT, Opcode.POP_VAR_FLOAT)) { segment->
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.CAST_UB_TO_F, Opcode.POP_VAR_FLOAT)) { segment->
                 val loadByteA = when(segment[0].callLabel) {
                     "A" -> ""
                     "X" -> "txa"
@@ -2180,7 +2187,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // floatvar = uwordvar
-            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.UW2FLOAT, Opcode.POP_VAR_FLOAT)) { segment->
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.CAST_UW_TO_F, Opcode.POP_VAR_FLOAT)) { segment->
                 """
                 lda  ${segment[0].callLabel}
                 sta  ${C64Zeropage.SCRATCH_W1}
@@ -2192,7 +2199,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // floatvar = bytevar
-            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.B2FLOAT, Opcode.POP_VAR_FLOAT)) { segment->
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.CAST_B_TO_F, Opcode.POP_VAR_FLOAT)) { segment->
                 val loadByteA = when(segment[0].callLabel) {
                     "A" -> ""
                     "X" -> "txa"
@@ -2208,7 +2215,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // floatvar = wordvar
-            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.W2FLOAT, Opcode.POP_VAR_FLOAT)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.CAST_W_TO_F, Opcode.POP_VAR_FLOAT)) { segment ->
                 """
                 lda  ${segment[0].callLabel}
                 sta  ${C64Zeropage.SCRATCH_W1}
@@ -2257,7 +2264,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // floatvar = mem byte
-            AsmPattern(listOf(Opcode.PUSH_MEM_B, Opcode.B2FLOAT, Opcode.POP_VAR_FLOAT)) { segment->
+            AsmPattern(listOf(Opcode.PUSH_MEM_B, Opcode.CAST_B_TO_F, Opcode.POP_VAR_FLOAT)) { segment->
                 """
                 lda  ${hexVal(segment[0])}
                 sta  ${C64Zeropage.SCRATCH_B1}
@@ -2267,7 +2274,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // floatvar = mem ubyte
-            AsmPattern(listOf(Opcode.PUSH_MEM_UB, Opcode.UB2FLOAT, Opcode.POP_VAR_FLOAT)) { segment->
+            AsmPattern(listOf(Opcode.PUSH_MEM_UB, Opcode.CAST_UB_TO_F, Opcode.POP_VAR_FLOAT)) { segment->
                 """
                 lda  ${hexVal(segment[0])}
                 sta  ${C64Zeropage.SCRATCH_B1}
@@ -2277,7 +2284,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // floatvar = mem word
-            AsmPattern(listOf(Opcode.PUSH_MEM_W, Opcode.W2FLOAT, Opcode.POP_VAR_FLOAT)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_MEM_W, Opcode.CAST_W_TO_F, Opcode.POP_VAR_FLOAT)) { segment ->
                 """
                 lda  ${hexVal(segment[0])}
                 sta  ${C64Zeropage.SCRATCH_W1}
@@ -2289,7 +2296,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // floatvar = mem uword
-            AsmPattern(listOf(Opcode.PUSH_MEM_UW, Opcode.UW2FLOAT, Opcode.POP_VAR_FLOAT)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_MEM_UW, Opcode.CAST_UW_TO_F, Opcode.POP_VAR_FLOAT)) { segment ->
                 """
                 lda  ${hexVal(segment[0])}
                 sta  ${C64Zeropage.SCRATCH_W1}
@@ -2302,7 +2309,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             },
 
             // floatvar = bytearray[index]
-            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.B2FLOAT, Opcode.POP_VAR_FLOAT)) { segment->
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_B_TO_F, Opcode.POP_VAR_FLOAT)) { segment->
                 val index = intVal(segment[0])
                 """
                 lda  ${segment[1].callLabel}+$index
@@ -2313,7 +2320,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // floatvar = ubytearray[index]
-            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.UB2FLOAT, Opcode.POP_VAR_FLOAT)) { segment->
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_UB_TO_F, Opcode.POP_VAR_FLOAT)) { segment->
                 val index = intVal(segment[0])
                 """
                 lda  ${segment[1].callLabel}+$index
@@ -2324,7 +2331,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // floatvar = wordarray[index]
-            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_WORD, Opcode.W2FLOAT, Opcode.POP_VAR_FLOAT)) { segment->
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_WORD, Opcode.CAST_W_TO_F, Opcode.POP_VAR_FLOAT)) { segment->
                 val index = intVal(segment[0])*2
                 """
                 lda  ${segment[1].callLabel}+$index
@@ -2337,7 +2344,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // floatvar = uwordarray[index]
-            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_WORD, Opcode.UW2FLOAT, Opcode.POP_VAR_FLOAT)) { segment->
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_WORD, Opcode.CAST_UW_TO_F, Opcode.POP_VAR_FLOAT)) { segment->
                 val index = intVal(segment[0])*2
                 """
                 lda  ${segment[1].callLabel}+$index
@@ -2389,7 +2396,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // memfloat  = ubytevar
-            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.UB2FLOAT, Opcode.POP_MEM_FLOAT)) { segment->
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.CAST_UB_TO_F, Opcode.POP_MEM_FLOAT)) { segment->
                 val loadByteA = when(segment[0].callLabel) {
                     "A" -> ""
                     "X" -> "txa"
@@ -2405,7 +2412,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // memfloat = uwordvar
-            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.UW2FLOAT, Opcode.POP_MEM_FLOAT)) { segment->
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.CAST_UW_TO_F, Opcode.POP_MEM_FLOAT)) { segment->
                 """
                 lda  ${segment[0].callLabel}
                 sta  ${C64Zeropage.SCRATCH_W1}
@@ -2417,7 +2424,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // memfloat = bytevar
-            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.B2FLOAT, Opcode.POP_MEM_FLOAT)) { segment->
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.CAST_B_TO_F, Opcode.POP_MEM_FLOAT)) { segment->
                 val loadByteA = when(segment[0].callLabel) {
                     "A" -> ""
                     "X" -> "txa"
@@ -2433,7 +2440,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // memfloat = wordvar
-            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.W2FLOAT, Opcode.POP_MEM_FLOAT)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.CAST_W_TO_F, Opcode.POP_MEM_FLOAT)) { segment ->
                 """
                 lda  ${segment[0].callLabel}
                 sta  ${C64Zeropage.SCRATCH_W1}
@@ -2445,7 +2452,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // memfloat = mem byte
-            AsmPattern(listOf(Opcode.PUSH_MEM_B, Opcode.B2FLOAT, Opcode.POP_MEM_FLOAT)) { segment->
+            AsmPattern(listOf(Opcode.PUSH_MEM_B, Opcode.CAST_B_TO_F, Opcode.POP_MEM_FLOAT)) { segment->
                 """
                 lda  ${hexVal(segment[0])}
                 sta  ${C64Zeropage.SCRATCH_B1}
@@ -2455,7 +2462,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // memfloat = mem ubyte
-            AsmPattern(listOf(Opcode.PUSH_MEM_UB, Opcode.UB2FLOAT, Opcode.POP_MEM_FLOAT)) { segment->
+            AsmPattern(listOf(Opcode.PUSH_MEM_UB, Opcode.CAST_UB_TO_F, Opcode.POP_MEM_FLOAT)) { segment->
                 """
                 lda  ${hexVal(segment[0])}
                 sta  ${C64Zeropage.SCRATCH_B1}
@@ -2465,7 +2472,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // memfloat = mem word
-            AsmPattern(listOf(Opcode.PUSH_MEM_W, Opcode.W2FLOAT, Opcode.POP_MEM_FLOAT)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_MEM_W, Opcode.CAST_W_TO_F, Opcode.POP_MEM_FLOAT)) { segment ->
                 """
                 lda  ${hexVal(segment[0])}
                 sta  ${C64Zeropage.SCRATCH_W1}
@@ -2477,7 +2484,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // memfloat = mem uword
-            AsmPattern(listOf(Opcode.PUSH_MEM_UW, Opcode.UW2FLOAT, Opcode.POP_MEM_FLOAT)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_MEM_UW, Opcode.CAST_UW_TO_F, Opcode.POP_MEM_FLOAT)) { segment ->
                 """
                 lda  ${hexVal(segment[0])}
                 sta  ${C64Zeropage.SCRATCH_W1}
@@ -2501,7 +2508,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // memfloat = bytearray[index]
-            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.B2FLOAT, Opcode.POP_MEM_FLOAT)) { segment->
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_B_TO_F, Opcode.POP_MEM_FLOAT)) { segment->
                 val index = intVal(segment[0])
                 """
                 lda  ${segment[1].callLabel}+$index
@@ -2512,7 +2519,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // memfloat = ubytearray[index]
-            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.UB2FLOAT, Opcode.POP_MEM_FLOAT)) { segment->
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.CAST_UB_TO_F, Opcode.POP_MEM_FLOAT)) { segment->
                 val index = intVal(segment[0])
                 """
                 lda  ${segment[1].callLabel}+$index
@@ -2523,7 +2530,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // memfloat = wordarray[index]
-            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_WORD, Opcode.W2FLOAT, Opcode.POP_MEM_FLOAT)) { segment->
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_WORD, Opcode.CAST_W_TO_F, Opcode.POP_MEM_FLOAT)) { segment->
                 val index = intVal(segment[0])*2
                 """
                 lda  ${segment[1].callLabel}+$index
@@ -2536,7 +2543,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
             // memfloat = uwordarray[index]
-            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_WORD, Opcode.UW2FLOAT, Opcode.POP_MEM_FLOAT)) { segment->
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_WORD, Opcode.CAST_UW_TO_F, Opcode.POP_MEM_FLOAT)) { segment->
                 val index = intVal(segment[0])*2
                 """
                 lda  ${segment[1].callLabel}+$index
@@ -2707,8 +2714,9 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             },
 
 
-            // byte var = lsb(word var)
-            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.LSB, Opcode.POP_VAR_BYTE)) { segment ->
+            // byte var = wordvar as (u)byte
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.CAST_WRD_TO_UB, Opcode.POP_VAR_BYTE),
+                    listOf(Opcode.PUSH_VAR_WORD, Opcode.CAST_WRD_TO_B, Opcode.POP_VAR_BYTE)) { segment ->
                 when(segment[2].callLabel) {
                     "A" -> " lda  ${segment[0].callLabel}"
                     "X" -> " ldx  ${segment[0].callLabel}"
@@ -2725,8 +2733,9 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     else -> " lda  ${segment[0].callLabel}+1 |  sta  ${segment[2].callLabel}"
                 }
             },
-            // push lsb(word var)
-            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.LSB)) { segment ->
+            // push word var as (u)byte
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.CAST_WRD_TO_UB),
+                    listOf(Opcode.PUSH_VAR_WORD, Opcode.CAST_WRD_TO_B)) { segment ->
                 " lda  ${segment[0].callLabel} |  sta  ${ESTACK_LO.toHex()},x |  dex "
             },
             // push msb(word var)

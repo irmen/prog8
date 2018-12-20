@@ -8,12 +8,14 @@
 
     ; @todo unify the type cast functions...   "wrd(5)"  ->  "5 as word"
 
+    ; @todo docs: "integer / int will not result in float but is integer floor division."   verify this!
+
     sub toscreenx(float x, float z) -> word {
         return 42 as word
     }
 
     asmsub blerp(ubyte x @ A, uword ding @ XY) -> clobbers() -> () {
-        word qq = X as word
+        word qq = A as word
     }
 
     sub start()  {

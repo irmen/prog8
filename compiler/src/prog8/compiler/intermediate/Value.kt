@@ -386,15 +386,6 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
         }
     }
 
-    fun lsb(): Value {
-        return when(type) {
-            DataType.UBYTE -> Value(DataType.UBYTE, byteval!!)
-            DataType.BYTE -> Value(DataType.UBYTE, byteval!!.toInt() and 255)
-            DataType.UWORD, DataType.WORD -> Value(DataType.UBYTE, wordval!! and 255)
-            else -> throw VmExecutionException("lsb can only work on (u)byte/(u)word")
-        }
-    }
-
     fun msb(): Value {
         return when(type) {
             DataType.UBYTE, DataType.BYTE -> Value(DataType.UBYTE, 0)

@@ -179,26 +179,21 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
 
         fun optimizeFloatConversion(index0: Int, index1: Int, ins1: Instruction) {
             when (ins1.opcode) {
-                Opcode.LSB,
-                Opcode.MSB,
-                Opcode.B2WORD,
-                Opcode.UB2UWORD,
-                Opcode.B2FLOAT,
-                Opcode.UB2FLOAT,
-                Opcode.UW2FLOAT,
-                Opcode.W2FLOAT -> throw CompilerException("invalid conversion following a float")
                 Opcode.DISCARD_FLOAT -> {
                     instructionsToReplace[index0] = Instruction(Opcode.NOP)
                     instructionsToReplace[index1] = Instruction(Opcode.NOP)
                 }
                 Opcode.DISCARD_BYTE, Opcode.DISCARD_WORD -> throw CompilerException("invalid discard type following a float")
-                else -> throw CompilerException("invalid conversion opcode ${ins1.opcode}")
+                else -> throw CompilerException("invalid conversion opcode ${ins1.opcode} following a float")
             }
         }
 
         fun optimizeWordConversion(index0: Int, ins0: Instruction, index1: Int, ins1: Instruction) {
             when (ins1.opcode) {
-                Opcode.LSB -> {
+                Opcode.CAST_B_TO_W, Opcode.CAST_B_TO_UW -> TODO("cast byte to (u)word")
+                Opcode.CAST_UB_TO_W, Opcode.CAST_UB_TO_UW -> TODO("cast ubyte to (u)word")
+                Opcode.CAST_WRD_TO_B -> TODO("cast (u)word to byte")
+                Opcode.CAST_WRD_TO_UB -> {
                     val ins = Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, ins0.arg!!.integerValue() and 255))
                     instructionsToReplace[index0] = ins
                     instructionsToReplace[index1] = Instruction(Opcode.NOP)
@@ -208,11 +203,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                     instructionsToReplace[index0] = ins
                     instructionsToReplace[index1] = Instruction(Opcode.NOP)
                 }
-                Opcode.B2WORD,
-                Opcode.UB2UWORD,
-                Opcode.B2FLOAT,
-                Opcode.UB2FLOAT -> throw CompilerException("invalid conversion following a word")
-                Opcode.W2FLOAT, Opcode.UW2FLOAT -> {
+                Opcode.CAST_W_TO_F, Opcode.CAST_UW_TO_F -> {
                     val ins = Instruction(Opcode.PUSH_FLOAT, Value(DataType.FLOAT, ins0.arg!!.integerValue().toDouble()))
                     instructionsToReplace[index0] = ins
                     instructionsToReplace[index1] = Instruction(Opcode.NOP)
@@ -222,30 +213,32 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                     instructionsToReplace[index1] = Instruction(Opcode.NOP)
                 }
                 Opcode.DISCARD_BYTE, Opcode.DISCARD_FLOAT -> throw CompilerException("invalid discard type following a byte")
-                else -> throw CompilerException("invalid conversion opcode ${ins1.opcode}")
+                else -> throw CompilerException("invalid conversion opcode ${ins1.opcode} following a word")
             }
         }
 
         fun optimizeByteConversion(index0: Int, ins0: Instruction, index1: Int, ins1: Instruction) {
             when (ins1.opcode) {
-                Opcode.LSB -> instructionsToReplace[index1] = Instruction(Opcode.NOP)
+                Opcode.CAST_B_TO_UB, Opcode.CAST_UB_TO_B,
+                Opcode.CAST_WRD_TO_B, Opcode.CAST_WRD_TO_UB -> instructionsToReplace[index1] = Instruction(Opcode.NOP)
                 Opcode.MSB -> throw CompilerException("msb of a byte")
-                Opcode.UB2UWORD -> {
+                Opcode.CAST_UB_TO_UW -> {
                     val ins = Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, ins0.arg!!.integerValue()))
                     instructionsToReplace[index0] = ins
                     instructionsToReplace[index1] = Instruction(Opcode.NOP)
                 }
-                Opcode.B2WORD -> {
+                Opcode.CAST_B_TO_W -> {
                     val ins = Instruction(Opcode.PUSH_WORD, Value(DataType.WORD, ins0.arg!!.integerValue()))
                     instructionsToReplace[index0] = ins
                     instructionsToReplace[index1] = Instruction(Opcode.NOP)
                 }
-                Opcode.B2FLOAT, Opcode.UB2FLOAT -> {
+                Opcode.CAST_B_TO_UW, Opcode.CAST_UB_TO_W -> TODO("cast byte to (u)word")
+                Opcode.CAST_B_TO_F, Opcode.CAST_UB_TO_F-> {
                     val ins = Instruction(Opcode.PUSH_FLOAT, Value(DataType.FLOAT, ins0.arg!!.integerValue().toDouble()))
                     instructionsToReplace[index0] = ins
                     instructionsToReplace[index1] = Instruction(Opcode.NOP)
                 }
-                Opcode.W2FLOAT, Opcode.UW2FLOAT -> throw CompilerException("invalid conversion following a byte")
+                Opcode.CAST_W_TO_F, Opcode.CAST_UW_TO_F-> throw CompilerException("invalid conversion following a byte")
                 Opcode.DISCARD_BYTE -> {
                     instructionsToReplace[index0] = Instruction(Opcode.NOP)
                     instructionsToReplace[index1] = Instruction(Opcode.NOP)
@@ -259,14 +252,25 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
             instructionsToReplace.clear()
 
             val typeConversionOpcodes = setOf(
-                    Opcode.LSB,
                     Opcode.MSB,
-                    Opcode.B2WORD,
-                    Opcode.UB2UWORD,
-                    Opcode.B2FLOAT,
-                    Opcode.UB2FLOAT,
-                    Opcode.W2FLOAT,
-                    Opcode.UW2FLOAT,
+                    Opcode.CAST_UB_TO_B,
+                    Opcode.CAST_UB_TO_UW,
+                    Opcode.CAST_UB_TO_W,
+                    Opcode.CAST_UB_TO_F,
+                    Opcode.CAST_B_TO_UB,
+                    Opcode.CAST_B_TO_UW,
+                    Opcode.CAST_B_TO_W,
+                    Opcode.CAST_B_TO_F,
+                    Opcode.CAST_UW_TO_W,
+                    Opcode.CAST_UW_TO_F,
+                    Opcode.CAST_WRD_TO_UB,
+                    Opcode.CAST_WRD_TO_B,
+                    Opcode.CAST_W_TO_UW,
+                    Opcode.CAST_W_TO_F,
+                    Opcode.CAST_F_TO_UB,
+                    Opcode.CAST_F_TO_B,
+                    Opcode.CAST_F_TO_UW,
+                    Opcode.CAST_F_TO_W,
                     Opcode.DISCARD_BYTE,
                     Opcode.DISCARD_WORD,
                     Opcode.DISCARD_FLOAT

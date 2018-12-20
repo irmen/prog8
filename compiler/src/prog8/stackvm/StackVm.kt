@@ -1,8 +1,6 @@
 package prog8.stackvm
 
-import prog8.ast.DataType
-import prog8.ast.IterableDatatypes
-import prog8.ast.NumericDatatypes
+import prog8.ast.*
 import prog8.compiler.HeapValues
 import prog8.compiler.intermediate.Instruction
 import prog8.compiler.intermediate.Opcode
@@ -39,13 +37,9 @@ enum class Syscall(val callNr: Short) {
     FUNC_ROUND(79),
     FUNC_FLOOR(80),
     FUNC_CEIL(81),
-    FUNC_FINTB(82),
-    FUNC_FINTW(83),
     FUNC_RND(89),                // push a random byte on the stack
     FUNC_RNDW(90),               // push a random word on the stack
     FUNC_RNDF(91),               // push a random float on the stack (between 0.0 and 1.0)
-    FUNC_WRD(92),
-    FUNC_UWRD(93),
     FUNC_STR2BYTE(100),
     FUNC_STR2UBYTE(101),
     FUNC_STR2WORD(102),
@@ -955,11 +949,6 @@ class StackVm(private var traceOutputFile: String?) {
                 checkDt(variable, DataType.FLOAT)
                 variables[ins.callLabel] =variable.dec()
             }
-            Opcode.LSB -> {
-                val v = evalstack.pop()
-                checkDt(v, DataType.UWORD, DataType.WORD)
-                evalstack.push(v.lsb())
-            }
             Opcode.MSB -> {
                 val v = evalstack.pop()
                 checkDt(v, DataType.UWORD, DataType.WORD)
@@ -1167,49 +1156,6 @@ class StackVm(private var traceOutputFile: String?) {
                 checkDt(second, DataType.FLOAT)
                 evalstack.push(Value(DataType.UBYTE, if (second != top) 1 else 0))
             }
-            Opcode.B2UB -> {
-                val byte = evalstack.pop()
-                checkDt(byte, DataType.BYTE)
-                evalstack.push(Value(DataType.UBYTE, byte.integerValue() and 255))
-            }
-            Opcode.UB2B -> {
-                val byte = evalstack.pop()
-                checkDt(byte, DataType.UBYTE)
-                if(byte.integerValue() > 127) {
-                    evalstack.push(Value(DataType.BYTE, -((byte.integerValue() xor 255) + 1)))
-                } else
-                    evalstack.push(Value(DataType.BYTE, byte.integerValue()))
-            }
-            Opcode.B2WORD -> {
-                val byte = evalstack.pop()
-                checkDt(byte, DataType.BYTE)
-                evalstack.push(Value(DataType.WORD, byte.integerValue()))
-            }
-            Opcode.UB2UWORD -> {
-                val ubyte = evalstack.pop()
-                checkDt(ubyte, DataType.UBYTE)
-                evalstack.push(Value(DataType.UWORD, ubyte.integerValue()))
-            }
-            Opcode.B2FLOAT -> {
-                val byte = evalstack.pop()
-                checkDt(byte, DataType.BYTE)
-                evalstack.push(Value(DataType.FLOAT, byte.integerValue()))
-            }
-            Opcode.UB2FLOAT -> {
-                val byte = evalstack.pop()
-                checkDt(byte, DataType.UBYTE)
-                evalstack.push(Value(DataType.FLOAT, byte.integerValue()))
-            }
-            Opcode.W2FLOAT -> {
-                val wrd = evalstack.pop()
-                checkDt(wrd, DataType.UWORD)
-                evalstack.push(Value(DataType.FLOAT, wrd.integerValue()))
-            }
-            Opcode.UW2FLOAT -> {
-                val uwrd = evalstack.pop()
-                checkDt(uwrd, DataType.UWORD)
-                evalstack.push(Value(DataType.FLOAT, uwrd.integerValue()))
-            }
             Opcode.READ_INDEXED_VAR_BYTE -> {
                 // put the byte value of variable[index] onto the stack
                 val index = evalstack.pop().integerValue()
@@ -1399,6 +1345,11 @@ class StackVm(private var traceOutputFile: String?) {
                     throw VmExecutionException("expected string to be on heap")
                 evalstack.push(Value(DataType.UWORD, heapId))       // push the "address" of the string
             }
+            Opcode.CAST_UB_TO_B, Opcode.CAST_WRD_TO_B, Opcode.CAST_F_TO_B -> typecast(DataType.BYTE)
+            Opcode.CAST_B_TO_UB, Opcode.CAST_WRD_TO_UB, Opcode.CAST_F_TO_UB -> typecast(DataType.UBYTE)
+            Opcode.CAST_UB_TO_UW, Opcode.CAST_B_TO_UW, Opcode.CAST_W_TO_UW, Opcode.CAST_F_TO_UW -> typecast(DataType.UWORD)
+            Opcode.CAST_UB_TO_W, Opcode.CAST_B_TO_W, Opcode.CAST_UW_TO_W, Opcode.CAST_F_TO_W -> typecast(DataType.WORD)
+            Opcode.CAST_UB_TO_F, Opcode.CAST_B_TO_F, Opcode.CAST_UW_TO_F, Opcode.CAST_W_TO_F -> typecast(DataType.FLOAT)
 
             //else -> throw VmExecutionException("unimplemented opcode: ${ins.opcode}")
         }
@@ -1409,6 +1360,13 @@ class StackVm(private var traceOutputFile: String?) {
         }
 
         return ins.next
+    }
+
+    private fun typecast(type: DataType) {
+        val value = evalstack.pop()
+        val lv = LiteralValue.optimalNumeric(value.numericValue(), Position("?", 0, 0, 0))
+        val lv2 = TypecastExpression.typecast(lv, type) ?: throw VmExecutionException("type cast error")
+        evalstack.push(Value(lv2.type, lv2.asNumericValue!!))
     }
 
     private fun dispatchSyscall(ins: Instruction) {
@@ -1627,69 +1585,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val y = str.str!!.trim().trimEnd('\u0000')
                 evalstack.push(Value(DataType.FLOAT, y.toDouble()))
             }
-            Syscall.FUNC_FINTB -> {
-                val value = evalstack.pop()
-                if(value.type in NumericDatatypes) {
-                    val integer: Short
-                    val flt = value.numericValue().toDouble()
-                    integer = when {
-                        flt <= -128 -> -128
-                        flt >= 127 -> 127
-                        else -> flt.toShort()
-                    }
-                    evalstack.push(Value(DataType.BYTE, integer))
-                }
-                else throw VmExecutionException("cannot fintb $value")
-            }
-            Syscall.FUNC_FINTW -> {
-                val value = evalstack.pop()
-                if(value.type in NumericDatatypes) {
-                    val integer: Int
-                    val flt = value.numericValue().toDouble()
-                    integer = when {
-                        flt <= -32768 -> -32768
-                        flt >= 32767 -> 32767
-                        else -> flt.toInt()
-                    }
-                    evalstack.push(Value(DataType.WORD, integer))
-                }
-                else throw VmExecutionException("cannot fintw $value")
-            }
-            Syscall.FUNC_WRD -> {
-                val value = evalstack.pop()
-                checkDt(value, DataType.UBYTE, DataType.BYTE, DataType.UWORD)
-                when(value.type) {
-                    DataType.UBYTE, DataType.BYTE -> evalstack.push(Value(DataType.WORD, value.integerValue()))
-                    DataType.UWORD -> {
-                        val v2=
-                            if(value.integerValue() <= 32767)
-                                Value(DataType.WORD, value.integerValue())
-                            else
-                                Value(DataType.WORD, -((value.integerValue() xor 65535) + 1))
-                        evalstack.push(v2)
-                    }
-                    DataType.WORD -> evalstack.push(value)
-                    else -> {}
-                }
-            }
-            Syscall.FUNC_UWRD -> {
-                val value = evalstack.pop()
-                checkDt(value, DataType.UBYTE, DataType.BYTE, DataType.WORD)
-                when(value.type) {
-                    DataType.UBYTE -> evalstack.push(Value(DataType.UWORD, value.integerValue()))
-                    DataType.UWORD -> evalstack.push(value)
-                    DataType.BYTE, DataType.WORD -> {
-                        val v2 =
-                                if(value.integerValue()>=0)
-                                    Value(DataType.UWORD, value.integerValue())
-                                else
-                                    Value(DataType.UWORD, (abs(value.integerValue()) xor 65535) + 1)
-                        evalstack.push(v2)
-                    }
-                    else -> {}
-                }
-            }
-        }
+         }
     }
 
     fun irq(timestamp: Long) {

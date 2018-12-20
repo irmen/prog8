@@ -1,6 +1,5 @@
 package prog8.ast
 
-import com.sun.org.apache.xpath.internal.operations.Bool
 import prog8.compiler.CompilationOptions
 import prog8.compiler.HeapValues
 import prog8.compiler.target.c64.FLOAT_MAX_NEGATIVE

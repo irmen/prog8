@@ -435,8 +435,9 @@ You can also reference idendifiers defined elsewhere in your code.
     Calculations with integers will not result in floating point values;
     if you divide two integer values (say: ``32500 / 99``) the result will be the integer floor
     division (328) rather than the floating point result (328.2828282828283). If you need the full precision,
-    you'll have to write ``flt(32500) / 99`` (or if they're constants, simply ``32500.0 / 99``), to make sure the
-    first operand is a floating point value.
+    you'll have to make sure at least the first operand is a floating point. So write ``32500.0 / 99.0``,
+    or use the type cast ``value as float``.
+
 
 
 Arithmetic and Logical expressions
@@ -542,34 +543,10 @@ len(x)
     Note: this can be different from the number of *bytes* in memory if the datatype isn't a byte.
 
 lsb(x)
-    Get the least significant byte of the word x.
+    Get the least significant byte of the word x. Equivalent to the cast "x as ubyte".
 
 msb(x)
     Get the most significant byte of the word x.
-
-flt(x)
-    Explicitly convert the number x to a floating point number.
-    This is required if you want calculations to have floating point precision when the values aren't float already.
-
-fintb(x)
-    Take floor of the floating point into a byte value. (no overflow check). Use together with b2ub() to convert into a unsigned byte instead.
-
-fintw(x)
-    Take floor of the floating point into a word value. (no overflow check).
-
-wrd(x)
-    Explicitly convert the value x to a signed word (sign extended).
-    This is required if you want calculations to have word precision when the values are different types.
-
-uwrd(x)
-    Explicitly convert the byte x to an unsigned word.
-    This is required if you want calculations to have unsigned word precision when the values are different types.
-
-b2ub(x)
-    Convert signed byte to unsinged byte. Uses 2's complement if dealing with a negative number.
-
-ub2b(x)
-    Convert an unsigned byte to a signed byte. Uses 2's complement to deal with negative numbers.
 
 any(x)
     1 ('true') if any of the values in the array value x is 'true' (not zero), else 0 ('false')

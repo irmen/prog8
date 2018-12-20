@@ -119,16 +119,25 @@ enum class Opcode {
     INV_WORD,
 
     // numeric type conversions
-    LSB,
-    MSB,
-    B2UB,
-    UB2B,
-    B2WORD,         // convert a byte into a word where it is the lower eight bits $ssxx with sign extension
-    UB2UWORD,       // convert a byte into a word where it is the lower eight bits $00xx
-    B2FLOAT,        // convert byte into floating point
-    UB2FLOAT,       // convert unsigned byte into floating point
-    W2FLOAT,        // convert word into floating point
-    UW2FLOAT,       // convert unsigned word into floating point
+    MSB,        // note: lsb is equivalent to  CAST_UW_TO_UB  or CAST_WRD_TO_UB
+    CAST_UB_TO_B,
+    CAST_UB_TO_UW,
+    CAST_UB_TO_W,
+    CAST_UB_TO_F,
+    CAST_B_TO_UB,
+    CAST_B_TO_UW,
+    CAST_B_TO_W,
+    CAST_B_TO_F,
+    CAST_WRD_TO_UB,   // word and uword: just take the LSB
+    CAST_WRD_TO_B,    // word and uword: just take the LSB
+    CAST_W_TO_UW,
+    CAST_W_TO_F,
+    CAST_UW_TO_W,
+    CAST_UW_TO_F,
+    CAST_F_TO_UB,
+    CAST_F_TO_B,
+    CAST_F_TO_UW,
+    CAST_F_TO_W,
 
     // logical operations
     AND_BYTE,

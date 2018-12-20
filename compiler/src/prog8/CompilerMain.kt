@@ -39,7 +39,7 @@ private fun compileMain(args: Array<String>) {
         else if(!arg.startsWith("--"))
             moduleFile = arg
     }
-    if(moduleFile.isNullOrBlank())
+    if(moduleFile.isBlank())
         usage()
 
     val filepath = Paths.get(moduleFile).normalize()

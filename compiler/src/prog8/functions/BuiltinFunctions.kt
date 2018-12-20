@@ -1,7 +1,6 @@
 package prog8.functions
 
 import prog8.ast.*
-import prog8.compiler.CompilerException
 import prog8.compiler.HeapValues
 import kotlin.math.log2
 
@@ -46,13 +45,6 @@ val BuiltinFunctions = mapOf(
     "all"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.all { v -> v != 0.0} }},
     "lsb"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, n, h -> oneIntArgOutputInt(a, p, n, h) { x: Int -> x and 255 }},
     "msb"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, n, h -> oneIntArgOutputInt(a, p, n, h) { x: Int -> x ushr 8 and 255}},
-    "flt"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", NumericDatatypes)), DataType.FLOAT, ::builtinFlt),
-    "uwrd"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.UBYTE, DataType.BYTE, DataType.WORD))), DataType.UWORD, ::builtinUwrd),
-    "wrd"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD))), DataType.WORD, ::builtinWrd),
-    "fintb"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.BYTE, ::builtinFintb),
-    "fintw"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.WORD, ::builtinFintw),
-    "b2ub"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.BYTE))), DataType.UBYTE, ::builtinB2ub),
-    "ub2b"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.UBYTE))), DataType.BYTE, ::builtinUb2b),
     "rnd"         to FunctionSignature(true, emptyList(), DataType.UBYTE),
     "rndw"        to FunctionSignature(true, emptyList(), DataType.UWORD),
     "rndf"        to FunctionSignature(true, emptyList(), DataType.FLOAT),
@@ -62,6 +54,7 @@ val BuiltinFunctions = mapOf(
     "clear_carry" to FunctionSignature(false, emptyList(), null),
     "set_irqd"    to FunctionSignature(false, emptyList(), null),
     "clear_irqd"  to FunctionSignature(false, emptyList(), null),
+        // @todo change the string conversion functions into "string as byte" type casts?
     "str2byte"    to FunctionSignature(true, listOf(BuiltinFunctionParam("string", StringDatatypes)), DataType.BYTE),
     "str2ubyte"   to FunctionSignature(true, listOf(BuiltinFunctionParam("string", StringDatatypes)), DataType.UBYTE),
     "str2word"    to FunctionSignature(true, listOf(BuiltinFunctionParam("string", StringDatatypes)), DataType.WORD),
@@ -235,96 +228,6 @@ private fun collectionArgOutputBoolean(args: List<IExpression>, position: Positi
         function(array.map { it.toDouble() })
     }
     return LiteralValue.fromBoolean(result, position)
-}
-
-private fun builtinFlt(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
-    // 1 numeric arg, convert to float
-    if(args.size!=1)
-        throw SyntaxError("flt requires one numeric argument", position)
-
-    val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
-    val number = constval.asNumericValue ?: throw SyntaxError("flt requires one numeric argument", position)
-    return LiteralValue(DataType.FLOAT, floatvalue = number.toDouble(), position = position)
-}
-
-private fun builtinFintb(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
-    // 1 float arg, convert to byte
-    if(args.size!=1)
-        throw SyntaxError("fintb requires one floating point argument", position)
-
-    val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
-    if(constval.type!=DataType.FLOAT)
-        throw SyntaxError("fintb requires one floating point argument", position)
-    val integer: Short
-    val flt = constval.floatvalue!!
-    integer = when {
-        flt <= -128 -> -128
-        flt >= 127 -> 127
-        else -> flt.toShort()
-    }
-    return LiteralValue(DataType.BYTE, bytevalue = integer, position = position)
-}
-
-private fun builtinFintw(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
-    // 1 float arg, convert to word
-    if(args.size!=1)
-        throw SyntaxError("fintw requires one floating point argument", position)
-
-    val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
-    if(constval.type!=DataType.FLOAT)
-        throw SyntaxError("fintw requires one floating point argument", position)
-    val integer: Int
-    val flt = constval.floatvalue!!
-    integer = when {
-        flt <= -32768 -> -32768
-        flt >= 32767 -> 32767
-        else -> flt.toInt()
-    }
-    return LiteralValue(DataType.WORD, wordvalue = integer, position = position)
-}
-
-private fun builtinWrd(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
-    // 1 byte arg, convert to word
-    if(args.size!=1)
-        throw SyntaxError("wrd requires one numeric argument", position)
-
-    val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
-    if(constval.type!=DataType.UBYTE && constval.type!=DataType.BYTE && constval.type!=DataType.UWORD)
-        throw SyntaxError("wrd requires one argument of type ubyte, byte or uword", position)
-    return LiteralValue(DataType.WORD, wordvalue = constval.asIntegerValue, position = position)
-}
-
-private fun builtinUwrd(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
-    // 1 arg, convert to uword
-    if(args.size!=1)
-        throw SyntaxError("uwrd requires one numeric argument", position)
-
-    val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
-    if(constval.type!=DataType.BYTE && constval.type!=DataType.WORD && constval.type!=DataType.UWORD)
-        throw SyntaxError("uwrd requires one argument of type byte, word or uword", position)
-    return LiteralValue(DataType.UWORD, wordvalue = constval.asIntegerValue!! and 65535, position = position)
-}
-
-private fun builtinB2ub(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
-    // 1 byte arg, convert to ubyte
-    if(args.size!=1)
-        throw SyntaxError("b2ub requires one byte argument", position)
-
-    val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
-    if(constval.type!=DataType.BYTE && constval.type!=DataType.UBYTE)
-        throw SyntaxError("b2ub requires one argument of type byte or ubyte", position)
-    return LiteralValue(DataType.UBYTE, bytevalue=(constval.bytevalue!!.toInt() and 255).toShort(), position = position)
-}
-
-private fun builtinUb2b(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
-    // 1 ubyte arg, convert to byte
-    if(args.size!=1)
-        throw SyntaxError("ub2b requires one ubyte argument", position)
-
-    val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
-    if(constval.type!=DataType.UBYTE)
-        throw SyntaxError("ub2b requires one argument of type ubyte", position)
-    return LiteralValue(DataType.BYTE, bytevalue=(constval.bytevalue!!.toInt() and 255).toShort(), position = position)
 }
 
 private fun builtinAbs(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
