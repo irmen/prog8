@@ -11,7 +11,7 @@
     ; @todo docs: "integer / int will not result in float but is integer floor division."   verify this!
 
     sub toscreenx(float x, float z) -> word {
-        return 42 as word
+        return 42.w as word
     }
 
     asmsub blerp(ubyte x @ A, uword ding @ XY) -> clobbers() -> () {

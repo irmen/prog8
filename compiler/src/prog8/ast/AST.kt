@@ -2,8 +2,8 @@ package prog8.ast
 
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
-import prog8.compiler.CompilerException
 import prog8.compiler.HeapValues
+import prog8.compiler.intermediate.Value
 import prog8.compiler.target.c64.Petscii
 import prog8.functions.BuiltinFunctions
 import prog8.functions.NotConstArgumentException
@@ -990,65 +990,8 @@ class TypecastExpression(var expression: IExpression, var type: DataType, overri
     override fun isIterable(namespace: INameScope, heap: HeapValues) = type in IterableDatatypes
     override fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue? {
         val cv = expression.constValue(namespace, heap) ?: return null
-        return typecast(cv, type)
-    }
-
-    companion object {
-        fun typecast(cv: LiteralValue, type: DataType): LiteralValue? {
-            return when (cv.type) {
-                DataType.UBYTE -> {
-                    when (type) {
-                        DataType.UBYTE -> cv
-                        DataType.BYTE -> TODO("ubyte->byte")
-                        DataType.UWORD -> LiteralValue(DataType.UWORD, wordvalue = cv.asIntegerValue, position = cv.position)
-                        DataType.WORD -> LiteralValue(DataType.WORD, wordvalue = cv.asIntegerValue, position = cv.position)
-                        DataType.FLOAT -> LiteralValue(DataType.FLOAT, floatvalue = cv.asNumericValue!!.toDouble(), position = cv.position)
-                        else -> throw CompilerException("invalid type cast from ${cv.type} to $type")
-                    }
-                }
-                DataType.BYTE -> {
-                    when (type) {
-                        DataType.BYTE -> cv
-                        DataType.UBYTE -> LiteralValue(DataType.UBYTE, (cv.asIntegerValue!! and 255).toShort(), position = cv.position)
-                        DataType.UWORD -> LiteralValue(DataType.UWORD, wordvalue = cv.asIntegerValue!! and 65535, position = cv.position)
-                        DataType.WORD -> LiteralValue(DataType.WORD, wordvalue = cv.asIntegerValue, position = cv.position)
-                        DataType.FLOAT -> LiteralValue(DataType.FLOAT, floatvalue = cv.asNumericValue!!.toDouble(), position = cv.position)
-                        else -> throw CompilerException("invalid type cast from ${cv.type} to $type")
-                    }
-                }
-                DataType.UWORD -> {
-                    when (type) {
-                        DataType.BYTE -> TODO("uword->byte")
-                        DataType.UBYTE -> LiteralValue(DataType.UBYTE, (cv.asIntegerValue!! and 255).toShort(), position = cv.position)
-                        DataType.UWORD -> cv
-                        DataType.WORD -> TODO("uword->word")
-                        DataType.FLOAT -> LiteralValue(DataType.FLOAT, floatvalue = cv.asNumericValue!!.toDouble(), position = cv.position)
-                        else -> throw CompilerException("invalid type cast from ${cv.type} to $type")
-                    }
-                }
-                DataType.WORD -> {
-                    when (type) {
-                        DataType.BYTE -> TODO("word->byte")
-                        DataType.UBYTE -> LiteralValue(DataType.UBYTE, (cv.asIntegerValue!! and 255).toShort(), position = cv.position)
-                        DataType.UWORD -> LiteralValue(DataType.UWORD, wordvalue = cv.asIntegerValue!! and 65535, position = cv.position)
-                        DataType.WORD -> cv
-                        DataType.FLOAT -> LiteralValue(DataType.FLOAT, floatvalue = cv.asNumericValue!!.toDouble(), position = cv.position)
-                        else -> throw CompilerException("invalid type cast from ${cv.type} to $type")
-                    }
-                }
-                DataType.FLOAT -> {
-                    when (type) {
-                        DataType.BYTE -> TODO("float->byte")
-                        DataType.UBYTE -> LiteralValue(DataType.UBYTE, (cv.floatvalue!!.toInt() and 255).toShort(), position = cv.position)
-                        DataType.UWORD -> LiteralValue(DataType.UWORD, wordvalue = cv.floatvalue!!.toInt() and 65535, position = cv.position)
-                        DataType.WORD -> TODO("float->word")
-                        DataType.FLOAT -> cv
-                        else -> throw CompilerException("invalid type cast from ${cv.type} to $type")
-                    }
-                }
-                else -> throw CompilerException("invalid type cast from ${cv.type} to $type")
-            }
-        }
+        val value = Value(cv.type, cv.asNumericValue!!).cast(type)
+        return LiteralValue.fromNumber(value.numericValue(), value.type, position)
     }
 
     override fun toString(): String {

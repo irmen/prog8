@@ -3,10 +3,10 @@ package prog8tests
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.ast.DataType
-import prog8.ast.ExpressionError
 import prog8.ast.LiteralValue
 import prog8.ast.Position
 import prog8.compiler.intermediate.Value
+import prog8.compiler.intermediate.ValueException
 import prog8.stackvm.VmExecutionException
 import kotlin.test.*
 
@@ -137,44 +137,44 @@ class TestStackVmValue {
 
     @Test
     fun testNoDtConversion() {
-        assertFailsWith<VmExecutionException> {
+        assertFailsWith<ValueException> {
             Value(DataType.UWORD, 100).add(Value(DataType.UBYTE, 120))
         }
-        assertFailsWith<VmExecutionException> {
+        assertFailsWith<ValueException> {
             Value(DataType.UBYTE, 100).add(Value(DataType.UWORD, 120))
         }
-        assertFailsWith<VmExecutionException> {
+        assertFailsWith<ValueException> {
             Value(DataType.FLOAT, 100.22).add(Value(DataType.UWORD, 120))
         }
-        assertFailsWith<VmExecutionException> {
+        assertFailsWith<ValueException> {
             Value(DataType.UWORD, 1002).add(Value(DataType.FLOAT, 120.22))
         }
-        assertFailsWith<VmExecutionException> {
+        assertFailsWith<ValueException> {
             Value(DataType.FLOAT, 100.22).add(Value(DataType.UBYTE, 120))
         }
-        assertFailsWith<VmExecutionException> {
+        assertFailsWith<ValueException> {
             Value(DataType.UBYTE, 12).add(Value(DataType.FLOAT, 120.22))
         }
     }
 
     @Test
     fun testNoAutoFloatConversion() {
-        assertFailsWith<VmExecutionException> {
+        assertFailsWith<ValueException> {
             Value(DataType.UBYTE, 233).add(Value(DataType.FLOAT, 1.234))
         }
-        assertFailsWith<VmExecutionException> {
+        assertFailsWith<ValueException> {
             Value(DataType.UWORD, 233).add(Value(DataType.FLOAT, 1.234))
         }
-        assertFailsWith<VmExecutionException> {
+        assertFailsWith<ValueException> {
             Value(DataType.UBYTE, 233).mul(Value(DataType.FLOAT, 1.234))
         }
-        assertFailsWith<VmExecutionException> {
+        assertFailsWith<ValueException> {
             Value(DataType.UWORD, 233).mul(Value(DataType.FLOAT, 1.234))
         }
-        assertFailsWith<VmExecutionException> {
+        assertFailsWith<ValueException> {
             Value(DataType.UBYTE, 233).div(Value(DataType.FLOAT, 1.234))
         }
-        assertFailsWith<VmExecutionException> {
+        assertFailsWith<ValueException> {
             Value(DataType.UWORD, 233).div(Value(DataType.FLOAT, 1.234))
         }
         val result = Value(DataType.FLOAT, 233.333).add(Value(DataType.FLOAT, 1.234))

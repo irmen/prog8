@@ -119,7 +119,7 @@ enum class Opcode {
     INV_WORD,
 
     // numeric type conversions
-    MSB,        // note: lsb is equivalent to  CAST_UW_TO_UB  or CAST_WRD_TO_UB
+    MSB,        // note: lsb is equivalent to  CAST_UW_TO_UB  or CAST_W_TO_UB
     CAST_UB_TO_B,
     CAST_UB_TO_UW,
     CAST_UB_TO_W,
@@ -128,10 +128,12 @@ enum class Opcode {
     CAST_B_TO_UW,
     CAST_B_TO_W,
     CAST_B_TO_F,
-    CAST_WRD_TO_UB,   // word and uword: just take the LSB
-    CAST_WRD_TO_B,    // word and uword: just take the LSB
+    CAST_W_TO_UB,
+    CAST_W_TO_B,
     CAST_W_TO_UW,
     CAST_W_TO_F,
+    CAST_UW_TO_UB,
+    CAST_UW_TO_B,
     CAST_UW_TO_W,
     CAST_UW_TO_F,
     CAST_F_TO_UB,

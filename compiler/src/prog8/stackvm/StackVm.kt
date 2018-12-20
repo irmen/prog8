@@ -1345,11 +1345,26 @@ class StackVm(private var traceOutputFile: String?) {
                     throw VmExecutionException("expected string to be on heap")
                 evalstack.push(Value(DataType.UWORD, heapId))       // push the "address" of the string
             }
-            Opcode.CAST_UB_TO_B, Opcode.CAST_WRD_TO_B, Opcode.CAST_F_TO_B -> typecast(DataType.BYTE)
-            Opcode.CAST_B_TO_UB, Opcode.CAST_WRD_TO_UB, Opcode.CAST_F_TO_UB -> typecast(DataType.UBYTE)
-            Opcode.CAST_UB_TO_UW, Opcode.CAST_B_TO_UW, Opcode.CAST_W_TO_UW, Opcode.CAST_F_TO_UW -> typecast(DataType.UWORD)
-            Opcode.CAST_UB_TO_W, Opcode.CAST_B_TO_W, Opcode.CAST_UW_TO_W, Opcode.CAST_F_TO_W -> typecast(DataType.WORD)
-            Opcode.CAST_UB_TO_F, Opcode.CAST_B_TO_F, Opcode.CAST_UW_TO_F, Opcode.CAST_W_TO_F -> typecast(DataType.FLOAT)
+            Opcode.CAST_UB_TO_B -> typecast(DataType.UBYTE, DataType.BYTE)
+            Opcode.CAST_W_TO_B -> typecast(DataType.WORD, DataType.BYTE)
+            Opcode.CAST_UW_TO_B -> typecast(DataType.UWORD, DataType.BYTE)
+            Opcode.CAST_F_TO_B -> typecast(DataType.FLOAT, DataType.BYTE)
+            Opcode.CAST_B_TO_UB-> typecast(DataType.BYTE, DataType.UBYTE)
+            Opcode.CAST_W_TO_UB -> typecast(DataType.WORD, DataType.UBYTE)
+            Opcode.CAST_UW_TO_UB -> typecast(DataType.UWORD, DataType.UBYTE)
+            Opcode.CAST_F_TO_UB -> typecast(DataType.FLOAT, DataType.UBYTE)
+            Opcode.CAST_UB_TO_UW -> typecast(DataType.UBYTE, DataType.UWORD)
+            Opcode.CAST_B_TO_UW -> typecast(DataType.BYTE, DataType.UWORD)
+            Opcode.CAST_W_TO_UW -> typecast(DataType.WORD, DataType.UWORD)
+            Opcode.CAST_F_TO_UW -> typecast(DataType.FLOAT, DataType.UWORD)
+            Opcode.CAST_UB_TO_W -> typecast(DataType.UBYTE, DataType.WORD)
+            Opcode.CAST_B_TO_W -> typecast(DataType.BYTE, DataType.WORD)
+            Opcode.CAST_UW_TO_W -> typecast(DataType.UWORD, DataType.WORD)
+            Opcode.CAST_F_TO_W -> typecast(DataType.FLOAT, DataType.WORD)
+            Opcode.CAST_UB_TO_F -> typecast(DataType.UBYTE, DataType.FLOAT)
+            Opcode.CAST_B_TO_F -> typecast(DataType.BYTE, DataType.FLOAT)
+            Opcode.CAST_UW_TO_F -> typecast(DataType.UWORD, DataType.FLOAT)
+            Opcode.CAST_W_TO_F -> typecast(DataType.WORD, DataType.FLOAT)
 
             //else -> throw VmExecutionException("unimplemented opcode: ${ins.opcode}")
         }
@@ -1362,11 +1377,11 @@ class StackVm(private var traceOutputFile: String?) {
         return ins.next
     }
 
-    private fun typecast(type: DataType) {
+    private fun typecast(from: DataType, to: DataType) {
         val value = evalstack.pop()
-        val lv = LiteralValue.optimalNumeric(value.numericValue(), Position("?", 0, 0, 0))
-        val lv2 = TypecastExpression.typecast(lv, type) ?: throw VmExecutionException("type cast error")
-        evalstack.push(Value(lv2.type, lv2.asNumericValue!!))
+        checkDt(value, from)
+        val cv = value.cast(to)
+        evalstack.push(cv)
     }
 
     private fun dispatchSyscall(ins: Instruction) {

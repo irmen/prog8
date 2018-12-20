@@ -1,12 +1,14 @@
 package prog8.compiler.intermediate
 
-import prog8.ast.DataType
-import prog8.ast.IterableDatatypes
-import prog8.ast.NumericDatatypes
-import prog8.stackvm.VmExecutionException
+import prog8.ast.*
+import java.lang.Exception
 import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.pow
+
+
+class ValueException(msg: String?) : Exception(msg)
+
 
 class Value(val type: DataType, numericvalueOrHeapId: Number) {
     private var byteval: Short? = null
@@ -20,25 +22,25 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
         when(type) {
             DataType.UBYTE -> {
                 if(numericvalueOrHeapId.toInt() !in 0..255)
-                    throw VmExecutionException("value out of range: $numericvalueOrHeapId")
+                    throw ValueException("value out of range: $numericvalueOrHeapId")
                 byteval = numericvalueOrHeapId.toShort()
                 asBooleanValue = byteval != (0.toShort())
             }
             DataType.BYTE -> {
                 if(numericvalueOrHeapId.toInt() !in -128..127)
-                    throw VmExecutionException("value out of range: $numericvalueOrHeapId")
+                    throw ValueException("value out of range: $numericvalueOrHeapId")
                 byteval = numericvalueOrHeapId.toShort()
                 asBooleanValue = byteval != (0.toShort())
             }
             DataType.UWORD -> {
                 if(numericvalueOrHeapId.toInt() !in 0..65535)
-                    throw VmExecutionException("value out of range: $numericvalueOrHeapId")
+                    throw ValueException("value out of range: $numericvalueOrHeapId")
                 wordval = numericvalueOrHeapId.toInt()
                 asBooleanValue = wordval != 0
             }
             DataType.WORD -> {
                 if(numericvalueOrHeapId.toInt() !in -32768..32767)
-                    throw VmExecutionException("value out of range: $numericvalueOrHeapId")
+                    throw ValueException("value out of range: $numericvalueOrHeapId")
                 wordval = numericvalueOrHeapId.toInt()
                 asBooleanValue = wordval != 0
             }
@@ -48,7 +50,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
             }
             else -> {
                 if(numericvalueOrHeapId !is Int || numericvalueOrHeapId<0)
-                    throw VmExecutionException("for non-numeric types, the value should be a integer heapId >= 0")
+                    throw ValueException("for non-numeric types, the value should be a integer heapId >= 0")
                 heapId = numericvalueOrHeapId
                 asBooleanValue=true
             }
@@ -81,7 +83,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
             DataType.UBYTE, DataType.BYTE -> byteval!!
             DataType.UWORD, DataType.WORD -> wordval!!
             DataType.FLOAT -> floatval!!
-            else -> throw VmExecutionException("invalid datatype for numeric value: $type")
+            else -> throw ValueException("invalid datatype for numeric value: $type")
         }
     }
 
@@ -89,8 +91,8 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
         return when(type) {
             DataType.UBYTE, DataType.BYTE -> byteval!!.toInt()
             DataType.UWORD, DataType.WORD -> wordval!!
-            DataType.FLOAT -> throw VmExecutionException("float to integer loss of precision")
-            else -> throw VmExecutionException("invalid datatype for integer value: $type")
+            DataType.FLOAT -> throw ValueException("float to integer loss of precision")
+            else -> throw ValueException("invalid datatype for integer value: $type")
         }
     }
 
@@ -112,12 +114,12 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
     operator fun compareTo(other: Value): Int {
         return if (type in NumericDatatypes && other.type in NumericDatatypes)
                 numericValue().toDouble().compareTo(other.numericValue().toDouble())
-            else throw VmExecutionException("comparison can only be done between two numeric values")
+            else throw ValueException("comparison can only be done between two numeric values")
     }
 
     private fun arithResult(leftDt: DataType, result: Number, rightDt: DataType, op: String): Value {
         if(leftDt!=rightDt)
-            throw VmExecutionException("left and right datatypes are not the same")
+            throw ValueException("left and right datatypes are not the same")
         if(result.toDouble() < 0 ) {
             return when(leftDt) {
                 DataType.UBYTE, DataType.UWORD -> {
@@ -131,7 +133,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
                 DataType.BYTE -> Value(DataType.BYTE, result.toInt())
                 DataType.WORD -> Value(DataType.WORD, result.toInt())
                 DataType.FLOAT -> Value(DataType.FLOAT, result)
-                else -> throw VmExecutionException("$op on non-numeric type")
+                else -> throw ValueException("$op on non-numeric type")
             }
         }
 
@@ -141,13 +143,13 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
             DataType.UWORD -> Value(DataType.UWORD, result.toInt() and 65535)
             DataType.WORD -> Value(DataType.WORD, result.toInt())
             DataType.FLOAT -> Value(DataType.FLOAT, result)
-            else -> throw VmExecutionException("$op on non-numeric type")
+            else -> throw ValueException("$op on non-numeric type")
         }
     }
 
     fun add(other: Value): Value {
         if(other.type == DataType.FLOAT && (type!= DataType.FLOAT))
-            throw VmExecutionException("floating point loss of precision on type $type")
+            throw ValueException("floating point loss of precision on type $type")
         val v1 = numericValue()
         val v2 = other.numericValue()
         val result = v1.toDouble() + v2.toDouble()
@@ -156,7 +158,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
 
     fun sub(other: Value): Value {
         if(other.type == DataType.FLOAT && (type!= DataType.FLOAT))
-            throw VmExecutionException("floating point loss of precision on type $type")
+            throw ValueException("floating point loss of precision on type $type")
         val v1 = numericValue()
         val v2 = other.numericValue()
         val result = v1.toDouble() - v2.toDouble()
@@ -165,7 +167,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
 
     fun mul(other: Value): Value {
         if(other.type == DataType.FLOAT && (type!= DataType.FLOAT))
-            throw VmExecutionException("floating point loss of precision on type $type")
+            throw ValueException("floating point loss of precision on type $type")
         val v1 = numericValue()
         val v2 = other.numericValue()
         val result = v1.toDouble() * v2.toDouble()
@@ -174,7 +176,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
 
     fun div(other: Value): Value {
         if(other.type == DataType.FLOAT && (type!= DataType.FLOAT))
-            throw VmExecutionException("floating point loss of precision on type $type")
+            throw ValueException("floating point loss of precision on type $type")
         val v1 = numericValue()
         val v2 = other.numericValue()
         if(v2.toDouble()==0.0) {
@@ -189,13 +191,13 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
             DataType.UBYTE -> Value(DataType.UBYTE, result)
             DataType.UWORD -> Value(DataType.UWORD, result)
             DataType.FLOAT -> Value(DataType.FLOAT, result)
-            else -> throw VmExecutionException("div on non-numeric type")
+            else -> throw ValueException("div on non-numeric type")
         }
     }
 
     fun floordiv(other: Value): Value {
         if(other.type == DataType.FLOAT && (type!= DataType.FLOAT))
-            throw VmExecutionException("floating point loss of precision on type $type")
+            throw ValueException("floating point loss of precision on type $type")
         val v1 = numericValue()
         val v2 = other.numericValue()
         val result = floor(v1.toDouble() / v2.toDouble())
@@ -204,7 +206,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
             DataType.UBYTE -> Value(DataType.UBYTE, result)
             DataType.UWORD -> Value(DataType.UWORD, result)
             DataType.FLOAT -> Value(DataType.FLOAT, result)
-            else -> throw VmExecutionException("div on non-numeric type")
+            else -> throw ValueException("div on non-numeric type")
         }
     }
 
@@ -228,7 +230,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
             return Value(type, (v shl 1) and 255)
         if(type==DataType.UWORD)
             return Value(type, (v shl 1) and 65535)
-        throw VmExecutionException("invalid type for shl: $type")
+        throw ValueException("invalid type for shl: $type")
     }
 
     fun shr(): Value {
@@ -237,7 +239,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
             return Value(type, (v ushr 1) and 255)
         if(type==DataType.UWORD)
             return Value(type, (v ushr 1) and 65535)
-        throw VmExecutionException("invalid type for shr: $type")
+        throw ValueException("invalid type for shr: $type")
     }
 
     fun rol(carry: Boolean): Pair<Value, Boolean> {
@@ -255,7 +257,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
                 val newval = (v and 0x7fff shl 1) or (if(carry) 1 else 0)
                 Pair(Value(DataType.UWORD, newval), newCarry)
             }
-            else -> throw VmExecutionException("rol can only work on byte/word")
+            else -> throw ValueException("rol can only work on byte/word")
         }
     }
 
@@ -274,7 +276,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
                 val newval = (v ushr 1) or (if(carry) 0x8000 else 0)
                 Pair(Value(DataType.UWORD, newval), newCarry)
             }
-            else -> throw VmExecutionException("ror2 can only work on byte/word")
+            else -> throw ValueException("ror2 can only work on byte/word")
         }
     }
 
@@ -293,7 +295,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
                 val newval = (v and 0x7fff shl 1) or carry
                 Value(DataType.UWORD, newval)
             }
-            else -> throw VmExecutionException("rol2 can only work on byte/word")
+            else -> throw ValueException("rol2 can only work on byte/word")
         }
     }
 
@@ -312,7 +314,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
                 val newval = (v ushr 1) or carry
                 Value(DataType.UWORD, newval)
             }
-            else -> throw VmExecutionException("ror2 can only work on byte/word")
+            else -> throw ValueException("ror2 can only work on byte/word")
         }
     }
 
@@ -321,7 +323,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
             DataType.BYTE -> Value(DataType.BYTE, -(byteval!!))
             DataType.WORD -> Value(DataType.WORD, -(wordval!!))
             DataType.FLOAT -> Value(DataType.FLOAT, -(floatval)!!)
-            else -> throw VmExecutionException("neg can only work on byte/word/float")
+            else -> throw ValueException("neg can only work on byte/word/float")
         }
     }
 
@@ -330,7 +332,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
             DataType.BYTE -> Value(DataType.BYTE, abs(byteval!!.toInt()))
             DataType.WORD -> Value(DataType.WORD, abs(wordval!!))
             DataType.FLOAT -> Value(DataType.FLOAT, abs(floatval!!))
-            else -> throw VmExecutionException("abs can only work on byte/word/float")
+            else -> throw ValueException("abs can only work on byte/word/float")
         }
     }
 
@@ -364,7 +366,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
         return when(type) {
             DataType.UBYTE -> Value(DataType.UBYTE, byteval!!.toInt().inv() and 255)
             DataType.UWORD -> Value(DataType.UWORD, wordval!!.inv() and 65535)
-            else -> throw VmExecutionException("inv can only work on byte/word")
+            else -> throw ValueException("inv can only work on byte/word")
         }
     }
 
@@ -373,7 +375,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
             DataType.UBYTE -> Value(DataType.UBYTE, (byteval!! + 1) and 255)
             DataType.UWORD -> Value(DataType.UWORD, (wordval!! + 1) and 65535)
             DataType.FLOAT -> Value(DataType.FLOAT, floatval!! + 1)
-            else -> throw VmExecutionException("inc can only work on byte/word/float")
+            else -> throw ValueException("inc can only work on byte/word/float")
         }
     }
 
@@ -382,7 +384,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
             DataType.UBYTE -> Value(DataType.UBYTE, (byteval!! - 1) and 255)
             DataType.UWORD -> Value(DataType.UWORD, (wordval!! - 1) and 65535)
             DataType.FLOAT -> Value(DataType.FLOAT, floatval!! - 1)
-            else -> throw VmExecutionException("dec can only work on byte/word/float")
+            else -> throw ValueException("dec can only work on byte/word/float")
         }
     }
 
@@ -390,7 +392,84 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
         return when(type) {
             DataType.UBYTE, DataType.BYTE -> Value(DataType.UBYTE, 0)
             DataType.UWORD, DataType.WORD -> Value(DataType.UBYTE, wordval!! ushr 8 and 255)
-            else -> throw VmExecutionException("msb can only work on (u)byte/(u)word")
+            else -> throw ValueException("msb can only work on (u)byte/(u)word")
         }
     }
+
+    fun cast(targetType: DataType): Value {
+        return when (type) {
+            DataType.UBYTE -> {
+                when (targetType) {
+                    DataType.UBYTE -> this
+                    DataType.BYTE -> {
+                        if(byteval!!<=127)
+                            Value(DataType.BYTE, byteval!!)
+                        else
+                            Value(DataType.BYTE, -(256-byteval!!))
+                    }
+                    DataType.UWORD -> Value(DataType.UWORD, numericValue())
+                    DataType.WORD -> Value(DataType.WORD, numericValue())
+                    DataType.FLOAT -> Value(DataType.FLOAT, numericValue())
+                    else -> throw ValueException("invalid type cast from $type to $targetType")
+                }
+            }
+            DataType.BYTE -> {
+                when (targetType) {
+                    DataType.BYTE -> this
+                    DataType.UBYTE -> Value(DataType.UBYTE, integerValue() and 255)
+                    DataType.UWORD -> Value(DataType.UWORD, integerValue() and 65535)
+                    DataType.WORD -> Value(DataType.WORD, integerValue())
+                    DataType.FLOAT -> Value(DataType.FLOAT, numericValue())
+                    else -> throw ValueException("invalid type cast from $type to $targetType")
+                }
+            }
+            DataType.UWORD -> {
+                when (targetType) {
+                    DataType.BYTE, DataType.UBYTE -> Value(DataType.UBYTE, integerValue() and 255)
+                    DataType.UWORD -> this
+                    DataType.WORD -> {
+                        if(integerValue()<=32767)
+                            Value(DataType.WORD, integerValue())
+                        else
+                            Value(DataType.WORD, -(65536-integerValue()))
+                    }
+                    DataType.FLOAT -> Value(DataType.FLOAT, numericValue())
+                    else -> throw ValueException("invalid type cast from $type to $targetType")
+                }
+            }
+            DataType.WORD -> {
+                when (targetType) {
+                    DataType.BYTE, DataType.UBYTE -> Value(DataType.UBYTE, integerValue() and 255)
+                    DataType.UWORD -> Value(DataType.UWORD, integerValue() and 65535)
+                    DataType.WORD -> this
+                    DataType.FLOAT -> Value(DataType.FLOAT, numericValue())
+                    else -> throw ValueException("invalid type cast from $type to $targetType")
+                }
+            }
+            DataType.FLOAT -> {
+                when (targetType) {
+                    DataType.BYTE -> {
+                        val integer=numericValue().toInt()
+                        if(integer in -128..127)
+                            Value(DataType.BYTE, integer)
+                        else
+                            throw AstException("overflow when casting float to byte: $this")
+                    }
+                    DataType.UBYTE -> Value(DataType.UBYTE, numericValue().toInt() and 255)
+                    DataType.UWORD -> Value(DataType.UWORD, numericValue().toInt() and 65535)
+                    DataType.WORD -> {
+                        val integer=numericValue().toInt()
+                        if(integer in -32768..32767)
+                            Value(DataType.WORD, integer)
+                        else
+                            throw AstException("overflow when casting float to word: $this")
+                    }
+                    DataType.FLOAT -> this
+                    else -> throw ValueException("invalid type cast from $type to $targetType")
+                }
+            }
+            else -> throw ValueException("invalid type cast from $type to $targetType")
+        }
+    }
+
 }

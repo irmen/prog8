@@ -9,6 +9,7 @@ import prog8.compiler.HeapValues
 import prog8.compiler.intermediate.Instruction
 import prog8.compiler.intermediate.Opcode
 import prog8.compiler.intermediate.Value
+import prog8.compiler.intermediate.ValueException
 import prog8.stackvm.*
 import kotlin.test.*
 
@@ -413,10 +414,10 @@ class TestStackVmOpcodes {
     fun testInv() {
         testUnaryOperator(Value(DataType.UBYTE, 123), Opcode.INV_BYTE, Value(DataType.UBYTE, 0x84))
         testUnaryOperator(Value(DataType.UWORD, 4044), Opcode.INV_WORD, Value(DataType.UWORD, 0xf033))
-        assertFailsWith<VmExecutionException> {
+        assertFailsWith<ValueException> {
             testUnaryOperator(Value(DataType.BYTE, 123), Opcode.INV_BYTE, Value(DataType.BYTE, 0x84))
         }
-        assertFailsWith<VmExecutionException> {
+        assertFailsWith<ValueException> {
             testUnaryOperator(Value(DataType.WORD, 4044), Opcode.INV_WORD, Value(DataType.WORD, 0xf033))
         }
     }
@@ -537,13 +538,13 @@ class TestStackVmOpcodes {
     fun testW2Float() {
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 177)),
-                Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 52345)),
+                Instruction(Opcode.PUSH_WORD, Value(DataType.WORD, -12345)),
                 Instruction(Opcode.CAST_W_TO_F),
                 Instruction(Opcode.CAST_W_TO_F)
         )
         vm.load(makeProg(ins), null)
         vm.step(3)
-        assertEquals(Value(DataType.FLOAT, 52345.0), vm.evalstack.pop())
+        assertEquals(Value(DataType.FLOAT, -12345.0), vm.evalstack.pop())
         assertFailsWith<VmExecutionException> {
             vm.step(1)
         }

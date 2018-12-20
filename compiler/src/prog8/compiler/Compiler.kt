@@ -1975,14 +1975,16 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             DataType.UBYTE -> when(sourceDt) {
                 DataType.UBYTE -> {}
                 DataType.BYTE -> prog.instr(Opcode.CAST_B_TO_UB)
-                DataType.UWORD, DataType.WORD -> prog.instr(Opcode.CAST_WRD_TO_UB)
+                DataType.UWORD-> prog.instr(Opcode.CAST_UW_TO_UB)
+                DataType.WORD-> prog.instr(Opcode.CAST_W_TO_UB)
                 DataType.FLOAT -> prog.instr(Opcode.CAST_F_TO_UB)
                 else -> throw CompilerException("invalid cast type $sourceDt")
             }
             DataType.BYTE -> when(sourceDt) {
                 DataType.UBYTE -> prog.instr(Opcode.CAST_UB_TO_B)
                 DataType.BYTE -> {}
-                DataType.UWORD, DataType.WORD -> prog.instr(Opcode.CAST_WRD_TO_B)
+                DataType.UWORD -> prog.instr(Opcode.CAST_UW_TO_B)
+                DataType.WORD -> prog.instr(Opcode.CAST_W_TO_B)
                 DataType.FLOAT -> prog.instr(Opcode.CAST_F_TO_B)
                 else -> throw CompilerException("invalid cast type $sourceDt")
             }

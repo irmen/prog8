@@ -54,7 +54,6 @@ val BuiltinFunctions = mapOf(
     "clear_carry" to FunctionSignature(false, emptyList(), null),
     "set_irqd"    to FunctionSignature(false, emptyList(), null),
     "clear_irqd"  to FunctionSignature(false, emptyList(), null),
-        // @todo change the string conversion functions into "string as byte" type casts?
     "str2byte"    to FunctionSignature(true, listOf(BuiltinFunctionParam("string", StringDatatypes)), DataType.BYTE),
     "str2ubyte"   to FunctionSignature(true, listOf(BuiltinFunctionParam("string", StringDatatypes)), DataType.UBYTE),
     "str2word"    to FunctionSignature(true, listOf(BuiltinFunctionParam("string", StringDatatypes)), DataType.WORD),

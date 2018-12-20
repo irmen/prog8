@@ -674,20 +674,20 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.CAST_UB_TO_B -> ""  // is a no-op, just carry on with the byte as-is
             Opcode.CAST_W_TO_UW -> ""  // is a no-op, just carry on with the word as-is
             Opcode.CAST_UW_TO_W -> ""  // is a no-op, just carry on with the word as-is
-            Opcode.CAST_WRD_TO_UB -> ""  // is a no-op, just carry on with the lsb of the (u)word as-is
-            Opcode.CAST_WRD_TO_B -> ""  // is a no-op, just carry on with the lsb of the (u)word as-is
+            Opcode.CAST_W_TO_UB -> ""  // is a no-op, just carry on with the lsb of the word as-is
+            Opcode.CAST_W_TO_B -> ""  // is a no-op, just carry on with the lsb of the word as-is
+            Opcode.CAST_UW_TO_UB -> ""  // is a no-op, just carry on with the lsb of the uword as-is
+            Opcode.CAST_UW_TO_B -> ""  // is a no-op, just carry on with the lsb of the uword as-is
             Opcode.CAST_UB_TO_F -> " jsr  prog8_lib.stack_ub2float"
             Opcode.CAST_B_TO_F -> " jsr  prog8_lib.stack_b2float"
             Opcode.CAST_UW_TO_F -> " jsr  prog8_lib.stack_uw2float"
             Opcode.CAST_W_TO_F -> " jsr  prog8_lib.stack_w2float"
-            Opcode.CAST_UB_TO_UW -> " lda  #0 |  sta  ${ESTACK_HI+1},x"     // clear the msb
-            Opcode.CAST_UB_TO_W -> TODO("ub2w")
-            Opcode.CAST_B_TO_UW -> TODO("b2uw")
-            Opcode.CAST_B_TO_W -> " ${signExtendA("${ESTACK_HI+1},x")}"     // sign extend the lsb   @todo missing an lda???
-            Opcode.CAST_F_TO_UB -> TODO("f2ub")
-            Opcode.CAST_F_TO_B -> TODO("f2b")
-            Opcode.CAST_F_TO_UW -> TODO("f2uw")
-            Opcode.CAST_F_TO_W -> TODO("f2w")
+            Opcode.CAST_F_TO_UB -> " jsr  prog8_lib.stack_float2ub"
+            Opcode.CAST_F_TO_B -> " jsr  prog8_lib.stack_float2b"
+            Opcode.CAST_F_TO_UW -> " jsr  prog8_lib.stack_float2uw"
+            Opcode.CAST_F_TO_W -> " jsr  prog8_lib.stack_float2w"
+            Opcode.CAST_UB_TO_UW, Opcode.CAST_UB_TO_W -> " lda  #0 |  sta  ${ESTACK_HI+1},x"     // clear the msb
+            Opcode.CAST_B_TO_UW, Opcode.CAST_B_TO_W -> " ${signExtendA("${ESTACK_HI+1},x")}"     // sign extend the lsb   @todo missing an lda???
             Opcode.MSB -> " lda  ${(ESTACK_HI+1).toHex()},x |  sta ${(ESTACK_LO+1).toHex()},x"
 
             Opcode.DIV_UB -> "  jsr  prog8_lib.div_ub"
@@ -2715,8 +2715,18 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 
 
             // byte var = wordvar as (u)byte
-            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.CAST_WRD_TO_UB, Opcode.POP_VAR_BYTE),
-                    listOf(Opcode.PUSH_VAR_WORD, Opcode.CAST_WRD_TO_B, Opcode.POP_VAR_BYTE)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.CAST_W_TO_UB, Opcode.POP_VAR_BYTE),
+                    listOf(Opcode.PUSH_VAR_WORD, Opcode.CAST_W_TO_B, Opcode.POP_VAR_BYTE)) { segment ->
+                when(segment[2].callLabel) {
+                    "A" -> " lda  ${segment[0].callLabel}"
+                    "X" -> " ldx  ${segment[0].callLabel}"
+                    "Y" -> " ldy  ${segment[0].callLabel}"
+                    else -> " lda  ${segment[0].callLabel} |  sta  ${segment[2].callLabel}"
+                }
+            },
+            // byte var = uwordvar as (u)byte
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.CAST_UW_TO_UB, Opcode.POP_VAR_BYTE),
+                    listOf(Opcode.PUSH_VAR_WORD, Opcode.CAST_UW_TO_B, Opcode.POP_VAR_BYTE)) { segment ->
                 when(segment[2].callLabel) {
                     "A" -> " lda  ${segment[0].callLabel}"
                     "X" -> " ldx  ${segment[0].callLabel}"
@@ -2734,8 +2744,13 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 }
             },
             // push word var as (u)byte
-            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.CAST_WRD_TO_UB),
-                    listOf(Opcode.PUSH_VAR_WORD, Opcode.CAST_WRD_TO_B)) { segment ->
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.CAST_W_TO_UB),
+                    listOf(Opcode.PUSH_VAR_WORD, Opcode.CAST_W_TO_B)) { segment ->
+                " lda  ${segment[0].callLabel} |  sta  ${ESTACK_LO.toHex()},x |  dex "
+            },
+            // push uword var as (u)byte
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.CAST_UW_TO_UB),
+                    listOf(Opcode.PUSH_VAR_WORD, Opcode.CAST_UW_TO_B)) { segment ->
                 " lda  ${segment[0].callLabel} |  sta  ${ESTACK_LO.toHex()},x |  dex "
             },
             // push msb(word var)
