@@ -1,4 +1,4 @@
-// Generated from /home/irmen/Projects/prog8/compiler/antlr/prog8.g4 by ANTLR 4.7
+// Generated from ../antlr/prog8.g4 by ANTLR 4.7.2
 package prog8.parser;
 import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;
@@ -11,7 +11,7 @@ import java.util.ArrayList;
 
 @SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast"})
 public class prog8Parser extends Parser {
-	static { RuntimeMetaData.checkVersion("4.7", RuntimeMetaData.VERSION); }
+	static { RuntimeMetaData.checkVersion("4.7.2", RuntimeMetaData.VERSION); }
 
 	protected static final DFA[] _decisionToDFA;
 	protected static final PredictionContextCache _sharedContextCache =
@@ -53,52 +53,62 @@ public class prog8Parser extends Parser {
 		RULE_asmsub_params = 49, RULE_asmsub_param = 50, RULE_clobber = 51, RULE_asmsub_returns = 52, 
 		RULE_asmsub_return = 53, RULE_if_stmt = 54, RULE_else_part = 55, RULE_branch_stmt = 56, 
 		RULE_branchcondition = 57, RULE_forloop = 58, RULE_whileloop = 59, RULE_repeatloop = 60;
-	public static final String[] ruleNames = {
-		"module", "modulestatement", "block", "statement", "labeldef", "unconditionaljump", 
-		"directive", "directivearg", "vardecl", "varinitializer", "constdecl", 
-		"memoryvardecl", "datatype", "arrayspec", "assignment", "assign_targets", 
-		"augassignment", "assign_target", "postincrdecr", "expression", "typecast", 
-		"arrayindexed", "functioncall", "functioncall_stmt", "expression_list", 
-		"returnstmt", "breakstmt", "continuestmt", "identifier", "scoped_identifier", 
-		"register", "registerorpair", "statusregister", "integerliteral", "wordsuffix", 
-		"booleanliteral", "arrayliteral", "stringliteral", "charliteral", "floatliteral", 
-		"literalvalue", "inlineasm", "subroutine", "sub_return_part", "statement_block", 
-		"sub_params", "sub_returns", "asmsubroutine", "asmsub_address", "asmsub_params", 
-		"asmsub_param", "clobber", "asmsub_returns", "asmsub_return", "if_stmt", 
-		"else_part", "branch_stmt", "branchcondition", "forloop", "whileloop", 
-		"repeatloop"
-	};
+	private static String[] makeRuleNames() {
+		return new String[] {
+			"module", "modulestatement", "block", "statement", "labeldef", "unconditionaljump", 
+			"directive", "directivearg", "vardecl", "varinitializer", "constdecl", 
+			"memoryvardecl", "datatype", "arrayspec", "assignment", "assign_targets", 
+			"augassignment", "assign_target", "postincrdecr", "expression", "typecast", 
+			"arrayindexed", "functioncall", "functioncall_stmt", "expression_list", 
+			"returnstmt", "breakstmt", "continuestmt", "identifier", "scoped_identifier", 
+			"register", "registerorpair", "statusregister", "integerliteral", "wordsuffix", 
+			"booleanliteral", "arrayliteral", "stringliteral", "charliteral", "floatliteral", 
+			"literalvalue", "inlineasm", "subroutine", "sub_return_part", "statement_block", 
+			"sub_params", "sub_returns", "asmsubroutine", "asmsub_address", "asmsub_params", 
+			"asmsub_param", "clobber", "asmsub_returns", "asmsub_return", "if_stmt", 
+			"else_part", "branch_stmt", "branchcondition", "forloop", "whileloop", 
+			"repeatloop"
+		};
+	}
+	public static final String[] ruleNames = makeRuleNames();
 
-	private static final String[] _LITERAL_NAMES = {
-		null, "'~'", "':'", "'goto'", "'%output'", "'%launcher'", "'%zeropage'", 
-		"'%zpreserved'", "'%address'", "'%import'", "'%breakpoint'", "'%asminclude'", 
-		"'%asmbinary'", "'%option'", "','", "'='", "'const'", "'memory'", "'ubyte'", 
-		"'byte'", "'uword'", "'word'", "'float'", "'str'", "'str_p'", "'str_s'", 
-		"'str_ps'", "'['", "']'", "'+='", "'-='", "'/='", "'//='", "'*='", "'**='", 
-		"'&='", "'|='", "'^='", "'%='", "'++'", "'--'", "'('", "')'", "'+'", "'-'", 
-		"'**'", "'*'", "'/'", "'//'", "'%'", "'<'", "'>'", "'<='", "'>='", "'=='", 
-		"'!='", "'&'", "'^'", "'|'", "'to'", "'step'", "'and'", "'or'", "'xor'", 
-		"'not'", "'as'", "'return'", "'break'", "'continue'", "'.'", "'A'", "'X'", 
-		"'Y'", "'AX'", "'AY'", "'XY'", "'Pc'", "'Pz'", "'Pn'", "'Pv'", "'.w'", 
-		"'true'", "'false'", "'%asm'", "'sub'", "'->'", "'{'", "'}'", "'asmsub'", 
-		"'clobbers'", "'@'", "'if'", "'else'", "'if_cs'", "'if_cc'", "'if_eq'", 
-		"'if_z'", "'if_ne'", "'if_nz'", "'if_pl'", "'if_pos'", "'if_mi'", "'if_neg'", 
-		"'if_vs'", "'if_vc'", "'for'", "'in'", "'while'", "'repeat'", "'until'"
-	};
-	private static final String[] _SYMBOLIC_NAMES = {
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, "LINECOMMENT", "COMMENT", "WS", "EOL", "NAME", "DEC_INTEGER", 
-		"HEX_INTEGER", "BIN_INTEGER", "FLOAT_NUMBER", "STRING", "INLINEASMBLOCK", 
-		"SINGLECHAR"
-	};
+	private static String[] makeLiteralNames() {
+		return new String[] {
+			null, "'~'", "':'", "'goto'", "'%output'", "'%launcher'", "'%zeropage'", 
+			"'%zpreserved'", "'%address'", "'%import'", "'%breakpoint'", "'%asminclude'", 
+			"'%asmbinary'", "'%option'", "','", "'='", "'const'", "'memory'", "'ubyte'", 
+			"'byte'", "'uword'", "'word'", "'float'", "'str'", "'str_p'", "'str_s'", 
+			"'str_ps'", "'['", "']'", "'+='", "'-='", "'/='", "'//='", "'*='", "'**='", 
+			"'&='", "'|='", "'^='", "'%='", "'++'", "'--'", "'('", "')'", "'+'", 
+			"'-'", "'**'", "'*'", "'/'", "'//'", "'%'", "'<'", "'>'", "'<='", "'>='", 
+			"'=='", "'!='", "'&'", "'^'", "'|'", "'to'", "'step'", "'and'", "'or'", 
+			"'xor'", "'not'", "'as'", "'return'", "'break'", "'continue'", "'.'", 
+			"'A'", "'X'", "'Y'", "'AX'", "'AY'", "'XY'", "'Pc'", "'Pz'", "'Pn'", 
+			"'Pv'", "'.w'", "'true'", "'false'", "'%asm'", "'sub'", "'->'", "'{'", 
+			"'}'", "'asmsub'", "'clobbers'", "'@'", "'if'", "'else'", "'if_cs'", 
+			"'if_cc'", "'if_eq'", "'if_z'", "'if_ne'", "'if_nz'", "'if_pl'", "'if_pos'", 
+			"'if_mi'", "'if_neg'", "'if_vs'", "'if_vc'", "'for'", "'in'", "'while'", 
+			"'repeat'", "'until'"
+		};
+	}
+	private static final String[] _LITERAL_NAMES = makeLiteralNames();
+	private static String[] makeSymbolicNames() {
+		return new String[] {
+			null, null, null, null, null, null, null, null, null, null, null, null, 
+			null, null, null, null, null, null, null, null, null, null, null, null, 
+			null, null, null, null, null, null, null, null, null, null, null, null, 
+			null, null, null, null, null, null, null, null, null, null, null, null, 
+			null, null, null, null, null, null, null, null, null, null, null, null, 
+			null, null, null, null, null, null, null, null, null, null, null, null, 
+			null, null, null, null, null, null, null, null, null, null, null, null, 
+			null, null, null, null, null, null, null, null, null, null, null, null, 
+			null, null, null, null, null, null, null, null, null, null, null, null, 
+			null, null, "LINECOMMENT", "COMMENT", "WS", "EOL", "NAME", "DEC_INTEGER", 
+			"HEX_INTEGER", "BIN_INTEGER", "FLOAT_NUMBER", "STRING", "INLINEASMBLOCK", 
+			"SINGLECHAR"
+		};
+	}
+	private static final String[] _SYMBOLIC_NAMES = makeSymbolicNames();
 	public static final Vocabulary VOCABULARY = new VocabularyImpl(_LITERAL_NAMES, _SYMBOLIC_NAMES);
 
 	/**
@@ -148,6 +158,7 @@ public class prog8Parser extends Parser {
 		super(input);
 		_interp = new ParserATNSimulator(this,_ATN,_decisionToDFA,_sharedContextCache);
 	}
+
 	public static class ModuleContext extends ParserRuleContext {
 		public TerminalNode EOF() { return getToken(prog8Parser.EOF, 0); }
 		public List<ModulestatementContext> modulestatement() {

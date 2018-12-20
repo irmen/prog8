@@ -10,7 +10,8 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
-    <orderEntry type="library" name="antlr-4.7.1" level="project" />
     <orderEntry type="library" name="testlibs" level="project" />
+    <orderEntry type="library" name="antlr-4.7.2" level="project" />
+    <orderEntry type="library" name="lib" level="project" />
   </component>
 </module>

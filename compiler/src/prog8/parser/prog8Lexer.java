@@ -1,4 +1,4 @@
-// Generated from /home/irmen/Projects/prog8/compiler/antlr/prog8.g4 by ANTLR 4.7
+// Generated from ../antlr/prog8.g4 by ANTLR 4.7.2
 package prog8.parser;
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.CharStream;
@@ -11,7 +11,7 @@ import org.antlr.v4.runtime.misc.*;
 
 @SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast"})
 public class prog8Lexer extends Lexer {
-	static { RuntimeMetaData.checkVersion("4.7", RuntimeMetaData.VERSION); }
+	static { RuntimeMetaData.checkVersion("4.7.2", RuntimeMetaData.VERSION); }
 
 	protected static final DFA[] _decisionToDFA;
 	protected static final PredictionContextCache _sharedContextCache =
@@ -43,55 +43,65 @@ public class prog8Lexer extends Lexer {
 		"DEFAULT_MODE"
 	};
 
-	public static final String[] ruleNames = {
-		"T__0", "T__1", "T__2", "T__3", "T__4", "T__5", "T__6", "T__7", "T__8", 
-		"T__9", "T__10", "T__11", "T__12", "T__13", "T__14", "T__15", "T__16", 
-		"T__17", "T__18", "T__19", "T__20", "T__21", "T__22", "T__23", "T__24", 
-		"T__25", "T__26", "T__27", "T__28", "T__29", "T__30", "T__31", "T__32", 
-		"T__33", "T__34", "T__35", "T__36", "T__37", "T__38", "T__39", "T__40", 
-		"T__41", "T__42", "T__43", "T__44", "T__45", "T__46", "T__47", "T__48", 
-		"T__49", "T__50", "T__51", "T__52", "T__53", "T__54", "T__55", "T__56", 
-		"T__57", "T__58", "T__59", "T__60", "T__61", "T__62", "T__63", "T__64", 
-		"T__65", "T__66", "T__67", "T__68", "T__69", "T__70", "T__71", "T__72", 
-		"T__73", "T__74", "T__75", "T__76", "T__77", "T__78", "T__79", "T__80", 
-		"T__81", "T__82", "T__83", "T__84", "T__85", "T__86", "T__87", "T__88", 
-		"T__89", "T__90", "T__91", "T__92", "T__93", "T__94", "T__95", "T__96", 
-		"T__97", "T__98", "T__99", "T__100", "T__101", "T__102", "T__103", "T__104", 
-		"T__105", "T__106", "T__107", "T__108", "LINECOMMENT", "COMMENT", "WS", 
-		"EOL", "NAME", "DEC_INTEGER", "HEX_INTEGER", "BIN_INTEGER", "FLOAT_NUMBER", 
-		"FNUMBER", "STRING_ESCAPE_SEQ", "STRING", "INLINEASMBLOCK", "SINGLECHAR"
-	};
+	private static String[] makeRuleNames() {
+		return new String[] {
+			"T__0", "T__1", "T__2", "T__3", "T__4", "T__5", "T__6", "T__7", "T__8", 
+			"T__9", "T__10", "T__11", "T__12", "T__13", "T__14", "T__15", "T__16", 
+			"T__17", "T__18", "T__19", "T__20", "T__21", "T__22", "T__23", "T__24", 
+			"T__25", "T__26", "T__27", "T__28", "T__29", "T__30", "T__31", "T__32", 
+			"T__33", "T__34", "T__35", "T__36", "T__37", "T__38", "T__39", "T__40", 
+			"T__41", "T__42", "T__43", "T__44", "T__45", "T__46", "T__47", "T__48", 
+			"T__49", "T__50", "T__51", "T__52", "T__53", "T__54", "T__55", "T__56", 
+			"T__57", "T__58", "T__59", "T__60", "T__61", "T__62", "T__63", "T__64", 
+			"T__65", "T__66", "T__67", "T__68", "T__69", "T__70", "T__71", "T__72", 
+			"T__73", "T__74", "T__75", "T__76", "T__77", "T__78", "T__79", "T__80", 
+			"T__81", "T__82", "T__83", "T__84", "T__85", "T__86", "T__87", "T__88", 
+			"T__89", "T__90", "T__91", "T__92", "T__93", "T__94", "T__95", "T__96", 
+			"T__97", "T__98", "T__99", "T__100", "T__101", "T__102", "T__103", "T__104", 
+			"T__105", "T__106", "T__107", "T__108", "LINECOMMENT", "COMMENT", "WS", 
+			"EOL", "NAME", "DEC_INTEGER", "HEX_INTEGER", "BIN_INTEGER", "FLOAT_NUMBER", 
+			"FNUMBER", "STRING_ESCAPE_SEQ", "STRING", "INLINEASMBLOCK", "SINGLECHAR"
+		};
+	}
+	public static final String[] ruleNames = makeRuleNames();
 
-	private static final String[] _LITERAL_NAMES = {
-		null, "'~'", "':'", "'goto'", "'%output'", "'%launcher'", "'%zeropage'", 
-		"'%zpreserved'", "'%address'", "'%import'", "'%breakpoint'", "'%asminclude'", 
-		"'%asmbinary'", "'%option'", "','", "'='", "'const'", "'memory'", "'ubyte'", 
-		"'byte'", "'uword'", "'word'", "'float'", "'str'", "'str_p'", "'str_s'", 
-		"'str_ps'", "'['", "']'", "'+='", "'-='", "'/='", "'//='", "'*='", "'**='", 
-		"'&='", "'|='", "'^='", "'%='", "'++'", "'--'", "'('", "')'", "'+'", "'-'", 
-		"'**'", "'*'", "'/'", "'//'", "'%'", "'<'", "'>'", "'<='", "'>='", "'=='", 
-		"'!='", "'&'", "'^'", "'|'", "'to'", "'step'", "'and'", "'or'", "'xor'", 
-		"'not'", "'as'", "'return'", "'break'", "'continue'", "'.'", "'A'", "'X'", 
-		"'Y'", "'AX'", "'AY'", "'XY'", "'Pc'", "'Pz'", "'Pn'", "'Pv'", "'.w'", 
-		"'true'", "'false'", "'%asm'", "'sub'", "'->'", "'{'", "'}'", "'asmsub'", 
-		"'clobbers'", "'@'", "'if'", "'else'", "'if_cs'", "'if_cc'", "'if_eq'", 
-		"'if_z'", "'if_ne'", "'if_nz'", "'if_pl'", "'if_pos'", "'if_mi'", "'if_neg'", 
-		"'if_vs'", "'if_vc'", "'for'", "'in'", "'while'", "'repeat'", "'until'"
-	};
-	private static final String[] _SYMBOLIC_NAMES = {
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, "LINECOMMENT", "COMMENT", "WS", "EOL", "NAME", "DEC_INTEGER", 
-		"HEX_INTEGER", "BIN_INTEGER", "FLOAT_NUMBER", "STRING", "INLINEASMBLOCK", 
-		"SINGLECHAR"
-	};
+	private static String[] makeLiteralNames() {
+		return new String[] {
+			null, "'~'", "':'", "'goto'", "'%output'", "'%launcher'", "'%zeropage'", 
+			"'%zpreserved'", "'%address'", "'%import'", "'%breakpoint'", "'%asminclude'", 
+			"'%asmbinary'", "'%option'", "','", "'='", "'const'", "'memory'", "'ubyte'", 
+			"'byte'", "'uword'", "'word'", "'float'", "'str'", "'str_p'", "'str_s'", 
+			"'str_ps'", "'['", "']'", "'+='", "'-='", "'/='", "'//='", "'*='", "'**='", 
+			"'&='", "'|='", "'^='", "'%='", "'++'", "'--'", "'('", "')'", "'+'", 
+			"'-'", "'**'", "'*'", "'/'", "'//'", "'%'", "'<'", "'>'", "'<='", "'>='", 
+			"'=='", "'!='", "'&'", "'^'", "'|'", "'to'", "'step'", "'and'", "'or'", 
+			"'xor'", "'not'", "'as'", "'return'", "'break'", "'continue'", "'.'", 
+			"'A'", "'X'", "'Y'", "'AX'", "'AY'", "'XY'", "'Pc'", "'Pz'", "'Pn'", 
+			"'Pv'", "'.w'", "'true'", "'false'", "'%asm'", "'sub'", "'->'", "'{'", 
+			"'}'", "'asmsub'", "'clobbers'", "'@'", "'if'", "'else'", "'if_cs'", 
+			"'if_cc'", "'if_eq'", "'if_z'", "'if_ne'", "'if_nz'", "'if_pl'", "'if_pos'", 
+			"'if_mi'", "'if_neg'", "'if_vs'", "'if_vc'", "'for'", "'in'", "'while'", 
+			"'repeat'", "'until'"
+		};
+	}
+	private static final String[] _LITERAL_NAMES = makeLiteralNames();
+	private static String[] makeSymbolicNames() {
+		return new String[] {
+			null, null, null, null, null, null, null, null, null, null, null, null, 
+			null, null, null, null, null, null, null, null, null, null, null, null, 
+			null, null, null, null, null, null, null, null, null, null, null, null, 
+			null, null, null, null, null, null, null, null, null, null, null, null, 
+			null, null, null, null, null, null, null, null, null, null, null, null, 
+			null, null, null, null, null, null, null, null, null, null, null, null, 
+			null, null, null, null, null, null, null, null, null, null, null, null, 
+			null, null, null, null, null, null, null, null, null, null, null, null, 
+			null, null, null, null, null, null, null, null, null, null, null, null, 
+			null, null, "LINECOMMENT", "COMMENT", "WS", "EOL", "NAME", "DEC_INTEGER", 
+			"HEX_INTEGER", "BIN_INTEGER", "FLOAT_NUMBER", "STRING", "INLINEASMBLOCK", 
+			"SINGLECHAR"
+		};
+	}
+	private static final String[] _SYMBOLIC_NAMES = makeSymbolicNames();
 	public static final Vocabulary VOCABULARY = new VocabularyImpl(_LITERAL_NAMES, _SYMBOLIC_NAMES);
 
 	/**
