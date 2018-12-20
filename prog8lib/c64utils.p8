@@ -280,7 +280,7 @@ asmsub  GETADRAY  () -> clobbers(X) -> (uword @ AY)  {
 	}}
 }
 
-sub  print_float  (float value) {
+sub  print_f  (float value) {
 	; ---- prints the floating point value (without a newline) using basic rom routines. 
 	;      clobbers no registers.
 	;	@todo version that takes A/Y pointer to float instead
@@ -290,8 +290,8 @@ sub  print_float  (float value) {
 		pha
 		txa
 		pha
-		lda  #<print_float_value
-		ldy  #>print_float_value
+		lda  #<print_f_value
+		ldy  #>print_f_value
 		jsr  c64.MOVFM		; load float into fac1
 		jsr  c64.FOUT		; fac1 to string in A/Y
 		jsr  c64.STROUT		; print string in A/Y
@@ -304,7 +304,7 @@ sub  print_float  (float value) {
 	}}
 }
 
-sub  print_float_ln  (float value) {
+sub  print_fln  (float value) {
 	; ---- prints the floating point value (with a newline at the end) using basic rom routines
 	;      clobbers no registers.
 	;	@todo version that takes A/Y pointer to float instead
@@ -314,8 +314,8 @@ sub  print_float_ln  (float value) {
 		pha
 		txa
 		pha
-		lda  #<print_float_ln_value
-		ldy  #>print_float_ln_value
+		lda  #<print_fln_value
+		ldy  #>print_fln_value
 		jsr  c64.MOVFM		; load float into fac1
 		jsr  c64.FPRINTLN	; print fac1 with newline
 		pla
@@ -579,7 +579,7 @@ _scroll_screen  ; scroll the screen memory
 
 
 
-asmsub  print_string (str text @ AY) -> clobbers(A,Y) -> ()  {
+asmsub  print (str text @ AY) -> clobbers(A,Y) -> ()  {
 	; ---- print null terminated string from A/Y
 	; note: the compiler contains an optimization that will replace
 	;       a call to this subroutine with a string argument of just one char,
@@ -598,7 +598,7 @@ asmsub  print_string (str text @ AY) -> clobbers(A,Y) -> ()  {
 }
 
 
-asmsub  print_pstring  (str_p text @ AY) -> clobbers(A,X) -> (ubyte @ Y)  {
+asmsub  print_p  (str_p text @ AY) -> clobbers(A,X) -> (ubyte @ Y)  {
 	; ---- print pstring (length as first byte) from A/Y, returns str len in Y
 	%asm {{
 		sta  c64.SCRATCH_ZPB1
@@ -617,7 +617,7 @@ asmsub  print_pstring  (str_p text @ AY) -> clobbers(A,X) -> (ubyte @ Y)  {
 }
 
 
-asmsub  print_ubyte0  (ubyte value @ A) -> clobbers(A,X,Y) -> ()  {
+asmsub  print_ub0  (ubyte value @ A) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the ubyte in A in decimal form, with left padding 0s (3 positions total)
 	%asm {{
 		jsr  c64utils.ubyte2decimal
@@ -632,7 +632,7 @@ asmsub  print_ubyte0  (ubyte value @ A) -> clobbers(A,X,Y) -> ()  {
 }
 
 
-asmsub  print_ubyte  (ubyte value @ A) -> clobbers(A,X,Y) -> ()  {
+asmsub  print_ub  (ubyte value @ A) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the ubyte in A in decimal form, without left padding 0s
 	%asm {{
 		jsr  c64utils.ubyte2decimal
@@ -653,7 +653,7 @@ _print_tens	txa
 	}}
 }
 	
-asmsub  print_byte  (byte value @ A) -> clobbers(A,X,Y) -> ()  {
+asmsub  print_b  (byte value @ A) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the byte in A in decimal form, without left padding 0s
 	%asm {{
 		pha
@@ -663,12 +663,12 @@ asmsub  print_byte  (byte value @ A) -> clobbers(A,X,Y) -> ()  {
 		jsr  c64.CHROUT
 +		pla
 		jsr  c64utils.byte2decimal
-		jmp  print_ubyte._print_byte_digits
+		jmp  print_ub._print_byte_digits
 	}}
 }
 
 
-asmsub  print_ubyte_hex  (ubyte prefix @ Pc, ubyte value @ A) -> clobbers(A,X,Y) -> ()  {
+asmsub  print_ubhex  (ubyte prefix @ Pc, ubyte value @ A) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the ubyte in A in hex form (if Carry is set, a radix prefix '$' is printed as well)
 	%asm {{
 		bcc  +
@@ -684,21 +684,21 @@ asmsub  print_ubyte_hex  (ubyte prefix @ Pc, ubyte value @ A) -> clobbers(A,X,Y)
 }
 
 
-asmsub print_uword_hex  (ubyte prefix @ Pc, uword value @ AY) -> clobbers(A,X,Y) -> ()  {
+asmsub print_uwhex  (ubyte prefix @ Pc, uword value @ AY) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the uword in A/Y in hexadecimal form (4 digits)
 	;      (if Carry is set, a radix prefix '$' is printed as well)
 	%asm {{
 		pha
 		tya
-		jsr  print_ubyte_hex
+		jsr  print_ubhex
 		pla
 		clc
-		jmp  print_ubyte_hex
+		jmp  print_ubhex
 	}}
 }
 
 
-asmsub  print_uword0  (uword value @ AY) -> clobbers(A,X,Y) -> ()  {
+asmsub  print_uw0  (uword value @ AY) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the uword in A/Y in decimal form, with left padding 0s (5 positions total)
 	; @todo shorter in loop form?
 	%asm {{
@@ -717,7 +717,7 @@ asmsub  print_uword0  (uword value @ AY) -> clobbers(A,X,Y) -> ()  {
 }
 
 
-asmsub  print_uword  (uword value @ AY) -> clobbers(A,X,Y) -> ()  {
+asmsub  print_uw  (uword value @ AY) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the uword in A/Y in decimal form, without left padding 0s
 	%asm {{
 		jsr  c64utils.uword2decimal
@@ -749,7 +749,7 @@ _pr_decimal
 	}}
 }
 
-asmsub  print_word  (word value @ AY) -> clobbers(A,X,Y) -> ()  {
+asmsub  print_w  (word value @ AY) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the (signed) word in A/Y in decimal form, without left padding 0s
 	%asm {{
 		cpy  #0
@@ -766,7 +766,7 @@ asmsub  print_word  (word value @ AY) -> clobbers(A,X,Y) -> ()  {
 		adc  #1
 		bcc  +
 		iny
-+		jmp  print_uword
++		jmp  print_uw
 	}}
 }
 

@@ -316,7 +316,18 @@ push_fac1_as_result	.proc
 		jmp  push_float
 		.pend
 		
-		
+
+floordiv_f	.proc
+		; -- push f1//f2 on stack
+		jsr  pop_2_floats_f2_in_fac1
+		stx  SCRATCH_ZPREGX
+		lda  #<fmath_float1
+		ldy  #>fmath_float1
+		jsr  c64.FDIV
+		jsr  c64.INT
+		jmp  push_fac1_as_result
+		.pend
+
 div_f		.proc
 		; -- push f1/f2 on stack
 		jsr  pop_2_floats_f2_in_fac1
@@ -465,47 +476,80 @@ sub_w		.proc
 		rts
 		.pend
 
-mul_b		.proc
+mul_byte	.proc
+		; -- b*b->b (signed and unsigned)
+		inx
+		lda  ESTACK_LO,x
+		ldy  ESTACK_LO+1,x
+		jsr  math.multiply_bytes
+		sta  ESTACK_LO+1,x
 		rts
-		.warn "mul_b not implemented"
 		.pend
 		
-mul_ub		.proc
+mul_word	.proc
+		inx
+		lda  ESTACK_LO,x
+		sta  SCRATCH_ZPWORD1
+		lda  ESTACK_HI,x
+		sta  SCRATCH_ZPWORD1+1
+		lda  ESTACK_LO+1,x
+		ldy  ESTACK_HI+1,x
+		stx  SCRATCH_ZPREGX
+		jsr  math.multiply_words
+		ldx  SCRATCH_ZPREGX
+		lda  math.multiply_words_result
+		sta  ESTACK_LO+1,x
+		lda  math.multiply_words_result+1
+		sta  ESTACK_HI+1,x
 		rts
-		.warn "mul_ub not implemented"
 		.pend
 		
-mul_w		.proc
-		rts
-		.warn "mul_w not implemented"
-		.pend
-		
-mul_uw		.proc
-		rts
-		.warn "mul_uw not implemented"
-		.pend
-
 div_b		.proc
+		inx
+		lda #42
+		sta ESTACK_LO+1,x
+		lda #0
+		sta ESTACK_HI+1,x
 		rts
 		.warn "div_b not implemented"
 		.pend
 		
 div_ub		.proc
+		inx
+		lda #42
+		sta ESTACK_LO+1,x
+		lda #0
+		sta ESTACK_HI+1,x
 		rts
 		.warn "div_ub not implemented"
 		.pend
 		
 div_w		.proc
+		inx
+		lda #42
+		sta ESTACK_LO+1,x
+		lda #0
+		sta ESTACK_HI+1,x
 		rts
 		.warn "div_w not implemented"
 		.pend
 		
 div_uw		.proc
+		inx
+		lda #42
+		sta ESTACK_LO+1,x
+		lda #0
+		sta ESTACK_HI+1,x
 		rts
 		.warn "div_uw not implemented"
 		.pend
 
 remainder_b	.proc
+		inx
+		lda #42
+		sta ESTACK_LO+1,x
+		lda #0
+		sta ESTACK_HI+1,x
 		rts
 		.warn "remainder_b via div_b?"
 		.pend
@@ -524,18 +568,27 @@ remainder_ub	.proc
 		.pend
 		
 remainder_w	.proc
+		inx
+		lda #42
+		sta ESTACK_LO+1,x
+		lda #0
+		sta ESTACK_HI+1,x
 		rts
 		.warn "remainder_w not implemented - via div_w"
 		.pend
 		
 remainder_uw	.proc
+		inx
+		lda #42
+		sta ESTACK_LO+1,x
+		lda #0
+		sta ESTACK_HI+1,x
 		rts
 		.warn "remainder_uw not implemented - via div_uw"
 		.pend
 		
 equal_w		.proc
 		; -- are the two words on the stack identical?
-		; @todo optimize according to http://www.6502.org/tutorials/compare_beyond.html
 		lda  ESTACK_LO+1,x
 		cmp  ESTACK_LO+2,x
 		bne  equal_b._equal_b_false

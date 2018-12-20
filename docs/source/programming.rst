@@ -432,11 +432,13 @@ You can also reference idendifiers defined elsewhere in your code.
     will be automatically converted into floats in this case. The compiler will issue a warning though when this happens, because floating
     point calculations are very slow and possibly unintended!
 
-    Calculations with integers will not result in floating point values;
-    if you divide two integer values (say: ``32500 / 99``) the result will be the integer floor
+    Calculations with integer variables will not result in floating point values.
+    if you divide two integer variables say 32500 and 99 the result will be the integer floor
     division (328) rather than the floating point result (328.2828282828283). If you need the full precision,
-    you'll have to make sure at least the first operand is a floating point. So write ``32500.0 / 99.0``,
-    or use the type cast ``value as float``.
+    you'll have to make sure at least the first operand is a floating point. You can do this by
+    using a floating point value or variable, or use a type cast.
+    When the compiler can calculate the result during compile-time, it will try to avoid loss
+    of precision though and gives an error if you may be losing a floating point result.
 
 
 

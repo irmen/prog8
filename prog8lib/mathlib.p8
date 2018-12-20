@@ -19,19 +19,19 @@
 
 
 
-asmsub  multiply_bytes  (ubyte byte1 @ A, ubyte byte2 @ Y) -> clobbers(X) -> (ubyte @ A)  {
+asmsub  multiply_bytes  (ubyte byte1 @ A, ubyte byte2 @ Y) -> clobbers() -> (ubyte @ A)  {
 	; ---- multiply 2 bytes, result as byte in A  (signed or unsigned)
 	%asm {{
-		sta  SCRATCH_ZPB1
-		sty  SCRATCH_ZPREG
-		ldx  #8
--               asl  a
-		asl  SCRATCH_ZPB1
-		bcc  +
-		clc
-		adc  SCRATCH_ZPREG
-+               dex
-		bne  -
+		sta  SCRATCH_ZPB1         ; num1
+		sty  SCRATCH_ZPREG        ; num2
+		lda  #0
+		beq  _enterloop
+_doAdd		clc
+                adc  SCRATCH_ZPB1
+_loop           asl  SCRATCH_ZPB1
+_enterloop      lsr  SCRATCH_ZPREG
+                bcs  _doAdd
+                bne  _loop
 		rts
 	}}
 }
@@ -58,40 +58,41 @@ asmsub  multiply_bytes_16  (ubyte byte1 @ A, ubyte byte2 @ Y) -> clobbers(X) -> 
 	}}
 }
 
-	word[2]  multiply_words_product = 0
 asmsub  multiply_words  (uword number @ AY) -> clobbers(A,X) -> ()  {
-	; ---- multiply two 16-bit words into a 32-bit result
+	; ---- multiply two 16-bit words into a 32-bit result  (signed and unsigned)
 	;      input: A/Y = first 16-bit number, SCRATCH_ZPWORD1 in ZP = second 16-bit number
-	;      output: multiply_words_product  32-bits product, LSB order (low-to-high)
+	;      output: multiply_words.result  4-bytes/32-bits product, LSB order (low-to-high)
 
 	%asm {{
 		sta  SCRATCH_ZPWORD2
 		sty  SCRATCH_ZPWORD2+1
 
 mult16		lda  #$00
-		sta  multiply_words_product+2			; clear upper bits of product
-		sta  multiply_words_product+3
+		sta  multiply_words_result+2	; clear upper bits of product
+		sta  multiply_words_result+3
 		ldx  #16			; for all 16 bits...
 -	 	lsr  SCRATCH_ZPWORD1+1		; divide multiplier by 2
 		ror  SCRATCH_ZPWORD1
 		bcc  +
-		lda  multiply_words_product+2			; get upper half of product and add multiplicand
+		lda  multiply_words_result+2	; get upper half of product and add multiplicand
 		clc
 		adc  SCRATCH_ZPWORD2
-		sta  multiply_words_product+2
-		lda  multiply_words_product+3
+		sta  multiply_words_result+2
+		lda  multiply_words_result+3
 		adc  SCRATCH_ZPWORD2+1
 + 		ror  a				; rotate partial product
-		sta  multiply_words_product+3
-		ror  multiply_words_product+2
-		ror  multiply_words_product+1
-		ror  multiply_words_product
+		sta  multiply_words_result+3
+		ror  multiply_words_result+2
+		ror  multiply_words_result+1
+		ror  multiply_words_result
 		dex
 		bne  -
 		rts
+
+multiply_words_result	.fill 4
+		
 	}}
 }
-
 
 asmsub  divmod_bytes  (ubyte number @ X, ubyte divisor @ Y) -> clobbers() -> (ubyte @ X, ubyte @ A)  {
 	; ---- divide X by Y, result quotient in X, remainder in A   (unsigned)

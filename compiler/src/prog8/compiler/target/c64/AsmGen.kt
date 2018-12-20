@@ -690,11 +690,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.CAST_B_TO_UW, Opcode.CAST_B_TO_W -> " ${signExtendA("${ESTACK_HI+1},x")}"     // sign extend the lsb   @todo missing an lda???
             Opcode.MSB -> " lda  ${(ESTACK_HI+1).toHex()},x |  sta ${(ESTACK_LO+1).toHex()},x"
 
-            Opcode.DIV_UB -> "  jsr  prog8_lib.div_ub"
-            Opcode.DIV_B -> "  jsr  prog8_lib.div_b"
-            Opcode.DIV_F -> "  jsr  prog8_lib.div_f"
-            Opcode.DIV_W -> "  jsr  prog8_lib.div_w"
-            Opcode.DIV_UW -> "  jsr  prog8_lib.div_uw"
             Opcode.ADD_UB, Opcode.ADD_B -> {
                 """
                 lda  ${(ESTACK_LO + 2).toHex()},x
@@ -713,15 +708,19 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${(ESTACK_LO + 1).toHex()},x
                 """
             }
-            Opcode.ADD_W, Opcode.ADD_UW -> "  jsr  prog8_lib.add_w"
+            Opcode.ADD_W, Opcode.ADD_UW -> "  jsr  prog8_lib.add_word"
+            Opcode.SUB_W, Opcode.SUB_UW -> "  jsr  prog8_lib.sub_word"
+            Opcode.MUL_B, Opcode.MUL_UB -> "  jsr  prog8_lib.mul_byte"
+            Opcode.MUL_W, Opcode.MUL_UW -> "  jsr  prog8_lib.mul_word"
             Opcode.ADD_F -> "  jsr  prog8_lib.add_f"
-            Opcode.SUB_W, Opcode.SUB_UW -> "  jsr  prog8_lib.sub_w"
             Opcode.SUB_F -> "  jsr  prog8_lib.sub_f"
-            Opcode.MUL_B -> "  jsr  prog8_lib.mul_b"
-            Opcode.MUL_UB -> "  jsr  prog8_lib.mul_ub"
-            Opcode.MUL_W -> "  jsr  prog8_lib.mul_w"
-            Opcode.MUL_UW -> "  jsr  prog8_lib.mul_uw"
             Opcode.MUL_F -> "  jsr  prog8_lib.mul_f"
+            Opcode.DIV_UB -> "  jsr  prog8_lib.div_ub"
+            Opcode.DIV_B -> "  jsr  prog8_lib.div_b"
+            Opcode.DIV_F -> "  jsr  prog8_lib.div_f"
+            Opcode.DIV_W -> "  jsr  prog8_lib.div_w"
+            Opcode.DIV_UW -> "  jsr  prog8_lib.div_uw"
+            Opcode.FLOORDIV -> "  jsr prog8_lib.floordiv_f"
 
             Opcode.AND_BYTE -> {
                 """

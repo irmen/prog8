@@ -55,7 +55,7 @@ enum class Opcode {
     DIV_UW,
     DIV_W,
     DIV_F,
-    FLOORDIV,
+    FLOORDIV,       // integer division but on floatint point argument(s)
     REMAINDER_UB,
     REMAINDER_B,
     REMAINDER_UW,
