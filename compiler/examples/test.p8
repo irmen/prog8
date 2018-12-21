@@ -11,8 +11,8 @@
 
         byte[4] ba = [-1,2,-10,30]
         ubyte[4] uba = [4,200,10,15]
-        word[4] wa = [400,-200,-1000,1500]
-        uword[4] uwa = [4000,200,1000,150]
+        word[5] wa = [400,-200,-1000,9999,1500]
+        uword[7] uwa = [333,42,9999,12,150,1000,4000]
         float[6] fa = [-2.22, 3.33, -5.55, 1.11, 9999.99, -999.99]
         c64scr.print("    X=")
         c64scr.print_ub(X)
@@ -22,12 +22,21 @@
         byte bmax = max(ba)
         ubyte ubmin = min(uba)
         ubyte ubmax = max(uba)
-;        word wmin = min(wa)
-;        word wmax = max(wa)
-;        uword uwmin = min(uwa)
-;        uword uwmax = max(uwa)
+        word wmin = min(wa)
+        word wmax = max(wa)
+        uword uwmin = min(uwa)
+        uword uwmax = max(uwa)
         float fmin = min(fa)
         float fmax = max(fa)
+
+        c64scr.print_w(wmin)
+        c64.CHROUT(',')
+        c64scr.print_w(wmax)
+        c64.CHROUT('\n')
+        c64scr.print_uw(uwmin)
+        c64.CHROUT(',')
+        c64scr.print_uw(uwmax)
+        c64.CHROUT('\n')
 
         c64scr.print_b(bmin)
         c64.CHROUT(',')
@@ -37,15 +46,7 @@
         c64.CHROUT(',')
         c64scr.print_ub(ubmax)
         c64.CHROUT('\n')
-;        c64scr.print_w(wmin)
-;        c64.CHROUT(',')
-;        c64scr.print_w(wmax)
-;        c64.CHROUT('\n')
-;        c64scr.print_uw(uwmin)
-;        c64.CHROUT(',')
-;        c64scr.print_uw(uwmax)
-;        c64.CHROUT('\n')
-;
+
         c64flt.print_f(fmin)
         c64.CHROUT(',')
         c64flt.print_f(fmax)

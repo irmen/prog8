@@ -1154,10 +1154,9 @@ _cmp_mod	cpy  #255		; modified
 		.pend
 		
 func_max_ub	.proc
-		jsr  pop_array_and_lengthY
+		jsr  pop_array_and_lengthmin1Y
 		lda  #0
 		sta  SCRATCH_ZPB1
-		dey
 -		lda  (SCRATCH_ZPWORD1),y
 		cmp  SCRATCH_ZPB1
 		bcc  +
@@ -1172,10 +1171,9 @@ func_max_ub	.proc
 		.pend
 		
 func_max_b	.proc
-		jsr  pop_array_and_lengthY
+		jsr  pop_array_and_lengthmin1Y
 		lda  #-128
 		sta  SCRATCH_ZPB1
-		dey
 -		lda  (SCRATCH_ZPWORD1),y
 		sec
 		sbc  SCRATCH_ZPB1
@@ -1194,27 +1192,86 @@ func_max_b	.proc
 		.pend
 		
 func_max_uw	.proc
-		inx
+		lda  #0
+		sta  _result_maxuw
+		sta  _result_maxuw+1
+		jsr  pop_array_and_lengthmin1Y
+		tya
+		asl  a
+		tay			; times 2 because of word array
+_loop
+		iny
+		lda  (SCRATCH_ZPWORD1),y
+		dey
+		cmp  _result_maxuw+1
+		bcc  _lesseq
+		bne  _greater
+		lda  (SCRATCH_ZPWORD1),y
+		cmp  _result_maxuw
+		bcc  _lesseq
+_greater	lda  (SCRATCH_ZPWORD1),y
+		sta  _result_maxuw
+		iny
+		lda  (SCRATCH_ZPWORD1),y
+		sta  _result_maxuw+1
+		dey
+_lesseq		dey
+		dey
+		bpl  _loop
+		lda  _result_maxuw
+		sta  ESTACK_LO,x
+		lda  _result_maxuw+1
+		sta  ESTACK_HI,x
+		dex
 		rts
-		.warn "todo func_max_uw"
+_result_maxuw	.word  0
 		.pend
 		
 func_max_w	.proc
-		inx
+		lda  #$00
+		sta  _result_maxw
+		lda  #$80
+		sta  _result_maxw+1
+		jsr  pop_array_and_lengthmin1Y
+		tya
+		asl  a
+		tay			; times 2 because of word array
+_loop
+		lda  (SCRATCH_ZPWORD1),y
+		cmp  _result_maxw
+		iny
+		lda  (SCRATCH_ZPWORD1),y
+		dey
+		sbc  _result_maxw+1
+		bvc  +
+		eor  #$80
++		bmi  _lesseq
+		lda  (SCRATCH_ZPWORD1),y
+		sta  _result_maxw
+		iny
+		lda  (SCRATCH_ZPWORD1),y
+		sta  _result_maxw+1
+		dey
+_lesseq		dey
+		dey
+		bpl  _loop
+		lda  _result_maxw
+		sta  ESTACK_LO,x
+		lda  _result_maxw+1
+		sta  ESTACK_HI,x
+		dex
 		rts
-		.warn "todo func_max_w"
+_result_maxw	.word  0
 		.pend
 		
 func_max_f	.proc
-		.warn "todo func_max_f"
 		lda  #<_min_float
 		ldy  #>_min_float
 		jsr  c64.MOVFM			; fac1=min(float)
 		lda  #255
 		sta  _cmp_mod+1			; compare using 255 so we keep larger values
-_minmax_entry	jsr  pop_array_and_lengthY
+_minmax_entry	jsr  pop_array_and_lengthmin1Y
 		stx  SCRATCH_ZPREGX
-		dey
 		sty  SCRATCH_ZPREG
 -		lda  SCRATCH_ZPWORD1
 		ldy  SCRATCH_ZPWORD1+1
@@ -1239,9 +1296,10 @@ _cmp_mod	cmp  #255			; will be modified
 _min_float	.byte  255,255,255,255,255	; -1.7014118345e+38
 		.pend
 
-pop_array_and_lengthY	.proc
+pop_array_and_lengthmin1Y	.proc
 		inx
 		ldy  ESTACK_LO,x
+		dey				; length minus 1, for iteration
 		lda  ESTACK_LO+1,x
 		sta  SCRATCH_ZPWORD1
 		lda  ESTACK_HI+1,x
@@ -1251,10 +1309,9 @@ pop_array_and_lengthY	.proc
 		.pend
 		
 func_min_ub	.proc
-		jsr  pop_array_and_lengthY
+		jsr  pop_array_and_lengthmin1Y
 		lda  #255
 		sta  SCRATCH_ZPB1
-		dey
 -		lda  (SCRATCH_ZPWORD1),y
 		cmp  SCRATCH_ZPB1
 		bcs  +
@@ -1270,10 +1327,9 @@ func_min_ub	.proc
 		
 		
 func_min_b	.proc
-		jsr  pop_array_and_lengthY
+		jsr  pop_array_and_lengthmin1Y
 		lda  #127
 		sta  SCRATCH_ZPB1
-		dey
 -		lda  (SCRATCH_ZPWORD1),y
 		clc
 		sbc  SCRATCH_ZPB1
@@ -1292,15 +1348,76 @@ func_min_b	.proc
 		.pend
 		
 func_min_uw	.proc
-		inx
+		lda  #$ff
+		sta  _result_minuw
+		sta  _result_minuw+1
+		jsr  pop_array_and_lengthmin1Y
+		tya
+		asl  a
+		tay			; times 2 because of word array
+_loop
+		iny
+		lda  (SCRATCH_ZPWORD1),y
+		dey
+		cmp   _result_minuw+1
+		bcc  _less
+		bne  _gtequ
+		lda  (SCRATCH_ZPWORD1),y
+		cmp  _result_minuw
+		bcs  _gtequ
+_less		lda  (SCRATCH_ZPWORD1),y
+		sta  _result_minuw
+		iny
+		lda  (SCRATCH_ZPWORD1),y
+		sta  _result_minuw+1
+		dey
+_gtequ		dey
+		dey
+		bpl  _loop
+		lda  _result_minuw
+		sta  ESTACK_LO,x
+		lda  _result_minuw+1
+		sta  ESTACK_HI,x
+		dex
 		rts
-		.warn "todo func_min_uw"
+_result_minuw	.word  0
 		.pend
 		
 func_min_w	.proc
-		inx
+		lda  #$ff
+		sta  _result_minw
+		lda  #$7f
+		sta  _result_minw+1
+		jsr  pop_array_and_lengthmin1Y
+		tya
+		asl  a
+		tay			; times 2 because of word array
+_loop
+		lda  (SCRATCH_ZPWORD1),y
+		cmp   _result_minw
+		iny
+		lda  (SCRATCH_ZPWORD1),y
+		dey
+		sbc  _result_minw+1
+		bvc  +
+		eor  #$80
++		bpl  _gtequ
+		lda  (SCRATCH_ZPWORD1),y
+		sta  _result_minw
+		iny
+		lda  (SCRATCH_ZPWORD1),y
+		sta  _result_minw+1
+		dey
+_gtequ		dey
+		dey
+		bpl  _loop
+		lda  _result_minw
+		sta  ESTACK_LO,x
+		lda  _result_minw+1
+		sta  ESTACK_HI,x
+		dex
 		rts
-		.warn "todo func_min_w"
+_result_minw	.word  0
 		.pend
 		
 func_min_f	.proc
