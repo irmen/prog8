@@ -12,8 +12,8 @@ import kotlin.math.pow
 
 
 // 5-byte cbm MFLPT format limitations:
-const val FLOAT_MAX_POSITIVE = 1.7014118345e+38
-const val FLOAT_MAX_NEGATIVE = -1.7014118345e+38
+const val FLOAT_MAX_POSITIVE = 1.7014118345e+38         // bytes: 255,127,255,255,255
+const val FLOAT_MAX_NEGATIVE = -1.7014118345e+38        // bytes: 255,255,255,255,255
 
 const val BASIC_LOAD_ADDRESS = 0x0801
 const val RAW_LOAD_ADDRESS = 0xc000

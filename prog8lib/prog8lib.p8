@@ -1206,9 +1206,37 @@ func_max_w	.proc
 		.pend
 		
 func_max_f	.proc
-		dex
-		rts
 		.warn "todo func_max_f"
+		lda  #<_min_float
+		ldy  #>_min_float
+		jsr  c64.MOVFM			; fac1=min(float)
+		lda  #255
+		sta  _cmp_mod+1			; compare using 255 so we keep larger values
+_minmax_entry	jsr  pop_array_and_lengthY
+		stx  SCRATCH_ZPREGX
+		dey
+		sty  SCRATCH_ZPREG
+-		lda  SCRATCH_ZPWORD1
+		ldy  SCRATCH_ZPWORD1+1
+		jsr  c64.FCOMP
+_cmp_mod	cmp  #255			; will be modified
+		bne  +
+		; fac1 is smaller/larger, so store the new value instead
+		lda  SCRATCH_ZPWORD1
+		ldy  SCRATCH_ZPWORD1+1
+		jsr  c64.MOVFM
++		lda  #5
+		clc
+		adc  SCRATCH_ZPWORD1
+		sta  SCRATCH_ZPWORD1
+		bcc  +
+		inc  SCRATCH_ZPWORD1+1
++		ldy  SCRATCH_ZPREG
+		dey
+		sty  SCRATCH_ZPREG
+		bpl  -
+		jmp  push_fac1_as_result
+_min_float	.byte  255,255,255,255,255	; -1.7014118345e+38
 		.pend
 
 pop_array_and_lengthY	.proc
@@ -1276,11 +1304,15 @@ func_min_w	.proc
 		.pend
 		
 func_min_f	.proc
-		dex
-		rts
-		.warn "todo func_min_f"
+		lda  #<_max_float
+		ldy  #>_max_float
+		jsr  c64.MOVFM			; fac1=max(float)
+		lda  #1
+		sta  func_max_f._cmp_mod+1	; compare using 1 so we keep smaller values
+		jmp  func_max_f._minmax_entry
+_max_float	.byte  255,127,255,255,255	; 1.7014118345e+38
 		.pend
-		
+
 
 func_len_str	.proc
 		; -- push length of 0-terminated string on stack
