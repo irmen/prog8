@@ -10,7 +10,7 @@
         word v1
         word v2
 
-        c64scr.print_ubyte(X)
+        c64scr.print_ub(X)
         c64.CHROUT('\n')
 
         v1 = 100
@@ -110,7 +110,7 @@
         else
             c64.STROUT("error in -222>=-222!\n")
 
-        c64scr.print_ubyte(X)
+        c64scr.print_ub(X)
         c64.CHROUT('\n')
 
     }

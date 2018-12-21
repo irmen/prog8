@@ -89,7 +89,7 @@ mult16		lda  #$00
 		bne  -
 		rts
 
-multiply_words_result	.fill 4
+multiply_words_result	.byte  0,0,0,0
 		
 	}}
 }

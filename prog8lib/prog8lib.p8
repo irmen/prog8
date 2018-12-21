@@ -302,8 +302,8 @@ pop_2_floats_f2_in_fac1	.proc
 		jmp  c64.MOVFM
 		.pend
 		
-fmath_float1	.fill  5	; storage for a mflpt5 value
-fmath_float2	.fill  5	; storage for a mflpt5 value
+fmath_float1	.byte 0,0,0,0,0	; storage for a mflpt5 value
+fmath_float2	.byte 0,0,0,0,0	; storage for a mflpt5 value
 
 push_fac1_as_result	.proc
 		; -- push the float in FAC1 onto the stack, and return from calculation
@@ -1154,15 +1154,43 @@ _cmp_mod	cpy  #255		; modified
 		.pend
 		
 func_max_ub	.proc
-		inx
+		jsr  pop_array_and_lengthY
+		lda  #0
+		sta  SCRATCH_ZPB1
+		dey
+-		lda  (SCRATCH_ZPWORD1),y
+		cmp  SCRATCH_ZPB1
+		bcc  +
+		sta  SCRATCH_ZPB1
++		dey
+		cpy  #255
+		bne  -
+		lda  SCRATCH_ZPB1
+		sta  ESTACK_LO,x
+		dex
 		rts
-		.warn "todo func_max_ub"
 		.pend
 		
 func_max_b	.proc
-		inx
+		jsr  pop_array_and_lengthY
+		lda  #-128
+		sta  SCRATCH_ZPB1
+		dey
+-		lda  (SCRATCH_ZPWORD1),y
+		sec
+		sbc  SCRATCH_ZPB1
+		bvc  +
+		eor  #$80
++		bmi  +		
+		lda  (SCRATCH_ZPWORD1),y
+		sta  SCRATCH_ZPB1
++		dey
+		cpy  #255
+		bne  -
+		lda  SCRATCH_ZPB1
+		sta  ESTACK_LO,x
+		dex
 		rts
-		.warn "todo func_max_b"
 		.pend
 		
 func_max_uw	.proc
@@ -1178,21 +1206,61 @@ func_max_w	.proc
 		.pend
 		
 func_max_f	.proc
-		inx
+		dex
 		rts
 		.warn "todo func_max_f"
 		.pend
 
-func_min_ub	.proc
+pop_array_and_lengthY	.proc
+		inx
+		ldy  ESTACK_LO,x
+		lda  ESTACK_LO+1,x
+		sta  SCRATCH_ZPWORD1
+		lda  ESTACK_HI+1,x
+		sta  SCRATCH_ZPWORD1+1
 		inx
 		rts
-		.warn "todo func_min_ub"
 		.pend
 		
-func_min_b	.proc
-		inx
+func_min_ub	.proc
+		jsr  pop_array_and_lengthY
+		lda  #255
+		sta  SCRATCH_ZPB1
+		dey
+-		lda  (SCRATCH_ZPWORD1),y
+		cmp  SCRATCH_ZPB1
+		bcs  +
+		sta  SCRATCH_ZPB1
++		dey
+		cpy  #255
+		bne  -
+		lda  SCRATCH_ZPB1
+		sta  ESTACK_LO,x
+		dex
 		rts
-		.warn "todo func_min_b"
+		.pend
+		
+		
+func_min_b	.proc
+		jsr  pop_array_and_lengthY
+		lda  #127
+		sta  SCRATCH_ZPB1
+		dey
+-		lda  (SCRATCH_ZPWORD1),y
+		clc
+		sbc  SCRATCH_ZPB1
+		bvc  +
+		eor  #$80
++		bpl  +		
+		lda  (SCRATCH_ZPWORD1),y
+		sta  SCRATCH_ZPB1
++		dey
+		cpy  #255
+		bne  -
+		lda  SCRATCH_ZPB1
+		sta  ESTACK_LO,x
+		dex
+		rts
 		.pend
 		
 func_min_uw	.proc
@@ -1208,7 +1276,7 @@ func_min_w	.proc
 		.pend
 		
 func_min_f	.proc
-		inx
+		dex
 		rts
 		.warn "todo func_min_f"
 		.pend
@@ -1267,7 +1335,7 @@ func_rndf	.proc
 		lda  #<_rndf_rnum5
 		ldy  #>_rndf_rnum5
 		jmp  push_float
-_rndf_rnum5	.fill 5
+_rndf_rnum5	.byte  0,0,0,0,0
 		.pend
 
 

@@ -7,7 +7,7 @@
     const ubyte max_iter = 16
 
     sub start()  {
-        c64scr.print_string("calculating mandelbrot fractal...\n")
+        c64scr.print("calculating mandelbrot fractal...\n")
 
         c64.TIME_HI=0
         c64.TIME_MID=0
@@ -38,8 +38,8 @@
             c64.CHROUT('\n')
         }
         float duration = floor((c64.TIME_LO + c64.TIME_MID*256.0 + c64.TIME_HI*65536.0)/60.0)
-        c64scr.print_string("finished in ")
-        c64flt.print_float(duration)
-        c64scr.print_string(" seconds!\n")
+        c64scr.print("finished in ")
+        c64flt.print_f(duration)
+        c64scr.print(" seconds!\n")
     }
 }
