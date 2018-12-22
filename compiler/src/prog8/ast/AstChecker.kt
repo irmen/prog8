@@ -436,8 +436,11 @@ class AstChecker(private val namespace: INameScope,
                 val sourceDatatype: DataType? = assignment.value.resultingDatatype(namespace, heap)
                 if(sourceDatatype==null) {
                     if(assignment.targets.size<=1) {
-                        if (assignment.value is FunctionCall)
-                            checkResult.add(ExpressionError("function call doesn't return a suitable value to use in assignment", assignment.value.position))
+                        if (assignment.value is FunctionCall) {
+                            val targetStmt = (assignment.value as FunctionCall).target.targetStatement(namespace)
+                            if(targetStmt!=null)
+                                checkResult.add(ExpressionError("function call doesn't return a suitable value to use in assignment", assignment.value.position))
+                        }
                         else
                             checkResult.add(ExpressionError("assignment value is invalid or has no proper datatype", assignment.value.position))
                     }

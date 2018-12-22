@@ -40,11 +40,6 @@ enum class Syscall(val callNr: Short) {
     FUNC_RND(89),                // push a random byte on the stack
     FUNC_RNDW(90),               // push a random word on the stack
     FUNC_RNDF(91),               // push a random float on the stack (between 0.0 and 1.0)
-    FUNC_STR2BYTE(100),
-    FUNC_STR2UBYTE(101),
-    FUNC_STR2WORD(102),
-    FUNC_STR2UWORD(103),
-    FUNC_STR2FLOAT(104),
     FUNC_LEN_STR(105),
     FUNC_LEN_STRP(106),
     FUNC_LEN_STRS(107),
@@ -1450,8 +1445,8 @@ class StackVm(private var traceOutputFile: String?) {
             Syscall.FUNC_ROUND -> evalstack.push(Value(DataType.WORD, evalstack.pop().numericValue().toDouble().roundToInt()))
             Syscall.FUNC_ABS -> {
                 val value = evalstack.pop()
-                val absValue=
-                        when(value.type) {
+                val absValue =
+                        when (value.type) {
                             DataType.UBYTE -> Value(DataType.UBYTE, value.numericValue())
                             DataType.UWORD -> Value(DataType.UWORD, value.numericValue())
                             DataType.FLOAT -> Value(DataType.FLOAT, value.numericValue())
@@ -1468,13 +1463,13 @@ class StackVm(private var traceOutputFile: String?) {
             Syscall.FUNC_DEG -> evalstack.push(Value(DataType.FLOAT, Math.toDegrees(evalstack.pop().numericValue().toDouble())))
             Syscall.FUNC_FLOOR -> {
                 val value = evalstack.pop()
-                if(value.type in NumericDatatypes)
+                if (value.type in NumericDatatypes)
                     evalstack.push(Value(DataType.WORD, floor(value.numericValue().toDouble()).toInt()))
                 else throw VmExecutionException("cannot get floor of $value")
             }
             Syscall.FUNC_CEIL -> {
                 val value = evalstack.pop()
-                if(value.type in NumericDatatypes)
+                if (value.type in NumericDatatypes)
                     evalstack.push(Value(DataType.WORD, ceil(value.numericValue().toDouble()).toInt()))
                 else throw VmExecutionException("cannot get ceil of $value")
             }
@@ -1538,7 +1533,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val result = value.array!!.min() ?: 0
                 evalstack.push(Value(DataType.FLOAT, result))
             }
-            Syscall.FUNC_AVG_UB, Syscall.FUNC_AVG_B, Syscall.FUNC_AVG_UW, Syscall.FUNC_AVG_W, Syscall.FUNC_AVG_F-> {
+            Syscall.FUNC_AVG_UB, Syscall.FUNC_AVG_B, Syscall.FUNC_AVG_UW, Syscall.FUNC_AVG_W, Syscall.FUNC_AVG_F -> {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
                 evalstack.push(Value(DataType.FLOAT, value.array!!.average()))
@@ -1568,39 +1563,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(iterable.heapId)
                 evalstack.push(Value(DataType.UBYTE, if (value.array!!.all { v -> v != 0 }) 1 else 0))
             }
-            Syscall.FUNC_STR2BYTE -> {
-                val strvar = evalstack.pop()
-                val str = heap.get(strvar.heapId)       // TODO CHECK
-                val y = str.str!!.trim().trimEnd('\u0000')
-                evalstack.push(Value(DataType.BYTE, y.toShort()))
-            }
-            Syscall.FUNC_STR2UBYTE -> {
-                val heapId = evalstack.pop().integerValue()
-                val str = heap.get(heapId)
-                val y = str.str!!.trim().trimEnd('\u0000')
-                val number = (y.toInt() and 255).toShort()
-                evalstack.push(Value(DataType.UBYTE, number))
-            }
-            Syscall.FUNC_STR2WORD -> {
-                val heapId = evalstack.pop().integerValue()
-                val str = heap.get(heapId)
-                val y = str.str!!.trim().trimEnd('\u0000')
-                evalstack.push(Value(DataType.WORD, y.toInt()))
-            }
-            Syscall.FUNC_STR2UWORD -> {
-                val heapId = evalstack.pop().integerValue()
-                val str = heap.get(heapId)
-                val y = str.str!!.trim().trimEnd('\u0000')
-                val number = y.toInt() and 65535
-                evalstack.push(Value(DataType.UWORD, number))
-            }
-            Syscall.FUNC_STR2FLOAT -> {
-                val heapId = evalstack.pop().integerValue()
-                val str = heap.get(heapId)
-                val y = str.str!!.trim().trimEnd('\u0000')
-                evalstack.push(Value(DataType.FLOAT, y.toDouble()))
-            }
-         }
+        }
     }
 
     fun irq(timestamp: Long) {

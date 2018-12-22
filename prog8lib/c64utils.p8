@@ -188,6 +188,97 @@ asmsub  uword2decimal  (uword value @ AY) -> clobbers(A,X,Y) -> ()  {
 }
 
 
+
+
+; @todo this is python code for a str-to-ubyte function that doesn't use the basic rom:
+;def str2ubyte(s, slen):
+;    hundreds_map = {
+;        0: 0,
+;        1: 100,
+;        2: 200
+;        }
+;    digitvalue = 0
+;    result = 0
+;    if slen==0:
+;        return digitvalue
+;    digitvalue = ord(s[slen-1])-48
+;    slen -= 1
+;    if slen==0:
+;        return digitvalue
+;    result = digitvalue
+;    digitvalue = 10 * (ord(s[slen-1])-48)
+;    result += digitvalue
+;    slen -= 1
+;    if slen==0:
+;        return result
+;    digitvalue = hundreds_map[ord(s[slen-1])-48]
+;    result += digitvalue
+;    return result
+
+asmsub  str2uword(str string @ AY) -> clobbers() -> (uword @ AY) {
+	%asm {{
+		;-- convert string (address in A/Y) to uword number in A/Y
+		;   @todo don't use the (slow) kernel floating point conversion
+		sta  $22
+		sty  $23
+		jsr  _strlen2233
+		tya
+		stx  c64.SCRATCH_ZPREGX
+		jsr  c64.FREADSTR		; string to fac1
+		jsr  c64.GETADR			; fac1 to unsigned word in Y/A
+		ldx  c64.SCRATCH_ZPREGX
+		sta  c64.SCRATCH_ZPREG
+		tya
+		ldy  c64.SCRATCH_ZPREG
+		rts
+
+_strlen2233
+		;-- return the length of the (zero-terminated) string at $22/$23, in Y
+		ldy  #0
+-		lda  ($22),y
+		beq  +
+		iny
+		bne  -
++		rts
+	}}
+}
+
+asmsub  str2word(str string @ AY) -> clobbers() -> (word @ AY) {
+	%asm {{
+		;-- convert string (address in A/Y) to signed word number in A/Y
+		;   @todo don't use the (slow) kernel floating point conversion
+		sta  $22
+		sty  $23
+		jsr  str2uword._strlen2233
+		tya
+		stx  c64.SCRATCH_ZPREGX
+		jsr  c64.FREADSTR		; string to fac1
+		jsr  c64.FTOSWORDYA		; fac1 to unsigned word in Y/A
+		ldx  c64.SCRATCH_ZPREGX
+		sta  c64.SCRATCH_ZPREG
+		tya
+		ldy  c64.SCRATCH_ZPREG
+		rts
+	}}
+}
+	
+asmsub  str2ubyte(str string @ AY) -> clobbers(Y) -> (ubyte @ A) {
+	%asm {{
+		;-- convert string (address in A/Y) to ubyte number in A
+		;   @todo don't use the (slow) kernel floating point conversion
+		jmp  str2uword
+	}}
+}
+	
+asmsub  str2byte(str string @ AY) -> clobbers(Y) -> (byte @ A) {
+	%asm {{
+		;-- convert string (address in A/Y) to byte number in A
+		;   @todo don't use the (slow) kernel floating point conversion
+		jmp  str2word
+	}}	
+}
+
+
 ; @todo string to 32 bit unsigned integer http://www.6502.org/source/strings/ascii-to-32bit.html
 
 

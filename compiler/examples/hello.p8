@@ -23,7 +23,7 @@
 
         ; use loop to write characters
         str bye = "Goodbye!\n"
-        for ubyte c in 0 to len(bye) {      ; @TODO fix compiler crash
+        for ubyte c in 0 to len(bye) {      ; @TODO fix compiler crash. Parent of assignment to c should be the anonymous scope 'c' is in, instead of the for loop itself.
             c64.CHROUT(bye[c])
         }
 

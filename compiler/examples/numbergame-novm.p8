@@ -32,7 +32,7 @@
                 c64scr.print("es")
             c64scr.print(" left.\nWhat is your next guess? ")
             c64scr.input_chars(input)
-            ubyte guess = str2ubyte(input)
+            ubyte guess = c64utils.str2ubyte(input)
 
 ; debug info
 ;            c64scr.print(" > attempts left=")

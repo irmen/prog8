@@ -565,21 +565,6 @@ rndw()
 rndf()
     returns a pseudo-random float between 0.0 and 1.0
 
-str2byte(s)
-    converts string s into the numeric value that s represents (signed byte).
-
-str2ubyte(s)
-    converts string s into the numeric value that s represents (unsigned byte).
-
-str2word(s)
-    converts string s into the numeric value that s represents (signed word).
-
-str2uword(s)
-    converts string s into the numeric value that s represents (unsigned word).
-
-str2float(s)
-    converts string s into the numeric value that s represents (float).
-
 lsl(x)
     Shift the bits in x (byte or word) one position to the left.
     Bit 0 is set to 0 (and the highest bit is shifted into the status register's Carry flag)

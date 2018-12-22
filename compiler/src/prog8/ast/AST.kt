@@ -270,6 +270,7 @@ interface IAstProcessor {
     }
 
     fun process(typecastExpression: TypecastExpression): IExpression {
+        typecastExpression.expression = typecastExpression.expression.process(this)
         return typecastExpression
     }
 }
@@ -477,7 +478,7 @@ private class GlobalNamespace(override val name: String,
     override fun linkParents(parent: Node) {}
 
     override fun lookup(scopedName: List<String>, statement: Node): IStatement? {
-        if(scopedName.last() in BuiltinFunctions) {
+        if(scopedName.size==1 && scopedName[0] in BuiltinFunctions) {
             // builtin functions always exist, return a dummy statement for them
             val builtinPlaceholder = Label("builtin::${scopedName.last()}", statement.position)
             builtinPlaceholder.parent = ParentSentinel

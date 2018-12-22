@@ -1388,7 +1388,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             AX -> {
                 // deal with register pair AX:  target = A + X*256
                 val targetDt = target.determineDatatype(namespace, heap, parent)
-                if(targetDt!=DataType.UWORD)
+                if(targetDt!=DataType.UWORD && targetDt!=DataType.WORD)
                     throw CompilerException("invalid target datatype for registerpair $targetDt")
                 prog.instr(Opcode.PUSH_REGAX_WORD)
                 popValueIntoTarget(target, targetDt)
@@ -1396,7 +1396,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             AY -> {
                 // deal with register pair AY:  target = A + Y*256
                 val targetDt = target.determineDatatype(namespace, heap, parent)
-                if(targetDt!=DataType.UWORD)
+                if(targetDt!=DataType.UWORD && targetDt!=DataType.WORD)
                     throw CompilerException("invalid target datatype for registerpair $targetDt")
                 prog.instr(Opcode.PUSH_REGAY_WORD)
                 popValueIntoTarget(target, targetDt)
@@ -1404,7 +1404,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             XY -> {
                 // deal with register pair XY:  target = X + Y*256
                 val targetDt = target.determineDatatype(namespace, heap, parent)
-                if(targetDt!=DataType.UWORD)
+                if(targetDt!=DataType.UWORD && targetDt!=DataType.WORD)
                     throw CompilerException("invalid target datatype for registerpair $targetDt")
                 prog.instr(Opcode.PUSH_REGXY_WORD)
                 popValueIntoTarget(target, targetDt)

@@ -1,110 +1,85 @@
 %import c64utils
-%import mathlib
-%option enable_floats
+;%import mathlib
+;%option enable_floats
 
 ~ main {
 
-            ;c64scr.PLOT(screenx(x), screeny(y))    ; @todo fix argument calculation???!!!
+    ;@todo implement the various byte/word division routines.
+
+     ;c64scr.PLOT(screenx(x), screeny(y))    ; @todo fix argument calculation of parameters ???!!!
+
 
     sub start()  {
 
-
-        byte[4] ba = [-1,2,-10,30]
-        ubyte[4] uba = [4,200,10,15]
-        word[5] wa = [400,-200,-1000,9999,1500]
-        uword[7] uwa = [333,42,9999,12,150,1000,4000]
-        float[6] fa = [-2.22, 3.33, -5.55, 1.11, 9999.99, -999.99]
         c64scr.print("    X=")
         c64scr.print_ub(X)
         c64.CHROUT('\n')
 
-        byte bmin = min(ba)
-        byte bmax = max(ba)
-        ubyte ubmin = min(uba)
-        ubyte ubmax = max(uba)
-        word wmin = min(wa)
-        word wmax = max(wa)
-        uword uwmin = min(uwa)
-        uword uwmax = max(uwa)
-        float fmin = min(fa)
-        float fmax = max(fa)
-
-        c64scr.print_w(wmin)
-        c64.CHROUT(',')
-        c64scr.print_w(wmax)
+        word w = c64utils.str2word("000")
+        c64scr.print_w(w)
         c64.CHROUT('\n')
-        c64scr.print_uw(uwmin)
-        c64.CHROUT(',')
-        c64scr.print_uw(uwmax)
+        w = c64utils.str2word("1")
+        c64scr.print_w(w)
+        c64.CHROUT('\n')
+        w = c64utils.str2word("-15000")
+        c64scr.print_w(w)
+        c64.CHROUT('\n')
+        w = c64utils.str2word("15000")
+        c64scr.print_w(w)
+        c64.CHROUT('\n')
         c64.CHROUT('\n')
 
-        c64scr.print_b(bmin)
-        c64.CHROUT(',')
-        c64scr.print_b(bmax)
+        uword uw = c64utils.str2uword("0")
+        c64scr.print_uw(uw)
         c64.CHROUT('\n')
-        c64scr.print_ub(ubmin)
-        c64.CHROUT(',')
-        c64scr.print_ub(ubmax)
+        uw = c64utils.str2uword("1")
+        c64scr.print_uw(uw)
+        c64.CHROUT('\n')
+        uw = c64utils.str2uword("15000")
+        c64scr.print_uw(uw)
+        c64.CHROUT('\n')
+        uw = c64utils.str2uword("65522")
+        c64scr.print_uw(uw)
+        c64.CHROUT('\n')
         c64.CHROUT('\n')
 
-        c64flt.print_f(fmin)
-        c64.CHROUT(',')
-        c64flt.print_f(fmax)
+        byte b = c64utils.str2byte("0")
+        c64scr.print_b(b)
+        c64.CHROUT('\n')
+        b=c64utils.str2byte("10")
+        c64scr.print_b(b)
+        c64.CHROUT('\n')
+        b=c64utils.str2byte("-10")
+        c64scr.print_b(b)
+        c64.CHROUT('\n')
+        b=c64utils.str2byte("-128")
+        c64scr.print_b(b)
+        c64.CHROUT('\n')
+        b=c64utils.str2byte("127")
+        c64scr.print_b(b)
+        c64.CHROUT('\n')
+        c64.CHROUT('\n')
+
+        ubyte ub = c64utils.str2ubyte("0")
+        c64scr.print_ub(ub)
+        c64.CHROUT('\n')
+        ub=c64utils.str2ubyte("10")
+        c64scr.print_ub(ub)
+        c64.CHROUT('\n')
+        ub=c64utils.str2ubyte("10")
+        c64scr.print_ub(ub)
+        c64.CHROUT('\n')
+        ub=c64utils.str2ubyte("128")
+        c64scr.print_ub(ub)
+        c64.CHROUT('\n')
+        ub=c64utils.str2ubyte("255")
+        c64scr.print_ub(ub)
+        c64.CHROUT('\n')
         c64.CHROUT('\n')
 
         c64scr.print("    X=")
         c64scr.print_ub(X)
         c64.CHROUT('\n')
-
-;        ub3 = 200/67 as ubyte
-;        ub3 = 200//67
-;        c64scr.print_ub(ub3)
-;        c64.CHROUT('\n')
-;        ub3 = ub1/ub2
-;        c64scr.print_ub(ub3)
-;        c64.CHROUT('\n')
-;        ub3 = ub1//ub2
-;        c64scr.print_ub(ub3)
-;        c64.CHROUT('\n')
-;
-;        uw3 = 2000/67 as uword
-;        c64scr.print_uw(uw3)
-;        c64.CHROUT('\n')
-;        uw3 = 2000//67
-;        c64scr.print_uw(uw3)
-;        c64.CHROUT('\n')
-;        uw3 = uw1/uw2
-;        c64scr.print_uw(uw3)
-;        c64.CHROUT('\n')
-;        uw3 = uw1//uw2
-;        c64scr.print_uw(uw3)
-;        c64.CHROUT('\n')
-;
-
-;        const byte width=20
-;        word   w1
-;        byte   b1
-;        ubyte   ub1
-;        float x = 3.45
-;        b1 = fintb(x * flt(width)/4.2) + width//2
-;        c64scr.print_b(b1)
-;        c64.CHROUT('\n')
-;        b1 = fintb(x/4.2 * flt(width)) + width//2
-;        c64scr.print_b(b1)
-;        c64.CHROUT('\n')
-;        ub1 = b2ub(fintb(x * flt(width)/4.2) + width//2)
-;        c64scr.print_ub(ub1)
-;        c64.CHROUT('\n')
-;        ub1 = b2ub(fintb(x/4.2 * flt(width)) + width//2)
-;        c64scr.print_ub(ub1)
-;        c64.CHROUT('\n')
-;        w1 = fintw(x * flt(width)/4.2) + width//2
-;        c64scr.print_w(w1)
-;        c64.CHROUT('\n')
-;        w1 = fintw(x/4.2 * flt(width)) + width//2
-;        c64scr.print_w(w1)
-;        c64.CHROUT('\n')
-        ;uw1 = w2uw(fintw(x * flt(width)/4.2) + width//2)       ; @todo w2uw
 
     }
 }

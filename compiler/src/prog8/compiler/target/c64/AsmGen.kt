@@ -425,10 +425,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 if (ins.arg!!.numericValue() in syscallsForStackVm.map { it.callNr })
                     throw CompilerException("cannot translate vm syscalls to real assembly calls - use *real* subroutine calls instead. Syscall ${ins.arg.numericValue()}")
                 val call = Syscall.values().find { it.callNr==ins.arg.numericValue() }
-                when(call) {
-                    Syscall.FUNC_STR2UBYTE, Syscall.FUNC_STR2UWORD -> " jsr prog8_lib.func_str2uword"
-                    else -> " jsr  prog8_lib.${call.toString().toLowerCase()}"
-                }
+                " jsr  prog8_lib.${call.toString().toLowerCase()}"
             }
             Opcode.BREAKPOINT -> {
                 breakpointCounter++

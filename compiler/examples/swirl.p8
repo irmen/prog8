@@ -23,9 +23,13 @@
     }
 
     sub screenx(float x) -> word {
-        return fintw(x * flt(width)/4.1) + width // 2
+        ; return (x/4.1* (width as float) as word) + width // 2       ; @todo fix calculation
+        float wf = width
+        return (x/4.1* wf + wf / 2)   as word
     }
     sub screeny(float y) -> word {
-        return fintw(y * flt(height)/4.1) + height // 2
+        ;return (y/4.1 * (height as float) as word) + height // 2        ; @todo fix calculation
+        float hf = height
+        return (y/4.1 * hf + hf/ 2)     as word
     }
 }

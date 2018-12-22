@@ -21,7 +21,7 @@
                 vm_write_str("es")
             vm_write_str(" left. What is your next guess? ")
             vm_input_str(input)
-            ubyte guess = str2ubyte(input)
+            ubyte guess = c64utils.str2ubyte(input)         ; @todo  replace with proper stubs for these functions when executing on stackvm.
             if guess==secretnumber {
                 vm_write_str("\nYou guessed it, impressive!\n")
                 vm_write_str("Thanks for playing.\n")

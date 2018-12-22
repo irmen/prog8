@@ -28,9 +28,9 @@
     }
 
     sub screenx(float x) -> ubyte {
-        return b2ub(fintb(x * flt(width)/2.2) + width//2)
+        return (x * width/2.2) + width//2 as ubyte
     }
     sub screeny(float y) -> ubyte {
-        return b2ub(fintb(y * flt(height)/2.2) + height//2)
+        return (y * height/2.2) + height//2 as ubyte
     }
 }
