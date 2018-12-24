@@ -1,3 +1,0 @@
-attrs
-ply
-cbmcodecs >= 0.2.0

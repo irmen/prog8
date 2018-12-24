@@ -867,6 +867,7 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
                                 else -> throw FatalAstException("invalid rightDt $rightDt")
                             }
                         DataType.FLOAT -> DataType.FLOAT
+                        null -> DataType.FLOAT
                         else -> throw FatalAstException("invalid leftDt $leftDt")
                     }
                 } else if(leftDt==null || rightDt==null) null else arithmeticOpDt(leftDt, rightDt)
@@ -1434,19 +1435,8 @@ class FunctionCall(override var target: IdentifierReference,
 
     private fun constValue(namespace: INameScope, heap: HeapValues, withDatatypeCheck: Boolean): LiteralValue? {
         // if the function is a built-in function and the args are consts, should try to const-evaluate!
+        // lenghts of arrays and strings are constants that are determined at compile time!
         if(target.nameInSource.size>1) return null
-        if(target.nameInSource[0]=="len" && arglist.size==1) {
-            val arg=arglist[0]
-            if(arg is IdentifierReference) {
-                val target=arg.targetStatement(namespace)
-                if(target!=null) {
-                    if (arg.resultingDatatype(namespace, heap) in StringDatatypes) {
-                        // len on strings should be dynamic, all other cases are a compile-time constant
-                        return null
-                    }
-                }
-            }
-        }
         try {
             var resultValue: LiteralValue? = null
             val func = BuiltinFunctions[target.nameInSource[0]]

@@ -28,9 +28,9 @@
     }
 
     sub screenx(float x) -> ubyte {
-        return (x * width/2.2) + width//2 as ubyte
+        return (x * width/2.2) + width/2.0 as ubyte
     }
     sub screeny(float y) -> ubyte {
-        return (y * height/2.2) + height//2 as ubyte
+        return (y * height/2.2) + height/2.0 as ubyte
     }
 }

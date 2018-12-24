@@ -1,5 +1,4 @@
 %import c64utils
-;%import mathlib
 ;%option enable_floats
 
 ~ main {
@@ -8,6 +7,11 @@
 
      ;c64scr.PLOT(screenx(x), screeny(y))    ; @todo fix argument calculation of parameters ???!!!
 
+    sub screenx(float x) -> word {
+        ;return ((x/4.1* (width as float)) + 160.0) as word ;width // 2       ; @todo fix calculation
+        float wf = width
+        return (x/4.1* wf + wf / 2.0)   as word
+    }
 
     sub start()  {
 

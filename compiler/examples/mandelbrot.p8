@@ -12,10 +12,10 @@
         vm_gfx_text(2, 1, 1, "Calculating Mandelbrot Fractal...")
 
         for ubyte pixely in yoffset to yoffset+height-1 {
-            float yy = flt((pixely-yoffset))/height/3.6+0.4
+            float yy = (pixely-yoffset as float)/3.6/height+0.4
 
             for uword pixelx in xoffset to xoffset+width-1 {
-                float xx = flt((pixelx-xoffset))/width/3.0+0.2
+                float xx = (pixelx-xoffset as float)/3.0/width+0.2
 
                 float xsquared = 0.0
                 float ysquared = 0.0

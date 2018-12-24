@@ -42,7 +42,7 @@
                     vm_gfx_line(i*2+width//2-width//10, 130, i*10.w, 199, 6)
                 }
 
-                rotate_vertices(flt(irq.global_time) / 30.0)
+                rotate_vertices(irq.global_time as float / 30.0)
                 draw_edges()
             }
         }
@@ -80,11 +80,11 @@
     sub draw_edges() {
 
         sub toscreenx(float x, float z) -> word {
-            return fintw(x/(4.2+z) * flt(height)) + width // 2
+            return x/(4.2+z) * (height as float) as word + width // 2
         }
 
         sub toscreeny(float y, float z) -> word {
-            return fintw(y/(4.2+z) * flt(height)) + height // 2
+            return y/(4.2+z) * (height as float) as word + height // 2
         }
 
         ; draw all edges of the object

@@ -543,6 +543,8 @@ sum(x)
 len(x)
     Number of values in the array value x, or the number of characters in a string (excluding the size or 0-byte).
     Note: this can be different from the number of *bytes* in memory if the datatype isn't a byte.
+    Note: lengths of strings and arrays are determined at compile-time! If your program modifies the actual
+    length of the string during execution, the value of len(string) may no longer be correct!
 
 lsb(x)
     Get the least significant byte of the word x. Equivalent to the cast "x as ubyte".

@@ -1,5 +1,4 @@
 %import c64utils
-%import mathlib
 
 ; The classic number guessing game.
 ; This version uses mostly high level subroutine calls and loops.

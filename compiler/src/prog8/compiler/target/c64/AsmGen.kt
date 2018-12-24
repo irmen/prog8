@@ -679,8 +679,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.CAST_B_TO_F -> " jsr  prog8_lib.stack_b2float"
             Opcode.CAST_UW_TO_F -> " jsr  prog8_lib.stack_uw2float"
             Opcode.CAST_W_TO_F -> " jsr  prog8_lib.stack_w2float"
-            Opcode.CAST_F_TO_UB -> " jsr  prog8_lib.stack_float2ub"
-            Opcode.CAST_F_TO_B -> " jsr  prog8_lib.stack_float2b"
+            Opcode.CAST_F_TO_UB -> " jsr  prog8_lib.stack_float2uw"
+            Opcode.CAST_F_TO_B -> " jsr  prog8_lib.stack_float2w"
             Opcode.CAST_F_TO_UW -> " jsr  prog8_lib.stack_float2uw"
             Opcode.CAST_F_TO_W -> " jsr  prog8_lib.stack_float2w"
             Opcode.CAST_UB_TO_UW, Opcode.CAST_UB_TO_W -> " lda  #0 |  sta  ${ESTACK_HI+1},x"     // clear the msb

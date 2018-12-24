@@ -1,5 +1,4 @@
 %import c64utils
-%import mathlib
 
 ~ main {
 

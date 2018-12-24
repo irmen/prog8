@@ -462,7 +462,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         // word + word -> word
         // a combination with a float will be float (but give a warning about this!)
 
-        val floatWarning = "byte or word value implicitly converted to float. Suggestion: use explicit flt() conversion, a float number, or revert to integer arithmetic"
+        val floatWarning = "byte or word value implicitly converted to float. Suggestion: use explicit cast as float, a float number, or revert to integer arithmetic"
 
         return when(leftDt) {
             DataType.UBYTE -> {
@@ -725,8 +725,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     else -> throw CompilerException("wrong datatype for $funcname()")
                 }
             }
-            "msb" -> prog.instr(Opcode.MSB)
-            "lsb" -> TODO("lsb  -> uw2ub or w2ub?")
+            "msb" -> prog.instr(Opcode.MSB)         // note: LSB is not a function, it's just an alias for the cast "... as ubyte"
             "lsl" -> {
                 val arg = args.single()
                 val dt = arg.resultingDatatype(namespace, heap)
@@ -1794,7 +1793,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         }
 
         val startAssignment = Assignment(listOf(makeAssignmentTarget()), null, range.from, range.position)
-        startAssignment.linkParents(range.parent)
+        startAssignment.linkParents(body)
         translate(startAssignment)
 
         val loopLabel = makeLabel("loop")
@@ -1826,7 +1825,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     AnonymousScope(mutableListOf(Jump(null, null, breakLabel, range.position)), range.position),
                     AnonymousScope(mutableListOf(), range.position),
                     range.position)
-            ifstmt.linkParents(range.parent)
+            ifstmt.linkParents(body)
             translate(ifstmt)
         } else {
             // Step is a variable. We can't optimize anything...
@@ -1836,7 +1835,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         translate(body)
         prog.label(continueLabel)
         val lvTarget = makeAssignmentTarget()
-        lvTarget.linkParents(range.parent)
+        lvTarget.linkParents(body)
         val targetStatement: VarDecl? =
                 if(lvTarget.identifier!=null) {
                     lvTarget.identifier.targetStatement(namespace) as VarDecl
@@ -1850,7 +1849,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             1 -> {
                 // LV++
                 val postIncr = PostIncrDecr(lvTarget, "++", range.position)
-                postIncr.linkParents(range.parent)
+                postIncr.linkParents(body)
                 translate(postIncr)
                 if(lvTarget.register!=null)
                     prog.instr(Opcode.PUSH_VAR_BYTE, callLabel =lvTarget.register.toString())
@@ -1863,13 +1862,13 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                         AnonymousScope(mutableListOf(Jump(null, null, loopLabel, range.position)), range.position),
                         AnonymousScope(mutableListOf(), range.position),
                         range.position)
-                branch.linkParents(range.parent)
+                branch.linkParents(body)
                 translate(branch)
             }
             -1 -> {
                 // LV--
                 val postIncr = PostIncrDecr(makeAssignmentTarget(), "--", range.position)
-                postIncr.linkParents(range.parent)
+                postIncr.linkParents(body)
                 translate(postIncr)
                 TODO("signed numbers and/or special condition are needed for decreasing for loop. Try an increasing loop and/or constant loop values instead? At: ${range.position}")   // fix with signed numbers
             }

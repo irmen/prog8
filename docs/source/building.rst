@@ -48,8 +48,7 @@ It consists of compilation options and other directives, imports of other module
 and source code for one or more code blocks.
 
 Prog8 has a couple of *LIBRARY* modules that are defined in special internal files provided by the compiler:
-``c64lib``, ``prog8lib``, ``mathlib``.
-You should not overwrite these or reuse their names.
+``c64lib``, ``c64utils``, ``prog8lib``. You should not overwrite these or reuse their names.
 
 
 .. _debugging:
