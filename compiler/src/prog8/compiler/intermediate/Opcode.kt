@@ -220,6 +220,7 @@ enum class Opcode {
     // subroutine calling
     CALL,
     RETURN,
+    RETURNFROMIRQ,
     SYSCALL,
 
     // misc

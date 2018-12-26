@@ -751,7 +751,7 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.CALL ->
                 callstack.push(ins.nextAlt)
-            Opcode.RETURN -> {
+            Opcode.RETURN, Opcode.RETURNFROMIRQ -> {
                 if(callstack.empty())
                     throw VmTerminationException("return instruction with empty call stack")
                 return callstack.pop()

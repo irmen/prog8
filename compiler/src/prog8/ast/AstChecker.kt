@@ -237,8 +237,13 @@ class AstChecker(private val namespace: INameScope,
                         err("subroutine has result value(s) and thus must have at least one 'return' or 'goto' in it (or 'rts' / 'jmp' in case of %asm)")
                 }
                 // if there's no return statement, we add the implicit one at the end, but only if it's not a kernel routine.
-                if(subroutine.asmAddress==null)
-                    subroutine.statements.add(Return(emptyList(), subroutine.position))
+                // @todo move this out of the astchecker
+                if(subroutine.asmAddress==null) {
+                    if(subroutine.name=="irq" && subroutine.definingScope().name=="irq") {
+                        subroutine.statements.add(ReturnFromIrq(subroutine.position))
+                    } else
+                        subroutine.statements.add(Return(emptyList(), subroutine.position))
+                }
             }
         }
 
@@ -783,7 +788,7 @@ class AstChecker(private val namespace: INameScope,
             }
             else {
                 val dt = (target as VarDecl).datatype
-                if(dt !in NumericDatatypes)
+                if(dt !in NumericDatatypes && dt !in ArrayDatatypes)
                     checkResult.add(SyntaxError("can only increment or decrement a byte/float/word", postIncrDecr.position))
             }
         }

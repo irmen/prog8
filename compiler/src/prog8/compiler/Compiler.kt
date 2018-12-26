@@ -153,7 +153,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
     override fun process(block: Block): IStatement {
         prog.newBlock(block.scopedname, block.name, block.address)
         processVariables(block)         // @todo optimize initializations with same value: load the value only once  (sort on initalization value, datatype   ?)
-        prog.label(block.scopedname)
+        prog.label("block."+block.scopedname)
         prog.line(block.position)
         translate(block.statements)
         return super.process(block)
@@ -199,7 +199,6 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             generatedLabelSequenceNumber++
             when (stmt) {
                 is Label -> translate(stmt)
-                is Return -> translate(stmt)
                 is VariableInitializationAssignment -> translate(stmt)        // for initializing vars in a scope
                 is Assignment -> translate(stmt)        // normal and augmented assignments
                 is PostIncrDecr -> translate(stmt)
@@ -213,6 +212,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 is WhileLoop -> translate(stmt)
                 is RepeatLoop -> translate(stmt)
                 is AnonymousScope -> translate(stmt)
+                is ReturnFromIrq -> translate(stmt)
+                is Return -> translate(stmt)
                 is Directive, is VarDecl, is Subroutine -> {}   // skip this, already processed these.
                 is InlineAssembly -> translate(stmt)
                 else -> TODO("translate statement $stmt to stackvm")
@@ -1524,6 +1525,11 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         }
         prog.line(stmt.position)
         prog.instr(Opcode.RETURN)
+    }
+
+    private fun translate(stmt: ReturnFromIrq) {
+        prog.line(stmt.position)
+        prog.instr(Opcode.RETURNFROMIRQ)
     }
 
     private fun translate(stmt: Label) {

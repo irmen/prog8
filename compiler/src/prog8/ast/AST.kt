@@ -552,7 +552,7 @@ data class Label(val name: String, override val position: Position) : IStatement
 }
 
 
-class Return(var values: List<IExpression>, override val position: Position) : IStatement {
+open class Return(var values: List<IExpression>, override val position: Position) : IStatement {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -579,6 +579,16 @@ class Return(var values: List<IExpression>, override val position: Position) : I
         return null
     }
 }
+
+
+class ReturnFromIrq(override val position: Position) : Return(emptyList(), position) {
+    override fun process(processor: IAstProcessor) = this
+
+    override fun toString(): String {
+        return "ReturnFromIrq(pos=$position)"
+    }
+}
+
 
 class Continue(override val position: Position) : IStatement {
     override lateinit var parent: Node

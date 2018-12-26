@@ -113,6 +113,9 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         var name = if (scoped.startsWith("${block.shortname}.")) {
             blockLocal = true
             scoped.substring(block.shortname.length+1)
+        } else if (scoped.startsWith("block.")) {
+            blockLocal = false
+            scoped
         } else {
             blockLocal = false
             scoped
@@ -176,6 +179,19 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 
         out("\tldx  #\$ff\t; init estack pointer")
         out("\tclc")
+
+        val irqBlock = program.blocks.singleOrNull { it.scopedname=="irq" }
+        val haveIrqSub = irqBlock?.instructions?.any { it is LabelInstr && it.name=="irq"}
+        if(haveIrqSub==true) {
+            out("\t; install custom irq vector")
+            out("\tsei")
+            out("\tlda  #<irq.irq")
+            out("\tsta  c64.CINV")
+            out("\tlda  #>irq.irq")
+            out("\tsta  c64.CINV+1")
+            out("\tcli")
+        }
+
         out("\tjmp  main.start\t; jump to program entrypoint")
         out("")
 
@@ -386,7 +402,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
     private fun simpleInstr2Asm(ins: Instruction): String? {
         // a label 'instruction' is simply translated into a asm label
         if(ins is LabelInstr) {
-            if(ins.name==block.shortname)
+            if(ins.name.startsWith("block."))
                 return ""
             return if(ins.name.startsWith("${block.shortname}."))
                 ins.name.substring(block.shortname.length+1)
@@ -406,6 +422,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.JUMP -> " jmp  ${ins.callLabel}"
             Opcode.CALL -> " jsr  ${ins.callLabel}"
             Opcode.RETURN -> " rts"
+            Opcode.RETURNFROMIRQ -> " jmp  c64.IRQDFRT\t\t; continue with normal kernel irq routine"
             Opcode.RSAVE -> {
                 // save cpu status flag and all registers A, X, Y.
                 // see http://6502.org/tutorials/register_preservation.html
@@ -705,8 +722,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${(ESTACK_LO + 1).toHex()},x
                 """
             }
-            Opcode.ADD_W, Opcode.ADD_UW -> "  jsr  prog8_lib.add_word"
-            Opcode.SUB_W, Opcode.SUB_UW -> "  jsr  prog8_lib.sub_word"
+            Opcode.ADD_W, Opcode.ADD_UW -> "  jsr  prog8_lib.add_w"
+            Opcode.SUB_W, Opcode.SUB_UW -> "  jsr  prog8_lib.sub_w"
             Opcode.MUL_B, Opcode.MUL_UB -> "  jsr  prog8_lib.mul_byte"
             Opcode.MUL_W, Opcode.MUL_UW -> "  jsr  prog8_lib.mul_word"
             Opcode.ADD_F -> "  jsr  prog8_lib.add_f"
