@@ -944,6 +944,18 @@ class StackVm(private var traceOutputFile: String?) {
                 checkDt(variable, DataType.FLOAT)
                 variables[ins.callLabel] =variable.dec()
             }
+            Opcode.INC_INDEXED_VAR_B,Opcode.INC_INDEXED_VAR_UB,Opcode.INC_INDEXED_VAR_W,Opcode.INC_INDEXED_VAR_UW,Opcode.INC_INDEXED_VAR_FLOAT -> {
+                val index = evalstack.pop().integerValue()
+                val variable = getVar(ins.callLabel!!)
+                val array = heap.get(variable.heapId)
+                array.array!![index].inc()
+            }
+            Opcode.DEC_INDEXED_VAR_B,Opcode.DEC_INDEXED_VAR_UB,Opcode.DEC_INDEXED_VAR_W,Opcode.DEC_INDEXED_VAR_UW,Opcode.DEC_INDEXED_VAR_FLOAT -> {
+                val index = evalstack.pop().integerValue()
+                val variable = getVar(ins.callLabel!!)
+                val array = heap.get(variable.heapId)
+                array.array!![index].dec()
+            }
             Opcode.MSB -> {
                 val v = evalstack.pop()
                 checkDt(v, DataType.UWORD, DataType.WORD)

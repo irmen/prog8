@@ -22,27 +22,20 @@
 
     sub start()  {
 
-        c64scr.print("    X=")
-        c64scr.print_ub(X)
-        c64.CHROUT('\n')
+;        c64scr.print("    X=")
+;        c64scr.print_ub(X)
+;        c64.CHROUT('\n')
 
-        c64scr.print("    X=")
-        c64scr.print_ub(X)
-        c64.CHROUT('\n')
+    ubyte[256] screenarray
+    ubyte index = 2
+    screenarray[1]--
+    screenarray[index]--
+
+
+;        c64scr.print("    X=")
+;        c64scr.print_ub(X)
+;        c64.CHROUT('\n')
 
     }
-
-}
-
-~ irq {
-
-sub irq() {
-    memory ubyte[256] screenarray = $0400
-    memory ubyte firstscreenchar = $0400
-
-    screenarray[0]++        ; @todo incorrect code generated?
-    firstscreenchar++       ; ... this is okay
-    c64.EXTCOL++
-}
 
 }

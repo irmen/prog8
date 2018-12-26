@@ -808,6 +808,26 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 }
             }
         }
+        else if((opcodes[0]==Opcode.PUSH_BYTE && opcodes[1] in setOf(Opcode.INC_INDEXED_VAR_B, Opcode.INC_INDEXED_VAR_UB,
+                        Opcode.INC_INDEXED_VAR_UW, Opcode.INC_INDEXED_VAR_W, Opcode.INC_INDEXED_VAR_FLOAT,
+                        Opcode.DEC_INDEXED_VAR_B, Opcode.DEC_INDEXED_VAR_UB, Opcode.DEC_INDEXED_VAR_W,
+                        Opcode.DEC_INDEXED_VAR_UW, Opcode.DEC_INDEXED_VAR_FLOAT))) {
+            val fragment = sameConstantIndexedVarOperation(segment[1].callLabel!!, segment[0].arg!!.integerValue(), segment[1])
+            if(fragment!=null) {
+                fragment.segmentSize=2
+                result.add(fragment)
+            }
+        }
+        else if((opcodes[0]==Opcode.PUSH_VAR_BYTE && opcodes[1] in setOf(Opcode.INC_INDEXED_VAR_B, Opcode.INC_INDEXED_VAR_UB,
+                        Opcode.INC_INDEXED_VAR_UW, Opcode.INC_INDEXED_VAR_W, Opcode.INC_INDEXED_VAR_FLOAT,
+                        Opcode.DEC_INDEXED_VAR_B, Opcode.DEC_INDEXED_VAR_UB, Opcode.DEC_INDEXED_VAR_W,
+                        Opcode.DEC_INDEXED_VAR_UW, Opcode.DEC_INDEXED_VAR_FLOAT))) {
+            val fragment = sameIndexedVarOperation(segment[1].callLabel!!, segment[0].callLabel!!, segment[1])
+            if(fragment!=null) {
+                fragment.segmentSize=2
+                result.add(fragment)
+            }
+        }
         else if((opcodes[0]==Opcode.PUSH_MEM_UB && opcodes[2]==Opcode.POP_MEM_BYTE) ||
                 (opcodes[0]==Opcode.PUSH_MEM_B && opcodes[2]==Opcode.POP_MEM_BYTE) ||
                 (opcodes[0]==Opcode.PUSH_MEM_UW && opcodes[2]==Opcode.POP_MEM_WORD) ||
@@ -877,6 +897,14 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.ROR2_BYTE -> AsmFragment(" lda  $variable+$index |  lsr  a |  bcc  + |  ora  #\$80 |+ |  sta  $variable+$index", 10)
             Opcode.ROL2_WORD -> AsmFragment(" asl  $variable+$index |  rol  $variable+${index+1} |  bcc  + |  inc  $variable+$index |+",20)
             Opcode.ROR2_WORD -> AsmFragment(" lsr  $variable+${index+1} |  ror  $variable+$index |  bcc  + |  lda  $variable+${index+1} |  ora  #\$80 |  sta  $variable+${index+1} |+", 30)
+            Opcode.INC_INDEXED_VAR_B, Opcode.INC_INDEXED_VAR_UB -> AsmFragment(" inc  $variable+$index", 2)
+            Opcode.DEC_INDEXED_VAR_B, Opcode.DEC_INDEXED_VAR_UB -> AsmFragment(" dec  $variable+$index", 5)
+            Opcode.INC_INDEXED_VAR_W -> TODO("inc array_w")
+            Opcode.INC_INDEXED_VAR_UW -> TODO("inc array_uw")
+            Opcode.INC_INDEXED_VAR_FLOAT -> TODO("inc array_f")
+            Opcode.DEC_INDEXED_VAR_W -> TODO("dec array_w")
+            Opcode.DEC_INDEXED_VAR_UW -> TODO("dec array_uw")
+            Opcode.DEC_INDEXED_VAR_FLOAT -> TODO("dec array_f")
             else -> null
         }
     }
@@ -921,6 +949,15 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.ROR2_BYTE -> AsmFragment("$saveX $loadX  lda  $variable,x |  lsr  a |  bcc  + |  ora  #\$80 |+ |  sta  $variable,x  $restoreX", 10)
             Opcode.ROL2_WORD -> AsmFragment(" txa |  $loadXWord  asl  $variable,x |  rol  $variable+1,x |  bcc  + |  inc  $variable,x  |+  |  tax", 30)
             Opcode.ROR2_WORD -> AsmFragment("$saveX $loadXWord  lsr  $variable+1,x |  ror  $variable,x |  bcc  + |  lda  $variable+1,x |  ora  #\$80 |  sta  $variable+1,x |+  $restoreX", 30)
+            Opcode.INC_INDEXED_VAR_B, Opcode.INC_INDEXED_VAR_UB -> AsmFragment(" txa |  $loadX  inc  $variable,x |  tax", 10)
+            Opcode.DEC_INDEXED_VAR_B, Opcode.DEC_INDEXED_VAR_UB -> AsmFragment(" txa |  $loadX  dec  $variable,x |  tax", 10)
+            Opcode.INC_INDEXED_VAR_W -> TODO("inc array_w")
+            Opcode.INC_INDEXED_VAR_UW -> TODO("inc array_uw")
+            Opcode.INC_INDEXED_VAR_FLOAT -> TODO("inc array_f")
+            Opcode.DEC_INDEXED_VAR_W -> TODO("dec array_w")
+            Opcode.DEC_INDEXED_VAR_UW -> TODO("dec array_uw")
+            Opcode.DEC_INDEXED_VAR_FLOAT -> TODO("dec array_f")
+
             else -> null
         }
     }
@@ -2807,7 +2844,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     listOf(Opcode.PUSH_MEM_UB, Opcode.PUSH_BYTE, Opcode.BITXOR_BYTE)) { segment ->
                 " lda  ${hexVal(segment[0])} |  eor  #${hexVal(segment[1])} |  sta  ${ESTACK_LO.toHex()},x |  dex "
             }
-
     )
 
 }

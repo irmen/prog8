@@ -192,13 +192,23 @@ enum class Opcode {
     NOTEQUAL_WORD,
     NOTEQUAL_F,
 
-    // arrayspec access
+    // array access and simple manipulations
     READ_INDEXED_VAR_BYTE,
     READ_INDEXED_VAR_WORD,
     READ_INDEXED_VAR_FLOAT,
     WRITE_INDEXED_VAR_BYTE,
     WRITE_INDEXED_VAR_WORD,
     WRITE_INDEXED_VAR_FLOAT,
+    INC_INDEXED_VAR_B,
+    INC_INDEXED_VAR_UB,
+    INC_INDEXED_VAR_W,
+    INC_INDEXED_VAR_UW,
+    INC_INDEXED_VAR_FLOAT,
+    DEC_INDEXED_VAR_B,
+    DEC_INDEXED_VAR_UB,
+    DEC_INDEXED_VAR_W,
+    DEC_INDEXED_VAR_UW,
+    DEC_INDEXED_VAR_FLOAT,
 
     // branching, without consuming a value from the stack
     JUMP,
@@ -248,5 +258,9 @@ val opcodesWithVarArgument = setOf(
         Opcode.POP_VAR_BYTE, Opcode.POP_VAR_WORD, Opcode.POP_VAR_FLOAT,
         Opcode.PUSH_VAR_BYTE, Opcode.PUSH_VAR_WORD, Opcode.PUSH_VAR_FLOAT, Opcode.PUSH_ADDR_HEAPVAR,
         Opcode.READ_INDEXED_VAR_BYTE, Opcode.READ_INDEXED_VAR_WORD, Opcode.READ_INDEXED_VAR_FLOAT,
-        Opcode.WRITE_INDEXED_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_WORD, Opcode.WRITE_INDEXED_VAR_FLOAT
+        Opcode.WRITE_INDEXED_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_WORD, Opcode.WRITE_INDEXED_VAR_FLOAT,
+        Opcode.INC_INDEXED_VAR_UB, Opcode.INC_INDEXED_VAR_B, Opcode.INC_INDEXED_VAR_UW,
+        Opcode.INC_INDEXED_VAR_W, Opcode.INC_INDEXED_VAR_FLOAT,
+        Opcode.DEC_INDEXED_VAR_UB, Opcode.DEC_INDEXED_VAR_B, Opcode.DEC_INDEXED_VAR_UW,
+        Opcode.DEC_INDEXED_VAR_W, Opcode.DEC_INDEXED_VAR_FLOAT
 )

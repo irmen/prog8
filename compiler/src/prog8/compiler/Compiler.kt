@@ -342,6 +342,28 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         }
     }
 
+    private fun opcodeIncArrayindexedVar(dt: DataType): Opcode {
+        return when(dt) {
+            DataType.ARRAY_UB -> Opcode.INC_INDEXED_VAR_UB
+            DataType.ARRAY_B -> Opcode.INC_INDEXED_VAR_B
+            DataType.ARRAY_UW -> Opcode.INC_INDEXED_VAR_UW
+            DataType.ARRAY_W -> Opcode.INC_INDEXED_VAR_W
+            DataType.ARRAY_F -> Opcode.INC_INDEXED_VAR_FLOAT
+            else -> throw CompilerException("can't inc type $dt")
+        }
+    }
+
+    private fun opcodeDecArrayindexedVar(dt: DataType): Opcode {
+        return when(dt) {
+            DataType.ARRAY_UB -> Opcode.DEC_INDEXED_VAR_UB
+            DataType.ARRAY_B -> Opcode.DEC_INDEXED_VAR_B
+            DataType.ARRAY_UW -> Opcode.DEC_INDEXED_VAR_UW
+            DataType.ARRAY_W -> Opcode.DEC_INDEXED_VAR_W
+            DataType.ARRAY_F -> Opcode.DEC_INDEXED_VAR_FLOAT
+            else -> throw CompilerException("can't dec type $dt")
+        }
+    }
+
     private fun translate(stmt: InlineAssembly) {
         prog.instr(Opcode.INLINE_ASSEMBLY, callLabel = stmt.assembly)
     }
@@ -573,7 +595,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     DataType.ARRAY_B, DataType.ARRAY_W -> {
                         if(lv.heapId==null)
                             throw CompilerException("array should have been moved into heap  ${lv.position}")
-                        prog.instr(Opcode.PUSH_WORD, Value(lv.type, lv.heapId))
+                        prog.instr(Opcode.PUSH_WORD, Value(lv.type, lv.heapId))     // XXX  push address of array
                     }
                 }
             }
@@ -634,7 +656,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                             DataType.UWORD -> prog.instr(Opcode.PUSH_MEM_UW, Value(DataType.UWORD, (target.value as LiteralValue).asNumericValue!!))
                             DataType.WORD -> prog.instr(Opcode.PUSH_MEM_W, Value(DataType.UWORD, (target.value as LiteralValue).asNumericValue!!))
                             DataType.FLOAT -> prog.instr(Opcode.PUSH_MEM_FLOAT, Value(DataType.UWORD, (target.value as LiteralValue).asNumericValue!!))
-                            else -> TODO("invalid datatype for memory variable expression: $target")
+                            else -> throw CompilerException("invalid datatype for memory variable expression: $target")
                         }
                     }
                 }
@@ -1213,16 +1235,12 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 }
             }
             stmt.target.arrayindexed!=null -> {
-                // todo: generate more efficient bytecode for this?
-                translate(stmt.target.arrayindexed!!, false)
-                val one = Value(stmt.target.arrayindexed!!.resultingDatatype(namespace, heap)!!, 1)
-                val opcode = opcodePush(one.type)
-                prog.instr(opcode, one)
+                val variable = stmt.target.arrayindexed!!.identifier?.targetStatement(namespace) as VarDecl
+                translate(stmt.target.arrayindexed!!.arrayspec.x)
                 when(stmt.operator) {
-                    "++" -> prog.instr(opcodeAdd(one.type))
-                    "--" -> prog.instr(opcodeSub(one.type))
+                    "++" -> prog.instr(opcodeIncArrayindexedVar(variable.datatype), callLabel = variable.scopedname)
+                    "--" -> prog.instr(opcodeDecArrayindexedVar(variable.datatype), callLabel = variable.scopedname)
                 }
-                translate(stmt.target.arrayindexed!!, true)
             }
             else -> throw CompilerException("very strange postincrdecr")
         }
