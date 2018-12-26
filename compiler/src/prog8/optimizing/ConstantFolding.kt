@@ -263,7 +263,6 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                                        subrightIsConst: Boolean): IExpression
     {
         // @todo this implements only a small set of possible reorderings for now
-
         if(expr.operator==subExpr.operator) {
             // both operators are the same.
             // If + or *,  we can simply swap the const of expr and Var in subexpr.
@@ -371,9 +370,9 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                                 "/",
                                 subExpr.right, expr.position)
                     } else {
-                        // (V/C1)*C2 -> (C2/C1)*V
+                        // (V/C1)*C2 -> (C1/C2)*V
                         BinaryExpression(
-                                BinaryExpression(subExpr.right, "/", expr.right, subExpr.position),
+                                BinaryExpression(expr.right, "/", subExpr.right, subExpr.position),
                                 "*",
                                 subExpr.left, expr.position)
                     }

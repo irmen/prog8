@@ -17,10 +17,10 @@
             ubyte xx=screenx(x)
             ubyte yy=screeny(y)
 
-            c64.COLOR = color
-            c64scr.PLOT(xx,yy)
-            c64.CHROUT('Q')     ;  shift-q = filled circle
-            ; the 3 lines above can be replaced by:  c64scr.setchrclr(xx, yy, 81, color)
+            ;c64.COLOR = color
+            ;c64scr.PLOT(xx,yy)
+            ;c64.CHROUT('Q')     ;  shift-q = filled circle
+            c64scr.setchrclr(xx, yy, 81, color)
 
             t  += 0.08
             color++

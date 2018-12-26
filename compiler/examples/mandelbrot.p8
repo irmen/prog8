@@ -37,20 +37,3 @@
         vm_gfx_text(11, 21, 1, "Finished!")
     }
 }
-
-
-; ---- some weird testing 60hz irq handling routine------
-
-~ irq {
-
-    memory ubyte jiffyclockHi = $a0
-    memory ubyte jiffyclockMid = $a1
-    memory ubyte jiffyclockLo = $a2
-
-sub irq()  {
-    vm_gfx_pixel(jiffyclockLo,190,jiffyclockHi)
-    vm_gfx_pixel(jiffyclockLo,191,jiffyclockMid)
-    vm_gfx_pixel(jiffyclockLo,192,jiffyclockLo)
-    return
-}
-}

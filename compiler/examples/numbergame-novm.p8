@@ -20,10 +20,6 @@
 
         for ubyte attempts_left in 10 to 1 step -1 {
 
-; stackptr debugging
-;            c64scr.print_b(X)
-;            c64.CHROUT('\n')
-
             c64scr.print("\nYou have ")
             c64scr.print_ub(attempts_left)
             c64scr.print(" guess")
@@ -32,19 +28,6 @@
             c64scr.print(" left.\nWhat is your next guess? ")
             c64scr.input_chars(input)
             ubyte guess = c64utils.str2ubyte(input)
-
-; debug info
-;            c64scr.print(" > attempts left=")
-;            c64scr.print_b(attempts_left)
-;            c64scr.print("\n > secretnumber=")
-;            c64scr.print_b(secretnumber)
-;            c64scr.print("\n > input=")
-;            c64scr.print(input)
-;            c64scr.print("\n > guess=")
-;            c64scr.print_b(guess)
-;            c64.CHROUT('\n')
-;            c64scr.print_b(X)    ; stackptr debugging
-;            c64.CHROUT('\n')
 
             if guess==secretnumber {
                 return ending(true)

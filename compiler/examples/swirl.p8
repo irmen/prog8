@@ -23,13 +23,9 @@
     }
 
     sub screenx(float x) -> word {
-        ;return ((x/4.1* (width as float)) + 160.0) as word ;width // 2       ; @todo fix calculation
-        float wf = width
-        return (x/4.1* wf + wf / 2.0)   as word
+        return (x/4.1* (width as float)) as word + width // 2
     }
     sub screeny(float y) -> word {
-        ;return (y/4.1 * (height as float) as word) + height // 2        ; @todo fix calculation
-        float hf = height
-        return (y/4.1 * hf + hf/ 2.0)     as word
+        return (y/4.1 * (height as float)) as word + height // 2
     }
 }
