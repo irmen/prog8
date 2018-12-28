@@ -1682,7 +1682,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             AssignTarget(loop.loopRegister, null, null, loop.position)
         else
             AssignTarget(null, loop.loopVar!!.copy(), null, loop.position)
-        val arrayspec = ArraySpec(RegisterExpr(Register.Y, loop.position), loop.position)
+        val arrayspec = ArraySpec(IdentifierReference(listOf(ForLoop.iteratorLoopcounterVarname), loop.position), loop.position)
         val assignLv = Assignment(
                 listOf(assignTarget), null,
                 ArrayIndexedExpression((loop.iterable as IdentifierReference).copy(), arrayspec, loop.position),
@@ -1691,11 +1691,13 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         translate(assignLv)
         translate(loop.body)
         prog.label(continueLabel)
-        prog.instr(opcodeIncvar(zero.type), callLabel = "Y")
+
+        val loopCounterVar = loop.body.getLabelOrVariable(ForLoop.iteratorLoopcounterVarname) as VarDecl
+        prog.instr(opcodeIncvar(zero.type), callLabel = loopCounterVar.scopedname)
 
         // TODO: optimize edge cases if last value = 255 or 0 (for bytes) etc. to avoid  PUSH_BYTE / SUB opcodes and make use of the wrapping around of the value.
         prog.instr(opcodePush(zero.type), Value(zero.type, numElements))
-        prog.instr(opcodePushvar(zero.type), callLabel = "Y")
+        prog.instr(opcodePushvar(zero.type), callLabel = loopCounterVar.scopedname)
         prog.instr(opcodeSub(zero.type))
         if(zero.type==DataType.UWORD)
             prog.instr(Opcode.JNZW, callLabel = loopLabel)

@@ -1656,6 +1656,10 @@ class ForLoop(val loopRegister: Register?,
     override fun toString(): String {
         return "ForLoop(loopVar: $loopVar, loopReg: $loopRegister, iterable: $iterable, pos=$position)"
     }
+
+    companion object {
+        const val iteratorLoopcounterVarname = "prog8forloopcounter"
+    }
 }
 
 

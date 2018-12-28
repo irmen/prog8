@@ -88,6 +88,7 @@
         }
 
         ; draw all edges of the object
+        ; @todo crashes with array index out of bounds in stackvm
         for uword edge in edges {
             ubyte e_from = msb(edge)
             ubyte e_to = lsb(edge)

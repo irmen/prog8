@@ -151,8 +151,10 @@ class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
     }
 
     override fun process(forLoop: ForLoop): IStatement {
-        // if the for loop has a decltype, it means to declare the loopvar inside the loop body
+        // If the for loop has a decltype, it means to declare the loopvar inside the loop body
         // rather than reusing an already declared loopvar from an outer scope.
+        // For loops that loop over an interable variable (instead of a range of numbers) get an
+        // additional interation count variable in their scope.
         if(forLoop.loopRegister!=null) {
             if(forLoop.decltype!=null)
                 checkResult.add(SyntaxError("register loop variables cannot be explicitly declared with a datatype", forLoop.position))
@@ -164,14 +166,28 @@ class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
                 DataType.UBYTE, DataType.UWORD -> {
                     val existing = if(forLoop.body.isEmpty()) null else forLoop.body.lookup(forLoop.loopVar.nameInSource, forLoop.body.statements.first())
                     if(existing==null) {
+                        // create the local scoped for loop variable itself
                         val vardecl = VarDecl(VarDeclType.VAR, forLoop.decltype, null, varName, null, forLoop.loopVar.position)
                         vardecl.linkParents(forLoop.body)
                         forLoop.body.statements.add(0, vardecl)
                         forLoop.loopVar.parent = forLoop.body   // loopvar 'is defined in the body'
                     }
                 }
+                DataType.BYTE, DataType.WORD -> {
+                    checkResult.add(SyntaxError("loop variables can only be unsigned byte or unsigned word", forLoop.position)) // TODO allow signed loopvars
+                }
                 null -> {}
-                else -> checkResult.add(SyntaxError("loop variables can only be an unsigned byte or unsigned word", forLoop.position))  // TODO loops over signed values
+                else -> checkResult.add(SyntaxError("loop variables can only be a byte or word", forLoop.position))
+            }
+            if(forLoop.iterable !is RangeExpr) {
+                val existing = if(forLoop.body.isEmpty()) null else forLoop.body.lookup(listOf(ForLoop.iteratorLoopcounterVarname), forLoop.body.statements.first())
+                if(existing==null) {
+                    // create loop iteration counter variable
+                    val vardecl = VarDecl(VarDeclType.VAR, DataType.UBYTE, null, ForLoop.iteratorLoopcounterVarname, null, forLoop.loopVar.position)
+                    vardecl.linkParents(forLoop.body)
+                    forLoop.body.statements.add(0, vardecl)
+                    forLoop.loopVar.parent = forLoop.body   // loopvar 'is defined in the body'
+                }
             }
         }
         return super.process(forLoop)
