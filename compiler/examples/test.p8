@@ -11,49 +11,60 @@
     str text = "hello\n"
 
     sub start()  {
-        c64scr.print_ub(X)
-        c64.CHROUT('\n')
 
-        c64scr.print("loop str\n")
+
+rpt:
+        vm_write_str("\nregular for loop byte\n")
+        for ubyte x in 10 to 15 {
+            vm_write_num(x)
+            vm_write_char(',')
+        }
+        vm_write_str("\nregular for loop word\n")
+        for uword y in 500 to 505 {
+            vm_write_num(y)
+            vm_write_char(',')
+        }
+
+        vm_write_str("\nloop str\n")
         for ubyte c in text {
-            c64scr.print_ub(c)
-            c64.CHROUT(',')
+            vm_write_num(c)
+            vm_write_char(',')
         }
 
-        c64scr.print("\nloop ub\n")
+        vm_write_str("\nloop ub\n")
         for ubyte ub in ubarray{
-            c64scr.print_ub(ub)
-            c64.CHROUT(',')
+            vm_write_num(ub)
+            vm_write_char(',')
         }
 
-        c64scr.print("\nloop b\n")
+        vm_write_str("\nloop b\n")
         for byte b in barray {
-            c64scr.print_b(b)
-            c64.CHROUT(',')
+            vm_write_num(b)
+            vm_write_char(',')
         }
 
-        c64scr.print("\nloop uw\n")
+        vm_write_str("\nloop uw\n")
         for uword uw in uwarray {
-            c64scr.print_uw(uw)
-            c64.CHROUT(',')
+            vm_write_num(uw)
+            vm_write_char(',')
         }
 
-        c64scr.print("\nloop w\n")
+        vm_write_str("\nloop w\n")
         for word w in warray {
-            c64scr.print_w(w)
-            c64.CHROUT(',')
+            vm_write_num(w)
+            vm_write_char(',')
         }
 
-        c64scr.print("\nloop f\n")
+        vm_write_str("\nloop f\n")
         for float f in farray {
-            c64flt.print_f(f)
-            c64.CHROUT(',')
+            vm_write_num(f)
+            vm_write_char(',')
         }
+
+        goto rpt
 
 
 ending:
-        c64scr.print("\nending\n")
-        c64scr.print_ub(X)
-        c64.CHROUT('\n')
+        vm_write_str("\nending\n")
     }
 }

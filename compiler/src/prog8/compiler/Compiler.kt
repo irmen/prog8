@@ -1667,13 +1667,17 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         val loopLabel = makeLabel("loop")
         val continueLabel = makeLabel("continue")
         val breakLabel = makeLabel("break")
+        val indexVarType = if (numElements <= 255) DataType.UBYTE else DataType.UWORD
+        val indexVar = loop.body.getLabelOrVariable(ForLoop.iteratorLoopcounterVarname) as VarDecl
 
         continueStmtLabelStack.push(continueLabel)
         breakStmtLabelStack.push(breakLabel)
 
-        val zero = Value(if (numElements <= 255) DataType.UBYTE else DataType.UWORD, 0)
-        prog.instr(opcodePush(zero.type), zero)
-        prog.instr(opcodePopvar(zero.type), callLabel = "Y")
+        // set the index var to zero before the loop
+        prog.instr(opcodePush(indexVarType), Value(indexVarType, 0))
+        prog.instr(opcodePopvar(indexVarType), callLabel = indexVar.scopedname)
+
+        // loop starts here
         prog.label(loopLabel)
         val assignTarget = if(loop.loopRegister!=null)
             AssignTarget(loop.loopRegister, null, null, loop.position)
@@ -1689,14 +1693,13 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         translate(loop.body)
         prog.label(continueLabel)
 
-        val loopCounterVar = loop.body.getLabelOrVariable(ForLoop.iteratorLoopcounterVarname) as VarDecl
-        prog.instr(opcodeIncvar(zero.type), callLabel = loopCounterVar.scopedname)
+        prog.instr(opcodeIncvar(indexVarType), callLabel = indexVar.scopedname)
 
         // TODO: optimize edge cases if last value = 255 or 0 (for bytes) etc. to avoid  PUSH_BYTE / SUB opcodes and make use of the wrapping around of the value.
-        prog.instr(opcodePush(zero.type), Value(zero.type, numElements))
-        prog.instr(opcodePushvar(zero.type), callLabel = loopCounterVar.scopedname)
-        prog.instr(opcodeSub(zero.type))
-        if(zero.type==DataType.UWORD)
+        prog.instr(opcodePush(indexVarType), Value(indexVarType, numElements))
+        prog.instr(opcodePushvar(indexVarType), callLabel = indexVar.scopedname)
+        prog.instr(opcodeSub(indexVarType))
+        if(indexVarType==DataType.UWORD)
             prog.instr(Opcode.JNZW, callLabel = loopLabel)
         else
             prog.instr(Opcode.JNZ, callLabel = loopLabel)
@@ -1735,7 +1738,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         continueStmtLabelStack.push(continueLabel)
         breakStmtLabelStack.push(breakLabel)
 
-        prog.instr(opcodePush(varDt), Value(varDt, range.first))
+        prog.instr(opcodePush(varDt), Value(varDt, range.first))        // @todo use VariableInitializationStatement instead?? (like other for loop)
         prog.instr(opcodePopvar(varDt), callLabel = varname)
         prog.label(loopLabel)
         translate(body)

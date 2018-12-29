@@ -180,7 +180,7 @@ class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
             if(forLoop.iterable !is RangeExpr) {
                 val existing = if(forLoop.body.isEmpty()) null else forLoop.body.lookup(listOf(ForLoop.iteratorLoopcounterVarname), forLoop.body.statements.first())
                 if(existing==null) {
-                    // create loop iteration counter variable
+                    // create loop iteration counter variable (without value, to avoid an assignment)
                     val vardecl = VarDecl(VarDeclType.VAR, DataType.UBYTE, null, ForLoop.iteratorLoopcounterVarname, null, forLoop.loopVar.position)
                     vardecl.linkParents(forLoop.body)
                     forLoop.body.statements.add(0, vardecl)
