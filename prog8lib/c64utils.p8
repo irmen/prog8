@@ -128,6 +128,7 @@ asmsub  uword2bcd  (uword value @ AY) -> clobbers(A,X) -> ()  {
 	%asm {{
 		sta  c64.SCRATCH_ZPB1
 		sty  c64.SCRATCH_ZPREG
+		sei				; disable interrupts because of bcd math
 		sed				; switch to decimal mode
 		lda  #0				; ensure the result is clear
 		sta  word2bcd_bcdbuff+0
@@ -149,6 +150,7 @@ asmsub  uword2bcd  (uword value @ AY) -> clobbers(A,X) -> ()  {
 		dex				; and repeat for next bit
 		bne  -
 		cld				; back to binary
+		cli				; enable interrupts again
 		rts
 	}}
 }
