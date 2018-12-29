@@ -1218,7 +1218,7 @@ _greater	lda  (SCRATCH_ZPWORD1),y
 		dey
 _lesseq		dey
 		dey
-		bpl  _loop
+		bpl  _loop			; @todo doesn't work for arrays where y will be >127. FIX OTHER LOOPS TOO!
 		lda  _result_maxuw
 		sta  ESTACK_LO,x
 		lda  _result_maxuw+1
@@ -1273,8 +1273,8 @@ func_max_f	.proc
 		sta  _cmp_mod+1			; compare using 255 so we keep larger values
 _minmax_entry	jsr  pop_array_and_lengthmin1Y
 		stx  SCRATCH_ZPREGX
-		sty  SCRATCH_ZPREG
--		lda  SCRATCH_ZPWORD1
+-		sty  SCRATCH_ZPREG
+		lda  SCRATCH_ZPWORD1
 		ldy  SCRATCH_ZPWORD1+1
 		jsr  c64.FCOMP
 _cmp_mod	cmp  #255			; will be modified
@@ -1283,20 +1283,119 @@ _cmp_mod	cmp  #255			; will be modified
 		lda  SCRATCH_ZPWORD1
 		ldy  SCRATCH_ZPWORD1+1
 		jsr  c64.MOVFM
-+		lda  #5
-		clc
-		adc  SCRATCH_ZPWORD1
-		sta  SCRATCH_ZPWORD1
-		bcc  +
-		inc  SCRATCH_ZPWORD1+1
-+		ldy  SCRATCH_ZPREG
+		ldy  SCRATCH_ZPREG
 		dey
-		sty  SCRATCH_ZPREG
-		bpl  -
-		jmp  push_fac1_as_result
+		cmp  #255
+		beq  +
+		lda  SCRATCH_ZPWORD1
+		clc
+		adc  #5
+		sta  SCRATCH_ZPWORD1
+		bcc  -
+		inc  SCRATCH_ZPWORD1+1
+		bne  -
++		jmp  push_fac1_as_result
 _min_float	.byte  255,255,255,255,255	; -1.7014118345e+38
 		.pend
+		
 
+func_sum_b	.proc
+		jsr  pop_array_and_lengthmin1Y
+		lda  #0
+		sta  ESTACK_LO,x
+		sta  ESTACK_HI,x
+_loop		lda  (SCRATCH_ZPWORD1),y
+		pha
+		clc
+		adc  ESTACK_LO,x
+		sta  ESTACK_LO,x
+		; sign extend the high byte
+		pla
+		and  #$80
+		beq  +
+		lda  #$ff
++		adc  ESTACK_HI,x
+		sta  ESTACK_HI,x
+		dey
+		cpy  #255
+		bne  _loop
+		dex
+		rts
+		.pend
+		
+func_sum_ub	.proc
+		jsr  pop_array_and_lengthmin1Y
+		lda  #0
+		sta  ESTACK_LO,x
+		sta  ESTACK_HI,x
+-		lda  (SCRATCH_ZPWORD1),y
+		clc
+		adc  ESTACK_LO,x
+		sta  ESTACK_LO,x
+		bcc  +
+		inc  ESTACK_HI,x
++		dey
+		cpy  #255
+		bne  -
+		dex
+		rts
+		.pend
+
+func_sum_uw	.proc
+		jsr  pop_array_and_lengthmin1Y
+		tya
+		asl  a
+		tay
+		lda  #0
+		sta  ESTACK_LO,x
+		sta  ESTACK_HI,x
+-		lda  (SCRATCH_ZPWORD1),y
+		iny
+		clc
+		adc  ESTACK_LO,x
+		sta  ESTACK_LO,x
+		lda  (SCRATCH_ZPWORD1),y
+		adc  ESTACK_HI,x
+		sta  ESTACK_HI,x
+		dey
+		dey
+		dey
+		cpy  #254
+		bne  -
+		dex
+		rts
+		.pend
+
+func_sum_w	.proc
+		jmp  func_sum_uw
+		.pend
+
+func_sum_f	.proc
+		lda  #<c64.FL_NEGHLF
+		ldy  #>c64.FL_NEGHLF
+		jsr  c64.MOVFM
+		jsr  pop_array_and_lengthmin1Y
+		stx  SCRATCH_ZPREGX
+-		sty  SCRATCH_ZPREG
+		lda  SCRATCH_ZPWORD1
+		ldy  SCRATCH_ZPWORD1+1
+		jsr  c64.FADD
+		ldy  SCRATCH_ZPREG
+		dey
+		cpy  #255
+		beq  +
+		lda  SCRATCH_ZPWORD1
+		clc
+		adc  #5
+		sta  SCRATCH_ZPWORD1
+		bcc  -
+		inc  SCRATCH_ZPWORD1+1
+		bne  -
++		jsr  c64.FADDH
+		jmp  push_fac1_as_result
+		.pend
+		
+		
 pop_array_and_lengthmin1Y	.proc
 		inx
 		ldy  ESTACK_LO,x

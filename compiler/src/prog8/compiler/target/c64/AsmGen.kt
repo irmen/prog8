@@ -248,7 +248,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 DataType.BYTE -> out("${v.first}\t.char  0")
                 DataType.UWORD -> out("${v.first}\t.word  0")
                 DataType.WORD -> out("${v.first}\t.sint  0")
-                DataType.FLOAT -> out("${v.first}\t.fill  5  ; float")
+                DataType.FLOAT -> out("${v.first}\t.byte  0,0,0,0,0  ; float")
                 DataType.STR,
                 DataType.STR_P,
                 DataType.STR_S,
