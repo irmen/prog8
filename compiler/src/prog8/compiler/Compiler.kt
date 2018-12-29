@@ -1603,21 +1603,18 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             }
         } else {
             // ok, must be a literalvalue
-            val iterableValue: LiteralValue
             when {
-                loop.iterable is LiteralValue -> {
-                    TODO("loop over literal value (move literal to auto-generated heap variable)")
-                }
                 loop.iterable is IdentifierReference -> {
                     val idRef = loop.iterable as IdentifierReference
                     val vardecl = (idRef.targetStatement(namespace) as VarDecl)
-                    iterableValue = vardecl.value as LiteralValue
+                    val iterableValue = vardecl.value as LiteralValue
                     if(!iterableValue.isIterable(namespace, heap))
                         throw CompilerException("loop over something that isn't iterable ${loop.iterable}")
+                    translateForOverIterableVar(loop, loopVarDt, iterableValue)
                 }
+                loop.iterable is LiteralValue -> throw CompilerException("literal value in loop must have been moved to heap already $loop")
                 else -> throw CompilerException("loopvar is something strange ${loop.iterable}")
             }
-            translateForOverIterableVar(loop, loopVarDt, iterableValue)
         }
     }
 

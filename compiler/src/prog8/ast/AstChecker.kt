@@ -89,6 +89,7 @@ class AstChecker(private val namespace: INameScope,
                     is VarDecl->true
                     is InlineAssembly->true
                     is INameScope->true
+                    is VariableInitializationAssignment->true
                     else->false
                 }
                 if(!ok) {
@@ -154,15 +155,27 @@ class AstChecker(private val namespace: INameScope,
                     when (loopvar.datatype) {
                         DataType.UBYTE -> {
                             if(iterableDt!=DataType.UBYTE && iterableDt!=DataType.ARRAY_UB && iterableDt !in StringDatatypes)
-                                checkResult.add(ExpressionError("byte loop variable can only loop over bytes", forLoop.position))
+                                checkResult.add(ExpressionError("ubyte loop variable can only loop over unsigned bytes or strings", forLoop.position))
                         }
                         DataType.UWORD -> {
                             if(iterableDt!=DataType.UBYTE && iterableDt!=DataType.UWORD && iterableDt !in StringDatatypes &&
                                     iterableDt !=DataType.ARRAY_UB && iterableDt!=DataType.ARRAY_UW)
+                                checkResult.add(ExpressionError("uword loop variable can only loop over unsigned bytes, words or strings", forLoop.position))
+                        }
+                        DataType.BYTE -> {
+                            if(iterableDt!=DataType.BYTE && iterableDt!=DataType.ARRAY_B)
+                                checkResult.add(ExpressionError("byte loop variable can only loop over bytes", forLoop.position))
+                        }
+                        DataType.WORD -> {
+                            if(iterableDt!=DataType.BYTE && iterableDt!=DataType.WORD &&
+                                    iterableDt !=DataType.ARRAY_B && iterableDt!=DataType.ARRAY_W)
                                 checkResult.add(ExpressionError("word loop variable can only loop over bytes or words", forLoop.position))
                         }
-                        // there's no support for a floating-point loop variable
-                        else -> checkResult.add(ExpressionError("loop variable must be byte or word type", forLoop.position))
+                        DataType.FLOAT -> {
+                            if(iterableDt!=DataType.FLOAT && iterableDt != DataType.ARRAY_F)
+                                checkResult.add(ExpressionError("float loop variable can only loop over floats", forLoop.position))
+                        }
+                        else -> checkResult.add(ExpressionError("loop variable must be numeric type", forLoop.position))
                     }
                 }
             }
@@ -477,6 +490,13 @@ class AstChecker(private val namespace: INameScope,
                 err("const modifier can only be used on numeric types (byte, word, float)")
         }
 
+        // FLOATS
+        // @todo move floating point routines from c64utils into separately included file, then re-enable this check
+//        if(!compilerOptions.floats && decl.datatype==DataType.FLOAT && decl.type!=VarDeclType.MEMORY) {
+//            checkResult.add(SyntaxError("floating point used, but that is not enabled via options", decl.position))
+//        }
+
+
         when(decl.type) {
             VarDeclType.VAR, VarDeclType.CONST -> {
                 if (decl.value == null) {
@@ -619,7 +639,7 @@ class AstChecker(private val namespace: INameScope,
 
     override fun process(literalValue: LiteralValue): LiteralValue {
         if(!compilerOptions.floats && literalValue.type==DataType.FLOAT) {
-            checkResult.add(SyntaxError("floating point value used, but floating point is not enabled via options", literalValue.position))
+            checkResult.add(SyntaxError("floating point used, but that is not enabled via options", literalValue.position))
         }
         val arrayspec =
                 if(literalValue.isArray)

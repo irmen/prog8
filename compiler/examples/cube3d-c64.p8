@@ -46,7 +46,7 @@
                 rotate_vertices(irq.global_time as float / 30.0)
                 c64scr.print_ub(X)
                 c64.CHROUT('\n')
-                draw_edges()        ; @todo doesn't return from the loop...
+                draw_edges()
                 c64scr.print_ub(X)
                 c64.CHROUT('\n')
             }
@@ -93,7 +93,7 @@
         }
 
         ; draw all edges of the object
-        for uword edge in edges {       ; @todo invalid loop code generated? (loop doesn't end?)
+        for uword edge in edges {
 
             ubyte e_from = msb(edge)
             ubyte e_to = lsb(edge)

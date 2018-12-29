@@ -413,6 +413,7 @@ _done		rts
 
 ~ c64flt {
 	; ---- this block contains C-64 floating point related functions ----
+	; @todo move to c64fp.p8  and enable float-checkin astchecker.process(decl: VarDecl) again
 
 
 asmsub  FREADS32  () -> clobbers(A,X,Y) -> ()  {

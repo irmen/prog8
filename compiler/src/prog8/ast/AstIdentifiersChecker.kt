@@ -162,23 +162,21 @@ class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
                 printWarning("writing to the X register is dangerous, because it's used as an internal pointer", forLoop.position)
         } else if(forLoop.loopVar!=null) {
             val varName = forLoop.loopVar.nameInSource.last()
-            when (forLoop.decltype) {
-                DataType.UBYTE, DataType.UWORD -> {
-                    val existing = if(forLoop.body.isEmpty()) null else forLoop.body.lookup(forLoop.loopVar.nameInSource, forLoop.body.statements.first())
-                    if(existing==null) {
-                        // create the local scoped for loop variable itself
-                        val vardecl = VarDecl(VarDeclType.VAR, forLoop.decltype, null, varName, null, forLoop.loopVar.position)
-                        vardecl.linkParents(forLoop.body)
-                        forLoop.body.statements.add(0, vardecl)
-                        forLoop.loopVar.parent = forLoop.body   // loopvar 'is defined in the body'
-                    }
-                }
-                DataType.BYTE, DataType.WORD -> {
-                    checkResult.add(SyntaxError("loop variables can only be unsigned byte or unsigned word", forLoop.position)) // TODO allow signed loopvars
-                }
-                null -> {}
-                else -> checkResult.add(SyntaxError("loop variables can only be a byte or word", forLoop.position))
+            if(forLoop.iterable is RangeExpr && forLoop.decltype!=null && forLoop.decltype !in setOf(DataType.UBYTE, DataType.UWORD)) {
+                checkResult.add(SyntaxError("loop variables over a numeric range can only be ubyte or uword", forLoop.position))    // TODO allow signed range loopvars
             }
+            if(forLoop.decltype!=null) {
+                val existing = if(forLoop.body.isEmpty()) null else forLoop.body.lookup(forLoop.loopVar.nameInSource, forLoop.body.statements.first())
+                if(existing==null) {
+                    // create the local scoped for loop variable itself
+                    val vardecl = VarDecl(VarDeclType.VAR, forLoop.decltype, null, varName, null, forLoop.loopVar.position)
+                    vardecl.linkParents(forLoop.body)
+                    forLoop.body.statements.add(0, vardecl)
+                    forLoop.loopVar.parent = forLoop.body   // loopvar 'is defined in the body'
+                }
+
+            }
+
             if(forLoop.iterable !is RangeExpr) {
                 val existing = if(forLoop.body.isEmpty()) null else forLoop.body.lookup(listOf(ForLoop.iteratorLoopcounterVarname), forLoop.body.statements.first())
                 if(existing==null) {
