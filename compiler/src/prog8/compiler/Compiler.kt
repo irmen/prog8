@@ -721,7 +721,38 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     else -> throw CompilerException("wrong datatype for $funcname()")
                 }
             }
-            "min", "max", "avg", "sum" -> {
+            "avg" -> {
+                // 1 array argument, type determines the exact syscall to use
+                val arg=args.single() as IdentifierReference
+                val target=arg.targetStatement(namespace) as VarDecl
+                val length=Value(DataType.UBYTE, target.arrayspec!!.size()!!)
+                val arrayDt=arg.resultingDatatype(namespace, heap)
+                prog.instr(Opcode.PUSH_BYTE, length)
+                when (arrayDt) {
+                    DataType.ARRAY_UB -> {
+                        createSyscall("sum_ub")
+                        prog.instr(Opcode.CAST_UW_TO_F)     // result of sum(ubyte) is uword, so cast
+                    }
+                    DataType.ARRAY_B -> {
+                        createSyscall("sum_b")
+                        prog.instr(Opcode.CAST_W_TO_F)     // result of sum(byte) is word, so cast
+                    }
+                    DataType.ARRAY_UW -> {
+                        createSyscall("sum_uw")
+                        prog.instr(Opcode.CAST_UW_TO_F)     // result of sum(uword) is uword, so cast
+                    }
+                    DataType.ARRAY_W -> {
+                        createSyscall("sum_w")
+                        prog.instr(Opcode.CAST_W_TO_F)     // result of sum(word) is word, so cast
+                    }
+                    DataType.ARRAY_F -> createSyscall("sum_f")
+                    else -> throw CompilerException("wrong datatype for avg")
+                }
+                // divide by the number of elements
+                prog.instr(opcodePush(DataType.FLOAT), Value(DataType.FLOAT, length.numericValue()))
+                prog.instr(Opcode.DIV_F)
+            }
+            "min", "max", "sum" -> {
                 // 1 array argument, type determines the exact syscall to use
                 val arg=args.single() as IdentifierReference
                 val target=arg.targetStatement(namespace) as VarDecl
@@ -735,7 +766,6 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     DataType.ARRAY_F -> createSyscall("${funcname}_f")
                     else -> throw CompilerException("wrong datatype for $funcname()")
                 }
-
             }
             "abs" -> {
                 // 1 argument, type determines the exact opcode to use
