@@ -1076,10 +1076,6 @@ sub  setchrclr  (ubyte column, ubyte row, ubyte char, ubyte color)  {
 _charmod	sta  $ffff		; modified
 		lda  setchrclr_color
 _colormod	sta  $ffff		; modified
-		inx
-		inx
-		inx
-		inx
 		rts
 	}}	
 }

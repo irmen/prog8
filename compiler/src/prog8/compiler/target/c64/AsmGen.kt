@@ -704,7 +704,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.CAST_F_TO_W -> " jsr  prog8_lib.stack_float2w"
             Opcode.CAST_UB_TO_UW, Opcode.CAST_UB_TO_W -> " lda  #0 |  sta  ${ESTACK_HI+1},x"     // clear the msb
             Opcode.CAST_B_TO_UW, Opcode.CAST_B_TO_W -> " ${signExtendA("${ESTACK_HI+1},x")}"     // sign extend the lsb   @todo missing an lda???
-            Opcode.MSB -> " lda  ${(ESTACK_HI+1).toHex()},x |  sta ${(ESTACK_LO+1).toHex()},x"
+            Opcode.MSB -> " lda  ${(ESTACK_HI+1).toHex()},x |  sta  ${(ESTACK_LO+1).toHex()},x"
 
             Opcode.ADD_UB, Opcode.ADD_B -> {
                 """
@@ -1182,7 +1182,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                             "A" -> "  sta  ${segment[1].callLabel}"
                             "X" -> "  stx  ${segment[1].callLabel}"
                             "Y" -> "  sty  ${segment[1].callLabel}"
-                            else -> "  lda  ${segment[0].callLabel} |  sta ${segment[1].callLabel}"
+                            else -> "  lda  ${segment[0].callLabel} |  sta  ${segment[1].callLabel}"
                         }
                 }
             },
