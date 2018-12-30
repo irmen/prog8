@@ -182,7 +182,7 @@ add_a_to_zpword	.proc
 		clc
 		adc  SCRATCH_ZPWORD1
 		sta  SCRATCH_ZPWORD1
-		bvc  +
+		bcc  +
 		inc  SCRATCH_ZPWORD1+1
 +		rts
 		.pend

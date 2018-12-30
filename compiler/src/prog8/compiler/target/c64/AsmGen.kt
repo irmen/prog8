@@ -2412,8 +2412,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_FLOAT, Opcode.POP_VAR_FLOAT)) { segment ->
                 val index = intVal(segment[0]) * Mflpt5.MemorySize
                 """
-                lda  ${segment[1].callLabel}+$index
-                ldy  ${segment[1].callLabel}+${index+1}
+                lda  #<${segment[1].callLabel}+$index
+                ldy  #>${segment[1].callLabel}+$index
                 sta  ${C64Zeropage.SCRATCH_W1}
                 sty  ${C64Zeropage.SCRATCH_W1+1}
                 lda  #<${segment[2].callLabel}
@@ -2611,8 +2611,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_FLOAT, Opcode.POP_MEM_FLOAT)) { segment ->
                 val index = intVal(segment[0]) * Mflpt5.MemorySize
                 """
-                lda  ${segment[1].callLabel}+$index
-                ldy  ${segment[1].callLabel}+${index+1}
+                lda  #<${segment[1].callLabel}+$index
+                ldy  #>${segment[1].callLabel}+$index
                 sta  ${C64Zeropage.SCRATCH_W1}
                 sty  ${C64Zeropage.SCRATCH_W1+1}
                 lda  #<${hexVal(segment[2])}
