@@ -59,12 +59,14 @@
         float cosc = cos(t*0.78)
         float sinc = sin(t*0.78)
 
+        float cosa_sinb = cosa*sinb
+        float sina_sinb = sina*sinb
         float Axx = cosa*cosb
-        float Axy = cosa*sinb*sinc - sina*cosc
-        float Axz = cosa*sinb*cosc + sina*sinc
+        float Axy = cosa_sinb*sinc - sina*cosc
+        float Axz = cosa_sinb*cosc + sina*sinc
         float Ayx = sina*cosb
-        float Ayy = sina*sinb*sinc + cosa*cosc
-        float Ayz = sina*sinb*cosc - cosa*sinc
+        float Ayy = sina_sinb*sinc + cosa*cosc
+        float Ayz = sina_sinb*cosc - cosa*sinc
         float Azx = -sinb
         float Azy = cosb*sinc
         float Azz = cosb*cosc

@@ -858,7 +858,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
     private fun translateSubroutineCall(subroutine: Subroutine, arguments: List<IExpression>, callPosition: Position) {
         // evaluate the arguments and assign them into the subroutine's argument variables.
         var restoreX = Register.X in subroutine.asmClobbers
-        if(subroutine.asmParameterRegisters.isNotEmpty()) {
+        if(subroutine.isAsmSubroutine) {
             if(subroutine.parameters.size!=subroutine.asmParameterRegisters.size)
                 throw CompilerException("no support for mix of register and non-register subroutine arguments")
 

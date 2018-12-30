@@ -11,9 +11,6 @@
     float[8] ycoor = [ -1.0, -1.0,  1.0,  1.0, -1.0, -1.0,  1.0, 1.0 ]
     float[8] zcoor = [ -1.0,  1.0, -1.0,  1.0, -1.0,  1.0, -1.0, 1.0 ]
 
-    ; edges (msb=from vertex, lsb=to vertex)
-    uword[12] edges = [$0001, $0103, $0302, $0200, $0405, $0507, $0706, $0604, $0004, $0105, $0206, $0307]
-
     ; storage for rotated coordinates
     float[len(xcoor)] rotatedx=0.0
     float[len(ycoor)] rotatedy=0.0
@@ -21,11 +18,11 @@
 
     sub start()  {
         float time=0.0
-        while true {
+        while(true) {
             rotate_vertices(time)
             c64.CLEARSCR()
             draw_edges()
-            time += 0.2
+            time+=0.2
         }
     }
 
@@ -40,12 +37,14 @@
         float cosc = cos(t*0.78)
         float sinc = sin(t*0.78)
 
+        float cosa_sinb = cosa*sinb
+        float sina_sinb = sina*sinb
         float Axx = cosa*cosb
-        float Axy = cosa*sinb*sinc - sina*cosc
-        float Axz = cosa*sinb*cosc + sina*sinc
+        float Axy = cosa_sinb*sinc - sina*cosc
+        float Axz = cosa_sinb*cosc + sina*sinc
         float Ayx = sina*cosb
-        float Ayy = sina*sinb*sinc + cosa*cosc
-        float Ayz = sina*sinb*cosc - cosa*sinc
+        float Ayy = sina_sinb*sinc + cosa*cosc
+        float Ayz = sina_sinb*cosc - cosa*sinc
         float Azx = -sinb
         float Azy = cosb*sinc
         float Azz = cosb*cosc
@@ -60,7 +59,6 @@
         }
     }
 
-
     sub draw_edges() {
 
         sub toscreenx(float x, float z) -> byte {
@@ -72,14 +70,24 @@
         }
 
         ; plot the points of the 3d cube
+        ; first the points on the back, then the points on the front (painter algorithm)
+
         for ubyte i in 0 to len(xcoor)-1 {
             float rz = rotatedz[i]
-            ubyte sx = toscreenx(rotatedx[i], rz) as ubyte
-            ubyte sy = toscreeny(rotatedy[i], rz) as ubyte
-            if rz < 0.1
-                c64scr.setchrclr(sx, sy, 81, i+2)
-            else
+            if rz >= 0.1 {
+                ubyte sx = toscreenx(rotatedx[i], rz) as ubyte
+                ubyte sy = toscreeny(rotatedy[i], rz) as ubyte
                 c64scr.setchrclr(sx, sy, 46, i+2)
+            }
+        }
+
+        for ubyte i in 0 to len(xcoor)-1 {
+            float rz = rotatedz[i]
+            if rz < 0.1 {
+                ubyte sx = toscreenx(rotatedx[i], rz) as ubyte
+                ubyte sy = toscreeny(rotatedy[i], rz) as ubyte
+                c64scr.setchrclr(sx, sy, 81, i+2)
+            }
         }
     }
 }
