@@ -277,6 +277,11 @@ class StackVm(private var traceOutputFile: String?) {
                 val address = ins.arg!!.integerValue()
                 evalstack.push(Value(DataType.FLOAT, mem.getFloat(address)))
             }
+            Opcode.PUSH_MEMREAD -> {
+                val address = evalstack.pop()
+                checkDt(address, DataType.UWORD)
+                TODO("push_memread from $address")
+            }
             Opcode.DISCARD_BYTE -> {
                 val value = evalstack.pop()
                 checkDt(value, DataType.UBYTE)
@@ -312,6 +317,13 @@ class StackVm(private var traceOutputFile: String?) {
                 checkDt(value, DataType.FLOAT)
                 val address = ins.arg!!.integerValue()
                 mem.setFloat(address, value.numericValue().toDouble())
+            }
+            Opcode.POP_MEMWRITE -> {
+                val address = evalstack.pop()
+                checkDt(address, DataType.UWORD)
+                val value = evalstack.pop()
+                checkDt(value, DataType.UBYTE)
+                TODO("pop_memwrite $value to $address")
             }
             Opcode.ADD_UB -> {
                 val (top, second) = evalstack.pop2()

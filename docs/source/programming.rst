@@ -291,6 +291,24 @@ are banked in (and your code imports the ``c64lib.p8``)
 The largest 5-byte MFLPT float that can be stored is: **1.7014118345e+38**   (negative: **-1.7014118345e+38**)
 
 
+Converting types into other types
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Sometimes you need an unsigned word where you have an unsigned byte, or you need some other type conversion.
+Many type conversions are possible by just writing ``as <type>`` at the end of an expression::
+
+    uword  uw = $ea31
+    ubyte  ub = uw as ubyte     ; ub will be $31, identical to lsb(uw)
+    float  f = uw as float      ; f will be 59953, but this conversion can be omitted in this case
+    word   w = uw as word       ; w will be -5583 (simply reinterpret $ea31 as 2-complement negative number)
+    f = 56.777
+    ub = f as ubyte             ; ub will be 56
+
+Sometimes it is a straight 'type cast' where the value is simply interpreted as being of the other type,
+sometimes an actual value conversion is done to convert it into the targe type.
+Try to avoid type conversions as much as possible.
+
+
 Initial values across multiple runs of the program
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -303,21 +321,6 @@ It is assumed these are left unchanged by the program.
 If you do modify them in-place, you should take care yourself that they work as
 expected when the program is restarted.
 (This is an optimization choice to avoid having to store two copies of every string and array)
-
-
-Indirect addressing and address-of
-----------------------------------
-
-The ``#`` operator is used to take the address of the symbol following it.
-It can be used for example to work with the *address* of a memory mapped variable rather than
-the value it holds.  You could take the address of a string as well, but that is redundant:
-the compiler already treats those as a value that you manipulate via its address.
-For most other types this prefix is not supported and will result in a compilation error.
-The resulting value is simply a 16 bit word.
-
-.. todo::
-    This is not yet implemented.
-    Indirect addressing, Indirect addressing in jumps (jmp/jsr indirect)
 
 
 Loops
@@ -410,6 +413,19 @@ a fixed amount of memory which will not change.
     a variable of a smaller datatype without an explicit conversion. Otherwise you'll get an error telling you
     that there is a loss of precision. You can use builtin functions such as ``round`` and ``lsb`` to convert
     to a smaller datatype, or revert to integer arithmetic.
+
+Direct access to memory locations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Normally memory locations are accessed by a *memory mapped* name, such as ``c64.BGCOL0`` that is defined
+as the memory mapped address $d021.
+
+If you want to access a memory location directly (by using the address itself), without defining
+a memory mapped location, you can do so by prefixing the address with ``@``::
+
+    A = @$d020      ; set the A register to the current c64 screen border color ("peek(53280)")
+    @$d020 = 0      ; set the c64 screen border to black ("poke 53280,0")
+    @(vic+$20) = 6  ; you can also use expressions to 'calculate' the address
+
 
 Expressions
 -----------

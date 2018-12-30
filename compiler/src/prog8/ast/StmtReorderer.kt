@@ -121,7 +121,7 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
                     else
                         declvalue
             return VariableInitializationAssignment(
-                    AssignTarget(null, IdentifierReference(decl.scopedname.split("."), decl.position), null, decl.position),
+                    AssignTarget(null, IdentifierReference(decl.scopedname.split("."), decl.position), null, null, decl.position),
                     null,
                     value,
                     decl.position

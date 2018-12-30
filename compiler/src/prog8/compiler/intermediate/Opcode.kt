@@ -11,6 +11,7 @@ enum class Opcode {
     PUSH_MEM_W,      // push word value from memory to stack
     PUSH_MEM_UW,     // push unsigned word value from memory to stack
     PUSH_MEM_FLOAT,  // push float value from memory to stack
+    PUSH_MEMREAD,    // push memory value from address that's on the stack
     PUSH_VAR_BYTE,   // push byte variable (ubyte, byte)
     PUSH_VAR_WORD,   // push word variable (uword, word)
     PUSH_VAR_FLOAT,  // push float variable
@@ -27,6 +28,7 @@ enum class Opcode {
     POP_MEM_BYTE,    // pop (u)byte value into destination memory address
     POP_MEM_WORD,    // pop (u)word value into destination memory address
     POP_MEM_FLOAT,   // pop float value into destination memory address
+    POP_MEMWRITE,    // pop address and byte stack and write the byte to the memory address
     POP_VAR_BYTE,    // pop (u)byte value into variable
     POP_VAR_WORD,    // pop (u)word value into variable
     POP_VAR_FLOAT,   // pop float value into variable

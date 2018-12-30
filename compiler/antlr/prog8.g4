@@ -120,6 +120,7 @@ assign_target:
 	| identifier
 	| scoped_identifier
 	| arrayindexed
+	| directmemory
 	;
 
 postincrdecr :  assign_target  operator = ('++' | '--') ;
@@ -146,6 +147,7 @@ expression :
 	| identifier
 	| scoped_identifier
 	| arrayindexed
+	| directmemory
 	| expression typecast
 	;
 
@@ -156,6 +158,8 @@ typecast : 'as' datatype;
 arrayindexed :
     (identifier | scoped_identifier ) arrayspec
     ;
+
+directmemory : '@' expression ;
 
 
 functioncall :

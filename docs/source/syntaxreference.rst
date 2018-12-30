@@ -280,6 +280,12 @@ of something with an operand starting with 1 or 0, you'll have to add a space in
     **@todo pointers/addresses?  (as opposed to normal WORDs)**
 
 
+Data type conversion
+^^^^^^^^^^^^^^^^^^^^
+Many type conversions are possible by just writing ``as <type>`` at the end of an expression,
+for example ``ubyte ub = floatvalue as ubyte`` will convert the floating point value to an unsigned byte.
+
+
 Memory mapped variables
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -288,6 +294,16 @@ should be allocated by the compiler. Instead, the (mandatory) value assigned to 
 should be the *memory address* where the value is located::
 
 	memory  byte  BORDER = $d020
+
+
+Direct access to memory locations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Instead of defining a memory mapped name for a specific memory location, you can also
+directly access the memory. Prefix a numeric expression or literal by ``@`` to do that::
+
+    A = @$d020      ; set the A register to the current c64 screen border color ("peek(53280)")
+    @$d020 = 0      ; set the c64 screen border to black ("poke 53280,0")
+    @(vic+$20) = 6  ; a dynamic expression to 'calculate' the address
 
 
 Constants

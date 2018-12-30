@@ -580,6 +580,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             is ArrayIndexedExpression -> translate(expr, false)
             is RangeExpr -> throw CompilerException("it's not possible to just have a range expression that has to be translated")
             is TypecastExpression -> translate(expr)
+            is DirectMemoryExpression -> translate(expr)
             else -> {
                 val lv = expr.constValue(namespace, heap) ?: throw CompilerException("constant expression required, not $expr")
                 when(lv.type) {
@@ -876,7 +877,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 } else {
                     when (arg.second.registerOrPair!!) {
                         A -> {
-                            val assign = Assignment(listOf(AssignTarget(Register.A, null, null, callPosition)), null, arg.first, callPosition)
+                            val assign = Assignment(listOf(AssignTarget(Register.A, null, null, null, callPosition)), null, arg.first, callPosition)
                             assign.linkParents(arguments[0].parent)
                             translate(assign)
                         }
@@ -885,12 +886,12 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                                 prog.instr(Opcode.RSAVEX)
                                 restoreX = true
                             }
-                            val assign = Assignment(listOf(AssignTarget(Register.X, null, null, callPosition)), null, arg.first, callPosition)
+                            val assign = Assignment(listOf(AssignTarget(Register.X, null, null, null, callPosition)), null, arg.first, callPosition)
                             assign.linkParents(arguments[0].parent)
                             translate(assign)
                         }
                         Y -> {
-                            val assign = Assignment(listOf(AssignTarget(Register.Y, null, null, callPosition)), null, arg.first, callPosition)
+                            val assign = Assignment(listOf(AssignTarget(Register.Y, null, null, null, callPosition)), null, arg.first, callPosition)
                             assign.linkParents(arguments[0].parent)
                             translate(assign)
                         }
@@ -906,8 +907,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                                 DataType.UBYTE -> {
                                     valueA=arg.first
                                     valueX=LiteralValue.optimalInteger(0, callPosition)
-                                    val assignA = Assignment(listOf(AssignTarget(Register.A, null, null, callPosition)), null, valueA, callPosition)
-                                    val assignX = Assignment(listOf(AssignTarget(Register.X, null, null, callPosition)), null, valueX, callPosition)
+                                    val assignA = Assignment(listOf(AssignTarget(Register.A, null, null, null, callPosition)), null, valueA, callPosition)
+                                    val assignX = Assignment(listOf(AssignTarget(Register.X, null, null, null, callPosition)), null, valueX, callPosition)
                                     assignA.linkParents(arguments[0].parent)
                                     assignX.linkParents(arguments[0].parent)
                                     translate(assignA)
@@ -932,8 +933,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                                 DataType.UBYTE -> {
                                     valueA=arg.first
                                     valueY=LiteralValue.optimalInteger(0, callPosition)
-                                    val assignA = Assignment(listOf(AssignTarget(Register.A, null, null, callPosition)), null, valueA, callPosition)
-                                    val assignY = Assignment(listOf(AssignTarget(Register.Y, null, null, callPosition)), null, valueY, callPosition)
+                                    val assignA = Assignment(listOf(AssignTarget(Register.A, null, null, null, callPosition)), null, valueA, callPosition)
+                                    val assignY = Assignment(listOf(AssignTarget(Register.Y, null, null, null, callPosition)), null, valueY, callPosition)
                                     assignA.linkParents(arguments[0].parent)
                                     assignY.linkParents(arguments[0].parent)
                                     translate(assignA)
@@ -962,8 +963,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                                 DataType.UBYTE -> {
                                     valueX=arg.first
                                     valueY=LiteralValue.optimalInteger(0, callPosition)
-                                    val assignX = Assignment(listOf(AssignTarget(Register.X, null, null, callPosition)), null, valueX, callPosition)
-                                    val assignY = Assignment(listOf(AssignTarget(Register.Y, null, null, callPosition)), null, valueY, callPosition)
+                                    val assignX = Assignment(listOf(AssignTarget(Register.X, null, null, null, callPosition)), null, valueX, callPosition)
+                                    val assignY = Assignment(listOf(AssignTarget(Register.Y, null, null, null, callPosition)), null, valueY, callPosition)
                                     assignX.linkParents(arguments[0].parent)
                                     assignY.linkParents(arguments[0].parent)
                                     translate(assignX)
@@ -1481,6 +1482,17 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             }
             assignTarget.register != null -> prog.instr(Opcode.POP_VAR_BYTE, callLabel = assignTarget.register.toString())
             assignTarget.arrayindexed != null -> translate(assignTarget.arrayindexed, true)     // write value to it
+            assignTarget.memAddressExpression != null -> {
+                val address = assignTarget.memAddressExpression?.constValue(namespace, heap)?.asIntegerValue
+                if(address!=null) {
+                    // const integer address given
+                    prog.instr(Opcode.POP_MEM_BYTE, arg=Value(DataType.UWORD, address))
+                } else {
+                    translate(assignTarget.memAddressExpression!!)
+                    prog.instr(Opcode.POP_MEMWRITE)
+                }
+            }
+            else -> throw CompilerException("corrupt assigntarget $assignTarget")
         }
     }
 
@@ -1710,9 +1722,9 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         // loop starts here
         prog.label(loopLabel)
         val assignTarget = if(loop.loopRegister!=null)
-            AssignTarget(loop.loopRegister, null, null, loop.position)
+            AssignTarget(loop.loopRegister, null, null, null, loop.position)
         else
-            AssignTarget(null, loop.loopVar!!.copy(), null, loop.position)
+            AssignTarget(null, loop.loopVar!!.copy(), null, null, loop.position)
         val arrayspec = ArraySpec(IdentifierReference(listOf(ForLoop.iteratorLoopcounterVarname), loop.position), loop.position)
         val assignLv = Assignment(
                 listOf(assignTarget), null,
@@ -1843,9 +1855,9 @@ private class StatementTranslator(private val prog: IntermediateProgram,
          */
         fun makeAssignmentTarget(): AssignTarget {
             return if(varname!=null)
-                AssignTarget(null, IdentifierReference(varname, range.position), null, range.position)
+                AssignTarget(null, IdentifierReference(varname, range.position), null, null, range.position)
             else
-                AssignTarget(register, null, null, range.position)
+                AssignTarget(register, null, null, null, range.position)
         }
 
         val startAssignment = Assignment(listOf(makeAssignmentTarget()), null, range.from, range.position)
@@ -2068,6 +2080,17 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 else -> throw CompilerException("invalid cast type $sourceDt")
             }
             else -> throw CompilerException("can't typecast to ${expr.type}")
+        }
+    }
+
+    private fun translate(expr: DirectMemoryExpression) {
+        // for now, only a single memory location (ubyte) is read at a time.
+        val address = expr.addressExpression.constValue(namespace, heap)?.asIntegerValue
+        if(address!=null) {
+            prog.instr(Opcode.PUSH_MEM_UB, arg = Value(DataType.UWORD, address))
+        } else {
+            translate(expr.addressExpression)
+            prog.instr(Opcode.PUSH_MEMREAD)
         }
     }
 

@@ -387,6 +387,13 @@ class AstChecker(private val namespace: INameScope,
     }
 
     private fun processAssignmentTarget(assignment: Assignment, target: AssignTarget): Assignment {
+        val memAddr = target.memAddressExpression?.constValue(namespace, heap)?.asIntegerValue
+        if(memAddr!=null) {
+            if(memAddr<0 || memAddr>=65536)
+                checkResult.add(ExpressionError("address out of range", target.position))
+            return assignment
+        }
+
         if(target.identifier!=null) {
             val targetName = target.identifier.nameInSource
             val targetSymbol = namespace.lookup(targetName, assignment)

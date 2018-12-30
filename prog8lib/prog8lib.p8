@@ -476,6 +476,7 @@ abs_f		.proc
 
 add_w		.proc
 		; -- push word+word / uword+uword
+		; @todo INLINE THIS
 		inx
 		clc
 		lda  ESTACK_LO,x
@@ -489,6 +490,7 @@ add_w		.proc
 		
 sub_w		.proc
 		; -- push word-word
+		; @todo INLINE THIS
 		inx
 		sec
 		lda  ESTACK_LO+1,x

@@ -493,6 +493,17 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.PUSH_MEM_FLOAT -> {
                 " lda  #<${hexVal(ins)} |  ldy  #>${hexVal(ins)}|  jsr  prog8_lib.push_float"
             }
+            Opcode.PUSH_MEMREAD -> {
+                """
+                lda  ${(ESTACK_LO+1).toHex()},x
+                sta  ${C64Zeropage.SCRATCH_W1}
+                lda  ${(ESTACK_HI+1).toHex()},x
+                sta  ${C64Zeropage.SCRATCH_W1+1}
+                ldy  #0
+                lda  (${C64Zeropage.SCRATCH_W1}),y
+                sta  ${(ESTACK_LO+1).toHex()},x
+                """
+            }
 
             Opcode.PUSH_REGAY_WORD -> {
                 " sta  ${ESTACK_LO.toHex()},x |  tya |  sta  ${ESTACK_HI.toHex()},x |  dex "
@@ -579,6 +590,20 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.POP_MEM_FLOAT -> {
                 " lda  ${hexVal(ins)} |  ldy  ${hexValPlusOne(ins)} |  jsr  prog8_lib.pop_float"
             }
+            Opcode.POP_MEMWRITE -> {
+                """
+                inx
+                lda  ${ESTACK_LO.toHex()},x
+                sta  ${C64Zeropage.SCRATCH_W1}
+                lda  ${ESTACK_HI.toHex()},x
+                sta  ${C64Zeropage.SCRATCH_W1+1}
+                inx
+                lda  ${ESTACK_LO.toHex()},x
+                ldy  #0
+                sta  (${C64Zeropage.SCRATCH_W1}),y
+                """
+            }
+
             Opcode.POP_VAR_BYTE -> {
                 when (ins.callLabel) {
                     "X" -> throw CompilerException("makes no sense to pop X, it's used as a stack pointer itself")
@@ -702,8 +727,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.CAST_F_TO_B -> " jsr  prog8_lib.stack_float2w"
             Opcode.CAST_F_TO_UW -> " jsr  prog8_lib.stack_float2uw"
             Opcode.CAST_F_TO_W -> " jsr  prog8_lib.stack_float2w"
-            Opcode.CAST_UB_TO_UW, Opcode.CAST_UB_TO_W -> " lda  #0 |  sta  ${ESTACK_HI+1},x"     // clear the msb
-            Opcode.CAST_B_TO_UW, Opcode.CAST_B_TO_W -> " ${signExtendA("${ESTACK_HI+1},x")}"     // sign extend the lsb   @todo missing an lda???
+            Opcode.CAST_UB_TO_UW, Opcode.CAST_UB_TO_W -> " lda  #0 |  sta  ${(ESTACK_HI+1).toHex()},x"     // clear the msb
+            Opcode.CAST_B_TO_UW, Opcode.CAST_B_TO_W -> " lda  ${(ESTACK_LO+1)},x |  ${signExtendA("${(ESTACK_HI+1).toHex()},x")}"     // sign extend the lsb
             Opcode.MSB -> " lda  ${(ESTACK_HI+1).toHex()},x |  sta  ${(ESTACK_LO+1).toHex()},x"
 
             Opcode.ADD_UB, Opcode.ADD_B -> {

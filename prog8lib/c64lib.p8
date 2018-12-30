@@ -29,6 +29,15 @@
 
 		const   uword  Screen		= $0400		; default character screen matrix    @todo matrix/array? needs to support array size > 255
 		const   uword  Colors		= $d800		; character screen colors    @todo matrix/array? needs to support array size > 255
+		
+		memory  ubyte  SPRPTR0		= 2040		; default sprite pointers (store address of sprite / 64)
+		memory  ubyte  SPRPTR1		= 2041
+		memory  ubyte  SPRPTR2		= 2042
+		memory  ubyte  SPRPTR3		= 2043
+		memory  ubyte  SPRPTR4		= 2044
+		memory  ubyte  SPRPTR5		= 2045
+		memory  ubyte  SPRPTR6		= 2046
+		memory  ubyte  SPRPTR7		= 2047
  
 
 ; ---- VIC-II registers ----

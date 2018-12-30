@@ -261,6 +261,7 @@ interface IAstProcessor {
     fun process(assignTarget: AssignTarget): AssignTarget {
         assignTarget.arrayindexed?.process(this)
         assignTarget.identifier?.process(this)
+        assignTarget.memAddressExpression = assignTarget.memAddressExpression?.process(this)
         return assignTarget
     }
 
@@ -272,6 +273,11 @@ interface IAstProcessor {
     fun process(typecastExpression: TypecastExpression): IExpression {
         typecastExpression.expression = typecastExpression.expression.process(this)
         return typecastExpression
+    }
+
+    fun process(directmemoryExpression: DirectMemoryExpression): IExpression {
+        directmemoryExpression.addressExpression = directmemoryExpression.addressExpression.process(this)
+        return directmemoryExpression
     }
 }
 
@@ -725,6 +731,7 @@ class VariableInitializationAssignment(target: AssignTarget, aug_op: String?, va
 data class AssignTarget(val register: Register?,
                         val identifier: IdentifierReference?,
                         val arrayindexed: ArrayIndexedExpression?,
+                        var memAddressExpression: IExpression?,
                         override val position: Position) : Node {
     override lateinit var parent: Node
 
@@ -732,6 +739,7 @@ data class AssignTarget(val register: Register?,
         this.parent = parent
         identifier?.linkParents(this)
         arrayindexed?.linkParents(this)
+        memAddressExpression?.linkParents(this)
     }
 
     fun process(processor: IAstProcessor) = processor.process(this)
@@ -739,9 +747,10 @@ data class AssignTarget(val register: Register?,
     companion object {
         fun fromExpr(expr: IExpression): AssignTarget {
             return when (expr) {
-                is RegisterExpr -> AssignTarget(expr.register, null, null, expr.position)
-                is IdentifierReference -> AssignTarget(null, expr, null, expr.position)
-                is ArrayIndexedExpression -> AssignTarget(null, null, expr, expr.position)
+                is RegisterExpr -> AssignTarget(expr.register, null, null, null, expr.position)
+                is IdentifierReference -> AssignTarget(null, expr, null, null, expr.position)
+                is ArrayIndexedExpression -> AssignTarget(null, null, expr, null, expr.position)
+                is DirectMemoryExpression -> AssignTarget(null, null, null, expr, expr.position)
                 else -> throw FatalAstException("invalid expression object $expr")
             }
         }
@@ -761,6 +770,10 @@ data class AssignTarget(val register: Register?,
             if(dt!=null)
                 return dt
         }
+
+        if(memAddressExpression!=null)
+            return DataType.UBYTE
+
         return null
     }
 
@@ -771,6 +784,8 @@ data class AssignTarget(val register: Register?,
             return identifier.nameInSource.last()
         if(arrayindexed!=null)
             return arrayindexed.identifier!!.nameInSource.last()
+        if(memAddressExpression is LiteralValue)
+            return (memAddressExpression as LiteralValue).asIntegerValue.toString()
         return "???"
     }
 }
@@ -1012,6 +1027,24 @@ class TypecastExpression(var expression: IExpression, var type: DataType, overri
 }
 
 
+class DirectMemoryExpression(var addressExpression: IExpression, override val position: Position) : IExpression {
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        this.addressExpression.linkParents(this)
+    }
+
+    override fun process(processor: IAstProcessor) = processor.process(this)
+    override fun referencesIdentifier(name: String) = false
+    override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? = DataType.UBYTE
+    override fun isIterable(namespace: INameScope, heap: HeapValues) = false
+    override fun constValue(namespace: INameScope, heap: HeapValues) = null
+
+    override fun toString(): String {
+        return "DirectMemory($addressExpression)"
+    }
+}
 
 
 private data class NumericLiteral(val number: Number, val datatype: DataType)
@@ -1942,13 +1975,13 @@ private fun prog8Parser.Assign_targetContext.toAst() : AssignTarget {
     val register = register()?.toAst()
     val identifier = identifier()
     return when {
-        register!=null -> AssignTarget(register, null, null, toPosition())
-        identifier!=null -> AssignTarget(null, identifier.toAst(), null, toPosition())
-        arrayindexed()!=null -> AssignTarget(null, null, arrayindexed().toAst(), toPosition())
-        else -> AssignTarget(null, scoped_identifier()?.toAst(), null, toPosition())
+        register!=null -> AssignTarget(register, null, null, null, toPosition())
+        identifier!=null -> AssignTarget(null, identifier.toAst(), null, null, toPosition())
+        arrayindexed()!=null -> AssignTarget(null, null, arrayindexed().toAst(), null, toPosition())
+        directmemory()!=null -> AssignTarget(null, null, null, directmemory().expression().toAst(), toPosition())
+        else -> AssignTarget(null, scoped_identifier()?.toAst(), null, null, toPosition())
     }
 }
-
 
 private fun prog8Parser.RegisterContext.toAst() = Register.valueOf(text.toUpperCase())
 
@@ -2073,6 +2106,9 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
 
     if(typecast()!=null)
         return TypecastExpression(expression(0).toAst(), typecast().datatype().toAst(), toPosition())
+
+    if(directmemory()!=null)
+        return DirectMemoryExpression(directmemory().expression().toAst(), toPosition())
 
     throw FatalAstException(text)
 }
