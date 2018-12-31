@@ -1254,18 +1254,18 @@ private class StatementTranslator(private val prog: IntermediateProgram,
     private fun translate(stmt: PostIncrDecr) {
         prog.line(stmt.position)
         when {
-            stmt.target.register!=null -> when(stmt.operator) {
+            stmt.target.register != null -> when(stmt.operator) {
                 "++" -> prog.instr(Opcode.INC_VAR_UB, callLabel = stmt.target.register.toString())
                 "--" -> prog.instr(Opcode.DEC_VAR_UB, callLabel = stmt.target.register.toString())
             }
-            stmt.target.identifier!=null -> {
+            stmt.target.identifier != null -> {
                 val targetStatement = stmt.target.identifier!!.targetStatement(namespace) as VarDecl
                 when(stmt.operator) {
                     "++" -> prog.instr(opcodeIncvar(targetStatement.datatype), callLabel = targetStatement.scopedname)
                     "--" -> prog.instr(opcodeDecvar(targetStatement.datatype), callLabel = targetStatement.scopedname)
                 }
             }
-            stmt.target.arrayindexed!=null -> {
+            stmt.target.arrayindexed != null -> {
                 val variable = stmt.target.arrayindexed!!.identifier?.targetStatement(namespace) as VarDecl
                 translate(stmt.target.arrayindexed!!.arrayspec.x)
                 when(stmt.operator) {
@@ -1273,7 +1273,18 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     "--" -> prog.instr(opcodeDecArrayindexedVar(variable.datatype), callLabel = variable.scopedname)
                 }
             }
-            else -> throw CompilerException("very strange postincrdecr")
+            stmt.target.memAddressExpression != null -> {
+                val address = stmt.target.memAddressExpression!!.constValue(namespace, heap)?.asIntegerValue
+                if(address!=null) {
+                    when(stmt.operator) {
+                        "++" -> prog.instr(Opcode.INC_MEMORY, Value(DataType.UWORD, address))
+                        "--" -> prog.instr(Opcode.DEC_MEMORY, Value(DataType.UWORD, address))
+                    }
+                } else {
+                    TODO("memory ++/-- ${stmt.target.memAddressExpression}")
+                }
+            }
+            else -> throw CompilerException("very strange postincrdecr ${stmt.target}")
         }
     }
 
@@ -1345,7 +1356,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         if(stmt.aug_op!=null) {
             // augmented assignment
             when {
-                assignTarget.identifier!=null -> {
+                assignTarget.identifier != null -> {
                     val target = assignTarget.identifier.targetStatement(namespace)!!
                     when(target) {
                         is VarDecl -> {
@@ -1355,8 +1366,11 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                         else -> throw CompilerException("invalid assignment target type ${target::class}")
                     }
                 }
-                assignTarget.register!=null -> prog.instr(Opcode.PUSH_VAR_BYTE, callLabel = assignTarget.register.toString())
-                assignTarget.arrayindexed!=null -> translate(assignTarget.arrayindexed, false)
+                assignTarget.register != null -> prog.instr(Opcode.PUSH_VAR_BYTE, callLabel = assignTarget.register.toString())
+                assignTarget.arrayindexed != null -> translate(assignTarget.arrayindexed, false)
+                assignTarget.memAddressExpression != null -> {
+                    TODO("translate aug assign on memory address $stmt")
+                }
             }
 
             translateAugAssignOperator(stmt.aug_op, stmt.value.resultingDatatype(namespace, heap))
@@ -1496,7 +1510,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         }
     }
 
-    private fun translateAugAssignOperator(aug_op: String, valueDt: DataType?) {
+    private fun translateAugAssignOperator(aug_op: String, valueDt: DataType?) {        // @todo: not used in practice? (all augassigns are converted to normal assigns)
         if(valueDt==null)
             throw CompilerException("value datatype not known")
         val validDt = setOf(DataType.UBYTE, DataType.UWORD, DataType.FLOAT)

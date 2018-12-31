@@ -391,7 +391,6 @@ class AstChecker(private val namespace: INameScope,
         if(memAddr!=null) {
             if(memAddr<0 || memAddr>=65536)
                 checkResult.add(ExpressionError("address out of range", target.position))
-            return assignment
         }
 
         if(target.identifier!=null) {
@@ -433,9 +432,19 @@ class AstChecker(private val namespace: INameScope,
             // A /= 3  -> check as if it was A = A / 3
             val newTarget: IExpression =
                     when {
-                        target.register!=null -> RegisterExpr(target.register, target.position)
-                        target.identifier!=null -> target.identifier
-                        target.arrayindexed!=null -> target.arrayindexed
+                        target.register != null -> RegisterExpr(target.register, target.position)
+                        target.identifier != null -> target.identifier
+                        target.arrayindexed != null -> target.arrayindexed
+                        target.memAddressExpression != null -> {
+                            // @addr += 4 --> @addr = @addr +4
+                            // TODO: make it so that it follows the others
+                            val memRead = DirectMemoryExpression(target.memAddressExpression!!, target.position)
+                            val expression = BinaryExpression(memRead, assignment.aug_op.substringBeforeLast('='), assignment.value, assignment.position)
+                            expression.linkParents(assignment.parent)
+                            val assignment2 = Assignment(listOf(target), null, expression, assignment.position)
+                            assignment2.linkParents(assignment.parent)
+                            return assignment2
+                        }
                         else -> throw FatalAstException("strange assignment")
                     }
 
@@ -796,7 +805,7 @@ class AstChecker(private val namespace: INameScope,
     }
 
     override fun process(postIncrDecr: PostIncrDecr): IStatement {
-        if(postIncrDecr.target.identifier!=null) {
+        if(postIncrDecr.target.identifier != null) {
             val targetName = postIncrDecr.target.identifier!!.nameInSource
             val target = namespace.lookup(targetName, postIncrDecr)
             if(target==null) {
@@ -808,7 +817,7 @@ class AstChecker(private val namespace: INameScope,
                     checkResult.add(SyntaxError("can only increment or decrement a byte/float/word variable", postIncrDecr.position))
                 }
             }
-        } else if(postIncrDecr.target.arrayindexed!=null) {
+        } else if(postIncrDecr.target.arrayindexed != null) {
             val target = postIncrDecr.target.arrayindexed?.identifier?.targetStatement(namespace)
             if(target==null) {
                 checkResult.add(SyntaxError("undefined symbol", postIncrDecr.position))
@@ -818,6 +827,8 @@ class AstChecker(private val namespace: INameScope,
                 if(dt !in NumericDatatypes && dt !in ArrayDatatypes)
                     checkResult.add(SyntaxError("can only increment or decrement a byte/float/word", postIncrDecr.position))
             }
+        } else if(postIncrDecr.target.memAddressExpression != null) {
+            // a memory location can always be ++/--
         }
         return super.process(postIncrDecr)
     }

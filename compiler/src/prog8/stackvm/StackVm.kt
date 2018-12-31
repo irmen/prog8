@@ -968,6 +968,16 @@ class StackVm(private var traceOutputFile: String?) {
                 val array = heap.get(variable.heapId)
                 array.array!![index].dec()
             }
+            Opcode.INC_MEMORY -> {
+                val address = evalstack.pop()
+                checkDt(address, DataType.UWORD)
+                TODO("inc_memory $address")
+            }
+            Opcode.DEC_MEMORY -> {
+                val address = evalstack.pop()
+                checkDt(address, DataType.UWORD)
+                TODO("dec_memory $address")
+            }
             Opcode.MSB -> {
                 val v = evalstack.pop()
                 checkDt(v, DataType.UWORD, DataType.WORD)

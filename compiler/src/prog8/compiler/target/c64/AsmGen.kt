@@ -655,6 +655,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 jsr  prog8_lib.dec_var_f
                 """
             }
+            Opcode.INC_MEMORY -> " inc  ${hexVal(ins)}"
+            Opcode.DEC_MEMORY -> " dec  ${hexVal(ins)}"
             Opcode.NEG_B -> " jsr  prog8_lib.neg_b"
             Opcode.NEG_W -> " jsr  prog8_lib.neg_w"
             Opcode.NEG_F -> " jsr  prog8_lib.neg_f"
