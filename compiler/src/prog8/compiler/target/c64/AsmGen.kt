@@ -496,11 +496,10 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.PUSH_MEMREAD -> {
                 """
                 lda  ${(ESTACK_LO+1).toHex()},x
-                sta  ${C64Zeropage.SCRATCH_W1}
+                sta  (+) +1
                 lda  ${(ESTACK_HI+1).toHex()},x
-                sta  ${C64Zeropage.SCRATCH_W1+1}
-                ldy  #0
-                lda  (${C64Zeropage.SCRATCH_W1}),y
+                sta  (+) +2
++               lda  65535    ; modified
                 sta  ${(ESTACK_LO+1).toHex()},x
                 """
             }
@@ -594,13 +593,12 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
                 inx
                 lda  ${ESTACK_LO.toHex()},x
-                sta  ${C64Zeropage.SCRATCH_W1}
+                sta  (+) +1
                 lda  ${ESTACK_HI.toHex()},x
-                sta  ${C64Zeropage.SCRATCH_W1+1}
+                sta  (+) +2
                 inx
                 lda  ${ESTACK_LO.toHex()},x
-                ldy  #0
-                sta  (${C64Zeropage.SCRATCH_W1}),y
++               sta  65535       ; modified
                 """
             }
 
@@ -635,6 +633,26 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 lda  #<${ins.callLabel}
                 ldy  #>${ins.callLabel}
                 jsr  prog8_lib.inc_var_f
+                """
+            }
+            Opcode.POP_INC_MEMORY -> {
+                """
+                inx
+                lda  ${ESTACK_LO.toHex()},x
+                sta  (+) +1
+                lda  ${ESTACK_HI.toHex()},x
+                sta  (+) +2
++               inc  65535     ; modified
+                """
+            }
+            Opcode.POP_DEC_MEMORY -> {
+                """
+                inx
+                lda  ${ESTACK_LO.toHex()},x
+                sta  (+) +1
+                lda  ${ESTACK_HI.toHex()},x
+                sta  (+) +2
++               dec  65535     ; modified
                 """
             }
             Opcode.DEC_VAR_UB, Opcode.DEC_VAR_B -> {

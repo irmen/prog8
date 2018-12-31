@@ -421,11 +421,11 @@ Normally memory locations are accessed by a *memory mapped* name, such as ``c64.
 as the memory mapped address $d021.
 
 If you want to access a memory location directly (by using the address itself), without defining
-a memory mapped location, you can do so by prefixing the address with ``@``::
+a memory mapped location, you can do so by enclosing the address in ``@(...)``::
 
-    A = @$d020      ; set the A register to the current c64 screen border color ("peek(53280)")
-    @$d020 = 0      ; set the c64 screen border to black ("poke 53280,0")
-    @(vic+$20) = 6  ; you can also use expressions to 'calculate' the address
+    A = @($d020)      ; set the A register to the current c64 screen border color ("peek(53280)")
+    @($d020) = 0      ; set the c64 screen border to black ("poke 53280,0")
+    @(vic+$20) = 6    ; you can also use expressions to 'calculate' the address
 
 
 Expressions

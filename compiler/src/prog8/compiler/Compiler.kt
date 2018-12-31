@@ -580,7 +580,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             is ArrayIndexedExpression -> translate(expr, false)
             is RangeExpr -> throw CompilerException("it's not possible to just have a range expression that has to be translated")
             is TypecastExpression -> translate(expr)
-            is DirectMemoryExpression -> translate(expr)
+            is DirectMemoryRead -> translate(expr)
+            is DirectMemoryWrite -> translate(expr)
             else -> {
                 val lv = expr.constValue(namespace, heap) ?: throw CompilerException("constant expression required, not $expr")
                 when(lv.type) {
@@ -1273,15 +1274,19 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     "--" -> prog.instr(opcodeDecArrayindexedVar(variable.datatype), callLabel = variable.scopedname)
                 }
             }
-            stmt.target.memAddressExpression != null -> {
-                val address = stmt.target.memAddressExpression!!.constValue(namespace, heap)?.asIntegerValue
+            stmt.target.memoryAddress != null -> {
+                val address = stmt.target.memoryAddress?.addressExpression?.constValue(namespace, heap)?.asIntegerValue
                 if(address!=null) {
                     when(stmt.operator) {
                         "++" -> prog.instr(Opcode.INC_MEMORY, Value(DataType.UWORD, address))
                         "--" -> prog.instr(Opcode.DEC_MEMORY, Value(DataType.UWORD, address))
                     }
                 } else {
-                    TODO("memory ++/-- ${stmt.target.memAddressExpression}")
+                    translate(stmt.target.memoryAddress!!.addressExpression)
+                    when(stmt.operator) {
+                        "++" -> prog.instr(Opcode.POP_INC_MEMORY)
+                        "--" -> prog.instr(Opcode.POP_DEC_MEMORY)
+                    }
                 }
             }
             else -> throw CompilerException("very strange postincrdecr ${stmt.target}")
@@ -1368,7 +1373,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 }
                 assignTarget.register != null -> prog.instr(Opcode.PUSH_VAR_BYTE, callLabel = assignTarget.register.toString())
                 assignTarget.arrayindexed != null -> translate(assignTarget.arrayindexed, false)
-                assignTarget.memAddressExpression != null -> {
+                assignTarget.memoryAddress != null -> {
                     TODO("translate aug assign on memory address $stmt")
                 }
             }
@@ -1496,14 +1501,13 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             }
             assignTarget.register != null -> prog.instr(Opcode.POP_VAR_BYTE, callLabel = assignTarget.register.toString())
             assignTarget.arrayindexed != null -> translate(assignTarget.arrayindexed, true)     // write value to it
-            assignTarget.memAddressExpression != null -> {
-                val address = assignTarget.memAddressExpression?.constValue(namespace, heap)?.asIntegerValue
+            assignTarget.memoryAddress != null -> {
+                val address = assignTarget.memoryAddress?.addressExpression?.constValue(namespace, heap)?.asIntegerValue
                 if(address!=null) {
                     // const integer address given
                     prog.instr(Opcode.POP_MEM_BYTE, arg=Value(DataType.UWORD, address))
                 } else {
-                    translate(assignTarget.memAddressExpression!!)
-                    prog.instr(Opcode.POP_MEMWRITE)
+                    translate(assignTarget.memoryAddress!!)
                 }
             }
             else -> throw CompilerException("corrupt assigntarget $assignTarget")
@@ -2097,14 +2101,25 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         }
     }
 
-    private fun translate(expr: DirectMemoryExpression) {
+    private fun translate(memread: DirectMemoryRead) {
         // for now, only a single memory location (ubyte) is read at a time.
-        val address = expr.addressExpression.constValue(namespace, heap)?.asIntegerValue
+        val address = memread.addressExpression.constValue(namespace, heap)?.asIntegerValue
         if(address!=null) {
             prog.instr(Opcode.PUSH_MEM_UB, arg = Value(DataType.UWORD, address))
         } else {
-            translate(expr.addressExpression)
+            translate(memread.addressExpression)
             prog.instr(Opcode.PUSH_MEMREAD)
+        }
+    }
+
+    private fun translate(memwrite: DirectMemoryWrite) {
+        // for now, only a single memory location (ubyte) is written at a time.
+        val address = memwrite.addressExpression.constValue(namespace, heap)?.asIntegerValue
+        if(address!=null) {
+            prog.instr(Opcode.POP_MEM_BYTE, arg = Value(DataType.UWORD, address))
+        } else {
+            translate(memwrite.addressExpression)
+            prog.instr(Opcode.POP_MEMWRITE)
         }
     }
 

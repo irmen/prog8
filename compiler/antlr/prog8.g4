@@ -126,9 +126,8 @@ assign_target:
 postincrdecr :  assign_target  operator = ('++' | '--') ;
 
 expression :
-	'(' expression ')'
-	| functioncall
-	| prefix = ('+'|'-'|'~') expression
+	functioncall
+	| <assoc=right> prefix = ('+'|'-'|'~') expression
 	| left = expression bop = '**' right = expression
 	| left = expression bop = ('*' | '/' | '//' | '%' ) right = expression
 	| left = expression bop = ('+' | '-' ) right = expression
@@ -149,6 +148,7 @@ expression :
 	| arrayindexed
 	| directmemory
 	| expression typecast
+	| '(' expression ')'
 	;
 
 
@@ -159,7 +159,7 @@ arrayindexed :
     (identifier | scoped_identifier ) arrayspec
     ;
 
-directmemory : '@' expression ;
+directmemory : '@' '(' expression ')';
 
 
 functioncall :

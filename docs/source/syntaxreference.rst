@@ -300,11 +300,11 @@ should be the *memory address* where the value is located::
 Direct access to memory locations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Instead of defining a memory mapped name for a specific memory location, you can also
-directly access the memory. Prefix a numeric expression or literal by ``@`` to do that::
+directly access the memory. Enclose a numeric expression or literal with ``@(...)`` to do that::
 
-    A = @$d020      ; set the A register to the current c64 screen border color ("peek(53280)")
-    @$d020 = 0      ; set the c64 screen border to black ("poke 53280,0")
-    @(vic+$20) = 6  ; a dynamic expression to 'calculate' the address
+    A = @($d020)      ; set the A register to the current c64 screen border color ("peek(53280)")
+    @($d020) = 0      ; set the c64 screen border to black ("poke 53280,0")
+    @(vic+$20) = 6    ; a dynamic expression to 'calculate' the address
 
 
 Constants

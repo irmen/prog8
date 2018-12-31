@@ -164,8 +164,10 @@ enum class Opcode {
     DEC_VAR_W,
     DEC_VAR_UW,
     DEC_VAR_F,
-    INC_MEMORY,
-    DEC_MEMORY,
+    INC_MEMORY,             // increment direct address
+    DEC_MEMORY,             // decrement direct address
+    POP_INC_MEMORY,         // increment address from stack
+    POP_DEC_MEMORY,         // decrement address from address
 
     // comparisons
     // @todo the comparisons push the result back on the stack. Optimize this to work with just processor flags? This does mean you can no longer use a logical boolean result as a byte 0/1 value ?

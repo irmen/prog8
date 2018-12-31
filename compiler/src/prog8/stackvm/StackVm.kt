@@ -325,6 +325,16 @@ class StackVm(private var traceOutputFile: String?) {
                 checkDt(value, DataType.UBYTE)
                 TODO("pop_memwrite $value to $address")
             }
+            Opcode.POP_INC_MEMORY -> {
+                val address = evalstack.pop()
+                checkDt(address, DataType.UWORD)
+                TODO("pop_inc_memory $address")
+            }
+            Opcode.POP_DEC_MEMORY -> {
+                val address = evalstack.pop()
+                checkDt(address, DataType.UWORD)
+                TODO("pop_dec_memory $address")
+            }
             Opcode.ADD_UB -> {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.UBYTE)
