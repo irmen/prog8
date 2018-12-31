@@ -317,11 +317,11 @@ memcopy16_up	.proc
 ; clobbers A, X, Y
 
 memcopy		.proc
-		sta  SCRATCH_ZPWORD2
-		sty  SCRATCH_ZPWORD2+1
+		sta  c64.SCRATCH_ZPWORD2
+		sty  c64.SCRATCH_ZPWORD2+1
 		ldy  #0
--		lda  (SCRATCH_ZPWORD1), y
-		sta  (SCRATCH_ZPWORD2), y
+-		lda  (c64.SCRATCH_ZPWORD1), y
+		sta  (c64.SCRATCH_ZPWORD2), y
 		iny
 		dex
 		bne  -

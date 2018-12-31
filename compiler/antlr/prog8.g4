@@ -173,7 +173,7 @@ functioncall_stmt :
 
 
 expression_list :
-	expression (',' EOL? expression)*
+	expression (',' EOL? expression)*           // you can split the expression list over several lines
 	;
 
 returnstmt : 'return' expression_list? ;
@@ -198,7 +198,7 @@ wordsuffix : '.w' ;
 
 booleanliteral :  'true' | 'false' ;
 
-arrayliteral :  '[' EOL? expression (',' EOL? expression)* EOL? ']' ;
+arrayliteral :  '[' EOL? expression (',' EOL? expression)* EOL? ']' ;       // you can split the array list over several lines
 
 stringliteral :  STRING ;
 

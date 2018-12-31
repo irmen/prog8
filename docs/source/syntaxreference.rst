@@ -254,6 +254,7 @@ type identifier  type                     storage size       example var declara
                  (screencodes)                               implicit first byte = length, no 0-byte
 ===============  =======================  =================  =========================================
 
+**arrays:** you can split an array initializer list over several lines if you want.
 
 **hexadecimal numbers:** you can use a dollar prefix to write hexadecimal numbers: ``$20ac``
 
