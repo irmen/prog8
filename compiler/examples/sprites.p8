@@ -64,20 +64,20 @@
 ~ irq {
 ; @todo no longer auto-set this as irq handler. instead, add builtins functions activate_irqvec() / restore_irqvec()
 sub irq() {
-    ;return      ; @todo return statements in the irqhandler should not do rts, but instead jmp  c64.IRQDFRT
+    ;return      ; @todo return statements in the irqhandler should not do rts, but instead jmp  c64.IRQDFRT (RETURNFROMIRQ)
     ; @todo also when including this return, the jmp  c64.IRQDFRT at the end gets omitted.....:(
     c64.EXTCOL++
     for ubyte i in 0 to 7 {
-        @(main.SP0Y+i+i)--          ; float up
+        @(main.SP0Y+i*2)--          ; float up
 
         ; horizontal wobble effect
         ubyte r = rnd()
         if r>208
-            @(main.SP0X+i+i)++
+            @(main.SP0X+i*2)++
         else {
             ; @todo if-else if -else syntax without curly braces
             if r<48
-                @(main.SP0X+i+i)--
+                @(main.SP0X+i*2)--
         }
     }
     c64.EXTCOL--
