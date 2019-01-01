@@ -179,19 +179,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 
         out("\tldx  #\$ff\t; init estack pointer")
         out("\tclc")
-
-        val irqBlock = program.blocks.singleOrNull { it.scopedname=="irq" }
-        val haveIrqSub = irqBlock?.instructions?.any { it is LabelInstr && it.name=="irq"}
-        if(haveIrqSub==true) {
-            out("\t; install custom irq vector")
-            out("\tsei")
-            out("\tlda  #<irq.irq")
-            out("\tsta  c64.CINV")
-            out("\tlda  #>irq.irq")
-            out("\tsta  c64.CINV+1")
-            out("\tcli")
-        }
-
         out("\tjmp  main.start\t; jump to program entrypoint")
         out("")
 
@@ -422,7 +409,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.JUMP -> " jmp  ${ins.callLabel}"
             Opcode.CALL -> " jsr  ${ins.callLabel}"
             Opcode.RETURN -> " rts"
-            Opcode.RETURNFROMIRQ -> " jmp  c64.IRQDFRT\t\t; continue with normal kernel irq routine"
             Opcode.RSAVE -> {
                 // save cpu status flag and all registers A, X, Y.
                 // see http://6502.org/tutorials/register_preservation.html
@@ -444,7 +430,49 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 if (ins.arg!!.numericValue() in syscallsForStackVm.map { it.callNr })
                     throw CompilerException("cannot translate vm syscalls to real assembly calls - use *real* subroutine calls instead. Syscall ${ins.arg.numericValue()}")
                 val call = Syscall.values().find { it.callNr==ins.arg.numericValue() }
-                " jsr  prog8_lib.${call.toString().toLowerCase()}"
+                when (call) {
+                    Syscall.FUNC_SET_IRQVEC ->
+                        """
+                        sei
+                        lda  #<_prog8_irq_handler
+                        sta  c64.CINV
+                        lda  #>_prog8_irq_handler
+                        sta  c64.CINV+1
+                        cli
+                        jmp  +
+
+_prog8_irq_handler      jsr  irq.irq
+                        jmp  c64.IRQDFRT        ; continue with normal kernel irq routine
++
+                        """
+                    Syscall.FUNC_SET_IRQVEC_EXCL ->
+                        """
+                        sei
+                        lda  #<_prog8_irq_handler_excl
+                        sta  c64.CINV
+                        lda  #>_prog8_irq_handler_excl
+                        sta  c64.CINV+1
+                        cli
+                        jmp  +
+
+_prog8_irq_handler_excl
+                        jsr  irq.irq
+                        lda  ${'$'}dc0d               ; acknowledge CIA interrupt
+                        jmp  c64.IRQDFEND        ; end irq processing - don't call kernel
++
+                        """
+                    Syscall.FUNC_RESTORE_IRQVEC ->
+                        """
+                        sei
+                        lda  #<c64.IRQDFRT
+                        sta  c64.CINV
+                        lda  #>c64.IRQDFRT
+                        sta  c64.CINV+1
+                        cli
+                        """
+                    else -> " jsr  prog8_lib.${call.toString().toLowerCase()}"
+                }
+
             }
             Opcode.BREAKPOINT -> {
                 breakpointCounter++

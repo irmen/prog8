@@ -1605,11 +1605,6 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         prog.instr(Opcode.RETURN)
     }
 
-    private fun translate(stmt: ReturnFromIrq) {
-        prog.line(stmt.position)
-        prog.instr(Opcode.RETURNFROMIRQ)
-    }
-
     private fun translate(stmt: Label) {
         prog.label(stmt.scopedname)
     }

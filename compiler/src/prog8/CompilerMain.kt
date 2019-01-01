@@ -171,7 +171,7 @@ private fun compileMain(args: Array<String>) {
 
     if(startEmu) {
         println("\nStarting C64 emulator...")
-        val cmdline = listOf("x64", "-moncommands", "$programname.vice-mon-list",
+        val cmdline = listOf("x64", "-silent", "-moncommands", "$programname.vice-mon-list",
                 "-autostartprgmode", "1", "-autostart-warp", "-autostart", programname+".prg")
         val process = ProcessBuilder(cmdline).inheritIO().start()
         process.waitFor()

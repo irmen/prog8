@@ -100,7 +100,7 @@ class AstChecker(private val namespace: INameScope,
         }
 
         // there can be an optional 'irq' block with a 'irq' subroutine in it,
-        // which will be used as the 60hz irq routine in the vm if it's present.
+        // which will be used as the 60hz irq routine in the vm if it's present (and enabled via set_irqvec()/set_irqvec_excl())
         val irqBlock = module.statements.singleOrNull { it is Block && it.name=="irq" } as? Block?
         val irqSub = irqBlock?.subScopes()?.get("irq") as? Subroutine
         if(irqSub!=null) {
@@ -238,24 +238,16 @@ class AstChecker(private val namespace: INameScope,
         // subroutine must contain at least one 'return' or 'goto'
         // (or if it has an asm block, that must contain a 'rts' or 'jmp')
         if(subroutine.statements.count { it is Return || it is Jump } == 0) {
-            val amount = subroutine.statements
+            val amountOfRtsInAsm = subroutine.statements
                     .asSequence()
                     .filter { it is InlineAssembly }
                     .map { (it as InlineAssembly).assembly }
-                    .count { "rts" in it || "\trts" in it || "jmp" in it || "\tjmp" in it }
-            if (amount == 0) {
-                if(subroutine.returntypes.isNotEmpty()) {
+                    .count { " rti" in it || "\trti" in it || " rts" in it || "\trts" in it || " jmp" in it || "\tjmp" in it }
+            if (amountOfRtsInAsm == 0) {
+                if (subroutine.returntypes.isNotEmpty()) {
                     // for asm subroutines with an address, no statement check is possible.
-                    if(subroutine.asmAddress==null)
+                    if (subroutine.asmAddress == null)
                         err("subroutine has result value(s) and thus must have at least one 'return' or 'goto' in it (or 'rts' / 'jmp' in case of %asm)")
-                }
-                // if there's no return statement, we add the implicit one at the end, but only if it's not a kernel routine.
-                // @todo move this out of the astchecker
-                if(subroutine.asmAddress==null) {
-                    if(subroutine.name=="irq" && subroutine.definingScope().name=="irq") {
-                        subroutine.statements.add(ReturnFromIrq(subroutine.position))
-                    } else
-                        subroutine.statements.add(Return(emptyList(), subroutine.position))
                 }
             }
         }

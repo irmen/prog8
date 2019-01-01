@@ -622,9 +622,23 @@ set_carry()  /  clear_carry()
     Set (or clear) the CPU status register Carry flag. No result value.
     (translated into ``SEC`` or ``CLC`` cpu instruction)
 
-set_irqd()  / clear_irqd()
+set_irqd()  /  clear_irqd()
     Set (or clear) the CPU status register Interrupt Disable flag. No result value.
     (translated into ``SEI`` or ``CLI`` cpu instruction)
+
+set_irqvec_excl()
+    Sets the system's IRQ vector to the special ``irq.irq`` subroutine exclusively -- the system's
+    default IRQ handler is no longer called.  The routine should be defined as a parameterless subroutine
+    ``irq`` in a block ``irq``.
+
+set_irqvec()
+    Add the special ``irq.irq`` subroutine to the system's IRQ vector -- the system's
+    default IRQ handler will still be called after your custom subroutine finishes.
+    The routine should be defined as a parameterless subroutine
+    ``irq`` in a block ``irq``.
+
+restore_irqvec()
+    Restore the IRQ vector to the default system IRQ handling subroutine.
 
 rsave()
     Saves the CPU registers and the status flags.

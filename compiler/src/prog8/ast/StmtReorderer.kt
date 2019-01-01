@@ -97,6 +97,18 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
         val directives = subroutine.statements.filter {it is Directive && it.directive in directivesToMove}
         subroutine.statements.removeAll(directives)
         subroutine.statements.addAll(0, directives)
+
+        if(subroutine.returntypes.isEmpty()) {
+            // add the implicit return statement at the end (if it's not there yet), but only if it's not a kernel routine.
+            if(subroutine.asmAddress==null) {
+                if (subroutine.statements.lastOrNull {it !is VarDecl} !is Return) {
+                    val returnStmt = Return(emptyList(), subroutine.position)
+                    returnStmt.linkParents(subroutine)
+                    subroutine.statements.add(returnStmt)
+                }
+            }
+        }
+
         return subroutine
     }
 

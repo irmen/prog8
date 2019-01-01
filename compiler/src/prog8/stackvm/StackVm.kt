@@ -69,7 +69,10 @@ enum class Syscall(val callNr: Short) {
     FUNC_SUM_B(131),
     FUNC_SUM_UW(132),
     FUNC_SUM_W(133),
-    FUNC_SUM_F(134)
+    FUNC_SUM_F(134),
+    FUNC_SET_IRQVEC(135),
+    FUNC_SET_IRQVEC_EXCL(136),
+    FUNC_RESTORE_IRQVEC(137)
 
     // note: not all builtin functions of the Prog8 language are present as functions:
     // some of them are straight opcodes (such as MSB, LSB, LSL, LSR, ROL_BYTE, ROR, ROL2, ROR2, and FLT)!
@@ -773,7 +776,7 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.CALL ->
                 callstack.push(ins.nextAlt)
-            Opcode.RETURN, Opcode.RETURNFROMIRQ -> {
+            Opcode.RETURN -> {
                 if(callstack.empty())
                     throw VmTerminationException("return instruction with empty call stack")
                 return callstack.pop()
@@ -1609,6 +1612,8 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(iterable.heapId)
                 evalstack.push(Value(DataType.UBYTE, if (value.array!!.all { v -> v != 0 }) 1 else 0))
             }
+            Syscall.FUNC_SET_IRQVEC, Syscall.FUNC_SET_IRQVEC_EXCL -> TODO()
+            Syscall.FUNC_RESTORE_IRQVEC -> TODO()
         }
     }
 
