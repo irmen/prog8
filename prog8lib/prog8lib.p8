@@ -1589,6 +1589,28 @@ func_rndf	.proc
 _rndf_rnum5	.byte  0,0,0,0,0
 		.pend
     
+    
+func_memcopy	.proc		; clobbers A,Y
+		inx
+		stx  SCRATCH_ZPREGX
+		lda  ESTACK_LO+2,x
+		sta  SCRATCH_ZPWORD1
+		lda  ESTACK_HI+2,x
+		sta  SCRATCH_ZPWORD1+1
+		lda  ESTACK_HI+1,x
+		tay
+		lda  ESTACK_LO+1,x
+		pha
+		lda  ESTACK_LO,x
+		tax
+		pla
+		jsr  c64utils.memcopy
+		ldx  SCRATCH_ZPREGX
+		inx
+		inx
+		rts
+		.pend
+		
 	}}
 }
 

@@ -618,6 +618,13 @@ ror2(x)
     It uses some extra logic to not consider the carry flag as extra rotation bit.
     Modifies in-place, doesn't return a value (so can't be used in an expression).
 
+memcopy(from, to, numbytes)
+    Efficiently copy a number of bytes (1 - 256) from a memory location to another.
+    NOTE: 'to' must NOT overlap with 'from', unless it is *before* 'from'.
+    Because this function imposes some overhead to handle the parameters,
+    it is only faster if the number of bytes is larger than a certain threshold.
+    Compare the generated code to see if it was beneficial or not.
+
 set_carry()  /  clear_carry()
     Set (or clear) the CPU status register Carry flag. No result value.
     (translated into ``SEC`` or ``CLC`` cpu instruction)

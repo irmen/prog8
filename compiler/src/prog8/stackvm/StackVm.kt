@@ -72,7 +72,8 @@ enum class Syscall(val callNr: Short) {
     FUNC_SUM_F(134),
     FUNC_SET_IRQVEC(135),
     FUNC_SET_IRQVEC_EXCL(136),
-    FUNC_RESTORE_IRQVEC(137)
+    FUNC_RESTORE_IRQVEC(137),
+    FUNC_MEMCOPY(138)
 
     // note: not all builtin functions of the Prog8 language are present as functions:
     // some of them are straight opcodes (such as MSB, LSB, LSL, LSR, ROL_BYTE, ROR, ROL2, ROR2, and FLT)!
@@ -1614,6 +1615,7 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Syscall.FUNC_SET_IRQVEC, Syscall.FUNC_SET_IRQVEC_EXCL -> TODO()
             Syscall.FUNC_RESTORE_IRQVEC -> TODO()
+            Syscall.FUNC_MEMCOPY -> TODO()
         }
     }
 

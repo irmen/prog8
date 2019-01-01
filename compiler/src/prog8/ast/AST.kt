@@ -851,7 +851,13 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
         val leftDt = left.resultingDatatype(namespace, heap)
         val rightDt = right.resultingDatatype(namespace, heap)
         return when(operator) {
-            "+", "-", "*", "**", "%" -> if(leftDt==null || rightDt==null) null else arithmeticOpDt(leftDt, rightDt)
+            "+", "-", "*", "**", "%" -> if(leftDt==null || rightDt==null) null else {
+                try {
+                    arithmeticOpDt(leftDt, rightDt)
+                } catch(x: FatalAstException) {
+                    null
+                }
+            }
             "//" -> if(leftDt==null || rightDt==null) null else integerDivisionOpDt(leftDt, rightDt)
             "&" -> leftDt
             "|" -> leftDt

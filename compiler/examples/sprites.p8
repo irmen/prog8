@@ -35,13 +35,7 @@
         c64.STROUT("balloon sprites!\n")
         c64.STROUT("...we are all floating...\n")
 
-        ; copy the ballon sprite data to the correct address and setup the sprite pointers
-        ; @todo make a memcopy function for this, that calls c64utils.memcopy
-        for ubyte i in 0 to 63 {
-            ;@(sprite_data_address+i) = @(balloonsprite+i)           ; @todo nice error message
-            @(sprite_data_address+i) = balloonsprite[i]
-        }
-
+        memcopy(balloonsprite, sprite_data_address, 63)
         c64.SPRPTR0 = sprite_data_address//64
         c64.SPRPTR1 = sprite_data_address//64
         c64.SPRPTR2 = sprite_data_address//64
@@ -59,11 +53,6 @@
         c64.SPENA = 255     ; enable all sprites
 
         set_irqvec()        ; enable animation
-        ;set_irqvec_excl()        ; enable animation
-    }
-
-    sub foobar() {
-        A=99
     }
 }
 

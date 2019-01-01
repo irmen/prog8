@@ -57,6 +57,10 @@ val BuiltinFunctions = mapOf(
     "set_irqvec"  to FunctionSignature(false, emptyList(), null),
     "set_irqvec_excl"  to FunctionSignature(false, emptyList(), null),
     "restore_irqvec"   to FunctionSignature(false, emptyList(), null),
+    "memcopy"          to FunctionSignature(false, listOf(
+                                                        BuiltinFunctionParam("from", IntegerDatatypes + IterableDatatypes),
+                                                        BuiltinFunctionParam("to", IntegerDatatypes + IterableDatatypes),
+                                                        BuiltinFunctionParam("numbytes", IntegerDatatypes)), null),
     "vm_write_memchr"  to FunctionSignature(false, listOf(BuiltinFunctionParam("address", setOf(DataType.UWORD))), null),
     "vm_write_memstr"  to FunctionSignature(false, listOf(BuiltinFunctionParam("address", setOf(DataType.UWORD))), null),
     "vm_write_num"     to FunctionSignature(false, listOf(BuiltinFunctionParam("number", NumericDatatypes)), null),
