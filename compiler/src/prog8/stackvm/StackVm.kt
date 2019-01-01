@@ -126,6 +126,7 @@ class StackVm(private var traceOutputFile: String?) {
     var callstack = MyStack<Instruction>()
         private set
     private var program = listOf<Instruction>()
+    private var labels = emptyMap<String, Instruction>()
     private var heap = HeapValues()
     private var traceOutput = if(traceOutputFile!=null) PrintStream(File(traceOutputFile), "utf-8") else null
     private var canvas: BitmapScreenPanel? = null
@@ -136,8 +137,10 @@ class StackVm(private var traceOutputFile: String?) {
     var sourceLine: String = ""
         private set
 
+
     fun load(program: Program, canvas: BitmapScreenPanel?) {
         this.program = program.program
+        this.labels = program.labels
         this.heap = program.heap
         this.canvas = canvas
         canvas?.requestFocusInWindow()
@@ -158,7 +161,7 @@ class StackVm(private var traceOutputFile: String?) {
         P_irqd = false
         sourceLine = ""
         currentIns = this.program[0]
-        irqStartInstruction = program.labels["irq.irq"]
+        irqStartInstruction = null
     }
 
     fun step(instructionCount: Int = 5000) {
@@ -1613,9 +1616,18 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(iterable.heapId)
                 evalstack.push(Value(DataType.UBYTE, if (value.array!!.all { v -> v != 0 }) 1 else 0))
             }
-            Syscall.FUNC_SET_IRQVEC, Syscall.FUNC_SET_IRQVEC_EXCL -> TODO()
-            Syscall.FUNC_RESTORE_IRQVEC -> TODO()
-            Syscall.FUNC_MEMCOPY -> TODO()
+            Syscall.FUNC_SET_IRQVEC, Syscall.FUNC_SET_IRQVEC_EXCL -> {
+                irqStartInstruction = labels["irq.irq"]
+            }
+            Syscall.FUNC_RESTORE_IRQVEC -> {
+                irqStartInstruction = null
+            }
+            Syscall.FUNC_MEMCOPY -> {
+                val numbytes = evalstack.pop().integerValue()
+                val to = evalstack.pop().integerValue()
+                val from = evalstack.pop().integerValue()
+                mem.copy(from, to, numbytes)
+            }
         }
     }
 

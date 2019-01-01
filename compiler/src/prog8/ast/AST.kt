@@ -420,8 +420,8 @@ interface INameScope {
             namespace.allLabelsAndVariables().forEach {
                 println(" ".repeat(4 * (1 + indent)) + "${it.key}   ->  ${it.value::class.simpleName} at ${it.value.position}")
             }
-            namespace.statements.filter { it is INameScope }.forEach {
-                printNames(indent+1, it as INameScope)
+            namespace.statements.filterIsInstance<INameScope>().forEach {
+                printNames(indent+1, it)
             }
         }
         printNames(0, this)

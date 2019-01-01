@@ -31,6 +31,7 @@
     float[len(zcoor)] rotatedz
 
     sub start()  {
+        set_irqvec()
         while true {
             if irq.time_changed {
                 irq.time_changed = 0

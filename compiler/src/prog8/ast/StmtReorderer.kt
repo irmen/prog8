@@ -28,7 +28,7 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
             module.statements.remove(mainBlock)
             module.statements.add(0, mainBlock)
         }
-        val varDecls = module.statements.filter { it is VarDecl }
+        val varDecls = module.statements.filterIsInstance<VarDecl>()
         module.statements.removeAll(varDecls)
         module.statements.addAll(0, varDecls)
         val directives = module.statements.filter {it is Directive && it.directive in directivesToMove}
@@ -44,7 +44,7 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
     }
 
     override fun process(block: Block): IStatement {
-        val subroutines = block.statements.asSequence().filter { it is Subroutine }.map { it as Subroutine }.toList()
+        val subroutines = block.statements.filterIsInstance<Subroutine>()
         var numSubroutinesAtEnd = 0
         // move all subroutines to the end of the block
         for (subroutine in subroutines) {
@@ -91,7 +91,7 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
 
     override fun process(subroutine: Subroutine): IStatement {
         super.process(subroutine)
-        val varDecls = subroutine.statements.filter { it is VarDecl }
+        val varDecls = subroutine.statements.filterIsInstance<VarDecl>()
         subroutine.statements.removeAll(varDecls)
         subroutine.statements.addAll(0, varDecls)
         val directives = subroutine.statements.filter {it is Directive && it.directive in directivesToMove}

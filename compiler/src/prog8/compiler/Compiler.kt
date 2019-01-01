@@ -160,7 +160,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
     }
 
     private fun processVariables(scope: INameScope) {
-        for(variable in scope.statements.asSequence().filter {it is VarDecl }.map { it as VarDecl })
+        for(variable in scope.statements.filterIsInstance<VarDecl>())
             prog.variable(variable.scopedname, variable)
         for(subscope in scope.subScopes())
             processVariables(subscope.value)

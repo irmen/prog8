@@ -61,7 +61,7 @@ class AstChecker(private val namespace: INameScope,
 
     override fun process(module: Module) {
         super.process(module)
-        val directives = module.statements.asSequence().filter { it is Directive }.groupBy { (it as Directive).directive }
+        val directives = module.statements.filterIsInstance<Directive>().groupBy { it.directive }
         directives.filter { it.value.size > 1 }.forEach{ entry ->
             when(entry.key) {
                 "%output", "%launcher", "%zeropage", "%address" ->

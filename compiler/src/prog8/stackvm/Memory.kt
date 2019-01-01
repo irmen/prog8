@@ -94,4 +94,9 @@ class Memory {
     fun clear() {
         for(i in 0..65535) mem[i]=0
     }
+
+    fun copy(from: Int, to: Int, numbytes: Int) {
+        for(i in 0 until numbytes)
+            mem[to+i] = mem[from+i]
+    }
 }
