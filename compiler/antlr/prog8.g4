@@ -253,7 +253,7 @@ asmsub_returns :  asmsub_return (',' EOL? asmsub_return)* ;
 asmsub_return :  datatype '@' (registerorpair | statusregister) ;
 
 
-if_stmt :  'if' expression EOL? (statement | statement_block) EOL? else_part? EOL ; // statement is constrained later
+if_stmt :  'if' expression EOL? (statement | statement_block) EOL? else_part?  ; // statement is constrained later
 
 else_part :  'else' EOL? (statement | statement_block) ;   // statement is constrained later
 

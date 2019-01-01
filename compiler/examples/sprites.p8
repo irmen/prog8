@@ -59,21 +59,15 @@
 
 ~ irq {
 sub irq() {
-    c64.EXTCOL++
+    ; float up & wobble horizontally
     for ubyte i in 0 to 7 {
-        @(main.SP0Y+i*2)--          ; float up
-
-        ; horizontal wobble effect
+        @(main.SP0Y+i*2)--
         ubyte r = rnd()
         if r>208
             @(main.SP0X+i*2)++
-        else {
-            ; @todo if-else if -else syntax without curly braces
-            if r<48
-                @(main.SP0X+i*2)--
-        }
+        else if r<48
+            @(main.SP0X+i*2)--
     }
-    c64.EXTCOL--
 }
 
 }
