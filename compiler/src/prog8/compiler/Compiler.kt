@@ -151,7 +151,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
     val continueStmtLabelStack : Stack<String> = Stack()
 
     override fun process(block: Block): IStatement {
-        prog.newBlock(block.scopedname, block.name, block.address)
+        prog.newBlock(block.scopedname, block.name, block.address, block.options)
         processVariables(block)         // @todo optimize initializations with same value: load the value only once  (sort on initalization value, datatype   ?)
         prog.label("block."+block.scopedname)
         prog.line(block.position)

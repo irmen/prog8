@@ -49,7 +49,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     newinstructions,
                     newvars,
                     newConstants,
-                    newlabels))
+                    newlabels,
+                    force_output = block.force_output))
         }
         program.blocks.clear()
         program.blocks.addAll(newblocks)
@@ -196,7 +197,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             out(".cerror * > ${block.address?.toHex()}, 'block address overlaps by ', *-${block.address?.toHex()},' bytes'")
             out("* = ${block.address?.toHex()}")
         }
-        out("${block.shortname}\t.proc\n")
+        if(!blk.force_output)
+            out("${block.shortname}\t.proc\n")
         out("\n; memdefs and kernel subroutines")
         memdefs2asm(block)
         out("\n; variables")
@@ -218,7 +220,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             processed--
         }
         if (trace) println("END BLOCK: ${block.scopedname}")
-        out("\n\t.pend\n")
+        if(!blk.force_output)
+            out("\n\t.pend\n")
     }
 
     private fun memdefs2asm(block: IntermediateProgram.ProgramBlock) {

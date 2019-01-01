@@ -103,11 +103,14 @@ Directives
 
 .. data:: %option <option> [, <option> ...]
 
-	Level: module.
+	Level: module, block.
 	Sets special compiler options.
-	For now, only the ``enable_floats`` option is recognised, which will tell the compiler
+	For a module option, only the ``enable_floats`` option is recognised, which will tell the compiler
 	to deal with floating point numbers (by using various subroutines from the Commodore-64 kernal).
 	Otherwise, floating point support is not enabled.
+    When used in a block with the ``force_output`` option, it will force the block to be outputted
+    in the final program. Can be useful to make sure some
+    data is generated that would otherwise be discarded because it's not referenced (such as sprite data).
 
 
 .. data:: %asmbinary "<filename>" [, <offset>[, <length>]]

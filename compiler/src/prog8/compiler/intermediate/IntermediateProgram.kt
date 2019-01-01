@@ -14,7 +14,8 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                        val instructions: MutableList<Instruction> = mutableListOf(),
                        val variables: MutableMap<String, Value> = mutableMapOf(),
                        val memoryPointers: MutableMap<String, Pair<Int, DataType>> = mutableMapOf(),
-                       val labels: MutableMap<String, Instruction> = mutableMapOf())
+                       val labels: MutableMap<String, Instruction> = mutableMapOf(),
+                       val force_output: Boolean)
     {
         val numVariables: Int
             get() { return variables.size }
@@ -368,8 +369,8 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         currentBlock.memoryPointers[name] = Pair(address, datatype)
     }
 
-    fun newBlock(scopedname: String, shortname: String, address: Int?) {
-        currentBlock = ProgramBlock(scopedname, shortname, address)
+    fun newBlock(scopedname: String, shortname: String, address: Int?, options: Set<String>) {
+        currentBlock = ProgramBlock(scopedname, shortname, address, force_output="force_output" in options)
         blocks.add(currentBlock)
     }
 
