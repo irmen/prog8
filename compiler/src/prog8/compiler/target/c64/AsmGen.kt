@@ -502,7 +502,7 @@ _prog8_irq_handler_excl
                 }
             }
             Opcode.PUSH_VAR_WORD -> {
-                " lda  ${ins.callLabel} |  ldy  ${ins.callLabel}+1 |  sta  ${ESTACK_LO.toHex()},x |  pha |  tya |  sta  ${ESTACK_HI.toHex()},x |  pla |  dex"
+                " lda  ${ins.callLabel} |  sta  ${ESTACK_LO.toHex()},x |  lda  ${ins.callLabel}+1 |    sta  ${ESTACK_HI.toHex()},x |  dex"
             }
             Opcode.PUSH_VAR_FLOAT -> " lda  #<${ins.callLabel} |  ldy  #>${ins.callLabel}|  jsr  prog8_lib.push_float"
             Opcode.PUSH_MEM_B, Opcode.PUSH_MEM_UB -> {
@@ -782,7 +782,7 @@ _prog8_irq_handler_excl
             Opcode.CAST_B_TO_UW, Opcode.CAST_B_TO_W -> " lda  ${(ESTACK_LO+1)},x |  ${signExtendA("${(ESTACK_HI+1).toHex()},x")}"     // sign extend the lsb
             Opcode.MSB -> " lda  ${(ESTACK_HI+1).toHex()},x |  sta  ${(ESTACK_LO+1).toHex()},x"
 
-            Opcode.ADD_UB, Opcode.ADD_B -> {
+            Opcode.ADD_UB, Opcode.ADD_B -> {        // TODO inline better?
                 """
                 lda  ${(ESTACK_LO + 2).toHex()},x
                 clc
@@ -791,7 +791,7 @@ _prog8_irq_handler_excl
                 sta  ${(ESTACK_LO + 1).toHex()},x
                 """
             }
-            Opcode.SUB_UB, Opcode.SUB_B -> {
+            Opcode.SUB_UB, Opcode.SUB_B -> {        // TODO inline better?
                 """
                 lda  ${(ESTACK_LO + 2).toHex()},x
                 sec
@@ -2921,6 +2921,46 @@ _prog8_irq_handler_excl
             AsmPattern(listOf(Opcode.PUSH_MEM_B, Opcode.PUSH_BYTE, Opcode.BITXOR_BYTE),
                     listOf(Opcode.PUSH_MEM_UB, Opcode.PUSH_BYTE, Opcode.BITXOR_BYTE)) { segment ->
                 " lda  ${hexVal(segment[0])} |  eor  #${hexVal(segment[1])} |  sta  ${ESTACK_LO.toHex()},x |  dex "
+            },
+
+
+            // 16 bit addition avoiding excessive stack usage
+            // @todo optimize this even more with longer asmpatterns (avoid stack use altogether on most common operations)
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.ADD_UW),
+                    listOf(Opcode.PUSH_VAR_WORD, Opcode.ADD_W)) { segment ->
+                """
+                clc
+                lda  ${segment[0].callLabel}
+                adc  ${(ESTACK_LO+1).toHex()},x
+                sta  ${(ESTACK_LO+1).toHex()},x
+                lda  ${segment[0].callLabel}+1
+                adc  ${(ESTACK_HI+1).toHex()},x
+                sta  ${(ESTACK_HI+1).toHex()},x
+                """
+            },
+            AsmPattern(listOf(Opcode.PUSH_MEM_UW, Opcode.ADD_UW),
+                    listOf(Opcode.PUSH_MEM_W, Opcode.ADD_W)) { segment ->
+                """
+                clc
+                lda  ${hexVal(segment[0])}
+                adc  ${(ESTACK_LO + 1).toHex()},x
+                sta  ${(ESTACK_LO + 1).toHex()},x
+                lda  ${hexValPlusOne(segment[0])}
+                adc  ${(ESTACK_HI + 1).toHex()},x
+                sta  ${(ESTACK_HI + 1).toHex()},x
+                """
+            },
+            AsmPattern(listOf(Opcode.PUSH_WORD, Opcode.ADD_UW),
+                    listOf(Opcode.PUSH_WORD, Opcode.ADD_W)) { segment ->
+                """
+                clc
+                lda  #<${hexVal(segment[0])}
+                adc  ${(ESTACK_LO+1).toHex()},x
+                sta  ${(ESTACK_LO+1).toHex()},x
+                lda  #>${hexVal(segment[0])}
+                adc  ${(ESTACK_HI+1).toHex()},x
+                sta  ${(ESTACK_HI+1).toHex()},x
+                """
             }
     )
 

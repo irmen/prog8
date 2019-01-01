@@ -524,7 +524,7 @@ class Block(override val name: String,
         return "Block(name=$name, address=$address, ${statements.size} statements)"
     }
 
-    val options = statements.filter { it is Directive && it.directive == "%option" }.flatMap { (it as Directive).args }.map {it.name!!}.toSet()
+    fun options() = statements.filter { it is Directive && it.directive == "%option" }.flatMap { (it as Directive).args }.map {it.name!!}.toSet()
 }
 
 

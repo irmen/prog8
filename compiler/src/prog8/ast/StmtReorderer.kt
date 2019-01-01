@@ -31,6 +31,7 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
         val varDecls = module.statements.filterIsInstance<VarDecl>()
         module.statements.removeAll(varDecls)
         module.statements.addAll(0, varDecls)
+
         val directives = module.statements.filter {it is Directive && it.directive in directivesToMove}
         module.statements.removeAll(directives)
         module.statements.addAll(0, directives)

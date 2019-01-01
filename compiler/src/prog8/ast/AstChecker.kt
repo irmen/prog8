@@ -617,17 +617,17 @@ class AstChecker(private val namespace: INameScope,
                     err("invalid import directive, cannot import itself")
             }
             "%breakpoint" -> {
-                if(directive.parent !is Block) err("this directive may only occur in a block")
+                if(directive.parent !is INameScope || directive.parent is Module) err("this directive may only occur in a block")
                 if(directive.args.isNotEmpty())
                     err("invalid breakpoint directive, expected no arguments")
             }
             "%asminclude" -> {
-                if(directive.parent !is Block) err("this directive may only occur in a block")
+                if(directive.parent !is INameScope || directive.parent is Module) err("this directive may only occur in a block")
                 if(directive.args.size!=2 || directive.args[0].str==null || directive.args[1].name==null)
                     err("invalid asminclude directive, expected arguments: \"filename\", scopelabel")
             }
             "%asmbinary" -> {
-                if(directive.parent !is Block) err("this directive may only occur in a block")
+                if(directive.parent !is INameScope || directive.parent is Module) err("this directive may only occur in a block")
                 val errormsg = "invalid asmbinary directive, expected arguments: \"filename\" [, offset [, length ] ]"
                 if(directive.args.isEmpty()) err(errormsg)
                 if(directive.args.isNotEmpty() && directive.args[0].str==null) err(errormsg)

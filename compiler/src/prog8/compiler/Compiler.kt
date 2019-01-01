@@ -151,7 +151,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
     val continueStmtLabelStack : Stack<String> = Stack()
 
     override fun process(block: Block): IStatement {
-        prog.newBlock(block.scopedname, block.name, block.address, block.options)
+        prog.newBlock(block.scopedname, block.name, block.address, block.options())
         processVariables(block)         // @todo optimize initializations with same value: load the value only once  (sort on initalization value, datatype   ?)
         prog.label("block."+block.scopedname)
         prog.line(block.position)
@@ -182,18 +182,6 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         return super.process(subroutine)
     }
 
-    override fun process(directive: Directive): IStatement {
-        when(directive.directive) {
-            "%asminclude" -> throw CompilerException("can't use %asminclude in stackvm")
-            "%asmbinary" -> throw CompilerException("can't use %asmbinary in stackvm")
-            "%breakpoint" -> {
-                prog.line(directive.position)
-                prog.instr(Opcode.BREAKPOINT)
-            }
-        }
-        return super.process(directive)
-    }
-
     private fun translate(statements: List<IStatement>) {
         for (stmt: IStatement in statements) {
             generatedLabelSequenceNumber++
@@ -214,7 +202,17 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 is AnonymousScope -> translate(stmt)
                 is ReturnFromIrq -> translate(stmt)
                 is Return -> translate(stmt)
-                is Directive, is VarDecl, is Subroutine -> {}   // skip this, already processed these.
+                is Directive -> {
+                    when(stmt.directive) {
+                        "%asminclude" -> throw CompilerException("can't use %asminclude in stackvm")
+                        "%asmbinary" -> throw CompilerException("can't use %asmbinary in stackvm")
+                        "%breakpoint" -> {
+                            prog.line(stmt.position)
+                            prog.instr(Opcode.BREAKPOINT)
+                        }
+                    }
+                }
+                is VarDecl, is Subroutine -> {}   // skip this, already processed these.
                 is InlineAssembly -> translate(stmt)
                 else -> TODO("translate statement $stmt to stackvm")
             }

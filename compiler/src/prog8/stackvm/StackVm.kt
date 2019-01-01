@@ -243,8 +243,9 @@ class StackVm(private var traceOutputFile: String?) {
         val result = variables[name]
         if(result!=null)
             return result
-        if(name in memoryPointers)
+        if(name in memoryPointers) {
             throw VmExecutionException("variable is memory-mapped: $name = ${memoryPointers[name]}")
+        }
         throw VmExecutionException("unknown variable: $name")
     }
 
@@ -1205,51 +1206,81 @@ class StackVm(private var traceOutputFile: String?) {
             Opcode.READ_INDEXED_VAR_BYTE -> {
                 // put the byte value of variable[index] onto the stack
                 val index = evalstack.pop().integerValue()
-                val variable = getVar(ins.callLabel!!)
-                if(variable.type==DataType.UWORD) {
-                    // assume the variable is a pointer (address) and get the ubyte value from that memory location
-                    evalstack.push(Value(DataType.UBYTE, mem.getUByte(variable.integerValue())))
-                } else {
-                    // get indexed byte element from the arrayspec
-                    val array = heap.get(variable.heapId)
-                    when(array.type) {
-                        DataType.ARRAY_UB-> evalstack.push(Value(DataType.UBYTE, array.array!![index]))
-                        DataType.ARRAY_B -> evalstack.push(Value(DataType.BYTE, array.array!![index]))
-                        DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> evalstack.push(Value(DataType.UBYTE, Petscii.encodePetscii(array.str!![index].toString(), true)[0]))
+                if(ins.callLabel in memoryPointers) {
+                    val variable = memoryPointers[ins.callLabel]!!
+                    val address = variable.first + index
+                    when(variable.second) {
+                        DataType.ARRAY_UB -> evalstack.push(Value(DataType.UBYTE, mem.getUByte(address)))
+                        DataType.ARRAY_B -> evalstack.push(Value(DataType.BYTE, mem.getSByte(address)))
                         else -> throw VmExecutionException("not a proper array/string variable with byte elements")
+                    }
+                } else {
+                    val variable = getVar(ins.callLabel!!)
+                    if (variable.type == DataType.UWORD) {
+                        // assume the variable is a pointer (address) and get the ubyte value from that memory location
+                        evalstack.push(Value(DataType.UBYTE, mem.getUByte(variable.integerValue())))
+                    } else {
+                        // get indexed byte element from the arrayspec
+                        val array = heap.get(variable.heapId)
+                        when (array.type) {
+                            DataType.ARRAY_UB -> evalstack.push(Value(DataType.UBYTE, array.array!![index]))
+                            DataType.ARRAY_B -> evalstack.push(Value(DataType.BYTE, array.array!![index]))
+                            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> evalstack.push(Value(DataType.UBYTE, Petscii.encodePetscii(array.str!![index].toString(), true)[0]))
+                            else -> throw VmExecutionException("not a proper array/string variable with byte elements")
+                        }
                     }
                 }
             }
             Opcode.READ_INDEXED_VAR_WORD -> {
                 // put the word value of variable[index] onto the stack
                 val index = evalstack.pop().integerValue()
-                val variable = getVar(ins.callLabel!!)
-                if(variable.type==DataType.UWORD) {
-                    // assume the variable is a pointer (address) and get the word value from that memory location
-                    evalstack.push(Value(DataType.UWORD, mem.getUWord(variable.integerValue())))
-                } else {
-                    // get indexed word element from the arrayspec
-                    val array = heap.get(variable.heapId)
-                    when(array.type){
-                        DataType.ARRAY_UW -> evalstack.push(Value(DataType.UWORD, array.array!![index]))
-                        DataType.ARRAY_W -> evalstack.push(Value(DataType.WORD, array.array!![index]))
+                if(ins.callLabel in memoryPointers) {
+                    val variable = memoryPointers[ins.callLabel]!!
+                    val address = variable.first + index*2
+                    when(variable.second) {
+                        DataType.ARRAY_UW -> evalstack.push(Value(DataType.UWORD, mem.getUWord(address)))
+                        DataType.ARRAY_W -> evalstack.push(Value(DataType.WORD, mem.getSWord(address)))
                         else -> throw VmExecutionException("not a proper arrayspec var with word elements")
+                    }
+                } else {
+                    // normal variable
+                    val variable = getVar(ins.callLabel!!)
+                    if(variable.type==DataType.UWORD) {
+                        // assume the variable is a pointer (address) and get the word value from that memory location
+                        evalstack.push(Value(DataType.UWORD, mem.getUWord(variable.integerValue())))
+                    } else {
+                        // get indexed word element from the arrayspec
+                        val array = heap.get(variable.heapId)
+                        when(array.type){
+                            DataType.ARRAY_UW -> evalstack.push(Value(DataType.UWORD, array.array!![index]))
+                            DataType.ARRAY_W -> evalstack.push(Value(DataType.WORD, array.array!![index]))
+                            else -> throw VmExecutionException("not a proper arrayspec var with word elements")
+                        }
                     }
                 }
             }
             Opcode.READ_INDEXED_VAR_FLOAT -> {
-                // put the f;pat value of variable[index] onto the stack
+                // put the float value of variable[index] onto the stack
                 val index = evalstack.pop().integerValue()
-                val variable = getVar(ins.callLabel!!)
-                if(variable.type==DataType.UWORD) {
-                    // assume the variable is a pointer (address) and get the float value from that memory location
-                    evalstack.push(Value(DataType.UWORD, mem.getFloat(variable.integerValue())))
-                } else {
-                    // get indexed float element from the arrayspec
-                    val array = heap.get(variable.heapId)
-                    if(array.type!=DataType.ARRAY_F)
+                if(ins.callLabel in memoryPointers) {
+                    val variable = memoryPointers[ins.callLabel]!!
+                    val address = variable.first + index*5
+                    if(variable.second==DataType.ARRAY_F)
+                        evalstack.push(Value(DataType.FLOAT, mem.getFloat(address)))
+                    else
                         throw VmExecutionException("not a proper arrayspec var with float elements")
-                    evalstack.push(Value(DataType.FLOAT, array.doubleArray!![index]))
+                } else {
+                    val variable = getVar(ins.callLabel!!)
+                    if (variable.type == DataType.UWORD) {
+                        // assume the variable is a pointer (address) and get the float value from that memory location
+                        evalstack.push(Value(DataType.UWORD, mem.getFloat(variable.integerValue())))
+                    } else {
+                        // get indexed float element from the arrayspec
+                        val array = heap.get(variable.heapId)
+                        if (array.type != DataType.ARRAY_F)
+                            throw VmExecutionException("not a proper arrayspec var with float elements")
+                        evalstack.push(Value(DataType.FLOAT, array.doubleArray!![index]))
+                    }
                 }
             }
             Opcode.WRITE_INDEXED_VAR_BYTE -> {
@@ -1310,21 +1341,21 @@ class StackVm(private var traceOutputFile: String?) {
                     if(value.type==DataType.UWORD) {
                         if(memloc.second!=DataType.ARRAY_UW)
                             throw VmExecutionException("invalid memory pointer type $memloc")
-                        mem.setUWord(memloc.first, value.integerValue())
+                        mem.setUWord(memloc.first+index*2, value.integerValue())
                     }
                     else {
                         if(memloc.second!=DataType.ARRAY_W)
                             throw VmExecutionException("invalid memory pointer type $memloc")
-                        mem.setSWord(memloc.first, value.integerValue())
+                        mem.setSWord(memloc.first+index*2, value.integerValue())
                     }
                 } else {
                     val variable = getVar(varname)
                     if (variable.type == DataType.UWORD) {
                         // assume the variable is a pointer (address) and write the word value to that memory location
                         if(value.type==DataType.UWORD)
-                            mem.setUWord(variable.integerValue(), value.integerValue())
+                            mem.setUWord(variable.integerValue()+index*2, value.integerValue())
                         else
-                            mem.setSWord(variable.integerValue(), value.integerValue())
+                            mem.setSWord(variable.integerValue()+index*2, value.integerValue())
                     } else {
                         // set indexed word element in the arrayspec
                         val array = heap.get(variable.heapId)
@@ -1347,12 +1378,12 @@ class StackVm(private var traceOutputFile: String?) {
                     // variable is the name of a pointer, write the float value to that memory location
                     if(memloc.second!=DataType.ARRAY_F)
                         throw VmExecutionException("invalid memory pointer type $memloc")
-                    mem.setFloat(memloc.first, value.numericValue().toDouble())
+                    mem.setFloat(memloc.first+index*5, value.numericValue().toDouble())
                 } else {
                     val variable = getVar(varname)
                     if (variable.type == DataType.UWORD) {
                         // assume the variable is a pointer (address) and write the float value to that memory location
-                        mem.setFloat(variable.integerValue(), value.numericValue().toDouble())
+                        mem.setFloat(variable.integerValue()+index*5, value.numericValue().toDouble())
                     } else {
                         // set indexed float element in the arrayspec
                         val array = heap.get(variable.heapId)
