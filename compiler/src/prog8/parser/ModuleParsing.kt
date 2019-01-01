@@ -1,10 +1,11 @@
 package prog8.parser
 
-import org.antlr.v4.runtime.CharStreams
+import org.antlr.v4.runtime.*
 import prog8.ast.*
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.*
 
 
 class ParsingFailedError(override var message: String) : Exception(message)
@@ -13,6 +14,12 @@ class ParsingFailedError(override var message: String) : Exception(message)
 private val importedModules : HashMap<String, Module> = hashMapOf()
 
 
+private class LexerErrorListener: BaseErrorListener() {
+    var  numberOfErrors: Int = 0
+    override fun syntaxError(p0: Recognizer<*, *>?, p1: Any?, p2: Int, p3: Int, p4: String?, p5: RecognitionException?) {
+        numberOfErrors++
+    }
+}
 
 fun importModule(filePath: Path) : Module {
     print("importing '${filePath.fileName}'")
@@ -26,11 +33,14 @@ fun importModule(filePath: Path) : Module {
     val moduleName = filePath.fileName.toString().substringBeforeLast('.')
     val input = CharStreams.fromPath(filePath)
     val lexer = prog8Lexer(input)
+    val lexerErrors = LexerErrorListener()
+    lexer.addErrorListener(lexerErrors)
     val tokens = CommentHandlingTokenStream(lexer)
     val parser = prog8Parser(tokens)
     val parseTree = parser.module()
-    if(parser.numberOfSyntaxErrors > 0)
-        throw ParsingFailedError("There are ${parser.numberOfSyntaxErrors} syntax errors in '${filePath.fileName}'.")
+    val numberOfErrors = parser.numberOfSyntaxErrors + lexerErrors.numberOfErrors
+    if(numberOfErrors > 0)
+        throw ParsingFailedError("There are $numberOfErrors errors in '${filePath.fileName}'.")
 
     // You can do something with the parsed comments:
     // tokens.commentTokens().forEach { println(it) }
