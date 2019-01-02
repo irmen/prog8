@@ -53,24 +53,28 @@
             @(SP0Y+i*2) = rnd()
         }
 
-        c64.SPENA = 255     ; enable all sprites
-
-        set_irqvec()        ; enable animation
+        c64.SPENA = 255                 ; enable all sprites
+        c64utils.set_rasterirq(51)     ; enable animation
     }
 }
 
 
 ~ irq {
 sub irq() {
+    c64.EXTCOL--
     ; float up & wobble horizontally
+
+    ; @todo for loop with step 2 doesn't work
+
     for ubyte i in 0 to 7 {
-        @(main.SP0Y+i*2)--
+        @(main.SP0Y+i+i)--
         ubyte r = rnd()
         if r>208
-            @(main.SP0X+i*2)++
+            @(main.SP0X+i+i)++
         else if r<48
-            @(main.SP0X+i*2)--
+            @(main.SP0X+i+i)--
     }
+    c64.EXTCOL++
 }
 
 }

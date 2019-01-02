@@ -94,6 +94,44 @@
 
 ; ---- end of VIC-II registers ----
 
+; ---- CIA 1 & 2 registers ----
+
+		memory  ubyte CIA1PRA		= $DC00		; CIA 1 DRA, keyboard column drive
+		memory  ubyte CIA1PRB		= $DC01		; CIA 1 DRB, keyboard row port
+		memory  ubyte CIA1DDRA		= $DC02		; CIA 1 DDRA, keyboard column
+		memory  ubyte CIA1DDRB		= $DC03		; CIA 1 DDRB, keyboard row
+		memory  ubyte CIA1TALO		= $DC04		; CIA 1 timer A low byte
+		memory  ubyte CIA1TAHI		= $DC05		; CIA 1 timer A high byte
+		memory  ubyte CIA1TBLO		= $DC06		; CIA 1 timer B low byte
+		memory  ubyte CIA1TBHI		= $DC07		; CIA 1 timer B high byte
+		memory  ubyte CIA1TOD10		= $DC08		; time of day, 1/10 sec.
+		memory  ubyte CIA1TODS		= $DC09		; time of day, seconds
+		memory  ubyte CIA1TODM		= $DC0A		; time of day, minutes
+		memory  ubyte CIA1TODH		= $DC0B		; time of day, hours
+		memory  ubyte CIA1SDR		= $DC0C		; Serial Data Register
+		memory  ubyte CIA1ICR		= $DC0D
+		memory  ubyte CIA1CRA		= $DC0E
+		memory  ubyte CIA1CRB		= $DC0F
+
+		memory  ubyte CIA2PRA		= $DD00		; CIA 2 DRA, serial port and video address
+		memory  ubyte CIA2PRB		= $DD01		; CIA 2 DRB, RS232 port / USERPORT
+		memory  ubyte CIA2DDRA		= $DD02		; CIA 2 DDRA, serial port and video address
+		memory  ubyte CIA2DDRB		= $DD03		; CIA 2 DDRB, RS232 port / USERPORT
+		memory  ubyte CIA2TALO		= $DD04		; CIA 2 timer A low byte
+		memory  ubyte CIA2TAHI		= $DD05		; CIA 2 timer A high byte
+		memory  ubyte CIA2TBLO		= $DD06		; CIA 2 timer B low byte
+		memory  ubyte CIA2TBHI		= $DD07		; CIA 2 timer B high byte
+		memory  ubyte CIA2TOD10		= $DD08		; time of day, 1/10 sec.
+		memory  ubyte CIA2TODS		= $DD09		; time of day, seconds
+		memory  ubyte CIA2TODM		= $DD0A		; time of day, minutes
+		memory  ubyte CIA2TODH		= $DD0B		; time of day, hours
+		memory  ubyte CIA2SDR		= $DD0C		; Serial Data Register
+		memory  ubyte CIA2ICR		= $DD0D
+		memory  ubyte CIA2CRA		= $DD0E
+		memory  ubyte CIA2CRB		= $DD0F
+
+; ---- end of CIA registers ----
+
 ; ---- C64 basic and kernal ROM float constants and functions ----
 
 		; note: the fac1 and fac2 are working registers and take 6 bytes each,

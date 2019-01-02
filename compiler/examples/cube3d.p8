@@ -6,6 +6,7 @@
     ubyte time_changed
 
     sub irq() {
+        ; activated automatically if run in StackVm
         global_time++
         time_changed = 1
     }
@@ -31,7 +32,6 @@
     float[len(zcoor)] rotatedz
 
     sub start()  {
-        set_irqvec()
         while true {
             if irq.time_changed {
                 irq.time_changed = 0

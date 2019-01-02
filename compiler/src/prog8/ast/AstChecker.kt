@@ -100,12 +100,21 @@ class AstChecker(private val namespace: INameScope,
         }
 
         // there can be an optional 'irq' block with a 'irq' subroutine in it,
-        // which will be used as the 60hz irq routine in the vm if it's present (and enabled via set_irqvec()/set_irqvec_excl())
+        // which will be used as the 60hz irq routine in the vm if it's present
         val irqBlock = module.statements.singleOrNull { it is Block && it.name=="irq" } as? Block?
         val irqSub = irqBlock?.subScopes()?.get("irq") as? Subroutine
         if(irqSub!=null) {
             if(irqSub.parameters.isNotEmpty() || irqSub.returntypes.isNotEmpty())
                 checkResult.add(SyntaxError("irq entrypoint subroutine can't have parameters and/or return values", irqSub.position))
+        } else {
+            // @todo this is a little hack to make the assembler happy;
+            // certain assembler routines are -for now- always included and *require* an irq.irq routine to be present
+            val pos = module.statements.last().position
+            val dummyIrqBlock = Block("irq", address = null, statements = mutableListOf(
+                    Subroutine("irq", listOf(), listOf(), listOf(), listOf(), setOf(), null, true,mutableListOf(), pos)
+            ), position = pos)
+            dummyIrqBlock.linkParents(module)
+            module.statements.add(dummyIrqBlock)
         }
     }
 
@@ -238,12 +247,7 @@ class AstChecker(private val namespace: INameScope,
         // subroutine must contain at least one 'return' or 'goto'
         // (or if it has an asm block, that must contain a 'rts' or 'jmp')
         if(subroutine.statements.count { it is Return || it is Jump } == 0) {
-            val amountOfRtsInAsm = subroutine.statements
-                    .asSequence()
-                    .filter { it is InlineAssembly }
-                    .map { (it as InlineAssembly).assembly }
-                    .count { " rti" in it || "\trti" in it || " rts" in it || "\trts" in it || " jmp" in it || "\tjmp" in it }
-            if (amountOfRtsInAsm == 0) {
+            if (subroutine.amountOfRtsInAsm() == 0) {
                 if (subroutine.returntypes.isNotEmpty()) {
                     // for asm subroutines with an address, no statement check is possible.
                     if (subroutine.asmAddress == null)

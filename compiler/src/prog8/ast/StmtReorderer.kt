@@ -101,7 +101,8 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
 
         if(subroutine.returntypes.isEmpty()) {
             // add the implicit return statement at the end (if it's not there yet), but only if it's not a kernel routine.
-            if(subroutine.asmAddress==null) {
+            // and if an assembly block doesn't contain a rts/rti
+            if(subroutine.asmAddress==null && subroutine.amountOfRtsInAsm()==0) {
                 if (subroutine.statements.lastOrNull {it !is VarDecl} !is Return) {
                     val returnStmt = Return(emptyList(), subroutine.position)
                     returnStmt.linkParents(subroutine)

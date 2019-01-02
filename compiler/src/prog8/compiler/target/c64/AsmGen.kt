@@ -433,49 +433,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 if (ins.arg!!.numericValue() in syscallsForStackVm.map { it.callNr })
                     throw CompilerException("cannot translate vm syscalls to real assembly calls - use *real* subroutine calls instead. Syscall ${ins.arg.numericValue()}")
                 val call = Syscall.values().find { it.callNr==ins.arg.numericValue() }
-                when (call) {
-                    Syscall.FUNC_SET_IRQVEC ->
-                        """
-                        sei
-                        lda  #<_prog8_irq_handler
-                        sta  c64.CINV
-                        lda  #>_prog8_irq_handler
-                        sta  c64.CINV+1
-                        cli
-                        jmp  +
-
-_prog8_irq_handler      jsr  irq.irq
-                        jmp  c64.IRQDFRT        ; continue with normal kernel irq routine
-+
-                        """
-                    Syscall.FUNC_SET_IRQVEC_EXCL ->
-                        """
-                        sei
-                        lda  #<_prog8_irq_handler_excl
-                        sta  c64.CINV
-                        lda  #>_prog8_irq_handler_excl
-                        sta  c64.CINV+1
-                        cli
-                        jmp  +
-
-_prog8_irq_handler_excl
-                        jsr  irq.irq
-                        lda  ${'$'}dc0d               ; acknowledge CIA interrupt
-                        jmp  c64.IRQDFEND        ; end irq processing - don't call kernel
-+
-                        """
-                    Syscall.FUNC_RESTORE_IRQVEC ->
-                        """
-                        sei
-                        lda  #<c64.IRQDFRT
-                        sta  c64.CINV
-                        lda  #>c64.IRQDFRT
-                        sta  c64.CINV+1
-                        cli
-                        """
-                    else -> " jsr  prog8_lib.${call.toString().toLowerCase()}"
-                }
-
+                " jsr  prog8_lib.${call.toString().toLowerCase()}"
             }
             Opcode.BREAKPOINT -> {
                 breakpointCounter++

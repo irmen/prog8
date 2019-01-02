@@ -408,7 +408,120 @@ _mod2b          lda  #0                         ; self-modified
 		bne  -
 _done		rts
 		.pend
-}}
+		
+}}		
+                
+                
+asmsub  set_irqvec_excl() -> clobbers(A) -> ()  {
+	%asm {{
+		sei
+		lda  #<_irq_handler
+		sta  c64.CINV
+		lda  #>_irq_handler
+		sta  c64.CINV+1
+		cli
+		rts
+_irq_handler	jsr  irq.irq
+		lda  #$ff
+		sta  c64.VICIRQ			; acknowledge raster irq
+		lda  c64.CIA1ICR		; acknowledge CIA1 interrupt
+		jmp  c64.IRQDFEND		; end irq processing - don't call kernel
+	}}
+}
+
+asmsub  set_irqvec() -> clobbers(A) -> ()  {
+	%asm {{
+		sei
+		lda  #<_irq_handler
+		sta  c64.CINV
+		lda  #>_irq_handler
+		sta  c64.CINV+1
+		cli
+		rts
+_irq_handler    jsr  irq.irq
+		jmp  c64.IRQDFRT		; continue with normal kernel irq routine
+	
+	}}
+}
+	
+	
+asmsub  restore_irqvec() -> clobbers() -> () {
+	%asm {{
+		sei
+		lda  #<c64.IRQDFRT
+		sta  c64.CINV
+		lda  #>c64.IRQDFRT
+		sta  c64.CINV+1
+		lda  #0
+		sta  c64.IREQMASK	; disable raster irq
+		lda  #%10000001
+		sta  c64.CIA1ICR	; restore CIA1 irq
+		cli
+		rts
+	}}
+}
+
+
+asmsub  set_rasterirq(uword rasterpos @ AY) -> clobbers(A) -> () {
+	%asm {{
+		sei
+		jsr  _setup_raster_irq
+		lda  #<_raster_irq_handler
+		sta  c64.CINV
+		lda  #>_raster_irq_handler
+		sta  c64.CINV+1
+		cli
+		rts
+
+_raster_irq_handler
+		jsr  irq.irq
+		lda  #$ff
+		sta  c64.VICIRQ			; acknowledge raster irq
+		jmp  c64.IRQDFRT
+
+_setup_raster_irq
+		pha
+		lda  #%01111111
+		sta  c64.CIA1ICR    ; "switch off" interrupts signals from cia-1
+		sta  c64.CIA2ICR    ; "switch off" interrupts signals from cia-2
+		and  c64.SCROLY
+		sta  c64.SCROLY     ; clear most significant bit of raster position
+		lda  c64.CIA1ICR    ; ack previous irq
+		lda  c64.CIA2ICR    ; ack previous irq
+		pla
+		sta  c64.RASTER     ; set the raster line number where interrupt should occur
+		cpy  #0
+		beq  +
+		lda  c64.SCROLY
+		ora  #%10000000
+		sta  c64.SCROLY     ; set most significant bit of raster position
++		lda  #%00000001
+		sta  c64.IREQMASK   ;enable raster interrupt signals from vic
+		rts
+	}}
+}
+
+asmsub  set_rasterirq_excl(uword rasterpos @ AY) -> clobbers(A) -> () {
+	%asm {{
+		sei
+		jsr  set_rasterirq._setup_raster_irq
+		lda  #<_raster_irq_handler
+		sta  c64.CINV
+		lda  #>_raster_irq_handler
+		sta  c64.CINV+1
+		cli
+		rts
+
+_raster_irq_handler	
+		jsr  irq.irq
+		lda  #$ff
+		sta  c64.VICIRQ			; acknowledge raster irq
+		jmp  c64.IRQDFEND		; end irq processing - don't call kernel
+
+	}}
+}
+
+
 
 }  ; ------ end of block c64utils
 

@@ -70,9 +70,6 @@ enum class Syscall(val callNr: Short) {
     FUNC_SUM_UW(132),
     FUNC_SUM_W(133),
     FUNC_SUM_F(134),
-    FUNC_SET_IRQVEC(135),
-    FUNC_SET_IRQVEC_EXCL(136),
-    FUNC_RESTORE_IRQVEC(137),
     FUNC_MEMCOPY(138)
 
     // note: not all builtin functions of the Prog8 language are present as functions:
@@ -133,7 +130,7 @@ class StackVm(private var traceOutputFile: String?) {
     private val rnd = Random()
     private val bootTime = System.currentTimeMillis()
     private lateinit var currentIns: Instruction
-    private var irqStartInstruction: Instruction? = null        // set to first instr of irq routine, if any
+    private var irqStartInstruction: Instruction? = null
     var sourceLine: String = ""
         private set
 
@@ -161,7 +158,7 @@ class StackVm(private var traceOutputFile: String?) {
         P_irqd = false
         sourceLine = ""
         currentIns = this.program[0]
-        irqStartInstruction = null
+        irqStartInstruction = labels["irq.irq"]     // set to first instr of irq routine, if any
     }
 
     fun step(instructionCount: Int = 5000) {
@@ -1646,12 +1643,6 @@ class StackVm(private var traceOutputFile: String?) {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
                 evalstack.push(Value(DataType.UBYTE, if (value.array!!.all { v -> v != 0 }) 1 else 0))
-            }
-            Syscall.FUNC_SET_IRQVEC, Syscall.FUNC_SET_IRQVEC_EXCL -> {
-                irqStartInstruction = labels["irq.irq"]
-            }
-            Syscall.FUNC_RESTORE_IRQVEC -> {
-                irqStartInstruction = null
             }
             Syscall.FUNC_MEMCOPY -> {
                 val numbytes = evalstack.pop().integerValue()

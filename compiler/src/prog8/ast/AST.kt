@@ -1658,6 +1658,12 @@ class Subroutine(override val name: String,
     override fun toString(): String {
         return "Subroutine(name=$name, parameters=$parameters, returntypes=$returntypes, ${statements.size} statements, address=$asmAddress)"
     }
+
+    fun amountOfRtsInAsm(): Int = statements
+            .asSequence()
+            .filter { it is InlineAssembly }
+            .map { (it as InlineAssembly).assembly }
+            .count { " rti" in it || "\trti" in it || " rts" in it || "\trts" in it || " jmp" in it || "\tjmp" in it }
 }
 
 
