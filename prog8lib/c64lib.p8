@@ -27,10 +27,12 @@
 		memory  uword  RESET_VEC	= $FFFC		; 6502 reset vector, determined by the kernal if banked in
 		memory  uword  IRQ_VEC		= $FFFE		; 6502 interrupt vector, determined by the kernal if banked in
 
-		const   uword  Screen		= $0400		; default character screen matrix    @todo matrix/array? needs to support array size > 255
-		const   uword  Colors		= $d800		; character screen colors    @todo matrix/array? needs to support array size > 255
+		; the default addresses for the character screen chars and colors
+		const   uword  Screen		= $0400		; @todo matrix/array? needs to support array size > 255
+		const   uword  Colors		= $d800		; @todo matrix/array? needs to support array size > 255
 		
-		memory  ubyte  SPRPTR0		= 2040		; default sprite pointers (store address of sprite / 64)
+		; the default locations of the 8 sprite pointers (store address of sprite / 64)
+		memory  ubyte  SPRPTR0		= 2040
 		memory  ubyte  SPRPTR1		= 2041
 		memory  ubyte  SPRPTR2		= 2042
 		memory  ubyte  SPRPTR3		= 2043
@@ -131,6 +133,10 @@
 		memory  ubyte CIA2CRB		= $DD0F
 
 ; ---- end of CIA registers ----
+
+; @todo SID sound chip registers
+
+
 
 ; ---- C64 basic and kernal ROM float constants and functions ----
 

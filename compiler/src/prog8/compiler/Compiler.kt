@@ -1802,7 +1802,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             range.step>1 -> {
                 prog.instr(opcodePushvar(varDt), callLabel = varname)
                 prog.instr(opcodePush(varDt), Value(varDt, range.step))
-                prog.instr(opcodeSub(varDt))
+                prog.instr(opcodeAdd(varDt))
                 prog.instr(opcodePopvar(varDt), callLabel = varname)
             }
             range.step<1 -> {

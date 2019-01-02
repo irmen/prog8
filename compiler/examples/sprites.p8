@@ -1,10 +1,11 @@
-%import c64lib
 %import c64utils
-%option force_output, enable_floats
+%option enable_floats
 
 
 ~ spritedata $0a00 {
-    %option force_output    ; make sure the data appears in the program
+    ; this memory block contains the sprite data
+    ; it must start on an address aligned to 64 bytes.
+    %option force_output    ; make sure the data in this block appears in the resulting program
 
     ubyte[63] balloonsprite = [ %00000000,%01111111,%00000000,
                                 %00000001,%11111111,%11000000,
@@ -39,21 +40,22 @@
         c64.STROUT("balloon sprites!\n")
         c64.STROUT("...we are all floating...\n")
 
-        c64.SPRPTR0 = $0a00//64
-        c64.SPRPTR1 = $0a00//64
-        c64.SPRPTR2 = $0a00//64
-        c64.SPRPTR3 = $0a00//64
-        c64.SPRPTR4 = $0a00//64
-        c64.SPRPTR5 = $0a00//64
-        c64.SPRPTR6 = $0a00//64
-        c64.SPRPTR7 = $0a00//64
+        const uword sprite_address_ptr = $0a00 // 64       ; @todo " &balloonsprite // 64"
+        c64.SPRPTR0 = sprite_address_ptr
+        c64.SPRPTR1 = sprite_address_ptr
+        c64.SPRPTR2 = sprite_address_ptr
+        c64.SPRPTR3 = sprite_address_ptr
+        c64.SPRPTR4 = sprite_address_ptr
+        c64.SPRPTR5 = sprite_address_ptr
+        c64.SPRPTR6 = sprite_address_ptr
+        c64.SPRPTR7 = sprite_address_ptr
 
         for ubyte i in 0 to 7 {
             @(SP0X+i*2) = 50+25*i
             @(SP0Y+i*2) = rnd()
         }
 
-        c64.SPENA = 255                 ; enable all sprites
+        c64.SPENA = 255                ; enable all sprites
         c64utils.set_rasterirq(51)     ; enable animation
     }
 }
@@ -63,16 +65,13 @@
 sub irq() {
     c64.EXTCOL--
     ; float up & wobble horizontally
-
-    ; @todo for loop with step 2 doesn't work
-
-    for ubyte i in 0 to 7 {
-        @(main.SP0Y+i+i)--
+    for ubyte i in 0 to 14 step 2 {
+        @(main.SP0Y+i)--
         ubyte r = rnd()
-        if r>208
-            @(main.SP0X+i+i)++
-        else if r<48
-            @(main.SP0X+i+i)--
+        if r>200
+            @(main.SP0X+i)++
+        else if r<40
+            @(main.SP0X+i)--
     }
     c64.EXTCOL++
 }
