@@ -85,7 +85,7 @@ statement :
 
 labeldef :  identifier ':'  ;
 
-unconditionaljump :  'goto'  (integerliteral | identifier | scoped_identifier) ;
+unconditionaljump :  'goto'  (integerliteral | scoped_identifier) ;
 
 directive :
 	directivename=('%output' | '%launcher' | '%zeropage' | '%zpreserved' | '%address' | '%import' |
@@ -117,7 +117,6 @@ augassignment :
 
 assign_target:
 	register
-	| identifier
 	| scoped_identifier
 	| arrayindexed
 	| directmemory
@@ -143,7 +142,6 @@ expression :
 	| prefix = 'not' expression
 	| literalvalue
 	| register
-	| identifier
 	| scoped_identifier
 	| arrayindexed
 	| directmemory
@@ -155,22 +153,15 @@ expression :
 typecast : 'as' datatype;
 
 
-arrayindexed :
-    (identifier | scoped_identifier ) arrayspec
-    ;
+arrayindexed :  scoped_identifier arrayspec  ;
 
 directmemory : '@' '(' expression ')';
 
 
-functioncall :
-	(identifier | scoped_identifier) '(' expression_list? ')'
-	;
+functioncall :	scoped_identifier '(' expression_list? ')'  ;
 
 
-functioncall_stmt :
-	(identifier | scoped_identifier) '(' expression_list? ')'
-	;
-
+functioncall_stmt :  scoped_identifier '(' expression_list? ')'	;
 
 expression_list :
 	expression (',' EOL? expression)*           // you can split the expression list over several lines
@@ -184,7 +175,7 @@ continuestmt: 'continue';
 
 identifier :  NAME ;
 
-scoped_identifier :  NAME ('.' NAME)+ ;
+scoped_identifier :  NAME ('.' NAME)* ;
 
 register :  'A' | 'X' | 'Y' ;
 

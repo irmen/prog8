@@ -40,7 +40,7 @@
         c64.STROUT("balloon sprites!\n")
         c64.STROUT("...we are all floating...\n")
 
-        const uword sprite_address_ptr = $0a00 // 64       ; @todo " &balloonsprite // 64"
+        const uword sprite_address_ptr = &balloonsprite // 64
         c64.SPRPTR0 = sprite_address_ptr
         c64.SPRPTR1 = sprite_address_ptr
         c64.SPRPTR2 = sprite_address_ptr

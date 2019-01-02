@@ -1946,24 +1946,20 @@ private fun prog8Parser.StatusregisterContext.toAst() = Statusflag.valueOf(text)
 
 
 private fun prog8Parser.Functioncall_stmtContext.toAst(): IStatement {
-    val location =
-            if(identifier()!=null) identifier()?.toAst()
-            else scoped_identifier()?.toAst()
-    return if(expression_list() ==null)
-        FunctionCallStatement(location!!, mutableListOf(), toPosition())
+    val location = scoped_identifier().toAst()
+    return if(expression_list() == null)
+        FunctionCallStatement(location, mutableListOf(), toPosition())
     else
-        FunctionCallStatement(location!!, expression_list().toAst().toMutableList(), toPosition())
+        FunctionCallStatement(location, expression_list().toAst().toMutableList(), toPosition())
 }
 
 
 private fun prog8Parser.FunctioncallContext.toAst(): FunctionCall {
-    val location =
-            if(identifier()!=null) identifier()?.toAst()
-            else scoped_identifier()?.toAst()
-    return if(expression_list() ==null)
-        FunctionCall(location!!, mutableListOf(), toPosition())
+    val location = scoped_identifier().toAst()
+    return if(expression_list() == null)
+        FunctionCall(location, mutableListOf(), toPosition())
     else
-        FunctionCall(location!!, expression_list().toAst().toMutableList(), toPosition())
+        FunctionCall(location, expression_list().toAst().toMutableList(), toPosition())
 }
 
 
@@ -1978,7 +1974,7 @@ private fun prog8Parser.ReturnstmtContext.toAst() : Return {
 
 private fun prog8Parser.UnconditionaljumpContext.toAst(): Jump {
     val address = integerliteral()?.toAst()?.number?.toInt()
-    val identifier = identifier()?.toAst() ?: scoped_identifier()?.toAst()
+    val identifier = scoped_identifier().toAst()
     return Jump(address, identifier, null, toPosition())
 }
 
@@ -2014,7 +2010,7 @@ private fun prog8Parser.Sub_paramsContext.toAst(): List<SubroutineParameter> =
 
 private fun prog8Parser.Assign_targetContext.toAst() : AssignTarget {
     val register = register()?.toAst()
-    val identifier = identifier()
+    val identifier = scoped_identifier()
     return when {
         register!=null -> AssignTarget(register, null, null, null, toPosition())
         identifier!=null -> AssignTarget(null, identifier.toAst(), null, null, toPosition())
@@ -2119,9 +2115,6 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
     if(register()!=null)
         return RegisterExpr(register().toAst(), register().toPosition())
 
-    if(identifier()!=null)
-        return identifier().toAst()
-
     if(scoped_identifier()!=null)
         return scoped_identifier().toAst()
 
@@ -2156,7 +2149,7 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
 
 
 private fun prog8Parser.ArrayindexedContext.toAst(): ArrayIndexedExpression {
-    return ArrayIndexedExpression(identifier()?.toAst() ?: scoped_identifier()?.toAst(),
+    return ArrayIndexedExpression(scoped_identifier().toAst(),
             arrayspec().toAst(),
             toPosition())
 }
