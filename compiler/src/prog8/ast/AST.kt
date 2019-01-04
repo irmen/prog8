@@ -1607,7 +1607,7 @@ class InlineAssembly(val assembly: String, override val position: Position) : IS
 }
 
 
-data class RegisterOrStatusflag(val registerOrPair: RegisterOrPair?, val statusflag: Statusflag?)
+data class RegisterOrStatusflag(val registerOrPair: RegisterOrPair?, val statusflag: Statusflag?, val stack: Boolean?)
 
 class AnonymousScope(override var statements: MutableList<IStatement>,
                      override val position: Position) : INameScope, IStatement {
@@ -1911,8 +1911,8 @@ private fun prog8Parser.AsmsubroutineContext.toAst(): IStatement {
     val returns = asmsub_returns()?.toAst() ?: emptyList()
     val normalParameters = params.map { SubroutineParameter(it.name, it.type, it.position) }
     val normalReturnvalues = returns.map { it.type }
-    val paramRegisters = params.map { RegisterOrStatusflag(it.registerOrPair, it.statusflag) }
-    val returnRegisters = returns.map { RegisterOrStatusflag(it.registerOrPair, it.statusflag) }
+    val paramRegisters = params.map { RegisterOrStatusflag(it.registerOrPair, it.statusflag, it.stack) }
+    val returnRegisters = returns.map { RegisterOrStatusflag(it.registerOrPair, it.statusflag, it.stack) }
     val clobbers = clobber()?.toAst() ?: emptySet()
     val statements = statement_block()?.toAst() ?: mutableListOf()
     return Subroutine(name, normalParameters, normalReturnvalues,
@@ -1923,23 +1923,26 @@ private class AsmSubroutineParameter(name: String,
                              type: DataType,
                              val registerOrPair: RegisterOrPair?,
                              val statusflag: Statusflag?,
+                             val stack: Boolean,
                              position: Position) : SubroutineParameter(name, type, position)
 
 private class AsmSubroutineReturn(val type: DataType,
                           val registerOrPair: RegisterOrPair?,
                           val statusflag: Statusflag?,
-                          val position: Position)
+                          val stack: Boolean,
+                          val position: Position) {
+}
 
 private fun prog8Parser.ClobberContext.toAst(): Set<Register>
         = this.register().asSequence().map { it.toAst() }.toSet()
 
 
 private fun prog8Parser.Asmsub_returnsContext.toAst(): List<AsmSubroutineReturn>
-        = asmsub_return().map { AsmSubroutineReturn(it.datatype().toAst(), it.registerorpair()?.toAst(), it.statusregister()?.toAst(), toPosition()) }
-
+        = asmsub_return().map { AsmSubroutineReturn(it.datatype().toAst(), it.registerorpair()?.toAst(), it.statusregister()?.toAst(), !it.stack?.text.isNullOrEmpty(), toPosition()) }
 
 private fun prog8Parser.Asmsub_paramsContext.toAst(): List<AsmSubroutineParameter>
-        = asmsub_param().map { AsmSubroutineParameter(it.vardecl().identifier().text, it.vardecl().datatype().toAst(), it.registerorpair()?.toAst(), it.statusregister()?.toAst(), toPosition()) }
+        = asmsub_param().map { AsmSubroutineParameter(it.vardecl().identifier().text, it.vardecl().datatype().toAst(),
+        it.registerorpair()?.toAst(), it.statusregister()?.toAst(), !it.stack?.text.isNullOrEmpty(), toPosition()) }
 
 
 private fun prog8Parser.StatusregisterContext.toAst() = Statusflag.valueOf(text)

@@ -24,9 +24,13 @@ enum class Syscall(val callNr: Short) {
     VM_GFX_TEXT(18),               // write text on screen at cursor position (x,y,color,text) pushed on stack in that order  (pixel pos= x*8, y*8)
     VM_GFX_LINE(19),               // draw line on screen at (x1,y1,x2,y2,color) pushed on stack in that order
 
-    FUNC_SIN(66),
-    FUNC_COS(67),
-    FUNC_ABS(68),
+    FUNC_SIN(60),
+    FUNC_SIN8(61),
+    FUNC_SIN16(62),
+    FUNC_COS(63),
+    FUNC_COS8(64),
+    FUNC_COS16(65),
+    FUNC_ABS(70),
     FUNC_TAN(71),
     FUNC_ATAN(72),
     FUNC_LN(73),
@@ -1523,6 +1527,22 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Syscall.FUNC_SIN -> evalstack.push(Value(DataType.FLOAT, sin(evalstack.pop().numericValue().toDouble())))
             Syscall.FUNC_COS -> evalstack.push(Value(DataType.FLOAT, cos(evalstack.pop().numericValue().toDouble())))
+            Syscall.FUNC_SIN8 -> {
+                val rad = evalstack.pop().numericValue().toDouble() /256.0 * 2.0 * PI
+                evalstack.push(Value(DataType.BYTE, (32767.5* sin(rad)).toInt().shr(8).toShort()))
+            }
+            Syscall.FUNC_SIN16 -> {
+                val rad = evalstack.pop().numericValue().toDouble() /256.0 * 2.0 * PI
+                evalstack.push(Value(DataType.WORD, (32767.5* sin(rad)).toInt()))
+            }
+            Syscall.FUNC_COS8 -> {
+                val rad = evalstack.pop().numericValue().toDouble() /256.0 * 2.0 * PI
+                evalstack.push(Value(DataType.BYTE, (32767.5* cos(rad)).toInt().shr(8).toShort()))
+            }
+            Syscall.FUNC_COS16 -> {
+                val rad = evalstack.pop().numericValue().toDouble() /256.0 * 2.0 * PI
+                evalstack.push(Value(DataType.WORD, (32767.5* cos(rad)).toInt()))
+            }
             Syscall.FUNC_ROUND -> evalstack.push(Value(DataType.WORD, evalstack.pop().numericValue().toDouble().roundToInt()))
             Syscall.FUNC_ABS -> {
                 val value = evalstack.pop()

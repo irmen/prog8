@@ -507,10 +507,22 @@ You can use them in expressions and the compiler will evaluate them at compile-t
 
 
 sin(x)
-	Sine.
+	Sine.  (floating point version)
 
 cos(x)
-	Cosine.
+	Cosine.  (floating point version)
+
+sin8(x)
+    Fast 8-bit byte sine of angle 0..255
+
+sin16(x)
+    Fast 16-bit word sine of angle 0..255
+
+cos8(x)
+    Fast 8-bit byte cosine of angle 0..255
+
+cos16(x)
+    Fast 16-bit word cosine of angle 0..255
 
 abs(x)
 	Absolute value.

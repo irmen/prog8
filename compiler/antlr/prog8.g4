@@ -235,13 +235,13 @@ asmsub_address :  '=' address=integerliteral  ;
 
 asmsub_params :  asmsub_param (',' EOL? asmsub_param)* ;
 
-asmsub_param :  vardecl '@' (registerorpair | statusregister);
+asmsub_param :  vardecl '@' (registerorpair | statusregister | stack='stack');
 
 clobber :  register (',' register)* ;
 
 asmsub_returns :  asmsub_return (',' EOL? asmsub_return)* ;
 
-asmsub_return :  datatype '@' (registerorpair | statusregister) ;
+asmsub_return :  datatype '@' (registerorpair | statusregister | stack='stack') ;
 
 
 if_stmt :  'if' expression EOL? (statement | statement_block) EOL? else_part?  ; // statement is constrained later

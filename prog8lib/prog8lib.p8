@@ -920,7 +920,27 @@ func_sin	.proc
 		jsr  c64.SIN
 		jmp  push_fac1_as_result
 		.pend
+		
+func_sin8	.proc
+		ldy  ESTACK_LO+1,x
+		lda  func_sin16.sinecos8hi,y
+		sta  ESTACK_LO+1,x
+		rts
+		.pend
 
+func_sin16	.proc
+		ldy  ESTACK_LO+1,x
+		lda  func_sin16.sinecos8lo,y
+		sta  ESTACK_LO+1,x
+		lda  func_sin16.sinecos8hi,y
+		sta  ESTACK_HI+1,x
+		rts
+
+_  :=  32767.5 * sin(range(256+64) * rad(360.0/256.0))
+sinecos8lo     .byte <_
+sinecos8hi     .byte >_
+		.pend
+		
 func_cos	.proc
 		; -- push cos(f) back onto stack
 		jsr  pop_float_fac1
@@ -929,6 +949,22 @@ func_cos	.proc
 		jmp  push_fac1_as_result
 		.pend
 		
+func_cos8	.proc
+		ldy  ESTACK_LO+1,x
+		lda  func_sin16.sinecos8hi+64,y
+		sta  ESTACK_LO+1,x
+		rts
+		.pend
+
+func_cos16	.proc
+		ldy  ESTACK_LO+1,x
+		lda  func_sin16.sinecos8lo+64,y
+		sta  ESTACK_LO+1,x
+		lda  func_sin16.sinecos8hi+64,y
+		sta  ESTACK_HI+1,x
+		rts
+		.pend
+
 func_tan	.proc
 		; -- push tan(f) back onto stack
 		jsr  pop_float_fac1
@@ -1595,9 +1631,8 @@ func_memcopy	.proc		; clobbers A,Y
 		sta  SCRATCH_ZPWORD1
 		lda  ESTACK_HI+2,x
 		sta  SCRATCH_ZPWORD1+1
-		lda  ESTACK_HI+1,x
-		tay
 		lda  ESTACK_LO+1,x
+		ldy  ESTACK_HI+1,x
 		pha
 		lda  ESTACK_LO,x
 		tax

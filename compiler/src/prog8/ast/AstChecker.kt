@@ -714,7 +714,9 @@ class AstChecker(private val namespace: INameScope,
 
     override fun process(typecast: TypecastExpression): IExpression {
         val funcTarget = (typecast.expression as? IFunctionCall)?.target?.targetStatement(namespace)
-        if(funcTarget is Subroutine && funcTarget.asmReturnvaluesRegisters.isNotEmpty()) {
+        if(funcTarget is Subroutine &&
+                funcTarget.asmReturnvaluesRegisters.isNotEmpty() &&
+                funcTarget.asmReturnvaluesRegisters.all { it.stack!=true }) {
             checkResult.add(ExpressionError("cannot type cast a call to an asmsub that returns value in register - use a variable to store it first", typecast.position))
         }
         return super.process(typecast)

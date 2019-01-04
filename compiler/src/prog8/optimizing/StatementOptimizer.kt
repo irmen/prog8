@@ -12,6 +12,7 @@ import prog8.functions.BuiltinFunctions
     todo remove unused strings and arrays from the heap
     todo remove if statements with empty statement blocks
     todo replace if statements with only else block
+    todo regular subroutines that have 1 or 2 (u)byte  or 1 (u)word parameters -> change to asmsub to accept these in A/Y registers instead of on stack
     todo statement optimization: create augmented assignment from assignment that only refers to its lvalue (A=A+10, A=4*A, ...)
     todo statement optimization: X+=1, X-=1  --> X++/X--  (to 3? 4? incs/decs in a row after that use arithmetic)
     todo remove statements that have no effect  X=X , X+=0, X-=0, X*=1, X/=1, X//=1, A |= 0, A ^= 0, A<<=0, etc etc

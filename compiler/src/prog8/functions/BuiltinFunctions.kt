@@ -2,7 +2,10 @@ package prog8.functions
 
 import prog8.ast.*
 import prog8.compiler.HeapValues
+import kotlin.math.PI
+import kotlin.math.cos
 import kotlin.math.log2
+import kotlin.math.sin
 
 
 class BuiltinFunctionParam(val name: String, val possibleDatatypes: Set<DataType>)
@@ -28,7 +31,11 @@ val BuiltinFunctions = mapOf(
     "abs"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", NumericDatatypes)), null, ::builtinAbs),      // type depends on argument
         // normal functions follow:
     "sin"         to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::sin) },
+    "sin8"        to FunctionSignature(true, listOf(BuiltinFunctionParam("angle8", setOf(DataType.UBYTE))), DataType.BYTE, ::builtinSin8 ),
+    "sin16"       to FunctionSignature(true, listOf(BuiltinFunctionParam("angle8", setOf(DataType.UBYTE))), DataType.WORD, ::builtinSin16 ),
     "cos"         to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::cos) },
+    "cos8"        to FunctionSignature(true, listOf(BuiltinFunctionParam("angle8", setOf(DataType.UBYTE))), DataType.BYTE, ::builtinCos8 ),
+    "cos16"       to FunctionSignature(true, listOf(BuiltinFunctionParam("angle8", setOf(DataType.UBYTE))), DataType.WORD, ::builtinCos16 ),
     "tan"         to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::tan) },
     "atan"        to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::atan) },
     "ln"          to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::log) },
@@ -289,6 +296,38 @@ private fun builtinLen(args: List<IExpression>, position: Position, namespace:IN
         DataType.UWORD, DataType.WORD,
         DataType.FLOAT -> throw SyntaxError("len of weird argument ${args[0]}", position)
     }
+}
+
+private fun builtinSin8(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
+    if (args.size != 1)
+        throw SyntaxError("sin8 requires one argument", position)
+    val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
+    val rad = constval.asNumericValue!!.toDouble() /256.0 * 2.0 * PI
+    return LiteralValue(DataType.BYTE, bytevalue = (32767.5* sin(rad)).toInt().shr(8).toShort(), position = position)
+}
+
+private fun builtinCos8(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
+    if (args.size != 1)
+        throw SyntaxError("cos8 requires one argument", position)
+    val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
+    val rad = constval.asNumericValue!!.toDouble() /256.0 * 2.0 * PI
+    return LiteralValue(DataType.BYTE, bytevalue = (32767.5* cos(rad)).toInt().shr(8).toShort(), position = position)
+}
+
+private fun builtinSin16(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
+    if (args.size != 1)
+        throw SyntaxError("sin16 requires one argument", position)
+    val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
+    val rad = constval.asNumericValue!!.toDouble() /256.0 * 2.0 * PI
+    return LiteralValue(DataType.WORD, wordvalue = (32767.5* sin(rad)).toInt(), position = position)
+}
+
+private fun builtinCos16(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
+    if (args.size != 1)
+        throw SyntaxError("cos16 requires one argument", position)
+    val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
+    val rad = constval.asNumericValue!!.toDouble() /256.0 * 2.0 * PI
+    return LiteralValue(DataType.WORD, wordvalue = (32767.5* cos(rad)).toInt(), position = position)
 }
 
 private fun numericLiteral(value: Number, position: Position): LiteralValue {
