@@ -337,12 +337,19 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                 }
                 currentBlock.variables[scopedname] = value
             }
-            VarDeclType.MEMORY, VarDeclType.CONST -> {
+            VarDeclType.MEMORY -> {
                 // note that constants are all folded away, but assembly code may still refer to them
                 val lv = decl.value as LiteralValue
                 if(lv.type!=DataType.UWORD && lv.type!=DataType.UBYTE)
                     throw CompilerException("expected integer memory address $lv")
                 currentBlock.memoryPointers[scopedname] = Pair(lv.asIntegerValue!!, decl.datatype)
+            }
+            VarDeclType.CONST -> {
+                // note that constants are all folded away, but assembly code may still refer to them (if their integers)
+                // floating point constants are not generated at all!!
+                val lv = decl.value as LiteralValue
+                if(lv.type in IntegerDatatypes)
+                    currentBlock.memoryPointers[scopedname] = Pair(lv.asIntegerValue!!, decl.datatype)
             }
         }
     }

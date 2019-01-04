@@ -529,6 +529,8 @@ _raster_irq_handler
 ~ c64flt {
 	; ---- this block contains C-64 floating point related functions ----
 	; @todo move to c64fp.p8  and enable float-checkin astchecker.process(decl: VarDecl) again
+	
+	const float PI = 3.141592653589793
 
 
 asmsub  FREADS32  () -> clobbers(A,X,Y) -> ()  {
