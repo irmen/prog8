@@ -1006,7 +1006,7 @@ mult16		lda  #$00
 		sta  multiply_words_result+2	; clear upper bits of product
 		sta  multiply_words_result+3
 		ldx  #16			; for all 16 bits...
--	 	lsr  c64.SCRATCH_ZPWORD1+1		; divide multiplier by 2
+-	 	lsr  c64.SCRATCH_ZPWORD1+1	; divide multiplier by 2
 		ror  c64.SCRATCH_ZPWORD1
 		bcc  +
 		lda  multiply_words_result+2	; get upper half of product and add multiplicand

@@ -564,7 +564,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.WRITE_INDEXED_VAR_WORD -> {
                 """
                 inx
-                inx
                 lda  ${ESTACK_LO.toHex()},x
                 asl  a
                 tay
