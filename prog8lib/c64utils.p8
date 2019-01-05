@@ -217,6 +217,11 @@ asmsub  uword2decimal  (uword value @ AY) -> clobbers(A,X,Y) -> ()  {
 ;    result += digitvalue
 ;    return result
 
+
+asmsub	c64flt_FREADSTR	(ubyte length @ A) -> clobbers(A,X,Y) -> ()	= $b7b5		; @todo needed for (slow) str conversion below
+asmsub	c64flt_GETADR	() -> clobbers(X) -> (ubyte @ Y, ubyte @ A)	= $b7f7		; @todo needed for (slow) str conversion below
+asmsub	c64flt_FTOSWORDYA  () -> clobbers(X) -> (ubyte @ Y, ubyte @ A)	= $b1aa		; @todo needed for (slow) str conversion below
+
 asmsub  str2uword(str string @ AY) -> clobbers() -> (uword @ AY) {
 	%asm {{
 		;-- convert string (address in A/Y) to uword number in A/Y
@@ -226,8 +231,8 @@ asmsub  str2uword(str string @ AY) -> clobbers() -> (uword @ AY) {
 		jsr  _strlen2233
 		tya
 		stx  c64.SCRATCH_ZPREGX
-		jsr  c64.FREADSTR		; string to fac1
-		jsr  c64.GETADR			; fac1 to unsigned word in Y/A
+		jsr  c64flt_FREADSTR			; string to fac1
+		jsr  c64flt_GETADR			; fac1 to unsigned word in Y/A
 		ldx  c64.SCRATCH_ZPREGX
 		sta  c64.SCRATCH_ZPREG
 		tya
@@ -254,8 +259,8 @@ asmsub  str2word(str string @ AY) -> clobbers() -> (word @ AY) {
 		jsr  str2uword._strlen2233
 		tya
 		stx  c64.SCRATCH_ZPREGX
-		jsr  c64.FREADSTR		; string to fac1
-		jsr  c64.FTOSWORDYA		; fac1 to unsigned word in Y/A
+		jsr  c64flt_FREADSTR		; string to fac1
+		jsr  c64flt_FTOSWORDYA		; fac1 to unsigned word in Y/A
 		ldx  c64.SCRATCH_ZPREGX
 		sta  c64.SCRATCH_ZPREG
 		tya
@@ -526,145 +531,6 @@ _raster_irq_handler
 }  ; ------ end of block c64utils
 
 
-~ c64flt {
-	; ---- this block contains C-64 floating point related functions ----
-	; @todo move to c64fp.p8  and enable float-checkin astchecker.process(decl: VarDecl) again
-	
-	const float PI = 3.141592653589793
-	const float TWOPI = 6.283185307179586
-
-
-asmsub  FREADS32  () -> clobbers(A,X,Y) -> ()  {
-	; ---- fac1 = signed int32 from $62-$65 big endian (MSB FIRST)
-	%asm {{
-		lda  $62
-		eor  #$ff
-		asl  a
-		lda  #0
-		ldx  #$a0
-		jmp  $bc4f		; internal BASIC routine
-	}}
-}
-
-asmsub  FREADUS32  () -> clobbers(A,X,Y) -> ()  {
-	; ---- fac1 = uint32 from $62-$65 big endian (MSB FIRST)
-	%asm {{
-		sec
-		lda  #0
-		ldx  #$a0
-		jmp  $bc4f		; internal BASIC routine
-	}}
-}
-
-asmsub  FREADS24AXY  (ubyte lo @ A, ubyte mid @ X, ubyte hi @ Y) -> clobbers(A,X,Y) -> ()  {
-	; ---- fac1 = signed int24 (A/X/Y contain lo/mid/hi bytes)
-	;      note: there is no FREADU24AXY (unsigned), use FREADUS32 instead.
-	%asm {{
-		sty  $62
-		stx  $63
-		sta  $64
-		lda  $62
-		eor  #$FF
-		asl  a
-		lda  #0
-		sta  $65
-		ldx  #$98
-		jmp  $bc4f		; internal BASIC routine
-	}}
-}
-
-asmsub  GIVUAYFAY  (uword value @ AY) -> clobbers(A,X,Y) -> ()  {
-	; ---- unsigned 16 bit word in A/Y (lo/hi) to fac1
-	%asm {{
-		sty  $62
-		sta  $63
-		ldx  #$90
-		sec
-		jmp  $bc49		; internal BASIC routine
-	}}
-}
-
-asmsub  GIVAYFAY  (uword value @ AY) -> clobbers(A,X,Y) -> ()  {
-	; ---- signed 16 bit word in A/Y (lo/hi) to float in fac1
-	%asm {{
-		sta  c64.SCRATCH_ZPREG
-		tya
-		ldy  c64.SCRATCH_ZPREG
-		jmp  c64.GIVAYF		; this uses the inverse order, Y/A
-	}}
-}
-
-asmsub  FTOSWRDAY  () -> clobbers(X) -> (uword @ AY)  {
-	; ---- fac1 to signed word in A/Y
-	%asm {{
-		jsr  c64.FTOSWORDYA	; note the inverse Y/A order
-		sta  c64.SCRATCH_ZPREG
-		tya
-		ldy  c64.SCRATCH_ZPREG
-		rts
-	}}
-}
-
-asmsub  GETADRAY  () -> clobbers(X) -> (uword @ AY)  {
-	; ---- fac1 to unsigned word in A/Y
-	%asm {{
-		jsr  c64.GETADR		; this uses the inverse order, Y/A
-		sta  c64.SCRATCH_ZPB1
-		tya
-		ldy  c64.SCRATCH_ZPB1
-		rts
-	}}
-}
-
-sub  print_f  (float value) {
-	; ---- prints the floating point value (without a newline) using basic rom routines. 
-	;      clobbers no registers.
-	;	@todo version that takes A/Y pointer to float instead
-	%asm {{
-		pha
-		tya
-		pha
-		txa
-		pha
-		lda  #<print_f_value
-		ldy  #>print_f_value
-		jsr  c64.MOVFM		; load float into fac1
-		jsr  c64.FOUT		; fac1 to string in A/Y
-		jsr  c64.STROUT		; print string in A/Y
-		pla
-		tax
-		pla
-		tay
-		pla
-		rts
-	}}
-}
-
-sub  print_fln  (float value) {
-	; ---- prints the floating point value (with a newline at the end) using basic rom routines
-	;      clobbers no registers.
-	;	@todo version that takes A/Y pointer to float instead
-	%asm {{
-		pha
-		tya
-		pha
-		txa
-		pha
-		lda  #<print_fln_value
-		ldy  #>print_fln_value
-		jsr  c64.MOVFM		; load float into fac1
-		jsr  c64.FPRINTLN	; print fac1 with newline
-		pla
-		tax
-		pla
-		tay
-		pla
-		rts
-	}}
-        
-}
-
-}  ; ------ end of block c64flt
 
 
 

@@ -1,5 +1,5 @@
 %import c64utils
-%option enable_floats
+%import c64flt
 %output raw
 %launcher none
 %address $4000

@@ -503,11 +503,9 @@ class AstChecker(private val namespace: INameScope,
         }
 
         // FLOATS
-        // @todo move floating point routines from c64utils into separately included file, then re-enable this check
-//        if(!compilerOptions.floats && decl.datatype==DataType.FLOAT && decl.type!=VarDeclType.MEMORY) {
-//            checkResult.add(SyntaxError("floating point used, but that is not enabled via options", decl.position))
-//        }
-
+        if(!compilerOptions.floats && decl.datatype==DataType.FLOAT && decl.type!=VarDeclType.MEMORY) {
+            checkResult.add(SyntaxError("floating point used, but that is not enabled via options", decl.position))
+        }
 
         when(decl.type) {
             VarDeclType.VAR, VarDeclType.CONST -> {

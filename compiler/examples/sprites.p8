@@ -1,5 +1,4 @@
 %import c64utils
-%option enable_floats
 
 
 ~ spritedata $0a00 {

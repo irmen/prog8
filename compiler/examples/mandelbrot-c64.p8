@@ -1,5 +1,5 @@
 %import c64utils
-%option enable_floats
+%import c64flt
 
 ~ main {
     const uword width = 30
@@ -14,10 +14,10 @@
         c64.TIME_LO=0
 
         for ubyte pixely in 0 to height-1 {
-            float yy = (pixely as float)/0.4/height-1.0
+            float yy = (pixely as float)/0.4/height - 1.0
 
             for ubyte pixelx in 0 to width-1 {
-                float xx = (pixelx as float)/0.3/width-2.0
+                float xx = (pixelx as float)/0.3/width - 2.0
 
                 float xsquared = 0.0
                 float ysquared = 0.0

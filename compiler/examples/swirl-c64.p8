@@ -1,5 +1,4 @@
 %import c64utils
-%option enable_floats       ; @todo needed for now to avoid compile error in c64lib
 
 ~ main {
 

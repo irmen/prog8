@@ -1,6 +1,4 @@
 %import c64utils
-%option enable_floats
-
 
 ~ main {
 
@@ -10,6 +8,10 @@
         memory word w1 = $c002
         memory word w2 = $c004
 
+        float x =4.34
+        ubyte xx= x as ubyte
+        float y = x * 5.55
+        y =xx as float
 
         b1=50
         b2=-50

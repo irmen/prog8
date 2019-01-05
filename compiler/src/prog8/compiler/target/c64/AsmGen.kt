@@ -433,7 +433,29 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 if (ins.arg!!.numericValue() in syscallsForStackVm.map { it.callNr })
                     throw CompilerException("cannot translate vm syscalls to real assembly calls - use *real* subroutine calls instead. Syscall ${ins.arg.numericValue()}")
                 val call = Syscall.values().find { it.callNr==ins.arg.numericValue() }
-                " jsr  prog8_lib.${call.toString().toLowerCase()}"
+                when(call) {
+                    Syscall.FUNC_SIN,
+                    Syscall.FUNC_COS,
+                    Syscall.FUNC_ABS,
+                    Syscall.FUNC_TAN,
+                    Syscall.FUNC_ATAN,
+                    Syscall.FUNC_LN,
+                    Syscall.FUNC_LOG2,
+                    Syscall.FUNC_SQRT,
+                    Syscall.FUNC_RAD,
+                    Syscall.FUNC_DEG,
+                    Syscall.FUNC_ROUND,
+                    Syscall.FUNC_FLOOR,
+                    Syscall.FUNC_CEIL,
+                    Syscall.FUNC_RNDF,
+                    Syscall.FUNC_ANY_F,
+                    Syscall.FUNC_ALL_F,
+                    Syscall.FUNC_MAX_F,
+                    Syscall.FUNC_MIN_F,
+                    Syscall.FUNC_AVG_F,
+                    Syscall.FUNC_SUM_F -> " jsr  c64flt.${call.toString().toLowerCase()}"
+                    else -> " jsr  prog8_lib.${call.toString().toLowerCase()}"
+                }
             }
             Opcode.BREAKPOINT -> {
                 breakpointCounter++
@@ -449,7 +471,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             }
             Opcode.PUSH_FLOAT -> {
                 val floatConst = getFloatConst(ins.arg!!)
-                " lda  #<$floatConst |  ldy  #>$floatConst |  jsr  prog8_lib.push_float"
+                " lda  #<$floatConst |  ldy  #>$floatConst |  jsr  c64flt.push_float"
             }
             Opcode.PUSH_VAR_BYTE -> {
                 when(ins.callLabel) {
@@ -462,7 +484,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.PUSH_VAR_WORD -> {
                 " lda  ${ins.callLabel} |  sta  ${ESTACK_LO.toHex()},x |  lda  ${ins.callLabel}+1 |    sta  ${ESTACK_HI.toHex()},x |  dex"
             }
-            Opcode.PUSH_VAR_FLOAT -> " lda  #<${ins.callLabel} |  ldy  #>${ins.callLabel}|  jsr  prog8_lib.push_float"
+            Opcode.PUSH_VAR_FLOAT -> " lda  #<${ins.callLabel} |  ldy  #>${ins.callLabel}|  jsr  c64flt.push_float"
             Opcode.PUSH_MEM_B, Opcode.PUSH_MEM_UB -> {
                 """
                 lda  ${hexVal(ins)}
@@ -480,7 +502,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             }
             Opcode.PUSH_MEM_FLOAT -> {
-                " lda  #<${hexVal(ins)} |  ldy  #>${hexVal(ins)}|  jsr  prog8_lib.push_float"
+                " lda  #<${hexVal(ins)} |  ldy  #>${hexVal(ins)}|  jsr  c64flt.push_float"
             }
             Opcode.PUSH_MEMREAD -> {
                 """
@@ -527,7 +549,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
                 lda  #<${ins.callLabel}
                 ldy  #>${ins.callLabel}
-                jsr  prog8_lib.push_float_from_indexed_var
+                jsr  c64flt.push_float_from_indexed_var
                 """
             }
             Opcode.WRITE_INDEXED_VAR_BYTE -> {
@@ -556,7 +578,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
                 lda  #<${ins.callLabel}
                 ldy  #>${ins.callLabel}
-                jsr  prog8_lib.pop_float_to_indexed_var
+                jsr  c64flt.pop_float_to_indexed_var
                 """
             }
             Opcode.POP_MEM_BYTE -> {
@@ -576,7 +598,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             }
             Opcode.POP_MEM_FLOAT -> {
-                " lda  ${hexVal(ins)} |  ldy  ${hexValPlusOne(ins)} |  jsr  prog8_lib.pop_float"
+                " lda  ${hexVal(ins)} |  ldy  ${hexValPlusOne(ins)} |  jsr  c64flt.pop_float"
             }
             Opcode.POP_MEMWRITE -> {
                 """
@@ -603,7 +625,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 " inx |  lda  ${ESTACK_LO.toHex()},x |  ldy  ${ESTACK_HI.toHex()},x |  sta  ${ins.callLabel} |  sty  ${ins.callLabel}+1"
             }
             Opcode.POP_VAR_FLOAT -> {
-                " lda  #<${ins.callLabel} |  ldy  #>${ins.callLabel} |  jsr  prog8_lib.pop_float"
+                " lda  #<${ins.callLabel} |  ldy  #>${ins.callLabel} |  jsr  c64flt.pop_float"
             }
 
             Opcode.INC_VAR_UB, Opcode.INC_VAR_B -> {
@@ -621,7 +643,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
                 lda  #<${ins.callLabel}
                 ldy  #>${ins.callLabel}
-                jsr  prog8_lib.inc_var_f
+                jsr  c64flt.inc_var_f
                 """
             }
             Opcode.POP_INC_MEMORY -> {
@@ -659,17 +681,17 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
                 lda  #<${ins.callLabel}
                 ldy  #>${ins.callLabel}
-                jsr  prog8_lib.dec_var_f
+                jsr  c64flt.dec_var_f
                 """
             }
             Opcode.INC_MEMORY -> " inc  ${hexVal(ins)}"
             Opcode.DEC_MEMORY -> " dec  ${hexVal(ins)}"
             Opcode.NEG_B -> " jsr  prog8_lib.neg_b"
             Opcode.NEG_W -> " jsr  prog8_lib.neg_w"
-            Opcode.NEG_F -> " jsr  prog8_lib.neg_f"
+            Opcode.NEG_F -> " jsr  c64flt.neg_f"
             Opcode.ABS_B -> " jsr  prog8_lib.abs_b"
             Opcode.ABS_W -> " jsr  prog8_lib.abs_w"
-            Opcode.ABS_F -> " jsr  prog8_lib.abs_f"
+            Opcode.ABS_F -> " jsr  c64flt.abs_f"
             Opcode.INV_BYTE -> {
                 """
                 lda  ${(ESTACK_LO + 1).toHex()},x
@@ -728,14 +750,14 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.CAST_W_TO_B -> ""  // is a no-op, just carry on with the lsb of the word as-is
             Opcode.CAST_UW_TO_UB -> ""  // is a no-op, just carry on with the lsb of the uword as-is
             Opcode.CAST_UW_TO_B -> ""  // is a no-op, just carry on with the lsb of the uword as-is
-            Opcode.CAST_UB_TO_F -> " jsr  prog8_lib.stack_ub2float"
-            Opcode.CAST_B_TO_F -> " jsr  prog8_lib.stack_b2float"
-            Opcode.CAST_UW_TO_F -> " jsr  prog8_lib.stack_uw2float"
-            Opcode.CAST_W_TO_F -> " jsr  prog8_lib.stack_w2float"
-            Opcode.CAST_F_TO_UB -> " jsr  prog8_lib.stack_float2uw"
-            Opcode.CAST_F_TO_B -> " jsr  prog8_lib.stack_float2w"
-            Opcode.CAST_F_TO_UW -> " jsr  prog8_lib.stack_float2uw"
-            Opcode.CAST_F_TO_W -> " jsr  prog8_lib.stack_float2w"
+            Opcode.CAST_UB_TO_F -> " jsr  c64flt.stack_ub2float"
+            Opcode.CAST_B_TO_F -> " jsr  c64flt.stack_b2float"
+            Opcode.CAST_UW_TO_F -> " jsr  c64flt.stack_uw2float"
+            Opcode.CAST_W_TO_F -> " jsr  c64flt.stack_w2float"
+            Opcode.CAST_F_TO_UB -> " jsr  c64flt.stack_float2uw"
+            Opcode.CAST_F_TO_B -> " jsr  c64flt.stack_float2w"
+            Opcode.CAST_F_TO_UW -> " jsr  c64flt.stack_float2uw"
+            Opcode.CAST_F_TO_W -> " jsr  c64flt.stack_float2w"
             Opcode.CAST_UB_TO_UW, Opcode.CAST_UB_TO_W -> " lda  #0 |  sta  ${(ESTACK_HI+1).toHex()},x"     // clear the msb
             Opcode.CAST_B_TO_UW, Opcode.CAST_B_TO_W -> " lda  ${(ESTACK_LO+1)},x |  ${signExtendA("${(ESTACK_HI+1).toHex()},x")}"     // sign extend the lsb
             Opcode.MSB -> " lda  ${(ESTACK_HI+1).toHex()},x |  sta  ${(ESTACK_LO+1).toHex()},x"
@@ -762,15 +784,15 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.SUB_W, Opcode.SUB_UW -> "  jsr  prog8_lib.sub_w"
             Opcode.MUL_B, Opcode.MUL_UB -> "  jsr  prog8_lib.mul_byte"
             Opcode.MUL_W, Opcode.MUL_UW -> "  jsr  prog8_lib.mul_word"
-            Opcode.ADD_F -> "  jsr  prog8_lib.add_f"
-            Opcode.SUB_F -> "  jsr  prog8_lib.sub_f"
-            Opcode.MUL_F -> "  jsr  prog8_lib.mul_f"
+            Opcode.ADD_F -> "  jsr  c64flt.add_f"
+            Opcode.SUB_F -> "  jsr  c64flt.sub_f"
+            Opcode.MUL_F -> "  jsr  c64flt.mul_f"
+            Opcode.DIV_F -> "  jsr  c64flt.div_f"
+            Opcode.FLOORDIV -> "  jsr c64flt.floordiv_f"
             Opcode.DIV_UB -> "  jsr  prog8_lib.div_ub"
             Opcode.DIV_B -> "  jsr  prog8_lib.div_b"
-            Opcode.DIV_F -> "  jsr  prog8_lib.div_f"
             Opcode.DIV_W -> "  jsr  prog8_lib.div_w"
             Opcode.DIV_UW -> "  jsr  prog8_lib.div_uw"
-            Opcode.FLOORDIV -> "  jsr prog8_lib.floordiv_f"
 
             Opcode.AND_BYTE -> {
                 """
@@ -797,32 +819,32 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.GREATER_UB -> "  jsr prog8_lib.greater_ub"
             Opcode.GREATER_W -> "  jsr prog8_lib.greater_w"
             Opcode.GREATER_UW -> "  jsr prog8_lib.greater_uw"
-            Opcode.GREATER_F -> "  jsr prog8_lib.greater_f"
+            Opcode.GREATER_F -> "  jsr c64flt.greater_f"
 
             Opcode.GREATEREQ_B -> "  jsr prog8_lib.greatereq_b"
             Opcode.GREATEREQ_UB -> "  jsr prog8_lib.greatereq_ub"
             Opcode.GREATEREQ_W -> "  jsr prog8_lib.greatereq_w"
             Opcode.GREATEREQ_UW -> "  jsr prog8_lib.greatereq_uw"
-            Opcode.GREATEREQ_F -> "  jsr prog8_lib.greatereq_f"
+            Opcode.GREATEREQ_F -> "  jsr c64flt.greatereq_f"
 
             Opcode.EQUAL_BYTE -> "  jsr prog8_lib.equal_b"
             Opcode.EQUAL_WORD -> "  jsr prog8_lib.equal_w"
-            Opcode.EQUAL_F -> "  jsr prog8_lib.equal_f"
+            Opcode.EQUAL_F -> "  jsr c64flt.equal_f"
             Opcode.NOTEQUAL_BYTE -> "  jsr prog8_lib.notequal_b"
             Opcode.NOTEQUAL_WORD -> "  jsr prog8_lib.notequal_w"
-            Opcode.NOTEQUAL_F -> "  jsr prog8_lib.notequal_f"
+            Opcode.NOTEQUAL_F -> "  jsr c64flt.notequal_f"
 
             Opcode.LESS_UB -> "  jsr  prog8_lib.less_ub"
             Opcode.LESS_B -> "  jsr  prog8_lib.less_b"
             Opcode.LESS_UW -> "  jsr  prog8_lib.less_uw"
             Opcode.LESS_W -> "  jsr  prog8_lib.less_w"
-            Opcode.LESS_F -> "  jsr  prog8_lib.less_f"
+            Opcode.LESS_F -> "  jsr  c64flt.less_f"
 
             Opcode.LESSEQ_UB -> "  jsr  prog8_lib.lesseq_ub"
             Opcode.LESSEQ_B -> "  jsr  prog8_lib.lesseq_b"
             Opcode.LESSEQ_UW -> "  jsr  prog8_lib.lesseq_uw"
             Opcode.LESSEQ_W -> "  jsr  prog8_lib.lesseq_w"
-            Opcode.LESSEQ_F -> "  jsr  prog8_lib.lesseq_f"
+            Opcode.LESSEQ_F -> "  jsr  c64flt.lesseq_f"
 
             else -> null
         }
@@ -2341,7 +2363,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sty  ${C64Zeropage.SCRATCH_W1+1}
                 lda  #<${segment[1].callLabel}
                 ldy  #>${segment[1].callLabel}
-                jsr  prog8_lib.copy_float
+                jsr  c64flt.copy_float
                 """
             },
             // floatvar = float var
@@ -2353,7 +2375,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sty  ${C64Zeropage.SCRATCH_W1+1}
                 lda  #<${segment[1].callLabel}
                 ldy  #>${segment[1].callLabel}
-                jsr  prog8_lib.copy_float
+                jsr  c64flt.copy_float
                 """
             },
             // floatvar = mem float
@@ -2365,7 +2387,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sty  ${C64Zeropage.SCRATCH_W1+1}
                 lda  #<${segment[1].callLabel}
                 ldy  #>${segment[1].callLabel}
-                jsr  prog8_lib.copy_float
+                jsr  c64flt.copy_float
                 """
             },
             // floatvar = mem byte
@@ -2471,7 +2493,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sty  ${C64Zeropage.SCRATCH_W1+1}
                 lda  #<${segment[2].callLabel}
                 ldy  #>${segment[2].callLabel}
-                jsr  prog8_lib.copy_float
+                jsr  c64flt.copy_float
                 """
             },
 
@@ -2485,7 +2507,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sty  ${C64Zeropage.SCRATCH_W1+1}
                 lda  #<${hexVal(segment[1])}
                 ldy  #>${hexVal(segment[1])}
-                jsr  prog8_lib.copy_float
+                jsr  c64flt.copy_float
                 """
             },
             // memfloat = float var
@@ -2497,7 +2519,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sty  ${C64Zeropage.SCRATCH_W1+1}
                 lda  #<${hexVal(segment[1])}
                 ldy  #>${hexVal(segment[1])}
-                jsr  prog8_lib.copy_float
+                jsr  c64flt.copy_float
                 """
             },
             // memfloat  = ubytevar
@@ -2609,7 +2631,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sty  ${C64Zeropage.SCRATCH_W1+1}
                 lda  #<${hexVal(segment[1])}
                 ldy  #>${hexVal(segment[1])}
-                jsr  prog8_lib.copy_float
+                jsr  c64flt.copy_float
                 """
             },
             // memfloat = bytearray[index]
@@ -2670,7 +2692,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sty  ${C64Zeropage.SCRATCH_W1+1}
                 lda  #<${hexVal(segment[2])}
                 ldy  #>${hexVal(segment[2])}
-                jsr  prog8_lib.copy_float
+                jsr  c64flt.copy_float
                 """
             },
             // floatarray[idxbyte] = float
@@ -2684,7 +2706,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sty  ${C64Zeropage.SCRATCH_W1+1}
                 lda  #<(${segment[2].callLabel}+$index)
                 ldy  #>(${segment[2].callLabel}+$index)
-                jsr  prog8_lib.copy_float
+                jsr  c64flt.copy_float
                 """
             },
             // floatarray[idxbyte] = floatvar
@@ -2697,7 +2719,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sty  ${C64Zeropage.SCRATCH_W1+1}
                 lda  #<(${segment[2].callLabel}+$index)
                 ldy  #>(${segment[2].callLabel}+$index)
-                jsr  prog8_lib.copy_float
+                jsr  c64flt.copy_float
                 """
             },
             //  floatarray[idxbyte] = memfloat
@@ -2710,7 +2732,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sty  ${C64Zeropage.SCRATCH_W1+1}
                 lda  #<(${segment[2].callLabel}+$index)
                 ldy  #>(${segment[2].callLabel}+$index)
-                jsr  prog8_lib.copy_float
+                jsr  c64flt.copy_float
                 """
             },
             //  floatarray[idx2] = floatarray[idx1]
@@ -2724,7 +2746,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sty  ${C64Zeropage.SCRATCH_W1+1}
                 lda  #<(${segment[3].callLabel}+$index2)
                 ldy  #>(${segment[3].callLabel}+$index2)
-                jsr  prog8_lib.copy_float
+                jsr  c64flt.copy_float
                 """
             },
 

@@ -12,6 +12,8 @@
 		memory  ubyte  SCRATCH_ZPREGX	= $fa		; temp storage for X register (stack pointer)
 		memory  uword  SCRATCH_ZPWORD1	= $fb		; scratch word in ZP ($fb/$fc)
 		memory  uword  SCRATCH_ZPWORD2	= $fd		; scratch word in ZP ($fd/$fe)
+		const   uword  ESTACK_LO	= $ce00		; evaluation stack (lsb)
+		const   uword  ESTACK_HI	= $cf00		; evaluation stack (msb)
 
 
 		memory  ubyte  TIME_HI		= $a0		; software jiffy clock, hi byte
@@ -138,99 +140,6 @@
 
 
 
-; ---- C64 basic and kernal ROM float constants and functions ----
-
-		; note: the fac1 and fac2 are working registers and take 6 bytes each,
-		; floats in memory  (and rom) are stored in 5-byte MFLPT packed format.
-
-		; constants in five-byte "mflpt" format in the BASIC ROM
-		memory  float  FL_PIVAL		= $aea8  ; 3.1415926...
-		memory  float  FL_N32768	= $b1a5  ; -32768
-		memory  float  FL_FONE		= $b9bc  ; 1
-		memory  float  FL_SQRHLF	= $b9d6  ; SQR(2) / 2
-		memory  float  FL_SQRTWO	= $b9db  ; SQR(2)
-		memory  float  FL_NEGHLF	= $b9e0  ; -.5
-		memory  float  FL_LOG2		= $b9e5  ; LOG(2)
-		memory  float  FL_TENC		= $baf9  ; 10
-		memory  float  FL_NZMIL		= $bdbd  ; 1e9 (1 billion)
-		memory  float  FL_FHALF		= $bf11  ; .5
-		memory  float  FL_LOGEB2	= $bfbf  ; 1 / LOG(2)
-		memory  float  FL_PIHALF	= $e2e0  ; PI / 2
-		memory  float  FL_TWOPI		= $e2e5  ; 2 * PI
-		memory  float  FL_FR4		= $e2ea  ; .25
-
-
-; note: fac1/2 might get clobbered even if not mentioned in the function's name.
-; note: for subtraction and division, the left operand is in fac2, the right operand in fac1.
-
-; checked functions below:
-asmsub	MOVFM		(uword mflpt @ AY) -> clobbers(A,Y) -> ()	= $bba2		; load mflpt value from memory  in A/Y into fac1
-asmsub	FREADMEM	() -> clobbers(A,Y) -> ()			= $bba6		; load mflpt value from memory  in $22/$23 into fac1
-asmsub	CONUPK		(uword mflpt @ AY) -> clobbers(A,Y) -> ()	= $ba8c		; load mflpt value from memory  in A/Y into fac2
-asmsub	FAREADMEM	() -> clobbers(A,Y) -> ()			= $ba90		; load mflpt value from memory  in $22/$23 into fac2
-asmsub	MOVFA		() -> clobbers(A,X) -> ()			= $bbfc		; copy fac2 to fac1
-asmsub	MOVAF		() -> clobbers(A,X) -> ()			= $bc0c		; copy fac1 to fac2  (rounded)
-asmsub	MOVEF		() -> clobbers(A,X) -> ()			= $bc0f		; copy fac1 to fac2
-asmsub	MOVMF		(uword mflpt @ XY) -> clobbers(A,Y) -> ()	= $bbd4		; store fac1 to memory  X/Y as 5-byte mflpt
-
-; fac1-> signed word in Y/A (might throw ILLEGAL QUANTITY)
-; (tip: use c64flt.FTOSWRDAY to get A/Y output; lo/hi switched to normal little endian order)
-asmsub	FTOSWORDYA	() -> clobbers(X) -> (ubyte @ Y, ubyte @ A)	= $b1aa
-
-; fac1 -> unsigned word in Y/A (might throw ILLEGAL QUANTITY) (result also in $14/15)
-; (tip: use c64flt.GETADRAY to get A/Y output; lo/hi switched to normal little endian order)
-asmsub	GETADR		() -> clobbers(X) -> (ubyte @ Y, ubyte @ A)	= $b7f7
-
-asmsub	QINT		() -> clobbers(A,X,Y) -> ()			= $bc9b		; fac1 -> 4-byte signed integer in 98-101 ($62-$65), with the MSB FIRST.
-asmsub	AYINT		() -> clobbers(A,X,Y) -> ()			= $b1bf		; fac1-> signed word in 100-101 ($64-$65) MSB FIRST. (might throw ILLEGAL QUANTITY)
-
-; GIVAYF: signed word in Y/A (note different lsb/msb order) -> float in fac1
-; (tip: use c64flt.GIVAYFAY to use A/Y input; lo/hi switched to normal order)
-; there is also c64flt.GIVUAYFAY - unsigned word in A/Y (lo/hi) to fac1
-; there is also c64flt.FREADS32  that reads from 98-101 ($62-$65) MSB FIRST
-; there is also c64flt.FREADUS32  that reads from 98-101 ($62-$65) MSB FIRST
-; there is also c64flt.FREADS24AXY  that reads signed int24 into fac1 from A/X/Y (lo/mid/hi bytes)
-asmsub	GIVAYF		(ubyte lo @ Y, ubyte hi @ A) -> clobbers(A,X,Y) -> ()	= $b391
-
-asmsub	FREADUY		(ubyte value @ Y) -> clobbers(A,X,Y) -> ()	= $b3a2		; 8 bit unsigned Y -> float in fac1
-asmsub	FREADSA		(byte value @ A) -> clobbers(A,X,Y) -> ()	= $bc3c		; 8 bit signed A -> float in fac1
-asmsub	FREADSTR	(ubyte length @ A) -> clobbers(A,X,Y) -> ()	= $b7b5		; str -> fac1, $22/23 must point to string, A=string length
-asmsub	FPRINTLN	() -> clobbers(A,X,Y) -> ()			= $aabc		; print string of fac1, on one line (= with newline) destroys fac1.  (consider FOUT + STROUT as well)
-asmsub	FOUT		() -> clobbers(X) -> (uword @ AY)		= $bddd		; fac1 -> string, address returned in AY ($0100)
-
-asmsub	FADDH		() -> clobbers(A,X,Y) -> ()			= $b849		; fac1 += 0.5, for rounding- call this before INT
-asmsub	MUL10		() -> clobbers(A,X,Y) -> ()			= $bae2		; fac1 *= 10
-asmsub	DIV10		() -> clobbers(A,X,Y) -> ()			= $bafe		; fac1 /= 10 , CAUTION: result is always positive!
-asmsub	FCOMP		(uword mflpt @ AY) -> clobbers(X,Y) -> (ubyte @ A) = $bc5b		; A = compare fac1 to mflpt in A/Y, 0=equal 1=fac1 is greater, 255=fac1 is less than
-
-asmsub	FADDT		() -> clobbers(A,X,Y) -> ()			= $b86a		; fac1 += fac2
-asmsub	FADD		(uword mflpt @ AY) -> clobbers(A,X,Y) -> ()	= $b867		; fac1 += mflpt value from A/Y
-asmsub	FSUBT		() -> clobbers(A,X,Y) -> ()			= $b853		; fac1 = fac2-fac1   mind the order of the operands
-asmsub	FSUB		(uword mflpt @ AY) -> clobbers(A,X,Y) -> ()	= $b850		; fac1 = mflpt from A/Y - fac1
-asmsub	FMULTT 		() -> clobbers(A,X,Y) -> ()			= $ba2b		; fac1 *= fac2
-asmsub	FMULT		(uword mflpt @ AY) -> clobbers(A,X,Y) -> ()	= $ba28		; fac1 *= mflpt value from A/Y
-asmsub	FDIVT 		() -> clobbers(A,X,Y) -> ()			= $bb12		; fac1 = fac2/fac1  (remainder in fac2)  mind the order of the operands
-asmsub	FDIV  		(uword mflpt @ AY) -> clobbers(A,X,Y) -> ()	= $bb0f		; fac1 = mflpt in A/Y / fac1  (remainder in fac2)
-asmsub	FPWRT		() -> clobbers(A,X,Y) -> ()			= $bf7b		; fac1 = fac2 ** fac1
-asmsub	FPWR		(uword mflpt @ AY) -> clobbers(A,X,Y) -> ()	= $bf78		; fac1 = fac2 ** mflpt from A/Y
-
-asmsub	NOTOP		() -> clobbers(A,X,Y) -> ()			= $aed4		; fac1 = NOT(fac1)
-asmsub	INT		() -> clobbers(A,X,Y) -> ()			= $bccc		; INT() truncates, use FADDH first to round instead of trunc
-asmsub	LOG		() -> clobbers(A,X,Y) -> ()			= $b9ea		; fac1 = LN(fac1)  (natural log)
-asmsub	SGN		() -> clobbers(A,X,Y) -> ()			= $bc39		; fac1 = SGN(fac1), result of SIGN (-1, 0 or 1)
-asmsub	SIGN		() -> clobbers() -> (ubyte @ A)			= $bc2b		; SIGN(fac1) to A, $ff, $0, $1 for negative, zero, positive
-asmsub	ABS		() -> clobbers() -> ()				= $bc58		; fac1 = ABS(fac1)
-asmsub	SQR		() -> clobbers(A,X,Y) -> ()			= $bf71		; fac1 = SQRT(fac1)
-asmsub	SQRA		() -> clobbers(A,X,Y) -> ()			= $bf74		; fac1 = SQRT(fac2)
-asmsub	EXP		() -> clobbers(A,X,Y) -> ()			= $bfed		; fac1 = EXP(fac1)  (e ** fac1)
-asmsub	NEGOP		() -> clobbers(A) -> ()				= $bfb4		; switch the sign of fac1
-asmsub	RND		() -> clobbers(A,X,Y) -> ()			= $e097		; fac1 = RND(fac1) float random number generator
-asmsub	COS		() -> clobbers(A,X,Y) -> ()			= $e264		; fac1 = COS(fac1)
-asmsub	SIN		() -> clobbers(A,X,Y) -> ()			= $e26b		; fac1 = SIN(fac1)
-asmsub	TAN		() -> clobbers(A,X,Y) -> ()			= $e2b4		; fac1 = TAN(fac1)
-asmsub	ATN		() -> clobbers(A,X,Y) -> ()			= $e30e		; fac1 = ATN(fac1)
-
-
 ; ---- C64 basic routines ----
 
 asmsub	CLEARSCR	() -> clobbers(A,X,Y) -> ()		= $E544		; clear the screen
@@ -238,7 +147,6 @@ asmsub	HOMECRSR	() -> clobbers(A,X,Y) -> ()		= $E566		; cursor to top left of sc
 
 
 ; ---- end of C64 basic routines ----
-
 
 
 ; ---- C64 kernal routines ----

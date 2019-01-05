@@ -1,5 +1,4 @@
 %import c64utils
-%option enable_floats
 
 
 ~ main {

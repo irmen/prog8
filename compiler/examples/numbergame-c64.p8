@@ -1,6 +1,5 @@
-%output prg
-%import c64lib
 %import c64utils
+%import c64flt
 
 
 ; The classic number guessing game.
@@ -29,11 +28,11 @@
         c64.STROUT(".\nLet's play a number guessing game.\nI am thinking of a number from 1 to 100!You'll have to guess it!\n")
 
         ; create a secret random number from 1-100
-        c64.RND()               ; fac = random number between 0 and 1
-        c64.MUL10()             ; fac *= 10
-        c64.MUL10()             ; .. and now *100
-        c64.FADDH()             ; add 0.5..
-        c64.FADDH()             ;   and again, so +1 total
+        c64flt.RND()               ; fac = random number between 0 and 1
+        c64flt.MUL10()             ; fac *= 10
+        c64flt.MUL10()             ; .. and now *100
+        c64flt.FADDH()             ; add 0.5..
+        c64flt.FADDH()             ;   and again, so +1 total
         A, Y = c64flt.GETADRAY()
         secretnumber = A        ; secret number = rnd()*100+1
 
@@ -48,7 +47,7 @@ ask_guess:
         Y=c64scr.input_chars(input)
         c64.CHROUT('\n')
         freadstr_arg = input
-        c64.FREADSTR(Y)
+        c64flt.FREADSTR(Y)
         A, Y = c64flt.GETADRAY()
         guess=A
         if(guess==secretnumber) {

@@ -79,6 +79,6 @@ Troubleshooting
 ---------------
 
 Getting an assembler error about undefined symbols such as ``not defined 'c64flt'``?
-This happens when your program uses floating point values, and you forgot to import the ``c64lib``.
-If you use floating points, the program will need routines from that library.
-Fix it by adding an ``%import c64lib``.
+This happens when your program uses floating point values, and you forgot to import ``c64flt`` library.
+If you use floating points, the compiler needs routines from that library.
+Fix it by adding an ``%import c64flt``.
