@@ -783,8 +783,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 val arg = args.single()
                 val dt = arg.resultingDatatype(namespace, heap)
                 when (dt) {
-                    DataType.UBYTE -> prog.instr(Opcode.SHL_BYTE)
-                    DataType.UWORD -> prog.instr(Opcode.SHL_WORD)
+                    DataType.UBYTE, DataType.BYTE -> prog.instr(Opcode.SHL_BYTE)
+                    DataType.UWORD, DataType.WORD -> prog.instr(Opcode.SHL_WORD)
                     else -> throw CompilerException("wrong datatype")
                 }
                 // this function doesn't return a value on the stack so we pop it directly into the argument register/variable again
@@ -794,8 +794,10 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 val arg = args.single()
                 val dt = arg.resultingDatatype(namespace, heap)
                 when (dt) {
-                    DataType.UBYTE -> prog.instr(Opcode.SHR_BYTE)
-                    DataType.UWORD -> prog.instr(Opcode.SHR_WORD)
+                    DataType.UBYTE -> prog.instr(Opcode.SHR_UBYTE)
+                    DataType.BYTE -> prog.instr(Opcode.SHR_SBYTE)
+                    DataType.UWORD -> prog.instr(Opcode.SHR_UWORD)
+                    DataType.WORD -> prog.instr(Opcode.SHR_SWORD)
                     else -> throw CompilerException("wrong datatype")
                 }
                 // this function doesn't return a value on the stack so we pop it directly into the argument register/variable again

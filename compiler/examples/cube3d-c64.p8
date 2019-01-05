@@ -1,5 +1,5 @@
 %import c64utils
-%option enable_floats
+%option enable_floats       ; @todo needed for now to avoid compile error in c64lib
 
 ~ main {
 
@@ -7,85 +7,104 @@
     const uword height = 25
 
     ; vertices
-    float[8] xcoor = [ -1.0, -1.0, -1.0, -1.0,  1.0,  1.0,  1.0, 1.0 ]
-    float[8] ycoor = [ -1.0, -1.0,  1.0,  1.0, -1.0, -1.0,  1.0, 1.0 ]
-    float[8] zcoor = [ -1.0,  1.0, -1.0,  1.0, -1.0,  1.0, -1.0, 1.0 ]
+    byte[8] xcoor = [ -100, -100, -100, -100,  100,  100,  100, 100 ]
+    byte[8] ycoor = [ -100, -100,  100,  100, -100, -100,  100, 100 ]
+    byte[8] zcoor = [ -100,  100, -100,  100, -100,  100, -100, 100 ]
 
     ; storage for rotated coordinates
-    float[len(xcoor)] rotatedx=0.0
-    float[len(ycoor)] rotatedy=0.0
-    float[len(zcoor)] rotatedz=-1.0
+    word[len(xcoor)] rotatedx=0
+    word[len(ycoor)] rotatedy=0
+    word[len(zcoor)] rotatedz=-32767
 
     sub start()  {
-        float time=0.0
+        uword anglex
+        uword angley
+        uword anglez
         while(true) {
-            rotate_vertices(time)
-            c64.CLEARSCR()
-            draw_edges()
-            time+=0.2
+            rotate_vertices(anglex, angley, anglez)
+            ; c64.CLEARSCR()
+            ; draw_edges()
+            anglex+=256
+            angley+=83
+            anglez+=201
         }
     }
 
-    sub rotate_vertices(float t) {
+    sub rotate_vertices(uword ax, uword ay, uword az) {
         ; rotate around origin (0,0,0)
 
         ; set up the 3d rotation matrix values
-        float cosa = cos(t)
-        float sina = sin(t)
-        float cosb = cos(t*0.33)
-        float sinb = sin(t*0.33)
-        float cosc = cos(t*0.78)
-        float sinc = sin(t*0.78)
+        word cosa = cos8(msb(ax)) as word
+        word sina = sin8(msb(ax)) as word
+        word cosb = cos8(msb(ay)) as word
+        word sinb = sin8(msb(ay)) as word
+        word cosc = cos8(msb(az)) as word
+        word sinc = sin8(msb(az)) as word
 
-        float cosa_sinb = cosa*sinb
-        float sina_sinb = sina*sinb
-        float Axx = cosa*cosb
-        float Axy = cosa_sinb*sinc - sina*cosc
-        float Axz = cosa_sinb*cosc + sina*sinc
-        float Ayx = sina*cosb
-        float Ayy = sina_sinb*sinc + cosa*cosc
-        float Ayz = sina_sinb*cosc - cosa*sinc
-        float Azx = -sinb
-        float Azy = cosb*sinc
-        float Azz = cosb*cosc
+        word cosa_sinb = msb(cosa*sinb)
+        word sina_sinb = msb(sina*sinb)
+
+        c64.CHROUT('>')
+        c64scr.print_w(cosa_sinb)
+        c64.CHROUT(',')
+        c64scr.print_w(sina_sinb)
+        c64.CHROUT('\n')
+
+        word Axx = msb(cosa*cosb)
+        word Axy = msb(cosa_sinb*sinc - sina*cosc)
+        word Axz = msb(cosa_sinb*cosc + sina*sinc)
+        word Ayx = msb(sina*cosb)
+        word Ayy = msb(sina_sinb*sinc + cosa*cosc)
+        word Ayz = msb(sina_sinb*cosc - cosa*sinc)
+        word Azx = -sinb
+        word Azy = msb(cosb*sinc)
+        word Azz = msb(cosb*cosc)
+
+        c64.CHROUT('>')
+        c64scr.print_w(Axx)
+        c64.CHROUT(',')
+        c64scr.print_w(Axy)
+        c64.CHROUT(',')
+        c64scr.print_w(Axz)
+        c64.CHROUT('\n')
 
         for ubyte i in 0 to len(xcoor)-1 {
-            float xc = xcoor[i]
-            float yc = ycoor[i]
-            float zc = zcoor[i]
-            rotatedx[i] = Axx*xc + Axy*yc + Axz*zc
-            rotatedy[i] = Ayx*xc + Ayy*yc + Ayz*zc
-            rotatedz[i] = Azx*xc + Azy*yc + Azz*zc
+            word xc = xcoor[i]
+            word yc = ycoor[i]
+            word zc = zcoor[i]
+            rotatedx[i] = Axx*xc ;+ Axy*yc + Axz*zc      ; @todo wrong code generated? crash!
+            rotatedy[i] = Ayx*xc ;+ Ayy*yc + Ayz*zc      ; @todo wrong code generated? crash!
+            rotatedz[i] = Azx*xc ;+ Azy*yc + Azz*zc      ; @todo wrong code generated? crash!
         }
     }
 
     sub draw_edges() {
 
-        sub toscreenx(float x, float z) -> byte {
-            return x/(5.0+z) * (height as float) as byte + width // 2
+        sub toscreenx(word x, word z) -> ubyte {
+            return msb(x) and 31
         }
 
-        sub toscreeny(float y, float z) -> byte {
-            return y/(5.0+z) * (height as float) as byte + height // 2
+        sub toscreeny(word y, word z) -> ubyte {
+            return msb(y) and 15
         }
 
         ; plot the points of the 3d cube
         ; first the points on the back, then the points on the front (painter algorithm)
 
         for ubyte i in 0 to len(xcoor)-1 {
-            float rz = rotatedz[i]
-            if rz >= 0.1 {
-                ubyte sx = toscreenx(rotatedx[i], rz) as ubyte
-                ubyte sy = toscreeny(rotatedy[i], rz) as ubyte
+            word rz = rotatedz[i]
+            if rz >= 100 {
+                ubyte sx = toscreenx(rotatedx[i], rz)
+                ubyte sy = toscreeny(rotatedy[i], rz)
                 c64scr.setchrclr(sx, sy, 46, i+2)
             }
         }
 
         for ubyte i in 0 to len(xcoor)-1 {
-            float rz = rotatedz[i]
-            if rz < 0.1 {
-                ubyte sx = toscreenx(rotatedx[i], rz) as ubyte
-                ubyte sy = toscreeny(rotatedy[i], rz) as ubyte
+            word rz = rotatedz[i]
+            if rz < 100 {
+                ubyte sx = toscreenx(rotatedx[i], rz)
+                ubyte sy = toscreeny(rotatedy[i], rz)
                 c64scr.setchrclr(sx, sy, 81, i+2)
             }
         }

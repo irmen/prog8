@@ -235,11 +235,13 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
 
     fun shr(): Value {
         val v = integerValue()
-        if(type==DataType.UBYTE)
-            return Value(type, (v ushr 1) and 255)
-        if(type==DataType.UWORD)
-            return Value(type, (v ushr 1) and 65535)
-        throw ValueException("invalid type for shr: $type")
+        return when(type){
+            DataType.UBYTE -> Value(type, (v ushr 1) and 255)
+            DataType.BYTE -> TODO("shr sbyte")
+            DataType.UWORD -> Value(type, (v ushr 1) and 65535)
+            DataType.WORD -> TODO("shr sword")
+            else -> throw ValueException("invalid type for shr: $type")
+        }
     }
 
     fun rol(carry: Boolean): Pair<Value, Boolean> {

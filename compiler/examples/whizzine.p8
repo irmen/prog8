@@ -1,5 +1,5 @@
 %import c64utils
-%option enable_floats
+%option enable_floats       ; @todo needed for now to avoid compile error in c64lib
 
 
 ~ spritedata $0a00 {
@@ -32,13 +32,7 @@
 
 ~ main {
 
-    const uword SP0X = $d000
-    const uword SP0Y = $d001
-
     sub start() {
-
-        c64.STROUT("balloon sprites!\n")
-        c64.STROUT("...we are all floating...\n")
 
         const uword sprite_address_ptr = $0a00 // 64
         c64.SPRPTR0 = sprite_address_ptr
@@ -50,29 +44,35 @@
         c64.SPRPTR6 = sprite_address_ptr
         c64.SPRPTR7 = sprite_address_ptr
 
-        for ubyte i in 0 to 7 {
-            @(SP0X+i*2) = 50+25*i
-            @(SP0Y+i*2) = rnd()
-        }
-
         c64.SPENA = 255                ; enable all sprites
-        c64utils.set_rasterirq(51)     ; enable animation
+        c64utils.set_rasterirq(240)     ; enable animation
     }
 }
 
 
 ~ irq {
+
+    ubyte angle=0
+
 sub irq() {
+    const uword SP0X = $d000
+    const uword SP0Y = $d001
+
     c64.EXTCOL--
-    ; float up & wobble horizontally
+
+    angle++
+    c64.MSIGX=0
     for ubyte i in 0 to 14 step 2 {
-        @(main.SP0Y+i)--
-        ubyte r = rnd()
-        if r>200
-            @(main.SP0X+i)++
-        else if r<40
-            @(main.SP0X+i)--
+        word x = (sin8(angle*2-i*8) as word)+190
+        byte y = cos8(angle*3-i*8)
+        lsr(y)
+        @(SP0X+i) = lsb(x)
+        @(SP0Y+i) = y+150 as ubyte
+
+        lsr(c64.MSIGX)
+        if msb(x) c64.MSIGX |= %10000000
     }
+
     c64.EXTCOL++
 }
 

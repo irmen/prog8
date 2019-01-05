@@ -936,7 +936,7 @@ func_sin16	.proc
 		sta  ESTACK_HI+1,x
 		rts
 
-_  :=  32767.5 * sin(range(256+64) * rad(360.0/256.0))
+_  :=  32767 * sin(range(256+64) * rad(360.0/256.0))
 sinecos8lo     .byte <_
 sinecos8hi     .byte >_
 		.pend

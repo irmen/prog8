@@ -22,8 +22,8 @@ val BuiltinFunctions = mapOf(
     "ror"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
     "rol2"        to FunctionSignature(false, listOf(BuiltinFunctionParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
     "ror2"        to FunctionSignature(false, listOf(BuiltinFunctionParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
-    "lsl"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
-    "lsr"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", setOf(DataType.UBYTE, DataType.UWORD))), null),
+    "lsl"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", IntegerDatatypes)), null),
+    "lsr"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", IntegerDatatypes)), null),
         // these few have a return value depending on the argument(s):
     "max"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.max()!! }},        // type depends on args
     "min"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.min()!! }},        // type depends on args
@@ -303,7 +303,7 @@ private fun builtinSin8(args: List<IExpression>, position: Position, namespace:I
         throw SyntaxError("sin8 requires one argument", position)
     val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
     val rad = constval.asNumericValue!!.toDouble() /256.0 * 2.0 * PI
-    return LiteralValue(DataType.BYTE, bytevalue = (32767.5* sin(rad)).toInt().shr(8).toShort(), position = position)
+    return LiteralValue(DataType.BYTE, bytevalue = (32767.0* sin(rad)).toInt().shr(8).toShort(), position = position)
 }
 
 private fun builtinCos8(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
@@ -311,7 +311,7 @@ private fun builtinCos8(args: List<IExpression>, position: Position, namespace:I
         throw SyntaxError("cos8 requires one argument", position)
     val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
     val rad = constval.asNumericValue!!.toDouble() /256.0 * 2.0 * PI
-    return LiteralValue(DataType.BYTE, bytevalue = (32767.5* cos(rad)).toInt().shr(8).toShort(), position = position)
+    return LiteralValue(DataType.BYTE, bytevalue = (32767.0* cos(rad)).toInt().shr(8).toShort(), position = position)
 }
 
 private fun builtinSin16(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
@@ -319,7 +319,7 @@ private fun builtinSin16(args: List<IExpression>, position: Position, namespace:
         throw SyntaxError("sin16 requires one argument", position)
     val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
     val rad = constval.asNumericValue!!.toDouble() /256.0 * 2.0 * PI
-    return LiteralValue(DataType.WORD, wordvalue = (32767.5* sin(rad)).toInt(), position = position)
+    return LiteralValue(DataType.WORD, wordvalue = (32767.0* sin(rad)).toInt(), position = position)
 }
 
 private fun builtinCos16(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
@@ -327,7 +327,7 @@ private fun builtinCos16(args: List<IExpression>, position: Position, namespace:
         throw SyntaxError("cos16 requires one argument", position)
     val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
     val rad = constval.asNumericValue!!.toDouble() /256.0 * 2.0 * PI
-    return LiteralValue(DataType.WORD, wordvalue = (32767.5* cos(rad)).toInt(), position = position)
+    return LiteralValue(DataType.WORD, wordvalue = (32767.0* cos(rad)).toInt(), position = position)
 }
 
 private fun numericLiteral(value: Number, position: Position): LiteralValue {

@@ -923,25 +923,26 @@ class TestStackVmOpcodes {
 
     @Test
     fun testSHR() {
+        // @todo test SHR signed byte + signed word
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH_FLOAT, Value(DataType.FLOAT, 9.99)),
                 Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 3)),
                 Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 61005)),
                 Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 3)),
                 Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 249)),
-                Instruction(Opcode.SHR_BYTE),        // 124
+                Instruction(Opcode.SHR_UBYTE),        // 124
                 Instruction(Opcode.DISCARD_BYTE),
-                Instruction(Opcode.SHR_BYTE),        // 1
-                Instruction(Opcode.SHR_BYTE),        // 0
-                Instruction(Opcode.SHR_BYTE),        // 0
+                Instruction(Opcode.SHR_UBYTE),        // 1
+                Instruction(Opcode.SHR_UBYTE),        // 0
+                Instruction(Opcode.SHR_UBYTE),        // 0
                 Instruction(Opcode.DISCARD_BYTE),
-                Instruction(Opcode.SHR_WORD),        // 30502
+                Instruction(Opcode.SHR_UWORD),        // 30502
                 Instruction(Opcode.DISCARD_WORD),
-                Instruction(Opcode.SHR_WORD),        // 1
-                Instruction(Opcode.SHR_WORD),        // 0
-                Instruction(Opcode.SHR_WORD),        // 0
+                Instruction(Opcode.SHR_UWORD),        // 1
+                Instruction(Opcode.SHR_UWORD),        // 0
+                Instruction(Opcode.SHR_UWORD),        // 0
                 Instruction(Opcode.DISCARD_WORD),
-                Instruction(Opcode.SHR_BYTE)         // error on float
+                Instruction(Opcode.SHR_UBYTE)         // error on float
         )
         vm.load(makeProg(ins), null)
         vm.step(6)

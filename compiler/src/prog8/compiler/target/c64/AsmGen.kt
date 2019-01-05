@@ -922,16 +922,18 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         // an in place operation that consists of a push-value / op / push-index-value / pop-into-indexed-var
         return when(ins.opcode) {
             Opcode.SHL_BYTE -> AsmFragment(" asl  $variable+$index", 8)
-            Opcode.SHR_BYTE -> AsmFragment(" lsr  $variable+$index", 8)
-            Opcode.SHL_WORD -> AsmFragment(" asl  $variable+$index |  rol  $variable+${index+1}", 8)
-            Opcode.SHR_WORD -> AsmFragment(" lsr  $variable+${index+1},x |  ror  $variable+$index", 8)
+            Opcode.SHR_UBYTE -> AsmFragment(" lsr  $variable+$index", 8)
+            Opcode.SHR_SBYTE -> AsmFragment(" lda  $variable+$index |  asl  a |  ror  $variable+$index")
+            Opcode.SHL_WORD -> AsmFragment(" asl  $variable+${index+1} |  rol  $variable+$index", 8)
+            Opcode.SHR_UWORD -> AsmFragment(" lsr  $variable+${index+1} |  ror  $variable+$index", 8)
+            Opcode.SHR_SWORD -> AsmFragment(" lda  $variable+${index+1} |  asl  a |  ror  $variable+${index+1} |  ror  $variable+$index", 8)
             Opcode.ROL_BYTE -> AsmFragment(" rol  $variable+$index", 8)
             Opcode.ROR_BYTE -> AsmFragment(" ror  $variable+$index", 8)
-            Opcode.ROL_WORD -> AsmFragment(" rol  $variable+$index |  rol  $variable+${index+1}", 8)
+            Opcode.ROL_WORD -> AsmFragment(" rol  $variable+${index+1} |  rol  $variable+$index", 8)
             Opcode.ROR_WORD -> AsmFragment(" ror  $variable+${index+1} |  ror  $variable+$index", 8)
             Opcode.ROL2_BYTE -> AsmFragment(" lda  $variable+$index |  cmp  #\$80 |  rol  $variable+$index", 8)
             Opcode.ROR2_BYTE -> AsmFragment(" lda  $variable+$index |  lsr  a |  bcc  + |  ora  #\$80 |+ |  sta  $variable+$index", 10)
-            Opcode.ROL2_WORD -> AsmFragment(" asl  $variable+$index |  rol  $variable+${index+1} |  bcc  + |  inc  $variable+$index |+",20)
+            Opcode.ROL2_WORD -> AsmFragment(" asl  $variable+${index+1} |  rol  $variable+$index |  bcc  + |  inc  $variable+$index |+",20)  // todo wrong???
             Opcode.ROR2_WORD -> AsmFragment(" lsr  $variable+${index+1} |  ror  $variable+$index |  bcc  + |  lda  $variable+${index+1} |  ora  #\$80 |  sta  $variable+${index+1} |+", 30)
             Opcode.INC_INDEXED_VAR_B, Opcode.INC_INDEXED_VAR_UB -> AsmFragment(" inc  $variable+$index", 2)
             Opcode.DEC_INDEXED_VAR_B, Opcode.DEC_INDEXED_VAR_UB -> AsmFragment(" dec  $variable+$index", 5)
@@ -974,9 +976,11 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 
         return when (ins.opcode) {
             Opcode.SHL_BYTE -> AsmFragment(" txa |  $loadX  asl  $variable,x |  tax", 10)
-            Opcode.SHR_BYTE -> AsmFragment(" txa |  $loadX  lsr  $variable,x |  tax", 10)
+            Opcode.SHR_UBYTE -> AsmFragment(" txa |  $loadX  lsr  $variable,x |  tax", 10)
+            Opcode.SHR_SBYTE -> AsmFragment("$saveX  $loadX  lda  $variable,x |  asl a |  ror  $variable,x  $restoreX", 10)
             Opcode.SHL_WORD -> AsmFragment("$saveX $loadXWord  asl  $variable,x |  rol  $variable+1,x  $restoreX", 10)
-            Opcode.SHR_WORD -> AsmFragment("$saveX $loadXWord  lsr  $variable+1,x |  ror  $variable,x  $restoreX", 10)
+            Opcode.SHR_UWORD -> AsmFragment("$saveX $loadXWord  lsr  $variable+1,x |  ror  $variable,x  $restoreX", 10)
+            Opcode.SHR_SWORD -> AsmFragment("$saveX $loadXWord  lda  $variable+1,x |  asl a |  ror  $variable+1,x |  ror  $variable,x  $restoreX", 10)
             Opcode.ROL_BYTE -> AsmFragment(" txa |  $loadX  rol  $variable,x |  tax", 10)
             Opcode.ROR_BYTE -> AsmFragment(" txa |  $loadX  ror  $variable,x |  tax", 10)
             Opcode.ROL_WORD -> AsmFragment("$saveX $loadXWord  rol  $variable,x |  rol  $variable+1,x  $restoreX", 10)
@@ -999,14 +1003,16 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
     }
 
     private fun sameMemOperation(address: Int, ins: Instruction): AsmFragment? {
-        // an in place operation that consists of a push-mem / op / pop-mem sequence
+        // an in place operation that consists of  push-mem / op / pop-mem
         val addr = address.toHex()
         val addrHi = (address+1).toHex()
         return when(ins.opcode) {
             Opcode.SHL_BYTE -> AsmFragment(" asl  $addr", 10)
-            Opcode.SHR_BYTE -> AsmFragment(" lsr  $addr", 10)
+            Opcode.SHR_UBYTE -> AsmFragment(" lsr  $addr", 10)
+            Opcode.SHR_SBYTE -> AsmFragment(" lda  $addr |  asl  a |  ror  $addr", 10)
             Opcode.SHL_WORD -> AsmFragment(" asl  $addr |  rol  $addrHi", 10)
-            Opcode.SHR_WORD -> AsmFragment(" lsr  $addrHi |  ror  $addr", 10)
+            Opcode.SHR_UWORD -> AsmFragment(" lsr  $addrHi |  ror  $addr", 10)
+            Opcode.SHR_SWORD -> AsmFragment(" lda  $addrHi |  asl a |  ror  $addrHi |  ror  $addr", 10)
             Opcode.ROL_BYTE -> AsmFragment(" rol  $addr", 10)
             Opcode.ROR_BYTE -> AsmFragment(" ror  $addr", 10)
             Opcode.ROL_WORD -> AsmFragment(" rol  $addr |  rol  $addrHi", 10)
@@ -1030,7 +1036,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     else -> AsmFragment(" asl  $variable", 10)
                 }
             }
-            Opcode.SHR_BYTE -> {
+            Opcode.SHR_UBYTE -> {
                 when (variable) {
                     "A" -> AsmFragment(" lsr  a", 10)
                     "X" -> AsmFragment(" txa |  lsr  a |  tax", 10)
@@ -1038,11 +1044,24 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     else -> AsmFragment(" lsr  $variable", 10)
                 }
             }
+            Opcode.SHR_SBYTE -> {
+                // arithmetic shift right (keep sign bit)
+                when (variable) {
+                    "A" -> AsmFragment(" cmp  #$80 |  ror  a", 10)
+                    "X" -> AsmFragment(" txa |  cmp  #$80 |  ror  a |  tax", 10)
+                    "Y" -> AsmFragment(" tya |  cmp  #$80 |  ror  a |  tay", 10)
+                    else -> AsmFragment(" lda  $variable |  asl  a  | ror  $variable", 10)
+                }
+            }
             Opcode.SHL_WORD -> {
                 AsmFragment(" asl  $variable |  rol  $variable+1", 10)
             }
-            Opcode.SHR_WORD -> {
+            Opcode.SHR_UWORD -> {
                 AsmFragment(" lsr  $variable+1 |  ror  $variable", 10)
+            }
+            Opcode.SHR_SWORD -> {
+                // arithmetic shift right (keep sign bit)
+                AsmFragment(" lda  $variable+1 |  asl  a |  ror  $variable+1 |  ror  $variable", 10)
             }
             Opcode.ROL_BYTE -> {
                 when (variable) {
@@ -2880,7 +2899,18 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     listOf(Opcode.PUSH_MEM_UB, Opcode.PUSH_BYTE, Opcode.BITXOR_BYTE)) { segment ->
                 " lda  ${hexVal(segment[0])} |  eor  #${hexVal(segment[1])} |  sta  ${ESTACK_LO.toHex()},x |  dex "
             },
-
+            // push  var byte | bytevalue
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.PUSH_BYTE, Opcode.BITOR_BYTE)) { segment ->
+                " lda  ${segment[0].callLabel} |  ora  #${hexVal(segment[1])} |  sta  ${ESTACK_LO.toHex()},x |  dex "
+            },
+            // push  var byte & bytevalue
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.PUSH_BYTE, Opcode.BITAND_BYTE)) { segment ->
+                " lda  ${segment[0].callLabel} |  and  #${hexVal(segment[1])} |  sta  ${ESTACK_LO.toHex()},x |  dex "
+            },
+            // push  var byte ^ bytevalue
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.PUSH_BYTE, Opcode.BITXOR_BYTE)) { segment ->
+                " lda   ${segment[0].callLabel} |  eor  #${hexVal(segment[1])} |  sta  ${ESTACK_LO.toHex()},x |  dex "
+            },
 
             // 16 bit addition avoiding excessive stack usage
             // @todo optimize this even more with longer asmpatterns (avoid stack use altogether on most common operations)

@@ -1,5 +1,5 @@
 %import c64utils
-%option enable_floats
+%option enable_floats       ; @todo needed for now to avoid compile error in c64lib
 
 ~ main {
 
@@ -8,29 +8,20 @@
 
     sub start()  {
 
-        float t
+        uword anglex
+        uword angley
         ubyte color
 
         while true {
-            float x = sin(t)
-            float y = cos(t*1.1356)
-            ubyte xx=screenx(x)
-            ubyte yy=screeny(y)
-
-            ;c64.COLOR = color
-            ;c64scr.PLOT(xx,yy)
-            ;c64.CHROUT('Q')     ;  shift-q = filled circle
+            word x = sin8(msb(anglex)) as word
+            word y = cos8(msb(angley)) as word
+            ubyte xx=msb(x*39) + 20  ; -127..127 -> 0..39
+            ubyte yy=msb(y*24) + 12  ; -127..127 -> 0..24
             c64scr.setchrclr(xx, yy, 81, color)
 
-            t  += 0.08
+            anglex+=800
+            angley+=947
             color++
         }
-    }
-
-    sub screenx(float x) -> ubyte {
-        return (x * width/2.2) + width/2.0 as ubyte
-    }
-    sub screeny(float y) -> ubyte {
-        return (y * height/2.2) + height/2.0 as ubyte
     }
 }

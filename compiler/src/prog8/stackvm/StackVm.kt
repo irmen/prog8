@@ -564,14 +564,24 @@ class StackVm(private var traceOutputFile: String?) {
                 checkDt(v, DataType.UWORD)
                 evalstack.push(v.shl())
             }
-            Opcode.SHR_BYTE -> {
+            Opcode.SHR_UBYTE -> {
                 val v = evalstack.pop()
                 checkDt(v, DataType.UBYTE)
                 evalstack.push(v.shr())
             }
-            Opcode.SHR_WORD -> {
+            Opcode.SHR_SBYTE -> {
+                val v = evalstack.pop()
+                checkDt(v, DataType.BYTE)
+                evalstack.push(v.shr())
+            }
+            Opcode.SHR_UWORD -> {
                 val v = evalstack.pop()
                 checkDt(v, DataType.UWORD)
+                evalstack.push(v.shr())
+            }
+            Opcode.SHR_SWORD -> {
+                val v = evalstack.pop()
+                checkDt(v, DataType.WORD)
                 evalstack.push(v.shr())
             }
             Opcode.ROL_BYTE -> {
@@ -691,17 +701,29 @@ class StackVm(private var traceOutputFile: String?) {
                 val newValue = value.shl()
                 mem.setUWord(addr, newValue.integerValue())
             }
-            Opcode.SHR_MEM_BYTE -> {
+            Opcode.SHR_MEM_UBYTE -> {
                 val addr = ins.arg!!.integerValue()
                 val value = Value(DataType.UBYTE, mem.getUByte(addr))
                 val newValue = value.shr()
                 mem.setUByte(addr, newValue.integerValue().toShort())
             }
-            Opcode.SHR_MEM_WORD -> {
+            Opcode.SHR_MEM_SBYTE -> {
+                val addr = ins.arg!!.integerValue()
+                val value = Value(DataType.BYTE, mem.getSByte(addr))
+                val newValue = value.shr()
+                mem.setSByte(addr, newValue.integerValue().toShort())
+            }
+            Opcode.SHR_MEM_UWORD -> {
                 val addr = ins.arg!!.integerValue()
                 val value = Value(DataType.UWORD, mem.getUWord(addr))
                 val newValue = value.shr()
                 mem.setUWord(addr, newValue.integerValue())
+            }
+            Opcode.SHR_MEM_SWORD -> {
+                val addr = ins.arg!!.integerValue()
+                val value = Value(DataType.WORD, mem.getSWord(addr))
+                val newValue = value.shr()
+                mem.setSWord(addr, newValue.integerValue())
             }
             Opcode.ROL_MEM_BYTE -> {
                 val addr = ins.arg!!.integerValue()
@@ -867,14 +889,24 @@ class StackVm(private var traceOutputFile: String?) {
                 checkDt(variable, DataType.UWORD)
                 variables[ins.callLabel] =variable.shl()
             }
-            Opcode.SHR_VAR_BYTE -> {
+            Opcode.SHR_VAR_UBYTE -> {
                 val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.UBYTE)
                 variables[ins.callLabel] =variable.shr()
             }
-            Opcode.SHR_VAR_WORD -> {
+            Opcode.SHR_VAR_SBYTE -> {
+                val variable = getVar(ins.callLabel!!)
+                checkDt(variable, DataType.BYTE)
+                variables[ins.callLabel] =variable.shr()
+            }
+            Opcode.SHR_VAR_UWORD -> {
                 val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.UWORD)
+                variables[ins.callLabel] =variable.shr()
+            }
+            Opcode.SHR_VAR_SWORD -> {
+                val variable = getVar(ins.callLabel!!)
+                checkDt(variable, DataType.WORD)
                 variables[ins.callLabel] =variable.shr()
             }
             Opcode.ROL_VAR_BYTE -> {
@@ -1529,19 +1561,19 @@ class StackVm(private var traceOutputFile: String?) {
             Syscall.FUNC_COS -> evalstack.push(Value(DataType.FLOAT, cos(evalstack.pop().numericValue().toDouble())))
             Syscall.FUNC_SIN8 -> {
                 val rad = evalstack.pop().numericValue().toDouble() /256.0 * 2.0 * PI
-                evalstack.push(Value(DataType.BYTE, (32767.5* sin(rad)).toInt().shr(8).toShort()))
+                evalstack.push(Value(DataType.BYTE, (32767.0* sin(rad)).toInt().shr(8).toShort()))
             }
             Syscall.FUNC_SIN16 -> {
                 val rad = evalstack.pop().numericValue().toDouble() /256.0 * 2.0 * PI
-                evalstack.push(Value(DataType.WORD, (32767.5* sin(rad)).toInt()))
+                evalstack.push(Value(DataType.WORD, (32767.0* sin(rad)).toInt()))
             }
             Syscall.FUNC_COS8 -> {
                 val rad = evalstack.pop().numericValue().toDouble() /256.0 * 2.0 * PI
-                evalstack.push(Value(DataType.BYTE, (32767.5* cos(rad)).toInt().shr(8).toShort()))
+                evalstack.push(Value(DataType.BYTE, (32767.0* cos(rad)).toInt().shr(8).toShort()))
             }
             Syscall.FUNC_COS16 -> {
                 val rad = evalstack.pop().numericValue().toDouble() /256.0 * 2.0 * PI
-                evalstack.push(Value(DataType.WORD, (32767.5* cos(rad)).toInt()))
+                evalstack.push(Value(DataType.WORD, (32767.0* cos(rad)).toInt()))
             }
             Syscall.FUNC_ROUND -> evalstack.push(Value(DataType.WORD, evalstack.pop().numericValue().toDouble().roundToInt()))
             Syscall.FUNC_ABS -> {
