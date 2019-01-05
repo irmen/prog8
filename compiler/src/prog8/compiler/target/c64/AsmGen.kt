@@ -2309,7 +2309,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${C64Zeropage.SCRATCH_B1}
                 lda  #<${segment[2].callLabel}
                 ldy  #>${segment[2].callLabel}
-                jsr  prog8_lib.ub2float
+                jsr  c64flt.ub2float
                 """
             },
             // floatvar = uwordvar
@@ -2321,7 +2321,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${C64Zeropage.SCRATCH_W1+1}
                 lda  #<${segment[2].callLabel}
                 ldy  #>${segment[2].callLabel}
-                jsr  prog8_lib.uw2float
+                jsr  c64flt.uw2float
                 """
             },
             // floatvar = bytevar
@@ -2337,7 +2337,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${C64Zeropage.SCRATCH_B1}
                 lda  #<${segment[2].callLabel}
                 ldy  #>${segment[2].callLabel}
-                jsr  prog8_lib.b2float
+                jsr  c64flt.b2float
                 """
             },
             // floatvar = wordvar
@@ -2349,7 +2349,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${C64Zeropage.SCRATCH_W1+1}
                 lda  #<${segment[2].callLabel}
                 ldy  #>${segment[2].callLabel}
-                jsr  prog8_lib.w2float
+                jsr  c64flt.w2float
                 """
             },
             // floatvar = float value
@@ -2396,7 +2396,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${C64Zeropage.SCRATCH_B1}
                 lda  #<${segment[2].callLabel}
                 ldy  #>${segment[2].callLabel}
-                jsr  prog8_lib.b2float
+                jsr  c64flt.b2float
                 """
             },
             // floatvar = mem ubyte
@@ -2406,7 +2406,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${C64Zeropage.SCRATCH_B1}
                 lda  #<${segment[2].callLabel}
                 ldy  #>${segment[2].callLabel}
-                jsr  prog8_lib.ub2float
+                jsr  c64flt.ub2float
                 """
             },
             // floatvar = mem word
@@ -2418,7 +2418,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${C64Zeropage.SCRATCH_W1+1}
                 lda  #<${segment[2].callLabel}
                 ldy  #>${segment[2].callLabel}
-                jsr  prog8_lib.w2float
+                jsr  c64flt.w2float
                 """
             },
             // floatvar = mem uword
@@ -2430,7 +2430,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${C64Zeropage.SCRATCH_W1+1}
                 lda  #<${segment[2].callLabel}
                 ldy  #>${segment[2].callLabel}
-                jsr  prog8_lib.uw2float
+                jsr  c64flt.uw2float
                 """
             },
 
@@ -2442,7 +2442,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${C64Zeropage.SCRATCH_B1}
                 lda  #<${segment[3].callLabel}
                 ldy  #>${segment[3].callLabel}
-                jsr  prog8_lib.b2float
+                jsr  c64flt.b2float
                 """
             },
             // floatvar = ubytearray[index]
@@ -2453,7 +2453,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${C64Zeropage.SCRATCH_B1}
                 lda  #<${segment[3].callLabel}
                 ldy  #>${segment[3].callLabel}
-                jsr  prog8_lib.ub2float
+                jsr  c64flt.ub2float
                 """
             },
             // floatvar = wordarray[index]
@@ -2466,7 +2466,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sty  ${C64Zeropage.SCRATCH_W1+1}
                 lda  #<${segment[3].callLabel}
                 ldy  #>${segment[3].callLabel}
-                jsr  prog8_lib.w2float
+                jsr  c64flt.w2float
                 """
             },
             // floatvar = uwordarray[index]
@@ -2479,7 +2479,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sty  ${C64Zeropage.SCRATCH_W1+1}
                 lda  #<${segment[3].callLabel}
                 ldy  #>${segment[3].callLabel}
-                jsr  prog8_lib.uw2float
+                jsr  c64flt.uw2float
                 """
             },
             // floatvar = floatarray[index]
@@ -2534,7 +2534,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${C64Zeropage.SCRATCH_B1}
                 lda  #<${hexVal(segment[2])}
                 ldy  #>${hexVal(segment[2])}
-                jsr  prog8_lib.ub2float
+                jsr  c64flt.ub2float
                 """
             },
             // memfloat = uwordvar
@@ -2546,7 +2546,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${C64Zeropage.SCRATCH_W1+1}
                 lda  #<${hexVal(segment[2])}
                 ldy  #>${hexVal(segment[2])}
-                jsr  prog8_lib.uw2float
+                jsr  c64flt.uw2float
                 """
             },
             // memfloat = bytevar
@@ -2562,7 +2562,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${C64Zeropage.SCRATCH_B1}
                 lda  #<${hexVal(segment[2])}
                 ldy  #>${hexVal(segment[2])}
-                jsr  prog8_lib.b2float
+                jsr  c64flt.b2float
                 """
             },
             // memfloat = wordvar
@@ -2574,7 +2574,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${C64Zeropage.SCRATCH_W1+1}
                 lda  #<${hexVal(segment[2])}
                 ldy  #>${hexVal(segment[2])}
-                jsr  prog8_lib.w2float
+                jsr  c64flt.w2float
                 """
             },
             // memfloat = mem byte
@@ -2584,7 +2584,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${C64Zeropage.SCRATCH_B1}
                 lda  #<${hexVal(segment[2])}
                 ldy  #>${hexVal(segment[2])}
-                jsr  prog8_lib.b2float
+                jsr  c64flt.b2float
                 """
             },
             // memfloat = mem ubyte
@@ -2594,7 +2594,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${C64Zeropage.SCRATCH_B1}
                 lda  #<${hexVal(segment[2])}
                 ldy  #>${hexVal(segment[2])}
-                jsr  prog8_lib.ub2float
+                jsr  c64flt.ub2float
                 """
             },
             // memfloat = mem word
@@ -2606,7 +2606,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${C64Zeropage.SCRATCH_W1+1}
                 lda  #<${hexVal(segment[2])}
                 ldy  #>${hexVal(segment[2])}
-                jsr  prog8_lib.w2float
+                jsr  c64flt.w2float
                 """
             },
             // memfloat = mem uword
@@ -2618,7 +2618,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${C64Zeropage.SCRATCH_W1+1}
                 lda  #<${hexVal(segment[2])}
                 ldy  #>${hexVal(segment[2])}
-                jsr  prog8_lib.uw2float
+                jsr  c64flt.uw2float
                 """
             },
             // memfloat = mem float
@@ -2641,7 +2641,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${C64Zeropage.SCRATCH_B1}
                 lda  #<${hexVal(segment[3])}
                 ldy  #>${hexVal(segment[3])}
-                jsr  prog8_lib.b2float
+                jsr  c64flt.b2float
                 """
             },
             // memfloat = ubytearray[index]
@@ -2652,7 +2652,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${C64Zeropage.SCRATCH_B1}
                 lda  #<${hexVal(segment[3])}
                 ldy  #>${hexVal(segment[3])}
-                jsr  prog8_lib.ub2float
+                jsr  c64flt.ub2float
                 """
             },
             // memfloat = wordarray[index]
@@ -2665,7 +2665,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sty  ${C64Zeropage.SCRATCH_W1+1}
                 lda  #<${hexVal(segment[3])}
                 ldy  #>${hexVal(segment[3])}
-                jsr  prog8_lib.w2float
+                jsr  c64flt.w2float
                 """
             },
             // memfloat = uwordarray[index]
@@ -2678,7 +2678,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sty  ${C64Zeropage.SCRATCH_W1+1}
                 lda  #<${hexVal(segment[3])}
                 ldy  #>${hexVal(segment[3])}
-                jsr  prog8_lib.uw2float
+                jsr  c64flt.uw2float
                 """
             },
             // memfloat = floatarray[index]
