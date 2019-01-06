@@ -374,27 +374,38 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
             // right value is a constant, see if we can optimize
             val rightConst: LiteralValue = rightVal
             val cv = rightConst.asNumericValue?.toDouble()
+            val leftDt = expr.left.resultingDatatype(namespace, heap)
             when(cv) {
                 -1.0 -> {
-                    //  '/' -> -left, '//' -> -ceil(left)
+                    //  '/' -> -left, '//' -> -ceil(left) (if operand is float) else just -left
                     optimizationsDone++
                     when(expr.operator) {
                         "/" -> return PrefixExpression("-", expr.left, expr.position)
-                        "//" -> return PrefixExpression("-",
-                                FunctionCall(IdentifierReference(listOf("ceil"), expr.position), mutableListOf(expr.left), expr.position),
-                                expr.position)
+                        "//" -> {
+                            return if(leftDt in IntegerDatatypes)
+                                PrefixExpression("-", expr.left, expr.left.position)
+                            else
+                                PrefixExpression("-",
+                                        FunctionCall(IdentifierReference(listOf("ceil"), expr.position), mutableListOf(expr.left), expr.position),
+                                        expr.position)
+                        }
                     }
                 }
                 1.0 -> {
-                    //  '/' -> left, '//' -> floor(left)
+                    //  '/' -> left, '//' -> floor(left) (if operand is float) else just left
                     optimizationsDone++
                     when(expr.operator) {
                         "/" -> return expr.left
-                        "//" -> return FunctionCall(IdentifierReference(listOf("floor"), expr.position), mutableListOf(expr.left), expr.position)
+                        "//" -> {
+                            return if(leftDt in IntegerDatatypes)
+                                expr.left
+                            else
+                                FunctionCall(IdentifierReference(listOf("floor"), expr.position), mutableListOf(expr.left), expr.position)
+                        }
                     }
                 }
                 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0, 256.0, 512.0, 1024.0, 2048.0, 4096.0, 8192.0, 16384.0, 32768.0, 65536.0 -> {
-                    if(expr.left.resultingDatatype(namespace, heap) in IntegerDatatypes) {
+                    if(leftDt in IntegerDatatypes) {
                         // divided by a power of two => shift right
                         optimizationsDone++
                         val numshifts = log2(cv)
@@ -402,7 +413,7 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
                     }
                 }
                 -2.0, -4.0, -8.0, -16.0, -32.0, -64.0, -128.0, -256.0, -512.0, -1024.0, -2048.0, -4096.0, -8192.0, -16384.0, -32768.0, -65536.0 -> {
-                    if(expr.left.resultingDatatype(namespace, heap) in IntegerDatatypes) {
+                    if(leftDt in IntegerDatatypes) {
                         // divided by a negative power of two => negate, then shift right
                         optimizationsDone++
                         val numshifts = log2(-cv)
@@ -411,13 +422,13 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
                 }
             }
 
-            if (expr.left.resultingDatatype(namespace, heap) == DataType.UBYTE) {
+            if (leftDt == DataType.UBYTE) {
                 if(abs(rightConst.asNumericValue!!.toDouble()) >= 256.0) {
                     optimizationsDone++
                     return LiteralValue(DataType.UBYTE, 0, position = expr.position)
                 }
             }
-            else if (expr.left.resultingDatatype(namespace, heap) == DataType.UWORD) {
+            else if (leftDt == DataType.UWORD) {
                 if(abs(rightConst.asNumericValue!!.toDouble()) >= 65536.0) {
                     optimizationsDone++
                     return LiteralValue(DataType.UBYTE, 0, position = expr.position)
