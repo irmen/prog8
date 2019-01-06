@@ -64,8 +64,8 @@ sub irq() {
     ubyte i=14
 
 nextsprite:     ; @todo should be a for loop from 14 to 0 step -2 but this causes a value out of range error at the moment
-    word x = (sin8(angle*2-i*8) as word)+190        ;  @todo will/should be using shifts for faster multiplication
-    byte y = cos8(angle*3-i*8) // 2                 ;  @todo will/should be using shifts for faster multiplication
+    word x = (sin8(angle*2-i*8) as word)+190        ;  @todo will/should be using shifts for faster multiplication and division
+    byte y = cos8(angle*3-i*8) // 2                 ;  @todo will/should be using shifts for faster multiplication and division
     @(SP0X+i) = lsb(x)
     @(SP0Y+i) = y+150 as ubyte
 

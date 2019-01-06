@@ -20,7 +20,8 @@
         float time=0.0
         while(true) {
             rotate_vertices(time)
-            c64.CLEARSCR()
+            c64scr.clear_screenchars(32)
+            c64scr.print("\uf1203d cube! (using floating point)")
             draw_edges()
             time+=0.2
         }

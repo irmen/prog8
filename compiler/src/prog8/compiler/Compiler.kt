@@ -1034,8 +1034,11 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             }
         } else {
             // only regular (non-register) arguments
+            // "assign" the arguments to the locally scoped parameter variables for this subroutine
+            // (subroutine arguments are not passed via the stack!)
             for (arg in arguments.zip(subroutine.parameters)) {
                 translate(arg.first)
+                convertType(arg.first.resultingDatatype(namespace, heap)!!, arg.second.type) // convert types of arguments to required parameter type
                 val opcode = opcodePopvar(arg.second.type)
                 prog.instr(opcode, callLabel = subroutine.scopedname + "." + arg.second.name)
             }
@@ -1354,6 +1357,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         val targetDt = assignTarget.determineDatatype(namespace, heap, stmt)
         if(valueDt!=targetDt) {
             // convert value to target datatype if possible
+            // @todo use convertType()????
             when(targetDt) {
                 DataType.UBYTE, DataType.BYTE ->
                     if(valueDt!=DataType.BYTE && valueDt!=DataType.UBYTE)

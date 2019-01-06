@@ -33,6 +33,7 @@ enum class DataType {
     ARRAY_F;
 
     fun assignableTo(targetType: DataType) =
+            // what types are assignable to others without loss of precision?
             when(this) {
                 UBYTE -> targetType == UBYTE || targetType == UWORD || targetType == FLOAT
                 BYTE -> targetType == BYTE || targetType == WORD || targetType == FLOAT
