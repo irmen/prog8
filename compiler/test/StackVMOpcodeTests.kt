@@ -315,11 +315,13 @@ class TestStackVmOpcodes {
 
     @Test
     fun testDiv() {
-        testBinaryOperator(Value(DataType.UBYTE, 250), Opcode.DIV_UB, Value(DataType.UBYTE, 12), Value(DataType.UBYTE, 20))
-        testBinaryOperator(Value(DataType.UWORD, 3999), Opcode.DIV_UW, Value(DataType.UWORD, 40), Value(DataType.UWORD, 99))
+        testBinaryOperator(Value(DataType.UBYTE, 250), Opcode.IDIV_UB, Value(DataType.UBYTE, 12), Value(DataType.UBYTE, 20))
+        testBinaryOperator(Value(DataType.BYTE, 120), Opcode.IDIV_B, Value(DataType.BYTE, -9), Value(DataType.BYTE, -13))
+        testBinaryOperator(Value(DataType.UWORD, 3999), Opcode.IDIV_UW, Value(DataType.UWORD, 40), Value(DataType.UWORD, 99))
+        testBinaryOperator(Value(DataType.WORD, 3999), Opcode.IDIV_W, Value(DataType.WORD, -40), Value(DataType.WORD, -99))
         testBinaryOperator(Value(DataType.FLOAT, 42.25), Opcode.DIV_F, Value(DataType.FLOAT, 99.0), Value(DataType.FLOAT, 42.25 / 99.0))
         assertFailsWith<VmExecutionException> {
-            testBinaryOperator(Value(DataType.UWORD, 3333), Opcode.DIV_UW, Value(DataType.FLOAT, 2.22), Value(DataType.FLOAT, 3333 / 2.22))
+            testBinaryOperator(Value(DataType.UWORD, 3333), Opcode.IDIV_UW, Value(DataType.FLOAT, 2.22), Value(DataType.FLOAT, 3333 / 2.22))
         }
     }
 

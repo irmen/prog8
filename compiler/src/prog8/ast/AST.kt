@@ -868,50 +868,7 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
             "<", ">",
             "<=", ">=",
             "==", "!=" -> DataType.UBYTE
-            "/" -> {
-                val rightNum = right.constValue(namespace, heap)?.asNumericValue?.toDouble()
-                if(rightNum!=null) {
-                    when(leftDt) {
-                        DataType.UBYTE ->
-                            when(rightDt) {
-                                DataType.UBYTE -> DataType.UBYTE
-                                DataType.BYTE -> DataType.BYTE
-                                DataType.UWORD -> if(rightNum >= 256) DataType.UBYTE else DataType.UWORD
-                                DataType.WORD -> {
-                                    if(rightNum < 0)
-                                        if(rightNum<-256) DataType.UBYTE else DataType.WORD
-                                    else
-                                        if(rightNum>256) DataType.UBYTE else DataType.UWORD
-                                }
-                                DataType.FLOAT -> if(rightNum <= -256 || rightNum >= 256) DataType.UBYTE else DataType.FLOAT
-                                else -> throw FatalAstException("invalid rightDt $rightDt")
-                            }
-                        DataType.BYTE ->
-                            when(rightDt) {
-                                DataType.UBYTE, DataType.BYTE -> DataType.BYTE
-                                DataType.UWORD, DataType.WORD -> if(rightNum <= -256 || rightNum >= 256) DataType.BYTE else DataType.WORD
-                                DataType.FLOAT -> if(rightNum <= -256 || rightNum >= 256) DataType.BYTE else DataType.FLOAT
-                                else -> throw FatalAstException("invalid rightDt $rightDt")
-                            }
-                        DataType.UWORD ->
-                            when(rightDt) {
-                                DataType.UBYTE, DataType.UWORD -> DataType.UWORD
-                                DataType.BYTE, DataType.WORD -> DataType.WORD
-                                DataType.FLOAT -> if(rightNum <= -65536 || rightNum >= 65536) DataType.UWORD else DataType.FLOAT
-                                else -> throw FatalAstException("invalid rightDt $rightDt")
-                            }
-                        DataType.WORD ->
-                            when(rightDt) {
-                                DataType.UBYTE, DataType.UWORD, DataType.BYTE, DataType.WORD -> DataType.WORD
-                                DataType.FLOAT -> if(rightNum <= -65536 || rightNum >= 65536) DataType.WORD else DataType.FLOAT
-                                else -> throw FatalAstException("invalid rightDt $rightDt")
-                            }
-                        DataType.FLOAT -> DataType.FLOAT
-                        null -> DataType.FLOAT
-                        else -> throw FatalAstException("invalid leftDt $leftDt")
-                    }
-                } else if(leftDt==null || rightDt==null) null else arithmeticOpDt(leftDt, rightDt)
-            }
+            "/" -> DataType.FLOAT       // use integer division '//' if you don't want floats
             else -> throw FatalAstException("resulting datatype check for invalid operator $operator")
         }
     }

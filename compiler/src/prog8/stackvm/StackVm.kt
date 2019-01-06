@@ -434,25 +434,25 @@ class StackVm(private var traceOutputFile: String?) {
                 checkDt(second, DataType.FLOAT)
                 evalstack.push(second.mul(top))
             }
-            Opcode.DIV_UB -> {
+            Opcode.IDIV_UB -> {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.UBYTE)
                 checkDt(second, DataType.UBYTE)
                 evalstack.push(second.div(top))
             }
-            Opcode.DIV_UW -> {
+            Opcode.IDIV_UW -> {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.UWORD)
                 checkDt(second, DataType.UWORD)
                 evalstack.push(second.div(top))
             }
-            Opcode.DIV_B -> {
+            Opcode.IDIV_B -> {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.BYTE)
                 checkDt(second, DataType.BYTE)
                 evalstack.push(second.div(top))
             }
-            Opcode.DIV_W -> {
+            Opcode.IDIV_W -> {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.WORD)
                 checkDt(second, DataType.WORD)

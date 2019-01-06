@@ -180,16 +180,20 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
         val v1 = numericValue()
         val v2 = other.numericValue()
         if(v2.toDouble()==0.0) {
-            if (type == DataType.UBYTE)
-                return Value(DataType.UBYTE, 255)
-            else if(type == DataType.UWORD)
-                return Value(DataType.UWORD, 65535)
+            when (type) {
+                DataType.UBYTE -> return Value(DataType.UBYTE, 255)
+                DataType.BYTE -> return Value(DataType.BYTE, 127)
+                DataType.UWORD -> return Value(DataType.UWORD, 65535)
+                DataType.WORD -> return Value(DataType.WORD, 32767)
+            }
         }
         val result = v1.toDouble() / v2.toDouble()
         // NOTE: integer division returns integer result!
         return when(type) {
             DataType.UBYTE -> Value(DataType.UBYTE, result)
+            DataType.BYTE -> Value(DataType.BYTE, result)
             DataType.UWORD -> Value(DataType.UWORD, result)
+            DataType.WORD -> Value(DataType.WORD, result)
             DataType.FLOAT -> Value(DataType.FLOAT, result)
             else -> throw ValueException("div on non-numeric type")
         }
@@ -203,7 +207,9 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
         val result = floor(v1.toDouble() / v2.toDouble())
         // NOTE: integer division returns integer result!
         return when(type) {
+            DataType.BYTE -> Value(DataType.BYTE, result)
             DataType.UBYTE -> Value(DataType.UBYTE, result)
+            DataType.WORD -> Value(DataType.WORD, result)
             DataType.UWORD -> Value(DataType.UWORD, result)
             DataType.FLOAT -> Value(DataType.FLOAT, result)
             else -> throw ValueException("div on non-numeric type")

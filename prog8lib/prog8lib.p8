@@ -163,54 +163,58 @@ mul_word	.proc
 		rts
 		.pend
 		
-div_b		.proc
+idiv_b		.proc
+		; signed division: use unsigned division and fix sign of result afterwards
+		lda  c64.ESTACK_LO+1,x
+		eor  c64.ESTACK_LO+2,x
+		php			; save sign of result
 		inx
-		lda #42
-		sta c64.ESTACK_LO+1,x
-		lda #0
-		sta c64.ESTACK_HI+1,x
+		lda  c64.ESTACK_LO,x
+		bpl  +
+		eor  #$ff
+		sec
+		adc  #0			; make num1 positive
++		tay
+		inx
+		lda  c64.ESTACK_LO,x
+		bpl  +
+		eor  #$ff
+		sec
+		adc  #0			; make num2 positive
++		jsr  math.divmod_ubytes
+		tya
+		plp			; get sign of result
+		bpl  +
+		eor  #$ff
+		sec
+		adc  #0			; negate result
++		sta  c64.ESTACK_LO,x
+		dex
 		rts
-		.warn "div_b not implemented"
 		.pend
 		
-div_ub		.proc
+idiv_ub		.proc
 		inx
-		lda #42
-		sta c64.ESTACK_LO+1,x
-		lda #0
-		sta c64.ESTACK_HI+1,x
+		ldy  c64.ESTACK_LO,x
+		inx
+		lda  c64.ESTACK_LO,x
+		jsr  math.divmod_ubytes
+		tya
+		sta  c64.ESTACK_LO,x
+		dex
 		rts
-		.warn "div_ub not implemented"
 		.pend
 		
-div_w		.proc
-		inx
-		lda #42
-		sta c64.ESTACK_LO+1,x
-		lda #0
-		sta c64.ESTACK_HI+1,x
-		rts
-		.warn "div_w not implemented"
+idiv_w		.proc
+		.error "idiv_w not yet implemented"
 		.pend
 		
-div_uw		.proc
-		inx
-		lda #42
-		sta c64.ESTACK_LO+1,x
-		lda #0
-		sta c64.ESTACK_HI+1,x
-		rts
-		.warn "div_uw not implemented"
+idiv_uw		.proc
+		.error "idiv_uw not implemented"
 		.pend
 
 remainder_b	.proc
-		inx
-		lda #42
-		sta c64.ESTACK_LO+1,x
-		lda #0
-		sta c64.ESTACK_HI+1,x
-		rts
-		.warn "remainder_b via div_b?"
+		.error "remainder_b not yet implemented, via div_b?"
 		.pend
 		
 remainder_ub	.proc
@@ -227,23 +231,11 @@ remainder_ub	.proc
 		.pend
 		
 remainder_w	.proc
-		inx
-		lda #42
-		sta c64.ESTACK_LO+1,x
-		lda #0
-		sta c64.ESTACK_HI+1,x
-		rts
-		.warn "remainder_w not implemented - via div_w"
+		.error "remainder_w not implemented - via div_w"
 		.pend
 		
 remainder_uw	.proc
-		inx
-		lda #42
-		sta c64.ESTACK_LO+1,x
-		lda #0
-		sta c64.ESTACK_HI+1,x
-		rts
-		.warn "remainder_uw not implemented - via div_uw"
+		.error "remainder_uw not implemented - via div_uw"
 		.pend
 		
 equal_w		.proc
@@ -1029,12 +1021,13 @@ multiply_words_result	.byte  0,0,0,0
 	}}
 }
 
-asmsub  divmod_bytes  (ubyte number @ X, ubyte divisor @ Y) -> clobbers() -> (ubyte @ X, ubyte @ A)  {
-	; ---- divide X by Y, result quotient in X, remainder in A   (unsigned)
+asmsub  divmod_ubytes  (ubyte number @ A, ubyte divisor @ Y) -> clobbers() -> (ubyte @ Y, ubyte @ A)  {
+	; ---- divide A by Y, result quotient in Y, remainder in A   (unsigned)
 	;      division by zero will result in quotient = 255 and remainder = original number
 	%asm {{
-		stx  c64.SCRATCH_ZPB1
 		sty  c64.SCRATCH_ZPREG
+		sta  c64.SCRATCH_ZPB1
+		stx  c64.SCRATCH_ZPREGX
 
 		lda  #0
 		ldx  #8
@@ -1047,7 +1040,8 @@ asmsub  divmod_bytes  (ubyte number @ X, ubyte divisor @ Y) -> clobbers() -> (ub
 		dex
 		bne  -
 
-		ldx  c64.SCRATCH_ZPB1
+		ldy  c64.SCRATCH_ZPB1
+		ldx  c64.SCRATCH_ZPREGX
 		rts
 	}}
 }

@@ -362,7 +362,8 @@ Operators
 
 arithmetic: ``+``  ``-``  ``*``  ``/``  ``//`` ``**``  ``%``
     ``+``, ``-``, ``*``, ``/`` are the familiar arithmetic operations.
-    ``//`` is the floor-divide, the division resulting in a whole number rounded towards minus infinity.
+    ``/`` is floating-point division (will always result in a floating point result)
+    ``//`` is the integer divison (can divide integers into integer result of the same type), or floor-division on floating points (the division resulting in a whole number rounded towards minus infinity).
     ``**`` is the power operator: ``3 ** 5`` is equal to 3*3*3*3*3 and is 243.
     ``%`` is the remainder operator: ``25 % 7`` is 4.  Be careful: without a space, %10 will be parsed as the binary number 2
     Remainder is only supported on integer operands (not floats).

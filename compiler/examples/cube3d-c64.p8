@@ -8,14 +8,14 @@
     const float height_f = height
 
     ; vertices
-    byte[8] xcoor = [ -50, -50, -50, -50,  50,  50,  50, 50 ]
-    byte[8] ycoor = [ -50, -50,  50,  50, -50, -50,  50, 50 ]
-    byte[8] zcoor = [ -50,  50, -50,  50, -50,  50, -50, 50 ]
+    byte[8] xcoor = [ -40, -40, -40, -40,  40,  40,  40, 40 ]
+    byte[8] ycoor = [ -40, -40,  40,  40, -40, -40,  40, 40 ]
+    byte[8] zcoor = [ -40,  40, -40,  40, -40,  40, -40, 40 ]
 
     ; storage for rotated coordinates
-    word[len(xcoor)] rotatedx=0
-    word[len(ycoor)] rotatedy=0
-    word[len(zcoor)] rotatedz=-1
+    word[len(xcoor)] rotatedx
+    word[len(ycoor)] rotatedy
+    word[len(zcoor)] rotatedz
 
     sub start()  {
         uword anglex
@@ -23,11 +23,11 @@
         uword anglez
         while(true) {
             rotate_vertices(msb(anglex), msb(angley), msb(anglez))
-            c64.CLEARSCR()
+            c64scr.clear_screen(32,1)
             draw_edges()
             anglex+=1000
-            angley+=333
-            anglez+=807
+            angley+=433
+            anglez+=907
         }
     }
 
@@ -59,33 +59,21 @@
         lsr(wsina_sinb)
         lsr(wsina_sinb)     ; / 128
 
-        float cosa_sinb = wcosa_sinb as float / 128.0
-        float sina_sinb = wsina_sinb as float / 128.0
-        float Axx = wcosa*wcosb as float / 16384.0
-        float Axy = cosa_sinb*(wsinc as float / 128.0) - (wsina*wcosc as float / 16384.0)
-        float Axz = cosa_sinb*(wcosc as float / 128.0) + (wsina*wsinc as float / 16384.0)
-        float Ayx = wsina*wcosb as float / 16384.0
-        float Ayy = sina_sinb*(wsinc as float / 128.0) + (wcosa*wcosc as float / 16384.0)
-        float Ayz = sina_sinb*(wcosc as float / 128.0) - (wcosa*wsinc as float / 16384.0)
-        float Azx = -wsinb as float / 128.0
-        float Azy = wcosb*wsinc as float / 16384.0
-        float Azz = wcosb*wcosc as float / 16384.0
-
-        word wAxx = Axx * 128.0 as word
-        word wAxy = Axy * 128.0 as word
-        word wAxz = Axz * 128.0 as word
-        word wAyx = Ayx * 128.0 as word
-        word wAyy = Ayy * 128.0 as word
-        word wAyz = Ayz * 128.0 as word
-        word wAzx = Azx * 128.0 as word
-        word wAzy = Azy * 128.0 as word
-        word wAzz = Azz * 128.0 as word
+        word Axx = (wcosa*wcosb as float / 128.0) as word
+        word Axy = ((wcosa_sinb*wsinc - wsina*wcosc) as float / 128.0) as word
+        word Axz = ((wcosa_sinb*wcosc + wsina*wsinc) as float / 128.0) as word
+        word Ayx = (wsina*wcosb as float / 128.0) as word
+        word Ayy = ((wsina_sinb*wsinc + wcosa*wcosc) as float / 128.0) as word
+        word Ayz = ((wsina_sinb*wcosc - wcosa*wsinc) as float / 128.0) as word
+        word Azx = -wsinb
+        word Azy = (wcosb*wsinc as float / 128.0) as word
+        word Azz = (wcosb*wcosc as float / 128.0) as word
 
         for ubyte i in 0 to len(xcoor)-1 {
             word xc = xcoor[i] as word
             word yc = ycoor[i] as word
             word zc = zcoor[i] as word
-            word zz = wAxx*xc + wAxy*yc + wAxz*zc
+            word zz = Axx*xc + Axy*yc + Axz*zc
             lsr(zz)
             lsr(zz)
             lsr(zz)
@@ -94,7 +82,7 @@
             lsr(zz)
             lsr(zz)   ; /128
             rotatedx[i] = zz
-            zz=wAyx*xc + wAyy*yc + wAyz*zc
+            zz=Ayx*xc + Ayy*yc + Ayz*zc
             lsr(zz)
             lsr(zz)
             lsr(zz)
@@ -103,7 +91,7 @@
             lsr(zz)
             lsr(zz)   ; /128
             rotatedy[i] = zz
-            zz = wAzx*xc + wAzy*yc + wAzz*zc
+            zz = Azx*xc + Azy*yc + Azz*zc
             lsr(zz)
             lsr(zz)
             lsr(zz)
@@ -123,7 +111,7 @@
         for ubyte i in 0 to len(xcoor)-1 {
             word rz = rotatedz[i]
             if rz >= 10 {
-                float persp = (rz as float + 250.0)/height_f
+                float persp = (rz as float + 180.0)/height_f
                 byte sx = rotatedx[i] as float / persp as byte + width//2
                 byte sy = rotatedy[i] as float / persp as byte + height//2
                 c64scr.setchrclr(sx as ubyte, sy as ubyte, 46, i+2)
@@ -133,7 +121,7 @@
         for ubyte i in 0 to len(xcoor)-1 {
             word rz = rotatedz[i]
             if rz < 10 {
-                float persp = (rz as float + 250.0)/height_f
+                float persp = (rz as float + 180.0)/height_f
                 byte sx = rotatedx[i] as float / persp as byte + width//2
                 byte sy = rotatedy[i] as float / persp as byte + height//2
                 c64scr.setchrclr(sx as ubyte, sy as ubyte, 81, i+2)

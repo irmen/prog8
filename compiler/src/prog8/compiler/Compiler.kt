@@ -552,7 +552,11 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             is BinaryExpression -> {
                 val leftDt = expr.left.resultingDatatype(namespace, heap)!!
                 val rightDt = expr.right.resultingDatatype(namespace, heap)!!
-                val commonDt = commonDatatype(leftDt, rightDt, expr.left.position, expr.right.position)
+                val commonDt =
+                        if(expr.operator=="/")
+                            DataType.FLOAT   // result of division is always float
+                        else
+                            commonDatatype(leftDt, rightDt, expr.left.position, expr.right.position)
                 translate(expr.left)
                 if(leftDt!=commonDt)
                     convertType(leftDt, commonDt)
@@ -1039,21 +1043,15 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 }
             }
             "/" -> {
-                when(dt) {
-                    DataType.UBYTE -> Opcode.DIV_UB
-                    DataType.BYTE -> Opcode.DIV_B
-                    DataType.UWORD -> Opcode.DIV_UW
-                    DataType.WORD -> Opcode.DIV_W
-                    DataType.FLOAT -> Opcode.DIV_F
-                    else -> throw CompilerException("only byte/word/float possible")
-                }
+                if(dt!=DataType.FLOAT) throw CompilerException("normal division only possible between floats")
+                else Opcode.DIV_F
             }
             "//" -> {
                 when(dt) {
-                    DataType.UBYTE -> Opcode.DIV_UB
-                    DataType.BYTE -> Opcode.DIV_B
-                    DataType.UWORD -> Opcode.DIV_UW
-                    DataType.WORD -> Opcode.DIV_W
+                    DataType.UBYTE -> Opcode.IDIV_UB
+                    DataType.BYTE -> Opcode.IDIV_B
+                    DataType.UWORD -> Opcode.IDIV_UW
+                    DataType.WORD -> Opcode.IDIV_W
                     DataType.FLOAT -> Opcode.FLOORDIV
                     else -> throw CompilerException("only byte/word/float possible")
                 }
@@ -1538,18 +1536,13 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     else -> throw CompilerException("only byte/word/lfoat possible")
                 }
             }
-            "/=" -> {
-                when (valueDt) {
-                    DataType.UBYTE -> Opcode.DIV_UB
-                    DataType.UWORD -> Opcode.DIV_UW
-                    DataType.FLOAT -> Opcode.DIV_F
-                    else -> throw CompilerException("only byte/word/lfoat possible")
-                }
-            }
+            "/=" -> TODO("/=")
             "//=" -> {
                 when (valueDt) {
-                    DataType.UBYTE -> Opcode.DIV_UB
-                    DataType.UWORD -> Opcode.DIV_UW
+                    DataType.UBYTE -> Opcode.IDIV_UB
+                    DataType.BYTE -> Opcode.IDIV_B
+                    DataType.UWORD -> Opcode.IDIV_UW
+                    DataType.WORD -> Opcode.IDIV_W
                     DataType.FLOAT -> Opcode.FLOORDIV
                     else -> throw CompilerException("only byte/word/lfoat possible")
                 }

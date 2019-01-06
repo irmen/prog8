@@ -758,7 +758,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.CAST_F_TO_UW -> " jsr  c64flt.stack_float2uw"
             Opcode.CAST_F_TO_W -> " jsr  c64flt.stack_float2w"
             Opcode.CAST_UB_TO_UW, Opcode.CAST_UB_TO_W -> " lda  #0 |  sta  ${(ESTACK_HI+1).toHex()},x"     // clear the msb
-            Opcode.CAST_B_TO_UW, Opcode.CAST_B_TO_W -> " lda  ${(ESTACK_LO+1)},x |  ${signExtendA("${(ESTACK_HI+1).toHex()},x")}"     // sign extend the lsb
+            Opcode.CAST_B_TO_UW, Opcode.CAST_B_TO_W -> " lda  ${(ESTACK_LO+1).toHex()},x |  ${signExtendA("${(ESTACK_HI+1).toHex()},x")}"     // sign extend the lsb
             Opcode.MSB -> " lda  ${(ESTACK_HI+1).toHex()},x |  sta  ${(ESTACK_LO+1).toHex()},x"
 
             Opcode.ADD_UB, Opcode.ADD_B -> {        // TODO inline better?
@@ -788,10 +788,10 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.MUL_F -> "  jsr  c64flt.mul_f"
             Opcode.DIV_F -> "  jsr  c64flt.div_f"
             Opcode.FLOORDIV -> "  jsr c64flt.floordiv_f"
-            Opcode.DIV_UB -> "  jsr  prog8_lib.div_ub"
-            Opcode.DIV_B -> "  jsr  prog8_lib.div_b"
-            Opcode.DIV_W -> "  jsr  prog8_lib.div_w"
-            Opcode.DIV_UW -> "  jsr  prog8_lib.div_uw"
+            Opcode.IDIV_UB -> "  jsr  prog8_lib.idiv_ub"
+            Opcode.IDIV_B -> "  jsr  prog8_lib.idiv_b"
+            Opcode.IDIV_W -> "  jsr  prog8_lib.idiv_w"
+            Opcode.IDIV_UW -> "  jsr  prog8_lib.idiv_uw"
 
             Opcode.AND_BYTE -> {
                 """
