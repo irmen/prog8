@@ -485,41 +485,77 @@ greatereq_w	.proc
 		
 func_sin8	.proc
 		ldy  c64.ESTACK_LO+1,x
-		lda  func_sin16.sinecos8hi,y
+		lda  _sinecos8,y
 		sta  c64.ESTACK_LO+1,x
 		rts
+_sinecos8	.char  127 * sin(range(256+64) * rad(360.0/256.0))
+		.pend
+
+func_sin8u	.proc
+		ldy  c64.ESTACK_LO+1,x
+		lda  _sinecos8u,y
+		sta  c64.ESTACK_LO+1,x
+		rts
+_sinecos8u	.byte  128 + 127.5 * sin(range(256+64) * rad(360.0/256.0))
 		.pend
 
 func_sin16	.proc
 		ldy  c64.ESTACK_LO+1,x
-		lda  func_sin16.sinecos8lo,y
+		lda  _sinecos8lo,y
 		sta  c64.ESTACK_LO+1,x
-		lda  func_sin16.sinecos8hi,y
+		lda  _sinecos8hi,y
 		sta  c64.ESTACK_HI+1,x
 		rts
 
 _  :=  32767 * sin(range(256+64) * rad(360.0/256.0))
-sinecos8lo     .byte <_
-sinecos8hi     .byte >_
+_sinecos8lo     .byte  <_
+_sinecos8hi     .byte  >_
 		.pend
 		
-		
+func_sin16u	.proc
+		ldy  c64.ESTACK_LO+1,x
+		lda  _sinecos8ulo,y
+		sta  c64.ESTACK_LO+1,x
+		lda  _sinecos8uhi,y
+		sta  c64.ESTACK_HI+1,x
+		rts
+
+_  :=  32768 + 32767.5 * sin(range(256+64) * rad(360.0/256.0))
+_sinecos8ulo     .byte  <_
+_sinecos8uhi     .byte  >_
+		.pend
+
 func_cos8	.proc
 		ldy  c64.ESTACK_LO+1,x
-		lda  func_sin16.sinecos8hi+64,y
+		lda  func_sin8._sinecos8+64,y
+		sta  c64.ESTACK_LO+1,x
+		rts
+		.pend
+		
+func_cos8u	.proc
+		ldy  c64.ESTACK_LO+1,x
+		lda  func_sin8u._sinecos8u+64,y
 		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
 
 func_cos16	.proc
 		ldy  c64.ESTACK_LO+1,x
-		lda  func_sin16.sinecos8lo+64,y
+		lda  func_sin16._sinecos8lo+64,y
 		sta  c64.ESTACK_LO+1,x
-		lda  func_sin16.sinecos8hi+64,y
+		lda  func_sin16._sinecos8hi+64,y
 		sta  c64.ESTACK_HI+1,x
 		rts
 		.pend
 
+func_cos16u	.proc
+		ldy  c64.ESTACK_LO+1,x
+		lda  func_sin16u._sinecos8ulo+64,y
+		sta  c64.ESTACK_LO+1,x
+		lda  func_sin16u._sinecos8uhi+64,y
+		sta  c64.ESTACK_HI+1,x
+		rts
+		.pend
 		
 			
 peek_address	.proc

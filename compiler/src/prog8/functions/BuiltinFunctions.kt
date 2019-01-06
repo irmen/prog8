@@ -32,10 +32,14 @@ val BuiltinFunctions = mapOf(
         // normal functions follow:
     "sin"         to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::sin) },
     "sin8"        to FunctionSignature(true, listOf(BuiltinFunctionParam("angle8", setOf(DataType.UBYTE))), DataType.BYTE, ::builtinSin8 ),
+    "sin8u"       to FunctionSignature(true, listOf(BuiltinFunctionParam("angle8", setOf(DataType.UBYTE))), DataType.UBYTE, ::builtinSin8u ),
     "sin16"       to FunctionSignature(true, listOf(BuiltinFunctionParam("angle8", setOf(DataType.UBYTE))), DataType.WORD, ::builtinSin16 ),
+    "sin16u"      to FunctionSignature(true, listOf(BuiltinFunctionParam("angle8", setOf(DataType.UBYTE))), DataType.UWORD, ::builtinSin16u ),
     "cos"         to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::cos) },
     "cos8"        to FunctionSignature(true, listOf(BuiltinFunctionParam("angle8", setOf(DataType.UBYTE))), DataType.BYTE, ::builtinCos8 ),
+    "cos8u"       to FunctionSignature(true, listOf(BuiltinFunctionParam("angle8", setOf(DataType.UBYTE))), DataType.UBYTE, ::builtinCos8u ),
     "cos16"       to FunctionSignature(true, listOf(BuiltinFunctionParam("angle8", setOf(DataType.UBYTE))), DataType.WORD, ::builtinCos16 ),
+    "cos16u"      to FunctionSignature(true, listOf(BuiltinFunctionParam("angle8", setOf(DataType.UBYTE))), DataType.UWORD, ::builtinCos16u ),
     "tan"         to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::tan) },
     "atan"        to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::atan) },
     "ln"          to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::log) },
@@ -303,7 +307,15 @@ private fun builtinSin8(args: List<IExpression>, position: Position, namespace:I
         throw SyntaxError("sin8 requires one argument", position)
     val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
     val rad = constval.asNumericValue!!.toDouble() /256.0 * 2.0 * PI
-    return LiteralValue(DataType.BYTE, bytevalue = (32767.0* sin(rad)).toInt().shr(8).toShort(), position = position)
+    return LiteralValue(DataType.BYTE, bytevalue = (127.0* sin(rad)).toShort(), position = position)
+}
+
+private fun builtinSin8u(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
+    if (args.size != 1)
+        throw SyntaxError("sin8u requires one argument", position)
+    val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
+    val rad = constval.asNumericValue!!.toDouble() /256.0 * 2.0 * PI
+    return LiteralValue(DataType.UBYTE, bytevalue = (128.0+127.5*sin(rad)).toShort(), position = position)
 }
 
 private fun builtinCos8(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
@@ -311,7 +323,15 @@ private fun builtinCos8(args: List<IExpression>, position: Position, namespace:I
         throw SyntaxError("cos8 requires one argument", position)
     val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
     val rad = constval.asNumericValue!!.toDouble() /256.0 * 2.0 * PI
-    return LiteralValue(DataType.BYTE, bytevalue = (32767.0* cos(rad)).toInt().shr(8).toShort(), position = position)
+    return LiteralValue(DataType.BYTE, bytevalue = (127.0* cos(rad)).toShort(), position = position)
+}
+
+private fun builtinCos8u(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
+    if (args.size != 1)
+        throw SyntaxError("cos8u requires one argument", position)
+    val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
+    val rad = constval.asNumericValue!!.toDouble() /256.0 * 2.0 * PI
+    return LiteralValue(DataType.UBYTE, bytevalue = (128.0 + 127.5*cos(rad)).toShort(), position = position)
 }
 
 private fun builtinSin16(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
@@ -322,12 +342,28 @@ private fun builtinSin16(args: List<IExpression>, position: Position, namespace:
     return LiteralValue(DataType.WORD, wordvalue = (32767.0* sin(rad)).toInt(), position = position)
 }
 
+private fun builtinSin16u(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
+    if (args.size != 1)
+        throw SyntaxError("sin16u requires one argument", position)
+    val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
+    val rad = constval.asNumericValue!!.toDouble() /256.0 * 2.0 * PI
+    return LiteralValue(DataType.UWORD, wordvalue = (32768.0+32767.5*sin(rad)).toInt(), position = position)
+}
+
 private fun builtinCos16(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
     if (args.size != 1)
         throw SyntaxError("cos16 requires one argument", position)
     val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
     val rad = constval.asNumericValue!!.toDouble() /256.0 * 2.0 * PI
     return LiteralValue(DataType.WORD, wordvalue = (32767.0* cos(rad)).toInt(), position = position)
+}
+
+private fun builtinCos16u(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
+    if (args.size != 1)
+        throw SyntaxError("cos16u requires one argument", position)
+    val constval = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
+    val rad = constval.asNumericValue!!.toDouble() /256.0 * 2.0 * PI
+    return LiteralValue(DataType.UWORD, wordvalue = (32768.0+32767.5* cos(rad)).toInt(), position = position)
 }
 
 private fun numericLiteral(value: Number, position: Position): LiteralValue {

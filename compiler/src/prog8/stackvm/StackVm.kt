@@ -26,10 +26,14 @@ enum class Syscall(val callNr: Short) {
 
     FUNC_SIN(60),
     FUNC_SIN8(61),
-    FUNC_SIN16(62),
-    FUNC_COS(63),
-    FUNC_COS8(64),
-    FUNC_COS16(65),
+    FUNC_SIN8U(62),
+    FUNC_SIN16(63),
+    FUNC_SIN16U(64),
+    FUNC_COS(65),
+    FUNC_COS8(66),
+    FUNC_COS8U(67),
+    FUNC_COS16(68),
+    FUNC_COS16U(69),
     FUNC_ABS(70),
     FUNC_TAN(71),
     FUNC_ATAN(72),
@@ -1556,19 +1560,35 @@ class StackVm(private var traceOutputFile: String?) {
             Syscall.FUNC_COS -> evalstack.push(Value(DataType.FLOAT, cos(evalstack.pop().numericValue().toDouble())))
             Syscall.FUNC_SIN8 -> {
                 val rad = evalstack.pop().numericValue().toDouble() /256.0 * 2.0 * PI
-                evalstack.push(Value(DataType.BYTE, (32767.0* sin(rad)).toInt().shr(8).toShort()))
+                evalstack.push(Value(DataType.BYTE, (127.0* sin(rad)).toShort()))
+            }
+            Syscall.FUNC_SIN8U -> {
+                val rad = evalstack.pop().numericValue().toDouble() /256.0 * 2.0 * PI
+                evalstack.push(Value(DataType.UBYTE, (128.0+127.5*sin(rad)).toShort()))
             }
             Syscall.FUNC_SIN16 -> {
                 val rad = evalstack.pop().numericValue().toDouble() /256.0 * 2.0 * PI
                 evalstack.push(Value(DataType.WORD, (32767.0* sin(rad)).toInt()))
             }
+            Syscall.FUNC_SIN16U -> {
+                val rad = evalstack.pop().numericValue().toDouble() /256.0 * 2.0 * PI
+                evalstack.push(Value(DataType.WORD, (32768.0+32767.5* sin(rad)).toInt()))
+            }
             Syscall.FUNC_COS8 -> {
                 val rad = evalstack.pop().numericValue().toDouble() /256.0 * 2.0 * PI
-                evalstack.push(Value(DataType.BYTE, (32767.0* cos(rad)).toInt().shr(8).toShort()))
+                evalstack.push(Value(DataType.BYTE, (127.0* cos(rad)).toShort()))
+            }
+            Syscall.FUNC_COS8U -> {
+                val rad = evalstack.pop().numericValue().toDouble() /256.0 * 2.0 * PI
+                evalstack.push(Value(DataType.UBYTE, (128.0+127.5*cos(rad)).toShort()))
             }
             Syscall.FUNC_COS16 -> {
                 val rad = evalstack.pop().numericValue().toDouble() /256.0 * 2.0 * PI
                 evalstack.push(Value(DataType.WORD, (32767.0* cos(rad)).toInt()))
+            }
+            Syscall.FUNC_COS16U -> {
+                val rad = evalstack.pop().numericValue().toDouble() /256.0 * 2.0 * PI
+                evalstack.push(Value(DataType.WORD, (32768.0+32767.5* cos(rad)).toInt()))
             }
             Syscall.FUNC_ROUND -> evalstack.push(Value(DataType.WORD, evalstack.pop().numericValue().toDouble().roundToInt()))
             Syscall.FUNC_ABS -> {

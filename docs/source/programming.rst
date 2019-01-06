@@ -517,17 +517,29 @@ sin(x)
 cos(x)
 	Cosine.  (floating point version)
 
+sin8u(x)
+    Fast 8-bit ubyte sine of angle 0..255, result is in range 0..255
+
 sin8(x)
-    Fast 8-bit byte sine of angle 0..255
+    Fast 8-bit byte sine of angle 0..255, result is in range -127..127
+
+sin16u(x)
+    Fast 16-bit uword sine of angle 0..255, result is in range 0..65535
 
 sin16(x)
-    Fast 16-bit word sine of angle 0..255
+    Fast 16-bit word sine of angle 0..255, result is in range -32767..32767
+
+cos8u(x)
+    Fast 8-bit ubyte cosine of angle 0..255, result is in range 0..255
 
 cos8(x)
-    Fast 8-bit byte cosine of angle 0..255
+    Fast 8-bit byte cosine of angle 0..255, result is in range -127..127
+
+cos16u(x)
+    Fast 16-bit uword cosine of angle 0..255, result is in range 0..65535
 
 cos16(x)
-    Fast 16-bit word cosine of angle 0..255
+    Fast 16-bit word cosine of angle 0..255, result is in range -32767..32767
 
 abs(x)
 	Absolute value.
