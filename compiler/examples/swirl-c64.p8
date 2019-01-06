@@ -16,7 +16,7 @@
             word y = cos8(msb(angley)) as word
             ubyte xx=msb(x*39) + 20  ; -127..127 -> 0..39
             ubyte yy=msb(y*24) + 12  ; -127..127 -> 0..24
-            c64scr.setchrclr(xx, yy, 81, color)
+            c64scr.setcc(xx, yy, 81, color)
 
             anglex+=800
             angley+=947

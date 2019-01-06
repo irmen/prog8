@@ -1065,10 +1065,10 @@ _colorrows	.word  $d800 + range(0, 1000, 40)
 }
 
 		
-sub  setchrclr  (ubyte column, ubyte row, ubyte char, ubyte color)  {
+sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte color)  {
 	; ---- set char+color at the given position on the screen
 	%asm {{
-		lda  setchrclr_row
+		lda  setcc_row
 		asl  a
 		tay
 		lda  setchr._screenrows+1,y
@@ -1077,15 +1077,15 @@ sub  setchrclr  (ubyte column, ubyte row, ubyte char, ubyte color)  {
 		sta  _colormod+2
 		lda  setchr._screenrows,y
 		clc
-		adc  setchrclr_column
+		adc  setcc_column
 		sta  _charmod+1
 		sta  _colormod+1
 		bcc  +
 		inc  _charmod+2
 		inc  _colormod+2
-+		lda  setchrclr_char
++		lda  setcc_char
 _charmod	sta  $ffff		; modified
-		lda  setchrclr_color
+		lda  setcc_color
 _colormod	sta  $ffff		; modified
 		rts
 	}}	

@@ -1,5 +1,4 @@
 %import c64utils
-%import c64flt
 
 ~ main {
 
@@ -74,30 +73,20 @@
         for ubyte i in 0 to len(xcoor)-1 {
             word rz = rotatedz[i]
             if rz >= 10 {
-                const float height_f = height
-                float persp = (rz as float + 180.0)/height_f
-                byte sx = rotatedx[i] as float / persp as byte + width//2
-                byte sy = rotatedy[i] as float / persp as byte + height//2
-                ; @todo switch to this once idiv_w is implemented: (and remove c64flt import)
-                ;word persp = (rz+180) // height
-                ;byte sx = rotatedx[i] // persp as byte + width//2
-                ;byte sy = rotatedy[i] // persp as byte + height//2
-                c64scr.setchrclr(sx as ubyte, sy as ubyte, 46, i+2)
+                word persp = (rz+200) // height
+                byte sx = rotatedx[i] // persp as byte + width//2
+                byte sy = rotatedy[i] // persp as byte + height//2
+                c64scr.setcc(sx as ubyte, sy as ubyte, 46, i+2)
             }
         }
 
         for ubyte i in 0 to len(xcoor)-1 {
             word rz = rotatedz[i]
             if rz < 10 {
-                const float height_f = height
-                float persp = (rz as float + 180.0)/height_f
-                byte sx = rotatedx[i] as float / persp as byte + width//2
-                byte sy = rotatedy[i] as float / persp as byte + height//2
-                ; @todo switch to this once idiv_w is implemented: (and remove c64flt import)
-                ;word persp = (rz+180) // height
-                ;byte sx = rotatedx[i] // persp as byte + width//2
-                ;byte sy = rotatedy[i] // persp as byte + height//2
-                c64scr.setchrclr(sx as ubyte, sy as ubyte, 81, i+2)
+                word persp = (rz+200) // height
+                byte sx = rotatedx[i] // persp as byte + width//2
+                byte sy = rotatedy[i] // persp as byte + height//2
+                c64scr.setcc(sx as ubyte, sy as ubyte, 81, i+2)
             }
         }
     }

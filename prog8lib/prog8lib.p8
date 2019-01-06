@@ -165,10 +165,10 @@ mul_word	.proc
 		
 idiv_b		.proc
 		; signed division: use unsigned division and fix sign of result afterwards
-		lda  c64.ESTACK_LO+1,x
-		eor  c64.ESTACK_LO+2,x
-		php			; save sign of result
 		inx
+		lda  c64.ESTACK_LO,x
+		eor  c64.ESTACK_LO+1,x
+		php			; save sign of result
 		lda  c64.ESTACK_LO,x
 		bpl  +
 		eor  #$ff
@@ -206,7 +206,31 @@ idiv_ub		.proc
 		.pend
 		
 idiv_w		.proc
-		.error "idiv_w not yet implemented"
+		; signed division: use unsigned division and fix sign of result afterwards
+		lda  c64.ESTACK_HI+2,x
+		eor  c64.ESTACK_HI+1,x
+		php				; save sign of result
+		lda  c64.ESTACK_HI+1,x
+		bpl  +
+		jsr  neg_w			; make value positive
++		inx
+		lda  c64.ESTACK_HI+1,x
+		bpl  +
+		jsr  neg_w			; make value positive
++		lda  c64.ESTACK_LO+1,x
+		sta  c64.SCRATCH_ZPWORD1
+		lda  c64.ESTACK_HI+1,x
+		sta  c64.SCRATCH_ZPWORD1+1
+		lda  c64.ESTACK_LO,x
+		ldy  c64.ESTACK_HI,x
+		jsr  math.divmod_uw_asm
+		sta  c64.ESTACK_LO+1,x
+		tya
+		sta  c64.ESTACK_HI+1,x
+		plp
+		bpl  +
+		jmp  neg_w		; negate result
++		rts
 		.pend
 		
 idiv_uw		.proc

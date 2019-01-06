@@ -14,23 +14,11 @@
         while true {
             float x = sin(t)
             float y = cos(t*1.1356)
-            ubyte xx=screenx(x)
-            ubyte yy=screeny(y)
-
-            ;c64.COLOR = color
-            ;c64scr.PLOT(xx,yy)
-            ;c64.CHROUT('Q')     ;  shift-q = filled circle
-            c64scr.setchrclr(xx, yy, 81, color)
-
+            ubyte xx=(x * width/2.2) + width/2.0 as ubyte
+            ubyte yy=(y * height/2.2) + height/2.0 as ubyte
+            c64scr.setcc(xx, yy, 81, color)
             t  += 0.08
             color++
         }
-    }
-
-    sub screenx(float x) -> ubyte {
-        return (x * width/2.2) + width/2.0 as ubyte
-    }
-    sub screeny(float y) -> ubyte {
-        return (y * height/2.2) + height/2.0 as ubyte
     }
 }

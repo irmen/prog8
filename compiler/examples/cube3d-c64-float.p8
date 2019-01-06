@@ -63,32 +63,26 @@
 
     sub draw_edges() {
 
-        sub toscreenx(float x, float z) -> byte {
-            return x/(5.0+z) * (height as float) as byte + width // 2
-        }
-
-        sub toscreeny(float y, float z) -> byte {
-            return y/(5.0+z) * (height as float) as byte + height // 2
-        }
-
         ; plot the points of the 3d cube
         ; first the points on the back, then the points on the front (painter algorithm)
 
         for ubyte i in 0 to len(xcoor)-1 {
             float rz = rotatedz[i]
             if rz >= 0.1 {
-                ubyte sx = toscreenx(rotatedx[i], rz) as ubyte
-                ubyte sy = toscreeny(rotatedy[i], rz) as ubyte
-                c64scr.setchrclr(sx, sy, 46, i+2)
+                float persp = (5.0+rz)/height
+                ubyte sx = rotatedx[i] / persp + width//2 as ubyte
+                ubyte sy = rotatedy[i] / persp + height//2 as ubyte
+                c64scr.setcc(sx, sy, 46, i+2)
             }
         }
 
         for ubyte i in 0 to len(xcoor)-1 {
             float rz = rotatedz[i]
             if rz < 0.1 {
-                ubyte sx = toscreenx(rotatedx[i], rz) as ubyte
-                ubyte sy = toscreeny(rotatedy[i], rz) as ubyte
-                c64scr.setchrclr(sx, sy, 81, i+2)
+                float persp = (5.0+rz)/height
+                ubyte sx = rotatedx[i] / persp + width//2 as ubyte
+                ubyte sy = rotatedy[i] / persp + height//2 as ubyte
+                c64scr.setcc(sx, sy, 81, i+2)
             }
         }
     }
