@@ -62,9 +62,8 @@ sub irq() {
     angle++
     c64.MSIGX=0
     for ubyte i in 0 to 14 step 2 {
-        word x = (sin8(angle*2-i*8) as word)+190
-        byte y = cos8(angle*3-i*8)
-        lsr(y)
+        word x = (sin8(angle*2-i*8) as word)+190        ;  @todo will/should be using shifts for faster multiplication
+        byte y = cos8(angle*3-i*8) // 2                 ;  @todo will/should be using shifts for faster multiplication
         @(SP0X+i) = lsb(x)
         @(SP0Y+i) = y+150 as ubyte
 

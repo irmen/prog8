@@ -153,10 +153,11 @@ private class StatementTranslator(private val prog: IntermediateProgram,
     override fun process(block: Block): IStatement {
         prog.newBlock(block.scopedname, block.name, block.address, block.options())
         processVariables(block)         // @todo optimize initializations with same value: load the value only once  (sort on initalization value, datatype   ?)
-        prog.label("block."+block.scopedname)
+        prog.label("block."+block.scopedname, false)
         prog.line(block.position)
         translate(block.statements)
-        return super.process(block)
+        val r = super.process(block)
+        return r
     }
 
     private fun processVariables(scope: INameScope) {
@@ -168,18 +169,22 @@ private class StatementTranslator(private val prog: IntermediateProgram,
 
     override fun process(subroutine: Subroutine): IStatement {
         if(subroutine.asmAddress==null) {
-            prog.label(subroutine.scopedname)
+            prog.label(subroutine.scopedname, true)
+            prog.instr(Opcode.START_PROCDEF)
             prog.line(subroutine.position)
             // note: the caller has already written the arguments into the subroutine's parameter variables.
             translate(subroutine.statements)
+            val r= super.process(subroutine)
+            prog.instr(Opcode.END_PROCDEF)
+            return r
         } else {
             // asmsub
             if(subroutine.isNotEmpty())
                 throw CompilerException("kernel subroutines (with memory address) can't have a body: $subroutine")
 
             prog.memoryPointer(subroutine.scopedname, subroutine.asmAddress, DataType.UBYTE)        // the datatype is a bit of a dummy in this case
+            return super.process(subroutine)
         }
-        return super.process(subroutine)
     }
 
     private fun translate(statements: List<IStatement>) {
@@ -1809,6 +1814,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         }
 
         // TODO: optimize edge cases if last value = 255 or 0 (for bytes) etc. to avoid  PUSH_BYTE / SUB opcodes and make use of the wrapping around of the value.
+        // TODO: ubyte/uword can't count down to 0 with negative step because test value will be <0 which causes "value out of range" crash
         prog.instr(opcodePush(varDt), Value(varDt, range.last + range.step))
         prog.instr(opcodePushvar(varDt), callLabel = varname)
         prog.instr(opcodeSub(varDt))

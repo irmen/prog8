@@ -33,7 +33,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             val newlabels = block.labels.map { symname(it.key, block) to it.value}.toMap().toMutableMap()
             val newinstructions = block.instructions.asSequence().map {
                 when {
-                    it is LabelInstr -> LabelInstr(symname(it.name, block))
+                    it is LabelInstr -> LabelInstr(symname(it.name, block), it.asmProc)
                     it.opcode == Opcode.INLINE_ASSEMBLY -> it
                     else ->
                         Instruction(it.opcode, it.arg, it.arg2,
@@ -394,16 +394,21 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         if(ins is LabelInstr) {
             if(ins.name.startsWith("block."))
                 return ""
-            return if(ins.name.startsWith("${block.shortname}."))
-                ins.name.substring(block.shortname.length+1)
-            else
-                ins.name
+
+            val labelresult =
+                    if(ins.name.startsWith("${block.shortname}."))
+                        ins.name.substring(block.shortname.length+1)
+                    else
+                        ins.name
+            return if(ins.asmProc) labelresult+"\t\t.proc" else labelresult
         }
 
         // simple opcodes that are translated directly into one or a few asm instructions
         return when(ins.opcode) {
             Opcode.LINE -> " ;\tsrc line: ${ins.callLabel}"
             Opcode.NOP -> " nop"      // shouldn't be present anymore though
+            Opcode.START_PROCDEF -> ""  // is done as part of a label
+            Opcode.END_PROCDEF -> " .pend"
             Opcode.TERMINATE -> " brk"
             Opcode.SEC -> " sec"
             Opcode.CLC -> " clc"

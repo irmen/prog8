@@ -156,9 +156,9 @@ mul_word	.proc
 		stx  c64.SCRATCH_ZPREGX
 		jsr  math.multiply_words
 		ldx  c64.SCRATCH_ZPREGX
-		lda  math.multiply_words_result
+		lda  math.multiply_words.multiply_words_result
 		sta  c64.ESTACK_LO+1,x
-		lda  math.multiply_words_result+1
+		lda  math.multiply_words.multiply_words_result+1
 		sta  c64.ESTACK_HI+1,x
 		rts
 		.pend

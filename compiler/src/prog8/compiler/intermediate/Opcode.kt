@@ -239,10 +239,12 @@ enum class Opcode {
     JNZW,        // branch if value is not zero (word)
 
 
-    // subroutine calling
+    // subroutines
     CALL,
     RETURN,
     SYSCALL,
+    START_PROCDEF,
+    END_PROCDEF,
 
     // misc
     SEC,        // set carry status flag  NOTE: is mostly fake, carry flag is not affected by any numeric operations

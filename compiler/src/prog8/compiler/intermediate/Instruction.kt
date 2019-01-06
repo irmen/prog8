@@ -34,7 +34,7 @@ open class Instruction(val opcode: Opcode,
     }
 }
 
-class LabelInstr(val name: String) : Instruction(Opcode.NOP, null, null) {
+class LabelInstr(val name: String, val asmProc: Boolean) : Instruction(Opcode.NOP, null, null) {
     override fun toString(): String {
         return "\n$name:"
     }

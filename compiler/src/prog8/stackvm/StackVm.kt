@@ -254,6 +254,7 @@ class StackVm(private var traceOutputFile: String?) {
         traceOutput?.println("\n$ins")
         when (ins.opcode) {
             Opcode.NOP -> {}
+            Opcode.START_PROCDEF, Opcode.END_PROCDEF -> {}
             Opcode.PUSH_BYTE -> {
                 checkDt(ins.arg, DataType.UBYTE, DataType.BYTE)
                 evalstack.push(ins.arg)

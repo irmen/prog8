@@ -19,7 +19,7 @@ class Program (val name: String,
 {
     init {
         // add end of program marker and some sentinel instructions, to correctly connect all others
-        program.add(LabelInstr("____program_end"))
+        program.add(LabelInstr("____program_end", false))
         program.add(Instruction(Opcode.TERMINATE))
         program.add(Instruction(Opcode.NOP))
         connect()
