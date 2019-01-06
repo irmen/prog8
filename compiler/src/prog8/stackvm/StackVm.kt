@@ -483,18 +483,6 @@ class StackVm(private var traceOutputFile: String?) {
                 checkDt(second, DataType.UWORD)
                 evalstack.push(second.remainder(top))
             }
-            Opcode.REMAINDER_B -> {
-                val (top, second) = evalstack.pop2()
-                checkDt(top, DataType.BYTE)
-                checkDt(second, DataType.BYTE)
-                evalstack.push(second.remainder(top))
-            }
-            Opcode.REMAINDER_W -> {
-                val (top, second) = evalstack.pop2()
-                checkDt(top, DataType.WORD)
-                checkDt(second, DataType.WORD)
-                evalstack.push(second.remainder(top))
-            }
             Opcode.POW_UB -> {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.UBYTE)

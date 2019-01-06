@@ -181,7 +181,8 @@ idiv_b		.proc
 		eor  #$ff
 		sec
 		adc  #0			; make num2 positive
-+		jsr  math.divmod_ubytes
++		jsr  math.divmod_ub
+		sta  _remainder
 		tya
 		plp			; get sign of result
 		bpl  +
@@ -191,17 +192,16 @@ idiv_b		.proc
 +		sta  c64.ESTACK_LO,x
 		dex
 		rts
+_remainder	.byte  0
 		.pend
 		
 idiv_ub		.proc
 		inx
 		ldy  c64.ESTACK_LO,x
-		inx
-		lda  c64.ESTACK_LO,x
-		jsr  math.divmod_ubytes
+		lda  c64.ESTACK_LO+1,x
+		jsr  math.divmod_ub
 		tya
-		sta  c64.ESTACK_LO,x
-		dex
+		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
 		
@@ -210,32 +210,43 @@ idiv_w		.proc
 		.pend
 		
 idiv_uw		.proc
-		.error "idiv_uw not implemented"
+		inx
+		lda  c64.ESTACK_LO+1,x
+		sta  c64.SCRATCH_ZPWORD1
+		lda  c64.ESTACK_HI+1,x
+		sta  c64.SCRATCH_ZPWORD1+1
+		lda  c64.ESTACK_LO,x
+		ldy  c64.ESTACK_HI,x
+		jsr  math.divmod_uw_asm
+		sta  c64.ESTACK_LO+1,x
+		tya
+		sta  c64.ESTACK_HI+1,x
+		rts
 		.pend
 
-remainder_b	.proc
-		.error "remainder_b not yet implemented, via div_b?"
-		.pend
-		
 remainder_ub	.proc
 		inx
-		lda  c64.ESTACK_LO,x	; right operand
-		sta  c64.SCRATCH_ZPB1
-		lda  c64.ESTACK_LO+1,x	; left operand
--		cmp  c64.SCRATCH_ZPB1
-		bcc  +
-		sbc  c64.SCRATCH_ZPB1
-		jmp  -
-+		sta  c64.ESTACK_LO+1,x
+		ldy  c64.ESTACK_LO,x	; right operand
+		lda  c64.ESTACK_LO+1,x  ; left operand
+		jsr  math.divmod_ub
+		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
 		
-remainder_w	.proc
-		.error "remainder_w not implemented - via div_w"
-		.pend
-		
 remainder_uw	.proc
-		.error "remainder_uw not implemented - via div_uw"
+		inx
+		lda  c64.ESTACK_LO+1,x
+		sta  c64.SCRATCH_ZPWORD1
+		lda  c64.ESTACK_HI+1,x
+		sta  c64.SCRATCH_ZPWORD1+1
+		lda  c64.ESTACK_LO,x
+		ldy  c64.ESTACK_HI,x
+		jsr  math.divmod_uw_asm
+		lda  c64.SCRATCH_ZPWORD2
+		sta  c64.ESTACK_LO+1,x
+		lda  c64.SCRATCH_ZPWORD2+1
+		sta  c64.ESTACK_HI+1,x
+		rts
 		.pend
 		
 equal_w		.proc
@@ -1021,7 +1032,7 @@ multiply_words_result	.byte  0,0,0,0
 	}}
 }
 
-asmsub  divmod_ubytes  (ubyte number @ A, ubyte divisor @ Y) -> clobbers() -> (ubyte @ Y, ubyte @ A)  {
+asmsub  divmod_ub  (ubyte number @ A, ubyte divisor @ Y) -> clobbers() -> (ubyte @ Y, ubyte @ A)  {
 	; ---- divide A by Y, result quotient in Y, remainder in A   (unsigned)
 	;      division by zero will result in quotient = 255 and remainder = original number
 	%asm {{
@@ -1046,51 +1057,50 @@ asmsub  divmod_ubytes  (ubyte number @ A, ubyte divisor @ Y) -> clobbers() -> (u
 	}}
 }
 
-asmsub  divmod_words  (uword divisor @ AY) -> clobbers(X) -> (uword @ AY)  {
-	; ---- divide two words (16 bit each) into 16 bit results
+asmsub  divmod_uw_asm  (uword divisor @ AY) -> clobbers() -> (uword @ AY)  {
+	; ---- divide two unsigned words (16 bit each) into 16 bit results
 	;      input:  c64.SCRATCH_ZPWORD1 in ZP: 16 bit number, A/Y: 16 bit divisor
-	;      output: c64.SCRATCH_ZPWORD1 in ZP: 16 bit result, A/Y: 16 bit remainder
+	;      output: c64.SCRATCH_ZPWORD2 in ZP: 16 bit remainder, A/Y: 16 bit division result
 	;      division by zero will result in quotient = 65535 and remainder = divident
 
 	%asm {{
-remainder = c64.SCRATCH_ZPB1
 
-		sta  c64.SCRATCH_ZPWORD2
-		sty  c64.SCRATCH_ZPWORD2+1
-		lda  #0	        		;preset remainder to 0
+dividend = c64.SCRATCH_ZPWORD1
+remainder = c64.SCRATCH_ZPWORD2
+result = dividend ;save memory by reusing divident to store the result
+
+		sta  _divisor
+		sty  _divisor+1
+		stx  c64.SCRATCH_ZPREGX
+		lda  #0	        	;preset remainder to 0
 		sta  remainder
 		sta  remainder+1
-		ldx  #16	        	;repeat for each bit: ...
+		ldx  #16	        ;repeat for each bit: ...
 
--		asl  c64.SCRATCH_ZPWORD1		;number lb & hb*2, msb -> Carry
-		rol  c64.SCRATCH_ZPWORD1+1
-		rol  remainder			;remainder lb & hb * 2 + msb from carry
+-		asl  dividend		;dividend lb & hb*2, msb -> Carry
+		rol  dividend+1	
+		rol  remainder		;remainder lb & hb * 2 + msb from carry
 		rol  remainder+1
 		lda  remainder
 		sec
-		sbc  c64.SCRATCH_ZPWORD2		;substract divisor to see if it fits in
-		tay	        		;lb result -> Y, for we may need it later
+		sbc  _divisor		;substract divisor to see if it fits in
+		tay	       		;lb result -> Y, for we may need it later
 		lda  remainder+1
-		sbc  c64.SCRATCH_ZPWORD2+1
-		bcc  +				;if carry=0 then divisor didn't fit in yet
+		sbc  _divisor+1
+		bcc  +			;if carry=0 then divisor didn't fit in yet
 
-		sta  remainder+1		;else save substraction result as new remainder,
-		sty  remainder
-		inc  c64.SCRATCH_ZPWORD1		;and INCrement result cause divisor fit in 1 times
+		sta  remainder+1	;else save substraction result as new remainder,
+		sty  remainder	
+		inc  result		;and INCrement result cause divisor fit in 1 times
 
 +		dex
 		bne  -
-
-		lda  remainder			; copy remainder to ZPWORD2 result register
-		sta  c64.SCRATCH_ZPWORD2
-		lda  remainder+1
-		sta  c64.SCRATCH_ZPWORD2+1
-
-		lda  c64.SCRATCH_ZPWORD1		; load division result in A/Y
-		ldy  c64.SCRATCH_ZPWORD1+1
-
+		
+		lda  result
+		ldy  result+1
+		ldx  c64.SCRATCH_ZPREGX
 		rts
-
+_divisor	.word 0		
 	}}
 }
 
@@ -1106,7 +1116,7 @@ asmsub  randseed  (uword seed @ AY) -> clobbers(A, Y) -> ()  {
 		sta  randbyte._seed
 		ora  #$80		; make negative
 		; jsr  c64flt.FREADSA
-                ; jsr  c64flt.RND		; reseed the float rng using the (negative) number in A
+		; jsr  c64flt.RND		; reseed the float rng using the (negative) number in A
 		ldx  c64.SCRATCH_ZPREG
 		rts
 	}}
@@ -1179,6 +1189,5 @@ _magiceors	.word   $3f1d, $3f81, $3fa5, $3fc5, $4075, $409d, $40cd, $4109
 
 	}}
 }
-
 
 }

@@ -695,8 +695,8 @@ class AstChecker(private val namespace: INameScope,
                 if(expr.operator=="%") {
                     val rightDt = constvalRight?.resultingDatatype(namespace, heap)
                     val leftDt = expr.left.resultingDatatype(namespace, heap)
-                    if (rightDt == DataType.FLOAT || leftDt == DataType.FLOAT)
-                        checkResult.add(ExpressionError("remainder can only be used on integer operands", expr.right.position))
+                    if ((rightDt != DataType.UBYTE && rightDt != DataType.UWORD) || (leftDt!=DataType.UBYTE && leftDt!=DataType.UWORD))
+                        checkResult.add(ExpressionError("remainder can only be used on unsigned integer operands", expr.right.position))
                 }
             }
         }

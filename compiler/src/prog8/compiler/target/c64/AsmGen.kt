@@ -825,9 +825,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${(ESTACK_LO + 1).toHex()},x
                 """
             }
-            Opcode.REMAINDER_B -> "  jsr prog8_lib.remainder_b"
             Opcode.REMAINDER_UB -> "  jsr prog8_lib.remainder_ub"
-            Opcode.REMAINDER_W -> "  jsr prog8_lib.remainder_w"
             Opcode.REMAINDER_UW -> "  jsr prog8_lib.remainder_uw"
 
             Opcode.GREATER_B -> "  jsr prog8_lib.greater_b"

@@ -1103,9 +1103,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             "%" -> {
                 when(dt) {
                     DataType.UBYTE -> Opcode.REMAINDER_UB
-                    DataType.BYTE -> Opcode.REMAINDER_B
                     DataType.UWORD -> Opcode.REMAINDER_UW
-                    DataType.WORD -> Opcode.REMAINDER_W
+                    DataType.BYTE, DataType.WORD -> throw CompilerException("remainder of signed integers is not properly defined/implemented, use unsigned instead")
                     else -> throw CompilerException("only byte/word operands possible")
                 }
             }
