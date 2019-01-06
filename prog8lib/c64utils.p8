@@ -538,33 +538,50 @@ _raster_irq_handler
 	; ---- this block contains (character) Screen and text I/O related functions ----
 
 
-asmsub  clear_screen (ubyte char @ A, ubyte color @ Y) -> clobbers(A,X) -> ()  {
+asmsub  clear_screen (ubyte char @ A, ubyte color @ Y) -> clobbers(A) -> ()  {
 	; ---- clear the character screen with the given fill character and character color.
-	;      (assumes screen is at $0400, could be altered in the future with self-modifying code)
-	;       @todo some byte var to set the SCREEN ADDR HI BYTE
+	;      (assumes screen and color matrix are at their default addresses)
 
 	%asm {{
-		sta  _loop + 1      ; self-modifying
-		stx  c64.SCRATCH_ZPB1
-		ldx  #0
-_loop           lda  #0
-		sta  c64.Screen,x
-		sta  c64.Screen+$0100,x
-		sta  c64.Screen+$0200,x
-		sta  c64.Screen+$02e8,x
-	        tya
-		sta  c64.Colors,x
-		sta  c64.Colors+$0100,x
-		sta  c64.Colors+$0200,x
-		sta  c64.Colors+$02e8,x
-		inx
-		bne  _loop
-
-		lda  _loop+1		; restore A and X
-		ldx  c64.SCRATCH_ZPB1
+		pha
+		tya
+		jsr  clear_screencolors
+		pla
+		jsr  clear_screenchars
 		rts
         }}
 
+}
+
+
+asmsub  clear_screenchars (ubyte char @ A) -> clobbers(Y) -> ()  {
+	; ---- clear the character screen with the given fill character (leaves colors)
+	;      (assumes screen matrix is at the default address)
+	%asm {{
+		ldy  #0
+_loop		sta  c64.Screen,y
+		sta  c64.Screen+$0100,y
+		sta  c64.Screen+$0200,y
+		sta  c64.Screen+$02e8,y
+		iny
+		bne  _loop
+		rts
+        }}
+}
+
+asmsub  clear_screencolors (ubyte color @ A) -> clobbers(Y) -> ()  {
+	; ---- clear the character screen colors with the given color (leaves characters).
+	;      (assumes color matrix is at the default address)
+	%asm {{
+		ldy  #0
+_loop		sta  c64.Colors,y
+		sta  c64.Colors+$0100,y
+		sta  c64.Colors+$0200,y
+		sta  c64.Colors+$02e8,y
+		iny
+		bne  _loop
+		rts
+        }}
 }
 
 

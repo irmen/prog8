@@ -23,7 +23,8 @@
         uword anglez
         while(true) {
             rotate_vertices(msb(anglex), msb(angley), msb(anglez))
-            c64scr.clear_screen(32,1)
+            c64scr.clear_screenchars(32)
+            c64scr.print("\uf1203d cube!")
             draw_edges()
             anglex+=1000
             angley+=433
