@@ -61,15 +61,18 @@ sub irq() {
 
     angle++
     c64.MSIGX=0
-    for ubyte i in 0 to 14 step 2 {
-        word x = (sin8(angle*2-i*8) as word)+190        ;  @todo will/should be using shifts for faster multiplication
-        byte y = cos8(angle*3-i*8) // 2                 ;  @todo will/should be using shifts for faster multiplication
-        @(SP0X+i) = lsb(x)
-        @(SP0Y+i) = y+150 as ubyte
+    ubyte i=14
 
-        lsr(c64.MSIGX)
-        if msb(x) c64.MSIGX |= %10000000
-    }
+nextsprite:     ; @todo should be a for loop from 14 to 0 step -2 but this causes a value out of range error at the moment
+    word x = (sin8(angle*2-i*8) as word)+190        ;  @todo will/should be using shifts for faster multiplication
+    byte y = cos8(angle*3-i*8) // 2                 ;  @todo will/should be using shifts for faster multiplication
+    @(SP0X+i) = lsb(x)
+    @(SP0Y+i) = y+150 as ubyte
+
+    lsl(c64.MSIGX)
+    if msb(x) c64.MSIGX++
+    i-=2
+    if_pl goto nextsprite
 
     c64.EXTCOL++
 }

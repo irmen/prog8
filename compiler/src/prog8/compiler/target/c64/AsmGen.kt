@@ -414,8 +414,18 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.CLC -> " clc"
             Opcode.SEI -> " sei"
             Opcode.CLI -> " cli"
-            Opcode.JUMP -> " jmp  ${ins.callLabel}"
-            Opcode.CALL -> " jsr  ${ins.callLabel}"
+            Opcode.JUMP -> {
+                if(ins.callLabel!=null)
+                    " jmp  ${ins.callLabel}"
+                else
+                    " jmp  ${hexVal(ins)}"
+            }
+            Opcode.CALL -> {
+                if(ins.callLabel!=null)
+                    " jsr  ${ins.callLabel}"
+                else
+                    " jsr  ${hexVal(ins)}"
+            }
             Opcode.RETURN -> " rts"
             Opcode.RSAVE -> {
                 // save cpu status flag and all registers A, X, Y.

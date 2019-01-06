@@ -270,9 +270,9 @@ interface IAstProcessor {
         return scope
     }
 
-    fun process(typecastExpression: TypecastExpression): IExpression {
-        typecastExpression.expression = typecastExpression.expression.process(this)
-        return typecastExpression
+    fun process(typecast: TypecastExpression): IExpression {
+        typecast.expression = typecast.expression.process(this)
+        return typecast
     }
 
     fun process(memread: DirectMemoryRead): IExpression {
@@ -1934,7 +1934,7 @@ private fun prog8Parser.ReturnstmtContext.toAst() : Return {
 
 private fun prog8Parser.UnconditionaljumpContext.toAst(): Jump {
     val address = integerliteral()?.toAst()?.number?.toInt()
-    val identifier = scoped_identifier().toAst()
+    val identifier = scoped_identifier()?.toAst()
     return Jump(address, identifier, null, toPosition())
 }
 

@@ -195,7 +195,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 is VariableInitializationAssignment -> translate(stmt)        // for initializing vars in a scope
                 is Assignment -> translate(stmt)        // normal and augmented assignments
                 is PostIncrDecr -> translate(stmt)
-                is Jump -> translate(stmt)
+                is Jump -> translate(stmt, null)
                 is FunctionCallStatement -> translate(stmt)
                 is IfStatement -> translate(stmt)
                 is BranchStatement -> translate(stmt)
@@ -399,35 +399,67 @@ private class StatementTranslator(private val prog: IntermediateProgram,
          * _stmt_999_end:
          *      nop
          *
-         * @todo generate more efficient bytecode for the form with just jumps: if_xx goto .. [else goto ..] ?
-         *  -> this should translate into just a single branch opcode per goto
+         * if the branch statement just contains jumps, more efficient code is generated.
+         * (just the appropriate branching instruction is outputted!)
          */
+        if(branch.elsepart.isEmpty() && branch.truepart.isEmpty())
+            return
+
+        fun branchOpcode(branch: BranchStatement, complement: Boolean) =
+            if(complement) {
+                when (branch.condition) {
+                    BranchCondition.CS -> Opcode.BCC
+                    BranchCondition.CC -> Opcode.BCS
+                    BranchCondition.EQ, BranchCondition.Z -> Opcode.BNZ
+                    BranchCondition.NE, BranchCondition.NZ -> Opcode.BZ
+                    BranchCondition.VS -> Opcode.BVC
+                    BranchCondition.VC -> Opcode.BVS
+                    BranchCondition.MI, BranchCondition.NEG -> Opcode.BPOS
+                    BranchCondition.PL, BranchCondition.POS -> Opcode.BNEG
+                }
+            } else {
+                when (branch.condition) {
+                    BranchCondition.CS -> Opcode.BCS
+                    BranchCondition.CC -> Opcode.BCC
+                    BranchCondition.EQ, BranchCondition.Z -> Opcode.BZ
+                    BranchCondition.NE, BranchCondition.NZ -> Opcode.BNZ
+                    BranchCondition.VS -> Opcode.BVS
+                    BranchCondition.VC -> Opcode.BVC
+                    BranchCondition.MI, BranchCondition.NEG -> Opcode.BNEG
+                    BranchCondition.PL, BranchCondition.POS -> Opcode.BPOS
+                }
+            }
+
         prog.line(branch.position)
-        val labelElse = makeLabel("else")
-        val labelEnd = makeLabel("end")
-        val opcode = when(branch.condition) {
-            BranchCondition.CS -> Opcode.BCC
-            BranchCondition.CC -> Opcode.BCS
-            BranchCondition.EQ, BranchCondition.Z -> Opcode.BNZ
-            BranchCondition.NE, BranchCondition.NZ -> Opcode.BZ
-            BranchCondition.VS -> Opcode.BVC
-            BranchCondition.VC -> Opcode.BVS
-            BranchCondition.MI, BranchCondition.NEG -> Opcode.BPOS
-            BranchCondition.PL, BranchCondition.POS -> Opcode.BNEG
-        }
-        if(branch.elsepart.isEmpty()) {
-            prog.instr(opcode, callLabel = labelEnd)
-            translate(branch.truepart)
-            prog.label(labelEnd)
+        val truejump = branch.truepart.statements.first()
+        val elsejump = branch.elsepart.statements.firstOrNull()
+        if(truejump is Jump && truejump.address==null && (elsejump ==null || (elsejump is Jump && elsejump.address==null))) {
+            // optimized code for just conditional jumping
+            val opcodeTrue = branchOpcode(branch, false)
+            translate(truejump, opcodeTrue)
+            if(elsejump is Jump) {
+                val opcodeFalse = branchOpcode(branch, true)
+                translate(elsejump, opcodeFalse)
+            }
         } else {
-            prog.instr(opcode, callLabel = labelElse)
-            translate(branch.truepart)
-            prog.instr(Opcode.JUMP, callLabel = labelEnd)
-            prog.label(labelElse)
-            translate(branch.elsepart)
-            prog.label(labelEnd)
+            // regular if..else branching
+            val labelElse = makeLabel("else")
+            val labelEnd = makeLabel("end")
+            val opcode = branchOpcode(branch, true)
+            if (branch.elsepart.isEmpty()) {
+                prog.instr(opcode, callLabel = labelEnd)
+                translate(branch.truepart)
+                prog.label(labelEnd)
+            } else {
+                prog.instr(opcode, callLabel = labelElse)
+                translate(branch.truepart)
+                prog.instr(Opcode.JUMP, callLabel = labelEnd)
+                prog.label(labelElse)
+                translate(branch.elsepart)
+                prog.label(labelEnd)
+            }
+            prog.instr(Opcode.NOP)
         }
-        prog.instr(Opcode.NOP)
     }
 
     private fun makeLabel(postfix: String): String {
@@ -1235,13 +1267,17 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         prog.instr(Opcode.SYSCALL, Value(DataType.UBYTE, callNr))
     }
 
-    private fun translate(stmt: Jump) {
+    private fun translate(stmt: Jump, branchOpcode: Opcode?) {
         var jumpAddress: Value? = null
         var jumpLabel: String? = null
 
         when {
             stmt.generatedLabel!=null -> jumpLabel = stmt.generatedLabel
-            stmt.address!=null -> jumpAddress = Value(DataType.UWORD, stmt.address)
+            stmt.address!=null -> {
+                if(branchOpcode!=null)
+                    throw CompilerException("cannot branch to address, should use absolute jump instead")
+                jumpAddress = Value(DataType.UWORD, stmt.address)
+            }
             else -> {
                 val target = stmt.identifier!!.targetStatement(namespace)!!
                 jumpLabel = when(target) {
@@ -1252,7 +1288,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             }
         }
         prog.line(stmt.position)
-        prog.instr(Opcode.JUMP, jumpAddress, jumpLabel)
+        prog.instr(branchOpcode ?: Opcode.JUMP, jumpAddress, jumpLabel)
     }
 
     private fun translate(stmt: PostIncrDecr) {

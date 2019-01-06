@@ -17,6 +17,14 @@
     word[len(zcoor)] rotatedz=-1
 
     sub start()  {
+
+
+    label1:
+    label2:
+        Y--
+        if_mi goto label1
+        if_mi goto label1 else goto label2
+
         uword anglex
         uword angley
         uword anglez
