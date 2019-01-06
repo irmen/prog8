@@ -21,9 +21,13 @@
         while(true) {
             rotate_vertices(time)
             c64scr.clear_screenchars(32)
-            c64scr.print("\uf1203d cube! (using floating point)")
             draw_edges()
             time+=0.2
+            c64.PLOT(0,0,0)
+            c64scr.print("3d cube! (float) ")
+            c64scr.print_ub(c64.TIME_LO)
+            c64scr.print(" jiffies/frame")
+            c64.TIME_LO=0
         }
     }
 
@@ -51,12 +55,9 @@
         float Azz = cosb*cosc
 
         for ubyte i in 0 to len(xcoor)-1 {
-            float xc = xcoor[i]
-            float yc = ycoor[i]
-            float zc = zcoor[i]
-            rotatedx[i] = Axx*xc + Axy*yc + Axz*zc
-            rotatedy[i] = Ayx*xc + Ayy*yc + Ayz*zc
-            rotatedz[i] = Azx*xc + Azy*yc + Azz*zc
+            rotatedx[i] = Axx*xcoor[i] + Axy*ycoor[i] + Axz*zcoor[i]
+            rotatedy[i] = Ayx*xcoor[i] + Ayy*ycoor[i] + Ayz*zcoor[i]
+            rotatedz[i] = Azx*xcoor[i] + Azy*ycoor[i] + Azz*zcoor[i]
         }
     }
 

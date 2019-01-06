@@ -582,9 +582,10 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 lda  ${ESTACK_LO.toHex()},x
                 asl  a
                 tay
-                lda  ${(ESTACK_LO-1).toHex()},x
+                inx
+                lda  ${ESTACK_LO.toHex()},x
                 sta  ${ins.callLabel},y
-                lda  ${(ESTACK_HI-1).toHex()},x
+                lda  ${ESTACK_HI.toHex()},x
                 sta  ${ins.callLabel}+1,y
                 """
             }
