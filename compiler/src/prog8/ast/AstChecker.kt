@@ -424,7 +424,7 @@ class AstChecker(private val namespace: INameScope,
         }
 
         if(assignment.aug_op!=null) {
-            // check augmented assignment:
+            // check augmented assignment (and convert it into a normal assignment!)
             // A /= 3  -> check as if it was A = A / 3
             val newTarget: IExpression =
                     when {
@@ -847,7 +847,7 @@ class AstChecker(private val namespace: INameScope,
     }
 
     override fun process(arrayIndexedExpression: ArrayIndexedExpression): IExpression {
-        val target = arrayIndexedExpression.identifier!!.targetStatement(namespace)
+        val target = arrayIndexedExpression.identifier.targetStatement(namespace)
         if(target is VarDecl) {
             if(target.datatype !in IterableDatatypes)
                 checkResult.add(SyntaxError("indexing requires an iterable variable", arrayIndexedExpression.position))

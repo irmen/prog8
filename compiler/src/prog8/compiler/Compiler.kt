@@ -218,6 +218,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     }
                 }
                 is VarDecl, is Subroutine -> {}   // skip this, already processed these.
+                is NopStatement -> {}
                 is InlineAssembly -> translate(stmt)
                 else -> TODO("translate statement $stmt to stackvm")
             }
@@ -600,7 +601,10 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 translate(expr.right)
                 if(rightDt!=commonDt)
                     convertType(rightDt, commonDt)
-                translateBinaryOperator(expr.operator, commonDt)
+                if(expr.operator=="<<" || expr.operator==">>")
+                    translateBitshiftedOperator(expr.operator, leftDt, expr.right.constValue(namespace, heap))
+                else
+                    translateBinaryOperator(expr.operator, commonDt)
             }
             is FunctionCall -> {
                 val target = expr.target.targetStatement(namespace)
@@ -1218,6 +1222,36 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         prog.instr(opcode)
     }
 
+    private fun translateBitshiftedOperator(operator: String, leftDt: DataType, amount: LiteralValue?) {
+        if(amount?.asIntegerValue == null)
+            throw FatalAstException("bitshift operators should only have constant integer value as right operand")
+        var shifts=amount.asIntegerValue
+        if(shifts<0)
+            throw FatalAstException("bitshift value should be >= 0")
+
+        prog.removeLastInstruction()        // the amount of shifts is not used as a stack value
+        if(shifts==0)
+            return
+        while(shifts>0) {
+            if(operator==">>") {
+                when (leftDt) {
+                    DataType.UBYTE -> prog.instr(Opcode.SHIFTEDR_UBYTE)
+                    DataType.BYTE -> prog.instr(Opcode.SHIFTEDR_SBYTE)
+                    DataType.UWORD -> prog.instr(Opcode.SHIFTEDR_UWORD)
+                    DataType.WORD -> prog.instr(Opcode.SHIFTEDR_SWORD)
+                    else -> throw CompilerException("wrong datatype")
+                }
+            } else if(operator=="<<") {
+                when (leftDt) {
+                    DataType.UBYTE, DataType.BYTE -> prog.instr(Opcode.SHIFTEDL_BYTE)
+                    DataType.UWORD, DataType.WORD -> prog.instr(Opcode.SHIFTEDL_WORD)
+                    else -> throw CompilerException("wrong datatype")
+                }
+            }
+            shifts--
+        }
+    }
+
     private fun translatePrefixOperator(operator: String, operandDt: DataType?) {
         if(operandDt==null)
             throw CompilerException("operand datatype not known")
@@ -1251,7 +1285,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
     }
 
     private fun translate(arrayindexed: ArrayIndexedExpression, write: Boolean) {
-        val variable = arrayindexed.identifier?.targetStatement(namespace) as VarDecl
+        val variable = arrayindexed.identifier.targetStatement(namespace) as VarDecl
         translate(arrayindexed.arrayspec.x)
         if (write)
             prog.instr(opcodeWriteindexedvar(variable.datatype), callLabel = variable.scopedname)
@@ -1309,7 +1343,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 }
             }
             stmt.target.arrayindexed != null -> {
-                val variable = stmt.target.arrayindexed!!.identifier?.targetStatement(namespace) as VarDecl
+                val variable = stmt.target.arrayindexed!!.identifier.targetStatement(namespace) as VarDecl
                 translate(stmt.target.arrayindexed!!.arrayspec.x)
                 when(stmt.operator) {
                     "++" -> prog.instr(opcodeIncArrayindexedVar(variable.datatype), callLabel = variable.scopedname)

@@ -31,8 +31,28 @@ class ConstExprEvaluator {
             ">=" -> LiteralValue.fromBoolean(left >= right, left.position)
             "==" -> LiteralValue.fromBoolean(left == right, left.position)
             "!=" -> LiteralValue.fromBoolean(left != right, left.position)
+            "<<" -> shiftedleft(left, right)
+            ">>" -> shiftedright(left, right)
             else -> throw FatalAstException("const evaluation for invalid operator $operator")
         }
+    }
+
+    private fun shiftedright(left: LiteralValue, amount: LiteralValue): IExpression {
+        if(left.asIntegerValue==null || amount.asIntegerValue==null)
+            throw ExpressionError("cannot compute $left >> $amount", left.position)
+        val result =
+                if(left.type==DataType.UBYTE || left.type==DataType.UWORD)
+                    left.asIntegerValue.ushr(amount.asIntegerValue)
+                else
+                    left.asIntegerValue.shr(amount.asIntegerValue)
+        return LiteralValue.fromNumber(result, left.type, left.position)
+    }
+
+    private fun shiftedleft(left: LiteralValue, amount: LiteralValue): IExpression {
+        if(left.asIntegerValue==null || amount.asIntegerValue==null)
+            throw ExpressionError("cannot compute $left << $amount", left.position)
+        val result = left.asIntegerValue.shl(amount.asIntegerValue)
+        return LiteralValue.fromNumber(result, left.type, left.position)
     }
 
     private fun logicalxor(left: LiteralValue, right: LiteralValue): LiteralValue {

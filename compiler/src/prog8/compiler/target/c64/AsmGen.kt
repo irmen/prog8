@@ -860,6 +860,13 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.LESSEQ_W -> "  jsr  prog8_lib.lesseq_w"
             Opcode.LESSEQ_F -> "  jsr  c64flt.lesseq_f"
 
+            Opcode.SHIFTEDL_BYTE -> "  asl  ${(ESTACK_LO+1).toHex()},x"
+            Opcode.SHIFTEDL_WORD -> "  asl  ${(ESTACK_LO+1).toHex()},x |  rol  ${(ESTACK_HI+1).toHex()},x"
+            Opcode.SHIFTEDR_SBYTE -> "  lda  ${(ESTACK_LO+1).toHex()},x |  asl  a |  ror  ${(ESTACK_LO+1).toHex()},x"
+            Opcode.SHIFTEDR_UBYTE -> "  lsr  ${(ESTACK_LO+1).toHex()},x"
+            Opcode.SHIFTEDR_SWORD -> "  lda  ${(ESTACK_HI+1).toHex()},x |  asl a  |  ror  ${(ESTACK_HI+1).toHex()},x |  ror  ${(ESTACK_LO+1).toHex()},x"
+            Opcode.SHIFTEDR_UWORD -> "  lsr  ${(ESTACK_HI+1).toHex()},x |  ror  ${(ESTACK_LO+1).toHex()},x"
+
             else -> null
         }
     }

@@ -43,22 +43,8 @@
         word wcosc = cos8(az) as word
         word wsinc = sin8(az) as word
 
-        word wcosa_sinb = wcosa*wsinb
-        lsr(wcosa_sinb)
-        lsr(wcosa_sinb)
-        lsr(wcosa_sinb)
-        lsr(wcosa_sinb)
-        lsr(wcosa_sinb)
-        lsr(wcosa_sinb)
-        lsr(wcosa_sinb)      ; / 128
-        word wsina_sinb = wsina*wsinb
-        lsr(wsina_sinb)
-        lsr(wsina_sinb)
-        lsr(wsina_sinb)
-        lsr(wsina_sinb)
-        lsr(wsina_sinb)
-        lsr(wsina_sinb)
-        lsr(wsina_sinb)     ; / 128
+        word wcosa_sinb = wcosa*wsinb // 128
+        word wsina_sinb = wsina*wsinb // 128
 
         word Axx = (wcosa*wcosb as float / 128.0) as word
         word Axy = ((wcosa_sinb*wsinc - wsina*wcosc) as float / 128.0) as word
@@ -74,32 +60,11 @@
             word xc = xcoor[i] as word
             word yc = ycoor[i] as word
             word zc = zcoor[i] as word
-            word zz = Axx*xc + Axy*yc + Axz*zc
-            lsr(zz)
-            lsr(zz)
-            lsr(zz)
-            lsr(zz)
-            lsr(zz)
-            lsr(zz)
-            lsr(zz)   ; /128
+            word zz = (Axx*xc + Axy*yc + Axz*zc) // 128     ;   @todo bugs when not using 'zz' temporary var!?
             rotatedx[i] = zz
-            zz=Ayx*xc + Ayy*yc + Ayz*zc
-            lsr(zz)
-            lsr(zz)
-            lsr(zz)
-            lsr(zz)
-            lsr(zz)
-            lsr(zz)
-            lsr(zz)   ; /128
+            zz=(Ayx*xc + Ayy*yc + Ayz*zc) // 128
             rotatedy[i] = zz
-            zz = Azx*xc + Azy*yc + Azz*zc
-            lsr(zz)
-            lsr(zz)
-            lsr(zz)
-            lsr(zz)
-            lsr(zz)
-            lsr(zz)
-            lsr(zz)   ; /128
+            zz = (Azx*xc + Azy*yc + Azz*zc) // 128
             rotatedz[i] = zz
         }
     }

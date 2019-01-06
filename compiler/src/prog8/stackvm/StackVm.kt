@@ -585,6 +585,12 @@ class StackVm(private var traceOutputFile: String?) {
                 checkDt(v, DataType.WORD)
                 evalstack.push(v.shr())
             }
+            Opcode.SHIFTEDL_BYTE -> TODO()
+            Opcode.SHIFTEDL_WORD -> TODO()
+            Opcode.SHIFTEDR_UBYTE -> TODO()
+            Opcode.SHIFTEDR_SBYTE -> TODO()
+            Opcode.SHIFTEDR_UWORD -> TODO()
+            Opcode.SHIFTEDR_SWORD -> TODO()
             Opcode.ROL_BYTE -> {
                 val v = evalstack.pop()
                 checkDt(v, DataType.UBYTE)

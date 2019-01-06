@@ -254,7 +254,7 @@ interface IAstProcessor {
     }
 
     fun process(arrayIndexedExpression: ArrayIndexedExpression): IExpression {
-        arrayIndexedExpression.identifier?.process(this)
+        arrayIndexedExpression.identifier.process(this)
         arrayIndexedExpression.arrayspec.process(this)
         return arrayIndexedExpression
     }
@@ -792,7 +792,7 @@ data class AssignTarget(val register: Register?,
         if(identifier!=null)
             return identifier.nameInSource.last()
         if(arrayindexed!=null)
-            return arrayindexed.identifier!!.nameInSource.last()
+            return arrayindexed.identifier.nameInSource.last()
         val address = memoryAddress?.addressExpression
         if(address is LiteralValue)
             return address.asIntegerValue.toString()
@@ -869,6 +869,7 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
             "<", ">",
             "<=", ">=",
             "==", "!=" -> DataType.UBYTE
+            "<<", ">>" -> leftDt
             "/" -> DataType.FLOAT       // use integer division '//' if you don't want floats
             else -> throw FatalAstException("resulting datatype check for invalid operator $operator")
         }
@@ -938,23 +939,23 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
     }
 }
 
-class ArrayIndexedExpression(val identifier: IdentifierReference?,
+class ArrayIndexedExpression(val identifier: IdentifierReference,
                              var arrayspec: ArraySpec,
                              override val position: Position) : IExpression {
     override lateinit var parent: Node
     override fun linkParents(parent: Node) {
         this.parent = parent
-        identifier?.linkParents(this)
+        identifier.linkParents(this)
         arrayspec.linkParents(this)
     }
 
     override fun isIterable(namespace: INameScope, heap: HeapValues) = false
     override fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue? = null
     override fun process(processor: IAstProcessor): IExpression = processor.process(this)
-    override fun referencesIdentifier(name: String) = identifier?.referencesIdentifier(name) ?: false
+    override fun referencesIdentifier(name: String) = identifier.referencesIdentifier(name)
 
     override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? {
-        val target = identifier?.targetStatement(namespace)
+        val target = identifier.targetStatement(namespace)
         if (target is VarDecl) {
             return when (target.datatype) {
                 in NumericDatatypes -> null
@@ -1089,7 +1090,10 @@ class LiteralValue(val type: DataType,
         }
 
         fun optimalInteger(value: Number, position: Position): LiteralValue {
-            return when (value) {
+            val intval = value.toInt()
+            if(intval.toDouble() != value.toDouble())
+                throw FatalAstException("value is not an integer: $value")
+            return when (intval) {
                 in 0..255 -> LiteralValue(DataType.UBYTE, bytevalue=value.toShort(), position = position)
                 in -128..127 -> LiteralValue(DataType.BYTE, bytevalue=value.toShort(), position = position)
                 in 0..65535 -> LiteralValue(DataType.UWORD, wordvalue = value.toInt(), position = position)
@@ -1586,6 +1590,17 @@ class AnonymousScope(override var statements: MutableList<IStatement>,
         statements.forEach { it.linkParents(this) }
     }
     override fun process(processor: IAstProcessor) = processor.process(this)
+}
+
+
+class NopStatement(override val position:Position): IStatement {
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+    }
+
+    override fun process(processor: IAstProcessor) = this
 }
 
 

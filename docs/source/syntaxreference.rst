@@ -369,14 +369,15 @@ arithmetic: ``+``  ``-``  ``*``  ``/``  ``//`` ``**``  ``%``
     Remainder is only supported on integer operands (not floats).
 
 
-bitwise arithmetic: ``&``  ``|``  ``^``  ``~``
+bitwise arithmetic: ``&``  ``|``  ``^``  ``~``  ``<<``  ``>>``
 	``&`` is bitwise and, ``|`` is bitwise or, ``^`` is bitwise xor, ``~`` is bitwise invert (this one is an unary operator)
+    ``<<`` is bitwise left shift and ``>>`` is bitwise right shift (both will not change the datatype of the value)
 
 assignment: ``=``
     Sets the target on the LHS (left hand side) of the operator to the value of the expression on the RHS (right hand side).
     Note that an assignment sometimes is not possible or supported.
 
-augmented assignment: ``+=``  ``-=``  ``*=``  ``/=``  ``**=``  ``&=``  ``|=``  ``^=``
+augmented assignment: ``+=``  ``-=``  ``*=``  ``/=``  ``**=``  ``&=``  ``|=``  ``^=``  ``<<=``  ``>>=``
 	Syntactic sugar; ``A += X`` is equivalent to ``A = A + X``
 
 postfix increment and decrement: ``++``  ``--``

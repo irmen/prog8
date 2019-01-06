@@ -3,6 +3,7 @@ package prog8.optimizing
 import prog8.ast.*
 import prog8.compiler.HeapValues
 import kotlin.math.abs
+import kotlin.math.log2
 
 /*
     todo simplify expression terms:
@@ -15,6 +16,22 @@ import kotlin.math.abs
         X % 2 -> X and 1 (if X is byte/word)
 
 
+    todo often used multiplications to factors that are more efficiently calculated (via shifts)
+
+        X*3 -> X*2+X
+        X*5 -> X*4+X
+        X*6 -> X*2+X*2+X*2
+        X*7 -> X*4+X*2+X
+        X*9 -> X*8 + X
+        X*10 -> X*8 + X*2
+        X*11 -> X*8 + X*2 +X
+        X*12 -> X*8 + X*4
+        X*13 -> X*8 + X*4 +X
+        X*14 -> X*8 + X*4 + X*2
+        X*15 -> X*8 + X*4 + X*2 + X
+        (and negatives)
+
+
     todo expression optimization: common (sub) expression elimination (turn common expressions into single subroutine call + introduce variable to hold it)
 
  */
@@ -23,9 +40,8 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
     var optimizationsDone: Int = 0
 
     override fun process(assignment: Assignment): IStatement {
-        if(assignment.aug_op!=null) {
+        if(assignment.aug_op!=null)
             throw AstException("augmented assignments should have been converted to normal assignments before this optimizer")
-        }
         return super.process(assignment)
     }
 
@@ -46,7 +62,7 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
             }
         }
 
-        // simplify logical expressions when a term is constant and determines the outcome
+        // simplify when a term is constant and determines the outcome
         when(expr.operator) {
             "or" -> {
                 if((leftVal!=null && leftVal.asBooleanValue) || (rightVal!=null && rightVal.asBooleanValue)) {
@@ -352,10 +368,13 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
         if(leftVal==null && rightVal==null)
             return expr
 
+        // cannot shuffle assiciativity with division!
+
         if(rightVal!=null) {
             // right value is a constant, see if we can optimize
             val rightConst: LiteralValue = rightVal
-            when(rightConst.asNumericValue?.toDouble()) {
+            val cv = rightConst.asNumericValue?.toDouble()
+            when(cv) {
                 -1.0 -> {
                     //  '/' -> -left, '//' -> -ceil(left)
                     optimizationsDone++
@@ -372,6 +391,22 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
                     when(expr.operator) {
                         "/" -> return expr.left
                         "//" -> return FunctionCall(IdentifierReference(listOf("floor"), expr.position), mutableListOf(expr.left), expr.position)
+                    }
+                }
+                2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0, 256.0, 512.0, 1024.0, 2048.0, 4096.0, 8192.0, 16384.0, 32768.0, 65536.0 -> {
+                    if(expr.left.resultingDatatype(namespace, heap) in IntegerDatatypes) {
+                        // divided by a power of two => shift right
+                        optimizationsDone++
+                        val numshifts = log2(cv)
+                        return BinaryExpression(expr.left, ">>", LiteralValue.optimalInteger(numshifts, expr.position), expr.position)
+                    }
+                }
+                -2.0, -4.0, -8.0, -16.0, -32.0, -64.0, -128.0, -256.0, -512.0, -1024.0, -2048.0, -4096.0, -8192.0, -16384.0, -32768.0, -65536.0 -> {
+                    if(expr.left.resultingDatatype(namespace, heap) in IntegerDatatypes) {
+                        // divided by a negative power of two => negate, then shift right
+                        optimizationsDone++
+                        val numshifts = log2(-cv)
+                        return BinaryExpression(PrefixExpression("-", expr.left, expr.position), ">>", LiteralValue.optimalInteger(numshifts, expr.position), expr.position)
                     }
                 }
             }
@@ -413,7 +448,8 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
             // right value is a constant, see if we can optimize
             val leftValue: IExpression = expr.left
             val rightConst: LiteralValue = rightVal
-            when(rightConst.asNumericValue?.toDouble()) {
+            val cv = rightConst.asNumericValue?.toDouble()
+            when(cv) {
                 -1.0 -> {
                     // -left
                     optimizationsDone++
@@ -428,6 +464,22 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
                     // left
                     optimizationsDone++
                     return expr.left
+                }
+                2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0, 256.0, 512.0, 1024.0, 2048.0, 4096.0, 8192.0, 16384.0, 32768.0, 65536.0 -> {
+                    if(leftValue.resultingDatatype(namespace, heap) in IntegerDatatypes) {
+                        // times a power of two => shift left
+                        optimizationsDone++
+                        val numshifts = log2(cv)
+                        return BinaryExpression(expr.left, "<<", LiteralValue.optimalInteger(numshifts, expr.position), expr.position)
+                    }
+                }
+                -2.0, -4.0, -8.0, -16.0, -32.0, -64.0, -128.0, -256.0, -512.0, -1024.0, -2048.0, -4096.0, -8192.0, -16384.0, -32768.0, -65536.0 -> {
+                    if(leftValue.resultingDatatype(namespace, heap) in IntegerDatatypes) {
+                        // times a negative power of two => negate, then shift left
+                        optimizationsDone++
+                        val numshifts = log2(-cv)
+                        return BinaryExpression(PrefixExpression("-", expr.left, expr.position), "<<", LiteralValue.optimalInteger(numshifts, expr.position), expr.position)
+                    }
                 }
             }
         }

@@ -75,6 +75,12 @@ enum class Opcode {
     ABS_F,
 
     // bit shifts and bitwise arithmetic
+    SHIFTEDL_BYTE,      // shifts stack value
+    SHIFTEDL_WORD,      // shifts stack value
+    SHIFTEDR_UBYTE,     // shifts stack value
+    SHIFTEDR_SBYTE,     // shifts stack value
+    SHIFTEDR_UWORD,     // shifts stack value
+    SHIFTEDR_SWORD,     // shifts stack value
     SHL_BYTE,
     SHL_WORD,
     SHL_MEM_BYTE,
