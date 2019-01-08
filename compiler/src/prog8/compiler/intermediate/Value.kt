@@ -232,20 +232,32 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
 
     fun shl(): Value {
         val v = integerValue()
-        if(type==DataType.UBYTE)
-            return Value(type, (v shl 1) and 255)
-        if(type==DataType.UWORD)
-            return Value(type, (v shl 1) and 65535)
-        throw ValueException("invalid type for shl: $type")
+        return when (type) {
+            DataType.UBYTE -> return Value(type, (v shl 1) and 255)
+            DataType.BYTE -> {
+                if(v<0)
+                    Value(type, -((-v shl 1) and 255))
+                else
+                    Value(type, (v shl 1) and 255)
+            }
+            DataType.UWORD -> return Value(type, (v shl 1) and 65535)
+            DataType.WORD -> {
+                if(v<0)
+                    Value(type, -((-v shl 1) and 65535))
+                else
+                    Value(type, (v shl 1) and 65535)
+            }
+            else -> throw ValueException("invalid type for shl: $type")
+        }
     }
 
     fun shr(): Value {
         val v = integerValue()
         return when(type){
             DataType.UBYTE -> Value(type, (v ushr 1) and 255)
-            DataType.BYTE -> TODO("shr sbyte")
+            DataType.BYTE -> Value(type, v shr 1)
             DataType.UWORD -> Value(type, (v ushr 1) and 65535)
-            DataType.WORD -> TODO("shr sword")
+            DataType.WORD -> Value(type, v shr 1)
             else -> throw ValueException("invalid type for shr: $type")
         }
     }

@@ -924,7 +924,7 @@ class TestStackVmOpcodes {
     }
 
     @Test
-    fun testSHR() {
+    fun testSHIFTEDR() {
         // @todo test SHR signed byte + signed word
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH_FLOAT, Value(DataType.FLOAT, 9.99)),
@@ -932,19 +932,19 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 61005)),
                 Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 3)),
                 Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 249)),
-                Instruction(Opcode.SHR_UBYTE),        // 124
+                Instruction(Opcode.SHIFTEDR_UBYTE),        // 124
                 Instruction(Opcode.DISCARD_BYTE),
-                Instruction(Opcode.SHR_UBYTE),        // 1
-                Instruction(Opcode.SHR_UBYTE),        // 0
-                Instruction(Opcode.SHR_UBYTE),        // 0
+                Instruction(Opcode.SHIFTEDR_UBYTE),        // 1
+                Instruction(Opcode.SHIFTEDR_UBYTE),        // 0
+                Instruction(Opcode.SHIFTEDR_UBYTE),        // 0
                 Instruction(Opcode.DISCARD_BYTE),
-                Instruction(Opcode.SHR_UWORD),        // 30502
+                Instruction(Opcode.SHIFTEDR_UWORD),        // 30502
                 Instruction(Opcode.DISCARD_WORD),
-                Instruction(Opcode.SHR_UWORD),        // 1
-                Instruction(Opcode.SHR_UWORD),        // 0
-                Instruction(Opcode.SHR_UWORD),        // 0
+                Instruction(Opcode.SHIFTEDR_UWORD),        // 1
+                Instruction(Opcode.SHIFTEDR_UWORD),        // 0
+                Instruction(Opcode.SHIFTEDR_UWORD),        // 0
                 Instruction(Opcode.DISCARD_WORD),
-                Instruction(Opcode.SHR_UBYTE)         // error on float
+                Instruction(Opcode.SHIFTEDR_UWORD)         // error on float
         )
         vm.load(makeProg(ins), null)
         vm.step(6)
@@ -967,22 +967,22 @@ class TestStackVmOpcodes {
     }
 
     @Test
-    fun testSHL() {
+    fun testSHIFTEDL() {
         val ins = mutableListOf(
                 Instruction(Opcode.PUSH_FLOAT, Value(DataType.FLOAT, 9.99)),
                 Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 3)),
                 Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, 61005)),
                 Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 3)),
                 Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, 249)),
-                Instruction(Opcode.SHL_BYTE),        // 242
+                Instruction(Opcode.SHIFTEDL_BYTE),        // 242
                 Instruction(Opcode.DISCARD_BYTE),
-                Instruction(Opcode.SHL_BYTE),        // 6
+                Instruction(Opcode.SHIFTEDL_BYTE),        // 6
                 Instruction(Opcode.DISCARD_BYTE),
-                Instruction(Opcode.SHL_WORD),        // 56474
+                Instruction(Opcode.SHIFTEDL_WORD),        // 56474
                 Instruction(Opcode.DISCARD_WORD),
-                Instruction(Opcode.SHL_WORD),        // 6
+                Instruction(Opcode.SHIFTEDL_WORD),        // 6
                 Instruction(Opcode.DISCARD_WORD),
-                Instruction(Opcode.SHL_WORD)         // error on float
+                Instruction(Opcode.SHIFTEDL_WORD)         // error on float
         )
         vm.load(makeProg(ins), null)
         vm.step(6)

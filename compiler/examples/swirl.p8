@@ -1,31 +1,24 @@
 %import c64utils
-%import c64flt
 
 ~ main {
 
-    const uword width = 320
-    const uword height = 200
+    const uword width = 40
+    const uword height = 25
 
     sub start()  {
 
-        vm_gfx_clearscr(0)
-
-        float t
+        uword anglex
+        uword angley
         ubyte color
 
         while true {
-            float x = sin(t*1.01) + cos(t*1.1234)
-            float y = cos(t) + sin(t*0.03456)
-            vm_gfx_pixel(screenx(x), screeny(y), color//16)
-            t  += 0.01
+            ubyte x = msb(sin8u(msb(anglex)) as uword * width)
+            ubyte y = msb(cos8u(msb(angley)) as uword * height)
+            c64scr.setcc(x, y, 81, color)
+
+            anglex+=800
+            angley+=947
             color++
         }
-    }
-
-    sub screenx(float x) -> word {
-        return (x/4.1* (width as float)) as word + width // 2
-    }
-    sub screeny(float y) -> word {
-        return (y/4.1 * (height as float)) as word + height // 2
     }
 }

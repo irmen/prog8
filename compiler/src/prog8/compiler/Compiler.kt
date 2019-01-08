@@ -156,8 +156,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         prog.label("block."+block.scopedname, false)
         prog.line(block.position)
         translate(block.statements)
-        val r = super.process(block)
-        return r
+        return super.process(block)
     }
 
     private fun processVariables(scope: INameScope) {

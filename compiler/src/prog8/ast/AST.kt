@@ -1013,7 +1013,7 @@ class DirectMemoryRead(var addressExpression: IExpression, override val position
     override fun referencesIdentifier(name: String) = false
     override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? = DataType.UBYTE
     override fun isIterable(namespace: INameScope, heap: HeapValues) = false
-    override fun constValue(namespace: INameScope, heap: HeapValues) = null
+    override fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue? = null
 
     override fun toString(): String {
         return "DirectMemoryRead($addressExpression)"
@@ -1033,7 +1033,7 @@ class DirectMemoryWrite(var addressExpression: IExpression, override val positio
     override fun referencesIdentifier(name: String) = false
     override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? = DataType.UBYTE
     override fun isIterable(namespace: INameScope, heap: HeapValues) = false
-    override fun constValue(namespace: INameScope, heap: HeapValues) = null
+    override fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue? = null
 
     override fun toString(): String {
         return "DirectMemoryWrite($addressExpression)"
@@ -1903,8 +1903,7 @@ private class AsmSubroutineReturn(val type: DataType,
                           val registerOrPair: RegisterOrPair?,
                           val statusflag: Statusflag?,
                           val stack: Boolean,
-                          val position: Position) {
-}
+                          val position: Position)
 
 private fun prog8Parser.ClobberContext.toAst(): Set<Register>
         = this.register().asSequence().map { it.toAst() }.toSet()

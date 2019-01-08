@@ -1,121 +1,93 @@
 %import c64utils
-%import c64flt
-
-~ irq {
-    uword global_time
-    ubyte time_changed
-
-    sub irq() {
-        ; activated automatically if run in StackVm
-        global_time++
-        time_changed = 1
-    }
-}
-
 
 ~ main {
 
-    const uword width = 320
-    const uword height = 200
+    const uword width = 40
+    const uword height = 25
 
     ; vertices
-    float[8] xcoor = [ -1.0, -1.0, -1.0, -1.0,  1.0,  1.0,  1.0, 1.0 ]
-    float[8] ycoor = [ -1.0, -1.0,  1.0,  1.0, -1.0, -1.0,  1.0, 1.0 ]
-    float[8] zcoor = [ -1.0,  1.0, -1.0,  1.0, -1.0,  1.0, -1.0, 1.0 ]
-
-    ; edges (msb=from vertex, lsb=to vertex)
-    uword[12] edges = [$0001, $0103, $0302, $0200, $0405, $0507, $0706, $0604, $0004, $0105, $0206, $0307]
+    byte[8] xcoor = [ -40, -40, -40, -40,  40,  40,  40, 40 ]
+    byte[8] ycoor = [ -40, -40,  40,  40, -40, -40,  40, 40 ]
+    byte[8] zcoor = [ -40,  40, -40,  40, -40,  40, -40, 40 ]
 
     ; storage for rotated coordinates
-    float[len(xcoor)] rotatedx
-    float[len(ycoor)] rotatedy
-    float[len(zcoor)] rotatedz
+    word[len(xcoor)] rotatedx
+    word[len(ycoor)] rotatedy
+    word[len(zcoor)] rotatedz
 
     sub start()  {
-        while true {
-            if irq.time_changed {
-                irq.time_changed = 0
-                vm_gfx_clearscr(0)
-                vm_gfx_text(8, 6, 1, "Spin")
-                vm_gfx_text(29, 11, 1, "to Win !")
-
-                for uword i in 0 to width//10 {
-                    vm_gfx_line(i*2+width//2-width//10, 130, i*10.w, 199, 6)
-                }
-
-                rotate_vertices(irq.global_time as float / 30.0)
-                draw_edges()
-            }
+        uword anglex
+        uword angley
+        uword anglez
+        while(true) {
+            rotate_vertices(msb(anglex), msb(angley), msb(anglez))
+            c64scr.clear_screenchars(32)
+            draw_edges()
+            anglex+=1000
+            angley+=433
+            anglez+=907
+            c64.PLOT(0,0,0)
+            c64scr.print("3d cube! (integer) ")
+            c64scr.print_ub(c64.TIME_LO)
+            c64scr.print(" jiffies/frame")
+            c64.TIME_LO=0
         }
     }
 
-    sub rotate_vertices(float t) {
+    sub rotate_vertices(ubyte ax, ubyte ay, ubyte az) {
         ; rotate around origin (0,0,0)
 
         ; set up the 3d rotation matrix values
-        float cosa = cos(t)
-        float sina = sin(t)
-        float cosb = cos(t*0.33)
-        float sinb = sin(t*0.33)
-        float cosc = cos(t*0.78)
-        float sinc = sin(t*0.78)
+        word wcosa = cos8(ax) as word
+        word wsina = sin8(ax) as word
+        word wcosb = cos8(ay) as word
+        word wsinb = sin8(ay) as word
+        word wcosc = cos8(az) as word
+        word wsinc = sin8(az) as word
 
-        float cosa_sinb = cosa*sinb
-        float sina_sinb = sina*sinb
-        float Axx = cosa*cosb
-        float Axy = cosa_sinb*sinc - sina*cosc
-        float Axz = cosa_sinb*cosc + sina*sinc
-        float Ayx = sina*cosb
-        float Ayy = sina_sinb*sinc + cosa*cosc
-        float Ayz = sina_sinb*cosc - cosa*sinc
-        float Azx = -sinb
-        float Azy = cosb*sinc
-        float Azz = cosb*cosc
+        word wcosa_sinb = wcosa*wsinb // 128
+        word wsina_sinb = wsina*wsinb // 128
+
+        word Axx = wcosa*wcosb // 128
+        word Axy = (wcosa_sinb*wsinc - wsina*wcosc) // 128
+        word Axz = (wcosa_sinb*wcosc + wsina*wsinc) // 128
+        word Ayx = wsina*wcosb // 128
+        word Ayy = (wsina_sinb*wsinc + wcosa*wcosc) // 128
+        word Ayz = (wsina_sinb*wcosc - wcosa*wsinc) // 128
+        word Azx = -wsinb
+        word Azy = wcosb*wsinc // 128
+        word Azz = wcosb*wcosc // 128
 
         for ubyte i in 0 to len(xcoor)-1 {
-            rotatedx[i] = Axx*xcoor[i] + Axy*ycoor[i] + Axz*zcoor[i]
-            rotatedy[i] = Ayx*xcoor[i] + Ayy*ycoor[i] + Ayz*zcoor[i]
-            rotatedz[i] = Azx*xcoor[i] + Azy*ycoor[i] + Azz*zcoor[i]
+            rotatedx[i] = (Axx*xcoor[i] + Axy*ycoor[i] + Axz*zcoor[i]) // 128
+            rotatedy[i] =(Ayx*xcoor[i] + Ayy*ycoor[i] + Ayz*zcoor[i]) // 128
+            rotatedz[i] = (Azx*xcoor[i] + Azy*ycoor[i] + Azz*zcoor[i]) // 128
         }
     }
 
-
     sub draw_edges() {
 
-        sub toscreenx(float x, float z) -> word {
-            return x/(4.2+z) * (height as float) as word + width // 2
-        }
+        ; plot the points of the 3d cube
+        ; first the points on the back, then the points on the front (painter algorithm)
 
-        sub toscreeny(float y, float z) -> word {
-            return y/(4.2+z) * (height as float) as word + height // 2
-        }
-
-        ; draw all edges of the object
-        for uword edge in edges {
-            ubyte e_from = msb(edge)
-            ubyte e_to = lsb(edge)
-            vm_gfx_line(toscreenx(rotatedx[e_from], rotatedz[e_from]), toscreeny(rotatedy[e_from], rotatedz[e_from]),
-                         toscreenx(rotatedx[e_to], rotatedz[e_to]), toscreeny(rotatedy[e_to], rotatedz[e_to]), e_from+e_to)
-        }
-
-        ; accentuate the vertices a bit with small boxes
         for ubyte i in 0 to len(xcoor)-1 {
-            word sx = toscreenx(rotatedx[i], rotatedz[i])
-            word sy = toscreeny(rotatedy[i], rotatedz[i])
-            ubyte color=i+2
-            vm_gfx_pixel(sx-1, sy-1, color)
-            vm_gfx_pixel(sx, sy-1, color)
-            vm_gfx_pixel(sx+1, sy-1, color)
-            vm_gfx_pixel(sx-1, sy, color)
-            vm_gfx_pixel(sx, sy, color)
-            vm_gfx_pixel(sx+1, sy, color)
-            vm_gfx_pixel(sx-1, sy+1, color)
-            vm_gfx_pixel(sx, sy+1, color)
-            vm_gfx_pixel(sx+1, sy+1, color)
-            vm_gfx_pixel(sx, sy-2, color)
-            vm_gfx_pixel(sx+2, sy, color)
-            vm_gfx_pixel(sx, sy+2, color)
-            vm_gfx_pixel(sx-2, sy, color)
+            word rz = rotatedz[i]
+            if rz >= 10 {
+                word persp = (rz+200) // height
+                byte sx = rotatedx[i] // persp as byte + width//2
+                byte sy = rotatedy[i] // persp as byte + height//2
+                c64scr.setcc(sx as ubyte, sy as ubyte, 46, i+2)
+            }
+        }
+
+        for ubyte i in 0 to len(xcoor)-1 {
+            word rz = rotatedz[i]
+            if rz < 10 {
+                word persp = (rz+200) // height
+                byte sx = rotatedx[i] // persp as byte + width//2
+                byte sy = rotatedy[i] // persp as byte + height//2
+                c64scr.setcc(sx as ubyte, sy as ubyte, 81, i+2)
+            }
         }
     }
 }

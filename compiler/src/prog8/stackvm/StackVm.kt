@@ -547,42 +547,37 @@ class StackVm(private var traceOutputFile: String?) {
                 checkDt(v, DataType.FLOAT)
                 evalstack.push(v.abs())
             }
-            Opcode.SHL_BYTE -> {
+
+            Opcode.SHIFTEDL_BYTE, Opcode.SHL_BYTE -> {
                 val v = evalstack.pop()
-                checkDt(v, DataType.UBYTE)
+                checkDt(v, DataType.UBYTE, DataType.BYTE)
                 evalstack.push(v.shl())
             }
-            Opcode.SHL_WORD -> {
+            Opcode.SHIFTEDL_WORD, Opcode.SHL_WORD -> {
                 val v = evalstack.pop()
-                checkDt(v, DataType.UWORD)
+                checkDt(v, DataType.UWORD, DataType.WORD)
                 evalstack.push(v.shl())
             }
-            Opcode.SHR_UBYTE -> {
+            Opcode.SHIFTEDR_UBYTE, Opcode.SHR_UBYTE -> {
                 val v = evalstack.pop()
                 checkDt(v, DataType.UBYTE)
                 evalstack.push(v.shr())
             }
-            Opcode.SHR_SBYTE -> {
+            Opcode.SHIFTEDR_SBYTE, Opcode.SHR_SBYTE -> {
                 val v = evalstack.pop()
                 checkDt(v, DataType.BYTE)
                 evalstack.push(v.shr())
             }
-            Opcode.SHR_UWORD -> {
+            Opcode.SHIFTEDR_UWORD, Opcode.SHR_UWORD -> {
                 val v = evalstack.pop()
                 checkDt(v, DataType.UWORD)
                 evalstack.push(v.shr())
             }
-            Opcode.SHR_SWORD -> {
+            Opcode.SHIFTEDR_SWORD, Opcode.SHR_SWORD -> {
                 val v = evalstack.pop()
                 checkDt(v, DataType.WORD)
                 evalstack.push(v.shr())
             }
-            Opcode.SHIFTEDL_BYTE -> TODO()
-            Opcode.SHIFTEDL_WORD -> TODO()
-            Opcode.SHIFTEDR_UBYTE -> TODO()
-            Opcode.SHIFTEDR_SBYTE -> TODO()
-            Opcode.SHIFTEDR_UWORD -> TODO()
-            Opcode.SHIFTEDR_SWORD -> TODO()
             Opcode.ROL_BYTE -> {
                 val v = evalstack.pop()
                 checkDt(v, DataType.UBYTE)
