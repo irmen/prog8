@@ -108,9 +108,9 @@ Directives
 	For a module option, only the ``enable_floats`` option is recognised, which will tell the compiler
 	to deal with floating point numbers (by using various subroutines from the Commodore-64 kernal).
 	Otherwise, floating point support is not enabled.
-    When used in a block with the ``force_output`` option, it will force the block to be outputted
-    in the final program. Can be useful to make sure some
-    data is generated that would otherwise be discarded because it's not referenced (such as sprite data).
+	When used in a block with the ``force_output`` option, it will force the block to be outputted
+	in the final program. Can be useful to make sure some
+	data is generated that would otherwise be discarded because it's not referenced (such as sprite data).
 
 
 .. data:: %asmbinary "<filename>" [, <offset>[, <length>]]
@@ -370,7 +370,7 @@ arithmetic: ``+``  ``-``  ``*``  ``/``  ``//`` ``**``  ``%``
 
 
 bitwise arithmetic: ``&``  ``|``  ``^``  ``~``  ``<<``  ``>>``
-	``&`` is bitwise and, ``|`` is bitwise or, ``^`` is bitwise xor, ``~`` is bitwise invert (this one is an unary operator)
+    ``&`` is bitwise and, ``|`` is bitwise or, ``^`` is bitwise xor, ``~`` is bitwise invert (this one is an unary operator)
     ``<<`` is bitwise left shift and ``>>`` is bitwise right shift (both will not change the datatype of the value)
 
 assignment: ``=``

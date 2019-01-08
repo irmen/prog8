@@ -320,7 +320,14 @@ Initial values across multiple runs of the program
 
 When declaring values with an initial value, this value will be set into the variable each time
 the program reaches the declaration again. This can be in loops, multiple subroutine calls,
-or even multiple invocations of the entire program.
+or even multiple invocations of the entire program.  If you omit an initial value, it will
+be set to zero only for the first run of the program. A second run will utilize the last value
+where it left off (but your code will be a bit smaller because no initialization instructions
+are generated)
+
+.. warning::
+    this behavior may change in a future version so that subsequent runs always
+    use the same initial values
 
 This only works for simple types, *and not for string variables and arrays*.
 It is assumed these are left unchanged by the program.
