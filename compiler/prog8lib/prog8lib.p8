@@ -42,7 +42,7 @@ pop_index_times_5	.proc
 		adc  c64.SCRATCH_ZPB1	; A*=5
 		rts
 		.pend
-		
+
 neg_b		.proc
 		lda  c64.ESTACK_LO+1,x
 		eor  #255
@@ -51,7 +51,7 @@ neg_b		.proc
 		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
-                
+
 neg_w		.proc
 		sec
 		lda  #0
@@ -62,7 +62,7 @@ neg_w		.proc
 		sta  c64.ESTACK_HI+1,x
 		rts
 		.pend
-			
+
 inv_word	.proc
 		lda  c64.ESTACK_LO+1,x
 		eor  #255
@@ -82,7 +82,7 @@ not_byte	.proc
 +		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
-		
+
 not_word	.proc
 		lda  c64.ESTACK_LO + 1,x
 		ora  c64.ESTACK_HI + 1,x
@@ -94,14 +94,14 @@ not_word	.proc
 		sta  c64.ESTACK_HI + 1,x
 		rts
 		.pend
-		
+
 abs_b		.proc
 		; -- push abs(byte) on stack (as byte)
 		lda  c64.ESTACK_LO+1,x
 		bmi  neg_b
 		rts
 		.pend
-		
+
 abs_w		.proc
 		; -- push abs(word) on stack (as word)
 		lda  c64.ESTACK_HI+1,x
@@ -121,7 +121,7 @@ add_w		.proc
 		sta  c64.ESTACK_HI+1,x
 		rts
 		.pend
-		
+
 sub_w		.proc
 		; -- push word-word
 		inx
@@ -144,7 +144,7 @@ mul_byte	.proc
 		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
-		
+
 mul_word	.proc
 		inx
 		lda  c64.ESTACK_LO,x
@@ -162,7 +162,7 @@ mul_word	.proc
 		sta  c64.ESTACK_HI+1,x
 		rts
 		.pend
-		
+
 idiv_b		.proc
 		; signed division: use unsigned division and fix sign of result afterwards
 		inx
@@ -194,7 +194,7 @@ idiv_b		.proc
 		rts
 _remainder	.byte  0
 		.pend
-		
+
 idiv_ub		.proc
 		inx
 		ldy  c64.ESTACK_LO,x
@@ -204,7 +204,7 @@ idiv_ub		.proc
 		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
-		
+
 idiv_w		.proc
 		; signed division: use unsigned division and fix sign of result afterwards
 		lda  c64.ESTACK_HI+2,x
@@ -232,7 +232,7 @@ idiv_w		.proc
 		jmp  neg_w		; negate result
 +		rts
 		.pend
-		
+
 idiv_uw		.proc
 		inx
 		lda  c64.ESTACK_LO+1,x
@@ -256,7 +256,7 @@ remainder_ub	.proc
 		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
-		
+
 remainder_uw	.proc
 		inx
 		lda  c64.ESTACK_LO+1,x
@@ -272,7 +272,7 @@ remainder_uw	.proc
 		sta  c64.ESTACK_HI+1,x
 		rts
 		.pend
-		
+
 equal_w		.proc
 		; -- are the two words on the stack identical?
 		lda  c64.ESTACK_LO+1,x
@@ -292,7 +292,7 @@ notequal_b	.proc
 		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
-		
+
 notequal_w	.proc
 		; -- are the two words on the stack different?
 		inx
@@ -306,14 +306,14 @@ notequal_w	.proc
 		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
-		
+
 less_ub		.proc
 		lda  c64.ESTACK_LO+2,x
 		cmp  c64.ESTACK_LO+1,x
 		bcc  equal_b._equal_b_true
 		bcs  equal_b._equal_b_false
 		.pend
-	
+
 less_b		.proc
 		; see http://www.6502.org/tutorials/compare_beyond.html
 		lda  c64.ESTACK_LO+2,x
@@ -364,10 +364,10 @@ lesseq_ub	.proc
 		lda  c64.ESTACK_LO+2,x
 		cmp  c64.ESTACK_LO+1,x
 		bcc  equal_b._equal_b_true
-		beq  equal_b._equal_b_true		; @todo optimize by flipping comparison
+		beq  equal_b._equal_b_true		; @todo optimize by flipping comparison?
 		bcs  equal_b._equal_b_false
 		.pend
-	
+
 lesseq_b	.proc
 		; see http://www.6502.org/tutorials/compare_beyond.html
 		lda  c64.ESTACK_LO+2,x
@@ -389,7 +389,7 @@ lesseq_uw	.proc
 		bcs  equal_b._equal_b_true
 		bcc  equal_b._equal_b_false
 		.pend
-		
+
 lesseq_w	.proc
 		lda  c64.ESTACK_LO+1,x
 		cmp  c64.ESTACK_LO+2,x
@@ -408,7 +408,7 @@ greater_ub	.proc
 		bcs  equal_b._equal_b_true		; @todo optimize by flipping comparison?
 		bcc  equal_b._equal_b_false
 		.pend
-	
+
 greater_b	.proc
 		; see http://www.6502.org/tutorials/compare_beyond.html
 		lda  c64.ESTACK_LO+2,x
@@ -441,14 +441,14 @@ greater_w	.proc
 +		bmi  equal_b._equal_b_true
 		bpl  equal_b._equal_b_false
 		.pend
-	
+
 greatereq_ub	.proc
 		lda  c64.ESTACK_LO+2,x
 		cmp  c64.ESTACK_LO+1,x
 		bcs  equal_b._equal_b_true
 		bcc  equal_b._equal_b_false
 		.pend
-	
+
 greatereq_b	.proc
 		; see http://www.6502.org/tutorials/compare_beyond.html
 		lda  c64.ESTACK_LO+2,x
@@ -482,7 +482,7 @@ greatereq_w	.proc
 		bmi  equal_b._equal_b_false
 		.pend
 
-		
+
 func_sin8	.proc
 		ldy  c64.ESTACK_LO+1,x
 		lda  _sinecos8,y
@@ -511,7 +511,7 @@ _  :=  32767 * sin(range(256+64) * rad(360.0/256.0))
 _sinecos8lo     .byte  <_
 _sinecos8hi     .byte  >_
 		.pend
-		
+
 func_sin16u	.proc
 		ldy  c64.ESTACK_LO+1,x
 		lda  _sinecos8ulo,y
@@ -531,7 +531,7 @@ func_cos8	.proc
 		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
-		
+
 func_cos8u	.proc
 		ldy  c64.ESTACK_LO+1,x
 		lda  func_sin8u._sinecos8u+64,y
@@ -556,8 +556,8 @@ func_cos16u	.proc
 		sta  c64.ESTACK_HI+1,x
 		rts
 		.pend
-		
-			
+
+
 peek_address	.proc
 		; -- peek address on stack into c64.SCRATCH_ZPWORD1
 		lda  c64.ESTACK_LO+1,x
@@ -585,7 +585,7 @@ _got_any	lda  #1
 		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
-		
+
 func_any_w	.proc
 		inx
 		lda  c64.ESTACK_LO,x	; array size
@@ -611,7 +611,7 @@ _got_not_all	lda  #0
 		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
-		
+
 func_all_w	.proc
 		inx
 		lda  c64.ESTACK_LO,x	; array size
@@ -634,7 +634,7 @@ _cmp_mod	cpy  #255		; modified
 		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
-		
+
 func_max_ub	.proc
 		jsr  pop_array_and_lengthmin1Y
 		lda  #0
@@ -651,7 +651,7 @@ func_max_ub	.proc
 		dex
 		rts
 		.pend
-		
+
 func_max_b	.proc
 		jsr  pop_array_and_lengthmin1Y
 		lda  #-128
@@ -661,7 +661,7 @@ func_max_b	.proc
 		sbc  c64.SCRATCH_ZPB1
 		bvc  +
 		eor  #$80
-+		bmi  +		
++		bmi  +
 		lda  (c64.SCRATCH_ZPWORD1),y
 		sta  c64.SCRATCH_ZPB1
 +		dey
@@ -672,7 +672,7 @@ func_max_b	.proc
 		dex
 		rts
 		.pend
-		
+
 func_max_uw	.proc
 		lda  #0
 		sta  _result_maxuw
@@ -708,7 +708,7 @@ _lesseq		dey
 		rts
 _result_maxuw	.word  0
 		.pend
-		
+
 func_max_w	.proc
 		lda  #$00
 		sta  _result_maxw
@@ -745,7 +745,7 @@ _lesseq		dey
 		rts
 _result_maxw	.word  0
 		.pend
-				
+
 
 func_sum_b	.proc
 		jsr  pop_array_and_lengthmin1Y
@@ -770,7 +770,7 @@ _loop		lda  (c64.SCRATCH_ZPWORD1),y
 		dex
 		rts
 		.pend
-		
+
 func_sum_ub	.proc
 		jsr  pop_array_and_lengthmin1Y
 		lda  #0
@@ -818,7 +818,7 @@ func_sum_w	.proc
 		jmp  func_sum_uw
 		.pend
 
-		
+
 pop_array_and_lengthmin1Y	.proc
 		inx
 		ldy  c64.ESTACK_LO,x
@@ -830,7 +830,7 @@ pop_array_and_lengthmin1Y	.proc
 		inx
 		rts
 		.pend
-		
+
 func_min_ub	.proc
 		jsr  pop_array_and_lengthmin1Y
 		lda  #255
@@ -847,8 +847,8 @@ func_min_ub	.proc
 		dex
 		rts
 		.pend
-		
-		
+
+
 func_min_b	.proc
 		jsr  pop_array_and_lengthmin1Y
 		lda  #127
@@ -858,7 +858,7 @@ func_min_b	.proc
 		sbc  c64.SCRATCH_ZPB1
 		bvc  +
 		eor  #$80
-+		bpl  +		
++		bpl  +
 		lda  (c64.SCRATCH_ZPWORD1),y
 		sta  c64.SCRATCH_ZPB1
 +		dey
@@ -869,7 +869,7 @@ func_min_b	.proc
 		dex
 		rts
 		.pend
-		
+
 func_min_uw	.proc
 		lda  #$ff
 		sta  _result_minuw
@@ -905,7 +905,7 @@ _gtequ		dey
 		rts
 _result_minuw	.word  0
 		.pend
-		
+
 func_min_w	.proc
 		lda  #$ff
 		sta  _result_minw
@@ -942,7 +942,7 @@ _gtequ		dey
 		rts
 _result_minw	.word  0
 		.pend
-		
+
 
 func_len_str	.proc
 		; -- push length of 0-terminated string on stack
@@ -956,7 +956,7 @@ func_len_str	.proc
 		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
-                
+
 func_len_strp	.proc
 		; -- push length of pascal-string on stack
 		jsr  peek_address
@@ -973,7 +973,7 @@ func_rnd	.proc
 		dex
 		rts
 		.pend
-		
+
 func_rndw	.proc
 		; -- put a random uword on the estack
 		jsr  math.randword
@@ -983,8 +983,8 @@ func_rndw	.proc
 		dex
 		rts
 		.pend
-  
-    
+
+
 func_memcopy	.proc		; clobbers A,Y
 		inx
 		stx  c64.SCRATCH_ZPREGX
@@ -1004,7 +1004,7 @@ func_memcopy	.proc		; clobbers A,Y
 		inx
 		rts
 		.pend
-		
+
 	}}
 }
 
@@ -1088,7 +1088,7 @@ mult16		lda  #$00
 		rts
 
 multiply_words_result	.byte  0,0,0,0
-		
+
 	}}
 }
 
@@ -1138,7 +1138,7 @@ result = dividend ;save memory by reusing divident to store the result
 		ldx  #16	        ;repeat for each bit: ...
 
 -		asl  dividend		;dividend lb & hb*2, msb -> Carry
-		rol  dividend+1	
+		rol  dividend+1
 		rol  remainder		;remainder lb & hb * 2 + msb from carry
 		rol  remainder+1
 		lda  remainder
@@ -1150,23 +1150,23 @@ result = dividend ;save memory by reusing divident to store the result
 		bcc  +			;if carry=0 then divisor didn't fit in yet
 
 		sta  remainder+1	;else save substraction result as new remainder,
-		sty  remainder	
+		sty  remainder
 		inc  result		;and INCrement result cause divisor fit in 1 times
 
 +		dex
 		bne  -
-		
+
 		lda  result
 		ldy  result+1
 		ldx  c64.SCRATCH_ZPREGX
 		rts
-_divisor	.word 0		
+_divisor	.word 0
 	}}
 }
 
 asmsub  randseed  (uword seed @ AY) -> clobbers(A, Y) -> ()  {
 	; ---- reset the random seeds for the byte and word random generators
-	;      default starting values are:  A=$2c Y=$9e  
+	;      default starting values are:  A=$2c Y=$9e
 	%asm {{
 		sta  randword._seed
 		sty  randword._seed+1

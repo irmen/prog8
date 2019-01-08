@@ -42,6 +42,7 @@
 		memory  ubyte  SPRPTR5		= 2045
 		memory  ubyte  SPRPTR6		= 2046
 		memory  ubyte  SPRPTR7		= 2047
+		memory  ubyte[8]  SPRPTR	= 2040
  
 
 ; ---- VIC-II registers ----
@@ -62,6 +63,7 @@
 		memory  ubyte SP6Y		= $d00d
 		memory  ubyte SP7X		= $d00e
 		memory  ubyte SP7Y		= $d00f
+		memory  ubyte[16] SPXY		= $d000
 
 		memory  ubyte MSIGX		= $d010
 		memory  ubyte SCROLY		= $d011
@@ -95,6 +97,8 @@
 		memory  ubyte SP5COL		= $d02c
 		memory  ubyte SP6COL		= $d02d
 		memory  ubyte SP7COL		= $d02e
+		memory  ubyte[8] SPCOL		= $d027
+		
 
 ; ---- end of VIC-II registers ----
 

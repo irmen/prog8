@@ -9,7 +9,6 @@
 
 ~ c64flt {
 	; ---- this block contains C-64 floating point related functions ----
-	; @todo enable float-checkin astchecker.process(decl: VarDecl) again
 	
 		const  float  PI	= 3.141592653589793
 		const  float  TWOPI	= 6.283185307179586
@@ -192,53 +191,30 @@ asmsub  GETADRAY  () -> clobbers(X) -> (uword @ AY)  {
 	}}
 }
 
-sub  print_f  (float value) {
+asmsub  print_f  (float value @ AY) -> clobbers(A, Y) -> () {
 	; ---- prints the floating point value (without a newline) using basic rom routines. 
-	;      clobbers no registers.
-	;	@todo version that takes A/Y pointer to float instead
 	%asm {{
-		pha
-		tya
-		pha
-		txa
-		pha
-		lda  #<print_f_value
-		ldy  #>print_f_value
+		stx  c64.SCRATCH_ZPREGX
 		jsr  c64flt.MOVFM		; load float into fac1
 		jsr  c64flt.FOUT		; fac1 to string in A/Y
 		jsr  c64.STROUT			; print string in A/Y
-		pla
-		tax
-		pla
-		tay
-		pla
+		ldx  c64.SCRATCH_ZPREGX
 		rts
 	}}
 }
 
-sub  print_fln  (float value) {
+asmsub  print_fln  (float value @ AY) -> clobbers(A, Y) -> () {
 	; ---- prints the floating point value (with a newline at the end) using basic rom routines
-	;      clobbers no registers.
-	;	@todo version that takes A/Y pointer to float instead
 	%asm {{
-		pha
-		tya
-		pha
-		txa
-		pha
-		lda  #<print_fln_value
-		ldy  #>print_fln_value
+		stx  c64.SCRATCH_ZPREGX
 		jsr  c64flt.MOVFM		; load float into fac1
 		jsr  c64flt.FPRINTLN		; print fac1 with newline
-		pla
-		tax
-		pla
-		tay
-		pla
+		ldx  c64.SCRATCH_ZPREGX
 		rts
 	}}
         
 }
+
 
 ; --- low level floating point assembly routines
 %asm {{

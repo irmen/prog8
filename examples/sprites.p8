@@ -39,19 +39,10 @@
         c64.STROUT("balloon sprites!\n")
         c64.STROUT("...we are all floating...\n")
 
-        const uword sprite_address_ptr = $0a00 // 64
-        c64.SPRPTR0 = sprite_address_ptr
-        c64.SPRPTR1 = sprite_address_ptr
-        c64.SPRPTR2 = sprite_address_ptr
-        c64.SPRPTR3 = sprite_address_ptr
-        c64.SPRPTR4 = sprite_address_ptr
-        c64.SPRPTR5 = sprite_address_ptr
-        c64.SPRPTR6 = sprite_address_ptr
-        c64.SPRPTR7 = sprite_address_ptr
-
         for ubyte i in 0 to 7 {
-            @(SP0X+i*2) = 50+25*i
-            @(SP0Y+i*2) = rnd()
+            c64.SPRPTR[i] = $0a00 // 64
+            c64.SPXY[i*2] = 50+25*i
+            c64.SPXY[i*2+1] = rnd()
         }
 
         c64.SPENA = 255                ; enable all sprites
@@ -63,15 +54,17 @@
 ~ irq {
 sub irq() {
     c64.EXTCOL--
+
     ; float up & wobble horizontally
     for ubyte i in 0 to 14 step 2 {
-        @(main.SP0Y+i)--
+        c64.SPXY[i+1]--
         ubyte r = rnd()
         if r>200
-            @(main.SP0X+i)++
+            c64.SPXY[i]++
         else if r<40
-            @(main.SP0X+i)--
+            c64.SPXY[i]--
     }
+
     c64.EXTCOL++
 }
 

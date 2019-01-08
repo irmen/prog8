@@ -33,16 +33,9 @@
 
     sub start() {
 
-        const uword sprite_address_ptr = $0a00 // 64
-        c64.SPRPTR0 = sprite_address_ptr
-        c64.SPRPTR1 = sprite_address_ptr
-        c64.SPRPTR2 = sprite_address_ptr
-        c64.SPRPTR3 = sprite_address_ptr
-        c64.SPRPTR4 = sprite_address_ptr
-        c64.SPRPTR5 = sprite_address_ptr
-        c64.SPRPTR6 = sprite_address_ptr
-        c64.SPRPTR7 = sprite_address_ptr
-
+        for ubyte i in 0 to 7 {
+            c64.SPRPTR[i] = $0a00//64
+        }
         c64.SPENA = 255                ; enable all sprites
         c64utils.set_rasterirq(260)     ; enable animation
     }
@@ -54,21 +47,17 @@
     ubyte angle=0
 
 sub irq() {
-    const uword SP0X = $d000
-    const uword SP0Y = $d001
-
     c64.EXTCOL--
 
     angle++
     c64.MSIGX=0
-    ubyte i=14
 
+    ubyte i=14
 nextsprite:     ; @todo should be a for loop from 14 to 0 step -2 but this causes a value out of range error at the moment
     uword x = sin8u(angle*2-i*8) as uword + 50
     ubyte y = cos8u(angle*3-i*8) // 2 + 70
-    @(SP0X+i) = lsb(x)
-    @(SP0Y+i) = y
-
+    c64.SPXY[i] = lsb(x)
+    c64.SPXY[i+1] = y
     lsl(c64.MSIGX)
     if msb(x) c64.MSIGX++
     i-=2

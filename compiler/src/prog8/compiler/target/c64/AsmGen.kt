@@ -536,6 +536,10 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.PUSH_ADDR_HEAPVAR -> {
                 " lda  #<${ins.callLabel} |  sta  ${ESTACK_LO.toHex()},x |  lda  #>${ins.callLabel} |  sta  ${ESTACK_HI.toHex()},x |  dex"
             }
+            Opcode.PUSH_ADDR_FLOAT -> {
+                val varname = getFloatConst(ins.arg!!)
+                " lda  #<$varname |  sta  ${ESTACK_LO.toHex()},x |  lda  #>$varname |  sta  ${ESTACK_HI.toHex()},x |  dex"
+            }
             Opcode.POP_REGAX_WORD -> throw AssemblyError("cannot load X register from stack because it's used as the stack pointer itself")
             Opcode.POP_REGXY_WORD -> throw AssemblyError("cannot load X register from stack because it's used as the stack pointer itself")
             Opcode.POP_REGAY_WORD -> {
@@ -570,9 +574,9 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.WRITE_INDEXED_VAR_BYTE -> {
                 """
                 inx
-                lda  ${ESTACK_LO.toHex()},x
-                inx
                 ldy  ${ESTACK_LO.toHex()},x
+                inx
+                lda  ${ESTACK_LO.toHex()},x
                 sta  ${ins.callLabel},y
                 """
             }
@@ -701,6 +705,9 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             }
             Opcode.INC_MEMORY -> " inc  ${hexVal(ins)}"
             Opcode.DEC_MEMORY -> " dec  ${hexVal(ins)}"
+            Opcode.INC_INDEXED_VAR_B, Opcode.INC_INDEXED_VAR_UB -> " inx |  txa |  pha |  lda  ${ESTACK_LO.toHex()},x |  tax |  inc  ${ins.callLabel},x |  pla |  tax"
+            Opcode.DEC_INDEXED_VAR_B, Opcode.DEC_INDEXED_VAR_UB -> " inx |  txa |  pha |  lda  ${ESTACK_LO.toHex()},x |  tax |  dec  ${ins.callLabel},x |  pla |  tax"
+
             Opcode.NEG_B -> " jsr  prog8_lib.neg_b"
             Opcode.NEG_W -> " jsr  prog8_lib.neg_w"
             Opcode.NEG_F -> " jsr  c64flt.neg_f"
@@ -1034,10 +1041,10 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.INC_INDEXED_VAR_B, Opcode.INC_INDEXED_VAR_UB -> AsmFragment(" txa |  $loadX  inc  $variable,x |  tax", 10)
             Opcode.DEC_INDEXED_VAR_B, Opcode.DEC_INDEXED_VAR_UB -> AsmFragment(" txa |  $loadX  dec  $variable,x |  tax", 10)
             Opcode.INC_INDEXED_VAR_W -> TODO("inc array_w")
-            Opcode.INC_INDEXED_VAR_UW -> TODO("inc array_uw")
+            Opcode.INC_INDEXED_VAR_UW -> AsmFragment("$saveX $loadXWord  inc  $variable,x |  bne  + |  inc  $variable+1,x  |+  $restoreX", 10)
             Opcode.INC_INDEXED_VAR_FLOAT -> TODO("inc array_f")
             Opcode.DEC_INDEXED_VAR_W -> TODO("dec array_w")
-            Opcode.DEC_INDEXED_VAR_UW -> TODO("dec array_uw")
+            Opcode.DEC_INDEXED_VAR_UW -> AsmFragment("$saveX $loadXWord  lda  $variable,x |  bne  + |  dec  $variable+1,x |+ |  dec  $variable,x  $restoreX", 10)
             Opcode.DEC_INDEXED_VAR_FLOAT -> TODO("dec array_f")
 
             else -> null
@@ -2914,6 +2921,19 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             },
             AsmPattern(listOf(Opcode.PUSH_ADDR_HEAPVAR, Opcode.POP_REGXY_WORD)) { segment ->
                 " ldx  #<${segment[0].callLabel} |  ldy  #>${segment[0].callLabel} "
+            },
+            // set a register pair to a certain memory address (of a floating point value)
+            AsmPattern(listOf(Opcode.PUSH_ADDR_FLOAT, Opcode.POP_REGAX_WORD)) { segment ->
+                val varname=getFloatConst(segment[0].arg!!)
+                " lda  #<$varname |  ldx  #>$varname "
+            },
+            AsmPattern(listOf(Opcode.PUSH_ADDR_FLOAT, Opcode.POP_REGAY_WORD)) { segment ->
+                val varname=getFloatConst(segment[0].arg!!)
+                " lda  #<$varname |  ldy  #>$varname "
+            },
+            AsmPattern(listOf(Opcode.PUSH_ADDR_FLOAT, Opcode.POP_REGXY_WORD)) { segment ->
+                val varname=getFloatConst(segment[0].arg!!)
+                " ldx  #<$varname |  ldy  #>$varname "
             },
             // set a register pair to a certain memory address (of a literal string value)
             AsmPattern(listOf(Opcode.PUSH_ADDR_STR, Opcode.POP_REGAX_WORD)) { segment ->

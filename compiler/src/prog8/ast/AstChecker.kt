@@ -272,7 +272,8 @@ class AstChecker(private val namespace: INameScope,
                         err("parameter '${param.first.name}' should be (u)byte")
                 }
                 else if(param.second.registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
-                    if (param.first.type != DataType.UWORD && param.first.type != DataType.WORD && param.first.type !in StringDatatypes && param.first.type !in ArrayDatatypes)
+                    if (param.first.type != DataType.UWORD && param.first.type != DataType.WORD
+                            && param.first.type !in StringDatatypes && param.first.type !in ArrayDatatypes && param.first.type != DataType.FLOAT)
                         err("parameter '${param.first.name}' should be (u)word/address")
                 }
                 else if(param.second.statusflag!=null) {
@@ -286,7 +287,8 @@ class AstChecker(private val namespace: INameScope,
                         err("return value #${ret.first.index + 1} should be (u)byte")
                 }
                 else if(ret.second.registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
-                    if (ret.first.value != DataType.UWORD && ret.first.value != DataType.WORD && ret.first.value !in StringDatatypes && ret.first.value !in ArrayDatatypes)
+                    if (ret.first.value != DataType.UWORD && ret.first.value != DataType.WORD
+                            && ret.first.value !in StringDatatypes && ret.first.value !in ArrayDatatypes && ret.first.value != DataType.FLOAT)
                         err("return value #${ret.first.index + 1} should be (u)word/address")
                 }
                 else if(ret.second.statusflag!=null) {
