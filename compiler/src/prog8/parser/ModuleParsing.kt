@@ -23,8 +23,13 @@ private class LexerErrorListener: BaseErrorListener() {
 
 fun importModule(filePath: Path) : Module {
     print("importing '${filePath.fileName}'")
-    if(filePath.parent!=null)
-        println(" (from '${filePath.parent}')")
+    if(filePath.parent!=null) {
+        var importloc = filePath.toString()
+        val curdir = Paths.get("").toAbsolutePath().toString()
+        if(importloc.startsWith(curdir))
+            importloc = "." + importloc.substring(curdir.length)
+        println(" (from '$importloc')")
+    }
     else
         println("")
     if(!Files.isReadable(filePath))
