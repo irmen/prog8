@@ -138,7 +138,7 @@ private fun compileMain(args: Array<String>) {
             val intermediate = compiler.compile(moduleAst, heap)
             intermediate.optimize()
 
-            val stackVmFilename = intermediate.name + "_stackvm.txt"
+            val stackVmFilename = intermediate.name + ".vm.txt"
             val stackvmFile = PrintStream(File(stackVmFilename), "utf-8")
             intermediate.writeCode(stackvmFile)
             stackvmFile.close()

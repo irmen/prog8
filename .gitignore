@@ -8,6 +8,7 @@
 *.asm
 *.bin
 *.labels.txt
+*.vm.txt
 *.vice-mon-list
 docs/build
 out/

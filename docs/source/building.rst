@@ -30,7 +30,7 @@ The compiler is invoked with the command:
 For now, it produces intermediate code for the stack-based "StackVM" virtual machine. You can run this code
 with the command:
 
-    ``$ ./stackvm.sh modulefile_stackvm.txt``
+    ``$ ./stackvm.sh modulefile.vm.txt``
 
 
 .. todo::
