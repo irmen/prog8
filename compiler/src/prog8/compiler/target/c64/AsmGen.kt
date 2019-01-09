@@ -655,7 +655,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     else -> " inc  ${ins.callLabel}"
                 }
             }
-            Opcode.INC_VAR_UW -> {
+            Opcode.INC_VAR_UW, Opcode.INC_VAR_W -> {
                 " inc  ${ins.callLabel} |  bne  + |  inc  ${ins.callLabel}+1 |+"
             }
             Opcode.INC_VAR_F -> {
@@ -693,7 +693,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     else -> " dec  ${ins.callLabel}"
                 }
             }
-            Opcode.DEC_VAR_UW -> {
+            Opcode.DEC_VAR_UW, Opcode.DEC_VAR_W -> {
                 " lda  ${ins.callLabel} |  bne  + |  dec  ${ins.callLabel}+1 |+ |  dec  ${ins.callLabel}"
             }
             Opcode.DEC_VAR_F -> {
@@ -2975,45 +2975,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 " lda   ${segment[0].callLabel} |  eor  #${hexVal(segment[1])} |  sta  ${ESTACK_LO.toHex()},x |  dex "
             },
 
-            // 16 bit addition avoiding excessive stack usage
-            // @todo optimize this even more with longer asmpatterns (avoid stack use altogether on most common operations)
-            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.ADD_UW),
-                    listOf(Opcode.PUSH_VAR_WORD, Opcode.ADD_W)) { segment ->
-                """
-                clc
-                lda  ${segment[0].callLabel}
-                adc  ${(ESTACK_LO+1).toHex()},x
-                sta  ${(ESTACK_LO+1).toHex()},x
-                lda  ${segment[0].callLabel}+1
-                adc  ${(ESTACK_HI+1).toHex()},x
-                sta  ${(ESTACK_HI+1).toHex()},x
-                """
-            },
-            AsmPattern(listOf(Opcode.PUSH_MEM_UW, Opcode.ADD_UW),
-                    listOf(Opcode.PUSH_MEM_W, Opcode.ADD_W)) { segment ->
-                """
-                clc
-                lda  ${hexVal(segment[0])}
-                adc  ${(ESTACK_LO + 1).toHex()},x
-                sta  ${(ESTACK_LO + 1).toHex()},x
-                lda  ${hexValPlusOne(segment[0])}
-                adc  ${(ESTACK_HI + 1).toHex()},x
-                sta  ${(ESTACK_HI + 1).toHex()},x
-                """
-            },
-            AsmPattern(listOf(Opcode.PUSH_WORD, Opcode.ADD_UW),
-                    listOf(Opcode.PUSH_WORD, Opcode.ADD_W)) { segment ->
-                """
-                clc
-                lda  #<${hexVal(segment[0])}
-                adc  ${(ESTACK_LO+1).toHex()},x
-                sta  ${(ESTACK_LO+1).toHex()},x
-                lda  #>${hexVal(segment[0])}
-                adc  ${(ESTACK_HI+1).toHex()},x
-                sta  ${(ESTACK_HI+1).toHex()},x
-                """
-            },
-
             AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.PUSH_VAR_BYTE, Opcode.MKWORD)) { segment ->
                 """
                 lda  ${segment[0].callLabel}
@@ -3072,7 +3033,82 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 lda  ${segment[1].callLabel}
                 sta  ${segment[4].callLabel}+1
                 """
+            },
+
+            // more efficient versions of x+1 and x-1 to avoid pushing the 1 on the stack  @todo what about 1+x? reorder?  what about x+  (-1)  and x-(-1)? is that rewritten already?
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.ADD_B), listOf(Opcode.PUSH_BYTE, Opcode.ADD_UB)) { segment ->
+                val amount = segment[0].arg!!.integerValue()
+                if(amount in 1..8) {
+                    " inc  ${(ESTACK_LO + 1).toHex()},x | ".repeat(amount)
+                }
+                else
+                    null
+            },
+            AsmPattern(listOf(Opcode.PUSH_WORD, Opcode.ADD_UW), listOf(Opcode.PUSH_WORD, Opcode.ADD_W)) { segment ->
+                val amount = segment[0].arg!!.integerValue()
+                if(amount in 1..8) {
+                    " inc  ${(ESTACK_LO + 1).toHex()},x |  bne  + |  inc  ${(ESTACK_HI + 1).toHex()},x |+ | ".repeat(amount)
+                }
+                else
+                    null
+            },
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.SUB_B), listOf(Opcode.PUSH_BYTE, Opcode.SUB_UB)) { segment ->
+                val amount = segment[0].arg!!.integerValue()
+                if(amount in 1..8) {
+                    " dec  ${(ESTACK_LO + 1).toHex()},x | ".repeat(amount)
+                }
+                else
+                    null
+            },
+            AsmPattern(listOf(Opcode.PUSH_WORD, Opcode.SUB_UW), listOf(Opcode.PUSH_WORD, Opcode.SUB_W)) { segment ->
+                val amount = segment[0].arg!!.integerValue()
+                if(amount in 1..8) {
+                    " lda  ${(ESTACK_LO + 1).toHex()},x |  bne  + |  dec  ${(ESTACK_HI + 1).toHex()},x |+ |  dec  ${(ESTACK_LO + 1).toHex()},x | ".repeat(amount)
+                }
+                else
+                    null
+            },
+
+            // 16 bit addition avoiding excessive stack usage
+            // @todo optimize this even more with longer asmpatterns (avoid stack use altogether on most common operations)
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.ADD_UW),
+                    listOf(Opcode.PUSH_VAR_WORD, Opcode.ADD_W)) { segment ->
+                """
+                clc
+                lda  ${segment[0].callLabel}
+                adc  ${(ESTACK_LO+1).toHex()},x
+                sta  ${(ESTACK_LO+1).toHex()},x
+                lda  ${segment[0].callLabel}+1
+                adc  ${(ESTACK_HI+1).toHex()},x
+                sta  ${(ESTACK_HI+1).toHex()},x
+                """
+            },
+            AsmPattern(listOf(Opcode.PUSH_MEM_UW, Opcode.ADD_UW),
+                    listOf(Opcode.PUSH_MEM_W, Opcode.ADD_W)) { segment ->
+                """
+                clc
+                lda  ${hexVal(segment[0])}
+                adc  ${(ESTACK_LO + 1).toHex()},x
+                sta  ${(ESTACK_LO + 1).toHex()},x
+                lda  ${hexValPlusOne(segment[0])}
+                adc  ${(ESTACK_HI + 1).toHex()},x
+                sta  ${(ESTACK_HI + 1).toHex()},x
+                """
+            },
+            AsmPattern(listOf(Opcode.PUSH_WORD, Opcode.ADD_UW),
+                    listOf(Opcode.PUSH_WORD, Opcode.ADD_W)) { segment ->
+                """
+                clc
+                lda  #<${hexVal(segment[0])}
+                adc  ${(ESTACK_LO+1).toHex()},x
+                sta  ${(ESTACK_LO+1).toHex()},x
+                lda  #>${hexVal(segment[0])}
+                adc  ${(ESTACK_HI+1).toHex()},x
+                sta  ${(ESTACK_HI+1).toHex()},x
+                """
             }
+
+
     )
 
 }

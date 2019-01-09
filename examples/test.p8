@@ -4,42 +4,34 @@
 
     sub start()  {
 
-; @todo more efficient +1/-1 additions in expressions
+        ;  @todo   '/' with two integer operands should result in integer again instead of having to use '//' all the time?
 
+        ubyte ub = 10
+        byte b = -10
+        uword uw = 10
+        word w = -10
 
-        ubyte lsbb = $aa
-        ubyte msbb = $44
-        uword[4] uwarr
+        b = b + (-1)
+        b = b - (-1)
+        b = 1+b
+        b = (-1) + b
 
-        uword uw = (msbb as uword)*256 + lsbb
-
-        c64scr.print_uwhex(0, uw)
+        c64scr.print_uw(uw+1)
         c64.CHROUT('\n')
-        uw = mkword(lsbb, msbb)
-        c64scr.print_uwhex(0, uw)
+        c64scr.print_uw(uw+2)
         c64.CHROUT('\n')
-        uw = mkword($aa, $44)
-        c64scr.print_uwhex(0, uw)
+        c64scr.print_uw(uw+3)
         c64.CHROUT('\n')
-
-        uw = mkword(lsbb, $44)
-        c64scr.print_uwhex(0, uw)
-        c64.CHROUT('\n')
-        uw = mkword($aa, msbb)
-        c64scr.print_uwhex(0, uw)
-        c64.CHROUT('\n')
-        uwarr[2] = mkword(lsbb, msbb)
-        c64scr.print_uwhex(0, uwarr[2])
-        c64.CHROUT('\n')
-        uwarr[2] = mkword(lsbb, $44)
-        c64scr.print_uwhex(0, uwarr[2])
-        c64.CHROUT('\n')
-        uwarr[2] = mkword($aa, msbb)
-        c64scr.print_uwhex(0, uwarr[2])
+        c64scr.print_uw(uw+4)
         c64.CHROUT('\n')
 
-        word w = mkword(lsbb,msbb) as word
-        c64scr.print_w(w)
+        c64scr.print_uw(uw-1)
+        c64.CHROUT('\n')
+        c64scr.print_uw(uw-2)
+        c64.CHROUT('\n')
+        c64scr.print_uw(uw-3)
+        c64.CHROUT('\n')
+        c64scr.print_uw(uw-4)
         c64.CHROUT('\n')
 
     }

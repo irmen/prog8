@@ -185,6 +185,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
                 DataType.BYTE -> return Value(DataType.BYTE, 127)
                 DataType.UWORD -> return Value(DataType.UWORD, 65535)
                 DataType.WORD -> return Value(DataType.WORD, 32767)
+                else -> {}
             }
         }
         val result = v1.toDouble() / v2.toDouble()

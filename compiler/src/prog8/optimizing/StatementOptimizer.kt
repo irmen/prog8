@@ -3,6 +3,7 @@ package prog8.optimizing
 import prog8.ast.*
 import prog8.compiler.HeapValues
 import prog8.functions.BuiltinFunctions
+import kotlin.math.floor
 
 
 /*
@@ -16,7 +17,6 @@ import prog8.functions.BuiltinFunctions
     todo remove if/while/repeat/for statements with empty statement blocks
     todo replace if statements with only else block
     todo regular subroutines that have 1 or 2 (u)byte  or 1 (u)word parameters -> change to asmsub to accept these in A/Y registers instead of on stack
-    todo statement optimization: X+=1, X-=1  --> X++/X--  (to 3? 4? incs/decs in a row, after that use arithmetic)
     todo optimize integer addition with self into shift 1  (A+=A -> A<<=1)
     todo analyse for unreachable code and remove that (f.i. code after goto or return that has no label so can never be jumped to)
     todo merge sequence of assignments into one to avoid repeated value loads (as long as the value is a constant and the target not a MEMORY type!)
@@ -181,13 +181,31 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
                 val cv = bexpr.right.constValue(namespace, heap)?.asNumericValue?.toDouble()
                 if(cv!=null) {
                     when (bexpr.operator) {
-                        "+" -> if (cv==0.0) {
-                            optimizationsDone++
-                            return NopStatement(assignment.position)
+                        "+" -> {
+                            if (cv==0.0) {
+                                optimizationsDone++
+                                return NopStatement(assignment.position)
+                            } else if(cv in 1.0..8.0 && targetDt in IntegerDatatypes && floor(cv)==cv) {
+                                // replace by several INCs
+                                val decs = AnonymousScope(mutableListOf(), assignment.position)
+                                repeat(cv.toInt()) {
+                                    decs.statements.add(PostIncrDecr(target, "++", assignment.position))
+                                }
+                                return decs
+                            }
                         }
-                        "-" -> if (cv==0.0) {
-                            optimizationsDone++
-                            return NopStatement(assignment.position)
+                        "-" -> {
+                            if (cv==0.0) {
+                                optimizationsDone++
+                                return NopStatement(assignment.position)
+                            } else if(cv in 1.0..8.0 && targetDt in IntegerDatatypes && floor(cv)==cv) {
+                                // replace by several DECs
+                                val decs = AnonymousScope(mutableListOf(), assignment.position)
+                                repeat(cv.toInt()) {
+                                    decs.statements.add(PostIncrDecr(target, "--", assignment.position))
+                                }
+                                return decs
+                            }
                         }
                         "*" -> if (cv==1.0) {
                             optimizationsDone++

@@ -191,10 +191,12 @@ asmsub  GETADRAY  () -> clobbers(X) -> (uword @ AY)  {
 	}}
 }
 
-asmsub  print_f  (float value @ AY) -> clobbers(A, Y) -> () {
+sub  print_f  (float value) {
 	; ---- prints the floating point value (without a newline) using basic rom routines. 
 	%asm {{
 		stx  c64.SCRATCH_ZPREGX
+		lda  #<print_f_value
+		ldy  #>print_f_value
 		jsr  c64flt.MOVFM		; load float into fac1
 		jsr  c64flt.FOUT		; fac1 to string in A/Y
 		jsr  c64.STROUT			; print string in A/Y
@@ -203,10 +205,12 @@ asmsub  print_f  (float value @ AY) -> clobbers(A, Y) -> () {
 	}}
 }
 
-asmsub  print_fln  (float value @ AY) -> clobbers(A, Y) -> () {
+sub  print_fln  (float value) {
 	; ---- prints the floating point value (with a newline at the end) using basic rom routines
 	%asm {{
 		stx  c64.SCRATCH_ZPREGX
+		lda  #<print_fln_value
+		ldy  #>print_fln_value
 		jsr  c64flt.MOVFM		; load float into fac1
 		jsr  c64flt.FPRINTLN		; print fac1 with newline
 		ldx  c64.SCRATCH_ZPREGX
@@ -459,8 +463,8 @@ inc_var_f	.proc
 		sty  c64.SCRATCH_ZPWORD1+1
 		stx  c64.SCRATCH_ZPREGX
 		jsr  c64flt.MOVFM
-		lda  #<c64.FL_FONE
-		ldy  #>c64.FL_FONE
+		lda  #<FL_FONE
+		ldy  #>FL_FONE
 		jsr  c64flt.FADD
 		ldx  c64.SCRATCH_ZPWORD1
 		ldy  c64.SCRATCH_ZPWORD1+1
@@ -474,8 +478,8 @@ dec_var_f	.proc
 		sta  c64.SCRATCH_ZPWORD1
 		sty  c64.SCRATCH_ZPWORD1+1
 		stx  c64.SCRATCH_ZPREGX
-		lda  #<c64.FL_FONE
-		ldy  #>c64.FL_FONE
+		lda  #<FL_FONE
+		ldy  #>FL_FONE
 		jsr  c64flt.MOVFM
 		lda  c64.SCRATCH_ZPWORD1
 		ldy  c64.SCRATCH_ZPWORD1+1
@@ -790,8 +794,8 @@ func_ceil	.proc
 		jsr  c64flt.FCOMP
 		cmp  #0
 		beq  +
-		lda  #<c64.FL_FONE
-		ldy  #>c64.FL_FONE
+		lda  #<FL_FONE
+		ldy  #>FL_FONE
 		jsr  c64flt.FADD
 +		jmp  push_fac1_as_result
 		.pend

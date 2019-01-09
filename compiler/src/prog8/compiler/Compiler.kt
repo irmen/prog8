@@ -1507,7 +1507,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 val vardecl = value.targetStatement(namespace) as VarDecl
                 prog.instr(Opcode.PUSH_ADDR_HEAPVAR, callLabel = vardecl.scopedname)
             }
-            else -> throw CompilerException("literal float value or float variable expected")
+            else -> throw CompilerException("can only take address of a the float as constant literal or variable")
         }
     }
 
