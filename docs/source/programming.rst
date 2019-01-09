@@ -206,7 +206,7 @@ Array types are also supported. They can be made of bytes, words and floats::
 .. note::
     Right now, the array should be small enough to be indexable by a single byte index.
     This means byte arrays should be <= 256 elements, word arrays <= 128 elements, and float
-    arrays <= 51 elements.  This limit may or may not be lifted in a future version.
+    arrays <= 51 elements.
 
 You can split an array initializer list over several lines if you want.
 

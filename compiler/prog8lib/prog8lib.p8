@@ -364,7 +364,7 @@ lesseq_ub	.proc
 		lda  c64.ESTACK_LO+2,x
 		cmp  c64.ESTACK_LO+1,x
 		bcc  equal_b._equal_b_true
-		beq  equal_b._equal_b_true		; @todo optimize by flipping comparison?
+		beq  equal_b._equal_b_true
 		bcs  equal_b._equal_b_false
 		.pend
 
@@ -405,7 +405,7 @@ greater_ub	.proc
 		lda  c64.ESTACK_LO+2,x
 		cmp  c64.ESTACK_LO+1,x
 		beq  equal_b._equal_b_false
-		bcs  equal_b._equal_b_true		; @todo optimize by flipping comparison?
+		bcs  equal_b._equal_b_true
 		bcc  equal_b._equal_b_false
 		.pend
 
@@ -699,7 +699,8 @@ _greater	lda  (c64.SCRATCH_ZPWORD1),y
 		dey
 _lesseq		dey
 		dey
-		bpl  _loop			; @todo doesn't work for arrays where y will be >127. FIX OTHER LOOPS TOO!
+		cpy  #254
+		bne  _loop
 		lda  _result_maxuw
 		sta  c64.ESTACK_LO,x
 		lda  _result_maxuw+1
@@ -736,7 +737,8 @@ _loop
 		dey
 _lesseq		dey
 		dey
-		bpl  _loop
+		cpy  #254
+		bne  _loop
 		lda  _result_maxw
 		sta  c64.ESTACK_LO,x
 		lda  _result_maxw+1
@@ -896,7 +898,8 @@ _less		lda  (c64.SCRATCH_ZPWORD1),y
 		dey
 _gtequ		dey
 		dey
-		bpl  _loop
+		cpy  #254
+		bne  _loop
 		lda  _result_minuw
 		sta  c64.ESTACK_LO,x
 		lda  _result_minuw+1
@@ -933,7 +936,8 @@ _loop
 		dey
 _gtequ		dey
 		dey
-		bpl  _loop
+		cpy  #254
+		bne  _loop
 		lda  _result_minw
 		sta  c64.ESTACK_LO,x
 		lda  _result_minw+1
