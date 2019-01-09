@@ -112,7 +112,7 @@ assignment :  assign_targets '=' expression ;
 assign_targets : assign_target (',' assign_target)* ;
 
 augassignment :
-	assign_target operator=('+=' | '-=' | '/=' | '//=' | '*=' | '**=' | '&=' | '|=' | '^=' | '%=' | '<<=' | '>>=' ) expression
+	assign_target operator=('+=' | '-=' | '/=' | '*=' | '**=' | '&=' | '|=' | '^=' | '%=' | '<<=' | '>>=' ) expression
 	;
 
 assign_target:
@@ -128,7 +128,7 @@ expression :
 	functioncall
 	| <assoc=right> prefix = ('+'|'-'|'~') expression
 	| left = expression bop = '**' right = expression
-	| left = expression bop = ('*' | '/' | '//' | '%' ) right = expression
+	| left = expression bop = ('*' | '/' | '%' ) right = expression
 	| left = expression bop = ('+' | '-' ) right = expression
 	| left = expression bop = ('<<' | '>>' ) right = expression
 	| left = expression bop = ('<' | '>' | '<=' | '>=') right = expression

@@ -200,23 +200,6 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
         }
     }
 
-    fun floordiv(other: Value): Value {
-        if(other.type == DataType.FLOAT && (type!= DataType.FLOAT))
-            throw ValueException("floating point loss of precision on type $type")
-        val v1 = numericValue()
-        val v2 = other.numericValue()
-        val result = floor(v1.toDouble() / v2.toDouble())
-        // NOTE: integer division returns integer result!
-        return when(type) {
-            DataType.BYTE -> Value(DataType.BYTE, result)
-            DataType.UBYTE -> Value(DataType.UBYTE, result)
-            DataType.WORD -> Value(DataType.WORD, result)
-            DataType.UWORD -> Value(DataType.UWORD, result)
-            DataType.FLOAT -> Value(DataType.FLOAT, result)
-            else -> throw ValueException("div on non-numeric type")
-        }
-    }
-
     fun remainder(other: Value): Value? {
         val v1 = numericValue()
         val v2 = other.numericValue()

@@ -219,10 +219,6 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
                             optimizationsDone++
                             return NopStatement(assignment.position)
                         }
-                        "//" -> if (cv==1.0) {
-                            optimizationsDone++
-                            return NopStatement(assignment.position)
-                        }
                         "**" -> if (cv==1.0) {
                             optimizationsDone++
                             return NopStatement(assignment.position)

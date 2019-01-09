@@ -132,7 +132,7 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
                 }
             }
             "*" -> return optimizeMultiplication(expr, leftVal, rightVal)
-            "/", "//" -> return optimizeDivision(expr, leftVal, rightVal)
+            "/" -> return optimizeDivision(expr, leftVal, rightVal)
             "+" -> return optimizeAdd(expr, leftVal, rightVal)
             "-" -> return optimizeSub(expr, leftVal, rightVal)
             "**" -> return optimizePower(expr, leftVal, rightVal)
@@ -378,31 +378,17 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
             val leftDt = expr.left.resultingDatatype(namespace, heap)
             when(cv) {
                 -1.0 -> {
-                    //  '/' -> -left, '//' -> -ceil(left) (if operand is float) else just -left
-                    optimizationsDone++
-                    when(expr.operator) {
-                        "/" -> return PrefixExpression("-", expr.left, expr.position)
-                        "//" -> {
-                            return if(leftDt in IntegerDatatypes)
-                                PrefixExpression("-", expr.left, expr.left.position)
-                            else
-                                PrefixExpression("-",
-                                        FunctionCall(IdentifierReference(listOf("ceil"), expr.position), mutableListOf(expr.left), expr.position),
-                                        expr.position)
-                        }
+                    //  '/' -> -left
+                    if (expr.operator == "/") {
+                        optimizationsDone++
+                        return PrefixExpression("-", expr.left, expr.position)
                     }
                 }
                 1.0 -> {
-                    //  '/' -> left, '//' -> floor(left) (if operand is float) else just left
-                    optimizationsDone++
-                    when(expr.operator) {
-                        "/" -> return expr.left
-                        "//" -> {
-                            return if(leftDt in IntegerDatatypes)
-                                expr.left
-                            else
-                                FunctionCall(IdentifierReference(listOf("floor"), expr.position), mutableListOf(expr.left), expr.position)
-                        }
+                    //  '/' -> left
+                    if (expr.operator == "/") {
+                        optimizationsDone++
+                        return expr.left
                     }
                 }
                 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0, 256.0, 512.0, 1024.0, 2048.0, 4096.0, 8192.0, 16384.0, 32768.0, 65536.0 -> {

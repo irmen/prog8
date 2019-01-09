@@ -811,7 +811,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.SUB_F -> "  jsr  c64flt.sub_f"
             Opcode.MUL_F -> "  jsr  c64flt.mul_f"
             Opcode.DIV_F -> "  jsr  c64flt.div_f"
-            Opcode.FLOORDIV -> "  jsr c64flt.floordiv_f"
             Opcode.IDIV_UB -> "  jsr  prog8_lib.idiv_ub"
             Opcode.IDIV_B -> "  jsr  prog8_lib.idiv_b"
             Opcode.IDIV_W -> "  jsr  prog8_lib.idiv_w"

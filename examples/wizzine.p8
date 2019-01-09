@@ -34,10 +34,10 @@
     sub start() {
 
         for ubyte i in 0 to 7 {
-            c64.SPRPTR[i] = $0a00//64
+            c64.SPRPTR[i] = $0a00/64
         }
         c64.SPENA = 255                ; enable all sprites
-        c64utils.set_rasterirq(260)     ; enable animation
+        c64utils.set_rasterirq(200)     ; enable animation
     }
 }
 
@@ -55,7 +55,7 @@ sub irq() {
     ubyte i=14
 nextsprite:     ; @todo should be a for loop from 14 to 0 step -2 but this causes a value out of range error at the moment
     uword x = sin8u(angle*2-i*8) as uword + 50
-    ubyte y = cos8u(angle*3-i*8) // 2 + 70
+    ubyte y = cos8u(angle*3-i*8) / 2 + 70
     c64.SPXY[i] = lsb(x)
     c64.SPXY[i+1] = y
     lsl(c64.MSIGX)

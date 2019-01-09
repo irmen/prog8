@@ -591,7 +591,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 val rightDt = expr.right.resultingDatatype(namespace, heap)!!
                 val commonDt =
                         if(expr.operator=="/")
-                            DataType.FLOAT   // result of division is always float
+                            BinaryExpression.divisionOpDt(leftDt, rightDt)
                         else
                             commonDatatype(leftDt, rightDt, expr.left.position, expr.right.position)
                 translate(expr.left)
@@ -1099,16 +1099,12 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 }
             }
             "/" -> {
-                if(dt!=DataType.FLOAT) throw CompilerException("normal division only possible between floats")
-                else Opcode.DIV_F
-            }
-            "//" -> {
                 when(dt) {
                     DataType.UBYTE -> Opcode.IDIV_UB
                     DataType.BYTE -> Opcode.IDIV_B
                     DataType.UWORD -> Opcode.IDIV_UW
                     DataType.WORD -> Opcode.IDIV_W
-                    DataType.FLOAT -> Opcode.FLOORDIV
+                    DataType.FLOAT -> Opcode.DIV_F
                     else -> throw CompilerException("only byte/word/float possible")
                 }
             }
@@ -1639,14 +1635,13 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     else -> throw CompilerException("only byte/word/lfoat possible")
                 }
             }
-            "/=" -> TODO("/=")
-            "//=" -> {
+            "/=" -> {
                 when (valueDt) {
                     DataType.UBYTE -> Opcode.IDIV_UB
                     DataType.BYTE -> Opcode.IDIV_B
                     DataType.UWORD -> Opcode.IDIV_UW
                     DataType.WORD -> Opcode.IDIV_W
-                    DataType.FLOAT -> Opcode.FLOORDIV
+                    DataType.FLOAT -> Opcode.DIV_F
                     else -> throw CompilerException("only byte/word/lfoat possible")
                 }
             }

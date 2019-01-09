@@ -16,7 +16,6 @@ class ConstExprEvaluator {
             "-" -> minus(left, right)
             "*" -> multiply(left, right, heap)
             "/" -> divide(left, right)
-            "//" -> floordivide(left, right)
             "%" -> remainder(left, right)
             "**" -> power(left, right)
             "&" -> bitwiseand(left, right)
@@ -234,7 +233,7 @@ class ConstExprEvaluator {
             left.asIntegerValue!=null -> when {
                 right.asIntegerValue!=null -> {
                     if(right.asIntegerValue==0) divideByZeroError(right.position)
-                    val result = left.asIntegerValue.toDouble() / right.asIntegerValue.toDouble()
+                    val result: Int = left.asIntegerValue / right.asIntegerValue
                     LiteralValue.optimalNumeric(result, left.position)
                 }
                 right.floatvalue!=null -> {
@@ -251,35 +250,6 @@ class ConstExprEvaluator {
                 right.floatvalue!=null -> {
                     if(right.floatvalue==0.0) divideByZeroError(right.position)
                     LiteralValue(DataType.FLOAT, floatvalue = left.floatvalue / right.floatvalue, position = left.position)
-                }
-                else -> throw ExpressionError(error, left.position)
-            }
-            else -> throw ExpressionError(error, left.position)
-        }
-    }
-
-    private fun floordivide(left: LiteralValue, right: LiteralValue): LiteralValue {
-        val error = "cannot floordivide $left by $right"
-        return when {
-            left.asIntegerValue!=null -> when {
-                right.asIntegerValue!=null -> {
-                    if(right.asIntegerValue==0) divideByZeroError(right.position)
-                    LiteralValue.optimalInteger(left.asIntegerValue / right.asIntegerValue, left.position)
-                }
-                right.floatvalue!=null -> {
-                    if(right.floatvalue==0.0) divideByZeroError(right.position)
-                    LiteralValue.optimalInteger(left.asIntegerValue / right.floatvalue, left.position)
-                }
-                else -> throw ExpressionError(error, left.position)
-            }
-            left.floatvalue!=null -> when {
-                right.asIntegerValue!=null -> {
-                    if(right.asIntegerValue==0) divideByZeroError(right.position)
-                    LiteralValue.optimalInteger(left.floatvalue / right.asIntegerValue, left.position)
-                }
-                right.floatvalue!=null -> {
-                    if(right.floatvalue==0.0) divideByZeroError(right.position)
-                    LiteralValue.optimalInteger(left.floatvalue / right.floatvalue, left.position)
                 }
                 else -> throw ExpressionError(error, left.position)
             }

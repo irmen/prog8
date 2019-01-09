@@ -469,12 +469,6 @@ class StackVm(private var traceOutputFile: String?) {
                 checkDt(second, DataType.FLOAT)
                 evalstack.push(second.div(top))
             }
-            Opcode.FLOORDIV -> {
-                val (top, second) = evalstack.pop2()
-                checkDt(top, DataType.FLOAT)
-                checkDt(second, DataType.FLOAT)
-                evalstack.push(second.floordiv(top))
-            }
             Opcode.REMAINDER_UB -> {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.UBYTE)

@@ -2,8 +2,8 @@
 %import c64flt
 
 ~ main {
-    const uword width = 320 // 2
-    const uword height = 256 // 2
+    const uword width = 320 / 2
+    const uword height = 256 / 2
     const uword xoffset = 40
     const uword yoffset = 30
 

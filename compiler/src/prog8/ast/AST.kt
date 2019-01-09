@@ -861,7 +861,7 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
                     null
                 }
             }
-            "//" -> if(leftDt==null || rightDt==null) null else integerDivisionOpDt(leftDt, rightDt)
+            "/" -> if(leftDt==null || rightDt==null) null else divisionOpDt(leftDt, rightDt)
             "&" -> leftDt
             "|" -> leftDt
             "^" -> leftDt
@@ -870,73 +870,77 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
             "<=", ">=",
             "==", "!=" -> DataType.UBYTE
             "<<", ">>" -> leftDt
-            "/" -> DataType.FLOAT       // use integer division '//' if you don't want floats
             else -> throw FatalAstException("resulting datatype check for invalid operator $operator")
         }
     }
 
-    private fun integerDivisionOpDt(leftDt: DataType, rightDt: DataType): DataType {
-        return when(leftDt) {
-            DataType.UBYTE -> when(rightDt) {
-                DataType.UBYTE, DataType.UWORD -> DataType.UBYTE
-                DataType.BYTE, DataType.WORD, DataType.FLOAT -> DataType.BYTE
+    companion object {
+        fun divisionOpDt(leftDt: DataType, rightDt: DataType): DataType {
+            return when(leftDt) {
+                DataType.UBYTE -> when(rightDt) {
+                    DataType.UBYTE, DataType.UWORD -> DataType.UBYTE
+                    DataType.BYTE, DataType.WORD -> DataType.WORD
+                    DataType.FLOAT -> DataType.BYTE
+                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+                }
+                DataType.BYTE -> when(rightDt) {
+                    in NumericDatatypes -> DataType.BYTE
+                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+                }
+                DataType.UWORD -> when(rightDt) {
+                    DataType.UBYTE, DataType.UWORD -> DataType.UWORD
+                    DataType.BYTE, DataType.WORD -> DataType.WORD
+                    DataType.FLOAT -> DataType.FLOAT
+                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+                }
+                DataType.WORD -> when(rightDt) {
+                    in NumericDatatypes -> DataType.WORD
+                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+                }
+                DataType.FLOAT -> when(rightDt) {
+                    in NumericDatatypes -> DataType.FLOAT
+                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+                }
                 else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
             }
-            DataType.BYTE -> when(rightDt) {
-                in NumericDatatypes -> DataType.BYTE
+        }
+
+        fun arithmeticOpDt(leftDt: DataType, rightDt: DataType): DataType {
+            return when(leftDt) {
+                DataType.UBYTE -> when(rightDt) {
+                    DataType.UBYTE -> DataType.UBYTE
+                    DataType.BYTE -> DataType.BYTE
+                    DataType.UWORD -> DataType.UWORD
+                    DataType.WORD -> DataType.WORD
+                    DataType.FLOAT -> DataType.FLOAT
+                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+                }
+                DataType.BYTE -> when(rightDt) {
+                    DataType.BYTE, DataType.UBYTE -> DataType.BYTE
+                    DataType.WORD, DataType.UWORD -> DataType.WORD
+                    DataType.FLOAT -> DataType.FLOAT
+                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+                }
+                DataType.UWORD -> when(rightDt) {
+                    DataType.UBYTE, DataType.UWORD -> DataType.UWORD
+                    DataType.BYTE, DataType.WORD -> DataType.WORD
+                    DataType.FLOAT -> DataType.FLOAT
+                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+                }
+                DataType.WORD -> when(rightDt) {
+                    DataType.BYTE, DataType.UBYTE, DataType.WORD, DataType.UWORD -> DataType.WORD
+                    DataType.FLOAT -> DataType.FLOAT
+                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+                }
+                DataType.FLOAT -> when(rightDt) {
+                    in NumericDatatypes -> DataType.FLOAT
+                    else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
+                }
                 else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
             }
-            DataType.UWORD -> when(rightDt) {
-                DataType.UBYTE, DataType.UWORD -> DataType.UWORD
-                DataType.BYTE, DataType.WORD, DataType.FLOAT -> DataType.WORD
-                else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
-            }
-            DataType.WORD -> when(rightDt) {
-                in NumericDatatypes -> DataType.WORD
-                else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
-            }
-            DataType.FLOAT -> when(rightDt) {
-                in NumericDatatypes -> DataType.FLOAT
-                else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
-            }
-            else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
         }
     }
 
-    private fun arithmeticOpDt(leftDt: DataType, rightDt: DataType): DataType {
-        return when(leftDt) {
-            DataType.UBYTE -> when(rightDt) {
-                DataType.UBYTE -> DataType.UBYTE
-                DataType.BYTE -> DataType.BYTE
-                DataType.UWORD -> DataType.UWORD
-                DataType.WORD -> DataType.WORD
-                DataType.FLOAT -> DataType.FLOAT
-                else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
-            }
-            DataType.BYTE -> when(rightDt) {
-                DataType.BYTE, DataType.UBYTE -> DataType.BYTE
-                DataType.WORD, DataType.UWORD -> DataType.WORD
-                DataType.FLOAT -> DataType.FLOAT
-                else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
-            }
-            DataType.UWORD -> when(rightDt) {
-                DataType.UBYTE, DataType.UWORD -> DataType.UWORD
-                DataType.BYTE, DataType.WORD -> DataType.WORD
-                DataType.FLOAT -> DataType.FLOAT
-                else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
-            }
-            DataType.WORD -> when(rightDt) {
-                DataType.BYTE, DataType.UBYTE, DataType.WORD, DataType.UWORD -> DataType.WORD
-                DataType.FLOAT -> DataType.FLOAT
-                else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
-            }
-            DataType.FLOAT -> when(rightDt) {
-                in NumericDatatypes -> DataType.FLOAT
-                else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
-            }
-            else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
-        }
-    }
 }
 
 class ArrayIndexedExpression(val identifier: IdentifierReference,

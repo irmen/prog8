@@ -360,10 +360,9 @@ Operators
 	    Takes the address of the symbol following it:   ``word  address =  #somevar``
 
 
-arithmetic: ``+``  ``-``  ``*``  ``/``  ``//`` ``**``  ``%``
+arithmetic: ``+``  ``-``  ``*``  ``/``  ``**``  ``%``
     ``+``, ``-``, ``*``, ``/`` are the familiar arithmetic operations.
-    ``/`` is floating-point division (will always result in a floating point result)
-    ``//`` is the integer divison (can divide integers into integer result of the same type), or floor-division on floating points (the division resulting in a whole number rounded towards minus infinity).
+    ``/`` is division (will result in integer division when using on integer operands, and a floating point division when at least one of the operands is a float)
     ``**`` is the power operator: ``3 ** 5`` is equal to 3*3*3*3*3 and is 243.
     ``%`` is the remainder operator: ``25 % 7`` is 4.  Be careful: without a space, %10 will be parsed as the binary number 2
     Remainder is only supported on integer operands (not floats).

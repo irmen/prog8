@@ -70,8 +70,8 @@
             float rz = rotatedz[i]
             if rz >= 0.1 {
                 float persp = (5.0+rz)/height
-                ubyte sx = rotatedx[i] / persp + width//2 as ubyte
-                ubyte sy = rotatedy[i] / persp + height//2 as ubyte
+                ubyte sx = rotatedx[i] / persp + width/2 as ubyte
+                ubyte sy = rotatedy[i] / persp + height/2 as ubyte
                 c64scr.setcc(sx, sy, 46, i+2)
             }
         }
@@ -80,8 +80,8 @@
             float rz = rotatedz[i]
             if rz < 0.1 {
                 float persp = (5.0+rz)/height
-                ubyte sx = rotatedx[i] / persp + width//2 as ubyte
-                ubyte sy = rotatedy[i] / persp + height//2 as ubyte
+                ubyte sx = rotatedx[i] / persp + width/2 as ubyte
+                ubyte sy = rotatedy[i] / persp + height/2 as ubyte
                 c64scr.setcc(sx, sy, 81, i+2)
             }
         }

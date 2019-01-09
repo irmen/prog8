@@ -58,7 +58,6 @@ enum class Opcode {
     IDIV_UW,
     IDIV_W,
     DIV_F,
-    FLOORDIV,       // integer division but on floatint point argument(s)
     REMAINDER_UB,   // signed remainder is undefined/unimplemented
     REMAINDER_UW,   // signed remainder is undefined/unimplemented
     POW_UB,

@@ -39,8 +39,8 @@
                 vm_gfx_text(8, 6, 1, "Spin")
                 vm_gfx_text(29, 11, 1, "to Win !")
 
-                for uword i in 0 to width//10 {
-                    vm_gfx_line(i*2+width//2-width//10, 130, i*10.w, 199, 6)
+                for uword i in 0 to width/10 {
+                    vm_gfx_line(i*2+width/2-width/10, 130, i*10.w, 199, 6)
                 }
 
                 rotate_vertices(irq.global_time as float / 30.0)
@@ -83,11 +83,11 @@
     sub draw_edges() {
 
         sub toscreenx(float x, float z) -> word {
-            return x/(4.2+z) * (height as float) as word + width // 2
+            return x/(4.2+z) * (height as float) as word + width / 2
         }
 
         sub toscreeny(float y, float z) -> word {
-            return y/(4.2+z) * (height as float) as word + height // 2
+            return y/(4.2+z) * (height as float) as word + height / 2
         }
 
         ; draw all edges of the object

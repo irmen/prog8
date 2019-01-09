@@ -519,17 +519,6 @@ push_fac1_as_result	.proc
 		.pend
 		
 
-floordiv_f	.proc
-		; -- push f1//f2 on stack
-		jsr  pop_2_floats_f2_in_fac1
-		stx  c64.SCRATCH_ZPREGX
-		lda  #<fmath_float1
-		ldy  #>fmath_float1
-		jsr  c64flt.FDIV
-		jsr  c64flt.INT
-		jmp  push_fac1_as_result
-		.pend
-
 div_f		.proc
 		; -- push f1/f2 on stack
 		jsr  pop_2_floats_f2_in_fac1

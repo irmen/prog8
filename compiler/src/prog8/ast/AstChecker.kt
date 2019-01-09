@@ -689,7 +689,7 @@ class AstChecker(private val namespace: INameScope,
 
     override fun process(expr: BinaryExpression): IExpression {
         when(expr.operator){
-            "/", "//", "%" -> {
+            "/", "%" -> {
                 val constvalRight = expr.right.constValue(namespace, heap)
                 val divisor = constvalRight?.asNumericValue?.toDouble()
                 if(divisor==0.0)

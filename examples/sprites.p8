@@ -40,7 +40,7 @@
         c64.STROUT("...we are all floating...\n")
 
         for ubyte i in 0 to 7 {
-            c64.SPRPTR[i] = $0a00 // 64
+            c64.SPRPTR[i] = $0a00 / 64
             c64.SPXY[i*2] = 50+25*i
             c64.SPXY[i*2+1] = rnd()
         }
