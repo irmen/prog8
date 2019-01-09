@@ -82,6 +82,9 @@ fun importModule(filePath: Path) : Module {
 
 
 fun discoverImportedModule(name: String, importedFrom: Path, position: Position?): Path {
+
+    // @todo: be able to actually load the library p8's as a resource instead of from a file
+
     val fileName = "$name.p8"
     val locations = mutableListOf(Paths.get(importedFrom.parent.toString()))
 

@@ -37,7 +37,7 @@
             c64.SPRPTR[i] = $0a00/64
         }
         c64.SPENA = 255                ; enable all sprites
-        c64utils.set_rasterirq(200)     ; enable animation
+        c64utils.set_rasterirq(270)     ; enable animation
     }
 }
 
