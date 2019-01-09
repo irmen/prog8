@@ -783,6 +783,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.CAST_UB_TO_UW, Opcode.CAST_UB_TO_W -> " lda  #0 |  sta  ${(ESTACK_HI+1).toHex()},x"     // clear the msb
             Opcode.CAST_B_TO_UW, Opcode.CAST_B_TO_W -> " lda  ${(ESTACK_LO+1).toHex()},x |  ${signExtendA("${(ESTACK_HI+1).toHex()},x")}"     // sign extend the lsb
             Opcode.MSB -> " lda  ${(ESTACK_HI+1).toHex()},x |  sta  ${(ESTACK_LO+1).toHex()},x"
+            // TODO:   Opcode.MKWORD -> " inx |  lda  ${ESTACK_LO.toHex()},x |  sta  ${(ESTACK_HI+1).toHex()},x "
 
             Opcode.ADD_UB, Opcode.ADD_B -> {        // TODO inline better?
                 """
@@ -3010,6 +3011,66 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 lda  #>${hexVal(segment[0])}
                 adc  ${(ESTACK_HI+1).toHex()},x
                 sta  ${(ESTACK_HI+1).toHex()},x
+                """
+            },
+
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.PUSH_VAR_BYTE, Opcode.MKWORD)) { segment ->
+                """
+                lda  ${segment[0].callLabel}
+                sta  ${ESTACK_LO.toHex()},x
+                lda  ${segment[1].callLabel}
+                sta  ${ESTACK_HI.toHex()},x
+                dex
+                """
+            },
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.PUSH_VAR_BYTE, Opcode.MKWORD)) { segment ->
+                """
+                lda  #${hexVal(segment[0])}
+                sta  ${ESTACK_LO.toHex()},x
+                lda  ${segment[1].callLabel}
+                sta  ${ESTACK_HI.toHex()},x
+                dex
+                """
+            },
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.PUSH_BYTE, Opcode.MKWORD)) { segment ->
+                """
+                lda  ${segment[0].callLabel}
+                sta  ${ESTACK_LO.toHex()},x
+                lda  #${hexVal(segment[1])}
+                sta  ${ESTACK_HI.toHex()},x
+                dex
+                """
+            },
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.PUSH_VAR_BYTE, Opcode.MKWORD, Opcode.POP_VAR_WORD)) { segment ->
+                """
+                lda  ${segment[0].callLabel}
+                sta  ${segment[3].callLabel}
+                lda  ${segment[1].callLabel}
+                sta  ${segment[3].callLabel}+1
+                """
+            },
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.PUSH_BYTE, Opcode.MKWORD, Opcode.POP_VAR_WORD)) { segment ->
+                """
+                lda  ${segment[0].callLabel}
+                sta  ${segment[3].callLabel}
+                lda  #${hexVal(segment[1])}
+                sta  ${segment[3].callLabel}+1
+                """
+            },
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.PUSH_VAR_BYTE, Opcode.MKWORD, Opcode.POP_VAR_WORD)) { segment ->
+                """
+                lda  #${hexVal(segment[0])}
+                sta  ${segment[3].callLabel}
+                lda  ${segment[1].callLabel}
+                sta  ${segment[3].callLabel}+1
+                """
+            },
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.PUSH_VAR_BYTE, Opcode.MKWORD, Opcode.CAST_UW_TO_W, Opcode.POP_VAR_WORD)) { segment ->
+                """
+                lda  ${segment[0].callLabel}
+                sta  ${segment[4].callLabel}
+                lda  ${segment[1].callLabel}
+                sta  ${segment[4].callLabel}+1
                 """
             }
     )

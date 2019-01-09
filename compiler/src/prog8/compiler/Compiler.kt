@@ -823,6 +823,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 }
             }
             "msb" -> prog.instr(Opcode.MSB)         // note: LSB is not a function, it's just an alias for the cast "... as ubyte"
+            "mkword" -> prog.instr(Opcode.MKWORD)
             "lsl" -> {
                 val arg = args.single()
                 val dt = arg.resultingDatatype(namespace, heap)

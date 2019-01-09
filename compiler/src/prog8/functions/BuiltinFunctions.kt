@@ -56,6 +56,9 @@ val BuiltinFunctions = mapOf(
     "all"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.all { v -> v != 0.0} }},
     "lsb"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, n, h -> oneIntArgOutputInt(a, p, n, h) { x: Int -> x and 255 }},
     "msb"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, n, h -> oneIntArgOutputInt(a, p, n, h) { x: Int -> x ushr 8 and 255}},
+    "mkword"      to FunctionSignature(true, listOf(
+                                                        BuiltinFunctionParam("lsb", setOf(DataType.UBYTE)),
+                                                        BuiltinFunctionParam("msb", setOf(DataType.UBYTE))), DataType.UWORD, ::builtinMkword),
     "rnd"         to FunctionSignature(true, emptyList(), DataType.UBYTE),
     "rndw"        to FunctionSignature(true, emptyList(), DataType.UWORD),
     "rndf"        to FunctionSignature(true, emptyList(), DataType.FLOAT),
@@ -300,6 +303,16 @@ private fun builtinLen(args: List<IExpression>, position: Position, namespace:IN
         DataType.UWORD, DataType.WORD,
         DataType.FLOAT -> throw SyntaxError("len of weird argument ${args[0]}", position)
     }
+}
+
+
+private fun builtinMkword(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
+    if (args.size != 2)
+        throw SyntaxError("mkword requires lsb and msb arguments", position)
+    val constLsb = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
+    val constMsb = args[1].constValue(namespace, heap) ?: throw NotConstArgumentException()
+    val result = (constMsb.asIntegerValue!! shl 8) or constLsb.asIntegerValue!!
+    return LiteralValue(DataType.UWORD, wordvalue = result, position = position)
 }
 
 private fun builtinSin8(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {

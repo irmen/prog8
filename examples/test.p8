@@ -1,20 +1,46 @@
 %import c64utils
-%import c64flt
 
 ~ main {
 
     sub start()  {
 
-; @todo create word function           ;c64.SPXY[i] = (rnd() as uword) * 256 + (50+25*i)
 ; @todo more efficient +1/-1 additions in expressions
 
-        float f1 = c64flt.TWOPI
 
-        c64flt.print_fln(3.1415)
-        c64flt.print_fln(f1)
-        f1 = 3.1415
-        f1 = 3.1415
-        f1 = 3.1415
-        f1 = 3.1415
+        ubyte lsbb = $aa
+        ubyte msbb = $44
+        uword[4] uwarr
+
+        uword uw = (msbb as uword)*256 + lsbb
+
+        c64scr.print_uwhex(0, uw)
+        c64.CHROUT('\n')
+        uw = mkword(lsbb, msbb)
+        c64scr.print_uwhex(0, uw)
+        c64.CHROUT('\n')
+        uw = mkword($aa, $44)
+        c64scr.print_uwhex(0, uw)
+        c64.CHROUT('\n')
+
+        uw = mkword(lsbb, $44)
+        c64scr.print_uwhex(0, uw)
+        c64.CHROUT('\n')
+        uw = mkword($aa, msbb)
+        c64scr.print_uwhex(0, uw)
+        c64.CHROUT('\n')
+        uwarr[2] = mkword(lsbb, msbb)
+        c64scr.print_uwhex(0, uwarr[2])
+        c64.CHROUT('\n')
+        uwarr[2] = mkword(lsbb, $44)
+        c64scr.print_uwhex(0, uwarr[2])
+        c64.CHROUT('\n')
+        uwarr[2] = mkword($aa, msbb)
+        c64scr.print_uwhex(0, uwarr[2])
+        c64.CHROUT('\n')
+
+        word w = mkword(lsbb,msbb) as word
+        c64scr.print_w(w)
+        c64.CHROUT('\n')
+
     }
 }

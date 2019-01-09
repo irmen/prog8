@@ -1028,6 +1028,13 @@ class StackVm(private var traceOutputFile: String?) {
                 checkDt(v, DataType.UWORD, DataType.WORD)
                 evalstack.push(v.msb())
             }
+            Opcode.MKWORD -> {
+                val msb = evalstack.pop()
+                val lsb = evalstack.pop()
+                checkDt(lsb, DataType.UBYTE)
+                checkDt(msb, DataType.UBYTE)
+                evalstack.push(Value(DataType.UWORD, (msb.integerValue() shl 8) or lsb.integerValue()))
+            }
             Opcode.AND_BYTE -> {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.UBYTE)

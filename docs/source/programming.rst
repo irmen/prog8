@@ -605,6 +605,9 @@ lsb(x)
 msb(x)
     Get the most significant byte of the word x.
 
+mkword(lsb, msb)
+    Efficiently create a word value from two bytes (the lsb and the msb). Avoids multiplication and shifting.
+
 any(x)
     1 ('true') if any of the values in the array value x is 'true' (not zero), else 0 ('false')
 

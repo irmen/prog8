@@ -133,6 +133,7 @@ enum class Opcode {
 
     // numeric type conversions
     MSB,        // note: lsb is equivalent to  CAST_UW_TO_UB  or CAST_W_TO_UB
+    MKWORD,        // create a word from lsb + msb
     CAST_UB_TO_B,
     CAST_UB_TO_UW,
     CAST_UB_TO_W,
