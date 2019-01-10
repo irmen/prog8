@@ -208,6 +208,10 @@ enum class Opcode {
     NOTEQUAL_BYTE,
     NOTEQUAL_WORD,
     NOTEQUAL_F,
+    CMP_B,          // sets processor status flags based on comparison, instead of actually storing a result value
+    CMP_UB,         // sets processor status flags based on comparison, instead of actually storing a result value
+    CMP_W,          // sets processor status flags based on comparison, instead of actually storing a result value
+    CMP_UW,         // sets processor status flags based on comparison, instead of actually storing a result value
 
     // array access and simple manipulations
     READ_INDEXED_VAR_BYTE,

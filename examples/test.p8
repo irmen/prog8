@@ -4,13 +4,27 @@
 
     sub start()  {
 
-        const word height=25
+        ubyte i
+        byte j
+        uword uw
+        word w
 
-        word rz=33
-                word persp = (rz+200)
-                persp = rz / 25
-                persp = rz / height
-                persp = (rz+200) / height
+        for i in 5 to 0 step -1 {
+            c64scr.print_ub(i)
+            c64.CHROUT('\n')
+        }
+        c64.CHROUT('\n')
 
+        for j in 5 to 0 step -1 {
+            c64scr.print_b(j)
+            c64.CHROUT('\n')
+        }
+        c64.CHROUT('\n')
+
+        for j in -5 to 0 {
+            c64scr.print_b(j)
+            c64.CHROUT('\n')
+        }
+        c64.CHROUT('\n')
     }
 }

@@ -3105,8 +3105,26 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 adc  ${(ESTACK_HI+1).toHex()},x
                 sta  ${(ESTACK_HI+1).toHex()},x
                 """
-            }
+            },
 
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.CMP_B), listOf(Opcode.PUSH_VAR_BYTE, Opcode.CMP_UB)) { segment ->
+                // this pattern is encountered as part of the loop bound condition in for loops (var + cmp + jz/jnz)
+                val cmpval = segment[1].arg!!.integerValue()
+                " lda  ${segment[0].callLabel} |  cmp  #$cmpval "
+            },
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.CMP_W), listOf(Opcode.PUSH_VAR_WORD, Opcode.CMP_UW)) { segment ->
+                // this pattern is encountered as part of the loop bound condition in for loops (var + cmp + jz/jnz)
+                """
+                lda  ${segment[0].callLabel}
+                cmp  #<${hexVal(segment[1])}
+                bne  +
+                lda  ${segment[0].callLabel}+1
+                cmp  #>${hexVal(segment[1])}
+                bne  +
+                lda  #0
++
+                """
+            }
 
     )
 

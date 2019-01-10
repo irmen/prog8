@@ -447,11 +447,58 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
         }
     }
 
-    override fun process(range: RangeExpr): IExpression {
-        range.from = range.from.process(this)
-        range.to = range.to.process(this)
-        range.step = range.step.process(this)
-        return super.process(range)
+    override fun process(forLoop: ForLoop): IStatement {
+
+        fun adjustRangeDt(rangeFrom: LiteralValue, targetDt: DataType, rangeTo: LiteralValue, stepLiteral: LiteralValue?, range: RangeExpr): RangeExpr {
+            val newFrom = rangeFrom.intoDatatype(targetDt)
+            val newTo = rangeTo.intoDatatype(targetDt)
+            if (newFrom != null && newTo != null) {
+                val newStep: IExpression =
+                        if (stepLiteral != null) (stepLiteral.intoDatatype(targetDt) ?: stepLiteral) else range.step
+                return RangeExpr(newFrom, newTo, newStep, range.position)
+            }
+            return range
+        }
+
+        // adjust the datatype of a range expression in for loops to the loop variable.
+        val resultStmt = super.process(forLoop) as ForLoop
+        val iterableRange = resultStmt.iterable as? RangeExpr ?: return resultStmt
+        val rangeFrom = iterableRange.from as? LiteralValue
+        val rangeTo = iterableRange.to as? LiteralValue
+        if(rangeFrom==null || rangeTo==null) return resultStmt
+
+        val loopvar = resultStmt.loopVar!!.targetStatement(namespace) as? VarDecl
+        if(loopvar!=null) {
+            val stepLiteral = iterableRange.step as? LiteralValue
+            when(loopvar.datatype) {
+                DataType.UBYTE -> {
+                    if(rangeFrom.type!=DataType.UBYTE) {
+                        // attempt to translate the iterable into ubyte values
+                        resultStmt.iterable = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
+                    }
+                }
+                DataType.BYTE -> {
+                    if(rangeFrom.type!=DataType.BYTE) {
+                        // attempt to translate the iterable into byte values
+                        resultStmt.iterable = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
+                    }
+                }
+                DataType.UWORD -> {
+                    if(rangeFrom.type!=DataType.UWORD) {
+                        // attempt to translate the iterable into uword values
+                        resultStmt.iterable = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
+                    }
+                }
+                DataType.WORD -> {
+                    if(rangeFrom.type!=DataType.WORD) {
+                        // attempt to translate the iterable into word values
+                        resultStmt.iterable = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
+                    }
+                }
+                else -> throw FatalAstException("invalid loopvar datatype $loopvar")
+            }
+        }
+        return resultStmt
     }
 
     override fun process(literalValue: LiteralValue): LiteralValue {

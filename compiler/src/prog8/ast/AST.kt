@@ -199,6 +199,7 @@ interface IAstProcessor {
     fun process(range: RangeExpr): IExpression {
         range.from = range.from.process(this)
         range.to = range.to.process(this)
+        range.step = range.step.process(this)
         return range
     }
 
@@ -1316,7 +1317,7 @@ class RangeExpr(var from: IExpression,
             fromDt==DataType.STR_S && toDt==DataType.STR_S -> DataType.STR_S
             fromDt==DataType.STR_PS && toDt==DataType.STR_PS -> DataType.STR_PS
             fromDt==DataType.WORD || toDt==DataType.WORD -> DataType.WORD
-            fromDt==DataType.BYTE || toDt==DataType.BYTE -> DataType.UBYTE
+            fromDt==DataType.BYTE || toDt==DataType.BYTE -> DataType.BYTE
             else -> DataType.UBYTE
         }
     }

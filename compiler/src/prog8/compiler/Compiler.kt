@@ -257,6 +257,16 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         }
     }
 
+    private fun opcodeCompare(dt: DataType): Opcode {
+        return when (dt) {
+            DataType.UBYTE -> Opcode.CMP_UB
+            DataType.BYTE -> Opcode.CMP_B
+            DataType.UWORD -> Opcode.CMP_UW
+            DataType.WORD -> Opcode.CMP_W
+            else -> throw CompilerException("invalid dt $dt")
+        }
+    }
+
     private fun opcodePushvar(dt: DataType): Opcode {
         return when (dt)  {
             DataType.UBYTE, DataType.BYTE -> Opcode.PUSH_VAR_BYTE
@@ -1729,10 +1739,18 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 when (loopVarDt) {
                     DataType.UBYTE -> {
                         if (range.first < 0 || range.first > 255 || range.last < 0 || range.last > 255)
-                            throw CompilerException("range out of bounds for byte")
+                            throw CompilerException("range out of bounds for ubyte")
                     }
                     DataType.UWORD -> {
                         if (range.first < 0 || range.first > 65535 || range.last < 0 || range.last > 65535)
+                            throw CompilerException("range out of bounds for uword")
+                    }
+                    DataType.BYTE -> {
+                        if (range.first < -128 || range.first > 127 || range.last < -128 || range.last > 127)
+                            throw CompilerException("range out of bounds for byte")
+                    }
+                    DataType.WORD -> {
+                        if (range.first < -32768 || range.first > 32767 || range.last < -32768 || range.last > 32767)
                             throw CompilerException("range out of bounds for word")
                     }
                     else -> throw CompilerException("range must be byte or word")
@@ -1840,11 +1858,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         prog.label(continueLabel)
 
         prog.instr(opcodeIncvar(indexVarType), callLabel = indexVar.scopedname)
-
-        // TODO: optimize edge cases if last value = 255 or 0 (for bytes) etc. to avoid  PUSH_BYTE / SUB opcodes and make use of the wrapping around of the value.
-        prog.instr(opcodePush(indexVarType), Value(indexVarType, numElements))
         prog.instr(opcodePushvar(indexVarType), callLabel = indexVar.scopedname)
-        prog.instr(opcodeSub(indexVarType))
+        prog.instr(opcodeCompare(indexVarType), Value(indexVarType, numElements))
         if(indexVarType==DataType.UWORD)
             prog.instr(Opcode.JNZW, callLabel = loopLabel)
         else
@@ -1889,16 +1904,25 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         prog.label(loopLabel)
         translate(body)
         prog.label(continueLabel)
+        val numberOfIncDecsForOptimize = 8
         when {
-            range.step==1 -> prog.instr(opcodeIncvar(varDt), callLabel = varname)
-            range.step==-1 -> prog.instr(opcodeDecvar(varDt), callLabel = varname)
-            range.step>1 -> {
+            range.step in 1..numberOfIncDecsForOptimize -> {
+                repeat(range.step) {
+                    prog.instr(opcodeIncvar(varDt), callLabel = varname)
+                }
+            }
+            range.step in -1 downTo -numberOfIncDecsForOptimize -> {
+                repeat(abs(range.step)) {
+                    prog.instr(opcodeDecvar(varDt), callLabel = varname)
+                }
+            }
+            range.step>numberOfIncDecsForOptimize -> {
                 prog.instr(opcodePushvar(varDt), callLabel = varname)
                 prog.instr(opcodePush(varDt), Value(varDt, range.step))
                 prog.instr(opcodeAdd(varDt))
                 prog.instr(opcodePopvar(varDt), callLabel = varname)
             }
-            range.step<1 -> {
+            range.step<numberOfIncDecsForOptimize -> {
                 prog.instr(opcodePushvar(varDt), callLabel = varname)
                 prog.instr(opcodePush(varDt), Value(varDt, abs(range.step)))
                 prog.instr(opcodeSub(varDt))
@@ -1906,17 +1930,21 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             }
         }
 
-        // TODO: optimize edge cases if last value = 255 or 0 (for bytes) etc. to avoid  PUSH_BYTE / SUB opcodes and make use of the wrapping around of the value.
-        // TODO: ubyte/uword can't count down to 0 with negative step because test value will be <0 which causes "value out of range" crash
-        prog.instr(opcodePush(varDt), Value(varDt, range.last + range.step))
-        prog.instr(opcodePushvar(varDt), callLabel = varname)
-        prog.instr(opcodeSub(varDt))
-        val loopvarJumpOpcode = when(varDt) {
-            DataType.UBYTE, DataType.BYTE -> Opcode.JNZ
-            DataType.UWORD, DataType.WORD -> Opcode.JNZW
-            else -> throw CompilerException("invalid loop var datatype (expected byte or word) $varDt of var $varname")
+        if(range.last==0) {
+            // optimize for the for loop that counts to 0
+            prog.instr(if(range.first>0) Opcode.BPOS else Opcode.BNEG, callLabel = loopLabel)
+        } else {
+            prog.instr(opcodePushvar(varDt), callLabel = varname)
+            val checkValue =
+                    when (varDt) {
+                        DataType.UBYTE -> (range.last + range.step) and 255
+                        DataType.UWORD -> (range.last + range.step) and 65535
+                        DataType.BYTE, DataType.WORD -> range.last + range.step
+                        else -> throw CompilerException("invalid loop var dt $varDt")
+                    }
+            prog.instr(opcodeCompare(varDt), Value(varDt, checkValue))
+            prog.instr(Opcode.BNZ, callLabel = loopLabel)
         }
-        prog.instr(loopvarJumpOpcode, callLabel = loopLabel)
         prog.label(breakLabel)
         prog.instr(Opcode.NOP)
         // note: ending value of loop register / variable is *undefined* after this point!
