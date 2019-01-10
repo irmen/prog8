@@ -30,9 +30,9 @@
 		memory  uword  IRQ_VEC		= $FFFE		; 6502 interrupt vector, determined by the kernal if banked in
 
 		; the default addresses for the character screen chars and colors
-		const   uword  Screen		= $0400		; @todo matrix/array? needs to support array size > 255
-		const   uword  Colors		= $d800		; @todo matrix/array? needs to support array size > 255
-		
+		const   uword  Screen		= $0400		; to have this as an array[40*25] the compiler would have to support array size > 255
+		const   uword  Colors		= $d800		; to have this as an array[40*25] the compiler would have to support array size > 255
+
 		; the default locations of the 8 sprite pointers (store address of sprite / 64)
 		memory  ubyte  SPRPTR0		= 2040
 		memory  ubyte  SPRPTR1		= 2041
@@ -42,7 +42,7 @@
 		memory  ubyte  SPRPTR5		= 2045
 		memory  ubyte  SPRPTR6		= 2046
 		memory  ubyte  SPRPTR7		= 2047
-		memory  ubyte[8]  SPRPTR	= 2040
+		memory  ubyte[8]  SPRPTR	= 2040		; the 8 sprite pointers as an array.
  
 
 ; ---- VIC-II registers ----
@@ -63,7 +63,7 @@
 		memory  ubyte SP6Y		= $d00d
 		memory  ubyte SP7X		= $d00e
 		memory  ubyte SP7Y		= $d00f
-		memory  ubyte[16] SPXY		= $d000
+		memory  ubyte[16] SPXY		= $d000		; the 8 sprite X and Y registers as an array.
 
 		memory  ubyte MSIGX		= $d010
 		memory  ubyte SCROLY		= $d011

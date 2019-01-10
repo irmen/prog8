@@ -21,23 +21,9 @@ private class LexerErrorListener: BaseErrorListener() {
     }
 }
 
-fun importModule(filePath: Path) : Module {
-    print("importing '${filePath.fileName}'")
-    if(filePath.parent!=null) {
-        var importloc = filePath.toString()
-        val curdir = Paths.get("").toAbsolutePath().toString()
-        if(importloc.startsWith(curdir))
-            importloc = "." + importloc.substring(curdir.length)
-        println(" (from '$importloc')")
-    }
-    else
-        println("")
-    if(!Files.isReadable(filePath))
-        throw ParsingFailedError("No such file: $filePath")
 
-    val moduleName = filePath.fileName.toString().substringBeforeLast('.')
-    val input = CharStreams.fromPath(filePath)
-    val lexer = prog8Lexer(input)
+fun importModule(stream: CharStream, moduleName: String): Module {
+    val lexer = prog8Lexer(stream)
     val lexerErrors = LexerErrorListener()
     lexer.addErrorListener(lexerErrors)
     val tokens = CommentHandlingTokenStream(lexer)
@@ -45,7 +31,7 @@ fun importModule(filePath: Path) : Module {
     val parseTree = parser.module()
     val numberOfErrors = parser.numberOfSyntaxErrors + lexerErrors.numberOfErrors
     if(numberOfErrors > 0)
-        throw ParsingFailedError("There are $numberOfErrors errors in '${filePath.fileName}'.")
+        throw ParsingFailedError("There are $numberOfErrors errors in '$moduleName.p8'.")
 
     // You can do something with the parsed comments:
     // tokens.commentTokens().forEach { println(it) }
@@ -63,7 +49,7 @@ fun importModule(filePath: Path) : Module {
             .asSequence()
             .mapIndexed { i, it -> Pair(i, it) }
             .filter { (it.second as? Directive)?.directive == "%import" }
-            .map { Pair(it.first, executeImportDirective(it.second as Directive, filePath)) }
+            .map { Pair(it.first, executeImportDirective(it.second as Directive, Paths.get("$moduleName.p8"))) }
             .toList()
 
     imports.reversed().forEach {
@@ -81,10 +67,27 @@ fun importModule(filePath: Path) : Module {
 }
 
 
-fun discoverImportedModule(name: String, importedFrom: Path, position: Position?): Path {
+fun importModule(filePath: Path) : Module {
+    print("importing '${filePath.fileName}'")
+    if(filePath.parent!=null) {
+        var importloc = filePath.toString()
+        val curdir = Paths.get("").toAbsolutePath().toString()
+        if(importloc.startsWith(curdir))
+            importloc = "." + importloc.substring(curdir.length)
+        println(" (from '$importloc')")
+    }
+    else
+        println("")
+    if(!Files.isReadable(filePath))
+        throw ParsingFailedError("No such file: $filePath")
 
-    // @todo: be able to actually load the library p8's as a resource instead of from a file
+    val moduleName = filePath.fileName.toString().substringBeforeLast('.')
+    val input = CharStreams.fromPath(filePath)
+    return importModule(input, moduleName)
+}
 
+
+private fun discoverImportedModuleFile(name: String, importedFrom: Path, position: Position?): Path {
     val fileName = "$name.p8"
     val locations = mutableListOf(Paths.get(importedFrom.parent.toString()))
 
@@ -105,7 +108,7 @@ fun discoverImportedModule(name: String, importedFrom: Path, position: Position?
 }
 
 
-fun executeImportDirective(import: Directive, importedFrom: Path): Module? {
+private fun executeImportDirective(import: Directive, importedFrom: Path): Module? {
     if(import.directive!="%import" || import.args.size!=1 || import.args[0].name==null)
         throw SyntaxError("invalid import directive", import.position)
     val moduleName = import.args[0].name!!
@@ -114,9 +117,19 @@ fun executeImportDirective(import: Directive, importedFrom: Path): Module? {
     if(importedModules.containsKey(moduleName))
         return null
 
-    val modulePath = discoverImportedModule(moduleName, importedFrom, import.position)
-    val importedModule = importModule(modulePath)
-    importedModule.checkImportedValid()
+    val resource = import::class.java.getResource("/prog8lib/$moduleName.p8")
+    val importedModule =
+        if(resource!=null) {
+            // load the module from the embedded resource
+            resource.openStream().use {
+                println("importing '$moduleName' (embedded library)")
+                importModule(CharStreams.fromStream(it), moduleName)
+            }
+        } else {
+            val modulePath = discoverImportedModuleFile(moduleName, importedFrom, import.position)
+            importModule(modulePath)
+        }
 
+    importedModule.checkImportedValid()
     return importedModule
 }

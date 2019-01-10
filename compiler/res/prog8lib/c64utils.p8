@@ -929,19 +929,15 @@ asmsub print_uwhex  (ubyte prefix @ Pc, uword value @ AY) -> clobbers(A,X,Y) -> 
 
 asmsub  print_uw0  (uword value @ AY) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the uword in A/Y in decimal form, with left padding 0s (5 positions total)
-	; @todo shorter in loop form?
 	%asm {{
 		jsr  c64utils.uword2decimal
-		lda  c64utils.word2decimal_output
+		ldy  #0
+-		lda  c64utils.word2decimal_output,y
 		jsr  c64.CHROUT
-		lda  c64utils.word2decimal_output+1
-		jsr  c64.CHROUT
-		lda  c64utils.word2decimal_output+2
-		jsr  c64.CHROUT
-		lda  c64utils.word2decimal_output+3
-		jsr  c64.CHROUT
-		lda  c64utils.word2decimal_output+4
-		jmp  c64.CHROUT
+		iny
+		cpy  #5
+		bne  -
+		rts
 	}}
 }
 
