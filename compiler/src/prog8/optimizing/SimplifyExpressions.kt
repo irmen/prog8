@@ -13,8 +13,6 @@ import kotlin.math.log2
         -X + A ->  A - X
         X+ (-A) -> X - A
         X- (-A) -> X + A
-        X % 1 -> constant 0 (if X is byte/word)
-        X % 2 -> X and 1 (if X is byte/word)
 
 
     todo expression optimization: common (sub) expression elimination (turn common expressions into single subroutine call + introduce variable to hold it)
@@ -120,6 +118,7 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
             "+" -> return optimizeAdd(expr, leftVal, rightVal)
             "-" -> return optimizeSub(expr, leftVal, rightVal)
             "**" -> return optimizePower(expr, leftVal, rightVal)
+            "%" -> return optimizeRemainder(expr, leftVal, rightVal)
         }
         return expr
     }
@@ -349,6 +348,30 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
         return expr
     }
 
+    private fun optimizeRemainder(expr: BinaryExpression, leftVal: LiteralValue?, rightVal: LiteralValue?): IExpression {
+        if(leftVal==null && rightVal==null)
+            return expr
+
+        // simplify assignments  A = B <operator> C
+
+        val cv = rightVal?.asIntegerValue?.toDouble()
+        when(expr.operator) {
+            "%" -> {
+                if (cv == 1.0) {
+                    optimizationsDone++
+                    return LiteralValue.fromNumber(0, expr.resultingDatatype(namespace, heap)!!, expr.position)
+                } else if (cv == 2.0) {
+                    optimizationsDone++
+                    expr.operator = "&"
+                    expr.right = LiteralValue.optimalInteger(1, expr.position)
+                    return expr
+                }
+            }
+        }
+        return expr
+
+    }
+
     private fun optimizeDivision(expr: BinaryExpression, leftVal: LiteralValue?, rightVal: LiteralValue?): IExpression {
         if(leftVal==null && rightVal==null)
             return expr
@@ -379,8 +402,7 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
                     if(leftDt in IntegerDatatypes) {
                         // divided by a power of two => shift right
                         optimizationsDone++
-                        val numshifts = log2(cv)
-                        println("DIV: SHIFT RIGHT $cv  ->  $numshifts")  // TODO
+                        val numshifts = log2(cv).toInt()
                         return BinaryExpression(expr.left, ">>", LiteralValue.optimalInteger(numshifts, expr.position), expr.position)
                     }
                 }
@@ -388,8 +410,7 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
                     if(leftDt in IntegerDatatypes) {
                         // divided by a negative power of two => negate, then shift right
                         optimizationsDone++
-                        val numshifts = log2(-cv)
-                        println("DIV: SHIFT RIGHT $cv  ->  $numshifts")  // TODO
+                        val numshifts = log2(-cv).toInt()
                         return BinaryExpression(PrefixExpression("-", expr.left, expr.position), ">>", LiteralValue.optimalInteger(numshifts, expr.position), expr.position)
                     }
                 }

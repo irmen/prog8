@@ -3052,6 +3052,82 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 " lda   ${segment[0].callLabel} |  eor  #${hexVal(segment[1])} |  sta  ${ESTACK_LO.toHex()},x |  dex "
             },
 
+            // push  memory word | wordvalue
+            AsmPattern(listOf(Opcode.PUSH_MEM_W, Opcode.PUSH_WORD, Opcode.BITOR_WORD),
+                    listOf(Opcode.PUSH_MEM_UW, Opcode.PUSH_WORD, Opcode.BITOR_WORD)) { segment ->
+                """
+                lda  ${hexVal(segment[0])}
+                ora  #<${hexVal(segment[1])}
+                sta  ${ESTACK_LO.toHex()},x
+                lda  ${hexValPlusOne(segment[0])}
+                ora  #>${hexVal(segment[1])}
+                sta  ${ESTACK_HI.toHex()},x
+                dex
+                """
+            },
+            // push  memory word & wordvalue
+            AsmPattern(listOf(Opcode.PUSH_MEM_W, Opcode.PUSH_WORD, Opcode.BITAND_WORD),
+                    listOf(Opcode.PUSH_MEM_UW, Opcode.PUSH_WORD, Opcode.BITAND_WORD)) { segment ->
+                """
+                lda  ${hexVal(segment[0])}
+                and  #<${hexVal(segment[1])}
+                sta  ${ESTACK_LO.toHex()},x
+                lda  ${hexValPlusOne(segment[0])}
+                and  #>${hexVal(segment[1])}
+                sta  ${ESTACK_HI.toHex()},x
+                dex
+                """
+            },
+            // push  memory word ^ wordvalue
+            AsmPattern(listOf(Opcode.PUSH_MEM_W, Opcode.PUSH_WORD, Opcode.BITXOR_WORD),
+                    listOf(Opcode.PUSH_MEM_UW, Opcode.PUSH_WORD, Opcode.BITXOR_WORD)) { segment ->
+                """
+                lda  ${hexVal(segment[0])}
+                eor  #<${hexVal(segment[1])}
+                sta  ${ESTACK_LO.toHex()},x
+                lda  ${hexValPlusOne(segment[0])}
+                eor  #>${hexVal(segment[1])}
+                sta  ${ESTACK_HI.toHex()},x
+                dex
+                """
+            },
+            // push  var word | wordvalue
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.PUSH_WORD, Opcode.BITOR_WORD)) { segment ->
+                """
+                lda  ${segment[0].callLabel}
+                ora  #<${hexVal(segment[1])}
+                sta  ${ESTACK_LO.toHex()},x
+                lda  ${segment[0].callLabel}+1
+                ora  #>${hexVal(segment[1])}
+                sta  ${ESTACK_HI.toHex()},x
+                dex
+                """
+            },
+            // push  var word & wordvalue
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.PUSH_WORD, Opcode.BITAND_WORD)) { segment ->
+                """
+                lda  ${segment[0].callLabel}
+                and  #<${hexVal(segment[1])}
+                sta  ${ESTACK_LO.toHex()},x
+                lda  ${segment[0].callLabel}+1
+                and  #>${hexVal(segment[1])}
+                sta  ${ESTACK_HI.toHex()},x
+                dex
+                """
+            },
+            // push  var word ^ wordvalue
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.PUSH_WORD, Opcode.BITXOR_WORD)) { segment ->
+                """
+                lda  ${segment[0].callLabel}
+                eor  #<${hexVal(segment[1])}
+                sta  ${ESTACK_LO.toHex()},x
+                lda  ${segment[0].callLabel}+1
+                eor  #>${hexVal(segment[1])}
+                sta  ${ESTACK_HI.toHex()},x
+                dex
+                """
+            },
+
             AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.PUSH_VAR_BYTE, Opcode.MKWORD)) { segment ->
                 """
                 lda  ${segment[0].callLabel}

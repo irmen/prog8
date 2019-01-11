@@ -168,113 +168,112 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
         if(assignment.aug_op!=null)
             throw AstException("augmented assignments should have been converted to normal assignments before this optimizer")
 
-        // remove assignments that have no effect  X=X , X+=0, X-=0, X*=1, X/=1, X//=1, A |= 0, A ^= 0, A<<=0, etc etc
         if(assignment.targets.size==1) {
             val target=assignment.targets[0]
             if(same(target, assignment.value)) {
                 optimizationsDone++
                 return NopStatement(assignment.position)
             }
-            val targetDt = target.determineDatatype(namespace, heap, assignment)
+            val targetDt = target.determineDatatype(namespace, heap, assignment)!!
             val bexpr=assignment.value as? BinaryExpression
-            if(bexpr!=null && same(target, bexpr.left)) {
+            if(bexpr!=null) {
                 val cv = bexpr.right.constValue(namespace, heap)?.asNumericValue?.toDouble()
                 if(cv!=null) {
-                    when (bexpr.operator) {
-                        "+" -> {
-                            if (cv==0.0) {
-                                optimizationsDone++
-                                return NopStatement(assignment.position)
-                            } else if(cv in 1.0..8.0 && targetDt in IntegerDatatypes && floor(cv)==cv) {
-                                // replace by several INCs
-                                val decs = AnonymousScope(mutableListOf(), assignment.position)
-                                repeat(cv.toInt()) {
-                                    decs.statements.add(PostIncrDecr(target, "++", assignment.position))
+                    if (same(target, bexpr.left)) {
+
+                        // remove assignments that have no effect  X=X , X+=0, X-=0, X*=1, X/=1, X//=1, A |= 0, A ^= 0, A<<=0, etc etc
+                        // A = A <operator> B
+
+                        when (bexpr.operator) {
+                            "+" -> {
+                                if (cv == 0.0) {
+                                    optimizationsDone++
+                                    return NopStatement(assignment.position)
+                                } else if (cv in 1.0..8.0 && targetDt in IntegerDatatypes && floor(cv) == cv) {
+                                    // replace by several INCs
+                                    val decs = AnonymousScope(mutableListOf(), assignment.position)
+                                    repeat(cv.toInt()) {
+                                        decs.statements.add(PostIncrDecr(target, "++", assignment.position))
+                                    }
+                                    return decs
                                 }
-                                return decs
                             }
-                        }
-                        "-" -> {
-                            if (cv==0.0) {
-                                optimizationsDone++
-                                return NopStatement(assignment.position)
-                            } else if(cv in 1.0..8.0 && targetDt in IntegerDatatypes && floor(cv)==cv) {
-                                // replace by several DECs
-                                val decs = AnonymousScope(mutableListOf(), assignment.position)
-                                repeat(cv.toInt()) {
-                                    decs.statements.add(PostIncrDecr(target, "--", assignment.position))
+                            "-" -> {
+                                if (cv == 0.0) {
+                                    optimizationsDone++
+                                    return NopStatement(assignment.position)
+                                } else if (cv in 1.0..8.0 && targetDt in IntegerDatatypes && floor(cv) == cv) {
+                                    // replace by several DECs
+                                    val decs = AnonymousScope(mutableListOf(), assignment.position)
+                                    repeat(cv.toInt()) {
+                                        decs.statements.add(PostIncrDecr(target, "--", assignment.position))
+                                    }
+                                    return decs
                                 }
-                                return decs
                             }
-                        }
-                        "*" -> if (cv==1.0) {
-                            optimizationsDone++
-                            return NopStatement(assignment.position)
-                        }
-                        "%" -> if (cv==1.0) {
-                            optimizationsDone++
-                            return NopStatement(assignment.position)
-                        }
-                        "/" -> if (cv==1.0) {
-                            optimizationsDone++
-                            return NopStatement(assignment.position)
-                        }
-                        "**" -> if (cv==1.0) {
-                            optimizationsDone++
-                            return NopStatement(assignment.position)
-                        }
-                        "|" -> if (cv==0.0) {
-                            optimizationsDone++
-                            return NopStatement(assignment.position)
-                        }
-                        "^" -> if (cv==0.0) {
-                            optimizationsDone++
-                            return NopStatement(assignment.position)
-                        }
-                        "<<" -> {
-                            if(cv==0.0) {
+                            "*" -> if (cv == 1.0) {
                                 optimizationsDone++
                                 return NopStatement(assignment.position)
                             }
-                            if(((targetDt==DataType.UWORD || targetDt==DataType.WORD) && cv >15.0) ||
-                                    ((targetDt==DataType.UBYTE || targetDt==DataType.BYTE) && cv > 7.0)) {
-                                assignment.value = LiteralValue.optimalInteger(0, assignment.value.position)
-                                assignment.value.linkParents(assignment)
-                                optimizationsDone++
-                            }
-                            else {
-                                // replace by in-place lsl(...) call
-                                val scope = AnonymousScope(mutableListOf(), assignment.position)
-                                var numshifts = cv.toInt()
-                                while(numshifts>0) {
-                                    scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("lsl"), assignment.position), mutableListOf(bexpr.left), assignment.position))
-                                    numshifts--
-                                }
-                                optimizationsDone++
-                                return scope
-                            }
-                        }
-                        ">>" -> {
-                            if(cv==0.0) {
+                            "/" -> if (cv == 1.0) {
                                 optimizationsDone++
                                 return NopStatement(assignment.position)
                             }
-                            if(((targetDt==DataType.UWORD || targetDt==DataType.WORD) && cv >15.0) ||
-                                    ((targetDt==DataType.UBYTE || targetDt==DataType.BYTE) && cv > 7.0)) {
-                                assignment.value = LiteralValue.optimalInteger(0, assignment.value.position)
-                                assignment.value.linkParents(assignment)
+                            "**" -> if (cv == 1.0) {
                                 optimizationsDone++
+                                return NopStatement(assignment.position)
                             }
-                            else {
-                                // replace by in-place lsr(...) call
-                                val scope = AnonymousScope(mutableListOf(), assignment.position)
-                                var numshifts = cv.toInt()
-                                while(numshifts>0) {
-                                    scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("lsr"), assignment.position), mutableListOf(bexpr.left), assignment.position))
-                                    numshifts--
-                                }
+                            "|" -> if (cv == 0.0) {
                                 optimizationsDone++
-                                return scope
+                                return NopStatement(assignment.position)
+                            }
+                            "^" -> if (cv == 0.0) {
+                                optimizationsDone++
+                                return NopStatement(assignment.position)
+                            }
+                            "<<" -> {
+                                if (cv == 0.0) {
+                                    optimizationsDone++
+                                    return NopStatement(assignment.position)
+                                }
+                                if (((targetDt == DataType.UWORD || targetDt == DataType.WORD) && cv > 15.0) ||
+                                        ((targetDt == DataType.UBYTE || targetDt == DataType.BYTE) && cv > 7.0)) {
+                                    assignment.value = LiteralValue.optimalInteger(0, assignment.value.position)
+                                    assignment.value.linkParents(assignment)
+                                    optimizationsDone++
+                                } else {
+                                    // replace by in-place lsl(...) call
+                                    val scope = AnonymousScope(mutableListOf(), assignment.position)
+                                    var numshifts = cv.toInt()
+                                    while (numshifts > 0) {
+                                        scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("lsl"), assignment.position), mutableListOf(bexpr.left), assignment.position))
+                                        numshifts--
+                                    }
+                                    optimizationsDone++
+                                    return scope
+                                }
+                            }
+                            ">>" -> {
+                                if (cv == 0.0) {
+                                    optimizationsDone++
+                                    return NopStatement(assignment.position)
+                                }
+                                if (((targetDt == DataType.UWORD || targetDt == DataType.WORD) && cv > 15.0) ||
+                                        ((targetDt == DataType.UBYTE || targetDt == DataType.BYTE) && cv > 7.0)) {
+                                    assignment.value = LiteralValue.optimalInteger(0, assignment.value.position)
+                                    assignment.value.linkParents(assignment)
+                                    optimizationsDone++
+                                } else {
+                                    // replace by in-place lsr(...) call
+                                    val scope = AnonymousScope(mutableListOf(), assignment.position)
+                                    var numshifts = cv.toInt()
+                                    while (numshifts > 0) {
+                                        scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("lsr"), assignment.position), mutableListOf(bexpr.left), assignment.position))
+                                        numshifts--
+                                    }
+                                    optimizationsDone++
+                                    return scope
+                                }
                             }
                         }
                     }
