@@ -37,16 +37,17 @@
             c64.SPRPTR[i] = $0a00/64
         }
         c64.SPENA = 255                ; enable all sprites
-        c64utils.set_rasterirq(270)     ; enable animation
+        c64utils.set_rasterirq(220)     ; enable animation
     }
 }
 
 
 ~ irq {
 
-    ubyte angle=0
 
 sub irq() {
+    ubyte angle     ; no initialization value so it keeps the previous one.
+
     c64.EXTCOL--
 
     angle++

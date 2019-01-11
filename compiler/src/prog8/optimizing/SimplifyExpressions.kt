@@ -17,22 +17,6 @@ import kotlin.math.log2
         X % 2 -> X and 1 (if X is byte/word)
 
 
-    todo often used multiplications to factors that are more efficiently calculated (via shifts)
-
-        X*3 -> X*2+X
-        X*5 -> X*4+X
-        X*6 -> X*2+X*2+X*2
-        X*7 -> X*4+X*2+X
-        X*9 -> X*8 + X
-        X*10 -> X*8 + X*2
-        X*11 -> X*8 + X*2 +X
-        X*12 -> X*8 + X*4
-        X*13 -> X*8 + X*4 +X
-        X*14 -> X*8 + X*4 + X*2
-        X*15 -> X*8 + X*4 + X*2 + X
-        (and negatives)
-
-
     todo expression optimization: common (sub) expression elimination (turn common expressions into single subroutine call + introduce variable to hold it)
 
  */
@@ -396,6 +380,7 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
                         // divided by a power of two => shift right
                         optimizationsDone++
                         val numshifts = log2(cv)
+                        println("DIV: SHIFT RIGHT $cv  ->  $numshifts")  // TODO
                         return BinaryExpression(expr.left, ">>", LiteralValue.optimalInteger(numshifts, expr.position), expr.position)
                     }
                 }
@@ -404,6 +389,7 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
                         // divided by a negative power of two => negate, then shift right
                         optimizationsDone++
                         val numshifts = log2(-cv)
+                        println("DIV: SHIFT RIGHT $cv  ->  $numshifts")  // TODO
                         return BinaryExpression(PrefixExpression("-", expr.left, expr.position), ">>", LiteralValue.optimalInteger(numshifts, expr.position), expr.position)
                     }
                 }
@@ -467,7 +453,7 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
                     if(leftValue.resultingDatatype(namespace, heap) in IntegerDatatypes) {
                         // times a power of two => shift left
                         optimizationsDone++
-                        val numshifts = log2(cv)
+                        val numshifts = log2(cv).toInt()
                         return BinaryExpression(expr.left, "<<", LiteralValue.optimalInteger(numshifts, expr.position), expr.position)
                     }
                 }
@@ -475,7 +461,7 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
                     if(leftValue.resultingDatatype(namespace, heap) in IntegerDatatypes) {
                         // times a negative power of two => negate, then shift left
                         optimizationsDone++
-                        val numshifts = log2(-cv)
+                        val numshifts = log2(-cv).toInt()
                         return BinaryExpression(PrefixExpression("-", expr.left, expr.position), "<<", LiteralValue.optimalInteger(numshifts, expr.position), expr.position)
                     }
                 }

@@ -1254,4 +1254,195 @@ _magiceors	.word   $3f1d, $3f81, $3fa5, $3fc5, $4075, $409d, $40cd, $4109
 	}}
 }
 
+
+%asm {{
+
+mul_byte_3	.proc
+		; X + X*2
+		lda  c64.ESTACK_LO+1,x
+		asl  a
+		clc
+		adc  c64.ESTACK_LO+1,x
+		sta  c64.ESTACK_LO+1,x
+		rts
+		.pend
+
+mul_byte_5	.proc
+		; X + X*4
+		lda  c64.ESTACK_LO+1,x
+		asl  a
+		asl  a
+		clc
+		adc  c64.ESTACK_LO+1,x
+		sta  c64.ESTACK_LO+1,x
+		rts
+		.pend
+		
+mul_byte_6	.proc
+		; X*2 + X*4
+		lda  c64.ESTACK_LO+1,x
+		asl  a
+		sta  c64.SCRATCH_ZPREG
+		asl  a
+		clc
+		adc  c64.SCRATCH_ZPREG
+		sta  c64.ESTACK_LO+1,x
+		rts
+		.pend
+		
+mul_byte_7	.proc
+		; X*8 - X
+		lda  c64.ESTACK_LO+1,x
+		asl  a
+		asl  a
+		asl  a
+		sec
+		sbc  c64.ESTACK_LO+1,x
+		sta  c64.ESTACK_LO+1,x
+		rts
+		.pend
+		
+mul_byte_9	.proc
+		; X + X*8
+		lda  c64.ESTACK_LO+1,x
+		asl  a
+		asl  a
+		asl  a
+		clc
+		adc  c64.ESTACK_LO+1,x
+		sta  c64.ESTACK_LO+1,x
+		rts
+		.pend
+
+mul_byte_10	.proc
+		; X + X + X*8
+		lda  c64.ESTACK_LO+1,x
+		asl  a
+		asl  a
+		asl  a
+		clc
+		adc  c64.ESTACK_LO+1,x
+		adc  c64.ESTACK_LO+1,x
+		sta  c64.ESTACK_LO+1,x
+		rts
+		.pend
+
+mul_byte_11	.proc
+		; X + X + X + X*8
+		lda  c64.ESTACK_LO+1,x
+		sta  c64.SCRATCH_ZPREG
+		asl  a
+		asl  a
+		asl  a
+		clc
+		adc  c64.SCRATCH_ZPREG
+		adc  c64.SCRATCH_ZPREG
+		adc  c64.SCRATCH_ZPREG
+		sta  c64.ESTACK_LO+1,x
+		rts
+		.pend
+
+mul_byte_12	.proc
+		; X*4 + X*8
+		lda  c64.ESTACK_LO+1,x
+		asl  a
+		asl  a
+		sta  c64.SCRATCH_ZPREG
+		asl  a
+		clc
+		adc  c64.SCRATCH_ZPREG
+		sta  c64.ESTACK_LO+1,x
+		rts
+		.pend
+		
+mul_byte_13	.proc
+		; X*16 - X -X -X
+		lda  c64.ESTACK_LO+1,x
+		sta  c64.SCRATCH_ZPREG
+		asl  a
+		asl  a
+		asl  a
+		asl  a
+		sec
+		sbc  c64.SCRATCH_ZPREG
+		sbc  c64.SCRATCH_ZPREG
+		sbc  c64.SCRATCH_ZPREG
+		sta  c64.ESTACK_LO+1,x
+		rts
+		.pend
+
+mul_byte_14	.proc
+		; X*16 - X -X
+		lda  c64.ESTACK_LO+1,x
+		asl  a
+		asl  a
+		asl  a
+		asl  a
+		sec
+		sbc  c64.ESTACK_LO+1,x
+		sbc  c64.ESTACK_LO+1,x
+		sta  c64.ESTACK_LO+1,x
+		rts
+		.pend
+		
+mul_byte_15	.proc
+		; X*16 - X
+		lda  c64.ESTACK_LO+1,x
+		sta  c64.SCRATCH_ZPREG
+		asl  a
+		asl  a
+		asl  a
+		asl  a
+		sec
+		sbc  c64.ESTACK_LO+1,x
+		sta  c64.ESTACK_LO+1,x
+		rts
+		.pend
+
+mul_byte_20	.proc
+		; X*4 + X*16
+		lda  c64.ESTACK_LO+1,x
+		asl  a
+		asl  a
+		sta  c64.SCRATCH_ZPREG
+		asl  a
+		asl  a
+		clc
+		adc  c64.SCRATCH_ZPREG
+		sta  c64.ESTACK_LO+1,x
+		rts
+		.pend
+		
+mul_byte_25	.proc
+		; X + X*8 + X*16
+		lda  c64.ESTACK_LO+1,x
+		asl  a
+		asl  a
+		asl  a
+		sta  c64.SCRATCH_ZPREG
+		asl  a
+		clc
+		adc  c64.SCRATCH_ZPREG
+		adc  c64.ESTACK_LO+1,x
+		sta  c64.ESTACK_LO+1,x
+		rts
+		.pend
+
+mul_byte_40	.proc
+		; X*8 + X*32
+		lda  c64.ESTACK_LO+1,x
+		asl  a
+		asl  a
+		asl  a
+		sta  c64.SCRATCH_ZPREG
+		asl  a
+		asl  a
+		clc
+		adc  c64.SCRATCH_ZPREG
+		sta  c64.ESTACK_LO+1,x
+		rts
+		.pend
+
+}}
+
 }
