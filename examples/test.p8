@@ -16,14 +16,20 @@
         float f1 = 1.1
         float f2 = 2.2
 
-        i %= 1
-        i %= 2
-        ub2 = i % 1
-        ub2 = i % 2
+        b2 = j + (-1)
+        b2 = (-1) + j
+        b2 = j - (-1)
+        b2 = (-1) -j ; should not be reordered
+        b2 = j+1
+        b2 = 1+j
+        b2 = 1-j   ; should not be reordered
 
-        uw %= 1
-        uw %= 2
-        uw2 = uw % 1
-        uw2 = uw % 2
+        j = j + (-1)
+        j = (-1) + j
+        j = j - (-1)
+        j = (-1) -j ; should not be reordered
+        j = j+1
+        j = 1+j
+        j = 1-j   ; should not be reordered
     }
 }

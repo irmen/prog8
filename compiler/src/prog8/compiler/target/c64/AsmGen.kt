@@ -3188,10 +3188,10 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
 
-            // more efficient versions of x+1 and x-1 to avoid pushing the 1 on the stack  @todo what about 1+x? reorder?  what about x+  (-1)  and x-(-1)? is that rewritten already?
+            // more efficient versions of x+1 and x-1 to avoid pushing the 1 on the stack  @todo what about 1+x? reorder?
             AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.ADD_B), listOf(Opcode.PUSH_BYTE, Opcode.ADD_UB)) { segment ->
                 val amount = segment[0].arg!!.integerValue()
-                if(amount in 1..8) {
+                if(amount in 1..2) {
                     " inc  ${(ESTACK_LO + 1).toHex()},x | ".repeat(amount)
                 }
                 else
@@ -3199,7 +3199,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             },
             AsmPattern(listOf(Opcode.PUSH_WORD, Opcode.ADD_UW), listOf(Opcode.PUSH_WORD, Opcode.ADD_W)) { segment ->
                 val amount = segment[0].arg!!.integerValue()
-                if(amount in 1..8) {
+                if(amount in 1..2) {
                     " inc  ${(ESTACK_LO + 1).toHex()},x |  bne  + |  inc  ${(ESTACK_HI + 1).toHex()},x |+ | ".repeat(amount)
                 }
                 else
@@ -3207,7 +3207,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             },
             AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.SUB_B), listOf(Opcode.PUSH_BYTE, Opcode.SUB_UB)) { segment ->
                 val amount = segment[0].arg!!.integerValue()
-                if(amount in 1..8) {
+                if(amount in 1..2) {
                     " dec  ${(ESTACK_LO + 1).toHex()},x | ".repeat(amount)
                 }
                 else
@@ -3215,7 +3215,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             },
             AsmPattern(listOf(Opcode.PUSH_WORD, Opcode.SUB_UW), listOf(Opcode.PUSH_WORD, Opcode.SUB_W)) { segment ->
                 val amount = segment[0].arg!!.integerValue()
-                if(amount in 1..8) {
+                if(amount in 1..2) {
                     " lda  ${(ESTACK_LO + 1).toHex()},x |  bne  + |  dec  ${(ESTACK_HI + 1).toHex()},x |+ |  dec  ${(ESTACK_LO + 1).toHex()},x | ".repeat(amount)
                 }
                 else

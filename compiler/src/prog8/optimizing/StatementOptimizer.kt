@@ -183,32 +183,37 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
 
                         // remove assignments that have no effect  X=X , X+=0, X-=0, X*=1, X/=1, X//=1, A |= 0, A ^= 0, A<<=0, etc etc
                         // A = A <operator> B
+                        val vardeclDt = (target.identifier?.targetStatement(namespace) as? VarDecl)?.type
 
                         when (bexpr.operator) {
                             "+" -> {
                                 if (cv == 0.0) {
                                     optimizationsDone++
                                     return NopStatement(assignment.position)
-                                } else if (cv in 1.0..8.0 && targetDt in IntegerDatatypes && floor(cv) == cv) {
-                                    // replace by several INCs
-                                    val decs = AnonymousScope(mutableListOf(), assignment.position)
-                                    repeat(cv.toInt()) {
-                                        decs.statements.add(PostIncrDecr(target, "++", assignment.position))
+                                } else if (targetDt in IntegerDatatypes && floor(cv) == cv) {
+                                    if((vardeclDt == VarDeclType.MEMORY && cv in 1.0..3.0) || (vardeclDt!=VarDeclType.MEMORY && cv in 1.0..8.0)) {
+                                        // replace by several INCs (a bit less when dealing with memory targets)
+                                        val decs = AnonymousScope(mutableListOf(), assignment.position)
+                                        repeat(cv.toInt()) {
+                                            decs.statements.add(PostIncrDecr(target, "++", assignment.position))
+                                        }
+                                        return decs
                                     }
-                                    return decs
                                 }
                             }
                             "-" -> {
                                 if (cv == 0.0) {
                                     optimizationsDone++
                                     return NopStatement(assignment.position)
-                                } else if (cv in 1.0..8.0 && targetDt in IntegerDatatypes && floor(cv) == cv) {
-                                    // replace by several DECs
-                                    val decs = AnonymousScope(mutableListOf(), assignment.position)
-                                    repeat(cv.toInt()) {
-                                        decs.statements.add(PostIncrDecr(target, "--", assignment.position))
+                                } else if (targetDt in IntegerDatatypes && floor(cv) == cv) {
+                                    if((vardeclDt == VarDeclType.MEMORY && cv in 1.0..3.0) || (vardeclDt!=VarDeclType.MEMORY && cv in 1.0..8.0)) {
+                                        // replace by several DECs (a bit less when dealing with memory targets)
+                                        val decs = AnonymousScope(mutableListOf(), assignment.position)
+                                        repeat(cv.toInt()) {
+                                            decs.statements.add(PostIncrDecr(target, "--", assignment.position))
+                                        }
+                                        return decs
                                     }
-                                    return decs
                                 }
                             }
                             "*" -> if (cv == 1.0) {

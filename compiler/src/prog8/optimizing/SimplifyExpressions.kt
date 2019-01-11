@@ -8,11 +8,10 @@ import kotlin.math.log2
 /*
     todo simplify expression terms:
 
-        X*Y - X  ->  X*(Y-1)
-        X*Y - Y  ->  Y*(X-1)
-        -X + A ->  A - X
-        X+ (-A) -> X - A
-        X- (-A) -> X + A
+        X*Y - X  ->  X*(Y-1)   ???
+        Y*X - X  ->  X*(Y-1)   ???
+
+        value <associative_operator> X  --> X <associative_operator> value  <<<<< should be done already
 
 
     todo expression optimization: common (sub) expression elimination (turn common expressions into single subroutine call + introduce variable to hold it)
@@ -28,6 +27,15 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
         return super.process(assignment)
     }
 
+    override fun process(expr: PrefixExpression): IExpression {
+        if(expr.operator == "+") {
+            // +X --> X
+            optimizationsDone++
+            return expr.expression.process(this)
+        }
+        return super.process(expr)
+    }
+
     override fun process(expr: BinaryExpression): IExpression {
         super.process(expr)
         val leftVal = expr.left.constValue(namespace, heap)
@@ -40,6 +48,74 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
         if(leftDt!=null && rightDt!=null && leftDt!=rightDt) {
             // try to convert a datatype into the other
             if(adjustDatatypes(expr, leftVal, leftDt, rightVal, rightDt)) {
+                optimizationsDone++
+                return expr
+            }
+        }
+
+        // Value <associativeoperator> X -->  X <associativeoperator> Value
+        if(leftVal!=null && expr.operator in associativeOperators && rightVal==null) {
+            val tmp = expr.left
+            expr.left = expr.right
+            expr.right = tmp
+            optimizationsDone++
+            return expr
+        }
+
+        // X + (-A)  -->  X - A
+        if(expr.operator=="+" && (expr.right as? PrefixExpression)?.operator=="-") {
+            expr.operator = "-"
+            expr.right = (expr.right as PrefixExpression).expression
+            optimizationsDone++
+            return expr
+        }
+
+        // (-A) + X  -->  X - A
+        if(expr.operator=="+" && (expr.left as? PrefixExpression)?.operator=="-") {
+            expr.operator = "-"
+            val newRight = (expr.left as PrefixExpression).expression
+            expr.left = expr.right
+            expr.right = newRight
+            optimizationsDone++
+            return expr
+        }
+
+        // X + (-value)  -->  X - value
+        if(expr.operator=="+" && rightVal!=null) {
+            val rv = rightVal.asNumericValue?.toDouble()
+            if(rv!=null && rv<0.0) {
+                expr.operator = "-"
+                expr.right = LiteralValue.fromNumber(-rv, rightVal.type, rightVal.position)
+                optimizationsDone++
+                return expr
+            }
+        }
+
+        // (-value) + X  -->  X - value
+        if(expr.operator=="+" && leftVal!=null) {
+            val lv = leftVal.asNumericValue?.toDouble()
+            if(lv!=null && lv<0.0) {
+                expr.operator = "-"
+                expr.right = LiteralValue.fromNumber(-lv, leftVal.type, leftVal.position)
+                optimizationsDone++
+                return expr
+            }
+        }
+
+        // X - (-A)  -->  X + A
+        if(expr.operator=="-" && (expr.right as? PrefixExpression)?.operator=="-") {
+            expr.operator = "+"
+            expr.right = (expr.right as PrefixExpression).expression
+            optimizationsDone++
+            return expr
+        }
+
+        // X - (-value)  -->  X + value
+        if(expr.operator=="-" && rightVal!=null) {
+            val rv = rightVal.asNumericValue?.toDouble()
+            if(rv!=null && rv<0.0) {
+                expr.operator = "+"
+                expr.right = LiteralValue.fromNumber(-rv, rightVal.type, rightVal.position)
                 optimizationsDone++
                 return expr
             }
@@ -204,6 +280,8 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
         }
     }
 
+
+    // todo: get rid of this?
     private data class ReorderedAssociativeBinaryExpr(val expr: BinaryExpression, val leftVal: LiteralValue?, val rightVal: LiteralValue?)
 
     private fun reorderAssociative(expr: BinaryExpression, leftVal: LiteralValue?): ReorderedAssociativeBinaryExpr {
