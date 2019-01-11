@@ -66,7 +66,7 @@
 
         for ubyte i in 0 to len(xcoor)-1 {
             rotatedx[i] = (Axx*xcoor[i] + Axy*ycoor[i] + Axz*zcoor[i]) / 128
-            rotatedy[i] =(Ayx*xcoor[i] + Ayy*ycoor[i] + Ayz*zcoor[i]) / 128
+            rotatedy[i] = (Ayx*xcoor[i] + Ayy*ycoor[i] + Ayz*zcoor[i]) / 128
             rotatedz[i] = (Azx*xcoor[i] + Azy*ycoor[i] + Azz*zcoor[i]) / 128
         }
     }

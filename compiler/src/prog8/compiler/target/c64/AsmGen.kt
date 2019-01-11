@@ -924,32 +924,28 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
     private fun optimizedIntMultiplicationsOnStack(mulIns: Instruction, amount: Int): String? {
 
         if(mulIns.opcode == Opcode.MUL_B || mulIns.opcode==Opcode.MUL_UB) {
-            when(amount) {
-                0,1,2,4,8,16,32,64,128,256 -> throw AssemblyError("multiplication by power of 2 should have been converted into a left shift instruction already")
-                3,5,6,7,9,10,11,12,13,14,15,20,25,40 -> return " jsr  math.mul_byte_$amount"
-                else -> {}
-            }
+            if(amount in setOf(0,1,2,4,8,16,32,64,128,256))
+                throw AssemblyError("multiplication by power of 2 should have been converted into a left shift instruction already")
 
-            if(mulIns.opcode == Opcode.MUL_B) {
-                when(amount) {
-                    -3,-5,-6,-7,-9,-10,-11,-12,-13,-14,-15,-20,-25,-40 -> return " jsr  prog8_lib.neg_b |  jsr  math.mul_byte_${-amount}"
-                    else -> {}
-                }
-            }
+            if(amount in setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40))
+                return " jsr  math.mul_byte_$amount"
+
+            if(mulIns.opcode == Opcode.MUL_B && amount in setOf(-3,-5,-6,-7,-9,-10,-11,-12,-13,-14,-15,-20,-25,-40))
+                return " jsr  prog8_lib.neg_b |  jsr  math.mul_byte_${-amount}"
         }
-        else if(mulIns.opcode == Opcode.MUL_W || mulIns.opcode==Opcode.MUL_UW) {
-            when(amount) {
-                0,1,2,4,8,16,32,64,128,256 -> throw AssemblyError("multiplication by power of 2 should have been converted into a left shift instruction already")
-                3,5,6,7,9,10,11,12,13,14,15,20,25,40 -> return " jsr  math.mul_word_$amount"
-                else -> {}
-            }
-
-            if(mulIns.opcode == Opcode.MUL_W) {
-                when(amount) {
-                    -3,-5,-6,-7,-9,-10,-11,-12,-13,-14,-15,-20,-25,-40 -> return " jsr  prog8_lib.neg_w |  jsr  math.mul_word_${-amount}"
-                    else -> {}
-                }
-            }
+        else if(mulIns.opcode == Opcode.MUL_UW) {
+            if(amount in setOf(0,1,2,4,8,16,32,64,128,256))
+                throw AssemblyError("multiplication by power of 2 should have been converted into a left shift instruction already")
+            if(amount in setOf(3,5,6,7,9,10,12,15,20,25,40))
+                return " jsr  math.mul_word_$amount"
+        }
+        else if(mulIns.opcode == Opcode.MUL_W) {
+            if(amount in setOf(0,1,2,4,8,16,32,64,128,256))
+                throw AssemblyError("multiplication by power of 2 should have been converted into a left shift instruction already")
+            if(amount in setOf(3,5,6,7,9,10,12,15,20,25,40))
+                return " jsr  math.mul_word_$amount"
+            if(amount in setOf(-3,-5,-6,-7,-9,-10,-12,-15,-20,-25,-40))
+                return " jsr  prog8_lib.neg_w |  jsr  math.mul_word_${-amount}"
         }
 
         return null
