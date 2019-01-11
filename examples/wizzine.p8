@@ -44,25 +44,24 @@
 
 ~ irq {
 
+    sub irq() {
+        ubyte angle     ; no initialization value so it keeps the previous one.
 
-sub irq() {
-    ubyte angle     ; no initialization value so it keeps the previous one.
+        c64.EXTCOL--
 
-    c64.EXTCOL--
+        angle++
+        c64.MSIGX=0
 
-    angle++
-    c64.MSIGX=0
+        for ubyte i in 7 to 0 step -1 {
+            uword x = sin8u(angle*2-i*8) as uword + 50
+            ubyte y = cos8u(angle*3-i*8) / 2 + 70
+            c64.SPXYW[i] = mkword(lsb(x), y)
+            lsl(c64.MSIGX)
+            if msb(x) c64.MSIGX++
+            c64.EXTCOL++
+        }
+        c64.EXTCOL-=7       ; @todo for memory vars, this should not become more than 2 * dec but normal sbc instead
 
-    for ubyte i in 14 to 0 step -2 {
-        uword x = sin8u(angle*2-i*8) as uword + 50
-        ubyte y = cos8u(angle*3-i*8) / 2 + 70
-        c64.SPXY[i] = lsb(x)
-        c64.SPXY[i+1] = y
-        lsl(c64.MSIGX)
-        if msb(x) c64.MSIGX++
     }
-
-    c64.EXTCOL++
-}
 
 }

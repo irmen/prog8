@@ -72,7 +72,10 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         for(b in program.blocks)
             block2asm(b)
 
-        optimizeAssembly(assemblyLines)
+        var optimizationsDone=1
+        while(optimizationsDone>0) {
+            optimizationsDone = optimizeAssembly(assemblyLines)
+        }
 
         File("${program.name}.asm").printWriter().use {
             for (line in assemblyLines) { it.println(line) }
@@ -81,9 +84,10 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         return AssemblyProgram(program.name)
     }
 
-    private fun optimizeAssembly(lines: MutableList<String>) {
+    private fun optimizeAssembly(lines: MutableList<String>): Int {
         // sometimes, iny+dey / inx+dex / dey+iny / dex+inx sequences are generated, these can be eliminated.
         val removeLines = mutableListOf<Int>()
+        var numberOfOptimizations = 0
         for(pair in lines.withIndex().windowed(2)) {
             val first = pair[0].value
             val second = pair[1].value
@@ -97,14 +101,53 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             {
                 removeLines.add(pair[0].index)
                 removeLines.add(pair[1].index)
+                numberOfOptimizations++
             }
         }
 
         for(i in removeLines.reversed())
             lines.removeAt(i)
+        removeLines.clear()
+
+        // sta X + lda X,  sty X + ldy X,   stx X + ldx X  -> the second instruction can be eliminated
+        for(pair in lines.withIndex().windowed(2)) {
+            val first = pair[0].value.trim()
+            val second = pair[1].value.trim()
+            if(first.startsWith(';') || second.startsWith(';'))
+                continue        // skip over asm comments
+
+            if((first.startsWith("sta ") && second.startsWith("lda ")) ||
+                    (first.startsWith("stx ") && second.startsWith("ldx ")) ||
+                    (first.startsWith("sty ") && second.startsWith("ldy ")) ||
+                    (first.startsWith("lda ") && second.startsWith("lda ")) ||
+                    (first.startsWith("ldy ") && second.startsWith("ldy ")) ||
+                    (first.startsWith("ldx ") && second.startsWith("ldx ")) ||
+                    (first.startsWith("sta ") && second.startsWith("lda ")) ||
+                    (first.startsWith("sty ") && second.startsWith("ldy ")) ||
+                    (first.startsWith("stx ") && second.startsWith("ldx "))
+            ) {
+                val firstLoc = first.substring(4)
+                val secondLoc = second.substring(4)
+                if(firstLoc==secondLoc) {
+                    removeLines.add(pair[1].index)
+                    numberOfOptimizations++
+                }
+            }
+        }
+
+
+        for(i in removeLines.reversed())
+            lines.removeAt(i)
+        removeLines.clear()
+
+        return numberOfOptimizations
     }
 
-    private fun out(str: String) = assemblyLines.add(str)
+    private fun out(str: String) {
+        // TODO: line splitting should be done here instead of at outputFragment
+        assemblyLines.add(str)
+    }
+
 
     private fun symname(scoped: String, block: IntermediateProgram.ProgramBlock): String {
         if(' ' in scoped)
@@ -375,6 +418,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             else {
                 val withNewlines = singleAsm.replace('|', '\n')
                 for (line in withNewlines.split('\n')) {
+                    // TODO move line splitting to out() function
                     if (line.isNotEmpty()) {
                         var trimmed = if (line.startsWith(' ')) "\t" + line.trim() else line.trim()
                         trimmed = trimmed.replace(Regex("^\\+\\s+"), "+\t")  // sanitize local label indentation
@@ -783,7 +827,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.CAST_UB_TO_UW, Opcode.CAST_UB_TO_W -> " lda  #0 |  sta  ${(ESTACK_HI+1).toHex()},x"     // clear the msb
             Opcode.CAST_B_TO_UW, Opcode.CAST_B_TO_W -> " lda  ${(ESTACK_LO+1).toHex()},x |  ${signExtendA("${(ESTACK_HI+1).toHex()},x")}"     // sign extend the lsb
             Opcode.MSB -> " lda  ${(ESTACK_HI+1).toHex()},x |  sta  ${(ESTACK_LO+1).toHex()},x"
-            // TODO:   Opcode.MKWORD -> " inx |  lda  ${ESTACK_LO.toHex()},x |  sta  ${(ESTACK_HI+1).toHex()},x "
+            Opcode.MKWORD -> " inx |  lda  ${ESTACK_LO.toHex()},x |  sta  ${(ESTACK_HI+1).toHex()},x "
 
             Opcode.ADD_UB, Opcode.ADD_B -> {        // TODO inline better?
                 """

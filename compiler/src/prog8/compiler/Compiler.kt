@@ -832,7 +832,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     else -> throw CompilerException("wrong datatype for $funcname()")
                 }
             }
-            "msb" -> prog.instr(Opcode.MSB)         // note: LSB is not a function, it's just an alias for the cast "... as ubyte"
+            "msb" -> prog.instr(Opcode.MSB)         // note: "lsb" is not a function at all, it's just an alias for the cast "... as ubyte"
             "mkword" -> prog.instr(Opcode.MKWORD)
             "lsl" -> {
                 val arg = args.single()

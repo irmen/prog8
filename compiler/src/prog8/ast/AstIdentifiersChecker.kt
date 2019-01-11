@@ -66,9 +66,9 @@ class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
             // lsb(...) is just an alias for type cast to ubyte, so replace with "... as ubyte"
             val typecast = TypecastExpression(functionCall.arglist.single(), DataType.UBYTE, functionCall.position)
             typecast.linkParents(functionCall.parent)
-            return typecast
+            return super.process(typecast)
         }
-        return functionCall
+        return super.process(functionCall)
     }
 
     override fun process(decl: VarDecl): IStatement {

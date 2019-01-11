@@ -64,6 +64,7 @@
 		memory  ubyte SP7X		= $d00e
 		memory  ubyte SP7Y		= $d00f
 		memory  ubyte[16] SPXY		= $d000		; the 8 sprite X and Y registers as an array.
+		memory  uword[8] SPXYW		= $d000		; the 8 sprite X and Y registers as a combined xy word array.
 
 		memory  ubyte MSIGX		= $d010
 		memory  ubyte SCROLY		= $d011
