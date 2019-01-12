@@ -236,12 +236,12 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
     private fun block2asm(blk: IntermediateProgram.ProgramBlock) {
         block = blk
         out("\n; ---- block: '${block.shortname}' ----")
+        if(!blk.force_output)
+            out("${block.shortname}\t.proc\n")
         if(block.address!=null) {
             out(".cerror * > ${block.address?.toHex()}, 'block address overlaps by ', *-${block.address?.toHex()},' bytes'")
             out("* = ${block.address?.toHex()}")
         }
-        if(!blk.force_output)
-            out("${block.shortname}\t.proc\n")
         out("\n; memdefs and kernel subroutines")
         memdefs2asm(block)
         out("\n; variables")
@@ -868,6 +868,14 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
                 lda  ${(ESTACK_LO + 2).toHex()},x
                 ora  ${(ESTACK_LO + 1).toHex()},x
+                inx
+                sta  ${(ESTACK_LO + 1).toHex()},x
+                """
+            }
+            Opcode.XOR_BYTE -> {
+                """
+                lda  ${(ESTACK_LO + 2).toHex()},x
+                eor  ${(ESTACK_LO + 1).toHex()},x
                 inx
                 sta  ${(ESTACK_LO + 1).toHex()},x
                 """

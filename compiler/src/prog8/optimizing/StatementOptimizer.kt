@@ -4,25 +4,23 @@ import prog8.ast.*
 import prog8.compiler.HeapValues
 import prog8.compiler.target.c64.Petscii
 import prog8.functions.BuiltinFunctions
+import sun.font.TrueTypeFont
 import kotlin.math.floor
 
 
 /*
-    todo remove empty blocks? already done?
-    todo remove empty subs? already done?
-
     todo remove unused blocks
     todo remove unused variables
     todo remove unused subroutines
     todo remove unused strings and arrays from the heap
-    todo remove if/while/repeat/for statements with empty statement blocks
-    todo replace if statements with only else block
-    todo regular subroutines that have 1 or 2 (u)byte  or 1 (u)word parameters -> change to asmsub to accept these in A/Y registers instead of on stack
-    todo optimize integer addition with self into shift 1  (A+=A -> A<<=1)
     todo analyse for unreachable code and remove that (f.i. code after goto or return that has no label so can never be jumped to)
+
+    todo regular subroutines that have 1 or 2 (u)byte  or 1 (u)word parameters -> change to asmsub to accept these in A/Y registers instead of on stack
+
     todo merge sequence of assignments into one to avoid repeated value loads (as long as the value is a constant and the target not a MEMORY type!)
-    todo report more always true/always false conditions
-    todo (optionally?) inline subroutines that are "sufficiently small" (=VERY small, say 0-3 statements, otherwise code size will explode and short branches will suffer)
+
+    todo inline subroutines that are called exactly once (regardless of their size)
+    todo inline subroutines that are only called a few times (3?) and that are "sufficiently small" (0-3 statements)
 */
 
 class StatementOptimizer(private val namespace: INameScope, private val heap: HeapValues) : IAstProcessor {
@@ -31,6 +29,33 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
     var statementsToRemove = mutableListOf<IStatement>()
         private set
     private val pureBuiltinFunctions = BuiltinFunctions.filter { it.value.pure }
+
+    override fun process(block: Block): IStatement {
+        if(block.statements.isEmpty()) {
+            // remove empty block
+            optimizationsDone++
+            statementsToRemove.add(block)
+        }
+        return super.process(block)
+    }
+
+    override fun process(subroutine: Subroutine): IStatement {
+        if(subroutine.asmAddress==null) {
+            if(subroutine.statements.isEmpty()) {
+                // remove empty subroutine
+                optimizationsDone++
+                statementsToRemove.add(subroutine)
+            } else if(subroutine.statements.size==1) {
+                val stmt = subroutine.statements[0]
+                if(stmt is ReturnFromIrq || stmt is Return) {
+                    // remove empty subroutine
+                    optimizationsDone++
+                    statementsToRemove.add(subroutine)
+                }
+            }
+        }
+        return super.process(subroutine)
+    }
 
     override fun process(functionCall: FunctionCallStatement): IStatement {
         if(functionCall.target.nameInSource.size==1 && functionCall.target.nameInSource[0] in BuiltinFunctions) {
@@ -101,6 +126,22 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
 
     override fun process(ifStatement: IfStatement): IStatement {
         super.process(ifStatement)
+
+        if(ifStatement.truepart.isEmpty() && ifStatement.elsepart.isEmpty()) {
+            statementsToRemove.add(ifStatement)
+            optimizationsDone++
+            return ifStatement
+        }
+
+        if(ifStatement.truepart.isEmpty() && ifStatement.elsepart.isNotEmpty()) {
+            // invert the condition and move else part to true part
+            ifStatement.truepart = ifStatement.elsepart
+            ifStatement.elsepart = AnonymousScope(mutableListOf(), ifStatement.elsepart.position)
+            ifStatement.condition = PrefixExpression("not", ifStatement.condition, ifStatement.condition.position)
+            optimizationsDone++
+            return ifStatement
+        }
+
         val constvalue = ifStatement.condition.constValue(namespace, heap)
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue){
@@ -120,6 +161,22 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
 
     override fun process(forLoop: ForLoop): IStatement {
         super.process(forLoop)
+        if(forLoop.body.isEmpty()) {
+            // remove empty for loop
+            statementsToRemove.add(forLoop)
+            optimizationsDone++
+            return forLoop
+        } else if(forLoop.body.statements.size==1) {
+            val loopvar = forLoop.body.statements[0] as? VarDecl
+            if(loopvar!=null && loopvar.name==forLoop.loopVar?.nameInSource?.singleOrNull()) {
+                // remove empty for loop
+                statementsToRemove.add(forLoop)
+                optimizationsDone++
+                return forLoop
+            }
+        }
+
+
         val range = forLoop.iterable as? RangeExpr
         if(range!=null) {
             if(range.size(heap)==1) {
@@ -136,6 +193,12 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
 
     override fun process(whileLoop: WhileLoop): IStatement {
         super.process(whileLoop)
+        if(whileLoop.body.isEmpty()) {
+            statementsToRemove.add(whileLoop)
+            optimizationsDone++
+            return whileLoop
+        }
+
         val constvalue = whileLoop.condition.constValue(namespace, heap)
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue){
@@ -160,6 +223,11 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
 
     override fun process(repeatLoop: RepeatLoop): IStatement {
         super.process(repeatLoop)
+        if(repeatLoop.body.isEmpty()) {
+            statementsToRemove.add(repeatLoop)
+            optimizationsDone++
+            return repeatLoop
+        }
         val constvalue = repeatLoop.untilCondition.constValue(namespace, heap)
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue){
@@ -209,9 +277,17 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
             val bexpr=assignment.value as? BinaryExpression
             if(bexpr!=null) {
                 val cv = bexpr.right.constValue(namespace, heap)?.asNumericValue?.toDouble()
-                if(cv!=null) {
+                if(cv==null) {
+                    if(bexpr.operator=="+" && targetDt!=DataType.FLOAT) {
+                        if (same(bexpr.left, bexpr.right) && same(target, bexpr.left)) {
+                            bexpr.operator = "*"
+                            bexpr.right = LiteralValue.optimalInteger(2, assignment.value.position)
+                            optimizationsDone++
+                            return assignment
+                        }
+                    }
+                } else {
                     if (same(target, bexpr.left)) {
-
                         // remove assignments that have no effect  X=X , X+=0, X-=0, X*=1, X/=1, X//=1, A |= 0, A ^= 0, A<<=0, etc etc
                         // A = A <operator> B
                         val vardeclDt = (target.identifier?.targetStatement(namespace) as? VarDecl)?.type
@@ -318,6 +394,21 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
         }
 
         return super.process(assignment)
+    }
+
+
+    private fun same(left: IExpression, right: IExpression): Boolean {
+        if(left===right)
+            return true
+        when(left) {
+            is RegisterExpr ->
+                return (right is RegisterExpr && right.register==left.register)
+            is IdentifierReference ->
+                return (right is IdentifierReference && right.nameInSource==left.nameInSource)
+            is ArrayIndexedExpression ->
+                return (right is ArrayIndexedExpression && right.identifier==left.identifier && right.arrayspec==left.arrayspec)
+        }
+        return false
     }
 
     private fun same(target: AssignTarget, value: IExpression): Boolean {

@@ -109,12 +109,12 @@ class AstChecker(private val namespace: INameScope,
         } else {
             // @todo this is a little hack to make the assembler happy;
             // certain assembler routines are -for now- always included and *require* an irq.irq routine to be present
-            val pos = module.statements.last().position
+            val pos = module.statements.first().position
             val dummyIrqBlock = Block("irq", address = null, statements = mutableListOf(
                     Subroutine("irq", listOf(), listOf(), listOf(), listOf(), setOf(), null, true,mutableListOf(), pos)
             ), position = pos)
             dummyIrqBlock.linkParents(module)
-            module.statements.add(dummyIrqBlock)
+            module.statements.add(0, dummyIrqBlock)
         }
     }
 

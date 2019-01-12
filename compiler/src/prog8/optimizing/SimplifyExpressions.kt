@@ -11,6 +11,8 @@ import kotlin.math.log2
         X*Y - X  ->  X*(Y-1)   ???
         Y*X - X  ->  X*(Y-1)   ???
 
+
+
         value <associative_operator> X  --> X <associative_operator> value  <<<<< should be done already
 
 
@@ -32,6 +34,43 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
             // +X --> X
             optimizationsDone++
             return expr.expression.process(this)
+        } else if (expr.operator == "not") {
+            (expr.expression as? BinaryExpression)?.let {
+                // NOT (...)  ->   invert  ...
+                when(it.operator) {
+                    "<" -> {
+                        it.operator = ">="
+                        optimizationsDone++
+                        return it
+                    }
+                    ">" -> {
+                        it.operator = "<="
+                        optimizationsDone++
+                        return it
+                    }
+                    "<=" -> {
+                        it.operator = ">"
+                        optimizationsDone++
+                        return it
+                    }
+                    ">=" -> {
+                        it.operator = "<"
+                        optimizationsDone++
+                        return it
+                    }
+                    "==" -> {
+                        it.operator = "!="
+                        optimizationsDone++
+                        return it
+                    }
+                    "!=" -> {
+                        it.operator = "=="
+                        optimizationsDone++
+                        return it
+                    }
+                    else -> {}
+                }
+            }
         }
         return super.process(expr)
     }

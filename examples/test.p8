@@ -1,13 +1,25 @@
 %import c64utils
+%import c64flt
 
 ~ main {
 
     sub start()  {
 
-        c64scr.print("hoi")
-        c64scr.print("ho")      ; @todo 2x CHROUT
-        c64scr.print("h")       ; @todo 1x CHROUT
-        c64scr.print("h")   ; @todo 1x CHROUT
-        c64scr.print("\n")  ; @todo 1x CHROUT
+        ubyte i=101
+        byte b = 40
+        uword j=100
+        word w = 4000
+        float f = 99.9
+
+        A+=A
+        Y+=Y
+        i+=i
+        j+=j
+        b+=b
+        w+=w
+        f+=f
+        ; X+=X
+
     }
 }
+
