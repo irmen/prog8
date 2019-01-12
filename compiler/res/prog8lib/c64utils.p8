@@ -13,15 +13,15 @@
 
 		const   uword  ESTACK_LO	= $ce00
 		const   uword  ESTACK_HI	= $cf00
-		
-		
+
+
 ; ----- utility functions ----
 
 asmsub  init_system  () -> clobbers(A,X,Y) -> ()  {
 	; ---- initializes the machine to a sane starting state
 	; This means that the BASIC, KERNAL and CHARGEN ROMs are banked in,
 	; the VIC, SID and CIA chips are reset, screen is cleared, and the default IRQ is set.
-	; Also a different color scheme is chosen to identify ourselves a little. 
+	; Also a different color scheme is chosen to identify ourselves a little.
 	; Uppercase charset is activated, and all three registers set to 0, status flags cleared.
 	%asm {{
 		sei
@@ -186,7 +186,7 @@ asmsub  uword2decimal  (uword value @ AY) -> clobbers(A,X,Y) -> ()  {
 		iny
 		rts
 	}}
-	
+
 }
 
 
@@ -268,7 +268,7 @@ asmsub  str2word(str string @ AY) -> clobbers() -> (word @ AY) {
 		rts
 	}}
 }
-	
+
 asmsub  str2ubyte(str string @ AY) -> clobbers(Y) -> (ubyte @ A) {
 	%asm {{
 		;-- convert string (address in A/Y) to ubyte number in A
@@ -276,13 +276,13 @@ asmsub  str2ubyte(str string @ AY) -> clobbers(Y) -> (ubyte @ A) {
 		jmp  str2uword
 	}}
 }
-	
+
 asmsub  str2byte(str string @ AY) -> clobbers(Y) -> (byte @ A) {
 	%asm {{
 		;-- convert string (address in A/Y) to byte number in A
 		;   @todo don't use the (slow) kernel floating point conversion
 		jmp  str2word
-	}}	
+	}}
 }
 
 
@@ -413,10 +413,10 @@ _mod2b          lda  #0                         ; self-modified
 		bne  -
 _done		rts
 		.pend
-		
-}}		
-                
-                
+
+}}
+
+
 asmsub  set_irqvec_excl() -> clobbers(A) -> ()  {
 	%asm {{
 		sei
@@ -445,11 +445,11 @@ asmsub  set_irqvec() -> clobbers(A) -> ()  {
 		rts
 _irq_handler    jsr  irq.irq
 		jmp  c64.IRQDFRT		; continue with normal kernel irq routine
-	
+
 	}}
 }
-	
-	
+
+
 asmsub  restore_irqvec() -> clobbers() -> () {
 	%asm {{
 		sei
@@ -517,7 +517,7 @@ asmsub  set_rasterirq_excl(uword rasterpos @ AY) -> clobbers(A) -> () {
 		cli
 		rts
 
-_raster_irq_handler	
+_raster_irq_handler
 		jsr  irq.irq
 		lda  #$ff
 		sta  c64.VICIRQ			; acknowledge raster irq
@@ -812,7 +812,7 @@ asmsub  print (str text @ AY) -> clobbers(A,Y) -> ()  {
 	; ---- print null terminated string from A/Y
 	; note: the compiler contains an optimization that will replace
 	;       a call to this subroutine with a string argument of just one char,
-	;       by just one call to c64.CHROUT of that single char.    @todo do this
+	;       by just one call to c64.CHROUT of that single char.
 	%asm {{
 		sta  c64.SCRATCH_ZPB1
 		sty  c64.SCRATCH_ZPREG
@@ -881,7 +881,7 @@ _print_tens	txa
 		jmp  c64.CHROUT
 	}}
 }
-	
+
 asmsub  print_b  (byte value @ A) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the byte in A in decimal form, without left padding 0s
 	%asm {{
@@ -1066,7 +1066,7 @@ asmsub  setchr  (ubyte col @Y, ubyte row @A) -> clobbers(A) -> ()  {
 +		lda  c64.SCRATCH_ZPB1
 _mod		sta  $ffff		; modified
 		rts
-		
+
 _screenrows	.word  $0400 + range(0, 1000, 40)
 	}}
 }
@@ -1088,12 +1088,12 @@ asmsub  setclr  (ubyte col @Y, ubyte row @A) -> clobbers(A) -> ()  {
 +		lda  c64.SCRATCH_ZPB1
 _mod		sta  $ffff		; modified
 		rts
-		
+
 _colorrows	.word  $d800 + range(0, 1000, 40)
 	}}
 }
 
-		
+
 sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte color)  {
 	; ---- set char+color at the given position on the screen
 	%asm {{
@@ -1117,7 +1117,7 @@ _charmod	sta  $ffff		; modified
 		lda  setcc_color
 _colormod	sta  $ffff		; modified
 		rts
-	}}	
+	}}
 }
 
 asmsub  PLOT  (ubyte col @ Y, ubyte row @ A) -> clobbers(A) -> () {

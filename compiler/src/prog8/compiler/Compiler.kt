@@ -99,6 +99,8 @@ class HeapValues {
 
     fun get(heapId: Int): HeapValue = heap[heapId]
 
+    // TODO remove function
+
     fun allEntries() = heap.withIndex().toList()
 }
 
@@ -2049,37 +2051,34 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 }
                 // todo deal with target.arrayindexed?
 
+        fun createLoopCode(step: Int) {
+            if(step!=1 && step !=-1)
+                TODO("can't generate code for step other than 1 or -1 right now")
+
+            // LV++ / LV--
+            val postIncr = PostIncrDecr(lvTarget, if(step==1) "++" else "--", range.position)
+            postIncr.linkParents(body)
+            translate(postIncr)
+            if(lvTarget.register!=null)
+                prog.instr(Opcode.PUSH_VAR_BYTE, callLabel =lvTarget.register.toString())
+            else {
+                val opcode = opcodePushvar(targetStatement!!.datatype)
+                prog.instr(opcode, callLabel = targetStatement.scopedname)
+            }
+            val branch = BranchStatement(
+                    BranchCondition.NZ,
+                    AnonymousScope(mutableListOf(Jump(null, null, loopLabel, range.position)), range.position),
+                    AnonymousScope(mutableListOf(), range.position),
+                    range.position)
+            branch.linkParents(body)
+            translate(branch)
+        }
 
         when (literalStepValue) {
-            1 -> {
-                // LV++
-                val postIncr = PostIncrDecr(lvTarget, "++", range.position)
-                postIncr.linkParents(body)
-                translate(postIncr)
-                if(lvTarget.register!=null)
-                    prog.instr(Opcode.PUSH_VAR_BYTE, callLabel =lvTarget.register.toString())
-                else {
-                    val opcode = opcodePushvar(targetStatement!!.datatype)
-                    prog.instr(opcode, callLabel = targetStatement.scopedname)
-                }
-                val branch = BranchStatement(
-                        BranchCondition.NZ,
-                        AnonymousScope(mutableListOf(Jump(null, null, loopLabel, range.position)), range.position),
-                        AnonymousScope(mutableListOf(), range.position),
-                        range.position)
-                branch.linkParents(body)
-                translate(branch)
-            }
-            -1 -> {
-                // LV--
-                val postIncr = PostIncrDecr(makeAssignmentTarget(), "--", range.position)
-                postIncr.linkParents(body)
-                translate(postIncr)
-                TODO("signed numbers and/or special condition are needed for decreasing for loop. Try an increasing loop and/or constant loop values instead? At: ${range.position}")   // fix with signed numbers
-            }
-            else -> {
-                TODO("non-literal-const or other-than-one step increment code At: ${range.position}")
-            }
+            1 -> createLoopCode(1)
+            -1 -> createLoopCode(-1)
+            null -> TODO("variable range forloop non-literal-const step increment, At: ${range.position}")
+            else -> TODO("variable range forloop step increment not 1 or -1, At: ${range.position}")
         }
 
         prog.label(breakLabel)

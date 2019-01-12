@@ -2,6 +2,7 @@ package prog8.optimizing
 
 import prog8.ast.*
 import prog8.compiler.HeapValues
+import prog8.compiler.target.c64.Petscii
 import prog8.functions.BuiltinFunctions
 import kotlin.math.floor
 
@@ -37,6 +38,37 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
             if (functionName in pureBuiltinFunctions) {
                 printWarning("statement has no effect (function return value is discarded)", functionCall.position)
                 statementsToRemove.add(functionCall)
+                return functionCall
+            }
+        }
+
+        if(functionCall.target.nameInSource==listOf("c64scr", "print") ||
+                functionCall.target.nameInSource==listOf("c64scr", "print_p")) {
+            // printing a literal string of just 2 or 1 characters is replaced by directly outputting those characters
+            if(functionCall.arglist.single() is LiteralValue)
+                throw AstException("string argument should be on heap already")
+            val stringVar = functionCall.arglist.single() as? IdentifierReference
+            if(stringVar!=null) {
+                val heapId = stringVar.heapId(namespace)
+                val string = heap.get(heapId).str!!
+                // TODO heap.remove(heapId)
+                if(string.length==1) {
+                    val petscii = Petscii.encodePetscii(string, true)[0]
+                    functionCall.arglist.clear()
+                    functionCall.arglist.add(LiteralValue.optimalInteger(petscii, functionCall.position))
+                    functionCall.target = IdentifierReference(listOf("c64", "CHROUT"), functionCall.target.position)
+                    optimizationsDone++
+                    return functionCall
+                } else if(string.length==2) {
+                    val petscii = Petscii.encodePetscii(string, true)
+                    val scope = AnonymousScope(mutableListOf(), functionCall.position)
+                    scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("c64", "CHROUT"), functionCall.target.position),
+                            mutableListOf(LiteralValue.optimalInteger(petscii[0], functionCall.position)), functionCall.position))
+                    scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("c64", "CHROUT"), functionCall.target.position),
+                            mutableListOf(LiteralValue.optimalInteger(petscii[1], functionCall.position)), functionCall.position))
+                    optimizationsDone++
+                    return scope
+                }
             }
         }
 
