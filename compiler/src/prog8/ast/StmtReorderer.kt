@@ -119,8 +119,10 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
         if(decl.type!=VarDeclType.VAR || decl.value==null)
             return decl
 
-        // regarding variables that are not on the heap (so: byte, word, float),
-        // replace the var decl with an assignment and add a new vardecl with the default constant value.
+        // Replace the var decl with an assignment and add a new vardecl with the default constant value.
+        // This makes sure the variables get reset to the intended value on a next run of the program.
+        // Variable decls without a value don't get this treatment, which means they retain the last
+        // value they had when restarting the program.
         if(decl.datatype in NumericDatatypes) {
             val scope = decl.definingScope()
             if(scope !in vardeclsToAdd)

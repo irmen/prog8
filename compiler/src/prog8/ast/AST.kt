@@ -1,5 +1,6 @@
 package prog8.ast
 
+import org.antlr.v4.runtime.IntStream
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
 import prog8.compiler.HeapValues
@@ -9,7 +10,7 @@ import prog8.functions.BuiltinFunctions
 import prog8.functions.NotConstArgumentException
 import prog8.functions.builtinFunctionReturnType
 import prog8.parser.prog8Parser
-import java.nio.file.Paths
+import java.io.File
 import kotlin.math.abs
 import kotlin.math.floor
 
@@ -1759,7 +1760,11 @@ fun prog8Parser.ModuleContext.toAst(name: String) : Module =
 
 
 private fun ParserRuleContext.toPosition() : Position {
-    val file = Paths.get(this.start.inputStream.sourceName).fileName.toString()
+    val file =
+            if(start.inputStream.sourceName == IntStream.UNKNOWN_SOURCE_NAME)
+                "<internal>"
+            else
+                File(start.inputStream.sourceName).name
     // note: be ware of TAB characters in the source text, they count as 1 column...
     return Position(file, start.line, start.charPositionInLine, stop.charPositionInLine+stop.text.length)
 }

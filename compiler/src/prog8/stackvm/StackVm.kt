@@ -180,7 +180,6 @@ class StackVm(private var traceOutputFile: String?) {
         for(i:Int in 1..instructionCount) {
             try {
                 currentIns = dispatch(currentIns)
-
                 if (evalstack.size > 128)
                     throw VmExecutionException("too many values on evaluation stack")
                 if (callstack.size > 128)

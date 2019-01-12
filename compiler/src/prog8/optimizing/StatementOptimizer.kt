@@ -4,7 +4,6 @@ import prog8.ast.*
 import prog8.compiler.HeapValues
 import prog8.compiler.target.c64.Petscii
 import prog8.functions.BuiltinFunctions
-import sun.font.TrueTypeFont
 import kotlin.math.floor
 
 
@@ -16,8 +15,6 @@ import kotlin.math.floor
     todo analyse for unreachable code and remove that (f.i. code after goto or return that has no label so can never be jumped to)
 
     todo regular subroutines that have 1 or 2 (u)byte  or 1 (u)word parameters -> change to asmsub to accept these in A/Y registers instead of on stack
-
-    todo merge sequence of assignments into one to avoid repeated value loads (as long as the value is a constant and the target not a MEMORY type!)
 
     todo inline subroutines that are called exactly once (regardless of their size)
     todo inline subroutines that are only called a few times (3?) and that are "sufficiently small" (0-3 statements)
@@ -40,6 +37,8 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
     }
 
     override fun process(subroutine: Subroutine): IStatement {
+        super.process(subroutine)
+
         if(subroutine.asmAddress==null) {
             if(subroutine.statements.isEmpty()) {
                 // remove empty subroutine
@@ -54,8 +53,53 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
                 }
             }
         }
-        return super.process(subroutine)
+
+        val linesToRemove = mutableListOf<Int>()
+        var previousAssignmentLine: Int? = null
+        for(i in 0 until subroutine.statements.size) {
+            val stmt = subroutine.statements[i] as? Assignment
+            if(stmt!=null) {
+                if(previousAssignmentLine==null) {
+                    previousAssignmentLine = i
+                    continue
+                } else {
+                    val prev = subroutine.statements[previousAssignmentLine] as Assignment
+                    if(prev.targets.size==1 && stmt.targets.size==1 && same(prev.targets[0], stmt.targets[0])) {
+                        // get rid of the previous assignment, if the target is not MEMORY
+                        if(isNotMemory(prev.targets[0]))
+                            linesToRemove.add(previousAssignmentLine)
+                    }
+                    previousAssignmentLine = i
+                }
+            } else
+                previousAssignmentLine=null
+        }
+
+        if(linesToRemove.isNotEmpty()) {
+            linesToRemove.reversed().forEach{subroutine.statements.removeAt(it)}
+        }
+
+        return subroutine
     }
+
+    private fun isNotMemory(target: AssignTarget): Boolean {
+        if(target.register!=null)
+            return true
+        if(target.memoryAddress!=null)
+            return false
+        if(target.arrayindexed!=null) {
+            val targetStmt = target.arrayindexed.identifier.targetStatement(namespace) as? VarDecl
+            if(targetStmt!=null)
+                return targetStmt.type!=VarDeclType.MEMORY
+        }
+        if(target.identifier!=null) {
+            val targetStmt = target.identifier.targetStatement(namespace) as? VarDecl
+            if(targetStmt!=null)
+                return targetStmt.type!=VarDeclType.MEMORY
+        }
+        return false
+    }
+
 
     override fun process(functionCall: FunctionCallStatement): IStatement {
         if(functionCall.target.nameInSource.size==1 && functionCall.target.nameInSource[0] in BuiltinFunctions) {
@@ -423,5 +467,27 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
                     value.arrayspec.size()==target.arrayindexed.arrayspec.size()
             else -> false
         }
+    }
+
+    private fun same(target1: AssignTarget, target2: AssignTarget): Boolean {
+        if(target1===target2)
+            return true
+        if(target1.register!=null && target2.register!=null)
+            return target1.register==target2.register
+        if(target1.identifier!=null && target2.identifier!=null)
+            return target1.identifier.nameInSource==target2.identifier.nameInSource
+        if(target1.memoryAddress!=null && target2.memoryAddress!=null) {
+            val addr1 = target1.memoryAddress!!.addressExpression.constValue(namespace, heap)
+            val addr2 = target2.memoryAddress!!.addressExpression.constValue(namespace, heap)
+            return addr1!=null && addr2!=null && addr1==addr2
+        }
+        if(target1.arrayindexed!=null && target2.arrayindexed!=null) {
+            if(target1.arrayindexed.identifier.nameInSource == target2.arrayindexed.identifier.nameInSource) {
+                val x1 = target1.arrayindexed.arrayspec.x.constValue(namespace, heap)
+                val x2 = target2.arrayindexed.arrayspec.x.constValue(namespace, heap)
+                return x1!=null && x2!=null && x1==x2
+            }
+        }
+        return false
     }
 }

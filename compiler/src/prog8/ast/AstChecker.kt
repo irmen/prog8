@@ -106,15 +106,6 @@ class AstChecker(private val namespace: INameScope,
         if(irqSub!=null) {
             if(irqSub.parameters.isNotEmpty() || irqSub.returntypes.isNotEmpty())
                 checkResult.add(SyntaxError("irq entrypoint subroutine can't have parameters and/or return values", irqSub.position))
-        } else {
-            // @todo this is a little hack to make the assembler happy;
-            // certain assembler routines are -for now- always included and *require* an irq.irq routine to be present
-            val pos = module.statements.first().position
-            val dummyIrqBlock = Block("irq", address = null, statements = mutableListOf(
-                    Subroutine("irq", listOf(), listOf(), listOf(), listOf(), setOf(), null, true,mutableListOf(), pos)
-            ), position = pos)
-            dummyIrqBlock.linkParents(module)
-            module.statements.add(0, dummyIrqBlock)
         }
     }
 

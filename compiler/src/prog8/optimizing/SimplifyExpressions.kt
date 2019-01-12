@@ -11,11 +11,6 @@ import kotlin.math.log2
         X*Y - X  ->  X*(Y-1)   ???
         Y*X - X  ->  X*(Y-1)   ???
 
-
-
-        value <associative_operator> X  --> X <associative_operator> value  <<<<< should be done already
-
-
     todo expression optimization: common (sub) expression elimination (turn common expressions into single subroutine call + introduce variable to hold it)
 
  */

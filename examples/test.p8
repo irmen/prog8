@@ -6,19 +6,30 @@
     sub start()  {
 
         ubyte i=101
-        byte b = 40
-        uword j=100
-        word w = 4000
-        float f = 99.9
 
-        A+=A
-        Y+=Y
-        i+=i
-        j+=j
-        b+=b
-        w+=w
-        f+=f
-        ; X+=X
+        A=4
+        A=5
+        A=6
+        A=i
+        A=99        ; folded ok!
+
+        i=4
+        i=5
+        i=6
+        i=A
+        i=99            ; folded ok
+
+        @($d020) = 4
+        @($d020) = 5
+        @($d020) = 6
+        @($d020) = 7
+        @($d020) = 8        ; @todo should not be folded
+
+        c64.EXTCOL = 4
+        c64.EXTCOL = 5
+        c64.EXTCOL = 6
+        c64.EXTCOL = 7
+        c64.EXTCOL = 8      ; @todo not fold
 
     }
 }

@@ -102,7 +102,6 @@ private fun compileMain(args: Array<String>) {
             }
             //println(" time1: $time1")
             val time2 = measureTimeMillis {
-                // @todo this call below is relatively slow
                 moduleAst.constantFold(namespace, heap)
             }
             //println(" time2: $time2")
@@ -111,7 +110,6 @@ private fun compileMain(args: Array<String>) {
             }
             //println(" time3: $time3")
             val time4 = measureTimeMillis {
-                // @todo this call below is relatively slow
                 moduleAst.checkValid(namespace, compilerOptions, heap)          // check if tree is valid
             }
             //println(" time4: $time4")

@@ -1412,7 +1412,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
     private fun translate(stmt: VariableInitializationAssignment) {
         // this is an assignment to initialize a variable's value in the scope.
         // the compiler can perhaps optimize this phase.
-        // todo: optimize variable init by keeping track of the block of init values so it can be copied as a whole
+        // todo: optimize variable init by keeping track of the block of init values so it can be copied as a whole via memcopy instead of all separate load value instructions
         translate(stmt as Assignment)
     }
 
@@ -1914,7 +1914,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         continueStmtLabelStack.push(continueLabel)
         breakStmtLabelStack.push(breakLabel)
 
-        prog.instr(opcodePush(varDt), Value(varDt, range.first))        // @todo use VariableInitializationStatement instead?? (like other for loop)
+        prog.instr(opcodePush(varDt), Value(varDt, range.first))
         prog.instr(opcodePopvar(varDt), callLabel = varname)
         prog.label(loopLabel)
         translate(body)

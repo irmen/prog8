@@ -23,8 +23,9 @@ dontstop:
 
     sub irq() {
         ubyte rasterpos=c64.RASTER
-        A=c64.SP0X      ; delay for align
-        A=c64.SP0X      ; delay for align
+        A*=2      ; delay for align
+        A*=2      ; delay for align
+        A*=2      ; delay for align
         if color!=len(colors) {
             c64.EXTCOL = colors[color]
             c64.RASTER = rasterpos+barheight
