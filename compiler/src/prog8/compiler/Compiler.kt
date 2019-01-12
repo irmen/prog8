@@ -1860,10 +1860,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         prog.instr(opcodeIncvar(indexVarType), callLabel = indexVar.scopedname)
         prog.instr(opcodePushvar(indexVarType), callLabel = indexVar.scopedname)
         prog.instr(opcodeCompare(indexVarType), Value(indexVarType, numElements))
-        if(indexVarType==DataType.UWORD)
-            prog.instr(Opcode.JNZW, callLabel = loopLabel)
-        else
-            prog.instr(Opcode.JNZ, callLabel = loopLabel)
+        prog.instr(Opcode.BNZ, callLabel = loopLabel)
 
         prog.label(breakLabel)
         prog.instr(Opcode.NOP)

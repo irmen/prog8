@@ -120,6 +120,10 @@ class StackVm(private var traceOutputFile: String?) {
     val mem = Memory()
     var P_carry: Boolean = false
         private set
+    var P_zero: Boolean = true
+        private set
+    var P_negative: Boolean = false
+        private set
     var P_irqd: Boolean = false
         private set
     var variables = mutableMapOf<String, Value>()     // all variables (set of all vars used by all blocks/subroutines) key = their fully scoped name
@@ -379,29 +383,70 @@ class StackVm(private var traceOutputFile: String?) {
                 checkDt(second, DataType.FLOAT)
                 evalstack.push(second.add(top))
             }
-            Opcode.SUB_UB, Opcode.CMP_UB -> {
+            Opcode.SUB_UB -> {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.UBYTE)
                 checkDt(second, DataType.UBYTE)
                 evalstack.push(second.sub(top))
             }
-            Opcode.SUB_UW, Opcode.CMP_UW -> {
+            Opcode.SUB_UW -> {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.UWORD)
                 checkDt(second, DataType.UWORD)
                 evalstack.push(second.sub(top))
             }
-            Opcode.SUB_B, Opcode.CMP_B -> {
+            Opcode.SUB_B -> {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.BYTE)
                 checkDt(second, DataType.BYTE)
                 evalstack.push(second.sub(top))
             }
-            Opcode.SUB_W, Opcode.CMP_W -> {
+            Opcode.SUB_W -> {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.WORD)
                 checkDt(second, DataType.WORD)
                 evalstack.push(second.sub(top))
+            }
+            Opcode.CMP_UB -> {
+                val value = evalstack.pop()
+                val other = ins.arg!!
+                checkDt(value, DataType.UBYTE)
+                checkDt(other, DataType.UBYTE)
+                val comparison = value.compareTo(other)
+                P_zero = comparison==0
+                P_negative = comparison<0
+                P_carry = comparison>=0
+            }
+            Opcode.CMP_UW -> {
+                val value = evalstack.pop()
+                val other = ins.arg!!
+                checkDt(value, DataType.UWORD)
+                checkDt(other, DataType.UWORD)
+                val comparison = value.compareTo(other)
+                P_zero = comparison==0
+                P_negative = comparison<0
+                P_carry = comparison>=0
+            }
+            Opcode.CMP_B -> {
+                val value = evalstack.pop()
+                val other = ins.arg!!
+                checkDt(value, DataType.BYTE)
+                checkDt(other, DataType.BYTE)
+                val comparison = value.compareTo(other)
+                P_zero = comparison==0
+                P_negative = comparison<0
+                P_carry = comparison>=0
+            }
+            Opcode.CMP_W -> {
+                val value = evalstack.pop()
+                val other = ins.arg!!
+                checkDt(value, DataType.WORD)
+                checkDt(other, DataType.WORD)
+                val result = value.sub(other)
+                val comparison = value.compareTo(other)
+                P_zero = comparison==0
+                P_negative = comparison<0
+                P_carry = comparison>=0
             }
             Opcode.SUB_F -> {
                 val (top, second) = evalstack.pop2()
@@ -771,8 +816,14 @@ class StackVm(private var traceOutputFile: String?) {
                 return if(P_carry) ins.next else ins.nextAlt!!
             Opcode.BCC ->
                 return if(P_carry) ins.nextAlt!! else ins.next
-            Opcode.BZ, Opcode.BNZ -> throw VmExecutionException("StackVM doesn't support the 'zero' cpu flag")
-            Opcode.BNEG, Opcode.BPOS -> throw VmExecutionException("StackVM doesn't support the 'neg' cpu flag")
+            Opcode.BZ ->
+                return if(P_zero) ins.next else ins.nextAlt!!
+            Opcode.BNZ ->
+                return if(P_zero) ins.nextAlt!! else ins.next
+            Opcode.BNEG ->
+                return if(P_negative) ins.next else ins.nextAlt!!
+            Opcode.BPOS ->
+                return if(P_negative) ins.nextAlt!! else ins.next
             Opcode.BVS, Opcode.BVC -> throw VmExecutionException("stackVM doesn't support the 'overflow' cpu flag")
             Opcode.JZ -> {
                 val value = evalstack.pop().integerValue() and 255
