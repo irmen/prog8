@@ -60,7 +60,7 @@
             if msb(x) c64.MSIGX++
             c64.EXTCOL++
         }
-        c64.EXTCOL-=7       ; @todo for memory vars, this should not become more than 2 * dec but normal sbc instead
+        c64.EXTCOL-=7
 
     }
 

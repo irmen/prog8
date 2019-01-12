@@ -17,7 +17,7 @@
         str question = "How are you?\n"
 
         ; use iteration to write text
-        for ubyte char in question {
+        for ubyte char in question {            ; @todo fix iteration
             c64.CHROUT(char)
         }
 
