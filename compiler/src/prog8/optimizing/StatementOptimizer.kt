@@ -51,7 +51,6 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
             if(stringVar!=null) {
                 val heapId = stringVar.heapId(namespace)
                 val string = heap.get(heapId).str!!
-                // TODO heap.remove(heapId)
                 if(string.length==1) {
                     val petscii = Petscii.encodePetscii(string, true)[0]
                     functionCall.arglist.clear()

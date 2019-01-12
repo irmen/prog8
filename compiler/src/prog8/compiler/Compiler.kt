@@ -50,7 +50,8 @@ class HeapValues {
         val arraysize: Int = array?.size ?: doubleArray?.size ?: 0
     }
 
-    private val heap = mutableListOf<HeapValue>()
+    private val heap = mutableMapOf<Int, HeapValue>()
+    private var heapId = 1
 
     fun size(): Int = heap.size
 
@@ -60,48 +61,56 @@ class HeapValues {
 
         // strings are 'interned' and shared if they're the same
         val value = HeapValue(type, str, null, null)
-        val existing = heap.indexOf(value)
-        if(existing>=0)
+
+        val existing = heap.filter { it.value==value }.map { it.key }.firstOrNull()
+        if(existing!=null)
             return existing
-        heap.add(value)
-        return heap.size-1
+        val newId = heapId++
+        heap[newId] = value
+        return newId
     }
 
     fun add(type: DataType, array: IntArray): Int {
-        // arrays are never shared
-        heap.add(HeapValue(type, null, array, null))
-        return heap.size-1
+        // arrays are never shared, don't check for existing
+        val newId = heapId++
+        heap[newId] = HeapValue(type, null, array, null)
+        return newId
     }
 
     fun add(type: DataType, darray: DoubleArray): Int {
-        // arrays are never shared
-        heap.add(HeapValue(type, null, null, darray))
-        return heap.size-1
+        // arrays are never shared, don't check for existing
+        val newId = heapId++
+        heap[newId] = HeapValue(type, null, null, darray)
+        return newId
     }
 
     fun update(heapId: Int, str: String) {
-        when(heap[heapId].type){
+        val oldVal = heap[heapId] ?: throw IllegalArgumentException("heapId not found in heap")
+        when(oldVal.type){
             DataType.STR,
             DataType.STR_P,
             DataType.STR_S,
             DataType.STR_PS -> {
-                if(heap[heapId].str!!.length!=str.length)
+                if(oldVal.str!!.length!=str.length)
                     throw IllegalArgumentException("heap string length mismatch")
-                heap[heapId] = heap[heapId].copy(str=str)
+                heap[heapId] = oldVal.copy(str=str)
             }
             else-> throw IllegalArgumentException("heap data type mismatch")
         }
     }
 
     fun update(heapId: Int, heapval: HeapValue) {
+        if(heapId !in heap)
+            throw IllegalArgumentException("heapId not found in heap")
         heap[heapId] = heapval
     }
 
-    fun get(heapId: Int): HeapValue = heap[heapId]
+    fun get(heapId: Int): HeapValue {
+        return heap[heapId] ?:
+            throw IllegalArgumentException("heapId not found in heap")
+    }
 
-    // TODO remove function
-
-    fun allEntries() = heap.withIndex().toList()
+    fun allEntries() = heap.entries
 }
 
 

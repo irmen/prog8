@@ -52,7 +52,7 @@ class AstChecker(private val namespace: INameScope,
     private val heapStringSentinel: Int
     init {
         val stringSentinel = heap.allEntries().firstOrNull {it.value.str==""}
-        heapStringSentinel = stringSentinel?.index ?: heap.add(DataType.STR, "")
+        heapStringSentinel = stringSentinel?.key ?: heap.add(DataType.STR, "")
     }
 
     fun result(): List<AstException> {

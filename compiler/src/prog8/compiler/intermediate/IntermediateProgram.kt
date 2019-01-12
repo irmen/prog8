@@ -404,11 +404,11 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         heap.allEntries().forEach {
             when {
                 it.value.str!=null ->
-                    out.println("${it.index}  ${it.value.type.toString().toLowerCase()}  \"${escape(it.value.str!!)}\"")
+                    out.println("${it.key}  ${it.value.type.toString().toLowerCase()}  \"${escape(it.value.str!!)}\"")
                 it.value.array!=null ->
-                    out.println("${it.index}  ${it.value.type.toString().toLowerCase()}  ${it.value.array!!.toList()}")
+                    out.println("${it.key}  ${it.value.type.toString().toLowerCase()}  ${it.value.array!!.toList()}")
                 it.value.doubleArray!=null ->
-                    out.println("${it.index}  ${it.value.type.toString().toLowerCase()}  ${it.value.doubleArray!!.toList()}")
+                    out.println("${it.key}  ${it.value.type.toString().toLowerCase()}  ${it.value.doubleArray!!.toList()}")
                 else -> throw CompilerException("invalid heap entry $it")
             }
         }
