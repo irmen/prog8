@@ -382,8 +382,10 @@ interface INameScope {
         return null
     }
 
-    fun allLabelsAndVariables() = statements.asSequence().filter { it is Label || it is VarDecl }
-            .associate {((it as? Label)?.name ?: (it as? VarDecl)?.name)!! to it }
+    fun allLabelsAndVariables(): Map<String, IStatement> {
+        val labelsAndVars = statements.filterIsInstance<Label>() + statements.filterIsInstance<VarDecl>()
+        return labelsAndVars.associate { ((it as? Label)?.name ?: (it as? VarDecl)?.name)!! to it }
+    }
 
     fun lookup(scopedName: List<String>, statement: Node) : IStatement? {
         if(scopedName.size>1) {

@@ -162,9 +162,6 @@ class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
                 printWarning("writing to the X register is dangerous, because it's used as an internal pointer", forLoop.position)
         } else if(forLoop.loopVar!=null) {
             val varName = forLoop.loopVar.nameInSource.last()
-            if(forLoop.iterable is RangeExpr && forLoop.decltype!=null && forLoop.decltype !in setOf(DataType.UBYTE, DataType.UWORD)) {
-                checkResult.add(SyntaxError("loop variables over a numeric range can only be ubyte or uword", forLoop.position))    // TODO allow signed range loopvars
-            }
             if(forLoop.decltype!=null) {
                 val existing = if(forLoop.body.isEmpty()) null else forLoop.body.lookup(forLoop.loopVar.nameInSource, forLoop.body.statements.first())
                 if(existing==null) {

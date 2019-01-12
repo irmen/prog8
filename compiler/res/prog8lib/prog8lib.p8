@@ -9,19 +9,6 @@
 
 	%asm {{
 
-; 16-bit rotate right (as opposed to the 6502's usual 17-bit rotate with carry)
-; the word is placed in c64.SCRATCH_ZPWORD1
-ror2_word	.proc
-		lsr  c64.SCRATCH_ZPWORD1+1
-		ror  c64.SCRATCH_ZPWORD1
-		bcc  +
-		lda  c64.SCRATCH_ZPWORD1+1
-		ora  #$80
-		sta  c64.SCRATCH_ZPWORD1+1
-+		rts
-		.pend
-
-
 add_a_to_zpword	.proc
 		; -- add ubyte in A to the uword in c64.SCRATCH_ZPWORD1
 		clc

@@ -913,6 +913,39 @@ asmsub  print_ubhex  (ubyte prefix @ Pc, ubyte value @ A) -> clobbers(A,X,Y) -> 
 }
 
 
+asmsub  print_ubbin  (ubyte prefix @ Pc, ubyte value @ A) -> clobbers(A,X,Y) ->()  {
+	; ---- print the ubyte in A in binary form (if Carry is set, a radix prefix '%' is printed as well)
+	%asm {{
+		sta  c64.SCRATCH_ZPB1
+		bcc  +
+		lda  #'%'
+		jsr  c64.CHROUT
++		ldy  #8
+-		lda  #'0'
+		asl  c64.SCRATCH_ZPB1
+		bcc  +
+		lda  #'1'
++		jsr  c64.CHROUT
+		dey
+		bne  -
+		rts
+	}}
+}
+
+
+asmsub  print_uwbin  (ubyte prefix @ Pc, uword value @ AY) -> clobbers(A,X,Y) ->()  {
+	; ---- print the uword in A/Y in binary form (if Carry is set, a radix prefix '%' is printed as well)
+	%asm {{
+		pha
+		tya
+		jsr  print_ubbin
+		pla
+		clc
+		jmp  print_ubbin
+	}}
+}
+
+
 asmsub print_uwhex  (ubyte prefix @ Pc, uword value @ AY) -> clobbers(A,X,Y) -> ()  {
 	; ---- print the uword in A/Y in hexadecimal form (4 digits)
 	;      (if Carry is set, a radix prefix '$' is printed as well)

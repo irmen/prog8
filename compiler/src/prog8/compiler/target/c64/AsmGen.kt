@@ -480,8 +480,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 // restore all registers and cpu status flag
                 " pla |  tay |  pla |  tax |  pla |  plp"
             }
-            Opcode.RSAVEX -> " stx  ${C64Zeropage.SCRATCH_REG_X}"           // TODO on stack instead, to allow nested calls?
-            Opcode.RRESTOREX -> " ldx  ${C64Zeropage.SCRATCH_REG_X}"
+            Opcode.RSAVEX -> " txa |  pha"
+            Opcode.RRESTOREX -> " pla |  tax"
             Opcode.RSAVEY -> " tya |  pha"
             Opcode.RRESTOREY -> " pla |  tay"
             Opcode.DISCARD_BYTE -> " inx"
@@ -829,7 +829,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.MSB -> " lda  ${(ESTACK_HI+1).toHex()},x |  sta  ${(ESTACK_LO+1).toHex()},x"
             Opcode.MKWORD -> " inx |  lda  ${ESTACK_LO.toHex()},x |  sta  ${(ESTACK_HI+1).toHex()},x "
 
-            Opcode.ADD_UB, Opcode.ADD_B -> {        // TODO inline better?
+            Opcode.ADD_UB, Opcode.ADD_B -> {        // TODO inline better (pattern with more opcodes)
                 """
                 lda  ${(ESTACK_LO + 2).toHex()},x
                 clc
@@ -838,7 +838,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 sta  ${(ESTACK_LO + 1).toHex()},x
                 """
             }
-            Opcode.SUB_UB, Opcode.SUB_B -> {        // TODO inline better?
+            Opcode.SUB_UB, Opcode.SUB_B -> {        // TODO inline better (pattern with more opcodes)
                 """
                 lda  ${(ESTACK_LO + 2).toHex()},x
                 sec
@@ -1047,17 +1047,17 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.SHL_BYTE -> AsmFragment(" asl  $variable+$index", 8)
             Opcode.SHR_UBYTE -> AsmFragment(" lsr  $variable+$index", 8)
             Opcode.SHR_SBYTE -> AsmFragment(" lda  $variable+$index |  asl  a |  ror  $variable+$index")
-            Opcode.SHL_WORD -> AsmFragment(" asl  $variable+${index+1} |  rol  $variable+$index", 8)
-            Opcode.SHR_UWORD -> AsmFragment(" lsr  $variable+${index+1} |  ror  $variable+$index", 8)
-            Opcode.SHR_SWORD -> AsmFragment(" lda  $variable+${index+1} |  asl  a |  ror  $variable+${index+1} |  ror  $variable+$index", 8)
+            Opcode.SHL_WORD -> AsmFragment(" asl  $variable+${index*2+1} |  rol  $variable+$index*2", 8)
+            Opcode.SHR_UWORD -> AsmFragment(" lsr  $variable+${index*2+1} |  ror  $variable+$index*2", 8)
+            Opcode.SHR_SWORD -> AsmFragment(" lda  $variable+${index*2+1} |  asl  a |  ror  $variable+${index*2+1} |  ror  $variable+$index*2", 8)
             Opcode.ROL_BYTE -> AsmFragment(" rol  $variable+$index", 8)
             Opcode.ROR_BYTE -> AsmFragment(" ror  $variable+$index", 8)
-            Opcode.ROL_WORD -> AsmFragment(" rol  $variable+${index+1} |  rol  $variable+$index", 8)
-            Opcode.ROR_WORD -> AsmFragment(" ror  $variable+${index+1} |  ror  $variable+$index", 8)
+            Opcode.ROL_WORD -> AsmFragment(" rol  $variable+${index*2+1} |  rol  $variable+$index*2", 8)
+            Opcode.ROR_WORD -> AsmFragment(" ror  $variable+${index*2+1} |  ror  $variable+$index*2", 8)
             Opcode.ROL2_BYTE -> AsmFragment(" lda  $variable+$index |  cmp  #\$80 |  rol  $variable+$index", 8)
             Opcode.ROR2_BYTE -> AsmFragment(" lda  $variable+$index |  lsr  a |  bcc  + |  ora  #\$80 |+ |  sta  $variable+$index", 10)
-            Opcode.ROL2_WORD -> AsmFragment(" asl  $variable+${index+1} |  rol  $variable+$index |  bcc  + |  inc  $variable+$index |+",20)  // todo wrong???
-            Opcode.ROR2_WORD -> AsmFragment(" lsr  $variable+${index+1} |  ror  $variable+$index |  bcc  + |  lda  $variable+${index+1} |  ora  #\$80 |  sta  $variable+${index+1} |+", 30)
+            Opcode.ROL2_WORD -> AsmFragment(" asl  $variable+${index*2+1} |  rol  $variable+$index*2 |  bcc  + |  inc  $variable+$index*2+1 |+",20)
+            Opcode.ROR2_WORD -> AsmFragment(" lsr  $variable+${index*2+1} |  ror  $variable+$index*2 |  bcc  + |  lda  $variable+${index*2+1} |  ora  #\$80 |  sta  $variable+${index*2+1} |+", 30)
             Opcode.INC_INDEXED_VAR_B, Opcode.INC_INDEXED_VAR_UB -> AsmFragment(" inc  $variable+$index", 2)
             Opcode.DEC_INDEXED_VAR_B, Opcode.DEC_INDEXED_VAR_UB -> AsmFragment(" dec  $variable+$index", 5)
             Opcode.INC_INDEXED_VAR_W -> TODO("inc array_w")
@@ -1228,8 +1228,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 AsmFragment(" lda  $variable |  cmp #\$80 |  rol  $variable |  rol  $variable+1", 10)
             }
             Opcode.ROR2_WORD -> {
-                // todo: ror2_word is very slow; it requires a library routine
-                AsmFragment(" lda  $variable |  sta  ${C64Zeropage.SCRATCH_W1} |  lda  $variable+1 |  sta  ${C64Zeropage.SCRATCH_W1+1} |  jsr  prog8_lib.ror2_word |  lda  ${C64Zeropage.SCRATCH_W1} |  sta  $variable |  lda  ${C64Zeropage.SCRATCH_W1+1} |  sta  $variable+1", 30)
+                AsmFragment(" lsr  $variable+1 |  ror  $variable |  bcc  + |  lda  $variable+1 |  ora  #\$80 |  sta  $variable+1 |+", 30)
             }
 //            Opcode.SYSCALL -> {
 //                TODO("optimize SYSCALL $ins in-place on variable $variable")

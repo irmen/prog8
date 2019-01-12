@@ -433,16 +433,7 @@ class AstChecker(private val namespace: INameScope,
                         target.register != null -> RegisterExpr(target.register, target.position)
                         target.identifier != null -> target.identifier
                         target.arrayindexed != null -> target.arrayindexed
-                        target.memoryAddress != null -> target.memoryAddress!!
-//                            // @addr += 4 --> @addr = @addr +4
-//                            // TODO: make it so that it follows the others
-//                            val memRead = DirectMemoryRead(target.memoryAddress!!, target.position)
-//                            val expression = BinaryExpression(memRead, assignment.aug_op.substringBeforeLast('='), assignment.value, assignment.position)
-//                            expression.linkParents(assignment.parent)
-//                            val assignment2 = Assignment(listOf(target), null, expression, assignment.position)
-//                            assignment2.linkParents(assignment.parent)
-//                            return assignment2
-//                        }
+                        target.memoryAddress != null -> DirectMemoryRead(target.memoryAddress!!.addressExpression, assignment.value.position)
                         else -> throw FatalAstException("strange assignment")
                     }
 

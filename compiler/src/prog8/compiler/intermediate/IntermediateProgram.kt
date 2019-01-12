@@ -194,9 +194,11 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
 
         fun optimizeWordConversion(index0: Int, ins0: Instruction, index1: Int, ins1: Instruction) {
             when (ins1.opcode) {
-                Opcode.CAST_B_TO_W, Opcode.CAST_B_TO_UW -> TODO("cast byte to (u)word")
-                Opcode.CAST_UB_TO_W, Opcode.CAST_UB_TO_UW -> TODO("cast ubyte to (u)word")
-                Opcode.CAST_W_TO_B, Opcode.CAST_UW_TO_B -> TODO("cast (u)word to byte")
+                Opcode.CAST_UW_TO_B, Opcode.CAST_W_TO_B -> {
+                    val ins = Instruction(Opcode.PUSH_BYTE, ins0.arg!!.cast(DataType.BYTE))
+                    instructionsToReplace[index0] = ins
+                    instructionsToReplace[index1] = Instruction(Opcode.NOP)
+                }
                 Opcode.CAST_W_TO_UB, Opcode.CAST_UW_TO_UB -> {
                     val ins = Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, ins0.arg!!.integerValue() and 255))
                     instructionsToReplace[index0] = ins
@@ -247,7 +249,16 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                     instructionsToReplace[index0] = ins
                     instructionsToReplace[index1] = Instruction(Opcode.NOP)
                 }
-                Opcode.CAST_B_TO_UW, Opcode.CAST_UB_TO_W -> TODO("cast byte to (u)word")
+                Opcode.CAST_B_TO_UW -> {
+                    val ins = Instruction(Opcode.PUSH_WORD, ins0.arg!!.cast(DataType.UWORD))
+                    instructionsToReplace[index0] = ins
+                    instructionsToReplace[index1] = Instruction(Opcode.NOP)
+                }
+                Opcode.CAST_UB_TO_W -> {
+                    val ins = Instruction(Opcode.PUSH_WORD, ins0.arg!!.cast(DataType.WORD))
+                    instructionsToReplace[index0] = ins
+                    instructionsToReplace[index1] = Instruction(Opcode.NOP)
+                }
                 Opcode.CAST_B_TO_F, Opcode.CAST_UB_TO_F-> {
                     val ins = Instruction(Opcode.PUSH_FLOAT, Value(DataType.FLOAT, ins0.arg!!.integerValue().toDouble()))
                     instructionsToReplace[index0] = ins
@@ -268,6 +279,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
 
             val typeConversionOpcodes = setOf(
                     Opcode.MSB,
+                    Opcode.MKWORD,
                     Opcode.CAST_UB_TO_B,
                     Opcode.CAST_UB_TO_UW,
                     Opcode.CAST_UB_TO_W,

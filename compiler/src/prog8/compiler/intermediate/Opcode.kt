@@ -181,7 +181,6 @@ enum class Opcode {
     POP_DEC_MEMORY,         // decrement address from address
 
     // comparisons
-    // @todo the comparisons push the result back on the stack. Optimize this to work with just processor flags? This does mean you can no longer use a logical boolean result as a byte 0/1 value ?
     LESS_B,
     LESS_UB,
     LESS_W,
@@ -208,10 +207,10 @@ enum class Opcode {
     NOTEQUAL_BYTE,
     NOTEQUAL_WORD,
     NOTEQUAL_F,
-    CMP_B,          // sets processor status flags based on comparison, instead of actually storing a result value
-    CMP_UB,         // sets processor status flags based on comparison, instead of actually storing a result value
-    CMP_W,          // sets processor status flags based on comparison, instead of actually storing a result value
-    CMP_UW,         // sets processor status flags based on comparison, instead of actually storing a result value
+    CMP_B,          // sets processor status flags based on comparison, instead of pushing a result value
+    CMP_UB,         // sets processor status flags based on comparison, instead of pushing a result value
+    CMP_W,          // sets processor status flags based on comparison, instead of pushing a result value
+    CMP_UW,         // sets processor status flags based on comparison, instead of pushing a result value
 
     // array access and simple manipulations
     READ_INDEXED_VAR_BYTE,
