@@ -1,56 +1,48 @@
 %import c64utils
+%import c64flt
 
 ~ main {
 
     sub start()  {
 
-        byte b
-        ubyte ub
-        memory ubyte mb = $c000
-        memory uword muw = $c000
-        word w
-        uword uw
-        uword[4] uwa
+        uword[4] uwa = 5
+        ubyte[4] uba = 5
+        word[4] wa = 5
+        byte[4] ba = 5
+        float[4] fa = 5.123
+        str naam = "irmen"
+        float ff = 3.4444
 
-        ub=%10001011
-        for ubyte i in 0 to 10 {
-            c64scr.print_ubbin(1, ub)
-            rol2(ub)
-            c64.CHROUT('\n')
-        }
-        c64.CHROUT('\n')
+        uword addr
 
-        uw=%1000101100001110
-        for ubyte i in 0 to 10 {
-            c64scr.print_uwbin(1, uw)
-            rol2(uw)
-            c64.CHROUT('\n')
-        }
-        c64.CHROUT('\n')
+        addr = naam
+        addr = uwa
+        addr = fa
 
-        muw=%1000101100001110
-        for ubyte i in 0 to 10 {
-            c64scr.print_uwbin(1, muw)
-            rol2(muw)
-            c64.CHROUT('\n')
-        }
-        c64.CHROUT('\n')
+        pairAX(naam)
+        pairAX("hello")
+        pairAX("hello2")
+        pairAX("hello2")
+        pairAX("hello2")
+        pairAY("hello2")
+        pairAY("hello2")
+        pairXY("hello2")
+        pairXY("hello2")
+        pairAX(uwa)
+        pairAX(fa)
+        pairAY(naam)
+        pairAY(uwa)
+        pairAY(fa)
+        pairXY(naam)
+        pairXY(uwa)
+        pairXY(fa)
 
-        ubyte x=2
-        uwa[x]=%1000101100001110
-        for ubyte i in 0 to 10 {
-            c64scr.print_uwbin(1, uwa[x])
-            rol2(uwa[x])
-            c64.CHROUT('\n')
-        }
-        c64.CHROUT('\n')
+    }
 
-        uwa[2]=%1000101100001110
-        for ubyte i in 0 to 10 {
-            c64scr.print_uwbin(1, uwa[2])
-            rol2(uwa[2])        ; @todo wrong
-            c64.CHROUT('\n')
-        }
-        c64.CHROUT('\n')
+    asmsub pairAX(uword address @ AX) -> clobbers() -> () {
+    }
+    asmsub pairAY(uword address @ AY) -> clobbers() -> () {
+    }
+    asmsub pairXY(uword address @ XY) -> clobbers() -> () {
     }
 }

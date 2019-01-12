@@ -490,6 +490,43 @@ dec_var_f	.proc
 		ldx  c64.SCRATCH_ZPREGX
 		rts
 		.pend
+		
+inc_indexed_var_f	.proc
+		; -- add 1 to float in array pointed to by A/Y, at index X
+		pha
+		txa
+		sta  c64.SCRATCH_ZPB1
+		asl  a
+		asl  a
+		clc
+		adc  c64.SCRATCH_ZPB1
+		sta  c64.SCRATCH_ZPB1
+		pla
+		clc
+		adc  c64.SCRATCH_ZPB1
+		bcc  +
+		iny
++		jmp  inc_var_f
+		.pend
+		
+dec_indexed_var_f	.proc
+		; -- subtract 1 to float in array pointed to by A/Y, at index X
+		pha
+		txa
+		sta  c64.SCRATCH_ZPB1
+		asl  a
+		asl  a
+		clc
+		adc  c64.SCRATCH_ZPB1
+		sta  c64.SCRATCH_ZPB1
+		pla
+		clc
+		adc  c64.SCRATCH_ZPB1
+		bcc  +
+		iny
++		jmp  dec_var_f
+		.pend
+		
 
 pop_2_floats_f2_in_fac1	.proc
 		; -- pop 2 floats from stack, load the second one in FAC1 as well

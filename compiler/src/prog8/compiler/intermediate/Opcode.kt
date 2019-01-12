@@ -18,8 +18,6 @@ enum class Opcode {
     PUSH_REGAX_WORD, // push registers A/X as a 16-bit word
     PUSH_REGAY_WORD, // push registers A/Y as a 16-bit word
     PUSH_REGXY_WORD, // push registers X/Y as a 16-bit word
-    PUSH_ADDR_STR,   // push the address of the string value (literal)
-    PUSH_ADDR_FLOAT, // push the address of the float value (literal)
     PUSH_ADDR_HEAPVAR,  // push the address of the variable that's on the heap (string or array)
 
     // popping values off the (evaluation) stack, possibly storing them in another location

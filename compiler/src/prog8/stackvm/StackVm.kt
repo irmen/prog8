@@ -1497,17 +1497,6 @@ class StackVm(private var traceOutputFile: String?) {
                     throw VmExecutionException("expected variable on heap")
                 evalstack.push(Value(DataType.UWORD, heapId))       // push the "address" of the string or array variable (this is taken care of properly in the assembly code generator)
             }
-            Opcode.PUSH_ADDR_STR -> {
-                val heapId = ins.arg!!.heapId
-                if(heapId<0)
-                    throw VmExecutionException("expected string to be on heap")
-                evalstack.push(Value(DataType.UWORD, heapId))       // push the "address" of the string (this is taken care of properly in the assembly code generator)
-            }
-            Opcode.PUSH_ADDR_FLOAT -> {
-                val floatvalue = ins.arg!!
-                checkDt(floatvalue, DataType.FLOAT)
-                evalstack.push(Value(DataType.UWORD, floatvalue.numericValue().toInt() and 65535))       // push the "address" of the floating point value (this is taken care of properly in the assembly code generator)
-            }
             Opcode.CAST_UB_TO_B -> typecast(DataType.UBYTE, DataType.BYTE)
             Opcode.CAST_W_TO_B -> typecast(DataType.WORD, DataType.BYTE)
             Opcode.CAST_UW_TO_B -> typecast(DataType.UWORD, DataType.BYTE)

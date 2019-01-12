@@ -580,10 +580,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.PUSH_ADDR_HEAPVAR -> {
                 " lda  #<${ins.callLabel} |  sta  ${ESTACK_LO.toHex()},x |  lda  #>${ins.callLabel} |  sta  ${ESTACK_HI.toHex()},x |  dex"
             }
-            Opcode.PUSH_ADDR_FLOAT -> {
-                val varname = getFloatConst(ins.arg!!)
-                " lda  #<$varname |  sta  ${ESTACK_LO.toHex()},x |  lda  #>$varname |  sta  ${ESTACK_HI.toHex()},x |  dex"
-            }
             Opcode.POP_REGAX_WORD -> throw AssemblyError("cannot load X register from stack because it's used as the stack pointer itself")
             Opcode.POP_REGXY_WORD -> throw AssemblyError("cannot load X register from stack because it's used as the stack pointer itself")
             Opcode.POP_REGAY_WORD -> {
@@ -1047,25 +1043,34 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.SHL_BYTE -> AsmFragment(" asl  $variable+$index", 8)
             Opcode.SHR_UBYTE -> AsmFragment(" lsr  $variable+$index", 8)
             Opcode.SHR_SBYTE -> AsmFragment(" lda  $variable+$index |  asl  a |  ror  $variable+$index")
-            Opcode.SHL_WORD -> AsmFragment(" asl  $variable+${index*2+1} |  rol  $variable+$index*2", 8)
-            Opcode.SHR_UWORD -> AsmFragment(" lsr  $variable+${index*2+1} |  ror  $variable+$index*2", 8)
-            Opcode.SHR_SWORD -> AsmFragment(" lda  $variable+${index*2+1} |  asl  a |  ror  $variable+${index*2+1} |  ror  $variable+$index*2", 8)
+            Opcode.SHL_WORD -> AsmFragment(" asl  $variable+${index*2+1} |  rol  $variable+${index*2}", 8)
+            Opcode.SHR_UWORD -> AsmFragment(" lsr  $variable+${index*2+1} |  ror  $variable+${index*2}", 8)
+            Opcode.SHR_SWORD -> AsmFragment(" lda  $variable+${index*2+1} |  asl  a |  ror  $variable+${index*2+1} |  ror  $variable+${index*2}", 8)
             Opcode.ROL_BYTE -> AsmFragment(" rol  $variable+$index", 8)
             Opcode.ROR_BYTE -> AsmFragment(" ror  $variable+$index", 8)
-            Opcode.ROL_WORD -> AsmFragment(" rol  $variable+${index*2+1} |  rol  $variable+$index*2", 8)
-            Opcode.ROR_WORD -> AsmFragment(" ror  $variable+${index*2+1} |  ror  $variable+$index*2", 8)
+            Opcode.ROL_WORD -> AsmFragment(" rol  $variable+${index*2+1} |  rol  $variable+${index*2}", 8)
+            Opcode.ROR_WORD -> AsmFragment(" ror  $variable+${index*2+1} |  ror  $variable+${index*2}", 8)
             Opcode.ROL2_BYTE -> AsmFragment(" lda  $variable+$index |  cmp  #\$80 |  rol  $variable+$index", 8)
             Opcode.ROR2_BYTE -> AsmFragment(" lda  $variable+$index |  lsr  a |  bcc  + |  ora  #\$80 |+ |  sta  $variable+$index", 10)
-            Opcode.ROL2_WORD -> AsmFragment(" asl  $variable+${index*2+1} |  rol  $variable+$index*2 |  bcc  + |  inc  $variable+$index*2+1 |+",20)
-            Opcode.ROR2_WORD -> AsmFragment(" lsr  $variable+${index*2+1} |  ror  $variable+$index*2 |  bcc  + |  lda  $variable+${index*2+1} |  ora  #\$80 |  sta  $variable+${index*2+1} |+", 30)
+            Opcode.ROL2_WORD -> AsmFragment(" asl  $variable+${index*2+1} |  rol  $variable+${index*2} |  bcc  + |  inc  $variable+${index*2+1} |+",20)
+            Opcode.ROR2_WORD -> AsmFragment(" lsr  $variable+${index*2+1} |  ror  $variable+${index*2} |  bcc  + |  lda  $variable+${index*2+1} |  ora  #\$80 |  sta  $variable+${index*2+1} |+", 30)
             Opcode.INC_INDEXED_VAR_B, Opcode.INC_INDEXED_VAR_UB -> AsmFragment(" inc  $variable+$index", 2)
             Opcode.DEC_INDEXED_VAR_B, Opcode.DEC_INDEXED_VAR_UB -> AsmFragment(" dec  $variable+$index", 5)
-            Opcode.INC_INDEXED_VAR_W -> TODO("inc array_w")
-            Opcode.INC_INDEXED_VAR_UW -> TODO("inc array_uw")
-            Opcode.INC_INDEXED_VAR_FLOAT -> TODO("inc array_f")
-            Opcode.DEC_INDEXED_VAR_W -> TODO("dec array_w")
-            Opcode.DEC_INDEXED_VAR_UW -> TODO("dec array_uw")
-            Opcode.DEC_INDEXED_VAR_FLOAT -> TODO("dec array_f")
+            Opcode.INC_INDEXED_VAR_W, Opcode.INC_INDEXED_VAR_UW -> AsmFragment(" inc  $variable+${index*2} |  bne  + |  inc  $variable+${index*2+1} |+")
+            Opcode.DEC_INDEXED_VAR_W, Opcode.DEC_INDEXED_VAR_UW -> AsmFragment(" lda  $variable+${index*2} |  bne  + |  dec  $variable+${index*2+1} |+ |  dec  $variable+${index*2}")
+            Opcode.INC_INDEXED_VAR_FLOAT -> AsmFragment(
+                """
+                lda  #<($variable+${index*Mflpt5.MemorySize})
+                ldy  #>($variable+${index*Mflpt5.MemorySize})
+                jsr  c64flt.inc_var_f
+                """)
+            Opcode.DEC_INDEXED_VAR_FLOAT -> AsmFragment(
+                """
+                lda  #<($variable+${index*Mflpt5.MemorySize})
+                ldy  #>($variable+${index*Mflpt5.MemorySize})
+                jsr  c64flt.dec_var_f
+                """)
+
             else -> null
         }
     }
@@ -1114,12 +1119,10 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.ROR2_WORD -> AsmFragment("$saveX $loadXWord  lsr  $variable+1,x |  ror  $variable,x |  bcc  + |  lda  $variable+1,x |  ora  #\$80 |  sta  $variable+1,x |+  $restoreX", 30)
             Opcode.INC_INDEXED_VAR_B, Opcode.INC_INDEXED_VAR_UB -> AsmFragment(" txa |  $loadX  inc  $variable,x |  tax", 10)
             Opcode.DEC_INDEXED_VAR_B, Opcode.DEC_INDEXED_VAR_UB -> AsmFragment(" txa |  $loadX  dec  $variable,x |  tax", 10)
-            Opcode.INC_INDEXED_VAR_W -> TODO("inc array_w")
-            Opcode.INC_INDEXED_VAR_UW -> AsmFragment("$saveX $loadXWord  inc  $variable,x |  bne  + |  inc  $variable+1,x  |+  $restoreX", 10)
-            Opcode.INC_INDEXED_VAR_FLOAT -> TODO("inc array_f")
-            Opcode.DEC_INDEXED_VAR_W -> TODO("dec array_w")
-            Opcode.DEC_INDEXED_VAR_UW -> AsmFragment("$saveX $loadXWord  lda  $variable,x |  bne  + |  dec  $variable+1,x |+ |  dec  $variable,x  $restoreX", 10)
-            Opcode.DEC_INDEXED_VAR_FLOAT -> TODO("dec array_f")
+            Opcode.INC_INDEXED_VAR_W, Opcode.INC_INDEXED_VAR_UW -> AsmFragment("$saveX $loadXWord  inc  $variable,x |  bne  + |  inc  $variable+1,x  |+  $restoreX", 10)
+            Opcode.DEC_INDEXED_VAR_W, Opcode.DEC_INDEXED_VAR_UW -> AsmFragment("$saveX $loadXWord  lda  $variable,x |  bne  + |  dec  $variable+1,x |+ |  dec  $variable,x  $restoreX", 10)
+            Opcode.INC_INDEXED_VAR_FLOAT -> AsmFragment(" lda  #<$variable |  ldy  #>$variable |  $saveX   $loadX   jsr  c64flt.inc_indexed_var_f  $restoreX")
+            Opcode.DEC_INDEXED_VAR_FLOAT -> AsmFragment(" lda  #<$variable |  ldy  #>$variable |  $saveX   $loadX   jsr  c64flt.dec_indexed_var_f  $restoreX")
 
             else -> null
         }
@@ -2995,29 +2998,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             AsmPattern(listOf(Opcode.PUSH_ADDR_HEAPVAR, Opcode.POP_REGXY_WORD)) { segment ->
                 " ldx  #<${segment[0].callLabel} |  ldy  #>${segment[0].callLabel} "
             },
-            // set a register pair to a certain memory address (of a floating point value)
-            AsmPattern(listOf(Opcode.PUSH_ADDR_FLOAT, Opcode.POP_REGAX_WORD)) { segment ->
-                val varname=getFloatConst(segment[0].arg!!)
-                " lda  #<$varname |  ldx  #>$varname "
-            },
-            AsmPattern(listOf(Opcode.PUSH_ADDR_FLOAT, Opcode.POP_REGAY_WORD)) { segment ->
-                val varname=getFloatConst(segment[0].arg!!)
-                " lda  #<$varname |  ldy  #>$varname "
-            },
-            AsmPattern(listOf(Opcode.PUSH_ADDR_FLOAT, Opcode.POP_REGXY_WORD)) { segment ->
-                val varname=getFloatConst(segment[0].arg!!)
-                " ldx  #<$varname |  ldy  #>$varname "
-            },
-            // set a register pair to a certain memory address (of a literal string value)
-            AsmPattern(listOf(Opcode.PUSH_ADDR_STR, Opcode.POP_REGAX_WORD)) { segment ->
-                TODO("$segment")
-            },
-            AsmPattern(listOf(Opcode.PUSH_ADDR_STR, Opcode.POP_REGAY_WORD)) { segment ->
-                TODO("$segment")
-            },
-            AsmPattern(listOf(Opcode.PUSH_ADDR_STR, Opcode.POP_REGXY_WORD)) { segment ->
-                TODO("$segment")
-            },
 
             // push  memory byte | bytevalue
             AsmPattern(listOf(Opcode.PUSH_MEM_B, Opcode.PUSH_BYTE, Opcode.BITOR_BYTE),
@@ -3183,7 +3163,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
 
-            // more efficient versions of x+1 and x-1 to avoid pushing the 1 on the stack  @todo what about 1+x? reorder?
+            // more efficient versions of x+1 and x-1 to avoid pushing the 1 on the stack
             AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.ADD_B), listOf(Opcode.PUSH_BYTE, Opcode.ADD_UB)) { segment ->
                 val amount = segment[0].arg!!.integerValue()
                 if(amount in 1..2) {

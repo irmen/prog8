@@ -975,11 +975,15 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                                     prog.instr(Opcode.POP_REGAX_WORD)
                                 }
                                 DataType.STR, DataType.STR_S -> {
-                                    pushStringAddress(arg.first, false)     // TODO with or without remove last opcode??
+                                    pushStringAddress(arg.first, false)
                                     prog.instr(Opcode.POP_REGAX_WORD)
                                 }
                                 DataType.FLOAT -> {
                                     pushFloatAddress(arg.first)
+                                    prog.instr(Opcode.POP_REGAX_WORD)
+                                }
+                                in ArrayDatatypes -> {
+                                    pushStringAddress(arg.first, false)
                                     prog.instr(Opcode.POP_REGAX_WORD)
                                 }
                                 else -> TODO("pass parameter of type $paramDt in registers AX at $callPosition")
@@ -1005,11 +1009,15 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                                     prog.instr(Opcode.POP_REGAY_WORD)
                                 }
                                 DataType.STR, DataType.STR_S -> {
-                                    pushStringAddress(arg.first, false)     // TODO with or without remove last opcode??
+                                    pushStringAddress(arg.first, false)
                                     prog.instr(Opcode.POP_REGAY_WORD)
                                 }
                                 DataType.FLOAT -> {
                                     pushFloatAddress(arg.first)
+                                    prog.instr(Opcode.POP_REGAY_WORD)
+                                }
+                                in ArrayDatatypes -> {
+                                    pushStringAddress(arg.first, false)
                                     prog.instr(Opcode.POP_REGAY_WORD)
                                 }
                                 else -> TODO("pass parameter of type $paramDt in registers AY at $callPosition")
@@ -1039,11 +1047,15 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                                     prog.instr(Opcode.POP_REGXY_WORD)
                                 }
                                 DataType.STR, DataType.STR_S -> {
-                                    pushStringAddress(arg.first, false)     // TODO with or without remove last opcode??
+                                    pushStringAddress(arg.first, false)
                                     prog.instr(Opcode.POP_REGXY_WORD)
                                 }
                                 DataType.FLOAT -> {
                                     pushFloatAddress(arg.first)
+                                    prog.instr(Opcode.POP_REGXY_WORD)
+                                }
+                                in ArrayDatatypes -> {
+                                    pushStringAddress(arg.first, false)
                                     prog.instr(Opcode.POP_REGXY_WORD)
                                 }
                                 else -> TODO("pass parameter of type $paramDt in registers XY at $callPosition")
@@ -1491,10 +1503,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
 
     private fun pushStringAddress(value: IExpression, removeLastOpcode: Boolean) {
         when (value) {
-            is LiteralValue -> {
-                if(removeLastOpcode) prog.removeLastInstruction()
-                prog.instr(Opcode.PUSH_ADDR_STR, Value(value.type, value.heapId!!))
-            }
+            is LiteralValue -> throw CompilerException("can only push address of string that is a variable on the heap")
             is IdentifierReference -> {
                 val vardecl = value.targetStatement(namespace) as VarDecl
                 if(removeLastOpcode) prog.removeLastInstruction()
@@ -1506,9 +1515,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
 
     private fun pushFloatAddress(value: IExpression) {
         when (value) {
-            is LiteralValue -> {
-                prog.instr(Opcode.PUSH_ADDR_FLOAT, Value(value.type, value.floatvalue!!))
-            }
+            is LiteralValue -> throw CompilerException("can only push address of float that is a variable on the heap")
             is IdentifierReference -> {
                 val vardecl = value.targetStatement(namespace) as VarDecl
                 prog.instr(Opcode.PUSH_ADDR_HEAPVAR, callLabel = vardecl.scopedname)
