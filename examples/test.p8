@@ -5,32 +5,29 @@
 
     sub start()  {
 
-        ubyte i=101
 
-        A=4
-        A=5
-        A=6
-        A=i
-        A=99        ; folded ok!
+        inlinecall(1,2,3)
+        ubyte r = inlinesub(3,4,5)
+        c64scr.print_ub(r)
+        c64.CHROUT('\n')
+    }
 
-        i=4
-        i=5
-        i=6
-        i=A
-        i=99            ; folded ok
+    sub inlinecall(byte b1, byte b2, byte b3) {
+        float f=3.1415
+        c64scr.print("this is inlinecall!\n")
+        c64flt.print_f(f)
+        f*=2.0
+        c64flt.print_f(f)
+        c64.CHROUT('\n')
+        c64scr.print("end of inlinecall!\n")
+    }
 
-        @($d020) = 4
-        @($d020) = 5
-        @($d020) = 6
-        @($d020) = 7
-        @($d020) = 8        ; @todo should not be folded
-
-        c64.EXTCOL = 4
-        c64.EXTCOL = 5
-        c64.EXTCOL = 6
-        c64.EXTCOL = 7
-        c64.EXTCOL = 8      ; @todo not fold
-
+    sub inlinesub(ubyte b1, ubyte b2, ubyte b3) -> ubyte {
+        c64scr.print("this is inlinesub!\n")
+        ubyte qq = b1+b2
+        qq += b3
+        c64scr.print("end of inlinesub!\n")
+        return qq
     }
 }
 

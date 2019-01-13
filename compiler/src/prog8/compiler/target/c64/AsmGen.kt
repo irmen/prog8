@@ -68,6 +68,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
     fun compileToAssembly(): AssemblyProgram {
         println("\nGenerating assembly code from intermediate code... ")
 
+        assemblyLines.clear()
         header()
         for(b in program.blocks)
             block2asm(b)
@@ -143,9 +144,14 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         return numberOfOptimizations
     }
 
-    private fun out(str: String) {
-        // TODO: line splitting should be done here instead of at outputFragment
-        assemblyLines.add(str)
+    private fun out(str: String, splitlines: Boolean=true) {
+        if(splitlines) {
+            for (line in str.split('\n')) {
+                var trimmed = if (line.startsWith(' ')) "\t" + line.trim() else line.trim()
+                // trimmed = trimmed.replace(Regex("^\\+\\s+"), "+\t")  // sanitize local label indentation
+                assemblyLines.add(trimmed)
+            }
+        } else assemblyLines.add(str)
     }
 
 
@@ -414,17 +420,10 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
     private fun outputAsmFragment(singleAsm: String) {
         if (singleAsm.isNotEmpty()) {
             if(singleAsm.startsWith("@inline@"))
-                out(singleAsm.substring(8))
+                out(singleAsm.substring(8), false)
             else {
                 val withNewlines = singleAsm.replace('|', '\n')
-                for (line in withNewlines.split('\n')) {
-                    // TODO move line splitting to out() function
-                    if (line.isNotEmpty()) {
-                        var trimmed = if (line.startsWith(' ')) "\t" + line.trim() else line.trim()
-                        trimmed = trimmed.replace(Regex("^\\+\\s+"), "+\t")  // sanitize local label indentation
-                        out(trimmed)
-                    }
-                }
+                out(withNewlines)
             }
         }
     }

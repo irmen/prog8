@@ -6,33 +6,27 @@ import kotlin.math.abs
 import kotlin.math.log2
 
 /*
-    todo simplify expression terms:
-
-        X*Y - X  ->  X*(Y-1)   ???
-        Y*X - X  ->  X*(Y-1)   ???
-
-    todo expression optimization: common (sub) expression elimination (turn common expressions into single subroutine call + introduce variable to hold it)
-
+    todo advanced expression optimization: common (sub) expression elimination (turn common expressions into single subroutine call + introduce variable to hold it)
  */
 
 class SimplifyExpressions(private val namespace: INameScope, private val heap: HeapValues) : IAstProcessor {
     var optimizationsDone: Int = 0
 
     override fun process(assignment: Assignment): IStatement {
-        if(assignment.aug_op!=null)
+        if (assignment.aug_op != null)
             throw AstException("augmented assignments should have been converted to normal assignments before this optimizer")
         return super.process(assignment)
     }
 
     override fun process(expr: PrefixExpression): IExpression {
-        if(expr.operator == "+") {
+        if (expr.operator == "+") {
             // +X --> X
             optimizationsDone++
             return expr.expression.process(this)
         } else if (expr.operator == "not") {
             (expr.expression as? BinaryExpression)?.let {
                 // NOT (...)  ->   invert  ...
-                when(it.operator) {
+                when (it.operator) {
                     "<" -> {
                         it.operator = ">="
                         optimizationsDone++
@@ -63,7 +57,8 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
                         optimizationsDone++
                         return it
                     }
-                    else -> {}
+                    else -> {
+                    }
                 }
             }
         }
@@ -79,16 +74,16 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
 
         val leftDt = expr.left.resultingDatatype(namespace, heap)
         val rightDt = expr.right.resultingDatatype(namespace, heap)
-        if(leftDt!=null && rightDt!=null && leftDt!=rightDt) {
+        if (leftDt != null && rightDt != null && leftDt != rightDt) {
             // try to convert a datatype into the other
-            if(adjustDatatypes(expr, leftVal, leftDt, rightVal, rightDt)) {
+            if (adjustDatatypes(expr, leftVal, leftDt, rightVal, rightDt)) {
                 optimizationsDone++
                 return expr
             }
         }
 
         // Value <associativeoperator> X -->  X <associativeoperator> Value
-        if(leftVal!=null && expr.operator in associativeOperators && rightVal==null) {
+        if (leftVal != null && expr.operator in associativeOperators && rightVal == null) {
             val tmp = expr.left
             expr.left = expr.right
             expr.right = tmp
@@ -97,7 +92,7 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
         }
 
         // X + (-A)  -->  X - A
-        if(expr.operator=="+" && (expr.right as? PrefixExpression)?.operator=="-") {
+        if (expr.operator == "+" && (expr.right as? PrefixExpression)?.operator == "-") {
             expr.operator = "-"
             expr.right = (expr.right as PrefixExpression).expression
             optimizationsDone++
@@ -105,7 +100,7 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
         }
 
         // (-A) + X  -->  X - A
-        if(expr.operator=="+" && (expr.left as? PrefixExpression)?.operator=="-") {
+        if (expr.operator == "+" && (expr.left as? PrefixExpression)?.operator == "-") {
             expr.operator = "-"
             val newRight = (expr.left as PrefixExpression).expression
             expr.left = expr.right
@@ -115,9 +110,9 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
         }
 
         // X + (-value)  -->  X - value
-        if(expr.operator=="+" && rightVal!=null) {
+        if (expr.operator == "+" && rightVal != null) {
             val rv = rightVal.asNumericValue?.toDouble()
-            if(rv!=null && rv<0.0) {
+            if (rv != null && rv < 0.0) {
                 expr.operator = "-"
                 expr.right = LiteralValue.fromNumber(-rv, rightVal.type, rightVal.position)
                 optimizationsDone++
@@ -126,9 +121,9 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
         }
 
         // (-value) + X  -->  X - value
-        if(expr.operator=="+" && leftVal!=null) {
+        if (expr.operator == "+" && leftVal != null) {
             val lv = leftVal.asNumericValue?.toDouble()
-            if(lv!=null && lv<0.0) {
+            if (lv != null && lv < 0.0) {
                 expr.operator = "-"
                 expr.right = LiteralValue.fromNumber(-lv, leftVal.type, leftVal.position)
                 optimizationsDone++
@@ -137,7 +132,7 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
         }
 
         // X - (-A)  -->  X + A
-        if(expr.operator=="-" && (expr.right as? PrefixExpression)?.operator=="-") {
+        if (expr.operator == "-" && (expr.right as? PrefixExpression)?.operator == "-") {
             expr.operator = "+"
             expr.right = (expr.right as PrefixExpression).expression
             optimizationsDone++
@@ -145,9 +140,9 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
         }
 
         // X - (-value)  -->  X + value
-        if(expr.operator=="-" && rightVal!=null) {
+        if (expr.operator == "-" && rightVal != null) {
             val rv = rightVal.asNumericValue?.toDouble()
-            if(rv!=null && rv<0.0) {
+            if (rv != null && rv < 0.0) {
                 expr.operator = "+"
                 expr.right = LiteralValue.fromNumber(-rv, rightVal.type, rightVal.position)
                 optimizationsDone++
@@ -155,70 +150,120 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
             }
         }
 
+        if (expr.operator == "+" || expr.operator == "-"
+                && leftVal == null && rightVal == null
+                && leftDt in NumericDatatypes && rightDt in NumericDatatypes) {
+            val leftBinExpr = expr.left as? BinaryExpression
+            val rightBinExpr = expr.right as? BinaryExpression
+            if (leftBinExpr?.operator == "*") {
+                if (expr.operator == "+") {
+                    // Y*X + X  ->  X*(Y - 1)
+                    // X*Y + X  ->  X*(Y - 1)
+                    val x = expr.right
+                    val y = determineY(x, leftBinExpr)
+                    if(y!=null) {
+                        val yPlus1 = BinaryExpression(y, "+", LiteralValue.fromNumber(1, leftDt!!, y.position), y.position)
+                        return BinaryExpression(x, "*", yPlus1, x.position)
+                    }
+                } else {
+                    // Y*X - X  ->  X*(Y - 1)
+                    // X*Y - X  ->  X*(Y - 1)
+                    val x = expr.right
+                    val y = determineY(x, leftBinExpr)
+                    if(y!=null) {
+                        val yMinus1 = BinaryExpression(y, "-", LiteralValue.fromNumber(1, leftDt!!, y.position), y.position)
+                        return BinaryExpression(x, "*", yMinus1, x.position)
+                    }
+                }
+            }
+            else if(rightBinExpr?.operator=="*") {
+                if(expr.operator=="+") {
+                    // X + Y*X  ->  X*(Y + 1)
+                    // X + X*Y  ->  X*(Y + 1)
+                    val x = expr.left
+                    val y = determineY(x, rightBinExpr)
+                    if(y!=null) {
+                        val yPlus1 = BinaryExpression(y, "+", LiteralValue.optimalInteger(1, y.position), y.position)
+                        return BinaryExpression(x, "*", yPlus1, x.position)
+                    }
+                } else {
+                    // X - Y*X  ->  X*(1 - Y)
+                    // X - X*Y  ->  X*(1 - Y)
+                    val x = expr.left
+                    val y = determineY(x, rightBinExpr)
+                    if(y!=null) {
+                        val oneMinusY = BinaryExpression(LiteralValue.optimalInteger(1, y.position), "-", y, y.position)
+                        return BinaryExpression(x, "*", oneMinusY, x.position)
+                    }
+                }
+            }
+        }
+
+
         // simplify when a term is constant and determines the outcome
-        when(expr.operator) {
+        when (expr.operator) {
             "or" -> {
-                if((leftVal!=null && leftVal.asBooleanValue) || (rightVal!=null && rightVal.asBooleanValue)) {
+                if ((leftVal != null && leftVal.asBooleanValue) || (rightVal != null && rightVal.asBooleanValue)) {
                     optimizationsDone++
                     return constTrue
                 }
-                if(leftVal!=null && !leftVal.asBooleanValue) {
+                if (leftVal != null && !leftVal.asBooleanValue) {
                     optimizationsDone++
                     return expr.right
                 }
-                if(rightVal!=null && !rightVal.asBooleanValue) {
+                if (rightVal != null && !rightVal.asBooleanValue) {
                     optimizationsDone++
                     return expr.left
                 }
             }
             "and" -> {
-                if((leftVal!=null && !leftVal.asBooleanValue) || (rightVal!=null && !rightVal.asBooleanValue)) {
+                if ((leftVal != null && !leftVal.asBooleanValue) || (rightVal != null && !rightVal.asBooleanValue)) {
                     optimizationsDone++
                     return constFalse
                 }
-                if(leftVal!=null && leftVal.asBooleanValue) {
+                if (leftVal != null && leftVal.asBooleanValue) {
                     optimizationsDone++
                     return expr.right
                 }
-                if(rightVal!=null && rightVal.asBooleanValue) {
+                if (rightVal != null && rightVal.asBooleanValue) {
                     optimizationsDone++
                     return expr.left
                 }
             }
             "xor" -> {
-                if(leftVal!=null && !leftVal.asBooleanValue) {
+                if (leftVal != null && !leftVal.asBooleanValue) {
                     optimizationsDone++
                     return expr.right
                 }
-                if(rightVal!=null && !rightVal.asBooleanValue) {
+                if (rightVal != null && !rightVal.asBooleanValue) {
                     optimizationsDone++
                     return expr.left
                 }
-                if(leftVal!=null && leftVal.asBooleanValue) {
+                if (leftVal != null && leftVal.asBooleanValue) {
                     optimizationsDone++
                     return PrefixExpression("not", expr.right, expr.right.position)
                 }
-                if(rightVal!=null && rightVal.asBooleanValue) {
+                if (rightVal != null && rightVal.asBooleanValue) {
                     optimizationsDone++
                     return PrefixExpression("not", expr.left, expr.left.position)
                 }
             }
             "|", "^" -> {
-                if(leftVal!=null && !leftVal.asBooleanValue) {
+                if (leftVal != null && !leftVal.asBooleanValue) {
                     optimizationsDone++
                     return expr.right
                 }
-                if(rightVal!=null && !rightVal.asBooleanValue) {
+                if (rightVal != null && !rightVal.asBooleanValue) {
                     optimizationsDone++
                     return expr.left
                 }
             }
             "&" -> {
-                if(leftVal!=null && !leftVal.asBooleanValue) {
+                if (leftVal != null && !leftVal.asBooleanValue) {
                     optimizationsDone++
                     return constFalse
                 }
-                if(rightVal!=null && !rightVal.asBooleanValue) {
+                if (rightVal != null && !rightVal.asBooleanValue) {
                     optimizationsDone++
                     return constFalse
                 }
@@ -231,6 +276,14 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
             "%" -> return optimizeRemainder(expr, leftVal, rightVal)
         }
         return expr
+    }
+
+    private fun determineY(x: IExpression, subBinExpr: BinaryExpression): IExpression? {
+        return when {
+            same(subBinExpr.left, x) -> subBinExpr.right
+            same(subBinExpr.right, x) -> subBinExpr.left
+            else -> null
+        }
     }
 
     private fun adjustDatatypes(expr: BinaryExpression,

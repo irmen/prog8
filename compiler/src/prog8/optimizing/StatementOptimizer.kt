@@ -8,16 +8,16 @@ import kotlin.math.floor
 
 
 /*
-    todo remove unused blocks
-    todo remove unused variables
-    todo remove unused subroutines
-    todo remove unused strings and arrays from the heap
+    todo: implement usage counters for blocks, variables, subroutines, heap variables. Then:
+        todo remove unused blocks
+        todo remove unused variables
+        todo remove unused subroutines
+        todo remove unused strings and arrays from the heap
+        todo inline subroutines that are called exactly once (regardless of their size)
+        todo inline subroutines that are only called a few times (3?) and that are "sufficiently small" (0-3 statements)
+
     todo analyse for unreachable code and remove that (f.i. code after goto or return that has no label so can never be jumped to)
 
-    todo regular subroutines that have 1 or 2 (u)byte  or 1 (u)word parameters -> change to asmsub to accept these in A/Y registers instead of on stack
-
-    todo inline subroutines that are called exactly once (regardless of their size)
-    todo inline subroutines that are only called a few times (3?) and that are "sufficiently small" (0-3 statements)
 */
 
 class StatementOptimizer(private val namespace: INameScope, private val heap: HeapValues) : IAstProcessor {
@@ -80,6 +80,16 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
         }
 
         return subroutine
+    }
+
+    private fun returnregisters(subroutine: Subroutine): List<RegisterOrStatusflag> {
+        return when {
+            subroutine.returntypes.size==0 -> listOf()
+            subroutine.returntypes.size==1 && subroutine.returntypes[0] in setOf(DataType.BYTE, DataType.UBYTE) -> listOf(RegisterOrStatusflag(RegisterOrPair.A, null, null))
+            subroutine.returntypes.size==1 && subroutine.returntypes[0] in setOf(DataType.WORD, DataType.UWORD) -> listOf(RegisterOrStatusflag(RegisterOrPair.AY, null, null))
+            subroutine.returntypes.size==2 && subroutine.returntypes.all { it in setOf(DataType.BYTE, DataType.UBYTE)} -> listOf(RegisterOrStatusflag(RegisterOrPair.A, null, null), RegisterOrStatusflag(RegisterOrPair.Y, null, null))
+            else -> throw FatalAstException("can't convert return values to registers")
+        }
     }
 
     private fun isNotMemory(target: AssignTarget): Boolean {
@@ -440,21 +450,6 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
         return super.process(assignment)
     }
 
-
-    private fun same(left: IExpression, right: IExpression): Boolean {
-        if(left===right)
-            return true
-        when(left) {
-            is RegisterExpr ->
-                return (right is RegisterExpr && right.register==left.register)
-            is IdentifierReference ->
-                return (right is IdentifierReference && right.nameInSource==left.nameInSource)
-            is ArrayIndexedExpression ->
-                return (right is ArrayIndexedExpression && right.identifier==left.identifier && right.arrayspec==left.arrayspec)
-        }
-        return false
-    }
-
     private fun same(target: AssignTarget, value: IExpression): Boolean {
         return when {
             target.memoryAddress!=null -> false
@@ -490,4 +485,25 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
         }
         return false
     }
+}
+
+
+fun same(left: IExpression, right: IExpression): Boolean {
+    if(left===right)
+        return true
+    when(left) {
+        is RegisterExpr ->
+            return (right is RegisterExpr && right.register==left.register)
+        is IdentifierReference ->
+            return (right is IdentifierReference && right.nameInSource==left.nameInSource)
+        is ArrayIndexedExpression ->
+            return (right is ArrayIndexedExpression && right.identifier==left.identifier && right.arrayspec==left.arrayspec)
+        is PrefixExpression ->
+            return (right is PrefixExpression && right.operator==left.operator && same(right.expression, left.expression))
+        is BinaryExpression ->
+            return (right is BinaryExpression && right.operator==left.operator
+                    && same(right.left, left.left)
+                    && same(right.right, left.right))
+    }
+    return false
 }
