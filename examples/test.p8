@@ -5,29 +5,40 @@
 
     sub start()  {
 
-
-        inlinecall(1,2,3)
-        ubyte r = inlinesub(3,4,5)
-        c64scr.print_ub(r)
+        c64scr.print_ub(c64utils.str2ubyte("1"))
         c64.CHROUT('\n')
-    }
-
-    sub inlinecall(byte b1, byte b2, byte b3) {
-        float f=3.1415
-        c64scr.print("this is inlinecall!\n")
-        c64flt.print_f(f)
-        f*=2.0
-        c64flt.print_f(f)
+        c64scr.print_ub(c64utils.str2ubyte("12"))
         c64.CHROUT('\n')
-        c64scr.print("end of inlinecall!\n")
-    }
+        c64scr.print_ub(c64utils.str2ubyte("123"))
+        c64.CHROUT('\n')
+        c64scr.print_ub(c64utils.str2ubyte("1234"))
+        c64.CHROUT('\n')
+        c64scr.print_ub(c64utils.str2ubyte("12xyz"))
+        c64.CHROUT('\n')
+        c64.CHROUT('\n')
 
-    sub inlinesub(ubyte b1, ubyte b2, ubyte b3) -> ubyte {
-        c64scr.print("this is inlinesub!\n")
-        ubyte qq = b1+b2
-        qq += b3
-        c64scr.print("end of inlinesub!\n")
-        return qq
+        c64scr.print_ub(c64utils.str2byte("1"))
+        c64.CHROUT('\n')
+        c64scr.print_ub(c64utils.str2byte("12"))
+        c64.CHROUT('\n')
+        c64scr.print_ub(c64utils.str2byte("123"))
+        c64.CHROUT('\n')
+        c64scr.print_ub(c64utils.str2byte("1234"))
+        c64.CHROUT('\n')
+        c64scr.print_ub(c64utils.str2ubyte("12xyz"))
+        c64.CHROUT('\n')
+        c64.CHROUT('\n')
+
+        c64scr.print_b(c64utils.str2byte("-1"))
+        c64.CHROUT('\n')
+        c64scr.print_b(c64utils.str2byte("-12"))
+        c64.CHROUT('\n')
+        c64scr.print_b(c64utils.str2byte("-123"))
+        c64.CHROUT('\n')
+        c64scr.print_b(c64utils.str2byte("-1234"))
+        c64.CHROUT('\n')
+        c64scr.print_b(c64utils.str2byte("-12xyz"))
+        c64.CHROUT('\n')
     }
 }
 

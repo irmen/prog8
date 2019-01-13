@@ -190,32 +190,83 @@ asmsub  uword2decimal  (uword value @ AY) -> clobbers(A,X,Y) -> ()  {
 }
 
 
+asmsub  str2byte  (str string @ AY) -> clobbers(Y) -> (byte @ A) {
+	%asm {{
+		; -- convert string (address in A/Y) to byte in A
+		;    doesn't use any kernal routines
+		sta  c64.SCRATCH_ZPWORD1
+		sty  c64.SCRATCH_ZPWORD1+1
+		ldy  #0
+		lda  (c64.SCRATCH_ZPWORD1),y
+		cmp  #'-'
+		beq  +
+		jmp  str2ubyte._enter
++		inc  c64.SCRATCH_ZPWORD1
+		bne  +
+		inc  c64.SCRATCH_ZPWORD1+1
++		jsr  str2ubyte._enter
+		eor  #$ff
+		sec
+		adc  #0
+		rts
+	}}
+}
 
+asmsub  str2ubyte  (str string @ AY) -> clobbers(Y) -> (ubyte @ A) {
+	%asm {{
+		; -- convert string (address in A/Y) to ubyte in A
+		;    doesn't use any kernal routines
+		sta  c64.SCRATCH_ZPWORD1
+		sty  c64.SCRATCH_ZPWORD1+1
+_enter		jsr  _numlen			; Y= slen
+		lda  #0
+		dey
+		bpl  +
+		rts
++		lda  (c64.SCRATCH_ZPWORD1),y
+		sec
+		sbc  #'0'
+		dey
+		bpl  +
+		rts
++		sta  c64.SCRATCH_ZPREG		;result
+		lda  (c64.SCRATCH_ZPWORD1),y
+		sec
+		sbc  #'0'
+		asl  a
+		sta  c64.SCRATCH_ZPB1
+		asl  a
+		asl  a
+		clc
+		adc  c64.SCRATCH_ZPB1
+		clc
+		adc  c64.SCRATCH_ZPREG
+		dey
+		bpl  +
+		rts
++		sta  c64.SCRATCH_ZPREG
+		lda  (c64.SCRATCH_ZPWORD1),y
+		tay
+		lda  _hundreds-'0',y
+		clc
+		adc  c64.SCRATCH_ZPREG
+		rts
+_hundreds	.byte  0, 100, 200
 
-; @todo this is python code for a str-to-ubyte function that doesn't use the basic rom:
-;def str2ubyte(s, slen):
-;    hundreds_map = {
-;        0: 0,
-;        1: 100,
-;        2: 200
-;        }
-;    digitvalue = 0
-;    result = 0
-;    if slen==0:
-;        return digitvalue
-;    digitvalue = ord(s[slen-1])-48
-;    slen -= 1
-;    if slen==0:
-;        return digitvalue
-;    result = digitvalue
-;    digitvalue = 10 * (ord(s[slen-1])-48)
-;    result += digitvalue
-;    slen -= 1
-;    if slen==0:
-;        return result
-;    digitvalue = hundreds_map[ord(s[slen-1])-48]
-;    result += digitvalue
-;    return result
+_numlen
+		;-- return the length of the numeric string at ZPWORD1, in Y
+		ldy  #0
+-		lda  (c64.SCRATCH_ZPWORD1),y
+		cmp  #'0'
+		bmi  +
+		cmp  #'9'
+		bpl  +
+		iny
+		bne  -
++		rts
+
+	}}
+}
 
 
 asmsub	c64flt_FREADSTR	(ubyte length @ A) -> clobbers(A,X,Y) -> ()	= $b7b5		; @todo needed for (slow) str conversion below
@@ -266,22 +317,6 @@ asmsub  str2word(str string @ AY) -> clobbers() -> (word @ AY) {
 		tya
 		ldy  c64.SCRATCH_ZPREG
 		rts
-	}}
-}
-
-asmsub  str2ubyte(str string @ AY) -> clobbers(Y) -> (ubyte @ A) {
-	%asm {{
-		;-- convert string (address in A/Y) to ubyte number in A
-		;   @todo don't use the (slow) kernel floating point conversion
-		jmp  str2uword
-	}}
-}
-
-asmsub  str2byte(str string @ AY) -> clobbers(Y) -> (byte @ A) {
-	%asm {{
-		;-- convert string (address in A/Y) to byte number in A
-		;   @todo don't use the (slow) kernel floating point conversion
-		jmp  str2word
 	}}
 }
 
