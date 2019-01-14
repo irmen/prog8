@@ -347,7 +347,7 @@ interface IFunctionCall {
 interface INameScope {
     val name: String
     val position: Position
-    var statements: MutableList<IStatement>
+    val statements: MutableList<IStatement>
     val parent: Node
 
     fun linkParents(parent: Node)
@@ -376,17 +376,16 @@ interface INameScope {
     }
 
     fun getLabelOrVariable(name: String): IStatement? {
+        // TODO this call is relatively slow.... cache it? make statement list non-mutable and update the cache when it is explicitly updated?
         for (stmt in statements) {
-            if (stmt is Label && stmt.name==name) return stmt
             if (stmt is VarDecl && stmt.name==name) return stmt
+            else if (stmt is Label && stmt.name==name) return stmt
         }
         return null
     }
 
-    fun allLabelsAndVariables(): Map<String, IStatement> {
-        val labelsAndVars = statements.filterIsInstance<Label>() + statements.filterIsInstance<VarDecl>()
-        return labelsAndVars.associate { ((it as? Label)?.name ?: (it as? VarDecl)?.name)!! to it }
-    }
+    fun allLabelsAndVariables(): Set<String> =
+            statements.filterIsInstance<Label>().map { it.name }.toSet() + statements.filterIsInstance<VarDecl>().map { it.name }.toSet()
 
     fun lookup(scopedName: List<String>, statement: Node) : IStatement? {
         if(scopedName.size>1) {
@@ -417,19 +416,6 @@ interface INameScope {
             }
             return null
         }
-    }
-
-    fun debugPrint() {
-        fun printNames(indent: Int, namespace: INameScope) {
-            println(" ".repeat(4*indent) + "${namespace.name}   ->  ${namespace::class.simpleName} at ${namespace.position}")
-            namespace.allLabelsAndVariables().forEach {
-                println(" ".repeat(4 * (1 + indent)) + "${it.key}   ->  ${it.value::class.simpleName} at ${it.value.position}")
-            }
-            namespace.statements.filterIsInstance<INameScope>().forEach {
-                printNames(indent+1, it)
-            }
-        }
-        printNames(0, this)
     }
 
     fun isEmpty() = statements.isEmpty()

@@ -254,7 +254,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         vardecls2asm(block)
         out("")
 
-        val instructionPatternWindowSize = 6
+        val instructionPatternWindowSize = 6        // increase once patterns occur longer than this.
         var processed = 0
 
         if(trace) println("BLOCK: ${block.scopedname}  ${block.address ?: ""}")
@@ -3205,7 +3205,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             },
 
             // 16 bit addition avoiding excessive stack usage
-            // @todo optimize this even more with longer asmpatterns (avoid stack use altogether on most common operations)
+            // @todo optimize 8 and 16 bit adds and subs even more with longer asmpatterns (avoid stack use altogether on most common operations)
             AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.ADD_UW),
                     listOf(Opcode.PUSH_VAR_WORD, Opcode.ADD_W)) { segment ->
                 """

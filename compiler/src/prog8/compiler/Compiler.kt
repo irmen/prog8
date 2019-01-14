@@ -163,7 +163,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
 
     override fun process(block: Block): IStatement {
         prog.newBlock(block.scopedname, block.name, block.address, block.options())
-        processVariables(block)         // @todo optimize initializations with same value: load the value only once  (sort on initalization value, datatype   ?)
+        processVariables(block)
         prog.label("block."+block.scopedname, false)
         prog.line(block.position)
         translate(block.statements)
@@ -183,7 +183,10 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             prog.instr(Opcode.START_PROCDEF)
             prog.line(subroutine.position)
             // note: the caller has already written the arguments into the subroutine's parameter variables.
-            translate(subroutine.statements)
+            val (varinits, others) = subroutine.statements.partition { it is VariableInitializationAssignment }
+            val varInits: List<VariableInitializationAssignment> = varinits as List<VariableInitializationAssignment>
+            translateVarInits(varInits)
+            translate(others)
             val r= super.process(subroutine)
             prog.instr(Opcode.END_PROCDEF)
             return r
@@ -197,12 +200,18 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         }
     }
 
+    private fun translateVarInits(varinits: List<VariableInitializationAssignment>) {
+        // sort by datatype and value, so multiple initializations with the same value can be optimized (to load the value just once)
+        val sortedInits = varinits.sortedWith(compareBy({it.value.resultingDatatype(namespace, heap)}, {it.value.constValue(namespace, heap)?.asNumericValue?.toDouble()}))
+        for (vi in sortedInits)
+            translate(vi)
+    }
+
     private fun translate(statements: List<IStatement>) {
         for (stmt: IStatement in statements) {
             generatedLabelSequenceNumber++
             when (stmt) {
                 is Label -> translate(stmt)
-                is VariableInitializationAssignment -> translate(stmt)        // for initializing vars in a scope
                 is Assignment -> translate(stmt)        // normal and augmented assignments
                 is PostIncrDecr -> translate(stmt)
                 is Jump -> translate(stmt, null)
@@ -1407,13 +1416,6 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             }
             else -> throw CompilerException("very strange postincrdecr ${stmt.target}")
         }
-    }
-
-    private fun translate(stmt: VariableInitializationAssignment) {
-        // this is an assignment to initialize a variable's value in the scope.
-        // the compiler can perhaps optimize this phase.
-        // todo: optimize variable init by keeping track of the block of init values so it can be copied as a whole via memcopy instead of all separate load value instructions
-        translate(stmt as Assignment)
     }
 
     private fun translate(stmt: Assignment) {

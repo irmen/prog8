@@ -25,6 +25,10 @@ const val ESTACK_HI = 0xcf00        //  $cf00-$cfff inclusive
 
 class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
 
+
+    // @todo: actually USE the zero page when allocating variables at code generation time
+    //        (ideally, the variables that are used 'most' / inside long loops are allocated in ZP first)
+
     companion object {
         const val SCRATCH_B1 = 0x02
         const val SCRATCH_REG = 0x03    // temp storage for a register

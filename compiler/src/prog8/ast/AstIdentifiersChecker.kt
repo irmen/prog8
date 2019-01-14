@@ -111,12 +111,13 @@ class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
             }
 
             // check that there are no local variables that redefine the subroutine's parameters
-            val definedNames = subroutine.allLabelsAndVariables()   // TODO this call is slow
-            val paramNames = subroutine.parameters.map { it.name }
-            val definedNamesCorrespondingToParameters = definedNames.filter { it.key in paramNames }
-            for(name in definedNamesCorrespondingToParameters) {
-                if(name.value.position != subroutine.position)
-                    nameError(name.key, name.value.position, subroutine)
+            val allDefinedNames = subroutine.allLabelsAndVariables()
+            val paramNames = subroutine.parameters.map { it.name }.toSet()
+            val paramsToCheck = paramNames.intersect(allDefinedNames)
+            for(name in paramsToCheck) {
+                val thing = subroutine.getLabelOrVariable(name)!!
+                if(thing.position != subroutine.position)
+                    nameError(name, thing.position, subroutine)
             }
 
             // inject subroutine params as local variables (if they're not there yet) (for non-kernel subroutines and non-asm parameters)
@@ -126,7 +127,7 @@ class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
             if(subroutine.asmAddress==null) {
                 if(subroutine.asmParameterRegisters.isEmpty()) {
                     subroutine.parameters
-                            .filter { !definedNames.containsKey(it.name) }
+                            .filter { it.name !in allDefinedNames }
                             .forEach {
                                 val vardecl = VarDecl(VarDeclType.VAR, it.type, null, it.name, null, subroutine.position)
                                 vardecl.linkParents(subroutine)

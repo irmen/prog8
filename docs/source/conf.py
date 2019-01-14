@@ -171,5 +171,4 @@ texinfo_documents = [
 
 # -- Options for to do extension ----------------------------------------------
 
-# If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True

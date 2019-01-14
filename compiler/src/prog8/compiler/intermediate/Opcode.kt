@@ -263,6 +263,7 @@ enum class Opcode {
     RRESTORE,   // restore all internal registers and status flags
     RRESTOREX,  // restore just X (the evaluation stack pointer)
     RRESTOREY,  // restore just Y (used in for loops for instance)
+
     NOP,        // do nothing
     BREAKPOINT, // breakpoint
     TERMINATE,  // end the program

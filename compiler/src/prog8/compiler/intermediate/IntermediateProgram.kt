@@ -44,7 +44,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         optimizeMultipleSequentialLineInstrs()
         optimizeCallReturnIntoJump()
         optimizeRestoreXYSaveXYIntoRestoreXY()
-        // todo: optimize stackvm code more
+        // todo: add more optimizations to stackvm code
 
         optimizeRemoveNops()    //  must be done as the last step
         optimizeMultipleSequentialLineInstrs()      // once more
@@ -396,9 +396,8 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
     fun writeCode(out: PrintStream, embeddedLabels: Boolean=true) {
         out.println("; stackVM program code for '$name'")
         out.println("%memory")
-        if(memory.isNotEmpty()) {
-            TODO("output initial memory values")
-        }
+        if(memory.isNotEmpty())
+            TODO("add support for writing/reading initial memory values")
         out.println("%end_memory")
         out.println("%heap")
         heap.allEntries().forEach {

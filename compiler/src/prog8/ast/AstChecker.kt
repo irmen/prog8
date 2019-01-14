@@ -134,7 +134,7 @@ class AstChecker(private val namespace: INameScope,
             printWarning("for loop body is empty", forLoop.position)
 
         if(forLoop.iterable is LiteralValue)
-            checkResult.add(SyntaxError("currently not possible to loop over a literal value directly, use a variable instead", forLoop.position))      // todo loop over literals (by creating a generated variable)
+            checkResult.add(SyntaxError("currently not possible to loop over a literal value directly, define it as a variable instead", forLoop.position))      // todo loop over literals (by creating a generated variable)
 
         if(!forLoop.iterable.isIterable(namespace, heap)) {
             checkResult.add(ExpressionError("can only loop over an iterable type", forLoop.position))
@@ -330,7 +330,9 @@ class AstChecker(private val namespace: INameScope,
             if(subroutine.asmClobbers.intersect(regCounts.keys).isNotEmpty())
                 err("a return register is also in the clobber list")
         } else {
-            // TODO: currently, non-asm subroutines can only take numeric arguments
+            // TODO: currently, non-asm subroutines can only take numeric arguments (including floats)
+            // the way string params are treated is almost okay (their address is passed) but the receiving subroutine treats it as an integer rather than referring back to the original string.
+            // the way array params are treated is buggy; it thinks the subroutine needs a byte parameter in place of a byte[] ...
             if(!subroutine.parameters.all{it.type in NumericDatatypes}) {
                 err("non-asm subroutine can only take numerical parameters (no str/array types) for now")
             }

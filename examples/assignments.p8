@@ -311,7 +311,7 @@ ubyte_assignment_to_ubytearray:
     string[mubyte2] = ubarr1[mbyte2]        ; via evaluation
     string[mubyte2] = ubarr1[mubyte2]       ; via evaluation
     string[mubyte2] = string[mubyte2]       ; via evaluation
-    ubarr1[ubarr2[A]] = ubarr2[ubarr1[Y]]   ; via evaluation-- todo check generated asm...
+    ubarr1[ubarr2[A]] = ubarr2[ubarr1[Y]]   ; via evaluation
 
 
 
@@ -366,7 +366,7 @@ byte_assignment_to_bytearray:
     barr2[mubyte2] = barr1[ub]        ; via evaluation
     barr2[mubyte2] = barr1[mbyte2]    ; via evaluation
     barr2[mubyte2] = barr1[mubyte2]   ; via evaluation
-    barr1[ubarr2[A]] = barr2[ubarr1[Y]]   ; via evaluation-- todo check generated asm...
+    barr1[ubarr2[A]] = barr2[ubarr1[Y]]   ; via evaluation
 
 
 byte_assignment_to_membytearray:
@@ -420,7 +420,7 @@ byte_assignment_to_membytearray:
     mbarr1[mubyte2] = barr1[ub]        ; via evaluation
     mbarr1[mubyte2] = barr1[mbyte2]    ; via evaluation
     mbarr1[mubyte2] = barr1[mubyte2]   ; via evaluation
-    mbarr1[ubarr2[A]] = barr2[ubarr1[Y]]   ; via evaluation-- todo check generated asm...
+    mbarr1[ubarr2[A]] = barr2[ubarr1[Y]]   ; via evaluation
 
 
 
