@@ -85,65 +85,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         return AssemblyProgram(program.name)
     }
 
-    private fun optimizeAssembly(lines: MutableList<String>): Int {
-        // sometimes, iny+dey / inx+dex / dey+iny / dex+inx sequences are generated, these can be eliminated.
-        val removeLines = mutableListOf<Int>()
-        var numberOfOptimizations = 0
-        for(pair in lines.withIndex().windowed(2)) {
-            val first = pair[0].value
-            val second = pair[1].value
-            if(first.trimStart().startsWith(';') || second.trimStart().startsWith(';'))
-                continue        // skip over asm comments
-
-            if((" iny" in first || "\tiny" in first) && (" dey" in second || "\tdey" in second)
-                    || (" inx" in first || "\tinx" in first) && (" dex" in second || "\tdex" in second)
-                    || (" dey" in first || "\tdey" in first) && (" iny" in second || "\tiny" in second)
-                    || (" dex" in first || "\tdex" in first) && (" inx" in second || "\tinx" in second))
-            {
-                removeLines.add(pair[0].index)
-                removeLines.add(pair[1].index)
-                numberOfOptimizations++
-            }
-        }
-
-        for(i in removeLines.reversed())
-            lines.removeAt(i)
-        removeLines.clear()
-
-        // sta X + lda X,  sty X + ldy X,   stx X + ldx X  -> the second instruction can be eliminated
-        for(pair in lines.withIndex().windowed(2)) {
-            val first = pair[0].value.trim()
-            val second = pair[1].value.trim()
-            if(first.startsWith(';') || second.startsWith(';'))
-                continue        // skip over asm comments
-
-            if((first.startsWith("sta ") && second.startsWith("lda ")) ||
-                    (first.startsWith("stx ") && second.startsWith("ldx ")) ||
-                    (first.startsWith("sty ") && second.startsWith("ldy ")) ||
-                    (first.startsWith("lda ") && second.startsWith("lda ")) ||
-                    (first.startsWith("ldy ") && second.startsWith("ldy ")) ||
-                    (first.startsWith("ldx ") && second.startsWith("ldx ")) ||
-                    (first.startsWith("sta ") && second.startsWith("lda ")) ||
-                    (first.startsWith("sty ") && second.startsWith("ldy ")) ||
-                    (first.startsWith("stx ") && second.startsWith("ldx "))
-            ) {
-                val firstLoc = first.substring(4)
-                val secondLoc = second.substring(4)
-                if(firstLoc==secondLoc) {
-                    removeLines.add(pair[1].index)
-                    numberOfOptimizations++
-                }
-            }
-        }
-
-
-        for(i in removeLines.reversed())
-            lines.removeAt(i)
-        removeLines.clear()
-
-        return numberOfOptimizations
-    }
-
     private fun out(str: String, splitlines: Boolean=true) {
         if(splitlines) {
             for (line in str.split('\n')) {
@@ -576,7 +517,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 " sta  ${ESTACK_LO.toHex()},x |  tya |  sta  ${ESTACK_HI.toHex()},x |  dex "
             }
             Opcode.PUSH_ADDR_HEAPVAR -> {
-                " lda  #<${ins.callLabel} |  sta  ${ESTACK_LO.toHex()},x |  lda  #>${ins.callLabel} |  sta  ${ESTACK_HI.toHex()},x |  dex"
+                " lda  #<${ins.callLabel} |  sta  ${ESTACK_LO.toHex()},x |  lda  #>${ins.callLabel}  |  sta  ${ESTACK_HI.toHex()},x |  dex"
             }
             Opcode.POP_REGAX_WORD -> throw AssemblyError("cannot load X register from stack because it's used as the stack pointer itself")
             Opcode.POP_REGXY_WORD -> throw AssemblyError("cannot load X register from stack because it's used as the stack pointer itself")
@@ -1595,9 +1536,9 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 val number = hexVal(segment[0])
                 """
                 lda  #<$number
+                ldy  #>$number
                 sta  ${segment[1].callLabel}
-                lda  #>$number
-                sta  ${segment[1].callLabel}+1
+                sty  ${segment[1].callLabel}+1
                 """
             },
             // var = ubytevar
@@ -1695,9 +1636,9 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             AsmPattern(listOf(Opcode.PUSH_WORD, Opcode.POP_MEM_WORD)) { segment ->
                 """
                 lda  #<${hexVal(segment[0])}
+                ldy  #>${hexVal(segment[0])}
                 sta  ${hexVal(segment[1])}
-                lda  #>${hexVal(segment[0])}
-                sta  ${hexValPlusOne(segment[1])}
+                sty  ${hexValPlusOne(segment[1])}
                 """
             },
             // mem uword = ubyte var
@@ -1720,11 +1661,11 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             },
             // mem uword = uword var
             AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.POP_MEM_WORD)) { segment ->
-                " lda  ${segment[0].callLabel} ||  sta  ${hexVal(segment[1])} |  lda  ${segment[0].callLabel}+1 |  sta  ${hexValPlusOne(segment[1])}"
+                " lda  ${segment[0].callLabel} |  ldy  ${segment[0].callLabel}+1 |  sta  ${hexVal(segment[1])}  |  sty  ${hexValPlusOne(segment[1])}"
             },
             // mem uword = address-of var
             AsmPattern(listOf(Opcode.PUSH_ADDR_HEAPVAR, Opcode.POP_MEM_WORD)) { segment ->
-                " lda  #<${segment[0].callLabel} ||  sta  ${hexVal(segment[1])} |  lda  #>${segment[0].callLabel} |  sta  ${hexValPlusOne(segment[1])}"
+                " lda  #<${segment[0].callLabel} |  ldy  #>{segment[0].callLabel} |  sta  ${hexVal(segment[1])} |  sty  ${hexValPlusOne(segment[1])}"
             },
             // mem (u)word = mem (u)word
             AsmPattern(
@@ -1742,9 +1683,9 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 val index = intVal(segment[0])
                 """
                 lda  ${segment[1].callLabel}+$index
+                ldy  #0
                 sta  ${hexVal(segment[3])}
-                lda  #0
-                sta  ${hexValPlusOne(segment[3])}
+                sty  ${hexValPlusOne(segment[3])}
                 """
             },
             // mem uword = bytearray[index]  (sign extended)
@@ -2248,7 +2189,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             // uwordarray[index] = address-of var
             AsmPattern(listOf(Opcode.PUSH_ADDR_HEAPVAR, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
                 val index = intVal(segment[1])*2
-                " lda  #<${segment[0].callLabel} |  sta  ${segment[2].callLabel}+$index |  lda  #>${segment[0].callLabel} |  sta  ${segment[2].callLabel}+${index+1}"
+                " lda  #<${segment[0].callLabel} |  ldy  #>${segment[0].callLabel}  |  sta  ${segment[2].callLabel}+$index |  sty  ${segment[2].callLabel}+${index+1}"
             },
             // uwordarray[index] = mem uword
             AsmPattern(listOf(Opcode.PUSH_MEM_UW, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
