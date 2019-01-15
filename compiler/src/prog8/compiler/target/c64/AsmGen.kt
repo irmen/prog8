@@ -1665,7 +1665,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             },
             // mem uword = address-of var
             AsmPattern(listOf(Opcode.PUSH_ADDR_HEAPVAR, Opcode.POP_MEM_WORD)) { segment ->
-                " lda  #<${segment[0].callLabel} |  ldy  #>{segment[0].callLabel} |  sta  ${hexVal(segment[1])} |  sty  ${hexValPlusOne(segment[1])}"
+                " lda  #<${segment[0].callLabel} |  ldy  #>${segment[0].callLabel} |  sta  ${hexVal(segment[1])} |  sty  ${hexValPlusOne(segment[1])}"
             },
             // mem (u)word = mem (u)word
             AsmPattern(
