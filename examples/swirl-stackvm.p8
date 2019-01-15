@@ -23,9 +23,9 @@
     }
 
     sub screenx(float x) -> word {
-        return (x/4.1* (width as float)) as word + width / 2
+        return (x*width/4.1) + width / 2.0 as word
     }
     sub screeny(float y) -> word {
-        return (y/4.1 * (height as float)) as word + height / 2
+        return (y*height/4.1) + height / 2.0 as word
     }
 }

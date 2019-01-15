@@ -11,17 +11,16 @@
         c64.COLOR = 1
         c64.VMCSB |= 2
 
-        ; use kernel routine to write text
-        c64.STROUT("Hello!\n")
-
-        str question = "How are you?\n"
+        ; use optimized routine to write text
+        c64scr.print("Hello!\n")
 
         ; use iteration to write text
-        for ubyte char in question {
+        str question = "How are you?\n"
+        for ubyte char in question {            ; @todo allow for/while/repeat loops without curly braces just like ifs
             c64.CHROUT(char)
         }
 
-        ; use loop to write characters
+        ; use indexed loop to write characters
         str bye = "Goodbye!\n"
         for ubyte c in 0 to len(bye) {
             c64.CHROUT(bye[c])

@@ -4,11 +4,11 @@
 ~ main {
 
     sub start() {
-        c64.SCROLY &= %11101111     ; blank screen
+        c64.SCROLY &= %11101111           ; blank the screen
         c64utils.set_rasterirq_excl(40)
 
-dontstop:
-        goto dontstop
+        while(true) {
+        }
 
     }
 }

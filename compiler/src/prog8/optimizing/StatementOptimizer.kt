@@ -247,12 +247,6 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
 
     override fun process(whileLoop: WhileLoop): IStatement {
         super.process(whileLoop)
-        if(whileLoop.body.isEmpty()) {
-            statementsToRemove.add(whileLoop)
-            optimizationsDone++
-            return whileLoop
-        }
-
         val constvalue = whileLoop.condition.constValue(namespace, heap)
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue){
@@ -277,11 +271,6 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
 
     override fun process(repeatLoop: RepeatLoop): IStatement {
         super.process(repeatLoop)
-        if(repeatLoop.body.isEmpty()) {
-            statementsToRemove.add(repeatLoop)
-            optimizationsDone++
-            return repeatLoop
-        }
         val constvalue = repeatLoop.untilCondition.constValue(namespace, heap)
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue){

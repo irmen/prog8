@@ -156,7 +156,7 @@ asmsub	HOMECRSR	() -> clobbers(A,X,Y) -> ()		= $E566		; cursor to top left of sc
 
 ; ---- C64 kernal routines ----
 
-asmsub	STROUT   (uword strptr @ AY) -> clobbers(A, X, Y) -> ()	= $AB1E		; print null-terminated string (a bit slow, see if you can use c64scr.print_string instead)
+asmsub	STROUT   (uword strptr @ AY) -> clobbers(A, X, Y) -> ()	= $AB1E		; print null-terminated string (use c64scr.print instead)
 asmsub	IRQDFRT  () -> clobbers(A,X,Y) -> ()			= $EA31		; default IRQ routine
 asmsub	IRQDFEND () -> clobbers(A,X,Y) -> ()			= $EA81		; default IRQ end/cleanup
 asmsub	CINT     () -> clobbers(A,X,Y) -> ()			= $FF81		; (alias: SCINIT) initialize screen editor and video chip

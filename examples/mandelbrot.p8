@@ -35,6 +35,8 @@
                 c64scr.setcc(pixelx+4, pixely+1, 160, max_iter-iter)
             }
         }
+
+        ; @todo calculation is wrong, gives "1"
         float duration = floor(((c64.TIME_LO as float) + 256.0*(c64.TIME_MID as float) + 65536.0*(c64.TIME_HI as float))/60.0)
         c64.PLOT(0, 0, 21)
         c64scr.print("finished in ")
