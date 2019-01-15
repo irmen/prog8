@@ -227,7 +227,7 @@ ub2float	.proc
 		;    clobbers A, Y
 		stx  c64.SCRATCH_ZPREGX
 		sta  c64.SCRATCH_ZPWORD2
-		sty  c64.SCRATCH_ZPWORD1+1
+		sty  c64.SCRATCH_ZPWORD2+1
 		ldy  c64.SCRATCH_ZPB1
 		jsr  c64flt.FREADUY
 _fac_to_mem	ldx  c64.SCRATCH_ZPWORD2

@@ -147,7 +147,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
     private fun out(str: String, splitlines: Boolean=true) {
         if(splitlines) {
             for (line in str.split('\n')) {
-                var trimmed = if (line.startsWith(' ')) "\t" + line.trim() else line.trim()
+                val trimmed = if (line.startsWith(' ')) "\t" + line.trim() else line.trim()
                 // trimmed = trimmed.replace(Regex("^\\+\\s+"), "+\t")  // sanitize local label indentation
                 assemblyLines.add(trimmed)
             }
@@ -210,16 +210,16 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 out("; ---- basic program with sys call ----")
                 out("* = ${program.loadAddress.toHex()}")
                 val year = Calendar.getInstance().get(Calendar.YEAR)
-                out("\t.word  (+), $year")
-                out("\t.null  $9e, format(' %d ', _prog8_entrypoint), $3a, $8f, ' prog8 by idj'")
+                out("  .word  (+), $year")
+                out("  .null  $9e, format(' %d ', _prog8_entrypoint), $3a, $8f, ' prog8 by idj'")
                 out("+\t.word  0")
                 out("_prog8_entrypoint\t; assembly code starts here\n")
-                out("\tjsr  c64utils.init_system")
+                out("  jsr  c64utils.init_system")
             }
             options.output == OutputType.PRG -> {
                 out("; ---- program without sys call ----")
                 out("* = ${program.loadAddress.toHex()}\n")
-                out("\tjsr  c64utils.init_system")
+                out("  jsr  c64utils.init_system")
             }
             options.output == OutputType.RAW -> {
                 out("; ---- raw assembler program ----")
@@ -227,9 +227,9 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             }
         }
 
-        out("\tldx  #\$ff\t; init estack pointer")
-        out("\tclc")
-        out("\tjmp  main.start\t; jump to program entrypoint")
+        out("  ldx  #\$ff\t; init estack pointer")
+        out("  clc")
+        out("  jmp  main.start\t; jump to program entrypoint")
         out("")
 
         // the global list of all floating point constants for the whole program
@@ -275,7 +275,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 
     private fun memdefs2asm(block: IntermediateProgram.ProgramBlock) {
         for(m in block.memoryPointers) {
-            out("\t${m.key} = ${m.value.first.toHex()}")
+            out("  ${m.key} = ${m.value.first.toHex()}")
         }
     }
 
@@ -296,7 +296,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     val bytes = encodeStr(rawStr, v.second.type).map { "$" + it.toString(16).padStart(2, '0') }
                     out("${v.first}\t; ${v.second.type} \"${escape(rawStr)}\"")
                     for (chunk in bytes.chunked(16))
-                        out("\t.byte  " + chunk.joinToString())
+                        out("  .byte  " + chunk.joinToString())
                 }
                 DataType.ARRAY_UB -> {
                     // unsigned integer byte arrayspec
@@ -306,7 +306,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     else {
                         out(v.first)
                         for (chunk in data.chunked(16))
-                            out("\t.byte  " + chunk.joinToString())
+                            out("  .byte  " + chunk.joinToString())
                     }
                 }
                 DataType.ARRAY_B -> {
@@ -317,7 +317,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     else {
                         out(v.first)
                         for (chunk in data.chunked(16))
-                            out("\t.char  " + chunk.joinToString())
+                            out("  .char  " + chunk.joinToString())
                     }
                 }
                 DataType.ARRAY_UW -> {
@@ -328,7 +328,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     else {
                         out(v.first)
                         for (chunk in data.chunked(16))
-                            out("\t.word  " + chunk.joinToString())
+                            out("  .word  " + chunk.joinToString())
                     }
                 }
                 DataType.ARRAY_W -> {
@@ -339,7 +339,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     else {
                         out(v.first)
                         for (chunk in data.chunked(16))
-                            out("\t.sint  " + chunk.joinToString())
+                            out("  .sint  " + chunk.joinToString())
                     }
                 }
                 DataType.ARRAY_F -> {
@@ -348,7 +348,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     val floatFills = array.map { makeFloatFill(Mflpt5.fromNumber(it)) }
                     out(v.first)
                     for(f in array.zip(floatFills))
-                        out("\t.byte  ${f.second}  ; float ${f.first}")
+                        out("  .byte  ${f.second}  ; float ${f.first}")
                 }
             }
         }
