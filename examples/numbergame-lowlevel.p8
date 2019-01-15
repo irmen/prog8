@@ -8,11 +8,6 @@
 ; It's less readable I think, but produces a smaller program.
 
 
-
-; @todo doesn't work correctly any longer and locks up at the end. Something seems broken in the if statements comparing the numbers.
-
-
-
 ~ main {
     sub start()  {
         str   name    = "????????????????????????????????????????"
@@ -39,9 +34,10 @@
         c64flt.FADDH()             ; add 0.5..
         c64flt.FADDH()             ;   and again, so +1 total
         A, Y = c64flt.GETADRAY()
-        secretnumber = A        ; secret number = rnd()*100+1
+        secretnumber = A           ; secret number = rnd()*100+1
 
 ask_guess:
+
         c64.STROUT("\nYou have ")
         c64scr.print_ub(attempts_left)
         c64.STROUT(" guess")

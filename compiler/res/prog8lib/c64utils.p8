@@ -259,7 +259,7 @@ _numlen
 -		lda  (c64.SCRATCH_ZPWORD1),y
 		cmp  #'0'
 		bmi  +
-		cmp  #'9'
+		cmp  #':'	; one after '9'
 		bpl  +
 		iny
 		bne  -

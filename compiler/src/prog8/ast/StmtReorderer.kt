@@ -14,6 +14,12 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
     // - the 'start' subroutine in the 'main' block will be moved to the top immediately following the directives.
     // - all other subroutines will be moved to the end of their block.
 
+
+    // @todo sort the VariableInitializations and normal assignments: as long as the values are constants and they follow eachother without other stmts inbetween. something like this:
+    //        // sort by datatype and value, so multiple initializations with the same value can be optimized (to load the value just once)
+    //        val sortedInits = varinits.sortedWith(compareBy({it.value.resultingDatatype(namespace, heap)}, {it.value.constValue(namespace, heap)?.asNumericValue?.toDouble()}))
+
+
     private val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%zpreserved", "%address", "%option")
     private val vardeclsToAdd = mutableMapOf<INameScope, MutableList<VarDecl>>()
 

@@ -259,10 +259,9 @@ enum class Opcode {
     CLI,        // clear irq-disable status flag
     RSAVE,      // save all internal registers and status flags
     RSAVEX,     // save just X (the evaluation stack pointer)
-    RSAVEY,     // save just Y (used in for loops for instance)
     RRESTORE,   // restore all internal registers and status flags
     RRESTOREX,  // restore just X (the evaluation stack pointer)
-    RRESTOREY,  // restore just Y (used in for loops for instance)
+    REPOPX,     // restore just X (the evaluation stack pointer) but store it again too (essentially not erasing the value that's saved on the stack)
 
     NOP,        // do nothing
     BREAKPOINT, // breakpoint

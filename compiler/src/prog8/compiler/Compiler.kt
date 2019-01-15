@@ -183,10 +183,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             prog.instr(Opcode.START_PROCDEF)
             prog.line(subroutine.position)
             // note: the caller has already written the arguments into the subroutine's parameter variables.
-            val (varinits, others) = subroutine.statements.partition { it is VariableInitializationAssignment }
-            val varInits: List<VariableInitializationAssignment> = varinits as List<VariableInitializationAssignment>
-            translateVarInits(varInits)
-            translate(others)
+            // note2: don't separate normal and VariableInitializationAssignment here, because the order strictly matters
+            translate(subroutine.statements)
             val r= super.process(subroutine)
             prog.instr(Opcode.END_PROCDEF)
             return r
@@ -198,13 +196,6 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             prog.memoryPointer(subroutine.scopedname, subroutine.asmAddress, DataType.UBYTE)        // the datatype is a bit of a dummy in this case
             return super.process(subroutine)
         }
-    }
-
-    private fun translateVarInits(varinits: List<VariableInitializationAssignment>) {
-        // sort by datatype and value, so multiple initializations with the same value can be optimized (to load the value just once)
-        val sortedInits = varinits.sortedWith(compareBy({it.value.resultingDatatype(namespace, heap)}, {it.value.constValue(namespace, heap)?.asNumericValue?.toDouble()}))
-        for (vi in sortedInits)
-            translate(vi)
     }
 
     private fun translate(statements: List<IStatement>) {
@@ -935,12 +926,12 @@ private class StatementTranslator(private val prog: IntermediateProgram,
     private fun translateSubroutineCall(subroutine: Subroutine, arguments: List<IExpression>, callPosition: Position) {
         // evaluate the arguments and assign them into the subroutine's argument variables.
         var restoreX = Register.X in subroutine.asmClobbers
+        if(restoreX)
+            prog.instr(Opcode.RSAVEX)
+
         if(subroutine.isAsmSubroutine) {
             if(subroutine.parameters.size!=subroutine.asmParameterRegisters.size)
                 throw CompilerException("no support for mix of register and non-register subroutine arguments")
-
-            if(restoreX)
-                prog.instr(Opcode.RSAVEX)
 
             // only register arguments (or status-flag bits)
             var carryParam: Boolean? = null

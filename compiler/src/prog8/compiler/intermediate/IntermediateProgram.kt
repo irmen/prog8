@@ -43,7 +43,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         optimizeVariableCopying()
         optimizeMultipleSequentialLineInstrs()
         optimizeCallReturnIntoJump()
-        optimizeRestoreXYSaveXYIntoRestoreXY()
+        optimizeRestoreXSaveXIntoRepopX()
         // todo: add more optimizations to stackvm code
 
         optimizeRemoveNops()    //  must be done as the last step
@@ -57,16 +57,14 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
             blk.instructions.removeIf { it.opcode== Opcode.NOP && it !is LabelInstr }
     }
 
-    private fun optimizeRestoreXYSaveXYIntoRestoreXY() {
-        // replace rrestorex/y+rsavex/y combo by only rrestorex/y
+    private fun optimizeRestoreXSaveXIntoRepopX() {
+        // replace rrestorex+rsavex combo by only repopX
         for(blk in blocks) {
             val instructionsToReplace = mutableMapOf<Int, Instruction>()
 
             blk.instructions.asSequence().withIndex().filter {it.value.opcode!=Opcode.LINE}.windowed(2).toList().forEach {
                 if(it[0].value.opcode==Opcode.RRESTOREX && it[1].value.opcode==Opcode.RSAVEX) {
-                    instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
-                }
-                else if(it[0].value.opcode==Opcode.RRESTOREY && it[1].value.opcode==Opcode.RSAVEY) {
+                    instructionsToReplace[it[0].index] = Instruction(Opcode.REPOPX)
                     instructionsToReplace[it[1].index] = Instruction(Opcode.NOP)
                 }
             }
