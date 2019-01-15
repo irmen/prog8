@@ -33,7 +33,7 @@
                 return ending(true)
             } else {
                 c64scr.print("\n\nThat is too ")
-                if guess<secretnumber
+                if guess<secretnumber                   ; @todo not correct anymore, entering '19' says too low while the number is 18
                     c64scr.print("low!\n")
                 else
                     c64scr.print("high!\n")
