@@ -654,13 +654,13 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
                         if(lv.heapId==null)
                             throw CompilerException("string should have been moved into heap   ${lv.position}")
-                        prog.instr(Opcode.PUSH_ADDR_HEAPVAR, callLabel = "@todo-string-varname?")    // XXX  push address of string
+                        TODO("push address of string with PUSH_ADDR_HEAPVAR")
                     }
                     DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F,
                     DataType.ARRAY_B, DataType.ARRAY_W -> {
                         if(lv.heapId==null)
                             throw CompilerException("array should have been moved into heap  ${lv.position}")
-                        prog.instr(Opcode.PUSH_WORD, Value(lv.type, lv.heapId))     // XXX  push address of array
+                        TODO("push address of array with PUSH_WORD")
                     }
                 }
             }

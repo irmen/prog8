@@ -37,6 +37,7 @@ fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<String>>>): 
 
     // optimize sequential assignments of the same value to various targets (bytes, words, floats)
     // the float one is the one that requires 2*7=14 lines of code to check...
+    // @todo a better place to do this is in the Compiler instead and work on opcodes, and never even create the inefficient asm...
 
     val removeLines = mutableListOf<Int>()
     for (pair in linesByFourteen) {
@@ -71,7 +72,28 @@ fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<String>>>): 
             }
         }
 
-        // @todo check float initializations.
+        if(first.startsWith("lda") && second.startsWith("ldy") && third.startsWith("sta") && fourth.startsWith("sty") &&
+                fifth.startsWith("lda") && sixth.startsWith("ldy") && seventh.startsWith("jsr  c64flt.copy_float")) {
+
+            val nineth = pair[8].value.trimStart()
+            val tenth = pair[9].value.trimStart()
+            val eleventh = pair[10].value.trimStart()
+            val twelveth = pair[11].value.trimStart()
+            val thirteenth = pair[12].value.trimStart()
+            val fourteenth = pair[13].value.trimStart()
+
+            if(eighth.startsWith("lda") && nineth.startsWith("ldy") && tenth.startsWith("sta") && eleventh.startsWith("sty") &&
+                    twelveth.startsWith("lda") && thirteenth.startsWith("ldy") && fourteenth.startsWith("jsr  c64flt.copy_float")) {
+
+                if(first.substring(4) == eighth.substring(4) && second.substring(4)==nineth.substring(4)) {
+                    // identical float init
+                    removeLines.add(pair[7].index)
+                    removeLines.add(pair[8].index)
+                    removeLines.add(pair[9].index)
+                    removeLines.add(pair[10].index)
+                }
+            }
+        }
     }
     return removeLines
 }
