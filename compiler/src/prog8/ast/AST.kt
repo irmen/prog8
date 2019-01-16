@@ -376,10 +376,10 @@ interface INameScope {
     }
 
     fun getLabelOrVariable(name: String): IStatement? {
-        // TODO this call is relatively slow.... cache it? make statement list non-mutable and update the cache when it is explicitly updated?
+        // this is called A LOT and could perhaps be optimized a bit more, but adding a cache didn't make much of a practical runtime difference
         for (stmt in statements) {
             if (stmt is VarDecl && stmt.name==name) return stmt
-            else if (stmt is Label && stmt.name==name) return stmt
+            if (stmt is Label && stmt.name==name) return stmt
         }
         return null
     }

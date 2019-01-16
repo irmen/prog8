@@ -346,7 +346,7 @@ memcopy16_up	.proc
 		inc  dest+1             ; increment hi byte of dest
 +		dex                     ; decrement X (lo byte counter)
 		bne  -                  ; if X<>0 then move another byte
-		dec  length             ; weve moved 255 bytes, dec length
+		dec  length             ; we've moved 255 bytes, dec length
 		bpl  -                  ; if length is still positive go back and move more
 		rts                     ; done
 		.pend

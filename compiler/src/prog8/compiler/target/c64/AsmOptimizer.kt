@@ -30,8 +30,6 @@ fun optimizeAssembly(lines: MutableList<String>): Int {
         numberOfOptimizations++
     }
 
-
-    println("ASM OPTIMIZATIONS: $numberOfOptimizations")        // TODO weg
     return numberOfOptimizations
 }
 
