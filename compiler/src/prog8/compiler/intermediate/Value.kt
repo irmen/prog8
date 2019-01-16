@@ -3,7 +3,6 @@ package prog8.compiler.intermediate
 import prog8.ast.*
 import java.lang.Exception
 import kotlin.math.abs
-import kotlin.math.floor
 import kotlin.math.pow
 
 
@@ -414,7 +413,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
                     DataType.UWORD -> Value(DataType.UWORD, numericValue())
                     DataType.WORD -> Value(DataType.WORD, numericValue())
                     DataType.FLOAT -> Value(DataType.FLOAT, numericValue())
-                    else -> TODO("invalid type cast from $type to $targetType - should be an ast-check")
+                    else -> throw ValueException("invalid type cast from $type to $targetType")
                 }
             }
             DataType.BYTE -> {
@@ -424,7 +423,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
                     DataType.UWORD -> Value(DataType.UWORD, integerValue() and 65535)
                     DataType.WORD -> Value(DataType.WORD, integerValue())
                     DataType.FLOAT -> Value(DataType.FLOAT, numericValue())
-                    else -> TODO("invalid type cast from $type to $targetType - should be an ast-check")
+                    else -> throw ValueException("invalid type cast from $type to $targetType")
                 }
             }
             DataType.UWORD -> {
@@ -438,7 +437,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
                             Value(DataType.WORD, -(65536-integerValue()))
                     }
                     DataType.FLOAT -> Value(DataType.FLOAT, numericValue())
-                    else -> TODO("invalid type cast from $type to $targetType - should be an ast-check")
+                    else -> throw ValueException("invalid type cast from $type to $targetType")
                 }
             }
             DataType.WORD -> {
@@ -447,7 +446,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
                     DataType.UWORD -> Value(DataType.UWORD, integerValue() and 65535)
                     DataType.WORD -> this
                     DataType.FLOAT -> Value(DataType.FLOAT, numericValue())
-                    else -> TODO("invalid type cast from $type to $targetType - should be an ast-check")
+                    else -> throw ValueException("invalid type cast from $type to $targetType")
                 }
             }
             DataType.FLOAT -> {
@@ -457,7 +456,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
                         if(integer in -128..127)
                             Value(DataType.BYTE, integer)
                         else
-                            TODO("overflow when casting float to byte: $this - should be an ast-check")
+                            throw ValueException("overflow when casting float to byte: $this")
                     }
                     DataType.UBYTE -> Value(DataType.UBYTE, numericValue().toInt() and 255)
                     DataType.UWORD -> Value(DataType.UWORD, numericValue().toInt() and 65535)
@@ -466,13 +465,13 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
                         if(integer in -32768..32767)
                             Value(DataType.WORD, integer)
                         else
-                            TODO("overflow when casting float to word: $this - should be an ast-check")
+                            throw ValueException("overflow when casting float to word: $this")
                     }
                     DataType.FLOAT -> this
-                    else -> TODO("invalid type cast from $type to $targetType - should be an ast-check")
+                    else -> throw ValueException("invalid type cast from $type to $targetType")
                 }
             }
-            else -> TODO("invalid type cast from $type to $targetType - should be an ast-check")
+            else -> throw ValueException("invalid type cast from $type to $targetType")
         }
     }
 

@@ -2190,7 +2190,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 DataType.UWORD-> prog.instr(Opcode.CAST_UW_TO_UB)
                 DataType.WORD-> prog.instr(Opcode.CAST_W_TO_UB)
                 DataType.FLOAT -> prog.instr(Opcode.CAST_F_TO_UB)
-                else -> throw CompilerException("invalid cast type $sourceDt")
+                else -> throw CompilerException("invalid cast $sourceDt to ${expr.type} -- should be an Ast check")
             }
             DataType.BYTE -> when(sourceDt) {
                 DataType.UBYTE -> prog.instr(Opcode.CAST_UB_TO_B)
@@ -2198,7 +2198,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 DataType.UWORD -> prog.instr(Opcode.CAST_UW_TO_B)
                 DataType.WORD -> prog.instr(Opcode.CAST_W_TO_B)
                 DataType.FLOAT -> prog.instr(Opcode.CAST_F_TO_B)
-                else -> throw CompilerException("invalid cast type $sourceDt")
+                else -> throw CompilerException("invalid cast $sourceDt to ${expr.type} -- should be an Ast check")
             }
             DataType.UWORD -> when(sourceDt) {
                 DataType.UBYTE -> prog.instr(Opcode.CAST_UB_TO_UW)
@@ -2206,7 +2206,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 DataType.UWORD -> {}
                 DataType.WORD -> prog.instr(Opcode.CAST_W_TO_UW)
                 DataType.FLOAT -> prog.instr(Opcode.CAST_F_TO_UW)
-                else -> throw CompilerException("invalid cast type $sourceDt")
+                else -> throw CompilerException("invalid cast $sourceDt to ${expr.type} -- should be an Ast check")
             }
             DataType.WORD -> when(sourceDt) {
                 DataType.UBYTE -> prog.instr(Opcode.CAST_UB_TO_W)
@@ -2214,7 +2214,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 DataType.UWORD -> prog.instr(Opcode.CAST_UW_TO_W)
                 DataType.WORD -> {}
                 DataType.FLOAT -> prog.instr(Opcode.CAST_F_TO_W)
-                else -> throw CompilerException("invalid cast type $sourceDt")
+                else -> throw CompilerException("invalid cast $sourceDt to ${expr.type} -- should be an Ast check")
             }
             DataType.FLOAT -> when(sourceDt) {
                 DataType.UBYTE -> prog.instr(Opcode.CAST_UB_TO_F)
@@ -2222,9 +2222,9 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 DataType.UWORD -> prog.instr(Opcode.CAST_UW_TO_F)
                 DataType.WORD -> prog.instr(Opcode.CAST_W_TO_F)
                 DataType.FLOAT -> {}
-                else -> throw CompilerException("invalid cast type $sourceDt")
+                else -> throw CompilerException("invalid cast $sourceDt to ${expr.type} -- should be an Ast check")
             }
-            else -> throw CompilerException("can't typecast to ${expr.type}")
+            else -> throw CompilerException("invalid cast $sourceDt to ${expr.type} -- should be an Ast check")
         }
     }
 

@@ -697,6 +697,8 @@ class AstChecker(private val namespace: INameScope,
     }
 
     override fun process(typecast: TypecastExpression): IExpression {
+        if(typecast.type in IterableDatatypes)
+            checkResult.add(ExpressionError("cannot type cast to string or array type", typecast.position))
         val funcTarget = (typecast.expression as? IFunctionCall)?.target?.targetStatement(namespace)
         if(funcTarget is Subroutine &&
                 funcTarget.asmReturnvaluesRegisters.isNotEmpty() &&
