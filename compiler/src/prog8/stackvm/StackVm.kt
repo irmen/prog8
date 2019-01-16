@@ -1487,7 +1487,6 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.RSAVEX -> evalstack.push(variables["X"])
             Opcode.RRESTOREX -> variables["X"] = evalstack.pop()
-            Opcode.REPOPX -> variables["X"] = evalstack.peek()
             Opcode.INLINE_ASSEMBLY -> throw VmExecutionException("stackVm doesn't support executing inline assembly code")
             Opcode.PUSH_ADDR_HEAPVAR -> {
                 val heapId = variables[ins.callLabel]!!.heapId

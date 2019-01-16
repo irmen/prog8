@@ -261,7 +261,6 @@ enum class Opcode {
     RSAVEX,     // save just X (the evaluation stack pointer)
     RRESTORE,   // restore all internal registers and status flags
     RRESTOREX,  // restore just X (the evaluation stack pointer)
-    REPOPX,     // restore just X (the evaluation stack pointer) but store it again too (essentially not erasing the value that's saved on the stack)
 
     NOP,        // do nothing
     BREAKPOINT, // breakpoint

@@ -422,7 +422,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             }
             Opcode.RSAVEX -> " sta  ${C64Zeropage.SCRATCH_REG} |  txa |  pha |  lda  ${C64Zeropage.SCRATCH_REG}"
             Opcode.RRESTOREX -> " sta  ${C64Zeropage.SCRATCH_REG} |  pla |  tax |  lda  ${C64Zeropage.SCRATCH_REG}"
-            Opcode.REPOPX -> " sta  ${C64Zeropage.SCRATCH_REG} |  pla |  tax |  pha |  lda  ${C64Zeropage.SCRATCH_REG}"
             Opcode.DISCARD_BYTE -> " inx"
             Opcode.DISCARD_WORD -> " inx"
             Opcode.DISCARD_FLOAT -> " inx |  inx |  inx"
@@ -969,12 +968,14 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         }
 
         for(pattern in patterns.filter { it.sequence.size <= segment.size || (it.altSequence != null && it.altSequence.size <= segment.size)}) {
-            val opcodesList = opcodes.subList(0, pattern.sequence.size)
+            val opcodesList = if(pattern.sequence.size<=opcodes.size) opcodes.subList(0, pattern.sequence.size) else null
+            val opcodesListAlt = if(pattern.altSequence!=null && pattern.altSequence.size<=opcodes.size) opcodes.subList(0, pattern.altSequence.size) else null
+
             if(pattern.sequence == opcodesList) {
                 val asm = pattern.asm(segment)
                 if(asm!=null)
                     result.add(AsmFragment(asm, pattern.sequence.size))
-            } else if(pattern.altSequence == opcodesList) {
+            } else if(opcodesListAlt!=null && pattern.altSequence == opcodesListAlt) {
                 val asm = pattern.asm(segment)
                 if(asm!=null)
                     result.add(AsmFragment(asm, pattern.sequence.size))
@@ -3202,6 +3203,15 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 """
             },
 
+            AsmPattern(listOf(Opcode.RRESTOREX, Opcode.LINE, Opcode.RSAVEX), listOf(Opcode.RRESTOREX, Opcode.RSAVEX)) { segment ->
+                """
+                sta  ${C64Zeropage.SCRATCH_REG}
+                pla
+                tax
+                pha
+                lda  ${C64Zeropage.SCRATCH_REG}
+                """
+            },
 
             // various optimizable integer multiplications
             AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.MUL_B), listOf(Opcode.PUSH_BYTE, Opcode.MUL_UB)) { segment ->
