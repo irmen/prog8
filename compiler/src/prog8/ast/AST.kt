@@ -2189,7 +2189,11 @@ private fun prog8Parser.ForloopContext.toAst(): ForLoop {
     val datatype = datatype()?.toAst()
     val loopvar = identifier()?.toAst()
     val iterable = expression()!!.toAst()
-    val scope = AnonymousScope(statement_block().toAst(), statement_block().toPosition())
+    val scope =
+            if(statement()!=null)
+                AnonymousScope(mutableListOf(statement().toAst()), statement().toPosition())
+            else
+                AnonymousScope(statement_block().toAst(), statement_block().toPosition())
     return ForLoop(loopregister, datatype, loopvar, iterable, scope, toPosition())
 }
 

@@ -16,15 +16,13 @@
 
         ; use iteration to write text
         str question = "How are you?\n"
-        for ubyte char in question {            ; @todo allow for/while/repeat loops without curly braces just like ifs
+        for ubyte char in question
             c64.CHROUT(char)
-        }
 
         ; use indexed loop to write characters
         str bye = "Goodbye!\n"
-        for ubyte c in 0 to len(bye) {
+        for ubyte c in 0 to len(bye)
             c64.CHROUT(bye[c])
-        }
 
     }
 

@@ -5,6 +5,17 @@
 
     sub start()  {
 
+        while(true)
+            A++
+
+
+        repeat A++ until(false)
+
+
+        for ubyte i in 0 to 10
+            A++
+
+
 ;        c64scr.print_ub(c64utils.str2ubyte("1"))
 ;        c64.CHROUT('\n')
 ;        c64scr.print_ub(c64utils.str2ubyte("12"))
