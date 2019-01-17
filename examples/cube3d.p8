@@ -21,10 +21,6 @@
         uword angley
         uword anglez
         word rz=33
-                word persp = (rz+200)
-                persp = rz / 25
-                persp = rz / height
-                persp = (rz+200) / height
         while(true) {
             rotate_vertices(msb(anglex), msb(angley), msb(anglez))
             c64scr.clear_screenchars(32)
@@ -71,6 +67,8 @@
         }
     }
 
+    ubyte[6] vertexcolors = [1,7,7,12,11,6]
+
     sub draw_edges() {
 
         ; plot the points of the 3d cube
@@ -82,7 +80,7 @@
                 word persp = (rz+200) / height
                 byte sx = rotatedx[i] / persp as byte + width/2
                 byte sy = rotatedy[i] / persp as byte + height/2
-                c64scr.setcc(sx as ubyte, sy as ubyte, 46, i+2)
+                c64scr.setcc(sx as ubyte, sy as ubyte, 46, vertexcolors[(rz as byte >>5) + 3])
             }
         }
 
@@ -92,7 +90,7 @@
                 word persp = (rz+200) / height
                 byte sx = rotatedx[i] / persp as byte + width/2
                 byte sy = rotatedy[i] / persp as byte + height/2
-                c64scr.setcc(sx as ubyte, sy as ubyte, 81, i+2)
+                c64scr.setcc(sx as ubyte, sy as ubyte, 81, vertexcolors[(rz as byte >>5) + 3])
             }
         }
     }
