@@ -91,7 +91,7 @@
             c64.PLOT(0,0,0)
             c64scr.print("3d cube! (sprites) ")
             c64scr.print_ub(c64.TIME_LO)
-            c64scr.print(" jiffies/frame")
+            c64scr.print(" jiffies/frame ")
         }
     }
 
@@ -133,7 +133,26 @@
     sub position_sprites() {
 
         ; set each of the 8 sprites to the correct vertex of the cube
-        ; @todo sort vertices to sprite order so the back/front order is correct as well
+
+        ; first sort vertices to sprite order so the back/front order is correct as well
+        ; (chose to do a simple bubble sort it's only 8 items to sort)
+        for ubyte sorti in 6 to 0 step -1 {
+            for ubyte i1 in 0 to sorti {
+                ubyte i2 = i1+1
+                if(rotatedz[i1] > rotatedz[i2]) {
+                    ; @todo use a swap() builtin function?
+                    word temp = rotatedx[i1]
+                    rotatedx[i1] = rotatedx[i2]
+                    rotatedx[i2] = temp
+                    temp = rotatedy[i1]
+                    rotatedy[i1] = rotatedy[i2]
+                    rotatedy[i2] = temp
+                    temp = rotatedz[i1]
+                    rotatedz[i1] = rotatedz[i2]
+                    rotatedz[i2] = temp
+                }
+            }
+        }
 
         for ubyte i in 0 to 7 {
             word zc = rotatedz[i]

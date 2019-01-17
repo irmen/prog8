@@ -2067,13 +2067,13 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 val opcode = opcodePushvar(targetStatement!!.datatype)
                 prog.instr(opcode, callLabel = targetStatement.scopedname)
             }
-            val branch = BranchStatement(
-                    BranchCondition.NZ,
-                    AnonymousScope(mutableListOf(Jump(null, null, loopLabel, range.position)), range.position),
-                    AnonymousScope(mutableListOf(), range.position),
-                    range.position)
-            branch.linkParents(body)
-            translate(branch)
+            // TODO: optimize this to use a compare + branch opcode somehow?
+            val conditionJumpOpcode = when(targetStatement!!.datatype) {
+                DataType.UBYTE, DataType.BYTE -> Opcode.JNZ
+                DataType.UWORD, DataType.WORD -> Opcode.JNZW
+                else -> throw CompilerException("invalid loopvar datatype (expected byte or word) $lvTarget")
+            }
+            prog.instr(conditionJumpOpcode, callLabel = loopLabel)
         }
 
         when (literalStepValue) {
