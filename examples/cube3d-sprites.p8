@@ -128,8 +128,6 @@
     }
 
 
-    ubyte[8] spritecolors = [1,1,7,15,12,11,9,9]
-
     sub position_sprites() {
 
         ; set each of the 8 sprites to the correct vertex of the cube
@@ -140,19 +138,14 @@
             for ubyte i1 in 0 to sorti {
                 ubyte i2 = i1+1
                 if(rotatedz[i1] > rotatedz[i2]) {
-                    ; @todo use a swap() builtin function?
-                    word temp = rotatedx[i1]
-                    rotatedx[i1] = rotatedx[i2]
-                    rotatedx[i2] = temp
-                    temp = rotatedy[i1]
-                    rotatedy[i1] = rotatedy[i2]
-                    rotatedy[i2] = temp
-                    temp = rotatedz[i1]
-                    rotatedz[i1] = rotatedz[i2]
-                    rotatedz[i2] = temp
+                    swap(rotatedx[i1], rotatedx[i2])
+                    swap(rotatedy[i1], rotatedy[i2])
+                    swap(rotatedz[i1], rotatedz[i2])
                 }
             }
         }
+
+        ubyte[8] spritecolors = [1,1,7,15,12,11,9,9]
 
         for ubyte i in 0 to 7 {
             word zc = rotatedz[i]

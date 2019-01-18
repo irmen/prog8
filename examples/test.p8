@@ -18,15 +18,9 @@
             for ubyte i1 in 0 to sorti {
                 ubyte i2=i1+1
                 if(rotatedz[i2]>rotatedz[i1]) {
-                    word t = rotatedx[i1]
-                    rotatedx[i1] = rotatedx[i2]
-                    rotatedx[i2] = t
-                    t = rotatedy[i1]
-                    rotatedy[i1] = rotatedy[i2]
-                    rotatedy[i2] = t
-                    t = rotatedz[i1]
-                    rotatedz[i1] = rotatedz[i2]
-                    rotatedz[i2] = t
+                    swap(rotatedx[i1], rotatedx[i2])
+                    swap(rotatedy[i1], rotatedy[i2])
+                    swap(rotatedz[i1], rotatedz[i2])
                 }
             }
         }

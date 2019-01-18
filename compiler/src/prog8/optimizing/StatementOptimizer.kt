@@ -485,14 +485,17 @@ fun same(left: IExpression, right: IExpression): Boolean {
             return (right is RegisterExpr && right.register==left.register)
         is IdentifierReference ->
             return (right is IdentifierReference && right.nameInSource==left.nameInSource)
-        is ArrayIndexedExpression ->
-            return (right is ArrayIndexedExpression && right.identifier==left.identifier && right.arrayspec==left.arrayspec)
         is PrefixExpression ->
             return (right is PrefixExpression && right.operator==left.operator && same(right.expression, left.expression))
         is BinaryExpression ->
             return (right is BinaryExpression && right.operator==left.operator
                     && same(right.left, left.left)
                     && same(right.right, left.right))
+        is ArrayIndexedExpression -> {
+            return (right is ArrayIndexedExpression && right.identifier.nameInSource == left.identifier.nameInSource
+                    && same(right.arrayspec.x, left.arrayspec.x))
+        }
+        is LiteralValue -> return (right is LiteralValue && right==left)
     }
     return false
 }

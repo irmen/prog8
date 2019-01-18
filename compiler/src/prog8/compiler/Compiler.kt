@@ -5,6 +5,7 @@ import prog8.ast.RegisterOrPair.*
 import prog8.compiler.intermediate.IntermediateProgram
 import prog8.compiler.intermediate.Opcode
 import prog8.compiler.intermediate.Value
+import prog8.optimizing.same
 import prog8.stackvm.Syscall
 import java.util.*
 import kotlin.math.abs
@@ -760,6 +761,12 @@ private class StatementTranslator(private val prog: IntermediateProgram,
 
     private fun translateFunctionCall(funcname: String, args: List<IExpression>) {
         // some functions are implemented as vm opcodes
+
+        if(funcname == "swap") {
+            translateSwap(args)
+            return
+        }
+
         args.forEach { translate(it) }  // place function argument(s) on the stack
         when (funcname) {
             "len" -> {
@@ -921,6 +928,75 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             "rrestore" -> prog.instr(Opcode.RRESTORE)
             else -> createSyscall(funcname)  // call builtin function
         }
+    }
+
+    private fun StatementTranslator.translateSwap(args: List<IExpression>) {
+        // swap(x,y) is treated differently, it's not a normal function call
+        if (args.size != 2)
+            throw AstException("swap requires 2 arguments")
+        val dt1 = args[0].resultingDatatype(namespace, heap)!!
+        val dt2 = args[1].resultingDatatype(namespace, heap)!!
+        if (dt1 != dt2)
+            throw AstException("swap requires 2 args of identical type")
+        if (args[0].constValue(namespace, heap) != null || args[1].constValue(namespace, heap) != null)
+            throw AstException("swap requires 2 variables, not constant value(s)")
+        if (dt1 !in NumericDatatypes)
+            throw AstException("swap requires args of numerical type")
+        if(same(args[0], args[1]))
+            throw AstException("swap should have 2 different args")
+
+        // @todo implement the above errors as nice AstChecker expression errors.
+        // @todo implement this more efficiently with using the xor trick instead of the stack!
+        // Swap(X,Y) :=
+        //        X ^= Y
+        //        Y ^= X
+        //        X ^= Y
+        // for floats, this doesn't work, use a temp variable instead.
+
+        // pop first then second arg
+        translate(args[0])
+        translate(args[1])
+        // pop stack in reverse order
+        when {
+            args[0] is IdentifierReference -> {
+                val target = AssignTarget(null, args[0] as IdentifierReference, null, null, args[0].position)
+                popValueIntoTarget(target, dt1)
+            }
+            args[0] is RegisterExpr -> {
+                val target = AssignTarget((args[0] as RegisterExpr).register, null, null, null, args[0].position)
+                popValueIntoTarget(target, dt1)
+            }
+            args[0] is ArrayIndexedExpression -> {
+                val target = AssignTarget(null, null, args[0] as ArrayIndexedExpression, null, args[0].position)
+                popValueIntoTarget(target, dt1)
+            }
+            args[0] is DirectMemoryRead -> {
+                val target = AssignTarget(null, null, null, DirectMemoryWrite((args[0] as DirectMemoryRead).addressExpression, args[0].position), args[0].position)
+                popValueIntoTarget(target, dt1)
+            }
+            else -> TODO("unpop type ${args[0]}")
+        }
+
+        when {
+            args[1] is IdentifierReference -> {
+                val target = AssignTarget(null, args[1] as IdentifierReference, null, null, args[1].position)
+                popValueIntoTarget(target, dt2)
+            }
+            args[1] is RegisterExpr -> {
+                val target = AssignTarget((args[1] as RegisterExpr).register, null, null, null, args[1].position)
+                popValueIntoTarget(target, dt2)
+            }
+            args[1] is ArrayIndexedExpression -> {
+                val target = AssignTarget(null, null, args[1] as ArrayIndexedExpression, null, args[1].position)
+                popValueIntoTarget(target, dt2)
+            }
+            args[1] is DirectMemoryRead -> {
+                val target = AssignTarget(null, null, null, DirectMemoryWrite((args[1] as DirectMemoryRead).addressExpression, args[1].position), args[1].position)
+                popValueIntoTarget(target, dt2)
+            }
+            else -> TODO("unpop type ${args[1]}")
+        }
+        return
     }
 
     private fun translateSubroutineCall(subroutine: Subroutine, arguments: List<IExpression>, callPosition: Position) {

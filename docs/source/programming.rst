@@ -664,6 +664,9 @@ memcopy(from, to, numbytes)
     it is only faster if the number of bytes is larger than a certain threshold.
     Compare the generated code to see if it was beneficial or not.
 
+swap(x, y)
+    Swap the values of numerical variables (or memory locations) x and y in a fast way.
+
 set_carry()  /  clear_carry()
     Set (or clear) the CPU status register Carry flag. No result value.
     (translated into ``SEC`` or ``CLC`` cpu instruction)
