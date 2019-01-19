@@ -1,21 +1,30 @@
 package prog8.compiler.target.c64
 
+import prog8.compiler.toHex
+
 fun optimizeAssembly(lines: MutableList<String>): Int {
 
     var numberOfOptimizations = 0
 
-    var linesByTwo = getLinesBy(lines, 2)
+    var linesByFour = getLinesBy(lines, 4)
 
-    var removeLines = optimizeIncDec(linesByTwo)
+    var removeLines = optimizeUselessStackByteWrites(linesByFour)
     if(removeLines.isNotEmpty()) {
         for (i in removeLines.reversed())
             lines.removeAt(i)
-        linesByTwo = getLinesBy(lines, 2)
+        linesByFour = getLinesBy(lines, 4)
         numberOfOptimizations++
     }
 
-    removeLines = optimizeStoreLoadSame(linesByTwo)
+    removeLines = optimizeIncDec(linesByFour)
+    if(removeLines.isNotEmpty()) {
+        for (i in removeLines.reversed())
+            lines.removeAt(i)
+        linesByFour = getLinesBy(lines, 4)
+        numberOfOptimizations++
+    }
 
+    removeLines = optimizeStoreLoadSame(linesByFour)
     if(removeLines.isNotEmpty()) {
         for (i in removeLines.reversed())
             lines.removeAt(i)
@@ -31,6 +40,24 @@ fun optimizeAssembly(lines: MutableList<String>): Int {
     }
 
     return numberOfOptimizations
+}
+
+fun optimizeUselessStackByteWrites(linesByFour: List<List<IndexedValue<String>>>): List<Int> {
+    // sta on stack, dex, inx, lda from stack -> eliminate this useless stack byte write
+    // this is a lot harder for word values because the instruction sequence varies.
+    val removeLines = mutableListOf<Int>()
+    for(lines in linesByFour) {
+        if(lines[0].value.trim()=="sta  ${ESTACK_LO.toHex()},x" &&
+                lines[1].value.trim()=="dex" &&
+                lines[2].value.trim()=="inx" &&
+                lines[3].value.trim()=="lda  ${ESTACK_LO.toHex()},x") {
+            removeLines.add(lines[0].index)
+            removeLines.add(lines[1].index)
+            removeLines.add(lines[2].index)
+            removeLines.add(lines[3].index)
+        }
+    }
+    return removeLines
 }
 
 fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<String>>>): List<Int> {
@@ -102,10 +129,10 @@ private fun getLinesBy(lines: MutableList<String>, windowSize: Int) =
 // all lines (that aren't empty or comments) in sliding pairs of 2
         lines.withIndex().filter { it.value.isNotBlank() && !it.value.trimStart().startsWith(';') }.windowed(windowSize, partialWindows = false)
 
-private fun optimizeStoreLoadSame(linesByTwo: List<List<IndexedValue<String>>>): List<Int> {
+private fun optimizeStoreLoadSame(linesByFour: List<List<IndexedValue<String>>>): List<Int> {
     // sta X + lda X,  sty X + ldy X,   stx X + ldx X  -> the second instruction can be eliminated
     val removeLines = mutableListOf<Int>()
-    for (pair in linesByTwo) {
+    for (pair in linesByFour) {
         val first = pair[0].value.trimStart()
         val second = pair[1].value.trimStart()
 

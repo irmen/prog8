@@ -195,7 +195,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         vardecls2asm(block)
         out("")
 
-        val instructionPatternWindowSize = 6        // increase once patterns occur longer than this.
+        val instructionPatternWindowSize = 7        // increase once patterns occur longer than this.
         var processed = 0
 
         if(trace) println("BLOCK: ${block.scopedname}  ${block.address ?: ""}")
@@ -203,9 +203,10 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             if(trace) println("\t${ins[0].toString().trim()}")
             if (processed == 0) {
                 processed = instr2asm(ins)
-                if (processed == 0)
-                // the instructions are not recognised yet and can't be translated into assembly
+                if (processed == 0) {
+                    // the instructions are not recognised yet and can't be translated into assembly
                     throw CompilerException("no asm translation found for instruction pattern: $ins")
+                }
             }
             processed--
         }
@@ -3048,6 +3049,91 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 eor  #>${hexVal(segment[1])}
                 sta  ${ESTACK_HI.toHex()},x
                 dex
+                """
+            },
+            // push  var byte & var byte
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.PUSH_VAR_BYTE, Opcode.BITAND_BYTE, Opcode.POP_VAR_BYTE)) { segment ->
+                """
+                lda  ${segment[0].callLabel}
+                and  ${segment[1].callLabel}
+                sta  ${segment[3].callLabel}
+                """
+            },
+            // push  var byte | var byte
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.PUSH_VAR_BYTE, Opcode.BITOR_BYTE, Opcode.POP_VAR_BYTE)) { segment ->
+                """
+                lda  ${segment[0].callLabel}
+                ora  ${segment[1].callLabel}
+                sta  ${segment[3].callLabel}
+                """
+            },
+            // push  var byte ^ var byte
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.PUSH_VAR_BYTE, Opcode.BITXOR_BYTE, Opcode.POP_VAR_BYTE)) { segment ->
+                """
+                lda  ${segment[0].callLabel}
+                eor  ${segment[1].callLabel}
+                sta  ${segment[3].callLabel}
+                """
+            },
+            // push  var word & var word
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.PUSH_VAR_WORD, Opcode.BITAND_WORD, Opcode.POP_VAR_WORD)) { segment ->
+                """
+                lda  ${segment[0].callLabel}
+                and  ${segment[1].callLabel}
+                sta  ${segment[3].callLabel}
+                lda  ${segment[0].callLabel}+1
+                and  ${segment[1].callLabel}+1
+                sta  ${segment[3].callLabel}+1
+                """
+            },
+            // push  var word | var word
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.PUSH_VAR_WORD, Opcode.BITOR_WORD, Opcode.POP_VAR_WORD)) { segment ->
+                """
+                lda  ${segment[0].callLabel}
+                ora  ${segment[1].callLabel}
+                sta  ${segment[3].callLabel}
+                lda  ${segment[0].callLabel}+1
+                ora  ${segment[1].callLabel}+1
+                sta  ${segment[3].callLabel}+1
+                """
+            },
+            // push  var word ^ var word
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.PUSH_VAR_WORD, Opcode.BITXOR_WORD, Opcode.POP_VAR_WORD)) { segment ->
+                """
+                lda  ${segment[0].callLabel}
+                eor  ${segment[1].callLabel}
+                sta  ${segment[3].callLabel}
+                lda  ${segment[0].callLabel}+1
+                eor  ${segment[1].callLabel}+1
+                sta  ${segment[3].callLabel}+1
+                """
+            },
+
+            // bytearray[consti3] = bytearray[consti1] ^ bytearray[consti2]
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE,
+                    Opcode.BITXOR_BYTE, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_BYTE)) { segment ->
+                val i1 = segment[5].arg!!.integerValue()
+                val i2 = segment[0].arg!!.integerValue()
+                val i3 = segment[2].arg!!.integerValue()
+                """
+                lda  ${segment[1].callLabel}+$i2
+                eor  ${segment[3].callLabel}+$i3
+                sta  ${segment[6].callLabel}+$i1
+                """
+            },
+            // warray[consti3] = warray[consti1] ^ warray[consti2]
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_WORD, Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_WORD,
+                    Opcode.BITXOR_WORD, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
+                val i1 = segment[5].arg!!.integerValue()*2
+                val i2 = segment[0].arg!!.integerValue()*2
+                val i3 = segment[2].arg!!.integerValue()*2
+                """
+                lda  ${segment[1].callLabel}+$i2
+                eor  ${segment[3].callLabel}+$i3
+                sta  ${segment[6].callLabel}+$i1
+                lda  ${segment[1].callLabel}+${i2+1}
+                eor  ${segment[3].callLabel}+${i3+1}
+                sta  ${segment[6].callLabel}+${i1+1}
                 """
             },
 

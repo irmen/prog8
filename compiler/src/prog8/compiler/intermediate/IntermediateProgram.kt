@@ -345,8 +345,8 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         }
     }
 
-    fun instr(opcode: Opcode, arg: Value? = null, callLabel: String? = null) {
-        currentBlock.instructions.add(Instruction(opcode, arg,  callLabel = callLabel))
+    fun instr(opcode: Opcode, arg: Value? = null, arg2: Value? = null, callLabel: String? = null, callLabel2: String? = null) {
+        currentBlock.instructions.add(Instruction(opcode, arg, arg2, callLabel, callLabel2))
     }
 
     fun label(labelname: String, asmProc: Boolean=false) {

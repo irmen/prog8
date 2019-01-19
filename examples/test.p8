@@ -1,54 +1,71 @@
 %import c64utils
-%import c64flt
 
 ~ main {
 
     sub start()  {
 
-        word[8] rotatedx = [11,33,55,77,22,44,66,88]
-        word[8] rotatedy = [11,33,55,77,22,44,66,88]
-        word[8] rotatedz = [1,3,-5,7,2,4,-6,8]
+        ubyte ub1
+        ubyte ub2
+        byte b1
+        byte b2
+        uword uw1
+        uword uw2
+        word w1
+        word w2
 
-        printarray()
+        ubyte[3] uba
+        byte[3] ba
+        uword[3] uwa
+        word[3] wa
 
-        c64scr.print_ub(X)
-        c64.CHROUT('\n')
+;        ub1 = ub2 & 44
+;        b1 = b2 & 44
+;        uw1 = uw2 & 4444
+;        w1 = w2 & 4444
+;        ub1 = ub2 | 44
+;        b1 = b2 | 44
+;        uw1 = uw2 | 4444
+;        w1 = w2 | 4444
+;        ub1 = ub2 ^ 44
+;        b1 = b2 ^ 44
+;        uw1 = uw2 ^ 4444
+;        w1 = w2 ^ 4444
+;
+;        ub1 = ub2 & ub1
+;        b1 = b2 & b1
+;        uw1 = uw2 & uw1
+;        w1 = w2 & w1
+;        ub1 = ub2 | ub1
+;        b1 = b2 | b1
+;        uw1 = uw2 | uw1
+;        w1 = w2 | w1
+;        ub1 = ub2 ^ ub1
+;        b1 = b2 ^ b1
+;        uw1 = uw2 ^ uw1
+;        w1 = w2 ^ w1
 
-        for ubyte sorti in 6 to 0 step -1 {
-            for ubyte i1 in 0 to sorti {
-                ubyte i2=i1+1
-                if(rotatedz[i2]>rotatedz[i1]) {
-                    swap(rotatedx[i1], rotatedx[i2])
-                    swap(rotatedy[i1], rotatedy[i2])
-                    swap(rotatedz[i1], rotatedz[i2])
-                }
-            }
-        }
+        swap(ub1, ub2)
+        swap(b1, b2)
+        swap(uw1, uw2)
+        swap(w1, w2)
 
-        c64scr.print_ub(X)
-        c64.CHROUT('\n')
+        swap(uba[0], uba[1])
+        swap(ba[0], ba[1])
+        swap(uwa[0], uwa[1])
+        swap(wa[0], wa[1])
 
-        printarray()
+        ; this goes without xor trick:
+        ubyte i1
+        ubyte i2
+        swap(uba[i1], uba[i2])
+        swap(ba[i1], ba[i2])
+        swap(uwa[i1], uwa[i2])
+        swap(wa[i1], wa[i2])
 
-
-        sub printarray() {
-            for word a in rotatedx {
-                c64scr.print_w(a)
-                c64.CHROUT(',')
-            }
-            c64.CHROUT('\n')
-            for word a in rotatedy {
-                c64scr.print_w(a)
-                c64.CHROUT(',')
-            }
-            c64.CHROUT('\n')
-            for word a in rotatedz {
-                c64scr.print_w(a)
-                c64.CHROUT(',')
-            }
-            c64.CHROUT('\n')
-            c64.CHROUT('\n')
-        }
+        swap(uba[1], ub1)
+        swap(uba[i1], ub1)
+        swap(uwa[1], uw1)
+        swap(uwa[i1], uw1)
     }
 
 

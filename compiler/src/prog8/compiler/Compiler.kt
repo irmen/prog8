@@ -398,7 +398,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         if(continueStmtLabelStack.empty())
             throw CompilerException("continue outside of loop statement block")
         val label = continueStmtLabelStack.peek()
-        prog.instr(Opcode.JUMP, null, label)
+        prog.instr(Opcode.JUMP, callLabel = label)
     }
 
     private fun translate(stmt: Break) {
@@ -406,7 +406,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         if(breakStmtLabelStack.empty())
             throw CompilerException("break outside of loop statement block")
         val label = breakStmtLabelStack.peek()
-        prog.instr(Opcode.JUMP, null, label)
+        prog.instr(Opcode.JUMP, callLabel = label)
     }
 
     private fun translate(branch: BranchStatement) {
@@ -930,7 +930,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         }
     }
 
-    private fun StatementTranslator.translateSwap(args: List<IExpression>) {
+    private fun translateSwap(args: List<IExpression>) {
         // swap(x,y) is treated differently, it's not a normal function call
         if (args.size != 2)
             throw AstException("swap requires 2 arguments")
@@ -940,63 +940,47 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             throw AstException("swap requires 2 args of identical type")
         if (args[0].constValue(namespace, heap) != null || args[1].constValue(namespace, heap) != null)
             throw AstException("swap requires 2 variables, not constant value(s)")
-        if (dt1 !in NumericDatatypes)
-            throw AstException("swap requires args of numerical type")
         if(same(args[0], args[1]))
             throw AstException("swap should have 2 different args")
+        if(dt1 !in NumericDatatypes)
+            throw AstException("swap requires args of numerical type")
+        // @todo implement these errors as nice AstChecker expression errors.
 
-        // @todo implement the above errors as nice AstChecker expression errors.
-        // @todo implement this more efficiently with using the xor trick instead of the stack!
-        // Swap(X,Y) :=
+        // eor trick:  Swap(X,Y) :=
         //        X ^= Y
         //        Y ^= X
         //        X ^= Y
-        // for floats, this doesn't work, use a temp variable instead.
+        // this trick is used when we're dealing with: (u)byte or (u)word variables, ... @todo
 
-        // pop first then second arg
-        translate(args[0])
-        translate(args[1])
-        // pop stack in reverse order
-        when {
-            args[0] is IdentifierReference -> {
-                val target = AssignTarget(null, args[0] as IdentifierReference, null, null, args[0].position)
-                popValueIntoTarget(target, dt1)
-            }
-            args[0] is RegisterExpr -> {
-                val target = AssignTarget((args[0] as RegisterExpr).register, null, null, null, args[0].position)
-                popValueIntoTarget(target, dt1)
-            }
-            args[0] is ArrayIndexedExpression -> {
-                val target = AssignTarget(null, null, args[0] as ArrayIndexedExpression, null, args[0].position)
-                popValueIntoTarget(target, dt1)
-            }
-            args[0] is DirectMemoryRead -> {
-                val target = AssignTarget(null, null, null, DirectMemoryWrite((args[0] as DirectMemoryRead).addressExpression, args[0].position), args[0].position)
-                popValueIntoTarget(target, dt1)
-            }
-            else -> TODO("unpop type ${args[0]}")
-        }
-
-        when {
-            args[1] is IdentifierReference -> {
-                val target = AssignTarget(null, args[1] as IdentifierReference, null, null, args[1].position)
-                popValueIntoTarget(target, dt2)
-            }
-            args[1] is RegisterExpr -> {
-                val target = AssignTarget((args[1] as RegisterExpr).register, null, null, null, args[1].position)
-                popValueIntoTarget(target, dt2)
-            }
-            args[1] is ArrayIndexedExpression -> {
-                val target = AssignTarget(null, null, args[1] as ArrayIndexedExpression, null, args[1].position)
-                popValueIntoTarget(target, dt2)
-            }
-            args[1] is DirectMemoryRead -> {
-                val target = AssignTarget(null, null, null, DirectMemoryWrite((args[1] as DirectMemoryRead).addressExpression, args[1].position), args[1].position)
-                popValueIntoTarget(target, dt2)
-            }
-            else -> TODO("unpop type ${args[1]}")
+        if(useEorTrickForSwap(dt1, args[0], args[1])) {
+            val xEorY = BinaryExpression(args[0], "^", args[1], args[0].position)
+            val yEorX = BinaryExpression(args[1], "^", args[0], args[1].position)
+            val xIsXeorY = Assignment(listOf(AssignTarget.fromExpr(args[0])), null, xEorY, args[0].position)
+            val yIsYeorX = Assignment(listOf(AssignTarget.fromExpr(args[1])), null, yEorX, args[1].position)
+            xIsXeorY.linkParents(args[0].parent)
+            yIsYeorX.linkParents(args[0].parent)
+            translate(xIsXeorY)
+            translate(yIsYeorX)
+            translate(xIsXeorY)
+        } else {
+            translate(args[0])
+            translate(args[1])
+            // pop in reverse order
+            popValueIntoTarget(AssignTarget.fromExpr(args[0]), dt1)
+            popValueIntoTarget(AssignTarget.fromExpr(args[1]), dt2)
         }
         return
+    }
+
+    private fun useEorTrickForSwap(dt: DataType, expr1: IExpression, expr2: IExpression): Boolean {
+        if(dt in IntegerDatatypes) {
+            if (expr1 is IdentifierReference && expr2 is IdentifierReference)
+                return true
+            if(expr1 is ArrayIndexedExpression && expr2 is ArrayIndexedExpression) {
+                return expr1.arrayspec.x is LiteralValue && expr2.arrayspec.x is LiteralValue
+            }
+        }
+        return false
     }
 
     private fun translateSubroutineCall(subroutine: Subroutine, arguments: List<IExpression>, callPosition: Position) {
@@ -1441,7 +1425,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             }
         }
         prog.line(stmt.position)
-        prog.instr(branchOpcode ?: Opcode.JUMP, jumpAddress, jumpLabel)
+        prog.instr(branchOpcode ?: Opcode.JUMP, jumpAddress, callLabel = jumpLabel)
     }
 
     private fun translate(stmt: PostIncrDecr) {
@@ -1544,28 +1528,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             }
         }
 
-        if(stmt.aug_op!=null) {
-            // augmented assignment
-            when {
-                assignTarget.identifier != null -> {
-                    val target = assignTarget.identifier.targetStatement(namespace)!!
-                    when(target) {
-                        is VarDecl -> {
-                            val opcode = opcodePushvar(assignTarget.determineDatatype(namespace, heap, stmt)!!)
-                            prog.instr(opcode, callLabel = target.scopedname)
-                        }
-                        else -> throw CompilerException("invalid assignment target type ${target::class}")
-                    }
-                }
-                assignTarget.register != null -> prog.instr(Opcode.PUSH_VAR_BYTE, callLabel = assignTarget.register.toString())
-                assignTarget.arrayindexed != null -> translate(assignTarget.arrayindexed, false)
-                assignTarget.memoryAddress != null -> {
-                    TODO("translate aug assign on memory address $stmt")
-                }
-            }
-
-            translateAugAssignOperator(stmt.aug_op, stmt.value.resultingDatatype(namespace, heap))
-        }
+        if(stmt.aug_op!=null)
+            throw CompilerException("augmented assignment should have been converted to regular assignment already")
 
         if(stmt.value is FunctionCall) {
             val sub = (stmt.value as FunctionCall).target.targetStatement(namespace)
@@ -1706,82 +1670,6 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             }
             else -> throw CompilerException("corrupt assigntarget $assignTarget")
         }
-    }
-
-    private fun translateAugAssignOperator(aug_op: String, valueDt: DataType?) {        // @todo: not used in practice? (all augassigns are converted to normal assigns)
-        if(valueDt==null)
-            throw CompilerException("value datatype not known")
-        val validDt = setOf(DataType.UBYTE, DataType.UWORD, DataType.FLOAT)
-        if(valueDt !in validDt)
-            throw CompilerException("invalid datatype(s) for operand(s)")
-        val opcode = when(aug_op) {
-            // @todo ... need more datatypes here?
-            "+=" -> {
-                when (valueDt) {
-                    DataType.UBYTE -> Opcode.ADD_UB
-                    DataType.UWORD -> Opcode.ADD_UW
-                    DataType.FLOAT -> Opcode.ADD_F
-                    else -> throw CompilerException("only byte/word/lfoat possible")
-                }
-            }
-            "-=" -> {
-                when (valueDt) {
-                    DataType.UBYTE -> Opcode.SUB_UB
-                    DataType.UWORD -> Opcode.SUB_UW
-                    DataType.FLOAT -> Opcode.SUB_F
-                    else -> throw CompilerException("only byte/word/lfoat possible")
-                }
-            }
-            "/=" -> {
-                when (valueDt) {
-                    DataType.UBYTE -> Opcode.IDIV_UB
-                    DataType.BYTE -> Opcode.IDIV_B
-                    DataType.UWORD -> Opcode.IDIV_UW
-                    DataType.WORD -> Opcode.IDIV_W
-                    DataType.FLOAT -> Opcode.DIV_F
-                    else -> throw CompilerException("only byte/word/lfoat possible")
-                }
-            }
-            "*=" -> {
-                when (valueDt) {
-                    DataType.UBYTE -> Opcode.MUL_UB
-                    DataType.UWORD -> Opcode.MUL_UW
-                    DataType.FLOAT -> Opcode.MUL_F
-                    else -> throw CompilerException("only byte/word/lfoat possible")
-                }
-            }
-            "**=" -> {
-                when (valueDt) {
-                    DataType.UBYTE -> Opcode.POW_UB
-                    DataType.UWORD -> Opcode.POW_UW
-                    DataType.FLOAT -> Opcode.POW_F
-                    else -> throw CompilerException("only byte/word/lfoat possible")
-                }
-            }
-            "&=" -> {
-                when(valueDt) {
-                    DataType.UBYTE, DataType.BYTE -> Opcode.BITAND_BYTE
-                    DataType.UWORD, DataType.WORD -> Opcode.BITAND_WORD
-                    else -> throw CompilerException("only byte/word possible")
-                }
-            }
-            "|=" -> {
-                when(valueDt) {
-                    DataType.UBYTE, DataType.BYTE -> Opcode.BITOR_BYTE
-                    DataType.UWORD, DataType.WORD -> Opcode.BITOR_WORD
-                    else -> throw CompilerException("only byte/word possible")
-                }
-            }
-            "^=" -> {
-                when(valueDt) {
-                    DataType.UBYTE, DataType.BYTE -> Opcode.BITXOR_BYTE
-                    DataType.UWORD, DataType.WORD -> Opcode.BITXOR_WORD
-                    else -> throw CompilerException("only byte/word possible")
-                }
-            }
-            else -> throw CompilerException("invalid aug assignment operator $aug_op")
-        }
-        prog.instr(opcode)
     }
 
     private fun translate(stmt: Return) {
