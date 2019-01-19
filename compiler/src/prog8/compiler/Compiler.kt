@@ -946,41 +946,12 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             throw AstException("swap requires args of numerical type")
         // @todo implement these errors as nice AstChecker expression errors.
 
-        // eor trick:  Swap(X,Y) :=
-        //        X ^= Y
-        //        Y ^= X
-        //        X ^= Y
-        // this trick is used when we're dealing with: (u)byte or (u)word variables, ... @todo
-
-        if(useEorTrickForSwap(dt1, args[0], args[1])) {
-            val xEorY = BinaryExpression(args[0], "^", args[1], args[0].position)
-            val yEorX = BinaryExpression(args[1], "^", args[0], args[1].position)
-            val xIsXeorY = Assignment(listOf(AssignTarget.fromExpr(args[0])), null, xEorY, args[0].position)
-            val yIsYeorX = Assignment(listOf(AssignTarget.fromExpr(args[1])), null, yEorX, args[1].position)
-            xIsXeorY.linkParents(args[0].parent)
-            yIsYeorX.linkParents(args[0].parent)
-            translate(xIsXeorY)
-            translate(yIsYeorX)
-            translate(xIsXeorY)
-        } else {
-            translate(args[0])
-            translate(args[1])
-            // pop in reverse order
-            popValueIntoTarget(AssignTarget.fromExpr(args[0]), dt1)
-            popValueIntoTarget(AssignTarget.fromExpr(args[1]), dt2)
-        }
+        translate(args[0])
+        translate(args[1])
+        // pop in reverse order
+        popValueIntoTarget(AssignTarget.fromExpr(args[0]), dt1)
+        popValueIntoTarget(AssignTarget.fromExpr(args[1]), dt2)
         return
-    }
-
-    private fun useEorTrickForSwap(dt: DataType, expr1: IExpression, expr2: IExpression): Boolean {
-        if(dt in IntegerDatatypes) {
-            if (expr1 is IdentifierReference && expr2 is IdentifierReference)
-                return true
-            if(expr1 is ArrayIndexedExpression && expr2 is ArrayIndexedExpression) {
-                return expr1.arrayspec.x is LiteralValue && expr2.arrayspec.x is LiteralValue
-            }
-        }
-        return false
     }
 
     private fun translateSubroutineCall(subroutine: Subroutine, arguments: List<IExpression>, callPosition: Position) {

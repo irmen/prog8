@@ -195,7 +195,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         vardecls2asm(block)
         out("")
 
-        val instructionPatternWindowSize = 7        // increase once patterns occur longer than this.
+        val instructionPatternWindowSize = 8        // increase once patterns occur longer than this.
         var processed = 0
 
         if(trace) println("BLOCK: ${block.scopedname}  ${block.address ?: ""}")
@@ -3312,7 +3312,195 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     val value = hexVal(segment[0])
                     " lda  #<$value |  sta  ${ESTACK_LO.toHex()},x |  lda  #>$value |  sta  ${ESTACK_HI.toHex()},x |  dex |  jsr  prog8_lib.mul_word"
                 }
+            },
+
+            // various variable or memory swaps
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.PUSH_VAR_BYTE, Opcode.POP_VAR_BYTE, Opcode.POP_VAR_BYTE)) { segment ->
+                val var1 = segment[0].callLabel
+                val var2 = segment[1].callLabel
+                val var3 = segment[2].callLabel
+                val var4 = segment[3].callLabel
+                if(var1==var3 && var2==var4) {
+                    """
+                    lda  $var1
+                    tay
+                    lda  $var2
+                    sta  $var1
+                    sty  $var2
+                    """
+                } else null
+            },
+            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.PUSH_VAR_WORD, Opcode.POP_VAR_WORD, Opcode.POP_VAR_WORD)) { segment ->
+                val var1 = segment[0].callLabel
+                val var2 = segment[1].callLabel
+                val var3 = segment[2].callLabel
+                val var4 = segment[3].callLabel
+                if(var1==var3 && var2==var4) {
+                    """
+                    lda  $var1
+                    tay
+                    lda  $var2
+                    sta  $var1
+                    sty  $var2
+                    lda  $var1+1
+                    tay
+                    lda  $var2+1
+                    sta  $var1+1
+                    sty  $var2+1
+                    """
+                } else null
+            },
+            AsmPattern(listOf(Opcode.PUSH_MEM_B, Opcode.PUSH_MEM_B, Opcode.POP_MEM_BYTE, Opcode.POP_MEM_BYTE),
+                    listOf(Opcode.PUSH_MEM_UB, Opcode.PUSH_MEM_UB, Opcode.POP_MEM_BYTE, Opcode.POP_MEM_BYTE)) { segment ->
+                val addr1 = segment[0].arg!!.integerValue()
+                val addr2 = segment[1].arg!!.integerValue()
+                val addr3 = segment[2].arg!!.integerValue()
+                val addr4 = segment[3].arg!!.integerValue()
+                if(addr1==addr3 && addr2==addr4) {
+                    """
+                    lda  ${addr1.toHex()}
+                    tay
+                    lda  ${addr2.toHex()}
+                    sta  ${addr1.toHex()}
+                    sty  ${addr2.toHex()}
+                    """
+                } else null
+            },
+            AsmPattern(listOf(Opcode.PUSH_MEM_W, Opcode.PUSH_MEM_W, Opcode.POP_MEM_WORD, Opcode.POP_MEM_WORD),
+                    listOf(Opcode.PUSH_MEM_UW, Opcode.PUSH_MEM_UW, Opcode.POP_MEM_WORD, Opcode.POP_MEM_WORD)) { segment ->
+                val addr1 = segment[0].arg!!.integerValue()
+                val addr2 = segment[1].arg!!.integerValue()
+                val addr3 = segment[2].arg!!.integerValue()
+                val addr4 = segment[3].arg!!.integerValue()
+                if(addr1==addr3 && addr2==addr4) {
+                    """
+                    lda  ${addr1.toHex()}
+                    tay
+                    lda  ${addr2.toHex()}
+                    sta  ${addr1.toHex()}
+                    sty  ${addr2.toHex()}
+                    lda  ${(addr1+1).toHex()}
+                    tay
+                    lda  ${(addr2+1).toHex()}
+                    sta  ${(addr1+1).toHex()}
+                    sty  ${(addr2+1).toHex()}
+                    """
+                } else null
+            },
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_BYTE,
+                    Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_BYTE, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_BYTE)) { segment ->
+                val i1 = segment[0].arg!!.integerValue()
+                val i2 = segment[2].arg!!.integerValue()
+                val i3 = segment[4].arg!!.integerValue()
+                val i4 = segment[6].arg!!.integerValue()
+                val array1 = segment[1].callLabel
+                val array2 = segment[3].callLabel
+                val array3 = segment[5].callLabel
+                val array4 = segment[7].callLabel
+                if(i1==i3 && i2==i4 && array1==array3 && array2==array4) {
+                    """
+                    lda  $array1+$i1
+                    tay
+                    lda  $array2+$i2
+                    sta  $array1+$i1
+                    sty  $array2+$i2
+                    """
+                } else null
+            },
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.READ_INDEXED_VAR_BYTE, Opcode.PUSH_VAR_BYTE, Opcode.READ_INDEXED_VAR_BYTE,
+                    Opcode.PUSH_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_BYTE, Opcode.PUSH_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_BYTE)) { segment ->
+                val vi1 = segment[0].callLabel
+                val vi2 = segment[2].callLabel
+                val vi3 = segment[4].callLabel
+                val vi4 = segment[6].callLabel
+                val array1 = segment[1].callLabel
+                val array2 = segment[3].callLabel
+                val array3 = segment[5].callLabel
+                val array4 = segment[7].callLabel
+                if(vi1==vi3 && vi2==vi4 && array1==array3 && array2==array4) {
+                    val load1 = loadAFromIndexedByVar(segment[0], segment[1])
+                    val load2 = loadAFromIndexedByVar(segment[2], segment[3])
+                    val storeIn1 = storeAToIndexedByVar(segment[0], segment[1])
+                    val storeIn2 = storeAToIndexedByVar(segment[2], segment[3])
+                    """
+                    $load1
+                    pha
+                    $load2
+                    $storeIn1
+                    pla
+                    $storeIn2
+                    """
+                } else null
+            },
+            AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_WORD, Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_WORD,
+                    Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_WORD, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
+                val i1 = segment[0].arg!!.integerValue()*2
+                val i2 = segment[2].arg!!.integerValue()*2
+                val i3 = segment[4].arg!!.integerValue()*2
+                val i4 = segment[6].arg!!.integerValue()*2
+                val array1 = segment[1].callLabel
+                val array2 = segment[3].callLabel
+                val array3 = segment[5].callLabel
+                val array4 = segment[7].callLabel
+                if(i1==i3 && i2==i4 && array1==array3 && array2==array4) {
+                    """
+                    lda  $array1+$i1
+                    tay
+                    lda  $array2+$i2
+                    sta  $array1+$i1
+                    sty  $array2+$i2
+                    lda  $array1+${i1+1}
+                    tay
+                    lda  $array2+${i2+1}
+                    sta  $array1+${i1+1}
+                    sty  $array2+${i2+1}
+                    """
+                } else null
+            },
+            AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.READ_INDEXED_VAR_WORD, Opcode.PUSH_VAR_BYTE, Opcode.READ_INDEXED_VAR_WORD,
+                    Opcode.PUSH_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_WORD, Opcode.PUSH_VAR_BYTE, Opcode.WRITE_INDEXED_VAR_WORD)) { segment ->
+                val vi1 = segment[0].callLabel
+                val vi2 = segment[2].callLabel
+                val vi3 = segment[4].callLabel
+                val vi4 = segment[6].callLabel
+                val array1 = segment[1].callLabel
+                val array2 = segment[3].callLabel
+                val array3 = segment[5].callLabel
+                val array4 = segment[7].callLabel
+                if(vi1==vi3 && vi2==vi4 && array1==array3 && array2==array4) {
+                    //  SCRATCH_B1 = index1
+                    //  SCRATCH_REG = index2
+                    //  SCRATCH_W1 = temp storage of array[index2]
+                    """
+                    lda  ${segment[0].callLabel}
+                    asl  a
+                    sta  ${C64Zeropage.SCRATCH_B1}
+                    lda  ${segment[2].callLabel}
+                    asl  a
+                    sta  ${C64Zeropage.SCRATCH_REG}
+                    stx  ${C64Zeropage.SCRATCH_REG_X}
+                    tax
+                    lda  ${segment[3].callLabel},x
+                    ldy  ${segment[3].callLabel}+1,x
+                    sta  ${C64Zeropage.SCRATCH_W1}
+                    sty  ${C64Zeropage.SCRATCH_W1}+1
+                    ldx  ${C64Zeropage.SCRATCH_B1}
+                    lda  ${segment[1].callLabel},x
+                    ldy  ${segment[1].callLabel}+1,x
+                    ldx  ${C64Zeropage.SCRATCH_REG}
+                    sta  ${segment[3].callLabel},x
+                    tya
+                    sta  ${segment[3].callLabel}+1,x
+                    ldx  ${C64Zeropage.SCRATCH_B1}
+                    lda  ${C64Zeropage.SCRATCH_W1}
+                    sta  ${segment[1].callLabel},x
+                    lda  ${C64Zeropage.SCRATCH_W1}+1
+                    sta  ${segment[1].callLabel}+1,x
+                    ldx  ${C64Zeropage.SCRATCH_REG_X}
+                    """
+                } else null
             }
+
 
     )
 

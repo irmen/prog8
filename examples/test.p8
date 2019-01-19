@@ -13,10 +13,19 @@
         word w1
         word w2
 
-        ubyte[3] uba
-        byte[3] ba
-        uword[3] uwa
-        word[3] wa
+        memory ubyte mub1 = $c000
+        memory ubyte mub2 = $c001
+        memory uword muw1 = $c100
+        memory uword muw2 = $c102
+
+        ubyte[3] uba1
+        byte[3] ba1
+        uword[3] uwa1
+        word[3] wa1
+        ubyte[3] uba2
+        byte[3] ba2
+        uword[3] uwa2
+        word[3] wa2
 
 ;        ub1 = ub2 & 44
 ;        b1 = b2 & 44
@@ -48,24 +57,28 @@
         swap(b1, b2)
         swap(uw1, uw2)
         swap(w1, w2)
+        swap(@($d020), @($d021))
+        swap(mub1, mub2)
+        swap(muw1, muw2)
+        swap(mub1, ub2)
+        swap(muw1, uw2)
 
-        swap(uba[0], uba[1])
-        swap(ba[0], ba[1])
-        swap(uwa[0], uwa[1])
-        swap(wa[0], wa[1])
+        swap(uba1[1], uba2[2])
+        swap(ba1[1], ba2[2])
+        swap(uwa1[1], uwa2[2])
+        swap(wa1[1], wa2[2])
 
-        ; this goes without xor trick:
         ubyte i1
         ubyte i2
-        swap(uba[i1], uba[i2])
-        swap(ba[i1], ba[i2])
-        swap(uwa[i1], uwa[i2])
-        swap(wa[i1], wa[i2])
+        swap(uba1[i1], uba2[i2])
+        swap(ba1[i1], ba2[i2])
+        swap(uwa1[i1], uwa2[i2])
+        swap(wa1[i1], wa2[i2])
 
-        swap(uba[1], ub1)
-        swap(uba[i1], ub1)
-        swap(uwa[1], uw1)
-        swap(uwa[i1], uw1)
+        swap(uba1[1], ub1)
+        swap(uba1[i1], ub1)
+        swap(uwa1[1], uw1)
+        swap(uwa1[i1], uw1)
     }
 
 
