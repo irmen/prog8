@@ -45,103 +45,142 @@
 		memory  ubyte[8]  SPRPTR	= 2040		; the 8 sprite pointers as an array.
  
 
-; ---- VIC-II registers ----
+; ---- VIC-II 6567/6569/856x registers ----
 
-		memory  ubyte SP0X		= $d000
-		memory  ubyte SP0Y		= $d001
-		memory  ubyte SP1X		= $d002
-		memory  ubyte SP1Y		= $d003
-		memory  ubyte SP2X		= $d004
-		memory  ubyte SP2Y		= $d005
-		memory  ubyte SP3X		= $d006
-		memory  ubyte SP3Y		= $d007
-		memory  ubyte SP4X		= $d008
-		memory  ubyte SP4Y		= $d009
-		memory  ubyte SP5X		= $d00a
-		memory  ubyte SP5Y		= $d00b
-		memory  ubyte SP6X		= $d00c
-		memory  ubyte SP6Y		= $d00d
-		memory  ubyte SP7X		= $d00e
-		memory  ubyte SP7Y		= $d00f
-		memory  ubyte[16] SPXY		= $d000		; the 8 sprite X and Y registers as an array.
-		memory  uword[8] SPXYW		= $d000		; the 8 sprite X and Y registers as a combined xy word array.
+		memory  ubyte  SP0X		= $d000
+		memory  ubyte  SP0Y		= $d001
+		memory  ubyte  SP1X		= $d002
+		memory  ubyte  SP1Y		= $d003
+		memory  ubyte  SP2X		= $d004
+		memory  ubyte  SP2Y		= $d005
+		memory  ubyte  SP3X		= $d006
+		memory  ubyte  SP3Y		= $d007
+		memory  ubyte  SP4X		= $d008
+		memory  ubyte  SP4Y		= $d009
+		memory  ubyte  SP5X		= $d00a
+		memory  ubyte  SP5Y		= $d00b
+		memory  ubyte  SP6X		= $d00c
+		memory  ubyte  SP6Y		= $d00d
+		memory  ubyte  SP7X		= $d00e
+		memory  ubyte  SP7Y		= $d00f
+		memory  ubyte[16]  SPXY		= $d000		; the 8 sprite X and Y registers as an array.
+		memory  uword[8]  SPXYW		= $d000		; the 8 sprite X and Y registers as a combined xy word array.
 
-		memory  ubyte MSIGX		= $d010
-		memory  ubyte SCROLY		= $d011
-		memory  ubyte RASTER		= $d012
-		memory  ubyte LPENX		= $d013
-		memory  ubyte LPENY		= $d014
-		memory  ubyte SPENA		= $d015
-		memory  ubyte SCROLX		= $d016
-		memory  ubyte YXPAND		= $d017
-		memory  ubyte VMCSB		= $d018
-		memory  ubyte VICIRQ		= $d019
-		memory  ubyte IREQMASK		= $d01a
-		memory  ubyte SPBGPR		= $d01b
-		memory  ubyte SPMC		= $d01c
-		memory  ubyte XXPAND		= $d01d
-		memory  ubyte SPSPCL		= $d01e
-		memory  ubyte SPBGCL		= $d01f
+		memory  ubyte  MSIGX		= $d010
+		memory  ubyte  SCROLY		= $d011
+		memory  ubyte  RASTER		= $d012
+		memory  ubyte  LPENX		= $d013
+		memory  ubyte  LPENY		= $d014
+		memory  ubyte  SPENA		= $d015
+		memory  ubyte  SCROLX		= $d016
+		memory  ubyte  YXPAND		= $d017
+		memory  ubyte  VMCSB		= $d018
+		memory  ubyte  VICIRQ		= $d019
+		memory  ubyte  IREQMASK		= $d01a
+		memory  ubyte  SPBGPR		= $d01b
+		memory  ubyte  SPMC		= $d01c
+		memory  ubyte  XXPAND		= $d01d
+		memory  ubyte  SPSPCL		= $d01e
+		memory  ubyte  SPBGCL		= $d01f
 
-		memory  ubyte EXTCOL		= $d020		; border color
-		memory  ubyte BGCOL0		= $d021		; screen color
-		memory  ubyte BGCOL1		= $d022
-		memory  ubyte BGCOL2		= $d023
-		memory  ubyte BGCOL4		= $d024
-		memory  ubyte SPMC0		= $d025
-		memory  ubyte SPMC1		= $d026
-		memory  ubyte SP0COL		= $d027
-		memory  ubyte SP1COL		= $d028
-		memory  ubyte SP2COL		= $d029
-		memory  ubyte SP3COL		= $d02a
-		memory  ubyte SP4COL		= $d02b
-		memory  ubyte SP5COL		= $d02c
-		memory  ubyte SP6COL		= $d02d
-		memory  ubyte SP7COL		= $d02e
-		memory  ubyte[8] SPCOL		= $d027
+		memory  ubyte  EXTCOL		= $d020		; border color
+		memory  ubyte  BGCOL0		= $d021		; screen color
+		memory  ubyte  BGCOL1		= $d022
+		memory  ubyte  BGCOL2		= $d023
+		memory  ubyte  BGCOL4		= $d024
+		memory  ubyte  SPMC0		= $d025
+		memory  ubyte  SPMC1		= $d026
+		memory  ubyte  SP0COL		= $d027
+		memory  ubyte  SP1COL		= $d028
+		memory  ubyte  SP2COL		= $d029
+		memory  ubyte  SP3COL		= $d02a
+		memory  ubyte  SP4COL		= $d02b
+		memory  ubyte  SP5COL		= $d02c
+		memory  ubyte  SP6COL		= $d02d
+		memory  ubyte  SP7COL		= $d02e
+		memory  ubyte[8]  SPCOL		= $d027
 		
 
 ; ---- end of VIC-II registers ----
 
-; ---- CIA 1 & 2 registers ----
+; ---- CIA 6526 1 & 2 registers ----
 
-		memory  ubyte CIA1PRA		= $DC00		; CIA 1 DRA, keyboard column drive
-		memory  ubyte CIA1PRB		= $DC01		; CIA 1 DRB, keyboard row port
-		memory  ubyte CIA1DDRA		= $DC02		; CIA 1 DDRA, keyboard column
-		memory  ubyte CIA1DDRB		= $DC03		; CIA 1 DDRB, keyboard row
-		memory  ubyte CIA1TALO		= $DC04		; CIA 1 timer A low byte
-		memory  ubyte CIA1TAHI		= $DC05		; CIA 1 timer A high byte
-		memory  ubyte CIA1TBLO		= $DC06		; CIA 1 timer B low byte
-		memory  ubyte CIA1TBHI		= $DC07		; CIA 1 timer B high byte
-		memory  ubyte CIA1TOD10		= $DC08		; time of day, 1/10 sec.
-		memory  ubyte CIA1TODS		= $DC09		; time of day, seconds
-		memory  ubyte CIA1TODM		= $DC0A		; time of day, minutes
-		memory  ubyte CIA1TODH		= $DC0B		; time of day, hours
-		memory  ubyte CIA1SDR		= $DC0C		; Serial Data Register
-		memory  ubyte CIA1ICR		= $DC0D
-		memory  ubyte CIA1CRA		= $DC0E
-		memory  ubyte CIA1CRB		= $DC0F
+		memory  ubyte  CIA1PRA		= $DC00		; CIA 1 DRA, keyboard column drive
+		memory  ubyte  CIA1PRB		= $DC01		; CIA 1 DRB, keyboard row port
+		memory  ubyte  CIA1DDRA		= $DC02		; CIA 1 DDRA, keyboard column
+		memory  ubyte  CIA1DDRB		= $DC03		; CIA 1 DDRB, keyboard row
+		memory  ubyte  CIA1TAL		= $DC04		; CIA 1 timer A low byte
+		memory  ubyte  CIA1TAH		= $DC05		; CIA 1 timer A high byte
+		memory  ubyte  CIA1TBL		= $DC06		; CIA 1 timer B low byte
+		memory  ubyte  CIA1TBH		= $DC07		; CIA 1 timer B high byte
+		memory  ubyte  CIA1TOD10	= $DC08		; time of day, 1/10 sec.
+		memory  ubyte  CIA1TODSEC	= $DC09		; time of day, seconds
+		memory  ubyte  CIA1TODMMIN	= $DC0A		; time of day, minutes
+		memory  ubyte  CIA1TODHR	= $DC0B		; time of day, hours
+		memory  ubyte  CIA1SDR		= $DC0C		; Serial Data Register
+		memory  ubyte  CIA1ICR		= $DC0D
+		memory  ubyte  CIA1CRA		= $DC0E
+		memory  ubyte  CIA1CRB		= $DC0F
 
-		memory  ubyte CIA2PRA		= $DD00		; CIA 2 DRA, serial port and video address
-		memory  ubyte CIA2PRB		= $DD01		; CIA 2 DRB, RS232 port / USERPORT
-		memory  ubyte CIA2DDRA		= $DD02		; CIA 2 DDRA, serial port and video address
-		memory  ubyte CIA2DDRB		= $DD03		; CIA 2 DDRB, RS232 port / USERPORT
-		memory  ubyte CIA2TALO		= $DD04		; CIA 2 timer A low byte
-		memory  ubyte CIA2TAHI		= $DD05		; CIA 2 timer A high byte
-		memory  ubyte CIA2TBLO		= $DD06		; CIA 2 timer B low byte
-		memory  ubyte CIA2TBHI		= $DD07		; CIA 2 timer B high byte
-		memory  ubyte CIA2TOD10		= $DD08		; time of day, 1/10 sec.
-		memory  ubyte CIA2TODS		= $DD09		; time of day, seconds
-		memory  ubyte CIA2TODM		= $DD0A		; time of day, minutes
-		memory  ubyte CIA2TODH		= $DD0B		; time of day, hours
-		memory  ubyte CIA2SDR		= $DD0C		; Serial Data Register
-		memory  ubyte CIA2ICR		= $DD0D
-		memory  ubyte CIA2CRA		= $DD0E
-		memory  ubyte CIA2CRB		= $DD0F
+		memory  ubyte  CIA2PRA		= $DD00		; CIA 2 DRA, serial port and video address
+		memory  ubyte  CIA2PRB		= $DD01		; CIA 2 DRB, RS232 port / USERPORT
+		memory  ubyte  CIA2DDRA		= $DD02		; CIA 2 DDRA, serial port and video address
+		memory  ubyte  CIA2DDRB		= $DD03		; CIA 2 DDRB, RS232 port / USERPORT
+		memory  ubyte  CIA2TAL		= $DD04		; CIA 2 timer A low byte
+		memory  ubyte  CIA2TAH		= $DD05		; CIA 2 timer A high byte
+		memory  ubyte  CIA2TBL		= $DD06		; CIA 2 timer B low byte
+		memory  ubyte  CIA2TBH		= $DD07		; CIA 2 timer B high byte
+		memory  ubyte  CIA2TOD10	= $DD08		; time of day, 1/10 sec.
+		memory  ubyte  CIA2TODSEC	= $DD09		; time of day, seconds
+		memory  ubyte  CIA2TODMIN	= $DD0A		; time of day, minutes
+		memory  ubyte  CIA2TODHR	= $DD0B		; time of day, hours
+		memory  ubyte  CIA2SDR		= $DD0C		; Serial Data Register
+		memory  ubyte  CIA2ICR		= $DD0D
+		memory  ubyte  CIA2CRA		= $DD0E
+		memory  ubyte  CIA2CRB		= $DD0F
 
 ; ---- end of CIA registers ----
 
-; @todo SID sound chip registers
+; ---- SID 6581/8580 registers ----
+
+		memory  ubyte  FREQLO1		= $D400		; channel 1 freq lo
+		memory	ubyte  FREQHI1		= $D401		; channel 1 freq hi
+		memory  uword  FREQ1		= $D400		; channel 1 freq (word)
+		memory  ubyte  PWLO1		= $D402		; channel 1 pulse width lo (7-0)
+		memory  ubyte  PWHI1		= $D403		; channel 1 pulse width hi (11-8)
+		memory  uword  PW1		= $D402		; channel 1 pulse width (word)
+		memory  ubyte  CR1		= $D404		; channel 1 voice control register
+		memory  ubyte  AD1		= $D405		; channel 1 attack & decay
+		memory  ubyte  SR1		= $D406		; channel 1 sustain & release
+		memory  ubyte  FREQLO2		= $D407		; channel 2 freq lo
+		memory	ubyte  FREQHI2		= $D408		; channel 2 freq hi
+		memory  uword  FREQ2		= $D407		; channel 2 freq (word)
+		memory  ubyte  PWLO2		= $D409		; channel 2 pulse width lo (7-0)
+		memory  ubyte  PWHI2		= $D40A		; channel 2 pulse width hi (11-8)
+		memory  uword  PW2		= $D409		; channel 2 pulse width (word)
+		memory  ubyte  CR2		= $D40B		; channel 2 voice control register
+		memory  ubyte  AD2		= $D40C		; channel 2 attack & decay
+		memory  ubyte  SR2		= $D40D		; channel 2 sustain & release
+		memory  ubyte  FREQLO3		= $D40E		; channel 3 freq lo
+		memory	ubyte  FREQHI3		= $D40F		; channel 3 freq hi
+		memory  uword  FREQ3		= $D40E		; channel 3 freq (word)
+		memory  ubyte  PWLO3		= $D410		; channel 3 pulse width lo (7-0)
+		memory  ubyte  PWHI3		= $D411		; channel 3 pulse width hi (11-8)
+		memory  uword  PW3		= $D410		; channel 3 pulse width (word)
+		memory  ubyte  CR3		= $D412		; channel 3 voice control register
+		memory  ubyte  AD3		= $D413		; channel 3 attack & decay
+		memory  ubyte  SR3		= $D414		; channel 3 sustain & release
+		memory  ubyte  FCLO		= $D415		; filter cutoff lo (2-0)
+		memory  ubyte  FCHI		= $D416		; filter cutoff hi (10-3)
+		memory  uword  FC		= $D415		; filter cutoff (word)
+		memory  ubyte  RESFILT		= $D417		; filter resonance and routing
+		memory  ubyte  MVOL		= $D418		; filter mode and main volume control
+		memory  ubyte  POTX		= $D419		; potentiometer X
+		memory  ubyte  POTY		= $D41A		; potentiometer Y
+		memory  ubyte  OSC3		= $D41B		; channel 3 oscillator value read
+		memory  ubyte  ENV3		= $D41C		; channel 3 envelope value read
+
+; ---- end of SID registers ----
 
 
 
