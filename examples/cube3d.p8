@@ -29,7 +29,7 @@
             anglex+=1000
             angley+=433
             anglez+=907
-            c64.PLOT(0,0,0)
+            c64scr.PLOT(0,0)
             c64scr.print("3d cube! (integer) ")
             c64scr.print_ub(c64.TIME_LO)
             c64scr.print(" jiffies/frame")

@@ -611,8 +611,8 @@ class AstChecker(private val namespace: INameScope,
             }
             "%asminclude" -> {
                 if(directive.parent !is INameScope || directive.parent is Module) err("this directive may only occur in a block")
-                if(directive.args.size!=2 || directive.args[0].str==null || directive.args[1].name==null)
-                    err("invalid asminclude directive, expected arguments: \"filename\", scopelabel")
+                if(directive.args.size!=2 || directive.args[0].str==null || directive.args[1].str==null)
+                    err("invalid asminclude directive, expected arguments: \"filename\", \"scopelabel\"")
             }
             "%asmbinary" -> {
                 if(directive.parent !is INameScope || directive.parent is Module) err("this directive may only occur in a block")

@@ -6,7 +6,12 @@ import prog8.compiler.intermediate.IntermediateProgram
 import prog8.compiler.intermediate.Opcode
 import prog8.compiler.intermediate.Value
 import prog8.optimizing.same
+import prog8.parser.tryGetEmbeddedResource
 import prog8.stackvm.Syscall
+import java.io.File
+import java.io.InputStream
+import java.io.InputStreamReader
+import java.nio.file.Paths
 import java.util.*
 import kotlin.math.abs
 
@@ -220,8 +225,8 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 is Return -> translate(stmt)
                 is Directive -> {
                     when(stmt.directive) {
-                        "%asminclude" -> throw CompilerException("can't use %asminclude in stackvm")
-                        "%asmbinary" -> throw CompilerException("can't use %asmbinary in stackvm")
+                        "%asminclude" -> translateAsmInclude(stmt.args)
+                        "%asmbinary" -> translateAsmBinary(stmt.args)
                         "%breakpoint" -> {
                             prog.line(stmt.position)
                             prog.instr(Opcode.BREAKPOINT)
@@ -959,6 +964,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         var restoreX = Register.X in subroutine.asmClobbers
         if(restoreX)
             prog.instr(Opcode.RSAVEX)
+        // We don't bother about saving A and Y. They're considered expendable.
 
         if(subroutine.isAsmSubroutine) {
             if(subroutine.parameters.size!=subroutine.asmParameterRegisters.size)
@@ -2183,6 +2189,26 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             translate(memwrite.addressExpression)
             prog.instr(Opcode.POP_MEMWRITE)
         }
+    }
+
+    private fun translateAsmInclude(args: List<DirectiveArg>) {
+        val scopeprefix = if(args[1].str!!.isNotBlank()) "${args[1].str}\t.proc\n" else ""
+        val scopeprefixEnd = if(args[1].str!!.isNotBlank()) "\t.pend\n" else ""
+        val filename=args[0].str!!
+        val sourcecode =
+                if(filename.startsWith("library:")) {
+                    val resource = tryGetEmbeddedResource(filename.substring(8)) ?: throw IllegalArgumentException("library file '$filename' not found")
+                    resource.bufferedReader().use { it.readText() }
+                } else {
+                    // TODO: look in directory of parent source file first
+                    File(filename).readText()
+                }
+
+        prog.instr(Opcode.INLINE_ASSEMBLY, callLabel=scopeprefix+sourcecode+scopeprefixEnd)
+    }
+
+    private fun translateAsmBinary(args: List<DirectiveArg>) {
+        TODO("asmbinary not implemented $args")
     }
 
 }

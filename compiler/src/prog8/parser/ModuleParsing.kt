@@ -5,6 +5,8 @@ import prog8.ast.*
 import prog8.compiler.LauncherType
 import prog8.compiler.OutputType
 import prog8.determineCompilationOptions
+import java.io.InputStream
+import java.net.URL
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -52,7 +54,9 @@ fun importModule(stream: CharStream, moduleName: String, isLibrary: Boolean): Mo
             lines.add(0, Directive("%import", listOf(DirectiveArg(null, "c64utils", null, moduleAst.position)), moduleAst.position))
         }
     }
-    // always import the prog8 compiler library
+    // always import the prog8lib and math compiler libraries
+    if(!moduleAst.position.file.startsWith("math."))
+        lines.add(0, Directive("%import", listOf(DirectiveArg(null, "math", null, moduleAst.position)), moduleAst.position))
     if(!moduleAst.position.file.startsWith("prog8lib."))
         lines.add(0, Directive("%import", listOf(DirectiveArg(null, "prog8lib", null, moduleAst.position)), moduleAst.position))
 
@@ -118,7 +122,6 @@ private fun discoverImportedModuleFile(name: String, importedFrom: Path, positio
     throw ParsingFailedError("$position Import: no module source file '$fileName' found  (I've looked in: $locations)")
 }
 
-
 private fun executeImportDirective(import: Directive, importedFrom: Path): Module? {
     if(import.directive!="%import" || import.args.size!=1 || import.args[0].name==null)
         throw SyntaxError("invalid import directive", import.position)
@@ -128,11 +131,11 @@ private fun executeImportDirective(import: Directive, importedFrom: Path): Modul
     if(importedModules.containsKey(moduleName))
         return null
 
-    val resource = import::class.java.getResource("/prog8lib/$moduleName.p8")
+    val resource = tryGetEmbeddedResource(moduleName+".p8")
     val importedModule =
         if(resource!=null) {
             // load the module from the embedded resource
-            resource.openStream().use {
+            resource.use {
                 println("importing '$moduleName' (embedded library)")
                 importModule(CharStreams.fromStream(it), moduleName, true)
             }
@@ -143,4 +146,8 @@ private fun executeImportDirective(import: Directive, importedFrom: Path): Modul
 
     importedModule.checkImportedValid()
     return importedModule
+}
+
+fun tryGetEmbeddedResource(name: String): InputStream? {
+    return object{}.javaClass.getResourceAsStream("/prog8lib/$name")
 }

@@ -37,11 +37,13 @@ fun main(args: Array<String>) {
 }
 
 private fun compileMain(args: Array<String>) {
-    var startEmu = false
+    var emulatorToStart = ""
     var moduleFile = ""
     for (arg in args) {
         if(arg=="--emu")
-            startEmu = true
+            emulatorToStart = "x64"
+        else if(arg=="--emu2")
+            emulatorToStart = "x64sc"
         else if(!arg.startsWith("--"))
             moduleFile = arg
     }
@@ -139,9 +141,9 @@ private fun compileMain(args: Array<String>) {
         throw x
     }
 
-    if(startEmu) {
-        println("\nStarting C64 emulator...")
-        val cmdline = listOf("x64sc", "-silent", "-moncommands", "$programname.vice-mon-list",
+    if(emulatorToStart.isNotEmpty()) {
+        println("\nStarting C-64 emulator $emulatorToStart...")
+        val cmdline = listOf(emulatorToStart, "-silent", "-moncommands", "$programname.vice-mon-list",
                 "-autostartprgmode", "1", "-autostart-warp", "-autostart", programname+".prg")
         val process = ProcessBuilder(cmdline).inheritIO().start()
         process.waitFor()
@@ -184,7 +186,8 @@ fun determineCompilationOptions(moduleAst: Module): CompilationOptions {
 
 private fun usage() {
     System.err.println("Missing argument(s):")
-    System.err.println("    [--emu]       auto-start the C64 emulator after successful compilation")
+    System.err.println("    [--emu]       auto-start the 'x64' C-64 emulator after successful compilation")
+    System.err.println("    [--emu2]      auto-start the 'x64sc' C-64 emulator after successful compilation")
     System.err.println("    [--vm]        launch the prog8 virtual machine instead of the compiler")
     System.err.println("    modulefile    main module file to compile")
     exitProcess(1)

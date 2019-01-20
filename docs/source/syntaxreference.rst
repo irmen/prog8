@@ -120,7 +120,7 @@ Directives
         The assembler will include the file as binary bytes at this point, prog8 will not process this at all.
         The optional offset and length can be used to select a particular piece of the file.
 
-.. data:: %asminclude "<filename>", scopelabel
+.. data:: %asminclude "<filename>", "scopelabel"
 
 	Level: block.
         This directive can only be used inside a block.
@@ -128,6 +128,7 @@ Directives
         prog8 will not process this at all, with one exception: the labels.
         The scopelabel argument will be used as a prefix to access the labels from the included source code,
         otherwise you would risk symbol redefinitions or duplications.
+        If you know what you are doing you can leave it as an empty string to not have a scope prefix.
 
 .. data:: %breakpoint
 

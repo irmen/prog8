@@ -44,10 +44,10 @@ sub start() {
 
     sub print_notes(ubyte n1, ubyte n2) {
         c64.CHROUT('\n')
-        c64.PLOT(0, n1/2, 24)
+        c64scr.PLOT(n1/2, 24)
         c64.COLOR=7
         c64.CHROUT('Q')
-        c64.PLOT(0, n2/2, 24)
+        c64scr.PLOT(n2/2, 24)
         c64.COLOR=4
         c64.CHROUT('Q')
     }

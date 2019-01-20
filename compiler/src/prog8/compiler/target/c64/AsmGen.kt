@@ -423,7 +423,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.DISCARD_BYTE -> " inx"
             Opcode.DISCARD_WORD -> " inx"
             Opcode.DISCARD_FLOAT -> " inx |  inx |  inx"
-            Opcode.INLINE_ASSEMBLY ->  "@inline@" + (ins.callLabel ?: "")      // All of the inline assembly is stored in the calllabel property.
+            Opcode.INLINE_ASSEMBLY ->  "@inline@" + (ins.callLabel ?: "")      // All of the inline assembly is stored in the calllabel property. the '@inline@' is a special marker to process it.
             Opcode.SYSCALL -> {
                 if (ins.arg!!.numericValue() in syscallsForStackVm.map { it.callNr })
                     throw CompilerException("cannot translate vm syscalls to real assembly calls - use *real* subroutine calls instead. Syscall ${ins.arg.numericValue()}")
@@ -965,18 +965,22 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             }
         }
 
-        for(pattern in patterns.filter { it.sequence.size <= segment.size || (it.altSequence != null && it.altSequence.size <= segment.size)}) {
-            val opcodesList = if(pattern.sequence.size<=opcodes.size) opcodes.subList(0, pattern.sequence.size) else null
-            val opcodesListAlt = if(pattern.altSequence!=null && pattern.altSequence.size<=opcodes.size) opcodes.subList(0, pattern.altSequence.size) else null
-
+        // add any matching patterns from the big list
+        for(pattern in patterns) {
+            if(pattern.sequence.size > segment.size || (pattern.altSequence!=null && pattern.altSequence.size > segment.size))
+                continue        //  don't process patterns that don't fit
+            val opcodesList = opcodes.subList(0, pattern.sequence.size)
             if(pattern.sequence == opcodesList) {
                 val asm = pattern.asm(segment)
                 if(asm!=null)
                     result.add(AsmFragment(asm, pattern.sequence.size))
-            } else if(opcodesListAlt!=null && pattern.altSequence == opcodesListAlt) {
-                val asm = pattern.asm(segment)
-                if(asm!=null)
-                    result.add(AsmFragment(asm, pattern.sequence.size))
+            } else if(pattern.altSequence!=null) {
+                val opcodesListAlt = opcodes.subList(0, pattern.altSequence.size)
+                if(pattern.altSequence == opcodesListAlt) {
+                    val asm = pattern.asm(segment)
+                    if (asm != null)
+                        result.add(AsmFragment(asm, pattern.sequence.size))
+                }
             }
         }
 
