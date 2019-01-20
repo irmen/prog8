@@ -84,7 +84,7 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
 
     private fun returnregisters(subroutine: Subroutine): List<RegisterOrStatusflag> {
         return when {
-            subroutine.returntypes.size==0 -> listOf()
+            subroutine.returntypes.isEmpty() -> listOf()
             subroutine.returntypes.size==1 && subroutine.returntypes[0] in setOf(DataType.BYTE, DataType.UBYTE) -> listOf(RegisterOrStatusflag(RegisterOrPair.A, null, null))
             subroutine.returntypes.size==1 && subroutine.returntypes[0] in setOf(DataType.WORD, DataType.UWORD) -> listOf(RegisterOrStatusflag(RegisterOrPair.AY, null, null))
             subroutine.returntypes.size==2 && subroutine.returntypes.all { it in setOf(DataType.BYTE, DataType.UBYTE)} -> listOf(RegisterOrStatusflag(RegisterOrPair.A, null, null), RegisterOrStatusflag(RegisterOrPair.Y, null, null))

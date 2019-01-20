@@ -10,10 +10,7 @@ import prog8.compiler.*
 import prog8.compiler.intermediate.Value
 import prog8.compiler.target.c64.*
 import java.io.CharConversionException
-import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
+import kotlin.test.*
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -324,8 +321,8 @@ class TestPetscii {
     fun testLiteralValueComparisons() {
         val ten = LiteralValue(DataType.UWORD, wordvalue=10, position=Position("", 0 ,0 ,0))
         val nine = LiteralValue(DataType.UBYTE, bytevalue=9, position=Position("", 0 ,0 ,0))
-        assertTrue(ten == ten)
-        assertFalse(ten == nine)
+        assertEquals(ten, ten)
+        assertNotEquals(ten, nine)
         assertFalse(ten != ten)
         assertTrue(ten != nine)
 
@@ -341,7 +338,7 @@ class TestPetscii {
 
         val abc = LiteralValue(DataType.STR, strvalue = "abc", position=Position("", 0 ,0 ,0))
         val abd = LiteralValue(DataType.STR, strvalue = "abd", position=Position("", 0 ,0 ,0))
-        assertTrue(abc==abc)
+        assertEquals(abc, abc)
         assertTrue(abc!=abd)
         assertFalse(abc!=abc)
         assertTrue(abc < abd)
@@ -356,8 +353,8 @@ class TestPetscii {
     fun testStackvmValueComparisons() {
         val ten = Value(DataType.FLOAT, 10)
         val nine = Value(DataType.UWORD, 9)
-        assertTrue(ten == ten)
-        assertFalse(ten == nine)
+        assertEquals(ten, ten)
+        assertNotEquals(ten, nine)
         assertFalse(ten != ten)
         assertTrue(ten != nine)
 

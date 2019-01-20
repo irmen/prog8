@@ -155,12 +155,12 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 out("  .null  $9e, format(' %d ', _prog8_entrypoint), $3a, $8f, ' prog8 by idj'")
                 out("+\t.word  0")
                 out("_prog8_entrypoint\t; assembly code starts here\n")
-                out("  jsr  c64utils.init_system")
+                out("  jsr  prog8_lib.init_system")
             }
             options.output == OutputType.PRG -> {
-                out("; ---- program without sys call ----")
+                out("; ---- program without basic sys call ----")
                 out("* = ${program.loadAddress.toHex()}\n")
-                out("  jsr  c64utils.init_system")
+                out("  jsr  prog8_lib.init_system")
             }
             options.output == OutputType.RAW -> {
                 out("; ---- raw assembler program ----")

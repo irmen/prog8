@@ -1,3 +1,4 @@
+%import c64lib
 %import c64utils
 
 ~ spritedata $2000 {

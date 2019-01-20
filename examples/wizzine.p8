@@ -1,4 +1,5 @@
 %import c64utils
+%import c64lib
 
 
 ~ spritedata $0a00 {

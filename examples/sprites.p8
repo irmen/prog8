@@ -1,4 +1,5 @@
 %import c64utils
+%import c64lib
 
 
 ~ spritedata $0a00 {
@@ -36,8 +37,7 @@
 
     sub start() {
 
-        c64.STROUT("balloon sprites!\n")
-        c64.STROUT("...we are all floating...\n")
+        c64scr.print("balloon sprites!\n...we are all floating...\n")
 
         for ubyte i in 0 to 7 {
             c64.SPRPTR[i] = $0a00 / 64

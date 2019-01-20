@@ -8,7 +8,6 @@ import prog8.optimizing.optimizeStatements
 import prog8.optimizing.simplifyExpressions
 import prog8.parser.ParsingFailedError
 import prog8.parser.importModule
-import prog8.stackvm.StackVm
 import java.io.File
 import java.io.PrintStream
 import java.lang.Exception
@@ -65,44 +64,10 @@ private fun compileMain(args: Array<String>) {
 
             // determine special compiler options
 
-            val options = moduleAst.statements.filter { it is Directive && it.directive == "%option" }.flatMap { (it as Directive).args }.toSet()
-            val outputType = (moduleAst.statements.singleOrNull { it is Directive && it.directive == "%output" }
-                    as? Directive)?.args?.single()?.name?.toUpperCase()
-            val launcherType = (moduleAst.statements.singleOrNull { it is Directive && it.directive == "%launcher" }
-                    as? Directive)?.args?.single()?.name?.toUpperCase()
-            moduleAst.loadAddress = (moduleAst.statements.singleOrNull { it is Directive && it.directive == "%address" }
-                    as? Directive)?.args?.single()?.int ?: 0
-            val zpoption: String? = (moduleAst.statements.singleOrNull { it is Directive && it.directive == "%zeropage" }
-                    as? Directive)?.args?.single()?.name?.toUpperCase()
-            val zpType: ZeropageType =
-                    if (zpoption == null)
-                        ZeropageType.KERNALSAFE
-                    else
-                        try {
-                            ZeropageType.valueOf(zpoption)
-                        } catch (x: IllegalArgumentException) {
-                            ZeropageType.KERNALSAFE
-                            // error will be printed by the astchecker
-                        }
-            val zpReserved = moduleAst.statements
-                    .asSequence()
-                    .filter { it is Directive && it.directive == "%zpreserved" }
-                    .map { (it as Directive).args }
-                    .map { it[0].int!!..it[1].int!! }
-                    .toList()
-
-            val compilerOptions = CompilationOptions(
-                    if (outputType == null) OutputType.PRG else OutputType.valueOf(outputType),
-                    if (launcherType == null) LauncherType.BASIC else LauncherType.valueOf(launcherType),
-                    zpType, zpReserved,
-                    options.any { it.name == "enable_floats" })
+            val compilerOptions = determineCompilationOptions(moduleAst)
 
             if (compilerOptions.launcher == LauncherType.BASIC && compilerOptions.output != OutputType.PRG)
                 throw ParsingFailedError("${moduleAst.position} BASIC launcher requires output type PRG.")
-            if (compilerOptions.output == OutputType.PRG || compilerOptions.launcher == LauncherType.BASIC) {
-                if (namespace.lookup(listOf("c64utils"), moduleAst.statements.first()) == null)
-                    throw ParsingFailedError("${moduleAst.position} When using output type PRG and/or laucher BASIC, the 'c64utils' module must be imported.")
-            }
 
             // perform initial syntax checks and constant folding
             println("Syntax check...")
@@ -184,6 +149,40 @@ private fun compileMain(args: Array<String>) {
         val process = ProcessBuilder(cmdline).inheritIO().start()
         process.waitFor()
     }
+}
+
+fun determineCompilationOptions(moduleAst: Module): CompilationOptions {
+    val options = moduleAst.statements.filter { it is Directive && it.directive == "%option" }.flatMap { (it as Directive).args }.toSet()
+    val outputType = (moduleAst.statements.singleOrNull { it is Directive && it.directive == "%output" }
+            as? Directive)?.args?.single()?.name?.toUpperCase()
+    val launcherType = (moduleAst.statements.singleOrNull { it is Directive && it.directive == "%launcher" }
+            as? Directive)?.args?.single()?.name?.toUpperCase()
+    moduleAst.loadAddress = (moduleAst.statements.singleOrNull { it is Directive && it.directive == "%address" }
+            as? Directive)?.args?.single()?.int ?: 0
+    val zpoption: String? = (moduleAst.statements.singleOrNull { it is Directive && it.directive == "%zeropage" }
+            as? Directive)?.args?.single()?.name?.toUpperCase()
+    val zpType: ZeropageType =
+            if (zpoption == null)
+                ZeropageType.KERNALSAFE
+            else
+                try {
+                    ZeropageType.valueOf(zpoption)
+                } catch (x: IllegalArgumentException) {
+                    ZeropageType.KERNALSAFE
+                    // error will be printed by the astchecker
+                }
+    val zpReserved = moduleAst.statements
+            .asSequence()
+            .filter { it is Directive && it.directive == "%zpreserved" }
+            .map { (it as Directive).args }
+            .map { it[0].int!!..it[1].int!! }
+            .toList()
+
+    return CompilationOptions(
+            if (outputType == null) OutputType.PRG else OutputType.valueOf(outputType),
+            if (launcherType == null) LauncherType.BASIC else LauncherType.valueOf(launcherType),
+            zpType, zpReserved,
+            options.any { it.name == "enable_floats" })
 }
 
 private fun usage() {

@@ -9,6 +9,37 @@
 
 	%asm {{
 
+init_system	.proc
+	; -- initializes the machine to a sane starting state
+	; Called automatically by the loader program logic.
+	; This means that the BASIC, KERNAL and CHARGEN ROMs are banked in,
+	; the VIC, SID and CIA chips are reset, screen is cleared, and the default IRQ is set.
+	; Also a different color scheme is chosen to identify ourselves a little.
+	; Uppercase charset is activated, and all three registers set to 0, status flags cleared.
+		sei
+		cld
+		lda  #%00101111
+		sta  $00
+		lda  #%00100111
+		sta  $01
+		jsr  c64.IOINIT
+		jsr  c64.RESTOR
+		jsr  c64.CINT
+		lda  #6
+		sta  c64.EXTCOL
+		lda  #7
+		sta  c64.COLOR
+		lda  #0
+		sta  c64.BGCOL0
+		tax
+		tay
+		clc
+		clv
+		cli
+		rts
+		.pend
+
+
 add_a_to_zpword	.proc
 		; -- add ubyte in A to the uword in c64.SCRATCH_ZPWORD1
 		clc

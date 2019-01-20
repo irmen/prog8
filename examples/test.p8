@@ -1,4 +1,6 @@
-%import c64utils
+%output raw
+%launcher none
+
 
 ~ main {
 

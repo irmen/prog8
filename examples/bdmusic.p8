@@ -1,4 +1,4 @@
-%import c64utils        ; @todo make this import automatic if output is basic prg
+%import c64lib
 
 ~ main {
 

@@ -451,7 +451,8 @@ class BuiltinFunctionStatementPlaceholder(val name: String, override val positio
 
 class Module(override val name: String,
              override var statements: MutableList<IStatement>,
-             override val position: Position) : Node, INameScope {
+             override val position: Position,
+             val isLibraryModule: Boolean) : Node, INameScope {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -1741,8 +1742,8 @@ class RepeatLoop(var body: AnonymousScope,
 
 /***************** Antlr Extension methods to create AST ****************/
 
-fun prog8Parser.ModuleContext.toAst(name: String) : Module =
-        Module(name, modulestatement().asSequence().map { it.toAst() }.toMutableList(), toPosition())
+fun prog8Parser.ModuleContext.toAst(name: String, isLibrary: Boolean) : Module =
+        Module(name, modulestatement().asSequence().map { it.toAst() }.toMutableList(), toPosition(), isLibrary)
 
 
 private fun ParserRuleContext.toPosition() : Position {

@@ -39,6 +39,8 @@ fun optimizeAssembly(lines: MutableList<String>): Int {
         numberOfOptimizations++
     }
 
+    // TODO more assembly optimizations?
+
     return numberOfOptimizations
 }
 

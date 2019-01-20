@@ -2,6 +2,9 @@ package prog8.parser
 
 import org.antlr.v4.runtime.*
 import prog8.ast.*
+import prog8.compiler.LauncherType
+import prog8.compiler.OutputType
+import prog8.determineCompilationOptions
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -22,7 +25,7 @@ private class LexerErrorListener: BaseErrorListener() {
 }
 
 
-fun importModule(stream: CharStream, moduleName: String): Module {
+fun importModule(stream: CharStream, moduleName: String, isLibrary: Boolean): Module {
     val lexer = prog8Lexer(stream)
     val lexerErrors = LexerErrorListener()
     lexer.addErrorListener(lexerErrors)
@@ -37,14 +40,22 @@ fun importModule(stream: CharStream, moduleName: String): Module {
     // tokens.commentTokens().forEach { println(it) }
 
     // convert to Ast
-    val moduleAst = parseTree.toAst(moduleName)
+    val moduleAst = parseTree.toAst(moduleName, isLibrary)
     importedModules[moduleAst.name] = moduleAst
 
     // process imports
     val lines = moduleAst.statements.toMutableList()
+    if(!moduleAst.position.file.startsWith("c64utils.") && !moduleAst.isLibraryModule) {
+        // if the output is a PRG or BASIC program, include the c64utils library
+        val compilerOptions = determineCompilationOptions(moduleAst)
+        if(compilerOptions.launcher==LauncherType.BASIC || compilerOptions.output==OutputType.PRG) {
+            lines.add(0, Directive("%import", listOf(DirectiveArg(null, "c64utils", null, moduleAst.position)), moduleAst.position))
+        }
+    }
     // always import the prog8 compiler library
     if(!moduleAst.position.file.startsWith("prog8lib."))
         lines.add(0, Directive("%import", listOf(DirectiveArg(null, "prog8lib", null, moduleAst.position)), moduleAst.position))
+
     val imports = lines
             .asSequence()
             .mapIndexed { i, it -> Pair(i, it) }
@@ -83,7 +94,7 @@ fun importModule(filePath: Path) : Module {
 
     val moduleName = filePath.fileName.toString().substringBeforeLast('.')
     val input = CharStreams.fromPath(filePath)
-    return importModule(input, moduleName)
+    return importModule(input, moduleName, filePath.parent==null)
 }
 
 
@@ -123,7 +134,7 @@ private fun executeImportDirective(import: Directive, importedFrom: Path): Modul
             // load the module from the embedded resource
             resource.openStream().use {
                 println("importing '$moduleName' (embedded library)")
-                importModule(CharStreams.fromStream(it), moduleName)
+                importModule(CharStreams.fromStream(it), moduleName, true)
             }
         } else {
             val modulePath = discoverImportedModuleFile(moduleName, importedFrom, import.position)
