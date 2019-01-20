@@ -38,13 +38,10 @@ fun main(args: Array<String>) {
 
 private fun compileMain(args: Array<String>) {
     var startEmu = false
-    var asmTrace = false
     var moduleFile = ""
     for (arg in args) {
         if(arg=="--emu")
             startEmu = true
-        else if(arg=="--asmtrace")
-            asmTrace = true
         else if(!arg.startsWith("--"))
             moduleFile = arg
     }
@@ -117,7 +114,7 @@ private fun compileMain(args: Array<String>) {
             stackvmFile.close()
             println("StackVM program code written to '$stackVmFilename'")
 
-            val assembly = AsmGen(compilerOptions, intermediate, heap, asmTrace).compileToAssembly()
+            val assembly = AsmGen(compilerOptions, intermediate, heap).compileToAssembly()
             assembly.assemble(compilerOptions)
             programname = assembly.name
         }
@@ -188,7 +185,6 @@ fun determineCompilationOptions(moduleAst: Module): CompilationOptions {
 private fun usage() {
     System.err.println("Missing argument(s):")
     System.err.println("    [--emu]       auto-start the C64 emulator after successful compilation")
-    System.err.println("    [--asmtrace]  print trace output of the AsmGen for debugging purposes")
     System.err.println("    [--vm]        launch the prog8 virtual machine instead of the compiler")
     System.err.println("    modulefile    main module file to compile")
     exitProcess(1)

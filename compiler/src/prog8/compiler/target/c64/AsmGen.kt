@@ -17,7 +17,7 @@ import kotlin.math.abs
 class AssemblyError(msg: String) : RuntimeException(msg)
 
 
-class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, val heap: HeapValues, val trace: Boolean) {
+class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, val heap: HeapValues) {
     private val globalFloatConsts = mutableMapOf<Double, String>()
     private val assemblyLines = mutableListOf<String>()
     private lateinit var block: IntermediateProgram.ProgramBlock
@@ -198,9 +198,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         val instructionPatternWindowSize = 8        // increase once patterns occur longer than this.
         var processed = 0
 
-        if(trace) println("BLOCK: ${block.scopedname}  ${block.address ?: ""}")
         for (ins in block.instructions.windowed(instructionPatternWindowSize, partialWindows = true)) {
-            if(trace) println("\t${ins[0].toString().trim()}")
             if (processed == 0) {
                 processed = instr2asm(ins)
                 if (processed == 0) {
@@ -210,7 +208,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             }
             processed--
         }
-        if (trace) println("END BLOCK: ${block.scopedname}")
         if(!blk.force_output)
             out("\n\t.pend\n")
     }
