@@ -19,9 +19,9 @@ import kotlin.system.measureTimeMillis
 fun main(args: Array<String>) {
 
     // check if the user wants to launch the VM instead
-    if("--vm" in args) {
+    if("-vm" in args) {
         val newArgs = args.toMutableList()
-        newArgs.remove("--vm")
+        newArgs.remove("-vm")
         return stackVmMain(newArgs.toTypedArray())
     }
 
@@ -31,7 +31,7 @@ fun main(args: Array<String>) {
     // println("This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html\n")
     println("**** This is a prerelease version. Please do not distribute! ****\n")
 
-    if (args.isEmpty() || args.size > 2)
+    if (args.isEmpty())
         usage()
     compileMain(args)
 }
@@ -39,13 +39,21 @@ fun main(args: Array<String>) {
 private fun compileMain(args: Array<String>) {
     var emulatorToStart = ""
     var moduleFile = ""
+    var writeVmCode = false
+    var writeAssembly = true
     for (arg in args) {
-        if(arg=="--emu")
+        if(arg=="-emu")
             emulatorToStart = "x64"
-        else if(arg=="--emu2")
+        else if(arg=="-emu2")
             emulatorToStart = "x64sc"
-        else if(!arg.startsWith("--"))
+        else if(arg=="-writevm")
+            writeVmCode = true
+        else if(arg=="-noasm")
+            writeAssembly = false
+        else if(!arg.startsWith("-"))
             moduleFile = arg
+        else
+            usage()
     }
     if(moduleFile.isBlank())
         usage()
@@ -110,15 +118,19 @@ private fun compileMain(args: Array<String>) {
             val intermediate = compiler.compile(moduleAst, heap)
             intermediate.optimize()
 
-            val stackVmFilename = intermediate.name + ".vm.txt"
-            val stackvmFile = PrintStream(File(stackVmFilename), "utf-8")
-            intermediate.writeCode(stackvmFile)
-            stackvmFile.close()
-            println("StackVM program code written to '$stackVmFilename'")
+            if(writeVmCode) {
+                val stackVmFilename = intermediate.name + ".vm.txt"
+                val stackvmFile = PrintStream(File(stackVmFilename), "utf-8")
+                intermediate.writeCode(stackvmFile)
+                stackvmFile.close()
+                println("StackVM program code written to '$stackVmFilename'")
+            }
 
-            val assembly = AsmGen(compilerOptions, intermediate, heap).compileToAssembly()
-            assembly.assemble(compilerOptions)
-            programname = assembly.name
+            if(writeAssembly) {
+                val assembly = AsmGen(compilerOptions, intermediate, heap).compileToAssembly()
+                assembly.assemble(compilerOptions)
+                programname = assembly.name
+            }
         }
         println("\nTotal compilation+assemble time: ${totalTime / 1000.0} sec.")
 
@@ -186,9 +198,11 @@ fun determineCompilationOptions(moduleAst: Module): CompilationOptions {
 
 private fun usage() {
     System.err.println("Missing argument(s):")
-    System.err.println("    [--emu]       auto-start the 'x64' C-64 emulator after successful compilation")
-    System.err.println("    [--emu2]      auto-start the 'x64sc' C-64 emulator after successful compilation")
-    System.err.println("    [--vm]        launch the prog8 virtual machine instead of the compiler")
-    System.err.println("    modulefile    main module file to compile")
+    System.err.println("    [-emu]       auto-start the 'x64' C-64 emulator after successful compilation")
+    System.err.println("    [-emu2]      auto-start the 'x64sc' C-64 emulator after successful compilation")
+    System.err.println("    [-writevm]   write intermediate vm code to a file as well")
+    System.err.println("    [-noasm]     don't create assembly code")
+    System.err.println("    [-vm]        launch the prog8 virtual machine instead of the compiler")
+    System.err.println("    modulefile   main module file to compile")
     exitProcess(1)
 }
