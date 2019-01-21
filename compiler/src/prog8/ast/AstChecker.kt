@@ -330,11 +330,14 @@ class AstChecker(private val namespace: INameScope,
             if(subroutine.asmClobbers.intersect(regCounts.keys).isNotEmpty())
                 err("a return register is also in the clobber list")
         } else {
-            // TODO: currently, non-asm subroutines can only take numeric arguments (including floats)
+            // TODO: non-asm subroutines can only take numeric arguments for now. (not strings and arrays)
             // the way string params are treated is almost okay (their address is passed) but the receiving subroutine treats it as an integer rather than referring back to the original string.
             // the way array params are treated is buggy; it thinks the subroutine needs a byte parameter in place of a byte[] ...
+            // This is not easy to fix because strings and arrays are treated a bit simplistic (a "virtual" pointer to the value on the heap)
+            // while passing them as subroutine parameters would require a "real" pointer OR copying the VALUE to the subroutine's parameter variable (which is very inefficient).
+            // For now, don't pass strings and arrays as parameters and instead create the workaround as suggested in the error message below.
             if(!subroutine.parameters.all{it.type in NumericDatatypes}) {
-                err("non-asm subroutine can only take numerical parameters (no str/array types) for now")
+                err("Non-asm subroutine can only take numerical parameters (no str/array types) for now. Workaround (for nested subroutine): access the variable from the outer scope directly.")
             }
         }
         return subroutine
