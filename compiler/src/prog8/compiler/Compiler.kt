@@ -5,13 +5,11 @@ import prog8.ast.RegisterOrPair.*
 import prog8.compiler.intermediate.IntermediateProgram
 import prog8.compiler.intermediate.Opcode
 import prog8.compiler.intermediate.Value
+import prog8.compiler.intermediate.branchOpcodes
 import prog8.optimizing.same
 import prog8.parser.tryGetEmbeddedResource
 import prog8.stackvm.Syscall
 import java.io.File
-import java.io.InputStream
-import java.io.InputStreamReader
-import java.nio.file.Paths
 import java.util.*
 import kotlin.math.abs
 
@@ -514,10 +512,24 @@ private class StatementTranslator(private val prog: IntermediateProgram,
          * _stmt_999_end:
          *      nop
          *
-         * @todo generate more efficient bytecode for the form with just jumps: if(..) goto .. [else goto ..]
+         * For if statements with goto's, more efficient code is generated.
          */
         prog.line(stmt.position)
         translate(stmt.condition)
+
+        val trueGoto = stmt.truepart.statements.singleOrNull() as? Jump
+        if(trueGoto!=null) {
+            // optimization for if (condition) goto ....
+            val conditionJumpOpcode = when(stmt.condition.resultingDatatype(namespace, heap)) {
+                DataType.UBYTE, DataType.BYTE -> Opcode.JNZ
+                DataType.UWORD, DataType.WORD -> Opcode.JNZW
+                else -> throw CompilerException("invalid condition datatype (expected byte or word) $stmt")
+            }
+            translate(trueGoto, conditionJumpOpcode)
+            translate(stmt.elsepart)
+            return
+        }
+
         val conditionJumpOpcode = when(stmt.condition.resultingDatatype(namespace, heap)) {
             DataType.UBYTE, DataType.BYTE -> Opcode.JZ
             DataType.UWORD, DataType.WORD -> Opcode.JZW
@@ -1388,7 +1400,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         when {
             stmt.generatedLabel!=null -> jumpLabel = stmt.generatedLabel
             stmt.address!=null -> {
-                if(branchOpcode!=null)
+                if(branchOpcode in branchOpcodes)
                     throw CompilerException("cannot branch to address, should use absolute jump instead")
                 jumpAddress = Value(DataType.UWORD, stmt.address)
             }

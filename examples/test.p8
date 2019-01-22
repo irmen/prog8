@@ -1,10 +1,32 @@
-%output raw
-%launcher none
+%import c64lib
 
 
 ~ main {
 
     sub start()  {
+
+        ; memset($0400, $0400+40, 81)
+
+        A=99
+        if(A<99) goto first else goto second
+
+first:
+        c64scr.print("a<99 !\n")
+        goto next
+second:
+        c64scr.print("wrong: a>=99 ?!\n")
+
+next:
+        A=99
+        if(A<99) goto first2 else {
+            c64scr.print("wrong: a>=99 ?!\n")
+        }
+        return
+
+first2:
+        c64scr.print("a<99 !\n")
+
+        return
 
         ubyte ub1
         ubyte ub2

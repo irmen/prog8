@@ -700,44 +700,72 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.INV_WORD -> " jsr  prog8_lib.inv_word"
             Opcode.NOT_BYTE -> " jsr  prog8_lib.not_byte"
             Opcode.NOT_WORD -> " jsr  prog8_lib.not_word"
-            Opcode.BCS -> " bcs  ${ins.callLabel}"
-            Opcode.BCC -> " bcc  ${ins.callLabel}"
-            Opcode.BNEG -> " bmi  ${ins.callLabel}"
-            Opcode.BPOS -> " bpl  ${ins.callLabel}"
-            Opcode.BVC -> " bvc  ${ins.callLabel}"
-            Opcode.BVS -> " bvs  ${ins.callLabel}"
-            Opcode.BZ -> " beq  ${ins.callLabel}"
-            Opcode.BNZ -> " bne  ${ins.callLabel}"
+            Opcode.BCS -> {
+                val label = ins.callLabel ?: hexVal(ins)
+                " bcs  $label"
+            }
+            Opcode.BCC -> {
+                val label = ins.callLabel ?: hexVal(ins)
+                " bcc  $label"
+            }
+            Opcode.BNEG -> {
+                val label = ins.callLabel ?: hexVal(ins)
+                " bmi  $label"
+            }
+            Opcode.BPOS -> {
+                val label = ins.callLabel ?: hexVal(ins)
+                " bpl  $label"
+            }
+            Opcode.BVC -> {
+                val label = ins.callLabel ?: hexVal(ins)
+                " bvc  $label"
+            }
+            Opcode.BVS -> {
+                val label = ins.callLabel ?: hexVal(ins)
+                " bvs  $label"
+            }
+            Opcode.BZ -> {
+                val label = ins.callLabel ?: hexVal(ins)
+                " beq  $label"
+            }
+            Opcode.BNZ -> {
+                val label = ins.callLabel ?: hexVal(ins)
+                " bne  $label"
+            }
             Opcode.JZ -> {
+                val label = ins.callLabel ?: hexVal(ins)
                 """
                 inx
                 lda  ${(ESTACK_LO).toHex()},x
-                beq  ${ins.callLabel}
+                beq  $label
                 """
             }
             Opcode.JZW -> {
+                val label = ins.callLabel ?: hexVal(ins)
                 """
                 inx
                 lda  ${(ESTACK_LO).toHex()},x
-                beq  ${ins.callLabel}
+                beq  $label
                 lda  ${(ESTACK_HI).toHex()},x
-                beq  ${ins.callLabel}
+                beq  $label
                 """
             }
             Opcode.JNZ -> {
+                val label = ins.callLabel ?: hexVal(ins)
                 """
                 inx
                 lda  ${(ESTACK_LO).toHex()},x
-                bne  ${ins.callLabel}
+                bne  $label
                 """
             }
             Opcode.JNZW -> {
+                val label = ins.callLabel ?: hexVal(ins)
                 """
                 inx
                 lda  ${(ESTACK_LO).toHex()},x
-                bne  ${ins.callLabel}
+                bne  $label
                 lda  ${(ESTACK_HI).toHex()},x
-                bne  ${ins.callLabel}
+                bne  $label
                 """
             }
             Opcode.CAST_B_TO_UB -> ""  // is a no-op, just carry on with the byte as-is

@@ -285,3 +285,8 @@ val opcodesWithVarArgument = setOf(
         Opcode.DEC_INDEXED_VAR_UB, Opcode.DEC_INDEXED_VAR_B, Opcode.DEC_INDEXED_VAR_UW,
         Opcode.DEC_INDEXED_VAR_W, Opcode.DEC_INDEXED_VAR_FLOAT
 )
+
+val branchOpcodes = setOf(
+        Opcode.BCS, Opcode.BCC, Opcode.BZ, Opcode.BNZ,
+        Opcode.BNEG, Opcode.BPOS, Opcode.BVS, Opcode.BVC
+)

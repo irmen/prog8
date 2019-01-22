@@ -368,7 +368,6 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
     }
 
 
-    // todo: get rid of this?
     private data class ReorderedAssociativeBinaryExpr(val expr: BinaryExpression, val leftVal: LiteralValue?, val rightVal: LiteralValue?)
 
     private fun reorderAssociative(expr: BinaryExpression, leftVal: LiteralValue?): ReorderedAssociativeBinaryExpr {
