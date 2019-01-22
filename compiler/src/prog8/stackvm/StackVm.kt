@@ -78,7 +78,9 @@ enum class Syscall(val callNr: Short) {
     FUNC_SUM_UW(132),
     FUNC_SUM_W(133),
     FUNC_SUM_F(134),
-    FUNC_MEMCOPY(138)
+    FUNC_MEMCOPY(138),
+    FUNC_MEMSET(139),
+    FUNC_MEMSETW(140)
 
     // note: not all builtin functions of the Prog8 language are present as functions:
     // some of them are straight opcodes (such as MSB, LSB, LSL, LSR, ROL_BYTE, ROR, ROL2, ROR2, and FLT)!
@@ -1755,7 +1757,32 @@ class StackVm(private var traceOutputFile: String?) {
                 val from = evalstack.pop().integerValue()
                 mem.copy(from, to, numbytes)
             }
-        }
+            Syscall.FUNC_MEMSET -> {
+                val value = evalstack.pop()
+                val address = evalstack.pop().integerValue()
+                val numbytes = evalstack.pop().integerValue()
+                val bytevalue = value.integerValue().toShort()
+                when {
+                    value.type==DataType.UBYTE -> for(addr in address until address+numbytes)
+                        mem.setUByte(addr, bytevalue)
+                    value.type==DataType.BYTE -> for(addr in address until address+numbytes)
+                        mem.setSByte(addr, bytevalue)
+                    else -> throw VmExecutionException("(u)byte value expected")
+                }
+            }
+            Syscall.FUNC_MEMSETW -> {
+                val value = evalstack.pop()
+                val address = evalstack.pop().integerValue()
+                val numwords = evalstack.pop().integerValue()
+                val wordvalue = value.integerValue()
+                when {
+                    value.type==DataType.UWORD -> for(addr in address until address+numwords*2 step 2)
+                        mem.setUWord(addr, wordvalue)
+                    value.type==DataType.WORD -> for(addr in address until address+numwords*2 step 2)
+                        mem.setSWord(addr, wordvalue)
+                    else -> throw VmExecutionException("(u)word value expected")
+                }
+            }        }
     }
 
     fun irq(timestamp: Long) {

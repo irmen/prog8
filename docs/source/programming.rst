@@ -663,6 +663,17 @@ memcopy(from, to, numbytes)
     Because this function imposes some overhead to handle the parameters,
     it is only faster if the number of bytes is larger than a certain threshold.
     Compare the generated code to see if it was beneficial or not.
+    The most efficient will always be to write a specialized copy routine in assembly yourself!
+
+memset(address, numbytes, bytevalue)
+    Efficiently set a part of memory to the given (u)byte value.
+    But the most efficient will always be to write a specialized fill routine in assembly yourself!
+    Note that for clearing the character screen, very fast specialized subroutines are
+    available in the ``c64scr`` block (part of the ``c64utils`` module)
+
+memsetw(address, numwords, wordvalue)
+    Efficiently set a part of memory to the given (u)word value.
+    But the most efficient will always be to write a specialized fill routine in assembly yourself!
 
 swap(x, y)
     Swap the values of numerical variables (or memory locations) x and y in a fast way.

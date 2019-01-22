@@ -6,6 +6,7 @@ import prog8.compiler.intermediate.IntermediateProgram
 import prog8.compiler.intermediate.Opcode
 import prog8.compiler.intermediate.Value
 import prog8.compiler.intermediate.branchOpcodes
+import prog8.functions.BuiltinFunctions
 import prog8.optimizing.same
 import prog8.parser.tryGetEmbeddedResource
 import prog8.stackvm.Syscall
@@ -685,6 +686,17 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         }
     }
 
+
+    private fun tryConvertType(givenDt: DataType, targetDt: DataType): Boolean {
+        return try {
+            convertType(givenDt, targetDt)
+            true
+        } catch (x: CompilerException) {
+            false
+        }
+    }
+
+
     private fun convertType(givenDt: DataType, targetDt: DataType) {
         // only WIDENS a type, never NARROWS. To avoid loss of precision.
         if(givenDt==targetDt)
@@ -784,7 +796,22 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             return
         }
 
-        args.forEach { translate(it) }  // place function argument(s) on the stack
+        val builtinFuncParams = BuiltinFunctions[funcname]?.parameters
+        args.forEachIndexed { index, arg ->
+            // place function argument(s) on the stack
+            translate(arg)
+            // cast type if needed
+            if(builtinFuncParams!=null) {
+                val paramDts = builtinFuncParams[index].possibleDatatypes
+                val argDt = arg.resultingDatatype(namespace, heap)!!
+                if(argDt !in paramDts) {
+                    for(paramDt in paramDts.sorted())
+                        if(tryConvertType(argDt, paramDt))
+                            break
+                }
+            }
+        }
+
         when (funcname) {
             "len" -> {
                 // 1 argument, type determines the exact syscall to use

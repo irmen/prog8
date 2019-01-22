@@ -70,9 +70,17 @@ val BuiltinFunctions = mapOf(
     "clear_irqd"  to FunctionSignature(false, emptyList(), null),
     "swap"        to FunctionSignature(false, listOf(BuiltinFunctionParam("first", NumericDatatypes), BuiltinFunctionParam("second", NumericDatatypes)), null),
     "memcopy"     to FunctionSignature(false, listOf(
-                                                        BuiltinFunctionParam("from", IntegerDatatypes + IterableDatatypes),
-                                                        BuiltinFunctionParam("to", IntegerDatatypes + IterableDatatypes),
+                                                        BuiltinFunctionParam("from", IterableDatatypes + setOf(DataType.UWORD)),
+                                                        BuiltinFunctionParam("to", IterableDatatypes + setOf(DataType.UWORD)),
                                                         BuiltinFunctionParam("numbytes", IntegerDatatypes)), null),
+    "memset"      to FunctionSignature(false, listOf(
+                                                        BuiltinFunctionParam("address", IterableDatatypes + setOf(DataType.UWORD)),
+                                                        BuiltinFunctionParam("numbytes", setOf(DataType.UWORD)),
+                                                        BuiltinFunctionParam("bytevalue", setOf(DataType.UBYTE, DataType.BYTE))), null),
+    "memsetw"     to FunctionSignature(false, listOf(
+                                                        BuiltinFunctionParam("address", IterableDatatypes + setOf(DataType.UWORD)),
+                                                        BuiltinFunctionParam("numwords", setOf(DataType.UWORD)),
+                                                        BuiltinFunctionParam("wordvalue", setOf(DataType.UWORD, DataType.WORD))), null),
     "vm_write_memchr"  to FunctionSignature(false, listOf(BuiltinFunctionParam("address", setOf(DataType.UWORD))), null),
     "vm_write_memstr"  to FunctionSignature(false, listOf(BuiltinFunctionParam("address", setOf(DataType.UWORD))), null),
     "vm_write_num"     to FunctionSignature(false, listOf(BuiltinFunctionParam("number", NumericDatatypes)), null),

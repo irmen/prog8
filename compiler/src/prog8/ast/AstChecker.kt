@@ -784,8 +784,9 @@ class AstChecker(private val namespace: INameScope,
             else {
                 for (arg in args.withIndex().zip(func.parameters)) {
                     val argDt=arg.first.value.resultingDatatype(namespace, heap)
-                    if(argDt !in arg.second.possibleDatatypes)
-                        checkResult.add(ExpressionError("builtin function argument ${arg.first.index+1} has invalid type $argDt, expected ${arg.second.possibleDatatypes}", position))
+                    if(argDt!=null && !argDt.assignableTo(arg.second.possibleDatatypes)) {
+                        checkResult.add(ExpressionError("builtin function argument ${arg.first.index + 1} has invalid type $argDt, expected ${arg.second.possibleDatatypes}", position))
+                    }
                 }
             }
         } else if(target is Subroutine) {

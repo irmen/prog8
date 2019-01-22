@@ -1012,14 +1012,172 @@ func_memcopy	.proc
 		lda  c64.ESTACK_HI+2,x
 		sta  c64.SCRATCH_ZPWORD1+1
 		lda  c64.ESTACK_LO+1,x
-		ldy  c64.ESTACK_HI+1,x
-		pha
+		sta  c64.SCRATCH_ZPWORD2
+		lda  c64.ESTACK_HI+1,x
+		sta  c64.SCRATCH_ZPWORD2+1
 		lda  c64.ESTACK_LO,x
 		tax
-		pla
-		jsr  c64utils.memcopy
+		ldy  #0
+-		lda  (c64.SCRATCH_ZPWORD1), y
+		sta  (c64.SCRATCH_ZPWORD2), y
+		iny
+		dex
+		bne  -
 		ldx  c64.SCRATCH_ZPREGX
 		inx
 		inx
 		rts
 		.pend
+
+func_memset	.proc		
+	; note: clobbers A,Y
+		inx
+		stx  c64.SCRATCH_ZPREGX
+		lda  c64.ESTACK_LO+2,x
+		sta  c64.SCRATCH_ZPWORD1
+		lda  c64.ESTACK_HI+2,x
+		sta  c64.SCRATCH_ZPWORD1+1
+		lda  c64.ESTACK_LO+1,x
+		sta  c64.SCRATCH_ZPB1
+		ldy  c64.ESTACK_HI+1,x
+		lda  c64.ESTACK_LO,x
+		ldx  c64.SCRATCH_ZPB1
+		jsr  memset
+		ldx  c64.SCRATCH_ZPREGX
+		inx
+		inx
+		rts
+		.pend
+
+func_memsetw	.proc		
+	; note: clobbers A,Y
+		; -- fill memory from (SCRATCH_ZPWORD1) number of words in SCRATCH_ZPWORD2, with word value in AY.
+
+		inx
+		stx  c64.SCRATCH_ZPREGX
+		lda  c64.ESTACK_LO+2,x
+		sta  c64.SCRATCH_ZPWORD1
+		lda  c64.ESTACK_HI+2,x
+		sta  c64.SCRATCH_ZPWORD1+1
+		lda  c64.ESTACK_LO+1,x
+		sta  c64.SCRATCH_ZPWORD2
+		lda  c64.ESTACK_HI+1,x
+		sta  c64.SCRATCH_ZPWORD2+1
+		lda  c64.ESTACK_LO,x
+		ldy  c64.ESTACK_HI,x
+		jsr  memsetw
+		ldx  c64.SCRATCH_ZPREGX
+		inx
+		inx
+		rts
+		.pend
+
+
+memcopy16_up	.proc
+	; -- copy memory UP from (SCRATCH_ZPWORD1) to (SCRATCH_ZPWORD2) of length X/Y (16-bit, X=lo, Y=hi)
+	;    clobbers register A,X,Y
+		source = c64.SCRATCH_ZPWORD1
+		dest = c64.SCRATCH_ZPWORD2
+		length = c64.SCRATCH_ZPB1   ; (and SCRATCH_ZPREG)
+
+		stx  length
+		sty  length+1
+
+		ldx  length             ; move low byte of length into X
+		bne  +                  ; jump to start if X > 0
+		dec  length             ; subtract 1 from length
++		ldy  #0                 ; set Y to 0
+-		lda  (source),y         ; set A to whatever (source) points to offset by Y
+		sta  (dest),y           ; move A to location pointed to by (dest) offset by Y
+		iny                     ; increment Y
+		bne  +                  ; if Y<>0 then (rolled over) then still moving bytes
+		inc  source+1           ; increment hi byte of source
+		inc  dest+1             ; increment hi byte of dest
++		dex                     ; decrement X (lo byte counter)
+		bne  -                  ; if X<>0 then move another byte
+		dec  length             ; we've moved 255 bytes, dec length
+		bpl  -                  ; if length is still positive go back and move more
+		rts                     ; done
+		.pend
+
+
+memset          .proc
+	; -- fill memory from (SCRATCH_ZPWORD1), length XY, with value in A.
+	;    clobbers X, Y
+		stx  c64.SCRATCH_ZPB1
+		sty  c64.SCRATCH_ZPREG
+		ldy  #0
+		ldx  c64.SCRATCH_ZPREG
+		beq  _lastpage
+
+_fullpage	sta  (c64.SCRATCH_ZPWORD1),y
+		iny
+		bne  _fullpage
+		inc  c64.SCRATCH_ZPWORD1+1          ; next page
+		dex
+		bne  _fullpage
+
+_lastpage	ldy  c64.SCRATCH_ZPB1
+		beq  +
+-         	dey
+		sta  (c64.SCRATCH_ZPWORD1),y
+		bne  -
+
++           	rts
+		.pend
+
+
+memsetw		.proc
+	; -- fill memory from (SCRATCH_ZPWORD1) number of words in SCRATCH_ZPWORD2, with word value in AY.
+	;    clobbers A, X, Y
+		sta  _mod1+1                    ; self-modify
+		sty  _mod1b+1                   ; self-modify
+		sta  _mod2+1                    ; self-modify
+		sty  _mod2b+1                   ; self-modify
+		ldx  c64.SCRATCH_ZPWORD1
+		stx  c64.SCRATCH_ZPB1
+		ldx  c64.SCRATCH_ZPWORD1+1
+		inx
+		stx  c64.SCRATCH_ZPREG                ; second page
+
+		ldy  #0
+		ldx  c64.SCRATCH_ZPWORD2+1
+		beq  _lastpage
+
+_fullpage
+_mod1           lda  #0                         ; self-modified
+		sta  (c64.SCRATCH_ZPWORD1),y        ; first page
+		sta  (c64.SCRATCH_ZPB1),y            ; second page
+		iny
+_mod1b		lda  #0                         ; self-modified
+		sta  (c64.SCRATCH_ZPWORD1),y        ; first page
+		sta  (c64.SCRATCH_ZPB1),y            ; second page
+		iny
+		bne  _fullpage
+		inc  c64.SCRATCH_ZPWORD1+1          ; next page pair
+		inc  c64.SCRATCH_ZPWORD1+1          ; next page pair
+		inc  c64.SCRATCH_ZPB1+1              ; next page pair
+		inc  c64.SCRATCH_ZPB1+1              ; next page pair
+		dex
+		bne  _fullpage
+
+_lastpage	ldx  c64.SCRATCH_ZPWORD2
+		beq  _done
+
+		ldy  #0
+-
+_mod2           lda  #0                         ; self-modified
+                sta  (c64.SCRATCH_ZPWORD1), y
+		inc  c64.SCRATCH_ZPWORD1
+		bne  _mod2b
+		inc  c64.SCRATCH_ZPWORD1+1
+_mod2b          lda  #0                         ; self-modified
+		sta  (c64.SCRATCH_ZPWORD1), y
+		inc  c64.SCRATCH_ZPWORD1
+		bne  +
+		inc  c64.SCRATCH_ZPWORD1+1
++               dex
+		bne  -
+_done		rts
+		.pend
+

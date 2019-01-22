@@ -51,6 +51,10 @@ enum class DataType {
                 ARRAY_W -> targetType == UWORD
                 ARRAY_F -> targetType == UWORD
             }
+
+
+    fun assignableTo(targetTypes: Set<DataType>) = targetTypes.any { this.assignableTo(it) }
+
 }
 
 enum class Register {

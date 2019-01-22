@@ -5,26 +5,11 @@
 
     sub start()  {
 
-        ; memset($0400, $0400+40, 81)
+        memset($0400+40*3, 40*8, 81)
+        memsetw($0400+40*12, 8*40/2, $80a0)
+        memset($0400, 20, 33)
+        memcopy($0400, $0400+121, 20)
 
-        A=99
-        if(A<99) goto first else goto second
-
-first:
-        c64scr.print("a<99 !\n")
-        goto next
-second:
-        c64scr.print("wrong: a>=99 ?!\n")
-
-next:
-        A=99
-        if(A<99) goto first2 else {
-            c64scr.print("wrong: a>=99 ?!\n")
-        }
-        return
-
-first2:
-        c64scr.print("a<99 !\n")
 
         return
 
