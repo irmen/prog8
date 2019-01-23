@@ -54,32 +54,37 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
             }
         }
 
-        val linesToRemove = mutableListOf<Int>()
-        var previousAssignmentLine: Int? = null
-        for(i in 0 until subroutine.statements.size) {
-            val stmt = subroutine.statements[i] as? Assignment
-            if(stmt!=null) {
-                if(previousAssignmentLine==null) {
-                    previousAssignmentLine = i
-                    continue
-                } else {
-                    val prev = subroutine.statements[previousAssignmentLine] as Assignment
-                    if(prev.targets.size==1 && stmt.targets.size==1 && same(prev.targets[0], stmt.targets[0])) {
-                        // get rid of the previous assignment, if the target is not MEMORY
-                        if(isNotMemory(prev.targets[0]))
-                            linesToRemove.add(previousAssignmentLine)
-                    }
-                    previousAssignmentLine = i
-                }
-            } else
-                previousAssignmentLine=null
-        }
-
+        val linesToRemove = deduplicateAssignments(subroutine.statements)
         if(linesToRemove.isNotEmpty()) {
             linesToRemove.reversed().forEach{subroutine.statements.removeAt(it)}
         }
 
         return subroutine
+    }
+
+    private fun deduplicateAssignments(statements: List<IStatement>): MutableList<Int> {
+        // removes 'duplicate' assignments that assign the same target
+        val linesToRemove = mutableListOf<Int>()
+        var previousAssignmentLine: Int? = null
+        for (i in 0 until statements.size) {
+            val stmt = statements[i] as? Assignment
+            if (stmt != null) {
+                if (previousAssignmentLine == null) {
+                    previousAssignmentLine = i
+                    continue
+                } else {
+                    val prev = statements[previousAssignmentLine] as Assignment
+                    if (prev.targets.size == 1 && stmt.targets.size == 1 && same(prev.targets[0], stmt.targets[0])) {
+                        // get rid of the previous assignment, if the target is not MEMORY
+                        if (isNotMemory(prev.targets[0]))
+                            linesToRemove.add(previousAssignmentLine)
+                    }
+                    previousAssignmentLine = i
+                }
+            } else
+                previousAssignmentLine = null
+        }
+        return linesToRemove
     }
 
     private fun returnregisters(subroutine: Subroutine): List<RegisterOrStatusflag> {
@@ -437,6 +442,14 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
         }
 
         return super.process(assignment)
+    }
+
+    override fun process(scope: AnonymousScope): AnonymousScope {
+        val linesToRemove = deduplicateAssignments(scope.statements)
+        if(linesToRemove.isNotEmpty()) {
+            linesToRemove.reversed().forEach{scope.statements.removeAt(it)}
+        }
+        return super.process(scope)
     }
 
     private fun same(target: AssignTarget, value: IExpression): Boolean {

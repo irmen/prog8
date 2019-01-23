@@ -781,17 +781,17 @@ data class AssignTarget(val register: Register?,
         return null
     }
 
-    fun shortString(): String {
+    fun shortString(withTypePrefix: Boolean=false): String {
         if(register!=null)
-            return register.toString()
+            return (if(withTypePrefix) "0register::" else "") + register.toString()
         if(identifier!=null)
-            return identifier.nameInSource.last()
+            return (if(withTypePrefix) "3identifier::" else "") + identifier.nameInSource.last()
         if(arrayindexed!=null)
-            return arrayindexed.identifier.nameInSource.last()
+            return (if(withTypePrefix) "2arrayidx::" else "") + arrayindexed.identifier.nameInSource.last()
         val address = memoryAddress?.addressExpression
         if(address is LiteralValue)
-            return address.asIntegerValue.toString()
-        return "???"
+            return (if(withTypePrefix) "1address::" else "") +address.asIntegerValue.toString()
+        return if(withTypePrefix) "???::???" else "???"
     }
 }
 

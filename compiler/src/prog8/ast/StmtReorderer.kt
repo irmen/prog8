@@ -15,16 +15,13 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
     // - all other subroutines will be moved to the end of their block.
 
 
-    // @todo sort the VariableInitializations and normal assignments: as long as the values are constants and they follow eachother without other stmts inbetween. something like this:
-    //        // sort by datatype and value, so multiple initializations with the same value can be optimized (to load the value just once)
-    //        val sortedInits = varinits.sortedWith(compareBy({it.value.resultingDatatype(namespace, heap)}, {it.value.constValue(namespace, heap)?.asNumericValue?.toDouble()}))
-
-
     private val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%zpreserved", "%address", "%option")
     private val vardeclsToAdd = mutableMapOf<INameScope, MutableList<VarDecl>>()
 
     override fun process(module: Module) {
         super.process(module)
+
+        module.statements = sortConstantAssignments(module.statements)
 
         val (blocks, other) = module.statements.partition { it is Block }
         module.statements = other.asSequence().plus(blocks.sortedBy { (it as Block).address ?: Int.MAX_VALUE }).toMutableList()
@@ -51,6 +48,9 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
     }
 
     override fun process(block: Block): IStatement {
+
+        block.statements = sortConstantAssignments(block.statements)
+
         val subroutines = block.statements.filterIsInstance<Subroutine>()
         var numSubroutinesAtEnd = 0
         // move all subroutines to the end of the block
@@ -98,6 +98,9 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
 
     override fun process(subroutine: Subroutine): IStatement {
         super.process(subroutine)
+
+        subroutine.statements = sortConstantAssignments(subroutine.statements)
+
         val varDecls = subroutine.statements.filterIsInstance<VarDecl>()
         subroutine.statements.removeAll(varDecls)
         subroutine.statements.addAll(0, varDecls)
@@ -118,6 +121,55 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
         }
 
         return subroutine
+    }
+
+    override fun process(scope: AnonymousScope): AnonymousScope {
+        scope.statements = sortConstantAssignments(scope.statements)
+        return super.process(scope)
+    }
+
+    private fun sortConstantAssignments(statements: MutableList<IStatement>): MutableList<IStatement> {
+        // sort assignments by datatype and value, so multiple initializations with the same value can be optimized (to load the value just once)
+        val result = mutableListOf<IStatement>()
+        val stmtIter = statements.iterator()
+        for(stmt in stmtIter) {
+            if(stmt is Assignment) {
+                val constval = stmt.value.constValue(namespace, heap)
+                if(constval!=null) {
+                    val (sorted, trailing) = sortConstantAssignmentSequence(stmt, stmtIter)
+                    result.addAll(sorted)
+                    if(trailing!=null)
+                        result.add(trailing)
+                }
+                else
+                    result.add(stmt)
+            }
+            else
+                result.add(stmt)
+        }
+        return result
+    }
+
+    private fun sortConstantAssignmentSequence(first: Assignment, stmtIter: MutableIterator<IStatement>): Pair<List<Assignment>, IStatement?> {
+        val sequence= mutableListOf<Assignment>(first)
+        var trailing: IStatement? = null
+        while(stmtIter.hasNext()) {
+            val next = stmtIter.next()
+            if(next is Assignment) {
+                val constValue = next.value.constValue(namespace, heap)
+                if(constValue==null) {
+                    trailing = next
+                    break
+                }
+                sequence.add(next)
+            }
+            else {
+                trailing=next
+                break
+            }
+        }
+        val sorted = sequence.sortedWith(compareBy({it.value.resultingDatatype(namespace, heap)}, {it.singleTarget?.shortString(true)}))
+        return Pair(sorted, trailing)
     }
 
     override fun process(decl: VarDecl): IStatement {
