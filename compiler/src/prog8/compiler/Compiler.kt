@@ -11,6 +11,7 @@ import prog8.optimizing.same
 import prog8.parser.tryGetEmbeddedResource
 import prog8.stackvm.Syscall
 import java.io.File
+import java.nio.file.Path
 import java.util.*
 import kotlin.math.abs
 
@@ -148,7 +149,7 @@ class Compiler(private val options: CompilationOptions) {
         println("\nCreating stackVM code...")
 
         val namespace = module.definingScope()
-        val program = IntermediateProgram(module.name, module.loadAddress, heap)
+        val program = IntermediateProgram(module.name, module.loadAddress, heap, module.importedFrom)
 
         val translator = StatementTranslator(program, namespace, heap)
         translator.process(module)
@@ -224,7 +225,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                 is Return -> translate(stmt)
                 is Directive -> {
                     when(stmt.directive) {
-                        "%asminclude" -> translateAsmInclude(stmt.args)
+                        "%asminclude" -> translateAsmInclude(stmt.args, prog.importedFrom)
                         "%asmbinary" -> translateAsmBinary(stmt.args)
                         "%breakpoint" -> {
                             prog.line(stmt.position)
@@ -2229,7 +2230,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
         }
     }
 
-    private fun translateAsmInclude(args: List<DirectiveArg>) {
+    private fun translateAsmInclude(args: List<DirectiveArg>, importedFrom: Path) {
         val scopeprefix = if(args[1].str!!.isNotBlank()) "${args[1].str}\t.proc\n" else ""
         val scopeprefixEnd = if(args[1].str!!.isNotBlank()) "\t.pend\n" else ""
         val filename=args[0].str!!
@@ -2238,15 +2239,19 @@ private class StatementTranslator(private val prog: IntermediateProgram,
                     val resource = tryGetEmbeddedResource(filename.substring(8)) ?: throw IllegalArgumentException("library file '$filename' not found")
                     resource.bufferedReader().use { it.readText() }
                 } else {
-                    // TODO: look in directory of parent source file first
-                    File(filename).readText()
+                    // first try in the same folder as where the containing file was imported from
+                    val sib = importedFrom.resolveSibling(filename)
+                    if(sib.toFile().isFile)
+                        sib.toFile().readText()
+                    else
+                        File(filename).readText()
                 }
 
         prog.instr(Opcode.INLINE_ASSEMBLY, callLabel=scopeprefix+sourcecode+scopeprefixEnd)
     }
 
     private fun translateAsmBinary(args: List<DirectiveArg>) {
-        TODO("asmbinary not implemented $args")
+        TODO("asmbinary not implemented yet  $args")
     }
 
 }

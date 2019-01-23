@@ -11,6 +11,7 @@ import prog8.functions.NotConstArgumentException
 import prog8.functions.builtinFunctionReturnType
 import prog8.parser.prog8Parser
 import java.io.File
+import java.nio.file.Path
 import kotlin.math.abs
 import kotlin.math.floor
 
@@ -456,7 +457,8 @@ class BuiltinFunctionStatementPlaceholder(val name: String, override val positio
 class Module(override val name: String,
              override var statements: MutableList<IStatement>,
              override val position: Position,
-             val isLibraryModule: Boolean) : Node, INameScope {
+             val isLibraryModule: Boolean,
+             val importedFrom: Path) : Node, INameScope {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -1746,8 +1748,8 @@ class RepeatLoop(var body: AnonymousScope,
 
 /***************** Antlr Extension methods to create AST ****************/
 
-fun prog8Parser.ModuleContext.toAst(name: String, isLibrary: Boolean) : Module =
-        Module(name, modulestatement().asSequence().map { it.toAst() }.toMutableList(), toPosition(), isLibrary)
+fun prog8Parser.ModuleContext.toAst(name: String, isLibrary: Boolean, importedFrom: Path) : Module =
+        Module(name, modulestatement().asSequence().map { it.toAst() }.toMutableList(), toPosition(), isLibrary, importedFrom)
 
 
 private fun ParserRuleContext.toPosition() : Position {

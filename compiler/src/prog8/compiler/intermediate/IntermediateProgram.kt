@@ -4,9 +4,10 @@ import prog8.ast.*
 import prog8.compiler.CompilerException
 import prog8.compiler.HeapValues
 import java.io.PrintStream
+import java.nio.file.Path
 
 
-class IntermediateProgram(val name: String, var loadAddress: Int, val heap: HeapValues) {
+class IntermediateProgram(val name: String, var loadAddress: Int, val heap: HeapValues, val importedFrom: Path) {
 
     class ProgramBlock(val scopedname: String,
                        val shortname: String,

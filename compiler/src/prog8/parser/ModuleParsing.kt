@@ -42,7 +42,7 @@ fun importModule(stream: CharStream, moduleName: String, isLibrary: Boolean): Mo
     // tokens.commentTokens().forEach { println(it) }
 
     // convert to Ast
-    val moduleAst = parseTree.toAst(moduleName, isLibrary)
+    val moduleAst = parseTree.toAst(moduleName, isLibrary, Paths.get(stream.sourceName))
     importedModules[moduleAst.name] = moduleAst
 
     // process imports
