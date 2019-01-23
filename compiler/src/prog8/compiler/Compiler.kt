@@ -988,7 +988,6 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             throw AstException("swap should have 2 different args")
         if(dt1 !in NumericDatatypes)
             throw AstException("swap requires args of numerical type")
-        // @todo implement these errors as nice AstChecker expression errors.
 
         translate(args[0])
         translate(args[1])

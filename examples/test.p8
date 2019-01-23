@@ -1,5 +1,5 @@
 %import c64lib
-
+%option enable_floats
 
 ~ main {
 
@@ -27,120 +27,8 @@
         byte[3] ba2
         uword[3] uwa2
         word[3] wa2
-
-
-        A=$34
-        Y=$34
-        ub1=$33
-        ub1=$34
-        ub2=1
-        ub2=2
-        ub2=3
-        ub2=4
-        ub2=$34
-        uw1=0
-        uw1=1
-        uw1=$0034
-        w1=1
-        w1=2
-        w1=3
-        w1=$0034
-
-
-        if A>5 {
-        A=$34
-        Y=$34
-        ub1=$33
-        ub1=$34
-        ub2=1
-        ub2=2
-        ub2=3
-        ub2=4
-        ub2=$34
-        uw1=0
-        uw1=1
-        uw1=$0034
-        w1=1
-        w1=2
-        w1=3
-        w1=$0034
-
-        } else {
-        A=$34
-        Y=$34
-        ub1=$33
-        ub1=$34
-        ub2=1
-        ub2=2
-        ub2=3
-        ub2=4
-        ub2=$34
-        uw1=0
-        uw1=1
-        uw1=$0034
-        w1=1
-        w1=2
-        w1=3
-        w1=$0034
-
-        }
-
-        while(true) {
-        A=$34
-        Y=$34
-        ub1=$33
-        ub1=$34
-        ub2=1
-        ub2=2
-        ub2=3
-        ub2=4
-        ub2=$34
-        uw1=0
-        uw1=1
-        uw1=$0034
-        w1=1
-        w1=2
-        w1=3
-        w1=$0034
-
-        }
-
-        repeat {
-        A=$34
-        Y=$34
-        ub1=$33
-        ub1=$34
-        ub2=1
-        ub2=2
-        ub2=3
-        ub2=4
-        ub2=$34
-        uw1=0
-        uw1=1
-        uw1=$0034
-        w1=1
-        w1=2
-        w1=3
-        w1=$0034
-
-        } until(true)
-
-        A=$34
-        Y=$34
-        ub1=$33
-        ub1=$34
-        ub2=1
-        ub2=2
-        ub2=3
-        ub2=4
-        ub2=$34
-        uw1=0
-        uw1=1
-        uw1=$0034
-        w1=1
-        w1=2
-        w1=3
-        w1=$0034
+        str hoi = "hoi"
+        str hoi2 = "hoi2"
 
     }
 

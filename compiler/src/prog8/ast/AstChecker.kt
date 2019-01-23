@@ -5,6 +5,7 @@ import prog8.compiler.HeapValues
 import prog8.compiler.target.c64.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.FLOAT_MAX_POSITIVE
 import prog8.functions.BuiltinFunctions
+import prog8.optimizing.same
 import prog8.parser.ParsingFailedError
 
 /**
@@ -787,6 +788,19 @@ class AstChecker(private val namespace: INameScope,
                     if(argDt!=null && !argDt.assignableTo(arg.second.possibleDatatypes)) {
                         checkResult.add(ExpressionError("builtin function argument ${arg.first.index + 1} has invalid type $argDt, expected ${arg.second.possibleDatatypes}", position))
                     }
+                }
+                if(target.name=="swap") {
+                    // swap() is a bit weird because this one is translated into a sequence of bytecodes, instead of being an actual function call
+                    val dt1 = args[0].resultingDatatype(namespace, heap)!!
+                    val dt2 = args[1].resultingDatatype(namespace, heap)!!
+                    if (dt1 != dt2)
+                        checkResult.add(ExpressionError("swap requires 2 args of identical type", position))
+                    else if (args[0].constValue(namespace, heap) != null || args[1].constValue(namespace, heap) != null)
+                        checkResult.add(ExpressionError("swap requires 2 variables, not constant value(s)", position))
+                    else if(same(args[0], args[1]))
+                        checkResult.add(ExpressionError("swap should have 2 different args", position))
+                    else if(dt1 !in NumericDatatypes)
+                        checkResult.add(ExpressionError("swap requires args of numerical type", position))
                 }
             }
         } else if(target is Subroutine) {
