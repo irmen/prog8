@@ -2,10 +2,10 @@
 TODO
 ====
 
-Memory Block Operations
-^^^^^^^^^^^^^^^^^^^^^^^
+Memory Block Operations integrated in language?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-@todo list,string memory block operations:
+@todo list,string memory block operations?
 
 - list operations (whole list, individual element)
   operations: set, get, copy (from another list with the same length), shift-N(left,right), rotate-N(left,right)
@@ -17,5 +17,19 @@ Memory Block Operations
 
 these should call (or emit inline) optimized pieces of assembly code, so they run as fast as possible
 
-At least we have memcopy() already and some screen related routines in asm
-@todo add memset() to easily set a part of memory to a specific byte value
+For now, we have the ``memcopy`` and ``memset`` builtin functions.
+
+
+
+More optimizations
+^^^^^^^^^^^^^^^^^^
+
+Add more compiler optimizations to the existing ones.
+
+- on the language AST level
+- on the StackVM intermediate code level
+- on the final assembly source level
+
+
+Also some library routines and code patterns could perhaps be optimized further
+

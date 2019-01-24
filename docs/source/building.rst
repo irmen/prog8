@@ -23,21 +23,25 @@ Compilation of program code is done by telling the Prog8 compiler to compile a m
 Other modules that this code needs will be loaded and processed via imports from within that file.
 The compiler will link everything together into one output program at the end.
 
-The compiler is invoked with the command:
+If you start the compiler without arguments, it will print a short usage text.
+For normal use the compiler is invoked with the command:
 
-    ``$ ./compile.sh modulefile.p8``
+    ``$ java -jar prog8compiler.jar sourcefile.p8``   if you're using the packaged release version, or
 
-For now, it produces intermediate code for the stack-based "StackVM" virtual machine. You can run this code
-with the command:
+    ``$ ./p8compile.sh sourcefile.p8``   if you're running an unpackaged development version.
 
-    ``$ ./stackvm.sh modulefile.vm.txt``
+If you tell it to save the intermediate code for the prog8 virtual machine, you can
+actually run this code with the command:
+
+    ``$ ./p8vm.sh sourcefile.vm.txt``
 
 
-.. todo::
-    ... Real assembler output ...
-    It produces an assembly source code file which in turn will (automatically) be passed to
-    the `64tass <https://sourceforge.net/projects/tass64/>`_ cross assembler tool
-    that assembles it into the final program.
+By default, assembly code is generated and written to ``sourcefile.asm``.
+It is then (automatically) fed to the `64tass <https://sourceforge.net/projects/tass64/>`_ cross assembler tool
+that assembles it into the final program.
+If you use the option to let the compiler auto-start a C-64 emulator, it will do so after
+a successful compilation. This will load your program and the symbol and breakpoint lists
+(for the machine code monitor) into the emulator.
 
 
 Module source code files
@@ -48,7 +52,9 @@ It consists of compilation options and other directives, imports of other module
 and source code for one or more code blocks.
 
 Prog8 has a couple of *LIBRARY* modules that are defined in special internal files provided by the compiler:
-``c64lib``, ``c64utils``, ``prog8lib``. You should not overwrite these or reuse their names.
+``c64lib``, ``c64utils``, ``c64flt`` and ``prog8lib``. You should not overwrite these or reuse their names.
+They are embedded into the packaged release version of the compiler so you don't have to worry about
+where they are, but their names are still reserved.
 
 
 .. _debugging:
@@ -66,12 +72,12 @@ Prog8 issues a NOP instruction instead and creates a 'virtual' breakpoint at thi
 All breakpoints are then written to a file called "programname.vice-mon-list",
 which is meant to be used by the Vice emulator.
 It contains a series of commands for Vice's monitor, including source labels and the breakpoint settings.
-If you use the vice autostart feature of the compiler, it will be processed by Vice automatically and immediately.
+If you use the emulator autostart feature of the compiler, it will take care of this for you.
 If you launch Vice manually, you'll have to use a command line option to load this file:
 
 	``$ x64 -moncommands programname.vice-mon-list``
 
-Vice will then use the label names in memory disassembly, and will activate the breakpoints as well.
+Vice will then use the label names in memory disassembly, and will activate any breakpoints as well.
 If your running program hits one of the breakpoints, Vice will halt execution and drop you into the monitor.
 
 
@@ -82,3 +88,9 @@ Getting an assembler error about undefined symbols such as ``not defined 'c64flt
 This happens when your program uses floating point values, and you forgot to import ``c64flt`` library.
 If you use floating points, the compiler needs routines from that library.
 Fix it by adding an ``%import c64flt``.
+
+
+Examples
+--------
+
+A couple of example programs can be found in the 'examples' directory of the source tree.

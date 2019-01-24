@@ -127,15 +127,24 @@ However, you must assume that the 3 hardware registers ``A``, ``X`` and ``Y``
 are volatile. Their values cannot be depended upon, the compiler will use them as required.
 Even simple assignments may require modification of one or more of the registers (for instance, when using arrays).
 
+Even more important, the ``X`` register is used as an evaluation stack pointer.
+If you mess with it, you will destroy the evaluation stack and likely crash your program.
+In some cases the compiler will warn you about this, but you should really avoid to use
+this register. It's possible to store/restore the register's value (using special built in functions)
+for the cases you really really need to use it directly.
+
 
 Subroutine Calling Conventions
 ------------------------------
 
-**Kernel/asm subroutines:**
+**Kernel/assembly subroutines:**
 Arguments and results are passed via registers.
 Sometimes the status register's Carry flag is used as well (as a boolean flag).
+Special care should be taken when the subroutine clobbers the X register.
+If it does, X must be saved before and restored after the call.
 
 **Normal user defined subroutines:**
-Arguments and result values are passed via global variables stored in memory.
-*These are not allocated on a stack* so it is not possible to create recursive calls.
-
+Arguments and result values are passed via global variables stored in memory
+*These are not allocated on a stack* so it is not possible to create recursive calls!
+The result value(s) of a subroutine are returned on the evaluation stack,
+to make it possible to use subroutines in expressions.
