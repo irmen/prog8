@@ -13,7 +13,7 @@ fun Module.checkImportedValid() {
 }
 
 
-class ImportedAstChecker : IAstProcessor {
+private class ImportedAstChecker : IAstProcessor {
     private val checkResult: MutableList<SyntaxError> = mutableListOf()
 
     fun result(): List<SyntaxError> {

@@ -46,7 +46,7 @@ fun printWarning(msg: String, position: Position, detailInfo: String?=null) {
 }
 
 
-class AstChecker(private val namespace: INameScope,
+private class AstChecker(private val namespace: INameScope,
                  private val compilerOptions: CompilationOptions,
                  private val heap: HeapValues) : IAstProcessor {
     private val checkResult: MutableList<AstException> = mutableListOf()

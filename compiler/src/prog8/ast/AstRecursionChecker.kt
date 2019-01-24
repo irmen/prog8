@@ -11,7 +11,7 @@ fun Module.checkRecursion(namespace: INameScope) {
 }
 
 
-class DirectedGraph<VT> {
+private class DirectedGraph<VT> {
     private val graph = mutableMapOf<VT, MutableSet<VT>>()
     private var uniqueVertices = mutableSetOf<VT>()
     val numVertices : Int
@@ -81,7 +81,7 @@ class DirectedGraph<VT> {
 }
 
 
-class AstRecursionChecker(private val namespace: INameScope) : IAstProcessor {
+private class AstRecursionChecker(private val namespace: INameScope) : IAstProcessor {
     private val callGraph = DirectedGraph<INameScope>()
 
     fun result(): List<AstException> {

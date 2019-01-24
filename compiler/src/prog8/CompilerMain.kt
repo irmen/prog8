@@ -88,7 +88,7 @@ private fun compileMain(args: Array<String>) {
             }
             //println(" time2: $time2")
             val time3 = measureTimeMillis {
-                StatementReorderer(namespace, heap).process(moduleAst)     // reorder statements to please the compiler later
+                moduleAst.reorderStatements(namespace,heap)     // reorder statements to please the compiler later
             }
             //println(" time3: $time3")
             val time4 = measureTimeMillis {

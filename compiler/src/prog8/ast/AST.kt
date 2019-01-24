@@ -692,7 +692,7 @@ class VarDecl(val type: VarDeclType,
         return "VarDecl(name=$name, vartype=$type, datatype=$datatype, value=$value, pos=$position)"
     }
 
-    fun asDefaultValueDecl(): VarDecl {
+    fun asDefaultValueDecl(parent: Node?): VarDecl {
         val constValue = when(declaredDatatype) {
             DataType.UBYTE -> LiteralValue(DataType.UBYTE, 0, position=position)
             DataType.BYTE -> LiteralValue(DataType.BYTE, 0, position=position)
@@ -701,7 +701,10 @@ class VarDecl(val type: VarDeclType,
             DataType.FLOAT -> LiteralValue(DataType.FLOAT, floatvalue=0.0, position=position)
             else -> throw FatalAstException("can only set a default value for a numeric type")
         }
-        return VarDecl(type, declaredDatatype, arrayspec, name, constValue, position)
+        val decl = VarDecl(type, declaredDatatype, arrayspec, name, constValue, position)
+        if(parent!=null)
+            decl.linkParents(parent)
+        return decl
     }
 }
 

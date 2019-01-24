@@ -40,7 +40,7 @@ fun Module.checkIdentifiers(heap: HeapValues): MutableMap<String, IStatement> {
 }
 
 
-class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
+private class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
     private val checkResult: MutableList<AstException> = mutableListOf()
 
     var symbols: MutableMap<String, IStatement> = mutableMapOf()

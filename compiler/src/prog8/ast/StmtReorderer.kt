@@ -2,7 +2,15 @@ package prog8.ast
 
 import prog8.compiler.HeapValues
 
-class StatementReorderer(private val namespace: INameScope, private val heap: HeapValues): IAstProcessor {
+fun Module.reorderStatements(namespace: INameScope, heap: HeapValues) {
+    val initvalueCreator = VarInitValueCreator()
+    this.process(initvalueCreator)
+
+    val checker = StatementReorderer(namespace, heap)
+    this.process(checker)
+}
+
+private class StatementReorderer(private val namespace: INameScope, private val heap: HeapValues): IAstProcessor {
     // Reorders the statements in a way the compiler needs.
     // - 'main' block must be the very first statement UNLESS it has an address set.
     // - blocks are ordered by address, where blocks without address are put at the end.
@@ -14,9 +22,7 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
     // - the 'start' subroutine in the 'main' block will be moved to the top immediately following the directives.
     // - all other subroutines will be moved to the end of their block.
 
-
     private val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%zpreserved", "%address", "%option")
-    private val vardeclsToAdd = mutableMapOf<INameScope, MutableList<VarDecl>>()
 
     override fun process(module: Module) {
         super.process(module)
@@ -36,14 +42,6 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
         val directives = module.statements.filter {it is Directive && it.directive in directivesToMove}
         module.statements.removeAll(directives)
         module.statements.addAll(0, directives)
-
-        // add any new vardecls
-        // @todo doing it this late causes problems with namespace lookups elsewhere in sortConstantAssignments
-        for(decl in vardeclsToAdd)
-            for(d in decl.value) {
-                d.linkParents(decl.key as Node)
-                decl.key.statements.add(0, d)
-            }
 
         sortConstantAssignments(module.statements)
     }
@@ -155,7 +153,7 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
     }
 
     private fun sortConstantAssignmentSequence(first: Assignment, stmtIter: MutableIterator<IStatement>): Pair<List<Assignment>, IStatement?> {
-        val sequence= mutableListOf<Assignment>(first)
+        val sequence= mutableListOf(first)
         var trailing: IStatement? = null
         while(stmtIter.hasNext()) {
             val next = stmtIter.next()
@@ -176,20 +174,40 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
         return Pair(sorted, trailing)
     }
 
+}
+
+
+private class VarInitValueCreator: IAstProcessor {
+    // Replace the var decl with an assignment and add a new vardecl with the default constant value.
+    // This makes sure the variables get reset to the intended value on a next run of the program.
+    // Variable decls without a value don't get this treatment, which means they retain the last
+    // value they had when restarting the program.
+    // This is done in a separate step because it interferes with the namespace lookup of symbols
+    // in other ast processors.
+
+    private val vardeclsToAdd = mutableMapOf<INameScope, MutableList<VarDecl>>()
+
+    override fun process(module: Module) {
+        super.process(module)
+
+        // add any new vardecls to the various scopes
+        for(decl in vardeclsToAdd)
+            for(d in decl.value) {
+                d.linkParents(decl.key as Node)
+                decl.key.statements.add(0, d)
+            }
+    }
+
     override fun process(decl: VarDecl): IStatement {
         super.process(decl)
         if(decl.type!=VarDeclType.VAR || decl.value==null)
             return decl
 
-        // Replace the var decl with an assignment and add a new vardecl with the default constant value.
-        // This makes sure the variables get reset to the intended value on a next run of the program.
-        // Variable decls without a value don't get this treatment, which means they retain the last
-        // value they had when restarting the program.
         if(decl.datatype in NumericDatatypes) {
             val scope = decl.definingScope()
             if(scope !in vardeclsToAdd)
                 vardeclsToAdd[scope] = mutableListOf()
-            vardeclsToAdd[scope]!!.add(decl.asDefaultValueDecl())
+            vardeclsToAdd[scope]!!.add(decl.asDefaultValueDecl(null))
             val declvalue = decl.value!!
             val value =
                     if(declvalue is LiteralValue) {
@@ -207,4 +225,5 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
         }
         return decl
     }
+
 }
