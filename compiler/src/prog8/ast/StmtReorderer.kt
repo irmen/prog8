@@ -21,8 +21,6 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
     override fun process(module: Module) {
         super.process(module)
 
-        module.statements = sortConstantAssignments(module.statements)
-
         val (blocks, other) = module.statements.partition { it is Block }
         module.statements = other.asSequence().plus(blocks.sortedBy { (it as Block).address ?: Int.MAX_VALUE }).toMutableList()
 
@@ -40,16 +38,17 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
         module.statements.addAll(0, directives)
 
         // add any new vardecls
+        // @todo doing it this late causes problems with namespace lookups elsewhere in sortConstantAssignments
         for(decl in vardeclsToAdd)
             for(d in decl.value) {
                 d.linkParents(decl.key as Node)
                 decl.key.statements.add(0, d)
             }
+
+        sortConstantAssignments(module.statements)
     }
 
     override fun process(block: Block): IStatement {
-
-        block.statements = sortConstantAssignments(block.statements)
 
         val subroutines = block.statements.filterIsInstance<Subroutine>()
         var numSubroutinesAtEnd = 0
@@ -93,13 +92,16 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
         val directives = block.statements.filter {it is Directive && it.directive in directivesToMove}
         block.statements.removeAll(directives)
         block.statements.addAll(0, directives)
+
+        sortConstantAssignments(block.statements)
+
         return super.process(block)
     }
 
     override fun process(subroutine: Subroutine): IStatement {
         super.process(subroutine)
 
-        subroutine.statements = sortConstantAssignments(subroutine.statements)
+        sortConstantAssignments(subroutine.statements)
 
         val varDecls = subroutine.statements.filterIsInstance<VarDecl>()
         subroutine.statements.removeAll(varDecls)
@@ -124,11 +126,12 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
     }
 
     override fun process(scope: AnonymousScope): AnonymousScope {
-        scope.statements = sortConstantAssignments(scope.statements)
-        return super.process(scope)
+        scope.statements = scope.statements.map { it.process(this)}.toMutableList()
+        sortConstantAssignments(scope.statements)
+        return scope
     }
 
-    private fun sortConstantAssignments(statements: MutableList<IStatement>): MutableList<IStatement> {
+    private fun sortConstantAssignments(statements: MutableList<IStatement>) {
         // sort assignments by datatype and value, so multiple initializations with the same value can be optimized (to load the value just once)
         val result = mutableListOf<IStatement>()
         val stmtIter = statements.iterator()
@@ -147,7 +150,8 @@ class StatementReorderer(private val namespace: INameScope, private val heap: He
             else
                 result.add(stmt)
         }
-        return result
+        statements.clear()
+        statements.addAll(result)
     }
 
     private fun sortConstantAssignmentSequence(first: Assignment, stmtIter: MutableIterator<IStatement>): Pair<List<Assignment>, IStatement?> {
