@@ -25,21 +25,19 @@
             c64.CHROUT(bye[c])
 
 
-        float clock_seconds = ((c64.TIME_LO as float) + 256.0*(c64.TIME_MID as float) + 65536.0*(c64.TIME_HI as float)) / 60
-        ubyte hours = clock_seconds / 3600 as ubyte
-        clock_seconds -= hours * 3600
-        ubyte minutes = clock_seconds / 60 as ubyte
-        clock_seconds -= minutes * 60
-        ubyte seconds = 0; clock_seconds as ubyte  ; @todo fix crash
-
+        float clock_seconds = ((mkword(c64.TIME_LO, c64.TIME_MID) as float) + (c64.TIME_HI as float)*65536.0) / 60
+        float hours = floor(clock_seconds / 3600)
+        clock_seconds -= hours*3600
+        float minutes = floor(clock_seconds / 60)
+        clock_seconds = floor(clock_seconds - minutes * 60.0)
 
     ; @todo implement strcpy/strcat/strlen?
-        c64scr.print("system time is ")
-        c64scr.print_ub(hours)
+        c64scr.print("system time in ti$ is ")
+        c64flt.print_f(hours)
         c64.CHROUT(':')
-        c64scr.print_ub(minutes)
+        c64flt.print_f(minutes)
         c64.CHROUT(':')
-        c64scr.print_ub(seconds)
+        c64flt.print_f(clock_seconds)
         c64.CHROUT('\n')
     }
 
