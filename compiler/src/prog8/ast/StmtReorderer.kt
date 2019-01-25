@@ -78,7 +78,7 @@ private class StatementReorderer(private val namespace: INameScope, private val 
                         && stmtBeforeFirstSub !is Subroutine
                         && stmtBeforeFirstSub !is BuiltinFunctionStatementPlaceholder) {
                     val ret = Return(emptyList(), stmtBeforeFirstSub.position)
-                    ret.linkParents(stmtBeforeFirstSub.parent)
+                    ret.linkParents(block)
                     block.statements.add(block.statements.size - numSubroutinesAtEnd, ret)
                 }
             }

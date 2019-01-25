@@ -19,6 +19,8 @@ that can be loaded into memory anywhere.
 Compiling program code
 ----------------------
 
+Make sure you have installed the :ref:`requirements`.
+
 Compilation of program code is done by telling the Prog8 compiler to compile a main source code module file.
 Other modules that this code needs will be loaded and processed via imports from within that file.
 The compiler will link everything together into one output program at the end.
@@ -94,3 +96,12 @@ Examples
 --------
 
 A couple of example programs can be found in the 'examples' directory of the source tree.
+Make sure you have installed the :ref:`requirements`. Then, for instance,
+to compile and run the rasterbars example program, use this command::
+
+    $ java -jar prog8compiler.jar -emu examples/rasterbars.p8
+
+or::
+
+    $ ./p8compile.sh -emu examples/rasterbars.p8
+

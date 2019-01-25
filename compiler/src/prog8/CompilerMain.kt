@@ -25,16 +25,20 @@ fun main(args: Array<String>) {
         return stackVmMain(newArgs.toTypedArray())
     }
 
-
-    println("\nProg8 compiler by Irmen de Jong (irmen@razorvine.net)")
-    // @todo software license string
-    // println("This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html\n")
-    println("**** This is a prerelease version. Please do not distribute! ****\n")
+    printSoftwareHeader("compiler")
 
     if (args.isEmpty())
         usage()
     compileMain(args)
 }
+
+fun printSoftwareHeader(what: String) {
+    val buildVersion = object {}.javaClass.getResource("/version.txt").readText().trim()
+    println("\nProg8 $what by Irmen de Jong (irmen@razorvine.net)")
+    println("Version: $buildVersion")
+    println("This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html\n")
+}
+
 
 private fun compileMain(args: Array<String>) {
     var emulatorToStart = ""

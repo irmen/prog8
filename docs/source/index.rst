@@ -106,6 +106,8 @@ Design principles and features
   the ability to easily write embedded assembly code directly in the program source code.
 
 
+.. _requirements:
+
 Required tools
 --------------
 
