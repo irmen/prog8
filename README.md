@@ -35,8 +35,8 @@ Documentation is online at https://prog8.readthedocs.io/
 Required tools:
 ---------------
 
-`64tass <https://sourceforge.net/projects/tass64/>`_ - cross assembler. Install this on your shell path.
-A recent .exe version of this tool for Windows can be obtained from my `clone <https://github.com/irmen/64tass/releases>`_ of this project.
+[64tass](https://sourceforge.net/projects/tass64/) - cross assembler. Install this on your shell path.
+A recent .exe version of this tool for Windows can be obtained from my [clone](https://github.com/irmen/64tass/releases) of this project.
 For other platforms it is very easy to compile it yourself (make ; make install).
 
 A **Java runtime (jre or jdk), version 8 or newer**  is required to run the packaged compiler.
@@ -44,7 +44,7 @@ If you want to build it from source, you'll need a Kotlin 1.3 SDK as well (or fo
 IntelliJ IDEA with the Kotlin plugin).
 
 It's handy to have a C-64 emulator or a real C-64 to run the programs on. The compiler assumes the presence
-of the `Vice emulator <http://vice-emu.sourceforge.net/>`_.
+of the [Vice emulator](http://vice-emu.sourceforge.net/)
 
 
 Example code
