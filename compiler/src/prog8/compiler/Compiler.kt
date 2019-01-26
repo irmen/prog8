@@ -312,7 +312,7 @@ private class StatementTranslator(private val prog: IntermediateProgram,
             DataType.ARRAY_UW, DataType.ARRAY_W -> Opcode.WRITE_INDEXED_VAR_WORD
             DataType.ARRAY_F -> Opcode.WRITE_INDEXED_VAR_FLOAT
             DataType.STR, DataType.STR_S -> Opcode.WRITE_INDEXED_VAR_BYTE
-            DataType.STR_P, DataType.STR_PS -> throw CompilerException("cannot index on type $dt - use regular 0-terminated str type")
+            DataType.STR_P, DataType.STR_PS -> TODO("cannot index on type $dt - use regular str type")
             else -> throw CompilerException("invalid dt for indexed access $dt")
         }
     }

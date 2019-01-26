@@ -15,6 +15,7 @@ LINECOMMENT : [\r\n][ \t]* COMMENT -> channel(HIDDEN);
 COMMENT :  ';' ~[\r\n]* -> channel(HIDDEN) ;
 WS :  [ \t] -> skip ;
 EOL :  [\r\n]+ ;
+// WS2 : '\\' EOL -> skip;
 NAME :  [a-zA-Z_][a-zA-Z0-9_]* ;
 DEC_INTEGER :  ('0'..'9') | (('1'..'9')('0'..'9')+);
 HEX_INTEGER :  '$' (('a'..'f') | ('A'..'F') | ('0'..'9'))+ ;
@@ -127,19 +128,19 @@ postincrdecr :  assign_target  operator = ('++' | '--') ;
 expression :
 	functioncall
 	| <assoc=right> prefix = ('+'|'-'|'~') expression
-	| left = expression bop = '**' right = expression
-	| left = expression bop = ('*' | '/' | '%' ) right = expression
-	| left = expression bop = ('+' | '-' ) right = expression
-	| left = expression bop = ('<<' | '>>' ) right = expression
-	| left = expression bop = ('<' | '>' | '<=' | '>=') right = expression
-	| left = expression bop = ('==' | '!=') right = expression
-	| left = expression bop = '&' right = expression
-	| left = expression bop = '^' right = expression
-	| left = expression bop = '|' right = expression
+	| left = expression EOL? bop = '**' EOL? right = expression
+	| left = expression EOL? bop = ('*' | '/' | '%' ) EOL? right = expression
+	| left = expression EOL? bop = ('+' | '-' ) EOL? right = expression
+	| left = expression EOL? bop = ('<<' | '>>' ) EOL? right = expression
+	| left = expression EOL? bop = ('<' | '>' | '<=' | '>=') EOL? right = expression
+	| left = expression EOL? bop = ('==' | '!=') EOL? right = expression
+	| left = expression EOL? bop = '&' EOL? right = expression
+	| left = expression EOL? bop = '^' EOL? right = expression
+	| left = expression EOL? bop = '|' EOL? right = expression
 	| rangefrom = expression 'to' rangeto = expression ('step' rangestep = expression)?	// can't create separate rule due to mutual left-recursion
-	| left = expression bop = 'and' right = expression
-	| left = expression bop = 'or' right = expression
-	| left = expression bop = 'xor' right = expression
+	| left = expression EOL? bop = 'and' EOL? right = expression
+	| left = expression EOL? bop = 'or' EOL? right = expression
+	| left = expression EOL? bop = 'xor' EOL? right = expression
 	| prefix = 'not' expression
 	| literalvalue
 	| register

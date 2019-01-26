@@ -810,7 +810,7 @@ private class AstChecker(private val namespace: INameScope,
                 for (arg in args.withIndex().zip(target.parameters)) {
                     val argDt = arg.first.value.resultingDatatype(namespace, heap)
                     if(argDt!=null && !argDt.assignableTo(arg.second.type))
-                        checkResult.add(ExpressionError("subroutine argument ${arg.first.index+1} has invalid type, expected ${arg.second.type}", position))
+                        checkResult.add(ExpressionError("subroutine argument ${arg.first.index+1} has invalid type $argDt, expected ${arg.second.type}", position))
 
                     if(target.isAsmSubroutine) {
                         if (target.asmParameterRegisters[arg.first.index].registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.XY, RegisterOrPair.X)) {
@@ -864,6 +864,9 @@ private class AstChecker(private val namespace: INameScope,
                 if(index!=null && (index<0 || index>=arraysize))
                     checkResult.add(ExpressionError("array index out of bounds", arrayIndexedExpression.arrayspec.position))
             } else if(target.datatype in StringDatatypes) {
+                // check supported string tyep
+                if(target.datatype == DataType.STR_P || target.datatype==DataType.STR_PS)
+                    checkResult.add(ExpressionError("indexing pascal-strings is not supported, use regular str type instead", arrayIndexedExpression.arrayspec.position))
                 // check string lengths
                 val heapId = (target.value as LiteralValue).heapId!!
                 val stringLen = heap.get(heapId).str!!.length

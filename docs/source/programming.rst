@@ -111,13 +111,6 @@ Usually it is omitted, and the compiler will automatically choose the location (
 the previous block in memory).
 The address must be >= ``$0200`` (because ``$00``--``$ff`` is the ZP and ``$100``--``$200`` is the cpu stack).
 
-**The special "ZP" ZeroPage block**
-
-Blocks named "ZP" are treated a bit differently: they refer to the ZeroPage.
-The contents of every block with that name (this one may occur multiple times) are merged into one.
-Its start address is always set to ``$04``, because ``$00 - $01`` are used by the hardware
-and ``$02 - $03`` are reserved as general purpose scratch registers.
-
 
 .. _scopes:
 
@@ -194,7 +187,51 @@ Values will usually be part of an expression or assignment statement::
     byte  counter  = 42   ; variable of size 8 bits, with initial value 42
 
 
-Array types are also supported. They can be made of bytes, words and floats::
+.. todo::
+    There must be a way to tell the compiler which variables you require to be in Zeropage:
+    ``zeropage`` modifier keyword on vardecl perhaps?
+
+
+Variables that represent CPU hardware registers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The following variables are reserved
+and map directly (read/write) to a CPU hardware register: ``A``, ``X``, ``Y``.
+
+
+Integers
+^^^^^^^^
+
+Integers are 8 or 16 bit numbers and can be written in normal decimal notation,
+in hexadecimal and in binary notation.
+A single character in single quotes such as ``'a'`` is translated into a byte integer,
+which is the Petscii value for that character.
+
+Unsigned integers are in the range 0-255 for unsigned byte types, and 0-65535 for unsigned word types.
+The signed integers integers are in the range -128..127 for bytes,
+and -32768..32767 for words.
+
+
+Floating point numbers
+^^^^^^^^^^^^^^^^^^^^^^
+
+Floats are stored in the 5-byte 'MFLPT' format that is used on CBM machines,
+and currently all floating point operations are specific to the Commodore-64.
+This is because routines in the C-64 BASIC and KERNAL ROMs are used for that.
+So floating point operations will only work if the C-64 BASIC ROM (and KERNAL ROM)
+are banked in.
+
+Also your code needs to import the ``c64flt`` library to enable floating point support
+in the compiler, and to gain access to the floating point routines.
+(this library contains the directive to enable floating points, you don't have
+to worry about this yourself)
+
+The largest 5-byte MFLPT float that can be stored is: **1.7014118345e+38**   (negative: **-1.7014118345e+38**)
+
+
+Arrays
+^^^^^^
+Array types are also supported. They can be made of bytes, words or floats::
 
     byte[4]  array = [1, 2, 3, 4]     ; initialize the array
     byte[99] array = 255              ; initialize array with all 255's [255, 255, 255, 255, ...]
@@ -214,16 +251,22 @@ Note that the various keywords for the data type and variable type (``byte``, ``
 can't be used as *identifiers* elsewhere. You can't make a variable, block or subroutine with the name ``byte``
 for instance.
 
-.. todo::
-    There must be a way to tell the compiler which variables you require to be in Zeropage:
-    ``zeropage`` modifier keyword on vardecl perhaps?
 
+Strings
+^^^^^^^
 
-Variables that represent CPU hardware registers
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Strings are a sequence of characters enclosed in ``"`` quotes. The length is limited to 255 characters.
+They're stored and treated much the same as a byte array,
+but they have some special properties because they are considered to be *text*.
+Strings in your source code files will be encoded (translated from ASCII/UTF-8) into either CBM PETSCII or C-64 screencodes.
+PETSCII is the default choice. If you need screencodes (also called 'poke' codes) instead,
+you have to use the ``str_s`` variants of the string type identifier.
 
-The following variables are reserved
-and map directly (read/write) to a CPU hardware register: ``A``, ``X``, ``Y``.
+.. caution::
+    It's probably best that you don't change strings after they're created.
+    This is because if your program exits and is restarted (without loading it again),
+    it will then operate on the changed strings instead of the original ones.
+    The same is true for arrays by the way.
 
 
 Special types: const and memory-mapped
@@ -248,53 +291,6 @@ address you specified, and setting the varible will directly modify that memory 
     intermediate step of declaring a memory-mapped variable for the memory location.
     The advantages of this however, is that it's clearer what the memory location
     stands for, and the compiler also knows the data type.
-
-
-Integers
-^^^^^^^^
-
-Integers are 8 or 16 bit numbers and can be written in normal decimal notation,
-in hexadecimal and in binary notation.
-A single character in single quotes such as ``'a'`` is translated into a byte integer,
-which is the Petscii value for that character.
-
-Unsigned integers are in the range 0-255 for unsigned byte types, and 0-65535 for unsigned word types.
-The signed integers integers are in the range -128..127 for bytes,
-and -32768..32767 for words.
-
-
-Strings
-^^^^^^^
-
-Strings are a sequence of characters enclosed in ``"`` quotes. The length is limited to 255 characters.
-They're stored and treated much the same as a byte array,
-but they have some special properties because they are considered to be *text*.
-Strings in your source code files will be encoded (translated from ASCII/UTF-8) into either CBM PETSCII or C-64 screencodes.
-PETSCII is the default choice. If you need screencodes (also called 'poke' codes) instead,
-you have to use the ``str_s`` variants of the string type identifier.
-
-.. caution::
-    It's probably best that you don't change strings after they're created.
-    This is because if your program exits and is restarted (without loading it again),
-    it will then operate on the changed strings instead of the original ones.
-    The same is true for arrays by the way.
-
-
-Floating point numbers
-^^^^^^^^^^^^^^^^^^^^^^
-
-Floats are stored in the 5-byte 'MFLPT' format that is used on CBM machines,
-and currently all floating point operations are specific to the Commodore-64.
-This is because routines in the C-64 BASIC and KERNAL ROMs are used for that.
-So floating point operations will only work if the C-64 BASIC ROM (and KERNAL ROM)
-are banked in.
-
-Also your code needs to import the ``c64flt`` library to enable floating point support
-in the compiler, and to gain access to the floating point routines.
-(this library contains the directive to enable floating points, you don't have
-to worry about this yourself)
-
-The largest 5-byte MFLPT float that can be stored is: **1.7014118345e+38**   (negative: **-1.7014118345e+38**)
 
 
 Converting types into other types
@@ -442,6 +438,18 @@ a memory mapped location, you can do so by enclosing the address in ``@(...)``::
 
 Expressions
 -----------
+
+Expressions tell the program to *calculate* something. They consist of
+values, variables, operators such as ``+`` and ``-``, function calls, type casts, or other expressions.
+Here is an example that calculates to number of seconds in a certain time period::
+
+    num_hours * 3600 + num_minutes * 60 + num_seconds
+
+Long expressions can be split over multiple lines by inserting a line break before or after an operator::
+
+    num_hours * 3600
+     + num_minutes * 60
+     + num_seconds
 
 In most places where a number or other value is expected, you can use just the number, or a constant expression.
 If possible, the expression is parsed and evaluated by the compiler itself at compile time, and the (constant) resulting value is used in its place.

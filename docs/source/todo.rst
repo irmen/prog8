@@ -33,3 +33,10 @@ Add more compiler optimizations to the existing ones.
 
 Also some library routines and code patterns could perhaps be optimized further
 
+
+Should use the zeropage for variables
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Variables should be allocated in the zeropage as long as it has space.
+- add some sort of ``zp`` modifier keyword on vardecls to force them into zeropage?
+

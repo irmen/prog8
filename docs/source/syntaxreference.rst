@@ -458,6 +458,19 @@ The return type has to be specified if the subroutine returns a value.
     asmsub with a regular body to precisely control what registers are used to call the subroutine
 
 
+Expressions
+-----------
+
+Expressions calculate a value and can be used almost everywhere a value is expected.
+They consist of values, variables, operators, function calls, type casts, direct memory reads,
+and can be combined into other expressions.
+Long expressions can be split over multiple lines by inserting a line break before or after an operator::
+
+    num_hours * 3600
+     + num_minutes * 60
+     + num_seconds
+
+
 Loops
 -----
 

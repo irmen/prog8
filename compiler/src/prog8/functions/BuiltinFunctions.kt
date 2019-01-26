@@ -1,6 +1,7 @@
 package prog8.functions
 
 import prog8.ast.*
+import prog8.compiler.CompilerException
 import prog8.compiler.HeapValues
 import kotlin.math.PI
 import kotlin.math.cos
@@ -298,15 +299,21 @@ private fun builtinLen(args: List<IExpression>, position: Position, namespace:IN
     return when(argument.type) {
         DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
             val arraySize = argument.arrayvalue?.size ?: heap.get(argument.heapId!!).arraysize
-            LiteralValue(DataType.UWORD, wordvalue=arraySize, position=args[0].position)
+            if(arraySize>255)
+                throw CompilerException("array length exceeds byte limit ${argument.position}")
+            LiteralValue(DataType.UBYTE, bytevalue=arraySize.toShort(), position=args[0].position)
         }
         DataType.ARRAY_F -> {
             val arraySize = argument.arrayvalue?.size ?: heap.get(argument.heapId!!).arraysize
-            LiteralValue(DataType.UWORD, wordvalue=arraySize, position=args[0].position)
+            if(arraySize>255)
+                throw CompilerException("array length exceeds byte limit ${argument.position}")
+            LiteralValue(DataType.UBYTE, bytevalue=arraySize.toShort(), position=args[0].position)
         }
         DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
             val str = argument.strvalue(heap)
-            LiteralValue(DataType.UWORD, wordvalue=str.length, position=args[0].position)
+            if(str.length>255)
+                throw CompilerException("string length exceeds byte limit ${argument.position}")
+            LiteralValue(DataType.UBYTE, bytevalue=str.length.toShort(), position=args[0].position)
         }
         DataType.UBYTE, DataType.BYTE,
         DataType.UWORD, DataType.WORD,
