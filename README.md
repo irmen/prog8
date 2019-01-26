@@ -29,6 +29,9 @@ which aims to provide many conveniences over raw assembly code (even when using 
 
 It is mainly targeted at the Commodore-64 machine at this time.
 
+Documentation is online at https://prog8.readthedocs.io/
+
+
 Required tools:
 ---------------
 

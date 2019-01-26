@@ -20,9 +20,10 @@ while still being low level enough to create high performance programs.
 
 
 Prog8 is copyright © Irmen de Jong (irmen@razorvine.net | http://www.razorvine.net).
+The project is on github: https://github.com/irmen/prog8.git
+
 
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
-
 
 Code example
 ------------
