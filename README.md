@@ -99,3 +99,13 @@ When this code is compiled::
 you get a program that outputs this when loaded on a C-64:
 
 ![c64 screen](docs/source/_static/hello_screen.png)
+
+
+One of the included examples (wizzine.p8) animates a bunch of sprite balloons and looks like this:
+
+![wizzine screen](docs/source/_static/wizzine.png)
+
+Another example (cube3d-sprites.p8) draws the vertices of a rotating 3d cube:
+
+![cube3d screen](docs/source/_static/cube3d.png)
+
