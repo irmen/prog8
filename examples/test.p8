@@ -1,26 +1,41 @@
-%import c64lib
-%import c64utils
+    %import c64lib
+    %import c64utils
+    %import c64flt
+
+    ~ main {
+        sub start() {
+            ; set text color and activate lowercase charset
+            c64.COLOR = 13
+            c64.VMCSB |= 2
+
+            ; use optimized routine to write text
+            c64scr.print("Hello!\n")
+
+            ; use iteration to write text
+            str question = "How are you?\n"
+            for ubyte char in question
+                c64.CHROUT(char)
+
+            ; use indexed loop to write characters
+            str bye = "Goodbye!\n"
+            for ubyte c in 0 to len(bye)
+                c64.CHROUT(bye[c])
 
 
-~ main {
+            float clock_seconds = ((mkword(c64.TIME_LO, c64.TIME_MID) as float)
+                                    + (c64.TIME_HI as float)*65536.0)
+                                     / 60
+            float hours = floor(clock_seconds / 3600)
+            clock_seconds -= hours*3600
+            float minutes = floor(clock_seconds / 60)
+            clock_seconds = floor(clock_seconds - minutes * 60.0)
 
-    sub start() {
-
-        uword num_hours=2
-        uword num_minutes=10
-        uword num_seconds=14
-
-        uword total =     num_hours * 3600 + num_minutes * 60 + num_seconds
-
-        uword total2 =     num_hours * 3600
-                            + num_minutes * 60
-                            + num_seconds
-
-        c64scr.print_uw(total)
-        c64.CHROUT('\n')
-        c64scr.print_uw(total2)
-        c64.CHROUT('\n')
-
+            c64scr.print("system time in ti$ is ")
+            c64flt.print_f(hours)
+            c64.CHROUT(':')
+            c64flt.print_f(minutes)
+            c64.CHROUT(':')
+            c64flt.print_f(clock_seconds)
+            c64.CHROUT('\n')
+        }
     }
-
-}
