@@ -27,12 +27,69 @@ which aims to provide many conveniences over raw assembly code (even when using 
 - various code optimizations (code structure, logical and numerical expressions, ...) 
 
 
-It still allows for low level programming however and inline assembly blocks
-to write performance critical pieces of code, but otherwise compiles fairly straightforwardly
-into 6502 assembly code. This resulting code is assembled into a binary program by using
-an external macro assembler, [64tass](https://sourceforge.net/projects/tass64/).
-This tool can be compiled pretty easily for various platforms (Linux, Mac OS, Windows) or just ask me
-to provide a small precompiled executable. 
+It is mainly targeted at the Commodore-64 machine at this time.
 
-Prog8 is mainly targeted at the Commodore-64 machine, but should be mostly system independent.
+Required tools:
+---------------
 
+`64tass <https://sourceforge.net/projects/tass64/>`_ - cross assembler. Install this on your shell path.
+A recent .exe version of this tool for Windows can be obtained from my `clone <https://github.com/irmen/64tass/releases>`_ of this project.
+For other platforms it is very easy to compile it yourself (make ; make install).
+
+A **Java runtime (jre or jdk), version 8 or newer**  is required to run the packaged compiler.
+If you want to build it from source, you'll need a Kotlin 1.3 SDK as well (or for instance,
+IntelliJ IDEA with the Kotlin plugin).
+
+It's handy to have a C-64 emulator or a real C-64 to run the programs on. The compiler assumes the presence
+of the `Vice emulator <http://vice-emu.sourceforge.net/>`_.
+
+
+Example code
+------------
+
+When this code is compiled::
+
+    %import c64lib
+    %import c64utils
+    %import c64flt
+
+    ~ main {
+        sub start() {
+            ; set text color and activate lowercase charset
+            c64.COLOR = 13
+            c64.VMCSB |= 2
+
+            ; use optimized routine to write text
+            c64scr.print("Hello!\n")
+
+            ; use iteration to write text
+            str question = "How are you?\n"
+            for ubyte char in question
+                c64.CHROUT(char)
+
+            ; use indexed loop to write characters
+            str bye = "Goodbye!\n"
+            for ubyte c in 0 to len(bye)
+                c64.CHROUT(bye[c])
+
+
+            float clock_seconds = ((mkword(c64.TIME_LO, c64.TIME_MID) as float) + (c64.TIME_HI as float)*65536.0) / 60
+            float hours = floor(clock_seconds / 3600)
+            clock_seconds -= hours*3600
+            float minutes = floor(clock_seconds / 60)
+            clock_seconds = floor(clock_seconds - minutes * 60.0)
+
+            c64scr.print("system time in ti$ is ")
+            c64flt.print_f(hours)
+            c64.CHROUT(':')
+            c64flt.print_f(minutes)
+            c64.CHROUT(':')
+            c64flt.print_f(clock_seconds)
+            c64.CHROUT('\n')
+        }
+    }
+
+
+you get a program that outputs this when loaded on a C-64:
+
+![c64 screen](docs/source/_static/hello_screen.png)
