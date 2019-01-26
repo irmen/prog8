@@ -373,8 +373,11 @@ rather than having fixed gotos or subroutine calls::
 Conditional jumps (``if condition goto label``) are compiled using 6502's branching instructions (such as ``bne`` and ``bcc``) so
 the rather strict limit on how *far* it can jump applies. The compiler itself can't figure this
 out unfortunately, so it is entirely possible to create code that cannot be assembled successfully.
-You'll have to restructure your gotos in the code (place target labels closer to the branch)
-if you run into this type of assembler error.
+Thankfully the ``64tass`` assembler that is used has the option to automatically
+convert such branches to their opposite + a normal jmp. This is slower and takes up more space
+and you will get warning printed if this happens. You may then want to restructure your branches (place target labels closer to the branch,
+or reduce code complexity).
+
 
 There is a special form of the if-statement that immediately translates into one of the 6502's branching instructions.
 This allows you to write a conditional jump or block execution directly acting on the current values of the CPU's status register bits.
