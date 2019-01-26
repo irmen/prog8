@@ -73,7 +73,9 @@ When this code is compiled::
                 c64.CHROUT(bye[c])
 
 
-            float clock_seconds = ((mkword(c64.TIME_LO, c64.TIME_MID) as float) + (c64.TIME_HI as float)*65536.0) / 60
+            float clock_seconds = ((mkword(c64.TIME_LO, c64.TIME_MID) as float)
+                                    + (c64.TIME_HI as float)*65536.0)
+                                     / 60
             float hours = floor(clock_seconds / 3600)
             clock_seconds -= hours*3600
             float minutes = floor(clock_seconds / 60)
@@ -88,6 +90,7 @@ When this code is compiled::
             c64.CHROUT('\n')
         }
     }
+
 
 
 you get a program that outputs this when loaded on a C-64:
