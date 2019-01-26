@@ -144,28 +144,21 @@ data class CompilationOptions(val output: OutputType,
                               val floats: Boolean)
 
 
-class Compiler(private val options: CompilationOptions) {
-    fun compile(module: Module, heap: HeapValues) : IntermediateProgram {
+internal class Compiler(private val rootModule: Module,
+                        private val namespace: INameScope,
+                        private val heap: HeapValues): IAstProcessor {
+
+    val prog: IntermediateProgram = IntermediateProgram(rootModule.name, rootModule.loadAddress, heap, rootModule.importedFrom)
+
+    private var generatedLabelSequenceNumber = 0
+    private val breakStmtLabelStack : Stack<String> = Stack()
+    private val continueStmtLabelStack : Stack<String> = Stack()
+
+    fun compile(options: CompilationOptions) : IntermediateProgram {
         println("\nCreating stackVM code...")
-
-        val namespace = module.definingScope()
-        val program = IntermediateProgram(module.name, module.loadAddress, heap, module.importedFrom)
-
-        val translator = StatementTranslator(program, namespace, heap)
-        translator.process(module)
-
-        return program
+        process(rootModule)
+        return prog
     }
-}
-
-private class StatementTranslator(private val prog: IntermediateProgram,
-                                  private val namespace: INameScope,
-                                  private val heap: HeapValues): IAstProcessor {
-    var generatedLabelSequenceNumber = 0
-        private set
-
-    val breakStmtLabelStack : Stack<String> = Stack()
-    val continueStmtLabelStack : Stack<String> = Stack()
 
     override fun process(block: Block): IStatement {
         prog.newBlock(block.scopedname, block.name, block.address, block.options())

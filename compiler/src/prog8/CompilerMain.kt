@@ -118,8 +118,8 @@ private fun compileMain(args: Array<String>) {
             // namespace.debugPrint()
 
             // compile the syntax tree into stackvmProg form, and optimize that
-            val compiler = Compiler(compilerOptions)
-            val intermediate = compiler.compile(moduleAst, heap)
+            val compiler = Compiler(moduleAst, namespace, heap)
+            val intermediate = compiler.compile(compilerOptions)
             intermediate.optimize()
 
             if(writeVmCode) {

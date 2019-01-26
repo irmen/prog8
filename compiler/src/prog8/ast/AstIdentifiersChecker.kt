@@ -129,7 +129,7 @@ private class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
                     subroutine.parameters
                             .filter { it.name !in allDefinedNames }
                             .forEach {
-                                val vardecl = VarDecl(VarDeclType.VAR, it.type, null, it.name, null, subroutine.position)
+                                val vardecl = VarDecl(VarDeclType.VAR, it.type, false, null, it.name, null, subroutine.position)
                                 vardecl.linkParents(subroutine)
                                 subroutine.statements.add(0, vardecl)
                             }
@@ -171,7 +171,7 @@ private class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
                 val existing = if(forLoop.body.isEmpty()) null else forLoop.body.lookup(forLoop.loopVar.nameInSource, forLoop.body.statements.first())
                 if(existing==null) {
                     // create the local scoped for loop variable itself
-                    val vardecl = VarDecl(VarDeclType.VAR, forLoop.decltype, null, varName, null, forLoop.loopVar.position)
+                    val vardecl = VarDecl(VarDeclType.VAR, forLoop.decltype, true, null, varName, null, forLoop.loopVar.position)
                     vardecl.linkParents(forLoop.body)
                     forLoop.body.statements.add(0, vardecl)
                     forLoop.loopVar.parent = forLoop.body   // loopvar 'is defined in the body'
@@ -183,7 +183,7 @@ private class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
                 val existing = if(forLoop.body.isEmpty()) null else forLoop.body.lookup(listOf(ForLoop.iteratorLoopcounterVarname), forLoop.body.statements.first())
                 if(existing==null) {
                     // create loop iteration counter variable (without value, to avoid an assignment)
-                    val vardecl = VarDecl(VarDeclType.VAR, DataType.UBYTE, null, ForLoop.iteratorLoopcounterVarname, null, forLoop.loopVar.position)
+                    val vardecl = VarDecl(VarDeclType.VAR, DataType.UBYTE, true, null, ForLoop.iteratorLoopcounterVarname, null, forLoop.loopVar.position)
                     vardecl.linkParents(forLoop.body)
                     forLoop.body.statements.add(0, vardecl)
                     forLoop.loopVar.parent = forLoop.body   // loopvar 'is defined in the body'
@@ -230,7 +230,7 @@ private class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
         if(literalValue.heapId!=null && literalValue.parent !is VarDecl) {
             // a literal value that's not declared as a variable, which refers to something on the heap.
             // we need to introduce an auto-generated variable for this to be able to refer to the value!
-            val variable = VarDecl(VarDeclType.VAR, literalValue.type, null, "auto_heap_value_${literalValue.heapId}", literalValue, literalValue.position)
+            val variable = VarDecl(VarDeclType.VAR, literalValue.type, false, null, "auto_heap_value_${literalValue.heapId}", literalValue, literalValue.position)
             anonymousVariablesFromHeap.add(Pair(literalValue, variable))
         }
         return super.process(literalValue)

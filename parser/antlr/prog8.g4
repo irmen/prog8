@@ -51,6 +51,10 @@ SINGLECHAR :
 	}
 	;
 
+ZEROPAGE :
+    '@zp'
+    ;
+
 
 module :  (modulestatement | EOL)* EOF ;
 
@@ -96,9 +100,9 @@ directive :
 
 directivearg : stringliteral | identifier | integerliteral ;
 
-vardecl:  datatype arrayspec? identifier ;
+vardecl: datatype ZEROPAGE? arrayspec? identifier ;
 
-varinitializer : datatype arrayspec? identifier '=' expression ;
+varinitializer : vardecl '=' expression ;
 
 constdecl: 'const' varinitializer ;
 
@@ -256,7 +260,7 @@ branch_stmt : branchcondition EOL? (statement | statement_block) EOL? else_part?
 branchcondition: 'if_cs' | 'if_cc' | 'if_eq' | 'if_z' | 'if_ne' | 'if_nz' | 'if_pl' | 'if_pos' | 'if_mi' | 'if_neg' | 'if_vs' | 'if_vc' ;
 
 
-forloop :  'for' datatype? (register | identifier) 'in' expression EOL? (statement | statement_block) ;
+forloop :  'for' datatype? ZEROPAGE? (register | identifier) 'in' expression EOL? (statement | statement_block) ;
 
 whileloop:  'while' expression EOL? (statement | statement_block) ;
 

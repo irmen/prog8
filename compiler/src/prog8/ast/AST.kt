@@ -657,6 +657,7 @@ enum class VarDeclType {
 
 class VarDecl(val type: VarDeclType,
               private val declaredDatatype: DataType,
+              val zeropage: Boolean,
               val arrayspec: ArraySpec?,
               val name: String,
               var value: IExpression?,
@@ -701,7 +702,7 @@ class VarDecl(val type: VarDeclType,
             DataType.FLOAT -> LiteralValue(DataType.FLOAT, floatvalue=0.0, position=position)
             else -> throw FatalAstException("can only set a default value for a numeric type")
         }
-        val decl = VarDecl(type, declaredDatatype, arrayspec, name, constValue, position)
+        val decl = VarDecl(type, declaredDatatype, zeropage, arrayspec, name, constValue, position)
         if(parent!=null)
             decl.linkParents(parent)
         return decl
@@ -1694,6 +1695,7 @@ class BranchStatement(var condition: BranchCondition,
 
 class ForLoop(val loopRegister: Register?,
               val decltype: DataType?,
+              val zeropage: Boolean,
               val loopVar: IdentifierReference?,
               var iterable: IExpression,
               var body: AnonymousScope,
@@ -1789,6 +1791,7 @@ private fun prog8Parser.StatementContext.toAst() : IStatement {
     vardecl()?.let {
         return VarDecl(VarDeclType.VAR,
                 it.datatype().toAst(),
+                it.ZEROPAGE()!=null,
                 it.arrayspec()?.toAst(),
                 it.identifier().text,
                 null,
@@ -1797,9 +1800,10 @@ private fun prog8Parser.StatementContext.toAst() : IStatement {
 
     varinitializer()?.let {
         return VarDecl(VarDeclType.VAR,
-                it.datatype().toAst(),
-                it.arrayspec()?.toAst(),
-                it.identifier().text,
+                it.vardecl().datatype().toAst(),
+                it.vardecl().ZEROPAGE()!=null,
+                it.vardecl().arrayspec()?.toAst(),
+                it.vardecl().identifier().text,
                 it.expression().toAst(),
                 it.toPosition())
     }
@@ -1807,9 +1811,10 @@ private fun prog8Parser.StatementContext.toAst() : IStatement {
     constdecl()?.let {
         val cvarinit = it.varinitializer()
         return VarDecl(VarDeclType.CONST,
-                cvarinit.datatype().toAst(),
-                cvarinit.arrayspec()?.toAst(),
-                cvarinit.identifier().text,
+                cvarinit.vardecl().datatype().toAst(),
+                cvarinit.vardecl().ZEROPAGE()!=null,
+                cvarinit.vardecl().arrayspec()?.toAst(),
+                cvarinit.vardecl().identifier().text,
                 cvarinit.expression().toAst(),
                 cvarinit.toPosition())
     }
@@ -1817,9 +1822,10 @@ private fun prog8Parser.StatementContext.toAst() : IStatement {
     memoryvardecl()?.let {
         val mvarinit = it.varinitializer()
         return VarDecl(VarDeclType.MEMORY,
-                mvarinit.datatype().toAst(),
-                mvarinit.arrayspec()?.toAst(),
-                mvarinit.identifier().text,
+                mvarinit.vardecl().datatype().toAst(),
+                mvarinit.vardecl().ZEROPAGE()!=null,
+                mvarinit.vardecl().arrayspec()?.toAst(),
+                mvarinit.vardecl().identifier().text,
                 mvarinit.expression().toAst(),
                 mvarinit.toPosition())
     }
@@ -2197,6 +2203,7 @@ private fun prog8Parser.BranchconditionContext.toAst() = BranchCondition.valueOf
 private fun prog8Parser.ForloopContext.toAst(): ForLoop {
     val loopregister = register()?.toAst()
     val datatype = datatype()?.toAst()
+    val zeropage = ZEROPAGE()!=null
     val loopvar = identifier()?.toAst()
     val iterable = expression()!!.toAst()
     val scope =
@@ -2204,7 +2211,7 @@ private fun prog8Parser.ForloopContext.toAst(): ForLoop {
                 AnonymousScope(mutableListOf(statement().toAst()), statement().toPosition())
             else
                 AnonymousScope(statement_block().toAst(), statement_block().toPosition())
-    return ForLoop(loopregister, datatype, loopvar, iterable, scope, toPosition())
+    return ForLoop(loopregister, datatype, zeropage, loopvar, iterable, scope, toPosition())
 }
 
 

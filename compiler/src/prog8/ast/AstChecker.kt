@@ -131,6 +131,9 @@ private class AstChecker(private val namespace: INameScope,
     }
 
     override fun process(forLoop: ForLoop): IStatement {
+        if(forLoop.zeropage)
+            println("ZEROPAGE FORLOOP $forLoop")   // TODO
+
         if(forLoop.body.isEmpty())
             printWarning("for loop body is empty", forLoop.position)
 
@@ -480,6 +483,9 @@ private class AstChecker(private val namespace: INameScope,
         fun err(msg: String, position: Position?=null) {
             checkResult.add(SyntaxError(msg, position ?: decl.position))
         }
+
+        if(decl.zeropage)
+            println("ZEROPAGE VAR $decl")   // TODO
 
         // the initializer value can't refer to the variable itself (recursive definition)
         if(decl.value?.referencesIdentifier(decl.name) == true || decl.arrayspec?.x?.referencesIdentifier(decl.name) == true) {
