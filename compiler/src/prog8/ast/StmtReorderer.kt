@@ -10,6 +10,9 @@ fun Module.reorderStatements(namespace: INameScope, heap: HeapValues) {
     this.process(checker)
 }
 
+const val initvarsSubName="prog8_init_vars"    // the name of the subroutine that should be called for every block to initialize its variables
+
+
 private class StatementReorderer(private val namespace: INameScope, private val heap: HeapValues): IAstProcessor {
     // Reorders the statements in a way the compiler needs.
     // - 'main' block must be the very first statement UNLESS it has an address set.
@@ -92,6 +95,19 @@ private class StatementReorderer(private val namespace: INameScope, private val 
         block.statements.addAll(0, directives)
 
         sortConstantAssignments(block.statements)
+
+        val varInits = block.statements.withIndex().filter { it.value is VariableInitializationAssignment }
+        if(varInits.isNotEmpty()) {
+            val statements = varInits.map{it.value}.toMutableList()
+            val varInitSub = Subroutine(initvarsSubName, emptyList(), emptyList(), emptyList(), emptyList(),
+                    emptySet(), null, false, statements, block.position)
+            varInitSub.linkParents(block)
+            block.statements.add(varInitSub)
+
+            // remove the varinits from the block's statements
+            for(index in varInits.map{it.index}.reversed())
+                block.statements.removeAt(index)
+        }
 
         return super.process(block)
     }

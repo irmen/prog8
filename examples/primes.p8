@@ -2,12 +2,11 @@
 
 ~ main {
 
+    ubyte[256] sieve
+    ubyte candidate_prime = 2
 
     sub start() {
-        ; clear the sieve, and mark 0 and 1 as not prime.
-        memset(sieve, 256, false)
-        sieve[0] = true
-        sieve[1] = true
+        memset(sieve, 256, false)   ; clear the sieve
 
         ; calculate primes
         c64scr.print("prime numbers up to 255:\n\n")
@@ -21,21 +20,21 @@
         c64.CHROUT('\n')
     }
 
-    ubyte[256] sieve
 
     sub find_next_prime() -> ubyte {
-        for ubyte prime in 2 to 255 {
-            if not sieve[prime] {
-                ; found one, mark the multiples and return it.
-                sieve[prime] = true
-                uword multiple = prime**2
-                while multiple < len(sieve) {
-                    sieve[lsb(multiple)] = true
-                    multiple += prime
-                }
-                return prime
-            }
+        while sieve[candidate_prime] {
+            candidate_prime++
+            if candidate_prime==0
+                return 0        ; we wrapped; no more primes available in the sieve
         }
-        return 0
+
+        ; found next one, mark the multiples and return it.
+        sieve[candidate_prime] = true
+        uword multiple = candidate_prime**2
+        while multiple < len(sieve) {
+            sieve[lsb(multiple)] = true
+            multiple += candidate_prime
+        }
+        return candidate_prime
     }
 }

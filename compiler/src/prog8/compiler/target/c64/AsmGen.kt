@@ -173,6 +173,12 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         }
 
         out("  ldx  #\$ff\t; init estack pointer")
+        out("  ; initialize the variables in each block")
+        for(block in program.blocks) {
+            val initVarsLabel = block.instructions.firstOrNull { it is LabelInstr && it.name==initvarsSubName } as? LabelInstr
+            if(initVarsLabel!=null)
+                out("  jsr  ${block.scopedname}.${initVarsLabel.name}")
+        }
         out("  clc")
         out("  jmp  main.start\t; jump to program entrypoint")
         out("")
