@@ -52,7 +52,7 @@ val BuiltinFunctions = mapOf(
     "round"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::round) },
     "floor"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::floor) },
     "ceil"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::ceil) },
-    "len"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", IterableDatatypes)), DataType.UBYTE, ::builtinLen),
+    "len"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", IterableDatatypes)), DataType.UWORD, ::builtinLen),
     "any"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.any { v -> v != 0.0} }},
     "all"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.all { v -> v != 0.0} }},
     "lsb"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, n, h -> oneIntArgOutputInt(a, p, n, h) { x: Int -> x and 255 }},
@@ -285,6 +285,7 @@ private fun builtinAvg(args: List<IExpression>, position: Position, namespace:IN
 }
 
 private fun builtinLen(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
+    // note: in some cases the length is > 255 and so we have to return a UWORD type instead of a byte.
     if(args.size!=1)
         throw SyntaxError("len requires one argument", position)
     var argument = args[0].constValue(namespace, heap)
@@ -299,21 +300,21 @@ private fun builtinLen(args: List<IExpression>, position: Position, namespace:IN
     return when(argument.type) {
         DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
             val arraySize = argument.arrayvalue?.size ?: heap.get(argument.heapId!!).arraysize
-            if(arraySize>255)
+            if(arraySize>256)
                 throw CompilerException("array length exceeds byte limit ${argument.position}")
-            LiteralValue(DataType.UBYTE, bytevalue=arraySize.toShort(), position=args[0].position)
+            LiteralValue(DataType.UWORD, wordvalue=arraySize, position=args[0].position)
         }
         DataType.ARRAY_F -> {
             val arraySize = argument.arrayvalue?.size ?: heap.get(argument.heapId!!).arraysize
-            if(arraySize>255)
+            if(arraySize>256)
                 throw CompilerException("array length exceeds byte limit ${argument.position}")
-            LiteralValue(DataType.UBYTE, bytevalue=arraySize.toShort(), position=args[0].position)
+            LiteralValue(DataType.UWORD, wordvalue=arraySize, position=args[0].position)
         }
         DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
             val str = argument.strvalue(heap)
             if(str.length>255)
                 throw CompilerException("string length exceeds byte limit ${argument.position}")
-            LiteralValue(DataType.UBYTE, bytevalue=str.length.toShort(), position=args[0].position)
+            LiteralValue(DataType.UWORD, wordvalue=str.length, position=args[0].position)
         }
         DataType.UBYTE, DataType.BYTE,
         DataType.UWORD, DataType.WORD,

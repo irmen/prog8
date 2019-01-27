@@ -188,7 +188,7 @@ class TestZeropage {
         assertEquals(19, zp.available())
 
         zp.allocate(VarDecl(VarDeclType.VAR, DataType.FLOAT, false, null, "", null, dummypos))
-        assertFailsWith<CompilerException> {
+        assertFailsWith<ZeropageDepletedError> {
             // in regular zp there aren't 5 sequential bytes free after we take the first sequence
             zp.allocate(VarDecl(VarDeclType.VAR, DataType.FLOAT, false, null, "", null, dummypos))
         }
@@ -198,10 +198,10 @@ class TestZeropage {
             assertTrue(loc > 0)
         }
         assertEquals(0, zp.available())
-        assertFailsWith<CompilerException> {
+        assertFailsWith<ZeropageDepletedError> {
             zp.allocate(VarDecl(VarDeclType.VAR, DataType.UBYTE, false, null, "", null, dummypos))
         }
-        assertFailsWith<CompilerException> {
+        assertFailsWith<ZeropageDepletedError> {
             zp.allocate(VarDecl(VarDeclType.VAR, DataType.UWORD, false, null, "", null, dummypos))
         }
     }
@@ -221,7 +221,7 @@ class TestZeropage {
         }
         assertEquals(18,zp.available())
 
-        assertFailsWith<CompilerException> {
+        assertFailsWith<ZeropageDepletedError> {
             // can't allocate because no more sequential bytes, only fragmented
             zp.allocate(VarDecl(VarDeclType.VAR, DataType.FLOAT, false, null, "", null, dummypos))
         }
@@ -234,7 +234,7 @@ class TestZeropage {
         assertEquals(2, zp.available())
         zp.allocate(VarDecl(VarDeclType.VAR, DataType.UBYTE, false, null, "", null, dummypos))
         zp.allocate(VarDecl(VarDeclType.VAR, DataType.UBYTE, false, null, "", null, dummypos))
-        assertFailsWith<CompilerException> {
+        assertFailsWith<ZeropageDepletedError> {
             // no more space
             zp.allocate(VarDecl(VarDeclType.VAR, DataType.UBYTE, false, null, "", null, dummypos))
         }

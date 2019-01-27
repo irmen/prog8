@@ -3,6 +3,7 @@ package prog8
 import prog8.ast.*
 import prog8.compiler.*
 import prog8.compiler.target.c64.AsmGen
+import prog8.compiler.target.c64.C64Zeropage
 import prog8.optimizing.constantFold
 import prog8.optimizing.optimizeStatements
 import prog8.optimizing.simplifyExpressions
@@ -131,7 +132,9 @@ private fun compileMain(args: Array<String>) {
             }
 
             if(writeAssembly) {
-                val assembly = AsmGen(compilerOptions, intermediate, heap).compileToAssembly()
+                val zeropage = C64Zeropage(compilerOptions)
+                intermediate.allocateZeropage(zeropage)
+                val assembly = AsmGen(compilerOptions, intermediate, heap, zeropage).compileToAssembly()
                 assembly.assemble(compilerOptions)
                 programname = assembly.name
             }
@@ -176,9 +179,10 @@ fun determineCompilationOptions(moduleAst: Module): CompilationOptions {
             as? Directive)?.args?.single()?.int ?: 0
     val zpoption: String? = (moduleAst.statements.singleOrNull { it is Directive && it.directive == "%zeropage" }
             as? Directive)?.args?.single()?.name?.toUpperCase()
+    val floatsEnabled = options.any { it.name == "enable_floats" }
     val zpType: ZeropageType =
             if (zpoption == null)
-                ZeropageType.KERNALSAFE
+                if(floatsEnabled) ZeropageType.BASICSAFE else ZeropageType.KERNALSAFE
             else
                 try {
                     ZeropageType.valueOf(zpoption)
@@ -196,8 +200,8 @@ fun determineCompilationOptions(moduleAst: Module): CompilationOptions {
     return CompilationOptions(
             if (outputType == null) OutputType.PRG else OutputType.valueOf(outputType),
             if (launcherType == null) LauncherType.BASIC else LauncherType.valueOf(launcherType),
-            zpType, zpReserved,
-            options.any { it.name == "enable_floats" })
+            zpType, zpReserved, floatsEnabled
+    )
 }
 
 private fun usage() {

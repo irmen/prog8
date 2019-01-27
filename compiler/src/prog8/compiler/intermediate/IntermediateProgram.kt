@@ -3,6 +3,8 @@ package prog8.compiler.intermediate
 import prog8.ast.*
 import prog8.compiler.CompilerException
 import prog8.compiler.HeapValues
+import prog8.compiler.Zeropage
+import prog8.compiler.ZeropageDepletedError
 import java.io.PrintStream
 import java.nio.file.Path
 
@@ -22,8 +24,10 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
             get() { return variables.size }
         val numInstructions: Int
             get() { return instructions.filter { it.opcode!= Opcode.LINE }.size }
+        val variablesMarkedForZeropage: MutableSet<String> = mutableSetOf()
     }
 
+    val allocatedZeropageVariables = mutableMapOf<String, Pair<Int, DataType>>()
     val blocks = mutableListOf<ProgramBlock>()
     val memory = mutableMapOf<Int, List<Value>>()
     private lateinit var currentBlock: ProgramBlock
@@ -32,6 +36,30 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         get() = blocks.sumBy { it.numVariables }
     val numInstructions: Int
         get() = blocks.sumBy { it.numInstructions }
+
+    fun allocateZeropage(zeropage: Zeropage) {
+        // allocates all @zp marked variables on the zeropage (for all blocks, as long as there is space in the ZP)
+        var notAllocated = 0
+        for(block in blocks) {
+            val zpVariables = block.variables.filter { it.key in block.variablesMarkedForZeropage }
+            if (zpVariables.isNotEmpty()) {
+                for (variable in zpVariables) {
+                    try {
+                        val address = zeropage.allocate(variable.key, variable.value.type)
+                        allocatedZeropageVariables[variable.key] = Pair(address, variable.value.type)
+                        println("DEBUG: allocated on ZP:  $variable   @ $address")  //TODO
+                        block.variablesMarkedForZeropage.remove(variable.key)//TODO weg
+                    } catch (x: ZeropageDepletedError) {
+                        printWarning(x.toString() + " variable ${variable.key} type ${variable.value.type}")
+                        notAllocated++
+                    }
+                }
+            }
+        }
+        println("DEBUG: ${allocatedZeropageVariables.size} variables allocated in Zeropage")        // TODO
+        if(notAllocated>0)
+            printWarning("$notAllocated variables marked for Zeropage could not be allocated there")
+    }
 
     fun optimize() {
         println("Optimizing stackVM code...")
@@ -328,6 +356,8 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                     }
                 }
                 currentBlock.variables[scopedname] = value
+                if(decl.zeropage)
+                    currentBlock.variablesMarkedForZeropage.add(scopedname)
             }
             VarDeclType.MEMORY -> {
                 // note that constants are all folded away, but assembly code may still refer to them

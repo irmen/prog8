@@ -44,13 +44,6 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
                 // remove empty subroutine
                 optimizationsDone++
                 statementsToRemove.add(subroutine)
-            } else if(subroutine.statements.size==1) {
-                val stmt = subroutine.statements[0]
-                if(stmt is ReturnFromIrq || stmt is Return) {
-                    // remove empty subroutine
-                    optimizationsDone++
-                    statementsToRemove.add(subroutine)
-                }
             }
         }
 
@@ -157,12 +150,17 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
 
         // if it calls a subroutine,
         // and the first instruction in the subroutine is a jump, call that jump target instead
+        // if the first instruction in the subroutine is a return statement, replace with a nop instruction
         val subroutine = functionCall.target.targetStatement(namespace) as? Subroutine
         if(subroutine!=null) {
             val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
             if(first is Jump && first.identifier!=null) {
                 optimizationsDone++
                 return FunctionCallStatement(first.identifier, functionCall.arglist, functionCall.position)
+            }
+            if(first is ReturnFromIrq || first is Return) {
+                optimizationsDone++
+                return NopStatement(functionCall.position)
             }
         }
 
@@ -172,12 +170,18 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
     override fun process(functionCall: FunctionCall): IExpression {
         // if it calls a subroutine,
         // and the first instruction in the subroutine is a jump, call that jump target instead
+        // if the first instruction in the subroutine is a return statement with constant value, replace with the constant value
         val subroutine = functionCall.target.targetStatement(namespace) as? Subroutine
         if(subroutine!=null) {
             val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
             if(first is Jump && first.identifier!=null) {
                 optimizationsDone++
                 return FunctionCall(first.identifier, functionCall.arglist, functionCall.position)
+            }
+            if(first is Return && first.values.size==1) {
+                val constval = first.values[0].constValue(namespace, heap)
+                if(constval!=null)
+                    return constval
             }
         }
         return super.process(functionCall)
@@ -255,8 +259,10 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
         val constvalue = whileLoop.condition.constValue(namespace, heap)
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue){
-                // always true -> print a warning, and optimize into body + jump
+                // always true -> print a warning, and optimize into body + jump (if there are no continue and break statements)
                 printWarning("condition is always true", whileLoop.position)
+                if(hasContinueOrBreak(whileLoop.body))
+                    return whileLoop
                 val label = Label("__back", whileLoop.condition.position)
                 whileLoop.body.statements.add(0, label)
                 whileLoop.body.statements.add(Jump(null,
@@ -284,8 +290,10 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
                 optimizationsDone++
                 repeatLoop.body
             } else {
-                // always false -> print a warning, and optimize into body + jump
+                // always false -> print a warning, and optimize into body + jump (if there are no continue and break statements)
                 printWarning("condition is always false", repeatLoop.position)
+                if(hasContinueOrBreak(repeatLoop.body))
+                    return repeatLoop
                 val label = Label("__back", repeatLoop.untilCondition.position)
                 repeatLoop.body.statements.add(0, label)
                 repeatLoop.body.statements.add(Jump(null,
@@ -296,6 +304,31 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
             }
         }
         return repeatLoop
+    }
+
+    private fun hasContinueOrBreak(scope: INameScope): Boolean {
+
+        class Searcher:IAstProcessor
+        {
+            var count=0
+
+            override fun process(breakStmt: Break): IStatement {
+                count++
+                return super.process(breakStmt)
+            }
+
+            override fun process(contStmt: Continue): IStatement {
+                count++
+                return super.process(contStmt)
+            }
+        }
+        val s=Searcher()
+        for(stmt in scope.statements) {
+            stmt.process(s)
+            if(s.count>0)
+                return true
+        }
+        return s.count > 0
     }
 
     override fun process(jump: Jump): IStatement {

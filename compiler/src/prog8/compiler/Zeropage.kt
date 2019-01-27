@@ -3,12 +3,18 @@ package prog8.compiler
 import prog8.ast.*
 
 
+class ZeropageDepletedError(message: String) : Exception(message)
+
+
 abstract class Zeropage(private val options: CompilationOptions) {
 
     private val allocations = mutableMapOf<Int, Pair<String, DataType>>()
     val free = mutableListOf<Int>()     // subclasses must set this to the appropriate free locations.
 
     fun available() = free.size
+
+    fun allocate(name: String, type: DataType) =
+        allocate(VarDecl(VarDeclType.VAR, type, true, null, name, null, Position("",0,0,0)))
 
     fun allocate(vardecl: VarDecl) : Int {
         assert(vardecl.name.isEmpty() || !allocations.values.any { it.first==vardecl.name } ) {"same name can't be allocated twice"}
@@ -18,15 +24,15 @@ abstract class Zeropage(private val options: CompilationOptions) {
             if(vardecl.arrayspec!=null) {
                 printWarning("allocating a large value (arrayspec) in zeropage", vardecl.position)
                 when(vardecl.datatype) {
-                    DataType.UBYTE -> (vardecl.arrayspec.x as LiteralValue).asIntegerValue!!
-                    DataType.UWORD -> (vardecl.arrayspec.x as LiteralValue).asIntegerValue!! * 2
+                    DataType.UBYTE, DataType.BYTE -> (vardecl.arrayspec.x as LiteralValue).asIntegerValue!!
+                    DataType.UWORD, DataType.UWORD -> (vardecl.arrayspec.x as LiteralValue).asIntegerValue!! * 2
                     DataType.FLOAT -> (vardecl.arrayspec.x as LiteralValue).asIntegerValue!! *  5
                     else -> throw CompilerException("array can only be of byte, word, float")
                 }
             } else {
                 when (vardecl.datatype) {
-                    DataType.UBYTE -> 1
-                    DataType.UWORD -> 2
+                    DataType.UBYTE, DataType.BYTE -> 1
+                    DataType.UWORD, DataType.WORD -> 2
                     DataType.FLOAT -> {
                         if (options.floats) {
                             printWarning("allocating a large value (float) in zeropage", vardecl.position)
@@ -51,17 +57,17 @@ abstract class Zeropage(private val options: CompilationOptions) {
             }
         }
 
-        throw CompilerException("ERROR: no free space in ZP to allocate $size sequential bytes")
+        throw ZeropageDepletedError("ERROR: no free space in ZP to allocate $size sequential bytes")
     }
 
     protected fun reserve(range: IntRange) = free.removeAll(range)
 
-    private fun makeAllocation(location: Int, size: Int, datatype: DataType, name: String?): Int {
-        free.removeAll(location until location+size)
-        allocations[location] = Pair(name ?: "<unnamed>", datatype)
-        return location
+    private fun makeAllocation(address: Int, size: Int, datatype: DataType, name: String?): Int {
+        free.removeAll(address until address+size)
+        allocations[address] = Pair(name ?: "<unnamed>", datatype)
+        return address
     }
 
-    private fun loneByte(location: Int) = location in free && location-1 !in free && location+1 !in free
-    private fun sequentialFree(location: Int, size: Int) = free.containsAll((location until location+size).toList())
+    private fun loneByte(address: Int) = address in free && address-1 !in free && address+1 !in free
+    private fun sequentialFree(address: Int, size: Int) = free.containsAll((address until address+size).toList())
 }

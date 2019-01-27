@@ -155,7 +155,7 @@ internal class Compiler(private val rootModule: Module,
     private val continueStmtLabelStack : Stack<String> = Stack()
 
     fun compile(options: CompilationOptions) : IntermediateProgram {
-        println("\nCreating stackVM code...")
+        println("Creating stackVM code...")
         process(rootModule)
         return prog
     }
@@ -2103,7 +2103,6 @@ internal class Compiler(private val rootModule: Module,
         prog.instr(Opcode.NOP)
         breakStmtLabelStack.pop()
         continueStmtLabelStack.pop()
-
     }
 
     private fun translate(stmt: RepeatLoop)

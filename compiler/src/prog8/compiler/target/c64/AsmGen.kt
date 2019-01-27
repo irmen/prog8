@@ -3,8 +3,7 @@ package prog8.compiler.target.c64
 // note: to put stuff on the stack, we use Absolute,X  addressing mode which is 3 bytes / 4 cycles
 // possible space optimization is to use zeropage (indirect),Y  which is 2 bytes, but 5 cycles
 
-import prog8.ast.DataType
-import prog8.ast.escape
+import prog8.ast.*
 import prog8.compiler.*
 import prog8.compiler.intermediate.*
 import prog8.stackvm.Syscall
@@ -17,7 +16,7 @@ import kotlin.math.abs
 class AssemblyError(msg: String) : RuntimeException(msg)
 
 
-class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, val heap: HeapValues) {
+class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, val heap: HeapValues, val zeropage: Zeropage) {
     private val globalFloatConsts = mutableMapOf<Double, String>()
     private val assemblyLines = mutableListOf<String>()
     private lateinit var block: IntermediateProgram.ProgramBlock
@@ -27,9 +26,11 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         // Because 64tass understands scoped names via .proc / .block,
         // we'll strip the block prefix from all scoped names in the program.
         // Also, convert invalid label names (such as "<<<anonymous-1>>>") to something that's allowed.
+        // Also have to do that for the variablesMarkedForZeropage!
         val newblocks = mutableListOf<IntermediateProgram.ProgramBlock>()
         for(block in program.blocks) {
             val newvars = block.variables.map { symname(it.key, block) to it.value }.toMap().toMutableMap()
+            val newvarsZeropaged = block.variablesMarkedForZeropage.map{symname(it, block)}.toMutableSet()
             val newlabels = block.labels.map { symname(it.key, block) to it.value}.toMap().toMutableMap()
             val newinstructions = block.instructions.asSequence().map {
                 when {
@@ -42,7 +43,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 }
             }.toMutableList()
             val newConstants = block.memoryPointers.map { symname(it.key, block) to it.value }.toMap().toMutableMap()
-            newblocks.add(IntermediateProgram.ProgramBlock(
+            val newblock = IntermediateProgram.ProgramBlock(
                     block.scopedname,
                     block.shortname,
                     block.address,
@@ -50,7 +51,10 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     newvars,
                     newConstants,
                     newlabels,
-                    force_output = block.force_output))
+                    force_output = block.force_output)
+            newblock.variablesMarkedForZeropage.clear()
+            newblock.variablesMarkedForZeropage.addAll(newvarsZeropaged)
+            newblocks.add(newblock)
         }
         program.blocks.clear()
         program.blocks.addAll(newblocks)
@@ -66,7 +70,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
     }
 
     fun compileToAssembly(): AssemblyProgram {
-        println("\nGenerating assembly code from intermediate code... ")
+        println("Generating assembly code from intermediate code... ")
 
         assemblyLines.clear()
         header()
@@ -189,9 +193,12 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             out(".cerror * > ${block.address?.toHex()}, 'block address overlaps by ', *-${block.address?.toHex()},' bytes'")
             out("* = ${block.address?.toHex()}")
         }
+
+        // @TODO allocate variables on the zeropage as long as there is space
+
         out("\n; memdefs and kernel subroutines")
         memdefs2asm(block)
-        out("\n; variables")
+        out("\n; non-zeropage variables")
         vardecls2asm(block)
         out("")
 
@@ -219,7 +226,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
     }
 
     private fun vardecls2asm(block: IntermediateProgram.ProgramBlock) {
-        val sortedVars = block.variables.toList().sortedBy { it.second.type }
+        // these are the non-zeropage variables  @todo is this correct now?
+        val sortedVars = block.variables.filter{it.key !in block.variablesMarkedForZeropage}.toList().sortedBy { it.second.type }
         for (v in sortedVars) {
             when (v.second.type) {
                 DataType.UBYTE -> out("${v.first}\t.byte  0")
