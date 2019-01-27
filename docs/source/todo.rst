@@ -40,3 +40,10 @@ Should use the zeropage for variables
 - Variables should be allocated in the zeropage as long as it has space.
 - add some sort of ``zp`` modifier keyword on vardecls to force them into zeropage?
 
+
+Misc
+^^^^
+
+- sqrt() should have integer implementation as well, instead of relying on float SQRT for all argument types
+- code generation for POW instruction
+

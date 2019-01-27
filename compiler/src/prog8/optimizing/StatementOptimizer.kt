@@ -285,10 +285,14 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
         val constvalue = repeatLoop.untilCondition.constValue(namespace, heap)
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue){
-                // always true -> keep only the statement block
+                // always true -> keep only the statement block (if there are no continue and break statements)
                 printWarning("condition is always true", repeatLoop.position)
-                optimizationsDone++
-                repeatLoop.body
+                if(hasContinueOrBreak(repeatLoop.body))
+                    repeatLoop
+                else {
+                    optimizationsDone++
+                    repeatLoop.body
+                }
             } else {
                 // always false -> print a warning, and optimize into body + jump (if there are no continue and break statements)
                 printWarning("condition is always false", repeatLoop.position)

@@ -72,11 +72,63 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         optimizeVariableCopying()
         optimizeMultipleSequentialLineInstrs()
         optimizeCallReturnIntoJump()
+        optimizeConditionalBranches()
         // todo: add more optimizations to stackvm code
 
         optimizeRemoveNops()    //  must be done as the last step
         optimizeMultipleSequentialLineInstrs()      // once more
         optimizeRemoveNops()    // once more
+    }
+
+    private fun optimizeConditionalBranches() {
+        // conditional branches that consume the value on the stack
+        // sometimes these are just constant values, so we can statically determine the branch
+        // or, they are preceded by a NOT instruction so we can simply remove that and flip the branch condition
+        val pushvalue = setOf(Opcode.PUSH_BYTE, Opcode.PUSH_WORD)
+        val notvalue = setOf(Opcode.NOT_BYTE, Opcode.NOT_WORD)
+        val branchOpcodes = setOf(Opcode.JZ, Opcode.JNZ, Opcode.JZW, Opcode.JNZW)
+        for(blk in blocks) {
+            val instructionsToReplace = mutableMapOf<Int, Instruction>()
+            blk.instructions.asSequence().withIndex().filter {it.value.opcode!=Opcode.LINE}.windowed(2).toList().forEach {
+                if (it[1].value.opcode in branchOpcodes) {
+                    if (it[0].value.opcode in pushvalue) {
+                        val value = it[0].value.arg!!.asBooleanValue
+                        instructionsToReplace[it[0].index] = Instruction(Opcode.NOP)
+                        val replacement: Instruction =
+                                if (value) {
+                                    when (it[1].value.opcode) {
+                                        Opcode.JNZ -> Instruction(Opcode.JUMP, callLabel = it[1].value.callLabel)
+                                        Opcode.JNZW -> Instruction(Opcode.JUMP, callLabel = it[1].value.callLabel)
+                                        else -> Instruction(Opcode.NOP)
+                                    }
+                                } else {
+                                    when (it[1].value.opcode) {
+                                        Opcode.JZ -> Instruction(Opcode.JUMP, callLabel = it[1].value.callLabel)
+                                        Opcode.JZW -> Instruction(Opcode.JUMP, callLabel = it[1].value.callLabel)
+                                        else -> Instruction(Opcode.NOP)
+                                    }
+                                }
+                        instructionsToReplace[it[1].index] = replacement
+                    }
+                    else if (it[0].value.opcode in notvalue) {
+                        instructionsToReplace[it[0].index] = Instruction(Opcode.NOP)
+                        val replacement: Instruction =
+                                when (it[1].value.opcode) {
+                                    Opcode.JZ -> Instruction(Opcode.JNZ, callLabel = it[1].value.callLabel)
+                                    Opcode.JZW -> Instruction(Opcode.JNZW, callLabel = it[1].value.callLabel)
+                                    Opcode.JNZ -> Instruction(Opcode.JZ, callLabel = it[1].value.callLabel)
+                                    Opcode.JNZW -> Instruction(Opcode.JZW, callLabel = it[1].value.callLabel)
+                                    else -> Instruction(Opcode.NOP)
+                                }
+                        instructionsToReplace[it[1].index] = replacement
+                    }
+                }
+            }
+
+            for (rins in instructionsToReplace) {
+                blk.instructions[rins.key] = rins.value
+            }
+        }
     }
 
     private fun optimizeRemoveNops() {

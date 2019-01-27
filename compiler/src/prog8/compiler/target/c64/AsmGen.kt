@@ -16,6 +16,9 @@ import kotlin.math.abs
 class AssemblyError(msg: String) : RuntimeException(msg)
 
 
+// TODO: code generation for POW instruction
+
+
 class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, val heap: HeapValues, val zeropage: Zeropage) {
     private val globalFloatConsts = mutableMapOf<Double, String>()
     private val assemblyLines = mutableListOf<String>()

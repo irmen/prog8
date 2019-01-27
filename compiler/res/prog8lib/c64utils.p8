@@ -121,7 +121,7 @@ asmsub  uword2bcd  (uword value @ AY) -> clobbers(A,Y) -> ()  {
 		dey				; and repeat for next bit
 		bne  -
 		cld				; back to binary
-		cli				; enable interrupts again
+		cli				; enable interrupts again      @todo don't re-enable if it wasn't enabled before
 		rts
 	}}
 }
