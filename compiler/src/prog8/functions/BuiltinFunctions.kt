@@ -139,7 +139,7 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
         throw FatalAstException("function requires one argument which is an arrayspec $function")
     }
 
-    val func = BuiltinFunctions[function]!!
+    val func = BuiltinFunctions.getValue(function)
     if(func.returntype!=null)
         return func.returntype
     // function has return values, but the return type depends on the arguments

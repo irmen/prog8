@@ -11,49 +11,40 @@ abstract class Zeropage(private val options: CompilationOptions) {
     private val allocations = mutableMapOf<Int, Pair<String, DataType>>()
     val free = mutableListOf<Int>()     // subclasses must set this to the appropriate free locations.
 
+    val allowedDatatypes = NumericDatatypes
+
     fun available() = free.size
 
-    fun allocate(name: String, type: DataType) =
-        allocate(VarDecl(VarDeclType.VAR, type, true, null, name, null, Position("",0,0,0)))
-
-    fun allocate(vardecl: VarDecl) : Int {
-        assert(vardecl.name.isEmpty() || !allocations.values.any { it.first==vardecl.name } ) {"same name can't be allocated twice"}
-        assert(vardecl.type== VarDeclType.VAR) {"can only allocate VAR type"}
+    fun allocate(scopedname: String, datatype: DataType, position: Position?): Int {
+        assert(scopedname.isEmpty() || !allocations.values.any { it.first==scopedname } ) {"same scopedname can't be allocated twice"}
 
         val size =
-            if(vardecl.arrayspec!=null) {
-                printWarning("allocating a large value (arrayspec) in zeropage", vardecl.position)
-                when(vardecl.datatype) {
-                    DataType.UBYTE, DataType.BYTE -> (vardecl.arrayspec.x as LiteralValue).asIntegerValue!!
-                    DataType.UWORD, DataType.UWORD -> (vardecl.arrayspec.x as LiteralValue).asIntegerValue!! * 2
-                    DataType.FLOAT -> (vardecl.arrayspec.x as LiteralValue).asIntegerValue!! *  5
-                    else -> throw CompilerException("array can only be of byte, word, float")
-                }
-            } else {
-                when (vardecl.datatype) {
+                when (datatype) {
                     DataType.UBYTE, DataType.BYTE -> 1
                     DataType.UWORD, DataType.WORD -> 2
                     DataType.FLOAT -> {
                         if (options.floats) {
-                            printWarning("allocating a large value (float) in zeropage", vardecl.position)
+                            if(position!=null)
+                                printWarning("allocated a large value (float) in zeropage", position)
+                            else
+                                printWarning("$scopedname: allocated a large value (float) in zeropage")
                             5
                         } else throw CompilerException("floating point option not enabled")
                     }
-                    else -> throw CompilerException("cannot put datatype ${vardecl.datatype} in zeropage")
+                    else -> throw CompilerException("cannot put datatype $datatype in zeropage")
                 }
-            }
 
         if(free.size > 0) {
             if(size==1) {
                 for(candidate in free.min()!! .. free.max()!!+1) {
                     if(loneByte(candidate))
-                        return makeAllocation(candidate, 1, vardecl.datatype, vardecl.name)
+                        return makeAllocation(candidate, 1, datatype, scopedname)
                 }
-                return makeAllocation(free[0], 1, vardecl.datatype, vardecl.name)
+                return makeAllocation(free[0], 1, datatype, scopedname)
             }
             for(candidate in free.min()!! .. free.max()!!+1) {
                 if (sequentialFree(candidate, size))
-                    return makeAllocation(candidate, size, vardecl.datatype, vardecl.name)
+                    return makeAllocation(candidate, size, datatype, scopedname)
             }
         }
 

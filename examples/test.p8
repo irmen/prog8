@@ -1,102 +1,35 @@
 %import c64utils
+%option enable_floats
 
 ~ main {
 
-    ubyte b1 = 42
-    word w = -999
-
     sub start() {
-        vm_write_num(b1)
-        vm_write_char('\n')
-        vm_write_num(w)
-        vm_write_char('\n')
 
-;        c64scr.print_ub(b1)
-;        c64.CHROUT('\n')
-;        c64scr.print_w(w)
-;        c64.CHROUT('\n')
-
-        b1=0
-        w=0
-
-        vm_write_num(b1)
-        vm_write_char('\n')
-        vm_write_num(w)
-        vm_write_char('\n')
-
-;        c64scr.print_ub(b1)
-;        c64.CHROUT('\n')
-;        c64scr.print_w(w)
-;        c64.CHROUT('\n')
-        derp.derp()
-
-    }
-}
+        ubyte @zp ub = 22
+        byte  @zp b = 22
+        word @zp w = 2222
+        uword @zp uw = 2222
 
 
-~ derp {
-
-    ubyte b1 = 55
-
-    sub derp() {
-        word w = -999
-        vm_write_num(b1)
-        vm_write_char('\n')
-        vm_write_num(w)
-        vm_write_char('\n')
-
-;        c64scr.print_ub(b1)
-;        c64.CHROUT('\n')
-;        c64scr.print_w(w)
-;        c64.CHROUT('\n')
-
-        b1=0
-        w=0
-
-        vm_write_num(b1)
-        vm_write_char('\n')
-        vm_write_num(w)
-        vm_write_char('\n')
-
-;        c64scr.print_ub(b1)
-;        c64.CHROUT('\n')
-;        c64scr.print_w(w)
-;        c64.CHROUT('\n')
-
+        byte nonzp1 = 42
+        byte nonzp2 = 42
+        byte nonzp3 = 42
+        foo.bar()
     }
 
 }
 
+~ foo {
 
-;~ main {
-;
-;    sub start() {
-;
-;        ubyte @zp ub
-;        byte  @zp b
-;        word @zp w
-;        uword @zp uw
-;
-;
-;        byte nonzp1
-;        byte nonzp2
-;        byte nonzp3
-;        foo.bar()
-;    }
-;
-;}
-;
-;~ foo {
-;
-;sub bar() {
-;        ubyte @zp ub
-;        byte  @zp b
-;        word @zp w
-;        uword @zp uw
-;
-;    word nonzp1
-;    word nonzp2
-;    word nonzp3
-;    A=55
-;}
-;}
+sub bar() {
+        ubyte @zp ub = 33
+        byte  @zp b = 33
+        word @zp w = 3333
+        uword @zp uw = 3333
+
+    word nonzp1 = 4444
+    word nonzp2 = 4444
+    word nonzp3 = 4444
+    A=55
+}
+}

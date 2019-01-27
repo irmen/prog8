@@ -26,6 +26,7 @@
         Y++   ; delay for alignment
         Y++   ; delay for alignment
         Y++   ; delay for alignment
+        Y++   ; delay for alignment
         ubyte rasterpos = c64.RASTER
         if color!=len(colors) {
             c64.EXTCOL = colors[color]

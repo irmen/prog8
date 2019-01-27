@@ -56,9 +56,9 @@ sub irq() {
     c64.EXTCOL--
 
     ; float up & wobble horizontally
-    for ubyte i in 0 to 14 step 2 {
+    for ubyte @zp i in 0 to 14 step 2 {
         c64.SPXY[i+1]--
-        ubyte r = rnd()
+        ubyte @zp r = rnd()
         if r>200
             c64.SPXY[i]++
         else if r<40

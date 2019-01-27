@@ -46,6 +46,8 @@ private class StatementReorderer(private val namespace: INameScope, private val 
         module.statements.removeAll(directives)
         module.statements.addAll(0, directives)
 
+        // TODO make sure user-defined blocks come BEFORE library blocks
+
         sortConstantAssignments(module.statements)
     }
 

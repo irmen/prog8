@@ -6,7 +6,6 @@ import prog8.compiler.LauncherType
 import prog8.compiler.OutputType
 import prog8.determineCompilationOptions
 import java.io.InputStream
-import java.net.URL
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths

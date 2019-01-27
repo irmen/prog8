@@ -41,14 +41,14 @@ fun printWarning(msg: String, position: Position, detailInfo: String?=null) {
     if(detailInfo==null)
         print("\n")
     else
-        println(": $detailInfo")
+        println(": $detailInfo\n")
     print("\u001b[0m")  // normal
 }
 
 fun printWarning(msg: String) {
     print("\u001b[93m")  // bright yellow
     print("Warning: $msg")
-    print("\u001b[0m")  // normal
+    print("\u001b[0m\n")  // normal
 }
 
 private class AstChecker(private val namespace: INameScope,
@@ -784,7 +784,7 @@ private class AstChecker(private val namespace: INameScope,
 
         if(target is BuiltinFunctionStatementPlaceholder) {
             // it's a call to a builtin function.
-            val func = BuiltinFunctions[target.name]!!
+            val func = BuiltinFunctions.getValue(target.name)
             if(args.size!=func.parameters.size)
                 checkResult.add(SyntaxError("invalid number of arguments", position))
             else {

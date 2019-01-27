@@ -62,6 +62,10 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         program.blocks.clear()
         program.blocks.addAll(newblocks)
 
+        val newAllocatedZp = program.allocatedZeropageVariables.map { symname(it.key, null) to it.value}
+        program.allocatedZeropageVariables.clear()
+        program.allocatedZeropageVariables.putAll(newAllocatedZp)
+
         // make a list of all const floats that are used
         for(block in program.blocks) {
             for(ins in block.instructions.filter{it.arg?.type==DataType.FLOAT}) {
@@ -103,20 +107,27 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
     }
 
 
-    private fun symname(scoped: String, block: IntermediateProgram.ProgramBlock): String {
+    private fun symname(scoped: String, block: IntermediateProgram.ProgramBlock?): String {
         if(' ' in scoped)
             return scoped
-
         val blockLocal: Boolean
-        var name = if (scoped.startsWith("${block.shortname}.")) {
-            blockLocal = true
-            scoped.substring(block.shortname.length+1)
-        } else if (scoped.startsWith("block.")) {
-            blockLocal = false
-            scoped
-        } else {
-            blockLocal = false
-            scoped
+        var name = when {
+            block==null -> {
+                blockLocal=true
+                scoped
+            }
+            scoped.startsWith("${block.shortname}.") -> {
+                blockLocal = true
+                scoped.substring(block.shortname.length+1)
+            }
+            scoped.startsWith("block.") -> {
+                blockLocal = false
+                scoped
+            }
+            else -> {
+                blockLocal = false
+                scoped
+            }
         }
         name = name.replace("<<<", "prog8_").replace(">>>", "")
         if(name=="-")
@@ -203,7 +214,29 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             out("* = ${block.address?.toHex()}")
         }
 
-        // @TODO allocate variables on the zeropage as long as there is space
+        // deal with zeropage variables
+        for(variable in blk.variables) {
+            val sym = symname(blk.scopedname+"."+variable.key, null)
+            val zpVar = program.allocatedZeropageVariables[sym]
+            if(zpVar==null) {
+                // This var is not on the ZP yet. Attempt to move it there (if it's not a float, those take up too much space)
+                if(variable.value.type in zeropage.allowedDatatypes && variable.value.type != DataType.FLOAT) {
+                    try {
+                        val address = zeropage.allocate(sym, variable.value.type, null)
+                        out("${variable.key} = $address\t; zp ${variable.value.type}")
+                        // make sure we add the var to the set of zpvars for this block
+                        blk.variablesMarkedForZeropage.add(variable.key)
+                        program.allocatedZeropageVariables[sym] = Pair(address, variable.value.type)
+                    } catch (x: ZeropageDepletedError) {
+                        // leave it as it is.
+                    }
+                }
+            }
+            else {
+                // it was already allocated on the zp
+                out("${variable.key} = ${zpVar.first}\t; zp ${zpVar.second}")
+            }
+        }
 
         out("\n; memdefs and kernel subroutines")
         memdefs2asm(block)
@@ -235,7 +268,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
     }
 
     private fun vardecls2asm(block: IntermediateProgram.ProgramBlock) {
-        // these are the non-zeropage variables  @todo is this correct now?
+        // these are the non-zeropage variables
         val sortedVars = block.variables.filter{it.key !in block.variablesMarkedForZeropage}.toList().sortedBy { it.second.type }
         for (v in sortedVars) {
             when (v.second.type) {

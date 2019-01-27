@@ -7,7 +7,6 @@ import prog8.ast.LiteralValue
 import prog8.ast.Position
 import prog8.compiler.intermediate.Value
 import prog8.compiler.intermediate.ValueException
-import prog8.stackvm.VmExecutionException
 import kotlin.test.*
 
 

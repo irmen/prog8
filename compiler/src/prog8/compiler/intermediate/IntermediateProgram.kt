@@ -45,10 +45,8 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
             if (zpVariables.isNotEmpty()) {
                 for (variable in zpVariables) {
                     try {
-                        val address = zeropage.allocate(variable.key, variable.value.type)
+                        val address = zeropage.allocate(variable.key, variable.value.type, null)
                         allocatedZeropageVariables[variable.key] = Pair(address, variable.value.type)
-                        println("DEBUG: allocated on ZP:  $variable   @ $address")  //TODO
-                        block.variablesMarkedForZeropage.remove(variable.key)//TODO weg
                     } catch (x: ZeropageDepletedError) {
                         printWarning(x.toString() + " variable ${variable.key} type ${variable.value.type}")
                         notAllocated++
@@ -56,7 +54,6 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                 }
             }
         }
-        println("DEBUG: ${allocatedZeropageVariables.size} variables allocated in Zeropage")        // TODO
         if(notAllocated>0)
             printWarning("$notAllocated variables marked for Zeropage could not be allocated there")
     }

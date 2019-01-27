@@ -32,7 +32,7 @@ private class DirectedGraph<VT> {
         println("#vertices: $numVertices")
         graph.forEach { from, to ->
             println("$from   CALLS:")
-            to.forEach { it -> println("   $it") }
+            to.forEach { println("   $it") }
         }
         val cycle = checkForCycle()
         if(cycle.isNotEmpty()) {
