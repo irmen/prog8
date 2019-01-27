@@ -173,6 +173,23 @@ class StackVm(private var traceOutputFile: String?) {
         sourceLine = ""
         currentIns = this.program[0]
         irqStartInstruction = labels["irq.irq"]     // set to first instr of irq routine, if any
+
+        initBlockVars()
+    }
+
+    private fun initBlockVars() {
+        // initialize the global variables in each block.
+        // this is done by calling the special init subroutine of each block that has one.
+        val initVarsSubs = labels.filter { it.key.endsWith("."+ initvarsSubName) }
+        for(init in initVarsSubs) {
+            currentIns = init.value
+            try {
+                step(Int.MAX_VALUE)
+            } catch(x: VmTerminationException) {
+                // init subroutine finished
+            }
+        }
+        currentIns = program[0]
     }
 
     fun step(instructionCount: Int = 5000) {

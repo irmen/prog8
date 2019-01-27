@@ -1,48 +1,102 @@
 %import c64utils
-%import c64flt
-%option enable_floats
 
 ~ main {
 
+    ubyte b1 = 42
+    word w = -999
+
     sub start() {
+        vm_write_num(b1)
+        vm_write_char('\n')
+        vm_write_num(w)
+        vm_write_char('\n')
 
-        ubyte ub
-        byte b
-        word w
-        uword uw
-        float f1
-        float f2
-        float f3
-        float f4
-        float f5
-        float f6
+;        c64scr.print_ub(b1)
+;        c64.CHROUT('\n')
+;        c64scr.print_w(w)
+;        c64.CHROUT('\n')
 
-        f1=sqrt(A)
+        b1=0
+        w=0
 
-        f1=A**0.5
-        f2=ub**0.5
-        f3=b**0.5
-        f4=w**0.5
-        f5=uw**0.5
-        f6=f1**0.5
+        vm_write_num(b1)
+        vm_write_char('\n')
+        vm_write_num(w)
+        vm_write_char('\n')
 
-;        A=A**5
-;        ub=ub**5
-;        b=b**5
-;        w=w**5
-;        uw=uw**5
-;        f=f**5
-;
-;        A=A**Y
-;        ub=ub**Y
-;        b=b**Y
-;        w=w**Y
-;        uw=uw**Y
-;        f=f**Y
+;        c64scr.print_ub(b1)
+;        c64.CHROUT('\n')
+;        c64scr.print_w(w)
+;        c64.CHROUT('\n')
+        derp.derp()
+
+    }
+}
+
+
+~ derp {
+
+    ubyte b1 = 55
+
+    sub derp() {
+        word w = -999
+        vm_write_num(b1)
+        vm_write_char('\n')
+        vm_write_num(w)
+        vm_write_char('\n')
+
+;        c64scr.print_ub(b1)
+;        c64.CHROUT('\n')
+;        c64scr.print_w(w)
+;        c64.CHROUT('\n')
+
+        b1=0
+        w=0
+
+        vm_write_num(b1)
+        vm_write_char('\n')
+        vm_write_num(w)
+        vm_write_char('\n')
+
+;        c64scr.print_ub(b1)
+;        c64.CHROUT('\n')
+;        c64scr.print_w(w)
+;        c64.CHROUT('\n')
 
     }
 
-
-    ; @todo code for pow()
-
 }
+
+
+;~ main {
+;
+;    sub start() {
+;
+;        ubyte @zp ub
+;        byte  @zp b
+;        word @zp w
+;        uword @zp uw
+;
+;
+;        byte nonzp1
+;        byte nonzp2
+;        byte nonzp3
+;        foo.bar()
+;    }
+;
+;}
+;
+;~ foo {
+;
+;sub bar() {
+;        ubyte @zp ub
+;        byte  @zp b
+;        word @zp w
+;        uword @zp uw
+;
+;    word nonzp1
+;    word nonzp2
+;    word nonzp3
+;    A=55
+;}
+;}
