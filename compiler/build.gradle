@@ -1,0 +1,57 @@
+plugins {
+    id "org.jetbrains.kotlin.jvm" version "1.3.20"
+    id 'application'
+}
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+def kotlinVersion = '1.3.20'
+
+dependencies {
+    implementation project(':parser')
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
+    runtime "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
+
+	testImplementation "org.jetbrains.kotlin:kotlin-test-junit5:$kotlinVersion"
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.3.2'
+    testImplementation 'org.hamcrest:hamcrest-junit:2.0.0.0'
+}
+
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ["${project.projectDir}/src"]
+        }
+        resources {
+            srcDirs = ["${project.projectDir}/res"]
+        }
+    }
+    test {
+        java {
+            srcDirs = ["${project.projectDir}/test"]
+        }
+    }
+}
+
+
+
+application {
+    mainClassName = 'prog8.CompilerMainKt'
+    applicationName = 'p8compile'
+}
+
+task p8vmScript(type: CreateStartScripts) {
+    mainClassName = "prog8.StackVmMainKt"
+    applicationName = "p8vm"
+    outputDir = new File(project.buildDir, 'scripts')
+    classpath = jar.outputs.files + project.configurations.runtime
+}
+
+applicationDistribution.into("bin") {
+            from(p8vmScript)
+            fileMode = 0755
+}

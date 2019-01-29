@@ -1,0 +1,32 @@
+plugins {
+    id 'antlr'
+    id 'java'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    antlr 'org.antlr:antlr4:4.7.2'
+}
+
+compileJava {
+    dependsOn tasks.withType(AntlrTask)
+}
+
+generateGrammarSource {
+    outputDirectory = file("src/prog8/parser")
+    arguments += ["-no-listener","-no-visitor"]
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ["${project.projectDir}/src"]
+        }
+        antlr {
+        	srcDirs = ["${project.projectDir}/antlr"]
+        }
+    }
+}

@@ -1,5 +1,7 @@
-// Generated from /home/irmen/Projects/prog8/parser/antlr/prog8.g4 by ANTLR 4.7.2
+// Generated from prog8.g4 by ANTLR 4.7.2
+
 package prog8.parser;
+
 import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.*;
