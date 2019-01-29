@@ -29,3 +29,5 @@ compiler/src/prog8_kotlin.jar
 compiler/src/compiled_java
 .attach_pid*
 
+.gradle
+build/
