@@ -130,11 +130,16 @@ of the `Vice emulator <http://vice-emu.sourceforge.net/>`_.
     packaged jar file.
 
 .. note::
-    To build the compiler from source, Kotlin SDK version 1.3 or newer is needed.
+    Building the compiler itself:
+
+    (re)building the compiler itself requires a Kotlin SDK version 1.3.
     The compiler is developed using the `IntelliJ IDEA <https://www.jetbrains.com/idea/>`_
     IDE from Jetbrains, with the Kotlin plugin (free community edition of this IDE is available).
     But a bare Kotlin SDK installation should work just as well.
-    A shell script is provided to build and package the compiler from the command line.
+    A shell script (``build_the_compiler.sh``) is provided to build and package the compiler from the command line.
+    You can also use the Gradle build system to build the compiler (it will take care of
+    downloading all required libraries for you) by typing ``gradle installDist`` for instance.
+    The output of this gradle build will appear in the "./compiler/build/install/p8compile/" directory.
 
 .. note::
     Development and testing is done on Linux, but the compiler should run on most

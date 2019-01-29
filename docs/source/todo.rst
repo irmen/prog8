@@ -29,9 +29,20 @@ Add more compiler optimizations to the existing ones.
 - on the language AST level
 - on the StackVM intermediate code level
 - on the final assembly source level
+- can the parameter passing to subroutines be optimized to avoid copying?
 
 
 Also some library routines and code patterns could perhaps be optimized further
+
+
+Eval stack redesign? (lot of work)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The eval stack is now a split lsb/msb stack using X as the stackpointer.
+Is it easier/faster to just use a single page unsplit stack?
+It could then even be moved into the zeropage to greatly reduce code size and slowness.
+
+Or just move the LSB portion into a slab of the zeropage.
 
 
 Misc

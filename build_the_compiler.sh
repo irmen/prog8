@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 echo "Compiling the parser..."
-java -jar ./parser/antlr/lib/antlr-4.7.2-complete.jar -o ./parser/src/prog8/parser -Xexact-output-dir -no-listener -no-visitor -package prog8.parser ./parser/antlr/prog8.g4
+java -jar ./parser/antlr/lib/antlr-4.7.2-complete.jar -o ./parser/src/prog8/parser -Xexact-output-dir -no-listener -no-visitor ./parser/antlr/prog8.g4
 
 
 PARSER_CLASSES=./out/production/parser
