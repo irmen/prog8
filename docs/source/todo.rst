@@ -44,6 +44,10 @@ It could then even be moved into the zeropage to greatly reduce code size and sl
 
 Or just move the LSB portion into a slab of the zeropage.
 
+Allocate a fixed word in ZP that is the TOS so we can operate on TOS directly
+without having to to index into the stack?
+
+
 
 Misc
 ^^^^
