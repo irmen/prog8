@@ -19,3 +19,20 @@ dependencies {
     testImplementation 'org.hamcrest:hamcrest-junit:2.0.0.0'
 }
 
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ["${project.projectDir}/src"]
+        }
+        resources {
+            srcDirs = ["${project.projectDir}/res"]
+        }
+    }
+    test {
+        java {
+            srcDirs = ["${project.projectDir}/test"]
+        }
+    }
+}
+}
