@@ -10,6 +10,9 @@ NOTES:
 
 grammar prog8;
 
+@header {
+package prog8.parser;
+}
 
 LINECOMMENT : [\r\n][ \t]* COMMENT -> channel(HIDDEN);
 COMMENT :  ';' ~[\r\n]* -> channel(HIDDEN) ;
