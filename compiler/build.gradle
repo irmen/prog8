@@ -1,5 +1,6 @@
 plugins {
     id "org.jetbrains.kotlin.jvm" version "1.3.20"
+    id 'application'
 }
 
 repositories {
@@ -35,4 +36,22 @@ sourceSets {
         }
     }
 }
+
+
+
+application {
+    mainClassName = 'prog8.CompilerMainKt'
+    applicationName = 'p8compile'
+}
+
+task p8vmScript(type: CreateStartScripts) {
+    mainClassName = "prog8.StackVmMainKt"
+    applicationName = "p8vm"
+    outputDir = new File(project.buildDir, 'scripts')
+    classpath = jar.outputs.files + project.configurations.runtime
+}
+
+applicationDistribution.into("bin") {
+            from(p8vmScript)
+            fileMode = 0755
 }
