@@ -763,13 +763,12 @@ _print_byte_digits
 		bne  _print_hundreds
 		cpx  #'0'
 		bne  _print_tens
-		pla
-		jmp  c64.CHROUT
+		jmp  _end
 _print_hundreds	tya
 		jsr  c64.CHROUT
 _print_tens	txa
 		jsr  c64.CHROUT
-		pla
+_end		pla
 		jsr  c64.CHROUT
 		ldx  c64.SCRATCH_ZPREGX
 		rts

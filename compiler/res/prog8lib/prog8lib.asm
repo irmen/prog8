@@ -49,19 +49,17 @@ add_a_to_zpword	.proc
 pop_index_times_5	.proc
 		inx
 		lda  c64.ESTACK_LO,x
-		sta  c64.SCRATCH_ZPB1
 		asl  a
 		asl  a
 		clc
-		adc  c64.SCRATCH_ZPB1	; A*=5
+		adc  c64.ESTACK_LO,x
 		rts
 		.pend
 
 neg_b		.proc
-		lda  c64.ESTACK_LO+1,x
-		eor  #255
-		clc
-		adc  #1
+		lda  #0
+		sec
+		sbc  c64.ESTACK_LO+1,x
 		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
@@ -90,10 +88,9 @@ inv_word	.proc
 not_byte	.proc
 		lda  c64.ESTACK_LO+1,x
 		beq  +
-		lda  #0
-		beq ++
-+		lda  #1
-+		sta  c64.ESTACK_LO+1,x
+		lda  #1
++		eor  #1
+		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
 
@@ -101,10 +98,10 @@ not_word	.proc
 		lda  c64.ESTACK_LO + 1,x
 		ora  c64.ESTACK_HI + 1,x
 		beq  +
-		lda  #0
-		beq  ++
-+		lda  #1
-+		sta  c64.ESTACK_LO + 1,x
+		lda  #1
++		eor  #1
+		sta  c64.ESTACK_LO + 1,x
+		lsr  a
 		sta  c64.ESTACK_HI + 1,x
 		rts
 		.pend
@@ -300,25 +297,18 @@ equal_w		.proc
 
 notequal_b	.proc
 	; -- are the two bytes on the stack different?
-		inx
-		lda  c64.ESTACK_LO,x
-		eor  c64.ESTACK_LO+1,x
-		sta  c64.ESTACK_LO+1,x
-		rts
+		lda  c64.ESTACK_LO+1,x
+		cmp  c64.ESTACK_LO+2,x
+		beq  equal_b._equal_b_false
+		bne  equal_b._equal_b_true
 		.pend
 
 notequal_w	.proc
 	; -- are the two words on the stack different?
-		inx
-		lda  c64.ESTACK_LO,x
-		eor  c64.ESTACK_LO+1,x
-		beq  +
-		sta  c64.ESTACK_LO+1,x
-		rts
-+		lda  c64.ESTACK_HI,x
-		eor  c64.ESTACK_HI+1,x
-		sta  c64.ESTACK_LO+1,x
-		rts
+		lda  c64.ESTACK_HI+1,x
+		cmp  c64.ESTACK_HI+2,x
+		beq  notequal_b
+		bne  equal_b._equal_b_true
 		.pend
 
 less_ub		.proc
@@ -375,11 +365,10 @@ _equal_b_false	lda  #0
 		.pend
 
 lesseq_ub	.proc
-		lda  c64.ESTACK_LO+2,x
-		cmp  c64.ESTACK_LO+1,x
-		bcc  equal_b._equal_b_true
-		beq  equal_b._equal_b_true
-		bcs  equal_b._equal_b_false
+		lda  c64.ESTACK_LO+1,x
+		cmp  c64.ESTACK_LO+2,x
+		bcs  equal_b._equal_b_true
+		bcc  equal_b._equal_b_false
 		.pend
 
 lesseq_b	.proc
@@ -790,17 +779,15 @@ _loop		lda  (c64.SCRATCH_ZPWORD1),y
 func_sum_ub	.proc
 		jsr  pop_array_and_lengthmin1Y
 		lda  #0
-		sta  c64.ESTACK_LO,x
 		sta  c64.ESTACK_HI,x
--		lda  (c64.SCRATCH_ZPWORD1),y
-		clc
-		adc  c64.ESTACK_LO,x
-		sta  c64.ESTACK_LO,x
+-		clc
+		adc  (c64.SCRATCH_ZPWORD1),y
 		bcc  +
 		inc  c64.ESTACK_HI,x
 +		dey
 		cpy  #255
 		bne  -
+		sta  c64.ESTACK_LO,x
 		dex
 		rts
 		.pend
