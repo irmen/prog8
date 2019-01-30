@@ -791,7 +791,7 @@ private class AstChecker(private val namespace: INameScope,
                 for (arg in args.withIndex().zip(func.parameters)) {
                     val argDt=arg.first.value.resultingDatatype(namespace, heap)
                     if(argDt!=null && !argDt.assignableTo(arg.second.possibleDatatypes)) {
-                        checkResult.add(ExpressionError("builtin function argument ${arg.first.index + 1} has invalid type $argDt, expected ${arg.second.possibleDatatypes}", position))
+                        checkResult.add(ExpressionError("builtin function '${target.name}' argument ${arg.first.index + 1} has invalid type $argDt, expected ${arg.second.possibleDatatypes}", position))
                     }
                 }
                 if(target.name=="swap") {
@@ -815,7 +815,7 @@ private class AstChecker(private val namespace: INameScope,
                 for (arg in args.withIndex().zip(target.parameters)) {
                     val argDt = arg.first.value.resultingDatatype(namespace, heap)
                     if(argDt!=null && !argDt.assignableTo(arg.second.type))
-                        checkResult.add(ExpressionError("subroutine argument ${arg.first.index+1} has invalid type $argDt, expected ${arg.second.type}", position))
+                        checkResult.add(ExpressionError("subroutine '${target.name}' argument ${arg.first.index+1} has invalid type $argDt, expected ${arg.second.type}", position))
 
                     if(target.isAsmSubroutine) {
                         if (target.asmParameterRegisters[arg.first.index].registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.XY, RegisterOrPair.X)) {

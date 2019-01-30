@@ -46,11 +46,11 @@ enum class DataType {
                 STR_P -> targetType == STR_P || targetType==STR_PS || targetType == UWORD
                 STR_S -> targetType == STR || targetType==STR_S || targetType == UWORD
                 STR_PS -> targetType == STR_P || targetType==STR_PS || targetType == UWORD
-                ARRAY_UB -> targetType == UWORD
-                ARRAY_B -> targetType == UWORD
-                ARRAY_UW -> targetType == UWORD
-                ARRAY_W -> targetType == UWORD
-                ARRAY_F -> targetType == UWORD
+                ARRAY_UB -> targetType == UWORD || targetType==ARRAY_UB
+                ARRAY_B -> targetType == UWORD  || targetType==ARRAY_B
+                ARRAY_UW -> targetType == UWORD || targetType==ARRAY_UW
+                ARRAY_W -> targetType == UWORD || targetType==ARRAY_W
+                ARRAY_F -> targetType == UWORD || targetType==ARRAY_F
             }
 
 

@@ -1,35 +1,32 @@
 %import c64utils
+%import c64flt
 %option enable_floats
 
 ~ main {
 
     sub start() {
 
-        ubyte @zp ub = 22
-        byte  @zp b = 22
-        word @zp w = 2222
-        uword @zp uw = 2222
+        byte[10]  ba = [1,2,3,4,5,6,7,8,9,-88]
+        ubyte[10] uba = [1,2,3,4,5,6,7,8,9,10]
+
+        c64scr.print_w(sum(ba))
+        c64.CHROUT('\n')
+        c64scr.print_uw(sum(uba))
+        c64.CHROUT('\n')
+
+        c64scr.print_ub(X)
+        c64.CHROUT('\n')
 
 
-        byte nonzp1 = 42
-        byte nonzp2 = 42
-        byte nonzp3 = 42
-        foo.bar()
+;        c64scr.print_w(w2)
+;        c64.CHROUT('\n')
+;        c64scr.print_w(w3)
+;        c64.CHROUT('\n')
+;        c64scr.print_uw(uw2)
+;        c64.CHROUT('\n')
     }
 
-}
 
-~ foo {
+    ; @todo float & float -> nice error instead of crash
 
-sub bar() {
-        ubyte @zp ub = 33
-        byte  @zp b = 33
-        word @zp w = 3333
-        uword @zp uw = 3333
-
-    word nonzp1 = 4444
-    word nonzp2 = 4444
-    word nonzp3 = 4444
-    A=55
-}
 }
