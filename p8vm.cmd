@@ -1,4 +1,6 @@
-set PROG8CLASSPATH=./out/production/compiler
+@echo off
+
+set PROG8CLASSPATH=./out/production/compiler_main
 set KOTLINPATH=%USERPROFILE%/.IdeaIC2018.3/config/plugins/Kotlin
 set LIBJARS=%KOTLINPATH%/lib/kotlin-stdlib.jar;%KOTLINPATH%/lib/kotlin-reflect.jar
 
