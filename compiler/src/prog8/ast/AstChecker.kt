@@ -694,6 +694,13 @@ private class AstChecker(private val namespace: INameScope,
                         checkResult.add(ExpressionError("remainder can only be used on unsigned integer operands", expr.right.position))
                 }
             }
+            "and", "or", "xor", "&", "|", "^" -> {
+                // only integer numeric operands accepted
+                val rightDt = expr.right?.resultingDatatype(namespace, heap)
+                val leftDt = expr.left.resultingDatatype(namespace, heap)
+                if(leftDt !in IntegerDatatypes || rightDt !in IntegerDatatypes)
+                    checkResult.add(ExpressionError("logical or bitwise operator can only be used on integer operands", expr.right.position))
+            }
         }
 
         val leftDt = expr.left.resultingDatatype(namespace, heap)!!

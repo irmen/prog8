@@ -65,4 +65,4 @@ task fatJar(type: Jar) {
     from { project.configurations.runtime.collect { it.isDirectory() ? it : zipTree(it) } }
     with jar
 }
-build.finalizedBy(fatJar)
+// build.finalizedBy(fatJar)
