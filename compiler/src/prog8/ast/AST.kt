@@ -37,10 +37,10 @@ enum class DataType {
     fun assignableTo(targetType: DataType) =
             // what types are assignable to others without loss of precision?
             when(this) {
-                UBYTE -> targetType == BYTE || targetType == UBYTE || targetType == UWORD || targetType==WORD || targetType == FLOAT
-                BYTE -> targetType == BYTE || targetType == UBYTE || targetType == WORD || targetType == FLOAT
+                UBYTE -> targetType == UBYTE || targetType == UWORD || targetType==WORD || targetType == FLOAT
+                BYTE -> targetType == BYTE || targetType == UBYTE || targetType == UWORD || targetType==WORD || targetType == FLOAT
                 UWORD -> targetType == UWORD || targetType == FLOAT
-                WORD -> targetType == WORD || targetType == FLOAT
+                WORD -> targetType == WORD || targetType==UWORD || targetType == FLOAT
                 FLOAT -> targetType == FLOAT
                 STR -> targetType == STR || targetType==STR_S || targetType == UWORD
                 STR_P -> targetType == STR_P || targetType==STR_PS || targetType == UWORD

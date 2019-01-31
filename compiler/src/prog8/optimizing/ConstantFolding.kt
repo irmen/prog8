@@ -142,12 +142,36 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
     override fun process(functionCall: FunctionCall): IExpression {
         return try {
             super.process(functionCall)
+            typeCastConstArguments(functionCall)
             functionCall.constValue(namespace, heap) ?: functionCall
         } catch (ax: AstException) {
             addError(ax)
             functionCall
         }
     }
+
+    override fun process(functionCallStatement: FunctionCallStatement): IStatement {
+        super.process(functionCallStatement)
+        typeCastConstArguments(functionCallStatement)
+        return functionCallStatement
+    }
+
+    private fun typeCastConstArguments(functionCall: IFunctionCall) {
+        val subroutine = functionCall.target.targetStatement(namespace) as? Subroutine
+        if(subroutine!=null) {
+            // if types differ, try to typecast constant arguments to the function call to the desired data type of the parameter
+            for(arg in functionCall.arglist.withIndex().zip(subroutine.parameters)) {
+                val expectedDt = arg.second.type
+                val argConst = arg.first.value.constValue(namespace, heap)
+                if(argConst!=null && argConst.type!=expectedDt) {
+                    val convertedValue = argConst.intoDatatype(expectedDt)
+                    if(convertedValue!=null)
+                        functionCall.arglist[arg.first.index] = convertedValue
+                }
+            }
+        }
+    }
+
 
     /**
      * Try to process a unary prefix expression.

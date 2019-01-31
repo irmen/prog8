@@ -111,7 +111,7 @@ val BuiltinFunctions = mapOf(
 
 fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespace: INameScope, heap: HeapValues): DataType? {
 
-    fun datatypeFromListArg(arglist: IExpression): DataType {
+    fun datatypeFromIterableArg(arglist: IExpression): DataType {
         if(arglist is LiteralValue) {
             if(arglist.type==DataType.ARRAY_UB || arglist.type==DataType.ARRAY_UW || arglist.type==DataType.ARRAY_F) {
                 val dt = arglist.arrayvalue!!.map {it.resultingDatatype(namespace, heap)}
@@ -133,10 +133,10 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
                 DataType.ARRAY_UW -> DataType.UWORD
                 DataType.ARRAY_W -> DataType.WORD
                 DataType.ARRAY_F -> DataType.FLOAT
-                null -> throw FatalAstException("function requires one argument which is an arrayspec $function")
+                null -> throw FatalAstException("function '$function' requires one argument which is an iterable")
             }
         }
-        throw FatalAstException("function requires one argument which is an arrayspec $function")
+        throw FatalAstException("function '$function' requires one argument which is an iterable")
     }
 
     val func = BuiltinFunctions.getValue(function)
@@ -145,8 +145,17 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
     // function has return values, but the return type depends on the arguments
 
     return when (function) {
-        "max", "min", "abs" -> {
-            val dt = datatypeFromListArg(args.single())
+        "abs" -> {
+            val dt = args.single().resultingDatatype(namespace, heap)
+            when(dt) {
+                DataType.UBYTE, DataType.BYTE -> DataType.UBYTE
+                DataType.UWORD, DataType.WORD -> DataType.UWORD
+                DataType.FLOAT -> DataType.FLOAT
+                else -> throw FatalAstException("weird datatype passed to abs $dt")
+            }
+        }
+        "max", "min" -> {
+            val dt = datatypeFromIterableArg(args.single())
             when(dt) {
                 DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT -> dt
                 DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> DataType.UBYTE
@@ -158,7 +167,7 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
             }
         }
         "sum" -> {
-            val dt=datatypeFromListArg(args.single())
+            val dt=datatypeFromIterableArg(args.single())
             when(dt) {
                 DataType.UBYTE, DataType.UWORD -> DataType.UWORD
                 DataType.BYTE, DataType.WORD -> DataType.WORD
