@@ -505,7 +505,6 @@ Subroutines are parts of the code that can be repeatedly invoked using a subrout
 Their definition, using the ``sub`` statement, includes the specification of the required parameters and return value.
 Subroutines can be defined in a Block, but also nested inside another subroutine. Everything is scoped accordingly.
 
-
 Calling a subroutine
 ^^^^^^^^^^^^^^^^^^^^
 
@@ -514,9 +513,11 @@ It is possible to not store the return value but the compiler
 will issue a warning then telling you the result values of a subroutine call are discarded.
 
 .. caution::
-    Note that *recursive* subroutine calls are not supported at this time.
+    Note that due to the way parameters are processed by the compiler,
+    subroutines are *non-reentrant*. This means you cannot create recursive calls.
     If you do need a recursive algorithm, you'll have to hand code it in embedded assembly for now,
     or rewrite it into an iterative algorithm.
+    Also, subroutines used in the main program should not be used from an IRQ handler.
 
 
 .. _builtinfunctions:

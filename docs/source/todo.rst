@@ -31,6 +31,9 @@ Add more compiler optimizations to the existing ones.
 - on the final assembly source level
 - can the parameter passing to subroutines be optimized to avoid copying?
 
+- make sure user-defined blocks come BEFORE library blocks (this helps zeropage variable allocations)
+- subroutines with 1 or 2 byte args (or 1 word arg) should be converted to asm calling convention with the args in A/Y register
+
 
 Also some library routines and code patterns could perhaps be optimized further
 
@@ -48,10 +51,40 @@ Allocate a fixed word in ZP that is the TOS so we can operate on TOS directly
 without having to to index into the stack?
 
 
+More flexible (non-const) arrays?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Currently, array literals can only be constants
+Allow for non-const arrays? Such as::
+
+    ubyte[16]  block1
+    ubyte[16]  block2
+    ubyte[16]  block3
+    ubyte[3] blocks = [block1, block2, block3]
+
+
+structs?
+^^^^^^^^
+
+A user defined struct type would be nice to group a bunch
+of values together (and use it multiple times). Something like::
+
+    struct Point {
+        ubyte   color
+        word[3] vec = [0,0,0]
+    }
+
+    Point p1
+    Point p2
+    Point p3
+
+    p1.color = 3
+    p1.vec[2] = 2
+
 
 Misc
 ^^^^
 
 - sqrt() should have integer implementation as well, instead of relying on float SQRT for all argument types
 - code generation for POW instruction
-- make sure user-defined blocks come BEFORE library blocks (this helps zeropage variable allocations)
+- are there any other missing instructions in the code generator?
+- implement %asmbinary
