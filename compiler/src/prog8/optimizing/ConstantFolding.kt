@@ -33,7 +33,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
 
         if(decl.type==VarDeclType.CONST || decl.type==VarDeclType.VAR) {
             val litval = decl.value as? LiteralValue
-            if(litval!=null && litval.isArray)
+            if(litval!=null && litval.isArray && litval.heapId!=null)
                 fixupArrayTypeOnHeap(decl, litval)
             when(decl.datatype) {
                 DataType.FLOAT -> {
@@ -97,9 +97,10 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
     private fun fixupArrayTypeOnHeap(decl: VarDecl, litval: LiteralValue) {
         // fix the type of the array value that's on the heap, to match the vardecl.
         // notice that checking the bounds of the actual values is not done here, but in the AstChecker later.
+
         if(decl.datatype==litval.type)
             return   // already correct datatype
-        val heapId = litval.heapId!!
+        val heapId = litval.heapId ?: throw FatalAstException("expected array to be on heap $litval")
         val array=heap.get(heapId)
         when(decl.datatype) {
             DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {

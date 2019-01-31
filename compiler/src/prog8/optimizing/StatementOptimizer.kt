@@ -8,6 +8,9 @@ import kotlin.math.floor
 
 
 /*
+    todo: subroutines with 1 or 2 byte args or 1 word arg can be converted to asm sub calling convention (args in registers)
+
+
     todo: implement usage counters for blocks, variables, subroutines, heap variables. Then:
         todo remove unused blocks
         todo remove unused variables
