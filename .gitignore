@@ -31,3 +31,4 @@ compiler/src/compiled_java
 
 .gradle
 build/
+/prog8compiler.jar
