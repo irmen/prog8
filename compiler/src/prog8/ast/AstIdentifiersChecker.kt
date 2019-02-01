@@ -124,7 +124,8 @@ private class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
             // NOTE:
             // - numeric types BYTE and WORD and FLOAT are passed by value;
             // - strings, arrays, matrices are passed by reference (their 16-bit address is passed as an uword parameter)
-            if(subroutine.asmAddress==null) {
+            // - do NOT do this is the statement can be transformed into an asm subroutine later!
+            if(subroutine.asmAddress==null && !subroutine.canBeAsmSubroutine) {
                 if(subroutine.asmParameterRegisters.isEmpty()) {
                     subroutine.parameters
                             .filter { it.name !in allDefinedNames }

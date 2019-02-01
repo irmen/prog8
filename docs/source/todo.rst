@@ -32,6 +32,8 @@ Add more compiler optimizations to the existing ones.
 - can the parameter passing to subroutines be optimized to avoid copying?
 
 - subroutines with 1 or 2 byte args (or 1 word arg) should be converted to asm calling convention with the args in A/Y register
+  this requires rethinking the way parameters are represented, simply injecting vardecls to
+  declare local variables for them is not always correct anymore
 
 
 Also some library routines and code patterns could perhaps be optimized further

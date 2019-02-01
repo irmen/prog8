@@ -165,8 +165,10 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                 val argConst = arg.first.value.constValue(namespace, heap)
                 if(argConst!=null && argConst.type!=expectedDt) {
                     val convertedValue = argConst.intoDatatype(expectedDt)
-                    if(convertedValue!=null)
+                    if(convertedValue!=null) {
                         functionCall.arglist[arg.first.index] = convertedValue
+                        optimizationsDone++
+                    }
                 }
             }
         }

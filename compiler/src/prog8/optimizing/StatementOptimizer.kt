@@ -55,6 +55,18 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
             linesToRemove.reversed().forEach{subroutine.statements.removeAt(it)}
         }
 
+        if(subroutine.canBeAsmSubroutine) {
+            optimizationsDone++
+            return subroutine.intoAsmSubroutine()   // TODO this doesn't work yet due to parameter vardecl issue
+
+            // TODO fix parameter passing so this also works:
+//            asmsub aa(byte arg @ Y) -> clobbers() -> () {
+//                byte local = arg            ; @todo fix 'undefined symbol arg' by some sort of alias name for the parameter
+//                A=44
+//            }
+
+        }
+
         return subroutine
     }
 
@@ -81,16 +93,6 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
                 previousAssignmentLine = null
         }
         return linesToRemove
-    }
-
-    private fun returnregisters(subroutine: Subroutine): List<RegisterOrStatusflag> {
-        return when {
-            subroutine.returntypes.isEmpty() -> listOf()
-            subroutine.returntypes.size==1 && subroutine.returntypes[0] in setOf(DataType.BYTE, DataType.UBYTE) -> listOf(RegisterOrStatusflag(RegisterOrPair.A, null, null))
-            subroutine.returntypes.size==1 && subroutine.returntypes[0] in setOf(DataType.WORD, DataType.UWORD) -> listOf(RegisterOrStatusflag(RegisterOrPair.AY, null, null))
-            subroutine.returntypes.size==2 && subroutine.returntypes.all { it in setOf(DataType.BYTE, DataType.UBYTE)} -> listOf(RegisterOrStatusflag(RegisterOrPair.A, null, null), RegisterOrStatusflag(RegisterOrPair.Y, null, null))
-            else -> throw FatalAstException("can't convert return values to registers")
-        }
     }
 
     private fun isNotMemory(target: AssignTarget): Boolean {
