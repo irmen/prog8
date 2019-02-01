@@ -33,11 +33,21 @@ private class StatementReorderer(private val namespace: INameScope, private val 
         val (blocks, other) = module.statements.partition { it is Block }
         module.statements = other.asSequence().plus(blocks.sortedBy { (it as Block).address ?: Int.MAX_VALUE }).toMutableList()
 
+        // make sure user-defined blocks come BEFORE library blocks, and move the "main" block to the top of everything
+        val nonLibraryBlocks = module.statements.withIndex()
+                .filter { it.value is Block && !(it.value as Block).isInLibrary }
+                .map { it.index to it.value }
+                .reversed()
+        for(blocks in nonLibraryBlocks)
+            module.statements.removeAt(blocks.first)
+        for(blocks in nonLibraryBlocks)
+            module.statements.add(0, blocks.second)
         val mainBlock = module.statements.single { it is Block && it.name=="main" }
         if((mainBlock as Block).address==null) {
             module.statements.remove(mainBlock)
             module.statements.add(0, mainBlock)
         }
+
         val varDecls = module.statements.filterIsInstance<VarDecl>()
         module.statements.removeAll(varDecls)
         module.statements.addAll(0, varDecls)
@@ -45,8 +55,6 @@ private class StatementReorderer(private val namespace: INameScope, private val 
         val directives = module.statements.filter {it is Directive && it.directive in directivesToMove}
         module.statements.removeAll(directives)
         module.statements.addAll(0, directives)
-
-        // TODO make sure user-defined blocks come BEFORE library blocks
 
         sortConstantAssignments(module.statements)
     }

@@ -4,27 +4,23 @@
 
     sub start() {
 
-        foo(1)
-        foo2(20)
-        bar(2,3)
-        baz(3333)
-        baz(-3333)
+        myblock2.foo()
+        myblock3.foo()
 
     }
+}
 
-    sub foo(ubyte arg) {
-        A=arg
+~ myblock2 {
+
+    sub foo() {
+        A=99
     }
+}
 
-    sub foo2(byte arg) {
-        A=33
-    }
 
-    sub bar(ubyte arg1, ubyte arg2) {
-        A=arg1
-    }
+~ myblock3 {
 
-    sub baz(word arg) {
-        A=lsb(arg)
+    sub foo() {
+        A=99
     }
 }

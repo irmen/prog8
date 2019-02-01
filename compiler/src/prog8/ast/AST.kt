@@ -506,10 +506,10 @@ private class GlobalNamespace(override val name: String,
 class Block(override val name: String,
             val address: Int?,
             override var statements: MutableList<IStatement>,
+            val isInLibrary: Boolean,
             override val position: Position) : IStatement, INameScope {
     override lateinit var parent: Node
     val scopedname: String by lazy { makeScopedName(name).joinToString(".") }
-
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -1754,7 +1754,7 @@ class RepeatLoop(var body: AnonymousScope,
 /***************** Antlr Extension methods to create AST ****************/
 
 fun prog8Parser.ModuleContext.toAst(name: String, isLibrary: Boolean, importedFrom: Path) : Module =
-        Module(name, modulestatement().asSequence().map { it.toAst() }.toMutableList(), toPosition(), isLibrary, importedFrom)
+        Module(name, modulestatement().asSequence().map { it.toAst(isLibrary) }.toMutableList(), toPosition(), isLibrary, importedFrom)
 
 
 private fun ParserRuleContext.toPosition() : Position {
@@ -1768,19 +1768,19 @@ private fun ParserRuleContext.toPosition() : Position {
 }
 
 
-private fun prog8Parser.ModulestatementContext.toAst() : IStatement {
+private fun prog8Parser.ModulestatementContext.toAst(isInLibrary: Boolean) : IStatement {
     val directive = directive()?.toAst()
     if(directive!=null) return directive
 
-    val block = block()?.toAst()
+    val block = block()?.toAst(isInLibrary)
     if(block!=null) return block
 
     throw FatalAstException(text)
 }
 
 
-private fun prog8Parser.BlockContext.toAst() : IStatement =
-        Block(identifier().text, integerliteral()?.toAst()?.number?.toInt(), statement_block().toAst(), toPosition())
+private fun prog8Parser.BlockContext.toAst(isInLibrary: Boolean) : IStatement =
+        Block(identifier().text, integerliteral()?.toAst()?.number?.toInt(), statement_block().toAst(), isInLibrary, toPosition())
 
 
 private fun prog8Parser.Statement_blockContext.toAst(): MutableList<IStatement> =

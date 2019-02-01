@@ -31,7 +31,6 @@ Add more compiler optimizations to the existing ones.
 - on the final assembly source level
 - can the parameter passing to subroutines be optimized to avoid copying?
 
-- make sure user-defined blocks come BEFORE library blocks (this helps zeropage variable allocations)
 - subroutines with 1 or 2 byte args (or 1 word arg) should be converted to asm calling convention with the args in A/Y register
 
 
