@@ -174,9 +174,9 @@ interface IAstProcessor {
         return functionCall
     }
 
-    fun process(functionCall: FunctionCallStatement): IStatement {
-        functionCall.arglist = functionCall.arglist.map { it.process(this) }.toMutableList()
-        return functionCall
+    fun process(functionCallStatement: FunctionCallStatement): IStatement {
+        functionCallStatement.arglist = functionCallStatement.arglist.map { it.process(this) }.toMutableList()
+        return functionCallStatement
     }
 
     fun process(identifier: IdentifierReference): IExpression {

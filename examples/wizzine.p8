@@ -1,5 +1,6 @@
 %import c64utils
 %import c64lib
+%zeropage basicsafe
 
 
 ~ spritedata $0a00 {

@@ -1,34 +1,20 @@
-%import c64utils
+%zeropage basicsafe
+
 
 ~ main {
 
+        ; @todo fucks up basic - a few list: will corrupt the interpreter
+
+    ubyte dummy
+    ubyte dummy2
+
     sub start() {
-
-        foo(1)
-        bar(1,2)
-        baz(3333)
-        bzaz(60000)
-    }
-
-    sub foo(byte arg) {
-        byte local = arg
-        A=44
-    }
-
-    sub bar(byte arg1, ubyte arg2) {
-        byte local1 = arg1
-        ubyte local2 = arg2
-        A=44
-    }
-
-    sub baz(word arg) {
-        word local=arg
-        A=44
-    }
-    sub bzaz(uword arg) {
-        uword local=arg
-        A=44
+        ubyte qq
+        ubyte qq2
+        ubyte qq3
+        ubyte qq4
+        ubyte qq5
+        c64scr.setcc(13, 10, 89, 11)
     }
 
 }
-

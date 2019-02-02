@@ -1,4 +1,5 @@
 %import c64utils
+%zeropage basicsafe
 
 ; This example computes the first 20 values of the Fibonacci sequence.
 ; It uses the feature that variables that don't have an initialization value,

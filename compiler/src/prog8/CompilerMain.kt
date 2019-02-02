@@ -182,7 +182,7 @@ fun determineCompilationOptions(moduleAst: Module): CompilationOptions {
     val floatsEnabled = options.any { it.name == "enable_floats" }
     val zpType: ZeropageType =
             if (zpoption == null)
-                if(floatsEnabled) ZeropageType.BASICSAFE else ZeropageType.KERNALSAFE
+                if(floatsEnabled) ZeropageType.FLOATSAFE else ZeropageType.KERNALSAFE
             else
                 try {
                     ZeropageType.valueOf(zpoption)

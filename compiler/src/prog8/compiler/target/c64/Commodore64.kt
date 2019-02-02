@@ -33,19 +33,31 @@ class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
         const val SCRATCH_W2 = 0xfd     // $fd/$fe
     }
 
+    override val exitProgramStrategy: ExitProgramStrategy = when(options.zeropage) {
+        ZeropageType.BASICSAFE, ZeropageType.FLOATSAFE -> ExitProgramStrategy.CLEAN_EXIT
+        ZeropageType.KERNALSAFE, ZeropageType.FULL -> ExitProgramStrategy.SYSTEM_RESET
+    }
+
+
     init {
-        if(options.zeropage== ZeropageType.FULL) {
+        if(options.floats && options.zeropage!=ZeropageType.FLOATSAFE && options.zeropage!=ZeropageType.BASICSAFE)
+            throw CompilerException("when floats are enabled, zero page type should be 'floatsafe' or 'basicsafe'")
+
+        if(options.zeropage == ZeropageType.FULL) {
             free.addAll(0x04 .. 0xf9)
             free.add(0xff)
             free.removeAll(listOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_REG_X, SCRATCH_W1, SCRATCH_W1+1, SCRATCH_W2, SCRATCH_W2+1))
             free.removeAll(listOf(0xa0, 0xa1, 0xa2, 0x91, 0xc0, 0xc5, 0xcb, 0xf5, 0xf6))        // these are updated by IRQ
         } else {
-            if(options.zeropage== ZeropageType.KERNALSAFE) {
+            if(options.zeropage == ZeropageType.KERNALSAFE) {
                 // add the Zp addresses that are just used by BASIC routines to the free list
                 free.addAll(listOf(0x09, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11,
                         0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, 0x20, 0x21,
                         0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f, 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46,
                         0x47, 0x48, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f, 0x51, 0x52, 0x53, 0x6f, 0x70))
+            }
+            else if(options.zeropage == ZeropageType.FLOATSAFE) {
+                TODO("reserve float zp locations")
             }
             // add the other free Zp addresses
             // these are valid for the C-64 (when no RS232 I/O is performed):

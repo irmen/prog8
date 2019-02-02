@@ -592,9 +592,10 @@ private class AstChecker(private val namespace: INameScope,
                 if(directive.parent !is Module) err("this directive may only occur at module level")
                 if(directive.args.size!=1 ||
                         directive.args[0].name != "basicsafe" &&
+                        directive.args[0].name != "floatsafe" &&
                         directive.args[0].name != "kernalsafe" &&
                         directive.args[0].name != "full")
-                    err("invalid zp type, expected basicsafe, kernalsafe, or full")
+                    err("invalid zp type, expected basicsafe, floatsafe, kernalsafe, or full")
             }
             "%zpreserved" -> {
                 if(directive.parent !is Module) err("this directive may only occur at module level")
@@ -696,7 +697,7 @@ private class AstChecker(private val namespace: INameScope,
             }
             "and", "or", "xor", "&", "|", "^" -> {
                 // only integer numeric operands accepted
-                val rightDt = expr.right?.resultingDatatype(namespace, heap)
+                val rightDt = expr.right.resultingDatatype(namespace, heap)
                 val leftDt = expr.left.resultingDatatype(namespace, heap)
                 if(leftDt !in IntegerDatatypes || rightDt !in IntegerDatatypes)
                     checkResult.add(ExpressionError("logical or bitwise operator can only be used on integer operands", expr.right.position))
@@ -776,13 +777,13 @@ private class AstChecker(private val namespace: INameScope,
         return super.process(functionCall)
     }
 
-    override fun process(functionCall: FunctionCallStatement): IStatement {
-        val targetStatement = checkFunctionOrLabelExists(functionCall.target, functionCall)
+    override fun process(functionCallStatement: FunctionCallStatement): IStatement {
+        val targetStatement = checkFunctionOrLabelExists(functionCallStatement.target, functionCallStatement)
         if(targetStatement!=null)
-            checkFunctionCall(targetStatement, functionCall.arglist, functionCall.position)
+            checkFunctionCall(targetStatement, functionCallStatement.arglist, functionCallStatement.position)
         if(targetStatement is Subroutine && targetStatement.returntypes.isNotEmpty())
-            printWarning("result value of subroutine call is discarded", functionCall.position)
-        return super.process(functionCall)
+            printWarning("result value of subroutine call is discarded", functionCallStatement.position)
+        return super.process(functionCallStatement)
     }
 
     private fun checkFunctionCall(target: IStatement, args: List<IExpression>, position: Position) {

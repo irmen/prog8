@@ -194,7 +194,15 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 out("  jsr  ${block.scopedname}.${initVarsLabel.name}")
         }
         out("  clc")
-        out("  jmp  main.start\t; jump to program entrypoint")
+        when(zeropage.exitProgramStrategy) {
+            Zeropage.ExitProgramStrategy.CLEAN_EXIT -> {
+                out("  jmp  main.start\t; jump to program entrypoint")
+            }
+            Zeropage.ExitProgramStrategy.SYSTEM_RESET -> {
+                out("  jsr  main.start\t; call program entrypoint")
+                out("  jmp  (c64.RESET_VEC)\t; cold reset")
+            }
+        }
         out("")
 
         // the global list of all floating point constants for the whole program

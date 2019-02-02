@@ -77,11 +77,6 @@ Theoretically they can all be used in a program, with the follwoing limitations:
 - it's more convenient and safe to let the compiler allocate these addresses for you and just
   use symbolic names in the program code.
 
-.. todo::
-    There must be a way to tell the compiler which variables you require to be in Zeropage:
-    ``zeropage`` modifier keyword on vardecl perhaps?
-
-
 Prog8 knows what addresses are safe to use in the various ZP handling configurations.
 It will use the free ZP addresses to place its ZP variables in,
 until they're all used up. If instructed to output a program that takes over the entire
@@ -93,6 +88,7 @@ treats the ZP for the program. The default is to be reasonably restrictive to us
 part of the ZP that is not used by the C64's kernal routines.
 It's possible to claim the whole ZP as well (by disabling the operating system or kernal).
 If you want, it's also possible to be more restricive and stay clear of the addresses used by BASIC routines too.
+This allows the program to exit cleanly back to a BASIC ready prompt - something that is not possible in the other modes.
 
 
 IRQs and the ZeroPage

@@ -38,10 +38,10 @@ private class StatementReorderer(private val namespace: INameScope, private val 
                 .filter { it.value is Block && !(it.value as Block).isInLibrary }
                 .map { it.index to it.value }
                 .reversed()
-        for(blocks in nonLibraryBlocks)
-            module.statements.removeAt(blocks.first)
-        for(blocks in nonLibraryBlocks)
-            module.statements.add(0, blocks.second)
+        for(nonLibBlock in nonLibraryBlocks)
+            module.statements.removeAt(nonLibBlock.first)
+        for(nonLibBlock in nonLibraryBlocks)
+            module.statements.add(0, nonLibBlock.second)
         val mainBlock = module.statements.single { it is Block && it.name=="main" }
         if((mainBlock as Block).address==null) {
             module.statements.remove(mainBlock)

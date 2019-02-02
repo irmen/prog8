@@ -6,7 +6,7 @@ import prog8.ast.*
 class ZeropageDepletedError(message: String) : Exception(message)
 
 
-abstract class Zeropage(private val options: CompilationOptions) {
+abstract class Zeropage(protected val options: CompilationOptions) {
 
     private val allocations = mutableMapOf<Int, Pair<String, DataType>>()
     val free = mutableListOf<Int>()     // subclasses must set this to the appropriate free locations.
@@ -61,4 +61,12 @@ abstract class Zeropage(private val options: CompilationOptions) {
 
     private fun loneByte(address: Int) = address in free && address-1 !in free && address+1 !in free
     private fun sequentialFree(address: Int, size: Int) = free.containsAll((address until address+size).toList())
+
+    enum class ExitProgramStrategy {
+        CLEAN_EXIT,
+        SYSTEM_RESET
+    }
+
+    abstract val exitProgramStrategy: ExitProgramStrategy
+
 }

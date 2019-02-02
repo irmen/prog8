@@ -1,4 +1,6 @@
 %import c64utils
+%zeropage basicsafe
+
 
 ~ main {
 

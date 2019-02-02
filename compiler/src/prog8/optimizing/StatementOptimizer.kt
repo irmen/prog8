@@ -114,39 +114,39 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
     }
 
 
-    override fun process(functionCall: FunctionCallStatement): IStatement {
-        if(functionCall.target.nameInSource.size==1 && functionCall.target.nameInSource[0] in BuiltinFunctions) {
-            val functionName = functionCall.target.nameInSource[0]
+    override fun process(functionCallStatement: FunctionCallStatement): IStatement {
+        if(functionCallStatement.target.nameInSource.size==1 && functionCallStatement.target.nameInSource[0] in BuiltinFunctions) {
+            val functionName = functionCallStatement.target.nameInSource[0]
             if (functionName in pureBuiltinFunctions) {
-                printWarning("statement has no effect (function return value is discarded)", functionCall.position)
-                statementsToRemove.add(functionCall)
-                return functionCall
+                printWarning("statement has no effect (function return value is discarded)", functionCallStatement.position)
+                statementsToRemove.add(functionCallStatement)
+                return functionCallStatement
             }
         }
 
-        if(functionCall.target.nameInSource==listOf("c64scr", "print") ||
-                functionCall.target.nameInSource==listOf("c64scr", "print_p")) {
+        if(functionCallStatement.target.nameInSource==listOf("c64scr", "print") ||
+                functionCallStatement.target.nameInSource==listOf("c64scr", "print_p")) {
             // printing a literal string of just 2 or 1 characters is replaced by directly outputting those characters
-            if(functionCall.arglist.single() is LiteralValue)
+            if(functionCallStatement.arglist.single() is LiteralValue)
                 throw AstException("string argument should be on heap already")
-            val stringVar = functionCall.arglist.single() as? IdentifierReference
+            val stringVar = functionCallStatement.arglist.single() as? IdentifierReference
             if(stringVar!=null) {
                 val heapId = stringVar.heapId(namespace)
                 val string = heap.get(heapId).str!!
                 if(string.length==1) {
                     val petscii = Petscii.encodePetscii(string, true)[0]
-                    functionCall.arglist.clear()
-                    functionCall.arglist.add(LiteralValue.optimalInteger(petscii, functionCall.position))
-                    functionCall.target = IdentifierReference(listOf("c64", "CHROUT"), functionCall.target.position)
+                    functionCallStatement.arglist.clear()
+                    functionCallStatement.arglist.add(LiteralValue.optimalInteger(petscii, functionCallStatement.position))
+                    functionCallStatement.target = IdentifierReference(listOf("c64", "CHROUT"), functionCallStatement.target.position)
                     optimizationsDone++
-                    return functionCall
+                    return functionCallStatement
                 } else if(string.length==2) {
                     val petscii = Petscii.encodePetscii(string, true)
-                    val scope = AnonymousScope(mutableListOf(), functionCall.position)
-                    scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("c64", "CHROUT"), functionCall.target.position),
-                            mutableListOf(LiteralValue.optimalInteger(petscii[0], functionCall.position)), functionCall.position))
-                    scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("c64", "CHROUT"), functionCall.target.position),
-                            mutableListOf(LiteralValue.optimalInteger(petscii[1], functionCall.position)), functionCall.position))
+                    val scope = AnonymousScope(mutableListOf(), functionCallStatement.position)
+                    scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("c64", "CHROUT"), functionCallStatement.target.position),
+                            mutableListOf(LiteralValue.optimalInteger(petscii[0], functionCallStatement.position)), functionCallStatement.position))
+                    scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("c64", "CHROUT"), functionCallStatement.target.position),
+                            mutableListOf(LiteralValue.optimalInteger(petscii[1], functionCallStatement.position)), functionCallStatement.position))
                     optimizationsDone++
                     return scope
                 }
@@ -156,20 +156,20 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
         // if it calls a subroutine,
         // and the first instruction in the subroutine is a jump, call that jump target instead
         // if the first instruction in the subroutine is a return statement, replace with a nop instruction
-        val subroutine = functionCall.target.targetStatement(namespace) as? Subroutine
+        val subroutine = functionCallStatement.target.targetStatement(namespace) as? Subroutine
         if(subroutine!=null) {
             val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
             if(first is Jump && first.identifier!=null) {
                 optimizationsDone++
-                return FunctionCallStatement(first.identifier, functionCall.arglist, functionCall.position)
+                return FunctionCallStatement(first.identifier, functionCallStatement.arglist, functionCallStatement.position)
             }
             if(first is ReturnFromIrq || first is Return) {
                 optimizationsDone++
-                return NopStatement(functionCall.position)
+                return NopStatement(functionCallStatement.position)
             }
         }
 
-        return super.process(functionCall)
+        return super.process(functionCallStatement)
     }
 
     override fun process(functionCall: FunctionCall): IExpression {

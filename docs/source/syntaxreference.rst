@@ -60,16 +60,20 @@ Directives
     - style ``kernalsafe`` -- use the part of the ZP that is 'free' or only used by BASIC routines,
       and don't change anything else.  This allows full use of KERNAL ROM routines (but not BASIC routines),
       including default IRQs during normal system operation.
+      When the program exits, a system reset is performed (because BASIC will be in a corrupt state).
+    - style ``floatsafe`` -- like the previous one but also reserves the addresses that
+      are required to perform floating point operations (from the BASIC kernel). No clean exit is possible.
     - style ``basicsafe`` -- the most restricted mode; only use the handful 'free' addresses in the ZP, and don't
       touch change anything else. This allows full use of BASIC and KERNAL ROM routines including default IRQs
       during normal system operation.
+      When the program exits, it simply returns to the BASIC ready prompt.
     - style ``full`` -- claim the whole ZP for variables for the program, overwriting everything,
       except the few addresses mentioned above that are used by the system's IRQ routine.
       Even though the default IRQ routine is still active, it is impossible to use most BASIC and KERNAL ROM routines.
       This includes many floating point operations and several utility routines that do I/O, such as ``print_string``.
-      It is also not possible to cleanly exit the program, other than resetting the machine.
-      This option makes programs smaller and faster because many more variables can
-      be stored in the ZP, which is more efficient.
+      As with ``kernalsafe``, it is not possible to cleanly exit the program, other than to reset the machine.
+      This option makes programs smaller and faster because even more variables can
+      be stored in the ZP (which allows for more efficient assembly code).
 
     Also read :ref:`zeropage`.
 

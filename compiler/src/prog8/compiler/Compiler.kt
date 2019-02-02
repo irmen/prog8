@@ -132,6 +132,7 @@ enum class LauncherType {
 
 enum class ZeropageType {
     BASICSAFE,
+    FLOATSAFE,
     KERNALSAFE,
     FULL
 }

@@ -1,5 +1,6 @@
 %import c64utils
 %import c64flt
+%zeropage basicsafe
 
 ~ main {
 
