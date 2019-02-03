@@ -120,8 +120,12 @@ A recent .exe version of this tool for Windows can be obtained from my `clone <h
 For other platforms it is very easy to compile it yourself (make ; make install).
 
 A **Java runtime (jre or jdk), version 8 or newer**  is required to run the packaged compiler.
+If you're scared of Oracle's licensing terms, most Linux distributions ship OpenJDK instead
+and for Windows it's possible to get that as well: for instance,
+`Azul's Zulu <https://www.azul.com/downloads/zulu/>`_ is a certified OpenJDK
+implementation available for various platforms.
 
-A C-64 emulator or a real C-64 to run the programs on. The compiler assumes the presence
+Finally: a **C-64 emulator** (or a real C-64 ofcourse) to run the programs on. The compiler assumes the presence
 of the `Vice emulator <http://vice-emu.sourceforge.net/>`_.
 
 .. hint::
