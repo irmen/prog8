@@ -1794,7 +1794,7 @@ fun prog8Parser.ModuleContext.toAst(name: String, isLibrary: Boolean, importedFr
 private fun ParserRuleContext.toPosition() : Position {
     val file =
             if(start.inputStream.sourceName == IntStream.UNKNOWN_SOURCE_NAME)
-                "<internal>"
+                "@internal@"
             else
                 File(start.inputStream.sourceName).name
     // note: be ware of TAB characters in the source text, they count as 1 column...
