@@ -186,6 +186,15 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             }
         }
 
+        if(zeropage.exitProgramStrategy!=Zeropage.ExitProgramStrategy.CLEAN_EXIT) {
+            // disable shift-commodore charset switching and run/stop key
+            out("  lda  #$80")
+            out("  lda  #$80")
+            out("  sta  657\t; disable charset switching")
+            out("  lda  #239")
+            out("  sta  808\t; disable run/stop key")
+        }
+
         out("  ldx  #\$ff\t; init estack pointer")
         out("  ; initialize the variables in each block")
         for(block in program.blocks) {

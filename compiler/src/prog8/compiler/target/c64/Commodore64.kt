@@ -34,8 +34,8 @@ class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
     }
 
     override val exitProgramStrategy: ExitProgramStrategy = when(options.zeropage) {
-        ZeropageType.BASICSAFE, ZeropageType.FLOATSAFE -> ExitProgramStrategy.CLEAN_EXIT
-        ZeropageType.KERNALSAFE, ZeropageType.FULL -> ExitProgramStrategy.SYSTEM_RESET
+        ZeropageType.BASICSAFE -> ExitProgramStrategy.CLEAN_EXIT
+        ZeropageType.FLOATSAFE, ZeropageType.KERNALSAFE, ZeropageType.FULL -> ExitProgramStrategy.SYSTEM_RESET
     }
 
 
