@@ -5,6 +5,7 @@ import prog8.ast.*
 import prog8.compiler.LauncherType
 import prog8.compiler.OutputType
 import prog8.determineCompilationOptions
+import java.io.File
 import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
@@ -26,8 +27,12 @@ private class LexerErrorListener: BaseErrorListener() {
 }
 
 
-fun importModule(stream: CharStream, moduleName: String, isLibrary: Boolean): Module {
-    val lexer = prog8Lexer(stream)
+internal class CustomLexer(val modulePath: Path, input: CharStream?) : prog8Lexer(input)
+
+
+fun importModule(stream: CharStream, modulePath: Path, isLibrary: Boolean): Module {
+    val moduleName = modulePath.fileName
+    val lexer = CustomLexer(modulePath, stream)
     val lexerErrors = LexerErrorListener()
     lexer.addErrorListener(lexerErrors)
     val tokens = CommentHandlingTokenStream(lexer)
@@ -35,13 +40,13 @@ fun importModule(stream: CharStream, moduleName: String, isLibrary: Boolean): Mo
     val parseTree = parser.module()
     val numberOfErrors = parser.numberOfSyntaxErrors + lexerErrors.numberOfErrors
     if(numberOfErrors > 0)
-        throw ParsingFailedError("There are $numberOfErrors errors in '$moduleName.p8'.")
+        throw ParsingFailedError("There are $numberOfErrors errors in '$moduleName'.")
 
     // You can do something with the parsed comments:
     // tokens.commentTokens().forEach { println(it) }
 
     // convert to Ast
-    val moduleAst = parseTree.toAst(moduleName, isLibrary, Paths.get(stream.sourceName))
+    val moduleAst = parseTree.toAst(moduleName.toString(), isLibrary, modulePath)
     importedModules[moduleAst.name] = moduleAst
 
     // process imports
@@ -63,7 +68,7 @@ fun importModule(stream: CharStream, moduleName: String, isLibrary: Boolean): Mo
             .asSequence()
             .mapIndexed { i, it -> Pair(i, it) }
             .filter { (it.second as? Directive)?.directive == "%import" }
-            .map { Pair(it.first, executeImportDirective(it.second as Directive, Paths.get("$moduleName.p8"))) }
+            .map { Pair(it.first, executeImportDirective(it.second as Directive, modulePath)) }
             .toList()
 
     imports.reversed().forEach {
@@ -95,9 +100,8 @@ fun importModule(filePath: Path) : Module {
     if(!Files.isReadable(filePath))
         throw ParsingFailedError("No such file: $filePath")
 
-    val moduleName = filePath.fileName.toString().substringBeforeLast('.')
     val input = CharStreams.fromPath(filePath)
-    return importModule(input, moduleName, filePath.parent==null)
+    return importModule(input, filePath, filePath.parent==null)
 }
 
 
@@ -136,7 +140,7 @@ private fun executeImportDirective(import: Directive, importedFrom: Path): Modul
             // load the module from the embedded resource
             resource.use {
                 println("importing '$moduleName' (embedded library)")
-                importModule(CharStreams.fromStream(it), moduleName, true)
+                importModule(CharStreams.fromStream(it), Paths.get("@embedded@/$moduleName"), true)
             }
         } else {
             val modulePath = discoverImportedModuleFile(moduleName, importedFrom, import.position)

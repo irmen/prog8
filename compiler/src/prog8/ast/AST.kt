@@ -9,6 +9,7 @@ import prog8.compiler.target.c64.Petscii
 import prog8.functions.BuiltinFunctions
 import prog8.functions.NotConstArgumentException
 import prog8.functions.builtinFunctionReturnType
+import prog8.parser.CustomLexer
 import prog8.parser.prog8Parser
 import java.io.File
 import java.nio.file.Path
@@ -1787,18 +1788,22 @@ class RepeatLoop(var body: AnonymousScope,
 
 /***************** Antlr Extension methods to create AST ****************/
 
-fun prog8Parser.ModuleContext.toAst(name: String, isLibrary: Boolean, importedFrom: Path) : Module =
-        Module(name, modulestatement().asSequence().map { it.toAst(isLibrary) }.toMutableList(), toPosition(), isLibrary, importedFrom)
+fun prog8Parser.ModuleContext.toAst(name: String, isLibrary: Boolean, importedFrom: Path) : Module {
+    val nameWithoutSuffix = if(name.endsWith(".p8")) name.substringBeforeLast('.') else name
+    return Module(nameWithoutSuffix, modulestatement().asSequence().map { it.toAst(isLibrary) }.toMutableList(), toPosition(), isLibrary, importedFrom)
+}
 
 
 private fun ParserRuleContext.toPosition() : Position {
-    val file =
-            if(start.inputStream.sourceName == IntStream.UNKNOWN_SOURCE_NAME)
-                "@internal@"
-            else
-                File(start.inputStream.sourceName).name
+    val customTokensource = this.start.tokenSource as? CustomLexer
+    val filename =
+            when {
+                customTokensource!=null -> customTokensource.modulePath.fileName.toString()
+                start.tokenSource.sourceName == IntStream.UNKNOWN_SOURCE_NAME -> "@internal@"
+                else -> File(start.inputStream.sourceName).name
+            }
     // note: be ware of TAB characters in the source text, they count as 1 column...
-    return Position(file, start.line, start.charPositionInLine, stop.charPositionInLine+stop.text.length)
+    return Position(filename, start.line, start.charPositionInLine, stop.charPositionInLine+stop.text.length)
 }
 
 
