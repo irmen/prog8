@@ -3,6 +3,17 @@
 
 ~ main {
 
+    ; @todo test memset/memcopy  (there's a bug in memcopy?)
+
+
+    ubyte x = rnd82() % 6   ; @todo fix compiler crash  + always 0???
+    drawNext(rnd() & 7)    ; @todo missing asm pattern
+
+
+    ubyte[7] blockColors = [3, 6, 8, 7, 5, 4, 2]
+    drawNext(n % len(blockColors))          ; @todo why is len a word here?
+
+
     ; mul_word_3
 
     sub start() {
