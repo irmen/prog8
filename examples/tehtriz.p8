@@ -33,9 +33,12 @@ waitkey:
         if c64.TIME_LO==30 {
             c64.TIME_LO = 0
             if blocklogic.canMoveDown(xpos, ypos) {
-                drawBlock(xpos, ypos, 32)
-                ypos++ ; descend
-                drawBlock(xpos, ypos, 160)
+
+                ; @todo re-enable down movement
+                ;drawBlock(xpos, ypos, 32)
+                ;ypos++ ; descend
+                ;drawBlock(xpos, ypos, 160)
+
             } else {
                 ; block can't move further down!
                 ; check if the game area is full, if not, spawn the next block at the top.
@@ -93,16 +96,18 @@ waitkey:
             drawBlock(xpos, ypos, 160)
         }
         else if key=='z' {
-            ; rotate CCW
-            drawBlock(xpos, ypos, 32)
-            blocklogic.rotateCCW()
-            drawBlock(xpos, ypos, 160)
+            if blocklogic.canRotateCCW() {
+                drawBlock(xpos, ypos, 32)
+                blocklogic.rotateCCW()
+                drawBlock(xpos, ypos, 160)
+            }
         }
         else if key=='x' {
-            ; rotate CW
-            drawBlock(xpos, ypos, 32)
-            blocklogic.rotateCW()
-            drawBlock(xpos, ypos, 160)
+            if blocklogic.canRotateCW() {
+                drawBlock(xpos, ypos, 32)
+                blocklogic.rotateCW()
+                drawBlock(xpos, ypos, 160)
+            }
         }
         goto waitkey
 
@@ -144,13 +149,21 @@ waitkey:
         c64scr.PLOT(27,23)
         c64scr.print("  m  descend")
 
+        c64scr.setcc(boardOffsetX-1, boardOffsetY-2, 255, 0)           ; invisible barrier
+        c64scr.setcc(boardOffsetX-1, boardOffsetY-3, 255, 0)           ; invisible barrier
+        c64scr.setcc(boardOffsetX+boardWidth, boardOffsetY-2, 255, 0)  ; invisible barrier
+        c64scr.setcc(boardOffsetX+boardWidth, boardOffsetY-3, 255, 0)  ; invisible barrier
+
         c64scr.setcc(boardOffsetX-1, boardOffsetY-1, 108, 12)
+        c64scr.setcc(boardOffsetX+boardWidth, boardOffsetY-1, 123, 12)
         c64scr.setcc(boardOffsetX+boardWidth, boardOffsetY-1, 123, 12)
         c64scr.setcc(boardOffsetX-1, boardOffsetY+boardHeight, 124, 12)
         c64scr.setcc(boardOffsetX+boardWidth, boardOffsetY+boardHeight, 126, 12)
         ubyte i
-        for i in boardOffsetX+boardWidth-1 to boardOffsetX step -1
+        for i in boardOffsetX+boardWidth-1 to boardOffsetX step -1 {
+            c64scr.setcc(i, boardOffsetY-3, 255, 0)           ; invisible barrier
             c64scr.setcc(i, boardOffsetY+boardHeight, 69, 11)
+        }
         for i in boardOffsetY+boardHeight-1 to boardOffsetY step -1 {
             c64scr.setcc(boardOffsetX-1, i, 89, 11)
             c64scr.setcc(boardOffsetX+boardWidth, i, 84, 11)
@@ -239,57 +252,53 @@ waitkey:
 
     sub rotateCW() {
         ; rotates the current block clockwise.
-        if canRotateCW() {
-            if currentBlockNum==0
-                rotateIblock()    ; block 'I' has special rotation
-            else if currentBlockNum!=3 {
-                ; rotate all other blocks (except 3, the square) around their center square
-                rotated[0] = currentBlock[8]
-                rotated[1] = currentBlock[4]
-                rotated[2] = currentBlock[0]
-                rotated[4] = currentBlock[9]
-                rotated[6] = currentBlock[1]
-                rotated[8] = currentBlock[10]
-                rotated[9] = currentBlock[6]
-                rotated[10] = currentBlock[2]
+        if currentBlockNum==0
+            rotateIblock()    ; block 'I' has special rotation
+        else if currentBlockNum!=3 {
+            ; rotate all other blocks (except 3, the square) around their center square
+            rotated[0] = currentBlock[8]
+            rotated[1] = currentBlock[4]
+            rotated[2] = currentBlock[0]
+            rotated[4] = currentBlock[9]
+            rotated[6] = currentBlock[1]
+            rotated[8] = currentBlock[10]
+            rotated[9] = currentBlock[6]
+            rotated[10] = currentBlock[2]
 
-                currentBlock[0] = rotated[0]
-                currentBlock[1] = rotated[1]
-                currentBlock[2] = rotated[2]
-                currentBlock[4] = rotated[4]
-                currentBlock[6] = rotated[6]
-                currentBlock[8] = rotated[8]
-                currentBlock[9] = rotated[9]
-                currentBlock[10] = rotated[10]
-            }
+            currentBlock[0] = rotated[0]
+            currentBlock[1] = rotated[1]
+            currentBlock[2] = rotated[2]
+            currentBlock[4] = rotated[4]
+            currentBlock[6] = rotated[6]
+            currentBlock[8] = rotated[8]
+            currentBlock[9] = rotated[9]
+            currentBlock[10] = rotated[10]
         }
     }
 
     sub rotateCCW() {
         ; rotates the current block counterclockwise.
-        if canRotateCCW() {
-            if currentBlockNum==0
-                rotateIblock()    ; block 'I' has special rotation
-            else if currentBlockNum!=3 {
-                ; rotate all other blocks (except 3, the square) around their center square
-                rotated[0] = currentBlock[2]
-                rotated[1] = currentBlock[6]
-                rotated[2] = currentBlock[10]
-                rotated[4] = currentBlock[1]
-                rotated[6] = currentBlock[9]
-                rotated[8] = currentBlock[0]
-                rotated[9] = currentBlock[4]
-                rotated[10] = currentBlock[8]
+        if currentBlockNum==0
+            rotateIblock()    ; block 'I' has special rotation
+        else if currentBlockNum!=3 {
+            ; rotate all other blocks (except 3, the square) around their center square
+            rotated[0] = currentBlock[2]
+            rotated[1] = currentBlock[6]
+            rotated[2] = currentBlock[10]
+            rotated[4] = currentBlock[1]
+            rotated[6] = currentBlock[9]
+            rotated[8] = currentBlock[0]
+            rotated[9] = currentBlock[4]
+            rotated[10] = currentBlock[8]
 
-                currentBlock[0] = rotated[0]
-                currentBlock[1] = rotated[1]
-                currentBlock[2] = rotated[2]
-                currentBlock[4] = rotated[4]
-                currentBlock[6] = rotated[6]
-                currentBlock[8] = rotated[8]
-                currentBlock[9] = rotated[9]
-                currentBlock[10] = rotated[10]
-            }
+            currentBlock[0] = rotated[0]
+            currentBlock[1] = rotated[1]
+            currentBlock[2] = rotated[2]
+            currentBlock[4] = rotated[4]
+            currentBlock[6] = rotated[6]
+            currentBlock[8] = rotated[8]
+            currentBlock[9] = rotated[9]
+            currentBlock[10] = rotated[10]
         }
     }
 
@@ -315,23 +324,167 @@ waitkey:
     }
 
     sub canRotateCW() -> ubyte {
-        return true ; TODO determine
+        rotateCW()
+        ubyte okay         ; TODO determine
+        rotateCCW()
+        return okay
     }
 
     sub canRotateCCW() -> ubyte {
-        return true ; TODO determine
+        rotateCCW()
+        ubyte okay         ; TODO determine
+        rotateCW()
+        return okay
     }
 
+
+    ; For movement checking it is not needed to clamp the x/y coordinates,
+    ; because we have to check for brick collisions anyway.
+    ; The full play area is bordered by (in)visible characters that will collide.
+
     sub canMoveLeft(ubyte xpos, ubyte ypos) -> ubyte {
-        return xpos>main.boardOffsetX      ; TODO deal with actual block collision
+
+        main.drawBlock(xpos, ypos, 32)
+        ubyte result = canActuallyMoveLeft(xpos, ypos)
+        main.drawBlock(xpos, ypos, 160)
+        return result
+
+        sub canActuallyMoveLeft(ubyte xpos, ubyte ypos) -> ubyte {
+            ubyte x = xpos-1
+            ubyte yp1 = ypos+1
+            ubyte yp2 = ypos+2
+            ubyte yp3 = ypos+3
+            ubyte sc
+
+            ; @todo simplify expressions after bug fixes of boolean handling etc.
+            sc=c64scr.getchr(x, ypos)
+            if(currentBlock[0]!=0 and sc!=32)
+                return false
+            sc=c64scr.getchr(x, yp1)
+            if(currentBlock[4]!=0 and sc!=32)
+                return false
+            sc=c64scr.getchr(x, yp2)
+            if(currentBlock[8]!=0 and sc!=32)
+                return false
+            sc=c64scr.getchr(x, yp3)
+            if(currentBlock[12]!=0 and sc!=32)
+                return false
+            x++
+            sc=c64scr.getchr(x, ypos)
+            if(currentBlock[1]!=0 and sc!=32)
+                return false
+            sc=c64scr.getchr(x, yp1)
+            if(currentBlock[5]!=0 and sc!=32)
+                return false
+            sc=c64scr.getchr(x, yp2)
+            if(currentBlock[9]!=0 and sc!=32)
+                return false
+            sc=c64scr.getchr(x, yp3)
+            if(currentBlock[13]!=0 and sc!=32)
+                return false
+            x++
+            sc=c64scr.getchr(x, ypos)
+            if(currentBlock[2]!=0 and sc!=32)
+                return false
+            sc=c64scr.getchr(x, yp1)
+            if(currentBlock[6]!=0 and sc!=32)
+                return false
+            sc=c64scr.getchr(x, yp2)
+            if(currentBlock[10]!=0 and sc!=32)
+                return false
+            sc=c64scr.getchr(x, yp3)
+            if(currentBlock[14]!=0 and sc!=32)
+                return false
+            x++
+            sc=c64scr.getchr(x, ypos)
+            if(currentBlock[3]!=0 and sc!=32)
+                return false
+            sc=c64scr.getchr(x, yp1)
+            if(currentBlock[7]!=0 and sc!=32)
+                return false
+            sc=c64scr.getchr(x, yp2)
+            if(currentBlock[11]!=0 and sc!=32)
+                return false
+            sc=c64scr.getchr(x, yp3)
+            if(currentBlock[15]!=0 and sc!=32)
+                return false
+
+            return true
+        }
     }
 
     sub canMoveRight(ubyte xpos, ubyte ypos) -> ubyte {
-        return xpos<main.boardOffsetX+main.boardWidth-4  ; TODO deal with actual block collision
+
+        main.drawBlock(xpos, ypos, 32)
+        ubyte result = canActuallyMoveRight(xpos, ypos)
+        main.drawBlock(xpos, ypos, 160)
+        return result
+
+        sub canActuallyMoveRight(ubyte xpos, ubyte ypos) -> ubyte {
+            ubyte x = xpos+4
+            ubyte yp1 = ypos+1
+            ubyte yp2 = ypos+2
+            ubyte yp3 = ypos+3
+            ubyte sc
+
+            sc=c64scr.getchr(x, ypos)
+            if(currentBlock[3] and sc!=32)
+                return false
+            sc=c64scr.getchr(x, yp1)
+            if(currentBlock[7] and sc!=32)
+                return false
+            sc=c64scr.getchr(x, yp2)
+            if(currentBlock[11] and sc!=32)
+                return false
+            sc=c64scr.getchr(x, yp3)
+            if(currentBlock[15] and sc!=32)
+                return false
+            x--
+            sc=c64scr.getchr(x, ypos)
+            if(currentBlock[2] and sc!=32)
+                return false
+            sc=c64scr.getchr(x, yp1)
+            if(currentBlock[6] and sc!=32)
+                return false
+            sc=c64scr.getchr(x, yp2)
+            if(currentBlock[10] and sc!=32)
+                return false
+            sc=c64scr.getchr(x, yp3)
+            if(currentBlock[14] and sc!=32)
+                return false
+            x--
+            sc=c64scr.getchr(x, ypos)
+            if(currentBlock[1] and sc!=32)
+                return false
+            sc=c64scr.getchr(x, yp1)
+            if(currentBlock[5] and sc!=32)
+                return false
+            sc=c64scr.getchr(x, yp2)
+            if(currentBlock[9] and sc!=32)
+                return false
+            sc=c64scr.getchr(x, yp3)
+            if(currentBlock[13] and sc!=32)
+                return false
+            x--
+            sc=c64scr.getchr(x, ypos)
+            if(currentBlock[0] and sc!=32)
+                return false
+            sc=c64scr.getchr(x, yp1)
+            if(currentBlock[4] and sc!=32)
+                return false
+            sc=c64scr.getchr(x, yp2)
+            if(currentBlock[8] and sc!=32)
+                return false
+            sc=c64scr.getchr(x, yp3)
+            if(currentBlock[12] and sc!=32)
+                return false
+
+            return true
+        }
     }
 
     sub canMoveDown(ubyte xpos, ubyte ypos) -> ubyte {
-        return ypos<main.boardOffsetY+main.boardHeight-4 ; TODO deal with actual block collision
+        return ypos<main.boardOffsetY+main.boardHeight-4 ; TODO deal with actual block/border collision
     }
 
     sub isGameOver() -> ubyte {

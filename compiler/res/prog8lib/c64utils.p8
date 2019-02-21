@@ -972,6 +972,25 @@ _screenrows	.word  $0400 + range(0, 1000, 40)
 	}}
 }
 
+asmsub  getchr  (ubyte col @Y, ubyte row @A) -> clobbers(Y) -> (ubyte @ A) {
+	; ---- get the character in the screen matrix at the given location
+	%asm  {{
+		sty  c64.SCRATCH_ZPB1
+		asl  a
+		tay
+		lda  setchr._screenrows+1,y
+		sta  _mod+2
+		lda  setchr._screenrows,y
+		clc
+		adc  c64.SCRATCH_ZPB1
+		sta  _mod+1
+		bcc  _mod
+		inc  _mod+2
+_mod		lda  $ffff		; modified
+		rts		
+	}}
+}
+
 asmsub  setclr  (ubyte col @Y, ubyte row @A) -> clobbers(A) -> ()  {
 	; ---- set the color in SCRATCH_ZPB1 on the screen matrix at the given position
 	%asm {{
@@ -994,6 +1013,24 @@ _colorrows	.word  $d800 + range(0, 1000, 40)
 	}}
 }
 
+asmsub  getclr  (ubyte col @Y, ubyte row @A) -> clobbers(Y) -> (ubyte @ A) {
+	; ---- get the color in the screen color matrix at the given location
+	%asm  {{
+		sty  c64.SCRATCH_ZPB1
+		asl  a
+		tay
+		lda  setclr._colorrows+1,y
+		sta  _mod+2
+		lda  setclr._colorrows,y
+		clc
+		adc  c64.SCRATCH_ZPB1
+		sta  _mod+1
+		bcc  _mod
+		inc  _mod+2
+_mod		lda  $ffff		; modified
+		rts		
+	}}
+}
 
 sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte color)  {
 	; ---- set char+color at the given position on the screen
