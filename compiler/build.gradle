@@ -1,5 +1,5 @@
 plugins {
-    id "org.jetbrains.kotlin.jvm" version "1.3.20"
+    id "org.jetbrains.kotlin.jvm" version "1.3.21"
     id 'application'
 }
 
@@ -8,11 +8,12 @@ repositories {
     jcenter()
 }
 
-def kotlinVersion = '1.3.20'
+def kotlinVersion = '1.3.21'
 
 dependencies {
     implementation project(':parser')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
+    implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
     runtime "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
 
 	testImplementation "org.jetbrains.kotlin:kotlin-test-junit5:$kotlinVersion"
