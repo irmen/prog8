@@ -16,9 +16,6 @@ import kotlin.math.abs
 class AssemblyError(msg: String) : RuntimeException(msg)
 
 
-// TODO: code generation for POW instruction
-
-
 class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, val heap: HeapValues, val zeropage: Zeropage) {
     private val globalFloatConsts = mutableMapOf<Double, String>()
     private val assemblyLines = mutableListOf<String>()
@@ -887,30 +884,13 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.IDIV_W -> "  jsr  prog8_lib.idiv_w"
             Opcode.IDIV_UW -> "  jsr  prog8_lib.idiv_uw"
 
-            Opcode.AND_BYTE -> {
-                """
-                lda  ${(ESTACK_LO + 2).toHex()},x
-                and  ${(ESTACK_LO + 1).toHex()},x
-                inx
-                sta  ${(ESTACK_LO + 1).toHex()},x
-                """
-            }
-            Opcode.OR_BYTE -> {
-                """
-                lda  ${(ESTACK_LO + 2).toHex()},x
-                ora  ${(ESTACK_LO + 1).toHex()},x
-                inx
-                sta  ${(ESTACK_LO + 1).toHex()},x
-                """
-            }
-            Opcode.XOR_BYTE -> {
-                """
-                lda  ${(ESTACK_LO + 2).toHex()},x
-                eor  ${(ESTACK_LO + 1).toHex()},x
-                inx
-                sta  ${(ESTACK_LO + 1).toHex()},x
-                """
-            }
+            Opcode.AND_BYTE -> "  jsr  prog8_lib.and_b"
+            Opcode.OR_BYTE -> "  jsr  prog8_lib.or_b"
+            Opcode.XOR_BYTE -> "  jsr  prog8_lib.xor_b"
+            Opcode.AND_WORD -> "  jsr  prog8_lib.and_w"
+            Opcode.OR_WORD -> "  jsr  prog8_lib.or_w"
+            Opcode.XOR_WORD -> "  jsr  prog8_lib.xor_w"
+
             Opcode.REMAINDER_UB -> "  jsr prog8_lib.remainder_ub"
             Opcode.REMAINDER_UW -> "  jsr prog8_lib.remainder_uw"
 

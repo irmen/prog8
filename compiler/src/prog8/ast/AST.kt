@@ -2078,7 +2078,11 @@ private fun prog8Parser.IntegerliteralContext.toAst(): NumericLiteral {
         var datatype = DataType.UBYTE
         when (radix) {
             10 -> {
-                integer = text.toInt()
+                integer = try {
+                    text.toInt()
+                } catch(x: NumberFormatException) {
+                    throw AstException("${toPosition()} invalid decimal literal ${x.message}")
+                }
                 datatype = when(integer) {
                     in 0..255 -> DataType.UBYTE
                     in -128..127 -> DataType.BYTE
@@ -2090,12 +2094,20 @@ private fun prog8Parser.IntegerliteralContext.toAst(): NumericLiteral {
             2 -> {
                 if(text.length>8)
                     datatype = DataType.UWORD
-                integer = text.toInt(2)
+                try {
+                    integer = text.toInt(2)
+                } catch(x: NumberFormatException) {
+                    throw AstException("${toPosition()} invalid binary literal ${x.message}")
+                }
             }
             16 -> {
                 if(text.length>2)
                     datatype = DataType.UWORD
-                integer = text.toInt(16)
+                try {
+                    integer = text.toInt(16)
+                } catch(x: NumberFormatException) {
+                    throw AstException("${toPosition()} invalid hexadecimal literal ${x.message}")
+                }
             }
             else -> throw FatalAstException("invalid radix")
         }

@@ -105,6 +105,99 @@ not_word	.proc
 		sta  c64.ESTACK_HI + 1,x
 		rts
 		.pend
+		
+		
+and_b		.proc
+		; -- logical and (of 2 bytes)
+		lda  c64.ESTACK_LO+2,x
+		beq  +
+		lda  #1
++		sta  c64.SCRATCH_ZPB1
+		lda  c64.ESTACK_LO+1,x
+		beq  +
+		lda  #1
++		and  c64.SCRATCH_ZPB1
+		inx
+		sta  c64.ESTACK_LO+1,x
+		rts
+		.pend
+		
+or_b		.proc
+		; -- logical or (of 2 bytes)
+		lda  c64.ESTACK_LO+2,x
+		ora  c64.ESTACK_LO+1,x
+		beq  +
+		lda  #1
++		inx
+		sta  c64.ESTACK_LO+1,x
+		rts
+		.pend
+		
+xor_b		.proc
+		; -- logical xor (of 2 bytes)
+		lda  c64.ESTACK_LO+2,x
+		beq  +
+		lda  #1
++		sta  c64.SCRATCH_ZPB1
+		lda  c64.ESTACK_LO+1,x
+		beq  +
+		lda  #1
++		eor  c64.SCRATCH_ZPB1
+		inx
+		sta  c64.ESTACK_LO+1,x
+		rts
+		.pend
+
+and_w		.proc
+		; -- logical and (word and word -> byte)
+		lda  c64.ESTACK_LO+2,x
+		ora  c64.ESTACK_HI+2,x
+		beq  +
+		lda  #1
++		sta  c64.SCRATCH_ZPB1
+		lda  c64.ESTACK_LO+1,x
+		ora  c64.ESTACK_HI+1,x
+		beq  +
+		lda  #1
++		and  c64.SCRATCH_ZPB1
+		inx
+ 		sta  c64.ESTACK_LO+1,x
+ 		sta  c64.ESTACK_HI+1,x
+		rts
+		.pend
+		
+or_w		.proc
+		; -- logical or (word or word -> byte)
+		lda  c64.ESTACK_LO+2,x
+		ora  c64.ESTACK_LO+1,x
+		ora  c64.ESTACK_HI+2,x
+		ora  c64.ESTACK_HI+1,x
+		beq  +
+		lda  #1
++		inx
+		sta  c64.ESTACK_LO+1,x
+		sta  c64.ESTACK_HI+1,x
+		rts
+		.pend
+		
+xor_w		.proc
+		; -- logical xor (word xor word -> byte)
+		lda  c64.ESTACK_LO+2,x
+		ora  c64.ESTACK_HI+2,x
+		beq  +
+		lda  #1
++		sta  c64.SCRATCH_ZPB1
+		lda  c64.ESTACK_LO+1,x
+		ora  c64.ESTACK_HI+1,x
+		beq  +
+		lda  #1
++		eor  c64.SCRATCH_ZPB1
+		inx
+ 		sta  c64.ESTACK_LO+1,x
+ 		sta  c64.ESTACK_HI+1,x
+		rts
+		.pend
+
 
 abs_b		.proc
 	; -- push abs(byte) on stack (as byte)
