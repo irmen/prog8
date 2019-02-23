@@ -891,6 +891,13 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.OR_WORD -> "  jsr  prog8_lib.or_w"
             Opcode.XOR_WORD -> "  jsr  prog8_lib.xor_w"
 
+            Opcode.BITAND_BYTE -> "  jsr  prog8_lib.bitand_b"
+            Opcode.BITOR_BYTE -> "  jsr  prog8_lib.bitor_b"
+            Opcode.BITXOR_BYTE -> "  jsr  prog8_lib.bitxor_b"
+            Opcode.BITAND_WORD -> "  jsr  prog8_lib.bitand_w"
+            Opcode.BITOR_WORD -> "  jsr  prog8_lib.bitor_w"
+            Opcode.BITXOR_WORD -> "  jsr  prog8_lib.bitxor_w"
+
             Opcode.REMAINDER_UB -> "  jsr prog8_lib.remainder_ub"
             Opcode.REMAINDER_UW -> "  jsr prog8_lib.remainder_uw"
 

@@ -7,17 +7,6 @@
     const ubyte startXpos = boardOffsetX + 3
     const ubyte startYpos = boardOffsetY - 2
 
-    ubyte[4] blockI = [4, 5, 6, 7]      ; note: special rotation
-    ubyte[4] blockJ = [0, 4, 5, 6]
-    ubyte[4] blockL = [2, 4, 5, 6]
-    ubyte[4] blockO = [1, 2, 5, 6]      ; note: no rotation
-    ubyte[4] blockS = [1, 2, 4, 5]
-    ubyte[4] blockT = [1, 4, 5, 6]
-    ubyte[4] blockZ = [0, 1, 5, 6]
-
-    ; block colors I, J, L, O, S, T, Z:  cyan, blue, orange, yellow, green, purple, red
-    ubyte[7] blockColors = [3, 6, 8, 7, 5, 4, 2]
-
     ubyte lines = 0
     ubyte score = 0
     ubyte xpos = startXpos
@@ -65,7 +54,7 @@ waitkey:
         if key>='1' and key<='7' {
             ; select block type
             drawBlock(xpos, ypos, 32)
-            newCurrentBlock(key-'1')
+            blocklogic.newCurrentBlock(key-'1')
             drawBlock(xpos, ypos, 160)
         }
         else if key==157 or key==',' {
@@ -115,7 +104,7 @@ waitkey:
 
     sub spawnNextBlock() {
         c64.TIME_LO = 0
-        newCurrentBlock(nextBlock)
+        blocklogic.newCurrentBlock(nextBlock)
         nextBlock = rnd() % 7
         drawNextBlock()
         xpos = startXpos
@@ -170,7 +159,7 @@ waitkey:
         }
 
         for ubyte b in 7 to 0 step -1 {
-            newCurrentBlock(b)
+            blocklogic.newCurrentBlock(b)
             drawBlock(3, 3+b*3, 102)                    ; 102 = stipple
         }
         drawScore()
@@ -192,46 +181,9 @@ waitkey:
 
         ; reuse the normal block draw routine (because we can't manipulate array pointers yet)
         ubyte prev = blocklogic.currentBlockNum
-        newCurrentBlock(nextBlock)
+        blocklogic.newCurrentBlock(nextBlock)
         drawBlock(28, 5, 160)
-        newCurrentBlock(prev)
-    }
-
-    sub newCurrentBlock(ubyte block) {
-        memset(blocklogic.currentBlock, len(blocklogic.currentBlock), 0)
-        blocklogic.currentBlockNum = block
-
-        ; @todo would be nice to have an explicit pointer type to reference the array, and code the loop only once...
-        ubyte blockCol = blockColors[block]
-        ubyte i
-        if block==0 {        ; I
-            for i in blockI
-                blocklogic.currentBlock[i] = blockCol
-        }
-        else if block==1 {        ; J
-            for i in blockJ
-                blocklogic.currentBlock[i] = blockCol
-        }
-        else if block==2 {        ; L
-            for i in blockL
-                blocklogic.currentBlock[i] = blockCol
-        }
-        else if block==3 {        ; O
-            for i in blockO
-                blocklogic.currentBlock[i] = blockCol
-        }
-        else if block==4 {        ; S
-            for i in blockS
-                blocklogic.currentBlock[i] = blockCol
-        }
-        else if block==5 {        ; T
-            for i in blockT
-                blocklogic.currentBlock[i] = blockCol
-        }
-        else if block==6 {        ; Z
-            for i in blockZ
-                blocklogic.currentBlock[i] = blockCol
-        }
+        blocklogic.newCurrentBlock(prev)
     }
 
     sub drawBlock(ubyte x, ubyte y, ubyte character) {
@@ -249,6 +201,54 @@ waitkey:
     ubyte currentBlockNum
     ubyte[16] currentBlock
     ubyte[16] rotated
+
+    ; block colors I, J, L, O, S, T, Z:  cyan, blue, orange, yellow, green, purple, red
+    ubyte[7] blockColors = [3, 6, 8, 7, 5, 4, 2]
+    ubyte[4] blockI = [4, 5, 6, 7]      ; note: special rotation
+    ubyte[4] blockJ = [0, 4, 5, 6]
+    ubyte[4] blockL = [2, 4, 5, 6]
+    ubyte[4] blockO = [1, 2, 5, 6]      ; note: no rotation
+    ubyte[4] blockS = [1, 2, 4, 5]
+    ubyte[4] blockT = [1, 4, 5, 6]
+    ubyte[4] blockZ = [0, 1, 5, 6]
+
+
+    sub newCurrentBlock(ubyte block) {
+        memset(currentBlock, len(currentBlock), 0)
+        currentBlockNum = block
+
+        ; @todo would be nice to have an explicit pointer type to reference the array, and code the loop only once...
+        ubyte blockCol = blockColors[block]
+        ubyte i
+        if block==0 {        ; I
+            for i in blockI
+                currentBlock[i] = blockCol
+        }
+        else if block==1 {        ; J
+            for i in blockJ
+                currentBlock[i] = blockCol
+        }
+        else if block==2 {        ; L
+            for i in blockL
+                currentBlock[i] = blockCol
+        }
+        else if block==3 {        ; O
+            for i in blockO
+                currentBlock[i] = blockCol
+        }
+        else if block==4 {        ; S
+            for i in blockS
+                currentBlock[i] = blockCol
+        }
+        else if block==5 {        ; T
+            for i in blockT
+                currentBlock[i] = blockCol
+        }
+        else if block==6 {        ; Z
+            for i in blockZ
+                currentBlock[i] = blockCol
+        }
+    }
 
     sub rotateCW() {
         ; rotates the current block clockwise.
@@ -350,63 +350,48 @@ waitkey:
         return result
 
         sub canActuallyMoveLeft(ubyte xpos, ubyte ypos) -> ubyte {
+            ; @todo make this a generic subroutine that also works to check right and bottom collisions...
+
             ubyte x = xpos-1
             ubyte yp1 = ypos+1
             ubyte yp2 = ypos+2
             ubyte yp3 = ypos+3
-            ubyte sc
 
-            ; @todo simplify expressions after bug fixes of boolean handling etc.
-            sc=c64scr.getchr(x, ypos)
-            if(currentBlock[0]!=0 and sc!=32)
+            ; @todo the boolean expression below currently doesn't work because the result of an asmsub call (getchr) is not put on the stack right now
+            if(currentBlock[0] and c64scr.getchr(x, ypos)!=32)
                 return false
-            sc=c64scr.getchr(x, yp1)
-            if(currentBlock[4]!=0 and sc!=32)
+            if(currentBlock[4] and c64scr.getchr(x, yp1)!=32)
                 return false
-            sc=c64scr.getchr(x, yp2)
-            if(currentBlock[8]!=0 and sc!=32)
+            if(currentBlock[8] and c64scr.getchr(x, yp2)!=32)
                 return false
-            sc=c64scr.getchr(x, yp3)
-            if(currentBlock[12]!=0 and sc!=32)
+            if(currentBlock[12] and c64scr.getchr(x, yp3)!=32)
                 return false
             x++
-            sc=c64scr.getchr(x, ypos)
-            if(currentBlock[1]!=0 and sc!=32)
+            if(currentBlock[1] and c64scr.getchr(x, ypos)!=32)
                 return false
-            sc=c64scr.getchr(x, yp1)
-            if(currentBlock[5]!=0 and sc!=32)
+            if(currentBlock[5] and c64scr.getchr(x, yp1)!=32)
                 return false
-            sc=c64scr.getchr(x, yp2)
-            if(currentBlock[9]!=0 and sc!=32)
+            if(currentBlock[9] and c64scr.getchr(x, yp2)!=32)
                 return false
-            sc=c64scr.getchr(x, yp3)
-            if(currentBlock[13]!=0 and sc!=32)
+            if(currentBlock[13] and c64scr.getchr(x, yp3)!=32)
                 return false
             x++
-            sc=c64scr.getchr(x, ypos)
-            if(currentBlock[2]!=0 and sc!=32)
+            if(currentBlock[2] and c64scr.getchr(x, ypos)!=32)
                 return false
-            sc=c64scr.getchr(x, yp1)
-            if(currentBlock[6]!=0 and sc!=32)
+            if(currentBlock[6] and c64scr.getchr(x, yp1)!=32)
                 return false
-            sc=c64scr.getchr(x, yp2)
-            if(currentBlock[10]!=0 and sc!=32)
+            if(currentBlock[10] and c64scr.getchr(x, yp2)!=32)
                 return false
-            sc=c64scr.getchr(x, yp3)
-            if(currentBlock[14]!=0 and sc!=32)
+            if(currentBlock[14] and c64scr.getchr(x, yp3)!=32)
                 return false
             x++
-            sc=c64scr.getchr(x, ypos)
-            if(currentBlock[3]!=0 and sc!=32)
+            if(currentBlock[3] and c64scr.getchr(x, ypos)!=32)
                 return false
-            sc=c64scr.getchr(x, yp1)
-            if(currentBlock[7]!=0 and sc!=32)
+            if(currentBlock[7] and c64scr.getchr(x, yp1)!=32)
                 return false
-            sc=c64scr.getchr(x, yp2)
-            if(currentBlock[11]!=0 and sc!=32)
+            if(currentBlock[11] and c64scr.getchr(x, yp2)!=32)
                 return false
-            sc=c64scr.getchr(x, yp3)
-            if(currentBlock[15]!=0 and sc!=32)
+            if(currentBlock[15] and c64scr.getchr(x, yp3)!=32)
                 return false
 
             return true
@@ -421,62 +406,49 @@ waitkey:
         return result
 
         sub canActuallyMoveRight(ubyte xpos, ubyte ypos) -> ubyte {
+
+            ; @todo use the generic subroutine that also works to check right and bottom collisions...
+
             ubyte x = xpos+4
             ubyte yp1 = ypos+1
             ubyte yp2 = ypos+2
             ubyte yp3 = ypos+3
-            ubyte sc
 
-            sc=c64scr.getchr(x, ypos)
-            if(currentBlock[3] and sc!=32)
+            ; @todo the boolean expression below currently doesn't work because the result of an asmsub call (getchr) is not put on the stack right now
+            if(currentBlock[3] and c64scr.getchr(x, ypos)!=32)
                 return false
-            sc=c64scr.getchr(x, yp1)
-            if(currentBlock[7] and sc!=32)
+            if(currentBlock[7] and c64scr.getchr(x, yp1)!=32)
                 return false
-            sc=c64scr.getchr(x, yp2)
-            if(currentBlock[11] and sc!=32)
+            if(currentBlock[11] and c64scr.getchr(x, yp2)!=32)
                 return false
-            sc=c64scr.getchr(x, yp3)
-            if(currentBlock[15] and sc!=32)
+            if(currentBlock[15] and c64scr.getchr(x, yp3)!=32)
                 return false
             x--
-            sc=c64scr.getchr(x, ypos)
-            if(currentBlock[2] and sc!=32)
+            if(currentBlock[2] and c64scr.getchr(x, ypos)!=32)
                 return false
-            sc=c64scr.getchr(x, yp1)
-            if(currentBlock[6] and sc!=32)
+            if(currentBlock[6] and c64scr.getchr(x, yp1)!=32)
                 return false
-            sc=c64scr.getchr(x, yp2)
-            if(currentBlock[10] and sc!=32)
+            if(currentBlock[10] and c64scr.getchr(x, yp2)!=32)
                 return false
-            sc=c64scr.getchr(x, yp3)
-            if(currentBlock[14] and sc!=32)
+            if(currentBlock[14] and c64scr.getchr(x, yp3)!=32)
                 return false
             x--
-            sc=c64scr.getchr(x, ypos)
-            if(currentBlock[1] and sc!=32)
+            if(currentBlock[1] and c64scr.getchr(x, ypos)!=32)
                 return false
-            sc=c64scr.getchr(x, yp1)
-            if(currentBlock[5] and sc!=32)
+            if(currentBlock[5] and c64scr.getchr(x, yp1)!=32)
                 return false
-            sc=c64scr.getchr(x, yp2)
-            if(currentBlock[9] and sc!=32)
+            if(currentBlock[9] and c64scr.getchr(x, yp2)!=32)
                 return false
-            sc=c64scr.getchr(x, yp3)
-            if(currentBlock[13] and sc!=32)
+            if(currentBlock[13] and c64scr.getchr(x, yp3)!=32)
                 return false
             x--
-            sc=c64scr.getchr(x, ypos)
-            if(currentBlock[0] and sc!=32)
+            if(currentBlock[0] and c64scr.getchr(x, ypos)!=32)
                 return false
-            sc=c64scr.getchr(x, yp1)
-            if(currentBlock[4] and sc!=32)
+            if(currentBlock[4] and c64scr.getchr(x, yp1)!=32)
                 return false
-            sc=c64scr.getchr(x, yp2)
-            if(currentBlock[8] and sc!=32)
+            if(currentBlock[8] and c64scr.getchr(x, yp2)!=32)
                 return false
-            sc=c64scr.getchr(x, yp3)
-            if(currentBlock[12] and sc!=32)
+            if(currentBlock[12] and c64scr.getchr(x, yp3)!=32)
                 return false
 
             return true

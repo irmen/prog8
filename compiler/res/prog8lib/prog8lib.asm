@@ -106,6 +106,68 @@ not_word	.proc
 		rts
 		.pend
 		
+bitand_b	.proc
+		; -- bitwise and (of 2 bytes)
+		lda  c64.ESTACK_LO+2,x
+		and  c64.ESTACK_LO+1,x
+		inx
+		sta  c64.ESTACK_LO+1,x
+		rts
+		.pend
+		
+bitor_b		.proc
+		; -- bitwise or (of 2 bytes)
+		lda  c64.ESTACK_LO+2,x
+		ora  c64.ESTACK_LO+1,x
+		inx
+		sta  c64.ESTACK_LO+1,x
+		rts
+		.pend
+		
+bitxor_b	.proc
+		; -- bitwise xor (of 2 bytes)
+		lda  c64.ESTACK_LO+2,x
+		eor  c64.ESTACK_LO+1,x
+		inx
+		sta  c64.ESTACK_LO+1,x
+		rts
+		.pend
+
+bitand_w	.proc
+		; -- bitwise and (of 2 words)
+		lda  c64.ESTACK_LO+2,x
+		and  c64.ESTACK_LO+1,x
+		sta  c64.ESTACK_LO+2,x
+		lda  c64.ESTACK_HI+2,x
+		and  c64.ESTACK_HI+1,x
+		sta  c64.ESTACK_HI+2,x
+		inx
+		rts
+		.pend
+		
+bitor_w		.proc
+		; -- bitwise or (of 2 words)
+		lda  c64.ESTACK_LO+2,x
+		ora  c64.ESTACK_LO+1,x
+		sta  c64.ESTACK_LO+2,x
+		lda  c64.ESTACK_HI+2,x
+		ora  c64.ESTACK_HI+1,x
+		sta  c64.ESTACK_HI+2,x
+		inx
+		rts
+		.pend
+		
+bitxor_w	.proc
+		; -- bitwise xor (of 2 bytes)
+		lda  c64.ESTACK_LO+2,x
+		eor  c64.ESTACK_LO+1,x
+		sta  c64.ESTACK_LO+2,x
+		lda  c64.ESTACK_HI+2,x
+		eor  c64.ESTACK_HI+1,x
+		sta  c64.ESTACK_HI+2,x
+		inx
+		rts
+		.pend
 		
 and_b		.proc
 		; -- logical and (of 2 bytes)
