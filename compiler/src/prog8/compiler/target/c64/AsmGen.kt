@@ -73,7 +73,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         }
     }
 
-    fun compileToAssembly(): AssemblyProgram {
+    fun compileToAssembly(optimize: Boolean): AssemblyProgram {
         println("Generating assembly code from intermediate code... ")
 
         assemblyLines.clear()
@@ -81,9 +81,11 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         for(b in program.blocks)
             block2asm(b)
 
-        var optimizationsDone=1
-        while(optimizationsDone>0) {
-            optimizationsDone = optimizeAssembly(assemblyLines)
+        if(optimize) {
+            var optimizationsDone = 1
+            while (optimizationsDone > 0) {
+                optimizationsDone = optimizeAssembly(assemblyLines)
+            }
         }
 
         File("${program.name}.asm").printWriter().use {

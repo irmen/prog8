@@ -704,8 +704,8 @@ private class AstChecker(private val namespace: INameScope,
             }
         }
 
-        val leftDt = expr.left.resultingDatatype(namespace, heap)!!
-        val rightDt = expr.right.resultingDatatype(namespace, heap)!!
+        val leftDt = expr.left.resultingDatatype(namespace, heap)
+        val rightDt = expr.right.resultingDatatype(namespace, heap)
         if(leftDt !in NumericDatatypes)
             checkResult.add(ExpressionError("left operand is not numeric", expr.left.position))
         if(rightDt!in NumericDatatypes)

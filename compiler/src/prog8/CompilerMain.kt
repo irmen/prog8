@@ -46,6 +46,7 @@ private fun compileMain(args: Array<String>) {
     var moduleFile = ""
     var writeVmCode = false
     var writeAssembly = true
+    var optimize = true
     for (arg in args) {
         if(arg=="-emu")
             emulatorToStart = "x64"
@@ -55,6 +56,8 @@ private fun compileMain(args: Array<String>) {
             writeVmCode = true
         else if(arg=="-noasm")
             writeAssembly = false
+        else if(arg=="-noopt")
+            optimize = false
         else if(!arg.startsWith("-"))
             moduleFile = arg
         else
@@ -101,15 +104,17 @@ private fun compileMain(args: Array<String>) {
             }
             //println(" time4: $time4")
 
-            // optimize the parse tree
-            println("Optimizing...")
-            val allScopedSymbolDefinitions = moduleAst.checkIdentifiers(heap)       // useful for checking symbol usage later?
-            while (true) {
-                // keep optimizing expressions and statements until no more steps remain
-                val optsDone1 = moduleAst.simplifyExpressions(namespace, heap)
-                val optsDone2 = moduleAst.optimizeStatements(namespace, heap)
-                if (optsDone1 + optsDone2 == 0)
-                    break
+            if(optimize) {
+                // optimize the parse tree
+                println("Optimizing...")
+                val allScopedSymbolDefinitions = moduleAst.checkIdentifiers(heap)       // useful for checking symbol usage later?
+                while (true) {
+                    // keep optimizing expressions and statements until no more steps remain
+                    val optsDone1 = moduleAst.simplifyExpressions(namespace, heap)
+                    val optsDone2 = moduleAst.optimizeStatements(namespace, heap)
+                    if (optsDone1 + optsDone2 == 0)
+                        break
+                }
             }
 
             namespace = moduleAst.definingScope()       // create it again, it could have changed in the meantime
@@ -121,7 +126,8 @@ private fun compileMain(args: Array<String>) {
             // compile the syntax tree into stackvmProg form, and optimize that
             val compiler = Compiler(moduleAst, namespace, heap)
             val intermediate = compiler.compile(compilerOptions)
-            intermediate.optimize()
+            if(optimize)
+                intermediate.optimize()
 
             if(writeVmCode) {
                 val stackVmFilename = intermediate.name + ".vm.txt"
@@ -134,7 +140,7 @@ private fun compileMain(args: Array<String>) {
             if(writeAssembly) {
                 val zeropage = C64Zeropage(compilerOptions)
                 intermediate.allocateZeropage(zeropage)
-                val assembly = AsmGen(compilerOptions, intermediate, heap, zeropage).compileToAssembly()
+                val assembly = AsmGen(compilerOptions, intermediate, heap, zeropage).compileToAssembly(optimize)
                 assembly.assemble(compilerOptions)
                 programname = assembly.name
             }
@@ -211,6 +217,7 @@ private fun usage() {
     System.err.println("    [-writevm]   write intermediate vm code to a file as well")
     System.err.println("    [-noasm]     don't create assembly code")
     System.err.println("    [-vm]        launch the prog8 virtual machine instead of the compiler")
+    System.err.println("    [-noopt]     don't perform optimizations")
     System.err.println("    modulefile   main module file to compile")
     exitProcess(1)
 }
