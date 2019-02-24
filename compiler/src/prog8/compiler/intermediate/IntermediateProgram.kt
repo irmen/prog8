@@ -462,11 +462,11 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         heap.allEntries().forEach {
             when {
                 it.value.str!=null ->
-                    out.println("${it.key}  ${it.value.type.toString().toLowerCase()}  \"${escape(it.value.str!!)}\"")
+                    out.println("${it.key}  ${it.value.type.name.toLowerCase()}  \"${escape(it.value.str!!)}\"")
                 it.value.array!=null ->
-                    out.println("${it.key}  ${it.value.type.toString().toLowerCase()}  ${it.value.array!!.toList()}")
+                    out.println("${it.key}  ${it.value.type.name.toLowerCase()}  ${it.value.array!!.toList()}")
                 it.value.doubleArray!=null ->
-                    out.println("${it.key}  ${it.value.type.toString().toLowerCase()}  ${it.value.doubleArray!!.toList()}")
+                    out.println("${it.key}  ${it.value.type.name.toLowerCase()}  ${it.value.doubleArray!!.toList()}")
                 else -> throw CompilerException("invalid heap entry $it")
             }
         }
@@ -477,12 +477,12 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
             out.println("%variables")
             for(variable in blk.variables) {
                 val valuestr = variable.value.toString()
-                out.println("${variable.key}  ${variable.value.type.toString().toLowerCase()}  $valuestr")
+                out.println("${variable.key}  ${variable.value.type.name.toLowerCase()}  $valuestr")
             }
             out.println("%end_variables")
             out.println("%memorypointers")
             for(iconst in blk.memoryPointers) {
-                out.println("${iconst.key}  ${iconst.value.second.toString().toLowerCase()}  uw:${iconst.value.first.toString(16)}")
+                out.println("${iconst.key}  ${iconst.value.second.name.toLowerCase()}  uw:${iconst.value.first.toString(16)}")
             }
             out.println("%end_memorypointers")
             out.println("%instructions")

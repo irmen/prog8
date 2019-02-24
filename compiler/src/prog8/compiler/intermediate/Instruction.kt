@@ -23,10 +23,10 @@ open class Instruction(val opcode: Opcode,
                     }
                     opcode in opcodesWithVarArgument -> {
                         // opcodes that manipulate a variable
-                        "${opcode.toString().toLowerCase()}  ${callLabel?:""}  ${callLabel2?:""}".trimEnd()
+                        "${opcode.name.toLowerCase()}  ${callLabel?:""}  ${callLabel2?:""}".trimEnd()
                     }
-                    callLabel==null -> "${opcode.toString().toLowerCase()}  $argStr"
-                    else -> "${opcode.toString().toLowerCase()}  $callLabel  $argStr"
+                    callLabel==null -> "${opcode.name.toLowerCase()}  $argStr"
+                    else -> "${opcode.name.toLowerCase()}  $callLabel  $argStr"
                 }
                 .trimEnd()
 

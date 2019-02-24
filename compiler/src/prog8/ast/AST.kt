@@ -790,7 +790,7 @@ data class AssignTarget(val register: Register?,
 
     fun shortString(withTypePrefix: Boolean=false): String {
         if(register!=null)
-            return (if(withTypePrefix) "0register::" else "") + register.toString()
+            return (if(withTypePrefix) "0register::" else "") + register.name
         if(identifier!=null)
             return (if(withTypePrefix) "3identifier::" else "") + identifier.nameInSource.last()
         if(arrayindexed!=null)

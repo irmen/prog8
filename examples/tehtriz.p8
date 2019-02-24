@@ -357,7 +357,6 @@ waitkey:
             ubyte yp2 = ypos+2
             ubyte yp3 = ypos+3
 
-            ; @todo the boolean expression below currently doesn't work because the result of an asmsub call (getchr) is not put on the stack right now
             if(currentBlock[0] and c64scr.getchr(x, ypos)!=32)
                 return false
             if(currentBlock[4] and c64scr.getchr(x, yp1)!=32)
@@ -414,7 +413,6 @@ waitkey:
             ubyte yp2 = ypos+2
             ubyte yp3 = ypos+3
 
-            ; @todo the boolean expression below currently doesn't work because the result of an asmsub call (getchr) is not put on the stack right now
             if(currentBlock[3] and c64scr.getchr(x, ypos)!=32)
                 return false
             if(currentBlock[7] and c64scr.getchr(x, yp1)!=32)

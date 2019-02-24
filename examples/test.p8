@@ -7,14 +7,44 @@
 
     ; @todo see looplabelproblem.p8
 
-
-    ;ubyte x = rnd82() % 6   ; @todo fix compiler crash  + always 0???
-
-    ; if(X and c64scr.getcc(1,1)!=32)  ...    @todo the result value of the asmsub getcc is not put on the eval stack when used in an expression
-
     sub start() {
+        ubyte xx
+
+        c64scr.print_ub(X)
+        c64.CHROUT('\n')
+
+        A=c64scr.getchr(20,1)
+        c64scr.print_ub(A)
+        c64.CHROUT('\n')
+        xx=c64scr.getchr(20,1)
+        c64scr.print_ub(xx)
+        c64.CHROUT('\n')
+        c64scr.print_ub(X)
+        c64.CHROUT('\n')
+
+        A=1+c64scr.getchr(20,1)
+        c64scr.print_ub(A)
+        c64.CHROUT('\n')
+        xx=1+c64scr.getchr(20,1)
+        c64scr.print_ub(xx)
+        c64.CHROUT('\n')
+        c64scr.print_ub(X)
+        c64.CHROUT('\n')
+
+        A=c64scr.getchr(20,1)+1
+        c64scr.print_ub(A)
+        c64.CHROUT('\n')
+        xx=c64scr.getchr(20,1)+1
+        c64scr.print_ub(xx)
+        c64.CHROUT('\n')
+        c64scr.print_ub(X)
+        c64.CHROUT('\n')
 
 
+    }
+
+    asmsub asm_routine(ubyte arg1 @ A, ubyte arg2 @ Y) -> clobbers() -> (ubyte @ A) {
+        return A+Y
     }
 
     sub drawNext(ubyte x) {
