@@ -26,10 +26,11 @@ val BuiltinFunctions = mapOf(
     "lsl"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", IntegerDatatypes)), null),
     "lsr"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", IntegerDatatypes)), null),
         // these few have a return value depending on the argument(s):
-    "max"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.max()!! }},        // type depends on args
-    "min"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.min()!! }},        // type depends on args
-    "sum"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.sum() }},        // type depends on args
+    "max"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.max()!! }},    // type depends on args
+    "min"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.min()!! }},    // type depends on args
+    "sum"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, n, h -> collectionArgOutputNumber(a, p, n, h) { it.sum() }},      // type depends on args
     "abs"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", NumericDatatypes)), null, ::builtinAbs),      // type depends on argument
+    "len"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", IterableDatatypes)), null, ::builtinLen),    // type is UBYTE or UWORD depending on actual length
         // normal functions follow:
     "sin"         to FunctionSignature(true, listOf(BuiltinFunctionParam("rads", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArg(a, p, n, h, Math::sin) },
     "sin8"        to FunctionSignature(true, listOf(BuiltinFunctionParam("angle8", setOf(DataType.UBYTE))), DataType.BYTE, ::builtinSin8 ),
@@ -53,7 +54,6 @@ val BuiltinFunctions = mapOf(
     "round"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::round) },
     "floor"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::floor) },
     "ceil"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, n, h -> oneDoubleArgOutputWord(a, p, n, h, Math::ceil) },
-    "len"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", IterableDatatypes)), DataType.UWORD, ::builtinLen),
     "any"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.any { v -> v != 0.0} }},
     "all"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, n, h -> collectionArgOutputBoolean(a, p, n, h) { it.all { v -> v != 0.0} }},
     "lsb"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, n, h -> oneIntArgOutputInt(a, p, n, h) { x: Int -> x and 255 }},
@@ -178,6 +178,11 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
                 DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> DataType.UWORD
             }
         }
+        "len" -> {
+            // a length can be >255 so in that case, the result is an UWORD instead of an UBYTE
+            // but to avoid a lot of code duplication we simply assume UWORD in all cases for now
+            return DataType.UWORD
+        }
         else -> return null
     }
 }
@@ -295,7 +300,7 @@ private fun builtinAvg(args: List<IExpression>, position: Position, namespace:IN
 }
 
 private fun builtinLen(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
-    // note: in some cases the length is > 255 and so we have to return a UWORD type instead of a byte.
+    // note: in some cases the length is > 255 and then we have to return a UWORD type instead of a UBYTE.
     if(args.size!=1)
         throw SyntaxError("len requires one argument", position)
     var argument = args[0].constValue(namespace, heap)
@@ -312,19 +317,19 @@ private fun builtinLen(args: List<IExpression>, position: Position, namespace:IN
             val arraySize = argument.arrayvalue?.size ?: heap.get(argument.heapId!!).arraysize
             if(arraySize>256)
                 throw CompilerException("array length exceeds byte limit ${argument.position}")
-            LiteralValue(DataType.UWORD, wordvalue=arraySize, position=args[0].position)
+            LiteralValue.optimalInteger(arraySize, args[0].position)
         }
         DataType.ARRAY_F -> {
             val arraySize = argument.arrayvalue?.size ?: heap.get(argument.heapId!!).arraysize
             if(arraySize>256)
                 throw CompilerException("array length exceeds byte limit ${argument.position}")
-            LiteralValue(DataType.UWORD, wordvalue=arraySize, position=args[0].position)
+            LiteralValue.optimalInteger(arraySize, args[0].position)
         }
         DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
             val str = argument.strvalue(heap)
             if(str.length>255)
                 throw CompilerException("string length exceeds byte limit ${argument.position}")
-            LiteralValue(DataType.UWORD, wordvalue=str.length, position=args[0].position)
+            LiteralValue.optimalInteger(str.length, args[0].position)
         }
         DataType.UBYTE, DataType.BYTE,
         DataType.UWORD, DataType.WORD,
