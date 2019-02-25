@@ -4,7 +4,10 @@ import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.empty
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import prog8.ast.ByteDatatypes
 import prog8.ast.DataType
+import prog8.ast.IterableDatatypes
+import prog8.ast.WordDatatypes
 import prog8.compiler.HeapValues
 import prog8.compiler.intermediate.Instruction
 import prog8.compiler.intermediate.Opcode
@@ -1234,12 +1237,11 @@ class TestStackVmOpcodes {
 
     private fun pushOpcode(dt: DataType): Opcode {
         return when (dt) {
-            DataType.UBYTE, DataType.BYTE -> Opcode.PUSH_BYTE
-            DataType.UWORD, DataType.WORD -> Opcode.PUSH_WORD
+            in ByteDatatypes -> Opcode.PUSH_BYTE
+            in WordDatatypes -> Opcode.PUSH_WORD
+            in IterableDatatypes -> Opcode.PUSH_WORD
             DataType.FLOAT -> Opcode.PUSH_FLOAT
-            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
-            DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F,
-            DataType.ARRAY_B, DataType.ARRAY_W -> Opcode.PUSH_WORD
+            else -> throw IllegalArgumentException("invalid datatype")
         }
     }
 

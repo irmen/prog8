@@ -79,8 +79,8 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
 
     fun numericValue(): Number {
         return when(type) {
-            DataType.UBYTE, DataType.BYTE -> byteval!!
-            DataType.UWORD, DataType.WORD -> wordval!!
+            in ByteDatatypes -> byteval!!
+            in WordDatatypes -> wordval!!
             DataType.FLOAT -> floatval!!
             else -> throw ValueException("invalid datatype for numeric value: $type")
         }
@@ -88,8 +88,8 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
 
     fun integerValue(): Int {
         return when(type) {
-            DataType.UBYTE, DataType.BYTE -> byteval!!.toInt()
-            DataType.UWORD, DataType.WORD -> wordval!!
+            in ByteDatatypes -> byteval!!.toInt()
+            in WordDatatypes -> wordval!!
             DataType.FLOAT -> throw ValueException("float to integer loss of precision")
             else -> throw ValueException("invalid datatype for integer value: $type")
         }
@@ -393,8 +393,8 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
 
     fun msb(): Value {
         return when(type) {
-            DataType.UBYTE, DataType.BYTE -> Value(DataType.UBYTE, 0)
-            DataType.UWORD, DataType.WORD -> Value(DataType.UBYTE, wordval!! ushr 8 and 255)
+            in ByteDatatypes -> Value(DataType.UBYTE, 0)
+            in WordDatatypes -> Value(DataType.UBYTE, wordval!! ushr 8 and 255)
             else -> throw ValueException("msb can only work on (u)byte/(u)word")
         }
     }
@@ -428,7 +428,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
             }
             DataType.UWORD -> {
                 when (targetType) {
-                    DataType.BYTE, DataType.UBYTE -> Value(DataType.UBYTE, integerValue() and 255)
+                    in ByteDatatypes -> Value(DataType.UBYTE, integerValue() and 255)
                     DataType.UWORD -> this
                     DataType.WORD -> {
                         if(integerValue()<=32767)
@@ -442,7 +442,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
             }
             DataType.WORD -> {
                 when (targetType) {
-                    DataType.BYTE, DataType.UBYTE -> Value(DataType.UBYTE, integerValue() and 255)
+                    in ByteDatatypes -> Value(DataType.UBYTE, integerValue() and 255)
                     DataType.UWORD -> Value(DataType.UWORD, integerValue() and 65535)
                     DataType.WORD -> this
                     DataType.FLOAT -> Value(DataType.FLOAT, numericValue())

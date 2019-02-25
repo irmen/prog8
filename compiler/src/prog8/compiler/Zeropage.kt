@@ -20,8 +20,8 @@ abstract class Zeropage(protected val options: CompilationOptions) {
 
         val size =
                 when (datatype) {
-                    DataType.UBYTE, DataType.BYTE -> 1
-                    DataType.UWORD, DataType.WORD -> 2
+                    in ByteDatatypes -> 1
+                    in WordDatatypes -> 2
                     DataType.FLOAT -> {
                         if (options.floats) {
                             if(position!=null)

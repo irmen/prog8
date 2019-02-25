@@ -78,7 +78,7 @@ val BuiltinFunctions = mapOf(
     "memset"      to FunctionSignature(false, listOf(
                                                         BuiltinFunctionParam("address", IterableDatatypes + setOf(DataType.UWORD)),
                                                         BuiltinFunctionParam("numbytes", setOf(DataType.UWORD)),
-                                                        BuiltinFunctionParam("bytevalue", setOf(DataType.UBYTE, DataType.BYTE))), null),
+                                                        BuiltinFunctionParam("bytevalue", ByteDatatypes)), null),
     "memsetw"     to FunctionSignature(false, listOf(
                                                         BuiltinFunctionParam("address", IterableDatatypes + setOf(DataType.UWORD)),
                                                         BuiltinFunctionParam("numwords", setOf(DataType.UWORD)),
@@ -126,14 +126,14 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
         if(arglist is IdentifierReference) {
             val dt = arglist.resultingDatatype(namespace, heap)
             return when(dt) {
-                DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT,
-                DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> dt
+                in NumericDatatypes -> dt!!
+                in StringDatatypes -> dt!!
                 DataType.ARRAY_UB -> DataType.UBYTE
                 DataType.ARRAY_B -> DataType.BYTE
                 DataType.ARRAY_UW -> DataType.UWORD
                 DataType.ARRAY_W -> DataType.WORD
                 DataType.ARRAY_F -> DataType.FLOAT
-                null -> throw FatalAstException("function '$function' requires one argument which is an iterable")
+                else -> throw FatalAstException("function '$function' requires one argument which is an iterable")
             }
         }
         throw FatalAstException("function '$function' requires one argument which is an iterable")
@@ -148,8 +148,8 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
         "abs" -> {
             val dt = args.single().resultingDatatype(namespace, heap)
             when(dt) {
-                DataType.UBYTE, DataType.BYTE -> DataType.UBYTE
-                DataType.UWORD, DataType.WORD -> DataType.UWORD
+                in ByteDatatypes -> DataType.UBYTE
+                in WordDatatypes -> DataType.UWORD
                 DataType.FLOAT -> DataType.FLOAT
                 else -> throw FatalAstException("weird datatype passed to abs $dt")
             }
@@ -157,13 +157,14 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
         "max", "min" -> {
             val dt = datatypeFromIterableArg(args.single())
             when(dt) {
-                DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT -> dt
-                DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> DataType.UBYTE
+                in NumericDatatypes -> dt
+                in StringDatatypes -> DataType.UBYTE
                 DataType.ARRAY_UB -> DataType.UBYTE
                 DataType.ARRAY_B -> DataType.BYTE
                 DataType.ARRAY_UW -> DataType.UWORD
                 DataType.ARRAY_W -> DataType.WORD
                 DataType.ARRAY_F -> DataType.FLOAT
+                else -> null
             }
         }
         "sum" -> {
@@ -175,7 +176,8 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
                 DataType.ARRAY_UB, DataType.ARRAY_UW -> DataType.UWORD
                 DataType.ARRAY_B, DataType.ARRAY_W -> DataType.WORD
                 DataType.ARRAY_F -> DataType.FLOAT
-                DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> DataType.UWORD
+                in StringDatatypes -> DataType.UWORD
+                else -> null
             }
         }
         "len" -> {
@@ -325,15 +327,14 @@ private fun builtinLen(args: List<IExpression>, position: Position, namespace:IN
                 throw CompilerException("array length exceeds byte limit ${argument.position}")
             LiteralValue.optimalInteger(arraySize, args[0].position)
         }
-        DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
+        in StringDatatypes -> {
             val str = argument.strvalue(heap)
             if(str.length>255)
                 throw CompilerException("string length exceeds byte limit ${argument.position}")
             LiteralValue.optimalInteger(str.length, args[0].position)
         }
-        DataType.UBYTE, DataType.BYTE,
-        DataType.UWORD, DataType.WORD,
-        DataType.FLOAT -> throw SyntaxError("len of weird argument ${args[0]}", position)
+        in NumericDatatypes -> throw SyntaxError("len of weird argument ${args[0]}", position)
+        else -> throw CompilerException("weird datatype")
     }
 }
 

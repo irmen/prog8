@@ -103,9 +103,11 @@ val IterableDatatypes = setOf(
         DataType.ARRAY_UW, DataType.ARRAY_W,
         DataType.ARRAY_F)
 
-val StringDatatypes = setOf(DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS)
-val NumericDatatypes = setOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT)
+val ByteDatatypes = setOf(DataType.UBYTE, DataType.BYTE)
+val WordDatatypes = setOf(DataType.UWORD, DataType.WORD)
 val IntegerDatatypes = setOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD)
+val NumericDatatypes = setOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT)
+val StringDatatypes = setOf(DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS)
 val ArrayDatatypes = setOf(DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F)
 
 
@@ -918,19 +920,19 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
                     else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
                 }
                 DataType.BYTE -> when(rightDt) {
-                    DataType.BYTE, DataType.UBYTE -> DataType.BYTE
-                    DataType.WORD, DataType.UWORD -> DataType.WORD
+                    in ByteDatatypes -> DataType.BYTE
+                    in WordDatatypes -> DataType.WORD
                     DataType.FLOAT -> DataType.FLOAT
                     else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
                 }
                 DataType.UWORD -> when(rightDt) {
-                    DataType.UBYTE, DataType.UWORD -> DataType.UWORD
-                    DataType.BYTE, DataType.WORD -> DataType.WORD
+                    in ByteDatatypes -> DataType.UWORD
+                    in WordDatatypes -> DataType.WORD
                     DataType.FLOAT -> DataType.FLOAT
                     else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
                 }
                 DataType.WORD -> when(rightDt) {
-                    DataType.BYTE, DataType.UBYTE, DataType.WORD, DataType.UWORD -> DataType.WORD
+                    in IntegerDatatypes -> DataType.WORD
                     DataType.FLOAT -> DataType.FLOAT
                     else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
                 }
@@ -1073,8 +1075,8 @@ class LiteralValue(val type: DataType,
 
         fun fromNumber(value: Number, type: DataType, position: Position) : LiteralValue {
             return when(type) {
-                DataType.UBYTE, DataType.BYTE -> LiteralValue(type, bytevalue = value.toShort(), position = position)
-                DataType.UWORD, DataType.WORD -> LiteralValue(type, wordvalue = value.toInt(), position = position)
+                in ByteDatatypes -> LiteralValue(type, bytevalue = value.toShort(), position = position)
+                in WordDatatypes -> LiteralValue(type, wordvalue = value.toInt(), position = position)
                 DataType.FLOAT -> LiteralValue(type, floatvalue = value.toDouble(), position = position)
                 else -> throw FatalAstException("non numeric datatype")
             }
@@ -1110,8 +1112,8 @@ class LiteralValue(val type: DataType,
 
     init {
         when(type){
-            DataType.UBYTE, DataType.BYTE -> if(bytevalue==null) throw FatalAstException("literal value missing bytevalue")
-            DataType.UWORD, DataType.WORD -> if(wordvalue==null) throw FatalAstException("literal value missing wordvalue")
+            in ByteDatatypes -> if(bytevalue==null) throw FatalAstException("literal value missing bytevalue")
+            in WordDatatypes -> if(wordvalue==null) throw FatalAstException("literal value missing wordvalue")
             DataType.FLOAT -> if(floatvalue==null) throw FatalAstException("literal value missing floatvalue")
             in StringDatatypes ->
                 if(initialstrvalue==null && heapId==null) throw FatalAstException("literal value missing strvalue/heapId")

@@ -389,20 +389,20 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         when(decl.type) {
             VarDeclType.VAR -> {
                 val value = when(decl.datatype) {
-                    DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT -> Value(decl.datatype, (decl.value as LiteralValue).asNumericValue!!)
-                    DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
+                    in NumericDatatypes -> Value(decl.datatype, (decl.value as LiteralValue).asNumericValue!!)
+                    in StringDatatypes -> {
                         val litval = (decl.value as LiteralValue)
                         if(litval.heapId==null)
                             throw CompilerException("string should already be in the heap")
                         Value(decl.datatype, litval.heapId)
                     }
-                    DataType.ARRAY_B, DataType.ARRAY_W,
-                    DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F -> {
+                    in ArrayDatatypes -> {
                         val litval = (decl.value as LiteralValue)
                         if(litval.heapId==null)
                             throw CompilerException("array should already be in the heap")
                         Value(decl.datatype, litval.heapId)
                     }
+                    else -> throw CompilerException("weird datatype")
                 }
                 currentBlock.variables[scopedname] = value
                 if(decl.zeropage)

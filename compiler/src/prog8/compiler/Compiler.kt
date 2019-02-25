@@ -237,12 +237,11 @@ internal class Compiler(private val rootModule: Module,
 
     private fun opcodePush(dt: DataType): Opcode {
         return when (dt) {
-            DataType.UBYTE, DataType.BYTE -> Opcode.PUSH_BYTE
-            DataType.UWORD, DataType.WORD -> Opcode.PUSH_WORD
+            in ByteDatatypes -> Opcode.PUSH_BYTE
+            in WordDatatypes -> Opcode.PUSH_WORD
+            in IterableDatatypes -> Opcode.PUSH_WORD
             DataType.FLOAT -> Opcode.PUSH_FLOAT
-            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
-            DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F,
-            DataType.ARRAY_B, DataType.ARRAY_W -> Opcode.PUSH_WORD
+            else -> throw CompilerException("invalid dt $dt")
         }
     }
 
@@ -280,12 +279,11 @@ internal class Compiler(private val rootModule: Module,
 
     private fun opcodePushvar(dt: DataType): Opcode {
         return when (dt)  {
-            DataType.UBYTE, DataType.BYTE -> Opcode.PUSH_VAR_BYTE
-            DataType.UWORD, DataType.WORD -> Opcode.PUSH_VAR_WORD
+            in ByteDatatypes -> Opcode.PUSH_VAR_BYTE
+            in WordDatatypes -> Opcode.PUSH_VAR_WORD
+            in IterableDatatypes -> Opcode.PUSH_ADDR_HEAPVAR
             DataType.FLOAT -> Opcode.PUSH_VAR_FLOAT
-            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
-            DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F,
-            DataType.ARRAY_B, DataType.ARRAY_W -> Opcode.PUSH_ADDR_HEAPVAR
+            else -> throw CompilerException("invalid dt $dt")
         }
     }
 
@@ -313,34 +311,31 @@ internal class Compiler(private val rootModule: Module,
 
     private fun opcodeDiscard(dt: DataType): Opcode {
         return when(dt) {
-            DataType.UBYTE, DataType.BYTE -> Opcode.DISCARD_BYTE
-            DataType.UWORD, DataType.WORD -> Opcode.DISCARD_WORD
+            in ByteDatatypes -> Opcode.DISCARD_BYTE
+            in WordDatatypes -> Opcode.DISCARD_WORD
+            in IterableDatatypes -> Opcode.DISCARD_WORD
             DataType.FLOAT -> Opcode.DISCARD_FLOAT
-            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
-            DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F,
-            DataType.ARRAY_B, DataType.ARRAY_W -> Opcode.DISCARD_WORD
+            else -> throw CompilerException("invalid dt $dt")
         }
     }
 
     private fun opcodePopvar(dt: DataType): Opcode {
         return when (dt) {
-            DataType.UBYTE, DataType.BYTE -> Opcode.POP_VAR_BYTE
-            DataType.UWORD, DataType.WORD -> Opcode.POP_VAR_WORD
+            in ByteDatatypes -> Opcode.POP_VAR_BYTE
+            in WordDatatypes -> Opcode.POP_VAR_WORD
+            in IterableDatatypes -> Opcode.POP_VAR_WORD
             DataType.FLOAT -> Opcode.POP_VAR_FLOAT
-            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
-            DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F,
-            DataType.ARRAY_B, DataType.ARRAY_W -> Opcode.POP_VAR_WORD
+            else -> throw CompilerException("invalid dt $dt")
         }
     }
 
     private fun opcodePopmem(dt: DataType): Opcode {
         return when (dt) {
-            DataType.UBYTE, DataType.BYTE -> Opcode.POP_MEM_BYTE
-            DataType.UWORD, DataType.WORD -> Opcode.POP_MEM_WORD
+            in ByteDatatypes -> Opcode.POP_MEM_BYTE
+            in WordDatatypes -> Opcode.POP_MEM_WORD
+            in IterableDatatypes -> Opcode.POP_MEM_WORD
             DataType.FLOAT -> Opcode.POP_MEM_FLOAT
-            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS,
-            DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F,
-            DataType.ARRAY_B, DataType.ARRAY_W -> Opcode.POP_MEM_WORD
+            else -> throw CompilerException("invalid dt $dt")
         }
     }
 
@@ -517,8 +512,8 @@ internal class Compiler(private val rootModule: Module,
         if(trueGoto!=null) {
             // optimization for if (condition) goto ....
             val conditionJumpOpcode = when(stmt.condition.resultingDatatype(namespace, heap)) {
-                DataType.UBYTE, DataType.BYTE -> Opcode.JNZ
-                DataType.UWORD, DataType.WORD -> Opcode.JNZW
+                in ByteDatatypes -> Opcode.JNZ
+                in WordDatatypes -> Opcode.JNZW
                 else -> throw CompilerException("invalid condition datatype (expected byte or word) $stmt")
             }
             translate(trueGoto, conditionJumpOpcode)
@@ -527,8 +522,8 @@ internal class Compiler(private val rootModule: Module,
         }
 
         val conditionJumpOpcode = when(stmt.condition.resultingDatatype(namespace, heap)) {
-            DataType.UBYTE, DataType.BYTE -> Opcode.JZ
-            DataType.UWORD, DataType.WORD -> Opcode.JZW
+            in ByteDatatypes -> Opcode.JZ
+            in WordDatatypes -> Opcode.JZW
             else -> throw CompilerException("invalid condition datatype (expected byte or word) $stmt")
         }
         val labelEnd = makeLabel("end")
@@ -573,8 +568,8 @@ internal class Compiler(private val rootModule: Module,
             }
             DataType.BYTE -> {
                 when(rightDt) {
-                    DataType.UBYTE, DataType.BYTE -> DataType.BYTE
-                    DataType.UWORD, DataType.WORD -> DataType.WORD
+                    in ByteDatatypes -> DataType.BYTE
+                    in WordDatatypes -> DataType.WORD
                     DataType.FLOAT -> {
                         printWarning(floatWarning, leftpos)
                         DataType.FLOAT
@@ -662,20 +657,20 @@ internal class Compiler(private val rootModule: Module,
             else -> {
                 val lv = expr.constValue(namespace, heap) ?: throw CompilerException("constant expression required, not $expr")
                 when(lv.type) {
-                    DataType.UBYTE, DataType.BYTE -> prog.instr(Opcode.PUSH_BYTE, Value(lv.type, lv.bytevalue!!))
-                    DataType.UWORD, DataType.WORD -> prog.instr(Opcode.PUSH_WORD, Value(lv.type, lv.wordvalue!!))
+                    in ByteDatatypes -> prog.instr(Opcode.PUSH_BYTE, Value(lv.type, lv.bytevalue!!))
+                    in WordDatatypes -> prog.instr(Opcode.PUSH_WORD, Value(lv.type, lv.wordvalue!!))
                     DataType.FLOAT -> prog.instr(Opcode.PUSH_FLOAT, Value(lv.type, lv.floatvalue!!))
-                    DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
+                    in StringDatatypes -> {
                         if(lv.heapId==null)
                             throw CompilerException("string should have been moved into heap   ${lv.position}")
                         TODO("push address of string with PUSH_ADDR_HEAPVAR")
                     }
-                    DataType.ARRAY_UB, DataType.ARRAY_UW, DataType.ARRAY_F,
-                    DataType.ARRAY_B, DataType.ARRAY_W -> {
+                    in ArrayDatatypes -> {
                         if(lv.heapId==null)
                             throw CompilerException("array should have been moved into heap  ${lv.position}")
                         TODO("push address of array with PUSH_WORD")
                     }
+                    else -> throw CompilerException("weird datatype")
                 }
             }
         }
@@ -714,12 +709,12 @@ internal class Compiler(private val rootModule: Module,
                 else -> {}
             }
             DataType.UWORD -> when(targetDt) {
-                DataType.UBYTE, DataType.BYTE -> throw CompilerException("narrowing type")
+                in ByteDatatypes -> throw CompilerException("narrowing type")
                 DataType.FLOAT -> prog.instr(Opcode.CAST_UW_TO_F)
                 else -> {}
             }
             DataType.WORD -> when(targetDt) {
-                DataType.UBYTE, DataType.BYTE -> throw CompilerException("narrowing type")
+                in ByteDatatypes -> throw CompilerException("narrowing type")
                 DataType.FLOAT -> prog.instr(Opcode.CAST_W_TO_F)
                 else -> {}
             }
@@ -893,12 +888,12 @@ internal class Compiler(private val rootModule: Module,
                 val arg = args.single()
                 val dt = arg.resultingDatatype(namespace, heap)
                 when (dt) {
-                    DataType.UBYTE, DataType.BYTE -> prog.instr(Opcode.SHL_BYTE)
-                    DataType.UWORD, DataType.WORD -> prog.instr(Opcode.SHL_WORD)
+                    in ByteDatatypes -> prog.instr(Opcode.SHL_BYTE)
+                    in WordDatatypes -> prog.instr(Opcode.SHL_WORD)
                     else -> throw CompilerException("wrong datatype")
                 }
                 // this function doesn't return a value on the stack so we pop it directly into the argument register/variable again
-                popValueIntoTarget(AssignTarget.fromExpr(arg), dt)
+                popValueIntoTarget(AssignTarget.fromExpr(arg), dt!!)
             }
             "lsr" -> {
                 val arg = args.single()
@@ -928,34 +923,34 @@ internal class Compiler(private val rootModule: Module,
                 val arg = args.single()
                 val dt = arg.resultingDatatype(namespace, heap)
                 when (dt) {
-                    DataType.UBYTE, DataType.BYTE -> prog.instr(Opcode.ROR_BYTE)
-                    DataType.UWORD, DataType.WORD -> prog.instr(Opcode.ROR_WORD)
+                    in ByteDatatypes -> prog.instr(Opcode.ROR_BYTE)
+                    in WordDatatypes -> prog.instr(Opcode.ROR_WORD)
                     else -> throw CompilerException("wrong datatype")
                 }
                 // this function doesn't return a value on the stack so we pop it directly into the argument register/variable again
-                popValueIntoTarget(AssignTarget.fromExpr(arg), dt)
+                popValueIntoTarget(AssignTarget.fromExpr(arg), dt!!)
             }
             "rol2" -> {
                 val arg = args.single()
                 val dt = arg.resultingDatatype(namespace, heap)
                 when (dt) {
-                    DataType.UBYTE, DataType.BYTE -> prog.instr(Opcode.ROL2_BYTE)
-                    DataType.UWORD, DataType.WORD -> prog.instr(Opcode.ROL2_WORD)
+                    in ByteDatatypes -> prog.instr(Opcode.ROL2_BYTE)
+                    in WordDatatypes -> prog.instr(Opcode.ROL2_WORD)
                     else -> throw CompilerException("wrong datatype")
                 }
                 // this function doesn't return a value on the stack so we pop it directly into the argument register/variable again
-                popValueIntoTarget(AssignTarget.fromExpr(arg), dt)
+                popValueIntoTarget(AssignTarget.fromExpr(arg), dt!!)
             }
             "ror2" -> {
                 val arg = args.single()
                 val dt = arg.resultingDatatype(namespace, heap)
                 when (dt) {
-                    DataType.UBYTE, DataType.BYTE -> prog.instr(Opcode.ROR2_BYTE)
-                    DataType.UWORD, DataType.WORD -> prog.instr(Opcode.ROR2_WORD)
+                    in ByteDatatypes -> prog.instr(Opcode.ROR2_BYTE)
+                    in WordDatatypes -> prog.instr(Opcode.ROR2_WORD)
                     else -> throw CompilerException("wrong datatype")
                 }
                 // this function doesn't return a value on the stack so we pop it directly into the argument register/variable again
-                popValueIntoTarget(AssignTarget.fromExpr(arg), dt)
+                popValueIntoTarget(AssignTarget.fromExpr(arg), dt!!)
             }
             "set_carry" -> prog.instr(Opcode.SEC)
             "clear_carry" -> prog.instr(Opcode.CLC)
@@ -1116,7 +1111,7 @@ internal class Compiler(private val rootModule: Module,
                                 translate(assignA)
                                 translate(assignY)
                             }
-                            DataType.UWORD, DataType.WORD -> {
+                            in WordDatatypes -> {
                                 translate(arg.first)
                                 prog.instr(Opcode.POP_REGAY_WORD)
                             }
@@ -1249,43 +1244,43 @@ internal class Compiler(private val rootModule: Module,
             }
             "&" -> {
                 when(dt) {
-                    DataType.UBYTE, DataType.BYTE -> Opcode.BITAND_BYTE
-                    DataType.UWORD, DataType.WORD -> Opcode.BITAND_WORD
+                    in ByteDatatypes -> Opcode.BITAND_BYTE
+                    in WordDatatypes -> Opcode.BITAND_WORD
                     else -> throw CompilerException("only byte/word possible")
                 }
             }
             "|" -> {
                 when(dt) {
-                    DataType.UBYTE, DataType.BYTE -> Opcode.BITOR_BYTE
-                    DataType.UWORD, DataType.WORD -> Opcode.BITOR_WORD
+                    in ByteDatatypes -> Opcode.BITOR_BYTE
+                    in WordDatatypes -> Opcode.BITOR_WORD
                     else -> throw CompilerException("only byte/word possible")
                 }
             }
             "^" -> {
                 when(dt) {
-                    DataType.UBYTE, DataType.BYTE -> Opcode.BITXOR_BYTE
-                    DataType.UWORD, DataType.WORD -> Opcode.BITXOR_WORD
+                    in ByteDatatypes -> Opcode.BITXOR_BYTE
+                    in WordDatatypes -> Opcode.BITXOR_WORD
                     else -> throw CompilerException("only byte/word possible")
                 }
             }
             "and" -> {
                 when(dt) {
-                    DataType.UBYTE, DataType.BYTE -> Opcode.AND_BYTE
-                    DataType.UWORD, DataType.WORD -> Opcode.AND_WORD
+                    in ByteDatatypes -> Opcode.AND_BYTE
+                    in WordDatatypes -> Opcode.AND_WORD
                     else -> throw CompilerException("only byte/word possible")
                 }
             }
             "or" -> {
                 when(dt) {
-                    DataType.UBYTE, DataType.BYTE -> Opcode.OR_BYTE
-                    DataType.UWORD, DataType.WORD -> Opcode.OR_WORD
+                    in ByteDatatypes -> Opcode.OR_BYTE
+                    in WordDatatypes -> Opcode.OR_WORD
                     else -> throw CompilerException("only byte/word possible")
                 }
             }
             "xor" -> {
                 when(dt) {
-                    DataType.UBYTE, DataType.BYTE -> Opcode.XOR_BYTE
-                    DataType.UWORD, DataType.WORD -> Opcode.XOR_WORD
+                    in ByteDatatypes -> Opcode.XOR_BYTE
+                    in WordDatatypes -> Opcode.XOR_WORD
                     else -> throw CompilerException("only byte/word possible")
                 }
             }
@@ -1331,16 +1326,16 @@ internal class Compiler(private val rootModule: Module,
             }
             "==" -> {
                 when (dt) {
-                    DataType.UBYTE, DataType.BYTE -> Opcode.EQUAL_BYTE
-                    DataType.UWORD, DataType.WORD -> Opcode.EQUAL_WORD
+                    in ByteDatatypes -> Opcode.EQUAL_BYTE
+                    in WordDatatypes -> Opcode.EQUAL_WORD
                     DataType.FLOAT -> Opcode.EQUAL_F
                     else -> throw CompilerException("only byte/word/lfoat possible")
                 }
             }
             "!=" -> {
                 when (dt) {
-                    DataType.UBYTE, DataType.BYTE -> Opcode.NOTEQUAL_BYTE
-                    DataType.UWORD, DataType.WORD -> Opcode.NOTEQUAL_WORD
+                    in ByteDatatypes -> Opcode.NOTEQUAL_BYTE
+                    in WordDatatypes -> Opcode.NOTEQUAL_WORD
                     DataType.FLOAT -> Opcode.NOTEQUAL_F
                     else -> throw CompilerException("only byte/word/lfoat possible")
                 }
@@ -1371,8 +1366,8 @@ internal class Compiler(private val rootModule: Module,
                 }
             } else if(operator=="<<") {
                 when (leftDt) {
-                    DataType.UBYTE, DataType.BYTE -> prog.instr(Opcode.SHIFTEDL_BYTE)
-                    DataType.UWORD, DataType.WORD -> prog.instr(Opcode.SHIFTEDL_WORD)
+                    in ByteDatatypes -> prog.instr(Opcode.SHIFTEDL_BYTE)
+                    in WordDatatypes -> prog.instr(Opcode.SHIFTEDL_WORD)
                     else -> throw CompilerException("wrong datatype")
                 }
             }
@@ -1395,15 +1390,15 @@ internal class Compiler(private val rootModule: Module,
             }
             "~" -> {
                 when(operandDt) {
-                    DataType.UBYTE, DataType.BYTE -> Opcode.INV_BYTE
-                    DataType.UWORD, DataType.WORD -> Opcode.INV_WORD
+                    in ByteDatatypes -> Opcode.INV_BYTE
+                    in WordDatatypes -> Opcode.INV_WORD
                     else -> throw CompilerException("only byte/word possible")
                 }
             }
             "not" -> {
                 when(operandDt) {
-                    DataType.UBYTE, DataType.BYTE -> Opcode.NOT_BYTE
-                    DataType.UWORD, DataType.WORD -> Opcode.NOT_WORD
+                    in ByteDatatypes -> Opcode.NOT_BYTE
+                    in WordDatatypes -> Opcode.NOT_WORD
                     else -> throw CompilerException("only byte/word possible")
                 }
             }
@@ -1514,7 +1509,7 @@ internal class Compiler(private val rootModule: Module,
             // convert value to target datatype if possible
             // @todo use convertType()????
             when(targetDt) {
-                DataType.UBYTE, DataType.BYTE ->
+                in ByteDatatypes ->
                     if(valueDt!=DataType.BYTE && valueDt!=DataType.UBYTE)
                         throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                 DataType.WORD -> {
@@ -1550,9 +1545,9 @@ internal class Compiler(private val rootModule: Module,
                         else -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                     }
                 }
-                DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
-                DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
-                null -> throw CompilerException("could not determine targetdt")
+                in StringDatatypes -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
+                in ArrayDatatypes -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
+                else -> throw CompilerException("weird/unknonwn targetdt")
             }
         }
 
@@ -1787,9 +1782,7 @@ internal class Compiler(private val rootModule: Module,
 
         val numElements: Int
         when(iterableValue.type) {
-            DataType.UBYTE, DataType.BYTE,
-            DataType.UWORD, DataType.WORD,
-            DataType.FLOAT -> throw CompilerException("non-iterableValue type")
+            !in IterableDatatypes -> throw CompilerException("non-iterableValue type")
             DataType.STR_P, DataType.STR_PS -> throw CompilerException("can't iterate string type ${iterableValue.type}")
             DataType.STR, DataType.STR_S -> {
                 numElements = iterableValue.strvalue(heap).length
@@ -1804,6 +1797,7 @@ internal class Compiler(private val rootModule: Module,
                 numElements = iterableValue.arrayvalue?.size ?: heap.get(iterableValue.heapId!!).arraysize
                 if(numElements>255) throw CompilerException("string length > 255")
             }
+            else -> throw CompilerException("weird datatype")
         }
 
         if(loop.loopRegister!=null && loop.loopRegister==Register.X)
@@ -2053,8 +2047,8 @@ internal class Compiler(private val rootModule: Module,
             }
             // TODO: optimize this to use a compare + branch opcode somehow?
             val conditionJumpOpcode = when(targetStatement!!.datatype) {
-                DataType.UBYTE, DataType.BYTE -> Opcode.JNZ
-                DataType.UWORD, DataType.WORD -> Opcode.JNZW
+                in ByteDatatypes -> Opcode.JNZ
+                in WordDatatypes -> Opcode.JNZW
                 else -> throw CompilerException("invalid loopvar datatype (expected byte or word) $lvTarget")
             }
             prog.instr(conditionJumpOpcode, callLabel = loopLabel)
@@ -2105,8 +2099,8 @@ internal class Compiler(private val rootModule: Module,
         prog.label(continueLabel)
         translate(stmt.condition)
         val conditionJumpOpcode = when(stmt.condition.resultingDatatype(namespace, heap)) {
-            DataType.UBYTE, DataType.BYTE -> Opcode.JNZ
-            DataType.UWORD, DataType.WORD -> Opcode.JNZW
+            in ByteDatatypes -> Opcode.JNZ
+            in WordDatatypes -> Opcode.JNZW
             else -> throw CompilerException("invalid condition datatype (expected byte or word) $stmt")
         }
         prog.instr(conditionJumpOpcode, callLabel = loopLabel)
@@ -2142,8 +2136,8 @@ internal class Compiler(private val rootModule: Module,
         prog.label(continueLabel)
         translate(stmt.untilCondition)
         val conditionJumpOpcode = when(stmt.untilCondition.resultingDatatype(namespace, heap)) {
-            DataType.UBYTE, DataType.BYTE -> Opcode.JZ
-            DataType.UWORD, DataType.WORD -> Opcode.JZW
+            in ByteDatatypes -> Opcode.JZ
+            in WordDatatypes -> Opcode.JZW
             else -> throw CompilerException("invalid condition datatype (expected byte or word) $stmt")
         }
         prog.instr(conditionJumpOpcode, callLabel = loopLabel)

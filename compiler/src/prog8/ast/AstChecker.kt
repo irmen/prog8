@@ -830,6 +830,19 @@ private class AstChecker(private val namespace: INameScope,
                             if (arg.first.value !is LiteralValue && arg.first.value !is IdentifierReference)
                                 printWarning("calling a subroutine that expects X as a parameter is problematic, more so when providing complex arguments. If you see a compiler error/crash about this later, try to simplify this call", position)
                         }
+
+                        // check if the argument types match the register(pairs)
+                        val asmParamReg = target.asmParameterRegisters[arg.first.index]
+                        if(asmParamReg.statusflag!=null) {
+                            if(argDt !in ByteDatatypes)
+                                checkResult.add(ExpressionError("subroutine '${target.name}' argument ${arg.first.index+1} must be byte type for statusflag", position))
+                        } else if(asmParamReg.registerOrPair in setOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y)) {
+                            if(argDt !in ByteDatatypes)
+                                checkResult.add(ExpressionError("subroutine '${target.name}' argument ${arg.first.index+1} must be byte type for single register", position))
+                        } else if(asmParamReg.registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
+                            if(argDt !in WordDatatypes+ IterableDatatypes)
+                                checkResult.add(ExpressionError("subroutine '${target.name}' argument ${arg.first.index+1} must be word type for register pair", position))
+                        }
                     }
                 }
             }
@@ -954,8 +967,8 @@ private class AstChecker(private val namespace: INameScope,
         when (targetDt) {
             DataType.FLOAT -> {
                 val number = when(value.type) {
-                    DataType.UBYTE, DataType.BYTE -> value.bytevalue!!.toDouble()
-                    DataType.UWORD, DataType.WORD -> value.wordvalue!!.toDouble()
+                    in ByteDatatypes -> value.bytevalue!!.toDouble()
+                    in WordDatatypes -> value.wordvalue!!.toDouble()
                     DataType.FLOAT -> value.floatvalue!!
                     else -> return err("numeric value expected")
                 }

@@ -5,53 +5,38 @@
 
     ; @todo test memset/memcopy  (there's a bug in memcopy?)
 
-    ; @todo see looplabelproblem.p8
+    ; @todo see problem in looplabelproblem.p8
+
+    ; @todo fix primes.p8 (it misses some primes)
 
     sub start() {
-        ubyte xx
 
-        c64scr.print_ub(X)
-        c64.CHROUT('\n')
+        uword ypos=4
 
-        A=c64scr.getchr(20,1)
-        c64scr.print_ub(A)
-        c64.CHROUT('\n')
-        xx=c64scr.getchr(20,1)
-        c64scr.print_ub(xx)
-        c64.CHROUT('\n')
-        c64scr.print_ub(X)
-        c64.CHROUT('\n')
+        byte bb=44
+        byte bb2
+        word ww=4444
+        word ww2
 
-        A=1+c64scr.getchr(20,1)
-        c64scr.print_ub(A)
+        bb2 = bb*55
+        ww2 = ww*55
+
+        ww2 = bb * 55.w             ; @todo why is this resulting in a byte?
+        ypos += 5000                ; @todo fix "cannot assign word to uword"
+        c64scr.print_w(ww2)
         c64.CHROUT('\n')
-        xx=1+c64scr.getchr(20,1)
-        c64scr.print_ub(xx)
-        c64.CHROUT('\n')
-        c64scr.print_ub(X)
+        ww2 = (bb as word)*55
+        c64scr.print_w(ww2)
         c64.CHROUT('\n')
 
-        A=c64scr.getchr(20,1)+1
-        c64scr.print_ub(A)
-        c64.CHROUT('\n')
-        xx=c64scr.getchr(20,1)+1
-        c64scr.print_ub(xx)
-        c64.CHROUT('\n')
-        c64scr.print_ub(X)
-        c64.CHROUT('\n')
+;
+;        memset($0400+(ypos+0)*40, 40, 1)
+;        memset($0400+(ypos+1)*40, 40, 2)
+;        memset($0400+(ypos+2)*40, 40, 3)
+;        memset($0400+(ypos+3)*40, 40, 4)
 
+        ;memsetw($0400+(ypos+1)*40, 20, $4455)
+        ;memsetw($0400+(ypos+3)*40, 20, $4455)
 
     }
-
-    asmsub asm_routine(ubyte arg1 @ A, ubyte arg2 @ Y) -> clobbers() -> (ubyte @ A) {
-        return A+Y
-    }
-
-    sub drawNext(ubyte x) {
-        A=x
-    }
-    sub drawNextW(uword w) {
-        w++
-    }
-
 }

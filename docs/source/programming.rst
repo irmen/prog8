@@ -321,6 +321,11 @@ be set to zero only for the first run of the program. A second run will utilize 
 where it left off (but your code will be a bit smaller because no initialization instructions
 are generated)
 
+.. caution::
+   variables that get allocated in zero-page will *not* have a zero starting value when you omit
+   the variable's initialization. They'll be whatever the last value in that zero page
+   location was. So it's best to don't depend on the uninitialized starting value!
+
 .. warning::
     this behavior may change in a future version so that subsequent runs always
     use the same initial values
@@ -462,11 +467,7 @@ There are various built-in functions such as sin(), cos(), min(), max() that can
 You can also reference idendifiers defined elsewhere in your code.
 
 .. attention::
-    **Data type conversion (during calculations) and floating point handling:**
-
-    BYTE values used in arithmetic expressions (calculations) will be automatically converted into WORD values
-    if the calculation needs that to store the resulting value. Once a WORD value is used, all other results will be WORDs as well
-    (there's no automatic conversion of WORD into BYTE).
+    **Floating points used in expressions:**
 
     When a floating point value is used in a calculation, the result will be a floating point, and byte or word values
     will be automatically converted into floats in this case. The compiler will issue a warning though when this happens, because floating
@@ -493,6 +494,28 @@ You can use parentheses to group parts of an expresion to change the precedence.
 Usually the normal precedence rules apply (``*`` goes before ``+`` etc.) but subexpressions
 within parentheses will be evaluated first. So ``(4 + 8) * 2`` is 24 and not 20,
 and ``(true or false) and false`` is false instead of true.
+
+.. attention::
+    **calculations keep their datatype:**
+    When you do calculations on a BYTE type, the result will remain a BYTE.
+    When you do calculations on a WORD type, the result will remain a WORD.
+    For instance::
+
+        byte b = 44
+        word w = b*55   ; the result will be 116! (even though the target variable is a word)
+        w *= 999        ; the result will be -15188  (the multiplication stays within a word)
+
+    The compiler will NOT give a warning about this! It's doing this for
+    performance reasons - so you won't get sudden 16 bit (or even float)
+    calculations where you needed only simple fast byte arithmetic.
+    If you do need the extended resulting value, cast at least one of the
+    operands of an operator to the larger datatype. For example::
+
+        byte b = 44
+        word w = b*55.w     ; the result will be 2420
+        w = (b as word)*55  ; same result
+
+
 
 
 Subroutines

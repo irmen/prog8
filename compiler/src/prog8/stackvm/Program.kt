@@ -1,6 +1,7 @@
 package prog8.stackvm
 
 import prog8.ast.DataType
+import prog8.ast.NumericDatatypes
 import prog8.ast.Position
 import prog8.ast.unescape
 import prog8.compiler.HeapValues
@@ -103,7 +104,8 @@ class Program (val name: String,
                         val doublearray = numbers.map{number->number.trim().toDouble()}.toDoubleArray()
                         heap.add(it.second, doublearray)
                     }
-                    DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT -> throw VmExecutionException("invalid heap value type ${it.second}")
+                    in NumericDatatypes -> throw VmExecutionException("invalid heap value type ${it.second}")
+                    else -> throw VmExecutionException("weird datatype")
                 }
             }
         }
