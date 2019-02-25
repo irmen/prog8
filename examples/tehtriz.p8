@@ -8,7 +8,7 @@
     const ubyte startYpos = boardOffsetY - 2
 
     ubyte lines = 0
-    ubyte score = 0
+    uword score = 0
     ubyte xpos = startXpos
     ubyte ypos = startYpos
     ubyte nextBlock = rnd() % 7
