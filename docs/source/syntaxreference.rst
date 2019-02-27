@@ -213,9 +213,11 @@ Variable declarations
 
 Variables should be declared with their exact type and size so the compiler can allocate storage
 for them. You must give them an initial value as well. That value can be a simple literal value,
-or an expression. The syntax is::
+or an expression. You can add a ``@zp`` zeropage-tag, to tell the compiler to prioritize it
+when selecting variables to be put into zeropage.
+The syntax is::
 
-	<datatype>   <variable name>   [ = <initial value> ]
+	<datatype>  [ @zp ]  <variable name>   [ = <initial value> ]
 
 Various examples::
 
@@ -227,6 +229,8 @@ Various examples::
     word        address = #counter
     byte[5]     values  = [11, 22, 33, 44, 55]
     byte[5]     values  = 255           ; initialize with five 255 bytes
+
+    word  @zp   zpword = 9999           ; prioritize this when selecting vars for zeropage storage
 
 
 
@@ -506,6 +510,13 @@ And this is a loop over the values of the array ``fibonacci_numbers`` where the 
     word[20] fibonacci_numbers = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181]
 
     for word fibnr in fibonacci_numbers {
+        ; do something
+    }
+
+
+You can inline the loop variable declaration in the for statement, including optional zp-tag::
+
+    for ubyte @zp fastindex in 10 to 20 {
         ; do something
     }
 

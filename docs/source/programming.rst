@@ -187,9 +187,13 @@ Values will usually be part of an expression or assignment statement::
     byte  counter  = 42   ; variable of size 8 bits, with initial value 42
 
 
-.. todo::
-    There must be a way to tell the compiler which variables you require to be in Zeropage:
-    ``zeropage`` modifier keyword on vardecl perhaps?
+*zeropage tag:*
+If you add the ``@zp`` tag to the variable declaration, the compiler will prioritize this variable
+when selecting variables to put into zero page. If there are enough free locations in the zeropage,
+it will then try to fill it with as much other variables as possible (before they will be put in regular memory pages).
+Example::
+
+    byte  @zp  zeropageCounter = 42
 
 
 Variables that represent CPU hardware registers
