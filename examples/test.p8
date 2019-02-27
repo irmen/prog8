@@ -8,8 +8,8 @@
     ; @todo see problem in looplabelproblem.p8
 
     ; @todo add docs for '@zp' tag in variable datatype declarations (including forloop loopvars)
+    ; @todo gradle fatJar should include the antlr runtime jar
 
-    ;  word ww2;  byte bb;  ww2 = bb * 55.w             ; @todo why is this compiling, but resulting in a byte?
     ;  uword x = sin8u(bb) as uword + 50     ; @todo fix "cannot assign word to uword"
     ;  uword ypos=4;  ypos += 5000                ; @todo fix "cannot assign word to uword"
 
@@ -26,15 +26,8 @@
         bb2 = bb*55
         ww2 = ww*55
 
-        ;uword x = sin8u(bb) as uword + 50     ; @todo fix "cannot assign word to uword"
+        uword x = sin8u(bb) as uword + 50     ; @todo fix "cannot assign word to uword"
         ;ypos += 5000                ; @todo fix "cannot assign word to uword"
-
-        ww2 = bb * 55.w             ; @todo why is this compiling, but resulting in a byte?
-        c64scr.print_w(ww2)
-        c64.CHROUT('\n')
-        ww2 = (bb as word)*55
-        c64scr.print_w(ww2)
-        c64.CHROUT('\n')
 
 ;
 ;        memset($0400+(ypos+0)*40, 40, 1)

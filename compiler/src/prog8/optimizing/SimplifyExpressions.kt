@@ -75,7 +75,7 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
         val leftDt = expr.left.resultingDatatype(namespace, heap)
         val rightDt = expr.right.resultingDatatype(namespace, heap)
         if (leftDt != null && rightDt != null && leftDt != rightDt) {
-            // try to convert a datatype into the other
+            // try to convert a datatype into the other (where ddd
             if (adjustDatatypes(expr, leftVal, leftDt, rightVal, rightDt)) {
                 optimizationsDone++
                 return expr
@@ -347,25 +347,36 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
         }
 
         if(leftConstVal==null && rightConstVal!=null) {
-            val (adjusted, newValue) = adjust(rightConstVal, leftDt)
-            if(adjusted) {
-                expr.right = newValue
-                optimizationsDone++
-                return true
+            if(isBiggerType(leftDt, rightDt)) {
+                val (adjusted, newValue) = adjust(rightConstVal, leftDt)
+                if (adjusted) {
+                    expr.right = newValue
+                    optimizationsDone++
+                    return true
+                }
             }
             return false
         } else if(leftConstVal!=null && rightConstVal==null) {
-            val (adjusted, newValue) = adjust(leftConstVal, rightDt)
-            if(adjusted) {
-                expr.left = newValue
-                optimizationsDone++
-                return true
+            if(isBiggerType(rightDt, leftDt)) {
+                val (adjusted, newValue) = adjust(leftConstVal, rightDt)
+                if (adjusted) {
+                    expr.left = newValue
+                    optimizationsDone++
+                    return true
+                }
             }
             return false
         } else {
-            return false
+            return false    // two const values, don't adjust (should have been const-folded away)
         }
     }
+
+    private fun isBiggerType(type: DataType, other: DataType) =
+        when(type) {
+            in ByteDatatypes -> false
+            in WordDatatypes -> other in ByteDatatypes
+            else -> true
+        }
 
 
     private data class ReorderedAssociativeBinaryExpr(val expr: BinaryExpression, val leftVal: LiteralValue?, val rightVal: LiteralValue?)
