@@ -74,7 +74,7 @@ val BuiltinFunctions = mapOf(
     "memcopy"     to FunctionSignature(false, listOf(
                                                         BuiltinFunctionParam("from", IterableDatatypes + setOf(DataType.UWORD)),
                                                         BuiltinFunctionParam("to", IterableDatatypes + setOf(DataType.UWORD)),
-                                                        BuiltinFunctionParam("numbytes", IntegerDatatypes)), null),
+                                                        BuiltinFunctionParam("numbytes", setOf(DataType.UBYTE))), null),
     "memset"      to FunctionSignature(false, listOf(
                                                         BuiltinFunctionParam("address", IterableDatatypes + setOf(DataType.UWORD)),
                                                         BuiltinFunctionParam("numbytes", setOf(DataType.UWORD)),

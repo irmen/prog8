@@ -3317,44 +3317,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     null
             },
 
-            // 16 bit addition avoiding excessive stack usage
-            // @todo optimize 8 and 16 bit adds and subs even more with longer asmpatterns (avoid stack use altogether on most common operations)
-            AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.ADD_UW),
-                    listOf(Opcode.PUSH_VAR_WORD, Opcode.ADD_W)) { segment ->
-                """
-                clc
-                lda  ${segment[0].callLabel}
-                adc  ${(ESTACK_LO+1).toHex()},x
-                sta  ${(ESTACK_LO+1).toHex()},x
-                lda  ${segment[0].callLabel}+1
-                adc  ${(ESTACK_HI+1).toHex()},x
-                sta  ${(ESTACK_HI+1).toHex()},x
-                """
-            },
-            AsmPattern(listOf(Opcode.PUSH_MEM_UW, Opcode.ADD_UW),
-                    listOf(Opcode.PUSH_MEM_W, Opcode.ADD_W)) { segment ->
-                """
-                clc
-                lda  ${hexVal(segment[0])}
-                adc  ${(ESTACK_LO + 1).toHex()},x
-                sta  ${(ESTACK_LO + 1).toHex()},x
-                lda  ${hexValPlusOne(segment[0])}
-                adc  ${(ESTACK_HI + 1).toHex()},x
-                sta  ${(ESTACK_HI + 1).toHex()},x
-                """
-            },
-            AsmPattern(listOf(Opcode.PUSH_WORD, Opcode.ADD_UW),
-                    listOf(Opcode.PUSH_WORD, Opcode.ADD_W)) { segment ->
-                """
-                clc
-                lda  #<${hexVal(segment[0])}
-                adc  ${(ESTACK_LO+1).toHex()},x
-                sta  ${(ESTACK_LO+1).toHex()},x
-                lda  #>${hexVal(segment[0])}
-                adc  ${(ESTACK_HI+1).toHex()},x
-                sta  ${(ESTACK_HI+1).toHex()},x
-                """
-            },
+            // @todo optimize 8 and 16 bit adds and subs (avoid stack use altogether on most common operations)
 
             AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.CMP_B), listOf(Opcode.PUSH_VAR_BYTE, Opcode.CMP_UB)) { segment ->
                 // this pattern is encountered as part of the loop bound condition in for loops (var + cmp + jz/jnz)

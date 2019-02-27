@@ -926,8 +926,8 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
                     else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
                 }
                 DataType.UWORD -> when(rightDt) {
-                    in ByteDatatypes -> DataType.UWORD
-                    in WordDatatypes -> DataType.WORD
+                    DataType.UBYTE, DataType.UWORD -> DataType.UWORD
+                    DataType.BYTE, DataType.WORD -> DataType.WORD
                     DataType.FLOAT -> DataType.FLOAT
                     else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
                 }

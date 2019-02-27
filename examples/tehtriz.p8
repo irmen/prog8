@@ -204,10 +204,10 @@ waitkey:
 
     ; block colors I, J, L, O, S, T, Z:  cyan, blue, orange, yellow, green, purple, red
     ubyte[7] blockColors = [3, 6, 8, 7, 5, 4, 2]
-    ubyte[4] blockI = [4, 5, 6, 7]      ; note: special rotation
+    ubyte[4] blockI = [4, 5, 6, 7]      ; note: special rotation (only 2 states)
     ubyte[4] blockJ = [0, 4, 5, 6]
     ubyte[4] blockL = [2, 4, 5, 6]
-    ubyte[4] blockO = [1, 2, 5, 6]      ; note: no rotation
+    ubyte[4] blockO = [1, 2, 5, 6]      ; note: no rotation (square)
     ubyte[4] blockS = [1, 2, 4, 5]
     ubyte[4] blockT = [1, 4, 5, 6]
     ubyte[4] blockZ = [0, 1, 5, 6]
@@ -454,7 +454,7 @@ waitkey:
     }
 
     sub canMoveDown(ubyte xpos, ubyte ypos) -> ubyte {
-        return ypos<main.boardOffsetY+main.boardHeight-4 ; TODO deal with actual block/border collision
+        return ypos<main.boardOffsetY+main.boardHeight-4 ; TODO deal with actual block/border collision, use generic check routine
     }
 
     sub isGameOver() -> ubyte {
