@@ -15,6 +15,7 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
     runtime "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
+    runtime 'org.antlr:antlr4-runtime:4.7.2'
 
 	testImplementation "org.jetbrains.kotlin:kotlin-test-junit5:$kotlinVersion"
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.3.2'
