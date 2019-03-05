@@ -99,6 +99,10 @@ asmsub  uword2bcd  (uword value @ AY) -> clobbers(A,Y) -> ()  {
 	%asm {{
 		sta  c64.SCRATCH_ZPB1
 		sty  c64.SCRATCH_ZPREG
+		php
+		pla             ; read status register
+		and  #%00000100
+		sta  _had_irqd
 		sei				; disable interrupts because of bcd math
 		sed				; switch to decimal mode
 		lda  #0				; ensure the result is clear
@@ -121,8 +125,11 @@ asmsub  uword2bcd  (uword value @ AY) -> clobbers(A,Y) -> ()  {
 		dey				; and repeat for next bit
 		bne  -
 		cld				; back to binary
-		cli				; enable interrupts again      @todo don't re-enable if it wasn't enabled before
-		rts
+		lda  _had_irqd
+		bne  +
+		cli				; enable interrupts again (only if they were enabled before)
++		rts
+_had_irqd  .byte  0
 	}}
 }
 
@@ -987,7 +994,7 @@ asmsub  getchr  (ubyte col @Y, ubyte row @A) -> clobbers(Y) -> (ubyte @ A) {
 		bcc  _mod
 		inc  _mod+2
 _mod		lda  $ffff		; modified
-		rts		
+		rts
 	}}
 }
 
@@ -1028,7 +1035,7 @@ asmsub  getclr  (ubyte col @Y, ubyte row @A) -> clobbers(Y) -> (ubyte @ A) {
 		bcc  _mod
 		inc  _mod+2
 _mod		lda  $ffff		; modified
-		rts		
+		rts
 	}}
 }
 

@@ -735,3 +735,6 @@ rsave()
 
 rrestore()
     Restores the CPU registers and the status flags from previously saved values.
+
+read_flags()
+    Returns the current value of the CPU status register.

@@ -640,6 +640,15 @@ greatereq_w	.proc
 		bmi  equal_b._equal_b_false
 		.pend
 
+func_read_flags	.proc
+		; -- put the processor status register on the stack
+		php
+		pla
+		sta  c64.ESTACK_LO,x
+		dex
+		rts
+		.pend
+		
 
 func_sin8	.proc
 		ldy  c64.ESTACK_LO+1,x

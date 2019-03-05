@@ -70,6 +70,7 @@ val BuiltinFunctions = mapOf(
     "clear_carry" to FunctionSignature(false, emptyList(), null),
     "set_irqd"    to FunctionSignature(false, emptyList(), null),
     "clear_irqd"  to FunctionSignature(false, emptyList(), null),
+    "read_flags"  to FunctionSignature(false, emptyList(), DataType.UBYTE),
     "swap"        to FunctionSignature(false, listOf(BuiltinFunctionParam("first", NumericDatatypes), BuiltinFunctionParam("second", NumericDatatypes)), null),
     "memcopy"     to FunctionSignature(false, listOf(
                                                         BuiltinFunctionParam("from", IterableDatatypes + setOf(DataType.UWORD)),

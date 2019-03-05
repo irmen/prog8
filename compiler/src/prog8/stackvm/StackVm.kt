@@ -80,7 +80,8 @@ enum class Syscall(val callNr: Short) {
     FUNC_SUM_F(134),
     FUNC_MEMCOPY(138),
     FUNC_MEMSET(139),
-    FUNC_MEMSETW(140)
+    FUNC_MEMSETW(140),
+    FUNC_READ_FLAGS(141)
 
     // note: not all builtin functions of the Prog8 language are present as functions:
     // some of them are straight opcodes (such as MSB, LSB, LSL, LSR, ROL_BYTE, ROR, ROL2, ROR2, and FLT)!
@@ -1612,6 +1613,14 @@ class StackVm(private var traceOutputFile: String?) {
                 val strPtr = evalstack.pop().integerValue()
                 val text = heap.get(strPtr).str!!
                 evalstack.push(Value(DataType.UBYTE, text.length))
+            }
+            Syscall.FUNC_READ_FLAGS -> {
+                val carry = if(P_carry) 1 else 0
+                val zero = if(P_zero) 2 else 0
+                val irqd = if(P_irqd) 4 else 0
+                val negative = if(P_negative) 128 else 0
+                val flags = carry or zero or irqd or negative
+                evalstack.push(Value(DataType.UBYTE, flags))
             }
             Syscall.FUNC_SIN -> evalstack.push(Value(DataType.FLOAT, sin(evalstack.pop().numericValue().toDouble())))
             Syscall.FUNC_COS -> evalstack.push(Value(DataType.FLOAT, cos(evalstack.pop().numericValue().toDouble())))

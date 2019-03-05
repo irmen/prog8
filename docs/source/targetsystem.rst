@@ -117,7 +117,8 @@ The following 6502 CPU hardware registers are directly usable in program code (a
 
 - ``A``, ``X``, ``Y``  the three main cpu registers (8 bits)
 - the status register (P) carry flag and interrupt disable flag can be written via a couple of special
-  builtin functions (``set_carry()``, ``clear_carry()``, ``set_irqd()``,  ``clear_irqd()``)
+  builtin functions (``set_carry()``, ``clear_carry()``, ``set_irqd()``,  ``clear_irqd()``),
+  and read via the ``read_flags()`` function.
 
 However, you must assume that the 3 hardware registers ``A``, ``X`` and ``Y``
 are volatile. Their values cannot be depended upon, the compiler will use them as required.
