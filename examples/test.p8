@@ -5,8 +5,6 @@
 
     ; @todo see problem in looplabelproblem.p8
 
-    ; @todo gradle fatJar should include the antlr runtime jar
-
     sub start() {
 
         uword w = 12345

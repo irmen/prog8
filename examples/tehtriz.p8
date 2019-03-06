@@ -1,3 +1,10 @@
+
+; TehTriz - a Tetris clone.
+;
+; @todo: hold block.
+; @todo: show next 2 blocks instead of just 1.
+
+
 ~ main {
 
     const ubyte boardOffsetX = 14
@@ -52,7 +59,9 @@ waitkey:
         if_z goto waitkey
 
         if key>='1' and key<='7' {
-            ; select block type
+            ; select block type, reset to start pos
+            xpos = startXpos
+            ypos = startYpos
             drawBlock(xpos, ypos, 32)
             blocklogic.newCurrentBlock(key-'1')
             drawBlock(xpos, ypos, 160)
@@ -202,52 +211,55 @@ waitkey:
     ubyte[16] currentBlock
     ubyte[16] rotated
 
-    ; block colors I, J, L, O, S, T, Z:  cyan, blue, orange, yellow, green, purple, red
-    ubyte[7] blockColors = [3, 6, 8, 7, 5, 4, 2]
-    ubyte[4] blockI = [4, 5, 6, 7]      ; note: special rotation (only 2 states)
-    ubyte[4] blockJ = [0, 4, 5, 6]
-    ubyte[4] blockL = [2, 4, 5, 6]
-    ubyte[4] blockO = [1, 2, 5, 6]      ; note: no rotation (square)
-    ubyte[4] blockS = [1, 2, 4, 5]
-    ubyte[4] blockT = [1, 4, 5, 6]
-    ubyte[4] blockZ = [0, 1, 5, 6]
+    ; the 7 tetrominos
+    ubyte[16] blockI = [0,0,0,0,        ; cyan ; note: special rotation (only 2 states)
+                        3,3,3,3,
+                        0,0,0,0,
+                        0,0,0,0]
+    ubyte[16] blockJ = [6,0,0,0,        ; blue
+                        6,6,6,0,
+                        0,0,0,0,
+                        0,0,0,0]
+    ubyte[16] blockL = [0,0,8,0,        ; orange
+                        8,8,8,0,
+                        0,0,0,0,
+                        0,0,0,0]
+    ubyte[16] blockO = [0,7,7,0,        ; yellow ; note: no rotation (square)
+                        0,7,7,0,
+                        0,0,0,0,
+                        0,0,0,0]
+    ubyte[16] blockS = [0,5,5,0,        ; green
+                        5,5,0,0,
+                        0,0,0,0,
+                        0,0,0,0]
+    ubyte[16] blockT = [0,4,0,0,        ; purple
+                        4,4,4,0,
+                        0,0,0,0,
+                        0,0,0,0]
+    ubyte[16] blockZ = [2,2,0,0,        ; red
+                        0,2,2,0,
+                        0,0,0,0,
+                        0,0,0,0]
 
+    ; @todo would be nice to have a pointer type, like so:
+    ;  uword[7] blocks = [&blockI, &blockJ, &blockL, &blockO, &blockS, &blockT, &blockZ]
 
     sub newCurrentBlock(ubyte block) {
-        memset(currentBlock, len(currentBlock), 0)
         currentBlockNum = block
-
-        ; @todo would be nice to have an explicit pointer type to reference the array, and code the loop only once...
-        ubyte blockCol = blockColors[block]
-        ubyte i
-        if block==0 {        ; I
-            for i in blockI
-                currentBlock[i] = blockCol
-        }
-        else if block==1 {        ; J
-            for i in blockJ
-                currentBlock[i] = blockCol
-        }
-        else if block==2 {        ; L
-            for i in blockL
-                currentBlock[i] = blockCol
-        }
-        else if block==3 {        ; O
-            for i in blockO
-                currentBlock[i] = blockCol
-        }
-        else if block==4 {        ; S
-            for i in blockS
-                currentBlock[i] = blockCol
-        }
-        else if block==5 {        ; T
-            for i in blockT
-                currentBlock[i] = blockCol
-        }
-        else if block==6 {        ; Z
-            for i in blockZ
-                currentBlock[i] = blockCol
-        }
+        if block==0
+            memcopy(blockI, currentBlock, len(currentBlock))
+        else if block==1
+            memcopy(blockJ, currentBlock, len(currentBlock))
+        else if block==2
+            memcopy(blockL, currentBlock, len(currentBlock))
+        else if block==3
+            memcopy(blockO, currentBlock, len(currentBlock))
+        else if block==4
+            memcopy(blockS, currentBlock, len(currentBlock))
+        else if block==5
+            memcopy(blockT, currentBlock, len(currentBlock))
+        else if block==6
+            memcopy(blockZ, currentBlock, len(currentBlock))
     }
 
     sub rotateCW() {

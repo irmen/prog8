@@ -145,3 +145,35 @@ Arguments and result values are passed via global variables stored in memory
 *These are not allocated on a stack* so it is not possible to create recursive calls!
 The result value(s) of a subroutine are returned on the evaluation stack,
 to make it possible to use subroutines in expressions.
+
+
+IRQ Handling
+============
+
+Normally, the system's default IRQ handling is not interfered with.
+You can however install your own IRQ handler.
+This is possible ofcourse by doing it all using customized inline assembly,
+but there are a few library routines available to make setting up C-64 IRQs and raster IRQs a lot easier (no assembly code required).
+
+These routines are::
+
+    c64utils.set_irqvec()
+    c64utils.set_irqvec_excl()
+
+    c64utils.set_rasterirq( <raster line> )
+    c64utils.set_rasterirq_excl( <raster line> )
+
+    c64utils.restore_irqvec()     ; set it back to the systems default irq handler
+
+If you activate an IRQ handler with one of these, it expects the handler to be defined
+as a subroutine ``irq`` in the module ``irq`` so like this::
+
+    ~ irq {
+        sub irq() {
+            ; ... irq handling here ...
+        }
+    }
+
+
+.. todo::
+    @todo the irq handler should use its own eval-stack to avoid stack interference issues

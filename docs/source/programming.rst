@@ -544,7 +544,9 @@ will issue a warning then telling you the result values of a subroutine call are
     subroutines are *non-reentrant*. This means you cannot create recursive calls.
     If you do need a recursive algorithm, you'll have to hand code it in embedded assembly for now,
     or rewrite it into an iterative algorithm.
-    Also, subroutines used in the main program should not be used from an IRQ handler.
+    Also, subroutines used in the main program should not be used from an IRQ handler. This is because
+    the subroutine may be interrupted, and will then call itself from the IRQ handler. Results are
+    then undefined because the variables will get overwritten.
 
 
 .. _builtinfunctions:
@@ -738,3 +740,16 @@ rrestore()
 
 read_flags()
     Returns the current value of the CPU status register.
+
+
+
+Library routines
+----------------
+
+There are many routines available in the compiler libraries.
+Some are used internally by the compiler as well.
+There's too many to list here, just have a look through the source code
+of the library modules to see what's there.
+(They can be found in the compiler/res directory)
+The example programs also use a small set of the library routines, you can study
+their source code to see how they might be used.
