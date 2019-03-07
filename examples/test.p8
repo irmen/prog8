@@ -5,37 +5,15 @@
 
     ; @todo see problem in looplabelproblem.p8
 
+    ; @todo when a for loop is executed multiple times, is the loop var correct?  (via goto start)
 
     sub start() {
 
-        uword w = 12345
-        ubyte flags
-
+waitjoy:
+        ubyte key=c64.GETIN()
+        if_z goto waitjoy
+        c64scr.print_ub(key)
         c64.CHROUT('\n')
-
-        clear_irqd()
-        c64utils.uword2bcd(w)
-        flags=read_flags()
-        c64scr.print_ubbin(1,flags)
-        c64.CHROUT('\n')
-
-        set_irqd()
-        c64utils.uword2bcd(w)
-        flags=read_flags()
-        c64scr.print_ubbin(1,flags)
-        c64.CHROUT('\n')
-
-        clear_irqd()
-        c64utils.uword2bcd(w)
-        flags=read_flags()
-        c64scr.print_ubbin(1,flags)
-        c64.CHROUT('\n')
-
-        set_irqd()
-        c64utils.uword2bcd(w)
-        flags=read_flags()
-        c64scr.print_ubbin(1,flags)
-        c64.CHROUT('\n')
-
+        goto waitjoy
     }
 }

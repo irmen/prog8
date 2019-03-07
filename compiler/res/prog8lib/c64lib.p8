@@ -43,7 +43,7 @@
 		memory  ubyte  SPRPTR6		= 2046
 		memory  ubyte  SPRPTR7		= 2047
 		memory  ubyte[8]  SPRPTR	= 2040		; the 8 sprite pointers as an array.
- 
+
 
 ; ---- VIC-II 6567/6569/856x registers ----
 
@@ -99,14 +99,14 @@
 		memory  ubyte  SP6COL		= $d02d
 		memory  ubyte  SP7COL		= $d02e
 		memory  ubyte[8]  SPCOL		= $d027
-		
+
 
 ; ---- end of VIC-II registers ----
 
 ; ---- CIA 6526 1 & 2 registers ----
 
-		memory  ubyte  CIA1PRA		= $DC00		; CIA 1 DRA, keyboard column drive
-		memory  ubyte  CIA1PRB		= $DC01		; CIA 1 DRB, keyboard row port
+		memory  ubyte  CIA1PRA		= $DC00		; CIA 1 DRA, keyboard column drive (and joystick control port #2)
+		memory  ubyte  CIA1PRB		= $DC01		; CIA 1 DRB, keyboard row port (and joystick control port #1)
 		memory  ubyte  CIA1DDRA		= $DC02		; CIA 1 DDRA, keyboard column
 		memory  ubyte  CIA1DDRB		= $DC03		; CIA 1 DDRB, keyboard row
 		memory  ubyte  CIA1TAL		= $DC04		; CIA 1 timer A low byte

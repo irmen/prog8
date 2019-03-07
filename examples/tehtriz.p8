@@ -2,6 +2,7 @@
 ; TehTriz - a Tetris clone.
 ;
 
+; @todo: slow down joystick input
 ; @todo: holding a block
 ; @todo: show next 2 blocks instead of just 1
 ; @todo: deal with rotation when block is against a wall or another block (wall kicks) (if no rotate in place possible: move 1 left, try rotate, else move 1 right, try rotate, else no rotation possible)
@@ -17,16 +18,25 @@
     const ubyte startXpos = boardOffsetX + 3
     const ubyte startYpos = boardOffsetY - 2
 
-    ubyte lines = 0
-    uword score = 0
-    ubyte xpos = startXpos
-    ubyte ypos = startYpos
-    ubyte nextBlock = rnd() % 7
+    ubyte lines
+    uword score
+    ubyte xpos
+    ubyte ypos
+    ubyte nextBlock
+
 
     sub start() {
         @(650) = 128        ; set all keys to repeat
+        newGame()
+        drawBoard()
+        gameOver()          ; @todo fix game corruption because loop is called multiple times (???)
+
+newgame:
+        newGame()
         drawBoard()
         spawnNextBlock()
+
+        ubyte joystick_delay=1
 
 waitkey:
         if c64.TIME_LO==30 {
@@ -42,26 +52,24 @@ waitkey:
                 ; block can't move further down!
                 ; check if the game area is full, if not, spawn the next block at the top.
                 if blocklogic.isGameOver(xpos, ypos) {
-                    game_over()
+                    gameOver()
+                    goto newgame
                 } else {
                     spawnNextBlock()
                 }
             }
         }
 
-        ubyte key=c64.GETIN()   ; @todo: joystick support as well. (doesn't joy1 input characters as well?)
-        if_z goto waitkey
+        ubyte key=c64.GETIN()
+        ubyte joystick1 = c64.CIA1PRB
+        if key==0 and joystick1==255 goto waitkey
 
-        if key>='1' and key<='7' {
-            ; select block type, reset to start pos
-            ; @todo remove this feature it is for testing purposes only
-            xpos = startXpos
-            ypos = startYpos
-            drawBlock(xpos, ypos, 32)
-            blocklogic.newCurrentBlock(key-'1')
-            drawBlock(xpos, ypos, 160)
+        if joystick1!=255 {
+            joystick_delay--
+            if_nz goto waitkey
         }
-        else if key==157 or key==',' {
+
+        if key==157 or key==',' or not (joystick1 & 4) {
             ; move left
             if blocklogic.canMoveLeft(xpos, ypos) {
                 drawBlock(xpos, ypos, 32)
@@ -69,7 +77,7 @@ waitkey:
                 drawBlock(xpos, ypos, 160)
             }
         }
-        else if key==29 or key=='.' {
+        else if key==29 or key=='.' or not (joystick1 & 8) {
             ; move right
             if blocklogic.canMoveRight(xpos, ypos) {
                 drawBlock(xpos, ypos, 32)
@@ -77,7 +85,7 @@ waitkey:
                 drawBlock(xpos, ypos, 160)
             }
         }
-        else if key==17 or key=='m' {
+        else if key==17 or key=='m' or not (joystick1 & 2) {
             ; move down faster
             if blocklogic.canMoveDown(xpos, ypos) {
                 drawBlock(xpos, ypos, 32)
@@ -85,13 +93,13 @@ waitkey:
                 drawBlock(xpos, ypos, 160)
             }
         }
-        else if key==145 or key==' ' {
+        else if key==145 or key==' ' or not (joystick1 & 1) {
             ; drop down immediately
             drawBlock(xpos, ypos, 32)
             ypos = boardOffsetY+boardHeight-4  ; @todo determine proper y position
             drawBlock(xpos, ypos, 160)
         }
-        else if key=='z' {
+        else if key=='z' {      ; no joystick equivalent (there is only 1 fire button)
             ; rotate counter clockwise
             if blocklogic.canRotateCCW(xpos, ypos) {
                 drawBlock(xpos, ypos, 32)
@@ -99,7 +107,7 @@ waitkey:
                 drawBlock(xpos, ypos, 160)
             }
         }
-        else if key=='x' {
+        else if key=='x' or not (joystick1 & 16) {
             ; rotate clockwise
             if blocklogic.canRotateCW(xpos, ypos) {
                 drawBlock(xpos, ypos, 32)
@@ -107,6 +115,7 @@ waitkey:
                 drawBlock(xpos, ypos, 160)
             }
         }
+        joystick_delay = 140        ; this more or less slows down the joystick movements to the rate of what key repeats do
 
         ; @todo check if line(s) are full -> flash/clear line(s) + add score + move rest down
 
@@ -114,7 +123,8 @@ waitkey:
 
     }
 
-    sub game_over() {
+
+    sub gameOver() {
         c64scr.PLOT(7, 7)
         c64.CHROUT('U')
         c64scr.print("────────────────────────")
@@ -125,10 +135,30 @@ waitkey:
         c64.CHROUT('J')
         c64scr.print("────────────────────────")
         c64.CHROUT('K')
-        while(true) {
-            ; endless loop
-            ; @todo restart game on pressing F1/firebutton
+
+        c64scr.PLOT(7, 18)
+        c64.CHROUT('U')
+        c64scr.print("────────────────────────")
+        c64.CHROUT('I')
+        c64scr.PLOT(7, 19)
+        c64scr.print("│    f1 for new game     │")
+        c64scr.PLOT(7, 20)
+        c64.CHROUT('J')
+        c64scr.print("────────────────────────")
+        c64.CHROUT('K')
+
+        while(c64.GETIN()!=133) {
+            ; endless loop until user presses F1 to restart the game
         }
+    }
+
+    sub newGame() {
+        lines = 0
+        score = 0
+        xpos = startXpos
+        ypos = startYpos
+        nextBlock = rnd() % 7
+        c64.CLEARSCR()
     }
 
     sub spawnNextBlock() {
@@ -155,17 +185,19 @@ waitkey:
         c64scr.PLOT(28,14)
         c64scr.print("score:")
         c64.COLOR = 12
-        c64scr.PLOT(28,19)
+        c64scr.PLOT(28,18)
         c64scr.print("controls:")
         c64.COLOR = 11
-        c64scr.PLOT(27,20)
+        c64scr.PLOT(27,19)
         c64scr.print("z/x  rotate")
-        c64scr.PLOT(27,21)
+        c64scr.PLOT(27,20)
         c64scr.print(",/.  move")
-        c64scr.PLOT(27,22)
+        c64scr.PLOT(27,21)
         c64scr.print("spc  drop")
-        c64scr.PLOT(27,23)
+        c64scr.PLOT(27,22)
         c64scr.print("  m  descend")
+        c64scr.PLOT(27,23)
+        c64scr.print("or joystick1")
 
         c64scr.setcc(boardOffsetX-1, boardOffsetY-2, 255, 0)           ; invisible barrier
         c64scr.setcc(boardOffsetX-1, boardOffsetY-3, 255, 0)           ; invisible barrier
