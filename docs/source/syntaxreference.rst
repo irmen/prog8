@@ -365,8 +365,13 @@ Operators
 ---------
 
 .. todo::
-    address-of: ``#``
-	    Takes the address of the symbol following it:   ``word  address =  #somevar``
+    address-of: ``#`` or ``&`` (to stay close to C)
+	Takes the address of the symbol following it:   ``word  address =  &somevar``
+    Perhaps requires an explicit pointer type as well instead of just word?
+
+    This can replace the ``memory`` var decl prefix as well, instead of
+    ``memory uword var = $c000`` we could write ``&uword var = $c000``
+
 
 
 arithmetic: ``+``  ``-``  ``*``  ``/``  ``**``  ``%``
