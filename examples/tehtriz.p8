@@ -1,8 +1,12 @@
 
 ; TehTriz - a Tetris clone.
 ;
-; @todo: hold block.
+
+; @todo: holding a block.
 ; @todo: show next 2 blocks instead of just 1.
+; @todo: how to deal with rotation when block is against a wall or another block ('bump' off the wall?)
+; @todo: should not give the same block more than twice in a row?
+; @todo: simple sound effects?  slight click when moving, swish when rotating/dropping, soft explosion when lines are cleared, buzz at game over
 
 
 ~ main {
@@ -30,36 +34,28 @@ waitkey:
             c64.TIME_LO = 0
             if blocklogic.canMoveDown(xpos, ypos) {
 
-                ; @todo re-enable down movement
-                ;drawBlock(xpos, ypos, 32)
-                ;ypos++ ; descend
-                ;drawBlock(xpos, ypos, 160)
+                ; slowly move the block down
+                drawBlock(xpos, ypos, 32)
+                ypos++
+                drawBlock(xpos, ypos, 160)
 
             } else {
                 ; block can't move further down!
                 ; check if the game area is full, if not, spawn the next block at the top.
-                if blocklogic.isGameOver() {
-                    c64scr.PLOT(7, 7)
-                    c64.CHROUT('U')
-                    c64scr.print("────────────────────────")
-                    c64.CHROUT('I')
-                    c64scr.PLOT(7, 8)
-                    c64scr.print("│*** g a m e  o v e r ***│")
-                    c64scr.PLOT(7, 9)
-                    c64.CHROUT('J')
-                    c64scr.print("────────────────────────")
-                    c64.CHROUT('K')
+                if blocklogic.isGameOver(xpos, ypos) {
+                    game_over()
                 } else {
                     spawnNextBlock()
                 }
             }
         }
 
-        ubyte key=c64.GETIN()
+        ubyte key=c64.GETIN()   ; @todo: joystick support as well. (doesn't joy1 input characters as well?)
         if_z goto waitkey
 
         if key>='1' and key<='7' {
             ; select block type, reset to start pos
+            ; @todo remove this feature it is for testing purposes only
             xpos = startXpos
             ypos = startYpos
             drawBlock(xpos, ypos, 32)
@@ -67,54 +63,79 @@ waitkey:
             drawBlock(xpos, ypos, 160)
         }
         else if key==157 or key==',' {
+            ; move left
             if blocklogic.canMoveLeft(xpos, ypos) {
                 drawBlock(xpos, ypos, 32)
-                xpos-- ; move left
+                xpos--
                 drawBlock(xpos, ypos, 160)
             }
         }
         else if key==29 or key=='.' {
+            ; move right
             if blocklogic.canMoveRight(xpos, ypos) {
                 drawBlock(xpos, ypos, 32)
-                xpos++ ; move right
+                xpos++
                 drawBlock(xpos, ypos, 160)
             }
         }
         else if key==17 or key=='m' {
+            ; move down faster
             if blocklogic.canMoveDown(xpos, ypos) {
                 drawBlock(xpos, ypos, 32)
-                ypos++ ; descend
+                ypos++
                 drawBlock(xpos, ypos, 160)
             }
         }
         else if key==145 or key==' ' {
             ; drop down immediately
             drawBlock(xpos, ypos, 32)
-            ypos = boardOffsetY+boardHeight-4
+            ypos = boardOffsetY+boardHeight-4  ; @todo determine proper y position
             drawBlock(xpos, ypos, 160)
         }
         else if key=='z' {
-            if blocklogic.canRotateCCW() {
+            ; rotate counter clockwise
+            if blocklogic.canRotateCCW(xpos, ypos) {
                 drawBlock(xpos, ypos, 32)
                 blocklogic.rotateCCW()
                 drawBlock(xpos, ypos, 160)
             }
         }
         else if key=='x' {
-            if blocklogic.canRotateCW() {
+            ; rotate clockwise
+            if blocklogic.canRotateCW(xpos, ypos) {
                 drawBlock(xpos, ypos, 32)
                 blocklogic.rotateCW()
                 drawBlock(xpos, ypos, 160)
             }
         }
+
+        ; @todo check if line(s) are full -> flash/clear line(s) + add score + move rest down
+
         goto waitkey
 
+    }
+
+    sub game_over() {
+        c64scr.PLOT(7, 7)
+        c64.CHROUT('U')
+        c64scr.print("────────────────────────")
+        c64.CHROUT('I')
+        c64scr.PLOT(7, 8)
+        c64scr.print("│*** g a m e  o v e r ***│")
+        c64scr.PLOT(7, 9)
+        c64.CHROUT('J')
+        c64scr.print("────────────────────────")
+        c64.CHROUT('K')
+        while(true) {
+            ; endless loop
+            ; @todo restart game on pressing F1/firebutton
+        }
     }
 
     sub spawnNextBlock() {
         c64.TIME_LO = 0
         blocklogic.newCurrentBlock(nextBlock)
-        nextBlock = rnd() % 7
+        nextBlock = (rnd() + c64.RASTER) % 7
         drawNextBlock()
         xpos = startXpos
         ypos = startYpos
@@ -167,9 +188,9 @@ waitkey:
             c64scr.setcc(boardOffsetX+boardWidth, i, 84, 11)
         }
 
-        for ubyte b in 7 to 0 step -1 {
-            blocklogic.newCurrentBlock(b)
-            drawBlock(3, 3+b*3, 102)                    ; 102 = stipple
+        for i in 7 to 0 step -1 {
+            blocklogic.newCurrentBlock(i)
+            drawBlock(3, 3+i*3, 102)                    ; 102 = stipple
         }
         drawScore()
     }
@@ -335,89 +356,73 @@ waitkey:
         }
     }
 
-    sub canRotateCW() -> ubyte {
-        rotateCW()
-        ubyte okay=true         ; TODO determine
-        rotateCCW()
-        return okay
-    }
-
-    sub canRotateCCW() -> ubyte {
-        rotateCCW()
-        ubyte okay=true         ; TODO determine
-        rotateCW()
-        return okay
-    }
-
 
     ; For movement checking it is not needed to clamp the x/y coordinates,
     ; because we have to check for brick collisions anyway.
     ; The full play area is bordered by (in)visible characters that will collide.
+    ; Collision is determined by reading the screen data directly.
+    ; This means the current position of the block on the screen has to be cleared first,
+    ; and redrawn after the collision result has been determined.
+
+    sub canRotateCW(ubyte xpos, ubyte ypos) -> ubyte {
+        main.drawBlock(xpos, ypos, 32)
+        rotateCW()
+        ubyte collision = collides(xpos, ypos)
+        rotateCCW()
+        main.drawBlock(xpos, ypos, 160)
+        return not collision
+    }
+
+    sub canRotateCCW(ubyte xpos, ubyte ypos) -> ubyte {
+        main.drawBlock(xpos, ypos, 32)
+        rotateCCW()
+        ubyte collision = collides(xpos, ypos)
+        rotateCW()
+        main.drawBlock(xpos, ypos, 160)
+        return not collision
+    }
 
     sub canMoveLeft(ubyte xpos, ubyte ypos) -> ubyte {
-
         main.drawBlock(xpos, ypos, 32)
-        ubyte result = canActuallyMoveLeft(xpos, ypos)
+        ubyte collision = collides(xpos-1, ypos)
         main.drawBlock(xpos, ypos, 160)
-        return result
-
-        sub canActuallyMoveLeft(ubyte xpos, ubyte ypos) -> ubyte {
-            ; @todo make this a generic subroutine that also works to check right and bottom collisions...
-
-            return not (currentBlock[0] and c64scr.getchr(xpos-1, ypos)!=32
-                        or currentBlock[1] and c64scr.getchr(xpos, ypos)!=32
-                        or currentBlock[2] and c64scr.getchr(xpos+1, ypos)!=32
-                        or currentBlock[3] and c64scr.getchr(xpos+2, ypos)!=32
-                        or currentBlock[4] and c64scr.getchr(xpos-1, ypos+1)!=32
-                        or currentBlock[5] and c64scr.getchr(xpos, ypos+1)!=32
-                        or currentBlock[6] and c64scr.getchr(xpos+1, ypos+1)!=32
-                        or currentBlock[7] and c64scr.getchr(xpos+2, ypos+1)!=32
-                        or currentBlock[8] and c64scr.getchr(xpos-1, ypos+2)!=32
-                        or currentBlock[9] and c64scr.getchr(xpos, ypos+2)!=32
-                        or currentBlock[10] and c64scr.getchr(xpos+1, ypos+2)!=32
-                        or currentBlock[11] and c64scr.getchr(xpos+2, ypos+2)!=32
-                        or currentBlock[12] and c64scr.getchr(xpos-1, ypos+3)!=32
-                        or currentBlock[13] and c64scr.getchr(xpos, ypos+3)!=32
-                        or currentBlock[14] and c64scr.getchr(xpos+1, ypos+3)!=32
-                        or currentBlock[15] and c64scr.getchr(xpos+2, ypos+3)!=32)
-        }
+        return not collision
     }
 
     sub canMoveRight(ubyte xpos, ubyte ypos) -> ubyte {
-
         main.drawBlock(xpos, ypos, 32)
-        ubyte result = canActuallyMoveRight(xpos, ypos)
+        ubyte collision = collides(xpos+1, ypos)
         main.drawBlock(xpos, ypos, 160)
-        return result
-
-        sub canActuallyMoveRight(ubyte xpos, ubyte ypos) -> ubyte {
-
-            ; @todo use the generic subroutine that also works to check right and bottom collisions...
-
-            return not (currentBlock[0] and c64scr.getchr(xpos+1, ypos)!=32
-                        or currentBlock[1] and c64scr.getchr(xpos+2, ypos)!=32
-                        or currentBlock[2] and c64scr.getchr(xpos+3, ypos)!=32
-                        or currentBlock[3] and c64scr.getchr(xpos+4, ypos)!=32
-                        or currentBlock[4] and c64scr.getchr(xpos+1, ypos+1)!=32
-                        or currentBlock[5] and c64scr.getchr(xpos+2, ypos+1)!=32
-                        or currentBlock[6] and c64scr.getchr(xpos+3, ypos+1)!=32
-                        or currentBlock[7] and c64scr.getchr(xpos+4, ypos+1)!=32
-                        or currentBlock[8] and c64scr.getchr(xpos+1, ypos+2)!=32
-                        or currentBlock[9] and c64scr.getchr(xpos+2, ypos+2)!=32
-                        or currentBlock[10] and c64scr.getchr(xpos+3, ypos+2)!=32
-                        or currentBlock[11] and c64scr.getchr(xpos+4, ypos+2)!=32
-                        or currentBlock[12] and c64scr.getchr(xpos+1, ypos+3)!=32
-                        or currentBlock[13] and c64scr.getchr(xpos+2, ypos+3)!=32
-                        or currentBlock[14] and c64scr.getchr(xpos+3, ypos+3)!=32
-                        or currentBlock[15] and c64scr.getchr(xpos+4, ypos+3)!=32)
-        }
+        return not collision
     }
 
     sub canMoveDown(ubyte xpos, ubyte ypos) -> ubyte {
-        return ypos<main.boardOffsetY+main.boardHeight-4 ; TODO deal with actual block/border collision, use generic check routine
+        main.drawBlock(xpos, ypos, 32)
+        ubyte collision = collides(xpos, ypos+1)
+        main.drawBlock(xpos, ypos, 160)
+        return not collision
     }
 
-    sub isGameOver() -> ubyte {
-        return false     ; TODO determine fail state
+    sub collides(ubyte xpos, ubyte ypos) -> ubyte {
+        return currentBlock[0] and c64scr.getchr(xpos, ypos)!=32
+                    or currentBlock[1] and c64scr.getchr(xpos+1, ypos)!=32
+                    or currentBlock[2] and c64scr.getchr(xpos+2, ypos)!=32
+                    or currentBlock[3] and c64scr.getchr(xpos+3, ypos)!=32
+                    or currentBlock[4] and c64scr.getchr(xpos, ypos+1)!=32
+                    or currentBlock[5] and c64scr.getchr(xpos+1, ypos+1)!=32
+                    or currentBlock[6] and c64scr.getchr(xpos+2, ypos+1)!=32
+                    or currentBlock[7] and c64scr.getchr(xpos+3, ypos+1)!=32
+                    or currentBlock[8] and c64scr.getchr(xpos, ypos+2)!=32
+                    or currentBlock[9] and c64scr.getchr(xpos+1, ypos+2)!=32
+                    or currentBlock[10] and c64scr.getchr(xpos+2, ypos+2)!=32
+                    or currentBlock[11] and c64scr.getchr(xpos+3, ypos+2)!=32
+                    or currentBlock[12] and c64scr.getchr(xpos, ypos+3)!=32
+                    or currentBlock[13] and c64scr.getchr(xpos+1, ypos+3)!=32
+                    or currentBlock[14] and c64scr.getchr(xpos+2, ypos+3)!=32
+                    or currentBlock[15] and c64scr.getchr(xpos+3, ypos+3)!=32
+    }
+
+    sub isGameOver(ubyte xpos, ubyte ypos) -> ubyte {
+        return ypos==main.startYpos and not canMoveDown(xpos, ypos)
     }
 }
