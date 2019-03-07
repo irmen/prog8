@@ -2,10 +2,9 @@
 ; TehTriz - a Tetris clone.
 ;
 
-; @todo: holding a block.
-; @todo: show next 2 blocks instead of just 1.
-; @todo: how to deal with rotation when block is against a wall or another block ('bump' off the wall?)
-; @todo: should not give the same block more than twice in a row?
+; @todo: holding a block
+; @todo: show next 2 blocks instead of just 1
+; @todo: deal with rotation when block is against a wall or another block (wall kicks) (if no rotate in place possible: move 1 left, try rotate, else move 1 right, try rotate, else no rotation possible)
 ; @todo: simple sound effects?  slight click when moving, swish when rotating/dropping, soft explosion when lines are cleared, buzz at game over
 
 
@@ -233,7 +232,7 @@ waitkey:
     ubyte[16] rotated
 
     ; the 7 tetrominos
-    ubyte[16] blockI = [0,0,0,0,        ; cyan ; note: special rotation (only 2 states)
+    ubyte[16] blockI = [0,0,0,0,        ; cyan ; note: special rotation (around matrix center)
                         3,3,3,3,
                         0,0,0,0,
                         0,0,0,0]
@@ -285,77 +284,78 @@ waitkey:
 
     sub rotateCW() {
         ; rotates the current block clockwise.
-        if currentBlockNum==0
-            rotateIblock()    ; block 'I' has special rotation
+        if currentBlockNum==0 {
+            ; the 'I' block rotates a 4x4 matrix around the center
+            rotated[0] = currentBlock[12]
+            rotated[1] = currentBlock[8]
+            rotated[2] = currentBlock[4]
+            rotated[3] = currentBlock[0]
+            rotated[4] = currentBlock[13]
+            rotated[5] = currentBlock[9]
+            rotated[6] = currentBlock[5]
+            rotated[7] = currentBlock[1]
+            rotated[8] = currentBlock[14]
+            rotated[9] = currentBlock[10]
+            rotated[10] = currentBlock[6]
+            rotated[11] = currentBlock[2]
+            rotated[12] = currentBlock[15]
+            rotated[13] = currentBlock[11]
+            rotated[14] = currentBlock[7]
+            rotated[15] = currentBlock[3]
+        }
         else if currentBlockNum!=3 {
-            ; rotate all other blocks (except 3, the square) around their center square
+            ; rotate all blocks (except 3, the square) around their center square in a 3x3 matrix
+            memset(rotated, len(rotated), 0)
             rotated[0] = currentBlock[8]
             rotated[1] = currentBlock[4]
             rotated[2] = currentBlock[0]
             rotated[4] = currentBlock[9]
+            rotated[5] = currentBlock[5]
             rotated[6] = currentBlock[1]
             rotated[8] = currentBlock[10]
             rotated[9] = currentBlock[6]
             rotated[10] = currentBlock[2]
-
-            currentBlock[0] = rotated[0]
-            currentBlock[1] = rotated[1]
-            currentBlock[2] = rotated[2]
-            currentBlock[4] = rotated[4]
-            currentBlock[6] = rotated[6]
-            currentBlock[8] = rotated[8]
-            currentBlock[9] = rotated[9]
-            currentBlock[10] = rotated[10]
         }
+
+        memcopy(rotated, currentBlock, len(currentBlock))
     }
 
     sub rotateCCW() {
         ; rotates the current block counterclockwise.
-        if currentBlockNum==0
-            rotateIblock()    ; block 'I' has special rotation
+        if currentBlockNum==0 {
+            ; the 'I' block rotates a 4x4 matrix around the center
+            rotated[0] = currentBlock[3]
+            rotated[1] = currentBlock[7]
+            rotated[2] = currentBlock[11]
+            rotated[3] = currentBlock[15]
+            rotated[4] = currentBlock[2]
+            rotated[5] = currentBlock[6]
+            rotated[6] = currentBlock[10]
+            rotated[7] = currentBlock[14]
+            rotated[8] = currentBlock[1]
+            rotated[9] = currentBlock[5]
+            rotated[10] = currentBlock[9]
+            rotated[11] = currentBlock[13]
+            rotated[12] = currentBlock[0]
+            rotated[13] = currentBlock[4]
+            rotated[14] = currentBlock[8]
+            rotated[15] = currentBlock[12]
+        }
         else if currentBlockNum!=3 {
-            ; rotate all other blocks (except 3, the square) around their center square
+            ; rotate all blocks (except 3, the square) around their center square in a 3x3 matrix
+            memset(rotated, len(rotated), 0)
             rotated[0] = currentBlock[2]
             rotated[1] = currentBlock[6]
             rotated[2] = currentBlock[10]
             rotated[4] = currentBlock[1]
+            rotated[5] = currentBlock[5]
             rotated[6] = currentBlock[9]
             rotated[8] = currentBlock[0]
             rotated[9] = currentBlock[4]
             rotated[10] = currentBlock[8]
-
-            currentBlock[0] = rotated[0]
-            currentBlock[1] = rotated[1]
-            currentBlock[2] = rotated[2]
-            currentBlock[4] = rotated[4]
-            currentBlock[6] = rotated[6]
-            currentBlock[8] = rotated[8]
-            currentBlock[9] = rotated[9]
-            currentBlock[10] = rotated[10]
         }
+        memcopy(rotated, currentBlock, len(currentBlock))
     }
-
-    sub rotateIblock() {
-        ; the I-block only has 2 rotational states.
-        if currentBlock[2]==0 {
-            ; it's horizontal, make it vertical again
-            currentBlock[2] = currentBlock[4]
-            currentBlock[10] = currentBlock[4]
-            currentBlock[14] = currentBlock[4]
-            currentBlock[4] = 0
-            currentBlock[5] = 0
-            currentBlock[7] = 0
-        } else {
-            ; it's vertical, make it horizontal again
-            currentBlock[4] = currentBlock[2]
-            currentBlock[5] = currentBlock[2]
-            currentBlock[7] = currentBlock[2]
-            currentBlock[2] = 0
-            currentBlock[10] = 0
-            currentBlock[14] = 0
-        }
-    }
-
 
     ; For movement checking it is not needed to clamp the x/y coordinates,
     ; because we have to check for brick collisions anyway.
