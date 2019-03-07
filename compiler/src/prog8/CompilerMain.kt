@@ -104,10 +104,12 @@ private fun compileMain(args: Array<String>) {
             }
             //println(" time4: $time4")
 
+            val allScopedSymbolDefinitions = moduleAst.checkIdentifiers(heap)       // useful for checking symbol usage later?
+//            moduleAst.simplifyExpressions(namespace, heap)
+//            moduleAst.optimizeStatements(namespace, heap)
             if(optimize) {
                 // optimize the parse tree
                 println("Optimizing...")
-                val allScopedSymbolDefinitions = moduleAst.checkIdentifiers(heap)       // useful for checking symbol usage later?
                 while (true) {
                     // keep optimizing expressions and statements until no more steps remain
                     val optsDone1 = moduleAst.simplifyExpressions(namespace, heap)

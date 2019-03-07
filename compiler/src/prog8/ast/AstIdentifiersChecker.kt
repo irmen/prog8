@@ -33,6 +33,7 @@ fun Module.checkIdentifiers(heap: HeapValues): MutableMap<String, IStatement> {
             }
             else -> TODO("replace literalvalue by identifierref: $variable  (in $parent)")
         }
+        variable.second.linkParents(scope as Node)
     }
 
     printErrors(checker.result(), name)

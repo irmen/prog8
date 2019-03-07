@@ -5,9 +5,6 @@
 
     ; @todo see problem in looplabelproblem.p8
 
-    ; @todo when using -noopt, the error "can only push address of string that is a variable on the heap" appears when using strings
-
-
 
     sub start() {
 
