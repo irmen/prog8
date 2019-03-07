@@ -337,14 +337,14 @@ waitkey:
 
     sub canRotateCW() -> ubyte {
         rotateCW()
-        ubyte okay         ; TODO determine
+        ubyte okay=true         ; TODO determine
         rotateCCW()
         return okay
     }
 
     sub canRotateCCW() -> ubyte {
         rotateCCW()
-        ubyte okay         ; TODO determine
+        ubyte okay=true         ; TODO determine
         rotateCW()
         return okay
     }
@@ -364,48 +364,22 @@ waitkey:
         sub canActuallyMoveLeft(ubyte xpos, ubyte ypos) -> ubyte {
             ; @todo make this a generic subroutine that also works to check right and bottom collisions...
 
-            ubyte x = xpos-1
-            ubyte yp1 = ypos+1
-            ubyte yp2 = ypos+2
-            ubyte yp3 = ypos+3
-
-            if(currentBlock[0] and c64scr.getchr(x, ypos)!=32)
-                return false
-            if(currentBlock[4] and c64scr.getchr(x, yp1)!=32)
-                return false
-            if(currentBlock[8] and c64scr.getchr(x, yp2)!=32)
-                return false
-            if(currentBlock[12] and c64scr.getchr(x, yp3)!=32)
-                return false
-            x++
-            if(currentBlock[1] and c64scr.getchr(x, ypos)!=32)
-                return false
-            if(currentBlock[5] and c64scr.getchr(x, yp1)!=32)
-                return false
-            if(currentBlock[9] and c64scr.getchr(x, yp2)!=32)
-                return false
-            if(currentBlock[13] and c64scr.getchr(x, yp3)!=32)
-                return false
-            x++
-            if(currentBlock[2] and c64scr.getchr(x, ypos)!=32)
-                return false
-            if(currentBlock[6] and c64scr.getchr(x, yp1)!=32)
-                return false
-            if(currentBlock[10] and c64scr.getchr(x, yp2)!=32)
-                return false
-            if(currentBlock[14] and c64scr.getchr(x, yp3)!=32)
-                return false
-            x++
-            if(currentBlock[3] and c64scr.getchr(x, ypos)!=32)
-                return false
-            if(currentBlock[7] and c64scr.getchr(x, yp1)!=32)
-                return false
-            if(currentBlock[11] and c64scr.getchr(x, yp2)!=32)
-                return false
-            if(currentBlock[15] and c64scr.getchr(x, yp3)!=32)
-                return false
-
-            return true
+            return not (currentBlock[0] and c64scr.getchr(xpos-1, ypos)!=32
+                        or currentBlock[1] and c64scr.getchr(xpos, ypos)!=32
+                        or currentBlock[2] and c64scr.getchr(xpos+1, ypos)!=32
+                        or currentBlock[3] and c64scr.getchr(xpos+2, ypos)!=32
+                        or currentBlock[4] and c64scr.getchr(xpos-1, ypos+1)!=32
+                        or currentBlock[5] and c64scr.getchr(xpos, ypos+1)!=32
+                        or currentBlock[6] and c64scr.getchr(xpos+1, ypos+1)!=32
+                        or currentBlock[7] and c64scr.getchr(xpos+2, ypos+1)!=32
+                        or currentBlock[8] and c64scr.getchr(xpos-1, ypos+2)!=32
+                        or currentBlock[9] and c64scr.getchr(xpos, ypos+2)!=32
+                        or currentBlock[10] and c64scr.getchr(xpos+1, ypos+2)!=32
+                        or currentBlock[11] and c64scr.getchr(xpos+2, ypos+2)!=32
+                        or currentBlock[12] and c64scr.getchr(xpos-1, ypos+3)!=32
+                        or currentBlock[13] and c64scr.getchr(xpos, ypos+3)!=32
+                        or currentBlock[14] and c64scr.getchr(xpos+1, ypos+3)!=32
+                        or currentBlock[15] and c64scr.getchr(xpos+2, ypos+3)!=32)
         }
     }
 
@@ -420,48 +394,22 @@ waitkey:
 
             ; @todo use the generic subroutine that also works to check right and bottom collisions...
 
-            ubyte x = xpos+4
-            ubyte yp1 = ypos+1
-            ubyte yp2 = ypos+2
-            ubyte yp3 = ypos+3
-
-            if(currentBlock[3] and c64scr.getchr(x, ypos)!=32)
-                return false
-            if(currentBlock[7] and c64scr.getchr(x, yp1)!=32)
-                return false
-            if(currentBlock[11] and c64scr.getchr(x, yp2)!=32)
-                return false
-            if(currentBlock[15] and c64scr.getchr(x, yp3)!=32)
-                return false
-            x--
-            if(currentBlock[2] and c64scr.getchr(x, ypos)!=32)
-                return false
-            if(currentBlock[6] and c64scr.getchr(x, yp1)!=32)
-                return false
-            if(currentBlock[10] and c64scr.getchr(x, yp2)!=32)
-                return false
-            if(currentBlock[14] and c64scr.getchr(x, yp3)!=32)
-                return false
-            x--
-            if(currentBlock[1] and c64scr.getchr(x, ypos)!=32)
-                return false
-            if(currentBlock[5] and c64scr.getchr(x, yp1)!=32)
-                return false
-            if(currentBlock[9] and c64scr.getchr(x, yp2)!=32)
-                return false
-            if(currentBlock[13] and c64scr.getchr(x, yp3)!=32)
-                return false
-            x--
-            if(currentBlock[0] and c64scr.getchr(x, ypos)!=32)
-                return false
-            if(currentBlock[4] and c64scr.getchr(x, yp1)!=32)
-                return false
-            if(currentBlock[8] and c64scr.getchr(x, yp2)!=32)
-                return false
-            if(currentBlock[12] and c64scr.getchr(x, yp3)!=32)
-                return false
-
-            return true
+            return not (currentBlock[0] and c64scr.getchr(xpos+1, ypos)!=32
+                        or currentBlock[1] and c64scr.getchr(xpos+2, ypos)!=32
+                        or currentBlock[2] and c64scr.getchr(xpos+3, ypos)!=32
+                        or currentBlock[3] and c64scr.getchr(xpos+4, ypos)!=32
+                        or currentBlock[4] and c64scr.getchr(xpos+1, ypos+1)!=32
+                        or currentBlock[5] and c64scr.getchr(xpos+2, ypos+1)!=32
+                        or currentBlock[6] and c64scr.getchr(xpos+3, ypos+1)!=32
+                        or currentBlock[7] and c64scr.getchr(xpos+4, ypos+1)!=32
+                        or currentBlock[8] and c64scr.getchr(xpos+1, ypos+2)!=32
+                        or currentBlock[9] and c64scr.getchr(xpos+2, ypos+2)!=32
+                        or currentBlock[10] and c64scr.getchr(xpos+3, ypos+2)!=32
+                        or currentBlock[11] and c64scr.getchr(xpos+4, ypos+2)!=32
+                        or currentBlock[12] and c64scr.getchr(xpos+1, ypos+3)!=32
+                        or currentBlock[13] and c64scr.getchr(xpos+2, ypos+3)!=32
+                        or currentBlock[14] and c64scr.getchr(xpos+3, ypos+3)!=32
+                        or currentBlock[15] and c64scr.getchr(xpos+4, ypos+3)!=32)
         }
     }
 
