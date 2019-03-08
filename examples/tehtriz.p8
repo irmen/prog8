@@ -2,10 +2,8 @@
 ; TehTriz - a Tetris clone.
 ;
 
-; @todo: slow down joystick input
 ; @todo: holding a block
 ; @todo: show next 2 blocks instead of just 1
-; @todo: deal with rotation when block is against a wall or another block (wall kicks) (if no rotate in place possible: move 1 left, try rotate, else move 1 right, try rotate, else no rotation possible)
 ; @todo: simple sound effects?  slight click when moving, swish when rotating/dropping, soft explosion when lines are cleared, buzz at game over
 
 
@@ -27,9 +25,10 @@
 
     sub start() {
         @(650) = 128        ; set all keys to repeat
+        sound.init()
         newGame()
         drawBoard()
-        gameOver()          ; @todo fix game corruption because loop is called multiple times (???)
+        gameOver()
 
 newgame:
         newGame()
@@ -46,6 +45,7 @@ waitkey:
                 ; slowly move the block down
                 drawBlock(xpos, ypos, 32)
                 ypos++
+                sound.blockmove()
                 drawBlock(xpos, ypos, 160)
 
             } else {
@@ -75,6 +75,7 @@ waitkey:
                 drawBlock(xpos, ypos, 32)
                 xpos--
                 drawBlock(xpos, ypos, 160)
+                sound.blockrotatedrop()
             }
         }
         else if key==29 or key=='.' or not (joystick1 & 8) {
@@ -83,6 +84,7 @@ waitkey:
                 drawBlock(xpos, ypos, 32)
                 xpos++
                 drawBlock(xpos, ypos, 160)
+                sound.blockrotatedrop()
             }
         }
         else if key==17 or key=='m' or not (joystick1 & 2) {
@@ -91,6 +93,7 @@ waitkey:
                 drawBlock(xpos, ypos, 32)
                 ypos++
                 drawBlock(xpos, ypos, 160)
+                sound.blockrotatedrop()
             }
         }
         else if key==145 or key==' ' or not (joystick1 & 1) {
@@ -98,22 +101,45 @@ waitkey:
             drawBlock(xpos, ypos, 32)
             ypos = boardOffsetY+boardHeight-4  ; @todo determine proper y position
             drawBlock(xpos, ypos, 160)
+            sound.blockrotatedrop()
         }
         else if key=='z' {      ; no joystick equivalent (there is only 1 fire button)
             ; rotate counter clockwise
+            drawBlock(xpos, ypos, 32)
             if blocklogic.canRotateCCW(xpos, ypos) {
-                drawBlock(xpos, ypos, 32)
                 blocklogic.rotateCCW()
-                drawBlock(xpos, ypos, 160)
+                sound.blockrotatedrop()
             }
+            else if blocklogic.canRotateCCW(xpos-1, ypos) {
+                xpos--
+                blocklogic.rotateCCW()
+                sound.blockrotatedrop()
+            }
+            else if blocklogic.canRotateCCW(xpos+1, ypos) {
+                xpos++
+                blocklogic.rotateCCW()
+                sound.blockrotatedrop()
+            }
+            drawBlock(xpos, ypos, 160)
         }
         else if key=='x' or not (joystick1 & 16) {
             ; rotate clockwise
+            drawBlock(xpos, ypos, 32)
             if blocklogic.canRotateCW(xpos, ypos) {
-                drawBlock(xpos, ypos, 32)
                 blocklogic.rotateCW()
-                drawBlock(xpos, ypos, 160)
+                sound.blockrotatedrop()
             }
+            else if blocklogic.canRotateCW(xpos-1, ypos) {
+                xpos--
+                blocklogic.rotateCW()
+                sound.blockrotatedrop()
+            }
+            else if blocklogic.canRotateCW(xpos+1, ypos) {
+                xpos++
+                blocklogic.rotateCW()
+                sound.blockrotatedrop()
+            }
+            drawBlock(xpos, ypos, 160)
         }
         joystick_delay = 140        ; this more or less slows down the joystick movements to the rate of what key repeats do
 
@@ -125,6 +151,7 @@ waitkey:
 
 
     sub gameOver() {
+        sound.gameover()
         c64scr.PLOT(7, 7)
         c64.CHROUT('U')
         c64scr.print("────────────────────────")
@@ -158,10 +185,10 @@ waitkey:
         xpos = startXpos
         ypos = startYpos
         nextBlock = rnd() % 7
-        c64.CLEARSCR()
     }
 
     sub spawnNextBlock() {
+        sound.blockmove()
         c64.TIME_LO = 0
         blocklogic.newCurrentBlock(nextBlock)
         nextBlock = (rnd() + c64.RASTER) % 7
@@ -172,6 +199,7 @@ waitkey:
     }
 
     sub drawBoard() {
+        c64.CLEARSCR()
         c64.COLOR = 7
         c64scr.PLOT(1,1)
         c64scr.print("irmen's")
@@ -219,7 +247,7 @@ waitkey:
             c64scr.setcc(boardOffsetX+boardWidth, i, 84, 11)
         }
 
-        for i in 7 to 0 step -1 {
+        for i in 6 to 0 step -1 {
             blocklogic.newCurrentBlock(i)
             drawBlock(3, 3+i*3, 102)                    ; 102 = stipple
         }
@@ -393,43 +421,37 @@ waitkey:
     ; because we have to check for brick collisions anyway.
     ; The full play area is bordered by (in)visible characters that will collide.
     ; Collision is determined by reading the screen data directly.
-    ; This means the current position of the block on the screen has to be cleared first,
-    ; and redrawn after the collision result has been determined.
 
     sub canRotateCW(ubyte xpos, ubyte ypos) -> ubyte {
-        main.drawBlock(xpos, ypos, 32)
         rotateCW()
         ubyte collision = collides(xpos, ypos)
         rotateCCW()
-        main.drawBlock(xpos, ypos, 160)
         return not collision
     }
 
     sub canRotateCCW(ubyte xpos, ubyte ypos) -> ubyte {
-        main.drawBlock(xpos, ypos, 32)
         rotateCCW()
         ubyte collision = collides(xpos, ypos)
         rotateCW()
-        main.drawBlock(xpos, ypos, 160)
         return not collision
     }
 
     sub canMoveLeft(ubyte xpos, ubyte ypos) -> ubyte {
-        main.drawBlock(xpos, ypos, 32)
+        main.drawBlock(xpos, ypos, 32)      ; @todo do this in main itself?
         ubyte collision = collides(xpos-1, ypos)
         main.drawBlock(xpos, ypos, 160)
         return not collision
     }
 
     sub canMoveRight(ubyte xpos, ubyte ypos) -> ubyte {
-        main.drawBlock(xpos, ypos, 32)
+        main.drawBlock(xpos, ypos, 32); @todo do this in main itself?
         ubyte collision = collides(xpos+1, ypos)
         main.drawBlock(xpos, ypos, 160)
         return not collision
     }
 
     sub canMoveDown(ubyte xpos, ubyte ypos) -> ubyte {
-        main.drawBlock(xpos, ypos, 32)
+        main.drawBlock(xpos, ypos, 32); @todo do this in main itself?
         ubyte collision = collides(xpos, ypos+1)
         main.drawBlock(xpos, ypos, 160)
         return not collision
@@ -456,5 +478,29 @@ waitkey:
 
     sub isGameOver(ubyte xpos, ubyte ypos) -> ubyte {
         return ypos==main.startYpos and not canMoveDown(xpos, ypos)
+    }
+}
+
+
+~ sound {
+
+    sub init() {
+        ; todo
+    }
+
+    sub blockmove() {
+        ; todo soft click
+    }
+
+    sub blockrotatedrop() {
+        ; todo swish
+    }
+
+    sub lineclear() {
+        ; todo explosion like
+    }
+
+    sub gameover() {
+        ; todo buzz?
     }
 }
