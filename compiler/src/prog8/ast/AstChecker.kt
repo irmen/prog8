@@ -915,7 +915,7 @@ private class AstChecker(private val namespace: INameScope,
         val targetStatement = target.targetStatement(namespace)
         if(targetStatement is Label || targetStatement is Subroutine || targetStatement is BuiltinFunctionStatementPlaceholder)
             return targetStatement
-        checkResult.add(SyntaxError("undefined function or subroutine: ${target.nameInSource.joinToString(".")}", statement.position))
+        checkResult.add(NameError("undefined function or subroutine: ${target.nameInSource.joinToString(".")}", statement.position))
         return null
     }
 

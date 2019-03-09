@@ -3,9 +3,9 @@
 ;
 
 ; @todo: holding a block
-; @todo: show next 2 blocks instead of just 1
 ; @todo: simple sound effects?  slight click when moving, swish when rotating/dropping, soft explosion when lines are cleared, buzz at game over
-
+; @todo: joystick control
+; @todo: sometimes the game gets confused about what the current tetromino is and will draw the wrong one. Maybe occurs when rotating directly after dropping the previous?
 
 ~ main {
 
@@ -16,7 +16,7 @@
     const ubyte startXpos = boardOffsetX + 3
     const ubyte startYpos = boardOffsetY - 2
 
-    ubyte lines
+    uword lines
     uword score
     ubyte xpos
     ubyte ypos
@@ -35,19 +35,16 @@ newgame:
         drawBoard()
         spawnNextBlock()
 
-        ubyte joystick_delay=1
-
 waitkey:
         if c64.TIME_LO==30 {
             c64.TIME_LO = 0
-            if blocklogic.canMoveDown(xpos, ypos) {
 
+            drawBlock(xpos, ypos, 32) ; hide block
+            if blocklogic.noCollision(xpos, ypos+1) {
                 ; slowly move the block down
-                drawBlock(xpos, ypos, 32)
                 ypos++
                 sound.blockmove()
-                drawBlock(xpos, ypos, 160)
-
+                drawBlock(xpos, ypos, 160)  ; show block on new position
             } else {
                 ; block can't move further down!
                 ; check if the game area is full, if not, spawn the next block at the top.
@@ -55,53 +52,61 @@ waitkey:
                     gameOver()
                     goto newgame
                 } else {
+                    checkForLines()
                     spawnNextBlock()
                 }
             }
+
+            drawScore()
         }
 
         ubyte key=c64.GETIN()
-        ubyte joystick1 = c64.CIA1PRB
-        if key==0 and joystick1==255 goto waitkey
+        if key==0 goto waitkey
 
-        if joystick1!=255 {
-            joystick_delay--
-            if_nz goto waitkey
-        }
-
-        if key==157 or key==',' or not (joystick1 & 4) {
+        if key==157 or key==',' {
             ; move left
-            if blocklogic.canMoveLeft(xpos, ypos) {
-                drawBlock(xpos, ypos, 32)
+            drawBlock(xpos, ypos, 32)
+            if blocklogic.noCollision(xpos-1, ypos) {
                 xpos--
-                drawBlock(xpos, ypos, 160)
                 sound.blockrotatedrop()
             }
+            drawBlock(xpos, ypos, 160)
         }
-        else if key==29 or key=='.' or not (joystick1 & 8) {
+        else if key==29 or key=='.' {
             ; move right
-            if blocklogic.canMoveRight(xpos, ypos) {
-                drawBlock(xpos, ypos, 32)
+            drawBlock(xpos, ypos, 32)
+            if blocklogic.noCollision(xpos+1, ypos) {
                 xpos++
-                drawBlock(xpos, ypos, 160)
                 sound.blockrotatedrop()
             }
+            drawBlock(xpos, ypos, 160)
         }
-        else if key==17 or key=='m' or not (joystick1 & 2) {
+        else if key==17 or key=='m' {
             ; move down faster
-            if blocklogic.canMoveDown(xpos, ypos) {
-                drawBlock(xpos, ypos, 32)
+            drawBlock(xpos, ypos, 32)
+            if blocklogic.noCollision(xpos, ypos+1) {
                 ypos++
-                drawBlock(xpos, ypos, 160)
                 sound.blockrotatedrop()
             }
+            drawBlock(xpos, ypos, 160)
         }
-        else if key==145 or key==' ' or not (joystick1 & 1) {
+        else if key==145 or key==' ' {
             ; drop down immediately
             drawBlock(xpos, ypos, 32)
-            ypos = boardOffsetY+boardHeight-4  ; @todo determine proper y position
-            drawBlock(xpos, ypos, 160)
-            sound.blockrotatedrop()
+            ubyte dropypos
+            for dropypos in ypos+1 to boardOffsetY+boardHeight-1 {
+                if not blocklogic.noCollision(xpos, dropypos) {
+                    dropypos--   ; the furthest down that still fits
+                    break
+                }
+            }
+            if dropypos>ypos {
+                ypos = dropypos
+                sound.blockrotatedrop()
+                drawBlock(xpos, ypos, 160)
+                checkForLines()
+                spawnNextBlock()
+            }
         }
         else if key=='z' {      ; no joystick equivalent (there is only 1 fire button)
             ; rotate counter clockwise
@@ -122,7 +127,7 @@ waitkey:
             }
             drawBlock(xpos, ypos, 160)
         }
-        else if key=='x' or not (joystick1 & 16) {
+        else if key=='x' {
             ; rotate clockwise
             drawBlock(xpos, ypos, 32)
             if blocklogic.canRotateCW(xpos, ypos) {
@@ -141,14 +146,39 @@ waitkey:
             }
             drawBlock(xpos, ypos, 160)
         }
-        joystick_delay = 140        ; this more or less slows down the joystick movements to the rate of what key repeats do
-
-        ; @todo check if line(s) are full -> flash/clear line(s) + add score + move rest down
 
         goto waitkey
 
     }
 
+    sub checkForLines() {
+        ; check if line(s) are full -> flash/clear line(s) + add score + move rest down
+        ubyte[boardHeight] complete_lines
+        ubyte num_lines=0
+        memset(complete_lines, len(complete_lines), 0)
+        for ubyte linepos in boardOffsetY to boardOffsetY+boardHeight-1 {
+            if blocklogic.isLineFull(linepos) {
+                complete_lines[num_lines]=linepos
+                num_lines++
+                for ubyte x in boardOffsetX to boardOffsetX+boardWidth-1
+                    c64scr.setcc(x, linepos, 160, 1)
+            }
+        }
+        if num_lines {
+            c64.TIME_LO=0
+            while c64.TIME_LO<20 {
+                ; slight delay to flash the line
+            }
+            c64.TIME_LO=0
+            for ubyte linepos in complete_lines
+                if linepos and blocklogic.isLineFull(linepos)
+                    blocklogic.collapse(linepos)
+            lines += num_lines
+            uword[4] scores = [100, 250, 500, 800]      ; can never clear more than 4 lines
+            score += scores[num_lines-1]
+            drawScore()
+        }
+    }
 
     sub gameOver() {
         sound.gameover()
@@ -196,6 +226,7 @@ waitkey:
         xpos = startXpos
         ypos = startYpos
         drawBlock(xpos, ypos, 160)
+        score++
     }
 
     sub drawBoard() {
@@ -225,7 +256,7 @@ waitkey:
         c64scr.PLOT(27,22)
         c64scr.print("  m  descend")
         c64scr.PLOT(27,23)
-        c64scr.print("or joystick1")
+        c64scr.print("or joystick2")
 
         c64scr.setcc(boardOffsetX-1, boardOffsetY-2, 255, 0)           ; invisible barrier
         c64scr.setcc(boardOffsetX-1, boardOffsetY-3, 255, 0)           ; invisible barrier
@@ -257,7 +288,7 @@ waitkey:
     sub drawScore() {
         c64.COLOR=1
         c64scr.PLOT(30,11)
-        c64scr.print_ub(lines)
+        c64scr.print_uw(lines)
         c64scr.PLOT(30,15)
         c64scr.print_uw(score)
     }
@@ -424,60 +455,50 @@ waitkey:
 
     sub canRotateCW(ubyte xpos, ubyte ypos) -> ubyte {
         rotateCW()
-        ubyte collision = collides(xpos, ypos)
+        ubyte nocollision = noCollision(xpos, ypos)
         rotateCCW()
-        return not collision
+        return nocollision
     }
 
     sub canRotateCCW(ubyte xpos, ubyte ypos) -> ubyte {
         rotateCCW()
-        ubyte collision = collides(xpos, ypos)
+        ubyte nocollision = noCollision(xpos, ypos)
         rotateCW()
-        return not collision
+        return nocollision
     }
 
-    sub canMoveLeft(ubyte xpos, ubyte ypos) -> ubyte {
-        main.drawBlock(xpos, ypos, 32)      ; @todo do this in main itself?
-        ubyte collision = collides(xpos-1, ypos)
-        main.drawBlock(xpos, ypos, 160)
-        return not collision
-    }
-
-    sub canMoveRight(ubyte xpos, ubyte ypos) -> ubyte {
-        main.drawBlock(xpos, ypos, 32); @todo do this in main itself?
-        ubyte collision = collides(xpos+1, ypos)
-        main.drawBlock(xpos, ypos, 160)
-        return not collision
-    }
-
-    sub canMoveDown(ubyte xpos, ubyte ypos) -> ubyte {
-        main.drawBlock(xpos, ypos, 32); @todo do this in main itself?
-        ubyte collision = collides(xpos, ypos+1)
-        main.drawBlock(xpos, ypos, 160)
-        return not collision
-    }
-
-    sub collides(ubyte xpos, ubyte ypos) -> ubyte {
-        return currentBlock[0] and c64scr.getchr(xpos, ypos)!=32
-                    or currentBlock[1] and c64scr.getchr(xpos+1, ypos)!=32
-                    or currentBlock[2] and c64scr.getchr(xpos+2, ypos)!=32
-                    or currentBlock[3] and c64scr.getchr(xpos+3, ypos)!=32
-                    or currentBlock[4] and c64scr.getchr(xpos, ypos+1)!=32
-                    or currentBlock[5] and c64scr.getchr(xpos+1, ypos+1)!=32
-                    or currentBlock[6] and c64scr.getchr(xpos+2, ypos+1)!=32
-                    or currentBlock[7] and c64scr.getchr(xpos+3, ypos+1)!=32
-                    or currentBlock[8] and c64scr.getchr(xpos, ypos+2)!=32
-                    or currentBlock[9] and c64scr.getchr(xpos+1, ypos+2)!=32
-                    or currentBlock[10] and c64scr.getchr(xpos+2, ypos+2)!=32
-                    or currentBlock[11] and c64scr.getchr(xpos+3, ypos+2)!=32
-                    or currentBlock[12] and c64scr.getchr(xpos, ypos+3)!=32
-                    or currentBlock[13] and c64scr.getchr(xpos+1, ypos+3)!=32
-                    or currentBlock[14] and c64scr.getchr(xpos+2, ypos+3)!=32
-                    or currentBlock[15] and c64scr.getchr(xpos+3, ypos+3)!=32
+    sub noCollision(ubyte xpos, ubyte ypos) -> ubyte {
+        for ubyte i in 15 to 0 step -1 {
+            if currentBlock[i] and c64scr.getchr(xpos + (i&3), ypos+i/4)!=32
+                return false
+        }
+        return true
     }
 
     sub isGameOver(ubyte xpos, ubyte ypos) -> ubyte {
-        return ypos==main.startYpos and not canMoveDown(xpos, ypos)
+        main.drawBlock(xpos, ypos, 32)
+        ubyte result = ypos==main.startYpos and not noCollision(xpos, ypos+1)
+        main.drawBlock(xpos, ypos, 160)
+        return result
+    }
+
+    sub isLineFull(ubyte ypos) -> ubyte {
+        for ubyte x in main.boardOffsetX to main.boardOffsetX+main.boardWidth-1 {
+            if c64scr.getchr(x, ypos)==32
+                return false
+        }
+        return true
+    }
+
+    sub collapse(ubyte ypos) {
+        while(ypos>main.startYpos+1) {
+            for ubyte x in main.boardOffsetX+main.boardWidth-1 to main.boardOffsetX step -1 {
+                ubyte char = c64scr.getchr(x, ypos-1)
+                ubyte color = c64scr.getclr(x, ypos-1)
+                c64scr.setcc(x, ypos, char, color)
+            }
+            ypos--
+        }
     }
 }
 
