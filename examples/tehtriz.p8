@@ -3,7 +3,6 @@
 ;
 
 ; @todo: holding a block
-; @todo: simple sound effects?  slight click when moving, swish when rotating/dropping, soft explosion when lines are cleared, buzz at game over
 ; @todo: joystick control
 ; @todo: sometimes the game gets confused about what the current tetromino is and will draw the wrong one. Maybe occurs when rotating directly after dropping the previous?
 
@@ -44,7 +43,6 @@ waitkey:
             if blocklogic.noCollision(xpos, ypos+1) {
                 ; slowly move the block down
                 ypos++
-                sound.blockmove()
                 drawBlock(xpos, ypos, 160)  ; show block on new position
             } else {
                 ; block can't move further down!
@@ -76,7 +74,6 @@ waitkey:
             drawBlock(xpos, ypos, 32)
             if blocklogic.noCollision(xpos-1, ypos) {
                 xpos--
-                sound.blockrotatedrop()
             }
             drawBlock(xpos, ypos, 160)
         }
@@ -85,7 +82,6 @@ waitkey:
             drawBlock(xpos, ypos, 32)
             if blocklogic.noCollision(xpos+1, ypos) {
                 xpos++
-                sound.blockrotatedrop()
             }
             drawBlock(xpos, ypos, 160)
         }
@@ -94,7 +90,6 @@ waitkey:
             drawBlock(xpos, ypos, 32)
             if blocklogic.noCollision(xpos, ypos+1) {
                 ypos++
-                sound.blockrotatedrop()
             }
             drawBlock(xpos, ypos, 160)
         }
@@ -110,7 +105,7 @@ waitkey:
             }
             if dropypos>ypos {
                 ypos = dropypos
-                sound.blockrotatedrop()
+                sound.blockdrop()
                 drawBlock(xpos, ypos, 160)
                 checkForLines()
                 spawnNextBlock()
@@ -121,17 +116,17 @@ waitkey:
             drawBlock(xpos, ypos, 32)
             if blocklogic.canRotateCCW(xpos, ypos) {
                 blocklogic.rotateCCW()
-                sound.blockrotatedrop()
+                sound.blockrotate()
             }
             else if blocklogic.canRotateCCW(xpos-1, ypos) {
                 xpos--
                 blocklogic.rotateCCW()
-                sound.blockrotatedrop()
+                sound.blockrotate()
             }
             else if blocklogic.canRotateCCW(xpos+1, ypos) {
                 xpos++
                 blocklogic.rotateCCW()
-                sound.blockrotatedrop()
+                sound.blockrotate()
             }
             drawBlock(xpos, ypos, 160)
         }
@@ -140,17 +135,17 @@ waitkey:
             drawBlock(xpos, ypos, 32)
             if blocklogic.canRotateCW(xpos, ypos) {
                 blocklogic.rotateCW()
-                sound.blockrotatedrop()
+                sound.blockrotate()
             }
             else if blocklogic.canRotateCW(xpos-1, ypos) {
                 xpos--
                 blocklogic.rotateCW()
-                sound.blockrotatedrop()
+                sound.blockrotate()
             }
             else if blocklogic.canRotateCW(xpos+1, ypos) {
                 xpos++
                 blocklogic.rotateCW()
-                sound.blockrotatedrop()
+                sound.blockrotate()
             }
             drawBlock(xpos, ypos, 160)
         }
@@ -170,6 +165,7 @@ waitkey:
             }
         }
         if num_lines {
+            sound.lineclear()
             c64.TIME_LO=0
             while c64.TIME_LO<20 {
                 ; slight delay to flash the line
@@ -228,7 +224,6 @@ waitkey:
     }
 
     sub spawnNextBlock() {
-        sound.blockmove()
         c64.TIME_LO = 0
         blocklogic.newCurrentBlock(nextBlock)
         nextBlock = (rnd() + c64.RASTER) % 7
@@ -521,22 +516,46 @@ waitkey:
 ~ sound {
 
     sub init() {
-        ; todo
+        c64.MVOL = 15
     }
 
-    sub blockmove() {
-        ; todo soft click
+    sub blockrotate() {
+        ; soft click
+        c64.MVOL = 5
+        c64.AD1 = %00100010
+        c64.SR1 = %00000000
+        c64.FREQ1 = 15600
+        c64.CR1 = %10000000
+        c64.CR1 = %10000001
     }
 
-    sub blockrotatedrop() {
-        ; todo swish
+    sub blockdrop() {
+        ; swish
+        c64.MVOL = 5
+        c64.AD1 = %01010111
+        c64.SR1 = %00000000
+        c64.FREQ1 = 4600
+        c64.CR1 = %10000000
+        c64.CR1 = %10000001
     }
 
     sub lineclear() {
-        ; todo explosion like
+        ; explosion
+        c64.MVOL = 15
+        c64.AD1 = %01100110
+        c64.SR1 = %00000000
+        c64.FREQ1 = 1600
+        c64.CR1 = %10000000
+        c64.CR1 = %10000001
     }
 
     sub gameover() {
-        ; todo buzz?
+        ; buzz
+        c64.MVOL = 15
+        c64.FREQ2 = 600
+        c64.AD2 = %00111010
+        c64.SR2 = %00000000
+        c64.CR2 = %00110000
+        c64.CR2 = %00110001
     }
 }
