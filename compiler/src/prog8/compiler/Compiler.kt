@@ -92,17 +92,12 @@ class HeapValues {
 
     fun update(heapId: Int, str: String) {
         val oldVal = heap[heapId] ?: throw IllegalArgumentException("heapId not found in heap")
-        when(oldVal.type){
-            DataType.STR,
-            DataType.STR_P,
-            DataType.STR_S,
-            DataType.STR_PS -> {
-                if(oldVal.str!!.length!=str.length)
-                    throw IllegalArgumentException("heap string length mismatch")
-                heap[heapId] = oldVal.copy(str=str)
-            }
-            else-> throw IllegalArgumentException("heap data type mismatch")
+        if(oldVal.type in StringDatatypes) {
+            if (oldVal.str!!.length != str.length)
+                throw IllegalArgumentException("heap string length mismatch")
+            heap[heapId] = oldVal.copy(str = str)
         }
+        else throw IllegalArgumentException("heap data type mismatch")
     }
 
     fun update(heapId: Int, heapval: HeapValue) {
@@ -293,7 +288,6 @@ internal class Compiler(private val rootModule: Module,
             DataType.ARRAY_UW, DataType.ARRAY_W -> Opcode.READ_INDEXED_VAR_WORD
             DataType.ARRAY_F -> Opcode.READ_INDEXED_VAR_FLOAT
             DataType.STR, DataType.STR_S -> Opcode.READ_INDEXED_VAR_BYTE
-            DataType.STR_P, DataType.STR_PS -> throw CompilerException("cannot index on type $dt - use regular 0-terminated str type")
             else -> throw CompilerException("invalid dt for indexed access $dt")
         }
     }
@@ -304,7 +298,6 @@ internal class Compiler(private val rootModule: Module,
             DataType.ARRAY_UW, DataType.ARRAY_W -> Opcode.WRITE_INDEXED_VAR_WORD
             DataType.ARRAY_F -> Opcode.WRITE_INDEXED_VAR_FLOAT
             DataType.STR, DataType.STR_S -> Opcode.WRITE_INDEXED_VAR_BYTE
-            DataType.STR_P, DataType.STR_PS -> TODO("cannot index on type $dt - use regular str type")
             else -> throw CompilerException("invalid dt for indexed access $dt")
         }
     }
@@ -805,10 +798,7 @@ internal class Compiler(private val rootModule: Module,
                 // 1 argument, type determines the exact syscall to use
                 val arg=args.single()
                 when (arg.resultingDatatype(namespace, heap)) {
-                    DataType.STR -> createSyscall("${funcname}_str")
-                    DataType.STR_P -> createSyscall("${funcname}_strp")
-                    DataType.STR_S -> createSyscall("${funcname}_str")
-                    DataType.STR_PS -> createSyscall("${funcname}_strp")
+                    DataType.STR, DataType.STR_S -> createSyscall("${funcname}_str")
                     else -> throw CompilerException("wrong datatype for len()")
                 }
             }
@@ -1773,7 +1763,7 @@ internal class Compiler(private val rootModule: Module,
     }
 
     private fun translateForOverIterableVar(loop: ForLoop, loopvarDt: DataType, iterableValue: LiteralValue) {
-        if(loopvarDt==DataType.UBYTE && iterableValue.type !in setOf(DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS, DataType.ARRAY_UB))
+        if(loopvarDt==DataType.UBYTE && iterableValue.type !in setOf(DataType.STR, DataType.STR_S, DataType.ARRAY_UB))
             throw CompilerException("loop variable type doesn't match iterableValue type")
         else if(loopvarDt==DataType.UWORD && iterableValue.type != DataType.ARRAY_UW)
             throw CompilerException("loop variable type doesn't match iterableValue type")
@@ -1783,7 +1773,6 @@ internal class Compiler(private val rootModule: Module,
         val numElements: Int
         when(iterableValue.type) {
             !in IterableDatatypes -> throw CompilerException("non-iterableValue type")
-            DataType.STR_P, DataType.STR_PS -> throw CompilerException("can't iterate string type ${iterableValue.type}")
             DataType.STR, DataType.STR_S -> {
                 numElements = iterableValue.strvalue(heap).length
                 if(numElements>255) throw CompilerException("string length > 255")

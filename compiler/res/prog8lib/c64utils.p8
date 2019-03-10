@@ -720,27 +720,6 @@ asmsub  print (str text @ AY) -> clobbers(A,Y) -> ()  {
 }
 
 
-asmsub  print_p  (str_p text @ AY) -> clobbers(A) -> (ubyte @ Y)  {
-	; ---- print pstring (length as first byte) from A/Y, returns str len in Y
-	%asm {{
-		sta  c64.SCRATCH_ZPB1
-		sty  c64.SCRATCH_ZPREG
-		stx  c64.SCRATCH_ZPREGX
-		ldy  #0
-		lda  (c64.SCRATCH_ZPB1),y
-		beq  +
-		tax
--		iny
-		lda  (c64.SCRATCH_ZPB1),y
-		jsr  c64.CHROUT
-		dex
-		bne  -
-+		ldx  c64.SCRATCH_ZPREGX
-		rts 		; output string length is in Y
-	}}
-}
-
-
 asmsub  print_ub0  (ubyte value @ A) -> clobbers(A,Y) -> ()  {
 	; ---- print the ubyte in A in decimal form, with left padding 0s (3 positions total)
 	%asm {{

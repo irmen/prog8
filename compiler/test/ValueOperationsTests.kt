@@ -82,7 +82,6 @@ class TestStackVmValue {
     fun testEqualsAndNotEqualsHeapTypes()
     {
         assertTrue(sameValueAndType(Value(DataType.STR, 999), Value(DataType.STR, 999)))
-        assertFalse(sameValueAndType(Value(DataType.STR, 999), Value(DataType.STR_P, 999)))
         assertFalse(sameValueAndType(Value(DataType.STR, 999), Value(DataType.STR, 222)))
 
         assertTrue(sameValueAndType(Value(DataType.ARRAY_UB, 99), Value(DataType.ARRAY_UB, 99)))

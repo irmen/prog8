@@ -26,9 +26,7 @@ enum class DataType {
     WORD,
     FLOAT,
     STR,
-    STR_P,
     STR_S,
-    STR_PS,
     ARRAY_UB,
     ARRAY_B,
     ARRAY_UW,
@@ -44,9 +42,7 @@ enum class DataType {
                 WORD -> targetType == WORD || targetType==UWORD || targetType == FLOAT
                 FLOAT -> targetType == FLOAT
                 STR -> targetType == STR || targetType==STR_S || targetType == UWORD
-                STR_P -> targetType == STR_P || targetType==STR_PS || targetType == UWORD
                 STR_S -> targetType == STR || targetType==STR_S || targetType == UWORD
-                STR_PS -> targetType == STR_P || targetType==STR_PS || targetType == UWORD
                 ARRAY_UB -> targetType == UWORD || targetType==ARRAY_UB
                 ARRAY_B -> targetType == UWORD  || targetType==ARRAY_B
                 ARRAY_UW -> targetType == UWORD || targetType==ARRAY_UW
@@ -98,7 +94,6 @@ enum class BranchCondition {
 
 val IterableDatatypes = setOf(
         DataType.STR, DataType.STR_S,
-        DataType.STR_P, DataType.STR_PS,  // note: these are a bit weird they store their length as the first byte
         DataType.ARRAY_UB, DataType.ARRAY_B,
         DataType.ARRAY_UW, DataType.ARRAY_W,
         DataType.ARRAY_F)
@@ -107,7 +102,7 @@ val ByteDatatypes = setOf(DataType.UBYTE, DataType.BYTE)
 val WordDatatypes = setOf(DataType.UWORD, DataType.WORD)
 val IntegerDatatypes = setOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD)
 val NumericDatatypes = setOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT)
-val StringDatatypes = setOf(DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS)
+val StringDatatypes = setOf(DataType.STR, DataType.STR_S)
 val ArrayDatatypes = setOf(DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F)
 
 
@@ -1161,14 +1156,15 @@ class LiteralValue(val type: DataType,
             DataType.UWORD -> "uword:$wordvalue"
             DataType.WORD -> "word:$wordvalue"
             DataType.FLOAT -> "float:$floatvalue"
-            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS-> {
+            in StringDatatypes -> {
                 if(heapId!=null) "str:#$heapId"
                 else "str:$initialstrvalue"
             }
-            DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F -> {
+            in ArrayDatatypes -> {
                 if(heapId!=null) "arrayspec:#$heapId"
                 else "arrayspec:$arrayvalue"
             }
+            else -> throw FatalAstException("weird datatype")
         }
         return "LiteralValue($vstr)"
     }
@@ -1274,7 +1270,7 @@ class LiteralValue(val type: DataType,
                         return LiteralValue(targettype, wordvalue = value, position = position)
                 }
             }
-            DataType.STR, DataType.STR_P,  DataType.STR_S, DataType.STR_PS -> {
+            in StringDatatypes -> {
                 if(targettype in StringDatatypes)
                     return this
             }
@@ -1316,9 +1312,7 @@ class RangeExpr(var from: IExpression,
             fromDt==DataType.UBYTE && toDt==DataType.UBYTE -> DataType.UBYTE
             fromDt==DataType.UWORD && toDt==DataType.UWORD -> DataType.UWORD
             fromDt==DataType.STR && toDt==DataType.STR -> DataType.STR
-            fromDt==DataType.STR_P && toDt==DataType.STR_P -> DataType.STR_P
             fromDt==DataType.STR_S && toDt==DataType.STR_S -> DataType.STR_S
-            fromDt==DataType.STR_PS && toDt==DataType.STR_PS -> DataType.STR_PS
             fromDt==DataType.WORD || toDt==DataType.WORD -> DataType.WORD
             fromDt==DataType.BYTE || toDt==DataType.BYTE -> DataType.BYTE
             else -> DataType.UBYTE

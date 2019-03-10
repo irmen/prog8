@@ -49,9 +49,7 @@ enum class Syscall(val callNr: Short) {
     FUNC_RNDW(90),               // push a random word on the stack
     FUNC_RNDF(91),               // push a random float on the stack (between 0.0 and 1.0)
     FUNC_LEN_STR(105),
-    FUNC_LEN_STRP(106),
-    FUNC_LEN_STRS(107),
-    FUNC_LEN_STRPS(108),
+    FUNC_LEN_STRS(106),
     FUNC_ANY_B(109),
     FUNC_ANY_W(110),
     FUNC_ANY_F(111),
@@ -923,9 +921,9 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.POP_VAR_WORD -> {
                 val value = evalstack.pop()
-                checkDt(value, DataType.UWORD, DataType.WORD, DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS)
+                checkDt(value, DataType.UWORD, DataType.WORD, DataType.STR, DataType.STR_S)
                 val variable = getVar(ins.callLabel!!)
-                checkDt(variable, DataType.UWORD, DataType.WORD, DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS)
+                checkDt(variable, DataType.UWORD, DataType.WORD, DataType.STR, DataType.STR_S)
                 if(value.type!=variable.type)
                     throw VmExecutionException("datatype mismatch")
                 variables[ins.callLabel] = value
@@ -1323,7 +1321,7 @@ class StackVm(private var traceOutputFile: String?) {
                         when (array.type) {
                             DataType.ARRAY_UB -> evalstack.push(Value(DataType.UBYTE, array.array!![index]))
                             DataType.ARRAY_B -> evalstack.push(Value(DataType.BYTE, array.array!![index]))
-                            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> evalstack.push(Value(DataType.UBYTE, Petscii.encodePetscii(array.str!![index].toString(), true)[0]))
+                            DataType.STR, DataType.STR_S -> evalstack.push(Value(DataType.UBYTE, Petscii.encodePetscii(array.str!![index].toString(), true)[0]))
                             else -> throw VmExecutionException("not a proper array/string variable with byte elements")
                         }
                     }
@@ -1414,10 +1412,7 @@ class StackVm(private var traceOutputFile: String?) {
                         when (array.type) {
                             DataType.ARRAY_UB -> array.array!![index] = value.integerValue()
                             DataType.ARRAY_B -> array.array!![index] = value.integerValue()
-                            DataType.STR,
-                            DataType.STR_P,
-                            DataType.STR_S,
-                            DataType.STR_PS -> {
+                            DataType.STR, DataType.STR_S -> {
                                 val chars = array.str!!.toCharArray()
                                 chars[index] = Petscii.decodePetscii(listOf(value.integerValue().toShort()), true)[0]
                                 heap.update(variable.heapId, chars.joinToString(""))
@@ -1609,7 +1604,7 @@ class StackVm(private var traceOutputFile: String?) {
             Syscall.FUNC_RND -> evalstack.push(Value(DataType.UBYTE, rnd.nextInt() and 255))
             Syscall.FUNC_RNDW -> evalstack.push(Value(DataType.UWORD, rnd.nextInt() and 65535))
             Syscall.FUNC_RNDF -> evalstack.push(Value(DataType.FLOAT, rnd.nextDouble()))
-            Syscall.FUNC_LEN_STR, Syscall.FUNC_LEN_STRS, Syscall.FUNC_LEN_STRP, Syscall.FUNC_LEN_STRPS -> {
+            Syscall.FUNC_LEN_STR, Syscall.FUNC_LEN_STRS -> {
                 val strPtr = evalstack.pop().integerValue()
                 val text = heap.get(strPtr).str!!
                 evalstack.push(Value(DataType.UBYTE, text.length))

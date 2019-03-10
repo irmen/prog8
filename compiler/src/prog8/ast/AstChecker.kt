@@ -890,9 +890,6 @@ private class AstChecker(private val namespace: INameScope,
                 if(index!=null && (index<0 || index>=arraysize))
                     checkResult.add(ExpressionError("array index out of bounds", arrayIndexedExpression.arrayspec.position))
             } else if(target.datatype in StringDatatypes) {
-                // check supported string tyep
-                if(target.datatype == DataType.STR_P || target.datatype==DataType.STR_PS)
-                    checkResult.add(ExpressionError("indexing pascal-strings is not supported, use regular str type instead", arrayIndexedExpression.arrayspec.position))
                 // check string lengths
                 val heapId = (target.value as LiteralValue).heapId!!
                 val stringLen = heap.get(heapId).str!!.length
@@ -1009,7 +1006,7 @@ private class AstChecker(private val namespace: INameScope,
                 if (number < -32768 || number > 32767)
                     return err("value '$number' out of range for word")
             }
-            DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
+            DataType.STR, DataType.STR_S -> {
                 if(!value.isString)
                     return err("string value expected")
                 val str = value.strvalue(heap)
@@ -1135,8 +1132,6 @@ private class AstChecker(private val namespace: INameScope,
             DataType.FLOAT -> sourceDatatype in NumericDatatypes
             DataType.STR -> sourceDatatype==DataType.STR
             DataType.STR_S -> sourceDatatype==DataType.STR_S
-            DataType.STR_P -> sourceDatatype==DataType.STR_P
-            DataType.STR_PS -> sourceDatatype==DataType.STR_PS
             else -> checkResult.add(SyntaxError("cannot assign new value to variable of type $targetDatatype", position))
         }
 

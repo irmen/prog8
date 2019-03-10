@@ -258,12 +258,8 @@ type identifier  type                     storage size       example var declara
 ``float[x]``     floating-point array     5*x bytes          ``float[4] myvar = [1.1, 2.2, 3.3, 4.4]``
 ``str``          string (petscii)         varies             ``str myvar = "hello."``
                                                              implicitly terminated by a 0-byte
-``str_p``        pascal-string (petscii)  varies             ``str_p myvar = "hello."``
-                                                             implicit first byte = length, no 0-byte
 ``str_s``        string (screencodes)     varies             ``str_s myvar = "hello."``
                                                              implicitly terminated by a 0-byte
-``str_ps``       pascal-string            varies             ``str_ps myvar = "hello."``
-                 (screencodes)                               implicit first byte = length, no 0-byte
 ===============  =======================  =================  =========================================
 
 **arrays:** you can split an array initializer list over several lines if you want.

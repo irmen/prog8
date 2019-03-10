@@ -1,9 +1,6 @@
 package prog8.stackvm
 
-import prog8.ast.DataType
-import prog8.ast.NumericDatatypes
-import prog8.ast.Position
-import prog8.ast.unescape
+import prog8.ast.*
 import prog8.compiler.HeapValues
 import prog8.compiler.intermediate.*
 import java.io.File
@@ -89,10 +86,7 @@ class Program (val name: String,
             }
             heapvalues.sortedBy { it.first }.forEach {
                 when(it.second) {
-                    DataType.STR,
-                    DataType.STR_P,
-                    DataType.STR_S,
-                    DataType.STR_PS -> heap.add(it.second, unescape(it.third.substring(1, it.third.length-1), Position("<stackvmsource>", 0, 0, 0)))
+                    DataType.STR, DataType.STR_S -> heap.add(it.second, unescape(it.third.substring(1, it.third.length-1), Position("<stackvmsource>", 0, 0, 0)))
                     DataType.ARRAY_UB, DataType.ARRAY_B,
                     DataType.ARRAY_UW, DataType.ARRAY_W -> {
                         val numbers = it.third.substring(1, it.third.length-1).split(',')
@@ -202,7 +196,7 @@ class Program (val name: String,
                     DataType.UWORD -> Value(DataType.UWORD, valueStr.substring(3).toInt(16))
                     DataType.WORD -> Value(DataType.WORD, valueStr.substring(2).toInt(16))
                     DataType.FLOAT -> Value(DataType.FLOAT, valueStr.substring(2).toDouble())
-                    DataType.STR, DataType.STR_P, DataType.STR_S, DataType.STR_PS -> {
+                    in StringDatatypes -> {
                         if(valueStr.startsWith('"') && valueStr.endsWith('"'))
                             throw VmExecutionException("encountered a var with a string value, but all string values should already have been moved into the heap")
                         else if(!valueStr.startsWith("heap:"))
@@ -212,11 +206,7 @@ class Program (val name: String,
                             Value(type, heapId)
                         }
                     }
-                    DataType.ARRAY_UB,
-                    DataType.ARRAY_B,
-                    DataType.ARRAY_UW,
-                    DataType.ARRAY_W,
-                    DataType.ARRAY_F -> {
+                    in ArrayDatatypes -> {
                         if(!valueStr.startsWith("heap:"))
                             throw VmExecutionException("invalid array value, should be a heap reference")
                         else {
@@ -224,6 +214,7 @@ class Program (val name: String,
                             Value(type, heapId)
                         }
                     }
+                    else -> throw VmExecutionException("weird datatype")
                 }
                 vars[name] = value
             }

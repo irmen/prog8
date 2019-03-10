@@ -293,10 +293,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 DataType.UWORD -> out("${v.first}\t.word  0")
                 DataType.WORD -> out("${v.first}\t.sint  0")
                 DataType.FLOAT -> out("${v.first}\t.byte  0,0,0,0,0  ; float")
-                DataType.STR,
-                DataType.STR_P,
-                DataType.STR_S,
-                DataType.STR_PS -> {
+                DataType.STR, DataType.STR_S -> {
                     val rawStr = heap.get(v.second.heapId).str!!
                     val bytes = encodeStr(rawStr, v.second.type).map { "$" + it.toString(16).padStart(2, '0') }
                     out("${v.first}\t; ${v.second.type} \"${escape(rawStr)}\"")
@@ -365,19 +362,9 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 val bytes = Petscii.encodePetscii(str, true)
                 return bytes.plus(0)
             }
-            DataType.STR_P -> {
-                val result = listOf(str.length.toShort())
-                val bytes = Petscii.encodePetscii(str, true)
-                return result.plus(bytes)
-            }
             DataType.STR_S -> {
                 val bytes = Petscii.encodeScreencode(str, true)
                 return bytes.plus(0)
-            }
-            DataType.STR_PS -> {
-                val result = listOf(str.length.toShort())
-                val bytes = Petscii.encodeScreencode(str, true)
-                return result.plus(bytes)
             }
             else -> throw AssemblyError("invalid str type")
         }

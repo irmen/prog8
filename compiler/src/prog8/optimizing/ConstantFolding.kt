@@ -534,7 +534,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
             if(literalValue.strvalue(heap).length !in 1..255)
                 addError(ExpressionError("string literal length must be between 1 and 255", literalValue.position))
             else {
-                val heapId = heap.add(literalValue.type, literalValue.strvalue(heap))     // TODO: we don't know the actual string type yet, STR != STR_P etc...
+                val heapId = heap.add(literalValue.type, literalValue.strvalue(heap))     // TODO: we don't know the actual string type yet, STR != STR_S etc...
                 val newValue = LiteralValue(literalValue.type, heapId = heapId, position = literalValue.position)
                 return super.process(newValue)
             }
