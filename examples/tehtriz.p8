@@ -15,12 +15,13 @@
     const ubyte boardHeight = 20
     const ubyte startXpos = boardOffsetX + 3
     const ubyte startYpos = boardOffsetY - 2
-
+    const ubyte startSpeedLevel = 30
     uword lines
     uword score
     ubyte xpos
     ubyte ypos
     ubyte nextBlock
+    ubyte speedlevel = startSpeedLevel
 
 
     sub start() {
@@ -36,7 +37,7 @@ newgame:
         spawnNextBlock()
 
 waitkey:
-        if c64.TIME_LO==30 {
+        if c64.TIME_LO>=speedlevel {
             c64.TIME_LO = 0
 
             drawBlock(xpos, ypos, 32) ; hide block
@@ -63,6 +64,13 @@ waitkey:
         ubyte key=c64.GETIN()
         if key==0 goto waitkey
 
+        keypress(key)
+
+        goto waitkey
+
+    }
+
+    sub keypress(ubyte key) {
         if key==157 or key==',' {
             ; move left
             drawBlock(xpos, ypos, 32)
@@ -146,9 +154,6 @@ waitkey:
             }
             drawBlock(xpos, ypos, 160)
         }
-
-        goto waitkey
-
     }
 
     sub checkForLines() {
@@ -174,8 +179,13 @@ waitkey:
                 if linepos and blocklogic.isLineFull(linepos)
                     blocklogic.collapse(linepos)
             lines += num_lines
-            uword[4] scores = [100, 250, 500, 800]      ; can never clear more than 4 lines
+            uword[4] scores = [10, 25, 50, 100]      ; can never clear more than 4 lines
             score += scores[num_lines-1]
+            word speed = startSpeedLevel-(lines as word)/10
+            if speed>0
+                speedlevel = lsb(speed)
+            else
+                speedlevel = 0
             drawScore()
         }
     }
@@ -236,6 +246,8 @@ waitkey:
         c64scr.print("irmen's")
         c64scr.PLOT(1,2)
         c64scr.print("teh▁triz")
+        c64scr.PLOT(2,22)
+        c64scr.print("speed: ")
         c64.COLOR = 5
         c64scr.PLOT(28,3)
         c64scr.print("next:")
@@ -278,7 +290,7 @@ waitkey:
             c64scr.setcc(boardOffsetX+boardWidth, i, 84, 11)
         }
 
-        for i in 6 to 0 step -1 {
+        for i in 5 to 0 step -1 {
             blocklogic.newCurrentBlock(i)
             drawBlock(3, 3+i*3, 102)                    ; 102 = stipple
         }
@@ -291,10 +303,13 @@ waitkey:
         c64scr.print_uw(lines)
         c64scr.PLOT(30,15)
         c64scr.print_uw(score)
+        c64scr.PLOT(9,22)
+        c64scr.print_ub(startSpeedLevel+1-speedlevel)
     }
 
     sub drawNextBlock() {
-        for ubyte x in 31 to 28 step -1 {
+        const ubyte nextBlockXpos = 29
+        for ubyte x in nextBlockXpos+3 to nextBlockXpos step -1 {
             c64scr.setcc(x, 5, ' ', 0)
             c64scr.setcc(x, 6, ' ', 0)
         }
@@ -302,7 +317,7 @@ waitkey:
         ; reuse the normal block draw routine (because we can't manipulate array pointers yet)
         ubyte prev = blocklogic.currentBlockNum
         blocklogic.newCurrentBlock(nextBlock)
-        drawBlock(28, 5, 160)
+        drawBlock(nextBlockXpos, 5, 160)
         blocklogic.newCurrentBlock(prev)
     }
 
