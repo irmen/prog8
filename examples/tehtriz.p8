@@ -262,8 +262,9 @@ waitkey:
         c64scr.print("spc  drop")
         c64scr.PLOT(27,22)
         c64scr.print("  m  descend")
-        c64scr.PLOT(27,23)
-        c64scr.print("or joystick2")
+        ; @todo joystick control:
+        ; c64scr.PLOT(27,23)
+        ; c64scr.print("or joystick2")
 
         c64scr.setcc(boardOffsetX-1, boardOffsetY-2, 255, 0)           ; invisible barrier
         c64scr.setcc(boardOffsetX-1, boardOffsetY-3, 255, 0)           ; invisible barrier
