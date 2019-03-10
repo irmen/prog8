@@ -109,3 +109,6 @@ Another example (cube3d-sprites.p8) draws the vertices of a rotating 3d cube:
 
 ![cube3d screen](docs/source/_static/cube3d.png)
 
+If you want to play a video game, a fully working Tetris clone is included in the examples:
+
+![tehtriz_screen](docs/source/_static/tehtriz.png)
