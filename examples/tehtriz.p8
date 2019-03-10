@@ -4,7 +4,9 @@
 
 ; @todo: holding a block
 ; @todo: joystick control
-; @todo: sometimes the game gets confused about what the current tetromino is and will draw the wrong one. Maybe occurs when rotating directly after dropping the previous?
+; @todo: large explosion with ding when clearing 4 lines
+; @todo: click sound (same as rotate) when block lands in place (without dropping it)
+; @todo: sometimes the game gets confused about what the current tetromino is and will draw the wrong one. When rotating a square it turns into the previous piece!
 
 ~ main {
 

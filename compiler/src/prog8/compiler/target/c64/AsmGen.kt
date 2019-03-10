@@ -357,14 +357,14 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
     }
 
     private fun encodeStr(str: String, dt: DataType): List<Short> {
-        when(dt) {
+        return when(dt) {
             DataType.STR -> {
                 val bytes = Petscii.encodePetscii(str, true)
-                return bytes.plus(0)
+                bytes.plus(0)
             }
             DataType.STR_S -> {
                 val bytes = Petscii.encodeScreencode(str, true)
-                return bytes.plus(0)
+                bytes.plus(0)
             }
             else -> throw AssemblyError("invalid str type")
         }

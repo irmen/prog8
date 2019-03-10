@@ -1645,7 +1645,7 @@ class Subroutine(override val name: String,
             .map { (it as InlineAssembly).assembly }
             .count { " rti" in it || "\trti" in it || " rts" in it || "\trts" in it || " jmp" in it || "\tjmp" in it }
 
-    val canBeAsmSubroutine =false // TODO see below
+    val canBeAsmSubroutine =false // TODO disabled for now, see below about problem with converting to asm subroutine
 //            !isAsmSubroutine
 //                    && ((parameters.size == 1 && parameters[0].type in setOf(DataType.BYTE, DataType.UBYTE, DataType.WORD, DataType.UWORD))
 //                    || (parameters.size == 2 && parameters.map { it.type }.all { it == DataType.BYTE || it == DataType.UBYTE }))

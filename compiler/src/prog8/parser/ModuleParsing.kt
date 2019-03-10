@@ -5,7 +5,6 @@ import prog8.ast.*
 import prog8.compiler.LauncherType
 import prog8.compiler.OutputType
 import prog8.determineCompilationOptions
-import java.io.File
 import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
