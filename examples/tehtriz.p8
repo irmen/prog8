@@ -1,6 +1,14 @@
 ; TehTriz - a Tetris clone.
+;
+; features:
+;   holding area
+;   wall kick rotations
+;   shows next piece
+;   staged speed increase
+;   some simple sound effects
+;
+; @todo show ghost?
 
-; @todo: holding a block
 
 ~ main {
 
@@ -16,6 +24,8 @@
     ubyte ypos
     ubyte nextBlock
     ubyte speedlevel
+    ubyte holding
+    ubyte holdingAllowed
 
 
     sub start() {
@@ -148,6 +158,24 @@ waitkey:
             }
             drawBlock(xpos, ypos, 160)
         }
+        else if key=='c' {
+            ; hold
+            if holdingAllowed {
+                sound.swapping()
+                if holding<7 {
+                    drawBlock(xpos, ypos, 32)
+                    ubyte newholding = blocklogic.currentBlockNum
+                    swapBlock(holding)
+                    holding = newholding
+                    holdingAllowed = false
+                } else {
+                    holding = blocklogic.currentBlockNum
+                    drawBlock(xpos, ypos, 32)
+                    spawnNextBlock()
+                }
+                drawHoldBlock()
+            }
+        }
     }
 
     sub checkForLines() {
@@ -220,16 +248,23 @@ waitkey:
         ypos = startYpos
         speedlevel = 1
         nextBlock = rnd() % 7
+        holding = 255
+        holdingAllowed = true
     }
 
-    sub spawnNextBlock() {
+    sub swapBlock(ubyte newblock) {
         c64.TIME_LO = 0
-        blocklogic.newCurrentBlock(nextBlock)
-        nextBlock = (rnd() + c64.RASTER) % 7
-        drawNextBlock()
+        blocklogic.newCurrentBlock(newblock)
         xpos = startXpos
         ypos = startYpos
         drawBlock(xpos, ypos, 160)
+    }
+
+    sub spawnNextBlock() {
+        swapBlock(nextBlock)
+        nextBlock = (rnd() + c64.RASTER) % 7
+        drawNextBlock()
+        holdingAllowed = true
     }
 
     sub drawBoard() {
@@ -237,11 +272,13 @@ waitkey:
         c64.COLOR = 7
         c64scr.PLOT(1,1)
         c64scr.print("irmen's")
-        c64scr.PLOT(1,2)
+        c64scr.PLOT(2,2)
         c64scr.print("teh▁triz")
+        c64.COLOR = 5
+        c64scr.PLOT(6,4)
+        c64scr.print("hold:")
         c64scr.PLOT(2,22)
         c64scr.print("speed: ")
-        c64.COLOR = 5
         c64scr.PLOT(28,3)
         c64scr.print("next:")
         c64scr.PLOT(28,10)
@@ -260,9 +297,8 @@ waitkey:
         c64scr.print(".  descend")
         c64scr.PLOT(27,22)
         c64scr.print("spc  drop")
-        ; @todo joystick control:
-        ; c64scr.PLOT(27,23)
-        ; c64scr.print("or joystick2")
+        c64scr.PLOT(29,23)
+        c64scr.print("c  hold")
 
         c64scr.setcc(boardOffsetX-1, boardOffsetY-2, 255, 0)           ; invisible barrier
         c64scr.setcc(boardOffsetX-1, boardOffsetY-3, 255, 0)           ; invisible barrier
@@ -284,9 +320,11 @@ waitkey:
             c64scr.setcc(boardOffsetX+boardWidth, i, 84, 11)
         }
 
-        for i in 5 to 0 step -1 {
-            blocklogic.newCurrentBlock(i)
-            drawBlock(3, 3+i*3, 102)                    ; 102 = stipple
+        ubyte[5] colors = [6,8,7,5,4]
+        for i in len(colors)-1 to 0 step -1 {
+            for ubyte x in 5 to 0 step -1 {
+                c64scr.setcc(6+x-i, 11+2*i, 102, colors[i])
+            }
         }
         drawScore()
     }
@@ -303,16 +341,33 @@ waitkey:
 
     sub drawNextBlock() {
         const ubyte nextBlockXpos = 29
+        const ubyte nextBlockYpos = 5
         for ubyte x in nextBlockXpos+3 to nextBlockXpos step -1 {
-            c64scr.setcc(x, 5, ' ', 0)
-            c64scr.setcc(x, 6, ' ', 0)
+            c64scr.setcc(x, nextBlockYpos, ' ', 0)
+            c64scr.setcc(x, nextBlockYpos+1, ' ', 0)
         }
 
         ; reuse the normal block draw routine (because we can't manipulate array pointers yet)
         ubyte prev = blocklogic.currentBlockNum
         blocklogic.newCurrentBlock(nextBlock)
-        drawBlock(nextBlockXpos, 5, 160)
+        drawBlock(nextBlockXpos, nextBlockYpos, 160)
         blocklogic.newCurrentBlock(prev)
+    }
+
+    sub drawHoldBlock() {
+        const ubyte holdBlockXpos = 7
+        const ubyte holdBlockYpos = 6
+        for ubyte x in holdBlockXpos+3 to holdBlockXpos step -1 {
+            c64scr.setcc(x, holdBlockYpos, '@', 0)
+            c64scr.setcc(x, holdBlockYpos+1, '@', 0)
+        }
+        if holding < 7 {
+            ; reuse the normal block draw routine (because we can't manipulate array pointers yet)
+            ubyte prev = blocklogic.currentBlockNum
+            blocklogic.newCurrentBlock(holding)
+            drawBlock(holdBlockXpos, holdBlockYpos, 160)
+            blocklogic.newCurrentBlock(prev)
+        }
     }
 
     sub drawBlock(ubyte x, ubyte y, ubyte character) {
@@ -537,6 +592,16 @@ waitkey:
         c64.FREQ1 = 4600
         c64.CR1 = %10000000
         c64.CR1 = %10000001
+    }
+
+    sub swapping() {
+        ; beep
+        c64.MVOL = 8
+        c64.AD1 = %01010111
+        c64.SR1 = %00000000
+        c64.FREQ1 = 5500
+        c64.CR1 = %00010000
+        c64.CR1 = %00010001
     }
 
     sub lineclear() {
