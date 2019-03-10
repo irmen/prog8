@@ -1,12 +1,6 @@
-
 ; TehTriz - a Tetris clone.
-;
 
 ; @todo: holding a block
-; @todo: joystick control
-; @todo: large explosion with ding when clearing 4 lines
-; @todo: click sound (same as rotate) when block lands in place (without dropping it)
-; @todo: sometimes the game gets confused about what the current tetromino is and will draw the wrong one. When rotating a square it turns into the previous piece!
 
 ~ main {
 
@@ -21,7 +15,7 @@
     ubyte xpos
     ubyte ypos
     ubyte nextBlock
-    ubyte speedlevel = 1
+    ubyte speedlevel
 
 
     sub start() {
@@ -52,8 +46,10 @@ waitkey:
                     gameOver()
                     goto newgame
                 } else {
+                    sound.blockrotate()
                     checkForLines()
                     spawnNextBlock()
+                    score++
                 }
             }
 
@@ -78,7 +74,7 @@ waitkey:
             }
             drawBlock(xpos, ypos, 160)
         }
-        else if key==29 or key=='.' {
+        else if key==29 or key=='/' {
             ; move right
             drawBlock(xpos, ypos, 32)
             if blocklogic.noCollision(xpos+1, ypos) {
@@ -86,7 +82,7 @@ waitkey:
             }
             drawBlock(xpos, ypos, 160)
         }
-        else if key==17 or key=='m' {
+        else if key==17 or key=='.' {
             ; move down faster
             drawBlock(xpos, ypos, 32)
             if blocklogic.noCollision(xpos, ypos+1) {
@@ -110,6 +106,8 @@ waitkey:
                 drawBlock(xpos, ypos, 160)
                 checkForLines()
                 spawnNextBlock()
+                score++
+                drawScore()
             }
         }
         else if key=='z' {      ; no joystick equivalent (there is only 1 fire button)
@@ -166,7 +164,10 @@ waitkey:
             }
         }
         if num_lines {
-            sound.lineclear()
+            if num_lines>3
+                sound.lineclear_big()
+            else
+                sound.lineclear()
             c64.TIME_LO=0
             while c64.TIME_LO<20 {
                 ; slight delay to flash the line
@@ -217,6 +218,7 @@ waitkey:
         score = 0
         xpos = startXpos
         ypos = startYpos
+        speedlevel = 1
         nextBlock = rnd() % 7
     }
 
@@ -228,7 +230,6 @@ waitkey:
         xpos = startXpos
         ypos = startYpos
         drawBlock(xpos, ypos, 160)
-        score++
     }
 
     sub drawBoard() {
@@ -248,17 +249,17 @@ waitkey:
         c64scr.PLOT(28,14)
         c64scr.print("score:")
         c64.COLOR = 12
-        c64scr.PLOT(28,18)
+        c64scr.PLOT(27,18)
         c64scr.print("controls:")
         c64.COLOR = 11
-        c64scr.PLOT(27,19)
-        c64scr.print("z/x  rotate")
-        c64scr.PLOT(27,20)
-        c64scr.print(",/.  move")
-        c64scr.PLOT(27,21)
-        c64scr.print("spc  drop")
+        c64scr.PLOT(28,19)
+        c64scr.print(",/  move")
+        c64scr.PLOT(28,20)
+        c64scr.print("zx  rotate")
+        c64scr.PLOT(29,21)
+        c64scr.print(".  descend")
         c64scr.PLOT(27,22)
-        c64scr.print("  m  descend")
+        c64scr.print("spc  drop")
         ; @todo joystick control:
         ; c64scr.PLOT(27,23)
         ; c64scr.print("or joystick2")
@@ -401,6 +402,7 @@ waitkey:
             rotated[13] = currentBlock[11]
             rotated[14] = currentBlock[7]
             rotated[15] = currentBlock[3]
+            memcopy(rotated, currentBlock, len(currentBlock))
         }
         else if currentBlockNum!=3 {
             ; rotate all blocks (except 3, the square) around their center square in a 3x3 matrix
@@ -414,9 +416,8 @@ waitkey:
             rotated[8] = currentBlock[10]
             rotated[9] = currentBlock[6]
             rotated[10] = currentBlock[2]
+            memcopy(rotated, currentBlock, len(currentBlock))
         }
-
-        memcopy(rotated, currentBlock, len(currentBlock))
     }
 
     sub rotateCCW() {
@@ -439,6 +440,7 @@ waitkey:
             rotated[13] = currentBlock[4]
             rotated[14] = currentBlock[8]
             rotated[15] = currentBlock[12]
+            memcopy(rotated, currentBlock, len(currentBlock))
         }
         else if currentBlockNum!=3 {
             ; rotate all blocks (except 3, the square) around their center square in a 3x3 matrix
@@ -452,8 +454,8 @@ waitkey:
             rotated[8] = currentBlock[0]
             rotated[9] = currentBlock[4]
             rotated[10] = currentBlock[8]
+            memcopy(rotated, currentBlock, len(currentBlock))
         }
-        memcopy(rotated, currentBlock, len(currentBlock))
     }
 
     ; For movement checking it is not needed to clamp the x/y coordinates,
@@ -543,6 +545,16 @@ waitkey:
         c64.AD1 = %01100110
         c64.SR1 = %00000000
         c64.FREQ1 = 1600
+        c64.CR1 = %10000000
+        c64.CR1 = %10000001
+    }
+
+    sub lineclear_big() {
+        ; big explosion
+        c64.MVOL = 15
+        c64.AD1 = %01101010
+        c64.SR1 = %00000000
+        c64.FREQ1 = 2600
         c64.CR1 = %10000000
         c64.CR1 = %10000001
     }
