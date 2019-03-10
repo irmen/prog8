@@ -14,13 +14,12 @@
     const ubyte boardHeight = 20
     const ubyte startXpos = boardOffsetX + 3
     const ubyte startYpos = boardOffsetY - 2
-    const ubyte startSpeedLevel = 30
     uword lines
     uword score
     ubyte xpos
     ubyte ypos
     ubyte nextBlock
-    ubyte speedlevel = startSpeedLevel
+    ubyte speedlevel = 1
 
 
     sub start() {
@@ -36,7 +35,7 @@ newgame:
         spawnNextBlock()
 
 waitkey:
-        if c64.TIME_LO>=speedlevel {
+        if c64.TIME_LO>=(60-4*speedlevel) {
             c64.TIME_LO = 0
 
             drawBlock(xpos, ypos, 32) ; hide block
@@ -177,11 +176,7 @@ waitkey:
             lines += num_lines
             uword[4] scores = [10, 25, 50, 100]      ; can never clear more than 4 lines
             score += scores[num_lines-1]
-            word speed = startSpeedLevel-(lines as word)/10
-            if speed>0
-                speedlevel = lsb(speed)
-            else
-                speedlevel = 0
+            speedlevel = 1+lsb(lines/10)
             drawScore()
         }
     }
@@ -300,7 +295,7 @@ waitkey:
         c64scr.PLOT(30,15)
         c64scr.print_uw(score)
         c64scr.PLOT(9,22)
-        c64scr.print_ub(startSpeedLevel+1-speedlevel)
+        c64scr.print_ub(speedlevel)
     }
 
     sub drawNextBlock() {
