@@ -88,7 +88,17 @@ enum class Syscall(val callNr: Short) {
     SYSCALLSTUB(200),
     SYSASM_c64scr_PLOT(201),
     SYSASM_c64scr_print(202),
-    SYSASM_c64scr_setcc(203),
+    SYSASM_c64scr_print_ub0(203),
+    SYSASM_c64scr_print_ub(204),
+    SYSASM_c64scr_print_b(205),
+    SYSASM_c64scr_print_ubhex(206),
+    SYSASM_c64scr_print_ubbin(207),
+    SYSASM_c64scr_print_uwbin(208),
+    SYSASM_c64scr_print_uwhex(209),
+    SYSASM_c64scr_print_uw0(210),
+    SYSASM_c64scr_print_uw(211),
+    SYSASM_c64scr_print_w(212),
+    SYSASM_c64scr_setcc(213),
 }
 
 
@@ -1779,8 +1789,15 @@ class StackVm(private var traceOutputFile: String?) {
                 P_carry = evalstack.pop().asBooleanValue
                 P_irqd = evalstack.pop().asBooleanValue
             }
-            Opcode.RSAVEX -> evalstack.push(variables["X"])
-            Opcode.RRESTOREX -> variables["X"] = evalstack.pop()
+            Opcode.RSAVEX -> {
+                evalstack.push(variables["X"])
+                println("-----rsaveX called, stacksize ${evalstack.size}")   // TODO
+            }
+            Opcode.RRESTOREX -> {
+                println("-----rrestoreX called, stacksize before ${evalstack.size}")   // TODO
+                // TODO called too ofen -> stack error
+                variables["X"] = evalstack.pop()
+            }
             Opcode.INLINE_ASSEMBLY -> throw VmExecutionException("stackVm doesn't support executing inline assembly code $ins")
             Opcode.PUSH_ADDR_HEAPVAR -> {
                 val heapId = variables[ins.callLabel]!!.heapId
@@ -1822,7 +1839,16 @@ class StackVm(private var traceOutputFile: String?) {
             if(ins.nextAlt==null)
                 throw VmExecutionException("call to system routine requires nextAlt return instruction set: $ins")
             else {
-                println("CALLING SYSTEM ROUTINE $ins")
+                when(ins.callLabel) {
+                    "c64.CLEARSCR" -> {
+                        println(" evalstack (size=${evalstack.size}):")
+                        evalstack.printTop(4, System.out)
+                        canvas?.clearScreen(mem.getUByte(0xd021).toInt())
+                    }
+                    else -> {
+                        TODO("SYSTEM ROUTINE ${ins.callLabel}")
+                    }
+                }
                 return ins.nextAlt!!
             }
         } else
@@ -2134,13 +2160,24 @@ class StackVm(private var traceOutputFile: String?) {
                 val str = heap.get(straddr).str!!
                 canvas?.writeText(x, y, str, 1, true)
             }
+            Syscall.SYSASM_c64scr_print_ub -> {
+                val (x, y) = canvas!!.getCursorPos()
+                val num = variables["A"]!!.integerValue()
+                canvas?.writeText(x, y, num.toString(), 1, true)
+            }
+            Syscall.SYSASM_c64scr_print_uw -> {
+                val (x, y) = canvas!!.getCursorPos()
+                val lo = variables["A"]!!.integerValue()
+                val hi = variables["Y"]!!.integerValue()
+                val number = lo+256*hi
+                canvas?.writeText(x, y, number.toString(), 1, true)
+            }
             Syscall.SYSASM_c64scr_setcc -> {
                 val x = variables["c64scr.setcc.column"]!!.integerValue()
                 val y = variables["c64scr.setcc.row"]!!.integerValue()
                 val char = variables["c64scr.setcc.char"]!!.integerValue()
                 // val color = variables["c64scr.setcc.color"]!!.integerValue()        // text color other than 1 (white) can't be used right now
                 canvas?.setChar(x, y, char.toShort())
-                println("setcc $x $y")      // TODO   the vm is in an endless loop here when running tehtriz with this!
             }
             else -> throw VmExecutionException("unimplemented syscall $syscall")
         }

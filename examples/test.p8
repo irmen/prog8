@@ -8,5 +8,6 @@
 
     sub start() {
 
+        c64.CLEARSCR()      ; @todo empty stack exception in vm
     }
 }
