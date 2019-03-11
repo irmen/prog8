@@ -142,8 +142,19 @@ class Program (val name: String,
                             Instruction(opcode, callLabel = withoutQuotes)
                         }
                         Opcode.SYSCALL -> {
-                            val call = Syscall.valueOf(args!!)
-                            Instruction(opcode, Value(DataType.UBYTE, call.callNr))
+                            if(args!! in syscallNames) {
+                                val call = Syscall.valueOf(args)
+                                Instruction(opcode, Value(DataType.UBYTE, call.callNr))
+                            } else {
+                                val args2 = args.replace('.', '_')
+                                if(args2 in syscallNames) {
+                                    val call = Syscall.valueOf(args2)
+                                    Instruction(opcode, Value(DataType.UBYTE, call.callNr))
+                                } else {
+                                    // the syscall is not yet implemented. emit a stub.
+                                    Instruction(Opcode.SYSCALL, Value(DataType.UBYTE, Syscall.SYSCALLSTUB.callNr), callLabel = args2)
+                                }
+                            }
                         }
                         else -> {
                             Instruction(opcode, getArgValue(args, heap))
@@ -275,36 +286,42 @@ class Program (val name: String,
                 Opcode.TERMINATE -> instr.next = instr          // won't ever execute a next instruction
                 Opcode.RETURN -> instr.next = instr             // kinda a special one, in actuality the return instruction is dynamic
                 Opcode.JUMP -> {
-                    if(instr.callLabel==null) {
+                    if(instr.callLabel==null)
                         throw VmExecutionException("stackVm doesn't support JUMP to memory address")
-                    } else {
-                        // jump to label
-                        val target = labels[instr.callLabel] ?: throw VmExecutionException("undefined label: ${instr.callLabel}")
-                        instr.next = target
-                    }
+                    else
+                        linkJumpTarget(instr)
                 }
                 Opcode.BCC, Opcode.BCS, Opcode.BZ, Opcode.BNZ, Opcode.BNEG, Opcode.BPOS, Opcode.JZ, Opcode.JNZ, Opcode.JZW, Opcode.JNZW -> {
                     if(instr.callLabel==null) {
                         throw VmExecutionException("stackVm doesn't support branch to memory address")
                     } else {
-                        // branch to label
-                        val jumpInstr = labels[instr.callLabel] ?: throw VmExecutionException("undefined label: ${instr.callLabel}")
-                        instr.next = jumpInstr
-                        instr.nextAlt = nextInstr
+                        linkJumpTarget(instr)       // branch label
+                        instr.nextAlt = nextInstr   // alternate branch
                     }
                 }
                 Opcode.CALL -> {
                     if(instr.callLabel==null) {
                         throw VmExecutionException("stackVm doesn't support CALL to memory address")
                     } else {
-                        // call label
-                        val jumpInstr = labels[instr.callLabel] ?: throw VmExecutionException("undefined label: ${instr.callLabel}")
-                        instr.next = jumpInstr
+                        linkJumpTarget(instr)      // call label
                         instr.nextAlt = nextInstr  // instruction to return to
                     }
                 }
                 else -> instr.next = nextInstr
             }
         }
+    }
+
+    private fun linkJumpTarget(instr: Instruction) {
+        val target = labels[instr.callLabel]
+        if(target==null) {
+            val memtarget = memoryPointers[instr.callLabel]?.first
+            if(memtarget==null)
+                throw VmExecutionException("undefined label: ${instr.callLabel}")
+            else {
+                instr.branchAddress=memtarget
+            }
+        } else
+            instr.next = target
     }
 }

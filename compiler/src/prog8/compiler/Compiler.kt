@@ -377,7 +377,16 @@ internal class Compiler(private val rootModule: Module,
     }
 
     private fun translate(stmt: InlineAssembly) {
-        prog.instr(Opcode.INLINE_ASSEMBLY, callLabel = stmt.assembly)
+        // If the inline assembly is the only statement inside a subroutine (except vardecls),
+        // we can use the name of that subroutine to identify it.
+        // The compiler could then convert it to a special system call
+        val sub = stmt.parent as? Subroutine
+        val scopename =
+                if(sub!=null && sub.statements.filter{it !is VarDecl}.size==1)
+                    sub.scopedname
+                else
+                    null
+        prog.instr(Opcode.INLINE_ASSEMBLY, callLabel=scopename, callLabel2 = stmt.assembly)
     }
 
     private fun translate(stmt: Continue) {
@@ -2233,7 +2242,7 @@ internal class Compiler(private val rootModule: Module,
                         File(filename).readText()
                 }
 
-        prog.instr(Opcode.INLINE_ASSEMBLY, callLabel=scopeprefix+sourcecode+scopeprefixEnd)
+        prog.instr(Opcode.INLINE_ASSEMBLY, callLabel=null, callLabel2=scopeprefix+sourcecode+scopeprefixEnd)
     }
 
     private fun translateAsmBinary(args: List<DirectiveArg>) {

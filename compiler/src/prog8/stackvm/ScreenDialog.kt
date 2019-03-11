@@ -15,6 +15,8 @@ class BitmapScreenPanel : KeyListener, JPanel() {
 
     private val image = BufferedImage(SCREENWIDTH, SCREENHEIGHT, BufferedImage.TYPE_INT_ARGB)
     private val g2d = image.graphics as Graphics2D
+    private var cursorX: Int=0
+    private var cursorY: Int=0
 
     init {
         val size = Dimension(image.width * SCALING, image.height * SCALING)
@@ -56,13 +58,13 @@ class BitmapScreenPanel : KeyListener, JPanel() {
         g2d.color = palette[color and 15]
         g2d.drawLine(x1, y1, x2, y2)
     }
-    fun writeText(x: Int, y: Int, text: String, color: Int) {
+    fun writeText(x: Int, y: Int, text: String, color: Int, lowercase: Boolean) {
         if(color!=1) {
             TODO("text can only be white for now")
         }
         var xx=x
         var yy=y
-        for(sc in Petscii.encodeScreencode(text, true)) {
+        for(sc in Petscii.encodeScreencode(text, lowercase)) {
             setChar(xx, yy, sc)
             xx++
             if(xx>=(SCREENWIDTH/8)) {
@@ -73,6 +75,15 @@ class BitmapScreenPanel : KeyListener, JPanel() {
     }
     fun setChar(x: Int, y: Int, screenCode: Short) {
         g2d.drawImage(Charset.shiftedChars[screenCode.toInt()], 8*x, 8*y , null)
+    }
+
+    fun setCursorPos(x: Int, y: Int) {
+        cursorX = x
+        cursorY = y
+    }
+
+    fun getCursorPos(): Pair<Int, Int> {
+        return Pair(cursorX, cursorY)
     }
 
 

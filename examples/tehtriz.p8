@@ -323,7 +323,7 @@ waitkey:
         ubyte[5] colors = [6,8,7,5,4]
         for i in len(colors)-1 to 0 step -1 {
             for ubyte x in 5 to 0 step -1 {
-                c64scr.setcc(6+x-i, 11+2*i, 102, colors[i])
+                c64scr.setcc(6+x-i, 11+2*i, 102, colors[i])         ; @todo when run in the stackVM, this loop never ends and corrupts the screen
             }
         }
         drawScore()

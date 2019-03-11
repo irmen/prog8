@@ -79,11 +79,20 @@ enum class Syscall(val callNr: Short) {
     FUNC_MEMCOPY(138),
     FUNC_MEMSET(139),
     FUNC_MEMSETW(140),
-    FUNC_READ_FLAGS(141)
+    FUNC_READ_FLAGS(141),
 
     // note: not all builtin functions of the Prog8 language are present as functions:
     // some of them are straight opcodes (such as MSB, LSB, LSL, LSR, ROL_BYTE, ROR, ROL2, ROR2, and FLT)!
+
+    // vm intercepts of system routines:
+    SYSCALLSTUB(200),
+    SYSASM_c64scr_PLOT(201),
+    SYSASM_c64scr_print(202),
+    SYSASM_c64scr_setcc(203),
 }
+
+
+val syscallNames = enumValues<Syscall>().map { it.name }.toSet()
 
 val syscallsForStackVm = setOf(
         Syscall.VM_WRITE_MEMCHR,
@@ -1502,7 +1511,7 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.RSAVEX -> evalstack.push(variables["X"])
             Opcode.RRESTOREX -> variables["X"] = evalstack.pop()
-            Opcode.INLINE_ASSEMBLY -> throw VmExecutionException("stackVm doesn't support executing inline assembly code")
+            Opcode.INLINE_ASSEMBLY -> throw VmExecutionException("stackVm doesn't support executing inline assembly code $ins")
             Opcode.PUSH_ADDR_HEAPVAR -> {
                 val heapId = variables[ins.callLabel]!!.heapId
                 if(heapId<0)
@@ -1538,7 +1547,16 @@ class StackVm(private var traceOutputFile: String?) {
             evalstack.printTop(4, traceOutput!!)
         }
 
-        return ins.next
+        if(ins.branchAddress!=null) {
+            // this is an instruction that jumps to a system routine (memory address)
+            if(ins.nextAlt==null)
+                throw VmExecutionException("call to system routine requires nextAlt return instruction set: $ins")
+            else {
+                println("CALLING SYSTEM ROUTINE $ins")
+                return ins.nextAlt!!
+            }
+        } else
+            return ins.next
     }
 
     private fun typecast(from: DataType, to: DataType) {
@@ -1599,7 +1617,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val color = evalstack.pop()
                 val (cy, cx) = evalstack.pop2()
                 val text = heap.get(textPtr)
-                canvas?.writeText(cx.integerValue(), cy.integerValue(), text.str!!, color.integerValue())
+                canvas?.writeText(cx.integerValue(), cy.integerValue(), text.str!!, color.integerValue(), true)
             }
             Syscall.FUNC_RND -> evalstack.push(Value(DataType.UBYTE, rnd.nextInt() and 255))
             Syscall.FUNC_RNDW -> evalstack.push(Value(DataType.UWORD, rnd.nextInt() and 65535))
@@ -1803,7 +1821,29 @@ class StackVm(private var traceOutputFile: String?) {
                         mem.setSWord(addr, wordvalue)
                     else -> throw VmExecutionException("(u)word value expected")
                 }
-            }        }
+            }
+            Syscall.SYSCALLSTUB -> throw VmExecutionException("unimplemented sysasm called: ${ins.callLabel}  Create a Syscall enum for this and implement the vm intercept for it.")
+            Syscall.SYSASM_c64scr_PLOT -> {
+                val x = variables["Y"]!!.integerValue()
+                val y = variables["A"]!!.integerValue()
+                canvas?.setCursorPos(x, y)
+            }
+            Syscall.SYSASM_c64scr_print -> {
+                val (x, y) = canvas!!.getCursorPos()
+                val straddr = variables["A"]!!.integerValue() + 256*variables["Y"]!!.integerValue()
+                val str = heap.get(straddr).str!!
+                canvas?.writeText(x, y, str, 1, true)
+            }
+            Syscall.SYSASM_c64scr_setcc -> {
+                val x = variables["c64scr.setcc.column"]!!.integerValue()
+                val y = variables["c64scr.setcc.row"]!!.integerValue()
+                val char = variables["c64scr.setcc.char"]!!.integerValue()
+                // val color = variables["c64scr.setcc.color"]!!.integerValue()        // text color other than 1 (white) can't be used right now
+                canvas?.setChar(x, y, char.toShort())
+                println("setcc $x $y")      // TODO   the vm is in an endless loop here when running tehtriz with this!
+            }
+            else -> throw VmExecutionException("unimplemented syscall $syscall")
+        }
     }
 
     fun irq(timestamp: Long) {
