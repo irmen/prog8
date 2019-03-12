@@ -275,6 +275,13 @@ class Program (val name: String,
 
 
     private fun connect() {
+
+        // TODO:  because of JUMP instructions, the below doesn't work
+        // you cannot link instructions with just 1 instruction flow
+        // because JUMPS to another place will cause a RETURN to return back to different locations depending on what's called it...
+        // probably just need a real instruction pointer (based on index?) and call stack.
+
+
         val it1 = program.iterator()
         val it2 = program.iterator()
         it2.next()
