@@ -50,6 +50,8 @@ class BitmapScreenPanel : KeyListener, JPanel() {
     fun clearScreen(color: Int) {
         g2d.background = palette[color and 15]
         g2d.clearRect(0, 0, BitmapScreenPanel.SCREENWIDTH, BitmapScreenPanel.SCREENHEIGHT)
+        cursorX = 0
+        cursorY = 0
     }
     fun setPixel(x: Int, y: Int, color: Int) {
         image.setRGB(x, y, palette[color and 15].rgb)
@@ -59,8 +61,25 @@ class BitmapScreenPanel : KeyListener, JPanel() {
         g2d.drawLine(x1, y1, x2, y2)
     }
     fun writeText(x: Int, y: Int, text: String, color: Int, lowercase: Boolean) {
+        var xx=x
+        var yy=y
+        val lines = text.split('\n')
+        for(line in lines.withIndex()) {
+            writeTextSingleLine(xx, yy, line.value, color, lowercase)
+            xx = cursorX
+            yy = cursorY
+            if(line.index<lines.size-1) {
+                xx=0
+                yy++
+            }
+        }
+    }
+    fun writeTextSingleLine(x: Int, y: Int, text: String, color: Int, lowercase: Boolean) {
         if(color!=1) {
             TODO("text can only be white for now")
+        }
+        for(clearx in x until x+text.length) {
+            g2d.clearRect(8*clearx, 8*y, 8, 8)
         }
         var xx=x
         var yy=y
@@ -72,9 +91,22 @@ class BitmapScreenPanel : KeyListener, JPanel() {
                 xx=0
             }
         }
+        cursorX = x + text.length
+        cursorY = y
+        if(cursorX>=(SCREENWIDTH/8)) {
+            cursorX=0
+            cursorY++
+        }
     }
     fun setChar(x: Int, y: Int, screenCode: Short) {
+        g2d.clearRect(8*x, 8*y, 8, 8)
         g2d.drawImage(Charset.shiftedChars[screenCode.toInt()], 8*x, 8*y , null)
+        cursorX = x + 1
+        cursorY = y
+        if(cursorX>=(SCREENWIDTH/8)) {
+            cursorX=0
+            cursorY++
+        }
     }
 
     fun setCursorPos(x: Int, y: Int) {

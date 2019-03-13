@@ -100,6 +100,7 @@ enum class Syscall(val callNr: Short) {
     SYSASM_c64scr_print_uw(211),
     SYSASM_c64scr_print_w(212),
     SYSASM_c64scr_setcc(213),
+    SYSASM_c64flt_print_f(214),
 }
 
 
@@ -1879,7 +1880,6 @@ class StackVm(private var traceOutputFile: String?) {
                     callstack.pop()
                 }
                 "c64.CHROUT" -> {
-                    // TODO sometimes the character ends up on the wrong screen position because the text-output routines don't update the cursorpos!
                     val sc=variables.getValue("A").integerValue()
                     val (x, y) = canvas?.getCursorPos()!!
                     canvas?.setChar(x, y, sc.toShort())
@@ -2058,13 +2058,13 @@ class StackVm(private var traceOutputFile: String?) {
             Syscall.FUNC_FLOOR -> {
                 val value = evalstack.pop()
                 if (value.type in NumericDatatypes)
-                    evalstack.push(Value(DataType.WORD, floor(value.numericValue().toDouble()).toInt()))
+                    evalstack.push(Value(DataType.FLOAT, floor(value.numericValue().toDouble())))
                 else throw VmExecutionException("cannot get floor of $value")
             }
             Syscall.FUNC_CEIL -> {
                 val value = evalstack.pop()
                 if (value.type in NumericDatatypes)
-                    evalstack.push(Value(DataType.WORD, ceil(value.numericValue().toDouble()).toInt()))
+                    evalstack.push(Value(DataType.FLOAT, ceil(value.numericValue().toDouble())))
                 else throw VmExecutionException("cannot get ceil of $value")
             }
             Syscall.FUNC_MAX_UB -> {
@@ -2211,6 +2211,11 @@ class StackVm(private var traceOutputFile: String?) {
                 val lo = variables.getValue("A").integerValue()
                 val hi = variables.getValue("Y").integerValue()
                 val number = lo+256*hi
+                canvas?.writeText(x, y, number.toString(), 1, true)
+            }
+            Syscall.SYSASM_c64flt_print_f -> {
+                val (x, y) = canvas!!.getCursorPos()
+                val number = variables.getValue("c64flt.print_f.value").numericValue()
                 canvas?.writeText(x, y, number.toString(), 1, true)
             }
             Syscall.SYSASM_c64scr_setcc -> {

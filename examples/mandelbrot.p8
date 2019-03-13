@@ -10,7 +10,7 @@
     const ubyte max_iter = 16
 
     sub start()  {
-        c64scr.print("calculating mandelbrot fractal...\n")
+        c64scr.print("calculating mandelbrot fractal...")
 
         c64.TIME_HI=0
         c64.TIME_MID=0
