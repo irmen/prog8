@@ -11,7 +11,7 @@ class Program (val name: String,
                val program: MutableList<Instruction>,
                val variables: Map<String, Value>,
                val memoryPointers: Map<String, Pair<Int, DataType>>,
-               val labels: Map<String, Instruction>,
+               val labels: Map<String, Int>,
                val memory: Map<Int, List<Value>>,
                val heap: HeapValues)
 {
@@ -20,7 +20,6 @@ class Program (val name: String,
         program.add(LabelInstr("____program_end", false))
         program.add(Instruction(Opcode.TERMINATE))
         program.add(Instruction(Opcode.NOP))
-        connect()
     }
 
     companion object {
@@ -31,7 +30,7 @@ class Program (val name: String,
             val program = mutableListOf<Instruction>()
             val variables = mutableMapOf<String, Value>()
             val memoryPointers = mutableMapOf<String, Pair<Int, DataType>>()
-            val labels = mutableMapOf<String, Instruction>()
+            val labels = mutableMapOf<String, Int>()
 
             while(lines.hasNext()) {
                 val (lineNr, line) = lines.next()
@@ -53,7 +52,7 @@ class Program (val name: String,
                               program: MutableList<Instruction>,
                               variables: MutableMap<String, Value>,
                               memoryPointers: MutableMap<String, Pair<Int, DataType>>,
-                              labels: MutableMap<String, Instruction>)
+                              labels: MutableMap<String, Int>)
         {
             while(true) {
                 val (_, line) = lines.next()
@@ -67,8 +66,10 @@ class Program (val name: String,
                     loadMemoryPointers(lines, memoryPointers, heap)
                 else if(line=="%instructions") {
                     val (blockInstructions, blockLabels) = loadInstructions(lines, heap)
+                    val baseIndex = program.size
                     program.addAll(blockInstructions)
-                    labels.putAll(blockLabels)
+                    val labelsWithIndex = blockLabels.mapValues { baseIndex+blockInstructions.indexOf(it.value) }
+                    labels.putAll(labelsWithIndex)
                 }
             }
         }
@@ -271,64 +272,5 @@ class Program (val name: String,
                 }
             }
         }
-    }
-
-
-    private fun connect() {
-
-        // TODO:  because of JUMP instructions, the below doesn't work
-        // you cannot link instructions with just 1 instruction flow
-        // because JUMPS to another place will cause a RETURN to return back to different locations depending on what's called it...
-        // probably just need a real instruction pointer (based on index?) and call stack.
-
-
-        val it1 = program.iterator()
-        val it2 = program.iterator()
-        it2.next()
-
-        while(it1.hasNext() && it2.hasNext()) {
-            val instr = it1.next()
-            val nextInstr = it2.next()
-            when(instr.opcode) {
-                Opcode.TERMINATE -> instr.next = instr          // won't ever execute a next instruction
-                Opcode.RETURN -> instr.next = instr             // kinda a special one, in actuality the return instruction is dynamic
-                Opcode.JUMP -> {
-                    if(instr.callLabel==null)
-                        throw VmExecutionException("stackVm doesn't support JUMP to memory address")
-                    else
-                        linkJumpTarget(instr)
-                }
-                Opcode.BCC, Opcode.BCS, Opcode.BZ, Opcode.BNZ, Opcode.BNEG, Opcode.BPOS, Opcode.JZ, Opcode.JNZ, Opcode.JZW, Opcode.JNZW -> {
-                    if(instr.callLabel==null) {
-                        throw VmExecutionException("stackVm doesn't support branch to memory address")
-                    } else {
-                        linkJumpTarget(instr)       // branch label
-                        instr.nextAlt = nextInstr   // alternate branch
-                    }
-                }
-                Opcode.CALL -> {
-                    if(instr.callLabel==null) {
-                        throw VmExecutionException("stackVm doesn't support CALL to memory address")
-                    } else {
-                        linkJumpTarget(instr)      // call label
-                        instr.nextAlt = nextInstr  // instruction to return to
-                    }
-                }
-                else -> instr.next = nextInstr
-            }
-        }
-    }
-
-    private fun linkJumpTarget(instr: Instruction) {
-        val target = labels[instr.callLabel]
-        if(target==null) {
-            val memtarget = memoryPointers[instr.callLabel]?.first
-            if(memtarget==null)
-                throw VmExecutionException("undefined label: ${instr.callLabel}")
-            else {
-                instr.branchAddress=memtarget
-            }
-        } else
-            instr.next = target
     }
 }

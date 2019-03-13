@@ -58,7 +58,7 @@ class TestStackVmOpcodes {
     private fun makeProg(ins: MutableList<Instruction>,
                  vars: Map<String, Value>?=null,
                  memoryPointers: Map<String, Pair<Int, DataType>>?=null,
-                 labels: Map<String, Instruction>?=null,
+                 labels: Map<String, Int>?=null,
                  mem: Map<Int, List<Value>>?=null) : Program {
         val heap = HeapValues()
         return Program("test", ins, vars ?: mapOf(), memoryPointers ?: mapOf(), labels ?: mapOf(), mem ?: mapOf(), heap)
@@ -751,7 +751,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.LINE, callLabel = "string1"),
                 Instruction(Opcode.TERMINATE),
                 Instruction(Opcode.LINE, callLabel = "string2"))
-        val labels = mapOf("label" to ins.last())   // points to the second LINE instruction
+        val labels = mapOf("label" to ins.size-1)   // points to the second LINE instruction
         vm.load(makeProg(ins, labels=labels), null)
         vm.step(2)
         assertEquals("", vm.sourceLine)
@@ -771,7 +771,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.LINE, callLabel = "string1"),
                 Instruction(Opcode.TERMINATE),
                 Instruction(Opcode.LINE, callLabel = "string2"))
-        val labels = mapOf("label" to ins.last())   // points to the second LINE instruction
+        val labels = mapOf("label" to ins.size-1)   // points to the second LINE instruction
         vm.load(makeProg(ins, labels=labels), null)
         assertFalse(vm.P_carry)
         vm.step(2)
@@ -792,7 +792,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.LINE, callLabel = "string1"),
                 Instruction(Opcode.TERMINATE),
                 Instruction(Opcode.LINE, callLabel = "string2"))
-        val labels = mapOf("label" to ins.last())   // points to the second LINE instruction
+        val labels = mapOf("label" to ins.size-1)   // points to the second LINE instruction
         vm.load(makeProg(ins, labels=labels), null)
         vm.step(2)
         assertEquals("", vm.sourceLine)
@@ -812,7 +812,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.LINE, callLabel = "string1"),
                 Instruction(Opcode.TERMINATE),
                 Instruction(Opcode.LINE, callLabel = "string2"))
-        val labels = mapOf("label" to ins.last())   // points to the second LINE instruction
+        val labels = mapOf("label" to ins.size-1)   // points to the second LINE instruction
         vm.load(makeProg(ins, labels=labels), null)
         vm.step(2)
         assertEquals("", vm.sourceLine)
@@ -832,7 +832,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.LINE, callLabel = "string1"),
                 Instruction(Opcode.TERMINATE),
                 Instruction(Opcode.LINE, callLabel = "string2"))
-        val labels = mapOf("label" to ins.last())   // points to the second LINE instruction
+        val labels = mapOf("label" to ins.size-1)   // points to the second LINE instruction
         vm.load(makeProg(ins, labels=labels), null)
         vm.step(2)
         assertEquals("", vm.sourceLine)
@@ -852,7 +852,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.LINE, callLabel = "string1"),
                 Instruction(Opcode.TERMINATE),
                 Instruction(Opcode.LINE, callLabel = "string2"))
-        val labels = mapOf("label" to ins.last())   // points to the second LINE instruction
+        val labels = mapOf("label" to ins.size-1)   // points to the second LINE instruction
         vm.load(makeProg(ins, labels=labels), null)
         vm.step(2)
         assertEquals("", vm.sourceLine)
@@ -869,7 +869,7 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.LINE, callLabel = "string1"),
                 Instruction(Opcode.TERMINATE),
                 Instruction(Opcode.LINE, callLabel = "string2"))
-        val labels = mapOf("label" to ins.last())   // points to the second LINE instruction
+        val labels = mapOf("label" to ins.size-1)   // points to the second LINE instruction
         vm.load(makeProg(ins, labels=labels), null)
         vm.step(2)
         assertEquals("string2", vm.sourceLine)
@@ -889,7 +889,7 @@ class TestStackVmOpcodes {
             vm.step(1)
         }
 
-        vm.callstack.add(ins[2])        // set the LINE opcode as return instruction
+        vm.callstack.add(2)        // set the LINE opcode as return instruction
         assertEquals("", vm.sourceLine)
         vm.step(2)
         assertEquals("string1", vm.sourceLine)
@@ -906,12 +906,12 @@ class TestStackVmOpcodes {
                 Instruction(Opcode.LINE, callLabel = "called"),
                 Instruction(Opcode.RETURN)
         )
-        val labels = mapOf("label" to ins[3])   // points to the LINE instruction
+        val labels = mapOf("label" to 3)   // points to the LINE instruction
         vm.load(makeProg(ins, labels = labels), null)
         vm.step(1)
         assertEquals("", vm.sourceLine)
         assertEquals(1, vm.callstack.size)
-        assertSame(ins[1], vm.callstack.peek())
+        assertSame(1, vm.callstack.peek())
         vm.step(1)
         assertEquals("called", vm.sourceLine)
         vm.step(1)

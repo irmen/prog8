@@ -233,7 +233,7 @@ private class VarInitValueCreator: IAstProcessor {
             val scope = decl.definingScope()
             if(scope !in vardeclsToAdd)
                 vardeclsToAdd[scope] = mutableListOf()
-            vardeclsToAdd[scope]!!.add(decl.asDefaultValueDecl(null))
+            vardeclsToAdd.getValue(scope).add(decl.asDefaultValueDecl(null))
             val declvalue = decl.value!!
             val value =
                     if(declvalue is LiteralValue) {

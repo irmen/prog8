@@ -8,8 +8,6 @@ open class Instruction(val opcode: Opcode,
                        val callLabel: String? = null,
                        val callLabel2: String? = null)
 {
-    lateinit var next: Instruction
-    var nextAlt: Instruction? = null
     var branchAddress: Int? = null
 
     override fun toString(): String {

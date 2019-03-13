@@ -6,6 +6,7 @@ import prog8.compiler.intermediate.Instruction
 import prog8.compiler.intermediate.Opcode
 import prog8.compiler.intermediate.Value
 import prog8.compiler.target.c64.Petscii
+import prog8.compiler.toHex
 import java.io.File
 import java.io.PrintStream
 import java.util.*
@@ -152,23 +153,24 @@ class StackVm(private var traceOutputFile: String?) {
         private set
     var evalstack = MyStack<Value>()
         private set
-    var callstack = MyStack<Instruction>()
+    var callstack = MyStack<Int>()
         private set
     private var program = listOf<Instruction>()
-    private var labels = emptyMap<String, Instruction>()
+    private var labels = emptyMap<String, Int>()
     private var heap = HeapValues()
     private var traceOutput = if(traceOutputFile!=null) PrintStream(File(traceOutputFile), "utf-8") else null
     private var canvas: BitmapScreenPanel? = null
     private val rnd = Random()
     private val bootTime = System.currentTimeMillis()
-    private lateinit var currentIns: Instruction
-    private var irqStartInstruction: Instruction? = null
+    private var currentInstructionPtr: Int = -1
+    private var irqStartInstructionPtr: Int = -1
+    private var registerSaveX: Value = Value(DataType.UBYTE, 0)
     var sourceLine: String = ""
         private set
 
 
     fun load(program: Program, canvas: BitmapScreenPanel?) {
-        this.program = program.program
+        this.program = program.program + Instruction(Opcode.RETURN)  // append a RETURN for use in the IRQ handler
         this.labels = program.labels
         this.heap = program.heap
         this.canvas = canvas
@@ -189,8 +191,8 @@ class StackVm(private var traceOutputFile: String?) {
         P_carry = false
         P_irqd = false
         sourceLine = ""
-        currentIns = this.program[0]
-        irqStartInstruction = labels["irq.irq"]     // set to first instr of irq routine, if any
+        currentInstructionPtr = 0
+        irqStartInstructionPtr = labels["irq.irq"] ?: -1     // set to first instr of irq routine, if any
 
         initBlockVars()
     }
@@ -200,14 +202,14 @@ class StackVm(private var traceOutputFile: String?) {
         // this is done by calling the special init subroutine of each block that has one.
         val initVarsSubs = labels.filter { it.key.endsWith("."+ initvarsSubName) }
         for(init in initVarsSubs) {
-            currentIns = init.value
+            currentInstructionPtr = init.value
             try {
                 step(Int.MAX_VALUE)
             } catch(x: VmTerminationException) {
                 // init subroutine finished
             }
         }
-        currentIns = program[0]
+        currentInstructionPtr = 0
     }
 
     fun step(instructionCount: Int = 5000) {
@@ -216,13 +218,13 @@ class StackVm(private var traceOutputFile: String?) {
         val start = System.currentTimeMillis()
         for(i:Int in 1..instructionCount) {
             try {
-                currentIns = dispatch(currentIns)
+                dispatch()
                 if (evalstack.size > 128)
                     throw VmExecutionException("too many values on evaluation stack")
                 if (callstack.size > 128)
                     throw VmExecutionException("too many nested/recursive calls")
             } catch (bp: VmBreakpointException) {
-                currentIns = currentIns.next
+                currentInstructionPtr++         // TODO necessary still?
                 println("breakpoint encountered, source line: $sourceLine")
                 throw bp
             } catch (es: EmptyStackException) {
@@ -294,7 +296,8 @@ class StackVm(private var traceOutputFile: String?) {
         throw VmExecutionException("unknown variable: $name")
     }
 
-    private fun dispatch(ins: Instruction) : Instruction {
+    private fun dispatch() {
+        val ins = program[currentInstructionPtr]
         traceOutput?.println("\n$ins")
         when (ins.opcode) {
             Opcode.NOP -> {}
@@ -976,43 +979,75 @@ class StackVm(private var traceOutputFile: String?) {
                 mem.setUWord(addr, newValue.integerValue())
                 setFlags(newValue)
             }
-
-            Opcode.JUMP -> {}   // do nothing; the next instruction is wired up already to the jump target
-            Opcode.BCS ->
-                return if(P_carry) ins.next else ins.nextAlt!!
-            Opcode.BCC ->
-                return if(P_carry) ins.nextAlt!! else ins.next
-            Opcode.BZ ->
-                return if(P_zero) ins.next else ins.nextAlt!!
-            Opcode.BNZ ->
-                return if(P_zero) ins.nextAlt!! else ins.next
-            Opcode.BNEG ->
-                return if(P_negative) ins.next else ins.nextAlt!!
-            Opcode.BPOS ->
-                return if(P_negative) ins.nextAlt!! else ins.next
+            Opcode.JUMP -> {
+                currentInstructionPtr = determineBranchInstr(ins)
+                return
+            }
+            Opcode.BCS -> {
+                if (P_carry) currentInstructionPtr = determineBranchInstr(ins)
+                else currentInstructionPtr++
+                return
+            }
+            Opcode.BCC -> {
+                if (P_carry) currentInstructionPtr++
+                else currentInstructionPtr = determineBranchInstr(ins)
+                return
+            }
+            Opcode.BZ -> {
+                if (P_zero) currentInstructionPtr = determineBranchInstr(ins)
+                else currentInstructionPtr++
+                return
+            }
+            Opcode.BNZ -> {
+                if (P_zero) currentInstructionPtr++
+                else currentInstructionPtr = determineBranchInstr(ins)
+                return
+            }
+            Opcode.BNEG -> {
+                if (P_negative) currentInstructionPtr = determineBranchInstr(ins)
+                else currentInstructionPtr++
+                return
+            }
+            Opcode.BPOS -> {
+                if (P_negative) currentInstructionPtr++
+                else currentInstructionPtr = determineBranchInstr(ins)
+                return
+            }
             Opcode.BVS, Opcode.BVC -> throw VmExecutionException("stackVM doesn't support the 'overflow' cpu flag")
             Opcode.JZ -> {
                 val value = evalstack.pop().integerValue() and 255
-                return if(value==0) ins.next else ins.nextAlt!!
+                if (value==0) currentInstructionPtr = determineBranchInstr(ins)
+                else currentInstructionPtr++
+                return
             }
             Opcode.JNZ -> {
                 val value = evalstack.pop().integerValue() and 255
-                return if(value!=0) ins.next else ins.nextAlt!!
+                if (value!=0) currentInstructionPtr = determineBranchInstr(ins)
+                else currentInstructionPtr++
+                return
             }
             Opcode.JZW -> {
                 val value = evalstack.pop().integerValue()
-                return if(value==0) ins.next else ins.nextAlt!!
+                if (value==0) currentInstructionPtr = determineBranchInstr(ins)
+                else currentInstructionPtr++
+                return
             }
             Opcode.JNZW -> {
                 val value = evalstack.pop().integerValue()
-                return if(value!=0) ins.next else ins.nextAlt!!
+                if (value!=0) currentInstructionPtr = determineBranchInstr(ins)
+                else currentInstructionPtr++
+                return
             }
-            Opcode.CALL ->
-                callstack.push(ins.nextAlt)
+            Opcode.CALL -> {
+                callstack.push(currentInstructionPtr + 1)
+                currentInstructionPtr = determineBranchInstr(ins)
+                return
+            }
             Opcode.RETURN -> {
                 if(callstack.empty())
                     throw VmTerminationException("return instruction with empty call stack")
-                return callstack.pop()
+                currentInstructionPtr = callstack.pop()
+                return
             }
             Opcode.PUSH_VAR_BYTE -> {
                 val value = getVar(ins.callLabel!!)
@@ -1030,18 +1065,18 @@ class StackVm(private var traceOutputFile: String?) {
                 evalstack.push(value)
             }
             Opcode.PUSH_REGAX_WORD -> {
-                val a=variables["A"]!!.integerValue()
-                val x=variables["X"]!!.integerValue()
+                val a=variables.getValue("A").integerValue()
+                val x=variables.getValue("X").integerValue()
                 evalstack.push(Value(DataType.UWORD, x*256+a))
             }
             Opcode.PUSH_REGAY_WORD -> {
-                val a=variables["A"]!!.integerValue()
-                val y=variables["Y"]!!.integerValue()
+                val a=variables.getValue("A").integerValue()
+                val y=variables.getValue("Y").integerValue()
                 evalstack.push(Value(DataType.UWORD, y*256+a))
             }
             Opcode.PUSH_REGXY_WORD -> {
-                val x=variables["X"]!!.integerValue()
-                val y=variables["Y"]!!.integerValue()
+                val x=variables.getValue("X").integerValue()
+                val y=variables.getValue("Y").integerValue()
                 evalstack.push(Value(DataType.UWORD, y*256+x))
             }
             Opcode.POP_REGAX_WORD -> {
@@ -1581,7 +1616,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val index = evalstack.pop().integerValue()
                 val result =
                         if(ins.callLabel in memoryPointers) {
-                            val variable = memoryPointers[ins.callLabel]!!
+                            val variable = memoryPointers.getValue(ins.callLabel!!)
                             val address = variable.first + index
                             when(variable.second) {
                                 DataType.ARRAY_UB -> Value(DataType.UBYTE, mem.getUByte(address))
@@ -1612,7 +1647,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val index = evalstack.pop().integerValue()
                 val result=
                         if(ins.callLabel in memoryPointers) {
-                            val variable = memoryPointers[ins.callLabel]!!
+                            val variable = memoryPointers.getValue(ins.callLabel!!)
                             val address = variable.first + index*2
                             when(variable.second) {
                                 DataType.ARRAY_UW -> Value(DataType.UWORD, mem.getUWord(address))
@@ -1643,7 +1678,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val index = evalstack.pop().integerValue()
                 val result =
                         if(ins.callLabel in memoryPointers) {
-                            val variable = memoryPointers[ins.callLabel]!!
+                            val variable = memoryPointers.getValue(ins.callLabel!!)
                             val address = variable.first + index*5
                             if(variable.second==DataType.ARRAY_F)
                                 Value(DataType.FLOAT, mem.getFloat(address))
@@ -1789,18 +1824,11 @@ class StackVm(private var traceOutputFile: String?) {
                 P_carry = evalstack.pop().asBooleanValue
                 P_irqd = evalstack.pop().asBooleanValue
             }
-            Opcode.RSAVEX -> {
-                evalstack.push(variables["X"])
-                println("-----rsaveX called, stacksize ${evalstack.size}")   // TODO
-            }
-            Opcode.RRESTOREX -> {
-                println("-----rrestoreX called, stacksize before ${evalstack.size}")   // TODO
-                // TODO called too ofen -> stack error
-                variables["X"] = evalstack.pop()
-            }
+            Opcode.RSAVEX -> registerSaveX = variables.getValue("X")
+            Opcode.RRESTOREX -> variables["X"] = registerSaveX
             Opcode.INLINE_ASSEMBLY -> throw VmExecutionException("stackVm doesn't support executing inline assembly code $ins")
             Opcode.PUSH_ADDR_HEAPVAR -> {
-                val heapId = variables[ins.callLabel]!!.heapId
+                val heapId = variables.getValue(ins.callLabel!!).heapId
                 if(heapId<0)
                     throw VmExecutionException("expected variable on heap")
                 evalstack.push(Value(DataType.UWORD, heapId))       // push the "address" of the string or array variable (this is taken care of properly in the assembly code generator)
@@ -1834,25 +1862,38 @@ class StackVm(private var traceOutputFile: String?) {
             evalstack.printTop(4, traceOutput!!)
         }
 
+        currentInstructionPtr++
+    }
+
+    private fun determineBranchInstr(ins: Instruction): Int {
         if(ins.branchAddress!=null) {
-            // this is an instruction that jumps to a system routine (memory address)
-            if(ins.nextAlt==null)
-                throw VmExecutionException("call to system routine requires nextAlt return instruction set: $ins")
-            else {
-                when(ins.callLabel) {
-                    "c64.CLEARSCR" -> {
-                        println(" evalstack (size=${evalstack.size}):")
-                        evalstack.printTop(4, System.out)
-                        canvas?.clearScreen(mem.getUByte(0xd021).toInt())
-                    }
-                    else -> {
-                        TODO("SYSTEM ROUTINE ${ins.callLabel}")
-                    }
+            TODO("call to a system memory routine at ${ins.branchAddress!!.toHex()}")
+            throw VmExecutionException("stackVm doesn't support branching to a memory address")
+        }
+        return if(ins.callLabel==null)
+            throw VmExecutionException("requires label to branch to")
+        else {
+            when(ins.callLabel) {
+                "c64.CLEARSCR" -> {
+                    canvas?.clearScreen(mem.getUByte(0xd021).toInt())
+                    callstack.pop()
                 }
-                return ins.nextAlt!!
+                "c64.CHROUT" -> {
+                    // TODO sometimes the character ends up on the wrong screen position because the text-output routines don't update the cursorpos!
+                    val sc=variables.getValue("A").integerValue()
+                    val (x, y) = canvas?.getCursorPos()!!
+                    canvas?.setChar(x, y, sc.toShort())
+                    callstack.pop()
+                }
+                "c64.GETIN" -> {
+                    variables["A"] = Value(DataType.UBYTE, 0)  // TODO keyboard input
+                    callstack.pop()
+                }
+                else -> {
+                    labels.getValue(ins.callLabel)
+                }
             }
-        } else
-            return ins.next
+        }
     }
 
     private fun setFlags(value: Value?) {
@@ -2150,33 +2191,33 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Syscall.SYSCALLSTUB -> throw VmExecutionException("unimplemented sysasm called: ${ins.callLabel}  Create a Syscall enum for this and implement the vm intercept for it.")
             Syscall.SYSASM_c64scr_PLOT -> {
-                val x = variables["Y"]!!.integerValue()
-                val y = variables["A"]!!.integerValue()
+                val x = variables.getValue("Y").integerValue()
+                val y = variables.getValue("A").integerValue()
                 canvas?.setCursorPos(x, y)
             }
             Syscall.SYSASM_c64scr_print -> {
                 val (x, y) = canvas!!.getCursorPos()
-                val straddr = variables["A"]!!.integerValue() + 256*variables["Y"]!!.integerValue()
+                val straddr = variables.getValue("A").integerValue() + 256*variables.getValue("Y").integerValue()
                 val str = heap.get(straddr).str!!
                 canvas?.writeText(x, y, str, 1, true)
             }
             Syscall.SYSASM_c64scr_print_ub -> {
                 val (x, y) = canvas!!.getCursorPos()
-                val num = variables["A"]!!.integerValue()
+                val num = variables.getValue("A").integerValue()
                 canvas?.writeText(x, y, num.toString(), 1, true)
             }
             Syscall.SYSASM_c64scr_print_uw -> {
                 val (x, y) = canvas!!.getCursorPos()
-                val lo = variables["A"]!!.integerValue()
-                val hi = variables["Y"]!!.integerValue()
+                val lo = variables.getValue("A").integerValue()
+                val hi = variables.getValue("Y").integerValue()
                 val number = lo+256*hi
                 canvas?.writeText(x, y, number.toString(), 1, true)
             }
             Syscall.SYSASM_c64scr_setcc -> {
-                val x = variables["c64scr.setcc.column"]!!.integerValue()
-                val y = variables["c64scr.setcc.row"]!!.integerValue()
-                val char = variables["c64scr.setcc.char"]!!.integerValue()
-                // val color = variables["c64scr.setcc.color"]!!.integerValue()        // text color other than 1 (white) can't be used right now
+                val x = variables.getValue("c64scr.setcc.column").integerValue()
+                val y = variables.getValue("c64scr.setcc.row").integerValue()
+                val char = variables.getValue("c64scr.setcc.char").integerValue()
+                // val color = variables.getValue("c64scr.setcc.color").integerValue()        // text color other than 1 (white) can't be used right now
                 canvas?.setChar(x, y, char.toShort())
             }
             else -> throw VmExecutionException("unimplemented syscall $syscall")
@@ -2197,7 +2238,7 @@ class StackVm(private var traceOutputFile: String?) {
         mem.setUByte(0x00a1, (jiffies ushr 8 and 255).toShort())
         mem.setUByte(0x00a2, (jiffies and 255).toShort())
 
-        if(irqStartInstruction!=null) {
+        if(irqStartInstructionPtr>=0) {
             try {
                 // execute the irq routine
                 this.step(Int.MAX_VALUE)
@@ -2211,20 +2252,26 @@ class StackVm(private var traceOutputFile: String?) {
     }
 
     private var irqStoredEvalStack = MyStack<Value>()
-    private var irqStoredCallStack = MyStack<Instruction>()
+    private var irqStoredCallStack = MyStack<Int>()
     private var irqStoredCarry = false
     private var irqStoredTraceOutputFile: String? = null
-    private var irqStoredMainInstruction: Instruction = Instruction(Opcode.TERMINATE)
+    private var irqStoredMainInstructionPtr = -1
 
     private fun swapIrqExecutionContexts(startingIrq: Boolean) {
         if(startingIrq) {
-            irqStoredMainInstruction = currentIns
+            irqStoredMainInstructionPtr = currentInstructionPtr
             irqStoredCallStack = callstack
             irqStoredEvalStack = evalstack
             irqStoredCarry = P_carry
             irqStoredTraceOutputFile = traceOutputFile
 
-            currentIns = irqStartInstruction ?: Instruction(Opcode.RETURN)
+            if(irqStartInstructionPtr>=0)
+                currentInstructionPtr = irqStartInstructionPtr
+            else {
+                if(program.last().opcode!=Opcode.RETURN)
+                    throw VmExecutionException("last instruction in program should be RETURN for irq handler")
+                currentInstructionPtr = program.size-1
+            }
             callstack = MyStack()
             evalstack = MyStack()
             P_carry = false
@@ -2234,7 +2281,7 @@ class StackVm(private var traceOutputFile: String?) {
                 throw VmExecutionException("irq: eval stack is not empty at exit from irq program")
             if(callstack.isNotEmpty())
                 throw VmExecutionException("irq: call stack is not empty at exit from irq program")
-            currentIns = irqStoredMainInstruction
+            currentInstructionPtr = irqStoredMainInstructionPtr
             callstack = irqStoredCallStack
             evalstack = irqStoredEvalStack
             P_carry = irqStoredCarry

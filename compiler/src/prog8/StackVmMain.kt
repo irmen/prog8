@@ -18,7 +18,7 @@ fun stackVmMain(args: Array<String>) {
     }
 
     val program = Program.load(args.first())
-    val vm = StackVm(traceOutputFile = "trace.txt")  // TODO null
+    val vm = StackVm(traceOutputFile = null)
     val dialog = ScreenDialog()
     vm.load(program, dialog.canvas)
     EventQueue.invokeLater {

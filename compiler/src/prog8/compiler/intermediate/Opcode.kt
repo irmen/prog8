@@ -244,7 +244,6 @@ enum class Opcode {
     JZW,         // branch if value is zero (word)
     JNZW,        // branch if value is not zero (word)
 
-
     // subroutines
     CALL,
     RETURN,
