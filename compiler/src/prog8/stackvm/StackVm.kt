@@ -1886,8 +1886,7 @@ class StackVm(private var traceOutputFile: String?) {
                 }
                 "c64.CHROUT" -> {
                     val sc=variables.getValue("A").integerValue()
-                    val (x, y) = canvas?.getCursorPos()!!
-                    canvas?.setChar(x, y, sc.toShort())
+                    canvas?.printChar(sc.toShort())
                     callstack.pop()
                 }
                 "c64.GETIN" -> {
@@ -2208,27 +2207,23 @@ class StackVm(private var traceOutputFile: String?) {
                 canvas?.setCursorPos(x, y)
             }
             Syscall.SYSASM_c64scr_print -> {
-                val (x, y) = canvas!!.getCursorPos()
                 val straddr = variables.getValue("A").integerValue() + 256*variables.getValue("Y").integerValue()
                 val str = heap.get(straddr).str!!
-                canvas?.writeText(x, y, str, 1, true)
+                canvas?.printText(str, 1, true)
             }
             Syscall.SYSASM_c64scr_print_ub -> {
-                val (x, y) = canvas!!.getCursorPos()
                 val num = variables.getValue("A").integerValue()
-                canvas?.writeText(x, y, num.toString(), 1, true)
+                canvas?.printText(num.toString(), 1, true)
             }
             Syscall.SYSASM_c64scr_print_uw -> {
-                val (x, y) = canvas!!.getCursorPos()
                 val lo = variables.getValue("A").integerValue()
                 val hi = variables.getValue("Y").integerValue()
                 val number = lo+256*hi
-                canvas?.writeText(x, y, number.toString(), 1, true)
+                canvas?.printText(number.toString(), 1, true)
             }
             Syscall.SYSASM_c64flt_print_f -> {
-                val (x, y) = canvas!!.getCursorPos()
                 val number = variables.getValue("c64flt.print_f.value").numericValue()
-                canvas?.writeText(x, y, number.toString(), 1, true)
+                canvas?.printText(number.toString(), 1, true)
             }
             Syscall.SYSASM_c64scr_setcc -> {
                 val x = variables.getValue("c64scr.setcc.column").integerValue()
