@@ -1584,7 +1584,7 @@ class AnonymousScope(override var statements: MutableList<IStatement>,
     override lateinit var parent: Node
 
     init {
-        name = "<<<anonymous-$sequenceNumber>>>"
+        name = "<anon-$sequenceNumber>"     // make sure it's an invalid soruce code identifier so user source code can never produce it
         sequenceNumber++
     }
 
