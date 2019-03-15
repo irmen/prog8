@@ -296,7 +296,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 DataType.STR, DataType.STR_S -> {
                     val rawStr = heap.get(v.second.heapId).str!!
                     val bytes = encodeStr(rawStr, v.second.type).map { "$" + it.toString(16).padStart(2, '0') }
-                    out("${v.first}\t; ${v.second.type} \"${escape(rawStr)}\"")
+                    out("${v.first}\t; ${v.second.type} \"${escape(rawStr).replace("\u0000", "<NULL>")}\"")
                     for (chunk in bytes.chunked(16))
                         out("  .byte  " + chunk.joinToString())
                 }

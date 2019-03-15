@@ -32,7 +32,6 @@
         float minutes = floor(clock_seconds / 60)
         clock_seconds = floor(clock_seconds - minutes * 60.0)
 
-    ; @todo implement strcpy/strcat/strlen?
         c64scr.print("system time in ti$ is ")
         c64flt.print_f(hours)
         c64.CHROUT(':')

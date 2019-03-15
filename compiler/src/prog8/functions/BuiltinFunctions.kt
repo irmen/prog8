@@ -84,6 +84,7 @@ val BuiltinFunctions = mapOf(
                                                         BuiltinFunctionParam("address", IterableDatatypes + setOf(DataType.UWORD)),
                                                         BuiltinFunctionParam("numwords", setOf(DataType.UWORD)),
                                                         BuiltinFunctionParam("wordvalue", setOf(DataType.UWORD, DataType.WORD))), null),
+    "strlen"      to FunctionSignature(true, listOf(BuiltinFunctionParam("string", StringDatatypes)), DataType.UBYTE, ::builtinStrlen),
     "vm_write_memchr"  to FunctionSignature(false, listOf(BuiltinFunctionParam("address", setOf(DataType.UWORD))), null),
     "vm_write_memstr"  to FunctionSignature(false, listOf(BuiltinFunctionParam("address", setOf(DataType.UWORD))), null),
     "vm_write_num"     to FunctionSignature(false, listOf(BuiltinFunctionParam("number", NumericDatatypes)), null),
@@ -300,6 +301,20 @@ private fun builtinAvg(args: List<IExpression>, position: Position, namespace:IN
         array.average()
     }
     return numericLiteral(result, args[0].position)
+}
+
+private fun builtinStrlen(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {
+    if (args.size != 1)
+        throw SyntaxError("strlen requires one argument", position)
+    val argument = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
+    if(argument.type !in StringDatatypes)
+        throw SyntaxError("strlen must have string argument", position)
+    val string = argument.strvalue(heap)
+    val zeroIdx = string.indexOf('\u0000')
+    return if(zeroIdx>=0)
+        LiteralValue.optimalInteger(zeroIdx, position=position)
+    else
+        LiteralValue.optimalInteger(string.length, position=position)
 }
 
 private fun builtinLen(args: List<IExpression>, position: Position, namespace:INameScope, heap: HeapValues): LiteralValue {

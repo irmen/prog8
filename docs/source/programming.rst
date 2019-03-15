@@ -639,6 +639,11 @@ len(x)
     Note: this can be different from the number of *bytes* in memory if the datatype isn't a byte.
     Note: lengths of strings and arrays are determined at compile-time! If your program modifies the actual
     length of the string during execution, the value of len(string) may no longer be correct!
+    (use strlen function if you want to dynamically determine the length)
+
+strlen(str)
+    Number of bytes in the string. This value is determined during runtime and counts upto
+    the first terminating 0 byte in the string, regardless of the size of the string during compilation time.
 
 lsb(x)
     Get the least significant byte of the word x. Equivalent to the cast "x as ubyte".

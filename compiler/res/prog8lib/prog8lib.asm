@@ -1112,8 +1112,7 @@ _gtequ		dey
 _result_minw	.word  0
 		.pend
 
-
-func_len_str	.proc
+func_strlen	.proc
 	; -- push length of 0-terminated string on stack
 		jsr  peek_address
 		ldy  #0
@@ -1122,15 +1121,6 @@ func_len_str	.proc
 		iny
 		bne  -
 +		tya
-		sta  c64.ESTACK_LO+1,x
-		rts
-		.pend
-
-func_len_strp	.proc
-	; -- push length of pascal-string on stack
-		jsr  peek_address
-		ldy  #0
-		lda  (c64.SCRATCH_ZPWORD1),y	; first byte is length
 		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend

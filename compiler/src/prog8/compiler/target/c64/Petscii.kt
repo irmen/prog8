@@ -1055,11 +1055,12 @@ class Petscii {
             val lookup = if(lowercase) encodingPetsciiLowercase else encodingPetsciiUppercase
             return text.map {
                 val petscii = lookup[it]
-                if(petscii==null) {
-                    val case = if(lowercase) "lower" else "upper"
+                petscii?.toShort() ?: if(it=='\u0000')
+                    0.toShort()
+                else {
+                    val case = if (lowercase) "lower" else "upper"
                     throw CharConversionException("no ${case}case Petscii character for '$it'")
                 }
-                petscii.toShort()
             }
         }
 
@@ -1072,11 +1073,12 @@ class Petscii {
             val lookup = if(lowercase) encodingScreencodeLowercase else encodingScreencodeUppercase
             return text.map{
                 val screencode = lookup[it]
-                if(screencode==null) {
-                    val case = if(lowercase) "lower" else "upper"
+                screencode?.toShort() ?: if(it=='\u0000')
+                    0.toShort()
+                else {
+                    val case = if (lowercase) "lower" else "upper"
                     throw CharConversionException("no ${case}Screencode character for '$it'")
                 }
-                screencode.toShort()
             }
         }
 

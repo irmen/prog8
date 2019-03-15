@@ -51,6 +51,7 @@ enum class Syscall(val callNr: Short) {
     FUNC_RNDF(91),               // push a random float on the stack (between 0.0 and 1.0)
     FUNC_LEN_STR(105),
     FUNC_LEN_STRS(106),
+    FUNC_STRLEN(107),
     FUNC_ANY_B(109),
     FUNC_ANY_W(110),
     FUNC_ANY_F(111),
@@ -1736,7 +1737,11 @@ class StackVm(private var traceOutputFile: String?) {
                             DataType.ARRAY_B -> array.array!![index] = value.integerValue()
                             DataType.STR, DataType.STR_S -> {
                                 val chars = array.str!!.toCharArray()
-                                chars[index] = Petscii.decodePetscii(listOf(value.integerValue().toShort()), true)[0]
+                                val ps = Petscii.decodePetscii(listOf(value.integerValue().toShort()), true)[0]
+                                if(ps=='\ufffe')        // undefined
+                                    chars[index] = '\u0000'
+                                else
+                                    chars[index] = ps
                                 heap.update(variable.heapId, chars.joinToString(""))
                             }
                             else -> throw VmExecutionException("not a proper array/string var with byte elements")
@@ -1993,6 +1998,13 @@ class StackVm(private var traceOutputFile: String?) {
                 val strPtr = evalstack.pop().integerValue()
                 val text = heap.get(strPtr).str!!
                 evalstack.push(Value(DataType.UBYTE, text.length))
+            }
+            Syscall.FUNC_STRLEN -> {
+                val strPtr = evalstack.pop().integerValue()
+                val text = heap.get(strPtr).str!!
+                val zeroIdx = text.indexOf('\u0000')
+                val len = if(zeroIdx>=0) zeroIdx else text.length
+                evalstack.push(Value(DataType.UBYTE, len))
             }
             Syscall.FUNC_READ_FLAGS -> {
                 val carry = if(P_carry) 1 else 0
