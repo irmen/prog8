@@ -695,12 +695,23 @@ private class AstChecker(private val namespace: INameScope,
                         checkResult.add(ExpressionError("remainder can only be used on unsigned integer operands", expr.right.position))
                 }
             }
-            "and", "or", "xor", "&", "|", "^" -> {
+            "and", "or", "xor" -> {
+                // only integer numeric operands accepted, and if literal constants, only boolean values accepted (0 or 1)
+                val rightDt = expr.right.resultingDatatype(namespace, heap)
+                val leftDt = expr.left.resultingDatatype(namespace, heap)
+                if(leftDt !in IntegerDatatypes || rightDt !in IntegerDatatypes)
+                    checkResult.add(ExpressionError("logical operator can only be used on boolean operands", expr.right.position))
+                val constLeft = expr.left.constValue(namespace, heap)
+                val constRight = expr.right.constValue(namespace, heap)
+                if(constLeft!=null && constLeft.asIntegerValue !in 0..1 || constRight!=null && constRight.asIntegerValue !in 0..1)
+                    checkResult.add(ExpressionError("const literal argument of logical operator must be boolean (0 or 1)", expr.position))
+            }
+            "&", "|", "^" -> {
                 // only integer numeric operands accepted
                 val rightDt = expr.right.resultingDatatype(namespace, heap)
                 val leftDt = expr.left.resultingDatatype(namespace, heap)
                 if(leftDt !in IntegerDatatypes || rightDt !in IntegerDatatypes)
-                    checkResult.add(ExpressionError("logical or bitwise operator can only be used on integer operands", expr.right.position))
+                    checkResult.add(ExpressionError("bitwise operator can only be used on integer operands", expr.right.position))
             }
         }
 
