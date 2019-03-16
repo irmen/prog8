@@ -1016,7 +1016,9 @@ internal class Compiler(private val rootModule: Module,
                     TODO("not yet supported: return values in cpu status flag $rv  $subroutine")
                 when(rv.registerOrPair) {
                     A,X,Y -> prog.instr(Opcode.PUSH_VAR_BYTE, callLabel = rv.registerOrPair.name)
-                    AX, AY, XY -> prog.instr(Opcode.PUSH_VAR_WORD, callLabel = rv.registerOrPair.name)
+                    AX -> prog.instr(Opcode.PUSH_REGAX_WORD)
+                    AY -> prog.instr(Opcode.PUSH_REGAY_WORD)
+                    XY -> prog.instr(Opcode.PUSH_REGXY_WORD)
                     null -> {}
                 }
             }
@@ -2146,13 +2148,6 @@ internal class Compiler(private val rootModule: Module,
     }
 
     private fun translate(expr: TypecastExpression) {
-        val funcTarget = (expr.expression as? IFunctionCall)?.target?.targetStatement(namespace)
-        if(funcTarget is Subroutine &&
-                funcTarget.asmReturnvaluesRegisters.isNotEmpty() &&
-                funcTarget.asmReturnvaluesRegisters.all { it.stack!=true }) {
-            throw CompilerException("cannot type cast a call to an asmsub that returns value in register - use a variable to store it first")
-        }
-
         translate(expr.expression)
         val sourceDt = expr.expression.resultingDatatype(namespace, heap) ?: throw CompilerException("don't know what type to cast")
         if(sourceDt==expr.type)

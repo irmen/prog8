@@ -168,138 +168,115 @@ asmsub  uword2decimal  (uword value @ AY) -> clobbers(A,Y) -> ()  {
 }
 
 
-asmsub  str2byte  (str string @ AY) -> clobbers(Y) -> (byte @ A) {
+asmsub str2uword(str string @ AY) -> clobbers() -> (uword @ AY) {
+	; -- returns the unsigned word value of the string number argument in AY
+	;    the number may NOT be preceded by a + sign and may NOT contain spaces
+	;    (any non-digit character will terminate the number string that is parsed)
 	%asm {{
-		; -- convert string (address in A/Y) to byte in A
-		;    doesn't use any kernal routines
+_result = c64.SCRATCH_ZPWORD2
+		sta  _mod+1
+		sty  _mod+2
+		ldy  #0
+		sty  _result
+		sty  _result+1
+_mod		lda  $ffff,y		; modified
+		sec
+		sbc  #48
+		bpl  +
+_done		; return result
+		lda  _result
+		ldy  _result+1
+		rts
++		cmp  #10
+		bcs  _done
+		; add digit to result
+		pha
+		jsr  _result_times_10
+		pla
+		clc
+		adc  _result
+		sta  _result
+		bcc  +
+		inc  _result+1
++		iny
+		bne  _mod
+		; never reached
+
+_result_times_10     ; (W*4 + W)*2
+		lda  _result+1
+		sta  c64.SCRATCH_ZPREG
+		lda  _result
+		asl  a
+		rol  c64.SCRATCH_ZPREG
+		asl  a
+		rol  c64.SCRATCH_ZPREG
+		clc
+		adc  _result
+		sta  _result
+		lda  c64.SCRATCH_ZPREG
+		adc  _result+1
+		asl  _result
+		rol  a
+		sta  _result+1
+		rts
+	}}
+}
+
+
+asmsub str2word(str string @ AY) -> clobbers() -> (word @ AY) {
+	; -- returns the signed word value of the string number argument in AY
+	;    the number may be preceded by a + or - sign but may NOT contain spaces
+	;    (any non-digit character will terminate the number string that is parsed)
+	%asm {{
+_result = c64.SCRATCH_ZPWORD2
 		sta  c64.SCRATCH_ZPWORD1
 		sty  c64.SCRATCH_ZPWORD1+1
 		ldy  #0
+		sty  _result
+		sty  _result+1
+		sty  _negative
 		lda  (c64.SCRATCH_ZPWORD1),y
-		cmp  #'-'
-		beq  +
-		jmp  str2ubyte._enter
-+		inc  c64.SCRATCH_ZPWORD1
+		cmp  #'+'
 		bne  +
-		inc  c64.SCRATCH_ZPWORD1+1
-+		jsr  str2ubyte._enter
-		eor  #$ff
-		sec
-		adc  #0
-		rts
-	}}
-}
-
-asmsub  str2ubyte  (str string @ AY) -> clobbers(Y) -> (ubyte @ A) {
-	%asm {{
-		; -- convert string (address in A/Y) to ubyte in A
-		;    doesn't use any kernal routines
-		sta  c64.SCRATCH_ZPWORD1
-		sty  c64.SCRATCH_ZPWORD1+1
-_enter		jsr  _numlen			; Y= slen
-		lda  #0
-		dey
-		bpl  +
-		rts
-+		lda  (c64.SCRATCH_ZPWORD1),y
-		sec
-		sbc  #'0'
-		dey
-		bpl  +
-		rts
-+		sta  c64.SCRATCH_ZPREG		;result
-		lda  (c64.SCRATCH_ZPWORD1),y
-		sec
-		sbc  #'0'
-		asl  a
-		sta  c64.SCRATCH_ZPB1
-		asl  a
-		asl  a
-		clc
-		adc  c64.SCRATCH_ZPB1
-		clc
-		adc  c64.SCRATCH_ZPREG
-		dey
-		bpl  +
-		rts
-+		sta  c64.SCRATCH_ZPREG
-		lda  (c64.SCRATCH_ZPWORD1),y
-		tay
-		lda  _hundreds-'0',y
-		clc
-		adc  c64.SCRATCH_ZPREG
-		rts
-_hundreds	.byte  0, 100, 200
-
-_numlen
-		;-- return the length of the numeric string at ZPWORD1, in Y
-		ldy  #0
--		lda  (c64.SCRATCH_ZPWORD1),y
-		cmp  #'0'
-		bmi  +
-		cmp  #':'	; one after '9'
-		bpl  +
 		iny
-		bne  -
-+		rts
-
-	}}
-}
-
-
-asmsub	c64flt_FREADSTR	(ubyte length @ A) -> clobbers(A,X,Y) -> ()	= $b7b5		; @todo needed for (slow) str conversion below
-asmsub	c64flt_GETADR	() -> clobbers(X) -> (ubyte @ Y, ubyte @ A)	= $b7f7		; @todo needed for (slow) str conversion below
-asmsub	c64flt_FTOSWORDYA  () -> clobbers(X) -> (ubyte @ Y, ubyte @ A)	= $b1aa		; @todo needed for (slow) str conversion below
-
-asmsub  str2uword(str string @ AY) -> clobbers() -> (uword @ AY) {
-	%asm {{
-		;-- convert string (address in A/Y) to uword number in A/Y
-		;   @todo don't use the (slow) kernel floating point conversion
-		sta  $22
-		sty  $23
-		jsr  _strlen2233
-		tya
-		stx  c64.SCRATCH_ZPREGX
-		jsr  c64flt_FREADSTR			; string to fac1
-		jsr  c64flt_GETADR			; fac1 to unsigned word in Y/A
-		ldx  c64.SCRATCH_ZPREGX
-		sta  c64.SCRATCH_ZPREG
-		tya
-		ldy  c64.SCRATCH_ZPREG
-		rts
-
-_strlen2233
-		;-- return the length of the (zero-terminated) string at $22/$23, in Y
-		ldy  #0
--		lda  ($22),y
++		cmp  #'-'
+		bne  _parse
+		inc  _negative
+		iny
+_parse		lda  (c64.SCRATCH_ZPWORD1),y
+		sec
+		sbc  #48
+		bpl  _digit
+_done		; return result
+		lda  _negative
 		beq  +
-		iny
-		bne  -
-+		rts
-	}}
-}
-
-asmsub  str2word(str string @ AY) -> clobbers() -> (word @ AY) {
-	%asm {{
-		;-- convert string (address in A/Y) to signed word number in A/Y
-		;   @todo don't use the (slow) kernel floating point conversion
-		sta  $22
-		sty  $23
-		jsr  str2uword._strlen2233
-		tya
-		stx  c64.SCRATCH_ZPREGX
-		jsr  c64flt_FREADSTR		; string to fac1
-		jsr  c64flt_FTOSWORDYA		; fac1 to unsigned word in Y/A
-		ldx  c64.SCRATCH_ZPREGX
-		sta  c64.SCRATCH_ZPREG
-		tya
-		ldy  c64.SCRATCH_ZPREG
+		sec
+		lda  #0
+		sbc  _result
+		sta  _result
+		lda  #0
+		sbc  _result+1
+		sta  _result+1
++		lda  _result
+		ldy  _result+1
 		rts
+_digit		cmp  #10
+		bcs  _done
+		; add digit to result
+		pha
+		jsr  str2uword._result_times_10
+		pla
+		clc
+		adc  _result
+		sta  _result
+		bcc  +
+		inc  _result+1
++		iny
+		bne  _parse
+		; never reached
+_negative	.byte  0
 	}}
 }
-
-
-; @todo string to 32 bit unsigned integer http://www.6502.org/source/strings/ascii-to-32bit.html
 
 
 asmsub  set_irqvec_excl() -> clobbers(A) -> ()  {

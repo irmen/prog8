@@ -29,7 +29,7 @@
                 c64scr.print("es")
             c64scr.print(" left.\nWhat is your next guess? ")
             c64scr.input_chars(input)
-            ubyte guess = c64utils.str2ubyte(input)
+            ubyte guess = lsb(c64utils.str2uword(input))
 
             if guess==secretnumber {
                 return ending(true)
