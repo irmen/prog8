@@ -1255,9 +1255,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.ROR2_WORD -> {
                 AsmFragment(" lsr  $variable+1 |  ror  $variable |  bcc  + |  lda  $variable+1 |  ora  #\$80 |  sta  $variable+1 |+", 30)
             }
-//            Opcode.SYSCALL -> {
-//                TODO("optimize SYSCALL $ins in-place on variable $variable")
-//            }
             else -> null
         }
     }

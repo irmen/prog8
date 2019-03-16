@@ -649,7 +649,57 @@ func_read_flags	.proc
 		rts
 		.pend
 		
+		
+func_sqrt16	.proc
+		lda  c64.ESTACK_LO+1,x
+		sta  c64.SCRATCH_ZPWORD2
+		lda  c64.ESTACK_HI+1,x
+		sta  c64.SCRATCH_ZPWORD2+1
+		stx  c64.SCRATCH_ZPREGX
+		ldy  #$00    ; r = 0
+		ldx  #$07
+		clc         ; clear bit 16 of m
+_loop
+		tya
+		ora  _stab-1,x
+		sta  c64.SCRATCH_ZPB1     ; (r asl 8) | (d asl 7)
+		lda  c64.SCRATCH_ZPWORD2+1
+		bcs  _skip0  ; m >= 65536? then t <= m is always true
+		cmp  c64.SCRATCH_ZPB1
+		bcc  _skip1  ; t <= m
+_skip0
+		sbc  c64.SCRATCH_ZPB1
+		sta  c64.SCRATCH_ZPWORD2+1     ; m = m - t
+		tya
+		ora  _stab,x
+		tay         ; r = r or d
+_skip1
+		asl  c64.SCRATCH_ZPWORD2
+		rol  c64.SCRATCH_ZPWORD2+1     ; m = m asl 1
+		dex
+		bne  _loop
 
+		; last iteration
+		bcs  _skip2
+		sty  c64.SCRATCH_ZPB1
+		lda  c64.SCRATCH_ZPWORD2
+		cmp  #$80
+		lda  c64.SCRATCH_ZPWORD2+1
+		sbc  c64.SCRATCH_ZPB1
+		bcc  _skip3
+_skip2
+		iny         ; r = r or d (d is 1 here)
+_skip3
+		ldx  c64.SCRATCH_ZPREGX
+		tya
+		sta  c64.ESTACK_LO+1,x
+		lda  #0
+		sta  c64.ESTACK_HI+1,x
+		rts
+_stab   .byte $01,$02,$04,$08,$10,$20,$40,$80
+		.pend
+		
+		
 func_sin8	.proc
 		ldy  c64.ESTACK_LO+1,x
 		lda  _sinecos8,y

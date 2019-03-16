@@ -6,47 +6,35 @@
     ; @todo see problem in looplabelproblem.p8
 
     sub start() {
+        uword z2 = sqrt16(50000)
 
-        uword z = c64utils.str2uword(" 1 2 3 4 5 ")
-        c64scr.print_uw(c64utils.str2uword(" "))
+        c64scr.print_ub(sqrt16(0))
         c64.CHROUT('\n')
-        c64scr.print_uw(c64utils.str2uword("  222 "))
+        c64scr.print_ub(sqrt16(200))
         c64.CHROUT('\n')
-        c64scr.print_uw(c64utils.str2uword("1234 567"))
+        c64scr.print_ub(sqrt16(20000))
         c64.CHROUT('\n')
-        c64scr.print_uw(c64utils.str2uword("1234x567"))
+        c64scr.print_ub(sqrt16(63333))
         c64.CHROUT('\n')
-        c64scr.print_uw(c64utils.str2uword("+1234x567"))
-        c64.CHROUT('\n')
-        c64scr.print_uw(c64utils.str2uword("00065534"))
-        c64.CHROUT('\n')
-        c64scr.print_uw(c64utils.str2uword("0006553x4"))
+        c64scr.print_ub(sqrt16(65535))
         c64.CHROUT('\n')
         c64.CHROUT('\n')
-
-        word z2 = c64utils.str2word(" 1 2 3 4 5 ")
-        c64scr.print_w(c64utils.str2word(" "))
+        z2=0
+        c64scr.print_ub(sqrt16(z2))
         c64.CHROUT('\n')
-        c64scr.print_w(c64utils.str2word("0000000"))
+        z2=200
+        c64scr.print_ub(sqrt16(z2))
         c64.CHROUT('\n')
-        c64scr.print_w(c64utils.str2word("12345"))
+        z2=20000
+        c64scr.print_ub(sqrt16(z2))
         c64.CHROUT('\n')
-        c64scr.print_w(c64utils.str2word("64444"))
+        z2=63333
+        c64scr.print_ub(sqrt16(z2))
         c64.CHROUT('\n')
-        c64scr.print_w(c64utils.str2word(" 12345"))
+        z2=65535
+        c64scr.print_ub(sqrt16(z2))
         c64.CHROUT('\n')
-        c64scr.print_w(c64utils.str2word("-12345"))
-        c64.CHROUT('\n')
-        c64scr.print_w(c64utils.str2word(" - 123 45"))
-        c64.CHROUT('\n')
-        c64scr.print_w(c64utils.str2word("+1234 567 "))
-        c64.CHROUT('\n')
-        c64scr.print_w(c64utils.str2word("-1234 567 "))
-        c64.CHROUT('\n')
-        c64scr.print_w(c64utils.str2word("-31999"))
-        c64.CHROUT('\n')
-        c64scr.print_w(c64utils.str2word("31999"))
-        c64.CHROUT('\n')
+        A=99
     }
 
 }

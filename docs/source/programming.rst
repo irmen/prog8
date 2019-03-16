@@ -604,8 +604,11 @@ ln(x)
 log2(x)
     Base 2 logarithm.
 
+sqrt16(w)
+	16 bit unsigned integer Square root. Result is unsigned byte.
+
 sqrt(x)
-	Square root.
+	Floating point Square root.
 
 round(x)
 	Rounds the floating point to the closest integer.
