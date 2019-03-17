@@ -14,22 +14,28 @@ fun Module.checkIdentifiers(heap: HeapValues): MutableMap<String, IStatement> {
     val checker = AstIdentifiersChecker(heap)
     this.process(checker)
 
-    // add any anonymous variables for heap values that are used, and replace literalvalue by identifierref
+    // add any anonymous variables for heap values that are used,
+    // and replace an iterable literalvalue by identifierref to new local variable
     for (variable in checker.anonymousVariablesFromHeap) {
         val scope = variable.first.definingScope()
         scope.statements.add(variable.second)
         val parent = variable.first.parent
         when {
             parent is Assignment && parent.value === variable.first -> {
-                val idref = IdentifierReference(listOf("auto_heap_value_${variable.first.heapId}"), variable.first.position)
+                val idref = IdentifierReference(listOf("$autoHeapValuePrefix${variable.first.heapId}"), variable.first.position)
                 idref.linkParents(parent)
                 parent.value = idref
             }
             parent is IFunctionCall -> {
                 val parameterPos = parent.arglist.indexOf(variable.first)
-                val idref = IdentifierReference(listOf("auto_heap_value_${variable.first.heapId}"), variable.first.position)
+                val idref = IdentifierReference(listOf("$autoHeapValuePrefix${variable.first.heapId}"), variable.first.position)
                 idref.linkParents(parent)
                 parent.arglist[parameterPos] = idref
+            }
+            parent is ForLoop -> {
+                val idref = IdentifierReference(listOf("$autoHeapValuePrefix${variable.first.heapId}"), variable.first.position)
+                idref.linkParents(parent)
+                parent.iterable = idref
             }
             else -> TODO("replace literalvalue by identifierref: $variable  (in $parent)")
         }
@@ -228,13 +234,16 @@ private class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
 
     internal val anonymousVariablesFromHeap = mutableSetOf<Pair<LiteralValue, VarDecl>>()
 
+
     override fun process(literalValue: LiteralValue): LiteralValue {
         if(literalValue.heapId!=null && literalValue.parent !is VarDecl) {
             // a literal value that's not declared as a variable, which refers to something on the heap.
             // we need to introduce an auto-generated variable for this to be able to refer to the value!
-            val variable = VarDecl(VarDeclType.VAR, literalValue.type, false, null, "auto_heap_value_${literalValue.heapId}", literalValue, literalValue.position)
+            val variable = VarDecl(VarDeclType.VAR, literalValue.type, false, null, "$autoHeapValuePrefix${literalValue.heapId}", literalValue, literalValue.position)
             anonymousVariablesFromHeap.add(Pair(literalValue, variable))
         }
         return super.process(literalValue)
     }
 }
+
+private const val autoHeapValuePrefix = "auto_heap_value_"
