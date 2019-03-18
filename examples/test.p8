@@ -6,14 +6,26 @@
     ; @todo see problem in looplabelproblem.p8
 
     sub start() {
-        for ubyte i in "hello\n" {
-            c64.CHROUT(i)
-        }
+        str text = "hello"
+        ubyte ub1
+        ubyte ub2
+        ubyte ub3
+        ubyte ub4
+        ubyte ub5
 
-        for ubyte j in [1,2,3,4,5] {
-            c64scr.print_ub(j)
-            c64.CHROUT('\n')
-        }
+        ub1, ub2, ub3, ub4, ub5 = test()
+    }
+
+    sub test1() -> ubyte {
+        return 99
+    }
+
+    asmsub test() -> clobbers() -> (ubyte @Pc, ubyte @Pz, ubyte @Pn, ubyte @Pv, ubyte @A) {
+        %asm {{
+            lda  #99
+            sec
+            rts
+        }}
     }
 
 }

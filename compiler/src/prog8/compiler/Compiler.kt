@@ -644,10 +644,8 @@ internal class Compiler(private val rootModule: Module,
                     val funcname = expr.target.nameInSource[0]
                     translateBuiltinFunctionCall(funcname, expr.arglist)
                 } else {
-                    when(target) {
-                        is Subroutine -> translateSubroutineCall(target, expr.arglist, expr.position)
-                        else -> TODO("non-builtin-function call to $target")
-                    }
+                    if (target is Subroutine) translateSubroutineCall(target, expr.arglist, expr.position)
+                    else TODO("non-builtin-function call to $target")
                 }
             }
             is IdentifierReference -> translate(expr)
@@ -670,7 +668,7 @@ internal class Compiler(private val rootModule: Module,
                     in ArrayDatatypes -> {
                         if(lv.heapId==null)
                             throw CompilerException("array should have been moved into heap  ${lv.position}")
-                        TODO("push address of array with PUSH_WORD")
+                        TODO("push address of array with PUSH_ADDR_HEAPVAR")
                     }
                     else -> throw CompilerException("weird datatype")
                 }
@@ -1013,7 +1011,7 @@ internal class Compiler(private val rootModule: Module,
             // (in reversed order)   otherwise the asm-subroutine can't be used in expressions.
             for(rv in subroutine.asmReturnvaluesRegisters.reversed()) {
                 if(rv.statusflag!=null)
-                    TODO("not yet supported: return values in cpu status flag $rv  $subroutine")
+                    TODO("not yet supported: return values in cpu status flag $rv  ($subroutine)")
                 when(rv.registerOrPair) {
                     A,X,Y -> prog.instr(Opcode.PUSH_VAR_BYTE, callLabel = rv.registerOrPair.name)
                     AX -> prog.instr(Opcode.PUSH_REGAX_WORD)

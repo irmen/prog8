@@ -362,12 +362,11 @@ Operators
 
 .. todo::
     address-of: ``#`` or ``&`` (to stay close to C)
-	Takes the address of the symbol following it:   ``word  address =  &somevar``
+    Takes the address of the symbol following it:   ``word address = &somevar``
     Perhaps requires an explicit pointer type as well instead of just word?
 
     This can replace the ``memory`` var decl prefix as well, instead of
     ``memory uword var = $c000`` we could write ``&uword var = $c000``
-
 
 
 arithmetic: ``+``  ``-``  ``*``  ``/``  ``**``  ``%``
@@ -436,10 +435,20 @@ You call a subroutine like this::
         [ result = ]  subroutinename_or_address ( [argument...] )
 
         ; example:
-        resultvariable  =  subroutine ( arg1, arg2, arg3 )
+        resultvariable = subroutine(arg1, arg2, arg3)
 
 Arguments are separated by commas. The argument list can also be empty if the subroutine
-takes no parameters.
+takes no parameters.  If the subroutine returns a value, you can still omit the assignment to
+a result variable (but the compiler will warn you about discarding the result of the call).
+
+Normal subroutines can only return zero or one return values.
+However, the special ``asmsub`` routines (implemented in assembly code or referencing
+a routine in kernel ROM) can return more than one return values, for instance a status
+in the carry bit and a number in A, or a 16-bit value in A/Y registers.
+Only for these kind of subroutines it is possible to write a multi value assignment to
+store the resulting values::
+
+        var1, var2, var3 = asmsubroutine()
 
 
 

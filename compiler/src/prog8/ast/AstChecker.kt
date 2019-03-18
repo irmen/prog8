@@ -355,7 +355,7 @@ private class AstChecker(private val namespace: INameScope,
         // assigning from a functioncall COULD return multiple values (from an asm subroutine)
         if(assignment.value is FunctionCall) {
             val stmt = (assignment.value as FunctionCall).target.targetStatement(namespace)
-            if (stmt is Subroutine && stmt.returntypes.size > 1) {
+            if (stmt is Subroutine) {
                 if (stmt.isAsmSubroutine) {
                     if (stmt.returntypes.size != assignment.targets.size)
                         checkResult.add(ExpressionError("number of return values doesn't match number of assignment targets", assignment.value.position))
@@ -371,7 +371,7 @@ private class AstChecker(private val namespace: INameScope,
                                 checkResult.add(ExpressionError("return type mismatch for target ${thing.second.shortString()}", assignment.value.position))
                         }
                     }
-                } else
+                } else if(assignment.targets.size>1)
                     checkResult.add(ExpressionError("only asmsub subroutines can return multiple values", assignment.value.position))
             }
         }
