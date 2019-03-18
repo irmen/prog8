@@ -256,6 +256,7 @@ enum class Opcode {
     CLC,        // clear carry status flag  NOTE: is mostly fake, carry flag is not affected by any numeric operations
     SEI,        // set irq-disable status flag
     CLI,        // clear irq-disable status flag
+    CARRY_TO_A, // load var/register A with carry status bit
     RSAVE,      // save all internal registers and status flags
     RSAVEX,     // save just X (the evaluation stack pointer)
     RRESTORE,   // restore all internal registers and status flags

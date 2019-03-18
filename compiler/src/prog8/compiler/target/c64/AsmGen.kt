@@ -449,6 +449,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.CLC -> " clc"
             Opcode.SEI -> " sei"
             Opcode.CLI -> " cli"
+            Opcode.CARRY_TO_A -> " lda  #0 |  adc  #0"
             Opcode.JUMP -> {
                 if(ins.callLabel!=null)
                     " jmp  ${ins.callLabel}"

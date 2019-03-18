@@ -2283,31 +2283,6 @@ private fun prog8Parser.RepeatloopContext.toAst(): RepeatLoop {
 }
 
 
-internal fun registerSet(asmReturnvaluesRegisters: Iterable<RegisterOrStatusflag>): Set<Register> {
-    val resultRegisters = mutableSetOf<Register>()
-    for(x in asmReturnvaluesRegisters) {
-        when(x.registerOrPair) {
-            RegisterOrPair.A -> resultRegisters.add(Register.A)
-            RegisterOrPair.X -> resultRegisters.add(Register.X)
-            RegisterOrPair.Y -> resultRegisters.add(Register.Y)
-            RegisterOrPair.AX -> {
-                resultRegisters.add(Register.A)
-                resultRegisters.add(Register.X)
-            }
-            RegisterOrPair.AY -> {
-                resultRegisters.add(Register.A)
-                resultRegisters.add(Register.Y)
-            }
-            RegisterOrPair.XY -> {
-                resultRegisters.add(Register.X)
-                resultRegisters.add(Register.Y)
-            }
-        }
-    }
-    return resultRegisters
-}
-
-
 internal fun escape(str: String) = str.replace("\t", "\\t").replace("\n", "\\n").replace("\r", "\\r")
 
 internal fun unescape(str: String, position: Position): String {

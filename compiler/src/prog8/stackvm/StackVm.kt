@@ -1860,6 +1860,7 @@ class StackVm(private var traceOutputFile: String?) {
             Opcode.CAST_B_TO_F -> typecast(DataType.BYTE, DataType.FLOAT)
             Opcode.CAST_UW_TO_F -> typecast(DataType.UWORD, DataType.FLOAT)
             Opcode.CAST_W_TO_F -> typecast(DataType.WORD, DataType.FLOAT)
+            Opcode.CARRY_TO_A -> variables["A"] = if(P_carry) Value(DataType.UBYTE, 1) else Value(DataType.UBYTE, 0)
 
             //else -> throw VmExecutionException("unimplemented opcode: ${ins.opcode}")
         }
