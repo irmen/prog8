@@ -25,6 +25,18 @@ The project is on github: https://github.com/irmen/prog8.git
 
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
+
+.. image:: _static/cube3d.png
+    :width: 33%
+    :alt: 3d rotating sprites
+.. image:: _static/wizzine.png
+    :width: 33%
+    :alt: Simple wizzine sprite effect
+.. image:: _static/tehtriz.png
+    :width: 33%
+    :alt: Fully playable tetris clone
+
+
 Code example
 ------------
 
