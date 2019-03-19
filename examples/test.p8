@@ -1,47 +1,33 @@
 %import c64utils
+%import c64lib
 %zeropage basicsafe
-
-~ main {
 
     ; @todo see problem in looplabelproblem.p8
 
+
+~ main {
+
     sub start() {
-        ubyte ub1
-        ubyte ub2
-        ubyte ub3
-        ubyte ub4
-        ubyte ub5
+        c64utils.set_rasterirq(220)     ; enable animation
 
-        ub1, ub2 = test2()
-        c64scr.print_ub(ub1)
-        c64.CHROUT('\n')
-        c64scr.print_ub(ub2)
-        c64.CHROUT('\n')
-        c64.CHROUT('\n')
-        ub1, ub2 = test3()
-        c64scr.print_ub(ub1)
-        c64.CHROUT('\n')
-        c64scr.print_ub(ub2)
-        c64.CHROUT('\n')
-        c64.CHROUT('\n')
+        uword offs=0
+        while(true) {
+            uword z=1
+            for ubyte x in 0 to 200 {
+                @(z*($0400+offs)) = lsb(offs+x)
+                offs += 1
+                if offs > 40*25
+                    offs=0
+            }
+        }
     }
+}
 
-    asmsub test2() -> clobbers() -> (ubyte @Pc, ubyte @A) {
-        %asm {{
-            lda  #100
-            ldy  #100
-            sec
-            rts
-        }}
-    }
 
-    asmsub test3() -> clobbers() -> (ubyte @Pc, ubyte @A) {
-        %asm {{
-            lda  #101
-            ldy  #101
-            clc
-            rts
-        }}
+~ irq {
+
+    sub irq() {
+        c64.EXTCOL = X
     }
 
 }

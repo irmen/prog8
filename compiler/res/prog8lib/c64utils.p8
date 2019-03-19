@@ -288,7 +288,9 @@ asmsub  set_irqvec_excl() -> clobbers(A) -> ()  {
 		sta  c64.CINV+1
 		cli
 		rts
-_irq_handler	jsr  irq.irq
+_irq_handler	jsr  set_irqvec._irq_handler_init
+		jsr  irq.irq
+		jsr  set_irqvec._irq_handler_end
 		lda  #$ff
 		sta  c64.VICIRQ			; acknowledge raster irq
 		lda  c64.CIA1ICR		; acknowledge CIA1 interrupt
@@ -305,10 +307,64 @@ asmsub  set_irqvec() -> clobbers(A) -> ()  {
 		sta  c64.CINV+1
 		cli
 		rts
-_irq_handler    jsr  irq.irq
+_irq_handler    jsr  _irq_handler_init
+		jsr  irq.irq
+		jsr  _irq_handler_end
 		jmp  c64.IRQDFRT		; continue with normal kernel irq routine
 
-	}}
+_irq_handler_init
+		; save all zp scratch registers and the X register as these might be clobbered by the irq routine
+		stx  IRQ_X_REG
+		lda  c64.SCRATCH_ZPB1
+		sta  IRQ_SCRATCH_ZPB1
+		lda  c64.SCRATCH_ZPREG
+		sta  IRQ_SCRATCH_ZPREG
+		lda  c64.SCRATCH_ZPREGX
+		sta  IRQ_SCRATCH_ZPREGX
+		lda  c64.SCRATCH_ZPWORD1
+		sta  IRQ_SCRATCH_ZPWORD1
+		lda  c64.SCRATCH_ZPWORD1+1
+		sta  IRQ_SCRATCH_ZPWORD1+1
+		lda  c64.SCRATCH_ZPWORD2
+		sta  IRQ_SCRATCH_ZPWORD2
+		lda  c64.SCRATCH_ZPWORD2+1
+		sta  IRQ_SCRATCH_ZPWORD2+1
+		; stack protector; make sure we don't clobber the top of the evaluation stack
+		dex
+		dex
+		dex
+		dex
+		dex
+		dex
+		rts
+		
+_irq_handler_end
+		; restore all zp scratch registers and the X register 
+		lda  IRQ_SCRATCH_ZPB1
+		sta  c64.SCRATCH_ZPB1
+		lda  IRQ_SCRATCH_ZPREG
+		sta  c64.SCRATCH_ZPREG
+		lda  IRQ_SCRATCH_ZPREGX
+		sta  c64.SCRATCH_ZPREGX
+		lda  IRQ_SCRATCH_ZPWORD1
+		sta  c64.SCRATCH_ZPWORD1
+		lda  IRQ_SCRATCH_ZPWORD1+1
+		sta  c64.SCRATCH_ZPWORD1+1
+		lda  IRQ_SCRATCH_ZPWORD2
+		sta  c64.SCRATCH_ZPWORD2
+		lda  IRQ_SCRATCH_ZPWORD2+1
+		sta  c64.SCRATCH_ZPWORD2+1
+		ldx  IRQ_X_REG
+		rts
+		
+IRQ_X_REG		.byte  0
+IRQ_SCRATCH_ZPB1	.byte  0
+IRQ_SCRATCH_ZPREG	.byte  0
+IRQ_SCRATCH_ZPREGX	.byte  0
+IRQ_SCRATCH_ZPWORD1	.word  0
+IRQ_SCRATCH_ZPWORD2	.word  0
+
+		}}
 }
 
 
@@ -341,7 +397,9 @@ asmsub  set_rasterirq(uword rasterpos @ AY) -> clobbers(A) -> () {
 		rts
 
 _raster_irq_handler
+		jsr  set_irqvec._irq_handler_init
 		jsr  irq.irq
+		jsr  set_irqvec._irq_handler_end
 		lda  #$ff
 		sta  c64.VICIRQ			; acknowledge raster irq
 		jmp  c64.IRQDFRT
@@ -380,7 +438,9 @@ asmsub  set_rasterirq_excl(uword rasterpos @ AY) -> clobbers(A) -> () {
 		rts
 
 _raster_irq_handler
+		jsr  set_irqvec._irq_handler_init
 		jsr  irq.irq
+		jsr  set_irqvec._irq_handler_end
 		lda  #$ff
 		sta  c64.VICIRQ			; acknowledge raster irq
 		jmp  c64.IRQDFEND		; end irq processing - don't call kernel

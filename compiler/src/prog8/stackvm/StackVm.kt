@@ -227,7 +227,6 @@ class StackVm(private var traceOutputFile: String?) {
                 if (callstack.size > 128)
                     throw VmExecutionException("too many nested/recursive calls")
             } catch (bp: VmBreakpointException) {
-                currentInstructionPtr++         // TODO necessary still?
                 println("breakpoint encountered, source line: $sourceLine")
                 throw bp
             } catch (es: EmptyStackException) {
@@ -702,50 +701,50 @@ class StackVm(private var traceOutputFile: String?) {
             Opcode.SHIFTEDL_BYTE, Opcode.SHL_BYTE -> {
                 val v = evalstack.pop()
                 checkDt(v, DataType.UBYTE, DataType.BYTE)
+                P_carry = (v.integerValue() and 0x80)!=0
                 val value=v.shl()
                 evalstack.push(value)
                 setFlags(value)
-                // TODO carry flag
             }
             Opcode.SHIFTEDL_WORD, Opcode.SHL_WORD -> {
                 val v = evalstack.pop()
                 checkDt(v, DataType.UWORD, DataType.WORD)
+                P_carry = (v.integerValue() and 0x8000)!=0
                 val value=v.shl()
                 evalstack.push(value)
                 setFlags(value)
-                // TODO carry flag
             }
             Opcode.SHIFTEDR_UBYTE, Opcode.SHR_UBYTE -> {
                 val v = evalstack.pop()
                 checkDt(v, DataType.UBYTE)
+                P_carry = (v.integerValue() and 0x01)!=0
                 val value=v.shr()
                 evalstack.push(value)
                 setFlags(value)
-                // TODO carry flag
             }
             Opcode.SHIFTEDR_SBYTE, Opcode.SHR_SBYTE -> {
                 val v = evalstack.pop()
                 checkDt(v, DataType.BYTE)
+                P_carry = (v.integerValue() and 0x01)!=0
                 val value=v.shr()
                 evalstack.push(value)
                 setFlags(value)
-                // TODO carry flag
             }
             Opcode.SHIFTEDR_UWORD, Opcode.SHR_UWORD -> {
                 val v = evalstack.pop()
                 checkDt(v, DataType.UWORD)
+                P_carry = (v.integerValue() and 0x01)!=0
                 val value=v.shr()
                 evalstack.push(value)
                 setFlags(value)
-                // TODO carry flag
             }
             Opcode.SHIFTEDR_SWORD, Opcode.SHR_SWORD -> {
                 val v = evalstack.pop()
                 checkDt(v, DataType.WORD)
+                P_carry = (v.integerValue() and 0x01)!=0
                 val value=v.shr()
                 evalstack.push(value)
                 setFlags(value)
-                // TODO carry flag
             }
             Opcode.ROL_BYTE -> {
                 val v = evalstack.pop()

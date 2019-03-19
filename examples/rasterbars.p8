@@ -23,23 +23,19 @@
     ubyte ypos = 0
 
     sub irq() {
-        Y++   ; delay for alignment
-        Y++   ; delay for alignment
-        Y++   ; delay for alignment
-        Y++   ; delay for alignment
+        Y++     ; slight timing delay to avoid rasterline transition issues
         ubyte rasterpos = c64.RASTER
+
         if color!=len(colors) {
             c64.EXTCOL = colors[color]
-            c64.RASTER = rasterpos+barheight
             color++
+            c64.RASTER = rasterpos+barheight
         }
         else {
-            Y++   ; delay for alignment
-            Y++   ; delay for alignment
             ypos += 2
             c64.EXTCOL = 0
-            c64.RASTER = sin8u(ypos)/2+40
             color = 0
+            c64.RASTER = sin8u(ypos)/2+40
         }
     }
 }
