@@ -235,7 +235,7 @@ asmsub	GETIN    () -> clobbers(X,Y) -> (ubyte @ A)		= $FFE4		; (via 810 ($32A)) 
 asmsub	CLALL    () -> clobbers(A,X) -> ()			= $FFE7		; (via 812 ($32C)) close all files
 asmsub	UDTIM    () -> clobbers(A,X) -> ()			= $FFEA		; update the software clock
 asmsub	SCREEN   () -> clobbers() -> (ubyte @ X, ubyte @ Y)	= $FFED		; read number of screen rows and columns
-asmsub	PLOT     (ubyte dir @ Pc, ubyte col @ Y, ubyte row @ X) -> clobbers() -> (ubyte @ X, ubyte @ Y)	= $FFF0		; read/set position of cursor on screen.  See c64scr.PLOT for a 'safe' wrapper that preserves X.
+asmsub	PLOT     (ubyte dir @ Pc, ubyte col @ Y, ubyte row @ X) -> clobbers() -> (ubyte @ X, ubyte @ Y)	= $FFF0		; read/set position of cursor on screen.  Use c64scr.plot for a 'safe' wrapper that preserves X.
 asmsub	IOBASE   () -> clobbers() -> (uword @ XY)		= $FFF3		; read base address of I/O devices
 
 ; ---- end of C64 kernal routines ----

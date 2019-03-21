@@ -1,4 +1,6 @@
 
+; @todo fix this (issue #11 on github): it generates invalid asm due to improper label names
+
 ~ main {
 
     sub start() {

@@ -54,40 +54,39 @@ asmsub  ubyte2hex  (ubyte value @ A) -> clobbers() -> (ubyte @ A, ubyte @ Y)  {
 		pha
 		and  #$0f
 		tax
-		ldy  hex_digits,x
+		ldy  _hex_digits,x
 		pla
 		lsr  a
 		lsr  a
 		lsr  a
 		lsr  a
 		tax
-		lda  hex_digits,x
+		lda  _hex_digits,x
 		ldx  c64.SCRATCH_ZPREGX
 		rts
 
-hex_digits	.text "0123456789abcdef"	; can probably be reused for other stuff as well
+_hex_digits	.text "0123456789abcdef"	; can probably be reused for other stuff as well
 	}}
 }
 
 
-		str  word2hex_output = "1234"   ; 0-terminated, to make printing easier
 asmsub  uword2hex  (uword value @ AY) -> clobbers(A,Y) -> ()  {
-	; ---- convert 16 bit uword in A/Y into 4-character hexadecimal string into memory  'word2hex_output'
+	; ---- convert 16 bit uword in A/Y into 4-character hexadecimal string 'uword2hex.output' (0-terminated)
 	%asm {{
 		sta  c64.SCRATCH_ZPREG
 		tya
 		jsr  ubyte2hex
-		sta  word2hex_output
-		sty  word2hex_output+1
+		sta  output
+		sty  output+1
 		lda  c64.SCRATCH_ZPREG
 		jsr  ubyte2hex
-		sta  word2hex_output+2
-		sty  word2hex_output+3
+		sta  output+2
+		sty  output+3
 		rts
+output	.text  "0000", $00      ; 0-terminated output buffer (to make printing easier)
 	}}
 }
 
-		ubyte[3]  word2bcd_bcdbuff = [0, 0, 0]
 asmsub  uword2bcd  (uword value @ AY) -> clobbers(A,Y) -> ()  {
 	; Convert an 16 bit binary value to BCD
 	;
@@ -106,22 +105,22 @@ asmsub  uword2bcd  (uword value @ AY) -> clobbers(A,Y) -> ()  {
 		sei				; disable interrupts because of bcd math
 		sed				; switch to decimal mode
 		lda  #0				; ensure the result is clear
-		sta  word2bcd_bcdbuff+0
-		sta  word2bcd_bcdbuff+1
-		sta  word2bcd_bcdbuff+2
+		sta  bcdbuff+0
+		sta  bcdbuff+1
+		sta  bcdbuff+2
 		ldy  #16			; the number of source bits
 
 -		asl  c64.SCRATCH_ZPB1		; shift out one bit
 		rol  c64.SCRATCH_ZPREG
-		lda  word2bcd_bcdbuff+0		; and add into result
-		adc  word2bcd_bcdbuff+0
-		sta  word2bcd_bcdbuff+0
-		lda  word2bcd_bcdbuff+1		; propagating any carry
-		adc  word2bcd_bcdbuff+1
-		sta  word2bcd_bcdbuff+1
-		lda  word2bcd_bcdbuff+2		; ... thru whole result
-		adc  word2bcd_bcdbuff+2
-		sta  word2bcd_bcdbuff+2
+		lda  bcdbuff+0		; and add into result
+		adc  bcdbuff+0
+		sta  bcdbuff+0
+		lda  bcdbuff+1		; propagating any carry
+		adc  bcdbuff+1
+		sta  bcdbuff+1
+		lda  bcdbuff+2		; ... thru whole result
+		adc  bcdbuff+2
+		sta  bcdbuff+2
 		dey				; and repeat for next bit
 		bne  -
 		cld				; back to binary
@@ -130,23 +129,24 @@ asmsub  uword2bcd  (uword value @ AY) -> clobbers(A,Y) -> ()  {
 		cli				; enable interrupts again (only if they were enabled before)
 +		rts
 _had_irqd  .byte  0
+bcdbuff  .byte  0,0,0
 	}}
 }
 
 
-		ubyte[5]  word2decimal_output = 0
-asmsub  uword2decimal  (uword value @ AY) -> clobbers(A,Y) -> ()  {
-	; ---- convert 16 bit uword in A/Y into decimal string into memory  'word2decimal_output'
+asmsub  uword2decimal  (uword value @ AY) -> clobbers(A) -> (ubyte @ Y)  {
+	; ---- convert 16 bit uword in A/Y into 0-terminated decimal string into memory  'uword2decimal.output'
+	;      returns length of resulting string in Y
 	%asm {{
 		jsr  uword2bcd
-		lda  word2bcd_bcdbuff+2
+		lda  uword2bcd.bcdbuff+2
 		clc
 		adc  #'0'
-		sta  word2decimal_output
+		sta  output
 		ldy  #1
-		lda  word2bcd_bcdbuff+1
+		lda  uword2bcd.bcdbuff+1
 		jsr  +
-		lda  word2bcd_bcdbuff+0
+		lda  uword2bcd.bcdbuff+0
 
 +		pha
 		lsr  a
@@ -155,14 +155,19 @@ asmsub  uword2decimal  (uword value @ AY) -> clobbers(A,Y) -> ()  {
 		lsr  a
 		clc
 		adc  #'0'
-		sta  word2decimal_output,y
+		sta  output,y
 		iny
 		pla
 		and  #$0f
 		adc  #'0'
-		sta  word2decimal_output,y
+		sta  output,y
 		iny
+		lda  #0
+		sta  output,y
 		rts
+
+output  .text  "00000", $00     ; 0 terminated
+
 	}}
 
 }
@@ -337,9 +342,9 @@ _irq_handler_init
 		dex
 		dex
 		rts
-		
+
 _irq_handler_end
-		; restore all zp scratch registers and the X register 
+		; restore all zp scratch registers and the X register
 		lda  IRQ_SCRATCH_ZPB1
 		sta  c64.SCRATCH_ZPB1
 		lda  IRQ_SCRATCH_ZPREG
@@ -356,7 +361,7 @@ _irq_handler_end
 		sta  c64.SCRATCH_ZPWORD2+1
 		ldx  IRQ_X_REG
 		rts
-		
+
 IRQ_X_REG		.byte  0
 IRQ_SCRATCH_ZPB1	.byte  0
 IRQ_SCRATCH_ZPREG	.byte  0
@@ -517,7 +522,7 @@ _loop		sta  c64.Colors,y
 }
 
 
-asmsub scroll_left_full  (ubyte alsocolors @ Pc) -> clobbers(A, Y) -> ()  {
+asmsub  scroll_left_full  (ubyte alsocolors @ Pc) -> clobbers(A, Y) -> ()  {
 	; ---- scroll the whole screen 1 character to the left
 	;      contents of the rightmost column are unchanged, you should clear/refill this yourself
 	;      Carry flag determines if screen color data must be scrolled too
@@ -578,7 +583,7 @@ _scroll_screen  ; scroll the screen memory
 }
 
 
-asmsub scroll_right_full  (ubyte alsocolors @ Pc) -> clobbers(A) -> ()  {
+asmsub  scroll_right_full  (ubyte alsocolors @ Pc) -> clobbers(A) -> ()  {
 	; ---- scroll the whole screen 1 character to the right
 	;      contents of the leftmost column are unchanged, you should clear/refill this yourself
 	;      Carry flag determines if screen color data must be scrolled too
@@ -631,7 +636,7 @@ _scroll_screen  ; scroll the screen memory
 }
 
 
-asmsub scroll_up_full  (ubyte alsocolors @ Pc) -> clobbers(A) -> ()  {
+asmsub  scroll_up_full  (ubyte alsocolors @ Pc) -> clobbers(A) -> ()  {
 	; ---- scroll the whole screen 1 character up
 	;      contents of the bottom row are unchanged, you should refill/clear this yourself
 	;      Carry flag determines if screen color data must be scrolled too
@@ -684,7 +689,7 @@ _scroll_screen  ; scroll the screen memory
 }
 
 
-asmsub scroll_down_full  (ubyte alsocolors @ Pc) -> clobbers(A) -> ()  {
+asmsub  scroll_down_full  (ubyte alsocolors @ Pc) -> clobbers(A) -> ()  {
 	; ---- scroll the whole screen 1 character down
 	;      contents of the top row are unchanged, you should refill/clear this yourself
 	;      Carry flag determines if screen color data must be scrolled too
@@ -889,7 +894,7 @@ asmsub  print_uw0  (uword value @ AY) -> clobbers(A,Y) -> ()  {
 	%asm {{
 		jsr  c64utils.uword2decimal
 		ldy  #0
--		lda  c64utils.word2decimal_output,y
+-		lda  c64utils.uword2decimal.output,y
 		jsr  c64.CHROUT
 		iny
 		cpy  #5
@@ -904,25 +909,25 @@ asmsub  print_uw  (uword value @ AY) -> clobbers(A,Y) -> ()  {
 	%asm {{
 		jsr  c64utils.uword2decimal
 		ldy  #0
-		lda  c64utils.word2decimal_output
+		lda  c64utils.uword2decimal.output
 		cmp  #'0'
 		bne  _pr_decimal
 		iny
-		lda  c64utils.word2decimal_output+1
+		lda  c64utils.uword2decimal.output+1
 		cmp  #'0'
 		bne  _pr_decimal
 		iny
-		lda  c64utils.word2decimal_output+2
+		lda  c64utils.uword2decimal.output+2
 		cmp  #'0'
 		bne  _pr_decimal
 		iny
-		lda  c64utils.word2decimal_output+3
+		lda  c64utils.uword2decimal.output+3
 		cmp  #'0'
 		bne  _pr_decimal
 		iny
 
 _pr_decimal
-		lda  c64utils.word2decimal_output,y
+		lda  c64utils.uword2decimal.output,y
 		jsr  c64.CHROUT
 		iny
 		cpy  #5
@@ -932,7 +937,7 @@ _pr_decimal
 }
 
 asmsub  print_w  (word value @ AY) -> clobbers(A,Y) -> ()  {
-	; ---- print the (signed) word in A/Y in decimal form, without left padding 0s
+	; ---- print the (signed) word in A/Y in decimal form, without left padding 0's
 	%asm {{
 		cpy  #0
 		bpl  +
@@ -1081,7 +1086,7 @@ _colormod	sta  $ffff		; modified
 	}}
 }
 
-asmsub  PLOT  (ubyte col @ Y, ubyte row @ A) -> clobbers(A) -> () {
+asmsub  plot  (ubyte col @ Y, ubyte row @ A) -> clobbers(A) -> () {
 	; ---- safe wrapper around PLOT kernel routine, to save the X register.
 	%asm  {{
 		stx  c64.SCRATCH_ZPREGX

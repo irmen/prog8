@@ -24,7 +24,7 @@
             c64scr.clear_screenchars(32)
             draw_edges()
             time+=0.2
-            c64scr.PLOT(0,0)
+            c64scr.plot(0,0)
             c64scr.print("3d cube! (float) ")
             c64scr.print_ub(c64.TIME_LO)
             c64scr.print(" jiffies/frame")

@@ -214,24 +214,24 @@ waitkey:
 
     sub gameOver() {
         sound.gameover()
-        c64scr.PLOT(7, 7)
+        c64scr.plot(7, 7)
         c64.CHROUT('U')
         c64scr.print("────────────────────────")
         c64.CHROUT('I')
-        c64scr.PLOT(7, 8)
+        c64scr.plot(7, 8)
         c64scr.print("│*** g a m e  o v e r ***│")
-        c64scr.PLOT(7, 9)
+        c64scr.plot(7, 9)
         c64.CHROUT('J')
         c64scr.print("────────────────────────")
         c64.CHROUT('K')
 
-        c64scr.PLOT(7, 18)
+        c64scr.plot(7, 18)
         c64.CHROUT('U')
         c64scr.print("────────────────────────")
         c64.CHROUT('I')
-        c64scr.PLOT(7, 19)
+        c64scr.plot(7, 19)
         c64scr.print("│    f1 for new game     │")
-        c64scr.PLOT(7, 20)
+        c64scr.plot(7, 20)
         c64.CHROUT('J')
         c64scr.print("────────────────────────")
         c64.CHROUT('K')
@@ -270,34 +270,34 @@ waitkey:
     sub drawBoard() {
         c64.CLEARSCR()
         c64.COLOR = 7
-        c64scr.PLOT(1,1)
+        c64scr.plot(1,1)
         c64scr.print("irmen's")
-        c64scr.PLOT(2,2)
+        c64scr.plot(2,2)
         c64scr.print("teh▁triz")
         c64.COLOR = 5
-        c64scr.PLOT(6,4)
+        c64scr.plot(6,4)
         c64scr.print("hold:")
-        c64scr.PLOT(2,22)
+        c64scr.plot(2,22)
         c64scr.print("speed: ")
-        c64scr.PLOT(28,3)
+        c64scr.plot(28,3)
         c64scr.print("next:")
-        c64scr.PLOT(28,10)
+        c64scr.plot(28,10)
         c64scr.print("lines:")
-        c64scr.PLOT(28,14)
+        c64scr.plot(28,14)
         c64scr.print("score:")
         c64.COLOR = 12
-        c64scr.PLOT(27,18)
+        c64scr.plot(27,18)
         c64scr.print("controls:")
         c64.COLOR = 11
-        c64scr.PLOT(28,19)
+        c64scr.plot(28,19)
         c64scr.print(",/  move")
-        c64scr.PLOT(28,20)
+        c64scr.plot(28,20)
         c64scr.print("zx  rotate")
-        c64scr.PLOT(29,21)
+        c64scr.plot(29,21)
         c64scr.print(".  descend")
-        c64scr.PLOT(27,22)
+        c64scr.plot(27,22)
         c64scr.print("spc  drop")
-        c64scr.PLOT(29,23)
+        c64scr.plot(29,23)
         c64scr.print("c  hold")
 
         c64scr.setcc(boardOffsetX-1, boardOffsetY-2, 255, 0)           ; invisible barrier
@@ -331,11 +331,11 @@ waitkey:
 
     sub drawScore() {
         c64.COLOR=1
-        c64scr.PLOT(30,11)
+        c64scr.plot(30,11)
         c64scr.print_uw(lines)
-        c64scr.PLOT(30,15)
+        c64scr.plot(30,15)
         c64scr.print_uw(score)
-        c64scr.PLOT(9,22)
+        c64scr.plot(9,22)
         c64scr.print_ub(speedlevel)
     }
 

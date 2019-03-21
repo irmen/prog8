@@ -89,7 +89,7 @@
             anglex-=500
             angley+=217
             anglez+=452
-            c64scr.PLOT(0,0)
+            c64scr.plot(0,0)
             c64scr.print("3d cube! (sprites) ")
             c64scr.print_ub(c64.TIME_LO)
             c64scr.print(" jiffies/frame ")
