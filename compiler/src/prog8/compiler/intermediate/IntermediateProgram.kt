@@ -11,8 +11,7 @@ import java.nio.file.Path
 
 class IntermediateProgram(val name: String, var loadAddress: Int, val heap: HeapValues, val importedFrom: Path) {
 
-    class ProgramBlock(val scopedname: String,
-                       val shortname: String,
+    class ProgramBlock(val name: String,
                        var address: Int?,
                        val instructions: MutableList<Instruction> = mutableListOf(),
                        val variables: MutableMap<String, Value> = mutableMapOf(),
@@ -447,8 +446,8 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         currentBlock.memoryPointers[name] = Pair(address, datatype)
     }
 
-    fun newBlock(scopedname: String, shortname: String, address: Int?, options: Set<String>) {
-        currentBlock = ProgramBlock(scopedname, shortname, address, force_output="force_output" in options)
+    fun newBlock(name: String, address: Int?, options: Set<String>) {
+        currentBlock = ProgramBlock(name, address, force_output="force_output" in options)
         blocks.add(currentBlock)
     }
 
@@ -472,7 +471,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         }
         out.println("%end_heap")
         for(blk in blocks) {
-            out.println("\n%block ${blk.scopedname} ${blk.address?.toString(16) ?: ""}")
+            out.println("\n%block ${blk.name} ${blk.address?.toString(16) ?: ""}")
 
             out.println("%variables")
             for(variable in blk.variables) {

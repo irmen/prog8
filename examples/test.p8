@@ -1,6 +1,6 @@
 %zeropage basicsafe
 
-; @todo fix this (issue #11 on github): it generates invalid asm due to improper label names
+; @todo fix this loop labeling problem (issue #11 on github): it generates invalid asm due to improper label names
 
 ~ main {
 

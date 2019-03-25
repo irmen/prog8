@@ -62,12 +62,11 @@ private class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
     }
 
     override fun process(block: Block): IStatement {
-        val scopedName = block.scopedname
-        val existing = symbols[scopedName]
+        val existing = symbols[block.name]
         if(existing!=null) {
             nameError(block.name, block.position, existing)
         } else {
-            symbols[scopedName] = block
+            symbols[block.name] = block
         }
         return super.process(block)
     }
@@ -91,6 +90,7 @@ private class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
             // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", decl.position))
 
+        // TODO: check for name conflict only has to be done within the same scope, no need to get the full scoped name
         val scopedName = decl.scopedname
         val existing = symbols[scopedName]
         if(existing!=null) {
@@ -109,6 +109,7 @@ private class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
             if (subroutine.parameters.any { it.name in BuiltinFunctions })
                 checkResult.add(NameError("builtin function name cannot be used as parameter", subroutine.position))
 
+            // TODO: check for name conflict only has to be done within the same scope, no need to get the full scoped name
             val scopedName = subroutine.scopedname
             val existing = symbols[scopedName]
             if (existing != null) {
@@ -152,6 +153,7 @@ private class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
             // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", label.position))
         } else {
+            // TODO: check for name conflict only has to be done within the same scope, no need to get the full scoped name
             val scopedName = label.scopedname
             val existing = symbols[scopedName]
             if (existing != null) {

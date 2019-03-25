@@ -157,9 +157,9 @@ internal class Compiler(private val rootModule: Module,
     }
 
     override fun process(block: Block): IStatement {
-        prog.newBlock(block.scopedname, block.name, block.address, block.options())
+        prog.newBlock(block.name, block.address, block.options())
         processVariables(block)
-        prog.label("block."+block.scopedname, false)
+        prog.label("block."+block.name, false)
         prog.line(block.position)
         translate(block.statements)
         return super.process(block)

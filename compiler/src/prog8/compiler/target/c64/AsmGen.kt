@@ -44,8 +44,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             }.toMutableList()
             val newConstants = block.memoryPointers.map { symname(it.key, block) to it.value }.toMap().toMutableMap()
             val newblock = IntermediateProgram.ProgramBlock(
-                    block.scopedname,
-                    block.shortname,
+                    block.name,
                     block.address,
                     newinstructions,
                     newvars,
@@ -115,9 +114,9 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 blockLocal=true
                 scoped
             }
-            scoped.startsWith("${block.shortname}.") -> {
+            scoped.startsWith("${block.name}.") -> {            // TODO DOES THIS EVER OCCUR?
                 blockLocal = true
-                scoped.substring(block.shortname.length+1)
+                scoped.substring(block.name.length+1)
             }
             scoped.startsWith("block.") -> {
                 blockLocal = false
@@ -199,7 +198,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         for(block in program.blocks) {
             val initVarsLabel = block.instructions.firstOrNull { it is LabelInstr && it.name==initvarsSubName } as? LabelInstr
             if(initVarsLabel!=null)
-                out("  jsr  ${block.scopedname}.${initVarsLabel.name}")
+                out("  jsr  ${block.name}.${initVarsLabel.name}")
         }
         out("  clc")
         when(zeropage.exitProgramStrategy) {
@@ -222,9 +221,9 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 
     private fun block2asm(blk: IntermediateProgram.ProgramBlock) {
         block = blk
-        out("\n; ---- block: '${block.shortname}' ----")
+        out("\n; ---- block: '${block.name}' ----")
         if(!blk.force_output)
-            out("${block.shortname}\t.proc\n")
+            out("${block.name}\t.proc\n")
         if(block.address!=null) {
             out(".cerror * > ${block.address?.toHex()}, 'block address overlaps by ', *-${block.address?.toHex()},' bytes'")
             out("* = ${block.address?.toHex()}")
@@ -232,7 +231,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 
         // deal with zeropage variables
         for(variable in blk.variables) {
-            val sym = symname(blk.scopedname+"."+variable.key, null)
+            val sym = symname(blk.name+"."+variable.key, null)
             val zpVar = program.allocatedZeropageVariables[sym]
             if(zpVar==null) {
                 // This var is not on the ZP yet. Attempt to move it there (if it's not a float, those take up too much space)
@@ -431,8 +430,8 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 return ""
 
             val labelresult =
-                    if(ins.name.startsWith("${block.shortname}."))
-                        ins.name.substring(block.shortname.length+1)
+                    if(ins.name.startsWith("${block.name}."))
+                        ins.name.substring(block.name.length+1)
                     else
                         ins.name
             return if(ins.asmProc) labelresult+"\t\t.proc" else labelresult

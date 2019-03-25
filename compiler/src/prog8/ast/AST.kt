@@ -325,8 +325,8 @@ inline fun <reified T> findParentNode(node: Node): T? {
 
 interface IStatement : Node {
     fun process(processor: IAstProcessor) : IStatement
-    fun makeScopedName(name: String): List<String> {
-        // this is usually cached in a lazy property on the statement object itself
+    fun makeScopedName(name: String): String {
+        // this is usually cached in a lazy property on the statement object itself (label, subroutine, vardecl)
         val scope = mutableListOf<String>()
         var statementScope = this.parent
         while(statementScope !is ParentSentinel && statementScope !is Module) {
@@ -336,7 +336,7 @@ interface IStatement : Node {
             statementScope = statementScope.parent
         }
         scope.add(name)
-        return scope
+        return scope.joinToString(".")
     }
 }
 
@@ -507,7 +507,6 @@ class Block(override val name: String,
             val isInLibrary: Boolean,
             override val position: Position) : IStatement, INameScope {
     override lateinit var parent: Node
-    val scopedname: String by lazy { makeScopedName(name).joinToString(".") }
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -547,7 +546,7 @@ data class DirectiveArg(val str: String?, val name: String?, val int: Int?, over
 
 data class Label(val name: String, override val position: Position) : IStatement {
     override lateinit var parent: Node
-    val scopedname: String by lazy { makeScopedName(name).joinToString(".") }
+    val scopedname: String by lazy { makeScopedName(name) }
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -685,7 +684,7 @@ class VarDecl(val type: VarDeclType,
 
     override fun process(processor: IAstProcessor) = processor.process(this)
 
-    val scopedname: String by lazy { makeScopedName(name).joinToString(".") }
+    val scopedname: String by lazy { makeScopedName(name) }
 
     override fun toString(): String {
         return "VarDecl(name=$name, vartype=$type, datatype=$datatype, value=$value, pos=$position)"
@@ -1625,7 +1624,7 @@ class Subroutine(override val name: String,
                  override var statements: MutableList<IStatement>,
                  override val position: Position) : IStatement, INameScope {
     override lateinit var parent: Node
-    val scopedname: String by lazy { makeScopedName(name).joinToString(".") }
+    val scopedname: String by lazy { makeScopedName(name) }
 
     override fun linkParents(parent: Node) {
         this.parent = parent
