@@ -326,6 +326,7 @@ inline fun <reified T> findParentNode(node: Node): T? {
 interface IStatement : Node {
     fun process(processor: IAstProcessor) : IStatement
     fun makeScopedName(name: String): String {
+        // TODO eventually get rid of this scopedName
         // this is usually cached in a lazy property on the statement object itself (label, subroutine, vardecl)
         val scope = mutableListOf<String>()
         var statementScope = this.parent

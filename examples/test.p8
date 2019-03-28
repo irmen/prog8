@@ -6,6 +6,22 @@
 
     sub start() {
 
+        byte var1
+        byte var1
+
+
+        sub subsub() {
+            byte var1
+            byte var1
+        }
+
+        sub subsub() {
+            byte var1
+            byte var2
+            byte var3
+            byte var2
+        }
+
         if A>10 {
             A=44
             while true {

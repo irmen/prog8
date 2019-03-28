@@ -88,7 +88,7 @@ private fun compileMain(args: Array<String>) {
             println("Syntax check...")
             val heap = HeapValues()
             val time1= measureTimeMillis {
-                moduleAst.checkIdentifiers(heap)
+                moduleAst.checkIdentifiers(namespace)
             }
             //println(" time1: $time1")
             val time2 = measureTimeMillis {
@@ -104,9 +104,7 @@ private fun compileMain(args: Array<String>) {
             }
             //println(" time4: $time4")
 
-            val allScopedSymbolDefinitions = moduleAst.checkIdentifiers(heap)       // useful for checking symbol usage later?
-//            moduleAst.simplifyExpressions(namespace, heap)
-//            moduleAst.optimizeStatements(namespace, heap)
+            moduleAst.checkIdentifiers(namespace)
             if(optimize) {
                 // optimize the parse tree
                 println("Optimizing...")

@@ -1,17 +1,15 @@
 package prog8.ast
 
-import prog8.compiler.HeapValues
 import prog8.functions.BuiltinFunctions
 
 /**
  * Checks the validity of all identifiers (no conflicts)
- * Also builds a list of all (scoped) symbol definitions
  * Also makes sure that subroutine's parameters also become local variable decls in the subroutine's scope.
  * Finally, it also makes sure the datatype of all Var decls and sub Return values is set correctly.
  */
 
-fun Module.checkIdentifiers(heap: HeapValues): MutableMap<String, IStatement> {
-    val checker = AstIdentifiersChecker(heap)
+fun Module.checkIdentifiers(namespace: INameScope) {
+    val checker = AstIdentifiersChecker(namespace)
     this.process(checker)
 
     // add any anonymous variables for heap values that are used,
@@ -43,14 +41,13 @@ fun Module.checkIdentifiers(heap: HeapValues): MutableMap<String, IStatement> {
     }
 
     printErrors(checker.result(), name)
-    return checker.symbols
 }
 
 
-private class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
+private class AstIdentifiersChecker(private val namespace: INameScope) : IAstProcessor {
     private val checkResult: MutableList<AstException> = mutableListOf()
 
-    var symbols: MutableMap<String, IStatement> = mutableMapOf()
+    var blocks: MutableMap<String, Block> = mutableMapOf()
         private set
 
     fun result(): List<AstException> {
@@ -58,16 +55,16 @@ private class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
     }
 
     private fun nameError(name: String, position: Position, existing: IStatement) {
-        checkResult.add(NameError("name conflict '$name', first defined in ${existing.position.file} line ${existing.position.line}", position))
+        checkResult.add(NameError("name conflict '$name', also defined in ${existing.position.file} line ${existing.position.line}", position))
     }
 
     override fun process(block: Block): IStatement {
-        val existing = symbols[block.name]
-        if(existing!=null) {
+        val existing = blocks[block.name]
+        if(existing!=null)
             nameError(block.name, block.position, existing)
-        } else {
-            symbols[block.name] = block
-        }
+        else
+            blocks[block.name] = block
+
         return super.process(block)
     }
 
@@ -90,14 +87,10 @@ private class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
             // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", decl.position))
 
-        // TODO: check for name conflict only has to be done within the same scope, no need to get the full scoped name
-        val scopedName = decl.scopedname
-        val existing = symbols[scopedName]
-        if(existing!=null) {
+        val existing = namespace.lookup(listOf(decl.name), decl)
+        if (existing != null && existing !== decl)
             nameError(decl.name, decl.position, existing)
-        } else {
-            symbols[scopedName] = decl
-        }
+
         return super.process(decl)
     }
 
@@ -109,14 +102,9 @@ private class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
             if (subroutine.parameters.any { it.name in BuiltinFunctions })
                 checkResult.add(NameError("builtin function name cannot be used as parameter", subroutine.position))
 
-            // TODO: check for name conflict only has to be done within the same scope, no need to get the full scoped name
-            val scopedName = subroutine.scopedname
-            val existing = symbols[scopedName]
-            if (existing != null) {
+            val existing = namespace.lookup(listOf(subroutine.name), subroutine)
+            if (existing != null && existing !== subroutine)
                 nameError(subroutine.name, subroutine.position, existing)
-            } else {
-                symbols[scopedName] = subroutine
-            }
 
             // check that there are no local variables that redefine the subroutine's parameters
             val allDefinedNames = subroutine.allLabelsAndVariables()
@@ -153,14 +141,9 @@ private class AstIdentifiersChecker(val heap: HeapValues) : IAstProcessor {
             // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", label.position))
         } else {
-            // TODO: check for name conflict only has to be done within the same scope, no need to get the full scoped name
-            val scopedName = label.scopedname
-            val existing = symbols[scopedName]
-            if (existing != null) {
+            val existing = namespace.lookup(listOf(label.name), label)
+            if (existing != null && existing !== label)
                 nameError(label.name, label.position, existing)
-            } else {
-                symbols[scopedName] = label
-            }
         }
         return super.process(label)
     }
