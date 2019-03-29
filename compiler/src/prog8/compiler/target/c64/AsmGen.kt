@@ -23,10 +23,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
     private var breakpointCounter = 0
 
     init {
-        // Because 64tass understands scoped names via .proc / .block,
-        // we'll strip the block prefix from all scoped names in the program.
-        // Also, convert invalid label names (such as "<anon-1>") to something that's allowed.
-        // Also have to do that for the variablesMarkedForZeropage!  TODO is this true?
+        // Convert invalid label names (such as "<anon-1>") to something that's allowed.
         val newblocks = mutableListOf<IntermediateProgram.ProgramBlock>()
         for(block in program.blocks) {
             val newvars = block.variables.map { symname(it.key, block) to it.value }.toMap().toMutableMap()
@@ -42,13 +39,13 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                             callLabel2 = if (it.callLabel2 != null) symname(it.callLabel2, block) else null)
                 }
             }.toMutableList()
-            val newConstants = block.memoryPointers.map { symname(it.key, block) to it.value }.toMap().toMutableMap()
+            val newMempointers = block.memoryPointers.map { symname(it.key, block) to it.value }.toMap().toMutableMap()
             val newblock = IntermediateProgram.ProgramBlock(
                     block.name,
                     block.address,
                     newinstructions,
                     newvars,
-                    newConstants,
+                    newMempointers,
                     newlabels,
                     force_output = block.force_output)
             newblock.variablesMarkedForZeropage.clear()
@@ -58,10 +55,9 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
         program.blocks.clear()
         program.blocks.addAll(newblocks)
 
-        // TODO is this still needed?????
-//        val newAllocatedZp = program.allocatedZeropageVariables.map { symname(it.key, null) to it.value}
-//        program.allocatedZeropageVariables.clear()
-//        program.allocatedZeropageVariables.putAll(newAllocatedZp)
+        val newAllocatedZp = program.allocatedZeropageVariables.map { symname(it.key, null) to it.value}
+        program.allocatedZeropageVariables.clear()
+        program.allocatedZeropageVariables.putAll(newAllocatedZp)
 
         // make a list of all const floats that are used
         for(block in program.blocks) {
@@ -107,11 +103,11 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 
 
     // convert a fully scoped name (defined in the given block) to a valid assembly symbol name
-    private fun symname(scoped: String, block: IntermediateProgram.ProgramBlock): String {
+    private fun symname(scoped: String, block: IntermediateProgram.ProgramBlock?): String {
         if(' ' in scoped)
             return scoped
         val blockLocal: Boolean
-        var name = if (scoped.startsWith("${block.name}.")) {
+        var name = if (block!=null && scoped.startsWith("${block.name}.")) {
             blockLocal = true
             scoped.substring(block.name.length+1)
         }
@@ -221,16 +217,16 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             out("* = ${block.address?.toHex()}")
         }
 
-        // deal with zeropage variables    TODO does this still work correctly (the symname was changed a little)
+        // deal with zeropage variables
         for(variable in blk.variables) {
-            val sym = symname(blk.name+"."+variable.key, blk)
+            val sym = symname(blk.name+"."+variable.key, null)
             val zpVar = program.allocatedZeropageVariables[sym]
             if(zpVar==null) {
                 // This var is not on the ZP yet. Attempt to move it there (if it's not a float, those take up too much space)
                 if(variable.value.type in zeropage.allowedDatatypes && variable.value.type != DataType.FLOAT) {
                     try {
                         val address = zeropage.allocate(sym, variable.value.type, null)
-                        out("${variable.key} = $address\t; zp ${variable.value.type}")
+                        out("${variable.key} = $address\t; auto zp ${variable.value.type}")
                         // make sure we add the var to the set of zpvars for this block
                         blk.variablesMarkedForZeropage.add(variable.key)
                         program.allocatedZeropageVariables[sym] = Pair(address, variable.value.type)
