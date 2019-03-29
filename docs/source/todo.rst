@@ -85,7 +85,6 @@ of values together (and use it multiple times). Something like::
 Misc
 ^^^^
 
-- sqrt() should have integer implementation as well, instead of relying on float SQRT for all argument types
 - code generation for POW instruction
 - are there any other missing instructions in the code generator?
 - implement %asmbinary
