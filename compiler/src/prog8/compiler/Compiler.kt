@@ -159,7 +159,6 @@ internal class Compiler(private val rootModule: Module,
     override fun process(block: Block): IStatement {
         prog.newBlock(block.name, block.address, block.options())
         processVariables(block)
-        prog.label("block."+block.name, false)
         prog.line(block.position)
         translate(block.statements)
         return super.process(block)
@@ -461,8 +460,8 @@ internal class Compiler(private val rootModule: Module,
             }
         } else {
             // regular if..else branching
-            val labelElse = makeLabel("else")
-            val labelEnd = makeLabel("end")
+            val labelElse = makeLabel(branch, "else")
+            val labelEnd = makeLabel(branch, "end")
             val opcode = branchOpcode(branch, true)
             if (branch.elsepart.isEmpty()) {
                 prog.instr(opcode, callLabel = labelEnd)
@@ -480,9 +479,9 @@ internal class Compiler(private val rootModule: Module,
         }
     }
 
-    private fun makeLabel(postfix: String): String {
+    private fun makeLabel(scopeStmt: IStatement, postfix: String): String {
         generatedLabelSequenceNumber++
-        return "_prog8stmt_${generatedLabelSequenceNumber}_$postfix"
+        return "${scopeStmt.makeScopedName("")}.<s-$generatedLabelSequenceNumber-$postfix>"
     }
 
     private fun translate(stmt: IfStatement) {
@@ -528,13 +527,13 @@ internal class Compiler(private val rootModule: Module,
             in WordDatatypes -> Opcode.JZW
             else -> throw CompilerException("invalid condition datatype (expected byte or word) $stmt")
         }
-        val labelEnd = makeLabel("end")
+        val labelEnd = makeLabel(stmt, "end")
         if(stmt.elsepart.isEmpty()) {
             prog.instr(conditionJumpOpcode, callLabel = labelEnd)
             translate(stmt.truepart)
             prog.label(labelEnd)
         } else {
-            val labelElse = makeLabel("else")
+            val labelElse = makeLabel(stmt, "else")
             prog.instr(conditionJumpOpcode, callLabel = labelElse)
             translate(stmt.truepart)
             prog.instr(Opcode.JUMP, callLabel = labelEnd)
@@ -1764,9 +1763,9 @@ internal class Compiler(private val rootModule: Module,
          * break:
          *      nop
          */
-        val loopLabel = makeLabel("loop")
-        val continueLabel = makeLabel("continue")
-        val breakLabel = makeLabel("break")
+        val loopLabel = makeLabel(loop, "loop")
+        val continueLabel = makeLabel(loop, "continue")
+        val breakLabel = makeLabel(loop, "break")
         val indexVarType = if (numElements <= 255) DataType.UBYTE else DataType.UWORD
         val indexVar = loop.body.getLabelOrVariable(ForLoop.iteratorLoopcounterVarname) as VarDecl
 
@@ -1825,9 +1824,9 @@ internal class Compiler(private val rootModule: Module,
          * break:
          *      nop
          */
-        val loopLabel = makeLabel("loop")
-        val continueLabel = makeLabel("continue")
-        val breakLabel = makeLabel("break")
+        val loopLabel = makeLabel(body, "loop")
+        val continueLabel = makeLabel(body, "continue")
+        val breakLabel = makeLabel(body, "break")
 
         continueStmtLabelStack.push(continueLabel)
         breakStmtLabelStack.push(breakLabel)
@@ -1930,9 +1929,9 @@ internal class Compiler(private val rootModule: Module,
         startAssignment.linkParents(body)
         translate(startAssignment)
 
-        val loopLabel = makeLabel("loop")
-        val continueLabel = makeLabel("continue")
-        val breakLabel = makeLabel("break")
+        val loopLabel = makeLabel(body, "loop")
+        val continueLabel = makeLabel(body, "continue")
+        val breakLabel = makeLabel(body, "break")
         val literalStepValue = (range.step as? LiteralValue)?.asNumericValue?.toInt()
 
         continueStmtLabelStack.push(continueLabel)
@@ -2034,9 +2033,9 @@ internal class Compiler(private val rootModule: Module,
          *  break:
          *      nop
          */
-        val loopLabel = makeLabel("loop")
-        val breakLabel = makeLabel("break")
-        val continueLabel = makeLabel("continue")
+        val loopLabel = makeLabel(stmt, "loop")
+        val breakLabel = makeLabel(stmt, "break")
+        val continueLabel = makeLabel(stmt, "continue")
         prog.line(stmt.position)
         breakStmtLabelStack.push(breakLabel)
         continueStmtLabelStack.push(continueLabel)
@@ -2072,9 +2071,9 @@ internal class Compiler(private val rootModule: Module,
          *  break:
          *      nop
          */
-        val loopLabel = makeLabel("loop")
-        val continueLabel = makeLabel("continue")
-        val breakLabel = makeLabel("break")
+        val loopLabel = makeLabel(stmt, "loop")
+        val continueLabel = makeLabel(stmt, "continue")
+        val breakLabel = makeLabel(stmt, "break")
         prog.line(stmt.position)
         breakStmtLabelStack.push(breakLabel)
         continueStmtLabelStack.push(continueLabel)

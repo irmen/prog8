@@ -326,8 +326,10 @@ inline fun <reified T> findParentNode(node: Node): T? {
 interface IStatement : Node {
     fun process(processor: IAstProcessor) : IStatement
     fun makeScopedName(name: String): String {
-        // TODO eventually get rid of this scopedName
-        // this is usually cached in a lazy property on the statement object itself (label, subroutine, vardecl)
+        // easy way out is to always return the full scoped name.
+        // it would be nicer to find only the minimal prefixed scoped name, but that's too much hassle for now.
+        // and like this, we can cache the name even,
+        // like in a lazy property on the statement object itself (label, subroutine, vardecl)
         val scope = mutableListOf<String>()
         var statementScope = this.parent
         while(statementScope !is ParentSentinel && statementScope !is Module) {
@@ -336,7 +338,8 @@ interface IStatement : Node {
             }
             statementScope = statementScope.parent
         }
-        scope.add(name)
+        if(name.isNotEmpty())
+            scope.add(name)
         return scope.joinToString(".")
     }
 }
@@ -547,7 +550,6 @@ data class DirectiveArg(val str: String?, val name: String?, val int: Int?, over
 
 data class Label(val name: String, override val position: Position) : IStatement {
     override lateinit var parent: Node
-    val scopedname: String by lazy { makeScopedName(name) }
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -558,6 +560,8 @@ data class Label(val name: String, override val position: Position) : IStatement
     override fun toString(): String {
         return "Label(name=$name, pos=$position)"
     }
+
+    val scopedname: String by lazy { makeScopedName(name) }
 }
 
 
