@@ -540,7 +540,8 @@ pop_2_floats_f2_in_fac1	.proc
 		ldy  #>fmath_float2
 		jmp  c64flt.MOVFM
 		.pend
-		
+
+
 fmath_float1	.byte 0,0,0,0,0	; storage for a mflpt5 value
 fmath_float2	.byte 0,0,0,0,0	; storage for a mflpt5 value
 
@@ -555,7 +556,25 @@ push_fac1_as_result	.proc
 		jmp  push_float
 		.pend
 		
-
+pow_f		.proc
+		; -- push f1 ** f2 on stack
+		lda  #<fmath_float2
+		ldy  #>fmath_float2
+		jsr  pop_float
+		lda  #<fmath_float1
+		ldy  #>fmath_float1
+		jsr  pop_float
+		stx  c64.SCRATCH_ZPREGX
+		lda  #<fmath_float1
+		ldy  #>fmath_float1
+		jsr  c64flt.CONUPK		; fac2 = float1
+		lda  #<fmath_float2
+		ldy  #>fmath_float2
+		jsr  c64flt.FPWR
+		ldx  c64.SCRATCH_ZPREGX
+		jmp  push_fac1_as_result
+		.pend
+		
 div_f		.proc
 		; -- push f1/f2 on stack
 		jsr  pop_2_floats_f2_in_fac1
