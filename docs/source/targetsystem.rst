@@ -173,7 +173,3 @@ as a subroutine ``irq`` in the module ``irq`` so like this::
             ; ... irq handling here ...
         }
     }
-
-
-.. todo::
-    @todo the irq handler should use its own eval-stack to avoid stack interference issues

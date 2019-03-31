@@ -1239,9 +1239,8 @@ internal class Compiler(private val rootModule: Module,
             "**" -> {
                 when(dt) {
                     DataType.UBYTE -> Opcode.POW_UB
-                    DataType.BYTE -> Opcode.POW_B
+                    DataType.BYTE, DataType.WORD -> throw CompilerException("power operator only available for unsigned integer types and floats")
                     DataType.UWORD -> Opcode.POW_UW
-                    DataType.WORD -> Opcode.POW_W
                     DataType.FLOAT -> Opcode.POW_F
                     else -> throw CompilerException("only byte/word/float possible")
                 }

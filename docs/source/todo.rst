@@ -17,7 +17,7 @@ Memory Block Operations integrated in language?
 
 these should call (or emit inline) optimized pieces of assembly code, so they run as fast as possible
 
-For now, we have the ``memcopy`` and ``memset`` builtin functions.
+For now, we have the ``memcopy``, ``memset`` and ``strlen`` builtin functions.
 
 
 
@@ -50,6 +50,7 @@ Or just move the LSB portion into a slab of the zeropage.
 
 Allocate a fixed word in ZP that is the TOS so we can operate on TOS directly
 without having to to index into the stack?
+
 
 
 More flexible (non-const) arrays?

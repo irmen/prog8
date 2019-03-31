@@ -59,9 +59,7 @@ enum class Opcode {
     REMAINDER_UB,   // signed remainder is undefined/unimplemented
     REMAINDER_UW,   // signed remainder is undefined/unimplemented
     POW_UB,
-    POW_B,
     POW_UW,
-    POW_W,
     POW_F,
     NEG_B,
     NEG_W,

@@ -729,6 +729,9 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.ABS_B -> " jsr  prog8_lib.abs_b"
             Opcode.ABS_W -> " jsr  prog8_lib.abs_w"
             Opcode.ABS_F -> " jsr  c64flt.abs_f"
+            Opcode.POW_UB -> " jsr  prog8_lib.pow_ub"   // @todo implement
+            Opcode.POW_UW -> " jsr  prog8_lib.pow_uw"   // @todo implement
+            Opcode.POW_F -> " jsr  c64flt.pow_f"        // @todo implement
             Opcode.INV_BYTE -> {
                 """
                 lda  ${(ESTACK_LO + 1).toHex()},x
