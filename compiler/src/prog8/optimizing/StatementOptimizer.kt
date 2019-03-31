@@ -20,7 +20,6 @@ import kotlin.math.floor
         todo inline subroutines that are only called a few times (3?) and that are "sufficiently small" (0-3 statements)
 
     todo analyse for unreachable code and remove that (f.i. code after goto or return that has no label so can never be jumped to)
-
 */
 
 class StatementOptimizer(private val namespace: INameScope, private val heap: HeapValues) : IAstProcessor {
@@ -76,7 +75,7 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
         var previousAssignmentLine: Int? = null
         for (i in 0 until statements.size) {
             val stmt = statements[i] as? Assignment
-            if (stmt != null) {
+            if (stmt != null && stmt.value is LiteralValue) {
                 if (previousAssignmentLine == null) {
                     previousAssignmentLine = i
                     continue
