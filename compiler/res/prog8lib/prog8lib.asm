@@ -105,7 +105,7 @@ not_word	.proc
 		sta  c64.ESTACK_HI + 1,x
 		rts
 		.pend
-		
+
 bitand_b	.proc
 		; -- bitwise and (of 2 bytes)
 		lda  c64.ESTACK_LO+2,x
@@ -114,7 +114,7 @@ bitand_b	.proc
 		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
-		
+
 bitor_b		.proc
 		; -- bitwise or (of 2 bytes)
 		lda  c64.ESTACK_LO+2,x
@@ -123,7 +123,7 @@ bitor_b		.proc
 		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
-		
+
 bitxor_b	.proc
 		; -- bitwise xor (of 2 bytes)
 		lda  c64.ESTACK_LO+2,x
@@ -144,7 +144,7 @@ bitand_w	.proc
 		inx
 		rts
 		.pend
-		
+
 bitor_w		.proc
 		; -- bitwise or (of 2 words)
 		lda  c64.ESTACK_LO+2,x
@@ -156,7 +156,7 @@ bitor_w		.proc
 		inx
 		rts
 		.pend
-		
+
 bitxor_w	.proc
 		; -- bitwise xor (of 2 bytes)
 		lda  c64.ESTACK_LO+2,x
@@ -168,7 +168,7 @@ bitxor_w	.proc
 		inx
 		rts
 		.pend
-		
+
 and_b		.proc
 		; -- logical and (of 2 bytes)
 		lda  c64.ESTACK_LO+2,x
@@ -183,7 +183,7 @@ and_b		.proc
 		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
-		
+
 or_b		.proc
 		; -- logical or (of 2 bytes)
 		lda  c64.ESTACK_LO+2,x
@@ -194,7 +194,7 @@ or_b		.proc
 		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
-		
+
 xor_b		.proc
 		; -- logical xor (of 2 bytes)
 		lda  c64.ESTACK_LO+2,x
@@ -227,7 +227,7 @@ and_w		.proc
  		sta  c64.ESTACK_HI+1,x
 		rts
 		.pend
-		
+
 or_w		.proc
 		; -- logical or (word or word -> byte)
 		lda  c64.ESTACK_LO+2,x
@@ -241,7 +241,7 @@ or_w		.proc
 		sta  c64.ESTACK_HI+1,x
 		rts
 		.pend
-		
+
 xor_w		.proc
 		; -- logical xor (word xor word -> byte)
 		lda  c64.ESTACK_LO+2,x
@@ -322,9 +322,9 @@ mul_word	.proc
 		stx  c64.SCRATCH_ZPREGX
 		jsr  math.multiply_words
 		ldx  c64.SCRATCH_ZPREGX
-		lda  math.multiply_words.multiply_words_result
+		lda  math.multiply_words.result
 		sta  c64.ESTACK_LO+1,x
-		lda  math.multiply_words.multiply_words_result+1
+		lda  math.multiply_words.result+1
 		sta  c64.ESTACK_HI+1,x
 		rts
 		.pend
@@ -648,8 +648,8 @@ func_read_flags	.proc
 		dex
 		rts
 		.pend
-		
-		
+
+
 func_sqrt16	.proc
 		lda  c64.ESTACK_LO+1,x
 		sta  c64.SCRATCH_ZPWORD2
@@ -698,8 +698,8 @@ _skip3
 		rts
 _stab   .byte $01,$02,$04,$08,$10,$20,$40,$80
 		.pend
-		
-		
+
+
 func_sin8	.proc
 		ldy  c64.ESTACK_LO+1,x
 		lda  _sinecos8,y
@@ -1194,7 +1194,7 @@ func_rndw	.proc
 		.pend
 
 
-func_memcopy	.proc		
+func_memcopy	.proc
 	; note: clobbers A,Y
 		inx
 		stx  c64.SCRATCH_ZPREGX
@@ -1220,7 +1220,7 @@ func_memcopy	.proc
 		rts
 		.pend
 
-func_memset	.proc		
+func_memset	.proc
 	; note: clobbers A,Y
 		inx
 		stx  c64.SCRATCH_ZPREGX
@@ -1240,7 +1240,7 @@ func_memset	.proc
 		rts
 		.pend
 
-func_memsetw	.proc		
+func_memsetw	.proc
 	; note: clobbers A,Y
 		; -- fill memory from (SCRATCH_ZPWORD1) number of words in SCRATCH_ZPWORD2, with word value in AY.
 

@@ -688,15 +688,8 @@ private class AstChecker(private val namespace: INameScope,
                 }
             }
             "**" -> {
-                if(leftDt in IntegerDatatypes) {
-                    val constvalRight = expr.right.constValue(namespace, heap)?.asNumericValue?.toDouble()
-                    if(constvalRight==null) {
-                        if(rightDt==DataType.FLOAT || rightDt==DataType.BYTE || rightDt==DataType.WORD)
-                            checkResult.add(ExpressionError("raising to a signed value requires floating point", expr.position))
-                    } else if(constvalRight<0.0) {
-                        checkResult.add(ExpressionError("raising to negative power requires floating point", expr.position))
-                    }
-                }
+                if(leftDt in IntegerDatatypes)
+                    checkResult.add(ExpressionError("power operator requires floating point", expr.position))
             }
             "and", "or", "xor" -> {
                 // only integer numeric operands accepted, and if literal constants, only boolean values accepted (0 or 1)

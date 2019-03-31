@@ -58,29 +58,29 @@ multiply_words	.proc
 		stx  c64.SCRATCH_ZPREGX
 
 mult16		lda  #$00
-		sta  multiply_words_result+2	; clear upper bits of product
-		sta  multiply_words_result+3
+		sta  result+2	; clear upper bits of product
+		sta  result+3
 		ldx  #16			; for all 16 bits...
 -	 	lsr  c64.SCRATCH_ZPWORD1+1	; divide multiplier by 2
 		ror  c64.SCRATCH_ZPWORD1
 		bcc  +
-		lda  multiply_words_result+2	; get upper half of product and add multiplicand
+		lda  result+2	; get upper half of product and add multiplicand
 		clc
 		adc  c64.SCRATCH_ZPWORD2
-		sta  multiply_words_result+2
-		lda  multiply_words_result+3
+		sta  result+2
+		lda  result+3
 		adc  c64.SCRATCH_ZPWORD2+1
 + 		ror  a				; rotate partial product
-		sta  multiply_words_result+3
-		ror  multiply_words_result+2
-		ror  multiply_words_result+1
-		ror  multiply_words_result
+		sta  result+3
+		ror  result+2
+		ror  result+1
+		ror  result
 		dex
 		bne  -
 		ldx  c64.SCRATCH_ZPREGX
 		rts
 
-multiply_words_result	.byte  0,0,0,0
+result		.byte  0,0,0,0
 		.pend
 
 

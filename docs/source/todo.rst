@@ -86,6 +86,5 @@ of values together (and use it multiple times). Something like::
 Misc
 ^^^^
 
-- code generation for POW instruction
 - are there any other missing instructions in the code generator?
 - implement %asmbinary
