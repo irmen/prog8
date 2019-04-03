@@ -152,6 +152,11 @@ private fun compileMain(args: Array<String>) {
         System.err.println(px.message)
         System.err.print("\u001b[0m")  // reset
         exitProcess(1)
+    } catch (ax: AstException) {
+        System.err.print("\u001b[91m")  // bright red
+        System.err.println(ax.toString())
+        System.err.print("\u001b[0m")  // reset
+        exitProcess(1)
     } catch (x: Exception) {
         print("\u001b[91m")  // bright red
         println("\n* internal error *")

@@ -6,7 +6,7 @@
 ~ main {
 
     sub start() {
-        ubyte ub=2
+        ubyte ub='^'
         ubyte ub2=7
         uword uw=2
         uword uw2=5

@@ -11,6 +11,7 @@ import prog8.functions.NotConstArgumentException
 import prog8.functions.builtinFunctionReturnType
 import prog8.parser.CustomLexer
 import prog8.parser.prog8Parser
+import java.io.CharConversionException
 import java.io.File
 import java.nio.file.Path
 import kotlin.math.abs
@@ -2145,7 +2146,13 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
                 }
                 litval.floatliteral()!=null -> LiteralValue(DataType.FLOAT, floatvalue = litval.floatliteral().toAst(), position = litval.toPosition())
                 litval.stringliteral()!=null -> LiteralValue(DataType.STR, strvalue = unescape(litval.stringliteral().text, litval.toPosition()), position = litval.toPosition())
-                litval.charliteral()!=null -> LiteralValue(DataType.UBYTE, bytevalue = Petscii.encodePetscii(unescape(litval.charliteral().text, litval.toPosition()), true)[0], position = litval.toPosition())
+                litval.charliteral()!=null -> {
+                    try {
+                        LiteralValue(DataType.UBYTE, bytevalue = Petscii.encodePetscii(unescape(litval.charliteral().text, litval.toPosition()), true)[0], position = litval.toPosition())
+                    } catch (ce: CharConversionException) {
+                        throw SyntaxError(ce.message ?: ce.toString(), litval.toPosition())
+                    }
+                }
                 litval.arrayliteral()!=null -> {
                     val array = litval.arrayliteral()?.toAst()
                     // the actual type of the arrayspec can not yet be determined here (missing namespace & heap)
@@ -2304,7 +2311,7 @@ internal fun unescape(str: String, position: Position): String {
                 'u' -> {
                     "${iter.nextChar()}${iter.nextChar()}${iter.nextChar()}${iter.nextChar()}".toInt(16).toChar()
                 }
-                else -> throw AstException("$position invalid escape char in string: \\$ec")
+                else -> throw SyntaxError("invalid escape char in string: \\$ec", position)
             })
         } else {
             result.add(c)
