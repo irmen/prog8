@@ -359,14 +359,18 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 
     private fun makeArrayFillDataUnsigned(value: Value): List<String> {
         val array = heap.get(value.heapId).array!!
-        if(value.type==DataType.ARRAY_UB) {
-            TODO("deal with byte array")
-            //return array.map { "$"+it.toString(16).padStart(2, '0') }
-        } else if(value.type==DataType.ARRAY_UW) {
-            TODO("deal with pointerto")
+        return when {
+            value.type==DataType.ARRAY_UB ->
+                // byte array can never contain pointer-to types, so treat values as all integers
+                array.map { "$"+it.integer!!.toString(16).padStart(2, '0') }
+            value.type==DataType.ARRAY_UW -> array.map {
+                if(it.integer!=null)
+                    "$"+it.integer.toString(16).padStart(2, '0')
+                else
+                    TODO("deal with pointerto")
+            }
+            else -> throw AssemblyError("invalid arrayspec type")
         }
-        else
-            throw AssemblyError("invalid arrayspec type")
     }
 
     private fun makeArrayFillDataSigned(value: Value): List<String> {
