@@ -58,7 +58,7 @@ private class AstChecker(private val namespace: INameScope,
     private val heapStringSentinel: Int
     init {
         val stringSentinel = heap.allEntries().firstOrNull {it.value.str==""}
-        heapStringSentinel = stringSentinel?.key ?: heap.add(DataType.STR, "")
+        heapStringSentinel = stringSentinel?.key ?: heap.addString(DataType.STR, "")
     }
 
     fun result(): List<AstException> {
@@ -401,21 +401,8 @@ private class AstChecker(private val namespace: INameScope,
                         checkResult.add(ExpressionError("cannot assign new value to a constant", assignment.position))
                         return assignment
                     }
-                    if(assignment.value.resultingDatatype(namespace, heap) in ArrayDatatypes) {
-                        if(targetSymbol.datatype==DataType.UWORD)
-                            return assignment   // array can be assigned to UWORD (it's address should be taken as the value then)
-                    }
                 }
             }
-        }
-
-        // it is only possible to assign an array to something that is an UWORD or UWORD array (in which case the address of the array value is used as the value)
-        if(assignment.value.resultingDatatype(namespace, heap) in ArrayDatatypes) {
-            // the UWORD case has been handled above already, check for UWORD array
-            val arrayVar = target.arrayindexed?.identifier?.targetStatement(namespace)
-            if(arrayVar is VarDecl && arrayVar.datatype==DataType.ARRAY_UW)
-                return assignment
-            checkResult.add(SyntaxError("it's not possible to assign an array to something other than an UWORD, use it as a variable decl initializer instead", assignment.position))
         }
 
         if(assignment.aug_op!=null) {
@@ -468,6 +455,16 @@ private class AstChecker(private val namespace: INameScope,
         return assignment
     }
 
+    override fun process(pointerOf: PointerOf): IExpression {
+        val variable=pointerOf.identifier.targetStatement(namespace) as? VarDecl
+        if(variable==null)
+            checkResult.add(ExpressionError("pointer-of operand must be the name of a heap variable", pointerOf.position))
+        else {
+            if(variable.datatype !in ArrayDatatypes && variable.datatype !in StringDatatypes)
+                checkResult.add(ExpressionError("pointer-of operand must be the name of a string or array heap variable", pointerOf.position))
+        }
+        return pointerOf
+    }
 
     /**
      * Check the variable declarations (values within range etc)
@@ -984,8 +981,6 @@ private class AstChecker(private val namespace: INameScope,
                     return err("value '$number' out of range for byte")
             }
             DataType.UWORD -> {
-                if(value.isString || value.isArray)     // string or array are assignable to uword; their memory address is used.
-                    return true
                 val number = value.asIntegerValue ?: return if (value.floatvalue!=null)
                     err("unsigned word value expected instead of float; possible loss of precision")
                 else
@@ -1091,16 +1086,16 @@ private class AstChecker(private val namespace: INameScope,
         val correct: Boolean
         when(type) {
             DataType.ARRAY_UB -> {
-                correct=array.array!=null && array.array.all { it in 0..255 }
+                correct=array.array!=null && array.array.all { it.integer!=null && it.integer in 0..255 }
             }
             DataType.ARRAY_B -> {
-                correct=array.array!=null && array.array.all { it in -128..127 }
+                correct=array.array!=null && array.array.all { it.integer!=null && it.integer in -128..127 }
             }
             DataType.ARRAY_UW -> {
-                correct=array.array!=null && array.array.all { it in 0..65535 }
+                correct=array.array!=null && array.array.all { (it.integer!=null && it.integer in 0..65535)  || it.pointerOf!=null}
             }
             DataType.ARRAY_W -> {
-                correct=array.array!=null && array.array.all { it in -32768..32767 }
+                correct=array.array!=null && array.array.all { it.integer!=null && it.integer in -32768..32767 }
             }
             DataType.ARRAY_F -> correct = array.doubleArray!=null
             else -> throw AstException("invalid array type $type")
@@ -1123,7 +1118,7 @@ private class AstChecker(private val namespace: INameScope,
             DataType.BYTE -> sourceDatatype==DataType.BYTE
             DataType.UBYTE -> sourceDatatype==DataType.UBYTE
             DataType.WORD -> sourceDatatype==DataType.BYTE || sourceDatatype==DataType.UBYTE || sourceDatatype==DataType.WORD
-            DataType.UWORD -> sourceDatatype in setOf(DataType.UBYTE, DataType.UWORD, DataType.STR, DataType.STR_S) || sourceDatatype in ArrayDatatypes
+            DataType.UWORD -> sourceDatatype==DataType.UBYTE || sourceDatatype==DataType.UWORD
             DataType.FLOAT -> sourceDatatype in NumericDatatypes
             DataType.STR -> sourceDatatype==DataType.STR
             DataType.STR_S -> sourceDatatype==DataType.STR_S

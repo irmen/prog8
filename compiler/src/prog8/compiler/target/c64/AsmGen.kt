@@ -359,20 +359,25 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 
     private fun makeArrayFillDataUnsigned(value: Value): List<String> {
         val array = heap.get(value.heapId).array!!
-        return if (value.type == DataType.ARRAY_UB || value.type == DataType.ARRAY_UW)
-            array.map { "$"+it.toString(16).padStart(2, '0') }
+        if(value.type==DataType.ARRAY_UB) {
+            TODO("deal with byte array")
+            //return array.map { "$"+it.toString(16).padStart(2, '0') }
+        } else if(value.type==DataType.ARRAY_UW) {
+            TODO("deal with pointerto")
+        }
         else
             throw AssemblyError("invalid arrayspec type")
     }
 
     private fun makeArrayFillDataSigned(value: Value): List<String> {
         val array = heap.get(value.heapId).array!!
+        // note: array of signed value can never contain pointer-to type, so simply process values as being all integers
         return if (value.type == DataType.ARRAY_B || value.type == DataType.ARRAY_W) {
             array.map {
-                if(it>=0)
-                    "$"+it.toString(16).padStart(2, '0')
+                if(it.integer!!>=0)
+                    "$"+it.integer.toString(16).padStart(2, '0')
                 else
-                    "-$"+abs(it).toString(16).padStart(2, '0')
+                    "-$"+abs(it.integer).toString(16).padStart(2, '0')
             }
         }
         else throw AssemblyError("invalid arrayspec type")
@@ -923,23 +928,21 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
 
         if(mulIns.opcode == Opcode.MUL_B || mulIns.opcode==Opcode.MUL_UB) {
             if(amount in setOf(0,1,2,4,8,16,32,64,128,256))
-                throw AssemblyError("multiplication by power of 2 should have been converted into a left shift instruction already")
-
+                printWarning("multiplication by power of 2 should have been optimized into a left shift instruction: $mulIns $amount")
             if(amount in setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40))
                 return " jsr  math.mul_byte_$amount"
-
             if(mulIns.opcode == Opcode.MUL_B && amount in setOf(-3,-5,-6,-7,-9,-10,-11,-12,-13,-14,-15,-20,-25,-40))
                 return " jsr  prog8_lib.neg_b |  jsr  math.mul_byte_${-amount}"
         }
         else if(mulIns.opcode == Opcode.MUL_UW) {
             if(amount in setOf(0,1,2,4,8,16,32,64,128,256))
-                throw AssemblyError("multiplication by power of 2 should have been converted into a left shift instruction already")
+                printWarning("multiplication by power of 2 should have been optimized into a left shift instruction: $mulIns $amount")
             if(amount in setOf(3,5,6,7,9,10,12,15,20,25,40))
                 return " jsr  math.mul_word_$amount"
         }
         else if(mulIns.opcode == Opcode.MUL_W) {
             if(amount in setOf(0,1,2,4,8,16,32,64,128,256))
-                throw AssemblyError("multiplication by power of 2 should have been converted into a left shift instruction already")
+                printWarning("multiplication by power of 2 should have been optimized into a left shift instruction: $mulIns $amount")
             if(amount in setOf(3,5,6,7,9,10,12,15,20,25,40))
                 return " jsr  math.mul_word_$amount"
             if(amount in setOf(-3,-5,-6,-7,-9,-10,-12,-15,-20,-25,-40))

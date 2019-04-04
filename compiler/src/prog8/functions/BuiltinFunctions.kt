@@ -245,7 +245,12 @@ private fun collectionArgOutputNumber(args: List<IExpression>, position: Positio
                 if(iterable.heapId==null)
                     throw FatalAstException("iterable value should be on the heap")
                 val array = heap.get(iterable.heapId).array ?: throw SyntaxError("function expects an iterable type", position)
-                function(array.map { it.toDouble() })
+                function(array.map {
+                    if(it.integer!=null)
+                        it.integer.toDouble()
+                    else
+                        throw FatalAstException("cannot perform function over array that contains other values besides constant integers")
+                })
             }
         }
     }
@@ -266,7 +271,12 @@ private fun collectionArgOutputBoolean(args: List<IExpression>, position: Positi
         function(constants.map { it!!.toDouble() })
     } else {
         val array = heap.get(iterable.heapId!!).array ?: throw SyntaxError("function requires array argument", position)
-        function(array.map { it.toDouble() })
+        function(array.map {
+            if(it.integer!=null)
+                it.integer.toDouble()
+            else
+                throw FatalAstException("cannot perform function over array that contains other values besides constant integers")
+        })
     }
     return LiteralValue.fromBoolean(result, position)
 }
@@ -298,7 +308,12 @@ private fun builtinAvg(args: List<IExpression>, position: Position, namespace:IN
     }
     else {
         val array = heap.get(iterable.heapId!!).array ?: throw SyntaxError("avg requires array argument", position)
-        array.average()
+        if(array.all {it.integer!=null}) {
+            array.map { it.integer!! }.average()
+        } else {
+            throw ExpressionError("cannot avg() over array that does not only contain constant integer values", position)
+        }
+        // TODO what about avg() on floating point array variable!
     }
     return numericLiteral(result, args[0].position)
 }

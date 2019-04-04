@@ -36,8 +36,11 @@ fun Number.toHex(): String {
 }
 
 
+data class IntegerOrPointerOf(val integer: Int?, val pointerOf: PointerOf?)
+
+
 class HeapValues {
-    data class HeapValue(val type: DataType, val str: String?, val array: IntArray?, val doubleArray: DoubleArray?) {
+    data class HeapValue(val type: DataType, val str: String?, val array: Array<IntegerOrPointerOf>?, val doubleArray: DoubleArray?) {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (javaClass != other?.javaClass) return false
@@ -61,7 +64,7 @@ class HeapValues {
 
     fun size(): Int = heap.size
 
-    fun add(type: DataType, str: String): Int {
+    fun addString(type: DataType, str: String): Int {
         if (str.length > 255)
             throw IllegalArgumentException("string length must be 0-255")
 
@@ -76,14 +79,14 @@ class HeapValues {
         return newId
     }
 
-    fun add(type: DataType, array: IntArray): Int {
+    fun addIntegerArray(type: DataType, array: Array<IntegerOrPointerOf>): Int {
         // arrays are never shared, don't check for existing
         val newId = heapId++
         heap[newId] = HeapValue(type, null, array, null)
         return newId
     }
 
-    fun add(type: DataType, darray: DoubleArray): Int {
+    fun addDoublesArray(type: DataType, darray: DoubleArray): Int {
         // arrays are never shared, don't check for existing
         val newId = heapId++
         heap[newId] = HeapValue(type, null, null, darray)
@@ -653,6 +656,7 @@ internal class Compiler(private val rootModule: Module,
             is TypecastExpression -> translate(expr)
             is DirectMemoryRead -> translate(expr)
             is DirectMemoryWrite -> translate(expr)
+            is PointerOf -> translate(expr)
             else -> {
                 val lv = expr.constValue(namespace, heap) ?: throw CompilerException("constant expression required, not $expr")
                 when(lv.type) {
@@ -1081,12 +1085,13 @@ internal class Compiler(private val rootModule: Module,
                                 translate(assignA)
                                 translate(assignX)
                             }
-                            DataType.UWORD -> {
+                            in WordDatatypes -> {
                                 translate(arg.first)
                                 prog.instr(Opcode.POP_REGAX_WORD)
                             }
+                            // TODO auto-converting str/float/array to their pointer value should be done by explicitly rewriting the Ast into a pointer-of expression, once that is available
                             DataType.STR, DataType.STR_S -> {
-                                pushStringAddress(arg.first, false)
+                                pushHeapVarAddress(arg.first, false)
                                 prog.instr(Opcode.POP_REGAX_WORD)
                             }
                             DataType.FLOAT -> {
@@ -1094,7 +1099,7 @@ internal class Compiler(private val rootModule: Module,
                                 prog.instr(Opcode.POP_REGAX_WORD)
                             }
                             in ArrayDatatypes -> {
-                                pushStringAddress(arg.first, false)
+                                pushHeapVarAddress(arg.first, false)
                                 prog.instr(Opcode.POP_REGAX_WORD)
                             }
                             else -> TODO("pass parameter of type $paramDt in registers AX at $callPosition")
@@ -1119,8 +1124,9 @@ internal class Compiler(private val rootModule: Module,
                                 translate(arg.first)
                                 prog.instr(Opcode.POP_REGAY_WORD)
                             }
+                            // TODO auto-converting str/float/array to their pointer value should be done by explicitly rewriting the Ast into a pointer-of expression, once that is available
                             DataType.STR, DataType.STR_S -> {
-                                pushStringAddress(arg.first, false)
+                                pushHeapVarAddress(arg.first, false)
                                 prog.instr(Opcode.POP_REGAY_WORD)
                             }
                             DataType.FLOAT -> {
@@ -1128,7 +1134,7 @@ internal class Compiler(private val rootModule: Module,
                                 prog.instr(Opcode.POP_REGAY_WORD)
                             }
                             in ArrayDatatypes -> {
-                                pushStringAddress(arg.first, false)
+                                pushHeapVarAddress(arg.first, false)
                                 prog.instr(Opcode.POP_REGAY_WORD)
                             }
                             else -> TODO("pass parameter of type $paramDt in registers AY at $callPosition")
@@ -1153,12 +1159,13 @@ internal class Compiler(private val rootModule: Module,
                                 translate(assignX)
                                 translate(assignY)
                             }
-                            DataType.UWORD -> {
+                            in WordDatatypes -> {
                                 translate(arg.first)
                                 prog.instr(Opcode.POP_REGXY_WORD)
                             }
+                            // TODO auto-converting str/float/array to their pointer value should be done by explicitly rewriting the Ast into a pointer-of expression, once that is available
                             DataType.STR, DataType.STR_S -> {
-                                pushStringAddress(arg.first, false)
+                                pushHeapVarAddress(arg.first, false)
                                 prog.instr(Opcode.POP_REGXY_WORD)
                             }
                             DataType.FLOAT -> {
@@ -1166,7 +1173,7 @@ internal class Compiler(private val rootModule: Module,
                                 prog.instr(Opcode.POP_REGXY_WORD)
                             }
                             in ArrayDatatypes -> {
-                                pushStringAddress(arg.first, false)
+                                pushHeapVarAddress(arg.first, false)
                                 prog.instr(Opcode.POP_REGXY_WORD)
                             }
                             else -> TODO("pass parameter of type $paramDt in registers XY at $callPosition")
@@ -1524,7 +1531,7 @@ internal class Compiler(private val rootModule: Module,
                     when (valueDt) {
                         DataType.UBYTE -> prog.instr(Opcode.CAST_UB_TO_UW)
                         DataType.BYTE -> prog.instr(Opcode.CAST_B_TO_UW)
-                        DataType.STR, DataType.STR_S -> pushStringAddress(stmt.value, true)
+                        DataType.STR, DataType.STR_S -> pushHeapVarAddress(stmt.value, true)
                         DataType.ARRAY_B, DataType.ARRAY_UB, DataType.ARRAY_W, DataType.ARRAY_UW, DataType.ARRAY_F -> {
                             if (stmt.value is IdentifierReference) {
                                 val vardecl = (stmt.value as IdentifierReference).targetStatement(namespace) as VarDecl
@@ -1548,7 +1555,7 @@ internal class Compiler(private val rootModule: Module,
                 }
                 in StringDatatypes -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                 in ArrayDatatypes -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
-                else -> throw CompilerException("weird/unknonwn targetdt")
+                else -> throw CompilerException("weird/unknown targetdt")
             }
         }
 
@@ -1560,9 +1567,9 @@ internal class Compiler(private val rootModule: Module,
         popValueIntoTarget(assignTarget, datatype)
     }
 
-    private fun pushStringAddress(value: IExpression, removeLastOpcode: Boolean) {
+    private fun pushHeapVarAddress(value: IExpression, removeLastOpcode: Boolean) {
         when (value) {
-            is LiteralValue -> throw CompilerException("can only push address of string that is a variable on the heap")
+            is LiteralValue -> throw CompilerException("can only push address of string or array (value on the heap)")
             is IdentifierReference -> {
                 val vardecl = value.targetStatement(namespace) as VarDecl
                 if(removeLastOpcode) prog.removeLastInstruction()
@@ -2161,6 +2168,18 @@ internal class Compiler(private val rootModule: Module,
             translate(memwrite.addressExpression)
             prog.instr(Opcode.POP_MEMWRITE)
         }
+    }
+
+    private fun translate(ptrof: PointerOf) {
+        val target = ptrof.identifier.targetStatement(namespace) as VarDecl
+        if(target.datatype in ArrayDatatypes || target.datatype in StringDatatypes|| target.datatype==DataType.FLOAT) {
+            pushHeapVarAddress(ptrof.identifier, false)
+        }
+        else if(target.datatype==DataType.FLOAT) {
+            pushFloatAddress(ptrof.identifier)
+        }
+        else
+            throw CompilerException("cannot take memory pointer $ptrof")
     }
 
     private fun translateAsmInclude(args: List<DirectiveArg>, importedFrom: Path) {

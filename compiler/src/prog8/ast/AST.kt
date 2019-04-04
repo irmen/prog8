@@ -42,13 +42,10 @@ enum class DataType {
                 UWORD -> targetType == UWORD || targetType == FLOAT
                 WORD -> targetType == WORD || targetType==UWORD || targetType == FLOAT
                 FLOAT -> targetType == FLOAT
-                STR -> targetType == STR || targetType==STR_S || targetType == UWORD
-                STR_S -> targetType == STR || targetType==STR_S || targetType == UWORD
-                ARRAY_UB -> targetType == UWORD || targetType==ARRAY_UB
-                ARRAY_B -> targetType == UWORD  || targetType==ARRAY_B
-                ARRAY_UW -> targetType == UWORD || targetType==ARRAY_UW
-                ARRAY_W -> targetType == UWORD || targetType==ARRAY_W
-                ARRAY_F -> targetType == UWORD || targetType==ARRAY_F
+                STR -> targetType == STR || targetType==STR_S
+                STR_S -> targetType == STR || targetType==STR_S
+                in ArrayDatatypes -> targetType === this
+                else -> false
             }
 
 
@@ -290,6 +287,10 @@ interface IAstProcessor {
     fun process(memwrite: DirectMemoryWrite): IExpression {
         memwrite.addressExpression = memwrite.addressExpression.process(this)
         return memwrite
+    }
+
+    fun process(pointerOf: PointerOf): IExpression {
+        return pointerOf
     }
 }
 
@@ -1006,6 +1007,22 @@ class TypecastExpression(var expression: IExpression, var type: DataType, overri
     override fun toString(): String {
         return "Typecast($expression as $type)"
     }
+}
+
+
+data class PointerOf(val identifier: IdentifierReference, override val position: Position) : IExpression {
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        identifier.parent=this
+    }
+
+    override fun isIterable(namespace: INameScope, heap: HeapValues) = false
+    override fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue? = null
+    override fun referencesIdentifier(name: String) = false
+    override fun resultingDatatype(namespace: INameScope, heap: HeapValues) = DataType.UWORD
+    override fun process(processor: IAstProcessor) = processor.process(this)
 }
 
 
@@ -2195,6 +2212,9 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
 
     if(directmemory()!=null)
         return DirectMemoryRead(directmemory().expression().toAst(), toPosition())
+
+    if(pointerof()!=null)
+        return PointerOf(pointerof().scoped_identifier().toAst(), toPosition())
 
     throw FatalAstException(text)
 }

@@ -154,6 +154,7 @@ expression :
 	| scoped_identifier
 	| arrayindexed
 	| directmemory
+	| pointerof
 	| expression typecast
 	| '(' expression ')'
 	;
@@ -165,6 +166,8 @@ typecast : 'as' datatype;
 arrayindexed :  scoped_identifier arrayspec  ;
 
 directmemory : '@' '(' expression ')';
+
+pointerof : <assoc=right> '&' scoped_identifier ;
 
 
 functioncall :	scoped_identifier '(' expression_list? ')'  ;

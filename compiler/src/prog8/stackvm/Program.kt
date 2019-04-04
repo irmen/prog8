@@ -2,6 +2,7 @@ package prog8.stackvm
 
 import prog8.ast.*
 import prog8.compiler.HeapValues
+import prog8.compiler.IntegerOrPointerOf
 import prog8.compiler.intermediate.*
 import java.io.File
 import java.util.*
@@ -87,17 +88,17 @@ class Program (val name: String,
             }
             heapvalues.sortedBy { it.first }.forEach {
                 when(it.second) {
-                    DataType.STR, DataType.STR_S -> heap.add(it.second, unescape(it.third.substring(1, it.third.length-1), Position("<stackvmsource>", 0, 0, 0)))
+                    DataType.STR, DataType.STR_S -> heap.addString(it.second, unescape(it.third.substring(1, it.third.length-1), Position("<stackvmsource>", 0, 0, 0)))
                     DataType.ARRAY_UB, DataType.ARRAY_B,
                     DataType.ARRAY_UW, DataType.ARRAY_W -> {
                         val numbers = it.third.substring(1, it.third.length-1).split(',')
-                        val intarray = numbers.map{number->number.trim().toInt()}.toIntArray()
-                        heap.add(it.second, intarray)
+                        val intarray = numbers.map{number->IntegerOrPointerOf(number.trim().toInt(), null)}.toTypedArray()
+                        heap.addIntegerArray(it.second, intarray)
                     }
                     DataType.ARRAY_F -> {
                         val numbers = it.third.substring(1, it.third.length-1).split(',')
                         val doublearray = numbers.map{number->number.trim().toDouble()}.toDoubleArray()
-                        heap.add(it.second, doublearray)
+                        heap.addDoublesArray(it.second, doublearray)
                     }
                     in NumericDatatypes -> throw VmExecutionException("invalid heap value type ${it.second}")
                     else -> throw VmExecutionException("weird datatype")

@@ -2,6 +2,7 @@ package prog8.stackvm
 
 import prog8.ast.*
 import prog8.compiler.HeapValues
+import prog8.compiler.IntegerOrPointerOf
 import prog8.compiler.intermediate.Instruction
 import prog8.compiler.intermediate.Opcode
 import prog8.compiler.intermediate.Value
@@ -1602,8 +1603,8 @@ class StackVm(private var traceOutputFile: String?) {
                                 // get indexed byte element from the arrayspec
                                 val array = heap.get(variable.heapId)
                                 when (array.type) {
-                                    DataType.ARRAY_UB -> Value(DataType.UBYTE, array.array!![index])
-                                    DataType.ARRAY_B -> Value(DataType.BYTE, array.array!![index])
+                                    DataType.ARRAY_UB -> Value(DataType.UBYTE, array.array!![index].integer!!)
+                                    DataType.ARRAY_B -> Value(DataType.BYTE, array.array!![index].integer!!)
                                     DataType.STR, DataType.STR_S -> Value(DataType.UBYTE, Petscii.encodePetscii(array.str!![index].toString(), true)[0])
                                     else -> throw VmExecutionException("not a proper array/string variable with byte elements")
                                 }
@@ -1634,8 +1635,14 @@ class StackVm(private var traceOutputFile: String?) {
                                 // get indexed word element from the arrayspec
                                 val array = heap.get(variable.heapId)
                                 when(array.type){
-                                    DataType.ARRAY_UW -> Value(DataType.UWORD, array.array!![index])
-                                    DataType.ARRAY_W -> Value(DataType.WORD, array.array!![index])
+                                    DataType.ARRAY_UW -> {
+                                        val value = array.array!![index]
+                                        if(value.integer!=null)
+                                            Value(DataType.UWORD, value.integer)
+                                        else
+                                            TODO("deal with pointerTo $value")
+                                    }
+                                    DataType.ARRAY_W -> Value(DataType.WORD, array.array!![index].integer!!)
                                     else -> throw VmExecutionException("not a proper arrayspec var with word elements")
                                 }
                             }
@@ -1701,8 +1708,8 @@ class StackVm(private var traceOutputFile: String?) {
                         // set indexed byte element in the arrayspec
                         val array = heap.get(variable.heapId)
                         when (array.type) {
-                            DataType.ARRAY_UB -> array.array!![index] = value.integerValue()
-                            DataType.ARRAY_B -> array.array!![index] = value.integerValue()
+                            DataType.ARRAY_UB -> array.array!![index] = IntegerOrPointerOf(value.integerValue(), null)
+                            DataType.ARRAY_B -> array.array!![index] = IntegerOrPointerOf(value.integerValue(), null)
                             DataType.STR, DataType.STR_S -> {
                                 val chars = array.str!!.toCharArray()
                                 val ps = Petscii.decodePetscii(listOf(value.integerValue().toShort()), true)[0]
@@ -1749,8 +1756,8 @@ class StackVm(private var traceOutputFile: String?) {
                         // set indexed word element in the arrayspec
                         val array = heap.get(variable.heapId)
                         when (array.type) {
-                            DataType.ARRAY_UW -> array.array!![index] = value.integerValue()
-                            DataType.ARRAY_W -> array.array!![index] = value.integerValue()
+                            DataType.ARRAY_UW -> array.array!![index] = IntegerOrPointerOf(value.integerValue(), null)
+                            DataType.ARRAY_W -> array.array!![index] = IntegerOrPointerOf(value.integerValue(), null)
                             else -> throw VmExecutionException("not a proper arrayspec var with word elements")
                         }
                     }
@@ -2051,92 +2058,130 @@ class StackVm(private var traceOutputFile: String?) {
             Syscall.FUNC_MAX_UB -> {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
-                val result = value.array!!.max() ?: 0
+                if(value.array!!.any{it.integer==null})
+                    throw VmExecutionException("cannot deal with PointerTo value in array $value")
+                val result = value.array.map{it.integer!!}.max() ?: 0
                 evalstack.push(Value(DataType.UBYTE, result))
             }
             Syscall.FUNC_MAX_B -> {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
-                val result = value.array!!.max() ?: 0
+                if(value.array!!.any{it.integer==null})
+                    throw VmExecutionException("cannot deal with PointerTo value in array $value")
+                val result = value.array.map{it.integer!!}.max() ?: 0
                 evalstack.push(Value(DataType.BYTE, result))
             }
             Syscall.FUNC_MAX_UW -> {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
-                val result = value.array!!.max() ?: 0
+                if(value.array!!.any{it.integer==null})
+                    throw VmExecutionException("cannot deal with PointerTo value in array $value")
+                val result = value.array.map{it.integer!!}.max() ?: 0
                 evalstack.push(Value(DataType.UWORD, result))
             }
             Syscall.FUNC_MAX_W -> {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
-                val result = value.array!!.max() ?: 0
+                if(value.array!!.any{it.integer==null})
+                    throw VmExecutionException("cannot deal with PointerTo value in array $value")
+                val result = value.array.map{it.integer!!}.max() ?: 0
                 evalstack.push(Value(DataType.WORD, result))
             }
             Syscall.FUNC_MAX_F -> {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
-                val result = value.array!!.max() ?: 0
+                // TODO CHECK max(floatarray) correctness
+                val result = value.doubleArray!!.max() ?: 0.0
                 evalstack.push(Value(DataType.FLOAT, result))
             }
             Syscall.FUNC_MIN_UB -> {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
-                val result = value.array!!.min() ?: 0
+                if(value.array!!.any{it.integer==null})
+                    throw VmExecutionException("cannot deal with PointerTo value in array $value")
+                val result = value.array.map{it.integer!!}.min() ?: 0
                 evalstack.push(Value(DataType.UBYTE, result))
             }
             Syscall.FUNC_MIN_B -> {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
-                val result = value.array!!.min() ?: 0
+                if(value.array!!.any{it.integer==null})
+                    throw VmExecutionException("cannot deal with PointerTo value in array $value")
+                val result = value.array.map{it.integer!!}.min() ?: 0
                 evalstack.push(Value(DataType.BYTE, result))
             }
             Syscall.FUNC_MIN_UW -> {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
-                val result = value.array!!.min() ?: 0
+                if(value.array!!.any{it.integer==null})
+                    throw VmExecutionException("cannot deal with PointerTo value in array $value")
+                val result = value.array.map{it.integer!!}.min() ?: 0
                 evalstack.push(Value(DataType.UWORD, result))
             }
             Syscall.FUNC_MIN_W -> {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
-                val result = value.array!!.min() ?: 0
+                if(value.array!!.any{it.integer==null})
+                    throw VmExecutionException("cannot deal with PointerTo value in array $value")
+                val result = value.array.map{it.integer!!}.min() ?: 0
                 evalstack.push(Value(DataType.WORD, result))
             }
             Syscall.FUNC_MIN_F -> {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
-                val result = value.array!!.min() ?: 0
+                // TODO check min(floatarray) correctness
+                val result = value.doubleArray!!.min() ?: 0.0
                 evalstack.push(Value(DataType.FLOAT, result))
             }
-            Syscall.FUNC_AVG_UB, Syscall.FUNC_AVG_B, Syscall.FUNC_AVG_UW, Syscall.FUNC_AVG_W, Syscall.FUNC_AVG_F -> {
+            Syscall.FUNC_AVG_UB, Syscall.FUNC_AVG_B, Syscall.FUNC_AVG_UW, Syscall.FUNC_AVG_W -> {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
-                evalstack.push(Value(DataType.FLOAT, value.array!!.average()))
+                if(value.array!!.any{it.integer==null})
+                    throw VmExecutionException("cannot deal with PointerTo value in array $value")
+                evalstack.push(Value(DataType.FLOAT, value.array.map{it.integer!!}.average()))
+            }
+            Syscall.FUNC_AVG_F -> {
+                val iterable = evalstack.pop()
+                val value = heap.get(iterable.heapId)
+                // TODO check avg(floatarray) correctness
+                evalstack.push(Value(DataType.FLOAT, value.doubleArray!!.average()))
             }
             Syscall.FUNC_SUM_UB -> {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
-                evalstack.push(Value(DataType.UWORD, value.array!!.sum()))
+                if(value.array!!.any{it.integer==null})
+                    throw VmExecutionException("cannot deal with PointerTo value in array $value")
+                evalstack.push(Value(DataType.UWORD, value.array.map{it.integer!!}.sum()))
             }
             Syscall.FUNC_SUM_B -> {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
-                evalstack.push(Value(DataType.WORD, value.array!!.sum()))
+                if(value.array!!.any{it.integer==null})
+                    throw VmExecutionException("cannot deal with PointerTo value in array $value")
+                evalstack.push(Value(DataType.WORD, value.array.map{it.integer!!}.sum()))
             }
-            Syscall.FUNC_SUM_UW, Syscall.FUNC_SUM_W, Syscall.FUNC_SUM_F -> {
+            Syscall.FUNC_SUM_UW, Syscall.FUNC_SUM_W -> {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
-                evalstack.push(Value(DataType.FLOAT, value.array!!.sum()))
+                if(value.array!!.any{it.integer==null})
+                    throw VmExecutionException("cannot deal with PointerTo value in array $value")
+                evalstack.push(Value(DataType.FLOAT, value.array.map{it.integer!!}.sum()))
+            }
+            Syscall.FUNC_SUM_F -> {
+                // TODO check sum(floatarray) correctness
+                val iterable = evalstack.pop()
+                val value = heap.get(iterable.heapId)
+                evalstack.push(Value(DataType.FLOAT, value.doubleArray!!.sum()))
             }
             Syscall.FUNC_ANY_B, Syscall.FUNC_ANY_W, Syscall.FUNC_ANY_F -> {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
-                evalstack.push(Value(DataType.UBYTE, if (value.array!!.any { v -> v != 0 }) 1 else 0))
+                evalstack.push(Value(DataType.UBYTE, if (value.array!!.any { v -> v.pointerOf!=null || (v.integer!=null && v.integer != 0) }) 1 else 0))
             }
             Syscall.FUNC_ALL_B, Syscall.FUNC_ALL_W, Syscall.FUNC_ALL_F -> {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
-                evalstack.push(Value(DataType.UBYTE, if (value.array!!.all { v -> v != 0 }) 1 else 0))
+                evalstack.push(Value(DataType.UBYTE, if (value.array!!.all { v -> v.pointerOf!=null || (v.integer!=null && v.integer != 0) }) 1 else 0))
             }
             Syscall.FUNC_MEMCOPY -> {
                 val numbytes = evalstack.pop().integerValue()

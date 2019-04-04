@@ -3,6 +3,7 @@ package prog8.optimizing
 import prog8.ast.*
 import prog8.compiler.CompilerException
 import prog8.compiler.HeapValues
+import prog8.compiler.IntegerOrPointerOf
 import prog8.compiler.target.c64.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.FLOAT_MAX_POSITIVE
 import kotlin.math.floor
@@ -69,8 +70,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                             }
                             else -> {}
                         }
-                        val fillArray = IntArray(size) { fillvalue }
-                        val heapId = heap.add(decl.datatype, fillArray)
+                        val heapId = heap.addIntegerArray(decl.datatype, Array(size) { IntegerOrPointerOf(fillvalue, null) })
                         decl.value = LiteralValue(decl.datatype, heapId = heapId, position = litval?.position ?: decl.position)
                     }
                 }
@@ -82,8 +82,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                         if(fillvalue< FLOAT_MAX_NEGATIVE || fillvalue> FLOAT_MAX_POSITIVE)
                             errors.add(ExpressionError("float value overflow", litval?.position ?: decl.position))
                         else {
-                            val fillArray = DoubleArray(size) { fillvalue }
-                            val heapId = heap.add(decl.datatype, fillArray)
+                            val heapId = heap.addDoublesArray(decl.datatype, DoubleArray(size) { fillvalue })
                             decl.value = LiteralValue(decl.datatype, heapId = heapId, position = litval?.position ?: decl.position)
                         }
                     }
@@ -112,7 +111,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
             DataType.ARRAY_F -> {
                 if(array.array!=null) {
                     // convert a non-float array to floats
-                    val doubleArray = array.array.map { it.toDouble() }.toDoubleArray()
+                    val doubleArray = array.array.map { it.integer!!.toDouble() }.toDoubleArray()
                     heap.update(heapId, HeapValues.HeapValue(DataType.ARRAY_F, null, null, doubleArray))
                     decl.value = LiteralValue(decl.datatype, heapId = heapId, position = litval.position)
                 }
@@ -534,7 +533,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
             if(literalValue.strvalue(heap).length !in 1..255)
                 addError(ExpressionError("string literal length must be between 1 and 255", literalValue.position))
             else {
-                val heapId = heap.add(literalValue.type, literalValue.strvalue(heap))     // TODO: we don't know the actual string type yet, STR != STR_S etc...
+                val heapId = heap.addString(literalValue.type, literalValue.strvalue(heap))     // TODO: we don't know the actual string type yet, STR != STR_S etc...
                 val newValue = LiteralValue(literalValue.type, heapId = heapId, position = literalValue.position)
                 return super.process(newValue)
             }
@@ -547,13 +546,20 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
 
     private fun moveArrayToHeap(arraylit: LiteralValue): LiteralValue {
         val array: Array<IExpression> = arraylit.arrayvalue!!.map { it.process(this) }.toTypedArray()
-        val allElementsAreConstant = array.fold(true) { c, expr-> c and (expr is LiteralValue)}
-        if(!allElementsAreConstant) {
-            addError(ExpressionError("array literal can contain only constant values", arraylit.position))
+        val allElementsAreConstantOrPointerOf = array.fold(true) { c, expr-> c and (expr is LiteralValue || expr is PointerOf)}
+        if(!allElementsAreConstantOrPointerOf) {
+            addError(ExpressionError("array literal can only consist of constant primitive numerical values or memory pointers", arraylit.position))
             return arraylit
+        } else if(array.any {it is PointerOf}) {
+            val arrayDt = DataType.UWORD
+            val intArrayWithPointers = mutableListOf<IntegerOrPointerOf>()
+            // TODO FILL THIS ARRAY
+            val heapId = heap.addIntegerArray(DataType.UWORD, intArrayWithPointers.toTypedArray())
+            return LiteralValue(arrayDt, heapId = heapId, position = arraylit.position)
         } else {
+            // array is only constant numerical values
             val valuesInArray = array.map { it.constValue(namespace, heap)!!.asNumericValue!! }
-            val integerArray = valuesInArray.map{it.toInt()}.toIntArray()
+            val integerArray = valuesInArray.map{ it.toInt() }
             val doubleArray = valuesInArray.map{it.toDouble()}.toDoubleArray()
             val typesInArray: Set<DataType> = array.mapNotNull { it.resultingDatatype(namespace, heap) }.toSet()
 
@@ -587,8 +593,8 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                 DataType.ARRAY_UB,
                 DataType.ARRAY_B,
                 DataType.ARRAY_UW,
-                DataType.ARRAY_W -> heap.add(arrayDt, integerArray)
-                DataType.ARRAY_F -> heap.add(arrayDt, doubleArray)
+                DataType.ARRAY_W -> heap.addIntegerArray(arrayDt, integerArray.map { IntegerOrPointerOf(it, null) }.toTypedArray())
+                DataType.ARRAY_F -> heap.addDoublesArray(arrayDt, doubleArray)
                 else -> throw CompilerException("invalid arrayspec type")
             }
             return LiteralValue(arrayDt, heapId = heapId, position = arraylit.position)
