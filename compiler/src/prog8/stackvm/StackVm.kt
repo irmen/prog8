@@ -2090,7 +2090,6 @@ class StackVm(private var traceOutputFile: String?) {
             Syscall.FUNC_MAX_F -> {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
-                // TODO CHECK max(floatarray) correctness
                 val result = value.doubleArray!!.max() ?: 0.0
                 evalstack.push(Value(DataType.FLOAT, result))
             }
@@ -2129,7 +2128,6 @@ class StackVm(private var traceOutputFile: String?) {
             Syscall.FUNC_MIN_F -> {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
-                // TODO check min(floatarray) correctness
                 val result = value.doubleArray!!.min() ?: 0.0
                 evalstack.push(Value(DataType.FLOAT, result))
             }
@@ -2143,7 +2141,6 @@ class StackVm(private var traceOutputFile: String?) {
             Syscall.FUNC_AVG_F -> {
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
-                // TODO check avg(floatarray) correctness
                 evalstack.push(Value(DataType.FLOAT, value.doubleArray!!.average()))
             }
             Syscall.FUNC_SUM_UB -> {
@@ -2168,7 +2165,6 @@ class StackVm(private var traceOutputFile: String?) {
                 evalstack.push(Value(DataType.FLOAT, value.array.map{it.integer!!}.sum()))
             }
             Syscall.FUNC_SUM_F -> {
-                // TODO check sum(floatarray) correctness
                 val iterable = evalstack.pop()
                 val value = heap.get(iterable.heapId)
                 evalstack.push(Value(DataType.FLOAT, value.doubleArray!!.sum()))
