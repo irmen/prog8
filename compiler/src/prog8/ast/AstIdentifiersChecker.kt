@@ -14,13 +14,13 @@ fun Module.checkIdentifiers(namespace: INameScope) {
 
     // add any anonymous variables for heap values that are used,
     // and replace an iterable literalvalue by identifierref to new local variable
-    for (variable in checker.anonymousVariablesFromHeap) {
+    for (variable in checker.anonymousVariablesFromHeap.values) {
         val scope = variable.first.definingScope()
         scope.statements.add(variable.second)
         val parent = variable.first.parent
         when {
             parent is Assignment && parent.value === variable.first -> {
-                val idref = IdentifierReference(listOf("$autoHeapValuePrefix${variable.first.heapId}"), variable.first.position)
+                val idref = IdentifierReference(listOf("$${variable.first.heapId}"), variable.first.position)
                 idref.linkParents(parent)
                 parent.value = idref
             }
@@ -217,7 +217,7 @@ private class AstIdentifiersChecker(private val namespace: INameScope) : IAstPro
     }
 
 
-    internal val anonymousVariablesFromHeap = mutableSetOf<Pair<LiteralValue, VarDecl>>()
+    internal val anonymousVariablesFromHeap = mutableMapOf<String, Pair<LiteralValue, VarDecl>>()
 
 
     override fun process(literalValue: LiteralValue): LiteralValue {
@@ -225,10 +225,10 @@ private class AstIdentifiersChecker(private val namespace: INameScope) : IAstPro
             // a literal value that's not declared as a variable, which refers to something on the heap.
             // we need to introduce an auto-generated variable for this to be able to refer to the value!
             val variable = VarDecl(VarDeclType.VAR, literalValue.type, false, null, "$autoHeapValuePrefix${literalValue.heapId}", literalValue, literalValue.position)
-            anonymousVariablesFromHeap.add(Pair(literalValue, variable))
+            anonymousVariablesFromHeap[variable.name] = Pair(literalValue, variable)
         }
         return super.process(literalValue)
     }
 }
 
-private const val autoHeapValuePrefix = "auto_heap_value_"
+internal const val autoHeapValuePrefix = "auto_heap_value_"

@@ -106,9 +106,15 @@
 
     ;uword[4] pointers = [&array1, &array2, &string1, &string2]   ; @todo make it possible to initialize array with pointers
 
+
     ;ptrsubasm("moet werken")         ; @todo rewrite ast into pointer-of expression (and remove special cases from Compiler)
     ;pointersub("moet werken")        ; @todo rewrite ast into pointer-of expression (and remove special cases from Compiler)
-    ;myprintasm("moet werken3")          ; @todo rewrite ast into pointer-of expression (and remove special cases from Compiler)
+
+    myprintasm("moet werken3")
+    myprintasm("moet werken3")
+    myprintasm("moet werken4")
+
+    c64.CHROUT('\n')
 
     ptrsubasm(&array1)
     ptrsubasm(&array2)

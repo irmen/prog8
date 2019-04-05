@@ -1089,19 +1089,7 @@ internal class Compiler(private val rootModule: Module,
                                 translate(arg.first)
                                 prog.instr(Opcode.POP_REGAX_WORD)
                             }
-                            // TODO auto-converting str/float/array to their pointer value should be done by explicitly rewriting the Ast into a pointer-of expression, once that is available
-                            DataType.STR, DataType.STR_S -> {
-                                pushHeapVarAddress(arg.first, false)
-                                prog.instr(Opcode.POP_REGAX_WORD)
-                            }
-                            DataType.FLOAT -> {
-                                pushFloatAddress(arg.first)
-                                prog.instr(Opcode.POP_REGAX_WORD)
-                            }
-                            in ArrayDatatypes -> {
-                                pushHeapVarAddress(arg.first, false)
-                                prog.instr(Opcode.POP_REGAX_WORD)
-                            }
+                            in StringDatatypes + ArrayDatatypes -> throw CompilerException("string or array arguments should have been converted to their pointer value in the Ast $callPosition")
                             else -> TODO("pass parameter of type $paramDt in registers AX at $callPosition")
                         }
                     }
@@ -1124,19 +1112,7 @@ internal class Compiler(private val rootModule: Module,
                                 translate(arg.first)
                                 prog.instr(Opcode.POP_REGAY_WORD)
                             }
-                            // TODO auto-converting str/float/array to their pointer value should be done by explicitly rewriting the Ast into a pointer-of expression, once that is available
-                            DataType.STR, DataType.STR_S -> {
-                                pushHeapVarAddress(arg.first, false)
-                                prog.instr(Opcode.POP_REGAY_WORD)
-                            }
-                            DataType.FLOAT -> {
-                                pushFloatAddress(arg.first)
-                                prog.instr(Opcode.POP_REGAY_WORD)
-                            }
-                            in ArrayDatatypes -> {
-                                pushHeapVarAddress(arg.first, false)
-                                prog.instr(Opcode.POP_REGAY_WORD)
-                            }
+                            in StringDatatypes + ArrayDatatypes -> throw CompilerException("string or array arguments should have been converted to their pointer value in the Ast $callPosition")
                             else -> TODO("pass parameter of type $paramDt in registers AY at $callPosition")
                         }
                     }
@@ -1163,19 +1139,7 @@ internal class Compiler(private val rootModule: Module,
                                 translate(arg.first)
                                 prog.instr(Opcode.POP_REGXY_WORD)
                             }
-                            // TODO auto-converting str/float/array to their pointer value should be done by explicitly rewriting the Ast into a pointer-of expression, once that is available
-                            DataType.STR, DataType.STR_S -> {
-                                pushHeapVarAddress(arg.first, false)
-                                prog.instr(Opcode.POP_REGXY_WORD)
-                            }
-                            DataType.FLOAT -> {
-                                pushFloatAddress(arg.first)
-                                prog.instr(Opcode.POP_REGXY_WORD)
-                            }
-                            in ArrayDatatypes -> {
-                                pushHeapVarAddress(arg.first, false)
-                                prog.instr(Opcode.POP_REGXY_WORD)
-                            }
+                            in StringDatatypes + ArrayDatatypes -> throw CompilerException("string or array arguments should have been converted to their pointer value in the Ast $callPosition")
                             else -> TODO("pass parameter of type $paramDt in registers XY at $callPosition")
                         }
                     }

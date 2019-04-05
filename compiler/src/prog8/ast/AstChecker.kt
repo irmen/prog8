@@ -814,8 +814,11 @@ private class AstChecker(private val namespace: INameScope,
             else {
                 for (arg in args.withIndex().zip(target.parameters)) {
                     val argDt = arg.first.value.resultingDatatype(namespace, heap)
-                    if(argDt!=null && !argDt.assignableTo(arg.second.type))
-                        checkResult.add(ExpressionError("subroutine '${target.name}' argument ${arg.first.index+1} has invalid type $argDt, expected ${arg.second.type}", position))
+                    if(argDt!=null && !argDt.assignableTo(arg.second.type)) {
+                        // for asm subroutines having STR param it's okay to provide a UWORD too (pointer value)
+                        if(!(target.isAsmSubroutine && arg.second.type in StringDatatypes && argDt==DataType.UWORD))
+                            checkResult.add(ExpressionError("subroutine '${target.name}' argument ${arg.first.index + 1} has invalid type $argDt, expected ${arg.second.type}", position))
+                    }
 
                     if(target.isAsmSubroutine) {
                         if (target.asmParameterRegisters[arg.first.index].registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.XY, RegisterOrPair.X)) {

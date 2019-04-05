@@ -3,7 +3,7 @@ package prog8.ast
 import prog8.compiler.HeapValues
 
 fun Module.reorderStatements(namespace: INameScope, heap: HeapValues) {
-    val initvalueCreator = VarInitValueCreator()
+    val initvalueCreator = VarInitValueAndPointerOfCreator(namespace)
     this.process(initvalueCreator)
 
     val checker = StatementReorderer(namespace, heap)
@@ -203,13 +203,16 @@ private class StatementReorderer(private val namespace: INameScope, private val 
 }
 
 
-private class VarInitValueCreator: IAstProcessor {
+private class VarInitValueAndPointerOfCreator(private val namespace: INameScope): IAstProcessor {
     // Replace the var decl with an assignment and add a new vardecl with the default constant value.
     // This makes sure the variables get reset to the intended value on a next run of the program.
     // Variable decls without a value don't get this treatment, which means they retain the last
     // value they had when restarting the program.
     // This is done in a separate step because it interferes with the namespace lookup of symbols
     // in other ast processors.
+
+    // Also takes care to insert PointerOf (&) expression where required (string params to a UWORD function param etc).
+
 
     private val vardeclsToAdd = mutableMapOf<INameScope, MutableList<VarDecl>>()
 
@@ -250,6 +253,35 @@ private class VarInitValueCreator: IAstProcessor {
             )
         }
         return decl
+    }
+
+    override fun process(functionCall: FunctionCall): IExpression {
+        val targetStatement = functionCall.target.targetStatement(namespace) as? Subroutine
+        if(targetStatement!=null)
+            addPointerToIfNeeded(targetStatement, functionCall.arglist, functionCall)
+        return functionCall
+    }
+
+    override fun process(functionCallStatement: FunctionCallStatement): IStatement {
+        val targetStatement = functionCallStatement.target.targetStatement(namespace) as? Subroutine
+        if(targetStatement!=null)
+            addPointerToIfNeeded(targetStatement, functionCallStatement.arglist, functionCallStatement)
+        return functionCallStatement
+    }
+
+    private fun addPointerToIfNeeded(subroutine: Subroutine, arglist: MutableList<IExpression>, parent: Node) {
+        // functions that accept UWORD and are given an array type, or string, will receive the Pointer (memory location) of that value instead.
+        for(argparam in subroutine.parameters.withIndex().zip(arglist)) {
+            if(argparam.first.value.type==DataType.UWORD || argparam.first.value.type in StringDatatypes) {
+                val strvalue = argparam.second as? LiteralValue
+                if(strvalue!=null && strvalue.isString) {
+                    val idref = IdentifierReference(listOf("$autoHeapValuePrefix${strvalue.heapId}"), strvalue.position)        // TODO why does this result later in "pointer-of operand must be the name of a heap variable"
+                    val pointerExpr = PointerOf(idref, strvalue.position)
+                    pointerExpr.linkParents(arglist[argparam.first.index].parent)
+                    arglist[argparam.first.index] = pointerExpr
+                }
+            }
+        }
     }
 
 }
