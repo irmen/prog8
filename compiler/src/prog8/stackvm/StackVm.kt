@@ -1097,8 +1097,11 @@ class StackVm(private var traceOutputFile: String?) {
                 checkDt(value, DataType.UBYTE, DataType.BYTE)
                 val variable = getVar(ins.callLabel!!)
                 checkDt(variable, DataType.UBYTE, DataType.BYTE)
-                if(value.type!=variable.type)
-                    throw VmExecutionException("datatype mismatch")
+                if(value.type!=variable.type) {
+                    if(ins.callLabel !in Register.values().map { it.name }) {
+                        throw VmExecutionException("datatype mismatch")
+                    }
+                }
                 variables[ins.callLabel] = value
                 setFlags(value)
             }
@@ -2249,6 +2252,13 @@ class StackVm(private var traceOutputFile: String?) {
             Syscall.SYSASM_c64scr_print_ub -> {
                 val num = variables.getValue("A").integerValue()
                 canvas?.printText(num.toString(), 1, true)
+            }
+            Syscall.SYSASM_c64scr_print_b -> {
+                val num = variables.getValue("A").integerValue()
+                if(num<=127)
+                    canvas?.printText(num.toString(), 1, true)
+                else
+                    canvas?.printText("-${256-num}", 1, true)
             }
             Syscall.SYSASM_c64scr_print_uw -> {
                 val lo = variables.getValue("A").integerValue()
