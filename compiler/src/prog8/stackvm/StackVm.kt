@@ -2083,7 +2083,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.UBYTE, value.array.max() ?: 0))
+                evalstack.push(Value(DataType.UBYTE, value.array.map{it.integer!!}.max() ?: 0))
             }
             Syscall.FUNC_MAX_B -> {
                 val length = evalstack.pop().integerValue()
@@ -2091,7 +2091,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.BYTE, value.array.max() ?: 0))
+                evalstack.push(Value(DataType.BYTE, value.array.map{it.integer!!}.max() ?: 0))
             }
             Syscall.FUNC_MAX_UW -> {
                 val length = evalstack.pop().integerValue()
@@ -2099,7 +2099,9 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.UWORD, value.array.max() ?: 0))
+                if(value.array.any {it.pointerOf!=null})
+                    throw VmExecutionException("stackvm cannot process raw memory pointers")
+                evalstack.push(Value(DataType.UWORD, value.array.map{it.integer!!}.max() ?: 0))
             }
             Syscall.FUNC_MAX_W -> {
                 val length = evalstack.pop().integerValue()
@@ -2107,7 +2109,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.WORD, value.array.max() ?: 0))
+                evalstack.push(Value(DataType.WORD, value.array.map{it.integer!!}.max() ?: 0))
             }
             Syscall.FUNC_MAX_F -> {
                 val length = evalstack.pop().integerValue()
@@ -2123,7 +2125,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.UBYTE, value.array.min() ?: 0))
+                evalstack.push(Value(DataType.UBYTE, value.array.map{it.integer!!}.min() ?: 0))
             }
             Syscall.FUNC_MIN_B -> {
                 val length = evalstack.pop().integerValue()
@@ -2131,7 +2133,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.BYTE, value.array.min() ?: 0))
+                evalstack.push(Value(DataType.BYTE, value.array.map{it.integer!!}.min() ?: 0))
             }
             Syscall.FUNC_MIN_UW -> {
                 val length = evalstack.pop().integerValue()
@@ -2139,7 +2141,9 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.UWORD, value.array.min() ?: 0))
+                if(value.array.any {it.pointerOf!=null})
+                    throw VmExecutionException("stackvm cannot process raw memory pointers")
+                evalstack.push(Value(DataType.UWORD, value.array.map{it.integer!!}.min() ?: 0))
             }
             Syscall.FUNC_MIN_W -> {
                 val length = evalstack.pop().integerValue()
@@ -2147,7 +2151,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.WORD, value.array.min() ?: 0))
+                evalstack.push(Value(DataType.WORD, value.array.map{it.integer!!}.min() ?: 0))
             }
             Syscall.FUNC_MIN_F -> {
                 val length = evalstack.pop().integerValue()
@@ -2163,15 +2167,25 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.WORD, value.array.sum()))
+                evalstack.push(Value(DataType.WORD, value.array.map{it.integer!!}.sum()))
             }
-            Syscall.FUNC_SUM_UW, Syscall.FUNC_SUM_UB -> {
+            Syscall.FUNC_SUM_UW -> {
                 val length = evalstack.pop().integerValue()
                 val heapVarId = evalstack.pop().integerValue()
                 val value = heap.get(heapVarId)
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.UWORD, value.array.sum()))
+                if(value.array.any {it.pointerOf!=null})
+                    throw VmExecutionException("stackvm cannot process raw memory pointers")
+                evalstack.push(Value(DataType.UWORD, value.array.map{it.integer!!}.sum()))
+            }
+            Syscall.FUNC_SUM_UB -> {
+                val length = evalstack.pop().integerValue()
+                val heapVarId = evalstack.pop().integerValue()
+                val value = heap.get(heapVarId)
+                if(length!=value.array!!.size)
+                    throw VmExecutionException("iterable length mismatch")
+                evalstack.push(Value(DataType.UWORD, value.array.map{it.integer!!}.sum()))
             }
             Syscall.FUNC_SUM_F -> {
                 val length = evalstack.pop().integerValue()
@@ -2187,7 +2201,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.UBYTE, if (value.array.any { v -> v != 0 }) 1 else 0))
+                evalstack.push(Value(DataType.UBYTE, if (value.array.any { it.integer != 0 }) 1 else 0))
             }
             Syscall.FUNC_ANY_F -> {
                 val length = evalstack.pop().integerValue()
@@ -2195,7 +2209,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.doubleArray!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.UBYTE, if (value.doubleArray.any { v -> v.pointerOf!=null || (v.integer!=null && v.integer != 0.0) }) 1 else 0))
+                evalstack.push(Value(DataType.UBYTE, if (value.doubleArray.any { it!=0.0 }) 1 else 0))
             }
             Syscall.FUNC_ALL_B, Syscall.FUNC_ALL_W -> {
                 val length = evalstack.pop().integerValue()
@@ -2203,7 +2217,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.UBYTE, if (value.array.all { v -> v != 0 }) 1 else 0))
+                evalstack.push(Value(DataType.UBYTE, if (value.array.all { it.integer != 0 }) 1 else 0))
             }
             Syscall.FUNC_ALL_F -> {
                 val length = evalstack.pop().integerValue()
@@ -2211,7 +2225,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.doubleArray!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.UBYTE, if (value.doubleArray.all { v -> v.pointerOf!=null || (v.integer!=null && v.integer != 0.0) }) 1 else 0))
+                evalstack.push(Value(DataType.UBYTE, if (value.doubleArray.all { it != 0.0 }) 1 else 0))
             }
             Syscall.FUNC_MEMCOPY -> {
                 val numbytes = evalstack.pop().integerValue()
