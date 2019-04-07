@@ -893,46 +893,44 @@ _cmp_mod	cpy  #255		; modified
 		.pend
 
 func_max_f	.proc
-		lda  #<_min_float
-		ldy  #>_min_float
-		jsr  c64flt.MOVFM			; fac1=min(float)
 		lda  #255
-		sta  _cmp_mod+1			; compare using 255 so we keep larger values
-_minmax_entry	jsr  pop_array_and_lengthmin1Y
+		sta  _minmax_cmp+1
+		lda  #<_largest_neg_float
+		ldy  #>_largest_neg_float
+_minmax_entry	jsr  MOVFM
+		jsr  prog8_lib.pop_array_and_lengthmin1Y
 		stx  c64.SCRATCH_ZPREGX
 -		sty  c64.SCRATCH_ZPREG
 		lda  c64.SCRATCH_ZPWORD1
 		ldy  c64.SCRATCH_ZPWORD1+1
-		jsr  c64flt.FCOMP
-_cmp_mod	cmp  #255			; will be modified
+		jsr  FCOMP
+_minmax_cmp	cmp  #255			; modified
 		bne  +
-		; fac1 is smaller/larger, so store the new value instead
 		lda  c64.SCRATCH_ZPWORD1
 		ldy  c64.SCRATCH_ZPWORD1+1
-		jsr  c64flt.MOVFM
-		ldy  c64.SCRATCH_ZPREG
-		dey
-		cmp  #255
-		beq  +
-		lda  c64.SCRATCH_ZPWORD1
+		jsr  MOVFM
++		lda  c64.SCRATCH_ZPWORD1
 		clc
 		adc  #5
 		sta  c64.SCRATCH_ZPWORD1
-		bcc  -
+		bcc  +
 		inc  c64.SCRATCH_ZPWORD1+1
++		ldy  c64.SCRATCH_ZPREG
+		dey
 		bne  -
-+		jmp  push_fac1_as_result
-_min_float	.byte  255,255,255,255,255	; -1.7014118345e+38
+		jmp  push_fac1_as_result
+		rts
+_largest_neg_float	.byte 255,255,255,255,255		; largest negative float -1.7014118345e+38		
 		.pend
 
 func_min_f	.proc
-		lda  #<_max_float
-		ldy  #>_max_float
-		jsr  c64flt.MOVFM			; fac1=max(float)
 		lda  #1
-		sta  func_max_f._cmp_mod+1	; compare using 1 so we keep smaller values
+		sta  func_max_f._minmax_cmp+1
+		lda  #<_largest_pos_float
+		ldy  #>_largest_pos_float
 		jmp  func_max_f._minmax_entry
-_max_float	.byte  255,127,255,255,255	; 1.7014118345e+38
+_largest_pos_float	.byte  255,127,255,255,255		; largest positive float 	
+		rts
 		.pend
 
 func_sum_f	.proc
