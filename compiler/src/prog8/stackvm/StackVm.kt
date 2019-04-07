@@ -69,11 +69,6 @@ enum class Syscall(val callNr: Short) {
     FUNC_MIN_UW(122),
     FUNC_MIN_W(123),
     FUNC_MIN_F(124),
-    FUNC_AVG_UB(125),
-    FUNC_AVG_B(126),
-    FUNC_AVG_UW(127),
-    FUNC_AVG_W(128),
-    FUNC_AVG_F(129),
     FUNC_SUM_UB(130),
     FUNC_SUM_B(131),
     FUNC_SUM_UW(132),
@@ -1051,24 +1046,48 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.POP_REGAX_WORD -> {
                 val value=evalstack.pop().integerValue()
-                val valueA=Value(DataType.UBYTE, value and 255)
-                val valueX=Value(DataType.UBYTE, value shr 8)
+                val valueA: Value
+                val valueX: Value
+                if(value>=0) {
+                    valueA = Value(DataType.UBYTE, value and 255)
+                    valueX = Value(DataType.UBYTE, value shr 8)
+                } else {
+                    val value2c = 65536+value
+                    valueA = Value(DataType.UBYTE, value2c and 255)
+                    valueX = Value(DataType.UBYTE, value2c shr 8)
+                }
                 variables["A"] = valueA
                 variables["X"] = valueX
                 setFlags(valueA.bitor(valueX))
             }
             Opcode.POP_REGAY_WORD -> {
                 val value=evalstack.pop().integerValue()
-                val valueA=Value(DataType.UBYTE, value and 255)
-                val valueY=Value(DataType.UBYTE, value shr 8)
+                val valueA: Value
+                val valueY: Value
+                if(value>=0) {
+                    valueA = Value(DataType.UBYTE, value and 255)
+                    valueY = Value(DataType.UBYTE, value shr 8)
+                } else {
+                    val value2c = 65536+value
+                    valueA = Value(DataType.UBYTE, value2c and 255)
+                    valueY = Value(DataType.UBYTE, value2c shr 8)
+                }
                 variables["A"] = valueA
                 variables["Y"] = valueY
                 setFlags(valueA.bitor(valueY))
             }
             Opcode.POP_REGXY_WORD -> {
                 val value=evalstack.pop().integerValue()
-                val valueX=Value(DataType.UBYTE, value and 255)
-                val valueY=Value(DataType.UBYTE, value shr 8)
+                val valueX: Value
+                val valueY: Value
+                if(value>=0) {
+                    valueX = Value(DataType.UBYTE, value and 255)
+                    valueY = Value(DataType.UBYTE, value shr 8)
+                } else {
+                    val value2c = 65536+value
+                    valueX = Value(DataType.UBYTE, value2c and 255)
+                    valueY = Value(DataType.UBYTE, value2c shr 8)
+                }
                 variables["X"] = valueX
                 variables["Y"] = valueY
                 setFlags(valueX.bitor(valueY))
@@ -2049,94 +2068,140 @@ class StackVm(private var traceOutputFile: String?) {
                 else throw VmExecutionException("cannot get ceil of $value")
             }
             Syscall.FUNC_MAX_UB -> {
-                val iterable = evalstack.pop()
-                val value = heap.get(iterable.heapId)
-                val result = value.array!!.max() ?: 0
-                evalstack.push(Value(DataType.UBYTE, result))
+                val length = evalstack.pop().integerValue()
+                val heapVarId = evalstack.pop().integerValue()
+                val value = heap.get(heapVarId)
+                if(length!=value.array!!.size)
+                    throw VmExecutionException("iterable length mismatch")
+                evalstack.push(Value(DataType.UBYTE, value.array.max() ?: 0))
             }
             Syscall.FUNC_MAX_B -> {
-                val iterable = evalstack.pop()
-                val value = heap.get(iterable.heapId)
-                val result = value.array!!.max() ?: 0
-                evalstack.push(Value(DataType.BYTE, result))
+                val length = evalstack.pop().integerValue()
+                val heapVarId = evalstack.pop().integerValue()
+                val value = heap.get(heapVarId)
+                if(length!=value.array!!.size)
+                    throw VmExecutionException("iterable length mismatch")
+                evalstack.push(Value(DataType.BYTE, value.array.max() ?: 0))
             }
             Syscall.FUNC_MAX_UW -> {
-                val iterable = evalstack.pop()
-                val value = heap.get(iterable.heapId)
-                val result = value.array!!.max() ?: 0
-                evalstack.push(Value(DataType.UWORD, result))
+                val length = evalstack.pop().integerValue()
+                val heapVarId = evalstack.pop().integerValue()
+                val value = heap.get(heapVarId)
+                if(length!=value.array!!.size)
+                    throw VmExecutionException("iterable length mismatch")
+                evalstack.push(Value(DataType.UWORD, value.array.max() ?: 0))
             }
             Syscall.FUNC_MAX_W -> {
-                val iterable = evalstack.pop()
-                val value = heap.get(iterable.heapId)
-                val result = value.array!!.max() ?: 0
-                evalstack.push(Value(DataType.WORD, result))
+                val length = evalstack.pop().integerValue()
+                val heapVarId = evalstack.pop().integerValue()
+                val value = heap.get(heapVarId)
+                if(length!=value.array!!.size)
+                    throw VmExecutionException("iterable length mismatch")
+                evalstack.push(Value(DataType.WORD, value.array.max() ?: 0))
             }
             Syscall.FUNC_MAX_F -> {
-                val iterable = evalstack.pop()
-                val value = heap.get(iterable.heapId)
-                val result = value.array!!.max() ?: 0
-                evalstack.push(Value(DataType.FLOAT, result))
+                val length = evalstack.pop().integerValue()
+                val heapVarId = evalstack.pop().integerValue()
+                val value = heap.get(heapVarId)
+                if(length!=value.doubleArray!!.size)
+                    throw VmExecutionException("iterable length mismatch")
+                evalstack.push(Value(DataType.FLOAT, value.doubleArray.max() ?: 0.0))
             }
             Syscall.FUNC_MIN_UB -> {
-                val iterable = evalstack.pop()
-                val value = heap.get(iterable.heapId)
-                val result = value.array!!.min() ?: 0
-                evalstack.push(Value(DataType.UBYTE, result))
+                val length = evalstack.pop().integerValue()
+                val heapVarId = evalstack.pop().integerValue()
+                val value = heap.get(heapVarId)
+                if(length!=value.array!!.size)
+                    throw VmExecutionException("iterable length mismatch")
+                evalstack.push(Value(DataType.UBYTE, value.array.min() ?: 0))
             }
             Syscall.FUNC_MIN_B -> {
-                val iterable = evalstack.pop()
-                val value = heap.get(iterable.heapId)
-                val result = value.array!!.min() ?: 0
-                evalstack.push(Value(DataType.BYTE, result))
+                val length = evalstack.pop().integerValue()
+                val heapVarId = evalstack.pop().integerValue()
+                val value = heap.get(heapVarId)
+                if(length!=value.array!!.size)
+                    throw VmExecutionException("iterable length mismatch")
+                evalstack.push(Value(DataType.BYTE, value.array.min() ?: 0))
             }
             Syscall.FUNC_MIN_UW -> {
-                val iterable = evalstack.pop()
-                val value = heap.get(iterable.heapId)
-                val result = value.array!!.min() ?: 0
-                evalstack.push(Value(DataType.UWORD, result))
+                val length = evalstack.pop().integerValue()
+                val heapVarId = evalstack.pop().integerValue()
+                val value = heap.get(heapVarId)
+                if(length!=value.array!!.size)
+                    throw VmExecutionException("iterable length mismatch")
+                evalstack.push(Value(DataType.UWORD, value.array.min() ?: 0))
             }
             Syscall.FUNC_MIN_W -> {
-                val iterable = evalstack.pop()
-                val value = heap.get(iterable.heapId)
-                val result = value.array!!.min() ?: 0
-                evalstack.push(Value(DataType.WORD, result))
+                val length = evalstack.pop().integerValue()
+                val heapVarId = evalstack.pop().integerValue()
+                val value = heap.get(heapVarId)
+                if(length!=value.array!!.size)
+                    throw VmExecutionException("iterable length mismatch")
+                evalstack.push(Value(DataType.WORD, value.array.min() ?: 0))
             }
             Syscall.FUNC_MIN_F -> {
-                val iterable = evalstack.pop()
-                val value = heap.get(iterable.heapId)
-                val result = value.array!!.min() ?: 0
-                evalstack.push(Value(DataType.FLOAT, result))
+                val length = evalstack.pop().integerValue()
+                val heapVarId = evalstack.pop().integerValue()
+                val value = heap.get(heapVarId)
+                if(length!=value.doubleArray!!.size)
+                    throw VmExecutionException("iterable length mismatch")
+                evalstack.push(Value(DataType.FLOAT, value.doubleArray.min() ?: 0.0))
             }
-            Syscall.FUNC_AVG_UB, Syscall.FUNC_AVG_B, Syscall.FUNC_AVG_UW, Syscall.FUNC_AVG_W, Syscall.FUNC_AVG_F -> {
-                val iterable = evalstack.pop()
-                val value = heap.get(iterable.heapId)
-                evalstack.push(Value(DataType.FLOAT, value.array!!.average()))
+            Syscall.FUNC_SUM_W, Syscall.FUNC_SUM_B -> {
+                val length = evalstack.pop().integerValue()
+                val heapVarId = evalstack.pop().integerValue()
+                val value = heap.get(heapVarId)
+                if(length!=value.array!!.size)
+                    throw VmExecutionException("iterable length mismatch")
+                evalstack.push(Value(DataType.WORD, value.array.sum()))
             }
-            Syscall.FUNC_SUM_UB -> {
-                val iterable = evalstack.pop()
-                val value = heap.get(iterable.heapId)
-                evalstack.push(Value(DataType.UWORD, value.array!!.sum()))
+            Syscall.FUNC_SUM_UW, Syscall.FUNC_SUM_UB -> {
+                val length = evalstack.pop().integerValue()
+                val heapVarId = evalstack.pop().integerValue()
+                val value = heap.get(heapVarId)
+                if(length!=value.array!!.size)
+                    throw VmExecutionException("iterable length mismatch")
+                evalstack.push(Value(DataType.UWORD, value.array.sum()))
             }
-            Syscall.FUNC_SUM_B -> {
-                val iterable = evalstack.pop()
-                val value = heap.get(iterable.heapId)
-                evalstack.push(Value(DataType.WORD, value.array!!.sum()))
+            Syscall.FUNC_SUM_F -> {
+                val length = evalstack.pop().integerValue()
+                val heapVarId = evalstack.pop().integerValue()
+                val value = heap.get(heapVarId)
+                if(length!=value.doubleArray!!.size)
+                    throw VmExecutionException("iterable length mismatch")
+                evalstack.push(Value(DataType.FLOAT, value.doubleArray.sum()))
             }
-            Syscall.FUNC_SUM_UW, Syscall.FUNC_SUM_W, Syscall.FUNC_SUM_F -> {
-                val iterable = evalstack.pop()
-                val value = heap.get(iterable.heapId)
-                evalstack.push(Value(DataType.FLOAT, value.array!!.sum()))
+            Syscall.FUNC_ANY_B, Syscall.FUNC_ANY_W -> {
+                val length = evalstack.pop().integerValue()
+                val heapVarId = evalstack.pop().integerValue()
+                val value = heap.get(heapVarId)
+                if(length!=value.array!!.size)
+                    throw VmExecutionException("iterable length mismatch")
+                evalstack.push(Value(DataType.UBYTE, if (value.array.any { v -> v != 0 }) 1 else 0))
             }
-            Syscall.FUNC_ANY_B, Syscall.FUNC_ANY_W, Syscall.FUNC_ANY_F -> {
-                val iterable = evalstack.pop()
-                val value = heap.get(iterable.heapId)
-                evalstack.push(Value(DataType.UBYTE, if (value.array!!.any { v -> v != 0 }) 1 else 0))
+            Syscall.FUNC_ANY_F -> {
+                val length = evalstack.pop().integerValue()
+                val heapVarId = evalstack.pop().integerValue()
+                val value = heap.get(heapVarId)
+                if(length!=value.doubleArray!!.size)
+                    throw VmExecutionException("iterable length mismatch")
+                evalstack.push(Value(DataType.UBYTE, if (value.doubleArray.any { v -> v != 0.0 }) 1 else 0))
             }
-            Syscall.FUNC_ALL_B, Syscall.FUNC_ALL_W, Syscall.FUNC_ALL_F -> {
-                val iterable = evalstack.pop()
-                val value = heap.get(iterable.heapId)
-                evalstack.push(Value(DataType.UBYTE, if (value.array!!.all { v -> v != 0 }) 1 else 0))
+            Syscall.FUNC_ALL_B, Syscall.FUNC_ALL_W -> {
+                val length = evalstack.pop().integerValue()
+                val heapVarId = evalstack.pop().integerValue()
+                val value = heap.get(heapVarId)
+                if(length!=value.array!!.size)
+                    throw VmExecutionException("iterable length mismatch")
+                evalstack.push(Value(DataType.UBYTE, if (value.array.all { v -> v != 0 }) 1 else 0))
+            }
+            Syscall.FUNC_ALL_F -> {
+                val length = evalstack.pop().integerValue()
+                val heapVarId = evalstack.pop().integerValue()
+                val value = heap.get(heapVarId)
+                if(length!=value.doubleArray!!.size)
+                    throw VmExecutionException("iterable length mismatch")
+                evalstack.push(Value(DataType.UBYTE, if (value.doubleArray.all { v -> v != 0.0 }) 1 else 0))
             }
             Syscall.FUNC_MEMCOPY -> {
                 val numbytes = evalstack.pop().integerValue()
@@ -2190,6 +2255,15 @@ class StackVm(private var traceOutputFile: String?) {
                 val hi = variables.getValue("Y").integerValue()
                 val number = lo+256*hi
                 canvas?.printText(number.toString(), 1, true)
+            }
+            Syscall.SYSASM_c64scr_print_w -> {
+                val lo = variables.getValue("A").integerValue()
+                val hi = variables.getValue("Y").integerValue()
+                val number = lo+256*hi
+                if(number<=32767)
+                    canvas?.printText(number.toString(), 1, true)
+                else
+                    canvas?.printText("-${65536-number}", 1, true)
             }
             Syscall.SYSASM_c64flt_print_f -> {
                 val number = variables.getValue("c64flt.print_f.value").numericValue()

@@ -485,7 +485,6 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     Syscall.FUNC_ALL_F,
                     Syscall.FUNC_MAX_F,
                     Syscall.FUNC_MIN_F,
-                    Syscall.FUNC_AVG_F,
                     Syscall.FUNC_SUM_F -> " jsr  c64flt.${call.name.toLowerCase()}"
                     null -> ""
                     else -> " jsr  prog8_lib.${call.name.toLowerCase()}"
