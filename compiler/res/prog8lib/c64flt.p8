@@ -9,11 +9,11 @@
 
 ~ c64flt {
 	; ---- this block contains C-64 floating point related functions ----
-
+	
 		const  float  PI	= 3.141592653589793
 		const  float  TWOPI	= 6.283185307179586
 
-
+	
 ; ---- C64 basic and kernal ROM float constants and functions ----
 
 		; note: the fac1 and fac2 are working registers and take 6 bytes each,
@@ -34,7 +34,6 @@
 		memory  float  FL_PIHALF	= $e2e0  ; PI / 2
 		memory  float  FL_TWOPI		= $e2e5  ; 2 * PI
 		memory  float  FL_FR4		= $e2ea  ; .25
-		float FL_ZERO = 0.0     ; oddly enough 0.0 isn't available in the kernel
 
 
 ; note: fac1/2 might get clobbered even if not mentioned in the function's name.
@@ -193,7 +192,7 @@ asmsub  GETADRAY  () -> clobbers(X) -> (uword @ AY)  {
 }
 
 sub  print_f  (float value) {
-	; ---- prints the floating point value (without a newline) using basic rom routines.
+	; ---- prints the floating point value (without a newline) using basic rom routines. 
 	%asm {{
 		stx  c64.SCRATCH_ZPREGX
 		lda  #<print_f_value
@@ -217,7 +216,7 @@ sub  print_fln  (float value) {
 		ldx  c64.SCRATCH_ZPREGX
 		rts
 	}}
-
+        
 }
 
 
@@ -270,7 +269,7 @@ w2float		.proc
 		jsr  c64flt.GIVAYF
 		jmp  ub2float._fac_to_mem
 		.pend
-
+		
 stack_b2float	.proc
 		; -- b2float operating on the stack
 		inx
@@ -279,7 +278,7 @@ stack_b2float	.proc
 		jsr  c64flt.FREADSA
 		jmp  push_fac1_as_result
 		.pend
-
+		
 stack_w2float	.proc
 		; -- w2float operating on the stack
 		inx
@@ -309,8 +308,8 @@ stack_uw2float	.proc
 		jsr  c64flt.GIVUAYFAY
 		jmp  push_fac1_as_result
 		.pend
-
-stack_float2w	.proc
+		
+stack_float2w	.proc	
 		jsr  pop_float_fac1
 		stx  c64.SCRATCH_ZPREGX
 		jsr  c64flt.AYINT
@@ -322,8 +321,8 @@ stack_float2w	.proc
 		dex
 		rts
 		.pend
-
-stack_float2uw	.proc
+		
+stack_float2uw	.proc	
 		jsr  pop_float_fac1
 		stx  c64.SCRATCH_ZPREGX
 		jsr  c64flt.GETADR
@@ -336,7 +335,7 @@ stack_float2uw	.proc
 		.pend
 
 push_float	.proc
-		; ---- push mflpt5 in A/Y onto stack
+		; ---- push mflpt5 in A/Y onto stack 
 		; (taking 3 stack positions = 6 bytes of which 1 is padding)
 		sta  c64.SCRATCH_ZPWORD1
 		sty  c64.SCRATCH_ZPWORD1+1
@@ -360,7 +359,7 @@ push_float	.proc
 		dex
 		rts
 		.pend
-
+		
 func_rndf	.proc
 		; -- put a random floating point value on the stack
 		stx  c64.SCRATCH_ZPREG
@@ -376,7 +375,7 @@ func_rndf	.proc
 		jmp  push_float
 _rndf_rnum5	.byte  0,0,0,0,0
 		.pend
-
+		
 push_float_from_indexed_var	.proc
 		; -- push the float from the array at A/Y with index on stack, onto the stack.
 		sta  c64.SCRATCH_ZPWORD1
@@ -413,7 +412,7 @@ pop_float	.proc
 		sta  (c64.SCRATCH_ZPWORD1),y
 		rts
 		.pend
-
+		
 pop_float_fac1	.proc
 		; -- pops float from stack into FAC1
 		lda  #<fmath_float1
@@ -423,7 +422,7 @@ pop_float_fac1	.proc
 		ldy  #>fmath_float1
 		jmp  c64flt.MOVFM
 		.pend
-
+		
 pop_float_to_indexed_var	.proc
 		; -- pop the float on the stack, to the memory in the array at A/Y indexed by the byte on stack
 		sta  c64.SCRATCH_ZPWORD1
@@ -436,7 +435,7 @@ pop_float_to_indexed_var	.proc
 		.pend
 
 copy_float	.proc
-		; -- copies the 5 bytes of the mflt value pointed to by SCRATCH_ZPWORD1,
+		; -- copies the 5 bytes of the mflt value pointed to by SCRATCH_ZPWORD1, 
 		;    into the 5 bytes pointed to by A/Y.  Clobbers A,Y.
 		sta  c64.SCRATCH_ZPWORD2
 		sty  c64.SCRATCH_ZPWORD2+1
@@ -473,7 +472,7 @@ inc_var_f	.proc
 		ldx  c64.SCRATCH_ZPREGX
 		rts
 		.pend
-
+                
 dec_var_f	.proc
 		; -- subtract 1 from float pointed to by A/Y
 		sta  c64.SCRATCH_ZPWORD1
@@ -491,7 +490,7 @@ dec_var_f	.proc
 		ldx  c64.SCRATCH_ZPREGX
 		rts
 		.pend
-
+		
 inc_indexed_var_f	.proc
 		; -- add 1 to float in array pointed to by A/Y, at index X
 		pha
@@ -509,7 +508,7 @@ inc_indexed_var_f	.proc
 		iny
 +		jmp  inc_var_f
 		.pend
-
+		
 dec_indexed_var_f	.proc
 		; -- subtract 1 to float in array pointed to by A/Y, at index X
 		pha
@@ -527,7 +526,7 @@ dec_indexed_var_f	.proc
 		iny
 +		jmp  dec_var_f
 		.pend
-
+		
 
 pop_2_floats_f2_in_fac1	.proc
 		; -- pop 2 floats from stack, load the second one in FAC1 as well
@@ -556,7 +555,7 @@ push_fac1_as_result	.proc
 		ldx  c64.SCRATCH_ZPREGX
 		jmp  push_float
 		.pend
-
+		
 pow_f		.proc
 		; -- push f1 ** f2 on stack
 		lda  #<fmath_float2
@@ -575,7 +574,7 @@ pow_f		.proc
 		ldx  c64.SCRATCH_ZPREGX
 		jmp  push_fac1_as_result
 		.pend
-
+		
 div_f		.proc
 		; -- push f1/f2 on stack
 		jsr  pop_2_floats_f2_in_fac1
@@ -615,7 +614,7 @@ mul_f		.proc
 		jsr  c64flt.FMULT
 		jmp  push_fac1_as_result
 		.pend
-
+		
 neg_f		.proc
 		; -- push -flt back on stack
 		jsr  pop_float_fac1
@@ -658,7 +657,7 @@ _equals_store	inx
 		sta  c64.ESTACK_LO+1,x
 		rts
 _equals_false	lda  #0
-		beq  _equals_store
+		beq  _equals_store		
 		.pend
 
 notequal_f	.proc
@@ -676,7 +675,7 @@ less_f		.proc
 		beq  compare_floats._return_true
 		bne  compare_floats._return_false
 		.pend
-
+		
 
 lesseq_f	.proc
 		; -- is f1 <= f2?
@@ -728,7 +727,7 @@ _return_result  sta  c64.ESTACK_LO,x
 		rts
 _return_true	lda  #1
 		bne  _return_result
-		.pend
+		.pend		
 
 func_sin	.proc
 		; -- push sin(f) back onto stack
@@ -753,7 +752,7 @@ func_tan	.proc
 		jsr  c64flt.TAN
 		jmp  push_fac1_as_result
 		.pend
-
+		
 func_atan	.proc
 		; -- push atan(f) back onto stack
 		jsr  pop_float_fac1
@@ -761,7 +760,7 @@ func_atan	.proc
 		jsr  c64flt.ATN
 		jmp  push_fac1_as_result
 		.pend
-
+		
 func_ln		.proc
 		; -- push ln(f) back onto stack
 		jsr  pop_float_fac1
@@ -769,27 +768,27 @@ func_ln		.proc
 		jsr  c64flt.LOG
 		jmp  push_fac1_as_result
 		.pend
-
+		
 func_log2	.proc
 		; -- push log base 2, ln(f)/ln(2), back onto stack
 		jsr  pop_float_fac1
 		stx  c64.SCRATCH_ZPREGX
 		jsr  c64flt.LOG
 		jsr  c64flt.MOVEF
-		lda  #<FL_LOG2
-		ldy  #>FL_LOG2
+		lda  #<c64.FL_LOG2
+		ldy  #>c64.FL_LOG2
 		jsr  c64flt.MOVFM
 		jsr  c64flt.FDIVT
 		jmp  push_fac1_as_result
 		.pend
-
+		
 func_sqrt	.proc
 		jsr  pop_float_fac1
 		stx  c64.SCRATCH_ZPREGX
 		jsr  c64flt.SQR
 		jmp  push_fac1_as_result
 		.pend
-
+		
 func_rad	.proc
 		; -- convert degrees to radians (d * pi / 180)
 		jsr  pop_float_fac1
@@ -800,7 +799,7 @@ func_rad	.proc
 		jmp  push_fac1_as_result
 _pi_div_180	.byte 123, 14, 250, 53, 18		; pi / 180
 		.pend
-
+		
 func_deg	.proc
 		; -- convert radians to degrees (d * (1/ pi * 180))
 		jsr  pop_float_fac1
@@ -811,7 +810,7 @@ func_deg	.proc
 		jmp  push_fac1_as_result
 _one_over_pi_div_180	.byte 134, 101, 46, 224, 211		; 1 / (pi * 180)
 		.pend
-
+		
 func_round	.proc
 		jsr  pop_float_fac1
 		stx  c64.SCRATCH_ZPREGX
@@ -819,14 +818,14 @@ func_round	.proc
 		jsr  c64flt.INT
 		jmp  push_fac1_as_result
 		.pend
-
+		
 func_floor	.proc
 		jsr  pop_float_fac1
 		stx  c64.SCRATCH_ZPREGX
 		jsr  c64flt.INT
 		jmp  push_fac1_as_result
 		.pend
-
+		
 func_ceil	.proc
 		; -- ceil: tr = int(f); if tr==f -> return  else return tr+1
 		jsr  pop_float_fac1
@@ -854,7 +853,7 @@ func_any_f	.proc
 		asl  a
 		clc
 		adc  c64.SCRATCH_ZPB1	; times 5 because of float
-		jmp  prog8_lib.func_any_b._entry
+		jmp  func_any_b._entry
 		.pend
 
 func_all_f	.proc
@@ -866,7 +865,7 @@ func_all_f	.proc
 		clc
 		adc  c64.SCRATCH_ZPB1	; times 5 because of float
 		sta  _cmp_mod+1		; self-modifying code
-		jsr  prog8_lib.peek_address
+		jsr  peek_address
 		ldy  #0
 -		lda  (c64.SCRATCH_ZPWORD1),y
 		bne  +
@@ -894,18 +893,51 @@ _cmp_mod	cpy  #255		; modified
 		.pend
 
 func_max_f	.proc
-        .warn "todo: fix func_max_f /  func_min_f"      ;  TODO
+		lda  #255
+		sta  _minmax_cmp+1
+		lda  #<_largest_neg_float
+		ldy  #>_largest_neg_float
+_minmax_entry	jsr  MOVFM
+		jsr  prog8_lib.pop_array_and_lengthmin1Y
+		stx  c64.SCRATCH_ZPREGX
+-		sty  c64.SCRATCH_ZPREG
+		lda  c64.SCRATCH_ZPWORD1
+		ldy  c64.SCRATCH_ZPWORD1+1
+		jsr  FCOMP
+_minmax_cmp	cmp  #255			; modified
+		bne  +
+		lda  c64.SCRATCH_ZPWORD1
+		ldy  c64.SCRATCH_ZPWORD1+1
+		jsr  MOVFM
++		lda  c64.SCRATCH_ZPWORD1
+		clc
+		adc  #5
+		sta  c64.SCRATCH_ZPWORD1
+		bcc  +
+		inc  c64.SCRATCH_ZPWORD1+1
++		ldy  c64.SCRATCH_ZPREG
+		dey
+		bne  -
+		jmp  push_fac1_as_result
+		rts
+_largest_neg_float	.byte 255,255,255,255,255		; largest negative float -1.7014118345e+38		
 		.pend
 
 func_min_f	.proc
-        .warn "todo: fix func_max_f /  func_min_f"      ; TODO
+		lda  #1
+		sta  func_max_f._minmax_cmp+1
+		lda  #<_largest_pos_float
+		ldy  #>_largest_pos_float
+		jmp  func_max_f._minmax_entry
+_largest_pos_float	.byte  255,127,255,255,255		; largest positive float 	
+		rts
 		.pend
 
 func_sum_f	.proc
-		lda  #<FL_ZERO
-		ldy  #>FL_ZERO
+		lda  #<c64.FL_NEGHLF
+		ldy  #>c64.FL_NEGHLF
 		jsr  c64flt.MOVFM
-		jsr  prog8_lib.pop_array_and_lengthmin1Y
+		jsr  pop_array_and_lengthmin1Y
 		stx  c64.SCRATCH_ZPREGX
 -		sty  c64.SCRATCH_ZPREG
 		lda  c64.SCRATCH_ZPWORD1
@@ -922,7 +954,8 @@ func_sum_f	.proc
 		bcc  -
 		inc  c64.SCRATCH_ZPWORD1+1
 		bne  -
-+		jmp  push_fac1_as_result
++		jsr  c64flt.FADDH
+		jmp  push_fac1_as_result
 		.pend
 }}
 
