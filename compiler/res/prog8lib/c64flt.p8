@@ -831,7 +831,7 @@ func_ceil	.proc
 		; -- ceil: tr = int(f); if tr==f -> return  else return tr+1
 		jsr  pop_float_fac1
 		stx  c64.SCRATCH_ZPREGX
-		lda  #<fmath_float1
+		ldx  #<fmath_float1
 		ldy  #>fmath_float1
 		jsr  MOVMF
 		jsr  INT
@@ -859,37 +859,34 @@ func_any_f	.proc
 
 func_all_f	.proc
 		inx
+		jsr  prog8_lib.peek_address
 		lda  c64.ESTACK_LO,x	; array size
 		sta  c64.SCRATCH_ZPB1
 		asl  a
 		asl  a
 		clc
 		adc  c64.SCRATCH_ZPB1	; times 5 because of float
-		sta  _cmp_mod+1		; self-modifying code
-		jsr  prog8_lib.peek_address
-		ldy  #0
+		tay
+		dey
 -		lda  (c64.SCRATCH_ZPWORD1),y
-		bne  +
-		iny
-		lda  (c64.SCRATCH_ZPWORD1),y
-		bne  +
-		iny
-		lda  (c64.SCRATCH_ZPWORD1),y
-		bne  +
-		iny
-		lda  (c64.SCRATCH_ZPWORD1),y
-		bne  +
-		iny
-		lda  (c64.SCRATCH_ZPWORD1),y
-		bne  +
-		lda  #0
-		sta  c64.ESTACK_LO+1,x
-		rts
-+		iny
-_cmp_mod	cpy  #255		; modified
-		bne  -
+		clc
+		dey
+		adc  (c64.SCRATCH_ZPWORD1),y
+		dey
+		adc  (c64.SCRATCH_ZPWORD1),y
+		dey
+		adc  (c64.SCRATCH_ZPWORD1),y
+		dey
+		adc  (c64.SCRATCH_ZPWORD1),y
+		dey
+		cmp  #0
+		beq  +
+        cpy  #255
+        bne  -
 		lda  #1
 		sta  c64.ESTACK_LO+1,x
+		rts
++		sta  c64.ESTACK_LO+1,x
 		rts
 		.pend
 
@@ -918,9 +915,9 @@ _minmax_cmp	cmp  #255			; modified
 		inc  c64.SCRATCH_ZPWORD1+1
 +		ldy  c64.SCRATCH_ZPREG
 		dey
+		cpy  #255
 		bne  -
 		jmp  push_fac1_as_result
-		rts
 _largest_neg_float	.byte 255,255,255,255,255		; largest negative float -1.7014118345e+38
 		.pend
 
