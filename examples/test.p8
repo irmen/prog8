@@ -7,8 +7,8 @@
 ~ main {
 
     sub start() {
-        ;aggregates()
-        pointers()
+        aggregates()
+        ;pointers()
     }
 
     sub aggregates() {
@@ -51,7 +51,7 @@
         c64.CHROUT(' ')
         c64scr.print_uw(min(uwa))
         c64.CHROUT(' ')
-        c64flt.print_f(min(fa))     ; @todo fix min(floatarray)
+        c64flt.print_f(min(fa))     ; @todo fix min(floatarray) (vm is ok)
         c64.CHROUT('\n')
 
         c64scr.print_b(max(ba))
@@ -62,7 +62,7 @@
         c64.CHROUT(' ')
         c64scr.print_uw(max(uwa))
         c64.CHROUT(' ')
-        c64flt.print_f(max(fa))     ; @todo fix max(floatarray)
+        c64flt.print_f(max(fa))     ; @todo fix max(floatarray) (vm is ok)
         c64.CHROUT('\n')
 
         c64scr.print_uw(sum(ba))
@@ -110,9 +110,9 @@
     ;ptrsubasm("moet werken")         ; @todo rewrite ast into pointer-of expression (and remove special cases from Compiler)
     ;pointersub("moet werken")        ; @todo rewrite ast into pointer-of expression (and remove special cases from Compiler)
 
-    myprintasm("moet werken3")
-    myprintasm("moet werken3")
-    myprintasm("moet werken4")
+    ;myprintasm("moet werken3")
+    ;myprintasm("moet werken3")
+    ;myprintasm("moet werken4")
 
     c64.CHROUT('\n')
 

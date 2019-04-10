@@ -459,13 +459,23 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         out.println("%end_memory")
         out.println("%heap")
         heap.allEntries().forEach {
+            out.print("${it.key}  ${it.value.type.name.toLowerCase()}  ")
             when {
                 it.value.str!=null ->
-                    out.println("${it.key}  ${it.value.type.name.toLowerCase()}  \"${escape(it.value.str!!)}\"")
-                it.value.array!=null ->
-                    out.println("${it.key}  ${it.value.type.name.toLowerCase()}  ${it.value.array!!.toList()}")
+                    out.println("\"${escape(it.value.str!!)}\"")
+                it.value.array!=null -> {
+                    // this array can contain both normal integers, and pointer values
+                    val arrayvalues = it.value.array!!.map { av ->
+                        when {
+                            av.integer!=null -> av.integer.toString()
+                            av.pointerOf!=null -> "&${av.pointerOf.identifier}"
+                            else -> throw CompilerException("weird array value")
+                        }
+                    }
+                    out.println(arrayvalues)
+                }
                 it.value.doubleArray!=null ->
-                    out.println("${it.key}  ${it.value.type.name.toLowerCase()}  ${it.value.doubleArray!!.toList()}")
+                    out.println(it.value.doubleArray!!.toList())
                 else -> throw CompilerException("invalid heap entry $it")
             }
         }
