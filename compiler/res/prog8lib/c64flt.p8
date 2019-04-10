@@ -831,7 +831,7 @@ func_ceil	.proc
 		; -- ceil: tr = int(f); if tr==f -> return  else return tr+1
 		jsr  pop_float_fac1
 		stx  c64.SCRATCH_ZPREGX
-		lda  #<fmath_float1
+		ldx  #<fmath_float1
 		ldy  #>fmath_float1
 		jsr  MOVMF
 		jsr  INT
@@ -915,9 +915,9 @@ _minmax_cmp	cmp  #255			; modified
 		inc  c64.SCRATCH_ZPWORD1+1
 +		ldy  c64.SCRATCH_ZPREG
 		dey
+		cpy  #255
 		bne  -
 		jmp  push_fac1_as_result
-		rts
 _largest_neg_float	.byte 255,255,255,255,255		; largest negative float -1.7014118345e+38
 		.pend
 
