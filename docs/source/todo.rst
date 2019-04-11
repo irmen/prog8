@@ -52,18 +52,6 @@ Allocate a fixed word in ZP that is the TOS so we can operate on TOS directly
 without having to to index into the stack?
 
 
-
-More flexible (non-const) arrays?
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Currently, array literals can only be constants
-Allow for non-const arrays? Such as::
-
-    ubyte[16]  block1
-    ubyte[16]  block2
-    ubyte[16]  block3
-    ubyte[3] blocks = [block1, block2, block3]
-
-
 structs?
 ^^^^^^^^
 

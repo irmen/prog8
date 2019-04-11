@@ -226,7 +226,7 @@ Various examples::
     byte        age     = 2018 - 1974
     float       wallet  = 55.25
     str         name    = "my name is Irmen"
-    word        address = #counter
+    uword       address = &counter
     byte[5]     values  = [11, 22, 33, 44, 55]
     byte[5]     values  = 255           ; initialize with five 255 bytes
 
@@ -360,22 +360,12 @@ Syntax is familiar with brackets:  ``arrayvar[x]`` ::
 Operators
 ---------
 
-.. todo::
-    address-of: ``#`` or ``&`` (to stay close to C)
-    Takes the address of the symbol following it:   ``word address = &somevar``
-    Perhaps requires an explicit pointer type as well instead of just word?
-
-    This can replace the ``memory`` var decl prefix as well, instead of
-    ``memory uword var = $c000`` we could write ``&uword var = $c000``
-
-
 arithmetic: ``+``  ``-``  ``*``  ``/``  ``**``  ``%``
     ``+``, ``-``, ``*``, ``/`` are the familiar arithmetic operations.
     ``/`` is division (will result in integer division when using on integer operands, and a floating point division when at least one of the operands is a float)
     ``**`` is the power operator: ``3 ** 5`` is equal to 3*3*3*3*3 and is 243. (it only works on floating point variables)
     ``%`` is the remainder operator: ``25 % 7`` is 4.  Be careful: without a space, %10 will be parsed as the binary number 2
     Remainder is only supported on integer operands (not floats).
-
 
 bitwise arithmetic: ``&``  ``|``  ``^``  ``~``  ``<<``  ``>>``
     ``&`` is bitwise and, ``|`` is bitwise or, ``^`` is bitwise xor, ``~`` is bitwise invert (this one is an unary operator)
@@ -417,6 +407,11 @@ range creation:  ``to``
 			; i loops 0, 1, 2, ... 127
 		}
 
+address of:  ``&``
+    This is a prefix operator that can be applied to a string or array variable or literal value.
+    It results in the memory address (UWORD) of that string or array in memory:  ``uword a = &stringvar``
+    Sometimes the compiler silently inserts this operator to make it easier for instance
+    to pass strings or arrays as subroutine call arguments.
 
 precedence grouping in expressions, or subroutine parameter list:  ``(`` *expression* ``)``
 	Parentheses are used to group parts of an expression to change the order of evaluation.
