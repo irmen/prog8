@@ -416,7 +416,7 @@ waitkey:
                         0,0,0,0,
                         0,0,0,0]
 
-    ; @todo would be nice to have a pointer type, like so:
+    ; @todo use the '&' operator to create an array of pointers and use that, like so:
     ;  uword[7] blocks = [&blockI, &blockJ, &blockL, &blockO, &blockS, &blockT, &blockZ]
 
     sub newCurrentBlock(ubyte block) {
