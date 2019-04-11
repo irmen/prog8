@@ -109,7 +109,7 @@ varinitializer : vardecl '=' expression ;
 
 constdecl: 'const' varinitializer ;
 
-memoryvardecl: 'memory' varinitializer;
+memoryvardecl: 'memory' varinitializer;         // TODO replace 'memory' by '&'
 
 datatype:  'ubyte' | 'byte' | 'uword' | 'word' | 'float' | 'str' | 'str_s' ;
 

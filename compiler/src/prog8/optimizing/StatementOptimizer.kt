@@ -17,7 +17,8 @@ import kotlin.math.floor
         todo remove unused subroutines
         todo remove unused strings and arrays from the heap
         todo inline subroutines that are called exactly once (regardless of their size)
-        todo inline subroutines that are only called a few times (3?) and that are "sufficiently small" (0-3 statements)
+        todo inline subroutines that are only called a few times (max 3?)
+        todo inline subroutines that are "sufficiently small" (0-3 statements)
 
     todo analyse for unreachable code and remove that (f.i. code after goto or return that has no label so can never be jumped to)
 */

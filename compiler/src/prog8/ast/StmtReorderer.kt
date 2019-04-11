@@ -214,7 +214,7 @@ private class VarInitValueAndAddressOfCreator(private val namespace: INameScope)
     // Also takes care to insert AddressOf (&) expression where required (string params to a UWORD function param etc).
 
 
-    private val vardeclsToAdd = mutableMapOf<INameScope, MutableList<VarDecl>>()
+    private val vardeclsToAdd = mutableMapOf<INameScope, MutableMap<String, VarDecl>>()
 
     override fun process(module: Module) {
         super.process(module)
@@ -222,8 +222,8 @@ private class VarInitValueAndAddressOfCreator(private val namespace: INameScope)
         // add any new vardecls to the various scopes
         for(decl in vardeclsToAdd)
             for(d in decl.value) {
-                d.linkParents(decl.key as Node)
-                decl.key.statements.add(0, d)
+                d.value.linkParents(decl.key as Node)
+                decl.key.statements.add(0, d.value)
             }
     }
 
@@ -234,9 +234,7 @@ private class VarInitValueAndAddressOfCreator(private val namespace: INameScope)
 
         if(decl.datatype in NumericDatatypes) {
             val scope = decl.definingScope()
-            if(scope !in vardeclsToAdd)
-                vardeclsToAdd[scope] = mutableListOf()
-            vardeclsToAdd.getValue(scope).add(decl.asDefaultValueDecl(null))
+            addVarDecl(scope, decl.asDefaultValueDecl(null))
             val declvalue = decl.value!!
             val value =
                     if(declvalue is LiteralValue) {
@@ -269,7 +267,6 @@ private class VarInitValueAndAddressOfCreator(private val namespace: INameScope)
         return functionCallStatement
     }
 
-    // TODO move this to StatementReorderer instead?
     private fun addAddressOfExprIfNeeded(subroutine: Subroutine, arglist: MutableList<IExpression>, parent: Node) {
         // functions that accept UWORD and are given an array type, or string, will receive the AddressOf (memory location) of that value instead.
         for(argparam in subroutine.parameters.withIndex().zip(arglist)) {
@@ -288,18 +285,26 @@ private class VarInitValueAndAddressOfCreator(private val namespace: INameScope)
                 }
                 else if(strvalue!=null) {
                     if(strvalue.isString) {
-                        println("WANTING TO INSERT  &  for $strvalue") // TODO
-                        // TODO why does this result later in "pointer-of operand must be the name of a heap variable"
-                        //    --> because the AstChecker runs before AstIdentifiersChecker which inserts the actual VarDecl?
-                        val autoHeapvarRef = IdentifierReference(listOf("$autoHeapValuePrefix${strvalue.heapId}"), strvalue.position)
+                        // replace the argument with &autovar
+                        val autoVarName = "$autoHeapValuePrefix${strvalue.heapId}"
+                        val autoHeapvarRef = IdentifierReference(listOf(autoVarName), strvalue.position)
                         val pointerExpr = AddressOf(autoHeapvarRef, strvalue.position)
                         pointerExpr.linkParents(arglist[argparam.first.index].parent)
                         arglist[argparam.first.index] = pointerExpr
+                        // add a vardecl so that the autovar can be resolved in later lookups
+                        val variable = VarDecl(VarDeclType.VAR, strvalue.type, false, null, autoVarName, strvalue, strvalue.position)
+                        addVarDecl(strvalue.definingScope(), variable)
                     }
                 }
                 else throw FatalAstException("expected either an identifier or a literal as argument to $subroutine")
             }
         }
+    }
+
+    private fun addVarDecl(scope: INameScope, variable: VarDecl) {
+        if(scope !in vardeclsToAdd)
+            vardeclsToAdd[scope] = mutableMapOf()
+        vardeclsToAdd.getValue(scope)[variable.name]=variable
     }
 
 }

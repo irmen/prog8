@@ -553,7 +553,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
         } else if(array.any {it is AddressOf}) {
             val arrayDt = DataType.UWORD
             val intArrayWithAddressOfs = mutableListOf<IntegerOrAddressOf>()
-            // TODO FILL THIS ARRAY
+            // TODO AddressOf: FILL THIS ARRAY
             val heapId = heap.addIntegerArray(DataType.UWORD, intArrayWithAddressOfs.toTypedArray())
             return LiteralValue(arrayDt, heapId = heapId, position = arraylit.position)
         } else {

@@ -16,23 +16,25 @@
     str string2="bye"
 
     uword pointer = &array1
+    uword pointer2
+    uword pointer3
     byte bt
 
-    pointer = &array2
-    pointer = &string1
+    pointer2 = &array2
+    pointer3 = &string1
 
-    ;uword[4] pointers = [&array1, &array2, &string1, &string2]   ; @todo make it possible to initialize array with pointers
+    ; uword[4] pointers = [&array1, &array2, &string1, &string2]   ; @todo make it possible to initialize array with pointers
 
 
-    ;ptrsubasm("moet werken")         ; @todo rewrite ast into pointer-of expression (and remove special cases from Compiler)
-    ;pointersub("moet werken")        ; @todo rewrite ast into pointer-of expression (and remove special cases from Compiler)
-
+    ptrsubasm("moet werken")
+    pointersub("moet werken")
     myprintasm(string1)
     myprintasm(string2)
     myprintasm("moet werken3")
     myprintasm("moet werken3")
     myprintasm("moet werken4")
 
+    c64scr.print("this print must work\n")
     c64.CHROUT('\n')
 
     ptrsubasm(&array1)

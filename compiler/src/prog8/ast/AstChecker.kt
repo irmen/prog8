@@ -334,6 +334,7 @@ private class AstChecker(private val namespace: INameScope,
                 err("a return register is also in the clobber list")
         } else {
             // TODO: non-asm subroutines can only take numeric arguments for now. (not strings and arrays)
+            // TODO: AddressOf: can this be improved now that we have '&' ?
             // the way string params are treated is almost okay (their address is passed) but the receiving subroutine treats it as an integer rather than referring back to the original string.
             // the way array params are treated is buggy; it thinks the subroutine needs a byte parameter in place of a byte[] ...
             // This is not easy to fix because strings and arrays are treated a bit simplistic (a "virtual" pointer to the value on the heap)
