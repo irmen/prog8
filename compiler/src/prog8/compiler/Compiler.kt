@@ -13,6 +13,7 @@ import prog8.stackvm.Syscall
 import java.io.File
 import java.nio.file.Path
 import java.util.*
+import javax.lang.model.type.ArrayType
 import kotlin.math.abs
 
 
@@ -81,15 +82,17 @@ class HeapValues {
 
     fun addIntegerArray(type: DataType, array: Array<IntegerOrAddressOf>): Int {
         // arrays are never shared, don't check for existing
+        if(type !in ArrayDatatypes)
+            throw CompilerException("wrong array type")
         val newId = heapId++
         heap[newId] = HeapValue(type, null, array, null)
         return newId
     }
 
-    fun addDoublesArray(type: DataType, darray: DoubleArray): Int {
+    fun addDoublesArray(darray: DoubleArray): Int {
         // arrays are never shared, don't check for existing
         val newId = heapId++
-        heap[newId] = HeapValue(type, null, null, darray)
+        heap[newId] = HeapValue(DataType.ARRAY_F, null, null, darray)
         return newId
     }
 
@@ -2134,16 +2137,16 @@ internal class Compiler(private val rootModule: Module,
         }
     }
 
-    private fun translate(ptrof: AddressOf) {
-        val target = ptrof.identifier.targetStatement(namespace) as VarDecl
+    private fun translate(addrof: AddressOf) {
+        val target = addrof.identifier.targetStatement(namespace) as VarDecl
         if(target.datatype in ArrayDatatypes || target.datatype in StringDatatypes|| target.datatype==DataType.FLOAT) {
-            pushHeapVarAddress(ptrof.identifier, false)
+            pushHeapVarAddress(addrof.identifier, false)
         }
         else if(target.datatype==DataType.FLOAT) {
-            pushFloatAddress(ptrof.identifier)
+            pushFloatAddress(addrof.identifier)
         }
         else
-            throw CompilerException("cannot take memory pointer $ptrof")
+            throw CompilerException("cannot take memory pointer $addrof")
     }
 
     private fun translateAsmInclude(args: List<DirectiveArg>, importedFrom: Path) {

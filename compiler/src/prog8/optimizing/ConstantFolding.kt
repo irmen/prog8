@@ -82,8 +82,8 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                         if(fillvalue< FLOAT_MAX_NEGATIVE || fillvalue> FLOAT_MAX_POSITIVE)
                             errors.add(ExpressionError("float value overflow", litval?.position ?: decl.position))
                         else {
-                            val heapId = heap.addDoublesArray(decl.datatype, DoubleArray(size) { fillvalue })
-                            decl.value = LiteralValue(decl.datatype, heapId = heapId, position = litval?.position ?: decl.position)
+                            val heapId = heap.addDoublesArray(DoubleArray(size) { fillvalue })
+                            decl.value = LiteralValue(DataType.ARRAY_F, heapId = heapId, position = litval?.position ?: decl.position)
                         }
                     }
                 }
@@ -551,10 +551,15 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
             addError(ExpressionError("array literal can only consist of constant primitive numerical values or memory pointers", arraylit.position))
             return arraylit
         } else if(array.any {it is AddressOf}) {
-            val arrayDt = DataType.UWORD
-            val intArrayWithAddressOfs = mutableListOf<IntegerOrAddressOf>()
-            // TODO AddressOf: FILL THIS ARRAY
-            val heapId = heap.addIntegerArray(DataType.UWORD, intArrayWithAddressOfs.toTypedArray())
+            val arrayDt = DataType.ARRAY_UW
+            val intArrayWithAddressOfs = array.map {
+                when (it) {
+                    is AddressOf -> IntegerOrAddressOf(null, it)
+                    is LiteralValue -> IntegerOrAddressOf(it.asIntegerValue, null)
+                    else -> throw CompilerException("invalid datatype in array")
+                }
+            }
+            val heapId = heap.addIntegerArray(arrayDt, intArrayWithAddressOfs.toTypedArray())
             return LiteralValue(arrayDt, heapId = heapId, position = arraylit.position)
         } else {
             // array is only constant numerical values
@@ -594,7 +599,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                 DataType.ARRAY_B,
                 DataType.ARRAY_UW,
                 DataType.ARRAY_W -> heap.addIntegerArray(arrayDt, integerArray.map { IntegerOrAddressOf(it, null) }.toTypedArray())
-                DataType.ARRAY_F -> heap.addDoublesArray(arrayDt, doubleArray)
+                DataType.ARRAY_F -> heap.addDoublesArray(doubleArray)
                 else -> throw CompilerException("invalid arrayspec type")
             }
             return LiteralValue(arrayDt, heapId = heapId, position = arraylit.position)

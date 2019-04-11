@@ -14,9 +14,9 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
     class ProgramBlock(val name: String,
                        var address: Int?,
                        val instructions: MutableList<Instruction> = mutableListOf(),
-                       val variables: MutableMap<String, Value> = mutableMapOf(),
+                       val variables: MutableMap<String, Value> = mutableMapOf(),           // names are fully scoped
                        val memoryPointers: MutableMap<String, Pair<Int, DataType>> = mutableMapOf(),
-                       val labels: MutableMap<String, Instruction> = mutableMapOf(),
+                       val labels: MutableMap<String, Instruction> = mutableMapOf(),        // names are fully scoped
                        val force_output: Boolean)
     {
         val numVariables: Int
@@ -468,7 +468,12 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                     val arrayvalues = it.value.array!!.map { av ->
                         when {
                             av.integer!=null -> av.integer.toString()
-                            av.addressOf!=null -> "&${av.addressOf.identifier}"
+                            av.addressOf!=null -> {
+                                if(av.addressOf.scopedname==null)
+                                    throw CompilerException("AddressOf scopedname should have been set")
+                                else
+                                    "&${av.addressOf.scopedname}"
+                            }
                             else -> throw CompilerException("weird array value")
                         }
                     }

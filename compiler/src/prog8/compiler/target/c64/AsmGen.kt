@@ -364,10 +364,11 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 // byte array can never contain pointer-to types, so treat values as all integers
                 array.map { "$"+it.integer!!.toString(16).padStart(2, '0') }
             value.type==DataType.ARRAY_UW -> array.map {
-                if(it.integer!=null)
-                    "$"+it.integer.toString(16).padStart(2, '0')
-                else
-                    TODO("deal with addressOf")
+                when {
+                    it.integer!=null -> "$"+it.integer.toString(16).padStart(2, '0')
+                    it.addressOf!=null -> symname(it.addressOf.scopedname!!, block)
+                    else -> throw AssemblyError("weird type in array")
+                }
             }
             else -> throw AssemblyError("invalid arrayspec type")
         }

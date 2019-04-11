@@ -1659,10 +1659,16 @@ class StackVm(private var traceOutputFile: String?) {
                                 when(array.type){
                                     DataType.ARRAY_UW -> {
                                         val value = array.array!![index]
-                                        if(value.integer!=null)
-                                            Value(DataType.UWORD, value.integer)
-                                        else
-                                            TODO("deal with addressOf $value")
+                                        when {
+                                            value.integer!=null -> Value(DataType.UWORD, value.integer)
+                                            value.addressOf!=null -> {
+                                                val heapId = variables.getValue(value.addressOf.scopedname!!).heapId
+                                                if(heapId<0)
+                                                    throw VmExecutionException("expected variable on heap")
+                                                evalstack.push(Value(DataType.UWORD, heapId))       // push the "address" of the string or array variable (this is taken care of properly in the assembly code generator)
+                                            }
+                                            else -> throw VmExecutionException("strange array value")
+                                        }
                                     }
                                     DataType.ARRAY_W -> Value(DataType.WORD, array.array!![index].integer!!)
                                     else -> throw VmExecutionException("not a proper arrayspec var with word elements")
@@ -2286,6 +2292,13 @@ class StackVm(private var traceOutputFile: String?) {
                 val hi = variables.getValue("Y").integerValue()
                 val number = lo+256*hi
                 canvas?.printText(number.toString(), 1, true)
+            }
+            Syscall.SYSASM_c64scr_print_uwhex -> {
+                val prefix = if(this.P_carry) "$" else ""
+                val lo = variables.getValue("A").integerValue()
+                val hi = variables.getValue("Y").integerValue()
+                val number = lo+256*hi
+                canvas?.printText("$prefix${number.toString(16).padStart(4, '0')}", 1, true)
             }
             Syscall.SYSASM_c64scr_print_w -> {
                 val lo = variables.getValue("A").integerValue()

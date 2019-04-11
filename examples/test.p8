@@ -23,7 +23,7 @@
     pointer2 = &array2
     pointer3 = &string1
 
-    ; uword[4] pointers = [&array1, &array2, &string1, &string2]   ; @todo make it possible to initialize array with pointers
+    uword[4] pointers = [&array1, &array2, &string1, &string2]   ; @todo make it possible to initialize array with pointers
 
 
     ptrsubasm("moet werken")
@@ -71,4 +71,12 @@
         }}
     }
 
+}
+
+~ test {
+
+    sub testsub() {
+        uword[4] pointers = [&main.start.array1, &main.start.array2, &main.start.string1, &main.start.string2]   ; @todo make it possible to initialize array with pointers
+
+    }
 }

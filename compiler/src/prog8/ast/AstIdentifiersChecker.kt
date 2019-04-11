@@ -20,7 +20,7 @@ fun Module.checkIdentifiers(namespace: INameScope) {
         val parent = variable.first.parent
         when {
             parent is Assignment && parent.value === variable.first -> {
-                val idref = IdentifierReference(listOf("$${variable.first.heapId}"), variable.first.position)
+                val idref = IdentifierReference(listOf("$autoHeapValuePrefix${variable.first.heapId}"), variable.first.position)
                 idref.linkParents(parent)
                 parent.value = idref
             }
@@ -229,6 +229,14 @@ private class AstIdentifiersChecker(private val namespace: INameScope) : IAstPro
         }
         return super.process(literalValue)
     }
+
+    override fun process(addressOf: AddressOf): IExpression {
+        // register the scoped name of the referenced identifier
+        val variable= addressOf.identifier.targetStatement(namespace) as? VarDecl ?: return addressOf
+        addressOf.scopedname = variable.scopedname
+        return super.process(addressOf)
+    }
+
 }
 
 internal const val autoHeapValuePrefix = "auto_heap_value_"

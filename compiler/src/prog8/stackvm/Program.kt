@@ -92,13 +92,25 @@ class Program (val name: String,
                     DataType.ARRAY_UB, DataType.ARRAY_B,
                     DataType.ARRAY_UW, DataType.ARRAY_W -> {
                         val numbers = it.third.substring(1, it.third.length-1).split(',')
-                        val intarray = numbers.map{number->IntegerOrAddressOf(number.trim().toInt(), null)}.toTypedArray()
+                        val intarray = numbers.map{number->
+                            val num=number.trim()
+                            if(num.startsWith("&")) {
+                                // it's AddressOf
+                                val scopedname = num.substring(1)
+                                val iref = IdentifierReference(scopedname.split('.'), Position("<intermediate>", 0,0,0))
+                                val addrOf = AddressOf(iref, Position("<intermediate>", 0,0,0))
+                                addrOf.scopedname=scopedname
+                                IntegerOrAddressOf(null, addrOf)
+                            } else {
+                                IntegerOrAddressOf(num.toInt(), null)
+                            }
+                        }.toTypedArray()
                         heap.addIntegerArray(it.second, intarray)
                     }
                     DataType.ARRAY_F -> {
                         val numbers = it.third.substring(1, it.third.length-1).split(',')
                         val doublearray = numbers.map{number->number.trim().toDouble()}.toDoubleArray()
-                        heap.addDoublesArray(it.second, doublearray)
+                        heap.addDoublesArray(doublearray)
                     }
                     in NumericDatatypes -> throw VmExecutionException("invalid heap value type ${it.second}")
                     else -> throw VmExecutionException("weird datatype")

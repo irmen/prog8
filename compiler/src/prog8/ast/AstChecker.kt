@@ -464,7 +464,9 @@ private class AstChecker(private val namespace: INameScope,
             if(variable.datatype !in ArrayDatatypes && variable.datatype !in StringDatatypes)
                 checkResult.add(ExpressionError("pointer-of operand must be the name of a string or array heap variable", addressOf.position))
         }
-        return addressOf
+        if(addressOf.scopedname==null)
+            throw FatalAstException("the scopedname of AddressOf should have been set by now  $addressOf")
+        return super.process(addressOf)
     }
 
     /**

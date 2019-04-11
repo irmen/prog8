@@ -279,6 +279,7 @@ private class VarInitValueAndAddressOfCreator(private val namespace: INameScope)
                     val variable = idref.targetStatement(namespace) as? VarDecl
                     if(variable!=null && (variable.datatype in StringDatatypes || variable.datatype in ArrayDatatypes)) {
                         val pointerExpr = AddressOf(idref, idref.position)
+                        pointerExpr.scopedname = (idref.parent as IStatement).makeScopedName(idref.nameInSource.single())
                         pointerExpr.linkParents(arglist[argparam.first.index].parent)
                         arglist[argparam.first.index] = pointerExpr
                     }
@@ -289,6 +290,7 @@ private class VarInitValueAndAddressOfCreator(private val namespace: INameScope)
                         val autoVarName = "$autoHeapValuePrefix${strvalue.heapId}"
                         val autoHeapvarRef = IdentifierReference(listOf(autoVarName), strvalue.position)
                         val pointerExpr = AddressOf(autoHeapvarRef, strvalue.position)
+                        pointerExpr.scopedname = (strvalue.parent as IStatement).makeScopedName(autoVarName)
                         pointerExpr.linkParents(arglist[argparam.first.index].parent)
                         arglist[argparam.first.index] = pointerExpr
                         // add a vardecl so that the autovar can be resolved in later lookups
@@ -296,7 +298,6 @@ private class VarInitValueAndAddressOfCreator(private val namespace: INameScope)
                         addVarDecl(strvalue.definingScope(), variable)
                     }
                 }
-                else throw FatalAstException("expected either an identifier or a literal as argument to $subroutine")
             }
         }
     }

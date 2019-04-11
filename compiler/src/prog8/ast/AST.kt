@@ -210,6 +210,7 @@ interface IAstProcessor {
     }
 
     fun process(literalValue: LiteralValue): LiteralValue {
+        literalValue.arrayvalue?.forEach { it.process(this) }
         return literalValue
     }
 
@@ -290,6 +291,7 @@ interface IAstProcessor {
     }
 
     fun process(addressOf: AddressOf): IExpression {
+        process(addressOf.identifier)
         return addressOf
     }
 }
@@ -1018,6 +1020,7 @@ data class AddressOf(val identifier: IdentifierReference, override val position:
         identifier.parent=this
     }
 
+    var scopedname: String? = null     // will be set in a later state by the compiler
     override fun isIterable(namespace: INameScope, heap: HeapValues) = false
     override fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue? = null
     override fun referencesIdentifier(name: String) = false
