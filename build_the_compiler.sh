@@ -12,7 +12,7 @@ mkdir -p ${PARSER_CLASSES}
 javac  -d ${PARSER_CLASSES} -cp ${ANTLR_RUNTIME} ./parser/src/prog8/parser/prog8Lexer.java  ./parser/src/prog8/parser/prog8Parser.java
 
 echo "Compiling the compiler itself..."
-kotlinc -verbose -include-runtime -d ${COMPILER_JAR} -cp ${ANTLR_RUNTIME}:${PARSER_CLASSES} ./compiler/src/prog8
+JAVA_OPTS="-Xmx3G -Xms300M" kotlinc -verbose -include-runtime -d ${COMPILER_JAR} -jvm-target 1.8 -cp ${ANTLR_RUNTIME}:${PARSER_CLASSES} ./compiler/src/prog8
 
 echo "Finalizing the compiler jar file..."
 # add the antlr parser classes
