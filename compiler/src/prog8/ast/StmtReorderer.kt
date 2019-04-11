@@ -255,8 +255,12 @@ private class VarInitValueAndAddressOfCreator(private val namespace: INameScope)
 
     override fun process(functionCall: FunctionCall): IExpression {
         val targetStatement = functionCall.target.targetStatement(namespace) as? Subroutine
-        if(targetStatement!=null)
-            addAddressOfExprIfNeeded(targetStatement, functionCall.arglist, functionCall)
+        if(targetStatement!=null) {
+            var node: Node = functionCall
+            while(node !is IStatement)
+                node=node.parent
+            addAddressOfExprIfNeeded(targetStatement, functionCall.arglist, node)
+        }
         return functionCall
     }
 
@@ -267,7 +271,7 @@ private class VarInitValueAndAddressOfCreator(private val namespace: INameScope)
         return functionCallStatement
     }
 
-    private fun addAddressOfExprIfNeeded(subroutine: Subroutine, arglist: MutableList<IExpression>, parent: Node) {
+    private fun addAddressOfExprIfNeeded(subroutine: Subroutine, arglist: MutableList<IExpression>, parent: IStatement) {
         // functions that accept UWORD and are given an array type, or string, will receive the AddressOf (memory location) of that value instead.
         for(argparam in subroutine.parameters.withIndex().zip(arglist)) {
             if(argparam.first.value.type==DataType.UWORD || argparam.first.value.type in StringDatatypes) {
@@ -279,7 +283,7 @@ private class VarInitValueAndAddressOfCreator(private val namespace: INameScope)
                     val variable = idref.targetStatement(namespace) as? VarDecl
                     if(variable!=null && (variable.datatype in StringDatatypes || variable.datatype in ArrayDatatypes)) {
                         val pointerExpr = AddressOf(idref, idref.position)
-                        pointerExpr.scopedname = (idref.parent as IStatement).makeScopedName(idref.nameInSource.single())
+                        pointerExpr.scopedname = parent.makeScopedName(idref.nameInSource.single())
                         pointerExpr.linkParents(arglist[argparam.first.index].parent)
                         arglist[argparam.first.index] = pointerExpr
                     }
@@ -290,7 +294,7 @@ private class VarInitValueAndAddressOfCreator(private val namespace: INameScope)
                         val autoVarName = "$autoHeapValuePrefix${strvalue.heapId}"
                         val autoHeapvarRef = IdentifierReference(listOf(autoVarName), strvalue.position)
                         val pointerExpr = AddressOf(autoHeapvarRef, strvalue.position)
-                        pointerExpr.scopedname = (strvalue.parent as IStatement).makeScopedName(autoVarName)
+                        pointerExpr.scopedname = parent.makeScopedName(autoVarName)
                         pointerExpr.linkParents(arglist[argparam.first.index].parent)
                         arglist[argparam.first.index] = pointerExpr
                         // add a vardecl so that the autovar can be resolved in later lookups
