@@ -282,13 +282,6 @@ of something with an operand starting with 1 or 0, you'll have to add a space in
 - You can force a byte value into a word value by adding the ``.w`` datatype suffix to the number: ``$2a.w`` is equivalent to ``$002a``.
 
 
-.. todo::
-
-    omit the array size in the var decl if an initialization array is given?
-
-    **@todo pointers/addresses?  (as opposed to normal WORDs)**
-
-
 Data type conversion
 ^^^^^^^^^^^^^^^^^^^^
 Many type conversions are possible by just writing ``as <type>`` at the end of an expression,

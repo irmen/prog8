@@ -5,7 +5,7 @@ TODO
 Memory Block Operations integrated in language?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-@todo list,string memory block operations?
+list,string memory block operations?
 
 - list operations (whole list, individual element)
   operations: set, get, copy (from another list with the same length), shift-N(left,right), rotate-N(left,right)
@@ -15,7 +15,7 @@ Memory Block Operations integrated in language?
 
 - strings: identical operations as on lists.
 
-these should call (or emit inline) optimized pieces of assembly code, so they run as fast as possible
+these should call optimized pieces of assembly code, so they run as fast as possible
 
 For now, we have the ``memcopy``, ``memset`` and ``strlen`` builtin functions.
 
@@ -74,5 +74,7 @@ of values together (and use it multiple times). Something like::
 Misc
 ^^^^
 
-- are there any other missing instructions in the code generator?
+- replace ``memory`` keyword in vardecls by just ``&``
 - implement %asmbinary
+- make the array size optional in the var decl if an initialization array is given
+- are there any other missing instructions in the code generator?
