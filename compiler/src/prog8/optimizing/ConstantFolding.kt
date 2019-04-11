@@ -3,7 +3,7 @@ package prog8.optimizing
 import prog8.ast.*
 import prog8.compiler.CompilerException
 import prog8.compiler.HeapValues
-import prog8.compiler.IntegerOrPointerOf
+import prog8.compiler.IntegerOrAddressOf
 import prog8.compiler.target.c64.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.FLOAT_MAX_POSITIVE
 import kotlin.math.floor
@@ -70,7 +70,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                             }
                             else -> {}
                         }
-                        val heapId = heap.addIntegerArray(decl.datatype, Array(size) { IntegerOrPointerOf(fillvalue, null) })
+                        val heapId = heap.addIntegerArray(decl.datatype, Array(size) { IntegerOrAddressOf(fillvalue, null) })
                         decl.value = LiteralValue(decl.datatype, heapId = heapId, position = litval?.position ?: decl.position)
                     }
                 }
@@ -546,15 +546,15 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
 
     private fun moveArrayToHeap(arraylit: LiteralValue): LiteralValue {
         val array: Array<IExpression> = arraylit.arrayvalue!!.map { it.process(this) }.toTypedArray()
-        val allElementsAreConstantOrPointerOf = array.fold(true) { c, expr-> c and (expr is LiteralValue || expr is PointerOf)}
-        if(!allElementsAreConstantOrPointerOf) {
+        val allElementsAreConstantOrAddressOf = array.fold(true) { c, expr-> c and (expr is LiteralValue || expr is AddressOf)}
+        if(!allElementsAreConstantOrAddressOf) {
             addError(ExpressionError("array literal can only consist of constant primitive numerical values or memory pointers", arraylit.position))
             return arraylit
-        } else if(array.any {it is PointerOf}) {
+        } else if(array.any {it is AddressOf}) {
             val arrayDt = DataType.UWORD
-            val intArrayWithPointers = mutableListOf<IntegerOrPointerOf>()
+            val intArrayWithAddressOfs = mutableListOf<IntegerOrAddressOf>()
             // TODO FILL THIS ARRAY
-            val heapId = heap.addIntegerArray(DataType.UWORD, intArrayWithPointers.toTypedArray())
+            val heapId = heap.addIntegerArray(DataType.UWORD, intArrayWithAddressOfs.toTypedArray())
             return LiteralValue(arrayDt, heapId = heapId, position = arraylit.position)
         } else {
             // array is only constant numerical values
@@ -593,7 +593,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                 DataType.ARRAY_UB,
                 DataType.ARRAY_B,
                 DataType.ARRAY_UW,
-                DataType.ARRAY_W -> heap.addIntegerArray(arrayDt, integerArray.map { IntegerOrPointerOf(it, null) }.toTypedArray())
+                DataType.ARRAY_W -> heap.addIntegerArray(arrayDt, integerArray.map { IntegerOrAddressOf(it, null) }.toTypedArray())
                 DataType.ARRAY_F -> heap.addDoublesArray(arrayDt, doubleArray)
                 else -> throw CompilerException("invalid arrayspec type")
             }

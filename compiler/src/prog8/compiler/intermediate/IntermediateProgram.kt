@@ -468,7 +468,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                     val arrayvalues = it.value.array!!.map { av ->
                         when {
                             av.integer!=null -> av.integer.toString()
-                            av.pointerOf!=null -> "&${av.pointerOf.identifier}"
+                            av.addressOf!=null -> "&${av.addressOf.identifier}"
                             else -> throw CompilerException("weird array value")
                         }
                     }

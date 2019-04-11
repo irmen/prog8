@@ -2,7 +2,7 @@ package prog8.stackvm
 
 import prog8.ast.*
 import prog8.compiler.HeapValues
-import prog8.compiler.IntegerOrPointerOf
+import prog8.compiler.IntegerOrAddressOf
 import prog8.compiler.intermediate.Instruction
 import prog8.compiler.intermediate.Opcode
 import prog8.compiler.intermediate.Value
@@ -1662,7 +1662,7 @@ class StackVm(private var traceOutputFile: String?) {
                                         if(value.integer!=null)
                                             Value(DataType.UWORD, value.integer)
                                         else
-                                            TODO("deal with pointerTo $value")
+                                            TODO("deal with addressOf $value")
                                     }
                                     DataType.ARRAY_W -> Value(DataType.WORD, array.array!![index].integer!!)
                                     else -> throw VmExecutionException("not a proper arrayspec var with word elements")
@@ -1730,8 +1730,8 @@ class StackVm(private var traceOutputFile: String?) {
                         // set indexed byte element in the arrayspec
                         val array = heap.get(variable.heapId)
                         when (array.type) {
-                            DataType.ARRAY_UB -> array.array!![index] = IntegerOrPointerOf(value.integerValue(), null)
-                            DataType.ARRAY_B -> array.array!![index] = IntegerOrPointerOf(value.integerValue(), null)
+                            DataType.ARRAY_UB -> array.array!![index] = IntegerOrAddressOf(value.integerValue(), null)
+                            DataType.ARRAY_B -> array.array!![index] = IntegerOrAddressOf(value.integerValue(), null)
                             DataType.STR, DataType.STR_S -> {
                                 val chars = array.str!!.toCharArray()
                                 val ps = Petscii.decodePetscii(listOf(value.integerValue().toShort()), true)[0]
@@ -1778,8 +1778,8 @@ class StackVm(private var traceOutputFile: String?) {
                         // set indexed word element in the arrayspec
                         val array = heap.get(variable.heapId)
                         when (array.type) {
-                            DataType.ARRAY_UW -> array.array!![index] = IntegerOrPointerOf(value.integerValue(), null)
-                            DataType.ARRAY_W -> array.array!![index] = IntegerOrPointerOf(value.integerValue(), null)
+                            DataType.ARRAY_UW -> array.array!![index] = IntegerOrAddressOf(value.integerValue(), null)
+                            DataType.ARRAY_W -> array.array!![index] = IntegerOrAddressOf(value.integerValue(), null)
                             else -> throw VmExecutionException("not a proper arrayspec var with word elements")
                         }
                     }
@@ -2099,7 +2099,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                if(value.array.any {it.pointerOf!=null})
+                if(value.array.any {it.addressOf!=null})
                     throw VmExecutionException("stackvm cannot process raw memory pointers")
                 evalstack.push(Value(DataType.UWORD, value.array.map{it.integer!!}.max() ?: 0))
             }
@@ -2141,7 +2141,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                if(value.array.any {it.pointerOf!=null})
+                if(value.array.any {it.addressOf!=null})
                     throw VmExecutionException("stackvm cannot process raw memory pointers")
                 evalstack.push(Value(DataType.UWORD, value.array.map{it.integer!!}.min() ?: 0))
             }
@@ -2175,7 +2175,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                if(value.array.any {it.pointerOf!=null})
+                if(value.array.any {it.addressOf!=null})
                     throw VmExecutionException("stackvm cannot process raw memory pointers")
                 evalstack.push(Value(DataType.UWORD, value.array.map{it.integer!!}.sum()))
             }

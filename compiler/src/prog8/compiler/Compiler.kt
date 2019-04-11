@@ -36,11 +36,11 @@ fun Number.toHex(): String {
 }
 
 
-data class IntegerOrPointerOf(val integer: Int?, val pointerOf: PointerOf?)
+data class IntegerOrAddressOf(val integer: Int?, val addressOf: AddressOf?)
 
 
 class HeapValues {
-    data class HeapValue(val type: DataType, val str: String?, val array: Array<IntegerOrPointerOf>?, val doubleArray: DoubleArray?) {
+    data class HeapValue(val type: DataType, val str: String?, val array: Array<IntegerOrAddressOf>?, val doubleArray: DoubleArray?) {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (javaClass != other?.javaClass) return false
@@ -79,7 +79,7 @@ class HeapValues {
         return newId
     }
 
-    fun addIntegerArray(type: DataType, array: Array<IntegerOrPointerOf>): Int {
+    fun addIntegerArray(type: DataType, array: Array<IntegerOrAddressOf>): Int {
         // arrays are never shared, don't check for existing
         val newId = heapId++
         heap[newId] = HeapValue(type, null, array, null)
@@ -656,7 +656,7 @@ internal class Compiler(private val rootModule: Module,
             is TypecastExpression -> translate(expr)
             is DirectMemoryRead -> translate(expr)
             is DirectMemoryWrite -> translate(expr)
-            is PointerOf -> translate(expr)
+            is AddressOf -> translate(expr)
             else -> {
                 val lv = expr.constValue(namespace, heap) ?: throw CompilerException("constant expression required, not $expr")
                 when(lv.type) {
@@ -2134,7 +2134,7 @@ internal class Compiler(private val rootModule: Module,
         }
     }
 
-    private fun translate(ptrof: PointerOf) {
+    private fun translate(ptrof: AddressOf) {
         val target = ptrof.identifier.targetStatement(namespace) as VarDecl
         if(target.datatype in ArrayDatatypes || target.datatype in StringDatatypes|| target.datatype==DataType.FLOAT) {
             pushHeapVarAddress(ptrof.identifier, false)

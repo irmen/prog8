@@ -367,7 +367,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                 if(it.integer!=null)
                     "$"+it.integer.toString(16).padStart(2, '0')
                 else
-                    TODO("deal with pointerto")
+                    TODO("deal with addressOf")
             }
             else -> throw AssemblyError("invalid arrayspec type")
         }

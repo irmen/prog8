@@ -1,4 +1,4 @@
-// Generated from prog8.g4 by ANTLR 4.7.2
+// Generated from /home/irmen/Projects/prog8/parser/antlr/prog8.g4 by ANTLR 4.7.2
 
 package prog8.parser;
 
@@ -44,7 +44,7 @@ public class prog8Parser extends Parser {
 		RULE_datatype = 12, RULE_arrayspec = 13, RULE_assignment = 14, RULE_assign_targets = 15, 
 		RULE_augassignment = 16, RULE_assign_target = 17, RULE_postincrdecr = 18, 
 		RULE_expression = 19, RULE_typecast = 20, RULE_arrayindexed = 21, RULE_directmemory = 22, 
-		RULE_pointerof = 23, RULE_functioncall = 24, RULE_functioncall_stmt = 25, 
+		RULE_addressof = 23, RULE_functioncall = 24, RULE_functioncall_stmt = 25, 
 		RULE_expression_list = 26, RULE_returnstmt = 27, RULE_breakstmt = 28, 
 		RULE_continuestmt = 29, RULE_identifier = 30, RULE_scoped_identifier = 31, 
 		RULE_register = 32, RULE_registerorpair = 33, RULE_statusregister = 34, 
@@ -62,7 +62,7 @@ public class prog8Parser extends Parser {
 			"directive", "directivearg", "vardecl", "varinitializer", "constdecl", 
 			"memoryvardecl", "datatype", "arrayspec", "assignment", "assign_targets", 
 			"augassignment", "assign_target", "postincrdecr", "expression", "typecast", 
-			"arrayindexed", "directmemory", "pointerof", "functioncall", "functioncall_stmt", 
+			"arrayindexed", "directmemory", "addressof", "functioncall", "functioncall_stmt", 
 			"expression_list", "returnstmt", "breakstmt", "continuestmt", "identifier", 
 			"scoped_identifier", "register", "registerorpair", "statusregister", 
 			"integerliteral", "wordsuffix", "booleanliteral", "arrayliteral", "stringliteral", 
@@ -1352,8 +1352,8 @@ public class prog8Parser extends Parser {
 		public DirectmemoryContext directmemory() {
 			return getRuleContext(DirectmemoryContext.class,0);
 		}
-		public PointerofContext pointerof() {
-			return getRuleContext(PointerofContext.class,0);
+		public AddressofContext addressof() {
+			return getRuleContext(AddressofContext.class,0);
 		}
 		public List<TerminalNode> EOL() { return getTokens(prog8Parser.EOL); }
 		public TerminalNode EOL(int i) {
@@ -1451,7 +1451,7 @@ public class prog8Parser extends Parser {
 			case 9:
 				{
 				setState(259);
-				pointerof();
+				addressof();
 				}
 				break;
 			case 10:
@@ -2092,19 +2092,19 @@ public class prog8Parser extends Parser {
 		return _localctx;
 	}
 
-	public static class PointerofContext extends ParserRuleContext {
+	public static class AddressofContext extends ParserRuleContext {
 		public Scoped_identifierContext scoped_identifier() {
 			return getRuleContext(Scoped_identifierContext.class,0);
 		}
-		public PointerofContext(ParserRuleContext parent, int invokingState) {
+		public AddressofContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
 		}
-		@Override public int getRuleIndex() { return RULE_pointerof; }
+		@Override public int getRuleIndex() { return RULE_addressof; }
 	}
 
-	public final PointerofContext pointerof() throws RecognitionException {
-		PointerofContext _localctx = new PointerofContext(_ctx, getState());
-		enterRule(_localctx, 46, RULE_pointerof);
+	public final AddressofContext addressof() throws RecognitionException {
+		AddressofContext _localctx = new AddressofContext(_ctx, getState());
+		enterRule(_localctx, 46, RULE_addressof);
 		try {
 			enterOuterAlt(_localctx, 1);
 			{

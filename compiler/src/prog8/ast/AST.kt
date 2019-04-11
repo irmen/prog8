@@ -289,8 +289,8 @@ interface IAstProcessor {
         return memwrite
     }
 
-    fun process(pointerOf: PointerOf): IExpression {
-        return pointerOf
+    fun process(addressOf: AddressOf): IExpression {
+        return addressOf
     }
 }
 
@@ -1010,7 +1010,7 @@ class TypecastExpression(var expression: IExpression, var type: DataType, overri
 }
 
 
-data class PointerOf(val identifier: IdentifierReference, override val position: Position) : IExpression {
+data class AddressOf(val identifier: IdentifierReference, override val position: Position) : IExpression {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -1407,6 +1407,7 @@ class RegisterExpr(val register: Register, override val position: Position) : IE
 data class IdentifierReference(val nameInSource: List<String>, override val position: Position) : IExpression {
     override lateinit var parent: Node
 
+    // TODO make a shortcut for idref.targetStatement(namespace) as VarDecl
     fun targetStatement(namespace: INameScope) =
         if(nameInSource.size==1 && nameInSource[0] in BuiltinFunctions)
             BuiltinFunctionStatementPlaceholder(nameInSource[0], position)
@@ -2213,8 +2214,8 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
     if(directmemory()!=null)
         return DirectMemoryRead(directmemory().expression().toAst(), toPosition())
 
-    if(pointerof()!=null)
-        return PointerOf(pointerof().scoped_identifier().toAst(), toPosition())
+    if(addressof()!=null)
+        return AddressOf(addressof().scoped_identifier().toAst(), toPosition())
 
     throw FatalAstException(text)
 }

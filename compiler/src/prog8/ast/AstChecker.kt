@@ -455,15 +455,15 @@ private class AstChecker(private val namespace: INameScope,
         return assignment
     }
 
-    override fun process(pointerOf: PointerOf): IExpression {
-        val variable=pointerOf.identifier.targetStatement(namespace) as? VarDecl
+    override fun process(addressOf: AddressOf): IExpression {
+        val variable=addressOf.identifier.targetStatement(namespace) as? VarDecl
         if(variable==null)
-            checkResult.add(ExpressionError("pointer-of operand must be the name of a heap variable", pointerOf.position))
+            checkResult.add(ExpressionError("pointer-of operand must be the name of a heap variable", addressOf.position))
         else {
             if(variable.datatype !in ArrayDatatypes && variable.datatype !in StringDatatypes)
-                checkResult.add(ExpressionError("pointer-of operand must be the name of a string or array heap variable", pointerOf.position))
+                checkResult.add(ExpressionError("pointer-of operand must be the name of a string or array heap variable", addressOf.position))
         }
-        return pointerOf
+        return addressOf
     }
 
     /**
@@ -1095,7 +1095,7 @@ private class AstChecker(private val namespace: INameScope,
                 correct=array.array!=null && array.array.all { it.integer!=null && it.integer in -128..127 }
             }
             DataType.ARRAY_UW -> {
-                correct=array.array!=null && array.array.all { (it.integer!=null && it.integer in 0..65535)  || it.pointerOf!=null}
+                correct=array.array!=null && array.array.all { (it.integer!=null && it.integer in 0..65535)  || it.addressOf!=null}
             }
             DataType.ARRAY_W -> {
                 correct=array.array!=null && array.array.all { it.integer!=null && it.integer in -32768..32767 }
