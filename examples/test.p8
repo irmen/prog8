@@ -23,7 +23,7 @@
     pointer2 = &array2
     pointer3 = &string1
 
-    uword[4] pointers = [&array1, &array2, &string1, &string2]   ; @todo make it possible to initialize array with pointers
+    uword[4] pointers = [&array1, &array2, &string1, &string2]
 
 
     ptrsubasm("moet werken")
@@ -45,6 +45,13 @@
     pointersub(&array2)
     pointersub(&string1)
     pointersub(&string2)
+    c64scr.print_uwhex(1, pointers[0])
+    c64.CHROUT(',')
+    c64scr.print_uwhex(1, pointers[1])
+    c64.CHROUT(',')
+    c64scr.print_uwhex(1, pointers[2])
+    c64.CHROUT(',')
+    c64scr.print_uwhex(1, pointers[3])
 
     }
 
