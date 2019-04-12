@@ -291,11 +291,11 @@ for example ``ubyte ub = floatvalue as ubyte`` will convert the floating point v
 Memory mapped variables
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``memory`` keyword is used in front of a data type keyword, to say that no storage
+The ``&`` (address-of operator) used in front of a data type keyword, indicates that no storage
 should be allocated by the compiler. Instead, the (mandatory) value assigned to the variable
 should be the *memory address* where the value is located::
 
-	memory  byte  BORDER = $d020
+	&byte BORDERCOLOR = $d020
 
 
 Direct access to memory locations
@@ -405,6 +405,8 @@ address of:  ``&``
     It results in the memory address (UWORD) of that string or array in memory:  ``uword a = &stringvar``
     Sometimes the compiler silently inserts this operator to make it easier for instance
     to pass strings or arrays as subroutine call arguments.
+    This operator can also be used as a prefix to a variable's data type keyword to indicate that
+    it is a memory mapped variable (for instance: ``&ubyte screencolor = $d021``)
 
 precedence grouping in expressions, or subroutine parameter list:  ``(`` *expression* ``)``
 	Parentheses are used to group parts of an expression to change the order of evaluation.

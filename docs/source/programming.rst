@@ -281,13 +281,13 @@ You'll have to specify the initial value expression. This value is then used
 by the compiler everywhere you refer to the constant (and no storage is allocated
 for the constant itself). This is only valid for the simple numeric types (byte, word, float).
 
-When using ``memory``, the variable will point to specific location in memory,
+When using ``&`` (the address-of operator but now applied to a datatype), the variable will point to specific location in memory,
 rather than being newly allocated. The initial value (mandatory) must be a valid
 memory address.  Reading the variable will read the given data type from the
 address you specified, and setting the varible will directly modify that memory location(s)::
 
 	const  byte  max_age = 2000 - 1974      ; max_age will be the constant value 26
-	memory word  SCREENCOLORS = $d020       ; a 16-bit word at the addres $d020-$d021
+	&word  SCREENCOLORS = $d020             ; a 16-bit word at the addres $d020-$d021
 
 
 .. note::

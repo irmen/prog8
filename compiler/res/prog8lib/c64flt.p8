@@ -20,21 +20,21 @@
 		; floats in memory  (and rom) are stored in 5-byte MFLPT packed format.
 
 		; constants in five-byte "mflpt" format in the BASIC ROM
-		memory  float  FL_PIVAL		= $aea8  ; 3.1415926...
-		memory  float  FL_N32768	= $b1a5  ; -32768
-		memory  float  FL_FONE		= $b9bc  ; 1
-		memory  float  FL_SQRHLF	= $b9d6  ; SQR(2) / 2
-		memory  float  FL_SQRTWO	= $b9db  ; SQR(2)
-		memory  float  FL_NEGHLF	= $b9e0  ; -.5
-		memory  float  FL_LOG2		= $b9e5  ; LOG(2)
-		memory  float  FL_TENC		= $baf9  ; 10
-		memory  float  FL_NZMIL		= $bdbd  ; 1e9 (1 billion)
-		memory  float  FL_FHALF		= $bf11  ; .5
-		memory  float  FL_LOGEB2	= $bfbf  ; 1 / LOG(2)
-		memory  float  FL_PIHALF	= $e2e0  ; PI / 2
-		memory  float  FL_TWOPI		= $e2e5  ; 2 * PI
-		memory  float  FL_FR4		= $e2ea  ; .25
-		float FL_ZERO = 0.0     ; oddly enough 0.0 isn't available in the kernel
+		&float  FL_PIVAL	= $aea8  ; 3.1415926...
+		&float  FL_N32768	= $b1a5  ; -32768
+		&float  FL_FONE		= $b9bc  ; 1
+		&float  FL_SQRHLF	= $b9d6  ; SQR(2) / 2
+		&float  FL_SQRTWO	= $b9db  ; SQR(2)
+		&float  FL_NEGHLF	= $b9e0  ; -.5
+		&float  FL_LOG2		= $b9e5  ; LOG(2)
+		&float  FL_TENC		= $baf9  ; 10
+		&float  FL_NZMIL	= $bdbd  ; 1e9 (1 billion)
+		&float  FL_FHALF	= $bf11  ; .5
+		&float  FL_LOGEB2	= $bfbf  ; 1 / LOG(2)
+		&float  FL_PIHALF	= $e2e0  ; PI / 2
+		&float  FL_TWOPI	= $e2e5  ; 2 * PI
+		&float  FL_FR4		= $e2ea  ; .25
+		 float  FL_ZERO		= 0.0    ; oddly enough 0.0 isn't available in the kernel
 
 
 ; note: fac1/2 might get clobbered even if not mentioned in the function's name.

@@ -74,7 +74,6 @@ of values together (and use it multiple times). Something like::
 Misc
 ^^^^
 
-- replace ``memory`` keyword in vardecls by just ``&``
 - implement %asmbinary
 - make the array size optional in the var decl if an initialization array is given
 - are there any other missing instructions in the code generator?

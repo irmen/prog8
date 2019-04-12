@@ -23,6 +23,7 @@ NAME :  [a-zA-Z_][a-zA-Z0-9_]* ;
 DEC_INTEGER :  ('0'..'9') | (('1'..'9')('0'..'9')+);
 HEX_INTEGER :  '$' (('a'..'f') | ('A'..'F') | ('0'..'9'))+ ;
 BIN_INTEGER :  '%' ('0' | '1')+ ;
+ADDRESS_OF: '&';
 
 FLOAT_NUMBER :  FNUMBER (('E'|'e') ('+' | '-')? FNUMBER)? ;	// sign comes later from unary expression
 fragment FNUMBER :  ('0' .. '9') + ('.' ('0' .. '9') +)? ;
@@ -109,7 +110,7 @@ varinitializer : vardecl '=' expression ;
 
 constdecl: 'const' varinitializer ;
 
-memoryvardecl: 'memory' varinitializer;         // TODO replace 'memory' by '&'
+memoryvardecl: ADDRESS_OF varinitializer;
 
 datatype:  'ubyte' | 'byte' | 'uword' | 'word' | 'float' | 'str' | 'str_s' ;
 
@@ -167,7 +168,7 @@ arrayindexed :  scoped_identifier arrayspec  ;
 
 directmemory : '@' '(' expression ')';
 
-addressof : <assoc=right> '&' scoped_identifier ;
+addressof : <assoc=right> ADDRESS_OF scoped_identifier ;
 
 
 functioncall :	scoped_identifier '(' expression_list? ')'  ;
