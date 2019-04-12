@@ -50,55 +50,58 @@ of the [Vice emulator](http://vice-emu.sourceforge.net/)
 Example code
 ------------
 
-When this code is compiled::
+This code calculates prime numbers using the Sieve of Eratosthenes algorithm::
 
-    %import c64lib
     %import c64utils
-    %import c64flt
+    %zeropage basicsafe
 
     ~ main {
+
+        ubyte[256] sieve
+        ubyte candidate_prime = 2
+
         sub start() {
-            ; set text color and activate lowercase charset
-            c64.COLOR = 13
-            c64.VMCSB |= 2
+            memset(sieve, 256, false)
 
-            ; use optimized routine to write text
-            c64scr.print("Hello!\n")
-
-            ; use iteration to write text
-            str question = "How are you?\n"
-            for ubyte char in question
-                c64.CHROUT(char)
-
-            ; use indexed loop to write characters
-            str bye = "Goodbye!\n"
-            for ubyte c in 0 to len(bye)
-                c64.CHROUT(bye[c])
-
-
-            float clock_seconds = ((mkword(c64.TIME_LO, c64.TIME_MID) as float)
-                                    + (c64.TIME_HI as float)*65536.0)
-                                     / 60
-            float hours = floor(clock_seconds / 3600)
-            clock_seconds -= hours*3600
-            float minutes = floor(clock_seconds / 60)
-            clock_seconds = floor(clock_seconds - minutes * 60.0)
-
-            c64scr.print("system time in ti$ is ")
-            c64flt.print_f(hours)
-            c64.CHROUT(':')
-            c64flt.print_f(minutes)
-            c64.CHROUT(':')
-            c64flt.print_f(clock_seconds)
+            c64scr.print("prime numbers up to 255:\n\n")
+            ubyte amount=0
+            while true {
+                ubyte prime = find_next_prime()
+                if prime==0
+                    break
+                c64scr.print_ub(prime)
+                c64scr.print(", ")
+                amount++
+            }
             c64.CHROUT('\n')
+            c64scr.print("number of primes (expected 54): ")
+            c64scr.print_ub(amount)
+            c64.CHROUT('\n')
+        }
+
+
+        sub find_next_prime() -> ubyte {
+
+            while sieve[candidate_prime] {
+                candidate_prime++
+                if candidate_prime==0
+                    return 0
+            }
+
+            sieve[candidate_prime] = true
+            uword multiple = candidate_prime
+            while multiple < len(sieve) {
+                sieve[lsb(multiple)] = true
+                multiple += candidate_prime
+            }
+            return candidate_prime
         }
     }
 
 
+when compiled an ran on a C-64 you'll get:
 
-you get a program that outputs this when loaded on a C-64:
-
-![c64 screen](docs/source/_static/hello_screen.png)
+![c64 screen](docs/source/_static/primes_example.png)
 
 
 One of the included examples (wizzine.p8) animates a bunch of sprite balloons and looks like this:
