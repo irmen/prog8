@@ -254,7 +254,7 @@ private class VarInitValueAndAddressOfCreator(private val namespace: INameScope)
     }
 
     override fun process(functionCall: FunctionCall): IExpression {
-        val targetStatement = functionCall.target.targetStatement(namespace) as? Subroutine
+        val targetStatement = functionCall.target.targetSubroutine(namespace)
         if(targetStatement!=null) {
             var node: Node = functionCall
             while(node !is IStatement)
@@ -265,7 +265,7 @@ private class VarInitValueAndAddressOfCreator(private val namespace: INameScope)
     }
 
     override fun process(functionCallStatement: FunctionCallStatement): IStatement {
-        val targetStatement = functionCallStatement.target.targetStatement(namespace) as? Subroutine
+        val targetStatement = functionCallStatement.target.targetSubroutine(namespace)
         if(targetStatement!=null)
             addAddressOfExprIfNeeded(targetStatement, functionCallStatement.arglist, functionCallStatement)
         return functionCallStatement
@@ -280,7 +280,7 @@ private class VarInitValueAndAddressOfCreator(private val namespace: INameScope)
                 val idref = argparam.second as? IdentifierReference
                 val strvalue = argparam.second as? LiteralValue
                 if(idref!=null) {
-                    val variable = idref.targetStatement(namespace) as? VarDecl
+                    val variable = idref.targetVarDecl(namespace)
                     if(variable!=null && (variable.datatype in StringDatatypes || variable.datatype in ArrayDatatypes)) {
                         val pointerExpr = AddressOf(idref, idref.position)
                         pointerExpr.scopedname = parent.makeScopedName(idref.nameInSource.single())

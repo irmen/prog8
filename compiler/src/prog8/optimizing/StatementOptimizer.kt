@@ -101,12 +101,12 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
         if(target.memoryAddress!=null)
             return false
         if(target.arrayindexed!=null) {
-            val targetStmt = target.arrayindexed.identifier.targetStatement(namespace) as? VarDecl
+            val targetStmt = target.arrayindexed.identifier.targetVarDecl(namespace)
             if(targetStmt!=null)
                 return targetStmt.type!=VarDeclType.MEMORY
         }
         if(target.identifier!=null) {
-            val targetStmt = target.identifier.targetStatement(namespace) as? VarDecl
+            val targetStmt = target.identifier.targetVarDecl(namespace)
             if(targetStmt!=null)
                 return targetStmt.type!=VarDeclType.MEMORY
         }
@@ -156,7 +156,7 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
         // if it calls a subroutine,
         // and the first instruction in the subroutine is a jump, call that jump target instead
         // if the first instruction in the subroutine is a return statement, replace with a nop instruction
-        val subroutine = functionCallStatement.target.targetStatement(namespace) as? Subroutine
+        val subroutine = functionCallStatement.target.targetSubroutine(namespace)
         if(subroutine!=null) {
             val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
             if(first is Jump && first.identifier!=null) {
@@ -176,7 +176,7 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
         // if it calls a subroutine,
         // and the first instruction in the subroutine is a jump, call that jump target instead
         // if the first instruction in the subroutine is a return statement with constant value, replace with the constant value
-        val subroutine = functionCall.target.targetStatement(namespace) as? Subroutine
+        val subroutine = functionCall.target.targetSubroutine(namespace)
         if(subroutine!=null) {
             val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
             if(first is Jump && first.identifier!=null) {
@@ -341,7 +341,7 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
     }
 
     override fun process(jump: Jump): IStatement {
-        val subroutine = jump.identifier?.targetStatement(namespace) as? Subroutine
+        val subroutine = jump.identifier?.targetSubroutine(namespace)
         if(subroutine!=null) {
             // if the first instruction in the subroutine is another jump, shortcut this one
             val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
@@ -380,7 +380,7 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
                     if (same(target, bexpr.left)) {
                         // remove assignments that have no effect  X=X , X+=0, X-=0, X*=1, X/=1, X//=1, A |= 0, A ^= 0, A<<=0, etc etc
                         // A = A <operator> B
-                        val vardeclDt = (target.identifier?.targetStatement(namespace) as? VarDecl)?.type
+                        val vardeclDt = (target.identifier?.targetVarDecl(namespace))?.type
 
                         when (bexpr.operator) {
                             "+" -> {

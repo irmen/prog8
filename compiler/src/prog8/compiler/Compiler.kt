@@ -818,7 +818,7 @@ internal class Compiler(private val rootModule: Module,
             "any", "all" -> {
                 // 1 array argument, type determines the exact syscall to use
                 val arg=args.single() as IdentifierReference
-                val target=arg.targetStatement(namespace) as VarDecl
+                val target=arg.targetVarDecl(namespace)!!
                 val length=Value(DataType.UBYTE, target.arrayspec!!.size()!!)
                 prog.instr(Opcode.PUSH_BYTE, length)
                 when (arg.resultingDatatype(namespace, heap)) {
@@ -831,7 +831,7 @@ internal class Compiler(private val rootModule: Module,
             "avg" -> {
                 // 1 array argument, type determines the exact syscall to use
                 val arg=args.single() as IdentifierReference
-                val target=arg.targetStatement(namespace) as VarDecl
+                val target=arg.targetVarDecl(namespace)!!
                 val length=Value(DataType.UBYTE, target.arrayspec!!.size()!!)
                 val arrayDt=arg.resultingDatatype(namespace, heap)
                 prog.instr(Opcode.PUSH_BYTE, length)
@@ -862,7 +862,7 @@ internal class Compiler(private val rootModule: Module,
             "min", "max", "sum" -> {
                 // 1 array argument, type determines the exact syscall to use
                 val arg=args.single() as IdentifierReference
-                val target=arg.targetStatement(namespace) as VarDecl
+                val target=arg.targetVarDecl(namespace)!!
                 val length=Value(DataType.UBYTE, target.arrayspec!!.size()!!)
                 prog.instr(Opcode.PUSH_BYTE, length)
                 when (arg.resultingDatatype(namespace, heap)) {
@@ -1383,7 +1383,7 @@ internal class Compiler(private val rootModule: Module,
     }
 
     private fun translate(arrayindexed: ArrayIndexedExpression, write: Boolean) {
-        val variable = arrayindexed.identifier.targetStatement(namespace) as VarDecl
+        val variable = arrayindexed.identifier.targetVarDecl(namespace)!!
         translate(arrayindexed.arrayspec.x)
         if (write)
             prog.instr(opcodeWriteindexedvar(variable.datatype), callLabel = variable.scopedname)
@@ -1434,14 +1434,14 @@ internal class Compiler(private val rootModule: Module,
                 "--" -> prog.instr(Opcode.DEC_VAR_UB, callLabel = stmt.target.register!!.name)
             }
             stmt.target.identifier != null -> {
-                val targetStatement = stmt.target.identifier!!.targetStatement(namespace) as VarDecl
+                val targetStatement = stmt.target.identifier!!.targetVarDecl(namespace)!!
                 when(stmt.operator) {
                     "++" -> prog.instr(opcodeIncvar(targetStatement.datatype), callLabel = targetStatement.scopedname)
                     "--" -> prog.instr(opcodeDecvar(targetStatement.datatype), callLabel = targetStatement.scopedname)
                 }
             }
             stmt.target.arrayindexed != null -> {
-                val variable = stmt.target.arrayindexed!!.identifier.targetStatement(namespace) as VarDecl
+                val variable = stmt.target.arrayindexed!!.identifier.targetVarDecl(namespace)!!
                 translate(stmt.target.arrayindexed!!.arrayspec.x)
                 when(stmt.operator) {
                     "++" -> prog.instr(opcodeIncArrayindexedVar(variable.datatype), callLabel = variable.scopedname)
@@ -1501,7 +1501,7 @@ internal class Compiler(private val rootModule: Module,
                         DataType.STR, DataType.STR_S -> pushHeapVarAddress(stmt.value, true)
                         DataType.ARRAY_B, DataType.ARRAY_UB, DataType.ARRAY_W, DataType.ARRAY_UW, DataType.ARRAY_F -> {
                             if (stmt.value is IdentifierReference) {
-                                val vardecl = (stmt.value as IdentifierReference).targetStatement(namespace) as VarDecl
+                                val vardecl = (stmt.value as IdentifierReference).targetVarDecl(namespace)!!
                                 prog.removeLastInstruction()
                                 prog.instr(Opcode.PUSH_ADDR_HEAPVAR, callLabel = vardecl.scopedname)
                             }
@@ -1538,7 +1538,7 @@ internal class Compiler(private val rootModule: Module,
         when (value) {
             is LiteralValue -> throw CompilerException("can only push address of string or array (value on the heap)")
             is IdentifierReference -> {
-                val vardecl = value.targetStatement(namespace) as VarDecl
+                val vardecl = value.targetVarDecl(namespace)!!
                 if(removeLastOpcode) prog.removeLastInstruction()
                 prog.instr(Opcode.PUSH_ADDR_HEAPVAR, callLabel = vardecl.scopedname)
             }
@@ -1550,7 +1550,7 @@ internal class Compiler(private val rootModule: Module,
         when (value) {
             is LiteralValue -> throw CompilerException("can only push address of float that is a variable on the heap")
             is IdentifierReference -> {
-                val vardecl = value.targetStatement(namespace) as VarDecl
+                val vardecl = value.targetVarDecl(namespace)!!
                 prog.instr(Opcode.PUSH_ADDR_HEAPVAR, callLabel = vardecl.scopedname)
             }
             else -> throw CompilerException("can only take address of a the float as constant literal or variable")
@@ -1629,7 +1629,7 @@ internal class Compiler(private val rootModule: Module,
             loopVarName = reg.name
             loopVarDt = DataType.UBYTE
         } else {
-            val loopvar = (loop.loopVar!!.targetStatement(namespace) as VarDecl)
+            val loopvar = loop.loopVar!!.targetVarDecl(namespace)!!
             loopVarName = loopvar.scopedname
             loopVarDt = loopvar.datatype
         }
@@ -1678,7 +1678,7 @@ internal class Compiler(private val rootModule: Module,
             when {
                 loop.iterable is IdentifierReference -> {
                     val idRef = loop.iterable as IdentifierReference
-                    val vardecl = (idRef.targetStatement(namespace) as VarDecl)
+                    val vardecl = idRef.targetVarDecl(namespace)!!
                     val iterableValue = vardecl.value as LiteralValue
                     if(!iterableValue.isIterable(namespace, heap))
                         throw CompilerException("loop over something that isn't iterable ${loop.iterable}")
@@ -1942,7 +1942,7 @@ internal class Compiler(private val rootModule: Module,
         lvTarget.linkParents(body)
         val targetStatement: VarDecl? =
                 if(lvTarget.identifier!=null) {
-                    lvTarget.identifier.targetStatement(namespace) as VarDecl
+                    lvTarget.identifier.targetVarDecl(namespace)
                 } else {
                     null
                 }
@@ -2138,7 +2138,7 @@ internal class Compiler(private val rootModule: Module,
     }
 
     private fun translate(addrof: AddressOf) {
-        val target = addrof.identifier.targetStatement(namespace) as VarDecl
+        val target = addrof.identifier.targetVarDecl(namespace)!!
         if(target.datatype in ArrayDatatypes || target.datatype in StringDatatypes|| target.datatype==DataType.FLOAT) {
             pushHeapVarAddress(addrof.identifier, false)
         }

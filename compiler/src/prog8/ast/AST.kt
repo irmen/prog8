@@ -1410,12 +1410,14 @@ class RegisterExpr(val register: Register, override val position: Position) : IE
 data class IdentifierReference(val nameInSource: List<String>, override val position: Position) : IExpression {
     override lateinit var parent: Node
 
-    // TODO make a shortcut for idref.targetStatement(namespace) as VarDecl
     fun targetStatement(namespace: INameScope) =
         if(nameInSource.size==1 && nameInSource[0] in BuiltinFunctions)
             BuiltinFunctionStatementPlaceholder(nameInSource[0], position)
         else
             namespace.lookup(nameInSource, this)
+
+    fun targetVarDecl(namespace: INameScope): VarDecl? = targetStatement(namespace) as? VarDecl
+    fun targetSubroutine(namespace: INameScope): Subroutine? = targetStatement(namespace) as? Subroutine
 
     override fun linkParents(parent: Node) {
         this.parent = parent

@@ -156,7 +156,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
     }
 
     private fun typeCastConstArguments(functionCall: IFunctionCall) {
-        val subroutine = functionCall.target.targetStatement(namespace) as? Subroutine
+        val subroutine = functionCall.target.targetSubroutine(namespace)
         if(subroutine!=null) {
             // if types differ, try to typecast constant arguments to the function call to the desired data type of the parameter
             for(arg in functionCall.arglist.withIndex().zip(subroutine.parameters)) {
@@ -493,7 +493,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
         val rangeTo = iterableRange.to as? LiteralValue
         if(rangeFrom==null || rangeTo==null) return resultStmt
 
-        val loopvar = resultStmt.loopVar!!.targetStatement(namespace) as? VarDecl
+        val loopvar = resultStmt.loopVar!!.targetVarDecl(namespace)
         if(loopvar!=null) {
             val stepLiteral = iterableRange.step as? LiteralValue
             when(loopvar.datatype) {

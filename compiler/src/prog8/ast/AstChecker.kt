@@ -150,7 +150,7 @@ private class AstChecker(private val namespace: INameScope,
                     checkResult.add(ExpressionError("register can only loop over bytes", forLoop.position))
             } else {
                 // loop variable
-                val loopvar = forLoop.loopVar!!.targetStatement(namespace) as? VarDecl
+                val loopvar = forLoop.loopVar!!.targetVarDecl(namespace)
                 if(loopvar==null || loopvar.type==VarDeclType.CONST) {
                     checkResult.add(SyntaxError("for loop requires a variable to loop with", forLoop.position))
 
@@ -456,7 +456,7 @@ private class AstChecker(private val namespace: INameScope,
     }
 
     override fun process(addressOf: AddressOf): IExpression {
-        val variable=addressOf.identifier.targetStatement(namespace) as? VarDecl
+        val variable=addressOf.identifier.targetVarDecl(namespace)
         if(variable==null)
             checkResult.add(ExpressionError("pointer-of operand must be the name of a heap variable", addressOf.position))
         else {

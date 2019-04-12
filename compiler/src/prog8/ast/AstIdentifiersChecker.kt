@@ -232,7 +232,7 @@ private class AstIdentifiersChecker(private val namespace: INameScope) : IAstPro
 
     override fun process(addressOf: AddressOf): IExpression {
         // register the scoped name of the referenced identifier
-        val variable= addressOf.identifier.targetStatement(namespace) as? VarDecl ?: return addressOf
+        val variable= addressOf.identifier.targetVarDecl(namespace) ?: return addressOf
         addressOf.scopedname = variable.scopedname
         return super.process(addressOf)
     }
