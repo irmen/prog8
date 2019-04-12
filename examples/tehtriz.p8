@@ -416,25 +416,11 @@ waitkey:
                         0,0,0,0,
                         0,0,0,0]
 
-    ; @todo use the '&' operator to create an array of pointers and use that, like so:
-    ;  uword[7] blocks = [&blockI, &blockJ, &blockL, &blockO, &blockS, &blockT, &blockZ]
+    uword[7] blocks = [&blockI, &blockJ, &blockL, &blockO, &blockS, &blockT, &blockZ]
 
     sub newCurrentBlock(ubyte block) {
         currentBlockNum = block
-        if block==0
-            memcopy(blockI, currentBlock, len(currentBlock))
-        else if block==1
-            memcopy(blockJ, currentBlock, len(currentBlock))
-        else if block==2
-            memcopy(blockL, currentBlock, len(currentBlock))
-        else if block==3
-            memcopy(blockO, currentBlock, len(currentBlock))
-        else if block==4
-            memcopy(blockS, currentBlock, len(currentBlock))
-        else if block==5
-            memcopy(blockT, currentBlock, len(currentBlock))
-        else if block==6
-            memcopy(blockZ, currentBlock, len(currentBlock))
+        memcopy(blocks[block], currentBlock, len(currentBlock))
     }
 
     sub rotateCW() {
