@@ -339,7 +339,7 @@ private fun builtinLen(args: List<IExpression>, position: Position, namespace:IN
     var argument = args[0].constValue(namespace, heap)
     if(argument==null) {
         if(args[0] !is IdentifierReference)
-            throw SyntaxError("len over weird argument ${args[0]}", position)
+            throw SyntaxError("len argument should be an identifier, but is ${args[0]}", position)
         val target = (args[0] as IdentifierReference).targetStatement(namespace)
         val argValue = (target as? VarDecl)?.value
         argument = argValue?.constValue(namespace, heap)

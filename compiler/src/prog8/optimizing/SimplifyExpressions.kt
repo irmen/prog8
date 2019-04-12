@@ -18,6 +18,22 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
         return super.process(assignment)
     }
 
+    override fun process(memread: DirectMemoryRead): IExpression {
+        // @( &thing )  -->  thing
+        val addrOf = memread.addressExpression as? AddressOf
+        if(addrOf!=null)
+            return super.process(addrOf.identifier)
+        return super.process(memread)
+    }
+
+    override fun process(memwrite: DirectMemoryWrite): IExpression {
+        // @( &thing )  -->  thing
+        val addrOf = memwrite.addressExpression as? AddressOf
+        if(addrOf!=null)
+            return super.process(addrOf.identifier)
+        return super.process(memwrite)
+    }
+
     override fun process(expr: PrefixExpression): IExpression {
         if (expr.operator == "+") {
             // +X --> X

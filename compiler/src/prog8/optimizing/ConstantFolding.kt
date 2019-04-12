@@ -173,6 +173,21 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
         }
     }
 
+    override fun process(memread: DirectMemoryRead): IExpression {
+        // @( &thing )  -->  thing
+        val addrOf = memread.addressExpression as? AddressOf
+        if(addrOf!=null)
+            return super.process(addrOf.identifier)
+        return super.process(memread)
+    }
+
+    override fun process(memwrite: DirectMemoryWrite): IExpression {
+        // @( &thing )  -->  thing
+        val addrOf = memwrite.addressExpression as? AddressOf
+        if(addrOf!=null)
+            return super.process(addrOf.identifier)
+        return super.process(memwrite)
+    }
 
     /**
      * Try to process a unary prefix expression.
@@ -673,5 +688,3 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
         return assignment
     }
 }
-
-
