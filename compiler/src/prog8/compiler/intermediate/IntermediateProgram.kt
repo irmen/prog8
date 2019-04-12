@@ -69,7 +69,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         optimizeMultipleSequentialLineInstrs()
         optimizeCallReturnIntoJump()
         optimizeConditionalBranches()
-        // todo: add more optimizations to intermediate code! such as:  pop X + push X  ->  peek X  (might require new opcodes)
+        // todo: add more optimizations to intermediate code!
 
         optimizeRemoveNops()    //  must be done as the last step
         optimizeMultipleSequentialLineInstrs()      // once more
