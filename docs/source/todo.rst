@@ -60,7 +60,7 @@ of values together (and use it multiple times). Something like::
 
     struct Point {
         ubyte   color
-        word[3] vec = [0,0,0]
+        word[] vec = [0,0,0]
     }
 
     Point p1

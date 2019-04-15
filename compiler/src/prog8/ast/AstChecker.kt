@@ -492,7 +492,7 @@ private class AstChecker(private val namespace: INameScope,
             checkResult.add(SyntaxError("floating point used, but that is not enabled via options", decl.position))
         }
 
-        // ARRAY without size specifier MUST have an initializer value
+        // ARRAY without size specifier MUST have an iterable initializer value
         if(decl.isUnsizedArray) {
             if(decl.type==VarDeclType.MEMORY)
                 checkResult.add(SyntaxError("memory mapped array must have a size specification", decl.position))
@@ -500,6 +500,12 @@ private class AstChecker(private val namespace: INameScope,
                 checkResult.add(SyntaxError("array variable is missing a size specification or an initialization value", decl.position))
                 return decl
             }
+            if(decl.value is LiteralValue && !(decl.value as LiteralValue).isArray) {
+                checkResult.add(SyntaxError("unsized array declaration cannot use a single literal initialization value", decl.position))
+                return decl
+            }
+            if(decl.value is RangeExpr)
+                throw FatalAstException("range expressions in vardecls should have been converted into array values during constFolding  $decl")
         }
 
         when(decl.type) {

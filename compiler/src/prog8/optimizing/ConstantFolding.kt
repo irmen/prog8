@@ -45,6 +45,24 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                     }
                 }
                 DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
+                    val rangeExpr = decl.value as? RangeExpr
+                    if(rangeExpr!=null) {
+                        // convert the initializer range expression to an actual array
+                        val constRange = rangeExpr.toConstantIntegerRange(heap)
+                        if(constRange!=null) {
+                            val eltType = rangeExpr.resultingDatatype(namespace, heap)!!
+                            if(eltType in ByteDatatypes) {
+                                decl.value = LiteralValue(decl.datatype,
+                                        arrayvalue = constRange.map { LiteralValue(eltType, bytevalue=it.toShort(), position = decl.value!!.position ) }
+                                                .toTypedArray(), position=decl.value!!.position)
+                            } else {
+                                decl.value = LiteralValue(decl.datatype,
+                                        arrayvalue = constRange.map { LiteralValue(eltType, wordvalue= it, position = decl.value!!.position ) }
+                                                .toTypedArray(), position=decl.value!!.position)
+                            }
+                            decl.value!!.linkParents(decl)
+                        }
+                    }
                     if(litval?.type==DataType.FLOAT)
                         errors.add(ExpressionError("arraysize requires only integers here", litval.position))
                     if(decl.arraysize==null)
