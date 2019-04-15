@@ -59,6 +59,10 @@ ZEROPAGE :
     '@zp'
     ;
 
+ARRAYSIG :
+    '[]'
+    ;
+
 
 module :  (modulestatement | EOL)* EOF ;
 
@@ -104,7 +108,7 @@ directive :
 
 directivearg : stringliteral | identifier | integerliteral ;
 
-vardecl: datatype ZEROPAGE? arrayspec? identifier ;
+vardecl: datatype ZEROPAGE? (arrayindex | ARRAYSIG) ? identifier ;
 
 varinitializer : vardecl '=' expression ;
 
@@ -114,7 +118,7 @@ memoryvardecl: ADDRESS_OF varinitializer;
 
 datatype:  'ubyte' | 'byte' | 'uword' | 'word' | 'float' | 'str' | 'str_s' ;
 
-arrayspec:  '[' expression ']' ;
+arrayindex:  '[' expression ']' ;
 
 assignment :  assign_targets '=' expression ;
 
@@ -164,7 +168,7 @@ expression :
 typecast : 'as' datatype;
 
 
-arrayindexed :  scoped_identifier arrayspec  ;
+arrayindexed :  scoped_identifier arrayindex  ;
 
 directmemory : '@' '(' expression ')';
 

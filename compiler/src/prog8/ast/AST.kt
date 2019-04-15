@@ -156,7 +156,7 @@ interface IAstProcessor {
 
     fun process(decl: VarDecl): IStatement {
         decl.value = decl.value?.process(this)
-        decl.arrayspec?.process(this)
+        decl.arraysize?.process(this)
         return decl
     }
 
@@ -628,30 +628,30 @@ class Break(override val position: Position) : IStatement {
 }
 
 
-class ArraySpec(var x: IExpression, override val position: Position) : Node {
+class ArrayIndex(var index: IExpression, override val position: Position) : Node {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
-        x.linkParents(this)
+        index.linkParents(this)
     }
 
     companion object {
-        fun forArray(v: LiteralValue, heap: HeapValues): ArraySpec {
+        fun forArray(v: LiteralValue, heap: HeapValues): ArrayIndex {
             val arraySize = v.arrayvalue?.size ?: heap.get(v.heapId!!).arraysize
-            return ArraySpec(LiteralValue.optimalNumeric(arraySize, v.position), v.position)
+            return ArrayIndex(LiteralValue.optimalNumeric(arraySize, v.position), v.position)
         }
     }
 
     fun process(processor: IAstProcessor) {
-        x = x.process(processor)
+        index = index.process(processor)
     }
 
     override fun toString(): String {
-        return("ArraySpec($x, pos=$position)")
+        return("ArrayIndex($index, pos=$position)")
     }
 
-    fun size() = (x as? LiteralValue)?.asIntegerValue
+    fun size() = (index as? LiteralValue)?.asIntegerValue
 }
 
 
@@ -664,7 +664,8 @@ enum class VarDeclType {
 class VarDecl(val type: VarDeclType,
               private val declaredDatatype: DataType,
               val zeropage: Boolean,
-              val arrayspec: ArraySpec?,
+              val arraysize: ArrayIndex?,
+              val isUnsizedArray: Boolean,
               val name: String,
               var value: IExpression?,
               override val position: Position) : IStatement {
@@ -672,7 +673,7 @@ class VarDecl(val type: VarDeclType,
 
     val datatypeErrors = mutableListOf<SyntaxError>()       // don't crash at init time, report them in the AstChecker
     val datatype =
-            if (arrayspec == null) declaredDatatype
+            if (arraysize == null && !isUnsizedArray) declaredDatatype
             else when (declaredDatatype) {
                 DataType.UBYTE -> DataType.ARRAY_UB
                 DataType.BYTE -> DataType.ARRAY_B
@@ -687,7 +688,7 @@ class VarDecl(val type: VarDeclType,
 
     override fun linkParents(parent: Node) {
         this.parent = parent
-        arrayspec?.linkParents(this)
+        arraysize?.linkParents(this)
         value?.linkParents(this)
     }
 
@@ -708,7 +709,7 @@ class VarDecl(val type: VarDeclType,
             DataType.FLOAT -> LiteralValue(DataType.FLOAT, floatvalue=0.0, position=position)
             else -> throw FatalAstException("can only set a default value for a numeric type")
         }
-        val decl = VarDecl(type, declaredDatatype, zeropage, arrayspec, name, constValue, position)
+        val decl = VarDecl(type, declaredDatatype, zeropage, arraysize, isUnsizedArray, name, constValue, position)
         if(parent!=null)
             decl.linkParents(parent)
         return decl
@@ -951,7 +952,7 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
 }
 
 class ArrayIndexedExpression(val identifier: IdentifierReference,
-                             var arrayspec: ArraySpec,
+                             var arrayspec: ArrayIndex,
                              override val position: Position) : IExpression {
     override lateinit var parent: Node
     override fun linkParents(parent: Node) {
@@ -983,7 +984,7 @@ class ArrayIndexedExpression(val identifier: IdentifierReference,
     }
 
     override fun toString(): String {
-        return "ArrayIndexed(ident=$identifier, arrayspec=$arrayspec; pos=$position)"
+        return "ArrayIndexed(ident=$identifier, arraysize=$arrayspec; pos=$position)"
     }
 }
 
@@ -1186,8 +1187,8 @@ class LiteralValue(val type: DataType,
                 else "str:$initialstrvalue"
             }
             in ArrayDatatypes -> {
-                if(heapId!=null) "arrayspec:#$heapId"
-                else "arrayspec:$arrayvalue"
+                if(heapId!=null) "array:#$heapId"
+                else "array:$arrayvalue"
             }
             else -> throw FatalAstException("weird datatype")
         }
@@ -1855,40 +1856,47 @@ private fun prog8Parser.StatementContext.toAst() : IStatement {
         return VarDecl(VarDeclType.VAR,
                 it.datatype().toAst(),
                 it.ZEROPAGE()!=null,
-                it.arrayspec()?.toAst(),
+                it.arrayindex()?.toAst(),
+                it.ARRAYSIG()!=null,
                 it.identifier().text,
                 null,
                 it.toPosition())
     }
 
     varinitializer()?.let {
+        val vd = it.vardecl()
         return VarDecl(VarDeclType.VAR,
-                it.vardecl().datatype().toAst(),
-                it.vardecl().ZEROPAGE()!=null,
-                it.vardecl().arrayspec()?.toAst(),
-                it.vardecl().identifier().text,
+                vd.datatype().toAst(),
+                vd.ZEROPAGE()!=null,
+                vd.arrayindex()?.toAst(),
+                vd.ARRAYSIG()!=null,
+                vd.identifier().text,
                 it.expression().toAst(),
                 it.toPosition())
     }
 
     constdecl()?.let {
         val cvarinit = it.varinitializer()
+        val vd = cvarinit.vardecl()
         return VarDecl(VarDeclType.CONST,
-                cvarinit.vardecl().datatype().toAst(),
-                cvarinit.vardecl().ZEROPAGE()!=null,
-                cvarinit.vardecl().arrayspec()?.toAst(),
-                cvarinit.vardecl().identifier().text,
+                vd.datatype().toAst(),
+                vd.ZEROPAGE()!=null,
+                vd.arrayindex()?.toAst(),
+                vd.ARRAYSIG()!=null,
+                vd.identifier().text,
                 cvarinit.expression().toAst(),
                 cvarinit.toPosition())
     }
 
     memoryvardecl()?.let {
         val mvarinit = it.varinitializer()
+        val vd = mvarinit.vardecl()
         return VarDecl(VarDeclType.MEMORY,
-                mvarinit.vardecl().datatype().toAst(),
-                mvarinit.vardecl().ZEROPAGE()!=null,
-                mvarinit.vardecl().arrayspec()?.toAst(),
-                mvarinit.vardecl().identifier().text,
+                vd.datatype().toAst(),
+                vd.ZEROPAGE()!=null,
+                vd.arrayindex()?.toAst(),
+                vd.ARRAYSIG()!=null,
+                vd.identifier().text,
                 mvarinit.expression().toAst(),
                 mvarinit.toPosition())
     }
@@ -2084,8 +2092,8 @@ private fun prog8Parser.DatatypeContext.toAst() = DataType.valueOf(text.toUpperC
 private fun prog8Parser.RegisterorpairContext.toAst() = RegisterOrPair.valueOf(text.toUpperCase())
 
 
-private fun prog8Parser.ArrayspecContext.toAst() : ArraySpec =
-        ArraySpec(expression().toAst(), toPosition())
+private fun prog8Parser.ArrayindexContext.toAst() : ArrayIndex =
+        ArrayIndex(expression().toAst(), toPosition())
 
 
 private fun prog8Parser.DirectiveContext.toAst() : Directive =
@@ -2178,7 +2186,7 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
                 }
                 litval.arrayliteral()!=null -> {
                     val array = litval.arrayliteral()?.toAst()
-                    // the actual type of the arrayspec can not yet be determined here (missing namespace & heap)
+                    // the actual type of the arraysize can not yet be determined here (missing namespace & heap)
                     // the ConstantFolder takes care of that and converts the type if needed.
                     LiteralValue(DataType.ARRAY_UB, arrayvalue = array, position = litval.toPosition())
                 }
@@ -2228,7 +2236,7 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
 
 private fun prog8Parser.ArrayindexedContext.toAst(): ArrayIndexedExpression {
     return ArrayIndexedExpression(scoped_identifier().toAst(),
-            arrayspec().toAst(),
+            arrayindex().toAst(),
             toPosition())
 }
 

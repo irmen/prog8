@@ -118,7 +118,7 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, namespa
             if(arglist.type==DataType.ARRAY_UB || arglist.type==DataType.ARRAY_UW || arglist.type==DataType.ARRAY_F) {
                 val dt = arglist.arrayvalue!!.map {it.resultingDatatype(namespace, heap)}
                 if(dt.any { it!=DataType.UBYTE && it!=DataType.UWORD && it!=DataType.FLOAT}) {
-                    throw FatalAstException("fuction $function only accepts arrayspec of numeric values")
+                    throw FatalAstException("fuction $function only accepts arraysize of numeric values")
                 }
                 if(dt.any { it==DataType.FLOAT }) return DataType.FLOAT
                 if(dt.any { it==DataType.UWORD }) return DataType.UWORD
@@ -338,6 +338,12 @@ private fun builtinLen(args: List<IExpression>, position: Position, namespace:IN
         throw SyntaxError("len requires one argument", position)
     var argument = args[0].constValue(namespace, heap)
     if(argument==null) {
+        val directMemVar = ((args[0] as? DirectMemoryRead)?.addressExpression as? IdentifierReference)?.targetVarDecl(namespace)
+        if(directMemVar?.arraysize != null) {
+            val csize = directMemVar.arraysize.size()
+            if(csize!=null)
+                return LiteralValue.optimalInteger(csize, position)
+        }
         if(args[0] !is IdentifierReference)
             throw SyntaxError("len argument should be an identifier, but is ${args[0]}", position)
         val target = (args[0] as IdentifierReference).targetStatement(namespace)

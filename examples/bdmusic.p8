@@ -56,7 +56,7 @@ sub start() {
     ; details about the boulderdash music can be found here:
     ; https://www.elmerproductions.com/sp/peterb/sounds.html#Theme%20tune
 
-    uword[128] notes = [
+    uword[] notes = [
         $1622, $1d26, $2229, $252e, $1424, $1f27, $2029, $2730,
         $122a, $122c, $1e2e, $1231, $202c, $3337, $212d, $3135,
         $1622, $162e, $161d, $1624, $1420, $1430, $1424, $1420,
@@ -76,7 +76,7 @@ sub start() {
     ]
 
 
-    uword[59] music_freq_table = [
+    uword[] music_freq_table = [
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         732, 778, 826, 876, 928, 978, 1042, 1100, 1170, 1238, 1312, 1390, 1464, 1556,
         1652, 1752, 1856, 1956, 2084, 2200, 2340, 2476, 2624, 2780, 2928, 3112, 3304,

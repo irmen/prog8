@@ -75,5 +75,4 @@ Misc
 ^^^^
 
 - implement %asmbinary
-- make the array size optional in the var decl if an initialization array is given
 - are there any other missing instructions in the code generator?

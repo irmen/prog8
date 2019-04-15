@@ -25,7 +25,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
 
     override fun process(decl: VarDecl): IStatement {
         // the initializer value can't refer to the variable itself (recursive definition)
-        if(decl.value?.referencesIdentifier(decl.name) == true || decl.arrayspec?.x?.referencesIdentifier(decl.name) == true) {
+        if(decl.value?.referencesIdentifier(decl.name) == true || decl.arraysize?.index?.referencesIdentifier(decl.name) == true) {
             errors.add(ExpressionError("recursive var declaration", decl.position))
             return decl
         }
@@ -46,10 +46,12 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                 }
                 DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
                     if(litval?.type==DataType.FLOAT)
-                        errors.add(ExpressionError("arrayspec requires only integers here", litval.position))
-                    val size = decl.arrayspec!!.size()
+                        errors.add(ExpressionError("arraysize requires only integers here", litval.position))
+                    if(decl.arraysize==null)
+                        return decl
+                    val size = decl.arraysize.size()
                     if ((litval==null || !litval.isArray) && size != null) {
-                        // arrayspec initializer is empty or a single int, and we know the size; create the arrayspec.
+                        // arraysize initializer is empty or a single int, and we know the size; create the arraysize.
                         val fillvalue = if (litval == null) 0 else litval.asIntegerValue ?: 0
                         when(decl.datatype){
                             DataType.ARRAY_UB -> {
@@ -75,9 +77,11 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                     }
                 }
                 DataType.ARRAY_F  -> {
-                    val size = decl.arrayspec!!.size()
+                    if(decl.arraysize==null)
+                        return decl
+                    val size = decl.arraysize.size()
                     if ((litval==null || !litval.isArray) && size != null) {
-                        // arrayspec initializer is empty or a single int, and we know the size; create the arrayspec.
+                        // arraysize initializer is empty or a single int, and we know the size; create the arraysize.
                         val fillvalue = if (litval == null) 0.0 else litval.asNumericValue?.toDouble() ?: 0.0
                         if(fillvalue< FLOAT_MAX_NEGATIVE || fillvalue> FLOAT_MAX_POSITIVE)
                             errors.add(ExpressionError("float value overflow", litval?.position ?: decl.position))
@@ -116,7 +120,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                     decl.value = LiteralValue(decl.datatype, heapId = heapId, position = litval.position)
                 }
             }
-            else -> throw AstException("invalid array vardecl type")
+            else -> throw FatalAstException("invalid array vardecl type ${decl.datatype}")
         }
     }
 
@@ -615,7 +619,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                 DataType.ARRAY_UW,
                 DataType.ARRAY_W -> heap.addIntegerArray(arrayDt, integerArray.map { IntegerOrAddressOf(it, null) }.toTypedArray())
                 DataType.ARRAY_F -> heap.addDoublesArray(doubleArray)
-                else -> throw CompilerException("invalid arrayspec type")
+                else -> throw CompilerException("invalid arraysize type")
             }
             return LiteralValue(arrayDt, heapId = heapId, position = arraylit.position)
         }

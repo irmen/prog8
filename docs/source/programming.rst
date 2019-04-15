@@ -237,9 +237,9 @@ Arrays
 ^^^^^^
 Array types are also supported. They can be made of bytes, words or floats::
 
-    byte[4]  array = [1, 2, 3, 4]     ; initialize the array
-    byte[99] array = 255              ; initialize array with all 255's [255, 255, 255, 255, ...]
-    byte[100] array = 100 to 199      ; initialize array with [100, 101, ..., 198, 199]
+    byte[]  array = [1, 2, 3, 4]      ; initialize the array, size taken from value
+    byte[99] array = 255              ; initialize array with 99 times 255 [255, 255, 255, 255, ...]
+    byte[] array = 100 to 199         ; initialize array with [100, 101, ..., 198, 199]
 
     value = array[3]            ; the fourth value in the array (index is 0-based)
     char = string[4]            ; the fifth character (=byte) in the string

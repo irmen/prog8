@@ -18,7 +18,7 @@
 ~ irq {
 
     const ubyte barheight = 4
-    ubyte[13] colors = [6,2,4,5,15,7,1,13,3,12,8,11,9]
+    ubyte[] colors = [6,2,4,5,15,7,1,13,3,12,8,11,9]
     ubyte color = 0
     ubyte ypos = 0
 

@@ -1622,7 +1622,7 @@ class StackVm(private var traceOutputFile: String?) {
                                 // assume the variable is a pointer (address) and get the ubyte value from that memory location
                                 Value(DataType.UBYTE, mem.getUByte(variable.integerValue()))
                             } else {
-                                // get indexed byte element from the arrayspec
+                                // get indexed byte element from the arraysize
                                 val array = heap.get(variable.heapId)
                                 when (array.type) {
                                     DataType.ARRAY_UB -> Value(DataType.UBYTE, array.array!![index].integer!!)
@@ -1645,7 +1645,7 @@ class StackVm(private var traceOutputFile: String?) {
                             when(variable.second) {
                                 DataType.ARRAY_UW -> Value(DataType.UWORD, mem.getUWord(address))
                                 DataType.ARRAY_W -> Value(DataType.WORD, mem.getSWord(address))
-                                else -> throw VmExecutionException("not a proper arrayspec var with word elements")
+                                else -> throw VmExecutionException("not a proper arraysize var with word elements")
                             }
                         } else {
                             // normal variable
@@ -1654,7 +1654,7 @@ class StackVm(private var traceOutputFile: String?) {
                                 // assume the variable is a pointer (address) and get the word value from that memory location
                                 Value(DataType.UWORD, mem.getUWord(variable.integerValue()))
                             } else {
-                                // get indexed word element from the arrayspec
+                                // get indexed word element from the arraysize
                                 val array = heap.get(variable.heapId)
                                 when(array.type){
                                     DataType.ARRAY_UW -> {
@@ -1671,7 +1671,7 @@ class StackVm(private var traceOutputFile: String?) {
                                         }
                                     }
                                     DataType.ARRAY_W -> Value(DataType.WORD, array.array!![index].integer!!)
-                                    else -> throw VmExecutionException("not a proper arrayspec var with word elements")
+                                    else -> throw VmExecutionException("not a proper arraysize var with word elements")
                                 }
                             }
                         }
@@ -1688,17 +1688,17 @@ class StackVm(private var traceOutputFile: String?) {
                             if(variable.second==DataType.ARRAY_F)
                                 Value(DataType.FLOAT, mem.getFloat(address))
                             else
-                                throw VmExecutionException("not a proper arrayspec var with float elements")
+                                throw VmExecutionException("not a proper arraysize var with float elements")
                         } else {
                             val variable = getVar(ins.callLabel!!)
                             if (variable.type == DataType.UWORD) {
                                 // assume the variable is a pointer (address) and get the float value from that memory location
                                 Value(DataType.UWORD, mem.getFloat(variable.integerValue()))
                             } else {
-                                // get indexed float element from the arrayspec
+                                // get indexed float element from the arraysize
                                 val array = heap.get(variable.heapId)
                                 if (array.type != DataType.ARRAY_F)
-                                    throw VmExecutionException("not a proper arrayspec var with float elements")
+                                    throw VmExecutionException("not a proper arraysize var with float elements")
                                 Value(DataType.FLOAT, array.doubleArray!![index])
                             }
                         }
@@ -1733,7 +1733,7 @@ class StackVm(private var traceOutputFile: String?) {
                         else
                             mem.setSByte(variable.integerValue(), value.integerValue().toShort())
                     } else {
-                        // set indexed byte element in the arrayspec
+                        // set indexed byte element in the arraysize
                         val array = heap.get(variable.heapId)
                         when (array.type) {
                             DataType.ARRAY_UB -> array.array!![index] = IntegerOrAddressOf(value.integerValue(), null)
@@ -1781,12 +1781,12 @@ class StackVm(private var traceOutputFile: String?) {
                         else
                             mem.setSWord(variable.integerValue()+index*2, value.integerValue())
                     } else {
-                        // set indexed word element in the arrayspec
+                        // set indexed word element in the arraysize
                         val array = heap.get(variable.heapId)
                         when (array.type) {
                             DataType.ARRAY_UW -> array.array!![index] = IntegerOrAddressOf(value.integerValue(), null)
                             DataType.ARRAY_W -> array.array!![index] = IntegerOrAddressOf(value.integerValue(), null)
-                            else -> throw VmExecutionException("not a proper arrayspec var with word elements")
+                            else -> throw VmExecutionException("not a proper arraysize var with word elements")
                         }
                     }
                 }
@@ -1810,10 +1810,10 @@ class StackVm(private var traceOutputFile: String?) {
                         // assume the variable is a pointer (address) and write the float value to that memory location
                         mem.setFloat(variable.integerValue()+index*5, value.numericValue().toDouble())
                     } else {
-                        // set indexed float element in the arrayspec
+                        // set indexed float element in the arraysize
                         val array = heap.get(variable.heapId)
                         if (array.type != DataType.ARRAY_F)
-                            throw VmExecutionException("not a proper arrayspec var with float elements")
+                            throw VmExecutionException("not a proper arraysize var with float elements")
                         array.doubleArray!![index] = value.numericValue().toDouble()
                     }
                 }

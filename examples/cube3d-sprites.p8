@@ -6,7 +6,7 @@
     ; it must start on an address aligned to 64 bytes.
     %option force_output    ; make sure the data in this block appears in the resulting program
 
-    ubyte[128] sprites = [
+    ubyte[] sprites = [
                                 %00000000,%00000000,%00000000,
                                 %00000000,%00111100,%00000000,
                                 %00000000,%11111111,%00000000,
@@ -64,9 +64,9 @@
     const uword height = 200
 
     ; vertices
-    byte[8] xcoor = [ -100, -100, -100, -100,  100,  100,  100, 100 ]
-    byte[8] ycoor = [ -100, -100,  100,  100, -100, -100,  100, 100 ]
-    byte[8] zcoor = [ -100,  100, -100,  100, -100,  100, -100, 100 ]
+    byte[] xcoor = [ -100, -100, -100, -100,  100,  100,  100, 100 ]
+    byte[] ycoor = [ -100, -100,  100,  100, -100, -100,  100, 100 ]
+    byte[] zcoor = [ -100,  100, -100,  100, -100,  100, -100, 100 ]
 
     ; storage for rotated coordinates
     word[len(xcoor)] rotatedx
@@ -146,7 +146,7 @@
             }
         }
 
-        ubyte[8] spritecolors = [1,1,7,15,12,11,9,9]
+        ubyte[] spritecolors = [1,1,7,15,12,11,9,9]
 
         for ubyte i in 0 to 7 {
             word zc = rotatedz[i]

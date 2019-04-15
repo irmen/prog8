@@ -7,9 +7,9 @@
     const uword height = 25
 
     ; vertices
-    byte[8] xcoor = [ -40, -40, -40, -40,  40,  40,  40, 40 ]
-    byte[8] ycoor = [ -40, -40,  40,  40, -40, -40,  40, 40 ]
-    byte[8] zcoor = [ -40,  40, -40,  40, -40,  40, -40, 40 ]
+    byte[] xcoor = [ -40, -40, -40, -40,  40,  40,  40, 40 ]
+    byte[] ycoor = [ -40, -40,  40,  40, -40, -40,  40, 40 ]
+    byte[] zcoor = [ -40,  40, -40,  40, -40,  40, -40, 40 ]
 
     ; storage for rotated coordinates
     word[len(xcoor)] rotatedx
@@ -68,7 +68,7 @@
         }
     }
 
-    ubyte[6] vertexcolors = [1,7,7,12,11,6]
+    ubyte[] vertexcolors = [1,7,7,12,11,6]
 
     sub draw_edges() {
 

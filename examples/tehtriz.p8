@@ -205,7 +205,7 @@ waitkey:
                 if linepos and blocklogic.isLineFull(linepos)
                     blocklogic.collapse(linepos)
             lines += num_lines
-            uword[4] scores = [10, 25, 50, 100]      ; can never clear more than 4 lines
+            uword[] scores = [10, 25, 50, 100]      ; can never clear more than 4 lines
             score += scores[num_lines-1]
             speedlevel = 1+lsb(lines/10)
             drawScore()
@@ -320,7 +320,7 @@ waitkey:
             c64scr.setcc(boardOffsetX+boardWidth, i, 84, 11)
         }
 
-        ubyte[5] colors = [6,8,7,5,4]
+        ubyte[] colors = [6,8,7,5,4]
         for i in len(colors)-1 to 0 step -1 {
             for ubyte x in 5 to 0 step -1 {
                 c64scr.setcc(6+x-i, 11+2*i, 102, colors[i])
@@ -387,36 +387,36 @@ waitkey:
     ubyte[16] rotated
 
     ; the 7 tetrominos
-    ubyte[16] blockI = [0,0,0,0,        ; cyan ; note: special rotation (around matrix center)
-                        3,3,3,3,
-                        0,0,0,0,
-                        0,0,0,0]
-    ubyte[16] blockJ = [6,0,0,0,        ; blue
-                        6,6,6,0,
-                        0,0,0,0,
-                        0,0,0,0]
-    ubyte[16] blockL = [0,0,8,0,        ; orange
-                        8,8,8,0,
-                        0,0,0,0,
-                        0,0,0,0]
-    ubyte[16] blockO = [0,7,7,0,        ; yellow ; note: no rotation (square)
-                        0,7,7,0,
-                        0,0,0,0,
-                        0,0,0,0]
-    ubyte[16] blockS = [0,5,5,0,        ; green
-                        5,5,0,0,
-                        0,0,0,0,
-                        0,0,0,0]
-    ubyte[16] blockT = [0,4,0,0,        ; purple
-                        4,4,4,0,
-                        0,0,0,0,
-                        0,0,0,0]
-    ubyte[16] blockZ = [2,2,0,0,        ; red
-                        0,2,2,0,
-                        0,0,0,0,
-                        0,0,0,0]
+    ubyte[] blockI = [0,0,0,0,        ; cyan ; note: special rotation (around matrix center)
+                      3,3,3,3,
+                      0,0,0,0,
+                      0,0,0,0]
+    ubyte[] blockJ = [6,0,0,0,        ; blue
+                      6,6,6,0,
+                      0,0,0,0,
+                      0,0,0,0]
+    ubyte[] blockL = [0,0,8,0,        ; orange
+                      8,8,8,0,
+                      0,0,0,0,
+                      0,0,0,0]
+    ubyte[] blockO = [0,7,7,0,        ; yellow ; note: no rotation (square)
+                      0,7,7,0,
+                      0,0,0,0,
+                      0,0,0,0]
+    ubyte[] blockS = [0,5,5,0,        ; green
+                      5,5,0,0,
+                      0,0,0,0,
+                      0,0,0,0]
+    ubyte[] blockT = [0,4,0,0,        ; purple
+                      4,4,4,0,
+                      0,0,0,0,
+                      0,0,0,0]
+    ubyte[] blockZ = [2,2,0,0,        ; red
+                      0,2,2,0,
+                      0,0,0,0,
+                      0,0,0,0]
 
-    uword[7] blocks = [&blockI, &blockJ, &blockL, &blockO, &blockS, &blockT, &blockZ]
+    uword[] blocks = [&blockI, &blockJ, &blockL, &blockO, &blockS, &blockT, &blockZ]
 
     sub newCurrentBlock(ubyte block) {
         currentBlockNum = block

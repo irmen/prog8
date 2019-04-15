@@ -227,7 +227,7 @@ Various examples::
     float       wallet  = 55.25
     str         name    = "my name is Irmen"
     uword       address = &counter
-    byte[5]     values  = [11, 22, 33, 44, 55]
+    byte[]      values  = [11, 22, 33, 44, 55]
     byte[5]     values  = 255           ; initialize with five 255 bytes
 
     word  @zp   zpword = 9999           ; prioritize this when selecting vars for zeropage storage
@@ -251,18 +251,24 @@ type identifier  type                     storage size       example var declara
 ``uword``        unsigned word            2 bytes = 16 bits  ``uword myvar = $8fee``
 ``float``        floating-point           5 bytes = 40 bits  ``float myvar = 1.2345``
                                                              stored in 5-byte cbm MFLPT format
-``byte[x]``      signed byte array        x bytes            ``byte[4] myvar = [1, 2, 3, 4]``
-``ubyte[x]``     unsigned byte array      x bytes            ``ubyte[4] myvar = [1, 2, 3, 4]``
-``word[x]``      signed word array        2*x bytes          ``word[4] myvar = [1, 2, 3, 4]``
-``uword[x]``     unsigned word array      2*x bytes          ``uword[4] myvar = [1, 2, 3, 4]``
-``float[x]``     floating-point array     5*x bytes          ``float[4] myvar = [1.1, 2.2, 3.3, 4.4]``
+``byte[x]``      signed byte array        x bytes            ``byte[4] myvar``
+``ubyte[x]``     unsigned byte array      x bytes            ``ubyte[4] myvar``
+``word[x]``      signed word array        2*x bytes          ``word[4] myvar``
+``uword[x]``     unsigned word array      2*x bytes          ``uword[4] myvar``
+``float[x]``     floating-point array     5*x bytes          ``float[4] myvar``
+``byte[]``       signed byte array        depends on value   ``byte[] myvar = [1, 2, 3, 4]``
+``ubyte[]``      unsigned byte array      depends on value   ``ubyte[] myvar = [1, 2, 3, 4]``
+``word[]``       signed word array        depends on value   ``word[] myvar = [1, 2, 3, 4]``
+``uword[]``      unsigned word array      depends on value   ``uword[] myvar = [1, 2, 3, 4]``
+``float[]``      floating-point array     depends on value   ``float[] myvar = [1.1, 2.2, 3.3, 4.4]``
 ``str``          string (petscii)         varies             ``str myvar = "hello."``
                                                              implicitly terminated by a 0-byte
 ``str_s``        string (screencodes)     varies             ``str_s myvar = "hello."``
                                                              implicitly terminated by a 0-byte
 ===============  =======================  =================  =========================================
 
-**arrays:** you can split an array initializer list over several lines if you want.
+**arrays:** you can split an array initializer list over several lines if you want. When an initialization
+value is given, the array size in the declaration can be omitted.
 
 **hexadecimal numbers:** you can use a dollar prefix to write hexadecimal numbers: ``$20ac``
 
@@ -336,7 +342,7 @@ which represents a range of numbers or characters,
 from the starting value to (and including) the ending value.
 If used in the place of a literal value, it expands into the actual array of values::
 
-	byte[100] array = 100 to 199     ; initialize array with [100, 101, ..., 198, 199]
+	byte[] array = 100 to 199     ; initialize array with [100, 101, ..., 198, 199]
 
 
 Array indexing
@@ -394,7 +400,7 @@ range creation:  ``to``
 		X = 10
 		A to X		; range of 5, 6, 7, 8, 9, 10
 
-		byte[4] array = 10 to 13   ; sets the array to [1, 2, 3, 4]
+		byte[] array = 10 to 13   ; sets the array to [1, 2, 3, 4]
 
 		for  i  in  0 to 127  {
 			; i loops 0, 1, 2, ... 127
@@ -507,7 +513,7 @@ For example, this is a for loop using the existing byte variable ``i`` to loop o
 
 And this is a loop over the values of the array ``fibonacci_numbers`` where the loop variable is declared in the loop itself::
 
-    word[20] fibonacci_numbers = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181]
+    word[] fibonacci_numbers = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181]
 
     for word fibnr in fibonacci_numbers {
         ; do something

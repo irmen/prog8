@@ -430,10 +430,10 @@ private class AstChecker(private val namespace: INameScope,
             if(constVal!=null) {
                 val arrayspec = if(target.identifier!=null) {
                     val targetVar = namespace.lookup(target.identifier.nameInSource, assignment) as? VarDecl
-                    targetVar?.arrayspec
+                    targetVar?.arraysize
                 } else null
                 checkValueTypeAndRange(targetDatatype,
-                        arrayspec ?: ArraySpec(LiteralValue.optimalInteger(-1, assignment.position), assignment.position),
+                        arrayspec ?: ArrayIndex(LiteralValue.optimalInteger(-1, assignment.position), assignment.position),
                         constVal, heap)
             } else {
                 val sourceDatatype: DataType? = assignment.value.resultingDatatype(namespace, heap)
@@ -477,7 +477,7 @@ private class AstChecker(private val namespace: INameScope,
         }
 
         // the initializer value can't refer to the variable itself (recursive definition)
-        if(decl.value?.referencesIdentifier(decl.name) == true || decl.arrayspec?.x?.referencesIdentifier(decl.name) == true) {
+        if(decl.value?.referencesIdentifier(decl.name) == true || decl.arraysize?.index?.referencesIdentifier(decl.name) == true) {
             err("recursive var declaration")
         }
 
@@ -490,6 +490,16 @@ private class AstChecker(private val namespace: INameScope,
         // FLOATS
         if(!compilerOptions.floats && decl.datatype==DataType.FLOAT && decl.type!=VarDeclType.MEMORY) {
             checkResult.add(SyntaxError("floating point used, but that is not enabled via options", decl.position))
+        }
+
+        // ARRAY without size specifier MUST have an initializer value
+        if(decl.isUnsizedArray) {
+            if(decl.type==VarDeclType.MEMORY)
+                checkResult.add(SyntaxError("memory mapped array must have a size specification", decl.position))
+            if(decl.value==null) {
+                checkResult.add(SyntaxError("array variable is missing a size specification or an initialization value", decl.position))
+                return decl
+            }
         }
 
         when(decl.type) {
@@ -513,13 +523,16 @@ private class AstChecker(private val namespace: INameScope,
                     return super.process(decl)
                 }
                 when {
-                    decl.value is RangeExpr -> checkValueTypeAndRange(decl.datatype, decl.arrayspec, decl.value as RangeExpr)
+                    decl.value is RangeExpr -> {
+                        if(!decl.isUnsizedArray)
+                            checkValueTypeAndRange(decl.datatype, decl.arraysize!!, decl.value as RangeExpr)
+                    }
                     decl.value is LiteralValue -> {
-                        val arraySpec = decl.arrayspec ?: (
+                        val arraySpec = decl.arraysize ?: (
                                 if((decl.value as LiteralValue).isArray)
-                                    ArraySpec.forArray(decl.value as LiteralValue, heap)
+                                    ArrayIndex.forArray(decl.value as LiteralValue, heap)
                                 else
-                                    ArraySpec(LiteralValue.optimalInteger(-2, decl.position), decl.position)
+                                    ArrayIndex(LiteralValue.optimalInteger(-2, decl.position), decl.position)
                                 )
                         checkValueTypeAndRange(decl.datatype, arraySpec, decl.value as LiteralValue, heap)
                     }
@@ -530,8 +543,8 @@ private class AstChecker(private val namespace: INameScope,
                 }
             }
             VarDeclType.MEMORY -> {
-                if(decl.arrayspec!=null) {
-                    val arraySize = decl.arrayspec.size() ?: 1
+                if(decl.arraysize!=null) {
+                    val arraySize = decl.arraysize.size() ?: 1
                     when(decl.datatype) {
                         DataType.ARRAY_B, DataType.ARRAY_UB ->
                             if(arraySize > 256)
@@ -641,9 +654,9 @@ private class AstChecker(private val namespace: INameScope,
         }
         val arrayspec =
                 if(literalValue.isArray)
-                    ArraySpec.forArray(literalValue, heap)
+                    ArrayIndex.forArray(literalValue, heap)
                 else
-                    ArraySpec(LiteralValue.optimalInteger(-3, literalValue.position), literalValue.position)
+                    ArrayIndex(LiteralValue.optimalInteger(-3, literalValue.position), literalValue.position)
         checkValueTypeAndRange(literalValue.type, arrayspec, literalValue, heap)
 
         val lv = super.process(literalValue)
@@ -880,17 +893,17 @@ private class AstChecker(private val namespace: INameScope,
         if(target is VarDecl) {
             if(target.datatype !in IterableDatatypes)
                 checkResult.add(SyntaxError("indexing requires an iterable variable", arrayIndexedExpression.position))
-            val arraysize = target.arrayspec?.size()
+            val arraysize = target.arraysize?.size()
             if(arraysize!=null) {
                 // check out of bounds
-                val index = (arrayIndexedExpression.arrayspec.x as? LiteralValue)?.asIntegerValue
+                val index = (arrayIndexedExpression.arrayspec.index as? LiteralValue)?.asIntegerValue
                 if(index!=null && (index<0 || index>=arraysize))
                     checkResult.add(ExpressionError("array index out of bounds", arrayIndexedExpression.arrayspec.position))
             } else if(target.datatype in StringDatatypes) {
                 // check string lengths
                 val heapId = (target.value as LiteralValue).heapId!!
                 val stringLen = heap.get(heapId).str!!.length
-                val index = (arrayIndexedExpression.arrayspec.x as? LiteralValue)?.asIntegerValue
+                val index = (arrayIndexedExpression.arrayspec.index as? LiteralValue)?.asIntegerValue
                 if(index!=null && (index<0 || index>=stringLen))
                     checkResult.add(ExpressionError("index out of bounds", arrayIndexedExpression.arrayspec.position))
             }
@@ -898,7 +911,7 @@ private class AstChecker(private val namespace: INameScope,
             checkResult.add(SyntaxError("indexing requires a variable to act upon", arrayIndexedExpression.position))
 
         // check index value 0..255
-        val dtx = arrayIndexedExpression.arrayspec.x.resultingDatatype(namespace, heap)
+        val dtx = arrayIndexedExpression.arrayspec.index.resultingDatatype(namespace, heap)
         if(dtx!=DataType.UBYTE && dtx!=DataType.BYTE)
             checkResult.add(SyntaxError("array indexing is limited to byte size 0..255", arrayIndexedExpression.position))
 
@@ -913,7 +926,7 @@ private class AstChecker(private val namespace: INameScope,
         return null
     }
 
-    private fun checkValueTypeAndRange(targetDt: DataType, arrayspec: ArraySpec?, range: RangeExpr) : Boolean {
+    private fun checkValueTypeAndRange(targetDt: DataType, arrayspec: ArrayIndex, range: RangeExpr) : Boolean {
         val from = range.from.constValue(namespace, heap)
         val to = range.to.constValue(namespace, heap)
         if(from==null || to==null) {
@@ -941,7 +954,7 @@ private class AstChecker(private val namespace: INameScope,
             }
             in ArrayDatatypes -> {
                 // range and length check bytes
-                val expectedSize = arrayspec!!.size()
+                val expectedSize = arrayspec.size()
                 val rangeSize=range.size(heap)
                 if(rangeSize!=null && rangeSize != expectedSize) {
                     checkResult.add(ExpressionError("range size doesn't match array size, expected $expectedSize found $rangeSize", range.position))
@@ -953,7 +966,7 @@ private class AstChecker(private val namespace: INameScope,
         }
     }
 
-    private fun checkValueTypeAndRange(targetDt: DataType, arrayspec: ArraySpec, value: LiteralValue, heap: HeapValues) : Boolean {
+    private fun checkValueTypeAndRange(targetDt: DataType, arrayspec: ArrayIndex, value: LiteralValue, heap: HeapValues) : Boolean {
         fun err(msg: String) : Boolean {
             checkResult.add(ExpressionError(msg, value.position))
             return false
@@ -1009,7 +1022,7 @@ private class AstChecker(private val namespace: INameScope,
                     return err("string length must be 0-255")
             }
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
-                // value may be either a single byte, or a byte arrayspec (of all constant values)
+                // value may be either a single byte, or a byte arraysize (of all constant values), or a range
                 if(value.type==targetDt) {
                     if(!checkArrayValues(value, targetDt))
                         return false
@@ -1018,7 +1031,7 @@ private class AstChecker(private val namespace: INameScope,
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize<1 || arraySpecSize>256)
                             return err("byte array length must be 1-256")
-                        val constX = arrayspec.x.constValue(namespace, heap)
+                        val constX = arrayspec.index.constValue(namespace, heap)
                         if(constX?.asIntegerValue==null)
                             return err("array size specifier must be constant integer value")
                         val expectedSize = constX.asIntegerValue
@@ -1031,7 +1044,7 @@ private class AstChecker(private val namespace: INameScope,
                 return err("invalid byte array initialization value ${value.type}, expected $targetDt")
             }
             DataType.ARRAY_UW, DataType.ARRAY_W -> {
-                // value may be either a single word, or a word arrayspec
+                // value may be either a single word, or a word arraysize, or a range
                 if(value.type==targetDt) {
                     if(!checkArrayValues(value, targetDt))
                         return false
@@ -1040,7 +1053,7 @@ private class AstChecker(private val namespace: INameScope,
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize<1 || arraySpecSize>128)
                             return err("word array length must be 1-128")
-                        val constX = arrayspec.x.constValue(namespace, heap)
+                        val constX = arrayspec.index.constValue(namespace, heap)
                         if(constX?.asIntegerValue==null)
                             return err("array size specifier must be constant integer value")
                         val expectedSize = constX.asIntegerValue
@@ -1053,7 +1066,7 @@ private class AstChecker(private val namespace: INameScope,
                 return err("invalid word array initialization value ${value.type}, expected $targetDt")
             }
             DataType.ARRAY_F -> {
-                // value may be either a single float, or a float arrayspec
+                // value may be either a single float, or a float arraysize
                 if(value.type==targetDt) {
                     if(!checkArrayValues(value, targetDt))
                         return false
@@ -1062,7 +1075,7 @@ private class AstChecker(private val namespace: INameScope,
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize < 1 || arraySpecSize>51)
                             return err("float array length must be 1-51")
-                        val constX = arrayspec.x.constValue(namespace, heap)
+                        val constX = arrayspec.index.constValue(namespace, heap)
                         if(constX?.asIntegerValue==null)
                             return err("array size specifier must be constant integer value")
                         val expectedSize = constX.asIntegerValue

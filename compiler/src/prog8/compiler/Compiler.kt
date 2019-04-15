@@ -13,7 +13,6 @@ import prog8.stackvm.Syscall
 import java.io.File
 import java.nio.file.Path
 import java.util.*
-import javax.lang.model.type.ArrayType
 import kotlin.math.abs
 
 
@@ -819,7 +818,7 @@ internal class Compiler(private val rootModule: Module,
                 // 1 array argument, type determines the exact syscall to use
                 val arg=args.single() as IdentifierReference
                 val target=arg.targetVarDecl(namespace)!!
-                val length=Value(DataType.UBYTE, target.arrayspec!!.size()!!)
+                val length=Value(DataType.UBYTE, target.arraysize!!.size()!!)
                 prog.instr(Opcode.PUSH_BYTE, length)
                 when (arg.resultingDatatype(namespace, heap)) {
                     DataType.ARRAY_B, DataType.ARRAY_UB -> createSyscall("${funcname}_b")
@@ -832,7 +831,7 @@ internal class Compiler(private val rootModule: Module,
                 // 1 array argument, type determines the exact syscall to use
                 val arg=args.single() as IdentifierReference
                 val target=arg.targetVarDecl(namespace)!!
-                val length=Value(DataType.UBYTE, target.arrayspec!!.size()!!)
+                val length=Value(DataType.UBYTE, target.arraysize!!.size()!!)
                 val arrayDt=arg.resultingDatatype(namespace, heap)
                 prog.instr(Opcode.PUSH_BYTE, length)
                 when (arrayDt) {
@@ -863,7 +862,7 @@ internal class Compiler(private val rootModule: Module,
                 // 1 array argument, type determines the exact syscall to use
                 val arg=args.single() as IdentifierReference
                 val target=arg.targetVarDecl(namespace)!!
-                val length=Value(DataType.UBYTE, target.arrayspec!!.size()!!)
+                val length=Value(DataType.UBYTE, target.arraysize!!.size()!!)
                 prog.instr(Opcode.PUSH_BYTE, length)
                 when (arg.resultingDatatype(namespace, heap)) {
                     DataType.ARRAY_UB -> createSyscall("${funcname}_ub")
@@ -1384,7 +1383,7 @@ internal class Compiler(private val rootModule: Module,
 
     private fun translate(arrayindexed: ArrayIndexedExpression, write: Boolean) {
         val variable = arrayindexed.identifier.targetVarDecl(namespace)!!
-        translate(arrayindexed.arrayspec.x)
+        translate(arrayindexed.arrayspec.index)
         if (write)
             prog.instr(opcodeWriteindexedvar(variable.datatype), callLabel = variable.scopedname)
         else
@@ -1442,7 +1441,7 @@ internal class Compiler(private val rootModule: Module,
             }
             stmt.target.arrayindexed != null -> {
                 val variable = stmt.target.arrayindexed!!.identifier.targetVarDecl(namespace)!!
-                translate(stmt.target.arrayindexed!!.arrayspec.x)
+                translate(stmt.target.arrayindexed!!.arrayspec.index)
                 when(stmt.operator) {
                     "++" -> prog.instr(opcodeIncArrayindexedVar(variable.datatype), callLabel = variable.scopedname)
                     "--" -> prog.instr(opcodeDecArrayindexedVar(variable.datatype), callLabel = variable.scopedname)
@@ -1753,7 +1752,7 @@ internal class Compiler(private val rootModule: Module,
             AssignTarget(loop.loopRegister, null, null, null, loop.position)
         else
             AssignTarget(null, loop.loopVar!!.copy(), null, null, loop.position)
-        val arrayspec = ArraySpec(IdentifierReference(listOf(ForLoop.iteratorLoopcounterVarname), loop.position), loop.position)
+        val arrayspec = ArrayIndex(IdentifierReference(listOf(ForLoop.iteratorLoopcounterVarname), loop.position), loop.position)
         val assignLv = Assignment(
                 listOf(assignTarget), null,
                 ArrayIndexedExpression((loop.iterable as IdentifierReference).copy(), arrayspec, loop.position),

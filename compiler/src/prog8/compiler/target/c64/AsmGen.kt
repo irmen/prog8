@@ -288,7 +288,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                         out("  .byte  " + chunk.joinToString())
                 }
                 DataType.ARRAY_UB -> {
-                    // unsigned integer byte arrayspec
+                    // unsigned integer byte arraysize
                     val data = makeArrayFillDataUnsigned(v.second)
                     if (data.size <= 16)
                         out("${v.first}\t.byte  ${data.joinToString()}")
@@ -299,7 +299,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     }
                 }
                 DataType.ARRAY_B -> {
-                    // signed integer byte arrayspec
+                    // signed integer byte arraysize
                     val data = makeArrayFillDataSigned(v.second)
                     if (data.size <= 16)
                         out("${v.first}\t.char  ${data.joinToString()}")
@@ -310,7 +310,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     }
                 }
                 DataType.ARRAY_UW -> {
-                    // unsigned word arrayspec
+                    // unsigned word arraysize
                     val data = makeArrayFillDataUnsigned(v.second)
                     if (data.size <= 16)
                         out("${v.first}\t.word  ${data.joinToString()}")
@@ -321,7 +321,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     }
                 }
                 DataType.ARRAY_W -> {
-                    // signed word arrayspec
+                    // signed word arraysize
                     val data = makeArrayFillDataSigned(v.second)
                     if (data.size <= 16)
                         out("${v.first}\t.sint  ${data.joinToString()}")
@@ -332,7 +332,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     }
                 }
                 DataType.ARRAY_F -> {
-                    // float arrayspec
+                    // float arraysize
                     val array = heap.get(v.second.heapId).doubleArray!!
                     val floatFills = array.map { makeFloatFill(Mflpt5.fromNumber(it)) }
                     out(v.first)
@@ -370,7 +370,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     else -> throw AssemblyError("weird type in array")
                 }
             }
-            else -> throw AssemblyError("invalid arrayspec type")
+            else -> throw AssemblyError("invalid arraysize type")
         }
     }
 
@@ -385,7 +385,7 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
                     "-$"+abs(it.integer).toString(16).padStart(2, '0')
             }
         }
-        else throw AssemblyError("invalid arrayspec type")
+        else throw AssemblyError("invalid arraysize type")
     }
 
     private fun instr2asm(ins: List<Instruction>): Int {

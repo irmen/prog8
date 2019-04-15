@@ -522,8 +522,8 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
         }
         if(target1.arrayindexed!=null && target2.arrayindexed!=null) {
             if(target1.arrayindexed.identifier.nameInSource == target2.arrayindexed.identifier.nameInSource) {
-                val x1 = target1.arrayindexed.arrayspec.x.constValue(namespace, heap)
-                val x2 = target2.arrayindexed.arrayspec.x.constValue(namespace, heap)
+                val x1 = target1.arrayindexed.arrayspec.index.constValue(namespace, heap)
+                val x2 = target2.arrayindexed.arrayspec.index.constValue(namespace, heap)
                 return x1!=null && x2!=null && x1==x2
             }
         }
@@ -548,7 +548,7 @@ fun same(left: IExpression, right: IExpression): Boolean {
                     && same(right.right, left.right))
         is ArrayIndexedExpression -> {
             return (right is ArrayIndexedExpression && right.identifier.nameInSource == left.identifier.nameInSource
-                    && same(right.arrayspec.x, left.arrayspec.x))
+                    && same(right.arrayspec.index, left.arrayspec.index))
         }
         is LiteralValue -> return (right is LiteralValue && right==left)
     }
