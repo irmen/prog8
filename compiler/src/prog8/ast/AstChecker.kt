@@ -7,6 +7,7 @@ import prog8.compiler.target.c64.FLOAT_MAX_POSITIVE
 import prog8.functions.BuiltinFunctions
 import prog8.optimizing.same
 import prog8.parser.ParsingFailedError
+import java.io.File
 
 /**
  * General checks on the Ast
@@ -632,6 +633,7 @@ private class AstChecker(private val namespace: INameScope,
                 if(directive.parent !is INameScope || directive.parent is Module) err("this directive may only occur in a block")
                 if(directive.args.size!=2 || directive.args[0].str==null || directive.args[1].str==null)
                     err("invalid asminclude directive, expected arguments: \"filename\", \"scopelabel\"")
+                checkFileExists(directive, directive.args[0].str!!)
             }
             "%asmbinary" -> {
                 if(directive.parent !is INameScope || directive.parent is Module) err("this directive may only occur in a block")
@@ -641,6 +643,7 @@ private class AstChecker(private val namespace: INameScope,
                 if(directive.args.size>=2 && directive.args[1].int==null) err(errormsg)
                 if(directive.args.size==3 && directive.args[2].int==null) err(errormsg)
                 if(directive.args.size>3) err(errormsg)
+                checkFileExists(directive, directive.args[0].str!!)
             }
             "%option" -> {
                 if(directive.parent !is Block && directive.parent !is Module) err("this directive may only occur in a block or at module level")
@@ -652,6 +655,14 @@ private class AstChecker(private val namespace: INameScope,
             else -> throw SyntaxError("invalid directive ${directive.directive}", directive.position)
         }
         return super.process(directive)
+    }
+
+    private fun checkFileExists(directive: Directive, filename: String) {
+        var definingModule = directive.parent
+        while (definingModule !is Module)
+            definingModule = definingModule.parent
+        if (!(filename.startsWith("library:") || definingModule.importedFrom.resolveSibling(filename).toFile().isFile || File(filename).isFile))
+            checkResult.add(NameError("included file not found: $filename", directive.position))
     }
 
     override fun process(literalValue: LiteralValue): LiteralValue {
