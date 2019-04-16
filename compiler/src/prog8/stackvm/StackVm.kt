@@ -1836,6 +1836,7 @@ class StackVm(private var traceOutputFile: String?) {
             Opcode.RSAVEX -> registerSaveX = variables.getValue("X")
             Opcode.RRESTOREX -> variables["X"] = registerSaveX
             Opcode.INLINE_ASSEMBLY -> throw VmExecutionException("stackVm doesn't support executing inline assembly code $ins")
+            Opcode.INCLUDE_FILE -> throw VmExecutionException("stackVm doesn't support including a file $ins")
             Opcode.PUSH_ADDR_HEAPVAR -> {
                 val heapId = variables.getValue(ins.callLabel!!).heapId
                 if(heapId<0)

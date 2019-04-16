@@ -123,8 +123,7 @@ Directives
         This directive can only be used inside a block.
         The assembler will include the file as binary bytes at this point, prog8 will not process this at all.
         The optional offset and length can be used to select a particular piece of the file.
-        The compiler first looks for the file relative to the same directory as the module containing this statement is in,
-        if the file can't be found there it is searched relative to the current directory.
+        The file is located relative to the current working directory!
 
 .. data:: %asminclude "<filename>", "scopelabel"
 

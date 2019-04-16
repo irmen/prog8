@@ -4,7 +4,6 @@
 
     sub start() {
 
-        %asminclude "primes.p8", "derp"
-        %asmbinary "primes.p8", 10, 20
+        %asmbinary "LICENSE", 100, 200
     }
 }

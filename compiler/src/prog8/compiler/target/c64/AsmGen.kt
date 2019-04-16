@@ -472,6 +472,11 @@ class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, 
             Opcode.DISCARD_WORD -> " inx"
             Opcode.DISCARD_FLOAT -> " inx |  inx |  inx"
             Opcode.INLINE_ASSEMBLY ->  "@inline@" + (ins.callLabel2 ?: "")      // All of the inline assembly is stored in the calllabel2 property. the '@inline@' is a special marker to process it.
+            Opcode.INCLUDE_FILE -> {
+                val offset = if(ins.arg==null) "" else ", ${ins.arg.integerValue()}"
+                val length = if(ins.arg2==null) "" else ", ${ins.arg2.integerValue()}"
+                " .binary  \"${ins.callLabel}\" $offset $length"
+            }
             Opcode.SYSCALL -> {
                 if (ins.arg!!.numericValue() in syscallsForStackVm.map { it.callNr })
                     throw CompilerException("cannot translate vm syscalls to real assembly calls - use *real* subroutine calls instead. Syscall ${ins.arg.numericValue()}")

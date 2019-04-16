@@ -2169,7 +2169,11 @@ internal class Compiler(private val rootModule: Module,
     }
 
     private fun translateAsmBinary(args: List<DirectiveArg>) {
-        TODO("asmbinary not implemented yet  $args")
+        val offset = if(args.size>=2) Value(DataType.UWORD, args[1].int!!) else null
+        val length = if(args.size==3) Value(DataType.UWORD, args[2].int!!) else null
+        val filename = args[0].str!!
+        // reading the actual data is not performed by the compiler but is delegated to the assembler
+        prog.instr(Opcode.INCLUDE_FILE, offset, length, filename)
     }
 
 }

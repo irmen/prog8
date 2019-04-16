@@ -170,6 +170,13 @@ class Program (val name: String,
                                 }
                             }
                         }
+                        Opcode.INCLUDE_FILE -> {
+                            val argparts = args!!.split(' ')
+                            val filename = argparts[0]
+                            val offset = if(argparts.size>=2 && argparts[1]!="null") getArgValue(argparts[1], heap) else null
+                            val length = if(argparts.size>=3 && argparts[2]!="null") getArgValue(argparts[2], heap) else null
+                            Instruction(opcode, offset, length, filename)
+                        }
                         else -> {
                             Instruction(opcode, getArgValue(args, heap))
                         }

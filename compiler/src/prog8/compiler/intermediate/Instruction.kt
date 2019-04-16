@@ -23,6 +23,9 @@ open class Instruction(val opcode: Opcode,
                         else
                             "inline_assembly"
                     }
+                    opcode==Opcode.INCLUDE_FILE -> {
+                        "include_file \"$callLabel\" $arg $arg2"
+                    }
                     opcode==Opcode.SYSCALL -> {
                         val syscall = Syscall.values().find { it.callNr==arg!!.numericValue() }
                         "syscall  $syscall"

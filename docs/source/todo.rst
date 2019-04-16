@@ -74,5 +74,4 @@ of values together (and use it multiple times). Something like::
 Misc
 ^^^^
 
-- implement %asmbinary
 - are there any other missing instructions in the code generator?
