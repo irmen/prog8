@@ -47,7 +47,10 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                 DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
                     val rangeExpr = decl.value as? RangeExpr
                     if(rangeExpr!=null) {
-                        // convert the initializer range expression to an actual array
+                        // convert the initializer range expression to an actual array (will be put on heap later)
+                        val declArraySize = decl.arraysize?.size()
+                        if(declArraySize!=null && declArraySize!=rangeExpr.size(heap))
+                            errors.add(ExpressionError("range expression size doesn't match declared array size", decl.value?.position!!))
                         val constRange = rangeExpr.toConstantIntegerRange(heap)
                         if(constRange!=null) {
                             val eltType = rangeExpr.resultingDatatype(namespace, heap)!!
@@ -68,7 +71,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                     if(decl.arraysize==null)
                         return decl
                     val size = decl.arraysize.size()
-                    if ((litval==null || !litval.isArray) && size != null) {
+                    if ((litval==null || !litval.isArray) && size != null && rangeExpr==null) {
                         // arraysize initializer is empty or a single int, and we know the size; create the arraysize.
                         val fillvalue = if (litval == null) 0 else litval.asIntegerValue ?: 0
                         when(decl.datatype){
