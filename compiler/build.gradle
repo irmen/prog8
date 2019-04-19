@@ -18,11 +18,18 @@ dependencies {
     runtime 'org.antlr:antlr4-runtime:4.7.2'
     runtime project(':parser')
 
-	testImplementation "org.jetbrains.kotlin:kotlin-test-junit5:$kotlinVersion"
+    testImplementation "org.jetbrains.kotlin:kotlin-test-junit5:$kotlinVersion"
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.3.2'
     testImplementation 'org.hamcrest:hamcrest-junit:2.0.0.0'
+
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.3.2'
 }
 
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
 
 sourceSets {
     main {
@@ -55,8 +62,8 @@ task p8vmScript(type: CreateStartScripts) {
 }
 
 applicationDistribution.into("bin") {
-            from(p8vmScript)
-            fileMode = 0755
+    from(p8vmScript)
+    fileMode = 0755
 }
 
 task fatJar(type: Jar) {
@@ -71,3 +78,20 @@ task fatJar(type: Jar) {
     with jar
 }
 // build.finalizedBy(fatJar)
+
+
+// Java target version
+sourceCompatibility = 1.8
+
+test {
+    // Enable JUnit 5 (Gradle 4.6+).
+    useJUnitPlatform()
+
+    // Always run tests, even when nothing changed.
+    dependsOn 'cleanTest'
+
+    // Show test results.
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}

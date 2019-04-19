@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# compile using regular Kotlin sdk command line tool
+
 echo "Compiling the parser..."
 java -jar ./parser/antlr/lib/antlr-4.7.2-complete.jar -o ./parser/src/prog8/parser -Xexact-output-dir -no-listener -no-visitor ./parser/antlr/prog8.g4
 
