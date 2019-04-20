@@ -806,6 +806,9 @@ data class AssignTarget(val register: Register?,
             return (if(withTypePrefix) "1address::" else "") +address.asIntegerValue.toString()
         return if(withTypePrefix) "???::???" else "???"
     }
+
+    fun isMemoryMapped(namespace: INameScope): Boolean =
+            memoryAddress!=null || (identifier?.targetVarDecl(namespace)?.type==VarDeclType.MEMORY)
 }
 
 

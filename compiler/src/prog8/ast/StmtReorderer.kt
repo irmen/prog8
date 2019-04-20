@@ -160,7 +160,7 @@ private class StatementReorderer(private val namespace: INameScope, private val 
         val result = mutableListOf<IStatement>()
         val stmtIter = statements.iterator()
         for(stmt in stmtIter) {
-            if(stmt is Assignment) {
+            if(stmt is Assignment && !stmt.targets.any { it.isMemoryMapped(namespace) }) {
                 val constval = stmt.value.constValue(namespace, heap)
                 if(constval!=null) {
                     val (sorted, trailing) = sortConstantAssignmentSequence(stmt, stmtIter)
