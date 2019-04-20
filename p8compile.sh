@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-PROG8CLASSPATH=./out/production/compiler_main:./out/production/parser_main
+PROG8CLASSPATH=./compiler/build/classes/kotlin/main:./compiler/build/resources/main:./parser/build/classes/java/main
 KOTLINPATH=${HOME}/.IntelliJIdea2019.1/config/plugins/Kotlin
 LIBJARS=${KOTLINPATH}/lib/kotlin-stdlib.jar:${KOTLINPATH}/lib/kotlin-reflect.jar:./parser/antlr/lib/antlr-runtime-4.7.2.jar
 
