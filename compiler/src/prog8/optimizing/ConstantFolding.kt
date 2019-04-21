@@ -70,7 +70,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                         errors.add(ExpressionError("arraysize requires only integers here", litval.position))
                     if(decl.arraysize==null)
                         return decl
-                    val size = decl.arraysize.size()
+                    val size = decl.arraysize!!.size()
                     if ((litval==null || !litval.isArray) && size != null && rangeExpr==null) {
                         // arraysize initializer is empty or a single int, and we know the size; create the arraysize.
                         val fillvalue = if (litval == null) 0 else litval.asIntegerValue ?: 0
@@ -100,7 +100,7 @@ class ConstantFolding(private val namespace: INameScope, private val heap: HeapV
                 DataType.ARRAY_F  -> {
                     if(decl.arraysize==null)
                         return decl
-                    val size = decl.arraysize.size()
+                    val size = decl.arraysize!!.size()
                     if ((litval==null || !litval.isArray) && size != null) {
                         // arraysize initializer is empty or a single int, and we know the size; create the arraysize.
                         val fillvalue = if (litval == null) 0.0 else litval.asNumericValue?.toDouble() ?: 0.0

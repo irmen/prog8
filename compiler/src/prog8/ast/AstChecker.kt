@@ -551,7 +551,7 @@ private class AstChecker(private val namespace: INameScope,
             }
             VarDeclType.MEMORY -> {
                 if(decl.arraysize!=null) {
-                    val arraySize = decl.arraysize.size() ?: 1
+                    val arraySize = decl.arraysize!!.size() ?: 1
                     when(decl.datatype) {
                         DataType.ARRAY_B, DataType.ARRAY_UB ->
                             if(arraySize > 256)

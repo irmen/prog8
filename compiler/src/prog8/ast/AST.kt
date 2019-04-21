@@ -664,7 +664,7 @@ enum class VarDeclType {
 class VarDecl(val type: VarDeclType,
               private val declaredDatatype: DataType,
               val zeropage: Boolean,
-              val arraysize: ArrayIndex?,
+              var arraysize: ArrayIndex?,
               val isUnsizedArray: Boolean,
               val name: String,
               var value: IExpression?,

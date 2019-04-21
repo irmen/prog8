@@ -155,6 +155,17 @@ private class StatementReorderer(private val namespace: INameScope, private val 
         return scope
     }
 
+    override fun process(decl: VarDecl): IStatement {
+        if(decl.arraysize==null) {
+            val array = decl.value as? LiteralValue
+            if(array!=null && array.isArray) {
+                val size = heap.get(array.heapId!!).arraysize
+                decl.arraysize = ArrayIndex(LiteralValue.optimalInteger(size, decl.position), decl.position)
+            }
+        }
+        return super.process(decl)
+    }
+
     private fun sortConstantAssignments(statements: MutableList<IStatement>) {
         // sort assignments by datatype and value, so multiple initializations with the same value can be optimized (to load the value just once)
         val result = mutableListOf<IStatement>()
