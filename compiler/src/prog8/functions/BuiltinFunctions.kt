@@ -299,7 +299,6 @@ private fun builtinAvg(args: List<IExpression>, position: Position, namespace:IN
     if(args.size!=1)
         throw SyntaxError("avg requires array argument", position)
     val iterable = args[0].constValue(namespace, heap) ?: throw NotConstArgumentException()
-
     val result = if(iterable.arrayvalue!=null) {
         val constants = iterable.arrayvalue.map { it.constValue(namespace, heap)?.asNumericValue }
         if (null in constants)
@@ -307,13 +306,17 @@ private fun builtinAvg(args: List<IExpression>, position: Position, namespace:IN
         (constants.map { it!!.toDouble() }).average()
     }
     else {
-        val array = heap.get(iterable.heapId!!).array ?: throw SyntaxError("avg requires array argument", position)
-        if(array.all {it.integer!=null}) {
-            array.map { it.integer!! }.average()
+        val integerarray = heap.get(iterable.heapId!!).array
+        if(integerarray!=null) {
+            if (integerarray.all { it.integer != null }) {
+                integerarray.map { it.integer!! }.average()
+            } else {
+                throw ExpressionError("cannot avg() over array that does not only contain constant numerical values", position)
+            }
         } else {
-            throw ExpressionError("cannot avg() over array that does not only contain constant integer values", position)
+            val doublearray = heap.get(iterable.heapId).doubleArray
+            doublearray?.average() ?: throw SyntaxError("avg requires array argument", position)
         }
-        // TODO what about avg() on floating point array variable!
     }
     return numericLiteral(result, args[0].position)
 }
@@ -339,11 +342,9 @@ private fun builtinLen(args: List<IExpression>, position: Position, namespace:IN
     var argument = args[0].constValue(namespace, heap)
     if(argument==null) {
         val directMemVar = ((args[0] as? DirectMemoryRead)?.addressExpression as? IdentifierReference)?.targetVarDecl(namespace)
-        if(directMemVar?.arraysize != null) {
-            val csize = directMemVar.arraysize.size()
-            if(csize!=null)
-                return LiteralValue.optimalInteger(csize, position)
-        }
+        val arraySize = directMemVar?.arraysize?.size()
+        if(arraySize != null)
+            return LiteralValue.optimalInteger(arraySize, position)
         if(args[0] !is IdentifierReference)
             throw SyntaxError("len argument should be an identifier, but is ${args[0]}", position)
         val target = (args[0] as IdentifierReference).targetStatement(namespace)
