@@ -1,6 +1,6 @@
 @echo off
 
-set PROG8CLASSPATH=./out/production/compiler_main
+set PROG8CLASSPATH=./compiler/build/classes/kotlin/main;./compiler/build/resources/main
 set KOTLINPATH=%USERPROFILE%/.IdeaIC2019.1/config/plugins/Kotlin
 set LIBJARS=%KOTLINPATH%/lib/kotlin-stdlib.jar;%KOTLINPATH%/lib/kotlin-reflect.jar
 

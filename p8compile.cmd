@@ -1,6 +1,6 @@
 @echo off
 
-set PROG8CLASSPATH=./out/production/compiler_main;./out/production/parser_main
+set PROG8CLASSPATH=./compiler/build/classes/kotlin/main;./compiler/build/resources/main;./parser/build/classes/java/main
 set KOTLINPATH=%USERPROFILE%/.IdeaIC2019.1/config/plugins/Kotlin
 set LIBJARS=%KOTLINPATH%/lib/kotlin-stdlib.jar;%KOTLINPATH%/lib/kotlin-reflect.jar;./parser/antlr/lib/antlr-runtime-4.7.2.jar
 
