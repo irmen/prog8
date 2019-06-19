@@ -9,7 +9,7 @@ import java.io.PrintStream
 import java.nio.file.Path
 
 
-class IntermediateProgram(val name: String, var loadAddress: Int, val heap: HeapValues, val importedFrom: Path) {
+class IntermediateProgram(val name: String, var loadAddress: Int, val heap: HeapValues, val source: Path) {
 
     class ProgramBlock(val name: String,
                        var address: Int?,

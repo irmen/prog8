@@ -13,9 +13,9 @@ import java.io.File
  * General checks on the Ast
  */
 
-fun Module.checkValid(globalNamespace: INameScope, compilerOptions: CompilationOptions, heap: HeapValues) {
-    val checker = AstChecker(globalNamespace, compilerOptions, heap)
-    this.process(checker)
+fun Program.checkValid(compilerOptions: CompilationOptions) {
+    val checker = AstChecker(namespace, compilerOptions, heap)
+    checker.process(this)
     printErrors(checker.result(), name)
 }
 
@@ -66,6 +66,56 @@ private class AstChecker(private val namespace: INameScope,
         return checkResult
     }
 
+    override fun process(program: Program) {
+        // there must be a single 'main' block with a 'start' subroutine for the program entry point.
+        val mainBlocks = program.modules.flatMap { it.statements }.filter { b -> b is Block && b.name=="main" }.map { it as Block }
+        if(mainBlocks.size>1)
+            checkResult.add(SyntaxError("more than one 'main' block", mainBlocks[0].position))
+
+        for(mainBlock in mainBlocks) {
+            val startSub = mainBlock.subScopes().get("start") as? Subroutine
+            if (startSub == null) {
+                checkResult.add(SyntaxError("missing program entrypoint ('start' subroutine in 'main' block)", mainBlock.position))
+            } else {
+                if (startSub.parameters.isNotEmpty() || startSub.returntypes.isNotEmpty())
+                    checkResult.add(SyntaxError("program entrypoint subroutine can't have parameters and/or return values", startSub.position))
+            }
+
+            // the main module cannot contain 'regular' statements (they will never be executed!)
+            for (statement in mainBlock.statements) {
+                val ok = when (statement) {
+                    is Block -> true
+                    is Directive -> true
+                    is Label -> true
+                    is VarDecl -> true
+                    is InlineAssembly -> true
+                    is INameScope -> true
+                    is VariableInitializationAssignment -> true
+                    else -> false
+                }
+                if (!ok) {
+                    checkResult.add(SyntaxError("main block contains regular statements, this is not allowed (they'll never get executed). Use subroutines.", statement.position))
+                    break
+                }
+            }
+        }
+
+        // there can be an optional single 'irq' block with a 'irq' subroutine in it,
+        // which will be used as the 60hz irq routine in the vm if it's present
+        val irqBlocks = program.modules.flatMap { it.statements }.filter { it is Block && it.name=="irq" }.map { it as Block }
+        if(irqBlocks.size>1)
+            checkResult.add(SyntaxError("more than one 'irq' block", irqBlocks[0].position))
+        for(irqBlock in irqBlocks) {
+            val irqSub = irqBlock?.subScopes()?.get("irq") as? Subroutine
+            if (irqSub != null) {
+                if (irqSub.parameters.isNotEmpty() || irqSub.returntypes.isNotEmpty())
+                    checkResult.add(SyntaxError("irq entrypoint subroutine can't have parameters and/or return values", irqSub.position))
+            }
+        }
+
+        super.process(program)
+    }
+
     override fun process(module: Module) {
         super.process(module)
         val directives = module.statements.filterIsInstance<Directive>().groupBy { it.directive }
@@ -74,45 +124,6 @@ private class AstChecker(private val namespace: INameScope,
                 "%output", "%launcher", "%zeropage", "%address" ->
                     entry.value.mapTo(checkResult) { SyntaxError("directive can just occur once", it.position) }
             }
-        }
-
-        // there must be a 'main' block with a 'start' subroutine for the program entry point.
-        val mainBlock = module.statements.singleOrNull { it is Block && it.name=="main" } as? Block?
-        val startSub = mainBlock?.subScopes()?.get("start") as? Subroutine
-        if(startSub==null) {
-            checkResult.add(SyntaxError("missing program entrypoint ('start' subroutine in 'main' block)", module.position))
-        } else {
-            if(startSub.parameters.isNotEmpty() || startSub.returntypes.isNotEmpty())
-                checkResult.add(SyntaxError("program entrypoint subroutine can't have parameters and/or return values", startSub.position))
-        }
-
-        if(mainBlock!=null) {
-            // the main module cannot contain 'regular' statements (they will never be executed!)
-            for (statement in mainBlock.statements) {
-                val ok = when(statement) {
-                    is Block->true
-                    is Directive->true
-                    is Label->true
-                    is VarDecl->true
-                    is InlineAssembly->true
-                    is INameScope->true
-                    is VariableInitializationAssignment->true
-                    else->false
-                }
-                if(!ok) {
-                    checkResult.add(SyntaxError("main block contains regular statements, this is not allowed (they'll never get executed). Use subroutines.", statement.position))
-                    break
-                }
-            }
-        }
-
-        // there can be an optional 'irq' block with a 'irq' subroutine in it,
-        // which will be used as the 60hz irq routine in the vm if it's present
-        val irqBlock = module.statements.singleOrNull { it is Block && it.name=="irq" } as? Block?
-        val irqSub = irqBlock?.subScopes()?.get("irq") as? Subroutine
-        if(irqSub!=null) {
-            if(irqSub.parameters.isNotEmpty() || irqSub.returntypes.isNotEmpty())
-                checkResult.add(SyntaxError("irq entrypoint subroutine can't have parameters and/or return values", irqSub.position))
         }
     }
 
@@ -661,7 +672,7 @@ private class AstChecker(private val namespace: INameScope,
         var definingModule = directive.parent
         while (definingModule !is Module)
             definingModule = definingModule.parent
-        if (!(filename.startsWith("library:") || definingModule.importedFrom.resolveSibling(filename).toFile().isFile || File(filename).isFile))
+        if (!(filename.startsWith("library:") || definingModule.source.resolveSibling(filename).toFile().isFile || File(filename).isFile))
             checkResult.add(NameError("included file not found: $filename", directive.position))
     }
 

@@ -8,6 +8,7 @@ import prog8.optimizing.constantFold
 import prog8.optimizing.optimizeStatements
 import prog8.optimizing.simplifyExpressions
 import prog8.parser.ParsingFailedError
+import prog8.parser.importLibraryModule
 import prog8.parser.importModule
 import java.io.File
 import java.io.PrintStream
@@ -71,60 +72,65 @@ private fun compileMain(args: Array<String>) {
 
     try {
         val totalTime = measureTimeMillis {
-            // import main module and process additional imports
+            // import main module and everything it needs
             println("Parsing...")
-            val moduleAst = importModule(filepath)
-            moduleAst.linkParents()
-            var namespace = moduleAst.definingScope()
+            val programAst = Program(filepath.fileName.toString(), mutableListOf())
+            importModule(programAst, filepath)
 
-            // determine special compiler options
-
-            val compilerOptions = determineCompilationOptions(moduleAst)
-
+            val compilerOptions = determineCompilationOptions(programAst)
             if (compilerOptions.launcher == LauncherType.BASIC && compilerOptions.output != OutputType.PRG)
-                throw ParsingFailedError("${moduleAst.position} BASIC launcher requires output type PRG.")
+                throw ParsingFailedError("${programAst.modules.first().position} BASIC launcher requires output type PRG.")
+
+            // if we're producing a PRG or BASIC program, include the c64utils and c64lib libraries
+            if(compilerOptions.launcher==LauncherType.BASIC || compilerOptions.output==OutputType.PRG) {
+                importLibraryModule(programAst, "c64lib")
+                importLibraryModule(programAst, "c64utils")
+            }
+
+            // always import prog8lib and math
+            importLibraryModule(programAst, "math")
+            importLibraryModule(programAst, "prog8lib")
+
 
             // perform initial syntax checks and constant folding
             println("Syntax check...")
-            val heap = HeapValues()
             val time1= measureTimeMillis {
-                moduleAst.checkIdentifiers(namespace)
+                programAst.checkIdentifiers()
             }
             //println(" time1: $time1")
             val time2 = measureTimeMillis {
-                moduleAst.constantFold(namespace, heap)
+                programAst.constantFold()
             }
             //println(" time2: $time2")
             val time3 = measureTimeMillis {
-                moduleAst.reorderStatements(namespace,heap)     // reorder statements to please the compiler later
+                programAst.reorderStatements()     // reorder statements to please the compiler later
             }
             //println(" time3: $time3")
             val time4 = measureTimeMillis {
-                moduleAst.checkValid(namespace, compilerOptions, heap)          // check if tree is valid
+                programAst.checkValid(compilerOptions)          // check if tree is valid
             }
             //println(" time4: $time4")
 
-            moduleAst.checkIdentifiers(namespace)
+            programAst.checkIdentifiers()
             if(optimize) {
                 // optimize the parse tree
                 println("Optimizing...")
                 while (true) {
                     // keep optimizing expressions and statements until no more steps remain
-                    val optsDone1 = moduleAst.simplifyExpressions(namespace, heap)
-                    val optsDone2 = moduleAst.optimizeStatements(namespace, heap)
+                    val optsDone1 = programAst.simplifyExpressions()
+                    val optsDone2 = programAst.optimizeStatements()
                     if (optsDone1 + optsDone2 == 0)
                         break
                 }
             }
 
-            namespace = moduleAst.definingScope()       // create it again, it could have changed in the meantime
-            moduleAst.checkValid(namespace, compilerOptions, heap)          // check if final tree is valid
-            moduleAst.checkRecursion(namespace)         // check if there are recursive subroutine calls
+            programAst.checkValid(compilerOptions)          // check if final tree is valid
+            programAst.checkRecursion()         // check if there are recursive subroutine calls
 
             // namespace.debugPrint()
 
             // compile the syntax tree into stackvmProg form, and optimize that
-            val compiler = Compiler(moduleAst, namespace, heap)
+            val compiler = Compiler(programAst)
             val intermediate = compiler.compile(compilerOptions)
             if(optimize)
                 intermediate.optimize()
@@ -140,7 +146,7 @@ private fun compileMain(args: Array<String>) {
             if(writeAssembly) {
                 val zeropage = C64Zeropage(compilerOptions)
                 intermediate.allocateZeropage(zeropage)
-                val assembly = AsmGen(compilerOptions, intermediate, heap, zeropage).compileToAssembly(optimize)
+                val assembly = AsmGen(compilerOptions, intermediate, programAst.heap, zeropage).compileToAssembly(optimize)
                 assembly.assemble(compilerOptions)
                 programname = assembly.name
             }
@@ -180,7 +186,9 @@ private fun compileMain(args: Array<String>) {
     }
 }
 
-fun determineCompilationOptions(moduleAst: Module): CompilationOptions {
+
+fun determineCompilationOptions(program: Program): CompilationOptions {
+    val moduleAst = program.modules.first()
     val options = moduleAst.statements.filter { it is Directive && it.directive == "%option" }.flatMap { (it as Directive).args }.toSet()
     val outputType = (moduleAst.statements.singleOrNull { it is Directive && it.directive == "%output" }
             as? Directive)?.args?.single()?.name?.toUpperCase()

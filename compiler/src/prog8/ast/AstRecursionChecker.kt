@@ -4,9 +4,9 @@ package prog8.ast
  * Checks for the occurrence of recursive subroutine calls
  */
 
-fun Module.checkRecursion(namespace: INameScope) {
+fun Program.checkRecursion() {
     val checker = AstRecursionChecker(namespace)
-    this.process(checker)
+    checker.process(this)
     printErrors(checker.result(), name)
 }
 

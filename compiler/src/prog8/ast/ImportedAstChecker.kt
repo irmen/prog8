@@ -6,9 +6,9 @@ package prog8.ast
  */
 
 fun Module.checkImportedValid() {
-    val checker = ImportedAstChecker()
     this.linkParents()
-    this.process(checker)
+    val checker = ImportedAstChecker()
+    checker.process(this)
     printErrors(checker.result(), name)
 }
 

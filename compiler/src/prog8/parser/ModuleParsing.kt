@@ -2,20 +2,13 @@ package prog8.parser
 
 import org.antlr.v4.runtime.*
 import prog8.ast.*
-import prog8.compiler.LauncherType
-import prog8.compiler.OutputType
-import prog8.determineCompilationOptions
 import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.util.*
 
 
 class ParsingFailedError(override var message: String) : Exception(message)
-
-
-private val importedModules : HashMap<String, Module> = hashMapOf()
 
 
 private class LexerErrorListener: BaseErrorListener() {
@@ -29,7 +22,33 @@ private class LexerErrorListener: BaseErrorListener() {
 internal class CustomLexer(val modulePath: Path, input: CharStream?) : prog8Lexer(input)
 
 
-fun importModule(stream: CharStream, modulePath: Path, isLibrary: Boolean): Module {
+fun importModule(program: Program, filePath: Path): Module {
+    print("importing '${filePath.fileName}'")
+    if(filePath.parent!=null) {
+        var importloc = filePath.toString()
+        val curdir = Paths.get("").toAbsolutePath().toString()
+        if(importloc.startsWith(curdir))
+            importloc = "." + importloc.substring(curdir.length)
+        println(" (from '$importloc')")
+    }
+    else
+        println("")
+    if(!Files.isReadable(filePath))
+        throw ParsingFailedError("No such file: $filePath")
+
+    val input = CharStreams.fromPath(filePath)
+    val module = importModule(program, input, filePath, filePath.parent==null)
+    return module
+}
+
+fun importLibraryModule(program: Program, name: String): Module? {
+    val import = Directive("%import", listOf(
+            DirectiveArg("", name, 42, position = Position("<<<implicit-import>>>", 0, 0 ,0))
+    ), Position("<<<implicit-import>>>", 0, 0 ,0))
+    return executeImportDirective(program, import, Paths.get(""))
+}
+
+private fun importModule(program: Program, stream: CharStream, modulePath: Path, isLibrary: Boolean): Module {
     val moduleName = modulePath.fileName
     val lexer = CustomLexer(modulePath, stream)
     val lexerErrors = LexerErrorListener()
@@ -46,67 +65,24 @@ fun importModule(stream: CharStream, modulePath: Path, isLibrary: Boolean): Modu
 
     // convert to Ast
     val moduleAst = parseTree.toAst(moduleName.toString(), isLibrary, modulePath)
-    importedModules[moduleAst.name] = moduleAst
+    moduleAst.program = program
+    moduleAst.linkParents()
+    program.modules.add(moduleAst)
 
     // process imports
     val lines = moduleAst.statements.toMutableList()
-    if(!moduleAst.position.file.startsWith("c64utils.") && !moduleAst.isLibraryModule) {
-        // if the output is a PRG or BASIC program, include the c64utils library
-        val compilerOptions = determineCompilationOptions(moduleAst)
-        if(compilerOptions.launcher==LauncherType.BASIC || compilerOptions.output==OutputType.PRG) {
-            lines.add(0, Directive("%import", listOf(DirectiveArg(null, "c64utils", null, moduleAst.position)), moduleAst.position))
-        }
-    }
-    // always import the prog8lib and math compiler libraries
-    if(!moduleAst.position.file.startsWith("math."))
-        lines.add(0, Directive("%import", listOf(DirectiveArg(null, "math", null, moduleAst.position)), moduleAst.position))
-    if(!moduleAst.position.file.startsWith("prog8lib."))
-        lines.add(0, Directive("%import", listOf(DirectiveArg(null, "prog8lib", null, moduleAst.position)), moduleAst.position))
-
-    val imports = lines
-            .asSequence()
-            .mapIndexed { i, it -> Pair(i, it) }
-            .filter { (it.second as? Directive)?.directive == "%import" }
-            .map { Pair(it.first, executeImportDirective(it.second as Directive, modulePath)) }
-            .toList()
-
-    imports.reversed().forEach {
-        if(it.second==null) {
-            // this import was already satisfied. just remove this line.
-            lines.removeAt(it.first)
-        } else {
-            // merge imported lines at this spot
-            lines.addAll(it.first, it.second!!.statements)
-        }
-    }
+    lines.asSequence()
+         .mapIndexed { i, it -> Pair(i, it) }
+         .filter { (it.second as? Directive)?.directive == "%import" }
+         .forEach { executeImportDirective(program, it.second as Directive, modulePath) }
 
     moduleAst.statements = lines
     return moduleAst
 }
 
-
-fun importModule(filePath: Path) : Module {
-    print("importing '${filePath.fileName}'")
-    if(filePath.parent!=null) {
-        var importloc = filePath.toString()
-        val curdir = Paths.get("").toAbsolutePath().toString()
-        if(importloc.startsWith(curdir))
-            importloc = "." + importloc.substring(curdir.length)
-        println(" (from '$importloc')")
-    }
-    else
-        println("")
-    if(!Files.isReadable(filePath))
-        throw ParsingFailedError("No such file: $filePath")
-
-    val input = CharStreams.fromPath(filePath)
-    return importModule(input, filePath, filePath.parent==null)
-}
-
-
-private fun discoverImportedModuleFile(name: String, importedFrom: Path, position: Position?): Path {
+private fun discoverImportedModuleFile(name: String, source: Path, position: Position?): Path {
     val fileName = "$name.p8"
-    val locations = mutableListOf(Paths.get(importedFrom.parent.toString()))
+    val locations = mutableListOf(Paths.get(source.parent.toString()))
 
     val propPath = System.getProperty("prog8.libdir")
     if(propPath!=null)
@@ -124,13 +100,15 @@ private fun discoverImportedModuleFile(name: String, importedFrom: Path, positio
     throw ParsingFailedError("$position Import: no module source file '$fileName' found  (I've looked in: $locations)")
 }
 
-private fun executeImportDirective(import: Directive, importedFrom: Path): Module? {
+private fun executeImportDirective(program: Program, import: Directive, source: Path): Module? {
     if(import.directive!="%import" || import.args.size!=1 || import.args[0].name==null)
         throw SyntaxError("invalid import directive", import.position)
     val moduleName = import.args[0].name!!
     if("$moduleName.p8" == import.position.file)
         throw SyntaxError("cannot import self", import.position)
-    if(importedModules.containsKey(moduleName))
+
+    val existing = program.modules.singleOrNull { it.name == moduleName }
+    if(existing!=null)
         return null
 
     val resource = tryGetEmbeddedResource(moduleName+".p8")
@@ -138,12 +116,14 @@ private fun executeImportDirective(import: Directive, importedFrom: Path): Modul
         if(resource!=null) {
             // load the module from the embedded resource
             resource.use {
+                if(import.args[0].int==42)
+                    print("automatically ")
                 println("importing '$moduleName' (embedded library)")
-                importModule(CharStreams.fromStream(it), Paths.get("@embedded@/$moduleName"), true)
+                importModule(program, CharStreams.fromStream(it), Paths.get("@embedded@/$moduleName"), true)
             }
         } else {
-            val modulePath = discoverImportedModuleFile(moduleName, importedFrom, import.position)
-            importModule(modulePath)
+            val modulePath = discoverImportedModuleFile(moduleName, source, import.position)
+            importModule(program, modulePath)
         }
 
     importedModule.checkImportedValid()

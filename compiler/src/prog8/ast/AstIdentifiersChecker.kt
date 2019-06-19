@@ -8,9 +8,13 @@ import prog8.functions.BuiltinFunctions
  * Finally, it also makes sure the datatype of all Var decls and sub Return values is set correctly.
  */
 
-fun Module.checkIdentifiers(namespace: INameScope) {
+fun Program.checkIdentifiers() {
     val checker = AstIdentifiersChecker(namespace)
-    this.process(checker)
+    checker.process(this)
+
+    if(modules.map {it.name}.toSet().size != modules.size) {
+        throw FatalAstException("modules should all be unique")
+    }
 
     // add any anonymous variables for heap values that are used,
     // and replace an iterable literalvalue by identifierref to new local variable
@@ -56,6 +60,11 @@ private class AstIdentifiersChecker(private val namespace: INameScope) : IAstPro
 
     private fun nameError(name: String, position: Position, existing: IStatement) {
         checkResult.add(NameError("name conflict '$name', also defined in ${existing.position.file} line ${existing.position.line}", position))
+    }
+
+    override fun process(module: Module) {
+        blocks.clear()  // blocks may be redefined within a different module
+        super.process(module)
     }
 
     override fun process(block: Block): IStatement {

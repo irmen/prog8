@@ -9,7 +9,7 @@ import prog8.compiler.target.c64.FLOAT_MAX_POSITIVE
 import kotlin.math.floor
 
 
-class ConstantFolding(private val namespace: INameScope, private val heap: HeapValues) : IAstProcessor {
+class ConstantFolding(private val namespace: GlobalNamespace, private val heap: HeapValues) : IAstProcessor {
     var optimizationsDone: Int = 0
     var errors : MutableList<AstException> = mutableListOf()
 

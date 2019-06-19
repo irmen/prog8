@@ -145,11 +145,11 @@ data class CompilationOptions(val output: OutputType,
                               val floats: Boolean)
 
 
-internal class Compiler(private val rootModule: Module,
-                        private val namespace: INameScope,
-                        private val heap: HeapValues): IAstProcessor {
+internal class Compiler(private val programAst2: Program): IAstProcessor {
 
-    val prog: IntermediateProgram = IntermediateProgram(rootModule.name, rootModule.loadAddress, heap, rootModule.importedFrom)
+    val prog: IntermediateProgram = IntermediateProgram(programAst2.name, programAst2.loadAddress, programAst2.heap, programAst2.modules.first().source)
+    val namespace = programAst2.namespace
+    val heap = programAst2.heap
 
     private var generatedLabelSequenceNumber = 0
     private val breakStmtLabelStack : Stack<String> = Stack()
@@ -157,7 +157,9 @@ internal class Compiler(private val rootModule: Module,
 
     fun compile(options: CompilationOptions) : IntermediateProgram {
         println("Creating stackVM code...")
-        process(rootModule)
+        programAst2.modules.forEach {
+            process(it)
+        }
         return prog
     }
 
@@ -218,7 +220,7 @@ internal class Compiler(private val rootModule: Module,
                 is Return -> translate(stmt)
                 is Directive -> {
                     when(stmt.directive) {
-                        "%asminclude" -> translateAsmInclude(stmt.args, prog.importedFrom)
+                        "%asminclude" -> translateAsmInclude(stmt.args, prog.source)
                         "%asmbinary" -> translateAsmBinary(stmt.args)
                         "%breakpoint" -> {
                             prog.line(stmt.position)
@@ -2148,7 +2150,7 @@ internal class Compiler(private val rootModule: Module,
             throw CompilerException("cannot take memory pointer $addrof")
     }
 
-    private fun translateAsmInclude(args: List<DirectiveArg>, importedFrom: Path) {
+    private fun translateAsmInclude(args: List<DirectiveArg>, source: Path) {
         val scopeprefix = if(args[1].str!!.isNotBlank()) "${args[1].str}\t.proc\n" else ""
         val scopeprefixEnd = if(args[1].str!!.isNotBlank()) "\t.pend\n" else ""
         val filename=args[0].str!!
@@ -2158,7 +2160,7 @@ internal class Compiler(private val rootModule: Module,
                     resource.bufferedReader().use { it.readText() }
                 } else {
                     // first try in the same folder as where the containing file was imported from
-                    val sib = importedFrom.resolveSibling(filename)
+                    val sib = source.resolveSibling(filename)
                     if(sib.toFile().isFile)
                         sib.toFile().readText()
                     else

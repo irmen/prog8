@@ -130,6 +130,10 @@ data class Position(val file: String, val line: Int, val startCol: Int, val endC
 
 
 interface IAstProcessor {
+    fun process(program: Program) {
+        program.modules.forEach { process(it) }
+    }
+
     fun process(module: Module) {
         module.statements = module.statements.asSequence().map { it.process(this) }.toMutableList()
     }
@@ -301,6 +305,13 @@ interface Node {
     val position: Position
     var parent: Node             // will be linked correctly later (late init)
     fun linkParents(parent: Node)
+
+    fun definingModule(): Module {
+        if(this is Module)
+            return this
+        return findParentNode<Module>(this)!!
+    }
+
     fun definingScope(): INameScope {
         val scope = findParentNode<INameScope>(this)
         if(scope!=null) {
@@ -398,22 +409,27 @@ interface INameScope {
     fun allLabelsAndVariables(): Set<String> =
             statements.filterIsInstance<Label>().map { it.name }.toSet() + statements.filterIsInstance<VarDecl>().map { it.name }.toSet()
 
-    fun lookup(scopedName: List<String>, statement: Node) : IStatement? {
+    fun lookup(scopedName: List<String>, localContext: Node) : IStatement? {
         if(scopedName.size>1) {
-            // it's a qualified name, look it up from the namespace root
-            var scope: INameScope? = this
-            scopedName.dropLast(1).forEach {
-                scope = scope?.subScopes()?.get(it)
-                if(scope==null)
-                    return null
+            // it's a qualified name, look it up from the root of the module's namespace (consider all modules in the program)
+            for(module in localContext.definingModule().program.modules) {
+                var scope: INameScope? = module
+                for(name in scopedName.dropLast(1)) {
+                    scope = scope?.subScopes()?.get(name)
+                    if(scope==null)
+                        break
+                }
+                if(scope!=null) {
+                    val result = scope.getLabelOrVariable(scopedName.last())
+                    if(result!=null)
+                        return result
+                    return scope.subScopes()[scopedName.last()] as IStatement?
+                }
             }
-            val foundScope : INameScope = scope!!
-            return foundScope.getLabelOrVariable(scopedName.last())
-                    ?:
-                    foundScope.subScopes()[scopedName.last()] as IStatement?
+            return null
         } else {
-            // unqualified name, find the scope the statement is in, look in that first
-            var statementScope = statement
+            // unqualified name, find the scope the localContext is in, look in that first
+            var statementScope = localContext
             while(statementScope !is ParentSentinel) {
                 val localScope = statementScope.definingScope()
                 val result = localScope.getLabelOrVariable(scopedName[0])
@@ -460,12 +476,26 @@ class BuiltinFunctionStatementPlaceholder(val name: String, override val positio
     override fun definingScope(): INameScope = BuiltinFunctionScopePlaceholder
 }
 
+
+
+/*********** Everything starts from here, the Program; zero or more modules *************/
+
+class Program(val name: String, val modules: MutableList<Module>) {
+    val namespace = GlobalNamespace(modules)
+    val heap = HeapValues()
+
+    val loadAddress: Int
+        get() = modules.first().loadAddress
+}
+
+
 class Module(override val name: String,
              override var statements: MutableList<IStatement>,
              override val position: Position,
              val isLibraryModule: Boolean,
-             val importedFrom: Path) : Node, INameScope {
+             val source: Path) : Node, INameScope {
     override lateinit var parent: Node
+    lateinit var program: Program
 
     override fun linkParents(parent: Node) {
         this.parent=parent
@@ -478,28 +508,31 @@ class Module(override val name: String,
         statements.forEach {it.linkParents(this)}
     }
 
-    fun process(processor: IAstProcessor) {
-        processor.process(this)
-    }
+    override fun definingScope(): INameScope = program.namespace
 
-    override fun definingScope(): INameScope = GlobalNamespace("<<<global>>>", statements, position)
+    override fun toString() = "Module(name=$name, pos=$position, lib=$isLibraryModule)"
 }
 
 
-private class GlobalNamespace(override val name: String,
-                              override var statements: MutableList<IStatement>,
-                              override val position: Position) : INameScope {
-    override var parent = ParentSentinel
-    override fun linkParents(parent: Node) {}
+class GlobalNamespace(val modules: List<Module>): INameScope {
+    override val name = "<<<global>>>"
+    override val position = Position("<<<global>>>", 0, 0, 0)
+    override val statements = mutableListOf<IStatement>()
+    override val parent: Node = ParentSentinel
 
-    override fun lookup(scopedName: List<String>, statement: Node): IStatement? {
-        if(scopedName.size==1 && scopedName[0] in BuiltinFunctions) {
-            // builtin functions always exist, return a dummy statement for them
-            val builtinPlaceholder = Label("builtin::${scopedName.last()}", statement.position)
+    override fun linkParents(parent: Node) {
+        modules.forEach { it.linkParents(ParentSentinel) }
+    }
+
+    override fun lookup(scopedName: List<String>, localContext: Node): IStatement? {
+        if (scopedName.size == 1 && scopedName[0] in BuiltinFunctions) {
+            // builtin functions always exist, return a dummy localContext for them
+            val builtinPlaceholder = Label("builtin::${scopedName.last()}", localContext.position)
             builtinPlaceholder.parent = ParentSentinel
             return builtinPlaceholder
         }
-        val stmt = super.lookup(scopedName, statement)
+
+        val stmt = localContext.definingModule().lookup(scopedName, localContext)
         return when (stmt) {
             is Label, is VarDecl, is Block, is Subroutine -> stmt
             null -> null
@@ -813,6 +846,7 @@ data class AssignTarget(val register: Register?,
 
 
 interface IExpression: Node {
+    // TODO pass programAst instead of namespace + heap?
     fun isIterable(namespace: INameScope, heap: HeapValues): Boolean
     fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue?
     fun process(processor: IAstProcessor): IExpression
@@ -1816,9 +1850,9 @@ class RepeatLoop(var body: AnonymousScope,
 
 /***************** Antlr Extension methods to create AST ****************/
 
-fun prog8Parser.ModuleContext.toAst(name: String, isLibrary: Boolean, importedFrom: Path) : Module {
+fun prog8Parser.ModuleContext.toAst(name: String, isLibrary: Boolean, source: Path) : Module {
     val nameWithoutSuffix = if(name.endsWith(".p8")) name.substringBeforeLast('.') else name
-    return Module(nameWithoutSuffix, modulestatement().asSequence().map { it.toAst(isLibrary) }.toMutableList(), toPosition(), isLibrary, importedFrom)
+    return Module(nameWithoutSuffix, modulestatement().asSequence().map { it.toAst(isLibrary) }.toMutableList(), toPosition(), isLibrary, source)
 }
 
 

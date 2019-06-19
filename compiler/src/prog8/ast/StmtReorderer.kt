@@ -2,12 +2,12 @@ package prog8.ast
 
 import prog8.compiler.HeapValues
 
-fun Module.reorderStatements(namespace: INameScope, heap: HeapValues) {
+fun Program.reorderStatements() {
     val initvalueCreator = VarInitValueAndAddressOfCreator(namespace)
-    this.process(initvalueCreator)
+    initvalueCreator.process(this)
 
     val checker = StatementReorderer(namespace, heap)
-    this.process(checker)
+    checker.process(this)
 }
 
 const val initvarsSubName="prog8_init_vars"    // the name of the subroutine that should be called for every block to initialize its variables
@@ -42,8 +42,8 @@ private class StatementReorderer(private val namespace: INameScope, private val 
             module.statements.removeAt(nonLibBlock.first)
         for(nonLibBlock in nonLibraryBlocks)
             module.statements.add(0, nonLibBlock.second)
-        val mainBlock = module.statements.single { it is Block && it.name=="main" }
-        if((mainBlock as Block).address==null) {
+        val mainBlock = module.statements.singleOrNull { it is Block && it.name=="main" }
+        if(mainBlock!=null && (mainBlock as Block).address==null) {
             module.statements.remove(mainBlock)
             module.statements.add(0, mainBlock)
         }
@@ -103,6 +103,7 @@ private class StatementReorderer(private val namespace: INameScope, private val 
         val directives = block.statements.filter {it is Directive && it.directive in directivesToMove}
         block.statements.removeAll(directives)
         block.statements.addAll(0, directives)
+        block.linkParents(block.parent)
 
         sortConstantAssignments(block.statements)
 
