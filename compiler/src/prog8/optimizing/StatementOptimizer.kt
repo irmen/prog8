@@ -11,7 +11,7 @@ import kotlin.math.floor
 
 
     todo: implement usage counters for blocks, variables, subroutines, heap variables. Then:
-        todo remove unused: subroutines, blocks, modules (in this order)
+        todo remove unused: subroutines, blocks (in this order)
         todo remove unused: variable declarations
         todo remove unused strings and arrays from the heap
         todo inline subroutines that are called exactly once (regardless of their size)
@@ -28,6 +28,24 @@ class StatementOptimizer(private val program: Program) : IAstProcessor {
         private set
     private val pureBuiltinFunctions = BuiltinFunctions.filter { it.value.pure }
 
+
+    override fun process(program: Program) {
+        val callgraph = CallGraphBuilder(program)
+        callgraph.process(program)
+
+        // remove modules that are not imported, or are empty
+        val removeModules = mutableSetOf<Module>()
+        program.modules.forEach {
+            if(it.importedBy.isEmpty() || it.isEmpty()) {
+                printWarning("discarding empty or unused module: ${it.name}")
+                removeModules.add(it)
+            }
+        }
+        program.modules.removeAll(removeModules)
+
+        super.process(program)
+    }
+
     override fun process(block: Block): IStatement {
         if(block.statements.isEmpty()) {
             // remove empty block
@@ -38,6 +56,7 @@ class StatementOptimizer(private val program: Program) : IAstProcessor {
     }
 
     override fun process(subroutine: Subroutine): IStatement {
+        println("STMT OPTIMIZE $subroutine   ${subroutine.calledBy} ${subroutine.calls}")
         super.process(subroutine)
 
         if(subroutine.asmAddress==null) {

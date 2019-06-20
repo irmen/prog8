@@ -496,6 +496,8 @@ class Module(override val name: String,
              val source: Path) : Node, INameScope {
     override lateinit var parent: Node
     lateinit var program: Program
+    val imports = mutableSetOf<Module>()
+    val importedBy = mutableSetOf<Module>()
 
     override fun linkParents(parent: Node) {
         this.parent=parent
@@ -1625,7 +1627,7 @@ class FunctionCallStatement(override var target: IdentifierReference,
     override fun process(processor: IAstProcessor) = processor.process(this)
 
     override fun toString(): String {
-        return "FunctionCall(target=$target, pos=$position)"
+        return "FunctionCallStatement(target=$target, pos=$position)"
     }
 }
 
@@ -1690,6 +1692,9 @@ class Subroutine(override val name: String,
                  override var statements: MutableList<IStatement>,
                  override val position: Position) : IStatement, INameScope {
     override lateinit var parent: Node
+    val calledBy = mutableSetOf<Subroutine>()
+    val calls = mutableSetOf<Subroutine>()
+
     val scopedname: String by lazy { makeScopedName(name) }
 
     override fun linkParents(parent: Node) {
