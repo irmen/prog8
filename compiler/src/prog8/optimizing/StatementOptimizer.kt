@@ -7,18 +7,18 @@ import kotlin.math.floor
 
 
 /*
+    TODO FIX THE OPTIMIZER: RESULTS IN WRONG CODE FOR THE primes.p8  EXAMPLE
+
+
     todo: subroutines with 1 or 2 byte args or 1 word arg can be converted to asm sub calling convention (args in registers)
 
+    todo: implement usage counters for variables (locals and heap), blocks. Remove if count is zero.
 
-    todo: implement usage counters for blocks, variables, subroutines, heap variables. Then:
-        todo remove unused: subroutines, blocks (in this order)
-        todo remove unused: variable declarations
-        todo remove unused strings and arrays from the heap
-        todo inline subroutines that are called exactly once (regardless of their size)
-        todo inline subroutines that are only called a few times (max 3?)
-        todo inline subroutines that are "sufficiently small" (0-3 statements)
+    todo inline subroutines that are called exactly once (regardless of their size)
+    todo inline subroutines that are only called a few times (max 3?)  (if < 20 statements)
+    todo inline all subroutines that are "very small" (0-3 statements)
 
-    todo analyse for unreachable code and remove that (f.i. code after goto or return that has no label so can never be jumped to)
+    todo analyse for unreachable code and remove that (f.i. code after goto or return that has no label so can never be jumped to) + print warning about this
 */
 
 class StatementOptimizer(private val program: Program) : IAstProcessor {
@@ -33,22 +33,50 @@ class StatementOptimizer(private val program: Program) : IAstProcessor {
         val callgraph = CallGraphBuilder(program)
         callgraph.process(program)
 
+        // TODO remove unused variables (local and global)
+
+        // remove all subroutines that aren't called, or are empty
+        val removeSubroutines = mutableSetOf<Subroutine>()
+        val entrypoint = program.entrypoint()
+        program.modules.forEach {
+            callgraph.forAllSubroutines(it) { sub ->
+                if(sub !== entrypoint && (sub.calledBy.isEmpty() || (sub.containsNoCodeNorVars() && !sub.isAsmSubroutine)))
+                    removeSubroutines.add(sub)
+            }
+        }
+
+        if(removeSubroutines.isNotEmpty()) {
+            removeSubroutines.forEach { it.definingScope().statements.remove(it) }
+        }
+
+        val removeBlocks = mutableSetOf<Block>()
+        // TODO remove blocks that have no incoming references
+        program.modules.flatMap { it.statements }.filterIsInstance<Block>().forEach { block ->
+            if (block.containsNoCodeNorVars())
+                removeBlocks.add(block)
+        }
+
+        if(removeBlocks.isNotEmpty()) {
+            removeBlocks.forEach { it.definingScope().statements.remove(it) }
+        }
+
         // remove modules that are not imported, or are empty
         val removeModules = mutableSetOf<Module>()
         program.modules.forEach {
-            if(it.importedBy.isEmpty() || it.isEmpty()) {
-                printWarning("discarding empty or unused module: ${it.name}")
+            if (!it.isLibraryModule && (it.importedBy.isEmpty() || it.containsNoCodeNorVars()))
                 removeModules.add(it)
-            }
         }
-        program.modules.removeAll(removeModules)
+
+        if(removeModules.isNotEmpty()) {
+            println("[debug] removing ${removeModules.size} empty/unused modules")
+            program.modules.removeAll(removeModules)
+        }
 
         super.process(program)
     }
 
     override fun process(block: Block): IStatement {
-        if(block.statements.isEmpty()) {
-            // remove empty block
+        if(block.containsNoCodeNorVars()) {
             optimizationsDone++
             statementsToRemove.add(block)
         }
@@ -56,12 +84,10 @@ class StatementOptimizer(private val program: Program) : IAstProcessor {
     }
 
     override fun process(subroutine: Subroutine): IStatement {
-        println("STMT OPTIMIZE $subroutine   ${subroutine.calledBy} ${subroutine.calls}")
         super.process(subroutine)
 
         if(subroutine.asmAddress==null) {
-            if(subroutine.statements.isEmpty()) {
-                // remove empty subroutine
+            if(subroutine.containsNoCodeNorVars()) {
                 optimizationsDone++
                 statementsToRemove.add(subroutine)
             }
@@ -212,13 +238,13 @@ class StatementOptimizer(private val program: Program) : IAstProcessor {
     override fun process(ifStatement: IfStatement): IStatement {
         super.process(ifStatement)
 
-        if(ifStatement.truepart.isEmpty() && ifStatement.elsepart.isEmpty()) {
+        if(ifStatement.truepart.containsNoCodeNorVars() && ifStatement.elsepart.containsNoCodeNorVars()) {
             statementsToRemove.add(ifStatement)
             optimizationsDone++
             return ifStatement
         }
 
-        if(ifStatement.truepart.isEmpty() && ifStatement.elsepart.isNotEmpty()) {
+        if(ifStatement.truepart.containsNoCodeNorVars() && ifStatement.elsepart.containsCodeOrVars()) {
             // invert the condition and move else part to true part
             ifStatement.truepart = ifStatement.elsepart
             ifStatement.elsepart = AnonymousScope(mutableListOf(), ifStatement.elsepart.position)
@@ -246,7 +272,7 @@ class StatementOptimizer(private val program: Program) : IAstProcessor {
 
     override fun process(forLoop: ForLoop): IStatement {
         super.process(forLoop)
-        if(forLoop.body.isEmpty()) {
+        if(forLoop.body.containsNoCodeNorVars()) {
             // remove empty for loop
             statementsToRemove.add(forLoop)
             optimizationsDone++

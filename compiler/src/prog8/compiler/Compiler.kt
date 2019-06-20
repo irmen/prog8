@@ -191,7 +191,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
             return r
         } else {
             // asmsub
-            if(subroutine.isNotEmpty())
+            if(subroutine.containsCodeOrVars())
                 throw CompilerException("kernel subroutines (with memory address) can't have a body: $subroutine")
 
             prog.memoryPointer(subroutine.scopedname, subroutine.asmAddress, DataType.UBYTE)        // the datatype is a bit of a dummy in this case
@@ -426,7 +426,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
          * if the branch statement just contains jumps, more efficient code is generated.
          * (just the appropriate branching instruction is outputted!)
          */
-        if(branch.elsepart.isEmpty() && branch.truepart.isEmpty())
+        if(branch.elsepart.containsNoCodeNorVars() && branch.truepart.containsNoCodeNorVars())
             return
 
         fun branchOpcode(branch: BranchStatement, complement: Boolean) =
@@ -470,7 +470,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
             val labelElse = makeLabel(branch, "else")
             val labelEnd = makeLabel(branch, "end")
             val opcode = branchOpcode(branch, true)
-            if (branch.elsepart.isEmpty()) {
+            if (branch.elsepart.containsNoCodeNorVars()) {
                 prog.instr(opcode, callLabel = labelEnd)
                 translate(branch.truepart)
                 prog.label(labelEnd)
@@ -535,7 +535,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
             else -> throw CompilerException("invalid condition datatype (expected byte or word) $stmt")
         }
         val labelEnd = makeLabel(stmt, "end")
-        if(stmt.elsepart.isEmpty()) {
+        if(stmt.elsepart.containsNoCodeNorVars()) {
             prog.instr(conditionJumpOpcode, callLabel = labelEnd)
             translate(stmt.truepart)
             prog.label(labelEnd)
@@ -1620,7 +1620,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
     }
 
     private fun translate(loop: ForLoop) {
-        if(loop.body.isEmpty()) return
+        if(loop.body.containsNoCodeNorVars()) return
         prog.line(loop.position)
         val loopVarName: String
         val loopVarDt: DataType
@@ -2154,18 +2154,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
         val scopeprefix = if(args[1].str!!.isNotBlank()) "${args[1].str}\t.proc\n" else ""
         val scopeprefixEnd = if(args[1].str!!.isNotBlank()) "\t.pend\n" else ""
         val filename=args[0].str!!
-        val sourcecode =
-                if(filename.startsWith("library:")) {
-                    val resource = tryGetEmbeddedResource(filename.substring(8)) ?: throw IllegalArgumentException("library file '$filename' not found")
-                    resource.bufferedReader().use { it.readText() }
-                } else {
-                    // first try in the same folder as where the containing file was imported from
-                    val sib = source.resolveSibling(filename)
-                    if(sib.toFile().isFile)
-                        sib.toFile().readText()
-                    else
-                        File(filename).readText()
-                }
+        val sourcecode = loadAsmIncludeFile(filename, source)
 
         prog.instr(Opcode.INLINE_ASSEMBLY, callLabel=null, callLabel2=scopeprefix+sourcecode+scopeprefixEnd)
     }
@@ -2178,4 +2167,20 @@ internal class Compiler(private val program: Program): IAstProcessor {
         prog.instr(Opcode.INCLUDE_FILE, offset, length, filename)
     }
 
+}
+
+
+fun loadAsmIncludeFile(filename: String, source: Path): String {
+    return if (filename.startsWith("library:")) {
+        val resource = tryGetEmbeddedResource(filename.substring(8))
+                ?: throw IllegalArgumentException("library file '$filename' not found")
+        resource.bufferedReader().use { it.readText() }
+    } else {
+        // first try in the same folder as where the containing file was imported from
+        val sib = source.resolveSibling(filename)
+        if (sib.toFile().isFile)
+            sib.toFile().readText()
+        else
+            File(filename).readText()
+    }
 }

@@ -22,8 +22,11 @@ private class LexerErrorListener: BaseErrorListener() {
 internal class CustomLexer(val modulePath: Path, input: CharStream?) : prog8Lexer(input)
 
 
+internal fun moduleName(fileName: Path) = fileName.toString().substringBeforeLast('.')
+
+
 fun importModule(program: Program, filePath: Path): Module {
-    print("importing '${filePath.fileName}'")
+    print("importing '${moduleName(filePath.fileName)}'")
     if(filePath.parent!=null) {
         var importloc = filePath.toString()
         val curdir = Paths.get("").toAbsolutePath().toString()
@@ -48,7 +51,7 @@ fun importLibraryModule(program: Program, name: String): Module? {
 }
 
 private fun importModule(program: Program, stream: CharStream, modulePath: Path, isLibrary: Boolean): Module {
-    val moduleName = modulePath.fileName
+    val moduleName = moduleName(modulePath.fileName)
     val lexer = CustomLexer(modulePath, stream)
     val lexerErrors = LexerErrorListener()
     lexer.addErrorListener(lexerErrors)

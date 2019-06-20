@@ -170,7 +170,7 @@ private class AstIdentifiersChecker(private val namespace: INameScope) : IAstPro
         } else if(forLoop.loopVar!=null) {
             val varName = forLoop.loopVar.nameInSource.last()
             if(forLoop.decltype!=null) {
-                val existing = if(forLoop.body.isEmpty()) null else forLoop.body.lookup(forLoop.loopVar.nameInSource, forLoop.body.statements.first())
+                val existing = if(forLoop.body.containsNoCodeNorVars()) null else forLoop.body.lookup(forLoop.loopVar.nameInSource, forLoop.body.statements.first())
                 if(existing==null) {
                     // create the local scoped for loop variable itself
                     val vardecl = VarDecl(VarDeclType.VAR, forLoop.decltype, true, null, false, varName, null, forLoop.loopVar.position)
@@ -182,7 +182,7 @@ private class AstIdentifiersChecker(private val namespace: INameScope) : IAstPro
             }
 
             if(forLoop.iterable !is RangeExpr) {
-                val existing = if(forLoop.body.isEmpty()) null else forLoop.body.lookup(listOf(ForLoop.iteratorLoopcounterVarname), forLoop.body.statements.first())
+                val existing = if(forLoop.body.containsNoCodeNorVars()) null else forLoop.body.lookup(listOf(ForLoop.iteratorLoopcounterVarname), forLoop.body.statements.first())
                 if(existing==null) {
                     // create loop iteration counter variable (without value, to avoid an assignment)
                     val vardecl = VarDecl(VarDeclType.VAR, DataType.UBYTE, true, null, false, ForLoop.iteratorLoopcounterVarname, null, forLoop.loopVar.position)

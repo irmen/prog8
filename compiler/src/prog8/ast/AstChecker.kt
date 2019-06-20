@@ -148,7 +148,7 @@ private class AstChecker(private val program: Program,
     }
 
     override fun process(forLoop: ForLoop): IStatement {
-        if(forLoop.body.isEmpty())
+        if(forLoop.body.containsNoCodeNorVars())
             printWarning("for loop body is empty", forLoop.position)
 
         if(!forLoop.iterable.isIterable(program)) {

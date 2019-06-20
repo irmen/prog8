@@ -298,6 +298,10 @@ interface IAstProcessor {
         process(addressOf.identifier)
         return addressOf
     }
+
+    fun process(inlineAssembly: InlineAssembly): IStatement {
+        return inlineAssembly
+    }
 }
 
 
@@ -311,6 +315,8 @@ interface Node {
             return this
         return findParentNode<Module>(this)!!
     }
+
+    fun definingSubroutine(): Subroutine?  = findParentNode<Subroutine>(this)
 
     fun definingScope(): INameScope {
         val scope = findParentNode<INameScope>(this)
@@ -384,12 +390,12 @@ interface INameScope {
                 is WhileLoop -> subscopes[stmt.body.name] = stmt.body
                 is BranchStatement -> {
                     subscopes[stmt.truepart.name] = stmt.truepart
-                    if(stmt.elsepart.isNotEmpty())
+                    if(stmt.elsepart.containsCodeOrVars())
                         subscopes[stmt.elsepart.name] = stmt.elsepart
                 }
                 is IfStatement -> {
                     subscopes[stmt.truepart.name] = stmt.truepart
-                    if(stmt.elsepart.isNotEmpty())
+                    if(stmt.elsepart.containsCodeOrVars())
                         subscopes[stmt.elsepart.name] = stmt.elsepart
                 }
             }
@@ -445,8 +451,8 @@ interface INameScope {
         }
     }
 
-    fun isEmpty() = statements.isEmpty()
-    fun isNotEmpty() = statements.isNotEmpty()
+    fun containsCodeOrVars() = statements.any { it !is Directive || it.directive == "%asminclude" || it.directive == "%asm"}
+    fun containsNoCodeNorVars() = !containsCodeOrVars()
 
     fun remove(stmt: IStatement) {
         val removed = statements.remove(stmt)
@@ -486,6 +492,17 @@ class Program(val name: String, val modules: MutableList<Module>) {
 
     val loadAddress: Int
         get() = modules.first().loadAddress
+
+    fun entrypoint(): Subroutine? {
+        val mainBlocks = modules.flatMap { it.statements }.filter { b -> b is Block && b.name=="main" }.map { it as Block }
+        if(mainBlocks.size > 1)
+            throw FatalAstException("more than one 'main' block")
+        return if(mainBlocks.isEmpty()) {
+            null
+        } else {
+            mainBlocks[0].subScopes()["start"] as Subroutine?
+        }
+    }
 }
 
 
@@ -616,19 +633,6 @@ open class Return(var values: List<IExpression>, override val position: Position
 
     override fun toString(): String {
         return "Return(values: $values, pos=$position)"
-    }
-
-    fun definingSubroutine(): Subroutine? {
-        var scope = definingScope()
-        while(scope !is GlobalNamespace) {
-            if(scope is Subroutine)
-                return scope
-            val parent = scope.parent
-            if(parent is Subroutine)
-                return parent
-            scope = parent.definingScope()
-        }
-        return null
     }
 }
 
@@ -1639,7 +1643,7 @@ class InlineAssembly(val assembly: String, override val position: Position) : IS
         this.parent = parent
     }
 
-    override fun process(processor: IAstProcessor) = this
+    override fun process(processor: IAstProcessor) = processor.process(this)
 }
 
 
@@ -1692,7 +1696,7 @@ class Subroutine(override val name: String,
                  override var statements: MutableList<IStatement>,
                  override val position: Position) : IStatement, INameScope {
     override lateinit var parent: Node
-    val calledBy = mutableSetOf<Subroutine>()
+    val calledBy = mutableSetOf<INameScope>()
     val calls = mutableSetOf<Subroutine>()
 
     val scopedname: String by lazy { makeScopedName(name) }

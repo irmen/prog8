@@ -3,6 +3,9 @@
 
 ~ main {
 
+    ;   TODO FIX THE COMPILER OPTIMIZER ;  RESULTS IN WRONG CODE FOR THIS PROGRAM
+
+
     ubyte[256] sieve
     ubyte candidate_prime = 2       ; is increased in the loop
 

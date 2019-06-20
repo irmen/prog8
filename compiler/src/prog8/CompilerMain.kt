@@ -10,6 +10,7 @@ import prog8.optimizing.simplifyExpressions
 import prog8.parser.ParsingFailedError
 import prog8.parser.importLibraryModule
 import prog8.parser.importModule
+import prog8.parser.moduleName
 import java.io.File
 import java.io.PrintStream
 import java.lang.Exception
@@ -73,7 +74,7 @@ private fun compileMain(args: Array<String>) {
         val totalTime = measureTimeMillis {
             // import main module and everything it needs
             println("Parsing...")
-            val programAst = Program(filepath.fileName.toString(), mutableListOf())
+            val programAst = Program(moduleName(filepath.fileName), mutableListOf())
             importModule(programAst, filepath)
 
             val compilerOptions = determineCompilationOptions(programAst)
@@ -187,17 +188,17 @@ private fun compileMain(args: Array<String>) {
 
 
 fun determineCompilationOptions(program: Program): CompilationOptions {
-    val moduleAst = program.modules.first()
-    val options = moduleAst.statements.filter { it is Directive && it.directive == "%option" }.flatMap { (it as Directive).args }.toSet()
-    val outputType = (moduleAst.statements.singleOrNull { it is Directive && it.directive == "%output" }
+    val mainModule = program.modules.first()
+    val outputType = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%output" }
             as? Directive)?.args?.single()?.name?.toUpperCase()
-    val launcherType = (moduleAst.statements.singleOrNull { it is Directive && it.directive == "%launcher" }
+    val launcherType = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%launcher" }
             as? Directive)?.args?.single()?.name?.toUpperCase()
-    moduleAst.loadAddress = (moduleAst.statements.singleOrNull { it is Directive && it.directive == "%address" }
+    mainModule.loadAddress = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%address" }
             as? Directive)?.args?.single()?.int ?: 0
-    val zpoption: String? = (moduleAst.statements.singleOrNull { it is Directive && it.directive == "%zeropage" }
+    val zpoption: String? = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%zeropage" }
             as? Directive)?.args?.single()?.name?.toUpperCase()
-    val floatsEnabled = options.any { it.name == "enable_floats" }
+    val allOptions = program.modules.flatMap { it.statements }.filter { it is Directive && it.directive == "%option" }.flatMap { (it as Directive).args }.toSet()
+    val floatsEnabled = allOptions.any { it.name == "enable_floats" }
     val zpType: ZeropageType =
             if (zpoption == null)
                 if(floatsEnabled) ZeropageType.FLOATSAFE else ZeropageType.KERNALSAFE
@@ -208,7 +209,7 @@ fun determineCompilationOptions(program: Program): CompilationOptions {
                     ZeropageType.KERNALSAFE
                     // error will be printed by the astchecker
                 }
-    val zpReserved = moduleAst.statements
+    val zpReserved = mainModule.statements
             .asSequence()
             .filter { it is Directive && it.directive == "%zpreserved" }
             .map { (it as Directive).args }
