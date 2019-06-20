@@ -1,7 +1,6 @@
 package prog8.optimizing
 
 import prog8.ast.*
-import prog8.compiler.HeapValues
 import prog8.compiler.target.c64.Petscii
 import prog8.functions.BuiltinFunctions
 import kotlin.math.floor
@@ -12,9 +11,8 @@ import kotlin.math.floor
 
 
     todo: implement usage counters for blocks, variables, subroutines, heap variables. Then:
-        todo remove unused blocks
-        todo remove unused variables
-        todo remove unused subroutines
+        todo remove unused: subroutines, blocks, modules (in this order)
+        todo remove unused: variable declarations
         todo remove unused strings and arrays from the heap
         todo inline subroutines that are called exactly once (regardless of their size)
         todo inline subroutines that are only called a few times (max 3?)
@@ -23,7 +21,7 @@ import kotlin.math.floor
     todo analyse for unreachable code and remove that (f.i. code after goto or return that has no label so can never be jumped to)
 */
 
-class StatementOptimizer(private val namespace: INameScope, private val heap: HeapValues) : IAstProcessor {
+class StatementOptimizer(private val program: Program) : IAstProcessor {
     var optimizationsDone: Int = 0
         private set
     var statementsToRemove = mutableListOf<IStatement>()
@@ -101,12 +99,12 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
         if(target.memoryAddress!=null)
             return false
         if(target.arrayindexed!=null) {
-            val targetStmt = target.arrayindexed.identifier.targetVarDecl(namespace)
+            val targetStmt = target.arrayindexed.identifier.targetVarDecl(program.namespace)
             if(targetStmt!=null)
                 return targetStmt.type!=VarDeclType.MEMORY
         }
         if(target.identifier!=null) {
-            val targetStmt = target.identifier.targetVarDecl(namespace)
+            val targetStmt = target.identifier.targetVarDecl(program.namespace)
             if(targetStmt!=null)
                 return targetStmt.type!=VarDeclType.MEMORY
         }
@@ -131,8 +129,8 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
                 throw AstException("string argument should be on heap already")
             val stringVar = functionCallStatement.arglist.single() as? IdentifierReference
             if(stringVar!=null) {
-                val heapId = stringVar.heapId(namespace)
-                val string = heap.get(heapId).str!!
+                val heapId = stringVar.heapId(program.namespace)
+                val string = program.heap.get(heapId).str!!
                 if(string.length==1) {
                     val petscii = Petscii.encodePetscii(string, true)[0]
                     functionCallStatement.arglist.clear()
@@ -156,7 +154,7 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
         // if it calls a subroutine,
         // and the first instruction in the subroutine is a jump, call that jump target instead
         // if the first instruction in the subroutine is a return statement, replace with a nop instruction
-        val subroutine = functionCallStatement.target.targetSubroutine(namespace)
+        val subroutine = functionCallStatement.target.targetSubroutine(program.namespace)
         if(subroutine!=null) {
             val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
             if(first is Jump && first.identifier!=null) {
@@ -176,7 +174,7 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
         // if it calls a subroutine,
         // and the first instruction in the subroutine is a jump, call that jump target instead
         // if the first instruction in the subroutine is a return statement with constant value, replace with the constant value
-        val subroutine = functionCall.target.targetSubroutine(namespace)
+        val subroutine = functionCall.target.targetSubroutine(program.namespace)
         if(subroutine!=null) {
             val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
             if(first is Jump && first.identifier!=null) {
@@ -184,7 +182,7 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
                 return FunctionCall(first.identifier, functionCall.arglist, functionCall.position)
             }
             if(first is Return && first.values.size==1) {
-                val constval = first.values[0].constValue(namespace, heap)
+                val constval = first.values[0].constValue(program)
                 if(constval!=null)
                     return constval
             }
@@ -210,7 +208,7 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
             return ifStatement
         }
 
-        val constvalue = ifStatement.condition.constValue(namespace, heap)
+        val constvalue = ifStatement.condition.constValue(program)
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue){
                 // always true -> keep only if-part
@@ -247,7 +245,7 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
 
         val range = forLoop.iterable as? RangeExpr
         if(range!=null) {
-            if(range.size(heap)==1) {
+            if(range.size(program.heap)==1) {
                 // for loop over a (constant) range of just a single value-- optimize the loop away
                 // loopvar/reg = range value , follow by block
                 val assignment = Assignment(listOf(AssignTarget(forLoop.loopRegister, forLoop.loopVar, null, null, forLoop.position)), null, range.from, forLoop.position)
@@ -261,7 +259,7 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
 
     override fun process(whileLoop: WhileLoop): IStatement {
         super.process(whileLoop)
-        val constvalue = whileLoop.condition.constValue(namespace, heap)
+        val constvalue = whileLoop.condition.constValue(program)
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue){
                 // always true -> print a warning, and optimize into body + jump (if there are no continue and break statements)
@@ -287,7 +285,7 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
 
     override fun process(repeatLoop: RepeatLoop): IStatement {
         super.process(repeatLoop)
-        val constvalue = repeatLoop.untilCondition.constValue(namespace, heap)
+        val constvalue = repeatLoop.untilCondition.constValue(program)
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue){
                 // always true -> keep only the statement block (if there are no continue and break statements)
@@ -341,7 +339,7 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
     }
 
     override fun process(jump: Jump): IStatement {
-        val subroutine = jump.identifier?.targetSubroutine(namespace)
+        val subroutine = jump.identifier?.targetSubroutine(program.namespace)
         if(subroutine!=null) {
             // if the first instruction in the subroutine is another jump, shortcut this one
             val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
@@ -363,10 +361,10 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
                 optimizationsDone++
                 return NopStatement(assignment.position)
             }
-            val targetDt = target.determineDatatype(namespace, heap, assignment)!!
+            val targetDt = target.determineDatatype(program, assignment)!!
             val bexpr=assignment.value as? BinaryExpression
             if(bexpr!=null) {
-                val cv = bexpr.right.constValue(namespace, heap)?.asNumericValue?.toDouble()
+                val cv = bexpr.right.constValue(program)?.asNumericValue?.toDouble()
                 if(cv==null) {
                     if(bexpr.operator=="+" && targetDt!=DataType.FLOAT) {
                         if (same(bexpr.left, bexpr.right) && same(target, bexpr.left)) {
@@ -380,7 +378,7 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
                     if (same(target, bexpr.left)) {
                         // remove assignments that have no effect  X=X , X+=0, X-=0, X*=1, X/=1, X//=1, A |= 0, A ^= 0, A<<=0, etc etc
                         // A = A <operator> B
-                        val vardeclDt = (target.identifier?.targetVarDecl(namespace))?.type
+                        val vardeclDt = (target.identifier?.targetVarDecl(program.namespace))?.type
 
                         when (bexpr.operator) {
                             "+" -> {
@@ -516,14 +514,14 @@ class StatementOptimizer(private val namespace: INameScope, private val heap: He
         if(target1.identifier!=null && target2.identifier!=null)
             return target1.identifier.nameInSource==target2.identifier.nameInSource
         if(target1.memoryAddress!=null && target2.memoryAddress!=null) {
-            val addr1 = target1.memoryAddress!!.addressExpression.constValue(namespace, heap)
-            val addr2 = target2.memoryAddress!!.addressExpression.constValue(namespace, heap)
+            val addr1 = target1.memoryAddress!!.addressExpression.constValue(program)
+            val addr2 = target2.memoryAddress!!.addressExpression.constValue(program)
             return addr1!=null && addr2!=null && addr1==addr2
         }
         if(target1.arrayindexed!=null && target2.arrayindexed!=null) {
             if(target1.arrayindexed.identifier.nameInSource == target2.arrayindexed.identifier.nameInSource) {
-                val x1 = target1.arrayindexed.arrayspec.index.constValue(namespace, heap)
-                val x2 = target2.arrayindexed.arrayspec.index.constValue(namespace, heap)
+                val x1 = target1.arrayindexed.arrayspec.index.constValue(program)
+                val x2 = target2.arrayindexed.arrayspec.index.constValue(program)
                 return x1!=null && x2!=null && x1==x2
             }
         }

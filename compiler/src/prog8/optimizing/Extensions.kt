@@ -6,7 +6,7 @@ import prog8.parser.ParsingFailedError
 
 
 fun Program.constantFold() {
-    val optimizer = ConstantFolding(this.namespace, heap)
+    val optimizer = ConstantFolding(this)
     try {
         optimizer.process(this)
     } catch (ax: AstException) {
@@ -28,7 +28,7 @@ fun Program.constantFold() {
 
 
 fun Program.optimizeStatements(): Int {
-    val optimizer = StatementOptimizer(namespace, heap)
+    val optimizer = StatementOptimizer(this)
     optimizer.process(this)
     for(stmt in optimizer.statementsToRemove) {
         val scope=stmt.definingScope()
@@ -40,7 +40,7 @@ fun Program.optimizeStatements(): Int {
 }
 
 fun Program.simplifyExpressions() : Int {
-    val optimizer = SimplifyExpressions(namespace, heap)
+    val optimizer = SimplifyExpressions(this)
     optimizer.process(this)
     return optimizer.optimizationsDone
 }

@@ -14,7 +14,7 @@ import java.io.File
  */
 
 fun Program.checkValid(compilerOptions: CompilationOptions) {
-    val checker = AstChecker(namespace, compilerOptions, heap)
+    val checker = AstChecker(this, compilerOptions)
     checker.process(this)
     printErrors(checker.result(), name)
 }
@@ -52,14 +52,13 @@ fun printWarning(msg: String) {
     print("\u001b[0m\n")  // normal
 }
 
-private class AstChecker(private val namespace: INameScope,
-                 private val compilerOptions: CompilationOptions,
-                 private val heap: HeapValues) : IAstProcessor {
+private class AstChecker(private val program: Program,
+                 private val compilerOptions: CompilationOptions) : IAstProcessor {
     private val checkResult: MutableList<AstException> = mutableListOf()
     private val heapStringSentinel: Int
     init {
-        val stringSentinel = heap.allEntries().firstOrNull {it.value.str==""}
-        heapStringSentinel = stringSentinel?.key ?: heap.addString(DataType.STR, "")
+        val stringSentinel = program.heap.allEntries().firstOrNull {it.value.str==""}
+        heapStringSentinel = stringSentinel?.key ?: program.heap.addString(DataType.STR, "")
     }
 
     fun result(): List<AstException> {
@@ -67,13 +66,14 @@ private class AstChecker(private val namespace: INameScope,
     }
 
     override fun process(program: Program) {
+        assert(program === this.program)
         // there must be a single 'main' block with a 'start' subroutine for the program entry point.
         val mainBlocks = program.modules.flatMap { it.statements }.filter { b -> b is Block && b.name=="main" }.map { it as Block }
         if(mainBlocks.size>1)
             checkResult.add(SyntaxError("more than one 'main' block", mainBlocks[0].position))
 
         for(mainBlock in mainBlocks) {
-            val startSub = mainBlock.subScopes().get("start") as? Subroutine
+            val startSub = mainBlock.subScopes()["start"] as? Subroutine
             if (startSub == null) {
                 checkResult.add(SyntaxError("missing program entrypoint ('start' subroutine in 'main' block)", mainBlock.position))
             } else {
@@ -106,7 +106,7 @@ private class AstChecker(private val namespace: INameScope,
         if(irqBlocks.size>1)
             checkResult.add(SyntaxError("more than one 'irq' block", irqBlocks[0].position))
         for(irqBlock in irqBlocks) {
-            val irqSub = irqBlock?.subScopes()?.get("irq") as? Subroutine
+            val irqSub = irqBlock.subScopes()["irq"] as? Subroutine
             if (irqSub != null) {
                 if (irqSub.parameters.isNotEmpty() || irqSub.returntypes.isNotEmpty())
                     checkResult.add(SyntaxError("irq entrypoint subroutine can't have parameters and/or return values", irqSub.position))
@@ -132,7 +132,7 @@ private class AstChecker(private val namespace: INameScope,
         if(expectedReturnValues.size != returnStmt.values.size) {
             // if the return value is a function call, check the result of that call instead
             if(returnStmt.values.size==1 && returnStmt.values[0] is FunctionCall) {
-                val dt = (returnStmt.values[0] as FunctionCall).resultingDatatype(namespace, heap)
+                val dt = (returnStmt.values[0] as FunctionCall).resultingDatatype(program)
                 if(dt!=null && expectedReturnValues.isEmpty())
                     checkResult.add(SyntaxError("invalid number of return values", returnStmt.position))
             } else
@@ -140,7 +140,7 @@ private class AstChecker(private val namespace: INameScope,
         }
 
         for (rv in expectedReturnValues.withIndex().zip(returnStmt.values)) {
-            val valueDt=rv.second.resultingDatatype(namespace, heap)
+            val valueDt=rv.second.resultingDatatype(program)
             if(rv.first.value!=valueDt)
                 checkResult.add(ExpressionError("type $valueDt of return value #${rv.first.index+1} doesn't match subroutine return type ${rv.first.value}", rv.second.position))
         }
@@ -151,10 +151,10 @@ private class AstChecker(private val namespace: INameScope,
         if(forLoop.body.isEmpty())
             printWarning("for loop body is empty", forLoop.position)
 
-        if(!forLoop.iterable.isIterable(namespace, heap)) {
+        if(!forLoop.iterable.isIterable(program)) {
             checkResult.add(ExpressionError("can only loop over an iterable type", forLoop.position))
         } else {
-            val iterableDt = forLoop.iterable.resultingDatatype(namespace, heap)
+            val iterableDt = forLoop.iterable.resultingDatatype(program)
             if (forLoop.loopRegister != null) {
                 printWarning("using a register as loop variable is risky (it could get clobbered in the body)", forLoop.position)
                 // loop register
@@ -162,7 +162,7 @@ private class AstChecker(private val namespace: INameScope,
                     checkResult.add(ExpressionError("register can only loop over bytes", forLoop.position))
             } else {
                 // loop variable
-                val loopvar = forLoop.loopVar!!.targetVarDecl(namespace)
+                val loopvar = forLoop.loopVar!!.targetVarDecl(program.namespace)
                 if(loopvar==null || loopvar.type==VarDeclType.CONST) {
                     checkResult.add(SyntaxError("for loop requires a variable to loop with", forLoop.position))
 
@@ -366,14 +366,14 @@ private class AstChecker(private val namespace: INameScope,
 
         // assigning from a functioncall COULD return multiple values (from an asm subroutine)
         if(assignment.value is FunctionCall) {
-            val stmt = (assignment.value as FunctionCall).target.targetStatement(namespace)
+            val stmt = (assignment.value as FunctionCall).target.targetStatement(program.namespace)
             if (stmt is Subroutine) {
                 if (stmt.isAsmSubroutine) {
                     if (stmt.returntypes.size != assignment.targets.size)
                         checkResult.add(ExpressionError("number of return values doesn't match number of assignment targets", assignment.value.position))
                     else {
                         for (thing in stmt.returntypes.zip(assignment.targets)) {
-                            if (thing.second.determineDatatype(namespace, heap, assignment) != thing.first)
+                            if (thing.second.determineDatatype(program, assignment) != thing.first)
                                 checkResult.add(ExpressionError("return type mismatch for target ${thing.second.shortString()}", assignment.value.position))
                         }
                     }
@@ -390,7 +390,7 @@ private class AstChecker(private val namespace: INameScope,
     }
 
     private fun processAssignmentTarget(assignment: Assignment, target: AssignTarget): Assignment {
-        val memAddr = target.memoryAddress?.addressExpression?.constValue(namespace, heap)?.asIntegerValue
+        val memAddr = target.memoryAddress?.addressExpression?.constValue(program)?.asIntegerValue
         if(memAddr!=null) {
             if(memAddr<0 || memAddr>=65536)
                 checkResult.add(ExpressionError("address out of range", target.position))
@@ -398,7 +398,7 @@ private class AstChecker(private val namespace: INameScope,
 
         if(target.identifier!=null) {
             val targetName = target.identifier.nameInSource
-            val targetSymbol = namespace.lookup(targetName, assignment)
+            val targetSymbol = program.namespace.lookup(targetName, assignment)
             when (targetSymbol) {
                 null -> {
                     checkResult.add(ExpressionError("undefined symbol: ${targetName.joinToString(".")}", assignment.position))
@@ -436,23 +436,23 @@ private class AstChecker(private val namespace: INameScope,
             return assignment2
         }
 
-        val targetDatatype = target.determineDatatype(namespace, heap, assignment)
+        val targetDatatype = target.determineDatatype(program, assignment)
         if(targetDatatype!=null) {
-            val constVal = assignment.value.constValue(namespace, heap)
+            val constVal = assignment.value.constValue(program)
             if(constVal!=null) {
                 val arrayspec = if(target.identifier!=null) {
-                    val targetVar = namespace.lookup(target.identifier.nameInSource, assignment) as? VarDecl
+                    val targetVar = program.namespace.lookup(target.identifier.nameInSource, assignment) as? VarDecl
                     targetVar?.arraysize
                 } else null
                 checkValueTypeAndRange(targetDatatype,
                         arrayspec ?: ArrayIndex(LiteralValue.optimalInteger(-1, assignment.position), assignment.position),
-                        constVal, heap)
+                        constVal, program.heap)
             } else {
-                val sourceDatatype: DataType? = assignment.value.resultingDatatype(namespace, heap)
+                val sourceDatatype: DataType? = assignment.value.resultingDatatype(program)
                 if(sourceDatatype==null) {
                     if(assignment.targets.size<=1) {
                         if (assignment.value is FunctionCall) {
-                            val targetStmt = (assignment.value as FunctionCall).target.targetStatement(namespace)
+                            val targetStmt = (assignment.value as FunctionCall).target.targetStatement(program.namespace)
                             if(targetStmt!=null)
                                 checkResult.add(ExpressionError("function call doesn't return a suitable value to use in assignment", assignment.value.position))
                         }
@@ -468,7 +468,7 @@ private class AstChecker(private val namespace: INameScope,
     }
 
     override fun process(addressOf: AddressOf): IExpression {
-        val variable=addressOf.identifier.targetVarDecl(namespace)
+        val variable=addressOf.identifier.targetVarDecl(program.namespace)
         if(variable==null)
             checkResult.add(ExpressionError("pointer-of operand must be the name of a heap variable", addressOf.position))
         else {
@@ -548,11 +548,11 @@ private class AstChecker(private val namespace: INameScope,
                     decl.value is LiteralValue -> {
                         val arraySpec = decl.arraysize ?: (
                                 if((decl.value as LiteralValue).isArray)
-                                    ArrayIndex.forArray(decl.value as LiteralValue, heap)
+                                    ArrayIndex.forArray(decl.value as LiteralValue, program.heap)
                                 else
                                     ArrayIndex(LiteralValue.optimalInteger(-2, decl.position), decl.position)
                                 )
-                        checkValueTypeAndRange(decl.datatype, arraySpec, decl.value as LiteralValue, heap)
+                        checkValueTypeAndRange(decl.datatype, arraySpec, decl.value as LiteralValue, program.heap)
                     }
                     else -> {
                         err("var/const declaration needs a compile-time constant initializer value, or range, instead found: ${decl.value!!::class.simpleName}")
@@ -682,10 +682,10 @@ private class AstChecker(private val namespace: INameScope,
         }
         val arrayspec =
                 if(literalValue.isArray)
-                    ArrayIndex.forArray(literalValue, heap)
+                    ArrayIndex.forArray(literalValue, program.heap)
                 else
                     ArrayIndex(LiteralValue.optimalInteger(-3, literalValue.position), literalValue.position)
-        checkValueTypeAndRange(literalValue.type, arrayspec, literalValue, heap)
+        checkValueTypeAndRange(literalValue.type, arrayspec, literalValue, program.heap)
 
         val lv = super.process(literalValue)
         when(lv.type) {
@@ -704,7 +704,7 @@ private class AstChecker(private val namespace: INameScope,
 
     override fun process(expr: PrefixExpression): IExpression {
         if(expr.operator=="-") {
-            val dt = expr.resultingDatatype(namespace, heap)
+            val dt = expr.resultingDatatype(program)
             if (dt != DataType.BYTE && dt != DataType.WORD && dt != DataType.FLOAT) {
                 checkResult.add(ExpressionError("can only take negative of a signed number type", expr.position))
             }
@@ -713,12 +713,12 @@ private class AstChecker(private val namespace: INameScope,
     }
 
     override fun process(expr: BinaryExpression): IExpression {
-        val leftDt = expr.left.resultingDatatype(namespace, heap)
-        val rightDt = expr.right.resultingDatatype(namespace, heap)
+        val leftDt = expr.left.resultingDatatype(program)
+        val rightDt = expr.right.resultingDatatype(program)
 
         when(expr.operator){
             "/", "%" -> {
-                val constvalRight = expr.right.constValue(namespace, heap)
+                val constvalRight = expr.right.constValue(program)
                 val divisor = constvalRight?.asNumericValue?.toDouble()
                 if(divisor==0.0)
                     checkResult.add(ExpressionError("division by zero", expr.right.position))
@@ -735,8 +735,8 @@ private class AstChecker(private val namespace: INameScope,
                 // only integer numeric operands accepted, and if literal constants, only boolean values accepted (0 or 1)
                 if(leftDt !in IntegerDatatypes || rightDt !in IntegerDatatypes)
                     checkResult.add(ExpressionError("logical operator can only be used on boolean operands", expr.right.position))
-                val constLeft = expr.left.constValue(namespace, heap)
-                val constRight = expr.right.constValue(namespace, heap)
+                val constLeft = expr.left.constValue(program)
+                val constRight = expr.right.constValue(program)
                 if(constLeft!=null && constLeft.asIntegerValue !in 0..1 || constRight!=null && constRight.asIntegerValue !in 0..1)
                     checkResult.add(ExpressionError("const literal argument of logical operator must be boolean (0 or 1)", expr.position))
             }
@@ -765,9 +765,9 @@ private class AstChecker(private val namespace: INameScope,
             checkResult.add(SyntaxError(msg, range.position))
         }
         super.process(range)
-        val from = range.from.constValue(namespace, heap)
-        val to = range.to.constValue(namespace, heap)
-        val stepLv = range.step.constValue(namespace, heap) ?: LiteralValue(DataType.UBYTE, 1, position = range.position)
+        val from = range.from.constValue(program)
+        val to = range.to.constValue(program)
+        val stepLv = range.step.constValue(program) ?: LiteralValue(DataType.UBYTE, 1, position = range.position)
         if (stepLv.asIntegerValue == null || stepLv.asIntegerValue == 0) {
             err("range step must be an integer != 0")
             return range
@@ -784,8 +784,8 @@ private class AstChecker(private val namespace: INameScope,
                         err("descending range requires step < 0")
                 }
                 from.isString && to.isString -> {
-                    val fromString = from.strvalue(heap)
-                    val toString = to.strvalue(heap)
+                    val fromString = from.strvalue(program.heap)
+                    val toString = to.strvalue(program.heap)
                     if(fromString.length!=1 || toString.length!=1)
                         err("range from and to must be a single character")
                     if(fromString[0] == toString[0])
@@ -832,18 +832,18 @@ private class AstChecker(private val namespace: INameScope,
                 checkResult.add(SyntaxError("invalid number of arguments", position))
             else {
                 for (arg in args.withIndex().zip(func.parameters)) {
-                    val argDt=arg.first.value.resultingDatatype(namespace, heap)
+                    val argDt=arg.first.value.resultingDatatype(program)
                     if(argDt!=null && !argDt.assignableTo(arg.second.possibleDatatypes)) {
                         checkResult.add(ExpressionError("builtin function '${target.name}' argument ${arg.first.index + 1} has invalid type $argDt, expected ${arg.second.possibleDatatypes}", position))
                     }
                 }
                 if(target.name=="swap") {
                     // swap() is a bit weird because this one is translated into a sequence of bytecodes, instead of being an actual function call
-                    val dt1 = args[0].resultingDatatype(namespace, heap)!!
-                    val dt2 = args[1].resultingDatatype(namespace, heap)!!
+                    val dt1 = args[0].resultingDatatype(program)!!
+                    val dt2 = args[1].resultingDatatype(program)!!
                     if (dt1 != dt2)
                         checkResult.add(ExpressionError("swap requires 2 args of identical type", position))
-                    else if (args[0].constValue(namespace, heap) != null || args[1].constValue(namespace, heap) != null)
+                    else if (args[0].constValue(program) != null || args[1].constValue(program) != null)
                         checkResult.add(ExpressionError("swap requires 2 variables, not constant value(s)", position))
                     else if(same(args[0], args[1]))
                         checkResult.add(ExpressionError("swap should have 2 different args", position))
@@ -856,7 +856,7 @@ private class AstChecker(private val namespace: INameScope,
                 checkResult.add(SyntaxError("invalid number of arguments", position))
             else {
                 for (arg in args.withIndex().zip(target.parameters)) {
-                    val argDt = arg.first.value.resultingDatatype(namespace, heap)
+                    val argDt = arg.first.value.resultingDatatype(program)
                     if(argDt!=null && !argDt.assignableTo(arg.second.type)) {
                         // for asm subroutines having STR param it's okay to provide a UWORD too (pointer value)
                         if(!(target.isAsmSubroutine && arg.second.type in StringDatatypes && argDt==DataType.UWORD))
@@ -890,7 +890,7 @@ private class AstChecker(private val namespace: INameScope,
     override fun process(postIncrDecr: PostIncrDecr): IStatement {
         if(postIncrDecr.target.identifier != null) {
             val targetName = postIncrDecr.target.identifier!!.nameInSource
-            val target = namespace.lookup(targetName, postIncrDecr)
+            val target = program.namespace.lookup(targetName, postIncrDecr)
             if(target==null) {
                 checkResult.add(SyntaxError("undefined symbol: ${targetName.joinToString(".")}", postIncrDecr.position))
             } else {
@@ -901,7 +901,7 @@ private class AstChecker(private val namespace: INameScope,
                 }
             }
         } else if(postIncrDecr.target.arrayindexed != null) {
-            val target = postIncrDecr.target.arrayindexed?.identifier?.targetStatement(namespace)
+            val target = postIncrDecr.target.arrayindexed?.identifier?.targetStatement(program.namespace)
             if(target==null) {
                 checkResult.add(SyntaxError("undefined symbol", postIncrDecr.position))
             }
@@ -917,7 +917,7 @@ private class AstChecker(private val namespace: INameScope,
     }
 
     override fun process(arrayIndexedExpression: ArrayIndexedExpression): IExpression {
-        val target = arrayIndexedExpression.identifier.targetStatement(namespace)
+        val target = arrayIndexedExpression.identifier.targetStatement(program.namespace)
         if(target is VarDecl) {
             if(target.datatype !in IterableDatatypes)
                 checkResult.add(SyntaxError("indexing requires an iterable variable", arrayIndexedExpression.position))
@@ -930,7 +930,7 @@ private class AstChecker(private val namespace: INameScope,
             } else if(target.datatype in StringDatatypes) {
                 // check string lengths
                 val heapId = (target.value as LiteralValue).heapId!!
-                val stringLen = heap.get(heapId).str!!.length
+                val stringLen = program.heap.get(heapId).str!!.length
                 val index = (arrayIndexedExpression.arrayspec.index as? LiteralValue)?.asIntegerValue
                 if(index!=null && (index<0 || index>=stringLen))
                     checkResult.add(ExpressionError("index out of bounds", arrayIndexedExpression.arrayspec.position))
@@ -939,7 +939,7 @@ private class AstChecker(private val namespace: INameScope,
             checkResult.add(SyntaxError("indexing requires a variable to act upon", arrayIndexedExpression.position))
 
         // check index value 0..255
-        val dtx = arrayIndexedExpression.arrayspec.index.resultingDatatype(namespace, heap)
+        val dtx = arrayIndexedExpression.arrayspec.index.resultingDatatype(program)
         if(dtx!=DataType.UBYTE && dtx!=DataType.BYTE)
             checkResult.add(SyntaxError("array indexing is limited to byte size 0..255", arrayIndexedExpression.position))
 
@@ -947,7 +947,7 @@ private class AstChecker(private val namespace: INameScope,
     }
 
     private fun checkFunctionOrLabelExists(target: IdentifierReference, statement: IStatement): IStatement? {
-        val targetStatement = target.targetStatement(namespace)
+        val targetStatement = target.targetStatement(program.namespace)
         if(targetStatement is Label || targetStatement is Subroutine || targetStatement is BuiltinFunctionStatementPlaceholder)
             return targetStatement
         checkResult.add(NameError("undefined function or subroutine: ${target.nameInSource.joinToString(".")}", statement.position))
@@ -955,8 +955,8 @@ private class AstChecker(private val namespace: INameScope,
     }
 
     private fun checkValueTypeAndRange(targetDt: DataType, arrayspec: ArrayIndex, range: RangeExpr) : Boolean {
-        val from = range.from.constValue(namespace, heap)
-        val to = range.to.constValue(namespace, heap)
+        val from = range.from.constValue(program)
+        val to = range.to.constValue(program)
         if(from==null || to==null) {
             checkResult.add(SyntaxError("range from and to values must be constants", range.position))
             return false
@@ -973,7 +973,7 @@ private class AstChecker(private val namespace: INameScope,
                     checkResult.add(ExpressionError("range for string must have single characters from and to values", range.position))
                     return false
                 }
-                val rangeSize=range.size(heap)
+                val rangeSize=range.size(program.heap)
                 if(rangeSize!=null && (rangeSize<0 || rangeSize>255)) {
                     checkResult.add(ExpressionError("size of range for string must be 0..255, instead of $rangeSize", range.position))
                     return false
@@ -983,7 +983,7 @@ private class AstChecker(private val namespace: INameScope,
             in ArrayDatatypes -> {
                 // range and length check bytes
                 val expectedSize = arrayspec.size()
-                val rangeSize=range.size(heap)
+                val rangeSize=range.size(program.heap)
                 if(rangeSize!=null && rangeSize != expectedSize) {
                     checkResult.add(ExpressionError("range size doesn't match array size, expected $expectedSize found $rangeSize", range.position))
                     return false
@@ -1059,7 +1059,7 @@ private class AstChecker(private val namespace: INameScope,
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize<1 || arraySpecSize>256)
                             return err("byte array length must be 1-256")
-                        val constX = arrayspec.index.constValue(namespace, heap)
+                        val constX = arrayspec.index.constValue(program)
                         if(constX?.asIntegerValue==null)
                             return err("array size specifier must be constant integer value")
                         val expectedSize = constX.asIntegerValue
@@ -1081,7 +1081,7 @@ private class AstChecker(private val namespace: INameScope,
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize<1 || arraySpecSize>128)
                             return err("word array length must be 1-128")
-                        val constX = arrayspec.index.constValue(namespace, heap)
+                        val constX = arrayspec.index.constValue(program)
                         if(constX?.asIntegerValue==null)
                             return err("array size specifier must be constant integer value")
                         val expectedSize = constX.asIntegerValue
@@ -1103,7 +1103,7 @@ private class AstChecker(private val namespace: INameScope,
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize < 1 || arraySpecSize>51)
                             return err("float array length must be 1-51")
-                        val constX = arrayspec.index.constValue(namespace, heap)
+                        val constX = arrayspec.index.constValue(program)
                         if(constX?.asIntegerValue==null)
                             return err("array size specifier must be constant integer value")
                         val expectedSize = constX.asIntegerValue
@@ -1114,7 +1114,7 @@ private class AstChecker(private val namespace: INameScope,
 
                     // check if the floating point values are all within range
                     val doubles = if(value.arrayvalue!=null)
-                        value.arrayvalue.map {it.constValue(namespace, heap)?.asNumericValue!!.toDouble()}.toDoubleArray()
+                        value.arrayvalue.map {it.constValue(program)?.asNumericValue!!.toDouble()}.toDoubleArray()
                     else
                         heap.get(value.heapId!!).doubleArray!!
                     if(doubles.any { it < FLOAT_MAX_NEGATIVE || it> FLOAT_MAX_POSITIVE})
@@ -1128,7 +1128,7 @@ private class AstChecker(private val namespace: INameScope,
     }
 
     private fun checkArrayValues(value: LiteralValue, type: DataType): Boolean {
-        val array = heap.get(value.heapId!!)
+        val array = program.heap.get(value.heapId!!)
         val correct: Boolean
         when(type) {
             DataType.ARRAY_UB -> {

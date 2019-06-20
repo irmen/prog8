@@ -1,19 +1,17 @@
 package prog8.ast
 
-import prog8.compiler.HeapValues
-
 fun Program.reorderStatements() {
     val initvalueCreator = VarInitValueAndAddressOfCreator(namespace)
     initvalueCreator.process(this)
 
-    val checker = StatementReorderer(namespace, heap)
+    val checker = StatementReorderer(this)
     checker.process(this)
 }
 
 const val initvarsSubName="prog8_init_vars"    // the name of the subroutine that should be called for every block to initialize its variables
 
 
-private class StatementReorderer(private val namespace: INameScope, private val heap: HeapValues): IAstProcessor {
+private class StatementReorderer(private val program: Program): IAstProcessor {
     // Reorders the statements in a way the compiler needs.
     // - 'main' block must be the very first statement UNLESS it has an address set.
     // - blocks are ordered by address, where blocks without address are put at the end.
@@ -97,7 +95,7 @@ private class StatementReorderer(private val namespace: INameScope, private val 
             }
         }
 
-        val varDecls = block.statements.filter { it is VarDecl }
+        val varDecls = block.statements.filterIsInstance<VarDecl>()
         block.statements.removeAll(varDecls)
         block.statements.addAll(0, varDecls)
         val directives = block.statements.filter {it is Directive && it.directive in directivesToMove}
@@ -160,7 +158,7 @@ private class StatementReorderer(private val namespace: INameScope, private val 
         if(decl.arraysize==null) {
             val array = decl.value as? LiteralValue
             if(array!=null && array.isArray) {
-                val size = heap.get(array.heapId!!).arraysize
+                val size = program.heap.get(array.heapId!!).arraysize
                 decl.arraysize = ArrayIndex(LiteralValue.optimalInteger(size, decl.position), decl.position)
             }
         }
@@ -172,8 +170,8 @@ private class StatementReorderer(private val namespace: INameScope, private val 
         val result = mutableListOf<IStatement>()
         val stmtIter = statements.iterator()
         for(stmt in stmtIter) {
-            if(stmt is Assignment && !stmt.targets.any { it.isMemoryMapped(namespace) }) {
-                val constval = stmt.value.constValue(namespace, heap)
+            if(stmt is Assignment && !stmt.targets.any { it.isMemoryMapped(program.namespace) }) {
+                val constval = stmt.value.constValue(program)
                 if(constval!=null) {
                     val (sorted, trailing) = sortConstantAssignmentSequence(stmt, stmtIter)
                     result.addAll(sorted)
@@ -196,7 +194,7 @@ private class StatementReorderer(private val namespace: INameScope, private val 
         while(stmtIter.hasNext()) {
             val next = stmtIter.next()
             if(next is Assignment) {
-                val constValue = next.value.constValue(namespace, heap)
+                val constValue = next.value.constValue(program)
                 if(constValue==null) {
                     trailing = next
                     break
@@ -208,7 +206,7 @@ private class StatementReorderer(private val namespace: INameScope, private val 
                 break
             }
         }
-        val sorted = sequence.sortedWith(compareBy({it.value.resultingDatatype(namespace, heap)}, {it.singleTarget?.shortString(true)}))
+        val sorted = sequence.sortedWith(compareBy({it.value.resultingDatatype(program)}, {it.singleTarget?.shortString(true)}))
         return Pair(sorted, trailing)
     }
 

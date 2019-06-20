@@ -1944,8 +1944,7 @@ class StackVm(private var traceOutputFile: String?) {
 
     private fun dispatchSyscall(ins: Instruction) {
         val callId = ins.arg!!.integerValue().toShort()
-        val syscall = Syscall.values().first { it.callNr == callId }
-        when (syscall) {
+        when (val syscall = Syscall.values().first { it.callNr == callId }) {
             Syscall.VM_WRITE_MEMCHR -> {
                 val address = evalstack.pop().integerValue()
                 print(Petscii.decodePetscii(listOf(mem.getUByte(address)), true))

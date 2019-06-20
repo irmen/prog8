@@ -37,8 +37,7 @@ fun importModule(program: Program, filePath: Path): Module {
         throw ParsingFailedError("No such file: $filePath")
 
     val input = CharStreams.fromPath(filePath)
-    val module = importModule(program, input, filePath, filePath.parent==null)
-    return module
+    return importModule(program, input, filePath, filePath.parent==null)
 }
 
 fun importLibraryModule(program: Program, name: String): Module? {
@@ -69,7 +68,7 @@ private fun importModule(program: Program, stream: CharStream, modulePath: Path,
     moduleAst.linkParents()
     program.modules.add(moduleAst)
 
-    // process imports
+    // process additional imports
     val lines = moduleAst.statements.toMutableList()
     lines.asSequence()
          .mapIndexed { i, it -> Pair(i, it) }
@@ -117,8 +116,9 @@ private fun executeImportDirective(program: Program, import: Directive, source: 
             // load the module from the embedded resource
             resource.use {
                 if(import.args[0].int==42)
-                    print("automatically ")
-                println("importing '$moduleName' (embedded library)")
+                    println("importing '$moduleName' (library, auto)")
+                else
+                    println("importing '$moduleName' (library)")
                 importModule(program, CharStreams.fromStream(it), Paths.get("@embedded@/$moduleName"), true)
             }
         } else {

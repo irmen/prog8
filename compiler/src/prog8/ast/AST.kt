@@ -806,17 +806,17 @@ data class AssignTarget(val register: Register?,
         }
     }
 
-    fun determineDatatype(namespace: INameScope, heap: HeapValues, stmt: IStatement): DataType? {
+    fun determineDatatype(program: Program, stmt: IStatement): DataType? {
         if(register!=null)
             return DataType.UBYTE
 
         if(identifier!=null) {
-            val symbol = namespace.lookup(identifier.nameInSource, stmt) ?: return null
+            val symbol = program.namespace.lookup(identifier.nameInSource, stmt) ?: return null
             if (symbol is VarDecl) return symbol.datatype
         }
 
         if(arrayindexed!=null) {
-            val dt = arrayindexed.resultingDatatype(namespace, heap)
+            val dt = arrayindexed.resultingDatatype(program)
             if(dt!=null)
                 return dt
         }
@@ -846,12 +846,11 @@ data class AssignTarget(val register: Register?,
 
 
 interface IExpression: Node {
-    // TODO pass programAst instead of namespace + heap?
-    fun isIterable(namespace: INameScope, heap: HeapValues): Boolean
-    fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue?
+    fun isIterable(program: Program): Boolean
+    fun constValue(program: Program): LiteralValue?
     fun process(processor: IAstProcessor): IExpression
     fun referencesIdentifier(name: String): Boolean
-    fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType?
+    fun resultingDatatype(program: Program): DataType?
 }
 
 
@@ -865,11 +864,11 @@ class PrefixExpression(val operator: String, var expression: IExpression, overri
         expression.linkParents(this)
     }
 
-    override fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue? = null
+    override fun constValue(program: Program): LiteralValue? = null
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String) = expression.referencesIdentifier(name)
-    override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? = expression.resultingDatatype(namespace, heap)
-    override fun isIterable(namespace: INameScope, heap: HeapValues) = false
+    override fun resultingDatatype(program: Program): DataType? = expression.resultingDatatype(program)
+    override fun isIterable(program: Program) = false
 
     override fun toString(): String {
         return "Prefix($operator $expression)"
@@ -891,13 +890,13 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
     }
 
     // binary expression should actually have been optimized away into a single value, before const value was requested...
-    override fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue? = null
-    override fun isIterable(namespace: INameScope, heap: HeapValues) = false
+    override fun constValue(program: Program): LiteralValue? = null
+    override fun isIterable(program: Program) = false
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String) = left.referencesIdentifier(name) || right.referencesIdentifier(name)
-    override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? {
-        val leftDt = left.resultingDatatype(namespace, heap)
-        val rightDt = right.resultingDatatype(namespace, heap)
+    override fun resultingDatatype(program: Program): DataType? {
+        val leftDt = left.resultingDatatype(program)
+        val rightDt = right.resultingDatatype(program)
         return when(operator) {
             "+", "-", "*", "**", "%" -> if(leftDt==null || rightDt==null) null else {
                 try {
@@ -998,13 +997,13 @@ class ArrayIndexedExpression(val identifier: IdentifierReference,
         arrayspec.linkParents(this)
     }
 
-    override fun isIterable(namespace: INameScope, heap: HeapValues) = false
-    override fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue? = null
+    override fun isIterable(program: Program) = false
+    override fun constValue(program: Program): LiteralValue? = null
     override fun process(processor: IAstProcessor): IExpression = processor.process(this)
     override fun referencesIdentifier(name: String) = identifier.referencesIdentifier(name)
 
-    override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? {
-        val target = identifier.targetStatement(namespace)
+    override fun resultingDatatype(program: Program): DataType? {
+        val target = identifier.targetStatement(program.namespace)
         if (target is VarDecl) {
             return when (target.datatype) {
                 in NumericDatatypes -> null
@@ -1036,10 +1035,10 @@ class TypecastExpression(var expression: IExpression, var type: DataType, overri
 
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String) = expression.referencesIdentifier(name)
-    override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? = type
-    override fun isIterable(namespace: INameScope, heap: HeapValues) = type in IterableDatatypes
-    override fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue? {
-        val cv = expression.constValue(namespace, heap) ?: return null
+    override fun resultingDatatype(program: Program): DataType? = type
+    override fun isIterable(program: Program) = type in IterableDatatypes
+    override fun constValue(program: Program): LiteralValue? {
+        val cv = expression.constValue(program) ?: return null
         val value = Value(cv.type, cv.asNumericValue!!).cast(type)
         return LiteralValue.fromNumber(value.numericValue(), value.type, position)
     }
@@ -1059,10 +1058,10 @@ data class AddressOf(val identifier: IdentifierReference, override val position:
     }
 
     var scopedname: String? = null     // will be set in a later state by the compiler
-    override fun isIterable(namespace: INameScope, heap: HeapValues) = false
-    override fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue? = null
+    override fun isIterable(program: Program) = false
+    override fun constValue(program: Program): LiteralValue? = null
     override fun referencesIdentifier(name: String) = false
-    override fun resultingDatatype(namespace: INameScope, heap: HeapValues) = DataType.UWORD
+    override fun resultingDatatype(program: Program) = DataType.UWORD
     override fun process(processor: IAstProcessor) = processor.process(this)
 }
 
@@ -1077,9 +1076,9 @@ class DirectMemoryRead(var addressExpression: IExpression, override val position
 
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String) = false
-    override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? = DataType.UBYTE
-    override fun isIterable(namespace: INameScope, heap: HeapValues) = false
-    override fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue? = null
+    override fun resultingDatatype(program: Program): DataType? = DataType.UBYTE
+    override fun isIterable(program: Program) = false
+    override fun constValue(program: Program): LiteralValue? = null
 
     override fun toString(): String {
         return "DirectMemoryRead($addressExpression)"
@@ -1097,9 +1096,9 @@ class DirectMemoryWrite(var addressExpression: IExpression, override val positio
 
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String) = false
-    override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? = DataType.UBYTE
-    override fun isIterable(namespace: INameScope, heap: HeapValues) = false
-    override fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue? = null
+    override fun resultingDatatype(program: Program): DataType? = DataType.UBYTE
+    override fun isIterable(program: Program) = false
+    override fun constValue(program: Program): LiteralValue? = null
 
     override fun toString(): String {
         return "DirectMemoryWrite($addressExpression)"
@@ -1209,7 +1208,7 @@ class LiteralValue(val type: DataType,
         arrayvalue?.forEach {it.linkParents(this)}
     }
 
-    override fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue?  = this
+    override fun constValue(program: Program): LiteralValue?  = this
     override fun process(processor: IAstProcessor) = processor.process(this)
 
     override fun toString(): String {
@@ -1232,9 +1231,9 @@ class LiteralValue(val type: DataType,
         return "LiteralValue($vstr)"
     }
 
-    override fun resultingDatatype(namespace: INameScope, heap: HeapValues) = type
+    override fun resultingDatatype(program: Program) = type
 
-    override fun isIterable(namespace: INameScope, heap: HeapValues): Boolean = type in IterableDatatypes
+    override fun isIterable(program: Program): Boolean = type in IterableDatatypes
 
     override fun hashCode(): Int {
         val bh = bytevalue?.hashCode() ?: 0x10001234
@@ -1363,13 +1362,13 @@ class RangeExpr(var from: IExpression,
         step.linkParents(this)
     }
 
-    override fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue? = null
-    override fun isIterable(namespace: INameScope, heap: HeapValues) = true
+    override fun constValue(program: Program): LiteralValue? = null
+    override fun isIterable(program: Program) = true
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String): Boolean  = from.referencesIdentifier(name) || to.referencesIdentifier(name)
-    override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? {
-        val fromDt=from.resultingDatatype(namespace, heap)
-        val toDt=to.resultingDatatype(namespace, heap)
+    override fun resultingDatatype(program: Program): DataType? {
+        val fromDt=from.resultingDatatype(program)
+        val toDt=to.resultingDatatype(program)
         return when {
             fromDt==null || toDt==null -> null
             fromDt==DataType.UBYTE && toDt==DataType.UBYTE -> DataType.UBYTE
@@ -1433,15 +1432,15 @@ class RegisterExpr(val register: Register, override val position: Position) : IE
         this.parent = parent
     }
 
-    override fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue? = null
+    override fun constValue(program: Program): LiteralValue? = null
     override fun process(processor: IAstProcessor) = this
     override fun referencesIdentifier(name: String): Boolean  = false
-    override fun isIterable(namespace: INameScope, heap: HeapValues) = false
+    override fun isIterable(program: Program) = false
     override fun toString(): String {
         return "RegisterExpr(register=$register, pos=$position)"
     }
 
-    override fun resultingDatatype(namespace: INameScope, heap: HeapValues) = DataType.UBYTE
+    override fun resultingDatatype(program: Program) = DataType.UBYTE
 }
 
 
@@ -1461,8 +1460,8 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         this.parent = parent
     }
 
-    override fun constValue(namespace: INameScope, heap: HeapValues): LiteralValue? {
-        val node = namespace.lookup(nameInSource, this)
+    override fun constValue(program: Program): LiteralValue? {
+        val node = program.namespace.lookup(nameInSource, this)
                 ?: throw UndefinedSymbolError(this)
         val vardecl = node as? VarDecl
         if(vardecl==null) {
@@ -1470,7 +1469,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         } else if(vardecl.type!=VarDeclType.CONST) {
             return null
         }
-        return vardecl.value?.constValue(namespace, heap)
+        return vardecl.value?.constValue(program)
     }
 
     override fun toString(): String {
@@ -1480,8 +1479,8 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String): Boolean = nameInSource.last() == name   // @todo is this correct all the time?
 
-    override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? {
-        val targetStmt = targetStatement(namespace)
+    override fun resultingDatatype(program: Program): DataType? {
+        val targetStmt = targetStatement(program.namespace)
         if(targetStmt is VarDecl) {
             return targetStmt.datatype
         } else {
@@ -1489,7 +1488,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         }
     }
 
-    override fun isIterable(namespace: INameScope, heap: HeapValues): Boolean  = resultingDatatype(namespace, heap) in IterableDatatypes
+    override fun isIterable(program: Program): Boolean  = resultingDatatype(program) in IterableDatatypes
 
     fun heapId(namespace: INameScope): Int {
         val node = namespace.lookup(nameInSource, this) ?: throw UndefinedSymbolError(this)
@@ -1544,9 +1543,9 @@ class FunctionCall(override var target: IdentifierReference,
         arglist.forEach { it.linkParents(this) }
     }
 
-    override fun constValue(namespace: INameScope, heap: HeapValues) = constValue(namespace, heap, true)
+    override fun constValue(program: Program) = constValue(program, true)
 
-    private fun constValue(namespace: INameScope, heap: HeapValues, withDatatypeCheck: Boolean): LiteralValue? {
+    private fun constValue(program: Program, withDatatypeCheck: Boolean): LiteralValue? {
         // if the function is a built-in function and the args are consts, should try to const-evaluate!
         // lenghts of arrays and strings are constants that are determined at compile time!
         if(target.nameInSource.size>1) return null
@@ -1556,13 +1555,13 @@ class FunctionCall(override var target: IdentifierReference,
             if(func!=null) {
                 val exprfunc = func.constExpressionFunc
                 if(exprfunc!=null)
-                    resultValue = exprfunc(arglist, position, namespace, heap)
+                    resultValue = exprfunc(arglist, position, program)
                 else if(func.returntype==null)
                     throw ExpressionError("builtin function ${target.nameInSource[0]} can't be used here because it doesn't return a value", position)
             }
 
             if(withDatatypeCheck) {
-                val resultDt = this.resultingDatatype(namespace, heap)
+                val resultDt = this.resultingDatatype(program)
                 if(resultValue==null || resultDt == resultValue.type)
                     return resultValue
                 throw FatalAstException("evaluated const expression result value doesn't match expected datatype $resultDt, pos=$position")
@@ -1583,18 +1582,18 @@ class FunctionCall(override var target: IdentifierReference,
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String): Boolean = target.referencesIdentifier(name) || arglist.any{it.referencesIdentifier(name)}
 
-    override fun resultingDatatype(namespace: INameScope, heap: HeapValues): DataType? {
-        val constVal = constValue(namespace, heap,false)
+    override fun resultingDatatype(program: Program): DataType? {
+        val constVal = constValue(program ,false)
         if(constVal!=null)
             return constVal.type
-        val stmt = target.targetStatement(namespace) ?: return null
+        val stmt = target.targetStatement(program.namespace) ?: return null
         when (stmt) {
             is BuiltinFunctionStatementPlaceholder -> {
                 if(target.nameInSource[0] == "set_carry" || target.nameInSource[0]=="set_irqd" ||
                         target.nameInSource[0] == "clear_carry" || target.nameInSource[0]=="clear_irqd") {
                     return null // these have no return value
                 }
-                return builtinFunctionReturnType(target.nameInSource[0], this.arglist, namespace, heap)
+                return builtinFunctionReturnType(target.nameInSource[0], this.arglist, program)
             }
             is Subroutine -> {
                 if(stmt.returntypes.isEmpty())
@@ -1608,7 +1607,7 @@ class FunctionCall(override var target: IdentifierReference,
         return null     // calling something we don't recognise...
     }
 
-    override fun isIterable(namespace: INameScope, heap: HeapValues) = resultingDatatype(namespace, heap) in IterableDatatypes
+    override fun isIterable(program: Program) = resultingDatatype(program) in IterableDatatypes
 }
 
 

@@ -1,7 +1,6 @@
 package prog8.optimizing
 
 import prog8.ast.*
-import prog8.compiler.HeapValues
 import kotlin.math.abs
 import kotlin.math.log2
 
@@ -9,7 +8,7 @@ import kotlin.math.log2
     todo advanced expression optimization: common (sub) expression elimination (turn common expressions into single subroutine call + introduce variable to hold it)
  */
 
-class SimplifyExpressions(private val namespace: INameScope, private val heap: HeapValues) : IAstProcessor {
+class SimplifyExpressions(private val program: Program) : IAstProcessor {
     var optimizationsDone: Int = 0
 
     override fun process(assignment: Assignment): IStatement {
@@ -83,13 +82,13 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
 
     override fun process(expr: BinaryExpression): IExpression {
         super.process(expr)
-        val leftVal = expr.left.constValue(namespace, heap)
-        val rightVal = expr.right.constValue(namespace, heap)
+        val leftVal = expr.left.constValue(program)
+        val rightVal = expr.right.constValue(program)
         val constTrue = LiteralValue.fromBoolean(true, expr.position)
         val constFalse = LiteralValue.fromBoolean(false, expr.position)
 
-        val leftDt = expr.left.resultingDatatype(namespace, heap)
-        val rightDt = expr.right.resultingDatatype(namespace, heap)
+        val leftDt = expr.left.resultingDatatype(program)
+        val rightDt = expr.right.resultingDatatype(program)
         if (leftDt != null && rightDt != null && leftDt != rightDt) {
             // try to convert a datatype into the other (where ddd
             if (adjustDatatypes(expr, leftVal, leftDt, rightVal, rightDt)) {
@@ -404,9 +403,9 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
             expr.left = expr.right
             expr.right = tmp
             optimizationsDone++
-            return ReorderedAssociativeBinaryExpr(expr, expr.right.constValue(namespace, heap), leftVal)
+            return ReorderedAssociativeBinaryExpr(expr, expr.right.constValue(program), leftVal)
         }
-        return ReorderedAssociativeBinaryExpr(expr, leftVal, expr.right.constValue(namespace, heap))
+        return ReorderedAssociativeBinaryExpr(expr, leftVal, expr.right.constValue(program))
     }
 
     private fun optimizeAdd(pexpr: BinaryExpression, pleftVal: LiteralValue?, prightVal: LiteralValue?): IExpression {
@@ -550,7 +549,7 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
             "%" -> {
                 if (cv == 1.0) {
                     optimizationsDone++
-                    return LiteralValue.fromNumber(0, expr.resultingDatatype(namespace, heap)!!, expr.position)
+                    return LiteralValue.fromNumber(0, expr.resultingDatatype(program)!!, expr.position)
                 } else if (cv == 2.0) {
                     optimizationsDone++
                     expr.operator = "&"
@@ -573,7 +572,7 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
             // right value is a constant, see if we can optimize
             val rightConst: LiteralValue = rightVal
             val cv = rightConst.asNumericValue?.toDouble()
-            val leftDt = expr.left.resultingDatatype(namespace, heap)
+            val leftDt = expr.left.resultingDatatype(program)
             when(cv) {
                 -1.0 -> {
                     //  '/' -> -left
@@ -644,8 +643,7 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
             // right value is a constant, see if we can optimize
             val leftValue: IExpression = expr.left
             val rightConst: LiteralValue = rightVal
-            val cv = rightConst.asNumericValue?.toDouble()
-            when(cv) {
+            when(val cv = rightConst.asNumericValue?.toDouble()) {
                 -1.0 -> {
                     // -left
                     optimizationsDone++
@@ -662,7 +660,7 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
                     return expr.left
                 }
                 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0, 256.0, 512.0, 1024.0, 2048.0, 4096.0, 8192.0, 16384.0, 32768.0, 65536.0 -> {
-                    if(leftValue.resultingDatatype(namespace, heap) in IntegerDatatypes) {
+                    if(leftValue.resultingDatatype(program) in IntegerDatatypes) {
                         // times a power of two => shift left
                         optimizationsDone++
                         val numshifts = log2(cv).toInt()
@@ -670,7 +668,7 @@ class SimplifyExpressions(private val namespace: INameScope, private val heap: H
                     }
                 }
                 -2.0, -4.0, -8.0, -16.0, -32.0, -64.0, -128.0, -256.0, -512.0, -1024.0, -2048.0, -4096.0, -8192.0, -16384.0, -32768.0, -65536.0 -> {
-                    if(leftValue.resultingDatatype(namespace, heap) in IntegerDatatypes) {
+                    if(leftValue.resultingDatatype(program) in IntegerDatatypes) {
                         // times a negative power of two => negate, then shift left
                         optimizationsDone++
                         val numshifts = log2(-cv).toInt()

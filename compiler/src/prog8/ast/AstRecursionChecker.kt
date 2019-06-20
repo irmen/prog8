@@ -30,7 +30,7 @@ private class DirectedGraph<VT> {
 
     fun print() {
         println("#vertices: $numVertices")
-        graph.forEach { from, to ->
+        graph.forEach { (from, to) ->
             println("$from   CALLS:")
             to.forEach { println("   $it") }
         }
@@ -41,8 +41,8 @@ private class DirectedGraph<VT> {
     }
 
     fun checkForCycle(): MutableList<VT> {
-        val visited = uniqueVertices.associate { it to false }.toMutableMap()
-        val recStack = uniqueVertices.associate { it to false }.toMutableMap()
+        val visited = uniqueVertices.associateWith { false }.toMutableMap()
+        val recStack = uniqueVertices.associateWith { false }.toMutableMap()
         val cycle = mutableListOf<VT>()
         for(node in uniqueVertices) {
             if(isCyclicUntil(node, visited, recStack, cycle))

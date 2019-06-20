@@ -9,7 +9,7 @@ import prog8.compiler.target.c64.FLOAT_MAX_POSITIVE
 import kotlin.math.floor
 
 
-class ConstantFolding(private val namespace: GlobalNamespace, private val heap: HeapValues) : IAstProcessor {
+class ConstantFolding(private val program: Program) : IAstProcessor {
     var optimizationsDone: Int = 0
     var errors : MutableList<AstException> = mutableListOf()
 
@@ -49,11 +49,11 @@ class ConstantFolding(private val namespace: GlobalNamespace, private val heap: 
                     if(rangeExpr!=null) {
                         // convert the initializer range expression to an actual array (will be put on heap later)
                         val declArraySize = decl.arraysize?.size()
-                        if(declArraySize!=null && declArraySize!=rangeExpr.size(heap))
+                        if(declArraySize!=null && declArraySize!=rangeExpr.size(program.heap))
                             errors.add(ExpressionError("range expression size doesn't match declared array size", decl.value?.position!!))
-                        val constRange = rangeExpr.toConstantIntegerRange(heap)
+                        val constRange = rangeExpr.toConstantIntegerRange(program.heap)
                         if(constRange!=null) {
-                            val eltType = rangeExpr.resultingDatatype(namespace, heap)!!
+                            val eltType = rangeExpr.resultingDatatype(program)!!
                             if(eltType in ByteDatatypes) {
                                 decl.value = LiteralValue(decl.datatype,
                                         arrayvalue = constRange.map { LiteralValue(eltType, bytevalue=it.toShort(), position = decl.value!!.position ) }
@@ -93,7 +93,7 @@ class ConstantFolding(private val namespace: GlobalNamespace, private val heap: 
                             }
                             else -> {}
                         }
-                        val heapId = heap.addIntegerArray(decl.datatype, Array(size) { IntegerOrAddressOf(fillvalue, null) })
+                        val heapId = program.heap.addIntegerArray(decl.datatype, Array(size) { IntegerOrAddressOf(fillvalue, null) })
                         decl.value = LiteralValue(decl.datatype, heapId = heapId, position = litval?.position ?: decl.position)
                     }
                 }
@@ -107,7 +107,7 @@ class ConstantFolding(private val namespace: GlobalNamespace, private val heap: 
                         if(fillvalue< FLOAT_MAX_NEGATIVE || fillvalue> FLOAT_MAX_POSITIVE)
                             errors.add(ExpressionError("float value overflow", litval?.position ?: decl.position))
                         else {
-                            val heapId = heap.addDoublesArray(DoubleArray(size) { fillvalue })
+                            val heapId = program.heap.addDoublesArray(DoubleArray(size) { fillvalue })
                             decl.value = LiteralValue(DataType.ARRAY_F, heapId = heapId, position = litval?.position ?: decl.position)
                         }
                     }
@@ -125,11 +125,11 @@ class ConstantFolding(private val namespace: GlobalNamespace, private val heap: 
         if(decl.datatype==litval.type)
             return   // already correct datatype
         val heapId = litval.heapId ?: throw FatalAstException("expected array to be on heap $litval")
-        val array=heap.get(heapId)
+        val array = program.heap.get(heapId)
         when(decl.datatype) {
             DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
                 if(array.array!=null) {
-                    heap.update(heapId, HeapValues.HeapValue(decl.datatype, null, array.array, null))
+                    program.heap.update(heapId, HeapValues.HeapValue(decl.datatype, null, array.array, null))
                     decl.value = LiteralValue(decl.datatype, heapId=heapId, position = litval.position)
                 }
             }
@@ -137,7 +137,7 @@ class ConstantFolding(private val namespace: GlobalNamespace, private val heap: 
                 if(array.array!=null) {
                     // convert a non-float array to floats
                     val doubleArray = array.array.map { it.integer!!.toDouble() }.toDoubleArray()
-                    heap.update(heapId, HeapValues.HeapValue(DataType.ARRAY_F, null, null, doubleArray))
+                    program.heap.update(heapId, HeapValues.HeapValue(DataType.ARRAY_F, null, null, doubleArray))
                     decl.value = LiteralValue(decl.datatype, heapId = heapId, position = litval.position)
                 }
             }
@@ -150,7 +150,7 @@ class ConstantFolding(private val namespace: GlobalNamespace, private val heap: 
      */
     override fun process(identifier: IdentifierReference): IExpression {
         return try {
-            val cval = identifier.constValue(namespace, heap) ?: return identifier
+            val cval = identifier.constValue(program) ?: return identifier
             return if(cval.isNumeric) {
                 val copy = LiteralValue(cval.type, cval.bytevalue, cval.wordvalue, cval.floatvalue, null, cval.arrayvalue, position = identifier.position)
                 copy.parent = identifier.parent
@@ -167,7 +167,7 @@ class ConstantFolding(private val namespace: GlobalNamespace, private val heap: 
         return try {
             super.process(functionCall)
             typeCastConstArguments(functionCall)
-            functionCall.constValue(namespace, heap) ?: functionCall
+            functionCall.constValue(program) ?: functionCall
         } catch (ax: AstException) {
             addError(ax)
             functionCall
@@ -181,12 +181,12 @@ class ConstantFolding(private val namespace: GlobalNamespace, private val heap: 
     }
 
     private fun typeCastConstArguments(functionCall: IFunctionCall) {
-        val subroutine = functionCall.target.targetSubroutine(namespace)
+        val subroutine = functionCall.target.targetSubroutine(program.namespace)
         if(subroutine!=null) {
             // if types differ, try to typecast constant arguments to the function call to the desired data type of the parameter
             for(arg in functionCall.arglist.withIndex().zip(subroutine.parameters)) {
                 val expectedDt = arg.second.type
-                val argConst = arg.first.value.constValue(namespace, heap)
+                val argConst = arg.first.value.constValue(program)
                 if(argConst!=null && argConst.type!=expectedDt) {
                     val convertedValue = argConst.intoDatatype(expectedDt)
                     if(convertedValue!=null) {
@@ -287,8 +287,8 @@ class ConstantFolding(private val namespace: GlobalNamespace, private val heap: 
     override fun process(expr: BinaryExpression): IExpression {
         return try {
             super.process(expr)
-            val leftconst = expr.left.constValue(namespace, heap)
-            val rightconst = expr.right.constValue(namespace, heap)
+            val leftconst = expr.left.constValue(program)
+            val rightconst = expr.right.constValue(program)
 
             val subExpr: BinaryExpression? = when {
                 leftconst!=null -> expr.right as? BinaryExpression
@@ -296,8 +296,8 @@ class ConstantFolding(private val namespace: GlobalNamespace, private val heap: 
                 else -> null
             }
             if(subExpr!=null) {
-                val subleftconst = subExpr.left.constValue(namespace, heap)
-                val subrightconst = subExpr.right.constValue(namespace, heap)
+                val subleftconst = subExpr.left.constValue(program)
+                val subrightconst = subExpr.right.constValue(program)
                 if ((subleftconst != null && subrightconst == null) || (subleftconst==null && subrightconst!=null)) {
                     // try reordering.
                     return groupTwoConstsTogether(expr, subExpr,
@@ -311,7 +311,7 @@ class ConstantFolding(private val namespace: GlobalNamespace, private val heap: 
             return when {
                 leftconst != null && rightconst != null -> {
                     optimizationsDone++
-                    evaluator.evaluate(leftconst, expr.operator, rightconst, heap)
+                    evaluator.evaluate(leftconst, expr.operator, rightconst, program.heap)
                 }
                 else -> expr
             }
@@ -533,7 +533,7 @@ class ConstantFolding(private val namespace: GlobalNamespace, private val heap: 
         val rangeTo = iterableRange.to as? LiteralValue
         if(rangeFrom==null || rangeTo==null) return resultStmt
 
-        val loopvar = resultStmt.loopVar!!.targetVarDecl(namespace)
+        val loopvar = resultStmt.loopVar!!.targetVarDecl(program.namespace)
         if(loopvar!=null) {
             val stepLiteral = iterableRange.step as? LiteralValue
             when(loopvar.datatype) {
@@ -570,10 +570,10 @@ class ConstantFolding(private val namespace: GlobalNamespace, private val heap: 
     override fun process(literalValue: LiteralValue): LiteralValue {
         if(literalValue.isString) {
             // intern the string; move it into the heap
-            if(literalValue.strvalue(heap).length !in 1..255)
+            if(literalValue.strvalue(program.heap).length !in 1..255)
                 addError(ExpressionError("string literal length must be between 1 and 255", literalValue.position))
             else {
-                val heapId = heap.addString(literalValue.type, literalValue.strvalue(heap))     // TODO: we don't know the actual string type yet, STR != STR_S etc...
+                val heapId = program.heap.addString(literalValue.type, literalValue.strvalue(program.heap))     // TODO: we don't know the actual string type yet, STR != STR_S etc...
                 val newValue = LiteralValue(literalValue.type, heapId = heapId, position = literalValue.position)
                 return super.process(newValue)
             }
@@ -599,14 +599,14 @@ class ConstantFolding(private val namespace: GlobalNamespace, private val heap: 
                     else -> throw CompilerException("invalid datatype in array")
                 }
             }
-            val heapId = heap.addIntegerArray(arrayDt, intArrayWithAddressOfs.toTypedArray())
+            val heapId = program.heap.addIntegerArray(arrayDt, intArrayWithAddressOfs.toTypedArray())
             return LiteralValue(arrayDt, heapId = heapId, position = arraylit.position)
         } else {
             // array is only constant numerical values
-            val valuesInArray = array.map { it.constValue(namespace, heap)!!.asNumericValue!! }
+            val valuesInArray = array.map { it.constValue(program)!!.asNumericValue!! }
             val integerArray = valuesInArray.map{ it.toInt() }
             val doubleArray = valuesInArray.map{it.toDouble()}.toDoubleArray()
-            val typesInArray: Set<DataType> = array.mapNotNull { it.resultingDatatype(namespace, heap) }.toSet()
+            val typesInArray: Set<DataType> = array.mapNotNull { it.resultingDatatype(program) }.toSet()
 
             // Take an educated guess about the array type.
             // This may be altered (if needed & if possible) to suit an array declaration type later!
@@ -638,8 +638,8 @@ class ConstantFolding(private val namespace: GlobalNamespace, private val heap: 
                 DataType.ARRAY_UB,
                 DataType.ARRAY_B,
                 DataType.ARRAY_UW,
-                DataType.ARRAY_W -> heap.addIntegerArray(arrayDt, integerArray.map { IntegerOrAddressOf(it, null) }.toTypedArray())
-                DataType.ARRAY_F -> heap.addDoublesArray(doubleArray)
+                DataType.ARRAY_W -> program.heap.addIntegerArray(arrayDt, integerArray.map { IntegerOrAddressOf(it, null) }.toTypedArray())
+                DataType.ARRAY_F -> program.heap.addDoublesArray(doubleArray)
                 else -> throw CompilerException("invalid arraysize type")
             }
             return LiteralValue(arrayDt, heapId = heapId, position = arraylit.position)
@@ -650,9 +650,8 @@ class ConstantFolding(private val namespace: GlobalNamespace, private val heap: 
         super.process(assignment)
         val lv = assignment.value as? LiteralValue
         if(lv!=null) {
-            val targetDt = assignment.singleTarget?.determineDatatype(namespace, heap, assignment)
             // see if we can promote/convert a literal value to the required datatype
-            when(targetDt) {
+            when(assignment.singleTarget?.determineDatatype(program, assignment)) {
                 DataType.UWORD -> {
                     // we can convert to UWORD: any UBYTE, BYTE/WORD that are >=0, FLOAT that's an integer 0..65535,
                     if(lv.type==DataType.UBYTE)

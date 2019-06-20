@@ -221,8 +221,7 @@ class Program (val name: String,
                 val (name, typeStr, valueStr) = line.split(splitpattern, limit = 3)
                 if(valueStr[0] !='"' && ':' !in valueStr)
                     throw VmExecutionException("missing value type character")
-                val type = DataType.valueOf(typeStr.toUpperCase())
-                val value = when(type) {
+                val value = when(val type = DataType.valueOf(typeStr.toUpperCase())) {
                     DataType.UBYTE -> Value(DataType.UBYTE, valueStr.substring(3).toShort(16))
                     DataType.BYTE -> Value(DataType.BYTE, valueStr.substring(2).toShort(16))
                     DataType.UWORD -> Value(DataType.UWORD, valueStr.substring(3).toInt(16))
