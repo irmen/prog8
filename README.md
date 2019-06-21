@@ -14,23 +14,29 @@ as used in many home computers from that era. It is a medium to low level progra
 which aims to provide many conveniences over raw assembly code (even when using a macro assembler):
 
 - reduction of source code length
-- easier program understanding (because it's higher level, and more terse)
-- option to automatically run the compiled program in the Vice emulator  
+- easier program understanding (because it's higher level, and way more compact)
 - modularity, symbol scoping, subroutines
 - subroutines have enforced input- and output parameter definitions
 - various data types other than just bytes (16-bit words, floats, strings, 16-bit register pairs)
 - automatic variable allocations, automatic string variables and string sharing
 - constant folding in expressions (compile-time evaluation)
+- conditional branches
 - automatic type conversions
-- floating point operations
+- floating point operations  (uses the C64 Basic ROM routines for this)
 - abstracting away low level aspects such as ZeroPage handling, program startup, explicit memory addresses
+- various code optimizations (code structure, logical and numerical expressions, unused code removal...) 
+
+Rapid edit-compile-run-debug cycle:
+
+- use modern PC to work on 
+- quick compilation times (less than 1 second)
+- option to automatically run the program in the Vice emulator  
 - breakpoints, that let the Vice emulator drop into the monitor if execution hits them
 - source code labels automatically loaded in Vice emulator so it can show them in disassembly
-- conditional gotos
-- various code optimizations (code structure, logical and numerical expressions, ...) 
 
 
 It is mainly targeted at the Commodore-64 machine at this time.
+Contributions to add support for other 8-bit (or other?!) machines are welcome.
 
 Documentation is online at https://prog8.readthedocs.io/
 
@@ -42,8 +48,8 @@ Required tools:
 A recent .exe version of this tool for Windows can be obtained from my [clone](https://github.com/irmen/64tass/releases) of this project.
 For other platforms it is very easy to compile it yourself (make ; make install).
 
-A **Java runtime (jre or jdk), version 8 or newer**  is required to run the packaged compiler.
-If you want to build it from source, you'll need a Kotlin 1.3 SDK as well (or for instance,
+A **Java runtime (jre or jdk), version 8 or newer**  is required to run a prepackaged version of the compiler.
+If you want to build it from source, you'll need a Java SDK + Kotlin 1.3.x SDK (or for instance,
 IntelliJ IDEA with the Kotlin plugin).
 
 It's handy to have a C-64 emulator or a real C-64 to run the programs on. The compiler assumes the presence
