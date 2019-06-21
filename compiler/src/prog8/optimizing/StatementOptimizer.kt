@@ -7,9 +7,6 @@ import kotlin.math.floor
 
 
 /*
-    TODO FIX THE OPTIMIZER: RESULTS IN WRONG CODE FOR THE primes.p8  EXAMPLE
-
-
     todo: subroutines with 1 or 2 byte args or 1 word arg can be converted to asm sub calling convention (args in registers)
 
     todo: implement usage counters for variables (locals and heap), blocks. Remove if count is zero.
@@ -40,13 +37,15 @@ class StatementOptimizer(private val program: Program) : IAstProcessor {
         val entrypoint = program.entrypoint()
         program.modules.forEach {
             callgraph.forAllSubroutines(it) { sub ->
-                if(sub !== entrypoint && (sub.calledBy.isEmpty() || (sub.containsNoCodeNorVars() && !sub.isAsmSubroutine)))
+                if(sub !== entrypoint && !sub.keepAlways && (sub.calledBy.isEmpty() || (sub.containsNoCodeNorVars() && !sub.isAsmSubroutine)))
                     removeSubroutines.add(sub)
             }
         }
 
         if(removeSubroutines.isNotEmpty()) {
-            removeSubroutines.forEach { it.definingScope().statements.remove(it) }
+            removeSubroutines.forEach {
+                it.definingScope().statements.remove(it)
+            }
         }
 
         val removeBlocks = mutableSetOf<Block>()

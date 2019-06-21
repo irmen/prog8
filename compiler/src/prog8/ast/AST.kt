@@ -1695,6 +1695,7 @@ class Subroutine(override val name: String,
                  val isAsmSubroutine: Boolean,
                  override var statements: MutableList<IStatement>,
                  override val position: Position) : IStatement, INameScope {
+    var keepAlways: Boolean = false
     override lateinit var parent: Node
     val calledBy = mutableSetOf<INameScope>()
     val calls = mutableSetOf<Subroutine>()

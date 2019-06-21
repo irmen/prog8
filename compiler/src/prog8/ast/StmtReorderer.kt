@@ -110,6 +110,7 @@ private class StatementReorderer(private val program: Program): IAstProcessor {
             val statements = varInits.map{it.value}.toMutableList()
             val varInitSub = Subroutine(initvarsSubName, emptyList(), emptyList(), emptyList(), emptyList(),
                     emptySet(), null, false, statements, block.position)
+            varInitSub.keepAlways = true
             varInitSub.linkParents(block)
             block.statements.add(varInitSub)
 
