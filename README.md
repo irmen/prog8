@@ -1,3 +1,6 @@
+[![saythanks](https://img.shields.io/badge/say-thanks-ff69b4.svg)](https://saythanks.io/to/irmen)
+[![Build Status](https://travis-ci.org/irmen/prog8.svg?branch=master)](https://travis-ci.org/irmen/prog8)
+
 Prog8 - Structured Programming Language for 8-bit 6502/6510 microprocessors
 ===========================================================================
 
