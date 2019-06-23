@@ -111,7 +111,7 @@ private fun compileMain(args: Array<String>) {
             }
             //println(" time2: $time2")
             val time3 = measureTimeMillis {
-                programAst.reorderStatements()     // reorder statements to please the compiler later
+                programAst.reorderStatements()     // reorder statements and add type casts, to please the compiler later
             }
             //println(" time3: $time3")
             val time4 = measureTimeMillis {

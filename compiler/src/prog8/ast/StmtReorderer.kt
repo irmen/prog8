@@ -22,6 +22,8 @@ private class StatementReorderer(private val program: Program): IAstProcessor {
     //
     // - the 'start' subroutine in the 'main' block will be moved to the top immediately following the directives.
     // - all other subroutines will be moved to the end of their block.
+    //
+    // Also, makes sure any value assignments get the proper type casts if needed to cast them into the target variable's type.
 
     private val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%zpreserved", "%address", "%option")
 
@@ -187,6 +189,24 @@ private class StatementReorderer(private val program: Program): IAstProcessor {
         }
         statements.clear()
         statements.addAll(result)
+    }
+
+
+    override fun process(assignment: Assignment): IStatement {
+        val target=assignment.singleTarget
+        if(target!=null) {
+            // see if a typecast is needed to convert the value's type into the proper target type
+            val valuetype = assignment.value.resultingDatatype(program)
+            val targettype = target.determineDatatype(program, assignment)
+            if(targettype!=null && valuetype!=null && valuetype!=targettype) {
+                if(valuetype isAssignableTo targettype) {
+                    assignment.value = TypecastExpression(assignment.value, targettype, assignment.value.position)
+                }
+                // if they're not assignable, we'll get a proper error later from the AstChecker
+            }
+        } else TODO("multi-target assign")
+
+        return super.process(assignment)
     }
 
     private fun sortConstantAssignmentSequence(first: Assignment, stmtIter: MutableIterator<IStatement>): Pair<List<Assignment>, IStatement?> {

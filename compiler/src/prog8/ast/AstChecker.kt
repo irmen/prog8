@@ -525,7 +525,12 @@ private class AstChecker(private val program: Program,
                     when {
                         decl.datatype in NumericDatatypes -> {
                             // initialize numeric var with value zero by default.
-                            val litVal = LiteralValue(DataType.UBYTE, 0, position = decl.position)
+                            val litVal =
+                                    when {
+                                        decl.datatype in ByteDatatypes -> LiteralValue(decl.datatype, bytevalue=0, position = decl.position)
+                                        decl.datatype in WordDatatypes -> LiteralValue(decl.datatype, wordvalue=0, position = decl.position)
+                                        else -> LiteralValue(decl.datatype, floatvalue=0.0, position = decl.position)
+                                    }
                             litVal.parent = decl
                             decl.value = litVal
                         }

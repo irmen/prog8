@@ -198,7 +198,25 @@ class AstVm(val program: Program) {
                 } else TODO("$stmt")
             }
             is PostIncrDecr -> {
-                TODO("$stmt")
+                when {
+                    stmt.target.identifier!=null -> {
+                        val ident = stmt.definingScope().lookup(stmt.target.identifier!!.nameInSource, stmt) as VarDecl
+                        val identScope = ident.definingScope()
+                        var value = runtimeVariables.get(identScope, ident.name)
+                        value = when {
+                            stmt.operator=="++" -> value.add(RuntimeValue(value.type, 1))
+                            stmt.operator=="--" -> value.sub(RuntimeValue(value.type, 1))
+                            else -> throw VmExecutionException("strange postincdec operator $stmt")
+                        }
+                        runtimeVariables.set(identScope, ident.name, value)
+                    }
+                    stmt.target.memoryAddress!=null -> {
+                        TODO("$stmt")
+                    }
+                    stmt.target.arrayindexed!=null -> {
+                        TODO("$stmt")
+                    }
+                }
             }
             is Jump -> {
                 TODO("$stmt")
