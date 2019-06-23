@@ -1597,7 +1597,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
 
     fun heapId(namespace: INameScope): Int {
         val node = namespace.lookup(nameInSource, this) ?: throw UndefinedSymbolError(this)
-        return ((node as? VarDecl)?.value as? LiteralValue)?.heapId ?: throw FatalAstException("identifier is not on the heap")
+        return ((node as? VarDecl)?.value as? LiteralValue)?.heapId ?: throw FatalAstException("identifier is not on the heap: $this")
     }
 }
 

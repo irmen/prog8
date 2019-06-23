@@ -37,10 +37,13 @@
 
         ; found next one, mark the multiples and return it.
         sieve[candidate_prime] = true
-        uword multiple = candidate_prime
+        ; uword multiple = candidate_prime        ; TODO the parser should have added a type cast from UBYTE to UWORD here
+        uword multiple = candidate_prime as uword        ; TODO should not be required
         while multiple < len(sieve) {
             sieve[lsb(multiple)] = true
-            multiple += candidate_prime
+            multiple += candidate_prime as uword   ; TODO cast should not be required
+            c64scr.print_uw(multiple)       ; TODO
+            c64.CHROUT('\n')        ; TODO
         }
         return candidate_prime
     }

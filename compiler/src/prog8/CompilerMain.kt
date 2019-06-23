@@ -1,6 +1,7 @@
 package prog8
 
 import prog8.ast.*
+import prog8.astvm.AstVm
 import prog8.compiler.*
 import prog8.compiler.target.c64.AsmGen
 import prog8.compiler.target.c64.C64Zeropage
@@ -49,6 +50,7 @@ private fun compileMain(args: Array<String>) {
     var writeAssembly = true
     var optimize = true
     var optimizeInlining = true
+    var launchAstVm = false
     for (arg in args) {
         if(arg=="-emu")
             emulatorToStart = "x64"
@@ -62,6 +64,8 @@ private fun compileMain(args: Array<String>) {
             optimize = false
         else if(arg=="-nooptinline")
             optimizeInlining = false
+        else if(arg=="-avm")
+            launchAstVm = true
         else if(!arg.startsWith("-"))
             moduleFile = arg
         else
@@ -72,12 +76,13 @@ private fun compileMain(args: Array<String>) {
 
     val filepath = Paths.get(moduleFile).normalize()
     var programname = "?"
+    lateinit var programAst: Program
 
     try {
         val totalTime = measureTimeMillis {
             // import main module and everything it needs
             println("Parsing...")
-            val programAst = Program(moduleName(filepath.fileName), mutableListOf())
+            programAst = Program(moduleName(filepath.fileName), mutableListOf())
             importModule(programAst, filepath)
 
             val compilerOptions = determineCompilationOptions(programAst)
@@ -180,6 +185,12 @@ private fun compileMain(args: Array<String>) {
         throw x
     }
 
+    if(launchAstVm) {
+        println("\nLaunching AST-based vm...")
+        val vm = AstVm(programAst)
+        vm.run()
+    }
+
     if(emulatorToStart.isNotEmpty()) {
         println("\nStarting C-64 emulator $emulatorToStart...")
         val cmdline = listOf(emulatorToStart, "-silent", "-moncommands", "$programname.vice-mon-list",
@@ -233,6 +244,7 @@ private fun usage() {
     System.err.println("    [-writevm]      write intermediate vm code to a file as well")
     System.err.println("    [-noasm]        don't create assembly code")
     System.err.println("    [-vm]           launch the prog8 virtual machine instead of the compiler")
+    System.err.println("    [-avm]          launch the prog8 ast-based virtual machine after compilation")
     System.err.println("    [-noopt]        don't perform any optimizations")
     System.err.println("    [-nooptinline]  don't perform subroutine inlining optimizations")
     System.err.println("    modulefile      main module file to compile")
