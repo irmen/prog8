@@ -372,6 +372,8 @@ interface IStatement : Node {
             scope.add(name)
         return scope.joinToString(".")
     }
+
+    val expensiveToInline: Boolean
 }
 
 
@@ -488,6 +490,7 @@ class BuiltinFunctionStatementPlaceholder(val name: String, override val positio
     override fun linkParents(parent: Node) {}
     override fun process(processor: IAstProcessor): IStatement = this
     override fun definingScope(): INameScope = BuiltinFunctionScopePlaceholder
+    override val expensiveToInline = false
 }
 
 
@@ -575,6 +578,8 @@ class Block(override val name: String,
             val isInLibrary: Boolean,
             override val position: Position) : IStatement, INameScope {
     override lateinit var parent: Node
+    override val expensiveToInline
+        get() = statements.any { it.expensiveToInline }
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -593,6 +598,7 @@ class Block(override val name: String,
 
 data class Directive(val directive: String, val args: List<DirectiveArg>, override val position: Position) : IStatement {
     override lateinit var parent: Node
+    override val expensiveToInline = false
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -614,6 +620,7 @@ data class DirectiveArg(val str: String?, val name: String?, val int: Int?, over
 
 data class Label(val name: String, override val position: Position) : IStatement {
     override lateinit var parent: Node
+    override val expensiveToInline = false
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -631,6 +638,7 @@ data class Label(val name: String, override val position: Position) : IStatement
 
 open class Return(var values: List<IExpression>, override val position: Position) : IStatement {
     override lateinit var parent: Node
+    override val expensiveToInline = values.any { it !is LiteralValue }
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -656,6 +664,7 @@ class ReturnFromIrq(override val position: Position) : Return(emptyList(), posit
 
 class Continue(override val position: Position) : IStatement {
     override lateinit var parent: Node
+    override val expensiveToInline = false
 
     override fun linkParents(parent: Node) {
         this.parent=parent
@@ -666,6 +675,7 @@ class Continue(override val position: Position) : IStatement {
 
 class Break(override val position: Position) : IStatement {
     override lateinit var parent: Node
+    override val expensiveToInline = false
 
     override fun linkParents(parent: Node) {
         this.parent=parent
@@ -717,6 +727,8 @@ class VarDecl(val type: VarDeclType,
               var value: IExpression?,
               override val position: Position) : IStatement {
     override lateinit var parent: Node
+    override val expensiveToInline
+            get() = value!=null && value !is LiteralValue
 
     val datatypeErrors = mutableListOf<SyntaxError>()       // don't crash at init time, report them in the AstChecker
     val datatype =
@@ -766,6 +778,8 @@ class VarDecl(val type: VarDeclType,
 
 open class Assignment(var targets: List<AssignTarget>, val aug_op : String?, var value: IExpression, override val position: Position) : IStatement {
     override lateinit var parent: Node
+    override val expensiveToInline
+            get() = value !is LiteralValue
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -1200,14 +1214,14 @@ class DirectMemoryWrite(var addressExpression: IExpression, override val positio
 private data class NumericLiteral(val number: Number, val datatype: DataType)
 
 
-class LiteralValue(val type: DataType,
-                   val bytevalue: Short? = null,
-                   val wordvalue: Int? = null,
-                   val floatvalue: Double? = null,
-                   strvalue: String? = null,
-                   val arrayvalue: Array<IExpression>? = null,
-                   val heapId: Int? =null,
-                   override val position: Position) : IExpression {
+open class LiteralValue(val type: DataType,
+                        val bytevalue: Short? = null,
+                        val wordvalue: Int? = null,
+                        val floatvalue: Double? = null,
+                        strvalue: String? = null,
+                        val arrayvalue: Array<IExpression>? = null,
+                        val heapId: Int? =null,
+                        override val position: Position) : IExpression {
     override lateinit var parent: Node
     private val initialstrvalue = strvalue
 
@@ -1590,6 +1604,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
 
 class PostIncrDecr(var target: AssignTarget, val operator: String, override val position: Position) : IStatement {
     override lateinit var parent: Node
+    override val expensiveToInline = false
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -1609,6 +1624,7 @@ class Jump(val address: Int?,
            val generatedLabel: String?,             // used in code generation scenarios
            override val position: Position) : IStatement {
     override lateinit var parent: Node
+    override val expensiveToInline = false
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -1706,6 +1722,8 @@ class FunctionCallStatement(override var target: IdentifierReference,
                             override var arglist: MutableList<IExpression>,
                             override val position: Position) : IStatement, IFunctionCall {
     override lateinit var parent: Node
+    override val expensiveToInline
+            get() = arglist.any { it !is LiteralValue }
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -1723,6 +1741,7 @@ class FunctionCallStatement(override var target: IdentifierReference,
 
 class InlineAssembly(val assembly: String, override val position: Position) : IStatement {
     override lateinit var parent: Node
+    override val expensiveToInline = true
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -1738,6 +1757,8 @@ class AnonymousScope(override var statements: MutableList<IStatement>,
                      override val position: Position) : INameScope, IStatement {
     override val name: String
     override lateinit var parent: Node
+    override val expensiveToInline
+        get() = statements.any { it.expensiveToInline }
 
     init {
         name = "<anon-$sequenceNumber>"     // make sure it's an invalid soruce code identifier so user source code can never produce it
@@ -1758,6 +1779,7 @@ class AnonymousScope(override var statements: MutableList<IStatement>,
 
 class NopStatement(override val position:Position): IStatement {
     override lateinit var parent: Node
+    override val expensiveToInline = false
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -1782,6 +1804,9 @@ class Subroutine(override val name: String,
                  override val position: Position) : IStatement, INameScope {
 
     var keepAlways: Boolean = false
+    override val expensiveToInline
+            get() = statements.any { it.expensiveToInline }
+
     override lateinit var parent: Node
     val calledBy = mutableListOf<Node>()
     val calls = mutableSetOf<Subroutine>()
@@ -1857,6 +1882,8 @@ class IfStatement(var condition: IExpression,
                   var elsepart: AnonymousScope,
                   override val position: Position) : IStatement {
     override lateinit var parent: Node
+    override val expensiveToInline: Boolean
+        get() = truepart.expensiveToInline || elsepart.expensiveToInline
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -1874,6 +1901,8 @@ class BranchStatement(var condition: BranchCondition,
                       var elsepart: AnonymousScope,
                       override val position: Position) : IStatement {
     override lateinit var parent: Node
+    override val expensiveToInline: Boolean
+        get() = truepart.expensiveToInline || elsepart.expensiveToInline
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -1893,6 +1922,7 @@ class ForLoop(val loopRegister: Register?,
               var body: AnonymousScope,
               override val position: Position) : IStatement {
     override lateinit var parent: Node
+    override val expensiveToInline = true
 
     override fun linkParents(parent: Node) {
         this.parent=parent
@@ -1917,6 +1947,7 @@ class WhileLoop(var condition: IExpression,
                 var body: AnonymousScope,
                 override val position: Position) : IStatement {
     override lateinit var parent: Node
+    override val expensiveToInline = true
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -1932,6 +1963,7 @@ class RepeatLoop(var body: AnonymousScope,
                  var untilCondition: IExpression,
                  override val position: Position) : IStatement {
     override lateinit var parent: Node
+    override val expensiveToInline = true
 
     override fun linkParents(parent: Node) {
         this.parent = parent

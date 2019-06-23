@@ -37,11 +37,11 @@ internal class StatementOptimizer(private val program: Program, private val opti
         program.modules.forEach {
             callgraph.forAllSubroutines(it) { sub ->
                 if(sub!==entrypoint && !sub.isAsmSubroutine) {
-                    if (sub.statements.size <= 3) {
+                    if (sub.statements.size <= 3 && !sub.expensiveToInline) {
                         sub.calledBy.toList().forEach { caller -> inlineSubroutine(sub, caller) }
                     } else if (sub.calledBy.size==1 && sub.statements.size < 50) {
                         inlineSubroutine(sub, sub.calledBy[0])
-                    } else if(sub.calledBy.size<=3 && sub.statements.size < 10) {
+                    } else if(sub.calledBy.size<=3 && sub.statements.size < 10 && !sub.expensiveToInline) {
                         sub.calledBy.toList().forEach { caller -> inlineSubroutine(sub, caller) }
                     }
                 }
