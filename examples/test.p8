@@ -1,28 +1,61 @@
 %zeropage basicsafe
-%option enable_floats
-%import c64flt
 
 ~ main {
 
-    float[]  fa = [1.1,2.2,3.3]
-    ubyte[] uba = [10,2,3,4]
-    byte[] ba = [-10,2,3,4]
-    uword[] uwa = [100,20,30,40]
-    word[] wa = [-100,20,30,40]
-
     sub start() {
 
-        float a
-        a=avg([1,2,3,4])
-        c64flt.print_f(a)
+        greeting()
+
+        ubyte square = stuff.function(12)
+
+        c64scr.print_ub(square)
         c64.CHROUT('\n')
-        a=avg([100,200,300,400])
-        c64flt.print_f(a)
-        c64.CHROUT('\n')
-        a=avg([1.1,2.2,3.3,4.4])
-        c64flt.print_f(a)
-        c64.CHROUT('\n')
+
+        stuff.name()
+        stuff.name()
+        stuff.bye()
+
+        abs(4)
+        abs(4)
+        abs(4)
+        abs(4)
+        abs(4)
+        foobar()
+        foobar()
+        foobar()
+        foobar()
+
+
+        if(false) {
+        } else {
+
+        }
 
 
     }
+
+
+    sub foobar() {
+    }
+
+    sub greeting() {
+        c64scr.print("hello\n")
+    }
+}
+
+
+~ stuff {
+
+    sub function(ubyte v) -> ubyte {
+        return v*v
+    }
+
+    sub name() {
+        c64scr.print("name\n")
+    }
+
+    sub bye() {
+        c64scr.print("bye\n")
+    }
+
 }

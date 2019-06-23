@@ -8,28 +8,88 @@ import kotlin.math.floor
 
 /*
     todo: subroutines with 1 or 2 byte args or 1 word arg can be converted to asm sub calling convention (args in registers)
-
-    todo: implement usage counters for variables (locals and heap), blocks. Remove if count is zero.
-
-    todo inline subroutines that are called exactly once (regardless of their size)
-    todo inline subroutines that are only called a few times (max 3?)  (if < 20 statements)
-    todo inline all subroutines that are "very small" (0-3 statements)
-
+    todo: implement usage counters for labels, variables (locals and heap), blocks. Remove if count is zero.
     todo analyse for unreachable code and remove that (f.i. code after goto or return that has no label so can never be jumped to) + print warning about this
 */
 
-class StatementOptimizer(private val program: Program) : IAstProcessor {
+class StatementOptimizer(private val program: Program, private val optimizeInlining: Boolean) : IAstProcessor {
     var optimizationsDone: Int = 0
         private set
-    var statementsToRemove = mutableListOf<IStatement>()
-        private set
+    var scopesToFlatten = mutableListOf<INameScope>()
+
     private val pureBuiltinFunctions = BuiltinFunctions.filter { it.value.pure }
 
+    companion object {
+        private var generatedLabelSequenceNumber = 0
+    }
 
     override fun process(program: Program) {
-        val callgraph = CallGraphBuilder(program)
-        callgraph.process(program)
+        val callgraph = CallGraph(program)
+        removeUnusedCode(callgraph)
+        if(optimizeInlining) {
+            inlineSubroutines(callgraph)
+        }
+        super.process(program)
+    }
 
+    private fun inlineSubroutines(callgraph: CallGraph) {
+        val entrypoint = program.entrypoint()
+        program.modules.forEach {
+            callgraph.forAllSubroutines(it) { sub ->
+                if(sub!==entrypoint && !sub.isAsmSubroutine) {
+                    if (sub.statements.size <= 3) {
+                        sub.calledBy.toList().forEach { caller -> inlineSubroutine(sub, caller) }
+                    } else if (sub.calledBy.size==1 && sub.statements.size < 50) {
+                        inlineSubroutine(sub, sub.calledBy[0])
+                    } else if(sub.calledBy.size<=3 && sub.statements.size < 10) {
+                        sub.calledBy.toList().forEach { caller -> inlineSubroutine(sub, caller) }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun inlineSubroutine(sub: Subroutine, caller: Node) {
+        // if the sub is called multiple times from the same scope, we can't inline (would result in duplicate definitions)
+        // (unless we add a sequence number to all vars/labels and references to them in the inlined code, but I skip that for now)
+        val scope = caller.definingScope()
+        if(sub.calledBy.count { it.definingScope()===scope } > 1)
+            return
+        if(caller !is IFunctionCall || caller !is IStatement || sub.statements.any { it is Subroutine })
+            return
+
+        if(sub.parameters.isEmpty() && sub.returntypes.isEmpty()) {
+            // sub without params and without return value can be easily inlined
+            val parent = caller.parent as INameScope
+            val inlined = AnonymousScope(sub.statements.toMutableList(), caller.position)
+            parent.statements[parent.statements.indexOf(caller)] = inlined
+            // replace return statements in the inlined sub by a jump to the end of it
+            var endlabel = inlined.statements.last() as? Label
+            if(endlabel==null) {
+                endlabel = makeLabel("_prog8_auto_sub_end", inlined.statements.last().position)
+                inlined.statements.add(endlabel)
+                endlabel.parent = inlined
+            }
+            val returns = inlined.statements.withIndex().filter { iv -> iv.value is Return }.map { iv -> Pair(iv.index, iv.value as Return)}
+            for(returnIdx in returns) {
+                assert(returnIdx.second.values.isEmpty())
+                val jump = Jump(null, IdentifierReference(listOf(endlabel.name), returnIdx.second.position), null, returnIdx.second.position)
+                inlined.statements[returnIdx.first] = jump
+            }
+            inlined.linkParents(caller.parent)
+            sub.calledBy.remove(caller)     // if there are no callers left, the sub will be removed automatically later
+            optimizationsDone++
+        } else {
+            // TODO inline subroutine that has params or returnvalues or both
+        }
+    }
+
+    private fun makeLabel(name: String, position: Position): Label {
+        generatedLabelSequenceNumber++
+        return Label("${name}_$generatedLabelSequenceNumber", position)
+    }
+
+    private fun removeUnusedCode(callgraph: CallGraph) {
         // TODO remove unused variables (local and global)
 
         // remove all subroutines that aren't called, or are empty
@@ -37,12 +97,12 @@ class StatementOptimizer(private val program: Program) : IAstProcessor {
         val entrypoint = program.entrypoint()
         program.modules.forEach {
             callgraph.forAllSubroutines(it) { sub ->
-                if(sub !== entrypoint && !sub.keepAlways && (sub.calledBy.isEmpty() || (sub.containsNoCodeNorVars() && !sub.isAsmSubroutine)))
+                if (sub !== entrypoint && !sub.keepAlways && (sub.calledBy.isEmpty() || (sub.containsNoCodeNorVars() && !sub.isAsmSubroutine)))
                     removeSubroutines.add(sub)
             }
         }
 
-        if(removeSubroutines.isNotEmpty()) {
+        if (removeSubroutines.isNotEmpty()) {
             removeSubroutines.forEach {
                 it.definingScope().statements.remove(it)
             }
@@ -55,7 +115,7 @@ class StatementOptimizer(private val program: Program) : IAstProcessor {
                 removeBlocks.add(block)
         }
 
-        if(removeBlocks.isNotEmpty()) {
+        if (removeBlocks.isNotEmpty()) {
             removeBlocks.forEach { it.definingScope().statements.remove(it) }
         }
 
@@ -66,18 +126,16 @@ class StatementOptimizer(private val program: Program) : IAstProcessor {
                 removeModules.add(it)
         }
 
-        if(removeModules.isNotEmpty()) {
+        if (removeModules.isNotEmpty()) {
             println("[debug] removing ${removeModules.size} empty/unused modules")
             program.modules.removeAll(removeModules)
         }
-
-        super.process(program)
     }
 
     override fun process(block: Block): IStatement {
         if(block.containsNoCodeNorVars()) {
             optimizationsDone++
-            statementsToRemove.add(block)
+            return NopStatement(block.position)
         }
         return super.process(block)
     }
@@ -88,7 +146,7 @@ class StatementOptimizer(private val program: Program) : IAstProcessor {
         if(subroutine.asmAddress==null) {
             if(subroutine.containsNoCodeNorVars()) {
                 optimizationsDone++
-                statementsToRemove.add(subroutine)
+                return NopStatement(subroutine.position)
             }
         }
 
@@ -161,8 +219,8 @@ class StatementOptimizer(private val program: Program) : IAstProcessor {
             val functionName = functionCallStatement.target.nameInSource[0]
             if (functionName in pureBuiltinFunctions) {
                 printWarning("statement has no effect (function return value is discarded)", functionCallStatement.position)
-                statementsToRemove.add(functionCallStatement)
-                return functionCallStatement
+                optimizationsDone++
+                return NopStatement(functionCallStatement.position)
             }
         }
 
@@ -238,9 +296,8 @@ class StatementOptimizer(private val program: Program) : IAstProcessor {
         super.process(ifStatement)
 
         if(ifStatement.truepart.containsNoCodeNorVars() && ifStatement.elsepart.containsNoCodeNorVars()) {
-            statementsToRemove.add(ifStatement)
             optimizationsDone++
-            return ifStatement
+            return NopStatement(ifStatement.position)
         }
 
         if(ifStatement.truepart.containsNoCodeNorVars() && ifStatement.elsepart.containsCodeOrVars()) {
@@ -273,16 +330,14 @@ class StatementOptimizer(private val program: Program) : IAstProcessor {
         super.process(forLoop)
         if(forLoop.body.containsNoCodeNorVars()) {
             // remove empty for loop
-            statementsToRemove.add(forLoop)
             optimizationsDone++
-            return forLoop
+            return NopStatement(forLoop.position)
         } else if(forLoop.body.statements.size==1) {
             val loopvar = forLoop.body.statements[0] as? VarDecl
             if(loopvar!=null && loopvar.name==forLoop.loopVar?.nameInSource?.singleOrNull()) {
                 // remove empty for loop
-                statementsToRemove.add(forLoop)
                 optimizationsDone++
-                return forLoop
+                return NopStatement(forLoop.position)
             }
         }
 
@@ -392,6 +447,17 @@ class StatementOptimizer(private val program: Program) : IAstProcessor {
                 return first
             }
         }
+
+        // if the jump is to the next statement, remove the jump
+        val scope = jump.definingScope()
+        val label = jump.identifier?.targetStatement(scope)
+        if(label!=null) {
+            if(scope.statements.indexOf(label) == scope.statements.indexOf(jump)+1) {
+                optimizationsDone++
+                return NopStatement(jump.position)
+            }
+        }
+
         return jump
     }
 
@@ -405,7 +471,7 @@ class StatementOptimizer(private val program: Program) : IAstProcessor {
                 optimizationsDone++
                 return NopStatement(assignment.position)
             }
-            val targetDt = target.determineDatatype(program, assignment)!!
+            val targetDt = target.determineDatatype(program, assignment)
             val bexpr=assignment.value as? BinaryExpression
             if(bexpr!=null) {
                 val cv = bexpr.right.constValue(program)?.asNumericValue?.toDouble()
@@ -528,12 +594,27 @@ class StatementOptimizer(private val program: Program) : IAstProcessor {
         return super.process(assignment)
     }
 
-    override fun process(scope: AnonymousScope): AnonymousScope {
+    override fun process(scope: AnonymousScope): IStatement {
         val linesToRemove = deduplicateAssignments(scope.statements)
         if(linesToRemove.isNotEmpty()) {
             linesToRemove.reversed().forEach{scope.statements.removeAt(it)}
         }
+
+        if(scope.parent is INameScope) {
+            scopesToFlatten.add(scope)  // get rid of the anonymous scope
+        }
+
         return super.process(scope)
+    }
+
+    override fun process(label: Label): IStatement {
+        // remove duplicate labels
+        val stmts = label.definingScope().statements
+        val startIdx = stmts.indexOf(label)
+        if(startIdx<(stmts.size-1) && stmts[startIdx+1] == label)
+            return NopStatement(label.position)
+
+        return super.process(label)
     }
 
     private fun same(target: AssignTarget, value: IExpression): Boolean {

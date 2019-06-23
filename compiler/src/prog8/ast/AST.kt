@@ -191,14 +191,14 @@ interface IAstProcessor {
 
     fun process(ifStatement: IfStatement): IStatement {
         ifStatement.condition = ifStatement.condition.process(this)
-        ifStatement.truepart = ifStatement.truepart.process(this)
-        ifStatement.elsepart = ifStatement.elsepart.process(this)
+        ifStatement.truepart = ifStatement.truepart.process(this) as AnonymousScope
+        ifStatement.elsepart = ifStatement.elsepart.process(this) as AnonymousScope
         return ifStatement
     }
 
     fun process(branchStatement: BranchStatement): IStatement {
-        branchStatement.truepart = branchStatement.truepart.process(this)
-        branchStatement.elsepart = branchStatement.elsepart.process(this)
+        branchStatement.truepart = branchStatement.truepart.process(this) as AnonymousScope
+        branchStatement.elsepart = branchStatement.elsepart.process(this) as AnonymousScope
         return branchStatement
     }
 
@@ -240,19 +240,19 @@ interface IAstProcessor {
     fun process(forLoop: ForLoop): IStatement {
         forLoop.loopVar?.process(this)
         forLoop.iterable = forLoop.iterable.process(this)
-        forLoop.body = forLoop.body.process(this)
+        forLoop.body = forLoop.body.process(this) as AnonymousScope
         return forLoop
     }
 
     fun process(whileLoop: WhileLoop): IStatement {
         whileLoop.condition = whileLoop.condition.process(this)
-        whileLoop.body = whileLoop.body.process(this)
+        whileLoop.body = whileLoop.body.process(this) as AnonymousScope
         return whileLoop
     }
 
     fun process(repeatLoop: RepeatLoop): IStatement {
         repeatLoop.untilCondition = repeatLoop.untilCondition.process(this)
-        repeatLoop.body = repeatLoop.body.process(this)
+        repeatLoop.body = repeatLoop.body.process(this) as AnonymousScope
         return repeatLoop
     }
 
@@ -274,7 +274,7 @@ interface IAstProcessor {
         return assignTarget
     }
 
-    fun process(scope: AnonymousScope): AnonymousScope {
+    fun process(scope: AnonymousScope): IStatement {
         scope.statements = scope.statements.asSequence().map { it.process(this) }.toMutableList()
         return scope
     }
@@ -513,8 +513,8 @@ class Module(override val name: String,
              val source: Path) : Node, INameScope {
     override lateinit var parent: Node
     lateinit var program: Program
+    val importedBy = mutableListOf<Module>()
     val imports = mutableSetOf<Module>()
-    val importedBy = mutableSetOf<Module>()
 
     override fun linkParents(parent: Node) {
         this.parent=parent
@@ -1695,9 +1695,10 @@ class Subroutine(override val name: String,
                  val isAsmSubroutine: Boolean,
                  override var statements: MutableList<IStatement>,
                  override val position: Position) : IStatement, INameScope {
+
     var keepAlways: Boolean = false
     override lateinit var parent: Node
-    val calledBy = mutableSetOf<INameScope>()
+    val calledBy = mutableListOf<Node>()
     val calls = mutableSetOf<Subroutine>()
 
     val scopedname: String by lazy { makeScopedName(name) }

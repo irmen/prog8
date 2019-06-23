@@ -51,8 +51,7 @@ fun Program.checkIdentifiers() {
 private class AstIdentifiersChecker(private val namespace: INameScope) : IAstProcessor {
     private val checkResult: MutableList<AstException> = mutableListOf()
 
-    var blocks: MutableMap<String, Block> = mutableMapOf()
-        private set
+    private var blocks: MutableMap<String, Block> = mutableMapOf()
 
     fun result(): List<AstException> {
         return checkResult

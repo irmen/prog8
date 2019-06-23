@@ -48,6 +48,7 @@ private fun compileMain(args: Array<String>) {
     var writeVmCode = false
     var writeAssembly = true
     var optimize = true
+    var optimizeInlining = true
     for (arg in args) {
         if(arg=="-emu")
             emulatorToStart = "x64"
@@ -59,6 +60,8 @@ private fun compileMain(args: Array<String>) {
             writeAssembly = false
         else if(arg=="-noopt")
             optimize = false
+        else if(arg=="-nooptinline")
+            optimizeInlining = false
         else if(!arg.startsWith("-"))
             moduleFile = arg
         else
@@ -118,7 +121,7 @@ private fun compileMain(args: Array<String>) {
                 while (true) {
                     // keep optimizing expressions and statements until no more steps remain
                     val optsDone1 = programAst.simplifyExpressions()
-                    val optsDone2 = programAst.optimizeStatements()
+                    val optsDone2 = programAst.optimizeStatements(optimizeInlining)
                     if (optsDone1 + optsDone2 == 0)
                         break
                 }
@@ -225,12 +228,13 @@ fun determineCompilationOptions(program: Program): CompilationOptions {
 
 private fun usage() {
     System.err.println("Missing argument(s):")
-    System.err.println("    [-emu]       auto-start the 'x64' C-64 emulator after successful compilation")
-    System.err.println("    [-emu2]      auto-start the 'x64sc' C-64 emulator after successful compilation")
-    System.err.println("    [-writevm]   write intermediate vm code to a file as well")
-    System.err.println("    [-noasm]     don't create assembly code")
-    System.err.println("    [-vm]        launch the prog8 virtual machine instead of the compiler")
-    System.err.println("    [-noopt]     don't perform optimizations")
-    System.err.println("    modulefile   main module file to compile")
+    System.err.println("    [-emu]          auto-start the 'x64' C-64 emulator after successful compilation")
+    System.err.println("    [-emu2]         auto-start the 'x64sc' C-64 emulator after successful compilation")
+    System.err.println("    [-writevm]      write intermediate vm code to a file as well")
+    System.err.println("    [-noasm]        don't create assembly code")
+    System.err.println("    [-vm]           launch the prog8 virtual machine instead of the compiler")
+    System.err.println("    [-noopt]        don't perform any optimizations")
+    System.err.println("    [-nooptinline]  don't perform subroutine inlining optimizations")
+    System.err.println("    modulefile      main module file to compile")
     exitProcess(1)
 }

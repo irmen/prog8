@@ -1,7 +1,6 @@
 package prog8.optimizing
 
-import prog8.ast.AstException
-import prog8.ast.Program
+import prog8.ast.*
 import prog8.parser.ParsingFailedError
 
 
@@ -27,12 +26,16 @@ fun Program.constantFold() {
 }
 
 
-fun Program.optimizeStatements(): Int {
-    val optimizer = StatementOptimizer(this)
+fun Program.optimizeStatements(optimizeInlining: Boolean): Int {
+    val optimizer = StatementOptimizer(this, optimizeInlining)
     optimizer.process(this)
-    for(stmt in optimizer.statementsToRemove) {
-        val scope=stmt.definingScope()
-        scope.remove(stmt)
+    for(scope in optimizer.scopesToFlatten.reversed()) {
+        val namescope = scope.parent as INameScope
+        val idx = namescope.statements.indexOf(scope as IStatement)
+        if(idx>=0) {
+            namescope.statements[idx] = NopStatement(scope.position)
+            namescope.statements.addAll(idx, scope.statements)
+        }
     }
     modules.forEach { it.linkParents() }   // re-link in final configuration
 

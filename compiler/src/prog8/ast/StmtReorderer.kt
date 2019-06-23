@@ -224,10 +224,10 @@ private class VarInitValueAndAddressOfCreator(private val namespace: INameScope)
 
     // Also takes care to insert AddressOf (&) expression where required (string params to a UWORD function param etc).
 
-
     private val vardeclsToAdd = mutableMapOf<INameScope, MutableMap<String, VarDecl>>()
 
     override fun process(module: Module) {
+        vardeclsToAdd.clear()
         super.process(module)
 
         // add any new vardecls to the various scopes
@@ -254,8 +254,9 @@ private class VarInitValueAndAddressOfCreator(private val namespace: INameScope)
                     }
                     else
                         declvalue
+            val identifierName = listOf(decl.name)    //  // TODO this was: (scoped name) decl.scopedname.split(".")
             return VariableInitializationAssignment(
-                    AssignTarget(null, IdentifierReference(decl.scopedname.split("."), decl.position), null, null, decl.position),
+                    AssignTarget(null, IdentifierReference(identifierName, decl.position), null, null, decl.position),
                     null,
                     value,
                     decl.position

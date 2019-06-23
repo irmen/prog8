@@ -4,12 +4,16 @@ import prog8.ast.*
 import prog8.compiler.loadAsmIncludeFile
 
 
-class CallGraphBuilder(private val program: Program): IAstProcessor {
+class CallGraph(private val program: Program): IAstProcessor {
 
-    private val modulesImporting = mutableMapOf<Module, Set<Module>>().withDefault { mutableSetOf() }
-    private val modulesImportedBy = mutableMapOf<Module, Set<Module>>().withDefault { mutableSetOf() }
-    private val subroutinesCalling = mutableMapOf<INameScope, Set<Subroutine>>().withDefault { mutableSetOf() }
-    private val subroutinesCalledBy = mutableMapOf<Subroutine, Set<INameScope>>().withDefault { mutableSetOf() }
+    private val modulesImporting = mutableMapOf<Module, List<Module>>().withDefault { mutableListOf() }
+    private val modulesImportedBy = mutableMapOf<Module, List<Module>>().withDefault { mutableListOf() }
+    private val subroutinesCalling = mutableMapOf<INameScope, List<Subroutine>>().withDefault { mutableListOf() }
+    private val subroutinesCalledBy = mutableMapOf<Subroutine, List<Node>>().withDefault { mutableListOf() }
+
+    init {
+        process(program)
+    }
 
     fun forAllSubroutines(scope: INameScope, sub: (s: Subroutine) -> Unit) {
         fun findSubs(scope: INameScope) {
@@ -67,7 +71,7 @@ class CallGraphBuilder(private val program: Program): IAstProcessor {
         if(otherSub!=null) {
             functionCall.definingSubroutine()?.let { thisSub ->
                 subroutinesCalling[thisSub] = subroutinesCalling.getValue(thisSub).plus(otherSub)
-                subroutinesCalledBy[otherSub] = subroutinesCalledBy.getValue(otherSub).plus(thisSub)
+                subroutinesCalledBy[otherSub] = subroutinesCalledBy.getValue(otherSub).plus(functionCall)
             }
         }
         return super.process(functionCall)
@@ -78,7 +82,7 @@ class CallGraphBuilder(private val program: Program): IAstProcessor {
         if(otherSub!=null) {
             functionCallStatement.definingSubroutine()?.let { thisSub ->
                 subroutinesCalling[thisSub] = subroutinesCalling.getValue(thisSub).plus(otherSub)
-                subroutinesCalledBy[otherSub] = subroutinesCalledBy.getValue(otherSub).plus(thisSub)
+                subroutinesCalledBy[otherSub] = subroutinesCalledBy.getValue(otherSub).plus(functionCallStatement)
             }
         }
         return super.process(functionCallStatement)
@@ -89,7 +93,7 @@ class CallGraphBuilder(private val program: Program): IAstProcessor {
         if(otherSub!=null) {
             jump.definingSubroutine()?.let { thisSub ->
                 subroutinesCalling[thisSub] = subroutinesCalling.getValue(thisSub).plus(otherSub)
-                subroutinesCalledBy[otherSub] = subroutinesCalledBy.getValue(otherSub).plus(thisSub)
+                subroutinesCalledBy[otherSub] = subroutinesCalledBy.getValue(otherSub).plus(jump)
             }
         }
         return super.process(jump)
@@ -102,7 +106,7 @@ class CallGraphBuilder(private val program: Program): IAstProcessor {
         return super.process(inlineAssembly)
     }
 
-    private fun scanAssemblyCode(asm: String, context: Node, scope: INameScope) {
+    private fun scanAssemblyCode(asm: String, context: IStatement, scope: INameScope) {
         val asmJumpRx = Regex("""[\-+a-zA-Z0-9_ \t]+(jmp|jsr)[ \t]+(\S+).*""", RegexOption.IGNORE_CASE)
         val asmRefRx = Regex("""[\-+a-zA-Z0-9_ \t]+(...)[ \t]+(\S+).*""", RegexOption.IGNORE_CASE)
         asm.lines().forEach { line ->
@@ -113,13 +117,13 @@ class CallGraphBuilder(private val program: Program): IAstProcessor {
                     val node = program.namespace.lookup(jumptarget.split('.'), context)
                     if (node is Subroutine) {
                         subroutinesCalling[scope] = subroutinesCalling.getValue(scope).plus(node)
-                        subroutinesCalledBy[node] = subroutinesCalledBy.getValue(node).plus(scope)
+                        subroutinesCalledBy[node] = subroutinesCalledBy.getValue(node).plus(context)
                     } else if(jumptarget.contains('.')) {
                         // maybe only the first part already refers to a subroutine
                         val node2 = program.namespace.lookup(listOf(jumptarget.substringBefore('.')), context)
                         if (node2 is Subroutine) {
                             subroutinesCalling[scope] = subroutinesCalling.getValue(scope).plus(node2)
-                            subroutinesCalledBy[node2] = subroutinesCalledBy.getValue(node2).plus(scope)
+                            subroutinesCalledBy[node2] = subroutinesCalledBy.getValue(node2).plus(context)
                         }
                     }
                 }
@@ -131,7 +135,7 @@ class CallGraphBuilder(private val program: Program): IAstProcessor {
                         val node = program.namespace.lookup(listOf(target.substringBefore('.')), context)
                         if (node is Subroutine) {
                             subroutinesCalling[scope] = subroutinesCalling.getValue(scope).plus(node)
-                            subroutinesCalledBy[node] = subroutinesCalledBy.getValue(node).plus(scope)
+                            subroutinesCalledBy[node] = subroutinesCalledBy.getValue(node).plus(context)
                         }
                     }
                 }
