@@ -5,7 +5,6 @@ import prog8.compiler.HeapValues
 import prog8.compiler.target.c64.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.FLOAT_MAX_POSITIVE
 import prog8.functions.BuiltinFunctions
-import prog8.optimizing.same
 import prog8.parser.ParsingFailedError
 import java.io.File
 
@@ -13,7 +12,7 @@ import java.io.File
  * General checks on the Ast
  */
 
-fun Program.checkValid(compilerOptions: CompilationOptions) {
+internal fun Program.checkValid(compilerOptions: CompilationOptions) {
     val checker = AstChecker(this, compilerOptions)
     checker.process(this)
     printErrors(checker.result(), name)
@@ -269,9 +268,9 @@ private class AstChecker(private val program: Program,
 
         if(subroutine.isAsmSubroutine) {
             if(subroutine.asmParameterRegisters.size != subroutine.parameters.size)
-                err("number of asm parameter registers is not the same as number of parameters")
+                err("number of asm parameter registers is not the isSameAs as number of parameters")
             if(subroutine.asmReturnvaluesRegisters.size != subroutine.returntypes.size)
-                err("number of return registers is not the same as number of return values")
+                err("number of return registers is not the isSameAs as number of return values")
             for(param in subroutine.parameters.zip(subroutine.asmParameterRegisters)) {
                 if(param.second.registerOrPair in setOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y)) {
                     if (param.first.type != DataType.UBYTE && param.first.type != DataType.BYTE)
@@ -845,7 +844,7 @@ private class AstChecker(private val program: Program,
                         checkResult.add(ExpressionError("swap requires 2 args of identical type", position))
                     else if (args[0].constValue(program) != null || args[1].constValue(program) != null)
                         checkResult.add(ExpressionError("swap requires 2 variables, not constant value(s)", position))
-                    else if(same(args[0], args[1]))
+                    else if(args[0].same(args[1]))
                         checkResult.add(ExpressionError("swap should have 2 different args", position))
                     else if(dt1 !in NumericDatatypes)
                         checkResult.add(ExpressionError("swap requires args of numerical type", position))

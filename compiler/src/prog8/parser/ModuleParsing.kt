@@ -8,7 +8,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 
 
-class ParsingFailedError(override var message: String) : Exception(message)
+internal class ParsingFailedError(override var message: String) : Exception(message)
 
 
 private class LexerErrorListener: BaseErrorListener() {
@@ -25,7 +25,7 @@ internal class CustomLexer(val modulePath: Path, input: CharStream?) : prog8Lexe
 internal fun moduleName(fileName: Path) = fileName.toString().substringBeforeLast('.')
 
 
-fun importModule(program: Program, filePath: Path): Module {
+internal fun importModule(program: Program, filePath: Path): Module {
     print("importing '${moduleName(filePath.fileName)}'")
     if(filePath.parent!=null) {
         var importloc = filePath.toString()
@@ -43,14 +43,14 @@ fun importModule(program: Program, filePath: Path): Module {
     return importModule(program, input, filePath, filePath.parent==null)
 }
 
-fun importLibraryModule(program: Program, name: String): Module? {
+internal fun importLibraryModule(program: Program, name: String): Module? {
     val import = Directive("%import", listOf(
             DirectiveArg("", name, 42, position = Position("<<<implicit-import>>>", 0, 0 ,0))
     ), Position("<<<implicit-import>>>", 0, 0 ,0))
     return executeImportDirective(program, import, Paths.get(""))
 }
 
-private fun importModule(program: Program, stream: CharStream, modulePath: Path, isLibrary: Boolean): Module {
+internal fun importModule(program: Program, stream: CharStream, modulePath: Path, isLibrary: Boolean): Module {
     val moduleName = moduleName(modulePath.fileName)
     val lexer = CustomLexer(modulePath, stream)
     val lexerErrors = LexerErrorListener()
@@ -133,6 +133,6 @@ private fun executeImportDirective(program: Program, import: Directive, source: 
     return importedModule
 }
 
-fun tryGetEmbeddedResource(name: String): InputStream? {
+internal fun tryGetEmbeddedResource(name: String): InputStream? {
     return object{}.javaClass.getResourceAsStream("/prog8lib/$name")
 }

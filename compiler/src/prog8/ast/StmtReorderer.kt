@@ -1,6 +1,6 @@
 package prog8.ast
 
-fun Program.reorderStatements() {
+internal fun Program.reorderStatements() {
     val initvalueCreator = VarInitValueAndAddressOfCreator(namespace)
     initvalueCreator.process(this)
 
@@ -8,7 +8,7 @@ fun Program.reorderStatements() {
     checker.process(this)
 }
 
-const val initvarsSubName="prog8_init_vars"    // the name of the subroutine that should be called for every block to initialize its variables
+internal const val initvarsSubName="prog8_init_vars"    // the name of the subroutine that should be called for every block to initialize its variables
 
 
 private class StatementReorderer(private val program: Program): IAstProcessor {
@@ -167,7 +167,7 @@ private class StatementReorderer(private val program: Program): IAstProcessor {
     }
 
     private fun sortConstantAssignments(statements: MutableList<IStatement>) {
-        // sort assignments by datatype and value, so multiple initializations with the same value can be optimized (to load the value just once)
+        // sort assignments by datatype and value, so multiple initializations with the isSameAs value can be optimized (to load the value just once)
         val result = mutableListOf<IStatement>()
         val stmtIter = statements.iterator()
         for(stmt in stmtIter) {

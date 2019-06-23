@@ -35,7 +35,7 @@ fun main(args: Array<String>) {
     compileMain(args)
 }
 
-fun printSoftwareHeader(what: String) {
+internal fun printSoftwareHeader(what: String) {
     val buildVersion = object {}.javaClass.getResource("/version.txt").readText().trim()
     println("\nProg8 $what v$buildVersion by Irmen de Jong (irmen@razorvine.net)")
     println("This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html\n")
@@ -190,7 +190,7 @@ private fun compileMain(args: Array<String>) {
 }
 
 
-fun determineCompilationOptions(program: Program): CompilationOptions {
+private fun determineCompilationOptions(program: Program): CompilationOptions {
     val mainModule = program.modules.first()
     val outputType = (mainModule.statements.singleOrNull { it is Directive && it.directive == "%output" }
             as? Directive)?.args?.single()?.name?.toUpperCase()

@@ -122,7 +122,7 @@ class Program (val name: String,
             val instructions = mutableListOf<Instruction>()
             val labels = mutableMapOf<String, Instruction>()
             val splitpattern = Pattern.compile("\\s+")
-            val nextInstructionLabels = Stack<String>()     // more than one label can occur on the same line
+            val nextInstructionLabels = Stack<String>()     // more than one label can occur on the isSameAs line
 
             while(true) {
                 val (lineNr, line) = lines.next()

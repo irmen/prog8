@@ -8,7 +8,7 @@ import prog8.functions.BuiltinFunctions
  * Finally, it also makes sure the datatype of all Var decls and sub Return values is set correctly.
  */
 
-fun Program.checkIdentifiers() {
+internal fun Program.checkIdentifiers() {
     val checker = AstIdentifiersChecker(namespace)
     checker.process(this)
 
@@ -53,7 +53,7 @@ private class AstIdentifiersChecker(private val namespace: INameScope) : IAstPro
 
     private var blocks: MutableMap<String, Block> = mutableMapOf()
 
-    fun result(): List<AstException> {
+    internal fun result(): List<AstException> {
         return checkResult
     }
 

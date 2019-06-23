@@ -4,7 +4,7 @@ import org.antlr.v4.runtime.CommonTokenStream
 import org.antlr.v4.runtime.Lexer
 
 
-class CommentHandlingTokenStream(lexer: Lexer) : CommonTokenStream(lexer) {
+internal class CommentHandlingTokenStream(lexer: Lexer) : CommonTokenStream(lexer) {
 
     data class Comment(val type: String, val line: Int, val comment: String)
 

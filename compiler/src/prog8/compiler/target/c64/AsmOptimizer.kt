@@ -64,7 +64,7 @@ fun optimizeUselessStackByteWrites(linesByFour: List<List<IndexedValue<String>>>
 
 fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<String>>>): List<Int> {
 
-    // optimize sequential assignments of the same value to various targets (bytes, words, floats)
+    // optimize sequential assignments of the isSameAs value to various targets (bytes, words, floats)
     // the float one is the one that requires 2*7=14 lines of code to check...
     // @todo a better place to do this is in the Compiler instead and work on opcodes, and never even create the inefficient asm...
 
@@ -86,7 +86,7 @@ fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<String>>>): 
             val thirdvalue = fifth.substring(4)
             val fourthvalue = sixth.substring(4)
             if(firstvalue==thirdvalue && secondvalue==fourthvalue) {
-                // lda/ldy   sta/sty   twice the same word -->  remove second lda/ldy pair (fifth and sixth lines)
+                // lda/ldy   sta/sty   twice the isSameAs word -->  remove second lda/ldy pair (fifth and sixth lines)
                 removeLines.add(pair[4].index)
                 removeLines.add(pair[5].index)
             }
@@ -96,7 +96,7 @@ fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<String>>>): 
             val firstvalue = first.substring(4)
             val secondvalue = third.substring(4)
             if(firstvalue==secondvalue) {
-                // lda value / sta ? / lda same-value / sta ?  -> remove second lda (third line)
+                // lda value / sta ? / lda isSameAs-value / sta ?  -> remove second lda (third line)
                 removeLines.add(pair[2].index)
             }
         }

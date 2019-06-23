@@ -5,7 +5,7 @@ package prog8.ast
  * Checks that are specific for imported modules.
  */
 
-fun Module.checkImportedValid() {
+internal fun Module.checkImportedValid() {
     this.linkParents()
     val checker = ImportedAstChecker()
     checker.process(this)
@@ -16,7 +16,7 @@ fun Module.checkImportedValid() {
 private class ImportedAstChecker : IAstProcessor {
     private val checkResult: MutableList<SyntaxError> = mutableListOf()
 
-    fun result(): List<SyntaxError> {
+    internal fun result(): List<SyntaxError> {
         return checkResult
     }
 

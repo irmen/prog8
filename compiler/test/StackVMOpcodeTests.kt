@@ -636,7 +636,7 @@ class TestStackVmOpcodes {
         assertEquals(DataType.UBYTE, rndb2.type)
         assertEquals(DataType.UWORD, rndw.type)
         assertEquals(DataType.FLOAT, rndf.type)
-        assertNotEquals(rndb1.integerValue(), rndb2.integerValue()) // this *sometimes* fails when the two random numbers are the same by pure chance
+        assertNotEquals(rndb1.integerValue(), rndb2.integerValue()) // this *sometimes* fails when the two random numbers are the isSameAs by pure chance
         assertTrue(rndf.numericValue().toDouble() > 0.0 && rndf.numericValue().toDouble() < 1.0)
 
         vm.step(2)

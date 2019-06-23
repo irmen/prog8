@@ -16,7 +16,7 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
     private val reportedErrorMessages = mutableSetOf<String>()
 
     fun addError(x: AstException) {
-        // check that we don't add the same error more than once
+        // check that we don't add the isSameAs error more than once
         if(x.toString() !in reportedErrorMessages) {
             reportedErrorMessages.add(x.toString())
             errors.add(x)
@@ -330,7 +330,7 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
     {
         // @todo this implements only a small set of possible reorderings for now
         if(expr.operator==subExpr.operator) {
-            // both operators are the same.
+            // both operators are the isSameAs.
             // If + or *,  we can simply swap the const of expr and Var in subexpr.
             if(expr.operator=="+" || expr.operator=="*") {
                 if(leftIsConst) {

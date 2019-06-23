@@ -277,7 +277,7 @@ private fun collectionArgOutputBoolean(args: List<IExpression>, position: Positi
 }
 
 private fun builtinAbs(args: List<IExpression>, position: Position, program: Program): LiteralValue {
-    // 1 arg, type = float or int, result type= same as argument type
+    // 1 arg, type = float or int, result type= isSameAs as argument type
     if(args.size!=1)
         throw SyntaxError("abs requires one numeric argument", position)
 

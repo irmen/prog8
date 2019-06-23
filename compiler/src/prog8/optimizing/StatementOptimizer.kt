@@ -12,7 +12,7 @@ import kotlin.math.floor
     todo analyse for unreachable code and remove that (f.i. code after goto or return that has no label so can never be jumped to) + print warning about this
 */
 
-class StatementOptimizer(private val program: Program, private val optimizeInlining: Boolean) : IAstProcessor {
+internal class StatementOptimizer(private val program: Program, private val optimizeInlining: Boolean) : IAstProcessor {
     var optimizationsDone: Int = 0
         private set
     var scopesToFlatten = mutableListOf<INameScope>()
@@ -50,7 +50,7 @@ class StatementOptimizer(private val program: Program, private val optimizeInlin
     }
 
     private fun inlineSubroutine(sub: Subroutine, caller: Node) {
-        // if the sub is called multiple times from the same scope, we can't inline (would result in duplicate definitions)
+        // if the sub is called multiple times from the isSameAs scope, we can't inline (would result in duplicate definitions)
         // (unless we add a sequence number to all vars/labels and references to them in the inlined code, but I skip that for now)
         val scope = caller.definingScope()
         if(sub.calledBy.count { it.definingScope()===scope } > 1)
@@ -171,7 +171,7 @@ class StatementOptimizer(private val program: Program, private val optimizeInlin
     }
 
     private fun deduplicateAssignments(statements: List<IStatement>): MutableList<Int> {
-        // removes 'duplicate' assignments that assign the same target
+        // removes 'duplicate' assignments that assign the isSameAs target
         val linesToRemove = mutableListOf<Int>()
         var previousAssignmentLine: Int? = null
         for (i in 0 until statements.size) {
@@ -182,9 +182,9 @@ class StatementOptimizer(private val program: Program, private val optimizeInlin
                     continue
                 } else {
                     val prev = statements[previousAssignmentLine] as Assignment
-                    if (prev.targets.size == 1 && stmt.targets.size == 1 && same(prev.targets[0], stmt.targets[0])) {
+                    if (prev.targets.size == 1 && stmt.targets.size == 1 && prev.targets[0].isSameAs(stmt.targets[0], program)) {
                         // get rid of the previous assignment, if the target is not MEMORY
-                        if (isNotMemory(prev.targets[0]))
+                        if (prev.targets[0].isNotMemory(program.namespace))
                             linesToRemove.add(previousAssignmentLine)
                     }
                     previousAssignmentLine = i
@@ -194,25 +194,6 @@ class StatementOptimizer(private val program: Program, private val optimizeInlin
         }
         return linesToRemove
     }
-
-    private fun isNotMemory(target: AssignTarget): Boolean {
-        if(target.register!=null)
-            return true
-        if(target.memoryAddress!=null)
-            return false
-        if(target.arrayindexed!=null) {
-            val targetStmt = target.arrayindexed.identifier.targetVarDecl(program.namespace)
-            if(targetStmt!=null)
-                return targetStmt.type!=VarDeclType.MEMORY
-        }
-        if(target.identifier!=null) {
-            val targetStmt = target.identifier.targetVarDecl(program.namespace)
-            if(targetStmt!=null)
-                return targetStmt.type!=VarDeclType.MEMORY
-        }
-        return false
-    }
-
 
     override fun process(functionCallStatement: FunctionCallStatement): IStatement {
         if(functionCallStatement.target.nameInSource.size==1 && functionCallStatement.target.nameInSource[0] in BuiltinFunctions) {
@@ -467,7 +448,7 @@ class StatementOptimizer(private val program: Program, private val optimizeInlin
 
         if(assignment.targets.size==1) {
             val target=assignment.targets[0]
-            if(same(target, assignment.value)) {
+            if(target.isSameAs(assignment.value)) {
                 optimizationsDone++
                 return NopStatement(assignment.position)
             }
@@ -477,7 +458,7 @@ class StatementOptimizer(private val program: Program, private val optimizeInlin
                 val cv = bexpr.right.constValue(program)?.asNumericValue?.toDouble()
                 if(cv==null) {
                     if(bexpr.operator=="+" && targetDt!=DataType.FLOAT) {
-                        if (same(bexpr.left, bexpr.right) && same(target, bexpr.left)) {
+                        if (bexpr.left.same(bexpr.right) && target.isSameAs(bexpr.left)) {
                             bexpr.operator = "*"
                             bexpr.right = LiteralValue.optimalInteger(2, assignment.value.position)
                             optimizationsDone++
@@ -485,7 +466,7 @@ class StatementOptimizer(private val program: Program, private val optimizeInlin
                         }
                     }
                 } else {
-                    if (same(target, bexpr.left)) {
+                    if (target.isSameAs(bexpr.left)) {
                         // remove assignments that have no effect  X=X , X+=0, X-=0, X*=1, X/=1, X//=1, A |= 0, A ^= 0, A<<=0, etc etc
                         // A = A <operator> B
                         val vardeclDt = (target.identifier?.targetVarDecl(program.namespace))?.type
@@ -616,64 +597,7 @@ class StatementOptimizer(private val program: Program, private val optimizeInlin
 
         return super.process(label)
     }
-
-    private fun same(target: AssignTarget, value: IExpression): Boolean {
-        return when {
-            target.memoryAddress!=null -> false
-            target.register!=null -> value is RegisterExpr && value.register==target.register
-            target.identifier!=null -> value is IdentifierReference && value.nameInSource==target.identifier.nameInSource
-            target.arrayindexed!=null -> value is ArrayIndexedExpression &&
-                    value.identifier.nameInSource==target.arrayindexed.identifier.nameInSource &&
-                    value.arrayspec.size()!=null &&
-                    target.arrayindexed.arrayspec.size()!=null &&
-                    value.arrayspec.size()==target.arrayindexed.arrayspec.size()
-            else -> false
-        }
-    }
-
-    private fun same(target1: AssignTarget, target2: AssignTarget): Boolean {
-        if(target1===target2)
-            return true
-        if(target1.register!=null && target2.register!=null)
-            return target1.register==target2.register
-        if(target1.identifier!=null && target2.identifier!=null)
-            return target1.identifier.nameInSource==target2.identifier.nameInSource
-        if(target1.memoryAddress!=null && target2.memoryAddress!=null) {
-            val addr1 = target1.memoryAddress!!.addressExpression.constValue(program)
-            val addr2 = target2.memoryAddress!!.addressExpression.constValue(program)
-            return addr1!=null && addr2!=null && addr1==addr2
-        }
-        if(target1.arrayindexed!=null && target2.arrayindexed!=null) {
-            if(target1.arrayindexed.identifier.nameInSource == target2.arrayindexed.identifier.nameInSource) {
-                val x1 = target1.arrayindexed.arrayspec.index.constValue(program)
-                val x2 = target2.arrayindexed.arrayspec.index.constValue(program)
-                return x1!=null && x2!=null && x1==x2
-            }
-        }
-        return false
-    }
 }
 
 
-fun same(left: IExpression, right: IExpression): Boolean {
-    if(left===right)
-        return true
-    when(left) {
-        is RegisterExpr ->
-            return (right is RegisterExpr && right.register==left.register)
-        is IdentifierReference ->
-            return (right is IdentifierReference && right.nameInSource==left.nameInSource)
-        is PrefixExpression ->
-            return (right is PrefixExpression && right.operator==left.operator && same(right.expression, left.expression))
-        is BinaryExpression ->
-            return (right is BinaryExpression && right.operator==left.operator
-                    && same(right.left, left.left)
-                    && same(right.right, left.right))
-        is ArrayIndexedExpression -> {
-            return (right is ArrayIndexedExpression && right.identifier.nameInSource == left.identifier.nameInSource
-                    && same(right.arrayspec.index, left.arrayspec.index))
-        }
-        is LiteralValue -> return (right is LiteralValue && right==left)
-    }
-    return false
-}
+

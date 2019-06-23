@@ -848,6 +848,60 @@ data class AssignTarget(val register: Register?,
 
     fun isMemoryMapped(namespace: INameScope): Boolean =
             memoryAddress!=null || (identifier?.targetVarDecl(namespace)?.type==VarDeclType.MEMORY)
+
+    fun isSameAs(value: IExpression): Boolean {
+        return when {
+            this.memoryAddress!=null -> false
+            this.register!=null -> value is RegisterExpr && value.register==this.register
+            this.identifier!=null -> value is IdentifierReference && value.nameInSource==this.identifier.nameInSource
+            this.arrayindexed!=null -> value is ArrayIndexedExpression &&
+                    value.identifier.nameInSource==this.arrayindexed.identifier.nameInSource &&
+                    value.arrayspec.size()!=null &&
+                    this.arrayindexed.arrayspec.size()!=null &&
+                    value.arrayspec.size()==this.arrayindexed.arrayspec.size()
+            else -> false
+        }
+    }
+
+    fun isSameAs(other: AssignTarget, program: Program): Boolean {
+        if(this===other)
+            return true
+        if(this.register!=null && other.register!=null)
+            return this.register==other.register
+        if(this.identifier!=null && other.identifier!=null)
+            return this.identifier.nameInSource==other.identifier.nameInSource
+        if(this.memoryAddress!=null && other.memoryAddress!=null) {
+            val addr1 = this.memoryAddress!!.addressExpression.constValue(program)
+            val addr2 = other.memoryAddress!!.addressExpression.constValue(program)
+            return addr1!=null && addr2!=null && addr1==addr2
+        }
+        if(this.arrayindexed!=null && other.arrayindexed!=null) {
+            if(this.arrayindexed.identifier.nameInSource == other.arrayindexed.identifier.nameInSource) {
+                val x1 = this.arrayindexed.arrayspec.index.constValue(program)
+                val x2 = other.arrayindexed.arrayspec.index.constValue(program)
+                return x1!=null && x2!=null && x1==x2
+            }
+        }
+        return false
+    }
+
+    fun isNotMemory(namespace: INameScope): Boolean {
+        if(this.register!=null)
+            return true
+        if(this.memoryAddress!=null)
+            return false
+        if(this.arrayindexed!=null) {
+            val targetStmt = this.arrayindexed.identifier.targetVarDecl(namespace)
+            if(targetStmt!=null)
+                return targetStmt.type!=VarDeclType.MEMORY
+        }
+        if(this.identifier!=null) {
+            val targetStmt = this.identifier.targetVarDecl(namespace)
+            if(targetStmt!=null)
+                return targetStmt.type!=VarDeclType.MEMORY
+        }
+        return false
+    }
 }
 
 
@@ -857,6 +911,29 @@ interface IExpression: Node {
     fun process(processor: IAstProcessor): IExpression
     fun referencesIdentifier(name: String): Boolean
     fun resultingDatatype(program: Program): DataType?
+
+    fun same(other: IExpression): Boolean {
+        if(this===other)
+            return true
+        when(this) {
+            is RegisterExpr ->
+                return (other is RegisterExpr && other.register==this.register)
+            is IdentifierReference ->
+                return (other is IdentifierReference && other.nameInSource==this.nameInSource)
+            is PrefixExpression ->
+                return (other is PrefixExpression && other.operator==this.operator && other.expression.same(this.expression))
+            is BinaryExpression ->
+                return (other is BinaryExpression && other.operator==this.operator
+                        && other.left.same(this.left)
+                        && other.right.same(this.right))
+            is ArrayIndexedExpression -> {
+                return (other is ArrayIndexedExpression && other.identifier.nameInSource == this.identifier.nameInSource
+                        && other.arrayspec.index.same(this.arrayspec.index))
+            }
+            is LiteralValue -> return (other is LiteralValue && other==this)
+        }
+        return false
+    }
 }
 
 

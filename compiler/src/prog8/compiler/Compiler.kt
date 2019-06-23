@@ -7,7 +7,6 @@ import prog8.compiler.intermediate.Opcode
 import prog8.compiler.intermediate.Value
 import prog8.compiler.intermediate.branchOpcodes
 import prog8.functions.BuiltinFunctions
-import prog8.optimizing.same
 import prog8.parser.tryGetEmbeddedResource
 import prog8.stackvm.Syscall
 import java.io.File
@@ -68,7 +67,7 @@ class HeapValues {
         if (str.length > 255)
             throw IllegalArgumentException("string length must be 0-255")
 
-        // strings are 'interned' and shared if they're the same
+        // strings are 'interned' and shared if they're the isSameAs
         val value = HeapValue(type, str, null, null)
 
         val existing = heap.filter { it.value==value }.map { it.key }.firstOrNull()
@@ -147,10 +146,7 @@ data class CompilationOptions(val output: OutputType,
 
 internal class Compiler(private val program: Program): IAstProcessor {
 
-    val prog: IntermediateProgram = IntermediateProgram(program.name, program.loadAddress, program.heap, program.modules.first().source)
-    val namespace = program.namespace
-    val heap = program.heap
-
+    private val prog: IntermediateProgram = IntermediateProgram(program.name, program.loadAddress, program.heap, program.modules.first().source)
     private var generatedLabelSequenceNumber = 0
     private val breakStmtLabelStack : Stack<String> = Stack()
     private val continueStmtLabelStack : Stack<String> = Stack()
@@ -644,7 +640,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
                     translateBinaryOperator(expr.operator, commonDt)
             }
             is FunctionCall -> {
-                val target = expr.target.targetStatement(namespace)
+                val target = expr.target.targetStatement(program.namespace)
                 if(target is BuiltinFunctionStatementPlaceholder) {
                     // call to a builtin function (some will just be an opcode!)
                     val funcname = expr.target.nameInSource[0]
@@ -731,7 +727,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
     }
 
     private fun translate(identifierRef: IdentifierReference) {
-        val target = identifierRef.targetStatement(namespace)
+        val target = identifierRef.targetStatement(program.namespace)
         when (target) {
             is VarDecl -> {
                 when (target.type) {
@@ -760,7 +756,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
 
     private fun translate(stmt: FunctionCallStatement) {
         prog.line(stmt.position)
-        val targetStmt = stmt.target.targetStatement(namespace)!!
+        val targetStmt = stmt.target.targetStatement(program.namespace)!!
         if(targetStmt is BuiltinFunctionStatementPlaceholder) {
             val funcname = stmt.target.nameInSource[0]
             translateBuiltinFunctionCall(funcname, stmt.arglist)
@@ -819,7 +815,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
             "any", "all" -> {
                 // 1 array argument, type determines the exact syscall to use
                 val arg=args.single() as IdentifierReference
-                val target=arg.targetVarDecl(namespace)!!
+                val target=arg.targetVarDecl(program.namespace)!!
                 val length=Value(DataType.UBYTE, target.arraysize!!.size()!!)
                 prog.instr(Opcode.PUSH_BYTE, length)
                 when (arg.resultingDatatype(program)) {
@@ -832,7 +828,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
             "avg" -> {
                 // 1 array argument, type determines the exact syscall to use
                 val arg=args.single() as IdentifierReference
-                val target=arg.targetVarDecl(namespace)!!
+                val target=arg.targetVarDecl(program.namespace)!!
                 val length=Value(DataType.UBYTE, target.arraysize!!.size()!!)
                 val arrayDt=arg.resultingDatatype(program)
                 prog.instr(Opcode.PUSH_BYTE, length)
@@ -863,7 +859,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
             "min", "max", "sum" -> {
                 // 1 array argument, type determines the exact syscall to use
                 val arg=args.single() as IdentifierReference
-                val target=arg.targetVarDecl(namespace)!!
+                val target=arg.targetVarDecl(program.namespace)!!
                 val length=Value(DataType.UBYTE, target.arraysize!!.size()!!)
                 prog.instr(Opcode.PUSH_BYTE, length)
                 when (arg.resultingDatatype(program)) {
@@ -976,7 +972,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
             throw AstException("swap requires 2 args of identical type")
         if (args[0].constValue(program) != null || args[1].constValue(program) != null)
             throw AstException("swap requires 2 variables, not constant value(s)")
-        if(same(args[0], args[1]))
+        if(args[0].same(args[1]))
             throw AstException("swap should have 2 different args")
         if(dt1 !in NumericDatatypes)
             throw AstException("swap requires args of numerical type")
@@ -1384,7 +1380,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
     }
 
     private fun translate(arrayindexed: ArrayIndexedExpression, write: Boolean) {
-        val variable = arrayindexed.identifier.targetVarDecl(namespace)!!
+        val variable = arrayindexed.identifier.targetVarDecl(program.namespace)!!
         translate(arrayindexed.arrayspec.index)
         if (write)
             prog.instr(opcodeWriteindexedvar(variable.datatype), callLabel = variable.scopedname)
@@ -1415,7 +1411,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
                 jumpAddress = Value(DataType.UWORD, stmt.address)
             }
             else -> {
-                val target = stmt.identifier!!.targetStatement(namespace)!!
+                val target = stmt.identifier!!.targetStatement(program.namespace)!!
                 jumpLabel = when(target) {
                     is Label -> target.scopedname
                     is Subroutine -> target.scopedname
@@ -1435,14 +1431,14 @@ internal class Compiler(private val program: Program): IAstProcessor {
                 "--" -> prog.instr(Opcode.DEC_VAR_UB, callLabel = stmt.target.register!!.name)
             }
             stmt.target.identifier != null -> {
-                val targetStatement = stmt.target.identifier!!.targetVarDecl(namespace)!!
+                val targetStatement = stmt.target.identifier!!.targetVarDecl(program.namespace)!!
                 when(stmt.operator) {
                     "++" -> prog.instr(opcodeIncvar(targetStatement.datatype), callLabel = targetStatement.scopedname)
                     "--" -> prog.instr(opcodeDecvar(targetStatement.datatype), callLabel = targetStatement.scopedname)
                 }
             }
             stmt.target.arrayindexed != null -> {
-                val variable = stmt.target.arrayindexed!!.identifier.targetVarDecl(namespace)!!
+                val variable = stmt.target.arrayindexed!!.identifier.targetVarDecl(program.namespace)!!
                 translate(stmt.target.arrayindexed!!.arrayspec.index)
                 when(stmt.operator) {
                     "++" -> prog.instr(opcodeIncArrayindexedVar(variable.datatype), callLabel = variable.scopedname)
@@ -1502,7 +1498,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
                         DataType.STR, DataType.STR_S -> pushHeapVarAddress(stmt.value, true)
                         DataType.ARRAY_B, DataType.ARRAY_UB, DataType.ARRAY_W, DataType.ARRAY_UW, DataType.ARRAY_F -> {
                             if (stmt.value is IdentifierReference) {
-                                val vardecl = (stmt.value as IdentifierReference).targetVarDecl(namespace)!!
+                                val vardecl = (stmt.value as IdentifierReference).targetVarDecl(program.namespace)!!
                                 prog.removeLastInstruction()
                                 prog.instr(Opcode.PUSH_ADDR_HEAPVAR, callLabel = vardecl.scopedname)
                             }
@@ -1539,7 +1535,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
         when (value) {
             is LiteralValue -> throw CompilerException("can only push address of string or array (value on the heap)")
             is IdentifierReference -> {
-                val vardecl = value.targetVarDecl(namespace)!!
+                val vardecl = value.targetVarDecl(program.namespace)!!
                 if(removeLastOpcode) prog.removeLastInstruction()
                 prog.instr(Opcode.PUSH_ADDR_HEAPVAR, callLabel = vardecl.scopedname)
             }
@@ -1551,7 +1547,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
         when (value) {
             is LiteralValue -> throw CompilerException("can only push address of float that is a variable on the heap")
             is IdentifierReference -> {
-                val vardecl = value.targetVarDecl(namespace)!!
+                val vardecl = value.targetVarDecl(program.namespace)!!
                 prog.instr(Opcode.PUSH_ADDR_HEAPVAR, callLabel = vardecl.scopedname)
             }
             else -> throw CompilerException("can only take address of a the float as constant literal or variable")
@@ -1559,7 +1555,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
     }
 
     private fun translateMultiReturnAssignment(stmt: Assignment) {
-        val targetStmt = (stmt.value as? FunctionCall)?.target?.targetStatement(namespace)
+        val targetStmt = (stmt.value as? FunctionCall)?.target?.targetStatement(program.namespace)
         if(targetStmt is Subroutine && targetStmt.isAsmSubroutine) {
             // this is the only case where multiple assignment targets are allowed: a call to an asmsub with multiple return values
             // the return values are already on the stack (the subroutine call puts them there)
@@ -1575,7 +1571,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
     private fun popValueIntoTarget(assignTarget: AssignTarget, datatype: DataType) {
         when {
             assignTarget.identifier != null -> {
-                val target = assignTarget.identifier.targetStatement(namespace)!!
+                val target = assignTarget.identifier.targetStatement(program.namespace)!!
                 if (target is VarDecl) {
                     when (target.type) {
                         VarDeclType.VAR -> {
@@ -1630,13 +1626,13 @@ internal class Compiler(private val program: Program): IAstProcessor {
             loopVarName = reg.name
             loopVarDt = DataType.UBYTE
         } else {
-            val loopvar = loop.loopVar!!.targetVarDecl(namespace)!!
+            val loopvar = loop.loopVar!!.targetVarDecl(program.namespace)!!
             loopVarName = loopvar.scopedname
             loopVarDt = loopvar.datatype
         }
 
         if(loop.iterable is RangeExpr) {
-            val range = (loop.iterable as RangeExpr).toConstantIntegerRange(heap)
+            val range = (loop.iterable as RangeExpr).toConstantIntegerRange(program.heap)
             if(range!=null) {
                 // loop over a range with constant start, last and step values
                 if (range.isEmpty())
@@ -1679,7 +1675,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
             when {
                 loop.iterable is IdentifierReference -> {
                     val idRef = loop.iterable as IdentifierReference
-                    val vardecl = idRef.targetVarDecl(namespace)!!
+                    val vardecl = idRef.targetVarDecl(program.namespace)!!
                     val iterableValue = vardecl.value as LiteralValue
                     if(!iterableValue.isIterable(program))
                         throw CompilerException("loop over something that isn't iterable ${loop.iterable}")
@@ -1703,16 +1699,16 @@ internal class Compiler(private val program: Program): IAstProcessor {
         when(iterableValue.type) {
             !in IterableDatatypes -> throw CompilerException("non-iterableValue type")
             DataType.STR, DataType.STR_S -> {
-                numElements = iterableValue.strvalue(heap).length
+                numElements = iterableValue.strvalue(program.heap).length
                 if(numElements>255) throw CompilerException("string length > 255")
             }
             DataType.ARRAY_UB, DataType.ARRAY_B,
             DataType.ARRAY_UW, DataType.ARRAY_W -> {
-                numElements = iterableValue.arrayvalue?.size ?: heap.get(iterableValue.heapId!!).arraysize
+                numElements = iterableValue.arrayvalue?.size ?: program.heap.get(iterableValue.heapId!!).arraysize
                 if(numElements>255) throw CompilerException("string length > 255")
             }
             DataType.ARRAY_F -> {
-                numElements = iterableValue.arrayvalue?.size ?: heap.get(iterableValue.heapId!!).arraysize
+                numElements = iterableValue.arrayvalue?.size ?: program.heap.get(iterableValue.heapId!!).arraysize
                 if(numElements>255) throw CompilerException("string length > 255")
             }
             else -> throw CompilerException("weird datatype")
@@ -1943,7 +1939,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
         lvTarget.linkParents(body)
         val targetStatement: VarDecl? =
                 if(lvTarget.identifier!=null) {
-                    lvTarget.identifier.targetVarDecl(namespace)
+                    lvTarget.identifier.targetVarDecl(program.namespace)
                 } else {
                     null
                 }
@@ -2139,7 +2135,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
     }
 
     private fun translate(addrof: AddressOf) {
-        val target = addrof.identifier.targetVarDecl(namespace)!!
+        val target = addrof.identifier.targetVarDecl(program.namespace)!!
         if(target.datatype in ArrayDatatypes || target.datatype in StringDatatypes|| target.datatype==DataType.FLOAT) {
             pushHeapVarAddress(addrof.identifier, false)
         }
@@ -2176,7 +2172,7 @@ fun loadAsmIncludeFile(filename: String, source: Path): String {
                 ?: throw IllegalArgumentException("library file '$filename' not found")
         resource.bufferedReader().use { it.readText() }
     } else {
-        // first try in the same folder as where the containing file was imported from
+        // first try in the isSameAs folder as where the containing file was imported from
         val sib = source.resolveSibling(filename)
         if (sib.toFile().isFile)
             sib.toFile().readText()

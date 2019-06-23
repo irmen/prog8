@@ -4,7 +4,7 @@ package prog8.ast
  * Checks for the occurrence of recursive subroutine calls
  */
 
-fun Program.checkRecursion() {
+internal fun Program.checkRecursion() {
     val checker = AstRecursionChecker(namespace)
     checker.process(this)
     printErrors(checker.result(), name)
@@ -84,7 +84,7 @@ private class DirectedGraph<VT> {
 private class AstRecursionChecker(private val namespace: INameScope) : IAstProcessor {
     private val callGraph = DirectedGraph<INameScope>()
 
-    fun result(): List<AstException> {
+    internal fun result(): List<AstException> {
         val cycle = callGraph.checkForCycle()
         if(cycle.isEmpty())
             return emptyList()

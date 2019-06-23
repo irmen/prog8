@@ -4,7 +4,7 @@ import prog8.ast.*
 import prog8.parser.ParsingFailedError
 
 
-fun Program.constantFold() {
+internal fun Program.constantFold() {
     val optimizer = ConstantFolding(this)
     try {
         optimizer.process(this)
@@ -26,7 +26,7 @@ fun Program.constantFold() {
 }
 
 
-fun Program.optimizeStatements(optimizeInlining: Boolean): Int {
+internal fun Program.optimizeStatements(optimizeInlining: Boolean): Int {
     val optimizer = StatementOptimizer(this, optimizeInlining)
     optimizer.process(this)
     for(scope in optimizer.scopesToFlatten.reversed()) {
@@ -42,7 +42,7 @@ fun Program.optimizeStatements(optimizeInlining: Boolean): Int {
     return optimizer.optimizationsDone
 }
 
-fun Program.simplifyExpressions() : Int {
+internal fun Program.simplifyExpressions() : Int {
     val optimizer = SimplifyExpressions(this)
     optimizer.process(this)
     return optimizer.optimizationsDone

@@ -16,7 +16,8 @@ import kotlin.math.abs
 class AssemblyError(msg: String) : RuntimeException(msg)
 
 
-class AsmGen(val options: CompilationOptions, val program: IntermediateProgram, val heap: HeapValues, val zeropage: Zeropage) {
+class AsmGen(private val options: CompilationOptions, private val program: IntermediateProgram,
+             private val heap: HeapValues, private val zeropage: Zeropage) {
     private val globalFloatConsts = mutableMapOf<Double, String>()
     private val assemblyLines = mutableListOf<String>()
     private lateinit var block: IntermediateProgram.ProgramBlock

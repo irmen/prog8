@@ -118,7 +118,7 @@ class Value(val type: DataType, numericvalueOrHeapId: Number) {
 
     private fun arithResult(leftDt: DataType, result: Number, rightDt: DataType, op: String): Value {
         if(leftDt!=rightDt)
-            throw ValueException("left and right datatypes are not the same")
+            throw ValueException("left and right datatypes are not the isSameAs")
         if(result.toDouble() < 0 ) {
             return when(leftDt) {
                 DataType.UBYTE, DataType.UWORD -> {

@@ -8,7 +8,7 @@ import kotlin.math.log2
     todo advanced expression optimization: common (sub) expression elimination (turn common expressions into single subroutine call + introduce variable to hold it)
  */
 
-class SimplifyExpressions(private val program: Program) : IAstProcessor {
+internal class SimplifyExpressions(private val program: Program) : IAstProcessor {
     var optimizationsDone: Int = 0
 
     override fun process(assignment: Assignment): IStatement {
@@ -295,8 +295,8 @@ class SimplifyExpressions(private val program: Program) : IAstProcessor {
 
     private fun determineY(x: IExpression, subBinExpr: BinaryExpression): IExpression? {
         return when {
-            same(subBinExpr.left, x) -> subBinExpr.right
-            same(subBinExpr.right, x) -> subBinExpr.left
+            subBinExpr.left.same(x) -> subBinExpr.right
+            subBinExpr.right.same(x) -> subBinExpr.left
             else -> null
         }
     }
