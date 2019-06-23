@@ -295,8 +295,8 @@ internal class SimplifyExpressions(private val program: Program) : IAstProcessor
 
     private fun determineY(x: IExpression, subBinExpr: BinaryExpression): IExpression? {
         return when {
-            subBinExpr.left.same(x) -> subBinExpr.right
-            subBinExpr.right.same(x) -> subBinExpr.left
+            subBinExpr.left isSameAs x -> subBinExpr.right
+            subBinExpr.right isSameAs x -> subBinExpr.left
             else -> null
         }
     }
@@ -362,7 +362,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstProcessor
         }
 
         if(leftConstVal==null && rightConstVal!=null) {
-            if(isBiggerType(leftDt, rightDt)) {
+            if(leftDt biggerThan rightDt) {
                 val (adjusted, newValue) = adjust(rightConstVal, leftDt)
                 if (adjusted) {
                     expr.right = newValue
@@ -372,7 +372,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstProcessor
             }
             return false
         } else if(leftConstVal!=null && rightConstVal==null) {
-            if(isBiggerType(rightDt, leftDt)) {
+            if(rightDt biggerThan leftDt) {
                 val (adjusted, newValue) = adjust(leftConstVal, rightDt)
                 if (adjusted) {
                     expr.left = newValue
@@ -385,14 +385,6 @@ internal class SimplifyExpressions(private val program: Program) : IAstProcessor
             return false    // two const values, don't adjust (should have been const-folded away)
         }
     }
-
-    private fun isBiggerType(type: DataType, other: DataType) =
-        when(type) {
-            in ByteDatatypes -> false
-            in WordDatatypes -> other in ByteDatatypes
-            else -> true
-        }
-
 
     private data class ReorderedAssociativeBinaryExpr(val expr: BinaryExpression, val leftVal: LiteralValue?, val rightVal: LiteralValue?)
 

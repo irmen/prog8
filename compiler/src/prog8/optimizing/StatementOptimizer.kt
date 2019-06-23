@@ -104,7 +104,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
 
         if (removeSubroutines.isNotEmpty()) {
             removeSubroutines.forEach {
-                it.definingScope().statements.remove(it)
+                it.definingScope().remove(it)
             }
         }
 
@@ -116,7 +116,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
         }
 
         if (removeBlocks.isNotEmpty()) {
-            removeBlocks.forEach { it.definingScope().statements.remove(it) }
+            removeBlocks.forEach { it.definingScope().remove(it) }
         }
 
         // remove modules that are not imported, or are empty
@@ -448,7 +448,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
 
         if(assignment.targets.size==1) {
             val target=assignment.targets[0]
-            if(target.isSameAs(assignment.value)) {
+            if(target isSameAs assignment.value) {
                 optimizationsDone++
                 return NopStatement(assignment.position)
             }
@@ -458,7 +458,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
                 val cv = bexpr.right.constValue(program)?.asNumericValue?.toDouble()
                 if(cv==null) {
                     if(bexpr.operator=="+" && targetDt!=DataType.FLOAT) {
-                        if (bexpr.left.same(bexpr.right) && target.isSameAs(bexpr.left)) {
+                        if (bexpr.left isSameAs bexpr.right && target isSameAs bexpr.left) {
                             bexpr.operator = "*"
                             bexpr.right = LiteralValue.optimalInteger(2, assignment.value.position)
                             optimizationsDone++
@@ -466,7 +466,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
                         }
                     }
                 } else {
-                    if (target.isSameAs(bexpr.left)) {
+                    if (target isSameAs bexpr.left) {
                         // remove assignments that have no effect  X=X , X+=0, X-=0, X*=1, X/=1, X//=1, A |= 0, A ^= 0, A<<=0, etc etc
                         // A = A <operator> B
                         val vardeclDt = (target.identifier?.targetVarDecl(program.namespace))?.type

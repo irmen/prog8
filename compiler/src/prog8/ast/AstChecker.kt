@@ -832,7 +832,7 @@ private class AstChecker(private val program: Program,
             else {
                 for (arg in args.withIndex().zip(func.parameters)) {
                     val argDt=arg.first.value.resultingDatatype(program)
-                    if(argDt!=null && !argDt.assignableTo(arg.second.possibleDatatypes)) {
+                    if(argDt!=null && !(argDt isAssignableTo arg.second.possibleDatatypes)) {
                         checkResult.add(ExpressionError("builtin function '${target.name}' argument ${arg.first.index + 1} has invalid type $argDt, expected ${arg.second.possibleDatatypes}", position))
                     }
                 }
@@ -844,7 +844,7 @@ private class AstChecker(private val program: Program,
                         checkResult.add(ExpressionError("swap requires 2 args of identical type", position))
                     else if (args[0].constValue(program) != null || args[1].constValue(program) != null)
                         checkResult.add(ExpressionError("swap requires 2 variables, not constant value(s)", position))
-                    else if(args[0].same(args[1]))
+                    else if(args[0] isSameAs args[1])
                         checkResult.add(ExpressionError("swap should have 2 different args", position))
                     else if(dt1 !in NumericDatatypes)
                         checkResult.add(ExpressionError("swap requires args of numerical type", position))
@@ -856,7 +856,7 @@ private class AstChecker(private val program: Program,
             else {
                 for (arg in args.withIndex().zip(target.parameters)) {
                     val argDt = arg.first.value.resultingDatatype(program)
-                    if(argDt!=null && !argDt.assignableTo(arg.second.type)) {
+                    if(argDt!=null && !(argDt isAssignableTo arg.second.type)) {
                         // for asm subroutines having STR param it's okay to provide a UWORD too (pointer value)
                         if(!(target.isAsmSubroutine && arg.second.type in StringDatatypes && argDt==DataType.UWORD))
                             checkResult.add(ExpressionError("subroutine '${target.name}' argument ${arg.first.index + 1} has invalid type $argDt, expected ${arg.second.type}", position))

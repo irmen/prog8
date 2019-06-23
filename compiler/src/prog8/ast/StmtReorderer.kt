@@ -42,7 +42,7 @@ private class StatementReorderer(private val program: Program): IAstProcessor {
             module.statements.add(0, nonLibBlock.second)
         val mainBlock = module.statements.singleOrNull { it is Block && it.name=="main" }
         if(mainBlock!=null && (mainBlock as Block).address==null) {
-            module.statements.remove(mainBlock)
+            module.remove(mainBlock)
             module.statements.add(0, mainBlock)
         }
 
@@ -64,7 +64,7 @@ private class StatementReorderer(private val program: Program): IAstProcessor {
         // move all subroutines to the end of the block
         for (subroutine in subroutines) {
             if(subroutine.name!="start" || block.name!="main") {
-                block.statements.remove(subroutine)
+                block.remove(subroutine)
                 block.statements.add(subroutine)
             }
             numSubroutinesAtEnd++
@@ -72,7 +72,7 @@ private class StatementReorderer(private val program: Program): IAstProcessor {
         // move the "start" subroutine to the top
         if(block.name=="main") {
             block.statements.singleOrNull { it is Subroutine && it.name == "start" } ?.let {
-                block.statements.remove(it)
+                block.remove(it)
                 block.statements.add(0, it)
                 numSubroutinesAtEnd--
             }

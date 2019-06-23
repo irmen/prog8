@@ -34,7 +34,10 @@ enum class DataType {
     ARRAY_W,
     ARRAY_F;
 
-    fun assignableTo(targetType: DataType) =
+    /**
+     * is the type assignable to the given other type?
+     */
+    infix fun isAssignableTo(targetType: DataType) =
             // what types are assignable to others without loss of precision?
             when(this) {
                 UBYTE -> targetType == UBYTE || targetType == UWORD || targetType==WORD || targetType == FLOAT
@@ -49,8 +52,14 @@ enum class DataType {
             }
 
 
-    fun assignableTo(targetTypes: Set<DataType>) = targetTypes.any { this.assignableTo(it) }
+    infix fun isAssignableTo(targetTypes: Set<DataType>) = targetTypes.any { this isAssignableTo it }
 
+    infix fun biggerThan(other: DataType) =
+            when(this) {
+                in ByteDatatypes -> false
+                in WordDatatypes -> other in ByteDatatypes
+                else -> true
+            }
 }
 
 enum class Register {
@@ -412,7 +421,7 @@ interface INameScope {
         return null
     }
 
-    fun allLabelsAndVariables(): Set<String> =
+    fun allDefinedNames(): Set<String> =
             statements.filterIsInstance<Label>().map { it.name }.toSet() + statements.filterIsInstance<VarDecl>().map { it.name }.toSet()
 
     fun lookup(scopedName: List<String>, localContext: Node) : IStatement? {
@@ -455,8 +464,7 @@ interface INameScope {
     fun containsNoCodeNorVars() = !containsCodeOrVars()
 
     fun remove(stmt: IStatement) {
-        val removed = statements.remove(stmt)
-        if(!removed)
+        if(!statements.remove(stmt))
             throw FatalAstException("stmt to remove wasn't found in scope")
     }
 }
@@ -849,16 +857,16 @@ data class AssignTarget(val register: Register?,
     fun isMemoryMapped(namespace: INameScope): Boolean =
             memoryAddress!=null || (identifier?.targetVarDecl(namespace)?.type==VarDeclType.MEMORY)
 
-    fun isSameAs(value: IExpression): Boolean {
+    infix fun isSameAs(value: IExpression): Boolean {
         return when {
             this.memoryAddress!=null -> false
-            this.register!=null -> value is RegisterExpr && value.register==this.register
-            this.identifier!=null -> value is IdentifierReference && value.nameInSource==this.identifier.nameInSource
+            this.register!=null -> value is RegisterExpr && value.register==register
+            this.identifier!=null -> value is IdentifierReference && value.nameInSource==identifier.nameInSource
             this.arrayindexed!=null -> value is ArrayIndexedExpression &&
-                    value.identifier.nameInSource==this.arrayindexed.identifier.nameInSource &&
+                    value.identifier.nameInSource==arrayindexed.identifier.nameInSource &&
                     value.arrayspec.size()!=null &&
-                    this.arrayindexed.arrayspec.size()!=null &&
-                    value.arrayspec.size()==this.arrayindexed.arrayspec.size()
+                    arrayindexed.arrayspec.size()!=null &&
+                    value.arrayspec.size()==arrayindexed.arrayspec.size()
             else -> false
         }
     }
@@ -912,23 +920,23 @@ interface IExpression: Node {
     fun referencesIdentifier(name: String): Boolean
     fun resultingDatatype(program: Program): DataType?
 
-    fun same(other: IExpression): Boolean {
+    infix fun isSameAs(other: IExpression): Boolean {
         if(this===other)
             return true
         when(this) {
             is RegisterExpr ->
-                return (other is RegisterExpr && other.register==this.register)
+                return (other is RegisterExpr && other.register==register)
             is IdentifierReference ->
-                return (other is IdentifierReference && other.nameInSource==this.nameInSource)
+                return (other is IdentifierReference && other.nameInSource==nameInSource)
             is PrefixExpression ->
-                return (other is PrefixExpression && other.operator==this.operator && other.expression.same(this.expression))
+                return (other is PrefixExpression && other.operator==operator && other.expression isSameAs expression)
             is BinaryExpression ->
-                return (other is BinaryExpression && other.operator==this.operator
-                        && other.left.same(this.left)
-                        && other.right.same(this.right))
+                return (other is BinaryExpression && other.operator==operator
+                        && other.left isSameAs left
+                        && other.right isSameAs right)
             is ArrayIndexedExpression -> {
-                return (other is ArrayIndexedExpression && other.identifier.nameInSource == this.identifier.nameInSource
-                        && other.arrayspec.index.same(this.arrayspec.index))
+                return (other is ArrayIndexedExpression && other.identifier.nameInSource == identifier.nameInSource
+                        && other.arrayspec.index isSameAs arrayspec.index)
             }
             is LiteralValue -> return (other is LiteralValue && other==this)
         }

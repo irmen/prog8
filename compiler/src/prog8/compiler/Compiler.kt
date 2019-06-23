@@ -972,7 +972,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
             throw AstException("swap requires 2 args of identical type")
         if (args[0].constValue(program) != null || args[1].constValue(program) != null)
             throw AstException("swap requires 2 variables, not constant value(s)")
-        if(args[0].same(args[1]))
+        if(args[0] isSameAs args[1])
             throw AstException("swap should have 2 different args")
         if(dt1 !in NumericDatatypes)
             throw AstException("swap requires args of numerical type")

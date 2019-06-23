@@ -115,7 +115,7 @@ private class AstIdentifiersChecker(private val namespace: INameScope) : IAstPro
                 nameError(subroutine.name, subroutine.position, existing)
 
             // check that there are no local variables that redefine the subroutine's parameters
-            val allDefinedNames = subroutine.allLabelsAndVariables()
+            val allDefinedNames = subroutine.allDefinedNames()
             val paramNames = subroutine.parameters.map { it.name }.toSet()
             val paramsToCheck = paramNames.intersect(allDefinedNames)
             for(name in paramsToCheck) {
