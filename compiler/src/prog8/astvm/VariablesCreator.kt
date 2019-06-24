@@ -3,7 +3,7 @@ package prog8.astvm
 import prog8.ast.*
 import prog8.compiler.HeapValues
 
-class VariablesInitializer(private val runtimeVariables: RuntimeVariables, private val heap: HeapValues) : IAstProcessor {
+class VariablesCreator(private val runtimeVariables: RuntimeVariables, private val heap: HeapValues) : IAstProcessor {
 
     override fun process(decl: VarDecl): IStatement {
         if(decl.type==VarDeclType.VAR) {

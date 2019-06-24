@@ -107,6 +107,7 @@ private class StatementReorderer(private val program: Program): IAstProcessor {
 
         sortConstantAssignments(block.statements)
 
+        // create subroutine that initializes the block's variables (if any)
         val varInits = block.statements.withIndex().filter { it.value is VariableInitializationAssignment }
         if(varInits.isNotEmpty()) {
             val statements = varInits.map{it.value}.toMutableList()

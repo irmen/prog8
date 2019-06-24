@@ -65,10 +65,30 @@ class AstVm(val program: Program) {
 
     fun run() {
         try {
-            val init = VariablesInitializer(runtimeVariables, program.heap)
+            val init = VariablesCreator(runtimeVariables, program.heap)
             init.process(program)
+
+            // initialize all global variables
+            for(m in program.modules) {
+                for (b in m.statements.filterIsInstance<Block>()) {
+                    for (s in b.statements.filterIsInstance<Subroutine>()) {
+                        if (s.name == initvarsSubName) {
+                            try {
+                                executeSubroutine(s, emptyList())
+                            } catch (x: LoopControlReturn) {
+                                // regular return
+                            }
+                        }
+                    }
+                }
+            }
+
             val entrypoint = program.entrypoint() ?: throw VmTerminationException("no valid entrypoint found")
-            executeSubroutine(entrypoint, emptyList())
+            try {
+                executeSubroutine(entrypoint, emptyList())
+            } catch (x: LoopControlReturn) {
+                // regular return
+            }
             println("PROGRAM EXITED!")
             dialog.title = "PROGRAM EXITED"
         } catch(bp: VmBreakpointException) {
@@ -84,18 +104,24 @@ class AstVm(val program: Program) {
 
     private val runtimeVariables = RuntimeVariables()
 
+    class LoopControlBreak: Exception()
+    class LoopControlContinue: Exception()
+    class LoopControlReturn(val returnvalues: List<RuntimeValue>): Exception()
+
     internal fun executeSubroutine(sub: INameScope, arguments: List<RuntimeValue>): List<RuntimeValue> {
         if (sub.statements.isEmpty())
-            throw VmTerminationException("scope contains no statements: $sub")
+            if(sub !is AnonymousScope)
+                throw VmTerminationException("scope contains no statements: $sub")
         if(sub is Subroutine) {
             assert(!sub.isAsmSubroutine)
             // TODO process arguments if it's a subroutine
         }
-        for (s in sub.statements) {
-            if(s is Return) {
-                return s.values.map { evaluate(it, program, runtimeVariables, ::executeSubroutine) }
+        try {
+            for (s in sub.statements) {
+                executeStatement(sub, s)
             }
-            executeStatement(sub, s)
+        } catch (r: LoopControlReturn) {
+            return r.returnvalues
         }
         if(sub !is AnonymousScope)
             throw VmTerminationException("instruction pointer overflow, is a return missing? $sub")
@@ -103,6 +129,7 @@ class AstVm(val program: Program) {
     }
 
     private fun executeStatement(sub: INameScope, stmt: IStatement) {
+        Thread.sleep(10)
         when (stmt) {
             is NopStatement, is Label, is Subroutine -> {
                 // do nothing, skip this instruction
@@ -140,62 +167,56 @@ class AstVm(val program: Program) {
             is BuiltinFunctionStatementPlaceholder -> {
                 TODO("$stmt")
             }
-            is Return -> {
-                throw VmExecutionException("return statement should have been handled by the subroutine loop")
-            }
-            is Continue -> {
-                TODO("$stmt")
-            }
-            is Break -> {
-                TODO("$stmt")
-            }
+            is Return -> throw LoopControlReturn(stmt.values.map { evaluate(it, program, runtimeVariables, ::executeSubroutine) })
+            is Continue -> throw LoopControlContinue()
+            is Break -> throw LoopControlBreak()
             is Assignment -> {
-                if(stmt.aug_op==null) {
-                    val target = stmt.singleTarget
-                    if(target!=null) {
-                        when {
-                            target.identifier!=null -> {
-                                val ident = stmt.definingScope().lookup(target.identifier.nameInSource, stmt) as VarDecl
-                                val value = evaluate(stmt.value, program, runtimeVariables, ::executeSubroutine)
-                                val identScope = ident.definingScope()
-                                runtimeVariables.set(identScope, ident.name, value)
-                            }
-                            target.memoryAddress!=null -> {
-                                TODO("$stmt")
-                            }
-                            target.arrayindexed!=null -> {
-                                val array = evaluate(target.arrayindexed.identifier, program, runtimeVariables, ::executeSubroutine)
-                                val index = evaluate(target.arrayindexed.arrayspec.index, program, runtimeVariables, ::executeSubroutine)
-                                val value = evaluate(stmt.value, program, runtimeVariables, ::executeSubroutine)
-                                when(array.type) {
-                                    DataType.ARRAY_UB -> {
-                                        if(value.type!=DataType.UBYTE)
-                                            throw VmExecutionException("new value is of different datatype ${value.type} for $array")
-                                    }
-                                    DataType.ARRAY_B -> {
-                                        if(value.type!=DataType.BYTE)
-                                            throw VmExecutionException("new value is of different datatype ${value.type} for $array")
-                                    }
-                                    DataType.ARRAY_UW -> {
-                                        if(value.type!=DataType.UWORD)
-                                            throw VmExecutionException("new value is of different datatype ${value.type} for $array")
-                                    }
-                                    DataType.ARRAY_W -> {
-                                        if(value.type!=DataType.WORD)
-                                            throw VmExecutionException("new value is of different datatype ${value.type} for $array")
-                                    }
-                                    DataType.ARRAY_F -> {
-                                        if(value.type!=DataType.FLOAT)
-                                            throw VmExecutionException("new value is of different datatype ${value.type} for $array")
-                                    }
-                                    else -> throw VmExecutionException("strange array type ${array.type}")
+                if(stmt.aug_op!=null)
+                    throw VmExecutionException("augmented assignment should have been converted into regular one $stmt")
+                val target = stmt.singleTarget
+                if(target!=null) {
+                    when {
+                        target.identifier!=null -> {
+                            val ident = stmt.definingScope().lookup(target.identifier.nameInSource, stmt) as VarDecl
+                            val value = evaluate(stmt.value, program, runtimeVariables, ::executeSubroutine)
+                            val identScope = ident.definingScope()
+                            runtimeVariables.set(identScope, ident.name, value)
+                        }
+                        target.memoryAddress!=null -> {
+                            TODO("$stmt")
+                        }
+                        target.arrayindexed!=null -> {
+                            val array = evaluate(target.arrayindexed.identifier, program, runtimeVariables, ::executeSubroutine)
+                            val index = evaluate(target.arrayindexed.arrayspec.index, program, runtimeVariables, ::executeSubroutine)
+                            val value = evaluate(stmt.value, program, runtimeVariables, ::executeSubroutine)
+                            when(array.type) {
+                                DataType.ARRAY_UB -> {
+                                    if(value.type!=DataType.UBYTE)
+                                        throw VmExecutionException("new value is of different datatype ${value.type} for $array")
                                 }
-                                array.array!![index.integerValue()] = value.numericValue()
+                                DataType.ARRAY_B -> {
+                                    if(value.type!=DataType.BYTE)
+                                        throw VmExecutionException("new value is of different datatype ${value.type} for $array")
+                                }
+                                DataType.ARRAY_UW -> {
+                                    if(value.type!=DataType.UWORD)
+                                        throw VmExecutionException("new value is of different datatype ${value.type} for $array")
+                                }
+                                DataType.ARRAY_W -> {
+                                    if(value.type!=DataType.WORD)
+                                        throw VmExecutionException("new value is of different datatype ${value.type} for $array")
+                                }
+                                DataType.ARRAY_F -> {
+                                    if(value.type!=DataType.FLOAT)
+                                        throw VmExecutionException("new value is of different datatype ${value.type} for $array")
+                                }
+                                else -> throw VmExecutionException("strange array type ${array.type}")
                             }
+                            array.array!![index.integerValue()] = value.numericValue()
                         }
                     }
-                    else TODO("$stmt")
-                } else TODO("$stmt")
+                }
+                else TODO("$stmt")
             }
             is PostIncrDecr -> {
                 when {
@@ -228,27 +249,50 @@ class AstVm(val program: Program) {
                 throw VmExecutionException("anonymous scopes should have been flattened")
             }
             is IfStatement -> {
-                TODO("$stmt")
+                val condition = evaluate(stmt.condition, program, runtimeVariables, ::executeSubroutine)
+                if(condition.asBooleanRuntimeValue)
+                    executeSubroutine(stmt.truepart, emptyList())
+                else
+                    executeSubroutine(stmt.elsepart, emptyList())
             }
             is BranchStatement -> {
                 TODO("$stmt")
             }
             is ForLoop -> {
                 TODO("$stmt")
+//                try {
+//
+//                } catch(b: LoopControlBreak) {
+//                    break
+//                } catch(c: LoopControlContinue){
+//                    continue
+//                }
             }
             is WhileLoop -> {
                 var condition = evaluate(stmt.condition, program, runtimeVariables, ::executeSubroutine)
-                while(condition.asBooleanRuntimeValue) {
-                    println("STILL IN WHILE LOOP ${stmt.position}")
-                    executeSubroutine(stmt.body, emptyList())
-                    condition = evaluate(stmt.condition, program, runtimeVariables, ::executeSubroutine)
+                while (condition.asBooleanRuntimeValue) {
+                    try {
+                        println("STILL IN WHILE LOOP ${stmt.position}")
+                        executeSubroutine(stmt.body, emptyList())
+                        condition = evaluate(stmt.condition, program, runtimeVariables, ::executeSubroutine)
+                    } catch(b: LoopControlBreak) {
+                        break
+                    } catch(c: LoopControlContinue){
+                        continue
+                    }
                 }
                 println(">>>>WHILE LOOP EXITED")
             }
             is RepeatLoop -> {
                 do {
                     val condition = evaluate(stmt.untilCondition, program, runtimeVariables, ::executeSubroutine)
-                    executeSubroutine(stmt.body, emptyList())
+                    try {
+                        executeSubroutine(stmt.body, emptyList())
+                    } catch(b: LoopControlBreak) {
+                        break
+                    } catch(c: LoopControlContinue){
+                        continue
+                    }
                 } while(!condition.asBooleanRuntimeValue)
             }
             else -> {
