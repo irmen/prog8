@@ -4,7 +4,6 @@ import prog8.ast.*
 import prog8.ast.RegisterOrPair.*
 import prog8.compiler.intermediate.IntermediateProgram
 import prog8.compiler.intermediate.Opcode
-import prog8.compiler.intermediate.Value
 import prog8.compiler.intermediate.branchOpcodes
 import prog8.functions.BuiltinFunctions
 import prog8.parser.tryGetEmbeddedResource
@@ -660,9 +659,9 @@ internal class Compiler(private val program: Program): IAstProcessor {
             else -> {
                 val lv = expr.constValue(program) ?: throw CompilerException("constant expression required, not $expr")
                 when(lv.type) {
-                    in ByteDatatypes -> prog.instr(Opcode.PUSH_BYTE, Value(lv.type, lv.bytevalue!!))
-                    in WordDatatypes -> prog.instr(Opcode.PUSH_WORD, Value(lv.type, lv.wordvalue!!))
-                    DataType.FLOAT -> prog.instr(Opcode.PUSH_FLOAT, Value(lv.type, lv.floatvalue!!))
+                    in ByteDatatypes -> prog.instr(Opcode.PUSH_BYTE, RuntimeValue(lv.type, lv.bytevalue!!))
+                    in WordDatatypes -> prog.instr(Opcode.PUSH_WORD, RuntimeValue(lv.type, lv.wordvalue!!))
+                    DataType.FLOAT -> prog.instr(Opcode.PUSH_FLOAT, RuntimeValue(lv.type, lv.floatvalue!!))
                     in StringDatatypes -> {
                         if(lv.heapId==null)
                             throw CompilerException("string should have been moved into heap   ${lv.position}")
@@ -739,11 +738,11 @@ internal class Compiler(private val program: Program): IAstProcessor {
                         throw CompilerException("const ref should have been const-folded away")
                     VarDeclType.MEMORY -> {
                         when (target.datatype) {
-                            DataType.UBYTE -> prog.instr(Opcode.PUSH_MEM_UB, Value(DataType.UWORD, (target.value as LiteralValue).asNumericValue!!))
-                            DataType.BYTE-> prog.instr(Opcode.PUSH_MEM_B, Value(DataType.UWORD, (target.value as LiteralValue).asNumericValue!!))
-                            DataType.UWORD -> prog.instr(Opcode.PUSH_MEM_UW, Value(DataType.UWORD, (target.value as LiteralValue).asNumericValue!!))
-                            DataType.WORD -> prog.instr(Opcode.PUSH_MEM_W, Value(DataType.UWORD, (target.value as LiteralValue).asNumericValue!!))
-                            DataType.FLOAT -> prog.instr(Opcode.PUSH_MEM_FLOAT, Value(DataType.UWORD, (target.value as LiteralValue).asNumericValue!!))
+                            DataType.UBYTE -> prog.instr(Opcode.PUSH_MEM_UB, RuntimeValue(DataType.UWORD, (target.value as LiteralValue).asNumericValue!!))
+                            DataType.BYTE-> prog.instr(Opcode.PUSH_MEM_B, RuntimeValue(DataType.UWORD, (target.value as LiteralValue).asNumericValue!!))
+                            DataType.UWORD -> prog.instr(Opcode.PUSH_MEM_UW, RuntimeValue(DataType.UWORD, (target.value as LiteralValue).asNumericValue!!))
+                            DataType.WORD -> prog.instr(Opcode.PUSH_MEM_W, RuntimeValue(DataType.UWORD, (target.value as LiteralValue).asNumericValue!!))
+                            DataType.FLOAT -> prog.instr(Opcode.PUSH_MEM_FLOAT, RuntimeValue(DataType.UWORD, (target.value as LiteralValue).asNumericValue!!))
                             else -> throw CompilerException("invalid datatype for memory variable expression: $target")
                         }
                     }
@@ -816,7 +815,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
                 // 1 array argument, type determines the exact syscall to use
                 val arg=args.single() as IdentifierReference
                 val target=arg.targetVarDecl(program.namespace)!!
-                val length=Value(DataType.UBYTE, target.arraysize!!.size()!!)
+                val length= RuntimeValue(DataType.UBYTE, target.arraysize!!.size()!!)
                 prog.instr(Opcode.PUSH_BYTE, length)
                 when (arg.resultingDatatype(program)) {
                     DataType.ARRAY_B, DataType.ARRAY_UB -> createSyscall("${funcname}_b")
@@ -829,7 +828,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
                 // 1 array argument, type determines the exact syscall to use
                 val arg=args.single() as IdentifierReference
                 val target=arg.targetVarDecl(program.namespace)!!
-                val length=Value(DataType.UBYTE, target.arraysize!!.size()!!)
+                val length= RuntimeValue(DataType.UBYTE, target.arraysize!!.size()!!)
                 val arrayDt=arg.resultingDatatype(program)
                 prog.instr(Opcode.PUSH_BYTE, length)
                 when (arrayDt) {
@@ -853,14 +852,14 @@ internal class Compiler(private val program: Program): IAstProcessor {
                     else -> throw CompilerException("wrong datatype for avg")
                 }
                 // divide by the number of elements
-                prog.instr(opcodePush(DataType.FLOAT), Value(DataType.FLOAT, length.numericValue()))
+                prog.instr(opcodePush(DataType.FLOAT), RuntimeValue(DataType.FLOAT, length.numericValue()))
                 prog.instr(Opcode.DIV_F)
             }
             "min", "max", "sum" -> {
                 // 1 array argument, type determines the exact syscall to use
                 val arg=args.single() as IdentifierReference
                 val target=arg.targetVarDecl(program.namespace)!!
-                val length=Value(DataType.UBYTE, target.arraysize!!.size()!!)
+                val length= RuntimeValue(DataType.UBYTE, target.arraysize!!.size()!!)
                 prog.instr(Opcode.PUSH_BYTE, length)
                 when (arg.resultingDatatype(program)) {
                     DataType.ARRAY_UB -> createSyscall("${funcname}_ub")
@@ -1396,11 +1395,11 @@ internal class Compiler(private val program: Program): IAstProcessor {
                     "FUNC_$funcname"
                 ).toUpperCase()
         val callNr = Syscall.valueOf(function).callNr
-        prog.instr(Opcode.SYSCALL, Value(DataType.UBYTE, callNr))
+        prog.instr(Opcode.SYSCALL, RuntimeValue(DataType.UBYTE, callNr))
     }
 
     private fun translate(stmt: Jump, branchOpcode: Opcode?) {
-        var jumpAddress: Value? = null
+        var jumpAddress: RuntimeValue? = null
         var jumpLabel: String? = null
 
         when {
@@ -1408,7 +1407,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
             stmt.address!=null -> {
                 if(branchOpcode in branchOpcodes)
                     throw CompilerException("cannot branch to address, should use absolute jump instead")
-                jumpAddress = Value(DataType.UWORD, stmt.address)
+                jumpAddress = RuntimeValue(DataType.UWORD, stmt.address)
             }
             else -> {
                 val target = stmt.identifier!!.targetStatement(program.namespace)!!
@@ -1449,8 +1448,8 @@ internal class Compiler(private val program: Program): IAstProcessor {
                 val address = stmt.target.memoryAddress?.addressExpression?.constValue(program)?.asIntegerValue
                 if(address!=null) {
                     when(stmt.operator) {
-                        "++" -> prog.instr(Opcode.INC_MEMORY, Value(DataType.UWORD, address))
-                        "--" -> prog.instr(Opcode.DEC_MEMORY, Value(DataType.UWORD, address))
+                        "++" -> prog.instr(Opcode.INC_MEMORY, RuntimeValue(DataType.UWORD, address))
+                        "--" -> prog.instr(Opcode.DEC_MEMORY, RuntimeValue(DataType.UWORD, address))
                     }
                 } else {
                     translate(stmt.target.memoryAddress!!.addressExpression)
@@ -1581,7 +1580,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
                         VarDeclType.MEMORY -> {
                             val opcode = opcodePopmem(datatype)
                             val address = target.value?.constValue(program)!!.asIntegerValue!!
-                            prog.instr(opcode, Value(DataType.UWORD, address))
+                            prog.instr(opcode, RuntimeValue(DataType.UWORD, address))
                         }
                         VarDeclType.CONST -> throw CompilerException("cannot assign to const")
                     }
@@ -1593,7 +1592,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
                 val address = assignTarget.memoryAddress?.addressExpression?.constValue(program)?.asIntegerValue
                 if(address!=null) {
                     // const integer address given
-                    prog.instr(Opcode.POP_MEM_BYTE, arg=Value(DataType.UWORD, address))
+                    prog.instr(Opcode.POP_MEM_BYTE, arg= RuntimeValue(DataType.UWORD, address))
                 } else {
                     translate(assignTarget.memoryAddress!!)
                 }
@@ -1741,7 +1740,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
         breakStmtLabelStack.push(breakLabel)
 
         // set the index var to zero before the loop
-        prog.instr(opcodePush(indexVarType), Value(indexVarType, 0))
+        prog.instr(opcodePush(indexVarType), RuntimeValue(indexVarType, 0))
         prog.instr(opcodePopvar(indexVarType), callLabel = indexVar.scopedname)
 
         // loop starts here
@@ -1762,7 +1761,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
 
         prog.instr(opcodeIncvar(indexVarType), callLabel = indexVar.scopedname)
         prog.instr(opcodePushvar(indexVarType), callLabel = indexVar.scopedname)
-        prog.instr(opcodeCompare(indexVarType), Value(indexVarType, numElements))
+        prog.instr(opcodeCompare(indexVarType), RuntimeValue(indexVarType, numElements))
         prog.instr(Opcode.BNZ, callLabel = loopLabel)
 
         prog.label(breakLabel)
@@ -1799,7 +1798,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
         continueStmtLabelStack.push(continueLabel)
         breakStmtLabelStack.push(breakLabel)
 
-        prog.instr(opcodePush(varDt), Value(varDt, range.first))
+        prog.instr(opcodePush(varDt), RuntimeValue(varDt, range.first))
         prog.instr(opcodePopvar(varDt), callLabel = varname)
         prog.label(loopLabel)
         translate(body)
@@ -1818,13 +1817,13 @@ internal class Compiler(private val program: Program): IAstProcessor {
             }
             range.step>numberOfIncDecsForOptimize -> {
                 prog.instr(opcodePushvar(varDt), callLabel = varname)
-                prog.instr(opcodePush(varDt), Value(varDt, range.step))
+                prog.instr(opcodePush(varDt), RuntimeValue(varDt, range.step))
                 prog.instr(opcodeAdd(varDt))
                 prog.instr(opcodePopvar(varDt), callLabel = varname)
             }
             range.step<numberOfIncDecsForOptimize -> {
                 prog.instr(opcodePushvar(varDt), callLabel = varname)
-                prog.instr(opcodePush(varDt), Value(varDt, abs(range.step)))
+                prog.instr(opcodePush(varDt), RuntimeValue(varDt, abs(range.step)))
                 prog.instr(opcodeSub(varDt))
                 prog.instr(opcodePopvar(varDt), callLabel = varname)
             }
@@ -1842,7 +1841,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
                         DataType.BYTE, DataType.WORD -> range.last + range.step
                         else -> throw CompilerException("invalid loop var dt $varDt")
                     }
-            prog.instr(opcodeCompare(varDt), Value(varDt, checkValue))
+            prog.instr(opcodeCompare(varDt), RuntimeValue(varDt, checkValue))
             prog.instr(Opcode.BNZ, callLabel = loopLabel)
         }
         prog.label(breakLabel)
@@ -2116,7 +2115,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
         // for now, only a single memory location (ubyte) is read at a time.
         val address = memread.addressExpression.constValue(program)?.asIntegerValue
         if(address!=null) {
-            prog.instr(Opcode.PUSH_MEM_UB, arg = Value(DataType.UWORD, address))
+            prog.instr(Opcode.PUSH_MEM_UB, arg = RuntimeValue(DataType.UWORD, address))
         } else {
             translate(memread.addressExpression)
             prog.instr(Opcode.PUSH_MEMREAD)
@@ -2127,7 +2126,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
         // for now, only a single memory location (ubyte) is written at a time.
         val address = memwrite.addressExpression.constValue(program)?.asIntegerValue
         if(address!=null) {
-            prog.instr(Opcode.POP_MEM_BYTE, arg = Value(DataType.UWORD, address))
+            prog.instr(Opcode.POP_MEM_BYTE, arg = RuntimeValue(DataType.UWORD, address))
         } else {
             translate(memwrite.addressExpression)
             prog.instr(Opcode.POP_MEMWRITE)
@@ -2156,8 +2155,8 @@ internal class Compiler(private val program: Program): IAstProcessor {
     }
 
     private fun translateAsmBinary(args: List<DirectiveArg>) {
-        val offset = if(args.size>=2) Value(DataType.UWORD, args[1].int!!) else null
-        val length = if(args.size==3) Value(DataType.UWORD, args[2].int!!) else null
+        val offset = if(args.size>=2) RuntimeValue(DataType.UWORD, args[1].int!!) else null
+        val length = if(args.size==3) RuntimeValue(DataType.UWORD, args[2].int!!) else null
         val filename = args[0].str!!
         // reading the actual data is not performed by the compiler but is delegated to the assembler
         prog.instr(Opcode.INCLUDE_FILE, offset, length, filename)

@@ -3,7 +3,7 @@ package prog8tests
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.ast.DataType
-import prog8.astvm.RuntimeValue
+import prog8.compiler.RuntimeValue
 import kotlin.test.*
 
 
@@ -55,26 +55,26 @@ class TestRuntimeValue {
     @Test
     fun testTruthiness()
     {
-        assertFalse(RuntimeValue(DataType.BYTE, 0).asBooleanRuntimeValue)
-        assertFalse(RuntimeValue(DataType.UBYTE, 0).asBooleanRuntimeValue)
-        assertFalse(RuntimeValue(DataType.WORD, 0).asBooleanRuntimeValue)
-        assertFalse(RuntimeValue(DataType.UWORD, 0).asBooleanRuntimeValue)
-        assertFalse(RuntimeValue(DataType.FLOAT, 0.0).asBooleanRuntimeValue)
-        assertFalse(RuntimeValue(DataType.BYTE, 256).asBooleanRuntimeValue)
-        assertFalse(RuntimeValue(DataType.UBYTE, 256).asBooleanRuntimeValue)
-        assertFalse(RuntimeValue(DataType.WORD, 65536).asBooleanRuntimeValue)
-        assertFalse(RuntimeValue(DataType.UWORD, 65536).asBooleanRuntimeValue)
+        assertFalse(RuntimeValue(DataType.BYTE, 0).asBoolean)
+        assertFalse(RuntimeValue(DataType.UBYTE, 0).asBoolean)
+        assertFalse(RuntimeValue(DataType.WORD, 0).asBoolean)
+        assertFalse(RuntimeValue(DataType.UWORD, 0).asBoolean)
+        assertFalse(RuntimeValue(DataType.FLOAT, 0.0).asBoolean)
+        assertFalse(RuntimeValue(DataType.BYTE, 256).asBoolean)
+        assertFalse(RuntimeValue(DataType.UBYTE, 256).asBoolean)
+        assertFalse(RuntimeValue(DataType.WORD, 65536).asBoolean)
+        assertFalse(RuntimeValue(DataType.UWORD, 65536).asBoolean)
 
-        assertTrue(RuntimeValue(DataType.BYTE, 42).asBooleanRuntimeValue)
-        assertTrue(RuntimeValue(DataType.UBYTE, 42).asBooleanRuntimeValue)
-        assertTrue(RuntimeValue(DataType.WORD, 42).asBooleanRuntimeValue)
-        assertTrue(RuntimeValue(DataType.UWORD, 42).asBooleanRuntimeValue)
-        assertTrue(RuntimeValue(DataType.FLOAT, 42.0).asBooleanRuntimeValue)
-        assertTrue(RuntimeValue(DataType.BYTE, -42).asBooleanRuntimeValue)
-        assertTrue(RuntimeValue(DataType.UBYTE, -42).asBooleanRuntimeValue)
-        assertTrue(RuntimeValue(DataType.WORD, -42).asBooleanRuntimeValue)
-        assertTrue(RuntimeValue(DataType.UWORD, -42).asBooleanRuntimeValue)
-        assertTrue(RuntimeValue(DataType.FLOAT, -42.0).asBooleanRuntimeValue)
+        assertTrue(RuntimeValue(DataType.BYTE, 42).asBoolean)
+        assertTrue(RuntimeValue(DataType.UBYTE, 42).asBoolean)
+        assertTrue(RuntimeValue(DataType.WORD, 42).asBoolean)
+        assertTrue(RuntimeValue(DataType.UWORD, 42).asBoolean)
+        assertTrue(RuntimeValue(DataType.FLOAT, 42.0).asBoolean)
+        assertTrue(RuntimeValue(DataType.BYTE, -42).asBoolean)
+        assertTrue(RuntimeValue(DataType.UBYTE, -42).asBoolean)
+        assertTrue(RuntimeValue(DataType.WORD, -42).asBoolean)
+        assertTrue(RuntimeValue(DataType.UWORD, -42).asBoolean)
+        assertTrue(RuntimeValue(DataType.FLOAT, -42.0).asBoolean)
     }
 
 
@@ -138,12 +138,12 @@ class TestRuntimeValue {
     fun testRequireHeap()
     {
         assertFailsWith<IllegalArgumentException> { RuntimeValue(DataType.STR, num = 999) }
-        assertFailsWith<IllegalArgumentException> { RuntimeValue(DataType.STR_S, num=999) }
-        assertFailsWith<IllegalArgumentException> { RuntimeValue(DataType.ARRAY_F, num=999) }
-        assertFailsWith<IllegalArgumentException> { RuntimeValue(DataType.ARRAY_W, num=999) }
-        assertFailsWith<IllegalArgumentException> { RuntimeValue(DataType.ARRAY_UW, num=999) }
-        assertFailsWith<IllegalArgumentException> { RuntimeValue(DataType.ARRAY_B, num=999) }
-        assertFailsWith<IllegalArgumentException> { RuntimeValue(DataType.ARRAY_UB, num=999) }
+        assertFailsWith<IllegalArgumentException> { RuntimeValue(DataType.STR_S, num = 999) }
+        assertFailsWith<IllegalArgumentException> { RuntimeValue(DataType.ARRAY_F, num = 999) }
+        assertFailsWith<IllegalArgumentException> { RuntimeValue(DataType.ARRAY_W, num = 999) }
+        assertFailsWith<IllegalArgumentException> { RuntimeValue(DataType.ARRAY_UW, num = 999) }
+        assertFailsWith<IllegalArgumentException> { RuntimeValue(DataType.ARRAY_B, num = 999) }
+        assertFailsWith<IllegalArgumentException> { RuntimeValue(DataType.ARRAY_UB, num = 999) }
     }
 
     @Test

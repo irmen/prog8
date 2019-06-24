@@ -1,6 +1,7 @@
 package prog8.astvm
 
 import prog8.ast.*
+import prog8.compiler.RuntimeValue
 import java.awt.EventQueue
 
 
@@ -253,7 +254,7 @@ class AstVm(val program: Program) {
             }
             is IfStatement -> {
                 val condition = evaluate(stmt.condition, program, runtimeVariables, ::executeSubroutine)
-                if(condition.asBooleanRuntimeValue)
+                if(condition.asBoolean)
                     executeSubroutine(stmt.truepart, emptyList())
                 else
                     executeSubroutine(stmt.elsepart, emptyList())
@@ -273,7 +274,7 @@ class AstVm(val program: Program) {
             }
             is WhileLoop -> {
                 var condition = evaluate(stmt.condition, program, runtimeVariables, ::executeSubroutine)
-                while (condition.asBooleanRuntimeValue) {
+                while (condition.asBoolean) {
                     try {
                         println("STILL IN WHILE LOOP ${stmt.position}")
                         executeSubroutine(stmt.body, emptyList())
@@ -296,7 +297,7 @@ class AstVm(val program: Program) {
                     } catch(c: LoopControlContinue){
                         continue
                     }
-                } while(!condition.asBooleanRuntimeValue)
+                } while(!condition.asBoolean)
             }
             else -> {
                 TODO("implement $stmt")
@@ -340,7 +341,7 @@ class AstVm(val program: Program) {
                 dialog.canvas.printText(args[0].byteval!!.toString(), 1, true)
             }
             "c64scr.print_ubhex" -> {
-                val prefix = if(args[0].asBooleanRuntimeValue) "$" else ""
+                val prefix = if(args[0].asBoolean) "$" else ""
                 val number = args[1].byteval!!
                 dialog.canvas.printText("$prefix${number.toString(16).padStart(2, '0')}", 1, true)
             }
@@ -351,7 +352,7 @@ class AstVm(val program: Program) {
                 dialog.canvas.printText(args[0].wordval!!.toString(), 1, true)
             }
             "c64scr.print_uwhex" -> {
-                val prefix = if(args[0].asBooleanRuntimeValue) "$" else ""
+                val prefix = if(args[0].asBoolean) "$" else ""
                 val number = args[1].wordval!!
                 dialog.canvas.printText("$prefix${number.toString(16).padStart(4, '0')}", 1, true)
             }

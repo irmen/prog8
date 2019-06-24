@@ -1,11 +1,11 @@
 package prog8.stackvm
 
 import prog8.ast.*
+import prog8.compiler.RuntimeValue
 import prog8.compiler.HeapValues
 import prog8.compiler.IntegerOrAddressOf
 import prog8.compiler.intermediate.Instruction
 import prog8.compiler.intermediate.Opcode
-import prog8.compiler.intermediate.Value
 import prog8.compiler.target.c64.Petscii
 import prog8.compiler.toHex
 import java.io.File
@@ -146,11 +146,11 @@ class StackVm(private var traceOutputFile: String?) {
         private set
     var P_irqd: Boolean = false
         private set
-    var variables = mutableMapOf<String, Value>()     // all variables (set of all vars used by all blocks/subroutines) key = their fully scoped name
+    var variables = mutableMapOf<String, RuntimeValue>()     // all variables (set of all vars used by all blocks/subroutines) key = their fully scoped name
         private set
     var memoryPointers = mutableMapOf<String, Pair<Int, DataType>>()        // all named pointers
         private set
-    var evalstack = MyStack<Value>()
+    var evalstack = MyStack<RuntimeValue>()
         private set
     var callstack = MyStack<Int>()
         private set
@@ -163,7 +163,7 @@ class StackVm(private var traceOutputFile: String?) {
     private val bootTime = System.currentTimeMillis()
     private var currentInstructionPtr: Int = -1
     private var irqStartInstructionPtr: Int = -1
-    private var registerSaveX: Value = Value(DataType.UBYTE, 0)
+    private var registerSaveX: RuntimeValue = RuntimeValue(DataType.UBYTE, 0)
     var sourceLine: String = ""
         private set
 
@@ -180,9 +180,9 @@ class StackVm(private var traceOutputFile: String?) {
         if("A" in variables || "X" in variables || "Y" in variables)
             throw VmExecutionException("program contains variable(s) for the reserved registers A/X/Y")
         // define the 'registers'
-        variables["A"] = Value(DataType.UBYTE, 0)
-        variables["X"] = Value(DataType.UBYTE, 0)
-        variables["Y"] = Value(DataType.UBYTE, 0)
+        variables["A"] = RuntimeValue(DataType.UBYTE, 0)
+        variables["X"] = RuntimeValue(DataType.UBYTE, 0)
+        variables["Y"] = RuntimeValue(DataType.UBYTE, 0)
 
         initMemory(program.memory)
         evalstack.clear()
@@ -239,7 +239,7 @@ class StackVm(private var traceOutputFile: String?) {
         }
     }
 
-    private fun initMemory(memory: Map<Int, List<Value>>) {
+    private fun initMemory(memory: Map<Int, List<RuntimeValue>>) {
         mem.clear()
         for (meminit in memory) {
             var address = meminit.key
@@ -276,15 +276,15 @@ class StackVm(private var traceOutputFile: String?) {
         }
     }
 
-    private fun checkDt(value: Value?, vararg expected: DataType) {
-        if(value==null)
+    private fun checkDt(value: RuntimeValue?, vararg expected: DataType) {
+        if (value == null)
             throw VmExecutionException("expected value")
-        if(value.type !in expected)
-            throw VmExecutionException("incompatible type ${value.type}")
+        if (value.type !in expected)
+            throw VmExecutionException("encountered value of wrong type ${value.type} expected ${expected.joinToString("/")}")
     }
 
 
-    private fun getVar(name: String): Value {
+    private fun getVar(name: String): RuntimeValue {
         val result = variables[name]
         if(result!=null)
             return result
@@ -314,23 +314,23 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.PUSH_MEM_UB -> {
                 val address = ins.arg!!.integerValue()
-                evalstack.push(Value(DataType.UBYTE, mem.getUByte(address)))
+                evalstack.push(RuntimeValue(DataType.UBYTE, mem.getUByte(address)))
             }
             Opcode.PUSH_MEM_B -> {
                 val address = ins.arg!!.integerValue()
-                evalstack.push(Value(DataType.BYTE, mem.getSByte(address)))
+                evalstack.push(RuntimeValue(DataType.BYTE, mem.getSByte(address)))
             }
             Opcode.PUSH_MEM_UW -> {
                 val address = ins.arg!!.integerValue()
-                evalstack.push(Value(DataType.UWORD, mem.getUWord(address)))
+                evalstack.push(RuntimeValue(DataType.UWORD, mem.getUWord(address)))
             }
             Opcode.PUSH_MEM_W -> {
                 val address = ins.arg!!.integerValue()
-                evalstack.push(Value(DataType.WORD, mem.getSWord(address)))
+                evalstack.push(RuntimeValue(DataType.WORD, mem.getSWord(address)))
             }
             Opcode.PUSH_MEM_FLOAT -> {
                 val address = ins.arg!!.integerValue()
-                evalstack.push(Value(DataType.FLOAT, mem.getFloat(address)))
+                evalstack.push(RuntimeValue(DataType.FLOAT, mem.getFloat(address)))
             }
             Opcode.PUSH_MEMREAD -> {
                 val address = evalstack.pop()
@@ -845,49 +845,49 @@ class StackVm(private var traceOutputFile: String?) {
 
             Opcode.SHL_MEM_BYTE -> {
                 val addr = ins.arg!!.integerValue()
-                val value = Value(DataType.UBYTE, mem.getUByte(addr))
+                val value = RuntimeValue(DataType.UBYTE, mem.getUByte(addr))
                 val newValue = value.shl()
                 mem.setUByte(addr, newValue.integerValue().toShort())
                 setFlags(newValue)
             }
             Opcode.SHL_MEM_WORD -> {
                 val addr = ins.arg!!.integerValue()
-                val value = Value(DataType.UWORD, mem.getUWord(addr))
+                val value = RuntimeValue(DataType.UWORD, mem.getUWord(addr))
                 val newValue = value.shl()
                 mem.setUWord(addr, newValue.integerValue())
                 setFlags(newValue)
             }
             Opcode.SHR_MEM_UBYTE -> {
                 val addr = ins.arg!!.integerValue()
-                val value = Value(DataType.UBYTE, mem.getUByte(addr))
+                val value = RuntimeValue(DataType.UBYTE, mem.getUByte(addr))
                 val newValue = value.shr()
                 mem.setUByte(addr, newValue.integerValue().toShort())
                 setFlags(newValue)
             }
             Opcode.SHR_MEM_SBYTE -> {
                 val addr = ins.arg!!.integerValue()
-                val value = Value(DataType.BYTE, mem.getSByte(addr))
+                val value = RuntimeValue(DataType.BYTE, mem.getSByte(addr))
                 val newValue = value.shr()
                 mem.setSByte(addr, newValue.integerValue().toShort())
                 setFlags(newValue)
             }
             Opcode.SHR_MEM_UWORD -> {
                 val addr = ins.arg!!.integerValue()
-                val value = Value(DataType.UWORD, mem.getUWord(addr))
+                val value = RuntimeValue(DataType.UWORD, mem.getUWord(addr))
                 val newValue = value.shr()
                 mem.setUWord(addr, newValue.integerValue())
                 setFlags(newValue)
             }
             Opcode.SHR_MEM_SWORD -> {
                 val addr = ins.arg!!.integerValue()
-                val value = Value(DataType.WORD, mem.getSWord(addr))
+                val value = RuntimeValue(DataType.WORD, mem.getSWord(addr))
                 val newValue = value.shr()
                 mem.setSWord(addr, newValue.integerValue())
                 setFlags(newValue)
             }
             Opcode.ROL_MEM_BYTE -> {
                 val addr = ins.arg!!.integerValue()
-                val value = Value(DataType.UBYTE, mem.getUByte(addr))
+                val value = RuntimeValue(DataType.UBYTE, mem.getUByte(addr))
                 val (newValue, newCarry) = value.rol(P_carry)
                 mem.setUByte(addr, newValue.integerValue().toShort())
                 setFlags(newValue)
@@ -895,7 +895,7 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.ROL_MEM_WORD -> {
                 val addr = ins.arg!!.integerValue()
-                val value = Value(DataType.UWORD, mem.getUWord(addr))
+                val value = RuntimeValue(DataType.UWORD, mem.getUWord(addr))
                 val (newValue, newCarry) = value.rol(P_carry)
                 mem.setUWord(addr, newValue.integerValue())
                 setFlags(newValue)
@@ -903,7 +903,7 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.ROR_MEM_BYTE -> {
                 val addr = ins.arg!!.integerValue()
-                val value = Value(DataType.UBYTE, mem.getUByte(addr))
+                val value = RuntimeValue(DataType.UBYTE, mem.getUByte(addr))
                 val (newValue, newCarry) = value.ror(P_carry)
                 mem.setUByte(addr, newValue.integerValue().toShort())
                 setFlags(newValue)
@@ -911,7 +911,7 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.ROR_MEM_WORD -> {
                 val addr = ins.arg!!.integerValue()
-                val value = Value(DataType.UWORD, mem.getUWord(addr))
+                val value = RuntimeValue(DataType.UWORD, mem.getUWord(addr))
                 val (newValue, newCarry) = value.ror(P_carry)
                 mem.setUWord(addr, newValue.integerValue())
                 setFlags(newValue)
@@ -919,28 +919,28 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.ROL2_MEM_BYTE -> {
                 val addr = ins.arg!!.integerValue()
-                val value = Value(DataType.UBYTE, mem.getUByte(addr))
+                val value = RuntimeValue(DataType.UBYTE, mem.getUByte(addr))
                 val newValue = value.rol2()
                 mem.setUByte(addr, newValue.integerValue().toShort())
                 setFlags(newValue)
             }
             Opcode.ROL2_MEM_WORD -> {
                 val addr = ins.arg!!.integerValue()
-                val value = Value(DataType.UWORD, mem.getUWord(addr))
+                val value = RuntimeValue(DataType.UWORD, mem.getUWord(addr))
                 val newValue = value.rol2()
                 mem.setUWord(addr, newValue.integerValue())
                 setFlags(newValue)
             }
             Opcode.ROR2_MEM_BYTE -> {
                 val addr = ins.arg!!.integerValue()
-                val value = Value(DataType.UBYTE, mem.getUByte(addr))
+                val value = RuntimeValue(DataType.UBYTE, mem.getUByte(addr))
                 val newValue = value.ror2()
                 mem.setUByte(addr, newValue.integerValue().toShort())
                 setFlags(newValue)
             }
             Opcode.ROR2_MEM_WORD -> {
                 val addr = ins.arg!!.integerValue()
-                val value = Value(DataType.UWORD, mem.getUWord(addr))
+                val value = RuntimeValue(DataType.UWORD, mem.getUWord(addr))
                 val newValue = value.ror2()
                 mem.setUWord(addr, newValue.integerValue())
                 setFlags(newValue)
@@ -1033,29 +1033,29 @@ class StackVm(private var traceOutputFile: String?) {
             Opcode.PUSH_REGAX_WORD -> {
                 val a=variables.getValue("A").integerValue()
                 val x=variables.getValue("X").integerValue()
-                evalstack.push(Value(DataType.UWORD, x*256+a))
+                evalstack.push(RuntimeValue(DataType.UWORD, x * 256 + a))
             }
             Opcode.PUSH_REGAY_WORD -> {
                 val a=variables.getValue("A").integerValue()
                 val y=variables.getValue("Y").integerValue()
-                evalstack.push(Value(DataType.UWORD, y*256+a))
+                evalstack.push(RuntimeValue(DataType.UWORD, y * 256 + a))
             }
             Opcode.PUSH_REGXY_WORD -> {
                 val x=variables.getValue("X").integerValue()
                 val y=variables.getValue("Y").integerValue()
-                evalstack.push(Value(DataType.UWORD, y*256+x))
+                evalstack.push(RuntimeValue(DataType.UWORD, y * 256 + x))
             }
             Opcode.POP_REGAX_WORD -> {
                 val value=evalstack.pop().integerValue()
-                val valueA: Value
-                val valueX: Value
+                val valueA: RuntimeValue
+                val valueX: RuntimeValue
                 if(value>=0) {
-                    valueA = Value(DataType.UBYTE, value and 255)
-                    valueX = Value(DataType.UBYTE, value shr 8)
+                    valueA = RuntimeValue(DataType.UBYTE, value and 255)
+                    valueX = RuntimeValue(DataType.UBYTE, value shr 8)
                 } else {
                     val value2c = 65536+value
-                    valueA = Value(DataType.UBYTE, value2c and 255)
-                    valueX = Value(DataType.UBYTE, value2c shr 8)
+                    valueA = RuntimeValue(DataType.UBYTE, value2c and 255)
+                    valueX = RuntimeValue(DataType.UBYTE, value2c shr 8)
                 }
                 variables["A"] = valueA
                 variables["X"] = valueX
@@ -1063,15 +1063,15 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.POP_REGAY_WORD -> {
                 val value=evalstack.pop().integerValue()
-                val valueA: Value
-                val valueY: Value
+                val valueA: RuntimeValue
+                val valueY: RuntimeValue
                 if(value>=0) {
-                    valueA = Value(DataType.UBYTE, value and 255)
-                    valueY = Value(DataType.UBYTE, value shr 8)
+                    valueA = RuntimeValue(DataType.UBYTE, value and 255)
+                    valueY = RuntimeValue(DataType.UBYTE, value shr 8)
                 } else {
                     val value2c = 65536+value
-                    valueA = Value(DataType.UBYTE, value2c and 255)
-                    valueY = Value(DataType.UBYTE, value2c shr 8)
+                    valueA = RuntimeValue(DataType.UBYTE, value2c and 255)
+                    valueY = RuntimeValue(DataType.UBYTE, value2c shr 8)
                 }
                 variables["A"] = valueA
                 variables["Y"] = valueY
@@ -1079,15 +1079,15 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.POP_REGXY_WORD -> {
                 val value=evalstack.pop().integerValue()
-                val valueX: Value
-                val valueY: Value
+                val valueX: RuntimeValue
+                val valueY: RuntimeValue
                 if(value>=0) {
-                    valueX = Value(DataType.UBYTE, value and 255)
-                    valueY = Value(DataType.UBYTE, value shr 8)
+                    valueX = RuntimeValue(DataType.UBYTE, value and 255)
+                    valueY = RuntimeValue(DataType.UBYTE, value shr 8)
                 } else {
                     val value2c = 65536+value
-                    valueX = Value(DataType.UBYTE, value2c and 255)
-                    valueY = Value(DataType.UBYTE, value2c shr 8)
+                    valueX = RuntimeValue(DataType.UBYTE, value2c and 255)
+                    valueY = RuntimeValue(DataType.UBYTE, value2c shr 8)
                 }
                 variables["X"] = valueX
                 variables["Y"] = valueY
@@ -1299,13 +1299,13 @@ class StackVm(private var traceOutputFile: String?) {
             Opcode.INC_INDEXED_VAR_B,Opcode.INC_INDEXED_VAR_UB,Opcode.INC_INDEXED_VAR_W,Opcode.INC_INDEXED_VAR_UW,Opcode.INC_INDEXED_VAR_FLOAT -> {
                 val index = evalstack.pop().integerValue()
                 val variable = getVar(ins.callLabel!!)
-                val array = heap.get(variable.heapId)
+                val array = heap.get(variable.heapId!!)
                 TODO("INC_INDEXED_VAR + flags")
             }
             Opcode.DEC_INDEXED_VAR_B,Opcode.DEC_INDEXED_VAR_UB,Opcode.DEC_INDEXED_VAR_W,Opcode.DEC_INDEXED_VAR_UW,Opcode.DEC_INDEXED_VAR_FLOAT -> {
                 val index = evalstack.pop().integerValue()
                 val variable = getVar(ins.callLabel!!)
-                val array = heap.get(variable.heapId)
+                val array = heap.get(variable.heapId!!)
                 TODO("DEC_INDEXED_VAR + flags")
             }
             Opcode.INC_MEMORY -> {
@@ -1330,7 +1330,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val lsb = evalstack.pop()
                 checkDt(lsb, DataType.UBYTE)
                 checkDt(msb, DataType.UBYTE)
-                val value = Value(DataType.UWORD, (msb.integerValue() shl 8) or lsb.integerValue())
+                val value = RuntimeValue(DataType.UWORD, (msb.integerValue() shl 8) or lsb.integerValue())
                 evalstack.push(value)
                 setFlags(value)
             }
@@ -1400,7 +1400,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.UBYTE)
                 checkDt(second, DataType.UBYTE)
-                val result = Value(DataType.UBYTE, if (second < top) 1 else 0)
+                val result = RuntimeValue(DataType.UBYTE, if (second < top) 1 else 0)
                 evalstack.push(result)
                 setFlags(result)
             }
@@ -1408,7 +1408,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.BYTE)
                 checkDt(second, DataType.BYTE)
-                val result = Value(DataType.UBYTE, if (second < top) 1 else 0)
+                val result = RuntimeValue(DataType.UBYTE, if (second < top) 1 else 0)
                 evalstack.push(result)
                 setFlags(result)
             }
@@ -1416,7 +1416,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.UWORD)
                 checkDt(second, DataType.UWORD)
-                val result = Value(DataType.UBYTE, if (second < top) 1 else 0)
+                val result = RuntimeValue(DataType.UBYTE, if (second < top) 1 else 0)
                 evalstack.push(result)
                 setFlags(result)
             }
@@ -1424,7 +1424,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.WORD)
                 checkDt(second, DataType.WORD)
-                val result = Value(DataType.UBYTE, if (second < top) 1 else 0)
+                val result = RuntimeValue(DataType.UBYTE, if (second < top) 1 else 0)
                 evalstack.push(result)
                 setFlags(result)
             }
@@ -1432,7 +1432,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.FLOAT)
                 checkDt(second, DataType.FLOAT)
-                val result = Value(DataType.UBYTE, if (second < top) 1 else 0)
+                val result = RuntimeValue(DataType.UBYTE, if (second < top) 1 else 0)
                 evalstack.push(result)
                 setFlags(result)
             }
@@ -1440,7 +1440,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.UBYTE)
                 checkDt(second, DataType.UBYTE)
-                val result = Value(DataType.UBYTE, if (second > top) 1 else 0)
+                val result = RuntimeValue(DataType.UBYTE, if (second > top) 1 else 0)
                 evalstack.push(result)
                 setFlags(result)
             }
@@ -1448,7 +1448,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.BYTE)
                 checkDt(second, DataType.BYTE)
-                val result = Value(DataType.UBYTE, if (second > top) 1 else 0)
+                val result = RuntimeValue(DataType.UBYTE, if (second > top) 1 else 0)
                 evalstack.push(result)
                 setFlags(result)
             }
@@ -1456,7 +1456,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.UWORD)
                 checkDt(second, DataType.UWORD)
-                val result = Value(DataType.UBYTE, if (second > top) 1 else 0)
+                val result = RuntimeValue(DataType.UBYTE, if (second > top) 1 else 0)
                 evalstack.push(result)
                 setFlags(result)
             }
@@ -1464,7 +1464,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.WORD)
                 checkDt(second, DataType.WORD)
-                val result = Value(DataType.UBYTE, if (second > top) 1 else 0)
+                val result = RuntimeValue(DataType.UBYTE, if (second > top) 1 else 0)
                 evalstack.push(result)
                 setFlags(result)
             }
@@ -1472,7 +1472,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.FLOAT)
                 checkDt(second, DataType.FLOAT)
-                val result = Value(DataType.UBYTE, if (second > top) 1 else 0)
+                val result = RuntimeValue(DataType.UBYTE, if (second > top) 1 else 0)
                 evalstack.push(result)
                 setFlags(result)
             }
@@ -1480,7 +1480,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.UBYTE)
                 checkDt(second, DataType.UBYTE)
-                val result=Value(DataType.UBYTE, if (second <= top) 1 else 0)
+                val result= RuntimeValue(DataType.UBYTE, if (second <= top) 1 else 0)
                 evalstack.push(result)
                 setFlags(result)
             }
@@ -1488,7 +1488,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.BYTE)
                 checkDt(second, DataType.BYTE)
-                val result = Value(DataType.UBYTE, if (second <= top) 1 else 0)
+                val result = RuntimeValue(DataType.UBYTE, if (second <= top) 1 else 0)
                 evalstack.push(result)
                 setFlags(result)
             }
@@ -1496,7 +1496,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.UWORD)
                 checkDt(second, DataType.UWORD)
-                val result= Value(DataType.UBYTE, if (second <= top) 1 else 0)
+                val result= RuntimeValue(DataType.UBYTE, if (second <= top) 1 else 0)
                 evalstack.push(result)
                 setFlags(result)
             }
@@ -1504,7 +1504,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.WORD)
                 checkDt(second, DataType.WORD)
-                val result = Value(DataType.UBYTE, if (second <= top) 1 else 0)
+                val result = RuntimeValue(DataType.UBYTE, if (second <= top) 1 else 0)
                 evalstack.push(result)
                 setFlags(result)
             }
@@ -1512,7 +1512,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.FLOAT)
                 checkDt(second, DataType.FLOAT)
-                val result = Value(DataType.UBYTE, if (second <= top) 1 else 0)
+                val result = RuntimeValue(DataType.UBYTE, if (second <= top) 1 else 0)
                 evalstack.push(result)
                 setFlags(result)
             }
@@ -1520,7 +1520,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.UBYTE)
                 checkDt(second, DataType.UBYTE)
-                val result=Value(DataType.UBYTE, if (second >= top) 1 else 0)
+                val result= RuntimeValue(DataType.UBYTE, if (second >= top) 1 else 0)
                 evalstack.push(result)
                 setFlags(result)
             }
@@ -1528,7 +1528,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.BYTE)
                 checkDt(second, DataType.BYTE)
-                val result=Value(DataType.UBYTE, if (second >= top) 1 else 0)
+                val result= RuntimeValue(DataType.UBYTE, if (second >= top) 1 else 0)
                 evalstack.push(result)
                 setFlags(result)
             }
@@ -1536,7 +1536,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.UWORD)
                 checkDt(second, DataType.UWORD)
-                val result = Value(DataType.UBYTE, if (second >= top) 1 else 0)
+                val result = RuntimeValue(DataType.UBYTE, if (second >= top) 1 else 0)
                 evalstack.push(result)
                 setFlags(result)
             }
@@ -1544,7 +1544,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.WORD)
                 checkDt(second, DataType.WORD)
-                val result=Value(DataType.UBYTE, if (second >= top) 1 else 0)
+                val result= RuntimeValue(DataType.UBYTE, if (second >= top) 1 else 0)
                 evalstack.push(result)
                 setFlags(result)
             }
@@ -1552,7 +1552,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.FLOAT)
                 checkDt(second, DataType.FLOAT)
-                val result = Value(DataType.UBYTE, if (second >= top) 1 else 0)
+                val result = RuntimeValue(DataType.UBYTE, if (second >= top) 1 else 0)
                 evalstack.push(result)
                 setFlags(result)
             }
@@ -1560,7 +1560,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.BYTE, DataType.UBYTE)
                 checkDt(second, DataType.BYTE, DataType.UBYTE)
-                val result = Value(DataType.UBYTE, if (second == top) 1 else 0)
+                val result = RuntimeValue(DataType.UBYTE, if (second == top) 1 else 0)
                 evalstack.push(result)
                 setFlags(result)
             }
@@ -1568,7 +1568,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.WORD, DataType.UWORD)
                 checkDt(second, DataType.WORD, DataType.UWORD)
-                val result = Value(DataType.UBYTE, if (second == top) 1 else 0)
+                val result = RuntimeValue(DataType.UBYTE, if (second == top) 1 else 0)
                 evalstack.push(result)
                 setFlags(result)
             }
@@ -1576,7 +1576,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.FLOAT)
                 checkDt(second, DataType.FLOAT)
-                val result=Value(DataType.UBYTE, if (second == top) 1 else 0)
+                val result= RuntimeValue(DataType.UBYTE, if (second == top) 1 else 0)
                 evalstack.push(result)
                 setFlags(result)
             }
@@ -1584,7 +1584,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.BYTE, DataType.UBYTE)
                 checkDt(second, DataType.BYTE, DataType.UBYTE)
-                val result=Value(DataType.UBYTE, if (second != top) 1 else 0)
+                val result= RuntimeValue(DataType.UBYTE, if (second != top) 1 else 0)
                 evalstack.push(result)
                 setFlags(result)
             }
@@ -1592,7 +1592,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.WORD, DataType.UWORD)
                 checkDt(second, DataType.UWORD, DataType.UWORD)
-                val result=Value(DataType.UBYTE, if (second != top) 1 else 0)
+                val result= RuntimeValue(DataType.UBYTE, if (second != top) 1 else 0)
                 evalstack.push(result)
                 setFlags(result)
             }
@@ -1600,7 +1600,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val (top, second) = evalstack.pop2()
                 checkDt(top, DataType.FLOAT)
                 checkDt(second, DataType.FLOAT)
-                val result=Value(DataType.UBYTE, if (second != top) 1 else 0)
+                val result= RuntimeValue(DataType.UBYTE, if (second != top) 1 else 0)
                 evalstack.push(result)
                 setFlags(result)
             }
@@ -1612,22 +1612,22 @@ class StackVm(private var traceOutputFile: String?) {
                             val variable = memoryPointers.getValue(ins.callLabel!!)
                             val address = variable.first + index
                             when(variable.second) {
-                                DataType.ARRAY_UB -> Value(DataType.UBYTE, mem.getUByte(address))
-                                DataType.ARRAY_B -> Value(DataType.BYTE, mem.getSByte(address))
+                                DataType.ARRAY_UB -> RuntimeValue(DataType.UBYTE, mem.getUByte(address))
+                                DataType.ARRAY_B -> RuntimeValue(DataType.BYTE, mem.getSByte(address))
                                 else -> throw VmExecutionException("not a proper array/string variable with byte elements")
                             }
                         } else {
                             val variable = getVar(ins.callLabel!!)
                             if (variable.type == DataType.UWORD) {
                                 // assume the variable is a pointer (address) and get the ubyte value from that memory location
-                                Value(DataType.UBYTE, mem.getUByte(variable.integerValue()))
+                                RuntimeValue(DataType.UBYTE, mem.getUByte(variable.integerValue()))
                             } else {
                                 // get indexed byte element from the arraysize
-                                val array = heap.get(variable.heapId)
+                                val array = heap.get(variable.heapId!!)
                                 when (array.type) {
-                                    DataType.ARRAY_UB -> Value(DataType.UBYTE, array.array!![index].integer!!)
-                                    DataType.ARRAY_B -> Value(DataType.BYTE, array.array!![index].integer!!)
-                                    DataType.STR, DataType.STR_S -> Value(DataType.UBYTE, Petscii.encodePetscii(array.str!![index].toString(), true)[0])
+                                    DataType.ARRAY_UB -> RuntimeValue(DataType.UBYTE, array.array!![index].integer!!)
+                                    DataType.ARRAY_B -> RuntimeValue(DataType.BYTE, array.array!![index].integer!!)
+                                    DataType.STR, DataType.STR_S -> RuntimeValue(DataType.UBYTE, Petscii.encodePetscii(array.str!![index].toString(), true)[0])
                                     else -> throw VmExecutionException("not a proper array/string variable with byte elements")
                                 }
                             }
@@ -1643,8 +1643,8 @@ class StackVm(private var traceOutputFile: String?) {
                             val variable = memoryPointers.getValue(ins.callLabel!!)
                             val address = variable.first + index*2
                             when(variable.second) {
-                                DataType.ARRAY_UW -> Value(DataType.UWORD, mem.getUWord(address))
-                                DataType.ARRAY_W -> Value(DataType.WORD, mem.getSWord(address))
+                                DataType.ARRAY_UW -> RuntimeValue(DataType.UWORD, mem.getUWord(address))
+                                DataType.ARRAY_W -> RuntimeValue(DataType.WORD, mem.getSWord(address))
                                 else -> throw VmExecutionException("not a proper arraysize var with word elements")
                             }
                         } else {
@@ -1652,25 +1652,25 @@ class StackVm(private var traceOutputFile: String?) {
                             val variable = getVar(ins.callLabel!!)
                             if(variable.type==DataType.UWORD) {
                                 // assume the variable is a pointer (address) and get the word value from that memory location
-                                Value(DataType.UWORD, mem.getUWord(variable.integerValue()))
+                                RuntimeValue(DataType.UWORD, mem.getUWord(variable.integerValue()))
                             } else {
                                 // get indexed word element from the arraysize
-                                val array = heap.get(variable.heapId)
+                                val array = heap.get(variable.heapId!!)
                                 when(array.type){
                                     DataType.ARRAY_UW -> {
                                         val value = array.array!![index]
                                         when {
-                                            value.integer!=null -> Value(DataType.UWORD, value.integer)
+                                            value.integer!=null -> RuntimeValue(DataType.UWORD, value.integer)
                                             value.addressOf!=null -> {
-                                                val heapId = variables.getValue(value.addressOf.scopedname!!).heapId
+                                                val heapId = variables.getValue(value.addressOf.scopedname!!).heapId!!
                                                 if(heapId<0)
                                                     throw VmExecutionException("expected variable on heap")
-                                                evalstack.push(Value(DataType.UWORD, heapId))       // push the "address" of the string or array variable (this is taken care of properly in the assembly code generator)
+                                                evalstack.push(RuntimeValue(DataType.UWORD, heapId))       // push the "address" of the string or array variable (this is taken care of properly in the assembly code generator)
                                             }
                                             else -> throw VmExecutionException("strange array value")
                                         }
                                     }
-                                    DataType.ARRAY_W -> Value(DataType.WORD, array.array!![index].integer!!)
+                                    DataType.ARRAY_W -> RuntimeValue(DataType.WORD, array.array!![index].integer!!)
                                     else -> throw VmExecutionException("not a proper arraysize var with word elements")
                                 }
                             }
@@ -1686,20 +1686,20 @@ class StackVm(private var traceOutputFile: String?) {
                             val variable = memoryPointers.getValue(ins.callLabel!!)
                             val address = variable.first + index*5
                             if(variable.second==DataType.ARRAY_F)
-                                Value(DataType.FLOAT, mem.getFloat(address))
+                                RuntimeValue(DataType.FLOAT, mem.getFloat(address))
                             else
                                 throw VmExecutionException("not a proper arraysize var with float elements")
                         } else {
                             val variable = getVar(ins.callLabel!!)
                             if (variable.type == DataType.UWORD) {
                                 // assume the variable is a pointer (address) and get the float value from that memory location
-                                Value(DataType.UWORD, mem.getFloat(variable.integerValue()))
+                                RuntimeValue(DataType.UWORD, mem.getFloat(variable.integerValue()))
                             } else {
                                 // get indexed float element from the arraysize
-                                val array = heap.get(variable.heapId)
+                                val array = heap.get(variable.heapId!!)
                                 if (array.type != DataType.ARRAY_F)
                                     throw VmExecutionException("not a proper arraysize var with float elements")
-                                Value(DataType.FLOAT, array.doubleArray!![index])
+                                RuntimeValue(DataType.FLOAT, array.doubleArray!![index])
                             }
                         }
                 evalstack.push(result)
@@ -1734,7 +1734,7 @@ class StackVm(private var traceOutputFile: String?) {
                             mem.setSByte(variable.integerValue(), value.integerValue().toShort())
                     } else {
                         // set indexed byte element in the arraysize
-                        val array = heap.get(variable.heapId)
+                        val array = heap.get(variable.heapId!!)
                         when (array.type) {
                             DataType.ARRAY_UB -> array.array!![index] = IntegerOrAddressOf(value.integerValue(), null)
                             DataType.ARRAY_B -> array.array!![index] = IntegerOrAddressOf(value.integerValue(), null)
@@ -1782,7 +1782,7 @@ class StackVm(private var traceOutputFile: String?) {
                             mem.setSWord(variable.integerValue()+index*2, value.integerValue())
                     } else {
                         // set indexed word element in the arraysize
-                        val array = heap.get(variable.heapId)
+                        val array = heap.get(variable.heapId!!)
                         when (array.type) {
                             DataType.ARRAY_UW -> array.array!![index] = IntegerOrAddressOf(value.integerValue(), null)
                             DataType.ARRAY_W -> array.array!![index] = IntegerOrAddressOf(value.integerValue(), null)
@@ -1811,7 +1811,7 @@ class StackVm(private var traceOutputFile: String?) {
                         mem.setFloat(variable.integerValue()+index*5, value.numericValue().toDouble())
                     } else {
                         // set indexed float element in the arraysize
-                        val array = heap.get(variable.heapId)
+                        val array = heap.get(variable.heapId!!)
                         if (array.type != DataType.ARRAY_F)
                             throw VmExecutionException("not a proper arraysize var with float elements")
                         array.doubleArray!![index] = value.numericValue().toDouble()
@@ -1820,8 +1820,8 @@ class StackVm(private var traceOutputFile: String?) {
                 setFlags(value)
             }
             Opcode.RSAVE -> {
-                evalstack.push(Value(DataType.UBYTE, if(P_irqd) 1 else 0))
-                evalstack.push(Value(DataType.UBYTE, if(P_carry) 1 else 0))
+                evalstack.push(RuntimeValue(DataType.UBYTE, if (P_irqd) 1 else 0))
+                evalstack.push(RuntimeValue(DataType.UBYTE, if (P_carry) 1 else 0))
                 evalstack.push(variables["X"])
                 evalstack.push(variables["Y"])
                 evalstack.push(variables["A"])
@@ -1830,18 +1830,18 @@ class StackVm(private var traceOutputFile: String?) {
                 variables["A"] = evalstack.pop()
                 variables["X"] = evalstack.pop()
                 variables["Y"] = evalstack.pop()
-                P_carry = evalstack.pop().asBooleanValue
-                P_irqd = evalstack.pop().asBooleanValue
+                P_carry = evalstack.pop().asBoolean
+                P_irqd = evalstack.pop().asBoolean
             }
             Opcode.RSAVEX -> registerSaveX = variables.getValue("X")
             Opcode.RRESTOREX -> variables["X"] = registerSaveX
             Opcode.INLINE_ASSEMBLY -> throw VmExecutionException("stackVm doesn't support executing inline assembly code $ins")
             Opcode.INCLUDE_FILE -> throw VmExecutionException("stackVm doesn't support including a file $ins")
             Opcode.PUSH_ADDR_HEAPVAR -> {
-                val heapId = variables.getValue(ins.callLabel!!).heapId
+                val heapId = variables.getValue(ins.callLabel!!).heapId!!
                 if(heapId<0)
                     throw VmExecutionException("expected variable on heap")
-                evalstack.push(Value(DataType.UWORD, heapId))       // push the "address" of the string or array variable (this is taken care of properly in the assembly code generator)
+                evalstack.push(RuntimeValue(DataType.UWORD, heapId))       // push the "address" of the string or array variable (this is taken care of properly in the assembly code generator)
             }
             Opcode.CAST_UB_TO_B -> typecast(DataType.UBYTE, DataType.BYTE)
             Opcode.CAST_W_TO_B -> typecast(DataType.WORD, DataType.BYTE)
@@ -1863,7 +1863,7 @@ class StackVm(private var traceOutputFile: String?) {
             Opcode.CAST_B_TO_F -> typecast(DataType.BYTE, DataType.FLOAT)
             Opcode.CAST_UW_TO_F -> typecast(DataType.UWORD, DataType.FLOAT)
             Opcode.CAST_W_TO_F -> typecast(DataType.WORD, DataType.FLOAT)
-            Opcode.CARRY_TO_A -> variables["A"] = if(P_carry) Value(DataType.UBYTE, 1) else Value(DataType.UBYTE, 0)
+            Opcode.CARRY_TO_A -> variables["A"] = if(P_carry) RuntimeValue(DataType.UBYTE, 1) else RuntimeValue(DataType.UBYTE, 0)
 
             //else -> throw VmExecutionException("unimplemented opcode: ${ins.opcode}")
         }
@@ -1895,7 +1895,7 @@ class StackVm(private var traceOutputFile: String?) {
                     callstack.pop()
                 }
                 "c64.GETIN" -> {
-                    variables["A"] = Value(DataType.UBYTE, 0)  // TODO keyboard input
+                    variables["A"] = RuntimeValue(DataType.UBYTE, 0)  // TODO keyboard input
                     callstack.pop()
                 }
                 else -> {
@@ -1905,7 +1905,7 @@ class StackVm(private var traceOutputFile: String?) {
         }
     }
 
-    private fun setFlags(value: Value?) {
+    private fun setFlags(value: RuntimeValue?) {
         if(value!=null) {
             when(value.type) {
                 DataType.UBYTE -> {
@@ -1994,20 +1994,20 @@ class StackVm(private var traceOutputFile: String?) {
                 val text = heap.get(textPtr)
                 canvas?.writeText(cx.integerValue(), cy.integerValue(), text.str!!, color.integerValue(), true)
             }
-            Syscall.FUNC_RND -> evalstack.push(Value(DataType.UBYTE, rnd.nextInt() and 255))
-            Syscall.FUNC_RNDW -> evalstack.push(Value(DataType.UWORD, rnd.nextInt() and 65535))
-            Syscall.FUNC_RNDF -> evalstack.push(Value(DataType.FLOAT, rnd.nextDouble()))
+            Syscall.FUNC_RND -> evalstack.push(RuntimeValue(DataType.UBYTE, rnd.nextInt() and 255))
+            Syscall.FUNC_RNDW -> evalstack.push(RuntimeValue(DataType.UWORD, rnd.nextInt() and 65535))
+            Syscall.FUNC_RNDF -> evalstack.push(RuntimeValue(DataType.FLOAT, rnd.nextDouble()))
             Syscall.FUNC_LEN_STR, Syscall.FUNC_LEN_STRS -> {
                 val strPtr = evalstack.pop().integerValue()
                 val text = heap.get(strPtr).str!!
-                evalstack.push(Value(DataType.UBYTE, text.length))
+                evalstack.push(RuntimeValue(DataType.UBYTE, text.length))
             }
             Syscall.FUNC_STRLEN -> {
                 val strPtr = evalstack.pop().integerValue()
                 val text = heap.get(strPtr).str!!
                 val zeroIdx = text.indexOf('\u0000')
                 val len = if(zeroIdx>=0) zeroIdx else text.length
-                evalstack.push(Value(DataType.UBYTE, len))
+                evalstack.push(RuntimeValue(DataType.UBYTE, len))
             }
             Syscall.FUNC_READ_FLAGS -> {
                 val carry = if(P_carry) 1 else 0
@@ -2015,72 +2015,72 @@ class StackVm(private var traceOutputFile: String?) {
                 val irqd = if(P_irqd) 4 else 0
                 val negative = if(P_negative) 128 else 0
                 val flags = carry or zero or irqd or negative
-                evalstack.push(Value(DataType.UBYTE, flags))
+                evalstack.push(RuntimeValue(DataType.UBYTE, flags))
             }
-            Syscall.FUNC_SIN -> evalstack.push(Value(DataType.FLOAT, sin(evalstack.pop().numericValue().toDouble())))
-            Syscall.FUNC_COS -> evalstack.push(Value(DataType.FLOAT, cos(evalstack.pop().numericValue().toDouble())))
+            Syscall.FUNC_SIN -> evalstack.push(RuntimeValue(DataType.FLOAT, sin(evalstack.pop().numericValue().toDouble())))
+            Syscall.FUNC_COS -> evalstack.push(RuntimeValue(DataType.FLOAT, cos(evalstack.pop().numericValue().toDouble())))
             Syscall.FUNC_SIN8 -> {
                 val rad = evalstack.pop().numericValue().toDouble() /256.0 * 2.0 * PI
-                evalstack.push(Value(DataType.BYTE, (127.0* sin(rad)).toShort()))
+                evalstack.push(RuntimeValue(DataType.BYTE, (127.0 * sin(rad)).toShort()))
             }
             Syscall.FUNC_SIN8U -> {
                 val rad = evalstack.pop().numericValue().toDouble() /256.0 * 2.0 * PI
-                evalstack.push(Value(DataType.UBYTE, (128.0+127.5*sin(rad)).toShort()))
+                evalstack.push(RuntimeValue(DataType.UBYTE, (128.0 + 127.5 * sin(rad)).toShort()))
             }
             Syscall.FUNC_SIN16 -> {
                 val rad = evalstack.pop().numericValue().toDouble() /256.0 * 2.0 * PI
-                evalstack.push(Value(DataType.WORD, (32767.0* sin(rad)).toInt()))
+                evalstack.push(RuntimeValue(DataType.WORD, (32767.0 * sin(rad)).toInt()))
             }
             Syscall.FUNC_SIN16U -> {
                 val rad = evalstack.pop().numericValue().toDouble() /256.0 * 2.0 * PI
-                evalstack.push(Value(DataType.WORD, (32768.0+32767.5* sin(rad)).toInt()))
+                evalstack.push(RuntimeValue(DataType.WORD, (32768.0 + 32767.5 * sin(rad)).toInt()))
             }
             Syscall.FUNC_COS8 -> {
                 val rad = evalstack.pop().numericValue().toDouble() /256.0 * 2.0 * PI
-                evalstack.push(Value(DataType.BYTE, (127.0* cos(rad)).toShort()))
+                evalstack.push(RuntimeValue(DataType.BYTE, (127.0 * cos(rad)).toShort()))
             }
             Syscall.FUNC_COS8U -> {
                 val rad = evalstack.pop().numericValue().toDouble() /256.0 * 2.0 * PI
-                evalstack.push(Value(DataType.UBYTE, (128.0+127.5*cos(rad)).toShort()))
+                evalstack.push(RuntimeValue(DataType.UBYTE, (128.0 + 127.5 * cos(rad)).toShort()))
             }
             Syscall.FUNC_COS16 -> {
                 val rad = evalstack.pop().numericValue().toDouble() /256.0 * 2.0 * PI
-                evalstack.push(Value(DataType.WORD, (32767.0* cos(rad)).toInt()))
+                evalstack.push(RuntimeValue(DataType.WORD, (32767.0 * cos(rad)).toInt()))
             }
             Syscall.FUNC_COS16U -> {
                 val rad = evalstack.pop().numericValue().toDouble() /256.0 * 2.0 * PI
-                evalstack.push(Value(DataType.WORD, (32768.0+32767.5* cos(rad)).toInt()))
+                evalstack.push(RuntimeValue(DataType.WORD, (32768.0 + 32767.5 * cos(rad)).toInt()))
             }
-            Syscall.FUNC_ROUND -> evalstack.push(Value(DataType.WORD, evalstack.pop().numericValue().toDouble().roundToInt()))
+            Syscall.FUNC_ROUND -> evalstack.push(RuntimeValue(DataType.WORD, evalstack.pop().numericValue().toDouble().roundToInt()))
             Syscall.FUNC_ABS -> {
                 val value = evalstack.pop()
                 val absValue =
                         when (value.type) {
-                            DataType.UBYTE -> Value(DataType.UBYTE, value.numericValue())
-                            DataType.UWORD -> Value(DataType.UWORD, value.numericValue())
-                            DataType.FLOAT -> Value(DataType.FLOAT, value.numericValue())
+                            DataType.UBYTE -> RuntimeValue(DataType.UBYTE, value.numericValue())
+                            DataType.UWORD -> RuntimeValue(DataType.UWORD, value.numericValue())
+                            DataType.FLOAT -> RuntimeValue(DataType.FLOAT, value.numericValue())
                             else -> throw VmExecutionException("cannot get abs of $value")
                         }
                 evalstack.push(absValue)
             }
-            Syscall.FUNC_TAN -> evalstack.push(Value(DataType.FLOAT, tan(evalstack.pop().numericValue().toDouble())))
-            Syscall.FUNC_ATAN -> evalstack.push(Value(DataType.FLOAT, atan(evalstack.pop().numericValue().toDouble())))
-            Syscall.FUNC_LN -> evalstack.push(Value(DataType.FLOAT, ln(evalstack.pop().numericValue().toDouble())))
-            Syscall.FUNC_LOG2 -> evalstack.push(Value(DataType.FLOAT, log2(evalstack.pop().numericValue().toDouble())))
-            Syscall.FUNC_SQRT -> evalstack.push(Value(DataType.FLOAT, sqrt(evalstack.pop().numericValue().toDouble())))
-            Syscall.FUNC_SQRT16 -> evalstack.push(Value(DataType.UBYTE, sqrt(evalstack.pop().numericValue().toDouble()).toInt()))
-            Syscall.FUNC_RAD -> evalstack.push(Value(DataType.FLOAT, Math.toRadians(evalstack.pop().numericValue().toDouble())))
-            Syscall.FUNC_DEG -> evalstack.push(Value(DataType.FLOAT, Math.toDegrees(evalstack.pop().numericValue().toDouble())))
+            Syscall.FUNC_TAN -> evalstack.push(RuntimeValue(DataType.FLOAT, tan(evalstack.pop().numericValue().toDouble())))
+            Syscall.FUNC_ATAN -> evalstack.push(RuntimeValue(DataType.FLOAT, atan(evalstack.pop().numericValue().toDouble())))
+            Syscall.FUNC_LN -> evalstack.push(RuntimeValue(DataType.FLOAT, ln(evalstack.pop().numericValue().toDouble())))
+            Syscall.FUNC_LOG2 -> evalstack.push(RuntimeValue(DataType.FLOAT, log2(evalstack.pop().numericValue().toDouble())))
+            Syscall.FUNC_SQRT -> evalstack.push(RuntimeValue(DataType.FLOAT, sqrt(evalstack.pop().numericValue().toDouble())))
+            Syscall.FUNC_SQRT16 -> evalstack.push(RuntimeValue(DataType.UBYTE, sqrt(evalstack.pop().numericValue().toDouble()).toInt()))
+            Syscall.FUNC_RAD -> evalstack.push(RuntimeValue(DataType.FLOAT, Math.toRadians(evalstack.pop().numericValue().toDouble())))
+            Syscall.FUNC_DEG -> evalstack.push(RuntimeValue(DataType.FLOAT, Math.toDegrees(evalstack.pop().numericValue().toDouble())))
             Syscall.FUNC_FLOOR -> {
                 val value = evalstack.pop()
                 if (value.type in NumericDatatypes)
-                    evalstack.push(Value(DataType.FLOAT, floor(value.numericValue().toDouble())))
+                    evalstack.push(RuntimeValue(DataType.FLOAT, floor(value.numericValue().toDouble())))
                 else throw VmExecutionException("cannot get floor of $value")
             }
             Syscall.FUNC_CEIL -> {
                 val value = evalstack.pop()
                 if (value.type in NumericDatatypes)
-                    evalstack.push(Value(DataType.FLOAT, ceil(value.numericValue().toDouble())))
+                    evalstack.push(RuntimeValue(DataType.FLOAT, ceil(value.numericValue().toDouble())))
                 else throw VmExecutionException("cannot get ceil of $value")
             }
             Syscall.FUNC_MAX_UB -> {
@@ -2089,7 +2089,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.UBYTE, value.array.map{it.integer!!}.max() ?: 0))
+                evalstack.push(RuntimeValue(DataType.UBYTE, value.array.map { it.integer!! }.max() ?: 0))
             }
             Syscall.FUNC_MAX_B -> {
                 val length = evalstack.pop().integerValue()
@@ -2097,7 +2097,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.BYTE, value.array.map{it.integer!!}.max() ?: 0))
+                evalstack.push(RuntimeValue(DataType.BYTE, value.array.map { it.integer!! }.max() ?: 0))
             }
             Syscall.FUNC_MAX_UW -> {
                 val length = evalstack.pop().integerValue()
@@ -2107,7 +2107,7 @@ class StackVm(private var traceOutputFile: String?) {
                     throw VmExecutionException("iterable length mismatch")
                 if(value.array.any {it.addressOf!=null})
                     throw VmExecutionException("stackvm cannot process raw memory pointers")
-                evalstack.push(Value(DataType.UWORD, value.array.map{it.integer!!}.max() ?: 0))
+                evalstack.push(RuntimeValue(DataType.UWORD, value.array.map { it.integer!! }.max() ?: 0))
             }
             Syscall.FUNC_MAX_W -> {
                 val length = evalstack.pop().integerValue()
@@ -2115,7 +2115,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.WORD, value.array.map{it.integer!!}.max() ?: 0))
+                evalstack.push(RuntimeValue(DataType.WORD, value.array.map { it.integer!! }.max() ?: 0))
             }
             Syscall.FUNC_MAX_F -> {
                 val length = evalstack.pop().integerValue()
@@ -2123,7 +2123,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.doubleArray!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.FLOAT, value.doubleArray.max() ?: 0.0))
+                evalstack.push(RuntimeValue(DataType.FLOAT, value.doubleArray.max() ?: 0.0))
             }
             Syscall.FUNC_MIN_UB -> {
                 val length = evalstack.pop().integerValue()
@@ -2131,7 +2131,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.UBYTE, value.array.map{it.integer!!}.min() ?: 0))
+                evalstack.push(RuntimeValue(DataType.UBYTE, value.array.map { it.integer!! }.min() ?: 0))
             }
             Syscall.FUNC_MIN_B -> {
                 val length = evalstack.pop().integerValue()
@@ -2139,7 +2139,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.BYTE, value.array.map{it.integer!!}.min() ?: 0))
+                evalstack.push(RuntimeValue(DataType.BYTE, value.array.map { it.integer!! }.min() ?: 0))
             }
             Syscall.FUNC_MIN_UW -> {
                 val length = evalstack.pop().integerValue()
@@ -2149,7 +2149,7 @@ class StackVm(private var traceOutputFile: String?) {
                     throw VmExecutionException("iterable length mismatch")
                 if(value.array.any {it.addressOf!=null})
                     throw VmExecutionException("stackvm cannot process raw memory pointers")
-                evalstack.push(Value(DataType.UWORD, value.array.map{it.integer!!}.min() ?: 0))
+                evalstack.push(RuntimeValue(DataType.UWORD, value.array.map { it.integer!! }.min() ?: 0))
             }
             Syscall.FUNC_MIN_W -> {
                 val length = evalstack.pop().integerValue()
@@ -2157,7 +2157,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.WORD, value.array.map{it.integer!!}.min() ?: 0))
+                evalstack.push(RuntimeValue(DataType.WORD, value.array.map { it.integer!! }.min() ?: 0))
             }
             Syscall.FUNC_MIN_F -> {
                 val length = evalstack.pop().integerValue()
@@ -2165,7 +2165,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.doubleArray!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.FLOAT, value.doubleArray.min() ?: 0.0))
+                evalstack.push(RuntimeValue(DataType.FLOAT, value.doubleArray.min() ?: 0.0))
             }
             Syscall.FUNC_SUM_W, Syscall.FUNC_SUM_B -> {
                 val length = evalstack.pop().integerValue()
@@ -2173,7 +2173,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.WORD, value.array.map{it.integer!!}.sum()))
+                evalstack.push(RuntimeValue(DataType.WORD, value.array.map { it.integer!! }.sum()))
             }
             Syscall.FUNC_SUM_UW -> {
                 val length = evalstack.pop().integerValue()
@@ -2183,7 +2183,7 @@ class StackVm(private var traceOutputFile: String?) {
                     throw VmExecutionException("iterable length mismatch")
                 if(value.array.any {it.addressOf!=null})
                     throw VmExecutionException("stackvm cannot process raw memory pointers")
-                evalstack.push(Value(DataType.UWORD, value.array.map{it.integer!!}.sum()))
+                evalstack.push(RuntimeValue(DataType.UWORD, value.array.map { it.integer!! }.sum()))
             }
             Syscall.FUNC_SUM_UB -> {
                 val length = evalstack.pop().integerValue()
@@ -2191,7 +2191,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.UWORD, value.array.map{it.integer!!}.sum()))
+                evalstack.push(RuntimeValue(DataType.UWORD, value.array.map { it.integer!! }.sum()))
             }
             Syscall.FUNC_SUM_F -> {
                 val length = evalstack.pop().integerValue()
@@ -2199,7 +2199,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.doubleArray!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.FLOAT, value.doubleArray.sum()))
+                evalstack.push(RuntimeValue(DataType.FLOAT, value.doubleArray.sum()))
             }
             Syscall.FUNC_ANY_B, Syscall.FUNC_ANY_W -> {
                 val length = evalstack.pop().integerValue()
@@ -2207,7 +2207,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.UBYTE, if (value.array.any { it.integer != 0 }) 1 else 0))
+                evalstack.push(RuntimeValue(DataType.UBYTE, if (value.array.any { it.integer != 0 }) 1 else 0))
             }
             Syscall.FUNC_ANY_F -> {
                 val length = evalstack.pop().integerValue()
@@ -2215,7 +2215,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.doubleArray!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.UBYTE, if (value.doubleArray.any { it!=0.0 }) 1 else 0))
+                evalstack.push(RuntimeValue(DataType.UBYTE, if (value.doubleArray.any { it != 0.0 }) 1 else 0))
             }
             Syscall.FUNC_ALL_B, Syscall.FUNC_ALL_W -> {
                 val length = evalstack.pop().integerValue()
@@ -2223,7 +2223,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.UBYTE, if (value.array.all { it.integer != 0 }) 1 else 0))
+                evalstack.push(RuntimeValue(DataType.UBYTE, if (value.array.all { it.integer != 0 }) 1 else 0))
             }
             Syscall.FUNC_ALL_F -> {
                 val length = evalstack.pop().integerValue()
@@ -2231,7 +2231,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = heap.get(heapVarId)
                 if(length!=value.doubleArray!!.size)
                     throw VmExecutionException("iterable length mismatch")
-                evalstack.push(Value(DataType.UBYTE, if (value.doubleArray.all { it != 0.0 }) 1 else 0))
+                evalstack.push(RuntimeValue(DataType.UBYTE, if (value.doubleArray.all { it != 0.0 }) 1 else 0))
             }
             Syscall.FUNC_MEMCOPY -> {
                 val numbytes = evalstack.pop().integerValue()
@@ -2351,7 +2351,7 @@ class StackVm(private var traceOutputFile: String?) {
         P_irqd=false
     }
 
-    private var irqStoredEvalStack = MyStack<Value>()
+    private var irqStoredEvalStack = MyStack<RuntimeValue>()
     private var irqStoredCallStack = MyStack<Int>()
     private var irqStoredCarry = false
     private var irqStoredTraceOutputFile: String? = null

@@ -1,17 +1,21 @@
-package prog8.astvm
+package prog8.compiler
 
 import prog8.ast.*
-import prog8.compiler.HeapValues
 import kotlin.math.abs
 import kotlin.math.pow
 
 
+/**
+ * Rather than a literal value (LiteralValue) that occurs in the parsed source code,
+ * this runtime value can be used to *execute* the parsed Ast (or another intermediary form)
+ * It contains a value of a variable during run time of the program and provides arithmetic operations on the value.
+ */
 class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=null, val array: Array<Number>?=null, val heapId: Int?=null) {
 
     val byteval: Short?
     val wordval: Int?
     val floatval: Double?
-    val asBooleanRuntimeValue: Boolean
+    val asBoolean: Boolean
 
     companion object {
         fun from(literalValue: LiteralValue, heap: HeapValues): RuntimeValue {
@@ -49,33 +53,33 @@ class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=null,
                 byteval = (num!!.toInt() and 255).toShort()
                 wordval = null
                 floatval = null
-                asBooleanRuntimeValue = byteval != 0.toShort()
+                asBoolean = byteval != 0.toShort()
             }
             DataType.BYTE -> {
                 val v = num!!.toInt() and 255
                 byteval = (if(v<128) v else v-256).toShort()
                 wordval = null
                 floatval = null
-                asBooleanRuntimeValue = byteval != 0.toShort()
+                asBoolean = byteval != 0.toShort()
             }
             DataType.UWORD -> {
                 wordval = num!!.toInt() and 65535
                 byteval = null
                 floatval = null
-                asBooleanRuntimeValue = wordval != 0
+                asBoolean = wordval != 0
             }
             DataType.WORD -> {
                 val v = num!!.toInt() and 65535
                 wordval = if(v<32768) v else v - 65536
                 byteval = null
                 floatval = null
-                asBooleanRuntimeValue = wordval != 0
+                asBoolean = wordval != 0
             }
             DataType.FLOAT -> {
                 floatval = num!!.toDouble()
                 byteval = null
                 wordval = null
-                asBooleanRuntimeValue = floatval != 0.0
+                asBoolean = floatval != 0.0
             }
             else -> {
                 if(heapId==null)
@@ -83,7 +87,7 @@ class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=null,
                 byteval = null
                 wordval = null
                 floatval = null
-                asBooleanRuntimeValue = true
+                asBoolean = true
             }
         }
     }
@@ -382,10 +386,10 @@ class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=null,
         return RuntimeValue(type, result)
     }
 
-    fun and(other: RuntimeValue) = RuntimeValue(DataType.UBYTE, if (this.asBooleanRuntimeValue && other.asBooleanRuntimeValue) 1 else 0)
-    fun or(other: RuntimeValue) = RuntimeValue(DataType.UBYTE, if (this.asBooleanRuntimeValue || other.asBooleanRuntimeValue) 1 else 0)
-    fun xor(other: RuntimeValue) = RuntimeValue(DataType.UBYTE, if (this.asBooleanRuntimeValue xor other.asBooleanRuntimeValue) 1 else 0)
-    fun not() = RuntimeValue(DataType.UBYTE, if (this.asBooleanRuntimeValue) 0 else 1)
+    fun and(other: RuntimeValue) = RuntimeValue(DataType.UBYTE, if (this.asBoolean && other.asBoolean) 1 else 0)
+    fun or(other: RuntimeValue) = RuntimeValue(DataType.UBYTE, if (this.asBoolean || other.asBoolean) 1 else 0)
+    fun xor(other: RuntimeValue) = RuntimeValue(DataType.UBYTE, if (this.asBoolean xor other.asBoolean) 1 else 0)
+    fun not() = RuntimeValue(DataType.UBYTE, if (this.asBoolean) 0 else 1)
 
     fun inv(): RuntimeValue {
         return when(type) {
@@ -430,7 +434,7 @@ class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=null,
                         if(byteval!!<=127)
                             RuntimeValue(DataType.BYTE, byteval)
                         else
-                            RuntimeValue(DataType.BYTE, -(256-byteval))
+                            RuntimeValue(DataType.BYTE, -(256 - byteval))
                     }
                     DataType.UWORD -> RuntimeValue(DataType.UWORD, numericValue())
                     DataType.WORD -> RuntimeValue(DataType.WORD, numericValue())
@@ -456,7 +460,7 @@ class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=null,
                         if(integerValue()<=32767)
                             RuntimeValue(DataType.WORD, integerValue())
                         else
-                            RuntimeValue(DataType.WORD, -(65536-integerValue()))
+                            RuntimeValue(DataType.WORD, -(65536 - integerValue()))
                     }
                     DataType.FLOAT -> RuntimeValue(DataType.FLOAT, numericValue())
                     else -> throw ArithmeticException("invalid type cast from $type to $targetType")

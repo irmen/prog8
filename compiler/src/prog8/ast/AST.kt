@@ -3,8 +3,8 @@ package prog8.ast
 import org.antlr.v4.runtime.IntStream
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
+import prog8.compiler.RuntimeValue
 import prog8.compiler.HeapValues
-import prog8.compiler.intermediate.Value
 import prog8.compiler.target.c64.Petscii
 import prog8.functions.BuiltinFunctions
 import prog8.functions.NotConstArgumentException
@@ -1144,7 +1144,7 @@ class TypecastExpression(var expression: IExpression, var type: DataType, overri
     override fun isIterable(program: Program) = type in IterableDatatypes
     override fun constValue(program: Program): LiteralValue? {
         val cv = expression.constValue(program) ?: return null
-        val value = Value(cv.type, cv.asNumericValue!!).cast(type)
+        val value = RuntimeValue(cv.type, cv.asNumericValue!!).cast(type)
         return LiteralValue.fromNumber(value.numericValue(), value.type, position)
     }
 

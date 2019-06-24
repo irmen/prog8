@@ -1,6 +1,7 @@
 package prog8.compiler.intermediate
 
 import prog8.ast.*
+import prog8.compiler.RuntimeValue
 import prog8.compiler.CompilerException
 import prog8.compiler.HeapValues
 import prog8.compiler.Zeropage
@@ -14,7 +15,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
     class ProgramBlock(val name: String,
                        var address: Int?,
                        val instructions: MutableList<Instruction> = mutableListOf(),
-                       val variables: MutableMap<String, Value> = mutableMapOf(),           // names are fully scoped
+                       val variables: MutableMap<String, RuntimeValue> = mutableMapOf(),           // names are fully scoped
                        val memoryPointers: MutableMap<String, Pair<Int, DataType>> = mutableMapOf(),
                        val labels: MutableMap<String, Instruction> = mutableMapOf(),        // names are fully scoped
                        val force_output: Boolean)
@@ -28,7 +29,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
 
     val allocatedZeropageVariables = mutableMapOf<String, Pair<Int, DataType>>()
     val blocks = mutableListOf<ProgramBlock>()
-    val memory = mutableMapOf<Int, List<Value>>()
+    val memory = mutableMapOf<Int, List<RuntimeValue>>()
     private lateinit var currentBlock: ProgramBlock
 
     val numVariables: Int
@@ -88,7 +89,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
             blk.instructions.asSequence().withIndex().filter {it.value.opcode!=Opcode.LINE}.windowed(2).toList().forEach {
                 if (it[1].value.opcode in branchOpcodes) {
                     if (it[0].value.opcode in pushvalue) {
-                        val value = it[0].value.arg!!.asBooleanValue
+                        val value = it[0].value.arg!!.asBoolean
                         instructionsToReplace[it[0].index] = Instruction(Opcode.NOP)
                         val replacement: Instruction =
                                 if (value) {
@@ -256,17 +257,17 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                     instructionsToReplace[index1] = Instruction(Opcode.NOP)
                 }
                 Opcode.CAST_W_TO_UB, Opcode.CAST_UW_TO_UB -> {
-                    val ins = Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, ins0.arg!!.integerValue() and 255))
+                    val ins = Instruction(Opcode.PUSH_BYTE, RuntimeValue(DataType.UBYTE, ins0.arg!!.integerValue() and 255))
                     instructionsToReplace[index0] = ins
                     instructionsToReplace[index1] = Instruction(Opcode.NOP)
                 }
                 Opcode.MSB -> {
-                    val ins = Instruction(Opcode.PUSH_BYTE, Value(DataType.UBYTE, ins0.arg!!.integerValue() ushr 8 and 255))
+                    val ins = Instruction(Opcode.PUSH_BYTE, RuntimeValue(DataType.UBYTE, ins0.arg!!.integerValue() ushr 8 and 255))
                     instructionsToReplace[index0] = ins
                     instructionsToReplace[index1] = Instruction(Opcode.NOP)
                 }
                 Opcode.CAST_W_TO_F, Opcode.CAST_UW_TO_F -> {
-                    val ins = Instruction(Opcode.PUSH_FLOAT, Value(DataType.FLOAT, ins0.arg!!.integerValue().toDouble()))
+                    val ins = Instruction(Opcode.PUSH_FLOAT, RuntimeValue(DataType.FLOAT, ins0.arg!!.integerValue().toDouble()))
                     instructionsToReplace[index0] = ins
                     instructionsToReplace[index1] = Instruction(Opcode.NOP)
                 }
@@ -296,12 +297,12 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                 Opcode.CAST_UW_TO_B, Opcode.CAST_UW_TO_UB -> instructionsToReplace[index1] = Instruction(Opcode.NOP)
                 Opcode.MSB -> throw CompilerException("msb of a byte")
                 Opcode.CAST_UB_TO_UW -> {
-                    val ins = Instruction(Opcode.PUSH_WORD, Value(DataType.UWORD, ins0.arg!!.integerValue()))
+                    val ins = Instruction(Opcode.PUSH_WORD, RuntimeValue(DataType.UWORD, ins0.arg!!.integerValue()))
                     instructionsToReplace[index0] = ins
                     instructionsToReplace[index1] = Instruction(Opcode.NOP)
                 }
                 Opcode.CAST_B_TO_W -> {
-                    val ins = Instruction(Opcode.PUSH_WORD, Value(DataType.WORD, ins0.arg!!.integerValue()))
+                    val ins = Instruction(Opcode.PUSH_WORD, RuntimeValue(DataType.WORD, ins0.arg!!.integerValue()))
                     instructionsToReplace[index0] = ins
                     instructionsToReplace[index1] = Instruction(Opcode.NOP)
                 }
@@ -316,7 +317,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                     instructionsToReplace[index1] = Instruction(Opcode.NOP)
                 }
                 Opcode.CAST_B_TO_F, Opcode.CAST_UB_TO_F-> {
-                    val ins = Instruction(Opcode.PUSH_FLOAT, Value(DataType.FLOAT, ins0.arg!!.integerValue().toDouble()))
+                    val ins = Instruction(Opcode.PUSH_FLOAT, RuntimeValue(DataType.FLOAT, ins0.arg!!.integerValue().toDouble()))
                     instructionsToReplace[index0] = ins
                     instructionsToReplace[index1] = Instruction(Opcode.NOP)
                 }
@@ -388,18 +389,18 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         when(decl.type) {
             VarDeclType.VAR -> {
                 val value = when(decl.datatype) {
-                    in NumericDatatypes -> Value(decl.datatype, (decl.value as LiteralValue).asNumericValue!!)
+                    in NumericDatatypes -> RuntimeValue(decl.datatype, (decl.value as LiteralValue).asNumericValue!!)
                     in StringDatatypes -> {
                         val litval = (decl.value as LiteralValue)
                         if(litval.heapId==null)
                             throw CompilerException("string should already be in the heap")
-                        Value(decl.datatype, litval.heapId)
+                        RuntimeValue(decl.datatype, heapId = litval.heapId)
                     }
                     in ArrayDatatypes -> {
                         val litval = (decl.value as LiteralValue)
                         if(litval.heapId==null)
                             throw CompilerException("array should already be in the heap")
-                        Value(decl.datatype, litval.heapId)
+                        RuntimeValue(decl.datatype, heapId = litval.heapId)
                     }
                     else -> throw CompilerException("weird datatype")
                 }
@@ -424,7 +425,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         }
     }
 
-    fun instr(opcode: Opcode, arg: Value? = null, arg2: Value? = null, callLabel: String? = null, callLabel2: String? = null) {
+    fun instr(opcode: Opcode, arg: RuntimeValue? = null, arg2: RuntimeValue? = null, callLabel: String? = null, callLabel2: String? = null) {
         currentBlock.instructions.add(Instruction(opcode, arg, arg2, callLabel, callLabel2))
     }
 

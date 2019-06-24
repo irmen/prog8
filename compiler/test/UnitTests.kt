@@ -6,8 +6,8 @@ import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.ast.*
+import prog8.compiler.RuntimeValue
 import prog8.compiler.*
-import prog8.compiler.intermediate.Value
 import prog8.compiler.target.c64.*
 import java.io.CharConversionException
 import kotlin.test.*
@@ -358,8 +358,8 @@ class TestPetscii {
 
     @Test
     fun testStackvmValueComparisons() {
-        val ten = Value(DataType.FLOAT, 10)
-        val nine = Value(DataType.UWORD, 9)
+        val ten = RuntimeValue(DataType.FLOAT, 10)
+        val nine = RuntimeValue(DataType.UWORD, 9)
         assertEquals(ten, ten)
         assertNotEquals(ten, nine)
         assertFalse(ten != ten)

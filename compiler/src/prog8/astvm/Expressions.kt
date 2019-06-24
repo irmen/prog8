@@ -1,6 +1,7 @@
 package prog8.astvm
 
 import prog8.ast.*
+import prog8.compiler.RuntimeValue
 
 fun evaluate(expr: IExpression, program: Program, runtimeVars: RuntimeVariables,
              executeSubroutine: (sub: Subroutine, args: List<RuntimeValue>) -> List<RuntimeValue>): RuntimeValue {
@@ -19,12 +20,12 @@ fun evaluate(expr: IExpression, program: Program, runtimeVars: RuntimeVariables,
             val left = evaluate(expr.left, program, runtimeVars, executeSubroutine)
             val right = evaluate(expr.right, program, runtimeVars, executeSubroutine)
             return when(expr.operator) {
-                "<" -> RuntimeValue(DataType.UBYTE, if(left < right) 1 else 0)
-                "<=" -> RuntimeValue(DataType.UBYTE, if(left <= right) 1 else 0)
-                ">" -> RuntimeValue(DataType.UBYTE, if(left > right) 1 else 0)
-                ">=" -> RuntimeValue(DataType.UBYTE, if(left >= right) 1 else 0)
-                "==" -> RuntimeValue(DataType.UBYTE, if(left == right) 1 else 0)
-                "!=" -> RuntimeValue(DataType.UBYTE, if(left != right) 1 else 0)
+                "<" -> RuntimeValue(DataType.UBYTE, if (left < right) 1 else 0)
+                "<=" -> RuntimeValue(DataType.UBYTE, if (left <= right) 1 else 0)
+                ">" -> RuntimeValue(DataType.UBYTE, if (left > right) 1 else 0)
+                ">=" -> RuntimeValue(DataType.UBYTE, if (left >= right) 1 else 0)
+                "==" -> RuntimeValue(DataType.UBYTE, if (left == right) 1 else 0)
+                "!=" -> RuntimeValue(DataType.UBYTE, if (left != right) 1 else 0)
                 "+" -> {
                     val result = left.add(right)
                     RuntimeValue(result.type, result.numericValue())
@@ -41,11 +42,11 @@ fun evaluate(expr: IExpression, program: Program, runtimeVars: RuntimeVariables,
             val index = evaluate(expr.arrayspec.index, program, runtimeVars, executeSubroutine)
             val value = array.array!![index.integerValue()]
             return when(array.type) {
-                DataType.ARRAY_UB -> RuntimeValue(DataType.UBYTE, num=value)
-                DataType.ARRAY_B -> RuntimeValue(DataType.BYTE, num=value)
-                DataType.ARRAY_UW -> RuntimeValue(DataType.UWORD, num=value)
-                DataType.ARRAY_W -> RuntimeValue(DataType.WORD, num=value)
-                DataType.ARRAY_F -> RuntimeValue(DataType.FLOAT, num=value)
+                DataType.ARRAY_UB -> RuntimeValue(DataType.UBYTE, num = value)
+                DataType.ARRAY_B -> RuntimeValue(DataType.BYTE, num = value)
+                DataType.ARRAY_UW -> RuntimeValue(DataType.UWORD, num = value)
+                DataType.ARRAY_W -> RuntimeValue(DataType.WORD, num = value)
+                DataType.ARRAY_F -> RuntimeValue(DataType.FLOAT, num = value)
                 else -> throw VmExecutionException("strange array type ${array.type}")
             }
         }
@@ -55,7 +56,7 @@ fun evaluate(expr: IExpression, program: Program, runtimeVars: RuntimeVariables,
         is AddressOf -> {
             // we support: address of heap var -> the heap id
             val heapId = expr.identifier.heapId(program.namespace)
-            return RuntimeValue(DataType.UWORD, num=heapId)
+            return RuntimeValue(DataType.UWORD, heapId = heapId)
         }
         is DirectMemoryRead -> {
             TODO("$expr")

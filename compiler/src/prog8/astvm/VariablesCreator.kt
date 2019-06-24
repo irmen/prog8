@@ -2,6 +2,7 @@ package prog8.astvm
 
 import prog8.ast.*
 import prog8.compiler.HeapValues
+import prog8.compiler.RuntimeValue
 
 class VariablesCreator(private val runtimeVariables: RuntimeVariables, private val heap: HeapValues) : IAstProcessor {
 

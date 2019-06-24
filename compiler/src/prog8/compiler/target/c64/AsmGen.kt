@@ -4,6 +4,7 @@ package prog8.compiler.target.c64
 // possible space optimization is to use zeropage (indirect),Y  which is 2 bytes, but 5 cycles
 
 import prog8.ast.*
+import prog8.compiler.RuntimeValue
 import prog8.compiler.*
 import prog8.compiler.intermediate.*
 import prog8.stackvm.Syscall
@@ -282,7 +283,7 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
                 DataType.WORD -> out("${v.first}\t.sint  0")
                 DataType.FLOAT -> out("${v.first}\t.byte  0,0,0,0,0  ; float")
                 DataType.STR, DataType.STR_S -> {
-                    val rawStr = heap.get(v.second.heapId).str!!
+                    val rawStr = heap.get(v.second.heapId!!).str!!
                     val bytes = encodeStr(rawStr, v.second.type).map { "$" + it.toString(16).padStart(2, '0') }
                     out("${v.first}\t; ${v.second.type} \"${escape(rawStr).replace("\u0000", "<NULL>")}\"")
                     for (chunk in bytes.chunked(16))
@@ -334,7 +335,7 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
                 }
                 DataType.ARRAY_F -> {
                     // float arraysize
-                    val array = heap.get(v.second.heapId).doubleArray!!
+                    val array = heap.get(v.second.heapId!!).doubleArray!!
                     val floatFills = array.map { makeFloatFill(Mflpt5.fromNumber(it)) }
                     out(v.first)
                     for(f in array.zip(floatFills))
@@ -358,8 +359,8 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
         }
     }
 
-    private fun makeArrayFillDataUnsigned(value: Value): List<String> {
-        val array = heap.get(value.heapId).array!!
+    private fun makeArrayFillDataUnsigned(value: RuntimeValue): List<String> {
+        val array = heap.get(value.heapId!!).array!!
         return when {
             value.type==DataType.ARRAY_UB ->
                 // byte array can never contain pointer-to types, so treat values as all integers
@@ -375,8 +376,8 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
         }
     }
 
-    private fun makeArrayFillDataSigned(value: Value): List<String> {
-        val array = heap.get(value.heapId).array!!
+    private fun makeArrayFillDataSigned(value: RuntimeValue): List<String> {
+        val array = heap.get(value.heapId!!).array!!
         // note: array of signed value can never contain pointer-to type, so simply process values as being all integers
         return if (value.type == DataType.ARRAY_B || value.type == DataType.ARRAY_W) {
             array.map {
@@ -418,7 +419,7 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
         }
     }
 
-    private fun getFloatConst(value: Value): String =
+    private fun getFloatConst(value: RuntimeValue): String =
             globalFloatConsts[value.numericValue().toDouble()]
                     ?: throw AssemblyError("should have a global float const for number $value")
 

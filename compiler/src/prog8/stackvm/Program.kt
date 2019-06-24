@@ -1,6 +1,7 @@
 package prog8.stackvm
 
 import prog8.ast.*
+import prog8.compiler.RuntimeValue
 import prog8.compiler.HeapValues
 import prog8.compiler.IntegerOrAddressOf
 import prog8.compiler.intermediate.*
@@ -10,10 +11,10 @@ import java.util.regex.Pattern
 
 class Program (val name: String,
                val program: MutableList<Instruction>,
-               val variables: Map<String, Value>,
+               val variables: Map<String, RuntimeValue>,
                val memoryPointers: Map<String, Pair<Int, DataType>>,
                val labels: Map<String, Int>,
-               val memory: Map<Int, List<Value>>,
+               val memory: Map<Int, List<RuntimeValue>>,
                val heap: HeapValues)
 {
     init {
@@ -26,10 +27,10 @@ class Program (val name: String,
     companion object {
         fun load(filename: String): Program {
             val lines = File(filename).readLines().withIndex().iterator()
-            val memory = mutableMapOf<Int, List<Value>>()
+            val memory = mutableMapOf<Int, List<RuntimeValue>>()
             val heap = HeapValues()
             val program = mutableListOf<Instruction>()
-            val variables = mutableMapOf<String, Value>()
+            val variables = mutableMapOf<String, RuntimeValue>()
             val memoryPointers = mutableMapOf<String, Pair<Int, DataType>>()
             val labels = mutableMapOf<String, Int>()
 
@@ -51,7 +52,7 @@ class Program (val name: String,
         private fun loadBlock(lines: Iterator<IndexedValue<String>>,
                               heap: HeapValues,
                               program: MutableList<Instruction>,
-                              variables: MutableMap<String, Value>,
+                              variables: MutableMap<String, RuntimeValue>,
                               memoryPointers: MutableMap<String, Pair<Int, DataType>>,
                               labels: MutableMap<String, Int>)
         {
@@ -143,7 +144,7 @@ class Program (val name: String,
                         Opcode.BZ, Opcode.BNZ, Opcode.BCS, Opcode.BCC,
                         Opcode.JZ, Opcode.JNZ, Opcode.JZW, Opcode.JNZW -> {
                             if(args!!.startsWith('$')) {
-                                Instruction(opcode, Value(DataType.UWORD, args.substring(1).toInt(16)))
+                                Instruction(opcode, RuntimeValue(DataType.UWORD, args.substring(1).toInt(16)))
                             } else {
                                 Instruction(opcode, callLabel = args)
                             }
@@ -158,15 +159,15 @@ class Program (val name: String,
                         Opcode.SYSCALL -> {
                             if(args!! in syscallNames) {
                                 val call = Syscall.valueOf(args)
-                                Instruction(opcode, Value(DataType.UBYTE, call.callNr))
+                                Instruction(opcode, RuntimeValue(DataType.UBYTE, call.callNr))
                             } else {
                                 val args2 = args.replace('.', '_')
                                 if(args2 in syscallNames) {
                                     val call = Syscall.valueOf(args2)
-                                    Instruction(opcode, Value(DataType.UBYTE, call.callNr))
+                                    Instruction(opcode, RuntimeValue(DataType.UBYTE, call.callNr))
                                 } else {
                                     // the syscall is not yet implemented. emit a stub.
-                                    Instruction(Opcode.SYSCALL, Value(DataType.UBYTE, Syscall.SYSCALLSTUB.callNr), callLabel = args2)
+                                    Instruction(Opcode.SYSCALL, RuntimeValue(DataType.UBYTE, Syscall.SYSCALLSTUB.callNr), callLabel = args2)
                                 }
                             }
                         }
@@ -190,7 +191,7 @@ class Program (val name: String,
             }
         }
 
-        private fun getArgValue(args: String?, heap: HeapValues): Value? {
+        private fun getArgValue(args: String?, heap: HeapValues): RuntimeValue? {
             if(args==null)
                 return null
             if(args[0]=='"' && args[args.length-1]=='"') {
@@ -198,21 +199,21 @@ class Program (val name: String,
             }
             val (type, valueStr) = args.split(':')
             return when(type) {
-                "b" -> Value(DataType.BYTE, valueStr.toShort(16))
-                "ub" -> Value(DataType.UBYTE, valueStr.toShort(16))
-                "w" -> Value(DataType.WORD, valueStr.toInt(16))
-                "uw" -> Value(DataType.UWORD, valueStr.toInt(16))
-                "f" -> Value(DataType.FLOAT, valueStr.toDouble())
+                "b" -> RuntimeValue(DataType.BYTE, valueStr.toShort(16))
+                "ub" -> RuntimeValue(DataType.UBYTE, valueStr.toShort(16))
+                "w" -> RuntimeValue(DataType.WORD, valueStr.toInt(16))
+                "uw" -> RuntimeValue(DataType.UWORD, valueStr.toInt(16))
+                "f" -> RuntimeValue(DataType.FLOAT, valueStr.toDouble())
                 "heap" -> {
                     val heapId = valueStr.toInt()
-                    Value(heap.get(heapId).type, heapId)
+                    RuntimeValue(heap.get(heapId).type, heapId = heapId)
                 }
                 else -> throw VmExecutionException("invalid datatype $type")
             }
         }
 
         private fun loadVars(lines: Iterator<IndexedValue<String>>,
-                             vars: MutableMap<String, Value>) {
+                             vars: MutableMap<String, RuntimeValue>) {
             val splitpattern = Pattern.compile("\\s+")
             while(true) {
                 val (_, line) = lines.next()
@@ -222,11 +223,11 @@ class Program (val name: String,
                 if(valueStr[0] !='"' && ':' !in valueStr)
                     throw VmExecutionException("missing value type character")
                 val value = when(val type = DataType.valueOf(typeStr.toUpperCase())) {
-                    DataType.UBYTE -> Value(DataType.UBYTE, valueStr.substring(3).toShort(16))
-                    DataType.BYTE -> Value(DataType.BYTE, valueStr.substring(2).toShort(16))
-                    DataType.UWORD -> Value(DataType.UWORD, valueStr.substring(3).toInt(16))
-                    DataType.WORD -> Value(DataType.WORD, valueStr.substring(2).toInt(16))
-                    DataType.FLOAT -> Value(DataType.FLOAT, valueStr.substring(2).toDouble())
+                    DataType.UBYTE -> RuntimeValue(DataType.UBYTE, valueStr.substring(3).toShort(16))
+                    DataType.BYTE -> RuntimeValue(DataType.BYTE, valueStr.substring(2).toShort(16))
+                    DataType.UWORD -> RuntimeValue(DataType.UWORD, valueStr.substring(3).toInt(16))
+                    DataType.WORD -> RuntimeValue(DataType.WORD, valueStr.substring(2).toInt(16))
+                    DataType.FLOAT -> RuntimeValue(DataType.FLOAT, valueStr.substring(2).toDouble())
                     in StringDatatypes -> {
                         if(valueStr.startsWith('"') && valueStr.endsWith('"'))
                             throw VmExecutionException("encountered a var with a string value, but all string values should already have been moved into the heap")
@@ -234,7 +235,7 @@ class Program (val name: String,
                             throw VmExecutionException("invalid string value, should be a heap reference")
                         else {
                             val heapId = valueStr.substring(5).toInt()
-                            Value(type, heapId)
+                            RuntimeValue(type, heapId = heapId)
                         }
                     }
                     in ArrayDatatypes -> {
@@ -242,7 +243,7 @@ class Program (val name: String,
                             throw VmExecutionException("invalid array value, should be a heap reference")
                         else {
                             val heapId = valueStr.substring(5).toInt()
-                            Value(type, heapId)
+                            RuntimeValue(type, heapId = heapId)
                         }
                     }
                     else -> throw VmExecutionException("weird datatype")
@@ -268,7 +269,7 @@ class Program (val name: String,
             }
         }
 
-        private fun loadMemory(lines: Iterator<IndexedValue<String>>, memory: MutableMap<Int, List<Value>>): Map<Int, List<Value>> {
+        private fun loadMemory(lines: Iterator<IndexedValue<String>>, memory: MutableMap<Int, List<RuntimeValue>>): Map<Int, List<RuntimeValue>> {
             while(true) {
                 val (lineNr, line) = lines.next()
                 if(line=="%end_memory")
@@ -279,11 +280,11 @@ class Program (val name: String,
                     TODO("memory init with char/string")
                 } else {
                     val valueStrings = rest.split(' ')
-                    val values = mutableListOf<Value>()
+                    val values = mutableListOf<RuntimeValue>()
                     valueStrings.forEach {
                         when(it.length) {
-                            2 -> values.add(Value(DataType.UBYTE, it.toShort(16)))
-                            4 -> values.add(Value(DataType.UWORD, it.toInt(16)))
+                            2 -> values.add(RuntimeValue(DataType.UBYTE, it.toShort(16)))
+                            4 -> values.add(RuntimeValue(DataType.UWORD, it.toInt(16)))
                             else -> throw VmExecutionException("invalid value at line $lineNr+1")
                         }
                     }
