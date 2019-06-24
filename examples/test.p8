@@ -3,49 +3,106 @@
 
 ~ main {
 
-    ubyte[256] sieve
-    ubyte candidate_prime = 2       ; is increased in the loop
-
     sub start() {
-        memset(sieve, 256, false)   ; clear the sieve, to reset starting situation on subsequent runs
 
-        ; calculate primes
-        c64scr.print("prime numbers up to 255:\n\n")
-        ubyte amount=0
-        while true {
-            ubyte prime = find_next_prime()
-            if prime==0
-                break
-            c64scr.print_ub(prime)
-            c64scr.print(", ")
-            amount++
-        }
-        c64.CHROUT('\n')
-        c64scr.print("number of primes (expected 54): ")
-        c64scr.print_ub(amount)
-        c64.CHROUT('\n')
-    }
+        ubyte ub = 10
+        byte bb=-100
+        uword uw = 1000
+        word ww = -25000
+        ubyte i = 0
 
-
-    sub find_next_prime() -> ubyte {
-
-        while sieve[candidate_prime] {
-            candidate_prime++
-            if candidate_prime==0
-                return 0        ; we wrapped; no more primes available in the sieve
+        while i < 100 {
+            bb += 10
+            c64scr.print_b(bb)
+            c64.CHROUT(',')
+            i++
         }
 
-        ; found next one, mark the multiples and return it.
-        sieve[candidate_prime] = true
-        uword multiple = candidate_prime
-
-
-        while multiple < len(sieve) {
-            sieve[lsb(multiple)] = true
-            multiple += candidate_prime
-            ; c64scr.print_uw(multiple)       ; TODO
-            ; c4.CHROUT('\n')        ; TODO
-        }
-        return candidate_prime
+;        c64scr.print("while1\n")
+;        while(ub < 220) {
+;            c64scr.print_ub(ub)
+;            c64.CHROUT(',')
+;            ub += 25
+;            if ub < 150 continue else break
+;            ub=99
+;        }
+;        c64.CHROUT('\n')
+;
+;        c64scr.print("while2\n")
+;        while(bb < 120) {
+;            c64scr.print_b(bb)
+;            c64.CHROUT(',')
+;            bb += 25
+;            if bb < 50 continue else break
+;            bb=99
+;        }
+;        c64.CHROUT('\n')
+;
+;        c64scr.print("while3\n")
+;        while(uw < 50000) {
+;            c64scr.print_uw(uw)
+;            c64.CHROUT(',')
+;            uw += 2500
+;            if uw < 30000 continue else break
+;            uw=9999
+;        }
+;        c64.CHROUT('\n')
+;
+;        c64scr.print("while4\n")
+;        while(ww < 30000) {
+;            c64scr.print_w(ww)
+;            c64.CHROUT(',')
+;            ww += 2500
+;            if ww < 10000 continue else break
+;            ww=9999
+;        }
+;        c64.CHROUT('\n')
+;        c64.CHROUT('\n')
+;
+;        ub=22
+;        bb=-111
+;        uw=2222
+;        ww=-22222
+;
+;        c64scr.print("repeat1\n")
+;        repeat {
+;            c64scr.print_ub(ub)
+;            c64.CHROUT(',')
+;            ub += 22
+;            ; if ub < 150 continue else break
+;            ;ub=99
+;        } until ub>200
+;        c64.CHROUT('\n')
+;
+;        c64scr.print("repeat2\n")
+;        repeat {
+;            c64scr.print_b(bb)
+;            c64.CHROUT(',')
+;            bb += 22
+;            ;if bb < 50 continue else break
+;            ;bb=99
+;        } until bb > 100
+;        c64.CHROUT('\n')
+;
+;        c64scr.print("repeat3\n")
+;        repeat {
+;            c64scr.print_uw(uw)
+;            c64.CHROUT(',')
+;            uw += 2222
+;            ;if uw < 30000 continue else break
+;            ;uw=9999
+;        } until uw>50000
+;        c64.CHROUT('\n')
+;
+;        c64scr.print("repeat4\n")
+;        repeat {
+;            c64scr.print_w(ww)
+;            c64.CHROUT(',')
+;            ww += 2222
+;            ;if ww < 10000 continue else break
+;            ;ww=9999
+;        } until ww > 20000
+;        c64.CHROUT('\n')
+;        c64.CHROUT('\n')
     }
 }
