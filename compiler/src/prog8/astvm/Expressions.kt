@@ -56,7 +56,7 @@ fun evaluate(expr: IExpression, program: Program, runtimeVars: RuntimeVariables,
         is AddressOf -> {
             // we support: address of heap var -> the heap id
             val heapId = expr.identifier.heapId(program.namespace)
-            return RuntimeValue(DataType.UWORD, heapId = heapId)
+            return RuntimeValue(DataType.UWORD, heapId)
         }
         is DirectMemoryRead -> {
             TODO("$expr")

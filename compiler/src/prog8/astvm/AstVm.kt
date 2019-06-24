@@ -17,7 +17,6 @@ class RuntimeVariables {
         val where = vars.getValue(scope)
         where[name] = initialValue
         vars[scope] = where
-        println("DEFINE RUNTIMEVAR:  ${scope.name}.$name = $initialValue")    // TODO
     }
 
     fun set(scope: INameScope, name: String, value: RuntimeValue) {
@@ -27,7 +26,6 @@ class RuntimeVariables {
             throw VmExecutionException("new value is of different datatype ${value.type} expected ${existing.type} for $name")
         where[name] = value
         vars[scope] = where
-        println("SET RUNTIMEVAR:  ${scope.name}.$name = $value")    // TODO
     }
 
     fun get(scope: INameScope, name: String): RuntimeValue {
@@ -110,14 +108,11 @@ class AstVm(val program: Program) {
     class LoopControlContinue: Exception()
     class LoopControlReturn(val returnvalues: List<RuntimeValue>): Exception()
 
-    internal fun executeSubroutine(sub: INameScope, arguments: List<RuntimeValue>): List<RuntimeValue> {
+    internal fun executeSubroutine(sub: Subroutine, arguments: List<RuntimeValue>): List<RuntimeValue> {
+        assert(!sub.isAsmSubroutine)
         if (sub.statements.isEmpty())
-            if(sub !is AnonymousScope)
-                throw VmTerminationException("scope contains no statements: $sub")
-        if(sub is Subroutine) {
-            assert(!sub.isAsmSubroutine)
-            // TODO process arguments if it's a subroutine
-        }
+            throw VmTerminationException("scope contains no statements: $sub")
+        // TODO process arguments if it's a subroutine
         try {
             for (s in sub.statements) {
                 executeStatement(sub, s)
@@ -125,14 +120,18 @@ class AstVm(val program: Program) {
         } catch (r: LoopControlReturn) {
             return r.returnvalues
         }
-        if(sub !is AnonymousScope)
-            throw VmTerminationException("instruction pointer overflow, is a return missing? $sub")
-        return emptyList()
+        throw VmTerminationException("instruction pointer overflow, is a return missing? $sub")
+    }
+
+    internal fun executeAnonymousScope(scope: INameScope) {
+        for (s in scope.statements) {
+            executeStatement(scope, s)
+        }
     }
 
     private fun executeStatement(sub: INameScope, stmt: IStatement) {
         instructionCounter++
-        if(instructionCounter % 10 == 0)
+        if(instructionCounter % 100 == 0)
             Thread.sleep(1)
         when (stmt) {
             is NopStatement, is Label, is Subroutine -> {
@@ -249,15 +248,13 @@ class AstVm(val program: Program) {
             is InlineAssembly -> {
                 throw VmExecutionException("can't execute inline assembly in $sub")
             }
-            is AnonymousScope -> {
-                throw VmExecutionException("anonymous scopes should have been flattened")
-            }
+            is AnonymousScope -> executeAnonymousScope(stmt)
             is IfStatement -> {
                 val condition = evaluate(stmt.condition, program, runtimeVariables, ::executeSubroutine)
                 if(condition.asBoolean)
-                    executeSubroutine(stmt.truepart, emptyList())
+                    executeAnonymousScope(stmt.truepart)
                 else
-                    executeSubroutine(stmt.elsepart, emptyList())
+                    executeAnonymousScope(stmt.elsepart)
             }
             is BranchStatement -> {
                 TODO("$stmt")
@@ -276,8 +273,7 @@ class AstVm(val program: Program) {
                 var condition = evaluate(stmt.condition, program, runtimeVariables, ::executeSubroutine)
                 while (condition.asBoolean) {
                     try {
-                        println("STILL IN WHILE LOOP ${stmt.position}")
-                        executeSubroutine(stmt.body, emptyList())
+                        executeAnonymousScope(stmt.body)
                         condition = evaluate(stmt.condition, program, runtimeVariables, ::executeSubroutine)
                     } catch(b: LoopControlBreak) {
                         break
@@ -285,13 +281,12 @@ class AstVm(val program: Program) {
                         continue
                     }
                 }
-                println(">>>>WHILE LOOP EXITED")
             }
             is RepeatLoop -> {
                 do {
                     val condition = evaluate(stmt.untilCondition, program, runtimeVariables, ::executeSubroutine)
                     try {
-                        executeSubroutine(stmt.body, emptyList())
+                        executeAnonymousScope(stmt.body)
                     } catch(b: LoopControlBreak) {
                         break
                     } catch(c: LoopControlContinue){
