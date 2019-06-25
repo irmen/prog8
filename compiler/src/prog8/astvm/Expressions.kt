@@ -5,22 +5,25 @@ import prog8.compiler.RuntimeValue
 import prog8.compiler.RuntimeValueRange
 import kotlin.math.abs
 
-fun evaluate(expr: IExpression, program: Program, runtimeVars: RuntimeVariables,
-             executeSubroutine: (sub: Subroutine, args: List<RuntimeValue>) -> List<RuntimeValue>): RuntimeValue {
-    val constval = expr.constValue(program)
+class EvalContext(val program: Program, val runtimeVars: RuntimeVariables,
+                  val functions: BuiltinFunctions,
+                  val executeSubroutine: (sub: Subroutine, args: List<RuntimeValue>) -> List<RuntimeValue>)
+
+fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
+    val constval = expr.constValue(ctx.program)
     if(constval!=null)
-        return RuntimeValue.from(constval, program.heap)
+        return RuntimeValue.from(constval, ctx.program.heap)
 
     when(expr) {
         is LiteralValue -> {
-            return RuntimeValue.from(expr, program.heap)
+            return RuntimeValue.from(expr, ctx.program.heap)
         }
         is PrefixExpression -> {
             TODO("prefixexpr $expr")
         }
         is BinaryExpression -> {
-            val left = evaluate(expr.left, program, runtimeVars, executeSubroutine)
-            val right = evaluate(expr.right, program, runtimeVars, executeSubroutine)
+            val left = evaluate(expr.left, ctx)
+            val right = evaluate(expr.right, ctx)
             return when(expr.operator) {
                 "<" -> RuntimeValue(DataType.UBYTE, if (left < right) 1 else 0)
                 "<=" -> RuntimeValue(DataType.UBYTE, if (left <= right) 1 else 0)
@@ -40,8 +43,8 @@ fun evaluate(expr: IExpression, program: Program, runtimeVars: RuntimeVariables,
             }
         }
         is ArrayIndexedExpression -> {
-            val array = evaluate(expr.identifier, program, runtimeVars, executeSubroutine)
-            val index = evaluate(expr.arrayspec.index, program, runtimeVars, executeSubroutine)
+            val array = evaluate(expr.identifier, ctx)
+            val index = evaluate(expr.arrayspec.index, ctx)
             val value = array.array!![index.integerValue()]
             return when(array.type) {
                 DataType.ARRAY_UB -> RuntimeValue(DataType.UBYTE, num = value)
@@ -53,11 +56,11 @@ fun evaluate(expr: IExpression, program: Program, runtimeVars: RuntimeVariables,
             }
         }
         is TypecastExpression -> {
-            return evaluate(expr.expression, program, runtimeVars, executeSubroutine).cast(expr.type)
+            return evaluate(expr.expression, ctx).cast(expr.type)
         }
         is AddressOf -> {
             // we support: address of heap var -> the heap id
-            val heapId = expr.identifier.heapId(program.namespace)
+            val heapId = expr.identifier.heapId(ctx.program.namespace)
             return RuntimeValue(DataType.UWORD, heapId)
         }
         is DirectMemoryRead -> {
@@ -66,25 +69,29 @@ fun evaluate(expr: IExpression, program: Program, runtimeVars: RuntimeVariables,
         is DirectMemoryWrite -> {
             TODO("memorywrite $expr")
         }
-        is RegisterExpr -> return runtimeVars.get(program.namespace, expr.register.name)
+        is RegisterExpr -> return ctx.runtimeVars.get(ctx.program.namespace, expr.register.name)
         is IdentifierReference -> {
             val scope = expr.definingScope()
             val variable = scope.lookup(expr.nameInSource, expr)
             if(variable is VarDecl) {
                 val stmt = scope.lookup(listOf(variable.name), expr)!!
-                return runtimeVars.get(stmt.definingScope(), variable.name)
+                return ctx.runtimeVars.get(stmt.definingScope(), variable.name)
             } else
                 TODO("weird ref $variable")
         }
         is FunctionCall -> {
-            val sub = expr.target.targetStatement(program.namespace)
-            val args = expr.arglist.map { evaluate(it, program, runtimeVars, executeSubroutine) }
-            when(sub) {
+            val sub = expr.target.targetStatement(ctx.program.namespace)
+            val args = expr.arglist.map { evaluate(it, ctx) }
+            return when(sub) {
                 is Subroutine -> {
-                    val results = executeSubroutine(sub, args)
+                    val results = ctx.executeSubroutine(sub, args)
                     if(results.size!=1)
                         throw VmExecutionException("expected 1 result from functioncall $expr")
-                    return results[0]
+                    results[0]
+                }
+                is BuiltinFunctionStatementPlaceholder -> {
+                    val result = ctx.functions.performBuiltinFunction(sub.name, args) ?: throw VmExecutionException("expected 1 result from functioncall $expr")
+                    result
                 }
                 else -> {
                     TODO("call expr function ${expr.target}")
@@ -92,12 +99,12 @@ fun evaluate(expr: IExpression, program: Program, runtimeVars: RuntimeVariables,
             }
         }
         is RangeExpr -> {
-            val cRange = expr.toConstantIntegerRange(program.heap)
+            val cRange = expr.toConstantIntegerRange(ctx.program.heap)
             if(cRange!=null)
-                return RuntimeValueRange(expr.resultingDatatype(program)!!, cRange)
-            val fromVal = evaluate(expr.from, program, runtimeVars, executeSubroutine).integerValue()
-            val toVal = evaluate(expr.to, program, runtimeVars, executeSubroutine).integerValue()
-            val stepVal = evaluate(expr.step, program, runtimeVars, executeSubroutine).integerValue()
+                return RuntimeValueRange(expr.resultingDatatype(ctx.program)!!, cRange)
+            val fromVal = evaluate(expr.from, ctx).integerValue()
+            val toVal = evaluate(expr.to, ctx).integerValue()
+            val stepVal = evaluate(expr.step, ctx).integerValue()
             val range = when {
                 fromVal <= toVal -> when {
                     stepVal <= 0 -> IntRange.EMPTY
@@ -110,7 +117,7 @@ fun evaluate(expr: IExpression, program: Program, runtimeVars: RuntimeVariables,
                     else -> fromVal downTo toVal step abs(stepVal)
                 }
             }
-            return RuntimeValueRange(expr.resultingDatatype(program)!!, range)
+            return RuntimeValueRange(expr.resultingDatatype(ctx.program)!!, range)
         }
         else -> {
             TODO("implement eval $expr")

@@ -1,26 +1,44 @@
 %import c64utils
 %zeropage basicsafe
+%import c64flt
+
 
 ~ main {
 
     sub start() {
-        Y=99
-        A=200
-        Y=A
-        ubyte r = subt()
-        c64scr.print_ub(r)
+        c64scr.print_ub(rnd())
         c64.CHROUT('\n')
-    }
-
-    sub subt() -> ubyte {
-
-        for Y in 20 to 50 step 5 {
-            c64scr.print_ub(Y)
-            c64.CHROUT(',')
-            if Y>40
-                return 99
-        }
+        c64scr.print_ub(rnd())
         c64.CHROUT('\n')
-        return 10
+        c64scr.print_ub(rnd())
+        c64.CHROUT('\n')
+        c64scr.print_uw(rndw())
+        c64.CHROUT('\n')
+        c64scr.print_uw(rndw())
+        c64.CHROUT('\n')
+        c64flt.print_f(rndf())
+        c64.CHROUT('\n')
+        c64flt.print_f(rndf())
+        c64.CHROUT('\n')
+        c64.CHROUT('\n')
+
+        A=rnd()
+        c64scr.print_ub(A)
+        c64.CHROUT('\n')
+        A=rnd()
+        c64scr.print_ub(A)
+        c64.CHROUT('\n')
+        A=rnd()
+        c64scr.print_ub(A)
+        c64.CHROUT('\n')
+        A=rnd()
+        c64scr.print_ub(A)
+        c64.CHROUT('\n')
+        A=rnd()
+        c64scr.print_ub(A)
+        c64.CHROUT('\n')
+        A=rnd()
+        c64scr.print_ub(A)
+        c64.CHROUT('\n')
     }
 }

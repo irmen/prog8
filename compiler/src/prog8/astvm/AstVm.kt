@@ -104,6 +104,7 @@ class AstVm(val program: Program) {
     }
 
     private val runtimeVariables = RuntimeVariables()
+    private val functions = BuiltinFunctions()
 
     class LoopControlBreak: Exception()
     class LoopControlContinue: Exception()
@@ -131,6 +132,7 @@ class AstVm(val program: Program) {
     }
 
     private fun executeStatement(sub: INameScope, stmt: IStatement) {
+        val evalCtx = EvalContext(program, runtimeVariables, functions, ::executeSubroutine)
         instructionCounter++
         if(instructionCounter % 100 == 0)
             Thread.sleep(1)
@@ -161,7 +163,7 @@ class AstVm(val program: Program) {
                     }
                     is BuiltinFunctionStatementPlaceholder -> {
                         val args = evaluate(stmt.arglist)
-                        performBuiltinFunction(target.name, args)
+                        functions.performBuiltinFunction(target.name, args)
                     }
                     else -> {
                         TODO("CALL $target")
@@ -171,7 +173,7 @@ class AstVm(val program: Program) {
             is BuiltinFunctionStatementPlaceholder -> {
                 TODO("builtinfun $stmt")
             }
-            is Return -> throw LoopControlReturn(stmt.values.map { evaluate(it, program, runtimeVariables, ::executeSubroutine) })
+            is Return -> throw LoopControlReturn(stmt.values.map { evaluate(it, evalCtx) })
             is Continue -> throw LoopControlContinue()
             is Break -> throw LoopControlBreak()
             is Assignment -> {
@@ -179,11 +181,11 @@ class AstVm(val program: Program) {
                     throw VmExecutionException("augmented assignment should have been converted into regular one $stmt")
                 val target = stmt.singleTarget
                 if(target!=null) {
+                    val value = evaluate(stmt.value, evalCtx)
                     when {
                         target.identifier!=null -> {
                             val ident = stmt.definingScope().lookup(target.identifier.nameInSource, stmt) as? VarDecl
                                     ?: throw VmExecutionException("can't find assignment target ${target.identifier}")
-                            val value = evaluate(stmt.value, program, runtimeVariables, ::executeSubroutine)
                             val identScope = ident.definingScope()
                             runtimeVariables.set(identScope, ident.name, value)
                         }
@@ -191,9 +193,9 @@ class AstVm(val program: Program) {
                             TODO("assign memory $stmt")
                         }
                         target.arrayindexed!=null -> {
-                            val array = evaluate(target.arrayindexed.identifier, program, runtimeVariables, ::executeSubroutine)
-                            val index = evaluate(target.arrayindexed.arrayspec.index, program, runtimeVariables, ::executeSubroutine)
-                            val value = evaluate(stmt.value, program, runtimeVariables, ::executeSubroutine)
+                            val array = evaluate(target.arrayindexed.identifier, evalCtx)
+                            val index = evaluate(target.arrayindexed.arrayspec.index, evalCtx)
+                            val value = evaluate(stmt.value, evalCtx)
                             when(array.type) {
                                 DataType.ARRAY_UB -> {
                                     if(value.type!=DataType.UBYTE)
@@ -219,6 +221,10 @@ class AstVm(val program: Program) {
                             }
                             array.array!![index.integerValue()] = value.numericValue()
                         }
+                        target.register!=null -> {
+                            runtimeVariables.set(program.namespace, target.register.name, value)
+                        }
+                        else -> TODO("assign $target")
                     }
                 }
                 else TODO("assign multitarget $stmt")
@@ -248,11 +254,21 @@ class AstVm(val program: Program) {
                 TODO("jump $stmt")
             }
             is InlineAssembly -> {
+                if(sub is Subroutine) {
+                    when(sub.scopedname) {
+                        "c64flt.print_f" -> {
+                            val arg = runtimeVariables.get(sub, sub.parameters.single().name)
+                            performSyscall(sub, listOf(arg))
+                        }
+                        else -> TODO("simulate asm subroutine ${sub.scopedname}")
+                    }
+                    throw LoopControlReturn(emptyList())
+                }
                 throw VmExecutionException("can't execute inline assembly in $sub")
             }
             is AnonymousScope -> executeAnonymousScope(stmt)
             is IfStatement -> {
-                val condition = evaluate(stmt.condition, program, runtimeVariables, ::executeSubroutine)
+                val condition = evaluate(stmt.condition, evalCtx)
                 if(condition.asBoolean)
                     executeAnonymousScope(stmt.truepart)
                 else
@@ -262,7 +278,7 @@ class AstVm(val program: Program) {
                 TODO("branch $stmt")
             }
             is ForLoop -> {
-                val iterable = evaluate(stmt.iterable, program, runtimeVariables, ::executeSubroutine)
+                val iterable = evaluate(stmt.iterable, evalCtx)
                 if (iterable.type !in IterableDatatypes && iterable !is RuntimeValueRange)
                     throw VmExecutionException("can only iterate over an iterable value:  $stmt")
                 val loopvarDt: DataType
@@ -287,11 +303,11 @@ class AstVm(val program: Program) {
                 }
             }
             is WhileLoop -> {
-                var condition = evaluate(stmt.condition, program, runtimeVariables, ::executeSubroutine)
+                var condition = evaluate(stmt.condition, evalCtx)
                 while (condition.asBoolean) {
                     try {
                         executeAnonymousScope(stmt.body)
-                        condition = evaluate(stmt.condition, program, runtimeVariables, ::executeSubroutine)
+                        condition = evaluate(stmt.condition, evalCtx)
                     } catch(b: LoopControlBreak) {
                         break
                     } catch(c: LoopControlContinue){
@@ -301,7 +317,7 @@ class AstVm(val program: Program) {
             }
             is RepeatLoop -> {
                 do {
-                    val condition = evaluate(stmt.untilCondition, program, runtimeVariables, ::executeSubroutine)
+                    val condition = evaluate(stmt.untilCondition, evalCtx)
                     try {
                         executeAnonymousScope(stmt.body)
                     } catch(b: LoopControlBreak) {
@@ -334,20 +350,8 @@ class AstVm(val program: Program) {
         executeAnonymousScope(stmt.body)   // and run the code
     }
 
-    private fun evaluate(args: List<IExpression>): List<RuntimeValue>  = args.map { evaluate(it, program, runtimeVariables, ::executeSubroutine) }
-
-    private fun performBuiltinFunction(name: String, args: List<RuntimeValue>) {
-        when(name) {
-            "memset" -> {
-                val target = args[0].array!!
-                val amount = args[1].integerValue()
-                val value = args[2].integerValue()
-                for(i in 0 until amount) {
-                    target[i] = value
-                }
-            }
-            else -> TODO("builtin function $name")
-        }
+    private fun evaluate(args: List<IExpression>): List<RuntimeValue>  = args.map {
+        evaluate(it, EvalContext(program, runtimeVariables, functions, ::executeSubroutine))
     }
 
     private fun performSyscall(sub: Subroutine, args: List<RuntimeValue>) {
@@ -387,7 +391,10 @@ class AstVm(val program: Program) {
             "c64.CHROUT" -> {
                 dialog.canvas.printChar(args[0].byteval!!)
             }
-            else -> TODO("syscall $sub")
+            "c64flt.print_f" -> {
+                dialog.canvas.printText(args[0].floatval.toString(), 1, true)
+            }
+            else -> TODO("syscall  ${sub.scopedname} $sub")
         }
     }
 
