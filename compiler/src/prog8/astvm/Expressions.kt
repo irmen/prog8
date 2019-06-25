@@ -2,6 +2,8 @@ package prog8.astvm
 
 import prog8.ast.*
 import prog8.compiler.RuntimeValue
+import prog8.compiler.RuntimeValueRange
+import kotlin.math.abs
 
 fun evaluate(expr: IExpression, program: Program, runtimeVars: RuntimeVariables,
              executeSubroutine: (sub: Subroutine, args: List<RuntimeValue>) -> List<RuntimeValue>): RuntimeValue {
@@ -60,11 +62,9 @@ fun evaluate(expr: IExpression, program: Program, runtimeVars: RuntimeVariables,
         }
         is DirectMemoryRead -> {
             TODO("$expr")
-
         }
         is DirectMemoryWrite -> {
             TODO("$expr")
-
         }
         is RegisterExpr -> {
             TODO("$expr")
@@ -94,7 +94,25 @@ fun evaluate(expr: IExpression, program: Program, runtimeVars: RuntimeVariables,
             }
         }
         is RangeExpr -> {
-            TODO("eval range $expr")
+            val cRange = expr.toConstantIntegerRange(program.heap)
+            if(cRange!=null)
+                return RuntimeValueRange(expr.resultingDatatype(program)!!, cRange)
+            val fromVal = evaluate(expr.from, program, runtimeVars, executeSubroutine).integerValue()
+            val toVal = evaluate(expr.to, program, runtimeVars, executeSubroutine).integerValue()
+            val stepVal = evaluate(expr.step, program, runtimeVars, executeSubroutine).integerValue()
+            val range = when {
+                fromVal <= toVal -> when {
+                    stepVal <= 0 -> IntRange.EMPTY
+                    stepVal == 1 -> fromVal..toVal
+                    else -> fromVal..toVal step stepVal
+                }
+                else -> when {
+                    stepVal >= 0 -> IntRange.EMPTY
+                    stepVal == -1 -> fromVal downTo toVal
+                    else -> fromVal downTo toVal step abs(stepVal)
+                }
+            }
+            return RuntimeValueRange(expr.resultingDatatype(program)!!, range)
         }
         else -> {
             TODO("implement eval $expr")

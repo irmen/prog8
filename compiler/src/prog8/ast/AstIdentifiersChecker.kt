@@ -172,7 +172,7 @@ private class AstIdentifiersChecker(private val namespace: INameScope) : IAstPro
                 val existing = if(forLoop.body.containsNoCodeNorVars()) null else forLoop.body.lookup(forLoop.loopVar.nameInSource, forLoop.body.statements.first())
                 if(existing==null) {
                     // create the local scoped for loop variable itself
-                    val vardecl = VarDecl(VarDeclType.VAR, forLoop.decltype, true, null, false, varName, null, forLoop.loopVar.position)
+                    val vardecl = VarDecl(VarDeclType.VAR, forLoop.decltype, forLoop.zeropage, null, false, varName, null, forLoop.loopVar.position)
                     vardecl.linkParents(forLoop.body)
                     forLoop.body.statements.add(0, vardecl)
                     forLoop.loopVar.parent = forLoop.body   // loopvar 'is defined in the body'

@@ -523,7 +523,8 @@ And this is a loop over the values of the array ``fibonacci_numbers`` where the 
     }
 
 
-You can inline the loop variable declaration in the for statement, including optional zp-tag::
+You can inline the loop variable declaration in the for statement, including optional zp-tag. In this case
+the variable is not visible outside of the for loop::
 
     for ubyte @zp fastindex in 10 to 20 {
         ; do something

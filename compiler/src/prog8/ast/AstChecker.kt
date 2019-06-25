@@ -150,10 +150,10 @@ private class AstChecker(private val program: Program,
         if(forLoop.body.containsNoCodeNorVars())
             printWarning("for loop body is empty", forLoop.position)
 
-        if(!forLoop.iterable.isIterable(program)) {
+        val iterableDt = forLoop.iterable.resultingDatatype(program)
+        if(iterableDt !in IterableDatatypes && forLoop.iterable !is RangeExpr) {
             checkResult.add(ExpressionError("can only loop over an iterable type", forLoop.position))
         } else {
-            val iterableDt = forLoop.iterable.resultingDatatype(program)
             if (forLoop.loopRegister != null) {
                 printWarning("using a register as loop variable is risky (it could get clobbered in the body)", forLoop.position)
                 // loop register

@@ -1,6 +1,7 @@
 package prog8.compiler
 
 import prog8.ast.*
+import prog8.compiler.target.c64.Petscii
 import kotlin.math.abs
 import kotlin.math.pow
 
@@ -10,7 +11,7 @@ import kotlin.math.pow
  * this runtime value can be used to *execute* the parsed Ast (or another intermediary form)
  * It contains a value of a variable during run time of the program and provides arithmetic operations on the value.
  */
-class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=null, val array: Array<Number>?=null, val heapId: Int?=null) {
+open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=null, val array: Array<Number>?=null, val heapId: Int?=null) {
 
     val byteval: Short?
     val wordval: Int?
@@ -501,4 +502,22 @@ class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=null,
         }
     }
 
+    open fun iterator(): Iterator<Any> {
+        return when (type) {
+            in StringDatatypes -> {
+                Petscii.encodePetscii(str!!, true).iterator()
+            }
+            in ArrayDatatypes -> {
+                array!!.iterator()
+            }
+            else -> throw IllegalArgumentException("cannot iterate over $this")
+        }
+    }
+}
+
+
+class RuntimeValueRange(type: DataType, val range: IntProgression): RuntimeValue(type, 0) {
+    override fun iterator(): Iterator<Any> {
+        return range.iterator()
+    }
 }

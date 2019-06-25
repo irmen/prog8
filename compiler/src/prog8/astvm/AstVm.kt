@@ -2,6 +2,7 @@ package prog8.astvm
 
 import prog8.ast.*
 import prog8.compiler.RuntimeValue
+import prog8.compiler.RuntimeValueRange
 import java.awt.EventQueue
 
 
@@ -260,14 +261,37 @@ class AstVm(val program: Program) {
                 TODO("$stmt")
             }
             is ForLoop -> {
-                TODO("$stmt")
-//                try {
-//
-//                } catch(b: LoopControlBreak) {
-//                    break
-//                } catch(c: LoopControlContinue){
-//                    continue
-//                }
+                val iterable = evaluate(stmt.iterable, program, runtimeVariables, ::executeSubroutine)
+                if (iterable.type !in IterableDatatypes && iterable !is RuntimeValueRange)
+                    throw VmExecutionException("can only iterate over an iterable value:  $stmt")
+                val iterator: Iterator<Any> = iterable.iterator()
+                if(stmt.loopRegister!=null)
+                    TODO("for with register")
+                else if(stmt.loopVar!=null) {
+                    for(v in iterator) {
+                        try {
+                            val value: LiteralValue =
+                                when(stmt.loopVar.resultingDatatype(program)!!) {
+                                    DataType.UBYTE -> LiteralValue(DataType.UBYTE, (v as Number).toShort(), position=stmt.position)
+                                    DataType.BYTE -> LiteralValue(DataType.BYTE, (v as Number).toShort(), position=stmt.position)
+                                    DataType.UWORD -> LiteralValue(DataType.UWORD, wordvalue = (v as Int), position=stmt.position)
+                                    DataType.WORD ->  LiteralValue(DataType.WORD, wordvalue = (v as Int), position=stmt.position)
+                                    DataType.FLOAT -> LiteralValue(DataType.FLOAT, floatvalue = (v as Double), position=stmt.position)
+                                    DataType.STR, DataType.STR_S -> LiteralValue(DataType.UBYTE, (v as Char).toShort(), position=stmt.position)
+                                    else -> TODO("weird loopvar type")
+                                }
+                            val assignment = Assignment(listOf(AssignTarget(null, stmt.loopVar, null, null,
+                                    position=stmt.loopVar.position)), null, value, stmt.iterable.position)
+                            assignment.linkParents(stmt.body)
+                            executeStatement(stmt.body, assignment)   // assign the new loop value to the loopvar
+                            executeAnonymousScope(stmt.body)   // and run the code
+                        } catch (b: LoopControlBreak) {
+                            break
+                        } catch (c: LoopControlContinue) {
+                            continue
+                        }
+                    }
+                } else TODO("strange for $stmt")
             }
             is WhileLoop -> {
                 var condition = evaluate(stmt.condition, program, runtimeVariables, ::executeSubroutine)
@@ -299,7 +323,6 @@ class AstVm(val program: Program) {
             }
         }
     }
-
 
     private fun evaluate(args: List<IExpression>): List<RuntimeValue>  = args.map { evaluate(it, program, runtimeVariables, ::executeSubroutine) }
 

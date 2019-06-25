@@ -1676,7 +1676,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
                     val idRef = loop.iterable as IdentifierReference
                     val vardecl = idRef.targetVarDecl(program.namespace)!!
                     val iterableValue = vardecl.value as LiteralValue
-                    if(!iterableValue.isIterable(program))
+                    if(iterableValue.type !in IterableDatatypes)
                         throw CompilerException("loop over something that isn't iterable ${loop.iterable}")
                     translateForOverIterableVar(loop, loopVarDt, iterableValue)
                 }
