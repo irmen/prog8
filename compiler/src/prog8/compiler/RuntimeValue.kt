@@ -502,7 +502,7 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
         }
     }
 
-    open fun iterator(): Iterator<Any> {
+    open fun iterator(): Iterator<Number> {
         return when (type) {
             in StringDatatypes -> {
                 Petscii.encodePetscii(str!!, true).iterator()
@@ -517,7 +517,7 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
 
 
 class RuntimeValueRange(type: DataType, val range: IntProgression): RuntimeValue(type, 0) {
-    override fun iterator(): Iterator<Any> {
+    override fun iterator(): Iterator<Number> {
         return range.iterator()
     }
 }

@@ -21,7 +21,7 @@ internal fun Program.constantFold() {
         optimizer.errors.forEach { System.err.println(it) }
         throw ParsingFailedError("There are ${optimizer.errors.size} errors.")
     } else {
-        modules.forEach { it.linkParents() }   // re-link in final configuration
+        modules.forEach { it.linkParents(namespace) }   // re-link in final configuration
     }
 }
 
@@ -37,7 +37,7 @@ internal fun Program.optimizeStatements(optimizeInlining: Boolean): Int {
             namescope.statements.addAll(idx, scope.statements)
         }
     }
-    modules.forEach { it.linkParents() }   // re-link in final configuration
+    modules.forEach { it.linkParents(this.namespace) }   // re-link in final configuration
 
     return optimizer.optimizationsDone
 }

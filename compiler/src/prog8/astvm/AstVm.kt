@@ -169,7 +169,7 @@ class AstVm(val program: Program) {
                 }
             }
             is BuiltinFunctionStatementPlaceholder -> {
-                TODO("$stmt")
+                TODO("builtinfun $stmt")
             }
             is Return -> throw LoopControlReturn(stmt.values.map { evaluate(it, program, runtimeVariables, ::executeSubroutine) })
             is Continue -> throw LoopControlContinue()
@@ -181,13 +181,14 @@ class AstVm(val program: Program) {
                 if(target!=null) {
                     when {
                         target.identifier!=null -> {
-                            val ident = stmt.definingScope().lookup(target.identifier.nameInSource, stmt) as VarDecl
+                            val ident = stmt.definingScope().lookup(target.identifier.nameInSource, stmt) as? VarDecl
+                                    ?: throw VmExecutionException("can't find assignment target ${target.identifier}")
                             val value = evaluate(stmt.value, program, runtimeVariables, ::executeSubroutine)
                             val identScope = ident.definingScope()
                             runtimeVariables.set(identScope, ident.name, value)
                         }
                         target.memoryAddress!=null -> {
-                            TODO("$stmt")
+                            TODO("assign memory $stmt")
                         }
                         target.arrayindexed!=null -> {
                             val array = evaluate(target.arrayindexed.identifier, program, runtimeVariables, ::executeSubroutine)
@@ -220,7 +221,7 @@ class AstVm(val program: Program) {
                         }
                     }
                 }
-                else TODO("$stmt")
+                else TODO("assign multitarget $stmt")
             }
             is PostIncrDecr -> {
                 when {
@@ -236,15 +237,15 @@ class AstVm(val program: Program) {
                         runtimeVariables.set(identScope, ident.name, value)
                     }
                     stmt.target.memoryAddress!=null -> {
-                        TODO("$stmt")
+                        TODO("postincrdecr memory $stmt")
                     }
                     stmt.target.arrayindexed!=null -> {
-                        TODO("$stmt")
+                        TODO("postincrdecr array $stmt")
                     }
                 }
             }
             is Jump -> {
-                TODO("$stmt")
+                TODO("jump $stmt")
             }
             is InlineAssembly -> {
                 throw VmExecutionException("can't execute inline assembly in $sub")
@@ -258,40 +259,32 @@ class AstVm(val program: Program) {
                     executeAnonymousScope(stmt.elsepart)
             }
             is BranchStatement -> {
-                TODO("$stmt")
+                TODO("branch $stmt")
             }
             is ForLoop -> {
                 val iterable = evaluate(stmt.iterable, program, runtimeVariables, ::executeSubroutine)
                 if (iterable.type !in IterableDatatypes && iterable !is RuntimeValueRange)
                     throw VmExecutionException("can only iterate over an iterable value:  $stmt")
-                val iterator: Iterator<Any> = iterable.iterator()
-                if(stmt.loopRegister!=null)
-                    TODO("for with register")
-                else if(stmt.loopVar!=null) {
-                    for(v in iterator) {
-                        try {
-                            val value: LiteralValue =
-                                when(stmt.loopVar.resultingDatatype(program)!!) {
-                                    DataType.UBYTE -> LiteralValue(DataType.UBYTE, (v as Number).toShort(), position=stmt.position)
-                                    DataType.BYTE -> LiteralValue(DataType.BYTE, (v as Number).toShort(), position=stmt.position)
-                                    DataType.UWORD -> LiteralValue(DataType.UWORD, wordvalue = (v as Int), position=stmt.position)
-                                    DataType.WORD ->  LiteralValue(DataType.WORD, wordvalue = (v as Int), position=stmt.position)
-                                    DataType.FLOAT -> LiteralValue(DataType.FLOAT, floatvalue = (v as Double), position=stmt.position)
-                                    DataType.STR, DataType.STR_S -> LiteralValue(DataType.UBYTE, (v as Char).toShort(), position=stmt.position)
-                                    else -> TODO("weird loopvar type")
-                                }
-                            val assignment = Assignment(listOf(AssignTarget(null, stmt.loopVar, null, null,
-                                    position=stmt.loopVar.position)), null, value, stmt.iterable.position)
-                            assignment.linkParents(stmt.body)
-                            executeStatement(stmt.body, assignment)   // assign the new loop value to the loopvar
-                            executeAnonymousScope(stmt.body)   // and run the code
-                        } catch (b: LoopControlBreak) {
-                            break
-                        } catch (c: LoopControlContinue) {
-                            continue
-                        }
+                val loopvarDt: DataType
+                val loopvar: IdentifierReference
+                if(stmt.loopRegister!=null) {
+                    loopvarDt = DataType.UBYTE
+                    loopvar = IdentifierReference(listOf(stmt.loopRegister.name), stmt.position)
+                }
+                else {
+                    loopvarDt = stmt.loopVar!!.resultingDatatype(program)!!
+                    loopvar = stmt.loopVar
+                }
+                val iterator = iterable.iterator()
+                for(loopvalue in iterator) {
+                    try {
+                        oneForCycle(stmt, loopvarDt, loopvalue, loopvar)
+                    } catch (b: LoopControlBreak) {
+                        break
+                    } catch (c: LoopControlContinue) {
+                        continue
                     }
-                } else TODO("strange for $stmt")
+                }
             }
             is WhileLoop -> {
                 var condition = evaluate(stmt.condition, program, runtimeVariables, ::executeSubroutine)
@@ -322,6 +315,23 @@ class AstVm(val program: Program) {
                 TODO("implement $stmt")
             }
         }
+    }
+
+    private fun oneForCycle(stmt: ForLoop, loopvarDt: DataType, loopValue: Number, loopVar: IdentifierReference) {
+        val value: LiteralValue =
+                when (loopvarDt) {
+                    DataType.UBYTE -> LiteralValue(DataType.UBYTE, loopValue.toShort(), position = stmt.position)
+                    DataType.BYTE -> LiteralValue(DataType.BYTE, loopValue.toShort(), position = stmt.position)
+                    DataType.UWORD -> LiteralValue(DataType.UWORD, wordvalue = (loopValue as Int), position = stmt.position)
+                    DataType.WORD -> LiteralValue(DataType.WORD, wordvalue = (loopValue as Int), position = stmt.position)
+                    DataType.FLOAT -> LiteralValue(DataType.FLOAT, floatvalue = (loopValue as Double), position = stmt.position)
+                    else -> TODO("weird loopvar type $loopvarDt")
+                }
+        val assignment = Assignment(listOf(AssignTarget(null, loopVar, null, null,
+                position = loopVar.position)), null, value, stmt.iterable.position)
+        assignment.linkParents(stmt.body)
+        executeStatement(stmt.body, assignment)   // assign the new loop value to the loopvar
+        executeAnonymousScope(stmt.body)   // and run the code
     }
 
     private fun evaluate(args: List<IExpression>): List<RuntimeValue>  = args.map { evaluate(it, program, runtimeVariables, ::executeSubroutine) }

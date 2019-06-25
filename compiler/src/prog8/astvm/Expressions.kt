@@ -16,7 +16,7 @@ fun evaluate(expr: IExpression, program: Program, runtimeVars: RuntimeVariables,
             return RuntimeValue.from(expr, program.heap)
         }
         is PrefixExpression -> {
-            TODO("$expr")
+            TODO("prefixexpr $expr")
         }
         is BinaryExpression -> {
             val left = evaluate(expr.left, program, runtimeVars, executeSubroutine)
@@ -61,14 +61,12 @@ fun evaluate(expr: IExpression, program: Program, runtimeVars: RuntimeVariables,
             return RuntimeValue(DataType.UWORD, heapId)
         }
         is DirectMemoryRead -> {
-            TODO("$expr")
+            TODO("memoryread $expr")
         }
         is DirectMemoryWrite -> {
-            TODO("$expr")
+            TODO("memorywrite $expr")
         }
-        is RegisterExpr -> {
-            TODO("$expr")
-        }
+        is RegisterExpr -> return runtimeVars.get(program.namespace, expr.register.name)
         is IdentifierReference -> {
             val scope = expr.definingScope()
             val variable = scope.lookup(expr.nameInSource, expr)
@@ -76,7 +74,7 @@ fun evaluate(expr: IExpression, program: Program, runtimeVars: RuntimeVariables,
                 val stmt = scope.lookup(listOf(variable.name), expr)!!
                 return runtimeVars.get(stmt.definingScope(), variable.name)
             } else
-                TODO("$variable")
+                TODO("weird ref $variable")
         }
         is FunctionCall -> {
             val sub = expr.target.targetStatement(program.namespace)

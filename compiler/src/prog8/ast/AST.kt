@@ -335,6 +335,8 @@ interface Node {
         if(this is Label && this.name.startsWith("builtin::")) {
             return BuiltinFunctionScopePlaceholder
         }
+        if(this is GlobalNamespace)
+            return this
         throw FatalAstException("scope missing from $this")
     }
 }
@@ -527,14 +529,10 @@ class Module(override val name: String,
     val importedBy = mutableListOf<Module>()
     val imports = mutableSetOf<Module>()
 
-    override fun linkParents(parent: Node) {
-        this.parent=parent
-    }
-
     var loadAddress: Int = 0        // can be set with the %address directive
 
-    fun linkParents() {
-        parent = ParentSentinel
+    override fun linkParents(parent: Node) {
+        this.parent = parent
         statements.forEach {it.linkParents(this)}
     }
 
@@ -544,14 +542,14 @@ class Module(override val name: String,
 }
 
 
-class GlobalNamespace(val modules: List<Module>): INameScope {
+class GlobalNamespace(val modules: List<Module>): Node, INameScope {
     override val name = "<<<global>>>"
     override val position = Position("<<<global>>>", 0, 0, 0)
     override val statements = mutableListOf<IStatement>()
-    override val parent: Node = ParentSentinel
+    override var parent: Node = ParentSentinel
 
     override fun linkParents(parent: Node) {
-        modules.forEach { it.linkParents(ParentSentinel) }
+        modules.forEach { it.linkParents(this) }
     }
 
     override fun lookup(scopedName: List<String>, localContext: Node): IStatement? {

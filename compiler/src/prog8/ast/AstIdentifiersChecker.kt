@@ -163,7 +163,7 @@ private class AstIdentifiersChecker(private val namespace: INameScope) : IAstPro
         // additional interation count variable in their scope.
         if(forLoop.loopRegister!=null) {
             if(forLoop.decltype!=null)
-                checkResult.add(SyntaxError("register loop variables cannot be explicitly declared with a datatype", forLoop.position))
+                checkResult.add(SyntaxError("register loop variables have a fixed implicit datatype", forLoop.position))
             if(forLoop.loopRegister == Register.X)
                 printWarning("writing to the X register is dangerous, because it's used as an internal pointer", forLoop.position)
         } else if(forLoop.loopVar!=null) {

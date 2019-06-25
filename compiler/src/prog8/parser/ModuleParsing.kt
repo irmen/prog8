@@ -66,9 +66,9 @@ internal fun importModule(program: Program, stream: CharStream, modulePath: Path
     // tokens.commentTokens().forEach { println(it) }
 
     // convert to Ast
-    val moduleAst = parseTree.toAst(moduleName.toString(), isLibrary, modulePath)
+    val moduleAst = parseTree.toAst(moduleName, isLibrary, modulePath)
     moduleAst.program = program
-    moduleAst.linkParents()
+    moduleAst.linkParents(program.namespace)
     program.modules.add(moduleAst)
 
     // process additional imports

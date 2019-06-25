@@ -533,7 +533,7 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
         val rangeTo = iterableRange.to as? LiteralValue
         if(rangeFrom==null || rangeTo==null) return resultStmt
 
-        val loopvar = resultStmt.loopVar!!.targetVarDecl(program.namespace)
+        val loopvar = resultStmt.loopVar?.targetVarDecl(program.namespace)
         if(loopvar!=null) {
             val stepLiteral = iterableRange.step as? LiteralValue
             when(loopvar.datatype) {
