@@ -6,39 +6,20 @@
 ~ main {
 
     sub start() {
-        c64scr.print_ub(rnd())
+        uword uw = $ab34
+        str name = "irmen de jong"
+
+        c64scr.print_ub(len(name))
         c64.CHROUT('\n')
-        c64scr.print_ub(rnd())
+        c64scr.print_ub(strlen(name))
         c64.CHROUT('\n')
-        c64scr.print_ub(rnd())
+        c64scr.print(name)
         c64.CHROUT('\n')
-        c64scr.print_uw(rndw())
+        name[6] = 0
+        c64scr.print_ub(strlen(name))
         c64.CHROUT('\n')
-        c64scr.print_uw(rndw())
-        c64.CHROUT('\n')
-        c64flt.print_f(rndf())
-        c64.CHROUT('\n')
-        c64flt.print_f(rndf())
-        c64.CHROUT('\n')
+        c64scr.print(name)
         c64.CHROUT('\n')
 
-        A=rnd()
-        c64scr.print_ub(A)
-        c64.CHROUT('\n')
-        A=rnd()
-        c64scr.print_ub(A)
-        c64.CHROUT('\n')
-        A=rnd()
-        c64scr.print_ub(A)
-        c64.CHROUT('\n')
-        A=rnd()
-        c64scr.print_ub(A)
-        c64.CHROUT('\n')
-        A=rnd()
-        c64scr.print_ub(A)
-        c64.CHROUT('\n')
-        A=rnd()
-        c64scr.print_ub(A)
-        c64.CHROUT('\n')
     }
 }

@@ -61,7 +61,8 @@ class BitmapScreenPanel : KeyListener, JPanel() {
         g2d.drawLine(x1, y1, x2, y2)
     }
     fun printText(text: String, color: Int, lowercase: Boolean) {
-        val lines = text.split('\n')
+        val t2 = text.substringBefore(0.toChar())
+        val lines = t2.split('\n')
         for(line in lines.withIndex()) {
             printTextSingleLine(line.value, color, lowercase)
             if(line.index<lines.size-1) {
@@ -124,6 +125,8 @@ class BitmapScreenPanel : KeyListener, JPanel() {
             g2d.clearRect(8*clearx, 8*y, 8, 8)
         }
         for(sc in Petscii.encodeScreencode(text, lowercase)) {
+            if(sc==0.toShort())
+                break
             setChar(xx++, y, sc)
         }
     }

@@ -269,6 +269,14 @@ class TestZeropage {
 class TestPetscii {
 
     @Test
+    fun testZero() {
+        assertThat(Petscii.encodePetscii("\u0000", true), equalTo(listOf<Short>(0)))
+        assertThat(Petscii.encodePetscii("\u0000", false), equalTo(listOf<Short>(0)))
+        assertThat(Petscii.decodePetscii(listOf(0), true), equalTo("\u0000"))
+        assertThat(Petscii.decodePetscii(listOf(0), false), equalTo("\u0000"))
+    }
+
+    @Test
     fun testLowercase() {
         assertThat(Petscii.encodePetscii("hello WORLD 123 @!£", true), equalTo(
                 listOf<Short>(72, 69, 76, 76, 79, 32, 0xd7, 0xcf, 0xd2, 0xcc, 0xc4, 32, 49, 50, 51, 32, 64, 33, 0x5c)))

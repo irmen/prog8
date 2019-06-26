@@ -9,7 +9,7 @@ class Petscii {
         // character tables used from https://github.com/dj51d/cbmcodecs
 
         private val decodingPetsciiLowercase = arrayOf(
-                '\ufffe',    //       0x00 -> UNDEFINED
+                '\u0000',    //       0x00 -> \u0000
                 '\ufffe',    //       0x01 -> UNDEFINED
                 '\ufffe',    //       0x02 -> UNDEFINED
                 '\ufffe',    //       0x03 -> UNDEFINED
@@ -268,7 +268,7 @@ class Petscii {
         )
 
         private val decodingPetsciiUppercase = arrayOf(
-                '\ufffe',    //       0x00 -> UNDEFINED
+                '\u0000',    //       0x00 -> \u0000
                 '\ufffe',    //       0x01 -> UNDEFINED
                 '\ufffe',    //       0x02 -> UNDEFINED
                 '\ufffe',    //       0x03 -> UNDEFINED

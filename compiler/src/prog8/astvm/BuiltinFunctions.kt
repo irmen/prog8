@@ -14,6 +14,15 @@ class BuiltinFunctions {
             "rnd" -> RuntimeValue(DataType.UBYTE, rnd.nextInt() and 255)
             "rndw" -> RuntimeValue(DataType.UWORD, rnd.nextInt() and 65535)
             "rndf" -> RuntimeValue(DataType.FLOAT, rnd.nextDouble())
+            "lsb" -> RuntimeValue(DataType.UBYTE, args[0].integerValue() and 255)
+            "msb" -> RuntimeValue(DataType.UBYTE, (args[0].integerValue() ushr 8) and 255)
+            "strlen" -> {
+                val zeroIndex = args[0].str!!.indexOf(0.toChar())
+                if(zeroIndex>=0)
+                    RuntimeValue(DataType.UBYTE, zeroIndex)
+                else
+                    RuntimeValue(DataType.UBYTE, args[0].str!!.length)
+            }
             "memset" -> {
                 val target = args[0].array!!
                 val amount = args[1].integerValue()

@@ -3,6 +3,7 @@ package prog8.astvm
 import prog8.ast.*
 import prog8.compiler.RuntimeValue
 import prog8.compiler.RuntimeValueRange
+import prog8.compiler.target.c64.Petscii
 import java.awt.EventQueue
 
 
@@ -217,9 +218,24 @@ class AstVm(val program: Program) {
                                     if(value.type!=DataType.FLOAT)
                                         throw VmExecutionException("new value is of different datatype ${value.type} for $array")
                                 }
+                                DataType.STR, DataType.STR_S -> {
+                                    if(value.type !in ByteDatatypes)
+                                        throw VmExecutionException("new value is of different datatype ${value.type} for $array")
+                                }
                                 else -> throw VmExecutionException("strange array type ${array.type}")
                             }
-                            array.array!![index.integerValue()] = value.numericValue()
+                            if(array.type in ArrayDatatypes)
+                                array.array!![index.integerValue()] = value.numericValue()
+                            else if(array.type in StringDatatypes) {
+                                val index = index.integerValue()
+                                val newchr = Petscii.decodePetscii(listOf(value.numericValue().toShort()), true)
+                                val newstr = array.str!!.replaceRange(index, index+1, newchr)
+                                val ident = stmt.definingScope().lookup(target.arrayindexed.identifier.nameInSource, stmt) as? VarDecl
+                                        ?: throw VmExecutionException("can't find assignment target ${target.identifier}")
+                                val identScope = ident.definingScope()
+                                program.heap.update(array.heapId!!, newstr)
+                                runtimeVariables.set(identScope, ident.name, RuntimeValue(array.type, str=newstr, heapId=array.heapId))
+                            }
                         }
                         target.register!=null -> {
                             runtimeVariables.set(program.namespace, target.register.name, value)
