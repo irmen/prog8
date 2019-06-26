@@ -21,9 +21,20 @@ class RuntimeVariables {
         vars[scope] = where
     }
 
+    fun defineMemory(scope: INameScope, name: String, address: Int) {
+        val where = memvars.getValue(scope)
+        where[name] = address
+        memvars[scope] = where
+    }
+
     fun set(scope: INameScope, name: String, value: RuntimeValue) {
         val where = vars.getValue(scope)
-        val existing = where[name] ?: throw NoSuchElementException("no such runtime variable: ${scope.name}.$name")
+        val existing = where[name]
+        if(existing==null) {
+            if(memvars.getValue(scope)[name]!=null)
+                throw NoSuchElementException("this is a memory mapped var, not a normal var: ${scope.name}.$name")
+            throw NoSuchElementException("no such runtime variable: ${scope.name}.$name")
+        }
         if(existing.type!=value.type)
             throw VmExecutionException("new value is of different datatype ${value.type} expected ${existing.type} for $name")
         where[name] = value
@@ -32,13 +43,18 @@ class RuntimeVariables {
 
     fun get(scope: INameScope, name: String): RuntimeValue {
         val where = vars.getValue(scope)
-        val value = where[name]
-        if(value!=null)
-            return value
-        throw NoSuchElementException("no such runtime variable: ${scope.name}.$name")
+        val value = where[name] ?: throw NoSuchElementException("no such runtime variable: ${scope.name}.$name")
+        return value
+    }
+
+    fun getMemoryAddress(scope: INameScope, name: String): Int {
+        val where = memvars.getValue(scope)
+        val address = where[name] ?: throw NoSuchElementException("no such runtime memory-variable: ${scope.name}.$name")
+        return address
     }
 
     private val vars = mutableMapOf<INameScope, MutableMap<String, RuntimeValue>>().withDefault { mutableMapOf() }
+    private val memvars = mutableMapOf<INameScope, MutableMap<String, Int>>().withDefault { mutableMapOf() }
 }
 
 
@@ -133,7 +149,7 @@ class AstVm(val program: Program) {
     }
 
     private fun executeStatement(sub: INameScope, stmt: IStatement) {
-        val evalCtx = EvalContext(program, runtimeVariables, functions, ::executeSubroutine)
+        val evalCtx = EvalContext(program, mem, runtimeVariables, functions, ::executeSubroutine)
         instructionCounter++
         if(instructionCounter % 100 == 0)
             Thread.sleep(1)
@@ -185,10 +201,22 @@ class AstVm(val program: Program) {
                     val value = evaluate(stmt.value, evalCtx)
                     when {
                         target.identifier!=null -> {
-                            val ident = stmt.definingScope().lookup(target.identifier.nameInSource, stmt) as? VarDecl
+                            val decl = stmt.definingScope().lookup(target.identifier.nameInSource, stmt) as? VarDecl
                                     ?: throw VmExecutionException("can't find assignment target ${target.identifier}")
-                            val identScope = ident.definingScope()
-                            runtimeVariables.set(identScope, ident.name, value)
+                            if(decl.type==VarDeclType.MEMORY) {
+                                val address = runtimeVariables.getMemoryAddress(decl.definingScope(), decl.name)
+                                when(decl.datatype) {
+                                    DataType.UBYTE -> mem.setUByte(address, value.byteval!!)
+                                    DataType.BYTE -> mem.setSByte(address, value.byteval!!)
+                                    DataType.UWORD -> mem.setUWord(address, value.wordval!!)
+                                    DataType.WORD -> mem.setSWord(address, value.wordval!!)
+                                    DataType.FLOAT -> mem.setFloat(address, value.floatval!!)
+                                    DataType.STR -> mem.setString(address, value.str!!)
+                                    DataType.STR_S -> mem.setScreencodeString(address, value.str!!)
+                                    else -> TODO("set memvar $decl")
+                                }
+                            } else
+                                runtimeVariables.set(decl.definingScope(), decl.name, value)
                         }
                         target.memoryAddress!=null -> {
                             TODO("assign memory $stmt")
@@ -196,7 +224,6 @@ class AstVm(val program: Program) {
                         target.arrayindexed!=null -> {
                             val array = evaluate(target.arrayindexed.identifier, evalCtx)
                             val index = evaluate(target.arrayindexed.arrayspec.index, evalCtx)
-                            val value = evaluate(stmt.value, evalCtx)
                             when(array.type) {
                                 DataType.ARRAY_UB -> {
                                     if(value.type!=DataType.UBYTE)
@@ -227,9 +254,9 @@ class AstVm(val program: Program) {
                             if(array.type in ArrayDatatypes)
                                 array.array!![index.integerValue()] = value.numericValue()
                             else if(array.type in StringDatatypes) {
-                                val index = index.integerValue()
+                                val indexInt = index.integerValue()
                                 val newchr = Petscii.decodePetscii(listOf(value.numericValue().toShort()), true)
-                                val newstr = array.str!!.replaceRange(index, index+1, newchr)
+                                val newstr = array.str!!.replaceRange(indexInt, indexInt+1, newchr)
                                 val ident = stmt.definingScope().lookup(target.arrayindexed.identifier.nameInSource, stmt) as? VarDecl
                                         ?: throw VmExecutionException("can't find assignment target ${target.identifier}")
                                 val identScope = ident.definingScope()
@@ -367,7 +394,7 @@ class AstVm(val program: Program) {
     }
 
     private fun evaluate(args: List<IExpression>): List<RuntimeValue>  = args.map {
-        evaluate(it, EvalContext(program, runtimeVariables, functions, ::executeSubroutine))
+        evaluate(it, EvalContext(program, mem, runtimeVariables, functions, ::executeSubroutine))
     }
 
     private fun performSyscall(sub: Subroutine, args: List<RuntimeValue>) {

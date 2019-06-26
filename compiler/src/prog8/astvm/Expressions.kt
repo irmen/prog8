@@ -5,8 +5,8 @@ import prog8.compiler.RuntimeValue
 import prog8.compiler.RuntimeValueRange
 import kotlin.math.abs
 
-class EvalContext(val program: Program, val runtimeVars: RuntimeVariables,
-                  val functions: BuiltinFunctions,
+class EvalContext(val program: Program, val mem: Memory,
+                  val runtimeVars: RuntimeVariables, val functions: BuiltinFunctions,
                   val executeSubroutine: (sub: Subroutine, args: List<RuntimeValue>) -> List<RuntimeValue>)
 
 fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
@@ -31,14 +31,24 @@ fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
                 ">=" -> RuntimeValue(DataType.UBYTE, if (left >= right) 1 else 0)
                 "==" -> RuntimeValue(DataType.UBYTE, if (left == right) 1 else 0)
                 "!=" -> RuntimeValue(DataType.UBYTE, if (left != right) 1 else 0)
-                "+" -> {
-                    val result = left.add(right)
-                    RuntimeValue(result.type, result.numericValue())
+                "+" -> left.add(right)
+                "-" -> left.sub(right)
+                "*" -> left.mul(right)
+                "/" -> left.div(right)
+                "<<" -> {
+                    var result = left
+                    repeat(right.integerValue()) {result = result.shl()}
+                    result
                 }
-                "-" -> {
-                    val result = left.sub(right)
-                    RuntimeValue(result.type, result.numericValue())
+                ">>" -> {
+                    var result = left
+                    repeat(right.integerValue()) {result = result.shr()}
+                    result
                 }
+                "%" -> left.remainder(right)
+                "|" -> left.or(right)
+                "&" -> left.and(right)
+                "^" -> left.xor(right)
                 else -> TODO("binexpression operator ${expr.operator}")
             }
         }
@@ -74,8 +84,21 @@ fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
             val scope = expr.definingScope()
             val variable = scope.lookup(expr.nameInSource, expr)
             if(variable is VarDecl) {
-                val stmt = scope.lookup(listOf(variable.name), expr)!!
-                return ctx.runtimeVars.get(stmt.definingScope(), variable.name)
+                if(variable.type==VarDeclType.VAR)
+                    return ctx.runtimeVars.get(variable.definingScope(), variable.name)
+                else {
+                    val address = ctx.runtimeVars.getMemoryAddress(variable.definingScope(), variable.name)
+                    return when(variable.datatype) {
+                        DataType.UBYTE -> RuntimeValue(DataType.UBYTE, ctx.mem.getUByte(address))
+                        DataType.BYTE -> RuntimeValue(DataType.BYTE, ctx.mem.getSByte(address))
+                        DataType.UWORD -> RuntimeValue(DataType.UWORD, ctx.mem.getUWord(address))
+                        DataType.WORD -> RuntimeValue(DataType.WORD, ctx.mem.getSWord(address))
+                        DataType.FLOAT -> RuntimeValue(DataType.FLOAT, ctx.mem.getFloat(address))
+                        DataType.STR -> RuntimeValue(DataType.STR, str=ctx.mem.getString(address))
+                        DataType.STR_S -> RuntimeValue(DataType.STR_S, str=ctx.mem.getScreencodeString(address))
+                        else -> TODO("memvar $variable")
+                    }
+                }
             } else
                 TODO("weird ref $variable")
         }

@@ -236,7 +236,7 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
         }
     }
 
-    fun remainder(other: RuntimeValue): RuntimeValue? {
+    fun remainder(other: RuntimeValue): RuntimeValue {
         val v1 = numericValue()
         val v2 = other.numericValue()
         val result = v1.toDouble() % v2.toDouble()

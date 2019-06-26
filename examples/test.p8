@@ -6,20 +6,16 @@
 ~ main {
 
     sub start() {
-        uword uw = $ab34
-        str name = "irmen de jong"
+        ubyte u1 = 100
+        ubyte u2 = 30
 
-        c64scr.print_ub(len(name))
+        c64scr.print_ub(u1 % u2)
         c64.CHROUT('\n')
-        c64scr.print_ub(strlen(name))
+        c64scr.print_ub(u1 / u2)
         c64.CHROUT('\n')
-        c64scr.print(name)
+        c64scr.print_ub(u2 * 2)
         c64.CHROUT('\n')
-        name[6] = 0
-        c64scr.print_ub(strlen(name))
+        c64scr.print_ub(u2 * 7)
         c64.CHROUT('\n')
-        c64scr.print(name)
-        c64.CHROUT('\n')
-
     }
 }

@@ -49,7 +49,12 @@ class VariablesCreator(private val runtimeVariables: RuntimeVariables, private v
                 runtimeVariables.define(decl.definingScope(), decl.name, value)
             }
             VarDeclType.MEMORY -> {
-                // TODO register memory mapped vars?
+                if(decl.value !is LiteralValue) {
+                    TODO("evaluate vardecl expression $decl")
+                    //RuntimeValue(decl.datatype, num = evaluate(decl.value!!, program, runtimeVariables, executeSubroutine).numericValue())
+                } else {
+                    runtimeVariables.defineMemory(decl.definingScope(), decl.name, (decl.value as LiteralValue).asIntegerValue!!)
+                }
             }
             VarDeclType.CONST -> {
                 // consts should have been const-folded away

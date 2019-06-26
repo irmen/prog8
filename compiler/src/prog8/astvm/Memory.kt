@@ -99,4 +99,24 @@ class Memory {
         for(i in 0 until numbytes)
             mem[to+i] = mem[from+i]
     }
+
+    fun getScreencodeString(strAddress: Int): String? {
+        // lowercase Screencodes
+        val screencodes = mutableListOf<Short>()
+        var addr = strAddress
+        while(true) {
+            val byte = mem[addr++]
+            if(byte==0.toShort()) break
+            screencodes.add(byte)
+        }
+        return Petscii.decodeScreencode(screencodes, true)
+    }
+
+    fun setScreencodeString(address: Int, str: String) {
+        // lowercase screencodes
+        val screencodes = Petscii.encodeScreencode(str, true)
+        var addr = address
+        for (c in screencodes) mem[addr++] = c
+        mem[addr] = 0
+    }
 }
