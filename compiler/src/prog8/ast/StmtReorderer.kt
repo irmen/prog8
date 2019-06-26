@@ -1,5 +1,7 @@
 package prog8.ast
 
+import prog8.functions.BuiltinFunctions
+
 internal fun Program.reorderStatements() {
     val initvalueCreator = VarInitValueAndAddressOfCreator(namespace)
     initvalueCreator.process(this)
@@ -24,6 +26,7 @@ private class StatementReorderer(private val program: Program): IAstProcessor {
     // - all other subroutines will be moved to the end of their block.
     //
     // Also, makes sure any value assignments get the proper type casts if needed to cast them into the target variable's type.
+    // (this includes function call arguments)
 
     private val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%zpreserved", "%address", "%option")
 
@@ -192,7 +195,6 @@ private class StatementReorderer(private val program: Program): IAstProcessor {
         statements.addAll(result)
     }
 
-
     override fun process(assignment: Assignment): IStatement {
         val target=assignment.singleTarget
         if(target!=null) {
@@ -208,6 +210,56 @@ private class StatementReorderer(private val program: Program): IAstProcessor {
         } else TODO("multi-target assign")
 
         return super.process(assignment)
+    }
+
+    override fun process(functionCallStatement: FunctionCallStatement): IStatement {
+        checkFunctionCallArguments(functionCallStatement, functionCallStatement.definingScope())
+        return super.process(functionCallStatement)
+    }
+
+    override fun process(functionCall: FunctionCall): IExpression {
+        checkFunctionCallArguments(functionCall, functionCall.definingScope())
+        return super.process(functionCall)
+    }
+
+    private fun checkFunctionCallArguments(call: IFunctionCall, scope: INameScope) {
+        // see if a typecast is needed to convert the arguments into the required parameter's type
+        val sub = call.target.targetStatement(scope)
+        when(sub) {
+            is Subroutine -> {
+                for(arg in sub.parameters.zip(call.arglist.withIndex())) {
+                    val argtype = arg.second.value.resultingDatatype(program)
+                    if(argtype!=null) {
+                        val requiredType = arg.first.type
+                        if (requiredType != argtype) {
+                            if (argtype isAssignableTo requiredType) {
+                                val typecasted = TypecastExpression(arg.second.value, requiredType, arg.second.value.position)
+                                call.arglist[arg.second.index] = typecasted
+                            }
+                            // if they're not assignable, we'll get a proper error later from the AstChecker
+                        }
+                    }
+                }
+            }
+            is BuiltinFunctionStatementPlaceholder -> {
+                val func = BuiltinFunctions.getValue(sub.name)
+                for(arg in func.parameters.zip(call.arglist.withIndex())) {
+                    val argtype = arg.second.value.resultingDatatype(program)
+                    if(argtype!=null) {
+                        if(arg.first.possibleDatatypes.any{ argtype == it})
+                            continue
+                        for(possibleType in arg.first.possibleDatatypes) {
+                            if(argtype isAssignableTo possibleType) {
+                                val typecasted = TypecastExpression(arg.second.value, possibleType, arg.second.value.position)
+                                call.arglist[arg.second.index] = typecasted
+                                break
+                            }
+                        }
+                    }
+                }
+            }
+            else -> TODO("call to something weird $sub")
+        }
     }
 
     private fun sortConstantAssignmentSequence(first: Assignment, stmtIter: MutableIterator<IStatement>): Pair<List<Assignment>, IStatement?> {

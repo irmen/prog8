@@ -93,6 +93,19 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
         }
     }
 
+    fun asLiteralValue(): LiteralValue {
+        return when(type) {
+            in ByteDatatypes -> LiteralValue(type, byteval, position = Position("", 0, 0, 0))
+            in WordDatatypes -> LiteralValue(type, wordvalue = wordval, position = Position("", 0, 0, 0))
+            DataType.FLOAT -> LiteralValue(type, floatvalue = floatval, position = Position("", 0, 0, 0))
+            in StringDatatypes -> LiteralValue(type, strvalue = str, position = Position("", 0, 0, 0))
+            in ArrayDatatypes -> LiteralValue(type,
+                    arrayvalue = array?.map { LiteralValue.optimalNumeric(it, Position("", 0, 0, 0)) }?.toTypedArray(),
+                    position = Position("", 0, 0, 0))
+            else -> TODO("strange type")
+        }
+    }
+
     override fun toString(): String {
         return when(type) {
             DataType.UBYTE -> "ub:%02x".format(byteval)
