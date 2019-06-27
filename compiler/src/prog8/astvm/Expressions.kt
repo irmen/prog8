@@ -7,7 +7,7 @@ import kotlin.math.abs
 
 class EvalContext(val program: Program, val mem: Memory, val statusflags: StatusFlags,
                   val runtimeVars: RuntimeVariables, val functions: BuiltinFunctions,
-                  val executeSubroutine: (sub: Subroutine, args: List<RuntimeValue>) -> List<RuntimeValue>)
+                  val executeSubroutine: (sub: Subroutine, args: List<RuntimeValue>, startlabel: Label?) -> List<RuntimeValue>)
 
 fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
     val constval = expr.constValue(ctx.program)
@@ -117,7 +117,7 @@ fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
             val args = expr.arglist.map { evaluate(it, ctx) }
             return when(sub) {
                 is Subroutine -> {
-                    val results = ctx.executeSubroutine(sub, args)
+                    val results = ctx.executeSubroutine(sub, args, null)
                     if(results.size!=1)
                         throw VmExecutionException("expected 1 result from functioncall $expr")
                     results[0]

@@ -136,7 +136,7 @@ class AstVm(val program: Program) {
                     for (s in b.statements.filterIsInstance<Subroutine>()) {
                         if (s.name == initvarsSubName) {
                             try {
-                                executeSubroutine(s, emptyList())
+                                executeSubroutine(s, emptyList(), null)
                             } catch (x: LoopControlReturn) {
                                 // regular return
                             }
@@ -145,11 +145,36 @@ class AstVm(val program: Program) {
                 }
             }
 
-            val entrypoint = program.entrypoint() ?: throw VmTerminationException("no valid entrypoint found")
-            try {
-                executeSubroutine(entrypoint, emptyList())
-            } catch (x: LoopControlReturn) {
-                // regular return
+            var entrypoint: Subroutine? = program.entrypoint() ?: throw VmTerminationException("no valid entrypoint found")
+            var startlabel: Label? = null
+
+            while(entrypoint!=null) {
+                try {
+                    executeSubroutine(entrypoint, emptyList(), startlabel)
+                    entrypoint = null
+                } catch (rx: LoopControlReturn) {
+                    // regular return
+                } catch (jx: LoopControlJump) {
+                    if (jx.address != null)
+                        throw VmTerminationException("doesn't support jumping to machine address ${jx.address}")
+                    when {
+                        jx.generatedLabel != null -> {
+                            val label = entrypoint.getLabelOrVariable(jx.generatedLabel) as Label
+                            TODO("$label")
+                        }
+                        jx.identifier != null -> {
+                            when (val jumptarget = entrypoint.lookup(jx.identifier.nameInSource, jx.identifier.parent)) {
+                                is Label -> {
+                                    startlabel = jumptarget
+                                    entrypoint = jumptarget.definingSubroutine()
+                                }
+                                is Subroutine -> entrypoint = jumptarget
+                                else -> throw VmTerminationException("weird jump target $jumptarget")
+                            }
+                        }
+                        else -> throw VmTerminationException("unspecified jump target")
+                    }
+                }
             }
             println("PROGRAM EXITED!")
             dialog.title = "PROGRAM EXITED"
@@ -167,8 +192,10 @@ class AstVm(val program: Program) {
     class LoopControlBreak : Exception()
     class LoopControlContinue : Exception()
     class LoopControlReturn(val returnvalues: List<RuntimeValue>) : Exception()
+    class LoopControlJump(val identifier: IdentifierReference?, val address: Int?, val generatedLabel: String?) : Exception()
 
-    internal fun executeSubroutine(sub: Subroutine, arguments: List<RuntimeValue>): List<RuntimeValue> {
+
+    internal fun executeSubroutine(sub: Subroutine, arguments: List<RuntimeValue>, startlabel: Label?=null): List<RuntimeValue> {
         assert(!sub.isAsmSubroutine)
         if (sub.statements.isEmpty())
             throw VmTerminationException("scope contains no statements: $sub")
@@ -182,8 +209,16 @@ class AstVm(val program: Program) {
                     EvalContext(program, mem, statusflags, runtimeVariables, functions, ::executeSubroutine))
         }
 
+        val statements = sub.statements.iterator()
+        if(startlabel!=null) {
+            do {
+                val stmt = statements.next()
+            } while(stmt!==startlabel)
+        }
+
         try {
-            for (s in sub.statements) {
+            while(statements.hasNext()) {
+                val s = statements.next()
                 try {
                     executeStatement(sub, s)
                 }
@@ -230,7 +265,7 @@ class AstVm(val program: Program) {
                         if (target.isAsmSubroutine) {
                             performSyscall(target, args)
                         } else {
-                            executeSubroutine(target, args)
+                            executeSubroutine(target, args, null)
                             // any return value(s) are discarded
                         }
                     }
@@ -286,18 +321,11 @@ class AstVm(val program: Program) {
                     }
                 }
             }
-            is Jump -> {
-                TODO("jump $stmt")
-            }
+            is Jump -> throw LoopControlJump(stmt.identifier, stmt.address, stmt.generatedLabel)
             is InlineAssembly -> {
                 if (sub is Subroutine) {
-                    when (sub.scopedname) {
-                        "c64flt.print_f" -> {
-                            val arg = runtimeVariables.get(sub, sub.parameters.single().name)
-                            performSyscall(sub, listOf(arg))
-                        }
-                        else -> TODO("simulate asm subroutine ${sub.scopedname}")
-                    }
+                    val args = sub.parameters.map { runtimeVariables.get(sub, it.name) }
+                    performSyscall(sub, args)
                     throw LoopControlReturn(emptyList())
                 }
                 throw VmExecutionException("can't execute inline assembly in $sub")
@@ -496,6 +524,18 @@ class AstVm(val program: Program) {
                 val prefix = if (args[0].asBoolean) "%" else ""
                 val number = args[1].byteval!!
                 dialog.canvas.printText("$prefix${number.toString(2).padStart(8, '0')}", 1, true)
+            }
+            "c64scr.clear_screenchars" -> {
+                dialog.canvas.clearScreen(6)
+            }
+            "c64scr.clear_screen" -> {
+                dialog.canvas.clearScreen(args[0].integerValue())
+            }
+            "c64scr.setcc" -> {
+                dialog.canvas.setChar(args[0].integerValue(), args[1].integerValue(), args[2].integerValue().toShort())
+            }
+            "c64scr.plot" -> {
+                dialog.canvas.setCursorPos(args[0].integerValue(), args[1].integerValue())
             }
             "c64.CHROUT" -> {
                 dialog.canvas.printChar(args[0].byteval!!)
