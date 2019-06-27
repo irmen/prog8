@@ -53,7 +53,7 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
                             errors.add(ExpressionError("range expression size doesn't match declared array size", decl.value?.position!!))
                         val constRange = rangeExpr.toConstantIntegerRange(program.heap)
                         if(constRange!=null) {
-                            val eltType = rangeExpr.resultingDatatype(program)!!
+                            val eltType = rangeExpr.inferType(program)!!
                             if(eltType in ByteDatatypes) {
                                 decl.value = LiteralValue(decl.datatype,
                                         arrayvalue = constRange.map { LiteralValue(eltType, bytevalue=it.toShort(), position = decl.value!!.position ) }
@@ -606,7 +606,7 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
             val valuesInArray = array.map { it.constValue(program)!!.asNumericValue!! }
             val integerArray = valuesInArray.map{ it.toInt() }
             val doubleArray = valuesInArray.map{it.toDouble()}.toDoubleArray()
-            val typesInArray: Set<DataType> = array.mapNotNull { it.resultingDatatype(program) }.toSet()
+            val typesInArray: Set<DataType> = array.mapNotNull { it.inferType(program) }.toSet()
 
             // Take an educated guess about the array type.
             // This may be altered (if needed & if possible) to suit an array declaration type later!
@@ -651,7 +651,7 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
         val lv = assignment.value as? LiteralValue
         if(lv!=null) {
             // see if we can promote/convert a literal value to the required datatype
-            when(assignment.singleTarget?.determineDatatype(program, assignment)) {
+            when(assignment.singleTarget?.inferType(program, assignment)) {
                 DataType.UWORD -> {
                     // we can convert to UWORD: any UBYTE, BYTE/WORD that are >=0, FLOAT that's an integer 0..65535,
                     if(lv.type==DataType.UBYTE)

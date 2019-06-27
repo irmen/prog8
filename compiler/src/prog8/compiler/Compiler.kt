@@ -514,7 +514,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
         val trueGoto = stmt.truepart.statements.singleOrNull() as? Jump
         if(trueGoto!=null) {
             // optimization for if (condition) goto ....
-            val conditionJumpOpcode = when(stmt.condition.resultingDatatype(program)) {
+            val conditionJumpOpcode = when(stmt.condition.inferType(program)) {
                 in ByteDatatypes -> Opcode.JNZ
                 in WordDatatypes -> Opcode.JNZW
                 else -> throw CompilerException("invalid condition datatype (expected byte or word) $stmt")
@@ -524,7 +524,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
             return
         }
 
-        val conditionJumpOpcode = when(stmt.condition.resultingDatatype(program)) {
+        val conditionJumpOpcode = when(stmt.condition.inferType(program)) {
             in ByteDatatypes -> Opcode.JZ
             in WordDatatypes -> Opcode.JZW
             else -> throw CompilerException("invalid condition datatype (expected byte or word) $stmt")
@@ -617,11 +617,11 @@ internal class Compiler(private val program: Program): IAstProcessor {
             }
             is PrefixExpression -> {
                 translate(expr.expression)
-                translatePrefixOperator(expr.operator, expr.expression.resultingDatatype(program))
+                translatePrefixOperator(expr.operator, expr.expression.inferType(program))
             }
             is BinaryExpression -> {
-                val leftDt = expr.left.resultingDatatype(program)!!
-                val rightDt = expr.right.resultingDatatype(program)!!
+                val leftDt = expr.left.inferType(program)!!
+                val rightDt = expr.right.inferType(program)!!
                 val commonDt =
                         if(expr.operator=="/")
                             BinaryExpression.divisionOpDt(leftDt, rightDt)
@@ -793,7 +793,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
             // cast type if needed
             if(builtinFuncParams!=null) {
                 val paramDts = builtinFuncParams[index].possibleDatatypes
-                val argDt = arg.resultingDatatype(program)!!
+                val argDt = arg.inferType(program)!!
                 if(argDt !in paramDts) {
                     for(paramDt in paramDts.sorted())
                         if(tryConvertType(argDt, paramDt))
@@ -806,7 +806,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
             "len" -> {
                 // 1 argument, type determines the exact syscall to use
                 val arg=args.single()
-                when (arg.resultingDatatype(program)) {
+                when (arg.inferType(program)) {
                     DataType.STR, DataType.STR_S -> createSyscall("${funcname}_str")
                     else -> throw CompilerException("wrong datatype for len()")
                 }
@@ -817,7 +817,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
                 val target=arg.targetVarDecl(program.namespace)!!
                 val length= RuntimeValue(DataType.UBYTE, target.arraysize!!.size()!!)
                 prog.instr(Opcode.PUSH_BYTE, length)
-                when (arg.resultingDatatype(program)) {
+                when (arg.inferType(program)) {
                     DataType.ARRAY_B, DataType.ARRAY_UB -> createSyscall("${funcname}_b")
                     DataType.ARRAY_W, DataType.ARRAY_UW -> createSyscall("${funcname}_w")
                     DataType.ARRAY_F ->  createSyscall("${funcname}_f")
@@ -829,7 +829,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
                 val arg=args.single() as IdentifierReference
                 val target=arg.targetVarDecl(program.namespace)!!
                 val length= RuntimeValue(DataType.UBYTE, target.arraysize!!.size()!!)
-                val arrayDt=arg.resultingDatatype(program)
+                val arrayDt=arg.inferType(program)
                 prog.instr(Opcode.PUSH_BYTE, length)
                 when (arrayDt) {
                     DataType.ARRAY_UB -> {
@@ -861,7 +861,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
                 val target=arg.targetVarDecl(program.namespace)!!
                 val length= RuntimeValue(DataType.UBYTE, target.arraysize!!.size()!!)
                 prog.instr(Opcode.PUSH_BYTE, length)
-                when (arg.resultingDatatype(program)) {
+                when (arg.inferType(program)) {
                     DataType.ARRAY_UB -> createSyscall("${funcname}_ub")
                     DataType.ARRAY_B -> createSyscall("${funcname}_b")
                     DataType.ARRAY_UW -> createSyscall("${funcname}_uw")
@@ -873,7 +873,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
             "abs" -> {
                 // 1 argument, type determines the exact opcode to use
                 val arg = args.single()
-                when (arg.resultingDatatype(program)) {
+                when (arg.inferType(program)) {
                     DataType.UBYTE, DataType.UWORD -> {}
                     DataType.BYTE -> prog.instr(Opcode.ABS_B)
                     DataType.WORD -> prog.instr(Opcode.ABS_W)
@@ -885,7 +885,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
             "mkword" -> prog.instr(Opcode.MKWORD)
             "lsl" -> {
                 val arg = args.single()
-                val dt = arg.resultingDatatype(program)
+                val dt = arg.inferType(program)
                 when (dt) {
                     in ByteDatatypes -> prog.instr(Opcode.SHL_BYTE)
                     in WordDatatypes -> prog.instr(Opcode.SHL_WORD)
@@ -896,7 +896,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
             }
             "lsr" -> {
                 val arg = args.single()
-                val dt = arg.resultingDatatype(program)
+                val dt = arg.inferType(program)
                 when (dt) {
                     DataType.UBYTE -> prog.instr(Opcode.SHR_UBYTE)
                     DataType.BYTE -> prog.instr(Opcode.SHR_SBYTE)
@@ -909,7 +909,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
             }
             "rol" -> {
                 val arg = args.single()
-                val dt = arg.resultingDatatype(program)
+                val dt = arg.inferType(program)
                 when (dt) {
                     DataType.UBYTE -> prog.instr(Opcode.ROL_BYTE)
                     DataType.UWORD -> prog.instr(Opcode.ROL_WORD)
@@ -920,7 +920,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
             }
             "ror" -> {
                 val arg = args.single()
-                val dt = arg.resultingDatatype(program)
+                val dt = arg.inferType(program)
                 when (dt) {
                     in ByteDatatypes -> prog.instr(Opcode.ROR_BYTE)
                     in WordDatatypes -> prog.instr(Opcode.ROR_WORD)
@@ -931,7 +931,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
             }
             "rol2" -> {
                 val arg = args.single()
-                val dt = arg.resultingDatatype(program)
+                val dt = arg.inferType(program)
                 when (dt) {
                     in ByteDatatypes -> prog.instr(Opcode.ROL2_BYTE)
                     in WordDatatypes -> prog.instr(Opcode.ROL2_WORD)
@@ -942,7 +942,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
             }
             "ror2" -> {
                 val arg = args.single()
-                val dt = arg.resultingDatatype(program)
+                val dt = arg.inferType(program)
                 when (dt) {
                     in ByteDatatypes -> prog.instr(Opcode.ROR2_BYTE)
                     in WordDatatypes -> prog.instr(Opcode.ROR2_WORD)
@@ -965,8 +965,8 @@ internal class Compiler(private val program: Program): IAstProcessor {
         // swap(x,y) is treated differently, it's not a normal function call
         if (args.size != 2)
             throw AstException("swap requires 2 arguments")
-        val dt1 = args[0].resultingDatatype(program)!!
-        val dt2 = args[1].resultingDatatype(program)!!
+        val dt1 = args[0].inferType(program)!!
+        val dt2 = args[1].inferType(program)!!
         if (dt1 != dt2)
             throw AstException("swap requires 2 args of identical type")
         if (args[0].constValue(program) != null || args[1].constValue(program) != null)
@@ -999,7 +999,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
             // (subroutine arguments are not passed via the stack!)
             for (arg in arguments.zip(subroutine.parameters)) {
                 translate(arg.first)
-                convertType(arg.first.resultingDatatype(program)!!, arg.second.type) // convert types of arguments to required parameter type
+                convertType(arg.first.inferType(program)!!, arg.second.type) // convert types of arguments to required parameter type
                 val opcode = opcodePopvar(arg.second.type)
                 prog.instr(opcode, callLabel = subroutine.scopedname + "." + arg.second.name)
             }
@@ -1072,7 +1072,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
                         }
                         val valueA: IExpression
                         val valueX: IExpression
-                        val paramDt = arg.first.resultingDatatype(program)
+                        val paramDt = arg.first.inferType(program)
                         when (paramDt) {
                             DataType.UBYTE -> {
                                 valueA = arg.first
@@ -1095,7 +1095,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
                     AY -> {
                         val valueA: IExpression
                         val valueY: IExpression
-                        val paramDt = arg.first.resultingDatatype(program)
+                        val paramDt = arg.first.inferType(program)
                         when (paramDt) {
                             DataType.UBYTE -> {
                                 valueA = arg.first
@@ -1122,7 +1122,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
                         }
                         val valueX: IExpression
                         val valueY: IExpression
-                        val paramDt = arg.first.resultingDatatype(program)
+                        val paramDt = arg.first.inferType(program)
                         when (paramDt) {
                             DataType.UBYTE -> {
                                 valueX = arg.first
@@ -1474,8 +1474,8 @@ internal class Compiler(private val program: Program): IAstProcessor {
             return
         }
 
-        val valueDt = stmt.value.resultingDatatype(program)
-        val targetDt = assignTarget.determineDatatype(program, stmt)
+        val valueDt = stmt.value.inferType(program)
+        val targetDt = assignTarget.inferType(program, stmt)
         if(valueDt!=targetDt) {
             // convert value to target datatype if possible
             // @todo use convertType()????
@@ -1526,7 +1526,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
             throw CompilerException("augmented assignment should have been converted to regular assignment already")
 
         // pop the result value back into the assignment target
-        val datatype = assignTarget.determineDatatype(program, stmt)!!
+        val datatype = assignTarget.inferType(program, stmt)!!
         popValueIntoTarget(assignTarget, datatype)
     }
 
@@ -1561,7 +1561,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
             if(stmt.targets.size!=targetStmt.asmReturnvaluesRegisters.size)
                 throw CompilerException("asmsub number of return values doesn't match number of assignment targets ${stmt.position}")
             for(target in stmt.targets) {
-                val dt = target.determineDatatype(program, stmt)
+                val dt = target.inferType(program, stmt)
                 popValueIntoTarget(target, dt!!)
             }
         } else throw CompilerException("can only use multiple assignment targets on an asmsub call")
@@ -2011,7 +2011,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
         translate(stmt.body)
         prog.label(continueLabel)
         translate(stmt.condition)
-        val conditionJumpOpcode = when(stmt.condition.resultingDatatype(program)) {
+        val conditionJumpOpcode = when(stmt.condition.inferType(program)) {
             in ByteDatatypes -> Opcode.JNZ
             in WordDatatypes -> Opcode.JNZW
             else -> throw CompilerException("invalid condition datatype (expected byte or word) $stmt")
@@ -2048,7 +2048,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
         translate(stmt.body)
         prog.label(continueLabel)
         translate(stmt.untilCondition)
-        val conditionJumpOpcode = when(stmt.untilCondition.resultingDatatype(program)) {
+        val conditionJumpOpcode = when(stmt.untilCondition.inferType(program)) {
             in ByteDatatypes -> Opcode.JZ
             in WordDatatypes -> Opcode.JZW
             else -> throw CompilerException("invalid condition datatype (expected byte or word) $stmt")
@@ -2062,7 +2062,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
 
     private fun translate(expr: TypecastExpression) {
         translate(expr.expression)
-        val sourceDt = expr.expression.resultingDatatype(program) ?: throw CompilerException("don't know what type to cast")
+        val sourceDt = expr.expression.inferType(program) ?: throw CompilerException("don't know what type to cast")
         if(sourceDt==expr.type)
             return
 

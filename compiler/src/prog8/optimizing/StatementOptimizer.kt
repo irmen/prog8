@@ -452,7 +452,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
                 optimizationsDone++
                 return NopStatement(assignment.position)
             }
-            val targetDt = target.determineDatatype(program, assignment)
+            val targetDt = target.inferType(program, assignment)
             val bexpr=assignment.value as? BinaryExpression
             if(bexpr!=null) {
                 val cv = bexpr.right.constValue(program)?.asNumericValue?.toDouble()

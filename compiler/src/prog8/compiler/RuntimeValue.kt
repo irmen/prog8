@@ -444,12 +444,7 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
             DataType.UBYTE -> {
                 when (targetType) {
                     DataType.UBYTE -> this
-                    DataType.BYTE -> {
-                        if(byteval!!<=127)
-                            RuntimeValue(DataType.BYTE, byteval)
-                        else
-                            RuntimeValue(DataType.BYTE, -(256 - byteval))
-                    }
+                    DataType.BYTE -> RuntimeValue(DataType.BYTE, byteval)
                     DataType.UWORD -> RuntimeValue(DataType.UWORD, numericValue())
                     DataType.WORD -> RuntimeValue(DataType.WORD, numericValue())
                     DataType.FLOAT -> RuntimeValue(DataType.FLOAT, numericValue())
@@ -468,21 +463,18 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
             }
             DataType.UWORD -> {
                 when (targetType) {
-                    in ByteDatatypes -> RuntimeValue(DataType.UBYTE, integerValue())
+                    DataType.BYTE -> RuntimeValue(DataType.BYTE, integerValue())
+                    DataType.UBYTE -> RuntimeValue(DataType.UBYTE, integerValue())
                     DataType.UWORD -> this
-                    DataType.WORD -> {
-                        if(integerValue()<=32767)
-                            RuntimeValue(DataType.WORD, integerValue())
-                        else
-                            RuntimeValue(DataType.WORD, -(65536 - integerValue()))
-                    }
+                    DataType.WORD -> RuntimeValue(DataType.WORD, integerValue())
                     DataType.FLOAT -> RuntimeValue(DataType.FLOAT, numericValue())
                     else -> throw ArithmeticException("invalid type cast from $type to $targetType")
                 }
             }
             DataType.WORD -> {
                 when (targetType) {
-                    in ByteDatatypes -> RuntimeValue(DataType.UBYTE, integerValue())
+                    DataType.BYTE -> RuntimeValue(DataType.BYTE, integerValue())
+                    DataType.UBYTE -> RuntimeValue(DataType.UBYTE, integerValue())
                     DataType.UWORD -> RuntimeValue(DataType.UWORD, integerValue())
                     DataType.WORD -> this
                     DataType.FLOAT -> RuntimeValue(DataType.FLOAT, numericValue())

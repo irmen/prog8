@@ -124,7 +124,7 @@ fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
         is RangeExpr -> {
             val cRange = expr.toConstantIntegerRange(ctx.program.heap)
             if(cRange!=null)
-                return RuntimeValueRange(expr.resultingDatatype(ctx.program)!!, cRange)
+                return RuntimeValueRange(expr.inferType(ctx.program)!!, cRange)
             val fromVal = evaluate(expr.from, ctx).integerValue()
             val toVal = evaluate(expr.to, ctx).integerValue()
             val stepVal = evaluate(expr.step, ctx).integerValue()
@@ -140,7 +140,7 @@ fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
                     else -> fromVal downTo toVal step abs(stepVal)
                 }
             }
-            return RuntimeValueRange(expr.resultingDatatype(ctx.program)!!, range)
+            return RuntimeValueRange(expr.inferType(ctx.program)!!, range)
         }
         else -> {
             TODO("implement eval $expr")

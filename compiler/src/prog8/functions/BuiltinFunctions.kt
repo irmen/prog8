@@ -112,7 +112,7 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, program
     fun datatypeFromIterableArg(arglist: IExpression): DataType {
         if(arglist is LiteralValue) {
             if(arglist.type==DataType.ARRAY_UB || arglist.type==DataType.ARRAY_UW || arglist.type==DataType.ARRAY_F) {
-                val dt = arglist.arrayvalue!!.map {it.resultingDatatype(program)}
+                val dt = arglist.arrayvalue!!.map {it.inferType(program)}
                 if(dt.any { it!=DataType.UBYTE && it!=DataType.UWORD && it!=DataType.FLOAT}) {
                     throw FatalAstException("fuction $function only accepts arraysize of numeric values")
                 }
@@ -122,7 +122,7 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, program
             }
         }
         if(arglist is IdentifierReference) {
-            val dt = arglist.resultingDatatype(program)
+            val dt = arglist.inferType(program)
             return when(dt) {
                 in NumericDatatypes -> dt!!
                 in StringDatatypes -> dt!!
@@ -144,7 +144,7 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, program
 
     return when (function) {
         "abs" -> {
-            val dt = args.single().resultingDatatype(program)
+            val dt = args.single().inferType(program)
             when(dt) {
                 in ByteDatatypes -> DataType.UBYTE
                 in WordDatatypes -> DataType.UWORD

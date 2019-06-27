@@ -199,11 +199,12 @@ private class StatementReorderer(private val program: Program): IAstProcessor {
         val target=assignment.singleTarget
         if(target!=null) {
             // see if a typecast is needed to convert the value's type into the proper target type
-            val valuetype = assignment.value.resultingDatatype(program)
-            val targettype = target.determineDatatype(program, assignment)
+            val valuetype = assignment.value.inferType(program)
+            val targettype = target.inferType(program, assignment)
             if(targettype!=null && valuetype!=null && valuetype!=targettype) {
                 if(valuetype isAssignableTo targettype) {
                     assignment.value = TypecastExpression(assignment.value, targettype, assignment.value.position)
+                    assignment.value.linkParents(assignment)
                 }
                 // if they're not assignable, we'll get a proper error later from the AstChecker
             }
@@ -228,12 +229,13 @@ private class StatementReorderer(private val program: Program): IAstProcessor {
         when(sub) {
             is Subroutine -> {
                 for(arg in sub.parameters.zip(call.arglist.withIndex())) {
-                    val argtype = arg.second.value.resultingDatatype(program)
+                    val argtype = arg.second.value.inferType(program)
                     if(argtype!=null) {
                         val requiredType = arg.first.type
                         if (requiredType != argtype) {
                             if (argtype isAssignableTo requiredType) {
                                 val typecasted = TypecastExpression(arg.second.value, requiredType, arg.second.value.position)
+                                typecasted.linkParents(arg.second.value.parent)
                                 call.arglist[arg.second.index] = typecasted
                             }
                             // if they're not assignable, we'll get a proper error later from the AstChecker
@@ -244,13 +246,14 @@ private class StatementReorderer(private val program: Program): IAstProcessor {
             is BuiltinFunctionStatementPlaceholder -> {
                 val func = BuiltinFunctions.getValue(sub.name)
                 for(arg in func.parameters.zip(call.arglist.withIndex())) {
-                    val argtype = arg.second.value.resultingDatatype(program)
+                    val argtype = arg.second.value.inferType(program)
                     if(argtype!=null) {
                         if(arg.first.possibleDatatypes.any{ argtype == it})
                             continue
                         for(possibleType in arg.first.possibleDatatypes) {
                             if(argtype isAssignableTo possibleType) {
                                 val typecasted = TypecastExpression(arg.second.value, possibleType, arg.second.value.position)
+                                typecasted.linkParents(arg.second.value.parent)
                                 call.arglist[arg.second.index] = typecasted
                                 break
                             }
@@ -258,7 +261,8 @@ private class StatementReorderer(private val program: Program): IAstProcessor {
                     }
                 }
             }
-            else -> TODO("call to something weird $sub")
+            null -> {}
+            else -> TODO("call to something weird $sub   ${call.target}")
         }
     }
 
@@ -280,7 +284,7 @@ private class StatementReorderer(private val program: Program): IAstProcessor {
                 break
             }
         }
-        val sorted = sequence.sortedWith(compareBy({it.value.resultingDatatype(program)}, {it.singleTarget?.shortString(true)}))
+        val sorted = sequence.sortedWith(compareBy({it.value.inferType(program)}, {it.singleTarget?.shortString(true)}))
         return Pair(sorted, trailing)
     }
 

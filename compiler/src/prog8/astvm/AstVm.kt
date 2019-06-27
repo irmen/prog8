@@ -109,9 +109,6 @@ class AstVm(val program: Program) {
             }
             println("PROGRAM EXITED!")
             dialog.title = "PROGRAM EXITED"
-        } catch (bp: VmBreakpointException) {
-            println("Breakpoint: execution halted. Press enter to resume.")
-            readLine()
         } catch (tx: VmTerminationException) {
             println("Execution halted: ${tx.message}")
         } catch (xx: VmExecutionException) {
@@ -143,7 +140,13 @@ class AstVm(val program: Program) {
 
         try {
             for (s in sub.statements) {
-                executeStatement(sub, s)
+                try {
+                    executeStatement(sub, s)
+                }
+                catch (b: VmBreakpointException) {
+                    print("BREAKPOINT HIT at ${s.position} - Press enter to continue:")
+                    readLine()
+                }
             }
         } catch (r: LoopControlReturn) {
             return r.returnvalues
@@ -269,7 +272,7 @@ class AstVm(val program: Program) {
                     loopvarDt = DataType.UBYTE
                     loopvar = IdentifierReference(listOf(stmt.loopRegister.name), stmt.position)
                 } else {
-                    loopvarDt = stmt.loopVar!!.resultingDatatype(program)!!
+                    loopvarDt = stmt.loopVar!!.inferType(program)!!
                     loopvar = stmt.loopVar
                 }
                 val iterator = iterable.iterator()

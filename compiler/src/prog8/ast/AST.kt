@@ -832,7 +832,7 @@ data class AssignTarget(val register: Register?,
         }
     }
 
-    fun determineDatatype(program: Program, stmt: IStatement): DataType? {
+    fun inferType(program: Program, stmt: IStatement): DataType? {
         if(register!=null)
             return DataType.UBYTE
 
@@ -842,7 +842,7 @@ data class AssignTarget(val register: Register?,
         }
 
         if(arrayindexed!=null) {
-            val dt = arrayindexed.resultingDatatype(program)
+            val dt = arrayindexed.inferType(program)
             if(dt!=null)
                 return dt
         }
@@ -929,7 +929,7 @@ interface IExpression: Node {
     fun constValue(program: Program): LiteralValue?
     fun process(processor: IAstProcessor): IExpression
     fun referencesIdentifier(name: String): Boolean
-    fun resultingDatatype(program: Program): DataType?
+    fun inferType(program: Program): DataType?
 
     infix fun isSameAs(other: IExpression): Boolean {
         if(this===other)
@@ -969,7 +969,7 @@ class PrefixExpression(val operator: String, var expression: IExpression, overri
     override fun constValue(program: Program): LiteralValue? = null
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String) = expression.referencesIdentifier(name)
-    override fun resultingDatatype(program: Program): DataType? = expression.resultingDatatype(program)
+    override fun inferType(program: Program): DataType? = expression.inferType(program)
 
     override fun toString(): String {
         return "Prefix($operator $expression)"
@@ -994,9 +994,9 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
     override fun constValue(program: Program): LiteralValue? = null
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String) = left.referencesIdentifier(name) || right.referencesIdentifier(name)
-    override fun resultingDatatype(program: Program): DataType? {
-        val leftDt = left.resultingDatatype(program)
-        val rightDt = right.resultingDatatype(program)
+    override fun inferType(program: Program): DataType? {
+        val leftDt = left.inferType(program)
+        val rightDt = right.inferType(program)
         return when(operator) {
             "+", "-", "*", "**", "%" -> if(leftDt==null || rightDt==null) null else {
                 try {
@@ -1101,7 +1101,7 @@ class ArrayIndexedExpression(val identifier: IdentifierReference,
     override fun process(processor: IAstProcessor): IExpression = processor.process(this)
     override fun referencesIdentifier(name: String) = identifier.referencesIdentifier(name)
 
-    override fun resultingDatatype(program: Program): DataType? {
+    override fun inferType(program: Program): DataType? {
         val target = identifier.targetStatement(program.namespace)
         if (target is VarDecl) {
             return when (target.datatype) {
@@ -1134,7 +1134,7 @@ class TypecastExpression(var expression: IExpression, var type: DataType, overri
 
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String) = expression.referencesIdentifier(name)
-    override fun resultingDatatype(program: Program): DataType? = type
+    override fun inferType(program: Program): DataType? = type
     override fun constValue(program: Program): LiteralValue? {
         val cv = expression.constValue(program) ?: return null
         val value = RuntimeValue(cv.type, cv.asNumericValue!!).cast(type)
@@ -1158,7 +1158,7 @@ data class AddressOf(val identifier: IdentifierReference, override val position:
     var scopedname: String? = null     // will be set in a later state by the compiler
     override fun constValue(program: Program): LiteralValue? = null
     override fun referencesIdentifier(name: String) = false
-    override fun resultingDatatype(program: Program) = DataType.UWORD
+    override fun inferType(program: Program) = DataType.UWORD
     override fun process(processor: IAstProcessor) = processor.process(this)
 }
 
@@ -1173,7 +1173,7 @@ class DirectMemoryRead(var addressExpression: IExpression, override val position
 
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String) = false
-    override fun resultingDatatype(program: Program): DataType? = DataType.UBYTE
+    override fun inferType(program: Program): DataType? = DataType.UBYTE
     override fun constValue(program: Program): LiteralValue? = null
 
     override fun toString(): String {
@@ -1192,7 +1192,7 @@ class DirectMemoryWrite(var addressExpression: IExpression, override val positio
 
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String) = false
-    override fun resultingDatatype(program: Program): DataType? = DataType.UBYTE
+    override fun inferType(program: Program): DataType? = DataType.UBYTE
     override fun constValue(program: Program): LiteralValue? = null
 
     override fun toString(): String {
@@ -1326,7 +1326,7 @@ open class LiteralValue(val type: DataType,
         return "LiteralValue($vstr)"
     }
 
-    override fun resultingDatatype(program: Program) = type
+    override fun inferType(program: Program) = type
 
     override fun hashCode(): Int {
         val bh = bytevalue?.hashCode() ?: 0x10001234
@@ -1458,9 +1458,9 @@ class RangeExpr(var from: IExpression,
     override fun constValue(program: Program): LiteralValue? = null
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String): Boolean  = from.referencesIdentifier(name) || to.referencesIdentifier(name)
-    override fun resultingDatatype(program: Program): DataType? {
-        val fromDt=from.resultingDatatype(program)
-        val toDt=to.resultingDatatype(program)
+    override fun inferType(program: Program): DataType? {
+        val fromDt=from.inferType(program)
+        val toDt=to.inferType(program)
         return when {
             fromDt==null || toDt==null -> null
             fromDt==DataType.UBYTE && toDt==DataType.UBYTE -> DataType.UBYTE
@@ -1531,7 +1531,7 @@ class RegisterExpr(val register: Register, override val position: Position) : IE
         return "RegisterExpr(register=$register, pos=$position)"
     }
 
-    override fun resultingDatatype(program: Program) = DataType.UBYTE
+    override fun inferType(program: Program) = DataType.UBYTE
 }
 
 
@@ -1570,7 +1570,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String): Boolean = nameInSource.last() == name   // @todo is this correct all the time?
 
-    override fun resultingDatatype(program: Program): DataType? {
+    override fun inferType(program: Program): DataType? {
         val targetStmt = targetStatement(program.namespace)
         if(targetStmt is VarDecl) {
             return targetStmt.datatype
@@ -1652,7 +1652,7 @@ class FunctionCall(override var target: IdentifierReference,
             }
 
             if(withDatatypeCheck) {
-                val resultDt = this.resultingDatatype(program)
+                val resultDt = this.inferType(program)
                 if(resultValue==null || resultDt == resultValue.type)
                     return resultValue
                 throw FatalAstException("evaluated const expression result value doesn't match expected datatype $resultDt, pos=$position")
@@ -1673,7 +1673,7 @@ class FunctionCall(override var target: IdentifierReference,
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String): Boolean = target.referencesIdentifier(name) || arglist.any{it.referencesIdentifier(name)}
 
-    override fun resultingDatatype(program: Program): DataType? {
+    override fun inferType(program: Program): DataType? {
         val constVal = constValue(program ,false)
         if(constVal!=null)
             return constVal.type

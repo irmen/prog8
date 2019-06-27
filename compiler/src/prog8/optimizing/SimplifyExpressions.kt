@@ -33,6 +33,27 @@ internal class SimplifyExpressions(private val program: Program) : IAstProcessor
         return super.process(memwrite)
     }
 
+    override fun process(typecast: TypecastExpression): IExpression {
+        // remove redundant typecasts
+        var tc = typecast
+        while(true) {
+            val expr = tc.expression
+            if(expr !is TypecastExpression || expr.type!=tc.type) {
+                val assignment = typecast.parent as? Assignment
+                if(assignment!=null) {
+                    val targetDt = assignment.singleTarget?.inferType(program, assignment)
+                    if(tc.expression.inferType(program)==targetDt) {
+                        optimizationsDone++
+                        return tc.expression
+                    }
+                }
+                return super.process(tc)
+            }
+            optimizationsDone++
+            tc = expr
+        }
+    }
+
     override fun process(expr: PrefixExpression): IExpression {
         if (expr.operator == "+") {
             // +X --> X
@@ -87,8 +108,8 @@ internal class SimplifyExpressions(private val program: Program) : IAstProcessor
         val constTrue = LiteralValue.fromBoolean(true, expr.position)
         val constFalse = LiteralValue.fromBoolean(false, expr.position)
 
-        val leftDt = expr.left.resultingDatatype(program)
-        val rightDt = expr.right.resultingDatatype(program)
+        val leftDt = expr.left.inferType(program)
+        val rightDt = expr.right.inferType(program)
         if (leftDt != null && rightDt != null && leftDt != rightDt) {
             // try to convert a datatype into the other (where ddd
             if (adjustDatatypes(expr, leftVal, leftDt, rightVal, rightDt)) {
@@ -541,7 +562,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstProcessor
             "%" -> {
                 if (cv == 1.0) {
                     optimizationsDone++
-                    return LiteralValue.fromNumber(0, expr.resultingDatatype(program)!!, expr.position)
+                    return LiteralValue.fromNumber(0, expr.inferType(program)!!, expr.position)
                 } else if (cv == 2.0) {
                     optimizationsDone++
                     expr.operator = "&"
@@ -564,7 +585,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstProcessor
             // right value is a constant, see if we can optimize
             val rightConst: LiteralValue = rightVal
             val cv = rightConst.asNumericValue?.toDouble()
-            val leftDt = expr.left.resultingDatatype(program)
+            val leftDt = expr.left.inferType(program)
             when(cv) {
                 -1.0 -> {
                     //  '/' -> -left
@@ -652,7 +673,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstProcessor
                     return expr.left
                 }
                 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0, 256.0, 512.0, 1024.0, 2048.0, 4096.0, 8192.0, 16384.0, 32768.0, 65536.0 -> {
-                    if(leftValue.resultingDatatype(program) in IntegerDatatypes) {
+                    if(leftValue.inferType(program) in IntegerDatatypes) {
                         // times a power of two => shift left
                         optimizationsDone++
                         val numshifts = log2(cv).toInt()
@@ -660,7 +681,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstProcessor
                     }
                 }
                 -2.0, -4.0, -8.0, -16.0, -32.0, -64.0, -128.0, -256.0, -512.0, -1024.0, -2048.0, -4096.0, -8192.0, -16384.0, -32768.0, -65536.0 -> {
-                    if(leftValue.resultingDatatype(program) in IntegerDatatypes) {
+                    if(leftValue.inferType(program) in IntegerDatatypes) {
                         // times a negative power of two => negate, then shift left
                         optimizationsDone++
                         val numshifts = log2(-cv).toInt()

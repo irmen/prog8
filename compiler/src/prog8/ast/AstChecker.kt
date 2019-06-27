@@ -131,7 +131,7 @@ private class AstChecker(private val program: Program,
         if(expectedReturnValues.size != returnStmt.values.size) {
             // if the return value is a function call, check the result of that call instead
             if(returnStmt.values.size==1 && returnStmt.values[0] is FunctionCall) {
-                val dt = (returnStmt.values[0] as FunctionCall).resultingDatatype(program)
+                val dt = (returnStmt.values[0] as FunctionCall).inferType(program)
                 if(dt!=null && expectedReturnValues.isEmpty())
                     checkResult.add(SyntaxError("invalid number of return values", returnStmt.position))
             } else
@@ -139,7 +139,7 @@ private class AstChecker(private val program: Program,
         }
 
         for (rv in expectedReturnValues.withIndex().zip(returnStmt.values)) {
-            val valueDt=rv.second.resultingDatatype(program)
+            val valueDt=rv.second.inferType(program)
             if(rv.first.value!=valueDt)
                 checkResult.add(ExpressionError("type $valueDt of return value #${rv.first.index+1} doesn't match subroutine return type ${rv.first.value}", rv.second.position))
         }
@@ -150,7 +150,7 @@ private class AstChecker(private val program: Program,
         if(forLoop.body.containsNoCodeNorVars())
             printWarning("for loop body is empty", forLoop.position)
 
-        val iterableDt = forLoop.iterable.resultingDatatype(program)
+        val iterableDt = forLoop.iterable.inferType(program)
         if(iterableDt !in IterableDatatypes && forLoop.iterable !is RangeExpr) {
             checkResult.add(ExpressionError("can only loop over an iterable type", forLoop.position))
         } else {
@@ -372,7 +372,7 @@ private class AstChecker(private val program: Program,
                         checkResult.add(ExpressionError("number of return values doesn't match number of assignment targets", assignment.value.position))
                     else {
                         for (thing in stmt.returntypes.zip(assignment.targets)) {
-                            if (thing.second.determineDatatype(program, assignment) != thing.first)
+                            if (thing.second.inferType(program, assignment) != thing.first)
                                 checkResult.add(ExpressionError("return type mismatch for target ${thing.second.shortString()}", assignment.value.position))
                         }
                     }
@@ -435,7 +435,7 @@ private class AstChecker(private val program: Program,
             return assignment2
         }
 
-        val targetDatatype = target.determineDatatype(program, assignment)
+        val targetDatatype = target.inferType(program, assignment)
         if(targetDatatype!=null) {
             val constVal = assignment.value.constValue(program)
             if(constVal!=null) {
@@ -447,7 +447,7 @@ private class AstChecker(private val program: Program,
                         arrayspec ?: ArrayIndex(LiteralValue.optimalInteger(-1, assignment.position), assignment.position),
                         constVal, program.heap)
             } else {
-                val sourceDatatype: DataType? = assignment.value.resultingDatatype(program)
+                val sourceDatatype: DataType? = assignment.value.inferType(program)
                 if(sourceDatatype==null) {
                     if(assignment.targets.size<=1) {
                         if (assignment.value is FunctionCall) {
@@ -708,7 +708,7 @@ private class AstChecker(private val program: Program,
 
     override fun process(expr: PrefixExpression): IExpression {
         if(expr.operator=="-") {
-            val dt = expr.resultingDatatype(program)
+            val dt = expr.inferType(program)
             if (dt != DataType.BYTE && dt != DataType.WORD && dt != DataType.FLOAT) {
                 checkResult.add(ExpressionError("can only take negative of a signed number type", expr.position))
             }
@@ -717,8 +717,8 @@ private class AstChecker(private val program: Program,
     }
 
     override fun process(expr: BinaryExpression): IExpression {
-        val leftDt = expr.left.resultingDatatype(program)
-        val rightDt = expr.right.resultingDatatype(program)
+        val leftDt = expr.left.inferType(program)
+        val rightDt = expr.right.inferType(program)
 
         when(expr.operator){
             "/", "%" -> {
@@ -836,15 +836,15 @@ private class AstChecker(private val program: Program,
                 checkResult.add(SyntaxError("invalid number of arguments", position))
             else {
                 for (arg in args.withIndex().zip(func.parameters)) {
-                    val argDt=arg.first.value.resultingDatatype(program)
+                    val argDt=arg.first.value.inferType(program)
                     if(argDt!=null && !(argDt isAssignableTo arg.second.possibleDatatypes)) {
                         checkResult.add(ExpressionError("builtin function '${target.name}' argument ${arg.first.index + 1} has invalid type $argDt, expected ${arg.second.possibleDatatypes}", position))
                     }
                 }
                 if(target.name=="swap") {
                     // swap() is a bit weird because this one is translated into a sequence of bytecodes, instead of being an actual function call
-                    val dt1 = args[0].resultingDatatype(program)!!
-                    val dt2 = args[1].resultingDatatype(program)!!
+                    val dt1 = args[0].inferType(program)!!
+                    val dt2 = args[1].inferType(program)!!
                     if (dt1 != dt2)
                         checkResult.add(ExpressionError("swap requires 2 args of identical type", position))
                     else if (args[0].constValue(program) != null || args[1].constValue(program) != null)
@@ -860,7 +860,7 @@ private class AstChecker(private val program: Program,
                 checkResult.add(SyntaxError("invalid number of arguments", position))
             else {
                 for (arg in args.withIndex().zip(target.parameters)) {
-                    val argDt = arg.first.value.resultingDatatype(program)
+                    val argDt = arg.first.value.inferType(program)
                     if(argDt!=null && !(argDt isAssignableTo arg.second.type)) {
                         // for asm subroutines having STR param it's okay to provide a UWORD too (pointer value)
                         if(!(target.isAsmSubroutine && arg.second.type in StringDatatypes && argDt==DataType.UWORD))
@@ -943,7 +943,7 @@ private class AstChecker(private val program: Program,
             checkResult.add(SyntaxError("indexing requires a variable to act upon", arrayIndexedExpression.position))
 
         // check index value 0..255
-        val dtx = arrayIndexedExpression.arrayspec.index.resultingDatatype(program)
+        val dtx = arrayIndexedExpression.arrayspec.index.inferType(program)
         if(dtx!=DataType.UBYTE && dtx!=DataType.BYTE)
             checkResult.add(SyntaxError("array indexing is limited to byte size 0..255", arrayIndexedExpression.position))
 
