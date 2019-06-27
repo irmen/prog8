@@ -327,6 +327,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                     instructionsToReplace[index1] = Instruction(Opcode.NOP)
                 }
                 Opcode.DISCARD_WORD, Opcode.DISCARD_FLOAT -> throw CompilerException("invalid discard type following a byte")
+                Opcode.MKWORD -> {}
                 else -> throw CompilerException("invalid conversion opcode ${ins1.opcode}")
             }
         }

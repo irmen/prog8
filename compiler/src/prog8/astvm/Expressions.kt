@@ -5,7 +5,7 @@ import prog8.compiler.RuntimeValue
 import prog8.compiler.RuntimeValueRange
 import kotlin.math.abs
 
-class EvalContext(val program: Program, val mem: Memory,
+class EvalContext(val program: Program, val mem: Memory, val statusflags: StatusFlags,
                   val runtimeVars: RuntimeVariables, val functions: BuiltinFunctions,
                   val executeSubroutine: (sub: Subroutine, args: List<RuntimeValue>) -> List<RuntimeValue>)
 
@@ -19,7 +19,13 @@ fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
             return RuntimeValue.from(expr, ctx.program.heap)
         }
         is PrefixExpression -> {
-            TODO("prefixexpr $expr")
+            return when(expr.operator) {
+                "-" -> evaluate(expr.expression, ctx).neg()
+                "~" -> evaluate(expr.expression, ctx).inv()
+                "not" -> evaluate(expr.expression, ctx).not()
+                // unary '+' should have been optimized away
+                else -> TODO("prefixexpr ${expr.operator}")
+            }
         }
         is BinaryExpression -> {
             val left = evaluate(expr.left, ctx)
@@ -35,6 +41,7 @@ fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
                 "-" -> left.sub(right)
                 "*" -> left.mul(right)
                 "/" -> left.div(right)
+                "**" -> left.pow(right)
                 "<<" -> {
                     var result = left
                     repeat(right.integerValue()) {result = result.shl()}
@@ -46,9 +53,12 @@ fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
                     result
                 }
                 "%" -> left.remainder(right)
-                "|" -> left.or(right)
-                "&" -> left.and(right)
-                "^" -> left.xor(right)
+                "|" -> left.bitor(right)
+                "&" -> left.bitand(right)
+                "^" -> left.bitxor(right)
+                "and" -> left.and(right)
+                "or" -> left.or(right)
+                "xor" -> left.xor(right)
                 else -> TODO("binexpression operator ${expr.operator}")
             }
         }
@@ -113,7 +123,8 @@ fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
                     results[0]
                 }
                 is BuiltinFunctionStatementPlaceholder -> {
-                    val result = ctx.functions.performBuiltinFunction(sub.name, args) ?: throw VmExecutionException("expected 1 result from functioncall $expr")
+                    val result = ctx.functions.performBuiltinFunction(sub.name, args, ctx.statusflags)
+                            ?: throw VmExecutionException("expected 1 result from functioncall $expr")
                     result
                 }
                 else -> {

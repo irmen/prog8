@@ -407,27 +407,27 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
 
     fun inv(): RuntimeValue {
         return when(type) {
-            DataType.UBYTE -> RuntimeValue(DataType.UBYTE, byteval!!.toInt().inv())
-            DataType.UWORD -> RuntimeValue(DataType.UWORD, wordval!!.inv())
+            in ByteDatatypes -> RuntimeValue(type, byteval!!.toInt().inv())
+            in WordDatatypes -> RuntimeValue(type, wordval!!.inv())
             else -> throw ArithmeticException("inv can only work on byte/word")
         }
     }
 
     fun inc(): RuntimeValue {
         return when(type) {
-            DataType.UBYTE -> RuntimeValue(DataType.UBYTE, byteval!! + 1)
-            DataType.UWORD -> RuntimeValue(DataType.UWORD, wordval!! + 1)
+            in ByteDatatypes -> RuntimeValue(type, byteval!! + 1)
+            in WordDatatypes -> RuntimeValue(type, wordval!! + 1)
             DataType.FLOAT -> RuntimeValue(DataType.FLOAT, floatval!! + 1)
-            else -> throw ArithmeticException("inc can only work on byte/word/float")
+            else -> throw ArithmeticException("inc can only work on numeric types")
         }
     }
 
     fun dec(): RuntimeValue {
         return when(type) {
-            DataType.UBYTE -> RuntimeValue(DataType.UBYTE, byteval!! - 1)
-            DataType.UWORD -> RuntimeValue(DataType.UWORD, wordval!! - 1)
+            in ByteDatatypes -> RuntimeValue(type, byteval!! - 1)
+            in WordDatatypes -> RuntimeValue(type, wordval!! - 1)
             DataType.FLOAT -> RuntimeValue(DataType.FLOAT, floatval!! - 1)
-            else -> throw ArithmeticException("dec can only work on byte/word/float")
+            else -> throw ArithmeticException("dec can only work on numeric types")
         }
     }
 

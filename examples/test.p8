@@ -6,16 +6,10 @@
 ~ main {
 
     sub start() {
-        ubyte u1 = 100
-        ubyte u2 = 30
-        byte bb = -30
-        byte bb2 = -30
-        float ff = -3.3
-        word ww
+        ubyte[100] arr1
+        ubyte[100] arr2
 
-        bb = (u2 as word) as byte
-        bb = (((u2 as word) as byte) as word) as byte
-
+        memcopy(arr1, arr2, len(arr2))
 
     }
 

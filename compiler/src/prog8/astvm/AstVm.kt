@@ -14,6 +14,49 @@ class VmTerminationException(msg: String?) : Exception(msg)
 class VmBreakpointException : Exception("breakpoint")
 
 
+class StatusFlags {
+    var carry: Boolean = false
+    var zero: Boolean = true
+    var negative: Boolean = false
+    var irqd: Boolean = false
+
+    private fun setFlags(value: LiteralValue?) {
+        if (value != null) {
+            when (value.type) {
+                DataType.UBYTE -> {
+                    val v = value.bytevalue!!.toInt()
+                    negative = v > 127
+                    zero = v == 0
+                }
+                DataType.BYTE -> {
+                    val v = value.bytevalue!!.toInt()
+                    negative = v < 0
+                    zero = v == 0
+                }
+                DataType.UWORD -> {
+                    val v = value.wordvalue!!
+                    negative = v > 32767
+                    zero = v == 0
+                }
+                DataType.WORD -> {
+                    val v = value.wordvalue!!
+                    negative = v < 0
+                    zero = v == 0
+                }
+                DataType.FLOAT -> {
+                    val flt = value.floatvalue!!
+                    negative = flt < 0.0
+                    zero = flt == 0.0
+                }
+                else -> {
+                    // no flags for non-numeric type
+                }
+            }
+        }
+    }
+}
+
+
 class RuntimeVariables {
     fun define(scope: INameScope, name: String, initialValue: RuntimeValue) {
         val where = vars.getValue(scope)
@@ -53,6 +96,13 @@ class RuntimeVariables {
         return address
     }
 
+    fun swap(a1: VarDecl, a2: VarDecl) {
+        val v1 = get(a1.definingScope(), a1.name)
+        val v2 = get(a2.definingScope(), a2.name)
+        set(a1.definingScope(), a1.name, v2)
+        set(a2.definingScope(), a2.name, v1)
+    }
+
     private val vars = mutableMapOf<INameScope, MutableMap<String, RuntimeValue>>().withDefault { mutableMapOf() }
     private val memvars = mutableMapOf<INameScope, MutableMap<String, Int>>().withDefault { mutableMapOf() }
 }
@@ -60,14 +110,8 @@ class RuntimeVariables {
 
 class AstVm(val program: Program) {
     val mem = Memory()
-    var P_carry: Boolean = false
-        private set
-    var P_zero: Boolean = true
-        private set
-    var P_negative: Boolean = false
-        private set
-    var P_irqd: Boolean = false
-        private set
+    val statusflags = StatusFlags()
+
     private var dialog = ScreenDialog()
     var instructionCounter = 0
 
@@ -135,7 +179,7 @@ class AstVm(val program: Program) {
             val idref = IdentifierReference(listOf(arg.first.name), sub.position)
             performAssignment(AssignTarget(null, idref, null, null, idref.position),
                     arg.second, sub.statements.first(),
-                    EvalContext(program, mem, runtimeVariables, functions, ::executeSubroutine))
+                    EvalContext(program, mem, statusflags, runtimeVariables, functions, ::executeSubroutine))
         }
 
         try {
@@ -161,7 +205,7 @@ class AstVm(val program: Program) {
     }
 
     private fun executeStatement(sub: INameScope, stmt: IStatement) {
-        val evalCtx = EvalContext(program, mem, runtimeVariables, functions, ::executeSubroutine)
+        val evalCtx = EvalContext(program, mem, statusflags, runtimeVariables, functions, ::executeSubroutine)
         instructionCounter++
         if (instructionCounter % 100 == 0)
             Thread.sleep(1)
@@ -191,8 +235,15 @@ class AstVm(val program: Program) {
                         }
                     }
                     is BuiltinFunctionStatementPlaceholder -> {
-                        val args = evaluate(stmt.arglist)
-                        functions.performBuiltinFunction(target.name, args)
+                        if(target.name=="swap") {
+                            // swap cannot be implemented as a function, so inline it here
+                            val a1 = (stmt.arglist[0] as IdentifierReference).targetVarDecl(program.namespace)!!
+                            val a2 = (stmt.arglist[1] as IdentifierReference).targetVarDecl(program.namespace)!!
+                            runtimeVariables.swap(a1, a2)
+                        } else {
+                            val args = evaluate(stmt.arglist)
+                            functions.performBuiltinFunction(target.name, args, statusflags)
+                        }
                     }
                     else -> {
                         TODO("weird call $target")
@@ -394,12 +445,12 @@ class AstVm(val program: Program) {
         // assign the new loop value to the loopvar, and run the code
         performAssignment(AssignTarget(null, loopVar, null, null, loopVar.position),
                 RuntimeValue(loopvarDt, loopValue), stmt.body.statements.first(),
-                EvalContext(program, mem, runtimeVariables, functions, ::executeSubroutine))
+                EvalContext(program, mem, statusflags, runtimeVariables, functions, ::executeSubroutine))
         executeAnonymousScope(stmt.body)
     }
 
     private fun evaluate(args: List<IExpression>): List<RuntimeValue> {
-        val ctx = EvalContext(program, mem, runtimeVariables, functions, ::executeSubroutine)
+        val ctx = EvalContext(program, mem, statusflags, runtimeVariables, functions, ::executeSubroutine)
         return args.map { evaluate(it, ctx) }
     }
 
@@ -420,21 +471,31 @@ class AstVm(val program: Program) {
             "c64scr.print_b" -> {
                 dialog.canvas.printText(args[0].byteval!!.toString(), 1, true)
             }
-            "c64scr.print_ubhex" -> {
-                val prefix = if (args[0].asBoolean) "$" else ""
-                val number = args[1].byteval!!
-                dialog.canvas.printText("$prefix${number.toString(16).padStart(2, '0')}", 1, true)
-            }
             "c64scr.print_uw" -> {
                 dialog.canvas.printText(args[0].wordval!!.toString(), 1, true)
             }
             "c64scr.print_w" -> {
                 dialog.canvas.printText(args[0].wordval!!.toString(), 1, true)
             }
+            "c64scr.print_ubhex" -> {
+                val prefix = if (args[0].asBoolean) "$" else ""
+                val number = args[1].byteval!!
+                dialog.canvas.printText("$prefix${number.toString(16).padStart(2, '0')}", 1, true)
+            }
             "c64scr.print_uwhex" -> {
                 val prefix = if (args[0].asBoolean) "$" else ""
                 val number = args[1].wordval!!
                 dialog.canvas.printText("$prefix${number.toString(16).padStart(4, '0')}", 1, true)
+            }
+            "c64scr.print_uwbin" -> {
+                val prefix = if (args[0].asBoolean) "%" else ""
+                val number = args[1].wordval!!
+                dialog.canvas.printText("$prefix${number.toString(2).padStart(16, '0')}", 1, true)
+            }
+            "c64scr.print_ubbin" -> {
+                val prefix = if (args[0].asBoolean) "%" else ""
+                val number = args[1].byteval!!
+                dialog.canvas.printText("$prefix${number.toString(2).padStart(8, '0')}", 1, true)
             }
             "c64.CHROUT" -> {
                 dialog.canvas.printChar(args[0].byteval!!)
@@ -443,41 +504,6 @@ class AstVm(val program: Program) {
                 dialog.canvas.printText(args[0].floatval.toString(), 1, true)
             }
             else -> TODO("syscall  ${sub.scopedname} $sub")
-        }
-    }
-
-    private fun setFlags(value: LiteralValue?) {
-        if (value != null) {
-            when (value.type) {
-                DataType.UBYTE -> {
-                    val v = value.bytevalue!!.toInt()
-                    P_negative = v > 127
-                    P_zero = v == 0
-                }
-                DataType.BYTE -> {
-                    val v = value.bytevalue!!.toInt()
-                    P_negative = v < 0
-                    P_zero = v == 0
-                }
-                DataType.UWORD -> {
-                    val v = value.wordvalue!!
-                    P_negative = v > 32767
-                    P_zero = v == 0
-                }
-                DataType.WORD -> {
-                    val v = value.wordvalue!!
-                    P_negative = v < 0
-                    P_zero = v == 0
-                }
-                DataType.FLOAT -> {
-                    val flt = value.floatvalue!!
-                    P_negative = flt < 0.0
-                    P_zero = flt == 0.0
-                }
-                else -> {
-                    // no flags for non-numeric type
-                }
-            }
         }
     }
 }
