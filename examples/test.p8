@@ -9,19 +9,14 @@
         ubyte[100] arr1
         ubyte[100] arr2
 
-    _lp:
-        memcopy(arr1, arr2, len(arr2))
-        c64scr.setcc(20,10,65,2)
-        goto x
-        c64scr.setcc(20,10,65,2)
+        word w1 = 1111
+        word w2 = 2222
+
+        swap(w1, w2)
+        swap(A, Y)
+        swap(arr1[10], arr2[20])
+        swap(arr1[10], Y)
+        swap(Y, arr2[10])
+        swap(@($d020), @($d021))
     }
-
-    sub x() {
-
-derp:
-        c64scr.print("ey\n")
-        goto derp
-
-    }
-
 }

@@ -272,9 +272,7 @@ class AstVm(val program: Program) {
                     is BuiltinFunctionStatementPlaceholder -> {
                         if(target.name=="swap") {
                             // swap cannot be implemented as a function, so inline it here
-                            val a1 = (stmt.arglist[0] as IdentifierReference).targetVarDecl(program.namespace)!!
-                            val a2 = (stmt.arglist[1] as IdentifierReference).targetVarDecl(program.namespace)!!
-                            runtimeVariables.swap(a1, a2)
+                            executeSwap(sub, stmt)
                         } else {
                             val args = evaluate(stmt.arglist)
                             functions.performBuiltinFunction(target.name, args, statusflags)
@@ -394,6 +392,15 @@ class AstVm(val program: Program) {
                 TODO("implement $stmt")
             }
         }
+    }
+
+    private fun executeSwap(sub: INameScope, swap: FunctionCallStatement) {
+        // TODO: can swap many different parameters.... in all combinations...
+        println("TODO SWAP ${swap.arglist}")
+//        val a1 = (swap.arglist[0] as IdentifierReference).targetVarDecl(program.namespace)!!
+//        val a2 = (swap.arglist[1] as IdentifierReference).targetVarDecl(program.namespace)!!
+//        runtimeVariables.swap(a1, a2)
+//        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     fun performAssignment(target: AssignTarget, value: RuntimeValue, contextStmt: IStatement, evalCtx: EvalContext) {
