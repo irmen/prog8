@@ -992,20 +992,21 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
 
     // binary expression should actually have been optimized away into a single value, before const value was requested...
     override fun constValue(program: Program): LiteralValue? = null
+
     override fun process(processor: IAstProcessor) = processor.process(this)
     override fun referencesIdentifier(name: String) = left.referencesIdentifier(name) || right.referencesIdentifier(name)
     override fun inferType(program: Program): DataType? {
         val leftDt = left.inferType(program)
         val rightDt = right.inferType(program)
-        return when(operator) {
-            "+", "-", "*", "**", "%" -> if(leftDt==null || rightDt==null) null else {
+        return when (operator) {
+            "+", "-", "*", "**", "%" -> if (leftDt == null || rightDt == null) null else {
                 try {
                     arithmeticOpDt(leftDt, rightDt)
-                } catch(x: FatalAstException) {
+                } catch (x: FatalAstException) {
                     null
                 }
             }
-            "/" -> if(leftDt==null || rightDt==null) null else divisionOpDt(leftDt, rightDt)
+            "/" -> if (leftDt == null || rightDt == null) null else divisionOpDt(leftDt, rightDt)
             "&" -> leftDt
             "|" -> leftDt
             "^" -> leftDt
@@ -1020,28 +1021,28 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
 
     companion object {
         fun divisionOpDt(leftDt: DataType, rightDt: DataType): DataType {
-            return when(leftDt) {
-                DataType.UBYTE -> when(rightDt) {
+            return when (leftDt) {
+                DataType.UBYTE -> when (rightDt) {
                     DataType.UBYTE, DataType.UWORD -> DataType.UBYTE
                     DataType.BYTE, DataType.WORD -> DataType.WORD
                     DataType.FLOAT -> DataType.BYTE
                     else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
                 }
-                DataType.BYTE -> when(rightDt) {
+                DataType.BYTE -> when (rightDt) {
                     in NumericDatatypes -> DataType.BYTE
                     else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
                 }
-                DataType.UWORD -> when(rightDt) {
+                DataType.UWORD -> when (rightDt) {
                     DataType.UBYTE, DataType.UWORD -> DataType.UWORD
                     DataType.BYTE, DataType.WORD -> DataType.WORD
                     DataType.FLOAT -> DataType.FLOAT
                     else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
                 }
-                DataType.WORD -> when(rightDt) {
+                DataType.WORD -> when (rightDt) {
                     in NumericDatatypes -> DataType.WORD
                     else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
                 }
-                DataType.FLOAT -> when(rightDt) {
+                DataType.FLOAT -> when (rightDt) {
                     in NumericDatatypes -> DataType.FLOAT
                     else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
                 }
@@ -1050,8 +1051,8 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
         }
 
         fun arithmeticOpDt(leftDt: DataType, rightDt: DataType): DataType {
-            return when(leftDt) {
-                DataType.UBYTE -> when(rightDt) {
+            return when (leftDt) {
+                DataType.UBYTE -> when (rightDt) {
                     DataType.UBYTE -> DataType.UBYTE
                     DataType.BYTE -> DataType.BYTE
                     DataType.UWORD -> DataType.UWORD
@@ -1059,24 +1060,24 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
                     DataType.FLOAT -> DataType.FLOAT
                     else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
                 }
-                DataType.BYTE -> when(rightDt) {
+                DataType.BYTE -> when (rightDt) {
                     in ByteDatatypes -> DataType.BYTE
                     in WordDatatypes -> DataType.WORD
                     DataType.FLOAT -> DataType.FLOAT
                     else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
                 }
-                DataType.UWORD -> when(rightDt) {
+                DataType.UWORD -> when (rightDt) {
                     DataType.UBYTE, DataType.UWORD -> DataType.UWORD
                     DataType.BYTE, DataType.WORD -> DataType.WORD
                     DataType.FLOAT -> DataType.FLOAT
                     else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
                 }
-                DataType.WORD -> when(rightDt) {
+                DataType.WORD -> when (rightDt) {
                     in IntegerDatatypes -> DataType.WORD
                     DataType.FLOAT -> DataType.FLOAT
                     else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
                 }
-                DataType.FLOAT -> when(rightDt) {
+                DataType.FLOAT -> when (rightDt) {
                     in NumericDatatypes -> DataType.FLOAT
                     else -> throw FatalAstException("arithmetic operation on incompatible datatypes: $leftDt and $rightDt")
                 }
@@ -1085,6 +1086,83 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
         }
     }
 
+    fun commonDatatype(leftDt: DataType, rightDt: DataType,
+                       left: IExpression, right: IExpression): Pair<DataType, IExpression?> {
+        // byte + byte -> byte
+        // byte + word -> word
+        // word + byte -> word
+        // word + word -> word
+        // a combination with a float will be float (but give a warning about this!)
+
+        val floatWarning = "byte or word value implicitly converted to float. Suggestion: use explicit cast as float, a float number, or revert to integer arithmetic"
+
+        if(this.operator=="/") {
+            // division is a bit weird, don't cast the operands
+            val commondt = divisionOpDt(leftDt, rightDt)
+            return Pair(commondt, null)
+        }
+
+        return when (leftDt) {
+            DataType.UBYTE -> {
+                when (rightDt) {
+                    DataType.UBYTE -> Pair(DataType.UBYTE, null)
+                    DataType.BYTE -> Pair(DataType.BYTE, left)
+                    DataType.UWORD -> Pair(DataType.UWORD, left)
+                    DataType.WORD -> Pair(DataType.WORD, left)
+                    DataType.FLOAT -> {
+                        printWarning(floatWarning, left.position)
+                        Pair(DataType.FLOAT, left)
+                    }
+                    else -> throw FatalAstException("non-numeric datatype $rightDt")
+                }
+            }
+            DataType.BYTE -> {
+                when (rightDt) {
+                    DataType.UBYTE -> Pair(DataType.BYTE, right)
+                    DataType.BYTE -> Pair(DataType.BYTE, null)
+                    DataType.UWORD -> Pair(DataType.WORD, left)
+                    DataType.WORD -> Pair(DataType.WORD, left)
+                    DataType.FLOAT -> {
+                        printWarning(floatWarning, left.position)
+                        Pair(DataType.FLOAT, left)
+                    }
+                    else -> throw FatalAstException("non-numeric datatype $rightDt")
+                }
+            }
+            DataType.UWORD -> {
+                when (rightDt) {
+                    DataType.UBYTE -> Pair(DataType.UWORD, right)
+                    DataType.BYTE -> Pair(DataType.UWORD, right)
+                    DataType.UWORD -> Pair(DataType.UWORD, null)
+                    DataType.WORD -> Pair(DataType.WORD, left)
+                    DataType.FLOAT -> {
+                        printWarning(floatWarning, left.position)
+                        Pair(DataType.FLOAT, left)
+                    }
+                    else -> throw FatalAstException("non-numeric datatype $rightDt")
+                }
+            }
+            DataType.WORD -> {
+                when (rightDt) {
+                    DataType.UBYTE -> Pair(DataType.WORD, right)
+                    DataType.BYTE -> Pair(DataType.WORD, right)
+                    DataType.UWORD -> Pair(DataType.WORD, right)
+                    DataType.WORD -> Pair(DataType.WORD, null)
+                    DataType.FLOAT -> {
+                        printWarning(floatWarning, left.position)
+                        Pair(DataType.FLOAT, left)
+                    }
+                    else -> throw FatalAstException("non-numeric datatype $rightDt")
+                }
+            }
+            DataType.FLOAT -> {
+                if (rightDt != DataType.FLOAT)
+                    printWarning(floatWarning, left.position)
+                Pair(DataType.FLOAT, right)
+            }
+            else -> throw FatalAstException("non-numeric datatype $leftDt")
+        }
+    }
 }
 
 class ArrayIndexedExpression(val identifier: IdentifierReference,

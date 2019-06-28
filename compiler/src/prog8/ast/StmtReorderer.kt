@@ -172,6 +172,29 @@ private class StatementReorderer(private val program: Program): IAstProcessor {
         return super.process(decl)
     }
 
+    override fun process(expr: BinaryExpression): IExpression {
+        val leftDt = expr.left.inferType(program)
+        val rightDt = expr.right.inferType(program)
+        if(leftDt!=null && rightDt!=null && leftDt!=rightDt) {
+            // determine common datatype and add typecast as required to make left and right equal types
+            val (commonDt, toFix) = expr.commonDatatype(leftDt, rightDt, expr.left, expr.right)
+            if(toFix!=null) {
+                when {
+                    toFix===expr.left -> {
+                        expr.left = TypecastExpression(expr.left, commonDt, expr.left.position)
+                        expr.left.linkParents(expr)
+                    }
+                    toFix===expr.right -> {
+                        expr.right = TypecastExpression(expr.right, commonDt, expr.right.position)
+                        expr.right.linkParents(expr)
+                    }
+                    else -> throw FatalAstException("confused binary expression side")
+                }
+            }
+        }
+        return super.process(expr)
+    }
+
     private fun sortConstantAssignments(statements: MutableList<IStatement>) {
         // sort assignments by datatype and value, so multiple initializations with the isSameAs value can be optimized (to load the value just once)
         val result = mutableListOf<IStatement>()

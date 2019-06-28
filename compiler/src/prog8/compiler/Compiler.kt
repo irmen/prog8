@@ -546,70 +546,6 @@ internal class Compiler(private val program: Program): IAstProcessor {
         prog.instr(Opcode.NOP)
     }
 
-    private fun commonDatatype(leftDt: DataType, rightDt: DataType, leftpos: Position, rightpos: Position): DataType {
-        // byte + byte -> byte
-        // byte + word -> word
-        // word + byte -> word
-        // word + word -> word
-        // a combination with a float will be float (but give a warning about this!)
-
-        val floatWarning = "byte or word value implicitly converted to float. Suggestion: use explicit cast as float, a float number, or revert to integer arithmetic"
-
-        return when(leftDt) {
-            DataType.UBYTE -> {
-                when(rightDt) {
-                    DataType.UBYTE -> DataType.UBYTE
-                    DataType.BYTE -> DataType.BYTE
-                    DataType.UWORD -> DataType.UWORD
-                    DataType.WORD -> DataType.WORD
-                    DataType.FLOAT -> {
-                        printWarning(floatWarning, leftpos)
-                        DataType.FLOAT
-                    }
-                    else -> throw CompilerException("non-numeric datatype $rightDt")
-                }
-            }
-            DataType.BYTE -> {
-                when(rightDt) {
-                    in ByteDatatypes -> DataType.BYTE
-                    in WordDatatypes -> DataType.WORD
-                    DataType.FLOAT -> {
-                        printWarning(floatWarning, leftpos)
-                        DataType.FLOAT
-                    }
-                    else -> throw CompilerException("non-numeric datatype $rightDt")
-                }
-            }
-            DataType.UWORD -> {
-                when(rightDt) {
-                    DataType.UBYTE, DataType.UWORD -> DataType.UWORD
-                    DataType.BYTE, DataType.WORD -> DataType.WORD
-                    DataType.FLOAT -> {
-                        printWarning(floatWarning, leftpos)
-                        DataType.FLOAT
-                    }
-                    else -> throw CompilerException("non-numeric datatype $rightDt")
-                }
-            }
-            DataType.WORD -> {
-                when(rightDt) {
-                    DataType.UBYTE, DataType.UWORD, DataType.BYTE, DataType.WORD -> DataType.WORD
-                    DataType.FLOAT -> {
-                        printWarning(floatWarning, leftpos)
-                        DataType.FLOAT
-                    }
-                    else -> throw CompilerException("non-numeric datatype $rightDt")
-                }
-            }
-            DataType.FLOAT -> {
-                if(rightDt!=DataType.FLOAT)
-                    printWarning(floatWarning, rightpos)
-                DataType.FLOAT
-            }
-            else -> throw CompilerException("non-numeric datatype $leftDt")
-        }
-    }
-
     private fun translate(expr: IExpression) {
         when(expr) {
             is RegisterExpr -> {
@@ -622,11 +558,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
             is BinaryExpression -> {
                 val leftDt = expr.left.inferType(program)!!
                 val rightDt = expr.right.inferType(program)!!
-                val commonDt =
-                        if(expr.operator=="/")
-                            BinaryExpression.divisionOpDt(leftDt, rightDt)
-                        else
-                            commonDatatype(leftDt, rightDt, expr.left.position, expr.right.position)
+                val (commonDt, _) = expr.commonDatatype(leftDt, rightDt, expr.left, expr.right)
                 translate(expr.left)
                 if(leftDt!=commonDt)
                     convertType(leftDt, commonDt)
