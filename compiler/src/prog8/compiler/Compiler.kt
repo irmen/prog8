@@ -843,12 +843,12 @@ internal class Compiler(private val program: Program): IAstProcessor {
                 val arg = args.single()
                 val dt = arg.inferType(program)
                 when (dt) {
-                    DataType.UBYTE -> prog.instr(Opcode.ROL_BYTE)
-                    DataType.UWORD -> prog.instr(Opcode.ROL_WORD)
+                    in ByteDatatypes -> prog.instr(Opcode.ROL_BYTE)
+                    in WordDatatypes -> prog.instr(Opcode.ROL_WORD)
                     else -> throw CompilerException("wrong datatype")
                 }
                 // this function doesn't return a value on the stack so we pop it directly into the argument register/variable again
-                popValueIntoTarget(AssignTarget.fromExpr(arg), dt)
+                popValueIntoTarget(AssignTarget.fromExpr(arg), dt!!)
             }
             "ror" -> {
                 val arg = args.single()

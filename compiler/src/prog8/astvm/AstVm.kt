@@ -96,11 +96,13 @@ class RuntimeVariables {
         return address
     }
 
-    fun swap(a1: VarDecl, a2: VarDecl) {
-        val v1 = get(a1.definingScope(), a1.name)
-        val v2 = get(a2.definingScope(), a2.name)
-        set(a1.definingScope(), a1.name, v2)
-        set(a2.definingScope(), a2.name, v1)
+    fun swap(a1: VarDecl, a2: VarDecl) = swap(a1.definingScope(), a1.name, a2.definingScope(), a2.name)
+
+    fun swap(scope1: INameScope, name1: String, scope2: INameScope, name2: String) {
+        val v1 = get(scope1, name1)
+        val v2 = get(scope2, name2)
+        set(scope1, name1, v2)
+        set(scope2, name2, v1)
     }
 
     private val vars = mutableMapOf<INameScope, MutableMap<String, RuntimeValue>>().withDefault { mutableMapOf() }
@@ -160,7 +162,7 @@ class AstVm(val program: Program) {
                     when {
                         jx.generatedLabel != null -> {
                             val label = entrypoint.getLabelOrVariable(jx.generatedLabel) as Label
-                            TODO("$label")
+                            TODO("generatedlabel $label")
                         }
                         jx.identifier != null -> {
                             when (val jumptarget = entrypoint.lookup(jx.identifier.nameInSource, jx.identifier.parent)) {
@@ -188,6 +190,7 @@ class AstVm(val program: Program) {
 
     private val runtimeVariables = RuntimeVariables()
     private val functions = BuiltinFunctions()
+    private val evalCtx = EvalContext(program, mem, statusflags, runtimeVariables, functions, ::executeSubroutine)
 
     class LoopControlBreak : Exception()
     class LoopControlContinue : Exception()
@@ -205,8 +208,7 @@ class AstVm(val program: Program) {
         for (arg in sub.parameters.zip(arguments)) {
             val idref = IdentifierReference(listOf(arg.first.name), sub.position)
             performAssignment(AssignTarget(null, idref, null, null, idref.position),
-                    arg.second, sub.statements.first(),
-                    EvalContext(program, mem, statusflags, runtimeVariables, functions, ::executeSubroutine))
+                    arg.second, sub.statements.first(), evalCtx)
         }
 
         val statements = sub.statements.iterator()
@@ -239,8 +241,8 @@ class AstVm(val program: Program) {
         }
     }
 
+
     private fun executeStatement(sub: INameScope, stmt: IStatement) {
-        val evalCtx = EvalContext(program, mem, statusflags, runtimeVariables, functions, ::executeSubroutine)
         instructionCounter++
         if (instructionCounter % 100 == 0)
             Thread.sleep(1)
@@ -396,11 +398,44 @@ class AstVm(val program: Program) {
 
     private fun executeSwap(sub: INameScope, swap: FunctionCallStatement) {
         // TODO: can swap many different parameters.... in all combinations...
-        println("TODO SWAP ${swap.arglist}")
-//        val a1 = (swap.arglist[0] as IdentifierReference).targetVarDecl(program.namespace)!!
-//        val a2 = (swap.arglist[1] as IdentifierReference).targetVarDecl(program.namespace)!!
-//        runtimeVariables.swap(a1, a2)
-//        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        val v1 = swap.arglist[0]
+        val v2 = swap.arglist[1]
+        if(v1 is IdentifierReference && v2 is IdentifierReference) {
+            val decl1 = v1.targetVarDecl(program.namespace)!!
+            val decl2 = v2.targetVarDecl(program.namespace)!!
+            runtimeVariables.swap(decl1, decl2)
+            return
+        }
+        else if (v1 is RegisterExpr && v2 is RegisterExpr) {
+            runtimeVariables.swap(program.namespace, v1.register.name, program.namespace, v2.register.name)
+            return
+        }
+        else if(v1 is ArrayIndexedExpression && v2 is ArrayIndexedExpression) {
+            val decl1 = v1.identifier.targetVarDecl(program.namespace)!!
+            val decl2 = v2.identifier.targetVarDecl(program.namespace)!!
+            val index1 = evaluate(v1.arrayspec.index, evalCtx)
+            val index2 = evaluate(v2.arrayspec.index, evalCtx)
+            val rvar1 = runtimeVariables.get(decl1.definingScope(), decl1.name)
+            val rvar2 = runtimeVariables.get(decl2.definingScope(), decl2.name)
+            val val1 = rvar1.array!![index1.integerValue()]
+            val val2 = rvar2.array!![index2.integerValue()]
+            val rval1 = RuntimeValue(ArrayElementTypes.getValue(rvar1.type), val1)
+            val rval2 = RuntimeValue(ArrayElementTypes.getValue(rvar2.type), val2)
+            performAssignment(AssignTarget(null, null, v1, null, v1.position), rval2, swap, evalCtx)
+            performAssignment(AssignTarget(null, null, v2, null, v2.position), rval1, swap, evalCtx)
+            return
+        }
+        else if(v1 is DirectMemoryRead && v2 is DirectMemoryRead) {
+            val address1 = evaluate(v1.addressExpression, evalCtx).wordval!!
+            val address2 = evaluate(v2.addressExpression, evalCtx).wordval!!
+            val value1 = evalCtx.mem.getUByte(address1)
+            val value2 = evalCtx.mem.getUByte(address2)
+            evalCtx.mem.setUByte(address1, value2)
+            evalCtx.mem.setUByte(address2, value1)
+            return
+        }
+
+        TODO("not implemented swap $v1  $v2")
     }
 
     fun performAssignment(target: AssignTarget, value: RuntimeValue, contextStmt: IStatement, evalCtx: EvalContext) {
@@ -424,7 +459,8 @@ class AstVm(val program: Program) {
                     runtimeVariables.set(decl.definingScope(), decl.name, value)
             }
             target.memoryAddress != null -> {
-                TODO("assign memory")
+                val address = evaluate(target.memoryAddress!!.addressExpression, evalCtx).wordval!!
+                evalCtx.mem.setUByte(address, value.byteval!!)
             }
             target.arrayindexed != null -> {
                 val array = evaluate(target.arrayindexed.identifier, evalCtx)
@@ -479,15 +515,11 @@ class AstVm(val program: Program) {
     private fun oneForCycle(stmt: ForLoop, loopvarDt: DataType, loopValue: Number, loopVar: IdentifierReference) {
         // assign the new loop value to the loopvar, and run the code
         performAssignment(AssignTarget(null, loopVar, null, null, loopVar.position),
-                RuntimeValue(loopvarDt, loopValue), stmt.body.statements.first(),
-                EvalContext(program, mem, statusflags, runtimeVariables, functions, ::executeSubroutine))
+                RuntimeValue(loopvarDt, loopValue), stmt.body.statements.first(), evalCtx)
         executeAnonymousScope(stmt.body)
     }
 
-    private fun evaluate(args: List<IExpression>): List<RuntimeValue> {
-        val ctx = EvalContext(program, mem, statusflags, runtimeVariables, functions, ::executeSubroutine)
-        return args.map { evaluate(it, ctx) }
-    }
+    private fun evaluate(args: List<IExpression>) = args.map { evaluate(it, evalCtx) }
 
     private fun performSyscall(sub: Subroutine, args: List<RuntimeValue>) {
         assert(sub.isAsmSubroutine)

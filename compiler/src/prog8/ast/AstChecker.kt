@@ -1132,6 +1132,31 @@ private class AstChecker(private val program: Program,
     }
 
     private fun checkArrayValues(value: LiteralValue, type: DataType): Boolean {
+        if(value.isArray && value.heapId==null) {
+            // TODO weird, array literal that hasn't been moved to the heap yet?
+            val array = value.arrayvalue!!.map { it.constValue(program)!! }
+            val correct: Boolean
+            when(type) {
+                DataType.ARRAY_UB -> {
+                    correct=array.all { it.bytevalue!=null && it.bytevalue in 0..255 }
+                }
+                DataType.ARRAY_B -> {
+                    correct=array.all { it.bytevalue!=null && it.bytevalue in -128..127 }
+                }
+                DataType.ARRAY_UW -> {
+                    correct=array.all { it.wordvalue!=null && it.wordvalue in 0..65535 }
+                }
+                DataType.ARRAY_W -> {
+                    correct=array.all { it.wordvalue!=null && it.wordvalue in -32768..32767}
+                }
+                DataType.ARRAY_F -> correct = true
+                else -> throw AstException("invalid array type $type")
+            }
+            if(!correct)
+                checkResult.add(ExpressionError("array value out of range for type $type", value.position))
+            return correct
+        }
+
         val array = program.heap.get(value.heapId!!)
         val correct: Boolean
         when(type) {

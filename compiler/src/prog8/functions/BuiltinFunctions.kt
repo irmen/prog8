@@ -126,11 +126,7 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, program
             return when(dt) {
                 in NumericDatatypes -> dt!!
                 in StringDatatypes -> dt!!
-                DataType.ARRAY_UB -> DataType.UBYTE
-                DataType.ARRAY_B -> DataType.BYTE
-                DataType.ARRAY_UW -> DataType.UWORD
-                DataType.ARRAY_W -> DataType.WORD
-                DataType.ARRAY_F -> DataType.FLOAT
+                in ArrayDatatypes -> ArrayElementTypes.getValue(dt!!)
                 else -> throw FatalAstException("function '$function' requires one argument which is an iterable")
             }
         }
@@ -157,11 +153,7 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, program
             when(dt) {
                 in NumericDatatypes -> dt
                 in StringDatatypes -> DataType.UBYTE
-                DataType.ARRAY_UB -> DataType.UBYTE
-                DataType.ARRAY_B -> DataType.BYTE
-                DataType.ARRAY_UW -> DataType.UWORD
-                DataType.ARRAY_W -> DataType.WORD
-                DataType.ARRAY_F -> DataType.FLOAT
+                in ArrayDatatypes -> ArrayElementTypes.getValue(dt)
                 else -> null
             }
         }

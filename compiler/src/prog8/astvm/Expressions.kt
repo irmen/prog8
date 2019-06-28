@@ -66,14 +66,7 @@ fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
             val array = evaluate(expr.identifier, ctx)
             val index = evaluate(expr.arrayspec.index, ctx)
             val value = array.array!![index.integerValue()]
-            return when(array.type) {
-                DataType.ARRAY_UB -> RuntimeValue(DataType.UBYTE, num = value)
-                DataType.ARRAY_B -> RuntimeValue(DataType.BYTE, num = value)
-                DataType.ARRAY_UW -> RuntimeValue(DataType.UWORD, num = value)
-                DataType.ARRAY_W -> RuntimeValue(DataType.WORD, num = value)
-                DataType.ARRAY_F -> RuntimeValue(DataType.FLOAT, num = value)
-                else -> throw VmExecutionException("strange array type ${array.type}")
-            }
+            return RuntimeValue(ArrayElementTypes.getValue(array.type), value)
         }
         is TypecastExpression -> {
             return evaluate(expr.expression, ctx).cast(expr.type)
@@ -84,7 +77,8 @@ fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
             return RuntimeValue(DataType.UWORD, heapId)
         }
         is DirectMemoryRead -> {
-            TODO("memoryread $expr")
+            val address = evaluate(expr.addressExpression, ctx).wordval!!
+            return RuntimeValue(DataType.UBYTE, ctx.mem.getUByte(address))
         }
         is DirectMemoryWrite -> {
             TODO("memorywrite $expr")

@@ -267,18 +267,22 @@ private class StatementReorderer(private val program: Program): IAstProcessor {
                 }
             }
             is BuiltinFunctionStatementPlaceholder -> {
+                // if(sub.name in setOf("lsl", "lsr", "rol", "ror", "rol2", "ror2", "memset", "memcopy", "memsetw", "swap"))
                 val func = BuiltinFunctions.getValue(sub.name)
-                for(arg in func.parameters.zip(call.arglist.withIndex())) {
-                    val argtype = arg.second.value.inferType(program)
-                    if(argtype!=null) {
-                        if(arg.first.possibleDatatypes.any{ argtype == it})
-                            continue
-                        for(possibleType in arg.first.possibleDatatypes) {
-                            if(argtype isAssignableTo possibleType) {
-                                val typecasted = TypecastExpression(arg.second.value, possibleType, arg.second.value.position)
-                                typecasted.linkParents(arg.second.value.parent)
-                                call.arglist[arg.second.index] = typecasted
-                                break
+                if(func.pure) {
+                    // non-pure functions don't get automatic typecasts because sometimes they act directly on their parameters
+                    for (arg in func.parameters.zip(call.arglist.withIndex())) {
+                        val argtype = arg.second.value.inferType(program)
+                        if (argtype != null) {
+                            if (arg.first.possibleDatatypes.any { argtype == it })
+                                continue
+                            for (possibleType in arg.first.possibleDatatypes) {
+                                if (argtype isAssignableTo possibleType) {
+                                    val typecasted = TypecastExpression(arg.second.value, possibleType, arg.second.value.position)
+                                    typecasted.linkParents(arg.second.value.parent)
+                                    call.arglist[arg.second.index] = typecasted
+                                    break
+                                }
                             }
                         }
                     }

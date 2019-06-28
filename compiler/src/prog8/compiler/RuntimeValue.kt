@@ -288,13 +288,13 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
     fun rol(carry: Boolean): Pair<RuntimeValue, Boolean> {
         // 9 or 17 bit rotate left (with carry))
         return when(type) {
-            DataType.UBYTE -> {
+            DataType.UBYTE, DataType.BYTE -> {
                 val v = byteval!!.toInt()
                 val newCarry = (v and 0x80) != 0
                 val newval = (v and 0x7f shl 1) or (if(carry) 1 else 0)
                 Pair(RuntimeValue(DataType.UBYTE, newval), newCarry)
             }
-            DataType.UWORD -> {
+            DataType.UWORD, DataType.WORD -> {
                 val v = wordval!!
                 val newCarry = (v and 0x8000) != 0
                 val newval = (v and 0x7fff shl 1) or (if(carry) 1 else 0)
@@ -307,13 +307,13 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
     fun ror(carry: Boolean): Pair<RuntimeValue, Boolean> {
         // 9 or 17 bit rotate right (with carry)
         return when(type) {
-            DataType.UBYTE -> {
+            DataType.UBYTE, DataType.BYTE -> {
                 val v = byteval!!.toInt()
                 val newCarry = v and 1 != 0
                 val newval = (v ushr 1) or (if(carry) 0x80 else 0)
                 Pair(RuntimeValue(DataType.UBYTE, newval), newCarry)
             }
-            DataType.UWORD -> {
+            DataType.UWORD, DataType.WORD -> {
                 val v = wordval!!
                 val newCarry = v and 1 != 0
                 val newval = (v ushr 1) or (if(carry) 0x8000 else 0)
@@ -326,13 +326,13 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
     fun rol2(): RuntimeValue {
         // 8 or 16 bit rotate left
         return when(type) {
-            DataType.UBYTE -> {
+            DataType.UBYTE, DataType.BYTE -> {
                 val v = byteval!!.toInt()
                 val carry = (v and 0x80) ushr 7
                 val newval = (v and 0x7f shl 1) or carry
                 RuntimeValue(DataType.UBYTE, newval)
             }
-            DataType.UWORD -> {
+            DataType.UWORD, DataType.WORD -> {
                 val v = wordval!!
                 val carry = (v and 0x8000) ushr 15
                 val newval = (v and 0x7fff shl 1) or carry
@@ -345,13 +345,13 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
     fun ror2(): RuntimeValue {
         // 8 or 16 bit rotate right
         return when(type) {
-            DataType.UBYTE -> {
+            DataType.UBYTE, DataType.BYTE -> {
                 val v = byteval!!.toInt()
                 val carry = v and 1 shl 7
                 val newval = (v ushr 1) or carry
                 RuntimeValue(DataType.UBYTE, newval)
             }
-            DataType.UWORD -> {
+            DataType.UWORD, DataType.WORD -> {
                 val v = wordval!!
                 val carry = v and 1 shl 15
                 val newval = (v ushr 1) or carry

@@ -111,7 +111,12 @@ val IntegerDatatypes = setOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, Data
 val NumericDatatypes = setOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT)
 val StringDatatypes = setOf(DataType.STR, DataType.STR_S)
 val ArrayDatatypes = setOf(DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F)
-
+val ArrayElementTypes = mapOf(
+        DataType.ARRAY_B to DataType.BYTE,
+        DataType.ARRAY_UB to DataType.UBYTE,
+        DataType.ARRAY_W to DataType.WORD,
+        DataType.ARRAY_UW to DataType.UWORD,
+        DataType.ARRAY_F to DataType.FLOAT)
 
 class FatalAstException (override var message: String) : Exception(message)
 
