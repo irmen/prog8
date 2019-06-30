@@ -274,7 +274,7 @@ class AstVm(val program: Program) {
                     is BuiltinFunctionStatementPlaceholder -> {
                         if(target.name=="swap") {
                             // swap cannot be implemented as a function, so inline it here
-                            executeSwap(sub, stmt)
+                            executeSwap(stmt)
                         } else {
                             val args = evaluate(stmt.arglist)
                             functions.performBuiltinFunction(target.name, args, statusflags)
@@ -401,46 +401,15 @@ class AstVm(val program: Program) {
         }
     }
 
-    private fun executeSwap(sub: INameScope, swap: FunctionCallStatement) {
-        // TODO: can swap many different parameters.... in all combinations...
+    private fun executeSwap(swap: FunctionCallStatement) {
         val v1 = swap.arglist[0]
         val v2 = swap.arglist[1]
-        if(v1 is IdentifierReference && v2 is IdentifierReference) {
-            val decl1 = v1.targetVarDecl(program.namespace)!!
-            val decl2 = v2.targetVarDecl(program.namespace)!!
-            runtimeVariables.swap(decl1, decl2)
-            return
-        }
-        else if (v1 is RegisterExpr && v2 is RegisterExpr) {
-            runtimeVariables.swap(program.namespace, v1.register.name, program.namespace, v2.register.name)
-            return
-        }
-        else if(v1 is ArrayIndexedExpression && v2 is ArrayIndexedExpression) {
-            val decl1 = v1.identifier.targetVarDecl(program.namespace)!!
-            val decl2 = v2.identifier.targetVarDecl(program.namespace)!!
-            val index1 = evaluate(v1.arrayspec.index, evalCtx)
-            val index2 = evaluate(v2.arrayspec.index, evalCtx)
-            val rvar1 = runtimeVariables.get(decl1.definingScope(), decl1.name)
-            val rvar2 = runtimeVariables.get(decl2.definingScope(), decl2.name)
-            val val1 = rvar1.array!![index1.integerValue()]
-            val val2 = rvar2.array!![index2.integerValue()]
-            val rval1 = RuntimeValue(ArrayElementTypes.getValue(rvar1.type), val1)
-            val rval2 = RuntimeValue(ArrayElementTypes.getValue(rvar2.type), val2)
-            performAssignment(AssignTarget(null, null, v1, null, v1.position), rval2, swap, evalCtx)
-            performAssignment(AssignTarget(null, null, v2, null, v2.position), rval1, swap, evalCtx)
-            return
-        }
-        else if(v1 is DirectMemoryRead && v2 is DirectMemoryRead) {
-            val address1 = evaluate(v1.addressExpression, evalCtx).wordval!!
-            val address2 = evaluate(v2.addressExpression, evalCtx).wordval!!
-            val value1 = evalCtx.mem.getUByte(address1)
-            val value2 = evalCtx.mem.getUByte(address2)
-            evalCtx.mem.setUByte(address1, value2)
-            evalCtx.mem.setUByte(address2, value1)
-            return
-        }
-
-        TODO("not implemented swap $v1  $v2")
+        val value1 = evaluate(v1, evalCtx)
+        val value2 = evaluate(v2, evalCtx)
+        val target1 = AssignTarget.fromExpr(v1)
+        val target2 = AssignTarget.fromExpr(v2)
+        performAssignment(target1, value2, swap, evalCtx)
+        performAssignment(target2, value1, swap, evalCtx)
     }
 
     fun performAssignment(target: AssignTarget, value: RuntimeValue, contextStmt: IStatement, evalCtx: EvalContext) {
