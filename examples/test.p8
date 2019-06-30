@@ -18,6 +18,21 @@
 
         word w1 = 1111
         word w2 = 2222
+        sum(arr2)
+
+        if_cc goto start
+        if_cs goto start
+        if_eq goto start
+        if_mi goto start
+        if_ne goto start
+        if_neg goto start
+        if_nz goto start
+        if_pl goto start
+        if_pos goto start
+        if_vc goto start
+        if_vs goto start
+        if_z goto start
+
 
         m1 = 0
         mw1 = 65535

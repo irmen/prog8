@@ -285,9 +285,6 @@ class AstVm(val program: Program) {
                     }
                 }
             }
-            is BuiltinFunctionStatementPlaceholder -> {
-                TODO("builtinfun $stmt")
-            }
             is Return -> throw LoopControlReturn(stmt.values.map { evaluate(it, evalCtx) })
             is Continue -> throw LoopControlContinue()
             is Break -> throw LoopControlBreak()
@@ -339,7 +336,15 @@ class AstVm(val program: Program) {
                     executeAnonymousScope(stmt.elsepart)
             }
             is BranchStatement -> {
-                TODO("branch $stmt")
+                when(stmt.condition) {
+                    BranchCondition.CS -> if(statusflags.carry) executeAnonymousScope(stmt.truepart) else executeAnonymousScope(stmt.elsepart)
+                    BranchCondition.CC -> if(!statusflags.carry) executeAnonymousScope(stmt.truepart) else executeAnonymousScope(stmt.elsepart)
+                    BranchCondition.EQ, BranchCondition.Z -> if(statusflags.zero) executeAnonymousScope(stmt.truepart) else executeAnonymousScope(stmt.elsepart)
+                    BranchCondition.NE, BranchCondition.NZ -> if(statusflags.zero) executeAnonymousScope(stmt.truepart) else executeAnonymousScope(stmt.elsepart)
+                    BranchCondition.MI, BranchCondition.NEG -> if(statusflags.negative) executeAnonymousScope(stmt.truepart) else executeAnonymousScope(stmt.elsepart)
+                    BranchCondition.PL, BranchCondition.POS -> if(statusflags.negative) executeAnonymousScope(stmt.truepart) else executeAnonymousScope(stmt.elsepart)
+                    BranchCondition.VS, BranchCondition.VC -> TODO("overflow status")
+                }
             }
             is ForLoop -> {
                 val iterable = evaluate(stmt.iterable, evalCtx)
