@@ -725,9 +725,9 @@ class VarDecl(val type: VarDeclType,
               private val declaredDatatype: DataType,
               val zeropage: Boolean,
               var arraysize: ArrayIndex?,
-              val isUnsizedArray: Boolean,
               val name: String,
               var value: IExpression?,
+              val isArray: Boolean,
               override val position: Position) : IStatement {
     override lateinit var parent: Node
     override val expensiveToInline
@@ -735,7 +735,7 @@ class VarDecl(val type: VarDeclType,
 
     val datatypeErrors = mutableListOf<SyntaxError>()       // don't crash at init time, report them in the AstChecker
     val datatype =
-            if (arraysize == null && !isUnsizedArray) declaredDatatype
+            if (!isArray) declaredDatatype
             else when (declaredDatatype) {
                 DataType.UBYTE -> DataType.ARRAY_UB
                 DataType.BYTE -> DataType.ARRAY_B
@@ -759,7 +759,7 @@ class VarDecl(val type: VarDeclType,
     val scopedname: String by lazy { makeScopedName(name) }
 
     override fun toString(): String {
-        return "VarDecl(name=$name, vartype=$type, datatype=$datatype, value=$value, pos=$position)"
+        return "VarDecl(name=$name, vartype=$type, datatype=$datatype, array=$isArray, value=$value, pos=$position)"
     }
 
     fun asDefaultValueDecl(parent: Node?): VarDecl {
@@ -771,7 +771,7 @@ class VarDecl(val type: VarDeclType,
             DataType.FLOAT -> LiteralValue(DataType.FLOAT, floatvalue=0.0, position=position)
             else -> throw FatalAstException("can only set a default value for a numeric type")
         }
-        val decl = VarDecl(type, declaredDatatype, zeropage, arraysize, isUnsizedArray, name, constValue, position)
+        val decl = VarDecl(type, declaredDatatype, zeropage, arraysize, name, constValue, isArray, position)
         if(parent!=null)
             decl.linkParents(parent)
         return decl
@@ -2086,9 +2086,9 @@ private fun prog8Parser.StatementContext.toAst() : IStatement {
                 it.datatype().toAst(),
                 it.ZEROPAGE()!=null,
                 it.arrayindex()?.toAst(),
-                it.ARRAYSIG()!=null,
                 it.identifier().text,
                 null,
+                it.ARRAYSIG()!=null || it.arrayindex()!=null,
                 it.toPosition())
     }
 
@@ -2098,9 +2098,9 @@ private fun prog8Parser.StatementContext.toAst() : IStatement {
                 vd.datatype().toAst(),
                 vd.ZEROPAGE()!=null,
                 vd.arrayindex()?.toAst(),
-                vd.ARRAYSIG()!=null,
                 vd.identifier().text,
                 it.expression().toAst(),
+                vd.ARRAYSIG()!=null || vd.arrayindex()!=null,
                 it.toPosition())
     }
 
@@ -2111,9 +2111,9 @@ private fun prog8Parser.StatementContext.toAst() : IStatement {
                 vd.datatype().toAst(),
                 vd.ZEROPAGE()!=null,
                 vd.arrayindex()?.toAst(),
-                vd.ARRAYSIG()!=null,
                 vd.identifier().text,
                 cvarinit.expression().toAst(),
+                vd.ARRAYSIG()!=null || vd.arrayindex()!=null,
                 cvarinit.toPosition())
     }
 
@@ -2124,9 +2124,9 @@ private fun prog8Parser.StatementContext.toAst() : IStatement {
                 vd.datatype().toAst(),
                 vd.ZEROPAGE()!=null,
                 vd.arrayindex()?.toAst(),
-                vd.ARRAYSIG()!=null,
                 vd.identifier().text,
                 mvarinit.expression().toAst(),
+                vd.ARRAYSIG()!=null || vd.arrayindex()!=null,
                 mvarinit.toPosition())
     }
 

@@ -13,9 +13,9 @@ class VariablesCreator(private val runtimeVariables: RuntimeVariables, private v
         runtimeVariables.define(program.namespace, Register.Y.name, RuntimeValue(DataType.UBYTE, 0))
 
         val globalpos = Position("<<global>>", 0, 0, 0)
-        val vdA = VarDecl(VarDeclType.VAR, DataType.UBYTE, false, null, false, Register.A.name, LiteralValue.optimalInteger(0, globalpos), globalpos)
-        val vdX = VarDecl(VarDeclType.VAR, DataType.UBYTE, false, null, false, Register.X.name, LiteralValue.optimalInteger(255, globalpos), globalpos)
-        val vdY = VarDecl(VarDeclType.VAR, DataType.UBYTE, false, null, false, Register.Y.name, LiteralValue.optimalInteger(0, globalpos), globalpos)
+        val vdA = VarDecl(VarDeclType.VAR, DataType.UBYTE, false, null, Register.A.name, LiteralValue.optimalInteger(0, globalpos), false, globalpos)
+        val vdX = VarDecl(VarDeclType.VAR, DataType.UBYTE, false, null, Register.X.name, LiteralValue.optimalInteger(255, globalpos), false, globalpos)
+        val vdY = VarDecl(VarDeclType.VAR, DataType.UBYTE, false, null, Register.Y.name, LiteralValue.optimalInteger(0, globalpos), false, globalpos)
         vdA.linkParents(program.namespace)
         vdX.linkParents(program.namespace)
         vdY.linkParents(program.namespace)

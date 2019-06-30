@@ -504,7 +504,7 @@ private class AstChecker(private val program: Program,
         }
 
         // ARRAY without size specifier MUST have an iterable initializer value
-        if(decl.isUnsizedArray) {
+        if(decl.isArray && decl.arraysize==null) {
             if(decl.type==VarDeclType.MEMORY)
                 checkResult.add(SyntaxError("memory mapped array must have a size specification", decl.position))
             if(decl.value==null) {
@@ -546,7 +546,7 @@ private class AstChecker(private val program: Program,
                 }
                 when {
                     decl.value is RangeExpr -> {
-                        if(!decl.isUnsizedArray)
+                        if(decl.arraysize!=null)
                             checkValueTypeAndRange(decl.datatype, decl.arraysize!!, decl.value as RangeExpr)
                     }
                     decl.value is LiteralValue -> {

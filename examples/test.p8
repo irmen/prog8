@@ -6,52 +6,18 @@
 ~ main {
 
     sub start() {
-        ; TODO array to heap   ubyte[100] arr1 = 1 to 100
-        ; TODO array to heap ubyte[100] arr2 = 101 to 200
+        ubyte[10] arr1 = [1,2,3,4,5,6,7,8,9,10]
+        ubyte[] arr2 = [1,2,3,4,5,6,7,8,9,10]
+        ubyte[] arr1h = 1 to 10
+        ubyte[10] arr2h = 1 to 10
 
 
-        &ubyte m1 = $d020
-        &uword mw1 = $c000
 
-        ubyte[] arr1 = [1,2,3,4,5,6,7,8,9,10,11]
-        ubyte[] arr2 = [11,22,33,44,55,66,77,88,99,100,101]
-
-        word w1 = 1111
-        word w2 = 2222
-        sum(arr2)
-
-        if_cc goto start
-        if_cs goto start
-        if_eq goto start
-        if_mi goto start
-        if_ne goto start
-        if_neg goto start
-        if_nz goto start
-        if_pl goto start
-        if_pos goto start
-        if_vc goto start
-        if_vs goto start
-        if_z goto start
-
-
-        m1 = 0
-        mw1 = 65535
-
-        Y = @($d020)
-        @($d020) = A
-
-        ror(w1)
-        ror2(w1)
-        rol(w1)
-        rol2(w1)
-        lsr(w1)
-        lsl(w1)
-
-        swap(w1, w2)
-        swap(A, Y)
-        swap(arr1[4], arr2[9])
-        ; TODO swap(arr1[4], Y)
-        ; TODO swap(Y, arr2[9])
-        swap(@($d020), @($d021))
+;        swap(w1, w2)
+;        swap(A, Y)
+;        swap(arr1[4], arr2[9])
+;        ; TODO swap(arr1[4], Y)
+;        ; TODO swap(Y, arr2[9])
+;        swap(@($d020), @($d021))
     }
 }
