@@ -34,6 +34,25 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
             val litval = decl.value as? LiteralValue
             if(litval!=null && litval.isArray && litval.heapId!=null)
                 fixupArrayTypeOnHeap(decl, litval)
+
+            if(decl.isArray){
+                // for arrays that have no size specifier (or a non-constant one) attempt to deduce the size
+                if(decl.arraysize==null) {
+                    val arrayval = (decl.value as? LiteralValue)?.arrayvalue
+                    if(arrayval!=null) {
+                        decl.arraysize = ArrayIndex(LiteralValue.optimalInteger(arrayval.size, decl.position), decl.position)
+                        optimizationsDone++
+                    }
+                }
+                else if(decl.arraysize?.size()==null) {
+                    val size = decl.arraysize!!.index.process(this)
+                    if(size is LiteralValue) {
+                        decl.arraysize = ArrayIndex(size, decl.position)
+                        optimizationsDone++
+                    }
+                }
+            }
+
             when(decl.datatype) {
                 DataType.FLOAT -> {
                     // vardecl: for scalar float vars, promote constant integer initialization values to floats
@@ -70,17 +89,8 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
                     }
                     if(litval?.type==DataType.FLOAT)
                         errors.add(ExpressionError("arraysize requires only integers here", litval.position))
-                    if(decl.arraysize==null) {
-                        // see if we can deduce a proper arraysize
-                        val arrayval = (decl.value as? LiteralValue)?.arrayvalue
-                        if(arrayval!=null) {
-                            decl.arraysize = ArrayIndex(LiteralValue.optimalInteger(arrayval.size, decl.position), decl.position)
-                            optimizationsDone++
-                        }
-                        return decl
-                    }
-                    val size = decl.arraysize!!.size()
-                    if ((litval==null || !litval.isArray) && size != null && rangeExpr==null) {
+                    val size = decl.arraysize?.size() ?: return decl
+                    if ((litval==null || !litval.isArray) && rangeExpr==null) {
                         // arraysize initializer is empty or a single int, and we know the size; create the arraysize.
                         val fillvalue = if (litval == null) 0 else litval.asIntegerValue ?: 0
                         when(decl.datatype){
@@ -109,10 +119,8 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
                     }
                 }
                 DataType.ARRAY_F  -> {
-                    if(decl.arraysize==null)
-                        return decl
-                    val size = decl.arraysize!!.size()
-                    if ((litval==null || !litval.isArray) && size != null) {
+                    val size = decl.arraysize?.size() ?: return decl
+                    if (litval==null || !litval.isArray) {
                         // arraysize initializer is empty or a single int, and we know the size; create the arraysize.
                         val fillvalue = if (litval == null) 0.0 else litval.asNumericValue?.toDouble() ?: 0.0
                         if(fillvalue< FLOAT_MAX_NEGATIVE || fillvalue> FLOAT_MAX_POSITIVE)

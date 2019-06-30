@@ -165,6 +165,8 @@ private class StatementReorderer(private val program: Program): IAstProcessor {
         if(decl.arraysize==null) {
             val array = decl.value as? LiteralValue
             if(array!=null && array.isArray) {
+                if(array.heapId==null)
+                    TODO("$decl")
                 val size = program.heap.get(array.heapId!!).arraysize
                 decl.arraysize = ArrayIndex(LiteralValue.optimalInteger(size, decl.position), decl.position)
             }
