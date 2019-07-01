@@ -5,6 +5,7 @@ import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
 import prog8.compiler.RuntimeValue
 import prog8.compiler.HeapValues
+import prog8.compiler.IntegerOrAddressOf
 import prog8.compiler.target.c64.Petscii
 import prog8.functions.BuiltinFunctions
 import prog8.functions.NotConstArgumentException
@@ -1298,7 +1299,7 @@ open class LiteralValue(val type: DataType,
                         val floatvalue: Double? = null,
                         val strvalue: String? = null,
                         val arrayvalue: Array<IExpression>? = null,
-                        var heapId: Int? =null,
+                        initHeapId: Int? =null,
                         override val position: Position) : IExpression {
     override lateinit var parent: Node
 
@@ -1307,6 +1308,8 @@ open class LiteralValue(val type: DataType,
     val isString = type in StringDatatypes
     val isNumeric = type in NumericDatatypes
     val isArray = type in ArrayDatatypes
+    var heapId = initHeapId
+        private set
 
     companion object {
         fun fromBoolean(bool: Boolean, position: Position) =
@@ -1521,6 +1524,35 @@ open class LiteralValue(val type: DataType,
             else -> {}
         }
         return null    // invalid type conversion from $this to $targettype
+    }
+
+    fun addToHeap(heap: HeapValues) {
+        if(heapId==null) {
+            if (strvalue != null) {
+                heapId = heap.addString(type, strvalue)
+            }
+            else if (arrayvalue!=null) {
+                if(arrayvalue.any {it is AddressOf}) {
+                    val intArrayWithAddressOfs = arrayvalue.map {
+                        when (it) {
+                            is AddressOf -> IntegerOrAddressOf(null, it)
+                            is LiteralValue -> IntegerOrAddressOf(it.asIntegerValue, null)
+                            else -> throw FatalAstException("invalid datatype in array")
+                        }
+                    }
+                    heapId = heap.addIntegerArray(type, intArrayWithAddressOfs.toTypedArray())
+                } else {
+                    val valuesInArray = arrayvalue.map { (it as LiteralValue).asNumericValue!! }
+                    if(type==DataType.ARRAY_F) {
+                        val doubleArray = valuesInArray.map { it.toDouble() }.toDoubleArray()
+                        heapId = heap.addDoublesArray(doubleArray)
+                    } else {
+                        val integerArray = valuesInArray.map { it.toInt() }
+                        heapId = heap.addIntegerArray(type, integerArray.map { IntegerOrAddressOf(it, null) }.toTypedArray())
+                    }
+                }
+            }
+        }
     }
 }
 

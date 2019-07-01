@@ -113,7 +113,7 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
                             else -> {}
                         }
                         val heapId = program.heap.addIntegerArray(decl.datatype, Array(size) { IntegerOrAddressOf(fillvalue, null) })
-                        decl.value = LiteralValue(decl.datatype, heapId = heapId, position = litval?.position ?: decl.position)
+                        decl.value = LiteralValue(decl.datatype, initHeapId = heapId, position = litval?.position ?: decl.position)
                         optimizationsDone++
                         return decl
                     }
@@ -127,7 +127,7 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
                             errors.add(ExpressionError("float value overflow", litval?.position ?: decl.position))
                         else {
                             val heapId = program.heap.addDoublesArray(DoubleArray(size) { fillvalue })
-                            decl.value = LiteralValue(DataType.ARRAY_F, heapId = heapId, position = litval?.position ?: decl.position)
+                            decl.value = LiteralValue(DataType.ARRAY_F, initHeapId = heapId, position = litval?.position ?: decl.position)
                             optimizationsDone++
                             return decl
                         }
@@ -154,7 +154,7 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
             DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
                 if(array.array!=null) {
                     program.heap.update(heapId, HeapValues.HeapValue(decl.datatype, null, array.array, null))
-                    decl.value = LiteralValue(decl.datatype, heapId=heapId, position = litval.position)
+                    decl.value = LiteralValue(decl.datatype, initHeapId=heapId, position = litval.position)
                 }
             }
             DataType.ARRAY_F -> {
@@ -162,7 +162,7 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
                     // convert a non-float array to floats
                     val doubleArray = array.array.map { it.integer!!.toDouble() }.toDoubleArray()
                     program.heap.update(heapId, HeapValues.HeapValue(DataType.ARRAY_F, null, null, doubleArray))
-                    decl.value = LiteralValue(decl.datatype, heapId = heapId, position = litval.position)
+                    decl.value = LiteralValue(decl.datatype, initHeapId = heapId, position = litval.position)
                 }
             }
             else -> throw FatalAstException("invalid array vardecl type ${decl.datatype}")
@@ -598,12 +598,12 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
             if(litval.strvalue!!.length !in 1..255)
                 addError(ExpressionError("string literal length must be between 1 and 255", litval.position))
             else {
-                litval.heapId = program.heap.addString(litval.type, litval.strvalue)     // TODO: we don't know the actual string type yet, STR != STR_S etc...
+                litval.addToHeap(program.heap)  // TODO: we don't know the actual string type yet, STR != STR_S etc...
             }
         } else if(litval.arrayvalue!=null) {
             // first, adjust the array datatype
             val litval2 = adjustArrayValDatatype(litval)
-            moveArrayToHeap(litval2)
+            litval2.addToHeap(program.heap)
             return litval2
         }
         return litval
@@ -647,37 +647,6 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
             return LiteralValue(arrayDt, arrayvalue = litval.arrayvalue, position = litval.position)
         }
         return litval
-    }
-
-    private fun moveArrayToHeap(arraylit: LiteralValue) {
-        val array: Array<IExpression> = arraylit.arrayvalue!!.map { it.process(this) }.toTypedArray()
-        if(array.any {it is AddressOf}) {
-            val intArrayWithAddressOfs = array.map {
-                when (it) {
-                    is AddressOf -> IntegerOrAddressOf(null, it)
-                    is LiteralValue -> IntegerOrAddressOf(it.asIntegerValue, null)
-                    else -> throw CompilerException("invalid datatype in array")
-                }
-            }
-            arraylit.heapId = program.heap.addIntegerArray(arraylit.type, intArrayWithAddressOfs.toTypedArray())
-        } else {
-            // array is only constant numerical values
-            val valuesInArray = array.map { it.constValue(program)!!.asNumericValue!! }
-            arraylit.heapId = when(arraylit.type) {
-                DataType.ARRAY_UB,
-                DataType.ARRAY_B,
-                DataType.ARRAY_UW,
-                DataType.ARRAY_W -> {
-                    val integerArray = valuesInArray.map{ it.toInt() }
-                    program.heap.addIntegerArray(arraylit.type, integerArray.map { IntegerOrAddressOf(it, null) }.toTypedArray())
-                }
-                DataType.ARRAY_F -> {
-                    val doubleArray = valuesInArray.map{it.toDouble()}.toDoubleArray()
-                    program.heap.addDoublesArray(doubleArray)
-                }
-                else -> throw CompilerException("invalid arraysize type")
-            }
-        }
     }
 
     override fun process(assignment: Assignment): IStatement {

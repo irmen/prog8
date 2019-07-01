@@ -535,7 +535,7 @@ private class AstChecker(private val program: Program,
                             decl.value = litVal
                         }
                         decl.type==VarDeclType.VAR -> {
-                            val litVal = LiteralValue(decl.datatype, heapId = heapStringSentinel, position=decl.position)    // point to the sentinel heap value instead
+                            val litVal = LiteralValue(decl.datatype, initHeapId = heapStringSentinel, position=decl.position)    // point to the sentinel heap value instead
                             litVal.parent=decl
                             decl.value = litVal
                         }
