@@ -228,7 +228,12 @@ interface IAstProcessor {
     }
 
     fun process(literalValue: LiteralValue): LiteralValue {
-        literalValue.arrayvalue?.forEach { it.process(this) }
+        if(literalValue.arrayvalue!=null && literalValue.heapId==null) {
+            for(av in literalValue.arrayvalue.withIndex()) {
+                val newvalue = av.value.process(this)
+                literalValue.arrayvalue[av.index] = newvalue
+            }
+        }
         return literalValue
     }
 
@@ -1386,7 +1391,15 @@ open class LiteralValue(val type: DataType,
         arrayvalue?.forEach {it.linkParents(this)}
     }
 
-    override fun constValue(program: Program): LiteralValue?  = this
+    override fun constValue(program: Program): LiteralValue? {
+        if(arrayvalue!=null) {
+            for(v in arrayvalue) {
+                if(v.constValue(program)==null) return null
+            }
+        }
+        return this
+    }
+
     override fun process(processor: IAstProcessor) = processor.process(this)
 
     override fun toString(): String {

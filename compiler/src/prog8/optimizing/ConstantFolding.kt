@@ -592,30 +592,67 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
     }
 
     override fun process(literalValue: LiteralValue): LiteralValue {
-        if(literalValue.isString) {
+        val litval = super.process(literalValue)
+        if(litval.isString) {
             // intern the string; move it into the heap
-            if(literalValue.strvalue(program.heap).length !in 1..255)
-                addError(ExpressionError("string literal length must be between 1 and 255", literalValue.position))
+            if(litval.strvalue(program.heap).length !in 1..255)
+                addError(ExpressionError("string literal length must be between 1 and 255", litval.position))
             else {
-                val heapId = program.heap.addString(literalValue.type, literalValue.strvalue(program.heap))     // TODO: we don't know the actual string type yet, STR != STR_S etc...
-                val newValue = LiteralValue(literalValue.type, heapId = heapId, position = literalValue.position)
+                val heapId = program.heap.addString(litval.type, litval.strvalue(program.heap))     // TODO: we don't know the actual string type yet, STR != STR_S etc...
+                val newValue = LiteralValue(litval.type, heapId = heapId, position = litval.position)
                 return super.process(newValue)
             }
-        } else if(literalValue.arrayvalue!=null) {
-            return moveArrayToHeap(literalValue)
+        } else if(litval.arrayvalue!=null) {
+            // first, adjust the array datatype
+            val litval2 = adjustArrayValDatatype(litval)
+            return moveArrayToHeap(litval2)
         }
+        return litval
+    }
 
-        return super.process(literalValue)
+    private fun adjustArrayValDatatype(litval: LiteralValue): LiteralValue {
+        val array = litval.arrayvalue!!
+        val typesInArray = array.mapNotNull { it.inferType(program) }.toSet()
+        val arrayDt =
+                when {
+                    array.any { it is AddressOf} -> DataType.ARRAY_UW
+                    DataType.FLOAT in typesInArray -> DataType.ARRAY_F
+                    DataType.WORD in typesInArray -> DataType.ARRAY_W
+                    else -> {
+                        val allElementsAreConstantOrAddressOf = array.fold(true) { c, expr-> c and (expr is LiteralValue || expr is AddressOf)}
+                        if(!allElementsAreConstantOrAddressOf) {
+                            addError(ExpressionError("array literal can only consist of constant primitive numerical values or memory pointers", litval.position))
+                            return litval
+                        } else {
+                            val integerArray = array.map { it.constValue(program)!!.asIntegerValue!! }
+                            val maxValue = integerArray.max()!!
+                            val minValue = integerArray.min()!!
+                            if (minValue >= 0) {
+                                // unsigned
+                                if (maxValue <= 255)
+                                    DataType.ARRAY_UB
+                                else
+                                    DataType.ARRAY_UW
+                            } else {
+                                // signed
+                                if (maxValue <= 127)
+                                    DataType.ARRAY_B
+                                else
+                                    DataType.ARRAY_W
+                            }
+                        }
+                    }
+                }
+
+        if(arrayDt!=litval.type) {
+            return LiteralValue(arrayDt, arrayvalue = litval.arrayvalue, position = litval.position)
+        }
+        return litval
     }
 
     private fun moveArrayToHeap(arraylit: LiteralValue): LiteralValue {
         val array: Array<IExpression> = arraylit.arrayvalue!!.map { it.process(this) }.toTypedArray()
-        val allElementsAreConstantOrAddressOf = array.fold(true) { c, expr-> c and (expr is LiteralValue || expr is AddressOf)}
-        if(!allElementsAreConstantOrAddressOf) {
-            addError(ExpressionError("array literal can only consist of constant primitive numerical values or memory pointers", arraylit.position))
-            return arraylit
-        } else if(array.any {it is AddressOf}) {
-            val arrayDt = DataType.ARRAY_UW
+        if(array.any {it is AddressOf}) {
             val intArrayWithAddressOfs = array.map {
                 when (it) {
                     is AddressOf -> IntegerOrAddressOf(null, it)
@@ -623,50 +660,26 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
                     else -> throw CompilerException("invalid datatype in array")
                 }
             }
-            val heapId = program.heap.addIntegerArray(arrayDt, intArrayWithAddressOfs.toTypedArray())
-            return LiteralValue(arrayDt, heapId = heapId, position = arraylit.position)
+            val heapId = program.heap.addIntegerArray(arraylit.type, intArrayWithAddressOfs.toTypedArray())
+            return LiteralValue(arraylit.type, heapId = heapId, position = arraylit.position)
         } else {
             // array is only constant numerical values
             val valuesInArray = array.map { it.constValue(program)!!.asNumericValue!! }
-            val integerArray = valuesInArray.map{ it.toInt() }
-            val doubleArray = valuesInArray.map{it.toDouble()}.toDoubleArray()
-            val typesInArray: Set<DataType> = array.mapNotNull { it.inferType(program) }.toSet()
-
-            // Take an educated guess about the array type.
-            // This may be altered (if needed & if possible) to suit an array declaration type later!
-            // Also, the check if all values are valid for the given datatype is done later, in the AstChecker.
-            val arrayDt =
-                    if(DataType.FLOAT in typesInArray)
-                        DataType.ARRAY_F
-                    else if(DataType.WORD in typesInArray) {
-                        DataType.ARRAY_W
-                    } else {
-                        val maxValue = integerArray.max()!!
-                        val minValue = integerArray.min()!!
-                        if (minValue >= 0) {
-                            // unsigned
-                            if (maxValue <= 255)
-                                DataType.ARRAY_UB
-                            else
-                                DataType.ARRAY_UW
-                        } else {
-                            // signed
-                            if (maxValue <= 127)
-                                DataType.ARRAY_B
-                            else
-                                DataType.ARRAY_W
-                        }
-                    }
-
-            val heapId = when(arrayDt) {
+            val heapId = when(arraylit.type) {
                 DataType.ARRAY_UB,
                 DataType.ARRAY_B,
                 DataType.ARRAY_UW,
-                DataType.ARRAY_W -> program.heap.addIntegerArray(arrayDt, integerArray.map { IntegerOrAddressOf(it, null) }.toTypedArray())
-                DataType.ARRAY_F -> program.heap.addDoublesArray(doubleArray)
+                DataType.ARRAY_W -> {
+                    val integerArray = valuesInArray.map{ it.toInt() }
+                    program.heap.addIntegerArray(arraylit.type, integerArray.map { IntegerOrAddressOf(it, null) }.toTypedArray())
+                }
+                DataType.ARRAY_F -> {
+                    val doubleArray = valuesInArray.map{it.toDouble()}.toDoubleArray()
+                    program.heap.addDoublesArray(doubleArray)
+                }
                 else -> throw CompilerException("invalid arraysize type")
             }
-            return LiteralValue(arrayDt, heapId = heapId, position = arraylit.position)
+            return LiteralValue(arraylit.type, heapId = heapId, position = arraylit.position)
         }
     }
 
