@@ -229,9 +229,8 @@ private fun collectionArgOutputNumber(args: List<IExpression>, position: Positio
         when(iterable.type) {
             DataType.UBYTE, DataType.UWORD, DataType.FLOAT -> throw SyntaxError("function expects an iterable type", position)
             else -> {
-                if(iterable.heapId==null)
-                    throw FatalAstException("iterable value should be on the heap")
-                val array = program.heap.get(iterable.heapId).array ?: throw SyntaxError("function expects an iterable type", position)
+                val heapId = iterable.heapId ?: throw FatalAstException("iterable value should be on the heap")
+                val array = program.heap.get(heapId).array ?: throw SyntaxError("function expects an iterable type", position)
                 function(array.map {
                     if(it.integer!=null)
                         it.integer.toDouble()
@@ -293,7 +292,8 @@ private fun builtinAvg(args: List<IExpression>, position: Position, program: Pro
         (constants.map { it!!.toDouble() }).average()
     }
     else {
-        val integerarray = program.heap.get(iterable.heapId!!).array
+        val heapId = iterable.heapId!!
+        val integerarray = program.heap.get(heapId).array
         if(integerarray!=null) {
             if (integerarray.all { it.integer != null }) {
                 integerarray.map { it.integer!! }.average()
@@ -301,7 +301,7 @@ private fun builtinAvg(args: List<IExpression>, position: Position, program: Pro
                 throw ExpressionError("cannot avg() over array that does not only contain constant numerical values", position)
             }
         } else {
-            val doublearray = program.heap.get(iterable.heapId).doubleArray
+            val doublearray = program.heap.get(heapId).doubleArray
             doublearray?.average() ?: throw SyntaxError("avg requires array argument", position)
         }
     }

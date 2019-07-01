@@ -1298,7 +1298,7 @@ open class LiteralValue(val type: DataType,
                         val floatvalue: Double? = null,
                         strvalue: String? = null,
                         val arrayvalue: Array<IExpression>? = null,
-                        val heapId: Int? =null,
+                        var heapId: Int? =null,
                         override val position: Position) : IExpression {
     override lateinit var parent: Node
     private val initialstrvalue = strvalue

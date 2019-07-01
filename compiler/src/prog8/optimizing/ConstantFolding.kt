@@ -598,14 +598,13 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
             if(litval.strvalue(program.heap).length !in 1..255)
                 addError(ExpressionError("string literal length must be between 1 and 255", litval.position))
             else {
-                val heapId = program.heap.addString(litval.type, litval.strvalue(program.heap))     // TODO: we don't know the actual string type yet, STR != STR_S etc...
-                val newValue = LiteralValue(litval.type, heapId = heapId, position = litval.position)
-                return super.process(newValue)
+                litval.heapId = program.heap.addString(litval.type, litval.strvalue(program.heap))     // TODO: we don't know the actual string type yet, STR != STR_S etc...
             }
         } else if(litval.arrayvalue!=null) {
             // first, adjust the array datatype
             val litval2 = adjustArrayValDatatype(litval)
-            return moveArrayToHeap(litval2)
+            moveArrayToHeap(litval2)
+            return litval2
         }
         return litval
     }
@@ -650,7 +649,7 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
         return litval
     }
 
-    private fun moveArrayToHeap(arraylit: LiteralValue): LiteralValue {
+    private fun moveArrayToHeap(arraylit: LiteralValue) {
         val array: Array<IExpression> = arraylit.arrayvalue!!.map { it.process(this) }.toTypedArray()
         if(array.any {it is AddressOf}) {
             val intArrayWithAddressOfs = array.map {
@@ -660,12 +659,11 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
                     else -> throw CompilerException("invalid datatype in array")
                 }
             }
-            val heapId = program.heap.addIntegerArray(arraylit.type, intArrayWithAddressOfs.toTypedArray())
-            return LiteralValue(arraylit.type, heapId = heapId, position = arraylit.position)
+            arraylit.heapId = program.heap.addIntegerArray(arraylit.type, intArrayWithAddressOfs.toTypedArray())
         } else {
             // array is only constant numerical values
             val valuesInArray = array.map { it.constValue(program)!!.asNumericValue!! }
-            val heapId = when(arraylit.type) {
+            arraylit.heapId = when(arraylit.type) {
                 DataType.ARRAY_UB,
                 DataType.ARRAY_B,
                 DataType.ARRAY_UW,
@@ -679,7 +677,6 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
                 }
                 else -> throw CompilerException("invalid arraysize type")
             }
-            return LiteralValue(arraylit.type, heapId = heapId, position = arraylit.position)
         }
     }
 
