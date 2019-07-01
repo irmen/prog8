@@ -315,7 +315,9 @@ private class StatementReorderer(private val program: Program): IAstProcessor {
 
 
 private class VarInitValueAndAddressOfCreator(private val namespace: INameScope): IAstProcessor {
-    // Replace the var decl with an assignment and add a new vardecl with the default constant value.
+    // For VarDecls that declare an initialization value:
+    // Replace the vardecl with an assignment (to set the initial value),
+    // and add a new vardecl with the default constant value of that type (usually zero) to the scope.
     // This makes sure the variables get reset to the intended value on a next run of the program.
     // Variable decls without a value don't get this treatment, which means they retain the last
     // value they had when restarting the program.

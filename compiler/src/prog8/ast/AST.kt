@@ -429,7 +429,7 @@ interface INameScope {
     }
 
     fun getLabelOrVariable(name: String): IStatement? {
-        // this is called A LOT and could perhaps be optimized a bit more, but adding a cache didn't make much of a practical runtime difference
+        // TODO this is called A LOT and could perhaps be optimized a bit more, but adding a cache didn't make much of a practical runtime difference
         for (stmt in statements) {
             if (stmt is VarDecl && stmt.name==name) return stmt
             if (stmt is Label && stmt.name==name) return stmt
@@ -437,8 +437,17 @@ interface INameScope {
         return null
     }
 
-    fun allDefinedNames(): Set<String> =
-            statements.filterIsInstance<Label>().map { it.name }.toSet() + statements.filterIsInstance<VarDecl>().map { it.name }.toSet()
+    fun allDefinedSymbols(): List<Pair<String, IStatement>>  {
+        return statements.mapNotNull {
+            when (it) {
+                is Label -> it.name to it
+                is VarDecl -> it.name to it
+                is Subroutine -> it.name to it
+                is Block -> it.name to it
+                else -> null
+            }
+        }
+    }
 
     fun lookup(scopedName: List<String>, localContext: Node) : IStatement? {
         if(scopedName.size>1) {

@@ -114,14 +114,18 @@ private class AstIdentifiersChecker(private val namespace: INameScope) : IAstPro
             if (existing != null && existing !== subroutine)
                 nameError(subroutine.name, subroutine.position, existing)
 
-            // check that there are no local variables that redefine the subroutine's parameters
-            val allDefinedNames = subroutine.allDefinedNames()
+            // check that there are no local variables, labels, or other subs that redefine the subroutine's parameters
+            val symbolsInSub = subroutine.allDefinedSymbols()
+            val namesInSub = symbolsInSub.map{ it.first }.toSet()
             val paramNames = subroutine.parameters.map { it.name }.toSet()
-            val paramsToCheck = paramNames.intersect(allDefinedNames)
+            val paramsToCheck = paramNames.intersect(namesInSub)
             for(name in paramsToCheck) {
-                val thing = subroutine.getLabelOrVariable(name)!!
-                if(thing.position != subroutine.position)
-                    nameError(name, thing.position, subroutine)
+                val labelOrVar = subroutine.getLabelOrVariable(name)
+                if(labelOrVar!=null && labelOrVar.position != subroutine.position)
+                    nameError(name, labelOrVar.position, subroutine)
+                val sub = subroutine.statements.singleOrNull { it is Subroutine && it.name==name}
+                if(sub!=null)
+                    nameError(name, sub.position, subroutine)
             }
 
             // inject subroutine params as local variables (if they're not there yet) (for non-kernel subroutines and non-asm parameters)
@@ -132,7 +136,7 @@ private class AstIdentifiersChecker(private val namespace: INameScope) : IAstPro
             if(subroutine.asmAddress==null && !subroutine.canBeAsmSubroutine) {
                 if(subroutine.asmParameterRegisters.isEmpty()) {
                     subroutine.parameters
-                            .filter { it.name !in allDefinedNames }
+                            .filter { it.name !in namesInSub }
                             .forEach {
                                 val vardecl = VarDecl(VarDeclType.VAR, it.type, false, null, it.name, null, false, subroutine.position)
                                 vardecl.linkParents(subroutine)
