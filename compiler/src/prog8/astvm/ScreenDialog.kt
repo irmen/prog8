@@ -1,6 +1,7 @@
 package prog8.astvm
 
 import prog8.compiler.target.c64.Charset
+import prog8.compiler.target.c64.Colors
 import prog8.compiler.target.c64.Petscii
 import java.awt.*
 import java.awt.event.KeyEvent
@@ -47,20 +48,20 @@ class BitmapScreenPanel : KeyListener, JPanel() {
         g2d.drawImage(image, 0, 0, image.width * 3, image.height * 3, null)
     }
 
-    fun clearScreen(color: Int) {
-        g2d.background = palette[color and 15]
-        g2d.clearRect(0, 0, BitmapScreenPanel.SCREENWIDTH, BitmapScreenPanel.SCREENHEIGHT)
+    fun clearScreen(color: Short) {
+        g2d.background = Colors.palette[color % Colors.palette.size]
+        g2d.clearRect(0, 0, SCREENWIDTH, SCREENHEIGHT)
         cursorX = 0
         cursorY = 0
     }
-    fun setPixel(x: Int, y: Int, color: Int) {
-        image.setRGB(x, y, palette[color and 15].rgb)
+    fun setPixel(x: Int, y: Int, color: Short) {
+        image.setRGB(x, y, Colors.palette[color % Colors.palette.size].rgb)
     }
-    fun drawLine(x1: Int, y1: Int, x2: Int, y2: Int, color: Int) {
-        g2d.color = palette[color and 15]
+    fun drawLine(x1: Int, y1: Int, x2: Int, y2: Int, color: Short) {
+        g2d.color = Colors.palette[color % Colors.palette.size]
         g2d.drawLine(x1, y1, x2, y2)
     }
-    fun printText(text: String, color: Int, lowercase: Boolean) {
+    fun printText(text: String, color: Short, lowercase: Boolean) {
         val t2 = text.substringBefore(0.toChar())
         val lines = t2.split('\n')
         for(line in lines.withIndex()) {
@@ -71,15 +72,12 @@ class BitmapScreenPanel : KeyListener, JPanel() {
             }
         }
     }
-    private fun printTextSingleLine(text: String, color: Int, lowercase: Boolean) {
-        if(color!=1) {
-            TODO("text can only be white for now")
-        }
+    private fun printTextSingleLine(text: String, color: Short, lowercase: Boolean) {
         for(clearx in cursorX until cursorX+text.length) {
             g2d.clearRect(8*clearx, 8*y, 8, 8)
         }
         for(sc in Petscii.encodeScreencode(text, lowercase)) {
-            setChar(cursorX, cursorY, sc)
+            setChar(cursorX, cursorY, sc, color)
             cursorX++
             if(cursorX>=(SCREENWIDTH/8)) {
                 cursorY++
@@ -93,7 +91,7 @@ class BitmapScreenPanel : KeyListener, JPanel() {
             cursorX=0
             cursorY++
         } else {
-            setChar(cursorX, cursorY, char)
+            setChar(cursorX, cursorY, char, 1)
             cursorX++
             if (cursorX >= (SCREENWIDTH / 8)) {
                 cursorY++
@@ -102,9 +100,11 @@ class BitmapScreenPanel : KeyListener, JPanel() {
         }
     }
 
-    fun setChar(x: Int, y: Int, screenCode: Short) {
+    fun setChar(x: Int, y: Int, screenCode: Short, color: Short) {
         g2d.clearRect(8*x, 8*y, 8, 8)
-        g2d.drawImage(Charset.shiftedChars[screenCode.toInt()], 8*x, 8*y , null)
+        val colorIdx = (color % Colors.palette.size).toShort()
+        val coloredImage = Charset.getColoredChar(screenCode, colorIdx)
+        g2d.drawImage(coloredImage, 8*x, 8*y , null)
     }
 
     fun setCursorPos(x: Int, y: Int) {
@@ -116,18 +116,16 @@ class BitmapScreenPanel : KeyListener, JPanel() {
         return Pair(cursorX, cursorY)
     }
 
-    fun writeText(x: Int, y: Int, text: String, color: Int, lowercase: Boolean) {
+    fun writeText(x: Int, y: Int, text: String, color: Short, lowercase: Boolean) {
+        val colorIdx = (color % Colors.palette.size).toShort()
         var xx=x
-        if(color!=1) {
-            TODO("text can only be white for now")
-        }
         for(clearx in xx until xx+text.length) {
             g2d.clearRect(8*clearx, 8*y, 8, 8)
         }
         for(sc in Petscii.encodeScreencode(text, lowercase)) {
             if(sc==0.toShort())
                 break
-            setChar(xx++, y, sc)
+            setChar(xx++, y, sc, colorIdx)
         }
     }
 
@@ -136,24 +134,6 @@ class BitmapScreenPanel : KeyListener, JPanel() {
         const val SCREENWIDTH = 320
         const val SCREENHEIGHT = 200
         const val SCALING = 3
-        val palette = listOf(         // this is Pepto's Commodore-64 palette  http://www.pepto.de/projects/colorvic/
-                Color(0x000000),  // 0 = black
-                Color(0xFFFFFF),  // 1 = white
-                Color(0x813338),  // 2 = red
-                Color(0x75cec8),  // 3 = cyan
-                Color(0x8e3c97),  // 4 = purple
-                Color(0x56ac4d),  // 5 = green
-                Color(0x2e2c9b),  // 6 = blue
-                Color(0xedf171),  // 7 = yellow
-                Color(0x8e5029),  // 8 = orange
-                Color(0x553800),  // 9 = brown
-                Color(0xc46c71),  // 10 = light red
-                Color(0x4a4a4a),  // 11 = dark grey
-                Color(0x7b7b7b),  // 12 = medium grey
-                Color(0xa9ff9f),  // 13 = light green
-                Color(0x706deb),  // 14 = light blue
-                Color(0xb2b2b2)   // 15 = light grey
-        )
     }
 }
 
@@ -171,19 +151,19 @@ class ScreenDialog : JFrame() {
         // the borders (top, left, right, bottom)
         val borderTop = JPanel().apply {
             preferredSize = Dimension(BitmapScreenPanel.SCALING * (BitmapScreenPanel.SCREENWIDTH+2*borderWidth), BitmapScreenPanel.SCALING * borderWidth)
-            background = BitmapScreenPanel.palette[14]
+            background = Colors.palette[14]
         }
         val borderBottom = JPanel().apply {
             preferredSize =Dimension(BitmapScreenPanel.SCALING * (BitmapScreenPanel.SCREENWIDTH+2*borderWidth), BitmapScreenPanel.SCALING * borderWidth)
-            background = BitmapScreenPanel.palette[14]
+            background = Colors.palette[14]
         }
         val borderLeft = JPanel().apply {
             preferredSize =Dimension(BitmapScreenPanel.SCALING * borderWidth, BitmapScreenPanel.SCALING * BitmapScreenPanel.SCREENHEIGHT)
-            background = BitmapScreenPanel.palette[14]
+            background = Colors.palette[14]
         }
         val borderRight = JPanel().apply {
             preferredSize =Dimension(BitmapScreenPanel.SCALING * borderWidth, BitmapScreenPanel.SCALING * BitmapScreenPanel.SCREENHEIGHT)
-            background = BitmapScreenPanel.palette[14]
+            background = Colors.palette[14]
         }
         var c = GridBagConstraints()
         c.gridx=0; c.gridy=1; c.gridwidth=3

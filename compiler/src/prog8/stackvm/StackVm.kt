@@ -1886,7 +1886,7 @@ class StackVm(private var traceOutputFile: String?) {
         else {
             when(ins.callLabel) {
                 "c64.CLEARSCR" -> {
-                    canvas?.clearScreen(mem.getUByte(0xd021).toInt())
+                    canvas?.clearScreen(mem.getUByte(0xd021))
                     callstack.pop()
                 }
                 "c64.CHROUT" -> {
@@ -1974,25 +1974,25 @@ class StackVm(private var traceOutputFile: String?) {
                 // plot pixel at (x, y, color) from stack
                 val color = evalstack.pop()
                 val (y, x) = evalstack.pop2()
-                canvas?.setPixel(x.integerValue(), y.integerValue(), color.integerValue())
+                canvas?.setPixel(x.integerValue(), y.integerValue(), color.integerValue().toShort())
             }
             Syscall.VM_GFX_LINE -> {
                 // draw line at (x1, y1, x2, y2, color) from stack
                 val color = evalstack.pop()
                 val (y2, x2) = evalstack.pop2()
                 val (y1, x1) = evalstack.pop2()
-                canvas?.drawLine(x1.integerValue(), y1.integerValue(), x2.integerValue(), y2.integerValue(), color.integerValue())
+                canvas?.drawLine(x1.integerValue(), y1.integerValue(), x2.integerValue(), y2.integerValue(), color.integerValue().toShort())
             }
             Syscall.VM_GFX_CLEARSCR -> {
                 val color = evalstack.pop()
-                canvas?.clearScreen(color.integerValue())
+                canvas?.clearScreen(color.integerValue().toShort())
             }
             Syscall.VM_GFX_TEXT -> {
                 val textPtr = evalstack.pop().integerValue()
                 val color = evalstack.pop()
                 val (cy, cx) = evalstack.pop2()
                 val text = heap.get(textPtr)
-                canvas?.writeText(cx.integerValue(), cy.integerValue(), text.str!!, color.integerValue(), true)
+                canvas?.writeText(cx.integerValue(), cy.integerValue(), text.str!!, color.integerValue().toShort(), true)
             }
             Syscall.FUNC_RND -> evalstack.push(RuntimeValue(DataType.UBYTE, rnd.nextInt() and 255))
             Syscall.FUNC_RNDW -> evalstack.push(RuntimeValue(DataType.UWORD, rnd.nextInt() and 65535))
@@ -2317,8 +2317,8 @@ class StackVm(private var traceOutputFile: String?) {
                 val x = variables.getValue("c64scr.setcc.column").integerValue()
                 val y = variables.getValue("c64scr.setcc.row").integerValue()
                 val char = variables.getValue("c64scr.setcc.char").integerValue()
-                // val color = variables.getValue("c64scr.setcc.color").integerValue()        // text color other than 1 (white) can't be used right now
-                canvas?.setChar(x, y, char.toShort())
+                val color = variables.getValue("c64scr.setcc.color").integerValue()
+                canvas?.setChar(x, y, char.toShort(), color.toShort())
             }
             else -> throw VmExecutionException("unimplemented syscall $syscall")
         }

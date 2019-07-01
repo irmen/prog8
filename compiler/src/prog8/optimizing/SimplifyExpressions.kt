@@ -6,6 +6,9 @@ import kotlin.math.log2
 
 /*
     todo advanced expression optimization: common (sub) expression elimination (turn common expressions into single subroutine call + introduce variable to hold it)
+
+    Also see  https://egorbo.com/peephole-optimizations.html
+
  */
 
 internal class SimplifyExpressions(private val program: Program) : IAstProcessor {

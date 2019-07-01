@@ -8,7 +8,7 @@ import kotlin.math.floor
 
 /*
     todo: subroutines with 1 or 2 byte args or 1 word arg can be converted to asm sub calling convention (args in registers)
-    todo: implement usage counters for labels, variables (locals and heap), blocks. Remove if count is zero.
+    todo: implement usage counters for variables (locals and heap), blocks. Remove if count is zero.
     todo analyse for unreachable code and remove that (f.i. code after goto or return that has no label so can never be jumped to) + print warning about this
 */
 

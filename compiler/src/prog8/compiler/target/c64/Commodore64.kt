@@ -183,4 +183,60 @@ object Charset {
 
     val normalChars = scanChars(normalImg)
     val shiftedChars = scanChars(shiftedImg)
+
+    private val coloredNormalChars = mutableMapOf<Short, Array<BufferedImage>>()
+
+    fun getColoredChar(screenCode: Short, color: Short): BufferedImage {
+        val colorIdx = (color % Colors.palette.size).toShort()
+        val chars = coloredNormalChars[colorIdx]
+        if(chars!=null)
+            return chars[screenCode.toInt()]
+
+        val coloredChars = mutableListOf<BufferedImage>()
+        val transparent = Color(0,0,0,0).rgb
+        val rgb = Colors.palette[colorIdx.toInt()].rgb
+        for(c in normalChars) {
+            val colored = c.copy()
+            for(y in 0 until colored.height)
+                for(x in 0 until colored.width) {
+                    if(colored.getRGB(x, y)!=transparent) {
+                        colored.setRGB(x, y, rgb)
+                    }
+                }
+            coloredChars.add(colored)
+        }
+        coloredNormalChars[colorIdx] = coloredChars.toTypedArray()
+        return coloredNormalChars.getValue(colorIdx)[screenCode.toInt()]
+    }
+
+}
+
+private fun BufferedImage.copy(): BufferedImage {
+    val bcopy = BufferedImage(this.width, this.height, this.type)
+    val g = bcopy.graphics
+    g.drawImage(this, 0, 0, null)
+    g.dispose()
+    return bcopy
+}
+
+
+object Colors {
+    val palette = listOf(         // this is Pepto's Commodore-64 palette  http://www.pepto.de/projects/colorvic/
+            Color(0x000000),  // 0 = black
+            Color(0xFFFFFF),  // 1 = white
+            Color(0x813338),  // 2 = red
+            Color(0x75cec8),  // 3 = cyan
+            Color(0x8e3c97),  // 4 = purple
+            Color(0x56ac4d),  // 5 = green
+            Color(0x2e2c9b),  // 6 = blue
+            Color(0xedf171),  // 7 = yellow
+            Color(0x8e5029),  // 8 = orange
+            Color(0x553800),  // 9 = brown
+            Color(0xc46c71),  // 10 = light red
+            Color(0x4a4a4a),  // 11 = dark grey
+            Color(0x7b7b7b),  // 12 = medium grey
+            Color(0xa9ff9f),  // 13 = light green
+            Color(0x706deb),  // 14 = light blue
+            Color(0xb2b2b2)   // 15 = light grey
+    )
 }

@@ -542,10 +542,10 @@ class AstVm(val program: Program) {
                 dialog.canvas.clearScreen(6)
             }
             "c64scr.clear_screen" -> {
-                dialog.canvas.clearScreen(args[0].integerValue())
+                dialog.canvas.clearScreen(args[0].integerValue().toShort())
             }
             "c64scr.setcc" -> {
-                dialog.canvas.setChar(args[0].integerValue(), args[1].integerValue(), args[2].integerValue().toShort())
+                dialog.canvas.setChar(args[0].integerValue(), args[1].integerValue(), args[2].integerValue().toShort(), args[3].integerValue().toShort())
             }
             "c64scr.plot" -> {
                 dialog.canvas.setCursorPos(args[0].integerValue(), args[1].integerValue())
