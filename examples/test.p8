@@ -1,13 +1,18 @@
 ;%import c64utils
 ;%zeropage basicsafe
-;%import c64flt
+%import c64flt
 
 
 ~ main {
 
     sub start() {
 
-        float[] xcoor = [ -1.0, -1.0, -1.0, -1.0,  1.0,  1.0,  1.0, 1.0 ]
+        ;float[] xcoor = [ -1.0, -1.0, -1.0, -1.0,  1.0,  1.0,  1.0, 1.0 ]
+
+
+        float x
+        float z  = sin(x) * 3
+        ;ubyte bb = len(xcoor)
 
         ; storage for rotated coordinates
 ;        ubyte[len(xcoor)] xx = 2

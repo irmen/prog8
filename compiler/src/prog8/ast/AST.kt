@@ -119,6 +119,7 @@ val ArrayElementTypes = mapOf(
         DataType.ARRAY_UW to DataType.UWORD,
         DataType.ARRAY_F to DataType.FLOAT)
 
+
 class FatalAstException (override var message: String) : Exception(message)
 
 open class AstException (override var message: String) : Exception(message)
@@ -1105,8 +1106,6 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
         // word + word -> word
         // a combination with a float will be float (but give a warning about this!)
 
-        val floatWarning = "byte or word value implicitly converted to float. Suggestion: use explicit cast as float, a float number, or revert to integer arithmetic"
-
         if(this.operator=="/") {
             // division is a bit weird, don't cast the operands
             val commondt = divisionOpDt(leftDt, rightDt)
@@ -1120,10 +1119,7 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
                     DataType.BYTE -> Pair(DataType.BYTE, left)
                     DataType.UWORD -> Pair(DataType.UWORD, left)
                     DataType.WORD -> Pair(DataType.WORD, left)
-                    DataType.FLOAT -> {
-                        printWarning(floatWarning, left.position)
-                        Pair(DataType.FLOAT, left)
-                    }
+                    DataType.FLOAT -> Pair(DataType.FLOAT, left)
                     else -> throw FatalAstException("non-numeric datatype $rightDt")
                 }
             }
@@ -1133,10 +1129,7 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
                     DataType.BYTE -> Pair(DataType.BYTE, null)
                     DataType.UWORD -> Pair(DataType.WORD, left)
                     DataType.WORD -> Pair(DataType.WORD, left)
-                    DataType.FLOAT -> {
-                        printWarning(floatWarning, left.position)
-                        Pair(DataType.FLOAT, left)
-                    }
+                    DataType.FLOAT -> Pair(DataType.FLOAT, left)
                     else -> throw FatalAstException("non-numeric datatype $rightDt")
                 }
             }
@@ -1146,10 +1139,7 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
                     DataType.BYTE -> Pair(DataType.UWORD, right)
                     DataType.UWORD -> Pair(DataType.UWORD, null)
                     DataType.WORD -> Pair(DataType.WORD, left)
-                    DataType.FLOAT -> {
-                        printWarning(floatWarning, left.position)
-                        Pair(DataType.FLOAT, left)
-                    }
+                    DataType.FLOAT -> Pair(DataType.FLOAT, left)
                     else -> throw FatalAstException("non-numeric datatype $rightDt")
                 }
             }
@@ -1159,16 +1149,11 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
                     DataType.BYTE -> Pair(DataType.WORD, right)
                     DataType.UWORD -> Pair(DataType.WORD, right)
                     DataType.WORD -> Pair(DataType.WORD, null)
-                    DataType.FLOAT -> {
-                        printWarning(floatWarning, left.position)
-                        Pair(DataType.FLOAT, left)
-                    }
+                    DataType.FLOAT -> Pair(DataType.FLOAT, left)
                     else -> throw FatalAstException("non-numeric datatype $rightDt")
                 }
             }
             DataType.FLOAT -> {
-                if (rightDt != DataType.FLOAT)
-                    printWarning(floatWarning, left.position)
                 Pair(DataType.FLOAT, right)
             }
             else -> throw FatalAstException("non-numeric datatype $leftDt")
@@ -1213,7 +1198,7 @@ class ArrayIndexedExpression(val identifier: IdentifierReference,
 }
 
 
-class TypecastExpression(var expression: IExpression, var type: DataType, override val position: Position) : IExpression {
+class TypecastExpression(var expression: IExpression, var type: DataType, val implicit: Boolean, override val position: Position) : IExpression {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -2483,7 +2468,7 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
         return arrayindexed().toAst()
 
     if(typecast()!=null)
-        return TypecastExpression(expression(0).toAst(), typecast().datatype().toAst(), toPosition())
+        return TypecastExpression(expression(0).toAst(), typecast().datatype().toAst(), false, toPosition())
 
     if(directmemory()!=null)
         return DirectMemoryRead(directmemory().expression().toAst(), toPosition())

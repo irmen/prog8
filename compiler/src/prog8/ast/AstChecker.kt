@@ -499,7 +499,7 @@ private class AstChecker(private val program: Program,
         }
 
         // FLOATS
-        if(!compilerOptions.floats && decl.datatype==DataType.FLOAT && decl.type!=VarDeclType.MEMORY) {
+        if(!compilerOptions.floats && decl.datatype in setOf(DataType.FLOAT, DataType.ARRAY_F) && decl.type!=VarDeclType.MEMORY) {
             checkResult.add(SyntaxError("floating point used, but that is not enabled via options", decl.position))
         }
 
@@ -681,7 +681,7 @@ private class AstChecker(private val program: Program,
     }
 
     override fun process(literalValue: LiteralValue): LiteralValue {
-        if(!compilerOptions.floats && literalValue.type==DataType.FLOAT) {
+        if(!compilerOptions.floats && literalValue.type in setOf(DataType.FLOAT, DataType.ARRAY_F)) {
             checkResult.add(SyntaxError("floating point used, but that is not enabled via options", literalValue.position))
         }
         val arrayspec =

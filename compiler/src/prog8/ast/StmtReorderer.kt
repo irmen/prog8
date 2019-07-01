@@ -170,11 +170,11 @@ private class StatementReorderer(private val program: Program): IAstProcessor {
             if(toFix!=null) {
                 when {
                     toFix===expr.left -> {
-                        expr.left = TypecastExpression(expr.left, commonDt, expr.left.position)
+                        expr.left = TypecastExpression(expr.left, commonDt, true, expr.left.position)
                         expr.left.linkParents(expr)
                     }
                     toFix===expr.right -> {
-                        expr.right = TypecastExpression(expr.right, commonDt, expr.right.position)
+                        expr.right = TypecastExpression(expr.right, commonDt, true, expr.right.position)
                         expr.right.linkParents(expr)
                     }
                     else -> throw FatalAstException("confused binary expression side")
@@ -215,7 +215,7 @@ private class StatementReorderer(private val program: Program): IAstProcessor {
             val targettype = target.inferType(program, assignment)
             if(targettype!=null && valuetype!=null && valuetype!=targettype) {
                 if(valuetype isAssignableTo targettype) {
-                    assignment.value = TypecastExpression(assignment.value, targettype, assignment.value.position)
+                    assignment.value = TypecastExpression(assignment.value, targettype, true, assignment.value.position)
                     assignment.value.linkParents(assignment)
                 }
                 // if they're not assignable, we'll get a proper error later from the AstChecker
@@ -246,7 +246,7 @@ private class StatementReorderer(private val program: Program): IAstProcessor {
                         val requiredType = arg.first.type
                         if (requiredType != argtype) {
                             if (argtype isAssignableTo requiredType) {
-                                val typecasted = TypecastExpression(arg.second.value, requiredType, arg.second.value.position)
+                                val typecasted = TypecastExpression(arg.second.value, requiredType, true, arg.second.value.position)
                                 typecasted.linkParents(arg.second.value.parent)
                                 call.arglist[arg.second.index] = typecasted
                             }
@@ -267,7 +267,7 @@ private class StatementReorderer(private val program: Program): IAstProcessor {
                                 continue
                             for (possibleType in arg.first.possibleDatatypes) {
                                 if (argtype isAssignableTo possibleType) {
-                                    val typecasted = TypecastExpression(arg.second.value, possibleType, arg.second.value.position)
+                                    val typecasted = TypecastExpression(arg.second.value, possibleType, true, arg.second.value.position)
                                     typecasted.linkParents(arg.second.value.parent)
                                     call.arglist[arg.second.index] = typecasted
                                     break
@@ -304,6 +304,13 @@ private class StatementReorderer(private val program: Program): IAstProcessor {
         return Pair(sorted, trailing)
     }
 
+    override fun process(typecast: TypecastExpression): IExpression {
+        // warn about any implicit type casts to Float, because that may not be intended
+        if(typecast.implicit && typecast.type in setOf(DataType.FLOAT, DataType.ARRAY_F)) {
+            printWarning("byte or word value implicitly converted to float. Suggestion: use explicit cast as float, a float number, or revert to integer arithmetic", typecast.position)
+        }
+        return super.process(typecast)
+    }
 }
 
 

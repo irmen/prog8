@@ -79,7 +79,7 @@ private class AstIdentifiersChecker(private val namespace: INameScope) : IAstPro
     override fun process(functionCall: FunctionCall): IExpression {
         if(functionCall.target.nameInSource.size==1 && functionCall.target.nameInSource[0]=="lsb") {
             // lsb(...) is just an alias for type cast to ubyte, so replace with "... as ubyte"
-            val typecast = TypecastExpression(functionCall.arglist.single(), DataType.UBYTE, functionCall.position)
+            val typecast = TypecastExpression(functionCall.arglist.single(), DataType.UBYTE, false, functionCall.position)
             typecast.linkParents(functionCall.parent)
             return super.process(typecast)
         }
