@@ -1563,7 +1563,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
         }
 
         if(loop.iterable is RangeExpr) {
-            val range = (loop.iterable as RangeExpr).toConstantIntegerRange(program.heap)
+            val range = (loop.iterable as RangeExpr).toConstantIntegerRange()
             if(range!=null) {
                 // loop over a range with constant start, last and step values
                 if (range.isEmpty())
@@ -1630,7 +1630,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
         when(iterableValue.type) {
             !in IterableDatatypes -> throw CompilerException("non-iterableValue type")
             DataType.STR, DataType.STR_S -> {
-                numElements = iterableValue.strvalue(program.heap).length
+                numElements = iterableValue.strvalue!!.length
                 if(numElements>255) throw CompilerException("string length > 255")
             }
             DataType.ARRAY_UB, DataType.ARRAY_B,

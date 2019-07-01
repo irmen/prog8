@@ -127,7 +127,7 @@ fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
             }
         }
         is RangeExpr -> {
-            val cRange = expr.toConstantIntegerRange(ctx.program.heap)
+            val cRange = expr.toConstantIntegerRange()
             if(cRange!=null)
                 return RuntimeValueRange(expr.inferType(ctx.program)!!, cRange)
             val fromVal = evaluate(expr.from, ctx).integerValue()

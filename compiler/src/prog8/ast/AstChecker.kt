@@ -788,8 +788,8 @@ private class AstChecker(private val program: Program,
                         err("descending range requires step < 0")
                 }
                 from.isString && to.isString -> {
-                    val fromString = from.strvalue(program.heap)
-                    val toString = to.strvalue(program.heap)
+                    val fromString = from.strvalue!!
+                    val toString = to.strvalue!!
                     if(fromString.length!=1 || toString.length!=1)
                         err("range from and to must be a single character")
                     if(fromString[0] == toString[0])
@@ -977,7 +977,7 @@ private class AstChecker(private val program: Program,
                     checkResult.add(ExpressionError("range for string must have single characters from and to values", range.position))
                     return false
                 }
-                val rangeSize=range.size(program.heap)
+                val rangeSize=range.size()
                 if(rangeSize!=null && (rangeSize<0 || rangeSize>255)) {
                     checkResult.add(ExpressionError("size of range for string must be 0..255, instead of $rangeSize", range.position))
                     return false
@@ -987,7 +987,7 @@ private class AstChecker(private val program: Program,
             in ArrayDatatypes -> {
                 // range and length check bytes
                 val expectedSize = arrayspec.size()
-                val rangeSize=range.size(program.heap)
+                val rangeSize=range.size()
                 if(rangeSize!=null && rangeSize != expectedSize) {
                     checkResult.add(ExpressionError("range size doesn't match array size, expected $expectedSize found $rangeSize", range.position))
                     return false
@@ -1049,8 +1049,7 @@ private class AstChecker(private val program: Program,
             DataType.STR, DataType.STR_S -> {
                 if(!value.isString)
                     return err("string value expected")
-                val str = value.strvalue(heap)
-                if (str.length > 255)
+                if (value.strvalue!!.length > 255)
                     return err("string length must be 0-255")
             }
             DataType.ARRAY_UB, DataType.ARRAY_B -> {

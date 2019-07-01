@@ -10,11 +10,11 @@ val associativeOperators = setOf("+", "*", "&", "|", "^", "or", "and", "xor", "=
 
 class ConstExprEvaluator {
 
-    fun evaluate(left: LiteralValue, operator: String, right: LiteralValue, heap: HeapValues): IExpression {
+    fun evaluate(left: LiteralValue, operator: String, right: LiteralValue): IExpression {
         return when(operator) {
-            "+" -> plus(left, right, heap)
+            "+" -> plus(left, right)
             "-" -> minus(left, right)
-            "*" -> multiply(left, right, heap)
+            "*" -> multiply(left, right)
             "/" -> divide(left, right)
             "%" -> remainder(left, right)
             "**" -> power(left, right)
@@ -161,7 +161,7 @@ class ConstExprEvaluator {
         }
     }
 
-    private fun plus(left: LiteralValue, right: LiteralValue, heap: HeapValues): LiteralValue {
+    private fun plus(left: LiteralValue, right: LiteralValue): LiteralValue {
         val error = "cannot add $left and $right"
         return when {
             left.asIntegerValue!=null -> when {
@@ -176,7 +176,7 @@ class ConstExprEvaluator {
             }
             left.isString -> when {
                 right.isString -> {
-                    val newStr = left.strvalue(heap) + right.strvalue(heap)
+                    val newStr = left.strvalue!! + right.strvalue!!
                     if(newStr.length > 255) throw ExpressionError("string too long", left.position)
                     LiteralValue(DataType.STR, strvalue = newStr, position = left.position)
                 }
@@ -203,15 +203,15 @@ class ConstExprEvaluator {
         }
     }
 
-    private fun multiply(left: LiteralValue, right: LiteralValue, heap: HeapValues): LiteralValue {
+    private fun multiply(left: LiteralValue, right: LiteralValue): LiteralValue {
         val error = "cannot multiply ${left.type} and ${right.type}"
         return when {
             left.asIntegerValue!=null -> when {
                 right.asIntegerValue!=null -> LiteralValue.optimalNumeric(left.asIntegerValue * right.asIntegerValue, left.position)
                 right.floatvalue!=null -> LiteralValue(DataType.FLOAT, floatvalue = left.asIntegerValue * right.floatvalue, position = left.position)
                 right.isString -> {
-                    if(right.strvalue(heap).length * left.asIntegerValue > 255) throw ExpressionError("string too long", left.position)
-                    LiteralValue(DataType.STR, strvalue = right.strvalue(heap).repeat(left.asIntegerValue), position = left.position)
+                    if(right.strvalue!!.length * left.asIntegerValue > 255) throw ExpressionError("string too long", left.position)
+                    LiteralValue(DataType.STR, strvalue = right.strvalue.repeat(left.asIntegerValue), position = left.position)
                 }
                 else -> throw ExpressionError(error, left.position)
             }

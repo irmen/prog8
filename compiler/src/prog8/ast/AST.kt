@@ -1296,12 +1296,11 @@ open class LiteralValue(val type: DataType,
                         val bytevalue: Short? = null,
                         val wordvalue: Int? = null,
                         val floatvalue: Double? = null,
-                        strvalue: String? = null,
+                        val strvalue: String? = null,
                         val arrayvalue: Array<IExpression>? = null,
                         var heapId: Int? =null,
                         override val position: Position) : IExpression {
     override lateinit var parent: Node
-    private val initialstrvalue = strvalue
 
     override fun referencesIdentifier(name: String) = arrayvalue?.any { it.referencesIdentifier(name) } ?: false
 
@@ -1356,12 +1355,12 @@ open class LiteralValue(val type: DataType,
             in WordDatatypes -> if(wordvalue==null) throw FatalAstException("literal value missing wordvalue")
             DataType.FLOAT -> if(floatvalue==null) throw FatalAstException("literal value missing floatvalue")
             in StringDatatypes ->
-                if(initialstrvalue==null && heapId==null) throw FatalAstException("literal value missing strvalue/heapId")
+                if(strvalue==null && heapId==null) throw FatalAstException("literal value missing strvalue/heapId")
             in ArrayDatatypes ->
                 if(arrayvalue==null && heapId==null) throw FatalAstException("literal value missing arrayvalue/heapId")
             else -> throw FatalAstException("invalid type $type")
         }
-        if(bytevalue==null && wordvalue==null && floatvalue==null && arrayvalue==null && initialstrvalue==null && heapId==null)
+        if(bytevalue==null && wordvalue==null && floatvalue==null && arrayvalue==null && strvalue==null && heapId==null)
             throw FatalAstException("literal value without actual value")
     }
 
@@ -1383,7 +1382,7 @@ open class LiteralValue(val type: DataType,
             (floatvalue!=null && floatvalue != 0.0) ||
             (bytevalue!=null && bytevalue != 0.toShort()) ||
             (wordvalue!=null && wordvalue != 0) ||
-            (initialstrvalue!=null && initialstrvalue.isNotEmpty()) ||
+            (strvalue!=null && strvalue.isNotEmpty()) ||
             (arrayvalue != null && arrayvalue.isNotEmpty())
 
     override fun linkParents(parent: Node) {
@@ -1409,14 +1408,8 @@ open class LiteralValue(val type: DataType,
             DataType.UWORD -> "uword:$wordvalue"
             DataType.WORD -> "word:$wordvalue"
             DataType.FLOAT -> "float:$floatvalue"
-            in StringDatatypes -> {
-                if(heapId!=null) "str:#$heapId"
-                else "str:$initialstrvalue"
-            }
-            in ArrayDatatypes -> {
-                if(heapId!=null) "array:#$heapId"
-                else "array:$arrayvalue"
-            }
+            in StringDatatypes -> "str:$strvalue"
+            in ArrayDatatypes -> "array:$arrayvalue"
             else -> throw FatalAstException("weird datatype")
         }
         return "LiteralValue($vstr)"
@@ -1428,7 +1421,7 @@ open class LiteralValue(val type: DataType,
         val bh = bytevalue?.hashCode() ?: 0x10001234
         val wh = wordvalue?.hashCode() ?: 0x01002345
         val fh = floatvalue?.hashCode() ?: 0x00103456
-        val sh = initialstrvalue?.hashCode() ?: 0x00014567
+        val sh = strvalue?.hashCode() ?: 0x00014567
         val ah = arrayvalue?.hashCode() ?: 0x11119876
         var hash = bh * 31 xor wh
         hash = hash*31 xor fh
@@ -1446,7 +1439,7 @@ open class LiteralValue(val type: DataType,
         if(isArray && other.isArray)
             return arrayvalue!!.contentEquals(other.arrayvalue!!) && heapId==other.heapId
         if(isString && other.isString)
-            return initialstrvalue==other.initialstrvalue && heapId==other.heapId
+            return strvalue==other.strvalue && heapId==other.heapId
 
         if(type!=other.type)
             return false
@@ -1460,8 +1453,8 @@ open class LiteralValue(val type: DataType,
         if(numLeft!=null && numRight!=null)
             return numLeft.compareTo(numRight)
 
-        if(initialstrvalue!=null && other.initialstrvalue!=null)
-            return initialstrvalue.compareTo(other.initialstrvalue)
+        if(strvalue!=null && other.strvalue!=null)
+            return strvalue.compareTo(other.strvalue)
 
         throw ExpressionError("cannot order compare type $type with ${other.type}", other.position)
     }
@@ -1529,12 +1522,6 @@ open class LiteralValue(val type: DataType,
         }
         return null    // invalid type conversion from $this to $targettype
     }
-
-    fun strvalue(heap: HeapValues): String {
-        if(initialstrvalue!=null)
-            return initialstrvalue
-        return heap.get(heapId!!).str!!
-    }
 }
 
 
@@ -1572,15 +1559,15 @@ class RangeExpr(var from: IExpression,
         return "RangeExpr(from $from, to $to, step $step, pos=$position)"
     }
 
-    fun size(heap: HeapValues): Int? {
+    fun size(): Int? {
         val fromLv = (from as? LiteralValue)
         val toLv = (to as? LiteralValue)
         if(fromLv==null || toLv==null)
             return null
-        return toConstantIntegerRange(heap)?.count()
+        return toConstantIntegerRange()?.count()
     }
 
-    fun toConstantIntegerRange(heap: HeapValues): IntProgression? {
+    fun toConstantIntegerRange(): IntProgression? {
         val fromLv = from as? LiteralValue
         val toLv = to as? LiteralValue
         if(fromLv==null || toLv==null)
@@ -1589,8 +1576,8 @@ class RangeExpr(var from: IExpression,
         val toVal: Int
         if(fromLv.isString && toLv.isString) {
             // string range -> int range over petscii values
-            fromVal = Petscii.encodePetscii(fromLv.strvalue(heap), true)[0].toInt()
-            toVal = Petscii.encodePetscii(toLv.strvalue(heap), true)[0].toInt()
+            fromVal = Petscii.encodePetscii(fromLv.strvalue!!, true)[0].toInt()
+            toVal = Petscii.encodePetscii(toLv.strvalue!!, true)[0].toInt()
         } else {
             // integer range
             fromVal = (from as LiteralValue).asIntegerValue!!

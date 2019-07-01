@@ -325,7 +325,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
 
         val range = forLoop.iterable as? RangeExpr
         if(range!=null) {
-            if(range.size(program.heap)==1) {
+            if(range.size()==1) {
                 // for loop over a (constant) range of just a single value-- optimize the loop away
                 // loopvar/reg = range value , follow by block
                 val assignment = Assignment(listOf(AssignTarget(forLoop.loopRegister, forLoop.loopVar, null, null, forLoop.position)), null, range.from, forLoop.position)

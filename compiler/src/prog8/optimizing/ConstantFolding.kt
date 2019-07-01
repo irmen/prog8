@@ -68,9 +68,9 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
                     if(rangeExpr!=null) {
                         // convert the initializer range expression to an actual array (will be put on heap later)
                         val declArraySize = decl.arraysize?.size()
-                        if(declArraySize!=null && declArraySize!=rangeExpr.size(program.heap))
+                        if(declArraySize!=null && declArraySize!=rangeExpr.size())
                             errors.add(ExpressionError("range expression size doesn't match declared array size", decl.value?.position!!))
-                        val constRange = rangeExpr.toConstantIntegerRange(program.heap)
+                        val constRange = rangeExpr.toConstantIntegerRange()
                         if(constRange!=null) {
                             val eltType = rangeExpr.inferType(program)!!
                             if(eltType in ByteDatatypes) {
@@ -335,7 +335,7 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
             return when {
                 leftconst != null && rightconst != null -> {
                     optimizationsDone++
-                    evaluator.evaluate(leftconst, expr.operator, rightconst, program.heap)
+                    evaluator.evaluate(leftconst, expr.operator, rightconst)
                 }
                 else -> expr
             }
@@ -595,10 +595,10 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
         val litval = super.process(literalValue)
         if(litval.isString) {
             // intern the string; move it into the heap
-            if(litval.strvalue(program.heap).length !in 1..255)
+            if(litval.strvalue!!.length !in 1..255)
                 addError(ExpressionError("string literal length must be between 1 and 255", litval.position))
             else {
-                litval.heapId = program.heap.addString(litval.type, litval.strvalue(program.heap))     // TODO: we don't know the actual string type yet, STR != STR_S etc...
+                litval.heapId = program.heap.addString(litval.type, litval.strvalue)     // TODO: we don't know the actual string type yet, STR != STR_S etc...
             }
         } else if(litval.arrayvalue!=null) {
             // first, adjust the array datatype

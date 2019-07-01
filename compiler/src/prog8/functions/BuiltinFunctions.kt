@@ -314,7 +314,7 @@ private fun builtinStrlen(args: List<IExpression>, position: Position, program: 
     val argument = args[0].constValue(program) ?: throw NotConstArgumentException()
     if(argument.type !in StringDatatypes)
         throw SyntaxError("strlen must have string argument", position)
-    val string = argument.strvalue(program.heap)
+    val string = argument.strvalue!!
     val zeroIdx = string.indexOf('\u0000')
     return if(zeroIdx>=0)
         LiteralValue.optimalInteger(zeroIdx, position=position)
@@ -353,7 +353,7 @@ private fun builtinLen(args: List<IExpression>, position: Position, program: Pro
             LiteralValue.optimalInteger(arraySize, args[0].position)
         }
         in StringDatatypes -> {
-            val str = argument.strvalue(program.heap)
+            val str = argument.strvalue!!
             if(str.length>255)
                 throw CompilerException("string length exceeds byte limit ${argument.position}")
             LiteralValue.optimalInteger(str.length, args[0].position)
