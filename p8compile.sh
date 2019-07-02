@@ -5,3 +5,5 @@ KOTLINPATH=${HOME}/.IntelliJIdea2019.1/config/plugins/Kotlin
 LIBJARS=${KOTLINPATH}/lib/kotlin-stdlib.jar:${KOTLINPATH}/lib/kotlin-reflect.jar:./parser/antlr/lib/antlr-runtime-4.7.2.jar
 
 java -cp ${PROG8CLASSPATH}:${LIBJARS} prog8.CompilerMainKt $*
+
+# if you have created a .jar file using the 'create_compiler_jar' script, you can simply do:  java -jar prog8compiler.jar
