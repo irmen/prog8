@@ -90,6 +90,7 @@ private class AstChecker(private val program: Program,
                     is InlineAssembly -> true
                     is INameScope -> true
                     is VariableInitializationAssignment -> true
+                    is NopStatement -> true
                     else -> false
                 }
                 if (!ok) {

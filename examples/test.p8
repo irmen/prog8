@@ -6,19 +6,17 @@
 
     sub start() {
 
-        foo(1)
-    }
+        ubyte x = 99
 
-    sub foo(ubyte param1)  {
+        return
 
-        sub subsub() {
+        startqqq:
 
+        sub startzzz() {
+            if_cc goto startqqq
+            c64.EXTCOL++
         }
-
-        sub param1() {
-        }
     }
-
 
 
 ;        for ubyte y in 0 to 3 {

@@ -8,7 +8,6 @@ import kotlin.math.floor
 
 /*
     todo: subroutines with 1 or 2 byte args or 1 word arg can be converted to asm sub calling convention (args in registers)
-    todo: implement usage counters for variables (locals and heap), blocks. Remove if count is zero.
     todo analyse for unreachable code and remove that (f.i. code after goto or return that has no label so can never be jumped to) + print warning about this
 */
 
@@ -18,13 +17,13 @@ internal class StatementOptimizer(private val program: Program, private val opti
     var scopesToFlatten = mutableListOf<INameScope>()
 
     private val pureBuiltinFunctions = BuiltinFunctions.filter { it.value.pure }
+    private val callgraph = CallGraph(program)
 
     companion object {
         private var generatedLabelSequenceNumber = 0
     }
 
     override fun process(program: Program) {
-        val callgraph = CallGraph(program)
         removeUnusedCode(callgraph)
         if(optimizeInlining) {
             inlineSubroutines(callgraph)
@@ -90,8 +89,6 @@ internal class StatementOptimizer(private val program: Program, private val opti
     }
 
     private fun removeUnusedCode(callgraph: CallGraph) {
-        // TODO remove unused variables (local and global)
-
         // remove all subroutines that aren't called, or are empty
         val removeSubroutines = mutableSetOf<Subroutine>()
         val entrypoint = program.entrypoint()
@@ -109,9 +106,8 @@ internal class StatementOptimizer(private val program: Program, private val opti
         }
 
         val removeBlocks = mutableSetOf<Block>()
-        // TODO remove blocks that have no incoming references
         program.modules.flatMap { it.statements }.filterIsInstance<Block>().forEach { block ->
-            if (block.containsNoCodeNorVars())
+            if (block.containsNoCodeNorVars() && "force_output" !in block.options())
                 removeBlocks.add(block)
         }
 
@@ -119,7 +115,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
             removeBlocks.forEach { it.definingScope().remove(it) }
         }
 
-        // remove modules that are not imported, or are empty
+        // remove modules that are not imported, or are empty (unless it's a library modules)
         val removeModules = mutableSetOf<Module>()
         program.modules.forEach {
             if (!it.isLibraryModule && (it.importedBy.isEmpty() || it.containsNoCodeNorVars()))
@@ -127,24 +123,34 @@ internal class StatementOptimizer(private val program: Program, private val opti
         }
 
         if (removeModules.isNotEmpty()) {
-            println("[debug] removing ${removeModules.size} empty/unused modules")
             program.modules.removeAll(removeModules)
         }
     }
 
     override fun process(block: Block): IStatement {
-        if(block.containsNoCodeNorVars()) {
-            optimizationsDone++
-            return NopStatement(block.position)
+        if("force_output" !in block.options()) {
+            if (block.containsNoCodeNorVars()) {
+                optimizationsDone++
+                printWarning("removing empty block '${block.name}'", block.position)
+                return NopStatement(block.position)
+            }
+
+            if (block !in callgraph.usedSymbols) {
+                optimizationsDone++
+                printWarning("removing unused block '${block.name}'", block.position)
+                return NopStatement(block.position)  // remove unused block
+            }
         }
+
         return super.process(block)
     }
 
     override fun process(subroutine: Subroutine): IStatement {
         super.process(subroutine)
-
-        if(subroutine.asmAddress==null) {
+        val forceOutput = "force_output" in subroutine.definingBlock().options()
+        if(subroutine.asmAddress==null && !forceOutput) {
             if(subroutine.containsNoCodeNorVars()) {
+                printWarning("removing empty subroutine '${subroutine.name}'", subroutine.position)
                 optimizationsDone++
                 return NopStatement(subroutine.position)
             }
@@ -167,7 +173,25 @@ internal class StatementOptimizer(private val program: Program, private val opti
 
         }
 
+        if(subroutine !in callgraph.usedSymbols && !forceOutput) {
+            printWarning("removing unused subroutine '${subroutine.name}'", subroutine.position)
+            optimizationsDone++
+            return NopStatement(subroutine.position)        // remove unused subroutine
+        }
+
         return subroutine
+    }
+
+    override fun process(decl: VarDecl): IStatement {
+        val forceOutput = "force_output" in decl.definingBlock().options()
+        if(decl !in callgraph.usedSymbols && !forceOutput) {
+            if(decl.type!=VarDeclType.CONST)
+                printWarning("removing unused variable '${decl.name}'", decl.position)
+            optimizationsDone++
+            return NopStatement(decl.position)        // remove unused variable
+        }
+
+        return super.process(decl)
     }
 
     private fun deduplicateAssignments(statements: List<IStatement>): MutableList<Int> {
