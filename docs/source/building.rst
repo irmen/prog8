@@ -5,26 +5,27 @@ Writing and building a program
 First, getting a working compiler
 ---------------------------------
 
-Before you can compile Prog8 programs, you'll have to build the compiler itself.
+Before you can compile Prog8 programs, you'll have to download or build the compiler itself.
 First make sure you have installed the :ref:`requirements`.
-Then you can choose a few ways to create the compiler:
+Then you can choose a few ways to get a compiler:
 
-**Using the shell script:**
-
-#. run the "build_the_compiler.sh" shell script
-#. it will create a "prog8compiler.jar" file which contains everything.
-#. run the compiler with "java -jar prog8compiler.jar" to see how you can use it.
-
-**using the Gradle build system:**
-
-#. run the command "./gradlew installDist"
-#. it will create the commands and required libraries in the "./compiler/build/install/p8compile/" directory
-#. run the compiler with the "./compiler/build/install/p8compile/bin/p8compile" command to see how you can use it.
-
-**download a precompiled version from github:**
+**Download a precompiled version from github:**
 
 #. download a recent "prog8compiler.jar" from `the releases on Github <https://github.com/irmen/prog8/releases>`_
 #. run the compiler with "java -jar prog8compiler.jar" to see how you can use it.
+
+**Using the shell scripts:**
+
+#. run the "create_compiler_jar.sh" shell script and have a little patience while everything is built
+#. it will output "prog8compiler.jar" file which contains everything.
+#. run the compiler with "java -jar prog8compiler.jar" to see how you can use it.
+
+**using the Gradle build system directly:**
+
+#. run the command "./gradlew installDist" and have a little patience while everything is built
+#. it will create the commands and required libraries in the "./compiler/build/install/p8compile/" directory
+#. run the compiler with the "./compiler/build/install/p8compile/bin/p8compile" command to see how you can use it.
+
 
 
 What is a Prog8 "Program" anyway?
