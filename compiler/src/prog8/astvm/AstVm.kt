@@ -5,6 +5,9 @@ import prog8.compiler.RuntimeValue
 import prog8.compiler.RuntimeValueRange
 import prog8.compiler.target.c64.Petscii
 import java.awt.EventQueue
+import kotlin.NoSuchElementException
+import kotlin.concurrent.fixedRateTimer
+import kotlin.math.min
 
 
 class VmExecutionException(msg: String?) : Exception(msg)
@@ -111,13 +114,19 @@ class RuntimeVariables {
 
 
 class AstVm(val program: Program) {
-    val mem = Memory()
+
+    val mem = Memory(::memread, ::memwrite)
     val statusflags = StatusFlags()
 
-    private var dialog = ScreenDialog()
+    private var dialog = ScreenDialog("AstVM")
     var instructionCounter = 0
+    val bootTime = System.currentTimeMillis()
+    var rtcOffset = bootTime
 
     init {
+        // observe the jiffyclock
+        mem.observe(0xa0, 0xa1, 0xa2)
+
         dialog.requestFocusInWindow()
 
         EventQueue.invokeLater {
@@ -125,6 +134,27 @@ class AstVm(val program: Program) {
             dialog.isVisible = true
             dialog.start()
         }
+
+        fixedRateTimer("60hz-irq", true, period=1000/60) {
+            irq(this.scheduledExecutionTime())
+        }
+    }
+
+    fun memread(address: Int, value: Short): Short {
+        // println("MEM READ  $address  -> $value")
+        return value
+    }
+
+    fun memwrite(address: Int, value: Short): Short {
+        if(address==0xa0 || address==0xa1 || address==0xa2) {
+            // a write to the jiffy clock, update the clock offset for the irq
+            val time_hi = if(address==0xa0) value else mem.getUByte_DMA(0xa0)
+            val time_mid = if(address==0xa1) value else mem.getUByte_DMA(0xa1)
+            val time_lo = if(address==0xa2) value else mem.getUByte_DMA(0xa2)
+            val jiffies = (time_hi.toInt() shl 16) + (time_mid.toInt() shl 8) + time_lo
+            rtcOffset = bootTime - (jiffies*1000/60)
+        }
+        return value
     }
 
     fun run() {
@@ -186,6 +216,18 @@ class AstVm(val program: Program) {
             println("Execution error: ${xx.message}")
             throw xx
         }
+    }
+
+    private fun irq(timeStamp: Long) {
+        // 60hz IRQ handling
+        if(statusflags.irqd)
+            return      // interrupt is disabled
+
+        val jiffies = min((timeStamp-rtcOffset)*60/1000, 24*3600*60-1)
+        // update the C-64 60hz jiffy clock in the ZP addresses:
+        mem.setUByte_DMA(0x00a0, (jiffies ushr 16).toShort())
+        mem.setUByte_DMA(0x00a1, (jiffies ushr 8 and 255).toShort())
+        mem.setUByte_DMA(0x00a2, (jiffies and 255).toShort())
     }
 
     private val runtimeVariables = RuntimeVariables()
@@ -509,11 +551,17 @@ class AstVm(val program: Program) {
             "c64scr.print_ub" -> {
                 dialog.canvas.printText(args[0].byteval!!.toString(), 1, true)
             }
+            "c64scr.print_ub0" -> {
+                dialog.canvas.printText("%03d".format(args[0].byteval!!), 1, true)
+            }
             "c64scr.print_b" -> {
                 dialog.canvas.printText(args[0].byteval!!.toString(), 1, true)
             }
             "c64scr.print_uw" -> {
                 dialog.canvas.printText(args[0].wordval!!.toString(), 1, true)
+            }
+            "c64scr.print_uw0" -> {
+                dialog.canvas.printText("%05d".format(args[0].wordval!!), 1, true)
             }
             "c64scr.print_w" -> {
                 dialog.canvas.printText(args[0].wordval!!.toString(), 1, true)

@@ -160,7 +160,7 @@ class BuiltinFunctions {
                 null
             }
             "mkword" -> {
-                val result = (args[0].integerValue() shl 8) or args[1].integerValue()
+                val result = (args[1].integerValue() shl 8) or args[0].integerValue()
                 RuntimeValue(DataType.UWORD, result)
             }
             "set_carry" -> {

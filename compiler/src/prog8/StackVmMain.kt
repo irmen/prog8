@@ -1,5 +1,6 @@
 package prog8
 
+import prog8.astvm.ScreenDialog
 import prog8.stackvm.*
 import java.awt.EventQueue
 import javax.swing.Timer
@@ -19,7 +20,7 @@ fun stackVmMain(args: Array<String>) {
 
     val program = Program.load(args.first())
     val vm = StackVm(traceOutputFile = null)
-    val dialog = ScreenDialog()
+    val dialog = ScreenDialog("StackVM")
     vm.load(program, dialog.canvas)
     EventQueue.invokeLater {
         dialog.pack()

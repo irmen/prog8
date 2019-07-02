@@ -138,12 +138,11 @@ class BitmapScreenPanel : KeyListener, JPanel() {
 }
 
 
-class ScreenDialog : JFrame() {
+class ScreenDialog(title: String) : JFrame(title) {
     val canvas = BitmapScreenPanel()
 
     init {
         val borderWidth = 16
-        title = "AstVm graphics. Text I/O goes to console."
         layout = GridBagLayout()
         defaultCloseOperation = JFrame.EXIT_ON_CLOSE
         isResizable = false

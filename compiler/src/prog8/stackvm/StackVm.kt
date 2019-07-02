@@ -1,6 +1,8 @@
 package prog8.stackvm
 
 import prog8.ast.*
+import prog8.astvm.BitmapScreenPanel
+import prog8.astvm.Memory
 import prog8.compiler.RuntimeValue
 import prog8.compiler.HeapValues
 import prog8.compiler.IntegerOrAddressOf
@@ -85,7 +87,7 @@ enum class Syscall(val callNr: Short) {
 
     // vm intercepts of system routines:
     SYSCALLSTUB(200),
-    SYSASM_c64scr_PLOT(201),
+    SYSASM_c64scr_plot(201),
     SYSASM_c64scr_print(202),
     SYSASM_c64scr_print_ub0(203),
     SYSASM_c64scr_print_ub(204),
@@ -137,7 +139,7 @@ class MyStack<T> : Stack<T>() {
 
 
 class StackVm(private var traceOutputFile: String?) {
-    val mem = Memory()
+    val mem = Memory(::memread, ::memwrite)
     var P_carry: Boolean = false
         private set
     var P_zero: Boolean = true
@@ -161,12 +163,29 @@ class StackVm(private var traceOutputFile: String?) {
     private var canvas: BitmapScreenPanel? = null
     private val rnd = Random()
     private val bootTime = System.currentTimeMillis()
+    private var rtcOffset = bootTime
     private var currentInstructionPtr: Int = -1
     private var irqStartInstructionPtr: Int = -1
     private var registerSaveX: RuntimeValue = RuntimeValue(DataType.UBYTE, 0)
     var sourceLine: String = ""
         private set
 
+    fun memread(address: Int, value: Short): Short {
+        //println("MEM READ  $address  -> $value")
+        return value
+    }
+
+    fun memwrite(address: Int, value: Short): Short {
+        if(address==0xa0 || address==0xa1 || address==0xa2) {
+            // a write to the jiffy clock, update the clock offset for the irq
+            val time_hi = if(address==0xa0) value else mem.getUByte_DMA(0xa0)
+            val time_mid = if(address==0xa1) value else mem.getUByte_DMA(0xa1)
+            val time_lo = if(address==0xa2) value else mem.getUByte_DMA(0xa2)
+            val jiffies = (time_hi.toInt() shl 16) + (time_mid.toInt() shl 8) + time_lo
+            rtcOffset = bootTime - (jiffies*1000/60)
+        }
+        return value
+    }
 
     fun load(program: Program, canvas: BitmapScreenPanel?) {
         this.program = program.program + Instruction(Opcode.RETURN)  // append a RETURN for use in the IRQ handler
@@ -241,6 +260,7 @@ class StackVm(private var traceOutputFile: String?) {
 
     private fun initMemory(memory: Map<Int, List<RuntimeValue>>) {
         mem.clear()
+
         for (meminit in memory) {
             var address = meminit.key
             for (value in meminit.value) {
@@ -274,6 +294,9 @@ class StackVm(private var traceOutputFile: String?) {
                 }
             }
         }
+
+        // observe the jiffyclock
+        mem.observe(0xa0, 0xa1, 0xa2)
     }
 
     private fun checkDt(value: RuntimeValue?, vararg expected: DataType) {
@@ -2266,7 +2289,7 @@ class StackVm(private var traceOutputFile: String?) {
                 }
             }
             Syscall.SYSCALLSTUB -> throw VmExecutionException("unimplemented sysasm called: ${ins.callLabel}  Create a Syscall enum for this and implement the vm intercept for it.")
-            Syscall.SYSASM_c64scr_PLOT -> {
+            Syscall.SYSASM_c64scr_plot -> {
                 val x = variables.getValue("Y").integerValue()
                 val y = variables.getValue("A").integerValue()
                 canvas?.setCursorPos(x, y)
@@ -2280,6 +2303,10 @@ class StackVm(private var traceOutputFile: String?) {
                 val num = variables.getValue("A").integerValue()
                 canvas?.printText(num.toString(), 1, true)
             }
+            Syscall.SYSASM_c64scr_print_ub0 -> {
+                val num = variables.getValue("A").integerValue()
+                canvas?.printText("%03d".format(num), 1, true)
+            }
             Syscall.SYSASM_c64scr_print_b -> {
                 val num = variables.getValue("A").integerValue()
                 if(num<=127)
@@ -2292,6 +2319,12 @@ class StackVm(private var traceOutputFile: String?) {
                 val hi = variables.getValue("Y").integerValue()
                 val number = lo+256*hi
                 canvas?.printText(number.toString(), 1, true)
+            }
+            Syscall.SYSASM_c64scr_print_uw0 -> {
+                val lo = variables.getValue("A").integerValue()
+                val hi = variables.getValue("Y").integerValue()
+                val number = lo+256*hi
+                canvas?.printText("%05d".format(number), 1, true)
             }
             Syscall.SYSASM_c64scr_print_uwhex -> {
                 val prefix = if(this.P_carry) "$" else ""
@@ -2332,11 +2365,11 @@ class StackVm(private var traceOutputFile: String?) {
         P_irqd=true
         swapIrqExecutionContexts(true)
 
-        val jiffies = min((timestamp-bootTime)*60/1000, 24*3600*60-1)
+        val jiffies = min((timestamp-rtcOffset)*60/1000, 24*3600*60-1)
         // update the C-64 60hz jiffy clock in the ZP addresses:
-        mem.setUByte(0x00a0, (jiffies ushr 16).toShort())
-        mem.setUByte(0x00a1, (jiffies ushr 8 and 255).toShort())
-        mem.setUByte(0x00a2, (jiffies and 255).toShort())
+        mem.setUByte_DMA(0x00a0, (jiffies ushr 16).toShort())
+        mem.setUByte_DMA(0x00a1, (jiffies ushr 8 and 255).toShort())
+        mem.setUByte_DMA(0x00a2, (jiffies and 255).toShort())
 
         if(irqStartInstructionPtr>=0) {
             try {
