@@ -39,9 +39,9 @@
             }
         }
 
-        float duration = floor(((c64.TIME_LO as float)
+        float duration = ((c64.TIME_LO as float)
                                 + 256.0*(c64.TIME_MID as float)
-                                + 65536.0*(c64.TIME_HI as float))/60.0)
+                                + 65536.0*(c64.TIME_HI as float))/60.0
         c64scr.plot(0, 21)
         c64scr.print("finished in ")
         c64flt.print_f(duration)

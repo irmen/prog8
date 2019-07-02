@@ -286,7 +286,7 @@ class AstVm(val program: Program) {
 
     private fun executeStatement(sub: INameScope, stmt: IStatement) {
         instructionCounter++
-        if (instructionCounter % 100 == 0)
+        if (instructionCounter % 200 == 0)
             Thread.sleep(1)
         when (stmt) {
             is NopStatement, is Label, is Subroutine -> {
