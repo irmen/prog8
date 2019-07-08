@@ -29,7 +29,8 @@ dependencies {
 compileKotlin {
     kotlinOptions {
         jvmTarget = "1.8"
-        // freeCompilerArgs += "-XXLanguage:+NewInference"
+        verbose = true
+        freeCompilerArgs += "-XXLanguage:+NewInference  -verbose"
     }
 }
 
@@ -49,36 +50,36 @@ sourceSets {
     }
 }
 
+startScripts.enabled = false
 
+//application {
+//    mainClassName = 'prog8.CompilerMainKt'
+//    applicationName = 'p8compile'
+//}
 
-application {
-    mainClassName = 'prog8.CompilerMainKt'
-    applicationName = 'p8compile'
-}
+//task p8vmScript(type: CreateStartScripts) {
+//    mainClassName = "prog8.StackVmMainKt"
+//    applicationName = "p8vm"
+//    outputDir = new File(project.buildDir, 'scripts')
+//    classpath = jar.outputs.files + project.configurations.runtime
+//}
 
-task p8vmScript(type: CreateStartScripts) {
-    mainClassName = "prog8.StackVmMainKt"
-    applicationName = "p8vm"
-    outputDir = new File(project.buildDir, 'scripts')
-    classpath = jar.outputs.files + project.configurations.runtime
-}
+//applicationDistribution.into("bin") {
+//    from(p8vmScript)
+//    fileMode = 0755
+//}
 
-applicationDistribution.into("bin") {
-    from(p8vmScript)
-    fileMode = 0755
-}
-
-task fatJar(type: Jar) {
-    manifest {
-        attributes 'Main-Class': 'prog8.CompilerMainKt'
-    }
-    archiveBaseName = 'prog8compiler'
-    destinationDirectory = rootProject.projectDir
-    from {
-        project.configurations.runtime.collect { it.isDirectory() ? it : zipTree(it) }
-    }
-    with jar
-}
+//task fatJar(type: Jar) {
+//    manifest {
+//        attributes 'Main-Class': 'prog8.CompilerMainKt'
+//    }
+//    archiveBaseName = 'prog8compiler'
+//    destinationDirectory = rootProject.projectDir
+//    from {
+//        project.configurations.runtime.collect { it.isDirectory() ? it : zipTree(it) }
+//    }
+//    with jar
+//}
 // build.finalizedBy(fatJar)
 
 
