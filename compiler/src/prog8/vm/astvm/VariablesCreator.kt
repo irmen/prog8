@@ -3,14 +3,14 @@ package prog8.vm.astvm
 import prog8.ast.*
 import prog8.ast.base.*
 import prog8.ast.expressions.LiteralValue
-import prog8.ast.processing.IAstProcessor
+import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.statements.VarDecl
 import prog8.compiler.HeapValues
 import prog8.vm.RuntimeValue
 
-class VariablesCreator(private val runtimeVariables: RuntimeVariables, private val heap: HeapValues) : IAstProcessor {
+class VariablesCreator(private val runtimeVariables: RuntimeVariables, private val heap: HeapValues) : IAstModifyingVisitor {
 
-    override fun process(program: Program) {
+    override fun visit(program: Program) {
         // define the three registers as global variables
         runtimeVariables.define(program.namespace, Register.A.name, RuntimeValue(DataType.UBYTE, 0))
         runtimeVariables.define(program.namespace, Register.X.name, RuntimeValue(DataType.UBYTE, 255))
@@ -27,10 +27,10 @@ class VariablesCreator(private val runtimeVariables: RuntimeVariables, private v
         program.namespace.statements.add(vdX)
         program.namespace.statements.add(vdY)
 
-        super.process(program)
+        super.visit(program)
     }
 
-    override fun process(decl: VarDecl): IStatement {
+    override fun visit(decl: VarDecl): IStatement {
         when(decl.type) {
             // we can assume the value in the vardecl already has been converted into a constant LiteralValue here.
             VarDeclType.VAR -> {
@@ -44,14 +44,14 @@ class VariablesCreator(private val runtimeVariables: RuntimeVariables, private v
                 // consts should have been const-folded away
             }
         }
-        return super.process(decl)
+        return super.visit(decl)
     }
 
-//    override fun process(assignment: Assignment): IStatement {
+//    override fun accept(assignment: Assignment): IStatement {
 //        if(assignment is VariableInitializationAssignment) {
 //            println("INIT VAR $assignment")
 //        }
-//        return super.process(assignment)
+//        return super.accept(assignment)
 //    }
 
 }

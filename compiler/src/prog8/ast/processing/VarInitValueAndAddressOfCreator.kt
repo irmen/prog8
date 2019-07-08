@@ -9,7 +9,7 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.LiteralValue
 import prog8.ast.statements.*
 
-internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope): IAstProcessor {
+internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope): IAstModifyingVisitor {
     // For VarDecls that declare an initialization value:
     // Replace the vardecl with an assignment (to set the initial value),
     // and add a new vardecl with the default constant value of that type (usually zero) to the scope.
@@ -23,9 +23,9 @@ internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope
 
     private val vardeclsToAdd = mutableMapOf<INameScope, MutableMap<String, VarDecl>>()
 
-    override fun process(module: Module) {
+    override fun visit(module: Module) {
         vardeclsToAdd.clear()
-        super.process(module)
+        super.visit(module)
 
         // add any new vardecls to the various scopes
         for(decl in vardeclsToAdd)
@@ -35,8 +35,8 @@ internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope
             }
     }
 
-    override fun process(decl: VarDecl): IStatement {
-        super.process(decl)
+    override fun visit(decl: VarDecl): IStatement {
+        super.visit(decl)
         if(decl.type!= VarDeclType.VAR || decl.value==null)
             return decl
 
@@ -62,7 +62,7 @@ internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope
         return decl
     }
 
-    override fun process(functionCall: FunctionCall): IExpression {
+    override fun visit(functionCall: FunctionCall): IExpression {
         val targetStatement = functionCall.target.targetSubroutine(namespace)
         if(targetStatement!=null) {
             var node: Node = functionCall
@@ -73,7 +73,7 @@ internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope
         return functionCall
     }
 
-    override fun process(functionCallStatement: FunctionCallStatement): IStatement {
+    override fun visit(functionCallStatement: FunctionCallStatement): IStatement {
         val targetStatement = functionCallStatement.target.targetSubroutine(namespace)
         if(targetStatement!=null)
             addAddressOfExprIfNeeded(targetStatement, functionCallStatement.arglist, functionCallStatement)

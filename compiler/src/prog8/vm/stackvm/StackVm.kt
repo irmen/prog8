@@ -2133,7 +2133,7 @@ class StackVm(private var traceOutputFile: String?) {
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
                 if(value.array.any {it.addressOf!=null})
-                    throw VmExecutionException("stackvm cannot process raw memory pointers")
+                    throw VmExecutionException("stackvm cannot accept raw memory pointers")
                 evalstack.push(RuntimeValue(DataType.UWORD, value.array.map { it.integer!! }.max() ?: 0))
             }
             Syscall.FUNC_MAX_W -> {
@@ -2175,7 +2175,7 @@ class StackVm(private var traceOutputFile: String?) {
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
                 if(value.array.any {it.addressOf!=null})
-                    throw VmExecutionException("stackvm cannot process raw memory pointers")
+                    throw VmExecutionException("stackvm cannot accept raw memory pointers")
                 evalstack.push(RuntimeValue(DataType.UWORD, value.array.map { it.integer!! }.min() ?: 0))
             }
             Syscall.FUNC_MIN_W -> {
@@ -2209,7 +2209,7 @@ class StackVm(private var traceOutputFile: String?) {
                 if(length!=value.array!!.size)
                     throw VmExecutionException("iterable length mismatch")
                 if(value.array.any {it.addressOf!=null})
-                    throw VmExecutionException("stackvm cannot process raw memory pointers")
+                    throw VmExecutionException("stackvm cannot accept raw memory pointers")
                 evalstack.push(RuntimeValue(DataType.UWORD, value.array.map { it.integer!! }.sum()))
             }
             Syscall.FUNC_SUM_UB -> {

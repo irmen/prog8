@@ -3,14 +3,16 @@ package prog8.ast.statements
 import prog8.ast.*
 import prog8.ast.base.*
 import prog8.ast.expressions.*
-import prog8.ast.processing.IAstProcessor
+import prog8.ast.processing.IAstModifyingVisitor
+import prog8.ast.processing.IAstVisitor
 import prog8.compiler.HeapValues
 
 
 class BuiltinFunctionStatementPlaceholder(val name: String, override val position: Position) : IStatement {
     override var parent: Node = ParentSentinel
     override fun linkParents(parent: Node) {}
-    override fun process(processor: IAstProcessor): IStatement = this
+    override fun accept(processor: IAstModifyingVisitor): IStatement = this
+    override fun accept(processor: IAstVisitor) { }
     override fun definingScope(): INameScope = BuiltinFunctionScopePlaceholder
     override val expensiveToInline = false
 }
@@ -33,7 +35,8 @@ class Block(override val name: String,
         statements.forEach {it.linkParents(this)}
     }
 
-    override fun process(processor: IAstProcessor) = processor.process(this)
+    override fun accept(processor: IAstModifyingVisitor) = processor.visit(this)
+    override fun accept(processor: IAstVisitor) = processor.visit(this)
 
     override fun toString(): String {
         return "Block(name=$name, address=$address, ${statements.size} statements)"
@@ -51,7 +54,8 @@ data class Directive(val directive: String, val args: List<DirectiveArg>, overri
         args.forEach{it.linkParents(this)}
     }
 
-    override fun process(processor: IAstProcessor) = processor.process(this)
+    override fun accept(processor: IAstModifyingVisitor) = processor.visit(this)
+    override fun accept(processor: IAstVisitor) = processor.visit(this)
 }
 
 data class DirectiveArg(val str: String?, val name: String?, val int: Int?, override val position: Position) : Node {
@@ -70,7 +74,8 @@ data class Label(val name: String, override val position: Position) : IStatement
         this.parent = parent
     }
 
-    override fun process(processor: IAstProcessor) = processor.process(this)
+    override fun accept(processor: IAstModifyingVisitor) = processor.visit(this)
+    override fun accept(processor: IAstVisitor) = processor.visit(this)
 
     override fun toString(): String {
         return "Label(name=$name, pos=$position)"
@@ -88,7 +93,8 @@ open class Return(var values: List<IExpression>, override val position: Position
         values.forEach {it.linkParents(this)}
     }
 
-    override fun process(processor: IAstProcessor) = processor.process(this)
+    override fun accept(processor: IAstModifyingVisitor) = processor.visit(this)
+    override fun accept(processor: IAstVisitor) = processor.visit(this)
 
     override fun toString(): String {
         return "Return(values: $values, pos=$position)"
@@ -96,7 +102,8 @@ open class Return(var values: List<IExpression>, override val position: Position
 }
 
 class ReturnFromIrq(override val position: Position) : Return(emptyList(), position) {
-    override fun process(processor: IAstProcessor) = this
+    override fun accept(processor: IAstModifyingVisitor) = this
+    override fun accept(processor: IAstVisitor) {}
 
     override fun toString(): String {
         return "ReturnFromIrq(pos=$position)"
@@ -111,7 +118,8 @@ class Continue(override val position: Position) : IStatement {
         this.parent=parent
     }
 
-    override fun process(processor: IAstProcessor) = processor.process(this)
+    override fun accept(processor: IAstModifyingVisitor) = processor.visit(this)
+    override fun accept(processor: IAstVisitor) = processor.visit(this)
 }
 
 class Break(override val position: Position) : IStatement {
@@ -122,7 +130,8 @@ class Break(override val position: Position) : IStatement {
         this.parent=parent
     }
 
-    override fun process(processor: IAstProcessor) = processor.process(this)
+    override fun accept(processor: IAstModifyingVisitor) = processor.visit(this)
+    override fun accept(processor: IAstVisitor) = processor.visit(this)
 }
 
 class VarDecl(val type: VarDeclType,
@@ -159,7 +168,8 @@ class VarDecl(val type: VarDeclType,
         value?.linkParents(this)
     }
 
-    override fun process(processor: IAstProcessor) = processor.process(this)
+    override fun accept(processor: IAstModifyingVisitor) = processor.visit(this)
+    override fun accept(processor: IAstVisitor) = processor.visit(this)
 
     val scopedname: String by lazy { makeScopedName(name) }
 
@@ -198,8 +208,11 @@ class ArrayIndex(var index: IExpression, override val position: Position) : Node
         }
     }
 
-    fun process(processor: IAstProcessor) {
-        index = index.process(processor)
+    fun accept(processor: IAstModifyingVisitor) {
+        index = index.accept(processor)
+    }
+    fun accept(processor: IAstVisitor) {
+        index.accept(processor)
     }
 
     override fun toString(): String {
@@ -220,7 +233,8 @@ open class Assignment(var targets: List<AssignTarget>, val aug_op : String?, var
         value.linkParents(this)
     }
 
-    override fun process(processor: IAstProcessor) = processor.process(this)
+    override fun accept(processor: IAstModifyingVisitor) = processor.visit(this)
+    override fun accept(processor: IAstVisitor) = processor.visit(this)
 
     override fun toString(): String {
         return("Assignment(augop: $aug_op, targets: $targets, value: $value, pos=$position)")
@@ -251,7 +265,8 @@ data class AssignTarget(val register: Register?,
         memoryAddress?.linkParents(this)
     }
 
-    fun process(processor: IAstProcessor) = processor.process(this)
+    fun accept(processor: IAstModifyingVisitor) = processor.visit(this)
+    fun accept(processor: IAstVisitor) = processor.visit(this)
 
     companion object {
         fun fromExpr(expr: IExpression): AssignTarget {
@@ -366,7 +381,8 @@ class PostIncrDecr(var target: AssignTarget, val operator: String, override val 
         target.linkParents(this)
     }
 
-    override fun process(processor: IAstProcessor) = processor.process(this)
+    override fun accept(processor: IAstModifyingVisitor) = processor.visit(this)
+    override fun accept(processor: IAstVisitor) = processor.visit(this)
 
     override fun toString(): String {
         return "PostIncrDecr(op: $operator, target: $target, pos=$position)"
@@ -385,7 +401,8 @@ class Jump(val address: Int?,
         identifier?.linkParents(this)
     }
 
-    override fun process(processor: IAstProcessor) = processor.process(this)
+    override fun accept(processor: IAstModifyingVisitor) = processor.visit(this)
+    override fun accept(processor: IAstVisitor) = processor.visit(this)
 
     override fun toString(): String {
         return "Jump(addr: $address, identifier: $identifier, label: $generatedLabel;  pos=$position)"
@@ -405,7 +422,8 @@ class FunctionCallStatement(override var target: IdentifierReference,
         arglist.forEach { it.linkParents(this) }
     }
 
-    override fun process(processor: IAstProcessor) = processor.process(this)
+    override fun accept(processor: IAstModifyingVisitor) = processor.visit(this)
+    override fun accept(processor: IAstVisitor) = processor.visit(this)
 
     override fun toString(): String {
         return "FunctionCallStatement(target=$target, pos=$position)"
@@ -420,7 +438,8 @@ class InlineAssembly(val assembly: String, override val position: Position) : IS
         this.parent = parent
     }
 
-    override fun process(processor: IAstProcessor) = processor.process(this)
+    override fun accept(processor: IAstModifyingVisitor) = processor.visit(this)
+    override fun accept(processor: IAstVisitor) = processor.visit(this)
 }
 
 class AnonymousScope(override var statements: MutableList<IStatement>,
@@ -443,7 +462,9 @@ class AnonymousScope(override var statements: MutableList<IStatement>,
         this.parent = parent
         statements.forEach { it.linkParents(this) }
     }
-    override fun process(processor: IAstProcessor) = processor.process(this)
+
+    override fun accept(processor: IAstModifyingVisitor) = processor.visit(this)
+    override fun accept(processor: IAstVisitor) = processor.visit(this)
 }
 
 class NopStatement(override val position: Position): IStatement {
@@ -454,7 +475,8 @@ class NopStatement(override val position: Position): IStatement {
         this.parent = parent
     }
 
-    override fun process(processor: IAstProcessor) = this
+    override fun accept(processor: IAstModifyingVisitor) = this
+    override fun accept(processor: IAstVisitor) {}
 }
 
 // the subroutine class covers both the normal user-defined subroutines,
@@ -487,7 +509,8 @@ class Subroutine(override val name: String,
         statements.forEach { it.linkParents(this) }
     }
 
-    override fun process(processor: IAstProcessor) = processor.process(this)
+    override fun accept(processor: IAstModifyingVisitor) = processor.visit(this)
+    override fun accept(processor: IAstVisitor) = processor.visit(this)
 
     override fun toString(): String {
         return "Subroutine(name=$name, parameters=$parameters, returntypes=$returntypes, ${statements.size} statements, address=$asmAddress)"
@@ -559,7 +582,8 @@ class IfStatement(var condition: IExpression,
         elsepart.linkParents(this)
     }
 
-    override fun process(processor: IAstProcessor): IStatement = processor.process(this)
+    override fun accept(processor: IAstModifyingVisitor) = processor.visit(this)
+    override fun accept(processor: IAstVisitor) = processor.visit(this)
 }
 
 class BranchStatement(var condition: BranchCondition,
@@ -576,7 +600,8 @@ class BranchStatement(var condition: BranchCondition,
         elsepart.linkParents(this)
     }
 
-    override fun process(processor: IAstProcessor): IStatement = processor.process(this)
+    override fun accept(processor: IAstModifyingVisitor) = processor.visit(this)
+    override fun accept(processor: IAstVisitor) = processor.visit(this)
 }
 
 class ForLoop(val loopRegister: Register?,
@@ -596,7 +621,8 @@ class ForLoop(val loopRegister: Register?,
         body.linkParents(this)
     }
 
-    override fun process(processor: IAstProcessor) = processor.process(this)
+    override fun accept(processor: IAstModifyingVisitor) = processor.visit(this)
+    override fun accept(processor: IAstVisitor) = processor.visit(this)
 
     override fun toString(): String {
         return "ForLoop(loopVar: $loopVar, loopReg: $loopRegister, iterable: $iterable, pos=$position)"
@@ -619,7 +645,8 @@ class WhileLoop(var condition: IExpression,
         body.linkParents(this)
     }
 
-    override fun process(processor: IAstProcessor): IStatement = processor.process(this)
+    override fun accept(processor: IAstModifyingVisitor) = processor.visit(this)
+    override fun accept(processor: IAstVisitor) = processor.visit(this)
 }
 
 class RepeatLoop(var body: AnonymousScope,
@@ -634,7 +661,8 @@ class RepeatLoop(var body: AnonymousScope,
         body.linkParents(this)
     }
 
-    override fun process(processor: IAstProcessor): IStatement = processor.process(this)
+    override fun accept(processor: IAstModifyingVisitor) = processor.visit(this)
+    override fun accept(processor: IAstVisitor) = processor.visit(this)
 }
 
 class DirectMemoryWrite(var addressExpression: IExpression, override val position: Position) : Node {
@@ -648,4 +676,7 @@ class DirectMemoryWrite(var addressExpression: IExpression, override val positio
     override fun toString(): String {
         return "DirectMemoryWrite($addressExpression)"
     }
+
+    fun accept(processor: IAstVisitor) = processor.visit(this)
+    fun accept(processor: IAstModifyingVisitor) = processor.visit(this)
 }

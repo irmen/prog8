@@ -46,7 +46,7 @@ internal fun importModule(program: Program, filePath: Path): Module {
         throw ParsingFailedError("No such file: $filePath")
 
     val input = CharStreams.fromPath(filePath)
-    return importModule(program, input, filePath, filePath.parent==null)
+    return importModule(program, input, filePath, false)
 }
 
 internal fun importLibraryModule(program: Program, name: String): Module? {
@@ -77,7 +77,7 @@ internal fun importModule(program: Program, stream: CharStream, modulePath: Path
     moduleAst.linkParents(program.namespace)
     program.modules.add(moduleAst)
 
-    // process additional imports
+    // accept additional imports
     val lines = moduleAst.statements.toMutableList()
     lines.asSequence()
          .mapIndexed { i, it -> Pair(i, it) }

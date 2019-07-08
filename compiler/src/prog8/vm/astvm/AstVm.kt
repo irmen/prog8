@@ -165,7 +165,7 @@ class AstVm(val program: Program) {
     fun run() {
         try {
             val init = VariablesCreator(runtimeVariables, program.heap)
-            init.process(program)
+            init.visit(program)
 
             // initialize all global variables
             for (m in program.modules) {

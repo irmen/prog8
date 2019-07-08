@@ -2,7 +2,8 @@ package prog8.ast
 
 import prog8.ast.base.*
 import prog8.ast.expressions.*
-import prog8.ast.processing.IAstProcessor
+import prog8.ast.processing.IAstModifyingVisitor
+import prog8.ast.processing.IAstVisitor
 import prog8.ast.statements.*
 
 interface Node {
@@ -33,7 +34,8 @@ interface Node {
 }
 
 interface IStatement : Node {
-    fun process(processor: IAstProcessor) : IStatement
+    fun accept(processor: IAstModifyingVisitor) : IStatement
+    fun accept(processor: IAstVisitor)
     fun makeScopedName(name: String): String {
         // easy way out is to always return the full scoped name.
         // it would be nicer to find only the minimal prefixed scoped name, but that's too much hassle for now.
@@ -165,7 +167,8 @@ interface INameScope {
 
 interface IExpression: Node {
     fun constValue(program: Program): LiteralValue?
-    fun process(processor: IAstProcessor): IExpression
+    fun accept(processor: IAstModifyingVisitor): IExpression
+    fun accept(processor: IAstVisitor)
     fun referencesIdentifier(name: String): Boolean
     fun inferType(program: Program): DataType?
 

@@ -3,7 +3,7 @@ package prog8.optimizer
 import prog8.ast.*
 import prog8.ast.base.*
 import prog8.ast.expressions.*
-import prog8.ast.processing.IAstProcessor
+import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.statements.*
 import prog8.compiler.HeapValues
 import prog8.compiler.IntegerOrAddressOf
@@ -12,7 +12,7 @@ import prog8.compiler.target.c64.FLOAT_MAX_POSITIVE
 import kotlin.math.floor
 
 
-class ConstantFolding(private val program: Program) : IAstProcessor {
+class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
     var optimizationsDone: Int = 0
     var errors : MutableList<AstException> = mutableListOf()
 
@@ -26,7 +26,7 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
         }
     }
 
-    override fun process(decl: VarDecl): IStatement {
+    override fun visit(decl: VarDecl): IStatement {
         // the initializer value can't refer to the variable itself (recursive definition)
         if(decl.value?.referencesIdentifier(decl.name) == true || decl.arraysize?.index?.referencesIdentifier(decl.name) == true) {
             errors.add(ExpressionError("recursive var declaration", decl.position))
@@ -48,7 +48,7 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
                     }
                 }
                 else if(decl.arraysize?.size()==null) {
-                    val size = decl.arraysize!!.index.process(this)
+                    val size = decl.arraysize!!.index.accept(this)
                     if(size is LiteralValue) {
                         decl.arraysize = ArrayIndex(size, decl.position)
                         optimizationsDone++
@@ -149,7 +149,7 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
             }
         }
 
-        return super.process(decl)
+        return super.visit(decl)
     }
 
     private fun fixupArrayTypeOnHeap(decl: VarDecl, litval: LiteralValue) {
@@ -182,7 +182,7 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
     /**
      * replace identifiers that refer to const value, with the value itself (if it's a simple type)
      */
-    override fun process(identifier: IdentifierReference): IExpression {
+    override fun visit(identifier: IdentifierReference): IExpression {
         return try {
             val cval = identifier.constValue(program) ?: return identifier
             return if(cval.isNumeric) {
@@ -197,9 +197,9 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
         }
     }
 
-    override fun process(functionCall: FunctionCall): IExpression {
+    override fun visit(functionCall: FunctionCall): IExpression {
         return try {
-            super.process(functionCall)
+            super.visit(functionCall)
             typeCastConstArguments(functionCall)
             functionCall.constValue(program) ?: functionCall
         } catch (ax: AstException) {
@@ -208,8 +208,8 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
         }
     }
 
-    override fun process(functionCallStatement: FunctionCallStatement): IStatement {
-        super.process(functionCallStatement)
+    override fun visit(functionCallStatement: FunctionCallStatement): IStatement {
+        super.visit(functionCallStatement)
         typeCastConstArguments(functionCallStatement)
         return functionCallStatement
     }
@@ -232,26 +232,26 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
         }
     }
 
-    override fun process(memread: DirectMemoryRead): IExpression {
+    override fun visit(memread: DirectMemoryRead): IExpression {
         // @( &thing )  -->  thing
         val addrOf = memread.addressExpression as? AddressOf
         if(addrOf!=null)
-            return super.process(addrOf.identifier)
-        return super.process(memread)
+            return super.visit(addrOf.identifier)
+        return super.visit(memread)
     }
 
     /**
-     * Try to process a unary prefix expression.
+     * Try to accept a unary prefix expression.
      * Compile-time constant sub expressions will be evaluated on the spot.
      * For instance, the expression for "- 4.5" will be optimized into the float literal -4.5
      */
-    override fun process(expr: PrefixExpression): IExpression {
+    override fun visit(expr: PrefixExpression): IExpression {
         return try {
-            super.process(expr)
+            super.visit(expr)
 
             val subexpr = expr.expression
             if (subexpr is LiteralValue) {
-                // process prefixed literal values (such as -3, not true)
+                // accept prefixed literal values (such as -3, not true)
                 return when {
                     expr.operator == "+" -> subexpr
                     expr.operator == "-" -> when {
@@ -294,7 +294,7 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
     }
 
     /**
-     * Try to process a binary expression.
+     * Try to accept a binary expression.
      * Compile-time constant sub expressions will be evaluated on the spot.
      * For instance, "9 * (4 + 2)" will be optimized into the integer literal 54.
      *
@@ -310,9 +310,9 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
      *        (X / c1) * c2  ->  X / (c2/c1)
      *        (X + c1) - c2  ->  X + (c1-c2)
      */
-    override fun process(expr: BinaryExpression): IExpression {
+    override fun visit(expr: BinaryExpression): IExpression {
         return try {
-            super.process(expr)
+            super.visit(expr)
             val leftconst = expr.left.constValue(program)
             val rightconst = expr.right.constValue(program)
 
@@ -539,7 +539,7 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
         }
     }
 
-    override fun process(forLoop: ForLoop): IStatement {
+    override fun visit(forLoop: ForLoop): IStatement {
 
         fun adjustRangeDt(rangeFrom: LiteralValue, targetDt: DataType, rangeTo: LiteralValue, stepLiteral: LiteralValue?, range: RangeExpr): RangeExpr {
             val newFrom = rangeFrom.cast(targetDt)
@@ -553,7 +553,7 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
         }
 
         // adjust the datatype of a range expression in for loops to the loop variable.
-        val resultStmt = super.process(forLoop) as ForLoop
+        val resultStmt = super.visit(forLoop) as ForLoop
         val iterableRange = resultStmt.iterable as? RangeExpr ?: return resultStmt
         val rangeFrom = iterableRange.from as? LiteralValue
         val rangeTo = iterableRange.to as? LiteralValue
@@ -593,8 +593,8 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
         return resultStmt
     }
 
-    override fun process(literalValue: LiteralValue): LiteralValue {
-        val litval = super.process(literalValue)
+    override fun visit(literalValue: LiteralValue): LiteralValue {
+        val litval = super.visit(literalValue)
         if(litval.isString) {
             // intern the string; move it into the heap
             if(litval.strvalue!!.length !in 1..255)
@@ -651,8 +651,8 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
         return litval
     }
 
-    override fun process(assignment: Assignment): IStatement {
-        super.process(assignment)
+    override fun visit(assignment: Assignment): IStatement {
+        super.visit(assignment)
         val lv = assignment.value as? LiteralValue
         if(lv!=null) {
             // see if we can promote/convert a literal value to the required datatype

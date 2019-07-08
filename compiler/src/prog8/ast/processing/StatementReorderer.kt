@@ -11,7 +11,7 @@ import prog8.ast.expressions.TypecastExpression
 import prog8.ast.statements.*
 import prog8.functions.BuiltinFunctions
 
-internal class StatementReorderer(private val program: Program): IAstProcessor {
+internal class StatementReorderer(private val program: Program): IAstModifyingVisitor {
     // Reorders the statements in a way the compiler needs.
     // - 'main' block must be the very first statement UNLESS it has an address set.
     // - blocks are ordered by address, where blocks without address are put at the end.
@@ -28,8 +28,8 @@ internal class StatementReorderer(private val program: Program): IAstProcessor {
 
     private val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%zpreserved", "%address", "%option")
 
-    override fun process(module: Module) {
-        super.process(module)
+    override fun visit(module: Module) {
+        super.visit(module)
 
         val (blocks, other) = module.statements.partition { it is Block }
         module.statements = other.asSequence().plus(blocks.sortedBy { (it as Block).address ?: Int.MAX_VALUE }).toMutableList()
@@ -60,7 +60,7 @@ internal class StatementReorderer(private val program: Program): IAstProcessor {
         sortConstantAssignments(module.statements)
     }
 
-    override fun process(block: Block): IStatement {
+    override fun visit(block: Block): IStatement {
 
         val subroutines = block.statements.filterIsInstance<Subroutine>()
         var numSubroutinesAtEnd = 0
@@ -123,11 +123,11 @@ internal class StatementReorderer(private val program: Program): IAstProcessor {
                 block.statements.removeAt(index)
         }
 
-        return super.process(block)
+        return super.visit(block)
     }
 
-    override fun process(subroutine: Subroutine): IStatement {
-        super.process(subroutine)
+    override fun visit(subroutine: Subroutine): IStatement {
+        super.visit(subroutine)
 
         sortConstantAssignments(subroutine.statements)
 
@@ -153,13 +153,13 @@ internal class StatementReorderer(private val program: Program): IAstProcessor {
         return subroutine
     }
 
-    override fun process(scope: AnonymousScope): AnonymousScope {
-        scope.statements = scope.statements.map { it.process(this)}.toMutableList()
+    override fun visit(scope: AnonymousScope): AnonymousScope {
+        scope.statements = scope.statements.map { it.accept(this)}.toMutableList()
         sortConstantAssignments(scope.statements)
         return scope
     }
 
-    override fun process(expr: BinaryExpression): IExpression {
+    override fun visit(expr: BinaryExpression): IExpression {
         val leftDt = expr.left.inferType(program)
         val rightDt = expr.right.inferType(program)
         if(leftDt!=null && rightDt!=null && leftDt!=rightDt) {
@@ -179,7 +179,7 @@ internal class StatementReorderer(private val program: Program): IAstProcessor {
                 }
             }
         }
-        return super.process(expr)
+        return super.visit(expr)
     }
 
     private fun sortConstantAssignments(statements: MutableList<IStatement>) {
@@ -205,7 +205,7 @@ internal class StatementReorderer(private val program: Program): IAstProcessor {
         statements.addAll(result)
     }
 
-    override fun process(assignment: Assignment): IStatement {
+    override fun visit(assignment: Assignment): IStatement {
         val target=assignment.singleTarget
         if(target!=null) {
             // see if a typecast is needed to convert the value's type into the proper target type
@@ -220,17 +220,17 @@ internal class StatementReorderer(private val program: Program): IAstProcessor {
             }
         } else TODO("multi-target assign")
 
-        return super.process(assignment)
+        return super.visit(assignment)
     }
 
-    override fun process(functionCallStatement: FunctionCallStatement): IStatement {
+    override fun visit(functionCallStatement: FunctionCallStatement): IStatement {
         checkFunctionCallArguments(functionCallStatement, functionCallStatement.definingScope())
-        return super.process(functionCallStatement)
+        return super.visit(functionCallStatement)
     }
 
-    override fun process(functionCall: FunctionCall): IExpression {
+    override fun visit(functionCall: FunctionCall): IExpression {
         checkFunctionCallArguments(functionCall, functionCall.definingScope())
-        return super.process(functionCall)
+        return super.visit(functionCall)
     }
 
     private fun checkFunctionCallArguments(call: IFunctionCall, scope: INameScope) {
@@ -301,11 +301,11 @@ internal class StatementReorderer(private val program: Program): IAstProcessor {
         return Pair(sorted, trailing)
     }
 
-    override fun process(typecast: TypecastExpression): IExpression {
+    override fun visit(typecast: TypecastExpression): IExpression {
         // warn about any implicit type casts to Float, because that may not be intended
         if(typecast.implicit && typecast.type in setOf(DataType.FLOAT, DataType.ARRAY_F)) {
             printWarning("byte or word value implicitly converted to float. Suggestion: use explicit cast as float, a float number, or revert to integer arithmetic", typecast.position)
         }
-        return super.process(typecast)
+        return super.visit(typecast)
     }
 }

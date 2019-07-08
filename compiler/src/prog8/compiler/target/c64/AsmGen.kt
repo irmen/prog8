@@ -381,7 +381,7 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
 
     private fun makeArrayFillDataSigned(value: RuntimeValue): List<String> {
         val array = heap.get(value.heapId!!).array!!
-        // note: array of signed value can never contain pointer-to type, so simply process values as being all integers
+        // note: array of signed value can never contain pointer-to type, so simply accept values as being all integers
         return if (value.type == DataType.ARRAY_B || value.type == DataType.ARRAY_W) {
             array.map {
                 if(it.integer!!>=0)
@@ -476,7 +476,7 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
             Opcode.DISCARD_BYTE -> " inx"
             Opcode.DISCARD_WORD -> " inx"
             Opcode.DISCARD_FLOAT -> " inx |  inx |  inx"
-            Opcode.INLINE_ASSEMBLY ->  "@inline@" + (ins.callLabel2 ?: "")      // All of the inline assembly is stored in the calllabel2 property. the '@inline@' is a special marker to process it.
+            Opcode.INLINE_ASSEMBLY ->  "@inline@" + (ins.callLabel2 ?: "")      // All of the inline assembly is stored in the calllabel2 property. the '@inline@' is a special marker to accept it.
             Opcode.INCLUDE_FILE -> {
                 val offset = if(ins.arg==null) "" else ", ${ins.arg.integerValue()}"
                 val length = if(ins.arg2==null) "" else ", ${ins.arg2.integerValue()}"
@@ -1043,7 +1043,7 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
         // add any matching patterns from the big list
         for(pattern in patterns) {
             if(pattern.sequence.size > segment.size || (pattern.altSequence!=null && pattern.altSequence.size > segment.size))
-                continue        //  don't process patterns that don't fit
+                continue        //  don't accept patterns that don't fit
             val opcodesList = opcodes.subList(0, pattern.sequence.size)
             if(pattern.sequence == opcodesList) {
                 val asm = pattern.asm(segment)

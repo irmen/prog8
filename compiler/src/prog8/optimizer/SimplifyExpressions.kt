@@ -6,7 +6,7 @@ import prog8.ast.base.DataType
 import prog8.ast.base.IntegerDatatypes
 import prog8.ast.base.NumericDatatypes
 import prog8.ast.expressions.*
-import prog8.ast.processing.IAstProcessor
+import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.statements.Assignment
 import kotlin.math.abs
 import kotlin.math.log2
@@ -18,24 +18,24 @@ import kotlin.math.log2
 
  */
 
-internal class SimplifyExpressions(private val program: Program) : IAstProcessor {
+internal class SimplifyExpressions(private val program: Program) : IAstModifyingVisitor {
     var optimizationsDone: Int = 0
 
-    override fun process(assignment: Assignment): IStatement {
+    override fun visit(assignment: Assignment): IStatement {
         if (assignment.aug_op != null)
             throw AstException("augmented assignments should have been converted to normal assignments before this optimizer")
-        return super.process(assignment)
+        return super.visit(assignment)
     }
 
-    override fun process(memread: DirectMemoryRead): IExpression {
+    override fun visit(memread: DirectMemoryRead): IExpression {
         // @( &thing )  -->  thing
         val addrOf = memread.addressExpression as? AddressOf
         if(addrOf!=null)
-            return super.process(addrOf.identifier)
-        return super.process(memread)
+            return super.visit(addrOf.identifier)
+        return super.visit(memread)
     }
 
-    override fun process(typecast: TypecastExpression): IExpression {
+    override fun visit(typecast: TypecastExpression): IExpression {
         // remove redundant typecasts
         var tc = typecast
         while(true) {
@@ -49,18 +49,18 @@ internal class SimplifyExpressions(private val program: Program) : IAstProcessor
                         return tc.expression
                     }
                 }
-                return super.process(tc)
+                return super.visit(tc)
             }
             optimizationsDone++
             tc = expr
         }
     }
 
-    override fun process(expr: PrefixExpression): IExpression {
+    override fun visit(expr: PrefixExpression): IExpression {
         if (expr.operator == "+") {
             // +X --> X
             optimizationsDone++
-            return expr.expression.process(this)
+            return expr.expression.accept(this)
         } else if (expr.operator == "not") {
             (expr.expression as? BinaryExpression)?.let {
                 // NOT (...)  ->   invert  ...
@@ -100,11 +100,11 @@ internal class SimplifyExpressions(private val program: Program) : IAstProcessor
                 }
             }
         }
-        return super.process(expr)
+        return super.visit(expr)
     }
 
-    override fun process(expr: BinaryExpression): IExpression {
-        super.process(expr)
+    override fun visit(expr: BinaryExpression): IExpression {
+        super.visit(expr)
         val leftVal = expr.left.constValue(program)
         val rightVal = expr.right.constValue(program)
         val constTrue = LiteralValue.fromBoolean(true, expr.position)

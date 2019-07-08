@@ -7,7 +7,7 @@ import prog8.ast.statements.FunctionCallStatement
 import prog8.ast.statements.Subroutine
 
 
-internal class AstRecursionChecker(private val namespace: INameScope) : IAstProcessor {
+internal class AstRecursionChecker(private val namespace: INameScope) : IAstVisitor {
     private val callGraph = DirectedGraph<INameScope>()
 
     internal fun result(): List<AstException> {
@@ -18,7 +18,7 @@ internal class AstRecursionChecker(private val namespace: INameScope) : IAstProc
         return listOf(AstException("Program contains recursive subroutine calls, this is not supported. Recursive chain:\n (a subroutine call in) $chain"))
     }
 
-    override fun process(functionCallStatement: FunctionCallStatement): IStatement {
+    override fun visit(functionCallStatement: FunctionCallStatement) {
         val scope = functionCallStatement.definingScope()
         val targetStatement = functionCallStatement.target.targetStatement(namespace)
         if(targetStatement!=null) {
@@ -28,10 +28,10 @@ internal class AstRecursionChecker(private val namespace: INameScope) : IAstProc
             }
             callGraph.add(scope, targetScope)
         }
-        return super.process(functionCallStatement)
+        super.visit(functionCallStatement)
     }
 
-    override fun process(functionCall: FunctionCall): IExpression {
+    override fun visit(functionCall: FunctionCall) {
         val scope = functionCall.definingScope()
         val targetStatement = functionCall.target.targetStatement(namespace)
         if(targetStatement!=null) {
@@ -41,7 +41,7 @@ internal class AstRecursionChecker(private val namespace: INameScope) : IAstProc
             }
             callGraph.add(scope, targetScope)
         }
-        return super.process(functionCall)
+        super.visit(functionCall)
     }
 
 
