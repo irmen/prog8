@@ -1,7 +1,8 @@
-package prog8.compiler
+package prog8.vm
 
 import prog8.ast.base.*
 import prog8.ast.expressions.LiteralValue
+import prog8.compiler.HeapValues
 import prog8.compiler.target.c64.Petscii
 import kotlin.math.abs
 import kotlin.math.pow

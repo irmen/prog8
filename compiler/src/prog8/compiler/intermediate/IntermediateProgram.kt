@@ -5,7 +5,7 @@ import prog8.ast.base.*
 import prog8.ast.base.printWarning
 import prog8.ast.expressions.LiteralValue
 import prog8.ast.statements.VarDecl
-import prog8.compiler.RuntimeValue
+import prog8.vm.RuntimeValue
 import prog8.compiler.CompilerException
 import prog8.compiler.HeapValues
 import prog8.compiler.Zeropage

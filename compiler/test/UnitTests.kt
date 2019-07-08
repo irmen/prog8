@@ -8,7 +8,7 @@ import org.junit.jupiter.api.TestInstance
 import prog8.ast.base.DataType
 import prog8.ast.base.Position
 import prog8.ast.expressions.LiteralValue
-import prog8.compiler.RuntimeValue
+import prog8.vm.RuntimeValue
 import prog8.compiler.*
 import prog8.compiler.target.c64.*
 import java.io.CharConversionException

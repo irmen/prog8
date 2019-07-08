@@ -9,9 +9,6 @@ import prog8.ast.expressions.LiteralValue
 import kotlin.math.pow
 
 
-val associativeOperators = setOf("+", "*", "&", "|", "^", "or", "and", "xor", "==", "!=")
-
-
 class ConstExprEvaluator {
 
     fun evaluate(left: LiteralValue, operator: String, right: LiteralValue): IExpression {

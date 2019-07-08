@@ -3,7 +3,7 @@ package prog8tests
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.ast.base.DataType
-import prog8.compiler.RuntimeValue
+import prog8.vm.RuntimeValue
 import kotlin.test.*
 
 

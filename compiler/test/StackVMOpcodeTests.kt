@@ -8,7 +8,7 @@ import prog8.ast.base.ByteDatatypes
 import prog8.ast.base.DataType
 import prog8.ast.base.IterableDatatypes
 import prog8.ast.base.WordDatatypes
-import prog8.compiler.RuntimeValue
+import prog8.vm.RuntimeValue
 import prog8.compiler.HeapValues
 import prog8.compiler.intermediate.Instruction
 import prog8.compiler.intermediate.Opcode

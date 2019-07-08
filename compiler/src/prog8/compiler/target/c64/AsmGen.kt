@@ -7,7 +7,7 @@ import prog8.ast.antlr.escape
 import prog8.ast.base.DataType
 import prog8.ast.base.initvarsSubName
 import prog8.ast.base.printWarning
-import prog8.compiler.RuntimeValue
+import prog8.vm.RuntimeValue
 import prog8.compiler.*
 import prog8.compiler.intermediate.*
 import prog8.vm.stackvm.Syscall

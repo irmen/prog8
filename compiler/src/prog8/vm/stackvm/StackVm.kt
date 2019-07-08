@@ -7,7 +7,7 @@ import prog8.ast.base.Register
 import prog8.ast.base.initvarsSubName
 import prog8.vm.astvm.BitmapScreenPanel
 import prog8.vm.astvm.Memory
-import prog8.compiler.RuntimeValue
+import prog8.vm.RuntimeValue
 import prog8.compiler.HeapValues
 import prog8.compiler.IntegerOrAddressOf
 import prog8.compiler.intermediate.Instruction

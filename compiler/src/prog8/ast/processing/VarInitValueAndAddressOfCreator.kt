@@ -46,7 +46,7 @@ internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope
             val declvalue = decl.value!!
             val value =
                     if(declvalue is LiteralValue) {
-                        val converted = declvalue.intoDatatype(decl.datatype)
+                        val converted = declvalue.cast(decl.datatype)
                         converted ?: declvalue
                     }
                     else

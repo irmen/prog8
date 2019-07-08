@@ -1,7 +1,7 @@
 package prog8.vm.astvm
 
 import prog8.ast.base.DataType
-import prog8.compiler.RuntimeValue
+import prog8.vm.RuntimeValue
 import java.lang.Math.toDegrees
 import java.lang.Math.toRadians
 import java.util.*

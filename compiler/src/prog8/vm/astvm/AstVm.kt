@@ -6,8 +6,8 @@ import prog8.ast.base.initvarsSubName
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.LiteralValue
 import prog8.ast.statements.*
-import prog8.compiler.RuntimeValue
-import prog8.compiler.RuntimeValueRange
+import prog8.vm.RuntimeValue
+import prog8.vm.RuntimeValueRange
 import prog8.compiler.target.c64.Petscii
 import java.awt.EventQueue
 import kotlin.NoSuchElementException

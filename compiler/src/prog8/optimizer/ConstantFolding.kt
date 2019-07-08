@@ -222,7 +222,7 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
                 val expectedDt = arg.second.type
                 val argConst = arg.first.value.constValue(program)
                 if(argConst!=null && argConst.type!=expectedDt) {
-                    val convertedValue = argConst.intoDatatype(expectedDt)
+                    val convertedValue = argConst.cast(expectedDt)
                     if(convertedValue!=null) {
                         functionCall.arglist[arg.first.index] = convertedValue
                         optimizationsDone++
@@ -550,11 +550,11 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
     override fun process(forLoop: ForLoop): IStatement {
 
         fun adjustRangeDt(rangeFrom: LiteralValue, targetDt: DataType, rangeTo: LiteralValue, stepLiteral: LiteralValue?, range: RangeExpr): RangeExpr {
-            val newFrom = rangeFrom.intoDatatype(targetDt)
-            val newTo = rangeTo.intoDatatype(targetDt)
+            val newFrom = rangeFrom.cast(targetDt)
+            val newTo = rangeTo.cast(targetDt)
             if (newFrom != null && newTo != null) {
                 val newStep: IExpression =
-                        if (stepLiteral != null) (stepLiteral.intoDatatype(targetDt) ?: stepLiteral) else range.step
+                        if (stepLiteral != null) (stepLiteral.cast(targetDt) ?: stepLiteral) else range.step
                 return RangeExpr(newFrom, newTo, newStep, range.position)
             }
             return range

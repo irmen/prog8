@@ -177,7 +177,7 @@ internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstPr
             for(returnvalue in returnStmt.values.zip(subroutine.returntypes)) {
                 val lval = returnvalue.first as? LiteralValue
                 if(lval!=null) {
-                    val adjusted = lval.intoDatatype(returnvalue.second)
+                    val adjusted = lval.cast(returnvalue.second)
                     if(adjusted!=null && adjusted !== lval)
                         newValues.add(adjusted)
                     else

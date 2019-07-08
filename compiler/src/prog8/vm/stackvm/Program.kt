@@ -4,7 +4,7 @@ import prog8.ast.antlr.unescape
 import prog8.ast.base.*
 import prog8.ast.expressions.AddressOf
 import prog8.ast.expressions.IdentifierReference
-import prog8.compiler.RuntimeValue
+import prog8.vm.RuntimeValue
 import prog8.compiler.HeapValues
 import prog8.compiler.IntegerOrAddressOf
 import prog8.compiler.intermediate.*

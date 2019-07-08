@@ -6,13 +6,16 @@ import prog8.ast.processing.IAstProcessor
 import prog8.ast.statements.*
 import prog8.compiler.HeapValues
 import prog8.compiler.IntegerOrAddressOf
-import prog8.compiler.RuntimeValue
 import prog8.compiler.target.c64.Petscii
 import prog8.functions.BuiltinFunctions
 import prog8.functions.NotConstArgumentException
 import prog8.functions.builtinFunctionReturnType
 import kotlin.math.abs
 import kotlin.math.floor
+
+
+val associativeOperators = setOf("+", "*", "&", "|", "^", "or", "and", "xor", "==", "!=")
+
 
 class PrefixExpression(val operator: String, var expression: IExpression, override val position: Position) : IExpression {
     override lateinit var parent: Node
@@ -253,8 +256,9 @@ class TypecastExpression(var expression: IExpression, var type: DataType, val im
     override fun inferType(program: Program): DataType? = type
     override fun constValue(program: Program): LiteralValue? {
         val cv = expression.constValue(program) ?: return null
-        val value = RuntimeValue(cv.type, cv.asNumericValue!!).cast(type)
-        return LiteralValue.fromNumber(value.numericValue(), value.type, position)
+        return cv.cast(type)
+        // val value = RuntimeValue(cv.type, cv.asNumericValue!!).cast(type)
+        // return LiteralValue.fromNumber(value.numericValue(), value.type, position).cast(type)
     }
 
     override fun toString(): String {
@@ -481,7 +485,7 @@ open class LiteralValue(val type: DataType,
         throw ExpressionError("cannot order compare type $type with ${other.type}", other.position)
     }
 
-    fun intoDatatype(targettype: DataType): LiteralValue? {
+    fun cast(targettype: DataType): LiteralValue? {
         if(type==targettype)
             return this
         when(type) {

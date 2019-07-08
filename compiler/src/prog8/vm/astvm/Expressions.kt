@@ -9,8 +9,8 @@ import prog8.ast.statements.BuiltinFunctionStatementPlaceholder
 import prog8.ast.statements.Label
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.VarDecl
-import prog8.compiler.RuntimeValue
-import prog8.compiler.RuntimeValueRange
+import prog8.vm.RuntimeValue
+import prog8.vm.RuntimeValueRange
 import kotlin.math.abs
 
 class EvalContext(val program: Program, val mem: Memory, val statusflags: StatusFlags,
@@ -106,8 +106,8 @@ fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
                         DataType.UWORD -> RuntimeValue(DataType.UWORD, ctx.mem.getUWord(address))
                         DataType.WORD -> RuntimeValue(DataType.WORD, ctx.mem.getSWord(address))
                         DataType.FLOAT -> RuntimeValue(DataType.FLOAT, ctx.mem.getFloat(address))
-                        DataType.STR -> RuntimeValue(DataType.STR, str=ctx.mem.getString(address))
-                        DataType.STR_S -> RuntimeValue(DataType.STR_S, str=ctx.mem.getScreencodeString(address))
+                        DataType.STR -> RuntimeValue(DataType.STR, str = ctx.mem.getString(address))
+                        DataType.STR_S -> RuntimeValue(DataType.STR_S, str = ctx.mem.getScreencodeString(address))
                         else -> TODO("memvar $variable")
                     }
                 }

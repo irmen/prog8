@@ -30,7 +30,7 @@ compileKotlin {
     kotlinOptions {
         jvmTarget = "1.8"
         verbose = true
-        freeCompilerArgs += "-XXLanguage:+NewInference  -verbose"
+        // freeCompilerArgs += "-XXLanguage:+NewInference"
     }
 }
 
