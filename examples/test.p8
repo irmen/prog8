@@ -19,6 +19,8 @@
     }
 
 
-    asmsub derp (ubyte arg @ X) -> clobbers(A, X) -> (ubyte @Y) = $a000
+    asmsub derp2 (ubyte arg @ X)   = $a000
+    asmsub derp1 (ubyte arg @ X) clobbers(A, X)  = $a000
+    asmsub derp (ubyte arg @ X) clobbers(A, X) -> ubyte @Y  = $a000
 
 }

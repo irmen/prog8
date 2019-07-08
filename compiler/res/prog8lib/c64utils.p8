@@ -17,7 +17,7 @@
 
 ; ----- utility functions ----
 
-asmsub  ubyte2decimal  (ubyte value @ A) -> clobbers() -> (ubyte @ Y, ubyte @ X, ubyte @ A)  {
+asmsub  ubyte2decimal  (ubyte value @ A) -> ubyte @ Y, ubyte @ X, ubyte @ A  {
 	; ---- A to decimal string in Y/X/A  (100s in Y, 10s in X, 1s in A)
 	%asm {{
 		ldy  #$2f
@@ -34,7 +34,7 @@ asmsub  ubyte2decimal  (ubyte value @ A) -> clobbers() -> (ubyte @ Y, ubyte @ X,
 	}}
 }
 
-asmsub  byte2decimal  (ubyte value @ A) -> clobbers() -> (ubyte @ Y, ubyte @ X, ubyte @ A)  {
+asmsub  byte2decimal  (ubyte value @ A) -> ubyte @ Y, ubyte @ X, ubyte @ A  {
 	; ---- A (signed byte) to decimal string in Y/X/A  (100s in Y, 10s in X, 1s in A)
 	;      note: the '-' is not part of the conversion here if it's a negative number
 	%asm {{
@@ -47,7 +47,7 @@ asmsub  byte2decimal  (ubyte value @ A) -> clobbers() -> (ubyte @ Y, ubyte @ X, 
 	}}
 }
 
-asmsub  ubyte2hex  (ubyte value @ A) -> clobbers() -> (ubyte @ A, ubyte @ Y)  {
+asmsub  ubyte2hex  (ubyte value @ A) -> ubyte @ A, ubyte @ Y  {
 	; ---- A to hex string in AY (first hex char in A, second hex char in Y)
 	%asm {{
 		stx  c64.SCRATCH_ZPREGX
@@ -70,7 +70,7 @@ _hex_digits	.text "0123456789abcdef"	; can probably be reused for other stuff as
 }
 
 
-asmsub  uword2hex  (uword value @ AY) -> clobbers(A,Y) -> ()  {
+asmsub  uword2hex  (uword value @ AY) clobbers(A,Y)  {
 	; ---- convert 16 bit uword in A/Y into 4-character hexadecimal string 'uword2hex.output' (0-terminated)
 	%asm {{
 		sta  c64.SCRATCH_ZPREG
@@ -87,7 +87,7 @@ output	.text  "0000", $00      ; 0-terminated output buffer (to make printing ea
 	}}
 }
 
-asmsub  uword2bcd  (uword value @ AY) -> clobbers(A,Y) -> ()  {
+asmsub  uword2bcd  (uword value @ AY) clobbers(A,Y)  {
 	; Convert an 16 bit binary value to BCD
 	;
 	; This function converts a 16 bit binary value in A/Y into a 24 bit BCD. It
@@ -134,7 +134,7 @@ bcdbuff  .byte  0,0,0
 }
 
 
-asmsub  uword2decimal  (uword value @ AY) -> clobbers(A) -> (ubyte @ Y)  {
+asmsub  uword2decimal  (uword value @ AY) clobbers(A) -> ubyte @ Y  {
 	; ---- convert 16 bit uword in A/Y into 0-terminated decimal string into memory  'uword2decimal.output'
 	;      returns length of resulting string in Y
 	%asm {{
@@ -173,7 +173,7 @@ output  .text  "00000", $00     ; 0 terminated
 }
 
 
-asmsub str2uword(str string @ AY) -> clobbers() -> (uword @ AY) {
+asmsub str2uword(str string @ AY) -> uword @ AY {
 	; -- returns the unsigned word value of the string number argument in AY
 	;    the number may NOT be preceded by a + sign and may NOT contain spaces
 	;    (any non-digit character will terminate the number string that is parsed)
@@ -228,7 +228,7 @@ _result_times_10     ; (W*4 + W)*2
 }
 
 
-asmsub str2word(str string @ AY) -> clobbers() -> (word @ AY) {
+asmsub str2word(str string @ AY) -> word @ AY {
 	; -- returns the signed word value of the string number argument in AY
 	;    the number may be preceded by a + or - sign but may NOT contain spaces
 	;    (any non-digit character will terminate the number string that is parsed)
@@ -284,7 +284,7 @@ _negative	.byte  0
 }
 
 
-asmsub  set_irqvec_excl() -> clobbers(A) -> ()  {
+asmsub  set_irqvec_excl() clobbers(A)  {
 	%asm {{
 		sei
 		lda  #<_irq_handler
@@ -303,7 +303,7 @@ _irq_handler	jsr  set_irqvec._irq_handler_init
 	}}
 }
 
-asmsub  set_irqvec() -> clobbers(A) -> ()  {
+asmsub  set_irqvec() clobbers(A)  {
 	%asm {{
 		sei
 		lda  #<_irq_handler
@@ -373,7 +373,7 @@ IRQ_SCRATCH_ZPWORD2	.word  0
 }
 
 
-asmsub  restore_irqvec() -> clobbers() -> () {
+asmsub  restore_irqvec() {
 	%asm {{
 		sei
 		lda  #<c64.IRQDFRT
@@ -390,7 +390,7 @@ asmsub  restore_irqvec() -> clobbers() -> () {
 }
 
 
-asmsub  set_rasterirq(uword rasterpos @ AY) -> clobbers(A) -> () {
+asmsub  set_rasterirq(uword rasterpos @ AY) clobbers(A) {
 	%asm {{
 		sei
 		jsr  _setup_raster_irq
@@ -431,7 +431,7 @@ _setup_raster_irq
 	}}
 }
 
-asmsub  set_rasterirq_excl(uword rasterpos @ AY) -> clobbers(A) -> () {
+asmsub  set_rasterirq_excl(uword rasterpos @ AY) clobbers(A) {
 	%asm {{
 		sei
 		jsr  set_rasterirq._setup_raster_irq
@@ -465,7 +465,7 @@ _raster_irq_handler
 	; ---- this block contains (character) Screen and text I/O related functions ----
 
 
-asmsub  clear_screen (ubyte char @ A, ubyte color @ Y) -> clobbers(A) -> ()  {
+asmsub  clear_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  {
 	; ---- clear the character screen with the given fill character and character color.
 	;      (assumes screen and color matrix are at their default addresses)
 
@@ -481,7 +481,7 @@ asmsub  clear_screen (ubyte char @ A, ubyte color @ Y) -> clobbers(A) -> ()  {
 }
 
 
-asmsub  clear_screenchars (ubyte char @ A) -> clobbers(Y) -> ()  {
+asmsub  clear_screenchars (ubyte char @ A) clobbers(Y)  {
 	; ---- clear the character screen with the given fill character (leaves colors)
 	;      (assumes screen matrix is at the default address)
 	%asm {{
@@ -501,7 +501,7 @@ _loop		sta  c64.Screen,y
         }}
 }
 
-asmsub  clear_screencolors (ubyte color @ A) -> clobbers(Y) -> ()  {
+asmsub  clear_screencolors (ubyte color @ A) clobbers(Y)  {
 	; ---- clear the character screen colors with the given color (leaves characters).
 	;      (assumes color matrix is at the default address)
 	%asm {{
@@ -522,7 +522,7 @@ _loop		sta  c64.Colors,y
 }
 
 
-asmsub  scroll_left_full  (ubyte alsocolors @ Pc) -> clobbers(A, Y) -> ()  {
+asmsub  scroll_left_full  (ubyte alsocolors @ Pc) clobbers(A, Y)  {
 	; ---- scroll the whole screen 1 character to the left
 	;      contents of the rightmost column are unchanged, you should clear/refill this yourself
 	;      Carry flag determines if screen color data must be scrolled too
@@ -583,7 +583,7 @@ _scroll_screen  ; scroll the screen memory
 }
 
 
-asmsub  scroll_right_full  (ubyte alsocolors @ Pc) -> clobbers(A) -> ()  {
+asmsub  scroll_right_full  (ubyte alsocolors @ Pc) clobbers(A)  {
 	; ---- scroll the whole screen 1 character to the right
 	;      contents of the leftmost column are unchanged, you should clear/refill this yourself
 	;      Carry flag determines if screen color data must be scrolled too
@@ -636,7 +636,7 @@ _scroll_screen  ; scroll the screen memory
 }
 
 
-asmsub  scroll_up_full  (ubyte alsocolors @ Pc) -> clobbers(A) -> ()  {
+asmsub  scroll_up_full  (ubyte alsocolors @ Pc) clobbers(A)  {
 	; ---- scroll the whole screen 1 character up
 	;      contents of the bottom row are unchanged, you should refill/clear this yourself
 	;      Carry flag determines if screen color data must be scrolled too
@@ -689,7 +689,7 @@ _scroll_screen  ; scroll the screen memory
 }
 
 
-asmsub  scroll_down_full  (ubyte alsocolors @ Pc) -> clobbers(A) -> ()  {
+asmsub  scroll_down_full  (ubyte alsocolors @ Pc) clobbers(A)  {
 	; ---- scroll the whole screen 1 character down
 	;      contents of the top row are unchanged, you should refill/clear this yourself
 	;      Carry flag determines if screen color data must be scrolled too
@@ -743,7 +743,7 @@ _scroll_screen  ; scroll the screen memory
 
 
 
-asmsub  print (str text @ AY) -> clobbers(A,Y) -> ()  {
+asmsub  print (str text @ AY) clobbers(A,Y)  {
 	; ---- print null terminated string from A/Y
 	; note: the compiler contains an optimization that will replace
 	;       a call to this subroutine with a string argument of just one char,
@@ -762,7 +762,7 @@ asmsub  print (str text @ AY) -> clobbers(A,Y) -> ()  {
 }
 
 
-asmsub  print_ub0  (ubyte value @ A) -> clobbers(A,Y) -> ()  {
+asmsub  print_ub0  (ubyte value @ A) clobbers(A,Y)  {
 	; ---- print the ubyte in A in decimal form, with left padding 0s (3 positions total)
 	%asm {{
 		stx  c64.SCRATCH_ZPREGX
@@ -780,7 +780,7 @@ asmsub  print_ub0  (ubyte value @ A) -> clobbers(A,Y) -> ()  {
 }
 
 
-asmsub  print_ub  (ubyte value @ A) -> clobbers(A,Y) -> ()  {
+asmsub  print_ub  (ubyte value @ A) clobbers(A,Y)  {
 	; ---- print the ubyte in A in decimal form, without left padding 0s
 	%asm {{
 		stx  c64.SCRATCH_ZPREGX
@@ -803,7 +803,7 @@ _end		pla
 	}}
 }
 
-asmsub  print_b  (byte value @ A) -> clobbers(A,Y) -> ()  {
+asmsub  print_b  (byte value @ A) clobbers(A,Y)  {
 	; ---- print the byte in A in decimal form, without left padding 0s
 	%asm {{
 		stx  c64.SCRATCH_ZPREGX
@@ -821,7 +821,7 @@ asmsub  print_b  (byte value @ A) -> clobbers(A,Y) -> ()  {
 }
 
 
-asmsub  print_ubhex  (ubyte prefix @ Pc, ubyte value @ A) -> clobbers(A,Y) -> ()  {
+asmsub  print_ubhex  (ubyte prefix @ Pc, ubyte value @ A) clobbers(A,Y)  {
 	; ---- print the ubyte in A in hex form (if Carry is set, a radix prefix '$' is printed as well)
 	%asm {{
 		stx  c64.SCRATCH_ZPREGX
@@ -840,7 +840,7 @@ asmsub  print_ubhex  (ubyte prefix @ Pc, ubyte value @ A) -> clobbers(A,Y) -> ()
 }
 
 
-asmsub  print_ubbin  (ubyte prefix @ Pc, ubyte value @ A) -> clobbers(A,Y) ->()  {
+asmsub  print_ubbin  (ubyte prefix @ Pc, ubyte value @ A) clobbers(A,Y)  {
 	; ---- print the ubyte in A in binary form (if Carry is set, a radix prefix '%' is printed as well)
 	%asm {{
 		stx  c64.SCRATCH_ZPREGX
@@ -862,7 +862,7 @@ asmsub  print_ubbin  (ubyte prefix @ Pc, ubyte value @ A) -> clobbers(A,Y) ->() 
 }
 
 
-asmsub  print_uwbin  (ubyte prefix @ Pc, uword value @ AY) -> clobbers(A,Y) ->()  {
+asmsub  print_uwbin  (ubyte prefix @ Pc, uword value @ AY) clobbers(A,Y)  {
 	; ---- print the uword in A/Y in binary form (if Carry is set, a radix prefix '%' is printed as well)
 	%asm {{
 		pha
@@ -875,7 +875,7 @@ asmsub  print_uwbin  (ubyte prefix @ Pc, uword value @ AY) -> clobbers(A,Y) ->()
 }
 
 
-asmsub print_uwhex  (ubyte prefix @ Pc, uword value @ AY) -> clobbers(A,Y) -> ()  {
+asmsub print_uwhex  (ubyte prefix @ Pc, uword value @ AY) clobbers(A,Y)  {
 	; ---- print the uword in A/Y in hexadecimal form (4 digits)
 	;      (if Carry is set, a radix prefix '$' is printed as well)
 	%asm {{
@@ -889,7 +889,7 @@ asmsub print_uwhex  (ubyte prefix @ Pc, uword value @ AY) -> clobbers(A,Y) -> ()
 }
 
 
-asmsub  print_uw0  (uword value @ AY) -> clobbers(A,Y) -> ()  {
+asmsub  print_uw0  (uword value @ AY) clobbers(A,Y)  {
 	; ---- print the uword in A/Y in decimal form, with left padding 0s (5 positions total)
 	%asm {{
 		jsr  c64utils.uword2decimal
@@ -904,7 +904,7 @@ asmsub  print_uw0  (uword value @ AY) -> clobbers(A,Y) -> ()  {
 }
 
 
-asmsub  print_uw  (uword value @ AY) -> clobbers(A,Y) -> ()  {
+asmsub  print_uw  (uword value @ AY) clobbers(A,Y)  {
 	; ---- print the uword in A/Y in decimal form, without left padding 0s
 	%asm {{
 		jsr  c64utils.uword2decimal
@@ -936,7 +936,7 @@ _pr_decimal
 	}}
 }
 
-asmsub  print_w  (word value @ AY) -> clobbers(A,Y) -> ()  {
+asmsub  print_w  (word value @ AY) clobbers(A,Y)  {
 	; ---- print the (signed) word in A/Y in decimal form, without left padding 0's
 	%asm {{
 		cpy  #0
@@ -957,7 +957,7 @@ asmsub  print_w  (word value @ AY) -> clobbers(A,Y) -> ()  {
 	}}
 }
 
-asmsub  input_chars  (uword buffer @ AY) -> clobbers(A) -> (ubyte @ Y)  {
+asmsub  input_chars  (uword buffer @ AY) clobbers(A) -> ubyte @ Y  {
 	; ---- Input a string (max. 80 chars) from the keyboard. Returns length in Y. (string is terminated with a 0 byte as well)
 	;      It assumes the keyboard is selected as I/O channel!
 
@@ -978,7 +978,7 @@ asmsub  input_chars  (uword buffer @ AY) -> clobbers(A) -> (ubyte @ Y)  {
 	}}
 }
 
-asmsub  setchr  (ubyte col @Y, ubyte row @A) -> clobbers(A) -> ()  {
+asmsub  setchr  (ubyte col @Y, ubyte row @A) clobbers(A)  {
 	; ---- set the character in SCRATCH_ZPB1 on the screen matrix at the given position
 	%asm {{
 		sty  c64.SCRATCH_ZPREG
@@ -1000,7 +1000,7 @@ _screenrows	.word  $0400 + range(0, 1000, 40)
 	}}
 }
 
-asmsub  getchr  (ubyte col @Y, ubyte row @A) -> clobbers(Y) -> (ubyte @ A) {
+asmsub  getchr  (ubyte col @Y, ubyte row @A) clobbers(Y) -> ubyte @ A {
 	; ---- get the character in the screen matrix at the given location
 	%asm  {{
 		sty  c64.SCRATCH_ZPB1
@@ -1019,7 +1019,7 @@ _mod		lda  $ffff		; modified
 	}}
 }
 
-asmsub  setclr  (ubyte col @Y, ubyte row @A) -> clobbers(A) -> ()  {
+asmsub  setclr  (ubyte col @Y, ubyte row @A) clobbers(A)  {
 	; ---- set the color in SCRATCH_ZPB1 on the screen matrix at the given position
 	%asm {{
 		sty  c64.SCRATCH_ZPREG
@@ -1041,7 +1041,7 @@ _colorrows	.word  $d800 + range(0, 1000, 40)
 	}}
 }
 
-asmsub  getclr  (ubyte col @Y, ubyte row @A) -> clobbers(Y) -> (ubyte @ A) {
+asmsub  getclr  (ubyte col @Y, ubyte row @A) clobbers(Y) -> ubyte @ A {
 	; ---- get the color in the screen color matrix at the given location
 	%asm  {{
 		sty  c64.SCRATCH_ZPB1
@@ -1086,7 +1086,7 @@ _colormod	sta  $ffff		; modified
 	}}
 }
 
-asmsub  plot  (ubyte col @ Y, ubyte row @ A) -> clobbers(A) -> () {
+asmsub  plot  (ubyte col @ Y, ubyte row @ A) clobbers(A) {
 	; ---- safe wrapper around PLOT kernel routine, to save the X register.
 	%asm  {{
 		stx  c64.SCRATCH_ZPREGX

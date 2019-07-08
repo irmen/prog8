@@ -71,18 +71,23 @@ internal class StatementOptimizer(private val program: Program, private val opti
             val inlined = AnonymousScope(sub.statements.toMutableList(), caller.position)
             parent.statements[parent.statements.indexOf(caller)] = inlined
             // replace return statements in the inlined sub by a jump to the end of it
+            var haveNewEndLabel = false
+            var endLabelUsed = false
             var endlabel = inlined.statements.last() as? Label
             if(endlabel==null) {
                 endlabel = makeLabel("_prog8_auto_sub_end", inlined.statements.last().position)
-                inlined.statements.add(endlabel)
                 endlabel.parent = inlined
+                haveNewEndLabel = true
             }
             val returns = inlined.statements.withIndex().filter { iv -> iv.value is Return }.map { iv -> Pair(iv.index, iv.value as Return)}
             for(returnIdx in returns) {
                 assert(returnIdx.second.values.isEmpty())
                 val jump = Jump(null, IdentifierReference(listOf(endlabel.name), returnIdx.second.position), null, returnIdx.second.position)
                 inlined.statements[returnIdx.first] = jump
+                endLabelUsed = true
             }
+            if(endLabelUsed && haveNewEndLabel)
+                inlined.statements.add(endlabel)
             inlined.linkParents(caller.parent)
             sub.calledBy.remove(caller)     // if there are no callers left, the sub will be removed automatically later
             optimizationsDone++

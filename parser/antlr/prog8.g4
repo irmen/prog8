@@ -244,19 +244,21 @@ sub_params :  vardecl (',' EOL? vardecl)* ;
 sub_returns :  datatype (',' EOL? datatype)*  ;
 
 asmsubroutine :
-    'asmsub' identifier '(' asmsub_params? ')'
-    '->' 'clobbers' '(' clobber? ')' '->' '(' asmsub_returns? ')' (asmsub_address  | statement_block )
+    'asmsub' identifier '(' asmsub_params? ')'  EOL?
+    asmsub_clobbers? asmsub_returns?  (asmsub_address  | statement_block )
     ;
 
 asmsub_address :  '=' address=integerliteral  ;
 
 asmsub_params :  asmsub_param (',' EOL? asmsub_param)* ;
 
-asmsub_param :  vardecl '@' (registerorpair | statusregister | stack='stack');
+asmsub_param :  vardecl '@' (registerorpair | statusregister | stack='stack') ;
+
+asmsub_clobbers : 'clobbers' '(' clobber? ')' ;
 
 clobber :  register (',' register)* ;
 
-asmsub_returns :  asmsub_return (',' EOL? asmsub_return)* ;
+asmsub_returns :  '->' asmsub_return (',' EOL? asmsub_return)* ;
 
 asmsub_return :  datatype '@' (registerorpair | statusregister | stack='stack') ;
 

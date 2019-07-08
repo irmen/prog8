@@ -187,7 +187,7 @@ private fun prog8Parser.AsmsubroutineContext.toAst(): IStatement {
     val normalReturnvalues = returns.map { it.type }
     val paramRegisters = params.map { RegisterOrStatusflag(it.registerOrPair, it.statusflag, it.stack) }
     val returnRegisters = returns.map { RegisterOrStatusflag(it.registerOrPair, it.statusflag, it.stack) }
-    val clobbers = clobber()?.toAst() ?: emptySet()
+    val clobbers = asmsub_clobbers()?.clobber()?.toAst() ?: emptySet()
     val statements = statement_block()?.toAst() ?: mutableListOf()
     return Subroutine(name, normalParameters, normalReturnvalues,
             paramRegisters, returnRegisters, clobbers, address, true, statements, toPosition())
