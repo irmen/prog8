@@ -12,13 +12,10 @@
         @(xw) = 1                   ; @todo should turn border white
         @(xw) = 1                   ; @todo should turn border white
 
-        Y=12            ; @todo gets removed in assembly???!!!
+        Y=2            ; @todo gets removed in assembly???!!!
         A=Y
-        A=99
-        A=A
-        A=22
-        @($d021)=A
-        @(xw) = A
+        @($d021)=Y
+        @(xw) = Y
     }
 
 
