@@ -5,20 +5,30 @@
 ~ main {
 
     sub start() {
-        float fl
-        ubyte ub
+        A=10
+        Y=22
 
-        when A+Y {
-            fl -> A=2
-            fl+3.3 -> A=3
-            ub -> A=4
-            ub+2 -> A=5
-            4 -> {
-                Y=7
+        when 4+A+Y {
+            10 -> {
+                c64scr.print("ten")
             }
-            else -> A=99
-            5 -> Y=5        ; @todo error; else already seen
+            5 -> c64scr.print("five")
+            30 -> c64scr.print("thirty")
+            99 -> c64scr.print("nn")
+            55 -> {
+                ; should be optimized away
+            }
+            56 -> {
+                ; should be optimized away
+            }
+            57 -> {
+                ; should be optimized away
+            }
+            else -> {
+                c64scr.print("!??!\n")
+                c64scr.print("!??!!??!\n")
+                c64scr.print("!??!!??!!?!\n")
+            }
         }
     }
-
 }

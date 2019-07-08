@@ -435,6 +435,15 @@ internal class StatementOptimizer(private val program: Program, private val opti
         return nopStatement
     }
 
+    override fun visit(whenStatement: WhenStatement): IStatement {
+        val choices = whenStatement.choices.toList()
+        for(choice in choices) {
+            if(choice.statements.containsNoCodeNorVars())
+                whenStatement.choices.remove(choice)
+        }
+        return super.visit(whenStatement)
+    }
+
     private fun hasContinueOrBreak(scope: INameScope): Boolean {
 
         class Searcher: IAstModifyingVisitor

@@ -212,6 +212,7 @@ internal class Compiler(private val program: Program) {
                 is Subroutine -> translate(stmt)
                 is NopStatement -> {}
                 is InlineAssembly -> translate(stmt)
+                is WhenStatement -> translate(stmt)
                 else -> TODO("translate statement $stmt to stackvm")
             }
         }
@@ -2078,6 +2079,30 @@ internal class Compiler(private val program: Program) {
         }
         else
             throw CompilerException("cannot take memory pointer $addrof")
+    }
+
+    private fun translate(whenstmt: WhenStatement) {
+        val conditionDt = whenstmt.condition.inferType(program)
+        translate(whenstmt.condition)
+        if(whenstmt.choices.isEmpty()) {
+            when(conditionDt) {
+                in ByteDatatypes -> prog.instr(Opcode.DISCARD_BYTE)
+                in WordDatatypes -> prog.instr(Opcode.DISCARD_WORD)
+                else -> throw CompilerException("when condition must be integer")
+            }
+            return
+        }
+
+        // TODO compare
+
+        for(choice in whenstmt.choiceValues(program)) {
+            if(choice.first==null) {
+                // the else clause
+                translate(choice.second.statements)
+            }
+        }
+
+        TODO("whenstmt $whenstmt with choice values ${whenstmt.choiceValues(program).map{it.first}}")
     }
 
     private fun translateAsmInclude(args: List<DirectiveArg>, source: Path) {

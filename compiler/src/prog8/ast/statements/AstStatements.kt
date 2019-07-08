@@ -6,6 +6,8 @@ import prog8.ast.expressions.*
 import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.processing.IAstVisitor
 import prog8.compiler.HeapValues
+import kotlin.math.max
+import kotlin.math.min
 
 
 class BuiltinFunctionStatementPlaceholder(val name: String, override val position: Position) : IStatement {
@@ -677,6 +679,18 @@ class WhenStatement(val condition: IExpression,
         choices.forEach { it.linkParents(this) }
     }
 
+    fun choiceValues(program: Program): List<Pair<Int?, WhenChoice>> {
+        // only gives sensible results when the choices are all valid (constant integers)
+        return choices
+                .map {
+                    val cv = it.value?.constValue(program)
+                    if(cv==null)
+                        null to it
+                    else
+                        cv.asNumericValue!!.toInt() to it
+                    }
+    }
+
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
 }
@@ -690,6 +704,10 @@ class WhenChoice(val value: IExpression?,           // if null,  this is the 'el
         value?.linkParents(this)
         statements.linkParents(this)
         this.parent = parent
+    }
+
+    override fun toString(): String {
+        return "Choice($value at $position)"
     }
 
     fun accept(visitor: IAstVisitor) = visitor.visit(this)

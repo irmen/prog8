@@ -912,6 +912,33 @@ internal class AstChecker(private val program: Program,
         return super.visit(arrayIndexedExpression)
     }
 
+    override fun visit(whenStatement: WhenStatement): IStatement {
+        val conditionType = whenStatement.condition.inferType(program)
+        if(conditionType !in IntegerDatatypes)
+            checkResult.add(SyntaxError("when condition must be an integer value", whenStatement.position))
+        val choiceValues = whenStatement.choiceValues(program)
+        val occurringValues = choiceValues.map {it.first}
+        val tally = choiceValues.associate { it.second to occurringValues.count { ov->it.first==ov} }
+        tally.filter { it.value>1 }.forEach {
+            checkResult.add(SyntaxError("choice value occurs multiple times", it.key.position))
+        }
+        return super.visit(whenStatement)
+    }
+
+    override fun visit(whenChoice: WhenChoice) {
+        if(whenChoice.value!=null) {
+            val constvalue = whenChoice.value.constValue(program)
+            if (constvalue == null)
+                checkResult.add(SyntaxError("value of a when choice must be a constant", whenChoice.position))
+            else if (constvalue.type !in IntegerDatatypes)
+                checkResult.add(SyntaxError("value of a when choice must be an integer", whenChoice.position))
+        } else {
+            if(whenChoice !== (whenChoice.parent as WhenStatement).choices.last())
+                checkResult.add(SyntaxError("else choice must be the last one", whenChoice.position))
+        }
+        super.visit(whenChoice)
+    }
+
     private fun checkFunctionOrLabelExists(target: IdentifierReference, statement: IStatement): IStatement? {
         val targetStatement = target.targetStatement(program.namespace)
         if(targetStatement is Label || targetStatement is Subroutine || targetStatement is BuiltinFunctionStatementPlaceholder)

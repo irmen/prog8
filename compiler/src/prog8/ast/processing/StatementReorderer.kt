@@ -1,5 +1,6 @@
 package prog8.ast.processing
 
+import kotlin.comparisons.nullsLast
 import prog8.ast.*
 import prog8.ast.base.DataType
 import prog8.ast.base.FatalAstException
@@ -22,6 +23,7 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
     //
     // - the 'start' subroutine in the 'main' block will be moved to the top immediately following the directives.
     // - all other subroutines will be moved to the end of their block.
+    // - sorts the choices in when statement.
     //
     // Also, makes sure any value assignments get the proper type casts if needed to cast them into the target variable's type.
     // (this includes function call arguments)
@@ -272,5 +274,12 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
             printWarning("byte or word value implicitly converted to float. Suggestion: use explicit cast as float, a float number, or revert to integer arithmetic", typecast.position)
         }
         return super.visit(typecast)
+    }
+
+    override fun visit(whenStatement: WhenStatement): IStatement {
+        // sort the choices in low-to-high value order
+        whenStatement.choices
+                .sortWith(compareBy<WhenChoice, Int?>(nullsLast(), {it.value?.constValue(program)?.asIntegerValue}))
+        return super.visit(whenStatement)
     }
 }
