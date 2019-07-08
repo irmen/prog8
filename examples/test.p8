@@ -16,8 +16,8 @@
             4 -> {
                 Y=7
             }
-            5 -> Y=5
             else -> A=99
+            5 -> Y=5        ; @todo error; else already seen
         }
     }
 

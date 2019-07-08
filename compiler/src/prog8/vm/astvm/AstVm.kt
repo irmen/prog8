@@ -442,6 +442,23 @@ class AstVm(val program: Program) {
                     }
                 } while (!condition.asBoolean)
             }
+            is WhenStatement -> {
+                val condition=evaluate(stmt.condition, evalCtx)
+                for(choice in stmt.choices) {
+                    if(choice.value==null) {
+                        // the 'else' choice
+                        executeAnonymousScope(choice.statements)
+                        break
+                    } else {
+                        val value = choice.value.constValue(evalCtx.program) ?: throw VmExecutionException("can only use const values in when choices ${choice.position}")
+                        val rtval = RuntimeValue.from(value, evalCtx.program.heap)
+                        if(condition==rtval) {
+                            executeAnonymousScope(choice.statements)
+                            break
+                        }
+                    }
+                }
+            }
             else -> {
                 TODO("implement $stmt")
             }

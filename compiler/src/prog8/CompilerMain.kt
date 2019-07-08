@@ -63,7 +63,8 @@ private fun compileMain(args: Array<String>) {
 
     val filepath = Paths.get(moduleFile).normalize()
 
-    val (programAst, programName) = compileProgram(filepath, optimize, optimizeInlining, writeVmCode, writeAssembly)
+    val (programAst, programName) = compileProgram(filepath, optimize, optimizeInlining,
+            !launchAstVm, writeVmCode, writeAssembly)
 
     if(launchAstVm) {
         println("\nLaunching AST-based vm...")

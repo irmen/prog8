@@ -24,7 +24,8 @@ import kotlin.system.measureTimeMillis
 
 fun compileProgram(filepath: Path,
                    optimize: Boolean, optimizeInlining: Boolean,
-                   writeVmCode: Boolean, writeAssembly: Boolean): Pair<Program, String?> {
+                   generateVmCode: Boolean, writeVmCode: Boolean,
+                   writeAssembly: Boolean): Pair<Program, String?> {
     lateinit var programAst: Program
     var programName: String? = null
 
@@ -89,26 +90,28 @@ fun compileProgram(filepath: Path,
             // printAst(programAst)
             // namespace.debugPrint()
 
-            // compile the syntax tree into stackvmProg form, and optimize that
-            val compiler = Compiler(programAst)
-            val intermediate = compiler.compile(compilerOptions)
-            if (optimize)
-                intermediate.optimize()
+            if(generateVmCode) {
+                // compile the syntax tree into stackvmProg form, and optimize that
+                val compiler = Compiler(programAst)
+                val intermediate = compiler.compile(compilerOptions)
+                if (optimize)
+                    intermediate.optimize()
 
-            if (writeVmCode) {
-                val stackVmFilename = intermediate.name + ".vm.txt"
-                val stackvmFile = PrintStream(File(stackVmFilename), "utf-8")
-                intermediate.writeCode(stackvmFile)
-                stackvmFile.close()
-                println("StackVM program code written to '$stackVmFilename'")
-            }
+                if (writeVmCode) {
+                    val stackVmFilename = intermediate.name + ".vm.txt"
+                    val stackvmFile = PrintStream(File(stackVmFilename), "utf-8")
+                    intermediate.writeCode(stackvmFile)
+                    stackvmFile.close()
+                    println("StackVM program code written to '$stackVmFilename'")
+                }
 
-            if (writeAssembly) {
-                val zeropage = C64Zeropage(compilerOptions)
-                intermediate.allocateZeropage(zeropage)
-                val assembly = AsmGen(compilerOptions, intermediate, programAst.heap, zeropage).compileToAssembly(optimize)
-                assembly.assemble(compilerOptions)
-                programName = assembly.name
+                if (writeAssembly) {
+                    val zeropage = C64Zeropage(compilerOptions)
+                    intermediate.allocateZeropage(zeropage)
+                    val assembly = AsmGen(compilerOptions, intermediate, programAst.heap, zeropage).compileToAssembly(optimize)
+                    assembly.assemble(compilerOptions)
+                    programName = assembly.name
+                }
             }
         }
         println("\nTotal compilation+assemble time: ${totalTime / 1000.0} sec.")
