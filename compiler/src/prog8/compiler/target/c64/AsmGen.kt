@@ -10,8 +10,8 @@ import prog8.ast.base.printWarning
 import prog8.compiler.RuntimeValue
 import prog8.compiler.*
 import prog8.compiler.intermediate.*
-import prog8.stackvm.Syscall
-import prog8.stackvm.syscallsForStackVm
+import prog8.vm.stackvm.Syscall
+import prog8.vm.stackvm.syscallsForStackVm
 import java.io.File
 import java.util.*
 import kotlin.math.abs

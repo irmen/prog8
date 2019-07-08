@@ -1,4 +1,4 @@
-package prog8.astvm
+package prog8.vm.astvm
 
 import prog8.compiler.target.c64.Charset
 import prog8.compiler.target.c64.Colors
@@ -79,7 +79,7 @@ class BitmapScreenPanel : KeyListener, JPanel() {
         for(sc in Petscii.encodeScreencode(text, lowercase)) {
             setChar(cursorX, cursorY, sc, color)
             cursorX++
-            if(cursorX>=(SCREENWIDTH/8)) {
+            if(cursorX>=(SCREENWIDTH /8)) {
                 cursorY++
                 cursorX=0
             }
@@ -149,11 +149,11 @@ class ScreenDialog(title: String) : JFrame(title) {
 
         // the borders (top, left, right, bottom)
         val borderTop = JPanel().apply {
-            preferredSize = Dimension(BitmapScreenPanel.SCALING * (BitmapScreenPanel.SCREENWIDTH+2*borderWidth), BitmapScreenPanel.SCALING * borderWidth)
+            preferredSize = Dimension(BitmapScreenPanel.SCALING * (BitmapScreenPanel.SCREENWIDTH +2*borderWidth), BitmapScreenPanel.SCALING * borderWidth)
             background = Colors.palette[14]
         }
         val borderBottom = JPanel().apply {
-            preferredSize =Dimension(BitmapScreenPanel.SCALING * (BitmapScreenPanel.SCREENWIDTH+2*borderWidth), BitmapScreenPanel.SCALING * borderWidth)
+            preferredSize =Dimension(BitmapScreenPanel.SCALING * (BitmapScreenPanel.SCREENWIDTH +2*borderWidth), BitmapScreenPanel.SCALING * borderWidth)
             background = Colors.palette[14]
         }
         val borderLeft = JPanel().apply {

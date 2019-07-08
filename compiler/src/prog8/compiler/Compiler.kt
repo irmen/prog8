@@ -11,7 +11,7 @@ import prog8.compiler.intermediate.Opcode
 import prog8.compiler.intermediate.branchOpcodes
 import prog8.functions.BuiltinFunctions
 import prog8.parser.tryGetEmbeddedResource
-import prog8.stackvm.Syscall
+import prog8.vm.stackvm.Syscall
 import java.io.File
 import java.nio.file.Path
 import java.util.*

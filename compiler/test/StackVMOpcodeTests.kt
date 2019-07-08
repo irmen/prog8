@@ -12,7 +12,7 @@ import prog8.compiler.RuntimeValue
 import prog8.compiler.HeapValues
 import prog8.compiler.intermediate.Instruction
 import prog8.compiler.intermediate.Opcode
-import prog8.stackvm.*
+import prog8.vm.stackvm.*
 import kotlin.test.*
 
 
@@ -60,7 +60,8 @@ class TestStackVmOpcodes {
                          labels: Map<String, Int>?=null,
                          mem: Map<Int, List<RuntimeValue>>?=null) : Program {
         val heap = HeapValues()
-        return Program("test", ins, vars ?: mapOf(), memoryPointers ?: mapOf(), labels ?: mapOf(), mem ?: mapOf(), heap)
+        return Program("test", ins, vars ?: mapOf(), memoryPointers ?: mapOf(), labels ?: mapOf(), mem
+                ?: mapOf(), heap)
     }
 
     @Test

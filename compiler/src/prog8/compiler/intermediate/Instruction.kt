@@ -1,7 +1,7 @@
 package prog8.compiler.intermediate
 
 import prog8.compiler.RuntimeValue
-import prog8.stackvm.Syscall
+import prog8.vm.stackvm.Syscall
 
 open class Instruction(val opcode: Opcode,
                        val arg: RuntimeValue? = null,

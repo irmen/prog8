@@ -1,12 +1,12 @@
-package prog8.stackvm
+package prog8.vm.stackvm
 
 import prog8.ast.base.DataType
 import prog8.ast.base.IterableDatatypes
 import prog8.ast.base.NumericDatatypes
 import prog8.ast.base.Register
 import prog8.ast.base.initvarsSubName
-import prog8.astvm.BitmapScreenPanel
-import prog8.astvm.Memory
+import prog8.vm.astvm.BitmapScreenPanel
+import prog8.vm.astvm.Memory
 import prog8.compiler.RuntimeValue
 import prog8.compiler.HeapValues
 import prog8.compiler.IntegerOrAddressOf

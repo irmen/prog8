@@ -1,4 +1,4 @@
-package prog8.optimizing
+package prog8.optimizer
 
 import prog8.ast.*
 import prog8.ast.base.*

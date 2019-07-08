@@ -1,4 +1,4 @@
-package prog8.astvm
+package prog8.vm.astvm
 
 import prog8.compiler.target.c64.Mflpt5
 import prog8.compiler.target.c64.Petscii

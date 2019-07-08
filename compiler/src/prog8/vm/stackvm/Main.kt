@@ -1,7 +1,7 @@
-package prog8
+package prog8.vm.stackvm
 
-import prog8.astvm.ScreenDialog
-import prog8.stackvm.*
+import prog8.printSoftwareHeader
+import prog8.vm.astvm.ScreenDialog
 import java.awt.EventQueue
 import javax.swing.Timer
 import kotlin.system.exitProcess

@@ -1,4 +1,4 @@
-package prog8.stackvm
+package prog8.vm.stackvm
 
 import prog8.ast.antlr.unescape
 import prog8.ast.base.*

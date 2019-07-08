@@ -1,4 +1,4 @@
-package prog8.astvm
+package prog8.vm.astvm
 
 import prog8.ast.INameScope
 import java.util.*
