@@ -205,4 +205,15 @@ interface IAstModifyingVisitor {
     fun visit(nopStatement: NopStatement): IStatement {
         return nopStatement
     }
+
+    fun visit(whenStatement: WhenStatement): IStatement {
+        whenStatement.condition.accept(this)
+        whenStatement.choices.forEach { it.accept(this) }
+        return whenStatement
+    }
+
+    fun visit(whenChoice: WhenChoice) {
+        whenChoice.value?.accept(this)
+        whenChoice.statements.accept(this)
+    }
 }

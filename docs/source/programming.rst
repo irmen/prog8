@@ -54,7 +54,7 @@ Code
 
 	- value assignment
 	- looping  (for, while, repeat, unconditional jumps)
-	- conditional execution (if - then - else, and conditional jumps)
+	- conditional execution (if - then - else, when, and conditional jumps)
 	- subroutine calls
 	- label definition
 
@@ -361,8 +361,8 @@ You can also create loops by using the ``goto`` statement, but this should usual
     Loop variables that are declared inline are scoped in the loop body so they're not accessible at all after the loop finishes.
 
 
-Conditional Execution
----------------------
+Conditional Execution (IF)
+--------------------------
 
 Conditional execution means that the flow of execution changes based on certiain conditions,
 rather than having fixed gotos or subroutine calls::
@@ -412,6 +412,12 @@ So ``if_cc goto target`` will directly translate into the single CPU instruction
     the same scope the if statement itself is in.
     Maybe in the future this will be a separate nested scope, but for now, that is
     only possible when defining a subroutine.
+
+When - statement (jumptable)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. attention::
+   TODO: docs for this this must still be written
 
 
 Assignments

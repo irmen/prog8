@@ -90,6 +90,7 @@ statement :
 	| forloop
 	| whileloop
 	| repeatloop
+	| whenstmt
 	| breakstmt
 	| continuestmt
 	| labeldef
@@ -278,3 +279,7 @@ forloop :  'for' datatype? ZEROPAGE? (register | identifier) 'in' expression EOL
 whileloop:  'while' expression EOL? (statement | statement_block) ;
 
 repeatloop:  'repeat' (statement | statement_block) EOL? 'until' expression ;
+
+whenstmt: 'when' expression '{' EOL (when_choice | EOL) * '}' EOL? ;
+
+when_choice:  (expression | 'else' ) '->' (statement | statement_block ) ;

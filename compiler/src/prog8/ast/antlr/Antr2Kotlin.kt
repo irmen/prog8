@@ -172,6 +172,9 @@ private fun prog8Parser.StatementContext.toAst() : IStatement {
     val asmsubstmt = asmsubroutine()?.toAst()
     if(asmsubstmt!=null) return asmsubstmt
 
+    val whenstmt = whenstmt()?.toAst()
+    if(whenstmt!=null) return whenstmt
+
     throw FatalAstException("unprocessed source text (are we missing ast conversion rules for parser elements?): $text")
 }
 
@@ -544,6 +547,21 @@ private fun prog8Parser.RepeatloopContext.toAst(): RepeatLoop {
     return RepeatLoop(scope, untilCondition, toPosition())
 }
 
+private fun prog8Parser.WhenstmtContext.toAst(): WhenStatement {
+    val condition = expression().toAst()
+    val choices = this.when_choice()?.map { it.toAst() }?.toMutableList() ?: mutableListOf()
+    return WhenStatement(condition, choices, toPosition())
+}
+
+private fun prog8Parser.When_choiceContext.toAst(): WhenChoice {
+    val value = expression()?.toAst()
+    val stmt = statement()?.toAst()
+    val stmt_block = statement_block()?.toAst()?.toMutableList() ?: mutableListOf()
+    if(stmt!=null)
+        stmt_block.add(stmt)
+    val scope = AnonymousScope(stmt_block, toPosition())
+    return WhenChoice(value, scope, toPosition())
+}
 
 internal fun escape(str: String) = str.replace("\t", "\\t").replace("\n", "\\n").replace("\r", "\\r")
 

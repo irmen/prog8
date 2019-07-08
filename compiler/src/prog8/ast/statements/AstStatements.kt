@@ -665,6 +665,38 @@ class RepeatLoop(var body: AnonymousScope,
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
 }
 
+class WhenStatement(val condition: IExpression,
+                    val choices: MutableList<WhenChoice>,
+                    override val position: Position): IStatement {
+    override lateinit var parent: Node
+    override val expensiveToInline: Boolean = true
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        condition.linkParents(this)
+        choices.forEach { it.linkParents(this) }
+    }
+
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
+}
+
+class WhenChoice(val value: IExpression?,           // if null,  this is the 'else' part
+                 val statements: AnonymousScope,
+                 override val position: Position) : Node {
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        value?.linkParents(this)
+        statements.linkParents(this)
+        this.parent = parent
+    }
+
+    fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
+}
+
+
 class DirectMemoryWrite(var addressExpression: IExpression, override val position: Position) : Node {
     override lateinit var parent: Node
 
@@ -680,3 +712,4 @@ class DirectMemoryWrite(var addressExpression: IExpression, override val positio
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
     fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
 }
+

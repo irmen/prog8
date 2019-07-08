@@ -156,4 +156,14 @@ interface IAstVisitor {
 
     fun visit(nopStatement: NopStatement) {
     }
+
+    fun visit(whenStatement: WhenStatement) {
+        whenStatement.condition.accept(this)
+        whenStatement.choices.forEach { it.accept(this) }
+    }
+
+    fun visit(whenChoice: WhenChoice) {
+        whenChoice.value?.accept(this)
+        whenChoice.statements.accept(this)
+    }
 }

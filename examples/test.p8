@@ -1,26 +1,24 @@
 %import c64utils
 %zeropage basicsafe
+%option enable_floats
 
 ~ main {
 
     sub start() {
+        float fl
+        ubyte ub
 
-        uword xw = 33
-
-        ; TODO reorderstatements fucks up the order of these
-        xw = $d020              ; @todo
-        @(xw) = 1                   ; @todo should turn border white
-        @(xw) = 1                   ; @todo should turn border white
-
-        Y=2            ; @todo gets removed in assembly???!!!
-        A=Y
-        @($d021)=Y
-        @(xw) = Y
+        when A+Y {
+            fl -> A=2
+            fl+3.3 -> A=3
+            ub -> A=4
+            ub+2 -> A=5
+            4 -> {
+                Y=7
+            }
+            5 -> Y=5
+            else -> A=99
+        }
     }
-
-
-    asmsub derp2 (ubyte arg @ X)   = $a000
-    asmsub derp1 (ubyte arg @ X) clobbers(A, X)  = $a000
-    asmsub derp (ubyte arg @ X) clobbers(A, X) -> ubyte @Y  = $a000
 
 }

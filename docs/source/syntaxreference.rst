@@ -609,3 +609,8 @@ where <statements> can be just a single statement for instance just a ``goto``, 
 The XX corresponds to one of the eigth branching instructions so the possibilities are:
 ``if_cs``, ``if_cc``, ``if_eq``, ``if_ne``, ``if_pl``, ``if_mi``, ``if_vs`` and ``if_vc``.
 It can also be one of the four aliases that are easier to read: ``if_z``, ``if_nz``, ``if_pos`` and ``if_neg``.
+
+**When - statement (jumptable)**
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. attention::
+   TODO: docs for this this must still be written
