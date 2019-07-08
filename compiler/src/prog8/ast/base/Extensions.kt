@@ -18,35 +18,35 @@ internal const val autoHeapValuePrefix = "auto_heap_value_"
 
 internal fun Program.checkValid(compilerOptions: CompilationOptions) {
     val checker = AstChecker(this, compilerOptions)
-    checker.process(this)
+    checker.visit(this)
     printErrors(checker.result(), name)
 }
 
 
 internal fun Program.reorderStatements() {
     val initvalueCreator = VarInitValueAndAddressOfCreator(namespace)
-    initvalueCreator.process(this)
+    initvalueCreator.visit(this)
 
     val checker = StatementReorderer(this)
-    checker.process(this)
+    checker.visit(this)
 }
 
 internal fun Module.checkImportedValid() {
-    val checker = ImportedAstChecker()
-    checker.process(this)
+    val checker = ImportedModuleDirectiveRemover()
+    checker.visit(this)
     printErrors(checker.result(), name)
 }
 
 internal fun Program.checkRecursion() {
     val checker = AstRecursionChecker(namespace)
-    checker.process(this)
+    checker.visit(this)
     printErrors(checker.result(), name)
 }
 
 
 internal fun Program.checkIdentifiers() {
     val checker = AstIdentifiersChecker(namespace)
-    checker.process(this)
+    checker.visit(this)
 
     if(modules.map {it.name}.toSet().size != modules.size) {
         throw FatalAstException("modules should all be unique")

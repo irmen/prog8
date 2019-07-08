@@ -13,7 +13,7 @@ import prog8.functions.BuiltinFunctions
 import java.io.File
 
 internal class AstChecker(private val program: Program,
-                         private val compilerOptions: CompilationOptions) : IAstProcessor {
+                         private val compilerOptions: CompilationOptions) : IAstModifyingVisitor {
     private val checkResult: MutableList<AstException> = mutableListOf()
     private val heapStringSentinel: Int
     init {
@@ -25,7 +25,7 @@ internal class AstChecker(private val program: Program,
         return checkResult
     }
 
-    override fun process(program: Program) {
+    override fun visit(program: Program) {
         assert(program === this.program)
         // there must be a single 'main' block with a 'start' subroutine for the program entry point.
         val mainBlocks = program.modules.flatMap { it.statements }.filter { b -> b is Block && b.name=="main" }.map { it as Block }
@@ -74,11 +74,11 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        super.process(program)
+        super.visit(program)
     }
 
-    override fun process(module: Module) {
-        super.process(module)
+    override fun visit(module: Module) {
+        super.visit(module)
         val directives = module.statements.filterIsInstance<Directive>().groupBy { it.directive }
         directives.filter { it.value.size > 1 }.forEach{ entry ->
             when(entry.key) {
@@ -88,7 +88,7 @@ internal class AstChecker(private val program: Program,
         }
     }
 
-    override fun process(returnStmt: Return): IStatement {
+    override fun visit(returnStmt: Return): IStatement {
         val expectedReturnValues = returnStmt.definingSubroutine()?.returntypes ?: emptyList()
         if(expectedReturnValues.size != returnStmt.values.size) {
             // if the return value is a function call, check the result of that call instead
@@ -105,10 +105,10 @@ internal class AstChecker(private val program: Program,
             if(rv.first.value!=valueDt)
                 checkResult.add(ExpressionError("type $valueDt of return value #${rv.first.index + 1} doesn't match subroutine return type ${rv.first.value}", rv.second.position))
         }
-        return super.process(returnStmt)
+        return super.visit(returnStmt)
     }
 
-    override fun process(forLoop: ForLoop): IStatement {
+    override fun visit(forLoop: ForLoop): IStatement {
         if(forLoop.body.containsNoCodeNorVars())
             printWarning("for loop body is empty", forLoop.position)
 
@@ -156,10 +156,10 @@ internal class AstChecker(private val program: Program,
                 }
             }
         }
-        return super.process(forLoop)
+        return super.visit(forLoop)
     }
 
-    override fun process(jump: Jump): IStatement {
+    override fun visit(jump: Jump): IStatement {
         if(jump.identifier!=null) {
             val targetStatement = checkFunctionOrLabelExists(jump.identifier, jump)
             if(targetStatement!=null) {
@@ -170,29 +170,29 @@ internal class AstChecker(private val program: Program,
 
         if(jump.address!=null && (jump.address < 0 || jump.address > 65535))
             checkResult.add(SyntaxError("jump address must be valid integer 0..\$ffff", jump.position))
-        return super.process(jump)
+        return super.visit(jump)
     }
 
-    override fun process(block: Block): IStatement {
+    override fun visit(block: Block): IStatement {
         if(block.address!=null && (block.address<0 || block.address>65535)) {
             checkResult.add(SyntaxError("block memory address must be valid integer 0..\$ffff", block.position))
         }
 
-        return super.process(block)
+        return super.visit(block)
     }
 
-    override fun process(label: Label): IStatement {
+    override fun visit(label: Label): IStatement {
         // scope check
         if(label.parent !is Block && label.parent !is Subroutine && label.parent !is AnonymousScope) {
             checkResult.add(SyntaxError("Labels can only be defined in the scope of a block, a loop body, or within another subroutine", label.position))
         }
-        return super.process(label)
+        return super.visit(label)
     }
 
     /**
      * Check subroutine definition
      */
-    override fun process(subroutine: Subroutine): IStatement {
+    override fun visit(subroutine: Subroutine): IStatement {
         fun err(msg: String) {
             checkResult.add(SyntaxError(msg, subroutine.position))
         }
@@ -204,7 +204,7 @@ internal class AstChecker(private val program: Program,
         if(uniqueNames.size!=subroutine.parameters.size)
             err("parameter names must be unique")
 
-        super.process(subroutine)
+        super.visit(subroutine)
 
         // user-defined subroutines can only have zero or one return type
         // (multiple return values are only allowed for asm subs)
@@ -323,7 +323,7 @@ internal class AstChecker(private val program: Program,
      * Assignment target must be register, or a variable name
      * Also check data type compatibility and number of values
      */
-    override fun process(assignment: Assignment): IStatement {
+    override fun visit(assignment: Assignment): IStatement {
 
         // assigning from a functioncall COULD return multiple values (from an asm subroutine)
         if(assignment.value is FunctionCall) {
@@ -347,7 +347,7 @@ internal class AstChecker(private val program: Program,
         for (target in assignment.targets) {
             resultingAssignment = processAssignmentTarget(resultingAssignment, target)
         }
-        return super.process(resultingAssignment)
+        return super.visit(resultingAssignment)
     }
 
     private fun processAssignmentTarget(assignment: Assignment, target: AssignTarget): Assignment {
@@ -428,7 +428,7 @@ internal class AstChecker(private val program: Program,
         return assignment
     }
 
-    override fun process(addressOf: AddressOf): IExpression {
+    override fun visit(addressOf: AddressOf): IExpression {
         val variable=addressOf.identifier.targetVarDecl(program.namespace)
         if(variable==null)
             checkResult.add(ExpressionError("pointer-of operand must be the name of a heap variable", addressOf.position))
@@ -438,13 +438,13 @@ internal class AstChecker(private val program: Program,
         }
         if(addressOf.scopedname==null)
             throw FatalAstException("the scopedname of AddressOf should have been set by now  $addressOf")
-        return super.process(addressOf)
+        return super.visit(addressOf)
     }
 
     /**
      * Check the variable declarations (values within range etc)
      */
-    override fun process(decl: VarDecl): IStatement {
+    override fun visit(decl: VarDecl): IStatement {
         fun err(msg: String, position: Position?=null) {
             checkResult.add(SyntaxError(msg, position ?: decl.position))
         }
@@ -504,7 +504,7 @@ internal class AstChecker(private val program: Program,
                         else -> err("var/const declaration needs a compile-time constant initializer value for type ${decl.datatype}")
                         // const fold should have provided it!
                     }
-                    return super.process(decl)
+                    return super.visit(decl)
                 }
                 when {
                     decl.value is RangeExpr -> {
@@ -522,7 +522,7 @@ internal class AstChecker(private val program: Program,
                     }
                     else -> {
                         err("var/const declaration needs a compile-time constant initializer value, or range, instead found: ${decl.value!!::class.simpleName}")
-                        return super.process(decl)
+                        return super.visit(decl)
                     }
                 }
             }
@@ -554,13 +554,13 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        return super.process(decl)
+        return super.visit(decl)
     }
 
     /**
      * check the arguments of the directive
      */
-    override fun process(directive: Directive): IStatement {
+    override fun visit(directive: Directive): IStatement {
         fun err(msg: String) {
             checkResult.add(SyntaxError(msg, directive.position))
         }
@@ -631,7 +631,7 @@ internal class AstChecker(private val program: Program,
             }
             else -> throw SyntaxError("invalid directive ${directive.directive}", directive.position)
         }
-        return super.process(directive)
+        return super.visit(directive)
     }
 
     private fun checkFileExists(directive: Directive, filename: String) {
@@ -642,7 +642,7 @@ internal class AstChecker(private val program: Program,
             checkResult.add(NameError("included file not found: $filename", directive.position))
     }
 
-    override fun process(literalValue: LiteralValue): LiteralValue {
+    override fun visit(literalValue: LiteralValue): LiteralValue {
         if(!compilerOptions.floats && literalValue.type in setOf(DataType.FLOAT, DataType.ARRAY_F)) {
             checkResult.add(SyntaxError("floating point used, but that is not enabled via options", literalValue.position))
         }
@@ -653,7 +653,7 @@ internal class AstChecker(private val program: Program,
                     ArrayIndex(LiteralValue.optimalInteger(-3, literalValue.position), literalValue.position)
         checkValueTypeAndRange(literalValue.type, arrayspec, literalValue, program.heap)
 
-        val lv = super.process(literalValue)
+        val lv = super.visit(literalValue)
         when(lv.type) {
             in StringDatatypes -> {
                 if(lv.heapId==null)
@@ -668,17 +668,17 @@ internal class AstChecker(private val program: Program,
         return lv
     }
 
-    override fun process(expr: PrefixExpression): IExpression {
+    override fun visit(expr: PrefixExpression): IExpression {
         if(expr.operator=="-") {
             val dt = expr.inferType(program)
             if (dt != DataType.BYTE && dt != DataType.WORD && dt != DataType.FLOAT) {
                 checkResult.add(ExpressionError("can only take negative of a signed number type", expr.position))
             }
         }
-        return super.process(expr)
+        return super.visit(expr)
     }
 
-    override fun process(expr: BinaryExpression): IExpression {
+    override fun visit(expr: BinaryExpression): IExpression {
         val leftDt = expr.left.inferType(program)
         val rightDt = expr.right.inferType(program)
 
@@ -717,20 +717,20 @@ internal class AstChecker(private val program: Program,
             checkResult.add(ExpressionError("left operand is not numeric", expr.left.position))
         if(rightDt!in NumericDatatypes)
             checkResult.add(ExpressionError("right operand is not numeric", expr.right.position))
-        return super.process(expr)
+        return super.visit(expr)
     }
 
-    override fun process(typecast: TypecastExpression): IExpression {
+    override fun visit(typecast: TypecastExpression): IExpression {
         if(typecast.type in IterableDatatypes)
             checkResult.add(ExpressionError("cannot type cast to string or array type", typecast.position))
-        return super.process(typecast)
+        return super.visit(typecast)
     }
 
-    override fun process(range: RangeExpr): IExpression {
+    override fun visit(range: RangeExpr): IExpression {
         fun err(msg: String) {
             checkResult.add(SyntaxError(msg, range.position))
         }
-        super.process(range)
+        super.visit(range)
         val from = range.from.constValue(program)
         val to = range.to.constValue(program)
         val stepLv = range.step.constValue(program) ?: LiteralValue(DataType.UBYTE, 1, position = range.position)
@@ -767,7 +767,7 @@ internal class AstChecker(private val program: Program,
         return range
     }
 
-    override fun process(functionCall: FunctionCall): IExpression {
+    override fun visit(functionCall: FunctionCall): IExpression {
         // this function call is (part of) an expression, which should be in a statement somewhere.
         val stmtOfExpression = findParentNode<IStatement>(functionCall)
                 ?: throw FatalAstException("cannot determine statement scope of function call expression at ${functionCall.position}")
@@ -775,16 +775,16 @@ internal class AstChecker(private val program: Program,
         val targetStatement = checkFunctionOrLabelExists(functionCall.target, stmtOfExpression)
         if(targetStatement!=null)
             checkFunctionCall(targetStatement, functionCall.arglist, functionCall.position)
-        return super.process(functionCall)
+        return super.visit(functionCall)
     }
 
-    override fun process(functionCallStatement: FunctionCallStatement): IStatement {
+    override fun visit(functionCallStatement: FunctionCallStatement): IStatement {
         val targetStatement = checkFunctionOrLabelExists(functionCallStatement.target, functionCallStatement)
         if(targetStatement!=null)
             checkFunctionCall(targetStatement, functionCallStatement.arglist, functionCallStatement.position)
         if(targetStatement is Subroutine && targetStatement.returntypes.isNotEmpty())
             printWarning("result value of subroutine call is discarded", functionCallStatement.position)
-        return super.process(functionCallStatement)
+        return super.visit(functionCallStatement)
     }
 
     private fun checkFunctionCall(target: IStatement, args: List<IExpression>, position: Position) {
@@ -853,7 +853,7 @@ internal class AstChecker(private val program: Program,
         }
     }
 
-    override fun process(postIncrDecr: PostIncrDecr): IStatement {
+    override fun visit(postIncrDecr: PostIncrDecr): IStatement {
         if(postIncrDecr.target.identifier != null) {
             val targetName = postIncrDecr.target.identifier!!.nameInSource
             val target = program.namespace.lookup(targetName, postIncrDecr)
@@ -879,10 +879,10 @@ internal class AstChecker(private val program: Program,
         } else if(postIncrDecr.target.memoryAddress != null) {
             // a memory location can always be ++/--
         }
-        return super.process(postIncrDecr)
+        return super.visit(postIncrDecr)
     }
 
-    override fun process(arrayIndexedExpression: ArrayIndexedExpression): IExpression {
+    override fun visit(arrayIndexedExpression: ArrayIndexedExpression): IExpression {
         val target = arrayIndexedExpression.identifier.targetStatement(program.namespace)
         if(target is VarDecl) {
             if(target.datatype !in IterableDatatypes)
@@ -909,7 +909,7 @@ internal class AstChecker(private val program: Program,
         if(dtx!= DataType.UBYTE && dtx!= DataType.BYTE)
             checkResult.add(SyntaxError("array indexing is limited to byte size 0..255", arrayIndexedExpression.position))
 
-        return super.process(arrayIndexedExpression)
+        return super.visit(arrayIndexedExpression)
     }
 
     private fun checkFunctionOrLabelExists(target: IdentifierReference, statement: IStatement): IStatement? {

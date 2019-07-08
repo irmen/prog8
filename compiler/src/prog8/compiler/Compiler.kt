@@ -4,7 +4,6 @@ import prog8.ast.*
 import prog8.ast.base.*
 import prog8.ast.base.RegisterOrPair.*
 import prog8.ast.expressions.*
-import prog8.ast.processing.IAstProcessor
 import prog8.ast.statements.*
 import prog8.compiler.intermediate.IntermediateProgram
 import prog8.compiler.intermediate.Opcode
@@ -148,7 +147,7 @@ data class CompilationOptions(val output: OutputType,
                               val floats: Boolean)
 
 
-internal class Compiler(private val program: Program): IAstProcessor {
+internal class Compiler(private val program: Program) {
 
     private val prog: IntermediateProgram = IntermediateProgram(program.name, program.loadAddress, program.heap, program.modules.first().source)
     private var generatedLabelSequenceNumber = 0
@@ -158,17 +157,19 @@ internal class Compiler(private val program: Program): IAstProcessor {
     fun compile(options: CompilationOptions) : IntermediateProgram {
         println("Creating stackVM code...")
         program.modules.forEach {
-            process(it)
+            it.statements.forEach { stmt->
+                if(stmt is Block)
+                    processBlock(stmt)
+            }
         }
         return prog
     }
 
-    override fun process(block: Block): IStatement {
+    private fun processBlock(block: Block) {
         prog.newBlock(block.name, block.address, block.options())
         processVariables(block)
         prog.line(block.position)
         translate(block.statements)
-        return super.process(block)
     }
 
     private fun processVariables(scope: INameScope) {
@@ -176,27 +177,6 @@ internal class Compiler(private val program: Program): IAstProcessor {
             prog.variable(variable.scopedname, variable)
         for(subscope in scope.subScopes())
             processVariables(subscope.value)
-    }
-
-    override fun process(subroutine: Subroutine): IStatement {
-        if(subroutine.asmAddress==null) {
-            prog.label(subroutine.scopedname, true)
-            prog.instr(Opcode.START_PROCDEF)
-            prog.line(subroutine.position)
-            // note: the caller has already written the arguments into the subroutine's parameter variables.
-            // note2: don't separate normal and VariableInitializationAssignment here, because the order strictly matters
-            translate(subroutine.statements)
-            val r= super.process(subroutine)
-            prog.instr(Opcode.END_PROCDEF)
-            return r
-        } else {
-            // asmsub
-            if(subroutine.containsCodeOrVars())
-                throw CompilerException("kernel subroutines (with memory address) can't have a body: $subroutine")
-
-            prog.memoryPointer(subroutine.scopedname, subroutine.asmAddress, DataType.UBYTE)        // the datatype is a bit of a dummy in this case
-            return super.process(subroutine)
-        }
     }
 
     private fun translate(statements: List<IStatement>) {
@@ -228,7 +208,8 @@ internal class Compiler(private val program: Program): IAstProcessor {
                         }
                     }
                 }
-                is VarDecl, is Subroutine -> {}   // skip this, already processed these.
+                is VarDecl -> {}   // skip this, already processed these.
+                is Subroutine -> translate(stmt)
                 is NopStatement -> {}
                 is InlineAssembly -> translate(stmt)
                 else -> TODO("translate statement $stmt to stackvm")
@@ -236,6 +217,23 @@ internal class Compiler(private val program: Program): IAstProcessor {
         }
     }
 
+    private fun translate(subroutine: Subroutine) {
+        if(subroutine.asmAddress==null) {
+            prog.label(subroutine.scopedname, true)
+            prog.instr(Opcode.START_PROCDEF)
+            prog.line(subroutine.position)
+            // note: the caller has already written the arguments into the subroutine's parameter variables.
+            // note2: don't separate normal and VariableInitializationAssignment here, because the order strictly matters
+            translate(subroutine.statements)
+            prog.instr(Opcode.END_PROCDEF)
+        } else {
+            // asmsub
+            if(subroutine.containsCodeOrVars())
+                throw CompilerException("kernel subroutines (with memory address) can't have a body: $subroutine")
+
+            prog.memoryPointer(subroutine.scopedname, subroutine.asmAddress, DataType.UBYTE)        // the datatype is a bit of a dummy in this case
+        }
+    }
     private fun opcodePush(dt: DataType): Opcode {
         return when (dt) {
             in ByteDatatypes -> Opcode.PUSH_BYTE
@@ -1538,7 +1536,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
     }
 
     private fun translate(stmt: Return) {
-        // put the return values on the stack, in reversed order. The caller will process them.
+        // put the return values on the stack, in reversed order. The caller will accept them.
         for(value in stmt.values.reversed()) {
             translate(value)
         }

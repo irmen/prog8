@@ -7,7 +7,8 @@
 
         uword xw = 33
 
-        xw = $d020              ; @todo gets removed in assembly!?!??!?!?
+        ; TODO reorderstatements fucks up the order of these
+        xw = $d020              ; @todo
         @(xw) = 1                   ; @todo should turn border white
         @(xw) = 1                   ; @todo should turn border white
 
@@ -17,5 +18,8 @@
 ;        @($d021)=A
 ;        @(xw) = A
     }
+
+
+    asmsub derp (ubyte arg @ X) -> clobbers(A, X) -> (ubyte @Y) = $a000
 
 }

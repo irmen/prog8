@@ -9,14 +9,14 @@ import prog8.parser.ParsingFailedError
 internal fun Program.constantFold() {
     val optimizer = ConstantFolding(this)
     try {
-        optimizer.process(this)
+        optimizer.visit(this)
     } catch (ax: AstException) {
         optimizer.addError(ax)
     }
 
     while(optimizer.errors.isEmpty() && optimizer.optimizationsDone>0) {
         optimizer.optimizationsDone = 0
-        optimizer.process(this)
+        optimizer.visit(this)
     }
 
     if(optimizer.errors.isNotEmpty()) {
@@ -30,7 +30,7 @@ internal fun Program.constantFold() {
 
 internal fun Program.optimizeStatements(optimizeInlining: Boolean): Int {
     val optimizer = StatementOptimizer(this, optimizeInlining)
-    optimizer.process(this)
+    optimizer.visit(this)
     for(scope in optimizer.scopesToFlatten.reversed()) {
         val namescope = scope.parent as INameScope
         val idx = namescope.statements.indexOf(scope as IStatement)
@@ -46,6 +46,6 @@ internal fun Program.optimizeStatements(optimizeInlining: Boolean): Int {
 
 internal fun Program.simplifyExpressions() : Int {
     val optimizer = SimplifyExpressions(this)
-    optimizer.process(this)
+    optimizer.visit(this)
     return optimizer.optimizationsDone
 }

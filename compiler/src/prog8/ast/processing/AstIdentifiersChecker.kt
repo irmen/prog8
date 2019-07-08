@@ -8,7 +8,7 @@ import prog8.ast.statements.*
 import prog8.functions.BuiltinFunctions
 
 
-internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstProcessor {
+internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstModifyingVisitor {
     private val checkResult: MutableList<AstException> = mutableListOf()
 
     private var blocks: MutableMap<String, Block> = mutableMapOf()
@@ -21,32 +21,32 @@ internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstPr
         checkResult.add(NameError("name conflict '$name', also defined in ${existing.position.file} line ${existing.position.line}", position))
     }
 
-    override fun process(module: Module) {
+    override fun visit(module: Module) {
         blocks.clear()  // blocks may be redefined within a different module
-        super.process(module)
+        super.visit(module)
     }
 
-    override fun process(block: Block): IStatement {
+    override fun visit(block: Block): IStatement {
         val existing = blocks[block.name]
         if(existing!=null)
             nameError(block.name, block.position, existing)
         else
             blocks[block.name] = block
 
-        return super.process(block)
+        return super.visit(block)
     }
 
-    override fun process(functionCall: FunctionCall): IExpression {
+    override fun visit(functionCall: FunctionCall): IExpression {
         if(functionCall.target.nameInSource.size==1 && functionCall.target.nameInSource[0]=="lsb") {
             // lsb(...) is just an alias for type cast to ubyte, so replace with "... as ubyte"
             val typecast = TypecastExpression(functionCall.arglist.single(), DataType.UBYTE, false, functionCall.position)
             typecast.linkParents(functionCall.parent)
-            return super.process(typecast)
+            return super.visit(typecast)
         }
-        return super.process(functionCall)
+        return super.visit(functionCall)
     }
 
-    override fun process(decl: VarDecl): IStatement {
+    override fun visit(decl: VarDecl): IStatement {
         // first, check if there are datatype errors on the vardecl
         decl.datatypeErrors.forEach { checkResult.add(it) }
 
@@ -59,10 +59,10 @@ internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstPr
         if (existing != null && existing !== decl)
             nameError(decl.name, decl.position, existing)
 
-        return super.process(decl)
+        return super.visit(decl)
     }
 
-    override fun process(subroutine: Subroutine): IStatement {
+    override fun visit(subroutine: Subroutine): IStatement {
         if(subroutine.name in BuiltinFunctions) {
             // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", subroutine.position))
@@ -106,10 +106,10 @@ internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstPr
                 }
             }
         }
-        return super.process(subroutine)
+        return super.visit(subroutine)
     }
 
-    override fun process(label: Label): IStatement {
+    override fun visit(label: Label): IStatement {
         if(label.name in BuiltinFunctions) {
             // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", label.position))
@@ -118,10 +118,10 @@ internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstPr
             if (existing != null && existing !== label)
                 nameError(label.name, label.position, existing)
         }
-        return super.process(label)
+        return super.visit(label)
     }
 
-    override fun process(forLoop: ForLoop): IStatement {
+    override fun visit(forLoop: ForLoop): IStatement {
         // If the for loop has a decltype, it means to declare the loopvar inside the loop body
         // rather than reusing an already declared loopvar from an outer scope.
         // For loops that loop over an interable variable (instead of a range of numbers) get an
@@ -158,16 +158,16 @@ internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstPr
                 }
             }
         }
-        return super.process(forLoop)
+        return super.visit(forLoop)
     }
 
-    override fun process(assignTarget: AssignTarget): AssignTarget {
+    override fun visit(assignTarget: AssignTarget): AssignTarget {
         if(assignTarget.register== Register.X)
             printWarning("writing to the X register is dangerous, because it's used as an internal pointer", assignTarget.position)
-        return super.process(assignTarget)
+        return super.visit(assignTarget)
     }
 
-    override fun process(returnStmt: Return): IStatement {
+    override fun visit(returnStmt: Return): IStatement {
         if(returnStmt.values.isNotEmpty()) {
             // possibly adjust any literal values returned, into the desired returning data type
             val subroutine = returnStmt.definingSubroutine()!!
@@ -188,14 +188,14 @@ internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstPr
             }
             returnStmt.values = newValues
         }
-        return super.process(returnStmt)
+        return super.visit(returnStmt)
     }
 
 
     internal val anonymousVariablesFromHeap = mutableMapOf<String, Pair<LiteralValue, VarDecl>>()
 
 
-    override fun process(literalValue: LiteralValue): LiteralValue {
+    override fun visit(literalValue: LiteralValue): LiteralValue {
         if(literalValue.heapId!=null && literalValue.parent !is VarDecl) {
             // a literal value that's not declared as a variable, which refers to something on the heap.
             // we need to introduce an auto-generated variable for this to be able to refer to the value!
@@ -203,14 +203,14 @@ internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstPr
                     isArray = false, autoGenerated = false, position = literalValue.position)
             anonymousVariablesFromHeap[variable.name] = Pair(literalValue, variable)
         }
-        return super.process(literalValue)
+        return super.visit(literalValue)
     }
 
-    override fun process(addressOf: AddressOf): IExpression {
+    override fun visit(addressOf: AddressOf): IExpression {
         // register the scoped name of the referenced identifier
         val variable= addressOf.identifier.targetVarDecl(namespace) ?: return addressOf
         addressOf.scopedname = variable.scopedname
-        return super.process(addressOf)
+        return super.visit(addressOf)
     }
 
 }
