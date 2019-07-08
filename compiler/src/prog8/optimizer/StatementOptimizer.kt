@@ -19,6 +19,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
     var optimizationsDone: Int = 0
         private set
     var scopesToFlatten = mutableListOf<INameScope>()
+    val nopStatements = mutableListOf<NopStatement>()
 
     private val pureBuiltinFunctions = BuiltinFunctions.filter { it.value.pure }
     private val callgraph = CallGraph(program)
@@ -33,6 +34,9 @@ internal class StatementOptimizer(private val program: Program, private val opti
             inlineSubroutines(callgraph)
         }
         super.visit(program)
+
+        // at the end, remove the encountered NOP statements
+        this.nopStatements.forEach { it.definingScope().remove(it) }
     }
 
     private fun inlineSubroutines(callgraph: CallGraph) {
@@ -419,6 +423,11 @@ internal class StatementOptimizer(private val program: Program, private val opti
             }
         }
         return repeatLoop
+    }
+
+    override fun visit(nopStatement: NopStatement): IStatement {
+        this.nopStatements.add(nopStatement)
+        return nopStatement
     }
 
     private fun hasContinueOrBreak(scope: INameScope): Boolean {

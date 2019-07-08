@@ -56,8 +56,6 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         val directives = module.statements.filter {it is Directive && it.directive in directivesToMove}
         module.statements.removeAll(directives)
         module.statements.addAll(0, directives)
-
-        sortConstantAssignments(module.statements)
     }
 
     override fun visit(block: Block): IStatement {
@@ -106,8 +104,6 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         block.statements.addAll(0, directives)
         block.linkParents(block.parent)
 
-        sortConstantAssignments(block.statements)
-
         // create subroutine that initializes the block's variables (if any)
         val varInits = block.statements.withIndex().filter { it.value is VariableInitializationAssignment }
         if(varInits.isNotEmpty()) {
@@ -128,8 +124,6 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
 
     override fun visit(subroutine: Subroutine): IStatement {
         super.visit(subroutine)
-
-        sortConstantAssignments(subroutine.statements)
 
         val varDecls = subroutine.statements.filterIsInstance<VarDecl>()
         subroutine.statements.removeAll(varDecls)
@@ -153,12 +147,6 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         return subroutine
     }
 
-    override fun visit(scope: AnonymousScope): AnonymousScope {
-        scope.statements = scope.statements.map { it.accept(this)}.toMutableList()
-        sortConstantAssignments(scope.statements)
-        return scope
-    }
-
     override fun visit(expr: BinaryExpression): IExpression {
         val leftDt = expr.left.inferType(program)
         val rightDt = expr.right.inferType(program)
@@ -180,29 +168,6 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
             }
         }
         return super.visit(expr)
-    }
-
-    private fun sortConstantAssignments(statements: MutableList<IStatement>) {
-        // sort assignments by datatype and value, so multiple initializations with the isSameAs value can be optimized (to load the value just once)
-        val result = mutableListOf<IStatement>()
-        val stmtIter = statements.iterator()
-        for(stmt in stmtIter) {
-            if(stmt is Assignment && !stmt.targets.any { it.isMemoryMapped(program.namespace) }) {
-                val constval = stmt.value.constValue(program)
-                if(constval!=null) {
-                    val (sorted, trailing) = sortConstantAssignmentSequence(stmt, stmtIter)
-                    result.addAll(sorted)
-                    if(trailing!=null)
-                        result.add(trailing)
-                }
-                else
-                    result.add(stmt)
-            }
-            else
-                result.add(stmt)
-        }
-        statements.clear()
-        statements.addAll(result)
     }
 
     override fun visit(assignment: Assignment): IStatement {

@@ -193,4 +193,16 @@ interface IAstModifyingVisitor {
     fun visit(inlineAssembly: InlineAssembly): IStatement {
         return inlineAssembly
     }
+
+    fun visit(registerExpr: RegisterExpr): IExpression {
+        return registerExpr
+    }
+
+    fun visit(builtinFunctionStatementPlaceholder: BuiltinFunctionStatementPlaceholder): IStatement {
+        return builtinFunctionStatementPlaceholder
+    }
+
+    fun visit(nopStatement: NopStatement): IStatement {
+        return nopStatement
+    }
 }

@@ -147,4 +147,13 @@ interface IAstVisitor {
 
     fun visit(inlineAssembly: InlineAssembly) {
     }
+
+    fun visit(registerExpr: RegisterExpr) {
+    }
+
+    fun visit(builtinFunctionStatementPlaceholder: BuiltinFunctionStatementPlaceholder) {
+    }
+
+    fun visit(nopStatement: NopStatement) {
+    }
 }
