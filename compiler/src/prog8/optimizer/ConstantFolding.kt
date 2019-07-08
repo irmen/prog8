@@ -240,14 +240,6 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
         return super.process(memread)
     }
 
-    override fun process(memwrite: DirectMemoryWrite): IExpression {
-        // @( &thing )  -->  thing
-        val addrOf = memwrite.addressExpression as? AddressOf
-        if(addrOf!=null)
-            return super.process(addrOf.identifier)
-        return super.process(memwrite)
-    }
-
     /**
      * Try to process a unary prefix expression.
      * Compile-time constant sub expressions will be evaluated on the spot.

@@ -88,9 +88,6 @@ fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
             val address = evaluate(expr.addressExpression, ctx).wordval!!
             return RuntimeValue(DataType.UBYTE, ctx.mem.getUByte(address))
         }
-        is DirectMemoryWrite -> {
-            TODO("memorywrite $expr")
-        }
         is RegisterExpr -> return ctx.runtimeVars.get(ctx.program.namespace, expr.register.name)
         is IdentifierReference -> {
             val scope = expr.definingScope()

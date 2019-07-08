@@ -260,7 +260,6 @@ data class AssignTarget(val register: Register?,
                 is IdentifierReference -> AssignTarget(null, expr, null, null, expr.position)
                 is ArrayIndexedExpression -> AssignTarget(null, null, expr, null, expr.position)
                 is DirectMemoryRead -> AssignTarget(null, null, null, DirectMemoryWrite(expr.addressExpression, expr.position), expr.position)
-                is DirectMemoryWrite -> AssignTarget(null, null, null, expr, expr.position)
                 else -> throw FatalAstException("invalid expression object $expr")
             }
         }
@@ -636,4 +635,17 @@ class RepeatLoop(var body: AnonymousScope,
     }
 
     override fun process(processor: IAstProcessor): IStatement = processor.process(this)
+}
+
+class DirectMemoryWrite(var addressExpression: IExpression, override val position: Position) : Node {
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        this.addressExpression.linkParents(this)
+    }
+
+    override fun toString(): String {
+        return "DirectMemoryWrite($addressExpression)"
+    }
 }

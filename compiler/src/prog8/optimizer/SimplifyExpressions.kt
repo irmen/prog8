@@ -35,14 +35,6 @@ internal class SimplifyExpressions(private val program: Program) : IAstProcessor
         return super.process(memread)
     }
 
-    override fun process(memwrite: DirectMemoryWrite): IExpression {
-        // @( &thing )  -->  thing
-        val addrOf = memwrite.addressExpression as? AddressOf
-        if(addrOf!=null)
-            return super.process(addrOf.identifier)
-        return super.process(memwrite)
-    }
-
     override fun process(typecast: TypecastExpression): IExpression {
         // remove redundant typecasts
         var tc = typecast

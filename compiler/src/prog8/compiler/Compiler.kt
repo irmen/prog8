@@ -591,7 +591,6 @@ internal class Compiler(private val program: Program): IAstProcessor {
             is RangeExpr -> throw CompilerException("it's not possible to just have a range expression that has to be translated")
             is TypecastExpression -> translate(expr)
             is DirectMemoryRead -> translate(expr)
-            is DirectMemoryWrite -> translate(expr)
             is AddressOf -> translate(expr)
             else -> {
                 val lv = expr.constValue(program) ?: throw CompilerException("constant expression required, not $expr")
@@ -2061,6 +2060,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
 
     private fun translate(memwrite: DirectMemoryWrite) {
         // for now, only a single memory location (ubyte) is written at a time.
+        // TODO inline this function (it's only used once)
         val address = memwrite.addressExpression.constValue(program)?.asIntegerValue
         if(address!=null) {
             prog.instr(Opcode.POP_MEM_BYTE, arg = RuntimeValue(DataType.UWORD, address))

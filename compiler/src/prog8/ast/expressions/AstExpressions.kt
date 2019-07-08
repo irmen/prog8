@@ -299,24 +299,6 @@ class DirectMemoryRead(var addressExpression: IExpression, override val position
     }
 }
 
-class DirectMemoryWrite(var addressExpression: IExpression, override val position: Position) : IExpression {
-    override lateinit var parent: Node
-
-    override fun linkParents(parent: Node) {
-        this.parent = parent
-        this.addressExpression.linkParents(this)
-    }
-
-    override fun process(processor: IAstProcessor) = processor.process(this)
-    override fun referencesIdentifier(name: String) = false
-    override fun inferType(program: Program): DataType? = DataType.UBYTE
-    override fun constValue(program: Program): LiteralValue? = null
-
-    override fun toString(): String {
-        return "DirectMemoryWrite($addressExpression)"
-    }
-}
-
 open class LiteralValue(val type: DataType,
                         val bytevalue: Short? = null,
                         val wordvalue: Int? = null,

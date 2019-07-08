@@ -162,7 +162,7 @@ interface IAstProcessor {
     fun process(assignTarget: AssignTarget): AssignTarget {
         assignTarget.arrayindexed?.process(this)
         assignTarget.identifier?.process(this)
-        assignTarget.memoryAddress?.process(this)
+        assignTarget.memoryAddress?.let { process(it) }
         return assignTarget
     }
 
@@ -181,9 +181,8 @@ interface IAstProcessor {
         return memread
     }
 
-    fun process(memwrite: DirectMemoryWrite): IExpression {
+    fun process(memwrite: DirectMemoryWrite) {
         memwrite.addressExpression = memwrite.addressExpression.process(this)
-        return memwrite
     }
 
     fun process(addressOf: AddressOf): IExpression {
