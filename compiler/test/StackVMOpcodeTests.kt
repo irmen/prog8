@@ -4,10 +4,10 @@ import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.empty
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import prog8.ast.ByteDatatypes
-import prog8.ast.DataType
-import prog8.ast.IterableDatatypes
-import prog8.ast.WordDatatypes
+import prog8.ast.base.ByteDatatypes
+import prog8.ast.base.DataType
+import prog8.ast.base.IterableDatatypes
+import prog8.ast.base.WordDatatypes
 import prog8.compiler.RuntimeValue
 import prog8.compiler.HeapValues
 import prog8.compiler.intermediate.Instruction

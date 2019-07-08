@@ -1,7 +1,10 @@
 package prog8.optimizing
 
 import prog8.ast.*
-import prog8.compiler.CompilerException
+import prog8.ast.base.*
+import prog8.ast.expressions.*
+import prog8.ast.processing.IAstProcessor
+import prog8.ast.statements.*
 import prog8.compiler.HeapValues
 import prog8.compiler.IntegerOrAddressOf
 import prog8.compiler.target.c64.FLOAT_MAX_NEGATIVE
@@ -75,19 +78,19 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
                             val eltType = rangeExpr.inferType(program)!!
                             if(eltType in ByteDatatypes) {
                                 decl.value = LiteralValue(decl.datatype,
-                                        arrayvalue = constRange.map { LiteralValue(eltType, bytevalue=it.toShort(), position = decl.value!!.position ) }
-                                                .toTypedArray(), position=decl.value!!.position)
+                                        arrayvalue = constRange.map { LiteralValue(eltType, bytevalue = it.toShort(), position = decl.value!!.position) }
+                                                .toTypedArray(), position = decl.value!!.position)
                             } else {
                                 decl.value = LiteralValue(decl.datatype,
-                                        arrayvalue = constRange.map { LiteralValue(eltType, wordvalue= it, position = decl.value!!.position ) }
-                                                .toTypedArray(), position=decl.value!!.position)
+                                        arrayvalue = constRange.map { LiteralValue(eltType, wordvalue = it, position = decl.value!!.position) }
+                                                .toTypedArray(), position = decl.value!!.position)
                             }
                             decl.value!!.linkParents(decl)
                             optimizationsDone++
                             return decl
                         }
                     }
-                    if(litval?.type==DataType.FLOAT)
+                    if(litval?.type== DataType.FLOAT)
                         errors.add(ExpressionError("arraysize requires only integers here", litval.position))
                     val size = decl.arraysize?.size() ?: return decl
                     if ((litval==null || !litval.isArray) && rangeExpr==null) {
@@ -96,24 +99,29 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
                         when(decl.datatype){
                             DataType.ARRAY_UB -> {
                                 if(fillvalue !in 0..255)
-                                    errors.add(ExpressionError("ubyte value overflow", litval?.position ?: decl.position))
+                                    errors.add(ExpressionError("ubyte value overflow", litval?.position
+                                            ?: decl.position))
                             }
                             DataType.ARRAY_B -> {
                                 if(fillvalue !in -128..127)
-                                    errors.add(ExpressionError("byte value overflow", litval?.position ?: decl.position))
+                                    errors.add(ExpressionError("byte value overflow", litval?.position
+                                            ?: decl.position))
                             }
                             DataType.ARRAY_UW -> {
                                 if(fillvalue !in 0..65535)
-                                    errors.add(ExpressionError("uword value overflow", litval?.position ?: decl.position))
+                                    errors.add(ExpressionError("uword value overflow", litval?.position
+                                            ?: decl.position))
                             }
                             DataType.ARRAY_W -> {
                                 if(fillvalue !in -32768..32767)
-                                    errors.add(ExpressionError("word value overflow", litval?.position ?: decl.position))
+                                    errors.add(ExpressionError("word value overflow", litval?.position
+                                            ?: decl.position))
                             }
                             else -> {}
                         }
                         val heapId = program.heap.addIntegerArray(decl.datatype, Array(size) { IntegerOrAddressOf(fillvalue, null) })
-                        decl.value = LiteralValue(decl.datatype, initHeapId = heapId, position = litval?.position ?: decl.position)
+                        decl.value = LiteralValue(decl.datatype, initHeapId = heapId, position = litval?.position
+                                ?: decl.position)
                         optimizationsDone++
                         return decl
                     }
@@ -124,10 +132,12 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
                         // arraysize initializer is empty or a single int, and we know the size; create the arraysize.
                         val fillvalue = if (litval == null) 0.0 else litval.asNumericValue?.toDouble() ?: 0.0
                         if(fillvalue< FLOAT_MAX_NEGATIVE || fillvalue> FLOAT_MAX_POSITIVE)
-                            errors.add(ExpressionError("float value overflow", litval?.position ?: decl.position))
+                            errors.add(ExpressionError("float value overflow", litval?.position
+                                    ?: decl.position))
                         else {
                             val heapId = program.heap.addDoublesArray(DoubleArray(size) { fillvalue })
-                            decl.value = LiteralValue(DataType.ARRAY_F, initHeapId = heapId, position = litval?.position ?: decl.position)
+                            decl.value = LiteralValue(DataType.ARRAY_F, initHeapId = heapId, position = litval?.position
+                                    ?: decl.position)
                             optimizationsDone++
                             return decl
                         }
@@ -154,7 +164,7 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
             DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
                 if(array.array!=null) {
                     program.heap.update(heapId, HeapValues.HeapValue(decl.datatype, null, array.array, null))
-                    decl.value = LiteralValue(decl.datatype, initHeapId=heapId, position = litval.position)
+                    decl.value = LiteralValue(decl.datatype, initHeapId = heapId, position = litval.position)
                 }
             }
             DataType.ARRAY_F -> {
@@ -385,7 +395,7 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
                         expr
                     } else
                         BinaryExpression(
-                                BinaryExpression(expr.left, if(expr.operator=="-") "+" else "*", subExpr.right, subExpr.position),
+                                BinaryExpression(expr.left, if (expr.operator == "-") "+" else "*", subExpr.right, subExpr.position),
                                 expr.operator, subExpr.left, expr.position)
                 } else {
                     return if(subleftIsConst) {
@@ -394,7 +404,7 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
                     } else
                         BinaryExpression(
                                 subExpr.left, expr.operator,
-                                BinaryExpression(expr.right, if(expr.operator=="-") "+" else "*", subExpr.right, subExpr.position),
+                                BinaryExpression(expr.right, if (expr.operator == "-") "+" else "*", subExpr.right, subExpr.position),
                                 expr.position)
                 }
             }
@@ -562,25 +572,25 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
             val stepLiteral = iterableRange.step as? LiteralValue
             when(loopvar.datatype) {
                 DataType.UBYTE -> {
-                    if(rangeFrom.type!=DataType.UBYTE) {
+                    if(rangeFrom.type!= DataType.UBYTE) {
                         // attempt to translate the iterable into ubyte values
                         resultStmt.iterable = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
                     }
                 }
                 DataType.BYTE -> {
-                    if(rangeFrom.type!=DataType.BYTE) {
+                    if(rangeFrom.type!= DataType.BYTE) {
                         // attempt to translate the iterable into byte values
                         resultStmt.iterable = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
                     }
                 }
                 DataType.UWORD -> {
-                    if(rangeFrom.type!=DataType.UWORD) {
+                    if(rangeFrom.type!= DataType.UWORD) {
                         // attempt to translate the iterable into uword values
                         resultStmt.iterable = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
                     }
                 }
                 DataType.WORD -> {
-                    if(rangeFrom.type!=DataType.WORD) {
+                    if(rangeFrom.type!= DataType.WORD) {
                         // attempt to translate the iterable into word values
                         resultStmt.iterable = adjustRangeDt(rangeFrom, loopvar.datatype, rangeTo, stepLiteral, iterableRange)
                     }
@@ -614,7 +624,7 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
         val typesInArray = array.mapNotNull { it.inferType(program) }.toSet()
         val arrayDt =
                 when {
-                    array.any { it is AddressOf} -> DataType.ARRAY_UW
+                    array.any { it is AddressOf } -> DataType.ARRAY_UW
                     DataType.FLOAT in typesInArray -> DataType.ARRAY_F
                     DataType.WORD in typesInArray -> DataType.ARRAY_W
                     else -> {
@@ -657,57 +667,57 @@ class ConstantFolding(private val program: Program) : IAstProcessor {
             when(assignment.singleTarget?.inferType(program, assignment)) {
                 DataType.UWORD -> {
                     // we can convert to UWORD: any UBYTE, BYTE/WORD that are >=0, FLOAT that's an integer 0..65535,
-                    if(lv.type==DataType.UBYTE)
-                        assignment.value = LiteralValue(DataType.UWORD, wordvalue = lv.asIntegerValue, position=lv.position)
-                    else if(lv.type==DataType.BYTE && lv.bytevalue!!>=0)
-                        assignment.value = LiteralValue(DataType.UWORD, wordvalue = lv.asIntegerValue, position=lv.position)
-                    else if(lv.type==DataType.WORD && lv.wordvalue!!>=0)
-                        assignment.value = LiteralValue(DataType.UWORD, wordvalue = lv.asIntegerValue, position=lv.position)
-                    else if(lv.type==DataType.FLOAT) {
+                    if(lv.type== DataType.UBYTE)
+                        assignment.value = LiteralValue(DataType.UWORD, wordvalue = lv.asIntegerValue, position = lv.position)
+                    else if(lv.type== DataType.BYTE && lv.bytevalue!!>=0)
+                        assignment.value = LiteralValue(DataType.UWORD, wordvalue = lv.asIntegerValue, position = lv.position)
+                    else if(lv.type== DataType.WORD && lv.wordvalue!!>=0)
+                        assignment.value = LiteralValue(DataType.UWORD, wordvalue = lv.asIntegerValue, position = lv.position)
+                    else if(lv.type== DataType.FLOAT) {
                         val d = lv.floatvalue!!
                         if(floor(d)==d && d>=0 && d<=65535)
-                            assignment.value = LiteralValue(DataType.UWORD, wordvalue=floor(d).toInt(), position=lv.position)
+                            assignment.value = LiteralValue(DataType.UWORD, wordvalue = floor(d).toInt(), position = lv.position)
                     }
                 }
                 DataType.UBYTE -> {
                     // we can convert to UBYTE: UWORD <=255, BYTE >=0, FLOAT that's an integer 0..255,
-                    if(lv.type==DataType.UWORD && lv.wordvalue!! <= 255)
-                        assignment.value = LiteralValue(DataType.UBYTE, lv.wordvalue.toShort(), position=lv.position)
-                    else if(lv.type==DataType.BYTE && lv.bytevalue!! >=0)
-                        assignment.value = LiteralValue(DataType.UBYTE, lv.bytevalue.toShort(), position=lv.position)
-                    else if(lv.type==DataType.FLOAT) {
+                    if(lv.type== DataType.UWORD && lv.wordvalue!! <= 255)
+                        assignment.value = LiteralValue(DataType.UBYTE, lv.wordvalue.toShort(), position = lv.position)
+                    else if(lv.type== DataType.BYTE && lv.bytevalue!! >=0)
+                        assignment.value = LiteralValue(DataType.UBYTE, lv.bytevalue.toShort(), position = lv.position)
+                    else if(lv.type== DataType.FLOAT) {
                         val d = lv.floatvalue!!
                         if(floor(d)==d && d >=0 && d<=255)
-                            assignment.value = LiteralValue(DataType.UBYTE, floor(d).toShort(), position=lv.position)
+                            assignment.value = LiteralValue(DataType.UBYTE, floor(d).toShort(), position = lv.position)
                     }
                 }
                 DataType.BYTE -> {
                     // we can convert to BYTE: UWORD/UBYTE <= 127, FLOAT that's an integer 0..127
-                    if(lv.type==DataType.UWORD && lv.wordvalue!! <= 127)
-                        assignment.value = LiteralValue(DataType.BYTE, lv.wordvalue.toShort(), position=lv.position)
-                    else if(lv.type==DataType.UBYTE && lv.bytevalue!! <= 127)
-                        assignment.value = LiteralValue(DataType.BYTE, lv.bytevalue, position=lv.position)
-                    else if(lv.type==DataType.FLOAT) {
+                    if(lv.type== DataType.UWORD && lv.wordvalue!! <= 127)
+                        assignment.value = LiteralValue(DataType.BYTE, lv.wordvalue.toShort(), position = lv.position)
+                    else if(lv.type== DataType.UBYTE && lv.bytevalue!! <= 127)
+                        assignment.value = LiteralValue(DataType.BYTE, lv.bytevalue, position = lv.position)
+                    else if(lv.type== DataType.FLOAT) {
                         val d = lv.floatvalue!!
                         if(floor(d)==d && d>=0 && d<=127)
-                            assignment.value = LiteralValue(DataType.BYTE, floor(d).toShort(), position=lv.position)
+                            assignment.value = LiteralValue(DataType.BYTE, floor(d).toShort(), position = lv.position)
                     }
                 }
                 DataType.WORD -> {
                     // we can convert to WORD: any UBYTE/BYTE, UWORD <= 32767, FLOAT that's an integer -32768..32767,
-                    if(lv.type==DataType.UBYTE || lv.type==DataType.BYTE)
-                        assignment.value = LiteralValue(DataType.WORD, wordvalue=lv.bytevalue!!.toInt(), position=lv.position)
-                    else if(lv.type==DataType.UWORD && lv.wordvalue!! <= 32767)
-                        assignment.value = LiteralValue(DataType.WORD, wordvalue=lv.wordvalue, position=lv.position)
-                    else if(lv.type==DataType.FLOAT) {
+                    if(lv.type== DataType.UBYTE || lv.type== DataType.BYTE)
+                        assignment.value = LiteralValue(DataType.WORD, wordvalue = lv.bytevalue!!.toInt(), position = lv.position)
+                    else if(lv.type== DataType.UWORD && lv.wordvalue!! <= 32767)
+                        assignment.value = LiteralValue(DataType.WORD, wordvalue = lv.wordvalue, position = lv.position)
+                    else if(lv.type== DataType.FLOAT) {
                         val d = lv.floatvalue!!
                         if(floor(d)==d && d>=-32768 && d<=32767)
-                            assignment.value = LiteralValue(DataType.BYTE, floor(d).toShort(), position=lv.position)
+                            assignment.value = LiteralValue(DataType.BYTE, floor(d).toShort(), position = lv.position)
                     }
                 }
                 DataType.FLOAT -> {
                     if(lv.isNumeric)
-                        assignment.value = LiteralValue(DataType.FLOAT, floatvalue= lv.asNumericValue?.toDouble(), position=lv.position)
+                        assignment.value = LiteralValue(DataType.FLOAT, floatvalue = lv.asNumericValue?.toDouble(), position = lv.position)
                 }
                 else -> {}
             }

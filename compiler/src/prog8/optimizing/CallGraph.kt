@@ -1,6 +1,13 @@
 package prog8.optimizing
 
 import prog8.ast.*
+import prog8.ast.base.ParentSentinel
+import prog8.ast.base.VarDeclType
+import prog8.ast.base.initvarsSubName
+import prog8.ast.expressions.FunctionCall
+import prog8.ast.expressions.IdentifierReference
+import prog8.ast.processing.IAstProcessor
+import prog8.ast.statements.*
 import prog8.compiler.loadAsmIncludeFile
 
 
@@ -98,7 +105,7 @@ class CallGraph(private val program: Program): IAstProcessor {
 
     override fun process(subroutine: Subroutine): IStatement {
         if((subroutine.name=="start" && subroutine.definingScope().name=="main")
-                || subroutine.name==initvarsSubName || subroutine.definingModule().isLibraryModule) {
+                || subroutine.name== initvarsSubName || subroutine.definingModule().isLibraryModule) {
             // make sure the entrypoint is mentioned in the used symbols
             addNodeAndParentScopes(subroutine)
         }

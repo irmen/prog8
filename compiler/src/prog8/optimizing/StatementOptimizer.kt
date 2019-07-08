@@ -1,6 +1,10 @@
 package prog8.optimizing
 
 import prog8.ast.*
+import prog8.ast.base.*
+import prog8.ast.expressions.*
+import prog8.ast.processing.IAstProcessor
+import prog8.ast.statements.*
 import prog8.compiler.target.c64.Petscii
 import prog8.functions.BuiltinFunctions
 import kotlin.math.floor
@@ -419,7 +423,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
 
     private fun hasContinueOrBreak(scope: INameScope): Boolean {
 
-        class Searcher:IAstProcessor
+        class Searcher: IAstProcessor
         {
             var count=0
 
@@ -481,7 +485,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
             if(bexpr!=null) {
                 val cv = bexpr.right.constValue(program)?.asNumericValue?.toDouble()
                 if(cv==null) {
-                    if(bexpr.operator=="+" && targetDt!=DataType.FLOAT) {
+                    if(bexpr.operator=="+" && targetDt!= DataType.FLOAT) {
                         if (bexpr.left isSameAs bexpr.right && target isSameAs bexpr.left) {
                             bexpr.operator = "*"
                             bexpr.right = LiteralValue.optimalInteger(2, assignment.value.position)

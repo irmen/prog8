@@ -5,7 +5,9 @@ import org.hamcrest.Matchers.closeTo
 import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import prog8.ast.*
+import prog8.ast.base.DataType
+import prog8.ast.base.Position
+import prog8.ast.expressions.LiteralValue
 import prog8.compiler.RuntimeValue
 import prog8.compiler.*
 import prog8.compiler.target.c64.*
@@ -334,8 +336,8 @@ class TestPetscii {
 
     @Test
     fun testLiteralValueComparisons() {
-        val ten = LiteralValue(DataType.UWORD, wordvalue=10, position=Position("", 0 ,0 ,0))
-        val nine = LiteralValue(DataType.UBYTE, bytevalue=9, position=Position("", 0 ,0 ,0))
+        val ten = LiteralValue(DataType.UWORD, wordvalue = 10, position = Position("", 0, 0, 0))
+        val nine = LiteralValue(DataType.UBYTE, bytevalue = 9, position = Position("", 0, 0, 0))
         assertEquals(ten, ten)
         assertNotEquals(ten, nine)
         assertFalse(ten != ten)
@@ -351,8 +353,8 @@ class TestPetscii {
         assertTrue(ten <= ten)
         assertFalse(ten < ten)
 
-        val abc = LiteralValue(DataType.STR, strvalue = "abc", position=Position("", 0 ,0 ,0))
-        val abd = LiteralValue(DataType.STR, strvalue = "abd", position=Position("", 0 ,0 ,0))
+        val abc = LiteralValue(DataType.STR, strvalue = "abc", position = Position("", 0, 0, 0))
+        val abd = LiteralValue(DataType.STR, strvalue = "abd", position = Position("", 0, 0, 0))
         assertEquals(abc, abc)
         assertTrue(abc!=abd)
         assertFalse(abc!=abc)

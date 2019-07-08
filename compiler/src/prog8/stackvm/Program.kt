@@ -1,6 +1,9 @@
 package prog8.stackvm
 
-import prog8.ast.*
+import prog8.ast.antlr.unescape
+import prog8.ast.base.*
+import prog8.ast.expressions.AddressOf
+import prog8.ast.expressions.IdentifierReference
 import prog8.compiler.RuntimeValue
 import prog8.compiler.HeapValues
 import prog8.compiler.IntegerOrAddressOf
@@ -89,7 +92,7 @@ class Program (val name: String,
             }
             heapvalues.sortedBy { it.first }.forEach {
                 when(it.second) {
-                    DataType.STR, DataType.STR_S -> heap.addString(it.second, unescape(it.third.substring(1, it.third.length-1), Position("<stackvmsource>", 0, 0, 0)))
+                    DataType.STR, DataType.STR_S -> heap.addString(it.second, unescape(it.third.substring(1, it.third.length - 1), Position("<stackvmsource>", 0, 0, 0)))
                     DataType.ARRAY_UB, DataType.ARRAY_B,
                     DataType.ARRAY_UW, DataType.ARRAY_W -> {
                         val numbers = it.third.substring(1, it.third.length-1).split(',')
@@ -98,8 +101,8 @@ class Program (val name: String,
                             if(num.startsWith("&")) {
                                 // it's AddressOf
                                 val scopedname = num.substring(1)
-                                val iref = IdentifierReference(scopedname.split('.'), Position("<intermediate>", 0,0,0))
-                                val addrOf = AddressOf(iref, Position("<intermediate>", 0,0,0))
+                                val iref = IdentifierReference(scopedname.split('.'), Position("<intermediate>", 0, 0, 0))
+                                val addrOf = AddressOf(iref, Position("<intermediate>", 0, 0, 0))
                                 addrOf.scopedname=scopedname
                                 IntegerOrAddressOf(null, addrOf)
                             } else {

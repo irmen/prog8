@@ -2,6 +2,12 @@ package prog8.parser
 
 import org.antlr.v4.runtime.*
 import prog8.ast.*
+import prog8.ast.antlr.toAst
+import prog8.ast.base.Position
+import prog8.ast.base.SyntaxError
+import prog8.ast.base.checkImportedValid
+import prog8.ast.statements.Directive
+import prog8.ast.statements.DirectiveArg
 import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
@@ -45,8 +51,8 @@ internal fun importModule(program: Program, filePath: Path): Module {
 
 internal fun importLibraryModule(program: Program, name: String): Module? {
     val import = Directive("%import", listOf(
-            DirectiveArg("", name, 42, position = Position("<<<implicit-import>>>", 0, 0 ,0))
-    ), Position("<<<implicit-import>>>", 0, 0 ,0))
+            DirectiveArg("", name, 42, position = Position("<<<implicit-import>>>", 0, 0, 0))
+    ), Position("<<<implicit-import>>>", 0, 0, 0))
     return executeImportDirective(program, import, Paths.get(""))
 }
 

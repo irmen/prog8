@@ -1,7 +1,11 @@
 package prog8.optimizing
 
 import prog8.ast.*
-import prog8.compiler.HeapValues
+import prog8.ast.base.DataType
+import prog8.ast.base.ExpressionError
+import prog8.ast.base.FatalAstException
+import prog8.ast.base.Position
+import prog8.ast.expressions.LiteralValue
 import kotlin.math.pow
 
 
@@ -40,7 +44,7 @@ class ConstExprEvaluator {
         if(left.asIntegerValue==null || amount.asIntegerValue==null)
             throw ExpressionError("cannot compute $left >> $amount", left.position)
         val result =
-                if(left.type==DataType.UBYTE || left.type==DataType.UWORD)
+                if(left.type== DataType.UBYTE || left.type== DataType.UWORD)
                     left.asIntegerValue.ushr(amount.asIntegerValue)
                 else
                     left.asIntegerValue.shr(amount.asIntegerValue)

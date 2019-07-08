@@ -1,6 +1,14 @@
 package prog8.astvm
 
 import prog8.ast.*
+import prog8.ast.base.ArrayElementTypes
+import prog8.ast.base.DataType
+import prog8.ast.base.VarDeclType
+import prog8.ast.expressions.*
+import prog8.ast.statements.BuiltinFunctionStatementPlaceholder
+import prog8.ast.statements.Label
+import prog8.ast.statements.Subroutine
+import prog8.ast.statements.VarDecl
 import prog8.compiler.RuntimeValue
 import prog8.compiler.RuntimeValueRange
 import kotlin.math.abs

@@ -1,6 +1,10 @@
 package prog8.stackvm
 
-import prog8.ast.*
+import prog8.ast.base.DataType
+import prog8.ast.base.IterableDatatypes
+import prog8.ast.base.NumericDatatypes
+import prog8.ast.base.Register
+import prog8.ast.base.initvarsSubName
 import prog8.astvm.BitmapScreenPanel
 import prog8.astvm.Memory
 import prog8.compiler.RuntimeValue
@@ -376,7 +380,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = evalstack.pop()
                 checkDt(value, DataType.BYTE, DataType.UBYTE)
                 val address = ins.arg!!.integerValue()
-                if(value.type==DataType.BYTE)
+                if(value.type== DataType.BYTE)
                     mem.setSByte(address, value.integerValue().toShort())
                 else
                     mem.setUByte(address, value.integerValue().toShort())
@@ -386,7 +390,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = evalstack.pop()
                 checkDt(value, DataType.WORD, DataType.UWORD)
                 val address = ins.arg!!.integerValue()
-                if(value.type==DataType.WORD)
+                if(value.type== DataType.WORD)
                     mem.setSWord(address, value.integerValue())
                 else
                     mem.setUWord(address, value.integerValue())
@@ -1673,7 +1677,7 @@ class StackVm(private var traceOutputFile: String?) {
                         } else {
                             // normal variable
                             val variable = getVar(ins.callLabel!!)
-                            if(variable.type==DataType.UWORD) {
+                            if(variable.type== DataType.UWORD) {
                                 // assume the variable is a pointer (address) and get the word value from that memory location
                                 RuntimeValue(DataType.UWORD, mem.getUWord(variable.integerValue()))
                             } else {
@@ -1708,7 +1712,7 @@ class StackVm(private var traceOutputFile: String?) {
                         if(ins.callLabel in memoryPointers) {
                             val variable = memoryPointers.getValue(ins.callLabel!!)
                             val address = variable.first + index*5
-                            if(variable.second==DataType.ARRAY_F)
+                            if(variable.second== DataType.ARRAY_F)
                                 RuntimeValue(DataType.FLOAT, mem.getFloat(address))
                             else
                                 throw VmExecutionException("not a proper arraysize var with float elements")
@@ -1737,13 +1741,13 @@ class StackVm(private var traceOutputFile: String?) {
                 val memloc = memoryPointers[varname]
                 if(memloc!=null) {
                     // variable is the name of a pointer, write the byte value to that memory location
-                    if(value.type==DataType.UBYTE) {
-                        if(memloc.second!=DataType.ARRAY_UB)
+                    if(value.type== DataType.UBYTE) {
+                        if(memloc.second!= DataType.ARRAY_UB)
                             throw VmExecutionException("invalid memory pointer type $memloc")
                         mem.setUByte(memloc.first, value.integerValue().toShort())
                     }
                     else {
-                        if(memloc.second!=DataType.ARRAY_B)
+                        if(memloc.second!= DataType.ARRAY_B)
                             throw VmExecutionException("invalid memory pointer type $memloc")
                         mem.setSByte(memloc.first, value.integerValue().toShort())
                     }
@@ -1751,7 +1755,7 @@ class StackVm(private var traceOutputFile: String?) {
                     val variable = getVar(varname)
                     if (variable.type == DataType.UWORD) {
                         // assume the variable is a pointer (address) and write the byte value to that memory location
-                        if(value.type==DataType.UBYTE)
+                        if(value.type== DataType.UBYTE)
                             mem.setUByte(variable.integerValue(), value.integerValue().toShort())
                         else
                             mem.setSByte(variable.integerValue(), value.integerValue().toShort())
@@ -1785,13 +1789,13 @@ class StackVm(private var traceOutputFile: String?) {
                 val memloc = memoryPointers[varname]
                 if(memloc!=null) {
                     // variable is the name of a pointer, write the word value to that memory location
-                    if(value.type==DataType.UWORD) {
-                        if(memloc.second!=DataType.ARRAY_UW)
+                    if(value.type== DataType.UWORD) {
+                        if(memloc.second!= DataType.ARRAY_UW)
                             throw VmExecutionException("invalid memory pointer type $memloc")
                         mem.setUWord(memloc.first+index*2, value.integerValue())
                     }
                     else {
-                        if(memloc.second!=DataType.ARRAY_W)
+                        if(memloc.second!= DataType.ARRAY_W)
                             throw VmExecutionException("invalid memory pointer type $memloc")
                         mem.setSWord(memloc.first+index*2, value.integerValue())
                     }
@@ -1799,7 +1803,7 @@ class StackVm(private var traceOutputFile: String?) {
                     val variable = getVar(varname)
                     if (variable.type == DataType.UWORD) {
                         // assume the variable is a pointer (address) and write the word value to that memory location
-                        if(value.type==DataType.UWORD)
+                        if(value.type== DataType.UWORD)
                             mem.setUWord(variable.integerValue()+index*2, value.integerValue())
                         else
                             mem.setSWord(variable.integerValue()+index*2, value.integerValue())
@@ -1824,7 +1828,7 @@ class StackVm(private var traceOutputFile: String?) {
                 val memloc = memoryPointers[varname]
                 if(memloc!=null) {
                     // variable is the name of a pointer, write the float value to that memory location
-                    if(memloc.second!=DataType.ARRAY_F)
+                    if(memloc.second!= DataType.ARRAY_F)
                         throw VmExecutionException("invalid memory pointer type $memloc")
                     mem.setFloat(memloc.first+index*5, value.numericValue().toDouble())
                 } else {
@@ -2268,9 +2272,9 @@ class StackVm(private var traceOutputFile: String?) {
                 val numbytes = evalstack.pop().integerValue()
                 val bytevalue = value.integerValue().toShort()
                 when {
-                    value.type==DataType.UBYTE -> for(addr in address until address+numbytes)
+                    value.type== DataType.UBYTE -> for(addr in address until address+numbytes)
                         mem.setUByte(addr, bytevalue)
-                    value.type==DataType.BYTE -> for(addr in address until address+numbytes)
+                    value.type== DataType.BYTE -> for(addr in address until address+numbytes)
                         mem.setSByte(addr, bytevalue)
                     else -> throw VmExecutionException("(u)byte value expected")
                 }
@@ -2281,9 +2285,9 @@ class StackVm(private var traceOutputFile: String?) {
                 val numwords = evalstack.pop().integerValue()
                 val wordvalue = value.integerValue()
                 when {
-                    value.type==DataType.UWORD -> for(addr in address until address+numwords*2 step 2)
+                    value.type== DataType.UWORD -> for(addr in address until address+numwords*2 step 2)
                         mem.setUWord(addr, wordvalue)
-                    value.type==DataType.WORD -> for(addr in address until address+numwords*2 step 2)
+                    value.type== DataType.WORD -> for(addr in address until address+numwords*2 step 2)
                         mem.setSWord(addr, wordvalue)
                     else -> throw VmExecutionException("(u)word value expected")
                 }

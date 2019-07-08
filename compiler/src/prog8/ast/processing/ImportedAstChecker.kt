@@ -1,18 +1,11 @@
-package prog8.ast
+package prog8.ast.processing
 
+import prog8.ast.*
+import prog8.ast.base.SyntaxError
+import prog8.ast.base.printWarning
+import prog8.ast.statements.Directive
 
-/**
- * Checks that are specific for imported modules.
- */
-
-internal fun Module.checkImportedValid() {
-    val checker = ImportedAstChecker()
-    checker.process(this)
-    printErrors(checker.result(), name)
-}
-
-
-private class ImportedAstChecker : IAstProcessor {
+internal class ImportedAstChecker : IAstProcessor {
     private val checkResult: MutableList<SyntaxError> = mutableListOf()
 
     internal fun result(): List<SyntaxError> {

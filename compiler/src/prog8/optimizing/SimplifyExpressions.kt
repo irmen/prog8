@@ -1,6 +1,13 @@
 package prog8.optimizing
 
 import prog8.ast.*
+import prog8.ast.base.AstException
+import prog8.ast.base.DataType
+import prog8.ast.base.IntegerDatatypes
+import prog8.ast.base.NumericDatatypes
+import prog8.ast.expressions.*
+import prog8.ast.processing.IAstProcessor
+import prog8.ast.statements.Assignment
 import kotlin.math.abs
 import kotlin.math.log2
 
@@ -336,48 +343,48 @@ internal class SimplifyExpressions(private val program: Program) : IAstProcessor
                 DataType.UBYTE -> {
                     if (targetDt == DataType.BYTE) {
                         if(value.bytevalue!! < 127)
-                            return Pair(true, LiteralValue(targetDt, value.bytevalue, position=value.position))
+                            return Pair(true, LiteralValue(targetDt, value.bytevalue, position = value.position))
                     }
                     else if (targetDt == DataType.UWORD || targetDt == DataType.WORD)
-                        return Pair(true, LiteralValue(targetDt, wordvalue = value.bytevalue!!.toInt(), position=value.position))
+                        return Pair(true, LiteralValue(targetDt, wordvalue = value.bytevalue!!.toInt(), position = value.position))
                 }
                 DataType.BYTE -> {
                     if (targetDt == DataType.UBYTE) {
                         if(value.bytevalue!! >= 0)
-                            return Pair(true, LiteralValue(targetDt, value.bytevalue, position=value.position))
+                            return Pair(true, LiteralValue(targetDt, value.bytevalue, position = value.position))
                     }
                     else if (targetDt == DataType.UWORD) {
                         if(value.bytevalue!! >= 0)
-                            return Pair(true, LiteralValue(targetDt, wordvalue=value.bytevalue.toInt(), position=value.position))
+                            return Pair(true, LiteralValue(targetDt, wordvalue = value.bytevalue.toInt(), position = value.position))
                     }
-                    else if (targetDt == DataType.WORD) return Pair(true, LiteralValue(targetDt, wordvalue=value.bytevalue!!.toInt(), position=value.position))
+                    else if (targetDt == DataType.WORD) return Pair(true, LiteralValue(targetDt, wordvalue = value.bytevalue!!.toInt(), position = value.position))
                 }
                 DataType.UWORD -> {
                     if (targetDt == DataType.UBYTE) {
                         if(value.wordvalue!! <= 255)
-                            return Pair(true, LiteralValue(targetDt, value.wordvalue.toShort(), position=value.position))
+                            return Pair(true, LiteralValue(targetDt, value.wordvalue.toShort(), position = value.position))
                     }
                     else if (targetDt == DataType.BYTE) {
                         if(value.wordvalue!! <= 127)
-                            return Pair(true, LiteralValue(targetDt, value.wordvalue.toShort(), position=value.position))
+                            return Pair(true, LiteralValue(targetDt, value.wordvalue.toShort(), position = value.position))
                     }
                     else if (targetDt == DataType.WORD) {
                         if(value.wordvalue!! <= 32767)
-                            return Pair(true, LiteralValue(targetDt, wordvalue=value.wordvalue, position=value.position))
+                            return Pair(true, LiteralValue(targetDt, wordvalue = value.wordvalue, position = value.position))
                     }
                 }
                 DataType.WORD -> {
                     if (targetDt == DataType.UBYTE) {
                         if(value.wordvalue!! in 0..255)
-                            return Pair(true, LiteralValue(targetDt, value.wordvalue.toShort(), position=value.position))
+                            return Pair(true, LiteralValue(targetDt, value.wordvalue.toShort(), position = value.position))
                     }
                     else if (targetDt == DataType.BYTE) {
                         if(value.wordvalue!! in -128..127)
-                            return Pair(true, LiteralValue(targetDt, value.wordvalue.toShort(), position=value.position))
+                            return Pair(true, LiteralValue(targetDt, value.wordvalue.toShort(), position = value.position))
                     }
                     else if (targetDt == DataType.UWORD) {
                         if(value.wordvalue!! >= 0)
-                            return Pair(true, LiteralValue(targetDt, value.wordvalue.toShort(), position=value.position))
+                            return Pair(true, LiteralValue(targetDt, value.wordvalue.toShort(), position = value.position))
                     }
                 }
                 else -> {}

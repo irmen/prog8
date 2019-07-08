@@ -1,6 +1,7 @@
 package prog8.compiler
 
-import prog8.ast.*
+import prog8.ast.base.*
+import prog8.ast.expressions.LiteralValue
 import prog8.compiler.target.c64.Petscii
 import kotlin.math.abs
 import kotlin.math.pow
@@ -174,7 +175,7 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
                 DataType.UBYTE, DataType.UWORD -> {
                     // storing a negative number in an unsigned one is done by storing the 2's complement instead
                     val number = abs(result.toDouble().toInt())
-                    if(leftDt==DataType.UBYTE)
+                    if(leftDt== DataType.UBYTE)
                         RuntimeValue(DataType.UBYTE, (number xor 255) + 1)
                     else
                         RuntimeValue(DataType.UBYTE, (number xor 65535) + 1)

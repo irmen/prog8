@@ -1,58 +1,19 @@
-package prog8.ast
+package prog8.ast.processing
 
+import prog8.ast.*
+import prog8.ast.base.*
+import prog8.ast.base.printWarning
+import prog8.ast.expressions.*
+import prog8.ast.statements.*
 import prog8.compiler.CompilationOptions
 import prog8.compiler.HeapValues
 import prog8.compiler.target.c64.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.FLOAT_MAX_POSITIVE
 import prog8.functions.BuiltinFunctions
-import prog8.parser.ParsingFailedError
 import java.io.File
 
-/**
- * General checks on the Ast
- */
-
-internal fun Program.checkValid(compilerOptions: CompilationOptions) {
-    val checker = AstChecker(this, compilerOptions)
-    checker.process(this)
-    printErrors(checker.result(), name)
-}
-
-
-fun printErrors(errors: List<Any>, moduleName: String) {
-    val reportedMessages = mutableSetOf<String>()
-    print("\u001b[91m")  // bright red
-    errors.forEach {
-        val msg = it.toString()
-        if(msg !in reportedMessages) {
-            System.err.println(msg)
-            reportedMessages.add(msg)
-        }
-    }
-    print("\u001b[0m")  // reset color
-    if(reportedMessages.isNotEmpty())
-        throw ParsingFailedError("There are ${reportedMessages.size} errors in module '$moduleName'.")
-}
-
-
-fun printWarning(msg: String, position: Position, detailInfo: String?=null) {
-    print("\u001b[93m")  // bright yellow
-    print("$position Warning: $msg")
-    if(detailInfo==null)
-        print("\n")
-    else
-        println(": $detailInfo\n")
-    print("\u001b[0m")  // normal
-}
-
-fun printWarning(msg: String) {
-    print("\u001b[93m")  // bright yellow
-    print("Warning: $msg")
-    print("\u001b[0m\n")  // normal
-}
-
-private class AstChecker(private val program: Program,
-                 private val compilerOptions: CompilationOptions) : IAstProcessor {
+internal class AstChecker(private val program: Program,
+                         private val compilerOptions: CompilationOptions) : IAstProcessor {
     private val checkResult: MutableList<AstException> = mutableListOf()
     private val heapStringSentinel: Int
     init {
@@ -142,7 +103,7 @@ private class AstChecker(private val program: Program,
         for (rv in expectedReturnValues.withIndex().zip(returnStmt.values)) {
             val valueDt=rv.second.inferType(program)
             if(rv.first.value!=valueDt)
-                checkResult.add(ExpressionError("type $valueDt of return value #${rv.first.index+1} doesn't match subroutine return type ${rv.first.value}", rv.second.position))
+                checkResult.add(ExpressionError("type $valueDt of return value #${rv.first.index + 1} doesn't match subroutine return type ${rv.first.value}", rv.second.position))
         }
         return super.process(returnStmt)
     }
@@ -158,36 +119,36 @@ private class AstChecker(private val program: Program,
             if (forLoop.loopRegister != null) {
                 printWarning("using a register as loop variable is risky (it could get clobbered in the body)", forLoop.position)
                 // loop register
-                if (iterableDt != DataType.UBYTE && iterableDt!=DataType.ARRAY_UB && iterableDt !in StringDatatypes)
+                if (iterableDt != DataType.UBYTE && iterableDt!= DataType.ARRAY_UB && iterableDt !in StringDatatypes)
                     checkResult.add(ExpressionError("register can only loop over bytes", forLoop.position))
             } else {
                 // loop variable
                 val loopvar = forLoop.loopVar!!.targetVarDecl(program.namespace)
-                if(loopvar==null || loopvar.type==VarDeclType.CONST) {
+                if(loopvar==null || loopvar.type== VarDeclType.CONST) {
                     checkResult.add(SyntaxError("for loop requires a variable to loop with", forLoop.position))
 
                 } else {
                     when (loopvar.datatype) {
                         DataType.UBYTE -> {
-                            if(iterableDt!=DataType.UBYTE && iterableDt!=DataType.ARRAY_UB && iterableDt !in StringDatatypes)
+                            if(iterableDt!= DataType.UBYTE && iterableDt!= DataType.ARRAY_UB && iterableDt !in StringDatatypes)
                                 checkResult.add(ExpressionError("ubyte loop variable can only loop over unsigned bytes or strings", forLoop.position))
                         }
                         DataType.UWORD -> {
-                            if(iterableDt!=DataType.UBYTE && iterableDt!=DataType.UWORD && iterableDt !in StringDatatypes &&
-                                    iterableDt !=DataType.ARRAY_UB && iterableDt!=DataType.ARRAY_UW)
+                            if(iterableDt!= DataType.UBYTE && iterableDt!= DataType.UWORD && iterableDt !in StringDatatypes &&
+                                    iterableDt != DataType.ARRAY_UB && iterableDt!= DataType.ARRAY_UW)
                                 checkResult.add(ExpressionError("uword loop variable can only loop over unsigned bytes, words or strings", forLoop.position))
                         }
                         DataType.BYTE -> {
-                            if(iterableDt!=DataType.BYTE && iterableDt!=DataType.ARRAY_B)
+                            if(iterableDt!= DataType.BYTE && iterableDt!= DataType.ARRAY_B)
                                 checkResult.add(ExpressionError("byte loop variable can only loop over bytes", forLoop.position))
                         }
                         DataType.WORD -> {
-                            if(iterableDt!=DataType.BYTE && iterableDt!=DataType.WORD &&
-                                    iterableDt !=DataType.ARRAY_B && iterableDt!=DataType.ARRAY_W)
+                            if(iterableDt!= DataType.BYTE && iterableDt!= DataType.WORD &&
+                                    iterableDt != DataType.ARRAY_B && iterableDt!= DataType.ARRAY_W)
                                 checkResult.add(ExpressionError("word loop variable can only loop over bytes or words", forLoop.position))
                         }
                         DataType.FLOAT -> {
-                            if(iterableDt!=DataType.FLOAT && iterableDt != DataType.ARRAY_F)
+                            if(iterableDt!= DataType.FLOAT && iterableDt != DataType.ARRAY_F)
                                 checkResult.add(ExpressionError("float loop variable can only loop over floats", forLoop.position))
                         }
                         else -> checkResult.add(ExpressionError("loop variable must be numeric type", forLoop.position))
@@ -351,7 +312,7 @@ private class AstChecker(private val program: Program,
             // This is not easy to fix because strings and arrays are treated a bit simplistic (a "virtual" pointer to the value on the heap)
             // while passing them as subroutine parameters would require a "real" pointer OR copying the VALUE to the subroutine's parameter variable (which is very inefficient).
             // For now, don't pass strings and arrays as parameters and instead create the workaround as suggested in the error message below.
-            if(!subroutine.parameters.all{it.type in NumericDatatypes}) {
+            if(!subroutine.parameters.all{it.type in NumericDatatypes }) {
                 err("Non-asm subroutine can only take numerical parameters (no str/array types) for now. Workaround (for nested subroutine): access the variable from the outer scope directly.")
             }
         }
@@ -494,19 +455,19 @@ private class AstChecker(private val program: Program,
         }
 
         // CONST can only occur on simple types (byte, word, float)
-        if(decl.type==VarDeclType.CONST) {
+        if(decl.type== VarDeclType.CONST) {
             if (decl.datatype !in NumericDatatypes)
                 err("const modifier can only be used on numeric types (byte, word, float)")
         }
 
         // FLOATS
-        if(!compilerOptions.floats && decl.datatype in setOf(DataType.FLOAT, DataType.ARRAY_F) && decl.type!=VarDeclType.MEMORY) {
+        if(!compilerOptions.floats && decl.datatype in setOf(DataType.FLOAT, DataType.ARRAY_F) && decl.type!= VarDeclType.MEMORY) {
             checkResult.add(SyntaxError("floating point used, but that is not enabled via options", decl.position))
         }
 
         // ARRAY without size specifier MUST have an iterable initializer value
         if(decl.isArray && decl.arraysize==null) {
-            if(decl.type==VarDeclType.MEMORY)
+            if(decl.type== VarDeclType.MEMORY)
                 checkResult.add(SyntaxError("memory mapped array must have a size specification", decl.position))
             if(decl.value==null) {
                 checkResult.add(SyntaxError("array variable is missing a size specification or an initialization value", decl.position))
@@ -528,15 +489,15 @@ private class AstChecker(private val program: Program,
                             // initialize numeric var with value zero by default.
                             val litVal =
                                     when {
-                                        decl.datatype in ByteDatatypes -> LiteralValue(decl.datatype, bytevalue=0, position = decl.position)
-                                        decl.datatype in WordDatatypes -> LiteralValue(decl.datatype, wordvalue=0, position = decl.position)
-                                        else -> LiteralValue(decl.datatype, floatvalue=0.0, position = decl.position)
+                                        decl.datatype in ByteDatatypes -> LiteralValue(decl.datatype, bytevalue = 0, position = decl.position)
+                                        decl.datatype in WordDatatypes -> LiteralValue(decl.datatype, wordvalue = 0, position = decl.position)
+                                        else -> LiteralValue(decl.datatype, floatvalue = 0.0, position = decl.position)
                                     }
                             litVal.parent = decl
                             decl.value = litVal
                         }
-                        decl.type==VarDeclType.VAR -> {
-                            val litVal = LiteralValue(decl.datatype, initHeapId = heapStringSentinel, position=decl.position)    // point to the sentinel heap value instead
+                        decl.type== VarDeclType.VAR -> {
+                            val litVal = LiteralValue(decl.datatype, initHeapId = heapStringSentinel, position = decl.position)    // point to the sentinel heap value instead
                             litVal.parent=decl
                             decl.value = litVal
                         }
@@ -728,7 +689,7 @@ private class AstChecker(private val program: Program,
                 if(divisor==0.0)
                     checkResult.add(ExpressionError("division by zero", expr.right.position))
                 if(expr.operator=="%") {
-                    if ((rightDt != DataType.UBYTE && rightDt != DataType.UWORD) || (leftDt!=DataType.UBYTE && leftDt!=DataType.UWORD))
+                    if ((rightDt != DataType.UBYTE && rightDt != DataType.UWORD) || (leftDt!= DataType.UBYTE && leftDt!= DataType.UWORD))
                         checkResult.add(ExpressionError("remainder can only be used on unsigned integer operands", expr.right.position))
                 }
             }
@@ -864,7 +825,7 @@ private class AstChecker(private val program: Program,
                     val argDt = arg.first.value.inferType(program)
                     if(argDt!=null && !(argDt isAssignableTo arg.second.type)) {
                         // for asm subroutines having STR param it's okay to provide a UWORD too (pointer value)
-                        if(!(target.isAsmSubroutine && arg.second.type in StringDatatypes && argDt==DataType.UWORD))
+                        if(!(target.isAsmSubroutine && arg.second.type in StringDatatypes && argDt== DataType.UWORD))
                             checkResult.add(ExpressionError("subroutine '${target.name}' argument ${arg.first.index + 1} has invalid type $argDt, expected ${arg.second.type}", position))
                     }
 
@@ -878,13 +839,13 @@ private class AstChecker(private val program: Program,
                         val asmParamReg = target.asmParameterRegisters[arg.first.index]
                         if(asmParamReg.statusflag!=null) {
                             if(argDt !in ByteDatatypes)
-                                checkResult.add(ExpressionError("subroutine '${target.name}' argument ${arg.first.index+1} must be byte type for statusflag", position))
+                                checkResult.add(ExpressionError("subroutine '${target.name}' argument ${arg.first.index + 1} must be byte type for statusflag", position))
                         } else if(asmParamReg.registerOrPair in setOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y)) {
                             if(argDt !in ByteDatatypes)
-                                checkResult.add(ExpressionError("subroutine '${target.name}' argument ${arg.first.index+1} must be byte type for single register", position))
+                                checkResult.add(ExpressionError("subroutine '${target.name}' argument ${arg.first.index + 1} must be byte type for single register", position))
                         } else if(asmParamReg.registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
-                            if(argDt !in WordDatatypes+ IterableDatatypes)
-                                checkResult.add(ExpressionError("subroutine '${target.name}' argument ${arg.first.index+1} must be word type for register pair", position))
+                            if(argDt !in WordDatatypes + IterableDatatypes)
+                                checkResult.add(ExpressionError("subroutine '${target.name}' argument ${arg.first.index + 1} must be word type for register pair", position))
                         }
                     }
                 }
@@ -899,7 +860,7 @@ private class AstChecker(private val program: Program,
             if(target==null) {
                 checkResult.add(SyntaxError("undefined symbol: ${targetName.joinToString(".")}", postIncrDecr.position))
             } else {
-                if(target !is VarDecl || target.type==VarDeclType.CONST) {
+                if(target !is VarDecl || target.type== VarDeclType.CONST) {
                     checkResult.add(SyntaxError("can only increment or decrement a variable", postIncrDecr.position))
                 } else if(target.datatype !in NumericDatatypes) {
                     checkResult.add(SyntaxError("can only increment or decrement a byte/float/word variable", postIncrDecr.position))
@@ -945,7 +906,7 @@ private class AstChecker(private val program: Program,
 
         // check index value 0..255
         val dtx = arrayIndexedExpression.arrayspec.index.inferType(program)
-        if(dtx!=DataType.UBYTE && dtx!=DataType.BYTE)
+        if(dtx!= DataType.UBYTE && dtx!= DataType.BYTE)
             checkResult.add(SyntaxError("array indexing is limited to byte size 0..255", arrayIndexedExpression.position))
 
         return super.process(arrayIndexedExpression)
@@ -1121,7 +1082,7 @@ private class AstChecker(private val program: Program,
                         value.arrayvalue.map {it.constValue(program)?.asNumericValue!!.toDouble()}.toDoubleArray()
                     else
                         heap.get(value.heapId!!).doubleArray!!
-                    if(doubles.any { it < FLOAT_MAX_NEGATIVE || it> FLOAT_MAX_POSITIVE})
+                    if(doubles.any { it < FLOAT_MAX_NEGATIVE || it> FLOAT_MAX_POSITIVE })
                         return err("floating point value overflow")
                     return true
                 }
@@ -1190,26 +1151,26 @@ private class AstChecker(private val program: Program,
             checkResult.add(SyntaxError("can't assign a range value", position))
 
         val result =  when(targetDatatype) {
-            DataType.BYTE -> sourceDatatype==DataType.BYTE
-            DataType.UBYTE -> sourceDatatype==DataType.UBYTE
-            DataType.WORD -> sourceDatatype==DataType.BYTE || sourceDatatype==DataType.UBYTE || sourceDatatype==DataType.WORD
-            DataType.UWORD -> sourceDatatype==DataType.UBYTE || sourceDatatype==DataType.UWORD
+            DataType.BYTE -> sourceDatatype== DataType.BYTE
+            DataType.UBYTE -> sourceDatatype== DataType.UBYTE
+            DataType.WORD -> sourceDatatype== DataType.BYTE || sourceDatatype== DataType.UBYTE || sourceDatatype== DataType.WORD
+            DataType.UWORD -> sourceDatatype== DataType.UBYTE || sourceDatatype== DataType.UWORD
             DataType.FLOAT -> sourceDatatype in NumericDatatypes
-            DataType.STR -> sourceDatatype==DataType.STR
-            DataType.STR_S -> sourceDatatype==DataType.STR_S
+            DataType.STR -> sourceDatatype== DataType.STR
+            DataType.STR_S -> sourceDatatype== DataType.STR_S
             else -> checkResult.add(SyntaxError("cannot assign new value to variable of type $targetDatatype", position))
         }
 
         if(result)
             return true
 
-        if((sourceDatatype==DataType.UWORD || sourceDatatype==DataType.WORD) && (targetDatatype==DataType.UBYTE || targetDatatype==DataType.BYTE)) {
+        if((sourceDatatype== DataType.UWORD || sourceDatatype== DataType.WORD) && (targetDatatype== DataType.UBYTE || targetDatatype== DataType.BYTE)) {
             if(assignTargets.size==2 && assignTargets[0].register!=null && assignTargets[1].register!=null)
                 return true // for asm subroutine calls that return a (U)WORD that's going to be stored into two BYTES (registers), we make an exception.
             else
                 checkResult.add(ExpressionError("cannot assign word to byte, use msb() or lsb()?", position))
         }
-        else if(sourceDatatype==DataType.FLOAT && targetDatatype in IntegerDatatypes)
+        else if(sourceDatatype== DataType.FLOAT && targetDatatype in IntegerDatatypes)
             checkResult.add(ExpressionError("cannot assign float to ${targetDatatype.name.toLowerCase()}; possible loss of precision. Suggestion: round the value or revert to integer arithmetic", position))
         else
             checkResult.add(ExpressionError("cannot assign ${sourceDatatype.name.toLowerCase()} to ${targetDatatype.name.toLowerCase()}", position))

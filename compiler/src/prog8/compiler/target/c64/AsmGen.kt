@@ -3,7 +3,10 @@ package prog8.compiler.target.c64
 // note: to put stuff on the stack, we use Absolute,X  addressing mode which is 3 bytes / 4 cycles
 // possible space optimization is to use zeropage (indirect),Y  which is 2 bytes, but 5 cycles
 
-import prog8.ast.*
+import prog8.ast.antlr.escape
+import prog8.ast.base.DataType
+import prog8.ast.base.initvarsSubName
+import prog8.ast.base.printWarning
 import prog8.compiler.RuntimeValue
 import prog8.compiler.*
 import prog8.compiler.intermediate.*
@@ -63,7 +66,7 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
 
         // make a list of all const floats that are used
         for(block in program.blocks) {
-            for(ins in block.instructions.filter{it.arg?.type==DataType.FLOAT}) {
+            for(ins in block.instructions.filter{it.arg?.type== DataType.FLOAT}) {
                 val float = ins.arg!!.numericValue().toDouble()
                 if(float !in globalFloatConsts)
                     globalFloatConsts[float] = "prog8_const_float_${globalFloatConsts.size}"
@@ -186,7 +189,7 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
         out("  ldx  #\$ff\t; init estack pointer")
         out("  ; initialize the variables in each block")
         for(block in program.blocks) {
-            val initVarsLabel = block.instructions.firstOrNull { it is LabelInstr && it.name==initvarsSubName } as? LabelInstr
+            val initVarsLabel = block.instructions.firstOrNull { it is LabelInstr && it.name== initvarsSubName } as? LabelInstr
             if(initVarsLabel!=null)
                 out("  jsr  ${block.name}.${initVarsLabel.name}")
         }
@@ -362,10 +365,10 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
     private fun makeArrayFillDataUnsigned(value: RuntimeValue): List<String> {
         val array = heap.get(value.heapId!!).array!!
         return when {
-            value.type==DataType.ARRAY_UB ->
+            value.type== DataType.ARRAY_UB ->
                 // byte array can never contain pointer-to types, so treat values as all integers
                 array.map { "$"+it.integer!!.toString(16).padStart(2, '0') }
-            value.type==DataType.ARRAY_UW -> array.map {
+            value.type== DataType.ARRAY_UW -> array.map {
                 when {
                     it.integer!=null -> "$"+it.integer.toString(16).padStart(2, '0')
                     it.addressOf!=null -> symname(it.addressOf.scopedname!!, block)

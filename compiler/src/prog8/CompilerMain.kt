@@ -1,6 +1,12 @@
 package prog8
 
 import prog8.ast.*
+import prog8.ast.base.*
+import prog8.ast.base.checkIdentifiers
+import prog8.ast.base.checkRecursion
+import prog8.ast.base.checkValid
+import prog8.ast.base.reorderStatements
+import prog8.ast.statements.Directive
 import prog8.astvm.AstVm
 import prog8.compiler.*
 import prog8.compiler.target.c64.AsmGen

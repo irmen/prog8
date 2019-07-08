@@ -1,7 +1,11 @@
 package prog8.compiler
 
 import prog8.ast.*
-import prog8.ast.RegisterOrPair.*
+import prog8.ast.base.*
+import prog8.ast.base.RegisterOrPair.*
+import prog8.ast.expressions.*
+import prog8.ast.processing.IAstProcessor
+import prog8.ast.statements.*
 import prog8.compiler.intermediate.IntermediateProgram
 import prog8.compiler.intermediate.Opcode
 import prog8.compiler.intermediate.branchOpcodes
@@ -383,7 +387,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
         // The compiler could then convert it to a special system call
         val sub = stmt.parent as? Subroutine
         val scopename =
-                if(sub!=null && sub.statements.filter{it !is VarDecl}.size==1)
+                if(sub!=null && sub.statements.filter{it !is VarDecl }.size==1)
                     sub.scopedname
                 else
                     null
@@ -1413,7 +1417,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
             // @todo use convertType()????
             when(targetDt) {
                 in ByteDatatypes ->
-                    if(valueDt!=DataType.BYTE && valueDt!=DataType.UBYTE)
+                    if(valueDt!= DataType.BYTE && valueDt!= DataType.UBYTE)
                         throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                 DataType.WORD -> {
                     when (valueDt) {
@@ -1619,11 +1623,11 @@ internal class Compiler(private val program: Program): IAstProcessor {
     }
 
     private fun translateForOverIterableVar(loop: ForLoop, loopvarDt: DataType, iterableValue: LiteralValue) {
-        if(loopvarDt==DataType.UBYTE && iterableValue.type !in setOf(DataType.STR, DataType.STR_S, DataType.ARRAY_UB))
+        if(loopvarDt== DataType.UBYTE && iterableValue.type !in setOf(DataType.STR, DataType.STR_S, DataType.ARRAY_UB))
             throw CompilerException("loop variable type doesn't match iterableValue type")
-        else if(loopvarDt==DataType.UWORD && iterableValue.type != DataType.ARRAY_UW)
+        else if(loopvarDt== DataType.UWORD && iterableValue.type != DataType.ARRAY_UW)
             throw CompilerException("loop variable type doesn't match iterableValue type")
-        else if(loopvarDt==DataType.FLOAT && iterableValue.type != DataType.ARRAY_F)
+        else if(loopvarDt== DataType.FLOAT && iterableValue.type != DataType.ARRAY_F)
             throw CompilerException("loop variable type doesn't match iterableValue type")
 
         val numElements: Int
@@ -1645,7 +1649,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
             else -> throw CompilerException("weird datatype")
         }
 
-        if(loop.loopRegister!=null && loop.loopRegister==Register.X)
+        if(loop.loopRegister!=null && loop.loopRegister== Register.X)
             throw CompilerException("loopVar cannot use X register because that is used as internal stack pointer")
 
         /**
@@ -1848,10 +1852,10 @@ internal class Compiler(private val program: Program): IAstProcessor {
             val condition =
                     if(literalStepValue > 0) {
                         // if LV > last  goto break
-                        BinaryExpression(loopVar,">", range.to, range.position)
+                        BinaryExpression(loopVar, ">", range.to, range.position)
                     } else {
                         // if LV < last  goto break
-                        BinaryExpression(loopVar,"<", range.to, range.position)
+                        BinaryExpression(loopVar, "<", range.to, range.position)
                     }
             val ifstmt = IfStatement(condition,
                     AnonymousScope(mutableListOf(Jump(null, null, breakLabel, range.position)), range.position),
@@ -1881,7 +1885,7 @@ internal class Compiler(private val program: Program): IAstProcessor {
                 TODO("can't generate code for step other than 1 or -1 right now")
 
             // LV++ / LV--
-            val postIncr = PostIncrDecr(lvTarget, if(step==1) "++" else "--", range.position)
+            val postIncr = PostIncrDecr(lvTarget, if (step == 1) "++" else "--", range.position)
             postIncr.linkParents(body)
             translate(postIncr)
             if(lvTarget.register!=null)
@@ -2067,10 +2071,10 @@ internal class Compiler(private val program: Program): IAstProcessor {
 
     private fun translate(addrof: AddressOf) {
         val target = addrof.identifier.targetVarDecl(program.namespace)!!
-        if(target.datatype in ArrayDatatypes || target.datatype in StringDatatypes|| target.datatype==DataType.FLOAT) {
+        if(target.datatype in ArrayDatatypes || target.datatype in StringDatatypes || target.datatype== DataType.FLOAT) {
             pushHeapVarAddress(addrof.identifier, false)
         }
-        else if(target.datatype==DataType.FLOAT) {
+        else if(target.datatype== DataType.FLOAT) {
             pushFloatAddress(addrof.identifier)
         }
         else

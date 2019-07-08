@@ -1,6 +1,10 @@
 package prog8.astvm
 
 import prog8.ast.*
+import prog8.ast.base.*
+import prog8.ast.expressions.LiteralValue
+import prog8.ast.processing.IAstProcessor
+import prog8.ast.statements.VarDecl
 import prog8.compiler.HeapValues
 import prog8.compiler.RuntimeValue
 

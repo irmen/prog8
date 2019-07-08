@@ -1,6 +1,11 @@
 package prog8.functions
 
 import prog8.ast.*
+import prog8.ast.base.*
+import prog8.ast.expressions.DirectMemoryRead
+import prog8.ast.expressions.IdentifierReference
+import prog8.ast.expressions.LiteralValue
+import prog8.ast.statements.VarDecl
 import prog8.compiler.CompilerException
 import kotlin.math.*
 
@@ -111,13 +116,13 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, program
 
     fun datatypeFromIterableArg(arglist: IExpression): DataType {
         if(arglist is LiteralValue) {
-            if(arglist.type==DataType.ARRAY_UB || arglist.type==DataType.ARRAY_UW || arglist.type==DataType.ARRAY_F) {
+            if(arglist.type== DataType.ARRAY_UB || arglist.type== DataType.ARRAY_UW || arglist.type== DataType.ARRAY_F) {
                 val dt = arglist.arrayvalue!!.map {it.inferType(program)}
-                if(dt.any { it!=DataType.UBYTE && it!=DataType.UWORD && it!=DataType.FLOAT}) {
+                if(dt.any { it!= DataType.UBYTE && it!= DataType.UWORD && it!= DataType.FLOAT}) {
                     throw FatalAstException("fuction $function only accepts arraysize of numeric values")
                 }
-                if(dt.any { it==DataType.FLOAT }) return DataType.FLOAT
-                if(dt.any { it==DataType.UWORD }) return DataType.UWORD
+                if(dt.any { it== DataType.FLOAT }) return DataType.FLOAT
+                if(dt.any { it== DataType.UWORD }) return DataType.UWORD
                 return DataType.UBYTE
             }
         }
@@ -186,7 +191,7 @@ private fun oneDoubleArg(args: List<IExpression>, position: Position, program: P
     if(args.size!=1)
         throw SyntaxError("built-in function requires one floating point argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
-    if(constval.type!=DataType.FLOAT)
+    if(constval.type!= DataType.FLOAT)
         throw SyntaxError("built-in function requires one floating point argument", position)
 
     val float = constval.asNumericValue?.toDouble()!!
@@ -197,16 +202,16 @@ private fun oneDoubleArgOutputWord(args: List<IExpression>, position: Position, 
     if(args.size!=1)
         throw SyntaxError("built-in function requires one floating point argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
-    if(constval.type!=DataType.FLOAT)
+    if(constval.type!= DataType.FLOAT)
         throw SyntaxError("built-in function requires one floating point argument", position)
-    return LiteralValue(DataType.WORD, wordvalue=function(constval.asNumericValue!!.toDouble()).toInt(), position=args[0].position)
+    return LiteralValue(DataType.WORD, wordvalue = function(constval.asNumericValue!!.toDouble()).toInt(), position = args[0].position)
 }
 
 private fun oneIntArgOutputInt(args: List<IExpression>, position: Position, program: Program, function: (arg: Int)->Number): LiteralValue {
     if(args.size!=1)
         throw SyntaxError("built-in function requires one integer argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
-    if(constval.type!=DataType.UBYTE && constval.type!=DataType.UWORD)
+    if(constval.type!= DataType.UBYTE && constval.type!= DataType.UWORD)
         throw SyntaxError("built-in function requires one integer argument", position)
 
     val integer = constval.asNumericValue?.toInt()!!
@@ -378,7 +383,7 @@ private fun builtinSin8(args: List<IExpression>, position: Position, program: Pr
         throw SyntaxError("sin8 requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.asNumericValue!!.toDouble() /256.0 * 2.0 * PI
-    return LiteralValue(DataType.BYTE, bytevalue = (127.0* sin(rad)).toShort(), position = position)
+    return LiteralValue(DataType.BYTE, bytevalue = (127.0 * sin(rad)).toShort(), position = position)
 }
 
 private fun builtinSin8u(args: List<IExpression>, position: Position, program: Program): LiteralValue {
@@ -386,7 +391,7 @@ private fun builtinSin8u(args: List<IExpression>, position: Position, program: P
         throw SyntaxError("sin8u requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.asNumericValue!!.toDouble() /256.0 * 2.0 * PI
-    return LiteralValue(DataType.UBYTE, bytevalue = (128.0+127.5*sin(rad)).toShort(), position = position)
+    return LiteralValue(DataType.UBYTE, bytevalue = (128.0 + 127.5 * sin(rad)).toShort(), position = position)
 }
 
 private fun builtinCos8(args: List<IExpression>, position: Position, program: Program): LiteralValue {
@@ -394,7 +399,7 @@ private fun builtinCos8(args: List<IExpression>, position: Position, program: Pr
         throw SyntaxError("cos8 requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.asNumericValue!!.toDouble() /256.0 * 2.0 * PI
-    return LiteralValue(DataType.BYTE, bytevalue = (127.0* cos(rad)).toShort(), position = position)
+    return LiteralValue(DataType.BYTE, bytevalue = (127.0 * cos(rad)).toShort(), position = position)
 }
 
 private fun builtinCos8u(args: List<IExpression>, position: Position, program: Program): LiteralValue {
@@ -402,7 +407,7 @@ private fun builtinCos8u(args: List<IExpression>, position: Position, program: P
         throw SyntaxError("cos8u requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.asNumericValue!!.toDouble() /256.0 * 2.0 * PI
-    return LiteralValue(DataType.UBYTE, bytevalue = (128.0 + 127.5*cos(rad)).toShort(), position = position)
+    return LiteralValue(DataType.UBYTE, bytevalue = (128.0 + 127.5 * cos(rad)).toShort(), position = position)
 }
 
 private fun builtinSin16(args: List<IExpression>, position: Position, program: Program): LiteralValue {
@@ -410,7 +415,7 @@ private fun builtinSin16(args: List<IExpression>, position: Position, program: P
         throw SyntaxError("sin16 requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.asNumericValue!!.toDouble() /256.0 * 2.0 * PI
-    return LiteralValue(DataType.WORD, wordvalue = (32767.0* sin(rad)).toInt(), position = position)
+    return LiteralValue(DataType.WORD, wordvalue = (32767.0 * sin(rad)).toInt(), position = position)
 }
 
 private fun builtinSin16u(args: List<IExpression>, position: Position, program: Program): LiteralValue {
@@ -418,7 +423,7 @@ private fun builtinSin16u(args: List<IExpression>, position: Position, program: 
         throw SyntaxError("sin16u requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.asNumericValue!!.toDouble() /256.0 * 2.0 * PI
-    return LiteralValue(DataType.UWORD, wordvalue = (32768.0+32767.5*sin(rad)).toInt(), position = position)
+    return LiteralValue(DataType.UWORD, wordvalue = (32768.0 + 32767.5 * sin(rad)).toInt(), position = position)
 }
 
 private fun builtinCos16(args: List<IExpression>, position: Position, program: Program): LiteralValue {
@@ -426,7 +431,7 @@ private fun builtinCos16(args: List<IExpression>, position: Position, program: P
         throw SyntaxError("cos16 requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.asNumericValue!!.toDouble() /256.0 * 2.0 * PI
-    return LiteralValue(DataType.WORD, wordvalue = (32767.0* cos(rad)).toInt(), position = position)
+    return LiteralValue(DataType.WORD, wordvalue = (32767.0 * cos(rad)).toInt(), position = position)
 }
 
 private fun builtinCos16u(args: List<IExpression>, position: Position, program: Program): LiteralValue {
@@ -434,7 +439,7 @@ private fun builtinCos16u(args: List<IExpression>, position: Position, program: 
         throw SyntaxError("cos16u requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.asNumericValue!!.toDouble() /256.0 * 2.0 * PI
-    return LiteralValue(DataType.UWORD, wordvalue = (32768.0+32767.5* cos(rad)).toInt(), position = position)
+    return LiteralValue(DataType.UWORD, wordvalue = (32768.0 + 32767.5 * cos(rad)).toInt(), position = position)
 }
 
 private fun numericLiteral(value: Number, position: Position): LiteralValue {

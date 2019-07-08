@@ -1,6 +1,10 @@
 package prog8.compiler.intermediate
 
-import prog8.ast.*
+import prog8.ast.antlr.escape
+import prog8.ast.base.*
+import prog8.ast.base.printWarning
+import prog8.ast.expressions.LiteralValue
+import prog8.ast.statements.VarDecl
 import prog8.compiler.RuntimeValue
 import prog8.compiler.CompilerException
 import prog8.compiler.HeapValues
@@ -412,7 +416,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
             VarDeclType.MEMORY -> {
                 // note that constants are all folded away, but assembly code may still refer to them
                 val lv = decl.value as LiteralValue
-                if(lv.type!=DataType.UWORD && lv.type!=DataType.UBYTE)
+                if(lv.type!= DataType.UWORD && lv.type!= DataType.UBYTE)
                     throw CompilerException("expected integer memory address $lv")
                 currentBlock.memoryPointers[scopedname] = Pair(lv.asIntegerValue!!, decl.datatype)
             }
