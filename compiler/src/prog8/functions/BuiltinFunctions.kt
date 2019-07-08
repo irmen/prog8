@@ -191,20 +191,21 @@ private fun oneDoubleArg(args: List<IExpression>, position: Position, program: P
     if(args.size!=1)
         throw SyntaxError("built-in function requires one floating point argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
-    if(constval.type!= DataType.FLOAT)
-        throw SyntaxError("built-in function requires one floating point argument", position)
-
-    val float = constval.asNumericValue?.toDouble()!!
+    val float = getFloatArg(constval, args[0].position)
     return numericLiteral(function(float), args[0].position)
+}
+
+private fun getFloatArg(v: LiteralValue, position: Position): Double {
+    val nv = v.asNumericValue ?: throw SyntaxError("numerical argument required", position)
+    return nv.toDouble()
 }
 
 private fun oneDoubleArgOutputWord(args: List<IExpression>, position: Position, program: Program, function: (arg: Double)->Number): LiteralValue {
     if(args.size!=1)
         throw SyntaxError("built-in function requires one floating point argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
-    if(constval.type!= DataType.FLOAT)
-        throw SyntaxError("built-in function requires one floating point argument", position)
-    return LiteralValue(DataType.WORD, wordvalue = function(constval.asNumericValue!!.toDouble()).toInt(), position = args[0].position)
+    val float = getFloatArg(constval, args[0].position)
+    return LiteralValue(DataType.WORD, wordvalue = function(float).toInt(), position = args[0].position)
 }
 
 private fun oneIntArgOutputInt(args: List<IExpression>, position: Position, program: Program, function: (arg: Int)->Number): LiteralValue {

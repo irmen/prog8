@@ -32,7 +32,7 @@ fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
                 "~" -> evaluate(expr.expression, ctx).inv()
                 "not" -> evaluate(expr.expression, ctx).not()
                 // unary '+' should have been optimized away
-                else -> TODO("prefixexpr ${expr.operator}")
+                else -> throw VmExecutionException("unsupported prefix operator "+expr.operator)
             }
         }
         is BinaryExpression -> {
@@ -67,7 +67,7 @@ fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
                 "and" -> left.and(right)
                 "or" -> left.or(right)
                 "xor" -> left.xor(right)
-                else -> TODO("binexpression operator ${expr.operator}")
+                else -> throw VmExecutionException("unsupported operator "+expr.operator)
             }
         }
         is ArrayIndexedExpression -> {
@@ -108,11 +108,11 @@ fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
                         DataType.FLOAT -> RuntimeValue(DataType.FLOAT, ctx.mem.getFloat(address))
                         DataType.STR -> RuntimeValue(DataType.STR, str = ctx.mem.getString(address))
                         DataType.STR_S -> RuntimeValue(DataType.STR_S, str = ctx.mem.getScreencodeString(address))
-                        else -> TODO("memvar $variable")
+                        else -> throw VmExecutionException("unexpected datatype $variable")
                     }
                 }
             } else
-                TODO("weird ref $variable")
+                throw VmExecutionException("weird identifier reference $variable")
         }
         is FunctionCall -> {
             val sub = expr.target.targetStatement(ctx.program.namespace)
@@ -130,7 +130,7 @@ fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
                     result
                 }
                 else -> {
-                    TODO("call expr function ${expr.target}")
+                    throw VmExecutionException("unimplemented function call target $sub")
                 }
             }
         }
@@ -156,7 +156,7 @@ fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
             return RuntimeValueRange(expr.inferType(ctx.program)!!, range)
         }
         else -> {
-            TODO("implement eval $expr")
+            throw VmExecutionException("unimplemented expression node $expr")
         }
     }
 }

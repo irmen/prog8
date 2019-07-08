@@ -32,33 +32,13 @@ class VariablesCreator(private val runtimeVariables: RuntimeVariables, private v
 
     override fun process(decl: VarDecl): IStatement {
         when(decl.type) {
+            // we can assume the value in the vardecl already has been converted into a constant LiteralValue here.
             VarDeclType.VAR -> {
-                val value = when (decl.datatype) {
-                    in NumericDatatypes -> {
-                        if(decl.value !is LiteralValue) {
-                            TODO("evaluate vardecl expression $decl")
-                            //RuntimeValue(decl.datatype, num = evaluate(decl.value!!, program, runtimeVariables, executeSubroutine).numericValue())
-                        } else {
-                            RuntimeValue.from(decl.value as LiteralValue, heap)
-                        }
-                    }
-                    in StringDatatypes -> {
-                        RuntimeValue.from(decl.value as LiteralValue, heap)
-                    }
-                    in ArrayDatatypes -> {
-                        RuntimeValue.from(decl.value as LiteralValue, heap)
-                    }
-                    else -> throw VmExecutionException("weird type ${decl.datatype}")
-                }
+                val value = RuntimeValue.from(decl.value as LiteralValue, heap)
                 runtimeVariables.define(decl.definingScope(), decl.name, value)
             }
             VarDeclType.MEMORY -> {
-                if(decl.value !is LiteralValue) {
-                    TODO("evaluate vardecl expression $decl")
-                    //RuntimeValue(decl.datatype, num = evaluate(decl.value!!, program, runtimeVariables, executeSubroutine).numericValue())
-                } else {
-                    runtimeVariables.defineMemory(decl.definingScope(), decl.name, (decl.value as LiteralValue).asIntegerValue!!)
-                }
+                runtimeVariables.defineMemory(decl.definingScope(), decl.name, (decl.value as LiteralValue).asIntegerValue!!)
             }
             VarDeclType.CONST -> {
                 // consts should have been const-folded away

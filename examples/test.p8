@@ -4,58 +4,32 @@
 
 ~ main {
 
+    uword ww = 33               ; @todo error?  or should it be 33?
+    uword w2 = foo()            ; @todo same issue
+
+
     sub start() {
 
-        c64.TIME_HI = 22
-        c64.TIME_MID = 33
-        c64.TIME_LO = 44
+        uword xw = 33               ; @todo error?  or should it be 33?
+        uword x2 = foo()            ; @todo same issue
 
-        loop:
-            ubyte hi = c64.TIME_HI
-            ubyte mid = c64.TIME_MID
-            ubyte lo = c64.TIME_LO
+        c64scr.print_uw(ww)
+        c64.CHROUT('\n')
+        c64scr.print_uw(w2)
+        c64.CHROUT('\n')
+        c64scr.print_uw(xw)
+        c64.CHROUT('\n')
+        c64scr.print_uw(x2)
+        c64.CHROUT('\n')
 
-            c64scr.plot(0,0)
-            c64scr.print_ub0(hi)
-            c64scr.print("   \n")
-            c64scr.print_ub0(mid)
-            c64scr.print("   \n")
-            c64scr.print_ub0(lo)
-            c64scr.print("   \n")
-
-            uword x = mkword(c64.TIME_LO, c64.TIME_MID)
-            c64scr.print_uw(x)
-            c64scr.print("     \n")
-
-            float clock_seconds_f = ((mkword(c64.TIME_LO, c64.TIME_MID) as float) + (c64.TIME_HI as float)*65536.0) / 60.0
-            c64flt.print_f(clock_seconds_f)
-            c64scr.print("     \n")
-            float hours_f = floor(clock_seconds_f / 3600.0)
-            clock_seconds_f -= hours_f*3600.0
-            float minutes_f = floor(clock_seconds_f / 60.0)
-            clock_seconds_f = floor(clock_seconds_f - minutes_f * 60.0)
-
-            c64flt.print_f(hours_f)
-            c64.CHROUT(':')
-            c64flt.print_f(minutes_f)
-            c64.CHROUT(':')
-            c64flt.print_f(clock_seconds_f)
-            c64scr.print("    \n")
-
-            ubyte hours = hours_f as ubyte
-            ubyte minutes = minutes_f as ubyte
-            ubyte seconds = clock_seconds_f as ubyte
-            c64scr.print_ub(hours)
-            c64.CHROUT(':')
-            c64scr.print_ub(minutes)
-            c64.CHROUT(':')
-            c64scr.print_ub(seconds)
-            c64scr.print("    \n")
-
-            goto loop
+        @($d020) = 34
 
     }
 
+    sub foo() -> uword {
+        A=4
+        return rndw()+A
+    }
 
 ;        for ubyte y in 0 to 3 {
 ;            for ubyte x in 0 to 10 {
