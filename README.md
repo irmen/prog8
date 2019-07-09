@@ -21,6 +21,7 @@ which aims to provide many conveniences over raw assembly code (even when using 
 - automatic variable allocations, automatic string variables and string sharing
 - constant folding in expressions (compile-time evaluation)
 - conditional branches
+- when statement to provide a 'jump table' alternative to if/elseif chains
 - automatic type conversions
 - floating point operations  (uses the C64 Basic ROM routines for this)
 - abstracting away low level aspects such as ZeroPage handling, program startup, explicit memory addresses
