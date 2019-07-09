@@ -32,6 +32,15 @@ fun optimizeAssembly(lines: MutableList<String>): Int {
     if(removeLines.isNotEmpty()) {
         for (i in removeLines.reversed())
             lines.removeAt(i)
+        linesByFour = getLinesBy(lines, 4)
+        numberOfOptimizations++
+    }
+
+    removeLines = optimizeCmpSequence(linesByFour)
+    if(removeLines.isNotEmpty()) {
+        for (i in removeLines.reversed())
+            lines.removeAt(i)
+        linesByFour = getLinesBy(lines, 4)
         numberOfOptimizations++
     }
 
@@ -40,12 +49,34 @@ fun optimizeAssembly(lines: MutableList<String>): Int {
     if(removeLines.isNotEmpty()) {
         for (i in removeLines.reversed())
             lines.removeAt(i)
+        linesByFourteen = getLinesBy(lines, 14)
         numberOfOptimizations++
     }
 
     // TODO more assembly optimizations?
 
     return numberOfOptimizations
+}
+
+fun optimizeCmpSequence(linesByFour: List<List<IndexedValue<String>>>): List<Int> {
+    // the when statement (on bytes) generates a sequence of:
+    //	 lda $ce01,x
+    //	 cmp #$20
+    //	 beq  check_prog8_s72choice_32
+    //	 lda $ce01,x
+    //	 cmp #$21
+    //	 beq  check_prog8_s73choice_33
+    // the repeated lda can be removed
+    val removeLines = mutableListOf<Int>()
+    for(lines in linesByFour) {
+        if(lines[0].value.trim()=="lda  ${(ESTACK_LO+1).toHex()},x" &&
+                lines[1].value.trim().startsWith("cmp ") &&
+                lines[2].value.trim().startsWith("beq ") &&
+                lines[3].value.trim()=="lda  ${(ESTACK_LO+1).toHex()},x") {
+            removeLines.add(lines[3].index) // remove the second lda
+        }
+    }
+    return removeLines
 }
 
 fun optimizeUselessStackByteWrites(linesByFour: List<List<IndexedValue<String>>>): List<Int> {
@@ -132,7 +163,7 @@ fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<String>>>): 
 }
 
 private fun getLinesBy(lines: MutableList<String>, windowSize: Int) =
-// all lines (that aren't empty or comments) in sliding pairs of 2
+// all lines (that aren't empty or comments) in sliding windows of certain size
         lines.withIndex().filter { it.value.isNotBlank() && !it.value.trimStart().startsWith(';') }.windowed(windowSize, partialWindows = false)
 
 private fun optimizeStoreLoadSame(linesByFour: List<List<IndexedValue<String>>>): List<Int> {

@@ -2309,7 +2309,7 @@ internal val patterns = listOf<AsmPattern>(
         },
         AsmPattern(listOf(Opcode.DUP_B, Opcode.CMP_UB),
                 listOf(Opcode.DUP_B, Opcode.CMP_B)) { segment ->
-            """ lda ${(ESTACK_LO+1).toHex()},x | cmp #${segment[1].arg!!.integerValue().toHex()} """
+            """ lda  ${(ESTACK_LO+1).toHex()},x | cmp  #${segment[1].arg!!.integerValue().toHex()} """
         }
 
 )
