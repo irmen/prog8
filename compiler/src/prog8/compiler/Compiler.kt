@@ -2083,26 +2083,55 @@ internal class Compiler(private val program: Program) {
 
     private fun translate(whenstmt: WhenStatement) {
         val conditionDt = whenstmt.condition.inferType(program)
+        if(conditionDt !in IntegerDatatypes)
+            throw CompilerException("when condition must be integer")
         translate(whenstmt.condition)
         if(whenstmt.choices.isEmpty()) {
-            when(conditionDt) {
-                in ByteDatatypes -> prog.instr(Opcode.DISCARD_BYTE)
-                in WordDatatypes -> prog.instr(Opcode.DISCARD_WORD)
-                else -> throw CompilerException("when condition must be integer")
-            }
+            if (conditionDt in ByteDatatypes) prog.instr(Opcode.DISCARD_BYTE)
+            else prog.instr(Opcode.DISCARD_WORD)
             return
         }
 
-        // TODO compare
+        val endOfWhenLabel = makeLabel(whenstmt, "when_end")
 
+        val choiceLabels = mutableListOf<String>()
+        var previousValue = 0
         for(choice in whenstmt.choiceValues(program)) {
-            if(choice.first==null) {
+            val choiceVal = choice.first
+            if(choiceVal==null) {
                 // the else clause
                 translate(choice.second.statements)
+            } else {
+                val subtract = choiceVal-previousValue
+                previousValue = choiceVal
+                if (conditionDt in ByteDatatypes) {
+                    prog.instr(Opcode.DUP_B)
+                    prog.instr(Opcode.PUSH_BYTE, RuntimeValue(conditionDt!!, subtract))
+                    prog.instr(opcodeCompare(conditionDt))
+                }
+                else {
+                    prog.instr(Opcode.DUP_W)
+                    prog.instr(Opcode.PUSH_WORD, RuntimeValue(conditionDt!!, subtract))
+                    prog.instr(opcodeCompare(conditionDt))
+                }
+                val choiceLabel = makeLabel(whenstmt, "choice_$choiceVal")
+                choiceLabels.add(choiceLabel)
+                prog.instr(Opcode.BZ, callLabel = choiceLabel)
             }
         }
+        prog.instr(Opcode.JUMP, callLabel = endOfWhenLabel)
 
-        TODO("whenstmt $whenstmt with choice values ${whenstmt.choiceValues(program).map{it.first}}")
+        for(choice in whenstmt.choices.zip(choiceLabels)) {
+            // TODO the various code blocks here, don't forget to jump to the end label at their eind
+            prog.label(choice.second)
+            prog.instr(Opcode.NOP)
+            prog.instr(Opcode.JUMP, callLabel = endOfWhenLabel)
+        }
+
+        prog.label(endOfWhenLabel)
+
+        if (conditionDt in ByteDatatypes) prog.instr(Opcode.DISCARD_BYTE)
+        else prog.instr(Opcode.DISCARD_WORD)
     }
 
     private fun translateAsmInclude(args: List<DirectiveArg>, source: Path) {

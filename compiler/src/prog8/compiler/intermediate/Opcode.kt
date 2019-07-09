@@ -19,6 +19,8 @@ enum class Opcode {
     PUSH_REGAY_WORD, // push registers A/Y as a 16-bit word
     PUSH_REGXY_WORD, // push registers X/Y as a 16-bit word
     PUSH_ADDR_HEAPVAR,  // push the address of the variable that's on the heap (string or array)
+    DUP_B,          // duplicate the top byte on the stack
+    DUP_W,          // duplicate the top word on the stack
 
     // popping values off the (evaluation) stack, possibly storing them in another location
     DISCARD_BYTE,    // discard top byte value

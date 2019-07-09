@@ -376,6 +376,16 @@ class StackVm(private var traceOutputFile: String?) {
                 val value = evalstack.pop()
                 checkDt(value, DataType.FLOAT)
             }
+            Opcode.DUP_B -> {
+                val value = evalstack.peek()
+                checkDt(value, DataType.BYTE, DataType.UBYTE)
+                evalstack.push(value)
+            }
+            Opcode.DUP_W -> {
+                val value = evalstack.peek()
+                checkDt(value, DataType.WORD, DataType.UWORD)
+                evalstack.push(value)
+            }
             Opcode.POP_MEM_BYTE -> {
                 val value = evalstack.pop()
                 checkDt(value, DataType.BYTE, DataType.UBYTE)

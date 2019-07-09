@@ -931,7 +931,7 @@ internal class AstChecker(private val program: Program,
             if (constvalue == null)
                 checkResult.add(SyntaxError("value of a when choice must be a constant", whenChoice.position))
             else if (constvalue.type !in IntegerDatatypes)
-                checkResult.add(SyntaxError("value of a when choice must be an integer", whenChoice.position))
+                checkResult.add(SyntaxError("value of a when choice must be a byte or word", whenChoice.position))
         } else {
             if(whenChoice !== (whenChoice.parent as WhenStatement).choices.last())
                 checkResult.add(SyntaxError("else choice must be the last one", whenChoice.position))

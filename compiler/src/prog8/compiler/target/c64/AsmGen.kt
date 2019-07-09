@@ -475,6 +475,12 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
             Opcode.RRESTOREX -> " sta  ${C64Zeropage.SCRATCH_REG} |  pla |  tax |  lda  ${C64Zeropage.SCRATCH_REG}"
             Opcode.DISCARD_BYTE -> " inx"
             Opcode.DISCARD_WORD -> " inx"
+            Opcode.DUP_B -> {
+                " dex | lda ${(ESTACK_LO+1).toHex()},x | sta ${ESTACK_LO.toHex()},x"
+            }
+            Opcode.DUP_W -> {
+                " dex | lda ${(ESTACK_LO+1).toHex()},x | sta ${ESTACK_LO.toHex()},x | lda ${(ESTACK_HI+1).toHex()},x | sta ${ESTACK_HI.toHex()},x "
+            }
             Opcode.DISCARD_FLOAT -> " inx |  inx |  inx"
             Opcode.INLINE_ASSEMBLY ->  "@inline@" + (ins.callLabel2 ?: "")      // All of the inline assembly is stored in the calllabel2 property. the '@inline@' is a special marker to accept it.
             Opcode.INCLUDE_FILE -> {

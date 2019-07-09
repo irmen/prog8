@@ -197,7 +197,7 @@ scoped_identifier :  NAME ('.' NAME)* ;
 
 register :  'A' | 'X' | 'Y' ;
 
-registerorpair :  'A' | 'X' | 'Y' | 'AX' | 'AY' | 'XY' ;          // only used in subroutine params and returnvalues
+registerorpair :  'A' | 'X' | 'Y' | 'AX' | 'AY' | 'XY' ;        // pairs can only be used in subroutine params and returnvalues
 
 statusregister :  'Pc' | 'Pz' | 'Pn' | 'Pv' ;
 
