@@ -35,7 +35,7 @@ internal fun Program.optimizeStatements(optimizeInlining: Boolean): Int {
         val namescope = scope.parent as INameScope
         val idx = namescope.statements.indexOf(scope as IStatement)
         if(idx>=0) {
-            namescope.statements[idx] = NopStatement(scope.position)
+            namescope.statements[idx] = NopStatement.insteadOf(namescope.statements[idx])
             namescope.statements.addAll(idx, scope.statements)
         }
     }

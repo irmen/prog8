@@ -36,7 +36,9 @@ internal class StatementOptimizer(private val program: Program, private val opti
         super.visit(program)
 
         // at the end, remove the encountered NOP statements
-        this.nopStatements.forEach { it.definingScope().remove(it) }
+        this.nopStatements.forEach {
+            it.definingScope().remove(it)
+        }
     }
 
     private fun inlineSubroutines(callgraph: CallGraph) {
@@ -145,13 +147,13 @@ internal class StatementOptimizer(private val program: Program, private val opti
             if (block.containsNoCodeNorVars()) {
                 optimizationsDone++
                 printWarning("removing empty block '${block.name}'", block.position)
-                return NopStatement(block.position)
+                return NopStatement.insteadOf(block)
             }
 
             if (block !in callgraph.usedSymbols) {
                 optimizationsDone++
                 printWarning("removing unused block '${block.name}'", block.position)
-                return NopStatement(block.position)  // remove unused block
+                return NopStatement.insteadOf(block)  // remove unused block
             }
         }
 
@@ -165,7 +167,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
             if(subroutine.containsNoCodeNorVars()) {
                 printWarning("removing empty subroutine '${subroutine.name}'", subroutine.position)
                 optimizationsDone++
-                return NopStatement(subroutine.position)
+                return NopStatement.insteadOf(subroutine)
             }
         }
 
@@ -189,7 +191,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
         if(subroutine !in callgraph.usedSymbols && !forceOutput) {
             printWarning("removing unused subroutine '${subroutine.name}'", subroutine.position)
             optimizationsDone++
-            return NopStatement(subroutine.position)        // remove unused subroutine
+            return NopStatement.insteadOf(subroutine)
         }
 
         return subroutine
@@ -201,7 +203,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
             if(decl.type!=VarDeclType.CONST)
                 printWarning("removing unused variable '${decl.name}'", decl.position)
             optimizationsDone++
-            return NopStatement(decl.position)        // remove unused variable
+            return NopStatement.insteadOf(decl)
         }
 
         return super.visit(decl)
@@ -238,7 +240,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
             if (functionName in pureBuiltinFunctions) {
                 printWarning("statement has no effect (function return value is discarded)", functionCallStatement.position)
                 optimizationsDone++
-                return NopStatement(functionCallStatement.position)
+                return NopStatement.insteadOf(functionCallStatement)
             }
         }
 
@@ -283,7 +285,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
             }
             if(first is ReturnFromIrq || first is Return) {
                 optimizationsDone++
-                return NopStatement(functionCallStatement.position)
+                return NopStatement.insteadOf(functionCallStatement)
             }
         }
 
@@ -315,7 +317,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
 
         if(ifStatement.truepart.containsNoCodeNorVars() && ifStatement.elsepart.containsNoCodeNorVars()) {
             optimizationsDone++
-            return NopStatement(ifStatement.position)
+            return NopStatement.insteadOf(ifStatement)
         }
 
         if(ifStatement.truepart.containsNoCodeNorVars() && ifStatement.elsepart.containsCodeOrVars()) {
@@ -349,13 +351,13 @@ internal class StatementOptimizer(private val program: Program, private val opti
         if(forLoop.body.containsNoCodeNorVars()) {
             // remove empty for loop
             optimizationsDone++
-            return NopStatement(forLoop.position)
+            return NopStatement.insteadOf(forLoop)
         } else if(forLoop.body.statements.size==1) {
             val loopvar = forLoop.body.statements[0] as? VarDecl
             if(loopvar!=null && loopvar.name==forLoop.loopVar?.nameInSource?.singleOrNull()) {
                 // remove empty for loop
                 optimizationsDone++
-                return NopStatement(forLoop.position)
+                return NopStatement.insteadOf(forLoop)
             }
         }
 
@@ -394,7 +396,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
                 // always false -> ditch whole statement
                 printWarning("condition is always false", whileLoop.position)
                 optimizationsDone++
-                NopStatement(whileLoop.position)
+                NopStatement.insteadOf(whileLoop)
             }
         }
         return whileLoop
@@ -486,7 +488,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
         if(label!=null) {
             if(scope.statements.indexOf(label) == scope.statements.indexOf(jump)+1) {
                 optimizationsDone++
-                return NopStatement(jump.position)
+                return NopStatement.insteadOf(jump)
             }
         }
 
@@ -501,7 +503,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
             val target=assignment.targets[0]
             if(target isSameAs assignment.value) {
                 optimizationsDone++
-                return NopStatement(assignment.position)
+                return NopStatement.insteadOf(assignment)
             }
             val targetDt = target.inferType(program, assignment)
             val bexpr=assignment.value as? BinaryExpression
@@ -526,7 +528,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
                             "+" -> {
                                 if (cv == 0.0) {
                                     optimizationsDone++
-                                    return NopStatement(assignment.position)
+                                    return NopStatement.insteadOf(assignment)
                                 } else if (targetDt in IntegerDatatypes && floor(cv) == cv) {
                                     if((vardeclDt == VarDeclType.MEMORY && cv in 1.0..3.0) || (vardeclDt!=VarDeclType.MEMORY && cv in 1.0..8.0)) {
                                         // replace by several INCs (a bit less when dealing with memory targets)
@@ -541,7 +543,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
                             "-" -> {
                                 if (cv == 0.0) {
                                     optimizationsDone++
-                                    return NopStatement(assignment.position)
+                                    return NopStatement.insteadOf(assignment)
                                 } else if (targetDt in IntegerDatatypes && floor(cv) == cv) {
                                     if((vardeclDt == VarDeclType.MEMORY && cv in 1.0..3.0) || (vardeclDt!=VarDeclType.MEMORY && cv in 1.0..8.0)) {
                                         // replace by several DECs (a bit less when dealing with memory targets)
@@ -555,28 +557,28 @@ internal class StatementOptimizer(private val program: Program, private val opti
                             }
                             "*" -> if (cv == 1.0) {
                                 optimizationsDone++
-                                return NopStatement(assignment.position)
+                                return NopStatement.insteadOf(assignment)
                             }
                             "/" -> if (cv == 1.0) {
                                 optimizationsDone++
-                                return NopStatement(assignment.position)
+                                return NopStatement.insteadOf(assignment)
                             }
                             "**" -> if (cv == 1.0) {
                                 optimizationsDone++
-                                return NopStatement(assignment.position)
+                                return NopStatement.insteadOf(assignment)
                             }
                             "|" -> if (cv == 0.0) {
                                 optimizationsDone++
-                                return NopStatement(assignment.position)
+                                return NopStatement.insteadOf(assignment)
                             }
                             "^" -> if (cv == 0.0) {
                                 optimizationsDone++
-                                return NopStatement(assignment.position)
+                                return NopStatement.insteadOf(assignment)
                             }
                             "<<" -> {
                                 if (cv == 0.0) {
                                     optimizationsDone++
-                                    return NopStatement(assignment.position)
+                                    return NopStatement.insteadOf(assignment)
                                 }
                                 if (((targetDt == DataType.UWORD || targetDt == DataType.WORD) && cv > 15.0) ||
                                         ((targetDt == DataType.UBYTE || targetDt == DataType.BYTE) && cv > 7.0)) {
@@ -598,7 +600,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
                             ">>" -> {
                                 if (cv == 0.0) {
                                     optimizationsDone++
-                                    return NopStatement(assignment.position)
+                                    return NopStatement.insteadOf(assignment)
                                 }
                                 if (((targetDt == DataType.UWORD || targetDt == DataType.WORD) && cv > 15.0) ||
                                         ((targetDt == DataType.UBYTE || targetDt == DataType.BYTE) && cv > 7.0)) {
@@ -644,7 +646,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
         val stmts = label.definingScope().statements
         val startIdx = stmts.indexOf(label)
         if(startIdx<(stmts.size-1) && stmts[startIdx+1] == label)
-            return NopStatement(label.position)
+            return NopStatement.insteadOf(label)
 
         return super.visit(label)
     }

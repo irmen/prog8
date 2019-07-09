@@ -479,6 +479,14 @@ class NopStatement(override val position: Position): IStatement {
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+
+    companion object {
+        fun insteadOf(stmt: IStatement): NopStatement {
+            val nop = NopStatement(stmt.position)
+            nop.parent = stmt.parent
+            return nop
+        }
+    }
 }
 
 // the subroutine class covers both the normal user-defined subroutines,
