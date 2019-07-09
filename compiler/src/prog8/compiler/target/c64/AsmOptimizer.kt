@@ -28,7 +28,7 @@ fun optimizeAssembly(lines: MutableList<String>): Int {
         numberOfOptimizations++
     }
 
-    removeLines = optimizeStoreLoadSame(linesByFour)
+    removeLines = optimizeCmpSequence(linesByFour)
     if(removeLines.isNotEmpty()) {
         for (i in removeLines.reversed())
             lines.removeAt(i)
@@ -36,7 +36,7 @@ fun optimizeAssembly(lines: MutableList<String>): Int {
         numberOfOptimizations++
     }
 
-    removeLines = optimizeCmpSequence(linesByFour)
+    removeLines = optimizeStoreLoadSame(linesByFour)
     if(removeLines.isNotEmpty()) {
         for (i in removeLines.reversed())
             lines.removeAt(i)

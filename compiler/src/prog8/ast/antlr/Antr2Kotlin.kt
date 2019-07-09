@@ -554,13 +554,13 @@ private fun prog8Parser.WhenstmtContext.toAst(): WhenStatement {
 }
 
 private fun prog8Parser.When_choiceContext.toAst(): WhenChoice {
-    val value = expression()?.toAst()
+    val values = expression_list()?.toAst()
     val stmt = statement()?.toAst()
     val stmt_block = statement_block()?.toAst()?.toMutableList() ?: mutableListOf()
     if(stmt!=null)
         stmt_block.add(stmt)
     val scope = AnonymousScope(stmt_block, toPosition())
-    return WhenChoice(value, scope, toPosition())
+    return WhenChoice(values, scope, toPosition())
 }
 
 internal fun escape(str: String) = str.replace("\t", "\\t").replace("\n", "\\n").replace("\r", "\\r")

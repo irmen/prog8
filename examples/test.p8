@@ -15,6 +15,10 @@
         aa=30
         yy=2
 
+        c64scr.print_ub(7)
+        c64scr.print("?: ")
+        check(3, 4)
+
         c64scr.print_ub(aa+yy)
         c64scr.print("?: ")
         check(aa, yy)
@@ -60,7 +64,7 @@
             10 -> {
                 c64scr.print("ten")
             }
-            5 -> c64scr.print("five")
+            5, 6, 7 -> c64scr.print("five or six or seven")
             30 -> c64scr.print("thirty")
             31 -> c64scr.print("thirty1")
             32 -> c64scr.print("thirty2")

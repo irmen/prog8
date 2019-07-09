@@ -2096,11 +2096,11 @@ internal class Compiler(private val program: Program) {
 
         val choiceLabels = mutableListOf<String>()
         for(choice in whenstmt.choiceValues(program)) {
-            val choiceVal = choice.first
-            if(choiceVal==null) {
+            if(choice.first==null) {
                 // the else clause
                 translate(choice.second.statements)
             } else {
+                val choiceVal = choice.first!!.single()
                 val rval = RuntimeValue(conditionDt!!, choiceVal)
                 if (conditionDt in ByteDatatypes) {
                     prog.instr(Opcode.DUP_B)

@@ -282,4 +282,4 @@ repeatloop:  'repeat' (statement | statement_block) EOL? 'until' expression ;
 
 whenstmt: 'when' expression '{' EOL (when_choice | EOL) * '}' EOL? ;
 
-when_choice:  (expression | 'else' ) '->' (statement | statement_block ) ;
+when_choice:  (expression_list | 'else' ) '->' (statement | statement_block ) ;

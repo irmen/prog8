@@ -121,14 +121,10 @@ waitkey:
 
     sub keypress(ubyte key) {
         when key {
-            157 -> move_left()
-            ',' -> move_left()
-            29  -> move_right()
-            '/' -> move_right()
-            17  -> move_down_faster()
-            '.' -> move_down_faster()
-            145 -> drop_down_immediately()
-            ' ' -> drop_down_immediately()
+            157, ',' -> move_left()
+            29, '/'  -> move_right()
+            17, '.'  -> move_down_faster()
+            145, ' ' -> drop_down_immediately()
             'z' -> {
                 ; no joystick equivalent (there is only 1 fire button)
                 ; rotate counter clockwise

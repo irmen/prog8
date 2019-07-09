@@ -163,7 +163,7 @@ interface IAstVisitor {
     }
 
     fun visit(whenChoice: WhenChoice) {
-        whenChoice.value?.accept(this)
+        whenChoice.values?.forEach { it.accept(this) }
         whenChoice.statements.accept(this)
     }
 }

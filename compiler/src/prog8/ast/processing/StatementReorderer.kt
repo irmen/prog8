@@ -277,9 +277,22 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
     }
 
     override fun visit(whenStatement: WhenStatement): IStatement {
-        // sort the choices in low-to-high value order
+        // make sure all choices are just for one single value
+        val choices = whenStatement.choices.toList()
+        for(choice in choices) {
+            if(choice.values==null || choice.values.size==1)
+                continue
+            for(v in choice.values) {
+                val newchoice=WhenChoice(listOf(v), choice.statements, choice.position)
+                newchoice.parent = choice.parent
+                whenStatement.choices.add(newchoice)
+            }
+            whenStatement.choices.remove(choice)
+        }
+
+        // sort the choices in low-to-high value order (nulls last)
         whenStatement.choices
-                .sortWith(compareBy<WhenChoice, Int?>(nullsLast(), {it.value?.constValue(program)?.asIntegerValue}))
+                .sortWith(compareBy<WhenChoice, Int?>(nullsLast(), {it.values?.single()?.constValue(program)?.asIntegerValue}))
         return super.visit(whenStatement)
     }
 }

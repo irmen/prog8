@@ -687,35 +687,40 @@ class WhenStatement(val condition: IExpression,
         choices.forEach { it.linkParents(this) }
     }
 
-    fun choiceValues(program: Program): List<Pair<Int?, WhenChoice>> {
+    fun choiceValues(program: Program): List<Pair<List<Int>?, WhenChoice>> {
         // only gives sensible results when the choices are all valid (constant integers)
-        return choices
-                .map {
-                    val cv = it.value?.constValue(program)
-                    if(cv==null)
-                        null to it
-                    else
-                        cv.asNumericValue!!.toInt() to it
-                    }
+        val result = mutableListOf<Pair<List<Int>?, WhenChoice>>()
+        for(choice in choices) {
+            if(choice.values==null)
+                result.add(null to choice)
+            else {
+                val values = choice.values.map { it.constValue(program)?.asNumericValue?.toInt() }
+                if(values.contains(null))
+                    result.add(null to choice)
+                else
+                    result.add(values.filterNotNull() to choice)
+            }
+        }
+        return result
     }
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
 }
 
-class WhenChoice(val value: IExpression?,           // if null,  this is the 'else' part
+class WhenChoice(val values: List<IExpression>?,           // if null,  this is the 'else' part
                  val statements: AnonymousScope,
                  override val position: Position) : Node {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
-        value?.linkParents(this)
+        values?.forEach { it.linkParents(this) }
         statements.linkParents(this)
         this.parent = parent
     }
 
     override fun toString(): String {
-        return "Choice($value at $position)"
+        return "Choice($values at $position)"
     }
 
     fun accept(visitor: IAstVisitor) = visitor.visit(this)

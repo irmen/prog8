@@ -4840,8 +4840,8 @@ public class prog8Parser extends Parser {
 	}
 
 	public static class When_choiceContext extends ParserRuleContext {
-		public ExpressionContext expression() {
-			return getRuleContext(ExpressionContext.class,0);
+		public Expression_listContext expression_list() {
+			return getRuleContext(Expression_listContext.class,0);
 		}
 		public StatementContext statement() {
 			return getRuleContext(StatementContext.class,0);
@@ -4886,7 +4886,7 @@ public class prog8Parser extends Parser {
 			case SINGLECHAR:
 				{
 				setState(724);
-				expression(0);
+				expression_list();
 				}
 				break;
 			case T__90:
@@ -5296,7 +5296,7 @@ public class prog8Parser extends Parser {
 		"\u02cc\3\2\2\2\u02ce\u02d1\3\2\2\2\u02cf\u02cd\3\2\2\2\u02cf\u02d0\3\2"+
 		"\2\2\u02d0\u02d2\3\2\2\2\u02d1\u02cf\3\2\2\2\u02d2\u02d4\7X\2\2\u02d3"+
 		"\u02d5\7s\2\2\u02d4\u02d3\3\2\2\2\u02d4\u02d5\3\2\2\2\u02d5\u0083\3\2"+
-		"\2\2\u02d6\u02d9\5(\25\2\u02d7\u02d9\7]\2\2\u02d8\u02d6\3\2\2\2\u02d8"+
+		"\2\2\u02d6\u02d9\5\66\34\2\u02d7\u02d9\7]\2\2\u02d8\u02d6\3\2\2\2\u02d8"+
 		"\u02d7\3\2\2\2\u02d9\u02da\3\2\2\2\u02da\u02dd\7V\2\2\u02db\u02de\5\b"+
 		"\5\2\u02dc\u02de\5^\60\2\u02dd\u02db\3\2\2\2\u02dd\u02dc\3\2\2\2\u02de"+
 		"\u0085\3\2\2\2e\u0088\u008a\u0091\u0096\u00b2\u00ba\u00be\u00c5\u00c8"+

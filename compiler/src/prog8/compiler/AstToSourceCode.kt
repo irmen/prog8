@@ -397,11 +397,15 @@ class AstToSourceCode(val output: (text: String) -> Unit): IAstVisitor {
     }
 
     override fun visit(whenChoice: WhenChoice) {
-        if(whenChoice.value==null)
+        if(whenChoice.values==null)
             outputi("else -> ")
         else {
             outputi("")
-            whenChoice.value.accept(this)
+            for(value in whenChoice.values) {
+                value.accept(this)
+                if(value !== whenChoice.values.last())
+                    output(",")
+            }
             output(" -> ")
         }
         if(whenChoice.statements.statements.size==1)
