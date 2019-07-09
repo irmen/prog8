@@ -10,6 +10,9 @@ import prog8.vm.stackvm.Syscall
 import prog8.vm.stackvm.syscallsForStackVm
 
 
+// note: see https://wiki.nesdev.com/w/index.php/6502_assembly_optimisations
+
+
 private var breakpointCounter = 0
 
 internal fun simpleInstr2Asm(ins: Instruction, block: IntermediateProgram.ProgramBlock): String? {
@@ -63,27 +66,26 @@ internal fun simpleInstr2Asm(ins: Instruction, block: IntermediateProgram.Progra
         Opcode.DISCARD_WORD -> " inx"
         Opcode.DISCARD_FLOAT -> " inx |  inx |  inx"
         Opcode.DUP_B -> {
-            " dex | lda ${(ESTACK_LO+1).toHex()},x | sta ${ESTACK_LO.toHex()},x"
+            " lda ${(ESTACK_LO+1).toHex()},x | sta ${ESTACK_LO.toHex()},x | dex | ;DUP_B "
         }
         Opcode.DUP_W -> {
-            " dex | lda ${(ESTACK_LO+1).toHex()},x | sta ${ESTACK_LO.toHex()},x | lda ${(ESTACK_HI+1).toHex()},x | sta ${ESTACK_HI.toHex()},x "
+            " lda ${(ESTACK_LO+1).toHex()},x | sta ${ESTACK_LO.toHex()},x | lda ${(ESTACK_HI+1).toHex()},x | sta ${ESTACK_HI.toHex()},x | dex "
         }
 
         Opcode.CMP_B, Opcode.CMP_UB -> {
-            " inx | lda ${ESTACK_LO.toHex()},x | inx | cmp ${ESTACK_LO.toHex()},x "
+            " inx | lda ${ESTACK_LO.toHex()},x | cmp #${ins.arg!!.integerValue().toHex()} | ;CMP_B "
         }
 
         Opcode.CMP_W, Opcode.CMP_UW -> {
             """
             inx
-            inx
-            lda   ${(ESTACK_HI-1).toHex()},x
-            cmp   ${(ESTACK_HI).toHex()},x
+            lda   ${ESTACK_HI.toHex()},x
+            cmp   #>${ins.arg!!.integerValue().toHex()}
             bne   +
-            lda   ${(ESTACK_LO-1).toHex()},x
-            cmp   ${(ESTACK_LO).toHex()},x
-            bne   +
-            lda   #0
+            lda   ${ESTACK_LO.toHex()},x
+            cmp   #<${ins.arg!!.integerValue().toHex()}
+            ; bne   +    not necessary?
+            ; lda   #0   not necessary?
 +                           
             """
         }

@@ -18,13 +18,32 @@
         c64scr.print_ub(aa+yy)
         c64scr.print("?: ")
         check(aa, yy)
-        aa+=9
+        aa++
+        c64scr.print_ub(aa+yy)
+        c64scr.print("?: ")
+        check(aa, yy)
+        aa++
         c64scr.print_ub(aa+yy)
         c64scr.print("?: ")
         check(aa, yy)
 
         c64scr.print_uw(uw)
         c64scr.print("?: ")
+        checkuw(uw)
+        uw++
+        c64scr.print_uw(uw)
+        c64scr.print("?: ")
+        checkuw(uw)
+        uw++
+        c64scr.print_uw(uw)
+        c64scr.print("?: ")
+        checkuw(uw)
+
+        c64scr.print("stack (255?): ")
+        c64scr.print_ub(X)
+    }
+
+    sub checkuw(uword uw) {
         when uw {
             12345 -> c64scr.print("12345")
             12346 -> c64scr.print("12346")
@@ -34,9 +53,6 @@
             else -> c64scr.print("not in table")
         }
         c64.CHROUT('\n')
-
-        c64scr.print("stack (255?): ")
-        c64scr.print_ub(X)
     }
 
     sub check(ubyte a, ubyte y) {

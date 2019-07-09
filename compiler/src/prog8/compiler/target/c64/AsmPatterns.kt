@@ -5,6 +5,9 @@ import prog8.compiler.intermediate.Instruction
 import prog8.compiler.intermediate.Opcode
 import prog8.compiler.toHex
 
+// note: see https://wiki.nesdev.com/w/index.php/6502_assembly_optimisations
+
+
 internal class AsmPattern(val sequence: List<Opcode>, val altSequence: List<Opcode>?=null, val asm: (List<Instruction>)->String?)
 
 internal fun loadAFromIndexedByVar(idxVarInstr: Instruction, readArrayInstr: Instruction): String {
@@ -2289,6 +2292,24 @@ internal val patterns = listOf<AsmPattern>(
                     ldx  ${C64Zeropage.SCRATCH_REG_X}
                     """
             } else null
+        },
+
+        AsmPattern(listOf(Opcode.DUP_W, Opcode.CMP_UW),
+                listOf(Opcode.DUP_W, Opcode.CMP_W)) { segment ->
+            """
+            lda   ${(ESTACK_HI+1).toHex()},x
+            cmp   #>${segment[1].arg!!.integerValue().toHex()}
+            bne   +
+            lda   ${(ESTACK_LO+1).toHex()},x
+            cmp   #<${segment[1].arg!!.integerValue().toHex()}
+            ; bne   +    not necessary?
+            ; lda   #0   not necessary?
++
+            """
+        },
+        AsmPattern(listOf(Opcode.DUP_B, Opcode.CMP_UB),
+                listOf(Opcode.DUP_B, Opcode.CMP_B)) { segment ->
+            """ lda ${(ESTACK_LO+1).toHex()},x | cmp #${segment[1].arg!!.integerValue().toHex()} """
         }
 
 )

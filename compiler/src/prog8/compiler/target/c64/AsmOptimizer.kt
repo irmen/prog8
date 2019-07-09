@@ -2,6 +2,10 @@ package prog8.compiler.target.c64
 
 import prog8.compiler.toHex
 
+
+// note: see https://wiki.nesdev.com/w/index.php/6502_assembly_optimisations
+
+
 fun optimizeAssembly(lines: MutableList<String>): Int {
 
     var numberOfOptimizations = 0
