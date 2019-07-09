@@ -9,6 +9,9 @@
         Y=22
         uword uw = A*Y
 
+        str teststring = "hello"
+        c64scr.print(&teststring)
+
         when uw {
             12345 -> {
                 A=44

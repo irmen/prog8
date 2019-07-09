@@ -1,5 +1,6 @@
 package prog8.compiler
 
+import prog8.ast.antlr.escape
 import prog8.ast.IFunctionCall
 import prog8.ast.IStatement
 import prog8.ast.Module
@@ -245,7 +246,7 @@ class AstToSourceCode(val output: (text: String) -> Unit): IAstVisitor {
     override fun visit(literalValue: LiteralValue) {
         when {
             literalValue.isNumeric -> output(literalValue.asNumericValue.toString())
-            literalValue.isString -> output("\"${literalValue.strvalue}\"")
+            literalValue.isString -> output("\"${escape(literalValue.strvalue!!)}\"")
             literalValue.isArray -> {
                 if(literalValue.arrayvalue!=null) {
                     output("[")
@@ -385,6 +386,30 @@ class AstToSourceCode(val output: (text: String) -> Unit): IAstVisitor {
         output(builtinFunctionStatementPlaceholder.name)
     }
 
+    override fun visit(whenStatement: WhenStatement) {
+        output("when ")
+        whenStatement.condition.accept(this)
+        outputln(" {")
+        scopelevel++
+        whenStatement.choices.forEach { it.accept(this) }
+        scopelevel--
+        outputlni("}")
+    }
+
+    override fun visit(whenChoice: WhenChoice) {
+        if(whenChoice.value==null)
+            outputi("else -> ")
+        else {
+            outputi("")
+            whenChoice.value.accept(this)
+            output(" -> ")
+        }
+        if(whenChoice.statements.statements.size==1)
+            whenChoice.statements.statements.single().accept(this)
+        else
+            whenChoice.statements.accept(this)
+        outputln("")
+    }
     override fun visit(nopStatement: NopStatement) {
         TODO("NOP???")
     }
