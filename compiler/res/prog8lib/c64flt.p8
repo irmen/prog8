@@ -52,11 +52,11 @@ asmsub	MOVMF		(uword mflpt @ XY) clobbers(A,Y)	= $bbd4		; store fac1 to memory  
 
 ; fac1-> signed word in Y/A (might throw ILLEGAL QUANTITY)
 ; (tip: use c64flt.FTOSWRDAY to get A/Y output; lo/hi switched to normal little endian order)
-asmsub	FTOSWORDYA	() clobbers(X) -> (ubyte @ Y, ubyte @ A)  = $b1aa
+asmsub	FTOSWORDYA	() clobbers(X) -> ubyte @ Y, ubyte @ A  = $b1aa
 
 ; fac1 -> unsigned word in Y/A (might throw ILLEGAL QUANTITY) (result also in $14/15)
 ; (tip: use c64flt.GETADRAY to get A/Y output; lo/hi switched to normal little endian order)
-asmsub	GETADR		() clobbers(X) -> (ubyte @ Y, ubyte @ A)  = $b7f7
+asmsub	GETADR		() clobbers(X) -> ubyte @ Y, ubyte @ A  = $b7f7
 
 asmsub	QINT		() clobbers(A,X,Y)			= $bc9b		; fac1 -> 4-byte signed integer in 98-101 ($62-$65), with the MSB FIRST.
 asmsub	AYINT		() clobbers(A,X,Y)			= $b1bf		; fac1-> signed word in 100-101 ($64-$65) MSB FIRST. (might throw ILLEGAL QUANTITY)
@@ -73,12 +73,12 @@ asmsub	FREADUY		(ubyte value @ Y) clobbers(A,X,Y)	= $b3a2		; 8 bit unsigned Y ->
 asmsub	FREADSA		(byte value @ A) clobbers(A,X,Y)	= $bc3c		; 8 bit signed A -> float in fac1
 asmsub	FREADSTR	(ubyte length @ A) clobbers(A,X,Y)	= $b7b5		; str -> fac1, $22/23 must point to string, A=string length
 asmsub	FPRINTLN	() clobbers(A,X,Y)			= $aabc		; print string of fac1, on one line (= with newline) destroys fac1.  (consider FOUT + STROUT as well)
-asmsub	FOUT		() clobbers(X) -> (uword @ AY)		= $bddd		; fac1 -> string, address returned in AY ($0100)
+asmsub	FOUT		() clobbers(X) -> uword @ AY		= $bddd		; fac1 -> string, address returned in AY ($0100)
 
 asmsub	FADDH		() clobbers(A,X,Y)			= $b849		; fac1 += 0.5, for rounding- call this before INT
 asmsub	MUL10		() clobbers(A,X,Y)			= $bae2		; fac1 *= 10
 asmsub	DIV10		() clobbers(A,X,Y)			= $bafe		; fac1 /= 10 , CAUTION: result is always positive!
-asmsub	FCOMP		(uword mflpt @ AY) clobbers(X,Y) -> (ubyte @ A) = $bc5b		; A = compare fac1 to mflpt in A/Y, 0=equal 1=fac1 is greater, 255=fac1 is less than
+asmsub	FCOMP		(uword mflpt @ AY) clobbers(X,Y) -> ubyte @ A = $bc5b		; A = compare fac1 to mflpt in A/Y, 0=equal 1=fac1 is greater, 255=fac1 is less than
 
 asmsub	FADDT		() clobbers(A,X,Y)			= $b86a		; fac1 += fac2
 asmsub	FADD		(uword mflpt @ AY) clobbers(A,X,Y)	= $b867		; fac1 += mflpt value from A/Y
@@ -95,7 +95,7 @@ asmsub	NOTOP		() clobbers(A,X,Y)			= $aed4		; fac1 = NOT(fac1)
 asmsub	INT		() clobbers(A,X,Y)			= $bccc		; INT() truncates, use FADDH first to round instead of trunc
 asmsub	LOG		() clobbers(A,X,Y)			= $b9ea		; fac1 = LN(fac1)  (natural log)
 asmsub	SGN		() clobbers(A,X,Y)			= $bc39		; fac1 = SGN(fac1), result of SIGN (-1, 0 or 1)
-asmsub	SIGN		() -> (ubyte @ A)			= $bc2b		; SIGN(fac1) to A, $ff, $0, $1 for negative, zero, positive
+asmsub	SIGN		() -> ubyte @ A				= $bc2b		; SIGN(fac1) to A, $ff, $0, $1 for negative, zero, positive
 asmsub	ABS		()					= $bc58		; fac1 = ABS(fac1)
 asmsub	SQR		() clobbers(A,X,Y)			= $bf71		; fac1 = SQRT(fac1)
 asmsub	SQRA		() clobbers(A,X,Y)			= $bf74		; fac1 = SQRT(fac2)
@@ -170,7 +170,7 @@ asmsub  GIVAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
 	}}
 }
 
-asmsub  FTOSWRDAY  () clobbers(X) -> (uword @ AY)  {
+asmsub  FTOSWRDAY  () clobbers(X) -> uword @ AY  {
 	; ---- fac1 to signed word in A/Y
 	%asm {{
 		jsr  FTOSWORDYA	; note the inverse Y/A order
@@ -181,7 +181,7 @@ asmsub  FTOSWRDAY  () clobbers(X) -> (uword @ AY)  {
 	}}
 }
 
-asmsub  GETADRAY  () clobbers(X) -> (uword @ AY)  {
+asmsub  GETADRAY  () clobbers(X) -> uword @ AY  {
 	; ---- fac1 to unsigned word in A/Y
 	%asm {{
 		jsr  GETADR		; this uses the inverse order, Y/A
