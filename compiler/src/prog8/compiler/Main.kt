@@ -65,6 +65,7 @@ fun compileProgram(filepath: Path,
             val time3 = measureTimeMillis {
                 programAst.reorderStatements()     // reorder statements and add type casts, to please the compiler later
             }
+            printAst(programAst)
             //println(" time3: $time3")
             val time4 = measureTimeMillis {
                 programAst.checkValid(compilerOptions)          // check if tree is valid
