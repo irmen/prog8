@@ -521,7 +521,7 @@ internal class AstChecker(private val program: Program,
                         checkValueTypeAndRange(decl.datatype, arraySpec, decl.value as LiteralValue, program.heap)
                     }
                     else -> {
-                        err("var/const declaration needs a compile-time constant initializer value, or range, instead found: ${decl.value!!::class.simpleName}")
+                        err("var/const declaration needs a compile-time constant initializer value, or range, instead found: ${decl.value!!.javaClass.simpleName}")
                         return super.visit(decl)
                     }
                 }
@@ -544,7 +544,7 @@ internal class AstChecker(private val program: Program,
                 }
 
                 if(decl.value !is LiteralValue) {
-                    err("value of memory var decl is not a literal (it is a ${decl.value!!::class.simpleName}).", decl.value?.position)
+                    err("value of memory var decl is not a literal (it is a ${decl.value!!.javaClass.simpleName}).", decl.value?.position)
                 } else {
                     val value = decl.value as LiteralValue
                     if (value.asIntegerValue == null || value.asIntegerValue< 0 || value.asIntegerValue > 65535) {

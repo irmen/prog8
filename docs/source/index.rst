@@ -142,22 +142,33 @@ downloads.
 Finally: a **C-64 emulator** (or a real C-64 ofcourse) to run the programs on. The compiler assumes the presence
 of the `Vice emulator <http://vice-emu.sourceforge.net/>`_.
 
-.. hint::
-    The compiler is almost completely written in Kotlin, but the packaged release version
-    only requires a Java runtime. All other needed libraries and files are embedded in the
-    packaged jar file.
+.. important::
+    **Building the compiler itself:**
 
-.. note::
-    Building the compiler itself:
-
-    (re)building the compiler itself requires a Kotlin SDK version 1.3.
+    (re)building the compiler itself requires a recent Kotlin SDK.
     The compiler is developed using the `IntelliJ IDEA <https://www.jetbrains.com/idea/>`_
     IDE from Jetbrains, with the Kotlin plugin (free community edition of this IDE is available).
     But a bare Kotlin SDK installation should work just as well.
+
     A shell script (``create_compiler_jar.sh``) is provided to build and package the compiler from the command line.
+    If you have the 'fat-jar' you can run it with ``java -jar prog8compiler.jar``.
     You can also use the Gradle build system to build the compiler (it will take care of
-    downloading all required libraries for you) by typing ``gradle installDist`` for instance.
+    downloading all required libraries for you) by typing ``gradle build`` for instance.
     The output of this gradle build will appear in the "./compiler/build/install/p8compile/" directory.
+    The most interesting gradle commands to run are probably:
+
+        ``./gradlew check``
+            Builds the compiler code and runs all available checks and unit-tests.
+        ``./gradlew installShadowDist``
+            Creates a 'fat-jar' that contains the compiler and all dependencies,
+            and a few start scripts to run it.
+            The output can be found in ``.compiler/build/install/compiler-shadow/``
+            and you can launch the compiler with the script
+            ``./compiler/build/install/compiler-shadow/bin/p8compile``.
+        ``./gradlew shadowDistZip``
+            Creates a zipfile with the above in it, for easy distribution.
+            This file can be found in ``./compiler/build/distributions/``
+
 
 .. note::
     Development and testing is done on Linux, but the compiler should run on most
