@@ -416,15 +416,26 @@ So ``if_cc goto target`` will directly translate into the single CPU instruction
     Maybe in the future this will be a separate nested scope, but for now, that is
     only possible when defining a subroutine.
 
-when statement (jumptable)
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+when statement ('jump table')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. attention::
-    TODO: docs for this this must still be written.
-    TODO: the code generator for this is not yet working.
+Instead of writing a bunch of sequential if-elseif statements, it is more readable to
+use a ``when`` statement. (It will also result in greatly improved assembly code generation)
+Use a ``when`` statement if you have a set of fixed choices that each should result in a certain
+action. It is possible to combine several choices to result in the same action::
 
-    Use a ``when`` statement if you have a set of choices that each should result in a certain
-    action. It's more readable (and results in faster code) than using a lot of if / else statements.
+    when value {
+        4 -> c64scr.print("four")
+        5 -> c64scr.print("five")
+        10,20,30 -> {
+            c64scr.print("ten or twenty or thirty")
+        }
+        else -> c64scr.print("don't know")
+    }
+
+The when-*value* can be any expression but the choice values have to evaluate to
+compile-time constant integers (bytes or words). They also have to be the same
+datatype as the when-value, otherwise no efficient comparison can be done.
 
 
 Assignments

@@ -610,28 +610,28 @@ The XX corresponds to one of the eigth branching instructions so the possibiliti
 ``if_cs``, ``if_cc``, ``if_eq``, ``if_ne``, ``if_pl``, ``if_mi``, ``if_vs`` and ``if_vc``.
 It can also be one of the four aliases that are easier to read: ``if_z``, ``if_nz``, ``if_pos`` and ``if_neg``.
 
-when statement (jumptable)
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. attention::
-   TODO: docs for this this must still be written.
-   TODO: the code generator for this is not yet working.
+when statement ('jump table')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The structure of a when statement is like this::
 
-    The condition value can only be an integer datatype.
-    The choice values must be constant integer values.
+    when <expression> {
+        <value(s)> -> <statement(s)>
+        <value(s)> -> <statement(s)>
+        ...
+        [ else -> <statement(s)> ]
+    }
 
-    code example::
+The when-*value* can be any expression but the choice values have to evaluate to
+compile-time constant integers (bytes or words).
+The else part is optional.
+Choices can result in a single statement or a block of  multiple statements in which
+case you have to use { } to enclose them::
 
-       when 4+A+Y {
-            10 -> {
-                c64scr.print("ten")
-            }
-            5 -> c64scr.print("five")
-            30 -> c64scr.print("thirty")
-            99 -> c64scr.print("nn")
-            55 -> {
-                ; will be optimized away
-            }
-            else -> {
-                c64scr.print("!??!\n")
-            }
+    when value {
+        4 -> c64scr.print("four")
+        5 -> c64scr.print("five")
+        10,20,30 -> {
+            c64scr.print("ten or twenty or thirty")
         }
+        else -> c64scr.print("don't know")
+    }
