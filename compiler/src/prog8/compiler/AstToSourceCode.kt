@@ -249,12 +249,21 @@ class AstToSourceCode(val output: (text: String) -> Unit): IAstVisitor {
             literalValue.isString -> output("\"${escape(literalValue.strvalue!!)}\"")
             literalValue.isArray -> {
                 if(literalValue.arrayvalue!=null) {
+                    var counter = 0
                     output("[")
+                    scopelevel++
                     for (v in literalValue.arrayvalue) {
                         v.accept(this)
                         if (v !== literalValue.arrayvalue.last())
                             output(", ")
+                        counter++
+                        if(counter > 16) {
+                            outputln("")
+                            outputi("")
+                            counter=0
+                        }
                     }
+                    scopelevel--
                     output("]")
                 }
             }

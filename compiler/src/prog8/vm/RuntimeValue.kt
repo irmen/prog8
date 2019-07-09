@@ -427,8 +427,22 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
 
     fun inc(): RuntimeValue {
         return when(type) {
-            in ByteDatatypes -> RuntimeValue(type, byteval!! + 1)
-            in WordDatatypes -> RuntimeValue(type, wordval!! + 1)
+            DataType.UBYTE -> RuntimeValue(type, (byteval!! + 1) and 255)
+            DataType.UWORD -> RuntimeValue(type, (byteval!! + 1) and 65535)
+            DataType.BYTE -> {
+                val newval = byteval!! + 1
+                if(newval == 256)
+                    RuntimeValue(type, 0)
+                else
+                    RuntimeValue(type, newval)
+            }
+            DataType.WORD -> {
+                val newval = byteval!! + 1
+                if(newval == 65536)
+                    RuntimeValue(type, 0)
+                else
+                    RuntimeValue(type, newval)
+            }
             DataType.FLOAT -> RuntimeValue(DataType.FLOAT, floatval!! + 1)
             else -> throw ArithmeticException("inc can only work on numeric types")
         }
@@ -436,8 +450,22 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
 
     fun dec(): RuntimeValue {
         return when(type) {
-            in ByteDatatypes -> RuntimeValue(type, byteval!! - 1)
-            in WordDatatypes -> RuntimeValue(type, wordval!! - 1)
+            DataType.UBYTE -> RuntimeValue(type, (byteval!! - 1) and 255)
+            DataType.UWORD -> RuntimeValue(type, (byteval!! - 1) and 65535)
+            DataType.BYTE -> {
+                val newval = byteval!! - 1
+                if(newval == -129)
+                    RuntimeValue(type, 127)
+                else
+                    RuntimeValue(type, newval)
+            }
+            DataType.WORD -> {
+                val newval = byteval!! - 1
+                if(newval == -32769)
+                    RuntimeValue(type, 32767)
+                else
+                    RuntimeValue(type, newval)
+            }
             DataType.FLOAT -> RuntimeValue(DataType.FLOAT, floatval!! - 1)
             else -> throw ArithmeticException("dec can only work on numeric types")
         }
