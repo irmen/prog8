@@ -20,7 +20,7 @@ import java.util.*
 import kotlin.math.*
 
 
-enum class Syscall(val callNr: Short) {
+internal enum class Syscall(val callNr: Short) {
     VM_WRITE_MEMCHR(10),           // print a single char from the memory address popped from stack
     VM_WRITE_MEMSTR(11),           // print a 0-terminated petscii string from the memory address popped from stack
     VM_WRITE_NUM(12),              // pop from the evaluation stack and print it as a number
@@ -107,10 +107,9 @@ enum class Syscall(val callNr: Short) {
     SYSASM_c64flt_print_f(214),
 }
 
+internal val syscallNames = enumValues<Syscall>().map { it.name }.toSet()
 
-val syscallNames = enumValues<Syscall>().map { it.name }.toSet()
-
-val syscallsForStackVm = setOf(
+internal val syscallsForStackVm = setOf(
         Syscall.VM_WRITE_MEMCHR,
         Syscall.VM_WRITE_MEMSTR,
         Syscall.VM_WRITE_NUM,
@@ -123,13 +122,13 @@ val syscallsForStackVm = setOf(
         Syscall.VM_GFX_LINE
 )
 
-class VmExecutionException(msg: String?) : Exception(msg)
+internal class VmExecutionException(msg: String?) : Exception(msg)
 
-class VmTerminationException(msg: String?) : Exception(msg)
+internal class VmTerminationException(msg: String?) : Exception(msg)
 
-class VmBreakpointException : Exception("breakpoint")
+internal class VmBreakpointException : Exception("breakpoint")
 
-class MyStack<T> : Stack<T>() {
+internal class MyStack<T> : Stack<T>() {
     fun peek(amount: Int) : List<T> {
         return this.toList().subList(max(0, size-amount), size)
     }
@@ -140,7 +139,6 @@ class MyStack<T> : Stack<T>() {
         peek(amount).reversed().forEach { output.println("  $it") }
     }
 }
-
 
 class StackVm(private var traceOutputFile: String?) {
     val mem = Memory(::memread, ::memwrite)
@@ -156,9 +154,9 @@ class StackVm(private var traceOutputFile: String?) {
         private set
     var memoryPointers = mutableMapOf<String, Pair<Int, DataType>>()        // all named pointers
         private set
-    var evalstack = MyStack<RuntimeValue>()
+    internal var evalstack = MyStack<RuntimeValue>()
         private set
-    var callstack = MyStack<Int>()
+    internal var callstack = MyStack<Int>()
         private set
     private var program = listOf<Instruction>()
     private var labels = emptyMap<String, Int>()
@@ -204,7 +202,7 @@ class StackVm(private var traceOutputFile: String?) {
             throw VmExecutionException("program contains variable(s) for the reserved registers A/X/Y")
         // define the 'registers'
         variables["A"] = RuntimeValue(DataType.UBYTE, 0)
-        variables["X"] = RuntimeValue(DataType.UBYTE, 0)
+        variables["X"] = RuntimeValue(DataType.UBYTE, 255)
         variables["Y"] = RuntimeValue(DataType.UBYTE, 0)
 
         initMemory(program.memory)

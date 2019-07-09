@@ -459,10 +459,14 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
 
     fun writeCode(out: PrintStream, embeddedLabels: Boolean=true) {
         out.println("; stackVM program code for '$name'")
-        out.println("%memory")
-        if(memory.isNotEmpty())
-            TODO("add support for writing/reading initial memory values")
-        out.println("%end_memory")
+        writeMemory(out)
+        writeHeap(out)
+        for(blk in blocks) {
+            writeBlock(out, blk, embeddedLabels)
+        }
+    }
+
+    private fun writeHeap(out: PrintStream) {
         out.println("%heap")
         heap.allEntries().forEach {
             out.print("${it.key}  ${it.value.type.name.toLowerCase()}  ")
@@ -491,34 +495,42 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
             }
         }
         out.println("%end_heap")
-        for(blk in blocks) {
-            out.println("\n%block ${blk.name} ${blk.address?.toString(16) ?: ""}")
+    }
 
-            out.println("%variables")
-            for(variable in blk.variables) {
-                val valuestr = variable.value.toString()
-                out.println("${variable.key}  ${variable.value.type.name.toLowerCase()}  $valuestr")
-            }
-            out.println("%end_variables")
-            out.println("%memorypointers")
-            for(iconst in blk.memoryPointers) {
-                out.println("${iconst.key}  ${iconst.value.second.name.toLowerCase()}  uw:${iconst.value.first.toString(16)}")
-            }
-            out.println("%end_memorypointers")
-            out.println("%instructions")
-            val labels = blk.labels.entries.associateBy({it.value}) {it.key}
-            for(instr in blk.instructions) {
-                if(!embeddedLabels) {
-                    val label = labels[instr]
-                    if (label != null)
-                        out.println("$label:")
-                } else {
-                    out.println(instr)
-                }
-            }
-            out.println("%end_instructions")
+    private fun writeBlock(out: PrintStream, blk: ProgramBlock, embeddedLabels: Boolean) {
+        out.println("\n%block ${blk.name} ${blk.address?.toString(16) ?: ""}")
 
-            out.println("%end_block")
+        out.println("%variables")
+        for (variable in blk.variables) {
+            val valuestr = variable.value.toString()
+            out.println("${variable.key}  ${variable.value.type.name.toLowerCase()}  $valuestr")
         }
+        out.println("%end_variables")
+        out.println("%memorypointers")
+        for (iconst in blk.memoryPointers) {
+            out.println("${iconst.key}  ${iconst.value.second.name.toLowerCase()}  uw:${iconst.value.first.toString(16)}")
+        }
+        out.println("%end_memorypointers")
+        out.println("%instructions")
+        val labels = blk.labels.entries.associateBy({ it.value }) { it.key }
+        for (instr in blk.instructions) {
+            if (!embeddedLabels) {
+                val label = labels[instr]
+                if (label != null)
+                    out.println("$label:")
+            } else {
+                out.println(instr)
+            }
+        }
+        out.println("%end_instructions")
+
+        out.println("%end_block")
+    }
+
+    private fun writeMemory(out: PrintStream) {
+        out.println("%memory")
+        if (memory.isNotEmpty())
+            TODO("add support for writing/reading initial memory values")
+        out.println("%end_memory")
     }
 }

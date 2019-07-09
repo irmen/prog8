@@ -1,6 +1,7 @@
 package prog8.ast.expressions
 
 import prog8.ast.*
+import prog8.ast.antlr.escape
 import prog8.ast.base.*
 import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.processing.IAstVisitor
@@ -424,7 +425,7 @@ open class LiteralValue(val type: DataType,
             DataType.UWORD -> "uword:$wordvalue"
             DataType.WORD -> "word:$wordvalue"
             DataType.FLOAT -> "float:$floatvalue"
-            in StringDatatypes -> "str:$strvalue"
+            in StringDatatypes -> "str:'${escape(strvalue?:"")}'"
             in ArrayDatatypes -> "array:$arrayvalue"
             else -> throw FatalAstException("weird datatype")
         }

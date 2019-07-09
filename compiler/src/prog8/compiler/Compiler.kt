@@ -2106,13 +2106,11 @@ internal class Compiler(private val program: Program) {
                 previousValue = choiceVal
                 if (conditionDt in ByteDatatypes) {
                     prog.instr(Opcode.DUP_B)
-                    prog.instr(Opcode.PUSH_BYTE, RuntimeValue(conditionDt!!, subtract))
-                    prog.instr(opcodeCompare(conditionDt))
+                    prog.instr(opcodeCompare(conditionDt!!), RuntimeValue(conditionDt, subtract))
                 }
                 else {
                     prog.instr(Opcode.DUP_W)
-                    prog.instr(Opcode.PUSH_WORD, RuntimeValue(conditionDt!!, subtract))
-                    prog.instr(opcodeCompare(conditionDt))
+                    prog.instr(opcodeCompare(conditionDt!!), RuntimeValue(conditionDt, subtract))
                 }
                 val choiceLabel = makeLabel(whenstmt, "choice_$choiceVal")
                 choiceLabels.add(choiceLabel)

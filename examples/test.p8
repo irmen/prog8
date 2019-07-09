@@ -1,33 +1,34 @@
 %import c64utils
 %zeropage basicsafe
-%option enable_floats
 
 ~ main {
 
     sub start() {
-        A=10
+        A=100
         Y=22
-        uword uw = A*Y
+        uword uw = (A as uword)*Y
 
-        str teststring = "hello"
-        c64scr.print(&teststring)
+        c64scr.print("stack (255?): ")
+        c64scr.print_ub(X)
+        c64.CHROUT('\n')
 
+        c64scr.print_uw(uw)
+        c64scr.print("?: ")
         when uw {
-            12345 -> {
-                A=44
-            }
-            12346 -> {
-                A=44
-            }
-            12347 -> {
-                A=44
-            }
-            else -> {
-                A=0
-            }
+            12345 -> c64scr.print("12345")
+            12346 -> c64scr.print("12346")
+            2200 -> c64scr.print("2200")
+            12347 -> c64scr.print("12347")
+            else -> c64scr.print("else")
         }
+        c64.CHROUT('\n')
 
-        when 4+A+Y {
+        A=30
+        Y=2
+
+        c64scr.print_ub(A+Y)
+        c64scr.print("?: ")
+        when A+Y {
             10 -> {
                 c64scr.print("ten")
             }
@@ -48,9 +49,11 @@
             }
             else -> {
                 c64scr.print("!??!\n")
-                c64scr.print("!??!!??!\n")
-                c64scr.print("!??!!??!!?!\n")
             }
         }
+        c64.CHROUT('\n')
+
+        c64scr.print("stack (255?): ")
+        c64scr.print_ub(X)
     }
 }

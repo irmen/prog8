@@ -61,13 +61,33 @@ internal fun simpleInstr2Asm(ins: Instruction, block: IntermediateProgram.Progra
         Opcode.RRESTOREX -> " sta  ${C64Zeropage.SCRATCH_REG} |  pla |  tax |  lda  ${C64Zeropage.SCRATCH_REG}"
         Opcode.DISCARD_BYTE -> " inx"
         Opcode.DISCARD_WORD -> " inx"
+        Opcode.DISCARD_FLOAT -> " inx |  inx |  inx"
         Opcode.DUP_B -> {
             " dex | lda ${(ESTACK_LO+1).toHex()},x | sta ${ESTACK_LO.toHex()},x"
         }
         Opcode.DUP_W -> {
             " dex | lda ${(ESTACK_LO+1).toHex()},x | sta ${ESTACK_LO.toHex()},x | lda ${(ESTACK_HI+1).toHex()},x | sta ${ESTACK_HI.toHex()},x "
         }
-        Opcode.DISCARD_FLOAT -> " inx |  inx |  inx"
+
+        Opcode.CMP_B, Opcode.CMP_UB -> {
+            " inx | lda ${ESTACK_LO.toHex()},x | inx | cmp ${ESTACK_LO.toHex()},x "
+        }
+
+        Opcode.CMP_W, Opcode.CMP_UW -> {
+            """
+            inx
+            inx
+            lda   ${(ESTACK_HI-1).toHex()},x
+            cmp   ${(ESTACK_HI).toHex()},x
+            bne   +
+            lda   ${(ESTACK_LO-1).toHex()},x
+            cmp   ${(ESTACK_LO).toHex()},x
+            bne   +
+            lda   #0
++                           
+            """
+        }
+
         Opcode.INLINE_ASSEMBLY ->  "@inline@" + (ins.callLabel2 ?: "")      // All of the inline assembly is stored in the calllabel2 property. the '@inline@' is a special marker to accept it.
         Opcode.INCLUDE_FILE -> {
             val offset = if(ins.arg==null) "" else ", ${ins.arg.integerValue()}"

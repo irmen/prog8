@@ -54,6 +54,7 @@ internal fun Program.checkIdentifiers() {
 
     // add any anonymous variables for heap values that are used,
     // and replace an iterable literalvalue by identifierref to new local variable
+    // TODO: this is't doing anything anymore?
     for (variable in checker.anonymousVariablesFromHeap.values) {
         val scope = variable.first.definingScope()
         scope.statements.add(variable.second)

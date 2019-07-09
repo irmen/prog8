@@ -80,6 +80,7 @@ interface INameScope {
         val subscopes = mutableMapOf<String, INameScope>()
         for(stmt in statements) {
             when(stmt) {
+                // NOTE: if other nodes are introduced that are a scope of contain subscopes, they must be added here!
                 is INameScope -> subscopes[stmt.name] = stmt
                 is ForLoop -> subscopes[stmt.body.name] = stmt.body
                 is RepeatLoop -> subscopes[stmt.body.name] = stmt.body
@@ -93,6 +94,9 @@ interface INameScope {
                     subscopes[stmt.truepart.name] = stmt.truepart
                     if(stmt.elsepart.containsCodeOrVars())
                         subscopes[stmt.elsepart.name] = stmt.elsepart
+                }
+                is WhenStatement -> {
+                    stmt.choices.forEach { subscopes[it.statements.name] = it.statements }
                 }
             }
         }
