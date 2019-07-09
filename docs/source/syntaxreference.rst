@@ -610,7 +610,28 @@ The XX corresponds to one of the eigth branching instructions so the possibiliti
 ``if_cs``, ``if_cc``, ``if_eq``, ``if_ne``, ``if_pl``, ``if_mi``, ``if_vs`` and ``if_vc``.
 It can also be one of the four aliases that are easier to read: ``if_z``, ``if_nz``, ``if_pos`` and ``if_neg``.
 
-**When - statement (jumptable)**
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+when statement (jumptable)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. attention::
-   TODO: docs for this this must still be written
+   TODO: docs for this this must still be written.
+   TODO: the code generator for this is not yet working.
+
+    The condition value can only be an integer datatype.
+    The choice values must be constant integer values.
+
+    code example::
+
+       when 4+A+Y {
+            10 -> {
+                c64scr.print("ten")
+            }
+            5 -> c64scr.print("five")
+            30 -> c64scr.print("thirty")
+            99 -> c64scr.print("nn")
+            55 -> {
+                ; will be optimized away
+            }
+            else -> {
+                c64scr.print("!??!\n")
+            }
+        }

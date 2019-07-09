@@ -361,8 +361,11 @@ You can also create loops by using the ``goto`` statement, but this should usual
     Loop variables that are declared inline are scoped in the loop body so they're not accessible at all after the loop finishes.
 
 
-Conditional Execution (IF)
---------------------------
+Conditional Execution
+---------------------
+
+if statements
+^^^^^^^^^^^^^
 
 Conditional execution means that the flow of execution changes based on certiain conditions,
 rather than having fixed gotos or subroutine calls::
@@ -413,11 +416,15 @@ So ``if_cc goto target`` will directly translate into the single CPU instruction
     Maybe in the future this will be a separate nested scope, but for now, that is
     only possible when defining a subroutine.
 
-When - statement (jumptable)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+when statement (jumptable)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. attention::
-   TODO: docs for this this must still be written
+    TODO: docs for this this must still be written.
+    TODO: the code generator for this is not yet working.
+
+    Use a ``when`` statement if you have a set of choices that each should result in a certain
+    action. It's more readable (and results in faster code) than using a lot of if / else statements.
 
 
 Assignments
