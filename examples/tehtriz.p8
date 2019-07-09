@@ -75,105 +75,116 @@ waitkey:
 
     }
 
+    sub move_left() {
+        drawBlock(xpos, ypos, 32)
+        if blocklogic.noCollision(xpos-1, ypos) {
+            xpos--
+        }
+        drawBlock(xpos, ypos, 160)
+    }
+
+    sub move_right() {
+        drawBlock(xpos, ypos, 32)
+        if blocklogic.noCollision(xpos+1, ypos) {
+            xpos++
+        }
+        drawBlock(xpos, ypos, 160)
+    }
+
+    sub move_down_faster() {
+        drawBlock(xpos, ypos, 32)
+        if blocklogic.noCollision(xpos, ypos+1) {
+            ypos++
+        }
+        drawBlock(xpos, ypos, 160)
+    }
+
+    sub drop_down_immediately() {
+        drawBlock(xpos, ypos, 32)
+        ubyte dropypos
+        for dropypos in ypos+1 to boardOffsetY+boardHeight-1 {
+            if not blocklogic.noCollision(xpos, dropypos) {
+                dropypos--   ; the furthest down that still fits
+                break
+            }
+        }
+        if dropypos>ypos {
+            ypos = dropypos
+            sound.blockdrop()
+            drawBlock(xpos, ypos, 160)
+            checkForLines()
+            spawnNextBlock()
+            score++
+            drawScore()
+        }
+    }
+
     sub keypress(ubyte key) {
-        if key==157 or key==',' {
-            ; move left
-            drawBlock(xpos, ypos, 32)
-            if blocklogic.noCollision(xpos-1, ypos) {
-                xpos--
-            }
-            drawBlock(xpos, ypos, 160)
-        }
-        else if key==29 or key=='/' {
-            ; move right
-            drawBlock(xpos, ypos, 32)
-            if blocklogic.noCollision(xpos+1, ypos) {
-                xpos++
-            }
-            drawBlock(xpos, ypos, 160)
-        }
-        else if key==17 or key=='.' {
-            ; move down faster
-            drawBlock(xpos, ypos, 32)
-            if blocklogic.noCollision(xpos, ypos+1) {
-                ypos++
-            }
-            drawBlock(xpos, ypos, 160)
-        }
-        else if key==145 or key==' ' {
-            ; drop down immediately
-            drawBlock(xpos, ypos, 32)
-            ubyte dropypos
-            for dropypos in ypos+1 to boardOffsetY+boardHeight-1 {
-                if not blocklogic.noCollision(xpos, dropypos) {
-                    dropypos--   ; the furthest down that still fits
-                    break
+        when key {
+            157 -> move_left()
+            ',' -> move_left()
+            29  -> move_right()
+            '/' -> move_right()
+            17  -> move_down_faster()
+            '.' -> move_down_faster()
+            145 -> drop_down_immediately()
+            ' ' -> drop_down_immediately()
+            'z' -> {
+                ; no joystick equivalent (there is only 1 fire button)
+                ; rotate counter clockwise
+                drawBlock(xpos, ypos, 32)
+                if blocklogic.canRotateCCW(xpos, ypos) {
+                    blocklogic.rotateCCW()
+                    sound.blockrotate()
                 }
-            }
-            if dropypos>ypos {
-                ypos = dropypos
-                sound.blockdrop()
+                else if blocklogic.canRotateCCW(xpos-1, ypos) {
+                    xpos--
+                    blocklogic.rotateCCW()
+                    sound.blockrotate()
+                }
+                else if blocklogic.canRotateCCW(xpos+1, ypos) {
+                    xpos++
+                    blocklogic.rotateCCW()
+                    sound.blockrotate()
+                }
                 drawBlock(xpos, ypos, 160)
-                checkForLines()
-                spawnNextBlock()
-                score++
-                drawScore()
             }
-        }
-        else if key=='z' {      ; no joystick equivalent (there is only 1 fire button)
-            ; rotate counter clockwise
-            drawBlock(xpos, ypos, 32)
-            if blocklogic.canRotateCCW(xpos, ypos) {
-                blocklogic.rotateCCW()
-                sound.blockrotate()
-            }
-            else if blocklogic.canRotateCCW(xpos-1, ypos) {
-                xpos--
-                blocklogic.rotateCCW()
-                sound.blockrotate()
-            }
-            else if blocklogic.canRotateCCW(xpos+1, ypos) {
-                xpos++
-                blocklogic.rotateCCW()
-                sound.blockrotate()
-            }
-            drawBlock(xpos, ypos, 160)
-        }
-        else if key=='x' {
-            ; rotate clockwise
-            drawBlock(xpos, ypos, 32)
-            if blocklogic.canRotateCW(xpos, ypos) {
-                blocklogic.rotateCW()
-                sound.blockrotate()
-            }
-            else if blocklogic.canRotateCW(xpos-1, ypos) {
-                xpos--
-                blocklogic.rotateCW()
-                sound.blockrotate()
-            }
-            else if blocklogic.canRotateCW(xpos+1, ypos) {
-                xpos++
-                blocklogic.rotateCW()
-                sound.blockrotate()
-            }
-            drawBlock(xpos, ypos, 160)
-        }
-        else if key=='c' {
-            ; hold
-            if holdingAllowed {
-                sound.swapping()
-                if holding<7 {
-                    drawBlock(xpos, ypos, 32)
-                    ubyte newholding = blocklogic.currentBlockNum
-                    swapBlock(holding)
-                    holding = newholding
-                    holdingAllowed = false
-                } else {
-                    holding = blocklogic.currentBlockNum
-                    drawBlock(xpos, ypos, 32)
-                    spawnNextBlock()
+            'x' -> {
+                ; rotate clockwise
+                drawBlock(xpos, ypos, 32)
+                if blocklogic.canRotateCW(xpos, ypos) {
+                    blocklogic.rotateCW()
+                    sound.blockrotate()
                 }
-                drawHoldBlock()
+                else if blocklogic.canRotateCW(xpos-1, ypos) {
+                    xpos--
+                    blocklogic.rotateCW()
+                    sound.blockrotate()
+                }
+                else if blocklogic.canRotateCW(xpos+1, ypos) {
+                    xpos++
+                    blocklogic.rotateCW()
+                    sound.blockrotate()
+                }
+                drawBlock(xpos, ypos, 160)
+            }
+            'c' -> {
+                ; hold
+                if holdingAllowed {
+                    sound.swapping()
+                    if holding<7 {
+                        drawBlock(xpos, ypos, 32)
+                        ubyte newholding = blocklogic.currentBlockNum
+                        swapBlock(holding)
+                        holding = newholding
+                        holdingAllowed = false
+                    } else {
+                        holding = blocklogic.currentBlockNum
+                        drawBlock(xpos, ypos, 32)
+                        spawnNextBlock()
+                    }
+                    drawHoldBlock()
+                }
             }
         }
     }

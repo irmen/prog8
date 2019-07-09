@@ -43,8 +43,6 @@
         while multiple < len(sieve) {
             sieve[lsb(multiple)] = true
             multiple += candidate_prime
-            ; c64scr.print_uw(multiple)       ; TODO
-            ; c4.CHROUT('\n')        ; TODO
         }
         return candidate_prime
     }
