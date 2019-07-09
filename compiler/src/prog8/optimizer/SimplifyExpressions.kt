@@ -49,6 +49,15 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
                         return tc.expression
                     }
                 }
+
+                // if the previous typecast was casting to a 'bigger' type, just ignore that one
+                val subTc = tc.expression as? TypecastExpression
+                if(subTc!=null && subTc.type largerThan tc.type) {
+                    subTc.type = tc.type
+                    subTc.parent = tc.parent
+                    optimizationsDone++
+                    return subTc
+                }
                 return super.visit(tc)
             }
             optimizationsDone++
@@ -385,7 +394,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
         }
 
         if(leftConstVal==null && rightConstVal!=null) {
-            if(leftDt biggerThan rightDt) {
+            if(leftDt largerThan rightDt) {
                 val (adjusted, newValue) = adjust(rightConstVal, leftDt)
                 if (adjusted) {
                     expr.right = newValue
@@ -395,7 +404,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
             }
             return false
         } else if(leftConstVal!=null && rightConstVal==null) {
-            if(rightDt biggerThan leftDt) {
+            if(rightDt largerThan leftDt) {
                 val (adjusted, newValue) = adjust(leftConstVal, rightDt)
                 if (adjusted) {
                     expr.left = newValue
