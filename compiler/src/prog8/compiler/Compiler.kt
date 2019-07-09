@@ -2095,22 +2095,20 @@ internal class Compiler(private val program: Program) {
         val endOfWhenLabel = makeLabel(whenstmt, "when_end")
 
         val choiceLabels = mutableListOf<String>()
-        var previousValue = 0
         for(choice in whenstmt.choiceValues(program)) {
             val choiceVal = choice.first
             if(choiceVal==null) {
                 // the else clause
                 translate(choice.second.statements)
             } else {
-                val subtract = choiceVal-previousValue
-                previousValue = choiceVal
+                val rval = RuntimeValue(conditionDt!!, choiceVal)
                 if (conditionDt in ByteDatatypes) {
                     prog.instr(Opcode.DUP_B)
-                    prog.instr(opcodeCompare(conditionDt!!), RuntimeValue(conditionDt, subtract))
+                    prog.instr(opcodeCompare(conditionDt), rval)
                 }
                 else {
                     prog.instr(Opcode.DUP_W)
-                    prog.instr(opcodeCompare(conditionDt!!), RuntimeValue(conditionDt, subtract))
+                    prog.instr(opcodeCompare(conditionDt), rval)
                 }
                 val choiceLabel = makeLabel(whenstmt, "choice_$choiceVal")
                 choiceLabels.add(choiceLabel)
@@ -2120,12 +2118,12 @@ internal class Compiler(private val program: Program) {
         prog.instr(Opcode.JUMP, callLabel = endOfWhenLabel)
 
         for(choice in whenstmt.choices.zip(choiceLabels)) {
-            // TODO the various code blocks here, don't forget to jump to the end label at their eind
             prog.label(choice.second)
-            prog.instr(Opcode.NOP)
+            translate(choice.first.statements)
             prog.instr(Opcode.JUMP, callLabel = endOfWhenLabel)
         }
 
+        prog.removeLastInstruction()    // remove the last jump, that can fall through to here
         prog.label(endOfWhenLabel)
 
         if (conditionDt in ByteDatatypes) prog.instr(Opcode.DISCARD_BYTE)

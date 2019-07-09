@@ -53,27 +53,37 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
     init {
         when(type) {
             DataType.UBYTE -> {
-                byteval = (num!!.toInt() and 255).toShort()
+                val inum = num!!.toInt()
+                if(inum !in 0 .. 255)
+                    throw IllegalArgumentException("invalid value for ubyte: $inum")
+                byteval = inum.toShort()
                 wordval = null
                 floatval = null
                 asBoolean = byteval != 0.toShort()
             }
             DataType.BYTE -> {
-                val v = num!!.toInt() and 255
-                byteval = (if(v<128) v else v-256).toShort()
+                val inum = num!!.toInt()
+                if(inum !in -128 .. 127)
+                    throw IllegalArgumentException("invalid value for byte: $inum")
+                byteval = inum.toShort()
                 wordval = null
                 floatval = null
                 asBoolean = byteval != 0.toShort()
             }
             DataType.UWORD -> {
-                wordval = num!!.toInt() and 65535
+                val inum = num!!.toInt()
+                if(inum !in 0 .. 65536)
+                    throw IllegalArgumentException("invalid value for uword: $inum")
+                wordval = inum
                 byteval = null
                 floatval = null
                 asBoolean = wordval != 0
             }
             DataType.WORD -> {
-                val v = num!!.toInt() and 65535
-                wordval = if(v<32768) v else v - 65536
+                val inum = num!!.toInt()
+                if(inum !in -32768 .. 32767)
+                    throw IllegalArgumentException("invalid value for word: $inum")
+                wordval = inum
                 byteval = null
                 floatval = null
                 asBoolean = wordval != 0

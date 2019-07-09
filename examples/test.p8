@@ -4,13 +4,24 @@
 ~ main {
 
     sub start() {
-        A=100
-        Y=22
-        uword uw = (A as uword)*Y
+        ubyte aa = 100
+        ubyte yy = 22
+        uword uw = (aa as uword)*yy
 
         c64scr.print("stack (255?): ")
         c64scr.print_ub(X)
         c64.CHROUT('\n')
+
+        aa=30
+        yy=2
+
+        c64scr.print_ub(aa+yy)
+        c64scr.print("?: ")
+        check(aa, yy)
+        aa+=9
+        c64scr.print_ub(aa+yy)
+        c64scr.print("?: ")
+        check(aa, yy)
 
         c64scr.print_uw(uw)
         c64scr.print("?: ")
@@ -18,17 +29,18 @@
             12345 -> c64scr.print("12345")
             12346 -> c64scr.print("12346")
             2200 -> c64scr.print("2200")
+            2202 -> c64scr.print("2202")
             12347 -> c64scr.print("12347")
-            else -> c64scr.print("else")
+            else -> c64scr.print("not in table")
         }
         c64.CHROUT('\n')
 
-        A=30
-        Y=2
+        c64scr.print("stack (255?): ")
+        c64scr.print_ub(X)
+    }
 
-        c64scr.print_ub(A+Y)
-        c64scr.print("?: ")
-        when A+Y {
+    sub check(ubyte a, ubyte y) {
+        when a+y {
             10 -> {
                 c64scr.print("ten")
             }
@@ -44,16 +56,10 @@
             56 -> {
                 ; should be optimized away
             }
-            57243 -> {
-                ; should be optimized away
-            }
             else -> {
-                c64scr.print("!??!\n")
+                c64scr.print("not in table")
             }
         }
         c64.CHROUT('\n')
-
-        c64scr.print("stack (255?): ")
-        c64scr.print_ub(X)
     }
 }

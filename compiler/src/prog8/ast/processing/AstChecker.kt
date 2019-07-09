@@ -926,14 +926,17 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(whenChoice: WhenChoice) {
+        val whenStmt = whenChoice.parent as WhenStatement
         if(whenChoice.value!=null) {
+            val conditionType = whenStmt.condition.inferType(program)
             val constvalue = whenChoice.value.constValue(program)
-            if (constvalue == null)
-                checkResult.add(SyntaxError("value of a when choice must be a constant", whenChoice.position))
-            else if (constvalue.type !in IntegerDatatypes)
-                checkResult.add(SyntaxError("value of a when choice must be a byte or word", whenChoice.position))
+            when {
+                constvalue == null -> checkResult.add(SyntaxError("choice value must be a constant", whenChoice.position))
+                constvalue.type !in IntegerDatatypes -> checkResult.add(SyntaxError("choice value must be a byte or word", whenChoice.position))
+                constvalue.type != conditionType -> checkResult.add(SyntaxError("choice value datatype differs from condition value", whenChoice.position))
+            }
         } else {
-            if(whenChoice !== (whenChoice.parent as WhenStatement).choices.last())
+            if(whenChoice !== whenStmt.choices.last())
                 checkResult.add(SyntaxError("else choice must be the last one", whenChoice.position))
         }
         super.visit(whenChoice)
