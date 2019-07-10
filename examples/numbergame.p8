@@ -32,7 +32,8 @@
             ubyte guess = lsb(c64utils.str2uword(input))
 
             if guess==secretnumber {
-                return ending(true)
+                ending(true)
+                return
             } else {
                 c64scr.print("\n\nThat is too ")
                 if guess<secretnumber
@@ -42,7 +43,8 @@
             }
         }
 
-        return ending(false)        ; @todo error
+        ending(false)
+        return
 
 
         sub ending(ubyte success) {

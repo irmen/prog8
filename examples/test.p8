@@ -4,16 +4,18 @@
 ~ main {
 
     sub start() {
-        str  naam = "                               "
 
-        while true {
-            c64scr.print("naam: ")
-            ubyte length = c64scr.input_chars(naam)
-            c64scr.print_ub(length)
-            c64.CHROUT(':')
-            c64scr.print(naam)
-            c64.CHROUT('\n')
-        }
+        foo(42)
+        return
+    }
+
+    sub foo(ubyte arg) -> ubyte {
+        bar(arg)
+        return 33
+    }
+
+    sub bar(ubyte a2) {
+        ;nothing
     }
 
 }

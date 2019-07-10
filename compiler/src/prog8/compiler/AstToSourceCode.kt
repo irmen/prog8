@@ -327,11 +327,7 @@ class AstToSourceCode(val output: (text: String) -> Unit): IAstVisitor {
 
     override fun visit(returnStmt: Return) {
         output("return ")
-        for(v in returnStmt.values) {
-            v.accept(this)
-            if(v!==returnStmt.values.last())
-                output(", ")
-        }
+        returnStmt.value?.accept(this)
     }
 
     override fun visit(arrayIndexedExpression: ArrayIndexedExpression) {

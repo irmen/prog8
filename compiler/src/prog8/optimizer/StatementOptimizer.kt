@@ -79,7 +79,6 @@ internal class StatementOptimizer(private val program: Program, private val opti
             }
             val returns = inlined.statements.withIndex().filter { iv -> iv.value is Return }.map { iv -> Pair(iv.index, iv.value as Return)}
             for(returnIdx in returns) {
-                assert(returnIdx.second.values.isEmpty())
                 val jump = Jump(null, IdentifierReference(listOf(endlabel.name), returnIdx.second.position), null, returnIdx.second.position)
                 inlined.statements[returnIdx.first] = jump
                 endLabelUsed = true
@@ -299,8 +298,8 @@ internal class StatementOptimizer(private val program: Program, private val opti
                 optimizationsDone++
                 return FunctionCall(first.identifier, functionCall.arglist, functionCall.position)
             }
-            if(first is Return && first.values.size==1) {
-                val constval = first.values[0].constValue(program)
+            if(first is Return && first.value!=null) {
+                val constval = first.value?.constValue(program)
                 if(constval!=null)
                     return constval
             }

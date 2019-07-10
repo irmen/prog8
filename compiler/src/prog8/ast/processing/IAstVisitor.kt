@@ -111,7 +111,7 @@ interface IAstVisitor {
     }
 
     fun visit(returnStmt: Return) {
-        returnStmt.values.forEach { it.accept(this) }
+        returnStmt.value?.accept(this)
     }
 
     fun visit(arrayIndexedExpression: ArrayIndexedExpression) {

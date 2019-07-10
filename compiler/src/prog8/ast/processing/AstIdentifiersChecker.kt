@@ -168,25 +168,23 @@ internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstMo
     }
 
     override fun visit(returnStmt: Return): IStatement {
-        if(returnStmt.values.isNotEmpty()) {
+        if(returnStmt.value!=null) {
             // possibly adjust any literal values returned, into the desired returning data type
             val subroutine = returnStmt.definingSubroutine()!!
-            if(subroutine.returntypes.size!=returnStmt.values.size)
+            if(subroutine.returntypes.size!=1)
                 return returnStmt  // mismatch in number of return values, error will be printed later.
-            val newValues = mutableListOf<IExpression>()
-            for(returnvalue in returnStmt.values.zip(subroutine.returntypes)) {
-                val lval = returnvalue.first as? LiteralValue
-                if(lval!=null) {
-                    val adjusted = lval.cast(returnvalue.second)
-                    if(adjusted!=null && adjusted !== lval)
-                        newValues.add(adjusted)
-                    else
-                        newValues.add(lval)
-                }
+            val newValue: IExpression
+            val lval = returnStmt.value as? LiteralValue
+            if(lval!=null) {
+                val adjusted = lval.cast(subroutine.returntypes.single())
+                if(adjusted!=null && adjusted !== lval)
+                    newValue = adjusted
                 else
-                    newValues.add(returnvalue.first)
-            }
-            returnStmt.values = newValues
+                    newValue = lval
+            } else
+                newValue = returnStmt.value!!
+
+            returnStmt.value = newValue
         }
         return super.visit(returnStmt)
     }

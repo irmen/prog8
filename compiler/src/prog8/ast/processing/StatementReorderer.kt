@@ -89,7 +89,7 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
                         && stmtBeforeFirstSub !is Jump
                         && stmtBeforeFirstSub !is Subroutine
                         && stmtBeforeFirstSub !is BuiltinFunctionStatementPlaceholder) {
-                    val ret = Return(emptyList(), stmtBeforeFirstSub.position)
+                    val ret = Return(null, stmtBeforeFirstSub.position)
                     ret.linkParents(block)
                     block.statements.add(block.statements.size - numSubroutinesAtEnd, ret)
                 }
@@ -137,7 +137,7 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
             // and if an assembly block doesn't contain a rts/rti
             if(subroutine.asmAddress==null && subroutine.amountOfRtsInAsm()==0) {
                 if (subroutine.statements.lastOrNull {it !is VarDecl } !is Return) {
-                    val returnStmt = Return(emptyList(), subroutine.position)
+                    val returnStmt = Return(null, subroutine.position)
                     returnStmt.linkParents(subroutine)
                     subroutine.statements.add(returnStmt)
                 }

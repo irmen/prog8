@@ -84,24 +84,24 @@ data class Label(val name: String, override val position: Position) : IStatement
     val scopedname: String by lazy { makeScopedName(name) }
 }
 
-open class Return(var values: List<IExpression>, override val position: Position) : IStatement {
+open class Return(var value: IExpression?, override val position: Position) : IStatement {
     override lateinit var parent: Node
-    override val expensiveToInline = values.any { it !is LiteralValue }
+    override val expensiveToInline = value!=null && value !is LiteralValue
 
     override fun linkParents(parent: Node) {
         this.parent = parent
-        values.forEach {it.linkParents(this)}
+        value?.linkParents(this)
     }
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
 
     override fun toString(): String {
-        return "Return(values: $values, pos=$position)"
+        return "Return($value, pos=$position)"
     }
 }
 
-class ReturnFromIrq(override val position: Position) : Return(emptyList(), position) {
+class ReturnFromIrq(override val position: Position) : Return(null, position) {
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
 

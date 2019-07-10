@@ -246,8 +246,7 @@ private fun prog8Parser.InlineasmContext.toAst() =
 
 
 private fun prog8Parser.ReturnstmtContext.toAst() : Return {
-    val values = expression_list()
-    return Return(values?.toAst() ?: emptyList(), toPosition())
+    return Return(expression()?.toAst(), toPosition())
 }
 
 private fun prog8Parser.UnconditionaljumpContext.toAst(): Jump {

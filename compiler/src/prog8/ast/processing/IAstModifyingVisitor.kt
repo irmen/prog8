@@ -149,7 +149,7 @@ interface IAstModifyingVisitor {
     }
 
     fun visit(returnStmt: Return): IStatement {
-        returnStmt.values = returnStmt.values.map { it.accept(this) }
+        returnStmt.value = returnStmt.value?.accept(this)
         return returnStmt
     }
 

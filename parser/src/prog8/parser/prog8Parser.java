@@ -2265,8 +2265,8 @@ public class prog8Parser extends Parser {
 	}
 
 	public static class ReturnstmtContext extends ParserRuleContext {
-		public Expression_listContext expression_list() {
-			return getRuleContext(Expression_listContext.class,0);
+		public ExpressionContext expression() {
+			return getRuleContext(ExpressionContext.class,0);
 		}
 		public ReturnstmtContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
@@ -2288,7 +2288,7 @@ public class prog8Parser extends Parser {
 			case 1:
 				{
 				setState(426);
-				expression_list();
+				expression(0);
 				}
 				break;
 			}
@@ -5147,7 +5147,7 @@ public class prog8Parser extends Parser {
 		"\3\2\2\2\u01a3\u01a4\3\2\2\2\u01a4\u01a5\3\2\2\2\u01a5\u01a7\5&\24\2\u01a6"+
 		"\u01a1\3\2\2\2\u01a7\u01aa\3\2\2\2\u01a8\u01a6\3\2\2\2\u01a8\u01a9\3\2"+
 		"\2\2\u01a9\65\3\2\2\2\u01aa\u01a8\3\2\2\2\u01ab\u01ad\7C\2\2\u01ac\u01ae"+
-		"\5\64\33\2\u01ad\u01ac\3\2\2\2\u01ad\u01ae\3\2\2\2\u01ae\67\3\2\2\2\u01af"+
+		"\5&\24\2\u01ad\u01ac\3\2\2\2\u01ad\u01ae\3\2\2\2\u01ae\67\3\2\2\2\u01af"+
 		"\u01b0\7D\2\2\u01b09\3\2\2\2\u01b1\u01b2\7E\2\2\u01b2;\3\2\2\2\u01b3\u01b4"+
 		"\7t\2\2\u01b4=\3\2\2\2\u01b5\u01ba\7t\2\2\u01b6\u01b7\7F\2\2\u01b7\u01b9"+
 		"\7t\2\2\u01b8\u01b6\3\2\2\2\u01b9\u01bc\3\2\2\2\u01ba\u01b8\3\2\2\2\u01ba"+

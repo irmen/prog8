@@ -90,20 +90,20 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(returnStmt: Return): IStatement {
         val expectedReturnValues = returnStmt.definingSubroutine()?.returntypes ?: emptyList()
-        if(expectedReturnValues.size != returnStmt.values.size) {
-            // if the return value is a function call, check the result of that call instead
-            if(returnStmt.values.size==1 && returnStmt.values[0] is FunctionCall) {
-                val dt = (returnStmt.values[0] as FunctionCall).inferType(program)
-                if(dt!=null && expectedReturnValues.isEmpty())
-                    checkResult.add(SyntaxError("invalid number of return values", returnStmt.position))
-            } else
-                checkResult.add(SyntaxError("invalid number of return values", returnStmt.position))
+        if(expectedReturnValues.size>1) {
+            throw AstException("cannot use a return with one value in a subroutine that has multiple return values: $returnStmt")
         }
 
-        for (rv in expectedReturnValues.withIndex().zip(returnStmt.values)) {
-            val valueDt=rv.second.inferType(program)
-            if(rv.first.value!=valueDt)
-                checkResult.add(ExpressionError("type $valueDt of return value #${rv.first.index + 1} doesn't match subroutine return type ${rv.first.value}", rv.second.position))
+        if(expectedReturnValues.isEmpty() && returnStmt.value!=null) {
+            checkResult.add(SyntaxError("invalid number of return values", returnStmt.position))
+        }
+        if(expectedReturnValues.isNotEmpty() && returnStmt.value==null) {
+            checkResult.add(SyntaxError("invalid number of return values", returnStmt.position))
+        }
+        if(expectedReturnValues.size==1 && returnStmt.value!=null) {
+            val valueDt = returnStmt.value!!.inferType(program)
+            if(expectedReturnValues[0]!=valueDt)
+                checkResult.add(ExpressionError("type $valueDt of return value doesn't match subroutine's return type", returnStmt.value!!.position))
         }
         return super.visit(returnStmt)
     }

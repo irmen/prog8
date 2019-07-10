@@ -261,11 +261,11 @@ class AstVm(val program: Program) {
 
     class LoopControlBreak : Exception()
     class LoopControlContinue : Exception()
-    class LoopControlReturn(val returnvalues: List<RuntimeValue>) : Exception()
+    class LoopControlReturn(val returnvalue: RuntimeValue?) : Exception()
     class LoopControlJump(val identifier: IdentifierReference?, val address: Int?, val generatedLabel: String?) : Exception()
 
 
-    internal fun executeSubroutine(sub: Subroutine, arguments: List<RuntimeValue>, startlabel: Label?=null): List<RuntimeValue> {
+    internal fun executeSubroutine(sub: Subroutine, arguments: List<RuntimeValue>, startlabel: Label?=null): RuntimeValue? {
         if(sub.isAsmSubroutine) {
             return performSyscall(sub, arguments)
         }
@@ -300,7 +300,7 @@ class AstVm(val program: Program) {
                 }
             }
         } catch (r: LoopControlReturn) {
-            return r.returnvalues
+            return r.returnvalue
         }
         throw VmTerminationException("instruction pointer overflow, is a return missing? $sub")
     }
@@ -355,7 +355,14 @@ class AstVm(val program: Program) {
                     }
                 }
             }
-            is Return -> throw LoopControlReturn(stmt.values.map { evaluate(it, evalCtx) })
+            is Return -> {
+                val value =
+                        if(stmt.value==null)
+                            null
+                        else
+                            evaluate(stmt.value!!, evalCtx)
+                throw LoopControlReturn(value)
+            }
             is Continue -> throw LoopControlContinue()
             is Break -> throw LoopControlBreak()
             is Assignment -> {
@@ -430,7 +437,7 @@ class AstVm(val program: Program) {
                 if (sub is Subroutine) {
                     val args = sub.parameters.map { runtimeVariables.get(sub, it.name) }
                     performSyscall(sub, args)
-                    throw LoopControlReturn(emptyList())
+                    throw LoopControlReturn(null)
                 }
                 throw VmExecutionException("can't execute inline assembly in $sub")
             }
@@ -635,8 +642,8 @@ class AstVm(val program: Program) {
 
     private fun evaluate(args: List<IExpression>) = args.map { evaluate(it, evalCtx) }
 
-    private fun performSyscall(sub: Subroutine, args: List<RuntimeValue>): List<RuntimeValue> {
-        val result = mutableListOf<RuntimeValue>()
+    private fun performSyscall(sub: Subroutine, args: List<RuntimeValue>): RuntimeValue? {
+        var result: RuntimeValue? = null
         when (sub.scopedname) {
             "c64scr.print" -> {
                 // if the argument is an UWORD, consider it to be the "address" of the string (=heapId)
@@ -720,7 +727,7 @@ class AstVm(val program: Program) {
                 val origStr = program.heap.get(heapId).str!!
                 val paddedStr=inputStr.padEnd(origStr.length+1, '\u0000').substring(0, origStr.length)
                 program.heap.update(heapId, paddedStr)
-                result.add(RuntimeValue(DataType.UBYTE, paddedStr.indexOf('\u0000')))
+                result = RuntimeValue(DataType.UBYTE, paddedStr.indexOf('\u0000'))
             }
             "c64flt.print_f" -> {
                 dialog.canvas.printText(args[0].floatval.toString(), true)
@@ -736,13 +743,13 @@ class AstVm(val program: Program) {
                     Thread.sleep(10)
                 }
                 val char=dialog.keyboardBuffer.pop()
-                result.add(RuntimeValue(DataType.UBYTE, char.toShort()))
+                result = RuntimeValue(DataType.UBYTE, char.toShort())
             }
             "c64utils.str2uword" -> {
                 val heapId = args[0].wordval!!
                 val argString = program.heap.get(heapId).str!!
                 val numericpart = argString.takeWhile { it.isDigit() }
-                result.add(RuntimeValue(DataType.UWORD, numericpart.toInt() and 65535))
+                result = RuntimeValue(DataType.UWORD, numericpart.toInt() and 65535)
             }
             else -> TODO("syscall  ${sub.scopedname} $sub")
         }

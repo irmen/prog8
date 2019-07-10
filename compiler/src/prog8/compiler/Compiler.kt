@@ -1517,9 +1517,8 @@ internal class Compiler(private val program: Program) {
 
     private fun translate(stmt: Return) {
         // put the return values on the stack, in reversed order. The caller will accept them.
-        for(value in stmt.values.reversed()) {
-            translate(value)
-        }
+        if(stmt.value!=null)
+            translate(stmt.value!!)
         prog.line(stmt.position)
         prog.instr(Opcode.RETURN)
     }

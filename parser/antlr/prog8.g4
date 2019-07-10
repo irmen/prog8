@@ -183,7 +183,7 @@ expression_list :
 	expression (',' EOL? expression)*           // you can split the expression list over several lines
 	;
 
-returnstmt : 'return' expression_list? ;
+returnstmt : 'return' expression? ;
 
 breakstmt : 'break';
 
