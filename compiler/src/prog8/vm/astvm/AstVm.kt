@@ -6,6 +6,7 @@ import prog8.ast.base.initvarsSubName
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.LiteralValue
 import prog8.ast.statements.*
+import prog8.compiler.target.c64.Mflpt5
 import prog8.vm.RuntimeValue
 import prog8.vm.RuntimeValueRange
 import prog8.compiler.target.c64.Petscii
@@ -136,8 +137,10 @@ class AstVm(val program: Program) {
 
 
     init {
-        // observe the jiffyclock
+        // observe the jiffyclock and screen matrix
         mem.observe(0xa0, 0xa1, 0xa2)
+        for(i in 1024..2023)
+            mem.observe(i)
 
         dialog.requestFocusInWindow()
 
@@ -165,6 +168,11 @@ class AstVm(val program: Program) {
             val time_lo = if(address==0xa2) value else mem.getUByte_DMA(0xa2)
             val jiffies = (time_hi.toInt() shl 16) + (time_mid.toInt() shl 8) + time_lo
             rtcOffset = bootTime - (jiffies*1000/60)
+        }
+        if(address in 1024..2023) {
+            // write to the screen matrix
+            val scraddr = address-1024
+            dialog.canvas.setChar(scraddr % 40, scraddr / 40, value, 1)
         }
         return value
     }
@@ -235,7 +243,11 @@ class AstVm(val program: Program) {
         if(statusflags.irqd)
             return      // interrupt is disabled
 
-        val jiffies = min((timeStamp-rtcOffset)*60/1000, 24*3600*60-1)
+        var jiffies = (timeStamp-rtcOffset)*60/1000
+        if(jiffies>24*3600*60-1) {
+            jiffies = 0
+            rtcOffset = timeStamp
+        }
         // update the C-64 60hz jiffy clock in the ZP addresses:
         mem.setUByte_DMA(0x00a0, (jiffies ushr 16).toShort())
         mem.setUByte_DMA(0x00a1, (jiffies ushr 8 and 255).toShort())
@@ -252,7 +264,10 @@ class AstVm(val program: Program) {
 
 
     internal fun executeSubroutine(sub: Subroutine, arguments: List<RuntimeValue>, startlabel: Label?=null): List<RuntimeValue> {
-        assert(!sub.isAsmSubroutine)
+        if(sub.isAsmSubroutine) {
+            return performSyscall(sub, arguments)
+        }
+
         if (sub.statements.isEmpty())
             throw VmTerminationException("scope contains no statements: $sub")
         if (arguments.size != sub.parameters.size)
@@ -352,19 +367,49 @@ class AstVm(val program: Program) {
                     stmt.target.identifier != null -> {
                         val ident = stmt.definingScope().lookup(stmt.target.identifier!!.nameInSource, stmt) as VarDecl
                         val identScope = ident.definingScope()
-                        var value = runtimeVariables.get(identScope, ident.name)
-                        value = when {
-                            stmt.operator == "++" -> value.add(RuntimeValue(value.type, 1))
-                            stmt.operator == "--" -> value.sub(RuntimeValue(value.type, 1))
-                            else -> throw VmExecutionException("strange postincdec operator $stmt")
+                        when(ident.type){
+                            VarDeclType.VAR -> {
+                                var value = runtimeVariables.get(identScope, ident.name)
+                                value = when {
+                                    stmt.operator == "++" -> value.add(RuntimeValue(value.type, 1))
+                                    stmt.operator == "--" -> value.sub(RuntimeValue(value.type, 1))
+                                    else -> throw VmExecutionException("strange postincdec operator $stmt")
+                                }
+                                runtimeVariables.set(identScope, ident.name, value)
+                            }
+                            VarDeclType.MEMORY -> {
+                                val addr=ident.value!!.constValue(program)!!.asIntegerValue!!
+                                val newval = when {
+                                    stmt.operator == "++" -> mem.getUByte(addr)+1 and 255
+                                    stmt.operator == "--" -> mem.getUByte(addr)-1 and 255
+                                    else -> throw VmExecutionException("strange postincdec operator $stmt")
+                                }
+                                mem.setUByte(addr,newval.toShort())
+                            }
+                            VarDeclType.CONST -> throw VmExecutionException("can't be const")
                         }
-                        runtimeVariables.set(identScope, ident.name, value)
                     }
                     stmt.target.memoryAddress != null -> {
-                        TODO("postincrdecr memory $stmt")
+                        val addr = evaluate(stmt.target.memoryAddress!!.addressExpression, evalCtx).integerValue()
+                        val newval = when {
+                            stmt.operator == "++" -> mem.getUByte(addr)+1 and 255
+                            stmt.operator == "--" -> mem.getUByte(addr)-1 and 255
+                            else -> throw VmExecutionException("strange postincdec operator $stmt")
+                        }
+                        mem.setUByte(addr,newval.toShort())
                     }
                     stmt.target.arrayindexed != null -> {
-                        TODO("postincrdecr array $stmt")
+                        val arrayvar = stmt.target.arrayindexed!!.identifier.targetVarDecl(program.namespace)!!
+                        val arrayvalue = runtimeVariables.get(arrayvar.definingScope(), arrayvar.name)
+                        val elementType = stmt.target.arrayindexed!!.inferType(program)!!
+                        val index = evaluate(stmt.target.arrayindexed!!.arrayspec.index, evalCtx).integerValue()
+                        var value = RuntimeValue(elementType, arrayvalue.array!![index].toInt())
+                        when {
+                            stmt.operator == "++" -> value=value.inc()
+                            stmt.operator == "--" -> value=value.dec()
+                            else -> throw VmExecutionException("strange postincdec operator $stmt")
+                        }
+                        arrayvalue.array[index] = value.numericValue()
                     }
                     stmt.target.register != null -> {
                         var value = runtimeVariables.get(program.namespace, stmt.target.register!!.name)
@@ -504,7 +549,7 @@ class AstVm(val program: Program) {
                         DataType.FLOAT -> mem.setFloat(address, value.floatval!!)
                         DataType.STR -> mem.setString(address, value.str!!)
                         DataType.STR_S -> mem.setScreencodeString(address, value.str!!)
-                        else -> TODO("set memvar $decl")
+                        else -> throw VmExecutionException("weird memaddress type $decl")
                     }
                 } else
                     runtimeVariables.set(decl.definingScope(), decl.name, value)
@@ -514,46 +559,62 @@ class AstVm(val program: Program) {
                 evalCtx.mem.setUByte(address, value.byteval!!)
             }
             target.arrayindexed != null -> {
-                val array = evaluate(target.arrayindexed.identifier, evalCtx)
-                val index = evaluate(target.arrayindexed.arrayspec.index, evalCtx)
-                when (array.type) {
-                    DataType.ARRAY_UB -> {
-                        if (value.type != DataType.UBYTE)
-                            throw VmExecutionException("new value is of different datatype ${value.type} for $array")
+                val vardecl = target.arrayindexed.identifier.targetVarDecl(program.namespace)!!
+                if(vardecl.type==VarDeclType.VAR) {
+                    val array = evaluate(target.arrayindexed.identifier, evalCtx)
+                    val index = evaluate(target.arrayindexed.arrayspec.index, evalCtx)
+                    when (array.type) {
+                        DataType.ARRAY_UB -> {
+                            if (value.type != DataType.UBYTE)
+                                throw VmExecutionException("new value is of different datatype ${value.type} for $array")
+                        }
+                        DataType.ARRAY_B -> {
+                            if (value.type != DataType.BYTE)
+                                throw VmExecutionException("new value is of different datatype ${value.type} for $array")
+                        }
+                        DataType.ARRAY_UW -> {
+                            if (value.type != DataType.UWORD)
+                                throw VmExecutionException("new value is of different datatype ${value.type} for $array")
+                        }
+                        DataType.ARRAY_W -> {
+                            if (value.type != DataType.WORD)
+                                throw VmExecutionException("new value is of different datatype ${value.type} for $array")
+                        }
+                        DataType.ARRAY_F -> {
+                            if (value.type != DataType.FLOAT)
+                                throw VmExecutionException("new value is of different datatype ${value.type} for $array")
+                        }
+                        DataType.STR, DataType.STR_S -> {
+                            if (value.type !in ByteDatatypes)
+                                throw VmExecutionException("new value is of different datatype ${value.type} for $array")
+                        }
+                        else -> throw VmExecutionException("strange array type ${array.type}")
                     }
-                    DataType.ARRAY_B -> {
-                        if (value.type != DataType.BYTE)
-                            throw VmExecutionException("new value is of different datatype ${value.type} for $array")
+                    if (array.type in ArrayDatatypes)
+                        array.array!![index.integerValue()] = value.numericValue()
+                    else if (array.type in StringDatatypes) {
+                        val indexInt = index.integerValue()
+                        val newchr = Petscii.decodePetscii(listOf(value.numericValue().toShort()), true)
+                        val newstr = array.str!!.replaceRange(indexInt, indexInt + 1, newchr)
+                        val ident = contextStmt.definingScope().lookup(target.arrayindexed.identifier.nameInSource, contextStmt) as? VarDecl
+                                ?: throw VmExecutionException("can't find assignment target ${target.identifier}")
+                        val identScope = ident.definingScope()
+                        program.heap.update(array.heapId!!, newstr)
+                        runtimeVariables.set(identScope, ident.name, RuntimeValue(array.type, str = newstr, heapId = array.heapId))
                     }
-                    DataType.ARRAY_UW -> {
-                        if (value.type != DataType.UWORD)
-                            throw VmExecutionException("new value is of different datatype ${value.type} for $array")
-                    }
-                    DataType.ARRAY_W -> {
-                        if (value.type != DataType.WORD)
-                            throw VmExecutionException("new value is of different datatype ${value.type} for $array")
-                    }
-                    DataType.ARRAY_F -> {
-                        if (value.type != DataType.FLOAT)
-                            throw VmExecutionException("new value is of different datatype ${value.type} for $array")
-                    }
-                    DataType.STR, DataType.STR_S -> {
-                        if (value.type !in ByteDatatypes)
-                            throw VmExecutionException("new value is of different datatype ${value.type} for $array")
-                    }
-                    else -> throw VmExecutionException("strange array type ${array.type}")
                 }
-                if (array.type in ArrayDatatypes)
-                    array.array!![index.integerValue()] = value.numericValue()
-                else if (array.type in StringDatatypes) {
-                    val indexInt = index.integerValue()
-                    val newchr = Petscii.decodePetscii(listOf(value.numericValue().toShort()), true)
-                    val newstr = array.str!!.replaceRange(indexInt, indexInt + 1, newchr)
-                    val ident = contextStmt.definingScope().lookup(target.arrayindexed.identifier.nameInSource, contextStmt) as? VarDecl
-                            ?: throw VmExecutionException("can't find assignment target ${target.identifier}")
-                    val identScope = ident.definingScope()
-                    program.heap.update(array.heapId!!, newstr)
-                    runtimeVariables.set(identScope, ident.name, RuntimeValue(array.type, str = newstr, heapId = array.heapId))
+                else {
+                    val address = (vardecl.value as LiteralValue).asIntegerValue!!
+                    val index = evaluate(target.arrayindexed.arrayspec.index, evalCtx).integerValue()
+                    val elementType = target.arrayindexed.inferType(program)!!
+                    when(elementType) {
+                        DataType.UBYTE -> mem.setUByte(address+index, value.byteval!!)
+                        DataType.BYTE -> mem.setSByte(address+index, value.byteval!!)
+                        DataType.UWORD -> mem.setUWord(address+index*2, value.wordval!!)
+                        DataType.WORD -> mem.setSWord(address+index*2, value.wordval!!)
+                        DataType.FLOAT -> mem.setFloat(address+index*Mflpt5.MemorySize, value.floatval!!)
+                        else -> throw VmExecutionException("strange array elt type $elementType")
+                    }
                 }
             }
             target.register != null -> {
@@ -572,54 +633,57 @@ class AstVm(val program: Program) {
 
     private fun evaluate(args: List<IExpression>) = args.map { evaluate(it, evalCtx) }
 
-    private fun performSyscall(sub: Subroutine, args: List<RuntimeValue>) {
-        assert(sub.isAsmSubroutine)
+    private fun performSyscall(sub: Subroutine, args: List<RuntimeValue>): List<RuntimeValue> {
+        if(!sub.isAsmSubroutine)
+            throw VmExecutionException("asmsub expected for syscall $sub")
+
+        val result = mutableListOf<RuntimeValue>()
         when (sub.scopedname) {
             "c64scr.print" -> {
                 // if the argument is an UWORD, consider it to be the "address" of the string (=heapId)
                 if (args[0].wordval != null) {
                     val str = program.heap.get(args[0].wordval!!).str!!
-                    dialog.canvas.printText(str, 1, true)
+                    dialog.canvas.printText(str, true)
                 } else
-                    dialog.canvas.printText(args[0].str!!, 1, true)
+                    dialog.canvas.printText(args[0].str!!, true)
             }
             "c64scr.print_ub" -> {
-                dialog.canvas.printText(args[0].byteval!!.toString(), 1, true)
+                dialog.canvas.printText(args[0].byteval!!.toString(), true)
             }
             "c64scr.print_ub0" -> {
-                dialog.canvas.printText("%03d".format(args[0].byteval!!), 1, true)
+                dialog.canvas.printText("%03d".format(args[0].byteval!!), true)
             }
             "c64scr.print_b" -> {
-                dialog.canvas.printText(args[0].byteval!!.toString(), 1, true)
+                dialog.canvas.printText(args[0].byteval!!.toString(), true)
             }
             "c64scr.print_uw" -> {
-                dialog.canvas.printText(args[0].wordval!!.toString(), 1, true)
+                dialog.canvas.printText(args[0].wordval!!.toString(), true)
             }
             "c64scr.print_uw0" -> {
-                dialog.canvas.printText("%05d".format(args[0].wordval!!), 1, true)
+                dialog.canvas.printText("%05d".format(args[0].wordval!!), true)
             }
             "c64scr.print_w" -> {
-                dialog.canvas.printText(args[0].wordval!!.toString(), 1, true)
+                dialog.canvas.printText(args[0].wordval!!.toString(), true)
             }
             "c64scr.print_ubhex" -> {
                 val prefix = if (args[0].asBoolean) "$" else ""
                 val number = args[1].byteval!!
-                dialog.canvas.printText("$prefix${number.toString(16).padStart(2, '0')}", 1, true)
+                dialog.canvas.printText("$prefix${number.toString(16).padStart(2, '0')}", true)
             }
             "c64scr.print_uwhex" -> {
                 val prefix = if (args[0].asBoolean) "$" else ""
                 val number = args[1].wordval!!
-                dialog.canvas.printText("$prefix${number.toString(16).padStart(4, '0')}", 1, true)
+                dialog.canvas.printText("$prefix${number.toString(16).padStart(4, '0')}", true)
             }
             "c64scr.print_uwbin" -> {
                 val prefix = if (args[0].asBoolean) "%" else ""
                 val number = args[1].wordval!!
-                dialog.canvas.printText("$prefix${number.toString(2).padStart(16, '0')}", 1, true)
+                dialog.canvas.printText("$prefix${number.toString(2).padStart(16, '0')}", true)
             }
             "c64scr.print_ubbin" -> {
                 val prefix = if (args[0].asBoolean) "%" else ""
                 val number = args[1].byteval!!
-                dialog.canvas.printText("$prefix${number.toString(2).padStart(8, '0')}", 1, true)
+                dialog.canvas.printText("$prefix${number.toString(2).padStart(8, '0')}", true)
             }
             "c64scr.clear_screenchars" -> {
                 dialog.canvas.clearScreen(6)
@@ -633,14 +697,26 @@ class AstVm(val program: Program) {
             "c64scr.plot" -> {
                 dialog.canvas.setCursorPos(args[0].integerValue(), args[1].integerValue())
             }
+            "c64flt.print_f" -> {
+                dialog.canvas.printText(args[0].floatval.toString(), true)
+            }
             "c64.CHROUT" -> {
                 dialog.canvas.printPetscii(args[0].byteval!!)
             }
-            "c64flt.print_f" -> {
-                dialog.canvas.printText(args[0].floatval.toString(), 1, true)
+            "c64.CLEARSCR" -> {
+                dialog.canvas.clearScreen(6)
+            }
+            "c64.CHRIN" -> {
+                while(dialog.keyboardBuffer.isEmpty()) {
+                    Thread.sleep(10)
+                }
+                val char=dialog.keyboardBuffer.pop()
+                result.add(RuntimeValue(DataType.UBYTE, char.toShort()))
             }
             else -> TODO("syscall  ${sub.scopedname} $sub")
         }
+
+        return result
     }
 
     private fun performBuiltinFunction(name: String, args: List<RuntimeValue>, statusflags: StatusFlags): RuntimeValue? {
@@ -716,7 +792,7 @@ class AstVm(val program: Program) {
                     DataType.UWORD -> args[0]
                     DataType.WORD -> RuntimeValue(DataType.UWORD, abs(args[0].numericValue().toDouble()))
                     DataType.FLOAT -> RuntimeValue(DataType.FLOAT, abs(args[0].numericValue().toDouble()))
-                    else -> TODO("strange abs type")
+                    else -> throw VmExecutionException("strange abs type ${args[0]}")
                 }
             }
             "max" -> {
@@ -739,7 +815,7 @@ class AstVm(val program: Program) {
                     DataType.UWORD -> RuntimeValue(DataType.UWORD, sum)
                     DataType.WORD -> RuntimeValue(DataType.WORD, sum)
                     DataType.FLOAT -> RuntimeValue(DataType.FLOAT, sum)
-                    else -> TODO("weird sum type")
+                    else -> throw VmExecutionException("weird sum type ${args[0]}")
                 }
             }
             "any" -> {

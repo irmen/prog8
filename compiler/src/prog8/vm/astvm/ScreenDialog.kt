@@ -7,6 +7,7 @@ import java.awt.*
 import java.awt.event.KeyEvent
 import java.awt.event.KeyListener
 import java.awt.image.BufferedImage
+import java.util.*
 import javax.swing.JFrame
 import javax.swing.JPanel
 import javax.swing.Timer
@@ -18,6 +19,7 @@ class BitmapScreenPanel : KeyListener, JPanel() {
     private val g2d = image.graphics as Graphics2D
     private var cursorX: Int=0
     private var cursorY: Int=0
+    val keyboardBuffer: Deque<Char> = LinkedList<Char>()
 
     init {
         val size = Dimension(image.width * SCALING, image.height * SCALING)
@@ -30,14 +32,14 @@ class BitmapScreenPanel : KeyListener, JPanel() {
         addKeyListener(this)
     }
 
-    override fun keyTyped(p0: KeyEvent?) {}
+    override fun keyTyped(p0: KeyEvent) {
+        keyboardBuffer.add(p0.keyChar)
+    }
 
-    override fun keyPressed(p0: KeyEvent?) {
-        println("pressed: $p0.k")
+    override fun keyPressed(p0: KeyEvent) {
     }
 
     override fun keyReleased(p0: KeyEvent?) {
-        println("released: $p0")
     }
 
     override fun paint(graphics: Graphics?) {
@@ -61,23 +63,25 @@ class BitmapScreenPanel : KeyListener, JPanel() {
         g2d.color = Colors.palette[color % Colors.palette.size]
         g2d.drawLine(x1, y1, x2, y2)
     }
-    fun printText(text: String, color: Short, lowercase: Boolean, inverseVideo: Boolean=false) {
+
+    fun printText(text: String, lowercase: Boolean, inverseVideo: Boolean=false) {
         val t2 = text.substringBefore(0.toChar())
         val lines = t2.split('\n')
         for(line in lines.withIndex()) {
-            printTextSingleLine(line.value, color, lowercase, inverseVideo)
+            printTextSingleLine(line.value, lowercase, inverseVideo)
             if(line.index<lines.size-1) {
                 cursorX=0
                 cursorY++
             }
         }
     }
-    private fun printTextSingleLine(text: String, color: Short, lowercase: Boolean, inverseVideo: Boolean=false) {
+
+    private fun printTextSingleLine(text: String, lowercase: Boolean, inverseVideo: Boolean=false) {
         for(clearx in cursorX until cursorX+text.length) {
             g2d.clearRect(8*clearx, 8*y, 8, 8)
         }
         for(sc in Petscii.encodePetscii(text, lowercase)) {
-            setPetscii(cursorX, cursorY, sc, color, inverseVideo)
+            setPetscii(cursorX, cursorY, sc, 1, inverseVideo)
             cursorX++
             if(cursorX>=(SCREENWIDTH /8)) {
                 cursorY++
@@ -97,6 +101,19 @@ class BitmapScreenPanel : KeyListener, JPanel() {
                 cursorY++
                 cursorX = 0
             }
+        }
+    }
+
+    fun writeTextAt(x: Int, y: Int, text: String, color: Short, lowercase: Boolean, inverseVideo: Boolean=false) {
+        val colorIdx = (color % Colors.palette.size).toShort()
+        var xx=x
+        for(clearx in xx until xx+text.length) {
+            g2d.clearRect(8*clearx, 8*y, 8, 8)
+        }
+        for(sc in Petscii.encodePetscii(text, lowercase)) {
+            if(sc==0.toShort())
+                break
+            setPetscii(xx++, y, sc, colorIdx, inverseVideo)
         }
     }
 
@@ -124,20 +141,6 @@ class BitmapScreenPanel : KeyListener, JPanel() {
         return Pair(cursorX, cursorY)
     }
 
-    fun writeText(x: Int, y: Int, text: String, color: Short, lowercase: Boolean, inverseVideo: Boolean=false) {
-        val colorIdx = (color % Colors.palette.size).toShort()
-        var xx=x
-        for(clearx in xx until xx+text.length) {
-            g2d.clearRect(8*clearx, 8*y, 8, 8)
-        }
-        for(sc in Petscii.encodePetscii(text, lowercase)) {
-            if(sc==0.toShort())
-                break
-            setPetscii(xx++, y, sc, colorIdx, inverseVideo)
-        }
-    }
-
-
     companion object {
         const val SCREENWIDTH = 320
         const val SCREENHEIGHT = 200
@@ -148,6 +151,7 @@ class BitmapScreenPanel : KeyListener, JPanel() {
 
 class ScreenDialog(title: String) : JFrame(title) {
     val canvas = BitmapScreenPanel()
+    val keyboardBuffer = canvas.keyboardBuffer
 
     init {
         val borderWidth = 16

@@ -553,10 +553,22 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
             }
             DataType.UWORD -> {
                 when (targetType) {
-                    DataType.BYTE -> RuntimeValue(DataType.BYTE, integerValue())
-                    DataType.UBYTE -> RuntimeValue(DataType.UBYTE, integerValue())
+                    DataType.BYTE -> {
+                        val v=integerValue()
+                        if(v<128)
+                            RuntimeValue(DataType.BYTE, v)
+                        else
+                            RuntimeValue(DataType.BYTE, v-256)
+                    }
+                    DataType.UBYTE -> RuntimeValue(DataType.UBYTE, integerValue() and 255)
                     DataType.UWORD -> this
-                    DataType.WORD -> RuntimeValue(DataType.WORD, integerValue())
+                    DataType.WORD -> {
+                        val v=integerValue()
+                        if(v<32768)
+                            RuntimeValue(DataType.WORD, v)
+                        else
+                            RuntimeValue(DataType.WORD, v-65536)
+                    }
                     DataType.FLOAT -> RuntimeValue(DataType.FLOAT, numericValue())
                     else -> throw ArithmeticException("invalid type cast from $type to $targetType")
                 }

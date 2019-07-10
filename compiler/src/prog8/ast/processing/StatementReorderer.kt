@@ -6,9 +6,7 @@ import prog8.ast.base.DataType
 import prog8.ast.base.FatalAstException
 import prog8.ast.base.initvarsSubName
 import prog8.ast.base.printWarning
-import prog8.ast.expressions.BinaryExpression
-import prog8.ast.expressions.FunctionCall
-import prog8.ast.expressions.TypecastExpression
+import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.functions.BuiltinFunctions
 
@@ -291,5 +289,34 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         whenStatement.choices
                 .sortWith(compareBy<WhenChoice, Int?>(nullsLast(), {it.values?.single()?.constValue(program)?.asIntegerValue}))
         return super.visit(whenStatement)
+    }
+
+    override fun visit(memread: DirectMemoryRead): IExpression {
+        // make sure the memory address is an uword
+        val dt = memread.addressExpression.inferType(program)
+        if(dt!=DataType.UWORD) {
+            val literaladdr = memread.addressExpression as? LiteralValue
+            if(literaladdr!=null) {
+                memread.addressExpression = literaladdr.cast(DataType.UWORD)!!
+            } else {
+                memread.addressExpression = TypecastExpression(memread.addressExpression, DataType.UWORD, true, memread.addressExpression.position)
+                memread.addressExpression.parent = memread
+            }
+        }
+        return super.visit(memread)
+    }
+
+    override fun visit(memwrite: DirectMemoryWrite) {
+        val dt = memwrite.addressExpression.inferType(program)
+        if(dt!=DataType.UWORD) {
+            val literaladdr = memwrite.addressExpression as? LiteralValue
+            if(literaladdr!=null) {
+                memwrite.addressExpression = literaladdr.cast(DataType.UWORD)!!
+            } else {
+                memwrite.addressExpression = TypecastExpression(memwrite.addressExpression, DataType.UWORD, true, memwrite.addressExpression.position)
+                memwrite.addressExpression.parent = memwrite
+            }
+        }
+        super.visit(memwrite)
     }
 }
