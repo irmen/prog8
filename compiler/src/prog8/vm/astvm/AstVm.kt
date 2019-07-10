@@ -11,6 +11,7 @@ import prog8.vm.RuntimeValue
 import prog8.vm.RuntimeValueRange
 import prog8.compiler.target.c64.Petscii
 import java.awt.EventQueue
+import java.io.CharConversionException
 import java.util.*
 import kotlin.NoSuchElementException
 import kotlin.concurrent.fixedRateTimer
@@ -228,6 +229,7 @@ class AstVm(val program: Program) {
                     }
                 }
             }
+            dialog.canvas.printText("\n<program ended>", true)
             println("PROGRAM EXITED!")
             dialog.title = "PROGRAM EXITED"
         } catch (tx: VmTerminationException) {
@@ -634,9 +636,6 @@ class AstVm(val program: Program) {
     private fun evaluate(args: List<IExpression>) = args.map { evaluate(it, evalCtx) }
 
     private fun performSyscall(sub: Subroutine, args: List<RuntimeValue>): List<RuntimeValue> {
-        if(!sub.isAsmSubroutine)
-            throw VmExecutionException("asmsub expected for syscall $sub")
-
         val result = mutableListOf<RuntimeValue>()
         when (sub.scopedname) {
             "c64scr.print" -> {
@@ -697,6 +696,32 @@ class AstVm(val program: Program) {
             "c64scr.plot" -> {
                 dialog.canvas.setCursorPos(args[0].integerValue(), args[1].integerValue())
             }
+            "c64scr.input_chars" -> {
+                val input=mutableListOf<Char>()
+                for(i in 0 until 80) {
+                    while(dialog.keyboardBuffer.isEmpty()) {
+                        Thread.sleep(10)
+                    }
+                    val char=dialog.keyboardBuffer.pop()
+                    if(char=='\n')
+                        break
+                    else {
+                        input.add(char)
+                        val printChar = try {
+                            Petscii.encodePetscii("" + char, true).first()
+                        } catch (cv: CharConversionException) {
+                            0x3f.toShort()
+                        }
+                        dialog.canvas.printPetscii(printChar)
+                    }
+                }
+                val inputStr = input.joinToString("")
+                val heapId = args[0].wordval!!
+                val origStr = program.heap.get(heapId).str!!
+                val paddedStr=inputStr.padEnd(origStr.length+1, '\u0000').substring(0, origStr.length)
+                program.heap.update(heapId, paddedStr)
+                result.add(RuntimeValue(DataType.UBYTE, paddedStr.indexOf('\u0000')))
+            }
             "c64flt.print_f" -> {
                 dialog.canvas.printText(args[0].floatval.toString(), true)
             }
@@ -712,6 +737,12 @@ class AstVm(val program: Program) {
                 }
                 val char=dialog.keyboardBuffer.pop()
                 result.add(RuntimeValue(DataType.UBYTE, char.toShort()))
+            }
+            "c64utils.str2uword" -> {
+                val heapId = args[0].wordval!!
+                val argString = program.heap.get(heapId).str!!
+                val numericpart = argString.takeWhile { it.isDigit() }
+                result.add(RuntimeValue(DataType.UWORD, numericpart.toInt() and 65535))
             }
             else -> TODO("syscall  ${sub.scopedname} $sub")
         }

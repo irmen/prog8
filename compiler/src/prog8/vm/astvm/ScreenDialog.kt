@@ -68,24 +68,10 @@ class BitmapScreenPanel : KeyListener, JPanel() {
         val t2 = text.substringBefore(0.toChar())
         val lines = t2.split('\n')
         for(line in lines.withIndex()) {
-            printTextSingleLine(line.value, lowercase, inverseVideo)
+            val petscii = Petscii.encodePetscii(line.value, lowercase)
+            petscii.forEach { printPetscii(it, inverseVideo) }
             if(line.index<lines.size-1) {
-                cursorX=0
-                cursorY++
-            }
-        }
-    }
-
-    private fun printTextSingleLine(text: String, lowercase: Boolean, inverseVideo: Boolean=false) {
-        for(clearx in cursorX until cursorX+text.length) {
-            g2d.clearRect(8*clearx, 8*y, 8, 8)
-        }
-        for(sc in Petscii.encodePetscii(text, lowercase)) {
-            setPetscii(cursorX, cursorY, sc, 1, inverseVideo)
-            cursorX++
-            if(cursorX>=(SCREENWIDTH /8)) {
-                cursorY++
-                cursorX=0
+                printPetscii(13)    // newline
             }
         }
     }
@@ -101,6 +87,18 @@ class BitmapScreenPanel : KeyListener, JPanel() {
                 cursorY++
                 cursorX = 0
             }
+        }
+        while(cursorY>=(SCREENHEIGHT/8)) {
+            // scroll the screen up because the cursor went past the last line
+            Thread.sleep(10)
+            val screen = image.copy()
+            val graphics = image.graphics as Graphics2D
+            graphics.drawImage(screen, 0, -8, null)
+            val color = graphics.color
+            graphics.color = Colors.palette[6]
+            graphics.fillRect(0, 24*8, SCREENWIDTH, 25*8)
+            graphics.color=color
+            cursorY--
         }
     }
 
@@ -200,4 +198,13 @@ class ScreenDialog(title: String) : JFrame(title) {
         val repaintTimer = Timer(1000 / 60) { repaint() }
         repaintTimer.start()
     }
+}
+
+
+private fun BufferedImage.copy(): BufferedImage {
+    val bcopy = BufferedImage(this.width, this.height, this.type)
+    val g = bcopy.graphics
+    g.drawImage(this, 0, 0, null)
+    g.dispose()
+    return bcopy
 }

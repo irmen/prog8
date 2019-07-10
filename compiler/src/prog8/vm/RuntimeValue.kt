@@ -26,7 +26,7 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
                 in NumericDatatypes -> RuntimeValue(literalValue.type, num = literalValue.asNumericValue!!)
                 in StringDatatypes -> from(literalValue.heapId!!, heap)
                 in ArrayDatatypes -> from(literalValue.heapId!!, heap)
-                else -> TODO("type")
+                else -> throw IllegalArgumentException("weird source value $literalValue")
             }
         }
 
@@ -40,11 +40,19 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
                         RuntimeValue(value.type, array = value.doubleArray!!.toList().toTypedArray(), heapId = heapId)
                     } else {
                         val array = value.array!!
-                        if (array.any { it.addressOf != null })
-                            TODO("addressof values")
-                        RuntimeValue(value.type, array = array.map { it.integer!! }.toTypedArray(), heapId = heapId)
+                        val resultArray = mutableListOf<Number>()
+                        for(elt in array.withIndex()){
+                            if(elt.value.integer!=null)
+                                resultArray.add(elt.value.integer!!)
+                            else {
+                                println("ADDRESSOF ${elt.value}")
+                                resultArray.add(0x8000)
+                            }
+                        }
+                        RuntimeValue(value.type, array = resultArray.toTypedArray(), heapId = heapId)
+                        //RuntimeValue(value.type, array = array.map { it.integer!! }.toTypedArray(), heapId = heapId)
                     }
-                else -> TODO("weird type on heap")
+                else -> throw IllegalArgumentException("weird value type on heap $value")
             }
         }
 
@@ -114,7 +122,7 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
             in ArrayDatatypes -> LiteralValue(type,
                     arrayvalue = array?.map { LiteralValue.optimalNumeric(it, Position("", 0, 0, 0)) }?.toTypedArray(),
                     position = Position("", 0, 0, 0))
-            else -> TODO("strange type")
+            else -> throw IllegalArgumentException("weird source value $this")
         }
     }
 
@@ -575,7 +583,13 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
             }
             DataType.WORD -> {
                 when (targetType) {
-                    DataType.BYTE -> RuntimeValue(DataType.BYTE, integerValue() and 255)
+                    DataType.BYTE -> {
+                        val v = integerValue() and 255
+                        if(v<128)
+                            RuntimeValue(DataType.BYTE, v)
+                        else
+                            RuntimeValue(DataType.BYTE, v-256)
+                    }
                     DataType.UBYTE -> RuntimeValue(DataType.UBYTE, integerValue() and 65535)
                     DataType.UWORD -> RuntimeValue(DataType.UWORD, integerValue())
                     DataType.WORD -> this

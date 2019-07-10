@@ -4,12 +4,14 @@
 ~ main {
 
     sub start() {
+        str  naam = "                               "
+
         while true {
-            c64scr.print_ub(c64.TIME_HI)
+            c64scr.print("naam: ")
+            ubyte length = c64scr.input_chars(naam)
+            c64scr.print_ub(length)
             c64.CHROUT(':')
-            c64scr.print_ub(c64.TIME_MID)
-            c64.CHROUT(':')
-            c64scr.print_ub(c64.TIME_LO)
+            c64scr.print(naam)
             c64.CHROUT('\n')
         }
     }

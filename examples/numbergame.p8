@@ -42,7 +42,7 @@
             }
         }
 
-        return ending(false)
+        return ending(false)        ; @todo error
 
 
         sub ending(ubyte success) {
