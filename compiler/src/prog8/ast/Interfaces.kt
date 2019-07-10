@@ -173,7 +173,7 @@ interface IExpression: Node {
     fun constValue(program: Program): LiteralValue?
     fun accept(visitor: IAstModifyingVisitor): IExpression
     fun accept(visitor: IAstVisitor)
-    fun referencesIdentifier(name: String): Boolean
+    fun referencesIdentifiers(vararg name: String): Boolean
     fun inferType(program: Program): DataType?
 
     infix fun isSameAs(other: IExpression): Boolean {

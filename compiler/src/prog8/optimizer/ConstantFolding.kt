@@ -28,7 +28,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
 
     override fun visit(decl: VarDecl): IStatement {
         // the initializer value can't refer to the variable itself (recursive definition)
-        if(decl.value?.referencesIdentifier(decl.name) == true || decl.arraysize?.index?.referencesIdentifier(decl.name) == true) {
+        if(decl.value?.referencesIdentifiers(decl.name) == true || decl.arraysize?.index?.referencesIdentifiers(decl.name) == true) {
             errors.add(ExpressionError("recursive var declaration", decl.position))
             return decl
         }

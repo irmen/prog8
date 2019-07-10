@@ -117,7 +117,7 @@ internal class AstChecker(private val program: Program,
             checkResult.add(ExpressionError("can only loop over an iterable type", forLoop.position))
         } else {
             if (forLoop.loopRegister != null) {
-                printWarning("using a register as loop variable is risky (it could get clobbered in the body)", forLoop.position)
+                printWarning("using a register as loop variable is risky (it could get clobbered)", forLoop.position)
                 // loop register
                 if (iterableDt != DataType.UBYTE && iterableDt!= DataType.ARRAY_UB && iterableDt !in StringDatatypes)
                     checkResult.add(ExpressionError("register can only loop over bytes", forLoop.position))
@@ -126,7 +126,6 @@ internal class AstChecker(private val program: Program,
                 val loopvar = forLoop.loopVar!!.targetVarDecl(program.namespace)
                 if(loopvar==null || loopvar.type== VarDeclType.CONST) {
                     checkResult.add(SyntaxError("for loop requires a variable to loop with", forLoop.position))
-
                 } else {
                     when (loopvar.datatype) {
                         DataType.UBYTE -> {
@@ -319,6 +318,18 @@ internal class AstChecker(private val program: Program,
         return subroutine
     }
 
+    override fun visit(repeatLoop: RepeatLoop): IStatement {
+        if(repeatLoop.untilCondition.referencesIdentifiers("A", "X", "Y"))
+            printWarning("using a register in the loop condition is risky (it could get clobbered)", repeatLoop.untilCondition.position)
+        return super.visit(repeatLoop)
+    }
+
+    override fun visit(whileLoop: WhileLoop): IStatement {
+        if(whileLoop.condition.referencesIdentifiers("A", "X", "Y"))
+            printWarning("using a register in the loop condition is risky (it could get clobbered)", whileLoop.condition.position)
+        return super.visit(whileLoop)
+    }
+
     /**
      * Assignment target must be register, or a variable name
      * Also check data type compatibility and number of values
@@ -450,7 +461,7 @@ internal class AstChecker(private val program: Program,
         }
 
         // the initializer value can't refer to the variable itself (recursive definition)
-        if(decl.value?.referencesIdentifier(decl.name) == true || decl.arraysize?.index?.referencesIdentifier(decl.name) == true) {
+        if(decl.value?.referencesIdentifiers(decl.name) == true || decl.arraysize?.index?.referencesIdentifiers(decl.name) == true) {
             err("recursive var declaration")
         }
 

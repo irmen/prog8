@@ -13,7 +13,6 @@ import prog8.functions.BuiltinFunctions
 import prog8.functions.NotConstArgumentException
 import prog8.functions.builtinFunctionReturnType
 import kotlin.math.abs
-import kotlin.math.floor
 
 
 val associativeOperators = setOf("+", "*", "&", "|", "^", "or", "and", "xor", "==", "!=")
@@ -30,7 +29,7 @@ class PrefixExpression(val operator: String, var expression: IExpression, overri
     override fun constValue(program: Program): LiteralValue? = null
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun referencesIdentifier(name: String) = expression.referencesIdentifier(name)
+    override fun referencesIdentifiers(vararg name: String) = expression.referencesIdentifiers(*name)
     override fun inferType(program: Program): DataType? = expression.inferType(program)
 
     override fun toString(): String {
@@ -56,7 +55,7 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun referencesIdentifier(name: String) = left.referencesIdentifier(name) || right.referencesIdentifier(name)
+    override fun referencesIdentifiers(vararg name: String) = left.referencesIdentifiers(*name) || right.referencesIdentifiers(*name)
     override fun inferType(program: Program): DataType? {
         val leftDt = left.inferType(program)
         val rightDt = right.inferType(program)
@@ -224,7 +223,7 @@ class ArrayIndexedExpression(val identifier: IdentifierReference,
     override fun constValue(program: Program): LiteralValue? = null
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun referencesIdentifier(name: String) = identifier.referencesIdentifier(name)
+    override fun referencesIdentifiers(vararg name: String) = identifier.referencesIdentifiers(*name)
 
     override fun inferType(program: Program): DataType? {
         val target = identifier.targetStatement(program.namespace)
@@ -258,7 +257,7 @@ class TypecastExpression(var expression: IExpression, var type: DataType, val im
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun referencesIdentifier(name: String) = expression.referencesIdentifier(name)
+    override fun referencesIdentifiers(vararg name: String) = expression.referencesIdentifiers(*name)
     override fun inferType(program: Program): DataType? = type
     override fun constValue(program: Program): LiteralValue? {
         val cv = expression.constValue(program) ?: return null
@@ -282,7 +281,7 @@ data class AddressOf(val identifier: IdentifierReference, override val position:
 
     var scopedname: String? = null     // will be set in a later state by the compiler
     override fun constValue(program: Program): LiteralValue? = null
-    override fun referencesIdentifier(name: String) = false
+    override fun referencesIdentifiers(vararg name: String) = false
     override fun inferType(program: Program) = DataType.UWORD
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
@@ -298,7 +297,7 @@ class DirectMemoryRead(var addressExpression: IExpression, override val position
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun referencesIdentifier(name: String) = false
+    override fun referencesIdentifiers(vararg name: String) = false
     override fun inferType(program: Program): DataType? = DataType.UBYTE
     override fun constValue(program: Program): LiteralValue? = null
 
@@ -317,7 +316,7 @@ open class LiteralValue(val type: DataType,
                         override val position: Position) : IExpression {
     override lateinit var parent: Node
 
-    override fun referencesIdentifier(name: String) = arrayvalue?.any { it.referencesIdentifier(name) } ?: false
+    override fun referencesIdentifiers(vararg name: String) = arrayvalue?.any { it.referencesIdentifiers(*name) } ?: false
 
     val isString = type in StringDatatypes
     val isNumeric = type in NumericDatatypes
@@ -584,7 +583,7 @@ class RangeExpr(var from: IExpression,
     override fun constValue(program: Program): LiteralValue? = null
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun referencesIdentifier(name: String): Boolean  = from.referencesIdentifier(name) || to.referencesIdentifier(name)
+    override fun referencesIdentifiers(vararg name: String): Boolean  = from.referencesIdentifiers(*name) || to.referencesIdentifiers(*name)
     override fun inferType(program: Program): DataType? {
         val fromDt=from.inferType(program)
         val toDt=to.inferType(program)
@@ -653,7 +652,7 @@ class RegisterExpr(val register: Register, override val position: Position) : IE
     override fun constValue(program: Program): LiteralValue? = null
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun referencesIdentifier(name: String): Boolean  = false
+    override fun referencesIdentifiers(vararg name: String): Boolean = register.name in name
     override fun toString(): String {
         return "RegisterExpr(register=$register, pos=$position)"
     }
@@ -695,7 +694,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun referencesIdentifier(name: String): Boolean = nameInSource.last() == name   // @todo is this correct all the time?
+    override fun referencesIdentifiers(vararg name: String): Boolean = nameInSource.last() in name   // @todo is this correct all the time?
 
     override fun inferType(program: Program): DataType? {
         val targetStmt = targetStatement(program.namespace)
@@ -761,7 +760,7 @@ class FunctionCall(override var target: IdentifierReference,
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun referencesIdentifier(name: String): Boolean = target.referencesIdentifier(name) || arglist.any{it.referencesIdentifier(name)}
+    override fun referencesIdentifiers(vararg name: String): Boolean = target.referencesIdentifiers(*name) || arglist.any{it.referencesIdentifiers(*name)}
 
     override fun inferType(program: Program): DataType? {
         val constVal = constValue(program ,false)
