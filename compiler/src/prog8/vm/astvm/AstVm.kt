@@ -10,9 +10,11 @@ import prog8.vm.RuntimeValue
 import prog8.vm.RuntimeValueRange
 import prog8.compiler.target.c64.Petscii
 import java.awt.EventQueue
+import java.util.*
 import kotlin.NoSuchElementException
 import kotlin.concurrent.fixedRateTimer
-import kotlin.math.min
+import kotlin.math.*
+import kotlin.random.Random
 
 
 class VmExecutionException(msg: String?) : Exception(msg)
@@ -128,6 +130,13 @@ class AstVm(val program: Program) {
     val bootTime = System.currentTimeMillis()
     var rtcOffset = bootTime
 
+    private val rnd = Random(0)
+    private val statusFlagsSave = Stack<StatusFlags>()
+    private val registerXsave = Stack<RuntimeValue>()
+    private val registerYsave = Stack<RuntimeValue>()
+    private val registerAsave = Stack<RuntimeValue>()
+
+
     init {
         // observe the jiffyclock
         mem.observe(0xa0, 0xa1, 0xa2)
@@ -236,8 +245,7 @@ class AstVm(val program: Program) {
     }
 
     private val runtimeVariables = RuntimeVariables()
-    private val functions = BuiltinFunctions()
-    private val evalCtx = EvalContext(program, mem, statusflags, runtimeVariables, functions, ::executeSubroutine)
+    private val evalCtx = EvalContext(program, mem, statusflags, runtimeVariables, ::performBuiltinFunction, ::executeSubroutine)
 
     class LoopControlBreak : Exception()
     class LoopControlContinue : Exception()
@@ -324,7 +332,7 @@ class AstVm(val program: Program) {
                             executeSwap(stmt)
                         } else {
                             val args = evaluate(stmt.arglist)
-                            functions.performBuiltinFunction(target.name, args, statusflags)
+                            performBuiltinFunction(target.name, args, statusflags)
                         }
                     }
                     else -> {
@@ -363,6 +371,16 @@ class AstVm(val program: Program) {
                     stmt.target.arrayindexed != null -> {
                         TODO("postincrdecr array $stmt")
                     }
+                    stmt.target.register != null -> {
+                        var value = runtimeVariables.get(program.namespace, stmt.target.register!!.name)
+                        value = when {
+                            stmt.operator == "++" -> value.add(RuntimeValue(value.type, 1))
+                            stmt.operator == "--" -> value.sub(RuntimeValue(value.type, 1))
+                            else -> throw VmExecutionException("strange postincdec operator $stmt")
+                        }
+                        runtimeVariables.set(program.namespace, stmt.target.register!!.name, value)
+                    }
+                    else -> throw VmExecutionException("empty postincrdecr? $stmt")
                 }
             }
             is Jump -> throw LoopControlJump(stmt.identifier, stmt.address, stmt.generatedLabel)
@@ -629,5 +647,199 @@ class AstVm(val program: Program) {
             else -> TODO("syscall  ${sub.scopedname} $sub")
         }
     }
+
+    private fun performBuiltinFunction(name: String, args: List<RuntimeValue>, statusflags: StatusFlags): RuntimeValue? {
+        return when (name) {
+            "rnd" -> RuntimeValue(DataType.UBYTE, rnd.nextInt() and 255)
+            "rndw" -> RuntimeValue(DataType.UWORD, rnd.nextInt() and 65535)
+            "rndf" -> RuntimeValue(DataType.FLOAT, rnd.nextDouble())
+            "lsb" -> RuntimeValue(DataType.UBYTE, args[0].integerValue() and 255)
+            "msb" -> RuntimeValue(DataType.UBYTE, (args[0].integerValue() ushr 8) and 255)
+            "sin" -> RuntimeValue(DataType.FLOAT, sin(args[0].numericValue().toDouble()))
+            "sin8" -> {
+                val rad = args[0].numericValue().toDouble() / 256.0 * 2.0 * PI
+                RuntimeValue(DataType.BYTE, (127.0 * sin(rad)).toShort())
+            }
+            "sin8u" -> {
+                val rad = args[0].numericValue().toDouble() / 256.0 * 2.0 * PI
+                RuntimeValue(DataType.UBYTE, (128.0 + 127.5 * sin(rad)).toShort())
+            }
+            "sin16" -> {
+                val rad = args[0].numericValue().toDouble() / 256.0 * 2.0 * PI
+                RuntimeValue(DataType.BYTE, (32767.0 * sin(rad)).toShort())
+            }
+            "sin16u" -> {
+                val rad = args[0].numericValue().toDouble() / 256.0 * 2.0 * PI
+                RuntimeValue(DataType.UBYTE, (32768.0 + 32767.5 * sin(rad)).toShort())
+            }
+            "cos" -> RuntimeValue(DataType.FLOAT, cos(args[0].numericValue().toDouble()))
+            "cos8" -> {
+                val rad = args[0].numericValue().toDouble() / 256.0 * 2.0 * PI
+                RuntimeValue(DataType.BYTE, (127.0 * cos(rad)).toShort())
+            }
+            "cos8u" -> {
+                val rad = args[0].numericValue().toDouble() / 256.0 * 2.0 * PI
+                RuntimeValue(DataType.UBYTE, (128.0 + 127.5 * cos(rad)).toShort())
+            }
+            "cos16" -> {
+                val rad = args[0].numericValue().toDouble() / 256.0 * 2.0 * PI
+                RuntimeValue(DataType.BYTE, (32767.0 * cos(rad)).toShort())
+            }
+            "cos16u" -> {
+                val rad = args[0].numericValue().toDouble() / 256.0 * 2.0 * PI
+                RuntimeValue(DataType.UBYTE, (32768.0 + 32767.5 * cos(rad)).toShort())
+            }
+            "tan" -> RuntimeValue(DataType.FLOAT, tan(args[0].numericValue().toDouble()))
+            "atan" -> RuntimeValue(DataType.FLOAT, atan(args[0].numericValue().toDouble()))
+            "ln" -> RuntimeValue(DataType.FLOAT, ln(args[0].numericValue().toDouble()))
+            "log2" -> RuntimeValue(DataType.FLOAT, log2(args[0].numericValue().toDouble()))
+            "sqrt" -> RuntimeValue(DataType.FLOAT, sqrt(args[0].numericValue().toDouble()))
+            "sqrt16" -> RuntimeValue(DataType.UBYTE, sqrt(args[0].wordval!!.toDouble()).toInt())
+            "rad" -> RuntimeValue(DataType.FLOAT, Math.toRadians(args[0].numericValue().toDouble()))
+            "deg" -> RuntimeValue(DataType.FLOAT, Math.toDegrees(args[0].numericValue().toDouble()))
+            "round" -> RuntimeValue(DataType.FLOAT, round(args[0].numericValue().toDouble()))
+            "floor" -> RuntimeValue(DataType.FLOAT, floor(args[0].numericValue().toDouble()))
+            "ceil" -> RuntimeValue(DataType.FLOAT, ceil(args[0].numericValue().toDouble()))
+            "rol" -> {
+                val (result, newCarry) = args[0].rol(statusflags.carry)
+                statusflags.carry = newCarry
+                return result
+            }
+            "rol2" -> args[0].rol2()
+            "ror" -> {
+                val (result, newCarry) = args[0].ror(statusflags.carry)
+                statusflags.carry = newCarry
+                return result
+            }
+            "ror2" -> args[0].ror2()
+            "lsl" -> args[0].shl()
+            "lsr" -> args[0].shr()
+            "abs" -> {
+                when (args[0].type) {
+                    DataType.UBYTE -> args[0]
+                    DataType.BYTE -> RuntimeValue(DataType.UBYTE, abs(args[0].numericValue().toDouble()))
+                    DataType.UWORD -> args[0]
+                    DataType.WORD -> RuntimeValue(DataType.UWORD, abs(args[0].numericValue().toDouble()))
+                    DataType.FLOAT -> RuntimeValue(DataType.FLOAT, abs(args[0].numericValue().toDouble()))
+                    else -> TODO("strange abs type")
+                }
+            }
+            "max" -> {
+                val numbers = args.map { it.numericValue().toDouble() }
+                RuntimeValue(args[0].type, numbers.max())
+            }
+            "min" -> {
+                val numbers = args.map { it.numericValue().toDouble() }
+                RuntimeValue(args[0].type, numbers.min())
+            }
+            "avg" -> {
+                val numbers = args.map { it.numericValue().toDouble() }
+                RuntimeValue(DataType.FLOAT, numbers.average())
+            }
+            "sum" -> {
+                val sum = args.map { it.numericValue().toDouble() }.sum()
+                when (args[0].type) {
+                    DataType.UBYTE -> RuntimeValue(DataType.UWORD, sum)
+                    DataType.BYTE -> RuntimeValue(DataType.WORD, sum)
+                    DataType.UWORD -> RuntimeValue(DataType.UWORD, sum)
+                    DataType.WORD -> RuntimeValue(DataType.WORD, sum)
+                    DataType.FLOAT -> RuntimeValue(DataType.FLOAT, sum)
+                    else -> TODO("weird sum type")
+                }
+            }
+            "any" -> {
+                val numbers = args.map { it.numericValue().toDouble() }
+                RuntimeValue(DataType.UBYTE, if (numbers.any { it != 0.0 }) 1 else 0)
+            }
+            "all" -> {
+                val numbers = args.map { it.numericValue().toDouble() }
+                RuntimeValue(DataType.UBYTE, if (numbers.all { it != 0.0 }) 1 else 0)
+            }
+            "swap" ->
+                throw VmExecutionException("swap() cannot be implemented as a function")
+            "strlen" -> {
+                val zeroIndex = args[0].str!!.indexOf(0.toChar())
+                if (zeroIndex >= 0)
+                    RuntimeValue(DataType.UBYTE, zeroIndex)
+                else
+                    RuntimeValue(DataType.UBYTE, args[0].str!!.length)
+            }
+            "memset" -> {
+                val target = args[0].array!!
+                val amount = args[1].integerValue()
+                val value = args[2].integerValue()
+                for (i in 0 until amount) {
+                    target[i] = value
+                }
+                null
+            }
+            "memsetw" -> {
+                val target = args[0].array!!
+                val amount = args[1].integerValue()
+                val value = args[2].integerValue()
+                for (i in 0 until amount step 2) {
+                    target[i * 2] = value and 255
+                    target[i * 2 + 1] = value ushr 8
+                }
+                null
+            }
+            "memcopy" -> {
+                val source = args[0].array!!
+                val dest = args[1].array!!
+                val amount = args[2].integerValue()
+                for(i in 0 until amount) {
+                    dest[i] = source[i]
+                }
+                null
+            }
+            "mkword" -> {
+                val result = (args[1].integerValue() shl 8) or args[0].integerValue()
+                RuntimeValue(DataType.UWORD, result)
+            }
+            "set_carry" -> {
+                statusflags.carry=true
+                null
+            }
+            "clear_carry" -> {
+                statusflags.carry=false
+                null
+            }
+            "set_irqd" -> {
+                statusflags.irqd=true
+                null
+            }
+            "clear_irqd" -> {
+                statusflags.irqd=false
+                null
+            }
+            "read_flags" -> {
+                val carry = if(statusflags.carry) 1 else 0
+                val zero = if(statusflags.zero) 2 else 0
+                val irqd = if(statusflags.irqd) 4 else 0
+                val negative = if(statusflags.negative) 128 else 0
+                RuntimeValue(DataType.UBYTE, carry or zero or irqd or negative)
+            }
+            "rsave" -> {
+                statusFlagsSave.push(statusflags)
+                registerAsave.push(runtimeVariables.get(program.namespace, Register.A.name))
+                registerXsave.push(runtimeVariables.get(program.namespace, Register.X.name))
+                registerYsave.push(runtimeVariables.get(program.namespace, Register.Y.name))
+                null
+            }
+            "rrestore" -> {
+                val flags = statusFlagsSave.pop()
+                statusflags.carry = flags.carry
+                statusflags.negative = flags.negative
+                statusflags.zero = flags.zero
+                statusflags.irqd = flags.irqd
+                runtimeVariables.set(program.namespace, Register.A.name, registerAsave.pop())
+                runtimeVariables.set(program.namespace, Register.X.name, registerXsave.pop())
+                runtimeVariables.set(program.namespace, Register.Y.name, registerYsave.pop())
+                null
+            }
+            else -> TODO("builtin function $name")
+        }
+    }
+
 }
 

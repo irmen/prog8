@@ -1552,17 +1552,19 @@ internal class Compiler(private val program: Program) {
     private fun translate(loop: ForLoop) {
         if(loop.body.containsNoCodeNorVars()) return
         prog.line(loop.position)
-        val loopVarName: String
-        val loopVarDt: DataType
+        val loopVarName: String?
+        val loopRegister: Register?
+        val loopvalueDt: DataType
 
         if(loop.loopRegister!=null) {
-            val reg = loop.loopRegister
-            loopVarName = reg.name
-            loopVarDt = DataType.UBYTE
+            loopVarName = null
+            loopRegister = loop.loopRegister
+            loopvalueDt = DataType.UBYTE
         } else {
             val loopvar = loop.loopVar!!.targetVarDecl(program.namespace)!!
             loopVarName = loopvar.scopedname
-            loopVarDt = loopvar.datatype
+            loopvalueDt = loopvar.datatype
+            loopRegister = null
         }
 
         if(loop.iterable is RangeExpr) {
@@ -1575,7 +1577,7 @@ internal class Compiler(private val program: Program) {
                     throw CompilerException("loop over just 1 value should have been optimized away")
                 if((range.last-range.first) % range.step != 0)
                     throw CompilerException("range first and last must be exactly inclusive")
-                when (loopVarDt) {
+                when (loopvalueDt) {
                     DataType.UBYTE -> {
                         if (range.first < 0 || range.first > 255 || range.last < 0 || range.last > 255)
                             throw CompilerException("range out of bounds for ubyte")
@@ -1594,7 +1596,7 @@ internal class Compiler(private val program: Program) {
                     }
                     else -> throw CompilerException("range must be byte or word")
                 }
-                translateForOverConstantRange(loopVarName, loopVarDt, range, loop.body)
+                translateForOverConstantRange(loopVarName, loopRegister, loopvalueDt, range, loop.body)
             } else {
                 // loop over a range where one or more of the start, last or step values is not a constant
                 if(loop.loopRegister!=null) {
@@ -1613,7 +1615,7 @@ internal class Compiler(private val program: Program) {
                     val iterableValue = vardecl.value as LiteralValue
                     if(iterableValue.type !in IterableDatatypes)
                         throw CompilerException("loop over something that isn't iterable ${loop.iterable}")
-                    translateForOverIterableVar(loop, loopVarDt, iterableValue)
+                    translateForOverIterableVar(loop, loopvalueDt, iterableValue)
                 }
                 loop.iterable is LiteralValue -> throw CompilerException("literal value in loop must have been moved to heap already $loop")
                 else -> throw CompilerException("loopvar is something strange ${loop.iterable}")
@@ -1706,7 +1708,7 @@ internal class Compiler(private val program: Program) {
         continueStmtLabelStack.pop()
     }
 
-    private fun translateForOverConstantRange(varname: String, varDt: DataType, range: IntProgression, body: AnonymousScope) {
+    private fun translateForOverConstantRange(varname: String?, loopregister: Register?, varDt: DataType, range: IntProgression, body: AnonymousScope) {
         /**
          * for LV in start..last { body }
          * (and we already know that the range is not empty, and first and last are exactly inclusive.)
@@ -1734,7 +1736,9 @@ internal class Compiler(private val program: Program) {
         breakStmtLabelStack.push(breakLabel)
 
         prog.instr(opcodePush(varDt), RuntimeValue(varDt, range.first))
-        prog.instr(opcodePopvar(varDt), callLabel = varname)
+        val variableLabel = varname ?: loopregister?.name
+
+        prog.instr(opcodePopvar(varDt), callLabel = variableLabel)
         prog.label(loopLabel)
         translate(body)
         prog.label(continueLabel)
@@ -1742,25 +1746,25 @@ internal class Compiler(private val program: Program) {
         when {
             range.step in 1..numberOfIncDecsForOptimize -> {
                 repeat(range.step) {
-                    prog.instr(opcodeIncvar(varDt), callLabel = varname)
+                    prog.instr(opcodeIncvar(varDt), callLabel = variableLabel)
                 }
             }
             range.step in -1 downTo -numberOfIncDecsForOptimize -> {
                 repeat(abs(range.step)) {
-                    prog.instr(opcodeDecvar(varDt), callLabel = varname)
+                    prog.instr(opcodeDecvar(varDt), callLabel = variableLabel)
                 }
             }
             range.step>numberOfIncDecsForOptimize -> {
-                prog.instr(opcodePushvar(varDt), callLabel = varname)
+                prog.instr(opcodePushvar(varDt), callLabel = variableLabel)
                 prog.instr(opcodePush(varDt), RuntimeValue(varDt, range.step))
                 prog.instr(opcodeAdd(varDt))
-                prog.instr(opcodePopvar(varDt), callLabel = varname)
+                prog.instr(opcodePopvar(varDt), callLabel = variableLabel)
             }
             range.step<numberOfIncDecsForOptimize -> {
-                prog.instr(opcodePushvar(varDt), callLabel = varname)
+                prog.instr(opcodePushvar(varDt), callLabel = variableLabel)
                 prog.instr(opcodePush(varDt), RuntimeValue(varDt, abs(range.step)))
                 prog.instr(opcodeSub(varDt))
-                prog.instr(opcodePopvar(varDt), callLabel = varname)
+                prog.instr(opcodePopvar(varDt), callLabel = variableLabel)
             }
         }
 
@@ -1768,7 +1772,7 @@ internal class Compiler(private val program: Program) {
             // optimize for the for loop that counts to 0
             prog.instr(if(range.first>0) Opcode.BPOS else Opcode.BNEG, callLabel = loopLabel)
         } else {
-            prog.instr(opcodePushvar(varDt), callLabel = varname)
+            prog.instr(opcodePushvar(varDt), callLabel = variableLabel)
             val checkValue =
                     when (varDt) {
                         DataType.UBYTE -> (range.last + range.step) and 255

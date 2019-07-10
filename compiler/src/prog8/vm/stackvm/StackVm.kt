@@ -1863,8 +1863,8 @@ class StackVm(private var traceOutputFile: String?) {
             }
             Opcode.RRESTORE -> {
                 variables["A"] = evalstack.pop()
-                variables["X"] = evalstack.pop()
                 variables["Y"] = evalstack.pop()
+                variables["X"] = evalstack.pop()
                 P_carry = evalstack.pop().asBoolean
                 P_irqd = evalstack.pop().asBoolean
             }

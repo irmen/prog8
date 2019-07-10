@@ -14,7 +14,8 @@ import prog8.vm.RuntimeValueRange
 import kotlin.math.abs
 
 class EvalContext(val program: Program, val mem: Memory, val statusflags: StatusFlags,
-                  val runtimeVars: RuntimeVariables, val functions: BuiltinFunctions,
+                  val runtimeVars: RuntimeVariables,
+                  val performBuiltinFunction: (String, List<RuntimeValue>, StatusFlags) -> RuntimeValue?,
                   val executeSubroutine: (sub: Subroutine, args: List<RuntimeValue>, startlabel: Label?) -> List<RuntimeValue>)
 
 fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
@@ -122,7 +123,7 @@ fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
                     results[0]
                 }
                 is BuiltinFunctionStatementPlaceholder -> {
-                    val result = ctx.functions.performBuiltinFunction(sub.name, args, ctx.statusflags)
+                    val result = ctx.performBuiltinFunction(sub.name, args, ctx.statusflags)
                             ?: throw VmExecutionException("expected 1 result from functioncall $expr")
                     result
                 }
