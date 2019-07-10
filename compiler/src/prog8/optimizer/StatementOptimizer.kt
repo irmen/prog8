@@ -4,6 +4,7 @@ import prog8.ast.*
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.processing.IAstModifyingVisitor
+import prog8.ast.processing.IAstVisitor
 import prog8.ast.statements.*
 import prog8.compiler.target.c64.Petscii
 import prog8.functions.BuiltinFunctions
@@ -15,11 +16,11 @@ import kotlin.math.floor
     todo analyse for unreachable code and remove that (f.i. code after goto or return that has no label so can never be jumped to) + print warning about this
 */
 
+
 internal class StatementOptimizer(private val program: Program, private val optimizeInlining: Boolean) : IAstModifyingVisitor {
     var optimizationsDone: Int = 0
         private set
     var scopesToFlatten = mutableListOf<INameScope>()
-    val nopStatements = mutableListOf<NopStatement>()
 
     private val pureBuiltinFunctions = BuiltinFunctions.filter { it.value.pure }
     private val callgraph = CallGraph(program)
@@ -34,11 +35,6 @@ internal class StatementOptimizer(private val program: Program, private val opti
             inlineSubroutines(callgraph)
         }
         super.visit(program)
-
-        // at the end, remove the encountered NOP statements
-        this.nopStatements.forEach {
-            it.definingScope().remove(it)
-        }
     }
 
     private fun inlineSubroutines(callgraph: CallGraph) {
@@ -432,11 +428,6 @@ internal class StatementOptimizer(private val program: Program, private val opti
         return repeatLoop
     }
 
-    override fun visit(nopStatement: NopStatement): IStatement {
-        this.nopStatements.add(nopStatement)
-        return nopStatement
-    }
-
     override fun visit(whenStatement: WhenStatement): IStatement {
         val choices = whenStatement.choices.toList()
         for(choice in choices) {
@@ -654,3 +645,18 @@ internal class StatementOptimizer(private val program: Program, private val opti
 
 
 
+internal class RemoveNops(): IAstVisitor {
+    val nopStatements = mutableListOf<NopStatement>()
+
+    override fun visit(program: Program) {
+        super.visit(program)
+        // at the end, remove the encountered NOP statements
+        this.nopStatements.forEach {
+            it.definingScope().remove(it)
+        }
+    }
+
+    override fun visit(nopStatement: NopStatement) {
+        nopStatements.add(nopStatement)
+    }
+}

@@ -161,7 +161,7 @@
             else
                 c64.SPRPTR[i] = $2000/64        ; small ball
 
-            c64.SPCOL[i] = spritecolors[zc>>13 as byte + 4]      ; further away=darker color  TODO doesn't work anymore?  ">>" seems broken.
+            c64.SPCOL[i] = spritecolors[zc>>13 as byte + 4]      ; further away=darker color
         }
     }
 }

@@ -84,10 +84,11 @@ fun compileProgram(filepath: Path,
                 }
             }
 
+            programAst.removeNops()
             programAst.checkValid(compilerOptions)          // check if final tree is valid
             programAst.checkRecursion()         // check if there are recursive subroutine calls
 
-            printAst(programAst)
+            // printAst(programAst)
             // namespace.debugPrint()
 
             if(generateVmCode) {

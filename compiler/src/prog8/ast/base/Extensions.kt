@@ -6,6 +6,7 @@ import prog8.ast.processing.*
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.ForLoop
 import prog8.compiler.CompilationOptions
+import prog8.optimizer.RemoveNops
 
 
 // the name of the subroutine that should be called for every block to initialize its variables
@@ -14,6 +15,12 @@ internal const val initvarsSubName="prog8_init_vars"
 
 // prefix for literal values that are turned into a variable on the heap
 internal const val autoHeapValuePrefix = "auto_heap_value_"
+
+
+internal fun Program.removeNops() {
+    val remover = RemoveNops()
+    remover.visit(this)
+}
 
 
 internal fun Program.checkValid(compilerOptions: CompilationOptions) {
