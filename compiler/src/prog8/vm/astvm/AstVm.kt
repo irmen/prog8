@@ -621,7 +621,7 @@ class AstVm(val program: Program) {
                 dialog.canvas.setCursorPos(args[0].integerValue(), args[1].integerValue())
             }
             "c64.CHROUT" -> {
-                dialog.canvas.printChar(args[0].byteval!!)
+                dialog.canvas.printPetscii(args[0].byteval!!)
             }
             "c64flt.print_f" -> {
                 dialog.canvas.printText(args[0].floatval.toString(), 1, true)

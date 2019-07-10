@@ -1926,7 +1926,7 @@ class StackVm(private var traceOutputFile: String?) {
                 }
                 "c64.CHROUT" -> {
                     val sc=variables.getValue("A").integerValue()
-                    canvas?.printChar(sc.toShort())
+                    canvas?.printPetscii(sc.toShort())
                     callstack.pop()
                 }
                 "c64.GETIN" -> {

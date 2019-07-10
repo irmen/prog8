@@ -1,18 +1,17 @@
 %import c64utils
 %zeropage basicsafe
-%option enable_floats
 
 ~ main {
 
     sub start() {
-
-        word zc
-        word qq = zc>>13
-        ubyte[] colors = [1,2,3,4,5,6,7,8]
-
-        uword bb = zc>>13
-        c64.SPCOL[0] = colors[(zc>>13) as byte + 4]
-
+        c64scr.print("you start here! --> S\n")
+        for A in 0 to 16 {
+            for Y in 0 to 39 {
+                if rnd() >128 c64.CHROUT(109)
+                else c64.CHROUT(110)
+            }
+        }
+        c64scr.print("      x <-- try to find your way here!")
     }
 
 }

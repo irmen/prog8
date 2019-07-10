@@ -1086,5 +1086,38 @@ class Petscii {
             val decodeTable = if(lowercase) decodingScreencodeLowercase else decodingScreencodeUppercase
             return screencode.map { decodeTable[it.toInt()] }.joinToString("")
         }
+
+        fun petscii2scr(petscii_code: Short, inverseVideo: Boolean): Short {
+            val code = when {
+                petscii_code <= 0x1f -> petscii_code + 128
+                petscii_code <= 0x3f -> petscii_code.toInt()
+                petscii_code <= 0x5f -> petscii_code - 64
+                petscii_code <= 0x7f -> petscii_code - 32
+                petscii_code <= 0x9f -> petscii_code + 64
+                petscii_code <= 0xbf -> petscii_code - 64
+                petscii_code <= 0xfe -> petscii_code - 128
+                petscii_code == 255.toShort() -> 95
+                else -> throw CharConversionException("petscii code out of range")
+            }
+            if(inverseVideo)
+                return (code or 0x80).toShort()
+            return code.toShort()
+        }
+
+        fun scr2petscii(screencode: Short): Short {
+            val petscii = when {
+                screencode <= 0x1f -> screencode + 64
+                screencode <= 0x3f -> screencode.toInt()
+                screencode <= 0x5d -> screencode +123
+                screencode == 0x5e.toShort() -> 255
+                screencode == 0x5f.toShort() -> 223
+                screencode <= 0x7f -> screencode + 64
+                screencode <= 0xbf -> screencode - 128
+                screencode <= 0xfe -> screencode - 64
+                screencode == 255.toShort() -> 191
+                else -> throw CharConversionException("screencode out of range")
+            }
+            return petscii.toShort()
+        }
     }
 }

@@ -61,23 +61,23 @@ class BitmapScreenPanel : KeyListener, JPanel() {
         g2d.color = Colors.palette[color % Colors.palette.size]
         g2d.drawLine(x1, y1, x2, y2)
     }
-    fun printText(text: String, color: Short, lowercase: Boolean) {
+    fun printText(text: String, color: Short, lowercase: Boolean, inverseVideo: Boolean=false) {
         val t2 = text.substringBefore(0.toChar())
         val lines = t2.split('\n')
         for(line in lines.withIndex()) {
-            printTextSingleLine(line.value, color, lowercase)
+            printTextSingleLine(line.value, color, lowercase, inverseVideo)
             if(line.index<lines.size-1) {
                 cursorX=0
                 cursorY++
             }
         }
     }
-    private fun printTextSingleLine(text: String, color: Short, lowercase: Boolean) {
+    private fun printTextSingleLine(text: String, color: Short, lowercase: Boolean, inverseVideo: Boolean=false) {
         for(clearx in cursorX until cursorX+text.length) {
             g2d.clearRect(8*clearx, 8*y, 8, 8)
         }
-        for(sc in Petscii.encodeScreencode(text, lowercase)) {
-            setChar(cursorX, cursorY, sc, color)
+        for(sc in Petscii.encodePetscii(text, lowercase)) {
+            setPetscii(cursorX, cursorY, sc, color, inverseVideo)
             cursorX++
             if(cursorX>=(SCREENWIDTH /8)) {
                 cursorY++
@@ -86,12 +86,12 @@ class BitmapScreenPanel : KeyListener, JPanel() {
         }
     }
 
-    fun printChar(char: Short) {
+    fun printPetscii(char: Short, inverseVideo: Boolean=false) {
         if(char==13.toShort() || char==141.toShort()) {
             cursorX=0
             cursorY++
         } else {
-            setChar(cursorX, cursorY, char, 1)
+            setPetscii(cursorX, cursorY, char, 1, inverseVideo)
             cursorX++
             if (cursorX >= (SCREENWIDTH / 8)) {
                 cursorY++
@@ -100,10 +100,18 @@ class BitmapScreenPanel : KeyListener, JPanel() {
         }
     }
 
-    fun setChar(x: Int, y: Int, screenCode: Short, color: Short) {
+    fun setPetscii(x: Int, y: Int, petscii: Short, color: Short, inverseVideo: Boolean) {
         g2d.clearRect(8*x, 8*y, 8, 8)
         val colorIdx = (color % Colors.palette.size).toShort()
-        val coloredImage = Charset.getColoredChar(screenCode, colorIdx)
+        val screencode = Petscii.petscii2scr(petscii, inverseVideo)
+        val coloredImage = Charset.getColoredChar(screencode, colorIdx)
+        g2d.drawImage(coloredImage, 8*x, 8*y , null)
+    }
+
+    fun setChar(x: Int, y: Int, screencode: Short, color: Short) {
+        g2d.clearRect(8*x, 8*y, 8, 8)
+        val colorIdx = (color % Colors.palette.size).toShort()
+        val coloredImage = Charset.getColoredChar(screencode, colorIdx)
         g2d.drawImage(coloredImage, 8*x, 8*y , null)
     }
 
@@ -116,16 +124,16 @@ class BitmapScreenPanel : KeyListener, JPanel() {
         return Pair(cursorX, cursorY)
     }
 
-    fun writeText(x: Int, y: Int, text: String, color: Short, lowercase: Boolean) {
+    fun writeText(x: Int, y: Int, text: String, color: Short, lowercase: Boolean, inverseVideo: Boolean=false) {
         val colorIdx = (color % Colors.palette.size).toShort()
         var xx=x
         for(clearx in xx until xx+text.length) {
             g2d.clearRect(8*clearx, 8*y, 8, 8)
         }
-        for(sc in Petscii.encodeScreencode(text, lowercase)) {
+        for(sc in Petscii.encodePetscii(text, lowercase)) {
             if(sc==0.toShort())
                 break
-            setChar(xx++, y, sc, colorIdx)
+            setPetscii(xx++, y, sc, colorIdx, inverseVideo)
         }
     }
 
