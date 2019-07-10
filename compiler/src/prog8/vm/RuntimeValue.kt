@@ -72,7 +72,7 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
             }
             DataType.UWORD -> {
                 val inum = num!!.toInt()
-                if(inum !in 0 .. 65536)
+                if(inum !in 0 .. 65535)
                     throw IllegalArgumentException("invalid value for uword: $inum")
                 wordval = inum
                 byteval = null
@@ -189,20 +189,44 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
                     if(leftDt== DataType.UBYTE)
                         RuntimeValue(DataType.UBYTE, (number xor 255) + 1)
                     else
-                        RuntimeValue(DataType.UBYTE, (number xor 65535) + 1)
+                        RuntimeValue(DataType.UWORD, (number xor 65535) + 1)
                 }
-                DataType.BYTE -> RuntimeValue(DataType.BYTE, result.toInt())
-                DataType.WORD -> RuntimeValue(DataType.WORD, result.toInt())
+                DataType.BYTE -> {
+                    val v=result.toInt() and 255
+                    if(v<128)
+                        RuntimeValue(DataType.BYTE, v)
+                    else
+                        RuntimeValue(DataType.BYTE, v-256)
+                }
+                DataType.WORD -> {
+                    val v=result.toInt() and 65535
+                    if(v<32768)
+                        RuntimeValue(DataType.WORD, v)
+                    else
+                        RuntimeValue(DataType.WORD, v-65536)
+                }
                 DataType.FLOAT -> RuntimeValue(DataType.FLOAT, result)
                 else -> throw ArithmeticException("$op on non-numeric type")
             }
         }
 
         return when(leftDt) {
-            DataType.UBYTE -> RuntimeValue(DataType.UBYTE, result.toInt())
-            DataType.BYTE -> RuntimeValue(DataType.BYTE, result.toInt())
-            DataType.UWORD -> RuntimeValue(DataType.UWORD, result.toInt())
-            DataType.WORD -> RuntimeValue(DataType.WORD, result.toInt())
+            DataType.UBYTE -> RuntimeValue(DataType.UBYTE, result.toInt() and 255)
+            DataType.BYTE -> {
+                val v = result.toInt() and 255
+                if(v<128)
+                    RuntimeValue(DataType.BYTE, v)
+                else
+                    RuntimeValue(DataType.BYTE, v-256)
+            }
+            DataType.UWORD -> RuntimeValue(DataType.UWORD, result.toInt() and 65535)
+            DataType.WORD -> {
+                val v = result.toInt() and 65535
+                if(v<32768)
+                    RuntimeValue(DataType.WORD, v)
+                else
+                    RuntimeValue(DataType.WORD, v-65536)
+            }
             DataType.FLOAT -> RuntimeValue(DataType.FLOAT, result)
             else -> throw ArithmeticException("$op on non-numeric type")
         }
@@ -278,10 +302,22 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
     fun shl(): RuntimeValue {
         val v = integerValue()
         return when (type) {
-            DataType.UBYTE,
-            DataType.BYTE,
-            DataType.UWORD,
-            DataType.WORD -> RuntimeValue(type, v shl 1)
+            DataType.UBYTE -> RuntimeValue(type, (v shl 1) and 255)
+            DataType.UWORD -> RuntimeValue(type, (v shl 1) and 65535)
+            DataType.BYTE -> {
+                val value = v shl 1
+                if(value<128)
+                    RuntimeValue(type, value)
+                else
+                    RuntimeValue(type, value-256)
+            }
+            DataType.WORD -> {
+                val value = v shl 1
+                if(value<32768)
+                    RuntimeValue(type, value)
+                else
+                    RuntimeValue(type, value-65536)
+            }
             else -> throw ArithmeticException("invalid type for shl: $type")
         }
     }
@@ -419,8 +455,10 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
 
     fun inv(): RuntimeValue {
         return when(type) {
-            in ByteDatatypes -> RuntimeValue(type, byteval!!.toInt().inv())
-            in WordDatatypes -> RuntimeValue(type, wordval!!.inv())
+            DataType.UBYTE -> RuntimeValue(type, byteval!!.toInt().inv() and 255)
+            DataType.UWORD -> RuntimeValue(type, wordval!!.inv() and 65535)
+            DataType.BYTE -> RuntimeValue(type, byteval!!.toInt().inv())
+            DataType.WORD -> RuntimeValue(type, wordval!!.inv())
             else -> throw ArithmeticException("inv can only work on byte/word")
         }
     }
@@ -428,18 +466,18 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
     fun inc(): RuntimeValue {
         return when(type) {
             DataType.UBYTE -> RuntimeValue(type, (byteval!! + 1) and 255)
-            DataType.UWORD -> RuntimeValue(type, (byteval!! + 1) and 65535)
+            DataType.UWORD -> RuntimeValue(type, (wordval!! + 1) and 65535)
             DataType.BYTE -> {
                 val newval = byteval!! + 1
-                if(newval == 256)
-                    RuntimeValue(type, 0)
+                if(newval == 128)
+                    RuntimeValue(type, -128)
                 else
                     RuntimeValue(type, newval)
             }
             DataType.WORD -> {
-                val newval = byteval!! + 1
-                if(newval == 65536)
-                    RuntimeValue(type, 0)
+                val newval = wordval!! + 1
+                if(newval == 32768)
+                    RuntimeValue(type, -32768)
                 else
                     RuntimeValue(type, newval)
             }
@@ -451,7 +489,7 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
     fun dec(): RuntimeValue {
         return when(type) {
             DataType.UBYTE -> RuntimeValue(type, (byteval!! - 1) and 255)
-            DataType.UWORD -> RuntimeValue(type, (byteval!! - 1) and 65535)
+            DataType.UWORD -> RuntimeValue(type, (wordval!! - 1) and 65535)
             DataType.BYTE -> {
                 val newval = byteval!! - 1
                 if(newval == -129)
@@ -460,7 +498,7 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
                     RuntimeValue(type, newval)
             }
             DataType.WORD -> {
-                val newval = byteval!! - 1
+                val newval = wordval!! - 1
                 if(newval == -32769)
                     RuntimeValue(type, 32767)
                 else
@@ -484,9 +522,21 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
             DataType.UBYTE -> {
                 when (targetType) {
                     DataType.UBYTE -> this
-                    DataType.BYTE -> RuntimeValue(DataType.BYTE, byteval)
+                    DataType.BYTE -> {
+                        val nval=byteval!!.toInt()
+                        if(nval<128)
+                            RuntimeValue(DataType.BYTE, nval)
+                        else
+                            RuntimeValue(DataType.BYTE, nval-256)
+                    }
                     DataType.UWORD -> RuntimeValue(DataType.UWORD, numericValue())
-                    DataType.WORD -> RuntimeValue(DataType.WORD, numericValue())
+                    DataType.WORD -> {
+                        val nval = numericValue().toInt()
+                        if(nval<32768)
+                            RuntimeValue(DataType.WORD, nval)
+                        else
+                            RuntimeValue(DataType.WORD, nval-65536)
+                    }
                     DataType.FLOAT -> RuntimeValue(DataType.FLOAT, numericValue())
                     else -> throw ArithmeticException("invalid type cast from $type to $targetType")
                 }
@@ -494,8 +544,8 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
             DataType.BYTE -> {
                 when (targetType) {
                     DataType.BYTE -> this
-                    DataType.UBYTE -> RuntimeValue(DataType.UBYTE, integerValue())
-                    DataType.UWORD -> RuntimeValue(DataType.UWORD, integerValue())
+                    DataType.UBYTE -> RuntimeValue(DataType.UBYTE, integerValue() and 255)
+                    DataType.UWORD -> RuntimeValue(DataType.UWORD, integerValue() and 65535)
                     DataType.WORD -> RuntimeValue(DataType.WORD, integerValue())
                     DataType.FLOAT -> RuntimeValue(DataType.FLOAT, numericValue())
                     else -> throw ArithmeticException("invalid type cast from $type to $targetType")
@@ -513,8 +563,8 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
             }
             DataType.WORD -> {
                 when (targetType) {
-                    DataType.BYTE -> RuntimeValue(DataType.BYTE, integerValue())
-                    DataType.UBYTE -> RuntimeValue(DataType.UBYTE, integerValue())
+                    DataType.BYTE -> RuntimeValue(DataType.BYTE, integerValue() and 255)
+                    DataType.UBYTE -> RuntimeValue(DataType.UBYTE, integerValue() and 65535)
                     DataType.UWORD -> RuntimeValue(DataType.UWORD, integerValue())
                     DataType.WORD -> this
                     DataType.FLOAT -> RuntimeValue(DataType.FLOAT, numericValue())

@@ -104,7 +104,8 @@ interface INameScope {
     }
 
     fun getLabelOrVariable(name: String): IStatement? {
-        // TODO this is called A LOT and could perhaps be optimized a bit more, but adding a cache didn't make much of a practical runtime difference
+        // this is called A LOT and could perhaps be optimized a bit more,
+        // but adding a memoization cache didn't make much of a practical runtime difference
         for (stmt in statements) {
             if (stmt is VarDecl && stmt.name==name) return stmt
             if (stmt is Label && stmt.name==name) return stmt

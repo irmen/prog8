@@ -413,10 +413,10 @@ class TestStackVmOpcodes {
         testUnaryOperator(RuntimeValue(DataType.UBYTE, 123), Opcode.INV_BYTE, RuntimeValue(DataType.UBYTE, 0x84))
         testUnaryOperator(RuntimeValue(DataType.UWORD, 4044), Opcode.INV_WORD, RuntimeValue(DataType.UWORD, 0xf033))
         assertFailsWith<VmExecutionException> {
-            testUnaryOperator(RuntimeValue(DataType.BYTE, 123), Opcode.INV_BYTE, RuntimeValue(DataType.BYTE, 0x84))
+            testUnaryOperator(RuntimeValue(DataType.BYTE, 123), Opcode.INV_BYTE, RuntimeValue(DataType.BYTE, -124))
         }
         assertFailsWith<VmExecutionException> {
-            testUnaryOperator(RuntimeValue(DataType.WORD, 4044), Opcode.INV_WORD, RuntimeValue(DataType.WORD, 0xf033))
+            testUnaryOperator(RuntimeValue(DataType.WORD, 4044), Opcode.INV_WORD, RuntimeValue(DataType.WORD, -4043))
         }
     }
 
