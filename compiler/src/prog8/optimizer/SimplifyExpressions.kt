@@ -36,8 +36,19 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
     }
 
     override fun visit(typecast: TypecastExpression): IExpression {
-        // remove redundant typecasts
         var tc = typecast
+
+        // try to statically convert a literal value into one of the desired type
+        val literal = tc.expression as? LiteralValue
+        if(literal!=null) {
+            val newLiteral = literal.cast(tc.type)
+            if(newLiteral!=null && newLiteral!==literal) {
+                optimizationsDone++
+                return newLiteral
+            }
+        }
+
+        // remove redundant typecasts
         while(true) {
             val expr = tc.expression
             if(expr !is TypecastExpression || expr.type!=tc.type) {
@@ -50,16 +61,21 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
                     }
                 }
 
-                // if the previous typecast was casting to a 'bigger' type, just ignore that one
                 val subTc = tc.expression as? TypecastExpression
-                if(subTc!=null && subTc.type largerThan tc.type) {
-                    subTc.type = tc.type
-                    subTc.parent = tc.parent
-                    optimizationsDone++
-                    return subTc
+                if(subTc!=null) {
+                    // if the previous typecast was casting to a 'bigger' type, just ignore that one
+                    // if the previous typecast was casting to a similar type, ignore that one
+                    if(subTc.type largerThan tc.type || subTc.type equalsSize tc.type) {
+                        subTc.type = tc.type
+                        subTc.parent = tc.parent
+                        optimizationsDone++
+                        return subTc
+                    }
                 }
+
                 return super.visit(tc)
             }
+
             optimizationsDone++
             tc = expr
         }

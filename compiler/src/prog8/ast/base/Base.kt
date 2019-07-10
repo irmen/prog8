@@ -44,6 +44,13 @@ enum class DataType {
                 in WordDatatypes -> other in ByteDatatypes
                 else -> true
             }
+
+    infix fun equalsSize(other: DataType) =
+            when(this) {
+                in ByteDatatypes -> other in ByteDatatypes
+                in WordDatatypes -> other in WordDatatypes
+                else -> false
+            }
 }
 
 enum class Register {

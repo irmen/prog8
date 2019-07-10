@@ -519,17 +519,15 @@ open class LiteralValue(val type: DataType,
                     return LiteralValue(targettype, floatvalue = wordvalue!!.toDouble(), position = position)
             }
             DataType.FLOAT -> {
-                if(floor(floatvalue!!) ==floatvalue) {
-                    val value = floatvalue.toInt()
-                    if (targettype == DataType.BYTE && value in -128..127)
-                        return LiteralValue(targettype, bytevalue = value.toShort(), position = position)
-                    if (targettype == DataType.UBYTE && value in 0..255)
-                        return LiteralValue(targettype, bytevalue = value.toShort(), position = position)
-                    if (targettype == DataType.WORD && value in -32768..32767)
-                        return LiteralValue(targettype, wordvalue = value, position = position)
-                    if (targettype == DataType.UWORD && value in 0..65535)
-                        return LiteralValue(targettype, wordvalue = value, position = position)
-                }
+                val value = floatvalue!!.toInt()
+                if (targettype == DataType.BYTE && value in -128..127)
+                    return LiteralValue(targettype, bytevalue = value.toShort(), position = position)
+                if (targettype == DataType.UBYTE && value in 0..255)
+                    return LiteralValue(targettype, bytevalue = value.toShort(), position = position)
+                if (targettype == DataType.WORD && value in -32768..32767)
+                    return LiteralValue(targettype, wordvalue = value, position = position)
+                if (targettype == DataType.UWORD && value in 0..65535)
+                    return LiteralValue(targettype, wordvalue = value, position = position)
             }
             in StringDatatypes -> {
                 if(targettype in StringDatatypes)

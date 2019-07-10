@@ -360,8 +360,9 @@ class AstToSourceCode(val output: (text: String) -> Unit): IAstVisitor {
     }
 
     override fun visit(typecast: TypecastExpression) {
+        output("(")
         typecast.expression.accept(this)
-        output(" as ${datatypeString(typecast.type)} ")
+        output(" as ${datatypeString(typecast.type)}) ")
     }
 
     override fun visit(memread: DirectMemoryRead) {
@@ -424,6 +425,6 @@ class AstToSourceCode(val output: (text: String) -> Unit): IAstVisitor {
         outputln("")
     }
     override fun visit(nopStatement: NopStatement) {
-        TODO("NOP???")
+        output("; NOP")
     }
 }
