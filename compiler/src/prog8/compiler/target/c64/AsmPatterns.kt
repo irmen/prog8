@@ -2066,7 +2066,20 @@ internal val patterns = listOf<AsmPattern>(
         AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.CMP_B), listOf(Opcode.PUSH_VAR_BYTE, Opcode.CMP_UB)) { segment ->
             // this pattern is encountered as part of the loop bound condition in for loops (var + cmp + jz/jnz)
             val cmpval = segment[1].arg!!.integerValue()
-            " lda  ${segment[0].callLabel} |  cmp  #$cmpval "
+            when(segment[0].callLabel) {
+                "A" -> {
+                    " cmp #$cmpval "
+                }
+                "X" -> {
+                    " cpx #$cmpval "
+                }
+                "Y" -> {
+                    " cpy #$cmpval "
+                }
+                else -> {
+                    " lda  ${segment[0].callLabel} |  cmp  #$cmpval "
+                }
+            }
         },
         AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.CMP_W), listOf(Opcode.PUSH_VAR_WORD, Opcode.CMP_UW)) { segment ->
             // this pattern is encountered as part of the loop bound condition in for loops (var + cmp + jz/jnz)
