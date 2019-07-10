@@ -104,7 +104,12 @@ class CallGraph(private val program: Program): IAstVisitor {
     }
 
     override fun visit(subroutine: Subroutine) {
-        if((subroutine.name=="start" && subroutine.definingScope().name=="main")
+        val alwaysKeepSubroutines = setOf(
+                Pair("main", "start"),
+                Pair("irq", "irq")
+        )
+
+        if(Pair(subroutine.definingScope().name, subroutine.name) in alwaysKeepSubroutines
                 || subroutine.name== initvarsSubName || subroutine.definingModule().isLibraryModule) {
             // make sure the entrypoint is mentioned in the used symbols
             addNodeAndParentScopes(subroutine)
