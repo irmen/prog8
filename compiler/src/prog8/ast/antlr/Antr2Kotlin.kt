@@ -113,11 +113,11 @@ private fun prog8Parser.StatementContext.toAst() : IStatement {
     }
 
     assignment()?.let {
-        return Assignment(it.assign_targets().toAst(), null, it.expression().toAst(), it.toPosition())
+        return Assignment(it.assign_target().toAst(), null, it.expression().toAst(), it.toPosition())
     }
 
     augassignment()?.let {
-        return Assignment(listOf(it.assign_target().toAst()),
+        return Assignment(it.assign_target().toAst(),
                 it.operator.text,
                 it.expression().toAst(),
                 it.toPosition())
@@ -177,9 +177,6 @@ private fun prog8Parser.StatementContext.toAst() : IStatement {
 
     throw FatalAstException("unprocessed source text (are we missing ast conversion rules for parser elements?): $text")
 }
-
-private fun prog8Parser.Assign_targetsContext.toAst(): List<AssignTarget> = assign_target().map { it.toAst() }
-
 
 private fun prog8Parser.AsmsubroutineContext.toAst(): IStatement {
     val name = identifier().text

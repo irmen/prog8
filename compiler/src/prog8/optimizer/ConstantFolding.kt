@@ -656,7 +656,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
         val lv = assignment.value as? LiteralValue
         if(lv!=null) {
             // see if we can promote/convert a literal value to the required datatype
-            when(assignment.singleTarget?.inferType(program, assignment)) {
+            when(assignment.target.inferType(program, assignment)) {
                 DataType.UWORD -> {
                     // we can convert to UWORD: any UBYTE, BYTE/WORD that are >=0, FLOAT that's an integer 0..65535,
                     if(lv.type== DataType.UBYTE)

@@ -127,8 +127,7 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, program
             }
         }
         if(arglist is IdentifierReference) {
-            val dt = arglist.inferType(program)
-            return when(dt) {
+            return when(val dt = arglist.inferType(program)) {
                 in NumericDatatypes -> dt!!
                 in StringDatatypes -> dt!!
                 in ArrayDatatypes -> ArrayElementTypes.getValue(dt!!)
@@ -145,8 +144,7 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, program
 
     return when (function) {
         "abs" -> {
-            val dt = args.single().inferType(program)
-            when(dt) {
+            when(val dt = args.single().inferType(program)) {
                 in ByteDatatypes -> DataType.UBYTE
                 in WordDatatypes -> DataType.UWORD
                 DataType.FLOAT -> DataType.FLOAT
@@ -154,8 +152,7 @@ fun builtinFunctionReturnType(function: String, args: List<IExpression>, program
             }
         }
         "max", "min" -> {
-            val dt = datatypeFromIterableArg(args.single())
-            when(dt) {
+            when(val dt = datatypeFromIterableArg(args.single())) {
                 in NumericDatatypes -> dt
                 in StringDatatypes -> DataType.UBYTE
                 in ArrayDatatypes -> ArrayElementTypes.getValue(dt)
@@ -279,8 +276,7 @@ private fun builtinAbs(args: List<IExpression>, position: Position, program: Pro
         throw SyntaxError("abs requires one numeric argument", position)
 
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
-    val number = constval.asNumericValue
-    return when (number) {
+    return when (val number = constval.asNumericValue) {
         is Int, is Byte, is Short -> numericLiteral(abs(number.toInt()), args[0].position)
         is Double -> numericLiteral(abs(number.toDouble()), args[0].position)
         else -> throw SyntaxError("abs requires one numeric argument", position)

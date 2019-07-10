@@ -444,11 +444,12 @@ Normal subroutines can only return zero or one return values.
 However, the special ``asmsub`` routines (implemented in assembly code or referencing
 a routine in kernel ROM) can return more than one return values, for instance a status
 in the carry bit and a number in A, or a 16-bit value in A/Y registers.
-Only for these kind of subroutines it is possible to write a multi value assignment to
-store the resulting values::
-
-        var1, var2, var3 = asmsubroutine()
-
+It is not possible to process the results of a call to these kind of routines
+directly from the language, because only single value assignments are possible.
+You can still call the subroutine and not store the results.
+But if you want to do something with the values it returns, you'll have to write
+a small block of custom inline assembly that does the call and stores the values
+appropriately. Don't forget to save/restore the registers if required.
 
 
 Subroutine definitions

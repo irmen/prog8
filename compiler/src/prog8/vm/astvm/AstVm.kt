@@ -96,14 +96,12 @@ class RuntimeVariables {
 
     fun get(scope: INameScope, name: String): RuntimeValue {
         val where = vars.getValue(scope)
-        val value = where[name] ?: throw NoSuchElementException("no such runtime variable: ${scope.name}.$name")
-        return value
+        return where[name] ?: throw NoSuchElementException("no such runtime variable: ${scope.name}.$name")
     }
 
     fun getMemoryAddress(scope: INameScope, name: String): Int {
         val where = memvars.getValue(scope)
-        val address = where[name] ?: throw NoSuchElementException("no such runtime memory-variable: ${scope.name}.$name")
-        return address
+        return where[name] ?: throw NoSuchElementException("no such runtime memory-variable: ${scope.name}.$name")
     }
 
     fun swap(a1: VarDecl, a2: VarDecl) = swap(a1.definingScope(), a1.name, a2.definingScope(), a2.name)
@@ -346,11 +344,8 @@ class AstVm(val program: Program) {
             is Assignment -> {
                 if (stmt.aug_op != null)
                     throw VmExecutionException("augmented assignment should have been converted into regular one $stmt")
-                val target = stmt.singleTarget
-                if (target != null) {
-                    val value = evaluate(stmt.value, evalCtx)
-                    performAssignment(target, value, stmt, evalCtx)
-                } else TODO("assign multitarget $stmt")
+                val value = evaluate(stmt.value, evalCtx)
+                performAssignment(stmt.target, value, stmt, evalCtx)
             }
             is PostIncrDecr -> {
                 when {

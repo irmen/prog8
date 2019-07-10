@@ -339,25 +339,19 @@ internal class AstChecker(private val program: Program,
         // assigning from a functioncall COULD return multiple values (from an asm subroutine)
         if(assignment.value is FunctionCall) {
             val stmt = (assignment.value as FunctionCall).target.targetStatement(program.namespace)
-            if (stmt is Subroutine) {
-                if (stmt.isAsmSubroutine) {
-                    if (stmt.returntypes.size != assignment.targets.size)
-                        checkResult.add(ExpressionError("number of return values doesn't match number of assignment targets", assignment.value.position))
-                    else {
-                        for (thing in stmt.returntypes.zip(assignment.targets)) {
-                            if (thing.second.inferType(program, assignment) != thing.first)
-                                checkResult.add(ExpressionError("return type mismatch for target ${thing.second.shortString()}", assignment.value.position))
-                        }
+            if (stmt is Subroutine && stmt.isAsmSubroutine) {
+                if(stmt.returntypes.size>1)
+                    checkResult.add(ExpressionError("It's not possible to store the multipel results of this asmsub call; you should use a small block of custom inline assembly for this.", assignment.value.position))
+                else {
+                    if(stmt.returntypes.single()!=assignment.target.inferType(program, assignment)) {
+                         checkResult.add(ExpressionError("return type mismatch", assignment.value.position))
                     }
-                } else if(assignment.targets.size>1)
-                    checkResult.add(ExpressionError("only asmsub subroutines can return multiple values", assignment.value.position))
+                }
             }
         }
 
         var resultingAssignment = assignment
-        for (target in assignment.targets) {
-            resultingAssignment = processAssignmentTarget(resultingAssignment, target)
-        }
+        resultingAssignment = processAssignmentTarget(resultingAssignment, assignment.target)
         return super.visit(resultingAssignment)
     }
 
@@ -403,7 +397,7 @@ internal class AstChecker(private val program: Program,
 
             val expression = BinaryExpression(newTarget, assignment.aug_op.substringBeforeLast('='), assignment.value, assignment.position)
             expression.linkParents(assignment.parent)
-            val assignment2 = Assignment(listOf(target), null, expression, assignment.position)
+            val assignment2 = Assignment(target, null, expression, assignment.position)
             assignment2.linkParents(assignment.parent)
             return assignment2
         }
@@ -422,18 +416,16 @@ internal class AstChecker(private val program: Program,
             } else {
                 val sourceDatatype: DataType? = assignment.value.inferType(program)
                 if(sourceDatatype==null) {
-                    if(assignment.targets.size<=1) {
-                        if (assignment.value is FunctionCall) {
-                            val targetStmt = (assignment.value as FunctionCall).target.targetStatement(program.namespace)
-                            if(targetStmt!=null)
-                                checkResult.add(ExpressionError("function call doesn't return a suitable value to use in assignment", assignment.value.position))
-                        }
-                        else
-                            checkResult.add(ExpressionError("assignment value is invalid or has no proper datatype", assignment.value.position))
+                    if (assignment.value is FunctionCall) {
+                        val targetStmt = (assignment.value as FunctionCall).target.targetStatement(program.namespace)
+                        if(targetStmt!=null)
+                            checkResult.add(ExpressionError("function call doesn't return a suitable value to use in assignment", assignment.value.position))
                     }
+                    else
+                        checkResult.add(ExpressionError("assignment value is invalid or has no proper datatype", assignment.value.position))
                 }
                 else
-                    checkAssignmentCompatible(targetDatatype, sourceDatatype, assignment.value, assignment.targets, assignment.position)
+                    checkAssignmentCompatible(targetDatatype, sourceDatatype, assignment.value, assignment.position)
             }
         }
         return assignment
@@ -793,8 +785,12 @@ internal class AstChecker(private val program: Program,
         val targetStatement = checkFunctionOrLabelExists(functionCallStatement.target, functionCallStatement)
         if(targetStatement!=null)
             checkFunctionCall(targetStatement, functionCallStatement.arglist, functionCallStatement.position)
-        if(targetStatement is Subroutine && targetStatement.returntypes.isNotEmpty())
-            printWarning("result value of subroutine call is discarded", functionCallStatement.position)
+        if(targetStatement is Subroutine && targetStatement.returntypes.isNotEmpty()) {
+            if(targetStatement.returntypes.size==1)
+                printWarning("result value of subroutine call is discarded", functionCallStatement.position)
+            else
+                printWarning("result values of subroutine call are discarded", functionCallStatement.position)
+        }
         return super.visit(functionCallStatement)
     }
 
@@ -1187,7 +1183,6 @@ internal class AstChecker(private val program: Program,
     private fun checkAssignmentCompatible(targetDatatype: DataType,
                                           sourceDatatype: DataType,
                                           sourceValue: IExpression,
-                                          assignTargets: List<AssignTarget>,
                                           position: Position) : Boolean {
 
         if(sourceValue is RangeExpr)
@@ -1208,10 +1203,7 @@ internal class AstChecker(private val program: Program,
             return true
 
         if((sourceDatatype== DataType.UWORD || sourceDatatype== DataType.WORD) && (targetDatatype== DataType.UBYTE || targetDatatype== DataType.BYTE)) {
-            if(assignTargets.size==2 && assignTargets[0].register!=null && assignTargets[1].register!=null)
-                return true // for asm subroutine calls that return a (U)WORD that's going to be stored into two BYTES (registers), we make an exception.
-            else
-                checkResult.add(ExpressionError("cannot assign word to byte, use msb() or lsb()?", position))
+            checkResult.add(ExpressionError("cannot assign word to byte, use msb() or lsb()?", position))
         }
         else if(sourceDatatype== DataType.FLOAT && targetDatatype in IntegerDatatypes)
             checkResult.add(ExpressionError("cannot assign float to ${targetDatatype.name.toLowerCase()}; possible loss of precision. Suggestion: round the value or revert to integer arithmetic", position))

@@ -83,7 +83,7 @@ internal fun simpleInstr2Asm(ins: Instruction, block: IntermediateProgram.Progra
             cmp   #>${ins.arg!!.integerValue().toHex()}
             bne   +
             lda   ${ESTACK_LO.toHex()},x
-            cmp   #<${ins.arg!!.integerValue().toHex()}
+            cmp   #<${ins.arg.integerValue().toHex()}
             ; bne   +    not necessary?
             ; lda   #0   not necessary?
 +                           

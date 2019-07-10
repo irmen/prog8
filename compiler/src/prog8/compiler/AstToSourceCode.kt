@@ -271,7 +271,7 @@ class AstToSourceCode(val output: (text: String) -> Unit): IAstVisitor {
     }
 
     override fun visit(assignment: Assignment) {
-        assignment.singleTarget!!.accept(this)
+        assignment.target.accept(this)
         if(assignment.aug_op!=null)
             output(" ${assignment.aug_op} ")
         else

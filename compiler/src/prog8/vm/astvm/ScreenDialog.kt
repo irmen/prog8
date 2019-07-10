@@ -152,7 +152,7 @@ class ScreenDialog(title: String) : JFrame(title) {
     init {
         val borderWidth = 16
         layout = GridBagLayout()
-        defaultCloseOperation = JFrame.EXIT_ON_CLOSE
+        defaultCloseOperation = EXIT_ON_CLOSE
         isResizable = false
 
         // the borders (top, left, right, bottom)

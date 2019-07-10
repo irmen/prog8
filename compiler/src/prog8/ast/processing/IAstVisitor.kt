@@ -80,7 +80,7 @@ interface IAstVisitor {
     }
 
     fun visit(assignment: Assignment) {
-        assignment.targets.forEach { it.accept(this) }
+        assignment.target.accept(this)
         assignment.value.accept(this)
     }
 

@@ -54,7 +54,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
             if(expr !is TypecastExpression || expr.type!=tc.type) {
                 val assignment = typecast.parent as? Assignment
                 if(assignment!=null) {
-                    val targetDt = assignment.singleTarget?.inferType(program, assignment)
+                    val targetDt = assignment.target.inferType(program, assignment)
                     if(tc.expression.inferType(program)==targetDt) {
                         optimizationsDone++
                         return tc.expression

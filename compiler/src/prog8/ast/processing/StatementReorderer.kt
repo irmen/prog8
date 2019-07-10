@@ -173,19 +173,16 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
     }
 
     override fun visit(assignment: Assignment): IStatement {
-        val target=assignment.singleTarget
-        if(target!=null) {
-            // see if a typecast is needed to convert the value's type into the proper target type
-            val valuetype = assignment.value.inferType(program)
-            val targettype = target.inferType(program, assignment)
-            if(targettype!=null && valuetype!=null && valuetype!=targettype) {
-                if(valuetype isAssignableTo targettype) {
-                    assignment.value = TypecastExpression(assignment.value, targettype, true, assignment.value.position)
-                    assignment.value.linkParents(assignment)
-                }
-                // if they're not assignable, we'll get a proper error later from the AstChecker
+        // see if a typecast is needed to convert the value's type into the proper target type
+        val valuetype = assignment.value.inferType(program)
+        val targettype = assignment.target.inferType(program, assignment)
+        if(targettype!=null && valuetype!=null && valuetype!=targettype) {
+            if(valuetype isAssignableTo targettype) {
+                assignment.value = TypecastExpression(assignment.value, targettype, true, assignment.value.position)
+                assignment.value.linkParents(assignment)
             }
-        } else TODO("multi-target assign")
+            // if they're not assignable, we'll get a proper error later from the AstChecker
+        }
 
         return super.visit(assignment)
     }
@@ -264,7 +261,7 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
                 break
             }
         }
-        val sorted = sequence.sortedWith(compareBy({it.value.inferType(program)}, {it.singleTarget?.shortString(true)}))
+        val sorted = sequence.sortedWith(compareBy({it.value.inferType(program)}, {it.target.shortString(true)}))
         return Pair(sorted, trailing)
     }
 

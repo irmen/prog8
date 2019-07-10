@@ -982,7 +982,7 @@ internal class Compiler(private val program: Program) {
             } else {
                 when (arg.second.registerOrPair!!) {
                     A -> {
-                        val assign = Assignment(listOf(AssignTarget(Register.A, null, null, null, callPosition)), null, arg.first, callPosition)
+                        val assign = Assignment(AssignTarget(Register.A, null, null, null, callPosition), null, arg.first, callPosition)
                         assign.linkParents(arguments[0].parent)
                         translate(assign)
                     }
@@ -991,12 +991,12 @@ internal class Compiler(private val program: Program) {
                             prog.instr(Opcode.RSAVEX)
                             restoreX = true
                         }
-                        val assign = Assignment(listOf(AssignTarget(Register.X, null, null, null, callPosition)), null, arg.first, callPosition)
+                        val assign = Assignment(AssignTarget(Register.X, null, null, null, callPosition), null, arg.first, callPosition)
                         assign.linkParents(arguments[0].parent)
                         translate(assign)
                     }
                     Y -> {
-                        val assign = Assignment(listOf(AssignTarget(Register.Y, null, null, null, callPosition)), null, arg.first, callPosition)
+                        val assign = Assignment(AssignTarget(Register.Y, null, null, null, callPosition), null, arg.first, callPosition)
                         assign.linkParents(arguments[0].parent)
                         translate(assign)
                     }
@@ -1012,8 +1012,8 @@ internal class Compiler(private val program: Program) {
                             DataType.UBYTE -> {
                                 valueA = arg.first
                                 valueX = LiteralValue.optimalInteger(0, callPosition)
-                                val assignA = Assignment(listOf(AssignTarget(Register.A, null, null, null, callPosition)), null, valueA, callPosition)
-                                val assignX = Assignment(listOf(AssignTarget(Register.X, null, null, null, callPosition)), null, valueX, callPosition)
+                                val assignA = Assignment(AssignTarget(Register.A, null, null, null, callPosition), null, valueA, callPosition)
+                                val assignX = Assignment(AssignTarget(Register.X, null, null, null, callPosition), null, valueX, callPosition)
                                 assignA.linkParents(arguments[0].parent)
                                 assignX.linkParents(arguments[0].parent)
                                 translate(assignA)
@@ -1035,8 +1035,8 @@ internal class Compiler(private val program: Program) {
                             DataType.UBYTE -> {
                                 valueA = arg.first
                                 valueY = LiteralValue.optimalInteger(0, callPosition)
-                                val assignA = Assignment(listOf(AssignTarget(Register.A, null, null, null, callPosition)), null, valueA, callPosition)
-                                val assignY = Assignment(listOf(AssignTarget(Register.Y, null, null, null, callPosition)), null, valueY, callPosition)
+                                val assignA = Assignment(AssignTarget(Register.A, null, null, null, callPosition), null, valueA, callPosition)
+                                val assignY = Assignment(AssignTarget(Register.Y, null, null, null, callPosition), null, valueY, callPosition)
                                 assignA.linkParents(arguments[0].parent)
                                 assignY.linkParents(arguments[0].parent)
                                 translate(assignA)
@@ -1062,8 +1062,8 @@ internal class Compiler(private val program: Program) {
                             DataType.UBYTE -> {
                                 valueX = arg.first
                                 valueY = LiteralValue.optimalInteger(0, callPosition)
-                                val assignX = Assignment(listOf(AssignTarget(Register.X, null, null, null, callPosition)), null, valueX, callPosition)
-                                val assignY = Assignment(listOf(AssignTarget(Register.Y, null, null, null, callPosition)), null, valueY, callPosition)
+                                val assignX = Assignment(AssignTarget(Register.X, null, null, null, callPosition), null, valueX, callPosition)
+                                val assignY = Assignment(AssignTarget(Register.Y, null, null, null, callPosition), null, valueY, callPosition)
                                 assignX.linkParents(arguments[0].parent)
                                 assignY.linkParents(arguments[0].parent)
                                 translate(assignX)
@@ -1402,15 +1402,8 @@ internal class Compiler(private val program: Program) {
         prog.line(stmt.position)
         translate(stmt.value)
 
-        val assignTarget= stmt.singleTarget
-        if(assignTarget==null) {
-            // we're dealing with multiple return values
-            translateMultiReturnAssignment(stmt)
-            return
-        }
-
         val valueDt = stmt.value.inferType(program)
-        val targetDt = assignTarget.inferType(program, stmt)
+        val targetDt = stmt.target.inferType(program, stmt)
         if(valueDt!=targetDt) {
             // convert value to target datatype if possible
             // @todo use convertType()????
@@ -1461,8 +1454,8 @@ internal class Compiler(private val program: Program) {
             throw CompilerException("augmented assignment should have been converted to regular assignment already")
 
         // pop the result value back into the assignment target
-        val datatype = assignTarget.inferType(program, stmt)!!
-        popValueIntoTarget(assignTarget, datatype)
+        val datatype = stmt.target.inferType(program, stmt)!!
+        popValueIntoTarget(stmt.target, datatype)
     }
 
     private fun pushHeapVarAddress(value: IExpression, removeLastOpcode: Boolean) {
@@ -1486,20 +1479,6 @@ internal class Compiler(private val program: Program) {
             }
             else -> throw CompilerException("can only take address of a the float as constant literal or variable")
         }
-    }
-
-    private fun translateMultiReturnAssignment(stmt: Assignment) {
-        val targetStmt = (stmt.value as? FunctionCall)?.target?.targetStatement(program.namespace)
-        if(targetStmt is Subroutine && targetStmt.isAsmSubroutine) {
-            // this is the only case where multiple assignment targets are allowed: a call to an asmsub with multiple return values
-            // the return values are already on the stack (the subroutine call puts them there)
-            if(stmt.targets.size!=targetStmt.asmReturnvaluesRegisters.size)
-                throw CompilerException("asmsub number of return values doesn't match number of assignment targets ${stmt.position}")
-            for(target in stmt.targets) {
-                val dt = target.inferType(program, stmt)
-                popValueIntoTarget(target, dt!!)
-            }
-        } else throw CompilerException("can only use multiple assignment targets on an asmsub call")
     }
 
     private fun popValueIntoTarget(assignTarget: AssignTarget, datatype: DataType) {
@@ -1688,7 +1667,7 @@ internal class Compiler(private val program: Program) {
             AssignTarget(null, loop.loopVar!!.copy(), null, null, loop.position)
         val arrayspec = ArrayIndex(IdentifierReference(listOf(ForLoop.iteratorLoopcounterVarname), loop.position), loop.position)
         val assignLv = Assignment(
-                listOf(assignTarget), null,
+                assignTarget, null,
                 ArrayIndexedExpression((loop.iterable as IdentifierReference).copy(), arrayspec, loop.position),
                 loop.position)
         assignLv.linkParents(loop.body)
@@ -1831,7 +1810,7 @@ internal class Compiler(private val program: Program) {
                 AssignTarget(register, null, null, null, range.position)
         }
 
-        val startAssignment = Assignment(listOf(makeAssignmentTarget()), null, range.from, range.position)
+        val startAssignment = Assignment(makeAssignmentTarget(), null, range.from, range.position)
         startAssignment.linkParents(body)
         translate(startAssignment)
 

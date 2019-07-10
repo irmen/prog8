@@ -2410,12 +2410,12 @@ class StackVm(private var traceOutputFile: String?) {
             irqStoredCarry = P_carry
             irqStoredTraceOutputFile = traceOutputFile
 
-            if(irqStartInstructionPtr>=0)
-                currentInstructionPtr = irqStartInstructionPtr
+            currentInstructionPtr = if(irqStartInstructionPtr>=0)
+                irqStartInstructionPtr
             else {
                 if(program.last().opcode!=Opcode.RETURN)
                     throw VmExecutionException("last instruction in program should be RETURN for irq handler")
-                currentInstructionPtr = program.size-1
+                program.size-1
             }
             callstack = MyStack()
             evalstack = MyStack()

@@ -111,7 +111,7 @@ interface IAstModifyingVisitor {
     }
 
     fun visit(assignment: Assignment): IStatement {
-        assignment.targets = assignment.targets.map { it.accept(this) }
+        assignment.target = assignment.target.accept(this)
         assignment.value = assignment.value.accept(this)
         return assignment
     }

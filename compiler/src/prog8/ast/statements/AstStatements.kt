@@ -6,8 +6,6 @@ import prog8.ast.expressions.*
 import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.processing.IAstVisitor
 import prog8.compiler.HeapValues
-import kotlin.math.max
-import kotlin.math.min
 
 
 class BuiltinFunctionStatementPlaceholder(val name: String, override val position: Position) : IStatement {
@@ -224,14 +222,14 @@ class ArrayIndex(var index: IExpression, override val position: Position) : Node
     fun size() = (index as? LiteralValue)?.asIntegerValue
 }
 
-open class Assignment(var targets: List<AssignTarget>, val aug_op : String?, var value: IExpression, override val position: Position) : IStatement {
+open class Assignment(var target: AssignTarget, val aug_op : String?, var value: IExpression, override val position: Position) : IStatement {
     override lateinit var parent: Node
     override val expensiveToInline
             get() = value !is LiteralValue
 
     override fun linkParents(parent: Node) {
         this.parent = parent
-        targets.forEach { it.linkParents(this) }
+        this.target.linkParents(this)
         value.linkParents(this)
     }
 
@@ -239,19 +237,14 @@ open class Assignment(var targets: List<AssignTarget>, val aug_op : String?, var
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
 
     override fun toString(): String {
-        return("Assignment(augop: $aug_op, targets: $targets, value: $value, pos=$position)")
+        return("Assignment(augop: $aug_op, target: $target, value: $value, pos=$position)")
     }
-
-    val singleTarget: AssignTarget?
-        get() {
-            return targets.singleOrNull()  // common case
-        }
 }
 
 // This is a special class so the compiler can see if the assignments are for initializing the vars in the scope,
 // or just a regular assignment. It may optimize the initialization step from this.
 class VariableInitializationAssignment(target: AssignTarget, aug_op: String?, value: IExpression, position: Position)
-    : Assignment(listOf(target), aug_op, value, position)
+    : Assignment(target, aug_op, value, position)
 
 data class AssignTarget(val register: Register?,
                         val identifier: IdentifierReference?,
