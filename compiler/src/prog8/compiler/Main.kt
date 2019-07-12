@@ -84,7 +84,7 @@ fun compileProgram(filepath: Path,
                 }
             }
 
-            programAst.removeNops()
+            programAst.removeNopsFlattenAnonScopes()
             programAst.checkValid(compilerOptions)          // check if final tree is valid
             programAst.checkRecursion()         // check if there are recursive subroutine calls
 

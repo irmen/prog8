@@ -489,6 +489,14 @@ internal class AstChecker(private val program: Program,
 
         when(decl.type) {
             VarDeclType.VAR, VarDeclType.CONST -> {
+                if(decl.struct!=null || decl.datatype==DataType.STRUCT) {
+                    if(decl.datatype!=DataType.STRUCT)
+                        throw FatalAstException("struct vardecl should be of data type struct $decl")
+                    if(decl.struct==null)
+                        throw FatalAstException("struct vardecl should be linked to its struct $decl")
+                    if(decl.zeropage)
+                        err("struct can not be in zeropage")
+                }
                 if (decl.value == null) {
                     when {
                         decl.datatype in NumericDatatypes -> {
@@ -501,6 +509,9 @@ internal class AstChecker(private val program: Program,
                                     }
                             litVal.parent = decl
                             decl.value = litVal
+                        }
+                        decl.datatype == DataType.STRUCT -> {
+                            // TODO structs are not initialized with a literal value yet, should be an array of zeros!
                         }
                         decl.type== VarDeclType.VAR -> {
                             val litVal = LiteralValue(decl.datatype, initHeapId = heapStringSentinel, position = decl.position)    // point to the sentinel heap value instead
@@ -557,16 +568,6 @@ internal class AstChecker(private val program: Program,
                         err("memory address must be valid integer 0..\$ffff")
                     }
                 }
-            }
-            VarDeclType.STRUCT -> {
-                if(decl.struct==null)
-                    throw FatalAstException("struct vardecl should be linked to its struct $decl")
-                if(decl.datatype!=DataType.STRUCT)
-                    throw FatalAstException("struct vardecl should be of data type struct $decl")
-                if(decl.zeropage)
-                    err("struct can not be in zeropage")
-                if(decl.value!=null)
-                    err("struct can not have an initialization value")      // TODO allow struct to have initalization values
             }
         }
 
@@ -1274,7 +1275,7 @@ internal class AstChecker(private val program: Program,
             else {
                 if(decl.zeropage)
                     checkResult.add(SyntaxError("struct can not contain zeropage members", decl.position))
-                if(decl.type == VarDeclType.STRUCT)
+                if(decl.datatype==DataType.STRUCT)
                     checkResult.add(SyntaxError("structs can not be nested", decl.position))
             }
         }

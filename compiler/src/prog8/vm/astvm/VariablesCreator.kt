@@ -49,9 +49,6 @@ class VariablesCreator(private val runtimeVariables: RuntimeVariables, private v
                 VarDeclType.CONST -> {
                     // consts should have been const-folded away
                 }
-                VarDeclType.STRUCT -> {
-                    // struct vardecl can be skipped because its members have been flattened out
-                }
             }
         }
         return super.visit(decl)

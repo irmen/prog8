@@ -94,8 +94,7 @@ enum class BranchCondition {
 enum class VarDeclType {
     VAR,
     CONST,
-    MEMORY,
-    STRUCT
+    MEMORY
 }
 
 val IterableDatatypes = setOf(

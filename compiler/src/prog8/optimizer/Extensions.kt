@@ -31,14 +31,6 @@ internal fun Program.constantFold() {
 internal fun Program.optimizeStatements(optimizeInlining: Boolean): Int {
     val optimizer = StatementOptimizer(this, optimizeInlining)
     optimizer.visit(this)
-    for(scope in optimizer.scopesToFlatten.reversed()) {
-        val namescope = scope.parent as INameScope
-        val idx = namescope.statements.indexOf(scope as IStatement)
-        if(idx>=0) {
-            namescope.statements[idx] = NopStatement.insteadOf(namescope.statements[idx])
-            namescope.statements.addAll(idx, scope.statements)
-        }
-    }
     modules.forEach { it.linkParents(this.namespace) }   // re-link in final configuration
 
     return optimizer.optimizationsDone

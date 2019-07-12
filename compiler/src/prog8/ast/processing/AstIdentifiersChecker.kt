@@ -58,7 +58,7 @@ internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstMo
 
         // is it a struct variable? then define all its struct members as mangled names,
         //    and include the original decl as well.
-        if(decl.type==VarDeclType.STRUCT) {
+        if(decl.datatype==DataType.STRUCT) {
             if(decl.structHasBeenFlattened)
                 return decl    // don't do this multiple times
 

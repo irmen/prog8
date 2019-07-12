@@ -20,7 +20,6 @@ import kotlin.math.floor
 internal class StatementOptimizer(private val program: Program, private val optimizeInlining: Boolean) : IAstModifyingVisitor {
     var optimizationsDone: Int = 0
         private set
-    var scopesToFlatten = mutableListOf<INameScope>()
 
     private val pureBuiltinFunctions = BuiltinFunctions.filter { it.value.pure }
     private val callgraph = CallGraph(program)
@@ -621,11 +620,6 @@ internal class StatementOptimizer(private val program: Program, private val opti
         if(linesToRemove.isNotEmpty()) {
             linesToRemove.reversed().forEach{scope.statements.removeAt(it)}
         }
-
-        if(scope.parent is INameScope) {
-            scopesToFlatten.add(scope)  // get rid of the anonymous scope
-        }
-
         return super.visit(scope)
     }
 
@@ -642,15 +636,36 @@ internal class StatementOptimizer(private val program: Program, private val opti
 
 
 
-internal class RemoveNops: IAstVisitor {
-    val nopStatements = mutableListOf<NopStatement>()
+internal class FlattenAnonymousScopesAndRemoveNops: IAstVisitor {
+    private var scopesToFlatten = mutableListOf<INameScope>()
+    private val nopStatements = mutableListOf<NopStatement>()
 
     override fun visit(program: Program) {
         super.visit(program)
-        // at the end, remove the encountered NOP statements
+        for(scope in scopesToFlatten.reversed()) {
+            val namescope = scope.parent as INameScope
+            val idx = namescope.statements.indexOf(scope as IStatement)
+            if(idx>=0) {
+                val nop = NopStatement.insteadOf(namescope.statements[idx])
+                nop.parent = namescope as Node
+                namescope.statements[idx] = nop
+                namescope.statements.addAll(idx, scope.statements)
+                scope.statements.forEach { it.parent = namescope as Node }
+                visit(nop)
+            }
+        }
+
         this.nopStatements.forEach {
             it.definingScope().remove(it)
         }
+    }
+
+    override fun visit(scope: AnonymousScope) {
+        if(scope.parent is INameScope) {
+            scopesToFlatten.add(scope)  // get rid of the anonymous scope
+        }
+
+        return super.visit(scope)
     }
 
     override fun visit(nopStatement: NopStatement) {

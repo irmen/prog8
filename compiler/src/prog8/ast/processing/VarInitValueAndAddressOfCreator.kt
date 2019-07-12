@@ -8,6 +8,8 @@ import prog8.ast.expressions.FunctionCall
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.LiteralValue
 import prog8.ast.statements.*
+import prog8.compiler.CompilerException
+
 
 internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope): IAstModifyingVisitor {
     // For VarDecls that declare an initialization value:
@@ -59,6 +61,24 @@ internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope
                     decl.position
             )
         }
+
+        if(decl.datatype==DataType.STRUCT) {
+            // a struct initialization value
+            // flatten it to assignment statements
+            val sourceArray = (decl.value as LiteralValue).arrayvalue!!
+            val memberAssignments = decl.struct!!.statements.zip(sourceArray).map { member ->
+                val memberDecl = member.first as VarDecl
+                val mangled = mangledStructMemberName(decl.name, memberDecl.name)
+                val idref = IdentifierReference(listOf(mangled), decl.position)
+                val target = AssignTarget(null, idref, null, null, decl.position)
+                val assign = VariableInitializationAssignment(target, null, member.second, member.second.position)
+                assign
+            }
+            val scope = AnonymousScope(memberAssignments.toMutableList(), decl.position)
+            scope.linkParents(decl.parent)
+            return scope
+        }
+
         return decl
     }
 

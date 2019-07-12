@@ -101,7 +101,7 @@ fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
             if(variable is VarDecl) {
                 if(variable.type==VarDeclType.VAR)
                     return ctx.runtimeVars.get(variable.definingScope(), variable.name)
-                else if(variable.type==VarDeclType.STRUCT) {
+                else if(variable.datatype==DataType.STRUCT) {
                     throw VmExecutionException("cannot process structs by-value.  at ${expr.position}")
                 }
                 else {

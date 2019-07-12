@@ -571,7 +571,7 @@ private fun prog8Parser.When_choiceContext.toAst(): WhenChoice {
 
 private fun prog8Parser.VardeclContext.toAst(): VarDecl {
     return VarDecl(
-            if(structname!=null) VarDeclType.STRUCT else VarDeclType.VAR,
+            VarDeclType.VAR,
             datatype()?.toAst() ?: DataType.STRUCT,
             ZEROPAGE() != null,
             arrayindex()?.toAst(),

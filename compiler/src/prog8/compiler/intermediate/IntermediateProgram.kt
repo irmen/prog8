@@ -415,6 +415,10 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                             throw CompilerException("array should already be in the heap")
                         RuntimeValue(decl.datatype, heapId = litval.heapId)
                     }
+                    DataType.STRUCT -> {
+                        // struct variables have been flattened already
+                        return
+                    }
                     else -> throw CompilerException("weird datatype")
                 }
                 currentBlock.variables[scopedname] = value
@@ -434,9 +438,6 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                 val lv = decl.value as LiteralValue
                 if(lv.type in IntegerDatatypes)
                     currentBlock.memoryPointers[scopedname] = Pair(lv.asIntegerValue!!, decl.datatype)
-            }
-            VarDeclType.STRUCT -> {
-                // the struct decl itself will be replaced by mangled declarations for each of their members.
             }
         }
     }

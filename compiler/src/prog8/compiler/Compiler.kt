@@ -682,7 +682,6 @@ internal class Compiler(private val program: Program) {
                             else -> throw CompilerException("invalid datatype for memory variable expression: $target")
                         }
                     }
-                    VarDeclType.STRUCT -> TODO("decltype struct")
                 }
 
             }
@@ -1448,23 +1447,7 @@ internal class Compiler(private val program: Program) {
                 }
                 DataType.STRUCT -> {
                     // Assume the value is an array. Flatten the struct assignment into memberwise assignments.
-                    val identifier = stmt.target.identifier!!
-                    val identifierName = identifier.nameInSource.single()
-                    val targetVar = identifier.targetVarDecl(program.namespace)!!
-                    val struct = targetVar.struct!!
-                    val sourceVar = (stmt.value as IdentifierReference).targetVarDecl(program.namespace)!!
-                    if(!sourceVar.isArray)
-                        throw CompilerException("can only assign arrays to structs")
-                    val sourceArray = (sourceVar.value as LiteralValue).arrayvalue!!
-                    for(member in struct.statements.zip(sourceArray)) {
-                        val decl = member.first as VarDecl
-                        val value = member.second.constValue(program)!!
-                        val mangled = mangledStructMemberName(identifierName, decl.name)
-                        val idref = IdentifierReference(listOf(mangled), stmt.position)
-                        val assign = Assignment(AssignTarget(null, idref, null, null, stmt.position), null, value, value.position)
-                        assign.linkParents(stmt)
-                        translate(assign)
-                    }
+                    flattenStructAssignment(stmt, program).forEach { translate(it) }
                     return
                 }
                 in StringDatatypes -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
@@ -1479,6 +1462,26 @@ internal class Compiler(private val program: Program) {
         // pop the result value back into the assignment target
         val datatype = stmt.target.inferType(program, stmt)!!
         popValueIntoTarget(stmt.target, datatype)
+    }
+
+    private fun flattenStructAssignment(structAssignment: Assignment, program: Program): List<Assignment> {
+        val identifier = structAssignment.target.identifier!!
+        val identifierName = identifier.nameInSource.single()
+        val targetVar = identifier.targetVarDecl(program.namespace)!!
+        val struct = targetVar.struct!!
+        val sourceVar = (structAssignment.value as IdentifierReference).targetVarDecl(program.namespace)!!
+        if(!sourceVar.isArray)
+            throw CompilerException("can only assign arrays to structs")
+        val sourceArray = (sourceVar.value as LiteralValue).arrayvalue!!
+        return struct.statements.zip(sourceArray).map { member ->
+            val decl = member.first as VarDecl
+            val mangled = mangledStructMemberName(identifierName, decl.name)
+            val idref = IdentifierReference(listOf(mangled), structAssignment.position)
+            val assign = Assignment(AssignTarget(null, idref, null, null, structAssignment.position),
+                    null, member.second, member.second.position)
+            assign.linkParents(structAssignment)
+            assign
+        }
     }
 
     private fun pushHeapVarAddress(value: IExpression, removeLastOpcode: Boolean) {
@@ -1520,9 +1523,6 @@ internal class Compiler(private val program: Program) {
                             prog.instr(opcode, RuntimeValue(DataType.UWORD, address))
                         }
                         VarDeclType.CONST -> throw CompilerException("cannot assign to const")
-                        VarDeclType.STRUCT -> {
-                            TODO("decltype struct $assignTarget")
-                        }
                     }
                 } else throw CompilerException("invalid assignment target type ${target::class}")
             }
