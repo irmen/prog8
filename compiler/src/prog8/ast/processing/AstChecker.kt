@@ -450,7 +450,7 @@ internal class AstChecker(private val program: Program,
         if(variable==null)
             checkResult.add(ExpressionError("pointer-of operand must be the name of a heap variable", addressOf.position))
         else {
-            if(variable.datatype !in ArrayDatatypes && variable.datatype !in StringDatatypes)
+            if(variable.datatype !in ArrayDatatypes && variable.datatype !in StringDatatypes && variable.datatype!=DataType.STRUCT)
                 checkResult.add(ExpressionError("pointer-of operand must be the name of a string or array heap variable", addressOf.position))
         }
         if(addressOf.scopedname==null)
@@ -500,12 +500,14 @@ internal class AstChecker(private val program: Program,
 
         when(decl.type) {
             VarDeclType.VAR, VarDeclType.CONST -> {
-                if(decl.struct!=null || decl.datatype==DataType.STRUCT) {
-                    if(decl.datatype!=DataType.STRUCT)
-                        throw FatalAstException("struct vardecl should be of data type struct $decl")
+                if(decl.datatype==DataType.STRUCT) {
                     if(decl.struct==null)
                         throw FatalAstException("struct vardecl should be linked to its struct $decl")
-                    if(decl.zeropage)
+                    if(decl.zeropage==ZeropageWish.PREFER_ZEROPAGE || decl.zeropage==ZeropageWish.REQUIRE_ZEROPAGE)
+                        err("struct can not be in zeropage")
+                }
+                if(decl.struct!=null) {
+                    if(decl.zeropage==ZeropageWish.PREFER_ZEROPAGE || decl.zeropage==ZeropageWish.REQUIRE_ZEROPAGE)
                         err("struct can not be in zeropage")
                 }
                 if (decl.value == null) {
@@ -1284,7 +1286,7 @@ internal class AstChecker(private val program: Program,
             if(decl==null)
                 checkResult.add(SyntaxError("struct can only contain variable declarations", structDecl.position))
             else {
-                if(decl.zeropage)
+                if(decl.zeropage==ZeropageWish.REQUIRE_ZEROPAGE || decl.zeropage==ZeropageWish.PREFER_ZEROPAGE)
                     checkResult.add(SyntaxError("struct can not contain zeropage members", decl.position))
                 if(decl.datatype !in NumericDatatypes)
                     checkResult.add(SyntaxError("structs can only contain numerical types", decl.position))

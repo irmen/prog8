@@ -1488,6 +1488,22 @@ internal class Compiler(private val program: Program) {
         }
     }
 
+    private fun pushStructAddress(value: IExpression) {
+        when (value) {
+            is LiteralValue -> throw CompilerException("can only push address of struct that is a variable on the heap")
+            is IdentifierReference -> {
+                // notice that the mangled name of the first struct member is the start address of this struct var
+                val vardecl = value.targetVarDecl(program.namespace)!!
+                val firstStructMember = (vardecl.struct!!.statements.first() as VarDecl).name
+                val firstVarName = listOf(vardecl.name, firstStructMember)
+                // find the flattened var that belongs to this first struct member
+                val firstVar = value.definingScope().lookup(firstVarName, value) as VarDecl
+                prog.instr(Opcode.PUSH_ADDR_HEAPVAR, callLabel = firstVar.scopedname)    // TODO
+            }
+            else -> throw CompilerException("can only take address of a the float as constant literal or variable")
+        }
+    }
+
     private fun popValueIntoTarget(assignTarget: AssignTarget, datatype: DataType) {
         when {
             assignTarget.identifier != null -> {
@@ -2065,6 +2081,9 @@ internal class Compiler(private val program: Program) {
         }
         else if(target.datatype== DataType.FLOAT) {
             pushFloatAddress(addrof.identifier)
+        }
+        else if(target.datatype == DataType.STRUCT) {
+            pushStructAddress(addrof.identifier)
         }
         else
             throw CompilerException("cannot take memory pointer $addrof")

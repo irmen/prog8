@@ -116,7 +116,7 @@ class AstToSourceCode(val output: (text: String) -> Unit): IAstVisitor {
         if(decl.isArray)
             output("]")
 
-        if(decl.zeropage)
+        if(decl.zeropage == ZeropageWish.REQUIRE_ZEROPAGE || decl.zeropage==ZeropageWish.PREFER_ZEROPAGE)
             output(" @zp")
         output(" ${decl.name} ")
         if(decl.value!=null) {
@@ -305,7 +305,7 @@ class AstToSourceCode(val output: (text: String) -> Unit): IAstVisitor {
         output("for ")
         if(forLoop.decltype!=null) {
             output(datatypeString(forLoop.decltype))
-            if (forLoop.zeropage)
+            if (forLoop.zeropage==ZeropageWish.REQUIRE_ZEROPAGE || forLoop.zeropage==ZeropageWish.PREFER_ZEROPAGE)
                 output(" @zp ")
             else
                 output(" ")

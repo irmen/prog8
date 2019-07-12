@@ -3,6 +3,7 @@ package prog8.vm.astvm
 import prog8.ast.*
 import prog8.ast.base.ArrayElementTypes
 import prog8.ast.base.DataType
+import prog8.ast.base.FatalAstException
 import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.*
 import prog8.ast.statements.BuiltinFunctionStatementPlaceholder
@@ -87,8 +88,14 @@ fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
         }
         is AddressOf -> {
             // we support: address of heap var -> the heap id
-            val heapId = expr.identifier.heapId(ctx.program.namespace)
-            return RuntimeValue(DataType.UWORD, heapId)
+            return try {
+                val heapId = expr.identifier.heapId(ctx.program.namespace)
+                RuntimeValue(DataType.UWORD, heapId)
+            } catch( f: FatalAstException) {
+                // fallback: use the hash of the name, so we have at least *a* value...
+                val address = expr.identifier.hashCode() and 65535
+                RuntimeValue(DataType.UWORD, address)
+            }
         }
         is DirectMemoryRead -> {
             val address = evaluate(expr.addressExpression, ctx).wordval!!
@@ -99,22 +106,21 @@ fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
             val scope = expr.definingScope()
             val variable = scope.lookup(expr.nameInSource, expr)
             if(variable is VarDecl) {
-                if(variable.type==VarDeclType.VAR)
-                    return ctx.runtimeVars.get(variable.definingScope(), variable.name)
-                else if(variable.datatype==DataType.STRUCT) {
-                    throw VmExecutionException("cannot process structs by-value.  at ${expr.position}")
-                }
-                else {
-                    val address = ctx.runtimeVars.getMemoryAddress(variable.definingScope(), variable.name)
-                    return when(variable.datatype) {
-                        DataType.UBYTE -> RuntimeValue(DataType.UBYTE, ctx.mem.getUByte(address))
-                        DataType.BYTE -> RuntimeValue(DataType.BYTE, ctx.mem.getSByte(address))
-                        DataType.UWORD -> RuntimeValue(DataType.UWORD, ctx.mem.getUWord(address))
-                        DataType.WORD -> RuntimeValue(DataType.WORD, ctx.mem.getSWord(address))
-                        DataType.FLOAT -> RuntimeValue(DataType.FLOAT, ctx.mem.getFloat(address))
-                        DataType.STR -> RuntimeValue(DataType.STR, str = ctx.mem.getString(address))
-                        DataType.STR_S -> RuntimeValue(DataType.STR_S, str = ctx.mem.getScreencodeString(address))
-                        else -> throw VmExecutionException("unexpected datatype $variable")
+                when {
+                    variable.type==VarDeclType.VAR -> return ctx.runtimeVars.get(variable.definingScope(), variable.name)
+                    variable.datatype==DataType.STRUCT -> throw VmExecutionException("cannot process structs by-value.  at ${expr.position}")
+                    else -> {
+                        val address = ctx.runtimeVars.getMemoryAddress(variable.definingScope(), variable.name)
+                        return when(variable.datatype) {
+                            DataType.UBYTE -> RuntimeValue(DataType.UBYTE, ctx.mem.getUByte(address))
+                            DataType.BYTE -> RuntimeValue(DataType.BYTE, ctx.mem.getSByte(address))
+                            DataType.UWORD -> RuntimeValue(DataType.UWORD, ctx.mem.getUWord(address))
+                            DataType.WORD -> RuntimeValue(DataType.WORD, ctx.mem.getSWord(address))
+                            DataType.FLOAT -> RuntimeValue(DataType.FLOAT, ctx.mem.getFloat(address))
+                            DataType.STR -> RuntimeValue(DataType.STR, str = ctx.mem.getString(address))
+                            DataType.STR_S -> RuntimeValue(DataType.STR_S, str = ctx.mem.getScreencodeString(address))
+                            else -> throw VmExecutionException("unexpected datatype $variable")
+                        }
                     }
                 }
             } else

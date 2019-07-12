@@ -650,7 +650,7 @@ internal class FlattenAnonymousScopesAndRemoveNops: IAstVisitor {
                 nop.parent = namescope as Node
                 namescope.statements[idx] = nop
                 namescope.statements.addAll(idx, scope.statements)
-                scope.statements.forEach { it.parent = namescope as Node }
+                scope.statements.forEach { it.parent = namescope }
                 visit(nop)
             }
         }

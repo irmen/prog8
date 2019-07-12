@@ -6,6 +6,7 @@ import prog8.ast.base.printWarning
 import prog8.ast.expressions.LiteralValue
 import prog8.ast.statements.StructDecl
 import prog8.ast.statements.VarDecl
+import prog8.ast.statements.ZeropageWish
 import prog8.vm.RuntimeValue
 import prog8.compiler.CompilerException
 import prog8.compiler.HeapValues
@@ -17,10 +18,12 @@ import java.nio.file.Path
 
 class IntermediateProgram(val name: String, var loadAddress: Int, val heap: HeapValues, val source: Path) {
 
+    data class VariableParameters (val zp: ZeropageWish, val memberOfStruct: StructDecl?)
+
     class ProgramBlock(val name: String,
                        var address: Int?,
                        val instructions: MutableList<Instruction> = mutableListOf(),
-                       val variables: MutableMap<String, RuntimeValue> = mutableMapOf(),           // names are fully scoped
+                       val variables: MutableList<Triple<String, RuntimeValue, VariableParameters>> = mutableListOf(),           // names are fully scoped
                        val memoryPointers: MutableMap<String, Pair<Int, DataType>> = mutableMapOf(),
                        val labels: MutableMap<String, Instruction> = mutableMapOf(),        // names are fully scoped
                        val force_output: Boolean)
@@ -29,7 +32,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
             get() { return variables.size }
         val numInstructions: Int
             get() { return instructions.filter { it.opcode!= Opcode.LINE }.size }
-        val variablesMarkedForZeropage: MutableSet<String> = mutableSetOf()
+        val variablesMarkedForZeropage: MutableSet<String> = mutableSetOf()     // TODO maybe this can be removed now we have ValueParameters
     }
 
     val allocatedZeropageVariables = mutableMapOf<String, Pair<Int, DataType>>()
@@ -46,14 +49,16 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         // allocates all @zp marked variables on the zeropage (for all blocks, as long as there is space in the ZP)
         var notAllocated = 0
         for(block in blocks) {
-            val zpVariables = block.variables.filter { it.key in block.variablesMarkedForZeropage }
+            val zpVariables = block.variables.filter { it.first in block.variablesMarkedForZeropage }
             if (zpVariables.isNotEmpty()) {
-                for (variable in zpVariables) {
+                for ((varname, value, varparams) in zpVariables) {
+                    if(varparams.zp==ZeropageWish.NOT_IN_ZEROPAGE || varparams.memberOfStruct!=null)
+                        throw CompilerException("zp conflict")
                     try {
-                        val address = zeropage.allocate(variable.key, variable.value.type, null)
-                        allocatedZeropageVariables[variable.key] = Pair(address, variable.value.type)
+                        val address = zeropage.allocate(varname, value.type, null)
+                        allocatedZeropageVariables[varname] = Pair(address, value.type)
                     } catch (x: ZeropageDepletedError) {
-                        printWarning(x.toString() + " variable ${variable.key} type ${variable.value.type}")
+                        printWarning(x.toString() + " variable $varname type ${value.type}")
                         notAllocated++
                     }
                 }
@@ -399,6 +404,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                 if(decl.parent is StructDecl)
                     return
 
+                val valueparams = VariableParameters(decl.zeropage, decl.struct)
                 val value = when(decl.datatype) {
                     in NumericDatatypes -> {
                         RuntimeValue(decl.datatype, (decl.value as LiteralValue).asNumericValue!!)
@@ -421,9 +427,11 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                     }
                     else -> throw CompilerException("weird datatype")
                 }
-                currentBlock.variables[scopedname] = value
-                if(decl.zeropage)
+                currentBlock.variables.add(Triple(scopedname, value, valueparams))
+                if(decl.zeropage==ZeropageWish.PREFER_ZEROPAGE)
                     currentBlock.variablesMarkedForZeropage.add(scopedname)
+                else if(decl.zeropage==ZeropageWish.REQUIRE_ZEROPAGE)
+                    TODO("REQUIRE_ZEROPAGE not yet implemented")
             }
             VarDeclType.MEMORY -> {
                 // note that constants are all folded away, but assembly code may still refer to them
@@ -513,9 +521,11 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         out.println("\n%block ${blk.name} ${blk.address?.toString(16) ?: ""}")
 
         out.println("%variables")
-        for (variable in blk.variables) {
-            val valuestr = variable.value.toString()
-            out.println("${variable.key}  ${variable.value.type.name.toLowerCase()}  $valuestr")
+        for ((vname, value, parameters) in blk.variables) {
+            if(parameters.zp==ZeropageWish.REQUIRE_ZEROPAGE)
+                throw CompilerException("zp conflict")
+            val valuestr = value.toString()
+            out.println("$vname  ${value.type.name.toLowerCase()}  $valuestr")
         }
         out.println("%end_variables")
         out.println("%memorypointers")

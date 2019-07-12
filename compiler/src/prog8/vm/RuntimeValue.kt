@@ -2,6 +2,8 @@ package prog8.vm
 
 import prog8.ast.base.*
 import prog8.ast.expressions.LiteralValue
+import prog8.ast.statements.StructDecl
+import prog8.ast.statements.ZeropageWish
 import prog8.compiler.HeapValues
 import prog8.compiler.target.c64.Petscii
 import kotlin.math.abs
@@ -13,7 +15,8 @@ import kotlin.math.pow
  * this runtime value can be used to *execute* the parsed Ast (or another intermediary form)
  * It contains a value of a variable during run time of the program and provides arithmetic operations on the value.
  */
-open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=null, val array: Array<Number>?=null, val heapId: Int?=null) {
+open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=null,
+                        val array: Array<Number>?=null, val heapId: Int?=null) {
 
     val byteval: Short?
     val wordval: Int?
@@ -45,8 +48,7 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
                             if(elt.value.integer!=null)
                                 resultArray.add(elt.value.integer!!)
                             else {
-                                println("ADDRESSOF ${elt.value}")
-                                resultArray.add(0x8000)
+                                TODO("ADDRESSOF ${elt.value}")
                             }
                         }
                         RuntimeValue(value.type, array = resultArray.toTypedArray(), heapId = heapId)

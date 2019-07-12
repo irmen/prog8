@@ -128,7 +128,7 @@ internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope
                         pointerExpr.linkParents(arglist[argparam.first.index].parent)
                         arglist[argparam.first.index] = pointerExpr
                         // add a vardecl so that the autovar can be resolved in later lookups
-                        val variable = VarDecl(VarDeclType.VAR, strvalue.type, false, null, autoVarName, null, strvalue,
+                        val variable = VarDecl(VarDeclType.VAR, strvalue.type, ZeropageWish.NOT_IN_ZEROPAGE, null, autoVarName, null, strvalue,
                                 isArray = false, hiddenButDoNotRemove = false, position = strvalue.position)
                         addVarDecl(strvalue.definingScope(), variable)
                     }

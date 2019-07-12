@@ -66,7 +66,7 @@ private fun prog8Parser.StatementContext.toAst() : IStatement {
         return VarDecl(
                 VarDeclType.VAR,
                 vd.datatype()?.toAst() ?: DataType.STRUCT,
-                vd.ZEROPAGE() != null,
+                if(vd.ZEROPAGE() != null) ZeropageWish.PREFER_ZEROPAGE else ZeropageWish.DONTCARE,
                 vd.arrayindex()?.toAst(),
                 vd.varname.text,
                 vd.structname?.text,
@@ -83,7 +83,7 @@ private fun prog8Parser.StatementContext.toAst() : IStatement {
         return VarDecl(
                 VarDeclType.CONST,
                 vd.datatype()?.toAst() ?: DataType.STRUCT,
-                vd.ZEROPAGE() != null,
+                if(vd.ZEROPAGE() != null) ZeropageWish.PREFER_ZEROPAGE else ZeropageWish.DONTCARE,
                 vd.arrayindex()?.toAst(),
                 vd.varname.text,
                 vd.structname?.text,
@@ -100,7 +100,7 @@ private fun prog8Parser.StatementContext.toAst() : IStatement {
         return VarDecl(
                 VarDeclType.MEMORY,
                 vd.datatype()?.toAst() ?: DataType.STRUCT,
-                vd.ZEROPAGE() != null,
+                if(vd.ZEROPAGE() != null) ZeropageWish.PREFER_ZEROPAGE else ZeropageWish.DONTCARE,
                 vd.arrayindex()?.toAst(),
                 vd.varname.text,
                 vd.structname?.text,
@@ -519,7 +519,7 @@ private fun prog8Parser.BranchconditionContext.toAst() = BranchCondition.valueOf
 private fun prog8Parser.ForloopContext.toAst(): ForLoop {
     val loopregister = register()?.toAst()
     val datatype = datatype()?.toAst()
-    val zeropage = ZEROPAGE()!=null
+    val zeropage = if(ZEROPAGE() != null) ZeropageWish.PREFER_ZEROPAGE else ZeropageWish.DONTCARE
     val loopvar = identifier()?.toAst()
     val iterable = expression()!!.toAst()
     val scope =
@@ -573,7 +573,7 @@ private fun prog8Parser.VardeclContext.toAst(): VarDecl {
     return VarDecl(
             VarDeclType.VAR,
             datatype()?.toAst() ?: DataType.STRUCT,
-            ZEROPAGE() != null,
+            if(ZEROPAGE() != null) ZeropageWish.PREFER_ZEROPAGE else ZeropageWish.DONTCARE,
             arrayindex()?.toAst(),
             varname.text,
             structname?.text,

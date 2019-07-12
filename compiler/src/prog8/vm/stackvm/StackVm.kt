@@ -1873,10 +1873,17 @@ class StackVm(private var traceOutputFile: String?) {
             Opcode.INLINE_ASSEMBLY -> throw VmExecutionException("stackVm doesn't support executing inline assembly code $ins")
             Opcode.INCLUDE_FILE -> throw VmExecutionException("stackVm doesn't support including a file $ins")
             Opcode.PUSH_ADDR_HEAPVAR -> {
-                val heapId = variables.getValue(ins.callLabel!!).heapId!!
-                if(heapId<0)
-                    throw VmExecutionException("expected variable on heap")
-                evalstack.push(RuntimeValue(DataType.UWORD, heapId))       // push the "address" of the string or array variable (this is taken care of properly in the assembly code generator)
+                val variable = variables.getValue(ins.callLabel!!)
+                if(variable.heapId!=null) {
+                    val heapId = variable.heapId
+                    if (heapId < 0)
+                        throw VmExecutionException("expected variable on heap")
+                    evalstack.push(RuntimeValue(DataType.UWORD, heapId))       // push the "address" of the string or array variable (this is taken care of properly in the assembly code generator)
+                } else {
+                    // hack: return hash of the name, so we have at least *a* value...
+                    val addr = ins.callLabel.hashCode() and 65535
+                    evalstack.push(RuntimeValue(DataType.UWORD, addr))
+                }
             }
             Opcode.CAST_UB_TO_B -> typecast(DataType.UBYTE, DataType.BYTE)
             Opcode.CAST_W_TO_B -> typecast(DataType.WORD, DataType.BYTE)

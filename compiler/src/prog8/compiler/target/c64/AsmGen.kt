@@ -6,6 +6,7 @@ package prog8.compiler.target.c64
 import prog8.ast.antlr.escape
 import prog8.ast.base.DataType
 import prog8.ast.base.initvarsSubName
+import prog8.ast.statements.ZeropageWish
 import prog8.vm.RuntimeValue
 import prog8.compiler.*
 import prog8.compiler.intermediate.*
@@ -44,7 +45,7 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
         // Convert invalid label names (such as "<anon-1>") to something that's allowed.
         val newblocks = mutableListOf<IntermediateProgram.ProgramBlock>()
         for(block in program.blocks) {
-            val newvars = block.variables.map { symname(it.key, block) to it.value }.toMap().toMutableMap()
+            val newvars = block.variables.map { Triple(symname(it.first, block), it.second, it.third) }.toMutableList()
             val newvarsZeropaged = block.variablesMarkedForZeropage.map{symname(it, block)}.toMutableSet()
             val newlabels = block.labels.map { symname(it.key, block) to it.value}.toMap().toMutableMap()
             val newinstructions = block.instructions.asSequence().map {
@@ -236,18 +237,20 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
         }
 
         // deal with zeropage variables
-        for(variable in blk.variables) {
-            val sym = symname(blk.name+"."+variable.key, null)
+        for((varname, value, parameters) in blk.variables) {
+            val sym = symname(blk.name+"."+varname, null)
             val zpVar = program.allocatedZeropageVariables[sym]
             if(zpVar==null) {
                 // This var is not on the ZP yet. Attempt to move it there (if it's not a float, those take up too much space)
-                if(variable.value.type in zeropage.allowedDatatypes && variable.value.type != DataType.FLOAT) {
+                if(parameters.zp != ZeropageWish.NOT_IN_ZEROPAGE &&
+                        value.type in zeropage.allowedDatatypes
+                        && value.type != DataType.FLOAT) {
                     try {
-                        val address = zeropage.allocate(sym, variable.value.type, null)
-                        out("${variable.key} = $address\t; auto zp ${variable.value.type}")
+                        val address = zeropage.allocate(sym, value.type, null)
+                        out("$varname = $address\t; auto zp ${value.type}")
                         // make sure we add the var to the set of zpvars for this block
-                        blk.variablesMarkedForZeropage.add(variable.key)
-                        program.allocatedZeropageVariables[sym] = Pair(address, variable.value.type)
+                        blk.variablesMarkedForZeropage.add(varname)
+                        program.allocatedZeropageVariables[sym] = Pair(address, value.type)
                     } catch (x: ZeropageDepletedError) {
                         // leave it as it is.
                     }
@@ -255,7 +258,7 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
             }
             else {
                 // it was already allocated on the zp
-                out("${variable.key} = ${zpVar.first}\t; zp ${zpVar.second}")
+                out("$varname = ${zpVar.first}\t; zp ${zpVar.second}")
             }
         }
 
@@ -289,78 +292,94 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
     }
 
     private fun vardecls2asm(block: IntermediateProgram.ProgramBlock) {
-        // these are the non-zeropage variables
-        val sortedVars = block.variables.filter{it.key !in block.variablesMarkedForZeropage}.toList().sortedBy { it.second.type }
-        for (v in sortedVars) {
-            when (v.second.type) {
-                DataType.UBYTE -> out("${v.first}\t.byte  0")
-                DataType.BYTE -> out("${v.first}\t.char  0")
-                DataType.UWORD -> out("${v.first}\t.word  0")
-                DataType.WORD -> out("${v.first}\t.sint  0")
-                DataType.FLOAT -> out("${v.first}\t.byte  0,0,0,0,0  ; float")
-                DataType.STR, DataType.STR_S -> {
-                    val rawStr = heap.get(v.second.heapId!!).str!!
-                    val bytes = encodeStr(rawStr, v.second.type).map { "$" + it.toString(16).padStart(2, '0') }
-                    out("${v.first}\t; ${v.second.type} \"${escape(rawStr).replace("\u0000", "<NULL>")}\"")
-                    for (chunk in bytes.chunked(16))
-                        out("  .byte  " + chunk.joinToString())
-                }
-                DataType.ARRAY_UB -> {
-                    // unsigned integer byte arraysize
-                    val data = makeArrayFillDataUnsigned(v.second)
-                    if (data.size <= 16)
-                        out("${v.first}\t.byte  ${data.joinToString()}")
-                    else {
-                        out(v.first)
-                        for (chunk in data.chunked(16))
-                            out("  .byte  " + chunk.joinToString())
-                    }
-                }
-                DataType.ARRAY_B -> {
-                    // signed integer byte arraysize
-                    val data = makeArrayFillDataSigned(v.second)
-                    if (data.size <= 16)
-                        out("${v.first}\t.char  ${data.joinToString()}")
-                    else {
-                        out(v.first)
-                        for (chunk in data.chunked(16))
-                            out("  .char  " + chunk.joinToString())
-                    }
-                }
-                DataType.ARRAY_UW -> {
-                    // unsigned word arraysize
-                    val data = makeArrayFillDataUnsigned(v.second)
-                    if (data.size <= 16)
-                        out("${v.first}\t.word  ${data.joinToString()}")
-                    else {
-                        out(v.first)
-                        for (chunk in data.chunked(16))
-                            out("  .word  " + chunk.joinToString())
-                    }
-                }
-                DataType.ARRAY_W -> {
-                    // signed word arraysize
-                    val data = makeArrayFillDataSigned(v.second)
-                    if (data.size <= 16)
-                        out("${v.first}\t.sint  ${data.joinToString()}")
-                    else {
-                        out(v.first)
-                        for (chunk in data.chunked(16))
-                            out("  .sint  " + chunk.joinToString())
-                    }
-                }
-                DataType.ARRAY_F -> {
-                    // float arraysize
-                    val array = heap.get(v.second.heapId!!).doubleArray!!
-                    val floatFills = array.map { makeFloatFill(Mflpt5.fromNumber(it)) }
-                    out(v.first)
-                    for(f in array.zip(floatFills))
-                        out("  .byte  ${f.second}  ; float ${f.first}")
-                }
-                DataType.STRUCT -> TODO("datatype struct")
-            }
+        val uniqueNames = block.variables.map { it.first }.toSet()
+        if (uniqueNames.size != block.variables.size)
+            throw AssemblyError("not all variables have unique names")
+
+        // these are the non-zeropage variables.
+        // first get all the flattened struct members, they MUST remain in order
+        val (structMembers, normalVars) = block.variables.partition { it.third.memberOfStruct!=null }
+        structMembers.forEach { vardecl2asm(it.first, it.second, it.third) }
+
+        // leave outsort the other variables by type
+        val sortedVars = normalVars.sortedBy { it.second.type }
+        for ((varname, value, parameters) in sortedVars) {
+            if(varname in block.variablesMarkedForZeropage)
+                continue  // skip the ones that belong in the zero page
+            vardecl2asm(varname, value, parameters)
         }
     }
+
+    private fun vardecl2asm(varname: String, value: RuntimeValue, parameters: IntermediateProgram.VariableParameters) {
+        when (value.type) {
+            DataType.UBYTE -> out("$varname\t.byte  0")
+            DataType.BYTE -> out("$varname\t.char  0")
+            DataType.UWORD -> out("$varname\t.word  0")
+            DataType.WORD -> out("$varname\t.sint  0")
+            DataType.FLOAT -> out("$varname\t.byte  0,0,0,0,0  ; float")
+            DataType.STR, DataType.STR_S -> {
+                val rawStr = heap.get(value.heapId!!).str!!
+                val bytes = encodeStr(rawStr, value.type).map { "$" + it.toString(16).padStart(2, '0') }
+                out("$varname\t; ${value.type} \"${escape(rawStr).replace("\u0000", "<NULL>")}\"")
+                for (chunk in bytes.chunked(16))
+                    out("  .byte  " + chunk.joinToString())
+            }
+            DataType.ARRAY_UB -> {
+                // unsigned integer byte arraysize
+                val data = makeArrayFillDataUnsigned(value)
+                if (data.size <= 16)
+                    out("$varname\t.byte  ${data.joinToString()}")
+                else {
+                    out(varname)
+                    for (chunk in data.chunked(16))
+                        out("  .byte  " + chunk.joinToString())
+                }
+            }
+            DataType.ARRAY_B -> {
+                // signed integer byte arraysize
+                val data = makeArrayFillDataSigned(value)
+                if (data.size <= 16)
+                    out("$varname\t.char  ${data.joinToString()}")
+                else {
+                    out(varname)
+                    for (chunk in data.chunked(16))
+                        out("  .char  " + chunk.joinToString())
+                }
+            }
+            DataType.ARRAY_UW -> {
+                // unsigned word arraysize
+                val data = makeArrayFillDataUnsigned(value)
+                if (data.size <= 16)
+                    out("$varname\t.word  ${data.joinToString()}")
+                else {
+                    out(varname)
+                    for (chunk in data.chunked(16))
+                        out("  .word  " + chunk.joinToString())
+                }
+            }
+            DataType.ARRAY_W -> {
+                // signed word arraysize
+                val data = makeArrayFillDataSigned(value)
+                if (data.size <= 16)
+                    out("$varname\t.sint  ${data.joinToString()}")
+                else {
+                    out(varname)
+                    for (chunk in data.chunked(16))
+                        out("  .sint  " + chunk.joinToString())
+                }
+            }
+            DataType.ARRAY_F -> {
+                // float arraysize
+                val array = heap.get(value.heapId!!).doubleArray!!
+                val floatFills = array.map { makeFloatFill(Mflpt5.fromNumber(it)) }
+                out(varname)
+                for(f in array.zip(floatFills))
+                    out("  .byte  ${f.second}  ; float ${f.first}")
+            }
+            DataType.STRUCT -> throw AssemblyError("vars of type STRUCT should have been removed because flattened")
+        }
+    }
+
 
     private fun encodeStr(str: String, dt: DataType): List<Short> {
         return when(dt) {

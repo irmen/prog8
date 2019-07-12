@@ -71,10 +71,10 @@ internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstMo
                 VarDecl(
                         VarDeclType.VAR,
                         member.datatype,
-                        false,
+                        ZeropageWish.NOT_IN_ZEROPAGE,
                         member.arraysize,
                         mangledStructMemberName(decl.name, member.name),
-                        null,
+                        decl.struct!!.name,
                         initvalue,
                         member.isArray,
                         true,
@@ -131,7 +131,7 @@ internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstMo
                     subroutine.parameters
                             .filter { it.name !in namesInSub }
                             .forEach {
-                                val vardecl = VarDecl(VarDeclType.VAR, it.type, false, null, it.name, null, null,
+                                val vardecl = VarDecl(VarDeclType.VAR, it.type, ZeropageWish.DONTCARE, null, it.name, null, null,
                                         isArray = false, hiddenButDoNotRemove = true, position = subroutine.position)
                                 vardecl.linkParents(subroutine)
                                 subroutine.statements.add(0, vardecl)
@@ -183,7 +183,7 @@ internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstMo
                 val existing = if(forLoop.body.containsNoCodeNorVars()) null else forLoop.body.lookup(listOf(ForLoop.iteratorLoopcounterVarname), forLoop.body.statements.first())
                 if(existing==null) {
                     // create loop iteration counter variable (without value, to avoid an assignment)
-                    val vardecl = VarDecl(VarDeclType.VAR, DataType.UBYTE, true, null, ForLoop.iteratorLoopcounterVarname, null, null,
+                    val vardecl = VarDecl(VarDeclType.VAR, DataType.UBYTE, ZeropageWish.PREFER_ZEROPAGE, null, ForLoop.iteratorLoopcounterVarname, null, null,
                             isArray = false, hiddenButDoNotRemove = true, position = forLoop.loopVar.position)
                     vardecl.linkParents(forLoop.body)
                     forLoop.body.statements.add(0, vardecl)
@@ -230,7 +230,7 @@ internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstMo
             val declaredType = if(literalValue.isArray) ArrayElementTypes.getValue(literalValue.type) else literalValue.type
             val variable = VarDecl(VarDeclType.VAR,
                     declaredType,
-                    false,
+                    ZeropageWish.NOT_IN_ZEROPAGE,
                     null,
                     "$autoHeapValuePrefix${literalValue.heapId}",
                     null,

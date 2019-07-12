@@ -135,9 +135,17 @@ class Break(override val position: Position) : IStatement {
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
 }
 
+
+enum class ZeropageWish {
+    REQUIRE_ZEROPAGE,
+    PREFER_ZEROPAGE,
+    DONTCARE,
+    NOT_IN_ZEROPAGE
+}
+
 class VarDecl(val type: VarDeclType,
               private val declaredDatatype: DataType,
-              val zeropage: Boolean,
+              val zeropage: ZeropageWish,
               var arraysize: ArrayIndex?,
               val name: String,
               private val structName: String?,
@@ -617,7 +625,7 @@ class BranchStatement(var condition: BranchCondition,
 
 class ForLoop(val loopRegister: Register?,
               val decltype: DataType?,
-              val zeropage: Boolean,
+              val zeropage: ZeropageWish,
               val loopVar: IdentifierReference?,
               var iterable: IExpression,
               var body: AnonymousScope,

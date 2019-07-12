@@ -6,6 +6,7 @@ import prog8.ast.expressions.LiteralValue
 import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.statements.StructDecl
 import prog8.ast.statements.VarDecl
+import prog8.ast.statements.ZeropageWish
 import prog8.compiler.HeapValues
 import prog8.vm.RuntimeValue
 
@@ -18,11 +19,11 @@ class VariablesCreator(private val runtimeVariables: RuntimeVariables, private v
         runtimeVariables.define(program.namespace, Register.Y.name, RuntimeValue(DataType.UBYTE, 0))
 
         val globalpos = Position("<<global>>", 0, 0, 0)
-        val vdA = VarDecl(VarDeclType.VAR, DataType.UBYTE, false, null, Register.A.name, null,
+        val vdA = VarDecl(VarDeclType.VAR, DataType.UBYTE, ZeropageWish.DONTCARE, null, Register.A.name, null,
                 LiteralValue.optimalInteger(0, globalpos), isArray = false, hiddenButDoNotRemove = true, position = globalpos)
-        val vdX = VarDecl(VarDeclType.VAR, DataType.UBYTE, false, null, Register.X.name, null,
+        val vdX = VarDecl(VarDeclType.VAR, DataType.UBYTE, ZeropageWish.DONTCARE, null, Register.X.name, null,
                 LiteralValue.optimalInteger(255, globalpos), isArray = false, hiddenButDoNotRemove = true, position = globalpos)
-        val vdY = VarDecl(VarDeclType.VAR, DataType.UBYTE, false, null, Register.Y.name, null,
+        val vdY = VarDecl(VarDeclType.VAR, DataType.UBYTE, ZeropageWish.DONTCARE, null, Register.Y.name, null,
                 LiteralValue.optimalInteger(0, globalpos), isArray = false, hiddenButDoNotRemove = true, position = globalpos)
         vdA.linkParents(program.namespace)
         vdX.linkParents(program.namespace)

@@ -284,9 +284,10 @@ use a scoped name to refer to them: ``structvariable.membername``.
 Structs are a bit limited in Prog8: you can only use numerical variables
 as member of a struct, so strings and arrays and other structs can not be part of a struct.
 Also, it is not possible to use a struct itself inside an array.
-
 Structs are mainly syntactic sugar for repeated groups of vardecls
-and assignments that belong together.
+and assignments that belong together. However, *they are layed out
+in sequence in memory as the members are defined* which may be useful
+if you want to pass pointers around
 
 To create a variable of a struct type you need to define the struct itself,
 and then create a variable with it::
