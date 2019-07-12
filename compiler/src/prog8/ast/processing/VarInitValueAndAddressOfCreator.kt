@@ -62,22 +62,23 @@ internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope
             )
         }
 
-        if(decl.datatype==DataType.STRUCT) {
-            // a struct initialization value
-            // flatten it to assignment statements
-            val sourceArray = (decl.value as LiteralValue).arrayvalue!!
-            val memberAssignments = decl.struct!!.statements.zip(sourceArray).map { member ->
-                val memberDecl = member.first as VarDecl
-                val mangled = mangledStructMemberName(decl.name, memberDecl.name)
-                val idref = IdentifierReference(listOf(mangled), decl.position)
-                val target = AssignTarget(null, idref, null, null, decl.position)
-                val assign = VariableInitializationAssignment(target, null, member.second, member.second.position)
-                assign
-            }
-            val scope = AnonymousScope(memberAssignments.toMutableList(), decl.position)
-            scope.linkParents(decl.parent)
-            return scope
-        }
+//        if(decl.datatype==DataType.STRUCT) {
+//            println("STRUCT INIT DECL $decl")
+//            // a struct initialization value perhaps
+//            // flatten it to assignment statements
+//            val sourceArray = (decl.value as LiteralValue).arrayvalue!!
+//            val memberAssignments = decl.struct!!.statements.zip(sourceArray).map { member ->
+//                val memberDecl = member.first as VarDecl
+//                val mangled = mangledStructMemberName(decl.name, memberDecl.name)
+//                val idref = IdentifierReference(listOf(mangled), decl.position)
+//                val target = AssignTarget(null, idref, null, null, decl.position)
+//                val assign = VariableInitializationAssignment(target, null, member.second, member.second.position)
+//                assign
+//            }
+//            val scope = AnonymousScope(memberAssignments.toMutableList(), decl.position)
+//            scope.linkParents(decl.parent)
+//            return scope
+//        }
 
         return decl
     }

@@ -3,8 +3,11 @@
 
 ~ main {
 
+    Color blocklevelcolor
+
     sub start() {
-        uword derp
+
+        uword derp =44
         ubyte[] v = [22,33,44]
 
         Color foreground    = [1,2,3]
@@ -16,15 +19,15 @@
         c64.CHROUT('\n')
 
 
-        Color background = [255,255,255]            ; @todo make zeros if no value is given
-        Color cursor
+        Color background
+        Color cursor = [255,255,255]
 
         foreground.red=99
         background.blue=foreground.red
 
         cursor = [1,2,3]    ; assign all members at once
         cursor = v
-        ;cursor=foreground   ; @todo memberwise assignment
+        cursor = foreground   ; @todo memberwise assignment
 
         c64scr.print_ub(foreground.red)
         c64.CHROUT(':')
@@ -45,7 +48,27 @@
         c64scr.print_ub(cursor.blue)
         c64.CHROUT('\n')
 
+        foo()
+        foo()
+        foo()
+        foo()
+        foo()
+        foo()
+        foo()
+
+
         return
+    }
+
+    sub foo() {
+        Color localcolor
+        localcolor.red++
+        c64scr.print_ub(localcolor.red)
+        c64.CHROUT(':')
+        c64scr.print_ub(localcolor.green)
+        c64.CHROUT(':')
+        c64scr.print_ub(localcolor.blue)
+        c64.CHROUT('\n')
     }
 
     struct Color {

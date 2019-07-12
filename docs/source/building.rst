@@ -54,14 +54,10 @@ The compiler will link everything together into one output program at the end.
 If you start the compiler without arguments, it will print a short usage text.
 For normal use the compiler is invoked with the command:
 
-    ``$ java -jar prog8compiler.jar sourcefile.p8``   if you're using the packaged release version, or
+    ``$ java -jar prog8compiler.jar sourcefile.p8``
 
-    ``$ ./p8compile.sh sourcefile.p8``   if you're running an unpackaged development version.
-
-If you tell it to save the intermediate code for the prog8 virtual machine, you can
-actually run this code with the command:
-
-    ``$ ./p8vm.sh sourcefile.vm.txt``
+    Other options are also available, see the introduction page about how
+    to build and run the compiler.
 
 
 By default, assembly code is generated and written to ``sourcefile.asm``.

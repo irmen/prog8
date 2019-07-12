@@ -63,6 +63,7 @@ fun compileProgram(filepath: Path,
             }
             //println(" time2: $time2")
             val time3 = measureTimeMillis {
+                programAst.removeNopsFlattenAnonScopes()
                 programAst.reorderStatements()     // reorder statements and add type casts, to please the compiler later
             }
             //println(" time3: $time3")
@@ -88,7 +89,7 @@ fun compileProgram(filepath: Path,
             programAst.checkValid(compilerOptions)          // check if final tree is valid
             programAst.checkRecursion()         // check if there are recursive subroutine calls
 
-            printAst(programAst)
+            // printAst(programAst)
             // namespace.debugPrint()
 
             if(generateVmCode) {

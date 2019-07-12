@@ -62,8 +62,9 @@ internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstMo
             if(decl.structHasBeenFlattened)
                 return decl    // don't do this multiple times
 
-            val decls: MutableList<IStatement> = decl.struct!!.statements.map {
-                val member = it as VarDecl
+            val decls: MutableList<IStatement> = decl.struct!!.statements.withIndex().map {
+                val member = it.value as VarDecl
+                val initvalue = if(decl.value!=null) (decl.value as LiteralValue).arrayvalue!![it.index] else null
                 VarDecl(
                         VarDeclType.VAR,
                         member.datatype,
@@ -71,7 +72,7 @@ internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstMo
                         member.arraysize,
                         mangledStructMemberName(decl.name, member.name),
                         null,
-                        member.value,
+                        initvalue,
                         member.isArray,
                         true,
                         member.position
