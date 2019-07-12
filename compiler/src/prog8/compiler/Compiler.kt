@@ -4,6 +4,7 @@ import prog8.ast.*
 import prog8.ast.base.*
 import prog8.ast.base.RegisterOrPair.*
 import prog8.ast.expressions.*
+import prog8.ast.processing.flattenStructAssignment
 import prog8.ast.statements.*
 import prog8.compiler.intermediate.IntermediateProgram
 import prog8.compiler.intermediate.Opcode
@@ -1462,26 +1463,6 @@ internal class Compiler(private val program: Program) {
         // pop the result value back into the assignment target
         val datatype = stmt.target.inferType(program, stmt)!!
         popValueIntoTarget(stmt.target, datatype)
-    }
-
-    private fun flattenStructAssignment(structAssignment: Assignment, program: Program): List<Assignment> {
-        val identifier = structAssignment.target.identifier!!
-        val identifierName = identifier.nameInSource.single()
-        val targetVar = identifier.targetVarDecl(program.namespace)!!
-        val struct = targetVar.struct!!
-        val sourceVar = (structAssignment.value as IdentifierReference).targetVarDecl(program.namespace)!!
-        if(!sourceVar.isArray)
-            throw CompilerException("can only assign arrays to structs")
-        val sourceArray = (sourceVar.value as LiteralValue).arrayvalue!!
-        return struct.statements.zip(sourceArray).map { member ->
-            val decl = member.first as VarDecl
-            val mangled = mangledStructMemberName(identifierName, decl.name)
-            val idref = IdentifierReference(listOf(mangled), structAssignment.position)
-            val assign = Assignment(AssignTarget(null, idref, null, null, structAssignment.position),
-                    null, member.second, member.second.position)
-            assign.linkParents(structAssignment)
-            assign
-        }
     }
 
     private fun pushHeapVarAddress(value: IExpression, removeLastOpcode: Boolean) {

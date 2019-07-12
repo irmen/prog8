@@ -2,13 +2,57 @@ package prog8.ast.processing
 
 import kotlin.comparisons.nullsLast
 import prog8.ast.*
-import prog8.ast.base.DataType
-import prog8.ast.base.FatalAstException
+import prog8.ast.base.*
 import prog8.ast.base.initvarsSubName
-import prog8.ast.base.printWarning
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.functions.BuiltinFunctions
+
+
+fun flattenStructAssignment(structAssignment: Assignment, program: Program): List<Assignment> {
+    val identifier = structAssignment.target.identifier!!
+    val identifierName = identifier.nameInSource.single()
+    val targetVar = identifier.targetVarDecl(program.namespace)!!
+    val struct = targetVar.struct!!
+    val sourceVar = (structAssignment.value as IdentifierReference).targetVarDecl(program.namespace)!!
+    if(!sourceVar.isArray && sourceVar.struct==null)
+        throw FatalAstException("can only assign arrays or structs to structs")
+    if(sourceVar.isArray) {
+        val sourceArray = (sourceVar.value as LiteralValue).arrayvalue!!
+        return struct.statements.zip(sourceArray).map { member ->
+            val decl = member.first as VarDecl
+            val mangled = mangledStructMemberName(identifierName, decl.name)
+            val idref = IdentifierReference(listOf(mangled), structAssignment.position)
+            val assign = Assignment(AssignTarget(null, idref, null, null, structAssignment.position),
+                    null, member.second, member.second.position)
+            assign.linkParents(structAssignment)
+            assign
+        }
+    }
+    else {
+        // struct memberwise copy
+        val sourceStruct = sourceVar.struct!!
+        if(sourceStruct!==targetVar.struct) {
+            // structs are not the same in assignment
+            return listOf()     // error will be printed elsewhere
+        }
+        return struct.statements.zip(sourceStruct.statements).map { member ->
+            val targetDecl = member.first as VarDecl
+            val sourceDecl = member.second as VarDecl
+            if(targetDecl.name != sourceDecl.name)
+                throw FatalAstException("struct member mismatch")
+            val mangled = mangledStructMemberName(identifierName, targetDecl.name)
+            val idref = IdentifierReference(listOf(mangled), structAssignment.position)
+            val sourcemangled = mangledStructMemberName(sourceVar.name, sourceDecl.name)
+            val sourceIdref = IdentifierReference(listOf(sourcemangled), structAssignment.position)
+            val assign = Assignment(AssignTarget(null, idref, null, null, structAssignment.position),
+                    null, sourceIdref, member.second.position)
+            assign.linkParents(structAssignment)
+            assign
+        }
+    }
+}
+
 
 internal class StatementReorderer(private val program: Program): IAstModifyingVisitor {
     // Reorders the statements in a way the compiler needs.
@@ -174,12 +218,28 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         // see if a typecast is needed to convert the value's type into the proper target type
         val valuetype = assignment.value.inferType(program)
         val targettype = assignment.target.inferType(program, assignment)
-        if(targettype!=null && valuetype!=null && valuetype!=targettype) {
-            if(valuetype isAssignableTo targettype) {
-                assignment.value = TypecastExpression(assignment.value, targettype, true, assignment.value.position)
-                assignment.value.linkParents(assignment)
+        if(targettype!=null && valuetype!=null) {
+            if(valuetype!=targettype) {
+                if (valuetype isAssignableTo targettype) {
+                    assignment.value = TypecastExpression(assignment.value, targettype, true, assignment.value.position)
+                    assignment.value.linkParents(assignment)
+                }
+                // if they're not assignable, we'll get a proper error later from the AstChecker
             }
-            // if they're not assignable, we'll get a proper error later from the AstChecker
+        }
+
+        // struct assignments will be flattened
+        if(valuetype==DataType.STRUCT && targettype==DataType.STRUCT) {
+            val assignments = flattenStructAssignment(assignment, program)
+            if(assignments.isEmpty()) {
+                // something went wrong (probably incompatible struct types)
+                // we'll get an error later from the AstChecker
+                return assignment
+            } else {
+                val scope = AnonymousScope(assignments.toMutableList(), assignment.position)
+                scope.linkParents(assignment.parent)
+                return scope
+            }
         }
 
         return super.visit(assignment)

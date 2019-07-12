@@ -273,6 +273,38 @@ you have to use the ``str_s`` variants of the string type identifier.
     The same is true for arrays by the way.
 
 
+Structs
+^^^^^^^
+
+A struct is a group of one or more other variables.
+This allows you to reuse the definition and manipulate it as a whole.
+Individual variables in the struct are accessed as you would expect, just
+use a scoped name to refer to them: ``structvariable.membername``.
+
+Structs are a bit limited in Prog8: you can only use numerical variables
+as member of a struct, so strings and arrays and other structs can not be part of a struct.
+Also, it is not possible to use a struct itself inside an array.
+
+Structs are mainly syntactic sugar for repeated groups of vardecls
+and assignments that belong together.
+
+To create a variable of a struct type you need to define the struct itself,
+and then create a variable with it::
+
+    struct Color {
+        ubyte red
+        ubyte green
+        ubyte blue
+    }
+
+    Color rgb = [255,122,0]
+    Color another               ; the init value is optional, like arrays
+
+    another = rgb           ; assign all of the values of rgb to another
+    another.blue = 255      ; set a single member
+
+
+
 Special types: const and memory-mapped
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

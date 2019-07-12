@@ -52,25 +52,6 @@ Allocate a fixed word in ZP that is the TOS so we can operate on TOS directly
 without having to to index into the stack?
 
 
-structs?
-^^^^^^^^
-
-A user defined struct type would be nice to group a bunch
-of values together (and use it multiple times). Something like::
-
-    struct Point {
-        ubyte   color
-        word[] vec = [0,0,0]
-    }
-
-    Point p1
-    Point p2
-    Point p3
-
-    p1.color = 3
-    p1.vec[2] = 2
-
-
 Misc
 ^^^^
 

@@ -350,6 +350,17 @@ internal class AstChecker(private val program: Program,
             }
         }
 
+        val sourceIdent = assignment.value as? IdentifierReference
+        val targetIdent = assignment.target.identifier
+        if(sourceIdent!=null && targetIdent!=null) {
+            val sourceVar = sourceIdent.targetVarDecl(program.namespace)
+            val targetVar = targetIdent.targetVarDecl(program.namespace)
+            if(sourceVar?.struct!=null && targetVar?.struct!=null) {
+                if(sourceVar.struct!==targetVar.struct)
+                    checkResult.add(ExpressionError("assignment of different struct types", assignment.position))
+            }
+        }
+
         var resultingAssignment = assignment
         resultingAssignment = processAssignmentTarget(resultingAssignment, assignment.target)
         return super.visit(resultingAssignment)
@@ -1275,8 +1286,8 @@ internal class AstChecker(private val program: Program,
             else {
                 if(decl.zeropage)
                     checkResult.add(SyntaxError("struct can not contain zeropage members", decl.position))
-                if(decl.datatype==DataType.STRUCT)
-                    checkResult.add(SyntaxError("structs can not be nested", decl.position))
+                if(decl.datatype !in NumericDatatypes)
+                    checkResult.add(SyntaxError("structs can only contain numerical types", decl.position))
             }
         }
 

@@ -5,20 +5,24 @@
     const uword width = 40
     const uword height = 25
 
-    sub start()  {
-
+    struct Ball {
         uword anglex
         uword angley
         ubyte color
+    }
+
+    sub start()  {
+
+        Ball ball
 
         while true {
-            ubyte x = msb(sin8u(msb(anglex)) as uword * width)
-            ubyte y = msb(cos8u(msb(angley)) as uword * height)
-            c64scr.setcc(x, y, 81, color)
+            ubyte x = msb(sin8u(msb(ball.anglex)) as uword * width)
+            ubyte y = msb(cos8u(msb(ball.angley)) as uword * height)
+            c64scr.setcc(x, y, 81, ball.color)
 
-            anglex+=800
-            angley+=947
-            color++
+            ball.anglex+=800
+            ball.angley+=947
+            ball.color++
         }
     }
 }

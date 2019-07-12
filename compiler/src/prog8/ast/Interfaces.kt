@@ -137,7 +137,7 @@ interface INameScope {
             //   - the name of a symbol somewhere else starting from the root of the namespace.
 
             // check struct first
-            if(scopedName.size==2) {        // TODO support for referencing structs in other scopes
+            if(scopedName.size==2) {        // TODO support for referencing structs in other scopes . see GlobalNamespace?
                 val mangledname = mangledStructMemberName(scopedName[0], scopedName[1])
                 val vardecl = localContext.definingScope().getLabelOrVariable(mangledname)
                 if(vardecl!=null)

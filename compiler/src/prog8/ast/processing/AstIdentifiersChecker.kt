@@ -62,6 +62,9 @@ internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstMo
             if(decl.structHasBeenFlattened)
                 return decl    // don't do this multiple times
 
+            if(decl.struct!!.statements.any { (it as VarDecl).datatype !in NumericDatatypes})
+                return decl     // a non-numeric member, not supported. proper error is given by AstChecker later
+
             val decls: MutableList<IStatement> = decl.struct!!.statements.withIndex().map {
                 val member = it.value as VarDecl
                 val initvalue = if(decl.value!=null) (decl.value as LiteralValue).arrayvalue!![it.index] else null
@@ -243,6 +246,16 @@ internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstMo
         val variable= addressOf.identifier.targetVarDecl(namespace) ?: return addressOf
         addressOf.scopedname = variable.scopedname
         return super.visit(addressOf)
+    }
+
+    override fun visit(structDecl: StructDecl): IStatement {
+        for(member in structDecl.statements){
+            val decl = member as? VarDecl
+            if(decl!=null && decl.datatype !in NumericDatatypes)
+                checkResult.add(SyntaxError("structs can only contain numerical types", decl.position))
+        }
+
+        return super.visit(structDecl)
     }
 
 }

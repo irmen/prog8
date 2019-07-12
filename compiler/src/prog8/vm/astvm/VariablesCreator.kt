@@ -40,8 +40,10 @@ class VariablesCreator(private val runtimeVariables: RuntimeVariables, private v
             when (decl.type) {
                 // we can assume the value in the vardecl already has been converted into a constant LiteralValue here.
                 VarDeclType.VAR -> {
-                    val value = RuntimeValue.from(decl.value as LiteralValue, heap)
-                    runtimeVariables.define(decl.definingScope(), decl.name, value)
+                    if(decl.datatype!=DataType.STRUCT) {
+                        val value = RuntimeValue.from(decl.value as LiteralValue, heap)
+                        runtimeVariables.define(decl.definingScope(), decl.name, value)
+                    }
                 }
                 VarDeclType.MEMORY -> {
                     runtimeVariables.defineMemory(decl.definingScope(), decl.name, (decl.value as LiteralValue).asIntegerValue!!)

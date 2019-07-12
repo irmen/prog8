@@ -234,7 +234,7 @@ Various examples::
     byte[5]     values  = 255           ; initialize with five 255 bytes
 
     word  @zp   zpword = 9999           ; prioritize this when selecting vars for zeropage storage
-
+    Color       rgb    = [1,255,0]      ; a struct variable
 
 
 Data types
@@ -357,6 +357,22 @@ Syntax is familiar with brackets:  ``arrayvar[x]`` ::
     array[2]        ; the third byte in the array (index is 0-based)
     string[4]       ; the fifth character (=byte) in the string
 
+
+Struct
+^^^^^^
+
+A *struct* has to be defined to specify what its member variables are.
+There are one or more members::
+
+    struct  <structname> {
+        <vardecl>
+        [ <vardecl> ...]
+    }
+
+You can only use numerical variables as member of a struct, so strings and arrays
+and other structs can not be part of a struct. Vice versa, a struct can not occur in an array.
+
+After defining a struct you can use the name of the struct as a data type to declare variables with.
 
 
 Operators

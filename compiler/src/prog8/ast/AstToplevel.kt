@@ -71,6 +71,21 @@ class GlobalNamespace(val modules: List<Module>): Node, INameScope {
             return builtinPlaceholder
         }
 
+        if(scopedName.size>1) {
+            // a scoped name can a) refer to a member of a struct, or b) refer to a name in another module.
+            // try the struct first.
+            val thing = lookup(scopedName.dropLast(1), localContext) as? VarDecl
+            val struct = thing?.struct
+            if (struct != null) {
+                if(struct.statements.any { (it as VarDecl).name == scopedName.last()}) {
+                    // return ref to the mangled name variable
+                    val mangled = mangledStructMemberName(thing.name, scopedName.last())
+                    val mangledVar = thing.definingScope().getLabelOrVariable(mangled)
+                    return mangledVar
+                }
+            }
+        }
+
         val stmt = localContext.definingModule().lookup(scopedName, localContext)
         return when (stmt) {
             is Label, is VarDecl, is Block, is Subroutine -> stmt
