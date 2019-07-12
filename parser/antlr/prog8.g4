@@ -76,6 +76,7 @@ statement :
 	| vardecl
 	| constdecl
 	| memoryvardecl
+	| structdecl
 	| assignment
 	| augassignment
 	| unconditionaljump
@@ -109,13 +110,15 @@ directive :
 
 directivearg : stringliteral | identifier | integerliteral ;
 
-vardecl: datatype ZEROPAGE? (arrayindex | ARRAYSIG) ? identifier ;
+vardecl: (datatype | structname=identifier) ZEROPAGE? (arrayindex | ARRAYSIG) ? varname=identifier ;
 
 varinitializer : vardecl '=' expression ;
 
 constdecl: 'const' varinitializer ;
 
 memoryvardecl: ADDRESS_OF varinitializer;
+
+structdecl: 'struct' identifier '{' EOL vardecl ( EOL vardecl)* EOL? '}' EOL;
 
 datatype:  'ubyte' | 'byte' | 'uword' | 'word' | 'float' | 'str' | 'str_s' ;
 
@@ -281,3 +284,4 @@ repeatloop:  'repeat' (statement | statement_block) EOL? 'until' expression ;
 whenstmt: 'when' expression '{' EOL (when_choice | EOL) * '}' EOL? ;
 
 when_choice:  (expression_list | 'else' ) '->' (statement | statement_block ) ;
+

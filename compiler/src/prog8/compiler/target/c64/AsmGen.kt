@@ -357,6 +357,7 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
                     for(f in array.zip(floatFills))
                         out("  .byte  ${f.second}  ; float ${f.first}")
                 }
+                DataType.STRUCT -> TODO("datatype struct")
             }
         }
     }

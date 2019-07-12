@@ -80,8 +80,7 @@ interface INameScope {
         val subscopes = mutableMapOf<String, INameScope>()
         for(stmt in statements) {
             when(stmt) {
-                // NOTE: if other nodes are introduced that are a scope of contain subscopes, they must be added here!
-                is INameScope -> subscopes[stmt.name] = stmt
+                // NOTE: if other nodes are introduced that are a scope, or contain subscopes, they must be added here!
                 is ForLoop -> subscopes[stmt.body.name] = stmt.body
                 is RepeatLoop -> subscopes[stmt.body.name] = stmt.body
                 is WhileLoop -> subscopes[stmt.body.name] = stmt.body
@@ -98,6 +97,7 @@ interface INameScope {
                 is WhenStatement -> {
                     stmt.choices.forEach { subscopes[it.statements.name] = it.statements }
                 }
+                is INameScope -> subscopes[stmt.name] = stmt
             }
         }
         return subscopes
@@ -109,6 +109,11 @@ interface INameScope {
         for (stmt in statements) {
             if (stmt is VarDecl && stmt.name==name) return stmt
             if (stmt is Label && stmt.name==name) return stmt
+            if (stmt is AnonymousScope) {
+                val sub = stmt.getLabelOrVariable(name)
+                if(sub!=null)
+                    return sub
+            }
         }
         return null
     }
@@ -127,6 +132,18 @@ interface INameScope {
 
     fun lookup(scopedName: List<String>, localContext: Node) : IStatement? {
         if(scopedName.size>1) {
+            // it's a qualified name, can either be:
+            //   - the name of a field in a struct
+            //   - the name of a symbol somewhere else starting from the root of the namespace.
+
+            // check struct first
+            if(scopedName.size==2) {        // TODO support for referencing structs in other scopes
+                val mangledname = mangledStructMemberName(scopedName[0], scopedName[1])
+                val vardecl = localContext.definingScope().getLabelOrVariable(mangledname)
+                if(vardecl!=null)
+                    return vardecl
+            }
+
             // it's a qualified name, look it up from the root of the module's namespace (consider all modules in the program)
             for(module in localContext.definingModule().program.modules) {
                 var scope: INameScope? = module

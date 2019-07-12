@@ -1,5 +1,6 @@
 package prog8.ast.processing
 
+import com.sun.org.apache.bcel.internal.generic.ISTORE
 import prog8.ast.*
 import prog8.ast.base.*
 import prog8.ast.base.printWarning
@@ -554,6 +555,16 @@ internal class AstChecker(private val program: Program,
                         err("memory address must be valid integer 0..\$ffff")
                     }
                 }
+            }
+            VarDeclType.STRUCT -> {
+                if(decl.struct==null)
+                    throw FatalAstException("struct vardecl should be linked to its struct $decl")
+                if(decl.datatype!=DataType.STRUCT)
+                    throw FatalAstException("struct vardecl should be of data type struct $decl")
+                if(decl.zeropage)
+                    err("struct can not be in zeropage")
+                if(decl.value!=null)
+                    err("struct can not have an initialization value")      // TODO allow struct to have initalization values
             }
         }
 
@@ -1127,6 +1138,7 @@ internal class AstChecker(private val program: Program,
                 }
                 return err("invalid float array initialization value ${value.type}, expected $targetDt")
             }
+            DataType.STRUCT -> TODO("struct dt")
         }
         return true
     }
@@ -1211,5 +1223,25 @@ internal class AstChecker(private val program: Program,
             checkResult.add(ExpressionError("cannot assign ${sourceDatatype.name.toLowerCase()} to ${targetDatatype.name.toLowerCase()}", position))
 
         return false
+    }
+
+    override fun visit(structDecl: StructDecl): IStatement {
+        // a struct can only contain 1 or more vardecls and can not be nested
+        if(structDecl.statements.isEmpty())
+            checkResult.add(SyntaxError("struct must contain at least one member", structDecl.position))
+
+        for(member in structDecl.statements){
+            val decl = member as? VarDecl
+            if(decl==null)
+                checkResult.add(SyntaxError("struct can only contain variable declarations", structDecl.position))
+            else {
+                if(decl.zeropage)
+                    checkResult.add(SyntaxError("struct can not contain zeropage members", decl.position))
+                if(decl.type == VarDeclType.STRUCT)
+                    checkResult.add(SyntaxError("structs can not be nested", decl.position))
+            }
+        }
+
+        return structDecl
     }
 }

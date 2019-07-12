@@ -216,4 +216,9 @@ interface IAstModifyingVisitor {
         whenChoice.values?.forEach { it.accept(this) }
         whenChoice.statements.accept(this)
     }
+
+    fun visit(structDecl: StructDecl): IStatement {
+        structDecl.statements = structDecl.statements.map{ it.accept(this) }.toMutableList()
+        return structDecl
+    }
 }

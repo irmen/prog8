@@ -59,57 +59,56 @@ private fun prog8Parser.Statement_blockContext.toAst(): MutableList<IStatement> 
 
 
 private fun prog8Parser.StatementContext.toAst() : IStatement {
-    vardecl()?.let {
-        return VarDecl(VarDeclType.VAR,
-                it.datatype().toAst(),
-                it.ZEROPAGE() != null,
-                it.arrayindex()?.toAst(),
-                it.identifier().text,
-                null,
-                it.ARRAYSIG() != null || it.arrayindex() != null,
-                false,
-                it.toPosition())
-    }
+    vardecl()?.let { return it.toAst() }
 
     varinitializer()?.let {
         val vd = it.vardecl()
-        return VarDecl(VarDeclType.VAR,
-                vd.datatype().toAst(),
+        return VarDecl(
+                VarDeclType.VAR,
+                vd.datatype()?.toAst() ?: DataType.STRUCT,
                 vd.ZEROPAGE() != null,
                 vd.arrayindex()?.toAst(),
-                vd.identifier().text,
+                vd.varname.text,
+                vd.structname?.text,
                 it.expression().toAst(),
                 vd.ARRAYSIG() != null || vd.arrayindex() != null,
                 false,
-                it.toPosition())
+                it.toPosition()
+        )
     }
 
     constdecl()?.let {
         val cvarinit = it.varinitializer()
         val vd = cvarinit.vardecl()
-        return VarDecl(VarDeclType.CONST,
-                vd.datatype().toAst(),
+        return VarDecl(
+                VarDeclType.CONST,
+                vd.datatype()?.toAst() ?: DataType.STRUCT,
                 vd.ZEROPAGE() != null,
                 vd.arrayindex()?.toAst(),
-                vd.identifier().text,
+                vd.varname.text,
+                vd.structname?.text,
                 cvarinit.expression().toAst(),
                 vd.ARRAYSIG() != null || vd.arrayindex() != null,
                 false,
-                cvarinit.toPosition())
+                cvarinit.toPosition()
+        )
     }
 
     memoryvardecl()?.let {
         val mvarinit = it.varinitializer()
         val vd = mvarinit.vardecl()
-        return VarDecl(VarDeclType.MEMORY,
-                vd.datatype().toAst(),
+        return VarDecl(
+                VarDeclType.MEMORY,
+                vd.datatype()?.toAst() ?: DataType.STRUCT,
                 vd.ZEROPAGE() != null,
                 vd.arrayindex()?.toAst(),
-                vd.identifier().text,
+                vd.varname.text,
+                vd.structname?.text,
                 mvarinit.expression().toAst(),
                 vd.ARRAYSIG() != null || vd.arrayindex() != null,
                 false,
-                mvarinit.toPosition())
+                mvarinit.toPosition()
+        )
     }
 
     assignment()?.let {
@@ -175,6 +174,12 @@ private fun prog8Parser.StatementContext.toAst() : IStatement {
     val whenstmt = whenstmt()?.toAst()
     if(whenstmt!=null) return whenstmt
 
+    structdecl()?.let {
+        return StructDecl(it.identifier().text,
+                it.vardecl().map { vd->vd.toAst() }.toMutableList(),
+                toPosition())
+    }
+
     throw FatalAstException("unprocessed source text (are we missing ast conversion rules for parser elements?): $text")
 }
 
@@ -215,8 +220,12 @@ private fun prog8Parser.Asmsub_returnsContext.toAst(): List<AsmSubroutineReturn>
 
 private fun prog8Parser.Asmsub_paramsContext.toAst(): List<AsmSubroutineParameter>
         = asmsub_param().map {
-    AsmSubroutineParameter(it.vardecl().identifier().text, it.vardecl().datatype().toAst(),
-            it.registerorpair()?.toAst(), it.statusregister()?.toAst(), !it.stack?.text.isNullOrEmpty(), toPosition())
+    val vardecl = it.vardecl()
+    val datatype = vardecl.datatype()?.toAst() ?: DataType.STRUCT
+    AsmSubroutineParameter(vardecl.varname.text, datatype,
+            it.registerorpair()?.toAst(),
+            it.statusregister()?.toAst(),
+            !it.stack?.text.isNullOrEmpty(), toPosition())
 }
 
 
@@ -281,7 +290,8 @@ private fun prog8Parser.Sub_return_partContext.toAst(): List<DataType> {
 
 private fun prog8Parser.Sub_paramsContext.toAst(): List<SubroutineParameter> =
         vardecl().map {
-            SubroutineParameter(it.identifier().text, it.datatype().toAst(), it.toPosition())
+            val datatype = it.datatype()?.toAst() ?: DataType.STRUCT
+            SubroutineParameter(it.varname.text, datatype, it.toPosition())
         }
 
 
@@ -559,6 +569,21 @@ private fun prog8Parser.When_choiceContext.toAst(): WhenChoice {
     return WhenChoice(values, scope, toPosition())
 }
 
+private fun prog8Parser.VardeclContext.toAst(): VarDecl {
+    return VarDecl(
+            if(structname!=null) VarDeclType.STRUCT else VarDeclType.VAR,
+            datatype()?.toAst() ?: DataType.STRUCT,
+            ZEROPAGE() != null,
+            arrayindex()?.toAst(),
+            varname.text,
+            structname?.text,
+            null,
+            ARRAYSIG() != null || arrayindex() != null,
+            false,
+            toPosition()
+    )
+}
+
 internal fun escape(str: String) = str.replace("\t", "\\t").replace("\n", "\\n").replace("\r", "\\r")
 
 internal fun unescape(str: String, position: Position): String {
@@ -584,3 +609,4 @@ internal fun unescape(str: String, position: Position): String {
     }
     return result.joinToString("")
 }
+

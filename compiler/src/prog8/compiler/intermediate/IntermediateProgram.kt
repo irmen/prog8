@@ -4,6 +4,7 @@ import prog8.ast.antlr.escape
 import prog8.ast.base.*
 import prog8.ast.base.printWarning
 import prog8.ast.expressions.LiteralValue
+import prog8.ast.statements.StructDecl
 import prog8.ast.statements.VarDecl
 import prog8.vm.RuntimeValue
 import prog8.compiler.CompilerException
@@ -393,8 +394,15 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
     fun variable(scopedname: String, decl: VarDecl) {
         when(decl.type) {
             VarDeclType.VAR -> {
+                // var decls that are defined inside of a StructDecl are skipped in the output
+                //   because every occurrence of the members will have a separate mangled vardecl for that occurrence
+                if(decl.parent is StructDecl)
+                    return
+
                 val value = when(decl.datatype) {
-                    in NumericDatatypes -> RuntimeValue(decl.datatype, (decl.value as LiteralValue).asNumericValue!!)
+                    in NumericDatatypes -> {
+                        RuntimeValue(decl.datatype, (decl.value as LiteralValue).asNumericValue!!)
+                    }
                     in StringDatatypes -> {
                         val litval = (decl.value as LiteralValue)
                         if(litval.heapId==null)
@@ -426,6 +434,9 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                 val lv = decl.value as LiteralValue
                 if(lv.type in IntegerDatatypes)
                     currentBlock.memoryPointers[scopedname] = Pair(lv.asIntegerValue!!, decl.datatype)
+            }
+            VarDeclType.STRUCT -> {
+                // the struct decl itself will be replaced by mangled declarations for each of their members.
             }
         }
     }

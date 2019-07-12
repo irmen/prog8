@@ -1,9 +1,6 @@
 package prog8.ast
 
-import prog8.ast.base.FatalAstException
-import prog8.ast.base.NameError
-import prog8.ast.base.ParentSentinel
-import prog8.ast.base.Position
+import prog8.ast.base.*
 import prog8.ast.statements.Block
 import prog8.ast.statements.Label
 import prog8.ast.statements.Subroutine
@@ -90,3 +87,7 @@ object BuiltinFunctionScopePlaceholder : INameScope {
     override var parent: Node = ParentSentinel
     override fun linkParents(parent: Node) {}
 }
+
+
+// prefix for struct member variables
+internal fun mangledStructMemberName(varName: String, memberName: String) = "_prog8struct_${varName}_$memberName"

@@ -396,6 +396,7 @@ class AstVm(val program: Program) {
                                 mem.setUByte(addr,newval.toShort())
                             }
                             VarDeclType.CONST -> throw VmExecutionException("can't be const")
+                            VarDeclType.STRUCT -> TODO("struct decltype")
                         }
                     }
                     stmt.target.memoryAddress != null -> {

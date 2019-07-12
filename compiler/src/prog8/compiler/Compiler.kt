@@ -213,6 +213,7 @@ internal class Compiler(private val program: Program) {
                 is NopStatement -> {}
                 is InlineAssembly -> translate(stmt)
                 is WhenStatement -> translate(stmt)
+                is StructDecl -> {}
                 else -> TODO("translate statement $stmt to stackvm")
             }
         }
@@ -681,6 +682,7 @@ internal class Compiler(private val program: Program) {
                             else -> throw CompilerException("invalid datatype for memory variable expression: $target")
                         }
                     }
+                    VarDeclType.STRUCT -> TODO("decltype struct")
                 }
 
             }
@@ -1497,6 +1499,7 @@ internal class Compiler(private val program: Program) {
                             prog.instr(opcode, RuntimeValue(DataType.UWORD, address))
                         }
                         VarDeclType.CONST -> throw CompilerException("cannot assign to const")
+                        VarDeclType.STRUCT -> TODO("decltype struct")
                     }
                 } else throw CompilerException("invalid assignment target type ${target::class}")
             }

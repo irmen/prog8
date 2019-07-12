@@ -16,7 +16,8 @@ enum class DataType {
     ARRAY_B,
     ARRAY_UW,
     ARRAY_W,
-    ARRAY_F;
+    ARRAY_F,
+    STRUCT;
 
     /**
      * is the type assignable to the given other type?
@@ -93,7 +94,8 @@ enum class BranchCondition {
 enum class VarDeclType {
     VAR,
     CONST,
-    MEMORY
+    MEMORY,
+    STRUCT
 }
 
 val IterableDatatypes = setOf(

@@ -166,4 +166,8 @@ interface IAstVisitor {
         whenChoice.values?.forEach { it.accept(this) }
         whenChoice.statements.accept(this)
     }
+
+    fun visit(structDecl: StructDecl) {
+        structDecl.statements.forEach { it.accept(this) }
+    }
 }

@@ -195,8 +195,8 @@ internal class StatementOptimizer(private val program: Program, private val opti
     override fun visit(decl: VarDecl): IStatement {
         val forceOutput = "force_output" in decl.definingBlock().options()
         if(decl !in callgraph.usedSymbols && !forceOutput) {
-            if(decl.type!=VarDeclType.CONST)
-                printWarning("removing unused variable '${decl.name}'", decl.position)
+            if(decl.type == VarDeclType.VAR)
+                printWarning("removing unused variable ${decl.type} '${decl.name}'", decl.position)
             optimizationsDone++
             return NopStatement.insteadOf(decl)
         }
