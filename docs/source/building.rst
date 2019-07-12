@@ -2,6 +2,8 @@
 Writing and building a program
 ==============================
 
+.. _building_compiler:
+
 First, getting a working compiler
 ---------------------------------
 
@@ -11,20 +13,38 @@ Then you can choose a few ways to get a compiler:
 
 **Download a precompiled version from github:**
 
-#. download a recent "prog8compiler.jar" from `the releases on Github <https://github.com/irmen/prog8/releases>`_
-#. run the compiler with "java -jar prog8compiler.jar" to see how you can use it.
+#. download a recent "fat-jar" (called something like "prog8compiler-all.jar") from `the releases on Github <https://github.com/irmen/prog8/releases>`_
+#. run the compiler with "java -jar prog8compiler-all.jar" to see how you can use it.
 
-**Using the shell scripts:**
+**using the Gradle build system to make it yourself:**
 
-#. run the "create_compiler_jar.sh" shell script and have a little patience while everything is built
-#. it will output "prog8compiler.jar" file which contains everything.
-#. run the compiler with "java -jar prog8compiler.jar" to see how you can use it.
+The Gradle build system is used to build the compiler.
+The most interesting gradle commands to run are probably:
 
-**using the Gradle build system directly:**
+    ``./gradlew check``
+        Builds the compiler code and runs all available checks and unit-tests.
+    ``./gradlew installDist``
+        Builds the compiler and installs it with scripts to run it, in the directory
+        ``./compiler/build/install/p8compile``
+    ``./gradlew installShadowDist``
+        Creates a 'fat-jar' that contains the compiler and all dependencies, in a single
+        executable .jar file, and includes few start scripts to run it.
+        The output can be found in ``.compiler/build/install/compiler-shadow/``
+    ``./gradlew shadowDistZip``
+        Creates a zipfile with the above in it, for easy distribution.
+        This file can be found in ``./compiler/build/distributions/``
 
-#. run the command "./gradlew installDist" and have a little patience while everything is built
-#. it will create the commands and required libraries in the "./compiler/build/install/p8compile/" directory
-#. run the compiler with the "./compiler/build/install/p8compile/bin/p8compile" command to see how you can use it.
+For normal use, the ``installDist`` target should suffice and ater succesful completion
+of that build task, you can start the compiler with:
+
+    ``./compiler/build/install/p8compile/bin/p8compile <options> <sourcefile>``
+
+(You should probably make an alias...)
+
+.. note::
+    Development and testing is done on Linux, but the compiler should run on most
+    operating systems. If you do have trouble building or running
+    the compiler on another operating system, please let me know!
 
 
 
@@ -127,3 +147,24 @@ or::
 
     $ ./p8compile.sh -emu examples/rasterbars.p8
 
+
+
+Virtual Machine
+---------------
+
+You may have noticed the ``-avm`` and ``-vm`` command line options for the compiler:
+
+-avm
+    Launches the "AST virtual machine" that directly executes the parsed program.
+    No compilation steps will be performed.
+    Allows for very fast testing and debugging before actually compiling programs
+    to machine code.
+    It simulates a bare minimum of features from the target platform, so most stuff
+    that calls ROM routines or writes into hardware registers won't work. But basic
+    system routines are emulated.
+
+-vm   <vm bytecode file>
+    Launches the "intermediate code VM"
+    it interprets the intermediate code that the compiler can write when using the ``-writevm``
+    option. This is the code that will be fed to the assembly code generator,
+    so you'll skip that last step.

@@ -150,37 +150,7 @@ of the `Vice emulator <http://vice-emu.sourceforge.net/>`_.
     IDE from Jetbrains, with the Kotlin plugin (free community edition of this IDE is available).
     But a bare Kotlin SDK installation should work just as well.
 
-
-    If you have the 'fat-jar' you can run it with ``java -jar prog8compiler.jar`` or just use
-    one of the scripts that are created by Gradle
-
-    The Gradle build system is used to build the compiler.
-    The most interesting gradle commands to run are probably:
-
-        ``./gradlew check``
-            Builds the compiler code and runs all available checks and unit-tests.
-        ``./gradlew installDist``
-            Builds the compiler and installs it with scripts to run it, in the directory
-            ``./compiler/build/install/p8compile``
-        ``./gradlew installShadowDist``
-            Creates a 'fat-jar' that contains the compiler and all dependencies, in a single
-            executable .jar file, and includes few start scripts to run it.
-            The output can be found in ``.compiler/build/install/compiler-shadow/``
-        ``./gradlew shadowDistZip``
-            Creates a zipfile with the above in it, for easy distribution.
-            This file can be found in ``./compiler/build/distributions/``
-
-    For normal use, the ``installDist`` target should suffice and ater succesful completion
-    of that build task, you can start the compiler with:
-
-        ``./compiler/build/install/p8compile/bin/p8compile <options> <sourcefile>``
-
-    (You should probably make an alias...)
-
-.. note::
-    Development and testing is done on Linux, but the compiler should run on most
-    operating systems. If you do have trouble building or running
-    the compiler on another operating system, please let me know!
+    Instructions on how to obtain a working compiler are in :ref:`building_compiler`.
 
 
 .. toctree::
