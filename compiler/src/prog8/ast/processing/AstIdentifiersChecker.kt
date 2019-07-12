@@ -223,8 +223,15 @@ internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstMo
             // a literal value that's not declared as a variable, which refers to something on the heap.
             // we need to introduce an auto-generated variable for this to be able to refer to the value!
             // (note: ususally, this has been taken care of already when the var was created)
-            val variable = VarDecl(VarDeclType.VAR, literalValue.type, false, null, "$autoHeapValuePrefix${literalValue.heapId}", null, literalValue,
-                    isArray = false, hiddenButDoNotRemove = false, position = literalValue.position)
+            val declaredType = if(literalValue.isArray) ArrayElementTypes.getValue(literalValue.type) else literalValue.type
+            val variable = VarDecl(VarDeclType.VAR,
+                    declaredType,
+                    false,
+                    null,
+                    "$autoHeapValuePrefix${literalValue.heapId}",
+                    null,
+                    literalValue,
+                    isArray = literalValue.isArray, hiddenButDoNotRemove = true, position = literalValue.position)
             anonymousVariablesFromHeap[variable.name] = Pair(literalValue, variable)
         }
         return super.visit(literalValue)

@@ -406,11 +406,13 @@ internal class AstChecker(private val program: Program,
         if(targetDatatype!=null) {
             val constVal = assignment.value.constValue(program)
             if(constVal!=null) {
-                val arrayspec = if(target.identifier!=null) {
-                    val targetVar = program.namespace.lookup(target.identifier.nameInSource, assignment) as? VarDecl
-                    targetVar?.arraysize
-                } else null
-                checkValueTypeAndRange(targetDatatype,
+                val targetVar =
+                        if(target.identifier!=null)
+                            program.namespace.lookup(target.identifier.nameInSource, assignment) as? VarDecl
+                        else
+                            null
+                val arrayspec = if(target.identifier!=null) targetVar?.arraysize else null
+                checkValueTypeAndRange(targetDatatype, targetVar?.struct,
                         arrayspec ?: ArrayIndex(LiteralValue.optimalInteger(-1, assignment.position), assignment.position),
                         constVal, program.heap)
             } else {
@@ -424,8 +426,9 @@ internal class AstChecker(private val program: Program,
                     else
                         checkResult.add(ExpressionError("assignment value is invalid or has no proper datatype", assignment.value.position))
                 }
-                else
-                    checkAssignmentCompatible(targetDatatype, sourceDatatype, assignment.value, target, assignment.position)
+                else {
+                    checkAssignmentCompatible(targetDatatype, target, sourceDatatype, assignment.value, assignment.position)
+                }
             }
         }
         return assignment
@@ -521,7 +524,7 @@ internal class AstChecker(private val program: Program,
                                 else
                                     ArrayIndex(LiteralValue.optimalInteger(-2, decl.position), decl.position)
                                 )
-                        checkValueTypeAndRange(decl.datatype, arraySpec, decl.value as LiteralValue, program.heap)
+                        checkValueTypeAndRange(decl.datatype, decl.struct, arraySpec, decl.value as LiteralValue, program.heap)
                     }
                     else -> {
                         err("var/const declaration needs a compile-time constant initializer value, or range, instead found: ${decl.value!!.javaClass.simpleName}")
@@ -664,7 +667,7 @@ internal class AstChecker(private val program: Program,
                     ArrayIndex.forArray(literalValue, program.heap)
                 else
                     ArrayIndex(LiteralValue.optimalInteger(-3, literalValue.position), literalValue.position)
-        checkValueTypeAndRange(literalValue.type, arrayspec, literalValue, program.heap)
+        checkValueTypeAndRange(literalValue.type, null, arrayspec, literalValue, program.heap)
 
         val lv = super.visit(literalValue)
         when(lv.type) {
@@ -1009,7 +1012,8 @@ internal class AstChecker(private val program: Program,
         }
     }
 
-    private fun checkValueTypeAndRange(targetDt: DataType, arrayspec: ArrayIndex, value: LiteralValue, heap: HeapValues) : Boolean {
+    private fun checkValueTypeAndRange(targetDt: DataType, struct: StructDecl?,
+                                       arrayspec: ArrayIndex, value: LiteralValue, heap: HeapValues) : Boolean {
         fun err(msg: String) : Boolean {
             checkResult.add(ExpressionError(msg, value.position))
             return false
@@ -1138,9 +1142,20 @@ internal class AstChecker(private val program: Program,
                 return err("invalid float array initialization value ${value.type}, expected $targetDt")
             }
             DataType.STRUCT -> {
-                if(value.type!=DataType.STRUCT)
-                    return err("cannot assign a normal value to a struct")
-                TODO("check struct, $value ")
+                if(value.type in ArrayDatatypes) {
+                    if(value.arrayvalue!!.size != struct!!.numberOfElements)
+                        return err("number of values is not the same as the number of members in the struct")
+                    for(elt in value.arrayvalue.zip(struct.statements)) {
+                        val vardecl = elt.second as VarDecl
+                        val valuetype = elt.first.inferType(program)!!
+                        if (!(valuetype isAssignableTo vardecl.datatype)) {
+                            checkResult.add(ExpressionError("invalid struct member init value type $valuetype, expected ${vardecl.datatype}", elt.first.position))
+                            return false
+                        }
+                    }
+                    return true
+                }
+                return false
             }
         }
         return true
@@ -1196,9 +1211,9 @@ internal class AstChecker(private val program: Program,
     }
 
     private fun checkAssignmentCompatible(targetDatatype: DataType,
+                                          target: AssignTarget,
                                           sourceDatatype: DataType,
                                           sourceValue: IExpression,
-                                          target: AssignTarget,
                                           position: Position) : Boolean {
 
         if(sourceValue is RangeExpr)
@@ -1214,6 +1229,13 @@ internal class AstChecker(private val program: Program,
             DataType.STR_S -> sourceDatatype== DataType.STR_S
             DataType.STRUCT -> {
                 // for now we've decided you cannot assign struct by-value.
+                // but you can however assign an array to it of the correct size
+                if(sourceDatatype in ArrayDatatypes) {
+                    val identifier = sourceValue as IdentifierReference
+                    val sourceArraySize = identifier.targetVarDecl(program.namespace)!!.arraysize?.size()
+                    val targetstruct = target.identifier!!.targetVarDecl(program.namespace)!!.struct!!
+                    return targetstruct.numberOfElements == sourceArraySize
+                }
 //                if(sourceDatatype==DataType.STRUCT) {
 //                    val sourcename = (sourceValue as IdentifierReference).nameInSource
 //                    val vd1 = program.namespace.lookup(sourcename, target) as? VarDecl

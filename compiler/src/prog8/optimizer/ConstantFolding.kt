@@ -175,6 +175,9 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                     decl.value = LiteralValue(decl.datatype, initHeapId = heapId, position = litval.position)
                 }
             }
+            DataType.STRUCT -> {
+                // leave it alone for structs.
+            }
             else -> throw FatalAstException("invalid array vardecl type ${decl.datatype}")
         }
     }

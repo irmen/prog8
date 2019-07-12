@@ -1446,6 +1446,27 @@ internal class Compiler(private val program: Program) {
                         else -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                     }
                 }
+                DataType.STRUCT -> {
+                    // Assume the value is an array. Flatten the struct assignment into memberwise assignments.
+                    val identifier = stmt.target.identifier!!
+                    val identifierName = identifier.nameInSource.single()
+                    val targetVar = identifier.targetVarDecl(program.namespace)!!
+                    val struct = targetVar.struct!!
+                    val sourceVar = (stmt.value as IdentifierReference).targetVarDecl(program.namespace)!!
+                    if(!sourceVar.isArray)
+                        throw CompilerException("can only assign arrays to structs")
+                    val sourceArray = (sourceVar.value as LiteralValue).arrayvalue!!
+                    for(member in struct.statements.zip(sourceArray)) {
+                        val decl = member.first as VarDecl
+                        val value = member.second.constValue(program)!!
+                        val mangled = mangledStructMemberName(identifierName, decl.name)
+                        val idref = IdentifierReference(listOf(mangled), stmt.position)
+                        val assign = Assignment(AssignTarget(null, idref, null, null, stmt.position), null, value, value.position)
+                        assign.linkParents(stmt)
+                        translate(assign)
+                    }
+                    return
+                }
                 in StringDatatypes -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                 in ArrayDatatypes -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                 else -> throw CompilerException("weird/unknown targetdt")
@@ -1499,7 +1520,9 @@ internal class Compiler(private val program: Program) {
                             prog.instr(opcode, RuntimeValue(DataType.UWORD, address))
                         }
                         VarDeclType.CONST -> throw CompilerException("cannot assign to const")
-                        VarDeclType.STRUCT -> TODO("decltype struct")
+                        VarDeclType.STRUCT -> {
+                            TODO("decltype struct $assignTarget")
+                        }
                     }
                 } else throw CompilerException("invalid assignment target type ${target::class}")
             }

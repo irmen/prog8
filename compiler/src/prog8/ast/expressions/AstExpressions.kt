@@ -231,11 +231,7 @@ class ArrayIndexedExpression(val identifier: IdentifierReference,
             return when (target.datatype) {
                 in NumericDatatypes -> null
                 in StringDatatypes -> DataType.UBYTE
-                DataType.ARRAY_UB -> DataType.UBYTE
-                DataType.ARRAY_B -> DataType.BYTE
-                DataType.ARRAY_UW -> DataType.UWORD
-                DataType.ARRAY_W -> DataType.WORD
-                DataType.ARRAY_F -> DataType.FLOAT
+                in ArrayDatatypes -> ArrayElementTypes[target.datatype]
                 else -> throw FatalAstException("invalid dt")
             }
         }
