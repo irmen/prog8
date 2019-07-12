@@ -265,7 +265,7 @@ class AstVm(val program: Program) {
     class LoopControlJump(val identifier: IdentifierReference?, val address: Int?, val generatedLabel: String?) : Exception()
 
 
-    internal fun executeSubroutine(sub: Subroutine, arguments: List<RuntimeValue>, startlabel: Label?=null): RuntimeValue? {
+    internal fun executeSubroutine(sub: Subroutine, arguments: List<RuntimeValue>, startAtLabel: Label?=null): RuntimeValue? {
         if(sub.isAsmSubroutine) {
             return performSyscall(sub, arguments)
         }
@@ -282,10 +282,10 @@ class AstVm(val program: Program) {
         }
 
         val statements = sub.statements.iterator()
-        if(startlabel!=null) {
+        if(startAtLabel!=null) {
             do {
                 val stmt = statements.next()
-            } while(stmt!==startlabel)
+            } while(stmt!==startAtLabel)
         }
 
         try {

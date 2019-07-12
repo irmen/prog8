@@ -12,10 +12,14 @@ import kotlin.math.*
 
 class BuiltinFunctionParam(val name: String, val possibleDatatypes: Set<DataType>)
 
+
+typealias ConstExpressionCaller = (args: List<IExpression>, position: Position, program: Program) -> LiteralValue
+
+
 class FunctionSignature(val pure: Boolean,      // does it have side effects?
                         val parameters: List<BuiltinFunctionParam>,
                         val returntype: DataType?,
-                        val constExpressionFunc: ((args: List<IExpression>, position: Position, program: Program) -> LiteralValue)? = null)
+                        val constExpressionFunc: ConstExpressionCaller? = null)
 
 
 val BuiltinFunctions = mapOf(

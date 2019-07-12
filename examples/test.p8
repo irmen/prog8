@@ -4,6 +4,7 @@
 ~ main {
 
     sub start() {
+        uword derp
 
         Color foreground    ; = [0,1,2]     @todo init values
         Color background

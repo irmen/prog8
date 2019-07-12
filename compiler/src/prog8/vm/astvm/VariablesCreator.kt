@@ -4,6 +4,7 @@ import prog8.ast.*
 import prog8.ast.base.*
 import prog8.ast.expressions.LiteralValue
 import prog8.ast.processing.IAstModifyingVisitor
+import prog8.ast.statements.StructDecl
 import prog8.ast.statements.VarDecl
 import prog8.compiler.HeapValues
 import prog8.vm.RuntimeValue
@@ -34,19 +35,25 @@ class VariablesCreator(private val runtimeVariables: RuntimeVariables, private v
     }
 
     override fun visit(decl: VarDecl): IStatement {
-        when(decl.type) {
-            // we can assume the value in the vardecl already has been converted into a constant LiteralValue here.
-            VarDeclType.VAR -> {
-                val value = RuntimeValue.from(decl.value as LiteralValue, heap)
-                runtimeVariables.define(decl.definingScope(), decl.name, value)
+        // if the decl is part of a struct, just skip it
+        if(decl.parent !is StructDecl) {
+            when (decl.type) {
+                // we can assume the value in the vardecl already has been converted into a constant LiteralValue here.
+                VarDeclType.VAR -> {
+                    println("$decl")
+                    val value = RuntimeValue.from(decl.value as LiteralValue, heap)
+                    runtimeVariables.define(decl.definingScope(), decl.name, value)
+                }
+                VarDeclType.MEMORY -> {
+                    runtimeVariables.defineMemory(decl.definingScope(), decl.name, (decl.value as LiteralValue).asIntegerValue!!)
+                }
+                VarDeclType.CONST -> {
+                    // consts should have been const-folded away
+                }
+                VarDeclType.STRUCT -> {
+                    // struct vardecl can be skipped because its members have been flattened out
+                }
             }
-            VarDeclType.MEMORY -> {
-                runtimeVariables.defineMemory(decl.definingScope(), decl.name, (decl.value as LiteralValue).asIntegerValue!!)
-            }
-            VarDeclType.CONST -> {
-                // consts should have been const-folded away
-            }
-            VarDeclType.STRUCT -> TODO("struct decltype")
         }
         return super.visit(decl)
     }

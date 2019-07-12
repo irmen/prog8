@@ -13,10 +13,15 @@ import prog8.vm.RuntimeValue
 import prog8.vm.RuntimeValueRange
 import kotlin.math.abs
 
+
+typealias BuiltinfunctionCaller =  (name: String, args: List<RuntimeValue>, flags: StatusFlags) -> RuntimeValue?
+typealias SubroutineCaller =  (sub: Subroutine, args: List<RuntimeValue>, startAtLabel: Label?) -> RuntimeValue?
+
+
 class EvalContext(val program: Program, val mem: Memory, val statusflags: StatusFlags,
                   val runtimeVars: RuntimeVariables,
-                  val performBuiltinFunction: (String, List<RuntimeValue>, StatusFlags) -> RuntimeValue?,
-                  val executeSubroutine: (sub: Subroutine, args: List<RuntimeValue>, startlabel: Label?) -> RuntimeValue?)
+                  val performBuiltinFunction: BuiltinfunctionCaller,
+                  val executeSubroutine: SubroutineCaller)
 
 fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
     val constval = expr.constValue(ctx.program)
@@ -96,6 +101,9 @@ fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
             if(variable is VarDecl) {
                 if(variable.type==VarDeclType.VAR)
                     return ctx.runtimeVars.get(variable.definingScope(), variable.name)
+                else if(variable.type==VarDeclType.STRUCT) {
+                    throw VmExecutionException("cannot process structs by-value.  at ${expr.position}")
+                }
                 else {
                     val address = ctx.runtimeVars.getMemoryAddress(variable.definingScope(), variable.name)
                     return when(variable.datatype) {

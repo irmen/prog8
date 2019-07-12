@@ -1,6 +1,5 @@
 package prog8.ast.processing
 
-import com.sun.org.apache.bcel.internal.generic.ISTORE
 import prog8.ast.*
 import prog8.ast.base.*
 import prog8.ast.base.printWarning
@@ -426,7 +425,7 @@ internal class AstChecker(private val program: Program,
                         checkResult.add(ExpressionError("assignment value is invalid or has no proper datatype", assignment.value.position))
                 }
                 else
-                    checkAssignmentCompatible(targetDatatype, sourceDatatype, assignment.value, assignment.position)
+                    checkAssignmentCompatible(targetDatatype, sourceDatatype, assignment.value, target, assignment.position)
             }
         }
         return assignment
@@ -1138,7 +1137,11 @@ internal class AstChecker(private val program: Program,
                 }
                 return err("invalid float array initialization value ${value.type}, expected $targetDt")
             }
-            DataType.STRUCT -> TODO("struct dt")
+            DataType.STRUCT -> {
+                if(value.type!=DataType.STRUCT)
+                    return err("cannot assign a normal value to a struct")
+                TODO("check struct, $value ")
+            }
         }
         return true
     }
@@ -1195,10 +1198,11 @@ internal class AstChecker(private val program: Program,
     private fun checkAssignmentCompatible(targetDatatype: DataType,
                                           sourceDatatype: DataType,
                                           sourceValue: IExpression,
+                                          target: AssignTarget,
                                           position: Position) : Boolean {
 
         if(sourceValue is RangeExpr)
-            checkResult.add(SyntaxError("can't assign a range value", position))
+            checkResult.add(SyntaxError("can't assign a range value to something else", position))
 
         val result =  when(targetDatatype) {
             DataType.BYTE -> sourceDatatype== DataType.BYTE
@@ -1208,6 +1212,17 @@ internal class AstChecker(private val program: Program,
             DataType.FLOAT -> sourceDatatype in NumericDatatypes
             DataType.STR -> sourceDatatype== DataType.STR
             DataType.STR_S -> sourceDatatype== DataType.STR_S
+            DataType.STRUCT -> {
+                // for now we've decided you cannot assign struct by-value.
+//                if(sourceDatatype==DataType.STRUCT) {
+//                    val sourcename = (sourceValue as IdentifierReference).nameInSource
+//                    val vd1 = program.namespace.lookup(sourcename, target) as? VarDecl
+//                    val targetname = target.identifier!!.nameInSource
+//                    val vd2 = program.namespace.lookup(targetname, target) as? VarDecl
+//                    return vd1?.struct == vd2?.struct
+//                }
+                false
+            }
             else -> checkResult.add(SyntaxError("cannot assign new value to variable of type $targetDatatype", position))
         }
 
