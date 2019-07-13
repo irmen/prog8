@@ -7,8 +7,8 @@ import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.statements.*
 import prog8.compiler.HeapValues
 import prog8.compiler.IntegerOrAddressOf
-import prog8.compiler.target.c64.FLOAT_MAX_NEGATIVE
-import prog8.compiler.target.c64.FLOAT_MAX_POSITIVE
+import prog8.compiler.target.c64.MachineDefinition.FLOAT_MAX_NEGATIVE
+import prog8.compiler.target.c64.MachineDefinition.FLOAT_MAX_POSITIVE
 import kotlin.math.floor
 
 

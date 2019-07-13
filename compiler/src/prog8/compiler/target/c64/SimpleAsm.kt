@@ -8,6 +8,13 @@ import prog8.compiler.intermediate.Opcode
 import prog8.compiler.toHex
 import prog8.vm.stackvm.Syscall
 import prog8.vm.stackvm.syscallsForStackVm
+import prog8.compiler.target.c64.MachineDefinition.C64Zeropage
+import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_HEX
+import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_HEX
+import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_PLUS1_HEX
+import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_PLUS2_HEX
+import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_PLUS1_HEX
+import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_PLUS2_HEX
 
 
 // note: see https://wiki.nesdev.com/w/index.php/6502_assembly_optimisations
@@ -66,23 +73,23 @@ internal fun simpleInstr2Asm(ins: Instruction, block: IntermediateProgram.Progra
         Opcode.DISCARD_WORD -> " inx"
         Opcode.DISCARD_FLOAT -> " inx |  inx |  inx"
         Opcode.DUP_B -> {
-            " lda ${(ESTACK_LO+1).toHex()},x | sta ${ESTACK_LO.toHex()},x | dex | ;DUP_B "
+            " lda $ESTACK_LO_PLUS1_HEX,x | sta $ESTACK_LO_HEX,x | dex | ;DUP_B "
         }
         Opcode.DUP_W -> {
-            " lda ${(ESTACK_LO+1).toHex()},x | sta ${ESTACK_LO.toHex()},x | lda ${(ESTACK_HI+1).toHex()},x | sta ${ESTACK_HI.toHex()},x | dex "
+            " lda $ESTACK_LO_PLUS1_HEX,x | sta $ESTACK_LO_HEX,x | lda $ESTACK_HI_PLUS1_HEX,x | sta $ESTACK_HI_HEX,x | dex "
         }
 
         Opcode.CMP_B, Opcode.CMP_UB -> {
-            " inx | lda ${ESTACK_LO.toHex()},x | cmp #${ins.arg!!.integerValue().toHex()} | ;CMP_B "
+            " inx | lda $ESTACK_LO_HEX,x | cmp #${ins.arg!!.integerValue().toHex()} | ;CMP_B "
         }
 
         Opcode.CMP_W, Opcode.CMP_UW -> {
             """
             inx
-            lda   ${ESTACK_HI.toHex()},x
+            lda   $ESTACK_HI_HEX,x
             cmp   #>${ins.arg!!.integerValue().toHex()}
             bne   +
-            lda   ${ESTACK_LO.toHex()},x
+            lda   $ESTACK_LO_HEX,x
             cmp   #<${ins.arg.integerValue().toHex()}
             ; bne   +    not necessary?
             ; lda   #0   not necessary?
@@ -130,11 +137,11 @@ internal fun simpleInstr2Asm(ins: Instruction, block: IntermediateProgram.Progra
         }
 
         Opcode.PUSH_BYTE -> {
-            " lda  #${hexVal(ins)} |  sta  ${ESTACK_LO.toHex()},x |  dex"
+            " lda  #${hexVal(ins)} |  sta  $ESTACK_LO_HEX,x |  dex"
         }
         Opcode.PUSH_WORD -> {
             val value = hexVal(ins)
-            " lda  #<$value |  sta  ${ESTACK_LO.toHex()},x |  lda  #>$value |  sta  ${ESTACK_HI.toHex()},x |  dex"
+            " lda  #<$value |  sta  $ESTACK_LO_HEX,x |  lda  #>$value |  sta  $ESTACK_HI_HEX,x |  dex"
         }
         Opcode.PUSH_FLOAT -> {
             val floatConst = getFloatConst(ins.arg!!)
@@ -143,28 +150,28 @@ internal fun simpleInstr2Asm(ins: Instruction, block: IntermediateProgram.Progra
         Opcode.PUSH_VAR_BYTE -> {
             when(ins.callLabel) {
                 "X" -> throw CompilerException("makes no sense to push X, it's used as a stack pointer itself. You should probably not use the X register (or only in trivial assignments)")
-                "A" -> " sta  ${ESTACK_LO.toHex()},x |  dex"
-                "Y" -> " tya |  sta  ${ESTACK_LO.toHex()},x |  dex"
-                else -> " lda  ${ins.callLabel} |  sta  ${ESTACK_LO.toHex()},x |  dex"
+                "A" -> " sta  $ESTACK_LO_HEX,x |  dex"
+                "Y" -> " tya |  sta  $ESTACK_LO_HEX,x |  dex"
+                else -> " lda  ${ins.callLabel} |  sta  $ESTACK_LO_HEX,x |  dex"
             }
         }
         Opcode.PUSH_VAR_WORD -> {
-            " lda  ${ins.callLabel} |  sta  ${ESTACK_LO.toHex()},x |  lda  ${ins.callLabel}+1 |    sta  ${ESTACK_HI.toHex()},x |  dex"
+            " lda  ${ins.callLabel} |  sta  $ESTACK_LO_HEX,x |  lda  ${ins.callLabel}+1 |    sta  $ESTACK_HI_HEX,x |  dex"
         }
         Opcode.PUSH_VAR_FLOAT -> " lda  #<${ins.callLabel} |  ldy  #>${ins.callLabel}|  jsr  c64flt.push_float"
         Opcode.PUSH_MEM_B, Opcode.PUSH_MEM_UB -> {
             """
                 lda  ${hexVal(ins)}
-                sta  ${ESTACK_LO.toHex()},x
+                sta  $ESTACK_LO_HEX,x
                 dex
                 """
         }
         Opcode.PUSH_MEM_W, Opcode.PUSH_MEM_UW -> {
             """
                 lda  ${hexVal(ins)}
-                sta  ${ESTACK_LO.toHex()},x
+                sta  $ESTACK_LO_HEX,x
                 lda  ${hexValPlusOne(ins)}
-                sta  ${ESTACK_HI.toHex()},x
+                sta  $ESTACK_HI_HEX,x
                 dex
                 """
         }
@@ -173,43 +180,43 @@ internal fun simpleInstr2Asm(ins: Instruction, block: IntermediateProgram.Progra
         }
         Opcode.PUSH_MEMREAD -> {
             """
-                lda  ${(ESTACK_LO+1).toHex()},x
+                lda  $ESTACK_LO_PLUS1_HEX,x
                 sta  (+) +1
-                lda  ${(ESTACK_HI+1).toHex()},x
+                lda  $ESTACK_HI_PLUS1_HEX,x
                 sta  (+) +2
 +               lda  65535    ; modified
-                sta  ${(ESTACK_LO+1).toHex()},x
+                sta  $ESTACK_LO_PLUS1_HEX,x
                 """
         }
 
         Opcode.PUSH_REGAY_WORD -> {
-            " sta  ${ESTACK_LO.toHex()},x |  tya |  sta  ${ESTACK_HI.toHex()},x |  dex "
+            " sta  $ESTACK_LO_HEX,x |  tya |  sta  $ESTACK_HI_HEX,x |  dex "
         }
         Opcode.PUSH_ADDR_HEAPVAR -> {
-            " lda  #<${ins.callLabel} |  sta  ${ESTACK_LO.toHex()},x |  lda  #>${ins.callLabel}  |  sta  ${ESTACK_HI.toHex()},x |  dex"
+            " lda  #<${ins.callLabel} |  sta  $ESTACK_LO_HEX,x |  lda  #>${ins.callLabel}  |  sta  $ESTACK_HI_HEX,x |  dex"
         }
         Opcode.POP_REGAX_WORD -> throw AssemblyError("cannot load X register from stack because it's used as the stack pointer itself")
         Opcode.POP_REGXY_WORD -> throw AssemblyError("cannot load X register from stack because it's used as the stack pointer itself")
         Opcode.POP_REGAY_WORD -> {
-            " inx |  lda  ${ESTACK_LO.toHex()},x |  ldy  ${ESTACK_HI.toHex()},x "
+            " inx |  lda  $ESTACK_LO_HEX,x |  ldy  $ESTACK_HI_HEX,x "
         }
 
         Opcode.READ_INDEXED_VAR_BYTE -> {
             """
-                ldy  ${(ESTACK_LO+1).toHex()},x
+                ldy  $ESTACK_LO_PLUS1_HEX,x
                 lda  ${ins.callLabel},y
-                sta  ${(ESTACK_LO+1).toHex()},x
+                sta  $ESTACK_LO_PLUS1_HEX,x
                 """
         }
         Opcode.READ_INDEXED_VAR_WORD -> {
             """
-                lda  ${(ESTACK_LO+1).toHex()},x
+                lda  $ESTACK_LO_PLUS1_HEX,x
                 asl  a
                 tay
                 lda  ${ins.callLabel},y
-                sta  ${(ESTACK_LO+1).toHex()},x
+                sta  $ESTACK_LO_PLUS1_HEX,x
                 lda  ${ins.callLabel}+1,y
-                sta  ${(ESTACK_HI+1).toHex()},x
+                sta  $ESTACK_HI_PLUS1_HEX,x
                 """
         }
         Opcode.READ_INDEXED_VAR_FLOAT -> {
@@ -222,22 +229,22 @@ internal fun simpleInstr2Asm(ins: Instruction, block: IntermediateProgram.Progra
         Opcode.WRITE_INDEXED_VAR_BYTE -> {
             """
                 inx
-                ldy  ${ESTACK_LO.toHex()},x
+                ldy  $ESTACK_LO_HEX,x
                 inx
-                lda  ${ESTACK_LO.toHex()},x
+                lda  $ESTACK_LO_HEX,x
                 sta  ${ins.callLabel},y
                 """
         }
         Opcode.WRITE_INDEXED_VAR_WORD -> {
             """
                 inx
-                lda  ${ESTACK_LO.toHex()},x
+                lda  $ESTACK_LO_HEX,x
                 asl  a
                 tay
                 inx
-                lda  ${ESTACK_LO.toHex()},x
+                lda  $ESTACK_LO_HEX,x
                 sta  ${ins.callLabel},y
-                lda  ${ESTACK_HI.toHex()},x
+                lda  $ESTACK_HI_HEX,x
                 sta  ${ins.callLabel}+1,y
                 """
         }
@@ -251,16 +258,16 @@ internal fun simpleInstr2Asm(ins: Instruction, block: IntermediateProgram.Progra
         Opcode.POP_MEM_BYTE -> {
             """
                 inx
-                lda  ${ESTACK_LO.toHex()},x
+                lda  $ESTACK_LO_HEX,x
                 sta  ${hexVal(ins)}
                 """
         }
         Opcode.POP_MEM_WORD -> {
             """
                 inx
-                lda  ${ESTACK_LO.toHex()},x
+                lda  $ESTACK_LO_HEX,x
                 sta  ${hexVal(ins)}
-                lda  ${ESTACK_HI.toHex()},x
+                lda  $ESTACK_HI_HEX,x
                 sta  ${hexValPlusOne(ins)}
                 """
         }
@@ -270,12 +277,12 @@ internal fun simpleInstr2Asm(ins: Instruction, block: IntermediateProgram.Progra
         Opcode.POP_MEMWRITE -> {
             """
                 inx
-                lda  ${ESTACK_LO.toHex()},x
+                lda  $ESTACK_LO_HEX,x
                 sta  (+) +1
-                lda  ${ESTACK_HI.toHex()},x
+                lda  $ESTACK_HI_HEX,x
                 sta  (+) +2
                 inx
-                lda  ${ESTACK_LO.toHex()},x
+                lda  $ESTACK_LO_HEX,x
 +               sta  65535       ; modified
                 """
         }
@@ -283,13 +290,13 @@ internal fun simpleInstr2Asm(ins: Instruction, block: IntermediateProgram.Progra
         Opcode.POP_VAR_BYTE -> {
             when (ins.callLabel) {
                 "X" -> throw CompilerException("makes no sense to pop X, it's used as a stack pointer itself")
-                "A" -> " inx |  lda  ${ESTACK_LO.toHex()},x"
-                "Y" -> " inx |  ldy  ${ESTACK_LO.toHex()},x"
-                else -> " inx |  lda  ${ESTACK_LO.toHex()},x |  sta  ${ins.callLabel}"
+                "A" -> " inx |  lda  $ESTACK_LO_HEX,x"
+                "Y" -> " inx |  ldy  $ESTACK_LO_HEX,x"
+                else -> " inx |  lda  $ESTACK_LO_HEX,x |  sta  ${ins.callLabel}"
             }
         }
         Opcode.POP_VAR_WORD -> {
-            " inx |  lda  ${ESTACK_LO.toHex()},x |  ldy  ${ESTACK_HI.toHex()},x |  sta  ${ins.callLabel} |  sty  ${ins.callLabel}+1"
+            " inx |  lda  $ESTACK_LO_HEX,x |  ldy  $ESTACK_HI_HEX,x |  sta  ${ins.callLabel} |  sty  ${ins.callLabel}+1"
         }
         Opcode.POP_VAR_FLOAT -> {
             " lda  #<${ins.callLabel} |  ldy  #>${ins.callLabel} |  jsr  c64flt.pop_float"
@@ -316,9 +323,9 @@ internal fun simpleInstr2Asm(ins: Instruction, block: IntermediateProgram.Progra
         Opcode.POP_INC_MEMORY -> {
             """
                 inx
-                lda  ${ESTACK_LO.toHex()},x
+                lda  $ESTACK_LO_HEX,x
                 sta  (+) +1
-                lda  ${ESTACK_HI.toHex()},x
+                lda  $ESTACK_HI_HEX,x
                 sta  (+) +2
 +               inc  65535     ; modified
                 """
@@ -326,9 +333,9 @@ internal fun simpleInstr2Asm(ins: Instruction, block: IntermediateProgram.Progra
         Opcode.POP_DEC_MEMORY -> {
             """
                 inx
-                lda  ${ESTACK_LO.toHex()},x
+                lda  $ESTACK_LO_HEX,x
                 sta  (+) +1
-                lda  ${ESTACK_HI.toHex()},x
+                lda  $ESTACK_HI_HEX,x
                 sta  (+) +2
 +               dec  65535     ; modified
                 """
@@ -353,8 +360,8 @@ internal fun simpleInstr2Asm(ins: Instruction, block: IntermediateProgram.Progra
         }
         Opcode.INC_MEMORY -> " inc  ${hexVal(ins)}"
         Opcode.DEC_MEMORY -> " dec  ${hexVal(ins)}"
-        Opcode.INC_INDEXED_VAR_B, Opcode.INC_INDEXED_VAR_UB -> " inx |  txa |  pha |  lda  ${ESTACK_LO.toHex()},x |  tax |  inc  ${ins.callLabel},x |  pla |  tax"
-        Opcode.DEC_INDEXED_VAR_B, Opcode.DEC_INDEXED_VAR_UB -> " inx |  txa |  pha |  lda  ${ESTACK_LO.toHex()},x |  tax |  dec  ${ins.callLabel},x |  pla |  tax"
+        Opcode.INC_INDEXED_VAR_B, Opcode.INC_INDEXED_VAR_UB -> " inx |  txa |  pha |  lda  $ESTACK_LO_HEX,x |  tax |  inc  ${ins.callLabel},x |  pla |  tax"
+        Opcode.DEC_INDEXED_VAR_B, Opcode.DEC_INDEXED_VAR_UB -> " inx |  txa |  pha |  lda  $ESTACK_LO_HEX,x |  tax |  dec  ${ins.callLabel},x |  pla |  tax"
 
         Opcode.NEG_B -> " jsr  prog8_lib.neg_b"
         Opcode.NEG_W -> " jsr  prog8_lib.neg_w"
@@ -365,9 +372,9 @@ internal fun simpleInstr2Asm(ins: Instruction, block: IntermediateProgram.Progra
         Opcode.POW_F -> " jsr  c64flt.pow_f"
         Opcode.INV_BYTE -> {
             """
-                lda  ${(ESTACK_LO + 1).toHex()},x
+                lda  $ESTACK_LO_PLUS1_HEX,x
                 eor  #255
-                sta  ${(ESTACK_LO + 1).toHex()},x
+                sta  $ESTACK_LO_PLUS1_HEX,x
                 """
         }
         Opcode.INV_WORD -> " jsr  prog8_lib.inv_word"
@@ -409,7 +416,7 @@ internal fun simpleInstr2Asm(ins: Instruction, block: IntermediateProgram.Progra
             val label = ins.callLabel ?: hexVal(ins)
             """
                 inx
-                lda  ${(ESTACK_LO).toHex()},x
+                lda  $ESTACK_LO_HEX,x
                 beq  $label
                 """
         }
@@ -417,9 +424,9 @@ internal fun simpleInstr2Asm(ins: Instruction, block: IntermediateProgram.Progra
             val label = ins.callLabel ?: hexVal(ins)
             """
                 inx
-                lda  ${(ESTACK_LO).toHex()},x
+                lda  $ESTACK_LO_HEX,x
                 beq  $label
-                lda  ${(ESTACK_HI).toHex()},x
+                lda  $ESTACK_HI_HEX,x
                 beq  $label
                 """
         }
@@ -427,7 +434,7 @@ internal fun simpleInstr2Asm(ins: Instruction, block: IntermediateProgram.Progra
             val label = ins.callLabel ?: hexVal(ins)
             """
                 inx
-                lda  ${(ESTACK_LO).toHex()},x
+                lda  $ESTACK_LO_HEX,x
                 bne  $label
                 """
         }
@@ -435,9 +442,9 @@ internal fun simpleInstr2Asm(ins: Instruction, block: IntermediateProgram.Progra
             val label = ins.callLabel ?: hexVal(ins)
             """
                 inx
-                lda  ${(ESTACK_LO).toHex()},x
+                lda  $ESTACK_LO_HEX,x
                 bne  $label
-                lda  ${(ESTACK_HI).toHex()},x
+                lda  $ESTACK_HI_HEX,x
                 bne  $label
                 """
         }
@@ -457,27 +464,27 @@ internal fun simpleInstr2Asm(ins: Instruction, block: IntermediateProgram.Progra
         Opcode.CAST_F_TO_B -> " jsr  c64flt.stack_float2w"
         Opcode.CAST_F_TO_UW -> " jsr  c64flt.stack_float2uw"
         Opcode.CAST_F_TO_W -> " jsr  c64flt.stack_float2w"
-        Opcode.CAST_UB_TO_UW, Opcode.CAST_UB_TO_W -> " lda  #0 |  sta  ${(ESTACK_HI+1).toHex()},x"     // clear the msb
-        Opcode.CAST_B_TO_UW, Opcode.CAST_B_TO_W -> " lda  ${(ESTACK_LO+1).toHex()},x |  ${signExtendA("${(ESTACK_HI+1).toHex()},x")}"     // sign extend the lsb
-        Opcode.MSB -> " lda  ${(ESTACK_HI+1).toHex()},x |  sta  ${(ESTACK_LO+1).toHex()},x"
-        Opcode.MKWORD -> " inx |  lda  ${ESTACK_LO.toHex()},x |  sta  ${(ESTACK_HI+1).toHex()},x "
+        Opcode.CAST_UB_TO_UW, Opcode.CAST_UB_TO_W -> " lda  #0 |  sta  $ESTACK_HI_PLUS1_HEX,x"     // clear the msb
+        Opcode.CAST_B_TO_UW, Opcode.CAST_B_TO_W -> " lda  $ESTACK_LO_PLUS1_HEX,x |  ${signExtendA("$ESTACK_HI_PLUS1_HEX,x")}"     // sign extend the lsb
+        Opcode.MSB -> " lda  $ESTACK_HI_PLUS1_HEX,x |  sta  $ESTACK_LO_PLUS1_HEX,x"
+        Opcode.MKWORD -> " inx |  lda  $ESTACK_LO_HEX,x |  sta  $ESTACK_HI_PLUS1_HEX,x "
 
         Opcode.ADD_UB, Opcode.ADD_B -> {        // TODO inline better (pattern with more opcodes)
             """
-                lda  ${(ESTACK_LO + 2).toHex()},x
+                lda  $ESTACK_LO_PLUS2_HEX,x
                 clc
-                adc  ${(ESTACK_LO + 1).toHex()},x
+                adc  $ESTACK_LO_PLUS1_HEX,x
                 inx
-                sta  ${(ESTACK_LO + 1).toHex()},x
+                sta  $ESTACK_LO_PLUS1_HEX,x
                 """
         }
         Opcode.SUB_UB, Opcode.SUB_B -> {        // TODO inline better (pattern with more opcodes)
             """
-                lda  ${(ESTACK_LO + 2).toHex()},x
+                lda  $ESTACK_LO_PLUS2_HEX,x
                 sec
-                sbc  ${(ESTACK_LO + 1).toHex()},x
+                sbc  $ESTACK_LO_PLUS1_HEX,x
                 inx
-                sta  ${(ESTACK_LO + 1).toHex()},x
+                sta  $ESTACK_LO_PLUS1_HEX,x
                 """
         }
         Opcode.ADD_W, Opcode.ADD_UW -> "  jsr  prog8_lib.add_w"
@@ -541,12 +548,12 @@ internal fun simpleInstr2Asm(ins: Instruction, block: IntermediateProgram.Progra
         Opcode.LESSEQ_W -> "  jsr  prog8_lib.lesseq_w"
         Opcode.LESSEQ_F -> "  jsr  c64flt.lesseq_f"
 
-        Opcode.SHIFTEDL_BYTE -> "  asl  ${(ESTACK_LO+1).toHex()},x"
-        Opcode.SHIFTEDL_WORD -> "  asl  ${(ESTACK_LO+1).toHex()},x |  rol  ${(ESTACK_HI+1).toHex()},x"
-        Opcode.SHIFTEDR_SBYTE -> "  lda  ${(ESTACK_LO+1).toHex()},x |  asl  a |  ror  ${(ESTACK_LO+1).toHex()},x"
-        Opcode.SHIFTEDR_UBYTE -> "  lsr  ${(ESTACK_LO+1).toHex()},x"
-        Opcode.SHIFTEDR_SWORD -> "  lda  ${(ESTACK_HI+1).toHex()},x |  asl a  |  ror  ${(ESTACK_HI+1).toHex()},x |  ror  ${(ESTACK_LO+1).toHex()},x"
-        Opcode.SHIFTEDR_UWORD -> "  lsr  ${(ESTACK_HI+1).toHex()},x |  ror  ${(ESTACK_LO+1).toHex()},x"
+        Opcode.SHIFTEDL_BYTE -> "  asl  $ESTACK_LO_PLUS1_HEX,x"
+        Opcode.SHIFTEDL_WORD -> "  asl  $ESTACK_LO_PLUS1_HEX,x |  rol  $ESTACK_HI_PLUS1_HEX,x"
+        Opcode.SHIFTEDR_SBYTE -> "  lda  $ESTACK_LO_PLUS1_HEX,x |  asl  a |  ror  $ESTACK_LO_PLUS1_HEX,x"
+        Opcode.SHIFTEDR_UBYTE -> "  lsr  $ESTACK_LO_PLUS1_HEX,x"
+        Opcode.SHIFTEDR_SWORD -> "  lda  $ESTACK_HI_PLUS1_HEX,x |  asl a  |  ror  $ESTACK_HI_PLUS1_HEX,x |  ror  $ESTACK_LO_PLUS1_HEX,x"
+        Opcode.SHIFTEDR_UWORD -> "  lsr  $ESTACK_HI_PLUS1_HEX,x |  ror  $ESTACK_LO_PLUS1_HEX,x"
 
         else -> null
     }

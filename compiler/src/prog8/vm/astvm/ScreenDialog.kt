@@ -1,7 +1,6 @@
 package prog8.vm.astvm
 
-import prog8.compiler.target.c64.Charset
-import prog8.compiler.target.c64.Colors
+import prog8.compiler.target.c64.MachineDefinition
 import prog8.compiler.target.c64.Petscii
 import java.awt.*
 import java.awt.event.KeyEvent
@@ -51,16 +50,16 @@ class BitmapScreenPanel : KeyListener, JPanel() {
     }
 
     fun clearScreen(color: Short) {
-        g2d.background = Colors.palette[color % Colors.palette.size]
+        g2d.background = MachineDefinition.colorPalette[color % MachineDefinition.colorPalette.size]
         g2d.clearRect(0, 0, SCREENWIDTH, SCREENHEIGHT)
         cursorX = 0
         cursorY = 0
     }
     fun setPixel(x: Int, y: Int, color: Short) {
-        image.setRGB(x, y, Colors.palette[color % Colors.palette.size].rgb)
+        image.setRGB(x, y, MachineDefinition.colorPalette[color % MachineDefinition.colorPalette.size].rgb)
     }
     fun drawLine(x1: Int, y1: Int, x2: Int, y2: Int, color: Short) {
-        g2d.color = Colors.palette[color % Colors.palette.size]
+        g2d.color = MachineDefinition.colorPalette[color % MachineDefinition.colorPalette.size]
         g2d.drawLine(x1, y1, x2, y2)
     }
 
@@ -95,7 +94,7 @@ class BitmapScreenPanel : KeyListener, JPanel() {
             val graphics = image.graphics as Graphics2D
             graphics.drawImage(screen, 0, -8, null)
             val color = graphics.color
-            graphics.color = Colors.palette[6]
+            graphics.color = MachineDefinition.colorPalette[6]
             graphics.fillRect(0, 24*8, SCREENWIDTH, 25*8)
             graphics.color=color
             cursorY--
@@ -103,7 +102,7 @@ class BitmapScreenPanel : KeyListener, JPanel() {
     }
 
     fun writeTextAt(x: Int, y: Int, text: String, color: Short, lowercase: Boolean, inverseVideo: Boolean=false) {
-        val colorIdx = (color % Colors.palette.size).toShort()
+        val colorIdx = (color % MachineDefinition.colorPalette.size).toShort()
         var xx=x
         for(clearx in xx until xx+text.length) {
             g2d.clearRect(8*clearx, 8*y, 8, 8)
@@ -117,16 +116,16 @@ class BitmapScreenPanel : KeyListener, JPanel() {
 
     fun setPetscii(x: Int, y: Int, petscii: Short, color: Short, inverseVideo: Boolean) {
         g2d.clearRect(8*x, 8*y, 8, 8)
-        val colorIdx = (color % Colors.palette.size).toShort()
+        val colorIdx = (color % MachineDefinition.colorPalette.size).toShort()
         val screencode = Petscii.petscii2scr(petscii, inverseVideo)
-        val coloredImage = Charset.getColoredChar(screencode, colorIdx)
+        val coloredImage = MachineDefinition.Charset.getColoredChar(screencode, colorIdx)
         g2d.drawImage(coloredImage, 8*x, 8*y , null)
     }
 
     fun setChar(x: Int, y: Int, screencode: Short, color: Short) {
         g2d.clearRect(8*x, 8*y, 8, 8)
-        val colorIdx = (color % Colors.palette.size).toShort()
-        val coloredImage = Charset.getColoredChar(screencode, colorIdx)
+        val colorIdx = (color % MachineDefinition.colorPalette.size).toShort()
+        val coloredImage = MachineDefinition.Charset.getColoredChar(screencode, colorIdx)
         g2d.drawImage(coloredImage, 8*x, 8*y , null)
     }
 
@@ -160,19 +159,19 @@ class ScreenDialog(title: String) : JFrame(title) {
         // the borders (top, left, right, bottom)
         val borderTop = JPanel().apply {
             preferredSize = Dimension(BitmapScreenPanel.SCALING * (BitmapScreenPanel.SCREENWIDTH +2*borderWidth), BitmapScreenPanel.SCALING * borderWidth)
-            background = Colors.palette[14]
+            background = MachineDefinition.colorPalette[14]
         }
         val borderBottom = JPanel().apply {
             preferredSize =Dimension(BitmapScreenPanel.SCALING * (BitmapScreenPanel.SCREENWIDTH +2*borderWidth), BitmapScreenPanel.SCALING * borderWidth)
-            background = Colors.palette[14]
+            background = MachineDefinition.colorPalette[14]
         }
         val borderLeft = JPanel().apply {
             preferredSize =Dimension(BitmapScreenPanel.SCALING * borderWidth, BitmapScreenPanel.SCALING * BitmapScreenPanel.SCREENHEIGHT)
-            background = Colors.palette[14]
+            background = MachineDefinition.colorPalette[14]
         }
         val borderRight = JPanel().apply {
             preferredSize =Dimension(BitmapScreenPanel.SCALING * borderWidth, BitmapScreenPanel.SCALING * BitmapScreenPanel.SCREENHEIGHT)
-            background = Colors.palette[14]
+            background = MachineDefinition.colorPalette[14]
         }
         var c = GridBagConstraints()
         c.gridx=0; c.gridy=1; c.gridwidth=3

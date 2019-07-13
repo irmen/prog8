@@ -6,7 +6,7 @@ import prog8.ast.base.initvarsSubName
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.LiteralValue
 import prog8.ast.statements.*
-import prog8.compiler.target.c64.Mflpt5
+import prog8.compiler.target.c64.MachineDefinition
 import prog8.vm.RuntimeValue
 import prog8.vm.RuntimeValueRange
 import prog8.compiler.target.c64.Petscii
@@ -621,7 +621,7 @@ class AstVm(val program: Program) {
                         DataType.BYTE -> mem.setSByte(address+index, value.byteval!!)
                         DataType.UWORD -> mem.setUWord(address+index*2, value.wordval!!)
                         DataType.WORD -> mem.setSWord(address+index*2, value.wordval!!)
-                        DataType.FLOAT -> mem.setFloat(address+index*Mflpt5.MemorySize, value.floatval!!)
+                        DataType.FLOAT -> mem.setFloat(address+index* MachineDefinition.Mflpt5.MemorySize, value.floatval!!)
                         else -> throw VmExecutionException("strange array elt type $elementType")
                     }
                 }

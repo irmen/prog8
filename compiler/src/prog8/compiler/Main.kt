@@ -7,7 +7,7 @@ import prog8.ast.base.checkValid
 import prog8.ast.base.reorderStatements
 import prog8.ast.statements.Directive
 import prog8.compiler.target.c64.AsmGen
-import prog8.compiler.target.c64.C64Zeropage
+import prog8.compiler.target.c64.MachineDefinition
 import prog8.optimizer.constantFold
 import prog8.optimizer.optimizeStatements
 import prog8.optimizer.simplifyExpressions
@@ -108,7 +108,7 @@ fun compileProgram(filepath: Path,
                 }
 
                 if (writeAssembly) {
-                    val zeropage = C64Zeropage(compilerOptions)
+                    val zeropage = MachineDefinition.C64Zeropage(compilerOptions)
                     intermediate.allocateZeropage(zeropage)
                     val assembly = AsmGen(compilerOptions, intermediate, programAst.heap, zeropage).compileToAssembly(optimize)
                     assembly.assemble(compilerOptions)

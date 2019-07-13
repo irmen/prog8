@@ -6,7 +6,7 @@ import prog8.ast.expressions.*
 import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.processing.IAstVisitor
 import prog8.compiler.HeapValues
-import prog8.compiler.target.c64.Mflpt5
+import prog8.compiler.target.c64.MachineDefinition
 
 
 class BuiltinFunctionStatementPlaceholder(val name: String, override val position: Position) : IStatement {
@@ -757,7 +757,7 @@ class StructDecl(override val name: String,
             when {
                 decl.datatype in ByteDatatypes -> 8
                 decl.datatype in WordDatatypes -> 16
-                decl.datatype==DataType.FLOAT -> Mflpt5.MemorySize
+                decl.datatype==DataType.FLOAT -> MachineDefinition.Mflpt5.MemorySize
                 decl.datatype in StringDatatypes -> TODO("stringvalue size")
                 decl.datatype in ArrayDatatypes -> decl.arraysize!!.size()!!
                 decl.datatype==DataType.STRUCT -> decl.struct!!.memorySize

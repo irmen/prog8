@@ -3,6 +3,11 @@ package prog8.compiler.target.c64
 import prog8.ast.base.printWarning
 import prog8.compiler.intermediate.Instruction
 import prog8.compiler.intermediate.Opcode
+import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_HEX
+import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_HEX
+import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_PLUS1_HEX
+import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_PLUS1_HEX
+import prog8.compiler.target.c64.MachineDefinition.C64Zeropage
 import prog8.compiler.toHex
 
 // note: see https://wiki.nesdev.com/w/index.php/6502_assembly_optimisations
@@ -1371,7 +1376,7 @@ internal val patterns = listOf<AsmPattern>(
         },
         // floatvar = floatarray[index]
         AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_FLOAT, Opcode.POP_VAR_FLOAT)) { segment ->
-            val index = intVal(segment[0]) * Mflpt5.MemorySize
+            val index = intVal(segment[0]) * MachineDefinition.Mflpt5.MemorySize
             """
                 lda  #<${segment[1].callLabel}+$index
                 ldy  #>${segment[1].callLabel}+$index
@@ -1570,7 +1575,7 @@ internal val patterns = listOf<AsmPattern>(
         },
         // memfloat = floatarray[index]
         AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_FLOAT, Opcode.POP_MEM_FLOAT)) { segment ->
-            val index = intVal(segment[0]) * Mflpt5.MemorySize
+            val index = intVal(segment[0]) * MachineDefinition.Mflpt5.MemorySize
             """
                 lda  #<${segment[1].callLabel}+$index
                 ldy  #>${segment[1].callLabel}+$index
@@ -1584,7 +1589,7 @@ internal val patterns = listOf<AsmPattern>(
         // floatarray[idxbyte] = float
         AsmPattern(listOf(Opcode.PUSH_FLOAT, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_FLOAT)) { segment ->
             val floatConst = getFloatConst(segment[0].arg!!)
-            val index = intVal(segment[1]) * Mflpt5.MemorySize
+            val index = intVal(segment[1]) * MachineDefinition.Mflpt5.MemorySize
             """
                 lda  #<$floatConst
                 ldy  #>$floatConst
@@ -1597,7 +1602,7 @@ internal val patterns = listOf<AsmPattern>(
         },
         // floatarray[idxbyte] = floatvar
         AsmPattern(listOf(Opcode.PUSH_VAR_FLOAT, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_FLOAT)) { segment ->
-            val index = intVal(segment[1]) * Mflpt5.MemorySize
+            val index = intVal(segment[1]) * MachineDefinition.Mflpt5.MemorySize
             """
                 lda  #<${segment[0].callLabel}
                 ldy  #>${segment[0].callLabel}
@@ -1610,7 +1615,7 @@ internal val patterns = listOf<AsmPattern>(
         },
         //  floatarray[idxbyte] = memfloat
         AsmPattern(listOf(Opcode.PUSH_MEM_FLOAT, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_FLOAT)) { segment ->
-            val index = intVal(segment[1]) * Mflpt5.MemorySize
+            val index = intVal(segment[1]) * MachineDefinition.Mflpt5.MemorySize
             """
                 lda  #<${hexVal(segment[0])}
                 ldy  #>${hexVal(segment[0])}
@@ -1623,8 +1628,8 @@ internal val patterns = listOf<AsmPattern>(
         },
         //  floatarray[idx2] = floatarray[idx1]
         AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.READ_INDEXED_VAR_FLOAT, Opcode.PUSH_BYTE, Opcode.WRITE_INDEXED_VAR_FLOAT)) { segment ->
-            val index1 = intVal(segment[0]) * Mflpt5.MemorySize
-            val index2 = intVal(segment[2]) * Mflpt5.MemorySize
+            val index1 = intVal(segment[0]) * MachineDefinition.Mflpt5.MemorySize
+            val index2 = intVal(segment[2]) * MachineDefinition.Mflpt5.MemorySize
             """
                 lda  #<(${segment[1].callLabel}+$index1)
                 ldy  #>(${segment[1].callLabel}+$index1)
@@ -1759,16 +1764,16 @@ internal val patterns = listOf<AsmPattern>(
         // push word var as (u)byte
         AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.CAST_W_TO_UB),
                 listOf(Opcode.PUSH_VAR_WORD, Opcode.CAST_W_TO_B)) { segment ->
-            " lda  ${segment[0].callLabel} |  sta  ${ESTACK_LO.toHex()},x |  dex "
+            " lda  ${segment[0].callLabel} |  sta  $ESTACK_LO_HEX,x |  dex "
         },
         // push uword var as (u)byte
         AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.CAST_UW_TO_UB),
                 listOf(Opcode.PUSH_VAR_WORD, Opcode.CAST_UW_TO_B)) { segment ->
-            " lda  ${segment[0].callLabel} |  sta  ${ESTACK_LO.toHex()},x |  dex "
+            " lda  ${segment[0].callLabel} |  sta  $ESTACK_LO_HEX,x |  dex "
         },
         // push msb(word var)
         AsmPattern(listOf(Opcode.PUSH_VAR_WORD, Opcode.MSB)) { segment ->
-            " lda  ${segment[0].callLabel}+1 |  sta  ${ESTACK_LO.toHex()},x |  dex "
+            " lda  ${segment[0].callLabel}+1 |  sta  $ESTACK_LO_HEX,x |  dex "
         },
 
         // set a register pair to a certain memory address (of a variable)
@@ -1785,29 +1790,29 @@ internal val patterns = listOf<AsmPattern>(
         // push  memory byte | bytevalue
         AsmPattern(listOf(Opcode.PUSH_MEM_B, Opcode.PUSH_BYTE, Opcode.BITOR_BYTE),
                 listOf(Opcode.PUSH_MEM_UB, Opcode.PUSH_BYTE, Opcode.BITOR_BYTE)) { segment ->
-            " lda  ${hexVal(segment[0])} |  ora  #${hexVal(segment[1])} |  sta  ${ESTACK_LO.toHex()},x |  dex "
+            " lda  ${hexVal(segment[0])} |  ora  #${hexVal(segment[1])} |  sta  $ESTACK_LO_HEX,x |  dex "
         },
         // push  memory byte & bytevalue
         AsmPattern(listOf(Opcode.PUSH_MEM_B, Opcode.PUSH_BYTE, Opcode.BITAND_BYTE),
                 listOf(Opcode.PUSH_MEM_UB, Opcode.PUSH_BYTE, Opcode.BITAND_BYTE)) { segment ->
-            " lda  ${hexVal(segment[0])} |  and  #${hexVal(segment[1])} |  sta  ${ESTACK_LO.toHex()},x |  dex "
+            " lda  ${hexVal(segment[0])} |  and  #${hexVal(segment[1])} |  sta  $ESTACK_LO_HEX,x |  dex "
         },
         // push  memory byte ^ bytevalue
         AsmPattern(listOf(Opcode.PUSH_MEM_B, Opcode.PUSH_BYTE, Opcode.BITXOR_BYTE),
                 listOf(Opcode.PUSH_MEM_UB, Opcode.PUSH_BYTE, Opcode.BITXOR_BYTE)) { segment ->
-            " lda  ${hexVal(segment[0])} |  eor  #${hexVal(segment[1])} |  sta  ${ESTACK_LO.toHex()},x |  dex "
+            " lda  ${hexVal(segment[0])} |  eor  #${hexVal(segment[1])} |  sta  $ESTACK_LO_HEX,x |  dex "
         },
         // push  var byte | bytevalue
         AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.PUSH_BYTE, Opcode.BITOR_BYTE)) { segment ->
-            " lda  ${segment[0].callLabel} |  ora  #${hexVal(segment[1])} |  sta  ${ESTACK_LO.toHex()},x |  dex "
+            " lda  ${segment[0].callLabel} |  ora  #${hexVal(segment[1])} |  sta  $ESTACK_LO_HEX,x |  dex "
         },
         // push  var byte & bytevalue
         AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.PUSH_BYTE, Opcode.BITAND_BYTE)) { segment ->
-            " lda  ${segment[0].callLabel} |  and  #${hexVal(segment[1])} |  sta  ${ESTACK_LO.toHex()},x |  dex "
+            " lda  ${segment[0].callLabel} |  and  #${hexVal(segment[1])} |  sta  $ESTACK_LO_HEX,x |  dex "
         },
         // push  var byte ^ bytevalue
         AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.PUSH_BYTE, Opcode.BITXOR_BYTE)) { segment ->
-            " lda   ${segment[0].callLabel} |  eor  #${hexVal(segment[1])} |  sta  ${ESTACK_LO.toHex()},x |  dex "
+            " lda   ${segment[0].callLabel} |  eor  #${hexVal(segment[1])} |  sta  $ESTACK_LO_HEX,x |  dex "
         },
 
         // push  memory word | wordvalue
@@ -1816,10 +1821,10 @@ internal val patterns = listOf<AsmPattern>(
             """
                 lda  ${hexVal(segment[0])}
                 ora  #<${hexVal(segment[1])}
-                sta  ${ESTACK_LO.toHex()},x
+                sta  $ESTACK_LO_HEX,x
                 lda  ${hexValPlusOne(segment[0])}
                 ora  #>${hexVal(segment[1])}
-                sta  ${ESTACK_HI.toHex()},x
+                sta  $ESTACK_HI_HEX,x
                 dex
                 """
         },
@@ -1829,10 +1834,10 @@ internal val patterns = listOf<AsmPattern>(
             """
                 lda  ${hexVal(segment[0])}
                 and  #<${hexVal(segment[1])}
-                sta  ${ESTACK_LO.toHex()},x
+                sta  $ESTACK_LO_HEX,x
                 lda  ${hexValPlusOne(segment[0])}
                 and  #>${hexVal(segment[1])}
-                sta  ${ESTACK_HI.toHex()},x
+                sta  $ESTACK_HI_HEX,x
                 dex
                 """
         },
@@ -1842,10 +1847,10 @@ internal val patterns = listOf<AsmPattern>(
             """
                 lda  ${hexVal(segment[0])}
                 eor  #<${hexVal(segment[1])}
-                sta  ${ESTACK_LO.toHex()},x
+                sta  $ESTACK_LO_HEX,x
                 lda  ${hexValPlusOne(segment[0])}
                 eor  #>${hexVal(segment[1])}
-                sta  ${ESTACK_HI.toHex()},x
+                sta  $ESTACK_HI_HEX,x
                 dex
                 """
         },
@@ -1854,10 +1859,10 @@ internal val patterns = listOf<AsmPattern>(
             """
                 lda  ${segment[0].callLabel}
                 ora  #<${hexVal(segment[1])}
-                sta  ${ESTACK_LO.toHex()},x
+                sta  $ESTACK_LO_HEX,x
                 lda  ${segment[0].callLabel}+1
                 ora  #>${hexVal(segment[1])}
-                sta  ${ESTACK_HI.toHex()},x
+                sta  $ESTACK_HI_HEX,x
                 dex
                 """
         },
@@ -1866,10 +1871,10 @@ internal val patterns = listOf<AsmPattern>(
             """
                 lda  ${segment[0].callLabel}
                 and  #<${hexVal(segment[1])}
-                sta  ${ESTACK_LO.toHex()},x
+                sta  $ESTACK_LO_HEX,x
                 lda  ${segment[0].callLabel}+1
                 and  #>${hexVal(segment[1])}
-                sta  ${ESTACK_HI.toHex()},x
+                sta  $ESTACK_HI_HEX,x
                 dex
                 """
         },
@@ -1878,10 +1883,10 @@ internal val patterns = listOf<AsmPattern>(
             """
                 lda  ${segment[0].callLabel}
                 eor  #<${hexVal(segment[1])}
-                sta  ${ESTACK_LO.toHex()},x
+                sta  $ESTACK_LO_HEX,x
                 lda  ${segment[0].callLabel}+1
                 eor  #>${hexVal(segment[1])}
-                sta  ${ESTACK_HI.toHex()},x
+                sta  $ESTACK_HI_HEX,x
                 dex
                 """
         },
@@ -1974,27 +1979,27 @@ internal val patterns = listOf<AsmPattern>(
         AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.PUSH_VAR_BYTE, Opcode.MKWORD)) { segment ->
             """
                 lda  ${segment[0].callLabel}
-                sta  ${ESTACK_LO.toHex()},x
+                sta  $ESTACK_LO_HEX,x
                 lda  ${segment[1].callLabel}
-                sta  ${ESTACK_HI.toHex()},x
+                sta  $ESTACK_HI_HEX,x
                 dex
                 """
         },
         AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.PUSH_VAR_BYTE, Opcode.MKWORD)) { segment ->
             """
                 lda  #${hexVal(segment[0])}
-                sta  ${ESTACK_LO.toHex()},x
+                sta  $ESTACK_LO_HEX,x
                 lda  ${segment[1].callLabel}
-                sta  ${ESTACK_HI.toHex()},x
+                sta  $ESTACK_HI_HEX,x
                 dex
                 """
         },
         AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.PUSH_BYTE, Opcode.MKWORD)) { segment ->
             """
                 lda  ${segment[0].callLabel}
-                sta  ${ESTACK_LO.toHex()},x
+                sta  $ESTACK_LO_HEX,x
                 lda  #${hexVal(segment[1])}
-                sta  ${ESTACK_HI.toHex()},x
+                sta  $ESTACK_HI_HEX,x
                 dex
                 """
         },
@@ -2035,28 +2040,28 @@ internal val patterns = listOf<AsmPattern>(
         AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.ADD_B), listOf(Opcode.PUSH_BYTE, Opcode.ADD_UB)) { segment ->
             val amount = segment[0].arg!!.integerValue()
             if (amount in 1..2) {
-                " inc  ${(ESTACK_LO + 1).toHex()},x | ".repeat(amount)
+                " inc  $ESTACK_LO_PLUS1_HEX,x | ".repeat(amount)
             } else
                 null
         },
         AsmPattern(listOf(Opcode.PUSH_WORD, Opcode.ADD_UW), listOf(Opcode.PUSH_WORD, Opcode.ADD_W)) { segment ->
             val amount = segment[0].arg!!.integerValue()
             if (amount in 1..2) {
-                " inc  ${(ESTACK_LO + 1).toHex()},x |  bne  + |  inc  ${(ESTACK_HI + 1).toHex()},x |+ | ".repeat(amount)
+                " inc  $ESTACK_LO_PLUS1_HEX,x |  bne  + |  inc  $ESTACK_HI_PLUS1_HEX,x |+ | ".repeat(amount)
             } else
                 null
         },
         AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.SUB_B), listOf(Opcode.PUSH_BYTE, Opcode.SUB_UB)) { segment ->
             val amount = segment[0].arg!!.integerValue()
             if (amount in 1..2) {
-                " dec  ${(ESTACK_LO + 1).toHex()},x | ".repeat(amount)
+                " dec  $ESTACK_LO_PLUS1_HEX,x | ".repeat(amount)
             } else
                 null
         },
         AsmPattern(listOf(Opcode.PUSH_WORD, Opcode.SUB_UW), listOf(Opcode.PUSH_WORD, Opcode.SUB_W)) { segment ->
             val amount = segment[0].arg!!.integerValue()
             if (amount in 1..2) {
-                " lda  ${(ESTACK_LO + 1).toHex()},x |  bne  + |  dec  ${(ESTACK_HI + 1).toHex()},x |+ |  dec  ${(ESTACK_LO + 1).toHex()},x | ".repeat(amount)
+                " lda  $ESTACK_LO_PLUS1_HEX,x |  bne  + |  dec  $ESTACK_HI_PLUS1_HEX,x |+ |  dec  $ESTACK_LO_PLUS1_HEX,x | ".repeat(amount)
             } else
                 null
         },
@@ -2109,14 +2114,14 @@ internal val patterns = listOf<AsmPattern>(
         AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.MUL_B), listOf(Opcode.PUSH_BYTE, Opcode.MUL_UB)) { segment ->
             val amount = segment[0].arg!!.integerValue()
             val result = optimizedIntMultiplicationsOnStack(segment[1], amount)
-            result ?: " lda  #${hexVal(segment[0])} |  sta  ${ESTACK_LO.toHex()},x |  dex |  jsr  prog8_lib.mul_byte"
+            result ?: " lda  #${hexVal(segment[0])} |  sta  $ESTACK_LO_HEX,x |  dex |  jsr  prog8_lib.mul_byte"
         },
         AsmPattern(listOf(Opcode.PUSH_WORD, Opcode.MUL_W), listOf(Opcode.PUSH_WORD, Opcode.MUL_UW)) { segment ->
             val amount = segment[0].arg!!.integerValue()
             val result = optimizedIntMultiplicationsOnStack(segment[1], amount)
             if (result != null) result else {
                 val value = hexVal(segment[0])
-                " lda  #<$value |  sta  ${ESTACK_LO.toHex()},x |  lda  #>$value |  sta  ${ESTACK_HI.toHex()},x |  dex |  jsr  prog8_lib.mul_word"
+                " lda  #<$value |  sta  $ESTACK_LO_HEX,x |  lda  #>$value |  sta  $ESTACK_HI_HEX,x |  dex |  jsr  prog8_lib.mul_word"
             }
         },
 
@@ -2310,10 +2315,10 @@ internal val patterns = listOf<AsmPattern>(
         AsmPattern(listOf(Opcode.DUP_W, Opcode.CMP_UW),
                 listOf(Opcode.DUP_W, Opcode.CMP_W)) { segment ->
             """
-            lda   ${(ESTACK_HI+1).toHex()},x
+            lda   $ESTACK_HI_PLUS1_HEX,x
             cmp   #>${segment[1].arg!!.integerValue().toHex()}
             bne   +
-            lda   ${(ESTACK_LO+1).toHex()},x
+            lda   $ESTACK_LO_PLUS1_HEX,x
             cmp   #<${segment[1].arg!!.integerValue().toHex()}
             ; bne   +    not necessary?
             ; lda   #0   not necessary?
@@ -2322,7 +2327,7 @@ internal val patterns = listOf<AsmPattern>(
         },
         AsmPattern(listOf(Opcode.DUP_B, Opcode.CMP_UB),
                 listOf(Opcode.DUP_B, Opcode.CMP_B)) { segment ->
-            """ lda  ${(ESTACK_LO+1).toHex()},x | cmp  #${segment[1].arg!!.integerValue().toHex()} """
+            """ lda  $ESTACK_LO_PLUS1_HEX,x | cmp  #${segment[1].arg!!.integerValue().toHex()} """
         }
 
 )

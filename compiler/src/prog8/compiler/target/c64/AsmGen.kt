@@ -147,7 +147,7 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
         return name.replace("-", "")
     }
 
-    private fun makeFloatFill(flt: Mflpt5): String {
+    private fun makeFloatFill(flt: MachineDefinition.Mflpt5): String {
         val b0 = "$"+flt.b0.toString(16).padStart(2, '0')
         val b1 = "$"+flt.b1.toString(16).padStart(2, '0')
         val b2 = "$"+flt.b2.toString(16).padStart(2, '0')
@@ -165,7 +165,8 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
         out("\n.cpu  '6502'\n.enc  'none'\n")
 
         if(program.loadAddress==0)   // fix load address
-            program.loadAddress = if(options.launcher==LauncherType.BASIC) BASIC_LOAD_ADDRESS else RAW_LOAD_ADDRESS
+            program.loadAddress = if(options.launcher==LauncherType.BASIC)
+                MachineDefinition.BASIC_LOAD_ADDRESS else MachineDefinition.RAW_LOAD_ADDRESS
 
         when {
             options.launcher == LauncherType.BASIC -> {
@@ -221,7 +222,7 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
 
         // the global list of all floating point constants for the whole program
         for(flt in globalFloatConsts) {
-            val floatFill = makeFloatFill(Mflpt5.fromNumber(flt.key))
+            val floatFill = makeFloatFill(MachineDefinition.Mflpt5.fromNumber(flt.key))
             out("${flt.value}\t.byte  $floatFill  ; float ${flt.key}")
         }
     }
@@ -371,7 +372,7 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
             DataType.ARRAY_F -> {
                 // float arraysize
                 val array = heap.get(value.heapId!!).doubleArray!!
-                val floatFills = array.map { makeFloatFill(Mflpt5.fromNumber(it)) }
+                val floatFills = array.map { makeFloatFill(MachineDefinition.Mflpt5.fromNumber(it)) }
                 out(varname)
                 for(f in array.zip(floatFills))
                     out("  .byte  ${f.second}  ; float ${f.first}")
@@ -574,14 +575,14 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
             Opcode.DEC_INDEXED_VAR_W, Opcode.DEC_INDEXED_VAR_UW -> AsmFragment(" lda  $variable+${index*2} |  bne  + |  dec  $variable+${index*2+1} |+ |  dec  $variable+${index*2}")
             Opcode.INC_INDEXED_VAR_FLOAT -> AsmFragment(
                 """
-                lda  #<($variable+${index*Mflpt5.MemorySize})
-                ldy  #>($variable+${index*Mflpt5.MemorySize})
+                lda  #<($variable+${index* MachineDefinition.Mflpt5.MemorySize})
+                ldy  #>($variable+${index* MachineDefinition.Mflpt5.MemorySize})
                 jsr  c64flt.inc_var_f
                 """)
             Opcode.DEC_INDEXED_VAR_FLOAT -> AsmFragment(
                 """
-                lda  #<($variable+${index*Mflpt5.MemorySize})
-                ldy  #>($variable+${index*Mflpt5.MemorySize})
+                lda  #<($variable+${index* MachineDefinition.Mflpt5.MemorySize})
+                ldy  #>($variable+${index* MachineDefinition.Mflpt5.MemorySize})
                 jsr  c64flt.dec_var_f
                 """)
 
@@ -591,8 +592,8 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
 
     private fun sameIndexedVarOperation(variable: String, indexVar: String, ins: Instruction): AsmFragment? {
         // an in place operation that consists of a push-value / op / push-index-var / pop-into-indexed-var
-        val saveX = " stx  ${C64Zeropage.SCRATCH_B1} |"
-        val restoreX = " | ldx  ${C64Zeropage.SCRATCH_B1}"
+        val saveX = " stx  ${MachineDefinition.C64Zeropage.SCRATCH_B1} |"
+        val restoreX = " | ldx  ${MachineDefinition.C64Zeropage.SCRATCH_B1}"
         val loadXWord: String
         val loadX: String
 
