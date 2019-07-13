@@ -299,10 +299,12 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
 
         // these are the non-zeropage variables.
         // first get all the flattened struct members, they MUST remain in order
+        out(";  flattened struct members")
         val (structMembers, normalVars) = block.variables.partition { it.third.memberOfStruct!=null }
         structMembers.forEach { vardecl2asm(it.first, it.second, it.third) }
 
         // leave outsort the other variables by type
+        out(";  other variables sorted by type")
         val sortedVars = normalVars.sortedBy { it.second.type }
         for ((varname, value, parameters) in sortedVars) {
             if(varname in block.variablesMarkedForZeropage)

@@ -65,24 +65,8 @@ internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstMo
             if(decl.struct!!.statements.any { (it as VarDecl).datatype !in NumericDatatypes})
                 return decl     // a non-numeric member, not supported. proper error is given by AstChecker later
 
-            val decls: MutableList<IStatement> = decl.struct!!.statements.withIndex().map {
-                val member = it.value as VarDecl
-                val initvalue = if(decl.value!=null) (decl.value as LiteralValue).arrayvalue!![it.index] else null
-                VarDecl(
-                        VarDeclType.VAR,
-                        member.datatype,
-                        ZeropageWish.NOT_IN_ZEROPAGE,
-                        member.arraysize,
-                        mangledStructMemberName(decl.name, member.name),
-                        decl.struct!!.name,
-                        initvalue,
-                        member.isArray,
-                        true,
-                        member.position
-                )
-            }.toMutableList()
+            val decls = decl.flattenStructMembers()
             decls.add(decl)
-            decl.structHasBeenFlattened = true
             val result = AnonymousScope(decls, decl.position)
             result.linkParents(decl.parent)
             return result

@@ -154,8 +154,10 @@ class VarDecl(val type: VarDeclType,
               val hiddenButDoNotRemove: Boolean,
               override val position: Position) : IStatement {
     override lateinit var parent: Node
-    var struct: StructDecl? = null        // set later
-    var structHasBeenFlattened = false
+    var struct: StructDecl? = null        // set later (because at parse time, we only know the name)
+        private set
+    var structHasBeenFlattened = false      // set later
+        private set
 
     override val expensiveToInline
             get() = value!=null && value !is LiteralValue
@@ -202,10 +204,31 @@ class VarDecl(val type: VarDeclType,
             DataType.FLOAT -> LiteralValue(DataType.FLOAT, floatvalue = 0.0, position = position)
             else -> throw FatalAstException("can only set a default value for a numeric type")
         }
-        val decl = VarDecl(type, declaredDatatype, zeropage, arraysize, name, null, constValue, isArray, true, position)
+        val decl = VarDecl(type, declaredDatatype, zeropage, arraysize, name, structName, constValue, isArray, true, position)
         if(parent!=null)
             decl.linkParents(parent)
         return decl
+    }
+
+    fun flattenStructMembers(): MutableList<IStatement> {
+        val result = struct!!.statements.withIndex().map {
+            val member = it.value as VarDecl
+            val initvalue = if(value!=null) (value as LiteralValue).arrayvalue!![it.index] else null
+            VarDecl(
+                    VarDeclType.VAR,
+                    member.datatype,
+                    ZeropageWish.NOT_IN_ZEROPAGE,
+                    member.arraysize,
+                    mangledStructMemberName(name, member.name),
+                    struct!!.name,
+                    initvalue,
+                    member.isArray,
+                    true,
+                    member.position
+            ) as IStatement
+        }.toMutableList()
+        structHasBeenFlattened = true
+        return result
     }
 }
 

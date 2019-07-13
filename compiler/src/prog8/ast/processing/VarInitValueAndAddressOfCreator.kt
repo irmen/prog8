@@ -23,18 +23,17 @@ internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope
 
     // Also takes care to insert AddressOf (&) expression where required (string params to a UWORD function param etc).
 
-    private val vardeclsToAdd = mutableMapOf<INameScope, MutableMap<String, VarDecl>>()
+    private val vardeclsToAdd = mutableMapOf<INameScope, MutableList<VarDecl>>()
 
     override fun visit(module: Module) {
         vardeclsToAdd.clear()
         super.visit(module)
 
         // add any new vardecls to the various scopes
-        for(decl in vardeclsToAdd)
-            for(d in decl.value) {
-                d.value.linkParents(decl.key as Node)
-                decl.key.statements.add(0, d.value)
-            }
+        for((where, decls) in vardeclsToAdd) {
+            where.statements.addAll(0, decls)
+            decls.forEach { it.linkParents(where as Node) }
+        }
     }
 
     override fun visit(decl: VarDecl): IStatement {
@@ -61,25 +60,6 @@ internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope
                     decl.position
             )
         }
-
-//        if(decl.datatype==DataType.STRUCT) {
-//            println("STRUCT INIT DECL $decl")
-//            // a struct initialization value perhaps
-//            // flatten it to assignment statements
-//            val sourceArray = (decl.value as LiteralValue).arrayvalue!!
-//            val memberAssignments = decl.struct!!.statements.zip(sourceArray).map { member ->
-//                val memberDecl = member.first as VarDecl
-//                val mangled = mangledStructMemberName(decl.name, memberDecl.name)
-//                val idref = IdentifierReference(listOf(mangled), decl.position)
-//                val target = AssignTarget(null, idref, null, null, decl.position)
-//                val assign = VariableInitializationAssignment(target, null, member.second, member.second.position)
-//                assign
-//            }
-//            val scope = AnonymousScope(memberAssignments.toMutableList(), decl.position)
-//            scope.linkParents(decl.parent)
-//            return scope
-//        }
-
         return decl
     }
 
@@ -104,7 +84,7 @@ internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope
     private fun addAddressOfExprIfNeeded(subroutine: Subroutine, arglist: MutableList<IExpression>, parent: IStatement) {
         // functions that accept UWORD and are given an array type, or string, will receive the AddressOf (memory location) of that value instead.
         for(argparam in subroutine.parameters.withIndex().zip(arglist)) {
-            if(argparam.first.value.type== DataType.UWORD || argparam.first.value.type in StringDatatypes) {
+            if(argparam.first.value.type==DataType.UWORD || argparam.first.value.type in StringDatatypes) {
                 if(argparam.second is AddressOf)
                     continue
                 val idref = argparam.second as? IdentifierReference
@@ -139,8 +119,10 @@ internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope
 
     private fun addVarDecl(scope: INameScope, variable: VarDecl) {
         if(scope !in vardeclsToAdd)
-            vardeclsToAdd[scope] = mutableMapOf()
-        vardeclsToAdd.getValue(scope)[variable.name]=variable
+            vardeclsToAdd[scope] = mutableListOf()
+        val declList = vardeclsToAdd.getValue(scope)
+        if(declList.all{it.name!=variable.name})
+            declList.add(variable)
     }
 
 }

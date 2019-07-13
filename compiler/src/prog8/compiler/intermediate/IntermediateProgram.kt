@@ -525,7 +525,8 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
             if(parameters.zp==ZeropageWish.REQUIRE_ZEROPAGE)
                 throw CompilerException("zp conflict")
             val valuestr = value.toString()
-            out.println("$vname  ${value.type.name.toLowerCase()}  $valuestr")
+            val struct =  if(parameters.memberOfStruct==null) "" else "struct=${parameters.memberOfStruct.name}"
+            out.println("$vname  ${value.type.name.toLowerCase()}  $valuestr  zp=${parameters.zp} $struct")
         }
         out.println("%end_variables")
         out.println("%memorypointers")

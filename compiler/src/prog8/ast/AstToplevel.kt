@@ -105,4 +105,4 @@ object BuiltinFunctionScopePlaceholder : INameScope {
 
 
 // prefix for struct member variables
-internal fun mangledStructMemberName(varName: String, memberName: String) = "_prog8struct_${varName}_$memberName"
+internal fun mangledStructMemberName(varName: String, memberName: String) = "prog8struct_${varName}_$memberName"

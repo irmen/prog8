@@ -451,7 +451,7 @@ internal class AstChecker(private val program: Program,
             checkResult.add(ExpressionError("pointer-of operand must be the name of a heap variable", addressOf.position))
         else {
             if(variable.datatype !in ArrayDatatypes && variable.datatype !in StringDatatypes && variable.datatype!=DataType.STRUCT)
-                checkResult.add(ExpressionError("pointer-of operand must be the name of a string or array heap variable", addressOf.position))
+                checkResult.add(ExpressionError("invalid pointer-of operand type", addressOf.position))
         }
         if(addressOf.scopedname==null)
             throw FatalAstException("the scopedname of AddressOf should have been set by now  $addressOf")
@@ -858,8 +858,8 @@ internal class AstChecker(private val program: Program,
                 for (arg in args.withIndex().zip(target.parameters)) {
                     val argDt = arg.first.value.inferType(program)
                     if(argDt!=null && !(argDt isAssignableTo arg.second.type)) {
-                        // for asm subroutines having STR param it's okay to provide a UWORD too (pointer value)
-                        if(!(target.isAsmSubroutine && arg.second.type in StringDatatypes && argDt== DataType.UWORD))
+                        // for asm subroutines having STR param it's okay to provide a UWORD (address value)
+                        if(!(target.isAsmSubroutine && arg.second.type in StringDatatypes && argDt == DataType.UWORD))
                             checkResult.add(ExpressionError("subroutine '${target.name}' argument ${arg.first.index + 1} has invalid type $argDt, expected ${arg.second.type}", position))
                     }
 
@@ -1270,8 +1270,13 @@ internal class AstChecker(private val program: Program,
         }
         else if(sourceDatatype== DataType.FLOAT && targetDatatype in IntegerDatatypes)
             checkResult.add(ExpressionError("cannot assign float to ${targetDatatype.name.toLowerCase()}; possible loss of precision. Suggestion: round the value or revert to integer arithmetic", position))
-        else
-            checkResult.add(ExpressionError("cannot assign ${sourceDatatype.name.toLowerCase()} to ${targetDatatype.name.toLowerCase()}", position))
+        else {
+            if(targetDatatype==DataType.UWORD && sourceDatatype in PassByReferenceDatatypes)
+                checkResult.add(ExpressionError("cannot assign ${sourceDatatype.name.toLowerCase()} to ${targetDatatype.name.toLowerCase()}, perhaps forgot '&' ?", position))
+            else
+                checkResult.add(ExpressionError("cannot assign ${sourceDatatype.name.toLowerCase()} to ${targetDatatype.name.toLowerCase()}", position))
+        }
+
 
         return false
     }

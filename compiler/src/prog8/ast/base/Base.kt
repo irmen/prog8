@@ -5,19 +5,19 @@ import prog8.ast.Node
 /**************************** AST Data classes ****************************/
 
 enum class DataType {
-    UBYTE,
-    BYTE,
-    UWORD,
-    WORD,
-    FLOAT,
-    STR,
-    STR_S,
-    ARRAY_UB,
-    ARRAY_B,
-    ARRAY_UW,
-    ARRAY_W,
-    ARRAY_F,
-    STRUCT;
+    UBYTE,              // pass by value
+    BYTE,               // pass by value
+    UWORD,              // pass by value
+    WORD,               // pass by value
+    FLOAT,              // pass by value
+    STR,                // pass by reference
+    STR_S,              // pass by reference
+    ARRAY_UB,           // pass by reference
+    ARRAY_B,            // pass by reference
+    ARRAY_UW,           // pass by reference
+    ARRAY_W,            // pass by reference
+    ARRAY_F,            // pass by reference
+    STRUCT;             // pass by reference
 
     /**
      * is the type assignable to the given other type?
@@ -25,14 +25,14 @@ enum class DataType {
     infix fun isAssignableTo(targetType: DataType) =
             // what types are assignable to others without loss of precision?
             when(this) {
-                UBYTE -> targetType == UBYTE || targetType == UWORD || targetType==WORD || targetType == FLOAT
-                BYTE -> targetType == BYTE || targetType == UBYTE || targetType == UWORD || targetType==WORD || targetType == FLOAT
-                UWORD -> targetType == UWORD || targetType == FLOAT
-                WORD -> targetType == WORD || targetType==UWORD || targetType == FLOAT
+                UBYTE -> targetType in setOf(UBYTE, UWORD, WORD, FLOAT)
+                BYTE -> targetType in setOf(BYTE, UBYTE, UWORD, WORD, FLOAT)
+                UWORD -> targetType in setOf(UWORD, FLOAT)
+                WORD -> targetType in setOf(WORD, UWORD, FLOAT)
                 FLOAT -> targetType == FLOAT
                 STR -> targetType == STR || targetType==STR_S
                 STR_S -> targetType == STR || targetType==STR_S
-                in ArrayDatatypes -> targetType === this
+                in ArrayDatatypes -> targetType == this
                 else -> false
             }
 
@@ -97,17 +97,19 @@ enum class VarDeclType {
     MEMORY
 }
 
-val IterableDatatypes = setOf(
-        DataType.STR, DataType.STR_S,
-        DataType.ARRAY_UB, DataType.ARRAY_B,
-        DataType.ARRAY_UW, DataType.ARRAY_W,
-        DataType.ARRAY_F)
 val ByteDatatypes = setOf(DataType.UBYTE, DataType.BYTE)
 val WordDatatypes = setOf(DataType.UWORD, DataType.WORD)
 val IntegerDatatypes = setOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD)
 val NumericDatatypes = setOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT)
 val StringDatatypes = setOf(DataType.STR, DataType.STR_S)
 val ArrayDatatypes = setOf(DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F)
+val IterableDatatypes = setOf(
+        DataType.STR, DataType.STR_S,
+        DataType.ARRAY_UB, DataType.ARRAY_B,
+        DataType.ARRAY_UW, DataType.ARRAY_W,
+        DataType.ARRAY_F)
+val PassByValueDatatypes = NumericDatatypes
+val PassByReferenceDatatypes = IterableDatatypes.plus(DataType.STRUCT)
 val ArrayElementTypes = mapOf(
         DataType.ARRAY_B to DataType.BYTE,
         DataType.ARRAY_UB to DataType.UBYTE,

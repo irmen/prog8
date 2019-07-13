@@ -2010,7 +2010,7 @@ internal class Compiler(private val program: Program) {
             DataType.UBYTE -> when(sourceDt) {
                 DataType.UBYTE -> {}
                 DataType.BYTE -> prog.instr(Opcode.CAST_B_TO_UB)
-                DataType.UWORD-> prog.instr(Opcode.CAST_UW_TO_UB)
+                DataType.UWORD -> prog.instr(Opcode.CAST_UW_TO_UB)
                 DataType.WORD-> prog.instr(Opcode.CAST_W_TO_UB)
                 DataType.FLOAT -> prog.instr(Opcode.CAST_F_TO_UB)
                 else -> throw CompilerException("invalid cast $sourceDt to ${expr.type} -- should be an Ast check")

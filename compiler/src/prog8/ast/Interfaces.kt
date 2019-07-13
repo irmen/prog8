@@ -132,16 +132,17 @@ interface INameScope {
 
     fun lookup(scopedName: List<String>, localContext: Node) : IStatement? {
         if(scopedName.size>1) {
-            // it's a qualified name, can either be:
-            //   - the name of a field in a struct
-            //   - the name of a symbol somewhere else starting from the root of the namespace.
-
-            // check struct first
-            if(scopedName.size==2) {        // TODO support for referencing structs in other scopes . see GlobalNamespace?
-                val mangledname = mangledStructMemberName(scopedName[0], scopedName[1])
-                val vardecl = localContext.definingScope().getLabelOrVariable(mangledname)
-                if(vardecl!=null)
-                    return vardecl
+            // a scoped name can a) refer to a member of a struct, or b) refer to a name in another module.
+            // try the struct first.
+            val thing = lookup(scopedName.dropLast(1), localContext) as? VarDecl
+            val struct = thing?.struct
+            if (struct != null) {
+                if(struct.statements.any { (it as VarDecl).name == scopedName.last()}) {
+                    // return ref to the mangled name variable
+                    val mangled = mangledStructMemberName(thing.name, scopedName.last())
+                    val mangledVar = thing.definingScope().getLabelOrVariable(mangled)
+                    return mangledVar
+                }
             }
 
             // it's a qualified name, look it up from the root of the module's namespace (consider all modules in the program)
