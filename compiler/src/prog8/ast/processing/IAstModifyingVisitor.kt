@@ -100,14 +100,18 @@ interface IAstModifyingVisitor {
         return label
     }
 
-    fun visit(literalValue: LiteralValue): LiteralValue {
-        if(literalValue.arrayvalue!=null) {
-            for(av in literalValue.arrayvalue.withIndex()) {
+    fun visit(literalValue: NumericLiteralValue): NumericLiteralValue {
+        return literalValue
+    }
+
+    fun visit(refLiteral: ReferenceLiteralValue): ReferenceLiteralValue {
+        if(refLiteral.array!=null) {
+            for(av in refLiteral.array.withIndex()) {
                 val newvalue = av.value.accept(this)
-                literalValue.arrayvalue[av.index] = newvalue
+                refLiteral.array[av.index] = newvalue
             }
         }
-        return literalValue
+        return refLiteral
     }
 
     fun visit(assignment: Assignment): IStatement {

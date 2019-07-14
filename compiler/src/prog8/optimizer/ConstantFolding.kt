@@ -28,28 +28,29 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
 
     override fun visit(decl: VarDecl): IStatement {
         // the initializer value can't refer to the variable itself (recursive definition)
+        // TODO: use call tree for this?
         if(decl.value?.referencesIdentifiers(decl.name) == true || decl.arraysize?.index?.referencesIdentifiers(decl.name) == true) {
             errors.add(ExpressionError("recursive var declaration", decl.position))
             return decl
         }
 
         if(decl.type==VarDeclType.CONST || decl.type==VarDeclType.VAR) {
-            val litval = decl.value as? LiteralValue
-            if(litval!=null && litval.isArray && litval.heapId!=null)
-                fixupArrayTypeOnHeap(decl, litval)
+            val refLv = decl.value as? ReferenceLiteralValue
+            if(refLv!=null && refLv.isArray && refLv.heapId!=null)
+                fixupArrayTypeOnHeap(decl, refLv)
 
             if(decl.isArray){
                 // for arrays that have no size specifier (or a non-constant one) attempt to deduce the size
                 if(decl.arraysize==null) {
-                    val arrayval = (decl.value as? LiteralValue)?.arrayvalue
+                    val arrayval = (decl.value as? ReferenceLiteralValue)?.array
                     if(arrayval!=null) {
-                        decl.arraysize = ArrayIndex(LiteralValue.optimalInteger(arrayval.size, decl.position), decl.position)
+                        decl.arraysize = ArrayIndex(NumericLiteralValue.optimalInteger(arrayval.size, decl.position), decl.position)
                         optimizationsDone++
                     }
                 }
                 else if(decl.arraysize?.size()==null) {
                     val size = decl.arraysize!!.index.accept(this)
-                    if(size is LiteralValue) {
+                    if(size is NumericLiteralValue) {
                         decl.arraysize = ArrayIndex(size, decl.position)
                         optimizationsDone++
                     }
@@ -59,14 +60,22 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
             when(decl.datatype) {
                 DataType.FLOAT -> {
                     // vardecl: for scalar float vars, promote constant integer initialization values to floats
-                    if (litval != null && litval.type in IntegerDatatypes) {
-                        val newValue = LiteralValue(DataType.FLOAT, floatvalue = litval.asNumericValue!!.toDouble(), position = litval.position)
+                    val litval = decl.value as? NumericLiteralValue
+                    if (litval!=null && litval.type in IntegerDatatypes) {
+                        val newValue = NumericLiteralValue(DataType.FLOAT, litval.number.toDouble(), litval.position)
                         decl.value = newValue
                         optimizationsDone++
                         return decl
                     }
                 }
+                in StringDatatypes -> {
+                    // nothing to do for strings
+                }
+                DataType.STRUCT -> {
+                    // struct defintions don't have anything else in them
+                }
                 DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
+                    val numericLv = decl.value as? NumericLiteralValue
                     val rangeExpr = decl.value as? RangeExpr
                     if(rangeExpr!=null) {
                         // convert the initializer range expression to an actual array (will be put on heap later)
@@ -77,12 +86,12 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                         if(constRange!=null) {
                             val eltType = rangeExpr.inferType(program)!!
                             if(eltType in ByteDatatypes) {
-                                decl.value = LiteralValue(decl.datatype,
-                                        arrayvalue = constRange.map { LiteralValue(eltType, bytevalue = it.toShort(), position = decl.value!!.position) }
+                                decl.value = ReferenceLiteralValue(decl.datatype,
+                                        array = constRange.map { NumericLiteralValue(eltType, it.toShort(), decl.value!!.position) }
                                                 .toTypedArray(), position = decl.value!!.position)
                             } else {
-                                decl.value = LiteralValue(decl.datatype,
-                                        arrayvalue = constRange.map { LiteralValue(eltType, wordvalue = it, position = decl.value!!.position) }
+                                decl.value = ReferenceLiteralValue(decl.datatype,
+                                        array = constRange.map { NumericLiteralValue(eltType, it, decl.value!!.position) }
                                                 .toTypedArray(), position = decl.value!!.position)
                             }
                             decl.value!!.linkParents(decl)
@@ -90,57 +99,49 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                             return decl
                         }
                     }
-                    if(litval?.type== DataType.FLOAT)
-                        errors.add(ExpressionError("arraysize requires only integers here", litval.position))
+                    if(numericLv!=null && numericLv.type== DataType.FLOAT)
+                        errors.add(ExpressionError("arraysize requires only integers here", numericLv.position))
                     val size = decl.arraysize?.size() ?: return decl
-                    if ((litval==null || !litval.isArray) && rangeExpr==null) {
+                    if (rangeExpr==null && numericLv!=null) {
                         // arraysize initializer is empty or a single int, and we know the size; create the arraysize.
-                        val fillvalue = if (litval == null) 0 else litval.asIntegerValue ?: 0
+                        val fillvalue = numericLv.number.toInt()
                         when(decl.datatype){
                             DataType.ARRAY_UB -> {
                                 if(fillvalue !in 0..255)
-                                    errors.add(ExpressionError("ubyte value overflow", litval?.position
-                                            ?: decl.position))
+                                    errors.add(ExpressionError("ubyte value overflow", numericLv.position))
                             }
                             DataType.ARRAY_B -> {
                                 if(fillvalue !in -128..127)
-                                    errors.add(ExpressionError("byte value overflow", litval?.position
-                                            ?: decl.position))
+                                    errors.add(ExpressionError("byte value overflow", numericLv.position))
                             }
                             DataType.ARRAY_UW -> {
                                 if(fillvalue !in 0..65535)
-                                    errors.add(ExpressionError("uword value overflow", litval?.position
-                                            ?: decl.position))
+                                    errors.add(ExpressionError("uword value overflow", numericLv.position))
                             }
                             DataType.ARRAY_W -> {
                                 if(fillvalue !in -32768..32767)
-                                    errors.add(ExpressionError("word value overflow", litval?.position
-                                            ?: decl.position))
+                                    errors.add(ExpressionError("word value overflow", numericLv.position))
                             }
                             else -> {}
                         }
                         val heapId = program.heap.addIntegerArray(decl.datatype, Array(size) { IntegerOrAddressOf(fillvalue, null) })
-                        decl.value = LiteralValue(decl.datatype, initHeapId = heapId, position = litval?.position
-                                ?: decl.position)
+                        decl.value = ReferenceLiteralValue(decl.datatype, initHeapId = heapId, position = numericLv.position)
                         optimizationsDone++
                         return decl
                     }
                 }
                 DataType.ARRAY_F  -> {
+                    val litval = decl.value as? NumericLiteralValue
                     val size = decl.arraysize?.size() ?: return decl
-                    if (litval==null || !litval.isArray) {
-                        // arraysize initializer is empty or a single int, and we know the size; create the arraysize.
-                        val fillvalue = if (litval == null) 0.0 else litval.asNumericValue?.toDouble() ?: 0.0
-                        if(fillvalue< FLOAT_MAX_NEGATIVE || fillvalue> FLOAT_MAX_POSITIVE)
-                            errors.add(ExpressionError("float value overflow", litval?.position
-                                    ?: decl.position))
-                        else {
-                            val heapId = program.heap.addDoublesArray(DoubleArray(size) { fillvalue })
-                            decl.value = LiteralValue(DataType.ARRAY_F, initHeapId = heapId, position = litval?.position
-                                    ?: decl.position)
-                            optimizationsDone++
-                            return decl
-                        }
+                    // arraysize initializer is empty or a single int, and we know the size; create the arraysize.
+                    val fillvalue = if (litval == null) 0.0 else litval.number.toDouble()
+                    if(fillvalue< FLOAT_MAX_NEGATIVE || fillvalue> FLOAT_MAX_POSITIVE)
+                        errors.add(ExpressionError("float value overflow", litval?.position ?: decl.position))
+                    else {
+                        val heapId = program.heap.addDoublesArray(DoubleArray(size) { fillvalue })
+                        decl.value = ReferenceLiteralValue(DataType.ARRAY_F, initHeapId = heapId, position = litval?.position ?: decl.position)
+                        optimizationsDone++
+                        return decl
                     }
                 }
                 else -> {
@@ -152,7 +153,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
         return super.visit(decl)
     }
 
-    private fun fixupArrayTypeOnHeap(decl: VarDecl, litval: LiteralValue) {
+    private fun fixupArrayTypeOnHeap(decl: VarDecl, litval: ReferenceLiteralValue) {
         // fix the type of the array value that's on the heap, to match the vardecl.
         // notice that checking the bounds of the actual values is not done here, but in the AstChecker later.
 
@@ -164,7 +165,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
             DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
                 if(array.array!=null) {
                     program.heap.update(heapId, HeapValues.HeapValue(decl.datatype, null, array.array, null))
-                    decl.value = LiteralValue(decl.datatype, initHeapId = heapId, position = litval.position)
+                    decl.value = ReferenceLiteralValue(decl.datatype, initHeapId = heapId, position = litval.position)
                 }
             }
             DataType.ARRAY_F -> {
@@ -172,7 +173,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                     // convert a non-float array to floats
                     val doubleArray = array.array.map { it.integer!!.toDouble() }.toDoubleArray()
                     program.heap.update(heapId, HeapValues.HeapValue(DataType.ARRAY_F, null, null, doubleArray))
-                    decl.value = LiteralValue(decl.datatype, initHeapId = heapId, position = litval.position)
+                    decl.value = ReferenceLiteralValue(decl.datatype, initHeapId = heapId, position = litval.position)
                 }
             }
             DataType.STRUCT -> {
@@ -188,12 +189,15 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
     override fun visit(identifier: IdentifierReference): IExpression {
         return try {
             val cval = identifier.constValue(program) ?: return identifier
-            return if(cval.isNumeric) {
-                val copy = LiteralValue(cval.type, cval.bytevalue, cval.wordvalue, cval.floatvalue, null, cval.arrayvalue, position = identifier.position)
-                copy.parent = identifier.parent
-                copy
-            } else
-                identifier
+            return when {
+                cval.type in NumericDatatypes -> {
+                    val copy = NumericLiteralValue(cval.type, cval.number, identifier.position)
+                    copy.parent = identifier.parent
+                    copy
+                }
+                cval.type in PassByReferenceDatatypes -> TODO("ref type $identifier")
+                else -> identifier
+            }
         } catch (ax: AstException) {
             addError(ax)
             identifier
@@ -253,38 +257,31 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
             super.visit(expr)
 
             val subexpr = expr.expression
-            if (subexpr is LiteralValue) {
+            if (subexpr is NumericLiteralValue) {
                 // accept prefixed literal values (such as -3, not true)
                 return when {
                     expr.operator == "+" -> subexpr
                     expr.operator == "-" -> when {
-                        subexpr.asIntegerValue!= null -> {
+                        subexpr.type in IntegerDatatypes -> {
                             optimizationsDone++
-                            LiteralValue.optimalNumeric(-subexpr.asIntegerValue, subexpr.position)
+                            NumericLiteralValue.optimalNumeric(-subexpr.number.toInt(), subexpr.position)
                         }
-                        subexpr.floatvalue != null -> {
+                        subexpr.type == DataType.FLOAT -> {
                             optimizationsDone++
-                            LiteralValue(DataType.FLOAT, floatvalue = -subexpr.floatvalue, position = subexpr.position)
+                            NumericLiteralValue(DataType.FLOAT, -subexpr.number.toDouble(), subexpr.position)
                         }
                         else -> throw ExpressionError("can only take negative of int or float", subexpr.position)
                     }
                     expr.operator == "~" -> when {
-                        subexpr.asIntegerValue != null -> {
+                        subexpr.type in IntegerDatatypes -> {
                             optimizationsDone++
-                            LiteralValue.optimalNumeric(subexpr.asIntegerValue.inv(), subexpr.position)
+                            NumericLiteralValue.optimalNumeric(subexpr.number.toInt().inv(), subexpr.position)
                         }
                         else -> throw ExpressionError("can only take bitwise inversion of int", subexpr.position)
                     }
-                    expr.operator == "not" -> when {
-                        subexpr.asIntegerValue != null -> {
-                            optimizationsDone++
-                            LiteralValue.fromBoolean(subexpr.asIntegerValue == 0, subexpr.position)
-                        }
-                        subexpr.floatvalue != null -> {
-                            optimizationsDone++
-                            LiteralValue.fromBoolean(subexpr.floatvalue == 0.0, subexpr.position)
-                        }
-                        else -> throw ExpressionError("can not take logical not of $subexpr", subexpr.position)
+                    expr.operator == "not" -> {
+                        optimizationsDone++
+                        NumericLiteralValue.fromBoolean(subexpr.number.toDouble() == 0.0, subexpr.position)
                     }
                     else -> throw ExpressionError(expr.operator, subexpr.position)
                 }
@@ -544,7 +541,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
 
     override fun visit(forLoop: ForLoop): IStatement {
 
-        fun adjustRangeDt(rangeFrom: LiteralValue, targetDt: DataType, rangeTo: LiteralValue, stepLiteral: LiteralValue?, range: RangeExpr): RangeExpr {
+        fun adjustRangeDt(rangeFrom: NumericLiteralValue, targetDt: DataType, rangeTo: NumericLiteralValue, stepLiteral: NumericLiteralValue?, range: RangeExpr): RangeExpr {
             val newFrom = rangeFrom.cast(targetDt)
             val newTo = rangeTo.cast(targetDt)
             if (newFrom != null && newTo != null) {
@@ -558,13 +555,13 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
         // adjust the datatype of a range expression in for loops to the loop variable.
         val resultStmt = super.visit(forLoop) as ForLoop
         val iterableRange = resultStmt.iterable as? RangeExpr ?: return resultStmt
-        val rangeFrom = iterableRange.from as? LiteralValue
-        val rangeTo = iterableRange.to as? LiteralValue
+        val rangeFrom = iterableRange.from as? NumericLiteralValue
+        val rangeTo = iterableRange.to as? NumericLiteralValue
         if(rangeFrom==null || rangeTo==null) return resultStmt
 
         val loopvar = resultStmt.loopVar?.targetVarDecl(program.namespace)
         if(loopvar!=null) {
-            val stepLiteral = iterableRange.step as? LiteralValue
+            val stepLiteral = iterableRange.step as? NumericLiteralValue
             when(loopvar.datatype) {
                 DataType.UBYTE -> {
                     if(rangeFrom.type!= DataType.UBYTE) {
@@ -596,16 +593,16 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
         return resultStmt
     }
 
-    override fun visit(literalValue: LiteralValue): LiteralValue {
-        val litval = super.visit(literalValue)
+    override fun visit(refLiteral: ReferenceLiteralValue): ReferenceLiteralValue {
+        val litval = super.visit(refLiteral)
         if(litval.isString) {
             // intern the string; move it into the heap
-            if(litval.strvalue!!.length !in 1..255)
+            if(litval.str!!.length !in 1..255)
                 addError(ExpressionError("string literal length must be between 1 and 255", litval.position))
             else {
                 litval.addToHeap(program.heap)  // TODO: we don't know the actual string type yet, STR != STR_S etc...
             }
-        } else if(litval.arrayvalue!=null) {
+        } else if(litval.isArray) {
             // first, adjust the array datatype
             val litval2 = adjustArrayValDatatype(litval)
             litval2.addToHeap(program.heap)
@@ -614,8 +611,14 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
         return litval
     }
 
-    private fun adjustArrayValDatatype(litval: LiteralValue): LiteralValue {
-        val array = litval.arrayvalue!!
+    private fun adjustArrayValDatatype(litval: ReferenceLiteralValue): ReferenceLiteralValue {
+        if(litval.array==null) {
+            if(litval.heapId!=null)
+                return litval       // thing is already on the heap, assume it's the right type
+            throw FatalAstException("missing array value")
+        }
+
+        val array = litval.array!!
         val typesInArray = array.mapNotNull { it.inferType(program) }.toSet()
         val arrayDt =
                 when {
@@ -623,12 +626,12 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                     DataType.FLOAT in typesInArray -> DataType.ARRAY_F
                     DataType.WORD in typesInArray -> DataType.ARRAY_W
                     else -> {
-                        val allElementsAreConstantOrAddressOf = array.fold(true) { c, expr-> c and (expr is LiteralValue || expr is AddressOf)}
+                        val allElementsAreConstantOrAddressOf = array.fold(true) { c, expr-> c and (expr is NumericLiteralValue|| expr is AddressOf)}
                         if(!allElementsAreConstantOrAddressOf) {
                             addError(ExpressionError("array literal can only consist of constant primitive numerical values or memory pointers", litval.position))
                             return litval
                         } else {
-                            val integerArray = array.map { it.constValue(program)!!.asIntegerValue!! }
+                            val integerArray = array.map { it.constValue(program)!!.number.toInt() }
                             val maxValue = integerArray.max()!!
                             val minValue = integerArray.min()!!
                             if (minValue >= 0) {
@@ -649,70 +652,69 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                 }
 
         if(arrayDt!=litval.type) {
-            return LiteralValue(arrayDt, arrayvalue = litval.arrayvalue, position = litval.position)
+            return ReferenceLiteralValue(arrayDt, array = litval.array, position = litval.position)
         }
         return litval
     }
 
     override fun visit(assignment: Assignment): IStatement {
         super.visit(assignment)
-        val lv = assignment.value as? LiteralValue
+        val lv = assignment.value as? NumericLiteralValue
         if(lv!=null) {
             // see if we can promote/convert a literal value to the required datatype
             when(assignment.target.inferType(program, assignment)) {
                 DataType.UWORD -> {
                     // we can convert to UWORD: any UBYTE, BYTE/WORD that are >=0, FLOAT that's an integer 0..65535,
                     if(lv.type== DataType.UBYTE)
-                        assignment.value = LiteralValue(DataType.UWORD, wordvalue = lv.asIntegerValue, position = lv.position)
-                    else if(lv.type== DataType.BYTE && lv.bytevalue!!>=0)
-                        assignment.value = LiteralValue(DataType.UWORD, wordvalue = lv.asIntegerValue, position = lv.position)
-                    else if(lv.type== DataType.WORD && lv.wordvalue!!>=0)
-                        assignment.value = LiteralValue(DataType.UWORD, wordvalue = lv.asIntegerValue, position = lv.position)
+                        assignment.value = NumericLiteralValue(DataType.UWORD, lv.number.toInt(), lv.position)
+                    else if(lv.type== DataType.BYTE && lv.number.toInt()>=0)
+                        assignment.value = NumericLiteralValue(DataType.UWORD, lv.number.toInt(), lv.position)
+                    else if(lv.type== DataType.WORD && lv.number.toInt()>=0)
+                        assignment.value = NumericLiteralValue(DataType.UWORD, lv.number.toInt(), lv.position)
                     else if(lv.type== DataType.FLOAT) {
-                        val d = lv.floatvalue!!
+                        val d = lv.number.toDouble()
                         if(floor(d)==d && d>=0 && d<=65535)
-                            assignment.value = LiteralValue(DataType.UWORD, wordvalue = floor(d).toInt(), position = lv.position)
+                            assignment.value = NumericLiteralValue(DataType.UWORD, floor(d).toInt(), lv.position)
                     }
                 }
                 DataType.UBYTE -> {
                     // we can convert to UBYTE: UWORD <=255, BYTE >=0, FLOAT that's an integer 0..255,
-                    if(lv.type== DataType.UWORD && lv.wordvalue!! <= 255)
-                        assignment.value = LiteralValue(DataType.UBYTE, lv.wordvalue.toShort(), position = lv.position)
-                    else if(lv.type== DataType.BYTE && lv.bytevalue!! >=0)
-                        assignment.value = LiteralValue(DataType.UBYTE, lv.bytevalue.toShort(), position = lv.position)
+                    if(lv.type== DataType.UWORD && lv.number.toInt() <= 255)
+                        assignment.value = NumericLiteralValue(DataType.UBYTE, lv.number.toShort(), lv.position)
+                    else if(lv.type== DataType.BYTE && lv.number.toInt() >=0)
+                        assignment.value = NumericLiteralValue(DataType.UBYTE, lv.number.toShort(), lv.position)
                     else if(lv.type== DataType.FLOAT) {
-                        val d = lv.floatvalue!!
+                        val d = lv.number.toDouble()
                         if(floor(d)==d && d >=0 && d<=255)
-                            assignment.value = LiteralValue(DataType.UBYTE, floor(d).toShort(), position = lv.position)
+                            assignment.value = NumericLiteralValue(DataType.UBYTE, floor(d).toShort(), lv.position)
                     }
                 }
                 DataType.BYTE -> {
                     // we can convert to BYTE: UWORD/UBYTE <= 127, FLOAT that's an integer 0..127
-                    if(lv.type== DataType.UWORD && lv.wordvalue!! <= 127)
-                        assignment.value = LiteralValue(DataType.BYTE, lv.wordvalue.toShort(), position = lv.position)
-                    else if(lv.type== DataType.UBYTE && lv.bytevalue!! <= 127)
-                        assignment.value = LiteralValue(DataType.BYTE, lv.bytevalue, position = lv.position)
+                    if(lv.type== DataType.UWORD && lv.number.toInt() <= 127)
+                        assignment.value = NumericLiteralValue(DataType.BYTE, lv.number.toShort(), lv.position)
+                    else if(lv.type== DataType.UBYTE && lv.number.toInt() <= 127)
+                        assignment.value = NumericLiteralValue(DataType.BYTE, lv.number.toShort(), lv.position)
                     else if(lv.type== DataType.FLOAT) {
-                        val d = lv.floatvalue!!
+                        val d = lv.number.toDouble()
                         if(floor(d)==d && d>=0 && d<=127)
-                            assignment.value = LiteralValue(DataType.BYTE, floor(d).toShort(), position = lv.position)
+                            assignment.value = NumericLiteralValue(DataType.BYTE, floor(d).toShort(), lv.position)
                     }
                 }
                 DataType.WORD -> {
                     // we can convert to WORD: any UBYTE/BYTE, UWORD <= 32767, FLOAT that's an integer -32768..32767,
                     if(lv.type== DataType.UBYTE || lv.type== DataType.BYTE)
-                        assignment.value = LiteralValue(DataType.WORD, wordvalue = lv.bytevalue!!.toInt(), position = lv.position)
-                    else if(lv.type== DataType.UWORD && lv.wordvalue!! <= 32767)
-                        assignment.value = LiteralValue(DataType.WORD, wordvalue = lv.wordvalue, position = lv.position)
+                        assignment.value = NumericLiteralValue(DataType.WORD, lv.number.toInt(), lv.position)
+                    else if(lv.type== DataType.UWORD && lv.number.toInt() <= 32767)
+                        assignment.value = NumericLiteralValue(DataType.WORD, lv.number.toInt(), lv.position)
                     else if(lv.type== DataType.FLOAT) {
-                        val d = lv.floatvalue!!
+                        val d = lv.number.toDouble()
                         if(floor(d)==d && d>=-32768 && d<=32767)
-                            assignment.value = LiteralValue(DataType.BYTE, floor(d).toShort(), position = lv.position)
+                            assignment.value = NumericLiteralValue(DataType.BYTE, floor(d).toShort(), lv.position)
                     }
                 }
                 DataType.FLOAT -> {
-                    if(lv.isNumeric)
-                        assignment.value = LiteralValue(DataType.FLOAT, floatvalue = lv.asNumericValue?.toDouble(), position = lv.position)
+                    assignment.value = NumericLiteralValue(DataType.FLOAT, lv.number.toDouble(), lv.position)
                 }
                 else -> {}
             }

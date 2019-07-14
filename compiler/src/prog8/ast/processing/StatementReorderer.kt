@@ -18,7 +18,7 @@ fun flattenStructAssignment(structAssignment: Assignment, program: Program): Lis
     if(!sourceVar.isArray && sourceVar.struct==null)
         throw FatalAstException("can only assign arrays or structs to structs")
     if(sourceVar.isArray) {
-        val sourceArray = (sourceVar.value as LiteralValue).arrayvalue!!
+        val sourceArray = (sourceVar.value as ReferenceLiteralValue).array!!
         return struct.statements.zip(sourceArray).map { member ->
             val decl = member.first as VarDecl
             val mangled = mangledStructMemberName(identifierName, decl.name)
@@ -347,7 +347,7 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
 
         // sort the choices in low-to-high value order (nulls last)
         whenStatement.choices
-                .sortWith(compareBy<WhenChoice, Int?>(nullsLast(), {it.values?.single()?.constValue(program)?.asIntegerValue}))
+                .sortWith(compareBy<WhenChoice, Int?>(nullsLast(), {it.values?.single()?.constValue(program)?.number?.toInt()}))
         return super.visit(whenStatement)
     }
 
@@ -355,7 +355,7 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         // make sure the memory address is an uword
         val dt = memread.addressExpression.inferType(program)
         if(dt!=DataType.UWORD) {
-            val literaladdr = memread.addressExpression as? LiteralValue
+            val literaladdr = memread.addressExpression as? NumericLiteralValue
             if(literaladdr!=null) {
                 memread.addressExpression = literaladdr.cast(DataType.UWORD)!!
             } else {
@@ -369,7 +369,7 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
     override fun visit(memwrite: DirectMemoryWrite) {
         val dt = memwrite.addressExpression.inferType(program)
         if(dt!=DataType.UWORD) {
-            val literaladdr = memwrite.addressExpression as? LiteralValue
+            val literaladdr = memwrite.addressExpression as? NumericLiteralValue
             if(literaladdr!=null) {
                 memwrite.addressExpression = literaladdr.cast(DataType.UWORD)!!
             } else {

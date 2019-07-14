@@ -384,24 +384,24 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
     if(litval!=null) {
         val booleanlit = litval.booleanliteral()?.toAst()
         return if(booleanlit!=null) {
-            LiteralValue.fromBoolean(booleanlit, litval.toPosition())
+            NumericLiteralValue.fromBoolean(booleanlit, litval.toPosition())
         }
         else {
             val intLit = litval.integerliteral()?.toAst()
             when {
                 intLit!=null -> when(intLit.datatype) {
-                    DataType.UBYTE -> LiteralValue(DataType.UBYTE, bytevalue = intLit.number.toShort(), position = litval.toPosition())
-                    DataType.BYTE -> LiteralValue(DataType.BYTE, bytevalue = intLit.number.toShort(), position = litval.toPosition())
-                    DataType.UWORD -> LiteralValue(DataType.UWORD, wordvalue = intLit.number.toInt(), position = litval.toPosition())
-                    DataType.WORD -> LiteralValue(DataType.WORD, wordvalue = intLit.number.toInt(), position = litval.toPosition())
-                    DataType.FLOAT -> LiteralValue(DataType.FLOAT, floatvalue = intLit.number.toDouble(), position = litval.toPosition())
+                    DataType.UBYTE -> NumericLiteralValue(DataType.UBYTE, intLit.number.toShort(), litval.toPosition())
+                    DataType.BYTE -> NumericLiteralValue(DataType.BYTE, intLit.number.toShort(), litval.toPosition())
+                    DataType.UWORD -> NumericLiteralValue(DataType.UWORD, intLit.number.toInt(), litval.toPosition())
+                    DataType.WORD -> NumericLiteralValue(DataType.WORD, intLit.number.toInt(), litval.toPosition())
+                    DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, intLit.number.toDouble(), litval.toPosition())
                     else -> throw FatalAstException("invalid datatype for numeric literal")
                 }
-                litval.floatliteral()!=null -> LiteralValue(DataType.FLOAT, floatvalue = litval.floatliteral().toAst(), position = litval.toPosition())
-                litval.stringliteral()!=null -> LiteralValue(DataType.STR, strvalue = unescape(litval.stringliteral().text, litval.toPosition()), position = litval.toPosition())
+                litval.floatliteral()!=null -> NumericLiteralValue(DataType.FLOAT, litval.floatliteral().toAst(), litval.toPosition())
+                litval.stringliteral()!=null -> ReferenceLiteralValue(DataType.STR, unescape(litval.stringliteral().text, litval.toPosition()), position = litval.toPosition())
                 litval.charliteral()!=null -> {
                     try {
-                        LiteralValue(DataType.UBYTE, bytevalue = Petscii.encodePetscii(unescape(litval.charliteral().text, litval.toPosition()), true)[0], position = litval.toPosition())
+                        NumericLiteralValue(DataType.UBYTE, Petscii.encodePetscii(unescape(litval.charliteral().text, litval.toPosition()), true)[0], litval.toPosition())
                     } catch (ce: CharConversionException) {
                         throw SyntaxError(ce.message ?: ce.toString(), litval.toPosition())
                     }
@@ -410,7 +410,7 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
                     val array = litval.arrayliteral()?.toAst()
                     // the actual type of the arraysize can not yet be determined here (missing namespace & heap)
                     // the ConstantFolder takes care of that and converts the type if needed.
-                    LiteralValue(DataType.ARRAY_UB, arrayvalue = array, position = litval.toPosition())
+                    ReferenceLiteralValue(DataType.ARRAY_UB, array = array, position = litval.toPosition())
                 }
                 else -> throw FatalAstException("invalid parsed literal")
             }
@@ -433,7 +433,7 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
     if(funcall!=null) return funcall
 
     if (rangefrom!=null && rangeto!=null) {
-        val step = rangestep?.toAst() ?: LiteralValue(DataType.UBYTE, 1, position = toPosition())
+        val step = rangestep?.toAst() ?: NumericLiteralValue(DataType.UBYTE, 1, toPosition())
         return RangeExpr(rangefrom.toAst(), rangeto.toAst(), step, toPosition())
     }
 

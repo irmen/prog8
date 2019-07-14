@@ -27,11 +27,15 @@ class EvalContext(val program: Program, val mem: Memory, val statusflags: Status
 fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
     val constval = expr.constValue(ctx.program)
     if(constval!=null)
-        return RuntimeValue.from(constval, ctx.program.heap)
+        return RuntimeValue.fromLv(constval)
 
     when(expr) {
-        is LiteralValue -> {
-            return RuntimeValue.from(expr, ctx.program.heap)
+        is NumericLiteralValue -> {
+            return RuntimeValue.fromLv(expr)
+        }
+        is ReferenceLiteralValue -> {
+            TODO("REF $expr")
+            return RuntimeValue.fromLv(expr, ctx.program.heap)
         }
         is PrefixExpression -> {
             return when(expr.operator) {

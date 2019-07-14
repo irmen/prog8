@@ -3,7 +3,8 @@ package prog8.compiler.intermediate
 import prog8.ast.antlr.escape
 import prog8.ast.base.*
 import prog8.ast.base.printWarning
-import prog8.ast.expressions.LiteralValue
+import prog8.ast.expressions.NumericLiteralValue
+import prog8.ast.expressions.ReferenceLiteralValue
 import prog8.ast.statements.StructDecl
 import prog8.ast.statements.VarDecl
 import prog8.ast.statements.ZeropageWish
@@ -407,16 +408,16 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                 val valueparams = VariableParameters(decl.zeropage, decl.struct)
                 val value = when(decl.datatype) {
                     in NumericDatatypes -> {
-                        RuntimeValue(decl.datatype, (decl.value as LiteralValue).asNumericValue!!)
+                        RuntimeValue(decl.datatype, (decl.value as NumericLiteralValue).number)
                     }
                     in StringDatatypes -> {
-                        val litval = (decl.value as LiteralValue)
+                        val litval = (decl.value as ReferenceLiteralValue)
                         if(litval.heapId==null)
                             throw CompilerException("string should already be in the heap")
                         RuntimeValue(decl.datatype, heapId = litval.heapId)
                     }
                     in ArrayDatatypes -> {
-                        val litval = (decl.value as LiteralValue)
+                        val litval = (decl.value as ReferenceLiteralValue)
                         if(litval.heapId==null)
                             throw CompilerException("array should already be in the heap")
                         RuntimeValue(decl.datatype, heapId = litval.heapId)
@@ -435,17 +436,17 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
             }
             VarDeclType.MEMORY -> {
                 // note that constants are all folded away, but assembly code may still refer to them
-                val lv = decl.value as LiteralValue
+                val lv = decl.value as NumericLiteralValue
                 if(lv.type!= DataType.UWORD && lv.type!= DataType.UBYTE)
                     throw CompilerException("expected integer memory address $lv")
-                currentBlock.memoryPointers[scopedname] = Pair(lv.asIntegerValue!!, decl.datatype)
+                currentBlock.memoryPointers[scopedname] = Pair(lv.number.toInt(), decl.datatype)
             }
             VarDeclType.CONST -> {
                 // note that constants are all folded away, but assembly code may still refer to them (if their integers)
                 // floating point constants are not generated at all!!
-                val lv = decl.value as LiteralValue
+                val lv = decl.value as NumericLiteralValue
                 if(lv.type in IntegerDatatypes)
-                    currentBlock.memoryPointers[scopedname] = Pair(lv.asIntegerValue!!, decl.datatype)
+                    currentBlock.memoryPointers[scopedname] = Pair(lv.number.toInt(), decl.datatype)
             }
         }
     }

@@ -26,7 +26,7 @@ class PrefixExpression(val operator: String, var expression: IExpression, overri
         expression.linkParents(this)
     }
 
-    override fun constValue(program: Program): LiteralValue? = null
+    override fun constValue(program: Program): NumericLiteralValue? = null
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun referencesIdentifiers(vararg name: String) = expression.referencesIdentifiers(*name)
@@ -51,7 +51,7 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
     }
 
     // binary expression should actually have been optimized away into a single value, before const value was requested...
-    override fun constValue(program: Program): LiteralValue? = null
+    override fun constValue(program: Program): NumericLiteralValue? = null
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
@@ -220,7 +220,7 @@ class ArrayIndexedExpression(val identifier: IdentifierReference,
         arrayspec.linkParents(this)
     }
 
-    override fun constValue(program: Program): LiteralValue? = null
+    override fun constValue(program: Program): NumericLiteralValue? = null
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun referencesIdentifiers(vararg name: String) = identifier.referencesIdentifiers(*name)
@@ -255,7 +255,7 @@ class TypecastExpression(var expression: IExpression, var type: DataType, val im
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun referencesIdentifiers(vararg name: String) = expression.referencesIdentifiers(*name)
     override fun inferType(program: Program): DataType? = type
-    override fun constValue(program: Program): LiteralValue? {
+    override fun constValue(program: Program): NumericLiteralValue? {
         val cv = expression.constValue(program) ?: return null
         return cv.cast(type)
         // val value = RuntimeValue(cv.type, cv.asNumericValue!!).cast(type)
@@ -276,7 +276,7 @@ data class AddressOf(val identifier: IdentifierReference, override val position:
     }
 
     var scopedname: String? = null     // will be set in a later state by the compiler
-    override fun constValue(program: Program): LiteralValue? = null
+    override fun constValue(program: Program): NumericLiteralValue? = null
     override fun referencesIdentifiers(vararg name: String) = false
     override fun inferType(program: Program) = DataType.UWORD
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
@@ -295,163 +295,200 @@ class DirectMemoryRead(var addressExpression: IExpression, override val position
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun referencesIdentifiers(vararg name: String) = false
     override fun inferType(program: Program): DataType? = DataType.UBYTE
-    override fun constValue(program: Program): LiteralValue? = null
+    override fun constValue(program: Program): NumericLiteralValue? = null
 
     override fun toString(): String {
         return "DirectMemoryRead($addressExpression)"
     }
 }
 
-open class LiteralValue(val type: DataType,
-                        val bytevalue: Short? = null,
-                        val wordvalue: Int? = null,
-                        val floatvalue: Double? = null,
-                        val strvalue: String? = null,
-                        val arrayvalue: Array<IExpression>? = null,
-                        initHeapId: Int? =null,
-                        override val position: Position) : IExpression {
+class NumericLiteralValue(val type: DataType,    // only numerical types allowed
+                          val number: Number,    // can be byte, word or float depending on the type
+                          override val position: Position) : IExpression {
     override lateinit var parent: Node
-
-    override fun referencesIdentifiers(vararg name: String) = arrayvalue?.any { it.referencesIdentifiers(*name) } ?: false
-
-    val isString = type in StringDatatypes
-    val isNumeric = type in NumericDatatypes
-    val isArray = type in ArrayDatatypes
-    var heapId = initHeapId
-        private set
 
     companion object {
         fun fromBoolean(bool: Boolean, position: Position) =
-                LiteralValue(DataType.UBYTE, bytevalue = if (bool) 1 else 0, position = position)
+                NumericLiteralValue(DataType.UBYTE, if (bool) 1 else 0, position)
 
-        fun fromNumber(value: Number, type: DataType, position: Position) : LiteralValue {
-            return when(type) {
-                in ByteDatatypes -> LiteralValue(type, bytevalue = value.toShort(), position = position)
-                in WordDatatypes -> LiteralValue(type, wordvalue = value.toInt(), position = position)
-                DataType.FLOAT -> LiteralValue(type, floatvalue = value.toDouble(), position = position)
-                else -> throw FatalAstException("non numeric datatype")
-            }
-        }
-
-        fun optimalNumeric(value: Number, position: Position): LiteralValue {
+        fun optimalNumeric(value: Number, position: Position): NumericLiteralValue {
             return if(value is Double) {
-                LiteralValue(DataType.FLOAT, floatvalue = value, position = position)
+                NumericLiteralValue(DataType.FLOAT, value, position)
             } else {
                 when (val intval = value.toInt()) {
-                    in 0..255 -> LiteralValue(DataType.UBYTE, bytevalue = intval.toShort(), position = position)
-                    in -128..127 -> LiteralValue(DataType.BYTE, bytevalue = intval.toShort(), position = position)
-                    in 0..65535 -> LiteralValue(DataType.UWORD, wordvalue = intval, position = position)
-                    in -32768..32767 -> LiteralValue(DataType.WORD, wordvalue = intval, position = position)
-                    else -> LiteralValue(DataType.FLOAT, floatvalue = intval.toDouble(), position = position)
+                    in 0..255 -> NumericLiteralValue(DataType.UBYTE, intval, position)
+                    in -128..127 -> NumericLiteralValue(DataType.BYTE, intval, position)
+                    in 0..65535 -> NumericLiteralValue(DataType.UWORD, intval, position)
+                    in -32768..32767 -> NumericLiteralValue(DataType.WORD, intval, position)
+                    else -> NumericLiteralValue(DataType.FLOAT, intval.toDouble(), position)
                 }
             }
         }
 
-        fun optimalInteger(value: Number, position: Position): LiteralValue {
-            val intval = value.toInt()
-            if(intval.toDouble() != value.toDouble())
-                throw FatalAstException("value is not an integer: $value")
-            return when (intval) {
-                in 0..255 -> LiteralValue(DataType.UBYTE, bytevalue = value.toShort(), position = position)
-                in -128..127 -> LiteralValue(DataType.BYTE, bytevalue = value.toShort(), position = position)
-                in 0..65535 -> LiteralValue(DataType.UWORD, wordvalue = value.toInt(), position = position)
+        fun optimalInteger(value: Int, position: Position): NumericLiteralValue {
+            return when (value) {
+                in 0..255 -> NumericLiteralValue(DataType.UBYTE, value, position)
+                in -128..127 -> NumericLiteralValue(DataType.BYTE, value, position)
+                in 0..65535 -> NumericLiteralValue(DataType.UWORD, value, position)
                 else -> throw FatalAstException("integer overflow: $value")
             }
         }
     }
 
-    init {
-        when(type){
-            in ByteDatatypes -> if(bytevalue==null) throw FatalAstException("literal value missing bytevalue")
-            in WordDatatypes -> if(wordvalue==null) throw FatalAstException("literal value missing wordvalue")
-            DataType.FLOAT -> if(floatvalue==null) throw FatalAstException("literal value missing floatvalue")
-            in StringDatatypes ->
-                if(strvalue==null && heapId==null) throw FatalAstException("literal value missing strvalue/heapId")
-            in ArrayDatatypes ->
-                if(arrayvalue==null && heapId==null) throw FatalAstException("literal value missing arrayvalue/heapId")
-            else -> throw FatalAstException("invalid type $type")
-        }
-        if(bytevalue==null && wordvalue==null && floatvalue==null && arrayvalue==null && strvalue==null && heapId==null)
-            throw FatalAstException("literal value without actual value")
-    }
-
-    val asNumericValue: Number? = when {
-        bytevalue!=null -> bytevalue
-        wordvalue!=null -> wordvalue
-        floatvalue!=null -> floatvalue
-        else -> null
-    }
-
-    val asIntegerValue: Int? = when {
-        bytevalue!=null -> bytevalue.toInt()
-        wordvalue!=null -> wordvalue
-        // don't round a float value, otherwise code will not detect that it's not an integer
-        else -> null
-    }
-
-    val asBooleanValue: Boolean =
-            (floatvalue!=null && floatvalue != 0.0) ||
-            (bytevalue!=null && bytevalue != 0.toShort()) ||
-            (wordvalue!=null && wordvalue != 0) ||
-            (strvalue!=null && strvalue.isNotEmpty()) ||
-            (arrayvalue != null && arrayvalue.isNotEmpty())
+    val asBooleanValue: Boolean = number!=0
 
     override fun linkParents(parent: Node) {
         this.parent = parent
-        arrayvalue?.forEach {it.linkParents(this)}
     }
 
-    override fun constValue(program: Program): LiteralValue? {
-        if(arrayvalue!=null) {
-            for(v in arrayvalue) {
-                if(v.constValue(program)==null) return null
+    override fun referencesIdentifiers(vararg name: String) = false
+    override fun constValue(program: Program) = this
+
+    override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+
+    override fun toString(): String = "NumericLiteral(${type.name}:$number)"
+
+    override fun inferType(program: Program) = type
+
+    override fun hashCode(): Int  = type.hashCode() * 31 xor number.hashCode()
+
+    override fun equals(other: Any?): Boolean {
+        if(other==null || other !is NumericLiteralValue)
+            return false
+        return number.toDouble()==other.number.toDouble()
+    }
+
+    operator fun compareTo(other: NumericLiteralValue): Int = number.toDouble().compareTo(other.number.toDouble())
+
+    fun cast(targettype: DataType): NumericLiteralValue? {
+        if(type==targettype)
+            return this
+        val numval = number.toDouble()
+        when(type) {
+            DataType.UBYTE -> {
+                if(targettype== DataType.BYTE && numval <= 127)
+                    return NumericLiteralValue(targettype, number.toShort(), position)
+                if(targettype== DataType.WORD || targettype== DataType.UWORD)
+                    return NumericLiteralValue(targettype, number.toInt(), position)
+                if(targettype== DataType.FLOAT)
+                    return NumericLiteralValue(targettype, number.toDouble(), position)
             }
+            DataType.BYTE -> {
+                if(targettype== DataType.UBYTE && numval >= 0)
+                    return NumericLiteralValue(targettype, number.toShort(), position)
+                if(targettype== DataType.UWORD && numval >= 0)
+                    return NumericLiteralValue(targettype, number.toInt(), position)
+                if(targettype== DataType.WORD)
+                    return NumericLiteralValue(targettype, number.toInt(), position)
+                if(targettype== DataType.FLOAT)
+                    return NumericLiteralValue(targettype, number.toDouble(), position)
+            }
+            DataType.UWORD -> {
+                if(targettype== DataType.BYTE && numval <= 127)
+                    return NumericLiteralValue(targettype, number.toShort(), position)
+                if(targettype== DataType.UBYTE && numval <= 255)
+                    return NumericLiteralValue(targettype, number.toShort(), position)
+                if(targettype== DataType.WORD && numval <= 32767)
+                    return NumericLiteralValue(targettype, number.toInt(), position)
+                if(targettype== DataType.FLOAT)
+                    return NumericLiteralValue(targettype, number.toDouble(), position)
+            }
+            DataType.WORD -> {
+                if(targettype== DataType.BYTE && numval >= -128 && numval <=127)
+                    return NumericLiteralValue(targettype, number.toShort(), position)
+                if(targettype== DataType.UBYTE && numval >= 0 && numval <= 255)
+                    return NumericLiteralValue(targettype, number.toShort(), position)
+                if(targettype== DataType.UWORD && numval >=0)
+                    return NumericLiteralValue(targettype, number.toInt(), position)
+                if(targettype== DataType.FLOAT)
+                    return NumericLiteralValue(targettype, number.toDouble(), position)
+            }
+            DataType.FLOAT -> {
+                if (targettype == DataType.BYTE && numval >= -128 && numval <=127)
+                    return NumericLiteralValue(targettype, number.toShort(), position)
+                if (targettype == DataType.UBYTE && numval >=0 && numval <= 255)
+                    return NumericLiteralValue(targettype, number.toShort(), position)
+                if (targettype == DataType.WORD && numval >= -32768 && numval <= 32767)
+                    return NumericLiteralValue(targettype, number.toInt(), position)
+                if (targettype == DataType.UWORD && numval >=0 && numval <= 65535)
+                    return NumericLiteralValue(targettype, number.toInt(), position)
+            }
+            else -> {}
         }
-        return this
+        return null    // invalid type conversion from $this to $targettype
+    }
+}
+
+class ReferenceLiteralValue(val type: DataType,     // only reference types allowed here
+                            val str: String? = null,
+                            val array: Array<IExpression>? = null,
+                            // actually, at the moment, we don't have struct literals in the language
+                            initHeapId: Int? =null,
+                            override val position: Position) : IExpression {
+    override lateinit var parent: Node
+
+    override fun referencesIdentifiers(vararg name: String): Boolean {
+        return array?.any { it.referencesIdentifiers(*name) } ?: false
+    }
+
+    val isString = type in StringDatatypes
+    val isArray = type in ArrayDatatypes
+    var heapId = initHeapId
+        private set
+
+    init {
+        when(type){
+            in StringDatatypes ->
+                if(str==null && heapId==null) throw FatalAstException("literal value missing strvalue/heapId")
+            in ArrayDatatypes ->
+                if(array==null && heapId==null) throw FatalAstException("literal value missing arrayvalue/heapId")
+//            DataType.STRUCT ->
+//                if(struct==null && heapId==null) throw FatalAstException("literal value missing structvalue/heapId")
+            else -> throw FatalAstException("invalid type $type")
+        }
+        if(array==null && str==null && heapId==null)
+            throw FatalAstException("literal ref value without actual value")
+    }
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        array?.forEach {it.linkParents(this)}
+    }
+
+    override fun constValue(program: Program): NumericLiteralValue? {
+        // TODO: what about arrays that only contain constant numbers?
+        return null
     }
 
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
 
     override fun toString(): String {
-        val vstr = when(type) {
-            DataType.UBYTE -> "ubyte:$bytevalue"
-            DataType.BYTE -> "byte:$bytevalue"
-            DataType.UWORD -> "uword:$wordvalue"
-            DataType.WORD -> "word:$wordvalue"
-            DataType.FLOAT -> "float:$floatvalue"
-            in StringDatatypes -> "str:'${escape(strvalue?:"")}'"
-            in ArrayDatatypes -> "array:$arrayvalue"
-            else -> throw FatalAstException("weird datatype")
+        val valueStr = when(type) {
+            in StringDatatypes -> "'${escape(str!!)}'"
+            in ArrayDatatypes -> "$array"
+            DataType.STRUCT -> TODO("struct literals")
+            else -> throw FatalAstException("weird ref type")
         }
-        return "LiteralValue($vstr)"
+        return "ReferenceValueLiteral($type, $valueStr)"
     }
 
     override fun inferType(program: Program) = type
 
     override fun hashCode(): Int {
-        val bh = bytevalue?.hashCode() ?: 0x10001234
-        val wh = wordvalue?.hashCode() ?: 0x01002345
-        val fh = floatvalue?.hashCode() ?: 0x00103456
-        val sh = strvalue?.hashCode() ?: 0x00014567
-        val ah = arrayvalue?.hashCode() ?: 0x11119876
-        var hash = bh * 31 xor wh
-        hash = hash*31 xor fh
-        hash = hash*31 xor sh
-        hash = hash*31 xor ah
-        hash = hash*31 xor type.hashCode()
-        return hash
+        val sh = str?.hashCode() ?: 0x00014567
+        val ah = array?.hashCode() ?: 0x11119876
+        return sh * 31 xor ah xor type.hashCode()
     }
 
     override fun equals(other: Any?): Boolean {
-        if(other==null || other !is LiteralValue)
+        if(other==null || other !is ReferenceLiteralValue)
             return false
-        if(isNumeric && other.isNumeric)
-            return asNumericValue?.toDouble()==other.asNumericValue?.toDouble()
         if(isArray && other.isArray)
-            return arrayvalue!!.contentEquals(other.arrayvalue!!) && heapId==other.heapId
+            return array!!.contentEquals(other.array!!) && heapId==other.heapId
         if(isString && other.isString)
-            return strvalue==other.strvalue && heapId==other.heapId
+            return str==other.str && heapId==other.heapId
 
         if(type!=other.type)
             return false
@@ -459,74 +496,17 @@ open class LiteralValue(val type: DataType,
         return compareTo(other) == 0
     }
 
-    operator fun compareTo(other: LiteralValue): Int {
-        val numLeft = asNumericValue?.toDouble()
-        val numRight = other.asNumericValue?.toDouble()
-        if(numLeft!=null && numRight!=null)
-            return numLeft.compareTo(numRight)
-
-        if(strvalue!=null && other.strvalue!=null)
-            return strvalue.compareTo(other.strvalue)
-
+    operator fun compareTo(other: ReferenceLiteralValue): Int {
         throw ExpressionError("cannot order compare type $type with ${other.type}", other.position)
     }
 
-    fun cast(targettype: DataType): LiteralValue? {
+    fun cast(targettype: DataType): ReferenceLiteralValue? {
         if(type==targettype)
             return this
         when(type) {
-            DataType.UBYTE -> {
-                if(targettype== DataType.BYTE && bytevalue!! <= 127)
-                    return LiteralValue(targettype, bytevalue = bytevalue, position = position)
-                if(targettype== DataType.WORD || targettype== DataType.UWORD)
-                    return LiteralValue(targettype, wordvalue = bytevalue!!.toInt(), position = position)
-                if(targettype== DataType.FLOAT)
-                    return LiteralValue(targettype, floatvalue = bytevalue!!.toDouble(), position = position)
-            }
-            DataType.BYTE -> {
-                if(targettype== DataType.UBYTE && bytevalue!! >= 0)
-                    return LiteralValue(targettype, bytevalue = bytevalue, position = position)
-                if(targettype== DataType.UWORD && bytevalue!! >= 0)
-                    return LiteralValue(targettype, wordvalue = bytevalue.toInt(), position = position)
-                if(targettype== DataType.WORD)
-                    return LiteralValue(targettype, wordvalue = bytevalue!!.toInt(), position = position)
-                if(targettype== DataType.FLOAT)
-                    return LiteralValue(targettype, floatvalue = bytevalue!!.toDouble(), position = position)
-            }
-            DataType.UWORD -> {
-                if(targettype== DataType.BYTE && wordvalue!! <= 127)
-                    return LiteralValue(targettype, bytevalue = wordvalue.toShort(), position = position)
-                if(targettype== DataType.UBYTE && wordvalue!! <= 255)
-                    return LiteralValue(targettype, bytevalue = wordvalue.toShort(), position = position)
-                if(targettype== DataType.WORD && wordvalue!! <= 32767)
-                    return LiteralValue(targettype, wordvalue = wordvalue, position = position)
-                if(targettype== DataType.FLOAT)
-                    return LiteralValue(targettype, floatvalue = wordvalue!!.toDouble(), position = position)
-            }
-            DataType.WORD -> {
-                if(targettype== DataType.BYTE && wordvalue!! in -128..127)
-                    return LiteralValue(targettype, bytevalue = wordvalue.toShort(), position = position)
-                if(targettype== DataType.UBYTE && wordvalue!! in 0..255)
-                    return LiteralValue(targettype, bytevalue = wordvalue.toShort(), position = position)
-                if(targettype== DataType.UWORD && wordvalue!! >=0)
-                    return LiteralValue(targettype, wordvalue = wordvalue, position = position)
-                if(targettype== DataType.FLOAT)
-                    return LiteralValue(targettype, floatvalue = wordvalue!!.toDouble(), position = position)
-            }
-            DataType.FLOAT -> {
-                val value = floatvalue!!.toInt()
-                if (targettype == DataType.BYTE && value in -128..127)
-                    return LiteralValue(targettype, bytevalue = value.toShort(), position = position)
-                if (targettype == DataType.UBYTE && value in 0..255)
-                    return LiteralValue(targettype, bytevalue = value.toShort(), position = position)
-                if (targettype == DataType.WORD && value in -32768..32767)
-                    return LiteralValue(targettype, wordvalue = value, position = position)
-                if (targettype == DataType.UWORD && value in 0..65535)
-                    return LiteralValue(targettype, wordvalue = value, position = position)
-            }
             in StringDatatypes -> {
                 if(targettype in StringDatatypes)
-                    return this
+                    return ReferenceLiteralValue(targettype, str, initHeapId = heapId, position = position)
             }
             else -> {}
         }
@@ -534,22 +514,23 @@ open class LiteralValue(val type: DataType,
     }
 
     fun addToHeap(heap: HeapValues) {
+        println("-->adding to HEAP: $this  ${this.position}")  // TODO
         if(heapId==null) {
-            if (strvalue != null) {
-                heapId = heap.addString(type, strvalue)
+            if (str != null) {
+                heapId = heap.addString(type, str)
             }
-            else if (arrayvalue!=null) {
-                if(arrayvalue.any {it is AddressOf }) {
-                    val intArrayWithAddressOfs = arrayvalue.map {
+            else if (array!=null) {
+                if(array.any {it is AddressOf }) {
+                    val intArrayWithAddressOfs = array.map {
                         when (it) {
                             is AddressOf -> IntegerOrAddressOf(null, it)
-                            is LiteralValue -> IntegerOrAddressOf(it.asIntegerValue, null)
+                            is NumericLiteralValue -> IntegerOrAddressOf(it.number.toInt(), null)
                             else -> throw FatalAstException("invalid datatype in array")
                         }
                     }
                     heapId = heap.addIntegerArray(type, intArrayWithAddressOfs.toTypedArray())
                 } else {
-                    val valuesInArray = arrayvalue.map { (it as LiteralValue).asNumericValue!! }
+                    val valuesInArray = array.map { (it as NumericLiteralValue).number }
                     heapId = if(type== DataType.ARRAY_F) {
                         val doubleArray = valuesInArray.map { it.toDouble() }.toDoubleArray()
                         heap.addDoublesArray(doubleArray)
@@ -576,7 +557,7 @@ class RangeExpr(var from: IExpression,
         step.linkParents(this)
     }
 
-    override fun constValue(program: Program): LiteralValue? = null
+    override fun constValue(program: Program): NumericLiteralValue? = null
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun referencesIdentifiers(vararg name: String): Boolean  = from.referencesIdentifiers(*name) || to.referencesIdentifiers(*name)
@@ -599,30 +580,32 @@ class RangeExpr(var from: IExpression,
     }
 
     fun size(): Int? {
-        val fromLv = (from as? LiteralValue)
-        val toLv = (to as? LiteralValue)
+        val fromLv = (from as? NumericLiteralValue)
+        val toLv = (to as? NumericLiteralValue)
         if(fromLv==null || toLv==null)
             return null
         return toConstantIntegerRange()?.count()
     }
 
     fun toConstantIntegerRange(): IntProgression? {
-        val fromLv = from as? LiteralValue
-        val toLv = to as? LiteralValue
-        if(fromLv==null || toLv==null)
-            return null         // non-constant range
         val fromVal: Int
         val toVal: Int
-        if(fromLv.isString && toLv.isString) {
+        val fromRlv = from as? ReferenceLiteralValue
+        val toRlv = to as? ReferenceLiteralValue
+        if(fromRlv!=null && fromRlv.isString && toRlv!=null && toRlv.isString) {
             // string range -> int range over petscii values
-            fromVal = Petscii.encodePetscii(fromLv.strvalue!!, true)[0].toInt()
-            toVal = Petscii.encodePetscii(toLv.strvalue!!, true)[0].toInt()
+            fromVal = Petscii.encodePetscii(fromRlv.str!!, true)[0].toInt()
+            toVal = Petscii.encodePetscii(toRlv.str!!, true)[0].toInt()
         } else {
+            val fromLv = from as? NumericLiteralValue
+            val toLv = to as? NumericLiteralValue
+            if(fromLv==null || toLv==null)
+                return null         // non-constant range
             // integer range
-            fromVal = (from as LiteralValue).asIntegerValue!!
-            toVal = (to as LiteralValue).asIntegerValue!!
+            fromVal = fromLv.number.toInt()
+            toVal = toLv.number.toInt()
         }
-        val stepVal = (step as? LiteralValue)?.asIntegerValue ?: 1
+        val stepVal = (step as? NumericLiteralValue)?.number?.toInt() ?: 1
         return when {
             fromVal <= toVal -> when {
                 stepVal <= 0 -> IntRange.EMPTY
@@ -645,7 +628,7 @@ class RegisterExpr(val register: Register, override val position: Position) : IE
         this.parent = parent
     }
 
-    override fun constValue(program: Program): LiteralValue? = null
+    override fun constValue(program: Program): NumericLiteralValue? = null
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun referencesIdentifiers(vararg name: String): Boolean = register.name in name
@@ -672,7 +655,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         this.parent = parent
     }
 
-    override fun constValue(program: Program): LiteralValue? {
+    override fun constValue(program: Program): NumericLiteralValue? {
         val node = program.namespace.lookup(nameInSource, this)
                 ?: throw UndefinedSymbolError(this)
         val vardecl = node as? VarDecl
@@ -703,7 +686,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
 
     fun heapId(namespace: INameScope): Int {
         val node = namespace.lookup(nameInSource, this) ?: throw UndefinedSymbolError(this)
-        return ((node as? VarDecl)?.value as? LiteralValue)?.heapId ?: throw FatalAstException("identifier is not on the heap: $this")
+        return ((node as? VarDecl)?.value as? ReferenceLiteralValue)?.heapId ?: throw FatalAstException("identifier is not on the heap: $this")
     }
 }
 
@@ -720,12 +703,12 @@ class FunctionCall(override var target: IdentifierReference,
 
     override fun constValue(program: Program) = constValue(program, true)
 
-    private fun constValue(program: Program, withDatatypeCheck: Boolean): LiteralValue? {
+    private fun constValue(program: Program, withDatatypeCheck: Boolean): NumericLiteralValue? {
         // if the function is a built-in function and the args are consts, should try to const-evaluate!
         // lenghts of arrays and strings are constants that are determined at compile time!
         if(target.nameInSource.size>1) return null
         try {
-            var resultValue: LiteralValue? = null
+            var resultValue: NumericLiteralValue? = null
             val func = BuiltinFunctions[target.nameInSource[0]]
             if(func!=null) {
                 val exprfunc = func.constExpressionFunc

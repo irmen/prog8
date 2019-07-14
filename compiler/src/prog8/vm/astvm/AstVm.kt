@@ -4,7 +4,7 @@ import prog8.ast.*
 import prog8.ast.base.*
 import prog8.ast.base.initvarsSubName
 import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.LiteralValue
+import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.*
 import prog8.compiler.target.c64.MachineDefinition
 import prog8.vm.RuntimeValue
@@ -32,31 +32,31 @@ class StatusFlags {
     var negative: Boolean = false
     var irqd: Boolean = false
 
-    private fun setFlags(value: LiteralValue?) {
+    private fun setFlags(value: NumericLiteralValue?) {
         if (value != null) {
             when (value.type) {
                 DataType.UBYTE -> {
-                    val v = value.bytevalue!!.toInt()
+                    val v = value.number.toInt()
                     negative = v > 127
                     zero = v == 0
                 }
                 DataType.BYTE -> {
-                    val v = value.bytevalue!!.toInt()
+                    val v = value.number.toInt()
                     negative = v < 0
                     zero = v == 0
                 }
                 DataType.UWORD -> {
-                    val v = value.wordvalue!!
+                    val v = value.number.toInt()
                     negative = v > 32767
                     zero = v == 0
                 }
                 DataType.WORD -> {
-                    val v = value.wordvalue!!
+                    val v = value.number.toInt()
                     negative = v < 0
                     zero = v == 0
                 }
                 DataType.FLOAT -> {
-                    val flt = value.floatvalue!!
+                    val flt = value.number.toDouble()
                     negative = flt < 0.0
                     zero = flt == 0.0
                 }
@@ -387,7 +387,7 @@ class AstVm(val program: Program) {
                                 runtimeVariables.set(identScope, ident.name, value)
                             }
                             VarDeclType.MEMORY -> {
-                                val addr=ident.value!!.constValue(program)!!.asIntegerValue!!
+                                val addr=ident.value!!.constValue(program)!!.number.toInt()
                                 val newval = when {
                                     stmt.operator == "++" -> mem.getUByte(addr)+1 and 255
                                     stmt.operator == "--" -> mem.getUByte(addr)-1 and 255
@@ -518,7 +518,7 @@ class AstVm(val program: Program) {
                         break
                     } else {
                         val value = choice.values.single().constValue(evalCtx.program) ?: throw VmExecutionException("can only use const values in when choices ${choice.position}")
-                        val rtval = RuntimeValue.from(value, evalCtx.program.heap)
+                        val rtval = RuntimeValue.fromLv(value)
                         if(condition==rtval) {
                             executeAnonymousScope(choice.statements)
                             break
@@ -613,7 +613,7 @@ class AstVm(val program: Program) {
                     }
                 }
                 else {
-                    val address = (vardecl.value as LiteralValue).asIntegerValue!!
+                    val address = (vardecl.value as NumericLiteralValue).number.toInt()
                     val index = evaluate(target.arrayindexed.arrayspec.index, evalCtx).integerValue()
                     val elementType = target.arrayindexed.inferType(program)!!
                     when(elementType) {

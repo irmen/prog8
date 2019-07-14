@@ -189,10 +189,10 @@ interface INameScope {
 }
 
 interface IExpression: Node {
-    fun constValue(program: Program): LiteralValue?
+    fun constValue(program: Program): NumericLiteralValue?
     fun accept(visitor: IAstModifyingVisitor): IExpression
     fun accept(visitor: IAstVisitor)
-    fun referencesIdentifiers(vararg name: String): Boolean
+    fun referencesIdentifiers(vararg name: String): Boolean     // todo: remove and use calltree instead
     fun inferType(program: Program): DataType?
 
     infix fun isSameAs(other: IExpression): Boolean {
@@ -213,7 +213,8 @@ interface IExpression: Node {
                 return (other is ArrayIndexedExpression && other.identifier.nameInSource == identifier.nameInSource
                         && other.arrayspec.index isSameAs arrayspec.index)
             }
-            is LiteralValue -> return (other is LiteralValue && other==this)
+            is NumericLiteralValue -> return other==this
+            is ReferenceLiteralValue -> return other==this
         }
         return false
     }

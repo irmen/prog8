@@ -209,7 +209,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
         var previousAssignmentLine: Int? = null
         for (i in 0 until statements.size) {
             val stmt = statements[i] as? Assignment
-            if (stmt != null && stmt.value is LiteralValue) {
+            if (stmt != null && stmt.value is NumericLiteralValue) {
                 if (previousAssignmentLine == null) {
                     previousAssignmentLine = i
                     continue
@@ -241,7 +241,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
         if(functionCallStatement.target.nameInSource==listOf("c64scr", "print") ||
                 functionCallStatement.target.nameInSource==listOf("c64scr", "print_p")) {
             // printing a literal string of just 2 or 1 characters is replaced by directly outputting those characters
-            if(functionCallStatement.arglist.single() is LiteralValue)
+            if(functionCallStatement.arglist.single() is NumericLiteralValue)
                 throw AstException("string argument should be on heap already")
             val stringVar = functionCallStatement.arglist.single() as? IdentifierReference
             if(stringVar!=null) {
@@ -250,7 +250,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
                 if(string.length==1) {
                     val petscii = Petscii.encodePetscii(string, true)[0]
                     functionCallStatement.arglist.clear()
-                    functionCallStatement.arglist.add(LiteralValue.optimalInteger(petscii, functionCallStatement.position))
+                    functionCallStatement.arglist.add(NumericLiteralValue.optimalInteger(petscii.toInt(), functionCallStatement.position))
                     functionCallStatement.target = IdentifierReference(listOf("c64", "CHROUT"), functionCallStatement.target.position)
                     optimizationsDone++
                     return functionCallStatement
@@ -258,9 +258,9 @@ internal class StatementOptimizer(private val program: Program, private val opti
                     val petscii = Petscii.encodePetscii(string, true)
                     val scope = AnonymousScope(mutableListOf(), functionCallStatement.position)
                     scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("c64", "CHROUT"), functionCallStatement.target.position),
-                            mutableListOf(LiteralValue.optimalInteger(petscii[0], functionCallStatement.position)), functionCallStatement.position))
+                            mutableListOf(NumericLiteralValue.optimalInteger(petscii[0].toInt(), functionCallStatement.position)), functionCallStatement.position))
                     scope.statements.add(FunctionCallStatement(IdentifierReference(listOf("c64", "CHROUT"), functionCallStatement.target.position),
-                            mutableListOf(LiteralValue.optimalInteger(petscii[1], functionCallStatement.position)), functionCallStatement.position))
+                            mutableListOf(NumericLiteralValue.optimalInteger(petscii[1].toInt(), functionCallStatement.position)), functionCallStatement.position))
                     optimizationsDone++
                     return scope
                 }
@@ -495,12 +495,12 @@ internal class StatementOptimizer(private val program: Program, private val opti
         val targetDt = assignment.target.inferType(program, assignment)
         val bexpr=assignment.value as? BinaryExpression
         if(bexpr!=null) {
-            val cv = bexpr.right.constValue(program)?.asNumericValue?.toDouble()
+            val cv = bexpr.right.constValue(program)?.number?.toDouble()
             if (cv == null) {
                 if (bexpr.operator == "+" && targetDt != DataType.FLOAT) {
                     if (bexpr.left isSameAs bexpr.right && assignment.target isSameAs bexpr.left) {
                         bexpr.operator = "*"
-                        bexpr.right = LiteralValue.optimalInteger(2, assignment.value.position)
+                        bexpr.right = NumericLiteralValue.optimalInteger(2, assignment.value.position)
                         optimizationsDone++
                         return assignment
                     }
@@ -569,7 +569,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
                             }
                             if (((targetDt == DataType.UWORD || targetDt == DataType.WORD) && cv > 15.0) ||
                                     ((targetDt == DataType.UBYTE || targetDt == DataType.BYTE) && cv > 7.0)) {
-                                assignment.value = LiteralValue.optimalInteger(0, assignment.value.position)
+                                assignment.value = NumericLiteralValue.optimalInteger(0, assignment.value.position)
                                 assignment.value.linkParents(assignment)
                                 optimizationsDone++
                             } else {
@@ -591,7 +591,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
                             }
                             if (((targetDt == DataType.UWORD || targetDt == DataType.WORD) && cv > 15.0) ||
                                     ((targetDt == DataType.UBYTE || targetDt == DataType.BYTE) && cv > 7.0)) {
-                                assignment.value = LiteralValue.optimalInteger(0, assignment.value.position)
+                                assignment.value = NumericLiteralValue.optimalInteger(0, assignment.value.position)
                                 assignment.value.linkParents(assignment)
                                 optimizationsDone++
                             } else {

@@ -596,19 +596,20 @@ internal class Compiler(private val program: Program) {
             else -> {
                 val lv = expr.constValue(program) ?: throw CompilerException("constant expression required, not $expr")
                 when(lv.type) {
-                    in ByteDatatypes -> prog.instr(Opcode.PUSH_BYTE, RuntimeValue(lv.type, lv.bytevalue!!))
-                    in WordDatatypes -> prog.instr(Opcode.PUSH_WORD, RuntimeValue(lv.type, lv.wordvalue!!))
-                    DataType.FLOAT -> prog.instr(Opcode.PUSH_FLOAT, RuntimeValue(lv.type, lv.floatvalue!!))
-                    in StringDatatypes -> {
-                        if(lv.heapId==null)
-                            throw CompilerException("string should have been moved into heap   ${lv.position}")
-                        TODO("push address of string with PUSH_ADDR_HEAPVAR")
-                    }
-                    in ArrayDatatypes -> {
-                        if(lv.heapId==null)
-                            throw CompilerException("array should have been moved into heap  ${lv.position}")
-                        TODO("push address of array with PUSH_ADDR_HEAPVAR")
-                    }
+                    in ByteDatatypes -> prog.instr(Opcode.PUSH_BYTE, RuntimeValue(lv.type, lv.number.toShort()))
+                    in WordDatatypes -> prog.instr(Opcode.PUSH_WORD, RuntimeValue(lv.type, lv.number.toInt()))
+                    DataType.FLOAT -> prog.instr(Opcode.PUSH_FLOAT, RuntimeValue(lv.type, lv.number.toDouble()))
+                    // TODO what about these ref types:
+//                    in StringDatatypes -> {
+//                        if(lv.heapId==null)
+//                            throw CompilerException("string should have been moved into heap   ${lv.position}")
+//                        TODO("push address of string with PUSH_ADDR_HEAPVAR")
+//                    }
+//                    in ArrayDatatypes -> {
+//                        if(lv.heapId==null)
+//                            throw CompilerException("array should have been moved into heap  ${lv.position}")
+//                        TODO("push address of array with PUSH_ADDR_HEAPVAR")
+//                    }
                     else -> throw CompilerException("weird datatype")
                 }
             }
@@ -675,11 +676,11 @@ internal class Compiler(private val program: Program) {
                         throw CompilerException("const ref should have been const-folded away")
                     VarDeclType.MEMORY -> {
                         when (target.datatype) {
-                            DataType.UBYTE -> prog.instr(Opcode.PUSH_MEM_UB, RuntimeValue(DataType.UWORD, (target.value as LiteralValue).asNumericValue!!))
-                            DataType.BYTE-> prog.instr(Opcode.PUSH_MEM_B, RuntimeValue(DataType.UWORD, (target.value as LiteralValue).asNumericValue!!))
-                            DataType.UWORD -> prog.instr(Opcode.PUSH_MEM_UW, RuntimeValue(DataType.UWORD, (target.value as LiteralValue).asNumericValue!!))
-                            DataType.WORD -> prog.instr(Opcode.PUSH_MEM_W, RuntimeValue(DataType.UWORD, (target.value as LiteralValue).asNumericValue!!))
-                            DataType.FLOAT -> prog.instr(Opcode.PUSH_MEM_FLOAT, RuntimeValue(DataType.UWORD, (target.value as LiteralValue).asNumericValue!!))
+                            DataType.UBYTE -> prog.instr(Opcode.PUSH_MEM_UB, RuntimeValue(DataType.UWORD, (target.value as NumericLiteralValue).number))
+                            DataType.BYTE-> prog.instr(Opcode.PUSH_MEM_B, RuntimeValue(DataType.UWORD, (target.value as NumericLiteralValue).number))
+                            DataType.UWORD -> prog.instr(Opcode.PUSH_MEM_UW, RuntimeValue(DataType.UWORD, (target.value as NumericLiteralValue).number))
+                            DataType.WORD -> prog.instr(Opcode.PUSH_MEM_W, RuntimeValue(DataType.UWORD, (target.value as NumericLiteralValue).number))
+                            DataType.FLOAT -> prog.instr(Opcode.PUSH_MEM_FLOAT, RuntimeValue(DataType.UWORD, (target.value as NumericLiteralValue).number))
                             else -> throw CompilerException("invalid datatype for memory variable expression: $target")
                         }
                     }
@@ -1013,7 +1014,7 @@ internal class Compiler(private val program: Program) {
                         when (paramDt) {
                             DataType.UBYTE -> {
                                 valueA = arg.first
-                                valueX = LiteralValue.optimalInteger(0, callPosition)
+                                valueX = NumericLiteralValue.optimalInteger(0, callPosition)
                                 val assignA = Assignment(AssignTarget(Register.A, null, null, null, callPosition), null, valueA, callPosition)
                                 val assignX = Assignment(AssignTarget(Register.X, null, null, null, callPosition), null, valueX, callPosition)
                                 assignA.linkParents(arguments[0].parent)
@@ -1036,7 +1037,7 @@ internal class Compiler(private val program: Program) {
                         when (paramDt) {
                             DataType.UBYTE -> {
                                 valueA = arg.first
-                                valueY = LiteralValue.optimalInteger(0, callPosition)
+                                valueY = NumericLiteralValue.optimalInteger(0, callPosition)
                                 val assignA = Assignment(AssignTarget(Register.A, null, null, null, callPosition), null, valueA, callPosition)
                                 val assignY = Assignment(AssignTarget(Register.Y, null, null, null, callPosition), null, valueY, callPosition)
                                 assignA.linkParents(arguments[0].parent)
@@ -1063,7 +1064,7 @@ internal class Compiler(private val program: Program) {
                         when (paramDt) {
                             DataType.UBYTE -> {
                                 valueX = arg.first
-                                valueY = LiteralValue.optimalInteger(0, callPosition)
+                                valueY = NumericLiteralValue.optimalInteger(0, callPosition)
                                 val assignX = Assignment(AssignTarget(Register.X, null, null, null, callPosition), null, valueX, callPosition)
                                 val assignY = Assignment(AssignTarget(Register.Y, null, null, null, callPosition), null, valueY, callPosition)
                                 assignX.linkParents(arguments[0].parent)
@@ -1253,10 +1254,10 @@ internal class Compiler(private val program: Program) {
         prog.instr(opcode)
     }
 
-    private fun translateBitshiftedOperator(operator: String, leftDt: DataType, amount: LiteralValue?) {
-        if(amount?.asIntegerValue == null)
+    private fun translateBitshiftedOperator(operator: String, leftDt: DataType, amount: NumericLiteralValue?) {
+        if(amount?.number?.toInt() == null)
             throw FatalAstException("bitshift operators should only have constant integer value as right operand")
-        var shifts=amount.asIntegerValue
+        var shifts=amount.number.toInt()
         if(shifts<0)
             throw FatalAstException("bitshift value should be >= 0")
 
@@ -1382,7 +1383,7 @@ internal class Compiler(private val program: Program) {
                 }
             }
             stmt.target.memoryAddress != null -> {
-                val address = stmt.target.memoryAddress?.addressExpression?.constValue(program)?.asIntegerValue
+                val address = stmt.target.memoryAddress?.addressExpression?.constValue(program)?.number?.toInt()
                 if(address!=null) {
                     when(stmt.operator) {
                         "++" -> prog.instr(Opcode.INC_MEMORY, RuntimeValue(DataType.UWORD, address))
@@ -1466,42 +1467,33 @@ internal class Compiler(private val program: Program) {
     }
 
     private fun pushHeapVarAddress(value: IExpression, removeLastOpcode: Boolean) {
-        when (value) {
-            is LiteralValue -> throw CompilerException("can only push address of string or array (value on the heap)")
-            is IdentifierReference -> {
-                val vardecl = value.targetVarDecl(program.namespace)!!
-                if(removeLastOpcode) prog.removeLastInstruction()
-                prog.instr(Opcode.PUSH_ADDR_HEAPVAR, callLabel = vardecl.scopedname)
-            }
-            else -> throw CompilerException("can only take address of a literal string value or a string/array variable")
+        if (value is IdentifierReference) {
+            val vardecl = value.targetVarDecl(program.namespace)!!
+            if(removeLastOpcode) prog.removeLastInstruction()
+            prog.instr(Opcode.PUSH_ADDR_HEAPVAR, callLabel = vardecl.scopedname)
         }
+        else throw CompilerException("can only take address of a literal string value or a string/array variable")
     }
 
     private fun pushFloatAddress(value: IExpression) {
-        when (value) {
-            is LiteralValue -> throw CompilerException("can only push address of float that is a variable on the heap")
-            is IdentifierReference -> {
-                val vardecl = value.targetVarDecl(program.namespace)!!
-                prog.instr(Opcode.PUSH_ADDR_HEAPVAR, callLabel = vardecl.scopedname)
-            }
-            else -> throw CompilerException("can only take address of a the float as constant literal or variable")
+        if (value is IdentifierReference) {
+            val vardecl = value.targetVarDecl(program.namespace)!!
+            prog.instr(Opcode.PUSH_ADDR_HEAPVAR, callLabel = vardecl.scopedname)
         }
+        else throw CompilerException("can only take address of a the float as constant literal or variable")
     }
 
     private fun pushStructAddress(value: IExpression) {
-        when (value) {
-            is LiteralValue -> throw CompilerException("can only push address of struct that is a variable on the heap")
-            is IdentifierReference -> {
-                // notice that the mangled name of the first struct member is the start address of this struct var
-                val vardecl = value.targetVarDecl(program.namespace)!!
-                val firstStructMember = (vardecl.struct!!.statements.first() as VarDecl).name
-                val firstVarName = listOf(vardecl.name, firstStructMember)
-                // find the flattened var that belongs to this first struct member
-                val firstVar = value.definingScope().lookup(firstVarName, value) as VarDecl
-                prog.instr(Opcode.PUSH_ADDR_HEAPVAR, callLabel = firstVar.scopedname)    // TODO
-            }
-            else -> throw CompilerException("can only take address of a the float as constant literal or variable")
+        if (value is IdentifierReference) {
+            // notice that the mangled name of the first struct member is the start address of this struct var
+            val vardecl = value.targetVarDecl(program.namespace)!!
+            val firstStructMember = (vardecl.struct!!.statements.first() as VarDecl).name
+            val firstVarName = listOf(vardecl.name, firstStructMember)
+            // find the flattened var that belongs to this first struct member
+            val firstVar = value.definingScope().lookup(firstVarName, value) as VarDecl
+            prog.instr(Opcode.PUSH_ADDR_HEAPVAR, callLabel = firstVar.scopedname)    // TODO
         }
+        else throw CompilerException("can only take address of a the float as constant literal or variable")
     }
 
     private fun popValueIntoTarget(assignTarget: AssignTarget, datatype: DataType) {
@@ -1516,7 +1508,7 @@ internal class Compiler(private val program: Program) {
                         }
                         VarDeclType.MEMORY -> {
                             val opcode = opcodePopmem(datatype)
-                            val address = target.value?.constValue(program)!!.asIntegerValue!!
+                            val address = target.value?.constValue(program)!!.number.toInt()
                             prog.instr(opcode, RuntimeValue(DataType.UWORD, address))
                         }
                         VarDeclType.CONST -> throw CompilerException("cannot assign to const")
@@ -1526,7 +1518,7 @@ internal class Compiler(private val program: Program) {
             assignTarget.register != null -> prog.instr(Opcode.POP_VAR_BYTE, callLabel = assignTarget.register.name)
             assignTarget.arrayindexed != null -> translate(assignTarget.arrayindexed, true)     // write value to it
             assignTarget.memoryAddress != null -> {
-                val address = assignTarget.memoryAddress?.addressExpression?.constValue(program)?.asIntegerValue
+                val address = assignTarget.memoryAddress?.addressExpression?.constValue(program)?.number?.toInt()
                 if(address!=null) {
                     // const integer address given
                     prog.instr(Opcode.POP_MEM_BYTE, arg= RuntimeValue(DataType.UWORD, address))
@@ -1613,18 +1605,19 @@ internal class Compiler(private val program: Program) {
                 loop.iterable is IdentifierReference -> {
                     val idRef = loop.iterable as IdentifierReference
                     val vardecl = idRef.targetVarDecl(program.namespace)!!
-                    val iterableValue = vardecl.value as LiteralValue
-                    if(iterableValue.type !in IterableDatatypes)
-                        throw CompilerException("loop over something that isn't iterable ${loop.iterable}")
-                    translateForOverIterableVar(loop, loopvalueDt, iterableValue)
+                    // TODO check loop over iterable or not
+//                    val iterableValue = vardecl.value as LiteralValue
+//                    if(iterableValue.type !in IterableDatatypes)
+//                        throw CompilerException("loop over something that isn't iterable ${loop.iterable}")
+                    translateForOverIterableVar(loop, loopvalueDt, vardecl.value as ReferenceLiteralValue)
                 }
-                loop.iterable is LiteralValue -> throw CompilerException("literal value in loop must have been moved to heap already $loop")
+                // TODO what's this: loop.iterable is LiteralValue -> throw CompilerException("literal value in loop must have been moved to heap already $loop")
                 else -> throw CompilerException("loopvar is something strange ${loop.iterable}")
             }
         }
     }
 
-    private fun translateForOverIterableVar(loop: ForLoop, loopvarDt: DataType, iterableValue: LiteralValue) {
+    private fun translateForOverIterableVar(loop: ForLoop, loopvarDt: DataType, iterableValue: ReferenceLiteralValue) {
         if(loopvarDt== DataType.UBYTE && iterableValue.type !in setOf(DataType.STR, DataType.STR_S, DataType.ARRAY_UB))
             throw CompilerException("loop variable type doesn't match iterableValue type")
         else if(loopvarDt== DataType.UWORD && iterableValue.type != DataType.ARRAY_UW)
@@ -1636,16 +1629,16 @@ internal class Compiler(private val program: Program) {
         when(iterableValue.type) {
             !in IterableDatatypes -> throw CompilerException("non-iterableValue type")
             DataType.STR, DataType.STR_S -> {
-                numElements = iterableValue.strvalue!!.length
+                numElements = iterableValue.str!!.length
                 if(numElements>255) throw CompilerException("string length > 255")
             }
             DataType.ARRAY_UB, DataType.ARRAY_B,
             DataType.ARRAY_UW, DataType.ARRAY_W -> {
-                numElements = iterableValue.arrayvalue?.size ?: program.heap.get(iterableValue.heapId!!).arraysize
+                numElements = iterableValue.array?.size ?: program.heap.get(iterableValue.heapId!!).arraysize
                 if(numElements>255) throw CompilerException("string length > 255")
             }
             DataType.ARRAY_F -> {
-                numElements = iterableValue.arrayvalue?.size ?: program.heap.get(iterableValue.heapId!!).arraysize
+                numElements = iterableValue.array?.size ?: program.heap.get(iterableValue.heapId!!).arraysize
                 if(numElements>255) throw CompilerException("string length > 255")
             }
             else -> throw CompilerException("weird datatype")
@@ -1839,7 +1832,7 @@ internal class Compiler(private val program: Program) {
         val loopLabel = makeLabel(body, "loop")
         val continueLabel = makeLabel(body, "continue")
         val breakLabel = makeLabel(body, "break")
-        val literalStepValue = (range.step as? LiteralValue)?.asNumericValue?.toInt()
+        val literalStepValue = (range.step as? NumericLiteralValue)?.number?.toInt()
 
         continueStmtLabelStack.push(continueLabel)
         breakStmtLabelStack.push(breakLabel)
@@ -2053,7 +2046,7 @@ internal class Compiler(private val program: Program) {
 
     private fun translate(memread: DirectMemoryRead) {
         // for now, only a single memory location (ubyte) is read at a time.
-        val address = memread.addressExpression.constValue(program)?.asIntegerValue
+        val address = memread.addressExpression.constValue(program)?.number?.toInt()
         if(address!=null) {
             prog.instr(Opcode.PUSH_MEM_UB, arg = RuntimeValue(DataType.UWORD, address))
         } else {
@@ -2065,7 +2058,7 @@ internal class Compiler(private val program: Program) {
     private fun translate(memwrite: DirectMemoryWrite) {
         // for now, only a single memory location (ubyte) is written at a time.
         // TODO inline this function (it's only used once)
-        val address = memwrite.addressExpression.constValue(program)?.asIntegerValue
+        val address = memwrite.addressExpression.constValue(program)?.number?.toInt()
         if(address!=null) {
             prog.instr(Opcode.POP_MEM_BYTE, arg = RuntimeValue(DataType.UWORD, address))
         } else {

@@ -7,7 +7,8 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import prog8.ast.base.DataType
 import prog8.ast.base.Position
-import prog8.ast.expressions.LiteralValue
+import prog8.ast.expressions.NumericLiteralValue
+import prog8.ast.expressions.ReferenceLiteralValue
 import prog8.vm.RuntimeValue
 import prog8.compiler.*
 import prog8.compiler.target.c64.MachineDefinition.Mflpt5
@@ -340,8 +341,8 @@ class TestPetscii {
 
     @Test
     fun testLiteralValueComparisons() {
-        val ten = LiteralValue(DataType.UWORD, wordvalue = 10, position = Position("", 0, 0, 0))
-        val nine = LiteralValue(DataType.UBYTE, bytevalue = 9, position = Position("", 0, 0, 0))
+        val ten = NumericLiteralValue(DataType.UWORD, 10, Position("", 0, 0, 0))
+        val nine = NumericLiteralValue(DataType.UBYTE, 9, Position("", 0, 0, 0))
         assertEquals(ten, ten)
         assertNotEquals(ten, nine)
         assertFalse(ten != ten)
@@ -357,17 +358,11 @@ class TestPetscii {
         assertTrue(ten <= ten)
         assertFalse(ten < ten)
 
-        val abc = LiteralValue(DataType.STR, strvalue = "abc", position = Position("", 0, 0, 0))
-        val abd = LiteralValue(DataType.STR, strvalue = "abd", position = Position("", 0, 0, 0))
+        val abc = ReferenceLiteralValue(DataType.STR, str = "abc", position = Position("", 0, 0, 0))
+        val abd = ReferenceLiteralValue(DataType.STR, str = "abd", position = Position("", 0, 0, 0))
         assertEquals(abc, abc)
         assertTrue(abc!=abd)
         assertFalse(abc!=abc)
-        assertTrue(abc < abd)
-        assertTrue(abc <= abd)
-        assertFalse(abd <= abc)
-        assertTrue(abd >= abc)
-        assertTrue(abd > abc)
-        assertFalse(abc > abd)
     }
 
     @Test

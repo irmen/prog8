@@ -15,10 +15,10 @@ import java.io.File
 internal class AstChecker(private val program: Program,
                          private val compilerOptions: CompilationOptions) : IAstModifyingVisitor {
     private val checkResult: MutableList<AstException> = mutableListOf()
-    private val heapStringSentinel: Int
+    private val heapIdSentinel: Int
     init {
         val stringSentinel = program.heap.allEntries().firstOrNull {it.value.str==""}
-        heapStringSentinel = stringSentinel?.key ?: program.heap.addString(DataType.STR, "")
+        heapIdSentinel = stringSentinel?.key ?: program.heap.addString(DataType.STR, "")
     }
 
     fun result(): List<AstException> {
@@ -367,7 +367,7 @@ internal class AstChecker(private val program: Program,
     }
 
     private fun processAssignmentTarget(assignment: Assignment, target: AssignTarget): Assignment {
-        val memAddr = target.memoryAddress?.addressExpression?.constValue(program)?.asIntegerValue
+        val memAddr = target.memoryAddress?.addressExpression?.constValue(program)?.number?.toInt()
         if(memAddr!=null) {
             if(memAddr<0 || memAddr>=65536)
                 checkResult.add(ExpressionError("address out of range", target.position))
@@ -417,15 +417,17 @@ internal class AstChecker(private val program: Program,
         if(targetDatatype!=null) {
             val constVal = assignment.value.constValue(program)
             if(constVal!=null) {
-                val targetVar =
-                        if(target.identifier!=null)
-                            program.namespace.lookup(target.identifier.nameInSource, assignment) as? VarDecl
-                        else
-                            null
-                val arrayspec = if(target.identifier!=null) targetVar?.arraysize else null
-                checkValueTypeAndRange(targetDatatype, targetVar?.struct,
-                        arrayspec ?: ArrayIndex(LiteralValue.optimalInteger(-1, assignment.position), assignment.position),
-                        constVal, program.heap)
+                checkValueTypeAndRange(targetDatatype, constVal)
+                // TODO what about arrays etc:
+//                val targetVar =
+//                        if(target.identifier!=null)
+//                            program.namespace.lookup(target.identifier.nameInSource, assignment) as? VarDecl
+//                        else
+//                            null
+//                val arrayspec = if(target.identifier!=null) targetVar?.arraysize else null
+//                checkValueTypeAndRange(targetDatatype, targetVar?.struct,
+//                        arrayspec ?: ArrayIndex(NumericLiteralValue.optimalInteger(-1, assignment.position), assignment.position),
+//                        constVal, program.heap)
             } else {
                 val sourceDatatype: DataType? = assignment.value.inferType(program)
                 if(sourceDatatype==null) {
@@ -490,7 +492,7 @@ internal class AstChecker(private val program: Program,
                 checkResult.add(SyntaxError("array variable is missing a size specification or an initialization value", decl.position))
                 return decl
             }
-            if(decl.value is LiteralValue && !(decl.value as LiteralValue).isArray) {
+            if(decl.value is NumericLiteralValue) {
                 checkResult.add(SyntaxError("unsized array declaration cannot use a single literal initialization value", decl.position))
                 return decl
             }
@@ -516,9 +518,9 @@ internal class AstChecker(private val program: Program,
                             // initialize numeric var with value zero by default.
                             val litVal =
                                     when {
-                                        decl.datatype in ByteDatatypes -> LiteralValue(decl.datatype, bytevalue = 0, position = decl.position)
-                                        decl.datatype in WordDatatypes -> LiteralValue(decl.datatype, wordvalue = 0, position = decl.position)
-                                        else -> LiteralValue(decl.datatype, floatvalue = 0.0, position = decl.position)
+                                        decl.datatype in ByteDatatypes -> NumericLiteralValue(decl.datatype, 0, decl.position)
+                                        decl.datatype in WordDatatypes -> NumericLiteralValue(decl.datatype, 0, decl.position)
+                                        else -> NumericLiteralValue(decl.datatype, 0.0, decl.position)
                                     }
                             litVal.parent = decl
                             decl.value = litVal
@@ -526,29 +528,34 @@ internal class AstChecker(private val program: Program,
                         decl.datatype == DataType.STRUCT -> {
                             // TODO structs are not initialized with a literal value yet, should be an array of zeros!
                         }
-                        decl.type== VarDeclType.VAR -> {
-                            val litVal = LiteralValue(decl.datatype, initHeapId = heapStringSentinel, position = decl.position)    // point to the sentinel heap value instead
-                            litVal.parent=decl
-                            decl.value = litVal
+                        decl.type == VarDeclType.VAR -> {
+                            // TODO is an array declaration without an intialization value
+                            TODO("$decl")
+//                            val litVal = ReferenceLiteralValue(decl.datatype, initHeapId = heapIdSentinel, position = decl.position)    // point to the sentinel heap value instead
+//                            litVal.parent = decl
+//                            decl.value = litVal
                         }
                         else -> err("var/const declaration needs a compile-time constant initializer value for type ${decl.datatype}")
                         // const fold should have provided it!
                     }
                     return super.visit(decl)
                 }
-                when {
-                    decl.value is RangeExpr -> {
+                when(decl.value) {
+                    is RangeExpr -> {
                         if(decl.arraysize!=null)
                             checkValueTypeAndRange(decl.datatype, decl.arraysize!!, decl.value as RangeExpr)
                     }
-                    decl.value is LiteralValue -> {
+                    is ReferenceLiteralValue -> {
                         val arraySpec = decl.arraysize ?: (
-                                if((decl.value as LiteralValue).isArray)
-                                    ArrayIndex.forArray(decl.value as LiteralValue, program.heap)
+                                if((decl.value as ReferenceLiteralValue).isArray)
+                                    ArrayIndex.forArray(decl.value as ReferenceLiteralValue, program.heap)
                                 else
-                                    ArrayIndex(LiteralValue.optimalInteger(-2, decl.position), decl.position)
+                                    ArrayIndex(NumericLiteralValue.optimalInteger(-2, decl.position), decl.position)
                                 )
-                        checkValueTypeAndRange(decl.datatype, decl.struct, arraySpec, decl.value as LiteralValue, program.heap)
+                        checkValueTypeAndRange(decl.datatype, decl.struct, arraySpec, decl.value as ReferenceLiteralValue, program.heap)
+                    }
+                    is NumericLiteralValue -> {
+                        checkValueTypeAndRange(decl.datatype, decl.value as NumericLiteralValue)
                     }
                     else -> {
                         err("var/const declaration needs a compile-time constant initializer value, or range, instead found: ${decl.value!!.javaClass.simpleName}")
@@ -573,11 +580,11 @@ internal class AstChecker(private val program: Program,
                     }
                 }
 
-                if(decl.value !is LiteralValue) {
-                    err("value of memory var decl is not a literal (it is a ${decl.value!!.javaClass.simpleName}).", decl.value?.position)
+                if(decl.value !is NumericLiteralValue) {
+                    err("value of memory var decl is not a numeric literal (it is a ${decl.value!!.javaClass.simpleName}).", decl.value?.position)
                 } else {
-                    val value = decl.value as LiteralValue
-                    if (value.asIntegerValue == null || value.asIntegerValue< 0 || value.asIntegerValue > 65535) {
+                    val value = decl.value as NumericLiteralValue
+                    if (value.type !in IntegerDatatypes || value.number.toInt() < 0 || value.number.toInt() > 65535) {
                         err("memory address must be valid integer 0..\$ffff")
                     }
                 }
@@ -672,18 +679,18 @@ internal class AstChecker(private val program: Program,
             checkResult.add(NameError("included file not found: $filename", directive.position))
     }
 
-    override fun visit(literalValue: LiteralValue): LiteralValue {
-        if(!compilerOptions.floats && literalValue.type in setOf(DataType.FLOAT, DataType.ARRAY_F)) {
-            checkResult.add(SyntaxError("floating point used, but that is not enabled via options", literalValue.position))
+    override fun visit(refLiteral: ReferenceLiteralValue): ReferenceLiteralValue {
+        if(!compilerOptions.floats && refLiteral.type in setOf(DataType.FLOAT, DataType.ARRAY_F)) {
+            checkResult.add(SyntaxError("floating point used, but that is not enabled via options", refLiteral.position))
         }
         val arrayspec =
-                if(literalValue.isArray)
-                    ArrayIndex.forArray(literalValue, program.heap)
+                if(refLiteral.isArray)
+                    ArrayIndex.forArray(refLiteral, program.heap)
                 else
-                    ArrayIndex(LiteralValue.optimalInteger(-3, literalValue.position), literalValue.position)
-        checkValueTypeAndRange(literalValue.type, null, arrayspec, literalValue, program.heap)
+                    ArrayIndex(NumericLiteralValue.optimalInteger(-3, refLiteral.position), refLiteral.position)
+        checkValueTypeAndRange(refLiteral.type, null, arrayspec, refLiteral, program.heap)
 
-        val lv = super.visit(literalValue)
+        val lv = super.visit(refLiteral)
         when(lv.type) {
             in StringDatatypes -> {
                 if(lv.heapId==null)
@@ -715,7 +722,7 @@ internal class AstChecker(private val program: Program,
         when(expr.operator){
             "/", "%" -> {
                 val constvalRight = expr.right.constValue(program)
-                val divisor = constvalRight?.asNumericValue?.toDouble()
+                val divisor = constvalRight?.number?.toDouble()
                 if(divisor==0.0)
                     checkResult.add(ExpressionError("division by zero", expr.right.position))
                 if(expr.operator=="%") {
@@ -733,7 +740,7 @@ internal class AstChecker(private val program: Program,
                     checkResult.add(ExpressionError("logical operator can only be used on boolean operands", expr.right.position))
                 val constLeft = expr.left.constValue(program)
                 val constRight = expr.right.constValue(program)
-                if(constLeft!=null && constLeft.asIntegerValue !in 0..1 || constRight!=null && constRight.asIntegerValue !in 0..1)
+                if(constLeft!=null && constLeft.number.toInt() !in 0..1 || constRight!=null && constRight.number.toInt() !in 0..1)
                     checkResult.add(ExpressionError("const literal argument of logical operator must be boolean (0 or 1)", expr.position))
             }
             "&", "|", "^" -> {
@@ -763,34 +770,37 @@ internal class AstChecker(private val program: Program,
         super.visit(range)
         val from = range.from.constValue(program)
         val to = range.to.constValue(program)
-        val stepLv = range.step.constValue(program) ?: LiteralValue(DataType.UBYTE, 1, position = range.position)
-        if (stepLv.asIntegerValue == null || stepLv.asIntegerValue == 0) {
+        val stepLv = range.step.constValue(program) ?: NumericLiteralValue(DataType.UBYTE, 1, range.position)
+        if (stepLv.type !in IntegerDatatypes || stepLv.number.toInt() == 0) {
             err("range step must be an integer != 0")
             return range
         }
-        val step = stepLv.asIntegerValue
+        val step = stepLv.number.toInt()
         if(from!=null && to != null) {
             when {
-                from.asIntegerValue!=null && to.asIntegerValue!=null -> {
-                    if(from.asIntegerValue == to.asIntegerValue)
+                from.type in IntegerDatatypes && to.type in IntegerDatatypes -> {
+                    val fromValue = from.number.toInt()
+                    val toValue = to.number.toInt()
+                    if(fromValue== toValue)
                         printWarning("range is just a single value, don't use a loop here", range.position)
-                    else if(from.asIntegerValue < to.asIntegerValue && step<=0)
+                    else if(fromValue < toValue && step<=0)
                         err("ascending range requires step > 0")
-                    else if(from.asIntegerValue > to.asIntegerValue && step>=0)
+                    else if(fromValue > toValue && step>=0)
                         err("descending range requires step < 0")
                 }
-                from.isString && to.isString -> {
-                    val fromString = from.strvalue!!
-                    val toString = to.strvalue!!
-                    if(fromString.length!=1 || toString.length!=1)
-                        err("range from and to must be a single character")
-                    if(fromString[0] == toString[0])
-                        printWarning("range contains just a single character", range.position)
-                    else if(fromString[0] < toString[0] && step<=0)
-                        err("ascending range requires step > 0")
-                    else if(fromString[0] > toString[0] && step>=0)
-                        err("descending range requires step < 0")
-                }
+                // TODO range over single-character strings (... or have they been converted to byte literals already?)
+//                from.isString && to.isString -> {
+//                    val fromString = from.strvalue!!
+//                    val toString = to.strvalue!!
+//                    if(fromString.length!=1 || toString.length!=1)
+//                        err("range from and to must be a single character")
+//                    if(fromString[0] == toString[0])
+//                        printWarning("range contains just a single character", range.position)
+//                    else if(fromString[0] < toString[0] && step<=0)
+//                        err("ascending range requires step > 0")
+//                    else if(fromString[0] > toString[0] && step>=0)
+//                        err("descending range requires step < 0")
+//                }
                 else -> err("range expression must be over integers or over characters")
             }
         }
@@ -865,7 +875,7 @@ internal class AstChecker(private val program: Program,
 
                     if(target.isAsmSubroutine) {
                         if (target.asmParameterRegisters[arg.first.index].registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.XY, RegisterOrPair.X)) {
-                            if (arg.first.value !is LiteralValue && arg.first.value !is IdentifierReference)
+                            if (arg.first.value !is NumericLiteralValue && arg.first.value !is IdentifierReference)
                                 printWarning("calling a subroutine that expects X as a parameter is problematic, more so when providing complex arguments. If you see a compiler error/crash about this later, try to simplify this call", position)
                         }
 
@@ -924,14 +934,14 @@ internal class AstChecker(private val program: Program,
             val arraysize = target.arraysize?.size()
             if(arraysize!=null) {
                 // check out of bounds
-                val index = (arrayIndexedExpression.arrayspec.index as? LiteralValue)?.asIntegerValue
+                val index = (arrayIndexedExpression.arrayspec.index as? NumericLiteralValue)?.number?.toInt()
                 if(index!=null && (index<0 || index>=arraysize))
                     checkResult.add(ExpressionError("array index out of bounds", arrayIndexedExpression.arrayspec.position))
             } else if(target.datatype in StringDatatypes) {
                 // check string lengths
-                val heapId = (target.value as LiteralValue).heapId!!
+                val heapId = (target.value as ReferenceLiteralValue).heapId!!
                 val stringLen = program.heap.get(heapId).str!!.length
-                val index = (arrayIndexedExpression.arrayspec.index as? LiteralValue)?.asIntegerValue
+                val index = (arrayIndexedExpression.arrayspec.index as? NumericLiteralValue)?.number?.toInt()
                 if(index!=null && (index<0 || index>=stringLen))
                     checkResult.add(ExpressionError("index out of bounds", arrayIndexedExpression.arrayspec.position))
             }
@@ -999,86 +1009,47 @@ internal class AstChecker(private val program: Program,
                 checkResult.add(SyntaxError("can't assign a range to a scalar type", range.position))
                 return false
             }
-            in StringDatatypes -> {
-                // range check bytes (chars)
-                if(!from.isString || !to.isString) {
-                    checkResult.add(ExpressionError("range for string must have single characters from and to values", range.position))
-                    return false
-                }
-                val rangeSize=range.size()
-                if(rangeSize!=null && (rangeSize<0 || rangeSize>255)) {
-                    checkResult.add(ExpressionError("size of range for string must be 0..255, instead of $rangeSize", range.position))
-                    return false
-                }
-                return true
+            in PassByReferenceDatatypes -> {
+                TODO("reference type range check $targetDt")
             }
-            in ArrayDatatypes -> {
-                // range and length check bytes
-                val expectedSize = arrayspec.size()
-                val rangeSize=range.size()
-                if(rangeSize!=null && rangeSize != expectedSize) {
-                    checkResult.add(ExpressionError("range size doesn't match array size, expected $expectedSize found $rangeSize", range.position))
-                    return false
-                }
-                return true
-            }
+//            in StringDatatypes -> {
+//                // range check bytes (chars)
+//                if(!from.isString || !to.isString) {
+//                    checkResult.add(ExpressionError("range for string must have single characters from and to values", range.position))
+//                    return false
+//                }
+//                val rangeSize=range.size()
+//                if(rangeSize!=null && (rangeSize<0 || rangeSize>255)) {
+//                    checkResult.add(ExpressionError("size of range for string must be 0..255, instead of $rangeSize", range.position))
+//                    return false
+//                }
+//                return true
+//            }
+//            in ArrayDatatypes -> {
+//                // range and length check bytes
+//                val expectedSize = arrayspec.size()
+//                val rangeSize=range.size()
+//                if(rangeSize!=null && rangeSize != expectedSize) {
+//                    checkResult.add(ExpressionError("range size doesn't match array size, expected $expectedSize found $rangeSize", range.position))
+//                    return false
+//                }
+//                return true
+//            }
             else -> throw FatalAstException("invalid targetDt")
         }
     }
 
     private fun checkValueTypeAndRange(targetDt: DataType, struct: StructDecl?,
-                                       arrayspec: ArrayIndex, value: LiteralValue, heap: HeapValues) : Boolean {
+                                       arrayspec: ArrayIndex, value: ReferenceLiteralValue, heap: HeapValues) : Boolean {
         fun err(msg: String) : Boolean {
             checkResult.add(ExpressionError(msg, value.position))
             return false
         }
         when (targetDt) {
-            DataType.FLOAT -> {
-                val number = when(value.type) {
-                    in ByteDatatypes -> value.bytevalue!!.toDouble()
-                    in WordDatatypes -> value.wordvalue!!.toDouble()
-                    DataType.FLOAT -> value.floatvalue!!
-                    else -> return err("numeric value expected")
-                }
-                if (number > 1.7014118345e+38 || number < -1.7014118345e+38)
-                    return err("value '$number' out of range for MFLPT format")
-            }
-            DataType.UBYTE -> {
-                val number = value.asIntegerValue ?: return if (value.floatvalue!=null)
-                    err("unsigned byte value expected instead of float; possible loss of precision")
-                else
-                    err("unsigned byte value expected")
-                if (number < 0 || number > 255)
-                    return err("value '$number' out of range for unsigned byte")
-            }
-            DataType.BYTE -> {
-                val number = value.asIntegerValue ?: return if (value.floatvalue!=null)
-                    err("byte value expected instead of float; possible loss of precision")
-                else
-                    err("byte value expected")
-                if (number < -128 || number > 127)
-                    return err("value '$number' out of range for byte")
-            }
-            DataType.UWORD -> {
-                val number = value.asIntegerValue ?: return if (value.floatvalue!=null)
-                    err("unsigned word value expected instead of float; possible loss of precision")
-                else
-                    err("unsigned word value or address expected")
-                if (number < 0 || number > 65535)
-                    return err("value '$number' out of range for unsigned word")
-            }
-            DataType.WORD -> {
-                val number = value.asIntegerValue ?: return if (value.floatvalue!=null)
-                    err("word value expected instead of float; possible loss of precision")
-                else
-                    err("word value expected")
-                if (number < -32768 || number > 32767)
-                    return err("value '$number' out of range for word")
-            }
-            DataType.STR, DataType.STR_S -> {
+            in StringDatatypes -> {
                 if(!value.isString)
                     return err("string value expected")
-                if (value.strvalue!!.length > 255)
+                if (value.str!!.length > 255)
                     return err("string length must be 0-255")
             }
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
@@ -1087,14 +1058,14 @@ internal class AstChecker(private val program: Program,
                     if(!checkArrayValues(value, targetDt))
                         return false
                     val arraySpecSize = arrayspec.size()
-                    val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).arraysize
+                    val arraySize = value.array?.size ?: heap.get(value.heapId!!).arraysize
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize<1 || arraySpecSize>256)
                             return err("byte array length must be 1-256")
                         val constX = arrayspec.index.constValue(program)
-                        if(constX?.asIntegerValue==null)
+                        if(constX?.type !in IntegerDatatypes)
                             return err("array size specifier must be constant integer value")
-                        val expectedSize = constX.asIntegerValue
+                        val expectedSize = constX!!.number.toInt()
                         if (arraySize != expectedSize)
                             return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
                         return true
@@ -1109,14 +1080,14 @@ internal class AstChecker(private val program: Program,
                     if(!checkArrayValues(value, targetDt))
                         return false
                     val arraySpecSize = arrayspec.size()
-                    val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).arraysize
+                    val arraySize = value.array?.size ?: heap.get(value.heapId!!).arraysize
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize<1 || arraySpecSize>128)
                             return err("word array length must be 1-128")
                         val constX = arrayspec.index.constValue(program)
-                        if(constX?.asIntegerValue==null)
+                        if(constX?.type !in IntegerDatatypes)
                             return err("array size specifier must be constant integer value")
-                        val expectedSize = constX.asIntegerValue
+                        val expectedSize = constX!!.number.toInt()
                         if (arraySize != expectedSize)
                             return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
                         return true
@@ -1130,23 +1101,23 @@ internal class AstChecker(private val program: Program,
                 if(value.type==targetDt) {
                     if(!checkArrayValues(value, targetDt))
                         return false
-                    val arraySize = value.arrayvalue?.size ?: heap.get(value.heapId!!).doubleArray!!.size
+                    val arraySize = value.array?.size ?: heap.get(value.heapId!!).doubleArray!!.size
                     val arraySpecSize = arrayspec.size()
                     if(arraySpecSize!=null && arraySpecSize>0) {
                         if(arraySpecSize < 1 || arraySpecSize>51)
                             return err("float array length must be 1-51")
                         val constX = arrayspec.index.constValue(program)
-                        if(constX?.asIntegerValue==null)
+                        if(constX?.type !in IntegerDatatypes)
                             return err("array size specifier must be constant integer value")
-                        val expectedSize = constX.asIntegerValue
+                        val expectedSize = constX!!.number.toInt()
                         if (arraySize != expectedSize)
                             return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
                     } else
                         return err("invalid float array size, must be 1-51")
 
                     // check if the floating point values are all within range
-                    val doubles = if(value.arrayvalue!=null)
-                        value.arrayvalue.map {it.constValue(program)?.asNumericValue!!.toDouble()}.toDoubleArray()
+                    val doubles = if(value.array!=null)
+                        value.array.map {it.constValue(program)?.number!!.toDouble()}.toDoubleArray()
                     else
                         heap.get(value.heapId!!).doubleArray!!
                     if(doubles.any { it < FLOAT_MAX_NEGATIVE || it> FLOAT_MAX_POSITIVE })
@@ -1157,9 +1128,9 @@ internal class AstChecker(private val program: Program,
             }
             DataType.STRUCT -> {
                 if(value.type in ArrayDatatypes) {
-                    if(value.arrayvalue!!.size != struct!!.numberOfElements)
+                    if(value.array!!.size != struct!!.numberOfElements)
                         return err("number of values is not the same as the number of members in the struct")
-                    for(elt in value.arrayvalue.zip(struct.statements)) {
+                    for(elt in value.array.zip(struct.statements)) {
                         val vardecl = elt.second as VarDecl
                         val valuetype = elt.first.inferType(program)!!
                         if (!(valuetype isAssignableTo vardecl.datatype)) {
@@ -1171,27 +1142,72 @@ internal class AstChecker(private val program: Program,
                 }
                 return false
             }
+            else -> return false
         }
         return true
     }
 
-    private fun checkArrayValues(value: LiteralValue, type: DataType): Boolean {
+    private fun checkValueTypeAndRange(targetDt: DataType, value: NumericLiteralValue) : Boolean {
+        fun err(msg: String) : Boolean {
+            checkResult.add(ExpressionError(msg, value.position))
+            return false
+        }
+        when (targetDt) {
+            DataType.FLOAT -> {
+                val number=value.number.toDouble()
+                if (number > 1.7014118345e+38 || number < -1.7014118345e+38)
+                    return err("value '$number' out of range for MFLPT format")
+            }
+            DataType.UBYTE -> {
+                if(value.type==DataType.FLOAT)
+                    err("unsigned byte value expected instead of float; possible loss of precision")
+                val number=value.number.toInt()
+                if (number < 0 || number > 255)
+                    return err("value '$number' out of range for unsigned byte")
+            }
+            DataType.BYTE -> {
+                if(value.type==DataType.FLOAT)
+                    err("byte value expected instead of float; possible loss of precision")
+                val number=value.number.toInt()
+                if (number < -128 || number > 127)
+                    return err("value '$number' out of range for byte")
+            }
+            DataType.UWORD -> {
+                if(value.type==DataType.FLOAT)
+                    err("unsigned word value expected instead of float; possible loss of precision")
+                val number=value.number.toInt()
+                if (number < 0 || number > 65535)
+                    return err("value '$number' out of range for unsigned word")
+            }
+            DataType.WORD -> {
+                if(value.type==DataType.FLOAT)
+                    err("word value expected instead of float; possible loss of precision")
+                val number=value.number.toInt()
+                if (number < -32768 || number > 32767)
+                    return err("value '$number' out of range for word")
+            }
+            else -> return false
+        }
+        return true
+    }
+
+    private fun checkArrayValues(value: ReferenceLiteralValue, type: DataType): Boolean {
         if(value.isArray && value.heapId==null) {
             // TODO weird, array literal that hasn't been moved to the heap yet?
-            val array = value.arrayvalue!!.map { it.constValue(program)!! }
+            val array = value.array!!.map { it.constValue(program)!! }
             val correct: Boolean
             when(type) {
                 DataType.ARRAY_UB -> {
-                    correct=array.all { it.bytevalue!=null && it.bytevalue in 0..255 }
+                    correct=array.all { it.type==DataType.UBYTE && it.number.toInt() in 0..255 }
                 }
                 DataType.ARRAY_B -> {
-                    correct=array.all { it.bytevalue!=null && it.bytevalue in -128..127 }
+                    correct=array.all { it.type==DataType.BYTE && it.number.toInt() in -128..127 }
                 }
                 DataType.ARRAY_UW -> {
-                    correct=array.all { it.wordvalue!=null && it.wordvalue in 0..65535 }
+                    correct=array.all { it.type==DataType.UWORD && it.number.toInt() in 0..65535 }
                 }
                 DataType.ARRAY_W -> {
-                    correct=array.all { it.wordvalue!=null && it.wordvalue in -32768..32767}
+                    correct=array.all { it.type==DataType.WORD && it.number.toInt() in -32768..32767}
                 }
                 DataType.ARRAY_F -> correct = true
                 else -> throw AstException("invalid array type $type")
@@ -1202,19 +1218,22 @@ internal class AstChecker(private val program: Program,
         }
 
         val array = program.heap.get(value.heapId!!)
+        if(array.type !in ArrayDatatypes || array.array==null)
+            throw FatalAstException("should have an array in the heapvar $array")
+
         val correct: Boolean
         when(type) {
             DataType.ARRAY_UB -> {
-                correct=array.array!=null && array.array.all { it.integer!=null && it.integer in 0..255 }
+                correct= array.array.all { it.integer!=null && it.integer in 0..255 }
             }
             DataType.ARRAY_B -> {
-                correct=array.array!=null && array.array.all { it.integer!=null && it.integer in -128..127 }
+                correct=array.array.all { it.integer!=null && it.integer in -128..127 }
             }
             DataType.ARRAY_UW -> {
-                correct=array.array!=null && array.array.all { (it.integer!=null && it.integer in 0..65535)  || it.addressOf!=null}
+                correct=array.array.all { (it.integer!=null && it.integer in 0..65535)  || it.addressOf!=null}
             }
             DataType.ARRAY_W -> {
-                correct=array.array!=null && array.array.all { it.integer!=null && it.integer in -32768..32767 }
+                correct=array.array.all { it.integer!=null && it.integer in -32768..32767 }
             }
             DataType.ARRAY_F -> correct = array.doubleArray!=null
             else -> throw AstException("invalid array type $type")

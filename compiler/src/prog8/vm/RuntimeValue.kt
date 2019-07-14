@@ -1,7 +1,8 @@
 package prog8.vm
 
 import prog8.ast.base.*
-import prog8.ast.expressions.LiteralValue
+import prog8.ast.expressions.NumericLiteralValue
+import prog8.ast.expressions.ReferenceLiteralValue
 import prog8.ast.statements.StructDecl
 import prog8.ast.statements.ZeropageWish
 import prog8.compiler.HeapValues
@@ -11,7 +12,7 @@ import kotlin.math.pow
 
 
 /**
- * Rather than a literal value (LiteralValue) that occurs in the parsed source code,
+ * Rather than a literal value (NumericLiteralValue) that occurs in the parsed source code,
  * this runtime value can be used to *execute* the parsed Ast (or another intermediary form)
  * It contains a value of a variable during run time of the program and provides arithmetic operations on the value.
  */
@@ -24,16 +25,19 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
     val asBoolean: Boolean
 
     companion object {
-        fun from(literalValue: LiteralValue, heap: HeapValues): RuntimeValue {
+        fun fromLv(literalValue: NumericLiteralValue): RuntimeValue {
+            return RuntimeValue(literalValue.type, num = literalValue.number)
+        }
+
+        fun fromLv(literalValue: ReferenceLiteralValue, heap: HeapValues): RuntimeValue {
             return when(literalValue.type) {
-                in NumericDatatypes -> RuntimeValue(literalValue.type, num = literalValue.asNumericValue!!)
-                in StringDatatypes -> from(literalValue.heapId!!, heap)
-                in ArrayDatatypes -> from(literalValue.heapId!!, heap)
+                in StringDatatypes -> fromHeapId(literalValue.heapId!!, heap)
+                in ArrayDatatypes -> fromHeapId(literalValue.heapId!!, heap)
                 else -> throw IllegalArgumentException("weird source value $literalValue")
             }
         }
 
-        fun from(heapId: Int, heap: HeapValues): RuntimeValue {
+        fun fromHeapId(heapId: Int, heap: HeapValues): RuntimeValue {
             val value = heap.get(heapId)
             return when {
                 value.type in StringDatatypes ->
@@ -115,15 +119,16 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
         }
     }
 
-    fun asLiteralValue(): LiteralValue {
+    fun asNumericLiteralValue(): NumericLiteralValue {
         return when(type) {
-            in ByteDatatypes -> LiteralValue(type, byteval, position = Position("", 0, 0, 0))
-            in WordDatatypes -> LiteralValue(type, wordvalue = wordval, position = Position("", 0, 0, 0))
-            DataType.FLOAT -> LiteralValue(type, floatvalue = floatval, position = Position("", 0, 0, 0))
-            in StringDatatypes -> LiteralValue(type, strvalue = str, position = Position("", 0, 0, 0))
-            in ArrayDatatypes -> LiteralValue(type,
-                    arrayvalue = array?.map { LiteralValue.optimalNumeric(it, Position("", 0, 0, 0)) }?.toTypedArray(),
-                    position = Position("", 0, 0, 0))
+            in ByteDatatypes -> NumericLiteralValue(type, byteval!!, Position("", 0, 0, 0))
+            in WordDatatypes -> NumericLiteralValue(type, wordval!!, Position("", 0, 0, 0))
+            DataType.FLOAT -> NumericLiteralValue(type, floatval!!, Position("", 0, 0, 0))
+            in PassByReferenceDatatypes -> TODO("passbyref???")
+//            in StringDatatypes -> NumericLiteralValue(type, strvalue = str, Position("", 0, 0, 0))
+//            in ArrayDatatypes -> NumericLiteralValue(type,
+//                    arrayvalue = array?.map { NumericLiteralValue.optimalNumeric(it, Position("", 0, 0, 0)) }?.toTypedArray(),
+//                    Position("", 0, 0, 0))
             else -> throw IllegalArgumentException("weird source value $this")
         }
     }
