@@ -242,6 +242,24 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
             }
         }
 
+        if(assignment.aug_op!=null) {
+            // transform augmented assignment into normal assignment so we have one case less to deal with later
+            val newTarget: IExpression =
+                    when {
+                        assignment.target.register != null -> RegisterExpr(assignment.target.register!!, assignment.target.position)
+                        assignment.target.identifier != null -> assignment.target.identifier!!
+                        assignment.target.arrayindexed != null -> assignment.target.arrayindexed!!
+                        assignment.target.memoryAddress != null -> DirectMemoryRead(assignment.target.memoryAddress!!.addressExpression, assignment.value.position)
+                        else -> throw FatalAstException("strange assignment")
+                    }
+
+            val expression = BinaryExpression(newTarget, assignment.aug_op.substringBeforeLast('='), assignment.value, assignment.position)
+            expression.linkParents(assignment.parent)
+            val convertedAssignment = Assignment(assignment.target, null, expression, assignment.position)
+            convertedAssignment.linkParents(assignment.parent)
+            return super.visit(convertedAssignment)
+        }
+
         return super.visit(assignment)
     }
 

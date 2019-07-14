@@ -514,7 +514,6 @@ class ReferenceLiteralValue(val type: DataType,     // only reference types allo
     }
 
     fun addToHeap(heap: HeapValues) {
-        println("-->adding to HEAP: $this  ${this.position}")  // TODO
         if(heapId==null) {
             if (str != null) {
                 heapId = heap.addString(type, str)

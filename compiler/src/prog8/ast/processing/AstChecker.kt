@@ -13,7 +13,7 @@ import prog8.functions.BuiltinFunctions
 import java.io.File
 
 internal class AstChecker(private val program: Program,
-                         private val compilerOptions: CompilationOptions) : IAstModifyingVisitor {
+                          private val compilerOptions: CompilationOptions) : IAstVisitor {
     private val checkResult: MutableList<AstException> = mutableListOf()
     private val heapIdSentinel: Int
     init {
@@ -88,7 +88,7 @@ internal class AstChecker(private val program: Program,
         }
     }
 
-    override fun visit(returnStmt: Return): IStatement {
+    override fun visit(returnStmt: Return) {
         val expectedReturnValues = returnStmt.definingSubroutine()?.returntypes ?: emptyList()
         if(expectedReturnValues.size>1) {
             throw AstException("cannot use a return with one value in a subroutine that has multiple return values: $returnStmt")
@@ -105,10 +105,10 @@ internal class AstChecker(private val program: Program,
             if(expectedReturnValues[0]!=valueDt)
                 checkResult.add(ExpressionError("type $valueDt of return value doesn't match subroutine's return type", returnStmt.value!!.position))
         }
-        return super.visit(returnStmt)
+        super.visit(returnStmt)
     }
 
-    override fun visit(forLoop: ForLoop): IStatement {
+    override fun visit(forLoop: ForLoop) {
         if(forLoop.body.containsNoCodeNorVars())
             printWarning("for loop body is empty", forLoop.position)
 
@@ -155,10 +155,10 @@ internal class AstChecker(private val program: Program,
                 }
             }
         }
-        return super.visit(forLoop)
+        super.visit(forLoop)
     }
 
-    override fun visit(jump: Jump): IStatement {
+    override fun visit(jump: Jump) {
         if(jump.identifier!=null) {
             val targetStatement = checkFunctionOrLabelExists(jump.identifier, jump)
             if(targetStatement!=null) {
@@ -169,29 +169,26 @@ internal class AstChecker(private val program: Program,
 
         if(jump.address!=null && (jump.address < 0 || jump.address > 65535))
             checkResult.add(SyntaxError("jump address must be valid integer 0..\$ffff", jump.position))
-        return super.visit(jump)
+        super.visit(jump)
     }
 
-    override fun visit(block: Block): IStatement {
+    override fun visit(block: Block) {
         if(block.address!=null && (block.address<0 || block.address>65535)) {
             checkResult.add(SyntaxError("block memory address must be valid integer 0..\$ffff", block.position))
         }
 
-        return super.visit(block)
+        super.visit(block)
     }
 
-    override fun visit(label: Label): IStatement {
+    override fun visit(label: Label) {
         // scope check
         if(label.parent !is Block && label.parent !is Subroutine && label.parent !is AnonymousScope) {
             checkResult.add(SyntaxError("Labels can only be defined in the scope of a block, a loop body, or within another subroutine", label.position))
         }
-        return super.visit(label)
+        super.visit(label)
     }
 
-    /**
-     * Check subroutine definition
-     */
-    override fun visit(subroutine: Subroutine): IStatement {
+    override fun visit(subroutine: Subroutine) {
         fun err(msg: String) {
             checkResult.add(SyntaxError(msg, subroutine.position))
         }
@@ -315,33 +312,28 @@ internal class AstChecker(private val program: Program,
                 err("Non-asm subroutine can only take numerical parameters (no str/array types) for now. Workaround (for nested subroutine): access the variable from the outer scope directly.")
             }
         }
-        return subroutine
     }
 
-    override fun visit(repeatLoop: RepeatLoop): IStatement {
+    override fun visit(repeatLoop: RepeatLoop) {
         if(repeatLoop.untilCondition.referencesIdentifiers("A", "X", "Y"))
             printWarning("using a register in the loop condition is risky (it could get clobbered)", repeatLoop.untilCondition.position)
-        return super.visit(repeatLoop)
+        super.visit(repeatLoop)
     }
 
-    override fun visit(whileLoop: WhileLoop): IStatement {
+    override fun visit(whileLoop: WhileLoop) {
         if(whileLoop.condition.referencesIdentifiers("A", "X", "Y"))
             printWarning("using a register in the loop condition is risky (it could get clobbered)", whileLoop.condition.position)
-        return super.visit(whileLoop)
+        super.visit(whileLoop)
     }
 
-    /**
-     * Assignment target must be register, or a variable name
-     * Also check data type compatibility and number of values
-     */
-    override fun visit(assignment: Assignment): IStatement {
+    override fun visit(assignment: Assignment) {
 
         // assigning from a functioncall COULD return multiple values (from an asm subroutine)
         if(assignment.value is FunctionCall) {
             val stmt = (assignment.value as FunctionCall).target.targetStatement(program.namespace)
             if (stmt is Subroutine && stmt.isAsmSubroutine) {
                 if(stmt.returntypes.size>1)
-                    checkResult.add(ExpressionError("It's not possible to store the multipel results of this asmsub call; you should use a small block of custom inline assembly for this.", assignment.value.position))
+                    checkResult.add(ExpressionError("It's not possible to store the multiple results of this asmsub call; you should use a small block of custom inline assembly for this.", assignment.value.position))
                 else {
                     if(stmt.returntypes.single()!=assignment.target.inferType(program, assignment)) {
                          checkResult.add(ExpressionError("return type mismatch", assignment.value.position))
@@ -361,59 +353,42 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        var resultingAssignment = assignment
-        resultingAssignment = processAssignmentTarget(resultingAssignment, assignment.target)
-        return super.visit(resultingAssignment)
+        super.visit(assignment)
     }
 
-    private fun processAssignmentTarget(assignment: Assignment, target: AssignTarget): Assignment {
-        val memAddr = target.memoryAddress?.addressExpression?.constValue(program)?.number?.toInt()
+    override fun visit(assignTarget: AssignTarget) {
+        val memAddr = assignTarget.memoryAddress?.addressExpression?.constValue(program)?.number?.toInt()
         if(memAddr!=null) {
             if(memAddr<0 || memAddr>=65536)
-                checkResult.add(ExpressionError("address out of range", target.position))
+                checkResult.add(ExpressionError("address out of range", assignTarget.position))
         }
 
-        if(target.identifier!=null) {
-            val targetName = target.identifier.nameInSource
+        val assignment = assignTarget.parent as Assignment
+        if(assignTarget.identifier!=null) {
+            val targetName = assignTarget.identifier.nameInSource
             val targetSymbol = program.namespace.lookup(targetName, assignment)
             when (targetSymbol) {
                 null -> {
                     checkResult.add(ExpressionError("undefined symbol: ${targetName.joinToString(".")}", assignment.position))
-                    return assignment
+                    return
                 }
                 !is VarDecl -> {
                     checkResult.add(SyntaxError("assignment LHS must be register or variable", assignment.position))
-                    return assignment
+                    return
                 }
                 else -> {
                     if(targetSymbol.type == VarDeclType.CONST) {
                         checkResult.add(ExpressionError("cannot assign new value to a constant", assignment.position))
-                        return assignment
+                        return
                     }
                 }
             }
         }
 
-        if(assignment.aug_op!=null) {
-            // check augmented assignment (and convert it into a normal assignment!)
-            // A /= 3  -> check as if it was A = A / 3
-            val newTarget: IExpression =
-                    when {
-                        target.register != null -> RegisterExpr(target.register, target.position)
-                        target.identifier != null -> target.identifier
-                        target.arrayindexed != null -> target.arrayindexed
-                        target.memoryAddress != null -> DirectMemoryRead(target.memoryAddress!!.addressExpression, assignment.value.position)
-                        else -> throw FatalAstException("strange assignment")
-                    }
+        if(assignment.aug_op!=null)
+            throw FatalAstException("augmented assignment should have been converted into normal assignment")
 
-            val expression = BinaryExpression(newTarget, assignment.aug_op.substringBeforeLast('='), assignment.value, assignment.position)
-            expression.linkParents(assignment.parent)
-            val assignment2 = Assignment(target, null, expression, assignment.position)
-            assignment2.linkParents(assignment.parent)
-            return assignment2
-        }
-
-        val targetDatatype = target.inferType(program, assignment)
+        val targetDatatype = assignTarget.inferType(program, assignment)
         if(targetDatatype!=null) {
             val constVal = assignment.value.constValue(program)
             if(constVal!=null) {
@@ -440,14 +415,13 @@ internal class AstChecker(private val program: Program,
                         checkResult.add(ExpressionError("assignment value is invalid or has no proper datatype", assignment.value.position))
                 }
                 else {
-                    checkAssignmentCompatible(targetDatatype, target, sourceDatatype, assignment.value, assignment.position)
+                    checkAssignmentCompatible(targetDatatype, assignTarget, sourceDatatype, assignment.value, assignment.position)
                 }
             }
         }
-        return assignment
     }
 
-    override fun visit(addressOf: AddressOf): IExpression {
+    override fun visit(addressOf: AddressOf) {
         val variable=addressOf.identifier.targetVarDecl(program.namespace)
         if(variable==null)
             checkResult.add(ExpressionError("pointer-of operand must be the name of a heap variable", addressOf.position))
@@ -457,13 +431,10 @@ internal class AstChecker(private val program: Program,
         }
         if(addressOf.scopedname==null)
             throw FatalAstException("the scopedname of AddressOf should have been set by now  $addressOf")
-        return super.visit(addressOf)
+        super.visit(addressOf)
     }
 
-    /**
-     * Check the variable declarations (values within range etc)
-     */
-    override fun visit(decl: VarDecl): IStatement {
+    override fun visit(decl: VarDecl) {
         fun err(msg: String, position: Position?=null) {
             checkResult.add(SyntaxError(msg, position ?: decl.position))
         }
@@ -490,11 +461,11 @@ internal class AstChecker(private val program: Program,
                 checkResult.add(SyntaxError("memory mapped array must have a size specification", decl.position))
             if(decl.value==null) {
                 checkResult.add(SyntaxError("array variable is missing a size specification or an initialization value", decl.position))
-                return decl
+                return
             }
             if(decl.value is NumericLiteralValue) {
                 checkResult.add(SyntaxError("unsized array declaration cannot use a single literal initialization value", decl.position))
-                return decl
+                return
             }
             if(decl.value is RangeExpr)
                 throw FatalAstException("range expressions in vardecls should have been converted into array values during constFolding  $decl")
@@ -526,19 +497,21 @@ internal class AstChecker(private val program: Program,
                             decl.value = litVal
                         }
                         decl.datatype == DataType.STRUCT -> {
-                            // TODO structs are not initialized with a literal value yet, should be an array of zeros!
+                            // structs may be initialized with an array, but it's okay to not initialize them as well.
                         }
                         decl.type == VarDeclType.VAR -> {
-                            // TODO is an array declaration without an intialization value
-                            TODO("$decl")
-//                            val litVal = ReferenceLiteralValue(decl.datatype, initHeapId = heapIdSentinel, position = decl.position)    // point to the sentinel heap value instead
-//                            litVal.parent = decl
-//                            decl.value = litVal
+                            if(decl.datatype in ArrayDatatypes) {
+                                // array declaration can have an optional initialization value
+                                // if it is absent, the size must be given, which should have been checked earlier
+                                if(decl.value==null && decl.arraysize==null)
+                                    throw FatalAstException("array init check failed")
+                            }
                         }
                         else -> err("var/const declaration needs a compile-time constant initializer value for type ${decl.datatype}")
                         // const fold should have provided it!
                     }
-                    return super.visit(decl)
+                    super.visit(decl)
+                    return
                 }
                 when(decl.value) {
                     is RangeExpr -> {
@@ -559,7 +532,8 @@ internal class AstChecker(private val program: Program,
                     }
                     else -> {
                         err("var/const declaration needs a compile-time constant initializer value, or range, instead found: ${decl.value!!.javaClass.simpleName}")
-                        return super.visit(decl)
+                        super.visit(decl)
+                        return
                     }
                 }
             }
@@ -591,13 +565,10 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        return super.visit(decl)
+        super.visit(decl)
     }
 
-    /**
-     * check the arguments of the directive
-     */
-    override fun visit(directive: Directive): IStatement {
+    override fun visit(directive: Directive) {
         fun err(msg: String) {
             checkResult.add(SyntaxError(msg, directive.position))
         }
@@ -668,7 +639,7 @@ internal class AstChecker(private val program: Program,
             }
             else -> throw SyntaxError("invalid directive ${directive.directive}", directive.position)
         }
-        return super.visit(directive)
+        super.visit(directive)
     }
 
     private fun checkFileExists(directive: Directive, filename: String) {
@@ -679,7 +650,7 @@ internal class AstChecker(private val program: Program,
             checkResult.add(NameError("included file not found: $filename", directive.position))
     }
 
-    override fun visit(refLiteral: ReferenceLiteralValue): ReferenceLiteralValue {
+    override fun visit(refLiteral: ReferenceLiteralValue) {
         if(!compilerOptions.floats && refLiteral.type in setOf(DataType.FLOAT, DataType.ARRAY_F)) {
             checkResult.add(SyntaxError("floating point used, but that is not enabled via options", refLiteral.position))
         }
@@ -690,32 +661,32 @@ internal class AstChecker(private val program: Program,
                     ArrayIndex(NumericLiteralValue.optimalInteger(-3, refLiteral.position), refLiteral.position)
         checkValueTypeAndRange(refLiteral.type, null, arrayspec, refLiteral, program.heap)
 
-        val lv = super.visit(refLiteral)
-        when(lv.type) {
+        super.visit(refLiteral)
+
+        when(refLiteral.type) {
             in StringDatatypes -> {
-                if(lv.heapId==null)
-                    throw FatalAstException("string should have been moved to heap at ${lv.position}")
+                if(refLiteral.heapId==null)
+                    throw FatalAstException("string should have been moved to heap at ${refLiteral.position}")
             }
             in ArrayDatatypes -> {
-                if(lv.heapId==null)
-                    throw FatalAstException("array should have been moved to heap at ${lv.position}")
+                if(refLiteral.heapId==null)
+                    throw FatalAstException("array should have been moved to heap at ${refLiteral.position}")
             }
             else -> {}
         }
-        return lv
     }
 
-    override fun visit(expr: PrefixExpression): IExpression {
+    override fun visit(expr: PrefixExpression) {
         if(expr.operator=="-") {
             val dt = expr.inferType(program)
             if (dt != DataType.BYTE && dt != DataType.WORD && dt != DataType.FLOAT) {
                 checkResult.add(ExpressionError("can only take negative of a signed number type", expr.position))
             }
         }
-        return super.visit(expr)
+        super.visit(expr)
     }
 
-    override fun visit(expr: BinaryExpression): IExpression {
+    override fun visit(expr: BinaryExpression) {
         val leftDt = expr.left.inferType(program)
         val rightDt = expr.right.inferType(program)
 
@@ -754,16 +725,16 @@ internal class AstChecker(private val program: Program,
             checkResult.add(ExpressionError("left operand is not numeric", expr.left.position))
         if(rightDt!in NumericDatatypes)
             checkResult.add(ExpressionError("right operand is not numeric", expr.right.position))
-        return super.visit(expr)
+        super.visit(expr)
     }
 
-    override fun visit(typecast: TypecastExpression): IExpression {
+    override fun visit(typecast: TypecastExpression) {
         if(typecast.type in IterableDatatypes)
             checkResult.add(ExpressionError("cannot type cast to string or array type", typecast.position))
-        return super.visit(typecast)
+        super.visit(typecast)
     }
 
-    override fun visit(range: RangeExpr): IExpression {
+    override fun visit(range: RangeExpr) {
         fun err(msg: String) {
             checkResult.add(SyntaxError(msg, range.position))
         }
@@ -773,7 +744,7 @@ internal class AstChecker(private val program: Program,
         val stepLv = range.step.constValue(program) ?: NumericLiteralValue(DataType.UBYTE, 1, range.position)
         if (stepLv.type !in IntegerDatatypes || stepLv.number.toInt() == 0) {
             err("range step must be an integer != 0")
-            return range
+            return
         }
         val step = stepLv.number.toInt()
         if(from!=null && to != null) {
@@ -804,10 +775,9 @@ internal class AstChecker(private val program: Program,
                 else -> err("range expression must be over integers or over characters")
             }
         }
-        return range
     }
 
-    override fun visit(functionCall: FunctionCall): IExpression {
+    override fun visit(functionCall: FunctionCall) {
         // this function call is (part of) an expression, which should be in a statement somewhere.
         val stmtOfExpression = findParentNode<IStatement>(functionCall)
                 ?: throw FatalAstException("cannot determine statement scope of function call expression at ${functionCall.position}")
@@ -815,10 +785,10 @@ internal class AstChecker(private val program: Program,
         val targetStatement = checkFunctionOrLabelExists(functionCall.target, stmtOfExpression)
         if(targetStatement!=null)
             checkFunctionCall(targetStatement, functionCall.arglist, functionCall.position)
-        return super.visit(functionCall)
+        super.visit(functionCall)
     }
 
-    override fun visit(functionCallStatement: FunctionCallStatement): IStatement {
+    override fun visit(functionCallStatement: FunctionCallStatement) {
         val targetStatement = checkFunctionOrLabelExists(functionCallStatement.target, functionCallStatement)
         if(targetStatement!=null)
             checkFunctionCall(targetStatement, functionCallStatement.arglist, functionCallStatement.position)
@@ -828,7 +798,7 @@ internal class AstChecker(private val program: Program,
             else
                 printWarning("result values of subroutine call are discarded", functionCallStatement.position)
         }
-        return super.visit(functionCallStatement)
+        super.visit(functionCallStatement)
     }
 
     private fun checkFunctionCall(target: IStatement, args: List<IExpression>, position: Position) {
@@ -897,7 +867,7 @@ internal class AstChecker(private val program: Program,
         }
     }
 
-    override fun visit(postIncrDecr: PostIncrDecr): IStatement {
+    override fun visit(postIncrDecr: PostIncrDecr) {
         if(postIncrDecr.target.identifier != null) {
             val targetName = postIncrDecr.target.identifier!!.nameInSource
             val target = program.namespace.lookup(targetName, postIncrDecr)
@@ -923,10 +893,10 @@ internal class AstChecker(private val program: Program,
         } else if(postIncrDecr.target.memoryAddress != null) {
             // a memory location can always be ++/--
         }
-        return super.visit(postIncrDecr)
+        super.visit(postIncrDecr)
     }
 
-    override fun visit(arrayIndexedExpression: ArrayIndexedExpression): IExpression {
+    override fun visit(arrayIndexedExpression: ArrayIndexedExpression) {
         val target = arrayIndexedExpression.identifier.targetStatement(program.namespace)
         if(target is VarDecl) {
             if(target.datatype !in IterableDatatypes)
@@ -953,10 +923,10 @@ internal class AstChecker(private val program: Program,
         if(dtx!= DataType.UBYTE && dtx!= DataType.BYTE)
             checkResult.add(SyntaxError("array indexing is limited to byte size 0..255", arrayIndexedExpression.position))
 
-        return super.visit(arrayIndexedExpression)
+        super.visit(arrayIndexedExpression)
     }
 
-    override fun visit(whenStatement: WhenStatement): IStatement {
+    override fun visit(whenStatement: WhenStatement) {
         val conditionType = whenStatement.condition.inferType(program)
         if(conditionType !in IntegerDatatypes)
             checkResult.add(SyntaxError("when condition must be an integer value", whenStatement.position))
@@ -966,7 +936,7 @@ internal class AstChecker(private val program: Program,
         tally.filter { it.value>1 }.forEach {
             checkResult.add(SyntaxError("choice value occurs multiple times", it.key.position))
         }
-        return super.visit(whenStatement)
+        super.visit(whenStatement)
     }
 
     override fun visit(whenChoice: WhenChoice) {
@@ -986,6 +956,24 @@ internal class AstChecker(private val program: Program,
                 checkResult.add(SyntaxError("else choice must be the last one", whenChoice.position))
         }
         super.visit(whenChoice)
+    }
+
+    override fun visit(structDecl: StructDecl) {
+        // a struct can only contain 1 or more vardecls and can not be nested
+        if(structDecl.statements.isEmpty())
+            checkResult.add(SyntaxError("struct must contain at least one member", structDecl.position))
+
+        for(member in structDecl.statements){
+            val decl = member as? VarDecl
+            if(decl==null)
+                checkResult.add(SyntaxError("struct can only contain variable declarations", structDecl.position))
+            else {
+                if(decl.zeropage==ZeropageWish.REQUIRE_ZEROPAGE || decl.zeropage==ZeropageWish.PREFER_ZEROPAGE)
+                    checkResult.add(SyntaxError("struct can not contain zeropage members", decl.position))
+                if(decl.datatype !in NumericDatatypes)
+                    checkResult.add(SyntaxError("structs can only contain numerical types", decl.position))
+            }
+        }
     }
 
     private fun checkFunctionOrLabelExists(target: IdentifierReference, statement: IStatement): IStatement? {
@@ -1298,25 +1286,5 @@ internal class AstChecker(private val program: Program,
 
 
         return false
-    }
-
-    override fun visit(structDecl: StructDecl): IStatement {
-        // a struct can only contain 1 or more vardecls and can not be nested
-        if(structDecl.statements.isEmpty())
-            checkResult.add(SyntaxError("struct must contain at least one member", structDecl.position))
-
-        for(member in structDecl.statements){
-            val decl = member as? VarDecl
-            if(decl==null)
-                checkResult.add(SyntaxError("struct can only contain variable declarations", structDecl.position))
-            else {
-                if(decl.zeropage==ZeropageWish.REQUIRE_ZEROPAGE || decl.zeropage==ZeropageWish.PREFER_ZEROPAGE)
-                    checkResult.add(SyntaxError("struct can not contain zeropage members", decl.position))
-                if(decl.datatype !in NumericDatatypes)
-                    checkResult.add(SyntaxError("structs can only contain numerical types", decl.position))
-            }
-        }
-
-        return structDecl
     }
 }
