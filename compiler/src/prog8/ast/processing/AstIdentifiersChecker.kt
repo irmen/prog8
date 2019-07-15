@@ -7,7 +7,7 @@ import prog8.ast.statements.*
 import prog8.functions.BuiltinFunctions
 
 
-internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstModifyingVisitor {
+internal class AstIdentifiersChecker(private val program: Program) : IAstModifyingVisitor {
     private val checkResult: MutableList<AstException> = mutableListOf()
 
     private var blocks = mutableMapOf<String, Block>()
@@ -78,7 +78,7 @@ internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstMo
             return result
         }
 
-        val existing = namespace.lookup(listOf(decl.name), decl)
+        val existing = program.namespace.lookup(listOf(decl.name), decl)
         if (existing != null && existing !== decl)
             nameError(decl.name, decl.position, existing)
 
@@ -93,7 +93,7 @@ internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstMo
             if (subroutine.parameters.any { it.name in BuiltinFunctions })
                 checkResult.add(NameError("builtin function name cannot be used as parameter", subroutine.position))
 
-            val existing = namespace.lookup(listOf(subroutine.name), subroutine)
+            val existing = program.namespace.lookup(listOf(subroutine.name), subroutine)
             if (existing != null && existing !== subroutine)
                 nameError(subroutine.name, subroutine.position, existing)
 
@@ -137,7 +137,7 @@ internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstMo
             // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", label.position))
         } else {
-            val existing = namespace.lookup(listOf(label.name), label)
+            val existing = program.namespace.lookup(listOf(label.name), label)
             if (existing != null && existing !== label)
                 nameError(label.name, label.position, existing)
         }
@@ -213,21 +213,25 @@ internal class AstIdentifiersChecker(private val namespace: INameScope) : IAstMo
         return super.visit(returnStmt)
     }
 
-    override fun visit(refLiteral: ReferenceLiteralValue): ReferenceLiteralValue {
+    override fun visit(refLiteral: ReferenceLiteralValue): IExpression {
         if(refLiteral.parent !is VarDecl) {
             // a referencetype literal value that's not declared as a variable
             // we need to introduce an auto-generated variable for this to be able to refer to the value
-            val declaredType = if(refLiteral.isArray) ArrayElementTypes.getValue(refLiteral.type) else refLiteral.type
-            val variable = VarDecl.createAuto(refLiteral)
+            refLiteral.addToHeap(program.heap)
+            val variable = VarDecl.createAuto(refLiteral, program.heap)
             addVarDecl(refLiteral.definingScope(), variable)
+            // replace the reference literal by a identfier reference
+            val identifier = IdentifierReference(listOf(variable.name), variable.position)
+            identifier.parent = refLiteral.parent
             // TODO anonymousVariablesFromHeap[variable.name] = Pair(refLiteral, variable)
+            return identifier
         }
         return super.visit(refLiteral)
     }
 
     override fun visit(addressOf: AddressOf): IExpression {
         // register the scoped name of the referenced identifier
-        val variable= addressOf.identifier.targetVarDecl(namespace) ?: return addressOf
+        val variable= addressOf.identifier.targetVarDecl(program.namespace) ?: return addressOf
         addressOf.scopedname = variable.scopedname
         return super.visit(addressOf)
     }

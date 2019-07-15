@@ -593,20 +593,22 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
         return resultStmt
     }
 
-    override fun visit(refLiteral: ReferenceLiteralValue): ReferenceLiteralValue {
+    override fun visit(refLiteral: ReferenceLiteralValue): IExpression {
         val litval = super.visit(refLiteral)
-        if(litval.isString) {
-            // intern the string; move it into the heap
-            if(litval.str!!.length !in 1..255)
-                addError(ExpressionError("string literal length must be between 1 and 255", litval.position))
-            else {
-                litval.addToHeap(program.heap)  // TODO: we don't know the actual string type yet, STR != STR_S etc...
+        if(litval is ReferenceLiteralValue) {
+            if (litval.isString) {
+                // intern the string; move it into the heap
+                if (litval.str!!.length !in 1..255)
+                    addError(ExpressionError("string literal length must be between 1 and 255", litval.position))
+                else {
+                    litval.addToHeap(program.heap)  // TODO: we don't know the actual string type yet, STR != STR_S etc...
+                }
+            } else if (litval.isArray) {
+                // first, adjust the array datatype
+                val litval2 = adjustArrayValDatatype(litval)
+                litval2.addToHeap(program.heap)
+                return litval2
             }
-        } else if(litval.isArray) {
-            // first, adjust the array datatype
-            val litval2 = adjustArrayValDatatype(litval)
-            litval2.addToHeap(program.heap)
-            return litval2
         }
         return litval
     }

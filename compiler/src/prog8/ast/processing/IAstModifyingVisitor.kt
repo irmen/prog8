@@ -104,7 +104,7 @@ interface IAstModifyingVisitor {
         return literalValue
     }
 
-    fun visit(refLiteral: ReferenceLiteralValue): ReferenceLiteralValue {
+    fun visit(refLiteral: ReferenceLiteralValue): IExpression {
         if(refLiteral.array!=null) {
             for(av in refLiteral.array.withIndex()) {
                 val newvalue = av.value.accept(this)

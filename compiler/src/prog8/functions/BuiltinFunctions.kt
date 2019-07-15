@@ -32,9 +32,9 @@ val BuiltinFunctions = mapOf(
     "lsl"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", IntegerDatatypes)), null),
     "lsr"         to FunctionSignature(false, listOf(BuiltinFunctionParam("item", IntegerDatatypes)), null),
         // these few have a return value depending on the argument(s):
-    "max"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, prg -> collectionArgOutputNumber(a, p, prg) { it.max()!! }},    // type depends on args
-    "min"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, prg -> collectionArgOutputNumber(a, p, prg) { it.min()!! }},    // type depends on args
-    "sum"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, prg -> collectionArgOutputNumber(a, p, prg) { it.sum() }},      // type depends on args
+    "max"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, _ -> collectionArgNeverConst(a, p) },    // type depends on args
+    "min"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, _ -> collectionArgNeverConst(a, p) },    // type depends on args
+    "sum"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), null) { a, p, _ -> collectionArgNeverConst(a, p) },      // type depends on args
     "abs"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", NumericDatatypes)), null, ::builtinAbs),      // type depends on argument
     "len"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", IterableDatatypes)), null, ::builtinLen),    // type is UBYTE or UWORD depending on actual length
         // normal functions follow:
@@ -56,12 +56,12 @@ val BuiltinFunctions = mapOf(
     "sqrt"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::sqrt) },
     "rad"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::toRadians) },
     "deg"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::toDegrees) },
-    "avg"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.FLOAT, ::builtinAvg),
+    "avg"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.FLOAT) { a, p, _ -> collectionArgNeverConst(a, p) },
     "round"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArgOutputWord(a, p, prg, Math::round) },
     "floor"       to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArgOutputWord(a, p, prg, Math::floor) },
     "ceil"        to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArgOutputWord(a, p, prg, Math::ceil) },
-    "any"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, prg -> collectionArgOutputBoolean(a, p, prg) { it.any { v -> v != 0.0} }},
-    "all"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, prg -> collectionArgOutputBoolean(a, p, prg) { it.all { v -> v != 0.0} }},
+    "any"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, _ -> collectionArgNeverConst(a, p) },
+    "all"         to FunctionSignature(true, listOf(BuiltinFunctionParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, _ -> collectionArgNeverConst(a, p) },
     "lsb"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> x and 255 }},
     "msb"         to FunctionSignature(true, listOf(BuiltinFunctionParam("value", setOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> x ushr 8 and 255}},
     "mkword"      to FunctionSignature(true, listOf(
@@ -216,61 +216,12 @@ private fun oneIntArgOutputInt(args: List<IExpression>, position: Position, prog
     return numericLiteral(function(integer).toInt(), args[0].position)
 }
 
-private fun collectionArgOutputNumber(args: List<IExpression>, position: Position,
-                                      program: Program,
-                                      function: (arg: Collection<Double>)->Number): NumericLiteralValue {
+private fun collectionArgNeverConst(args: List<IExpression>, position: Position): NumericLiteralValue {
     if(args.size!=1)
         throw SyntaxError("builtin function requires one non-scalar argument", position)
-    val iterable = args[0].constValue(program) ?: throw NotConstArgumentException()
 
-    TODO("collection functions over iterables (array, string)  $iterable")
-//    val result = if(iterable.array != null) {
-//        val constants = iterable.arrayvalue.map { it.constValue(program)?.asNumericValue }
-//        if (null in constants)
-//            throw NotConstArgumentException()
-//        function(constants.map { it!!.toDouble() }).toDouble()
-//    } else {
-//        when(iterable.type) {
-//            DataType.UBYTE, DataType.UWORD, DataType.FLOAT -> throw SyntaxError("function expects an iterable type", position)
-//            else -> {
-//                val heapId = iterable.heapId ?: throw FatalAstException("iterable value should be on the heap")
-//                val array = program.heap.get(heapId).array ?: throw SyntaxError("function expects an iterable type", position)
-//                function(array.map {
-//                    if(it.integer!=null)
-//                        it.integer.toDouble()
-//                    else
-//                        throw FatalAstException("cannot perform function over array that contains other values besides constant integers")
-//                })
-//            }
-//        }
-//    }
-//    return numericLiteral(result, args[0].position)
-}
-
-private fun collectionArgOutputBoolean(args: List<IExpression>, position: Position,
-                                       program: Program,
-                                       function: (arg: Collection<Double>)->Boolean): NumericLiteralValue {
-    if(args.size!=1)
-        throw SyntaxError("builtin function requires one non-scalar argument", position)
-    val iterable = args[0].constValue(program) ?: throw NotConstArgumentException()
-
-    TODO("collection functions over iterables (array, string)  $iterable")
-
-//    val result = if(iterable.arrayvalue != null) {
-//        val constants = iterable.arrayvalue.map { it.constValue(program)?.asNumericValue }
-//        if(null in constants)
-//            throw NotConstArgumentException()
-//        function(constants.map { it!!.toDouble() })
-//    } else {
-//        val array = program.heap.get(iterable.heapId!!).array ?: throw SyntaxError("function requires array argument", position)
-//        function(array.map {
-//            if(it.integer!=null)
-//                it.integer.toDouble()
-//            else
-//                throw FatalAstException("cannot perform function over array that contains other values besides constant integers")
-//        })
-//    }
-//    return LiteralValue.fromBoolean(result, position)
+    // max/min/sum etc only work on arrays and these are never considered to be const for these functions
+    throw NotConstArgumentException()
 }
 
 private fun builtinAbs(args: List<IExpression>, position: Position, program: Program): NumericLiteralValue {
@@ -286,36 +237,6 @@ private fun builtinAbs(args: List<IExpression>, position: Position, program: Pro
     }
 }
 
-private fun builtinAvg(args: List<IExpression>, position: Position, program: Program): NumericLiteralValue {
-    if(args.size!=1)
-        throw SyntaxError("avg requires array argument", position)
-    val iterable = args[0].constValue(program) ?: throw NotConstArgumentException()
-
-    TODO("collection functions over iterables (array, string)  $iterable")
-
-//    val result = if(iterable.arrayvalue!=null) {
-//        val constants = iterable.arrayvalue.map { it.constValue(program)?.asNumericValue }
-//        if (null in constants)
-//            throw NotConstArgumentException()
-//        (constants.map { it!!.toDouble() }).average()
-//    }
-//    else {
-//        val heapId = iterable.heapId!!
-//        val integerarray = program.heap.get(heapId).array
-//        if(integerarray!=null) {
-//            if (integerarray.all { it.integer != null }) {
-//                integerarray.map { it.integer!! }.average()
-//            } else {
-//                throw ExpressionError("cannot avg() over array that does not only contain constant numerical values", position)
-//            }
-//        } else {
-//            val doublearray = program.heap.get(heapId).doubleArray
-//            doublearray?.average() ?: throw SyntaxError("avg requires array argument", position)
-//        }
-//    }
-//    return numericLiteral(result, args[0].position)
-}
-
 private fun builtinStrlen(args: List<IExpression>, position: Position, program: Program): NumericLiteralValue {
     if (args.size != 1)
         throw SyntaxError("strlen requires one argument", position)
@@ -323,14 +244,7 @@ private fun builtinStrlen(args: List<IExpression>, position: Position, program: 
     if(argument.type !in StringDatatypes)
         throw SyntaxError("strlen must have string argument", position)
 
-    TODO("collection functions over iterables (array, string)  $argument")
-
-//    val string = argument.strvalue!!
-//    val zeroIdx = string.indexOf('\u0000')
-//    return if(zeroIdx>=0)
-//        LiteralValue.optimalInteger(zeroIdx, position=position)
-//    else
-//        LiteralValue.optimalInteger(string.length, position=position)
+    throw NotConstArgumentException()       // this function is not considering the string argument a constant
 }
 
 private fun builtinLen(args: List<IExpression>, position: Position, program: Program): NumericLiteralValue {

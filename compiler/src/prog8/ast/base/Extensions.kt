@@ -31,7 +31,7 @@ internal fun Program.checkValid(compilerOptions: CompilationOptions) {
 
 
 internal fun Program.reorderStatements() {
-    val initvalueCreator = VarInitValueAndAddressOfCreator(namespace)
+    val initvalueCreator = VarInitValueAndAddressOfCreator(namespace, heap)
     initvalueCreator.visit(this)
 
     val checker = StatementReorderer(this)
@@ -52,7 +52,7 @@ internal fun Program.checkRecursion() {
 
 
 internal fun Program.checkIdentifiers() {
-    val checker = AstIdentifiersChecker(namespace)
+    val checker = AstIdentifiersChecker(this)
     checker.visit(this)
 
     if(modules.map {it.name}.toSet().size != modules.size) {

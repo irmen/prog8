@@ -834,34 +834,34 @@ class AstVm(val program: Program) {
                 }
             }
             "max" -> {
-                val numbers = args.map { it.numericValue().toDouble() }
-                RuntimeValue(args[0].type, numbers.max())
+                val numbers = args.single().array!!.map { it.toDouble() }
+                RuntimeValue(ArrayElementTypes.getValue(args[0].type), numbers.max())
             }
             "min" -> {
-                val numbers = args.map { it.numericValue().toDouble() }
-                RuntimeValue(args[0].type, numbers.min())
+                val numbers = args.single().array!!.map { it.toDouble() }
+                RuntimeValue(ArrayElementTypes.getValue(args[0].type), numbers.min())
             }
             "avg" -> {
-                val numbers = args.map { it.numericValue().toDouble() }
+                val numbers = args.single().array!!.map { it.toDouble() }
                 RuntimeValue(DataType.FLOAT, numbers.average())
             }
             "sum" -> {
-                val sum = args.map { it.numericValue().toDouble() }.sum()
+                val sum = args.single().array!!.map { it.toDouble() }.sum()
                 when (args[0].type) {
-                    DataType.UBYTE -> RuntimeValue(DataType.UWORD, sum)
-                    DataType.BYTE -> RuntimeValue(DataType.WORD, sum)
-                    DataType.UWORD -> RuntimeValue(DataType.UWORD, sum)
-                    DataType.WORD -> RuntimeValue(DataType.WORD, sum)
-                    DataType.FLOAT -> RuntimeValue(DataType.FLOAT, sum)
+                    DataType.ARRAY_UB -> RuntimeValue(DataType.UWORD, sum)
+                    DataType.ARRAY_B -> RuntimeValue(DataType.WORD, sum)
+                    DataType.ARRAY_UW -> RuntimeValue(DataType.UWORD, sum)
+                    DataType.ARRAY_W -> RuntimeValue(DataType.WORD, sum)
+                    DataType.ARRAY_F -> RuntimeValue(DataType.FLOAT, sum)
                     else -> throw VmExecutionException("weird sum type ${args[0]}")
                 }
             }
             "any" -> {
-                val numbers = args.map { it.numericValue().toDouble() }
+                val numbers = args.single().array!!.map { it.toDouble() }
                 RuntimeValue(DataType.UBYTE, if (numbers.any { it != 0.0 }) 1 else 0)
             }
             "all" -> {
-                val numbers = args.map { it.numericValue().toDouble() }
+                val numbers = args.single().array!!.map { it.toDouble() }
                 RuntimeValue(DataType.UBYTE, if (numbers.all { it != 0.0 }) 1 else 0)
             }
             "swap" ->

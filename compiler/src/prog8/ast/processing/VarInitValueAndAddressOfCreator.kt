@@ -4,9 +4,10 @@ import prog8.ast.*
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.compiler.HeapValues
 
 
-internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope): IAstModifyingVisitor {
+internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope, private val heap: HeapValues): IAstModifyingVisitor {
     // For VarDecls that declare an initialization value:
     // Replace the vardecl with an assignment (to set the initial value),
     // and add a new vardecl with the default constant value of that type (usually zero) to the scope.
@@ -95,7 +96,7 @@ internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope
                 else if(strvalue!=null) {
                     if(strvalue.isString) {
                         // add a vardecl so that the autovar can be resolved in later lookups
-                        val variable = VarDecl.createAuto(strvalue)
+                        val variable = VarDecl.createAuto(strvalue, heap)
                         addVarDecl(strvalue.definingScope(), variable)
                         // replace the argument with &autovar
                         val autoHeapvarRef = IdentifierReference(listOf(variable.name), strvalue.position)
