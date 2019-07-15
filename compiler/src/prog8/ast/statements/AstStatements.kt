@@ -201,7 +201,9 @@ class VarDecl(val type: VarDeclType,
         arraysize?.linkParents(this)
         value?.linkParents(this)
         if(structName!=null) {
-            struct = definingScope().lookup(listOf(structName), this) as StructDecl
+            val structStmt = definingScope().lookup(listOf(structName), this)
+            if(structStmt!=null)
+                struct = definingScope().lookup(listOf(structName), this) as StructDecl
         }
     }
 

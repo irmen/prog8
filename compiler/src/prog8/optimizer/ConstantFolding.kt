@@ -65,7 +65,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                         val newValue = NumericLiteralValue(DataType.FLOAT, litval.number.toDouble(), litval.position)
                         decl.value = newValue
                         optimizationsDone++
-                        return decl
+                        return super.visit(decl)
                     }
                 }
                 in StringDatatypes -> {
@@ -96,7 +96,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                             }
                             decl.value!!.linkParents(decl)
                             optimizationsDone++
-                            return decl
+                            return super.visit(decl)
                         }
                     }
                     if(numericLv!=null && numericLv.type== DataType.FLOAT)
@@ -127,21 +127,26 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                         val heapId = program.heap.addIntegerArray(decl.datatype, Array(size) { IntegerOrAddressOf(fillvalue, null) })
                         decl.value = ReferenceLiteralValue(decl.datatype, initHeapId = heapId, position = numericLv.position)
                         optimizationsDone++
-                        return decl
+                        return super.visit(decl)
                     }
                 }
                 DataType.ARRAY_F  -> {
-                    val litval = decl.value as? NumericLiteralValue
                     val size = decl.arraysize?.size() ?: return decl
-                    // arraysize initializer is empty or a single int, and we know the size; create the arraysize.
-                    val fillvalue = if (litval == null) 0.0 else litval.number.toDouble()
-                    if(fillvalue< FLOAT_MAX_NEGATIVE || fillvalue> FLOAT_MAX_POSITIVE)
-                        errors.add(ExpressionError("float value overflow", litval?.position ?: decl.position))
-                    else {
-                        val heapId = program.heap.addDoublesArray(DoubleArray(size) { fillvalue })
-                        decl.value = ReferenceLiteralValue(DataType.ARRAY_F, initHeapId = heapId, position = litval?.position ?: decl.position)
-                        optimizationsDone++
-                        return decl
+                    val litval = decl.value as? NumericLiteralValue
+                    if(litval==null) {
+                        // there's no initialization value, but the size is known, so we're ok.
+                        return super.visit(decl)
+                    } else {
+                        // arraysize initializer is a single int, and we know the size.
+                        val fillvalue = litval.number.toDouble()
+                        if (fillvalue < FLOAT_MAX_NEGATIVE || fillvalue > FLOAT_MAX_POSITIVE)
+                            errors.add(ExpressionError("float value overflow", litval.position ?: decl.position))
+                        else {
+                            val heapId = program.heap.addDoublesArray(DoubleArray(size) { fillvalue })
+                            decl.value = ReferenceLiteralValue(DataType.ARRAY_F, initHeapId = heapId, position = litval.position)
+                            optimizationsDone++
+                            return super.visit(decl)
+                        }
                     }
                 }
                 else -> {

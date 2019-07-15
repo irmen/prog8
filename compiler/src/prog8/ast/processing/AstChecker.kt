@@ -1202,22 +1202,22 @@ internal class AstChecker(private val program: Program,
         }
 
         val array = program.heap.get(value.heapId!!)
-        if(array.type !in ArrayDatatypes || array.array==null)
+        if(array.type !in ArrayDatatypes || (array.array==null && array.doubleArray==null))
             throw FatalAstException("should have an array in the heapvar $array")
 
         val correct: Boolean
         when(type) {
             DataType.ARRAY_UB -> {
-                correct= array.array.all { it.integer!=null && it.integer in 0..255 }
+                correct= array.array?.all { it.integer!=null && it.integer in 0..255 } ?: false
             }
             DataType.ARRAY_B -> {
-                correct=array.array.all { it.integer!=null && it.integer in -128..127 }
+                correct=array.array?.all { it.integer!=null && it.integer in -128..127 } ?: false
             }
             DataType.ARRAY_UW -> {
-                correct=array.array.all { (it.integer!=null && it.integer in 0..65535)  || it.addressOf!=null}
+                correct=array.array?.all { (it.integer!=null && it.integer in 0..65535)  || it.addressOf!=null} ?: false
             }
             DataType.ARRAY_W -> {
-                correct=array.array.all { it.integer!=null && it.integer in -32768..32767 }
+                correct=array.array?.all { it.integer!=null && it.integer in -32768..32767 } ?: false
             }
             DataType.ARRAY_F -> correct = array.doubleArray!=null
             else -> throw AstException("invalid array type $type")

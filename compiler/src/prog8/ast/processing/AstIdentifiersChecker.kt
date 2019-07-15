@@ -66,10 +66,15 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         //    and include the original decl as well.
         if(decl.datatype==DataType.STRUCT) {
             if(decl.structHasBeenFlattened)
-                return decl    // don't do this multiple times
+                return super.visit(decl)    // don't do this multiple times
+
+            if(decl.struct==null) {
+                checkResult.add(NameError("undefined struct type", decl.position))
+                return super.visit(decl)
+            }
 
             if(decl.struct!!.statements.any { (it as VarDecl).datatype !in NumericDatatypes})
-                return decl     // a non-numeric member, not supported. proper error is given by AstChecker later
+                return super.visit(decl)     // a non-numeric member, not supported. proper error is given by AstChecker later
 
             val decls = decl.flattenStructMembers()
             decls.add(decl)

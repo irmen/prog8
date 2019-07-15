@@ -73,7 +73,9 @@ block:	'~' identifier integerliteral? statement_block EOL ;
 statement :
 	directive
 	| varinitializer
+	| structvarinitializer
 	| vardecl
+	| structvardecl
 	| constdecl
 	| memoryvardecl
 	| structdecl
@@ -110,9 +112,13 @@ directive :
 
 directivearg : stringliteral | identifier | integerliteral ;
 
-vardecl: (datatype | structname=identifier) ZEROPAGE? (arrayindex | ARRAYSIG) ? varname=identifier ;
+vardecl: datatype ZEROPAGE? (arrayindex | ARRAYSIG) ? varname=identifier ;
+
+structvardecl: structname=identifier varname=identifier ;
 
 varinitializer : vardecl '=' expression ;
+
+structvarinitializer : structvardecl '=' expression ;
 
 constdecl: 'const' varinitializer ;
 

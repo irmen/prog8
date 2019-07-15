@@ -45,7 +45,7 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
         // Convert invalid label names (such as "<anon-1>") to something that's allowed.
         val newblocks = mutableListOf<IntermediateProgram.ProgramBlock>()
         for(block in program.blocks) {
-            val newvars = block.variables.map { Triple(symname(it.first, block), it.second, it.third) }.toMutableList()
+            val newvars = block.variables.map { IntermediateProgram.Variable(symname(it.scopedname, block), it.value, it.params) }.toMutableList()
             val newvarsZeropaged = block.variablesMarkedForZeropage.map{symname(it, block)}.toMutableSet()
             val newlabels = block.labels.map { symname(it.key, block) to it.value}.toMap().toMutableMap()
             val newinstructions = block.instructions.asSequence().map {
@@ -238,20 +238,20 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
         }
 
         // deal with zeropage variables
-        for((varname, value, parameters) in blk.variables) {
-            val sym = symname(blk.name+"."+varname, null)
+        for(variable in blk.variables) {
+            val sym = symname(blk.name+"."+variable.scopedname, null)
             val zpVar = program.allocatedZeropageVariables[sym]
             if(zpVar==null) {
                 // This var is not on the ZP yet. Attempt to move it there (if it's not a float, those take up too much space)
-                if(parameters.zp != ZeropageWish.NOT_IN_ZEROPAGE &&
-                        value.type in zeropage.allowedDatatypes
-                        && value.type != DataType.FLOAT) {
+                if(variable.params.zp != ZeropageWish.NOT_IN_ZEROPAGE &&
+                        variable.value.type in zeropage.allowedDatatypes
+                        && variable.value.type != DataType.FLOAT) {
                     try {
-                        val address = zeropage.allocate(sym, value.type, null)
-                        out("$varname = $address\t; auto zp ${value.type}")
+                        val address = zeropage.allocate(sym, variable.value.type, null)
+                        out("${variable.scopedname} = $address\t; auto zp ${variable.value.type}")
                         // make sure we add the var to the set of zpvars for this block
-                        blk.variablesMarkedForZeropage.add(varname)
-                        program.allocatedZeropageVariables[sym] = Pair(address, value.type)
+                        blk.variablesMarkedForZeropage.add(variable.scopedname)
+                        program.allocatedZeropageVariables[sym] = Pair(address, variable.value.type)
                     } catch (x: ZeropageDepletedError) {
                         // leave it as it is.
                     }
@@ -259,7 +259,7 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
             }
             else {
                 // it was already allocated on the zp
-                out("$varname = ${zpVar.first}\t; zp ${zpVar.second}")
+                out("${variable.scopedname} = ${zpVar.first}\t; zp ${zpVar.second}")
             }
         }
 
@@ -293,23 +293,23 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
     }
 
     private fun vardecls2asm(block: IntermediateProgram.ProgramBlock) {
-        val uniqueNames = block.variables.map { it.first }.toSet()
+        val uniqueNames = block.variables.map { it.scopedname }.toSet()
         if (uniqueNames.size != block.variables.size)
             throw AssemblyError("not all variables have unique names")
 
         // these are the non-zeropage variables.
         // first get all the flattened struct members, they MUST remain in order
         out(";  flattened struct members")
-        val (structMembers, normalVars) = block.variables.partition { it.third.memberOfStruct!=null }
-        structMembers.forEach { vardecl2asm(it.first, it.second, it.third) }
+        val (structMembers, normalVars) = block.variables.partition { it.params.memberOfStruct!=null }
+        structMembers.forEach { vardecl2asm(it.scopedname, it.value, it.params) }
 
         // leave outsort the other variables by type
         out(";  other variables sorted by type")
-        val sortedVars = normalVars.sortedBy { it.second.type }
-        for ((varname, value, parameters) in sortedVars) {
-            if(varname in block.variablesMarkedForZeropage)
+        val sortedVars = normalVars.sortedBy { it.value.type }
+        for (variable in sortedVars) {
+            if(variable.scopedname in block.variablesMarkedForZeropage)
                 continue  // skip the ones that belong in the zero page
-            vardecl2asm(varname, value, parameters)
+            vardecl2asm(variable.scopedname, variable.value, variable.params)
         }
     }
 
@@ -329,55 +329,75 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
             }
             DataType.ARRAY_UB -> {
                 // unsigned integer byte arraysize
-                val data = makeArrayFillDataUnsigned(value)
-                if (data.size <= 16)
-                    out("$varname\t.byte  ${data.joinToString()}")
-                else {
-                    out(varname)
-                    for (chunk in data.chunked(16))
-                        out("  .byte  " + chunk.joinToString())
+                if(parameters.uninitializedArraySize!=null) {
+                    out("$varname\t.fill  ${parameters.uninitializedArraySize}")   // uninitialized array
+                } else {
+                    val data = makeArrayFillDataUnsigned(value)
+                    if (data.size <= 16)
+                        out("$varname\t.byte  ${data.joinToString()}")
+                    else {
+                        out(varname)
+                        for (chunk in data.chunked(16))
+                            out("  .byte  " + chunk.joinToString())
+                    }
                 }
             }
             DataType.ARRAY_B -> {
                 // signed integer byte arraysize
-                val data = makeArrayFillDataSigned(value)
-                if (data.size <= 16)
-                    out("$varname\t.char  ${data.joinToString()}")
-                else {
-                    out(varname)
-                    for (chunk in data.chunked(16))
-                        out("  .char  " + chunk.joinToString())
+                if(parameters.uninitializedArraySize!=null) {
+                    out("$varname\t.fill  ${parameters.uninitializedArraySize}")   // uninitialized array
+                } else {
+                    val data = makeArrayFillDataSigned(value)
+                    if (data.size <= 16)
+                        out("$varname\t.char  ${data.joinToString()}")
+                    else {
+                        out(varname)
+                        for (chunk in data.chunked(16))
+                            out("  .char  " + chunk.joinToString())
+                    }
                 }
             }
             DataType.ARRAY_UW -> {
                 // unsigned word arraysize
-                val data = makeArrayFillDataUnsigned(value)
-                if (data.size <= 16)
-                    out("$varname\t.word  ${data.joinToString()}")
-                else {
-                    out(varname)
-                    for (chunk in data.chunked(16))
-                        out("  .word  " + chunk.joinToString())
+                if(parameters.uninitializedArraySize!=null) {
+                    out("$varname\t.fill  ${parameters.uninitializedArraySize}*2")   // uninitialized array
+                } else {
+                    val data = makeArrayFillDataUnsigned(value)
+                    if (data.size <= 16)
+                        out("$varname\t.word  ${data.joinToString()}")
+                    else {
+                        out(varname)
+                        for (chunk in data.chunked(16))
+                            out("  .word  " + chunk.joinToString())
+                    }
                 }
             }
             DataType.ARRAY_W -> {
                 // signed word arraysize
-                val data = makeArrayFillDataSigned(value)
-                if (data.size <= 16)
-                    out("$varname\t.sint  ${data.joinToString()}")
-                else {
-                    out(varname)
-                    for (chunk in data.chunked(16))
-                        out("  .sint  " + chunk.joinToString())
+                if(parameters.uninitializedArraySize!=null) {
+                    out("$varname\t.fill  ${parameters.uninitializedArraySize}*2")   // uninitialized array
+                } else {
+                    val data = makeArrayFillDataSigned(value)
+                    if (data.size <= 16)
+                        out("$varname\t.sint  ${data.joinToString()}")
+                    else {
+                        out(varname)
+                        for (chunk in data.chunked(16))
+                            out("  .sint  " + chunk.joinToString())
+                    }
                 }
             }
             DataType.ARRAY_F -> {
                 // float arraysize
-                val array = heap.get(value.heapId!!).doubleArray!!
-                val floatFills = array.map { makeFloatFill(MachineDefinition.Mflpt5.fromNumber(it)) }
-                out(varname)
-                for(f in array.zip(floatFills))
-                    out("  .byte  ${f.second}  ; float ${f.first}")
+                if(parameters.uninitializedArraySize!=null) {
+                    out("$varname\t.fill  ${parameters.uninitializedArraySize}*${MachineDefinition.Mflpt5.MemorySize}")   // uninitialized array
+                } else {
+                    val array = heap.get(value.heapId!!).doubleArray!!
+                    val floatFills = array.map { makeFloatFill(MachineDefinition.Mflpt5.fromNumber(it)) }
+                    out(varname)
+                    for (f in array.zip(floatFills))
+                        out("  .byte  ${f.second}  ; float ${f.first}")
+                }
             }
             DataType.STRUCT -> throw AssemblyError("vars of type STRUCT should have been removed because flattened")
         }

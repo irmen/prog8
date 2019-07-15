@@ -8,23 +8,21 @@ import prog8.ast.expressions.ReferenceLiteralValue
 import prog8.ast.statements.StructDecl
 import prog8.ast.statements.VarDecl
 import prog8.ast.statements.ZeropageWish
+import prog8.compiler.*
 import prog8.vm.RuntimeValue
-import prog8.compiler.CompilerException
-import prog8.compiler.HeapValues
-import prog8.compiler.Zeropage
-import prog8.compiler.ZeropageDepletedError
 import java.io.PrintStream
 import java.nio.file.Path
 
 
 class IntermediateProgram(val name: String, var loadAddress: Int, val heap: HeapValues, val source: Path) {
 
-    data class VariableParameters (val zp: ZeropageWish, val memberOfStruct: StructDecl?)
+    class VariableParameters (val zp: ZeropageWish, val memberOfStruct: StructDecl?, val uninitializedArraySize: Int?)
+    class Variable(val scopedname: String, val value: RuntimeValue, val params: VariableParameters)
 
     class ProgramBlock(val name: String,
                        var address: Int?,
                        val instructions: MutableList<Instruction> = mutableListOf(),
-                       val variables: MutableList<Triple<String, RuntimeValue, VariableParameters>> = mutableListOf(),           // names are fully scoped
+                       val variables: MutableList<Variable> = mutableListOf(),
                        val memoryPointers: MutableMap<String, Pair<Int, DataType>> = mutableMapOf(),
                        val labels: MutableMap<String, Instruction> = mutableMapOf(),        // names are fully scoped
                        val force_output: Boolean)
@@ -50,16 +48,16 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         // allocates all @zp marked variables on the zeropage (for all blocks, as long as there is space in the ZP)
         var notAllocated = 0
         for(block in blocks) {
-            val zpVariables = block.variables.filter { it.first in block.variablesMarkedForZeropage }
+            val zpVariables = block.variables.filter { it.scopedname in block.variablesMarkedForZeropage }
             if (zpVariables.isNotEmpty()) {
-                for ((varname, value, varparams) in zpVariables) {
-                    if(varparams.zp==ZeropageWish.NOT_IN_ZEROPAGE || varparams.memberOfStruct!=null)
+                for (variable in zpVariables) {
+                    if(variable.params.zp==ZeropageWish.NOT_IN_ZEROPAGE || variable.params.memberOfStruct!=null)
                         throw CompilerException("zp conflict")
                     try {
-                        val address = zeropage.allocate(varname, value.type, null)
-                        allocatedZeropageVariables[varname] = Pair(address, value.type)
+                        val address = zeropage.allocate(variable.scopedname, variable.value.type, null)
+                        allocatedZeropageVariables[variable.scopedname] = Pair(address, variable.value.type)
                     } catch (x: ZeropageDepletedError) {
-                        printWarning(x.toString() + " variable $varname type ${value.type}")
+                        printWarning(x.toString() + " variable ${variable.scopedname} type ${variable.value.type}")
                         notAllocated++
                     }
                 }
@@ -405,7 +403,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                 if(decl.parent is StructDecl)
                     return
 
-                val valueparams = VariableParameters(decl.zeropage, decl.struct)
+                val valueparams = VariableParameters(decl.zeropage, decl.struct, null)
                 val value = when(decl.datatype) {
                     in NumericDatatypes -> {
                         RuntimeValue(decl.datatype, (decl.value as NumericLiteralValue).number)
@@ -420,7 +418,15 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                         val litval = (decl.value as? ReferenceLiteralValue)
                         if(litval!=null && litval.heapId==null)
                             throw CompilerException("array should already be in the heap")
-                        RuntimeValue(decl.datatype, heapId = litval?.heapId ?: -999)
+                        if(litval!=null){
+                            RuntimeValue(decl.datatype, heapId = litval.heapId)
+                        } else {
+                            // uninitialized array rather than one filled with zero
+                            val value = RuntimeValue(decl.datatype, heapId=-999)
+                            currentBlock.variables.add(Variable(scopedname, value,
+                                    VariableParameters(ZeropageWish.NOT_IN_ZEROPAGE, null, decl.arraysize!!.size()!!)))
+                            return
+                        }
                     }
                     DataType.STRUCT -> {
                         // struct variables have been flattened already
@@ -428,7 +434,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                     }
                     else -> throw CompilerException("weird datatype")
                 }
-                currentBlock.variables.add(Triple(scopedname, value, valueparams))
+                currentBlock.variables.add(Variable(scopedname, value, valueparams))
                 if(decl.zeropage==ZeropageWish.PREFER_ZEROPAGE)
                     currentBlock.variablesMarkedForZeropage.add(scopedname)
                 else if(decl.zeropage==ZeropageWish.REQUIRE_ZEROPAGE)
@@ -522,12 +528,12 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         out.println("\n%block ${blk.name} ${blk.address?.toString(16) ?: ""}")
 
         out.println("%variables")
-        for ((vname, value, parameters) in blk.variables) {
-            if(parameters.zp==ZeropageWish.REQUIRE_ZEROPAGE)
+        for (variable in blk.variables) {
+            if(variable.params.zp==ZeropageWish.REQUIRE_ZEROPAGE)
                 throw CompilerException("zp conflict")
-            val valuestr = value.toString()
-            val struct =  if(parameters.memberOfStruct==null) "" else "struct=${parameters.memberOfStruct.name}"
-            out.println("$vname  ${value.type.name.toLowerCase()}  $valuestr  zp=${parameters.zp} $struct")
+            val valuestr = variable.value.toString()
+            val struct =  if(variable.params.memberOfStruct==null) "" else "struct=${variable.params.memberOfStruct.name}"
+            out.println("${variable.scopedname}  ${variable.value.type.name.toLowerCase()}  $valuestr  zp=${variable.params.zp} s=$struct u=${variable.params.uninitializedArraySize}")
         }
         out.println("%end_variables")
         out.println("%memorypointers")

@@ -6,9 +6,11 @@
 ~ main {
 
     sub start() {
-
-        str naam = "irmen"
         byte[]  array=[1,2,3,4,5]
+        word[5] warray
+        float[5] flarray
+
+        warray[0]=flarray[0] as word
 
         ubyte length = len(array)
         c64scr.print_ub(length)
