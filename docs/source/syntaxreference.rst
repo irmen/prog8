@@ -231,10 +231,11 @@ Various examples::
     str         name    = "my name is Irmen"
     uword       address = &counter
     byte[]      values  = [11, 22, 33, 44, 55]
+    byte[5]     values                  ; array of 5 bytes, initially set to zero
     byte[5]     values  = 255           ; initialize with five 255 bytes
 
     word  @zp   zpword = 9999           ; prioritize this when selecting vars for zeropage storage
-    Color       rgb    = [1,255,0]      ; a struct variable
+    Color       rgb    = {1,255,0}      ; a struct variable with initial values
 
 
 Data types
@@ -373,6 +374,10 @@ You can only use numerical variables as member of a struct, so strings and array
 and other structs can not be part of a struct. Vice versa, a struct can not occur in an array.
 
 After defining a struct you can use the name of the struct as a data type to declare variables with.
+
+Struct variables can be assigned a struct literal value (also in their declaration as initial value)::
+
+    Color rgb = {255, 100, 0}          ; curly braces instead of brackets
 
 
 Operators

@@ -140,7 +140,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                         // arraysize initializer is a single int, and we know the size.
                         val fillvalue = litval.number.toDouble()
                         if (fillvalue < FLOAT_MAX_NEGATIVE || fillvalue > FLOAT_MAX_POSITIVE)
-                            errors.add(ExpressionError("float value overflow", litval.position ?: decl.position))
+                            errors.add(ExpressionError("float value overflow", litval.position))
                         else {
                             val heapId = program.heap.addDoublesArray(DoubleArray(size) { fillvalue })
                             decl.value = ReferenceLiteralValue(DataType.ARRAY_F, initHeapId = heapId, position = litval.position)

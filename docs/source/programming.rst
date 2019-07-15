@@ -237,6 +237,7 @@ Arrays
 ^^^^^^
 Array types are also supported. They can be made of bytes, words or floats::
 
+    byte[10]  array                   ; array of 10 bytes, initially set to 0
     byte[]  array = [1, 2, 3, 4]      ; initialize the array, size taken from value
     byte[99] array = 255              ; initialize array with 99 times 255 [255, 255, 255, 255, ...]
     byte[] array = 100 to 199         ; initialize array with [100, 101, ..., 198, 199]
@@ -285,9 +286,9 @@ Structs are a bit limited in Prog8: you can only use numerical variables
 as member of a struct, so strings and arrays and other structs can not be part of a struct.
 Also, it is not possible to use a struct itself inside an array.
 Structs are mainly syntactic sugar for repeated groups of vardecls
-and assignments that belong together. However, *they are layed out
-in sequence in memory as the members are defined* which may be useful
-if you want to pass pointers around
+and assignments that belong together. However,
+*they are layed out in sequence in memory as the members are defined*
+which may be usefulif you want to pass pointers around.
 
 To create a variable of a struct type you need to define the struct itself,
 and then create a variable with it::
@@ -298,7 +299,7 @@ and then create a variable with it::
         ubyte blue
     }
 
-    Color rgb = [255,122,0]
+    Color rgb = {255,122,0}     ; note the curly braces here instead of brackets
     Color another               ; the init value is optional, like arrays
 
     another = rgb           ; assign all of the values of rgb to another
@@ -354,9 +355,16 @@ Initial values across multiple runs of the program
 When declaring values with an initial value, this value will be set into the variable each time
 the program reaches the declaration again. This can be in loops, multiple subroutine calls,
 or even multiple invocations of the entire program.  If you omit an initial value, it will
-be set to zero only for the first run of the program. A second run will utilize the last value
+be set to zero *but only for the first run of the program*. A second run will utilize the last value
 where it left off (but your code will be a bit smaller because no initialization instructions
 are generated)
+
+This only works for simple types, *and not for string variables and arrays*.
+It is assumed these are left unchanged by the program; they are not re-initialized on
+a second run.
+If you do modify them in-place, you should take care yourself that they work as
+expected when the program is restarted.
+(This is an optimization choice to avoid having to store two copies of every string and array)
 
 .. caution::
    variables that get allocated in zero-page will *not* have a zero starting value when you omit
@@ -366,12 +374,6 @@ are generated)
 .. warning::
     this behavior may change in a future version so that subsequent runs always
     use the same initial values
-
-This only works for simple types, *and not for string variables and arrays*.
-It is assumed these are left unchanged by the program.
-If you do modify them in-place, you should take care yourself that they work as
-expected when the program is restarted.
-(This is an optimization choice to avoid having to store two copies of every string and array)
 
 
 Loops

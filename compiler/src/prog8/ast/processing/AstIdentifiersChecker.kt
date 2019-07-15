@@ -76,6 +76,11 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
             if(decl.struct!!.statements.any { (it as VarDecl).datatype !in NumericDatatypes})
                 return super.visit(decl)     // a non-numeric member, not supported. proper error is given by AstChecker later
 
+            if(decl.value is NumericLiteralValue) {
+                checkResult.add(ExpressionError("you cannot initialize a struct using a single value", decl.position))
+                return super.visit(decl)
+            }
+
             val decls = decl.flattenStructMembers()
             decls.add(decl)
             val result = AnonymousScope(decls, decl.position)

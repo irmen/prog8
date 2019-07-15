@@ -329,75 +329,55 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
             }
             DataType.ARRAY_UB -> {
                 // unsigned integer byte arraysize
-                if(parameters.uninitializedArraySize!=null) {
-                    out("$varname\t.fill  ${parameters.uninitializedArraySize}")   // uninitialized array
-                } else {
-                    val data = makeArrayFillDataUnsigned(value)
-                    if (data.size <= 16)
-                        out("$varname\t.byte  ${data.joinToString()}")
-                    else {
-                        out(varname)
-                        for (chunk in data.chunked(16))
-                            out("  .byte  " + chunk.joinToString())
-                    }
+                val data = makeArrayFillDataUnsigned(value)
+                if (data.size <= 16)
+                    out("$varname\t.byte  ${data.joinToString()}")
+                else {
+                    out(varname)
+                    for (chunk in data.chunked(16))
+                        out("  .byte  " + chunk.joinToString())
                 }
             }
             DataType.ARRAY_B -> {
                 // signed integer byte arraysize
-                if(parameters.uninitializedArraySize!=null) {
-                    out("$varname\t.fill  ${parameters.uninitializedArraySize}")   // uninitialized array
-                } else {
-                    val data = makeArrayFillDataSigned(value)
-                    if (data.size <= 16)
-                        out("$varname\t.char  ${data.joinToString()}")
-                    else {
-                        out(varname)
-                        for (chunk in data.chunked(16))
-                            out("  .char  " + chunk.joinToString())
-                    }
+                val data = makeArrayFillDataSigned(value)
+                if (data.size <= 16)
+                    out("$varname\t.char  ${data.joinToString()}")
+                else {
+                    out(varname)
+                    for (chunk in data.chunked(16))
+                        out("  .char  " + chunk.joinToString())
                 }
             }
             DataType.ARRAY_UW -> {
                 // unsigned word arraysize
-                if(parameters.uninitializedArraySize!=null) {
-                    out("$varname\t.fill  ${parameters.uninitializedArraySize}*2")   // uninitialized array
-                } else {
-                    val data = makeArrayFillDataUnsigned(value)
-                    if (data.size <= 16)
-                        out("$varname\t.word  ${data.joinToString()}")
-                    else {
-                        out(varname)
-                        for (chunk in data.chunked(16))
-                            out("  .word  " + chunk.joinToString())
-                    }
+                val data = makeArrayFillDataUnsigned(value)
+                if (data.size <= 16)
+                    out("$varname\t.word  ${data.joinToString()}")
+                else {
+                    out(varname)
+                    for (chunk in data.chunked(16))
+                        out("  .word  " + chunk.joinToString())
                 }
             }
             DataType.ARRAY_W -> {
                 // signed word arraysize
-                if(parameters.uninitializedArraySize!=null) {
-                    out("$varname\t.fill  ${parameters.uninitializedArraySize}*2")   // uninitialized array
-                } else {
-                    val data = makeArrayFillDataSigned(value)
-                    if (data.size <= 16)
-                        out("$varname\t.sint  ${data.joinToString()}")
-                    else {
-                        out(varname)
-                        for (chunk in data.chunked(16))
-                            out("  .sint  " + chunk.joinToString())
-                    }
+                val data = makeArrayFillDataSigned(value)
+                if (data.size <= 16)
+                    out("$varname\t.sint  ${data.joinToString()}")
+                else {
+                    out(varname)
+                    for (chunk in data.chunked(16))
+                        out("  .sint  " + chunk.joinToString())
                 }
             }
             DataType.ARRAY_F -> {
                 // float arraysize
-                if(parameters.uninitializedArraySize!=null) {
-                    out("$varname\t.fill  ${parameters.uninitializedArraySize}*${MachineDefinition.Mflpt5.MemorySize}")   // uninitialized array
-                } else {
-                    val array = heap.get(value.heapId!!).doubleArray!!
-                    val floatFills = array.map { makeFloatFill(MachineDefinition.Mflpt5.fromNumber(it)) }
-                    out(varname)
-                    for (f in array.zip(floatFills))
-                        out("  .byte  ${f.second}  ; float ${f.first}")
-                }
+                val array = heap.get(value.heapId!!).doubleArray!!
+                val floatFills = array.map { makeFloatFill(MachineDefinition.Mflpt5.fromNumber(it)) }
+                out(varname)
+                for (f in array.zip(floatFills))
+                    out("  .byte  ${f.second}  ; float ${f.first}")
             }
             DataType.STRUCT -> throw AssemblyError("vars of type STRUCT should have been removed because flattened")
         }

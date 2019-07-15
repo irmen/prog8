@@ -93,6 +93,21 @@ private fun prog8Parser.StatementContext.toAst() : IStatement {
         )
     }
 
+    structvardecl()?.let {
+        return VarDecl(
+                VarDeclType.VAR,
+                DataType.STRUCT,
+                ZeropageWish.NOT_IN_ZEROPAGE,
+                null,
+                it.varname.text,
+                it.structname.text,
+                null,
+                false,
+                false,
+                it.toPosition()
+        )
+    }
+
     constdecl()?.let {
         val cvarinit = it.varinitializer()
         val vd = cvarinit.vardecl()

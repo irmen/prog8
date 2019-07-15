@@ -16,7 +16,7 @@ import java.nio.file.Path
 
 class IntermediateProgram(val name: String, var loadAddress: Int, val heap: HeapValues, val source: Path) {
 
-    class VariableParameters (val zp: ZeropageWish, val memberOfStruct: StructDecl?, val uninitializedArraySize: Int?)
+    class VariableParameters (val zp: ZeropageWish, val memberOfStruct: StructDecl?)
     class Variable(val scopedname: String, val value: RuntimeValue, val params: VariableParameters)
 
     class ProgramBlock(val name: String,
@@ -403,7 +403,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                 if(decl.parent is StructDecl)
                     return
 
-                val valueparams = VariableParameters(decl.zeropage, decl.struct, null)
+                val valueparams = VariableParameters(decl.zeropage, decl.struct)
                 val value = when(decl.datatype) {
                     in NumericDatatypes -> {
                         RuntimeValue(decl.datatype, (decl.value as NumericLiteralValue).number)
@@ -421,11 +421,21 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                         if(litval!=null){
                             RuntimeValue(decl.datatype, heapId = litval.heapId)
                         } else {
-                            // uninitialized array rather than one filled with zero
-                            val value = RuntimeValue(decl.datatype, heapId=-999)
-                            currentBlock.variables.add(Variable(scopedname, value,
-                                    VariableParameters(ZeropageWish.NOT_IN_ZEROPAGE, null, decl.arraysize!!.size()!!)))
-                            return
+                            // uninitialized array. fill it with zeros.
+                            val arraysize = decl.arraysize!!.size()!!
+                            val heapId =
+                                    when(decl.datatype){
+                                        DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
+                                            val array = Array(arraysize) { IntegerOrAddressOf(0, null) }
+                                            heap.addIntegerArray(decl.datatype, array)
+                                        }
+                                        DataType.ARRAY_F -> {
+                                            val array = DoubleArray(arraysize) { 0.0 }
+                                            heap.addDoublesArray(array)
+                                        }
+                                        else -> throw CompilerException("weird array dt")
+                                    }
+                            RuntimeValue(decl.datatype, heapId=heapId)
                         }
                     }
                     DataType.STRUCT -> {
@@ -533,7 +543,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                 throw CompilerException("zp conflict")
             val valuestr = variable.value.toString()
             val struct =  if(variable.params.memberOfStruct==null) "" else "struct=${variable.params.memberOfStruct.name}"
-            out.println("${variable.scopedname}  ${variable.value.type.name.toLowerCase()}  $valuestr  zp=${variable.params.zp} s=$struct u=${variable.params.uninitializedArraySize}")
+            out.println("${variable.scopedname}  ${variable.value.type.name.toLowerCase()}  $valuestr  zp=${variable.params.zp} s=$struct")
         }
         out.println("%end_variables")
         out.println("%memorypointers")
