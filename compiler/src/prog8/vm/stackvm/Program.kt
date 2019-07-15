@@ -226,18 +226,18 @@ class Program (val name: String,
                 if(valueStr[0] !='"' && ':' !in valueStr)
                     throw VmExecutionException("missing value type character")
                 val value = when(val type = DataType.valueOf(typeStr.toUpperCase())) {
-                    DataType.UBYTE -> RuntimeValue(DataType.UBYTE, valueStr.substring(3).toShort(16))
-                    DataType.BYTE -> RuntimeValue(DataType.BYTE, valueStr.substring(2).toShort(16))
-                    DataType.UWORD -> RuntimeValue(DataType.UWORD, valueStr.substring(3).toInt(16))
-                    DataType.WORD -> RuntimeValue(DataType.WORD, valueStr.substring(2).toInt(16))
-                    DataType.FLOAT -> RuntimeValue(DataType.FLOAT, valueStr.substring(2).toDouble())
+                    DataType.UBYTE -> RuntimeValue(DataType.UBYTE, valueStr.substring(3).substringBefore(' ').toShort(16))// TODO process ZP and struct info?
+                    DataType.BYTE -> RuntimeValue(DataType.BYTE, valueStr.substring(2).substringBefore(' ').toShort(16))// TODO process ZP and struct info?
+                    DataType.UWORD -> RuntimeValue(DataType.UWORD, valueStr.substring(3).substringBefore(' ').toInt(16))// TODO process ZP and struct info?
+                    DataType.WORD -> RuntimeValue(DataType.WORD, valueStr.substring(2).substringBefore(' ').toInt(16))// TODO process ZP and struct info?
+                    DataType.FLOAT -> RuntimeValue(DataType.FLOAT, valueStr.substring(2).substringBefore(' ').toDouble())// TODO process ZP and struct info?
                     in StringDatatypes -> {
                         if(valueStr.startsWith('"') && valueStr.endsWith('"'))
                             throw VmExecutionException("encountered a var with a string value, but all string values should already have been moved into the heap")
                         else if(!valueStr.startsWith("heap:"))
                             throw VmExecutionException("invalid string value, should be a heap reference")
                         else {
-                            val heapId = valueStr.substring(5).toInt()
+                            val heapId = valueStr.substring(5).substringBefore(' ').toInt()     // TODO process ZP and struct info?
                             RuntimeValue(type, heapId = heapId)
                         }
                     }
@@ -245,7 +245,7 @@ class Program (val name: String,
                         if(!valueStr.startsWith("heap:"))
                             throw VmExecutionException("invalid array value, should be a heap reference")
                         else {
-                            val heapId = valueStr.substring(5).toInt()
+                            val heapId = valueStr.substring(5).substringBefore(' ').toInt()     // TODO process ZP and struct info?
                             RuntimeValue(type, heapId = heapId)
                         }
                     }

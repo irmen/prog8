@@ -15,11 +15,6 @@ import java.io.File
 internal class AstChecker(private val program: Program,
                           private val compilerOptions: CompilationOptions) : IAstVisitor {
     private val checkResult: MutableList<AstException> = mutableListOf()
-    private val heapIdSentinel: Int
-    init {
-        val stringSentinel = program.heap.allEntries().firstOrNull {it.value.str==""}
-        heapIdSentinel = stringSentinel?.key ?: program.heap.addString(DataType.STR, "")
-    }
 
     fun result(): List<AstException> {
         return checkResult
@@ -358,13 +353,13 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(assignTarget: AssignTarget) {
         val memAddr = assignTarget.memoryAddress?.addressExpression?.constValue(program)?.number?.toInt()
-        if(memAddr!=null) {
-            if(memAddr<0 || memAddr>=65536)
+        if (memAddr != null) {
+            if (memAddr < 0 || memAddr >= 65536)
                 checkResult.add(ExpressionError("address out of range", assignTarget.position))
         }
 
-        val assignment = assignTarget.parent as Assignment
-        if(assignTarget.identifier!=null) {
+        val assignment = assignTarget.parent as IStatement
+        if (assignTarget.identifier != null) {
             val targetName = assignTarget.identifier.nameInSource
             val targetSymbol = program.namespace.lookup(targetName, assignment)
             when (targetSymbol) {
@@ -377,7 +372,7 @@ internal class AstChecker(private val program: Program,
                     return
                 }
                 else -> {
-                    if(targetSymbol.type == VarDeclType.CONST) {
+                    if (targetSymbol.type == VarDeclType.CONST) {
                         checkResult.add(ExpressionError("cannot assign new value to a constant", assignment.position))
                         return
                     }
@@ -385,15 +380,17 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        if(assignment.aug_op!=null)
-            throw FatalAstException("augmented assignment should have been converted into normal assignment")
+        if (assignment is Assignment) {
 
-        val targetDatatype = assignTarget.inferType(program, assignment)
-        if(targetDatatype!=null) {
-            val constVal = assignment.value.constValue(program)
-            if(constVal!=null) {
-                checkValueTypeAndRange(targetDatatype, constVal)
-                // TODO what about arrays etc:
+            if (assignment.aug_op != null)
+                throw FatalAstException("augmented assignment should have been converted into normal assignment")
+
+            val targetDatatype = assignTarget.inferType(program, assignment)
+            if (targetDatatype != null) {
+                val constVal = assignment.value.constValue(program)
+                if (constVal != null) {
+                    checkValueTypeAndRange(targetDatatype, constVal)
+                    // TODO what about arrays etc:
 //                val targetVar =
 //                        if(target.identifier!=null)
 //                            program.namespace.lookup(target.identifier.nameInSource, assignment) as? VarDecl
@@ -403,19 +400,18 @@ internal class AstChecker(private val program: Program,
 //                checkValueTypeAndRange(targetDatatype, targetVar?.struct,
 //                        arrayspec ?: ArrayIndex(NumericLiteralValue.optimalInteger(-1, assignment.position), assignment.position),
 //                        constVal, program.heap)
-            } else {
-                val sourceDatatype: DataType? = assignment.value.inferType(program)
-                if(sourceDatatype==null) {
-                    if (assignment.value is FunctionCall) {
-                        val targetStmt = (assignment.value as FunctionCall).target.targetStatement(program.namespace)
-                        if(targetStmt!=null)
-                            checkResult.add(ExpressionError("function call doesn't return a suitable value to use in assignment", assignment.value.position))
+                } else {
+                    val sourceDatatype: DataType? = assignment.value.inferType(program)
+                    if (sourceDatatype == null) {
+                        if (assignment.value is FunctionCall) {
+                            val targetStmt = (assignment.value as FunctionCall).target.targetStatement(program.namespace)
+                            if (targetStmt != null)
+                                checkResult.add(ExpressionError("function call doesn't return a suitable value to use in assignment", assignment.value.position))
+                        } else
+                            checkResult.add(ExpressionError("assignment value is invalid or has no proper datatype", assignment.value.position))
+                    } else {
+                        checkAssignmentCompatible(targetDatatype, assignTarget, sourceDatatype, assignment.value, assignment.position)
                     }
-                    else
-                        checkResult.add(ExpressionError("assignment value is invalid or has no proper datatype", assignment.value.position))
-                }
-                else {
-                    checkAssignmentCompatible(targetDatatype, assignTarget, sourceDatatype, assignment.value, assignment.position)
                 }
             }
         }

@@ -417,10 +417,10 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                         RuntimeValue(decl.datatype, heapId = litval.heapId)
                     }
                     in ArrayDatatypes -> {
-                        val litval = (decl.value as ReferenceLiteralValue)
-                        if(litval.heapId==null)
+                        val litval = (decl.value as? ReferenceLiteralValue)
+                        if(litval!=null && litval.heapId==null)
                             throw CompilerException("array should already be in the heap")
-                        RuntimeValue(decl.datatype, heapId = litval.heapId)
+                        RuntimeValue(decl.datatype, heapId = litval?.heapId ?: -999)
                     }
                     DataType.STRUCT -> {
                         // struct variables have been flattened already

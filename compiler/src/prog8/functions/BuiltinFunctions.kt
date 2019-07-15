@@ -7,6 +7,7 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.ReferenceLiteralValue
 import prog8.ast.statements.VarDecl
+import prog8.compiler.CompilerException
 import kotlin.math.*
 
 
@@ -336,44 +337,40 @@ private fun builtinLen(args: List<IExpression>, position: Position, program: Pro
     // note: in some cases the length is > 255 and then we have to return a UWORD type instead of a UBYTE.
     if(args.size!=1)
         throw SyntaxError("len requires one argument", position)
-    var argument = args[0].constValue(program)
-    if(argument==null) {
-        val directMemVar = ((args[0] as? DirectMemoryRead)?.addressExpression as? IdentifierReference)?.targetVarDecl(program.namespace)
-        val arraySize = directMemVar?.arraysize?.size()
-        if(arraySize != null)
-            return NumericLiteralValue.optimalInteger(arraySize, position)
-        if(args[0] !is IdentifierReference)
-            throw SyntaxError("len argument should be an identifier, but is ${args[0]}", position)
-        val target = (args[0] as IdentifierReference).targetStatement(program.namespace)
-        val argValue = (target as? VarDecl)?.value
-        argument = argValue?.constValue(program)
-                ?: throw NotConstArgumentException()
+    val constArg = args[0].constValue(program)
+    if(constArg!=null)
+        throw SyntaxError("len of weird argument ${args[0]}", position)
+
+    val directMemVar = ((args[0] as? DirectMemoryRead)?.addressExpression as? IdentifierReference)?.targetVarDecl(program.namespace)
+    var arraySize = directMemVar?.arraysize?.size()
+    if(arraySize != null)
+        return NumericLiteralValue.optimalInteger(arraySize, position)
+    if(args[0] !is IdentifierReference)
+        throw SyntaxError("len argument should be an identifier, but is ${args[0]}", position)
+    val target = (args[0] as IdentifierReference).targetStatement(program.namespace) as VarDecl
+
+    return when(target.datatype) {
+        DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
+            arraySize = target.arraysize!!.size()!!
+            if(arraySize>256)
+                throw CompilerException("array length exceeds byte limit ${target.position}")
+            NumericLiteralValue.optimalInteger(arraySize, args[0].position)
+        }
+        DataType.ARRAY_F -> {
+            arraySize = target.arraysize!!.size()!!
+            if(arraySize>256)
+                throw CompilerException("array length exceeds byte limit ${target.position}")
+            NumericLiteralValue.optimalInteger(arraySize, args[0].position)
+        }
+        in StringDatatypes -> {
+            val refLv = target.value as ReferenceLiteralValue
+            if(refLv.str!!.length>255)
+                throw CompilerException("string length exceeds byte limit ${refLv.position}")
+            NumericLiteralValue.optimalInteger(refLv.str.length, args[0].position)
+        }
+        in NumericDatatypes -> throw SyntaxError("len of weird argument ${args[0]}", position)
+        else -> throw CompilerException("weird datatype")
     }
-
-    TODO("collection functions over iterables (array, string)  $argument")
-
-//    return when(argument.type) {
-//        DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
-//            val arraySize = argument.arrayvalue?.size ?: program.heap.get(argument.heapId!!).arraysize
-//            if(arraySize>256)
-//                throw CompilerException("array length exceeds byte limit ${argument.position}")
-//            LiteralValue.optimalInteger(arraySize, args[0].position)
-//        }
-//        DataType.ARRAY_F -> {
-//            val arraySize = argument.arrayvalue?.size ?: program.heap.get(argument.heapId!!).arraysize
-//            if(arraySize>256)
-//                throw CompilerException("array length exceeds byte limit ${argument.position}")
-//            LiteralValue.optimalInteger(arraySize, args[0].position)
-//        }
-//        in StringDatatypes -> {
-//            val str = argument.strvalue!!
-//            if(str.length>255)
-//                throw CompilerException("string length exceeds byte limit ${argument.position}")
-//            LiteralValue.optimalInteger(str.length, args[0].position)
-//        }
-//        in NumericDatatypes -> throw SyntaxError("len of weird argument ${args[0]}", position)
-//        else -> throw CompilerException("weird datatype")
-//    }
 }
 
 

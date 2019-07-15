@@ -618,20 +618,19 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
             throw FatalAstException("missing array value")
         }
 
-        val array = litval.array!!
-        val typesInArray = array.mapNotNull { it.inferType(program) }.toSet()
+        val typesInArray = litval.array.mapNotNull { it.inferType(program) }.toSet()
         val arrayDt =
                 when {
-                    array.any { it is AddressOf } -> DataType.ARRAY_UW
+                    litval.array.any { it is AddressOf } -> DataType.ARRAY_UW
                     DataType.FLOAT in typesInArray -> DataType.ARRAY_F
                     DataType.WORD in typesInArray -> DataType.ARRAY_W
                     else -> {
-                        val allElementsAreConstantOrAddressOf = array.fold(true) { c, expr-> c and (expr is NumericLiteralValue|| expr is AddressOf)}
+                        val allElementsAreConstantOrAddressOf = litval.array.fold(true) { c, expr-> c and (expr is NumericLiteralValue|| expr is AddressOf)}
                         if(!allElementsAreConstantOrAddressOf) {
                             addError(ExpressionError("array literal can only consist of constant primitive numerical values or memory pointers", litval.position))
                             return litval
                         } else {
-                            val integerArray = array.map { it.constValue(program)!!.number.toInt() }
+                            val integerArray = litval.array.map { it.constValue(program)!!.number.toInt() }
                             val maxValue = integerArray.max()!!
                             val minValue = integerArray.min()!!
                             if (minValue >= 0) {

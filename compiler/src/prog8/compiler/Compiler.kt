@@ -116,7 +116,7 @@ class HeapValues {
 
     fun get(heapId: Int): HeapValue {
         return heap[heapId] ?:
-            throw IllegalArgumentException("heapId not found in heap")
+            throw IllegalArgumentException("heapId $heapId not found in heap")
     }
 
     fun allEntries() = heap.entries
@@ -746,7 +746,8 @@ internal class Compiler(private val program: Program) {
                 val arg=args.single()
                 when (arg.inferType(program)) {
                     DataType.STR, DataType.STR_S -> createSyscall("${funcname}_str")
-                    else -> throw CompilerException("wrong datatype for len()")
+                    in ArrayDatatypes -> throw CompilerException("len() of an array type should have been const-folded")
+                    else -> throw CompilerException("wrong datatype for len()   $arg")
                 }
             }
             "any", "all" -> {
