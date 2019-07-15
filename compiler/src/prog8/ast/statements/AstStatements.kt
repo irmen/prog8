@@ -225,7 +225,7 @@ class VarDecl(val type: VarDeclType,
             DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, 0.0, position)
             else -> throw FatalAstException("can only set a default value for a numeric type")
         }
-        val decl = VarDecl(type, declaredDatatype, zeropage, arraysize, name, structName, constValue, isArray, true, position)
+        val decl = VarDecl(type, declaredDatatype, zeropage, arraysize, name, structName, constValue, isArray, false, position)
         if(parent!=null)
             decl.linkParents(parent)
         return decl
@@ -234,7 +234,7 @@ class VarDecl(val type: VarDeclType,
     fun flattenStructMembers(): MutableList<IStatement> {
         val result = struct!!.statements.withIndex().map {
             val member = it.value as VarDecl
-            val initvalue = if(value!=null) (value as ReferenceLiteralValue).array!![it.index] else null
+            val initvalue = if(value!=null) (value as StructLiteralValue).values[it.index] else null
             VarDecl(
                     VarDeclType.VAR,
                     member.datatype,

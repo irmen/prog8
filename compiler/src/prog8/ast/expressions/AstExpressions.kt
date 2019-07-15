@@ -420,6 +420,26 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
     }
 }
 
+class StructLiteralValue(var values: List<IExpression>,
+                         override val position: Position): IExpression {
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent=parent
+        values.forEach { it.linkParents(this) }
+    }
+
+    override fun constValue(program: Program): NumericLiteralValue?  = null
+    override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun referencesIdentifiers(vararg name: String) = values.any { it.referencesIdentifiers(*name) }
+    override fun inferType(program: Program) = DataType.STRUCT
+
+    override fun toString(): String {
+        return "struct{ ${values.joinToString(", ")} }"
+    }
+}
+
 class ReferenceLiteralValue(val type: DataType,     // only reference types allowed here
                             val str: String? = null,
                             val array: Array<IExpression>? = null,
@@ -428,9 +448,7 @@ class ReferenceLiteralValue(val type: DataType,     // only reference types allo
                             override val position: Position) : IExpression {
     override lateinit var parent: Node
 
-    override fun referencesIdentifiers(vararg name: String): Boolean {
-        return array?.any { it.referencesIdentifiers(*name) } ?: false
-    }
+    override fun referencesIdentifiers(vararg name: String) = array?.any { it.referencesIdentifiers(*name) } ?: false
 
     val isString = type in StringDatatypes
     val isArray = type in ArrayDatatypes
@@ -443,8 +461,6 @@ class ReferenceLiteralValue(val type: DataType,     // only reference types allo
                 if(str==null && heapId==null) throw FatalAstException("literal value missing strvalue/heapId")
             in ArrayDatatypes ->
                 if(array==null && heapId==null) throw FatalAstException("literal value missing arrayvalue/heapId")
-//            DataType.STRUCT ->
-//                if(struct==null && heapId==null) throw FatalAstException("literal value missing structvalue/heapId")
             else -> throw FatalAstException("invalid type $type")
         }
         if(array==null && str==null && heapId==null)

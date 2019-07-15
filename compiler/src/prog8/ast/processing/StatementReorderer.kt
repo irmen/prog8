@@ -9,47 +9,41 @@ import prog8.ast.statements.*
 import prog8.functions.BuiltinFunctions
 
 
-fun flattenStructAssignment(structAssignment: Assignment, program: Program): List<Assignment> {
+fun flattenStructAssignmentFromIdentifier(structAssignment: Assignment, program: Program): List<Assignment> {
     val identifier = structAssignment.target.identifier!!
     val identifierName = identifier.nameInSource.single()
     val targetVar = identifier.targetVarDecl(program.namespace)!!
     val struct = targetVar.struct!!
-    val sourceVar = (structAssignment.value as IdentifierReference).targetVarDecl(program.namespace)!!
-    if(!sourceVar.isArray && sourceVar.struct==null)
-        throw FatalAstException("can only assign arrays or structs to structs")
-    if(sourceVar.isArray) {
-        val sourceArray = (sourceVar.value as ReferenceLiteralValue).array!!
-        return struct.statements.zip(sourceArray).map { member ->
-            val decl = member.first as VarDecl
-            val mangled = mangledStructMemberName(identifierName, decl.name)
-            val idref = IdentifierReference(listOf(mangled), structAssignment.position)
-            val assign = Assignment(AssignTarget(null, idref, null, null, structAssignment.position),
-                    null, member.second, member.second.position)
-            assign.linkParents(structAssignment)
-            assign
+    when {
+        structAssignment.value is IdentifierReference -> {
+            val sourceVar = (structAssignment.value as IdentifierReference).targetVarDecl(program.namespace)!!
+            if (sourceVar.struct == null)
+                throw FatalAstException("can only assign arrays or structs to structs")
+            // struct memberwise copy
+            val sourceStruct = sourceVar.struct!!
+            if(sourceStruct!==targetVar.struct) {
+                // structs are not the same in assignment
+                return listOf()     // error will be printed elsewhere
+            }
+            return struct.statements.zip(sourceStruct.statements).map { member ->
+                val targetDecl = member.first as VarDecl
+                val sourceDecl = member.second as VarDecl
+                if(targetDecl.name != sourceDecl.name)
+                    throw FatalAstException("struct member mismatch")
+                val mangled = mangledStructMemberName(identifierName, targetDecl.name)
+                val idref = IdentifierReference(listOf(mangled), structAssignment.position)
+                val sourcemangled = mangledStructMemberName(sourceVar.name, sourceDecl.name)
+                val sourceIdref = IdentifierReference(listOf(sourcemangled), structAssignment.position)
+                val assign = Assignment(AssignTarget(null, idref, null, null, structAssignment.position),
+                        null, sourceIdref, member.second.position)
+                assign.linkParents(structAssignment)
+                assign
+            }
         }
-    }
-    else {
-        // struct memberwise copy
-        val sourceStruct = sourceVar.struct!!
-        if(sourceStruct!==targetVar.struct) {
-            // structs are not the same in assignment
-            return listOf()     // error will be printed elsewhere
+        structAssignment.value is StructLiteralValue -> {
+            throw IllegalArgumentException("not going to flatten a structLv assignment here")
         }
-        return struct.statements.zip(sourceStruct.statements).map { member ->
-            val targetDecl = member.first as VarDecl
-            val sourceDecl = member.second as VarDecl
-            if(targetDecl.name != sourceDecl.name)
-                throw FatalAstException("struct member mismatch")
-            val mangled = mangledStructMemberName(identifierName, targetDecl.name)
-            val idref = IdentifierReference(listOf(mangled), structAssignment.position)
-            val sourcemangled = mangledStructMemberName(sourceVar.name, sourceDecl.name)
-            val sourceIdref = IdentifierReference(listOf(sourcemangled), structAssignment.position)
-            val assign = Assignment(AssignTarget(null, idref, null, null, structAssignment.position),
-                    null, sourceIdref, member.second.position)
-            assign.linkParents(structAssignment)
-            assign
-        }
+        else -> throw FatalAstException("strange struct value")
     }
 }
 
@@ -215,52 +209,59 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
     }
 
     override fun visit(assignment: Assignment): IStatement {
+        val assg = super.visit(assignment)
+        if(assg !is Assignment)
+            return assg
+
         // see if a typecast is needed to convert the value's type into the proper target type
-        val valuetype = assignment.value.inferType(program)
-        val targettype = assignment.target.inferType(program, assignment)
+        val valuetype = assg.value.inferType(program)
+        val targettype = assg.target.inferType(program, assg)
         if(targettype!=null && valuetype!=null) {
             if(valuetype!=targettype) {
                 if (valuetype isAssignableTo targettype) {
-                    assignment.value = TypecastExpression(assignment.value, targettype, true, assignment.value.position)
-                    assignment.value.linkParents(assignment)
+                    assg.value = TypecastExpression(assg.value, targettype, true, assg.value.position)
+                    assg.value.linkParents(assg)
                 }
                 // if they're not assignable, we'll get a proper error later from the AstChecker
             }
         }
 
-        // struct assignments will be flattened
+        // struct assignments will be flattened (if it's not a struct literal)
         if(valuetype==DataType.STRUCT && targettype==DataType.STRUCT) {
-            val assignments = flattenStructAssignment(assignment, program)
+            if(assg.value is StructLiteralValue)
+                return assg  // do NOT flatten it at this point!! (the compiler will take care if it, later, if needed)
+
+            val assignments = flattenStructAssignmentFromIdentifier(assg, program)    //   'structvar1 = structvar2'
             if(assignments.isEmpty()) {
                 // something went wrong (probably incompatible struct types)
                 // we'll get an error later from the AstChecker
-                return assignment
+                return assg
             } else {
-                val scope = AnonymousScope(assignments.toMutableList(), assignment.position)
-                scope.linkParents(assignment.parent)
+                val scope = AnonymousScope(assignments.toMutableList(), assg.position)
+                scope.linkParents(assg.parent)
                 return scope
             }
         }
 
-        if(assignment.aug_op!=null) {
-            // transform augmented assignment into normal assignment so we have one case less to deal with later
+        if(assg.aug_op!=null) {
+            // transform augmented assg into normal assg so we have one case less to deal with later
             val newTarget: IExpression =
                     when {
-                        assignment.target.register != null -> RegisterExpr(assignment.target.register!!, assignment.target.position)
-                        assignment.target.identifier != null -> assignment.target.identifier!!
-                        assignment.target.arrayindexed != null -> assignment.target.arrayindexed!!
-                        assignment.target.memoryAddress != null -> DirectMemoryRead(assignment.target.memoryAddress!!.addressExpression, assignment.value.position)
-                        else -> throw FatalAstException("strange assignment")
+                        assg.target.register != null -> RegisterExpr(assg.target.register!!, assg.target.position)
+                        assg.target.identifier != null -> assg.target.identifier!!
+                        assg.target.arrayindexed != null -> assg.target.arrayindexed!!
+                        assg.target.memoryAddress != null -> DirectMemoryRead(assg.target.memoryAddress!!.addressExpression, assg.value.position)
+                        else -> throw FatalAstException("strange assg")
                     }
 
-            val expression = BinaryExpression(newTarget, assignment.aug_op.substringBeforeLast('='), assignment.value, assignment.position)
-            expression.linkParents(assignment.parent)
-            val convertedAssignment = Assignment(assignment.target, null, expression, assignment.position)
-            convertedAssignment.linkParents(assignment.parent)
+            val expression = BinaryExpression(newTarget, assg.aug_op.substringBeforeLast('='), assg.value, assg.position)
+            expression.linkParents(assg.parent)
+            val convertedAssignment = Assignment(assg.target, null, expression, assg.position)
+            convertedAssignment.linkParents(assg.parent)
             return super.visit(convertedAssignment)
         }
 
-        return super.visit(assignment)
+        return assg
     }
 
     override fun visit(functionCallStatement: FunctionCallStatement): IStatement {
@@ -319,28 +320,6 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         }
     }
 
-    private fun sortConstantAssignmentSequence(first: Assignment, stmtIter: MutableIterator<IStatement>): Pair<List<Assignment>, IStatement?> {
-        val sequence= mutableListOf(first)
-        var trailing: IStatement? = null
-        while(stmtIter.hasNext()) {
-            val next = stmtIter.next()
-            if(next is Assignment) {
-                val constValue = next.value.constValue(program)
-                if(constValue==null) {
-                    trailing = next
-                    break
-                }
-                sequence.add(next)
-            }
-            else {
-                trailing=next
-                break
-            }
-        }
-        val sorted = sequence.sortedWith(compareBy({it.value.inferType(program)}, {it.target.shortString(true)}))
-        return Pair(sorted, trailing)
-    }
-
     override fun visit(typecast: TypecastExpression): IExpression {
         // warn about any implicit type casts to Float, because that may not be intended
         if(typecast.implicit && typecast.type in setOf(DataType.FLOAT, DataType.ARRAY_F)) {
@@ -396,5 +375,43 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
             }
         }
         super.visit(memwrite)
+    }
+
+    override fun visit(structLv: StructLiteralValue): IExpression {
+        val litval = super.visit(structLv)
+        if(litval !is StructLiteralValue)
+            return litval
+
+        val decl = litval.parent as? VarDecl
+        if(decl != null) {
+            val struct = decl.struct
+            if(struct != null) {
+                addTypecastsIfNeeded(litval, struct)
+            }
+        } else {
+            val assign = litval.parent as? Assignment
+            if (assign != null) {
+                val decl2 = assign.target.identifier?.targetVarDecl(program.namespace)
+                if(decl2 != null) {
+                    val struct = decl2.struct
+                    if(struct != null) {
+                        addTypecastsIfNeeded(litval, struct)
+                    }
+                }
+            }
+        }
+
+        return litval
+    }
+
+    private fun addTypecastsIfNeeded(structLv: StructLiteralValue, struct: StructDecl) {
+        structLv.values = struct.statements.zip(structLv.values).map {
+            val memberDt = (it.first as VarDecl).datatype
+            val valueDt = it.second.inferType(program)
+            if (valueDt != memberDt)
+                TypecastExpression(it.second, memberDt, true, it.second.position)
+            else
+                it.second
+        }
     }
 }

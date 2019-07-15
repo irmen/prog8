@@ -225,4 +225,9 @@ interface IAstModifyingVisitor {
         structDecl.statements = structDecl.statements.map{ it.accept(this) }.toMutableList()
         return structDecl
     }
+
+    fun visit(structLv: StructLiteralValue): IExpression {
+        structLv.values = structLv.values.map { it.accept(this) }
+        return structLv
+    }
 }

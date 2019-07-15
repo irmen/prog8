@@ -1,16 +1,13 @@
 package prog8.compiler
 
+import prog8.ast.*
 import prog8.ast.antlr.escape
-import prog8.ast.IFunctionCall
-import prog8.ast.IStatement
-import prog8.ast.Module
-import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.processing.IAstVisitor
 import prog8.ast.statements.*
 
-class AstToSourceCode(val output: (text: String) -> Unit): IAstVisitor {
+class AstToSourceCode(val output: (text: String) -> Unit, val program: Program): IAstVisitor {
     var scopelevel = 0
 
     fun indent(s: String) = "    ".repeat(scopelevel) + s
@@ -261,30 +258,42 @@ class AstToSourceCode(val output: (text: String) -> Unit): IAstVisitor {
             refLiteral.isString -> output("\"${escape(refLiteral.str!!)}\"")
             refLiteral.isArray -> {
                 if(refLiteral.array!=null) {
-                    var counter = 0
-                    output("[")
-                    scopelevel++
-                    for (v in refLiteral.array) {
-                        v.accept(this)
-                        if (v !== refLiteral.array.last())
-                            output(", ")
-                        counter++
-                        if(counter > 16) {
-                            outputln("")
-                            outputi("")
-                            counter=0
-                        }
-                    }
-                    scopelevel--
-                    output("]")
+                    outputListMembers(refLiteral.array.asSequence(), '[', ']')
                 }
             }
         }
     }
 
+    private fun outputListMembers(array: Sequence<IExpression>, openchar: Char, closechar: Char) {
+        var counter = 0
+        output(openchar.toString())
+        scopelevel++
+        for (v in array) {
+            v.accept(this)
+            if (v !== array.last())
+                output(", ")
+            counter++
+            if (counter > 16) {
+                outputln("")
+                outputi("")
+                counter = 0
+            }
+        }
+        scopelevel--
+        output(closechar.toString())
+    }
+
     override fun visit(assignment: Assignment) {
+        if(assignment is VariableInitializationAssignment) {
+            val targetVar = assignment.target.identifier?.targetVarDecl(program.namespace)
+            if(targetVar?.struct != null) {
+                // skip STRUCT init assignments
+                return
+            }
+        }
+
         assignment.target.accept(this)
-        if(assignment.aug_op!=null)
+        if (assignment.aug_op != null)
             output(" ${assignment.aug_op} ")
         else
             output(" = ")
@@ -432,6 +441,11 @@ class AstToSourceCode(val output: (text: String) -> Unit): IAstVisitor {
             whenChoice.statements.accept(this)
         outputln("")
     }
+
+    override fun visit(structLv: StructLiteralValue) {
+        outputListMembers(structLv.values.asSequence(), '{', '}')
+    }
+
     override fun visit(nopStatement: NopStatement) {
         output("; NOP @ ${nopStatement.position}  $nopStatement")
     }

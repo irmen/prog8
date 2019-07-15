@@ -6,6 +6,10 @@ import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.processing.IAstVisitor
 import prog8.ast.statements.*
 
+
+// TODO sealed classes instead??
+
+
 interface Node {
     val position: Position
     var parent: Node             // will be linked correctly later (late init)

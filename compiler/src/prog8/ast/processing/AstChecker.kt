@@ -526,6 +526,29 @@ internal class AstChecker(private val program: Program,
                     is NumericLiteralValue -> {
                         checkValueTypeAndRange(decl.datatype, decl.value as NumericLiteralValue)
                     }
+                    is StructLiteralValue -> {
+                        if(decl.datatype==DataType.STRUCT) {
+                            val struct = decl.struct!!
+                            val structLv = decl.value as StructLiteralValue
+                            if(struct.numberOfElements != structLv.values.size) {
+                                checkResult.add(ExpressionError("struct value has incorrect number of elements", structLv.position))
+                                return
+                            }
+                            for(value in structLv.values.zip(struct.statements)) {
+                                val memberdecl = value.second as VarDecl
+                                val constValue = value.first.constValue(program)
+                                if(constValue==null) {
+                                    checkResult.add(ExpressionError("struct literal value for field '${memberdecl.name}' should consist of compile-time constants", value.first.position))
+                                    return
+                                }
+                                val memberDt = memberdecl.datatype
+                                if(!checkValueTypeAndRange(memberDt, constValue)) {
+                                    checkResult.add(ExpressionError("struct member value's type is not compatible with member field '${memberdecl.name}'", value.first.position))
+                                    return
+                                }
+                            }
+                        }
+                    }
                     else -> {
                         err("var/const declaration needs a compile-time constant initializer value, or range, instead found: ${decl.value!!.javaClass.simpleName}")
                         super.visit(decl)
@@ -1245,21 +1268,12 @@ internal class AstChecker(private val program: Program,
             DataType.STR -> sourceDatatype== DataType.STR
             DataType.STR_S -> sourceDatatype== DataType.STR_S
             DataType.STRUCT -> {
-                // for now we've decided you cannot assign struct by-value.
-                // but you can however assign an array to it of the correct size
-                if(sourceDatatype in ArrayDatatypes) {
-                    val identifier = sourceValue as IdentifierReference
-                    val sourceArraySize = identifier.targetVarDecl(program.namespace)!!.arraysize?.size()
+                if(sourceDatatype==DataType.STRUCT) {
+                    val structLv = sourceValue as StructLiteralValue
+                    val numValues = structLv.values.size
                     val targetstruct = target.identifier!!.targetVarDecl(program.namespace)!!.struct!!
-                    return targetstruct.numberOfElements == sourceArraySize
+                    return targetstruct.numberOfElements == numValues
                 }
-//                if(sourceDatatype==DataType.STRUCT) {
-//                    val sourcename = (sourceValue as IdentifierReference).nameInSource
-//                    val vd1 = program.namespace.lookup(sourcename, target) as? VarDecl
-//                    val targetname = target.identifier!!.nameInSource
-//                    val vd2 = program.namespace.lookup(targetname, target) as? VarDecl
-//                    return vd1?.struct == vd2?.struct
-//                }
                 false
             }
             else -> checkResult.add(SyntaxError("cannot assign new value to variable of type $targetDatatype", position))

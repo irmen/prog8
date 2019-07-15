@@ -17,7 +17,6 @@ import prog8.parser.importModule
 import prog8.parser.moduleName
 import java.io.File
 import java.io.PrintStream
-import java.lang.Exception
 import java.nio.file.Path
 import kotlin.system.exitProcess
 import kotlin.system.measureTimeMillis
@@ -146,7 +145,7 @@ fun compileProgram(filepath: Path,
 
 fun printAst(programAst: Program) {
     println()
-    val printer = AstToSourceCode(::print)
+    val printer = AstToSourceCode(::print, programAst)
     printer.visit(programAst)
     println()
 }

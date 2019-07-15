@@ -214,13 +214,16 @@ wordsuffix : '.w' ;
 
 booleanliteral :  'true' | 'false' ;
 
-arrayliteral :  '[' EOL? expression (',' EOL? expression)* EOL? ']' ;       // you can split the array list over several lines
+arrayliteral :  '[' EOL? expression (',' EOL? expression)* EOL? ']' ;       // you can split the values over several lines
+
+structliteral :  '{' EOL? expression (',' EOL? expression)* EOL? '}' ;       // you can split the values over several lines
 
 stringliteral :  STRING ;
 
 charliteral : SINGLECHAR ;
 
 floatliteral :  FLOAT_NUMBER ;
+
 
 literalvalue :
 	integerliteral
@@ -229,6 +232,7 @@ literalvalue :
 	| stringliteral
 	| charliteral
 	| floatliteral
+	| structliteral
 	;
 
 inlineasm :  '%asm' INLINEASMBLOCK;

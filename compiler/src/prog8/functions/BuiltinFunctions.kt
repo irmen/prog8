@@ -261,7 +261,7 @@ private fun builtinLen(args: List<IExpression>, position: Position, program: Pro
         return NumericLiteralValue.optimalInteger(arraySize, position)
     if(args[0] !is IdentifierReference)
         throw SyntaxError("len argument should be an identifier, but is ${args[0]}", position)
-    val target = (args[0] as IdentifierReference).targetStatement(program.namespace) as VarDecl
+    val target = (args[0] as IdentifierReference).targetVarDecl(program.namespace)!!
 
     return when(target.datatype) {
         DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {

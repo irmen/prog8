@@ -173,4 +173,8 @@ interface IAstVisitor {
     fun visit(structDecl: StructDecl) {
         structDecl.statements.forEach { it.accept(this) }
     }
+
+    fun visit(structLv: StructLiteralValue) {
+        structLv.values.forEach { it.accept(this) }
+    }
 }

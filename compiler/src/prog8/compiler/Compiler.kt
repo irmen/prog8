@@ -4,7 +4,6 @@ import prog8.ast.*
 import prog8.ast.base.*
 import prog8.ast.base.RegisterOrPair.*
 import prog8.ast.expressions.*
-import prog8.ast.processing.flattenStructAssignment
 import prog8.ast.statements.*
 import prog8.compiler.intermediate.IntermediateProgram
 import prog8.compiler.intermediate.Opcode
@@ -593,6 +592,7 @@ internal class Compiler(private val program: Program) {
             is TypecastExpression -> translate(expr)
             is DirectMemoryRead -> translate(expr)
             is AddressOf -> translate(expr)
+            is StructLiteralValue -> throw CompilerException("a struct Lv should have been flattened as assignments")
             else -> {
                 val lv = expr.constValue(program) ?: throw CompilerException("constant expression required, not $expr")
                 when(lv.type) {
@@ -1404,6 +1404,26 @@ internal class Compiler(private val program: Program) {
 
     private fun translate(stmt: Assignment) {
         prog.line(stmt.position)
+        if(stmt.value is StructLiteralValue) {
+            // flatten into individual struct member assignments
+            val identifier = stmt.target.identifier!!
+            val identifierName = identifier.nameInSource.single()
+            val targetVar = identifier.targetVarDecl(program.namespace)!!
+            val struct = targetVar.struct!!
+            val sourcevalues = (stmt.value as StructLiteralValue).values
+            val assignments = struct.statements.zip(sourcevalues).map { member ->
+                val decl = member.first as VarDecl
+                val mangled = mangledStructMemberName(identifierName, decl.name)
+                val idref = IdentifierReference(listOf(mangled), stmt.position)
+                val assign = Assignment(AssignTarget(null, idref, null, null, stmt.position),
+                        null, member.second, member.second.position)
+                assign.linkParents(stmt)
+                assign
+            }
+            assignments.forEach { translate(it) }
+            return
+        }
+
         translate(stmt.value)
 
         val valueDt = stmt.value.inferType(program)
@@ -1447,11 +1467,6 @@ internal class Compiler(private val program: Program) {
                         DataType.WORD -> prog.instr(Opcode.CAST_W_TO_F)
                         else -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                     }
-                }
-                DataType.STRUCT -> {
-                    // Assume the value is an array. Flatten the struct assignment into memberwise assignments.
-                    flattenStructAssignment(stmt, program).forEach { translate(it) }
-                    return
                 }
                 in StringDatatypes -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")
                 in ArrayDatatypes -> throw CompilerException("incompatible data types valueDt=$valueDt  targetDt=$targetDt  at $stmt")

@@ -443,6 +443,10 @@ private fun prog8Parser.ExpressionContext.toAst() : IExpression {
                     // the ConstantFolder takes care of that and converts the type if needed.
                     ReferenceLiteralValue(DataType.ARRAY_UB, array = array, position = litval.toPosition())
                 }
+                litval.structliteral()!=null -> {
+                    val values = litval.structliteral().expression().map { it.toAst() }
+                    StructLiteralValue(values, litval.toPosition())
+                }
                 else -> throw FatalAstException("invalid parsed literal")
             }
         }
@@ -516,6 +520,9 @@ private fun prog8Parser.BooleanliteralContext.toAst() = when(text) {
 
 
 private fun prog8Parser.ArrayliteralContext.toAst() : Array<IExpression> =
+        expression().map { it.toAst() }.toTypedArray()
+
+private fun prog8Parser.StructliteralContext.toAst() : Array<IExpression> =
         expression().map { it.toAst() }.toTypedArray()
 
 
