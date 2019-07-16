@@ -390,7 +390,8 @@ internal class AstChecker(private val program: Program,
                 val constVal = assignment.value.constValue(program)
                 if (constVal != null) {
                     checkValueTypeAndRange(targetDatatype, constVal)
-                    // TODO what about arrays etc:
+
+                    // TODO what about arrays, structs, strings etc:
 //                val targetVar =
 //                        if(target.identifier!=null)
 //                            program.namespace.lookup(target.identifier.nameInSource, assignment) as? VarDecl
@@ -1193,7 +1194,7 @@ internal class AstChecker(private val program: Program,
                 if (number < -32768 || number > 32767)
                     return err("value '$number' out of range for word")
             }
-            else -> return false
+            else -> return err("value of type ${value.type} not compatible with $targetDt")
         }
         return true
     }

@@ -34,7 +34,6 @@ fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
             return RuntimeValue.fromLv(expr)
         }
         is ReferenceLiteralValue -> {
-            TODO("REF $expr")
             return RuntimeValue.fromLv(expr, ctx.program.heap)
         }
         is PrefixExpression -> {

@@ -37,8 +37,8 @@ This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/license
     :alt: Fully playable tetris clone
 
 
-Code example
-------------
+Code examples
+-------------
 
 This code calculates prime numbers using the Sieve of Eratosthenes algorithm::
 
@@ -89,11 +89,45 @@ This code calculates prime numbers using the Sieve of Eratosthenes algorithm::
     }
 
 
-when compiled an ran on a C-64 you'll get:
+when compiled an ran on a C-64 you get this:
 
 .. image:: _static/primes_example.png
     :align: center
     :alt: result when run on C-64
+
+
+The following programs shows a use of the high level ``struct`` type::
+
+    %import c64utils
+    %zeropage basicsafe
+
+    ~ main {
+
+        struct Color {
+            ubyte red
+            ubyte green
+            ubyte blue
+        }
+
+        sub start() {
+
+            Color purple = {255, 0, 255}
+            Color other
+            other = purple
+            other.red /= 2
+            other.green = 10 + other.green / 2
+            other.blue = 99
+
+            c64scr.print_ub(other.red)
+            c64.CHROUT(',')
+            c64scr.print_ub(other.green)
+            c64.CHROUT(',')
+            c64scr.print_ub(other.blue)
+            c64.CHROUT('\n')
+        }
+    }
+
+when compiled and ran, it prints  ``127,10,99`` on the screen.
 
 
 Design principles and features
