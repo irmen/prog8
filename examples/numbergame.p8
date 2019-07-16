@@ -3,8 +3,6 @@
 %zeropage basicsafe
 
 ; The classic number guessing game.
-; This version uses mostly high level subroutine calls and loops.
-; It's more readable than the low-level version, but produces a slightly larger program.
 
 ~ main {
 
