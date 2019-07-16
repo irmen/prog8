@@ -15,7 +15,6 @@ import kotlin.math.floor
 class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
     var optimizationsDone: Int = 0
     var errors : MutableList<AstException> = mutableListOf()
-
     private val reportedErrorMessages = mutableSetOf<String>()
 
     fun addError(x: AstException) {
@@ -318,6 +317,10 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
     override fun visit(expr: BinaryExpression): IExpression {
         return try {
             super.visit(expr)
+
+            if(expr.left is ReferenceLiteralValue || expr.right is ReferenceLiteralValue)
+                TODO("binexpr with reference litval")
+
             val leftconst = expr.left.constValue(program)
             val rightconst = expr.right.constValue(program)
 
@@ -338,12 +341,13 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
             }
 
             // const fold when both operands are a const
-            val evaluator = ConstExprEvaluator()
             return when {
                 leftconst != null && rightconst != null -> {
                     optimizationsDone++
+                    val evaluator = ConstExprEvaluator()
                     evaluator.evaluate(leftconst, expr.operator, rightconst)
                 }
+
                 else -> expr
             }
         } catch (ax: AstException) {

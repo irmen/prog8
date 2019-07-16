@@ -267,6 +267,13 @@ Strings in your source code files will be encoded (translated from ASCII/UTF-8) 
 PETSCII is the default choice. If you need screencodes (also called 'poke' codes) instead,
 you have to use the ``str_s`` variants of the string type identifier.
 
+You can concatenate two string literals using '+' (not very useful though) or repeat
+a string literal a given number of times using '*'::
+
+    str string1 = "first part" + "second part"
+    str string2 = "hello!" * 10
+
+
 .. caution::
     It's probably best that you don't change strings after they're created.
     This is because if your program exits and is restarted (without loading it again),

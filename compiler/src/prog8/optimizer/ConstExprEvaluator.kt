@@ -172,15 +172,6 @@ class ConstExprEvaluator {
                 right.type == DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, left.number.toDouble() + right.number.toDouble(), left.position)
                 else -> throw ExpressionError(error, left.position)
             }
-            // TODO: string concatenation
-//            left.isString -> when {
-//                right.isString -> {
-//                    val newStr = left.strvalue!! + right.strvalue!!
-//                    if(newStr.length > 255) throw ExpressionError("string too long", left.position)
-//                    NumericLiteralValue(DataType.STR, strvalue = newStr, left.position)
-//                }
-//                else -> throw ExpressionError(error, left.position)
-//            }
             else -> throw ExpressionError(error, left.position)
         }
     }
@@ -208,11 +199,6 @@ class ConstExprEvaluator {
             left.type in IntegerDatatypes -> when {
                 right.type in IntegerDatatypes -> NumericLiteralValue.optimalNumeric(left.number.toInt() * right.number.toInt(), left.position)
                 right.type == DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, left.number.toInt() * right.number.toDouble(), left.position)
-                // TODO: string multiplication
-//                right.isString -> {
-//                    if(right.strvalue!!.length * left.number.toInt() > 255) throw ExpressionError("string too long", left.position)
-//                    NumericLiteralValue(DataType.STR, strvalue = right.strvalue.repeat(left.number.toInt()), left.position)
-//                }
                 else -> throw ExpressionError(error, left.position)
             }
             left.type == DataType.FLOAT -> when {

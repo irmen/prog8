@@ -5,22 +5,13 @@
 
 ~ main {
 
-    float[5] flarray
-    byte[5] barray
-    uword[5] uwarray
-
     sub start() {
-        c64scr.print_uw(flarray)
-        c64.CHROUT('=')
-        c64flt.print_f(flarray[0])
+        str bla = "asfasd" + "zzz"
+        str bla2 = "sdfsdf" * 4
+
+        c64scr.print(bla)
         c64.CHROUT('\n')
-        c64scr.print_uw(barray)
-        c64.CHROUT('=')
-        c64scr.print_b(barray[0])
-        c64.CHROUT('\n')
-        c64scr.print_uw(uwarray)
-        c64.CHROUT('=')
-        c64scr.print_uw(uwarray[0])
+        c64scr.print(bla2)
         c64.CHROUT('\n')
     }
 

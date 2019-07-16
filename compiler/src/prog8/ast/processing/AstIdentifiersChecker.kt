@@ -222,18 +222,22 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
 
     override fun visit(refLiteral: ReferenceLiteralValue): IExpression {
         if(refLiteral.parent !is VarDecl) {
-            // a referencetype literal value that's not declared as a variable
-            // we need to introduce an auto-generated variable for this to be able to refer to the value
-            refLiteral.addToHeap(program.heap)
-            val variable = VarDecl.createAuto(refLiteral, program.heap)
-            addVarDecl(refLiteral.definingScope(), variable)
-            // replace the reference literal by a identfier reference
-            val identifier = IdentifierReference(listOf(variable.name), variable.position)
-            identifier.parent = refLiteral.parent
-            // TODO anonymousVariablesFromHeap[variable.name] = Pair(refLiteral, variable)
-            return identifier
+            return makeIdentifierFromRefLv(refLiteral)
         }
         return super.visit(refLiteral)
+    }
+
+    private fun makeIdentifierFromRefLv(refLiteral: ReferenceLiteralValue): IdentifierReference {
+        // a referencetype literal value that's not declared as a variable
+        // we need to introduce an auto-generated variable for this to be able to refer to the value
+        refLiteral.addToHeap(program.heap)
+        val variable = VarDecl.createAuto(refLiteral, program.heap)
+        addVarDecl(refLiteral.definingScope(), variable)
+        // replace the reference literal by a identifier reference
+        val identifier = IdentifierReference(listOf(variable.name), variable.position)
+        identifier.parent = refLiteral.parent
+        // TODO anonymousVariablesFromHeap[variable.name] = Pair(refLiteral, variable)
+        return identifier
     }
 
     override fun visit(addressOf: AddressOf): IExpression {
@@ -251,6 +255,38 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         }
 
         return super.visit(structDecl)
+    }
+
+    override fun visit(expr: BinaryExpression): IExpression {
+        return when {
+            expr.left is ReferenceLiteralValue ->
+                processBinaryExprWithReferenceVal(expr.left as ReferenceLiteralValue, expr.right, expr)
+            expr.right is ReferenceLiteralValue ->
+                processBinaryExprWithReferenceVal(expr.right as ReferenceLiteralValue, expr.left, expr)
+            else -> super.visit(expr)
+        }
+    }
+
+    private fun processBinaryExprWithReferenceVal(refLv: ReferenceLiteralValue, operand: IExpression, expr: BinaryExpression): IExpression {
+        // expressions on strings or arrays
+        if(refLv.isString) {
+            val constvalue = operand.constValue(program)
+            if(constvalue!=null) {
+                if (expr.operator == "*") {
+                    // repeat a string a number of times
+                    return ReferenceLiteralValue(refLv.inferType(program),
+                            refLv.str!!.repeat(constvalue.number.toInt()), null, null, expr.position)
+                }
+            }
+            if(expr.operator == "+" && operand is ReferenceLiteralValue) {
+                if (operand.isString) {
+                    // concatenate two strings
+                    return ReferenceLiteralValue(refLv.inferType(program),
+                            "${refLv.str}${operand.str}", null, null, expr.position)
+                }
+            }
+        }
+        return expr
     }
 
     private fun addVarDecl(scope: INameScope, variable: VarDecl) {

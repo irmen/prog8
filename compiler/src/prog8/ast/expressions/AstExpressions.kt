@@ -169,7 +169,7 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
                     DataType.UWORD -> Pair(DataType.UWORD, left)
                     DataType.WORD -> Pair(DataType.WORD, left)
                     DataType.FLOAT -> Pair(DataType.FLOAT, left)
-                    else -> throw FatalAstException("non-numeric datatype $rightDt")
+                    else -> Pair(leftDt, null)      // non-numeric datatype
                 }
             }
             DataType.BYTE -> {
@@ -179,7 +179,7 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
                     DataType.UWORD -> Pair(DataType.WORD, left)
                     DataType.WORD -> Pair(DataType.WORD, left)
                     DataType.FLOAT -> Pair(DataType.FLOAT, left)
-                    else -> throw FatalAstException("non-numeric datatype $rightDt")
+                    else -> Pair(leftDt, null)      // non-numeric datatype
                 }
             }
             DataType.UWORD -> {
@@ -189,7 +189,7 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
                     DataType.UWORD -> Pair(DataType.UWORD, null)
                     DataType.WORD -> Pair(DataType.WORD, left)
                     DataType.FLOAT -> Pair(DataType.FLOAT, left)
-                    else -> throw FatalAstException("non-numeric datatype $rightDt")
+                    else -> Pair(leftDt, null)      // non-numeric datatype
                 }
             }
             DataType.WORD -> {
@@ -199,13 +199,13 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
                     DataType.UWORD -> Pair(DataType.WORD, right)
                     DataType.WORD -> Pair(DataType.WORD, null)
                     DataType.FLOAT -> Pair(DataType.FLOAT, left)
-                    else -> throw FatalAstException("non-numeric datatype $rightDt")
+                    else -> Pair(leftDt, null)      // non-numeric datatype
                 }
             }
             DataType.FLOAT -> {
                 Pair(DataType.FLOAT, right)
             }
-            else -> throw FatalAstException("non-numeric datatype $leftDt")
+            else -> Pair(leftDt, null)      // non-numeric datatype
         }
     }
 }
@@ -700,7 +700,12 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
 
     fun heapId(namespace: INameScope): Int {
         val node = namespace.lookup(nameInSource, this) ?: throw UndefinedSymbolError(this)
-        return ((node as? VarDecl)?.value as? ReferenceLiteralValue)?.heapId ?: throw FatalAstException("identifier is not on the heap: $this")
+        val value = (node as? VarDecl)?.value ?: throw FatalAstException("requires a reference value")
+        return when (value) {
+            is IdentifierReference -> value.heapId(namespace)
+            is ReferenceLiteralValue -> value.heapId ?: throw FatalAstException("refLv is not on the heap: $value")
+            else -> throw FatalAstException("requires a reference value")
+        }
     }
 }
 
