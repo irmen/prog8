@@ -232,14 +232,14 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
                 return assg  // do NOT flatten it at this point!! (the compiler will take care if it, later, if needed)
 
             val assignments = flattenStructAssignmentFromIdentifier(assg, program)    //   'structvar1 = structvar2'
-            if(assignments.isEmpty()) {
+            return if(assignments.isEmpty()) {
                 // something went wrong (probably incompatible struct types)
                 // we'll get an error later from the AstChecker
-                return assg
+                assg
             } else {
                 val scope = AnonymousScope(assignments.toMutableList(), assg.position)
                 scope.linkParents(assg.parent)
-                return scope
+                scope
             }
         }
 

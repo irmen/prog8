@@ -33,6 +33,17 @@ internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope
 
     override fun visit(decl: VarDecl): IStatement {
         super.visit(decl)
+
+        if(decl.isArray && decl.value==null) {
+            // array datatype without initialization value, add list of zeros
+            val arraysize = decl.arraysize!!.size()!!
+            val array = ReferenceLiteralValue(decl.datatype, null,
+                    Array(arraysize) { NumericLiteralValue.optimalInteger(0, decl.position) },
+                    null, decl.position)
+            array.addToHeap(heap)
+            decl.value = array
+        }
+
         if(decl.type!= VarDeclType.VAR || decl.value==null)
             return decl
 
@@ -47,7 +58,7 @@ internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope
                     }
                     else
                         declvalue
-            val identifierName = listOf(decl.name)    //  // TODO this was: (scoped name) decl.scopedname.split(".")
+            val identifierName = listOf(decl.name)    // this was: (scoped name) decl.scopedname.split(".")
             return VariableInitializationAssignment(
                     AssignTarget(null, IdentifierReference(identifierName, decl.position), null, null, decl.position),
                     null,
@@ -55,6 +66,7 @@ internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope
                     decl.position
             )
         }
+
         return decl
     }
 

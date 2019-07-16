@@ -6,7 +6,6 @@ import prog8.ast.expressions.DirectMemoryRead
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.ReferenceLiteralValue
-import prog8.ast.statements.VarDecl
 import prog8.compiler.CompilerException
 import kotlin.math.*
 

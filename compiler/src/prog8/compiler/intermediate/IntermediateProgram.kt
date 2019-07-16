@@ -421,21 +421,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                         if(litval!=null){
                             RuntimeValue(decl.datatype, heapId = litval.heapId)
                         } else {
-                            // uninitialized array. fill it with zeros.
-                            val arraysize = decl.arraysize!!.size()!!
-                            val heapId =
-                                    when(decl.datatype){
-                                        DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
-                                            val array = Array(arraysize) { IntegerOrAddressOf(0, null) }
-                                            heap.addIntegerArray(decl.datatype, array)
-                                        }
-                                        DataType.ARRAY_F -> {
-                                            val array = DoubleArray(arraysize) { 0.0 }
-                                            heap.addDoublesArray(array)
-                                        }
-                                        else -> throw CompilerException("weird array dt")
-                                    }
-                            RuntimeValue(decl.datatype, heapId=heapId)
+                            throw CompilerException("initialization value expected")
                         }
                     }
                     DataType.STRUCT -> {

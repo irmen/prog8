@@ -144,8 +144,7 @@ interface INameScope {
                 if(struct.statements.any { (it as VarDecl).name == scopedName.last()}) {
                     // return ref to the mangled name variable
                     val mangled = mangledStructMemberName(thing.name, scopedName.last())
-                    val mangledVar = thing.definingScope().getLabelOrVariable(mangled)
-                    return mangledVar
+                    return thing.definingScope().getLabelOrVariable(mangled)
                 }
             }
 

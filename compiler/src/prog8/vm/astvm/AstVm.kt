@@ -413,9 +413,9 @@ class AstVm(val program: Program) {
                         val elementType = stmt.target.arrayindexed!!.inferType(program)!!
                         val index = evaluate(stmt.target.arrayindexed!!.arrayspec.index, evalCtx).integerValue()
                         var value = RuntimeValue(elementType, arrayvalue.array!![index].toInt())
-                        when {
-                            stmt.operator == "++" -> value=value.inc()
-                            stmt.operator == "--" -> value=value.dec()
+                        value = when {
+                            stmt.operator == "++" -> value.inc()
+                            stmt.operator == "--" -> value.dec()
                             else -> throw VmExecutionException("strange postincdec operator $stmt")
                         }
                         arrayvalue.array[index] = value.numericValue()

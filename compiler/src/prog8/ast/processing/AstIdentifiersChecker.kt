@@ -210,10 +210,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
             val lval = returnStmt.value as? NumericLiteralValue
             if(lval!=null) {
                 val adjusted = lval.cast(subroutine.returntypes.single())
-                if(adjusted!=null && adjusted !== lval)
-                    newValue = adjusted
-                else
-                    newValue = lval
+                newValue = if(adjusted!=null && adjusted !== lval) adjusted else lval
             } else {
                 newValue = returnStmt.value!!
             }

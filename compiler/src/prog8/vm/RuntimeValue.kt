@@ -3,8 +3,6 @@ package prog8.vm
 import prog8.ast.base.*
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.ReferenceLiteralValue
-import prog8.ast.statements.StructDecl
-import prog8.ast.statements.ZeropageWish
 import prog8.compiler.HeapValues
 import prog8.compiler.target.c64.Petscii
 import kotlin.math.abs
@@ -116,20 +114,6 @@ open class RuntimeValue(val type: DataType, num: Number?=null, val str: String?=
                 floatval = null
                 asBoolean = true
             }
-        }
-    }
-
-    fun asNumericLiteralValue(): NumericLiteralValue {
-        return when(type) {
-            in ByteDatatypes -> NumericLiteralValue(type, byteval!!, Position("", 0, 0, 0))
-            in WordDatatypes -> NumericLiteralValue(type, wordval!!, Position("", 0, 0, 0))
-            DataType.FLOAT -> NumericLiteralValue(type, floatval!!, Position("", 0, 0, 0))
-            in PassByReferenceDatatypes -> TODO("passbyref???")
-//            in StringDatatypes -> NumericLiteralValue(type, strvalue = str, Position("", 0, 0, 0))
-//            in ArrayDatatypes -> NumericLiteralValue(type,
-//                    arrayvalue = array?.map { NumericLiteralValue.optimalNumeric(it, Position("", 0, 0, 0)) }?.toTypedArray(),
-//                    Position("", 0, 0, 0))
-            else -> throw IllegalArgumentException("weird source value $this")
         }
     }
 

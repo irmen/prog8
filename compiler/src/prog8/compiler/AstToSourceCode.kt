@@ -8,12 +8,12 @@ import prog8.ast.processing.IAstVisitor
 import prog8.ast.statements.*
 
 class AstToSourceCode(val output: (text: String) -> Unit, val program: Program): IAstVisitor {
-    var scopelevel = 0
+    private var scopelevel = 0
 
-    fun indent(s: String) = "    ".repeat(scopelevel) + s
-    fun outputln(text: String) = output(text + "\n")
-    fun outputlni(s: Any) = outputln(indent(s.toString()))
-    fun outputi(s: Any) = output(indent(s.toString()))
+    private fun indent(s: String) = "    ".repeat(scopelevel) + s
+    private fun outputln(text: String) = output(text + "\n")
+    private fun outputlni(s: Any) = outputln(indent(s.toString()))
+    private fun outputi(s: Any) = output(indent(s.toString()))
 
     override fun visit(program: Program) {
         outputln("============= PROGRAM ${program.name} (FROM AST) ===============")
@@ -73,7 +73,7 @@ class AstToSourceCode(val output: (text: String) -> Unit, val program: Program):
         output("\n")
     }
 
-    fun datatypeString(dt: DataType): String {
+    private fun datatypeString(dt: DataType): String {
         return when(dt) {
             in NumericDatatypes -> dt.toString().toLowerCase()
             in StringDatatypes -> dt.toString().toLowerCase()

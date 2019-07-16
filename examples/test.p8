@@ -5,24 +5,22 @@
 
 ~ main {
 
-    struct Color {
-        word red
-        byte green
-        float blue
-    }
+    float[5] flarray
+    byte[5] barray
+    uword[5] uwarray
 
     sub start() {
-        Color rgb1 = {1,2,3.44}
-        Color rgb2
-
-        rgb2 = {22233, 33, 1.1}     ; @todo implicit type conversion
-        c64scr.print_b(rgb1.green)
+        c64scr.print_uw(flarray)
+        c64.CHROUT('=')
+        c64flt.print_f(flarray[0])
         c64.CHROUT('\n')
-        c64scr.print_b(rgb2.green)
+        c64scr.print_uw(barray)
+        c64.CHROUT('=')
+        c64scr.print_b(barray[0])
         c64.CHROUT('\n')
-
-        rgb1=rgb2
-        c64scr.print_b(rgb1.green)
+        c64scr.print_uw(uwarray)
+        c64.CHROUT('=')
+        c64scr.print_uw(uwarray[0])
         c64.CHROUT('\n')
     }
 

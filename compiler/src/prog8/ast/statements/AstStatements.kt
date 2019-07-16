@@ -356,24 +356,6 @@ data class AssignTarget(val register: Register?,
         return null
     }
 
-    fun shortString(withTypePrefix: Boolean=false): String {
-        if(register!=null)
-            return (if(withTypePrefix) "0register::" else "") + register.name
-        if(identifier!=null)
-            return (if(withTypePrefix) "3identifier::" else "") + identifier.nameInSource.last()
-        if(arrayindexed!=null)
-            return (if(withTypePrefix) "2arrayidx::" else "") + arrayindexed.identifier.nameInSource.last()
-        val address = memoryAddress?.addressExpression
-        if(address is NumericLiteralValue)
-            return (if(withTypePrefix) "1address::" else "") +address.number.toString()
-        else if(address is ReferenceLiteralValue)
-            throw FatalAstException("assigntarget is a reference literal")
-        return if(withTypePrefix) "???::???" else "???"
-    }
-
-    fun isMemoryMapped(namespace: INameScope): Boolean =
-            memoryAddress!=null || (identifier?.targetVarDecl(namespace)?.type== VarDeclType.MEMORY)
-
     infix fun isSameAs(value: IExpression): Boolean {
         return when {
             this.memoryAddress!=null -> false

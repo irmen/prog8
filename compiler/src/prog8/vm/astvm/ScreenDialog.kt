@@ -18,7 +18,7 @@ class BitmapScreenPanel : KeyListener, JPanel() {
     private val g2d = image.graphics as Graphics2D
     private var cursorX: Int=0
     private var cursorY: Int=0
-    val keyboardBuffer: Deque<Char> = LinkedList<Char>()
+    val keyboardBuffer: Deque<Char> = LinkedList()
 
     init {
         val size = Dimension(image.width * SCALING, image.height * SCALING)

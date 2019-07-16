@@ -2,7 +2,6 @@ package prog8.optimizer
 
 import prog8.ast.*
 import prog8.ast.base.AstException
-import prog8.ast.statements.NopStatement
 import prog8.parser.ParsingFailedError
 
 
