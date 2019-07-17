@@ -28,29 +28,17 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                        val memoryPointers: MutableMap<String, Pair<Int, DataType>> = mutableMapOf(),
                        val labels: MutableMap<String, Instruction> = mutableMapOf(),        // names are fully scoped
                        val force_output: Boolean)
-    {
-        val numVariables: Int
-            get() { return variables.size }
-        val numInstructions: Int
-            get() { return instructions.filter { it.opcode!= Opcode.LINE }.size }
-        val variablesMarkedForZeropage: MutableSet<String> = mutableSetOf()     // TODO maybe this can be removed now we have ValueParameters
-    }
 
     val allocatedZeropageVariables = mutableMapOf<String, Pair<Int, DataType>>()
     val blocks = mutableListOf<ProgramBlock>()
     val memory = mutableMapOf<Int, List<RuntimeValue>>()
     private lateinit var currentBlock: ProgramBlock
 
-    val numVariables: Int
-        get() = blocks.sumBy { it.numVariables }
-    val numInstructions: Int
-        get() = blocks.sumBy { it.numInstructions }
-
     fun allocateZeropage(zeropage: Zeropage) {
         // allocates all @zp marked variables on the zeropage (for all blocks, as long as there is space in the ZP)
         var notAllocated = 0
         for(block in blocks) {
-            val zpVariables = block.variables.filter { it.scopedname in block.variablesMarkedForZeropage }
+            val zpVariables = block.variables.filter { it.params.zp==ZeropageWish.REQUIRE_ZEROPAGE || it.params.zp==ZeropageWish.PREFER_ZEROPAGE }
             if (zpVariables.isNotEmpty()) {
                 for (variable in zpVariables) {
                     if(variable.params.zp==ZeropageWish.NOT_IN_ZEROPAGE || variable.params.memberOfStruct!=null)
@@ -433,10 +421,6 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                     else -> throw CompilerException("weird datatype")
                 }
                 currentBlock.variables.add(Variable(scopedname, value, valueparams))
-                if(decl.zeropage==ZeropageWish.PREFER_ZEROPAGE)
-                    currentBlock.variablesMarkedForZeropage.add(scopedname)
-                else if(decl.zeropage==ZeropageWish.REQUIRE_ZEROPAGE)
-                    TODO("REQUIRE_ZEROPAGE not yet implemented")
             }
             VarDeclType.MEMORY -> {
                 // note that constants are all folded away, but assembly code may still refer to them

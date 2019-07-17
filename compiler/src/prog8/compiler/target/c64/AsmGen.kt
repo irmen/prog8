@@ -49,7 +49,6 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
         val newblocks = mutableListOf<IntermediateProgram.ProgramBlock>()
         for(block in program.blocks) {
             val newvars = block.variables.map { IntermediateProgram.Variable(symname(it.scopedname, block), it.value, it.params) }.toMutableList()
-            val newvarsZeropaged = block.variablesMarkedForZeropage.map{symname(it, block)}.toMutableSet()
             val newlabels = block.labels.map { symname(it.key, block) to it.value}.toMap().toMutableMap()
             val newinstructions = block.instructions.asSequence().map {
                 when {
@@ -70,8 +69,6 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
                     newMempointers,
                     newlabels,
                     force_output = block.force_output)
-            newblock.variablesMarkedForZeropage.clear()
-            newblock.variablesMarkedForZeropage.addAll(newvarsZeropaged)
             newblocks.add(newblock)
         }
         program.blocks.clear()
@@ -253,7 +250,6 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
                         val address = zeropage.allocate(sym, variable.value.type, null)
                         out("${variable.scopedname} = $address\t; auto zp ${variable.value.type}")
                         // make sure we add the var to the set of zpvars for this block
-                        blk.variablesMarkedForZeropage.add(variable.scopedname)
                         program.allocatedZeropageVariables[sym] = Pair(address, variable.value.type)
                     } catch (x: ZeropageDepletedError) {
                         // leave it as it is.
@@ -310,8 +306,9 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
         out(";  other variables sorted by type")
         val sortedVars = normalVars.sortedBy { it.value.type }
         for (variable in sortedVars) {
-            if(variable.scopedname in block.variablesMarkedForZeropage)
-                continue  // skip the ones that belong in the zero page
+            val sym = symname(block.name + "." + variable.scopedname, null)
+            if(sym in program.allocatedZeropageVariables)
+                continue  // skip the ones that already belong in the zero page
             vardecl2asm(variable.scopedname, variable.value, variable.params)
         }
     }
