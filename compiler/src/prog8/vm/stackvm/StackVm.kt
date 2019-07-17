@@ -1,19 +1,15 @@
 package prog8.vm.stackvm
 
-import prog8.ast.base.DataType
-import prog8.ast.base.IterableDatatypes
-import prog8.ast.base.NumericDatatypes
-import prog8.ast.base.Register
-import prog8.ast.base.initvarsSubName
-import prog8.vm.astvm.BitmapScreenPanel
-import prog8.vm.astvm.Memory
-import prog8.vm.RuntimeValue
+import prog8.ast.base.*
 import prog8.compiler.HeapValues
 import prog8.compiler.IntegerOrAddressOf
 import prog8.compiler.intermediate.Instruction
 import prog8.compiler.intermediate.Opcode
 import prog8.compiler.target.c64.Petscii
 import prog8.compiler.toHex
+import prog8.vm.RuntimeValue
+import prog8.vm.astvm.BitmapScreenPanel
+import prog8.vm.astvm.Memory
 import java.io.File
 import java.io.PrintStream
 import java.util.*

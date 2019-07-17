@@ -1,6 +1,8 @@
 package prog8.optimizer
 
-import prog8.ast.*
+import prog8.ast.IExpression
+import prog8.ast.IStatement
+import prog8.ast.Program
 import prog8.ast.base.AstException
 import prog8.ast.base.DataType
 import prog8.ast.base.IntegerDatatypes

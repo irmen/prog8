@@ -2,7 +2,10 @@ package prog8.compiler
 
 import prog8.ast.*
 import prog8.ast.antlr.escape
-import prog8.ast.base.*
+import prog8.ast.base.DataType
+import prog8.ast.base.NumericDatatypes
+import prog8.ast.base.StringDatatypes
+import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.*
 import prog8.ast.processing.IAstVisitor
 import prog8.ast.statements.*

@@ -2,9 +2,6 @@ package prog8.compiler
 
 import prog8.ast.Program
 import prog8.ast.base.*
-import prog8.ast.base.checkIdentifiers
-import prog8.ast.base.checkValid
-import prog8.ast.base.reorderStatements
 import prog8.ast.statements.Directive
 import prog8.compiler.target.c64.AsmGen
 import prog8.compiler.target.c64.MachineDefinition

@@ -5,16 +5,15 @@ import prog8.compiler.intermediate.Instruction
 import prog8.compiler.intermediate.IntermediateProgram
 import prog8.compiler.intermediate.LabelInstr
 import prog8.compiler.intermediate.Opcode
-import prog8.compiler.toHex
-import prog8.vm.stackvm.Syscall
-import prog8.vm.stackvm.syscallsForStackVm
 import prog8.compiler.target.c64.MachineDefinition.C64Zeropage
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_HEX
+import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_PLUS1_HEX
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_HEX
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_PLUS1_HEX
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_PLUS2_HEX
-import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_PLUS1_HEX
-import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_PLUS2_HEX
+import prog8.compiler.toHex
+import prog8.vm.stackvm.Syscall
+import prog8.vm.stackvm.syscallsForStackVm
 
 
 // note: see https://wiki.nesdev.com/w/index.php/6502_assembly_optimisations

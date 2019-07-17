@@ -1,7 +1,8 @@
 package prog8.parser
 
 import org.antlr.v4.runtime.*
-import prog8.ast.*
+import prog8.ast.Module
+import prog8.ast.Program
 import prog8.ast.antlr.toAst
 import prog8.ast.base.Position
 import prog8.ast.base.SyntaxError

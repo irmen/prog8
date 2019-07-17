@@ -2,13 +2,15 @@ package prog8.compiler.intermediate
 
 import prog8.ast.antlr.escape
 import prog8.ast.base.*
-import prog8.ast.base.printWarning
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.ReferenceLiteralValue
 import prog8.ast.statements.StructDecl
 import prog8.ast.statements.VarDecl
 import prog8.ast.statements.ZeropageWish
-import prog8.compiler.*
+import prog8.compiler.CompilerException
+import prog8.compiler.HeapValues
+import prog8.compiler.Zeropage
+import prog8.compiler.ZeropageDepletedError
 import prog8.vm.RuntimeValue
 import java.io.PrintStream
 import java.nio.file.Path

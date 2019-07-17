@@ -1,8 +1,8 @@
 package prog8
 
+import prog8.compiler.compileProgram
 import prog8.vm.astvm.AstVm
 import prog8.vm.stackvm.stackVmMain
-import prog8.compiler.*
 import java.nio.file.Paths
 import kotlin.system.exitProcess
 

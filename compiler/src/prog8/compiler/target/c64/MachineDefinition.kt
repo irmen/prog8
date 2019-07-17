@@ -1,6 +1,9 @@
 package prog8.compiler.target.c64
 
-import prog8.compiler.*
+import prog8.compiler.CompilationOptions
+import prog8.compiler.CompilerException
+import prog8.compiler.Zeropage
+import prog8.compiler.ZeropageType
 import java.awt.Color
 import java.awt.image.BufferedImage
 import javax.imageio.ImageIO

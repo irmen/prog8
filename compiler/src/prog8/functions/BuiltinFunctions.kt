@@ -1,6 +1,7 @@
 package prog8.functions
 
-import prog8.ast.*
+import prog8.ast.IExpression
+import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.DirectMemoryRead
 import prog8.ast.expressions.IdentifierReference

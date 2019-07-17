@@ -1,9 +1,10 @@
 package prog8.ast.processing
 
-import kotlin.comparisons.nullsLast
 import prog8.ast.*
-import prog8.ast.base.*
+import prog8.ast.base.DataType
+import prog8.ast.base.FatalAstException
 import prog8.ast.base.initvarsSubName
+import prog8.ast.base.printWarning
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.functions.BuiltinFunctions

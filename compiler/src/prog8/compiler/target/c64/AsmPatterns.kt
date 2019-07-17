@@ -3,11 +3,11 @@ package prog8.compiler.target.c64
 import prog8.ast.base.printWarning
 import prog8.compiler.intermediate.Instruction
 import prog8.compiler.intermediate.Opcode
+import prog8.compiler.target.c64.MachineDefinition.C64Zeropage
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_HEX
+import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_PLUS1_HEX
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_HEX
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_PLUS1_HEX
-import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_PLUS1_HEX
-import prog8.compiler.target.c64.MachineDefinition.C64Zeropage
 import prog8.compiler.toHex
 
 // note: see https://wiki.nesdev.com/w/index.php/6502_assembly_optimisations

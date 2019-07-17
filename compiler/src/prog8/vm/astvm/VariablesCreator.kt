@@ -1,7 +1,11 @@
 package prog8.vm.astvm
 
-import prog8.ast.*
-import prog8.ast.base.*
+import prog8.ast.IStatement
+import prog8.ast.Program
+import prog8.ast.base.DataType
+import prog8.ast.base.Position
+import prog8.ast.base.Register
+import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.ReferenceLiteralValue
 import prog8.ast.processing.IAstModifyingVisitor

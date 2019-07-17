@@ -1,6 +1,7 @@
 package prog8.ast.processing
 
-import prog8.ast.*
+import prog8.ast.Module
+import prog8.ast.Program
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 

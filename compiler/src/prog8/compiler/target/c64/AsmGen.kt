@@ -7,9 +7,12 @@ import prog8.ast.antlr.escape
 import prog8.ast.base.DataType
 import prog8.ast.base.initvarsSubName
 import prog8.ast.statements.ZeropageWish
-import prog8.vm.RuntimeValue
 import prog8.compiler.*
-import prog8.compiler.intermediate.*
+import prog8.compiler.intermediate.Instruction
+import prog8.compiler.intermediate.IntermediateProgram
+import prog8.compiler.intermediate.LabelInstr
+import prog8.compiler.intermediate.Opcode
+import prog8.vm.RuntimeValue
 import java.io.File
 import java.util.*
 import kotlin.math.abs

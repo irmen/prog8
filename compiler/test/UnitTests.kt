@@ -9,13 +9,13 @@ import prog8.ast.base.DataType
 import prog8.ast.base.Position
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.ReferenceLiteralValue
-import prog8.vm.RuntimeValue
 import prog8.compiler.*
-import prog8.compiler.target.c64.MachineDefinition.Mflpt5
+import prog8.compiler.target.c64.MachineDefinition.C64Zeropage
 import prog8.compiler.target.c64.MachineDefinition.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.MachineDefinition.FLOAT_MAX_POSITIVE
-import prog8.compiler.target.c64.MachineDefinition.C64Zeropage
+import prog8.compiler.target.c64.MachineDefinition.Mflpt5
 import prog8.compiler.target.c64.Petscii
+import prog8.vm.RuntimeValue
 import java.io.CharConversionException
 import kotlin.test.*
 

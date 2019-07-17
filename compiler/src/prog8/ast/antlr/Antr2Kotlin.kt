@@ -3,16 +3,18 @@ package prog8.ast.antlr
 import org.antlr.v4.runtime.IntStream
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
-import prog8.ast.*
+import prog8.ast.IExpression
+import prog8.ast.IStatement
+import prog8.ast.Module
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import java.io.CharConversionException
-import java.io.File
-import java.nio.file.Path
 import prog8.compiler.target.c64.Petscii
 import prog8.parser.CustomLexer
 import prog8.parser.prog8Parser
+import java.io.CharConversionException
+import java.io.File
+import java.nio.file.Path
 
 
 /***************** Antlr Extension methods to create AST ****************/

@@ -1,6 +1,9 @@
 package prog8.optimizer
 
-import prog8.ast.*
+import prog8.ast.IExpression
+import prog8.ast.IFunctionCall
+import prog8.ast.IStatement
+import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.processing.IAstModifyingVisitor

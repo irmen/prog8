@@ -4,10 +4,13 @@ import prog8.ast.antlr.unescape
 import prog8.ast.base.*
 import prog8.ast.expressions.AddressOf
 import prog8.ast.expressions.IdentifierReference
-import prog8.vm.RuntimeValue
 import prog8.compiler.HeapValues
 import prog8.compiler.IntegerOrAddressOf
-import prog8.compiler.intermediate.*
+import prog8.compiler.intermediate.Instruction
+import prog8.compiler.intermediate.LabelInstr
+import prog8.compiler.intermediate.Opcode
+import prog8.compiler.intermediate.opcodesWithVarArgument
+import prog8.vm.RuntimeValue
 import java.io.File
 import java.util.*
 import java.util.regex.Pattern

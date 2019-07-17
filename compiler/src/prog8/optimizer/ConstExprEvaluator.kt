@@ -1,6 +1,6 @@
 package prog8.optimizer
 
-import prog8.ast.*
+import prog8.ast.IExpression
 import prog8.ast.base.*
 import prog8.ast.expressions.NumericLiteralValue
 import kotlin.math.pow

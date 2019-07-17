@@ -1,15 +1,17 @@
 package prog8.vm.astvm
 
-import prog8.ast.*
+import prog8.ast.IExpression
+import prog8.ast.INameScope
+import prog8.ast.IStatement
+import prog8.ast.Program
 import prog8.ast.base.*
-import prog8.ast.base.initvarsSubName
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.*
 import prog8.compiler.target.c64.MachineDefinition
+import prog8.compiler.target.c64.Petscii
 import prog8.vm.RuntimeValue
 import prog8.vm.RuntimeValueRange
-import prog8.compiler.target.c64.Petscii
 import java.awt.EventQueue
 import java.io.CharConversionException
 import java.util.*

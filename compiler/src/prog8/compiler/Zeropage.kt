@@ -1,7 +1,6 @@
 package prog8.compiler
 
 import prog8.ast.base.*
-import prog8.ast.base.printWarning
 
 
 class ZeropageDepletedError(message: String) : Exception(message)

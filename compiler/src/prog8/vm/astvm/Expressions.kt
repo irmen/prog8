@@ -1,6 +1,7 @@
 package prog8.vm.astvm
 
-import prog8.ast.*
+import prog8.ast.IExpression
+import prog8.ast.Program
 import prog8.ast.base.ArrayElementTypes
 import prog8.ast.base.DataType
 import prog8.ast.base.FatalAstException
