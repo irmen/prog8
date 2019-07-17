@@ -6,13 +6,12 @@
 ~ main {
 
     sub start() {
-        str bla = "asfasd" + "zzz"
-        str bla2 = "sdfsdf" * 4
 
-        c64scr.print(bla)
-        c64.CHROUT('\n')
-        c64scr.print(bla2)
-        c64.CHROUT('\n')
+        ubyte[] blaat = 10 to 20
+
+        for ubyte c in 'a' to 'z' {
+            c64.CHROUT(blaat[c])
+        }
     }
 
 }

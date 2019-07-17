@@ -6,7 +6,6 @@ import prog8.ast.expressions.*
 import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.processing.IAstVisitor
 import prog8.compiler.HeapValues
-import prog8.compiler.target.c64.MachineDefinition
 
 
 sealed class Statement : Node {
@@ -810,19 +809,6 @@ class StructDecl(override val name: String,
 
     val numberOfElements: Int
         get() = this.statements.size
-    val memorySize: Int
-        get() = this.statements.map {
-            val decl = it as VarDecl
-            when {
-                decl.datatype in ByteDatatypes -> 8
-                decl.datatype in WordDatatypes -> 16
-                decl.datatype==DataType.FLOAT -> MachineDefinition.Mflpt5.MemorySize
-                decl.datatype in StringDatatypes -> TODO("stringvalue size")
-                decl.datatype in ArrayDatatypes -> decl.arraysize!!.size()!!
-                decl.datatype==DataType.STRUCT -> decl.struct!!.memorySize
-                else -> throw FatalAstException("can't get size for $decl")
-            }
-        }.sum()
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)

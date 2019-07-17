@@ -14,7 +14,6 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
     private val checkResult: MutableList<AstException> = mutableListOf()
 
     private var blocks = mutableMapOf<String, Block>()
-    internal val anonymousVariablesFromHeap = mutableMapOf<String, Pair<ReferenceLiteralValue, VarDecl>>()      // TODO
     private val vardeclsToAdd = mutableMapOf<INameScope, MutableList<VarDecl>>()
 
     internal fun result(): List<AstException> {
@@ -239,7 +238,6 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         // replace the reference literal by a identifier reference
         val identifier = IdentifierReference(listOf(variable.name), variable.position)
         identifier.parent = refLiteral.parent
-        // TODO anonymousVariablesFromHeap[variable.name] = Pair(refLiteral, variable)
         return identifier
     }
 

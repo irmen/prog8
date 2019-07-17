@@ -391,17 +391,6 @@ internal class AstChecker(private val program: Program,
                 val constVal = assignment.value.constValue(program)
                 if (constVal != null) {
                     checkValueTypeAndRange(targetDatatype, constVal)
-
-                    // TODO what about arrays, structs, strings etc:
-//                val targetVar =
-//                        if(target.identifier!=null)
-//                            program.namespace.lookup(target.identifier.nameInSource, assignment) as? VarDecl
-//                        else
-//                            null
-//                val arrayspec = if(target.identifier!=null) targetVar?.arraysize else null
-//                checkValueTypeAndRange(targetDatatype, targetVar?.struct,
-//                        arrayspec ?: ArrayIndex(NumericLiteralValue.optimalInteger(-1, assignment.position), assignment.position),
-//                        constVal, program.heap)
                 } else {
                     val sourceDatatype: DataType? = assignment.value.inferType(program)
                     if (sourceDatatype == null) {
@@ -512,10 +501,7 @@ internal class AstChecker(private val program: Program,
                     return
                 }
                 when(decl.value) {
-                    is RangeExpr -> {
-                        if(decl.arraysize!=null)
-                            checkValueTypeAndRange(decl.datatype, decl.arraysize!!, decl.value as RangeExpr)
-                    }
+                    is RangeExpr -> throw FatalAstException("range expression should have been converted to a true array value")
                     is ReferenceLiteralValue -> {
                         val arraySpec = decl.arraysize ?: (
                                 if((decl.value as ReferenceLiteralValue).isArray)
@@ -780,19 +766,6 @@ internal class AstChecker(private val program: Program,
                     else if(fromValue > toValue && step>=0)
                         err("descending range requires step < 0")
                 }
-                // TODO range over single-character strings (... or have they been converted to byte literals already?)
-//                from.isString && to.isString -> {
-//                    val fromString = from.strvalue!!
-//                    val toString = to.strvalue!!
-//                    if(fromString.length!=1 || toString.length!=1)
-//                        err("range from and to must be a single character")
-//                    if(fromString[0] == toString[0])
-//                        printWarning("range contains just a single character", range.position)
-//                    else if(fromString[0] < toString[0] && step<=0)
-//                        err("ascending range requires step > 0")
-//                    else if(fromString[0] > toString[0] && step>=0)
-//                        err("descending range requires step < 0")
-//                }
                 else -> err("range expression must be over integers or over characters")
             }
         }
@@ -1005,49 +978,6 @@ internal class AstChecker(private val program: Program,
         return null
     }
 
-    private fun checkValueTypeAndRange(targetDt: DataType, arrayspec: ArrayIndex, range: RangeExpr) : Boolean {
-        val from = range.from.constValue(program)
-        val to = range.to.constValue(program)
-        if(from==null || to==null) {
-            checkResult.add(SyntaxError("range from and to values must be constants", range.position))
-            return false
-        }
-
-        when(targetDt) {
-            in NumericDatatypes -> {
-                checkResult.add(SyntaxError("can't assign a range to a scalar type", range.position))
-                return false
-            }
-            in PassByReferenceDatatypes -> {
-                TODO("reference type range check $targetDt")
-            }
-//            in StringDatatypes -> {
-//                // range check bytes (chars)
-//                if(!from.isString || !to.isString) {
-//                    checkResult.add(ExpressionError("range for string must have single characters from and to values", range.position))
-//                    return false
-//                }
-//                val rangeSize=range.size()
-//                if(rangeSize!=null && (rangeSize<0 || rangeSize>255)) {
-//                    checkResult.add(ExpressionError("size of range for string must be 0..255, instead of $rangeSize", range.position))
-//                    return false
-//                }
-//                return true
-//            }
-//            in ArrayDatatypes -> {
-//                // range and length check bytes
-//                val expectedSize = arrayspec.size()
-//                val rangeSize=range.size()
-//                if(rangeSize!=null && rangeSize != expectedSize) {
-//                    checkResult.add(ExpressionError("range size doesn't match array size, expected $expectedSize found $rangeSize", range.position))
-//                    return false
-//                }
-//                return true
-//            }
-            else -> throw FatalAstException("invalid targetDt")
-        }
-    }
-
     private fun checkValueTypeAndRange(targetDt: DataType, struct: StructDecl?,
                                        arrayspec: ArrayIndex, value: ReferenceLiteralValue, heap: HeapValues) : Boolean {
         fun err(msg: String) : Boolean {
@@ -1202,7 +1132,7 @@ internal class AstChecker(private val program: Program,
 
     private fun checkArrayValues(value: ReferenceLiteralValue, type: DataType): Boolean {
         if(value.isArray && value.heapId==null) {
-            // TODO weird, array literal that hasn't been moved to the heap yet?
+            // hmm weird, array literal that hasn't been moved to the heap yet?
             val array = value.array!!.map { it.constValue(program)!! }
             val correct: Boolean
             when(type) {

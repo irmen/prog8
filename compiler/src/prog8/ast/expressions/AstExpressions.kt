@@ -28,7 +28,7 @@ sealed class Expression: Node {
     abstract fun constValue(program: Program): NumericLiteralValue?
     abstract fun accept(visitor: IAstModifyingVisitor): Expression
     abstract fun accept(visitor: IAstVisitor)
-    abstract fun referencesIdentifiers(vararg name: String): Boolean     // todo: remove and use calltree instead
+    abstract fun referencesIdentifiers(vararg name: String): Boolean     // todo: remove this here and move it into CallGraph instead
     abstract fun inferType(program: Program): DataType?
 
     infix fun isSameAs(other: Expression): Boolean {
@@ -510,7 +510,8 @@ class ReferenceLiteralValue(val type: DataType,     // only reference types allo
     }
 
     override fun constValue(program: Program): NumericLiteralValue? {
-        // TODO: what about arrays that only contain constant numbers?
+        // note that we can't handle arrays that only contain constant numbers here anymore
+        // so they're not treated as constants anymore
         return null
     }
 
@@ -521,7 +522,6 @@ class ReferenceLiteralValue(val type: DataType,     // only reference types allo
         val valueStr = when(type) {
             in StringDatatypes -> "'${escape(str!!)}'"
             in ArrayDatatypes -> "$array"
-            DataType.STRUCT -> TODO("struct literals")
             else -> throw FatalAstException("weird ref type")
         }
         return "ReferenceValueLiteral($type, $valueStr)"
