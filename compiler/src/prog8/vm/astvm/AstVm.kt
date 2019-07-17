@@ -1,10 +1,9 @@
 package prog8.vm.astvm
 
-import prog8.ast.IExpression
 import prog8.ast.INameScope
-import prog8.ast.IStatement
 import prog8.ast.Program
 import prog8.ast.base.*
+import prog8.ast.expressions.Expression
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.*
@@ -314,7 +313,7 @@ class AstVm(val program: Program) {
     }
 
 
-    private fun executeStatement(sub: INameScope, stmt: IStatement) {
+    private fun executeStatement(sub: INameScope, stmt: Statement) {
         instructionCounter++
         if (instructionCounter % 200 == 0)
             Thread.sleep(1)
@@ -545,7 +544,7 @@ class AstVm(val program: Program) {
         performAssignment(target2, value1, swap, evalCtx)
     }
 
-    fun performAssignment(target: AssignTarget, value: RuntimeValue, contextStmt: IStatement, evalCtx: EvalContext) {
+    fun performAssignment(target: AssignTarget, value: RuntimeValue, contextStmt: Statement, evalCtx: EvalContext) {
         when {
             target.identifier != null -> {
                 val decl = contextStmt.definingScope().lookup(target.identifier.nameInSource, contextStmt) as? VarDecl
@@ -642,7 +641,7 @@ class AstVm(val program: Program) {
         executeAnonymousScope(stmt.body)
     }
 
-    private fun evaluate(args: List<IExpression>) = args.map { evaluate(it, evalCtx) }
+    private fun evaluate(args: List<Expression>) = args.map { evaluate(it, evalCtx) }
 
     private fun performSyscall(sub: Subroutine, args: List<RuntimeValue>): RuntimeValue? {
         var result: RuntimeValue? = null

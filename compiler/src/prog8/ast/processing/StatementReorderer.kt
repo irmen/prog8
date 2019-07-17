@@ -97,7 +97,7 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         module.statements.addAll(0, directives)
     }
 
-    override fun visit(block: Block): IStatement {
+    override fun visit(block: Block): Statement {
 
         val subroutines = block.statements.filterIsInstance<Subroutine>()
         var numSubroutinesAtEnd = 0
@@ -161,7 +161,7 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         return super.visit(block)
     }
 
-    override fun visit(subroutine: Subroutine): IStatement {
+    override fun visit(subroutine: Subroutine): Statement {
         super.visit(subroutine)
 
         val varDecls = subroutine.statements.filterIsInstance<VarDecl>()
@@ -186,7 +186,7 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         return subroutine
     }
 
-    override fun visit(expr: BinaryExpression): IExpression {
+    override fun visit(expr: BinaryExpression): Expression {
         val leftDt = expr.left.inferType(program)
         val rightDt = expr.right.inferType(program)
         if(leftDt!=null && rightDt!=null && leftDt!=rightDt) {
@@ -209,7 +209,7 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         return super.visit(expr)
     }
 
-    override fun visit(assignment: Assignment): IStatement {
+    override fun visit(assignment: Assignment): Statement {
         val assg = super.visit(assignment)
         if(assg !is Assignment)
             return assg
@@ -246,7 +246,7 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
 
         if(assg.aug_op!=null) {
             // transform augmented assg into normal assg so we have one case less to deal with later
-            val newTarget: IExpression =
+            val newTarget: Expression =
                     when {
                         assg.target.register != null -> RegisterExpr(assg.target.register!!, assg.target.position)
                         assg.target.identifier != null -> assg.target.identifier!!
@@ -265,12 +265,12 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         return assg
     }
 
-    override fun visit(functionCallStatement: FunctionCallStatement): IStatement {
+    override fun visit(functionCallStatement: FunctionCallStatement): Statement {
         checkFunctionCallArguments(functionCallStatement, functionCallStatement.definingScope())
         return super.visit(functionCallStatement)
     }
 
-    override fun visit(functionCall: FunctionCall): IExpression {
+    override fun visit(functionCall: FunctionCall): Expression {
         checkFunctionCallArguments(functionCall, functionCall.definingScope())
         return super.visit(functionCall)
     }
@@ -321,7 +321,7 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         }
     }
 
-    override fun visit(typecast: TypecastExpression): IExpression {
+    override fun visit(typecast: TypecastExpression): Expression {
         // warn about any implicit type casts to Float, because that may not be intended
         if(typecast.implicit && typecast.type in setOf(DataType.FLOAT, DataType.ARRAY_F)) {
             printWarning("byte or word value implicitly converted to float. Suggestion: use explicit cast as float, a float number, or revert to integer arithmetic", typecast.position)
@@ -329,7 +329,7 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         return super.visit(typecast)
     }
 
-    override fun visit(whenStatement: WhenStatement): IStatement {
+    override fun visit(whenStatement: WhenStatement): Statement {
         // make sure all choices are just for one single value
         val choices = whenStatement.choices.toList()
         for(choice in choices) {
@@ -349,7 +349,7 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         return super.visit(whenStatement)
     }
 
-    override fun visit(memread: DirectMemoryRead): IExpression {
+    override fun visit(memread: DirectMemoryRead): Expression {
         // make sure the memory address is an uword
         val dt = memread.addressExpression.inferType(program)
         if(dt!=DataType.UWORD) {
@@ -378,7 +378,7 @@ internal class StatementReorderer(private val program: Program): IAstModifyingVi
         super.visit(memwrite)
     }
 
-    override fun visit(structLv: StructLiteralValue): IExpression {
+    override fun visit(structLv: StructLiteralValue): Expression {
         val litval = super.visit(structLv)
         if(litval !is StructLiteralValue)
             return litval

@@ -1,7 +1,5 @@
 package prog8.optimizer
 
-import prog8.ast.IExpression
-import prog8.ast.IStatement
 import prog8.ast.Program
 import prog8.ast.base.AstException
 import prog8.ast.base.DataType
@@ -10,6 +8,7 @@ import prog8.ast.base.NumericDatatypes
 import prog8.ast.expressions.*
 import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.statements.Assignment
+import prog8.ast.statements.Statement
 import kotlin.math.abs
 import kotlin.math.log2
 
@@ -23,13 +22,13 @@ import kotlin.math.log2
 internal class SimplifyExpressions(private val program: Program) : IAstModifyingVisitor {
     var optimizationsDone: Int = 0
 
-    override fun visit(assignment: Assignment): IStatement {
+    override fun visit(assignment: Assignment): Statement {
         if (assignment.aug_op != null)
             throw AstException("augmented assignments should have been converted to normal assignments before this optimizer")
         return super.visit(assignment)
     }
 
-    override fun visit(memread: DirectMemoryRead): IExpression {
+    override fun visit(memread: DirectMemoryRead): Expression {
         // @( &thing )  -->  thing
         val addrOf = memread.addressExpression as? AddressOf
         if(addrOf!=null)
@@ -37,7 +36,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
         return super.visit(memread)
     }
 
-    override fun visit(typecast: TypecastExpression): IExpression {
+    override fun visit(typecast: TypecastExpression): Expression {
         var tc = typecast
 
         // try to statically convert a literal value into one of the desired type
@@ -83,7 +82,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
         }
     }
 
-    override fun visit(expr: PrefixExpression): IExpression {
+    override fun visit(expr: PrefixExpression): Expression {
         if (expr.operator == "+") {
             // +X --> X
             optimizationsDone++
@@ -130,7 +129,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
         return super.visit(expr)
     }
 
-    override fun visit(expr: BinaryExpression): IExpression {
+    override fun visit(expr: BinaryExpression): Expression {
         super.visit(expr)
         val leftVal = expr.left.constValue(program)
         val rightVal = expr.right.constValue(program)
@@ -343,7 +342,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
         return expr
     }
 
-    private fun determineY(x: IExpression, subBinExpr: BinaryExpression): IExpression? {
+    private fun determineY(x: Expression, subBinExpr: BinaryExpression): Expression? {
         return when {
             subBinExpr.left isSameAs x -> subBinExpr.right
             subBinExpr.right isSameAs x -> subBinExpr.left
@@ -450,7 +449,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
         return ReorderedAssociativeBinaryExpr(expr, leftVal, expr.right.constValue(program))
     }
 
-    private fun optimizeAdd(pexpr: BinaryExpression, pleftVal: NumericLiteralValue?, prightVal: NumericLiteralValue?): IExpression {
+    private fun optimizeAdd(pexpr: BinaryExpression, pleftVal: NumericLiteralValue?, prightVal: NumericLiteralValue?): Expression {
         if(pleftVal==null && prightVal==null)
             return pexpr
 
@@ -471,7 +470,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
         return expr
     }
 
-    private fun optimizeSub(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): IExpression {
+    private fun optimizeSub(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): Expression {
         if(leftVal==null && rightVal==null)
             return expr
 
@@ -500,7 +499,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
         return expr
     }
 
-    private fun optimizePower(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): IExpression {
+    private fun optimizePower(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): Expression {
         if(leftVal==null && rightVal==null)
             return expr
 
@@ -580,7 +579,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
         return expr
     }
 
-    private fun optimizeRemainder(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): IExpression {
+    private fun optimizeRemainder(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): Expression {
         if(leftVal==null && rightVal==null)
             return expr
 
@@ -604,7 +603,7 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
 
     }
 
-    private fun optimizeDivision(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): IExpression {
+    private fun optimizeDivision(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): Expression {
         if(leftVal==null && rightVal==null)
             return expr
 
@@ -676,14 +675,14 @@ internal class SimplifyExpressions(private val program: Program) : IAstModifying
         return expr
     }
 
-    private fun optimizeMultiplication(pexpr: BinaryExpression, pleftVal: NumericLiteralValue?, prightVal: NumericLiteralValue?): IExpression {
+    private fun optimizeMultiplication(pexpr: BinaryExpression, pleftVal: NumericLiteralValue?, prightVal: NumericLiteralValue?): Expression {
         if(pleftVal==null && prightVal==null)
             return pexpr
 
         val (expr, _, rightVal) = reorderAssociative(pexpr, pleftVal)
         if(rightVal!=null) {
             // right value is a constant, see if we can optimize
-            val leftValue: IExpression = expr.left
+            val leftValue: Expression = expr.left
             val rightConst: NumericLiteralValue = rightVal
             when(val cv = rightConst.number.toDouble()) {
                 -1.0 -> {

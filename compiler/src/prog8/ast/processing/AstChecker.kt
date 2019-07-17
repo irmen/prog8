@@ -1,6 +1,8 @@
 package prog8.ast.processing
 
-import prog8.ast.*
+import prog8.ast.INameScope
+import prog8.ast.Module
+import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
@@ -357,7 +359,7 @@ internal class AstChecker(private val program: Program,
                 checkResult.add(ExpressionError("address out of range", assignTarget.position))
         }
 
-        val assignment = assignTarget.parent as IStatement
+        val assignment = assignTarget.parent as Statement
         if (assignTarget.identifier != null) {
             val targetName = assignTarget.identifier.nameInSource
             val targetSymbol = program.namespace.lookup(targetName, assignment)
@@ -798,7 +800,7 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(functionCall: FunctionCall) {
         // this function call is (part of) an expression, which should be in a statement somewhere.
-        val stmtOfExpression = findParentNode<IStatement>(functionCall)
+        val stmtOfExpression = findParentNode<Statement>(functionCall)
                 ?: throw FatalAstException("cannot determine statement scope of function call expression at ${functionCall.position}")
 
         val targetStatement = checkFunctionOrLabelExists(functionCall.target, stmtOfExpression)
@@ -820,7 +822,7 @@ internal class AstChecker(private val program: Program,
         super.visit(functionCallStatement)
     }
 
-    private fun checkFunctionCall(target: IStatement, args: List<IExpression>, position: Position) {
+    private fun checkFunctionCall(target: Statement, args: List<Expression>, position: Position) {
         if(target is Label && args.isNotEmpty())
             checkResult.add(SyntaxError("cannot use arguments when calling a label", position))
 
@@ -995,7 +997,7 @@ internal class AstChecker(private val program: Program,
         }
     }
 
-    private fun checkFunctionOrLabelExists(target: IdentifierReference, statement: IStatement): IStatement? {
+    private fun checkFunctionOrLabelExists(target: IdentifierReference, statement: Statement): Statement? {
         val targetStatement = target.targetStatement(program.namespace)
         if(targetStatement is Label || targetStatement is Subroutine || targetStatement is BuiltinFunctionStatementPlaceholder)
             return targetStatement
@@ -1253,7 +1255,7 @@ internal class AstChecker(private val program: Program,
     private fun checkAssignmentCompatible(targetDatatype: DataType,
                                           target: AssignTarget,
                                           sourceDatatype: DataType,
-                                          sourceValue: IExpression,
+                                          sourceValue: Expression,
                                           position: Position) : Boolean {
 
         if(sourceValue is RangeExpr)

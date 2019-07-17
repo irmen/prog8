@@ -1,10 +1,10 @@
 package prog8.ast.processing
 
-import prog8.ast.IStatement
 import prog8.ast.Module
 import prog8.ast.base.SyntaxError
 import prog8.ast.base.printWarning
 import prog8.ast.statements.Directive
+import prog8.ast.statements.Statement
 
 internal class ImportedModuleDirectiveRemover : IAstModifyingVisitor {
     private val checkResult: MutableList<SyntaxError> = mutableListOf()
@@ -18,7 +18,7 @@ internal class ImportedModuleDirectiveRemover : IAstModifyingVisitor {
      */
     override fun visit(module: Module) {
         super.visit(module)
-        val newStatements : MutableList<IStatement> = mutableListOf()
+        val newStatements : MutableList<Statement> = mutableListOf()
 
         val moduleLevelDirectives = listOf("%output", "%launcher", "%zeropage", "%zpreserved", "%address")
         for (sourceStmt in module.statements) {

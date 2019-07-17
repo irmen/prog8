@@ -1,6 +1,5 @@
 package prog8.vm.astvm
 
-import prog8.ast.IExpression
 import prog8.ast.Program
 import prog8.ast.base.ArrayElementTypes
 import prog8.ast.base.DataType
@@ -25,7 +24,7 @@ class EvalContext(val program: Program, val mem: Memory, val statusflags: Status
                   val performBuiltinFunction: BuiltinfunctionCaller,
                   val executeSubroutine: SubroutineCaller)
 
-fun evaluate(expr: IExpression, ctx: EvalContext): RuntimeValue {
+fun evaluate(expr: Expression, ctx: EvalContext): RuntimeValue {
     val constval = expr.constValue(ctx.program)
     if(constval!=null)
         return RuntimeValue.fromLv(constval)

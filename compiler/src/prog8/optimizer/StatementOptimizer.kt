@@ -59,7 +59,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
         val scope = caller.definingScope()
         if(sub.calledBy.count { it.definingScope()===scope } > 1)
             return
-        if(caller !is IFunctionCall || caller !is IStatement || sub.statements.any { it is Subroutine })
+        if(caller !is IFunctionCall || caller !is Statement || sub.statements.any { it is Subroutine })
             return
 
         if(sub.parameters.isEmpty() && sub.returntypes.isEmpty()) {
@@ -136,7 +136,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
         }
     }
 
-    override fun visit(block: Block): IStatement {
+    override fun visit(block: Block): Statement {
         if("force_output" !in block.options()) {
             if (block.containsNoCodeNorVars()) {
                 optimizationsDone++
@@ -154,7 +154,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
         return super.visit(block)
     }
 
-    override fun visit(subroutine: Subroutine): IStatement {
+    override fun visit(subroutine: Subroutine): Statement {
         super.visit(subroutine)
         val forceOutput = "force_output" in subroutine.definingBlock().options()
         if(subroutine.asmAddress==null && !forceOutput) {
@@ -191,7 +191,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
         return subroutine
     }
 
-    override fun visit(decl: VarDecl): IStatement {
+    override fun visit(decl: VarDecl): Statement {
         val forceOutput = "force_output" in decl.definingBlock().options()
         if(decl !in callgraph.usedSymbols && !forceOutput) {
             if(decl.type == VarDeclType.VAR)
@@ -203,7 +203,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
         return super.visit(decl)
     }
 
-    private fun deduplicateAssignments(statements: List<IStatement>): MutableList<Int> {
+    private fun deduplicateAssignments(statements: List<Statement>): MutableList<Int> {
         // removes 'duplicate' assignments that assign the isSameAs target
         val linesToRemove = mutableListOf<Int>()
         var previousAssignmentLine: Int? = null
@@ -228,7 +228,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
         return linesToRemove
     }
 
-    override fun visit(functionCallStatement: FunctionCallStatement): IStatement {
+    override fun visit(functionCallStatement: FunctionCallStatement): Statement {
         if(functionCallStatement.target.nameInSource.size==1 && functionCallStatement.target.nameInSource[0] in BuiltinFunctions) {
             val functionName = functionCallStatement.target.nameInSource[0]
             if (functionName in pureBuiltinFunctions) {
@@ -286,7 +286,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
         return super.visit(functionCallStatement)
     }
 
-    override fun visit(functionCall: FunctionCall): IExpression {
+    override fun visit(functionCall: FunctionCall): Expression {
         // if it calls a subroutine,
         // and the first instruction in the subroutine is a jump, call that jump target instead
         // if the first instruction in the subroutine is a return statement with constant value, replace with the constant value
@@ -306,7 +306,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
         return super.visit(functionCall)
     }
 
-    override fun visit(ifStatement: IfStatement): IStatement {
+    override fun visit(ifStatement: IfStatement): Statement {
         super.visit(ifStatement)
 
         if(ifStatement.truepart.containsNoCodeNorVars() && ifStatement.elsepart.containsNoCodeNorVars()) {
@@ -340,7 +340,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
         return ifStatement
     }
 
-    override fun visit(forLoop: ForLoop): IStatement {
+    override fun visit(forLoop: ForLoop): Statement {
         super.visit(forLoop)
         if(forLoop.body.containsNoCodeNorVars()) {
             // remove empty for loop
@@ -370,7 +370,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
         return forLoop
     }
 
-    override fun visit(whileLoop: WhileLoop): IStatement {
+    override fun visit(whileLoop: WhileLoop): Statement {
         super.visit(whileLoop)
         val constvalue = whileLoop.condition.constValue(program)
         if(constvalue!=null) {
@@ -396,7 +396,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
         return whileLoop
     }
 
-    override fun visit(repeatLoop: RepeatLoop): IStatement {
+    override fun visit(repeatLoop: RepeatLoop): Statement {
         super.visit(repeatLoop)
         val constvalue = repeatLoop.untilCondition.constValue(program)
         if(constvalue!=null) {
@@ -426,7 +426,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
         return repeatLoop
     }
 
-    override fun visit(whenStatement: WhenStatement): IStatement {
+    override fun visit(whenStatement: WhenStatement): Statement {
         val choices = whenStatement.choices.toList()
         for(choice in choices) {
             if(choice.statements.containsNoCodeNorVars())
@@ -441,12 +441,12 @@ internal class StatementOptimizer(private val program: Program, private val opti
         {
             var count=0
 
-            override fun visit(breakStmt: Break): IStatement {
+            override fun visit(breakStmt: Break): Statement {
                 count++
                 return super.visit(breakStmt)
             }
 
-            override fun visit(contStmt: Continue): IStatement {
+            override fun visit(contStmt: Continue): Statement {
                 count++
                 return super.visit(contStmt)
             }
@@ -460,7 +460,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
         return s.count > 0
     }
 
-    override fun visit(jump: Jump): IStatement {
+    override fun visit(jump: Jump): Statement {
         val subroutine = jump.identifier?.targetSubroutine(program.namespace)
         if(subroutine!=null) {
             // if the first instruction in the subroutine is another jump, shortcut this one
@@ -484,7 +484,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
         return jump
     }
 
-    override fun visit(assignment: Assignment): IStatement {
+    override fun visit(assignment: Assignment): Statement {
         if(assignment.aug_op!=null)
             throw AstException("augmented assignments should have been converted to normal assignments before this optimizer")
 
@@ -615,7 +615,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
         return super.visit(assignment)
     }
 
-    override fun visit(scope: AnonymousScope): IStatement {
+    override fun visit(scope: AnonymousScope): Statement {
         val linesToRemove = deduplicateAssignments(scope.statements)
         if(linesToRemove.isNotEmpty()) {
             linesToRemove.reversed().forEach{scope.statements.removeAt(it)}
@@ -623,7 +623,7 @@ internal class StatementOptimizer(private val program: Program, private val opti
         return super.visit(scope)
     }
 
-    override fun visit(label: Label): IStatement {
+    override fun visit(label: Label): Statement {
         // remove duplicate labels
         val stmts = label.definingScope().statements
         val startIdx = stmts.indexOf(label)
@@ -644,7 +644,7 @@ internal class FlattenAnonymousScopesAndRemoveNops: IAstVisitor {
         super.visit(program)
         for(scope in scopesToFlatten.reversed()) {
             val namescope = scope.parent as INameScope
-            val idx = namescope.statements.indexOf(scope as IStatement)
+            val idx = namescope.statements.indexOf(scope as Statement)
             if(idx>=0) {
                 val nop = NopStatement.insteadOf(namescope.statements[idx])
                 nop.parent = namescope as Node

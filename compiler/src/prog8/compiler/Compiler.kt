@@ -1,9 +1,11 @@
 package prog8.compiler
 
-import prog8.ast.*
+import prog8.ast.INameScope
+import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.base.RegisterOrPair.*
 import prog8.ast.expressions.*
+import prog8.ast.mangledStructMemberName
 import prog8.ast.statements.*
 import prog8.compiler.intermediate.IntermediateProgram
 import prog8.compiler.intermediate.Opcode
@@ -179,8 +181,8 @@ internal class Compiler(private val program: Program) {
             processVariables(subscope.value)
     }
 
-    private fun translate(statements: List<IStatement>) {
-        for (stmt: IStatement in statements) {
+    private fun translate(statements: List<Statement>) {
+        for (stmt: Statement in statements) {
             generatedLabelSequenceNumber++
             when (stmt) {
                 is Label -> translate(stmt)
@@ -486,7 +488,7 @@ internal class Compiler(private val program: Program) {
         }
     }
 
-    private fun makeLabel(scopeStmt: IStatement, postfix: String): String {
+    private fun makeLabel(scopeStmt: Statement, postfix: String): String {
         generatedLabelSequenceNumber++
         return "${scopeStmt.makeScopedName("")}.<s-$generatedLabelSequenceNumber-$postfix>"
     }
@@ -551,7 +553,7 @@ internal class Compiler(private val program: Program) {
         prog.instr(Opcode.NOP)
     }
 
-    private fun translate(expr: IExpression) {
+    private fun translate(expr: Expression) {
         when(expr) {
             is RegisterExpr -> {
                 prog.instr(Opcode.PUSH_VAR_BYTE, callLabel = expr.register.name)
@@ -716,7 +718,7 @@ internal class Compiler(private val program: Program) {
         }
     }
 
-    private fun translateBuiltinFunctionCall(funcname: String, args: List<IExpression>) {
+    private fun translateBuiltinFunctionCall(funcname: String, args: List<Expression>) {
         // some builtin functions are implemented directly as vm opcodes
 
         if(funcname == "swap") {
@@ -900,7 +902,7 @@ internal class Compiler(private val program: Program) {
         }
     }
 
-    private fun translateSwap(args: List<IExpression>) {
+    private fun translateSwap(args: List<Expression>) {
         // swap(x,y) is treated differently, it's not a normal function call
         if (args.size != 2)
             throw AstException("swap requires 2 arguments")
@@ -923,7 +925,7 @@ internal class Compiler(private val program: Program) {
         return
     }
 
-    private fun translateSubroutineCall(subroutine: Subroutine, arguments: List<IExpression>, callPosition: Position) {
+    private fun translateSubroutineCall(subroutine: Subroutine, arguments: List<Expression>, callPosition: Position) {
         // evaluate the arguments and assign them into the subroutine's argument variables.
         var restoreX = Register.X in subroutine.asmClobbers
         if(restoreX)
@@ -970,7 +972,7 @@ internal class Compiler(private val program: Program) {
         }
     }
 
-    private fun translateAsmSubCallArguments(subroutine: Subroutine, arguments: List<IExpression>, callPosition: Position, restoreXinitial: Boolean): Boolean {
+    private fun translateAsmSubCallArguments(subroutine: Subroutine, arguments: List<Expression>, callPosition: Position, restoreXinitial: Boolean): Boolean {
         var restoreX = restoreXinitial
         if (subroutine.parameters.size != subroutine.asmParameterRegisters.size)
             TODO("no support yet for mix of register and non-register subroutine arguments")
@@ -1009,8 +1011,8 @@ internal class Compiler(private val program: Program) {
                             prog.instr(Opcode.RSAVEX)
                             restoreX = true
                         }
-                        val valueA: IExpression
-                        val valueX: IExpression
+                        val valueA: Expression
+                        val valueX: Expression
                         val paramDt = arg.first.inferType(program)
                         when (paramDt) {
                             DataType.UBYTE -> {
@@ -1032,8 +1034,8 @@ internal class Compiler(private val program: Program) {
                         }
                     }
                     AY -> {
-                        val valueA: IExpression
-                        val valueY: IExpression
+                        val valueA: Expression
+                        val valueY: Expression
                         val paramDt = arg.first.inferType(program)
                         when (paramDt) {
                             DataType.UBYTE -> {
@@ -1059,8 +1061,8 @@ internal class Compiler(private val program: Program) {
                             prog.instr(Opcode.RSAVEX)
                             restoreX = true
                         }
-                        val valueX: IExpression
-                        val valueY: IExpression
+                        val valueX: Expression
+                        val valueY: Expression
                         val paramDt = arg.first.inferType(program)
                         when (paramDt) {
                             DataType.UBYTE -> {
@@ -1482,7 +1484,7 @@ internal class Compiler(private val program: Program) {
         popValueIntoTarget(stmt.target, datatype)
     }
 
-    private fun pushHeapVarAddress(value: IExpression, removeLastOpcode: Boolean) {
+    private fun pushHeapVarAddress(value: Expression, removeLastOpcode: Boolean) {
         if (value is IdentifierReference) {
             val vardecl = value.targetVarDecl(program.namespace)!!
             if(removeLastOpcode) prog.removeLastInstruction()
@@ -1491,7 +1493,7 @@ internal class Compiler(private val program: Program) {
         else throw CompilerException("can only take address of a literal string value or a string/array variable")
     }
 
-    private fun pushFloatAddress(value: IExpression) {
+    private fun pushFloatAddress(value: Expression) {
         if (value is IdentifierReference) {
             val vardecl = value.targetVarDecl(program.namespace)!!
             prog.instr(Opcode.PUSH_ADDR_HEAPVAR, callLabel = vardecl.scopedname)
@@ -1499,7 +1501,7 @@ internal class Compiler(private val program: Program) {
         else throw CompilerException("can only take address of a the float as constant literal or variable")
     }
 
-    private fun pushStructAddress(value: IExpression) {
+    private fun pushStructAddress(value: Expression) {
         if (value is IdentifierReference) {
             // notice that the mangled name of the first struct member is the start address of this struct var
             val vardecl = value.targetVarDecl(program.namespace)!!

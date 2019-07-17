@@ -1,8 +1,6 @@
 package prog8.optimizer
 
-import prog8.ast.IExpression
 import prog8.ast.IFunctionCall
-import prog8.ast.IStatement
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
@@ -28,7 +26,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
         }
     }
 
-    override fun visit(decl: VarDecl): IStatement {
+    override fun visit(decl: VarDecl): Statement {
         // the initializer value can't refer to the variable itself (recursive definition)
         // TODO: use call tree for this?
         if(decl.value?.referencesIdentifiers(decl.name) == true || decl.arraysize?.index?.referencesIdentifiers(decl.name) == true) {
@@ -193,7 +191,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
     /**
      * replace identifiers that refer to const value, with the value itself (if it's a simple type)
      */
-    override fun visit(identifier: IdentifierReference): IExpression {
+    override fun visit(identifier: IdentifierReference): Expression {
         return try {
             val cval = identifier.constValue(program) ?: return identifier
             return when {
@@ -211,7 +209,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
         }
     }
 
-    override fun visit(functionCall: FunctionCall): IExpression {
+    override fun visit(functionCall: FunctionCall): Expression {
         return try {
             super.visit(functionCall)
             typeCastConstArguments(functionCall)
@@ -222,7 +220,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
         }
     }
 
-    override fun visit(functionCallStatement: FunctionCallStatement): IStatement {
+    override fun visit(functionCallStatement: FunctionCallStatement): Statement {
         super.visit(functionCallStatement)
         typeCastConstArguments(functionCallStatement)
         return functionCallStatement
@@ -246,7 +244,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
         }
     }
 
-    override fun visit(memread: DirectMemoryRead): IExpression {
+    override fun visit(memread: DirectMemoryRead): Expression {
         // @( &thing )  -->  thing
         val addrOf = memread.addressExpression as? AddressOf
         if(addrOf!=null)
@@ -259,7 +257,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
      * Compile-time constant sub expressions will be evaluated on the spot.
      * For instance, the expression for "- 4.5" will be optimized into the float literal -4.5
      */
-    override fun visit(expr: PrefixExpression): IExpression {
+    override fun visit(expr: PrefixExpression): Expression {
         return try {
             super.visit(expr)
 
@@ -317,7 +315,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
      *        (X / c1) * c2  ->  X / (c2/c1)
      *        (X + c1) - c2  ->  X + (c1-c2)
      */
-    override fun visit(expr: BinaryExpression): IExpression {
+    override fun visit(expr: BinaryExpression): Expression {
         return try {
             super.visit(expr)
 
@@ -364,7 +362,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                                        leftIsConst: Boolean,
                                        rightIsConst: Boolean,
                                        subleftIsConst: Boolean,
-                                       subrightIsConst: Boolean): IExpression
+                                       subrightIsConst: Boolean): Expression
     {
         // @todo this implements only a small set of possible reorderings for now
         if(expr.operator==subExpr.operator) {
@@ -551,13 +549,13 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
         }
     }
 
-    override fun visit(forLoop: ForLoop): IStatement {
+    override fun visit(forLoop: ForLoop): Statement {
 
         fun adjustRangeDt(rangeFrom: NumericLiteralValue, targetDt: DataType, rangeTo: NumericLiteralValue, stepLiteral: NumericLiteralValue?, range: RangeExpr): RangeExpr {
             val newFrom = rangeFrom.cast(targetDt)
             val newTo = rangeTo.cast(targetDt)
             if (newFrom != null && newTo != null) {
-                val newStep: IExpression =
+                val newStep: Expression =
                         if (stepLiteral != null) (stepLiteral.cast(targetDt) ?: stepLiteral) else range.step
                 return RangeExpr(newFrom, newTo, newStep, range.position)
             }
@@ -605,7 +603,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
         return resultStmt
     }
 
-    override fun visit(refLiteral: ReferenceLiteralValue): IExpression {
+    override fun visit(refLiteral: ReferenceLiteralValue): Expression {
         val litval = super.visit(refLiteral)
         if(litval is ReferenceLiteralValue) {
             if (litval.isString) {
@@ -670,7 +668,7 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
         return litval
     }
 
-    override fun visit(assignment: Assignment): IStatement {
+    override fun visit(assignment: Assignment): Statement {
         super.visit(assignment)
         val lv = assignment.value as? NumericLiteralValue
         if(lv!=null) {

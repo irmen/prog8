@@ -1,11 +1,17 @@
 package prog8.ast.expressions
 
-import prog8.ast.*
+import prog8.ast.IFunctionCall
+import prog8.ast.INameScope
+import prog8.ast.Node
+import prog8.ast.Program
 import prog8.ast.antlr.escape
 import prog8.ast.base.*
 import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.processing.IAstVisitor
-import prog8.ast.statements.*
+import prog8.ast.statements.ArrayIndex
+import prog8.ast.statements.BuiltinFunctionStatementPlaceholder
+import prog8.ast.statements.Subroutine
+import prog8.ast.statements.VarDecl
 import prog8.compiler.HeapValues
 import prog8.compiler.IntegerOrAddressOf
 import prog8.compiler.target.c64.Petscii
@@ -18,7 +24,38 @@ import kotlin.math.abs
 val associativeOperators = setOf("+", "*", "&", "|", "^", "or", "and", "xor", "==", "!=")
 
 
-class PrefixExpression(val operator: String, var expression: IExpression, override val position: Position) : IExpression {
+sealed class Expression: Node {
+    abstract fun constValue(program: Program): NumericLiteralValue?
+    abstract fun accept(visitor: IAstModifyingVisitor): Expression
+    abstract fun accept(visitor: IAstVisitor)
+    abstract fun referencesIdentifiers(vararg name: String): Boolean     // todo: remove and use calltree instead
+    abstract fun inferType(program: Program): DataType?
+
+    infix fun isSameAs(other: Expression): Boolean {
+        if(this===other)
+            return true
+        when(this) {
+            is RegisterExpr ->
+                return (other is RegisterExpr && other.register==register)
+            is IdentifierReference ->
+                return (other is IdentifierReference && other.nameInSource==nameInSource)
+            is PrefixExpression ->
+                return (other is PrefixExpression && other.operator==operator && other.expression isSameAs expression)
+            is BinaryExpression ->
+                return (other is BinaryExpression && other.operator==operator
+                        && other.left isSameAs left
+                        && other.right isSameAs right)
+            is ArrayIndexedExpression -> {
+                return (other is ArrayIndexedExpression && other.identifier.nameInSource == identifier.nameInSource
+                        && other.arrayspec.index isSameAs arrayspec.index)
+            }
+            else -> return other==this
+        }
+    }
+}
+
+
+class PrefixExpression(val operator: String, var expression: Expression, override val position: Position) : Expression() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -37,7 +74,7 @@ class PrefixExpression(val operator: String, var expression: IExpression, overri
     }
 }
 
-class BinaryExpression(var left: IExpression, var operator: String, var right: IExpression, override val position: Position) : IExpression {
+class BinaryExpression(var left: Expression, var operator: String, var right: Expression, override val position: Position) : Expression() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -148,7 +185,7 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
     }
 
     fun commonDatatype(leftDt: DataType, rightDt: DataType,
-                       left: IExpression, right: IExpression): Pair<DataType, IExpression?> {
+                       left: Expression, right: Expression): Pair<DataType, Expression?> {
         // byte + byte -> byte
         // byte + word -> word
         // word + byte -> word
@@ -212,7 +249,7 @@ class BinaryExpression(var left: IExpression, var operator: String, var right: I
 
 class ArrayIndexedExpression(val identifier: IdentifierReference,
                              var arrayspec: ArrayIndex,
-                             override val position: Position) : IExpression {
+                             override val position: Position) : Expression() {
     override lateinit var parent: Node
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -243,7 +280,7 @@ class ArrayIndexedExpression(val identifier: IdentifierReference,
     }
 }
 
-class TypecastExpression(var expression: IExpression, var type: DataType, val implicit: Boolean, override val position: Position) : IExpression {
+class TypecastExpression(var expression: Expression, var type: DataType, val implicit: Boolean, override val position: Position) : Expression() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -267,7 +304,7 @@ class TypecastExpression(var expression: IExpression, var type: DataType, val im
     }
 }
 
-data class AddressOf(val identifier: IdentifierReference, override val position: Position) : IExpression {
+data class AddressOf(val identifier: IdentifierReference, override val position: Position) : Expression() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -283,7 +320,7 @@ data class AddressOf(val identifier: IdentifierReference, override val position:
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
 }
 
-class DirectMemoryRead(var addressExpression: IExpression, override val position: Position) : IExpression {
+class DirectMemoryRead(var addressExpression: Expression, override val position: Position) : Expression() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -304,7 +341,7 @@ class DirectMemoryRead(var addressExpression: IExpression, override val position
 
 class NumericLiteralValue(val type: DataType,    // only numerical types allowed
                           val number: Number,    // can be byte, word or float depending on the type
-                          override val position: Position) : IExpression {
+                          override val position: Position) : Expression() {
     override lateinit var parent: Node
 
     companion object {
@@ -420,8 +457,8 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
     }
 }
 
-class StructLiteralValue(var values: List<IExpression>,
-                         override val position: Position): IExpression {
+class StructLiteralValue(var values: List<Expression>,
+                         override val position: Position): Expression() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -442,10 +479,10 @@ class StructLiteralValue(var values: List<IExpression>,
 
 class ReferenceLiteralValue(val type: DataType,     // only reference types allowed here
                             val str: String? = null,
-                            val array: Array<IExpression>? = null,
+                            val array: Array<Expression>? = null,
                             // actually, at the moment, we don't have struct literals in the language
                             initHeapId: Int? =null,
-                            override val position: Position) : IExpression {
+                            override val position: Position) : Expression() {
     override lateinit var parent: Node
 
     override fun referencesIdentifiers(vararg name: String) = array?.any { it.referencesIdentifiers(*name) } ?: false
@@ -558,10 +595,10 @@ class ReferenceLiteralValue(val type: DataType,     // only reference types allo
     }
 }
 
-class RangeExpr(var from: IExpression,
-                var to: IExpression,
-                var step: IExpression,
-                override val position: Position) : IExpression {
+class RangeExpr(var from: Expression,
+                var to: Expression,
+                var step: Expression,
+                override val position: Position) : Expression() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -635,7 +672,7 @@ class RangeExpr(var from: IExpression,
     }
 }
 
-class RegisterExpr(val register: Register, override val position: Position) : IExpression {
+class RegisterExpr(val register: Register, override val position: Position) : Expression() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -653,7 +690,7 @@ class RegisterExpr(val register: Register, override val position: Position) : IE
     override fun inferType(program: Program) = DataType.UBYTE
 }
 
-data class IdentifierReference(val nameInSource: List<String>, override val position: Position) : IExpression {
+data class IdentifierReference(val nameInSource: List<String>, override val position: Position) : Expression() {
     override lateinit var parent: Node
 
     fun targetStatement(namespace: INameScope) =
@@ -710,8 +747,8 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
 }
 
 class FunctionCall(override var target: IdentifierReference,
-                   override var arglist: MutableList<IExpression>,
-                   override val position: Position) : IExpression, IFunctionCall {
+                   override var arglist: MutableList<Expression>,
+                   override val position: Position) : Expression(), IFunctionCall {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -780,8 +817,7 @@ class FunctionCall(override var target: IdentifierReference,
                     return stmt.returntypes[0]
                 return null     // has multiple return types... so not a single resulting datatype possible
             }
-            is Label -> return null
+            else -> return null
         }
-        return null     // calling something we don't recognise...
     }
 }

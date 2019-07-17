@@ -1,6 +1,5 @@
 package prog8.vm.astvm
 
-import prog8.ast.IStatement
 import prog8.ast.Program
 import prog8.ast.base.DataType
 import prog8.ast.base.Position
@@ -9,6 +8,7 @@ import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.ReferenceLiteralValue
 import prog8.ast.processing.IAstModifyingVisitor
+import prog8.ast.statements.Statement
 import prog8.ast.statements.StructDecl
 import prog8.ast.statements.VarDecl
 import prog8.ast.statements.ZeropageWish
@@ -40,7 +40,7 @@ class VariablesCreator(private val runtimeVariables: RuntimeVariables, private v
         super.visit(program)
     }
 
-    override fun visit(decl: VarDecl): IStatement {
+    override fun visit(decl: VarDecl): Statement {
         // if the decl is part of a struct, just skip it
         if(decl.parent !is StructDecl) {
             when (decl.type) {
@@ -67,7 +67,7 @@ class VariablesCreator(private val runtimeVariables: RuntimeVariables, private v
         return super.visit(decl)
     }
 
-//    override fun accept(assignment: Assignment): IStatement {
+//    override fun accept(assignment: Assignment): Statement {
 //        if(assignment is VariableInitializationAssignment) {
 //            println("INIT VAR $assignment")
 //        }

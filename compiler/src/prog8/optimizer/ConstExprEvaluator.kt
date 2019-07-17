@@ -1,14 +1,14 @@
 package prog8.optimizer
 
-import prog8.ast.IExpression
 import prog8.ast.base.*
+import prog8.ast.expressions.Expression
 import prog8.ast.expressions.NumericLiteralValue
 import kotlin.math.pow
 
 
 class ConstExprEvaluator {
 
-    fun evaluate(left: NumericLiteralValue, operator: String, right: NumericLiteralValue): IExpression {
+    fun evaluate(left: NumericLiteralValue, operator: String, right: NumericLiteralValue): Expression {
         return when(operator) {
             "+" -> plus(left, right)
             "-" -> minus(left, right)
@@ -34,7 +34,7 @@ class ConstExprEvaluator {
         }
     }
 
-    private fun shiftedright(left: NumericLiteralValue, amount: NumericLiteralValue): IExpression {
+    private fun shiftedright(left: NumericLiteralValue, amount: NumericLiteralValue): Expression {
         if(left.type !in IntegerDatatypes || amount.type !in IntegerDatatypes)
             throw ExpressionError("cannot compute $left >> $amount", left.position)
         val result =
@@ -45,7 +45,7 @@ class ConstExprEvaluator {
         return NumericLiteralValue(left.type, result, left.position)
     }
 
-    private fun shiftedleft(left: NumericLiteralValue, amount: NumericLiteralValue): IExpression {
+    private fun shiftedleft(left: NumericLiteralValue, amount: NumericLiteralValue): Expression {
         if(left.type !in IntegerDatatypes || amount.type !in IntegerDatatypes)
             throw ExpressionError("cannot compute $left << $amount", left.position)
         val result = left.number.toInt().shl(amount.number.toInt())

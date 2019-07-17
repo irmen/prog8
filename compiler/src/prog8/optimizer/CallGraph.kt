@@ -1,6 +1,9 @@
 package prog8.optimizer
 
-import prog8.ast.*
+import prog8.ast.INameScope
+import prog8.ast.Module
+import prog8.ast.Node
+import prog8.ast.Program
 import prog8.ast.base.DataType
 import prog8.ast.base.ParentSentinel
 import prog8.ast.base.VarDeclType
@@ -19,7 +22,7 @@ class CallGraph(private val program: Program): IAstVisitor {
     val subroutinesCalling = mutableMapOf<INameScope, List<Subroutine>>().withDefault { mutableListOf() }
     val subroutinesCalledBy = mutableMapOf<Subroutine, List<Node>>().withDefault { mutableListOf() }
     // TODO  add dataflow graph: what statements use what variables
-    val usedSymbols = mutableSetOf<IStatement>()
+    val usedSymbols = mutableSetOf<Statement>()
 
     init {
         visit(program)
@@ -94,11 +97,11 @@ class CallGraph(private val program: Program): IAstVisitor {
         super.visit(identifier)
     }
 
-    private fun addNodeAndParentScopes(stmt: IStatement) {
+    private fun addNodeAndParentScopes(stmt: Statement) {
         usedSymbols.add(stmt)
         var node: Node=stmt
         do {
-            if(node is INameScope && node is IStatement) {
+            if(node is INameScope && node is Statement) {
                 usedSymbols.add(node)
             }
             node=node.parent
@@ -176,7 +179,7 @@ class CallGraph(private val program: Program): IAstVisitor {
         super.visit(inlineAssembly)
     }
 
-    private fun scanAssemblyCode(asm: String, context: IStatement, scope: INameScope) {
+    private fun scanAssemblyCode(asm: String, context: Statement, scope: INameScope) {
         val asmJumpRx = Regex("""[\-+a-zA-Z0-9_ \t]+(jmp|jsr)[ \t]+(\S+).*""", RegexOption.IGNORE_CASE)
         val asmRefRx = Regex("""[\-+a-zA-Z0-9_ \t]+(...)[ \t]+(\S+).*""", RegexOption.IGNORE_CASE)
         asm.lines().forEach { line ->

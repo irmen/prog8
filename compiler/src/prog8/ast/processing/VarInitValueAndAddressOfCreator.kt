@@ -1,6 +1,8 @@
 package prog8.ast.processing
 
-import prog8.ast.*
+import prog8.ast.INameScope
+import prog8.ast.Module
+import prog8.ast.Node
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
@@ -31,7 +33,7 @@ internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope
         }
     }
 
-    override fun visit(decl: VarDecl): IStatement {
+    override fun visit(decl: VarDecl): Statement {
         super.visit(decl)
 
         if(decl.isArray && decl.value==null) {
@@ -70,25 +72,25 @@ internal class VarInitValueAndAddressOfCreator(private val namespace: INameScope
         return decl
     }
 
-    override fun visit(functionCall: FunctionCall): IExpression {
+    override fun visit(functionCall: FunctionCall): Expression {
         val targetStatement = functionCall.target.targetSubroutine(namespace)
         if(targetStatement!=null) {
             var node: Node = functionCall
-            while(node !is IStatement)
+            while(node !is Statement)
                 node=node.parent
             addAddressOfExprIfNeeded(targetStatement, functionCall.arglist, node)
         }
         return functionCall
     }
 
-    override fun visit(functionCallStatement: FunctionCallStatement): IStatement {
+    override fun visit(functionCallStatement: FunctionCallStatement): Statement {
         val targetStatement = functionCallStatement.target.targetSubroutine(namespace)
         if(targetStatement!=null)
             addAddressOfExprIfNeeded(targetStatement, functionCallStatement.arglist, functionCallStatement)
         return functionCallStatement
     }
 
-    private fun addAddressOfExprIfNeeded(subroutine: Subroutine, arglist: MutableList<IExpression>, parent: IStatement) {
+    private fun addAddressOfExprIfNeeded(subroutine: Subroutine, arglist: MutableList<Expression>, parent: Statement) {
         // functions that accept UWORD and are given an array type, or string, will receive the AddressOf (memory location) of that value instead.
         for(argparam in subroutine.parameters.withIndex().zip(arglist)) {
             if(argparam.first.value.type==DataType.UWORD || argparam.first.value.type in StringDatatypes) {

@@ -1,6 +1,9 @@
 package prog8.ast.processing
 
-import prog8.ast.*
+import prog8.ast.INameScope
+import prog8.ast.Module
+import prog8.ast.Node
+import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
@@ -18,7 +21,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         return checkResult
     }
 
-    private fun nameError(name: String, position: Position, existing: IStatement) {
+    private fun nameError(name: String, position: Position, existing: Statement) {
         checkResult.add(NameError("name conflict '$name', also defined in ${existing.position.file} line ${existing.position.line}", position))
     }
 
@@ -33,7 +36,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         }
     }
 
-    override fun visit(block: Block): IStatement {
+    override fun visit(block: Block): Statement {
         val existing = blocks[block.name]
         if(existing!=null)
             nameError(block.name, block.position, existing)
@@ -43,7 +46,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         return super.visit(block)
     }
 
-    override fun visit(functionCall: FunctionCall): IExpression {
+    override fun visit(functionCall: FunctionCall): Expression {
         if(functionCall.target.nameInSource.size==1 && functionCall.target.nameInSource[0]=="lsb") {
             // lsb(...) is just an alias for type cast to ubyte, so replace with "... as ubyte"
             val typecast = TypecastExpression(functionCall.arglist.single(), DataType.UBYTE, false, functionCall.position)
@@ -53,7 +56,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         return super.visit(functionCall)
     }
 
-    override fun visit(decl: VarDecl): IStatement {
+    override fun visit(decl: VarDecl): Statement {
         // first, check if there are datatype errors on the vardecl
         decl.datatypeErrors.forEach { checkResult.add(it) }
 
@@ -95,7 +98,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         return super.visit(decl)
     }
 
-    override fun visit(subroutine: Subroutine): IStatement {
+    override fun visit(subroutine: Subroutine): Statement {
         if(subroutine.name in BuiltinFunctions) {
             // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", subroutine.position))
@@ -142,7 +145,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         return super.visit(subroutine)
     }
 
-    override fun visit(label: Label): IStatement {
+    override fun visit(label: Label): Statement {
         if(label.name in BuiltinFunctions) {
             // the builtin functions can't be redefined
             checkResult.add(NameError("builtin function cannot be redefined", label.position))
@@ -154,7 +157,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         return super.visit(label)
     }
 
-    override fun visit(forLoop: ForLoop): IStatement {
+    override fun visit(forLoop: ForLoop): Statement {
         // If the for loop has a decltype, it means to declare the loopvar inside the loop body
         // rather than reusing an already declared loopvar from an outer scope.
         // For loops that loop over an interable variable (instead of a range of numbers) get an
@@ -200,13 +203,13 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         return super.visit(assignTarget)
     }
 
-    override fun visit(returnStmt: Return): IStatement {
+    override fun visit(returnStmt: Return): Statement {
         if(returnStmt.value!=null) {
             // possibly adjust any literal values returned, into the desired returning data type
             val subroutine = returnStmt.definingSubroutine()!!
             if(subroutine.returntypes.size!=1)
                 return returnStmt  // mismatch in number of return values, error will be printed later.
-            val newValue: IExpression
+            val newValue: Expression
             val lval = returnStmt.value as? NumericLiteralValue
             if(lval!=null) {
                 val adjusted = lval.cast(subroutine.returntypes.single())
@@ -220,7 +223,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         return super.visit(returnStmt)
     }
 
-    override fun visit(refLiteral: ReferenceLiteralValue): IExpression {
+    override fun visit(refLiteral: ReferenceLiteralValue): Expression {
         if(refLiteral.parent !is VarDecl) {
             return makeIdentifierFromRefLv(refLiteral)
         }
@@ -240,14 +243,14 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         return identifier
     }
 
-    override fun visit(addressOf: AddressOf): IExpression {
+    override fun visit(addressOf: AddressOf): Expression {
         // register the scoped name of the referenced identifier
         val variable= addressOf.identifier.targetVarDecl(program.namespace) ?: return addressOf
         addressOf.scopedname = variable.scopedname
         return super.visit(addressOf)
     }
 
-    override fun visit(structDecl: StructDecl): IStatement {
+    override fun visit(structDecl: StructDecl): Statement {
         for(member in structDecl.statements){
             val decl = member as? VarDecl
             if(decl!=null && decl.datatype !in NumericDatatypes)
@@ -257,7 +260,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         return super.visit(structDecl)
     }
 
-    override fun visit(expr: BinaryExpression): IExpression {
+    override fun visit(expr: BinaryExpression): Expression {
         return when {
             expr.left is ReferenceLiteralValue ->
                 processBinaryExprWithReferenceVal(expr.left as ReferenceLiteralValue, expr.right, expr)
@@ -267,7 +270,7 @@ internal class AstIdentifiersChecker(private val program: Program) : IAstModifyi
         }
     }
 
-    private fun processBinaryExprWithReferenceVal(refLv: ReferenceLiteralValue, operand: IExpression, expr: BinaryExpression): IExpression {
+    private fun processBinaryExprWithReferenceVal(refLv: ReferenceLiteralValue, operand: Expression, expr: BinaryExpression): Expression {
         // expressions on strings or arrays
         if(refLv.isString) {
             val constvalue = operand.constValue(program)

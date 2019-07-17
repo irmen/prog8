@@ -3,8 +3,6 @@ package prog8.ast.antlr
 import org.antlr.v4.runtime.IntStream
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
-import prog8.ast.IExpression
-import prog8.ast.IStatement
 import prog8.ast.Module
 import prog8.ast.base.*
 import prog8.ast.expressions.*
@@ -41,7 +39,7 @@ private fun ParserRuleContext.toPosition() : Position {
 }
 
 
-private fun prog8Parser.ModulestatementContext.toAst(isInLibrary: Boolean) : IStatement {
+private fun prog8Parser.ModulestatementContext.toAst(isInLibrary: Boolean) : Statement {
     val directive = directive()?.toAst()
     if(directive!=null) return directive
 
@@ -52,15 +50,15 @@ private fun prog8Parser.ModulestatementContext.toAst(isInLibrary: Boolean) : ISt
 }
 
 
-private fun prog8Parser.BlockContext.toAst(isInLibrary: Boolean) : IStatement =
+private fun prog8Parser.BlockContext.toAst(isInLibrary: Boolean) : Statement =
         Block(identifier().text, integerliteral()?.toAst()?.number?.toInt(), statement_block().toAst(), isInLibrary, toPosition())
 
 
-private fun prog8Parser.Statement_blockContext.toAst(): MutableList<IStatement> =
+private fun prog8Parser.Statement_blockContext.toAst(): MutableList<Statement> =
         statement().asSequence().map { it.toAst() }.toMutableList()
 
 
-private fun prog8Parser.StatementContext.toAst() : IStatement {
+private fun prog8Parser.StatementContext.toAst() : Statement {
     vardecl()?.let { return it.toAst() }
 
     varinitializer()?.let {
@@ -216,7 +214,7 @@ private fun prog8Parser.StatementContext.toAst() : IStatement {
     throw FatalAstException("unprocessed source text (are we missing ast conversion rules for parser elements?): $text")
 }
 
-private fun prog8Parser.AsmsubroutineContext.toAst(): IStatement {
+private fun prog8Parser.AsmsubroutineContext.toAst(): Statement {
     val name = identifier().text
     val address = asmsub_address()?.address?.toAst()?.number?.toInt()
     val params = asmsub_params()?.toAst() ?: emptyList()
@@ -265,7 +263,7 @@ private fun prog8Parser.Asmsub_paramsContext.toAst(): List<AsmSubroutineParamete
 private fun prog8Parser.StatusregisterContext.toAst() = Statusflag.valueOf(text)
 
 
-private fun prog8Parser.Functioncall_stmtContext.toAst(): IStatement {
+private fun prog8Parser.Functioncall_stmtContext.toAst(): Statement {
     val location = scoped_identifier().toAst()
     return if(expression_list() == null)
         FunctionCallStatement(location, mutableListOf(), toPosition())
@@ -298,7 +296,7 @@ private fun prog8Parser.UnconditionaljumpContext.toAst(): Jump {
 }
 
 
-private fun prog8Parser.LabeldefContext.toAst(): IStatement =
+private fun prog8Parser.LabeldefContext.toAst(): Statement =
         Label(children[0].text, toPosition())
 
 
@@ -411,7 +409,7 @@ private fun prog8Parser.IntegerliteralContext.toAst(): NumericLiteral {
 }
 
 
-private fun prog8Parser.ExpressionContext.toAst() : IExpression {
+private fun prog8Parser.ExpressionContext.toAst() : Expression {
 
     val litval = literalvalue()
     if(litval!=null) {
@@ -521,7 +519,7 @@ private fun prog8Parser.BooleanliteralContext.toAst() = when(text) {
 }
 
 
-private fun prog8Parser.ArrayliteralContext.toAst() : Array<IExpression> =
+private fun prog8Parser.ArrayliteralContext.toAst() : Array<Expression> =
         expression().map { it.toAst() }.toTypedArray()
 
 private fun prog8Parser.If_stmtContext.toAst(): IfStatement {
@@ -534,7 +532,7 @@ private fun prog8Parser.If_stmtContext.toAst(): IfStatement {
     return IfStatement(condition, trueScope, elseScope, toPosition())
 }
 
-private fun prog8Parser.Else_partContext.toAst(): MutableList<IStatement> {
+private fun prog8Parser.Else_partContext.toAst(): MutableList<Statement> {
     return statement_block()?.toAst() ?: mutableListOf(statement().toAst())
 }
 
