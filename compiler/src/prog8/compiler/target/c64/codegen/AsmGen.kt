@@ -1,4 +1,4 @@
-package prog8.compiler.target.c64
+package prog8.compiler.target.c64.codegen
 
 // note: to put stuff on the stack, we use Absolute,X  addressing mode which is 3 bytes / 4 cycles
 // possible space optimization is to use zeropage (indirect),Y  which is 2 bytes, but 5 cycles
@@ -12,6 +12,9 @@ import prog8.compiler.intermediate.Instruction
 import prog8.compiler.intermediate.IntermediateProgram
 import prog8.compiler.intermediate.LabelInstr
 import prog8.compiler.intermediate.Opcode
+import prog8.compiler.target.c64.AssemblyProgram
+import prog8.compiler.target.c64.MachineDefinition
+import prog8.compiler.target.c64.Petscii
 import prog8.vm.RuntimeValue
 import java.io.File
 import java.util.*
@@ -560,31 +563,31 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
             Opcode.SHL_BYTE -> AsmFragment(" asl  $variable+$index", 8)
             Opcode.SHR_UBYTE -> AsmFragment(" lsr  $variable+$index", 8)
             Opcode.SHR_SBYTE -> AsmFragment(" lda  $variable+$index |  asl  a |  ror  $variable+$index")
-            Opcode.SHL_WORD -> AsmFragment(" asl  $variable+${index*2+1} |  rol  $variable+${index*2}", 8)
-            Opcode.SHR_UWORD -> AsmFragment(" lsr  $variable+${index*2+1} |  ror  $variable+${index*2}", 8)
-            Opcode.SHR_SWORD -> AsmFragment(" lda  $variable+${index*2+1} |  asl  a |  ror  $variable+${index*2+1} |  ror  $variable+${index*2}", 8)
+            Opcode.SHL_WORD -> AsmFragment(" asl  $variable+${index * 2 + 1} |  rol  $variable+${index * 2}", 8)
+            Opcode.SHR_UWORD -> AsmFragment(" lsr  $variable+${index * 2 + 1} |  ror  $variable+${index * 2}", 8)
+            Opcode.SHR_SWORD -> AsmFragment(" lda  $variable+${index * 2 + 1} |  asl  a |  ror  $variable+${index * 2 + 1} |  ror  $variable+${index * 2}", 8)
             Opcode.ROL_BYTE -> AsmFragment(" rol  $variable+$index", 8)
             Opcode.ROR_BYTE -> AsmFragment(" ror  $variable+$index", 8)
-            Opcode.ROL_WORD -> AsmFragment(" rol  $variable+${index*2+1} |  rol  $variable+${index*2}", 8)
-            Opcode.ROR_WORD -> AsmFragment(" ror  $variable+${index*2+1} |  ror  $variable+${index*2}", 8)
+            Opcode.ROL_WORD -> AsmFragment(" rol  $variable+${index * 2 + 1} |  rol  $variable+${index * 2}", 8)
+            Opcode.ROR_WORD -> AsmFragment(" ror  $variable+${index * 2 + 1} |  ror  $variable+${index * 2}", 8)
             Opcode.ROL2_BYTE -> AsmFragment(" lda  $variable+$index |  cmp  #\$80 |  rol  $variable+$index", 8)
             Opcode.ROR2_BYTE -> AsmFragment(" lda  $variable+$index |  lsr  a |  bcc  + |  ora  #\$80 |+ |  sta  $variable+$index", 10)
-            Opcode.ROL2_WORD -> AsmFragment(" asl  $variable+${index*2+1} |  rol  $variable+${index*2} |  bcc  + |  inc  $variable+${index*2+1} |+",20)
-            Opcode.ROR2_WORD -> AsmFragment(" lsr  $variable+${index*2+1} |  ror  $variable+${index*2} |  bcc  + |  lda  $variable+${index*2+1} |  ora  #\$80 |  sta  $variable+${index*2+1} |+", 30)
+            Opcode.ROL2_WORD -> AsmFragment(" asl  $variable+${index * 2 + 1} |  rol  $variable+${index * 2} |  bcc  + |  inc  $variable+${index * 2 + 1} |+", 20)
+            Opcode.ROR2_WORD -> AsmFragment(" lsr  $variable+${index * 2 + 1} |  ror  $variable+${index * 2} |  bcc  + |  lda  $variable+${index * 2 + 1} |  ora  #\$80 |  sta  $variable+${index * 2 + 1} |+", 30)
             Opcode.INC_INDEXED_VAR_B, Opcode.INC_INDEXED_VAR_UB -> AsmFragment(" inc  $variable+$index", 2)
             Opcode.DEC_INDEXED_VAR_B, Opcode.DEC_INDEXED_VAR_UB -> AsmFragment(" dec  $variable+$index", 5)
-            Opcode.INC_INDEXED_VAR_W, Opcode.INC_INDEXED_VAR_UW -> AsmFragment(" inc  $variable+${index*2} |  bne  + |  inc  $variable+${index*2+1} |+")
-            Opcode.DEC_INDEXED_VAR_W, Opcode.DEC_INDEXED_VAR_UW -> AsmFragment(" lda  $variable+${index*2} |  bne  + |  dec  $variable+${index*2+1} |+ |  dec  $variable+${index*2}")
+            Opcode.INC_INDEXED_VAR_W, Opcode.INC_INDEXED_VAR_UW -> AsmFragment(" inc  $variable+${index * 2} |  bne  + |  inc  $variable+${index * 2 + 1} |+")
+            Opcode.DEC_INDEXED_VAR_W, Opcode.DEC_INDEXED_VAR_UW -> AsmFragment(" lda  $variable+${index * 2} |  bne  + |  dec  $variable+${index * 2 + 1} |+ |  dec  $variable+${index * 2}")
             Opcode.INC_INDEXED_VAR_FLOAT -> AsmFragment(
-                """
-                lda  #<($variable+${index* MachineDefinition.Mflpt5.MemorySize})
-                ldy  #>($variable+${index* MachineDefinition.Mflpt5.MemorySize})
+                    """
+                lda  #<($variable+${index * MachineDefinition.Mflpt5.MemorySize})
+                ldy  #>($variable+${index * MachineDefinition.Mflpt5.MemorySize})
                 jsr  c64flt.inc_var_f
                 """)
             Opcode.DEC_INDEXED_VAR_FLOAT -> AsmFragment(
-                """
-                lda  #<($variable+${index* MachineDefinition.Mflpt5.MemorySize})
-                ldy  #>($variable+${index* MachineDefinition.Mflpt5.MemorySize})
+                    """
+                lda  #<($variable+${index * MachineDefinition.Mflpt5.MemorySize})
+                ldy  #>($variable+${index * MachineDefinition.Mflpt5.MemorySize})
                 jsr  c64flt.dec_var_f
                 """)
 

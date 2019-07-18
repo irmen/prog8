@@ -1,8 +1,9 @@
-package prog8.compiler.target.c64
+package prog8.compiler.target.c64.codegen
 
 import prog8.ast.base.printWarning
 import prog8.compiler.intermediate.Instruction
 import prog8.compiler.intermediate.Opcode
+import prog8.compiler.target.c64.MachineDefinition
 import prog8.compiler.target.c64.MachineDefinition.C64Zeropage
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_HEX
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_PLUS1_HEX
@@ -2071,7 +2072,7 @@ internal val patterns = listOf<AsmPattern>(
         AsmPattern(listOf(Opcode.PUSH_VAR_BYTE, Opcode.CMP_B), listOf(Opcode.PUSH_VAR_BYTE, Opcode.CMP_UB)) { segment ->
             // this pattern is encountered as part of the loop bound condition in for loops (var + cmp + jz/jnz)
             val cmpval = segment[1].arg!!.integerValue()
-            when(segment[0].callLabel) {
+            when (segment[0].callLabel) {
                 "A" -> {
                     " cmp #$cmpval "
                 }
@@ -2114,7 +2115,8 @@ internal val patterns = listOf<AsmPattern>(
         AsmPattern(listOf(Opcode.PUSH_BYTE, Opcode.MUL_B), listOf(Opcode.PUSH_BYTE, Opcode.MUL_UB)) { segment ->
             val amount = segment[0].arg!!.integerValue()
             val result = optimizedIntMultiplicationsOnStack(segment[1], amount)
-            result ?: " lda  #${hexVal(segment[0])} |  sta  $ESTACK_LO_HEX,x |  dex |  jsr  prog8_lib.mul_byte"
+            result
+                    ?: " lda  #${hexVal(segment[0])} |  sta  $ESTACK_LO_HEX,x |  dex |  jsr  prog8_lib.mul_byte"
         },
         AsmPattern(listOf(Opcode.PUSH_WORD, Opcode.MUL_W), listOf(Opcode.PUSH_WORD, Opcode.MUL_UW)) { segment ->
             val amount = segment[0].arg!!.integerValue()

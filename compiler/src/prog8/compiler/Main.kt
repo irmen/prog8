@@ -1,9 +1,10 @@
 package prog8.compiler
 
+import prog8.ast.AstToSourceCode
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.statements.Directive
-import prog8.compiler.target.c64.AsmGen
+import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.compiler.target.c64.MachineDefinition
 import prog8.optimizer.constantFold
 import prog8.optimizer.optimizeStatements
