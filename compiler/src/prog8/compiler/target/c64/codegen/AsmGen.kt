@@ -536,7 +536,7 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
         }
 
         // add any matching patterns from the big list
-        for(pattern in patterns) {
+        for(pattern in Patterns.patterns) {
             if(pattern.sequence.size > segment.size || (pattern.altSequence!=null && pattern.altSequence.size > segment.size))
                 continue        //  don't accept patterns that don't fit
             val opcodesList = opcodes.subList(0, pattern.sequence.size)
