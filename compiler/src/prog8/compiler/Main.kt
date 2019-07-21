@@ -6,6 +6,7 @@ import prog8.ast.base.*
 import prog8.ast.statements.Directive
 import prog8.compiler.target.c64.codegen.AsmGen
 import prog8.compiler.target.c64.MachineDefinition
+import prog8.compiler.target.c64.codegen2.AsmGen2
 import prog8.optimizer.constantFold
 import prog8.optimizer.optimizeStatements
 import prog8.optimizer.simplifyExpressions
@@ -22,7 +23,7 @@ import kotlin.system.measureTimeMillis
 fun compileProgram(filepath: Path,
                    optimize: Boolean, optimizeInlining: Boolean,
                    generateVmCode: Boolean, writeVmCode: Boolean,
-                   writeAssembly: Boolean): Pair<Program, String?> {
+                   writeAssembly: Boolean, asm2: Boolean): Pair<Program, String?> {
     lateinit var programAst: Program
     var programName: String? = null
 
@@ -106,13 +107,20 @@ fun compileProgram(filepath: Path,
                     println("StackVM program code written to '$stackVmFilename'")
                 }
 
-                if (writeAssembly) {
+                if (writeAssembly && !asm2) {
                     val zeropage = MachineDefinition.C64Zeropage(compilerOptions)
                     intermediate.allocateZeropage(zeropage)
                     val assembly = AsmGen(compilerOptions, intermediate, programAst.heap, zeropage).compileToAssembly(optimize)
                     assembly.assemble(compilerOptions)
                     programName = assembly.name
                 }
+            }
+
+            if(asm2 && writeAssembly) {
+                // asm generation directly from the Ast, no need for intermediate code
+                val assembly = AsmGen2(programAst, compilerOptions, MachineDefinition.C64Zeropage(compilerOptions)).compileToAssembly(optimize)
+                assembly.assemble(compilerOptions)
+                programName = assembly.name
             }
         }
         println("\nTotal compilation+assemble time: ${totalTime / 1000.0} sec.")

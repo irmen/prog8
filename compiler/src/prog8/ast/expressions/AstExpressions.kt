@@ -735,6 +735,8 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         }
     }
 
+    fun memberOfStruct(namespace: INameScope) = this.targetVarDecl(namespace)?.struct
+
     fun heapId(namespace: INameScope): Int {
         val node = namespace.lookup(nameInSource, this) ?: throw UndefinedSymbolError(this)
         val value = (node as? VarDecl)?.value ?: throw FatalAstException("requires a reference value")

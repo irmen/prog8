@@ -151,7 +151,7 @@ data class CompilationOptions(val output: OutputType,
 
 internal class Compiler(private val program: Program) {
 
-    private val prog: IntermediateProgram = IntermediateProgram(program.name, program.loadAddress, program.heap, program.modules.first().source)
+    private val prog: IntermediateProgram = IntermediateProgram(program.name, program.definedLoadAddress, program.heap, program.modules.first().source)
     private var generatedLabelSequenceNumber = 0
     private val breakStmtLabelStack : Stack<String> = Stack()
     private val continueStmtLabelStack : Stack<String> = Stack()

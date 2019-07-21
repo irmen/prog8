@@ -631,11 +631,11 @@ internal class AstChecker(private val program: Program,
                 if(directive.parent !is INameScope || directive.parent is Module) err("this directive may only occur in a block")
                 val errormsg = "invalid asmbinary directive, expected arguments: \"filename\" [, offset [, length ] ]"
                 if(directive.args.isEmpty()) err(errormsg)
-                if(directive.args.isNotEmpty() && directive.args[0].str==null) err(errormsg)
-                if(directive.args.size>=2 && directive.args[1].int==null) err(errormsg)
-                if(directive.args.size==3 && directive.args[2].int==null) err(errormsg)
-                if(directive.args.size>3) err(errormsg)
-                checkFileExists(directive, directive.args[0].str!!)
+                else if(directive.args.isNotEmpty() && directive.args[0].str==null) err(errormsg)
+                else if(directive.args.size>=2 && directive.args[1].int==null) err(errormsg)
+                else if(directive.args.size==3 && directive.args[2].int==null) err(errormsg)
+                else if(directive.args.size>3) err(errormsg)
+                else checkFileExists(directive, directive.args[0].str!!)
             }
             "%option" -> {
                 if(directive.parent !is Block && directive.parent !is Module) err("this directive may only occur in a block or at module level")

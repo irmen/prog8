@@ -34,7 +34,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
     val memory = mutableMapOf<Int, List<RuntimeValue>>()
     private lateinit var currentBlock: ProgramBlock
 
-    fun allocateZeropage(zeropage: Zeropage) {
+    fun allocateZeropage(zeropage: Zeropage) {          // TODO not used anymore???
         // allocates all @zp marked variables on the zeropage (for all blocks, as long as there is space in the ZP)
         var notAllocated = 0
         for(block in blocks) {

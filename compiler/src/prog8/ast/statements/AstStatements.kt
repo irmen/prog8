@@ -812,6 +812,8 @@ class StructDecl(override val name: String,
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: IAstModifyingVisitor) = visitor.visit(this)
+
+    fun nameOfFirstMember() = (statements.first() as VarDecl).name
 }
 
 class DirectMemoryWrite(var addressExpression: Expression, override val position: Position) : Node {

@@ -168,8 +168,10 @@ class Program(val name: String, val modules: MutableList<Module>) {
     val namespace = GlobalNamespace(modules)
     val heap = HeapValues()
 
-    val loadAddress: Int
+    val definedLoadAddress: Int
         get() = modules.first().loadAddress
+
+    var actualLoadAddress: Int = 0
 
     fun entrypoint(): Subroutine? {
         val mainBlocks = modules.flatMap { it.statements }.filter { b -> b is Block && b.name=="main" }.map { it as Block }
@@ -181,6 +183,8 @@ class Program(val name: String, val modules: MutableList<Module>) {
             mainBlocks[0].subScopes()["start"] as Subroutine?
         }
     }
+
+    fun allBlocks(): List<Block> = modules.flatMap { it.statements.filterIsInstance<Block>() }
 }
 
 class Module(override val name: String,

@@ -305,7 +305,7 @@ class AsmGen(private val options: CompilationOptions, private val program: Inter
         val (structMembers, normalVars) = block.variables.partition { it.params.memberOfStruct!=null }
         structMembers.forEach { vardecl2asm(it.scopedname, it.value, it.params) }
 
-        // leave outsort the other variables by type
+        // sort the other variables by type
         out(";  other variables sorted by type")
         val sortedVars = normalVars.sortedBy { it.value.type }
         for (variable in sortedVars) {

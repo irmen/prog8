@@ -38,6 +38,7 @@ private fun compileMain(args: Array<String>) {
     var optimize = true
     var optimizeInlining = true
     var launchAstVm = false
+    var asm2 = false
     for (arg in args) {
         if(arg=="-emu")
             emulatorToStart = "x64"
@@ -53,6 +54,10 @@ private fun compileMain(args: Array<String>) {
             optimizeInlining = false
         else if(arg=="-avm")
             launchAstVm = true
+        else if(arg=="-asm2") {
+            writeVmCode = false
+            asm2 = true
+        }
         else if(!arg.startsWith("-"))
             moduleFile = arg
         else
@@ -64,7 +69,7 @@ private fun compileMain(args: Array<String>) {
     val filepath = Paths.get(moduleFile).normalize()
 
     val (programAst, programName) = compileProgram(filepath, optimize, optimizeInlining,
-            !launchAstVm, writeVmCode, writeAssembly)
+            !launchAstVm && !asm2, writeVmCode, writeAssembly, asm2)
 
     if(launchAstVm) {
         println("\nLaunching AST-based vm...")
@@ -92,6 +97,7 @@ private fun usage() {
     System.err.println("    [-emu2]         auto-start the 'x64sc' C-64 emulator after successful compilation")
     System.err.println("    [-writevm]      write intermediate vm code to a file as well")
     System.err.println("    [-noasm]        don't create assembly code")
+    System.err.println("    [-asm2]         use new Ast-Asmgen2 (WIP)")
     System.err.println("    [-vm]           launch the prog8 virtual machine instead of the compiler")
     System.err.println("    [-avm]          launch the prog8 ast-based virtual machine after compilation")
     System.err.println("    [-noopt]        don't perform any optimizations")

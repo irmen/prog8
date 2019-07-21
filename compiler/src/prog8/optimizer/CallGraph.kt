@@ -111,7 +111,8 @@ class CallGraph(private val program: Program): IAstVisitor {
     override fun visit(subroutine: Subroutine) {
         val alwaysKeepSubroutines = setOf(
                 Pair("main", "start"),
-                Pair("irq", "irq")
+                Pair("irq", "irq"),
+                Pair("prog8_lib", "init_system")
         )
 
         if(Pair(subroutine.definingScope().name, subroutine.name) in alwaysKeepSubroutines
