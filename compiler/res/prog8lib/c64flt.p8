@@ -52,7 +52,7 @@ asmsub	MOVMF		(uword mflpt @ XY) clobbers(A,Y)	= $bbd4		; store fac1 to memory  
 
 ; fac1-> signed word in Y/A (might throw ILLEGAL QUANTITY)
 ; (tip: use c64flt.FTOSWRDAY to get A/Y output; lo/hi switched to normal little endian order)
-asmsub	FTOSWORDYA	() clobbers(X) -> ubyte @ Y, ubyte @ A  = $b1aa
+asmsub	FTOSWORDYA	() clobbers(X) -> ubyte @ Y, ubyte @ A  = $b1aa     ; note: calls AYINT.
 
 ; fac1 -> unsigned word in Y/A (might throw ILLEGAL QUANTITY) (result also in $14/15)
 ; (tip: use c64flt.GETADRAY to get A/Y output; lo/hi switched to normal little endian order)
@@ -196,8 +196,8 @@ sub  print_f  (float value) {
 	; ---- prints the floating point value (without a newline) using basic rom routines.
 	%asm {{
 		stx  c64.SCRATCH_ZPREGX
-		lda  #<print_f_value
-		ldy  #>print_f_value
+		lda  #<value
+		ldy  #>value
 		jsr  MOVFM		; load float into fac1
 		jsr  FOUT		; fac1 to string in A/Y
 		jsr  c64.STROUT			; print string in A/Y
@@ -310,7 +310,7 @@ stack_uw2float	.proc
 		jmp  push_fac1_as_result
 		.pend
 
-stack_float2w	.proc
+stack_float2w	.proc               ; also used for float2b
 		jsr  pop_float_fac1
 		stx  c64.SCRATCH_ZPREGX
 		jsr  AYINT
@@ -323,7 +323,7 @@ stack_float2w	.proc
 		rts
 		.pend
 
-stack_float2uw	.proc
+stack_float2uw	.proc               ; also used for float2ub
 		jsr  pop_float_fac1
 		stx  c64.SCRATCH_ZPREGX
 		jsr  GETADR

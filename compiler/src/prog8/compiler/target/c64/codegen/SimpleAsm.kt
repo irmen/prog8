@@ -459,8 +459,8 @@ internal fun simpleInstr2Asm(ins: Instruction, block: IntermediateProgram.Progra
         Opcode.CAST_B_TO_F -> " jsr  c64flt.stack_b2float"
         Opcode.CAST_UW_TO_F -> " jsr  c64flt.stack_uw2float"
         Opcode.CAST_W_TO_F -> " jsr  c64flt.stack_w2float"
-        Opcode.CAST_F_TO_UB -> " jsr  c64flt.stack_float2uw"
-        Opcode.CAST_F_TO_B -> " jsr  c64flt.stack_float2w"
+        Opcode.CAST_F_TO_UB -> " jsr  c64flt.stack_float2ub"
+        Opcode.CAST_F_TO_B -> " jsr  c64flt.stack_float2b"
         Opcode.CAST_F_TO_UW -> " jsr  c64flt.stack_float2uw"
         Opcode.CAST_F_TO_W -> " jsr  c64flt.stack_float2w"
         Opcode.CAST_UB_TO_UW, Opcode.CAST_UB_TO_W -> " lda  #0 |  sta  $ESTACK_HI_PLUS1_HEX,x"     // clear the msb

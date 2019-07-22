@@ -379,10 +379,10 @@ internal class StatementOptimizer(private val program: Program, private val opti
                 printWarning("condition is always true", whileLoop.position)
                 if(hasContinueOrBreak(whileLoop.body))
                     return whileLoop
-                val label = Label("__back", whileLoop.condition.position)
+                val label = Label("_prog8_back", whileLoop.condition.position)
                 whileLoop.body.statements.add(0, label)
                 whileLoop.body.statements.add(Jump(null,
-                        IdentifierReference(listOf("__back"), whileLoop.condition.position),
+                        IdentifierReference(listOf("_prog8_back"), whileLoop.condition.position),
                         null, whileLoop.condition.position))
                 optimizationsDone++
                 return whileLoop.body
