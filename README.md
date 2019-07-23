@@ -26,7 +26,9 @@ which aims to provide many conveniences over raw assembly code (even when using 
 - automatic type conversions
 - floating point operations  (uses the C64 Basic ROM routines for this)
 - abstracting away low level aspects such as ZeroPage handling, program startup, explicit memory addresses
-- various code optimizations (code structure, logical and numerical expressions, unused code removal...) 
+- various code optimizations (code structure, logical and numerical expressions, unused code removal...)
+- inline assembly allows you to have full control when every cycle or byte matters
+ 
 
 Rapid edit-compile-run-debug cycle:
 
