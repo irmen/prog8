@@ -16,7 +16,10 @@ import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_HEX
 import prog8.compiler.target.c64.Petscii
 import prog8.functions.BuiltinFunctions
 import java.io.File
+import java.math.RoundingMode
 import java.util.*
+import kotlin.math.PI
+import kotlin.math.E
 import kotlin.math.absoluteValue
 
 
@@ -222,7 +225,7 @@ internal class AsmGen2(val program: Program,
                 }
             }
             else {
-                TODO("already allocated on zp?? $zpVar")
+                throw AssemblyError("huh, var is already on zp  $zpVar")
                 // it was already allocated on the zp, what to do?
                 // out("${variable.name} = ${zpVar.first}\t; zp ${zpVar.second}")
             }
@@ -373,12 +376,44 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun getFloatConst(number: Double): String {
-        val name = globalFloatConsts[number]
-        if(name!=null)
-            return name
-        val newName = "prog8_float_const_${globalFloatConsts.size}"
-        globalFloatConsts[number] = newName
-        return newName
+        // try to match the ROM float constants to save memory
+        val mflpt5 = MachineDefinition.Mflpt5.fromNumber(number)
+        val floatbytes = shortArrayOf(mflpt5.b0, mflpt5.b1, mflpt5.b2, mflpt5.b3, mflpt5.b4)
+        when {
+            floatbytes.contentEquals(shortArrayOf(0x00, 0x00, 0x00, 0x00, 0x00)) -> return "c64flt.FL_ZERO"
+            floatbytes.contentEquals(shortArrayOf(0x82, 0x49, 0x0f, 0xda, 0xa1)) -> return "c64flt.FL_PIVAL"
+            floatbytes.contentEquals(shortArrayOf(0x90, 0x80, 0x00, 0x00, 0x00)) -> return "c64flt.FL_N32768"
+            floatbytes.contentEquals(shortArrayOf(0x81, 0x00, 0x00, 0x00, 0x00)) -> return "c64flt.FL_FONE"
+            floatbytes.contentEquals(shortArrayOf(0x80, 0x35, 0x04, 0xf3, 0x34)) -> return "c64flt.FL_SQRHLF"
+            floatbytes.contentEquals(shortArrayOf(0x81, 0x35, 0x04, 0xf3, 0x34)) -> return "c64flt.FL_SQRTWO"
+            floatbytes.contentEquals(shortArrayOf(0x80, 0x80, 0x00, 0x00, 0x00)) -> return "c64flt.FL_NEGHLF"
+            floatbytes.contentEquals(shortArrayOf(0x80, 0x31, 0x72, 0x17, 0xf8)) -> return "c64flt.FL_LOG2"
+            floatbytes.contentEquals(shortArrayOf(0x84, 0x20, 0x00, 0x00, 0x00)) -> return "c64flt.FL_TENC"
+            floatbytes.contentEquals(shortArrayOf(0x9e, 0x6e, 0x6b, 0x28, 0x00)) -> return "c64flt.FL_NZMIL"
+            floatbytes.contentEquals(shortArrayOf(0x80, 0x00, 0x00, 0x00, 0x00)) -> return "c64flt.FL_FHALF"
+            floatbytes.contentEquals(shortArrayOf(0x81, 0x38, 0xaa, 0x3b, 0x29)) -> return "c64flt.FL_LOGEB2"
+            floatbytes.contentEquals(shortArrayOf(0x81, 0x49, 0x0f, 0xda, 0xa2)) -> return "c64flt.FL_PIHALF"
+            floatbytes.contentEquals(shortArrayOf(0x83, 0x49, 0x0f, 0xda, 0xa2)) -> return "c64flt.FL_TWOPI"
+            floatbytes.contentEquals(shortArrayOf(0x7f, 0x00, 0x00, 0x00, 0x00)) -> return "c64flt.FL_FR4"
+            else -> {
+                // attempt to correct for a few rounding issues
+                when (number.toBigDecimal().setScale(10, RoundingMode.HALF_DOWN).toDouble()) {
+                    3.1415926536 -> return "c64flt.FL_PIVAL"
+                    1.4142135624 -> return "c64flt.FL_SQRTWO"
+                    0.7071067812 -> return "c64flt.FL_SQRHLF"
+                    0.6931471806 -> return "c64flt.FL_LOG2"
+                    else -> {}
+                }
+
+                // no ROM float const for this value, create our own
+                val name = globalFloatConsts[number]
+                if(name!=null)
+                    return name
+                val newName = "prog8_float_const_${globalFloatConsts.size}"
+                globalFloatConsts[number] = newName
+                return newName
+            }
+        }
     }
 
     private fun signExtendAtoMsb(destination: String) =
@@ -466,78 +501,115 @@ internal class AsmGen2(val program: Program,
         }
     }
 
+    private fun argumentTypeCompatible(argType: DataType, paramType: DataType): Boolean {
+        if(argType isAssignableTo paramType)
+            return true
+
+        // we have a special rule for some types.
+        // strings are assignable to UWORD, for example, and vice versa
+        if(argType in StringDatatypes && paramType==DataType.UWORD)
+            return true
+        if(argType==DataType.UWORD && paramType in StringDatatypes)
+            return true
+
+        return false
+    }
+
     private fun translateSubroutineCall(stmt: IFunctionCall) {
+        val sub = stmt.target.targetSubroutine(program.namespace)!!
+        if(Register.X in sub.asmClobbers)
+            out("  stx  c64.SCRATCH_ZPREGX")        // we only save X for now (required! is the eval stack pointer), screw A and Y...
+
         val subName = stmt.target.nameInSource.joinToString(".")
         if(stmt.arglist.isNotEmpty()) {
-            val sub = stmt.target.targetSubroutine(program.namespace)!!
             for(arg in sub.parameters.withIndex().zip(stmt.arglist)) {
-                if(arg.first.value.type!=arg.second.inferType(program))
-                    throw AssemblyError("argument type mismatch")
-                if(sub.asmParameterRegisters.isEmpty()) {
-                    // pass arg via a variable
-                    val paramVar = arg.first.value
-                    val scopedParamVar = (sub.scopedname+"."+paramVar.name).split(".")
-                    val target = AssignTarget(null, IdentifierReference(scopedParamVar, sub.position), null, null, sub.position)
-                    target.linkParents(stmt as Node)
-                    val literal = arg.second as? NumericLiteralValue
-                    when {
-                        literal!=null -> {
-                            // optimize when the argument is a constant literal
-                            when(arg.first.value.type) {
-                                in ByteDatatypes -> assignByteConstant(target, literal.number.toShort())
-                                in WordDatatypes -> assignWordConstant(target, literal.number.toInt())
-                                DataType.FLOAT -> assignFloatConstant(target, literal.number.toDouble())
-                                in PassByReferenceDatatypes-> TODO( "str/array/struct sub arg")
-                                else -> throw AssemblyError("weird arg datatype")
-                            }
-                        }
-                        arg.second is IdentifierReference -> {
-                            // optimize when the argument is a variable
-                            when (arg.first.value.type) {
-                                in ByteDatatypes -> assignByteVariable(target, arg.second as IdentifierReference)
-                                in WordDatatypes -> assignWordVariable(target, arg.second as IdentifierReference)
-                                DataType.FLOAT -> assignFloatVariable(target, arg.second as IdentifierReference)
-                                in PassByReferenceDatatypes -> TODO("str/array/struct sub arg")
-                                else -> throw AssemblyError("weird arg datatype")
-                            }
-                        }
-                        else -> TODO("non-constant sub arg $arg")
+                translateSubroutineArgument(arg.first, arg.second, sub)
+            }
+        }
+        out("  jsr  $subName")
+
+        if(Register.X in sub.asmClobbers)
+            out("  ldx  c64.SCRATCH_ZPREGX")        // restore X again
+    }
+
+    private fun translateSubroutineArgument(arg: IndexedValue<SubroutineParameter>, value: Expression, sub: Subroutine) {
+        val sourceDt = value.inferType(program)!!
+        if(!argumentTypeCompatible(sourceDt, arg.value.type))
+            throw AssemblyError("argument type incompatible")
+        if(sub.asmParameterRegisters.isEmpty()) {
+            // pass arg via a variable
+            val paramVar = arg.value
+            val scopedParamVar = (sub.scopedname+"."+paramVar.name).split(".")
+            val target = AssignTarget(null, IdentifierReference(scopedParamVar, sub.position), null, null, sub.position)
+            target.linkParents(value.parent)
+            val literal = value as? NumericLiteralValue
+            when {
+                literal!=null -> {
+                    // optimize when the argument is a constant literal
+                    when(arg.value.type) {
+                        in ByteDatatypes -> assignByteConstant(target, literal.number.toShort())
+                        in WordDatatypes -> assignWordConstant(target, literal.number.toInt())
+                        DataType.FLOAT -> assignFloatConstant(target, literal.number.toDouble())
+                        in PassByReferenceDatatypes-> TODO( "str/array/struct sub arg")
+                        else -> throw AssemblyError("weird arg datatype")
                     }
-                } else {
-                    // pass arg via a register parameter
-                    val paramRegister = sub.asmParameterRegisters[arg.first.index]
-                    val statusflag = paramRegister.statusflag
-                    val register = paramRegister.registerOrPair
-                    val stack = paramRegister.stack
-                    when {
-                        stack==true -> TODO("stack param")
-                        statusflag!=null -> {
-                            if (statusflag == Statusflag.Pc) TODO("carry flag param")
-                            else throw AssemblyError("can only use Carry as status flag parameter")
-                        }
-                        register!=null -> {
-                            val target = AssignTarget(Register.valueOf(register.name), null, null, null, sub.position)
-                            target.linkParents(stmt as Node)
-                            val literal = arg.second as? NumericLiteralValue
-                            if(literal!=null) {
-                                // optimize when the argument is a constant literal
-                                when(register) {
-                                    RegisterOrPair.A,
-                                    RegisterOrPair.X,
-                                    RegisterOrPair.Y -> assignByteConstant(target, literal.number.toShort())
-                                    RegisterOrPair.AX -> TODO("register A+X param $literal")
-                                    RegisterOrPair.AY -> TODO("register A+Y param $literal")
-                                    RegisterOrPair.XY -> TODO("register X+Y param $literal")
-                                }
-                            } else {
-                                TODO("register param non-const")
-                            }
-                        }
+                }
+                value is IdentifierReference -> {
+                    // optimize when the argument is a variable
+                    when (arg.value.type) {
+                        in ByteDatatypes -> assignByteVariable(target, value)
+                        in WordDatatypes -> assignWordVariable(target, value)
+                        DataType.FLOAT -> assignFloatVariable(target, value)
+                        in PassByReferenceDatatypes -> TODO("str/array/struct sub arg")
+                        else -> throw AssemblyError("weird arg datatype")
+                    }
+                }
+                else -> TODO("non-constant sub arg $arg")
+            }
+        } else {
+            // pass arg via a register parameter
+            val paramRegister = sub.asmParameterRegisters[arg.index]
+            val statusflag = paramRegister.statusflag
+            val register = paramRegister.registerOrPair
+            val stack = paramRegister.stack
+            when {
+                stack==true -> TODO("param on stack")
+                statusflag!=null -> {
+                    if (statusflag == Statusflag.Pc) TODO("carry flag param")
+                    else throw AssemblyError("can only use Carry as status flag parameter")
+                }
+                register!=null && register.name.length==1 -> {
+                    val target = AssignTarget(Register.valueOf(register.name), null, null, null, sub.position)
+                    target.linkParents(value.parent)
+                    val literal = value as? NumericLiteralValue
+                    if(literal!=null) {
+                        // optimize when the argument is a constant literal
+                        assignByteConstant(target, literal.number.toShort())
+                    } else {
+                        TODO("single register param non-const")
+                    }
+                }
+                register!=null && register.name.length==2 -> {
+                    // register pair as a 16-bit value (only possible for subroutine parameters)
+                    val literal = value as? NumericLiteralValue
+                    if(literal!=null) {
+                        // optimize when the argument is a constant literal
+                        val hex = literal.number.toHex()
+                        if (register == RegisterOrPair.AX)  out("  lda  #<$hex  |  ldx  #>$hex")
+                        else if (register == RegisterOrPair.AY) out("  lda  #<$hex  |  ldy  #>$hex")
+                        else if (register == RegisterOrPair.XY) out("  ldx  #<$hex  |  ldy  #>$hex")
+                    } else if(value is AddressOf) {
+                        // optimize when the argument is an address of something
+                        val sourceName = value.identifier.nameInSource.joinToString(".")
+                        if (register == RegisterOrPair.AX)  out("  lda  #<$sourceName  |  ldx  #>$sourceName")
+                        else if (register == RegisterOrPair.AY) out("  lda  #<$sourceName  |  ldy  #>$sourceName")
+                        else if (register == RegisterOrPair.XY) out("  ldx  #<$sourceName  |  ldy  #>$sourceName")
+                    } else {
+                        TODO("register pair param non-const $register = ${value}")
                     }
                 }
             }
         }
-        out("  jsr  $subName")
     }
 
     private fun translate(stmt: Label) {

@@ -241,8 +241,6 @@ internal class StatementOptimizer(private val program: Program, private val opti
         if(functionCallStatement.target.nameInSource==listOf("c64scr", "print") ||
                 functionCallStatement.target.nameInSource==listOf("c64scr", "print_p")) {
             // printing a literal string of just 2 or 1 characters is replaced by directly outputting those characters
-            if(functionCallStatement.arglist.single() is NumericLiteralValue)
-                throw AstException("string argument should be on heap already")
             val stringVar = functionCallStatement.arglist.single() as? IdentifierReference
             if(stringVar!=null) {
                 val heapId = stringVar.heapId(program.namespace)

@@ -49,7 +49,7 @@ class BuiltinFunctionStatementPlaceholder(val name: String, override val positio
 }
 
 
-data class RegisterOrStatusflag(val registerOrPair: RegisterOrPair?, val statusflag: Statusflag?, val stack: Boolean?)
+data class RegisterOrStatusflag(val registerOrPair: RegisterOrPair?, val statusflag: Statusflag?, val stack: Boolean)
 
 
 class Block(override val name: String,
