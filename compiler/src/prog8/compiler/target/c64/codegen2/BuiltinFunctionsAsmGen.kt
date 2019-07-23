@@ -7,15 +7,11 @@ import prog8.ast.expressions.FunctionCall
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.FunctionCallStatement
-import prog8.ast.statements.Subroutine
-import prog8.compiler.target.c64.MachineDefinition
-import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_HEX
-import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_PLUS1_HEX
-import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_HEX
-import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_PLUS1_HEX
 import prog8.compiler.CompilationOptions
 import prog8.compiler.Zeropage
-import prog8.functions.BuiltinFunctions
+import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_PLUS1_HEX
+import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_HEX
+import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_PLUS1_HEX
 import prog8.functions.FunctionSignature
 
 internal class BuiltinFunctionsAsmGen(private val program: Program,

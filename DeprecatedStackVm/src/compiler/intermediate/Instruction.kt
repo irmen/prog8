@@ -1,4 +1,4 @@
-package prog8.compiler.intermediate
+package compiler.intermediate
 
 import prog8.vm.RuntimeValue
 import prog8.vm.stackvm.Syscall
@@ -15,8 +15,8 @@ open class Instruction(val opcode: Opcode,
         val argStr = arg?.toString() ?: ""
         val result =
                 when {
-                    opcode==Opcode.LINE -> "_line  $callLabel"
-                    opcode==Opcode.INLINE_ASSEMBLY -> {
+                    opcode== Opcode.LINE -> "_line  $callLabel"
+                    opcode== Opcode.INLINE_ASSEMBLY -> {
                         // inline assembly is not written out (it can't be processed as intermediate language)
                         // instead, it is converted into a system call that can be intercepted by the vm
                         if(callLabel!=null)
@@ -24,10 +24,10 @@ open class Instruction(val opcode: Opcode,
                         else
                             "inline_assembly"
                     }
-                    opcode==Opcode.INCLUDE_FILE -> {
+                    opcode== Opcode.INCLUDE_FILE -> {
                         "include_file \"$callLabel\" $arg $arg2"
                     }
-                    opcode==Opcode.SYSCALL -> {
+                    opcode== Opcode.SYSCALL -> {
                         val syscall = Syscall.values().find { it.callNr==arg!!.numericValue() }
                         "syscall  $syscall"
                     }

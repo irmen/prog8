@@ -1,4 +1,4 @@
-package prog8.compiler.intermediate
+package compiler.intermediate
 
 import prog8.ast.antlr.escape
 import prog8.ast.base.*
@@ -85,7 +85,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         val branchOpcodes = setOf(Opcode.JZ, Opcode.JNZ, Opcode.JZW, Opcode.JNZW)
         for(blk in blocks) {
             val instructionsToReplace = mutableMapOf<Int, Instruction>()
-            blk.instructions.asSequence().withIndex().filter {it.value.opcode!=Opcode.LINE}.windowed(2).toList().forEach {
+            blk.instructions.asSequence().withIndex().filter {it.value.opcode!= Opcode.LINE }.windowed(2).toList().forEach {
                 if (it[1].value.opcode in branchOpcodes) {
                     if (it[0].value.opcode in pushvalue) {
                         val value = it[0].value.arg!!.asBoolean
@@ -138,8 +138,8 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
         for(blk in blocks) {
             val instructionsToReplace = mutableMapOf<Int, Instruction>()
 
-            blk.instructions.asSequence().withIndex().filter {it.value.opcode!=Opcode.LINE}.windowed(2).toList().forEach {
-                if(it[0].value.opcode==Opcode.CALL && it[1].value.opcode==Opcode.RETURN) {
+            blk.instructions.asSequence().withIndex().filter {it.value.opcode!= Opcode.LINE }.windowed(2).toList().forEach {
+                if(it[0].value.opcode== Opcode.CALL && it[1].value.opcode== Opcode.RETURN) {
                     instructionsToReplace[it[1].index] = Instruction(Opcode.JUMP, callLabel = it[0].value.callLabel)
                     instructionsToReplace[it[0].index] = Instruction(Opcode.NOP)
                 }
@@ -315,12 +315,12 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
                     instructionsToReplace[index0] = ins
                     instructionsToReplace[index1] = Instruction(Opcode.NOP)
                 }
-                Opcode.CAST_B_TO_F, Opcode.CAST_UB_TO_F-> {
+                Opcode.CAST_B_TO_F, Opcode.CAST_UB_TO_F -> {
                     val ins = Instruction(Opcode.PUSH_FLOAT, RuntimeValue(DataType.FLOAT, ins0.arg!!.integerValue().toDouble()))
                     instructionsToReplace[index0] = ins
                     instructionsToReplace[index1] = Instruction(Opcode.NOP)
                 }
-                Opcode.CAST_W_TO_F, Opcode.CAST_UW_TO_F-> throw CompilerException("invalid conversion following a byte")
+                Opcode.CAST_W_TO_F, Opcode.CAST_UW_TO_F -> throw CompilerException("invalid conversion following a byte")
                 Opcode.DISCARD_BYTE -> {
                     instructionsToReplace[index0] = Instruction(Opcode.NOP)
                     instructionsToReplace[index1] = Instruction(Opcode.NOP)
@@ -462,7 +462,7 @@ class IntermediateProgram(val name: String, var loadAddress: Int, val heap: Heap
     }
 
     fun newBlock(name: String, address: Int?, options: Set<String>) {
-        currentBlock = ProgramBlock(name, address, force_output="force_output" in options)
+        currentBlock = ProgramBlock(name, address, force_output = "force_output" in options)
         blocks.add(currentBlock)
     }
 

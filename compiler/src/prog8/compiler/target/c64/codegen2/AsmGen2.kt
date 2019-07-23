@@ -5,18 +5,15 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.antlr.escape
 import prog8.ast.base.*
-import prog8.ast.base.initvarsSubName
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.*
 import prog8.compiler.target.c64.AssemblyProgram
 import prog8.compiler.target.c64.MachineDefinition
-import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_HEX
-import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_PLUS1_HEX
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_HEX
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_PLUS1_HEX
+import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_HEX
 import prog8.compiler.target.c64.Petscii
-import prog8.compiler.target.c64.codegen.optimizeAssembly
 import prog8.functions.BuiltinFunctions
 import java.io.File
 import java.util.*
@@ -198,7 +195,7 @@ internal class AsmGen2(val program: Program,
                 val bytes = Petscii.encodeScreencode(str, true)
                 bytes.plus(0)
             }
-            else -> throw prog8.compiler.target.c64.codegen.AssemblyError("invalid str type")
+            else -> throw AssemblyError("invalid str type")
         }
     }
 
@@ -533,7 +530,7 @@ internal class AsmGen2(val program: Program,
                                     RegisterOrPair.XY -> TODO("register X+Y param $literal")
                                 }
                             } else {
-                                TODO("register param")
+                                TODO("register param non-const")
                             }
                         }
                     }
@@ -544,7 +541,7 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun translate(stmt: Label) {
-        out("${stmt.name}")
+        out(stmt.name)
     }
 
     private fun translate(stmt: BranchStatement) {
@@ -779,7 +776,7 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun translateExpression(expr: ArrayIndexedExpression) {
-        out("; TODO evaluate arrayindexed ${expr}") // TODO
+        out("; TODO evaluate arrayindexed $expr") // TODO
     }
 
     private fun translateExpression(expr: TypecastExpression) {
@@ -864,11 +861,11 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun translateExpression(expr: AddressOf) {
-        out("; TODO take address of ${expr}")  // TODO
+        out("; TODO take address of $expr")  // TODO
     }
 
     private fun translateExpression(expr: DirectMemoryRead) {
-        out("; TODO memread ${expr}")  // TODO
+        out("; TODO memread $expr")  // TODO
     }
 
     private fun translateExpression(expr: NumericLiteralValue) {

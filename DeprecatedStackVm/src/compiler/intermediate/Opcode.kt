@@ -1,4 +1,4 @@
-package prog8.compiler.intermediate
+package compiler.intermediate
 
 enum class Opcode {
 
