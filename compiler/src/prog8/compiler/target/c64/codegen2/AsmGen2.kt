@@ -10,6 +10,7 @@ import prog8.ast.statements.*
 import prog8.compiler.*
 import prog8.compiler.target.c64.AssemblyProgram
 import prog8.compiler.target.c64.MachineDefinition
+import prog8.compiler.target.c64.MachineDefinition.C64Zeropage
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_HEX
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_PLUS1_HEX
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_HEX
@@ -18,8 +19,6 @@ import prog8.functions.BuiltinFunctions
 import java.io.File
 import java.math.RoundingMode
 import java.util.*
-import kotlin.math.PI
-import kotlin.math.E
 import kotlin.math.absoluteValue
 
 
@@ -961,7 +960,7 @@ internal class AsmGen2(val program: Program,
     private fun translateExpression(expr: RegisterExpr) {
         when(expr.register) {
             Register.A -> out(" sta  $ESTACK_LO_HEX,x | dex")
-            Register.X -> throw AssemblyError("cannot push X")
+            Register.X -> throw AssemblyError("cannot push X - use a variable instead of the X register")
             Register.Y -> out(" tya |  sta  $ESTACK_LO_HEX,x | dex")
         }
     }

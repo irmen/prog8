@@ -731,7 +731,7 @@ class AstVm(val program: Program) {
                 result = RuntimeValue(DataType.UBYTE, paddedStr.indexOf('\u0000'))
             }
             "c64flt.print_f" -> {
-                dialog.canvas.printText(args[0].floatval.toString(), true)
+                dialog.canvas.printText(args[0].floatval.toString(), false)
             }
             "c64.CHROUT" -> {
                 dialog.canvas.printPetscii(args[0].byteval!!)

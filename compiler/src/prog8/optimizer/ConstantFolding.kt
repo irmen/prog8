@@ -6,7 +6,6 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.processing.IAstModifyingVisitor
 import prog8.ast.statements.*
-import prog8.compiler.HeapValues
 import prog8.compiler.IntegerOrAddressOf
 import prog8.compiler.target.c64.MachineDefinition.FLOAT_MAX_NEGATIVE
 import prog8.compiler.target.c64.MachineDefinition.FLOAT_MAX_POSITIVE
@@ -35,10 +34,6 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
         }
 
         if(decl.type==VarDeclType.CONST || decl.type==VarDeclType.VAR) {
-            val refLv = decl.value as? ReferenceLiteralValue
-            if(refLv!=null && refLv.isArray && refLv.heapId!=null)
-                fixupArrayTypeOnHeap(decl, refLv)
-
             if(decl.isArray){
                 // for arrays that have no size specifier (or a non-constant one) attempt to deduce the size
                 if(decl.arraysize==null) {
@@ -155,37 +150,26 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
             }
         }
 
-        return super.visit(decl)
-    }
+        //TODO ???
+//        val decl2 = super.visit(decl) as VarDecl
+//        if(decl2.isArray) {
+//            val refvalue = decl2.value as? ReferenceLiteralValue
+//            if(refvalue!=null) {
+//                if (refvalue.isArray && refvalue.type!=decl2.datatype) {
+//                    // fix the datatype of
+//                    println("DECL ${decl2.datatype}  -  ${refvalue.type} - $array")
+//                }
+//            }
+//        }
 
-    private fun fixupArrayTypeOnHeap(decl: VarDecl, litval: ReferenceLiteralValue) {
-        // fix the type of the array value that's on the heap, to match the vardecl.
-        // notice that checking the bounds of the actual values is not done here, but in the AstChecker later.
-
-        if(decl.datatype==litval.type)
-            return   // already correct datatype
-        val heapId = litval.heapId ?: throw FatalAstException("expected array to be on heap $litval")
-        val array = program.heap.get(heapId)
-        when(decl.datatype) {
-            DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
-                if(array.array!=null) {
-                    program.heap.update(heapId, HeapValues.HeapValue(decl.datatype, null, array.array, null))
-                    decl.value = ReferenceLiteralValue(decl.datatype, initHeapId = heapId, position = litval.position)
-                }
+        if(decl.isArray) {
+            val refvalue = decl.value as? ReferenceLiteralValue
+            if(refvalue!=null) {
+                println("VISIT DECL ${decl.position}    ${decl.datatype}   ->  ${refvalue.type}")
             }
-            DataType.ARRAY_F -> {
-                if(array.array!=null) {
-                    // convert a non-float array to floats
-                    val doubleArray = array.array.map { it.integer!!.toDouble() }.toDoubleArray()
-                    program.heap.update(heapId, HeapValues.HeapValue(DataType.ARRAY_F, null, null, doubleArray))
-                    decl.value = ReferenceLiteralValue(decl.datatype, initHeapId = heapId, position = litval.position)
-                }
-            }
-            DataType.STRUCT -> {
-                // leave it alone for structs.
-            }
-            else -> throw FatalAstException("invalid array vardecl type ${decl.datatype}")
         }
+
+        return super.visit(decl)
     }
 
     /**
@@ -611,59 +595,29 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
                 if (litval.str!!.length !in 1..255)
                     addError(ExpressionError("string literal length must be between 1 and 255", litval.position))
                 else {
-                    litval.addToHeap(program.heap)  // TODO: we don't know the actual string type yet, STR != STR_S etc...
+                    litval.addToHeap(program.heap)
                 }
             } else if (litval.isArray) {
-                // first, adjust the array datatype
-                val litval2 = adjustArrayValDatatype(litval)
-                litval2.addToHeap(program.heap)
-                return litval2
-            }
-        }
-        return litval
-    }
-
-    private fun adjustArrayValDatatype(litval: ReferenceLiteralValue): ReferenceLiteralValue {
-        if(litval.array==null) {
-            if(litval.heapId!=null)
-                return litval       // thing is already on the heap, assume it's the right type
-            throw FatalAstException("missing array value")
-        }
-
-        val typesInArray = litval.array.mapNotNull { it.inferType(program) }.toSet()
-        val arrayDt =
-                when {
-                    litval.array.any { it is AddressOf } -> DataType.ARRAY_UW
-                    DataType.FLOAT in typesInArray -> DataType.ARRAY_F
-                    DataType.WORD in typesInArray -> DataType.ARRAY_W
-                    else -> {
-                        val allElementsAreConstantOrAddressOf = litval.array.fold(true) { c, expr-> c and (expr is NumericLiteralValue|| expr is AddressOf)}
-                        if(!allElementsAreConstantOrAddressOf) {
-                            addError(ExpressionError("array literal can only consist of constant primitive numerical values or memory pointers", litval.position))
-                            return litval
-                        } else {
-                            val integerArray = litval.array.map { it.constValue(program)!!.number.toInt() }
-                            val maxValue = integerArray.max()!!
-                            val minValue = integerArray.min()!!
-                            if (minValue >= 0) {
-                                // unsigned
-                                if (maxValue <= 255)
-                                    DataType.ARRAY_UB
-                                else
-                                    DataType.ARRAY_UW
-                            } else {
-                                // signed
-                                if (maxValue <= 127)
-                                    DataType.ARRAY_B
-                                else
-                                    DataType.ARRAY_W
-                            }
+                val vardecl = litval.parent as? VarDecl
+                if (vardecl!=null) {
+                    if(litval.heapId!=null) {
+                        val arrayDt = litval.type
+                        if(arrayDt!=vardecl.datatype) {
+                            // fix the datatype of the array (also on the heap) to match the vardecl
+                            val litval2 = litval.cast(vardecl.datatype)!!
+                            vardecl.value = litval2
+                            litval2.linkParents(vardecl)
+                            litval2.addToHeap(program.heap)     // TODO is the previous array discarded from the resulting asm code?
+                            return litval2
                         }
                     }
+                } else {
+                    TODO("VISIT REFLITERAL OUTSIDE OF VARDECL $litval")
                 }
 
-        if(arrayDt!=litval.type) {
-            return ReferenceLiteralValue(arrayDt, array = litval.array, position = litval.position)
+                if(litval.heapId==null)
+                    litval.addToHeap(program.heap)
+            }
         }
         return litval
     }

@@ -524,7 +524,7 @@ class ReferenceLiteralValue(val type: DataType,     // only reference types allo
             in ArrayDatatypes -> "$array"
             else -> throw FatalAstException("weird ref type")
         }
-        return "ReferenceValueLiteral($type, $valueStr)"
+        return "RefValueLit($type, $valueStr)"
     }
 
     override fun inferType(program: Program) = type
@@ -559,7 +559,14 @@ class ReferenceLiteralValue(val type: DataType,     // only reference types allo
         when(type) {
             in StringDatatypes -> {
                 if(targettype in StringDatatypes)
-                    return ReferenceLiteralValue(targettype, str, initHeapId = heapId, position = position)
+                    return ReferenceLiteralValue(targettype, str, position = position)
+            }
+            in ArrayDatatypes -> {
+                if(targettype in ArrayDatatypes) {
+                    val elementType = ArrayElementTypes.getValue(targettype)
+                    val castArray = array!!.map{ (it as NumericLiteralValue).cast(elementType)!! as Expression }.toTypedArray()
+                    return ReferenceLiteralValue(targettype, null, array=castArray, position = position)
+                }
             }
             else -> {}
         }

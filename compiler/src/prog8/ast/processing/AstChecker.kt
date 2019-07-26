@@ -1033,6 +1033,7 @@ internal class AstChecker(private val program: Program,
                     }
                     return err("invalid word array size, must be 1-128")
                 }
+                TODO("${value.position}")
                 return err("invalid word array initialization value ${value.type}, expected $targetDt")
             }
             DataType.ARRAY_F -> {
