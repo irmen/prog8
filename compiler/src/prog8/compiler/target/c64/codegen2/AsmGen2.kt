@@ -14,6 +14,7 @@ import prog8.compiler.target.c64.MachineDefinition.C64Zeropage
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_HEX
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_HI_PLUS1_HEX
 import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_HEX
+import prog8.compiler.target.c64.MachineDefinition.ESTACK_LO_PLUS1_HEX
 import prog8.compiler.target.c64.Petscii
 import prog8.functions.BuiltinFunctions
 import java.io.File
@@ -495,7 +496,7 @@ internal class AsmGen2(val program: Program,
             is RepeatLoop -> TODO()
             is WhenStatement -> TODO()
             is BuiltinFunctionStatementPlaceholder -> throw AssemblyError("builtin function should not have placeholder anymore?")
-            is AnonymousScope -> throw AssemblyError("anonscope should have been flattened")
+            is AnonymousScope -> translate(stmt)
             is Block -> throw AssemblyError("block should have been handled elsewhere")
         }
     }
@@ -615,6 +616,10 @@ internal class AsmGen2(val program: Program,
         out(stmt.name)
     }
 
+    private fun translate(scope: AnonymousScope) {
+        scope.statements.forEach { translate(it) }
+    }
+
     private fun translate(stmt: BranchStatement) {
         if(stmt.truepart.containsNoCodeNorVars() && stmt.elsepart.containsCodeOrVars())
             throw AssemblyError("only else part contains code, shoud have been switched already")
@@ -624,8 +629,22 @@ internal class AsmGen2(val program: Program,
             // branch with only a jump
             val instruction = branchInstruction(stmt.condition, false)
             out("  $instruction  ${getJumpTarget(jump)}")
+            translate(stmt.elsepart)
         } else {
-            TODO("branch $stmt")
+            if(stmt.elsepart.containsNoCodeNorVars()) {
+                val instruction = branchInstruction(stmt.condition, true)
+                out("  $instruction  _prog8_branch_else")
+                translate(stmt.truepart)
+                out("_prog8_branch_else")
+            } else {
+                val instruction = branchInstruction(stmt.condition, false)
+                out("  $instruction  _prog8_branch_true")
+                translate(stmt.elsepart)
+                out("  jmp  _prog8_branch_end")
+                out("_prog8_branch_true")
+                translate(stmt.truepart)
+                out("_prog8_branch_end")
+            }
         }
     }
 
@@ -654,7 +673,7 @@ internal class AsmGen2(val program: Program,
     }
 
     private fun translate(stmt: ForLoop) {
-        out("; TODO for $stmt") // TODO
+        out("; TODO forloop $stmt") // TODO
     }
 
     private fun translate(stmt: PostIncrDecr) {
@@ -760,14 +779,7 @@ internal class AsmGen2(val program: Program,
                     DataType.UBYTE, DataType.BYTE -> assignByteConstant(assign.target, numVal.number.toShort())
                     DataType.UWORD, DataType.WORD -> assignWordConstant(assign.target, numVal.number.toInt())
                     DataType.FLOAT -> assignFloatConstant(assign.target, numVal.number.toDouble())
-                    DataType.STR -> TODO()
-                    DataType.STR_S -> TODO()
-                    DataType.ARRAY_UB -> TODO()
-                    DataType.ARRAY_B -> TODO()
-                    DataType.ARRAY_UW -> TODO()
-                    DataType.ARRAY_W -> TODO()
-                    DataType.ARRAY_F -> TODO()
-                    DataType.STRUCT -> TODO()
+                    else -> throw AssemblyError("weird numval type")
                 }
             }
             is RegisterExpr -> {
@@ -779,14 +791,8 @@ internal class AsmGen2(val program: Program,
                     DataType.UBYTE, DataType.BYTE -> assignByteVariable(assign.target, assign.value as IdentifierReference)
                     DataType.UWORD, DataType.WORD -> assignWordVariable(assign.target, assign.value as IdentifierReference)
                     DataType.FLOAT -> assignFloatVariable(assign.target, assign.value as IdentifierReference)
-                    DataType.STR -> TODO()
-                    DataType.STR_S -> TODO()
-                    DataType.ARRAY_UB -> TODO()
-                    DataType.ARRAY_B -> TODO()
-                    DataType.ARRAY_UW -> TODO()
-                    DataType.ARRAY_W -> TODO()
-                    DataType.ARRAY_F -> TODO()
-                    DataType.STRUCT -> TODO()
+                    in StringDatatypes -> TODO("str assignment")
+                    else -> throw AssemblyError("unsupported assignment target type $type")
                 }
             }
             is AddressOf -> {
@@ -806,7 +812,7 @@ internal class AsmGen2(val program: Program,
                     }
                     else -> {
                         translateExpression(read.addressExpression)
-                        out("; TODO read memory byte from result and put that in ${assign.target}")      // TODO
+                        TODO("; TODO read memory byte from result and put that in ${assign.target}")
                     }
                 }
             }
@@ -989,7 +995,38 @@ internal class AsmGen2(val program: Program,
 
     private fun translateExpression(expr: PrefixExpression) {
         translateExpression(expr.expression)
-        out("; TODO evaluate prefix ${expr.operator}")  // TODO
+        val type = expr.inferType(program)
+        when(expr.operator) {
+            "+" -> {}
+            "-" -> {
+                when(type) {
+                    in ByteDatatypes -> out("  jsr  prog8_lib.neg_b")
+                    in WordDatatypes -> out("  jsr  prog8_lib.neg_w")
+                    DataType.FLOAT -> out("  jsr  c64flt.neg_f")
+                    else -> throw AssemblyError("weird type")
+                }
+            }
+            "~" -> {
+                when(type) {
+                    in ByteDatatypes ->
+                        out("""
+                            lda  $ESTACK_LO_PLUS1_HEX,x
+                            eor  #255
+                            sta  $ESTACK_LO_PLUS1_HEX,x
+                            """)
+                    in WordDatatypes -> out("  jsr  prog8_lib.inv_word")
+                    else -> throw AssemblyError("weird type")
+                }
+            }
+            "not" -> {
+                when(type) {
+                    in ByteDatatypes -> out("  jsr  prog8_lib.not_byte")
+                    in WordDatatypes -> out("  jsr  prog8_lib.not_word")
+                    else -> throw AssemblyError("weird type")
+                }
+            }
+            else -> throw AssemblyError("invalid prefix operator ${expr.operator}")
+        }
     }
 
     private fun assignEvalResult(target: AssignTarget) {
@@ -1150,6 +1187,22 @@ internal class AsmGen2(val program: Program,
         }
     }
 
+    private fun saveRegister(register: Register) {
+        when(register) {
+            Register.A -> out("  pha")
+            Register.X -> out("  txa | pha")
+            Register.Y -> out("  tya | pha")
+        }
+    }
+
+    private fun restoreRegister(register: Register) {
+        when(register) {
+            Register.A -> out("  pla")
+            Register.X -> out("  pla | tax")
+            Register.Y -> out("  pla | tay")
+        }
+    }
+
     private fun assignWordConstant(target: AssignTarget, word: Int) {
         if(target.identifier!=null) {
             val targetName = asmIdentifierName(target.identifier)
@@ -1169,7 +1222,7 @@ internal class AsmGen2(val program: Program,
                 """)
             }
         } else {
-            out("; TODO assign byte $word to $target")   // TODO
+            out("; TODO assign word $word to $target")   // TODO
         }
     }
 

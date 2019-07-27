@@ -150,25 +150,6 @@ class ConstantFolding(private val program: Program) : IAstModifyingVisitor {
             }
         }
 
-        //TODO ???
-//        val decl2 = super.visit(decl) as VarDecl
-//        if(decl2.isArray) {
-//            val refvalue = decl2.value as? ReferenceLiteralValue
-//            if(refvalue!=null) {
-//                if (refvalue.isArray && refvalue.type!=decl2.datatype) {
-//                    // fix the datatype of
-//                    println("DECL ${decl2.datatype}  -  ${refvalue.type} - $array")
-//                }
-//            }
-//        }
-
-        if(decl.isArray) {
-            val refvalue = decl.value as? ReferenceLiteralValue
-            if(refvalue!=null) {
-                println("VISIT DECL ${decl.position}    ${decl.datatype}   ->  ${refvalue.type}")
-            }
-        }
-
         return super.visit(decl)
     }
 

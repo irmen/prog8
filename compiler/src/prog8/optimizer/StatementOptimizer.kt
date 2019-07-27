@@ -487,8 +487,10 @@ internal class StatementOptimizer(private val program: Program, private val opti
             throw AstException("augmented assignments should have been converted to normal assignments before this optimizer")
 
         if(assignment.target isSameAs assignment.value) {
-            optimizationsDone++
-            return NopStatement.insteadOf(assignment)
+            if(assignment.target.isNotMemory(program.namespace)) {
+                optimizationsDone++
+                return NopStatement.insteadOf(assignment)
+            }
         }
         val targetDt = assignment.target.inferType(program, assignment)
         val bexpr=assignment.value as? BinaryExpression
